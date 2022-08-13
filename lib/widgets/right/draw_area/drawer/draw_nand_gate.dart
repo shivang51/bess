@@ -85,10 +85,6 @@ class _DrawNandGateState extends State<DrawNandGate> {
                         style: Theme.of(context).textTheme.titleSmall,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      Text(
-                        "x = ${pos.dx}, y = ${pos.dy}",
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
                     ],
                   ),
                 ),

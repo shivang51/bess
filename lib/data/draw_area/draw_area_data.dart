@@ -3,8 +3,9 @@ import 'package:bess/data/draw_area/objects/draw_objects.dart';
 import 'package:bess/data/draw_area/objects/gates/obj_nand_gate.dart';
 import 'package:bess/data/draw_area/objects/pins/obj_input_pin.dart';
 import 'package:bess/data/draw_area/objects/pins/obj_output_pin.dart';
-import 'package:bess/data/draw_area/objects/pins/obj_pin.dart';
 import 'package:flutter/material.dart';
+
+import 'objects/gates/obj_gate.dart';
 
 enum DrawElement { none, connection, pin }
 
@@ -48,8 +49,9 @@ class DrawAreaData with ChangeNotifier {
     var obj = objects[id]!;
     if (obj.type == DrawObject.wire) {
       objects.remove(id);
-    } else if (obj.type == DrawObject.nandGate) {
-      var obj_ = obj as DAONandGate;
+    } else if (obj.type == DrawObject.nandGate ||
+        obj.type == DrawObject.norGate) {
+      var obj_ = obj as DrawAreaGate;
       obj_.inputPins.forEach(objects.remove);
       obj_.outputPins.forEach(objects.remove);
       objects.remove(id);

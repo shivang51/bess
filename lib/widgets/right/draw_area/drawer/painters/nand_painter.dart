@@ -50,7 +50,6 @@ class NandPainter extends ShapeBorder {
 
   @override
   ShapeBorder scale(double t) {
-    print("Scale = " + t.toString());
     return NandPainter().scale(t);
   }
 }

@@ -18,12 +18,12 @@ class CompNorGate {
     drawAreaData.addObjects({
       pinInIds[0]: DAOInputPin(
         id: pinInIds[0],
-        gateId: id,
+        parentId: id,
         name: "pin",
       ),
       pinInIds[1]: DAOInputPin(
         id: pinInIds[1],
-        gateId: id,
+        parentId: id,
         name: "pin",
       ),
     });
@@ -32,7 +32,7 @@ class CompNorGate {
       pinOutIds[0]: DAOOutputPin(
         id: pinOutIds[0],
         name: "pin",
-        gateId: id,
+        parentId: id,
       ),
     });
 

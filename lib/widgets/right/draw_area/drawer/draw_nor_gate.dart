@@ -1,4 +1,3 @@
-import 'package:bess/data/draw_area/objects/draw_objects.dart';
 import 'package:bess/data/draw_area/objects/gates/obj_nor_gate.dart';
 import 'package:bess/themes.dart';
 
@@ -61,9 +60,14 @@ class _DrawNorGateState extends State<DrawNorGate> {
               inPins: gate.inputPins,
               parentId: widget.id,
               parentPos: pos,
+              width: 40.0,
             ),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const SizedBox(
+                  width: 20.0,
+                ),
                 SizedBox(
                   width: 110.0,
                   height: 100.0,
@@ -82,7 +86,7 @@ class _DrawNorGateState extends State<DrawNorGate> {
                       child: Column(
                         children: [
                           Text(
-                            "x = ${pos.dx}, y = ${pos.dy}",
+                            "NOR Gate",
                             style: Theme.of(context).textTheme.titleSmall,
                           ),
                         ],

@@ -12,11 +12,13 @@ class InputPins extends StatelessWidget {
     required this.inPins,
     required this.parentId,
     required this.parentPos,
+    this.width = 20.0,
   }) : super(key: key);
 
   final List<String> inPins;
   final String parentId;
   final Offset parentPos;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +26,7 @@ class InputPins extends StatelessWidget {
         Provider.of<DrawAreaData>(context, listen: false);
     return SizedBox(
       height: 100.0,
-      width: 20.0,
+      width: width,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: List.generate(
@@ -40,7 +42,8 @@ class InputPins extends StatelessWidget {
               type: pin.type,
               parentId: parentId,
               id: inPins[index],
-              parentPos: parentPos + pos,
+              pinPos: parentPos + pos,
+              width: width,
             );
           },
         ),

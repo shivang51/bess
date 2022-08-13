@@ -1,6 +1,4 @@
 import 'package:bess/data/draw_area/objects/draw_area_object.dart';
-import 'package:bess/data/draw_area/objects/pins/obj_input_pin.dart';
-import 'package:bess/data/draw_area/objects/pins/obj_output_pin.dart';
 
 abstract class DrawAreaGate extends DrawAreaObject {
   DrawAreaGate({

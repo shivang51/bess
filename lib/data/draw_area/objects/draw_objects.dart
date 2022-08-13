@@ -5,4 +5,5 @@ enum DrawObject {
   nandGate,
   norGate,
   wire,
+  inputButton,
 }

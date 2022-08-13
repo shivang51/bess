@@ -19,12 +19,12 @@ class CompNandGate {
       pinInIds[0]: DAOInputPin(
         id: pinInIds[0],
         name: "pin",
-        gateId: id,
+        parentId: id,
       ),
       pinInIds[1]: DAOInputPin(
         id: pinInIds[1],
         name: "pin",
-        gateId: id,
+        parentId: id,
       ),
     });
 
@@ -32,7 +32,7 @@ class CompNandGate {
       pinOutIds[0]: DAOOutputPin(
         id: pinOutIds[0],
         name: "pin",
-        gateId: id,
+        parentId: id,
       ),
     });
 

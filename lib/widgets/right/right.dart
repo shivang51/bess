@@ -1,5 +1,6 @@
 import 'package:bess/themes.dart';
 import 'package:bess/widgets/right/draw_area/draw_area.dart';
+import 'package:bess/widgets/right/simulation/simulation_area.dart';
 import 'package:bess/widgets/right/top_controls_bar.dart';
 import 'package:flutter/material.dart';
 
@@ -51,9 +52,9 @@ class _RightState extends State<Right> with SingleTickerProviderStateMixin {
                 ),
                 child: TabBarView(
                   controller: tabController,
-                  children: [
-                    const DrawArea(),
-                    Container(),
+                  children: const [
+                    DrawArea(),
+                    SimulationArea(),
                   ],
                 ),
               ),

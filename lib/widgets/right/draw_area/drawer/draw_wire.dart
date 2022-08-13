@@ -30,12 +30,14 @@ class _DrawWireState extends State<DrawWire> {
   void initState() {
     ctrlPoint1 = Offset(widget.endPos.dx, widget.startPos.dy - 20);
     ctrlPoint2 = Offset(widget.startPos.dx, widget.endPos.dy + 20);
+
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     DrawAreaData drawAreaData = Provider.of<DrawAreaData>(context);
+
     return Stack(
       children: [
         ...(drawAreaData.selectedItemId == widget.id
@@ -69,7 +71,9 @@ class _DrawWireState extends State<DrawWire> {
             ctrlPoint1,
             ctrlPoint2,
           ),
-          color: Colors.green,
+          color: drawAreaData.selectedItemId == widget.id
+              ? Colors.orange
+              : Colors.green,
           child: InkWell(
             customBorder: CustomBorder(
               widget.startPos,
@@ -166,8 +170,8 @@ class LinePainter extends CustomPainter {
   );
 
   Paint get linePaint => Paint()
-    ..color = Colors.amber[200]!
-    ..strokeWidth = 1
+    ..color = Colors.teal
+    ..strokeWidth = 2
     ..style = PaintingStyle.stroke
     ..strokeJoin = StrokeJoin.round
     ..strokeCap = StrokeCap.round;
@@ -176,7 +180,7 @@ class LinePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     path = Path();
     path.moveTo(5, 5);
-    path.lineTo(endPos.dx, endPos.dy);
+    path.lineTo(endPos.dx, endPos.dy + 1);
     canvas.drawPath(path, linePaint);
   }
 

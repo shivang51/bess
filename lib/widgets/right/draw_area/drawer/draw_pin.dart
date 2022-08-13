@@ -13,15 +13,17 @@ class DrawPin extends StatefulWidget {
   const DrawPin({
     Key? key,
     required this.parentId,
-    required this.parentPos,
+    required this.pinPos,
     required this.id,
     required this.type,
+    this.width = 20.0,
   }) : super(key: key);
 
   final String id;
   final DrawObject type;
   final String parentId;
-  final Offset parentPos;
+  final Offset pinPos;
+  final double width;
 
   @override
   State<DrawPin> createState() => _DrawPinState();
@@ -33,14 +35,6 @@ class _DrawPinState extends State<DrawPin> {
   Offset pos = Offset.zero;
 
   void postFrameCallback(DrawAreaData drawAreaData) {
-    pos = widget.parentPos;
-
-    if (widget.type == DrawObject.pinOut) {
-      pos += const Offset(40.0, 0.0);
-    }
-
-    print(pos);
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       drawAreaData.setProperty(
         widget.id,
@@ -61,7 +55,16 @@ class _DrawPinState extends State<DrawPin> {
     DrawAreaData drawAreaData =
         Provider.of<DrawAreaData>(context, listen: true);
     var mouseData = Provider.of<MouseData>(context, listen: true);
+    pos = widget.pinPos;
+    Offset offset = const Offset(0.0, 1.0);
+
+    if (widget.type == DrawObject.pinOut) {
+      // pos += const Offset(40.0, 0.0);
+      offset = const Offset(20.0, 1.0);
+    }
+
     postFrameCallback(drawAreaData);
+
     return GestureDetector(
       key: _key,
       onTap: () {
@@ -100,15 +103,13 @@ class _DrawPinState extends State<DrawPin> {
           decoration: BoxDecoration(
             color: hovered ? Colors.red : Colors.red[300]!,
           ),
-          width: 20.0,
+          width: widget.width,
           height: 2.0,
           child: drawAreaData.drawingElement == DrawElement.connection &&
                   drawAreaData.connStartData.startPinId == widget.id
               ? Wire(
-                  startPos: widget.type == DrawObject.pinOut
-                      ? const Offset(20.0, 1.0)
-                      : const Offset(0.0, 1.0),
-                  endPos: mouseData.mousePos - pos,
+                  startPos: offset,
+                  endPos: mouseData.mousePos - pos + offset,
                 )
               : null,
         ),
