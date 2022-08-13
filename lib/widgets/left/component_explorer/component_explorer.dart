@@ -1,6 +1,7 @@
 import 'package:bess/data/draw_area/draw_area_data.dart';
 import 'package:bess/themes.dart';
 import 'package:bess/widgets/left/component_explorer/components/component_input_button.dart';
+import 'package:bess/widgets/left/component_explorer/components/component_output_probe.dart';
 import './components/component_nand_gate.dart';
 import './components/component_nor_gate.dart';
 import 'package:flutter/material.dart';
@@ -96,7 +97,9 @@ class ComponentExplorer extends StatelessWidget {
                   ),
                 ),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    CompOutputProbe(drawAreaData: drawAreaData);
+                  },
                   child: const Padding(
                     padding: EdgeInsets.symmetric(vertical: 4.0),
                     child: Text("Output"),

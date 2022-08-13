@@ -1,32 +1,31 @@
-import 'package:flutter/material.dart';
-
 import 'package:bess/data/draw_area/objects/draw_objects.dart';
 import 'package:bess/themes.dart';
-import 'package:bess/widgets/right/draw_area/drawer/draw_pin.dart';
+import 'package:flutter/material.dart';
 
-class DrawInputButton extends StatefulWidget {
-  const DrawInputButton({
+import 'draw_pin.dart';
+
+class DrawOutputProbe extends StatefulWidget {
+  const DrawOutputProbe({
     Key? key,
     required this.id,
     required this.pinId,
+    this.high = false,
   }) : super(key: key);
 
   final String id;
   final String pinId;
+  final bool high;
 
   @override
-  State<DrawInputButton> createState() => _DrawInputButtonState();
+  State<DrawOutputProbe> createState() => _DrawOutputProbeState();
 }
 
-class _DrawInputButtonState extends State<DrawInputButton> {
+class _DrawOutputProbeState extends State<DrawOutputProbe> {
   late Offset pos;
-  late bool high;
   bool hovered = false;
-
   @override
   void initState() {
     pos = Offset.zero;
-    high = false;
     super.initState();
   }
 
@@ -41,13 +40,14 @@ class _DrawInputButtonState extends State<DrawInputButton> {
             pos += e.delta;
           });
         },
-        onTap: () {
-          setState(() {
-            high = !high;
-          });
-        },
         child: Row(
           children: [
+            DrawPin(
+              parentId: widget.id,
+              pinPos: pos + const Offset(0.0, 11.5),
+              id: widget.pinId,
+              type: DrawObjectType.pinIn,
+            ),
             MouseRegion(
               onEnter: (e) {
                 setState(() {
@@ -61,30 +61,23 @@ class _DrawInputButtonState extends State<DrawInputButton> {
               },
               cursor: hovered ? SystemMouseCursors.click : MouseCursor.defer,
               child: Tooltip(
-                message: high ? "High" : "Low",
+                message: widget.high ? "High" : "Low",
                 child: Container(
                   width: 25.0,
                   height: 25.0,
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
                     border: Border.all(color: MyTheme.borderColor),
-                    color: high ? Colors.red : Colors.transparent,
+                    color: widget.high ? Colors.red : Colors.transparent,
                   ),
                   child: Center(
                     child: Text(
-                      high ? "H" : "L",
+                      widget.high ? "H" : "L",
                       style: Theme.of(context).textTheme.titleSmall,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),
               ),
-            ),
-            DrawPin(
-              parentId: widget.id,
-              pinPos: pos + const Offset(45.0, 11.5),
-              id: widget.pinId,
-              type: DrawObjectType.pinOut,
             ),
           ],
         ),

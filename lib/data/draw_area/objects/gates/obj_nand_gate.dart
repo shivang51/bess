@@ -7,5 +7,5 @@ class DAONandGate extends DrawAreaGate {
     required super.id,
     required super.inputPins,
     required super.outputPins,
-  }) : super(type: DrawObject.nandGate);
+  }) : super(type: DrawObjectType.nandGate);
 }

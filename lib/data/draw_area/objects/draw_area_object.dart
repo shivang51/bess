@@ -3,7 +3,7 @@ import 'draw_objects.dart';
 abstract class DrawAreaObject {
   String name = "";
   String id = "";
-  DrawObject type = DrawObject.none;
+  DrawObjectType type = DrawObjectType.none;
   List<String> connectedItems = [];
   DrawAreaObject({
     required this.name,

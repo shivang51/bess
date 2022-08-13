@@ -7,5 +7,5 @@ class DAONorGate extends DrawAreaGate {
     required super.id,
     required super.inputPins,
     required super.outputPins,
-  }) : super(type: DrawObject.norGate);
+  }) : super(type: DrawObjectType.norGate);
 }

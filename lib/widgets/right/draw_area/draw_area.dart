@@ -1,10 +1,12 @@
 import 'package:bess/data/draw_area/draw_area_data.dart';
 import 'package:bess/data/draw_area/objects/draw_objects.dart';
 import 'package:bess/data/draw_area/objects/io/obj_input_button.dart';
+import 'package:bess/data/draw_area/objects/io/obj_output_button.dart';
 import 'package:bess/data/draw_area/objects/pins/obj_pin.dart';
 import 'package:bess/data/draw_area/objects/wires/obj_wire.dart';
 import 'package:bess/data/mouse_data.dart';
 import 'package:bess/themes.dart';
+import 'package:bess/widgets/right/draw_area/drawer/draw_output_probe.dart';
 
 import './drawer/draw_input_button.dart';
 import './drawer/draw_nand_gate.dart';
@@ -71,17 +73,17 @@ class _DrawAreaState extends State<DrawArea>
                     }
 
                     var item = drawAreaData.objects.values.elementAt(index);
-                    if (item.type == DrawObject.nandGate) {
+                    if (item.type == DrawObjectType.nandGate) {
                       return DrawNandGate(
                         id: item.id,
                         initialPos: const Offset(100.0, 100.0),
                       );
-                    } else if (item.type == DrawObject.norGate) {
+                    } else if (item.type == DrawObjectType.norGate) {
                       return DrawNorGate(
                         id: item.id,
                         initPos: const Offset(100.0, 100.0),
                       );
-                    } else if (item.type == DrawObject.wire) {
+                    } else if (item.type == DrawObjectType.wire) {
                       var item_ = item as DAOWire;
 
                       if (drawAreaData.objects[item_.startPinId] == null ||
@@ -100,9 +102,15 @@ class _DrawAreaState extends State<DrawArea>
                         endPos: ePin.pos!,
                         startPos: sPin.pos!,
                       );
-                    } else if (item.type == DrawObject.inputButton) {
+                    } else if (item.type == DrawObjectType.inputButton) {
                       var item_ = item as DAOInputButton;
                       return DrawInputButton(
+                        id: item_.id,
+                        pinId: item_.pinId,
+                      );
+                    } else if (item.type == DrawObjectType.outputProbe) {
+                      var item_ = item as DAOOutputProbe;
+                      return DrawOutputProbe(
                         id: item_.id,
                         pinId: item_.pinId,
                       );

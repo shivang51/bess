@@ -1,4 +1,4 @@
-enum DrawObject {
+enum DrawObjectType {
   none,
   pinIn,
   pinOut,
@@ -6,4 +6,5 @@ enum DrawObject {
   norGate,
   wire,
   inputButton,
+  outputProbe
 }

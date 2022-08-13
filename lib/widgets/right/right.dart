@@ -30,37 +30,32 @@ class _RightState extends State<Right> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(
-        top: 1.0,
-      ),
-      child: DefaultTabController(
-        length: 2,
-        child: Column(
-          children: [
-            TopControlsBar(
-              tabController: tabController,
-            ),
-            Expanded(
-              child: Container(
-                height: double.infinity,
-                decoration: BoxDecoration(
-                  color: MyTheme.primaryBgColor,
-                  borderRadius: BorderRadius.only(
-                    bottomRight: Radius.circular(MyTheme.primaryBorderRadius),
-                  ),
-                ),
-                child: TabBarView(
-                  controller: tabController,
-                  children: const [
-                    DrawArea(),
-                    SimulationArea(),
-                  ],
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          TopControlsBar(
+            tabController: tabController,
+          ),
+          Expanded(
+            child: Container(
+              height: double.infinity,
+              decoration: BoxDecoration(
+                color: MyTheme.primaryBgColor,
+                borderRadius: BorderRadius.only(
+                  bottomRight: Radius.circular(MyTheme.primaryBorderRadius),
                 ),
               ),
+              child: TabBarView(
+                controller: tabController,
+                children: const [
+                  DrawArea(),
+                  SimulationArea(),
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

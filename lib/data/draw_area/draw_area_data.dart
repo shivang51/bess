@@ -47,10 +47,10 @@ class DrawAreaData with ChangeNotifier {
 
   void removeItem(String id) {
     var obj = objects[id]!;
-    if (obj.type == DrawObject.wire) {
+    if (obj.type == DrawObjectType.wire) {
       objects.remove(id);
-    } else if (obj.type == DrawObject.nandGate ||
-        obj.type == DrawObject.norGate) {
+    } else if (obj.type == DrawObjectType.nandGate ||
+        obj.type == DrawObjectType.norGate) {
       var obj_ = obj as DrawAreaGate;
       obj_.inputPins.forEach(objects.remove);
       obj_.outputPins.forEach(objects.remove);
@@ -94,11 +94,11 @@ class DrawAreaData with ChangeNotifier {
 
   void setProperty(
     String itemId,
-    DrawObject type,
+    DrawObjectType type,
     DrawElementProperty property,
     dynamic value,
   ) {
-    if (type == DrawObject.pinIn) {
+    if (type == DrawObjectType.pinIn) {
       var pin = objects[itemId]! as DAOInputPin;
       if (property == DrawElementProperty.pos) {
         if (pin.pos != value) {
@@ -106,7 +106,7 @@ class DrawAreaData with ChangeNotifier {
           notifyListeners();
         }
       }
-    } else if (type == DrawObject.pinOut) {
+    } else if (type == DrawObjectType.pinOut) {
       var pin = objects[itemId]! as DAOOutputPin;
       if (property == DrawElementProperty.pos) {
         if (pin.pos != value) {

@@ -3,7 +3,7 @@ import 'package:bess/data/draw_area/objects/draw_objects.dart';
 
 class DAOInputButton extends DrawAreaObject {
   DAOInputButton({required super.id, required super.name, required this.pinId})
-      : super(type: DrawObject.inputButton);
+      : super(type: DrawObjectType.inputButton);
 
   final String pinId;
 }

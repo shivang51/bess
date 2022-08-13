@@ -14,5 +14,5 @@ class DAOWire extends DrawAreaObject {
     required this.endPinId,
     required super.name,
     required super.id,
-  }) : super(type: DrawObject.wire);
+  }) : super(type: DrawObjectType.wire);
 }

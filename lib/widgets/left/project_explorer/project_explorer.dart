@@ -19,7 +19,8 @@ class ProjectExplorer extends StatelessWidget {
     DrawAreaData drawAreaData = Provider.of<DrawAreaData>(context);
     List<DrawAreaObject> objects = drawAreaData.objects.values
         .where((item) =>
-            item.type != DrawObject.pinIn && item.type != DrawObject.pinOut)
+            item.type != DrawObjectType.pinIn &&
+            item.type != DrawObjectType.pinOut)
         .toList();
 
     return Container(

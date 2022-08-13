@@ -20,7 +20,7 @@ class DrawPin extends StatefulWidget {
   }) : super(key: key);
 
   final String id;
-  final DrawObject type;
+  final DrawObjectType type;
   final String parentId;
   final Offset pinPos;
   final double width;
@@ -58,7 +58,7 @@ class _DrawPinState extends State<DrawPin> {
     pos = widget.pinPos;
     Offset offset = const Offset(0.0, 1.0);
 
-    if (widget.type == DrawObject.pinOut) {
+    if (widget.type == DrawObjectType.pinOut) {
       // pos += const Offset(40.0, 0.0);
       offset = const Offset(20.0, 1.0);
     }
