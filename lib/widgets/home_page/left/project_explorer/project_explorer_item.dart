@@ -1,7 +1,7 @@
 import 'package:bess/data/draw_area/draw_area_data.dart';
 import 'package:bess/data/draw_area/objects/draw_area_object.dart';
 import 'package:bess/themes.dart';
-import 'package:bess/widgets/mwidgets/m_iconbutton.dart';
+import '../../mwidgets/m_iconbutton.dart';
 import 'package:flutter/material.dart';
 
 class ProjectExplorerItem extends StatefulWidget {

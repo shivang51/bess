@@ -1,7 +1,7 @@
 import 'package:bess/themes.dart';
-import 'package:bess/widgets/right/draw_area/draw_area.dart';
-import 'package:bess/widgets/right/simulation/simulation_area.dart';
-import 'package:bess/widgets/right/top_controls_bar.dart';
+import './draw_area/draw_area.dart';
+import './simulation/simulation_area.dart';
+import './top_controls_bar.dart';
 import 'package:flutter/material.dart';
 
 class Right extends StatefulWidget {

@@ -10,6 +10,7 @@ class MyTheme {
   static Color secondaryTextColor = Colors.white60;
   static Color invertedTextColor = Colors.black87;
   static double primaryBorderRadius = 15.0;
+  static Color primarySelectionColor = secondaryBgColor;
   static Color borderColor = Colors.white70;
 }
 

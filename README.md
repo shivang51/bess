@@ -9,3 +9,5 @@ BESS stands for Best Electrical Simulation Software. It is a simple simulation s
 - Convert `Draw area data` to `Simulation data`
 - Fix some wiring bugs
 - And other things 😁
+
+![Current State of BESS!](screen_shot.png "BESS Screenshot")

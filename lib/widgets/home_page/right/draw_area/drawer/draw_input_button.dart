@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:bess/data/draw_area/objects/draw_objects.dart';
 import 'package:bess/themes.dart';
-import 'package:bess/widgets/right/draw_area/drawer/draw_pin.dart';
+import './draw_pin.dart';
 
 class DrawInputButton extends StatefulWidget {
   const DrawInputButton({

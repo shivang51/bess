@@ -1,6 +1,5 @@
 import 'package:bess/data/draw_area/objects/draw_area_object.dart';
 import 'package:bess/data/draw_area/objects/draw_objects.dart';
-import 'package:bess/data/draw_area/objects/gates/obj_nand_gate.dart';
 import 'package:bess/data/draw_area/objects/pins/obj_input_pin.dart';
 import 'package:bess/data/draw_area/objects/pins/obj_output_pin.dart';
 import 'package:flutter/material.dart';

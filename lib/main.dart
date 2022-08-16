@@ -22,6 +22,12 @@ class MyApp extends StatelessWidget {
         textButtonTheme: mTextButtonThemeData,
         listTileTheme: mListTileThemeData,
         textTheme: TextTheme(
+          titleLarge: GoogleFonts.roboto(
+            textStyle: TextStyle(
+              color: MyTheme.primaryTextColor,
+              fontSize: 18.0,
+            ),
+          ),
           titleMedium: GoogleFonts.roboto(
             textStyle: TextStyle(
               color: MyTheme.primaryTextColor,

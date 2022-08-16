@@ -6,7 +6,7 @@ import 'package:bess/data/draw_area/objects/pins/obj_pin.dart';
 import 'package:bess/data/draw_area/objects/wires/obj_wire.dart';
 import 'package:bess/data/mouse_data.dart';
 import 'package:bess/themes.dart';
-import 'package:bess/widgets/right/draw_area/drawer/draw_output_probe.dart';
+import './drawer/draw_output_probe.dart';
 
 import './drawer/draw_input_button.dart';
 import './drawer/draw_nand_gate.dart';

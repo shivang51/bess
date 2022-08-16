@@ -1,9 +1,9 @@
 import 'package:bess/data/draw_area/draw_area_data.dart';
 import 'package:bess/data/mouse_data.dart';
 import 'package:bess/themes.dart';
-import 'package:bess/widgets/left/left.dart';
-import 'package:bess/widgets/right/right.dart';
-import 'package:bess/widgets/top/topbar.dart';
+import 'package:bess/widgets/home_page/left/left.dart';
+import 'package:bess/widgets/home_page/right/right.dart';
+import 'package:bess/widgets/home_page/top/menu_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -25,7 +25,7 @@ class HomePage extends StatelessWidget {
         backgroundColor: MyTheme.backgroundColor,
         body: Column(
           children: [
-            const TopBar(),
+            const MenuBar(),
             Expanded(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,

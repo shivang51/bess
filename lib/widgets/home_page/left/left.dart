@@ -1,5 +1,5 @@
-import 'package:bess/widgets/left/component_explorer/component_explorer.dart';
-import 'package:bess/widgets/left/project_explorer/project_explorer.dart';
+import './component_explorer/component_explorer.dart';
+import './project_explorer/project_explorer.dart';
 import 'package:flutter/material.dart';
 
 class Left extends StatelessWidget {
