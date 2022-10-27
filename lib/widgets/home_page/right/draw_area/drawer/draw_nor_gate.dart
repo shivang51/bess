@@ -1,4 +1,5 @@
 import 'package:bess/data/draw_area/objects/gates/obj_nor_gate.dart';
+import 'package:bess/data/draw_area/objects/types.dart';
 import 'package:bess/themes.dart';
 
 import './input_pins.dart';
@@ -13,10 +14,14 @@ class DrawNorGate extends StatefulWidget {
   const DrawNorGate({
     Key? key,
     required this.id,
-    required this.initPos,
+    required this.initialPos,
+    this.simulation = false,
   }) : super(key: key);
+
   final String id;
-  final Offset initPos;
+  final Offset initialPos;
+  final bool simulation;
+
   @override
   State<DrawNorGate> createState() => _DrawNorGateState();
 }
@@ -29,7 +34,7 @@ class _DrawNorGateState extends State<DrawNorGate> {
 
   @override
   void initState() {
-    pos = widget.initPos;
+    pos = widget.initialPos;
 
     super.initState();
   }
@@ -40,20 +45,24 @@ class _DrawNorGateState extends State<DrawNorGate> {
     gate = drawAreaData.objects[widget.id]! as DAONorGate;
 
     bool selected = widget.id == drawAreaData.selectedItemId;
+    pos = gate.pos ?? widget.initialPos;
 
     return Positioned(
       left: pos.dx,
       top: pos.dy,
       child: GestureDetector(
-        onPanUpdate: (e) {
-          if (pos.dx + e.delta.dx < 0 || pos.dy + e.delta.dy < 0) {
-            return;
-          }
-
-          setState(() {
-            pos += e.delta;
-          });
-        },
+        onPanUpdate: widget.simulation
+            ? null
+            : (e) {
+                if (pos.dx + e.delta.dx < 0 || pos.dy + e.delta.dy < 0) {
+                  return;
+                }
+                setState(() {
+                  pos += e.delta;
+                  drawAreaData.setProperty(widget.id, DrawObjectType.nandGate,
+                      DrawElementProperty.pos, pos);
+                });
+              },
         child: Stack(
           children: [
             InputPins(
@@ -61,6 +70,7 @@ class _DrawNorGateState extends State<DrawNorGate> {
               parentId: widget.id,
               parentPos: pos,
               width: 40.0,
+              simulation: widget.simulation,
             ),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,6 +108,7 @@ class _DrawNorGateState extends State<DrawNorGate> {
                   outPins: gate.outputPins,
                   parentId: widget.id,
                   parentPos: pos,
+                  simulation: widget.simulation,
                 ),
               ],
             ),

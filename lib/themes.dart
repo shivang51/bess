@@ -16,7 +16,7 @@ class MyTheme {
 
 var mTextButtonThemeData = TextButtonThemeData(
   style: TextButton.styleFrom(
-    primary: MyTheme.primaryTextColor,
+    foregroundColor: MyTheme.primaryTextColor,
     backgroundColor: MyTheme.highlightColor,
     textStyle: GoogleFonts.roboto(
       textStyle: const TextStyle(

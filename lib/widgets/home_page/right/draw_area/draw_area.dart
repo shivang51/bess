@@ -1,20 +1,20 @@
 import 'package:bess/data/draw_area/draw_area_data.dart';
-import 'package:bess/data/draw_area/objects/draw_objects.dart';
 import 'package:bess/data/draw_area/objects/io/obj_input_button.dart';
 import 'package:bess/data/draw_area/objects/io/obj_output_button.dart';
 import 'package:bess/data/draw_area/objects/pins/obj_pin.dart';
+import 'package:bess/data/draw_area/objects/types.dart';
 import 'package:bess/data/draw_area/objects/wires/obj_wire.dart';
 import 'package:bess/data/mouse_data.dart';
+import 'package:bess/procedures/simulation_procedures.dart';
 import 'package:bess/themes.dart';
-import './drawer/draw_output_probe.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import './drawer/draw_input_button.dart';
 import './drawer/draw_nand_gate.dart';
 import './drawer/draw_nor_gate.dart';
+import './drawer/draw_output_probe.dart';
 import './drawer/draw_wire.dart';
-
-import 'package:provider/provider.dart';
-import 'package:flutter/material.dart';
 
 class DrawArea extends StatefulWidget {
   const DrawArea({Key? key}) : super(key: key);
@@ -48,21 +48,21 @@ class _DrawAreaState extends State<DrawArea>
       },
       child: InteractiveViewer(
         maxScale: 4.0,
-        child: Container(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              colorFilter: ColorFilter.mode(
-                MyTheme.backgroundColor,
-                BlendMode.colorBurn,
+        child: MouseRegion(
+          onHover: (e) {
+            mouseData.setMousePos(e.localPosition);
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                colorFilter: ColorFilter.mode(
+                  MyTheme.backgroundColor,
+                  BlendMode.colorBurn,
+                ),
+                image: const AssetImage("assets/images/grid.png"),
+                repeat: ImageRepeat.repeat,
               ),
-              image: const AssetImage("assets/images/grid.png"),
-              repeat: ImageRepeat.repeat,
             ),
-          ),
-          child: MouseRegion(
-            onHover: (e) {
-              mouseData.setMousePos(e.localPosition);
-            },
             child: Stack(
               children: [
                 ...List.generate(
@@ -81,7 +81,7 @@ class _DrawAreaState extends State<DrawArea>
                     } else if (item.type == DrawObjectType.norGate) {
                       return DrawNorGate(
                         id: item.id,
-                        initPos: const Offset(100.0, 100.0),
+                        initialPos: const Offset(100.0, 100.0),
                       );
                     } else if (item.type == DrawObjectType.wire) {
                       var item_ = item as DAOWire;

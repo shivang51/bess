@@ -1,3 +1,4 @@
+import 'package:bess/data/app/app_data.dart';
 import 'package:bess/data/draw_area/draw_area_data.dart';
 import 'package:bess/data/mouse_data.dart';
 import 'package:bess/themes.dart';
@@ -18,6 +19,7 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider<AppData>(create: (_) => AppData()),
         ChangeNotifierProvider<DrawAreaData>(create: (_) => DrawAreaData()),
         ChangeNotifierProvider<MouseData>(create: (_) => MouseData()),
       ],

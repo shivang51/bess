@@ -1,5 +1,5 @@
 import 'package:bess/data/draw_area/objects/draw_area_object.dart';
-import 'package:bess/data/draw_area/objects/draw_objects.dart';
+import 'package:bess/data/draw_area/objects/types.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';

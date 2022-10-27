@@ -1,7 +1,6 @@
 import 'package:bess/pages/splash_page.dart';
-import 'package:flutter/material.dart';
-
 import 'package:bess/themes.dart';
+import 'package:flutter/material.dart';
 
 class MenuBar extends StatefulWidget {
   const MenuBar({
@@ -13,57 +12,47 @@ class MenuBar extends StatefulWidget {
 }
 
 class _MenuBarState extends State<MenuBar> {
-  late List<PopupMenuEntry> _fileMenuItems;
+  List<PopupMenuEntry> _fileMenuItems = [];
 
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  void addPostBuildCallback(BuildContext context) {
     _fileMenuItems = [
       MenuItem(
-        child_: const Text(
-          "New Project",
-          style: TextStyle(fontSize: 14.0),
-        ),
+        title: "New Project",
         shortcut: "Ctrl+N",
         onTap_: () {},
       ),
       MenuItem(
-        child_: const Text(
-          "Open Project",
-          style: TextStyle(fontSize: 14.0),
-        ),
+        title: "Open Project",
         shortcut: "Ctrl+O",
+        onTap_: () {},
+      ),
+      MenuItem(
+        title: "Save Project",
+        shortcut: "Ctrl+S",
         onTap_: () {},
       ),
       MenuItemDivider(),
       MenuItem(
-        child_: const Text("Start Window"),
+        title: "Start Window",
         onTap_: () {
-          print("tapped");
           Navigator.pushNamed(context, SplashPage.id);
         },
       ),
       MenuItem(
-        child_: const Text(
-          "Prefrences",
-          style: TextStyle(fontSize: 14.0),
-        ),
+        title: "Preferences",
         onTap_: () {},
       ),
       MenuItemDivider(),
       MenuItem(
-        child_: const Text(
-          "Exit",
-          style: TextStyle(fontSize: 14.0),
-        ),
+        title: "Exit",
         onTap_: () {},
       ),
     ];
+  }
 
+  @override
+  Widget build(BuildContext context) {
+    addPostBuildCallback(context);
     return Container(
       decoration: BoxDecoration(
         color: MyTheme.primaryBgColor,
@@ -92,7 +81,6 @@ class _MenuBarState extends State<MenuBar> {
 class MenuItemDivider extends PopupMenuItem<Container> {
   MenuItemDivider({
     Key? key,
-    this.height = 1.0,
   }) : super(
           key: key,
           enabled: false,
@@ -101,23 +89,21 @@ class MenuItemDivider extends PopupMenuItem<Container> {
             height: 6.0,
             child: Container(
               color: MyTheme.primaryTextColor.withAlpha(100),
-              height: height,
+              height: 1.0,
             ),
           ),
         );
-
-  final double height;
 }
 
 class MenuItem<T> extends PopupMenuItem<T> {
   const MenuItem({
     Key? key,
-    required this.child_,
+    required this.title,
     this.shortcut,
     required this.onTap_,
-  }) : super(key: key, enabled: true, child: child_);
+  }) : super(key: key, enabled: true, child: null);
 
-  final Widget child_;
+  final String title;
   final String? shortcut;
   final void Function() onTap_;
 
@@ -127,6 +113,7 @@ class MenuItem<T> extends PopupMenuItem<T> {
 
 class _MenuItemState<T> extends PopupMenuItemState<T, MenuItem<T>> {
   bool hovered = false;
+
   @override
   Widget build(BuildContext context) {
     return PopupMenuItem(
@@ -153,7 +140,12 @@ class _MenuItemState<T> extends PopupMenuItemState<T, MenuItem<T>> {
               const SizedBox(
                 width: 10.0,
               ),
-              Expanded(child: widget.child_),
+              Expanded(
+                child: Text(
+                  widget.title,
+                  style: const TextStyle(fontSize: 14.0),
+                ),
+              ),
               const SizedBox(
                 width: 100.0,
               ),

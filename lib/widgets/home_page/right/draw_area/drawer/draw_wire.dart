@@ -1,6 +1,8 @@
 import 'dart:math';
 
 import 'package:bess/data/draw_area/draw_area_data.dart';
+import 'package:bess/data/draw_area/objects/types.dart';
+import 'package:bess/data/draw_area/objects/wires/obj_wire.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -12,11 +14,13 @@ class DrawWire extends StatefulWidget {
     required this.startPos,
     required this.endPos,
     required this.id,
+    this.simulation = false,
   }) : super(key: key);
 
   final String id;
   final Offset startPos;
   final Offset endPos;
+  final bool simulation;
 
   @override
   State<DrawWire> createState() => _DrawWireState();
@@ -37,10 +41,12 @@ class _DrawWireState extends State<DrawWire> {
   @override
   Widget build(BuildContext context) {
     DrawAreaData drawAreaData = Provider.of<DrawAreaData>(context);
-
+    var obj = drawAreaData.objects[widget.id]! as DAOWire;
+    ctrlPoint1 = obj.ctrlPoint1 ?? ctrlPoint1;
+    ctrlPoint2 = obj.ctrlPoint2 ?? ctrlPoint2;
     return Stack(
       children: [
-        ...(drawAreaData.selectedItemId == widget.id
+        ...(!widget.simulation && drawAreaData.selectedItemId == widget.id
             ? [
                 ControlPoint(
                   initPos: ctrlPoint1,
@@ -48,6 +54,12 @@ class _DrawWireState extends State<DrawWire> {
                   onUpdate: (pos) {
                     setState(() {
                       ctrlPoint1 = pos;
+                      drawAreaData.setProperty(
+                        widget.id,
+                        DrawObjectType.wire,
+                        DrawElementProperty.controlPoint1,
+                        pos,
+                      );
                     });
                   },
                 ),
@@ -57,6 +69,12 @@ class _DrawWireState extends State<DrawWire> {
                   onUpdate: (pos) {
                     setState(() {
                       ctrlPoint2 = pos;
+                      drawAreaData.setProperty(
+                        widget.id,
+                        DrawObjectType.wire,
+                        DrawElementProperty.controlPoint2,
+                        pos,
+                      );
                     });
                   },
                 )
@@ -71,7 +89,7 @@ class _DrawWireState extends State<DrawWire> {
             ctrlPoint1,
             ctrlPoint2,
           ),
-          color: drawAreaData.selectedItemId == widget.id
+          color: !widget.simulation && drawAreaData.selectedItemId == widget.id
               ? Colors.orange
               : Colors.green,
           child: InkWell(

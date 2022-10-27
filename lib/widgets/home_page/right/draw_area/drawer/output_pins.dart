@@ -13,12 +13,14 @@ class OutputPins extends StatelessWidget {
     required this.parentId,
     required this.parentPos,
     this.width = 20.0,
+    this.simulation = false,
   }) : super(key: key);
 
   final List<String> outPins;
   final String parentId;
   final Offset parentPos;
   final double width;
+  final bool simulation;
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +42,7 @@ class OutputPins extends StatelessWidget {
               pinPos: parentPos + const Offset(150, 49),
               parentId: parentId,
               width: width,
+              simulation: simulation,
             );
           },
         ),

@@ -1,5 +1,5 @@
-import 'package:bess/data/draw_area/objects/draw_objects.dart';
 import 'package:bess/data/draw_area/objects/pins/obj_pin.dart';
+import 'package:bess/data/draw_area/objects/types.dart';
 
 class DAOOutputPin extends DrawAreaPin {
   DAOOutputPin(

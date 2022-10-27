@@ -1,4 +1,5 @@
 import 'package:bess/data/draw_area/objects/gates/obj_nand_gate.dart';
+import 'package:bess/data/draw_area/objects/types.dart';
 
 import './input_pins.dart';
 import './output_pins.dart';
@@ -16,10 +17,12 @@ class DrawNandGate extends StatefulWidget {
     Key? key,
     required this.id,
     required this.initialPos,
+    this.simulation = false,
   }) : super(key: key);
 
   final String id;
   final Offset initialPos;
+  final bool simulation;
 
   @override
   State<DrawNandGate> createState() => _DrawNandGateState();
@@ -31,29 +34,27 @@ class _DrawNandGateState extends State<DrawNandGate> {
   late DAONandGate gate;
 
   @override
-  void initState() {
-    pos = widget.initialPos;
-
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
     drawAreaData = Provider.of<DrawAreaData>(context);
     gate = drawAreaData.objects[widget.id]! as DAONandGate;
     bool selected = widget.id == drawAreaData.selectedItemId;
+    pos = gate.pos ?? widget.initialPos;
     return Positioned(
       left: pos.dx,
       top: pos.dy,
       child: GestureDetector(
-        onPanUpdate: (e) {
-          if (pos.dx + e.delta.dx < 0 || pos.dy + e.delta.dy < 0) {
-            return;
-          }
-          setState(() {
-            pos += e.delta;
-          });
-        },
+        onPanUpdate: widget.simulation
+            ? null
+            : (e) {
+                if (pos.dx + e.delta.dx < 0 || pos.dy + e.delta.dy < 0) {
+                  return;
+                }
+                setState(() {
+                  pos += e.delta;
+                  drawAreaData.setProperty(widget.id, DrawObjectType.nandGate,
+                      DrawElementProperty.pos, pos);
+                });
+              },
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -61,6 +62,7 @@ class _DrawNandGateState extends State<DrawNandGate> {
               inPins: gate.inputPins,
               parentId: widget.id,
               parentPos: pos,
+              simulation: widget.simulation,
             ),
             SizedBox(
               width: 110.0,
@@ -94,6 +96,7 @@ class _DrawNandGateState extends State<DrawNandGate> {
               outPins: gate.outputPins,
               parentId: widget.id,
               parentPos: pos,
+              simulation: widget.simulation,
             ),
           ],
         ),

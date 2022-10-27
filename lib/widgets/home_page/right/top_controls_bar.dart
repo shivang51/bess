@@ -1,6 +1,9 @@
+import 'package:bess/procedures/simulation_procedures.dart';
+
 import '../mwidgets/m_iconbutton.dart';
 import 'package:flutter/material.dart';
-
+import 'package:bess/data/app/app_data.dart';
+import 'package:provider/provider.dart';
 import 'package:bess/themes.dart';
 
 class TopControlsBar extends StatelessWidget {
@@ -46,8 +49,11 @@ class TabBarControls extends StatefulWidget {
 }
 
 class _TabBarControlsState extends State<TabBarControls> {
+
   @override
   Widget build(BuildContext context) {
+    var appData = Provider.of<AppData>(context);
+    appData.setTabController(widget.tabController);
     return Row(
       children: [
         const SizedBox(
@@ -57,21 +63,21 @@ class _TabBarControlsState extends State<TabBarControls> {
           icon: Icons.draw_rounded,
           onTap: () {
             setState(() {
-              widget.tabController.index = 0;
+              appData.tabController.index = 0;
             });
           },
           title: "Draw Area",
-          selected: widget.tabController.index == 0,
+          selected: appData.tabController.index == 0,
         ),
         TabBarItem(
           icon: Icons.route_rounded,
           onTap: () {
             setState(() {
-              widget.tabController.index = 1;
+              appData.tabController.index = 1;
             });
           },
           title: "Simulation",
-          selected: widget.tabController.index == 1,
+          selected: appData.tabController.index == 1,
         ),
       ],
     );
@@ -156,33 +162,43 @@ class RightControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    var appData = Provider.of<AppData>(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        MIconButton(
-          onClicked: () {},
-          icon: Icons.play_arrow_rounded,
-          color: Colors.green[400]!,
-          tooltip: "Start Simulation",
-        ),
-        const SizedBox(
-          width: 4.0,
-        ),
-        MIconButton(
-          onClicked: () {},
-          color: Colors.teal[400]!,
-          icon: Icons.pause_rounded,
-          tooltip: "Pause Simulation",
-        ),
-        const SizedBox(
-          width: 4.0,
-        ),
-        MIconButton(
-          onClicked: () {},
-          color: Colors.red,
-          icon: Icons.stop_rounded,
-          tooltip: "Stop Simulation",
-        ),
+        ...(appData.simulationState == SimulationState.stopped)
+            ? [
+                MIconButton(
+                  onClicked: () {
+                    SimProcedures.startSimulation(context);
+                  },
+                  icon: Icons.play_arrow_rounded,
+                  color: Colors.green[400]!,
+                  tooltip: "Start Simulation",
+                )
+              ]
+            : [
+                const SizedBox(
+                  width: 4.0,
+                ),
+                MIconButton(
+                  onClicked: () {},
+                  color: Colors.teal[400]!,
+                  icon: Icons.pause_rounded,
+                  tooltip: "Pause Simulation",
+                ),
+                const SizedBox(
+                  width: 4.0,
+                ),
+                MIconButton(
+                  onClicked: () {
+                    SimProcedures.stopSimulation(context);
+                  },
+                  color: Colors.red,
+                  icon: Icons.stop_rounded,
+                  tooltip: "Stop Simulation",
+                ),
+              ]
       ],
     );
   }

@@ -13,12 +13,15 @@ class InputPins extends StatelessWidget {
     required this.parentId,
     required this.parentPos,
     this.width = 20.0,
+    this.simulation = false,
   }) : super(key: key);
 
   final List<String> inPins;
   final String parentId;
   final Offset parentPos;
   final double width;
+
+  final bool simulation;
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +47,7 @@ class InputPins extends StatelessWidget {
               id: inPins[index],
               pinPos: parentPos + pos,
               width: width,
+              simulation: simulation,
             );
           },
         ),

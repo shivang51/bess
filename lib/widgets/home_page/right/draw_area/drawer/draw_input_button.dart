@@ -1,7 +1,14 @@
+import 'package:bess/data/app/app_data.dart';
+import 'package:bess/data/draw_area/objects/io/obj_input_button.dart';
+import 'package:bess/data/draw_area/objects/pins/obj_pin.dart';
+import 'package:bess/procedures/simulation_procedures.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import 'package:bess/data/draw_area/objects/draw_objects.dart';
+import 'package:bess/data/draw_area/draw_area_data.dart';
+import 'package:bess/data/draw_area/objects/types.dart';
 import 'package:bess/themes.dart';
+
 import './draw_pin.dart';
 
 class DrawInputButton extends StatefulWidget {
@@ -9,10 +16,12 @@ class DrawInputButton extends StatefulWidget {
     Key? key,
     required this.id,
     required this.pinId,
+    this.simulation = false,
   }) : super(key: key);
 
   final String id;
   final String pinId;
+  final bool simulation;
 
   @override
   State<DrawInputButton> createState() => _DrawInputButtonState();
@@ -32,18 +41,41 @@ class _DrawInputButtonState extends State<DrawInputButton> {
 
   @override
   Widget build(BuildContext context) {
+    DrawAreaData drawAreaData = Provider.of<DrawAreaData>(context);
+    AppData appData = Provider.of<AppData>(context);
+    var obj = drawAreaData.objects[widget.id]! as DAOInputButton;
+    pos = obj.pos ?? Offset.zero;
+    high = (drawAreaData.objects[widget.pinId] as DrawAreaPin).state == DigitalState.high;
     return Positioned(
       left: pos.dx,
       top: pos.dy,
       child: GestureDetector(
-        onPanUpdate: (e) {
-          setState(() {
-            pos += e.delta;
-          });
-        },
+        onPanUpdate: widget.simulation
+            ? null
+            : (e) {
+                setState(() {
+                  pos += e.delta;
+                  drawAreaData.setProperty(
+                    widget.id,
+                    DrawObjectType.inputButton,
+                    DrawElementProperty.pos,
+                    pos,
+                  );
+                });
+              },
         onTap: () {
           setState(() {
             high = !high;
+            var value = high ? DigitalState.high : DigitalState.low;
+            drawAreaData.setProperty(
+              widget.pinId,
+              DrawObjectType.pinOut,
+              DrawElementProperty.state,
+              value,
+            );
+            if(appData.simulationState == SimulationState.running) {
+              SimProcedures.refreshSimulation(context, widget.pinId);
+            }
           });
         },
         child: Row(

@@ -6,5 +6,11 @@ enum DrawObjectType {
   norGate,
   wire,
   inputButton,
-  outputProbe
+  outputProbe,
+  pin
+}
+
+enum DigitalState {
+  high,
+  low,
 }
