@@ -1,11 +1,9 @@
-import 'package:bess/data/draw_area/objects/draw_area_object.dart';
-import 'package:bess/data/draw_area/objects/io/obj_input_button.dart';
-import 'package:bess/data/draw_area/objects/types.dart';
-import 'package:bess/data/draw_area/objects/wires/obj_wire.dart';
+import 'package:bess/components/component.dart';
+import 'package:bess/components/component_properties.dart';
+import 'package:bess/components/component_type.dart';
+import 'package:bess/components/pin/pin_properties.dart';
+import 'package:bess/components/wires/wire/wire_properties.dart';
 import 'package:flutter/material.dart';
-
-import 'objects/gates/obj_gate.dart';
-import 'objects/pins/obj_pin.dart';
 
 enum DrawElement { none, connection, pin }
 
@@ -16,7 +14,8 @@ enum DrawElementProperty {
   name,
   controlPoint1,
   controlPoint2,
-  addConnection, state,
+  addConnection,
+  state,
 }
 
 class ConnectionData {
@@ -30,70 +29,38 @@ class ConnectionData {
 }
 
 class DrawAreaData with ChangeNotifier {
-  Map<String, DrawAreaObject> objects = {};
+  Map<String, Component> components = {};
 
   String selectedItemId = "";
-  Offset areaPos = Offset.zero;
   DrawElement drawingElement = DrawElement.none;
   ConnectionData connStartData = ConnectionData("", "");
-  Offset scale = const Offset(1, 1);
-  Offset focalPoint = Offset.zero;
 
-  List<String> inputButtons = [];
+  List<String> inputButtonIds = [];
 
-  void addObject(String id, DrawAreaObject object) {
-    objects[id] = object;
-    if (object.type == DrawObjectType.inputButton) {
-      inputButtons.add(id);
+  void addComponent(String id, Component component) {
+    components[id] = component;
+    if (component.properties.type == ComponentType.inputButton) {
+      inputButtonIds.add(id);
     }
     notifyListeners();
   }
 
-  void addObjects(Map<String, DrawAreaObject> objects) {
-    this.objects.addEntries(objects.entries);
+  void addComponents(Map<String, Component> components) {
+    this.components.addAll(components);
+    components.removeWhere(
+      (key, value) => value.properties.type != ComponentType.inputButton,
+    );
+    inputButtonIds.addAll(components.keys);
     notifyListeners();
   }
 
-  void removeItem(String id) {
-    var obj = objects[id]!;
-    if (obj.type == DrawObjectType.wire) {
-      objects.remove(id);
-    } else if (obj.type == DrawObjectType.nandGate ||
-        obj.type == DrawObjectType.norGate) {
-      var obj_ = obj as DrawAreaGate;
-      obj_.inputPins.forEach(objects.remove);
-      obj_.outputPins.forEach(objects.remove);
-      objects.remove(id);
-    } else if (obj.type == DrawObjectType.pinIn ||
-        obj.type == DrawObjectType.pinOut) {
-      var obj_ = obj as DrawAreaPin;
-      for (var id_ in obj_.connectedPins) {
-        var p = objects[id_]! as DrawAreaPin;
-        p.connectedPins.remove(id);
-      }
-      objects.remove(id);
-    }
+  void removeComponent(String id) {
     notifyListeners();
-  }
-
-  void setScale(Offset value) {
-    scale = value;
-  }
-
-  void setFocalPoint(Offset value) {
-    focalPoint = value;
   }
 
   void setSelectedItemId(String id) {
     if (selectedItemId != id) {
       selectedItemId = id;
-      notifyListeners();
-    }
-  }
-
-  void setAreaPos(Offset pos) {
-    if (areaPos != pos) {
-      areaPos = pos;
       notifyListeners();
     }
   }
@@ -108,30 +75,29 @@ class DrawAreaData with ChangeNotifier {
     connStartData = ConnectionData(startGateId, startPinId);
   }
 
-  void setProperty(
-    String itemId,
-    DrawObjectType type,
-    DrawElementProperty property,
-    dynamic value,
-  ) {
-    var obj = objects[itemId]!;
-    if (property == DrawElementProperty.pos) {
-      obj.pos = value;
-    } else if (property == DrawElementProperty.controlPoint1) {
-      var obj_ = obj as DAOWire;
-      obj_.ctrlPoint1 = value;
-    } else if (property == DrawElementProperty.controlPoint2) {
-      var obj_ = obj as DAOWire;
-      obj_.ctrlPoint2 = value;
-    } else if (property == DrawElementProperty.addConnection) {
-      var obj_ = obj as DrawAreaPin;
-      obj_.connectedPins.add(value);
-      (objects[value]! as DrawAreaPin).connectedPins.add(itemId);
-    }else if(property == DrawElementProperty.state){
-      if(type == DrawObjectType.pinIn || type == DrawObjectType.pinOut) {
-        (obj as DrawAreaPin).state = value;
-      }
+  void updateComponentProperty(String id,
+      ComponentPropertyType property,
+      dynamic value
+      ){
+    if(!components.containsKey(id)) return;
+
+    var component = components[id]!;
+
+    switch(property){
+      case ComponentPropertyType.name:
+        component.properties.name = value;
+        break;
+      case ComponentPropertyType.pos:
+        component.properties.pos = value;
+        break;
+      case ComponentPropertyType.digitalState:
+        (component.properties as PinProperties).state = value;
+        break;
+      case ComponentPropertyType.controlPointPosition:
+        (component.properties as WireProperties).controlPointPositions[value["index"]] = value["position"];
+        break;
     }
+
     notifyListeners();
   }
 }

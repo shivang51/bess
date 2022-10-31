@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Best Electrical Simulation Software',
+      title: 'Basic Electrical Simulation Software',
       theme: ThemeData(
         useMaterial3: true,
         cardTheme: mCardTheme,

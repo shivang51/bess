@@ -1,9 +1,6 @@
+import 'package:bess/components/components.dart';
 import 'package:bess/data/draw_area/draw_area_data.dart';
 import 'package:bess/themes.dart';
-import './components/component_input_button.dart';
-import './components/component_output_probe.dart';
-import './components/component_nand_gate.dart';
-import './components/component_nor_gate.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
@@ -71,7 +68,7 @@ class ComponentExplorer extends StatelessWidget {
                 //Nand Gate Component
                 TextButton(
                   onPressed: () {
-                    CompNandGate(drawAreaData: drawAreaData);
+                    NandGate.create(context);
                   },
                   child: const Padding(
                     padding: EdgeInsets.symmetric(vertical: 4.0),
@@ -80,7 +77,7 @@ class ComponentExplorer extends StatelessWidget {
                 ),
                 TextButton(
                   onPressed: () {
-                    CompNorGate(drawAreaData: drawAreaData);
+                    NorGate.create(context);
                   },
                   child: const Padding(
                     padding: EdgeInsets.symmetric(vertical: 4.0),
@@ -89,7 +86,7 @@ class ComponentExplorer extends StatelessWidget {
                 ),
                 TextButton(
                   onPressed: () {
-                    CompInputButton(drawAreaData: drawAreaData);
+                    InputButton.create(context);
                   },
                   child: const Padding(
                     padding: EdgeInsets.symmetric(vertical: 4.0),
@@ -98,7 +95,7 @@ class ComponentExplorer extends StatelessWidget {
                 ),
                 TextButton(
                   onPressed: () {
-                    CompOutputProbe(drawAreaData: drawAreaData);
+                    OutputStateProbe.create(context);
                   },
                   child: const Padding(
                     padding: EdgeInsets.symmetric(vertical: 4.0),

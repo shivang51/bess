@@ -1,5 +1,5 @@
-import 'package:bess/data/draw_area/objects/draw_area_object.dart';
-import 'package:bess/data/draw_area/objects/types.dart';
+import 'package:bess/components/component.dart';
+import 'package:bess/components/component_type.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
@@ -16,13 +16,6 @@ class ProjectExplorer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    DrawAreaData drawAreaData = Provider.of<DrawAreaData>(context);
-    List<DrawAreaObject> objects = drawAreaData.objects.values
-        .where((item) =>
-            item.type != DrawObjectType.pinIn &&
-            item.type != DrawObjectType.pinOut)
-        .toList();
-
     return Container(
       padding: const EdgeInsets.all(4.0),
       decoration: BoxDecoration(
@@ -66,21 +59,26 @@ class ProjectExplorer extends StatelessWidget {
           ),
           Expanded(
             child: Consumer<DrawAreaData>(
-              builder: (context, value, child) => ListView.builder(
-                padding: const EdgeInsets.only(right: 10.0),
-                itemBuilder: (context, index) {
-                  var item = objects.elementAt(index);
-                  return Padding(
-                    padding: const EdgeInsets.all(2.0),
-                    child: ProjectExplorerItem(
-                      drawAreaData: drawAreaData,
-                      text: item.name,
-                      assocId: item.id,
-                    ),
-                  );
-                },
-                itemCount: objects.length,
-              ),
+              builder: (context, data, child) {
+                List<Component> components = data.components.values
+                    .where((element) =>
+                        element.properties.type != ComponentType.pin &&
+                        element.properties.type != ComponentType.wire)
+                    .toList();
+                return ListView.builder(
+                  padding: const EdgeInsets.only(right: 10.0),
+                  itemBuilder: (context, index) {
+                    var item = components.elementAt(index);
+                    return Padding(
+                      padding: const EdgeInsets.all(2.0),
+                      child: ProjectExplorerItem(
+                        id: item.properties.id,
+                      ),
+                    );
+                  },
+                  itemCount: components.length,
+                );
+              },
             ),
           ),
         ],

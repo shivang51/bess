@@ -9,10 +9,7 @@ import 'package:bess/themes.dart';
 class TopControlsBar extends StatelessWidget {
   const TopControlsBar({
     Key? key,
-    required this.tabController,
   }) : super(key: key);
-
-  final TabController tabController;
 
   @override
   Widget build(BuildContext context) {
@@ -24,11 +21,9 @@ class TopControlsBar extends StatelessWidget {
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TabBarControls(
-              tabController: tabController,
-            ),
-            const RightControls(),
+          children: const [
+             TabBarControls(),
+             RightControls(),
           ],
         ),
       ),
@@ -36,24 +31,14 @@ class TopControlsBar extends StatelessWidget {
   }
 }
 
-class TabBarControls extends StatefulWidget {
+class TabBarControls extends StatelessWidget {
   const TabBarControls({
     Key? key,
-    required this.tabController,
   }) : super(key: key);
-
-  final TabController tabController;
-
-  @override
-  State<TabBarControls> createState() => _TabBarControlsState();
-}
-
-class _TabBarControlsState extends State<TabBarControls> {
 
   @override
   Widget build(BuildContext context) {
     var appData = Provider.of<AppData>(context);
-    appData.setTabController(widget.tabController);
     return Row(
       children: [
         const SizedBox(
@@ -62,9 +47,7 @@ class _TabBarControlsState extends State<TabBarControls> {
         TabBarItem(
           icon: Icons.draw_rounded,
           onTap: () {
-            setState(() {
-              appData.tabController.index = 0;
-            });
+            appData.setTabIndex(0);
           },
           title: "Draw Area",
           selected: appData.tabController.index == 0,
@@ -72,9 +55,7 @@ class _TabBarControlsState extends State<TabBarControls> {
         TabBarItem(
           icon: Icons.route_rounded,
           onTap: () {
-            setState(() {
-              appData.tabController.index = 1;
-            });
+            appData.setTabIndex(1);
           },
           title: "Simulation",
           selected: appData.tabController.index == 1,
@@ -83,6 +64,7 @@ class _TabBarControlsState extends State<TabBarControls> {
     );
   }
 }
+
 
 class TabBarItem extends StatefulWidget {
   const TabBarItem({

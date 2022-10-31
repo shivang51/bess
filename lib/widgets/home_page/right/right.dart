@@ -1,5 +1,7 @@
+import 'package:bess/data/app/app_data.dart';
 import 'package:bess/themes.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import './draw_area/draw_area.dart';
 import './simulation/simulation_area.dart';
@@ -31,13 +33,13 @@ class _RightState extends State<Right> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    var appData = Provider.of<AppData>(context, listen: false);
+    appData.setTabController(tabController);
     return DefaultTabController(
       length: 2,
       child: Column(
         children: [
-          TopControlsBar(
-            tabController: tabController,
-          ),
+          const TopControlsBar(),
           Expanded(
             child: Container(
               height: double.infinity,
