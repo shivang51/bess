@@ -38,4 +38,12 @@ class InputButton extends Component{
     pin.simulate(context, pinProperties.state, properties.id);
   }
 
+  @override
+  void remove(BuildContext context) {
+    var drawAreaData = Provider.of<DrawAreaData>(context, listen: false);
+    var pinId = (properties as ButtonProperties).pinId;
+    drawAreaData.components[pinId]!.remove(context);
+    drawAreaData.removeComponent(properties.id);
+  }
+
 }

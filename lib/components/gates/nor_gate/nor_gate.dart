@@ -81,4 +81,17 @@ class NorGate extends Gate {
       (drawAreaData.components[pinId] as Pin).simulate(context, value, properties.id);
     }
   }
+
+  @override
+  void remove(BuildContext context) {
+    var drawAreaData = Provider.of<DrawAreaData>(context);
+    var props = properties as GateProperties;
+    for(var pinId in props.inputPins){
+      drawAreaData.components[pinId]!.remove(context);
+    }
+    for(var pinId in props.outputPins) {
+      drawAreaData.components[pinId]!.remove(context);
+    }
+    drawAreaData.removeComponent(properties.id);
+  }
 }

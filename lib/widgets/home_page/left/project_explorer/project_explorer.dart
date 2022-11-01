@@ -73,6 +73,7 @@ class ProjectExplorer extends StatelessWidget {
                       padding: const EdgeInsets.all(2.0),
                       child: ProjectExplorerItem(
                         id: item.properties.id,
+                        obj: item,
                       ),
                     );
                   },

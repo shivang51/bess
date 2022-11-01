@@ -1,6 +1,6 @@
 part of components;
 
-class NorGateWidget extends StatelessWidget {
+class NorGateWidget extends StatefulWidget {
   const NorGateWidget({
     Key? key,
     required this.id,
@@ -10,10 +10,20 @@ class NorGateWidget extends StatelessWidget {
   final String id;
   final NorGate gateObj;
 
-  void updatePosition(DrawAreaData data, Offset pos) {
-    if (pos.dx < 0 || pos.dy < 0) return;
-    gateObj.properties.pos = pos;
-    data.updateComponentProperty(id, ComponentPropertyType.pos, pos);
+  @override
+  State<NorGateWidget> createState() => _NorGateWidgetState();
+}
+
+class _NorGateWidgetState extends State<NorGateWidget> {
+  var pos = Offset.zero;
+  void updatePosition(DrawAreaData data, Offset delta) {
+    var newPos = pos + delta;
+    if (newPos.dx < 0 || newPos.dy < 0) return;
+    setState(() {
+      pos = newPos;
+      widget.gateObj.properties.pos = pos;
+      data.updateComponentProperty(widget.id, ComponentPropertyType.pos, pos);
+    });
   }
 
   @override
@@ -21,18 +31,18 @@ class NorGateWidget extends StatelessWidget {
     var drawAreaData = Provider.of<DrawAreaData>(context);
     var appData = Provider.of<AppData>(context);
 
-    var pos = gateObj.properties.pos;
-    var selected = id == drawAreaData.selectedItemId;
+    pos = widget.gateObj.properties.pos;
+    var selected = widget.id == drawAreaData.selectedItemId;
     return Positioned(
       left: pos.dx,
       top: pos.dy,
       child: GestureDetector(
         onPanUpdate: !appData.isInSimulationTab()
-            ? (e) => updatePosition(drawAreaData, pos + e.delta)
+            ? (e) => updatePosition(drawAreaData, e.delta)
             : null,
         child: Stack(
           children: [
-            Pin.drawInput((gateObj.properties as GateProperties).inputPins),
+            Pin.drawInput((widget.gateObj.properties as GateProperties).inputPins),
             Row(
               children: [
                 const SizedBox(
@@ -52,12 +62,12 @@ class NorGateWidget extends StatelessWidget {
                       customBorder: NorPainter(),
                       splashColor: Colors.orange,
                       hoverColor: Colors.transparent,
-                      onTap: () => drawAreaData.setSelectedItemId(id),
+                      onTap: () => drawAreaData.setSelectedItemId(widget.id),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            gateObj.properties.name,
+                            widget.gateObj.properties.name,
                             style: Theme.of(context).textTheme.titleSmall,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -67,7 +77,7 @@ class NorGateWidget extends StatelessWidget {
                   ),
                 ),
                 Pin.drawOutput(
-                    (gateObj.properties as GateProperties).outputPins),
+                    (widget.gateObj.properties as GateProperties).outputPins),
               ],
             ),
           ],

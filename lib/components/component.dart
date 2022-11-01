@@ -9,4 +9,5 @@ abstract class Component{
   Widget draw(BuildContext context);
   void simulate(BuildContext context, DigitalState state, String callerId){
   }
+  void remove(BuildContext context);
 }

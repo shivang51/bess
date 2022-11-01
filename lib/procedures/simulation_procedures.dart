@@ -1,3 +1,4 @@
+import 'package:bess/components/component_type.dart';
 import 'package:bess/components/components.dart';
 import 'package:bess/data/draw_area/draw_area_data.dart';
 import 'package:bess/data/app/app_data.dart';
@@ -27,7 +28,8 @@ class SimProcedures {
 
   static void initSimulation(BuildContext context){
     var drawAreaData = Provider.of<DrawAreaData>(context, listen: false);
-    for(var inputBtnId in drawAreaData.inputButtonIds){
+    var inputButtonIds = drawAreaData.extraComponents[ComponentType.inputButton]!;
+    for(var inputBtnId in inputButtonIds){
       var inputBtn = (drawAreaData.components[inputBtnId] as InputButton);
       inputBtn.simulate(context, DigitalState.low, inputBtnId);
     }

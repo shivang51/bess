@@ -35,12 +35,22 @@ class DrawAreaData with ChangeNotifier {
   DrawElement drawingElement = DrawElement.none;
   ConnectionData connStartData = ConnectionData("", "");
 
-  List<String> inputButtonIds = [];
+  Map<ComponentType, List<String>> extraComponents = {
+    ComponentType.inputButton: [],
+  };
+
+  final List<ComponentType> _extraComponentTypes = [
+    ComponentType.inputButton,
+  ];
+
+  void _addExtraComponent(String id, Component component){
+    extraComponents[component.properties.type]!.add(id);
+  }
 
   void addComponent(String id, Component component) {
     components[id] = component;
-    if (component.properties.type == ComponentType.inputButton) {
-      inputButtonIds.add(id);
+    if(_extraComponentTypes.contains(component.properties.type)){
+      _addExtraComponent(id, component);
     }
     notifyListeners();
   }
@@ -48,13 +58,20 @@ class DrawAreaData with ChangeNotifier {
   void addComponents(Map<String, Component> components) {
     this.components.addAll(components);
     components.removeWhere(
-      (key, value) => value.properties.type != ComponentType.inputButton,
+      (key, value) => !_extraComponentTypes.contains(value.properties.type),
     );
-    inputButtonIds.addAll(components.keys);
+    components.forEach((id, component) {
+      _addExtraComponent(id, component);
+    });
     notifyListeners();
   }
 
   void removeComponent(String id) {
+    var component = components[id]!;
+    if(_extraComponentTypes.contains(component.properties.type)){
+      extraComponents[component.properties.type]!.remove(id);
+    }
+    components.remove(id);
     notifyListeners();
   }
 

@@ -1,7 +1,6 @@
 part of components;
 
 class Pin extends Component{
-
   Pin(String id, {String? parentId, PinBehaviour? behaviour}){
     properties = PinProperties();
     properties.id = id;
@@ -44,12 +43,27 @@ class Pin extends Component{
           context, state, properties.id
       );
     }
-
   }
-
 
   @override
   Widget draw(BuildContext context) {
     return PinWidget(id: properties.id, pinObj: this,);
+  }
+
+  @override
+  void remove(BuildContext context) {
+    var properties = this.properties as PinProperties;
+    var drawAreaData = Provider.of<DrawAreaData>(context, listen:false);
+
+    for(var wire in properties.connectedWiresIds.entries){
+      var wireId = wire.key;
+      var pinId = wire.value;
+
+      var connectedPinProperties = (drawAreaData.components[pinId]!.properties as PinProperties);
+      connectedPinProperties.connectedPinsIds.remove(properties.id);
+      connectedPinProperties.connectedWiresIds.remove(wireId);
+      drawAreaData.components[wireId]!.remove(context);
+    }
+    drawAreaData.removeComponent(properties.id);
   }
 }

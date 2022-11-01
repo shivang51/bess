@@ -10,4 +10,5 @@ class PinProperties extends ComponentProperties{
   double width = 20.0;
   Offset offset = Offset.zero;
   List<String> connectedPinsIds = [];
+  Map<String, String> connectedWiresIds = {};
 }

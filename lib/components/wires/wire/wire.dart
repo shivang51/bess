@@ -10,8 +10,9 @@ class Wire extends Component{
     (properties as WireProperties).endPinId = endPinId;
   }
 
-  static void create(BuildContext context, String endPinId){
+  static void  create(BuildContext context, String endPinId){
     var drawAreaData = Provider.of<DrawAreaData>(context, listen: false);
+    var wireId = Component.uuid.v4();
 
     String startPinId = drawAreaData.connStartData.startPinId;
     var startPin = drawAreaData.components[startPinId] as Pin;
@@ -20,9 +21,10 @@ class Wire extends Component{
     var endPin = drawAreaData.components[endPinId] as Pin;
     var endPinProperties = endPin.properties as PinProperties;
 
-    var wireId = Component.uuid.v4();
-    var wire = Wire(wireId, startPinId, endPinId);
+    endPinProperties.connectedWiresIds[wireId] = startPinId;
+    startPinProperties.connectedWiresIds[wireId] = endPinId;
 
+    var wire = Wire(wireId, startPinId, endPinId);
     var controlPoint0 = Offset.zero, controlPoint1 = Offset.zero;
 
     controlPoint0 = Offset(startPinProperties.pos.dx + 25, startPinProperties.pos.dy);
@@ -41,6 +43,13 @@ class Wire extends Component{
   @override
   Widget draw(BuildContext context) {
     return WireWidget(id: properties.id, wireObj: this);
+  }
+
+  @override
+  void remove(BuildContext context) {
+    var drawAreaData = Provider.of<DrawAreaData>(context, listen: false);
+    var properties = this.properties as WireProperties;
+    drawAreaData.removeComponent(properties.id);
   }
 
 }
