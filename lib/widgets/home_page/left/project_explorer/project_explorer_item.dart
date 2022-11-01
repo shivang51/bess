@@ -36,6 +36,7 @@ class _ProjectExplorerItemState extends State<ProjectExplorerItem> {
     var item = drawAreaData.components[widget.id]!;
     var properties = item.properties;
     return GestureDetector(
+      onTap: () => drawAreaData.setSelectedItemId(widget.id),
       child: MouseRegion(
         onEnter: (e) => setHovered(true),
         onExit: (e) => setHovered(false),
@@ -43,7 +44,9 @@ class _ProjectExplorerItemState extends State<ProjectExplorerItem> {
         child: Container(
             padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
             decoration: BoxDecoration(
-              color: hovered ? MyTheme.highlightColor : null,
+              color: hovered
+                  || drawAreaData.selectedItemId == widget.id
+                  ? MyTheme.highlightColor : null,
               borderRadius: BorderRadius.circular(32.0),
             ),
             child: Row(

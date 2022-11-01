@@ -49,9 +49,10 @@ class NorGate extends Gate {
 
   @override
   Widget draw(BuildContext context) {
-    return NorGateWidget(
+    return super.drawGate(
+      context,
       id: properties.id,
-      gateObj: this,
+      shapeBorder: NorPainter(),
     );
   }
 
