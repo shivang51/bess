@@ -85,7 +85,7 @@ class NorGate extends Gate {
 
   @override
   void remove(BuildContext context) {
-    var drawAreaData = Provider.of<DrawAreaData>(context);
+    var drawAreaData = Provider.of<DrawAreaData>(context, listen: false);
     var props = properties as GateProperties;
     for(var pinId in props.inputPins){
       drawAreaData.components[pinId]!.remove(context);

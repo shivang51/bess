@@ -32,6 +32,7 @@ class Pin extends Component{
     for(var connectedPinId in properties.connectedPinsIds){
       if(connectedPinId == callerId) continue;
       var cProperties = (drawAreaData.components[connectedPinId] as Pin).properties as PinProperties;
+      if(cProperties.state == state) continue;
       if(cProperties.behaviour == PinBehaviour.input) {
         var connectedPin = drawAreaData.components[connectedPinId] as Pin;
         connectedPin.simulate(context, state, properties.id);
