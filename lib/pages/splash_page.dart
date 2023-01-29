@@ -12,107 +12,84 @@ class SplashPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: Container(
-      color: MyTheme.backgroundColor,
-      child: Row(
-        children: [
-          Expanded(
-            flex: 4,
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const MAnimatedImage(),
-                  TextLiquidFill(
-                    text: "Basic Electrical Simulation Software",
-                    boxBackgroundColor: MyTheme.backgroundColor,
-                    waveColor: Colors.amberAccent,
-                    textAlign: TextAlign.center,
-                    waveDuration: const Duration(seconds: 1),
-                    loadDuration: const Duration(seconds: 3),
-                    textStyle: GoogleFonts.nunito(
-                      textStyle: const TextStyle(
-                        letterSpacing: 0.4,
-                        fontSize: 48.0,
-                        fontWeight: FontWeight.bold,
-                      ),
+        body: Row(
+      children: [
+        Expanded(
+          flex: 4,
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const MAnimatedImage(),
+                TextLiquidFill(
+                  text: "Basic Electrical Simulation Software",
+                  waveColor: Theme.of(context).textTheme.bodyLarge!.color!,
+                  textAlign: TextAlign.center,
+                  boxBackgroundColor: Theme.of(context).colorScheme.background,
+                  waveDuration: const Duration(seconds: 1),
+                  loadDuration: const Duration(seconds: 3),
+                  textStyle: GoogleFonts.nunito(
+                    textStyle: const TextStyle(
+                      letterSpacing: 0.4,
+                      fontSize: 48.0,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          Expanded(
-            flex: 6,
-            child: Center(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: MyTheme.primaryBgColor,
-                  borderRadius: BorderRadius.circular(
-                    MyTheme.primaryBorderRadius,
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        "Your Projects",
-                        style: Theme.of(context).textTheme.titleLarge!,
-                      ),
-                      const SizedBox(
-                        height: 20.0,
-                      ),
-                      Text(
-                        "No Projects Yet",
-                        style: Theme.of(context).textTheme.titleSmall!.copyWith(
-                              color: MyTheme.primaryTextColor.withAlpha(220),
-                            ),
-                      ),
-                      const SizedBox(
-                        height: 20.0,
-                      ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          TextButton(
-                            onPressed: () {},
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Text("New Project"),
-                                Icon(Icons.add),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(
-                            width: 20.0,
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.popAndPushNamed(context, HomePage.id);
-                            },
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Text("Continue with empty project"),
-                                Icon(Icons.arrow_forward_rounded)
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+        ),
+        Expanded(
+          flex: 6,
+          child: Center(
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "Your Projects",
+                      style: Theme.of(context).textTheme.titleLarge!,
+                    ),
+                    const SizedBox(
+                      height: 20.0,
+                    ),
+                    Text(
+                      "No Projects Yet",
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(
+                      height: 20.0,
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {},
+                          child: const Text("New Project"),
+                        ),
+                        const SizedBox(
+                          width: 20.0,
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.popAndPushNamed(context, HomePage.id);
+                          },
+                          child: const Text("Continue with empty project"),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     ));
   }
 }

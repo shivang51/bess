@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class ControlPointWidget extends StatefulWidget {
-  const ControlPointWidget({Key? key, required this.parentId, required this.index}) : super(key: key);
+  const ControlPointWidget(
+      {Key? key, required this.parentId, required this.index})
+      : super(key: key);
 
   final String parentId;
   final int index;
@@ -15,13 +17,15 @@ class ControlPointWidget extends StatefulWidget {
 }
 
 class _ControlPointWidgetState extends State<ControlPointWidget> {
-
   @override
   Widget build(BuildContext context) {
     DrawAreaData drawAreaData = Provider.of<DrawAreaData>(context);
 
-    var parentProperties = drawAreaData.components[widget.parentId]!.properties as WireProperties;
-    var pinId = (widget.index == 0) ? parentProperties.startPinId : parentProperties.endPinId;
+    var parentProperties =
+        drawAreaData.components[widget.parentId]!.properties as WireProperties;
+    var pinId = (widget.index == 0)
+        ? parentProperties.startPinId
+        : parentProperties.endPinId;
 
     var anchorPoint = drawAreaData.components[pinId]!.properties.pos;
     var pos = parentProperties.controlPointPositions[widget.index];
@@ -35,13 +39,19 @@ class _ControlPointWidgetState extends State<ControlPointWidget> {
             pos += e.delta;
           });
           parentProperties.controlPointPositions[widget.index] = pos;
-          drawAreaData.updateComponentProperty(widget.parentId, ComponentPropertyType.controlPointPosition,
+          drawAreaData.updateComponentProperty(
+              widget.parentId,
+              ComponentPropertyType.controlPointPosition,
               {"index": widget.index, "position": pos});
         }),
         child: Container(
-          width: 10,
-          height: 10,
-          color: Colors.teal,
+          decoration: BoxDecoration(
+            color: Colors.teal,
+            shape: BoxShape.circle,
+            border: Border.all(color: Theme.of(context).indicatorColor),
+          ),
+          width: 12,
+          height: 12,
           child: CustomPaint(
             painter: LinePainter(anchorPoint - pos),
           ),
@@ -51,15 +61,14 @@ class _ControlPointWidgetState extends State<ControlPointWidget> {
   }
 }
 
-
 class LinePainter extends CustomPainter {
   final Offset endPos;
 
   Path path = Path();
 
   LinePainter(
-      this.endPos,
-      );
+    this.endPos,
+  );
 
   Paint get linePaint => Paint()
     ..color = Colors.teal

@@ -1,14 +1,15 @@
+import 'package:bess/themes.dart';
 import 'package:flutter/material.dart';
 
 class NorPainter extends ShapeBorder {
   final Offset startPos = const Offset(0.0, 0.0);
 
-  final Paint nandPaint = Paint()
-    ..color = Colors.red
+  final Paint norPaint = Paint()
+    ..color = MyTheme.gateBorderColor
     ..style = PaintingStyle.stroke
     ..strokeWidth = 2;
 
-  Path nandGatePath(Rect rect) {
+  Path norGatePath(Rect rect) {
     Path path = Path();
     double x = 0;
     double y = 0;
@@ -44,12 +45,12 @@ class NorPainter extends ShapeBorder {
 
   @override
   Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
-    return nandGatePath(rect);
+    return norGatePath(rect);
   }
 
   @override
   void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
-    canvas.drawPath(nandGatePath(rect), nandPaint);
+    canvas.drawPath(norGatePath(rect), norPaint);
   }
 
   @override

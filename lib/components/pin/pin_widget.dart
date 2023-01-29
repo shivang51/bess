@@ -24,9 +24,11 @@ class _PinWidgetState extends State<PinWidget> {
     var mouseData = Provider.of<MouseData>(context);
 
     var properties = widget.pinObj.properties as PinProperties;
-    var parentProperties = drawAreaData.components[properties.parentId]!.properties;
+    var parentProperties =
+        drawAreaData.components[properties.parentId]!.properties;
 
-    Offset parentPos = drawAreaData.components[properties.parentId]!.properties.pos;
+    Offset parentPos =
+        drawAreaData.components[properties.parentId]!.properties.pos;
 
     Offset offset = (properties.behaviour == PinBehaviour.output)
         ? const Offset(20.0, 1.0)
@@ -34,9 +36,8 @@ class _PinWidgetState extends State<PinWidget> {
 
     Offset pos = properties.offset + parentPos;
 
-    if( (parentProperties.type == ComponentType.inputButton
-        || parentProperties.type == ComponentType.outputStateProbe)
-        && appData.isInSimulationTab()){
+    if ((parentProperties.type == ComponentType.inputButton ||
+        parentProperties.type == ComponentType.outputStateProbe)) {
       pos += const Offset(0.0, 1.5);
     }
 
@@ -66,35 +67,23 @@ class _PinWidgetState extends State<PinWidget> {
         cursor: hovered ? SystemMouseCursors.click : MouseCursor.defer,
         child: Stack(
           children: [
-            ...(appData.isInSimulationTab()
-                ? [
-                    SizedBox(
-                      height: 28,
-                      width: properties.width,
-                    ),
-                    Positioned(
-                      top: -5,
-                      left: properties.width / 2 - 5,
-                      child: Text(
-                        properties.state == DigitalState.high ? "1" : "0",
-                      ),
-                    ),
-                  ]
-                : []),
             Positioned(
-              top: appData.isInSimulationTab() ? 13 : null,
               child: Container(
                 decoration: BoxDecoration(
-                  color: hovered ? Colors.red : Colors.red[300]!,
+                  color: hovered
+                      ? MyTheme.pinHoverColor
+                      : properties.state == DigitalState.high
+                          ? Colors.red
+                          : MyTheme.pinBgColor,
                 ),
                 width: properties.width,
                 height: 2.0,
                 child: drawAreaData.drawingElement == DrawElement.connection &&
-                    drawAreaData.connStartData.startPinId == widget.id
+                        drawAreaData.connStartData.startPinId == widget.id
                     ? PseudoWire(
-                  startPos: offset,
-                  endPos: mouseData.mousePos + offset - pos,
-                )
+                        startPos: offset,
+                        endPos: mouseData.mousePos + offset - pos,
+                      )
                     : null,
               ),
             ),
@@ -104,4 +93,3 @@ class _PinWidgetState extends State<PinWidget> {
     );
   }
 }
-

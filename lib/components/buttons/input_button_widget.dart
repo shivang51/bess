@@ -43,19 +43,16 @@ class _InputButtonWidgetState extends State<InputButtonWidget> {
         children: [
           selected
               ? Container(
-            width: 45,
-            height: 25,
-            padding: const EdgeInsets.all(8.0),
-            decoration: BoxDecoration(
-              border: Border.all(color: MyTheme.borderColor),
-              color: MyTheme.highlightColor,
-            ),
-          )
+                  width: 45,
+                  height: 25,
+                  padding: const EdgeInsets.all(8.0),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).highlightColor,
+                  ),
+                )
               : const SizedBox(),
           GestureDetector(
-            onPanUpdate: !appData.isInSimulationTab()
-                ? (e) => updatePosition(drawAreaData, e.delta)
-                : null,
+            onPanUpdate: (e) => updatePosition(drawAreaData, e.delta),
             onTap: () {
               high = !high;
               var value = high ? DigitalState.high : DigitalState.low;
@@ -81,7 +78,8 @@ class _InputButtonWidgetState extends State<InputButtonWidget> {
                       hovered = false;
                     });
                   },
-                  cursor: hovered ? SystemMouseCursors.click : MouseCursor.defer,
+                  cursor:
+                      hovered ? SystemMouseCursors.click : MouseCursor.defer,
                   child: Tooltip(
                     message: high ? "High" : "Low",
                     child: Container(
@@ -89,8 +87,9 @@ class _InputButtonWidgetState extends State<InputButtonWidget> {
                       height: 25.0,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: MyTheme.borderColor),
-                        color: high ? Colors.red : MyTheme.backgroundColor,
+                        color: high
+                            ? Colors.red
+                            : Theme.of(context).colorScheme.surfaceVariant,
                       ),
                       child: Center(
                         child: Text(

@@ -1,4 +1,3 @@
-import 'package:bess/themes.dart';
 import 'package:flutter/material.dart';
 
 class MIconButton extends StatelessWidget {
@@ -23,8 +22,6 @@ class MIconButton extends StatelessWidget {
         padding: EdgeInsets.zero,
         tooltip: tooltip,
         splashRadius: 15.0,
-        splashColor: MyTheme.secondaryBgColor,
-        highlightColor: MyTheme.secondaryBgColor.withAlpha(200),
         color: color,
         onPressed: onClicked,
         icon: Icon(icon),

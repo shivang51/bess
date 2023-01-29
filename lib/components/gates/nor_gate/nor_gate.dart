@@ -1,9 +1,12 @@
 part of components;
 
 class NorGate extends Gate {
+  static int _counter = 0;
+
   NorGate(String id) {
     properties = GateProperties();
-    properties.name = "Nor Gate";
+    _counter++;
+    properties.name = "Nor Gate $_counter";
     properties.id = id;
     properties.type = ComponentType.norGate;
   }
@@ -34,6 +37,7 @@ class NorGate extends Gate {
       (pin.properties as PinProperties).parentId = gateId;
       (pin.properties as PinProperties).behaviour = PinBehaviour.output;
       (pin.properties as PinProperties).offset = const Offset(150, 49);
+      (pin.properties as PinProperties).state = Defaults.norGateOutputState;
       pins[id] = pin;
     }
 

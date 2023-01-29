@@ -1,7 +1,9 @@
 part of components;
 
 class OutputStateProbeWidget extends StatefulWidget {
-  const OutputStateProbeWidget({Key? key, required this.id, required this.probeObj}) : super(key: key);
+  const OutputStateProbeWidget(
+      {Key? key, required this.id, required this.probeObj})
+      : super(key: key);
 
   final String id;
   final OutputStateProbe probeObj;
@@ -24,7 +26,6 @@ class _OutputStateProbeWidgetState extends State<OutputStateProbeWidget> {
   bool hovered = false;
   Offset pos = Offset.zero;
 
-
   @override
   Widget build(BuildContext context) {
     DrawAreaData drawAreaData = Provider.of<DrawAreaData>(context);
@@ -43,18 +44,18 @@ class _OutputStateProbeWidgetState extends State<OutputStateProbeWidget> {
         children: [
           selected
               ? Container(
-            width: 45,
-            height: 25,
-            padding: const EdgeInsets.all(8.0),
-            decoration: BoxDecoration(
-              border: Border.all(color: MyTheme.borderColor),
-              color: MyTheme.highlightColor,
-            ),
-          )
+                  width: 45,
+                  height: 25,
+                  padding: const EdgeInsets.all(8.0),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).highlightColor,
+                  ),
+                )
               : const SizedBox(),
           GestureDetector(
-            onPanUpdate:
-            !simulating ? (e) => updatePosition(drawAreaData, e.delta) : null,
+            onPanUpdate: !simulating
+                ? (e) => updatePosition(drawAreaData, e.delta)
+                : null,
             child: Row(
               children: [
                 pin.draw(context),
@@ -69,15 +70,17 @@ class _OutputStateProbeWidgetState extends State<OutputStateProbeWidget> {
                       hovered = false;
                     });
                   },
-                  cursor: hovered ? SystemMouseCursors.click : MouseCursor.defer,
+                  cursor:
+                      hovered ? SystemMouseCursors.click : MouseCursor.defer,
                   child: Tooltip(
                     message: high ? "High" : "Low",
                     child: Container(
                       width: 25.0,
                       height: 25.0,
                       decoration: BoxDecoration(
-                        border: Border.all(color: MyTheme.borderColor),
-                        color: high ? Colors.red : MyTheme.backgroundColor,
+                        color: high
+                            ? Colors.red
+                            : Theme.of(context).colorScheme.background,
                       ),
                       child: Center(
                         child: Text(

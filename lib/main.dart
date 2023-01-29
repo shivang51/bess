@@ -16,36 +16,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Basic Electrical Simulation Software',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        cardTheme: mCardTheme,
-        textButtonTheme: mTextButtonThemeData,
-        listTileTheme: mListTileThemeData,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xff6750a4),
-        ).copyWith(
-          brightness: Brightness.dark,
-        ),
-        textTheme: TextTheme(
-          titleLarge: GoogleFonts.roboto(
-            textStyle: TextStyle(
-              color: MyTheme.primaryTextColor,
-              fontSize: 18.0,
-            ),
-          ),
-          titleMedium: GoogleFonts.roboto(
-            textStyle: TextStyle(
-              color: MyTheme.primaryTextColor,
-              fontSize: 15.0,
-            ),
-          ),
-          titleSmall: GoogleFonts.roboto(
-            textStyle: TextStyle(
-              color: MyTheme.primaryTextColor,
-              fontSize: 13.0,
-            ),
-          ),
-        ),
+        brightness: Brightness.dark,
       ),
       routes: {
         HomePage.id: ((context) => const HomePage()),

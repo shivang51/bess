@@ -1,9 +1,12 @@
 part of components;
 
 class Wire extends Component{
+  static int _counter = 0;
 
   Wire(String id, String startPinId, String endPinId){
     properties = WireProperties();
+    _counter++;
+    properties.name = "Wire $_counter";
     properties.type = ComponentType.wire;
     properties.id = id;
     (properties as WireProperties).startPinId = startPinId;

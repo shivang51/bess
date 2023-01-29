@@ -34,6 +34,7 @@ class DrawAreaData with ChangeNotifier {
   String selectedItemId = "";
   DrawElement drawingElement = DrawElement.none;
   ConnectionData connStartData = ConnectionData("", "");
+  double scaleValue = 1.0;
 
   Map<ComponentType, List<String>> extraComponents = {
     ComponentType.inputButton: [],
@@ -43,13 +44,13 @@ class DrawAreaData with ChangeNotifier {
     ComponentType.inputButton,
   ];
 
-  void _addExtraComponent(String id, Component component){
+  void _addExtraComponent(String id, Component component) {
     extraComponents[component.properties.type]!.add(id);
   }
 
   void addComponent(String id, Component component) {
     components[id] = component;
-    if(_extraComponentTypes.contains(component.properties.type)){
+    if (_extraComponentTypes.contains(component.properties.type)) {
       _addExtraComponent(id, component);
     }
     notifyListeners();
@@ -68,7 +69,7 @@ class DrawAreaData with ChangeNotifier {
 
   void removeComponent(String id) {
     var component = components[id]!;
-    if(_extraComponentTypes.contains(component.properties.type)){
+    if (_extraComponentTypes.contains(component.properties.type)) {
       extraComponents[component.properties.type]!.remove(id);
     }
     components.remove(id);
@@ -92,15 +93,13 @@ class DrawAreaData with ChangeNotifier {
     connStartData = ConnectionData(startGateId, startPinId);
   }
 
-  void updateComponentProperty(String id,
-      ComponentPropertyType property,
-      dynamic value
-      ){
-    if(!components.containsKey(id)) return;
+  void updateComponentProperty(
+      String id, ComponentPropertyType property, dynamic value) {
+    if (!components.containsKey(id)) return;
 
     var component = components[id]!;
 
-    switch(property){
+    switch (property) {
       case ComponentPropertyType.name:
         component.properties.name = value;
         break;
@@ -111,10 +110,17 @@ class DrawAreaData with ChangeNotifier {
         (component.properties as PinProperties).state = value;
         break;
       case ComponentPropertyType.controlPointPosition:
-        (component.properties as WireProperties).controlPointPositions[value["index"]] = value["position"];
+        (component.properties as WireProperties)
+            .controlPointPositions[value["index"]] = value["position"];
         break;
     }
 
+    notifyListeners();
+  }
+
+  void setScale(double value) {
+    if (scaleValue == value) return;
+    scaleValue = value;
     notifyListeners();
   }
 }

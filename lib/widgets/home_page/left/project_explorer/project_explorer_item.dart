@@ -1,13 +1,13 @@
 import 'package:bess/components/component.dart';
 import 'package:bess/data/draw_area/draw_area_data.dart';
-import 'package:bess/themes.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 
 class ProjectExplorerItem extends StatefulWidget {
   const ProjectExplorerItem({
     Key? key,
-    required this.id, required this.obj,
+    required this.id,
+    required this.obj,
   }) : super(key: key);
 
   final String id;
@@ -26,7 +26,7 @@ class _ProjectExplorerItemState extends State<ProjectExplorerItem> {
     });
   }
 
-  void remove(BuildContext context){
+  void remove(BuildContext context) {
     widget.obj.remove(context);
   }
 
@@ -44,9 +44,11 @@ class _ProjectExplorerItemState extends State<ProjectExplorerItem> {
         child: Container(
             padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
             decoration: BoxDecoration(
-              color: hovered
-                  || drawAreaData.selectedItemId == widget.id
-                  ? MyTheme.highlightColor : null,
+              color: drawAreaData.selectedItemId == widget.id
+                  ? Theme.of(context).colorScheme.background
+                  : hovered
+                      ? Theme.of(context).hoverColor
+                      : null,
               borderRadius: BorderRadius.circular(32.0),
             ),
             child: Row(
@@ -62,9 +64,11 @@ class _ProjectExplorerItemState extends State<ProjectExplorerItem> {
                     maxWidth: 15.0,
                     maxHeight: 15.0,
                   ),
-                  icon: hovered ? const Icon(
-                    Icons.highlight_remove_rounded,
-                  ) : const SizedBox(),
+                  icon: hovered
+                      ? const Icon(
+                          Icons.highlight_remove_rounded,
+                        )
+                      : const SizedBox(),
                 ),
               ],
             )),

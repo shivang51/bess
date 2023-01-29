@@ -29,10 +29,14 @@ class Pin extends Component{
     var properties = this.properties as PinProperties;
 
     drawAreaData.updateComponentProperty(properties.id, ComponentPropertyType.digitalState, state);
+
     for(var connectedPinId in properties.connectedPinsIds){
       if(connectedPinId == callerId) continue;
+
       var cProperties = (drawAreaData.components[connectedPinId] as Pin).properties as PinProperties;
+
       if(cProperties.state == state) continue;
+
       if(cProperties.behaviour == PinBehaviour.input) {
         var connectedPin = drawAreaData.components[connectedPinId] as Pin;
         connectedPin.simulate(context, state, properties.id);

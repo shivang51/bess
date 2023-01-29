@@ -1,8 +1,11 @@
 part of components;
 
-
 class WireWidget extends StatefulWidget {
-  const WireWidget({Key? key, required this.id, required this.wireObj,}) : super(key: key);
+  const WireWidget({
+    Key? key,
+    required this.id,
+    required this.wireObj,
+  }) : super(key: key);
 
   final String id;
   final Wire wireObj;
@@ -15,30 +18,34 @@ class _WireWidgetState extends State<WireWidget> {
   @override
   Widget build(BuildContext context) {
     var drawAreaData = Provider.of<DrawAreaData>(context);
-    AppData appData = Provider.of<AppData>(context);
 
-    var simulating = appData.isInSimulationTab();
     var properties = widget.wireObj.properties as WireProperties;
 
     var controlPoint0 = properties.controlPointPositions[0];
     var controlPoint1 = properties.controlPointPositions[1];
 
-    var startPos = drawAreaData.components[properties.startPinId]!.properties.pos;
+    var startPos =
+        drawAreaData.components[properties.startPinId]!.properties.pos;
     var endPos = drawAreaData.components[properties.endPinId]!.properties.pos;
+
+    var state = (drawAreaData.components[properties.startPinId]!.properties
+            as PinProperties)
+        .state;
 
     return Stack(
       children: [
-        ...(!simulating && drawAreaData.selectedItemId == widget.id
+        ...(drawAreaData.selectedItemId == widget.id
             ? [
-          ControlPointWidget(
-            index: 0,
-            parentId: widget.id,
-          ),
-          ControlPointWidget(
-            index: 1,
-            parentId: widget.id,
-          ),
-        ] : []),
+                ControlPointWidget(
+                  index: 0,
+                  parentId: widget.id,
+                ),
+                ControlPointWidget(
+                  index: 1,
+                  parentId: widget.id,
+                ),
+              ]
+            : []),
         Material(
           animationDuration: Duration.zero,
           type: MaterialType.button,
@@ -48,9 +55,11 @@ class _WireWidgetState extends State<WireWidget> {
             controlPoint0,
             controlPoint1,
           ),
-          color: !simulating && drawAreaData.selectedItemId == widget.id
+          color: drawAreaData.selectedItemId == widget.id
               ? Colors.orange
-              : Colors.green,
+              : state == DigitalState.high
+                  ? Colors.red
+                  : MyTheme.wireColor,
           child: InkWell(
             customBorder: CustomBorder(
               startPos,
@@ -67,13 +76,12 @@ class _WireWidgetState extends State<WireWidget> {
   }
 }
 
-
 class CustomBorder extends OutlinedBorder {
   final Offset startPos;
   final Offset endPos;
   final Offset ctrlPoint1;
   final Offset ctrlPoint2;
-  final double size = 2;
+  final double size = 2.0;
 
   const CustomBorder(
       this.startPos, this.endPos, this.ctrlPoint1, this.ctrlPoint2,
@@ -148,7 +156,6 @@ class CustomBorder extends OutlinedBorder {
       path.cubicTo(cl.dx, cl.dy, ch.dx, ch.dy, high.dx - size, high.dy + size);
     }
 
-    path.close();
     return path;
   }
 
@@ -186,10 +193,10 @@ class CustomBorder extends OutlinedBorder {
 
   @override
   ShapeBorder scale(double t) => CustomBorder(
-    side: side.scale(t),
-    startPos,
-    endPos,
-    ctrlPoint1,
-    ctrlPoint2,
-  );
+        side: side.scale(t),
+        startPos,
+        endPos,
+        ctrlPoint1,
+        ctrlPoint2,
+      );
 }

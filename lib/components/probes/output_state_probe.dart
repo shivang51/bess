@@ -1,21 +1,24 @@
 part of components;
 
-class OutputStateProbe extends Component{
-  OutputStateProbe(String id, {String? pinId}){
+class OutputStateProbe extends Component {
+  static int _counter = 0;
+
+  OutputStateProbe(String id, {String? pinId}) {
     properties = ProbeProperties();
+    _counter++;
     properties.id = id;
-    properties.name = "Output Probe";
+    properties.name = "Output Probe $_counter";
     properties.type = ComponentType.outputStateProbe;
     (properties as ProbeProperties).pinId = pinId ?? "";
   }
 
-  static void create(BuildContext context){
+  static void create(BuildContext context) {
     String probeId = Component.uuid.v4();
 
     // PIN - INPUT
     String pinId = Component.uuid.v4();
     var pin = Pin(pinId, parentId: probeId);
-    (pin.properties as PinProperties).offset = const Offset(0.0, 11.5);
+    (pin.properties as PinProperties).offset = const Offset(0.0, 10);
 
     var probe = OutputStateProbe(probeId, pinId: pinId);
 
@@ -35,5 +38,4 @@ class OutputStateProbe extends Component{
     drawAreaData.components[pinId]!.remove(context);
     drawAreaData.removeComponent(properties.id);
   }
-
 }

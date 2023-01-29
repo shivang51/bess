@@ -28,12 +28,12 @@ class PseudoWirePainter extends CustomPainter {
   Path path = Path();
 
   PseudoWirePainter(
-      this.startPos,
-      this.endPos,
-      );
+    this.startPos,
+    this.endPos,
+  );
 
   Paint get linePaint => Paint()
-    ..color = Colors.amber[200]!
+    ..color = MyTheme.wirePseudoColor
     ..strokeWidth = 3
     ..style = PaintingStyle.stroke
     ..strokeJoin = StrokeJoin.round

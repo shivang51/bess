@@ -1,37 +1,19 @@
-import 'package:bess/components/component_type.dart';
-import 'package:bess/components/components.dart';
 import 'package:bess/data/draw_area/draw_area_data.dart';
-import 'package:bess/data/app/app_data.dart';
-import 'package:bess/components/types.dart';
-import 'package:flutter/material.dart';
+// import 'package:bess/data/draw_area/objects/io/obj_input_button.dart';
+// import 'package:bess/data/simulation/simulation_data.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 
 class SimProcedures {
-
   static void startSimulation(BuildContext context) {
-    var appData = Provider.of<AppData>(context, listen: false);
+    DrawAreaData drawAreaData =
+        Provider.of<DrawAreaData>(context, listen: false);
 
-    // CHANGE TO SIMULATION TAB
-    if(appData.tabController.index != 1) appData.tabController.index = 1;
+    // for (String btnId in drawAreaData.inputButtons) {
+    //   DAOInputButton btn = drawAreaData.objects[btnId]! as DAOInputButton;
 
-    // INIT SIMULATION
-    initSimulation(context);
-
-    appData.setSimulationState(SimulationState.running );
+    // }
   }
 
-  static void stopSimulation(BuildContext context) {
-    var appData = Provider.of<AppData>(context, listen: false);
-    if(appData.tabController.index != 0) appData.tabController.index = 0;
-    appData.setSimulationState(SimulationState.stopped);
-  }
-
-  static void initSimulation(BuildContext context){
-    var drawAreaData = Provider.of<DrawAreaData>(context, listen: false);
-    var inputButtonIds = drawAreaData.extraComponents[ComponentType.inputButton]!;
-    for(var inputBtnId in inputButtonIds){
-      var inputBtn = (drawAreaData.components[inputBtnId] as InputButton);
-      inputBtn.simulate(context, DigitalState.low, inputBtnId);
-    }
-  }
+  static void stopSimulation(BuildContext context) {}
 }

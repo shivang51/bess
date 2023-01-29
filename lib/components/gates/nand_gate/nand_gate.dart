@@ -1,9 +1,13 @@
 part of components;
 
 class NandGate extends Gate {
+
+  static int _counter = 0;
+
   NandGate(String id) {
     properties = GateProperties();
-    properties.name = "Nand Gate";
+    _counter++;
+    properties.name = "Nand Gate $_counter";
     properties.id = id;
     properties.type = ComponentType.nandGate;
   }
@@ -33,6 +37,7 @@ class NandGate extends Gate {
       (pin.properties as PinProperties).parentId = gateId;
       (pin.properties as PinProperties).behaviour = PinBehaviour.output;
       (pin.properties as PinProperties).offset = const Offset(150, 49);
+      (pin.properties as PinProperties).state = Defaults.nandGateOutputState;
       pins[id] = pin;
     }
 
@@ -71,7 +76,7 @@ class NandGate extends Gate {
         v_ = v_ && v;
       }
 
-      //if(!v_) break;
+      if(!v_) break;
     }
 
     v_ = !v_!;

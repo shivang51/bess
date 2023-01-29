@@ -25,6 +25,8 @@ import 'types.dart';
 import 'wires/wire/control_point_widget.dart';
 import 'wires/wire/wire_properties.dart';
 
+part "defaults/defaults.dart";
+
 part 'gates/gate_widget.dart';
 part 'gates/nand_gate/nand_gate.dart';
 part 'gates/nor_gate/nor_gate.dart';

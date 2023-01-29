@@ -1,10 +1,11 @@
+import 'package:bess/themes.dart';
 import 'package:flutter/material.dart';
 
 class NandPainter extends ShapeBorder {
   final Offset startPos = const Offset(0.0, 0.0);
 
   final Paint nandPaint = Paint()
-    ..color = Colors.red
+    ..color = MyTheme.gateBorderColor
     ..style = PaintingStyle.stroke
     ..strokeWidth = 2;
 
