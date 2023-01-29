@@ -11,4 +11,4 @@ BESS stands for Best Electrical Simulation Software. It is a simple simulation s
 - Abstraction
 - And other things 😁
 
-![Current State of BESS!](screenshots/or_using_nand.png "OR Gate Using NAND Gate")
+![Current State of BESS!](screenshots/new_ui.png "New and current UI of bess")
