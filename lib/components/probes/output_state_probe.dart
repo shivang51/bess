@@ -12,7 +12,7 @@ class OutputStateProbe extends Component {
     (properties as ProbeProperties).pinId = pinId ?? "";
   }
 
-  static void create(BuildContext context) {
+  static void create(BuildContext context, Offset pos) {
     String probeId = Component.uuid.v4();
 
     // PIN - INPUT
@@ -21,6 +21,7 @@ class OutputStateProbe extends Component {
     (pin.properties as PinProperties).offset = const Offset(0.0, 10);
 
     var probe = OutputStateProbe(probeId, pinId: pinId);
+    probe.properties.pos = pos;
 
     var drawAreaData = Provider.of<DrawAreaData>(context, listen: false);
     drawAreaData.addComponents({pinId: pin, probeId: probe});

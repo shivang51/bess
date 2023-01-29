@@ -29,9 +29,7 @@ class _OutputStateProbeWidgetState extends State<OutputStateProbeWidget> {
   @override
   Widget build(BuildContext context) {
     DrawAreaData drawAreaData = Provider.of<DrawAreaData>(context);
-    AppData appData = Provider.of<AppData>(context);
-
-    var simulating = appData.simulationState != SimulationState.stopped;
+    // AppData appData = Provider.of<AppData>(context);
     var properties = widget.probeObj.properties as ProbeProperties;
     pos = properties.pos;
     var pin = drawAreaData.components[properties.pinId]! as Pin;
@@ -53,9 +51,8 @@ class _OutputStateProbeWidgetState extends State<OutputStateProbeWidget> {
                 )
               : const SizedBox(),
           GestureDetector(
-            onPanUpdate: !simulating
-                ? (e) => updatePosition(drawAreaData, e.delta)
-                : null,
+            onPanUpdate: (e) => updatePosition(drawAreaData, e.delta),
+            onTap: () => drawAreaData.setSelectedItemId(properties.id),
             child: Row(
               children: [
                 pin.draw(context),
@@ -78,9 +75,7 @@ class _OutputStateProbeWidgetState extends State<OutputStateProbeWidget> {
                       width: 25.0,
                       height: 25.0,
                       decoration: BoxDecoration(
-                        color: high
-                            ? Colors.red
-                            : Theme.of(context).colorScheme.background,
+                        color: high ? Colors.red : MyTheme.componentBgColor,
                       ),
                       child: Center(
                         child: Text(

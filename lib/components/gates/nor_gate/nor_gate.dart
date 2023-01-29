@@ -11,28 +11,27 @@ class NorGate extends Gate {
     properties.type = ComponentType.norGate;
   }
 
-  static void create(BuildContext context) {
+  static void create(BuildContext context, Offset pos) {
     var gateId = Component.uuid.v4();
 
     Map<String, Pin> pins = {};
     int index = 0;
     // INPUT PINS
     var pinInIds = List.generate(2, (index) => Component.uuid.v4());
-    for(var id in pinInIds){
+    for (var id in pinInIds) {
       var pin = Pin(id);
       (pin.properties as PinProperties).parentId = gateId;
       (pin.properties as PinProperties).behaviour = PinBehaviour.input;
       (pin.properties as PinProperties).width = 40.0;
-      (pin.properties as PinProperties).offset = (index == 1)
-          ? const Offset(0.0, 74.0)
-          : const Offset(0.0, 24.0);
+      (pin.properties as PinProperties).offset =
+          (index == 1) ? const Offset(0.0, 74.0) : const Offset(0.0, 24.0);
       pins[id] = pin;
       index += 1;
     }
 
     // OUTPUT PINS
     var pinOutIds = [Component.uuid.v4()];
-    for(var id in pinOutIds){
+    for (var id in pinOutIds) {
       var pin = Pin(id);
       (pin.properties as PinProperties).parentId = gateId;
       (pin.properties as PinProperties).behaviour = PinBehaviour.output;
@@ -45,6 +44,7 @@ class NorGate extends Gate {
     drawAreaData.addComponents(pins);
 
     var gate = NorGate(gateId);
+    gate.properties.pos = pos;
     (gate.properties as GateProperties).inputPins = pinInIds;
     (gate.properties as GateProperties).outputPins = pinOutIds;
 
@@ -67,23 +67,25 @@ class NorGate extends Gate {
 
     bool? v_;
     for (var pinId in properties.inputPins) {
-      var pinProperties = (drawAreaData.components[pinId] as Pin).properties as PinProperties;
+      var pinProperties =
+          (drawAreaData.components[pinId] as Pin).properties as PinProperties;
       var v = pinProperties.state == DigitalState.high;
       if (v_ == null) {
         v_ = v;
-      }else{
+      } else {
         v_ = v_ || v;
       }
 
-      if(v_) break;
+      if (v_) break;
     }
 
     v_ = !v_!;
     DigitalState value = v_ ? DigitalState.high : DigitalState.low;
 
-    for(var pinId in properties.outputPins){
-      if(callerId == pinId) continue;
-      (drawAreaData.components[pinId] as Pin).simulate(context, value, properties.id);
+    for (var pinId in properties.outputPins) {
+      if (callerId == pinId) continue;
+      (drawAreaData.components[pinId] as Pin)
+          .simulate(context, value, properties.id);
     }
   }
 
@@ -91,10 +93,10 @@ class NorGate extends Gate {
   void remove(BuildContext context) {
     var drawAreaData = Provider.of<DrawAreaData>(context, listen: false);
     var props = properties as GateProperties;
-    for(var pinId in props.inputPins){
+    for (var pinId in props.inputPins) {
       drawAreaData.components[pinId]!.remove(context);
     }
-    for(var pinId in props.outputPins) {
+    for (var pinId in props.outputPins) {
       drawAreaData.components[pinId]!.remove(context);
     }
     drawAreaData.removeComponent(properties.id);

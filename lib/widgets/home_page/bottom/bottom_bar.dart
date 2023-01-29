@@ -9,7 +9,7 @@ class BottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
-      children: [
+      children: const [
         // const ScaleSlider(),
       ],
     );
@@ -32,8 +32,8 @@ class _ScaleSliderState extends State<ScaleSlider> {
 
   @override
   Widget build(BuildContext context) {
-    DrawAreaData _drawAreaData = Provider.of<DrawAreaData>(context);
-    _value = _drawAreaData.scaleValue - 3;
+    DrawAreaData drawAreaData = Provider.of<DrawAreaData>(context);
+    _value = drawAreaData.scaleValue - 3;
     return Row(
       children: [
         Text(_value.toStringAsPrecision(3)),
@@ -43,7 +43,7 @@ class _ScaleSliderState extends State<ScaleSlider> {
           max: _kSliderMax,
           min: _kSliderMin,
           value: _value,
-          onChanged: (value) => _drawAreaData.setScale(value + 3),
+          onChanged: (value) => drawAreaData.setScale(value + 3),
         ),
       ],
     );

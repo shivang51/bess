@@ -87,9 +87,7 @@ class _InputButtonWidgetState extends State<InputButtonWidget> {
                       height: 25.0,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: high
-                            ? Colors.red
-                            : Theme.of(context).colorScheme.surfaceVariant,
+                        color: high ? Colors.red : MyTheme.componentBgColor,
                       ),
                       child: Center(
                         child: Text(

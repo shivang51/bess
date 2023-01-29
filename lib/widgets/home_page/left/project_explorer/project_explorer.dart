@@ -5,7 +5,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 
 import 'package:bess/data/draw_area/draw_area_data.dart';
-import 'package:bess/themes.dart';
 
 import 'project_explorer_item.dart';
 

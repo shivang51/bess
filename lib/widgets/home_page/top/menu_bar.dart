@@ -1,4 +1,3 @@
-import 'package:bess/themes.dart';
 import 'package:flutter/material.dart';
 
 import 'file_menu/file_menu.dart';
@@ -17,7 +16,7 @@ class _MenuBarState extends State<MenuBar> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
           // color: MyTheme.primaryBgColor,
           ),
       padding: const EdgeInsets.all(3.0),

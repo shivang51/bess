@@ -1,11 +1,9 @@
 import 'package:bess/data/app/app_data.dart';
 import 'package:bess/data/draw_area/draw_area_data.dart';
 import 'package:bess/data/mouse_data.dart';
-import 'package:bess/themes.dart';
 import 'package:bess/widgets/home_page/bottom/bottom_bar.dart';
 import 'package:bess/widgets/home_page/left/left.dart';
 import 'package:bess/widgets/home_page/right/right.dart';
-import 'package:bess/widgets/home_page/top/menu_bar.dart';
 import 'package:bess/widgets/home_page/top/top_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

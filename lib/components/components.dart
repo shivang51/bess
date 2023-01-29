@@ -1,7 +1,6 @@
 library components;
 
 import 'package:bess/components/buttons/button_properties.dart';
-import 'package:bess/procedures/simulation_procedures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -25,6 +24,7 @@ import 'types.dart';
 import 'wires/wire/control_point_widget.dart';
 import 'wires/wire/wire_properties.dart';
 
+part 'component_generator.dart';
 part "defaults/defaults.dart";
 
 part 'gates/gate_widget.dart';

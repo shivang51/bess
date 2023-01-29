@@ -1,4 +1,3 @@
-import 'package:bess/themes.dart';
 import 'package:flutter/material.dart';
 
 class PopUpMenuWidget extends StatefulWidget {
@@ -50,7 +49,7 @@ class _PopUpMenuWidgetState extends State<PopUpMenuWidget> {
             ),
             child: Text(
               widget.name,
-              style: TextStyle(
+              style: const TextStyle(
                 // color: MyTheme.secondaryTextColor,
                 fontSize: 14.0,
               ),

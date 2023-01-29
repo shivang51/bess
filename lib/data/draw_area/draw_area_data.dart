@@ -31,6 +31,8 @@ class ConnectionData {
 class DrawAreaData with ChangeNotifier {
   Map<String, Component> components = {};
 
+  ComponentType drawingComponent = ComponentType.none;
+
   String selectedItemId = "";
   DrawElement drawingElement = DrawElement.none;
   ConnectionData connStartData = ConnectionData("", "");
@@ -121,6 +123,12 @@ class DrawAreaData with ChangeNotifier {
   void setScale(double value) {
     if (scaleValue == value) return;
     scaleValue = value;
+    notifyListeners();
+  }
+
+  void setDrawingComponent(ComponentType comp) {
+    if (comp == drawingComponent) comp = ComponentType.none;
+    drawingComponent = comp;
     notifyListeners();
   }
 }

@@ -1,9 +1,9 @@
 part of components;
 
-class Wire extends Component{
+class Wire extends Component {
   static int _counter = 0;
 
-  Wire(String id, String startPinId, String endPinId){
+  Wire(String id, String startPinId, String endPinId) {
     properties = WireProperties();
     _counter++;
     properties.name = "Wire $_counter";
@@ -13,7 +13,7 @@ class Wire extends Component{
     (properties as WireProperties).endPinId = endPinId;
   }
 
-  static void  create(BuildContext context, String endPinId){
+  static void create(BuildContext context, String endPinId) {
     var drawAreaData = Provider.of<DrawAreaData>(context, listen: false);
     var wireId = Component.uuid.v4();
 
@@ -24,14 +24,24 @@ class Wire extends Component{
     var endPin = drawAreaData.components[endPinId] as Pin;
     var endPinProperties = endPin.properties as PinProperties;
 
+    if (startPinProperties.behaviour == PinBehaviour.output &&
+        endPinProperties.behaviour == PinBehaviour.input) {
+      endPinProperties.state = startPinProperties.state;
+    } else if (startPinProperties.behaviour == PinBehaviour.input &&
+        endPinProperties.behaviour == PinBehaviour.output) {
+      startPinProperties.state = endPinProperties.state;
+    }
+
     endPinProperties.connectedWiresIds[wireId] = startPinId;
     startPinProperties.connectedWiresIds[wireId] = endPinId;
 
     var wire = Wire(wireId, startPinId, endPinId);
     var controlPoint0 = Offset.zero, controlPoint1 = Offset.zero;
 
-    controlPoint0 = Offset(startPinProperties.pos.dx + 25, startPinProperties.pos.dy);
-    controlPoint1 = Offset(endPinProperties.pos.dx - 25, endPinProperties.pos.dy);
+    controlPoint0 =
+        Offset(startPinProperties.pos.dx + 25, startPinProperties.pos.dy);
+    controlPoint1 =
+        Offset(endPinProperties.pos.dx - 25, endPinProperties.pos.dy);
 
     (wire.properties as WireProperties).controlPointPositions = [
       controlPoint0,
@@ -54,5 +64,4 @@ class Wire extends Component{
     var properties = this.properties as WireProperties;
     drawAreaData.removeComponent(properties.id);
   }
-
 }

@@ -1,0 +1,9 @@
+implement
+    - clock
+    - not, and, nor, exor, exnor gate
+    - text functionality
+
+make wiring better
+clear button in project explorer
+update draw area pos to selected item pos
+change cursor text while drawing elements

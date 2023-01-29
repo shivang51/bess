@@ -1,4 +1,3 @@
-import '../types.dart';
 
 import '../component_properties.dart';
 

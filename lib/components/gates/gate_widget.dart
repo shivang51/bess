@@ -68,7 +68,7 @@ class _GateWidgetState extends State<GateWidget> {
                         type: MaterialType.button,
                         animationDuration: Duration.zero,
                         shape: widget.shapeBorder,
-                        color: MyTheme.gateBgColor,
+                        color: MyTheme.componentBgColor,
                         child: InkWell(
                           customBorder: widget.shapeBorder,
                           splashColor: Colors.white.withAlpha(10),

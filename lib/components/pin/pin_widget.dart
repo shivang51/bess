@@ -20,7 +20,6 @@ class _PinWidgetState extends State<PinWidget> {
   @override
   Widget build(BuildContext context) {
     var drawAreaData = Provider.of<DrawAreaData>(context);
-    var appData = Provider.of<AppData>(context);
     var mouseData = Provider.of<MouseData>(context);
 
     var properties = widget.pinObj.properties as PinProperties;

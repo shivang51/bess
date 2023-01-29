@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 enum SimulationState { running, paused, stopped }
 
 class AppData with ChangeNotifier {
-  SimulationState simulationState = SimulationState.stopped;
+  SimulationState simulationState = SimulationState.running;
 
   void setSimulationState(SimulationState state) {
     if (simulationState == state) return;

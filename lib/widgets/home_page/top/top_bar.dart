@@ -1,8 +1,8 @@
-import 'dart:ui';
 
 import 'package:bess/components/component_type.dart';
-import 'package:bess/components/components.dart';
+import 'package:bess/data/draw_area/draw_area_data.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class TopBar extends StatelessWidget {
   const TopBar({super.key});
@@ -38,12 +38,32 @@ class TopBar extends StatelessWidget {
 
 Map<ComponentType, List<Map<String, void Function(BuildContext)>>> compFunc = {
   ComponentType.gate: [
-    {"Nand Gate": NandGate.create},
-    {"Nor Gate": NorGate.create},
+    {
+      "Nand Gate": (BuildContext context) {
+        DrawAreaData data = Provider.of<DrawAreaData>(context, listen: false);
+        data.setDrawingComponent(ComponentType.nandGate);
+      }
+    },
+    {
+      "Nor Gate": (BuildContext context) {
+        DrawAreaData data = Provider.of<DrawAreaData>(context, listen: false);
+        data.setDrawingComponent(ComponentType.norGate);
+      }
+    },
   ],
   ComponentType.io: [
-    {"Input Button": InputButton.create},
-    {"Output State Probe": OutputStateProbe.create},
+    {
+      "Input Button": (BuildContext context) {
+        DrawAreaData data = Provider.of<DrawAreaData>(context, listen: false);
+        data.setDrawingComponent(ComponentType.inputButton);
+      }
+    },
+    {
+      "Output State Probe": (BuildContext context) {
+        DrawAreaData data = Provider.of<DrawAreaData>(context, listen: false);
+        data.setDrawingComponent(ComponentType.outputStateProbe);
+      }
+    },
   ]
 };
 
@@ -99,6 +119,9 @@ class _RightTopControlsState extends State<RightTopControls>
                     child: const Text("I/O"),
                   ),
                 ],
+              ),
+              const SizedBox(
+                height: 5,
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,

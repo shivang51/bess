@@ -11,7 +11,7 @@ class Right extends StatelessWidget {
   Widget build(BuildContext context) {
     return const SizedBox(
       height: double.maxFinite,
-      child: const DrawArea(),
+      child: DrawArea(),
     );
   }
 }

@@ -102,10 +102,9 @@ class CustomBorder extends OutlinedBorder {
       high = endPos;
       ch = ctrlPoint2;
     }
-    var ph = -10.0, pl = 10;
+    var ph = -10.0;
     if (high.dx < low.dx) {
       ph = 0;
-      pl = -0;
     }
 
     if (low.dx < high.dx) {

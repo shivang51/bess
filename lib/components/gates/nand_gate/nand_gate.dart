@@ -1,7 +1,6 @@
 part of components;
 
 class NandGate extends Gate {
-
   static int _counter = 0;
 
   NandGate(String id) {
@@ -12,7 +11,7 @@ class NandGate extends Gate {
     properties.type = ComponentType.nandGate;
   }
 
-  static void create(BuildContext context) {
+  static void create(BuildContext context, Offset pos) {
     var gateId = Component.uuid.v4();
 
     Map<String, Pin> pins = {};
@@ -47,6 +46,7 @@ class NandGate extends Gate {
     var gate = NandGate(gateId);
     (gate.properties as GateProperties).inputPins = pinInIds;
     (gate.properties as GateProperties).outputPins = pinOutIds;
+    (gate.properties as GateProperties).pos = pos;
 
     drawAreaData.addComponent(gateId, gate);
   }
@@ -76,7 +76,7 @@ class NandGate extends Gate {
         v_ = v_ && v;
       }
 
-      if(!v_) break;
+      if (!v_) break;
     }
 
     v_ = !v_!;

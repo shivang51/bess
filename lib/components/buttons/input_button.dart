@@ -11,7 +11,7 @@ class InputButton extends Component {
     properties.type = ComponentType.inputButton;
   }
 
-  static void create(BuildContext context) {
+  static void create(BuildContext context, Offset pos) {
     String buttonId = Component.uuid.v4();
     var button = InputButton(buttonId);
 
@@ -25,6 +25,7 @@ class InputButton extends Component {
     (pin.properties as PinProperties).offset = const Offset(45.0, 10);
 
     (button.properties as ButtonProperties).pinId = pinId;
+    button.properties.pos = pos;
 
     var drawAreaData = Provider.of<DrawAreaData>(context, listen: false);
     drawAreaData.addComponents({pinId: pin, buttonId: button});
