@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:bess/components/component_properties.dart';
 import 'package:bess/components/gates/gate_properties.dart';
 import 'package:bess/data/app/app_data.dart';
-import 'package:bess/data/draw_area/draw_area_data.dart';
+import 'package:bess/data/project_data/project_data.dart';
 import 'package:bess/data/mouse_data.dart';
 import 'package:bess/themes.dart';
 
@@ -15,6 +15,7 @@ import 'gates/gate.dart';
 import 'gates/nand_gate/nand_painter.dart';
 
 import 'gates/nor_gate/nor_painter.dart';
+import 'gates/not_gate/not_gate_painter.dart';
 import 'pin/pin_properties.dart';
 
 import 'component.dart';
@@ -30,6 +31,7 @@ part "defaults/defaults.dart";
 part 'gates/gate_widget.dart';
 part 'gates/nand_gate/nand_gate.dart';
 part 'gates/nor_gate/nor_gate.dart';
+part 'gates/not_gate/not_gate.dart';
 
 part 'pin/pin.dart';
 part 'pin/pin_widget.dart';

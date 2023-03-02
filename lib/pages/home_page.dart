@@ -1,5 +1,5 @@
 import 'package:bess/data/app/app_data.dart';
-import 'package:bess/data/draw_area/draw_area_data.dart';
+import 'package:bess/data/project_data/project_data.dart';
 import 'package:bess/data/mouse_data.dart';
 import 'package:bess/widgets/home_page/bottom/bottom_bar.dart';
 import 'package:bess/widgets/home_page/left/left.dart';
@@ -20,7 +20,7 @@ class HomePage extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<AppData>(create: (_) => AppData()),
-        ChangeNotifierProvider<DrawAreaData>(create: (_) => DrawAreaData()),
+        ChangeNotifierProvider<ProjectData>(create: (_) => ProjectData()),
         ChangeNotifierProvider<MouseData>(create: (_) => MouseData()),
       ],
       child: Scaffold(

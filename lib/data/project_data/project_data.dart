@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:bess/components/component.dart';
 import 'package:bess/components/component_properties.dart';
 import 'package:bess/components/component_type.dart';
@@ -28,7 +30,10 @@ class ConnectionData {
   );
 }
 
-class DrawAreaData with ChangeNotifier {
+class ProjectData with ChangeNotifier {
+  String name = "Untitled";
+  String loc = "";
+  bool saved = false;
   Map<String, Component> components = {};
 
   ComponentType drawingComponent = ComponentType.none;
@@ -55,6 +60,7 @@ class DrawAreaData with ChangeNotifier {
     if (_extraComponentTypes.contains(component.properties.type)) {
       _addExtraComponent(id, component);
     }
+    // print(toJson());
     notifyListeners();
   }
 
@@ -130,5 +136,13 @@ class DrawAreaData with ChangeNotifier {
     if (comp == drawingComponent) comp = ComponentType.none;
     drawingComponent = comp;
     notifyListeners();
+  }
+
+  String toJson() {
+    Map<String, dynamic> data = {'name': name, 'components': []};
+    components.forEach((key, value) {
+      (data['components'] as List<dynamic>).add({key: value.toJson()});
+    });
+    return json.encode(data);
   }
 }

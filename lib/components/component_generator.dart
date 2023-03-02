@@ -10,6 +10,9 @@ class ComponentGenerator {
       case ComponentType.norGate:
         NorGate.create(context, pos);
         break;
+      case ComponentType.notGate:
+        NotGate.create(context, pos);
+        break;
       case ComponentType.inputButton:
         InputButton.create(context, pos);
         break;

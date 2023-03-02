@@ -12,7 +12,7 @@ class OutputStateProbeWidget extends StatefulWidget {
 }
 
 class _OutputStateProbeWidgetState extends State<OutputStateProbeWidget> {
-  void updatePosition(DrawAreaData data, Offset delta) {
+  void updatePosition(ProjectData data, Offset delta) {
     var newPos = pos + delta;
     if (newPos.dx < 0 || newPos.dy < 0) return;
 
@@ -28,7 +28,7 @@ class _OutputStateProbeWidgetState extends State<OutputStateProbeWidget> {
 
   @override
   Widget build(BuildContext context) {
-    DrawAreaData drawAreaData = Provider.of<DrawAreaData>(context);
+    ProjectData drawAreaData = Provider.of<ProjectData>(context);
     // AppData appData = Provider.of<AppData>(context);
     var properties = widget.probeObj.properties as ProbeProperties;
     pos = properties.pos;

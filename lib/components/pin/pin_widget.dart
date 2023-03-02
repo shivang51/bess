@@ -19,7 +19,7 @@ class _PinWidgetState extends State<PinWidget> {
 
   @override
   Widget build(BuildContext context) {
-    var drawAreaData = Provider.of<DrawAreaData>(context);
+    var drawAreaData = Provider.of<ProjectData>(context);
     var mouseData = Provider.of<MouseData>(context);
 
     var properties = widget.pinObj.properties as PinProperties;
@@ -29,15 +29,14 @@ class _PinWidgetState extends State<PinWidget> {
     Offset parentPos =
         drawAreaData.components[properties.parentId]!.properties.pos;
 
-    Offset offset = (properties.behaviour == PinBehaviour.output)
-        ? const Offset(20.0, 1.0)
-        : const Offset(0.0, 1.0);
-
-    Offset pos = properties.offset + parentPos;
+    Offset offset = Offset(
+        properties.behaviour == PinBehaviour.output ? 20.0 : 0.0,
+        (Defaults.pinSize / 2));
+    Offset pos = properties.offset + parentPos + const Offset(0.0, -0.5);
 
     if ((parentProperties.type == ComponentType.inputButton ||
         parentProperties.type == ComponentType.outputStateProbe)) {
-      pos += const Offset(0.0, 1.5);
+      pos += const Offset(0.0, Defaults.pinSize / 2);
     }
 
     properties.pos = pos;
@@ -76,7 +75,7 @@ class _PinWidgetState extends State<PinWidget> {
                           : MyTheme.pinBgColor,
                 ),
                 width: properties.width,
-                height: 2.0,
+                height: Defaults.pinSize,
                 child: drawAreaData.drawingElement == DrawElement.connection &&
                         drawAreaData.connStartData.startPinId == widget.id
                     ? PseudoWire(

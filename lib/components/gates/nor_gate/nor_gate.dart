@@ -40,7 +40,7 @@ class NorGate extends Gate {
       pins[id] = pin;
     }
 
-    var drawAreaData = Provider.of<DrawAreaData>(context, listen: false);
+    var drawAreaData = Provider.of<ProjectData>(context, listen: false);
     drawAreaData.addComponents(pins);
 
     var gate = NorGate(gateId);
@@ -62,25 +62,18 @@ class NorGate extends Gate {
 
   @override
   void simulate(BuildContext context, DigitalState state, String callerId) {
-    var drawAreaData = Provider.of<DrawAreaData>(context, listen: false);
+    var drawAreaData = Provider.of<ProjectData>(context, listen: false);
     var properties = this.properties as GateProperties;
 
-    bool? v_;
+    DigitalState value = DigitalState.high;
     for (var pinId in properties.inputPins) {
       var pinProperties =
           (drawAreaData.components[pinId] as Pin).properties as PinProperties;
-      var v = pinProperties.state == DigitalState.high;
-      if (v_ == null) {
-        v_ = v;
-      } else {
-        v_ = v_ || v;
+      if (pinProperties.state == DigitalState.high) {
+        value = DigitalState.low;
+        break;
       }
-
-      if (v_) break;
     }
-
-    v_ = !v_!;
-    DigitalState value = v_ ? DigitalState.high : DigitalState.low;
 
     for (var pinId in properties.outputPins) {
       if (callerId == pinId) continue;
@@ -91,7 +84,7 @@ class NorGate extends Gate {
 
   @override
   void remove(BuildContext context) {
-    var drawAreaData = Provider.of<DrawAreaData>(context, listen: false);
+    var drawAreaData = Provider.of<ProjectData>(context, listen: false);
     var props = properties as GateProperties;
     for (var pinId in props.inputPins) {
       drawAreaData.components[pinId]!.remove(context);

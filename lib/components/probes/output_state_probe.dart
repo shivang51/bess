@@ -23,7 +23,7 @@ class OutputStateProbe extends Component {
     var probe = OutputStateProbe(probeId, pinId: pinId);
     probe.properties.pos = pos;
 
-    var drawAreaData = Provider.of<DrawAreaData>(context, listen: false);
+    var drawAreaData = Provider.of<ProjectData>(context, listen: false);
     drawAreaData.addComponents({pinId: pin, probeId: probe});
   }
 
@@ -34,7 +34,7 @@ class OutputStateProbe extends Component {
 
   @override
   void remove(BuildContext context) {
-    var drawAreaData = Provider.of<DrawAreaData>(context, listen: false);
+    var drawAreaData = Provider.of<ProjectData>(context, listen: false);
     var pinId = (properties as ProbeProperties).pinId;
     drawAreaData.components[pinId]!.remove(context);
     drawAreaData.removeComponent(properties.id);

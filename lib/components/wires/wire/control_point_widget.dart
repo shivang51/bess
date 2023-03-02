@@ -1,6 +1,6 @@
 import 'package:bess/components/component_properties.dart';
 import 'package:bess/components/wires/wire/wire_properties.dart';
-import 'package:bess/data/draw_area/draw_area_data.dart';
+import 'package:bess/data/project_data/project_data.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -19,7 +19,7 @@ class ControlPointWidget extends StatefulWidget {
 class _ControlPointWidgetState extends State<ControlPointWidget> {
   @override
   Widget build(BuildContext context) {
-    DrawAreaData drawAreaData = Provider.of<DrawAreaData>(context);
+    ProjectData drawAreaData = Provider.of<ProjectData>(context);
 
     var parentProperties =
         drawAreaData.components[widget.parentId]!.properties as WireProperties;

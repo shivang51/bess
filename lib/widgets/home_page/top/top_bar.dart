@@ -1,6 +1,5 @@
-
 import 'package:bess/components/component_type.dart';
-import 'package:bess/data/draw_area/draw_area_data.dart';
+import 'package:bess/data/project_data/project_data.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -40,27 +39,33 @@ Map<ComponentType, List<Map<String, void Function(BuildContext)>>> compFunc = {
   ComponentType.gate: [
     {
       "Nand Gate": (BuildContext context) {
-        DrawAreaData data = Provider.of<DrawAreaData>(context, listen: false);
+        ProjectData data = Provider.of<ProjectData>(context, listen: false);
         data.setDrawingComponent(ComponentType.nandGate);
       }
     },
     {
       "Nor Gate": (BuildContext context) {
-        DrawAreaData data = Provider.of<DrawAreaData>(context, listen: false);
+        ProjectData data = Provider.of<ProjectData>(context, listen: false);
         data.setDrawingComponent(ComponentType.norGate);
+      }
+    },
+    {
+      "Not Gate": (BuildContext context) {
+        ProjectData data = Provider.of<ProjectData>(context, listen: false);
+        data.setDrawingComponent(ComponentType.notGate);
       }
     },
   ],
   ComponentType.io: [
     {
       "Input Button": (BuildContext context) {
-        DrawAreaData data = Provider.of<DrawAreaData>(context, listen: false);
+        ProjectData data = Provider.of<ProjectData>(context, listen: false);
         data.setDrawingComponent(ComponentType.inputButton);
       }
     },
     {
       "Output State Probe": (BuildContext context) {
-        DrawAreaData data = Provider.of<DrawAreaData>(context, listen: false);
+        ProjectData data = Provider.of<ProjectData>(context, listen: false);
         data.setDrawingComponent(ComponentType.outputStateProbe);
       }
     },

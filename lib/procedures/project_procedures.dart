@@ -1,13 +1,13 @@
+import 'package:bess/data/project_data/project_data.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-class ProjectProcedures{
-  static void saveProject(BuildContext context){
-    // pick the save path from shared preferences
-
-    // dump project data into binary file
+class ProjectProcedures {
+  static void saveProject(BuildContext context) {
+    var projectData = Provider.of<ProjectData>(context, listen: false);
   }
 
-  static void loadProject(BuildContext context){
+  static void loadProject(BuildContext context) {
     // load the binary file into a project structure
   }
 }

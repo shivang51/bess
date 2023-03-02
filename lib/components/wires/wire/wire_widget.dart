@@ -17,7 +17,7 @@ class WireWidget extends StatefulWidget {
 class _WireWidgetState extends State<WireWidget> {
   @override
   Widget build(BuildContext context) {
-    var drawAreaData = Provider.of<DrawAreaData>(context);
+    var drawAreaData = Provider.of<ProjectData>(context);
 
     var properties = widget.wireObj.properties as WireProperties;
 
@@ -81,7 +81,7 @@ class CustomBorder extends OutlinedBorder {
   final Offset endPos;
   final Offset ctrlPoint1;
   final Offset ctrlPoint2;
-  final double size = 2.0;
+  final double size = Defaults.wireSize;
 
   const CustomBorder(
       this.startPos, this.endPos, this.ctrlPoint1, this.ctrlPoint2,

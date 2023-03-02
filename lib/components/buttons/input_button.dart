@@ -27,7 +27,7 @@ class InputButton extends Component {
     (button.properties as ButtonProperties).pinId = pinId;
     button.properties.pos = pos;
 
-    var drawAreaData = Provider.of<DrawAreaData>(context, listen: false);
+    var drawAreaData = Provider.of<ProjectData>(context, listen: false);
     drawAreaData.addComponents({pinId: pin, buttonId: button});
   }
 
@@ -38,7 +38,7 @@ class InputButton extends Component {
 
   @override
   void simulate(BuildContext context, DigitalState state, String callerId) {
-    var drawAreaData = Provider.of<DrawAreaData>(context, listen: false);
+    var drawAreaData = Provider.of<ProjectData>(context, listen: false);
     var properties = this.properties as ButtonProperties;
     if (properties.pinId == callerId) return;
     var pin = drawAreaData.components[properties.pinId] as Pin;
@@ -48,7 +48,7 @@ class InputButton extends Component {
 
   @override
   void remove(BuildContext context) {
-    var drawAreaData = Provider.of<DrawAreaData>(context, listen: false);
+    var drawAreaData = Provider.of<ProjectData>(context, listen: false);
     var pinId = (properties as ButtonProperties).pinId;
     drawAreaData.components[pinId]!.remove(context);
     drawAreaData.removeComponent(properties.id);

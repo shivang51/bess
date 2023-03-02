@@ -1,6 +1,6 @@
 import 'package:bess/components/component_type.dart';
 import 'package:bess/components/components.dart';
-import 'package:bess/data/draw_area/draw_area_data.dart';
+import 'package:bess/data/project_data/project_data.dart';
 import 'package:bess/data/mouse_data.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -18,7 +18,6 @@ class _DrawAreaState extends State<DrawArea> {
   late final ScrollController __vScrollController;
 
   void onScrollUpdate() {
-    // print(__vScrollController)
     __vScrollController.jumpTo(_vScrollController.offset);
   }
 
@@ -113,7 +112,7 @@ class DrawAreaWidget extends StatelessWidget {
     super.key,
   });
 
-  void onDrawAreaClick(BuildContext context, DrawAreaData data) {
+  void onDrawAreaClick(BuildContext context, ProjectData data) {
     final mouseData = Provider.of<MouseData>(context, listen: false);
     if (data.drawingComponent != ComponentType.none) {
       ComponentGenerator.generate(
@@ -133,7 +132,7 @@ class DrawAreaWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final drawAreaData = Provider.of<DrawAreaData>(context);
+    final drawAreaData = Provider.of<ProjectData>(context);
     MouseData mouseData;
     if (drawAreaData.drawingComponent == ComponentType.none) {
       mouseData = Provider.of<MouseData>(context, listen: false);
@@ -184,7 +183,7 @@ class DrawAreaWidget extends StatelessWidget {
                       left: mouseData.mousePos.dx,
                       top: mouseData.mousePos.dy,
                       child: Text(
-                        drawAreaData.drawingComponent.name.toUpperCase(),
+                        drawAreaData.drawingComponent.name.toLowerCase(),
                       ),
                     )
                   : const SizedBox()

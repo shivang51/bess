@@ -14,7 +14,7 @@ class Wire extends Component {
   }
 
   static void create(BuildContext context, String endPinId) {
-    var drawAreaData = Provider.of<DrawAreaData>(context, listen: false);
+    var drawAreaData = Provider.of<ProjectData>(context, listen: false);
     var wireId = Component.uuid.v4();
 
     String startPinId = drawAreaData.connStartData.startPinId;
@@ -60,7 +60,7 @@ class Wire extends Component {
 
   @override
   void remove(BuildContext context) {
-    var drawAreaData = Provider.of<DrawAreaData>(context, listen: false);
+    var drawAreaData = Provider.of<ProjectData>(context, listen: false);
     var properties = this.properties as WireProperties;
     drawAreaData.removeComponent(properties.id);
   }

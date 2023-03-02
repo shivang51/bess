@@ -1,4 +1,4 @@
-import 'package:bess/data/draw_area/draw_area_data.dart';
+import 'package:bess/data/project_data/project_data.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -32,7 +32,7 @@ class _ScaleSliderState extends State<ScaleSlider> {
 
   @override
   Widget build(BuildContext context) {
-    DrawAreaData drawAreaData = Provider.of<DrawAreaData>(context);
+    ProjectData drawAreaData = Provider.of<ProjectData>(context);
     _value = drawAreaData.scaleValue - 3;
     return Row(
       children: [

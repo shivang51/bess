@@ -9,6 +9,11 @@ environment:
   sdk: ">=2.17.0 <3.0.0"
 
 dependencies:
+  window_size:
+    git:
+      url: https://github.com/google/flutter-desktop-embedding.git
+      path: plugins/window_size
+      ref: a738913c8ce2c9f47515382d40827e794a334274
   animated_text_kit: ^4.2.2
   cupertino_icons: ^1.0.2
   flutter:

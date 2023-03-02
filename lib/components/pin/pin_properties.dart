@@ -5,7 +5,7 @@ import 'package:bess/components/components.dart';
 import '../component_properties.dart';
 import '../types.dart';
 
-class PinProperties extends ComponentProperties{
+class PinProperties extends ComponentProperties {
   String parentId = "";
   DigitalState state = Defaults.pinState;
   PinBehaviour behaviour = PinBehaviour.input;
@@ -13,4 +13,19 @@ class PinProperties extends ComponentProperties{
   Offset offset = Offset.zero;
   List<String> connectedPinsIds = [];
   Map<String, String> connectedWiresIds = {};
+
+  @override
+  Map<String, dynamic> toJson() => {
+        ...super.toJson(),
+        'parentId': parentId,
+        'state': state.index,
+        'behaviour': behaviour.index,
+        'width': width,
+        'offset': {
+          'x': offset.dx,
+          'y': offset.dy,
+        },
+        'connectedPinsIds': connectedPinsIds,
+        'connectedWiresIds': connectedWiresIds
+      };
 }

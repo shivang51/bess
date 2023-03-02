@@ -18,7 +18,7 @@ class GateWidget extends StatefulWidget {
 
 class _GateWidgetState extends State<GateWidget> {
   var pos = Offset.zero;
-  void updatePosition(DrawAreaData data, Offset delta) {
+  void updatePosition(ProjectData data, Offset delta) {
     var newPos = pos + delta;
     if (newPos.dx < 0 || newPos.dy < 0) return;
     setState(() {
@@ -30,11 +30,15 @@ class _GateWidgetState extends State<GateWidget> {
 
   @override
   Widget build(BuildContext context) {
-    var drawAreaData = Provider.of<DrawAreaData>(context);
+    var drawAreaData = Provider.of<ProjectData>(context);
     // var appData = Provider.of<AppData>(context);
 
     pos = widget.gateObj.properties.pos;
     var selected = widget.id == drawAreaData.selectedItemId;
+    Offset size = Defaults.defaultGateSize;
+    if (widget.gateObj.properties.type == ComponentType.notGate) {
+      size = Defaults.notGateSize;
+    }
     return Positioned(
       left: pos.dx,
       top: pos.dy,
@@ -42,8 +46,8 @@ class _GateWidgetState extends State<GateWidget> {
         children: [
           selected
               ? Container(
-                  width: 150,
-                  height: 100,
+                  width: size.dx + 40,
+                  height: size.dy,
                   padding: const EdgeInsets.all(8.0),
                   decoration: BoxDecoration(
                     color: Theme.of(context).highlightColor,
@@ -62,8 +66,8 @@ class _GateWidgetState extends State<GateWidget> {
                       width: 20.0,
                     ),
                     SizedBox(
-                      width: 110.0,
-                      height: 100.0,
+                      width: size.dx,
+                      height: size.dy,
                       child: Material(
                         type: MaterialType.button,
                         animationDuration: Duration.zero,
@@ -79,14 +83,14 @@ class _GateWidgetState extends State<GateWidget> {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Padding(
-                                padding: const EdgeInsets.all(18.0),
-                                child: Text(
-                                  widget.gateObj.properties.name,
-                                  style: Theme.of(context).textTheme.titleSmall,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
+                              // Padding(
+                              //   padding: const EdgeInsets.all(18.0),
+                              //   child: Text(
+                              //     widget.gateObj.properties.name,
+                              //     style: Theme.of(context).textTheme.titleSmall,
+                              //     overflow: TextOverflow.ellipsis,
+                              //   ),
+                              // ),
                             ],
                           ),
                         ),

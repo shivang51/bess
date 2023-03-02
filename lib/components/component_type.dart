@@ -3,6 +3,7 @@ enum ComponentType {
   gate,
   nandGate,
   norGate,
+  notGate,
   io,
   pin,
   inputPin,

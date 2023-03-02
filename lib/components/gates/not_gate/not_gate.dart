@@ -1,14 +1,14 @@
 part of components;
 
-class NandGate extends Gate {
+class NotGate extends Gate {
   static int _counter = 0;
 
-  NandGate(String id) {
+  NotGate(String id) {
     properties = GateProperties();
     _counter++;
-    properties.name = "Nand Gate $_counter";
+    properties.name = "Not Gate $_counter";
     properties.id = id;
-    properties.type = ComponentType.nandGate;
+    properties.type = ComponentType.notGate;
   }
 
   static void create(BuildContext context, Offset pos) {
@@ -17,16 +17,15 @@ class NandGate extends Gate {
     Map<String, Pin> pins = {};
 
     // INPUT PINS
-    var pinInIds = List.generate(2, (index) => Component.uuid.v4());
-    int index = 0;
+    var pinInIds = List.generate(1, (index) => Component.uuid.v4());
+
     for (var id in pinInIds) {
       var pin = Pin(id);
       (pin.properties as PinProperties).parentId = gateId;
       (pin.properties as PinProperties).behaviour = PinBehaviour.input;
       (pin.properties as PinProperties).offset =
-          (index == 1) ? const Offset(0.0, 74.0) : const Offset(0.0, 24.0);
+          Offset(0.0, (Defaults.notGateSize.dy / 2) - 1);
       pins[id] = pin;
-      index += 1;
     }
 
     // OUTPUT PINS
@@ -35,15 +34,16 @@ class NandGate extends Gate {
       var pin = Pin(id);
       (pin.properties as PinProperties).parentId = gateId;
       (pin.properties as PinProperties).behaviour = PinBehaviour.output;
-      (pin.properties as PinProperties).offset = const Offset(150, 49);
-      (pin.properties as PinProperties).state = Defaults.nandGateOutputState;
+      (pin.properties as PinProperties).offset =
+          Offset(95, (Defaults.notGateSize.dy / 2) - 1);
+      (pin.properties as PinProperties).state = Defaults.notGateOutputState;
       pins[id] = pin;
     }
 
     var drawAreaData = Provider.of<ProjectData>(context, listen: false);
     drawAreaData.addComponents(pins);
 
-    var gate = NandGate(gateId);
+    var gate = NotGate(gateId);
     (gate.properties as GateProperties).inputPins = pinInIds;
     (gate.properties as GateProperties).outputPins = pinOutIds;
     (gate.properties as GateProperties).pos = pos;
@@ -56,7 +56,7 @@ class NandGate extends Gate {
     return super.drawGate(
       context,
       id: properties.id,
-      shapeBorder: NandPainter(),
+      shapeBorder: NotPainter(),
     );
   }
 
@@ -66,14 +66,12 @@ class NandGate extends Gate {
     var properties = this.properties as GateProperties;
 
     DigitalState value = DigitalState.low;
-    for (var pinId in properties.inputPins) {
-      var pinProperties =
-          (drawAreaData.components[pinId] as Pin).properties as PinProperties;
-      if (pinProperties.state == DigitalState.low) {
-        value = DigitalState.high;
-        break;
-      }
-    }
+
+    var pinId = properties.inputPins[0];
+    var pinProperties =
+        (drawAreaData.components[pinId] as Pin).properties as PinProperties;
+
+    if (pinProperties.state == DigitalState.low) value = DigitalState.high;
 
     for (var pinId in properties.outputPins) {
       if (callerId == pinId) continue;

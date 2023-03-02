@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bess/data/draw_area/draw_area_data.dart';
+import 'package:bess/data/project_data/project_data.dart';
 
 import 'project_explorer_item.dart';
 
@@ -41,7 +41,7 @@ class ProjectExplorer extends StatelessWidget {
               height: 10.0,
             ),
             Expanded(
-              child: Consumer<DrawAreaData>(
+              child: Consumer<ProjectData>(
                 builder: (context, data, child) {
                   List<Component> components = data.components.values
                       .where((element) =>

@@ -1,7 +1,7 @@
 import 'package:bess/themes.dart';
 import 'package:flutter/material.dart';
 
-class NandPainter extends ShapeBorder {
+class NotPainter extends ShapeBorder {
   final Offset startPos = const Offset(0.0, 0.0);
 
   final Paint nandPaint = Paint()
@@ -9,23 +9,19 @@ class NandPainter extends ShapeBorder {
     ..style = PaintingStyle.stroke
     ..strokeWidth = 2;
 
-  Path nandGatePath(Rect rect) {
+  Path notGatePath(Rect rect) {
     Path path = Path();
     double x = 0;
     double y = 0;
     x += 50;
+    y += 25;
     path.lineTo(x, y);
-    y += 100;
-    path.arcToPoint(
-      Offset(x, y),
-      radius: const Radius.circular(1),
-      largeArc: true,
-    );
     x -= 50;
+    y += 25;
     path.lineTo(x, y);
     path.lineTo(0, 0);
     path.close();
-    path.addOval(Rect.fromCircle(center: const Offset(105, 50), radius: 5.0));
+    path.addOval(Rect.fromCircle(center: const Offset(55, 25), radius: 5.0));
     path.close();
     return path;
   }
@@ -42,16 +38,16 @@ class NandPainter extends ShapeBorder {
 
   @override
   Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
-    return nandGatePath(rect);
+    return notGatePath(rect);
   }
 
   @override
   void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
-    canvas.drawPath(nandGatePath(rect), nandPaint);
+    canvas.drawPath(notGatePath(rect), nandPaint);
   }
 
   @override
   ShapeBorder scale(double t) {
-    return NandPainter().scale(t);
+    return NotPainter().scale(t);
   }
 }

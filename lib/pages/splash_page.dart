@@ -1,7 +1,9 @@
 import 'package:animated_text_kit/animated_text_kit.dart';
+import 'package:bess/data/app/app_data.dart';
 import 'package:bess/pages/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 class SplashPage extends StatelessWidget {
   const SplashPage({Key? key}) : super(key: key);
@@ -10,86 +12,96 @@ class SplashPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AppData>(create: (_) => AppData()),
+      ],
+      builder: (context, _) => Scaffold(
         body: Row(
-      children: [
-        Expanded(
-          flex: 4,
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const MAnimatedImage(),
-                TextLiquidFill(
-                  text: "Basic Electrical Simulation Software",
-                  waveColor: Theme.of(context).textTheme.bodyLarge!.color!,
-                  textAlign: TextAlign.center,
-                  boxBackgroundColor: Theme.of(context).colorScheme.background,
-                  waveDuration: const Duration(seconds: 1),
-                  loadDuration: const Duration(seconds: 3),
-                  textStyle: GoogleFonts.nunito(
-                    textStyle: const TextStyle(
-                      letterSpacing: 0.4,
-                      fontSize: 48.0,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        Expanded(
-          flex: 6,
-          child: Center(
-            child: Card(
+          children: [
+            Expanded(
+              flex: 4,
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      "Your Projects",
-                      style: Theme.of(context).textTheme.titleLarge!,
-                    ),
-                    const SizedBox(
-                      height: 20.0,
-                    ),
-                    Text(
-                      "No Projects Yet",
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    const SizedBox(
-                      height: 20.0,
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ElevatedButton(
-                          onPressed: () {},
-                          child: const Text("New Project"),
+                    const MAnimatedImage(),
+                    TextLiquidFill(
+                      text: "Basic Electrical Simulation Software",
+                      waveColor: Theme.of(context).textTheme.bodyLarge!.color!,
+                      textAlign: TextAlign.center,
+                      boxBackgroundColor:
+                          Theme.of(context).colorScheme.background,
+                      waveDuration: const Duration(seconds: 1),
+                      loadDuration: const Duration(seconds: 3),
+                      textStyle: GoogleFonts.nunito(
+                        textStyle: const TextStyle(
+                          letterSpacing: 0.4,
+                          fontSize: 48.0,
+                          fontWeight: FontWeight.bold,
                         ),
-                        const SizedBox(
-                          width: 20.0,
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.popAndPushNamed(context, HomePage.id);
-                          },
-                          child: const Text("Continue with empty project"),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
-          ),
+            Expanded(
+              flex: 6,
+              child: Center(
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "Your Projects",
+                          style: Theme.of(context).textTheme.titleLarge!,
+                        ),
+                        const SizedBox(
+                          height: 20.0,
+                        ),
+                        Text(
+                          "No Projects Yet",
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(
+                          height: 20.0,
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () {},
+                              child: const Text("New Project"),
+                            ),
+                            const SizedBox(
+                              width: 20.0,
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                var appData = Provider.of<AppData>(context,
+                                    listen: false);
+                                appData.setEditorTitle("*Untitled - BESS");
+                                Navigator.popAndPushNamed(context, HomePage.id);
+                              },
+                              child: const Text("Continue with empty project"),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
-    ));
+      ),
+    );
   }
 }
 

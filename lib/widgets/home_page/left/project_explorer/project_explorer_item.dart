@@ -1,5 +1,5 @@
 import 'package:bess/components/component.dart';
-import 'package:bess/data/draw_area/draw_area_data.dart';
+import 'package:bess/data/project_data/project_data.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 
@@ -32,7 +32,7 @@ class _ProjectExplorerItemState extends State<ProjectExplorerItem> {
 
   @override
   Widget build(BuildContext context) {
-    var drawAreaData = Provider.of<DrawAreaData>(context);
+    var drawAreaData = Provider.of<ProjectData>(context);
     var item = drawAreaData.components[widget.id]!;
     var properties = item.properties;
     return GestureDetector(
