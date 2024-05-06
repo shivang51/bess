@@ -6,3 +6,7 @@ x64/
 *.o
 *.a
 *.so
+
+.idea
+.code
+.vs

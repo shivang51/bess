@@ -204,14 +204,14 @@ if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
             TARGET ${PROJECT_NAME}
             POST_BUILD
             COMMANDS
-            COMMAND $<CONFIG:Release> xcopy $<SHELL_PATH:${CMAKE_SOURCE_DIR}/>assets ${OUTPUT_DIRECTORY}assets\\  /E/Y
+            COMMAND $<CONFIG:Release> xcopy $<SHELL_PATH:${CMAKE_SOURCE_DIR}/>assets ${OUTPUT_DIRECTORY}\\assets\\  /E/Y
         )
     else()
         add_custom_command_if(
             TARGET ${PROJECT_NAME}
             POST_BUILD
             COMMANDS
-            COMMAND $<CONFIG:Release> cp -r $<SHELL_PATH:${CMAKE_SOURCE_DIR}/>assets ${OUTPUT_DIRECTORY}assets
+            COMMAND $<CONFIG:Release> cp -r $<SHELL_PATH:${CMAKE_SOURCE_DIR}/>assets ${OUTPUT_DIRECTORY}/assets
         )
     endif()
 endif()
