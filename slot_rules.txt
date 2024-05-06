@@ -1,0 +1,9 @@
+
+slots of same type cannot be connected togather i.e. input slot can't be connected with input slot and same for output slot.
+
+--- SIMULATION ---
+
+slot<changed> -> (parent).simulate [calculate the final state depending on its input state and set its output slot to that value] ->
+	[then change the value of each connected slot to that state and continue this cycle]
+
+

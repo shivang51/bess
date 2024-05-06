@@ -1,0 +1,4 @@
+--- make a binding helper
+--- text rendering
+--- make sure connections are unique
+--- make the simulation work
