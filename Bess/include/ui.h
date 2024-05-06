@@ -9,6 +9,7 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
+#include <map>
 
 #include "application_state.h"
 
@@ -50,6 +51,9 @@ class UI {
     static void end();
 
     static void resetDockspace();
+
+
+    static std::map<std::string, std::function<void(const glm::vec2&)>> m_components;
     
 };
 } // namespace Bess

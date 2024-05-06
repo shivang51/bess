@@ -14,6 +14,8 @@
 namespace Bess
 {
     UIState UI::state{};
+    
+    std::map<std::string, std::function<void(const glm::vec2&)>> UI::m_components;
 
     void UI::init(GLFWwindow* window) {
         IMGUI_CHECKVERSION();
@@ -42,6 +44,10 @@ namespace Bess
 
         ImGui_ImplGlfw_InitForOpenGL(window, true);
         ImGui_ImplOpenGL3_Init("#version 410");
+
+        m_components["Nand Gate"] = std::bind(&Simulator::ComponentsManager::generateNandGate, std::placeholders::_1);
+        m_components["Input Probe"] = std::bind(&Simulator::ComponentsManager::generateInputProbe, std::placeholders::_1);
+        m_components["Output Probe"] = std::bind(&Simulator::ComponentsManager::generateOutputProbe, std::placeholders::_1);
     }
 
 
@@ -95,16 +101,15 @@ namespace Bess
 
 
     void UI::drawComponentExplorer() {
+
         ImGui::Begin("Component Explorer");
-        if (ImGui::Button("Nand Gate", {-1, 0})) {
-            Simulator::ComponentsManager::generateNandGate();
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4);
+        for (auto& [name, cb] : m_components) {
+            if (ImGui::Button(name.c_str(), {-1, 0})) {
+                cb({0.f, 0.f});
+            }
         }
-        if (ImGui::Button("Input Probe", {-1, 0})) {
-            Simulator::ComponentsManager::generateInputProbe();
-        }
-        if (ImGui::Button("Output Probe", {-1, 0})) {
-            Simulator::ComponentsManager::generateOutputProbe();
-        }
+        ImGui::PopStyleVar();
         ImGui::End();
     }
     
@@ -142,8 +147,12 @@ namespace Bess
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
 
 
+
         ImGui::Begin("Camera", nullptr, flags);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8);
+        ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 8);
         ImGui::SliderFloat("Zoom", &state.cameraZoom, 0.6, 1.6, nullptr, ImGuiSliderFlags_AlwaysClamp);
+        ImGui::PopStyleVar(2);
         ImGui::End();
         ImGui::PopStyleVar(2);
 
