@@ -10,34 +10,24 @@ in flat int v_TextureIndex;
 
 uniform int u_SelectedObjId;
 
-float sdRoundBox(in vec2 p, in vec2 b, in vec4 r)
-{
-    r.xy = (p.x > 0.0) ? r.xy : r.zw;
-    r.x = (p.y > 0.0) ? r.x : r.y;
-    vec2 q = abs(p) - b + r.x;
-    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r.x;
+
+float roundedCorner(vec2 position, float radius) {
+    float dist = length(position);
+    return smoothstep(radius - 0.5, radius + 0.5, radius - dist);
 }
 
-void main()
-{
-    //	vec2 p = (fragCoord-iResolution.xy)/iResolution.y ;
-    //  p += 1.;
+void main() {
+    vec2 coords = v_TexCoord;
+    vec2 u_dimensions = vec2(0.3f, 0.25f);
+    float u_radius = 0.1f;
 
-    vec2 p = v_TexCoord;
-
-    p.y *= -1;
-
-    //p -= 0.5;
-
-    vec2 si = vec2(.01f, .01f);
-    vec4 ra = vec4(.1);
-
-    float d = sdRoundBox(p, si, ra);
-
-    //  vec3 col = (d>0.0) ? vec3(0.0) : vec3(0.65,0.85,1.0);
-    vec3 col = v_FragColor;
-    //col = mix(col, vec3(1.0), smoothstep(0.0, 0.002, abs(d)));
-
-    fragColor = vec4(col, 1.f - d);
+    if (length(coords - vec2(0)) < u_radius ||
+        length(coords - vec2(0, u_dimensions.y)) < u_radius ||
+        length(coords - vec2(u_dimensions.x, 0)) < u_radius ||
+        length(coords - u_dimensions) < u_radius) {
+        discard;
+    }
+    // Apply color with alpha
+    fragColor = vec4(v_FragColor, 1.f);
     fragColor1 = v_TextureIndex;
 }

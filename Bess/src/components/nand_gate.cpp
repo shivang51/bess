@@ -30,10 +30,10 @@ namespace Bess::Simulator::Components
         Renderer2D::Renderer::quad(
             { m_position.x - thickness, m_position.y + thickness },
             { gateSize.x + (thickness * 2.f), gateSize.y + (thickness * 2.f)},
-            selected ? Theme::componentSelectionColor : Theme::componentBorderColor, m_renderId);
+            selected ? Theme::componentSelectionColor : Theme::componentBorderColor, m_renderId, {0.15f, 0.15f, 0.15f, 0.15f});
 
-        Renderer2D::Renderer::quad(m_position, gateSize, Theme::componentBGColor, m_renderId);
-        Renderer2D::Renderer::quad(m_position, { gateSize.x, 0.05f }, { .490f, .525f, 0.858f }, m_renderId);
+        Renderer2D::Renderer::quad(m_position, gateSize, Theme::componentBGColor, m_renderId, {0.13f, 0.13f, 0.13f, 0.13f});
+        Renderer2D::Renderer::quad(m_position, { gateSize.x, 0.05f }, { .490f, .525f, 0.858f }, m_renderId, { 0.5f, 0.5f, 0.0f, 0.0f });
 
         std::vector<glm::vec2> slots = {
             glm::vec2({0.025, -0.09f}),

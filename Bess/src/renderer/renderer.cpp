@@ -10,6 +10,7 @@
 #include <ext/matrix_transform.hpp>
 #include <iostream>
 #include <ostream>
+#include "gl/primitive_type.h"
 
 using namespace Bess::Renderer2D;
 
@@ -28,6 +29,9 @@ namespace Bess
     std::shared_ptr<Camera> Renderer::m_camera;
 
     std::vector<glm::vec4> Renderer::m_QuadVertices;
+
+    std::vector<Gl::QuadVertex> Renderer::m_quadRenderVertices;
+
 
     int Renderer::m_currentId;
     int Renderer::m_currentSubId;
@@ -48,8 +52,8 @@ namespace Bess
             switch (primitive)
             {
             case PrimitiveType::quad:
-                vertexShader = "assets/shaders/vert.glsl";
-                fragmentShader = "assets/shaders/quad_frag.glsl";
+                vertexShader = "assets/shaders/quad_vert.glsl";
+                fragmentShader = "assets/shaders/quad_frag1.glsl";
                 break;
             case PrimitiveType::curve:
                 vertexShader = "assets/shaders/vert.glsl";
@@ -70,11 +74,16 @@ namespace Bess
 
             auto max_render_count = m_maxRenderCount[primitive];
 
-            m_shaders[primitive] =
-                std::make_unique<Gl::Shader>(vertexShader, fragmentShader);
+            m_shaders[primitive] = std::make_unique<Gl::Shader>(vertexShader, fragmentShader);
+            
             m_vaos[primitive] = std::make_unique<Gl::Vao>(max_render_count * 4,
-                                                          max_render_count * 6);
-            m_vertices[primitive] = {};
+                                                          max_render_count * 6, 
+                                                          primitive);
+            if (primitive != PrimitiveType::quad) {
+                m_vertices[primitive] = {};
+            } else {
+                m_quadRenderVertices = {};
+            }
 
             vertexShader.clear();
             fragmentShader.clear();
@@ -91,9 +100,9 @@ namespace Bess
     }
 
     void Renderer::quad(const glm::vec2 &pos, const glm::vec2 &size,
-                        const glm::vec3 &color, const int id)
+                        const glm::vec3 &color, const int id, const glm::vec4 borderRadius)
     {
-        std::vector<Gl::Vertex> vertices(4);
+        std::vector<Gl::QuadVertex> vertices(4);
 
         vertices[0].position = {pos.x, pos.y, 0.0f};
         vertices[1].position = {pos.x, pos.y - size.y, 0.0f};
@@ -109,15 +118,17 @@ namespace Bess
         {
             vertex.id = id;
             vertex.color = color;
+            vertex.borderRadius = borderRadius;
+            vertex.ar = size.x / size.y;
         }
 
-        addVertices(PrimitiveType::quad, vertices);
+        addVertices(PrimitiveType::quad, {}, vertices);
     }
 
     void Renderer::quad(const glm::vec2 &pos, const glm::vec2 &size,
-                        const glm::vec3 &color, const int id, const float angle)
+                        const glm::vec3 &color, const int id, const float angle, const glm::vec4 borderRadius)
     {
-        std::vector<Gl::Vertex> vertices(4);
+        std::vector<Gl::QuadVertex> vertices(4);
 
         auto transform = glm::translate(glm::mat4(1.0f), glm::vec3(pos, 0.f));
         transform = glm::rotate(transform, glm::radians(angle), {0.f, 0.f, 1.f});
@@ -129,6 +140,8 @@ namespace Bess
             vertex.position = transform * m_QuadVertices[i];
             vertex.id = id;
             vertex.color = color;
+            vertex.borderRadius = borderRadius;
+            vertex.ar = size.x / size.y;
         }
 
         vertices[0].texCoord = {0.0f, 1.0f};
@@ -136,7 +149,7 @@ namespace Bess
         vertices[2].texCoord = {1.0f, 0.0f};
         vertices[3].texCoord = {1.0f, 1.0f};
 
-        addVertices(PrimitiveType::quad, vertices);
+        addVertices(PrimitiveType::quad, {}, vertices);
     }
 
     glm::vec2 bernstine(const glm::vec2 &p0, const glm::vec2 &p1,
@@ -188,7 +201,7 @@ namespace Bess
         vertices[2].texCoord = {1.0f, 0.0f};
         vertices[3].texCoord = {1.0f, 1.0f};
 
-        addVertices(PrimitiveType::curve, vertices);
+        addVertices(PrimitiveType::curve, vertices, {});
         return p;
     }
 
@@ -240,44 +253,59 @@ namespace Bess
             vertex.color = color;
         }
 
-        addVertices(PrimitiveType::circle, vertices);
+        addVertices(PrimitiveType::circle, vertices, {});
     }
 
     void Renderer::addVertices(PrimitiveType type,
-                               const std::vector<Gl::Vertex> &vertices)
+                               const std::vector<Gl::Vertex> &vertices, const std::vector<Gl::QuadVertex>& quadVertices)
     {
-        auto &primitive_vertices = m_vertices[type];
         auto max_render_count = m_maxRenderCount[type];
 
-        if (primitive_vertices.size() >= (max_render_count - 1) * 4)
-        {
-            flush(type);
+        if (type != PrimitiveType::quad) {
+            auto& primitive_vertices = m_vertices[type];
+
+            if (primitive_vertices.size() >= (max_render_count - 1) * 4) {
+                flush(type);
+            }
+
+            primitive_vertices.insert(primitive_vertices.end(), vertices.begin(),
+                                      vertices.end());
+        } else {
+            if (m_quadRenderVertices.size() >= (max_render_count - 1) * 4) {
+                flush(type);
+            }
+
+            m_quadRenderVertices.insert(m_quadRenderVertices.end(), quadVertices.begin(), quadVertices.end());
         }
 
-        primitive_vertices.insert(primitive_vertices.end(), vertices.begin(),
-                                  vertices.end());
     }
 
-    void Renderer::flush(PrimitiveType type)
-    {
-        auto &vertices = m_vertices[type];
-        auto &vao = m_vaos[type];
-        auto &shader = m_shaders[type];
+    void Renderer::flush(PrimitiveType type) {
+        auto& vao = m_vaos[type];
+        auto& shader = m_shaders[type];
 
         vao->bind();
         shader->bind();
         shader->setUniformMat4("u_mvp", m_camera->getTransform());
 
         auto selId = Simulator::ComponentsManager::compIdToRid(ApplicationState::getSelectedId());
-        auto hoveredId = ApplicationState::hoveredId;
 
-        shader->setUniform1i("u_SelectedObjId",
-                             type == PrimitiveType::circle ? hoveredId : selId);
+        shader->setUniform1i("u_SelectedObjId", selId);
 
-        vao->setVertices(vertices);
-        GL_CHECK(glDrawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6,
-                                GL_UNSIGNED_INT, nullptr));
-        vertices.clear();
+        if (PrimitiveType::quad != type) {
+            auto& vertices = m_vertices[type];
+            vao->setVertices(vertices);
+            GL_CHECK(glDrawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6,
+                     GL_UNSIGNED_INT, nullptr));
+            vertices.clear();
+        } else {
+            vao->setVertices({}, m_quadRenderVertices);
+            GL_CHECK(glDrawElements(GL_TRIANGLES, (GLsizei)(m_quadRenderVertices.size() / 4) * 6,
+                     GL_UNSIGNED_INT, nullptr));
+            m_quadRenderVertices.clear();
+        }
+
+
         vao->unbind();
         shader->unbind();
     }
@@ -295,8 +323,4 @@ namespace Bess
             flush(primitive);
         }
     }
-
-    int Renderer::getId() { return m_currentId++; }
-
-    int Renderer::getSubId() { return m_currentSubId++; }
 } // namespace Bess
