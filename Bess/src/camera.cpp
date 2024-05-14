@@ -1,65 +1,72 @@
 #include "camera.h"
 #include "ext/matrix_clip_space.hpp"
 #include "ext/matrix_transform.hpp"
+#include <iostream>
 
-namespace Bess {
-Camera::Camera() : m_pos(0.0f), m_zoom(1.0f) {}
-
-Camera::~Camera() {}
-
-void Camera::setPos(const glm::vec2 &pos) {
-    m_pos = {-pos.x, pos.y};
-    updateTransform();
-}
-
-glm::vec2 Camera::getPos() const { return m_pos; }
-
-void Camera::setZoom(float zoom) {
-    m_zoom = zoom;
-    recalculateOrtho();
-    updateTransform();
-}
-
-void Camera::updateZoom(float value) {
-    m_zoom += value;
-    if (m_zoom < 0.1f) {
-        m_zoom = 0.1f;
-        return;
+namespace Bess
+{
+    Camera::Camera(float width, float height) : m_zoom(1.0f), m_width(width), m_height(height)
+    {
+        m_aspectRatio = width / height;
+        m_pos = {width / 2.f, -height / 2.f};
     }
-    recalculateOrtho();
-    updateTransform();
-}
 
-void Camera::updateX(float value) {
-    m_pos.x += value;
-    updateTransform();
-}
+    Camera::~Camera() {}
 
-void Camera::updateY(float value) {
-    m_pos.y += value;
-    updateTransform();
-}
+    void Camera::setPos(const glm::vec2 &pos)
+    {
+        m_pos = pos;
+        updateTransform();
+    }
 
-float Camera::getZoom() const { return m_zoom; }
+    void Camera::incrementPos(const glm::vec2 &pos)
+    {
+        m_pos += pos;
+        updateTransform();
+    }
 
-void Camera::resize(float width, float height) {
-    m_aspectRatio = width / height;
-    m_zoom = m_zoom / m_aspectRatio;
-    recalculateOrtho();
-}
+    glm::vec2 Camera::getPos() const { return m_pos; }
 
-void Camera::recalculateOrtho() {
-    float xSpan = m_aspectRatio / m_zoom;
-    float ySpan = 1.0f / m_zoom;
-    m_ortho = glm::ortho(-xSpan, xSpan, -ySpan, ySpan, -1.0f, 1.0f);
-    updateTransform();
-}
+    glm::vec2 &Camera::getPosRef() { return m_pos; }
 
-glm::mat4 Camera::getTransform() const { return transform; }
+    void Camera::setZoom(float zoom)
+    {
+        m_zoom = zoom;
+        recalculateOrtho();
+    }
 
-void Camera::updateTransform() {
-    transform = glm::translate(glm::mat4(1.f), glm::vec3(m_pos, 0.0f));
-    transform = m_ortho * transform;
-}
+    void Camera::updateZoom(float value)
+    {
+        m_zoom += value;
+        recalculateOrtho();
+    }
+
+    float Camera::getZoom() const { return m_zoom; }
+
+    void Camera::resize(float width, float height)
+    {
+        m_width = width;
+        m_height = height;
+        m_aspectRatio = width / height;
+        m_zoom = m_zoom / m_aspectRatio;
+        recalculateOrtho();
+    }
+
+    void Camera::recalculateOrtho()
+    {
+        float xSpan = m_width / m_zoom;
+        float ySpan = m_height / m_zoom;
+
+        m_ortho = glm::ortho(0.f, xSpan, -ySpan, 0.f, -1.0f, 1.0f);
+        updateTransform();
+    }
+
+    glm::mat4 Camera::getTransform() const { return transform; }
+
+    void Camera::updateTransform()
+    {
+        transform = glm::translate(glm::mat4(1.f), glm::vec3(m_pos, 0.0f));
+        transform = m_ortho * transform;
+    }
 
 } // namespace Bess

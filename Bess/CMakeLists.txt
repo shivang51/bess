@@ -67,7 +67,7 @@ set(Source_Files
     "src/renderer/renderer.cpp"
     "src/ui.cpp"
     "src/window.cpp"
-        src/components/output_probe.cpp
+    "src/components/output_probe.cpp"
 )
 source_group("Source Files" FILES ${Source_Files})
 
@@ -81,7 +81,7 @@ set(ALL_FILES
 ################################################################################
 # Target
 ################################################################################
-add_executable(${PROJECT_NAME} ${ALL_FILES} "include/gl/primitive_type.h")
+add_executable(${PROJECT_NAME} ${ALL_FILES} "include/gl/primitive_type.h" "include/common/bind_helpers.h")
 
 
 use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")

@@ -2,20 +2,22 @@
 
 #include "glm.hpp"
 
-namespace Bess {
-class Camera {
+namespace Bess
+{
+  class Camera
+  {
   public:
-    Camera();
+    Camera(float width, float height);
     ~Camera();
 
     void setPos(const glm::vec2 &pos);
     glm::vec2 getPos() const;
 
+    glm::vec2 &getPosRef();
+
     void setZoom(float zoom);
 
     void updateZoom(float value);
-    void updateY(float value);
-    void updateX(float value);
 
     float getZoom() const;
 
@@ -23,15 +25,18 @@ class Camera {
 
     glm::mat4 getTransform() const;
 
+    void incrementPos(const glm::vec2 &pos);
+
   private:
     glm::vec2 m_pos;
     float m_zoom;
     float m_aspectRatio;
+    float m_width, m_height;
     glm::mat4 m_ortho;
     glm::mat4 transform;
 
     void updateTransform();
 
     void recalculateOrtho();
-};
+  };
 } // namespace Bess

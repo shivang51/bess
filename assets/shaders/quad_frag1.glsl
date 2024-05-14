@@ -6,28 +6,42 @@ layout(location = 1) out int fragColor1;
 in vec3 v_FragPos;
 in vec2 v_TexCoord;
 in vec3 v_FragColor;
-in flat int v_TextureIndex;
+in flat int v_FragId;
+in vec4 v_BorderRadius;
+in float v_AR;
 
 uniform int u_SelectedObjId;
 
-
-float roundedCorner(vec2 position, float radius) {
-    float dist = length(position);
-    return smoothstep(radius - 0.5, radius + 0.5, radius - dist);
+float roundedBoxSDF(vec2 CenterPosition, vec2 Size, float Radius) {
+    return length(max(abs(CenterPosition)-Size+Radius,0.0))-Radius;
 }
 
 void main() {
-    vec2 coords = v_TexCoord;
-    vec2 u_dimensions = vec2(0.3f, 0.25f);
-    float u_radius = 0.1f;
-
-    if (length(coords - vec2(0)) < u_radius ||
-        length(coords - vec2(0, u_dimensions.y)) < u_radius ||
-        length(coords - vec2(u_dimensions.x, 0)) < u_radius ||
-        length(coords - u_dimensions) < u_radius) {
-        discard;
+    float ar = v_AR;
+    vec4 radi = v_BorderRadius;
+    vec2 uv = v_TexCoord;
+    
+    vec2 size = vec2(1.f);    
+    float edgeSoftness  = 0.002f;
+    
+    float radius = 0.f;
+    if(uv.y > 0.5){
+        radius = (uv.x < 0.5) ? radi[0] : radi[1]; 
+    }else{
+        radius = (uv.x < 0.5) ? radi[3] : radi[2]; 
     }
-    // Apply color with alpha
-    fragColor = vec4(v_FragColor, 1.f);
-    fragColor1 = v_TextureIndex;
+    
+    uv.x *= ar;
+    
+    size /= 2.f;
+    size.x *= ar;
+    
+    float dis = roundedBoxSDF(uv.xy - size, size, radius);
+    
+    float alpha =  1.0f - smoothstep(0.0f, edgeSoftness * 2.0f,dis);
+
+    if(alpha == 0.f) discard;
+    
+    fragColor = vec4(v_FragColor, alpha);
+    fragColor1 = v_FragId;
 }

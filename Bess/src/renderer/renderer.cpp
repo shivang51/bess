@@ -32,7 +32,6 @@ namespace Bess
 
     std::vector<Gl::QuadVertex> Renderer::m_quadRenderVertices;
 
-
     int Renderer::m_currentId;
     int Renderer::m_currentSubId;
 
@@ -75,13 +74,16 @@ namespace Bess
             auto max_render_count = m_maxRenderCount[primitive];
 
             m_shaders[primitive] = std::make_unique<Gl::Shader>(vertexShader, fragmentShader);
-            
+
             m_vaos[primitive] = std::make_unique<Gl::Vao>(max_render_count * 4,
-                                                          max_render_count * 6, 
+                                                          max_render_count * 6,
                                                           primitive);
-            if (primitive != PrimitiveType::quad) {
+            if (primitive != PrimitiveType::quad)
+            {
                 m_vertices[primitive] = {};
-            } else {
+            }
+            else
+            {
                 m_quadRenderVertices = {};
             }
 
@@ -102,27 +104,7 @@ namespace Bess
     void Renderer::quad(const glm::vec2 &pos, const glm::vec2 &size,
                         const glm::vec3 &color, const int id, const glm::vec4 borderRadius)
     {
-        std::vector<Gl::QuadVertex> vertices(4);
-
-        vertices[0].position = {pos.x, pos.y, 0.0f};
-        vertices[1].position = {pos.x, pos.y - size.y, 0.0f};
-        vertices[2].position = {pos.x + size.x, pos.y - size.y, 0.0f};
-        vertices[3].position = {pos.x + size.x, pos.y, 0.0f};
-
-        vertices[1].texCoord = {0.0f, 0.0f};
-        vertices[0].texCoord = {0.0f, 1.0f};
-        vertices[3].texCoord = {1.0f, 1.0f};
-        vertices[2].texCoord = {1.0f, 0.0f};
-
-        for (auto &vertex : vertices)
-        {
-            vertex.id = id;
-            vertex.color = color;
-            vertex.borderRadius = borderRadius;
-            vertex.ar = size.x / size.y;
-        }
-
-        addVertices(PrimitiveType::quad, {}, vertices);
+        Renderer::quad(pos, size, color, id, 0.f, borderRadius);
     }
 
     void Renderer::quad(const glm::vec2 &pos, const glm::vec2 &size,
@@ -174,13 +156,13 @@ namespace Bess
         auto angle = std::atan(dy / dx);
         float dis = std::sqrt((dx * dx) + (dy * dy));
 
-        float sizeX = std::max(dis, 0.01f);
+        float sizeX = std::max(dis, 4.f);
         sizeX = dis;
 
         glm::vec3 pos = {start.x, start.y - 0.005f, 0.f};
         auto transform = glm::translate(glm::mat4(1.0f), pos);
         transform = glm::rotate(transform, angle, {0.f, 0.f, 1.f});
-        transform = glm::scale(transform, {sizeX, 0.01, 1.f});
+        transform = glm::scale(transform, {sizeX, 4.f, 1.f});
 
         glm::vec3 p;
 
@@ -207,7 +189,7 @@ namespace Bess
 
     int calculateSegments(const glm::vec2 &p1, const glm::vec2 &p2)
     {
-        return (int)(glm::distance(p1, p2) / 0.01f);
+        return (int)(glm::distance(p1 / UI::state.viewportSize, p2 / UI::state.viewportSize) / 0.005f);
     }
 
     void Renderer::curve(const glm::vec2 &start, const glm::vec2 &end,
@@ -232,57 +214,61 @@ namespace Bess
     void Renderer::circle(const glm::vec2 &center, const float radius,
                           const glm::vec3 &color, const int id)
     {
-        glm::vec2 pos = {center.x - radius, center.y + radius};
         glm::vec2 size = {radius * 2, radius * 2};
 
         std::vector<Gl::Vertex> vertices(4);
 
-        vertices[0].position = {pos.x, pos.y, 0.0f};
-        vertices[1].position = {pos.x, pos.y - size.y, 0.0f};
-        vertices[2].position = {pos.x + size.x, pos.y - size.y, 0.0f};
-        vertices[3].position = {pos.x + size.x, pos.y, 0.0f};
+        auto transform = glm::translate(glm::mat4(1.0f), glm::vec3(center, 0.f));
+        transform = glm::scale(transform, {size.x, size.y, 1.f});
 
-        vertices[1].texCoord = {0.0f, 0.0f};
-        vertices[0].texCoord = {0.0f, 1.0f};
-        vertices[3].texCoord = {1.0f, 1.0f};
-        vertices[2].texCoord = {1.0f, 0.0f};
-
-        for (auto &vertex : vertices)
+        for (int i = 0; i < 4; i++)
         {
+            auto &vertex = vertices[i];
+            vertex.position = transform * m_QuadVertices[i];
             vertex.id = id;
             vertex.color = color;
         }
+
+        vertices[0].texCoord = {0.0f, 1.0f};
+        vertices[1].texCoord = {0.0f, 0.0f};
+        vertices[2].texCoord = {1.0f, 0.0f};
+        vertices[3].texCoord = {1.0f, 1.0f};
 
         addVertices(PrimitiveType::circle, vertices, {});
     }
 
     void Renderer::addVertices(PrimitiveType type,
-                               const std::vector<Gl::Vertex> &vertices, const std::vector<Gl::QuadVertex>& quadVertices)
+                               const std::vector<Gl::Vertex> &vertices, const std::vector<Gl::QuadVertex> &quadVertices)
     {
         auto max_render_count = m_maxRenderCount[type];
 
-        if (type != PrimitiveType::quad) {
-            auto& primitive_vertices = m_vertices[type];
+        if (type != PrimitiveType::quad)
+        {
+            auto &primitive_vertices = m_vertices[type];
 
-            if (primitive_vertices.size() >= (max_render_count - 1) * 4) {
+            if (primitive_vertices.size() >= (max_render_count - 1) * 4)
+            {
                 flush(type);
             }
 
             primitive_vertices.insert(primitive_vertices.end(), vertices.begin(),
                                       vertices.end());
-        } else {
-            if (m_quadRenderVertices.size() >= (max_render_count - 1) * 4) {
+        }
+        else
+        {
+            if (m_quadRenderVertices.size() >= (max_render_count - 1) * 4)
+            {
                 flush(type);
             }
 
             m_quadRenderVertices.insert(m_quadRenderVertices.end(), quadVertices.begin(), quadVertices.end());
         }
-
     }
 
-    void Renderer::flush(PrimitiveType type) {
-        auto& vao = m_vaos[type];
-        auto& shader = m_shaders[type];
+    void Renderer::flush(PrimitiveType type)
+    {
+        auto &vao = m_vaos[type];
+        auto &shader = m_shaders[type];
 
         vao->bind();
         shader->bind();
@@ -292,19 +278,21 @@ namespace Bess
 
         shader->setUniform1i("u_SelectedObjId", selId);
 
-        if (PrimitiveType::quad != type) {
-            auto& vertices = m_vertices[type];
+        if (PrimitiveType::quad != type)
+        {
+            auto &vertices = m_vertices[type];
             vao->setVertices(vertices);
             GL_CHECK(glDrawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6,
-                     GL_UNSIGNED_INT, nullptr));
+                                    GL_UNSIGNED_INT, nullptr));
             vertices.clear();
-        } else {
+        }
+        else
+        {
             vao->setVertices({}, m_quadRenderVertices);
             GL_CHECK(glDrawElements(GL_TRIANGLES, (GLsizei)(m_quadRenderVertices.size() / 4) * 6,
-                     GL_UNSIGNED_INT, nullptr));
+                                    GL_UNSIGNED_INT, nullptr));
             m_quadRenderVertices.clear();
         }
-
 
         vao->unbind();
         shader->unbind();

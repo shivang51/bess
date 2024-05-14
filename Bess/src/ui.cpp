@@ -14,13 +14,14 @@
 namespace Bess
 {
     UIState UI::state{};
-    
-    std::map<std::string, std::function<void(const glm::vec2&)>> UI::m_components;
 
-    void UI::init(GLFWwindow* window) {
+    std::map<std::string, std::function<void(const glm::vec2 &)>> UI::m_components;
+
+    void UI::init(GLFWwindow *window)
+    {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO();
+        ImGuiIO &io = ImGui::GetIO();
 
         io.ConfigFlags |=
             ImGuiConfigFlags_NavEnableKeyboard;             // Enable Keyboard Controls
@@ -30,8 +31,9 @@ namespace Bess
         io.IniFilename = "bess.ini";
 
         ImGui::StyleColorsDark();
-        ImGuiStyle& style = ImGui::GetStyle();
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        ImGuiStyle &style = ImGui::GetStyle();
+        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        {
             style.WindowRounding = 0.0f;
             style.Colors[ImGuiCol_WindowBg].w = 1.0f;
         }
@@ -50,7 +52,6 @@ namespace Bess
         m_components["Output Probe"] = std::bind(&Simulator::ComponentsManager::generateOutputProbe, std::placeholders::_1);
     }
 
-
     void UI::shutdown()
     {
         ImGui_ImplOpenGL3_Shutdown();
@@ -64,7 +65,7 @@ namespace Bess
         drawProjectExplorer();
         drawComponentExplorer();
         drawViewport();
-//        drawPropertiesPanel();
+        //        drawPropertiesPanel();
         end();
     }
 
@@ -73,7 +74,8 @@ namespace Bess
         state.viewportTexture = texture;
     }
 
-    void UI::drawPropertiesPanel(){
+    void UI::drawPropertiesPanel()
+    {
         ImGui::Begin("Properties");
         ImGui::Text("Hovered Id: %d", ApplicationState::hoveredId);
         if (ApplicationState::getSelectedId() != Simulator::ComponentsManager::emptyId)
@@ -91,7 +93,7 @@ namespace Bess
         for (auto &[id, entity] : Simulator::ComponentsManager::renderComponenets)
         {
             if (ImGui::Selectable(entity->getName().c_str(),
-                entity->getId() == ApplicationState::getSelectedId()))
+                                  entity->getId() == ApplicationState::getSelectedId()))
             {
                 ApplicationState::setSelectedId(entity->getId());
             }
@@ -99,39 +101,39 @@ namespace Bess
         ImGui::End();
     }
 
-
-    void UI::drawComponentExplorer() {
+    void UI::drawComponentExplorer()
+    {
 
         ImGui::Begin("Component Explorer");
-		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4);
-        for (auto& [name, cb] : m_components) {
-            if (ImGui::Button(name.c_str(), {-1, 0})) {
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4);
+        for (auto &[name, cb] : m_components)
+        {
+            if (ImGui::Button(name.c_str(), {-1, 0}))
+            {
                 cb({0.f, 0.f});
             }
         }
         ImGui::PopStyleVar();
         ImGui::End();
     }
-    
+
     void UI::drawViewport()
     {
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
-            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoDecoration;
+                                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoDecoration;
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+        ImGui::SetNextWindowSizeConstraints({400.f, -1.f}, {-1.f, -1.f});
 
         ImGui::Begin("Viewport", nullptr, flags);
         auto offset = ImGui::GetCursorPos();
 
         auto viewportPanelSize = ImGui::GetContentRegionAvail();
         state.viewportSize = {viewportPanelSize.x, viewportPanelSize.y};
-        
 
         ImGui::Image((void *)state.viewportTexture,
                      ImVec2(viewportPanelSize.x, viewportPanelSize.y), ImVec2(0, 1),
                      ImVec2(1, 0));
-
-
 
         auto pos = ImGui::GetWindowPos();
         auto gPos = ImGui::GetMainViewport()->Pos;
@@ -146,8 +148,6 @@ namespace Bess
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
 
-
-
         ImGui::Begin("Camera", nullptr, flags);
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8);
         ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 8);
@@ -155,7 +155,6 @@ namespace Bess
         ImGui::PopStyleVar(2);
         ImGui::End();
         ImGui::PopStyleVar(2);
-
     }
 
     void UI::begin()
@@ -186,15 +185,15 @@ namespace Bess
         ImGui::DockSpace(mainDockspaceId);
 
         static bool firstTime = true;
-        if (firstTime) {
+        if (firstTime)
+        {
             firstTime = false;
             resetDockspace();
         }
     }
 
-
-
-    void UI::resetDockspace() {
+    void UI::resetDockspace()
+    {
         auto mainDockspaceId = ImGui::GetID("MainDockspace");
 
         ImGui::DockBuilderRemoveNode(mainDockspaceId);
@@ -260,12 +259,13 @@ namespace Bess
         colors[ImGuiCol_TitleBgCollapsed] = ImVec4{0.15f, 0.1505f, 0.151f, 1.0f};
     }
 
-    void UI::setCursorPointer() {
+    void UI::setCursorPointer()
+    {
         ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
     }
 
-
-    void UI::setCursorReset() {
+    void UI::setCursorReset()
+    {
         ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
     }
 } // namespace Bess

@@ -13,17 +13,19 @@
 
 #include "application_state.h"
 
-namespace Bess {
+namespace Bess
+{
 
-struct UIState {
+  struct UIState
+  {
     float cameraZoom = 1.f;
-    glm::vec2 cameraPos = {0.f, 0.f};
     glm::vec2 viewportSize = {800, 500};
     glm::vec2 viewportPos = {0, 0};
     GLuint64 viewportTexture = 0;
-};
+  };
 
-class UI {
+  class UI
+  {
   public:
     static void init(GLFWwindow *window);
 
@@ -32,7 +34,6 @@ class UI {
     static void draw();
 
     static void setViewportTexture(GLuint64 texture);
-
 
     static void setCursorPointer();
     static void setCursorReset();
@@ -46,14 +47,12 @@ class UI {
     static void drawViewport();
     static void drawComponentExplorer();
     static void drawPropertiesPanel();
-    
+
     static void begin();
     static void end();
 
     static void resetDockspace();
 
-
-    static std::map<std::string, std::function<void(const glm::vec2&)>> m_components;
-    
-};
+    static std::map<std::string, std::function<void(const glm::vec2 &)>> m_components;
+  };
 } // namespace Bess

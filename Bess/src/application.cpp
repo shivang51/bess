@@ -12,24 +12,25 @@
 
 using Bess::Renderer2D::Renderer;
 
-namespace Bess {
+namespace Bess
+{
 
-    #define BIND_EVENT_FN(fn) std::bind(&Application::fn, this)
+#define BIND_EVENT_FN(fn) std::bind(&Application::fn, this)
 
-    #define BIND_EVENT_FN_1(fn) \
+#define BIND_EVENT_FN_1(fn) \
     std::bind(&Application::fn, this, std::placeholders::_1)
 
-    #define BIND_EVENT_FN_2(fn)                                  \
+#define BIND_EVENT_FN_2(fn)                                  \
     std::bind(&Application::fn, this, std::placeholders::_1, \
               std::placeholders::_2)
 
-
-    Application::Application() : m_window(800, 600, "Bess") {
+    Application::Application() : m_window(800, 600, "Bess")
+    {
         Simulator::ComponentsManager::init();
         ApplicationState::init();
 
         m_framebuffer = std::make_unique<Gl::FrameBuffer>(800.f, 600.f);
-        m_camera = std::make_shared<Camera>();
+        m_camera = std::make_shared<Camera>(800.f, 600.f);
 
         UI::init(m_window.getGLFWHandle());
         UI::state.viewportTexture = m_framebuffer->getTexture();
@@ -45,57 +46,48 @@ namespace Bess {
         m_window.onMiddleMouse(BIND_EVENT_FN_1(onMiddleMouse));
         m_window.onMouseMove(BIND_EVENT_FN_2(onMouseMove));
 
-
         Simulator::ComponentsManager::generateNandGate();
         Simulator::ComponentsManager::generateInputProbe();
     }
 
-    Application::~Application() {
+    Application::~Application()
+    {
         UI::shutdown();
         m_window.close();
     }
 
-    void Application::drawUI() {
+    void Application::drawUI()
+    {
         UI::draw();
-
-        if (m_framebuffer->getSize() != UI::state.viewportSize) {
-            m_framebuffer->resize(UI::state.viewportSize.x,
-                                  UI::state.viewportSize.y);
-            m_camera->resize(UI::state.viewportSize.x, UI::state.viewportSize.y);
-        }
-
-        if (UI::state.cameraZoom != m_camera->getZoom()) {
-            m_camera->setZoom(UI::state.cameraZoom);
-        }
-
-        if (UI::state.cameraPos != m_camera->getPos()) {
-            m_camera->setPos(UI::state.cameraPos);
-        }
     }
 
-    void Application::drawScene() {
+    void Application::drawScene()
+    {
         m_framebuffer->bind();
 
         Renderer::begin(m_camera);
 
-        switch (ApplicationState::drawMode) {
+        switch (ApplicationState::drawMode)
+        {
         case DrawMode::connection:
         {
             auto mPos = getNVPMousePos();
-            Renderer::curve(ApplicationState::points[0], mPos, { 0.5, 0.8, 0.5 }, -1);
+            Renderer::curve(ApplicationState::points[0], mPos, {0.5, 0.8, 0.5}, -1);
         }
         break;
         default:
             break;
         }
 
-        for (auto& [id, entity] : Simulator::ComponentsManager::renderComponenets) {
+        for (auto &[id, entity] : Simulator::ComponentsManager::renderComponenets)
+        {
             entity->render();
         }
 
         Renderer::end();
 
-        if (isCursorInViewport()) {
+        if (isCursorInViewport())
+        {
             auto viewportMousePos = getViewportMousePos();
             viewportMousePos.y = UI::state.viewportSize.y - viewportMousePos.y;
             ApplicationState::hoveredId =
@@ -105,8 +97,10 @@ namespace Bess {
         m_framebuffer->unbind();
     }
 
-    void Application::run() {
-        while (!m_window.isClosed()) {
+    void Application::run()
+    {
+        while (!m_window.isClosed())
+        {
             m_window.waitEventsTimeout(0.0167);
             update();
             drawScene();
@@ -116,12 +110,25 @@ namespace Bess {
         }
     }
 
-    void Application::update(){
-        if (ApplicationState::hoveredId != -1) {
-				auto& cid = Simulator::ComponentsManager::renderIdToCid(ApplicationState::hoveredId);
-				Simulator::Components::ComponentEventData e;
-				e.type = Simulator::Components::ComponentEventType::mouseHover;
-				Simulator::ComponentsManager::components[cid]->onEvent(e);
+    void Application::update()
+    {
+        if (ApplicationState::hoveredId != -1)
+        {
+            auto &cid = Simulator::ComponentsManager::renderIdToCid(ApplicationState::hoveredId);
+            Simulator::Components::ComponentEventData e;
+            e.type = Simulator::Components::ComponentEventType::mouseHover;
+            Simulator::ComponentsManager::components[cid]->onEvent(e);
+        }
+
+        if (m_framebuffer->getSize() != UI::state.viewportSize)
+        {
+            m_framebuffer->resize(UI::state.viewportSize.x, UI::state.viewportSize.y);
+            m_camera->resize(UI::state.viewportSize.x, UI::state.viewportSize.y);
+        }
+
+        if (UI::state.cameraZoom != m_camera->getZoom())
+        {
+            m_camera->setZoom(UI::state.cameraZoom);
         }
     }
 
@@ -131,23 +138,32 @@ namespace Bess {
 
     // callbacks
 
-    void Application::onWindowResize(int w, int h) {
+    void Application::onWindowResize(int w, int h)
+    {
         // glViewport(0, 0, w, h);
     }
 
-    void Application::onMouseWheel(double x, double y) {
-        if(!isCursorInViewport()) return;
-        float delta = (float)y * 0.1f;
+    void Application::onMouseWheel(double x, double y)
+    {
+        if (!isCursorInViewport())
+            return;
 
-        if (isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
+        if (isKeyPressed(GLFW_KEY_LEFT_CONTROL))
+        {
+            float delta = (float)y * 0.1f;
             UI::state.cameraZoom += delta;
-            if (UI::state.cameraZoom < 0.6f) {
+            if (UI::state.cameraZoom < 0.6f)
+            {
                 UI::state.cameraZoom = 0.6f;
-            } else if (UI::state.cameraZoom > 1.6f) {
+            }
+            else if (UI::state.cameraZoom > 1.6f)
+            {
                 UI::state.cameraZoom = 1.6f;
             }
-        } else {
-            UI::state.cameraPos.y -= delta;
+        }
+        else
+        {
+            m_camera->incrementPos({0.f, -y * 10 / m_camera->getZoom()});
         }
     }
 
@@ -155,21 +171,26 @@ namespace Bess {
 
     void Application::onKeyRelease(int key) { m_pressedKeys[key] = false; }
 
-    void Application::onLeftMouse(bool pressed) {
+    void Application::onLeftMouse(bool pressed)
+    {
         m_leftMousePressed = pressed;
 
-        if (!pressed || !isCursorInViewport()) {
-            if (ApplicationState::dragData.isDragging) {
+        if (!pressed || !isCursorInViewport())
+        {
+            if (ApplicationState::dragData.isDragging)
+            {
                 ApplicationState::dragData.isDragging = false;
-                ApplicationState::dragData.dragOffset = { 0.f, 0.f };
+                ApplicationState::dragData.dragOffset = {0.f, 0.f};
             }
             return;
         }
 
-        auto& cid = Simulator::ComponentsManager::renderIdToCid(ApplicationState::hoveredId);
+        auto &cid = Simulator::ComponentsManager::renderIdToCid(ApplicationState::hoveredId);
 
-        if (Simulator::ComponentsManager::emptyId == cid) {
-            if(ApplicationState::drawMode == DrawMode::connection){
+        if (Simulator::ComponentsManager::emptyId == cid)
+        {
+            if (ApplicationState::drawMode == DrawMode::connection)
+            {
                 ApplicationState::connStartId = Simulator::ComponentsManager::emptyId;
                 ApplicationState::points.pop_back();
             }
@@ -178,7 +199,7 @@ namespace Bess {
 
             return;
         }
-        
+
         Simulator::Components::ComponentEventData e;
         e.type = Simulator::Components::ComponentEventType::leftClick;
         e.pos = getNVPMousePos();
@@ -186,17 +207,19 @@ namespace Bess {
         Simulator::ComponentsManager::components[cid]->onEvent(e);
     }
 
-    void Application::onRightMouse(bool pressed) {
+    void Application::onRightMouse(bool pressed)
+    {
         m_rightMousePressed = pressed;
-        if (!pressed && isCursorInViewport()) {
+        if (!pressed && isCursorInViewport())
+        {
             Simulator::ComponentsManager::generateNandGate(getNVPMousePos());
             return;
         }
 
+        auto &cid = Simulator::ComponentsManager::renderIdToCid(ApplicationState::hoveredId);
 
-        auto& cid = Simulator::ComponentsManager::renderIdToCid(ApplicationState::hoveredId);
-
-        if (Simulator::ComponentsManager::emptyId == cid) {
+        if (Simulator::ComponentsManager::emptyId == cid)
+        {
             return;
         }
 
@@ -207,93 +230,98 @@ namespace Bess {
         Simulator::ComponentsManager::components[cid]->onEvent(e);
     }
 
-    void Application::onMiddleMouse(bool pressed) {
+    void Application::onMiddleMouse(bool pressed)
+    {
         m_middleMousePressed = pressed;
     }
 
-    void Application::onMouseMove(double x, double y) {
+    void Application::onMouseMove(double x, double y)
+    {
         float dx = (float)x - m_mousePos.x;
         float dy = (float)y - m_mousePos.y;
-        m_mousePos = { x, y };
+        m_mousePos = {x, y};
 
         if (!isCursorInViewport())
             return;
 
-
-
-        if (ApplicationState::prevHoveredId != ApplicationState::hoveredId) {
-            if (ApplicationState::prevHoveredId != -1) {
-				auto& cid = Simulator::ComponentsManager::renderIdToCid(ApplicationState::prevHoveredId);
-				Simulator::Components::ComponentEventData e;
-				e.type = Simulator::Components::ComponentEventType::mouseLeave;
-				Simulator::ComponentsManager::components[cid]->onEvent(e);
+        if (ApplicationState::prevHoveredId != ApplicationState::hoveredId)
+        {
+            if (ApplicationState::prevHoveredId != -1)
+            {
+                auto &cid = Simulator::ComponentsManager::renderIdToCid(ApplicationState::prevHoveredId);
+                Simulator::Components::ComponentEventData e;
+                e.type = Simulator::Components::ComponentEventType::mouseLeave;
+                Simulator::ComponentsManager::components[cid]->onEvent(e);
             }
 
             ApplicationState::prevHoveredId = ApplicationState::hoveredId;
-            if (ApplicationState::hoveredId == -1) return;
+            if (ApplicationState::hoveredId == -1)
+                return;
 
-		    auto& cid = Simulator::ComponentsManager::renderIdToCid(ApplicationState::hoveredId);
-			Simulator::Components::ComponentEventData e;
-			e.type = Simulator::Components::ComponentEventType::mouseEnter;
-			Simulator::ComponentsManager::components[cid]->onEvent(e);
+            auto &cid = Simulator::ComponentsManager::renderIdToCid(ApplicationState::hoveredId);
+            Simulator::Components::ComponentEventData e;
+            e.type = Simulator::Components::ComponentEventType::mouseEnter;
+            Simulator::ComponentsManager::components[cid]->onEvent(e);
         }
 
-        if (m_middleMousePressed) {
-            UI::state.cameraPos.x -= (dx * 0.002f) / UI::state.cameraZoom;
-            UI::state.cameraPos.y -= (dy * 0.002f) / UI::state.cameraZoom;
-        } else if (m_leftMousePressed &&
-                  ApplicationState::getSelectedId() != Simulator::ComponentsManager::emptyId) {
-            auto& entity = Simulator::ComponentsManager::components[ApplicationState::getSelectedId()];
+        if (m_middleMousePressed)
+        {
+            m_camera->incrementPos({dx / UI::state.cameraZoom, -dy / UI::state.cameraZoom});
+        }
+
+        else if (m_leftMousePressed &&
+                 ApplicationState::getSelectedId() != Simulator::ComponentsManager::emptyId)
+        {
+            auto &entity = Simulator::ComponentsManager::components[ApplicationState::getSelectedId()];
 
             if (entity->getType() != Simulator::ComponentType::gate &&
-                    entity->getType() != Simulator::ComponentType::inputProbe &&
-                    entity->getType() != Simulator::ComponentType::outputProbe) return;
+                entity->getType() != Simulator::ComponentType::inputProbe &&
+                entity->getType() != Simulator::ComponentType::outputProbe)
+                return;
 
-            auto& pos = entity->getPosition();
+            auto &pos = entity->getPosition();
 
-            if (!ApplicationState::dragData.isDragging) {
+            if (!ApplicationState::dragData.isDragging)
+            {
                 ApplicationState::dragData.isDragging = true;
                 ApplicationState::dragData.dragOffset = getNVPMousePos() - pos;
             }
 
             pos = getNVPMousePos() - ApplicationState::dragData.dragOffset;
-
         }
     }
 
-    bool Application::isCursorInViewport() const {
-        const auto& viewportPos = UI::state.viewportPos;
-        const auto& viewportSize = UI::state.viewportSize;
+    bool Application::isCursorInViewport() const
+    {
+        const auto &viewportPos = UI::state.viewportPos;
+        const auto &viewportSize = UI::state.viewportSize;
         return m_mousePos.x > viewportPos.x &&
-            m_mousePos.x < viewportPos.x + viewportSize.x &&
-            m_mousePos.y > viewportPos.y &&
-            m_mousePos.y < viewportPos.y + viewportSize.y;
+               m_mousePos.x < viewportPos.x + viewportSize.x &&
+               m_mousePos.y > viewportPos.y &&
+               m_mousePos.y < viewportPos.y + viewportSize.y;
     }
 
-    glm::vec2 Application::getViewportMousePos() const {
-        const auto& viewportPos = UI::state.viewportPos;
-        const auto& viewportSize = UI::state.viewportSize;
+    glm::vec2 Application::getViewportMousePos() const
+    {
+        const auto &viewportPos = UI::state.viewportPos;
+        const auto &viewportSize = UI::state.viewportSize;
         auto x = m_mousePos.x - viewportPos.x;
         auto y = m_mousePos.y - viewportPos.y;
-        return { x, y };
+        return {x, y};
     }
 
-    glm::vec2 Application::getNVPMousePos() {
-        const auto& viewportPos = getViewportMousePos();
-        const auto& viewportSize = UI::state.viewportSize;
-        float x = viewportPos.x / viewportSize.x;
-        float y = viewportPos.y / viewportSize.y;
+    glm::vec2 Application::getNVPMousePos()
+    {
+        const auto &viewportPos = getViewportMousePos();
+        const auto &viewportSize = UI::state.viewportSize;
 
-        glm::vec2 pos = { x, y };
-        pos = (pos * 2.f) - 1.f;
+        float x = viewportPos.x;
+        float y = viewportPos.y;
+
+        glm::vec2 pos = {x, y};
         pos.y *= -1;
-
-        pos.x *= viewportSize.x / viewportSize.y;
-
         pos /= UI::state.cameraZoom;
-
         pos -= m_camera->getPos();
-
         return pos;
     }
 
