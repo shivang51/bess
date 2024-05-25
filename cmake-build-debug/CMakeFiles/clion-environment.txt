@@ -1,0 +1,4 @@
+ToolSet: 1.0 (local)Ninja: 1.11.1@/home/shivang/.local/share/JetBrains/Toolbox/apps/clion-nova/bin/ninja/linux/x64/ninja
+Options: 
+
+Options:-DCMAKE_MAKE_PROGRAM=/home/shivang/.local/share/JetBrains/Toolbox/apps/clion-nova/bin/ninja/linux/x64/ninja
