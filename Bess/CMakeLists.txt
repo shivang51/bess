@@ -26,16 +26,16 @@ set(Header_Files
     "include/components/slot.h"
     "include/components_manager/component_type.h"
     "include/components_manager/components_manager.h"
-    "include/gl/framebuffer.h"
-    "include/gl/gl_wrapper.h"
-    "include/gl/shader.h"
-    "include/gl/utils.h"
-    "include/gl/vao.h"
-    "include/gl/vertex.h"
+    "include/renderer/gl/framebuffer.h"
+    "include/renderer/gl/gl_wrapper.h"
+    "include/renderer/gl/shader.h"
+    "include/renderer/gl/utils.h"
+    "include/renderer/gl/vao.h"
+    "include/renderer/gl/vertex.h"
     "include/renderer/renderer.h"
     "include/ui.h"
     "include/window.h"
-        include/components/output_probe.h
+    "include/components/output_probe.h"
 )
 source_group("Header Files" FILES ${Header_Files})
 
@@ -59,10 +59,10 @@ set(Source_Files
     "src/components/nand_gate.cpp"
     "src/components/slot.cpp"
     "src/components_manager/components_manager.cpp"
-    "src/gl/framebuffer.cpp"
-    "src/gl/gl_wrapper.cpp"
-    "src/gl/shader.cpp"
-    "src/gl/vao.cpp"
+    "src/renderer/gl/framebuffer.cpp"
+    "src/renderer/gl/gl_wrapper.cpp"
+    "src/renderer/gl/shader.cpp"
+    "src/renderer/gl/vao.cpp"
     "src/main.cpp"
     "src/renderer/renderer.cpp"
     "src/ui.cpp"
@@ -81,7 +81,7 @@ set(ALL_FILES
 ################################################################################
 # Target
 ################################################################################
-add_executable(${PROJECT_NAME} ${ALL_FILES} "include/gl/primitive_type.h" "include/common/bind_helpers.h")
+add_executable(${PROJECT_NAME} ${ALL_FILES} "include/renderer/gl/primitive_type.h" "include/common/bind_helpers.h")
 
 
 use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")

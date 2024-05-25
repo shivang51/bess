@@ -22,7 +22,6 @@ void main() {
     vec2 uv = v_TexCoord;
     
     vec2 size = vec2(1.f);    
-    float edgeSoftness  = 0.002f;
     
     float radius = 0.f;
     if(uv.y > 0.5){
@@ -30,6 +29,7 @@ void main() {
     }else{
         radius = (uv.x < 0.5) ? radi[3] : radi[2]; 
     }
+
     
     uv.x *= ar;
     
@@ -38,7 +38,7 @@ void main() {
     
     float dis = roundedBoxSDF(uv.xy - size, size, radius);
     
-    float alpha =  1.0f - smoothstep(0.0f, edgeSoftness * 2.0f,dis);
+    float alpha =  1.0f - smoothstep(0.0f, 0.02, dis);
 
     if(alpha == 0.f) discard;
     

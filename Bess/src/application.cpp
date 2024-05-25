@@ -2,7 +2,6 @@
 #include "components/nand_gate.h"
 #include "components/connection.h"
 #include "fwd.hpp"
-#include "gl/framebuffer.h"
 #include "renderer/renderer.h"
 #include "ui.h"
 #include <GLFW/glfw3.h>
@@ -163,7 +162,7 @@ namespace Bess
         }
         else
         {
-            m_camera->incrementPos({0.f, -y * 10 / m_camera->getZoom()});
+            m_camera->incrementPos({x * 10 / m_camera->getZoom(), -y * 10 / m_camera->getZoom()});
         }
     }
 

@@ -1,8 +1,6 @@
 #include "renderer/renderer.h"
 #include "camera.h"
 #include "fwd.hpp"
-#include "gl/gl_wrapper.h"
-#include "gl/vertex.h"
 #include "glm.hpp"
 #include "ui.h"
 #include <GL/gl.h>
@@ -10,7 +8,6 @@
 #include <ext/matrix_transform.hpp>
 #include <iostream>
 #include <ostream>
-#include "gl/primitive_type.h"
 
 using namespace Bess::Renderer2D;
 
@@ -75,15 +72,35 @@ namespace Bess
 
             m_shaders[primitive] = std::make_unique<Gl::Shader>(vertexShader, fragmentShader);
 
-            m_vaos[primitive] = std::make_unique<Gl::Vao>(max_render_count * 4,
-                                                          max_render_count * 6,
-                                                          primitive);
-            if (primitive != PrimitiveType::quad)
+            if (primitive == PrimitiveType::quad)
             {
+                std::vector<Gl::VaoAttribAttachment> attachments;
+
+                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::QuadVertex, position)));
+                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::QuadVertex, color)));
+                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::QuadVertex, texCoord)));
+                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::QuadVertex, id)));
+                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::QuadVertex, borderRadius)));
+                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::float_t, offsetof(Gl::QuadVertex, ar)));
+
+                m_vaos[primitive] = std::make_unique<Gl::Vao>(max_render_count * 4,
+                                                              max_render_count * 6,
+                                                              attachments,
+                                                              sizeof(Gl::QuadVertex));
                 m_vertices[primitive] = {};
             }
             else
             {
+                std::vector<Gl::VaoAttribAttachment> attachments;
+                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::Vertex, position)));
+                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::Vertex, color)));
+                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::Vertex, texCoord)));
+                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::Vertex, id)));
+
+                m_vaos[primitive] = std::make_unique<Gl::Vao>(max_render_count * 4,
+                                                              max_render_count * 6,
+                                                              attachments,
+                                                              sizeof(Gl::Vertex));
                 m_quadRenderVertices = {};
             }
 
@@ -281,14 +298,14 @@ namespace Bess
         if (PrimitiveType::quad != type)
         {
             auto &vertices = m_vertices[type];
-            vao->setVertices(vertices);
+            vao->setVertices(vertices.data(), vertices.size());
             GL_CHECK(glDrawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6,
                                     GL_UNSIGNED_INT, nullptr));
             vertices.clear();
         }
         else
         {
-            vao->setVertices({}, m_quadRenderVertices);
+            vao->setVertices(m_quadRenderVertices.data(), m_quadRenderVertices.size());
             GL_CHECK(glDrawElements(GL_TRIANGLES, (GLsizei)(m_quadRenderVertices.size() / 4) * 6,
                                     GL_UNSIGNED_INT, nullptr));
             m_quadRenderVertices.clear();

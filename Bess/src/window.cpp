@@ -1,6 +1,6 @@
 #define GLFW_INCLUDE_NONE
 #include "window.h"
-#include "gl/gl_wrapper.h"
+#include "renderer/gl/gl_wrapper.h"
 #include <GLFW/glfw3.h>
 #include <cassert>
 #include <iostream>

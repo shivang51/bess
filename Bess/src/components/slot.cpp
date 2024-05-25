@@ -5,22 +5,17 @@
 
 #include "ui.h"
 #include "common/theme.h"
+#include <common/bind_helpers.h>
 
 namespace Bess::Simulator::Components
 {
-
-#define BIND_EVENT_FN_1(fn) \
-	std::bind(&Slot::fn, this, std::placeholders::_1)
-
-#define BIND_EVENT_FN(fn) \
-	std::bind(&Slot::fn, this)
 
 	glm::vec3 connectedBg = {0.42f, 0.82f, 0.42f};
 
 	Slot::Slot(const UUIDv4::UUID &uid, int id, ComponentType type) : Component(uid, id, {0.f, 0.f}, type)
 	{
-		m_events[ComponentEventType::leftClick] = (OnLeftClickCB)BIND_EVENT_FN_1(onLeftClick);
-		m_events[ComponentEventType::mouseHover] = (VoidCB)BIND_EVENT_FN(onMouseHover);
+		m_events[ComponentEventType::leftClick] = (OnLeftClickCB)BIND_FN_1(Slot::onLeftClick);
+		m_events[ComponentEventType::mouseHover] = (VoidCB)BIND_FN(Slot::onMouseHover);
 	}
 
 	void Slot::update(const glm::vec2 &pos)
@@ -30,16 +25,8 @@ namespace Bess::Simulator::Components
 
 	void Slot::render()
 	{
-
 		Renderer2D::Renderer::circle(m_position, 8.f, m_highlightBorder ? Theme::selectedWireColor : Theme::componentBorderColor, m_renderId);
-		Renderer2D::Renderer::circle(m_position, 7.f, (connections.size() == 0) ? Theme::backgroundColor : connectedBg, m_renderId);
-
-		//		if (m_type == ComponentType::inputSlot) return;
-		//
-		//		for (auto& sid : connections) {
-		//			auto& sPos = ComponentsManager::components[sid]->getPosition();
-		//			Renderer2D::Renderer::curve(m_position, sPos, { 0.5f, 0.8f, 0.5f }, -1);
-		//		}
+		Renderer2D::Renderer::circle(m_position, m_highlightBorder ? 6.f : 7.f, (connections.size() == 0) ? Theme::backgroundColor : connectedBg, m_renderId);
 	}
 
 	void Slot::onLeftClick(const glm::vec2 &pos)

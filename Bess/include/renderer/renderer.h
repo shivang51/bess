@@ -1,19 +1,29 @@
 #pragma once
 
 #include "fwd.hpp"
-#include "gl/shader.h"
-#include "gl/vao.h"
+
+#include "renderer/gl/shader.h"
+#include "renderer/gl/vao.h"
+#include "renderer/gl/vertex.h"
 
 #include "camera.h"
-#include "gl/vertex.h"
 #include <memory>
 #include <unordered_map>
 
-namespace Bess::Renderer2D {
+namespace Bess::Renderer2D
+{
 
-enum class BorderSide { none = 0, top = 1, right = 2, bottom = 4, left = 8 };
+  enum class BorderSide
+  {
+    none = 0,
+    top = 1,
+    right = 2,
+    bottom = 4,
+    left = 8
+  };
 
-class Renderer {
+  class Renderer
+  {
   public:
     Renderer() = default;
 
@@ -23,10 +33,10 @@ class Renderer {
     static void end();
 
     static void quad(const glm::vec2 &pos, const glm::vec2 &size,
-                     const glm::vec3& color, const int id, const glm::vec4 borderRadius = {0.f, 0.f, 0.f, 0.f});
+                     const glm::vec3 &color, const int id, const glm::vec4 borderRadius = {0.f, 0.f, 0.f, 0.f});
 
     static void quad(const glm::vec2 &pos, const glm::vec2 &size,
-                     const glm::vec3& color, const int id, const float angle, const glm::vec4 borderRadius = {0.f, 0.f, 0.f, 0.f});
+                     const glm::vec3 &color, const int id, const float angle, const glm::vec4 borderRadius = {0.f, 0.f, 0.f, 0.f});
 
     static void curve(const glm::vec2 &start, const glm::vec2 &end,
                       const glm::vec3 &color, const int id);
@@ -41,11 +51,11 @@ class Renderer {
 
   private:
     static void addVertices(PrimitiveType type,
-                            const std::vector<Gl::Vertex> &vertices, const std::vector<Gl::QuadVertex>& quadVertices);
+                            const std::vector<Gl::Vertex> &vertices, const std::vector<Gl::QuadVertex> &quadVertices);
 
   private:
     static std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Shader>> m_shaders;
-    
+
     static std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Vao>> m_vaos;
 
     static std::unordered_map<PrimitiveType, std::vector<Gl::Vertex>> m_vertices;
@@ -64,6 +74,6 @@ class Renderer {
 
     static int m_currentId;
     static int m_currentSubId;
-};
+  };
 
 } // namespace Bess::Renderer2D
