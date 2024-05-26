@@ -33,25 +33,25 @@ namespace Bess::Renderer2D
     static void end();
 
     static void quad(const glm::vec2 &pos, const glm::vec2 &size,
-                     const glm::vec3 &color, const int id, const glm::vec4 borderRadius = {0.f, 0.f, 0.f, 0.f});
+                     const glm::vec3 &color, int id, const glm::vec4& borderRadius = {0.f, 0.f, 0.f, 0.f});
 
     static void quad(const glm::vec2 &pos, const glm::vec2 &size,
-                     const glm::vec3 &color, const int id, const float angle, const glm::vec4 borderRadius = {0.f, 0.f, 0.f, 0.f});
+                     const glm::vec3 &color, int id, float angle, const glm::vec4& borderRadius = {0.f, 0.f, 0.f, 0.f});
 
     static void curve(const glm::vec2 &start, const glm::vec2 &end,
-                      const glm::vec3 &color, const int id);
+                      const glm::vec3 &color, int id);
 
-    static void circle(const glm::vec2 &center, const float radius,
-                       const glm::vec3 &color, const int id);
+    static void circle(const glm::vec2 &center, float radius,
+                       const glm::vec3 &color, int id);
 
   private:
     static glm::vec2 createCurveVertices(const glm::vec2 &start,
                                          const glm::vec2 &end,
-                                         const glm::vec3 &color, const int id);
+                                         const glm::vec3 &color, int id);
 
   private:
-    static void addVertices(PrimitiveType type,
-                            const std::vector<Gl::Vertex> &vertices, const std::vector<Gl::QuadVertex> &quadVertices);
+      template<class T>
+      static void addVertices(PrimitiveType type, const std::vector<T> &vertices);
 
   private:
     static std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Shader>> m_shaders;
@@ -59,8 +59,6 @@ namespace Bess::Renderer2D
     static std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Vao>> m_vaos;
 
     static std::unordered_map<PrimitiveType, std::vector<Gl::Vertex>> m_vertices;
-
-    static std::vector<Gl::QuadVertex> m_quadRenderVertices;
 
     static std::unordered_map<PrimitiveType, size_t> m_maxRenderCount;
 
@@ -71,9 +69,6 @@ namespace Bess::Renderer2D
     static void flush(PrimitiveType type);
 
     static std::vector<glm::vec4> m_QuadVertices;
-
-    static int m_currentId;
-    static int m_currentSubId;
   };
 
 } // namespace Bess::Renderer2D
