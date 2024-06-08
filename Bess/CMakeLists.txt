@@ -11,6 +11,7 @@ set(External
     "../external/imgui/imgui_draw.cpp"
     "../external/imgui/imgui_tables.cpp"
     "../external/imgui/imgui_widgets.cpp"
+    "../external/stb_image/src/stb_image.cpp"
 )
 source_group("External" FILES ${External})
 
@@ -22,6 +23,7 @@ set(Header_Files
     "include/components/component.h"
     "include/components/connection.h"
     "include/components/input_probe.h"
+    "include/components/output_probe.h"
     "include/components/nand_gate.h"
     "include/components/slot.h"
     "include/components_manager/component_type.h"
@@ -32,10 +34,12 @@ set(Header_Files
     "include/renderer/gl/utils.h"
     "include/renderer/gl/vao.h"
     "include/renderer/gl/vertex.h"
+    "include/renderer/gl/texture.h"
     "include/renderer/renderer.h"
+    "include/renderer/gl/primitive_type.h"
     "include/ui.h"
     "include/window.h"
-    "include/components/output_probe.h"
+    "include/common/bind_helpers.h"
 )
 source_group("Header Files" FILES ${Header_Files})
 
@@ -63,6 +67,7 @@ set(Source_Files
     "src/renderer/gl/gl_wrapper.cpp"
     "src/renderer/gl/shader.cpp"
     "src/renderer/gl/vao.cpp"
+    "src/renderer/gl/texture.cpp"
     "src/main.cpp"
     "src/renderer/renderer.cpp"
     "src/ui.cpp"
@@ -81,7 +86,7 @@ set(ALL_FILES
 ################################################################################
 # Target
 ################################################################################
-add_executable(${PROJECT_NAME} ${ALL_FILES} "include/renderer/gl/primitive_type.h" "include/common/bind_helpers.h")
+add_executable(${PROJECT_NAME} ${ALL_FILES} )
 
 
 use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
@@ -111,6 +116,7 @@ if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/glm;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/glfw/include;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/glad/include;"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../external/stb_image/include;"
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
     )
 endif()

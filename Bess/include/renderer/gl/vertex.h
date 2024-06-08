@@ -2,21 +2,29 @@
 
 #include "glm.hpp"
 namespace Bess::Gl {
-class Vertex {
-public:
+
+struct Vertex {
     glm::vec3 position;
     glm::vec3 color;
     glm::vec2 texCoord;
     int id;
 };
 
-struct QuadVertex: public Vertex {
-public:
+struct GridVertex {
+    glm::vec3 position;
+    glm::vec2 texCoord;
+    int id;
+    float ar;
+};
+
+struct QuadVertex {
     glm::vec3 position;
     glm::vec3 color;
     glm::vec2 texCoord;
-    int id;
+    float borderSize;
     glm::vec4 borderRadius;
+    glm::vec4 borderColor;
     float ar;
+    int id;
 };
 } // namespace Bess::Gl

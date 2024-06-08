@@ -1,26 +1,19 @@
 #pragma once
-#include <vector>
+#include "components_manager/components_manager.h"
 #include <glm.hpp>
 #include <uuid_v4.h>
-#include "components_manager/components_manager.h"
+#include <vector>
 
-namespace Bess
-{
+namespace Bess {
 
-  enum class DrawMode
-  {
-    none = 0,
-    connection
-  };
+enum class DrawMode { none = 0, connection };
 
-  struct DragData
-  {
+struct DragData {
     glm::vec2 dragOffset;
     bool isDragging;
-  };
+};
 
-  class ApplicationState
-  {
+class ApplicationState {
   public:
     static void init();
     static void setSelectedId(const UUIDv4::UUID &uid);
@@ -29,7 +22,7 @@ namespace Bess
 
   public:
     // to be used according to the need of different ops
-    static std::vector<glm::vec2> points;
+    static std::vector<glm::vec3> points;
 
     static DrawMode drawMode;
 
@@ -44,6 +37,6 @@ namespace Bess
   private:
     static UUIDv4::UUID m_selectedId;
     static UUIDv4::UUID m_prevSelectedId;
-  };
+};
 
-}
+} // namespace Bess

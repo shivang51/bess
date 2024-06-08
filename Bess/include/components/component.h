@@ -1,61 +1,61 @@
 #pragma once
-#include "ext/vector_float2.hpp"
 #include "components_manager/component_type.h"
+#include "ext/vector_float2.hpp"
+#include "ext/vector_float3.hpp"
 
 #include "uuid_v4.h"
 
+#include <any>
 #include <functional>
 #include <unordered_map>
-#include <any>
 
 namespace Bess::Simulator::Components {
 
-    enum class ComponentEventType {
-        leftClick,
-        rightClick,
-        mouseEnter,
-        mouseLeave,
-        mouseHover,
-        focus,
-        focusLost,
-    };
+enum class ComponentEventType {
+    leftClick,
+    rightClick,
+    mouseEnter,
+    mouseLeave,
+    mouseHover,
+    focus,
+    focusLost,
+};
 
-    struct ComponentEventData {
-        ComponentEventType type;
-        glm::vec2 pos;
-    };
+struct ComponentEventData {
+    ComponentEventType type;
+    glm::vec2 pos;
+};
 
-    typedef std::function<void(const glm::vec2& pos)> OnLeftClickCB;
-    typedef std::function<void(const glm::vec2& pos)> OnRightClickCB;
-    typedef std::function<void()> VoidCB;
+typedef std::function<void(const glm::vec2 &pos)> OnLeftClickCB;
+typedef std::function<void(const glm::vec2 &pos)> OnRightClickCB;
+typedef std::function<void()> VoidCB;
 
+class Component {
+  public:
+    Component(const UUIDv4::UUID &uid, int renderId, glm::vec3 position,
+              ComponentType type);
+    virtual ~Component() = default;
 
-    class Component {
-    public:
-        Component(const UUIDv4::UUID& uid, int renderId, glm::vec2 position, ComponentType type);
-        virtual ~Component() = default;
+    UUIDv4::UUID getId() const;
+    std::string getIdStr() const;
 
+    int getRenderId() const;
+    glm::vec3 &getPosition();
 
-        UUIDv4::UUID getId() const;
-        std::string getIdStr() const;
+    ComponentType getType() const;
 
-        int getRenderId() const;
-        glm::vec2& getPosition();
+    void onEvent(ComponentEventData e);
 
-        ComponentType getType() const;
+    virtual void render() = 0;
 
-        void onEvent(ComponentEventData e);
+    std::string getName() const;
 
-        virtual void render() = 0;
+  protected:
+    int m_renderId;
+    UUIDv4::UUID m_uid;
+    glm::vec3 m_position;
+    ComponentType m_type;
 
-        std::string getName() const;
-
-    protected:
-        int m_renderId;
-        UUIDv4::UUID m_uid;
-        glm::vec2 m_position;
-        ComponentType m_type;
-
-        std::unordered_map<ComponentEventType, std::any> m_events;
-    };
-} // namespace Bess::Components
+    std::unordered_map<ComponentEventType, std::any> m_events;
+};
+} // namespace Bess::Simulator::Components

@@ -1,0 +1,11 @@
+-xc++
+
+-IBess/include
+-Iexternal/glad/include
+-Iexternal/glad/src
+-Iexternal/imgui/
+-Iexternal/imgui/backends
+-Iexternal/glm/
+-Iexternal/glfw/include
+-Iexternal/uuid_v4
+-Iexternal/stb_image/include

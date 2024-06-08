@@ -1,11 +1,12 @@
 #pragma once
 #include "fwd.hpp"
 #include "gl_wrapper.h"
+#include "renderer/gl/texture.h"
+#include <memory>
+#include <vector>
 
-namespace Bess::Gl
-{
-  class FrameBuffer
-  {
+namespace Bess::Gl {
+class FrameBuffer {
   public:
     FrameBuffer() = default;
 
@@ -27,10 +28,12 @@ namespace Bess::Gl
 
   private:
     GLuint m_fbo;
-    GLuint m_textures[2];
+
+    std::vector<std::unique_ptr<Texture>> m_textures;
+
     GLuint m_rbo;
 
     float m_width;
     float m_height;
-  };
+};
 } // namespace Bess::Gl

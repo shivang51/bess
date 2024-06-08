@@ -10,20 +10,15 @@
 #include <memory>
 #include <unordered_map>
 
-namespace Bess::Renderer2D
-{
+namespace Bess::Renderer2D {
 
-  enum class BorderSide
-  {
-    none = 0,
-    top = 1,
-    right = 2,
-    bottom = 4,
-    left = 8
-  };
+struct RenderData {
+    std::vector<Gl::Vertex> circleVertices;
+    std::vector<Gl::Vertex> curveVertices;
+    std::vector<Gl::QuadVertex> quadVertices;
+};
 
-  class Renderer
-  {
+class Renderer {
   public:
     Renderer() = default;
 
@@ -32,43 +27,57 @@ namespace Bess::Renderer2D
     static void begin(std::shared_ptr<Camera> camera);
     static void end();
 
-    static void quad(const glm::vec2 &pos, const glm::vec2 &size,
-                     const glm::vec3 &color, int id, const glm::vec4& borderRadius = {0.f, 0.f, 0.f, 0.f});
+    static void quad(const glm::vec3 &pos, const glm::vec2 &size,
+                     const glm::vec3 &color, int id,
+                     const glm::vec4 &borderRadius = {0.f, 0.f, 0.f, 0.f},
+                     const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
+                     float borderSize = 0.f);
 
-    static void quad(const glm::vec2 &pos, const glm::vec2 &size,
-                     const glm::vec3 &color, int id, float angle, const glm::vec4& borderRadius = {0.f, 0.f, 0.f, 0.f});
+    static void quad(const glm::vec3 &pos, const glm::vec2 &size,
+                     const glm::vec3 &color, int id, float angle,
+                     const glm::vec4 &borderRadius = {0.f, 0.f, 0.f, 0.f},
+                     const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
+                     float borderSize = 0.f);
 
-    static void curve(const glm::vec2 &start, const glm::vec2 &end,
+    static void curve(const glm::vec3 &start, const glm::vec3 &end,
                       const glm::vec3 &color, int id);
 
-    static void circle(const glm::vec2 &center, float radius,
+    static void circle(const glm::vec3 &center, float radius,
                        const glm::vec3 &color, int id);
 
+    static void grid(const glm::vec3 &pos, const glm::vec2 &size, int id);
+
   private:
-    static glm::vec2 createCurveVertices(const glm::vec2 &start,
-                                         const glm::vec2 &end,
+    static glm::vec2 createCurveVertices(const glm::vec3 &start,
+                                         const glm::vec3 &end,
                                          const glm::vec3 &color, int id);
 
-  private:
-      template<class T>
-      static void addVertices(PrimitiveType type, const std::vector<T> &vertices);
+    static void addCircleVertices(const std::vector<Gl::Vertex> &vertices);
+
+    static void addCurveVertices(const std::vector<Gl::Vertex> &vertices);
+
+    static void addQuadVertices(const std::vector<Gl::QuadVertex> &vertices);
+
+    static void flush(PrimitiveType type);
 
   private:
-    static std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Shader>> m_shaders;
+    static std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Shader>>
+        m_shaders;
 
     static std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Vao>> m_vaos;
-
-    static std::unordered_map<PrimitiveType, std::vector<Gl::Vertex>> m_vertices;
-
-    static std::unordered_map<PrimitiveType, size_t> m_maxRenderCount;
 
     static std::shared_ptr<Camera> m_camera;
 
     static std::vector<PrimitiveType> m_AvailablePrimitives;
 
-    static void flush(PrimitiveType type);
+    static std::vector<glm::vec4> m_StandardQuadVertices;
 
-    static std::vector<glm::vec4> m_QuadVertices;
-  };
+    static std::unordered_map<PrimitiveType, size_t> m_MaxRenderLimit;
+
+    static RenderData m_RenderData;
+
+    static std::unique_ptr<Gl::Shader> m_GridShader;
+    static std::unique_ptr<Gl::Vao> m_GridVao;
+};
 
 } // namespace Bess::Renderer2D

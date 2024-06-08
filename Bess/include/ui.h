@@ -6,26 +6,23 @@
 #include "glm.hpp"
 #include "imgui.h"
 #include <GLFW/glfw3.h>
+#include <map>
 #include <memory>
 #include <unordered_map>
 #include <vector>
-#include <map>
 
 #include "application_state.h"
 
-namespace Bess
-{
+namespace Bess {
 
-  struct UIState
-  {
+struct UIState {
     float cameraZoom = 1.f;
     glm::vec2 viewportSize = {800, 500};
     glm::vec2 viewportPos = {0, 0};
     GLuint64 viewportTexture = 0;
-  };
+};
 
-  class UI
-  {
+class UI {
   public:
     static void init(GLFWwindow *window);
 
@@ -53,6 +50,7 @@ namespace Bess
 
     static void resetDockspace();
 
-    static std::map<std::string, std::function<void(const glm::vec2 &)>> m_components;
-  };
+    static std::map<std::string, std::function<void(const glm::vec3 &)>>
+        m_components;
+};
 } // namespace Bess
