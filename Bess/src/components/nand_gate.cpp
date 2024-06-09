@@ -1,8 +1,8 @@
 #include "components/nand_gate.h"
 
+#include "application_state.h"
 #include "fwd.hpp"
 #include "renderer/renderer.h"
-#include "ui.h"
 
 #include "common/theme.h"
 
@@ -42,9 +42,9 @@ void NandGate::render() {
 
     Renderer2D::Renderer::quad(
         {m_position.x,
-         m_position.y + ((gateSize.y / 2) - 10.f) - borderThickness,
+         m_position.y + ((gateSize.y / 2) - 10.f) - borderThickness / 2.f,
          m_position.z},
-        {gateSize.x - borderThickness * 2, 20.f}, Theme::compHeaderColor,
+        {gateSize.x - borderThickness, 20.f}, Theme::compHeaderColor,
         m_renderId, glm::vec4(r1, r1, 0.f, 0.f),
         glm::vec4(Theme::compHeaderColor, 1.f), borderThickness / 20.f);
 
