@@ -1,10 +1,7 @@
 #pragma once
 
-#include "components/component.h"
 #include "fwd.hpp"
 #include "glad/glad.h"
-#include "glm.hpp"
-#include "imgui.h"
 #include <GLFW/glfw3.h>
 #include <map>
 #include <memory>

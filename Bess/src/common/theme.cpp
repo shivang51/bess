@@ -9,6 +9,6 @@ const glm::vec3 Theme::selectedWireColor = {236.f / 255.f, 110.f / 255.f,
                                             34.f / 255.f};
 const glm::vec3 Theme::compHeaderColor = {0.f / 255.f, 71.f / 255.f,
                                           143.f / 255.f};
-const glm::vec3 Theme::selectedCompColor = {244.f / 255.f, 171.f / 255.f,
-                                            57.f / 255.f};
+const glm::vec3 Theme::selectedCompColor = {255.f / 255.f, 255.f / 255.f,
+                                            255.f / 255.f};
 } // namespace Bess

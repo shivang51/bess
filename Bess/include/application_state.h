@@ -34,6 +34,8 @@ class ApplicationState {
 
     static DragData dragData;
 
+    static float normalizingFactor;
+
   private:
     static UUIDv4::UUID m_selectedId;
     static UUIDv4::UUID m_prevSelectedId;

@@ -48,9 +48,9 @@ class Renderer {
     static void grid(const glm::vec3 &pos, const glm::vec2 &size, int id);
 
   private:
-    static glm::vec2 createCurveVertices(const glm::vec3 &start,
-                                         const glm::vec3 &end,
-                                         const glm::vec3 &color, int id);
+    static void createCurveVertices(const glm::vec3 &start,
+                                    const glm::vec3 &end,
+                                    const glm::vec3 &color, int id);
 
     static void addCircleVertices(const std::vector<Gl::Vertex> &vertices);
 

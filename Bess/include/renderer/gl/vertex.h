@@ -24,7 +24,7 @@ struct QuadVertex {
     float borderSize;
     glm::vec4 borderRadius;
     glm::vec4 borderColor;
-    float ar;
+    glm::vec2 size;
     int id;
 };
 } // namespace Bess::Gl

@@ -103,7 +103,7 @@ void Renderer::init() {
                 Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4,
                                         offsetof(Gl::QuadVertex, borderColor)));
             attachments.emplace_back(Gl::VaoAttribAttachment(
-                Gl::VaoAttribType::float_t, offsetof(Gl::QuadVertex, ar)));
+                Gl::VaoAttribType::vec2, offsetof(Gl::QuadVertex, size)));
             attachments.emplace_back(Gl::VaoAttribAttachment(
                 Gl::VaoAttribType::int_t, offsetof(Gl::QuadVertex, id)));
 
@@ -161,7 +161,7 @@ void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
         vertex.id = id;
         vertex.color = color;
         vertex.borderRadius = borderRadius;
-        vertex.ar = size.x / size.y;
+        vertex.size = size;
         vertex.borderColor = borderColor;
         vertex.borderSize = borderSize;
     }
@@ -218,23 +218,20 @@ glm::vec2 bernstine(const glm::vec2 &p0, const glm::vec2 &p1,
     return B0 + B1 + B2 + B3;
 }
 
-glm::vec2 Renderer::createCurveVertices(const glm::vec3 &start,
-                                        const glm::vec3 &end,
-                                        const glm::vec3 &color, const int id) {
+void Renderer::createCurveVertices(const glm::vec3 &start, const glm::vec3 &end,
+                                   const glm::vec3 &color, const int id) {
     auto dx = end.x - start.x;
     auto dy = end.y - start.y;
     auto angle = std::atan(dy / dx);
     float dis = std::sqrt((dx * dx) + (dy * dy));
 
-    float sizeX = std::max(dis, 4.f);
+    float sizeX = std::max(dis, 2.5f);
     sizeX = dis;
 
     glm::vec3 pos = {start.x, start.y - 0.005f, start.z};
     auto transform = glm::translate(glm::mat4(1.0f), pos);
     transform = glm::rotate(transform, angle, {0.f, 0.f, 1.f});
-    transform = glm::scale(transform, {sizeX, 4.f, 1.f});
-
-    glm::vec3 p;
+    transform = glm::scale(transform, {sizeX, 2.5f, 1.f});
 
     std::vector<Gl::Vertex> vertices(4);
     for (int i = 0; i < 4; i++) {
@@ -242,9 +239,6 @@ glm::vec2 Renderer::createCurveVertices(const glm::vec3 &start,
         vertex.position = transform * m_StandardQuadVertices[i];
         vertex.id = id;
         vertex.color = color;
-
-        if (i == 3)
-            p = vertex.position;
     }
 
     vertices[0].texCoord = {0.0f, 1.0f};
@@ -253,7 +247,6 @@ glm::vec2 Renderer::createCurveVertices(const glm::vec3 &start,
     vertices[3].texCoord = {1.0f, 1.0f};
 
     addCurveVertices(vertices);
-    return p;
 }
 
 int calculateSegments(const glm::vec2 &p1, const glm::vec2 &p2) {

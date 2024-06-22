@@ -1,8 +1,7 @@
 #include "application.h"
 #include "application_state.h"
-#include "components/connection.h"
-#include "components/nand_gate.h"
 #include "fwd.hpp"
+#include "renderer/gl/texture.h"
 #include "renderer/renderer.h"
 #include "ui.h"
 #include <GLFW/glfw3.h>
@@ -91,12 +90,12 @@ void Application::run() {
         update();
         drawScene();
         drawUI();
-
-        m_window.update();
     }
 }
 
 void Application::update() {
+    m_window.update();
+
     if (ApplicationState::hoveredId != -1) {
         auto &cid = Simulator::ComponentsManager::renderIdToCid(
             ApplicationState::hoveredId);
@@ -109,6 +108,9 @@ void Application::update() {
         m_framebuffer->resize(UI::state.viewportSize.x,
                               UI::state.viewportSize.y);
         m_camera->resize(UI::state.viewportSize.x, UI::state.viewportSize.y);
+
+        ApplicationState::normalizingFactor =
+            glm::min(UI::state.viewportSize.x, UI::state.viewportSize.y);
     }
 
     if (UI::state.cameraZoom != m_camera->getZoom()) {

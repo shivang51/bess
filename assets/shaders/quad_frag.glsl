@@ -4,13 +4,13 @@ layout(location = 0) out vec4 fragColor;
 layout(location = 1) out int fragColor1;
 
 in vec3 v_FragPos;
+in vec2 v_Size;
 in vec2 v_TexCoord;
 in vec3 v_FragColor;
 in float v_BorderSize;
 in vec4 v_BorderRadius;
 in vec4 v_BorderColor;
 in flat int v_FragId;
-in float v_AR;
 
 uniform int u_SelectedObjId;
 
@@ -23,7 +23,7 @@ float sdRoundBox(in vec2 p, in vec2 b, in vec4 r)
 }
 
 void main() {
-    float ar = v_AR;
+    float ar = v_Size.x / v_Size.y;
     vec2 p = v_TexCoord;
     float bS = v_BorderSize;
     vec3 borderColor = v_BorderColor.xyz;
@@ -49,5 +49,7 @@ void main() {
     a = smoothstep(smoothBlur, 0.0f, d);
     col = mix(col, bgColor, a);
     fragColor = vec4(col, 1.0);
+
+    fragColor = vec4(v_FragPos.x, 0.f, 0.f, 1.f);
     fragColor1 = v_FragId;
 }

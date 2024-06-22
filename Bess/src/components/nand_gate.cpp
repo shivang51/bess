@@ -29,7 +29,7 @@ NandGate::NandGate(const UUIDv4::UUID &uid, int renderId, glm::vec3 position,
 void NandGate::render() {
     bool selected = ApplicationState::getSelectedId() == m_uid;
     float rPx = 24.f;
-    float borderThickness = 2.f;
+    float borderThickness = 3.f;
 
     float r = rPx / gateSize.y;
     float r1 = rPx / 20.f;

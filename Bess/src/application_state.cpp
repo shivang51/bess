@@ -15,6 +15,8 @@ UUIDv4::UUID ApplicationState::connStartId;
 
 DragData ApplicationState::dragData;
 
+float ApplicationState::normalizingFactor;
+
 void ApplicationState::init() {
     points = {};
     drawMode = DrawMode::none;
