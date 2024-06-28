@@ -20,5 +20,4 @@ enum ComponentPropertyType {
   name,
   pos,
   digitalState,
-  controlPointPosition,
 }

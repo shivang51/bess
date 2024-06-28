@@ -21,9 +21,6 @@ class _WireWidgetState extends State<WireWidget> {
 
     var properties = widget.wireObj.properties as WireProperties;
 
-    var controlPoint0 = properties.controlPointPositions[0];
-    var controlPoint1 = properties.controlPointPositions[1];
-
     var startPos =
         drawAreaData.components[properties.startPinId]!.properties.pos;
     var endPos = drawAreaData.components[properties.endPinId]!.properties.pos;
@@ -32,170 +29,118 @@ class _WireWidgetState extends State<WireWidget> {
             as PinProperties)
         .state;
 
-    return Stack(
-      children: [
-        ...(drawAreaData.selectedItemId == widget.id
-            ? [
-                ControlPointWidget(
-                  index: 0,
-                  parentId: widget.id,
-                ),
-                ControlPointWidget(
-                  index: 1,
-                  parentId: widget.id,
-                ),
-              ]
-            : []),
-        Material(
-          animationDuration: Duration.zero,
-          type: MaterialType.button,
-          shape: CustomBorder(
-            startPos,
-            endPos,
-            controlPoint0,
-            controlPoint1,
-          ),
-          color: drawAreaData.selectedItemId == widget.id
-              ? Colors.orange
-              : state == DigitalState.high
-                  ? Colors.red
-                  : MyTheme.wireColor,
-          child: InkWell(
-            customBorder: CustomBorder(
-              startPos,
-              endPos,
-              controlPoint0,
-              controlPoint1,
-            ),
-            splashColor: Colors.orange,
-            onTap: () => drawAreaData.setSelectedItemId(widget.id),
-          ),
-        ),
-      ],
+    return BezierCurveBernstein(
+      start: startPos,
+      end: endPos,
+      weight: Defaults.wireSize,
+      color: MyTheme.wireColor,
     );
   }
 }
 
-class CustomBorder extends OutlinedBorder {
-  final Offset startPos;
-  final Offset endPos;
-  final Offset ctrlPoint1;
-  final Offset ctrlPoint2;
-  final double size = Defaults.wireSize;
+class BezierCurveBernstein extends StatelessWidget {
+  final Offset start;
+  final Offset end;
+  final double weight;
+  final void Function()? onClick;
+  final void Function()? onRightClick;
+  final void Function()? onMouseHover;
+  final void Function()? onMouseEnter;
+  final void Function()? onMouseExit;
+  final Color? color;
 
-  const CustomBorder(
-      this.startPos, this.endPos, this.ctrlPoint1, this.ctrlPoint2,
-      {BorderSide side = BorderSide.none})
-      : super(side: side);
+  const BezierCurveBernstein({
+    super.key,
+    required this.start,
+    required this.end,
+    required this.weight,
+    this.onClick,
+    this.onRightClick,
+    this.onMouseHover,
+    this.onMouseEnter,
+    this.onMouseExit,
+    this.color,
+  });
 
-  Path customBorderPath(Rect rect) {
-    Path path = Path();
-    Offset high, low, ch, cl;
-    if (startPos.dy < endPos.dy) {
-      high = startPos;
-      ch = ctrlPoint1;
-      low = endPos;
-      cl = ctrlPoint2;
-    } else {
-      low = startPos;
-      cl = ctrlPoint1;
-      high = endPos;
-      ch = ctrlPoint2;
-    }
-    var ph = -10.0;
-    if (high.dx < low.dx) {
-      ph = 0;
-    }
+  (Offset, double) getSizeRot(Offset start, Offset end) {
+    double angle = atan2(end.dy - start.dy, end.dx - start.dx);
+    angle = double.parse(angle.toStringAsFixed(6));
+    double distance =
+        sqrt(pow(end.dy - start.dy, 2) + pow(end.dx - start.dx, 2));
+    double sX = max(distance, weight);
+    double sY = weight;
 
-    if (low.dx < high.dx) {
-      path.moveTo(high.dx, high.dy);
-      path.cubicTo(
-        ch.dx,
-        ch.dy,
-        cl.dx,
-        cl.dy,
-        low.dx,
-        low.dy,
-      );
-      path.relativeLineTo(0, size);
-      path.cubicTo(
-        cl.dx + size,
-        cl.dy + size,
-        ch.dx + size,
-        ch.dy + size,
-        high.dx + size,
-        high.dy + size,
-      );
-    } else if (ch.dx < high.dx) {
-      path.moveTo(high.dx + ph, high.dy);
-      path.cubicTo(
-        ch.dx,
-        ch.dy,
-        cl.dx,
-        cl.dy + size,
-        low.dx,
-        low.dy + size,
-      );
-      path.relativeLineTo(0, -size);
-      path.cubicTo(
-        cl.dx + size,
-        cl.dy,
-        ch.dx + size,
-        ch.dy + size,
-        high.dx,
-        high.dy + size,
-      );
-    } else {
-      path.moveTo(high.dx + ph, high.dy);
-      path.cubicTo(ch.dx, ch.dy, cl.dx, cl.dy, low.dx, low.dy);
-      path.relativeLineTo(0, size);
-      path.relativeLineTo(-size, 0);
-      ch = Offset(ch.dx - size, ch.dy + size);
-      cl = Offset(cl.dx - size, cl.dy + size);
-      path.cubicTo(cl.dx, cl.dy, ch.dx, ch.dy, high.dx - size, high.dy + size);
+    return (Offset(sX, sY), angle);
+  }
+
+  int calculateSegements(Offset start, Offset end, Size viewPortSize) {
+    var dis = (end - start)
+        .scale(1 / viewPortSize.width, 1 / viewPortSize.height)
+        .distance;
+
+    // make it dependent on scale (zoom)
+    return (dis / 0.005).ceil();
+  }
+
+  List<(Offset, Offset, double)> generateBezierPoints(BuildContext context) {
+    final Offset p0 = start;
+    final Offset p3 = end;
+    var dx = (p3.dx - p0.dx) * 0.5;
+    final Offset p1 = Offset(p0.dx + dx, p0.dy);
+    final Offset p2 = Offset(p3.dx - dx, p3.dy);
+    List<(Offset, Offset, double)> points = [];
+    int numPoints = calculateSegements(p0, p3, MediaQuery.of(context).size);
+    var prev = p0;
+    for (int i = 1; i <= numPoints; i++) {
+      double t = i / numPoints;
+      var t_ = 1 - t;
+
+      var b0 = p0 * pow(t_, 3).toDouble();
+      var b1 = p1 * pow(t_, 2).toDouble() * pow(t, 1).toDouble() * 3;
+      var b2 = p2 * pow(t_, 1).toDouble() * pow(t, 2).toDouble() * 3;
+      var b3 = p3 * pow(t, 3).toDouble();
+
+      var bP = b0 + b1 + b2 + b3;
+
+      var (size, angle) = getSizeRot(prev, bP);
+      prev = bP;
+      points.add((bP, size, angle));
     }
 
-    return path;
+    return points;
   }
 
   @override
-  OutlinedBorder copyWith({BorderSide? side}) {
-    return CustomBorder(
-      side: side ?? this.side,
-      startPos,
-      endPos,
-      ctrlPoint1,
-      ctrlPoint2,
+  Widget build(BuildContext context) {
+    var bezierPoints = generateBezierPoints(context);
+    return Stack(
+      children: bezierPoints.map((point_) {
+        var (point, size_, angle) = point_;
+        return Positioned(
+          left: point.dx - size_.dx / 2,
+          top: point.dy - size_.dy / 2,
+          width: size_.dx,
+          height: size_.dy,
+          child: MouseRegion(
+            onHover: (_) => onMouseHover?.call(),
+            onEnter: (_) => onMouseEnter?.call(),
+            onExit: (_) => onMouseExit?.call(),
+            child: GestureDetector(
+              onTap: () => onClick?.call(),
+              onSecondaryTap: () => onRightClick?.call(),
+              child: Transform.rotate(
+                angle: angle,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: color ?? Colors.black,
+                    shape: BoxShape.rectangle,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
-
-  @override
-  EdgeInsetsGeometry get dimensions => EdgeInsets.all(side.width);
-
-  @override
-  Path getInnerPath(Rect rect, {TextDirection? textDirection}) =>
-      customBorderPath(rect);
-
-  @override
-  Path getOuterPath(Rect rect, {TextDirection? textDirection}) =>
-      customBorderPath(rect);
-
-  @override
-  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
-    switch (side.style) {
-      case BorderStyle.none:
-        break;
-      case BorderStyle.solid:
-        canvas.drawPath(customBorderPath(rect), Paint());
-    }
-  }
-
-  @override
-  ShapeBorder scale(double t) => CustomBorder(
-        side: side.scale(t),
-        startPos,
-        endPos,
-        ctrlPoint1,
-        ctrlPoint2,
-      );
 }

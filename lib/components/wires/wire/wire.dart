@@ -36,17 +36,6 @@ class Wire extends Component {
     startPinProperties.connectedWiresIds[wireId] = endPinId;
 
     var wire = Wire(wireId, startPinId, endPinId);
-    var controlPoint0 = Offset.zero, controlPoint1 = Offset.zero;
-
-    controlPoint0 =
-        Offset(startPinProperties.pos.dx + 25, startPinProperties.pos.dy);
-    controlPoint1 =
-        Offset(endPinProperties.pos.dx - 25, endPinProperties.pos.dy);
-
-    (wire.properties as WireProperties).controlPointPositions = [
-      controlPoint0,
-      controlPoint1,
-    ];
     startPinProperties.connectedPinsIds.add(endPinId);
     endPinProperties.connectedPinsIds.add(startPinId);
 

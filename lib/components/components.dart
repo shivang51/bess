@@ -1,5 +1,7 @@
 library components;
 
+import 'dart:math';
+
 import 'package:bess/components/buttons/button_properties.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -22,7 +24,6 @@ import 'component.dart';
 import 'component_type.dart';
 import 'probes/probe_properties.dart';
 import 'types.dart';
-import 'wires/wire/control_point_widget.dart';
 import 'wires/wire/wire_properties.dart';
 
 part 'component_generator.dart';

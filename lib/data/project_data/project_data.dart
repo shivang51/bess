@@ -117,10 +117,6 @@ class ProjectData with ChangeNotifier {
       case ComponentPropertyType.digitalState:
         (component.properties as PinProperties).state = value;
         break;
-      case ComponentPropertyType.controlPointPosition:
-        (component.properties as WireProperties)
-            .controlPointPositions[value["index"]] = value["position"];
-        break;
     }
 
     notifyListeners();
