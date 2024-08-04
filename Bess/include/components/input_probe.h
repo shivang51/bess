@@ -13,5 +13,7 @@ class InputProbe : public Component {
 
   private:
     UUIDv4::UUID m_outputSlot;
+
+    void onLeftClick(const glm::vec2& pos);
 };
 } // namespace Bess::Simulator::Components

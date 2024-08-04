@@ -1,12 +1,12 @@
 #pragma once
 
 #include "component.h"
-#include <set>
+#include "common/digital_state.h"
 
 namespace Bess::Simulator::Components {
 class Slot : public Component {
   public:
-    Slot(const UUIDv4::UUID &uid, int renderId, ComponentType type);
+    Slot(const UUIDv4::UUID &uid, const UUIDv4::UUID& parentUid,  int renderId, ComponentType type);
     ~Slot() = default;
 
     void update(const glm::vec3 &pos);
@@ -18,11 +18,26 @@ class Slot : public Component {
 
     void highlightBorder(bool highlight = true);
 
+    Simulator::DigitalState getState() const;
+    DigitalState flipState();
+    
+    void setState(const UUIDv4::UUID& uid, Simulator::DigitalState state);
+
+    const UUIDv4::UUID& getParentId();
+
   private:
     // contains one way connection from starting slot to other
     std::vector<UUIDv4::UUID> connections;
     bool m_highlightBorder = false;
     void onLeftClick(const glm::vec2 &pos);
     void onMouseHover();
+
+    // slot specific
+    const UUIDv4::UUID m_parentUid;
+    Simulator::DigitalState m_state;
+
+    void onChange();
+
+    std::unordered_map<UUIDv4::UUID, bool> stateChangeHistory = {};
 };
 } // namespace Bess::Simulator::Components

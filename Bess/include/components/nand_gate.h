@@ -16,6 +16,8 @@ class NandGate : public Component {
 
     void render() override;
 
+    void simulate();
+
   private:
     std::vector<UUIDv4::UUID> m_inputSlots;
     std::vector<UUIDv4::UUID> m_outputSlots;

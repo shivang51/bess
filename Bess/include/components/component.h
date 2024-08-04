@@ -50,6 +50,8 @@ class Component {
 
     std::string getName() const;
 
+    void simulate();
+
   protected:
     int m_renderId;
     UUIDv4::UUID m_uid;

@@ -77,6 +77,23 @@ void NandGate::render() {
     Renderer2D::Renderer::text("Nand Gate", Common::Helpers::GetLeftCornerPos(m_position, gateSize) + glm::vec3({ 8.f, -16.f, ComponentsManager::zIncrement }), 12.f, {1.f, 1.f, 1.f}, m_renderId);
 }
 
+void NandGate::simulate()
+{
+    int output = 1;
+
+    for (auto& slotId : m_inputSlots) {
+        auto slot = (Slot*)ComponentsManager::components[slotId].get();
+        output *= static_cast<std::underlying_type_t<DigitalState>>(slot->getState());
+    }
+
+    DigitalState outputState = static_cast<DigitalState>(!output);
+
+    for (auto& slotId : m_outputSlots) {
+        auto slot = (Slot*)ComponentsManager::components[slotId].get();
+        slot->setState(m_uid, outputState);
+    }
+}
+
 void NandGate::onLeftClick(const glm::vec2 &pos) {
     ApplicationState::setSelectedId(m_uid);
 }

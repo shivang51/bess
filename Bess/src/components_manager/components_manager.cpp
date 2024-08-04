@@ -34,6 +34,7 @@ namespace Bess::Simulator {
     }
 
     void ComponentsManager::generateNandGate(const glm::vec3& pos) {
+        auto pId = uuidGenerator.getUUID();
         // input slots
         int n = 2;
         std::vector<UUIDv4::UUID> inputSlots;
@@ -41,7 +42,7 @@ namespace Bess::Simulator {
             auto uid = uuidGenerator.getUUID();
             auto renderId = getRenderId();
             components[uid] = std::make_shared<Components::Slot>(
-                uid, renderId, ComponentType::inputSlot);
+                uid, pId, renderId, ComponentType::inputSlot);
             renderIdToCId[renderId] = uid;
             compIdToRId[uid] = renderId;
             inputSlots.emplace_back(uid);
@@ -54,13 +55,13 @@ namespace Bess::Simulator {
             auto uid = uuidGenerator.getUUID();
             auto renderId = getRenderId();
             components[uid] = std::make_shared<Components::Slot>(
-                uid, renderId, ComponentType::outputSlot);
+                uid, pId, renderId, ComponentType::outputSlot);
             renderIdToCId[renderId] = uid;
             compIdToRId[uid] = renderId;
             outputSlots.emplace_back(uid);
         }
 
-        auto uid = uuidGenerator.getUUID();
+        auto &uid = pId;
         auto renderId = getRenderId();
 
         auto pos_ = pos;
@@ -75,14 +76,15 @@ namespace Bess::Simulator {
     }
 
     void ComponentsManager::generateInputProbe(const glm::vec3& pos) {
+        auto uid = uuidGenerator.getUUID();
+
         auto slotId = uuidGenerator.getUUID();
         auto renderId = getRenderId();
         components[slotId] = std::make_shared<Components::Slot>(
-            slotId, renderId, ComponentType::outputSlot);
+            slotId, uid, renderId, ComponentType::outputSlot);
         renderIdToCId[renderId] = slotId;
         compIdToRId[slotId] = renderId;
 
-        auto uid = uuidGenerator.getUUID();
         auto pos_ = pos;
         pos_.z = getZPos();
 
@@ -95,14 +97,15 @@ namespace Bess::Simulator {
     }
 
     void ComponentsManager::generateOutputProbe(const glm::vec3& pos) {
+        auto uid = uuidGenerator.getUUID();
+
         auto slotId = uuidGenerator.getUUID();
         auto renderId = getRenderId();
         components[slotId] = std::make_shared<Components::Slot>(
-            slotId, renderId, ComponentType::inputSlot);
+            slotId, uid, renderId, ComponentType::inputSlot);
         renderIdToCId[renderId] = slotId;
         compIdToRId[slotId] = renderId;
 
-        auto uid = uuidGenerator.getUUID();
         auto pos_ = pos;
         pos_.z = getZPos();
 

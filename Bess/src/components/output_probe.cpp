@@ -19,15 +19,22 @@ void OutputProbe::render() {
     bool selected = ApplicationState::getSelectedId() == m_uid;
     float thickness = 2.f;
 
+    Slot* slot =
+        (Slot*)Simulator::ComponentsManager::components[m_outputSlot].get();
+
     float r = 1.f, r1 = r;
     thickness /= outputProbeSize.y;
 
+    auto bgColor = Theme::componentBGColor;
+
+    if (slot->getState() == DigitalState::high) {
+        bgColor = glm::vec3(50.f / 255.f, 100.f / 255.f, 50.f / 255.f);
+    }
+
     Renderer2D::Renderer::quad(
-        m_position, outputProbeSize, Theme::componentBGColor, m_renderId,
+        m_position, outputProbeSize, bgColor, m_renderId,
         {r1, r1, r1, r1}, Theme::componentBorderColor, thickness);
 
-    Slot *slot =
-        (Slot *)Simulator::ComponentsManager::components[m_outputSlot].get();
     slot->update(m_position +
                  glm::vec3({-(outputProbeSize.x / 2) + 16.f, 0.f, 0.f}));
     slot->render();

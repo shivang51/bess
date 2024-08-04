@@ -19,6 +19,8 @@ std::string Component::getIdStr() const {
 
 ComponentType Component::getType() const { return m_type; }
 
+void Component::simulate(){}
+
 void Component::onEvent(ComponentEventData e) {
     if (m_events.find(e.type) == m_events.end())
         return;
@@ -57,6 +59,9 @@ std::string Component::getName() const {
         break;
     case ComponentType::inputProbe:
         name = "Input Probe";
+        break;
+    case ComponentType::outputProbe:
+        name = "Output Probe";
         break;
     default:
         name = "Unknown";

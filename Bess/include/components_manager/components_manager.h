@@ -24,8 +24,7 @@ class ComponentsManager {
 
     static void generateNandGate(const glm::vec3 &pos = {0.f, 0.f, 0.f});
 
-    static void addConnection(const UUIDv4::UUID &start,
-                                   const UUIDv4::UUID &end);
+    static void addConnection(const UUIDv4::UUID &start, const UUIDv4::UUID &end);
 
     static void generateInputProbe(const glm::vec3 &pos = {0.f, 0.f, 0.f});
 
