@@ -79,9 +79,11 @@ void Slot::onChange()
     }
 }
 
-void Slot::addConnection(const UUIDv4::UUID &uId) {
-    if (isConnectedTo(uId)) return;
-    connections.emplace_back(uId);
+void Slot::addConnection(const UUIDv4::UUID &uid) {
+    if (isConnectedTo(uid)) return;
+    connections.emplace_back(uid);
+    auto slotComp = (Slot*)ComponentsManager::components[uid].get();
+    slotComp->setState(m_uid, m_state);
 }
 
 bool Slot::isConnectedTo(const UUIDv4::UUID& uId) {

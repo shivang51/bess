@@ -117,21 +117,30 @@ namespace Bess::Simulator {
         renderComponenets[uid] = components[uid];
     }
 
-    void ComponentsManager::addConnection(const UUIDv4::UUID& slot1,
-        const UUIDv4::UUID& slot2) {
+    void ComponentsManager::addConnection(const UUIDv4::UUID& slot1, const UUIDv4::UUID& slot2) {
         auto slotA = (Bess::Simulator::Components::Slot*)components[slot1].get();
-
-        if (slotA->isConnectedTo(slot2)) return;
-
-        // tells the slots to which slot they are getting connected
-        slotA->addConnection(slot2);
         auto slotB = (Bess::Simulator::Components::Slot*)components[slot2].get();
-        slotB->addConnection(slot1);
 
+        Bess::Simulator::Components::Slot* outputSlot, *inputSlot;
+
+        if (slotA->getType() == ComponentType::outputSlot) {
+            inputSlot = slotB;
+            outputSlot = slotA;
+        }
+        else {
+            inputSlot = slotA;
+            outputSlot = slotB;
+        }
+
+        if (outputSlot->isConnectedTo(inputSlot->getId())) return;
+
+        // adding only to output slot to maintain one way flow
+        outputSlot->addConnection(inputSlot->getId());
+
+        // adding interative wire
         auto uid = uuidGenerator.getUUID();
         auto renderId = getRenderId();
-        components[uid] = std::make_shared<Components::Connection>(
-            uid, renderId, slotA->getId(), slot2);
+        components[uid] = std::make_shared<Components::Connection>(uid, renderId, slot1, slot2);
         renderIdToCId[renderId] = uid;
         compIdToRId[uid] = renderId;
         renderComponenets[uid] = components[uid];

@@ -29,10 +29,11 @@ void Connection::render() {
     auto posA = slotA->getPosition();
     auto posB = slotB->getPosition();
     Renderer2D::Renderer::curve(
-        {posA.x, posA.y, m_position.z}, {posB.x, posB.y, m_position.z},
-        ApplicationState::getSelectedId() == m_uid ? Theme::selectedWireColor
-                                                   : Theme::wireColor,
-        m_renderId);
+        {posA.x, posA.y, m_position.z}, 
+        {posB.x, posB.y, m_position.z},
+        ApplicationState::getSelectedId() == m_uid ? Theme::selectedWireColor: Theme::wireColor,
+        m_renderId
+    );
 }
 
 void Connection::onLeftClick(const glm::vec2 &pos) {
