@@ -50,6 +50,6 @@ void main() {
     col = mix(col, bgColor, a);
     fragColor = vec4(col, 1.0);
 
-    fragColor = vec4(v_FragPos.x, 0.f, 0.f, 1.f);
+    //fragColor = vec4(v_FragPos.x, 0.f, 0.f, 1.f);
     fragColor1 = v_FragId;
 }

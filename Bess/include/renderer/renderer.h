@@ -5,6 +5,7 @@
 #include "renderer/gl/shader.h"
 #include "renderer/gl/vao.h"
 #include "renderer/gl/vertex.h"
+#include "renderer/font.h"
 
 #include "camera.h"
 #include <memory>
@@ -15,6 +16,7 @@ namespace Bess::Renderer2D {
 struct RenderData {
     std::vector<Gl::Vertex> circleVertices;
     std::vector<Gl::Vertex> curveVertices;
+    std::vector<Gl::Vertex> fontVertices;
     std::vector<Gl::QuadVertex> quadVertices;
 };
 
@@ -47,6 +49,8 @@ class Renderer {
 
     static void grid(const glm::vec3 &pos, const glm::vec2 &size, int id);
 
+    static void text(const std::string& data, const glm::vec3& pos, const size_t size, const glm::vec3& color, const int id);
+
   private:
     static void createCurveVertices(const glm::vec3 &start,
                                     const glm::vec3 &end,
@@ -78,6 +82,8 @@ class Renderer {
 
     static std::unique_ptr<Gl::Shader> m_GridShader;
     static std::unique_ptr<Gl::Vao> m_GridVao;
+
+    static std::unique_ptr<Font> m_Font;
 };
 
 } // namespace Bess::Renderer2D

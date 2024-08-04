@@ -165,4 +165,11 @@ namespace Bess::Gl
                               (GLsizei)value.size(), value.data()));
     }
 
+
+    void Shader::setUniform3f(const std::string& name, const glm::vec3& value)
+    {
+        glUniform3fv(glGetUniformLocation(m_id, name.c_str()), 1,
+            glm::value_ptr(value));
+    }
+
 } // namespace Bess::Gl

@@ -28,6 +28,7 @@ class Vao {
     void bind() const;
     void unbind() const;
     GLuint getId() const;
+    GLuint getVboId() const;
     void setVertices(const void *data, size_t count);
 
   private:

@@ -31,6 +31,8 @@ RenderData Renderer::m_RenderData;
 std::unique_ptr<Gl::Shader> Renderer::m_GridShader;
 std::unique_ptr<Gl::Vao> Renderer::m_GridVao;
 
+std::unique_ptr<Font> Renderer::m_Font;
+
 void Renderer::init() {
 
     m_GridShader = std::make_unique<Gl::Shader>(
@@ -50,10 +52,11 @@ void Renderer::init() {
         std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::GridVertex));
 
     m_AvailablePrimitives = {PrimitiveType::curve, PrimitiveType::quad,
-                             PrimitiveType::circle};
+                             PrimitiveType::circle, PrimitiveType::font};
     m_MaxRenderLimit[PrimitiveType::quad] = 250;
     m_MaxRenderLimit[PrimitiveType::curve] = 250;
     m_MaxRenderLimit[PrimitiveType::circle] = 250;
+    m_MaxRenderLimit[PrimitiveType::font] = 250;
 
     std::string vertexShader, fragmentShader;
 
@@ -71,11 +74,14 @@ void Renderer::init() {
             vertexShader = "assets/shaders/vert.glsl";
             fragmentShader = "assets/shaders/circle_frag.glsl";
             break;
+        case PrimitiveType::font:
+            vertexShader = "assets/shaders/vert.glsl";
+            fragmentShader = "assets/shaders/font_frag.glsl";
         }
 
         if (vertexShader.empty() || fragmentShader.empty()) {
             std::cerr << "[-] Primitive " << (int)primitive
-                      << "is not available" << std::endl;
+                << "is not available" << std::endl;
             return;
         }
 
@@ -95,13 +101,13 @@ void Renderer::init() {
                 Gl::VaoAttribType::vec2, offsetof(Gl::QuadVertex, texCoord)));
             attachments.emplace_back(
                 Gl::VaoAttribAttachment(Gl::VaoAttribType::float_t,
-                                        offsetof(Gl::QuadVertex, borderSize)));
+                    offsetof(Gl::QuadVertex, borderSize)));
             attachments.emplace_back(Gl::VaoAttribAttachment(
                 Gl::VaoAttribType::vec4,
                 offsetof(Gl::QuadVertex, borderRadius)));
             attachments.emplace_back(
                 Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4,
-                                        offsetof(Gl::QuadVertex, borderColor)));
+                    offsetof(Gl::QuadVertex, borderColor)));
             attachments.emplace_back(Gl::VaoAttribAttachment(
                 Gl::VaoAttribType::vec2, offsetof(Gl::QuadVertex, size)));
             attachments.emplace_back(Gl::VaoAttribAttachment(
@@ -110,7 +116,8 @@ void Renderer::init() {
             m_vaos[primitive] = std::make_unique<Gl::Vao>(
                 max_render_count * 4, max_render_count * 6, attachments,
                 sizeof(Gl::QuadVertex));
-        } else {
+        }
+        else {
             std::vector<Gl::VaoAttribAttachment> attachments;
             attachments.emplace_back(Gl::VaoAttribAttachment(
                 Gl::VaoAttribType::vec3, offsetof(Gl::Vertex, position)));
@@ -136,6 +143,8 @@ void Renderer::init() {
         {0.5f, -0.5f, 0.f, 1.f},
         {0.5f, 0.5f, 0.f, 1.f},
     };
+
+    m_Font = std::make_unique<Font>("assets/fonts/Roboto/Roboto-Regular.ttf");
 }
 
 void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
@@ -145,6 +154,7 @@ void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
     Renderer::quad(pos, size, color, id, 0.f, borderRadius, borderColor,
                    borderSize);
 }
+
 void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
                     const glm::vec3 &color, int id, float angle,
                     const glm::vec4 &borderRadius, const glm::vec4 &borderColor,
@@ -206,6 +216,7 @@ void Renderer::grid(const glm::vec3 &pos, const glm::vec2 &size, int id) {
     m_GridShader->unbind();
     m_GridVao->unbind();
 }
+
 glm::vec2 bernstine(const glm::vec2 &p0, const glm::vec2 &p1,
                     const glm::vec2 &p2, const glm::vec2 &p3, const float t) {
     auto t_ = 1 - t;
@@ -296,6 +307,59 @@ void Renderer::circle(const glm::vec3 &center, const float radius,
     addCircleVertices(vertices);
 }
 
+void Renderer::text(const std::string& text, const glm::vec3& pos, const size_t size, const glm::vec3& color, const int id) {
+    auto& shader = m_shaders[PrimitiveType::font];
+    auto& vao  = m_vaos[PrimitiveType::font];
+
+    vao->bind();
+    shader->bind();
+ 
+    shader->setUniform3f("textColor", color);
+    shader->setUniformMat4("u_mvp", m_camera->getTransform());
+
+    auto selId = Simulator::ComponentsManager::compIdToRid(
+        ApplicationState::getSelectedId());
+    shader->setUniform1i("u_SelectedObjId",selId);
+
+    float scale = Font::getScale(size), x = pos.x, y = pos.y;
+
+    for (auto& c : text)
+    {
+        auto& ch = m_Font->getCharacter(c);
+
+        float xpos = x + ch.Bearing.x * scale;
+        float ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
+
+        float w = ch.Size.x * scale;
+        float h = ch.Size.y * scale;
+
+        std::vector<Gl::Vertex> vertices(4);
+
+        auto transform = glm::translate(glm::mat4(1.0f), { xpos + w / 2, ypos + h / 2, pos.z });
+        transform = glm::scale(transform, { w, h, 1.f });
+
+        for (int i = 0; i < 4; i++) {
+            auto& vertex = vertices[i];
+            vertex.position = transform * m_StandardQuadVertices[i];
+            vertex.id = id;
+            vertex.color = color;
+        }
+
+        vertices[0].texCoord = { 0.0f, 0.0f };
+        vertices[1].texCoord = { 0.0f, 1.0f };
+        vertices[2].texCoord = { 1.0f, 1.0f };
+        vertices[3].texCoord = { 1.0f, 0.0f };
+
+        ch.Texture->bind();
+
+        m_vaos[PrimitiveType::font]->setVertices(vertices.data(), vertices.size());
+        GL_CHECK(glDrawElements(GL_TRIANGLES,
+            (GLsizei)(vertices.size() / 4) * 6,
+            GL_UNSIGNED_INT, nullptr));
+        x += (ch.Advance >> 6) * scale;
+    }
+}
+
 void Renderer::addCircleVertices(const std::vector<Gl::Vertex> &vertices) {
     auto max_render_count = m_MaxRenderLimit[PrimitiveType::circle];
 
@@ -334,6 +398,7 @@ void Renderer::addCurveVertices(const std::vector<Gl::Vertex> &vertices) {
     primitive_vertices.insert(primitive_vertices.end(), vertices.begin(),
                               vertices.end());
 }
+
 void Renderer::flush(PrimitiveType type) {
     auto &vao = m_vaos[type];
     auto &shader = m_shaders[type];

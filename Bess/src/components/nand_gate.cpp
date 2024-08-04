@@ -68,6 +68,9 @@ void NandGate::render() {
                      glm::vec3({gateSize.x / 2.f - 10.f, -10.f, 0.f}));
         slot->render();
     }
+
+
+    Renderer2D::Renderer::text("Nand Gate", { m_position.x + 8.f, m_position.y + 8.f, m_position.z + 1}, 12.f, { 1.f, 1.f, 1.f }, m_renderId);
 }
 
 void NandGate::onLeftClick(const glm::vec2 &pos) {

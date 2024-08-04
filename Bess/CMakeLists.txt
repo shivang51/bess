@@ -1,5 +1,5 @@
 set(PROJECT_NAME Bess)
-
+set(CMAKE_CXX_STANDARD 20)
 ################################################################################
 # Source groups
 ################################################################################
@@ -36,6 +36,7 @@ set(Header_Files
     "include/renderer/gl/vertex.h"
     "include/renderer/gl/texture.h"
     "include/renderer/renderer.h"
+    "include/renderer/font.h"
     "include/renderer/gl/primitive_type.h"
     "include/ui.h"
     "include/window.h"
@@ -47,8 +48,12 @@ set(Shaders
     "../assets/shaders/circle_frag.glsl"
     "../assets/shaders/curve_frag.glsl"
     "../assets/shaders/quad_frag.glsl"
-    "../assets/shaders/quad_frag1.glsl"
+    "../assets/shaders/quad_vert.glsl"
     "../assets/shaders/vert.glsl"
+    "../assets/shaders/font_frag.glsl"
+    "../assets/shaders/font_vert.glsl"
+    "../assets/shaders/grid_frag.glsl"
+    "../assets/shaders/grid_vert.glsl"
 )
 source_group("Shaders" FILES ${Shaders})
 
@@ -81,7 +86,7 @@ set(ALL_FILES
     ${Header_Files}
     ${Shaders}
     ${Source_Files}
-)
+ "src/renderer/font.cpp")
 
 ################################################################################
 # Target
@@ -112,6 +117,7 @@ if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
     target_include_directories(${PROJECT_NAME} PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/uuid_v4;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui;"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../external/freetype/include;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui/backends;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/glm;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/glfw/include;"
@@ -230,6 +236,7 @@ if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64" AND NOT UNIX)
         "glfw3;"
         "opengl32;"
         "gdi32;"
+        "freetype;"
     )
 else()
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
@@ -243,7 +250,8 @@ SET(CMAKE_CXX_FLAGS  "-march=native")
 
 if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
     target_link_directories(${PROJECT_NAME} PRIVATE
-        "${CMAKE_SOURCE_DIR}/external/glfw/lib-vc2022"
+        "${CMAKE_SOURCE_DIR}/external/glfw/lib-vc2022",
+        "${CMAKE_SOURCE_DIR}/external/freetype/libs/windows",
     )
 endif()
 

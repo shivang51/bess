@@ -89,6 +89,8 @@ namespace Bess::Gl
     }
 
     GLuint Vao::getId() const { return m_vao_id; }
+    
+    GLuint Vao::getVboId() const { return m_vbo_id; }
 
     void Vao::bind() const { GL_CHECK(glBindVertexArray(m_vao_id)); }
 

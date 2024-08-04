@@ -42,9 +42,6 @@ Application::Application() : m_window(800, 600, "Bess") {
     m_window.onRightMouse(BIND_EVENT_FN_1(onRightMouse));
     m_window.onMiddleMouse(BIND_EVENT_FN_1(onMiddleMouse));
     m_window.onMouseMove(BIND_EVENT_FN_2(onMouseMove));
-
-    Simulator::ComponentsManager::generateNandGate();
-    Simulator::ComponentsManager::generateInputProbe();
 }
 
 Application::~Application() {
@@ -72,13 +69,13 @@ void Application::drawScene() {
         entity->render();
     }
 
+
     Renderer::end();
 
     if (isCursorInViewport()) {
         auto viewportMousePos = getViewportMousePos();
         viewportMousePos.y = UI::state.viewportSize.y - viewportMousePos.y;
-        ApplicationState::hoveredId = m_framebuffer->readId(
-            (int)viewportMousePos.x, (int)viewportMousePos.y);
+        ApplicationState::hoveredId = m_framebuffer->readId((int)viewportMousePos.x, (int)viewportMousePos.y);
     }
 
     m_framebuffer->unbind();
