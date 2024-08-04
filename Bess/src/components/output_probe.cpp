@@ -2,9 +2,15 @@
 #include "application_state.h"
 #include "common/theme.h"
 #include "renderer/renderer.h"
+#include "common/helpers.h"
+
 namespace Bess::Simulator::Components {
 
 glm::vec2 outputProbeSize = {50.f, 30.f};
+OutputProbe::OutputProbe() : Component()
+{
+}
+
 OutputProbe::OutputProbe(const UUIDv4::UUID &uid, int renderId,
                          glm::vec3 position, const UUIDv4::UUID &outputSlot)
     : Component(uid, renderId, position, ComponentType::outputProbe) {
@@ -38,5 +44,29 @@ void OutputProbe::render() {
     slot->update(m_position +
                  glm::vec3({-(outputProbeSize.x / 2) + 16.f, 0.f, 0.f}));
     slot->render();
+}
+
+void OutputProbe::generate(const glm::vec3& pos)
+{
+    auto uid = Common::Helpers::uuidGenerator.getUUID();
+
+    auto slotId = Common::Helpers::uuidGenerator.getUUID();
+    auto renderId = ComponentsManager::getNextRenderId();
+    
+    ComponentsManager::components[slotId] = std::make_shared<Components::Slot>(
+        slotId, uid, renderId, ComponentType::inputSlot);
+
+    ComponentsManager::addRenderIdToCId(renderId, slotId);
+    ComponentsManager::addCompIdToRId(renderId, slotId);
+
+    auto pos_ = pos;
+    pos_.z = ComponentsManager::getNextZPos();
+
+    renderId = ComponentsManager::getNextRenderId();
+    ComponentsManager::components[uid] =
+        std::make_shared<Components::OutputProbe>(uid, renderId, pos_, slotId);
+    ComponentsManager::addRenderIdToCId(renderId, uid);
+    ComponentsManager::addCompIdToRId(renderId, uid);
+    ComponentsManager::renderComponenets[uid] =  ComponentsManager::components[uid];
 }
 } // namespace Bess::Simulator::Components

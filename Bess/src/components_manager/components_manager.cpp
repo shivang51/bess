@@ -6,6 +6,7 @@
 
 #include "application_state.h"
 #include "components/output_probe.h"
+#include "common/helpers.h"
 
 namespace Bess::Simulator {
 
@@ -15,106 +16,28 @@ namespace Bess::Simulator {
 
     int ComponentsManager::renderIdCounter;
 
-    UUIDv4::UUIDGenerator<std::mt19937_64> ComponentsManager::uuidGenerator;
-
     std::unordered_map<UUIDv4::UUID, ComponentsManager::ComponentPtr>
         ComponentsManager::components;
 
     std::unordered_map<UUIDv4::UUID, ComponentsManager::ComponentPtr>
         ComponentsManager::renderComponenets;
-
-    const UUIDv4::UUID ComponentsManager::emptyId = uuidGenerator.getUUID();
+    UUIDv4::UUID ComponentsManager::emptyId;
 
     const float ComponentsManager::zIncrement = 0.0001f;
     float ComponentsManager::zPos = 0.0f;
 
     void ComponentsManager::init() {
+       ComponentsManager::emptyId = Common::Helpers::uuidGenerator.getUUID();
         compIdToRId[emptyId] = -1;
         renderIdToCId[-1] = emptyId;
     }
 
     void ComponentsManager::generateNandGate(const glm::vec3& pos) {
-        auto pId = uuidGenerator.getUUID();
-        // input slots
-        int n = 2;
-        std::vector<UUIDv4::UUID> inputSlots;
-        while (n--) {
-            auto uid = uuidGenerator.getUUID();
-            auto renderId = getRenderId();
-            components[uid] = std::make_shared<Components::Slot>(
-                uid, pId, renderId, ComponentType::inputSlot);
-            renderIdToCId[renderId] = uid;
-            compIdToRId[uid] = renderId;
-            inputSlots.emplace_back(uid);
-        }
-
-        // output slots
-        std::vector<UUIDv4::UUID> outputSlots;
-        n = 1;
-        while (n--) {
-            auto uid = uuidGenerator.getUUID();
-            auto renderId = getRenderId();
-            components[uid] = std::make_shared<Components::Slot>(
-                uid, pId, renderId, ComponentType::outputSlot);
-            renderIdToCId[renderId] = uid;
-            compIdToRId[uid] = renderId;
-            outputSlots.emplace_back(uid);
-        }
-
-        auto &uid = pId;
-        auto renderId = getRenderId();
-
-        auto pos_ = pos;
-        pos_.z = getZPos();
-
-        components[uid] = std::make_shared<Components::NandGate>(
-            uid, renderId, pos_, inputSlots, outputSlots);
-        renderIdToCId[renderId] = uid;
-        compIdToRId[uid] = renderId;
-
-        renderComponenets[uid] = components[uid];
+        Components::NandGate().generate(pos);
     }
 
     void ComponentsManager::generateInputProbe(const glm::vec3& pos) {
-        auto uid = uuidGenerator.getUUID();
-
-        auto slotId = uuidGenerator.getUUID();
-        auto renderId = getRenderId();
-        components[slotId] = std::make_shared<Components::Slot>(
-            slotId, uid, renderId, ComponentType::outputSlot);
-        renderIdToCId[renderId] = slotId;
-        compIdToRId[slotId] = renderId;
-
-        auto pos_ = pos;
-        pos_.z = getZPos();
-
-        renderId = getRenderId();
-        components[uid] =
-            std::make_shared<Components::InputProbe>(uid, renderId, pos_, slotId);
-        renderIdToCId[renderId] = uid;
-        compIdToRId[uid] = renderId;
-        renderComponenets[uid] = components[uid];
-    }
-
-    void ComponentsManager::generateOutputProbe(const glm::vec3& pos) {
-        auto uid = uuidGenerator.getUUID();
-
-        auto slotId = uuidGenerator.getUUID();
-        auto renderId = getRenderId();
-        components[slotId] = std::make_shared<Components::Slot>(
-            slotId, uid, renderId, ComponentType::inputSlot);
-        renderIdToCId[renderId] = slotId;
-        compIdToRId[slotId] = renderId;
-
-        auto pos_ = pos;
-        pos_.z = getZPos();
-
-        renderId = getRenderId();
-        components[uid] =
-            std::make_shared<Components::OutputProbe>(uid, renderId, pos_, slotId);
-        renderIdToCId[renderId] = uid;
-        compIdToRId[uid] = renderId;
-        renderComponenets[uid] = components[uid];
+        Components::InputProbe().generate(pos);
     }
 
     void ComponentsManager::addConnection(const UUIDv4::UUID& slot1, const UUIDv4::UUID& slot2) {
@@ -138,12 +61,7 @@ namespace Bess::Simulator {
         outputSlot->addConnection(inputSlot->getId());
 
         // adding interative wire
-        auto uid = uuidGenerator.getUUID();
-        auto renderId = getRenderId();
-        components[uid] = std::make_shared<Components::Connection>(uid, renderId, slot1, slot2);
-        renderIdToCId[renderId] = uid;
-        compIdToRId[uid] = renderId;
-        renderComponenets[uid] = components[uid];
+        Components::Connection().generate(slot1, slot2);
     }
 
     const UUIDv4::UUID& ComponentsManager::renderIdToCid(int rId) {
@@ -154,10 +72,24 @@ namespace Bess::Simulator {
         return compIdToRId[uId];
     }
 
-    // private
-    int ComponentsManager::getRenderId() { return renderIdCounter++; }
+    void ComponentsManager::addRenderIdToCId(int rid, const UUIDv4::UUID& cid)
+    {
+        renderIdToCId[rid] = cid;
+    }
 
-    float ComponentsManager::getZPos() {
+    void ComponentsManager::addCompIdToRId(int rid, const UUIDv4::UUID& cid)
+    {
+        compIdToRId[cid] = rid;
+    }
+
+    void ComponentsManager::generateOutputProbe(const glm::vec3 & pos) {
+        auto obj = Components::OutputProbe();
+        obj.generate(pos);
+    }
+
+    int ComponentsManager::getNextRenderId() { return renderIdCounter++; }
+    
+    float ComponentsManager::getNextZPos() {
         zPos += zIncrement;
         return zPos;
     }

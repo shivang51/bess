@@ -133,4 +133,8 @@ const UUIDv4::UUID& Slot::getParentId()
 {
     return m_parentUid;
 }
+
+void Slot::generate(const glm::vec3& pos)
+{
+}
 } // namespace Bess::Simulator::Components

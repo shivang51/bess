@@ -32,6 +32,7 @@ typedef std::function<void()> VoidCB;
 
 class Component {
   public:
+      Component() = default;
     Component(const UUIDv4::UUID &uid, int renderId, glm::vec3 position,
               ComponentType type);
     virtual ~Component() = default;
@@ -47,6 +48,8 @@ class Component {
     void onEvent(ComponentEventData e);
 
     virtual void render() = 0;
+
+    virtual void generate(const glm::vec3& pos = { 0.f, 0.f, 0.f }) = 0;
 
     std::string getName() const;
 

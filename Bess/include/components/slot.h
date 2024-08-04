@@ -25,6 +25,8 @@ class Slot : public Component {
 
     const UUIDv4::UUID& getParentId();
 
+    void generate(const glm::vec3& pos = { 0.f, 0.f, 0.f }) override;
+
   private:
     // contains one way connection from starting slot to other
     std::vector<UUIDv4::UUID> connections;

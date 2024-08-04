@@ -47,6 +47,7 @@ Application::Application() : m_window(800, 600, "Bess") {
     Bess::Simulator::ComponentsManager::generateNandGate();
     Bess::Simulator::ComponentsManager::generateInputProbe({-150.f, 0.f, 1.f});
     Bess::Simulator::ComponentsManager::generateOutputProbe({ 150.f, 0.f, 2.f });
+
 }
 
 Application::~Application() {

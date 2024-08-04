@@ -3,6 +3,8 @@
 #include "components/slot.h"
 #include "ui.h"
 
+#include "common/helpers.h"
+
 namespace Bess::Simulator::Components {
 #define BIND_EVENT_FN_1(fn) std::bind(&fn, this, std::placeholders::_1)
 
@@ -22,6 +24,10 @@ Connection::Connection(const UUIDv4::UUID &uid, int renderId,
     m_events[ComponentEventType::mouseHover] = (VoidCB)BIND_EVENT_FN(Connection::onMouseHover);
 }
 
+Connection::Connection(): Component()
+{
+}
+
 void Connection::render() {
     auto slotA = ComponentsManager::components[m_slot1];
     auto slotB = ComponentsManager::components[m_slot2];
@@ -34,6 +40,18 @@ void Connection::render() {
         ApplicationState::getSelectedId() == m_uid ? Theme::selectedWireColor: Theme::wireColor,
         m_renderId
     );
+}
+
+void Connection::generate(const glm::vec3& pos){}
+
+void Connection::generate(const UUIDv4::UUID& slot1, const UUIDv4::UUID& slot2, const glm::vec3& pos)
+{
+    auto uid = Common::Helpers::uuidGenerator.getUUID();
+    auto renderId = ComponentsManager::getNextRenderId();
+    ComponentsManager::components[uid] = std::make_shared<Components::Connection>(uid, renderId, slot1, slot2);
+    ComponentsManager::addRenderIdToCId(renderId, uid);
+    ComponentsManager::addCompIdToRId(renderId, uid);
+    ComponentsManager::renderComponenets[uid] = ComponentsManager::components[uid];
 }
 
 void Connection::onLeftClick(const glm::vec2 &pos) {

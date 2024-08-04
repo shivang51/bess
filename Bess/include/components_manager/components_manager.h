@@ -33,13 +33,17 @@ class ComponentsManager {
     static const UUIDv4::UUID &renderIdToCid(int rId);
     static int compIdToRid(const UUIDv4::UUID &cid);
 
-    static const UUIDv4::UUID emptyId;
+    static UUIDv4::UUID emptyId;
 
     static const float zIncrement;
 
+    static void addRenderIdToCId(int rid, const UUIDv4::UUID& cid);
+    static void addCompIdToRId(int rid, const UUIDv4::UUID& cid);
+
+    static float getNextZPos();
+    static int getNextRenderId();
 
   private:
-    static int getRenderId();
 
     // mapping from render id to components id.
     static std::unordered_map<int, UUIDv4::UUID> renderIdToCId;
@@ -49,11 +53,7 @@ class ComponentsManager {
 
     static int renderIdCounter;
 
-    static UUIDv4::UUIDGenerator<std::mt19937_64> uuidGenerator;
-
-
     static float zPos;
 
-    static float getZPos();
 };
 } // namespace Bess::Simulator

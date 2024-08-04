@@ -14,6 +14,10 @@ namespace Bess::Simulator::Components {
 
 glm::vec2 gateSize = {150.f, 100.f};
 
+NandGate::NandGate() : Component()
+{
+}
+
 NandGate::NandGate(const UUIDv4::UUID &uid, int renderId, glm::vec3 position,
                    std::vector<UUIDv4::UUID> inputSlots,
                    std::vector<UUIDv4::UUID> outputSlots)
@@ -92,6 +96,50 @@ void NandGate::simulate()
         auto slot = (Slot*)ComponentsManager::components[slotId].get();
         slot->setState(m_uid, outputState);
     }
+}
+
+void NandGate::generate(const glm::vec3& pos)
+{
+    auto pId = Common::Helpers::uuidGenerator.getUUID();
+    // input slots
+    int n = 2;
+    std::vector<UUIDv4::UUID> inputSlots;
+    while (n--) {
+        auto uid = Common::Helpers::uuidGenerator.getUUID();
+        auto renderId = ComponentsManager::getNextRenderId();
+        ComponentsManager::components[uid] = std::make_shared<Components::Slot>(
+            uid, pId, renderId, ComponentType::inputSlot);
+        ComponentsManager::addRenderIdToCId(renderId, uid);
+        ComponentsManager::addCompIdToRId(renderId, uid);
+        inputSlots.emplace_back(uid);
+    }
+
+    // output slots
+    std::vector<UUIDv4::UUID> outputSlots;
+    n = 1;
+    while (n--) {
+        auto uid = Common::Helpers::uuidGenerator.getUUID();
+        auto renderId = ComponentsManager::getNextRenderId();
+        ComponentsManager::components[uid] = std::make_shared<Components::Slot>(
+            uid, pId, renderId, ComponentType::outputSlot);
+        ComponentsManager::addRenderIdToCId(renderId, uid);
+        ComponentsManager::addCompIdToRId(renderId, uid);
+        outputSlots.emplace_back(uid);
+    }
+
+    auto& uid = pId;
+    auto renderId = ComponentsManager::getNextRenderId();
+
+    auto pos_ = pos;
+    pos_.z = ComponentsManager::getNextZPos();
+
+    ComponentsManager::components[uid] = std::make_shared<Components::NandGate>(
+        uid, renderId, pos_, inputSlots, outputSlots);
+
+    ComponentsManager::addRenderIdToCId(renderId, uid);
+    ComponentsManager::addCompIdToRId(renderId, uid);
+
+    ComponentsManager::renderComponenets[uid] = ComponentsManager::components[uid];
 }
 
 void NandGate::onLeftClick(const glm::vec2 &pos) {

@@ -3,10 +3,15 @@
 #include "common/theme.h"
 #include "renderer/renderer.h"
 #include "common/bind_helpers.h"
+#include "common/helpers.h"
 
 namespace Bess::Simulator::Components {
 
 glm::vec2 inputProbeSize = {50.f, 30.f};
+
+InputProbe::InputProbe(): Component()
+{
+}
 
 InputProbe::InputProbe(const UUIDv4::UUID &uid, int renderId,
                        glm::vec3 position, const UUIDv4::UUID &outputSlot)
@@ -39,6 +44,28 @@ void InputProbe::render() {
     slot->update(m_position +
                  glm::vec3({(inputProbeSize.x / 2) - 16.f, 0.f, 0.f}));
     slot->render();
+}
+
+void InputProbe::generate(const glm::vec3& pos)
+{
+    auto uid = Common::Helpers::uuidGenerator.getUUID();
+
+    auto slotId = Common::Helpers::uuidGenerator.getUUID();
+    auto renderId = ComponentsManager::getNextRenderId();
+    ComponentsManager::components[slotId] = std::make_shared<Components::Slot>(
+        slotId, uid, renderId, ComponentType::outputSlot);
+    ComponentsManager::addRenderIdToCId(renderId, slotId);
+    ComponentsManager::addCompIdToRId(renderId, slotId);
+
+    auto pos_ = pos;
+    pos_.z = ComponentsManager::getNextZPos();
+
+    renderId = ComponentsManager::getNextRenderId();
+    ComponentsManager::components[uid] =
+        std::make_shared<Components::InputProbe>(uid, renderId, pos_, slotId);
+    ComponentsManager::addRenderIdToCId(renderId, uid);
+    ComponentsManager::addCompIdToRId(renderId, uid);
+    ComponentsManager::renderComponenets[uid] = ComponentsManager::components[uid];
 }
 
 void InputProbe::onLeftClick(const glm::vec2& pos)
