@@ -60,7 +60,7 @@ void NandGate::render() {
         slot->update(m_position + slots[i]);
         slot->render();
         
-        Renderer2D::Renderer::text(std::string(1, 'A' + i), m_position + slots[i] + glm::vec3({10.f, -2.5f, 1.f}), 12.f, {1.f, 1.f, 1.f}, m_renderId);
+        Renderer2D::Renderer::text(std::string(1, 'A' + i), m_position + slots[i] + glm::vec3({10.f, -2.5f, ComponentsManager::zIncrement}), 12.f, {1.f, 1.f, 1.f}, m_renderId);
 
     }
 
@@ -74,7 +74,7 @@ void NandGate::render() {
     }
 
 
-    Renderer2D::Renderer::text("Nand Gate", Common::Helpers::GetLeftCornerPos(m_position, gateSize) + glm::vec3({ 8.f, -16.f, 1 }), 12.f, {1.f, 1.f, 1.f}, m_renderId);
+    Renderer2D::Renderer::text("Nand Gate", Common::Helpers::GetLeftCornerPos(m_position, gateSize) + glm::vec3({ 8.f, -16.f, ComponentsManager::zIncrement }), 12.f, {1.f, 1.f, 1.f}, m_renderId);
 }
 
 void NandGate::onLeftClick(const glm::vec2 &pos) {

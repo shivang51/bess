@@ -20,5 +20,6 @@ class Connection : public Component {
     void onLeftClick(const glm::vec2 &pos);
     void onFocusLost();
     void onFocus();
+    void onMouseHover();
 };
 } // namespace Bess::Simulator::Components

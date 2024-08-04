@@ -46,7 +46,7 @@ void Slot::onLeftClick(const glm::vec2 &pos) {
     if (ApplicationState::connStartId == m_uid || slot->getType() == m_type)
         return;
 
-    ComponentsManager::generateConnection(ApplicationState::connStartId, m_uid);
+    ComponentsManager::addConnection(ApplicationState::connStartId, m_uid);
 
     ApplicationState::drawMode = DrawMode::none;
     ApplicationState::connStartId = ComponentsManager::emptyId;
@@ -56,7 +56,15 @@ void Slot::onLeftClick(const glm::vec2 &pos) {
 void Slot::onMouseHover() { UI::setCursorPointer(); }
 
 void Slot::addConnection(const UUIDv4::UUID &uId) {
+    if (isConnectedTo(uId)) return;
     connections.emplace_back(uId);
+}
+
+bool Slot::isConnectedTo(const UUIDv4::UUID& uId) {
+    for (auto& conn : connections) {
+        if (conn == uId) return true;
+    }
+    return false;
 }
 
 void Slot::highlightBorder(bool highlight) { m_highlightBorder = highlight; }

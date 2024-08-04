@@ -230,19 +230,19 @@ glm::vec2 bernstine(const glm::vec2 &p0, const glm::vec2 &p1,
 }
 
 void Renderer::createCurveVertices(const glm::vec3 &start, const glm::vec3 &end,
-                                   const glm::vec3 &color, const int id) {
+                                   const glm::vec3 &color, const int id, float weight) {
     auto dx = end.x - start.x;
     auto dy = end.y - start.y;
     auto angle = std::atan(dy / dx);
     float dis = std::sqrt((dx * dx) + (dy * dy));
 
-    float sizeX = std::max(dis, 2.5f);
+    float sizeX = std::max(dis, 3.0f);
     sizeX = dis;
 
     glm::vec3 pos = {start.x, start.y - 0.005f, start.z};
     auto transform = glm::translate(glm::mat4(1.0f), pos);
     transform = glm::rotate(transform, angle, {0.f, 0.f, 1.f});
-    transform = glm::scale(transform, {sizeX, 2.5f, 1.f});
+    transform = glm::scale(transform, {sizeX, 3.0f, 1.f});
 
     std::vector<Gl::Vertex> vertices(4);
     for (int i = 0; i < 4; i++) {

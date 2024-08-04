@@ -19,6 +19,7 @@ Connection::Connection(const UUIDv4::UUID &uid, int renderId,
         (VoidCB)BIND_EVENT_FN(Connection::onFocusLost);
     m_events[ComponentEventType::focus] =
         (VoidCB)BIND_EVENT_FN(Connection::onFocus);
+    m_events[ComponentEventType::mouseHover] = (VoidCB)BIND_EVENT_FN(Connection::onMouseHover);
 }
 
 void Connection::render() {
@@ -36,6 +37,10 @@ void Connection::render() {
 
 void Connection::onLeftClick(const glm::vec2 &pos) {
     ApplicationState::setSelectedId(m_uid);
+}
+
+void Connection::onMouseHover() {
+    UI::setCursorPointer();
 }
 
 void Connection::onFocusLost() {

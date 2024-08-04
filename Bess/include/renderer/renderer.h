@@ -54,7 +54,7 @@ class Renderer {
   private:
     static void createCurveVertices(const glm::vec3 &start,
                                     const glm::vec3 &end,
-                                    const glm::vec3 &color, int id);
+                                    const glm::vec3 &color, int id, float weight = 3.0f);
 
     static void addCircleVertices(const std::vector<Gl::Vertex> &vertices);
 

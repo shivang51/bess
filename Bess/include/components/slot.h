@@ -1,6 +1,7 @@
 #pragma once
 
 #include "component.h"
+#include <set>
 
 namespace Bess::Simulator::Components {
 class Slot : public Component {
@@ -13,6 +14,8 @@ class Slot : public Component {
     void render() override;
 
     void addConnection(const UUIDv4::UUID &uId);
+    bool isConnectedTo(const UUIDv4::UUID& uId);
+
     void highlightBorder(bool highlight = true);
 
   private:

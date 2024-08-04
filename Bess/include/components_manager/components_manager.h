@@ -24,7 +24,7 @@ class ComponentsManager {
 
     static void generateNandGate(const glm::vec3 &pos = {0.f, 0.f, 0.f});
 
-    static void generateConnection(const UUIDv4::UUID &start,
+    static void addConnection(const UUIDv4::UUID &start,
                                    const UUIDv4::UUID &end);
 
     static void generateInputProbe(const glm::vec3 &pos = {0.f, 0.f, 0.f});
@@ -35,6 +35,9 @@ class ComponentsManager {
     static int compIdToRid(const UUIDv4::UUID &cid);
 
     static const UUIDv4::UUID emptyId;
+
+    static const float zIncrement;
+
 
   private:
     static int getRenderId();
@@ -48,5 +51,10 @@ class ComponentsManager {
     static int renderIdCounter;
 
     static UUIDv4::UUIDGenerator<std::mt19937_64> uuidGenerator;
+
+
+    static float zPos;
+
+    static float getZPos();
 };
 } // namespace Bess::Simulator
