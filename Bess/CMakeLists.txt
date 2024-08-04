@@ -86,7 +86,7 @@ set(ALL_FILES
     ${Header_Files}
     ${Shaders}
     ${Source_Files}
- "src/renderer/font.cpp")
+ "src/renderer/font.cpp" "include/common/helpers.h" "src/common/helpers.cpp")
 
 ################################################################################
 # Target

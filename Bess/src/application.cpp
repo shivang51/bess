@@ -31,6 +31,7 @@ Application::Application() : m_window(800, 600, "Bess") {
 
     UI::init(m_window.getGLFWHandle());
     UI::state.viewportTexture = m_framebuffer->getTexture();
+    UI::state.cameraZoom = Camera::defaultZoom;
 
     Renderer::init();
 
@@ -42,6 +43,10 @@ Application::Application() : m_window(800, 600, "Bess") {
     m_window.onRightMouse(BIND_EVENT_FN_1(onRightMouse));
     m_window.onMiddleMouse(BIND_EVENT_FN_1(onMiddleMouse));
     m_window.onMouseMove(BIND_EVENT_FN_2(onMouseMove));
+
+    Bess::Simulator::ComponentsManager::generateNandGate();
+    Bess::Simulator::ComponentsManager::generateInputProbe({-150.f, 0.f, 1.f});
+    Bess::Simulator::ComponentsManager::generateOutputProbe({ 150.f, 0.f, 2.f });
 }
 
 Application::~Application() {
@@ -132,10 +137,10 @@ void Application::onMouseWheel(double x, double y) {
     if (isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
         float delta = (float)y * 0.1f;
         UI::state.cameraZoom += delta;
-        if (UI::state.cameraZoom < 0.6f) {
-            UI::state.cameraZoom = 0.6f;
-        } else if (UI::state.cameraZoom > 1.6f) {
-            UI::state.cameraZoom = 1.6f;
+        if (UI::state.cameraZoom < Camera::zoomMin) {
+            UI::state.cameraZoom = Camera::zoomMin;
+        } else if (UI::state.cameraZoom > Camera::zoomMax) {
+            UI::state.cameraZoom = Camera::zoomMax;
         }
     } else {
         m_camera->incrementPos(

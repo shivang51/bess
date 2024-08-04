@@ -11,6 +11,8 @@
 #include "components_manager/components_manager.h"
 #include <imgui_internal.h>
 
+#include "camera.h"
+
 namespace Bess {
 UIState UI::state{};
 
@@ -139,21 +141,24 @@ void UI::drawViewport() {
     ImGui::End();
     ImGui::PopStyleVar();
 
-    ImGui::SetNextWindowPos(
-        {pos.x + viewportPanelSize.x - 208, pos.y + viewportPanelSize.y - 40});
-    ImGui::SetNextWindowSize({208, 0});
-    ImGui::SetNextWindowBgAlpha(0.f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+    // Camera controls
+    {
+        ImGui::SetNextWindowPos(
+            { pos.x + viewportPanelSize.x - 208, pos.y + viewportPanelSize.y - 40 });
+        ImGui::SetNextWindowSize({ 208, 0 });
+        ImGui::SetNextWindowBgAlpha(0.f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
 
-    ImGui::Begin("Camera", nullptr, flags);
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8);
-    ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 8);
-    ImGui::SliderFloat("Zoom", &state.cameraZoom, 0.6, 1.6, nullptr,
-                       ImGuiSliderFlags_AlwaysClamp);
-    ImGui::PopStyleVar(2);
-    ImGui::End();
-    ImGui::PopStyleVar(2);
+        ImGui::Begin("Camera", nullptr, flags);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8);
+        ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 8);
+        ImGui::SliderFloat("Zoom", &state.cameraZoom, Camera::zoomMin, Camera::zoomMax, nullptr,
+            ImGuiSliderFlags_AlwaysClamp);
+        ImGui::PopStyleVar(2);
+        ImGui::End();
+        ImGui::PopStyleVar(2);
+    }
 }
 
 void UI::begin() {

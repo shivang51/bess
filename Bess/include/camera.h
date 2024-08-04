@@ -27,6 +27,8 @@ namespace Bess
 
     void incrementPos(const glm::vec2 &pos);
 
+    static float zoomMin, zoomMax, defaultZoom;
+
   private:
     glm::vec2 m_pos;
     float m_zoom;

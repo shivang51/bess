@@ -5,6 +5,7 @@
 #include "renderer/renderer.h"
 
 #include "common/theme.h"
+#include "common/helpers.h"
 
 namespace Bess::Simulator::Components {
 
@@ -58,6 +59,9 @@ void NandGate::render() {
                 .get();
         slot->update(m_position + slots[i]);
         slot->render();
+        
+        Renderer2D::Renderer::text(std::string(1, 'A' + i), m_position + slots[i] + glm::vec3({10.f, -2.5f, 1.f}), 12.f, {1.f, 1.f, 1.f}, m_renderId);
+
     }
 
     for (int i = 0; i < m_outputSlots.size(); i++) {
@@ -70,7 +74,7 @@ void NandGate::render() {
     }
 
 
-    Renderer2D::Renderer::text("Nand Gate", { m_position.x + 8.f, m_position.y + 8.f, m_position.z + 1}, 12.f, { 1.f, 1.f, 1.f }, m_renderId);
+    Renderer2D::Renderer::text("Nand Gate", Common::Helpers::GetLeftCornerPos(m_position, gateSize) + glm::vec3({ 8.f, -16.f, 1 }), 12.f, {1.f, 1.f, 1.f}, m_renderId);
 }
 
 void NandGate::onLeftClick(const glm::vec2 &pos) {

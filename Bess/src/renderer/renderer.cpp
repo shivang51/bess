@@ -263,7 +263,7 @@ void Renderer::createCurveVertices(const glm::vec3 &start, const glm::vec3 &end,
 int calculateSegments(const glm::vec2 &p1, const glm::vec2 &p2) {
     return (int)(glm::distance(p1 / UI::state.viewportSize,
                                p2 / UI::state.viewportSize) /
-                 0.005f);
+                 0.001f);
 }
 
 void Renderer::curve(const glm::vec3 &start, const glm::vec3 &end,
