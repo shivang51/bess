@@ -1,7 +1,6 @@
 #include "components/slot.h"
-#include "components/nand_gate.h"
 #include "renderer/renderer.h"
-
+#include "components/jcomponent.h"
 #include "application_state.h"
 
 #include "common/theme.h"
@@ -69,8 +68,8 @@ void Slot::onChange()
         auto &parent = ComponentsManager::components[m_parentUid];
         switch (parent->getType())
         {
-        case ComponentType::gate: {
-            auto parentPtr = (Components::NandGate*)parent.get();
+        case ComponentType::jcomponent: {
+            auto parentPtr = (Components::JComponent*)parent.get();
             parentPtr->simulate();
         }break;
         default:

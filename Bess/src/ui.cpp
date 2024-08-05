@@ -9,14 +9,13 @@
 #include <string>
 
 #include "components_manager/components_manager.h"
+#include "components_manager/component_bank.h"
 #include <imgui_internal.h>
 
 #include "camera.h"
 
 namespace Bess {
 UIState UI::state{};
-
-std::map<std::string, std::function<void(const glm::vec3 &)>> UI::m_components;
 
 void UI::init(GLFWwindow *window) {
     IMGUI_CHECKVERSION();
@@ -47,15 +46,6 @@ void UI::init(GLFWwindow *window) {
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 410");
-
-    m_components["Nand Gate"] = std::bind(
-        &Simulator::ComponentsManager::generateNandGate, std::placeholders::_1);
-    m_components["Input Probe"] =
-        std::bind(&Simulator::ComponentsManager::generateInputProbe,
-                  std::placeholders::_1);
-    m_components["Output Probe"] =
-        std::bind(&Simulator::ComponentsManager::generateOutputProbe,
-                  std::placeholders::_1);
 }
 
 void UI::shutdown() {
@@ -106,9 +96,20 @@ void UI::drawComponentExplorer() {
 
     ImGui::Begin("Component Explorer");
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4);
-    for (auto &[name, cb] : m_components) {
-        if (ImGui::Button(name.c_str(), {-1, 0})) {
-            cb({0.f, 0.f, 0.f});
+
+    auto& vault = Simulator::ComponentBank::getVault();
+
+    for (auto& ent : vault) {
+        ImGui::Text(ent.first.c_str());
+        for(auto& comp: ent.second){
+            if (ImGui::Button(comp.getName().c_str(), {-1, 0})) {
+                auto pos = glm::vec3(0.f);
+                std::any data =  NULL;
+                if (comp.getType() == Simulator::ComponentType::jcomponent) {
+                    data = comp.getJCompData();
+                }
+                Simulator::ComponentsManager::generateComponent(comp.getType(), data, pos);
+            }
         }
     }
     ImGui::PopStyleVar();

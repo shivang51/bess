@@ -22,6 +22,8 @@ Connection::Connection(const UUIDv4::UUID &uid, int renderId,
     m_events[ComponentEventType::focus] =
         (VoidCB)BIND_EVENT_FN(Connection::onFocus);
     m_events[ComponentEventType::mouseHover] = (VoidCB)BIND_EVENT_FN(Connection::onMouseHover);
+
+    m_name = "Connection";
 }
 
 Connection::Connection(): Component()

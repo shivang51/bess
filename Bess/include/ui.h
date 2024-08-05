@@ -46,8 +46,5 @@ class UI {
     static void end();
 
     static void resetDockspace();
-
-    static std::map<std::string, std::function<void(const glm::vec3 &)>>
-        m_components;
 };
 } // namespace Bess

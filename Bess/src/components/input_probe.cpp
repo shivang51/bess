@@ -16,6 +16,7 @@ InputProbe::InputProbe(): Component()
 InputProbe::InputProbe(const UUIDv4::UUID &uid, int renderId,
                        glm::vec3 position, const UUIDv4::UUID &outputSlot)
     : Component(uid, renderId, position, ComponentType::inputProbe) {
+    m_name = "Input Probe";
     m_outputSlot = outputSlot;
     m_events[ComponentEventType::leftClick] = (OnLeftClickCB)BIND_FN_1(InputProbe::onLeftClick);
 }

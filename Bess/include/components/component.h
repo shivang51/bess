@@ -52,6 +52,7 @@ class Component {
     virtual void generate(const glm::vec3& pos = { 0.f, 0.f, 0.f }) = 0;
 
     std::string getName() const;
+    std::string getRenderName() const;
 
     void simulate();
 
@@ -60,7 +61,7 @@ class Component {
     UUIDv4::UUID m_uid;
     glm::vec3 m_position;
     ComponentType m_type;
-
+    std::string m_name = "Unknown";
     std::unordered_map<ComponentEventType, std::any> m_events;
 };
 } // namespace Bess::Simulator::Components

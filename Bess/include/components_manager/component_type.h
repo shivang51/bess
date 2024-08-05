@@ -2,10 +2,11 @@
 
 namespace Bess::Simulator {
     enum class ComponentType {
-        gate,
-        inputSlot,
+        inputSlot = 0,
         outputSlot,
         connection,
+        //draggable compoenents start below
+        jcomponent = 101,
         inputProbe,
         outputProbe,
     };

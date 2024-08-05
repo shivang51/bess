@@ -47,27 +47,13 @@ void Component::onEvent(ComponentEventData e) {
     }
 }
 
-std::string Component::getName() const {
-    std::string name;
+std::string Component::getName() const
+{
+    return m_name;
+}
 
-    switch (m_type) {
-    case ComponentType::connection:
-        name = "Connection";
-        break;
-    case ComponentType::gate:
-        name = "Gate";
-        break;
-    case ComponentType::inputProbe:
-        name = "Input Probe";
-        break;
-    case ComponentType::outputProbe:
-        name = "Output Probe";
-        break;
-    default:
-        name = "Unknown";
-    }
-
-    name += " " + std::to_string(m_renderId);
+std::string Component::getRenderName() const {
+    std::string name = m_name + " " + std::to_string(m_renderId);
     return name;
 }
 

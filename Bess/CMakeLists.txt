@@ -24,7 +24,6 @@ set(Header_Files
     "include/components/connection.h"
     "include/components/input_probe.h"
     "include/components/output_probe.h"
-    "include/components/nand_gate.h"
     "include/components/slot.h"
     "include/components_manager/component_type.h"
     "include/components_manager/components_manager.h"
@@ -65,7 +64,6 @@ set(Source_Files
     "src/components/component.cpp"
     "src/components/connection.cpp"
     "src/components/input_probe.cpp"
-    "src/components/nand_gate.cpp"
     "src/components/slot.cpp"
     "src/components_manager/components_manager.cpp"
     "src/renderer/gl/framebuffer.cpp"
@@ -86,7 +84,7 @@ set(ALL_FILES
     ${Header_Files}
     ${Shaders}
     ${Source_Files}
- "src/renderer/font.cpp" "include/common/helpers.h" "src/common/helpers.cpp" "include/common/digital_state.h")
+ "src/renderer/font.cpp" "include/common/helpers.h" "src/common/helpers.cpp" "include/common/digital_state.h" "include/components/jcomponent.h" "include/components_manager/jcomponent_data.h" "src/components_manager/jcomponent_data.cpp" "src/components/jcomponent.cpp" "src/components_manager/component_bank.cpp" "include/components_manager/component_bank.h" "src/simulator/simulator_engine.cpp" "include/simulator/simulator_engine.h")
 
 ################################################################################
 # Target
@@ -120,6 +118,7 @@ if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/freetype/include;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui/backends;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/glm;"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../external/json;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/glfw/include;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/glad/include;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/stb_image/include;"

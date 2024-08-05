@@ -14,6 +14,7 @@ OutputProbe::OutputProbe() : Component()
 OutputProbe::OutputProbe(const UUIDv4::UUID &uid, int renderId,
                          glm::vec3 position, const UUIDv4::UUID &outputSlot)
     : Component(uid, renderId, position, ComponentType::outputProbe) {
+    m_name = "Output Probe";
     m_outputSlot = outputSlot;
     m_events[ComponentEventType::leftClick] =
         (OnLeftClickCB)[&](const glm::vec2 &pos) {

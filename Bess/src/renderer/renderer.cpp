@@ -329,7 +329,7 @@ void Renderer::text(const std::string& text, const glm::vec3& pos, const size_t 
 
         float xpos = x + ch.Bearing.x * scale;
         float ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
-
+        
         float w = ch.Size.x * scale;
         float h = ch.Size.y * scale;
 

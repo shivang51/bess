@@ -1,0 +1,34 @@
+{
+  "collectionName": "Digital Gates",
+  "components": [
+    {
+      "name": "Not Gate",
+      "inputCount": 1,
+      "outputs": [
+        "!0"
+      ]
+    },
+    {
+      "name": "And Gate",
+      "inputCount": 2,
+      "outputs": [
+        "0*1"
+      ]
+    },
+    {
+      "name": "Nand Gate",
+      "inputCount": 2,
+      "outputs": [
+        "!(0*1)"
+      ]
+    },
+    {
+      "name": "Nand + OR Gate",
+      "inputCount": 2,
+      "outputs": [
+        "!(0*1)",
+        "0+1"
+      ]
+    }
+  ]
+}

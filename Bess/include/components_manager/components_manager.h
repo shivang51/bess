@@ -22,13 +22,9 @@ class ComponentsManager {
     // scene.
     static std::unordered_map<UUIDv4::UUID, ComponentPtr> renderComponenets;
 
-    static void generateNandGate(const glm::vec3 &pos = {0.f, 0.f, 0.f});
+    static void generateComponent(ComponentType type, const std::any& data = NULL, const glm::vec3& pos = { 0.f, 0.f, 0.f });
 
     static void addConnection(const UUIDv4::UUID &start, const UUIDv4::UUID &end);
-
-    static void generateInputProbe(const glm::vec3 &pos = {0.f, 0.f, 0.f});
-
-    static void generateOutputProbe(const glm::vec3 &pos = {0.f, 0.f, 0.f});
 
     static const UUIDv4::UUID &renderIdToCid(int rId);
     static int compIdToRid(const UUIDv4::UUID &cid);
@@ -41,6 +37,7 @@ class ComponentsManager {
     static void addCompIdToRId(int rid, const UUIDv4::UUID& cid);
 
     static float getNextZPos();
+
     static int getNextRenderId();
 
   private:

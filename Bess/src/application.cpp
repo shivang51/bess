@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "components_manager/components_manager.h"
+#include "components_manager/component_bank.h"
 
 using Bess::Renderer2D::Renderer;
 
@@ -22,32 +23,32 @@ namespace Bess {
     std::bind(&Application::fn, this, std::placeholders::_1,                   \
               std::placeholders::_2)
 
-Application::Application() : m_window(800, 600, "Bess") {
-    Simulator::ComponentsManager::init();
-    ApplicationState::init();
+    Application::Application() : m_window(800, 600, "Bess") {
+        Simulator::ComponentsManager::init();
+        ApplicationState::init();
 
-    m_framebuffer = std::make_unique<Gl::FrameBuffer>(800.f, 600.f);
-    m_camera = std::make_shared<Camera>(800.f, 600.f);
+        m_framebuffer = std::make_unique<Gl::FrameBuffer>(800.f, 600.f);
+        m_camera = std::make_shared<Camera>(800.f, 600.f);
 
-    UI::init(m_window.getGLFWHandle());
-    UI::state.viewportTexture = m_framebuffer->getTexture();
-    UI::state.cameraZoom = Camera::defaultZoom;
+        UI::init(m_window.getGLFWHandle());
+        UI::state.viewportTexture = m_framebuffer->getTexture();
+        UI::state.cameraZoom = Camera::defaultZoom;
 
-    Renderer::init();
+        Renderer::init();
 
-    m_window.onWindowResize(BIND_EVENT_FN_2(onWindowResize));
-    m_window.onMouseWheel(BIND_EVENT_FN_2(onMouseWheel));
-    m_window.onKeyPress(BIND_EVENT_FN_1(onKeyPress));
-    m_window.onKeyRelease(BIND_EVENT_FN_1(onKeyRelease));
-    m_window.onLeftMouse(BIND_EVENT_FN_1(onLeftMouse));
-    m_window.onRightMouse(BIND_EVENT_FN_1(onRightMouse));
-    m_window.onMiddleMouse(BIND_EVENT_FN_1(onMiddleMouse));
-    m_window.onMouseMove(BIND_EVENT_FN_2(onMouseMove));
+        m_window.onWindowResize(BIND_EVENT_FN_2(onWindowResize));
+        m_window.onMouseWheel(BIND_EVENT_FN_2(onMouseWheel));
+        m_window.onKeyPress(BIND_EVENT_FN_1(onKeyPress));
+        m_window.onKeyRelease(BIND_EVENT_FN_1(onKeyRelease));
+        m_window.onLeftMouse(BIND_EVENT_FN_1(onLeftMouse));
+        m_window.onRightMouse(BIND_EVENT_FN_1(onRightMouse));
+        m_window.onMiddleMouse(BIND_EVENT_FN_1(onMiddleMouse));
+        m_window.onMouseMove(BIND_EVENT_FN_2(onMouseMove));
 
-    Bess::Simulator::ComponentsManager::generateNandGate();
-    Bess::Simulator::ComponentsManager::generateInputProbe({-150.f, 0.f, 1.f});
-    Bess::Simulator::ComponentsManager::generateOutputProbe({ 150.f, 0.f, 2.f });
-
+        Simulator::ComponentBankElement el(Simulator::ComponentType::inputProbe, "Input Probe");
+        Simulator::ComponentBank::addToCollection("I/O", el);
+        Simulator::ComponentBank::addToCollection("I/O", {Simulator::ComponentType::outputProbe, "Ouput Probe"});
+        Simulator::ComponentBank::loadFromJson("assets/gates_collection.json");
 }
 
 Application::~Application() {
@@ -190,8 +191,7 @@ void Application::onRightMouse(bool pressed) {
     m_rightMousePressed = pressed;
     if (!pressed && isCursorInViewport()) {
         auto pos = glm::vec3(getNVPMousePos(), 0.f);
-
-        Simulator::ComponentsManager::generateNandGate(pos);
+        //Simulator::ComponentsManager::generateNandGate(pos);
         return;
     }
 
@@ -216,14 +216,14 @@ void Application::onMiddleMouse(bool pressed) {
 void Application::onMouseMove(double x, double y) {
     float dx = (float)x - m_mousePos.x;
     float dy = (float)y - m_mousePos.y;
-    m_mousePos = {x, y};
+    m_mousePos = { x, y };
 
     if (!isCursorInViewport())
         return;
 
     if (ApplicationState::prevHoveredId != ApplicationState::hoveredId) {
         if (ApplicationState::prevHoveredId != -1) {
-            auto &cid = Simulator::ComponentsManager::renderIdToCid(
+            auto& cid = Simulator::ComponentsManager::renderIdToCid(
                 ApplicationState::prevHoveredId);
             Simulator::Components::ComponentEventData e;
             e.type = Simulator::Components::ComponentEventType::mouseLeave;
@@ -234,7 +234,7 @@ void Application::onMouseMove(double x, double y) {
         if (ApplicationState::hoveredId < 0)
             return;
 
-        auto &cid = Simulator::ComponentsManager::renderIdToCid(
+        auto& cid = Simulator::ComponentsManager::renderIdToCid(
             ApplicationState::hoveredId);
         Simulator::Components::ComponentEventData e;
         e.type = Simulator::Components::ComponentEventType::mouseEnter;
@@ -243,20 +243,18 @@ void Application::onMouseMove(double x, double y) {
 
     if (m_middleMousePressed) {
         m_camera->incrementPos(
-            {dx / UI::state.cameraZoom, -dy / UI::state.cameraZoom});
+            { dx / UI::state.cameraZoom, -dy / UI::state.cameraZoom });
     }
 
     else if (m_leftMousePressed && ApplicationState::getSelectedId() !=
-                                       Simulator::ComponentsManager::emptyId) {
-        auto &entity = Simulator::ComponentsManager::components
+        Simulator::ComponentsManager::emptyId) {
+        auto& entity = Simulator::ComponentsManager::components
             [ApplicationState::getSelectedId()];
 
-        if (entity->getType() != Simulator::ComponentType::gate &&
-            entity->getType() != Simulator::ComponentType::inputProbe &&
-            entity->getType() != Simulator::ComponentType::outputProbe)
-            return;
+        // dragable components start from 101
+        if ((int)entity->getType() <= 100) return;
 
-        auto &pos = entity->getPosition();
+        auto& pos = entity->getPosition();
 
         if (!ApplicationState::dragData.isDragging) {
             ApplicationState::dragData.isDragging = true;
@@ -266,7 +264,7 @@ void Application::onMouseMove(double x, double y) {
 
         auto dPos = getNVPMousePos() - ApplicationState::dragData.dragOffset;
 
-        pos = {dPos, pos.z};
+        pos = { dPos, pos.z };
     }
 }
 

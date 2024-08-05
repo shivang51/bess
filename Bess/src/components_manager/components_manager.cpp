@@ -2,7 +2,7 @@
 
 #include "components/connection.h"
 #include "components/input_probe.h"
-#include "components/nand_gate.h"
+#include "components/jcomponent.h"
 
 #include "application_state.h"
 #include "components/output_probe.h"
@@ -24,7 +24,9 @@ namespace Bess::Simulator {
     UUIDv4::UUID ComponentsManager::emptyId;
 
     const float ComponentsManager::zIncrement = 0.0001f;
+
     float ComponentsManager::zPos = 0.0f;
+
 
     void ComponentsManager::init() {
        ComponentsManager::emptyId = Common::Helpers::uuidGenerator.getUUID();
@@ -32,12 +34,19 @@ namespace Bess::Simulator {
         renderIdToCId[-1] = emptyId;
     }
 
-    void ComponentsManager::generateNandGate(const glm::vec3& pos) {
-        Components::NandGate().generate(pos);
-    }
-
-    void ComponentsManager::generateInputProbe(const glm::vec3& pos) {
-        Components::InputProbe().generate(pos);
+    void ComponentsManager::generateComponent(ComponentType type, const std::any& data, const glm::vec3& pos) {
+        switch (type) {
+        case ComponentType::jcomponent: {
+            auto val = std::any_cast<const std::shared_ptr<Components::JComponentData>>(data);
+            Components::JComponent().generate(val, pos);
+        }break;
+        case ComponentType::inputProbe: {
+            Components::InputProbe().generate(pos);
+        }break;
+        case ComponentType::outputProbe: {
+            Components::OutputProbe().generate(pos);
+        }break;
+        }
     }
 
     void ComponentsManager::addConnection(const UUIDv4::UUID& slot1, const UUIDv4::UUID& slot2) {
@@ -80,11 +89,6 @@ namespace Bess::Simulator {
     void ComponentsManager::addCompIdToRId(int rid, const UUIDv4::UUID& cid)
     {
         compIdToRId[cid] = rid;
-    }
-
-    void ComponentsManager::generateOutputProbe(const glm::vec3 & pos) {
-        auto obj = Components::OutputProbe();
-        obj.generate(pos);
     }
 
     int ComponentsManager::getNextRenderId() { return renderIdCounter++; }
