@@ -1,22 +1,7 @@
-<<<<<<< HEAD
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.buildlog/
-.history
-.svn/
-migrate_working_dir/
-*.ini
-=======
 cmake-build-debug/
 cmake-build-release/
->>>>>>> opengl
 
-x64/
+x64
 out/
 build/
 
