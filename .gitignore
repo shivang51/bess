@@ -1,7 +1,7 @@
 cmake-build-debug/
 cmake-build-release/
 
-x64
+x64/
 out/
 build/
 
