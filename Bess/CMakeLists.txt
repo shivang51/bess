@@ -40,6 +40,12 @@ set(Header_Files
     "include/ui.h"
     "include/window.h"
     "include/common/bind_helpers.h"
+    "include/common/helpers.h"
+    "include/common/digital_state.h"
+    "include/components/jcomponent.h"
+    "include/components_manager/jcomponent_data.h"
+    "include/components_manager/component_bank.h"
+    "include/simulator/simulator_engine.h"
 )
 source_group("Header Files" FILES ${Header_Files})
 
@@ -76,6 +82,12 @@ set(Source_Files
     "src/ui.cpp"
     "src/window.cpp"
     "src/components/output_probe.cpp"
+    "src/renderer/font.cpp"
+    "src/common/helpers.cpp"
+    "src/components_manager/jcomponent_data.cpp"
+    "src/components_manager/component_bank.cpp"
+    "src/components/jcomponent.cpp"
+    "src/simulator/simulator_engine.cpp"
 )
 source_group("Source Files" FILES ${Source_Files})
 
@@ -84,7 +96,7 @@ set(ALL_FILES
     ${Header_Files}
     ${Shaders}
     ${Source_Files}
- "src/renderer/font.cpp" "include/common/helpers.h" "src/common/helpers.cpp" "include/common/digital_state.h" "include/components/jcomponent.h" "include/components_manager/jcomponent_data.h" "src/components_manager/jcomponent_data.cpp" "src/components/jcomponent.cpp" "src/components_manager/component_bank.cpp" "include/components_manager/component_bank.h" "src/simulator/simulator_engine.cpp" "include/simulator/simulator_engine.h")
+)
 
 ################################################################################
 # Target
@@ -249,8 +261,8 @@ SET(CMAKE_CXX_FLAGS  "-march=native")
 
 if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
     target_link_directories(${PROJECT_NAME} PRIVATE
-        "${CMAKE_SOURCE_DIR}/external/glfw/lib-vc2022",
-        "${CMAKE_SOURCE_DIR}/external/freetype/libs/windows",
+        "${CMAKE_SOURCE_DIR}/external/glfw/lib-vc2022"
+        "${CMAKE_SOURCE_DIR}/external/freetype/libs/windows"
     )
 endif()
 
