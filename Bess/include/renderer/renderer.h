@@ -29,6 +29,8 @@ class Renderer {
     static void begin(std::shared_ptr<Camera> camera);
     static void end();
 
+    static const glm::vec2& getCharRenderSize(char ch, float renderSize);
+  public:
     static void quad(const glm::vec3 &pos, const glm::vec2 &size,
                      const glm::vec3 &color, int id,
                      const glm::vec4 &borderRadius = {0.f, 0.f, 0.f, 0.f},
@@ -36,12 +38,26 @@ class Renderer {
                      float borderSize = 0.f);
 
     static void quad(const glm::vec3 &pos, const glm::vec2 &size,
+                     const glm::vec3 &color, int id,
+                     const glm::vec4 &borderRadius,
+                     const glm::vec4 &borderColor,
+                     const glm::vec4 &borderSize = glm::vec4(0.f));
+
+    static void quad(const glm::vec3 &pos, const glm::vec2 &size,
                      const glm::vec3 &color, int id, float angle,
                      const glm::vec4 &borderRadius = {0.f, 0.f, 0.f, 0.f},
                      const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
                      float borderSize = 0.f);
+    
 
-    static void curve(const glm::vec3 &start, const glm::vec3 &end,
+
+    static void quad(const glm::vec3 &pos, const glm::vec2 &size,
+                     const glm::vec3 &color, int id, float angle,
+                     const glm::vec4 &borderRadius = {0.f, 0.f, 0.f, 0.f},
+                     const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
+                     const glm::vec4 &borderSize = glm::vec4(0.f));
+
+    static void curve(const glm::vec3 &start, const glm::vec3 &end, float size,
                       const glm::vec3 &color, int id);
 
     static void circle(const glm::vec3 &center, float radius,
@@ -63,6 +79,11 @@ class Renderer {
     static void addQuadVertices(const std::vector<Gl::QuadVertex> &vertices);
 
     static void flush(PrimitiveType type);
+    
+    static void drawQuad(const glm::vec3 &pos, const glm::vec2 &size,
+                     const glm::vec3 &color, int id, float angle,
+                     const glm::vec4 &borderRadius = {0.f, 0.f, 0.f, 0.f}
+    );
 
   private:
     static std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Shader>>

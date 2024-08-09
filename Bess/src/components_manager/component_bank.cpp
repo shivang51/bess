@@ -15,6 +15,10 @@ namespace Bess::Simulator{
         return m_vault;
     }
 
+    const std::vector<ComponentBankElement>& ComponentBank::getCollection(const std::string& collection) {
+        return m_vault[collection];
+    }
+
     void Simulator::ComponentBank::loadFromJson(const std::string& filepath)
     {
         std::ifstream file(filepath);

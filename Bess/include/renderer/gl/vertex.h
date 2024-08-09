@@ -21,9 +21,7 @@ struct QuadVertex {
     glm::vec3 position;
     glm::vec3 color;
     glm::vec2 texCoord;
-    float borderSize;
     glm::vec4 borderRadius;
-    glm::vec4 borderColor;
     glm::vec2 size;
     int id;
 };

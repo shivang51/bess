@@ -33,13 +33,16 @@ Connection::Connection(): Component()
 void Connection::render() {
     auto slotA = ComponentsManager::components[m_slot1];
     auto slotB = ComponentsManager::components[m_slot2];
+    auto m_selected = ApplicationState::getSelectedId() == m_uid;
+    auto m_hovered = ApplicationState::hoveredId == m_renderId;
 
     auto posA = slotA->getPosition();
     auto posB = slotB->getPosition();
     Renderer2D::Renderer::curve(
         {posA.x, posA.y, m_position.z}, 
         {posB.x, posB.y, m_position.z},
-        ApplicationState::getSelectedId() == m_uid ? Theme::selectedWireColor: Theme::wireColor,
+        m_hovered ? 2.5f : 2.0f,
+        m_selected ? Theme::selectedWireColor: Theme::wireColor,
         m_renderId
     );
 }

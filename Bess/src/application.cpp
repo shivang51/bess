@@ -49,6 +49,11 @@ namespace Bess {
         Simulator::ComponentBank::addToCollection("I/O", el);
         Simulator::ComponentBank::addToCollection("I/O", {Simulator::ComponentType::outputProbe, "Ouput Probe"});
         Simulator::ComponentBank::loadFromJson("assets/gates_collection.json");
+
+        auto& vault = Simulator::ComponentBank::getCollection("Digital Gates");
+        auto& els = vault[0];
+
+        Simulator::ComponentsManager::generateComponent(Simulator::ComponentType::jcomponent, els.getJCompData());
 }
 
 Application::~Application() {
@@ -66,7 +71,7 @@ void Application::drawScene() {
     switch (ApplicationState::drawMode) {
     case DrawMode::connection: {
         auto mPos = glm::vec3(getNVPMousePos(), -1);
-        Renderer::curve(ApplicationState::points[0], mPos, {0.5, 0.8, 0.5}, -1);
+        Renderer::curve(ApplicationState::points[0], mPos, 2.5, {0.5, 0.8, 0.5}, -1);
     } break;
     default:
         break;

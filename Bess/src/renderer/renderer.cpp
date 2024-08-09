@@ -34,30 +34,29 @@ std::unique_ptr<Gl::Vao> Renderer::m_GridVao;
 std::unique_ptr<Font> Renderer::m_Font;
 
 void Renderer::init() {
+    {
+        m_GridShader = std::make_unique<Gl::Shader>(
+            "assets/shaders/grid_vert.glsl", "assets/shaders/grid_frag.glsl");
+        std::vector<Gl::VaoAttribAttachment> attachments;
+        attachments.emplace_back(Gl::VaoAttribAttachment(
+            Gl::VaoAttribType::vec3, offsetof(Gl::GridVertex, position)));
+        attachments.emplace_back(Gl::VaoAttribAttachment(
+            Gl::VaoAttribType::vec2, offsetof(Gl::GridVertex, texCoord)));
+        attachments.emplace_back(Gl::VaoAttribAttachment(
+            Gl::VaoAttribType::int_t, offsetof(Gl::GridVertex, id)));
+        attachments.emplace_back(Gl::VaoAttribAttachment(
+            Gl::VaoAttribType::float_t, offsetof(Gl::GridVertex, ar)));
 
-    m_GridShader = std::make_unique<Gl::Shader>(
-        "assets/shaders/grid_vert.glsl", "assets/shaders/grid_frag.glsl");
+        m_GridVao =
+            std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::GridVertex));
 
-    std::vector<Gl::VaoAttribAttachment> attachments;
-    attachments.emplace_back(Gl::VaoAttribAttachment(
-        Gl::VaoAttribType::vec3, offsetof(Gl::GridVertex, position)));
-    attachments.emplace_back(Gl::VaoAttribAttachment(
-        Gl::VaoAttribType::vec2, offsetof(Gl::GridVertex, texCoord)));
-    attachments.emplace_back(Gl::VaoAttribAttachment(
-        Gl::VaoAttribType::int_t, offsetof(Gl::GridVertex, id)));
-    attachments.emplace_back(Gl::VaoAttribAttachment(
-        Gl::VaoAttribType::float_t, offsetof(Gl::GridVertex, ar)));
-
-    m_GridVao =
-        std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::GridVertex));
-
-    m_AvailablePrimitives = {PrimitiveType::curve, PrimitiveType::quad,
-                             PrimitiveType::circle, PrimitiveType::font};
-    m_MaxRenderLimit[PrimitiveType::quad] = 250;
-    m_MaxRenderLimit[PrimitiveType::curve] = 250;
-    m_MaxRenderLimit[PrimitiveType::circle] = 250;
-    m_MaxRenderLimit[PrimitiveType::font] = 250;
-
+        m_AvailablePrimitives = { PrimitiveType::curve, PrimitiveType::quad,
+                                 PrimitiveType::circle, PrimitiveType::font };
+        m_MaxRenderLimit[PrimitiveType::quad] = 250;
+        m_MaxRenderLimit[PrimitiveType::curve] = 250;
+        m_MaxRenderLimit[PrimitiveType::circle] = 250;
+        m_MaxRenderLimit[PrimitiveType::font] = 250;
+    }
     std::string vertexShader, fragmentShader;
 
     for (auto primitive : m_AvailablePrimitives) {
@@ -99,15 +98,14 @@ void Renderer::init() {
                 Gl::VaoAttribType::vec3, offsetof(Gl::QuadVertex, color)));
             attachments.emplace_back(Gl::VaoAttribAttachment(
                 Gl::VaoAttribType::vec2, offsetof(Gl::QuadVertex, texCoord)));
-            attachments.emplace_back(
-                Gl::VaoAttribAttachment(Gl::VaoAttribType::float_t,
-                    offsetof(Gl::QuadVertex, borderSize)));
+            //attachments.emplace_back(
+            //    Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::QuadVertex, borderSize)));
             attachments.emplace_back(Gl::VaoAttribAttachment(
                 Gl::VaoAttribType::vec4,
                 offsetof(Gl::QuadVertex, borderRadius)));
-            attachments.emplace_back(
-                Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4,
-                    offsetof(Gl::QuadVertex, borderColor)));
+            //attachments.emplace_back(
+            //    Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4,
+            //        offsetof(Gl::QuadVertex, borderColor)));
             attachments.emplace_back(Gl::VaoAttribAttachment(
                 Gl::VaoAttribType::vec2, offsetof(Gl::QuadVertex, size)));
             attachments.emplace_back(Gl::VaoAttribAttachment(
@@ -156,9 +154,31 @@ void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
 }
 
 void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
+                    const glm::vec3 &color, int id,
+                    const glm::vec4 &borderRadius, const glm::vec4 &borderColor,
+                    const glm::vec4 &borderSize) {
+    Renderer::quad(pos, size, color, id, 0.f, borderRadius, borderColor,
+                   borderSize);
+}
+
+void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
                     const glm::vec3 &color, int id, float angle,
                     const glm::vec4 &borderRadius, const glm::vec4 &borderColor,
                     float borderSize) {
+    Renderer::quad(pos, size, color, id, angle, borderRadius, borderColor, glm::vec4(borderSize));
+}
+
+void Renderer2D::Renderer::quad(const glm::vec3& pos, const glm::vec2& size, const glm::vec3& color, int id, float angle, const glm::vec4& borderRadius, const glm::vec4& borderColor, const glm::vec4& borderSize) {
+    auto size_ = size;
+    auto borderRadius_ = borderRadius + borderSize;
+
+    size_.x += borderSize.w + borderSize.y;
+    size_.y += borderSize.x + borderSize.z;
+    Renderer::drawQuad(pos, size_, borderColor, id, angle, borderRadius_);
+    Renderer::drawQuad(pos, size, color, id, angle, borderRadius);
+}
+
+void Renderer2D::Renderer::drawQuad(const glm::vec3& pos, const glm::vec2& size, const glm::vec3& color, int id, float angle, const glm::vec4& borderRadius) {
     std::vector<Gl::QuadVertex> vertices(4);
 
     auto transform = glm::translate(glm::mat4(1.0f), pos);
@@ -172,8 +192,6 @@ void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
         vertex.color = color;
         vertex.borderRadius = borderRadius;
         vertex.size = size;
-        vertex.borderColor = borderColor;
-        vertex.borderSize = borderSize;
     }
 
     vertices[0].texCoord = {0.0f, 1.0f};
@@ -236,13 +254,13 @@ void Renderer::createCurveVertices(const glm::vec3 &start, const glm::vec3 &end,
     auto angle = std::atan(dy / dx);
     float dis = std::sqrt((dx * dx) + (dy * dy));
 
-    float sizeX = std::max(dis, 3.0f);
+    float sizeX = std::max(dis, weight);
     sizeX = dis;
 
     glm::vec3 pos = {start.x, start.y - 0.005f, start.z};
     auto transform = glm::translate(glm::mat4(1.0f), pos);
     transform = glm::rotate(transform, angle, {0.f, 0.f, 1.f});
-    transform = glm::scale(transform, {sizeX, 3.0f, 1.f});
+    transform = glm::scale(transform, {sizeX, weight, 1.f});
 
     std::vector<Gl::Vertex> vertices(4);
     for (int i = 0; i < 4; i++) {
@@ -266,7 +284,8 @@ int calculateSegments(const glm::vec2 &p1, const glm::vec2 &p2) {
                  0.001f);
 }
 
-void Renderer::curve(const glm::vec3 &start, const glm::vec3 &end,
+
+void Renderer::curve(const glm::vec3 &start, const glm::vec3 &end, float size,
                      const glm::vec3 &color, const int id) {
     const int segments = (int)(calculateSegments(start, end));
     double dx = end.x - start.x;
@@ -275,10 +294,9 @@ void Renderer::curve(const glm::vec3 &start, const glm::vec3 &end,
     glm::vec2 cp1 = {start.x + offsetX, start.y};
     auto prev = start;
     for (int i = 1; i <= segments; i++) {
-        glm::vec2 bP =
-            bernstine(start, cp1, cp2, end, (float)i / (float)segments);
+        glm::vec2 bP = bernstine(start, cp1, cp2, end, (float)i / (float)segments);
         glm::vec3 p = {bP.x, bP.y, start.z};
-        createCurveVertices(prev, p, color, id);
+        createCurveVertices(prev, p, color, id, size);
         prev = p;
     }
 }
@@ -448,5 +466,13 @@ void Renderer::end() {
     for (auto primitive : m_AvailablePrimitives) {
         flush(primitive);
     }
+}
+
+const glm::vec2& Renderer2D::Renderer::getCharRenderSize(char ch, float renderSize) {
+    auto ch_ = m_Font->getCharacter(ch);  
+    float scale = m_Font->getScale(renderSize);
+    glm::vec2 size = { (ch_.Advance >> 6), ch_.Size.y};
+    size = { size.x * scale, size.y * scale };
+    return size;
 }
 } // namespace Bess

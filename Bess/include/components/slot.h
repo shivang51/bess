@@ -9,6 +9,9 @@ class Slot : public Component {
     Slot(const UUIDv4::UUID &uid, const UUIDv4::UUID& parentUid,  int renderId, ComponentType type);
     ~Slot() = default;
 
+    void update(const glm::vec3 &pos, const std::string& label);
+    void update(const glm::vec3 &pos, const glm::vec2& labelOffset);
+    void update(const glm::vec3 &pos, const glm::vec2& labelOffset, const std::string& label);
     void update(const glm::vec3 &pos);
 
     void render() override;
@@ -27,6 +30,12 @@ class Slot : public Component {
 
     void generate(const glm::vec3& pos = { 0.f, 0.f, 0.f }) override;
 
+    const std::string& getLabel();
+    void setLabel(const std::string& label);
+
+    const std::string& getLabelOffset();
+    void setLabelOffset(const std::string& label);
+
   private:
     // contains one way connection from starting slot to other
     std::vector<UUIDv4::UUID> connections;
@@ -41,5 +50,11 @@ class Slot : public Component {
     void onChange();
 
     std::unordered_map<UUIDv4::UUID, bool> stateChangeHistory = {};
+
+    std::string m_label = "";
+    glm::vec2 m_labelOffset = { 0.f, 0.f };
+    float m_labelWidth = 0.f;
+
+    void calculateLabelWidth();
 };
 } // namespace Bess::Simulator::Components

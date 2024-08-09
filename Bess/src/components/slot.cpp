@@ -20,18 +20,45 @@ Slot::Slot(const UUIDv4::UUID &uid, const UUIDv4::UUID& parentUid, int id, Compo
     m_state = DigitalState::low;
 }
 
+void Slot::update(const glm::vec3& pos, const std::string& label) {
+    m_position = pos; 
+    setLabel(label);
+}
+
+void Slot::update(const glm::vec3& pos, const glm::vec2& labelOffset) {
+    m_position = pos;
+    m_labelOffset = labelOffset;
+}
+
+void Slot::update(const glm::vec3& pos, const glm::vec2& labelOffset, const std::string& label) {
+    m_position = pos;
+    m_labelOffset = labelOffset;
+    setLabel(label);
+}
+
 void Slot::update(const glm::vec3 &pos) { m_position = pos; }
 
 void Slot::render() {
-    Renderer2D::Renderer::circle(m_position, 8.f,
+    Renderer2D::Renderer::circle(m_position, m_highlightBorder ? 8.f: 7.f,
                                  m_highlightBorder
                                      ? Theme::selectedWireColor
                                      : Theme::componentBorderColor,
                                  m_renderId);
+
     Renderer2D::Renderer::circle(
-        m_position, m_highlightBorder ? 6.f : 7.f,
+        m_position, 6.f,
         (connections.size() == 0) ? Theme::backgroundColor : connectedBg,
         m_renderId);
+    
+    if (m_label == "") return;
+    float fontSize = 10.f;
+	auto charSize = Renderer2D::Renderer::getCharRenderSize('Z', fontSize);
+    glm::vec3 offset = glm::vec3(m_labelOffset, ComponentsManager::zIncrement);
+    if (offset.x < 0.f) {
+        offset.x -= m_labelWidth;
+    }
+    offset.y -= charSize.y / 2.f;
+    Renderer2D::Renderer::text(m_label, m_position + offset, fontSize, { 1.f, 1.f, 1.f }, ComponentsManager::compIdToRid(m_parentUid));
 }
 
 void Slot::onLeftClick(const glm::vec2 &pos) {
@@ -75,6 +102,14 @@ void Slot::onChange()
         default:
             break;
         }
+    }
+}
+
+void Slot::calculateLabelWidth() {
+    m_labelWidth = 0.f;
+    for (auto& ch_ : m_label) {
+        auto& ch = Renderer2D::Renderer::getCharRenderSize(ch_, 12.f);
+        m_labelWidth += ch.x;
     }
 }
 
@@ -135,5 +170,12 @@ const UUIDv4::UUID& Slot::getParentId()
 
 void Slot::generate(const glm::vec3& pos)
 {
+}
+const std::string& Slot::getLabel() {
+    return m_label;
+}
+void Slot::setLabel(const std::string& label) {
+    m_label = label;
+    calculateLabelWidth();
 }
 } // namespace Bess::Simulator::Components

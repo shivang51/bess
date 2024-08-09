@@ -4,7 +4,7 @@
 #include <iostream>
 
 namespace Bess {
-float Camera::zoomMin = 1.f, Camera::zoomMax = 2.f, Camera::defaultZoom = 1.5f;
+float Camera::zoomMin = 1.f, Camera::zoomMax = 2.f, Camera::defaultZoom = 1.517f;
 
 Camera::Camera(float width, float height)
     : m_zoom(1.0f), m_width(width), m_height(height) {

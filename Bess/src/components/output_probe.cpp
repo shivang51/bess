@@ -6,7 +6,7 @@
 
 namespace Bess::Simulator::Components {
 
-glm::vec2 outputProbeSize = {50.f, 30.f};
+glm::vec2 outputProbeSize = {50.f, 25.f};
 OutputProbe::OutputProbe() : Component()
 {
 }
@@ -24,26 +24,24 @@ OutputProbe::OutputProbe(const UUIDv4::UUID &uid, int renderId,
 
 void OutputProbe::render() {
     bool selected = ApplicationState::getSelectedId() == m_uid;
-    float thickness = 2.f;
+    float thickness = 1.f;
 
-    Slot* slot =
-        (Slot*)Simulator::ComponentsManager::components[m_outputSlot].get();
+    Slot* slot = (Slot*)Simulator::ComponentsManager::components[m_outputSlot].get();
 
-    float r = 1.f, r1 = r;
-    thickness /= outputProbeSize.y;
+    float r = 12.f;
 
     auto bgColor = Theme::componentBGColor;
+    auto borderColor = Theme::componentBorderColor;
 
+    std::string label = "L";
     if (slot->getState() == DigitalState::high) {
-        bgColor = glm::vec3(50.f / 255.f, 100.f / 255.f, 50.f / 255.f);
+        borderColor = Theme::stateHighColor;
+        label = "H";
     }
 
-    Renderer2D::Renderer::quad(
-        m_position, outputProbeSize, bgColor, m_renderId,
-        {r1, r1, r1, r1}, Theme::componentBorderColor, thickness);
+    Renderer2D::Renderer::quad(m_position, outputProbeSize, bgColor, m_renderId, glm::vec4(r), borderColor, thickness);
 
-    slot->update(m_position +
-                 glm::vec3({-(outputProbeSize.x / 2) + 16.f, 0.f, 0.f}));
+    slot->update(m_position + glm::vec3({ -(outputProbeSize.x / 2) + 10.f, 0.f, 0.f }), {12.f, 0.f}, label);
     slot->render();
 }
 

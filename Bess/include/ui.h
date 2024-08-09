@@ -9,11 +9,12 @@
 #include <vector>
 
 #include "application_state.h"
+#include "camera.h"
 
 namespace Bess {
 
 struct UIState {
-    float cameraZoom = 1.f;
+    float cameraZoom = Camera::defaultZoom;
     glm::vec2 viewportSize = {800, 500};
     glm::vec2 viewportPos = {0, 0};
     GLuint64 viewportTexture = 0;

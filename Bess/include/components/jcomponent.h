@@ -1,7 +1,7 @@
 #pragma once
 #include "component.h"
 #include "components/slot.h"
-#include "ext/vector_float2.hpp"
+#include "glm.hpp"
 #include <vector>
 
 #include "uuid_v4.h"
@@ -32,5 +32,8 @@ namespace Bess::Simulator::Components {
 
         void onLeftClick(const glm::vec2& pos);
         void onRightClick(const glm::vec2& pos);
+
+    private:
+        void drawBackground(const glm::vec4& borderRadiusPx, float rPx, float headerHeight);
     };
 } // namespace Bess::Simulator::Components

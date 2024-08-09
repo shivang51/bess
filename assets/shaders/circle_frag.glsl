@@ -15,7 +15,7 @@ void main() {
 
     vec2 uv = v_TexCoord - 0.5;
     float r = 0.5f;
-    float blur = 0.15;
+    float blur = 0.06;
 
     vec3 col = v_FragColor;
 

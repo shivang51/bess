@@ -8,14 +8,14 @@ in vec2 v_TexCoord;
 in vec3 v_FragColor;
 in flat int v_TextureIndex;
 
-uniform sampler2D text;
+uniform sampler2D tex;
 uniform int u_SelectedObjId;
 uniform vec3 textColor;
 
 void main(){
-    float a = texture(text, v_TexCoord).r;
+    float a = texture(tex, v_TexCoord).r;
     if(a == 0.f) discard;
-    vec4 sampled = vec4(1.0, 1.0, 1.0, a);
-    fragColor = vec4(textColor, 1.0) * sampled;
+    vec4 sampled = vec4(textColor, a);
+    fragColor = sampled;
     fragColor1 = v_TextureIndex;	
 }

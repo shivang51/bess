@@ -1,7 +1,7 @@
 #include "components/jcomponent.h"
 
 #include "application_state.h"
-#include "fwd.hpp"
+#include "glm.hpp"
 #include "renderer/renderer.h"
 
 #include "common/theme.h"
@@ -14,7 +14,7 @@ namespace Bess::Simulator::Components {
 #define BIND_EVENT_FN_1(fn)                                                    \
     std::bind(&JComponent::fn, this, std::placeholders::_1)
 
-    glm::vec2 gateSize = { 150.f, 100.f };
+    glm::vec2 gateSize = { 142.f, 100.f };
 
     JComponent::JComponent() : Component(), m_data{}
     {
@@ -35,59 +35,102 @@ namespace Bess::Simulator::Components {
             (OnRightClickCB)BIND_EVENT_FN_1(onRightClick);
     }
 
+    void JComponent::drawBackground(const glm::vec4& borderThicknessPx, float rPx, float headerHeight) {
+        bool selected = ApplicationState::getSelectedId() == m_uid;
+
+        auto borderColor = selected ? glm::vec4(Theme::selectedCompColor, 1.f) : Theme::componentBorderColor;
+
+        Renderer2D::Renderer::quad(
+            m_position,
+            gateSize,
+            Theme::componentBGColor,
+            m_renderId,
+            glm::vec4(rPx),
+            borderColor,
+            borderThicknessPx
+        );
+
+        auto headerPos = m_position;
+        headerPos.y = m_position.y + ((gateSize.y / 2) - (headerHeight / 2.f));
+
+        Renderer2D::Renderer::quad(
+            headerPos,
+            { gateSize.x, headerHeight },
+            Theme::compHeaderColor,
+            m_renderId,
+            glm::vec4(rPx, rPx, 0.f, 0.f)
+       );
+
+    }
+
+    std::string decodeExpr(const std::string& str) {
+        std::string exp = "";
+        for (auto ch : str) {
+            if (std::isdigit(ch)) ch = 'A' + (ch - '0');
+            exp += ch;
+        }
+        return exp;
+    }
     void JComponent::render() {
         bool selected = ApplicationState::getSelectedId() == m_uid;
-        float rPx = 24.f;
-        float borderThickness = 3.f;
+        float rPx = 16.f;
 
-        float r = rPx / gateSize.y;
-        float r1 = rPx / 20.f;
+        glm::vec4 borderThicknessPx({1.f, 1.f, 1.f, 1.f});
+        float headerHeight = 20.f;
+        glm::vec2 slotRowPadding = { 4.0f, 4.f };
+        glm::vec2 gatePadding = { 4.0f, 4.f };
+        float rowGap = 4.f;
+        float sCharHeight = Renderer2D::Renderer::getCharRenderSize('Y', 12.f).y;
+        float rowHeight = (slotRowPadding.y * 2) + sCharHeight;
 
-        Renderer2D::Renderer::quad(
-            m_position, gateSize, Theme::componentBGColor, m_renderId, glm::vec4(r),
-            selected ? glm::vec4(Theme::selectedCompColor, 1.f)
-            : Theme::componentBorderColor,
-            borderThickness / gateSize.y);
+        float maxSlotsCount = std::max(m_inputSlots.size(), m_outputSlots.size());
 
-        Renderer2D::Renderer::quad(
-            { m_position.x,
-             m_position.y + ((gateSize.y / 2) - 10.f) - borderThickness / 2.f,
-             m_position.z },
-            { gateSize.x - borderThickness, 20.f }, Theme::compHeaderColor,
-            m_renderId, glm::vec4(r1, r1, 0.f, 0.f),
-            glm::vec4(Theme::compHeaderColor, 1.f), borderThickness / 20.f);
+        gateSize.y = headerHeight + (rowHeight + rowGap) * maxSlotsCount + 4.f;
 
-        std::vector<glm::vec3> slots = {
-            glm::vec3({-(gateSize.x / 2) + 10.f, 6.f, 0.f}),
-            glm::vec3({-(gateSize.x / 2) + 10.f, -(gateSize.y / 2) + 16.0, 0.f}) };
+        drawBackground(borderThicknessPx, rPx, headerHeight);
 
-        for (int i = 0; i < m_inputSlots.size(); i++) {
-            Slot* slot =
-                (Slot*)Simulator::ComponentsManager::components[m_inputSlots[i]]
-                .get();
-            slot->update(m_position + slots[i]);
-            slot->render();
+        auto leftCornerPos = Common::Helpers::GetLeftCornerPos(m_position, gateSize);
+        {
+            glm::vec3 inpSlotRowPos = { leftCornerPos.x + 8.f + gatePadding.x, leftCornerPos.y - headerHeight - 4.f, leftCornerPos.z };
 
-            Renderer2D::Renderer::text(std::string(1, 'A' + i), m_position + slots[i] + glm::vec3({ 10.f, -2.5f, ComponentsManager::zIncrement }), 12.f, { 1.f, 1.f, 1.f }, m_renderId);
+            for (int i = 0; i < m_inputSlots.size(); i++) {
+                char ch = 'A' + i;
+                auto charSize = Renderer2D::Renderer::getCharRenderSize(ch, 12.f);
 
+                auto height = (slotRowPadding.y * 2) + charSize.y;
+
+                auto pos = inpSlotRowPos;
+                pos.y -= height / 2.f;
+
+                Slot* slot = (Slot*)Simulator::ComponentsManager::components[m_inputSlots[i]].get();
+                slot->update(pos, {12.f, 0.f}, std::string(1, ch));
+                slot->render();
+
+                inpSlotRowPos.y -= height + rowGap;
+            }
+        }
+        
+        {
+            glm::vec3 outSlotRowPos = { leftCornerPos.x + gateSize.x - 8.f - gatePadding.x, leftCornerPos.y - headerHeight - 4.f, leftCornerPos.z };
+
+            for (int i = 0; i < m_outputSlots.size(); i++) {
+                auto height = rowHeight;
+
+                auto pos = outSlotRowPos;
+                pos.y -= height / 2.f;
+
+                Slot* slot = (Slot*)Simulator::ComponentsManager::components[m_outputSlots[i]].get();
+                auto& expr = m_data->getOutputs()[i];
+                slot->update(pos, {-12.f, 0.f}, decodeExpr(expr));
+                slot->render();
+
+                outSlotRowPos.y -= height + rowGap;
+            }
         }
 
-        for (auto& slot : slots) {
-            slot.x = gateSize.x / 2.f - 10.f, -10.f;
-        }
-
-
-        for (int i = 0; i < m_outputSlots.size(); i++) {
-            Slot* slot =
-                (Slot*)Simulator::ComponentsManager::components[m_outputSlots[i]]
-                .get();
-            slot->update(m_position + slots[i]);
-            slot->render();
-        }
-
-
-        Renderer2D::Renderer::text(m_name, Common::Helpers::GetLeftCornerPos(m_position, gateSize) + glm::vec3({ 8.f, -16.f, ComponentsManager::zIncrement }), 12.f, { 1.f, 1.f, 1.f }, m_renderId);
+        Renderer2D::Renderer::text(m_name, leftCornerPos + glm::vec3({ 8.f, -8.f - (sCharHeight / 2.f), ComponentsManager::zIncrement}), 11.f, {1.f, 1.f, 1.f}, m_renderId);
     }
+
 
     void JComponent::simulate()
     {
