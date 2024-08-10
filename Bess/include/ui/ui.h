@@ -37,7 +37,10 @@ class UIMain {
     static UIState state;
 
   private:
-    static void setDarkThemeColors();
+      static void setModernColors();
+      static void setMaterialYouColors();
+      static void setDarkThemeColors();
+    static void setCatpuccinMochaColors();
 
     static void drawProjectExplorer();
     static void drawViewport();
@@ -45,6 +48,7 @@ class UIMain {
 
     static void begin();
     static void end();
+
 
     static void resetDockspace();
 };
