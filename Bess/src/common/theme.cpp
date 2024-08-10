@@ -1,7 +1,7 @@
 #include "common/theme.h"
 
 namespace Bess {
-const glm::vec3 Theme::backgroundColor = {0.1f, 0.1f, 0.1f};
+    glm::vec3 Theme::backgroundColor = {0.1f, 0.1f, 0.1f};
 const glm::vec3 Theme::componentBGColor = {.22f, .22f, 0.22f};
 const glm::vec4 Theme::componentBorderColor = {0.42f, 0.42f, 0.42f, 1.f};
 const glm::vec4 Theme::stateHighColor = {0.42f, 0.72f, 0.42f, 1.f};

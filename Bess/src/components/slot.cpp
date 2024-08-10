@@ -39,14 +39,15 @@ void Slot::update(const glm::vec3& pos, const glm::vec2& labelOffset, const std:
 void Slot::update(const glm::vec3 &pos) { m_position = pos; }
 
 void Slot::render() {
-    Renderer2D::Renderer::circle(m_position, m_highlightBorder ? 8.f: 7.f,
+    float r = 4.0f;
+    Renderer2D::Renderer::circle(m_position, m_highlightBorder ? r + 2.0f: r + 1.f,
                                  m_highlightBorder
                                      ? Theme::selectedWireColor
                                      : Theme::componentBorderColor,
                                  m_renderId);
 
     Renderer2D::Renderer::circle(
-        m_position, 6.f,
+        m_position, r,
         (m_connections.size() == 0) ? Theme::backgroundColor : connectedBg,
         m_renderId);
     

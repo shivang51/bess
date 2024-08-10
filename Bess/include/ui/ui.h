@@ -40,6 +40,7 @@ class UIMain {
       static void setModernColors();
       static void setMaterialYouColors();
       static void setDarkThemeColors();
+      static void setBessDarkThemeColors();
     static void setCatpuccinMochaColors();
 
     static void drawProjectExplorer();
