@@ -30,6 +30,8 @@ namespace Bess::Simulator {
         typedef std::unordered_map<std::string, std::vector<ComponentBankElement>> BankVault;
         static const BankVault& getVault();
 
+        static const std::shared_ptr<Components::JComponentData> getJCompData(const std::string& collection, const std::string& elementName);
+
         static const std::vector<ComponentBankElement>& getCollection(const std::string& collection);
 
         static void loadFromJson(const std::string& filepath);

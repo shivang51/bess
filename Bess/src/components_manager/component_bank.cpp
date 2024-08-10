@@ -14,6 +14,14 @@ namespace Bess::Simulator{
     {
         return m_vault;
     }
+    
+    const std::shared_ptr<Components::JComponentData> ComponentBank::getJCompData(const std::string& collection, const std::string& elementName) {
+        for (auto& el : m_vault[collection]) {
+            if (!(el.getName() == elementName)) continue;
+            return el.getJCompData();
+        }
+        return nullptr;
+    }
 
     const std::vector<ComponentBankElement>& ComponentBank::getCollection(const std::string& collection) {
         return m_vault[collection];

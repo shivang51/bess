@@ -16,7 +16,7 @@ class Slot : public Component {
 
     void render() override;
 
-    void addConnection(const UUIDv4::UUID &uId);
+    void addConnection(const UUIDv4::UUID &uId, bool simulate = true);
     bool isConnectedTo(const UUIDv4::UUID& uId);
 
     void highlightBorder(bool highlight = true);
@@ -33,12 +33,16 @@ class Slot : public Component {
     const std::string& getLabel();
     void setLabel(const std::string& label);
 
-    const std::string& getLabelOffset();
-    void setLabelOffset(const std::string& label);
+    const glm::vec2& getLabelOffset();
+    void setLabelOffset(const glm::vec2& label);
+
+    const std::vector<UUIDv4::UUID>& getConnections();
+
+    void simulate();
 
   private:
     // contains one way connection from starting slot to other
-    std::vector<UUIDv4::UUID> connections;
+    std::vector<UUIDv4::UUID> m_connections;
     bool m_highlightBorder = false;
     void onLeftClick(const glm::vec2 &pos);
     void onMouseHover();

@@ -1,7 +1,7 @@
 #include "components/connection.h"
 #include "common/theme.h"
 #include "components/slot.h"
-#include "ui.h"
+#include "ui/ui.h"
 
 #include "common/helpers.h"
 
@@ -56,7 +56,7 @@ void Connection::generate(const UUIDv4::UUID& slot1, const UUIDv4::UUID& slot2, 
     ComponentsManager::components[uid] = std::make_shared<Components::Connection>(uid, renderId, slot1, slot2);
     ComponentsManager::addRenderIdToCId(renderId, uid);
     ComponentsManager::addCompIdToRId(renderId, uid);
-    ComponentsManager::renderComponenets[uid] = ComponentsManager::components[uid];
+    ComponentsManager::renderComponenets.emplace_back(uid);
 }
 
 void Connection::onLeftClick(const glm::vec2 &pos) {
@@ -64,7 +64,7 @@ void Connection::onLeftClick(const glm::vec2 &pos) {
 }
 
 void Connection::onMouseHover() {
-    UI::setCursorPointer();
+    UI::UIMain::setCursorPointer();
 }
 
 void Connection::onFocusLost() {

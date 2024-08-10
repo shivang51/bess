@@ -4,7 +4,7 @@
 #include "application_state.h"
 
 #include "common/theme.h"
-#include "ui.h"
+#include "ui/ui.h"
 #include <common/bind_helpers.h>
 
 namespace Bess::Simulator::Components {
@@ -47,7 +47,7 @@ void Slot::render() {
 
     Renderer2D::Renderer::circle(
         m_position, 6.f,
-        (connections.size() == 0) ? Theme::backgroundColor : connectedBg,
+        (m_connections.size() == 0) ? Theme::backgroundColor : connectedBg,
         m_renderId);
     
     if (m_label == "") return;
@@ -81,12 +81,12 @@ void Slot::onLeftClick(const glm::vec2 &pos) {
     ApplicationState::points.pop_back();
 }
 
-void Slot::onMouseHover() { UI::setCursorPointer(); }
+void Slot::onMouseHover() { UI::UIMain::setCursorPointer(); }
 
 void Slot::onChange()
 {
     if (m_type == ComponentType::outputSlot) {
-        for (auto& slot : connections) {
+        for (auto& slot : m_connections) {
             auto slotComp = (Slot*)ComponentsManager::components[slot].get();
             slotComp->setState(m_uid, m_state);
         }
@@ -113,15 +113,16 @@ void Slot::calculateLabelWidth() {
     }
 }
 
-void Slot::addConnection(const UUIDv4::UUID &uid) {
+void Slot::addConnection(const UUIDv4::UUID &uid, bool simulate) {
     if (isConnectedTo(uid)) return;
-    connections.emplace_back(uid);
+    m_connections.emplace_back(uid);
+    if (!simulate) return;
     auto slotComp = (Slot*)ComponentsManager::components[uid].get();
     slotComp->setState(m_uid, m_state);
 }
 
 bool Slot::isConnectedTo(const UUIDv4::UUID& uId) {
-    for (auto& conn : connections) {
+    for (auto& conn : m_connections) {
         if (conn == uId) return true;
     }
     return false;
@@ -177,5 +178,24 @@ const std::string& Slot::getLabel() {
 void Slot::setLabel(const std::string& label) {
     m_label = label;
     calculateLabelWidth();
+}
+const glm::vec2& Slot::getLabelOffset()
+{
+    return m_labelOffset;
+}
+
+void Slot::setLabelOffset(const glm::vec2& offset)
+{
+    m_labelOffset = offset;
+}
+
+const std::vector<UUIDv4::UUID>& Slot::getConnections()
+{
+    return m_connections;
+}
+
+void Slot::simulate()
+{
+    onChange();
 }
 } // namespace Bess::Simulator::Components

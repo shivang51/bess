@@ -1,6 +1,7 @@
 #pragma once
 #include "component.h"
 #include "slot.h"
+#include "json.hpp"
 
 namespace Bess::Simulator::Components {
 class InputProbe : public Component {
@@ -14,6 +15,13 @@ class InputProbe : public Component {
     void render() override;
 
     void generate(const glm::vec3& pos = { 0.f, 0.f, 0.f }) override;
+
+    nlohmann::json toJson();
+
+    static void fromJson(const nlohmann::json& data);
+
+    void simulate() const;
+    void refresh() const;
 
   private:
     UUIDv4::UUID m_outputSlot;

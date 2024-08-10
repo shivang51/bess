@@ -1,8 +1,10 @@
 #pragma once
 #include "components_manager/components_manager.h"
+#include "project_file.h"
 #include <glm.hpp>
 #include <uuid_v4.h>
 #include <vector>
+#include <memory>
 
 namespace Bess {
 
@@ -35,6 +37,8 @@ class ApplicationState {
     static DragData dragData;
 
     static float normalizingFactor;
+
+    static std::shared_ptr<ProjectFile> currentProject;
 
   private:
     static UUIDv4::UUID m_selectedId;

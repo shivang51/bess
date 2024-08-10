@@ -1,4 +1,5 @@
 #include "components/input_probe.h"
+#include "components/connection.h"
 #include "application_state.h"
 #include "common/theme.h"
 #include "renderer/renderer.h"
@@ -66,7 +67,68 @@ void InputProbe::generate(const glm::vec3& pos)
         std::make_shared<Components::InputProbe>(uid, renderId, pos_, slotId);
     ComponentsManager::addRenderIdToCId(renderId, uid);
     ComponentsManager::addCompIdToRId(renderId, uid);
-    ComponentsManager::renderComponenets[uid] = ComponentsManager::components[uid];
+    ComponentsManager::renderComponenets.emplace_back(uid);
+}
+
+nlohmann::json InputProbe::toJson() {
+    nlohmann::json data;
+    data["uid"] = m_uid.str();
+    data["slotUId"] = m_outputSlot.str();
+    data["type"] = (int)m_type;
+    data["pos"] = Common::Helpers::EncodeVec3(m_position);
+    auto slot = (Slot*)ComponentsManager::components[m_outputSlot].get();
+    auto str = m_outputSlot.str();
+    for (auto& cid : slot->getConnections())
+        data["connections"][str].emplace_back(cid.str());
+    return data;
+}
+
+void InputProbe::fromJson(const nlohmann::json& data)
+{
+    UUIDv4::UUID uid;
+    uid.fromStr((static_cast<std::string>(data["uid"])).c_str());
+
+
+    UUIDv4::UUID slotId;
+    slotId.fromStr((static_cast<std::string>(data["slotUId"])).c_str());
+
+    int renderId = Simulator::ComponentsManager::getNextRenderId();
+    ComponentsManager::components[slotId] = std::make_shared<Components::Slot>(
+        slotId, uid, renderId, ComponentType::outputSlot);
+    ComponentsManager::addRenderIdToCId(renderId, slotId);
+    ComponentsManager::addCompIdToRId(renderId, slotId);
+
+    auto slot = (Slot*)ComponentsManager::components[slotId].get();
+    if (data.contains("connections")) {
+        for (std::string cidStr : data["connections"][data["slotUId"]]) {
+            UUIDv4::UUID cid;
+            cid.fromStr(cidStr.c_str());
+            slot->addConnection(cid, false);
+            Components::Connection().generate(cid, slotId);
+        }
+    }
+
+    auto pos = Common::Helpers::DecodeVec3(data["pos"]);
+    renderId = ComponentsManager::getNextRenderId();
+
+    ComponentsManager::components[uid] =
+        std::make_shared<Components::InputProbe>(uid, renderId, pos, slotId);
+    ComponentsManager::addRenderIdToCId(renderId, uid);
+    ComponentsManager::addCompIdToRId(renderId, uid);
+    ComponentsManager::renderComponenets.emplace_back(uid);
+}
+
+void InputProbe::simulate() const
+{
+    auto slot = (Slot*)ComponentsManager::components[m_outputSlot].get();
+    slot->simulate();
+}
+
+void InputProbe::refresh() const
+{
+    auto slot = (Slot*)ComponentsManager::components[m_outputSlot].get();
+    slot->flipState();
+    slot->flipState();
 }
 
 void InputProbe::onLeftClick(const glm::vec2& pos)

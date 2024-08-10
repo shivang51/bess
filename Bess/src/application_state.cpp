@@ -10,6 +10,8 @@ int ApplicationState::prevHoveredId;
 
 UUIDv4::UUID ApplicationState::m_selectedId;
 UUIDv4::UUID ApplicationState::m_prevSelectedId;
+ std::shared_ptr<ProjectFile> ApplicationState::currentProject = nullptr;
+
 
 UUIDv4::UUID ApplicationState::connStartId;
 

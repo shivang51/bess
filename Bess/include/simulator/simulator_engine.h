@@ -7,6 +7,7 @@ namespace Bess::Simulator {
     class Engine {
     public:
         static int evaluateExpression(const std::string& expression, const std::vector<int>& arr);
+        static void RefreshSimulation();
     private:
         static int applyOperator(char op, int a, int b = 0);
     };

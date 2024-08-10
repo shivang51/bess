@@ -4,6 +4,7 @@
 #include "renderer/renderer.h"
 #include "common/helpers.h"
 
+
 namespace Bess::Simulator::Components {
 
 glm::vec2 outputProbeSize = {50.f, 25.f};
@@ -66,6 +67,41 @@ void OutputProbe::generate(const glm::vec3& pos)
         std::make_shared<Components::OutputProbe>(uid, renderId, pos_, slotId);
     ComponentsManager::addRenderIdToCId(renderId, uid);
     ComponentsManager::addCompIdToRId(renderId, uid);
-    ComponentsManager::renderComponenets[uid] =  ComponentsManager::components[uid];
+    ComponentsManager::renderComponenets.emplace_back(uid);
+}
+
+nlohmann::json OutputProbe::toJson() {
+    nlohmann::json data;
+    data["uid"] = m_uid.str();
+    data["slotUId"] = m_outputSlot.str();
+    data["type"] = (int)m_type;
+    data["pos"] = Common::Helpers::EncodeVec3(m_position);
+    return data;
+}
+
+void OutputProbe::fromJson(const nlohmann::json& data)
+{
+    UUIDv4::UUID uid;
+    uid.fromStr((static_cast<std::string>(data["uid"])).c_str());
+
+    int renderId = Simulator::ComponentsManager::getNextRenderId();
+
+    UUIDv4::UUID slotId;
+    slotId.fromStr((static_cast<std::string>(data["slotUId"])).c_str());
+
+    ComponentsManager::components[slotId] = std::make_shared<Components::Slot>(
+        slotId, uid, renderId, ComponentType::inputSlot);
+    ComponentsManager::addRenderIdToCId(renderId, slotId);
+    ComponentsManager::addCompIdToRId(renderId, slotId);
+
+
+    auto pos = Common::Helpers::DecodeVec3(data["pos"]);
+    renderId = ComponentsManager::getNextRenderId();
+
+    ComponentsManager::components[uid] =
+        std::make_shared<Components::OutputProbe>(uid, renderId, pos, slotId);
+    ComponentsManager::addRenderIdToCId(renderId, uid);
+    ComponentsManager::addCompIdToRId(renderId, uid);
+    ComponentsManager::renderComponenets.emplace_back(uid);
 }
 } // namespace Bess::Simulator::Components

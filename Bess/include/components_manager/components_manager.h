@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "components/component.h"
 #include "uuid_v4.h"
@@ -8,19 +9,20 @@
 #include <memory>
 
 namespace Bess::Simulator {
+    typedef std::shared_ptr<Components::Component> ComponentPtr;
+    typedef std::unordered_map<UUIDv4::UUID, ComponentPtr> TComponents;
 
 class ComponentsManager {
   public:
     static void init();
 
-    typedef std::shared_ptr<Components::Component> ComponentPtr;
 
     // contains all the components that can be interacted with by user.
-    static std::unordered_map<UUIDv4::UUID, ComponentPtr> components;
+    static TComponents components;
 
     // contains all the components whose render function needs to be called from
     // scene.
-    static std::unordered_map<UUIDv4::UUID, ComponentPtr> renderComponenets;
+    static std::vector<UUIDv4::UUID> renderComponenets;
 
     static void generateComponent(ComponentType type, const std::any& data = NULL, const glm::vec3& pos = { 0.f, 0.f, 0.f });
 

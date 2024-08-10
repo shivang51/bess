@@ -22,7 +22,12 @@ namespace Bess::Simulator::Components {
         void simulate();
 
         void generate(const glm::vec3& pos = { 0.f, 0.f, 0.f }) override;
+
         void generate(const std::shared_ptr<JComponentData> data, const glm::vec3& pos = { 0.f, 0.f, 0.f });
+
+        nlohmann::json toJson();
+
+        static void fromJson(const nlohmann::json& data);
 
     private:
         std::vector<UUIDv4::UUID> m_inputSlots;

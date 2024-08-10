@@ -22,11 +22,13 @@ namespace Bess
 
     void update();
 
+    void loadProject(const std::string& path);
+    void saveProject();
+
     bool isKeyPressed(int key);
 
   private:
     Window m_window;
-
     std::unique_ptr<Gl::FrameBuffer> m_framebuffer;
     std::shared_ptr<Camera> m_camera;
 
@@ -37,6 +39,8 @@ namespace Bess
     bool isCursorInViewport() const;
     glm::vec2 getViewportMousePos() const;
     glm::vec2 getNVPMousePos();
+
+
     // callbacks
   private:
     void onWindowResize(int w, int h);

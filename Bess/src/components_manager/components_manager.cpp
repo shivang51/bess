@@ -16,10 +16,10 @@ namespace Bess::Simulator {
 
     int ComponentsManager::renderIdCounter;
 
-    std::unordered_map<UUIDv4::UUID, ComponentsManager::ComponentPtr>
+    std::unordered_map<UUIDv4::UUID, ComponentPtr>
         ComponentsManager::components;
 
-    std::unordered_map<UUIDv4::UUID, ComponentsManager::ComponentPtr>
+    std::vector<UUIDv4::UUID>
         ComponentsManager::renderComponenets;
     UUIDv4::UUID ComponentsManager::emptyId;
 

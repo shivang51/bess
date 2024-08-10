@@ -1,4 +1,7 @@
 #include "components/jcomponent.h"
+#include "components/connection.h"
+
+#include "components_manager/component_bank.h"
 
 #include "application_state.h"
 #include "glm.hpp"
@@ -203,7 +206,84 @@ namespace Bess::Simulator::Components {
         ComponentsManager::addRenderIdToCId(renderId, uid);
         ComponentsManager::addCompIdToRId(renderId, uid);
 
-        ComponentsManager::renderComponenets[uid] = ComponentsManager::components[uid];
+        ComponentsManager::renderComponenets.emplace_back(uid);
+    }
+
+    nlohmann::json JComponent::toJson()
+    {
+        nlohmann::json data;
+
+        data["uid"] = m_uid.str();
+        data["pos"] = Common::Helpers::EncodeVec3(m_position);
+        data["type"] = (int)m_type;
+
+        data["jCompData"]["collection"] = m_data->getCollectionName();
+        data["jCompData"]["name"] = m_data->getName();
+
+        for (auto& uid : m_inputSlots) data["inputSlots"].emplace_back(uid.str());
+        for (auto& uid : m_outputSlots) data["outputSlots"].emplace_back(uid.str());
+
+        for (auto& uid : m_outputSlots) {
+            auto slot = (Slot*)ComponentsManager::components[uid].get();
+            auto str = uid.str();
+            for (auto& cid : slot->getConnections())
+                data["connections"][str].emplace_back(cid.str());
+        }
+
+        return data;
+    }
+
+    void JComponent::fromJson(const nlohmann::json& data)
+    {
+        UUIDv4::UUID uid;
+        uid.fromStr((static_cast<std::string>(data["uid"])).c_str());
+
+        auto pos = Common::Helpers::DecodeVec3(data["pos"]);
+
+        auto jCompData = Simulator::ComponentBank::getJCompData(data["jCompData"]["collection"], data["jCompData"]["name"]);
+        
+        std::vector<UUIDv4::UUID> inputSlots = {};
+        std::vector<UUIDv4::UUID> outputSlots = {};
+        for(std::string sidStr: data["inputSlots"]) {
+            UUIDv4::UUID sid;
+            sid.fromStr(sidStr.c_str());
+            inputSlots.emplace_back(sid);
+            auto renderId = ComponentsManager::getNextRenderId();
+            ComponentsManager::components[sid] = std::make_shared<Components::Slot>(
+                sid, uid, renderId, ComponentType::inputSlot);
+            ComponentsManager::addRenderIdToCId(renderId, sid);
+            ComponentsManager::addCompIdToRId(renderId, sid);
+        }
+
+        for (std::string sidStr: data["outputSlots"]) {
+            UUIDv4::UUID sid;
+            sid.fromStr(sidStr.c_str());
+            outputSlots.emplace_back(sid);
+            auto renderId = ComponentsManager::getNextRenderId();
+            auto slot = std::make_shared<Components::Slot>(sid, uid, renderId, ComponentType::outputSlot);
+            ComponentsManager::components[sid] = slot;
+            ComponentsManager::addRenderIdToCId(renderId, sid);
+            ComponentsManager::addCompIdToRId(renderId, sid);
+
+            if (!data.contains("connections") || !data["connections"].contains(sidStr)) continue;
+
+            for (std::string cidStr : data["connections"][sidStr]) {
+                UUIDv4::UUID cid;
+                cid.fromStr(cidStr.c_str());
+                slot->addConnection(cid, false);
+                Components::Connection().generate(cid, sid);
+            }
+        }
+
+        auto renderId = ComponentsManager::getNextRenderId();
+
+        ComponentsManager::components[uid] = std::make_shared<Components::JComponent>(
+            uid, renderId, pos, inputSlots, outputSlots, jCompData);
+
+        ComponentsManager::addRenderIdToCId(renderId, uid);
+        ComponentsManager::addCompIdToRId(renderId, uid);
+
+        ComponentsManager::renderComponenets.emplace_back(uid);
     }
 
     void JComponent::onLeftClick(const glm::vec2& pos) {
@@ -211,6 +291,8 @@ namespace Bess::Simulator::Components {
     }
 
     void JComponent::onRightClick(const glm::vec2& pos) {
-        std::cout << "Right Click on nand gate" << std::endl;
+        std::cout << "Right Click on jcomp gate" << std::endl;
     }
+
+
 } // namespace Bess::Simulator::Components

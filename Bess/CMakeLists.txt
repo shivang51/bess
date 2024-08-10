@@ -11,6 +11,7 @@ set(External
     "../external/imgui/imgui_draw.cpp"
     "../external/imgui/imgui_tables.cpp"
     "../external/imgui/imgui_widgets.cpp"
+    "../external/imgui/imgui_demo.cpp"
     "../external/stb_image/src/stb_image.cpp"
 )
 source_group("External" FILES ${External})
@@ -37,7 +38,7 @@ set(Header_Files
     "include/renderer/renderer.h"
     "include/renderer/font.h"
     "include/renderer/gl/primitive_type.h"
-    "include/ui.h"
+    "include/ui/ui.h"
     "include/window.h"
     "include/common/bind_helpers.h"
     "include/common/helpers.h"
@@ -79,7 +80,7 @@ set(Source_Files
     "src/renderer/gl/texture.cpp"
     "src/main.cpp"
     "src/renderer/renderer.cpp"
-    "src/ui.cpp"
+    "src/ui/ui.cpp"
     "src/window.cpp"
     "src/components/output_probe.cpp"
     "src/renderer/font.cpp"
@@ -96,7 +97,7 @@ set(ALL_FILES
     ${Header_Files}
     ${Shaders}
     ${Source_Files}
-)
+ "include/ui/component_explorer.h" "src/ui/component_explorer.cpp" "include/project_file.h" "src/project_file.cpp")
 
 ################################################################################
 # Target

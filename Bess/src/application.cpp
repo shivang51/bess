@@ -3,12 +3,14 @@
 #include "fwd.hpp"
 #include "renderer/gl/texture.h"
 #include "renderer/renderer.h"
-#include "ui.h"
+#include "ui/ui.h"
 #include <GLFW/glfw3.h>
 #include <unordered_map>
 
 #include "components_manager/components_manager.h"
 #include "components_manager/component_bank.h"
+
+#include "simulator/simulator_engine.h"
 
 using Bess::Renderer2D::Renderer;
 
@@ -30,9 +32,9 @@ namespace Bess {
         m_framebuffer = std::make_unique<Gl::FrameBuffer>(800.f, 600.f);
         m_camera = std::make_shared<Camera>(800.f, 600.f);
 
-        UI::init(m_window.getGLFWHandle());
-        UI::state.viewportTexture = m_framebuffer->getTexture();
-        UI::state.cameraZoom = Camera::defaultZoom;
+        UI::UIMain::init(m_window.getGLFWHandle());
+        UI::UIMain::state.viewportTexture = m_framebuffer->getTexture();
+        UI::UIMain::state.cameraZoom = Camera::defaultZoom;
 
         Renderer::init();
 
@@ -53,15 +55,15 @@ namespace Bess {
         auto& vault = Simulator::ComponentBank::getCollection("Digital Gates");
         auto& els = vault[0];
 
-        Simulator::ComponentsManager::generateComponent(Simulator::ComponentType::jcomponent, els.getJCompData());
+        m_window.setName("Unnamed - BESS*");
 }
 
 Application::~Application() {
-    UI::shutdown();
+    UI::UIMain::shutdown();
     m_window.close();
 }
 
-void Application::drawUI() { UI::draw(); }
+void Application::drawUI() { UI::UIMain::draw(); }
 
 void Application::drawScene() {
     m_framebuffer->bind();
@@ -77,7 +79,8 @@ void Application::drawScene() {
         break;
     }
 
-    for (auto &[id, entity] : Simulator::ComponentsManager::renderComponenets) {
+    for (auto &id: Simulator::ComponentsManager::renderComponenets) {
+        auto& entity = Simulator::ComponentsManager::components[id];
         entity->render();
     }
 
@@ -86,7 +89,7 @@ void Application::drawScene() {
 
     if (isCursorInViewport()) {
         auto viewportMousePos = getViewportMousePos();
-        viewportMousePos.y = UI::state.viewportSize.y - viewportMousePos.y;
+        viewportMousePos.y = UI::UIMain::state.viewportSize.y - viewportMousePos.y;
         ApplicationState::hoveredId = m_framebuffer->readId((int)viewportMousePos.x, (int)viewportMousePos.y);
     }
 
@@ -113,17 +116,17 @@ void Application::update() {
         Simulator::ComponentsManager::components[cid]->onEvent(e);
     }
 
-    if (m_framebuffer->getSize() != UI::state.viewportSize) {
-        m_framebuffer->resize(UI::state.viewportSize.x,
-                              UI::state.viewportSize.y);
-        m_camera->resize(UI::state.viewportSize.x, UI::state.viewportSize.y);
+    if (m_framebuffer->getSize() != UI::UIMain::state.viewportSize) {
+        m_framebuffer->resize(UI::UIMain::state.viewportSize.x,
+                              UI::UIMain::state.viewportSize.y);
+        m_camera->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
 
         ApplicationState::normalizingFactor =
-            glm::min(UI::state.viewportSize.x, UI::state.viewportSize.y);
+            glm::min(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
     }
 
-    if (UI::state.cameraZoom != m_camera->getZoom()) {
-        m_camera->setZoom(UI::state.cameraZoom);
+    if (UI::UIMain::state.cameraZoom != m_camera->getZoom()) {
+        m_camera->setZoom(UI::UIMain::state.cameraZoom);
     }
 }
 
@@ -143,11 +146,11 @@ void Application::onMouseWheel(double x, double y) {
 
     if (isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
         float delta = (float)y * 0.1f;
-        UI::state.cameraZoom += delta;
-        if (UI::state.cameraZoom < Camera::zoomMin) {
-            UI::state.cameraZoom = Camera::zoomMin;
-        } else if (UI::state.cameraZoom > Camera::zoomMax) {
-            UI::state.cameraZoom = Camera::zoomMax;
+        UI::UIMain::state.cameraZoom += delta;
+        if (UI::UIMain::state.cameraZoom < Camera::zoomMin) {
+            UI::UIMain::state.cameraZoom = Camera::zoomMin;
+        } else if (UI::UIMain::state.cameraZoom > Camera::zoomMax) {
+            UI::UIMain::state.cameraZoom = Camera::zoomMax;
         }
     } else {
         m_camera->incrementPos(
@@ -248,7 +251,7 @@ void Application::onMouseMove(double x, double y) {
 
     if (m_middleMousePressed) {
         m_camera->incrementPos(
-            { dx / UI::state.cameraZoom, -dy / UI::state.cameraZoom });
+            { dx / UI::UIMain::state.cameraZoom, -dy / UI::UIMain::state.cameraZoom });
     }
 
     else if (m_leftMousePressed && ApplicationState::getSelectedId() !=
@@ -274,8 +277,8 @@ void Application::onMouseMove(double x, double y) {
 }
 
 bool Application::isCursorInViewport() const {
-    const auto &viewportPos = UI::state.viewportPos;
-    const auto &viewportSize = UI::state.viewportSize;
+    const auto &viewportPos = UI::UIMain::state.viewportPos;
+    const auto &viewportSize = UI::UIMain::state.viewportSize;
     return m_mousePos.x > viewportPos.x &&
            m_mousePos.x < viewportPos.x + viewportSize.x &&
            m_mousePos.y > viewportPos.y &&
@@ -283,8 +286,8 @@ bool Application::isCursorInViewport() const {
 }
 
 glm::vec2 Application::getViewportMousePos() const {
-    const auto &viewportPos = UI::state.viewportPos;
-    const auto &viewportSize = UI::state.viewportSize;
+    const auto &viewportPos = UI::UIMain::state.viewportPos;
+    const auto &viewportSize = UI::UIMain::state.viewportSize;
     auto x = m_mousePos.x - viewportPos.x;
     auto y = m_mousePos.y - viewportPos.y;
     return {x, y};
@@ -292,16 +295,27 @@ glm::vec2 Application::getViewportMousePos() const {
 
 glm::vec2 Application::getNVPMousePos() {
     const auto &viewportPos = getViewportMousePos();
-    const auto &viewportSize = UI::state.viewportSize;
+    const auto &viewportSize = UI::UIMain::state.viewportSize;
 
     float x = viewportPos.x;
     float y = viewportPos.y;
 
     glm::vec2 pos = {x, y};
     pos.y *= -1;
-    pos /= UI::state.cameraZoom;
+    pos /= UI::UIMain::state.cameraZoom;
     pos -= m_camera->getPos();
     return pos;
+}
+
+void Application::loadProject(const std::string& path)
+{
+    ApplicationState::currentProject = std::make_shared<ProjectFile>(path);
+    m_window.setName(ApplicationState::currentProject->getName() + " - BESS");
+    Simulator::Engine::RefreshSimulation();
+}
+
+void Application::saveProject()
+{
 }
 
 } // namespace Bess

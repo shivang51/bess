@@ -2,6 +2,9 @@
 #include <stdexcept>
 #include <stack>
 
+#include "components_manager/components_manager.h"
+#include "components/input_probe.h"
+
 namespace Bess::Simulator {
     int Engine::evaluateExpression(const std::string& expression, const std::vector<int>& arr)
     {
@@ -79,6 +82,14 @@ namespace Bess::Simulator {
         case '*': return a * b;
         case '!': return a == 0 ? 1 : 0;
         default: throw std::invalid_argument("Invalid operator");
+        }
+    }
+
+    void Engine::RefreshSimulation() {
+        for (auto& comp : Simulator::ComponentsManager::components) {
+            if (comp.second->getType() != ComponentType::inputProbe) continue;
+            auto inpProbe = (Components::InputProbe*)comp.second.get();
+            inpProbe->refresh();
         }
     }
 }

@@ -198,4 +198,9 @@ void Window::onMouseMove(MouseMoveCallback callback) {
 
 void Window::close() const { glfwSetWindowShouldClose(mp_window.get(), true); }
 
+void Window::setName(const std::string& name)
+{
+    glfwSetWindowTitle(mp_window.get(), name.c_str());
+}
+
 } // namespace Bess

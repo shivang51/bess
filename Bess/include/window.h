@@ -47,6 +47,8 @@ class Window {
     bool isClosed() const;
     void close() const;
 
+    void setName(const std::string& name);
+
     inline void pollEvents() const { glfwPollEvents(); }
     inline void waitEvents() const { glfwWaitEvents(); }
     inline void waitEventsTimeout(double seconds) const {
