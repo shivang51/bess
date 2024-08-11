@@ -39,6 +39,6 @@ namespace Bess::Simulator::Components {
         void onRightClick(const glm::vec2& pos);
 
     private:
-        void drawBackground(const glm::vec4& borderRadiusPx, float rPx, float headerHeight);
+        void drawBackground(const glm::vec4& borderRadiusPx, float rPx, float headerHeight, const glm::vec2& gateSize);
     };
 } // namespace Bess::Simulator::Components

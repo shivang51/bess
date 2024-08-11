@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
     //file.save();
 
     Bess::Application app = Bess::Application();
-    app.loadProject("test.bproj");
+    //app.loadProject("test.bproj");
     app.run();
     return 0;
 }

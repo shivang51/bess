@@ -8,7 +8,7 @@
 #include <common/bind_helpers.h>
 
 namespace Bess::Simulator::Components {
-
+float fontSize = 10.f;
 glm::vec3 connectedBg = {0.42f, 0.82f, 0.42f};
 
 Slot::Slot(const UUIDv4::UUID &uid, const UUIDv4::UUID& parentUid, int id, ComponentType type)
@@ -52,7 +52,6 @@ void Slot::render() {
         m_renderId);
     
     if (m_label == "") return;
-    float fontSize = 10.f;
 	auto charSize = Renderer2D::Renderer::getCharRenderSize('Z', fontSize);
     glm::vec3 offset = glm::vec3(m_labelOffset, ComponentsManager::zIncrement);
     if (offset.x < 0.f) {
@@ -106,10 +105,10 @@ void Slot::onChange()
     }
 }
 
-void Slot::calculateLabelWidth() {
+void Slot::calculateLabelWidth(float fontSize) {
     m_labelWidth = 0.f;
     for (auto& ch_ : m_label) {
-        auto& ch = Renderer2D::Renderer::getCharRenderSize(ch_, 12.f);
+        auto& ch = Renderer2D::Renderer::getCharRenderSize(ch_, fontSize);
         m_labelWidth += ch.x;
     }
 }
@@ -178,7 +177,7 @@ const std::string& Slot::getLabel() {
 }
 void Slot::setLabel(const std::string& label) {
     m_label = label;
-    calculateLabelWidth();
+    calculateLabelWidth(fontSize);
 }
 const glm::vec2& Slot::getLabelOffset()
 {

@@ -17,7 +17,7 @@ namespace Bess::Simulator::Components {
 #define BIND_EVENT_FN_1(fn)                                                    \
     std::bind(&JComponent::fn, this, std::placeholders::_1)
 
-    glm::vec2 gateSize = { 142.f, 100.f };
+    glm::vec2 GATE_SIZE = { 142.f, 100.f };
 
     JComponent::JComponent() : Component(), m_data{}
     {
@@ -38,7 +38,7 @@ namespace Bess::Simulator::Components {
             (OnRightClickCB)BIND_EVENT_FN_1(onRightClick);
     }
 
-    void JComponent::drawBackground(const glm::vec4& borderThicknessPx, float rPx, float headerHeight) {
+    void JComponent::drawBackground(const glm::vec4& borderThicknessPx, float rPx, float headerHeight, const glm::vec2& gateSize) {
         bool selected = ApplicationState::getSelectedId() == m_uid;
 
         auto borderColor = selected ? glm::vec4(Theme::selectedCompColor, 1.f) : Theme::componentBorderColor;
@@ -74,6 +74,7 @@ namespace Bess::Simulator::Components {
         }
         return exp;
     }
+
     void JComponent::render() {
         bool selected = ApplicationState::getSelectedId() == m_uid;
         float rPx = 16.f;
@@ -82,31 +83,49 @@ namespace Bess::Simulator::Components {
         float headerHeight = 20.f;
         glm::vec2 slotRowPadding = { 4.0f, 4.f };
         glm::vec2 gatePadding = { 4.0f, 4.f };
+        float labelGap = 8.f;
         float rowGap = 4.f;
-        float sCharHeight = Renderer2D::Renderer::getCharRenderSize('Y', 12.f).y;
+        auto& sampleCharSize = Renderer2D::Renderer::getCharRenderSize('Z', 12.f);
+        float sCharHeight = sampleCharSize.y;
         float rowHeight = (slotRowPadding.y * 2) + sCharHeight;
 
         float maxSlotsCount = std::max(m_inputSlots.size(), m_outputSlots.size());
+        float maxWidth = 0.f;
+        for (auto& expr : m_data->getOutputs()) {
+            int l = expr.size();
+            float width = l * sampleCharSize.x;
+            maxWidth = std::fmaxf(width, maxWidth);
+        }
+        
+        maxWidth += labelGap + 8.f + sampleCharSize.x + 16.f+ (gatePadding.x * 2.f);
 
-        gateSize.y = headerHeight + (rowHeight + rowGap) * maxSlotsCount + 4.f;
+        auto gateSize_ = GATE_SIZE;
 
-        drawBackground(borderThicknessPx, rPx, headerHeight);
+        if (maxWidth > gateSize_.x) {
+            gateSize_.x += maxWidth - gateSize_.x + 16.f;
+        }
 
-        auto leftCornerPos = Common::Helpers::GetLeftCornerPos(m_position, gateSize);
+
+
+        gateSize_.y = headerHeight + (rowHeight + rowGap) * maxSlotsCount + 4.f;
+
+        drawBackground(borderThicknessPx, rPx, headerHeight, gateSize_);
+
+        auto leftCornerPos = Common::Helpers::GetLeftCornerPos(m_position, gateSize_);
+
         {
             glm::vec3 inpSlotRowPos = { leftCornerPos.x + 8.f + gatePadding.x, leftCornerPos.y - headerHeight - 4.f, leftCornerPos.z };
 
             for (int i = 0; i < m_inputSlots.size(); i++) {
                 char ch = 'A' + i;
-                auto charSize = Renderer2D::Renderer::getCharRenderSize(ch, 12.f);
 
-                auto height = (slotRowPadding.y * 2) + charSize.y;
+                auto height = (slotRowPadding.y * 2) + sCharHeight;
 
                 auto pos = inpSlotRowPos;
                 pos.y -= height / 2.f;
 
                 Slot* slot = (Slot*)Simulator::ComponentsManager::components[m_inputSlots[i]].get();
-                slot->update(pos, {12.f, 0.f}, std::string(1, ch));
+                slot->update(pos, {labelGap, 0.f}, std::string(1, ch));
                 slot->render();
 
                 inpSlotRowPos.y -= height + rowGap;
@@ -114,7 +133,7 @@ namespace Bess::Simulator::Components {
         }
         
         {
-            glm::vec3 outSlotRowPos = { leftCornerPos.x + gateSize.x - 8.f - gatePadding.x, leftCornerPos.y - headerHeight - 4.f, leftCornerPos.z };
+            glm::vec3 outSlotRowPos = { leftCornerPos.x + gateSize_.x - 8.f - gatePadding.x, leftCornerPos.y - headerHeight - 4.f, leftCornerPos.z };
 
             for (int i = 0; i < m_outputSlots.size(); i++) {
                 auto height = rowHeight;
@@ -124,7 +143,7 @@ namespace Bess::Simulator::Components {
 
                 Slot* slot = (Slot*)Simulator::ComponentsManager::components[m_outputSlots[i]].get();
                 auto& expr = m_data->getOutputs()[i];
-                slot->update(pos, {-12.f, 0.f}, decodeExpr(expr));
+                slot->update(pos, {-labelGap, 0.f}, decodeExpr(expr));
                 slot->render();
 
                 outSlotRowPos.y -= height + rowGap;

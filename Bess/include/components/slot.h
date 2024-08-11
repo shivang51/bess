@@ -59,6 +59,6 @@ class Slot : public Component {
     glm::vec2 m_labelOffset = { 0.f, 0.f };
     float m_labelWidth = 0.f;
 
-    void calculateLabelWidth();
+    void calculateLabelWidth(float fontSize);
 };
 } // namespace Bess::Simulator::Components

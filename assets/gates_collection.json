@@ -54,7 +54,7 @@
       "name": "3 Pin Nand Gate",
       "inputCount": 3,
       "outputs": [
-        "0*1*2"
+        "!(0*1*2)"
       ]
     },
     {
