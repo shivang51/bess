@@ -35,6 +35,7 @@ namespace Bess::Simulator {
         static const std::vector<ComponentBankElement>& getCollection(const std::string& collection);
 
         static void loadFromJson(const std::string& filepath);
+        static void loadMultiFromJson(const std::string& filepath);
 
     private:
         static BankVault m_vault;

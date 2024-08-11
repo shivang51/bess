@@ -9,6 +9,7 @@ namespace Bess::Simulator {
         static int evaluateExpression(const std::string& expression, const std::vector<int>& arr);
         static void RefreshSimulation();
     private:
-        static int applyOperator(char op, int a, int b = 0);
+        static int applyBinaryOperator(int a, int b, char op);
+        static int applyUnaryOperator(int a, char op);
     };
 }

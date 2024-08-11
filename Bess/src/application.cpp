@@ -288,6 +288,12 @@ namespace Bess {
     void Application::init()
     {
         Simulator::ComponentsManager::init();
+
+        Simulator::ComponentBankElement el(Simulator::ComponentType::inputProbe, "Input Probe");
+        Simulator::ComponentBank::addToCollection("I/O", el);
+        Simulator::ComponentBank::addToCollection("I/O", { Simulator::ComponentType::outputProbe, "Ouput Probe" });
+        Simulator::ComponentBank::loadMultiFromJson("assets/comp_collections.json");
+
         ApplicationState::init(&m_window);
 
         m_framebuffer = std::make_unique<Gl::FrameBuffer>(800.f, 600.f);
@@ -307,11 +313,6 @@ namespace Bess {
         m_window.onRightMouse(BIND_EVENT_FN_1(onRightMouse));
         m_window.onMiddleMouse(BIND_EVENT_FN_1(onMiddleMouse));
         m_window.onMouseMove(BIND_EVENT_FN_2(onMouseMove));
-
-        Simulator::ComponentBankElement el(Simulator::ComponentType::inputProbe, "Input Probe");
-        Simulator::ComponentBank::addToCollection("I/O", el);
-        Simulator::ComponentBank::addToCollection("I/O", { Simulator::ComponentType::outputProbe, "Ouput Probe" });
-        Simulator::ComponentBank::loadFromJson("assets/gates_collection.json");
     }
 
     void Application::shutdown()

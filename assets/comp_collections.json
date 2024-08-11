@@ -1,0 +1,6 @@
+{
+  "collections": [
+    "./gates_collection.json",
+    "./comb_circ.json"
+  ]
+}

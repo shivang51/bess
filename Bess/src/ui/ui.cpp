@@ -60,9 +60,9 @@ void UIMain::init(GLFWwindow *window) {
     io.Fonts->AddFontFromFileTTF("assets/icons/fa-solid-900.ttf", 16.0f, &config, fa_icon_ranges_r);
 
     //setDarkThemeColors();
-    setModernColors();
+    //setModernColors();
     //setMaterialYouColors();
-    //setCatpuccinMochaColors();
+    setCatpuccinMochaColors();
     //setBessDarkThemeColors();
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);

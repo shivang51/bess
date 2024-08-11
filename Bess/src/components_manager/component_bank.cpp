@@ -38,6 +38,23 @@ namespace Bess::Simulator{
             m_vault[collectionName].emplace_back(el);
         }
     }
+
+    void ComponentBank::loadMultiFromJson(const std::string& filepath)
+    {
+        std::ifstream file(filepath);
+        nlohmann::json data = nlohmann::json::parse(file);
+        file.close();
+
+        std::vector<std::string> collectionPaths = data["collections"];
+
+        std::string basePath = filepath.substr(0, filepath.find_last_of("/"));
+
+        for (auto& p : collectionPaths) {
+            if (!p.starts_with("/") || p.starts_with("./")) p = "/" + p;
+            auto path = basePath + p;
+            loadFromJson(path);
+        }
+    }
     
     Simulator::ComponentBankElement::ComponentBankElement(ComponentType type, const std::string& name): m_type(type), m_name(name)
     {
