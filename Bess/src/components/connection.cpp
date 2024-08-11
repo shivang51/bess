@@ -36,13 +36,15 @@ void Connection::render() {
     auto m_selected = ApplicationState::getSelectedId() == m_uid;
     auto m_hovered = ApplicationState::hoveredId == m_renderId;
 
+    auto slot = (Components::Slot*)slotA.get();
+
     auto posA = slotA->getPosition();
     auto posB = slotB->getPosition();
     Renderer2D::Renderer::curve(
         {posA.x, posA.y, m_position.z}, 
         {posB.x, posB.y, m_position.z},
         m_hovered ? 2.5f : 2.0f,
-        m_selected ? Theme::selectedWireColor: Theme::wireColor,
+        m_selected ? Theme::selectedWireColor: (slot->getState() == DigitalState::high) ? Theme::stateHighColor : Theme::wireColor,
         m_renderId
     );
 }
