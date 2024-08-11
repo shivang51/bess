@@ -1,5 +1,5 @@
 #pragma once
-
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <any>
 #include <functional>
@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <any>
 
 namespace Bess {
 

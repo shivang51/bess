@@ -98,7 +98,7 @@ set(ALL_FILES
     ${Header_Files}
     ${Shaders}
     ${Source_Files}
- "include/ui/component_explorer.h" "src/ui/component_explorer.cpp" "include/project_file.h" "src/project_file.cpp" "include/ui/dialogs.h" "src/ui/dialogs.cpp" "include/ui/icons/MaterialIcons.h")
+ "include/ui/component_explorer.h" "src/ui/component_explorer.cpp" "include/project_file.h" "src/project_file.cpp" "include/ui/dialogs.h" "src/ui/dialogs.cpp" "include/ui/icons/MaterialIcons.h" "src/ui/popups.cpp" "include/ui/popups.h")
 
 ################################################################################
 # Target

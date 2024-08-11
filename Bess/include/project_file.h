@@ -8,7 +8,7 @@
 namespace Bess {
     class ProjectFile {
     public:
-        ProjectFile() = default;
+        ProjectFile();
         ProjectFile(const std::string& path);
         ~ProjectFile();
 
@@ -21,11 +21,14 @@ namespace Bess {
 
         const std::string& getPath() const;
         void setPath(const std::string& path);
+
+        bool isSaved();
  
     private:
         nlohmann::json encode();
         void decode();
-    
+        void browsePath();
+
     private:
         std::string m_name = "";
         std::string m_path = "";

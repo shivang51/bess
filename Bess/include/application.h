@@ -14,7 +14,8 @@ namespace Bess
   class Application
   {
   public:
-    Application();
+      Application();
+      Application(const std::string& projectPath);
     ~Application();
 
     void run();
@@ -40,6 +41,8 @@ namespace Bess
     glm::vec2 getViewportMousePos() const;
     glm::vec2 getNVPMousePos();
 
+    void init();
+    void shutdown();
 
     // callbacks
   private:

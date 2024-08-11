@@ -6,11 +6,18 @@
 #include "components/jcomponent.h"
 #include "components/input_probe.h"
 #include "components/output_probe.h"
+#include "ui/dialogs.h"
+
 
 #include <fstream>
 #include <iostream>
 
 namespace Bess {
+    ProjectFile::ProjectFile()
+    {
+        m_name = "Unnamed";
+    }
+
     ProjectFile::ProjectFile(const std::string& path)
     {
         std::cout << "[+] Opening project " << path << std::endl;
@@ -26,6 +33,12 @@ namespace Bess {
     void ProjectFile::save()
     {
         if (m_saved) return;
+
+        if (m_path == "") {
+            browsePath();
+            if (m_path == "") return;
+        }
+
         std::cout << "[+] Saving project " << m_path << std::endl;
         auto data = encode();
         std::ofstream o(m_path);
@@ -56,6 +69,11 @@ namespace Bess {
     void ProjectFile::setPath(const std::string& path)
     {
         m_path = path;
+    }
+
+    bool ProjectFile::isSaved()
+    {
+        return m_saved;
     }
 
     nlohmann::json ProjectFile::encode()
@@ -117,5 +135,11 @@ namespace Bess {
                 break;
             }
         }
+    }
+
+    void ProjectFile::browsePath()
+    {
+        auto path = UI::Dialogs::showSaveFileDialog("Save To", "");
+        m_path = path;
     }
 }

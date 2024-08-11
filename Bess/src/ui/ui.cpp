@@ -15,6 +15,7 @@
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/icons/MaterialIcons.h"
 #include "ui/dialogs.h"
+#include "ui/popups.h"
 
 #include "camera.h"
 
@@ -76,6 +77,7 @@ void UIMain::shutdown() {
 
 void UIMain::draw() {
     begin();
+    drawMenubar();
     drawProjectExplorer();
     drawViewport();
     ComponentExplorer::draw();
@@ -108,7 +110,6 @@ void UIMain::drawProjectExplorer() {
     temp += " Open";
 
     if (ImGui::Button(temp.c_str())) {
-        auto filepath = Dialogs::showOpenFileDialog("Open BESS Project File", "*.bproj");
     }
 
     ImGui::SameLine();
@@ -130,6 +131,67 @@ void UIMain::drawProjectExplorer() {
         }
     }
     ImGui::End();
+}
+
+void UIMain::drawMenubar()
+{
+    bool newFileClicked = false, openFileClicked = false;
+    ImGui::BeginMainMenuBar();
+    if (ImGui::BeginMenu("File"))
+    {
+        // New File
+        std::string temp_name = Icons::FontAwesomeIcons::FA_FOLDER_PLUS;
+        temp_name += " New";
+        if (ImGui::MenuItem(temp_name.c_str()))
+        {
+            newFileClicked = true;
+        };
+
+        // Open File
+        temp_name = Icons::FontAwesomeIcons::FA_FOLDER_OPEN;
+        temp_name += " Open";
+        if (ImGui::MenuItem(temp_name.c_str()))
+        {
+            openFileClicked = true;
+        };
+        ImGui::EndMenu();
+
+    }
+
+    auto menubar_size = ImGui::GetWindowSize();
+    ImGui::EndMainMenuBar();
+
+
+    if (newFileClicked) {
+        onNewProject();
+    }
+    else if (openFileClicked) {
+        onOpenProject();
+    }
+
+    Popups::PopupRes res;
+    if ((res = Popups::handleUnsavedProjectWarning()) != Popups::PopupRes::none) {
+        if(res == Popups::PopupRes::yes) {
+            ApplicationState::saveCurrentProject();
+            if (!ApplicationState::currentProject->isSaved()) {
+                state._internalData.newFileClicked = false;
+                state._internalData.openFileClicked = false;
+                return;
+            }
+        }
+
+        if (res != Popups::PopupRes::cancel) {
+            if (state._internalData.newFileClicked) {
+                ApplicationState::createNewProject();
+                state._internalData.newFileClicked = false;
+            }
+            else if (state._internalData.openFileClicked) {
+                ApplicationState::loadProject(state._internalData.path);
+                state._internalData.path = "";
+                state._internalData.openFileClicked = false;
+            }
+        }
+    }
 }
 
 void UIMain::drawViewport() {
@@ -235,6 +297,38 @@ void UIMain::resetDockspace() {
     ImGui::DockBuilderDockWindow("Properties", dock_id_right_bot);
 
     ImGui::DockBuilderFinish(mainDockspaceId);
+}
+
+void UIMain::onNewProject()
+{
+    if (!ApplicationState::currentProject->isSaved()) {
+        state._internalData.newFileClicked = true;
+        ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning.c_str());
+    }
+    else {
+        ApplicationState::createNewProject();
+    }
+}
+
+void UIMain::onOpenProject()
+{
+
+    auto filepath = Dialogs::showOpenFileDialog("Open BESS Project File", "*.bproj|");
+
+    if (filepath == "" || !std::filesystem::exists(filepath)) return;
+
+    if (!ApplicationState::currentProject->isSaved()) {
+        state._internalData.openFileClicked = true;
+        state._internalData.path = filepath;
+        ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning.c_str());
+    }
+    else {
+        ApplicationState::loadProject(filepath);
+    }
+}
+
+void UIMain::onSaveProject()
+{
 }
 
 void UIMain::end() {

@@ -5,6 +5,7 @@
 #include <uuid_v4.h>
 #include <vector>
 #include <memory>
+#include "window.h"
 
 namespace Bess {
 
@@ -17,10 +18,15 @@ struct DragData {
 
 class ApplicationState {
   public:
-    static void init();
+    static void init(Window* mainWin);
     static void setSelectedId(const UUIDv4::UUID &uid);
     static const UUIDv4::UUID &getSelectedId();
     static const UUIDv4::UUID &getPrevSelectedId();
+
+    static void createNewProject();
+    static void saveCurrentProject();
+    static void loadProject(const std::string& path);
+    static void updateCurrentProject(std::shared_ptr<ProjectFile> project);
 
   public:
     // to be used according to the need of different ops
@@ -43,6 +49,7 @@ class ApplicationState {
   private:
     static UUIDv4::UUID m_selectedId;
     static UUIDv4::UUID m_prevSelectedId;
+    static Window* m_mainWindow;
 };
 
 } // namespace Bess

@@ -13,11 +13,18 @@
 
 namespace Bess::UI {
 
+    struct InternalData {
+        std::string path;
+        bool newFileClicked = false, openFileClicked = false;
+    };
+
     struct UIState {
         float cameraZoom = Camera::defaultZoom;
         glm::vec2 viewportSize = { 800, 500 };
         glm::vec2 viewportPos = { 0, 0 };
         GLuint64 viewportTexture = 0;
+
+        InternalData _internalData;
     };
 
     class UIMain {
@@ -44,6 +51,7 @@ namespace Bess::UI {
         static void setCatpuccinMochaColors();
 
         static void drawProjectExplorer();
+        static void drawMenubar();
         static void drawViewport();
         static void drawPropertiesPanel();
 
@@ -52,5 +60,11 @@ namespace Bess::UI {
 
 
         static void resetDockspace();
+
+    private:
+        // menu bar events
+        static void onNewProject();
+        static void onOpenProject();
+        static void onSaveProject();
     };
 } // namespace Bess

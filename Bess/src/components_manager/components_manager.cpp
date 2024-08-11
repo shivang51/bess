@@ -16,22 +16,20 @@ namespace Bess::Simulator {
 
     int ComponentsManager::renderIdCounter;
 
-    std::unordered_map<UUIDv4::UUID, ComponentPtr>
-        ComponentsManager::components;
+    std::unordered_map<UUIDv4::UUID, ComponentPtr> ComponentsManager::components;
 
-    std::vector<UUIDv4::UUID>
-        ComponentsManager::renderComponenets;
+    std::vector<UUIDv4::UUID> ComponentsManager::renderComponenets;
+    
     UUIDv4::UUID ComponentsManager::emptyId;
 
     const float ComponentsManager::zIncrement = 0.0001f;
 
-    float ComponentsManager::zPos = 0.0f;
+    float ComponentsManager::zPos;
 
 
     void ComponentsManager::init() {
-       ComponentsManager::emptyId = Common::Helpers::uuidGenerator.getUUID();
-        compIdToRId[emptyId] = -1;
-        renderIdToCId[-1] = emptyId;
+        ComponentsManager::emptyId = Common::Helpers::uuidGenerator.getUUID();
+        reset();
     }
 
     void ComponentsManager::generateComponent(ComponentType type, const std::any& data, const glm::vec3& pos) {
@@ -92,6 +90,18 @@ namespace Bess::Simulator {
     }
 
     int ComponentsManager::getNextRenderId() { return renderIdCounter++; }
+
+    void ComponentsManager::reset()
+    {
+        zPos = 0.0f;
+        renderIdCounter = 0;
+        components.clear();
+        renderComponenets.clear();
+        compIdToRId.clear();
+        renderIdToCId.clear();
+        compIdToRId[emptyId] = -1;
+        renderIdToCId[-1] = emptyId;
+    }
     
     float ComponentsManager::getNextZPos() {
         zPos += zIncrement;

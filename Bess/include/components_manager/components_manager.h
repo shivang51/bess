@@ -42,6 +42,8 @@ class ComponentsManager {
 
     static int getNextRenderId();
 
+    static void reset();
+
   private:
 
     // mapping from render id to components id.
