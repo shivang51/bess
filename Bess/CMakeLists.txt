@@ -39,6 +39,7 @@ set(Header_Files
     "include/renderer/font.h"
     "include/renderer/gl/primitive_type.h"
     "include/ui/ui.h"
+    "include/ui/icons/FontAwesomeIcons.h"
     "include/window.h"
     "include/common/bind_helpers.h"
     "include/common/helpers.h"
@@ -97,7 +98,7 @@ set(ALL_FILES
     ${Header_Files}
     ${Shaders}
     ${Source_Files}
- "include/ui/component_explorer.h" "src/ui/component_explorer.cpp" "include/project_file.h" "src/project_file.cpp")
+ "include/ui/component_explorer.h" "src/ui/component_explorer.cpp" "include/project_file.h" "src/project_file.cpp" "include/ui/dialogs.h" "src/ui/dialogs.cpp" "include/ui/icons/MaterialIcons.h")
 
 ################################################################################
 # Target

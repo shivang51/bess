@@ -13,44 +13,44 @@
 
 namespace Bess::UI {
 
-struct UIState {
-    float cameraZoom = Camera::defaultZoom;
-    glm::vec2 viewportSize = {800, 500};
-    glm::vec2 viewportPos = {0, 0};
-    GLuint64 viewportTexture = 0;
-};
+    struct UIState {
+        float cameraZoom = Camera::defaultZoom;
+        glm::vec2 viewportSize = { 800, 500 };
+        glm::vec2 viewportPos = { 0, 0 };
+        GLuint64 viewportTexture = 0;
+    };
 
-class UIMain {
-  public:
-    static void init(GLFWwindow *window);
+    class UIMain {
+    public:
+        static void init(GLFWwindow* window);
 
-    static void shutdown();
+        static void shutdown();
 
-    static void draw();
+        static void draw();
 
-    static void setViewportTexture(GLuint64 texture);
+        static void setViewportTexture(GLuint64 texture);
 
-    static void setCursorPointer();
+        static void setCursorPointer();
 
-    static void setCursorReset();
+        static void setCursorReset();
 
-    static UIState state;
+        static UIState state;
 
-  private:
-      static void setModernColors();
-      static void setMaterialYouColors();
-      static void setDarkThemeColors();
-      static void setBessDarkThemeColors();
-    static void setCatpuccinMochaColors();
+    private:
+        static void setModernColors();
+        static void setMaterialYouColors();
+        static void setDarkThemeColors();
+        static void setBessDarkThemeColors();
+        static void setCatpuccinMochaColors();
 
-    static void drawProjectExplorer();
-    static void drawViewport();
-    static void drawPropertiesPanel();
+        static void drawProjectExplorer();
+        static void drawViewport();
+        static void drawPropertiesPanel();
 
-    static void begin();
-    static void end();
+        static void begin();
+        static void end();
 
 
-    static void resetDockspace();
-};
+        static void resetDockspace();
+    };
 } // namespace Bess

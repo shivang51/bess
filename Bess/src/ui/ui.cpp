@@ -12,6 +12,9 @@
 #include "components_manager/components_manager.h"
 #include "components_manager/component_bank.h"
 #include "ui/component_explorer.h"
+#include "ui/icons/FontAwesomeIcons.h"
+#include "ui/icons/MaterialIcons.h"
+#include "ui/dialogs.h"
 
 #include "camera.h"
 
@@ -43,6 +46,17 @@ void UIMain::init(GLFWwindow *window) {
     float fontSize = 16.0f * 1.2f;
     io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Bold.ttf", fontSize);
     io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Regular.ttf", fontSize);
+
+    ImFontConfig config;
+    config.MergeMode = true;
+    static const ImWchar mat_icon_ranges[] = { Icons::MaterialIcons::ICON_MIN_MD, Icons::MaterialIcons::ICON_MAX_MD, 0 };
+    io.Fonts->AddFontFromFileTTF("assets/icons/MaterialIcons-Regular.ttf", 16.0f, &config, mat_icon_ranges);
+
+    const ImWchar fa_icon_ranges[] = { Icons::FontAwesomeIcons::SIZE_MIN_FAB, Icons::FontAwesomeIcons::SIZE_MAX_FAB, 0 };
+    io.Fonts->AddFontFromFileTTF("assets/icons/fa-brands-400.ttf", 16.0f, &config, fa_icon_ranges);
+
+    static const ImWchar fa_icon_ranges_r[] = { Icons::FontAwesomeIcons::SIZE_MIN_FA, Icons::FontAwesomeIcons::SIZE_MAX_FA, 0 };
+    io.Fonts->AddFontFromFileTTF("assets/icons/fa-solid-900.ttf", 16.0f, &config, fa_icon_ranges_r);
 
     //setDarkThemeColors();
     //setModernColors();
@@ -89,7 +103,20 @@ void UIMain::drawPropertiesPanel() {
 
 void UIMain::drawProjectExplorer() {
     ImGui::Begin("Project Explorer");
-    if (ImGui::Button("Save")) {
+
+    std::string temp = Icons::FontAwesomeIcons::FA_FILE;
+    temp += " Open";
+
+    if (ImGui::Button(temp.c_str())) {
+        auto filepath = Dialogs::showOpenFileDialog("Open BESS Project File", "*.bproj");
+    }
+
+    ImGui::SameLine();
+
+    temp = Icons::FontAwesomeIcons::FA_SAVE;
+    temp += " Save";
+
+    if (ImGui::Button(temp.c_str())) {
         ApplicationState::currentProject->update(Simulator::ComponentsManager::components);
         ApplicationState::currentProject->save();
     }
