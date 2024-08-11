@@ -1,0 +1,199 @@
+{
+    "components": [
+        {
+            "connections": {
+                "7e18e664-be79-4569-a5e0-2b97999b18c1": [
+                    "66ae9cd9-5b42-4da1-b083-29bd3cf3516d"
+                ]
+            },
+            "inputSlots": [
+                "28bb5e81-1076-432a-9efa-a8e77c642721",
+                "5d681b8b-0cf8-4c2e-8479-0b3edd57ca02"
+            ],
+            "jCompData": {
+                "collection": "Digital Gates",
+                "name": "XOR Gate"
+            },
+            "outputSlots": [
+                "7e18e664-be79-4569-a5e0-2b97999b18c1"
+            ],
+            "pos": {
+                "x": 50.09893798828125,
+                "y": 184.57484436035156,
+                "z": 9.999999747378752e-05
+            },
+            "type": 101,
+            "uid": "a99a6d06-5ac1-4f1e-a90f-2dd40cc6fdd3"
+        },
+        {
+            "connections": {
+                "0e9236ea-eb72-4007-bdcb-bfa5a9927fe3": [
+                    "28bb5e81-1076-432a-9efa-a8e77c642721",
+                    "3962bfd0-001e-4004-b8c8-6e45a087d3ce"
+                ]
+            },
+            "inputSlots": [
+                "ebf7071a-3419-459a-8c94-bd3b9378dc6e",
+                "5c882165-2456-41d1-8604-003ba150be78"
+            ],
+            "jCompData": {
+                "collection": "Digital Gates",
+                "name": "XOR Gate"
+            },
+            "outputSlots": [
+                "0e9236ea-eb72-4007-bdcb-bfa5a9927fe3"
+            ],
+            "pos": {
+                "x": -137.77191162109375,
+                "y": 185.89320373535156,
+                "z": 0.00019999999494757503
+            },
+            "type": 101,
+            "uid": "6a91f92c-0b3a-48cd-8ffb-459160777cac"
+        },
+        {
+            "connections": {
+                "a3539cdc-e8bc-445c-9600-a921eed153e5": [
+                    "33e4f9d2-b8e3-4741-9e33-1c01112e3255"
+                ]
+            },
+            "inputSlots": [
+                "cc8c8ed2-bbbd-4a63-9853-ba6ea5944992",
+                "3962bfd0-001e-4004-b8c8-6e45a087d3ce"
+            ],
+            "jCompData": {
+                "collection": "Digital Gates",
+                "name": "AND Gate"
+            },
+            "outputSlots": [
+                "a3539cdc-e8bc-445c-9600-a921eed153e5"
+            ],
+            "pos": {
+                "x": 53.39482116699219,
+                "y": 69.87474060058594,
+                "z": 0.00029999998514540493
+            },
+            "type": 101,
+            "uid": "7d40512f-87a0-4345-8c18-0f729b3ddd9c"
+        },
+        {
+            "connections": {
+                "1ef6cd91-673d-4505-b86b-7c28f0c68bc9": [
+                    "d8b2aaf0-3837-46dc-a857-181bf93f0142"
+                ]
+            },
+            "inputSlots": [
+                "b26d4497-57d5-421e-8944-0e5f178d3ff4",
+                "1faf43a3-d1d0-4a16-a18f-f225fba46dd6"
+            ],
+            "jCompData": {
+                "collection": "Digital Gates",
+                "name": "AND Gate"
+            },
+            "outputSlots": [
+                "1ef6cd91-673d-4505-b86b-7c28f0c68bc9"
+            ],
+            "pos": {
+                "x": 54.7132568359375,
+                "y": -21.09429931640625,
+                "z": 0.00039999998989515007
+            },
+            "type": 101,
+            "uid": "68d33c89-8300-4c2a-a420-8b939312bee5"
+        },
+        {
+            "connections": {
+                "5efb9332-f9fe-4210-805e-2b3c34eeb274": [
+                    "c623de8d-7ed6-4748-bb97-1eef5d19f897"
+                ]
+            },
+            "inputSlots": [
+                "33e4f9d2-b8e3-4741-9e33-1c01112e3255",
+                "d8b2aaf0-3837-46dc-a857-181bf93f0142"
+            ],
+            "jCompData": {
+                "collection": "Digital Gates",
+                "name": "OR Gate"
+            },
+            "outputSlots": [
+                "5efb9332-f9fe-4210-805e-2b3c34eeb274"
+            ],
+            "pos": {
+                "x": 218.19387817382813,
+                "y": 37.574188232421875,
+                "z": 0.0004999999655410647
+            },
+            "type": 101,
+            "uid": "faaab42c-e85d-4000-a897-dc0724d6599f"
+        },
+        {
+            "connections": {
+                "a9b0fee2-9521-41ba-bad6-17c4bef7f63e": [
+                    "5d681b8b-0cf8-4c2e-8479-0b3edd57ca02",
+                    "cc8c8ed2-bbbd-4a63-9853-ba6ea5944992"
+                ]
+            },
+            "pos": {
+                "x": -307.8444519042969,
+                "y": 69.215576171875,
+                "z": 0.0005999999702908099
+            },
+            "slotUId": "a9b0fee2-9521-41ba-bad6-17c4bef7f63e",
+            "type": 102,
+            "uid": "b4246546-4d58-4947-b59d-6d997ed706a4"
+        },
+        {
+            "connections": {
+                "94f29257-2f83-48be-827d-78ec1f254a8d": [
+                    "5c882165-2456-41d1-8604-003ba150be78",
+                    "1faf43a3-d1d0-4a16-a18f-f225fba46dd6"
+                ]
+            },
+            "pos": {
+                "x": -307.18524169921875,
+                "y": 137.11273193359375,
+                "z": 0.000699999975040555
+            },
+            "slotUId": "94f29257-2f83-48be-827d-78ec1f254a8d",
+            "type": 102,
+            "uid": "0ac745db-101b-49e8-9ea6-cb218959a543"
+        },
+        {
+            "connections": {
+                "0a162b0d-a3c0-4ab7-8084-6f7e85ad0224": [
+                    "ebf7071a-3419-459a-8c94-bd3b9378dc6e",
+                    "b26d4497-57d5-421e-8944-0e5f178d3ff4"
+                ]
+            },
+            "pos": {
+                "x": -305.8668518066406,
+                "y": 209.624267578125,
+                "z": 0.0007999999797903001
+            },
+            "slotUId": "0a162b0d-a3c0-4ab7-8084-6f7e85ad0224",
+            "type": 102,
+            "uid": "f5008291-ab9f-4350-bc80-c36fdf42ad89"
+        },
+        {
+            "pos": {
+                "x": 334.87139892578125,
+                "y": 38.23332214355469,
+                "z": 0.0008999999845400453
+            },
+            "slotUId": "c623de8d-7ed6-4748-bb97-1eef5d19f897",
+            "type": 103,
+            "uid": "0206badf-bd4b-4634-bb48-c24bb06c4d2f"
+        },
+        {
+            "pos": {
+                "x": 236.6512451171875,
+                "y": 185.2340087890625,
+                "z": 0.0009999999310821295
+            },
+            "slotUId": "66ae9cd9-5b42-4da1-b083-29bd3cf3516d",
+            "type": 103,
+            "uid": "dad3b4f7-51d0-40a7-85c8-a09f520bf226"
+        }
+    ],
+    "name": "Unnamed"
+}
