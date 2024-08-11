@@ -50,8 +50,8 @@ void UIMain::init(GLFWwindow *window) {
 
     ImFontConfig config;
     config.MergeMode = true;
-    static const ImWchar mat_icon_ranges[] = { Icons::MaterialIcons::ICON_MIN_MD, Icons::MaterialIcons::ICON_MAX_MD, 0 };
-    io.Fonts->AddFontFromFileTTF("assets/icons/MaterialIcons-Regular.ttf", 16.0f, &config, mat_icon_ranges);
+    //static const ImWchar mat_icon_ranges[] = { Icons::MaterialIcons::ICON_MIN_MD, Icons::MaterialIcons::ICON_MAX_MD, 0 };
+    //io.Fonts->AddFontFromFileTTF("assets/icons/MaterialIcons-Regular.ttf", 16.0f, &config, mat_icon_ranges);
 
     const ImWchar fa_icon_ranges[] = { Icons::FontAwesomeIcons::SIZE_MIN_FAB, Icons::FontAwesomeIcons::SIZE_MAX_FAB, 0 };
     io.Fonts->AddFontFromFileTTF("assets/icons/fa-brands-400.ttf", 16.0f, &config, fa_icon_ranges);
@@ -60,10 +60,10 @@ void UIMain::init(GLFWwindow *window) {
     io.Fonts->AddFontFromFileTTF("assets/icons/fa-solid-900.ttf", 16.0f, &config, fa_icon_ranges_r);
 
     //setDarkThemeColors();
-    //setModernColors();
+    setModernColors();
     //setMaterialYouColors();
     //setCatpuccinMochaColors();
-    setBessDarkThemeColors();
+    //setBessDarkThemeColors();
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 410");
@@ -106,15 +106,7 @@ void UIMain::drawPropertiesPanel() {
 void UIMain::drawProjectExplorer() {
     ImGui::Begin("Project Explorer");
 
-    std::string temp = Icons::FontAwesomeIcons::FA_FILE;
-    temp += " Open";
-
-    if (ImGui::Button(temp.c_str())) {
-    }
-
-    ImGui::SameLine();
-
-    temp = Icons::FontAwesomeIcons::FA_SAVE;
+    std::string temp = Icons::FontAwesomeIcons::FA_SAVE;
     temp += " Save";
 
     if (ImGui::Button(temp.c_str())) {
