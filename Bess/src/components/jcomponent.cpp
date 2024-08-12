@@ -36,6 +36,8 @@ namespace Bess::Simulator::Components {
             (OnLeftClickCB)BIND_EVENT_FN_1(onLeftClick);
         m_events[ComponentEventType::rightClick] =
             (OnRightClickCB)BIND_EVENT_FN_1(onRightClick);
+
+        simulate();
     }
 
     void JComponent::drawBackground(const glm::vec4& borderThicknessPx, float rPx, float headerHeight, const glm::vec2& gateSize) {
@@ -174,8 +176,7 @@ namespace Bess::Simulator::Components {
         for (int i = 0; i < outputs.size(); i++) {
             auto &slotId = m_outputSlots[i];
             DigitalState outputState = static_cast<DigitalState>(outputs[i]);
-            auto slot = (Slot*)ComponentsManager::components[slotId].get();
-            slot->setState(m_uid, outputState);
+            Simulator::Engine::addToSimQueue(slotId, m_uid, outputState);
         }
     }
 

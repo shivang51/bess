@@ -105,6 +105,8 @@ namespace Bess {
         if (UI::UIMain::state.cameraZoom != m_camera->getZoom()) {
             m_camera->setZoom(UI::UIMain::state.cameraZoom);
         }
+
+        if(!ApplicationState::simulationPaused) Simulator::Engine::Simulate();
     }
 
     void Application::quit() { m_window.close(); }

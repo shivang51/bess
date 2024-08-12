@@ -62,8 +62,8 @@ void UIMain::init(GLFWwindow *window) {
     //setDarkThemeColors();
     //setModernColors();
     //setMaterialYouColors();
-    setCatpuccinMochaColors();
-    //setBessDarkThemeColors();
+    //setCatpuccinMochaColors();
+    setBessDarkThemeColors();
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 410");
@@ -112,6 +112,12 @@ void UIMain::drawProjectExplorer() {
     if (ImGui::Button(temp.c_str())) {
         ApplicationState::currentProject->update(Simulator::ComponentsManager::components);
         ApplicationState::currentProject->save();
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button(ApplicationState::simulationPaused ? "Play" : "Pause")) {
+        ApplicationState::simulationPaused = !ApplicationState::simulationPaused;
     }
 
     for (auto &id : Simulator::ComponentsManager::renderComponenets) {

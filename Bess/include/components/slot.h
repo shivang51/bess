@@ -24,7 +24,7 @@ class Slot : public Component {
     Simulator::DigitalState getState() const;
     DigitalState flipState();
     
-    void setState(const UUIDv4::UUID& uid, Simulator::DigitalState state);
+    void setState(const UUIDv4::UUID& uid, Simulator::DigitalState state, bool forceUpdate = false);
 
     const UUIDv4::UUID& getParentId();
 
@@ -38,7 +38,10 @@ class Slot : public Component {
 
     const std::vector<UUIDv4::UUID>& getConnections();
 
-    void simulate();
+    // uid of component making change
+    void simulate(const UUIDv4::UUID& uid, DigitalState state);
+
+    void refresh(const UUIDv4::UUID& uid, DigitalState state);
 
   private:
     // contains one way connection from starting slot to other

@@ -4,8 +4,12 @@
 
 #include "components_manager/components_manager.h"
 #include "components/input_probe.h"
+#include "components/jcomponent.h"
 
 namespace Bess::Simulator {
+
+    std::queue<Engine::SimQueueElement> Engine::currentSimQueue, Engine::nextSimQueue;
+
     // Function to apply a binary operator to two operands
     int Engine::applyBinaryOperator(int a, int b, char op) {
         switch (op) {
@@ -94,8 +98,52 @@ namespace Bess::Simulator {
     void Engine::RefreshSimulation() {
         for (auto& comp : Simulator::ComponentsManager::components) {
             if (comp.second->getType() != ComponentType::inputProbe) continue;
-            auto inpProbe = (Components::InputProbe*)comp.second.get();
-            inpProbe->refresh();
+            addToSimQueue(comp.first, comp.first, DigitalState::low);
         }
+    }
+
+    void Engine::Simulate()
+    {
+        currentSimQueue = nextSimQueue;
+        nextSimQueue = {};
+        std::unordered_map<UUIDv4::UUID, bool> done = {};
+        while (!currentSimQueue.empty()) {
+            auto el = currentSimQueue.front();
+            currentSimQueue.pop();
+            if (done.find(el.uid) != done.end()) continue;
+            done[el.uid] = true;
+
+            auto& comp = ComponentsManager::components[el.uid];
+            if (comp->getType() == ComponentType::jcomponent) {
+                auto jcomp = (Components::JComponent*)ComponentsManager::components[el.uid].get();
+                jcomp->simulate();
+            }
+            else if (comp->getType() == ComponentType::inputProbe) {
+                auto inpProbe = (Components::InputProbe*)comp.get();
+                if (el.state == low)
+                    inpProbe->refresh();
+                else
+                {
+                    inpProbe->simulate();
+                }
+            }
+            else if (comp->getType() == ComponentType::inputSlot || comp->getType() == ComponentType::outputSlot) {
+                auto slot = (Components::Slot*)ComponentsManager::components[el.uid].get();
+                slot->simulate(el.changerId, el.state);
+            }
+
+        }
+    }
+
+    void Engine::addToSimQueue(const UUIDv4::UUID& uid, const UUIDv4::UUID& changerId, Simulator::DigitalState state)
+    {
+        SimQueueElement el{uid, changerId, state};
+        nextSimQueue.push(el);
+    }
+
+    void Engine::clearQueue()
+    {
+        nextSimQueue = {};
+        currentSimQueue = {};
     }
 }

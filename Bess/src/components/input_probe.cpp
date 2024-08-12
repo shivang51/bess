@@ -5,6 +5,7 @@
 #include "renderer/renderer.h"
 #include "common/bind_helpers.h"
 #include "common/helpers.h"
+#include "simulator/simulator_engine.h"
 
 namespace Bess::Simulator::Components {
 
@@ -121,14 +122,13 @@ void InputProbe::fromJson(const nlohmann::json& data)
 void InputProbe::simulate() const
 {
     auto slot = (Slot*)ComponentsManager::components[m_outputSlot].get();
-    slot->simulate();
+    slot->simulate(m_uid, slot->getState());
 }
 
 void InputProbe::refresh() const
 {
     auto slot = (Slot*)ComponentsManager::components[m_outputSlot].get();
-    slot->flipState();
-    slot->flipState();
+    slot->refresh(m_uid, slot->getState());
 }
 
 void InputProbe::onLeftClick(const glm::vec2& pos)

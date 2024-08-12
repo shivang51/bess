@@ -21,6 +21,9 @@ DragData ApplicationState::dragData;
 
 float ApplicationState::normalizingFactor;
 
+ bool ApplicationState::simulationPaused = false;
+
+
 void ApplicationState::init(Window* mainWin) {
     m_mainWindow = mainWin;
 
@@ -63,6 +66,7 @@ void ApplicationState::createNewProject()
 {
     init(m_mainWindow);
     Simulator::ComponentsManager::reset();
+    Simulator::Engine::clearQueue();
 }
 
 void ApplicationState::saveCurrentProject()
@@ -74,9 +78,11 @@ void ApplicationState::loadProject(const std::string& path)
 {
     init(m_mainWindow);
     Simulator::ComponentsManager::reset();
+    Simulator::Engine::clearQueue();
+
     auto project = std::make_shared<ProjectFile>(path);
     updateCurrentProject(project);
-    Simulator::Engine::RefreshSimulation();
+    //Simulator::Engine::RefreshSimulation();
 }
 
 void ApplicationState::updateCurrentProject(std::shared_ptr<ProjectFile> project)

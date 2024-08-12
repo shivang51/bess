@@ -6,6 +6,7 @@
 #include "common/theme.h"
 #include "ui/ui.h"
 #include <common/bind_helpers.h>
+#include "simulator/simulator_engine.h"
 
 namespace Bess::Simulator::Components {
 float fontSize = 10.f;
@@ -87,21 +88,11 @@ void Slot::onChange()
 {
     if (m_type == ComponentType::outputSlot) {
         for (auto& slot : m_connections) {
-            auto slotComp = (Slot*)ComponentsManager::components[slot].get();
-            slotComp->setState(m_uid, m_state);
+            Simulator::Engine::addToSimQueue(slot, m_uid, m_state);
         }
     }
     else {
-        auto &parent = ComponentsManager::components[m_parentUid];
-        switch (parent->getType())
-        {
-        case ComponentType::jcomponent: {
-            auto parentPtr = (Components::JComponent*)parent.get();
-            parentPtr->simulate();
-        }break;
-        default:
-            break;
-        }
+        Simulator::Engine::addToSimQueue(m_parentUid, m_uid, m_state);
     }
 }
 
@@ -117,8 +108,7 @@ void Slot::addConnection(const UUIDv4::UUID &uid, bool simulate) {
     if (isConnectedTo(uid)) return;
     m_connections.emplace_back(uid);
     if (!simulate) return;
-    auto slotComp = (Slot*)ComponentsManager::components[uid].get();
-    slotComp->setState(m_uid, m_state);
+    Simulator::Engine::addToSimQueue(uid, m_uid, m_state);
 }
 
 bool Slot::isConnectedTo(const UUIDv4::UUID& uId) {
@@ -135,7 +125,7 @@ Simulator::DigitalState Slot::getState() const
     return m_state;
 }
 
-void Slot::setState(const UUIDv4::UUID& uid, Simulator::DigitalState state)
+void Slot::setState(const UUIDv4::UUID& uid, Simulator::DigitalState state, bool forceUpdate)
 {
     if (m_type == ComponentType::inputSlot) {
         stateChangeHistory[uid] = state == DigitalState::high; 
@@ -148,7 +138,7 @@ void Slot::setState(const UUIDv4::UUID& uid, Simulator::DigitalState state)
         }
     }
 
-    if (m_state == state) return;
+    if (m_state == state && !forceUpdate) return;
     m_state = state;
     onChange();
 }
@@ -194,8 +184,13 @@ const std::vector<UUIDv4::UUID>& Slot::getConnections()
     return m_connections;
 }
 
-void Slot::simulate()
+void Slot::simulate(const UUIDv4::UUID& uid, DigitalState state)
 {
-    onChange();
+    setState(uid, state);
+}
+
+void Slot::refresh(const UUIDv4::UUID& uid, DigitalState state)
+{
+    setState(uid, state, true);
 }
 } // namespace Bess::Simulator::Components

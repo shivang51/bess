@@ -46,6 +46,8 @@ class ApplicationState {
 
     static std::shared_ptr<ProjectFile> currentProject;
 
+    static bool simulationPaused;
+
   private:
     static UUIDv4::UUID m_selectedId;
     static UUIDv4::UUID m_prevSelectedId;
