@@ -288,13 +288,15 @@ int calculateSegments(const glm::vec2 &p1, const glm::vec2 &p2) {
 void Renderer::curve(const glm::vec3 &start, const glm::vec3 &end, float size,
                      const glm::vec3 &color, const int id) {
     const int segments = (int)(calculateSegments(start, end));
+    
     double dx = end.x - start.x;
     double offsetX = dx * 0.5;
-    if (dx < 0.f) offsetX *= -1;
-    if (offsetX < 100.f) offsetX = 100.0;
+    /*if (dx < 0.f) offsetX *= -1;
+    if (offsetX < 100.f) offsetX = 100.0;*/
 
     glm::vec2 cp2 = {end.x - offsetX, end.y};
     glm::vec2 cp1 = {start.x + offsetX, start.y};
+
     auto prev = start;
     for (int i = 1; i <= segments; i++) {
         glm::vec2 bP = bernstine(start, cp1, cp2, end, (float)i / (float)segments);
