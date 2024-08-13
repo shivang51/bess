@@ -18,8 +18,7 @@ Window::Window(int width, int height, const std::string &title) {
 
     this->initGLFW();
 
-    GLFWwindow *window =
-        glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
+    GLFWwindow *window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
 
     assert(window != nullptr);
     glfwSetWindowUserPointer(window, this);
@@ -144,6 +143,8 @@ void Window::initOpenGL() {
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glEnable(GL_MULTISAMPLE);
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);

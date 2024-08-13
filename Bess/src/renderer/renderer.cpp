@@ -169,12 +169,15 @@ void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
 }
 
 void Renderer2D::Renderer::quad(const glm::vec3& pos, const glm::vec2& size, const glm::vec3& color, int id, float angle, const glm::vec4& borderRadius, const glm::vec4& borderColor, const glm::vec4& borderSize) {
-    auto size_ = size;
-    auto borderRadius_ = borderRadius + borderSize;
+    
+    if (borderSize.x || borderSize.y || borderSize.z || borderSize.w) {
+        auto size_ = size;
+        auto borderRadius_ = borderRadius + borderSize;
 
-    size_.x += borderSize.w + borderSize.y;
-    size_.y += borderSize.x + borderSize.z;
-    Renderer::drawQuad(pos, size_, borderColor, id, angle, borderRadius_);
+        size_.x += borderSize.w + borderSize.y;
+        size_.y += borderSize.x + borderSize.z;
+        Renderer::drawQuad(pos, size_, borderColor, id, angle, borderRadius_);
+    }
     Renderer::drawQuad(pos, size, color, id, angle, borderRadius);
 }
 
@@ -182,7 +185,7 @@ void Renderer2D::Renderer::drawQuad(const glm::vec3& pos, const glm::vec2& size,
     std::vector<Gl::QuadVertex> vertices(4);
 
     auto transform = glm::translate(glm::mat4(1.0f), pos);
-    transform = glm::rotate(transform, glm::radians(angle), {0.f, 0.f, 1.f});
+    transform = glm::rotate(transform, angle, {0.f, 0.f, 1.f});
     transform = glm::scale(transform, {size.x, size.y, 1.f});
 
     for (int i = 0; i < 4; i++) {
@@ -249,18 +252,15 @@ glm::vec2 bernstine(const glm::vec2 &p0, const glm::vec2 &p1,
 
 void Renderer::createCurveVertices(const glm::vec3 &start, const glm::vec3 &end,
                                    const glm::vec3 &color, const int id, float weight) {
-    auto dx = end.x - start.x;
-    auto dy = end.y - start.y;
-    auto angle = std::atan(dy / dx);
-    float dis = std::sqrt((dx * dx) + (dy * dy));
+    glm::vec2 direction = end - start;
+    float length = glm::length(direction);
+    glm::vec2 pos = (start + end) * 0.5f;
+    float angle = glm::atan(direction.y, direction.x);
+    glm::vec2 size = { length, weight };
 
-    float sizeX = std::max(dis, weight);
-    sizeX = dis;
-
-    glm::vec3 pos = {start.x, start.y - 0.005f, start.z};
-    auto transform = glm::translate(glm::mat4(1.0f), pos);
+    auto transform = glm::translate(glm::mat4(1.0f), { pos, start.z});
     transform = glm::rotate(transform, angle, {0.f, 0.f, 1.f});
-    transform = glm::scale(transform, {sizeX, weight, 1.f});
+    transform = glm::scale(transform, {size, 1.f});
 
     std::vector<Gl::Vertex> vertices(4);
     for (int i = 0; i < 4; i++) {
@@ -290,6 +290,9 @@ void Renderer::curve(const glm::vec3 &start, const glm::vec3 &end, float size,
     const int segments = (int)(calculateSegments(start, end));
     double dx = end.x - start.x;
     double offsetX = dx * 0.5;
+    if (dx < 0.f) offsetX *= -1;
+    if (offsetX < 100.f) offsetX = 100.0;
+
     glm::vec2 cp2 = {end.x - offsetX, end.y};
     glm::vec2 cp1 = {start.x + offsetX, start.y};
     auto prev = start;
@@ -376,6 +379,19 @@ void Renderer::text(const std::string& text, const glm::vec3& pos, const size_t 
             GL_UNSIGNED_INT, nullptr));
         x += (ch.Advance >> 6) * scale;
     }
+}
+
+void Renderer2D::Renderer::line(const glm::vec3& start, const glm::vec3& end, float size, const glm::vec3& color, const int id)
+{
+    glm::vec2 direction = end - start;
+
+    float length = glm::length(direction);
+
+    glm::vec2 pos = (start + end) * 0.5f;
+
+    float angle = glm::atan(direction.y, direction.x);
+
+    drawQuad(glm::vec3(pos, start.z), {length, size}, color, id, angle);
 }
 
 void Renderer::addCircleVertices(const std::vector<Gl::Vertex> &vertices) {

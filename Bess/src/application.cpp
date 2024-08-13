@@ -61,7 +61,6 @@ namespace Bess {
             entity->render();
         }
 
-
         Renderer::end();
 
         if (isCursorInViewport()) {

@@ -53,7 +53,7 @@ class Renderer {
 
     static void quad(const glm::vec3 &pos, const glm::vec2 &size,
                      const glm::vec3 &color, int id, float angle,
-                     const glm::vec4 &borderRadius = {0.f, 0.f, 0.f, 0.f},
+                     const glm::vec4 &borderRadius,
                      const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
                      const glm::vec4 &borderSize = glm::vec4(0.f));
 
@@ -66,6 +66,8 @@ class Renderer {
     static void grid(const glm::vec3 &pos, const glm::vec2 &size, int id);
 
     static void text(const std::string& data, const glm::vec3& pos, const size_t size, const glm::vec3& color, const int id);
+
+    static void line(const glm::vec3& start, const glm::vec3& end, float size, const glm::vec3& color, const int id);
 
   private:
     static void createCurveVertices(const glm::vec3 &start,
