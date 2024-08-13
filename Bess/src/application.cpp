@@ -11,6 +11,7 @@
 #include "components_manager/component_bank.h"
 
 #include "simulator/simulator_engine.h"
+#include "common/theme.h"
 
 using Bess::Renderer2D::Renderer;
 
@@ -49,8 +50,10 @@ namespace Bess {
 
         switch (ApplicationState::drawMode) {
         case DrawMode::connection: {
+            auto sPos = ApplicationState::points[0];
+            sPos.z = -1;
             auto mPos = glm::vec3(getNVPMousePos(), -1);
-            Renderer::curve(ApplicationState::points[0], mPos, 2.5, { 0.5, 0.8, 0.5 }, -1);
+            Renderer::curve(sPos, mPos, 2.5, Theme::wireColor, -1);
         } break;
         default:
             break;
@@ -60,6 +63,8 @@ namespace Bess {
             auto& entity = Simulator::ComponentsManager::components[id];
             entity->render();
         }
+
+
 
         Renderer::end();
 
