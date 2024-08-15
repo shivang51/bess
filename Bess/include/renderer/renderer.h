@@ -17,6 +17,7 @@ struct RenderData {
     std::vector<Gl::Vertex> circleVertices;
     std::vector<Gl::Vertex> curveVertices;
     std::vector<Gl::Vertex> fontVertices;
+    std::vector<Gl::Vertex> triangleVertices;
     std::vector<Gl::QuadVertex> quadVertices;
 };
 
@@ -82,13 +83,16 @@ class Renderer {
 
     static void drawPath(const std::vector<glm::vec3>& points, float weight, const glm::vec3& color, const int id, bool closed = false);
 
+    static void triangle(const std::vector<glm::vec3>& points, const glm::vec3& color, const int id);
 
   private:
     static void createCurveVertices(const glm::vec3 &start,
                                     const glm::vec3 &end,
                                     const glm::vec3 &color, int id, float weight = 3.0f);
 
-    static void addCircleVertices(const std::vector<Gl::Vertex> &vertices);
+    static void addCircleVertices(const std::vector<Gl::Vertex>& vertices);
+
+    static void addTriangleVertices(const std::vector<Gl::Vertex> &vertices);
 
     static void addCurveVertices(const std::vector<Gl::Vertex> &vertices);
 
@@ -114,6 +118,8 @@ class Renderer {
     static std::vector<PrimitiveType> m_AvailablePrimitives;
 
     static std::vector<glm::vec4> m_StandardQuadVertices;
+
+    static std::vector<glm::vec4> m_StandardTriVertices;
 
     static std::unordered_map<PrimitiveType, size_t> m_MaxRenderLimit;
 

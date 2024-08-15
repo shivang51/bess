@@ -24,6 +24,7 @@ std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Vao>> Renderer::m_vaos;
 std::shared_ptr<Camera> Renderer::m_camera;
 
 std::vector<glm::vec4> Renderer::m_StandardQuadVertices;
+std::vector<glm::vec4> Renderer::m_StandardTriVertices;
 std::unordered_map<PrimitiveType, size_t> Renderer::m_MaxRenderLimit;
 
 RenderData Renderer::m_RenderData;
@@ -50,13 +51,16 @@ void Renderer::init() {
         m_GridVao =
             std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::GridVertex));
 
-        m_AvailablePrimitives = { PrimitiveType::curve, PrimitiveType::quad,
-                                 PrimitiveType::circle, PrimitiveType::font };
-        m_MaxRenderLimit[PrimitiveType::quad] = 250;
-        m_MaxRenderLimit[PrimitiveType::curve] = 250;
-        m_MaxRenderLimit[PrimitiveType::circle] = 250;
-        m_MaxRenderLimit[PrimitiveType::font] = 250;
     }
+
+    m_AvailablePrimitives = { PrimitiveType::curve, PrimitiveType::quad,
+                             PrimitiveType::circle, PrimitiveType::font, PrimitiveType::triangle };
+    m_MaxRenderLimit[PrimitiveType::quad] = 250;
+    m_MaxRenderLimit[PrimitiveType::curve] = 250;
+    m_MaxRenderLimit[PrimitiveType::circle] = 250;
+    m_MaxRenderLimit[PrimitiveType::font] = 250;
+    m_MaxRenderLimit[PrimitiveType::triangle] = 250;
+
     std::string vertexShader, fragmentShader;
 
     for (auto primitive : m_AvailablePrimitives) {
@@ -76,6 +80,11 @@ void Renderer::init() {
         case PrimitiveType::font:
             vertexShader = "assets/shaders/vert.glsl";
             fragmentShader = "assets/shaders/font_frag.glsl";
+            break;
+        case PrimitiveType::triangle:
+            vertexShader = "assets/shaders/vert.glsl";
+            fragmentShader = "assets/shaders/triangle_frag.glsl";
+            break;
         }
 
         if (vertexShader.empty() || fragmentShader.empty()) {
@@ -91,44 +100,22 @@ void Renderer::init() {
 
         if (primitive == PrimitiveType::quad) {
             std::vector<Gl::VaoAttribAttachment> attachments;
-
-            attachments.emplace_back(Gl::VaoAttribAttachment(
-                Gl::VaoAttribType::vec3, offsetof(Gl::QuadVertex, position)));
-            attachments.emplace_back(Gl::VaoAttribAttachment(
-                Gl::VaoAttribType::vec3, offsetof(Gl::QuadVertex, color)));
-            attachments.emplace_back(Gl::VaoAttribAttachment(
-                Gl::VaoAttribType::vec2, offsetof(Gl::QuadVertex, texCoord)));
-            //attachments.emplace_back(
-            //    Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::QuadVertex, borderSize)));
-            attachments.emplace_back(Gl::VaoAttribAttachment(
-                Gl::VaoAttribType::vec4,
-                offsetof(Gl::QuadVertex, borderRadius)));
-            //attachments.emplace_back(
-            //    Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4,
-            //        offsetof(Gl::QuadVertex, borderColor)));
-            attachments.emplace_back(Gl::VaoAttribAttachment(
-                Gl::VaoAttribType::vec2, offsetof(Gl::QuadVertex, size)));
-            attachments.emplace_back(Gl::VaoAttribAttachment(
-                Gl::VaoAttribType::int_t, offsetof(Gl::QuadVertex, id)));
-
-            m_vaos[primitive] = std::make_unique<Gl::Vao>(
-                max_render_count * 4, max_render_count * 6, attachments,
-                sizeof(Gl::QuadVertex));
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::QuadVertex, position)));
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::QuadVertex, color)));
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::QuadVertex, texCoord)));
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::QuadVertex, borderRadius)));
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::QuadVertex, size)));
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::QuadVertex, id)));
+            m_vaos[primitive] = std::make_unique<Gl::Vao>(max_render_count * 4, max_render_count * 6, attachments, sizeof(Gl::QuadVertex));
         }
         else {
             std::vector<Gl::VaoAttribAttachment> attachments;
-            attachments.emplace_back(Gl::VaoAttribAttachment(
-                Gl::VaoAttribType::vec3, offsetof(Gl::Vertex, position)));
-            attachments.emplace_back(Gl::VaoAttribAttachment(
-                Gl::VaoAttribType::vec3, offsetof(Gl::Vertex, color)));
-            attachments.emplace_back(Gl::VaoAttribAttachment(
-                Gl::VaoAttribType::vec2, offsetof(Gl::Vertex, texCoord)));
-            attachments.emplace_back(Gl::VaoAttribAttachment(
-                Gl::VaoAttribType::int_t, offsetof(Gl::Vertex, id)));
-
-            m_vaos[primitive] = std::make_unique<Gl::Vao>(
-                max_render_count * 4, max_render_count * 6, attachments,
-                sizeof(Gl::Vertex));
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::Vertex, position)));
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::Vertex, color)));
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::Vertex, texCoord)));
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::Vertex, id)));
+            bool triangle = primitive == PrimitiveType::triangle;
+            m_vaos[primitive] = std::make_unique<Gl::Vao>(max_render_count * 4, max_render_count * 6, attachments, sizeof(Gl::Vertex), triangle);
         }
 
         vertexShader.clear();
@@ -140,6 +127,13 @@ void Renderer::init() {
         {-0.5f, -0.5f, 0.f, 1.f},
         {0.5f, -0.5f, 0.f, 1.f},
         {0.5f, 0.5f, 0.f, 1.f},
+    };
+
+
+    m_StandardTriVertices = {
+        {-0.5f, 0.5f, 0.f, 1.f},
+        {0.f, -0.5f, 0.f, 1.f},
+        {0.5f, 0.5f, 0.f, 1.f}
     };
 
     m_Font = std::make_unique<Font>("assets/fonts/Roboto/Roboto-Regular.ttf");
@@ -446,6 +440,38 @@ void Renderer2D::Renderer::drawPath(const std::vector<glm::vec3>& points, float 
     }
 }
 
+void Renderer2D::Renderer::triangle(const std::vector<glm::vec3>& points, const glm::vec3& color, const int id)
+{
+    std::vector<Gl::Vertex> vertices(3);
+
+    for (int i = 0; i < vertices.size(); i++) {
+        auto transform = glm::translate(glm::mat4(1.0f), points[i]);
+        auto& vertex = vertices[i];
+        vertex.position = transform * m_StandardTriVertices[i];
+        vertex.id = id;
+        vertex.color = color;
+    }
+
+    vertices[0].texCoord = { 0.0f, 0.0f };
+    vertices[1].texCoord = { 0.0f, 0.5f };
+    vertices[2].texCoord = { 1.0f, 1.0f };
+
+    addTriangleVertices(vertices);
+}
+
+
+void Renderer::addTriangleVertices(const std::vector<Gl::Vertex>& vertices) {
+    auto max_render_count = m_MaxRenderLimit[PrimitiveType::circle];
+
+    auto& primitive_vertices = m_RenderData.triangleVertices;
+
+    if (primitive_vertices.size() >= (max_render_count - 1) * 4) {
+        flush(PrimitiveType::triangle);
+    }
+
+    primitive_vertices.insert(primitive_vertices.end(), vertices.begin(), vertices.end());
+}
+
 void Renderer::addCircleVertices(const std::vector<Gl::Vertex> &vertices) {
     auto max_render_count = m_MaxRenderLimit[PrimitiveType::circle];
 
@@ -518,6 +544,12 @@ void Renderer::flush(PrimitiveType type) {
         GL_CHECK(glDrawElements(GL_TRIANGLES,
                                 (GLsizei)(vertices.size() / 4) * 6,
                                 GL_UNSIGNED_INT, nullptr));
+        vertices.clear();
+    } break;
+    case PrimitiveType::triangle: {
+        auto& vertices = m_RenderData.triangleVertices;
+        vao->setVertices(vertices.data(), vertices.size());
+        GL_CHECK(glDrawElements(GL_TRIANGLES, vertices.size(), GL_UNSIGNED_INT, nullptr));
         vertices.clear();
     } break;
     }

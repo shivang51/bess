@@ -58,7 +58,6 @@ set(Shaders
     "../assets/shaders/quad_vert.glsl"
     "../assets/shaders/vert.glsl"
     "../assets/shaders/font_frag.glsl"
-    "../assets/shaders/font_vert.glsl"
     "../assets/shaders/grid_frag.glsl"
     "../assets/shaders/grid_vert.glsl"
 )

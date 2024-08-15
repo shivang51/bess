@@ -9,7 +9,7 @@
 namespace Bess::Gl
 {
 
-    Vao::Vao(size_t max_vertices, size_t max_indices, const std::vector<VaoAttribAttachment> &attachments, size_t vertex_size)
+    Vao::Vao(size_t max_vertices, size_t max_indices, const std::vector<VaoAttribAttachment> &attachments, size_t vertex_size, bool triangle)
     {
         m_vertex_size = vertex_size;
         GL_CHECK(glGenVertexArrays(1, &m_vao_id));
@@ -66,10 +66,16 @@ namespace Bess::Gl
         }
 
         std::vector<GLuint> indices = {0, 1, 2, 2, 3, 0};
+        if (triangle) {
+            indices = { 0, 1, 2 };
+        }
 
-        for (size_t i = 6; i < max_indices; i++)
-        {
-            indices.push_back(indices[i - 6] + 4);
+        int len = indices.size();
+        int incr = triangle ? 3 : 4;
+
+        for (size_t i = len; i < max_indices; i++)
+        {   
+            indices.push_back(indices[i - len] + incr);
         }
 
         GL_CHECK(glGenBuffers(1, &m_ibo_id));

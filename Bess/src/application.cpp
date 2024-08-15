@@ -82,6 +82,8 @@ namespace Bess {
         }
 
         std::vector<glm::vec3> points = { {0.f, 100.f, 0.99f}, {200.f, 0.f, 0.99f}, {0.f, 0.f, 0.99f} };
+        Renderer::triangle(points, Theme::compHeaderColor, -1);
+        points = { {0.f, 100.f, 1.f}, {200.f, 0.f, 1.f}, {0.f, 0.f, 1.f} };
         Renderer::drawPath(points, 2.f, Theme::selectedCompColor, -1, true);
 
         Renderer::end();
@@ -91,7 +93,7 @@ namespace Bess {
             viewportMousePos.y = UI::UIMain::state.viewportSize.y - viewportMousePos.y;
             ApplicationState::hoveredId = m_framebuffer->readId((int)viewportMousePos.x, (int)viewportMousePos.y);
         }
-
+            
         m_framebuffer->unbind();
     }
 

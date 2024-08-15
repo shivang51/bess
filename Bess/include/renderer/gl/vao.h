@@ -22,7 +22,7 @@ class Vao {
   public:
     Vao(size_t max_vertices, size_t max_indices,
         const std::vector<VaoAttribAttachment> &attachments,
-        size_t vertex_size);
+        size_t vertex_size, bool triangle = false);
     ~Vao();
 
     void bind() const;
