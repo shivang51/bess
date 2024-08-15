@@ -20,6 +20,13 @@ struct RenderData {
     std::vector<Gl::QuadVertex> quadVertices;
 };
 
+
+struct QuadBezierCurvePoints {
+    glm::vec2 startPoint;
+    glm::vec2 controlPoint;
+    glm::vec2 endPoint;
+};
+
 class Renderer {
   public:
     Renderer() = default;
@@ -27,6 +34,7 @@ class Renderer {
     static void init();
 
     static void begin(std::shared_ptr<Camera> camera);
+    
     static void end();
 
     static const glm::vec2& getCharRenderSize(char ch, float renderSize);
@@ -57,8 +65,11 @@ class Renderer {
                      const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
                      const glm::vec4 &borderSize = glm::vec4(0.f));
 
-    static void curve(const glm::vec3 &start, const glm::vec3 &end, float size,
-                      const glm::vec3 &color, int id);
+    static void curve(const glm::vec3 &start, const glm::vec3 &end, float weight, const glm::vec3 &color, int id);
+
+    static void quadraticBezier(const glm::vec3& start, const glm::vec3& end, const glm::vec2& controlPoint, float weight, const glm::vec3& color,  const int id, bool pathMode = false);
+
+    static void cubicBezier(const glm::vec3& start, const glm::vec3& end, const glm::vec2& controlPoint1, const glm::vec2& controlPoint2, float weight, const glm::vec3& color, const int id);
 
     static void circle(const glm::vec3 &center, float radius,
                        const glm::vec3 &color, int id);
@@ -68,6 +79,9 @@ class Renderer {
     static void text(const std::string& data, const glm::vec3& pos, const size_t size, const glm::vec3& color, const int id);
 
     static void line(const glm::vec3& start, const glm::vec3& end, float size, const glm::vec3& color, const int id);
+
+    static void drawPath(const std::vector<glm::vec3>& points, float weight, const glm::vec3& color, const int id, bool closed = false);
+
 
   private:
     static void createCurveVertices(const glm::vec3 &start,
@@ -86,6 +100,8 @@ class Renderer {
                      const glm::vec3 &color, int id, float angle,
                      const glm::vec4 &borderRadius = {0.f, 0.f, 0.f, 0.f}
     );
+
+    static QuadBezierCurvePoints generateQuadBezierPoints(const glm::vec2& prevPoint, const glm::vec2& joinPoint, const glm::vec2& nextPoint, float curveRadius);
 
   private:
     static std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Shader>>

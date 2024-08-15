@@ -43,6 +43,23 @@ namespace Bess {
 
     void Application::drawUI() { UI::UIMain::draw(); }
 
+    struct BezierCurve {
+        glm::vec2 startPoint;
+        glm::vec2 controlPoint;
+        glm::vec2 endPoint;
+    };
+
+    BezierCurve generateQuadraticBezier(const glm::vec2& prevPoint, const glm::vec2& joinPoint, const glm::vec2& nextPoint, float curveRadius) {
+        glm::vec2 dir1 = glm::normalize(joinPoint - prevPoint);
+        glm::vec2 dir2 = glm::normalize(nextPoint - joinPoint);
+        glm::vec2 bisector = glm::normalize(dir1 + dir2);
+        float offset = glm::dot(bisector, dir1);
+        glm::vec2 controlPoint = joinPoint + bisector * offset;
+        glm::vec2 startPoint = joinPoint - dir1 * curveRadius;
+        glm::vec2 endPoint = joinPoint + dir2 * curveRadius;
+        return { startPoint, controlPoint, endPoint };
+    }
+
     void Application::drawScene() {
         m_framebuffer->bind();
 
@@ -64,7 +81,8 @@ namespace Bess {
             entity->render();
         }
 
-
+        std::vector<glm::vec3> points = { {0.f, 100.f, 0.99f}, {200.f, 0.f, 0.99f}, {0.f, 0.f, 0.99f} };
+        Renderer::drawPath(points, 2.f, Theme::selectedCompColor, -1, true);
 
         Renderer::end();
 

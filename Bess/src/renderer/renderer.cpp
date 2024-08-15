@@ -250,6 +250,16 @@ glm::vec2 bernstine(const glm::vec2 &p0, const glm::vec2 &p1,
     return B0 + B1 + B2 + B3;
 }
 
+glm::vec2 bernstineQuadBezier(const glm::vec2& p0, const glm::vec2& p1, const glm::vec2& p2, const float t) {
+    float t_ = 1.0f - t;
+
+    glm::vec2 point = (t_ * t_) * p0 +
+        2.0f * (t_ * t) * p1 +
+        (t * t) * p2;
+
+    return point;
+}
+
 void Renderer::createCurveVertices(const glm::vec3 &start, const glm::vec3 &end,
                                    const glm::vec3 &color, const int id, float weight) {
     glm::vec2 direction = end - start;
@@ -281,27 +291,45 @@ void Renderer::createCurveVertices(const glm::vec3 &start, const glm::vec3 &end,
 int calculateSegments(const glm::vec2 &p1, const glm::vec2 &p2) {
     return (int)(glm::distance(p1 / UI::UIMain::state.viewportSize,
                                p2 / UI::UIMain::state.viewportSize) /
-                 0.001f);
+                 0.0002f);
 }
 
 
-void Renderer::curve(const glm::vec3 &start, const glm::vec3 &end, float size,
-                     const glm::vec3 &color, const int id) {
-    const int segments = (int)(calculateSegments(start, end));
-    
+void Renderer::curve(const glm::vec3 &start, const glm::vec3 &end, float weight, const glm::vec3 &color, const int id) {
     double dx = end.x - start.x;
     double offsetX = dx * 0.5;
+
     /*if (dx < 0.f) offsetX *= -1;
     if (offsetX < 100.f) offsetX = 100.0;*/
 
     glm::vec2 cp2 = {end.x - offsetX, end.y};
     glm::vec2 cp1 = {start.x + offsetX, start.y};
+    cubicBezier(start, end, cp1, cp2, weight, color, id);
+}
+
+void Renderer::quadraticBezier(const glm::vec3& start, const glm::vec3& end, const glm::vec2& controlPoint, float weight,
+    const glm::vec3& color, const int id, bool pathMode) {
+    int segments = calculateSegments(start, end);
+
+    auto prev = start;
+    for (int i = 1; i <= segments; i++) {
+        glm::vec2 bP = bernstineQuadBezier(start, controlPoint, end, (float)i / (float)segments);
+        glm::vec3 p = { bP.x, bP.y, start.z };
+        if (pathMode) line(prev, p, weight, color, id);
+        else createCurveVertices(prev, p, color, id, weight);
+        prev = p;
+    }
+}
+
+void Renderer2D::Renderer::cubicBezier(const glm::vec3& start, const glm::vec3& end, const glm::vec2& cp1, const glm::vec2& cp2, float weight, const glm::vec3& color, const int id)
+{
+    const int segments = (int)(calculateSegments(start, end));
 
     auto prev = start;
     for (int i = 1; i <= segments; i++) {
         glm::vec2 bP = bernstine(start, cp1, cp2, end, (float)i / (float)segments);
-        glm::vec3 p = {bP.x, bP.y, start.z};
-        createCurveVertices(prev, p, color, id, size);
+        glm::vec3 p = { bP.x, bP.y, start.z };
+        createCurveVertices(prev, p, color, id, weight);
         prev = p;
     }
 }
@@ -396,6 +424,28 @@ void Renderer2D::Renderer::line(const glm::vec3& start, const glm::vec3& end, fl
     drawQuad(glm::vec3(pos, start.z), {length, size}, color, id, angle);
 }
 
+void Renderer2D::Renderer::drawPath(const std::vector<glm::vec3>& points, float weight, const glm::vec3& color, const int id, bool closed)
+{
+    if (points.empty()) return;
+    auto newPoints = points;
+    auto prev = newPoints[0];
+
+    if (closed) {
+        newPoints.emplace_back(prev);
+    }
+
+    for (int i = 1; i < (int)newPoints.size(); i++) {
+        auto p1 = newPoints[i], p1_ = newPoints[i];
+        if (i + 1 < newPoints.size()) {
+            auto curve_ = generateQuadBezierPoints(newPoints[i - 1], newPoints[i], newPoints[i + 1], 8.f);
+            Renderer2D::Renderer::quadraticBezier(glm::vec3(curve_.startPoint, prev.z), glm::vec3(curve_.endPoint, p1.z), curve_.controlPoint, weight, color, id, true);
+            p1 = glm::vec3(curve_.startPoint, prev.z), p1_ = glm::vec3(curve_.endPoint, newPoints[i + 1].z);
+        }
+        Renderer2D::Renderer::line(prev, p1, 2.f, color, -1);
+        prev = p1_;
+    }
+}
+
 void Renderer::addCircleVertices(const std::vector<Gl::Vertex> &vertices) {
     auto max_render_count = m_MaxRenderLimit[PrimitiveType::circle];
 
@@ -418,8 +468,7 @@ void Renderer::addQuadVertices(const std::vector<Gl::QuadVertex> &vertices) {
         flush(PrimitiveType::quad);
     }
 
-    primitive_vertices.insert(primitive_vertices.end(), vertices.begin(),
-                              vertices.end());
+    primitive_vertices.insert(primitive_vertices.end(), vertices.begin(), vertices.end());
 }
 
 void Renderer::addCurveVertices(const std::vector<Gl::Vertex> &vertices) {
@@ -431,8 +480,7 @@ void Renderer::addCurveVertices(const std::vector<Gl::Vertex> &vertices) {
         flush(PrimitiveType::curve);
     }
 
-    primitive_vertices.insert(primitive_vertices.end(), vertices.begin(),
-                              vertices.end());
+    primitive_vertices.insert(primitive_vertices.end(), vertices.begin(), vertices.end());
 }
 
 void Renderer::flush(PrimitiveType type) {
@@ -479,6 +527,19 @@ void Renderer::flush(PrimitiveType type) {
 }
 
 void Renderer::begin(std::shared_ptr<Camera> camera) { m_camera = camera; }
+
+
+QuadBezierCurvePoints Renderer::generateQuadBezierPoints(const glm::vec2& prevPoint, const glm::vec2& joinPoint, const glm::vec2& nextPoint, float curveRadius) {
+    glm::vec2 dir1 = glm::normalize(joinPoint - prevPoint);
+    glm::vec2 dir2 = glm::normalize(nextPoint - joinPoint);
+    glm::vec2 bisector = glm::normalize(dir1 + dir2);
+    float offset = glm::dot(bisector, dir1);
+    glm::vec2 controlPoint = joinPoint + bisector * offset;
+    glm::vec2 startPoint = joinPoint - dir1 * curveRadius;
+    glm::vec2 endPoint = joinPoint + dir2 * curveRadius;
+    return { startPoint, controlPoint, endPoint };
+}
+
 
 void Renderer::end() {
     for (auto primitive : m_AvailablePrimitives) {
