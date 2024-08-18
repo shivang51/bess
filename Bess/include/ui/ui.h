@@ -43,6 +43,9 @@ namespace Bess::UI {
 
         static UIState state;
 
+        static void begin();
+        static void end();
+
     private:
         static void setModernColors();
         static void setMaterialYouColors();
@@ -53,10 +56,7 @@ namespace Bess::UI {
         static void drawProjectExplorer();
         static void drawMenubar();
         static void drawViewport();
-        static void drawPropertiesPanel();
 
-        static void begin();
-        static void end();
 
 
         static void resetDockspace();

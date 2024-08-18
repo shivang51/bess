@@ -16,6 +16,7 @@
 #include "ui/icons/MaterialIcons.h"
 #include "ui/dialogs.h"
 #include "ui/popups.h"
+#include "ui/properties_panel.h"
 
 #include "camera.h"
 
@@ -50,11 +51,11 @@ void UIMain::init(GLFWwindow *window) {
 
     ImFontConfig config;
     config.MergeMode = true;
-    //static const ImWchar mat_icon_ranges[] = { Icons::MaterialIcons::ICON_MIN_MD, Icons::MaterialIcons::ICON_MAX_MD, 0 };
-    //io.Fonts->AddFontFromFileTTF("assets/icons/MaterialIcons-Regular.ttf", 16.0f, &config, mat_icon_ranges);
+    static const ImWchar mat_icon_ranges[] = { Icons::MaterialIcons::ICON_MIN_MD, Icons::MaterialIcons::ICON_MAX_MD, 0 };
+    io.Fonts->AddFontFromFileTTF("assets/icons/MaterialIcons-Regular.ttf", 16.0f, &config, mat_icon_ranges);
 
-    const ImWchar fa_icon_ranges[] = { Icons::FontAwesomeIcons::SIZE_MIN_FAB, Icons::FontAwesomeIcons::SIZE_MAX_FAB, 0 };
-    io.Fonts->AddFontFromFileTTF("assets/icons/fa-brands-400.ttf", 16.0f, &config, fa_icon_ranges);
+    //const ImWchar fa_icon_ranges[] = { Icons::FontAwesomeIcons::SIZE_MIN_FAB, Icons::FontAwesomeIcons::SIZE_MAX_FAB, 0 };
+    //io.Fonts->AddFontFromFileTTF("assets/icons/fa-brands-400.ttf", 16.0f, &config, fa_icon_ranges);
 
     static const ImWchar fa_icon_ranges_r[] = { Icons::FontAwesomeIcons::SIZE_MIN_FA, Icons::FontAwesomeIcons::SIZE_MAX_FA, 0 };
     io.Fonts->AddFontFromFileTTF("assets/icons/fa-solid-900.ttf", 16.0f, &config, fa_icon_ranges_r);
@@ -76,39 +77,22 @@ void UIMain::shutdown() {
 }
 
 void UIMain::draw() {
-    begin();
-    drawMenubar();
+    //drawMenubar();
     drawProjectExplorer();
     drawViewport();
     ComponentExplorer::draw();
-    drawPropertiesPanel();
+    PropertiesPanel::draw();
     //ImGui::ShowDemoWindow();
-    end();
 }
 
 void UIMain::setViewportTexture(GLuint64 texture) {
     state.viewportTexture = texture;
 }
 
-void UIMain::drawPropertiesPanel() {
-    ImGui::Begin("Properties");
-    //ImGui::Text("Hovered Id: %d", ApplicationState::hoveredId);
-
-    if (ApplicationState::getSelectedId() != Simulator::ComponentsManager::emptyId) {
-        auto &selectedEnt = Simulator::ComponentsManager::components[ApplicationState::getSelectedId()];
-        ImGui::Text("Position: %f, %f, %f", selectedEnt->getPosition().x, selectedEnt->getPosition().y, selectedEnt->getPosition().z);
-
-        if (ImGui::Button("Delete")) {
-            Simulator::ComponentsManager::deleteComponent(ApplicationState::getSelectedId());
-        }
-    }
-    ImGui::End();
-}
-
 void UIMain::drawProjectExplorer() {
     ImGui::Begin("Project Explorer");
 
-    std::string temp = Icons::FontAwesomeIcons::FA_SAVE;
+    std::string temp = "";//Icons::FontAwesomeIcons::FA_SAVE;
     temp += " Save";
 
     if (ImGui::Button(temp.c_str())) {

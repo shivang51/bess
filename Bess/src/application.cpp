@@ -41,7 +41,7 @@ namespace Bess {
         shutdown();
     }
 
-    void Application::drawUI() { UI::UIMain::draw(); }
+    void Application::drawUI() { }
 
     struct BezierCurve {
         glm::vec2 startPoint;
@@ -96,8 +96,10 @@ namespace Bess {
         while (!m_window.isClosed()) {
             m_window.waitEventsTimeout(0.0167);
             update();
+            UI::UIMain::begin();
+            UI::UIMain::draw();
             drawScene();
-            drawUI();
+            UI::UIMain::end();
         }
     }
 

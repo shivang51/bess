@@ -51,7 +51,7 @@ namespace Bess::Simulator {
 
     void ComponentsManager::deleteComponent(const uuids::uuid cid)
     {
-        if (components.find(cid) == components.end() || cid.is_nil()) return;
+        if (cid.is_nil() || components.find(cid) == components.end()) return;
 
         auto renderIt = std::find(renderComponenets.begin(), renderComponenets.end(), cid);
         if (renderIt != renderComponenets.end()) {

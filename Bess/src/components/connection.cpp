@@ -1,9 +1,9 @@
 #include "components/connection.h"
-#include "common/theme.h"
 #include "components/slot.h"
 #include "ui/ui.h"
 
 #include "common/helpers.h"
+#include <imgui.h>
 
 namespace Bess::Simulator::Components {
 #define BIND_EVENT_FN_1(fn) std::bind(&fn, this, std::placeholders::_1)
@@ -44,7 +44,7 @@ void Connection::render() {
         {posA.x, posA.y, m_position.z}, 
         {posB.x, posB.y, m_position.z},
         m_hovered ? 2.5f : 2.0f,
-        m_selected ? Theme::selectedWireColor: (slot->getState() == DigitalState::high) ? Theme::stateHighColor : Theme::wireColor,
+        m_selected ? Theme::selectedWireColor: (slot->getState() == DigitalState::high) ? Theme::stateHighColor : m_color,
         m_renderId
     );
 }
@@ -65,6 +65,11 @@ void Connection::deleteComponent()
 }
 
 void Connection::generate(const glm::vec3& pos){}
+
+void Connection::drawProperties()
+{
+    ImGui::ColorEdit3("Wire Color", &m_color[0]);
+}
 
 void Connection::generate(const uuids::uuid& slot1, const uuids::uuid& slot2, const glm::vec3& pos)
 {
