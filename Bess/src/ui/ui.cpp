@@ -92,13 +92,15 @@ void UIMain::setViewportTexture(GLuint64 texture) {
 
 void UIMain::drawPropertiesPanel() {
     ImGui::Begin("Properties");
-    ImGui::Text("Hovered Id: %d", ApplicationState::hoveredId);
-    if (ApplicationState::getSelectedId() !=
-        Simulator::ComponentsManager::emptyId) {
-        auto &selectedEnt = Simulator::ComponentsManager::components
-            [ApplicationState::getSelectedId()];
-        ImGui::Text("Position: %f, %f, %f", selectedEnt->getPosition().x,
-                    selectedEnt->getPosition().y, selectedEnt->getPosition().z);
+    //ImGui::Text("Hovered Id: %d", ApplicationState::hoveredId);
+
+    if (ApplicationState::getSelectedId() != Simulator::ComponentsManager::emptyId) {
+        auto &selectedEnt = Simulator::ComponentsManager::components[ApplicationState::getSelectedId()];
+        ImGui::Text("Position: %f, %f, %f", selectedEnt->getPosition().x, selectedEnt->getPosition().y, selectedEnt->getPosition().z);
+
+        if (ImGui::Button("Delete")) {
+            Simulator::ComponentsManager::deleteComponent(ApplicationState::getSelectedId());
+        }
     }
     ImGui::End();
 }

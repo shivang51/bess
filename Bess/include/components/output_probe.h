@@ -8,11 +8,13 @@ namespace Bess::Simulator::Components {
 class OutputProbe : public Component {
   public:
       OutputProbe();
-    OutputProbe(const UUIDv4::UUID &uid, int renderId, glm::vec3 position,
-                const UUIDv4::UUID &outputSlot);
+    OutputProbe(const uuids::uuid &uid, int renderId, glm::vec3 position,
+                const uuids::uuid &outputSlot);
     ~OutputProbe() = default;
 
     void render() override;
+
+    void deleteComponent() override;
 
     void generate(const glm::vec3& pos = { 0.f, 0.f, 0.f }) override;
 
@@ -21,6 +23,6 @@ class OutputProbe : public Component {
     static void fromJson(const nlohmann::json& data);
 
   private:
-    UUIDv4::UUID m_outputSlot;
+    uuids::uuid m_inputSlot;
 };
 } // namespace Bess::Simulator::Components

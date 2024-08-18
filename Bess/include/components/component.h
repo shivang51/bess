@@ -3,7 +3,7 @@
 #include "ext/vector_float2.hpp"
 #include "ext/vector_float3.hpp"
 
-#include "uuid_v4.h"
+#include "uuid.h"
 
 #include <any>
 #include <functional>
@@ -33,11 +33,11 @@ typedef std::function<void()> VoidCB;
 class Component {
   public:
       Component() = default;
-    Component(const UUIDv4::UUID &uid, int renderId, glm::vec3 position,
+    Component(const uuids::uuid &uid, int renderId, glm::vec3 position,
               ComponentType type);
     virtual ~Component() = default;
 
-    UUIDv4::UUID getId() const;
+    uuids::uuid getId() const;
     std::string getIdStr() const;
 
     int getRenderId() const;
@@ -51,6 +51,8 @@ class Component {
 
     virtual void generate(const glm::vec3& pos = { 0.f, 0.f, 0.f }) = 0;
 
+    virtual void deleteComponent() = 0;
+
     std::string getName() const;
     std::string getRenderName() const;
 
@@ -58,7 +60,7 @@ class Component {
 
   protected:
     int m_renderId;
-    UUIDv4::UUID m_uid;
+    uuids::uuid m_uid;
     glm::vec3 m_position;
     ComponentType m_type;
     std::string m_name = "Unknown";

@@ -5,6 +5,7 @@ namespace Bess::Simulator {
         inputSlot = 0,
         outputSlot,
         connection,
+        button,
         //draggable compoenents start below
         jcomponent = 101,
         inputProbe,

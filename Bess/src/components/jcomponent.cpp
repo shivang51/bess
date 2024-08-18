@@ -23,9 +23,9 @@ namespace Bess::Simulator::Components {
     {
     }
 
-    JComponent::JComponent(const UUIDv4::UUID& uid, int renderId, glm::vec3 position,
-        std::vector<UUIDv4::UUID> inputSlots,
-        std::vector<UUIDv4::UUID> outputSlots, const std::shared_ptr<JComponentData> data)
+    JComponent::JComponent(const uuids::uuid& uid, int renderId, glm::vec3 position,
+        std::vector<uuids::uuid> inputSlots,
+        std::vector<uuids::uuid> outputSlots, const std::shared_ptr<JComponentData> data)
         : Component(uid, renderId, position, ComponentType::jcomponent), m_data{data} {
         m_name = data->getName();
 
@@ -190,7 +190,7 @@ namespace Bess::Simulator::Components {
         auto pId = Common::Helpers::uuidGenerator.getUUID();
         // input slots
         int n = data->getInputCount();
-        std::vector<UUIDv4::UUID> inputSlots;
+        std::vector<uuids::uuid> inputSlots;
         while (n--) {
             auto uid = Common::Helpers::uuidGenerator.getUUID();
             auto renderId = ComponentsManager::getNextRenderId();
@@ -202,7 +202,7 @@ namespace Bess::Simulator::Components {
         }
 
         // output slots
-        std::vector<UUIDv4::UUID> outputSlots;
+        std::vector<uuids::uuid> outputSlots;
         n = data->getOutputs().size();
         while (n--) {
             auto uid = Common::Helpers::uuidGenerator.getUUID();
@@ -220,8 +220,7 @@ namespace Bess::Simulator::Components {
         auto pos_ = pos;
         pos_.z = ComponentsManager::getNextZPos();
 
-        ComponentsManager::components[uid] = std::make_shared<Components::JComponent>(
-            uid, renderId, pos_, inputSlots, outputSlots, data);
+        ComponentsManager::components[uid] = std::make_shared<Components::JComponent>(uid, renderId, pos_, inputSlots, outputSlots, data);
 
         ComponentsManager::addRenderIdToCId(renderId, uid);
         ComponentsManager::addCompIdToRId(renderId, uid);
@@ -229,25 +228,36 @@ namespace Bess::Simulator::Components {
         ComponentsManager::renderComponenets.emplace_back(uid);
     }
 
+    void JComponent::deleteComponent()
+    {
+        for(auto& id: m_inputSlots){
+            ComponentsManager::deleteComponent(id);
+        }
+
+        for (auto& id : m_outputSlots) {
+            ComponentsManager::deleteComponent(id);
+        }
+    }
+
     nlohmann::json JComponent::toJson()
     {
         nlohmann::json data;
 
-        data["uid"] = m_uid.str();
+        data["uid"] = Common::Helpers::uuidToStr(m_uid);
         data["pos"] = Common::Helpers::EncodeVec3(m_position);
         data["type"] = (int)m_type;
 
         data["jCompData"]["collection"] = m_data->getCollectionName();
         data["jCompData"]["name"] = m_data->getName();
 
-        for (auto& uid : m_inputSlots) data["inputSlots"].emplace_back(uid.str());
-        for (auto& uid : m_outputSlots) data["outputSlots"].emplace_back(uid.str());
+        for (auto& uid : m_inputSlots) {
+            auto slot = (Slot*)ComponentsManager::components[uid].get();
+            data["inputSlots"].emplace_back(slot->toJson());
+        }
 
         for (auto& uid : m_outputSlots) {
             auto slot = (Slot*)ComponentsManager::components[uid].get();
-            auto str = uid.str();
-            for (auto& cid : slot->getConnections())
-                data["connections"][str].emplace_back(cid.str());
+            data["outputSlots"].emplace_back(slot->toJson());
         }
 
         return data;
@@ -255,54 +265,29 @@ namespace Bess::Simulator::Components {
 
     void JComponent::fromJson(const nlohmann::json& data)
     {
-        UUIDv4::UUID uid;
-        uid.fromStr((static_cast<std::string>(data["uid"])).c_str());
+        uuids::uuid uid;
+        uid = Common::Helpers::strToUUID(static_cast<std::string>(data["uid"]));
 
         auto pos = Common::Helpers::DecodeVec3(data["pos"]);
 
         auto jCompData = Simulator::ComponentBank::getJCompData(data["jCompData"]["collection"], data["jCompData"]["name"]);
         
-        std::vector<UUIDv4::UUID> inputSlots = {};
-        std::vector<UUIDv4::UUID> outputSlots = {};
-        for(std::string sidStr: data["inputSlots"]) {
-            UUIDv4::UUID sid;
-            sid.fromStr(sidStr.c_str());
-            inputSlots.emplace_back(sid);
-            auto renderId = ComponentsManager::getNextRenderId();
-            ComponentsManager::components[sid] = std::make_shared<Components::Slot>(
-                sid, uid, renderId, ComponentType::inputSlot);
-            ComponentsManager::addRenderIdToCId(renderId, sid);
-            ComponentsManager::addCompIdToRId(renderId, sid);
+        std::vector<uuids::uuid> inputSlots = {};
+        for(auto& slotJson: data["inputSlots"]) {
+            inputSlots.emplace_back(Slot::fromJson(slotJson, uid));
         }
 
-        for (std::string sidStr: data["outputSlots"]) {
-            UUIDv4::UUID sid;
-            sid.fromStr(sidStr.c_str());
-            outputSlots.emplace_back(sid);
-            auto renderId = ComponentsManager::getNextRenderId();
-            auto slot = std::make_shared<Components::Slot>(sid, uid, renderId, ComponentType::outputSlot);
-            ComponentsManager::components[sid] = slot;
-            ComponentsManager::addRenderIdToCId(renderId, sid);
-            ComponentsManager::addCompIdToRId(renderId, sid);
-
-            if (!data.contains("connections") || !data["connections"].contains(sidStr)) continue;
-
-            for (std::string cidStr : data["connections"][sidStr]) {
-                UUIDv4::UUID cid;
-                cid.fromStr(cidStr.c_str());
-                slot->addConnection(cid, false);
-                Components::Connection().generate(cid, sid);
-            }
+        std::vector<uuids::uuid> outputSlots = {};
+        for (auto& slotJson: data["outputSlots"]) {
+            outputSlots.emplace_back(Slot::fromJson(slotJson, uid));
         }
 
         auto renderId = ComponentsManager::getNextRenderId();
 
-        ComponentsManager::components[uid] = std::make_shared<Components::JComponent>(
-            uid, renderId, pos, inputSlots, outputSlots, jCompData);
+        ComponentsManager::components[uid] = std::make_shared<Components::JComponent>(uid, renderId, pos, inputSlots, outputSlots, jCompData);
 
         ComponentsManager::addRenderIdToCId(renderId, uid);
         ComponentsManager::addCompIdToRId(renderId, uid);
-
         ComponentsManager::renderComponenets.emplace_back(uid);
     }
 

@@ -9,14 +9,14 @@
 
 namespace Bess::Simulator::Components {
 
-glm::vec2 inputProbeSize = {50.f, 25.f};
+glm::vec2 inputProbeSize = {65.f, 25.f};
 
 InputProbe::InputProbe(): Component()
 {
 }
 
-InputProbe::InputProbe(const UUIDv4::UUID &uid, int renderId,
-                       glm::vec3 position, const UUIDv4::UUID &outputSlot)
+InputProbe::InputProbe(const uuids::uuid &uid, int renderId,
+                       glm::vec3 position, const uuids::uuid &outputSlot)
     : Component(uid, renderId, position, ComponentType::inputProbe) {
     m_name = "Input Probe";
     m_outputSlot = outputSlot;
@@ -47,6 +47,17 @@ void InputProbe::render() {
 
     slot->update(m_position + glm::vec3({(inputProbeSize.x / 2) - 12.f, 0.f, 0.f}), {-12.f, 0.f}, label);
     slot->render();
+    auto leftCornerPos = Common::Helpers::GetLeftCornerPos(m_position, inputProbeSize);
+    glm::vec3 v1 = { leftCornerPos.x + 16.0, leftCornerPos.y - 4.f, m_position.z };
+    float l = 8.0f;
+    Renderer2D::Renderer::triangle({ {v1.x - l, v1.y - l, v1.z}, v1, {v1.x + l, v1.y - l, v1.z} }, Theme::compHeaderColor, m_renderId);
+    v1.y -= (l * 2.f) + 1.f;
+    Renderer2D::Renderer::triangle({ {v1.x - l, v1.y + l, v1.z}, v1, {v1.x + l, v1.y + l, v1.z} }, Theme::compHeaderColor, m_renderId);
+}
+
+void InputProbe::deleteComponent()
+{
+    ComponentsManager::deleteComponent(m_outputSlot);
 }
 
 void InputProbe::generate(const glm::vec3& pos)
@@ -64,8 +75,7 @@ void InputProbe::generate(const glm::vec3& pos)
     pos_.z = ComponentsManager::getNextZPos();
 
     renderId = ComponentsManager::getNextRenderId();
-    ComponentsManager::components[uid] =
-        std::make_shared<Components::InputProbe>(uid, renderId, pos_, slotId);
+    ComponentsManager::components[uid] = std::make_shared<Components::InputProbe>(uid, renderId, pos_, slotId);
     ComponentsManager::addRenderIdToCId(renderId, uid);
     ComponentsManager::addCompIdToRId(renderId, uid);
     ComponentsManager::renderComponenets.emplace_back(uid);
@@ -73,47 +83,26 @@ void InputProbe::generate(const glm::vec3& pos)
 
 nlohmann::json InputProbe::toJson() {
     nlohmann::json data;
-    data["uid"] = m_uid.str();
-    data["slotUId"] = m_outputSlot.str();
+    data["uid"] = Common::Helpers::uuidToStr(m_uid);
     data["type"] = (int)m_type;
     data["pos"] = Common::Helpers::EncodeVec3(m_position);
     auto slot = (Slot*)ComponentsManager::components[m_outputSlot].get();
-    auto str = m_outputSlot.str();
-    for (auto& cid : slot->getConnections())
-        data["connections"][str].emplace_back(cid.str());
+    data["slot"] = slot->toJson();
     return data;
 }
 
 void InputProbe::fromJson(const nlohmann::json& data)
 {
-    UUIDv4::UUID uid;
-    uid.fromStr((static_cast<std::string>(data["uid"])).c_str());
+    uuids::uuid uid = Common::Helpers::strToUUID(static_cast<std::string>(data["uid"]));
 
-
-    UUIDv4::UUID slotId;
-    slotId.fromStr((static_cast<std::string>(data["slotUId"])).c_str());
-
-    int renderId = Simulator::ComponentsManager::getNextRenderId();
-    ComponentsManager::components[slotId] = std::make_shared<Components::Slot>(
-        slotId, uid, renderId, ComponentType::outputSlot);
-    ComponentsManager::addRenderIdToCId(renderId, slotId);
-    ComponentsManager::addCompIdToRId(renderId, slotId);
-
-    auto slot = (Slot*)ComponentsManager::components[slotId].get();
-    if (data.contains("connections")) {
-        for (std::string cidStr : data["connections"][data["slotUId"]]) {
-            UUIDv4::UUID cid;
-            cid.fromStr(cidStr.c_str());
-            slot->addConnection(cid, false);
-            Components::Connection().generate(cid, slotId);
-        }
-    }
+    uuids::uuid slotId = Slot::fromJson(data["slot"], uid);
 
     auto pos = Common::Helpers::DecodeVec3(data["pos"]);
-    renderId = ComponentsManager::getNextRenderId();
+    pos.z = ComponentsManager::getNextZPos();
 
-    ComponentsManager::components[uid] =
-        std::make_shared<Components::InputProbe>(uid, renderId, pos, slotId);
+    auto renderId = ComponentsManager::getNextRenderId();
+
+    ComponentsManager::components[uid] = std::make_shared<Components::InputProbe>(uid, renderId, pos, slotId);
     ComponentsManager::addRenderIdToCId(renderId, uid);
     ComponentsManager::addCompIdToRId(renderId, uid);
     ComponentsManager::renderComponenets.emplace_back(uid);

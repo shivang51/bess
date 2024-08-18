@@ -9,13 +9,13 @@ DrawMode ApplicationState::drawMode;
 int ApplicationState::hoveredId;
 int ApplicationState::prevHoveredId;
 
-UUIDv4::UUID ApplicationState::m_selectedId;
-UUIDv4::UUID ApplicationState::m_prevSelectedId;
+uuids::uuid ApplicationState::m_selectedId;
+uuids::uuid ApplicationState::m_prevSelectedId;
  std::shared_ptr<ProjectFile> ApplicationState::currentProject = nullptr;
 
  Window* ApplicationState::m_mainWindow = nullptr;
 
-UUIDv4::UUID ApplicationState::connStartId;
+uuids::uuid ApplicationState::connStartId;
 
 DragData ApplicationState::dragData;
 
@@ -41,14 +41,17 @@ void ApplicationState::init(Window* mainWin) {
     updateCurrentProject(std::make_shared<ProjectFile>());
 }
 
-void ApplicationState::setSelectedId(const UUIDv4::UUID &uid) {
-    m_prevSelectedId = m_selectedId;
+void ApplicationState::setSelectedId(const uuids::uuid &uid, bool updatePrevSel, bool dispatchFocusEvts) {
+    uuids::uuid localPrev = m_selectedId;
+    if(updatePrevSel) m_prevSelectedId = m_selectedId;
     m_selectedId = uid;
 
-    Simulator::Components::ComponentEventData e;
-    if (m_prevSelectedId != Simulator::ComponentsManager::emptyId) {
+    if (!dispatchFocusEvts) return;
+
+    Simulator::Components::ComponentEventData e{};
+    if (localPrev != Simulator::ComponentsManager::emptyId) {
         e.type = Simulator::Components::ComponentEventType::focusLost;
-        Simulator::ComponentsManager::components[m_prevSelectedId]->onEvent(e);
+        Simulator::ComponentsManager::components[localPrev]->onEvent(e);
     }
     if (m_selectedId != Simulator::ComponentsManager::emptyId) {
         e.type = Simulator::Components::ComponentEventType::focus;
@@ -56,9 +59,9 @@ void ApplicationState::setSelectedId(const UUIDv4::UUID &uid) {
     }
 }
 
-const UUIDv4::UUID &ApplicationState::getSelectedId() { return m_selectedId; }
+const uuids::uuid &ApplicationState::getSelectedId() { return m_selectedId; }
 
-const UUIDv4::UUID &ApplicationState::getPrevSelectedId() {
+const uuids::uuid &ApplicationState::getPrevSelectedId() {
     return m_prevSelectedId;
 }
 

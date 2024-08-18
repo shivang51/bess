@@ -2,7 +2,7 @@
 #include "components_manager/components_manager.h"
 #include "project_file.h"
 #include <glm.hpp>
-#include <uuid_v4.h>
+#include "uuid.h"
 #include <vector>
 #include <memory>
 #include "window.h"
@@ -19,9 +19,9 @@ struct DragData {
 class ApplicationState {
   public:
     static void init(Window* mainWin);
-    static void setSelectedId(const UUIDv4::UUID &uid);
-    static const UUIDv4::UUID &getSelectedId();
-    static const UUIDv4::UUID &getPrevSelectedId();
+    static void setSelectedId(const uuids::uuid &uid, bool updatePrevSel = true, bool dispatchFocusEvts = true);
+    static const uuids::uuid &getSelectedId();
+    static const uuids::uuid &getPrevSelectedId();
 
     static void createNewProject();
     static void saveCurrentProject();
@@ -38,7 +38,7 @@ class ApplicationState {
     static int prevHoveredId;
 
     // id of slot from which connection was started
-    static UUIDv4::UUID connStartId;
+    static uuids::uuid connStartId;
 
     static DragData dragData;
 
@@ -49,8 +49,8 @@ class ApplicationState {
     static bool simulationPaused;
 
   private:
-    static UUIDv4::UUID m_selectedId;
-    static UUIDv4::UUID m_prevSelectedId;
+    static uuids::uuid m_selectedId;
+    static uuids::uuid m_prevSelectedId;
     static Window* m_mainWindow;
 };
 

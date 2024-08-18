@@ -2,66 +2,77 @@
 
 #include "component.h"
 #include "common/digital_state.h"
+#include "json.hpp"
 
 namespace Bess::Simulator::Components {
-class Slot : public Component {
-  public:
-    Slot(const UUIDv4::UUID &uid, const UUIDv4::UUID& parentUid,  int renderId, ComponentType type);
-    ~Slot() = default;
+    class Slot : public Component {
+    public:
+        Slot(const uuids::uuid& uid, const uuids::uuid& parentUid, int renderId, ComponentType type);
+        ~Slot() = default;
 
-    void update(const glm::vec3 &pos, const std::string& label);
-    void update(const glm::vec3 &pos, const glm::vec2& labelOffset);
-    void update(const glm::vec3 &pos, const glm::vec2& labelOffset, const std::string& label);
-    void update(const glm::vec3 &pos);
+        void update(const glm::vec3& pos, const std::string& label);
+        void update(const glm::vec3& pos, const glm::vec2& labelOffset);
+        void update(const glm::vec3& pos, const glm::vec2& labelOffset, const std::string& label);
+        void update(const glm::vec3& pos);
 
-    void render() override;
+        void render() override;
 
-    void addConnection(const UUIDv4::UUID &uId, bool simulate = true);
-    bool isConnectedTo(const UUIDv4::UUID& uId);
+        void deleteComponent() override;
 
-    void highlightBorder(bool highlight = true);
+        void addConnection(const uuids::uuid& uId, bool simulate = true);
+        bool isConnectedTo(const uuids::uuid& uId);
 
-    Simulator::DigitalState getState() const;
-    DigitalState flipState();
-    
-    void setState(const UUIDv4::UUID& uid, Simulator::DigitalState state, bool forceUpdate = false);
+        void highlightBorder(bool highlight = true);
 
-    const UUIDv4::UUID& getParentId();
+        Simulator::DigitalState getState() const;
+        DigitalState flipState();
 
-    void generate(const glm::vec3& pos = { 0.f, 0.f, 0.f }) override;
+        void setState(const uuids::uuid& uid, Simulator::DigitalState state, bool forceUpdate = false);
 
-    const std::string& getLabel();
-    void setLabel(const std::string& label);
+        const uuids::uuid& getParentId();
 
-    const glm::vec2& getLabelOffset();
-    void setLabelOffset(const glm::vec2& label);
+        void generate(const glm::vec3& pos = { 0.f, 0.f, 0.f }) override;
 
-    const std::vector<UUIDv4::UUID>& getConnections();
+        nlohmann::json toJson();
 
-    // uid of component making change
-    void simulate(const UUIDv4::UUID& uid, DigitalState state);
+        static uuids::uuid fromJson(const nlohmann::json& data, const uuids::uuid& parentuid);
 
-    void refresh(const UUIDv4::UUID& uid, DigitalState state);
+        const std::string& getLabel();
+        void setLabel(const std::string& label);
 
-  private:
-    // contains one way connection from starting slot to other
-    std::vector<UUIDv4::UUID> m_connections;
-    bool m_highlightBorder = false;
-    void onLeftClick(const glm::vec2 &pos);
-    void onMouseHover();
+        const glm::vec2& getLabelOffset();
+        void setLabelOffset(const glm::vec2& label);
 
-    // slot specific
-    const UUIDv4::UUID m_parentUid;
-    Simulator::DigitalState m_state;
+        const std::vector<uuids::uuid>& getConnections();
 
-    void onChange();
+        // uid of component making change
+        void simulate(const uuids::uuid& uid, DigitalState state);
 
-    std::unordered_map<UUIDv4::UUID, bool> stateChangeHistory = {};
+        void refresh(const uuids::uuid& uid, DigitalState state);
 
-    std::string m_label = "";
-    glm::vec2 m_labelOffset = { 0.f, 0.f };
-    float m_labelWidth = 0.f;
+        void removeConnection(const uuids::uuid& uid);
 
-    void calculateLabelWidth(float fontSize);
-};
+    private:
+        // contains ids of slots
+        std::vector<uuids::uuid> m_connections;
+        bool m_highlightBorder = false;
+        void onLeftClick(const glm::vec2& pos);
+        void onMouseHover();
+
+        // slot specific
+        const uuids::uuid m_parentUid;
+        Simulator::DigitalState m_state;
+
+        void onChange();
+
+        std::unordered_map<uuids::uuid, bool> m_stateChangeHistory = {};
+
+        std::string m_label = "";
+        glm::vec2 m_labelOffset = { 0.f, 0.f };
+        float m_labelWidth = 0.f;
+
+        float m_deleting = false;
+
+        void calculateLabelWidth(float fontSize);
+    };
 } // namespace Bess::Simulator::Components

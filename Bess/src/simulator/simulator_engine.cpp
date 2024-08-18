@@ -106,7 +106,7 @@ namespace Bess::Simulator {
     {
         currentSimQueue = nextSimQueue;
         nextSimQueue = {};
-        std::unordered_map<UUIDv4::UUID, bool> done = {};
+        std::unordered_map<uuids::uuid, bool> done = {};
         while (!currentSimQueue.empty()) {
             auto el = currentSimQueue.front();
             currentSimQueue.pop();
@@ -135,7 +135,7 @@ namespace Bess::Simulator {
         }
     }
 
-    void Engine::addToSimQueue(const UUIDv4::UUID& uid, const UUIDv4::UUID& changerId, Simulator::DigitalState state)
+    void Engine::addToSimQueue(const uuids::uuid& uid, const uuids::uuid& changerId, Simulator::DigitalState state)
     {
         SimQueueElement el{uid, changerId, state};
         nextSimQueue.push(el);

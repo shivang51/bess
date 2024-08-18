@@ -97,7 +97,7 @@ set(ALL_FILES
     ${Header_Files}
     ${Shaders}
     ${Source_Files}
- "include/ui/component_explorer.h" "src/ui/component_explorer.cpp" "include/project_file.h" "src/project_file.cpp" "include/ui/dialogs.h" "src/ui/dialogs.cpp" "include/ui/icons/MaterialIcons.h" "src/ui/popups.cpp" "include/ui/popups.h")
+ "include/ui/component_explorer.h" "src/ui/component_explorer.cpp" "include/project_file.h" "src/project_file.cpp" "include/ui/dialogs.h" "src/ui/dialogs.cpp" "include/ui/icons/MaterialIcons.h" "src/ui/popups.cpp" "include/ui/popups.h" "include/components/button.h" "src/components/button.cpp")
 
 ################################################################################
 # Target
@@ -127,7 +127,7 @@ endif()
 ################################################################################
 if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
     target_include_directories(${PROJECT_NAME} PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/uuid_v4;"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../external/uuid;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/freetype/include;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui/backends;"

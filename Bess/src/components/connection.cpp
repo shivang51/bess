@@ -10,8 +10,8 @@ namespace Bess::Simulator::Components {
 
 #define BIND_EVENT_FN(fn) std::bind(&fn, this)
 
-Connection::Connection(const UUIDv4::UUID &uid, int renderId,
-                       const UUIDv4::UUID &slot1, const UUIDv4::UUID &slot2)
+Connection::Connection(const uuids::uuid &uid, int renderId,
+                       const uuids::uuid &slot1, const uuids::uuid &slot2)
     : Component(uid, renderId, {0.f, 0.f, -1.f}, ComponentType::connection) {
     m_slot1 = slot1;
     m_slot2 = slot2;
@@ -49,9 +49,24 @@ void Connection::render() {
     );
 }
 
+void Connection::deleteComponent()
+{
+    auto slotA = (Slot*)ComponentsManager::components[m_slot1].get();
+    slotA->removeConnection(m_slot2);
+    auto slotB = (Slot*)ComponentsManager::components[m_slot2].get();
+    slotB->removeConnection(m_slot1);
+
+    if (slotA->getType() == ComponentType::inputSlot) {
+        ComponentsManager::removeSlotsToConn(m_slot1, m_slot2);
+    }
+    else {
+        ComponentsManager::removeSlotsToConn(m_slot2, m_slot1);
+    }
+}
+
 void Connection::generate(const glm::vec3& pos){}
 
-void Connection::generate(const UUIDv4::UUID& slot1, const UUIDv4::UUID& slot2, const glm::vec3& pos)
+void Connection::generate(const uuids::uuid& slot1, const uuids::uuid& slot2, const glm::vec3& pos)
 {
     auto uid = Common::Helpers::uuidGenerator.getUUID();
     auto renderId = ComponentsManager::getNextRenderId();
@@ -59,6 +74,7 @@ void Connection::generate(const UUIDv4::UUID& slot1, const UUIDv4::UUID& slot2, 
     ComponentsManager::addRenderIdToCId(renderId, uid);
     ComponentsManager::addCompIdToRId(renderId, uid);
     ComponentsManager::renderComponenets.emplace_back(uid);
+    ComponentsManager::addSlotsToConn(slot1, slot2, uid);
 }
 
 void Connection::onLeftClick(const glm::vec2 &pos) {

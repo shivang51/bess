@@ -81,11 +81,6 @@ namespace Bess {
             entity->render();
         }
 
-        std::vector<glm::vec3> points = { {0.f, 100.f, 0.99f}, {200.f, 0.f, 0.99f}, {0.f, 0.f, 0.99f} };
-        Renderer::triangle(points, Theme::compHeaderColor, -1);
-        points = { {0.f, 100.f, 1.f}, {200.f, 0.f, 1.f}, {0.f, 0.f, 1.f} };
-        Renderer::drawPath(points, 2.f, Theme::selectedCompColor, -1, true);
-
         Renderer::end();
 
         if (isCursorInViewport()) {
@@ -110,8 +105,7 @@ namespace Bess {
         m_window.update();
 
         if (ApplicationState::hoveredId != -1) {
-            auto& cid = Simulator::ComponentsManager::renderIdToCid(
-                ApplicationState::hoveredId);
+            auto& cid = Simulator::ComponentsManager::renderIdToCid(ApplicationState::hoveredId);
             Simulator::Components::ComponentEventData e;
             e.type = Simulator::Components::ComponentEventType::mouseHover;
             Simulator::ComponentsManager::components[cid]->onEvent(e);
@@ -128,6 +122,13 @@ namespace Bess {
 
         if (UI::UIMain::state.cameraZoom != m_camera->getZoom()) {
             m_camera->setZoom(UI::UIMain::state.cameraZoom);
+        }
+
+
+        if (isKeyPressed(GLFW_KEY_DELETE)) {
+            auto& compId = ApplicationState::getSelectedId();
+            if (compId == Simulator::ComponentsManager::emptyId) return;
+            Simulator::ComponentsManager::deleteComponent(compId);
         }
 
         if(!ApplicationState::simulationPaused) Simulator::Engine::Simulate();
@@ -165,7 +166,9 @@ namespace Bess {
 
     void Application::onKeyPress(int key) { m_pressedKeys[key] = true; }
 
-    void Application::onKeyRelease(int key) { m_pressedKeys[key] = false; }
+    void Application::onKeyRelease(int key) { 
+        m_pressedKeys[key] = false; 
+    }
 
     void Application::onLeftMouse(bool pressed) {
         m_leftMousePressed = pressed;
@@ -235,28 +238,26 @@ namespace Bess {
             return;
 
         if (ApplicationState::prevHoveredId != ApplicationState::hoveredId) {
-            if (ApplicationState::prevHoveredId != -1) {
-                auto& cid = Simulator::ComponentsManager::renderIdToCid(
-                    ApplicationState::prevHoveredId);
+            if (ApplicationState::prevHoveredId != -1 && Simulator::ComponentsManager::isRenderIdPresent(ApplicationState::prevHoveredId)) {
+                auto& cid = Simulator::ComponentsManager::renderIdToCid(ApplicationState::prevHoveredId);
                 Simulator::Components::ComponentEventData e;
                 e.type = Simulator::Components::ComponentEventType::mouseLeave;
                 Simulator::ComponentsManager::components[cid]->onEvent(e);
             }
 
             ApplicationState::prevHoveredId = ApplicationState::hoveredId;
+            
             if (ApplicationState::hoveredId < 0)
                 return;
 
-            auto& cid = Simulator::ComponentsManager::renderIdToCid(
-                ApplicationState::hoveredId);
+            auto& cid = Simulator::ComponentsManager::renderIdToCid(ApplicationState::hoveredId);
             Simulator::Components::ComponentEventData e;
             e.type = Simulator::Components::ComponentEventType::mouseEnter;
             Simulator::ComponentsManager::components[cid]->onEvent(e);
         }
 
         if (m_middleMousePressed) {
-            m_camera->incrementPos(
-                { dx / UI::UIMain::state.cameraZoom, -dy / UI::UIMain::state.cameraZoom });
+            m_camera->incrementPos({ dx / UI::UIMain::state.cameraZoom, -dy / UI::UIMain::state.cameraZoom });
         }
 
         else if (m_leftMousePressed && ApplicationState::getSelectedId() !=
