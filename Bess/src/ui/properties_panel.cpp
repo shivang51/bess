@@ -1,5 +1,5 @@
 #include "ui/properties_panel.h"
-
+#include "ui/icons/FontAwesomeIcons.h"
 #include "application_state.h"
 #include "components_manager/components_manager.h"
 #include <imgui.h>
@@ -28,8 +28,11 @@ namespace Bess::UI {
         }
         // DELETE BUTTON
         {
+            std::string temp = Icons::FontAwesomeIcons::FA_TRASH;
+            temp += " Delete";
+
             float windowWidth = ImGui::GetWindowSize().x;
-            float buttonWidth = ImGui::CalcTextSize("Button").x + ImGui::GetStyle().FramePadding.x * 2.0f; // Add padding to button width
+            float buttonWidth = ImGui::CalcTextSize(temp.c_str()).x + ImGui::GetStyle().FramePadding.x * 2.0f; // Add padding to button width
             float spacing = ImGui::GetStyle().ItemSpacing.x;
 
             ImGui::SameLine(windowWidth - buttonWidth - spacing);
@@ -37,7 +40,8 @@ namespace Bess::UI {
             ImGui::PushStyleColor(ImGuiCol_Button, deleteButtonColor);
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(255.0f / 255.0f, 83.0f / 255.0f, 79.0f / 255.0f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(185.0f / 255.0f, 62.0f / 255.0f, 58.0f / 255.0f, 1.0f));
-            if (ImGui::Button("Delete")) {
+            
+            if (ImGui::Button(temp.c_str())) {
                 Simulator::ComponentsManager::deleteComponent(ApplicationState::getSelectedId());
                 deleted = true;
             }
