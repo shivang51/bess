@@ -3,6 +3,7 @@
 #include "components/connection.h"
 #include "components/input_probe.h"
 #include "components/jcomponent.h"
+#include "components/text_component.h"
 
 #include "application_state.h"
 #include "components/output_probe.h"
@@ -45,6 +46,9 @@ namespace Bess::Simulator {
         }break;
         case ComponentType::outputProbe: {
             Components::OutputProbe().generate(pos);
+        }break;
+        case ComponentType::text: {
+            Components::TextComponent().generate(pos);
         }break;
         }
     }

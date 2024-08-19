@@ -1,5 +1,5 @@
 #include "common/helpers.h"
-
+#include "renderer/renderer.h"
 namespace Bess::Common {
     glm::vec3 Helpers::GetLeftCornerPos(const glm::vec3& pos, const glm::vec2& size) {
         return { pos.x - size.x / 2, pos.y + size.y / 2, pos.z };
@@ -56,5 +56,27 @@ namespace Bess::Common {
         std::mt19937 generator(seq);
         uuids::uuid_random_generator gen{ generator };
         return gen();
+    }
+
+
+    float Helpers::calculateTextWidth(const std::string& text, float fontSize) {
+        float w = 0.f;
+        for (auto& ch_ : text) {
+            auto& ch = Renderer2D::Renderer::getCharRenderSize(ch_, fontSize);
+            w += ch.x;
+        }
+        return w;
+    }
+
+    float Helpers::getAnyCharHeight(float fontSize, char ch) {
+        return Renderer2D::Renderer::getCharRenderSize(ch, fontSize).y;
+    }
+
+
+    std::string Helpers::toLowerCase(const std::string& str) {
+        std::string data = str;
+        std::transform(data.begin(), data.end(), data.begin(),
+            [](unsigned char c) { return std::tolower(c); });
+        return data;
     }
 }

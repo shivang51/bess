@@ -53,8 +53,8 @@ class Component {
 
     virtual void deleteComponent() = 0;
 
-    std::string getName() const;
-    std::string getRenderName() const;
+    virtual std::string getName() const;
+    virtual std::string getRenderName() const;
 
     virtual void drawProperties();
 

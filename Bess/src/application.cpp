@@ -183,8 +183,7 @@ namespace Bess {
             return;
         }
 
-        auto& cid = Simulator::ComponentsManager::renderIdToCid(
-            ApplicationState::hoveredId);
+        auto& cid = Simulator::ComponentsManager::renderIdToCid(ApplicationState::hoveredId);
 
         if (Simulator::ComponentsManager::emptyId == cid) {
             if (ApplicationState::drawMode == DrawMode::connection) {
@@ -261,9 +260,7 @@ namespace Bess {
         if (m_middleMousePressed) {
             m_camera->incrementPos({ dx / UI::UIMain::state.cameraZoom, -dy / UI::UIMain::state.cameraZoom });
         }
-
-        else if (m_leftMousePressed && ApplicationState::getSelectedId() !=
-            Simulator::ComponentsManager::emptyId) {
+        else if (m_leftMousePressed && ApplicationState::getSelectedId() !=  Simulator::ComponentsManager::emptyId) {
             auto& entity = Simulator::ComponentsManager::components
                 [ApplicationState::getSelectedId()];
 
@@ -274,8 +271,7 @@ namespace Bess {
 
             if (!ApplicationState::dragData.isDragging) {
                 ApplicationState::dragData.isDragging = true;
-                ApplicationState::dragData.dragOffset =
-                    getNVPMousePos() - glm::vec2(pos);
+                ApplicationState::dragData.dragOffset = getNVPMousePos() - glm::vec2(pos);
             }
 
             auto dPos = getNVPMousePos() - ApplicationState::dragData.dragOffset;
@@ -321,6 +317,7 @@ namespace Bess {
         Simulator::ComponentBankElement el(Simulator::ComponentType::inputProbe, "Input Probe");
         Simulator::ComponentBank::addToCollection("I/O", el);
         Simulator::ComponentBank::addToCollection("I/O", { Simulator::ComponentType::outputProbe, "Ouput Probe" });
+        Simulator::ComponentBank::addToCollection("Misc", { Simulator::ComponentType::text, "Text" });
         Simulator::ComponentBank::loadMultiFromJson("assets/comp_collections.json");
 
         ApplicationState::init(&m_window);

@@ -2,10 +2,11 @@
 #include "json.hpp"
 #include "common/helpers.h"
 #include "components_manager/components_manager.h"
-
 #include "components/jcomponent.h"
 #include "components/input_probe.h"
 #include "components/output_probe.h"
+#include "components/text_component.h"
+
 #include "ui/dialogs.h"
 
 
@@ -96,9 +97,17 @@ namespace Bess {
                 data["components"].emplace_back(comp->toJson());
             }
             break;
-            case Bess::Simulator::ComponentType::jcomponent: {
+            case Bess::Simulator::ComponentType::jcomponent:
+            {
 
                 auto comp = (Bess::Simulator::Components::JComponent*)ent.get();
+                data["components"].emplace_back(comp->toJson());
+            }
+            break;
+            case Bess::Simulator::ComponentType::text:
+            {
+
+                auto comp = (Bess::Simulator::Components::TextComponent*)ent.get();
                 data["components"].emplace_back(comp->toJson());
             }
             break;
@@ -130,6 +139,9 @@ namespace Bess {
                 break;
             case Bess::Simulator::ComponentType::jcomponent:
                 Simulator::Components::JComponent::fromJson(comp);
+                break;
+            case Bess::Simulator::ComponentType::text:
+                Simulator::Components::TextComponent::fromJson(comp);
                 break;
             default:
                 break;

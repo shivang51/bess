@@ -107,12 +107,11 @@ void UIMain::drawProjectExplorer() {
 
     for (auto &id : Simulator::ComponentsManager::renderComponenets) {
         auto& entity = Simulator::ComponentsManager::components[id];
-        if (ImGui::Selectable(entity->getRenderName().c_str(),
-                              entity->getId() ==
-                                  ApplicationState::getSelectedId())) {
+        if (ImGui::Selectable(entity->getRenderName().c_str(), entity->getId() == ApplicationState::getSelectedId())) {
             ApplicationState::setSelectedId(entity->getId());
         }
     }
+
     ImGui::End();
 }
 
@@ -178,8 +177,7 @@ void UIMain::drawMenubar()
 }
 
 void UIMain::drawViewport() {
-    ImGuiWindowFlags flags =
-        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
         ImGuiWindowFlags_NoDecoration;
 
