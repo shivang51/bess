@@ -38,12 +38,19 @@ void Camera::updateZoom(float value) {
     recalculateOrtho();
 }
 
+void Camera::zoomToPoint(const glm::vec2& point, float value) {
+    m_zoom = value;
+    m_pos += (point - m_pos) * (1.0f - value / m_zoom);
+    recalculateOrtho();
+}
+
 float Camera::getZoom() const { return m_zoom; }
 
 void Camera::resize(float width, float height) {
     m_width = width;
     m_height = height;
     m_aspectRatio = width / height;
+    m_pos = {width / 2.f, -height / 2.f};
     m_zoom = m_zoom / m_aspectRatio;
     recalculateOrtho();
 }

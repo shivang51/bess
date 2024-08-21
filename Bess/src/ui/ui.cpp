@@ -50,11 +50,11 @@ void UIMain::init(GLFWwindow *window) {
 
     ImFontConfig config;
     config.MergeMode = true;
-    //static const ImWchar mat_icon_ranges[] = { Icons::MaterialIcons::ICON_MIN_MD, Icons::MaterialIcons::ICON_MAX_MD, 0 };
-    //io.Fonts->AddFontFromFileTTF("assets/icons/MaterialIcons-Regular.ttf", 16.0f, &config, mat_icon_ranges);
+    static const ImWchar mat_icon_ranges[] = { Icons::MaterialIcons::ICON_MIN_MD, Icons::MaterialIcons::ICON_MAX_MD, 0 };
+    io.Fonts->AddFontFromFileTTF("assets/icons/MaterialIcons-Regular.ttf", 16.0f, &config, mat_icon_ranges);
 
-    const ImWchar fa_icon_ranges[] = { Icons::FontAwesomeIcons::SIZE_MIN_FAB, Icons::FontAwesomeIcons::SIZE_MAX_FAB, 0 };
-    io.Fonts->AddFontFromFileTTF("assets/icons/fa-brands-400.ttf", 16.0f, &config, fa_icon_ranges);
+    //const ImWchar fa_icon_ranges[] = { Icons::FontAwesomeIcons::SIZE_MIN_FAB, Icons::FontAwesomeIcons::SIZE_MAX_FAB, 0 };
+    //io.Fonts->AddFontFromFileTTF("assets/icons/fa-brands-400.ttf", 16.0f, &config, fa_icon_ranges);
 
     static const ImWchar fa_icon_ranges_r[] = { Icons::FontAwesomeIcons::SIZE_MIN_FA, Icons::FontAwesomeIcons::SIZE_MAX_FA, 0 };
     io.Fonts->AddFontFromFileTTF("assets/icons/fa-solid-900.ttf", 16.0f, &config, fa_icon_ranges_r);
@@ -118,7 +118,9 @@ void UIMain::drawProjectExplorer() {
 
     ImGui::SameLine();
 
-    if (ImGui::Button(ApplicationState::simulationPaused ? "Play" : "Pause")) {
+    temp = !ApplicationState::simulationPaused ? Icons::FontAwesomeIcons::FA_PAUSE : Icons::FontAwesomeIcons::FA_PLAY;
+    temp += ApplicationState::simulationPaused ? " Play" : " Pause";
+    if (ImGui::Button(temp.c_str())) {
         ApplicationState::simulationPaused = !ApplicationState::simulationPaused;
     }
 

@@ -158,6 +158,12 @@ namespace Bess::Gl
         GL_CHECK(glUniform1i(glGetUniformLocation(m_id, name.c_str()), value));
     }
 
+    void Shader::setUniform1f(const std::string &name, float value)
+    {
+        GL_CHECK(glUniform1f(glGetUniformLocation(m_id, name.c_str()), value));
+    }
+
+
     void Shader::setUniformIV(const std::string &name,
                               const std::vector<int> &value)
     {
