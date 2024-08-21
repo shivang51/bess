@@ -72,7 +72,5 @@ namespace Bess::Simulator::Components {
         float m_labelWidth = 0.f;
 
         float m_deleting = false;
-
-        void calculateLabelWidth(float fontSize);
     };
 } // namespace Bess::Simulator::Components

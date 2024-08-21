@@ -115,13 +115,6 @@ namespace Bess::Simulator::Components {
         }
     }
 
-    void Slot::calculateLabelWidth(float fontSize) {
-        m_labelWidth = 0.f;
-        for (auto& ch_ : m_label) {
-            auto& ch = Renderer2D::Renderer::getCharRenderSize(ch_, fontSize);
-            m_labelWidth += ch.x;
-        }
-    }
 
     void Slot::addConnection(const uuids::uuid& uid, bool simulate) {
         if (isConnectedTo(uid)) return;
@@ -221,7 +214,7 @@ namespace Bess::Simulator::Components {
     }
     void Slot::setLabel(const std::string& label) {
         m_label = label;
-        calculateLabelWidth(fontSize);
+        m_labelWidth = Common::Helpers::calculateTextWidth(label, fontSize);
     }
     const glm::vec2& Slot::getLabelOffset()
     {

@@ -2,6 +2,7 @@
 #include "renderer/gl/gl_wrapper.h"
 #include "window.h"
 #include <cassert>
+#include <imgui.h>
 #include <iostream>
 #include <memory>
 
@@ -13,12 +14,12 @@ static void glfw_error_callback(int error, const char *description) {
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
-Window::Window(int width, int height, const std::string &title) {
+Window::Window(int width, int height, const std::string& title) {
     glfwSetErrorCallback(glfw_error_callback);
 
     this->initGLFW();
 
-    GLFWwindow *window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
 
     assert(window != nullptr);
     glfwSetWindowUserPointer(window, this);
@@ -28,8 +29,8 @@ Window::Window(int width, int height, const std::string &title) {
     this->makeCurrent();
 
     glfwSetFramebufferSizeCallback(
-        window, [](GLFWwindow *window, int w, int h) {
-            auto this_ = (Window *)glfwGetWindowUserPointer(window);
+        window, [](GLFWwindow* window, int w, int h) {
+            auto this_ = (Window*)glfwGetWindowUserPointer(window);
             if (this_->m_callbacks.find(Callback::WindowResize) ==
                 this_->m_callbacks.end())
                 return;
@@ -38,42 +39,42 @@ Window::Window(int width, int height, const std::string &title) {
             cb(w, h);
         });
 
-    glfwSetScrollCallback(window, [](GLFWwindow *window, double x, double y) {
-        auto this_ = (Window *)glfwGetWindowUserPointer(window);
+    glfwSetScrollCallback(window, [](GLFWwindow* window, double x, double y) {
+        auto this_ = (Window*)glfwGetWindowUserPointer(window);
         if (this_->m_callbacks.find(Callback::WindowResize) ==
             this_->m_callbacks.end())
             return;
         auto cb = std::any_cast<MouseWheelCallback>(
             this_->m_callbacks[Callback::MouseWheel]);
         cb(x, y);
-    });
+        });
 
-    glfwSetKeyCallback(window, [](GLFWwindow *window, int key, int scancode,
-                                  int action, int mods) {
-        auto this_ = (Window *)glfwGetWindowUserPointer(window);
-        switch (action) {
-        case GLFW_PRESS: {
-            if (this_->m_callbacks.find(Callback::KeyPress) ==
-                this_->m_callbacks.end())
-                return;
-            auto cb = std::any_cast<KeyPressCallback>(
-                this_->m_callbacks[Callback::KeyPress]);
-            cb(key);
-        } break;
-        case GLFW_RELEASE: {
-            if (this_->m_callbacks.find(Callback::KeyRelease) ==
-                this_->m_callbacks.end())
-                return;
-            auto cb = std::any_cast<KeyReleaseCallback>(
-                this_->m_callbacks[Callback::KeyRelease]);
-            cb(key);
-        } break;
-        }
-    });
+    glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode,
+        int action, int mods) {
+            auto this_ = (Window*)glfwGetWindowUserPointer(window);
+            switch (action) {
+            case GLFW_PRESS: {
+                if (this_->m_callbacks.find(Callback::KeyPress) ==
+                    this_->m_callbacks.end())
+                    return;
+                auto cb = std::any_cast<KeyPressCallback>(
+                    this_->m_callbacks[Callback::KeyPress]);
+                cb(key);
+            } break;
+            case GLFW_RELEASE: {
+                if (this_->m_callbacks.find(Callback::KeyRelease) ==
+                    this_->m_callbacks.end())
+                    return;
+                auto cb = std::any_cast<KeyReleaseCallback>(
+                    this_->m_callbacks[Callback::KeyRelease]);
+                cb(key);
+            } break;
+            }
+        });
 
     glfwSetMouseButtonCallback(
-        window, [](GLFWwindow *window, int button, int action, int mods) {
-            auto this_ = (Window *)glfwGetWindowUserPointer(window);
+        window, [](GLFWwindow* window, int button, int action, int mods) {
+            auto this_ = (Window*)glfwGetWindowUserPointer(window);
             switch (button) {
             case GLFW_MOUSE_BUTTON_LEFT: {
                 if (this_->m_callbacks.find(Callback::LeftMouse) ==
@@ -103,13 +104,12 @@ Window::Window(int width, int height, const std::string &title) {
         });
 
     glfwSetCursorPosCallback(
-        window, [](GLFWwindow *window, double x, double y) {
-            auto this_ = (Window *)glfwGetWindowUserPointer(window);
+        window, [](GLFWwindow* window, double x, double y) {
+            auto this_ = (Window*)glfwGetWindowUserPointer(window);
             if (this_->m_callbacks.find(Callback::MouseMove) ==
                 this_->m_callbacks.end())
                 return;
-            auto cb = std::any_cast<MouseMoveCallback>(
-                this_->m_callbacks[Callback::MouseMove]);
+            auto cb = std::any_cast<MouseMoveCallback>(this_->m_callbacks[Callback::MouseMove]);
             cb(x, y);
         });
 

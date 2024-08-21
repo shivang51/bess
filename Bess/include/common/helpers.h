@@ -30,6 +30,13 @@ namespace Bess::Common {
         static UUIDGenerator uuidGenerator;
 
         static std::string uuidToStr(const uuids::uuid& uid);
+        
         static uuids::uuid strToUUID(const std::string& uuid);
+        
+        static float calculateTextWidth(const std::string& text, float fontSize);
+
+        static float getAnyCharHeight(float fontSize, char ch = '(');
+
+        static std::string toLowerCase(const std::string& str);
     };
 }

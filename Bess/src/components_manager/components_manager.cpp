@@ -3,6 +3,7 @@
 #include "components/connection.h"
 #include "components/input_probe.h"
 #include "components/jcomponent.h"
+#include "components/text_component.h"
 
 #include "application_state.h"
 #include "components/output_probe.h"
@@ -46,12 +47,15 @@ namespace Bess::Simulator {
         case ComponentType::outputProbe: {
             Components::OutputProbe().generate(pos);
         }break;
+        case ComponentType::text: {
+            Components::TextComponent().generate(pos);
+        }break;
         }
     }
 
     void ComponentsManager::deleteComponent(const uuids::uuid cid)
     {
-        if (components.find(cid) == components.end() || cid.is_nil()) return;
+        if (cid.is_nil() || components.find(cid) == components.end()) return;
 
         auto renderIt = std::find(renderComponenets.begin(), renderComponenets.end(), cid);
         if (renderIt != renderComponenets.end()) {

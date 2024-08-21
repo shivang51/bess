@@ -55,4 +55,6 @@ std::string Component::getRenderName() const {
     return name;
 }
 
+void Component::drawProperties(){}
+
 } // namespace Bess::Simulator::Components
