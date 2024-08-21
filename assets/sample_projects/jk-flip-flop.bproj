@@ -1,177 +1,256 @@
 {
     "components": [
         {
-            "connections": {
-                "0478973a-9c53-4a2e-b7eb-edede6609134": [
-                    "800d8a84-4c70-4b32-b5ff-c2b8de9d8afc",
-                    "7320c8ad-ef89-43b8-8ea9-ce3afb22a809",
-                    "7c2212a4-5d55-426a-9e36-60a9f37f90f2"
-                ]
-            },
             "inputSlots": [
-                "5e574084-8ea1-4e17-b180-a4624b23dea0",
-                "e2df03da-89ac-41a3-aa30-6c5747edef28"
+                {
+                    "connections": [
+                        "917a4334-79c7-40d9-810f-269377f4e4c8"
+                    ],
+                    "type": 0,
+                    "uid": "e386aae7-ee8a-48af-8106-4ff52274199f"
+                },
+                {
+                    "connections": [
+                        "4b69697f-2d32-414d-9040-afc438938387"
+                    ],
+                    "type": 0,
+                    "uid": "8b0d1a09-a2dc-4fb4-ae76-f95830c0413d"
+                },
+                {
+                    "connections": [
+                        "dfd73a15-e16a-4a59-a9dd-fd7a89944cf6"
+                    ],
+                    "type": 0,
+                    "uid": "77caab8c-7d56-4e89-b055-402992f2aa9a"
+                }
             ],
             "jCompData": {
                 "collection": "Digital Gates",
-                "name": "NAND Gate"
+                "name": "3 Pin Nand Gate"
             },
             "outputSlots": [
-                "0478973a-9c53-4a2e-b7eb-edede6609134"
+                {
+                    "connections": [
+                        "627e45b1-d012-4598-93e4-31bb7ab11e5b"
+                    ],
+                    "type": 1,
+                    "uid": "c8c1708d-53a0-4aee-8899-747d3fc71585"
+                }
             ],
             "pos": {
-                "x": 172.05010986328125,
-                "y": -37.574188232421875,
+                "x": -88.33218383789063,
+                "y": 169.41331481933594,
                 "z": 9.999999747378752e-05
             },
             "type": 101,
-            "uid": "278a5ae7-4a30-4839-abb3-c46622bf6621"
+            "uid": "2f559b1b-0f1e-45f3-9645-006e4a93ae79"
         },
         {
-            "connections": {
-                "af4a3250-a143-40ee-ae2f-58f959aeb47a": [
-                    "875b272a-1a07-4790-9866-7b3a0f25286f",
-                    "5e574084-8ea1-4e17-b180-a4624b23dea0",
-                    "6288354e-5fcc-4630-804e-29f90fbd723d"
-                ]
-            },
             "inputSlots": [
-                "d3865e30-a7f0-400a-9819-1a9a543cc46a",
-                "7320c8ad-ef89-43b8-8ea9-ce3afb22a809"
+                {
+                    "connections": [
+                        "dfd73a15-e16a-4a59-a9dd-fd7a89944cf6"
+                    ],
+                    "type": 0,
+                    "uid": "accbbbdb-5b13-4e15-b21a-48fc25a9fe50"
+                },
+                {
+                    "connections": [
+                        "2fd31585-3fa3-43d7-8492-dc16a7494625"
+                    ],
+                    "type": 0,
+                    "uid": "440305de-1c19-492a-b83f-a2031e8f9286"
+                },
+                {
+                    "connections": [
+                        "13e0a2e3-b011-4e7b-9bbf-20b79e640d56"
+                    ],
+                    "type": 0,
+                    "uid": "fea7a92b-11ee-4bb2-b53d-252e001172bc"
+                }
+            ],
+            "jCompData": {
+                "collection": "Digital Gates",
+                "name": "3 Pin Nand Gate"
+            },
+            "outputSlots": [
+                {
+                    "connections": [
+                        "847dafb2-43c5-4795-92f7-c8d3f4da9eed"
+                    ],
+                    "type": 1,
+                    "uid": "a7b2662e-a2c7-4942-afeb-8664f673513d"
+                }
+            ],
+            "pos": {
+                "x": -90.309814453125,
+                "y": -32.95976257324219,
+                "z": 0.00019999999494757503
+            },
+            "type": 101,
+            "uid": "38923338-f0a1-4571-a642-fe182acd2dce"
+        },
+        {
+            "inputSlots": [
+                {
+                    "connections": [
+                        "2fd31585-3fa3-43d7-8492-dc16a7494625"
+                    ],
+                    "type": 0,
+                    "uid": "06ffccbf-af54-4f4c-9666-b95fdaa77e86"
+                },
+                {
+                    "connections": [
+                        "a7b2662e-a2c7-4942-afeb-8664f673513d"
+                    ],
+                    "type": 0,
+                    "uid": "847dafb2-43c5-4795-92f7-c8d3f4da9eed"
+                }
             ],
             "jCompData": {
                 "collection": "Digital Gates",
                 "name": "NAND Gate"
             },
             "outputSlots": [
-                "af4a3250-a143-40ee-ae2f-58f959aeb47a"
+                {
+                    "connections": [
+                        "986e49b5-bbaf-409d-ae2f-cfea9bd8da93",
+                        "8b0d1a09-a2dc-4fb4-ae76-f95830c0413d",
+                        "17d224ba-4b0c-400e-9637-318727c10e8b"
+                    ],
+                    "type": 1,
+                    "uid": "4b69697f-2d32-414d-9040-afc438938387"
+                }
             ],
             "pos": {
-                "x": 163.4805908203125,
-                "y": 160.84378051757813,
-                "z": 0.00019999999494757503
-            },
-            "type": 101,
-            "uid": "4e3bb634-3d11-4591-b614-807a82c39d0f"
-        },
-        {
-            "connections": {
-                "e21b4474-df6c-4cb9-9cb9-7b6414351ec4": [
-                    "e2df03da-89ac-41a3-aa30-6c5747edef28"
-                ]
-            },
-            "inputSlots": [
-                "165566c2-b2ac-47ac-9aec-f1dce73a50b2",
-                "875b272a-1a07-4790-9866-7b3a0f25286f",
-                "3b0c50b5-c64d-4b79-b95d-c02bfad072c6"
-            ],
-            "jCompData": {
-                "collection": "Digital Gates",
-                "name": "3 Pin Nand Gate"
-            },
-            "outputSlots": [
-                "e21b4474-df6c-4cb9-9cb9-7b6414351ec4"
-            ],
-            "pos": {
-                "x": -126.56559753417969,
-                "y": -67.23794555664063,
+                "x": 164.7989501953125,
+                "y": -1.318389892578125,
                 "z": 0.00029999998514540493
             },
             "type": 101,
-            "uid": "5ae57c40-832a-4447-94eb-455ef252d69b"
+            "uid": "d5aef73c-6d46-42ed-b328-fb65b5b77a20"
         },
         {
-            "connections": {
-                "e1a3cae6-ad82-4fcf-9f2e-61fcdf7e5e9f": [
-                    "d3865e30-a7f0-400a-9819-1a9a543cc46a"
-                ]
-            },
             "inputSlots": [
-                "bb8849b1-8546-4197-80a0-e91952801a6d",
-                "800d8a84-4c70-4b32-b5ff-c2b8de9d8afc",
-                "191c080f-17ee-4276-8c2f-5ca297962218"
+                {
+                    "connections": [
+                        "c8c1708d-53a0-4aee-8899-747d3fc71585"
+                    ],
+                    "type": 0,
+                    "uid": "627e45b1-d012-4598-93e4-31bb7ab11e5b"
+                },
+                {
+                    "connections": [
+                        "4b69697f-2d32-414d-9040-afc438938387"
+                    ],
+                    "type": 0,
+                    "uid": "986e49b5-bbaf-409d-ae2f-cfea9bd8da93"
+                }
             ],
             "jCompData": {
                 "collection": "Digital Gates",
-                "name": "3 Pin Nand Gate"
+                "name": "NAND Gate"
             },
             "outputSlots": [
-                "e1a3cae6-ad82-4fcf-9f2e-61fcdf7e5e9f"
+                {
+                    "connections": [
+                        "06ffccbf-af54-4f4c-9666-b95fdaa77e86",
+                        "440305de-1c19-492a-b83f-a2031e8f9286",
+                        "3135d1a1-3386-464c-8640-1cbb409c479d"
+                    ],
+                    "type": 1,
+                    "uid": "2fd31585-3fa3-43d7-8492-dc16a7494625"
+                }
             ],
             "pos": {
-                "x": -129.202392578125,
-                "y": 152.2742156982422,
+                "x": 164.13970947265625,
+                "y": 179.30125427246094,
                 "z": 0.00039999998989515007
             },
             "type": 101,
-            "uid": "9ba9e3b0-3dbf-4522-8351-8966bde73ac1"
-        },
-        {
-            "connections": {
-                "2a7f96a9-12d7-4339-a785-e03500149721": [
-                    "191c080f-17ee-4276-8c2f-5ca297962218",
-                    "165566c2-b2ac-47ac-9aec-f1dce73a50b2"
-                ]
-            },
-            "pos": {
-                "x": -332.8938903808594,
-                "y": 29.663787841796875,
-                "z": 0.0004999999655410647
-            },
-            "slotUId": "2a7f96a9-12d7-4339-a785-e03500149721",
-            "type": 102,
-            "uid": "304059fb-b9e8-4e70-8498-23c30b633fe5"
-        },
-        {
-            "connections": {
-                "403599fb-ec8b-4a84-9951-b53fabf02034": [
-                    "3b0c50b5-c64d-4b79-b95d-c02bfad072c6"
-                ]
-            },
-            "pos": {
-                "x": -325.6427307128906,
-                "y": -97.56097412109375,
-                "z": 0.0005999999702908099
-            },
-            "slotUId": "403599fb-ec8b-4a84-9951-b53fabf02034",
-            "type": 102,
-            "uid": "6fa24e10-c05f-420d-9301-836c8f9a94df"
-        },
-        {
-            "connections": {
-                "33c70932-876f-4f99-ad4b-7a6646c86ce5": [
-                    "bb8849b1-8546-4197-80a0-e91952801a6d"
-                ]
-            },
-            "pos": {
-                "x": -334.2122802734375,
-                "y": 165.45816040039063,
-                "z": 0.000699999975040555
-            },
-            "slotUId": "33c70932-876f-4f99-ad4b-7a6646c86ce5",
-            "type": 102,
-            "uid": "4badd0ce-17fd-4499-aa4e-2f2dea9798c0"
-        },
-        {
-            "pos": {
-                "x": 322.34674072265625,
-                "y": -37.57415771484375,
-                "z": 0.0007999999797903001
-            },
-            "slotUId": "7c2212a4-5d55-426a-9e36-60a9f37f90f2",
-            "type": 103,
-            "uid": "a0b6b893-5ebf-4611-aac0-23866d112a3e"
+            "uid": "64dfe46e-49b8-41af-aa87-a6bdac1a70c0"
         },
         {
             "pos": {
                 "x": 314.4364013671875,
-                "y": 161.5029754638672,
+                "y": -1.318359375,
+                "z": 0.0004999999655410647
+            },
+            "slot": {
+                "connections": [
+                    "4b69697f-2d32-414d-9040-afc438938387"
+                ],
+                "type": 0,
+                "uid": "17d224ba-4b0c-400e-9637-318727c10e8b"
+            },
+            "type": 103,
+            "uid": "d7b6a80d-2803-4f35-a0f4-61cbc73c6311"
+        },
+        {
+            "pos": {
+                "x": 315.0955810546875,
+                "y": 179.30125427246094,
+                "z": 0.0005999999702908099
+            },
+            "slot": {
+                "connections": [
+                    "2fd31585-3fa3-43d7-8492-dc16a7494625"
+                ],
+                "type": 0,
+                "uid": "3135d1a1-3386-464c-8640-1cbb409c479d"
+            },
+            "type": 103,
+            "uid": "eeba36c3-88dc-483c-84fc-150be9fd4761"
+        },
+        {
+            "pos": {
+                "x": -320.369140625,
+                "y": -62.623565673828125,
+                "z": 0.0007999999797903001
+            },
+            "slot": {
+                "connections": [
+                    "fea7a92b-11ee-4bb2-b53d-252e001172bc"
+                ],
+                "type": 1,
+                "uid": "13e0a2e3-b011-4e7b-9bbf-20b79e640d56"
+            },
+            "type": 102,
+            "uid": "df438054-4228-4bd9-b7ff-7cf0706b8314"
+        },
+        {
+            "pos": {
+                "x": -330.257080078125,
+                "y": 181.9380340576172,
                 "z": 0.0008999999845400453
             },
-            "slotUId": "6288354e-5fcc-4630-804e-29f90fbd723d",
-            "type": 103,
-            "uid": "f306ac57-ce61-4bf7-a68f-d5f01a4410aa"
+            "slot": {
+                "connections": [
+                    "e386aae7-ee8a-48af-8106-4ff52274199f"
+                ],
+                "type": 1,
+                "uid": "917a4334-79c7-40d9-810f-269377f4e4c8"
+            },
+            "type": 102,
+            "uid": "b9d1e306-76ea-44da-a081-1d44a9e7a64c"
+        },
+        {
+            "pos": {
+                "x": -326.96112060546875,
+                "y": 58.009246826171875,
+                "z": 0.0009999999310821295
+            },
+            "slot": {
+                "connections": [
+                    "77caab8c-7d56-4e89-b055-402992f2aa9a",
+                    "accbbbdb-5b13-4e15-b21a-48fc25a9fe50"
+                ],
+                "type": 1,
+                "uid": "dfd73a15-e16a-4a59-a9dd-fd7a89944cf6"
+            },
+            "type": 102,
+            "uid": "d60a1f1e-6087-46a0-b3d1-04d51c6559a2"
         }
     ],
-    "name": "JK Flip Flop"
+    "name": "Unnamed"
 }

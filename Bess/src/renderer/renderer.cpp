@@ -36,21 +36,14 @@ std::unique_ptr<Font> Renderer::m_Font;
 
 void Renderer::init() {
     {
-        m_GridShader = std::make_unique<Gl::Shader>(
-            "assets/shaders/grid_vert.glsl", "assets/shaders/grid_frag.glsl");
+        m_GridShader = std::make_unique<Gl::Shader>("assets/shaders/grid_vert.glsl", "assets/shaders/grid_frag.glsl");
         std::vector<Gl::VaoAttribAttachment> attachments;
-        attachments.emplace_back(Gl::VaoAttribAttachment(
-            Gl::VaoAttribType::vec3, offsetof(Gl::GridVertex, position)));
-        attachments.emplace_back(Gl::VaoAttribAttachment(
-            Gl::VaoAttribType::vec2, offsetof(Gl::GridVertex, texCoord)));
-        attachments.emplace_back(Gl::VaoAttribAttachment(
-            Gl::VaoAttribType::int_t, offsetof(Gl::GridVertex, id)));
-        attachments.emplace_back(Gl::VaoAttribAttachment(
-            Gl::VaoAttribType::float_t, offsetof(Gl::GridVertex, ar)));
+        attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::GridVertex, position)));
+        attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::GridVertex, texCoord)));
+        attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::GridVertex, id)));
+        attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::float_t, offsetof(Gl::GridVertex, ar)));
 
-        m_GridVao =
-            std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::GridVertex));
-
+        m_GridVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::GridVertex));
     }
 
     m_AvailablePrimitives = { PrimitiveType::curve, PrimitiveType::quad,
@@ -203,8 +196,8 @@ void Renderer::grid(const glm::vec3 &pos, const glm::vec2 &size, int id) {
     std::vector<Gl::GridVertex> vertices(4);
 
     auto size_ = size;
-    size_.x = std::max(size.y, size.x);
-    size_.y = std::max(size.y, size.x);
+    //size_.x = std::max(size.y, size.x);
+    //size_.y = std::max(size.y, size.x);
 
     auto transform = glm::translate(glm::mat4(1.0f), pos);
     transform = glm::scale(transform, {size_.x, size_.y, 1.f});
@@ -225,6 +218,8 @@ void Renderer::grid(const glm::vec3 &pos, const glm::vec2 &size, int id) {
     m_GridVao->bind();
 
     m_GridShader->setUniformMat4("u_mvp", m_camera->getTransform());
+    m_GridShader->setUniform1f("u_zoom", m_camera->getZoom());
+    m_GridShader->setUniformVec2("u_cameraOffset", m_camera->getPos());
     m_GridVao->setVertices(vertices.data(), vertices.size());
     GL_CHECK(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
 

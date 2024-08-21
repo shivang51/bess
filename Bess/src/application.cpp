@@ -64,6 +64,8 @@ namespace Bess {
         m_framebuffer->bind();
 
         Renderer::begin(m_camera);
+        
+        Renderer::grid({ 0.f, 0.f, -1.f }, m_camera->getSpan(), -1);
 
         switch (ApplicationState::drawMode) {
         case DrawMode::connection: {
@@ -114,16 +116,15 @@ namespace Bess {
         }
 
         if (m_framebuffer->getSize() != UI::UIMain::state.viewportSize) {
-            m_framebuffer->resize(UI::UIMain::state.viewportSize.x,
-                UI::UIMain::state.viewportSize.y);
+            m_framebuffer->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
             m_camera->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
-
-            ApplicationState::normalizingFactor =
-                glm::min(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
+            ApplicationState::normalizingFactor = glm::min(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
         }
 
         if (UI::UIMain::state.cameraZoom != m_camera->getZoom()) {
-            m_camera->setZoom(UI::UIMain::state.cameraZoom);
+            auto mp = getViewportMousePos();
+            //mp = m_mousePos;
+            m_camera->zoomToPoint({ mp.x, mp.y}, UI::UIMain::state.cameraZoom);
         }
 
 
@@ -134,6 +135,14 @@ namespace Bess {
         }
 
         if(!ApplicationState::simulationPaused) Simulator::Engine::Simulate();
+
+        static bool firstTime = true;
+        if (firstTime) {
+            if( UI::UIMain::state.viewportSize.x != 800.f) firstTime = false;
+            auto pos = UI::UIMain::state.viewportSize / 2.f;
+            std::cout << UI::UIMain::state.viewportSize.x << std::endl;
+            //m_camera->setPos({pos.x, pos.y});
+        }
     }
 
     void Application::quit() { m_window.close(); }

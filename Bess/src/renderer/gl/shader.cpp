@@ -143,8 +143,7 @@ namespace Bess::Gl
 
     void Shader::setUniformVec4(const std::string &name, const glm::vec4 &value)
     {
-        glUniform4fv(glGetUniformLocation(m_id, name.c_str()), 1,
-                     glm::value_ptr(value));
+        glUniform4fv(glGetUniformLocation(m_id, name.c_str()), 1, glm::value_ptr(value));
     }
 
     void Shader::setUniformMat4(const std::string &name, const glm::mat4 &value)
@@ -158,6 +157,12 @@ namespace Bess::Gl
         GL_CHECK(glUniform1i(glGetUniformLocation(m_id, name.c_str()), value));
     }
 
+    void Shader::setUniform1f(const std::string &name, float value)
+    {
+        GL_CHECK(glUniform1f(glGetUniformLocation(m_id, name.c_str()), value));
+    }
+
+
     void Shader::setUniformIV(const std::string &name,
                               const std::vector<int> &value)
     {
@@ -170,6 +175,10 @@ namespace Bess::Gl
     {
         glUniform3fv(glGetUniformLocation(m_id, name.c_str()), 1,
             glm::value_ptr(value));
+    }
+
+    void Shader::setUniformVec2(const std::string& name, const glm::vec2& value) {
+        glUniform2fv(glGetUniformLocation(m_id, name.c_str()), 1, glm::value_ptr(value));
     }
 
 } // namespace Bess::Gl
