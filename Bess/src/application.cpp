@@ -127,7 +127,7 @@ namespace Bess {
         }
 
 
-        if (isKeyPressed(GLFW_KEY_DELETE)) {
+        if (ApplicationState::isKeyPressed(GLFW_KEY_DELETE)) {
             auto& compId = ApplicationState::getSelectedId();
             if (compId == Simulator::ComponentsManager::emptyId) return;
             Simulator::ComponentsManager::deleteComponent(compId);
@@ -137,8 +137,6 @@ namespace Bess {
     }
 
     void Application::quit() { m_window.close(); }
-
-    bool Application::isKeyPressed(int key) { return m_pressedKeys[key]; }
 
     // callbacks
 
@@ -150,7 +148,7 @@ namespace Bess {
         if (!isCursorInViewport())
             return;
 
-        if (isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
+        if (ApplicationState::isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
             float delta = (float)y * 0.1f;
             UI::UIMain::state.cameraZoom += delta;
             if (UI::UIMain::state.cameraZoom < Camera::zoomMin) {
@@ -166,10 +164,12 @@ namespace Bess {
         }
     }
 
-    void Application::onKeyPress(int key) { m_pressedKeys[key] = true; }
+    void Application::onKeyPress(int key) { 
+        ApplicationState::setKeyPressed(key, true);
+    }
 
     void Application::onKeyRelease(int key) { 
-        m_pressedKeys[key] = false; 
+        ApplicationState::setKeyPressed(key, false);
     }
 
     void Application::onLeftMouse(bool pressed) {
