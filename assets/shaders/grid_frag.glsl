@@ -10,7 +10,8 @@ in float v_AR;
 
 float grid_intensity = 0.5f;
 
-uniform float zoom;
+uniform float u_zoom;
+uniform vec2 u_cameraOffset;
 
 float grid(vec2 fragCoord, float space, float gridWidth)
 {
@@ -26,8 +27,9 @@ float grid(vec2 fragCoord, float space, float gridWidth)
 void main() {
     float ar = v_AR;
     vec2 fragCoord = gl_FragCoord.xy;
-    float scale = zoom;
+    float scale = u_zoom;
 	fragCoord /= scale;
+    fragCoord -= u_cameraOffset;
 
     float gap = 25.f * scale;
     float dotSize = 2.f;
@@ -39,7 +41,7 @@ void main() {
     float dist = distance(gridPos, dotCenter);
     float a = smoothstep(dotRadius, dotRadius - 1.f, dist);
     if(a == 0.f) discard;
-    vec3 col = vec3(0.65f) * a;
+    vec3 col = vec3(0.25f) * a;
 
     fragColor = vec4(col,1.0);
     fragColor1 = v_FragId;

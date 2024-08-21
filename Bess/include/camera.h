@@ -23,6 +23,8 @@ namespace Bess
 
     float getZoom() const;
 
+    glm::vec2 getSpan() const;
+
     void resize(float width, float height);
 
     glm::mat4 getTransform() const;
