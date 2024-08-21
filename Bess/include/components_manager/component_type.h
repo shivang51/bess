@@ -10,6 +10,7 @@ namespace Bess::Simulator {
         jcomponent = 101,
         inputProbe,
         outputProbe,
-        text
+        text,
+        connectionPoint,
     };
 }

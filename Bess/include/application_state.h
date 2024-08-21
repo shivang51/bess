@@ -28,6 +28,8 @@ class ApplicationState {
     static void loadProject(const std::string& path);
     static void updateCurrentProject(std::shared_ptr<ProjectFile> project);
 
+    static bool isKeyPressed(int key);
+    static void setKeyPressed(int key, bool pressed);
   public:
     // to be used according to the need of different ops
     static std::vector<glm::vec3> points;
@@ -52,6 +54,8 @@ class ApplicationState {
     static uuids::uuid m_selectedId;
     static uuids::uuid m_prevSelectedId;
     static Window* m_mainWindow;
+
+    static std::unordered_map<int, bool> m_pressedKeys;
 };
 
 } // namespace Bess

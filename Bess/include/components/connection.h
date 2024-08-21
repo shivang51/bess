@@ -3,6 +3,7 @@
 #include "components_manager/components_manager.h"
 #include "renderer/renderer.h"
 #include "common/theme.h"
+#include <vector>
 
 namespace Bess::Simulator::Components {
     class Connection : public Component {
@@ -21,6 +22,11 @@ namespace Bess::Simulator::Components {
 
         void drawProperties() override;
 
+        const std::vector<uuids::uuid>& getPoints();
+        void setPoints(const std::vector<uuids::uuid>& points);
+        void addPoint(const uuids::uuid& point);
+        void removePoint(const uuids::uuid& point);
+
     private:
         uuids::uuid m_slot1;
         uuids::uuid m_slot2;
@@ -29,6 +35,8 @@ namespace Bess::Simulator::Components {
         void onFocusLost();
         void onFocus();
         void onMouseHover();
+
+        std::vector<uuids::uuid> m_points = {};
 
     private: // properties
         glm::vec3 m_color = Theme::wireColor;

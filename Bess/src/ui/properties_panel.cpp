@@ -16,6 +16,7 @@ namespace Bess::UI {
 
         bool deleted = false;
         auto& selectedEnt = Simulator::ComponentsManager::components[ApplicationState::getSelectedId()];
+        if (selectedEnt == nullptr) goto end;
 
         // NAME
         {
@@ -40,7 +41,7 @@ namespace Bess::UI {
             ImGui::PushStyleColor(ImGuiCol_Button, deleteButtonColor);
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(255.0f / 255.0f, 83.0f / 255.0f, 79.0f / 255.0f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(185.0f / 255.0f, 62.0f / 255.0f, 58.0f / 255.0f, 1.0f));
-            
+
             if (ImGui::Button(temp.c_str())) {
                 Simulator::ComponentsManager::deleteComponent(ApplicationState::getSelectedId());
                 deleted = true;
@@ -49,7 +50,7 @@ namespace Bess::UI {
         }
 
         if (!deleted) selectedEnt->drawProperties();
-
+    end:
         ImGui::End();
     }
 }

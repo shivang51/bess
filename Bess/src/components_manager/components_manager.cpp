@@ -59,14 +59,16 @@ namespace Bess::Simulator {
 
         auto renderIt = std::find(renderComponenets.begin(), renderComponenets.end(), cid);
         if (renderIt != renderComponenets.end()) {
-            ApplicationState::setSelectedId(emptyId, false);
             renderComponenets.erase(renderIt);
         }
+
+        if (ApplicationState::getSelectedId() == cid)
+            ApplicationState::setSelectedId(emptyId, false);
 
         m_renderIdToCId.erase(m_compIdToRId[cid]);
         m_compIdToRId.erase(cid);
         components[cid]->deleteComponent();
-        
+
         components.erase(cid);
     }
 
