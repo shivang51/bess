@@ -65,7 +65,8 @@ namespace Bess {
 
         Renderer::begin(m_camera);
         
-        Renderer::grid({ 0.f, 0.f, -1.f }, m_camera->getSpan(), -1);
+        auto pos = m_camera->getSpan() / 2.f;
+        Renderer::grid({ pos.x, -pos.y, -2.f }, m_camera->getSpan(), -1);
 
         switch (ApplicationState::drawMode) {
         case DrawMode::connection: {
@@ -122,9 +123,10 @@ namespace Bess {
         }
 
         if (UI::UIMain::state.cameraZoom != m_camera->getZoom()) {
-            auto mp = getViewportMousePos();
+            //auto mp = getViewportMousePos();
             //mp = m_mousePos;
-            m_camera->zoomToPoint({ mp.x, mp.y}, UI::UIMain::state.cameraZoom);
+            //m_camera->zoomToPoint({ mp.x, mp.y}, UI::UIMain::state.cameraZoom);
+            m_camera->setZoom(UI::UIMain::state.cameraZoom);
         }
 
 

@@ -70,6 +70,11 @@ void Camera::recalculateOrtho() {
 
 glm::mat4 Camera::getTransform() const { return transform; }
 
+glm::mat4 Camera::getOrtho() const
+{
+    return m_ortho;
+}
+
 void Camera::updateTransform() {
     transform = glm::translate(glm::mat4(1.f), glm::vec3(m_pos, 0.0f));
     transform = m_ortho * transform;

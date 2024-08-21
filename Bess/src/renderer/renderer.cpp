@@ -217,7 +217,7 @@ void Renderer::grid(const glm::vec3 &pos, const glm::vec2 &size, int id) {
     m_GridShader->bind();
     m_GridVao->bind();
 
-    m_GridShader->setUniformMat4("u_mvp", m_camera->getTransform());
+    m_GridShader->setUniformMat4("u_mvp", m_camera->getOrtho());
     m_GridShader->setUniform1f("u_zoom", m_camera->getZoom());
     m_GridShader->setUniformVec2("u_cameraOffset", m_camera->getPos());
     m_GridVao->setVertices(vertices.data(), vertices.size());

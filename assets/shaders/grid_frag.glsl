@@ -41,7 +41,7 @@ void main() {
     float dist = distance(gridPos, dotCenter);
     float a = smoothstep(dotRadius, dotRadius - 1.f, dist);
     if(a == 0.f) discard;
-    vec3 col = vec3(0.25f) * a;
+    vec3 col = vec3(0.20f) * a;
 
     fragColor = vec4(col,1.0);
     fragColor1 = v_FragId;

@@ -29,6 +29,8 @@ namespace Bess
 
     glm::mat4 getTransform() const;
 
+    glm::mat4 getOrtho() const;
+
     void incrementPos(const glm::vec2 &pos);
 
     static float zoomMin, zoomMax, defaultZoom;
