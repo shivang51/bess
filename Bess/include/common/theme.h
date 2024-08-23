@@ -4,13 +4,14 @@
 namespace Bess {
 class Theme {
   public:
-    static const glm::vec3 componentBGColor;
-    static const glm::vec3 selectedCompColor;
-    static const glm::vec4 componentBorderColor;
-    static  glm::vec3 backgroundColor;
-    static const glm::vec4 stateHighColor;
-    static const glm::vec4 wireColor;
-    static const glm::vec3 selectedWireColor;
-    static const glm::vec3 compHeaderColor;
+    static glm::vec3 componentBGColor;
+    static glm::vec3 selectedCompColor;
+    static glm::vec4 componentBorderColor;
+    static glm::vec3 backgroundColor;
+    static glm::vec4 stateHighColor;
+    static glm::vec4 wireColor;
+    static glm::vec3 selectedWireColor;
+    static glm::vec3 compHeaderColor;
+    static void updateColorsFromImGuiStyle();
 };
 } // namespace Bess

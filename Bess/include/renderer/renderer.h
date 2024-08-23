@@ -90,6 +90,8 @@ class Renderer {
                                     const glm::vec3 &end,
                                     const glm::vec3 &color, int id, float weight = 3.0f);
 
+    static int calculateSegments(const glm::vec2& p1, const glm::vec2& p2);
+
     static void addCircleVertices(const std::vector<Gl::Vertex>& vertices);
 
     static void addTriangleVertices(const std::vector<Gl::Vertex> &vertices);

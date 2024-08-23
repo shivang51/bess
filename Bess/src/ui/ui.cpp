@@ -65,6 +65,8 @@ void UIMain::init(GLFWwindow *window) {
     //setCatpuccinMochaColors();
     setBessDarkThemeColors();
 
+    Theme::updateColorsFromImGuiStyle();
+
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 410");
 }
@@ -408,9 +410,6 @@ void UIMain::setCatpuccinMochaColors() {
 
     style.AntiAliasedLines = true;
     style.AntiAliasedFill = true;
-
-
-    Theme::backgroundColor = glm::vec3({ colors[ImGuiCol_WindowBg].x - 0.1f, colors[ImGuiCol_WindowBg].y - 0.1f, colors[ImGuiCol_WindowBg].z - 0.1f });
 }
 
 void UIMain::setModernColors()

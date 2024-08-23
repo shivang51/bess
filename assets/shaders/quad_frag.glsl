@@ -10,8 +10,9 @@ in vec4 v_BorderRadius;
 in flat int v_FragId;
 
 uniform int u_SelectedObjId;
+uniform float u_zoom;
 
-float smoothBlur = 0.03f;
+float smoothBlur = 0.035f;
 
 float sdRoundBox(in vec2 p, in vec2 b, in vec4 r)
 {
@@ -37,8 +38,9 @@ void main() {
     vec2 p = v_TexCoord;
     vec3 bgColor = v_FragColor;
     vec4 bR = v_BorderRadius;
-
     bR /= min(v_Size);
+
+    smoothBlur /= u_zoom;
 
     p = (p * 2.f) - 1.f;
     p.x *= ar;
@@ -49,7 +51,5 @@ void main() {
     float a = calculateQuad(p, si, ra);
     if (a == 0.f) discard;
     fragColor = vec4(bgColor, a);
-
-    //fragColor = vec4(fragPos.x / v_Size.x, 0.f, 0.f, 1.f);
     fragColor1 = v_FragId;
 }
