@@ -2,7 +2,7 @@
 #include "component.h"
 #include "components_manager/components_manager.h"
 #include "renderer/renderer.h"
-#include "common/theme.h"
+#include "settings/viewport_theme.h"
 #include <vector>
 
 namespace Bess::Simulator::Components {
@@ -39,6 +39,6 @@ namespace Bess::Simulator::Components {
         std::vector<uuids::uuid> m_points = {};
 
     private: // properties
-        glm::vec3 m_color = Theme::wireColor;
+        glm::vec3 m_color = ViewportTheme::wireColor;
     };
 }// namespace Bess::Simulator::Components

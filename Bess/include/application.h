@@ -27,7 +27,7 @@ namespace Bess
         void saveProject();
 
     private:
-        Window m_window;
+        Window m_mainWindow;
         std::unique_ptr<Gl::FrameBuffer> m_framebuffer;
         std::shared_ptr<Camera> m_camera;
 

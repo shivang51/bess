@@ -20,7 +20,7 @@ set(Header_Files
     "include/application.h"
     "include/application_state.h"
     "include/camera.h"
-    "include/common/theme.h"
+    "include/settings/viewport_theme.h"
     "include/components/component.h"
     "include/components/connection.h"
     "include/components/input_probe.h"
@@ -67,7 +67,7 @@ set(Source_Files
     "src/application.cpp"
     "src/application_state.cpp"
     "src/camera.cpp"
-    "src/common/theme.cpp"
+    "src/settings/viewport_theme.cpp"
     "src/components/component.cpp"
     "src/components/connection.cpp"
     "src/components/input_probe.cpp"
@@ -97,12 +97,12 @@ set(ALL_FILES
     ${Header_Files}
     ${Shaders}
     ${Source_Files}
- "include/ui/component_explorer.h" "src/ui/component_explorer.cpp" "include/project_file.h" "src/project_file.cpp" "include/ui/dialogs.h" "src/ui/dialogs.cpp" "include/ui/icons/MaterialIcons.h" "src/ui/popups.cpp" "include/ui/popups.h" "include/components/button.h" "src/components/button.cpp" "include/ui/properties_panel.h" "src/ui/properties_panel.cpp" "include/components/text_component.h" "src/components/text_component.cpp" "include/ui/m_widgets.h" "src/ui/m_widgets.cpp" "include/components/connection_point.h" "src/components/connection_point.cpp")
+ "include/ui/component_explorer.h" "src/ui/component_explorer.cpp" "include/project_file.h" "src/project_file.cpp" "include/ui/dialogs.h" "src/ui/dialogs.cpp" "include/ui/icons/MaterialIcons.h" "src/ui/popups.cpp" "include/ui/popups.h" "include/components/button.h" "src/components/button.cpp" "include/ui/properties_panel.h" "src/ui/properties_panel.cpp" "include/components/text_component.h" "src/components/text_component.cpp" "include/ui/m_widgets.h" "src/ui/m_widgets.cpp" "include/components/connection_point.h" "src/components/connection_point.cpp" "include/ui/settings_window.h" "src/ui/settings_window.cpp" "include/settings/settings.h" "src/settings/settings.cpp" "src/settings/themes.cpp")
 
 ################################################################################
 # Target
 ################################################################################
-add_executable(${PROJECT_NAME} ${ALL_FILES} )
+add_executable(${PROJECT_NAME} ${ALL_FILES}  "include/settings/themes.h")
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
 
 

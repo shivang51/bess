@@ -11,7 +11,8 @@
 #include "components_manager/component_bank.h"
 
 #include "simulator/simulator_engine.h"
-#include "common/theme.h"
+#include "settings/viewport_theme.h"
+#include "settings/settings.h"
 
 #include <chrono>
 #include <thread>
@@ -29,11 +30,11 @@ namespace Bess {
     std::bind(&Application::fn, this, std::placeholders::_1,                   \
               std::placeholders::_2)
 
-    Application::Application() : m_window(800, 600, "Bess") {
+    Application::Application() : m_mainWindow(800, 600, "Bess") {
         init();
     }
 
-    Application::Application(const std::string& path) : m_window(800, 600, "Bess")
+    Application::Application(const std::string& path) : m_mainWindow(800, 600, "Bess")
     {
         init();
         ApplicationState::loadProject(path);
@@ -76,7 +77,7 @@ namespace Bess {
             auto sPos = ApplicationState::points[0];
             sPos.z = -1;
             auto mPos = glm::vec3(getNVPMousePos(), -1);
-            Renderer::curve(sPos, mPos, 2.5, Theme::wireColor, -1);
+            Renderer::curve(sPos, mPos, 2.5, ViewportTheme::wireColor, -1);
         } break;
         default:
             break;
@@ -104,7 +105,7 @@ namespace Bess {
         double frameTime = 1.0 / 60.0;
         double accumulatedTime = 0.0;
 
-        while (!m_window.isClosed()) {
+        while (!m_mainWindow.isClosed()) {
             double currTime = glfwGetTime();
             double deltaTime = currTime - prevTime;
             prevTime = currTime;
@@ -115,7 +116,7 @@ namespace Bess {
                 update();
                 UI::UIMain::begin();
                 UI::UIMain::draw();
-                UI::UIMain::drawStats(fps);
+                //UI::UIMain::drawStats(fps);
                 drawScene();
                 UI::UIMain::end();
 
@@ -129,7 +130,7 @@ namespace Bess {
     }
 
     void Application::update() {
-        m_window.update();
+        m_mainWindow.update();
 
         if (ApplicationState::hoveredId != -1) {
             auto& cid = Simulator::ComponentsManager::renderIdToCid(ApplicationState::hoveredId);
@@ -164,12 +165,11 @@ namespace Bess {
         if (firstTime) {
             if( UI::UIMain::state.viewportSize.x != 800.f) firstTime = false;
             auto pos = UI::UIMain::state.viewportSize / 2.f;
-            std::cout << UI::UIMain::state.viewportSize.x << std::endl;
             //m_camera->setPos({pos.x, pos.y});
         }
     }
 
-    void Application::quit() { m_window.close(); }
+    void Application::quit() { m_mainWindow.close(); }
 
     // callbacks
 
@@ -345,6 +345,8 @@ namespace Bess {
 
     void Application::init()
     {
+        Config::Settings::init();
+
         Simulator::ComponentsManager::init();
 
         Simulator::ComponentBankElement el(Simulator::ComponentType::inputProbe, "Input Probe");
@@ -353,30 +355,33 @@ namespace Bess {
         Simulator::ComponentBank::addToCollection("Misc", { Simulator::ComponentType::text, "Text" });
         Simulator::ComponentBank::loadMultiFromJson("assets/comp_collections.json");
 
-        ApplicationState::init(&m_window);
+
+        ApplicationState::init(&m_mainWindow);
 
         m_framebuffer = std::make_unique<Gl::FrameBuffer>(800.f, 600.f);
         m_camera = std::make_shared<Camera>(800.f, 600.f);
 
-        UI::UIMain::init(m_window.getGLFWHandle());
+
+        UI::UIMain::init(m_mainWindow.getGLFWHandle());
         UI::UIMain::state.viewportTexture = m_framebuffer->getTexture();
         UI::UIMain::state.cameraZoom = Camera::defaultZoom;
 
+
         Renderer::init();
 
-        m_window.onWindowResize(BIND_EVENT_FN_2(onWindowResize));
-        m_window.onMouseWheel(BIND_EVENT_FN_2(onMouseWheel));
-        m_window.onKeyPress(BIND_EVENT_FN_1(onKeyPress));
-        m_window.onKeyRelease(BIND_EVENT_FN_1(onKeyRelease));
-        m_window.onLeftMouse(BIND_EVENT_FN_1(onLeftMouse));
-        m_window.onRightMouse(BIND_EVENT_FN_1(onRightMouse));
-        m_window.onMiddleMouse(BIND_EVENT_FN_1(onMiddleMouse));
-        m_window.onMouseMove(BIND_EVENT_FN_2(onMouseMove));
+        m_mainWindow.onWindowResize(BIND_EVENT_FN_2(onWindowResize));
+        m_mainWindow.onMouseWheel(BIND_EVENT_FN_2(onMouseWheel));
+        m_mainWindow.onKeyPress(BIND_EVENT_FN_1(onKeyPress));
+        m_mainWindow.onKeyRelease(BIND_EVENT_FN_1(onKeyRelease));
+        m_mainWindow.onLeftMouse(BIND_EVENT_FN_1(onLeftMouse));
+        m_mainWindow.onRightMouse(BIND_EVENT_FN_1(onRightMouse));
+        m_mainWindow.onMiddleMouse(BIND_EVENT_FN_1(onMiddleMouse));
+        m_mainWindow.onMouseMove(BIND_EVENT_FN_2(onMouseMove));
     }
 
     void Application::shutdown()
     {
-        m_window.close();
+        m_mainWindow.close();
     }
 
     void Application::loadProject(const std::string& path)

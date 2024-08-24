@@ -1,5 +1,5 @@
 #include "renderer/gl/framebuffer.h"
-#include "common/theme.h"
+#include "settings/viewport_theme.h"
 #include "glad/glad.h"
 #include "window.h"
 #include <iostream>
@@ -59,8 +59,8 @@ void FrameBuffer::bind() const {
 }
 
 void FrameBuffer::clear() const {
-    GL_CHECK(glClearColor(Theme::backgroundColor.x, Theme::backgroundColor.y,
-                          Theme::backgroundColor.z, 1.0f));
+    GL_CHECK(glClearColor(ViewportTheme::backgroundColor.x, ViewportTheme::backgroundColor.y,
+                          ViewportTheme::backgroundColor.z, 1.0f));
     GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
     int value = -1;
     GL_CHECK(glClearTexImage(m_textures[1]->getId(), 0, GL_RED_INTEGER, GL_INT,
@@ -96,8 +96,6 @@ void FrameBuffer::readPixel(int x, int y) const {
     GL_CHECK(glReadBuffer(GL_COLOR_ATTACHMENT1));
     float data[3] = {0.0f};
     GL_CHECK(glReadPixels(x, y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, data));
-    std::cout << "Pixel: " << data[0] << " " << data[1] << " " << data[2]
-              << std::endl;
 }
 
 glm::vec2 FrameBuffer::getSize() const { return {m_width, m_height}; }

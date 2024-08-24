@@ -4,7 +4,7 @@
 #include "components_manager/components_manager.h"
 #include "common/helpers.h"
 #include "common/bind_helpers.h"
-#include "common/theme.h"
+#include "settings/viewport_theme.h"
 
 #include "imgui.h"
 #include "ui/m_widgets.h"
@@ -48,7 +48,7 @@ namespace Bess::Simulator::Components {
             }
 
             pos.z -= ComponentsManager::zIncrement;
-            Renderer2D::Renderer::quad(pos, { width, height }, Theme::backgroundColor, m_renderId, glm::vec4(8.f), Theme::componentBorderColor, glm::vec4(ApplicationState::getSelectedId() == m_uid ? 1.f: 0.f));
+            Renderer2D::Renderer::quad(pos, { width, height }, ViewportTheme::backgroundColor, m_renderId, glm::vec4(8.f), ViewportTheme::componentBorderColor, glm::vec4(ApplicationState::getSelectedId() == m_uid ? 1.f: 0.f));
         
         Renderer2D::Renderer::text(m_text, m_position, m_fontSize, m_color, m_renderId);
     }

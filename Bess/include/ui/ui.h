@@ -46,22 +46,17 @@ namespace Bess::UI {
         static UIState state;
 
         static void begin();
+
         static void end();
 
-    private:
-        static void setModernColors();
-        static void setMaterialYouColors();
-        static void setDarkThemeColors();
-        static void setBessDarkThemeColors();
-        static void setCatpuccinMochaColors();
 
+    private:
         static void drawProjectExplorer();
         static void drawMenubar();
         static void drawViewport();
-
-
-
         static void resetDockspace();
+        static void drawExternalWindows();
+        static void loadFontAndSetScale(float fontSize, float scale);
 
     private:
         // menu bar events

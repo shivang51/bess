@@ -50,7 +50,7 @@ namespace Bess::Simulator::Components {
                 { posA.x, posA.y, m_position.z },
                 { posB.x, posB.y, m_position.z },
                 m_hovered ? 2.5f : 2.0f,
-                m_selected ? Theme::selectedWireColor : (slot->getState() == DigitalState::high) ? Theme::stateHighColor : m_color,
+                m_selected ? ViewportTheme::selectedWireColor : (slot->getState() == DigitalState::high) ? ViewportTheme::stateHighColor : m_color,
                 m_renderId
             );
             posA = posB;
@@ -60,7 +60,7 @@ namespace Bess::Simulator::Components {
             { posA.x, posA.y, m_position.z },
             { posB.x, posB.y, m_position.z },
             m_hovered ? 2.5f : 2.0f,
-            m_selected ? Theme::selectedWireColor : (slot->getState() == DigitalState::high) ? Theme::stateHighColor : m_color,
+            m_selected ? ViewportTheme::selectedWireColor : (slot->getState() == DigitalState::high) ? ViewportTheme::stateHighColor : m_color,
             m_renderId
         );
     }

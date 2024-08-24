@@ -7,7 +7,7 @@
 #include "glm.hpp"
 #include "renderer/renderer.h"
 
-#include "common/theme.h"
+#include "settings/viewport_theme.h"
 #include "common/helpers.h"
 
 #include "simulator/simulator_engine.h"
@@ -43,12 +43,12 @@ namespace Bess::Simulator::Components {
     void JComponent::drawBackground(const glm::vec4& borderThicknessPx, float rPx, float headerHeight, const glm::vec2& gateSize) {
         bool selected = ApplicationState::getSelectedId() == m_uid;
 
-        auto borderColor = selected ? glm::vec4(Theme::selectedCompColor, 1.f) : Theme::componentBorderColor;
+        auto borderColor = selected ? glm::vec4(ViewportTheme::selectedCompColor, 1.f) : ViewportTheme::componentBorderColor;
 
         Renderer2D::Renderer::quad(
             m_position,
             gateSize,
-            Theme::componentBGColor,
+            ViewportTheme::componentBGColor,
             m_renderId,
             glm::vec4(rPx),
             borderColor,
@@ -61,7 +61,7 @@ namespace Bess::Simulator::Components {
         Renderer2D::Renderer::quad(
             headerPos,
             { gateSize.x, headerHeight },
-            Theme::compHeaderColor,
+            ViewportTheme::compHeaderColor,
             m_renderId,
             glm::vec4(rPx, rPx, 0.f, 0.f)
        );

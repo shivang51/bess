@@ -3,8 +3,8 @@
 #include "components/jcomponent.h"
 #include "components/connection.h"
 #include "application_state.h"
+#include "settings/viewport_theme.h"
 
-#include "common/theme.h"
 #include "ui/ui.h"
 #include <common/bind_helpers.h>
 #include "simulator/simulator_engine.h"
@@ -45,13 +45,13 @@ namespace Bess::Simulator::Components {
         float r = 4.0f;
         Renderer2D::Renderer::circle(m_position, m_highlightBorder ? r + 2.0f : r + 1.f,
             m_highlightBorder
-            ? Theme::selectedWireColor
-            : Theme::componentBorderColor,
+            ? ViewportTheme::selectedWireColor
+            : ViewportTheme::componentBorderColor,
             m_renderId);
 
         Renderer2D::Renderer::circle(
             m_position, r,
-            (m_connections.size() == 0) ? Theme::backgroundColor : connectedBg,
+            (m_connections.size() == 0) ? ViewportTheme::backgroundColor : connectedBg,
             m_renderId);
 
         if (m_label == "") return;

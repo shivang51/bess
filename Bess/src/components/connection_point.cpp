@@ -1,6 +1,6 @@
 #include "components/connection_point.h"
 #include "renderer/renderer.h"
-#include "common/theme.h"
+#include "settings/viewport_theme.h"
 #include "components_manager/components_manager.h"
 #include "components/connection.h"
 #include "common/helpers.h"
@@ -17,7 +17,7 @@ namespace Bess::Simulator::Components {
 
     void ConnectionPoint::render()
     {
-        Renderer2D::Renderer::circle(m_position, 4.0f, Theme::wireColor, m_renderId);
+        Renderer2D::Renderer::circle(m_position, 4.0f, ViewportTheme::wireColor, m_renderId);
     }
 
     void ConnectionPoint::deleteComponent()

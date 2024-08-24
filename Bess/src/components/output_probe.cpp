@@ -2,7 +2,7 @@
 
 #include "components/connection.h"
 #include "application_state.h"
-#include "common/theme.h"
+#include "settings/viewport_theme.h"
 #include "renderer/renderer.h"
 #include "common/helpers.h"
 
@@ -33,12 +33,12 @@ void OutputProbe::render() {
 
     float r = 12.f;
 
-    auto bgColor = Theme::componentBGColor;
-    auto borderColor = Theme::componentBorderColor;
+    auto bgColor = ViewportTheme::componentBGColor;
+    auto borderColor = ViewportTheme::componentBorderColor;
 
     std::string label = "L";
     if (slot->getState() == DigitalState::high) {
-        borderColor = Theme::stateHighColor;
+        borderColor = ViewportTheme::stateHighColor;
         label = "H";
     }
 

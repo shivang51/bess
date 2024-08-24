@@ -1,7 +1,7 @@
 #include "components/input_probe.h"
 #include "components/connection.h"
 #include "application_state.h"
-#include "common/theme.h"
+#include "settings/viewport_theme.h"
 #include "renderer/renderer.h"
 #include "common/bind_helpers.h"
 #include "common/helpers.h"
@@ -33,13 +33,13 @@ void InputProbe::render() {
 
     float r = 16.f;
 
-    auto bgColor = Theme::componentBGColor;
-    auto borderColor = Theme::componentBorderColor;
+    auto bgColor = ViewportTheme::componentBGColor;
+    auto borderColor = ViewportTheme::componentBorderColor;
 
     std::string label = "Off";
 
     if (slot->getState() == DigitalState::high) {
-        borderColor = Theme::stateHighColor;
+        borderColor = ViewportTheme::stateHighColor;
         label = "On";
     }
 
@@ -50,9 +50,9 @@ void InputProbe::render() {
     auto leftCornerPos = Common::Helpers::GetLeftCornerPos(m_position, inputProbeSize);
     glm::vec3 v1 = { leftCornerPos.x + 16.0, leftCornerPos.y - 4.f, m_position.z };
     float l = 8.0f;
-    Renderer2D::Renderer::triangle({ {v1.x - l, v1.y - l, v1.z}, v1, {v1.x + l, v1.y - l, v1.z} }, Theme::compHeaderColor, m_renderId);
+    Renderer2D::Renderer::triangle({ {v1.x - l, v1.y - l, v1.z}, v1, {v1.x + l, v1.y - l, v1.z} }, ViewportTheme::compHeaderColor, m_renderId);
     v1.y -= (l * 2.f) + 1.f;
-    Renderer2D::Renderer::triangle({ {v1.x - l, v1.y + l, v1.z}, v1, {v1.x + l, v1.y + l, v1.z} }, Theme::compHeaderColor, m_renderId);
+    Renderer2D::Renderer::triangle({ {v1.x - l, v1.y + l, v1.z}, v1, {v1.x + l, v1.y + l, v1.z} }, ViewportTheme::compHeaderColor, m_renderId);
 }
 
 void InputProbe::deleteComponent()
