@@ -274,7 +274,7 @@ namespace Bess {
     int Renderer::calculateSegments(const glm::vec2& p1, const glm::vec2& p2) {
         //return (int)(glm::distance(p1 / UI::UIMain::state.viewportSize, p2 / UI::UIMain::state.viewportSize) / 0.0001f);
         float distance = glm::distance(p1 / UI::UIMain::state.viewportSize, p2 / UI::UIMain::state.viewportSize);
-        float segments = distance * std::pow(10, 4);
+        float segments = distance * std::pow(10, 2);
         //segments = 100;
         return std::max(1, (int)segments);
     }
@@ -352,8 +352,7 @@ namespace Bess {
         shader->setUniform3f("textColor", color);
         shader->setUniformMat4("u_mvp", m_camera->getTransform());
 
-        auto selId = Simulator::ComponentsManager::compIdToRid(
-            ApplicationState::getSelectedId());
+        auto selId = Simulator::ComponentsManager::compIdToRid(ApplicationState::getSelectedId());
         shader->setUniform1i("u_SelectedObjId", selId);
 
         float scale = Font::getScale(size), x = pos.x, y = pos.y;

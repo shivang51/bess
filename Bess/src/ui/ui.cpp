@@ -86,6 +86,15 @@ void UIMain::draw() {
     //ImGui::ShowDemoWindow();
 }
 
+void UIMain::drawStats(int fps)
+{
+    ImGui::Begin("Stats");
+    ImGui::Text("FPS:");
+    ImGui::SameLine();
+    ImGui::Text("%s", std::to_string(fps).c_str());
+    ImGui::End();
+}
+
 void UIMain::setViewportTexture(GLuint64 texture) {
     state.viewportTexture = texture;
 }
@@ -689,4 +698,5 @@ void UIMain::setBessDarkThemeColors()
 void UIMain::setCursorPointer() { ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); }
 
 void UIMain::setCursorReset() { ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow); }
+
 } // namespace Bess

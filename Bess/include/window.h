@@ -50,9 +50,9 @@ class Window {
 
     void setName(const std::string& name);
 
-    inline void pollEvents() const { glfwPollEvents(); }
-    inline void waitEvents() const { glfwWaitEvents(); }
-    inline void waitEventsTimeout(double seconds) const {
+    static void pollEvents()  { glfwPollEvents(); }
+    static void waitEvents()  { glfwWaitEvents(); }
+    static void waitEventsTimeout(double seconds)  {
         glfwWaitEventsTimeout(seconds);
     }
 

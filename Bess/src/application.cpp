@@ -13,6 +13,9 @@
 #include "simulator/simulator_engine.h"
 #include "common/theme.h"
 
+#include <chrono>
+#include <thread>
+
 using Bess::Renderer2D::Renderer;
 
 namespace Bess {
@@ -96,13 +99,32 @@ namespace Bess {
     }
 
     void Application::run() {
+        double prevTime = glfwGetTime();
+        int fps = 0;
+        double frameTime = 1.0 / 60.0;
+        double accumulatedTime = 0.0;
+
         while (!m_window.isClosed()) {
-            m_window.waitEventsTimeout(0.0167);
-            update();
-            UI::UIMain::begin();
-            UI::UIMain::draw();
-            drawScene();
-            UI::UIMain::end();
+            double currTime = glfwGetTime();
+            double deltaTime = currTime - prevTime;
+            prevTime = currTime;
+
+            accumulatedTime += deltaTime;
+
+            if (accumulatedTime >= frameTime) {
+                update();
+                UI::UIMain::begin();
+                UI::UIMain::draw();
+                UI::UIMain::drawStats(fps);
+                drawScene();
+                UI::UIMain::end();
+
+                fps = static_cast<int>(std::round(1.0 / accumulatedTime));
+                accumulatedTime = 0.0;
+            }
+
+            // Poll events
+            Window::pollEvents();
         }
     }
 

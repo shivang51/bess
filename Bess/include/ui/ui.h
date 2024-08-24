@@ -41,6 +41,8 @@ namespace Bess::UI {
 
         static void setCursorReset();
 
+        static void drawStats(int fps);
+
         static UIState state;
 
         static void begin();
