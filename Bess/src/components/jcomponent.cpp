@@ -87,7 +87,7 @@ namespace Bess::Simulator::Components {
         glm::vec2 gatePadding = { 4.0f, 4.f };
         float labelGap = 8.f;
         float rowGap = 4.f;
-        auto& sampleCharSize = Renderer2D::Renderer::getCharRenderSize('Z', 12.f);
+        auto sampleCharSize = Renderer2D::Renderer::getCharRenderSize('Z', 12.f);
         float sCharHeight = sampleCharSize.y;
         float rowHeight = (slotRowPadding.y * 2) + sCharHeight;
 

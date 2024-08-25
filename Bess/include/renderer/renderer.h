@@ -38,7 +38,7 @@ class Renderer {
     
     static void end();
 
-    static const glm::vec2& getCharRenderSize(char ch, float renderSize);
+    static glm::vec2 getCharRenderSize(char ch, float renderSize);
   public:
     static void quad(const glm::vec3 &pos, const glm::vec2 &size,
                      const glm::vec3 &color, int id,

@@ -62,7 +62,7 @@ namespace Bess::Common {
     float Helpers::calculateTextWidth(const std::string& text, float fontSize) {
         float w = 0.f;
         for (auto& ch_ : text) {
-            auto& ch = Renderer2D::Renderer::getCharRenderSize(ch_, fontSize);
+            auto ch = Renderer2D::Renderer::getCharRenderSize(ch_, fontSize);
             w += ch.x;
         }
         return w;

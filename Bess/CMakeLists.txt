@@ -256,6 +256,7 @@ else()
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
         "glfw;"
         "GL;"
+        "freetype;"
     )
 endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")

@@ -572,7 +572,7 @@ namespace Bess {
         }
     }
 
-    const glm::vec2& Renderer2D::Renderer::getCharRenderSize(char ch, float renderSize) {
+    glm::vec2 Renderer2D::Renderer::getCharRenderSize(char ch, float renderSize) {
         auto ch_ = m_Font->getCharacter(ch);
         float scale = m_Font->getScale(renderSize);
         glm::vec2 size = { (ch_.Advance >> 6), ch_.Size.y };
