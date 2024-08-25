@@ -4,6 +4,7 @@
 #include "renderer/renderer.h"
 #include "settings/viewport_theme.h"
 #include <vector>
+#include "json.hpp"
 
 namespace Bess::Simulator::Components {
     class Connection : public Component {

@@ -133,11 +133,23 @@ namespace Bess::Simulator {
         return m_slotsToConn[key];
     }
 
+    const uuids::uuid & ComponentsManager::getConnectionBetween(const std::string &inputOutputSlot) {
+        return m_slotsToConn[inputOutputSlot];
+    }
+
     void ComponentsManager::removeSlotsToConn(const uuids::uuid& inpSlot, const uuids::uuid& outSlot)
     {
         std::string key = Common::Helpers::uuidToStr(inpSlot) + "," + Common::Helpers::uuidToStr(outSlot);
         if (m_slotsToConn.find(key) == m_slotsToConn.end()) return;
         m_slotsToConn.erase(key);
+    }
+
+    const std::string & ComponentsManager::getSlotsForConnection(const uuids::uuid &conn) {
+        // extracts key from m_slotsToConn based on conn id
+        for (auto& [key, value] : m_slotsToConn) {
+            if (value == conn) return key;
+        }
+        return "";
     }
 
     int ComponentsManager::getNextRenderId() { return renderIdCounter++; }

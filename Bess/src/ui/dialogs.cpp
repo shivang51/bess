@@ -176,7 +176,11 @@ std::string Dialogs::showOpenFileDialog(const std::string &title,
 #elif __linux__
 std::string Dialogs::showSaveFileDialog(const std::string &title,
                                         const std::string &filters) {
-  throw std::runtime_error("SaveFileDialog Not Implemented");
+  char filename[1024];
+  FILE *f = popen("zenity --file-selection --title=\"Select a file\"", "r");
+  fgets(filename, 1024, f);
+  const auto name = std::string(filename);
+  return name.substr(0, name.size() - 1);
 }
 
 std::string Dialogs::showOpenFileDialog(const std::string &title,
@@ -185,7 +189,7 @@ std::string Dialogs::showOpenFileDialog(const std::string &title,
   char filename[1024];
   FILE *f = popen("zenity --file-selection --title=\"Select a file\"", "r");
   fgets(filename, 1024, f);
-  auto name = std::string(filename);
+  auto const name = std::string(filename);
   return name.substr(0, name.size() - 1);
 }
 #else

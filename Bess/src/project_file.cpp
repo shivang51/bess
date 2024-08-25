@@ -13,6 +13,8 @@
 #include <fstream>
 #include <iostream>
 
+#include "components/connection_point.h"
+
 namespace Bess {
     ProjectFile::ProjectFile()
     {
@@ -81,38 +83,43 @@ namespace Bess {
     {
         nlohmann::json data;
         data["name"] = m_name;
-        for (auto& compId : Simulator::ComponentsManager::renderComponenets) {
-            auto& ent = Simulator::ComponentsManager::components[compId];
+        for (auto& kvp : Simulator::ComponentsManager::components) {
+            auto ent = kvp.second;
             switch (ent->getType())
             {
-            case Bess::Simulator::ComponentType::inputProbe:
-            {
-                auto comp = (Bess::Simulator::Components::InputProbe*)ent.get();
-                data["components"].emplace_back(comp->toJson());
-            }
-            break;
-            case Bess::Simulator::ComponentType::outputProbe:
-            {
-                auto comp = (Bess::Simulator::Components::OutputProbe*)ent.get();
-                data["components"].emplace_back(comp->toJson());
-            }
-            break;
-            case Bess::Simulator::ComponentType::jcomponent:
-            {
-
-                auto comp = (Bess::Simulator::Components::JComponent*)ent.get();
-                data["components"].emplace_back(comp->toJson());
-            }
-            break;
-            case Bess::Simulator::ComponentType::text:
-            {
-
-                auto comp = (Bess::Simulator::Components::TextComponent*)ent.get();
-                data["components"].emplace_back(comp->toJson());
-            }
-            break;
-            default:
+                case Bess::Simulator::ComponentType::inputProbe:
+                {
+                    auto comp = (Bess::Simulator::Components::InputProbe*)ent.get();
+                    data["components"].emplace_back(comp->toJson());
+                }
                 break;
+                case Bess::Simulator::ComponentType::outputProbe:
+                {
+                    auto comp = (Bess::Simulator::Components::OutputProbe*)ent.get();
+                    data["components"].emplace_back(comp->toJson());
+                }
+                break;
+                case Bess::Simulator::ComponentType::jcomponent:
+                {
+
+                    auto comp = (Bess::Simulator::Components::JComponent*)ent.get();
+                    data["components"].emplace_back(comp->toJson());
+                }
+                break;
+                case Bess::Simulator::ComponentType::text:
+                {
+
+                    auto comp = (Bess::Simulator::Components::TextComponent*)ent.get();
+                    data["components"].emplace_back(comp->toJson());
+                }
+                break;
+                case Bess::Simulator::ComponentType::connectionPoint:
+                {
+                    auto comp = (Bess::Simulator::Components::ConnectionPoint*)ent.get();
+                    data["connectionPoints"].emplace_back(comp->toJson());
+                }
+                default:
+                    break;
             }
         }
 
@@ -146,6 +153,10 @@ namespace Bess {
             default:
                 break;
             }
+        }
+
+        for(auto& comp : data["connectionPoints"]) {
+            Simulator::Components::ConnectionPoint::fromJson(comp);
         }
     }
 

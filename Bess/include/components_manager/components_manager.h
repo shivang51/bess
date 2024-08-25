@@ -47,8 +47,11 @@ class ComponentsManager {
     static void addSlotsToConn(const uuids::uuid& inpSlot, const uuids::uuid& outSlot, const uuids::uuid& conn);
 
     static const uuids::uuid& getConnectionBetween(const uuids::uuid& inpSlot, const uuids::uuid& outSlot);
+    static const uuids::uuid& getConnectionBetween(const std::string& inputOutputSlot);
 
     static void removeSlotsToConn(const uuids::uuid& inpSlot, const uuids::uuid& outSlot);
+
+    static const std::string& getSlotsForConnection(const uuids::uuid& conn);
 
     static float getNextZPos();
 

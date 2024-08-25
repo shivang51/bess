@@ -10,12 +10,7 @@ namespace Bess {
 bool Window::isGLFWInitialized = false;
 bool Window::isGladInitialized = false;
 
-static void glfw_error_callback(int error, const char *description) {
-    fprintf(stderr, "GLFW Error %d: %s\n", error, description);
-}
-
 Window::Window(int width, int height, const std::string& title) {
-    glfwSetErrorCallback(glfw_error_callback);
 
     this->initGLFW();
 
@@ -121,7 +116,8 @@ void Window::initGLFW() {
         return;
 
     glfwSetErrorCallback([](int code, const char *msg) {
-        std::cerr << "[-] GLFW ERROR " << msg << std::endl;
+        if(code == 65548) return;
+        std::cerr << "[-] GLFW ERROR " << code << "-> " << msg << std::endl;
     });
     auto res = glfwInit();
     assert(res == GLFW_TRUE);

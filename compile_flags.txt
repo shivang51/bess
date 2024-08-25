@@ -7,5 +7,7 @@
 -Iexternal/imgui/backends
 -Iexternal/glm/
 -Iexternal/glfw/include
--Iexternal/uuid_v4
+-Iexternal/uuid
+-Iexternal/json
+-Iexternal/freetype/include
 -Iexternal/stb_image/include
