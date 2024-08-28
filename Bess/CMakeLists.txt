@@ -110,17 +110,12 @@ use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
 set(ROOT_NAMESPACE Bess)
 
 
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    VS_GLOBAL_KEYWORD "Win32Proj"
-)
+set_target_properties(${PROJECT_NAME} PROPERTIES VS_GLOBAL_KEYWORD "Win32Proj")
 if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
+    set_target_properties(${PROJECT_NAME} PROPERTIES INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
     )
 elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-    )
+    set_target_properties(${PROJECT_NAME} PROPERTIES INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE")
 endif()
 ################################################################################
 # Include directories
@@ -225,14 +220,7 @@ endif()
 # Post build events
 ################################################################################
 if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    if(NOT UNIX)
-        add_custom_command_if(
-            TARGET ${PROJECT_NAME}
-            POST_BUILD
-            COMMANDS
-            COMMAND $<CONFIG:Release> xcopy $<SHELL_PATH:${CMAKE_SOURCE_DIR}/>assets ${OUTPUT_DIRECTORY}\\assets\\  /E/Y
-        )
-    else()
+    if(UNIX)
         add_custom_command_if(
             TARGET ${PROJECT_NAME}
             POST_BUILD
@@ -269,4 +257,10 @@ if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
         "${CMAKE_SOURCE_DIR}/external/freetype/libs/windows"
     )
 endif()
+
+add_custom_target(run
+    COMMAND ${PROJECT_NAME}
+    DEPENDS ${PROJECT_NAME}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
 
