@@ -1,0 +1,5 @@
+If:
+  PathMatch: external/.*
+  Diagnostics:
+    Suppress: '*'
+  Add: -ferror-limit=0

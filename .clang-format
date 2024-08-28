@@ -1,0 +1,5 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+NamespaceIndentation: All
+IndentPPDirectives: BeforeHash
+ColumnLimit: 0
