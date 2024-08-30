@@ -42,6 +42,7 @@ namespace Bess::Simulator{
     void ComponentBank::loadMultiFromJson(const std::string& filepath)
     {
         std::ifstream file(filepath);
+        assert(file.good());
         nlohmann::json data = nlohmann::json::parse(file);
         file.close();
 

@@ -102,7 +102,7 @@ set(ALL_FILES
 ################################################################################
 # Target
 ################################################################################
-add_executable(${PROJECT_NAME} ${ALL_FILES}  "include/settings/themes.h")
+add_executable(${PROJECT_NAME} ${ALL_FILES}  "include/settings/themes.h" "include/components/clock.h" "src/components/clock.cpp")
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
 
 

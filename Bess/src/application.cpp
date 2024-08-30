@@ -11,6 +11,7 @@
 #include "settings/settings.h"
 #include "settings/viewport_theme.h"
 #include "simulator/simulator_engine.h"
+#include "components/clock.h"
 
 #include "common/bind_helpers.h"
 
@@ -101,6 +102,13 @@ namespace Bess {
 
     void Application::update() {
         m_mainWindow.update();
+
+        for (auto& comp : Simulator::ComponentsManager::components) {
+            if (comp.second->getType() == Simulator::ComponentType::clock) {
+                auto clockCmp = std::dynamic_pointer_cast<Simulator::Components::Clock>(comp.second);
+                clockCmp->update();
+            }
+        }
 
         if (ApplicationState::hoveredId != -1) {
             auto &cid = Simulator::ComponentsManager::renderIdToCid(ApplicationState::hoveredId);
@@ -333,6 +341,7 @@ namespace Bess {
         Simulator::ComponentBankElement el(Simulator::ComponentType::inputProbe, "Input Probe");
         Simulator::ComponentBank::addToCollection("I/O", el);
         Simulator::ComponentBank::addToCollection("I/O", {Simulator::ComponentType::outputProbe, "Ouput Probe"});
+        Simulator::ComponentBank::addToCollection("I/O", {Simulator::ComponentType::clock, "Clock"});
         Simulator::ComponentBank::addToCollection("Misc", {Simulator::ComponentType::text, "Text"});
         Simulator::ComponentBank::loadMultiFromJson("assets/comp_collections.json");
 

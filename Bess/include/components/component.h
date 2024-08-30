@@ -48,6 +48,8 @@ namespace Bess::Simulator::Components {
 
         virtual void render() = 0;
 
+        virtual void update();
+
         virtual void generate(const glm::vec3& pos = { 0.f, 0.f, 0.f }) = 0;
 
         virtual void deleteComponent() = 0;
