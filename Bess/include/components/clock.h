@@ -25,6 +25,8 @@ namespace Bess::Simulator::Components {
         float m_frequency;
         uuids::uuid m_outputSlotId;
 
+        FrequencyUnit m_frequencyUnit = FrequencyUnit::hertz;
+
         float m_prevUpdateTime = 0.f;
 
         void onLeftClick(const glm::vec2& pos);

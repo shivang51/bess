@@ -7,6 +7,7 @@
 #include "renderer/renderer.h"
 #include "common/bind_helpers.h"
 #include "imgui.h"
+#include "ui/m_widgets.h"
 
 namespace Bess::Simulator::Components {
 
@@ -20,7 +21,19 @@ namespace Bess::Simulator::Components {
     }
 
     void Clock::update() {
-        float cycleTime = 1.f / m_frequency;
+        float frequency = m_frequency;
+        switch (m_frequencyUnit) {
+        case Bess::Simulator::FrequencyUnit::kiloHertz:
+            frequency *= 1e3;
+            break;
+        case Bess::Simulator::FrequencyUnit::megaHertz:
+            frequency *= 1e6;
+            break;
+        default:
+            break;
+        }
+
+        float cycleTime = 1.f / frequency;
         double currTime = glfwGetTime();
         double delta = currTime - m_prevUpdateTime;
 
@@ -35,6 +48,12 @@ namespace Bess::Simulator::Components {
 
     void Clock::drawProperties() {
         ImGui::DragFloat("Frequency", &m_frequency, 0.1f, 0.1f, 3.f);
+        std::vector<std::string> frequencies = {"Hz", "kHz", "MHz"};
+        std::string currFreq = frequencies[(int)m_frequencyUnit];
+        if(UI::MWidgets::ComboBox("Unit", currFreq, frequencies)) {
+            auto idx = std::distance(frequencies.begin(), std::find(frequencies.begin(), frequencies.end(), currFreq));
+            m_frequencyUnit = static_cast<FrequencyUnit>(idx);
+        }
     }
 
     void Clock::fromJson(const nlohmann::json &data) {

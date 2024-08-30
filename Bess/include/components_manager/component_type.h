@@ -17,6 +17,7 @@ namespace Bess::Simulator {
 
     enum class FrequencyUnit {
         hertz,
-        milliHertz
+        kiloHertz,
+        megaHertz
     };
 }
