@@ -12,5 +12,12 @@ namespace Bess::Simulator {
         outputProbe,
         text,
         connectionPoint,
+        clock,
+    };
+
+    enum class FrequencyUnit {
+        hertz,
+        kiloHertz,
+        megaHertz
     };
 }

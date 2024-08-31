@@ -3,6 +3,7 @@
 #include "common/helpers.h"
 #include "components_manager/components_manager.h"
 #include "components/jcomponent.h"
+#include "components/clock.h"
 #include "components/input_probe.h"
 #include "components/output_probe.h"
 #include "components/text_component.h"
@@ -111,6 +112,11 @@ namespace Bess {
 
                     auto comp = (Bess::Simulator::Components::TextComponent*)ent.get();
                     data["components"].emplace_back(comp->toJson());
+                } break;
+                case Bess::Simulator::ComponentType::clock:
+                {
+                    auto comp = (Bess::Simulator::Components::Clock*)ent.get();
+                    data["components"].emplace_back(comp->toJson());
                 }
                 break;
                 case Bess::Simulator::ComponentType::connectionPoint:
@@ -149,6 +155,9 @@ namespace Bess {
                 break;
             case Bess::Simulator::ComponentType::text:
                 Simulator::Components::TextComponent::fromJson(comp);
+                break;
+            case Bess::Simulator::ComponentType::clock:
+                Simulator::Components::Clock::fromJson(comp);
                 break;
             default:
                 break;

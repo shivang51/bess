@@ -4,6 +4,7 @@
 #include "components/input_probe.h"
 #include "components/jcomponent.h"
 #include "components/text_component.h"
+#include "components/clock.h"
 
 #include "application_state.h"
 #include "components/output_probe.h"
@@ -40,16 +41,19 @@ namespace Bess::Simulator {
         case ComponentType::jcomponent: {
             auto val = std::any_cast<const std::shared_ptr<Components::JComponentData>>(data);
             Components::JComponent().generate(val, pos);
-        }break;
+        } break;
         case ComponentType::inputProbe: {
             Components::InputProbe().generate(pos);
-        }break;
+        } break;
         case ComponentType::outputProbe: {
             Components::OutputProbe().generate(pos);
-        }break;
+        } break;
         case ComponentType::text: {
             Components::TextComponent().generate(pos);
-        }break;
+        } break;
+        case ComponentType::clock: {
+            Components::Clock().generate(pos);
+        } break;
         }
     }
 
