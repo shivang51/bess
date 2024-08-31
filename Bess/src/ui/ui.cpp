@@ -70,6 +70,9 @@ namespace Bess::UI {
         ImGui::Text("FPS:");
         ImGui::SameLine();
         ImGui::Text("%s", std::to_string(fps).c_str());
+        ImGui::Text("Hover Id");
+        ImGui::SameLine();
+        ImGui::Text("%s", std::to_string(ApplicationState::hoveredId).c_str());
         ImGui::End();
     }
 

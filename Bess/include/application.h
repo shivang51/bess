@@ -1,10 +1,8 @@
 #pragma once
 
-#include "camera.h"
-#include "fwd.hpp"
-#include "renderer/gl/framebuffer.h"
+#include "events/application_event.h"
 #include "window.h"
-#include <memory>
+#include <vector>
 
 namespace Bess {
 
@@ -24,17 +22,10 @@ namespace Bess {
 
       private:
         Window m_mainWindow;
-        std::unique_ptr<Gl::FrameBuffer> m_framebuffer;
-        std::shared_ptr<Camera> m_camera;
+        std::vector<ApplicationEvent> m_events;
 
       private:
-        void drawUI();
-        void drawScene();
-
-        bool isCursorInViewport() const;
-        glm::vec2 getViewportMousePos() const;
-        glm::vec2 getNVPMousePos();
-
+        void draw();
         void init();
         void shutdown();
 
@@ -52,7 +43,5 @@ namespace Bess {
         bool m_leftMousePressed = false;
         bool m_rightMousePressed = false;
         bool m_middleMousePressed = false;
-
-        glm::vec2 m_mousePos = {0, 0};
     };
 } // namespace Bess
