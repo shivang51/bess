@@ -1,8 +1,8 @@
 #include "application.h"
 #include "application_state.h"
 #include "events/application_event.h"
-#include "fwd.hpp"
-#include "pages/main_page.h"
+#include "pages/main_page/main_page.h"
+#include "pages/start_page/start_page.h"
 #include "renderer/renderer.h"
 #include "ui/ui.h"
 #include <GLFW/glfw3.h>
@@ -10,35 +10,37 @@
 #include "components_manager/component_bank.h"
 #include "components_manager/components_manager.h"
 
-#include "settings/settings.h"
-#include "settings/viewport_theme.h"
-#include "simulator/simulator_engine.h"
 #include "components/clock.h"
+#include "settings/settings.h"
 
 #include "common/bind_helpers.h"
 
 using Bess::Renderer2D::Renderer;
 
 namespace Bess {
-    Application::Application() : m_mainWindow(800, 600, "Bess") { init(); }
+    Application::Application() : m_mainWindow(800, 600, "Bess") {
+        init();
+        Pages::StartPage::getInstance()->show();
+    }
 
     Application::Application(const std::string &path) : m_mainWindow(800, 600, "Bess") {
         init();
         ApplicationState::loadProject(path);
+        Pages::MainPage::getInstance()->show();
     }
 
     Application::~Application() {
-        UI::UIMain::shutdown();
+        UI::shutdown();
         shutdown();
     }
 
     static int fps = 0;
 
     void Application::draw() {
-        UI::UIMain::begin();
-        Pages::MainPage::getInstance()->draw();
-        UI::UIMain::drawStats(fps);
-        UI::UIMain::end();
+        UI::begin();
+        ApplicationState::getCurrentPage()->draw();
+        // UI::UIMain::drawStats(fps);
+        UI::end();
     }
 
     void Application::run() {
@@ -67,15 +69,8 @@ namespace Bess {
 
     void Application::update() {
         m_mainWindow.update();
-        Pages::MainPage::getInstance()->update(m_events);
+        ApplicationState::getCurrentPage()->update(m_events);
         m_events.clear();
-
-        for (auto& comp : Simulator::ComponentsManager::components) {
-            if (comp.second->getType() == Simulator::ComponentType::clock) {
-                auto clockCmp = std::dynamic_pointer_cast<Simulator::Components::Clock>(comp.second);
-                clockCmp->update();
-            }
-        }
     }
 
     void Application::quit() { m_mainWindow.close(); }
@@ -144,7 +139,7 @@ namespace Bess {
 
         ApplicationState::init(&m_mainWindow);
 
-        UI::UIMain::init(m_mainWindow.getGLFWHandle());
+        UI::init(m_mainWindow.getGLFWHandle());
 
         Renderer::init();
 

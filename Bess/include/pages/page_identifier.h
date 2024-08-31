@@ -2,6 +2,7 @@
 
 namespace Bess::Pages {
     enum class PageIdentifier {
-        MainPage
+        MainPage,
+        StartPage,
     };
 } // namespace Bess::Pages

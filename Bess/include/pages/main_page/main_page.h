@@ -13,7 +13,7 @@ namespace Bess::Pages {
       public:
         MainPage();
 
-        static std::shared_ptr<MainPage> getInstance();
+        static std::shared_ptr<Page> getInstance();
 
         void draw() override;
         void update(const std::vector<ApplicationEvent> &events) override;

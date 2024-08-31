@@ -1,38 +1,30 @@
 #include "ui/m_widgets.h"
 #include "imgui.h"
-#include <algorithm>
 
 namespace Bess::UI {
-    static int InputTextCallback(ImGuiInputTextCallbackData* data)
-    {
-        if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
-        {
-            std::string* str = (std::string*)data->UserData;
+    static int InputTextCallback(ImGuiInputTextCallbackData *data) {
+        if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
+            std::string *str = (std::string *)data->UserData;
             str->resize(data->BufTextLen);
-            data->Buf = (char*)str->c_str();
+            data->Buf = (char *)str->c_str();
         }
         return 0;
     }
 
-    bool MWidgets::TextBox(const std::string& label, std::string& value, const std::string& hintText)
-    {
-        if (ImGui::InputTextWithHint(label.c_str(), hintText.c_str(), value.data(), value.capacity() + 1, ImGuiInputTextFlags_CallbackResize, InputTextCallback, (void*)&value)) {
+    bool MWidgets::TextBox(const std::string &label, std::string &value, const std::string &hintText) {
+        if (ImGui::InputTextWithHint(label.c_str(), hintText.c_str(), value.data(), value.capacity() + 1, ImGuiInputTextFlags_CallbackResize, InputTextCallback, (void *)&value)) {
             return true;
         }
 
         return false;
     }
 
-
-    bool MWidgets::ComboBox(const std::string& label, std::string& currentValue, const std::vector<std::string>& predefinedValues)
-    {
+    bool MWidgets::ComboBox(const std::string &label, std::string &currentValue, const std::vector<std::string> &predefinedValues) {
         bool valueChanged = false;
-        if (ImGui::BeginCombo(label.c_str(), currentValue.c_str()))
-        {
-            for (auto& value : predefinedValues) {
+        if (ImGui::BeginCombo(label.c_str(), currentValue.c_str())) {
+            for (auto &value : predefinedValues) {
                 bool isSelected = (currentValue == value);
-                if (ImGui::Selectable(value.c_str(), isSelected))
-                {
+                if (ImGui::Selectable(value.c_str(), isSelected)) {
                     currentValue = value;
                     valueChanged = true;
                 }
@@ -45,15 +37,12 @@ namespace Bess::UI {
         return valueChanged;
     }
 
-    bool MWidgets::ComboBox(const std::string& label, float& currentValue, const std::vector<float>& predefinedValues)
-    {
+    bool MWidgets::ComboBox(const std::string &label, float &currentValue, const std::vector<float> &predefinedValues) {
         bool valueChanged = false;
-        if (ImGui::BeginCombo(label.c_str(), std::to_string(currentValue).c_str()))
-        {
-            for (auto& value : predefinedValues) {
+        if (ImGui::BeginCombo(label.c_str(), std::to_string(currentValue).c_str())) {
+            for (auto &value : predefinedValues) {
                 bool isSelected = (currentValue == value);
-                if (ImGui::Selectable(std::to_string(value).c_str(), isSelected))
-                {
+                if (ImGui::Selectable(std::to_string(value).c_str(), isSelected)) {
                     currentValue = value;
                     valueChanged = true;
                 }
@@ -66,15 +55,12 @@ namespace Bess::UI {
         return valueChanged;
     }
 
-    bool MWidgets::ComboBox(const std::string& label, int& currentValue, const std::vector<int>& predefinedValues)
-    {
+    bool MWidgets::ComboBox(const std::string &label, int &currentValue, const std::vector<int> &predefinedValues) {
         bool valueChanged = false;
-        if (ImGui::BeginCombo(label.c_str(), std::to_string(currentValue).c_str()))
-        {
-            for (auto& value : predefinedValues) {
+        if (ImGui::BeginCombo(label.c_str(), std::to_string(currentValue).c_str())) {
+            for (auto &value : predefinedValues) {
                 bool isSelected = (currentValue == value);
-                if (ImGui::Selectable(std::to_string(value).c_str(), isSelected))
-                {
+                if (ImGui::Selectable(std::to_string(value).c_str(), isSelected)) {
                     currentValue = value;
                     valueChanged = true;
                 }
@@ -86,4 +72,4 @@ namespace Bess::UI {
         }
         return valueChanged;
     }
-}
+} // namespace Bess::UI

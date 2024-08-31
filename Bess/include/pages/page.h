@@ -1,6 +1,7 @@
 #pragma once
 #include "events/application_event.h"
 #include "pages/page_identifier.h"
+#include <memory>
 #include <vector>
 
 namespace Bess::Pages {

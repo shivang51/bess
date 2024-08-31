@@ -1,12 +1,11 @@
-#include "ui/popups.h"
+#include "ui/ui_main/popups.h"
 
 #include "imgui.h"
 
 namespace Bess::UI {
     const std::string Popups::PopupIds::unsavedProjectWarning = "Save Current Project";
 
-    Popups::PopupRes Popups::handleUnsavedProjectWarning()
-    {
+    Popups::PopupRes Popups::handleUnsavedProjectWarning() {
         ImVec2 center = ImGui::GetMainViewport()->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
@@ -36,4 +35,4 @@ namespace Bess::UI {
 
         return val;
     }
-}
+} // namespace Bess::UI

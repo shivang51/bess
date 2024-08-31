@@ -38,10 +38,5 @@ namespace Bess {
         void onRightMouse(bool pressed);
         void onMiddleMouse(bool pressed);
         void onMouseMove(double x, double y);
-
-      private:
-        bool m_leftMousePressed = false;
-        bool m_rightMousePressed = false;
-        bool m_middleMousePressed = false;
     };
 } // namespace Bess

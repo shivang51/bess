@@ -1,5 +1,6 @@
 #pragma once
 #include "components_manager/components_manager.h"
+#include "pages/page.h"
 #include "pages/page_identifier.h"
 #include "project_file.h"
 #include "uuid.h"
@@ -33,12 +34,11 @@ namespace Bess {
         static bool isKeyPressed(int key);
         static void setKeyPressed(int key, bool pressed);
 
-        static void setCurrentPage(Pages::PageIdentifier page);
-
-        static Pages::PageIdentifier getCurrentPage();
-
         static void setMousePos(const glm::vec2 &pos);
         static const glm::vec2 &getMousePos();
+
+        static void setCurrentPage(std::shared_ptr<Pages::Page> page);
+        static std::shared_ptr<Pages::Page> getCurrentPage();
 
       public:
         // to be used according to the need of different ops
@@ -67,9 +67,9 @@ namespace Bess {
 
         static std::unordered_map<int, bool> m_pressedKeys;
 
-        static Pages::PageIdentifier m_currentPage;
-
         static glm::vec2 m_mousePos;
+
+        static std::shared_ptr<Pages::Page> m_currentPage;
     };
 
 } // namespace Bess

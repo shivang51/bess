@@ -1,4 +1,5 @@
 #include "application_state.h"
+
 #include "components_manager/components_manager.h"
 #include "simulator/simulator_engine.h"
 #include "ui/ui.h"
@@ -30,7 +31,7 @@ namespace Bess {
 
     std::unordered_map<int, bool> ApplicationState::m_pressedKeys;
 
-    Pages::PageIdentifier ApplicationState::m_currentPage;
+    std::shared_ptr<Pages::Page> ApplicationState::m_currentPage;
 
     glm::vec2 ApplicationState::m_mousePos;
 
@@ -119,11 +120,11 @@ namespace Bess {
         m_pressedKeys[key] = pressed;
     }
 
-    void ApplicationState::setCurrentPage(Pages::PageIdentifier page) {
+    void ApplicationState::setCurrentPage(std::shared_ptr<Pages::Page> page) {
         m_currentPage = page;
     }
 
-    Pages::PageIdentifier ApplicationState::getCurrentPage() {
+    std::shared_ptr<Pages::Page> ApplicationState::getCurrentPage() {
         return m_currentPage;
     }
 

@@ -1,12 +1,11 @@
-#include "ui/properties_panel.h"
-#include "ui/icons/FontAwesomeIcons.h"
+#include "ui/ui_main/properties_panel.h"
 #include "application_state.h"
 #include "components_manager/components_manager.h"
+#include "ui/icons/FontAwesomeIcons.h"
 #include <imgui.h>
 
 namespace Bess::UI {
-    void PropertiesPanel::draw()
-    {
+    void PropertiesPanel::draw() {
         ImGui::Begin("Properties");
 
         if (ApplicationState::getSelectedId() == Simulator::ComponentsManager::emptyId) {
@@ -15,8 +14,9 @@ namespace Bess::UI {
         }
 
         bool deleted = false;
-        auto& selectedEnt = Simulator::ComponentsManager::components[ApplicationState::getSelectedId()];
-        if (selectedEnt == nullptr) goto end;
+        auto &selectedEnt = Simulator::ComponentsManager::components[ApplicationState::getSelectedId()];
+        if (selectedEnt == nullptr)
+            goto end;
 
         // NAME
         {
@@ -49,8 +49,9 @@ namespace Bess::UI {
             ImGui::PopStyleColor(3);
         }
 
-        if (!deleted) selectedEnt->drawProperties();
+        if (!deleted)
+            selectedEnt->drawProperties();
     end:
         ImGui::End();
     }
-}
+} // namespace Bess::UI

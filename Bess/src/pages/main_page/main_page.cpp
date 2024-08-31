@@ -1,16 +1,17 @@
-#include "pages/main_page.h"
+#include "pages/main_page/main_page.h"
 #include "application_state.h"
+#include "components/clock.h"
 #include "events/application_event.h"
 #include "pages/page_identifier.h"
 #include "renderer/renderer.h"
 #include "settings/viewport_theme.h"
 #include "simulator/simulator_engine.h"
-#include "ui/ui.h"
+#include "ui/ui_main/ui_main.h"
 
 using namespace Bess::Renderer2D;
 
 namespace Bess::Pages {
-    std::shared_ptr<MainPage> MainPage::getInstance() {
+    std::shared_ptr<Page> MainPage::getInstance() {
         static std::shared_ptr<MainPage> instance = std::make_shared<MainPage>();
         return instance;
     }
@@ -122,6 +123,13 @@ namespace Bess::Pages {
             if (compId == Simulator::ComponentsManager::emptyId)
                 return;
             Simulator::ComponentsManager::deleteComponent(compId);
+        }
+
+        for (auto &comp : Simulator::ComponentsManager::components) {
+            if (comp.second->getType() == Simulator::ComponentType::clock) {
+                auto clockCmp = std::dynamic_pointer_cast<Simulator::Components::Clock>(comp.second);
+                clockCmp->update();
+            }
         }
 
         if (!ApplicationState::simulationPaused)
