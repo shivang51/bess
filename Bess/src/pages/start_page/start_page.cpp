@@ -27,39 +27,53 @@ namespace Bess::Pages {
             ImGui::DockBuilderRemoveNode(mainDockspaceId);
             ImGui::DockBuilderAddNode(mainDockspaceId, ImGuiDockNodeFlags_NoTabBar);
 
+             ImGui::DockBuilderDockWindow("Application Title", mainDockspaceId);
+            //ImGui::DockBuilderDockWindow("Menu", mainDockspaceId);
+
             ImGui::DockBuilderFinish(mainDockspaceId);
         }
 
         drawTitle();
 
-        auto disSize = ImGui::GetIO().DisplaySize;
-        int width = 500, height = std::max(disSize.y * 0.6, 300.0);
+        auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking;
 
-        float x = (disSize.x - width) / 2;
-        float y = std::max((disSize.y - height) / 2, 280.f);
+        ImGuiViewport *mainViewport = ImGui::GetMainViewport();
 
-        auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
+        int width = 500, height = std::max( mainViewport->WorkSize.y  * 0.6, 300.0);
 
-        ImGui::SetNextWindowSize(ImVec2(width, height));
-        ImGui::SetNextWindowPos(ImVec2(x, y));
-        ImGui::Begin("Menu", nullptr, flags);
-        ImVec2 windowSize = ImGui::GetWindowSize();
-        ImGui::SetWindowFontScale(1.5);
-        ImGui::Text("Previous Projects");
-        ImGui::SetWindowFontScale(1.0);
+        ImGui::SetNextWindowPos(ImVec2(mainViewport->WorkPos.x + mainViewport->WorkSize.x / 2,
+                                       mainViewport->WorkPos.y + mainViewport->WorkSize.y / 2),
+                                ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+        ImGui::SetNextWindowViewport(mainViewport->ID);
 
-        if (m_previousProjects.empty()) {
-            std::string text = "No previous projects found";
-            auto textSize = ImGui::CalcTextSize(text.c_str());
-            ImGui::SetCursorPosX((windowSize.x - textSize.x) / 2);
-            ImGui::SetCursorPosY((windowSize.y - textSize.y) / 2);
-            ImGui::Text("No previous projects found");
+        ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(mainViewport->WorkSize.x, mainViewport->WorkSize.y));
+
+        if (ImGui::Begin("Menu", nullptr, flags)) {
+            // Adjust window size dynamically if necessary
+            ImVec2 windowSize = ImGui::GetWindowSize();
+            ImVec2 maxSize = mainViewport->WorkSize;
+            windowSize.x = std::min(windowSize.x, maxSize.x);
+            windowSize.y = std::min(windowSize.y, maxSize.y);
+
+            ImGui::SetWindowSize(windowSize);
+            ImGui::SetWindowFontScale(1.5);
+            ImGui::Text("Previous Projects");
+            ImGui::SetWindowFontScale(1.0);
+
+            if (m_previousProjects.empty()) {
+                std::string text = "No previous projects found";
+                auto textSize = ImGui::CalcTextSize(text.c_str());
+                ImGui::SetCursorPosX((windowSize.x - textSize.x) / 2);
+                ImGui::SetCursorPosY((windowSize.y - textSize.y) / 2);
+                ImGui::Text("No previous projects found");
+            }
+
+            ImGui::SetCursorPosY(windowSize.y - ImGui::GetFrameHeight() - 8.f);
+            if (ImGui::Button("Continue with empty project")) {
+                MainPage::getInstance()->show();
+            }
         }
 
-        ImGui::SetCursorPosY(windowSize.y - ImGui::GetFrameHeight() - 8.f);
-        if (ImGui::Button("Continue with empty project")) {
-            MainPage::getInstance()->show();
-        }
         ImGui::End();
     }
 
@@ -71,7 +85,7 @@ namespace Bess::Pages {
         int width = 500, height = 200;
 
         ImGui::SetNextWindowSize(ImVec2(width, height));
-        ImGui::SetNextWindowPos(ImVec2(32, 64));
+        ImGui::SetCursorPos(ImVec2(32, 64));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::Begin("Application Title", nullptr, flags);
         ImGui::PushFont(UI::Fonts::largeFont);

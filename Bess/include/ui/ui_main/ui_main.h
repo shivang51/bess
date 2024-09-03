@@ -33,10 +33,6 @@ namespace Bess::UI {
 
         static void setViewportTexture(GLuint64 texture);
 
-        static void setCursorPointer();
-
-        static void setCursorReset();
-
         static void drawStats(int fps);
 
         static UIState state;

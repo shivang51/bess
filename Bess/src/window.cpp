@@ -20,8 +20,9 @@ Window::Window(int width, int height, const std::string& title) {
     glfwSetWindowUserPointer(window, this);
 
     mp_window = std::unique_ptr<GLFWwindow, GLFWwindowDeleter>(window);
-
     this->makeCurrent();
+    
+    glfwSetWindowSizeLimits(window, 600, 500, GLFW_DONT_CARE, GLFW_DONT_CARE);
 
     glfwSetFramebufferSizeCallback(
         window, [](GLFWwindow* window, int w, int h) {

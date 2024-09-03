@@ -2,6 +2,7 @@
 
 #include "pages/page.h"
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace Bess::Pages {
