@@ -10,6 +10,7 @@ namespace Bess::Config {
         m_themes["Catpuccin Mocha"] = [this]() { setCatpuccinMochaColors(); };
         m_themes["Modern"] = [this]() { setModernColors(); };
         m_themes["Material You"] = [this]() { setMaterialYouColors(); };
+        m_themes["Glass Theme"] = [this]() { setGlassTheme(); };
     }
 
     void Themes::applyTheme(const std::string& theme)
@@ -108,6 +109,39 @@ namespace Bess::Config {
 
         style.AntiAliasedLines = true;
         style.AntiAliasedFill = true;
+    }
+
+    void Themes::setGlassTheme() {
+        ImGuiStyle &style = ImGui::GetStyle();
+        ImVec4 *colors = style.Colors;
+
+        // Setting up a dark theme base
+        colors[ImGuiCol_WindowBg] = ImVec4(0.1f, 0.1f, 0.1f, 0.6f); // Semi-transparent dark background
+        colors[ImGuiCol_ChildBg] = ImVec4(0.1f, 0.1f, 0.1f, 0.4f);
+        colors[ImGuiCol_PopupBg] = ImVec4(0.08f, 0.08f, 0.08f, 0.8f);
+        colors[ImGuiCol_Border] = ImVec4(0.8f, 0.8f, 0.8f, 0.2f);
+
+        // Text and frames
+        colors[ImGuiCol_Text] = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+        colors[ImGuiCol_FrameBg] = ImVec4(0.2f, 0.2f, 0.2f, 0.5f); // Semi-transparent for frosted look
+        colors[ImGuiCol_FrameBgHovered] = ImVec4(0.3f, 0.3f, 0.3f, 0.7f);
+        colors[ImGuiCol_FrameBgActive] = ImVec4(0.3f, 0.3f, 0.3f, 0.9f);
+
+        // Header
+        colors[ImGuiCol_Header] = ImVec4(0.3f, 0.3f, 0.3f, 0.7f);
+        colors[ImGuiCol_HeaderHovered] = ImVec4(0.4f, 0.4f, 0.4f, 0.8f);
+        colors[ImGuiCol_HeaderActive] = ImVec4(0.4f, 0.4f, 0.4f, 1.0f);
+
+        // Buttons
+        colors[ImGuiCol_Button] = ImVec4(0.3f, 0.3f, 0.3f, 0.6f);
+        colors[ImGuiCol_ButtonHovered] = ImVec4(0.4f, 0.4f, 0.4f, 0.8f);
+        colors[ImGuiCol_ButtonActive] = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
+
+        // Adjust window rounding and padding to enhance the glass look
+        style.WindowRounding = 10.0f;
+        style.FrameRounding = 5.0f;
+        style.WindowPadding = ImVec2(10, 10);
+        style.FramePadding = ImVec2(5, 5);
     }
 
     void Themes::setModernColors()

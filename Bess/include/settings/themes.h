@@ -18,6 +18,7 @@ namespace Bess::Config {
         static void setDarkThemeColors();
         static void setBessDarkThemeColors();
         static void setCatpuccinMochaColors();
+        static void setGlassTheme();
 
         // theme name and a void callback
         std::unordered_map<std::string, std::function<void()>> m_themes = {};
