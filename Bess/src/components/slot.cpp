@@ -62,7 +62,7 @@ namespace Bess::Simulator::Components {
             offset.x -= m_labelWidth;
         }
         offset.y -= charSize.y / 2.f;
-        Renderer2D::Renderer::text(m_label, m_position + offset, fontSize, {1.f, 1.f, 1.f}, ComponentsManager::compIdToRid(m_parentUid));
+        Renderer2D::Renderer::text(m_label, m_position + offset, fontSize, ViewportTheme::textColor, ComponentsManager::compIdToRid(m_parentUid));
     }
 
     void Slot::deleteComponent() {

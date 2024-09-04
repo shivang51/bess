@@ -1,9 +1,9 @@
 #include "components/text_component.h"
 
-#include "renderer/renderer.h"
-#include "components_manager/components_manager.h"
-#include "common/helpers.h"
 #include "common/bind_helpers.h"
+#include "common/helpers.h"
+#include "components_manager/components_manager.h"
+#include "renderer/renderer.h"
 #include "settings/viewport_theme.h"
 
 #include "imgui.h"
@@ -11,15 +11,14 @@
 
 #include "application_state.h"
 
-
 namespace Bess::Simulator::Components {
-    TextComponent::TextComponent(const uuids::uuid& uid, int renderId, glm::vec3 position)
+    TextComponent::TextComponent(const uuids::uuid &uid, int renderId, glm::vec3 position)
         : Component(uid, renderId, position, ComponentType::text) {
         m_events[ComponentEventType::leftClick] = (OnLeftClickCB)BIND_FN_1(TextComponent::onLeftClick);
         m_name = "Text";
     }
 
-    void TextComponent::generate(const glm::vec3& pos) {
+    void TextComponent::generate(const glm::vec3 &pos) {
         auto pos_ = pos;
         pos_.z = ComponentsManager::getNextZPos();
         auto uid = Common::Helpers::uuidGenerator.getUUID();
@@ -28,28 +27,27 @@ namespace Bess::Simulator::Components {
         ComponentsManager::renderComponenets.push_back(uid);
         ComponentsManager::addCompIdToRId(rid, uid);
         ComponentsManager::addRenderIdToCId(rid, uid);
-
     }
 
     void TextComponent::deleteComponent() {}
 
     void TextComponent::render() {
-            float width = Common::Helpers::calculateTextWidth(m_text, m_fontSize);
-            float height = Common::Helpers::getAnyCharHeight(m_fontSize);
+        float width = Common::Helpers::calculateTextWidth(m_text, m_fontSize);
+        float height = Common::Helpers::getAnyCharHeight(m_fontSize);
 
-            auto pos = m_position;
-            pos.x += width / 2.f;
-            pos.y += height / 2.f;
+        auto pos = m_position;
+        pos.x += width / 2.f;
+        pos.y += height / 2.f;
 
-            if (ApplicationState::getSelectedId() == m_uid) {
-                pos.y -= 4.f;
-                height += 8.f;
-                width += 12.f;
-            }
+        if (ApplicationState::getSelectedId() == m_uid) {
+            pos.y -= 4.f;
+            height += 8.f;
+            width += 12.f;
+        }
 
-            pos.z -= ComponentsManager::zIncrement;
-            Renderer2D::Renderer::quad(pos, { width, height }, ViewportTheme::backgroundColor, m_renderId, glm::vec4(8.f), ViewportTheme::componentBorderColor, glm::vec4(ApplicationState::getSelectedId() == m_uid ? 1.f: 0.f));
-        
+        pos.z -= ComponentsManager::zIncrement;
+        Renderer2D::Renderer::quad(pos, {width, height}, ViewportTheme::backgroundColor, m_renderId, glm::vec4(8.f), ViewportTheme::componentBorderColor, glm::vec4(ApplicationState::getSelectedId() == m_uid ? 1.f : 0.f));
+
         Renderer2D::Renderer::text(m_text, m_position, m_fontSize, m_color, m_renderId);
     }
 
@@ -59,11 +57,11 @@ namespace Bess::Simulator::Components {
         UI::MWidgets::TextBox("Text", m_text);
     }
 
-    void TextComponent::setText(const std::string& value) {
+    void TextComponent::setText(const std::string &value) {
         m_text = value;
     }
 
-    const std::string& TextComponent::getText() const {
+    const std::string &TextComponent::getText() const {
         return m_text;
     }
 
@@ -75,18 +73,18 @@ namespace Bess::Simulator::Components {
         return m_fontSize;
     }
 
-    void TextComponent::setColor(const glm::vec3& color) {
+    void TextComponent::setColor(const glm::vec4 &color) {
         m_color = color;
     }
 
-    const glm::vec3& TextComponent::getColor() const {
+    const glm::vec4 &TextComponent::getColor() const {
         return m_color;
     }
 
-    void TextComponent::fromJson(const nlohmann::json& j) {
+    void TextComponent::fromJson(const nlohmann::json &j) {
         auto text = j.at("text").get<std::string>();
         float fontSize = j.at("fontSize").get<float>();
-        auto color = Common::Helpers::DecodeVec3(j["color"]);
+        auto color = Common::Helpers::DecodeVec4(j["color"]);
         auto pos = Common::Helpers::DecodeVec3(j.at("pos"));
         pos.z = ComponentsManager::getNextZPos();
         auto uid = Common::Helpers::strToUUID(j.at("uid").get<std::string>());
@@ -114,18 +112,15 @@ namespace Bess::Simulator::Components {
         return j;
     }
 
-    std::string TextComponent::getName() const
-    {
+    std::string TextComponent::getName() const {
         return "Text";
     }
 
-    std::string TextComponent::getRenderName() const
-    {
+    std::string TextComponent::getRenderName() const {
         return "Text - " + m_text;
     }
 
-    void TextComponent::onLeftClick(const glm::vec2& pos)
-    {
+    void TextComponent::onLeftClick(const glm::vec2 &pos) {
         ApplicationState::setSelectedId(m_uid);
     }
 

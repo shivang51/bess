@@ -341,7 +341,7 @@ namespace Bess {
         addCircleVertices(vertices);
     }
 
-    void Renderer::text(const std::string &text, const glm::vec3 &pos, const size_t size, const glm::vec3 &color, const int id) {
+    void Renderer::text(const std::string &text, const glm::vec3 &pos, const size_t size, const glm::vec4 &color, const int id) {
         auto &shader = m_shaders[PrimitiveType::font];
         auto &vao = m_vaos[PrimitiveType::font];
 
