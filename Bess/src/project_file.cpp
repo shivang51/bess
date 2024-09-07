@@ -18,6 +18,7 @@
 namespace Bess {
     ProjectFile::ProjectFile() {
         m_name = "Unnamed";
+        m_saved = false;
     }
 
     ProjectFile::ProjectFile(const std::string &path) {
@@ -52,6 +53,10 @@ namespace Bess {
     }
 
     const std::string &ProjectFile::getName() const {
+        return m_name;
+    }
+
+    std::string &ProjectFile::getNameRef() {
         return m_name;
     }
 

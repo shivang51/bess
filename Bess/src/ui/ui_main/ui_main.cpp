@@ -1,19 +1,22 @@
 #include "ui/ui_main/ui_main.h"
 
+#include "application_state.h"
 #include "glad/glad.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include <string>
 
+#include "camera.h"
 #include "components_manager/components_manager.h"
+#include "pages/main_page/main_page_state.h"
 #include "ui/icons/FontAwesomeIcons.h"
+#include "ui/m_widgets.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/dialogs.h"
 #include "ui/ui_main/popups.h"
+#include "ui/ui_main/project_settings_window.h"
 #include "ui/ui_main/properties_panel.h"
 #include "ui/ui_main/settings_window.h"
-
-#include "camera.h"
 
 namespace Bess::UI {
     UIState UIMain::state{};
@@ -76,33 +79,63 @@ namespace Bess::UI {
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
             // New File
-            std::string temp_name = Icons::FontAwesomeIcons::FA_PAPER_PLANE;
-            temp_name += " New";
-            if (ImGui::MenuItem(temp_name.c_str())) {
+            std::string temp_name = Icons::FontAwesomeIcons::FA_FILE_ALT;
+            temp_name += "   New";
+            if (ImGui::MenuItem(temp_name.c_str(), "Ctrl+N")) {
                 newFileClicked = true;
             };
 
             // Open File
             temp_name = Icons::FontAwesomeIcons::FA_FOLDER_OPEN;
-            temp_name += " Open";
-            if (ImGui::MenuItem(temp_name.c_str())) {
+            temp_name += "  Open";
+            if (ImGui::MenuItem(temp_name.c_str(), "Ctrl+O")) {
                 openFileClicked = true;
             };
 
             // Save File
             temp_name = Icons::FontAwesomeIcons::FA_SAVE;
-            temp_name += " Save";
-            if (ImGui::MenuItem(temp_name.c_str())) {
+            temp_name += "   Save";
+            if (ImGui::MenuItem(temp_name.c_str(), "Ctrl+S")) {
                 m_pageState->getCurrentProjectFile()->update(Simulator::ComponentsManager::components);
                 m_pageState->getCurrentProjectFile()->save();
             };
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            temp_name = Icons::FontAwesomeIcons::FA_WRENCH;
+            temp_name += "  Settings";
+            if (ImGui::MenuItem(temp_name.c_str())) {
+                SettingsWindow::show();
+            }
+
+            temp_name = Icons::FontAwesomeIcons::FA_FILE_EXPORT;
+            temp_name += "  Export";
+            if (ImGui::BeginMenu(temp_name.c_str())) {
+                temp_name = Icons::FontAwesomeIcons::FA_FILE_IMAGE;
+                temp_name += "  Export to Image";
+                if (ImGui::MenuItem(temp_name.c_str())) {
+                }
+                ImGui::EndMenu();
+            }
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            // Exit
+            if (ImGui::MenuItem("Quit", "")) {
+                ApplicationState::quit();
+            }
 
             ImGui::EndMenu();
         }
 
         if (ImGui::BeginMenu("Edit")) {
-            if (ImGui::MenuItem("Settings")) {
-                SettingsWindow::show();
+
+            if (ImGui::MenuItem("Project Settings")) {
+                ProjectSettingsWindow::show();
             }
             ImGui::EndMenu();
         }
@@ -210,7 +243,10 @@ namespace Bess::UI {
         ImGui::DockBuilderFinish(mainDockspaceId);
     }
 
-    void UIMain::drawExternalWindows() { SettingsWindow::draw(); }
+    void UIMain::drawExternalWindows() {
+        SettingsWindow::draw();
+        ProjectSettingsWindow::draw();
+    }
 
     void UIMain::onNewProject() {
         if (!m_pageState->getCurrentProjectFile()->isSaved()) {

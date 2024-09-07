@@ -12,8 +12,6 @@ namespace Bess::Pages {
 
         MainPageState();
 
-        void init();
-
         int getHoveredId();
         int getPrevHoveredId();
         void setHoveredId(int id);
@@ -46,7 +44,7 @@ namespace Bess::Pages {
         bool isKeyPressed(int key);
 
         void resetProjectState();
-        void createNewProject();
+        void createNewProject(bool updateWindowName = true);
         void saveCurrentProject();
         void loadProject(const std::string &path);
         void updateCurrentProject(std::shared_ptr<ProjectFile> project);

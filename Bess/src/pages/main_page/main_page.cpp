@@ -19,20 +19,21 @@ namespace Bess::Pages {
     }
 
     std::shared_ptr<MainPage> MainPage::getTypedInstance(std::shared_ptr<Window> parentWindow) {
-        return std::dynamic_pointer_cast<MainPage>(getInstance(parentWindow));
+        auto instance = getInstance(parentWindow);
+        return std::dynamic_pointer_cast<MainPage>(instance);
     }
 
     MainPage::MainPage(std::shared_ptr<Window> parentWindow) : Page(PageIdentifier::MainPage) {
         if (m_parentWindow == nullptr && parentWindow == nullptr) {
             throw std::runtime_error("MainPage: parentWindow is nullptr. Need to pass a parent window.");
         }
-
+        std::cout << "creating main page instance" << std::endl;
         m_camera = std::make_shared<Camera>(800, 600);
         m_framebuffer = std::make_unique<Gl::FrameBuffer>(800, 600);
         m_parentWindow = parentWindow;
         UI::UIMain::state.cameraZoom = Camera::defaultZoom;
         UI::UIMain::state.viewportTexture = m_framebuffer->getTexture();
-        m_state = m_state->getInstance();
+        m_state = MainPageState::getInstance();
     }
 
     void MainPage::draw() {

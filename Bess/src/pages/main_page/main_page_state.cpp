@@ -14,7 +14,7 @@ namespace Bess::Pages {
     }
 
     MainPageState::MainPageState() {
-        resetProjectState();
+        createNewProject(false);
     }
 
     int MainPageState::getHoveredId() {
@@ -84,9 +84,13 @@ namespace Bess::Pages {
         Simulator::Engine::clearQueue();
     }
 
-    void MainPageState::createNewProject() {
+    void MainPageState::createNewProject(bool updateWindowName) {
         resetProjectState();
-        updateCurrentProject(std::make_shared<ProjectFile>());
+        m_currentProjectFile = std::make_shared<ProjectFile>();
+        if (!updateWindowName)
+            return;
+        auto win = MainPage::getTypedInstance()->getParentWindow();
+        win->setName("Unnamed - BESS");
     }
 
     void MainPageState::loadProject(const std::string &path) {
@@ -103,7 +107,8 @@ namespace Bess::Pages {
         if (project == nullptr)
             return;
         m_currentProjectFile = project;
-        MainPage::getTypedInstance()->getParentWindow()->setName(m_currentProjectFile->getName() + " - BESS");
+        auto win = MainPage::getTypedInstance()->getParentWindow();
+        win->setName(m_currentProjectFile->getName() + " - BESS");
     }
 
     std::shared_ptr<ProjectFile> MainPageState::getCurrentProjectFile() {

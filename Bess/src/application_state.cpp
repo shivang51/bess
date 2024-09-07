@@ -20,4 +20,8 @@ namespace Bess {
         return m_parentWindow;
     }
 
+    void ApplicationState::quit() {
+        m_parentWindow->close();
+    }
+
 } // namespace Bess
