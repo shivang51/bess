@@ -2,6 +2,7 @@
 
 #include "events/application_event.h"
 #include "window.h"
+#include <memory>
 #include <vector>
 
 namespace Bess {
@@ -21,7 +22,7 @@ namespace Bess {
         void saveProject();
 
       private:
-        Window m_mainWindow;
+        std::shared_ptr<Window> m_mainWindow;
         std::vector<ApplicationEvent> m_events;
 
       private:

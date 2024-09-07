@@ -20,12 +20,14 @@
 using Bess::Renderer2D::Renderer;
 
 namespace Bess {
-    Application::Application() : m_mainWindow(800, 600, "Bess") {
+    Application::Application() {
+        m_mainWindow = std::make_shared<Window>(800, 600, "Bess");
         init();
         Pages::StartPage::getInstance()->show();
     }
 
-    Application::Application(const std::string &path) : m_mainWindow(800, 600, "Bess") {
+    Application::Application(const std::string &path) {
+        m_mainWindow = std::make_shared<Window>(800, 600, "Bess");
         init();
         loadProject(path);
         Pages::MainPage::getInstance(ApplicationState::getParentWindow())->show();
@@ -50,7 +52,7 @@ namespace Bess {
         double frameTime = 1.0 / 60.0;
         double accumulatedTime = 0.0;
 
-        while (!m_mainWindow.isClosed()) {
+        while (!m_mainWindow->isClosed()) {
             double currTime = glfwGetTime();
             double deltaTime = currTime - prevTime;
             prevTime = currTime;
@@ -70,17 +72,18 @@ namespace Bess {
     }
 
     void Application::update() {
-        m_mainWindow.update();
+        m_mainWindow->update();
         ApplicationState::getCurrentPage()->update(m_events);
         m_events.clear();
     }
 
-    void Application::quit() { m_mainWindow.close(); }
+    void Application::quit() { m_mainWindow->close(); }
 
     // callbacks
-
     void Application::onWindowResize(int w, int h) {
-        // glViewport(0, 0, w, h);
+        ApplicationEvent::WindowResizeData data(w, h);
+        ApplicationEvent event(ApplicationEventType::WindowResize, data);
+        m_events.emplace_back(event);
     }
 
     void Application::onMouseWheel(double x, double y) {
@@ -126,7 +129,7 @@ namespace Bess {
     }
 
     void Application::init() {
-        ApplicationState::setParentWindow(&m_mainWindow);
+        ApplicationState::setParentWindow(m_mainWindow);
 
         Config::Settings::init();
 
@@ -139,21 +142,21 @@ namespace Bess {
         Simulator::ComponentBank::addToCollection("Misc", {Simulator::ComponentType::text, "Text"});
         Simulator::ComponentBank::loadMultiFromJson("assets/comp_collections.json");
 
-        UI::init(m_mainWindow.getGLFWHandle());
+        UI::init(m_mainWindow->getGLFWHandle());
 
         Renderer::init();
 
-        m_mainWindow.onWindowResize(BIND_FN_2(Application::onWindowResize));
-        m_mainWindow.onMouseWheel(BIND_FN_2(Application::onMouseWheel));
-        m_mainWindow.onKeyPress(BIND_FN_1(Application::onKeyPress));
-        m_mainWindow.onKeyRelease(BIND_FN_1(Application::onKeyRelease));
-        m_mainWindow.onLeftMouse(BIND_FN_1(Application::onLeftMouse));
-        m_mainWindow.onRightMouse(BIND_FN_1(Application::onRightMouse));
-        m_mainWindow.onMiddleMouse(BIND_FN_1(Application::onMiddleMouse));
-        m_mainWindow.onMouseMove(BIND_FN_2(Application::onMouseMove));
+        m_mainWindow->onWindowResize(BIND_FN_2(Application::onWindowResize));
+        m_mainWindow->onMouseWheel(BIND_FN_2(Application::onMouseWheel));
+        m_mainWindow->onKeyPress(BIND_FN_1(Application::onKeyPress));
+        m_mainWindow->onKeyRelease(BIND_FN_1(Application::onKeyRelease));
+        m_mainWindow->onLeftMouse(BIND_FN_1(Application::onLeftMouse));
+        m_mainWindow->onRightMouse(BIND_FN_1(Application::onRightMouse));
+        m_mainWindow->onMiddleMouse(BIND_FN_1(Application::onMiddleMouse));
+        m_mainWindow->onMouseMove(BIND_FN_2(Application::onMouseMove));
     }
 
-    void Application::shutdown() { m_mainWindow.close(); }
+    void Application::shutdown() { m_mainWindow->close(); }
 
     void Application::loadProject(const std::string &path) {
         Pages::MainPageState::getInstance()->loadProject(path);

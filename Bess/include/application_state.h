@@ -10,7 +10,7 @@ namespace Bess {
         static void setCurrentPage(std::shared_ptr<Pages::Page> page);
         static std::shared_ptr<Pages::Page> getCurrentPage();
 
-        static void setParentWindow(Window *parentWindow);
+        static void setParentWindow(std::shared_ptr<Window> parentWindow);
         static std::shared_ptr<Window> getParentWindow();
 
       private:

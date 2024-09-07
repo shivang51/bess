@@ -12,8 +12,8 @@ namespace Bess {
         return m_currentPage;
     }
 
-    void ApplicationState::setParentWindow(Window *parentWindow) {
-        m_parentWindow = std::shared_ptr<Window>(parentWindow);
+    void ApplicationState::setParentWindow(std::shared_ptr<Window> parentWindow) {
+        m_parentWindow = parentWindow;
     }
 
     std::shared_ptr<Window> ApplicationState::getParentWindow() {
