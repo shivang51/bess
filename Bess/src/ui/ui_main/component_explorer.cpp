@@ -5,6 +5,7 @@
 #include "components_manager/components_manager.h"
 #include "imgui.h"
 #include "pages/main_page/main_page.h"
+#include "pages/main_page/main_page_state.h"
 #include "ui/m_widgets.h"
 #include "ui/ui_main/ui_main.h"
 
@@ -44,6 +45,7 @@ namespace Bess::UI {
                             data = comp.getJCompData();
                         }
                         Simulator::ComponentsManager::generateComponent(comp.getType(), data, {pos, 0.f});
+                        Pages::MainPageState::getInstance()->setPrevGenBankElement(comp);
                     }
                 }
                 ImGui::TreePop();

@@ -1,5 +1,5 @@
 #include "components/connection_point.h"
-#include "application_state.h"
+#include "pages/main_page/main_page_state.h"
 #include "common/bind_helpers.h"
 #include "common/helpers.h"
 #include "components/connection.h"
@@ -58,6 +58,6 @@ namespace Bess::Simulator::Components {
     }
 
     void ConnectionPoint::onLeftClick(const glm::vec2 &pos) {
-        ApplicationState::setSelectedId(m_uid);
+        Pages::MainPageState::getInstance()->setSelectedId(m_uid);
     }
 } // namespace Bess::Simulator::Components

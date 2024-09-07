@@ -408,7 +408,7 @@ namespace Bess {
         shader->setUniformVec4("textColor", color);
         shader->setUniformMat4("u_mvp", m_camera->getTransform());
 
-        auto selId = Simulator::ComponentsManager::compIdToRid(ApplicationState::getSelectedId());
+        auto selId = Simulator::ComponentsManager::compIdToRid(Pages::MainPageState::getInstance()->getSelectedId());
         shader->setUniform1i("u_SelectedObjId", selId);
 
         float scale = Font::getScale(size), x = pos.x, y = pos.y;
@@ -551,7 +551,7 @@ namespace Bess {
 
     void Renderer::flush(PrimitiveType type) {
         auto &vao = m_vaos[type];
-        auto selId = Simulator::ComponentsManager::compIdToRid(ApplicationState::getSelectedId());
+        auto selId = Simulator::ComponentsManager::compIdToRid(Pages::MainPageState::getInstance()->getSelectedId());
 
         if (type == PrimitiveType::quad) {
             vao->bind();

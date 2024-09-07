@@ -3,9 +3,9 @@
 #include "components/slot.h"
 #include "ui/ui.h"
 
-#include "application_state.h"
 #include "common/bind_helpers.h"
 #include "common/helpers.h"
+#include "pages/main_page/main_page_state.h"
 #include <imgui.h>
 
 namespace Bess::Simulator::Components {
@@ -32,8 +32,8 @@ namespace Bess::Simulator::Components {
     void Connection::render() {
         auto slotA = ComponentsManager::components[m_slot1];
         auto slotB = ComponentsManager::components[m_slot2];
-        auto m_selected = ApplicationState::getSelectedId() == m_uid;
-        auto m_hovered = ApplicationState::hoveredId == m_renderId;
+        auto m_selected = Pages::MainPageState::getInstance()->getSelectedId() == m_uid;
+        auto m_hovered = Pages::MainPageState::getInstance()->getHoveredId() == m_renderId;
 
         auto slot = (Components::Slot *)slotA.get();
 
@@ -111,9 +111,9 @@ namespace Bess::Simulator::Components {
     }
 
     void Connection::onLeftClick(const glm::vec2 &pos) {
-        ApplicationState::setSelectedId(m_uid);
+        Pages::MainPageState::getInstance()->setSelectedId(m_uid);
 
-        if (!ApplicationState::isKeyPressed(GLFW_KEY_LEFT_CONTROL))
+        if (!Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL))
             return;
 
         // add connection point

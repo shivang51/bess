@@ -1,15 +1,10 @@
 #pragma once
 
+#include "camera.h"
 #include "fwd.hpp"
 #include "glad/glad.h"
+#include "pages/main_page/main_page_state.h"
 #include <GLFW/glfw3.h>
-#include <map>
-#include <memory>
-#include <unordered_map>
-#include <vector>
-
-#include "application_state.h"
-#include "camera.h"
 
 namespace Bess::UI {
 
@@ -49,5 +44,7 @@ namespace Bess::UI {
         static void onNewProject();
         static void onOpenProject();
         static void onSaveProject();
+
+        static std::shared_ptr<Pages::MainPageState> m_pageState;
     };
 } // namespace Bess::UI

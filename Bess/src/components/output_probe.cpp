@@ -1,6 +1,6 @@
 #include "components/output_probe.h"
 
-#include "application_state.h"
+#include "pages/main_page/main_page_state.h"
 #include "common/helpers.h"
 #include "components/connection.h"
 #include "renderer/renderer.h"
@@ -19,12 +19,12 @@ namespace Bess::Simulator::Components {
         m_inputSlot = outputSlot;
         m_events[ComponentEventType::leftClick] =
             (OnLeftClickCB)[&](const glm::vec2 &pos) {
-            ApplicationState::setSelectedId(m_uid);
+            Pages::MainPageState::getInstance()->setSelectedId(m_uid);
         };
     }
 
     void OutputProbe::render() {
-        bool selected = ApplicationState::getSelectedId() == m_uid;
+        bool selected = Pages::MainPageState::getInstance()->getSelectedId() == m_uid;
         float thickness = 1.f;
 
         Slot *slot = (Slot *)Simulator::ComponentsManager::components[m_inputSlot].get();

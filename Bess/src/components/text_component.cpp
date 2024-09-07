@@ -9,7 +9,7 @@
 #include "imgui.h"
 #include "ui/m_widgets.h"
 
-#include "application_state.h"
+#include "pages/main_page/main_page_state.h"
 
 namespace Bess::Simulator::Components {
     TextComponent::TextComponent(const uuids::uuid &uid, int renderId, glm::vec3 position)
@@ -39,14 +39,14 @@ namespace Bess::Simulator::Components {
         pos.x += width / 2.f;
         pos.y += height / 2.f;
 
-        if (ApplicationState::getSelectedId() == m_uid) {
+        if (Pages::MainPageState::getInstance()->getSelectedId() == m_uid) {
             pos.y -= 4.f;
             height += 8.f;
             width += 12.f;
         }
 
         pos.z -= ComponentsManager::zIncrement;
-        Renderer2D::Renderer::quad(pos, {width, height}, ViewportTheme::backgroundColor, m_renderId, glm::vec4(8.f), ViewportTheme::componentBorderColor, glm::vec4(ApplicationState::getSelectedId() == m_uid ? 1.f : 0.f));
+        Renderer2D::Renderer::quad(pos, {width, height}, ViewportTheme::backgroundColor, m_renderId, glm::vec4(8.f), ViewportTheme::componentBorderColor, glm::vec4(Pages::MainPageState::getInstance()->getSelectedId() == m_uid ? 1.f : 0.f));
 
         Renderer2D::Renderer::text(m_text, m_position, m_fontSize, m_color, m_renderId);
     }
@@ -121,7 +121,7 @@ namespace Bess::Simulator::Components {
     }
 
     void TextComponent::onLeftClick(const glm::vec2 &pos) {
-        ApplicationState::setSelectedId(m_uid);
+        Pages::MainPageState::getInstance()->setSelectedId(m_uid);
     }
 
 } // namespace Bess::Simulator::Components

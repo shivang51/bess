@@ -1,22 +1,23 @@
 #include "components/clock.h"
-#include "common/helpers.h"
-#include "components_manager/components_manager.h"
-#include "components/slot.h"
-#include "application_state.h"
-#include "settings/viewport_theme.h"
-#include "renderer/renderer.h"
 #include "common/bind_helpers.h"
+#include "common/helpers.h"
+#include "components/slot.h"
+#include "components_manager/components_manager.h"
 #include "imgui.h"
+#include "pages/main_page/main_page_state.h"
+#include "renderer/renderer.h"
+#include "settings/viewport_theme.h"
 #include "ui/m_widgets.h"
+#include <GLFW/glfw3.h>
 
 namespace Bess::Simulator::Components {
 
-	glm::vec2 clockSize = {65.f, 25.f};
+    glm::vec2 clockSize = {65.f, 25.f};
 
     Clock::Clock(const uuids::uuid &uid, int renderId, glm::vec3 position, const uuids::uuid &slotUid) : Component(uid, renderId, position, ComponentType::clock) {
         m_frequency = 1.f;
         m_outputSlotId = slotUid;
-		m_events[ComponentEventType::leftClick] = (OnLeftClickCB)BIND_FN_1(Clock::onLeftClick);
+        m_events[ComponentEventType::leftClick] = (OnLeftClickCB)BIND_FN_1(Clock::onLeftClick);
         m_name = "Clock";
     }
 
@@ -40,7 +41,7 @@ namespace Bess::Simulator::Components {
         if (delta > cycleTime) {
             m_prevUpdateTime = currTime;
 
-            auto& comp = ComponentsManager::components[m_outputSlotId];
+            auto &comp = ComponentsManager::components[m_outputSlotId];
             auto slot = std::dynamic_pointer_cast<Components::Slot>(comp);
             slot->flipState();
         }
@@ -50,7 +51,7 @@ namespace Bess::Simulator::Components {
         ImGui::DragFloat("Frequency", &m_frequency, 0.1f, 0.1f, 3.f);
         std::vector<std::string> frequencies = {"Hz", "kHz", "MHz"};
         std::string currFreq = frequencies[(int)m_frequencyUnit];
-        if(UI::MWidgets::ComboBox("Unit", currFreq, frequencies)) {
+        if (UI::MWidgets::ComboBox("Unit", currFreq, frequencies)) {
             auto idx = std::distance(frequencies.begin(), std::find(frequencies.begin(), frequencies.end(), currFreq));
             m_frequencyUnit = static_cast<FrequencyUnit>(idx);
         }
@@ -97,26 +98,26 @@ namespace Bess::Simulator::Components {
     }
 
     void Clock::render() {
-		bool selected = ApplicationState::getSelectedId() == m_uid;
-		float thickness = 1.f;
+        bool selected = Pages::MainPageState::getInstance()->getSelectedId() == m_uid;
+        float thickness = 1.f;
 
-		Slot* slot = (Slot*)Simulator::ComponentsManager::components[m_outputSlotId].get();
+        Slot *slot = (Slot *)Simulator::ComponentsManager::components[m_outputSlotId].get();
 
-		float r = 16.f;
+        float r = 16.f;
 
-		auto bgColor = ViewportTheme::componentBGColor;
-		auto borderColor = ViewportTheme::componentBorderColor;
+        auto bgColor = ViewportTheme::componentBGColor;
+        auto borderColor = ViewportTheme::componentBorderColor;
 
-		std::string label = "Clock";
+        std::string label = "Clock";
 
-		if (slot->getState() == DigitalState::high) {
-			borderColor = ViewportTheme::stateHighColor;
-		}
+        if (slot->getState() == DigitalState::high) {
+            borderColor = ViewportTheme::stateHighColor;
+        }
 
-		Renderer2D::Renderer::quad(m_position, clockSize,  bgColor, m_renderId, glm::vec4(r), borderColor, thickness);
+        Renderer2D::Renderer::quad(m_position, clockSize, bgColor, m_renderId, glm::vec4(r), borderColor, thickness);
 
-		slot->update(m_position + glm::vec3({ (clockSize.x / 2) - 12.f, 0.f, 0.f }), {-12.f, 0.f}, label);
-		slot->render();
+        slot->update(m_position + glm::vec3({(clockSize.x / 2) - 12.f, 0.f, 0.f}), {-12.f, 0.f}, label);
+        slot->render();
     }
 
     void Clock::generate(const glm::vec3 &pos) {
@@ -143,7 +144,6 @@ namespace Bess::Simulator::Components {
         ComponentsManager::deleteComponent(m_outputSlotId);
     }
     void Clock::onLeftClick(const glm::vec2 &pos) {
-        ApplicationState::setSelectedId(m_uid);
+        Pages::MainPageState::getInstance()->setSelectedId(m_uid);
     }
-}
-
+} // namespace Bess::Simulator::Components

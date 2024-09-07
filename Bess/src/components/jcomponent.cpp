@@ -3,14 +3,15 @@
 
 #include "components_manager/component_bank.h"
 
-#include "application_state.h"
 #include "glm.hpp"
+#include "pages/main_page/main_page_state.h"
 #include "renderer/renderer.h"
 
 #include "common/helpers.h"
 #include "settings/viewport_theme.h"
 
 #include "simulator/simulator_engine.h"
+#include <iostream>
 
 namespace Bess::Simulator::Components {
 
@@ -40,7 +41,7 @@ namespace Bess::Simulator::Components {
     }
 
     void JComponent::drawBackground(const glm::vec4 &borderThicknessPx, float rPx, float headerHeight, const glm::vec2 &gateSize) {
-        bool selected = ApplicationState::getSelectedId() == m_uid;
+        bool selected = Pages::MainPageState::getInstance()->getSelectedId() == m_uid;
 
         auto borderColor = selected ? ViewportTheme::selectedCompColor : ViewportTheme::componentBorderColor;
 
@@ -76,7 +77,7 @@ namespace Bess::Simulator::Components {
     }
 
     void JComponent::render() {
-        bool selected = ApplicationState::getSelectedId() == m_uid;
+        bool selected = Pages::MainPageState::getInstance()->getSelectedId() == m_uid;
         float rPx = 16.f;
 
         glm::vec4 borderThicknessPx({1.f, 1.f, 1.f, 1.f});
@@ -279,7 +280,7 @@ namespace Bess::Simulator::Components {
     }
 
     void JComponent::onLeftClick(const glm::vec2 &pos) {
-        ApplicationState::setSelectedId(m_uid);
+        Pages::MainPageState::getInstance()->setSelectedId(m_uid);
     }
 
     void JComponent::onRightClick(const glm::vec2 &pos) {

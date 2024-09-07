@@ -1,4 +1,5 @@
 #include "pages/start_page/start_page.h"
+#include "application_state.h"
 #include "pages/main_page/main_page.h"
 #include "pages/page_identifier.h"
 #include "ui/ui.h"
@@ -27,8 +28,8 @@ namespace Bess::Pages {
             ImGui::DockBuilderRemoveNode(mainDockspaceId);
             ImGui::DockBuilderAddNode(mainDockspaceId, ImGuiDockNodeFlags_NoTabBar);
 
-             ImGui::DockBuilderDockWindow("Application Title", mainDockspaceId);
-            //ImGui::DockBuilderDockWindow("Menu", mainDockspaceId);
+            ImGui::DockBuilderDockWindow("Application Title", mainDockspaceId);
+            // ImGui::DockBuilderDockWindow("Menu", mainDockspaceId);
 
             ImGui::DockBuilderFinish(mainDockspaceId);
         }
@@ -39,7 +40,7 @@ namespace Bess::Pages {
 
         ImGuiViewport *mainViewport = ImGui::GetMainViewport();
 
-        int width = 500, height = std::max( mainViewport->WorkSize.y  * 0.6, 300.0);
+        int width = 500, height = std::max(mainViewport->WorkSize.y * 0.6, 300.0);
 
         ImGui::SetNextWindowPos(ImVec2(mainViewport->WorkPos.x + mainViewport->WorkSize.x / 2,
                                        mainViewport->WorkPos.y + mainViewport->WorkSize.y / 2),
@@ -70,7 +71,7 @@ namespace Bess::Pages {
 
             ImGui::SetCursorPosY(windowSize.y - ImGui::GetFrameHeight() - 8.f);
             if (ImGui::Button("Continue with empty project")) {
-                MainPage::getInstance()->show();
+                MainPage::getInstance(ApplicationState::getParentWindow())->show();
             }
         }
 

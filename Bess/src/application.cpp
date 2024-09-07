@@ -2,6 +2,7 @@
 #include "application_state.h"
 #include "events/application_event.h"
 #include "pages/main_page/main_page.h"
+#include "pages/main_page/main_page_state.h"
 #include "pages/start_page/start_page.h"
 #include "renderer/renderer.h"
 #include "ui/ui.h"
@@ -14,6 +15,7 @@
 #include "settings/settings.h"
 
 #include "common/bind_helpers.h"
+#include "window.h"
 
 using Bess::Renderer2D::Renderer;
 
@@ -25,8 +27,8 @@ namespace Bess {
 
     Application::Application(const std::string &path) : m_mainWindow(800, 600, "Bess") {
         init();
-        ApplicationState::loadProject(path);
-        Pages::MainPage::getInstance()->show();
+        loadProject(path);
+        Pages::MainPage::getInstance(ApplicationState::getParentWindow())->show();
     }
 
     Application::~Application() {
@@ -88,14 +90,12 @@ namespace Bess {
     }
 
     void Application::onKeyPress(int key) {
-        ApplicationState::setKeyPressed(key, true);
         ApplicationEvent::KeyPressData data(key);
         ApplicationEvent event(ApplicationEventType::KeyPress, data);
         m_events.emplace_back(event);
     }
 
     void Application::onKeyRelease(int key) {
-        ApplicationState::setKeyPressed(key, false);
         ApplicationEvent::KeyReleaseData data(key);
         ApplicationEvent event(ApplicationEventType::KeyRelease, data);
         m_events.emplace_back(event);
@@ -126,6 +126,8 @@ namespace Bess {
     }
 
     void Application::init() {
+        ApplicationState::setParentWindow(&m_mainWindow);
+
         Config::Settings::init();
 
         Simulator::ComponentsManager::init();
@@ -136,8 +138,6 @@ namespace Bess {
         Simulator::ComponentBank::addToCollection("I/O", {Simulator::ComponentType::clock, "Clock"});
         Simulator::ComponentBank::addToCollection("Misc", {Simulator::ComponentType::text, "Text"});
         Simulator::ComponentBank::loadMultiFromJson("assets/comp_collections.json");
-
-        ApplicationState::init(&m_mainWindow);
 
         UI::init(m_mainWindow.getGLFWHandle());
 
@@ -156,9 +156,9 @@ namespace Bess {
     void Application::shutdown() { m_mainWindow.close(); }
 
     void Application::loadProject(const std::string &path) {
-        ApplicationState::loadProject(path);
+        Pages::MainPageState::getInstance()->loadProject(path);
     }
 
-    void Application::saveProject() { ApplicationState::saveCurrentProject(); }
+    void Application::saveProject() { Pages::MainPageState::getInstance()->saveCurrentProject(); }
 
 } // namespace Bess

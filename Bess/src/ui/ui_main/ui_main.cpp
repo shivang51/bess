@@ -17,11 +17,13 @@
 
 namespace Bess::UI {
     UIState UIMain::state{};
+    std::shared_ptr<Pages::MainPageState> UIMain::m_pageState;
 
     void UIMain::draw() {
         static bool firstTime = true;
         if (firstTime) {
             firstTime = false;
+            m_pageState = Pages::MainPageState::getInstance();
             resetDockspace();
         }
         drawMenubar();
@@ -40,7 +42,7 @@ namespace Bess::UI {
         ImGui::Text("%s", std::to_string(fps).c_str());
         ImGui::Text("Hover Id");
         ImGui::SameLine();
-        ImGui::Text("%s", std::to_string(ApplicationState::hoveredId).c_str());
+        ImGui::Text("%s", std::to_string(m_pageState->getHoveredId()).c_str());
         ImGui::End();
     }
 
@@ -51,19 +53,18 @@ namespace Bess::UI {
     void UIMain::drawProjectExplorer() {
         ImGui::Begin("Project Explorer");
 
-        std::string temp = !ApplicationState::simulationPaused ? Icons::FontAwesomeIcons::FA_PAUSE
-                                                               : Icons::FontAwesomeIcons::FA_PLAY;
-        temp += ApplicationState::simulationPaused ? " Play" : " Pause";
+        bool isSimulationPaused = m_pageState->isSimulationPaused();
+        std::string temp = !isSimulationPaused ? Icons::FontAwesomeIcons::FA_PAUSE
+                                               : Icons::FontAwesomeIcons::FA_PLAY;
+        temp += isSimulationPaused ? " Play" : " Pause";
         if (ImGui::Button(temp.c_str())) {
-            ApplicationState::simulationPaused = !ApplicationState::simulationPaused;
+            m_pageState->setSimulationPaused(!isSimulationPaused);
         }
 
         for (auto &id : Simulator::ComponentsManager::renderComponenets) {
             auto &entity = Simulator::ComponentsManager::components[id];
-            if (ImGui::Selectable(entity->getRenderName().c_str(),
-                                  entity->getId() ==
-                                      ApplicationState::getSelectedId())) {
-                ApplicationState::setSelectedId(entity->getId());
+            if (ImGui::Selectable(entity->getRenderName().c_str(), entity->getId() == m_pageState->getSelectedId())) {
+                m_pageState->setSelectedId(entity->getId());
             }
         }
 
@@ -92,8 +93,8 @@ namespace Bess::UI {
             temp_name = Icons::FontAwesomeIcons::FA_SAVE;
             temp_name += " Save";
             if (ImGui::MenuItem(temp_name.c_str())) {
-                ApplicationState::currentProject->update(Simulator::ComponentsManager::components);
-                ApplicationState::currentProject->save();
+                m_pageState->getCurrentProjectFile()->update(Simulator::ComponentsManager::components);
+                m_pageState->getCurrentProjectFile()->save();
             };
 
             ImGui::EndMenu();
@@ -118,8 +119,8 @@ namespace Bess::UI {
         Popups::PopupRes res;
         if ((res = Popups::handleUnsavedProjectWarning()) != Popups::PopupRes::none) {
             if (res == Popups::PopupRes::yes) {
-                ApplicationState::saveCurrentProject();
-                if (!ApplicationState::currentProject->isSaved()) {
+                m_pageState->saveCurrentProject();
+                if (!m_pageState->getCurrentProjectFile()->isSaved()) {
                     state._internalData.newFileClicked = false;
                     state._internalData.openFileClicked = false;
                     return;
@@ -128,10 +129,10 @@ namespace Bess::UI {
 
             if (res != Popups::PopupRes::cancel) {
                 if (state._internalData.newFileClicked) {
-                    ApplicationState::createNewProject();
+                    m_pageState->createNewProject();
                     state._internalData.newFileClicked = false;
                 } else if (state._internalData.openFileClicked) {
-                    ApplicationState::loadProject(state._internalData.path);
+                    m_pageState->loadProject(state._internalData.path);
                     state._internalData.path = "";
                     state._internalData.openFileClicked = false;
                 }
@@ -212,11 +213,11 @@ namespace Bess::UI {
     void UIMain::drawExternalWindows() { SettingsWindow::draw(); }
 
     void UIMain::onNewProject() {
-        if (!ApplicationState::currentProject->isSaved()) {
+        if (!m_pageState->getCurrentProjectFile()->isSaved()) {
             state._internalData.newFileClicked = true;
             ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning.c_str());
         } else {
-            ApplicationState::createNewProject();
+            m_pageState->createNewProject();
         }
     }
 
@@ -228,12 +229,12 @@ namespace Bess::UI {
         if (filepath == "" || !std::filesystem::exists(filepath))
             return;
 
-        if (!ApplicationState::currentProject->isSaved()) {
+        if (!m_pageState->getCurrentProjectFile()->isSaved()) {
             state._internalData.openFileClicked = true;
             state._internalData.path = filepath;
             ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning.c_str());
         } else {
-            ApplicationState::loadProject(filepath);
+            m_pageState->loadProject(filepath);
         }
     }
 

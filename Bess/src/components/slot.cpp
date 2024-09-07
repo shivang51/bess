@@ -1,7 +1,7 @@
 #include "components/slot.h"
-#include "application_state.h"
 #include "components/connection.h"
 #include "components/jcomponent.h"
+#include "pages/main_page/main_page_state.h"
 #include "renderer/renderer.h"
 #include "settings/viewport_theme.h"
 
@@ -86,24 +86,24 @@ namespace Bess::Simulator::Components {
     }
 
     void Slot::onLeftClick(const glm::vec2 &pos) {
-        if (ApplicationState::drawMode == DrawMode::none) {
-            ApplicationState::connStartId = m_uid;
-            ApplicationState::points.emplace_back(m_position);
-            ApplicationState::drawMode = DrawMode::connection;
+        if (Pages::MainPageState::getInstance()->getDrawMode() == UI::Types::DrawMode::none) {
+            Pages::MainPageState::getInstance()->setConnStartId(m_uid);
+            Pages::MainPageState::getInstance()->getPointsRef().emplace_back(m_position);
+            Pages::MainPageState::getInstance()->setDrawMode(UI::Types::DrawMode::connection);
             return;
         }
 
-        auto slot = ComponentsManager::components[ApplicationState::connStartId];
+        auto slot = ComponentsManager::components[Pages::MainPageState::getInstance()->getConnStartId()];
 
-        if (slot == nullptr || ApplicationState::connStartId == m_uid || slot->getType() == m_type)
+        if (slot == nullptr || Pages::MainPageState::getInstance()->getConnStartId() == m_uid || slot->getType() == m_type)
             goto clear;
 
-        ComponentsManager::addConnection(ApplicationState::connStartId, m_uid);
+        ComponentsManager::addConnection(Pages::MainPageState::getInstance()->getConnStartId(), m_uid);
 
     clear:
-        ApplicationState::drawMode = DrawMode::none;
-        ApplicationState::connStartId = ComponentsManager::emptyId;
-        ApplicationState::points.pop_back();
+        Pages::MainPageState::getInstance()->setDrawMode(UI::Types::DrawMode::none);
+        Pages::MainPageState::getInstance()->setConnStartId(ComponentsManager::emptyId);
+        Pages::MainPageState::getInstance()->getPointsRef().pop_back();
     }
 
     void Slot::onMouseHover() { UI::setCursorPointer(); }
