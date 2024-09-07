@@ -21,7 +21,7 @@ namespace Bess {
         backgroundColor = glm::vec4(windowBg.x * darkenFactor, windowBg.y * darkenFactor, windowBg.z * darkenFactor, windowBg.w);
 
         auto color = colors[ImGuiCol_FrameBg];
-        componentBGColor = glm::vec4(color.x, color.y, color.z, color.w);
+        componentBGColor = glm::vec4(color.x, color.y, color.z, 0.7f);
 
         color = colors[ImGuiCol_Border];
         componentBorderColor = glm::vec4(color.x, color.y, color.z, color.w);
@@ -30,7 +30,7 @@ namespace Bess {
         wireColor = glm::vec4(color.x, color.y, color.z, color.w);
 
         color = colors[ImGuiCol_Header];
-        compHeaderColor = glm::vec4(color.x, color.y, color.z, color.w);
+        compHeaderColor = glm::vec4(color.x, color.y, color.z, 0.7f);
 
         color = colors[ImGuiCol_Text];
         selectedCompColor = glm::vec4(color.x, color.y, color.z, color.w);

@@ -2,6 +2,8 @@
 #include "application_state.h"
 #include "components/clock.h"
 #include "events/application_event.h"
+#include "ext/matrix_transform.hpp"
+#include "imgui.h"
 #include "pages/page_identifier.h"
 #include "renderer/renderer.h"
 #include "settings/viewport_theme.h"
@@ -16,6 +18,10 @@ namespace Bess::Pages {
         return instance;
     }
 
+    std::shared_ptr<MainPage> MainPage::getTypedInstance() {
+        return std::dynamic_pointer_cast<MainPage>(getInstance());
+    }
+
     MainPage::MainPage() : Page(PageIdentifier::MainPage) {
         m_camera = std::make_shared<Camera>(800, 600);
         m_framebuffer = std::make_unique<Gl::FrameBuffer>(800, 600);
@@ -25,6 +31,17 @@ namespace Bess::Pages {
 
     void MainPage::draw() {
         UI::UIMain::draw();
+        ImGui::Begin("Debug");
+        // camera pos
+        auto pos = m_camera->getPos();
+        ImGui::Text("Camera Pos: (%.2f, %.2f)", pos.x, pos.y);
+        // mouse pos
+        auto mPos = getNVPMousePos(pos);
+        ImGui::Text("Mouse Pos: (%.2f, %.2f)", mPos.x, mPos.y);
+        // viewport mouse pos
+        auto vpMousePos = getViewportMousePos();
+        ImGui::Text("Viewport Mouse Pos: (%.2f, %.2f)", vpMousePos.x, vpMousePos.y);
+        ImGui::End();
         drawScene();
     }
 
@@ -33,8 +50,7 @@ namespace Bess::Pages {
 
         Renderer::begin(m_camera);
 
-        auto pos = m_camera->getSpan() / 2.f;
-        Renderer::grid({pos.x, -pos.y, -2.f}, m_camera->getSpan(), -1);
+        Renderer::grid({0.f, 0.f, -2.f}, m_camera->getSpan(), -1);
 
         switch (ApplicationState::drawMode) {
         case DrawMode::connection: {
@@ -134,6 +150,10 @@ namespace Bess::Pages {
 
         if (!ApplicationState::simulationPaused)
             Simulator::Engine::Simulate();
+    }
+
+    glm::vec2 MainPage::getCameraPos() {
+        return m_camera->getPos();
     }
 
     void MainPage::onMouseWheel(double x, double y) {
@@ -299,15 +319,15 @@ namespace Bess::Pages {
 
     glm::vec2 MainPage::getNVPMousePos(const glm::vec2 &cameraPos) {
         const auto &viewportPos = getViewportMousePos();
-        const auto &viewportSize = UI::UIMain::state.viewportSize;
 
-        float x = viewportPos.x;
-        float y = viewportPos.y;
+        glm::vec2 pos = viewportPos;
 
-        glm::vec2 pos = {x, y};
-        pos.y *= -1;
-        pos /= UI::UIMain::state.cameraZoom;
-        pos -= cameraPos;
+        glm::mat4 tansform = glm::translate(glm::mat4(1.f), glm::vec3(cameraPos.x, cameraPos.y, 0.f));
+        tansform = glm::scale(tansform, glm::vec3(1.f / UI::UIMain::state.cameraZoom, 1.f / UI::UIMain::state.cameraZoom, 1.f));
+
+        pos = glm::vec2(tansform * glm::vec4(pos.x, -pos.y, 0.f, 1.f));
+        auto span = m_camera->getSpan() / 2.f;
+        pos += glm::vec2({-span.x, span.y});
         return pos;
     }
 

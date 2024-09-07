@@ -4,7 +4,9 @@
 #include "components_manager/component_bank.h"
 #include "components_manager/components_manager.h"
 #include "imgui.h"
+#include "pages/main_page/main_page.h"
 #include "ui/m_widgets.h"
+#include "ui/ui_main/ui_main.h"
 
 namespace Bess::UI {
 
@@ -36,12 +38,12 @@ namespace Bess::UI {
                         continue;
 
                     if (ImGui::Button(name.c_str(), {-1, 0})) {
-                        auto pos = glm::vec3(0.f);
+                        auto pos = Pages::MainPage::getTypedInstance()->getCameraPos();
                         std::any data = NULL;
                         if (comp.getType() == Simulator::ComponentType::jcomponent) {
                             data = comp.getJCompData();
                         }
-                        Simulator::ComponentsManager::generateComponent(comp.getType(), data, pos);
+                        Simulator::ComponentsManager::generateComponent(comp.getType(), data, {pos, 0.f});
                     }
                 }
                 ImGui::TreePop();

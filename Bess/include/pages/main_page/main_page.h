@@ -15,10 +15,14 @@ namespace Bess::Pages {
 
         static std::shared_ptr<Page> getInstance();
 
+        static std::shared_ptr<MainPage> getTypedInstance();
+
         void draw() override;
         void update(const std::vector<ApplicationEvent> &events) override;
 
         void drawScene();
+
+        glm::vec2 getCameraPos();
 
       private:
         std::shared_ptr<Camera> m_camera;
@@ -34,7 +38,7 @@ namespace Bess::Pages {
 
         static bool isCursorInViewport();
         static glm::vec2 getViewportMousePos();
-        static glm::vec2 getNVPMousePos(const glm::vec2 &cameraPos);
+        glm::vec2 getNVPMousePos(const glm::vec2 &cameraPos);
 
       private:
         bool m_leftMousePressed = false;
