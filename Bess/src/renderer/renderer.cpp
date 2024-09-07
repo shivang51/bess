@@ -173,6 +173,16 @@ namespace Bess {
                         const glm::vec4 &borderSize) {
         Renderer::quad(pos, size, color, id, 0.f, borderRadius, shadow, borderColor, borderSize);
     }
+
+    void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
+                        const glm::vec4 &color, int id,
+                        const glm::vec4 &borderRadius,
+                        bool shadow,
+                        const glm::vec4 &borderColor,
+                        float borderSize) {
+        Renderer::quad(pos, size, color, id, 0.f, borderRadius, shadow, borderColor, glm::vec4(borderSize));
+    }
+
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
                         const glm::vec4 &color, int id, float angle,
                         const glm::vec4 &borderRadius,

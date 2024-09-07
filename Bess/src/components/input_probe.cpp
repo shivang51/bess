@@ -42,7 +42,7 @@ namespace Bess::Simulator::Components {
             label = "On";
         }
 
-        Renderer2D::Renderer::quad(m_position, inputProbeSize, bgColor, m_renderId, glm::vec4(r), borderColor, thickness);
+        Renderer2D::Renderer::quad(m_position, inputProbeSize, bgColor, m_renderId, glm::vec4(r), true, borderColor, thickness);
 
         slot->update(m_position + glm::vec3({(inputProbeSize.x / 2) - 12.f, 0.f, 0.f}), {-12.f, 0.f}, label);
         slot->render();

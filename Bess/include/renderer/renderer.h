@@ -67,6 +67,13 @@ namespace Bess::Renderer2D {
                          const glm::vec4 &borderSize = glm::vec4(0.f));
 
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
+                         const glm::vec4 &color, int id,
+                         const glm::vec4 &borderRadius,
+                         bool shadow,
+                         const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
+                         float borderSize = 0.f);
+
+        static void quad(const glm::vec3 &pos, const glm::vec2 &size,
                          const glm::vec4 &color, int id, float angle,
                          const glm::vec4 &borderRadius,
                          bool shadow,
