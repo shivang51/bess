@@ -18,8 +18,8 @@ namespace Bess {
 
     std::vector<PrimitiveType> Renderer::m_AvailablePrimitives;
 
-    std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Shader>>
-        Renderer::m_shaders;
+    std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Shader>> Renderer::m_shaders;
+    std::unique_ptr<Gl::Shader> Renderer::m_quadShadowShader;
     std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Vao>> Renderer::m_vaos;
 
     std::shared_ptr<Camera> Renderer::m_camera;
@@ -62,6 +62,7 @@ namespace Bess {
             case PrimitiveType::quad:
                 vertexShader = "assets/shaders/quad_vert.glsl";
                 fragmentShader = "assets/shaders/quad_frag.glsl";
+                m_quadShadowShader = std::make_unique<Gl::Shader>("assets/shaders/quad_vert.glsl", "assets/shaders/shadow_frag.glsl");
                 break;
             case PrimitiveType::curve:
                 vertexShader = "assets/shaders/vert.glsl";
@@ -162,6 +163,46 @@ namespace Bess {
             Renderer::drawQuad(borderPos, borderSize_, borderColor, id, angle, borderRadius_);
         }
         Renderer::drawQuad(pos, size, color, id, angle, borderRadius);
+    }
+
+    void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
+                        const glm::vec4 &color, int id,
+                        const glm::vec4 &borderRadius,
+                        bool shadow,
+                        const glm::vec4 &borderColor,
+                        const glm::vec4 &borderSize) {
+        Renderer::quad(pos, size, color, id, 0.f, borderRadius, shadow, borderColor, borderSize);
+    }
+    void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
+                        const glm::vec4 &color, int id, float angle,
+                        const glm::vec4 &borderRadius,
+                        bool shadow,
+                        const glm::vec4 &borderColor,
+                        const glm::vec4 &borderSize) {
+
+        if (shadow) {
+            std::vector<Gl::QuadVertex> vertices(4);
+
+            auto transform = glm::translate(glm::mat4(1.0f), pos + glm::vec3(8.f, -8.f, 0.f));
+            transform = glm::rotate(transform, angle, {0.f, 0.f, 1.f});
+            transform = glm::scale(transform, {size.x, size.y, 1.f});
+
+            for (int i = 0; i < 4; i++) {
+                auto &vertex = vertices[i];
+                vertex.position = transform * m_StandardQuadVertices[i];
+                vertex.id = id;
+                vertex.color = color;
+                vertex.borderRadius = borderRadius;
+                vertex.size = size;
+            }
+
+            vertices[0].texCoord = {0.0f, 1.0f};
+            vertices[1].texCoord = {0.0f, 0.0f};
+            vertices[2].texCoord = {1.0f, 0.0f};
+            vertices[3].texCoord = {1.0f, 1.0f};
+            m_RenderData.quadShadowVertices.insert(m_RenderData.quadShadowVertices.end(), vertices.begin(), vertices.end());
+        }
+        Renderer::quad(pos, size, color, id, angle, borderRadius, borderColor, borderSize);
     }
 
     void Renderer2D::Renderer::drawQuad(const glm::vec3 &pos, const glm::vec2 &size, const glm::vec4 &color, int id, float angle, const glm::vec4 &borderRadius) {
@@ -500,9 +541,26 @@ namespace Bess {
 
     void Renderer::flush(PrimitiveType type) {
         auto &vao = m_vaos[type];
+        auto selId = Simulator::ComponentsManager::compIdToRid(ApplicationState::getSelectedId());
+
+        if (type == PrimitiveType::quad) {
+            vao->bind();
+            auto &shader = m_quadShadowShader;
+            shader->bind();
+            shader->setUniformMat4("u_mvp", m_camera->getTransform());
+            shader->setUniform1i("u_SelectedObjId", selId);
+            shader->setUniform1f("u_zoom", m_camera->getZoom());
+
+            auto &vertices = m_RenderData.quadShadowVertices;
+            vao->setVertices(vertices.data(), vertices.size());
+            GL_CHECK(glDrawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6, GL_UNSIGNED_INT, nullptr));
+            vertices.clear();
+
+            vao->unbind();
+            shader->unbind();
+        }
+
         auto &shader = m_shaders[type];
-        auto selId = Simulator::ComponentsManager::compIdToRid(
-            ApplicationState::getSelectedId());
 
         vao->bind();
         shader->bind();

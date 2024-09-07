@@ -50,6 +50,7 @@ namespace Bess::Simulator::Components {
             ViewportTheme::componentBGColor,
             m_renderId,
             glm::vec4(rPx),
+            true,
             borderColor,
             borderThicknessPx);
 

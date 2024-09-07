@@ -19,6 +19,7 @@ namespace Bess::Renderer2D {
         std::vector<Gl::Vertex> fontVertices;
         std::vector<Gl::Vertex> triangleVertices;
         std::vector<Gl::QuadVertex> quadVertices;
+        std::vector<Gl::QuadVertex> quadShadowVertices;
     };
 
     struct QuadBezierCurvePoints {
@@ -57,6 +58,20 @@ namespace Bess::Renderer2D {
                          const glm::vec4 &borderRadius = {0.f, 0.f, 0.f, 0.f},
                          const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
                          float borderSize = 0.f);
+
+        static void quad(const glm::vec3 &pos, const glm::vec2 &size,
+                         const glm::vec4 &color, int id,
+                         const glm::vec4 &borderRadius,
+                         bool shadow,
+                         const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
+                         const glm::vec4 &borderSize = glm::vec4(0.f));
+
+        static void quad(const glm::vec3 &pos, const glm::vec2 &size,
+                         const glm::vec4 &color, int id, float angle,
+                         const glm::vec4 &borderRadius,
+                         bool shadow,
+                         const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
+                         const glm::vec4 &borderSize = glm::vec4(0.f));
 
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
                          const glm::vec4 &color, int id, float angle,
@@ -107,8 +122,9 @@ namespace Bess::Renderer2D {
         static QuadBezierCurvePoints generateQuadBezierPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius);
 
       private:
-        static std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Shader>>
-            m_shaders;
+        static std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Shader>> m_shaders;
+
+        static std::unique_ptr<Gl::Shader> m_quadShadowShader;
 
         static std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Vao>> m_vaos;
 
