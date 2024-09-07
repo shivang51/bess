@@ -5,7 +5,7 @@ layout(location = 1) out int fragColor1;
 
 in vec2 v_Size;
 in vec2 v_TexCoord;
-in vec3 v_FragColor;
+in vec4 v_FragColor;
 in vec4 v_BorderSize;
 in vec4 v_BorderRadius;
 in vec4 v_BorderColor;

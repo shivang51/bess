@@ -4,17 +4,14 @@
 #include <iostream>
 #include <string>
 
-namespace Bess::Gl
-{
-    Shader::Shader(const std::string &vertexPath, const std::string &fragmentPath)
-    {
+namespace Bess::Gl {
+    Shader::Shader(const std::string &vertexPath, const std::string &fragmentPath) {
         m_id = createProgram(vertexPath, fragmentPath);
     }
 
     Shader::Shader(const std::string &vertexPath, const std::string &fragmentPath,
                    const std::string &tessalationPath,
-                   const std::string &evaluationPath)
-    {
+                   const std::string &evaluationPath) {
         m_id = createProgram(vertexPath, fragmentPath, tessalationPath,
                              evaluationPath);
     }
@@ -28,8 +25,7 @@ namespace Bess::Gl
     GLuint Shader::createProgram(const std::string &vertexPath,
                                  const std::string &fragmentPath,
                                  const std::string &tessalationPath,
-                                 const std::string &evaluationPath)
-    {
+                                 const std::string &evaluationPath) {
 
         auto vertexShader = readFile(vertexPath);
         auto fragmentShader = readFile(fragmentPath);
@@ -56,8 +52,7 @@ namespace Bess::Gl
         int success;
         char infoLog[512];
         glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-        if (!success)
-        {
+        if (!success) {
             glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
             std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
                       << infoLog << std::endl;
@@ -71,15 +66,13 @@ namespace Bess::Gl
         return shaderProgram;
     }
     GLuint Shader::createProgram(const std::string &vertexPath,
-                                 const std::string &fragmentPath)
-    {
+                                 const std::string &fragmentPath) {
 
         auto vertexShader = readFile(vertexPath);
         auto fragmentShader = readFile(fragmentPath);
 
         auto vertexShaderId = compileShader(vertexShader.c_str(), GL_VERTEX_SHADER);
-        auto fragmentShaderId =
-            compileShader(fragmentShader.c_str(), GL_FRAGMENT_SHADER);
+        auto fragmentShaderId = compileShader(fragmentShader.c_str(), GL_FRAGMENT_SHADER);
 
         auto shaderProgram = glCreateProgram();
         glAttachShader(shaderProgram, vertexShaderId);
@@ -89,10 +82,10 @@ namespace Bess::Gl
         int success;
         char infoLog[512];
         glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-        if (!success)
-        {
+        if (!success) {
             glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
-            std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
+            std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED -> "
+                      << fragmentPath << "\n"
                       << infoLog << std::endl;
         }
 
@@ -102,27 +95,22 @@ namespace Bess::Gl
         return shaderProgram;
     }
 
-    std::string Shader::readFile(const std::string &path)
-    {
+    std::string Shader::readFile(const std::string &path) {
         std::string content;
         std::ifstream fileStream(path, std::ios::ate);
-        if (fileStream.is_open())
-        {
+        if (fileStream.is_open()) {
             size_t fileSize = fileStream.tellg();
             content.resize(fileSize);
             fileStream.seekg(0);
             fileStream.read((char *)content.data(), fileSize);
             fileStream.close();
-        }
-        else
-        {
+        } else {
             std::cerr << "Could not read file " << path << std::endl;
         }
         return content;
     }
 
-    GLuint Shader::compileShader(const std::string &shaderSrc, GLenum shaderType)
-    {
+    GLuint Shader::compileShader(const std::string &shaderSrc, GLenum shaderType) {
         auto shaderId = glCreateShader(shaderType);
         const char *src = shaderSrc.c_str();
         glShaderSource(shaderId, 1, &src, nullptr);
@@ -131,8 +119,7 @@ namespace Bess::Gl
         int success;
         char infoLog[512];
         glGetShaderiv(shaderId, GL_COMPILE_STATUS, &success);
-        if (!success)
-        {
+        if (!success) {
             glGetShaderInfoLog(shaderId, 512, nullptr, infoLog);
             std::cerr << "ERROR::SHADER::COMPILATION_FAILED\n"
                       << infoLog << std::endl;
@@ -141,43 +128,35 @@ namespace Bess::Gl
         return shaderId;
     }
 
-    void Shader::setUniformVec4(const std::string &name, const glm::vec4 &value)
-    {
+    void Shader::setUniformVec4(const std::string &name, const glm::vec4 &value) {
         glUniform4fv(glGetUniformLocation(m_id, name.c_str()), 1, glm::value_ptr(value));
     }
 
-    void Shader::setUniformMat4(const std::string &name, const glm::mat4 &value)
-    {
+    void Shader::setUniformMat4(const std::string &name, const glm::mat4 &value) {
         glUniformMatrix4fv(glGetUniformLocation(m_id, name.c_str()), 1, GL_FALSE,
                            glm::value_ptr(value));
     }
 
-    void Shader::setUniform1i(const std::string &name, int value)
-    {
+    void Shader::setUniform1i(const std::string &name, int value) {
         GL_CHECK(glUniform1i(glGetUniformLocation(m_id, name.c_str()), value));
     }
 
-    void Shader::setUniform1f(const std::string &name, float value)
-    {
+    void Shader::setUniform1f(const std::string &name, float value) {
         GL_CHECK(glUniform1f(glGetUniformLocation(m_id, name.c_str()), value));
     }
 
-
     void Shader::setUniformIV(const std::string &name,
-                              const std::vector<int> &value)
-    {
+                              const std::vector<int> &value) {
         GL_CHECK(glUniform1iv(glGetUniformLocation(m_id, name.c_str()),
                               (GLsizei)value.size(), value.data()));
     }
 
-
-    void Shader::setUniform3f(const std::string& name, const glm::vec3& value)
-    {
+    void Shader::setUniform3f(const std::string &name, const glm::vec3 &value) {
         glUniform3fv(glGetUniformLocation(m_id, name.c_str()), 1,
-            glm::value_ptr(value));
+                     glm::value_ptr(value));
     }
 
-    void Shader::setUniformVec2(const std::string& name, const glm::vec2& value) {
+    void Shader::setUniformVec2(const std::string &name, const glm::vec2 &value) {
         glUniform2fv(glGetUniformLocation(m_id, name.c_str()), 1, glm::value_ptr(value));
     }
 

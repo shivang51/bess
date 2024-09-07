@@ -1,16 +1,16 @@
 #pragma once
 #include "component.h"
 #include "components_manager/components_manager.h"
+#include "json.hpp"
 #include "renderer/renderer.h"
 #include "settings/viewport_theme.h"
 #include <vector>
-#include "json.hpp"
 
 namespace Bess::Simulator::Components {
     class Connection : public Component {
-    public:
-        Connection(const uuids::uuid& uid, int renderId, const uuids::uuid& slot1,
-            const uuids::uuid& slot2);
+      public:
+        Connection(const uuids::uuid &uid, int renderId, const uuids::uuid &slot1,
+                   const uuids::uuid &slot2);
         ~Connection() = default;
         Connection();
 
@@ -18,28 +18,28 @@ namespace Bess::Simulator::Components {
 
         void deleteComponent() override;
 
-        static void generate(const uuids::uuid& slot1, const uuids::uuid& slot2, const glm::vec3& pos = { 0.f, 0.f, 0.f });
-        void generate(const glm::vec3& pos = { 0.f, 0.f, 0.f }) override;
+        static void generate(const uuids::uuid &slot1, const uuids::uuid &slot2, const glm::vec3 &pos = {0.f, 0.f, 0.f});
+        void generate(const glm::vec3 &pos = {0.f, 0.f, 0.f}) override;
 
         void drawProperties() override;
 
-        const std::vector<uuids::uuid>& getPoints();
-        void setPoints(const std::vector<uuids::uuid>& points);
-        void addPoint(const uuids::uuid& point);
-        void removePoint(const uuids::uuid& point);
+        const std::vector<uuids::uuid> &getPoints();
+        void setPoints(const std::vector<uuids::uuid> &points);
+        void addPoint(const uuids::uuid &point);
+        void removePoint(const uuids::uuid &point);
 
-    private:
+      private:
         uuids::uuid m_slot1;
         uuids::uuid m_slot2;
 
-        void onLeftClick(const glm::vec2& pos);
+        void onLeftClick(const glm::vec2 &pos);
         void onFocusLost();
         void onFocus();
         void onMouseHover();
 
         std::vector<uuids::uuid> m_points = {};
 
-    private: // properties
-        glm::vec3 m_color = ViewportTheme::wireColor;
+      private: // properties
+        glm::vec4 m_color = ViewportTheme::wireColor;
     };
-}// namespace Bess::Simulator::Components
+} // namespace Bess::Simulator::Components

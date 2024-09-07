@@ -131,7 +131,7 @@ namespace Bess {
     }
 
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
-                        const glm::vec3 &color, int id,
+                        const glm::vec4 &color, int id,
                         const glm::vec4 &borderRadius, const glm::vec4 &borderColor,
                         float borderSize) {
         Renderer::quad(pos, size, color, id, 0.f, borderRadius, borderColor,
@@ -139,7 +139,7 @@ namespace Bess {
     }
 
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
-                        const glm::vec3 &color, int id,
+                        const glm::vec4 &color, int id,
                         const glm::vec4 &borderRadius, const glm::vec4 &borderColor,
                         const glm::vec4 &borderSize) {
         Renderer::quad(pos, size, color, id, 0.f, borderRadius, borderColor,
@@ -147,13 +147,13 @@ namespace Bess {
     }
 
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
-                        const glm::vec3 &color, int id, float angle,
+                        const glm::vec4 &color, int id, float angle,
                         const glm::vec4 &borderRadius, const glm::vec4 &borderColor,
                         float borderSize) {
         Renderer::quad(pos, size, color, id, angle, borderRadius, borderColor, glm::vec4(borderSize));
     }
 
-    void Renderer2D::Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size, const glm::vec3 &color, int id, float angle, const glm::vec4 &borderRadius, const glm::vec4 &borderColor, const glm::vec4 &borderSize) {
+    void Renderer2D::Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size, const glm::vec4 &color, int id, float angle, const glm::vec4 &borderRadius, const glm::vec4 &borderColor, const glm::vec4 &borderSize) {
 
         if (borderSize.x || borderSize.y || borderSize.z || borderSize.w) {
             glm::vec3 borderPos = pos;
@@ -164,7 +164,7 @@ namespace Bess {
         Renderer::drawQuad(pos, size, color, id, angle, borderRadius);
     }
 
-    void Renderer2D::Renderer::drawQuad(const glm::vec3 &pos, const glm::vec2 &size, const glm::vec3 &color, int id, float angle, const glm::vec4 &borderRadius) {
+    void Renderer2D::Renderer::drawQuad(const glm::vec3 &pos, const glm::vec2 &size, const glm::vec4 &color, int id, float angle, const glm::vec4 &borderRadius) {
         std::vector<Gl::QuadVertex> vertices(4);
 
         auto transform = glm::translate(glm::mat4(1.0f), pos);
@@ -241,7 +241,7 @@ namespace Bess {
         return point;
     }
 
-    void Renderer::createCurveVertices(const glm::vec3 &start_, const glm::vec3 &end_, const glm::vec3 &color, const int id, float weight) {
+    void Renderer::createCurveVertices(const glm::vec3 &start_, const glm::vec3 &end_, const glm::vec4 &color, const int id, float weight) {
         auto end = end_;
         auto start = start_;
 
@@ -283,7 +283,7 @@ namespace Bess {
         return std::max(1, (int)segments);
     }
 
-    void Renderer::curve(const glm::vec3 &start, const glm::vec3 &end, float weight, const glm::vec3 &color, const int id) {
+    void Renderer::curve(const glm::vec3 &start, const glm::vec3 &end, float weight, const glm::vec4 &color, const int id) {
         double dx = end.x - start.x;
         double offsetX = dx * 0.5;
 
@@ -296,7 +296,7 @@ namespace Bess {
     }
 
     void Renderer::quadraticBezier(const glm::vec3 &start, const glm::vec3 &end, const glm::vec2 &controlPoint, float weight,
-                                   const glm::vec3 &color, const int id, bool pathMode) {
+                                   const glm::vec4 &color, const int id, bool pathMode) {
         int segments = calculateSegments(start, end);
 
         auto prev = start;
@@ -311,7 +311,7 @@ namespace Bess {
         }
     }
 
-    void Renderer2D::Renderer::cubicBezier(const glm::vec3 &start, const glm::vec3 &end, const glm::vec2 &cp1, const glm::vec2 &cp2, float weight, const glm::vec3 &color, const int id) {
+    void Renderer2D::Renderer::cubicBezier(const glm::vec3 &start, const glm::vec3 &end, const glm::vec2 &cp1, const glm::vec2 &cp2, float weight, const glm::vec4 &color, const int id) {
         const int segments = (int)(calculateSegments(start, end));
 
         auto prev = start;
@@ -324,7 +324,7 @@ namespace Bess {
     }
 
     void Renderer::circle(const glm::vec3 &center, const float radius,
-                          const glm::vec3 &color, const int id) {
+                          const glm::vec4 &color, const int id) {
         glm::vec2 size = {radius * 2, radius * 2};
 
         std::vector<Gl::Vertex> vertices(4);
@@ -354,7 +354,7 @@ namespace Bess {
         vao->bind();
         shader->bind();
 
-        shader->setUniform3f("textColor", color);
+        shader->setUniformVec4("textColor", color);
         shader->setUniformMat4("u_mvp", m_camera->getTransform());
 
         auto selId = Simulator::ComponentsManager::compIdToRid(ApplicationState::getSelectedId());
@@ -398,7 +398,7 @@ namespace Bess {
         }
     }
 
-    void Renderer2D::Renderer::line(const glm::vec3 &start, const glm::vec3 &end, float size, const glm::vec3 &color, const int id) {
+    void Renderer2D::Renderer::line(const glm::vec3 &start, const glm::vec3 &end, float size, const glm::vec4 &color, const int id) {
         glm::vec2 direction = end - start;
         float length = glm::length(direction);
 
@@ -409,7 +409,7 @@ namespace Bess {
         drawQuad(glm::vec3(pos, start.z), {length, size}, color, id, angle);
     }
 
-    void Renderer2D::Renderer::drawPath(const std::vector<glm::vec3> &points, float weight, const glm::vec3 &color, const int id, bool closed) {
+    void Renderer2D::Renderer::drawPath(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const int id, bool closed) {
         if (points.empty())
             return;
         auto newPoints = points;
@@ -431,7 +431,7 @@ namespace Bess {
         }
     }
 
-    void Renderer2D::Renderer::triangle(const std::vector<glm::vec3> &points, const glm::vec3 &color, const int id) {
+    void Renderer2D::Renderer::triangle(const std::vector<glm::vec3> &points, const glm::vec4 &color, const int id) {
         std::vector<Gl::Vertex> vertices(3);
 
         for (int i = 0; i < vertices.size(); i++) {

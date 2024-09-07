@@ -12,7 +12,7 @@
 
 namespace Bess::Simulator::Components {
     float fontSize = 10.f;
-    glm::vec3 connectedBg = {0.42f, 0.82f, 0.42f};
+    glm::vec4 connectedBg = {0.42f, 0.82f, 0.42f, 1.f};
 
     Slot::Slot(const uuids::uuid &uid, const uuids::uuid &parentUid, int id, ComponentType type)
         : Component(uid, id, {0.f, 0.f, 0.f}, type), m_parentUid{parentUid} {

@@ -4,14 +4,14 @@
 namespace Bess {
     class ViewportTheme {
       public:
-        static glm::vec3 componentBGColor;
-        static glm::vec3 selectedCompColor;
+        static glm::vec4 componentBGColor;
+        static glm::vec4 selectedCompColor;
         static glm::vec4 componentBorderColor;
-        static glm::vec3 backgroundColor;
+        static glm::vec4 backgroundColor;
         static glm::vec4 stateHighColor;
         static glm::vec4 wireColor;
-        static glm::vec3 selectedWireColor;
-        static glm::vec3 compHeaderColor;
+        static glm::vec4 selectedWireColor;
+        static glm::vec4 compHeaderColor;
         static glm::vec4 textColor;
 
         static void updateColorsFromImGuiStyle();

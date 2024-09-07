@@ -5,17 +5,20 @@ layout(location = 1) out int fragColor1;
 
 in vec3 v_FragPos;
 in vec2 v_TexCoord;
-in vec3 v_FragColor;
+in vec4 v_FragColor;
 in flat int v_TextureIndex;
 
 uniform sampler2D tex;
 uniform int u_SelectedObjId;
-uniform vec3 textColor;
+uniform vec4 textColor;
 
 void main(){
     float a = texture(tex, v_TexCoord).r;
     if(a == 0.f) discard;
-    vec4 sampled = vec4(textColor, a);
+
+    vec4 sampled = textColor;
+    sampled.w = min(sampled.w, a);
+
     fragColor = sampled;
     fragColor1 = v_TextureIndex;	
 }

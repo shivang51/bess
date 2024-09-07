@@ -42,7 +42,7 @@ namespace Bess::Simulator::Components {
     void JComponent::drawBackground(const glm::vec4 &borderThicknessPx, float rPx, float headerHeight, const glm::vec2 &gateSize) {
         bool selected = ApplicationState::getSelectedId() == m_uid;
 
-        auto borderColor = selected ? glm::vec4(ViewportTheme::selectedCompColor, 1.f) : ViewportTheme::componentBorderColor;
+        auto borderColor = selected ? ViewportTheme::selectedCompColor : ViewportTheme::componentBorderColor;
 
         Renderer2D::Renderer::quad(
             m_position,

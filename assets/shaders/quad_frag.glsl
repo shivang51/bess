@@ -5,7 +5,7 @@ layout(location = 1) out int fragColor1;
 
 in vec2 v_Size;
 in vec2 v_TexCoord;
-in vec3 v_FragColor;
+in vec4 v_FragColor;
 in vec4 v_BorderRadius;
 in flat int v_FragId;
 
@@ -28,7 +28,7 @@ float calculateQuad(vec2 p, vec2 si, vec4 ra){
     return a;
 }
 
-float min(vec2 v){
+float minVec2(vec2 v){
     return (v.x <= v.y) ? v.x : v.y;  
 }
 
@@ -36,9 +36,9 @@ void main() {
     vec2 fragPos = gl_FragCoord.xy;
     float ar = v_Size.x / v_Size.y;
     vec2 p = v_TexCoord;
-    vec3 bgColor = v_FragColor;
+    vec4 bgColor = v_FragColor;
     vec4 bR = v_BorderRadius;
-    bR /= min(v_Size);
+    bR /= minVec2(v_Size);
 
     smoothBlur /= u_zoom;
 
@@ -50,6 +50,7 @@ void main() {
     
     float a = calculateQuad(p, si, ra);
     if (a == 0.f) discard;
-    fragColor = vec4(bgColor, a);
+    bgColor.w = min(bgColor.w, a);
+    fragColor = bgColor;
     fragColor1 = v_FragId;
 }

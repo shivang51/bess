@@ -41,52 +41,52 @@ namespace Bess::Renderer2D {
 
       public:
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
-                         const glm::vec3 &color, int id,
+                         const glm::vec4 &color, int id,
                          const glm::vec4 &borderRadius = {0.f, 0.f, 0.f, 0.f},
                          const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
                          float borderSize = 0.f);
 
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
-                         const glm::vec3 &color, int id,
+                         const glm::vec4 &color, int id,
                          const glm::vec4 &borderRadius,
                          const glm::vec4 &borderColor,
                          const glm::vec4 &borderSize = glm::vec4(0.f));
 
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
-                         const glm::vec3 &color, int id, float angle,
+                         const glm::vec4 &color, int id, float angle,
                          const glm::vec4 &borderRadius = {0.f, 0.f, 0.f, 0.f},
                          const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
                          float borderSize = 0.f);
 
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
-                         const glm::vec3 &color, int id, float angle,
+                         const glm::vec4 &color, int id, float angle,
                          const glm::vec4 &borderRadius,
                          const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
                          const glm::vec4 &borderSize = glm::vec4(0.f));
 
-        static void curve(const glm::vec3 &start, const glm::vec3 &end, float weight, const glm::vec3 &color, int id);
+        static void curve(const glm::vec3 &start, const glm::vec3 &end, float weight, const glm::vec4 &color, int id);
 
-        static void quadraticBezier(const glm::vec3 &start, const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec3 &color, const int id, bool pathMode = false);
+        static void quadraticBezier(const glm::vec3 &start, const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, const int id, bool pathMode = false);
 
-        static void cubicBezier(const glm::vec3 &start, const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2, float weight, const glm::vec3 &color, const int id);
+        static void cubicBezier(const glm::vec3 &start, const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2, float weight, const glm::vec4 &color, const int id);
 
         static void circle(const glm::vec3 &center, float radius,
-                           const glm::vec3 &color, int id);
+                           const glm::vec4 &color, int id);
 
         static void grid(const glm::vec3 &pos, const glm::vec2 &size, int id);
 
         static void text(const std::string &data, const glm::vec3 &pos, const size_t size, const glm::vec4 &color, const int id);
 
-        static void line(const glm::vec3 &start, const glm::vec3 &end, float size, const glm::vec3 &color, const int id);
+        static void line(const glm::vec3 &start, const glm::vec3 &end, float size, const glm::vec4 &color, const int id);
 
-        static void drawPath(const std::vector<glm::vec3> &points, float weight, const glm::vec3 &color, const int id, bool closed = false);
+        static void drawPath(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const int id, bool closed = false);
 
-        static void triangle(const std::vector<glm::vec3> &points, const glm::vec3 &color, const int id);
+        static void triangle(const std::vector<glm::vec3> &points, const glm::vec4 &color, const int id);
 
       private:
         static void createCurveVertices(const glm::vec3 &start,
                                         const glm::vec3 &end,
-                                        const glm::vec3 &color, int id, float weight = 3.0f);
+                                        const glm::vec4 &color, int id, float weight = 3.0f);
 
         static int calculateSegments(const glm::vec2 &p1, const glm::vec2 &p2);
 
@@ -101,7 +101,7 @@ namespace Bess::Renderer2D {
         static void flush(PrimitiveType type);
 
         static void drawQuad(const glm::vec3 &pos, const glm::vec2 &size,
-                             const glm::vec3 &color, int id, float angle,
+                             const glm::vec4 &color, int id, float angle,
                              const glm::vec4 &borderRadius = {0.f, 0.f, 0.f, 0.f});
 
         static QuadBezierCurvePoints generateQuadBezierPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius);
