@@ -13,6 +13,7 @@ set(External
     "../external/imgui/imgui_widgets.cpp"
     "../external/imgui/imgui_demo.cpp"
     "../external/stb_image/src/stb_image.cpp"
+    "../external/tinyfiledialogs/tinyfiledialogs.c"
 )
 source_group("External" FILES ${External})
 
@@ -158,6 +159,7 @@ if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/glfw/include;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/glad/include;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/stb_image/include;"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../external/tinyfiledialogs;"
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
     )
 endif()

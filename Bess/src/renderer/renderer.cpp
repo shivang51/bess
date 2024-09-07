@@ -1,6 +1,7 @@
 #include "renderer/renderer.h"
 #include "camera.h"
 #include "fwd.hpp"
+#include "geometric.hpp"
 #include "glm.hpp"
 #include "renderer/gl/primitive_type.h"
 #include "renderer/gl/vertex.h"
@@ -155,12 +156,10 @@ namespace Bess {
     void Renderer2D::Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size, const glm::vec3 &color, int id, float angle, const glm::vec4 &borderRadius, const glm::vec4 &borderColor, const glm::vec4 &borderSize) {
 
         if (borderSize.x || borderSize.y || borderSize.z || borderSize.w) {
-            auto size_ = size;
+            glm::vec3 borderPos = pos;
+            glm::vec2 borderSize_ = size + glm::vec2(borderSize.w + borderSize.y, borderSize.x + borderSize.z);
             auto borderRadius_ = borderRadius + borderSize;
-
-            size_.x += borderSize.w + borderSize.y;
-            size_.y += borderSize.x + borderSize.z;
-            Renderer::drawQuad(pos, size_, borderColor, id, angle, borderRadius_);
+            Renderer::drawQuad(borderPos, borderSize_, borderColor, id, angle, borderRadius_);
         }
         Renderer::drawQuad(pos, size, color, id, angle, borderRadius);
     }
@@ -242,9 +241,16 @@ namespace Bess {
         return point;
     }
 
-    void Renderer::createCurveVertices(const glm::vec3 &start, const glm::vec3 &end, const glm::vec3 &color, const int id, float weight) {
+    void Renderer::createCurveVertices(const glm::vec3 &start_, const glm::vec3 &end_, const glm::vec3 &color, const int id, float weight) {
+        auto end = end_;
+        auto start = start_;
+
+        float dy = end.y - start.y;
+        if (std::abs(dy) < 0.0001f) {
+            end.y = start.y;
+        }
         glm::vec2 direction = glm::normalize(end - start);
-        float length = glm::length(end - start);
+        float length = glm::distance(start, end);
         glm::vec2 pos = (start + end) * 0.5f;
         float angle = glm::atan(direction.y, direction.x);
         glm::vec2 size = {length, weight};
@@ -394,7 +400,6 @@ namespace Bess {
 
     void Renderer2D::Renderer::line(const glm::vec3 &start, const glm::vec3 &end, float size, const glm::vec3 &color, const int id) {
         glm::vec2 direction = end - start;
-
         float length = glm::length(direction);
 
         glm::vec2 pos = (start + end) * 0.5f;
