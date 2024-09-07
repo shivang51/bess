@@ -1,6 +1,5 @@
 #include "ui/ui_main/dialogs.h"
 #include "tinyfiledialogs.h"
-#include <vector>
 
 namespace Bess::UI {
     std::vector<std::string> Dialogs::filterList = {"*.bproj"};
