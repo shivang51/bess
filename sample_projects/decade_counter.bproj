@@ -1,6 +1,360 @@
 {
     "components": [
         {
+            "inputSlots": [
+                {
+                    "connections": [
+                        "f91ae671-1954-4136-b87a-c8efa617a3a9"
+                    ],
+                    "type": 0,
+                    "uid": "7178ed18-ec9f-4e88-84e8-0769b7b495df"
+                },
+                {
+                    "connections": [
+                        "c70521dd-94f4-445c-8f59-05a25aa3aa77"
+                    ],
+                    "type": 0,
+                    "uid": "93d911c9-1a1c-47e7-8e60-9daf8705629c"
+                }
+            ],
+            "jCompData": {
+                "collection": "Digital Gates",
+                "name": "XOR Gate"
+            },
+            "outputSlots": [
+                {
+                    "connections": [
+                        "1e2db8f8-a4e5-4309-a818-f829eee464d8",
+                        "d94f01d8-1cd9-4ebe-9903-c3334d55994c"
+                    ],
+                    "type": 1,
+                    "uid": "1bc4e0d7-f3f4-4f73-96cf-c53f90908ebc"
+                }
+            ],
+            "pos": {
+                "x": 401.3852233886719,
+                "y": 217.9921875,
+                "z": 0.0007999999797903001
+            },
+            "type": 101,
+            "uid": "41c8ee3c-bc4f-4a57-b1ab-bc971b82179c"
+        },
+        {
+            "pos": {
+                "x": -4.23046875,
+                "y": -119.95703125,
+                "z": 0.00019999999494757503
+            },
+            "slot": {
+                "connections": [
+                    "6b99280b-b9fb-4396-b8a3-ca803270b646",
+                    "ed48c556-669a-495c-9b5d-df8aca14dda6"
+                ],
+                "type": 0,
+                "uid": "2eb7c72a-fda9-471e-b427-653f33aa0694"
+            },
+            "type": 103,
+            "uid": "4f044e14-fac8-434f-931e-249506bc0102"
+        },
+        {
+            "inputSlots": [
+                {
+                    "connections": [
+                        "a259583a-4215-4cf8-b82f-10f2c7d90af5"
+                    ],
+                    "type": 0,
+                    "uid": "161fb280-e0a5-417b-b53b-53df81dacd21"
+                },
+                {
+                    "connections": [
+                        "c7dafd8c-2de1-4412-8506-043df8087689"
+                    ],
+                    "type": 0,
+                    "uid": "5e049493-5c94-4f6e-a77e-6389bb3e2790"
+                }
+            ],
+            "jCompData": {
+                "collection": "Digital Gates",
+                "name": "AND Gate"
+            },
+            "outputSlots": [
+                {
+                    "connections": [
+                        "93d911c9-1a1c-47e7-8e60-9daf8705629c"
+                    ],
+                    "type": 1,
+                    "uid": "c70521dd-94f4-445c-8f59-05a25aa3aa77"
+                }
+            ],
+            "pos": {
+                "x": 223.96484375,
+                "y": 153.91015625,
+                "z": 0.0005999999702908099
+            },
+            "type": 101,
+            "uid": "df691bd3-7e3c-46ae-bff7-d6908a73f4e5"
+        },
+        {
+            "pos": {
+                "x": -220.77734375,
+                "y": -114.65625,
+                "z": 0.00029999998514540493
+            },
+            "slot": {
+                "connections": [
+                    "489cf3df-1c6b-4a17-becb-f47f4d27f525",
+                    "04ddf6ed-0285-4c25-8f87-d9ec3061628e"
+                ],
+                "type": 0,
+                "uid": "2916d8bc-fc63-40ff-a26a-723ab8ccccd0"
+            },
+            "type": 103,
+            "uid": "ebe747eb-bb9c-404f-8ccd-6cb9c9168d07"
+        },
+        {
+            "clockSlot": "cb76b88d-27e2-4a52-8358-8de260dc82dc",
+            "inputSlots": [
+                "1092231f-dc02-471e-92fc-3446938b49c7",
+                "f78282a0-8a6e-4ab6-be31-52490d3439ad"
+            ],
+            "name": "JK Flip Flop",
+            "outputSlots": [
+                "6b99280b-b9fb-4396-b8a3-ca803270b646",
+                "ed48c556-669a-495c-9b5d-df8aca14dda6"
+            ],
+            "pos": {
+                "x": -111.265625,
+                "y": 8.8828125,
+                "z": 9.999999747378752e-05
+            },
+            "type": 107,
+            "uid": "789867f3-7c02-4f13-9923-618af74bce93"
+        },
+        {
+            "clockSlot": "eba0066c-10d6-40cf-8fb9-9db700a4d6b9",
+            "inputSlots": [
+                "1e2db8f8-a4e5-4309-a818-f829eee464d8",
+                "d94f01d8-1cd9-4ebe-9903-c3334d55994c"
+            ],
+            "name": "JK Flip Flop",
+            "outputSlots": [
+                "291916a7-d1da-4a26-814a-bd2fd7d555e0",
+                "17bd3d49-16d5-4c81-ad6a-c5791d9b14be"
+            ],
+            "pos": {
+                "x": 336.875,
+                "y": 7.19921875,
+                "z": 0.00029999998514540493
+            },
+            "type": 107,
+            "uid": "201df48a-92c7-422b-b9d9-91e2df7275c3"
+        },
+        {
+            "inputSlots": [
+                {
+                    "connections": [
+                        "489cf3df-1c6b-4a17-becb-f47f4d27f525"
+                    ],
+                    "type": 0,
+                    "uid": "c231e795-7b60-429d-ae30-a4b36ddf062d"
+                },
+                {
+                    "connections": [
+                        "17bd3d49-16d5-4c81-ad6a-c5791d9b14be"
+                    ],
+                    "type": 0,
+                    "uid": "ad0254a6-a997-4356-a1a2-74dbde444caf"
+                }
+            ],
+            "jCompData": {
+                "collection": "Digital Gates",
+                "name": "AND Gate"
+            },
+            "outputSlots": [
+                {
+                    "connections": [
+                        "1092231f-dc02-471e-92fc-3446938b49c7",
+                        "f78282a0-8a6e-4ab6-be31-52490d3439ad"
+                    ],
+                    "type": 1,
+                    "uid": "a7bc672c-f737-4352-a2d8-a924426cfff9"
+                }
+            ],
+            "pos": {
+                "x": -221.33984375,
+                "y": 150.53515625,
+                "z": 0.00039999998989515007
+            },
+            "type": 101,
+            "uid": "f63d5db4-001b-477b-80ba-467e2eb58fee"
+        },
+        {
+            "inputSlots": [
+                {
+                    "connections": [
+                        "291916a7-d1da-4a26-814a-bd2fd7d555e0"
+                    ],
+                    "type": 0,
+                    "uid": "b028e14d-5f4d-4e86-831b-50e5c3dbb189"
+                },
+                {
+                    "connections": [
+                        "489cf3df-1c6b-4a17-becb-f47f4d27f525"
+                    ],
+                    "type": 0,
+                    "uid": "b48d8966-dfc0-4d3a-8e0d-e7d5c215c16a"
+                }
+            ],
+            "jCompData": {
+                "collection": "Digital Gates",
+                "name": "AND Gate"
+            },
+            "outputSlots": [
+                {
+                    "connections": [
+                        "7178ed18-ec9f-4e88-84e8-0769b7b495df"
+                    ],
+                    "type": 1,
+                    "uid": "f91ae671-1954-4136-b87a-c8efa617a3a9"
+                }
+            ],
+            "pos": {
+                "x": 222.61328125,
+                "y": 255.29296875,
+                "z": 0.000699999975040555
+            },
+            "type": 101,
+            "uid": "aa81a744-15a1-402f-af25-5fe5c4b5a279"
+        },
+        {
+            "inputSlots": [
+                {
+                    "connections": [
+                        "489cf3df-1c6b-4a17-becb-f47f4d27f525"
+                    ],
+                    "type": 0,
+                    "uid": "72522ae8-30c3-4c6c-90e4-f114f3e1e09c"
+                },
+                {
+                    "connections": [
+                        "6b99280b-b9fb-4396-b8a3-ca803270b646"
+                    ],
+                    "type": 0,
+                    "uid": "ff0717f7-227f-4cc4-bf52-dd54f9cd14b5"
+                }
+            ],
+            "jCompData": {
+                "collection": "Digital Gates",
+                "name": "AND Gate"
+            },
+            "outputSlots": [
+                {
+                    "connections": [
+                        "e383412e-5e8d-48de-9ef5-da88e64c9db2",
+                        "28d1360c-1d02-46c9-b4c0-fa1058a4c939",
+                        "161fb280-e0a5-417b-b53b-53df81dacd21"
+                    ],
+                    "type": 1,
+                    "uid": "a259583a-4215-4cf8-b82f-10f2c7d90af5"
+                }
+            ],
+            "pos": {
+                "x": 3.8984375,
+                "y": 153.62890625,
+                "z": 0.0004999999655410647
+            },
+            "type": 101,
+            "uid": "dbc34e21-1631-4e57-b74e-cc61c06287f4"
+        },
+        {
+            "pos": {
+                "x": -491.16015625,
+                "y": 17.70703125,
+                "z": 0.00039999998989515007
+            },
+            "slot": {
+                "connections": [
+                    "abbdfd5e-a59b-4941-9b1b-986055553c37",
+                    "2d90aac9-9ec8-4f66-89fe-efde6b034e6f"
+                ],
+                "type": 1,
+                "uid": "0beb0150-5eb2-4efb-b5dd-2f6a82ff1e38"
+            },
+            "type": 102,
+            "uid": "7d54e930-d4cc-4f8d-adbf-08d0edb95287"
+        },
+        {
+            "clockSlot": "c7913a45-6363-4457-9908-9244c228ce74",
+            "inputSlots": [
+                "e383412e-5e8d-48de-9ef5-da88e64c9db2",
+                "28d1360c-1d02-46c9-b4c0-fa1058a4c939"
+            ],
+            "name": "JK Flip Flop",
+            "outputSlots": [
+                "c7dafd8c-2de1-4412-8506-043df8087689",
+                "e2ec8713-4521-4a01-b703-f00bcc20c01c"
+            ],
+            "pos": {
+                "x": 110.140625,
+                "y": 6.97265625,
+                "z": 0.00019999999494757503
+            },
+            "type": 107,
+            "uid": "fe021bd6-5c19-4383-af8d-ab8f2b0aaeb9"
+        },
+        {
+            "pos": {
+                "x": -504.2049560546875,
+                "y": -138.63455200195313,
+                "z": 0.000699999975040555
+            },
+            "slot": {
+                "connections": [
+                    "e6a3222e-32fe-41ca-8f23-9f5c025a7386",
+                    "cb76b88d-27e2-4a52-8358-8de260dc82dc",
+                    "c7913a45-6363-4457-9908-9244c228ce74",
+                    "eba0066c-10d6-40cf-8fb9-9db700a4d6b9"
+                ],
+                "type": 1,
+                "uid": "f8c78cad-5985-4245-b576-e338e138cea5"
+            },
+            "type": 102,
+            "uid": "26e2e00a-e72d-4a91-a849-4b646f44e725"
+        },
+        {
+            "pos": {
+                "x": 221.796875,
+                "y": -106.5859375,
+                "z": 0.0005999999702908099
+            },
+            "slot": {
+                "connections": [
+                    "c7dafd8c-2de1-4412-8506-043df8087689",
+                    "e2ec8713-4521-4a01-b703-f00bcc20c01c"
+                ],
+                "type": 0,
+                "uid": "bb07a124-ba8d-41c6-b24f-a29b2f500a01"
+            },
+            "type": 103,
+            "uid": "eb04bc2b-5b02-4eba-85ed-c5280510279d"
+        },
+        {
+            "pos": {
+                "x": 483.73046875,
+                "y": -105.890625,
+                "z": 0.0004999999655410647
+            },
+            "slot": {
+                "connections": [
+                    "291916a7-d1da-4a26-814a-bd2fd7d555e0"
+                ],
+                "type": 0,
+                "uid": "34b0b998-7b28-46de-9708-6cb5e70a9c1b"
+            },
+            "type": 103,
+            "uid": "71a905b2-f018-41c3-93d1-0dae462920d6"
+        },
+        {
             "clockSlot": "e6a3222e-32fe-41ca-8f23-9f5c025a7386",
             "inputSlots": [
                 "abbdfd5e-a59b-4941-9b1b-986055553c37",
@@ -12,8 +366,8 @@
                 "04ddf6ed-0285-4c25-8f87-d9ec3061628e"
             ],
             "pos": {
-                "x": 0.0,
-                "y": 0.0,
+                "x": -342.2421875,
+                "y": 6.23828125,
                 "z": 9.999999747378752e-05
             },
             "type": 107,
