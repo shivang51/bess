@@ -7,6 +7,7 @@
 #include "components/text_component.h"
 
 #include "common/helpers.h"
+#include "components/flip_flops/flip_flops.h"
 #include "components/output_probe.h"
 #include "components_manager/component_bank.h"
 #include "pages/main_page/main_page_state.h"
@@ -54,6 +55,17 @@ namespace Bess::Simulator {
         case ComponentType::clock: {
             Components::Clock().generate(pos);
         } break;
+        case ComponentType::flipFlop: {
+            std::string name = std::any_cast<std::string>(data);
+            if (name == Components::JKFlipFlop::name)
+                Components::JKFlipFlop().generate(pos);
+            else if (name == Components::DFlipFlop::name)
+                Components::DFlipFlop().generate(pos);
+            // else if (name == Components::SRFlipFlop::name)
+            //     Components::SRFlipFlop().generate(pos);
+        } break;
+        default:
+            break;
         }
     }
 
@@ -158,7 +170,8 @@ namespace Bess::Simulator {
             if (value == conn)
                 return key;
         }
-        return "";
+
+        throw std::runtime_error("Abandoned Connection");
     }
 
     int ComponentsManager::getNextRenderId() { return renderIdCounter++; }

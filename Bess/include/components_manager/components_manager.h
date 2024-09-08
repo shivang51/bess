@@ -61,6 +61,11 @@ namespace Bess::Simulator {
 
         static void reset();
 
+        template <typename T>
+        static std::shared_ptr<T> getComponent(const uuids::uuid &cid) {
+            return std::dynamic_pointer_cast<T>(components[cid]);
+        }
+
       private:
         // mapping from render id to components id.
         static std::unordered_map<int, uuids::uuid> m_renderIdToCId;

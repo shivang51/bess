@@ -43,6 +43,8 @@ namespace Bess::UI {
                         std::any data = NULL;
                         if (comp.getType() == Simulator::ComponentType::jcomponent) {
                             data = comp.getJCompData();
+                        } else if (comp.getType() == Simulator::ComponentType::flipFlop) {
+                            data = name;
                         }
                         Simulator::ComponentsManager::generateComponent(comp.getType(), data, {pos, 0.f});
                         Pages::MainPageState::getInstance()->setPrevGenBankElement(comp);

@@ -26,21 +26,21 @@ namespace Bess::Simulator::Components {
         glm::vec2 pos;
     };
 
-    typedef std::function<void(const glm::vec2& pos)> OnLeftClickCB;
-    typedef std::function<void(const glm::vec2& pos)> OnRightClickCB;
+    typedef std::function<void(const glm::vec2 &pos)> OnLeftClickCB;
+    typedef std::function<void(const glm::vec2 &pos)> OnRightClickCB;
     typedef std::function<void()> VoidCB;
 
     class Component {
-    public:
+      public:
         Component() = default;
-        Component(const uuids::uuid& uid, int renderId, glm::vec3 position, ComponentType type);
+        Component(const uuids::uuid &uid, int renderId, glm::vec3 position, ComponentType type);
         virtual ~Component() = default;
 
         uuids::uuid getId() const;
         std::string getIdStr() const;
 
         int getRenderId() const;
-        glm::vec3& getPosition();
+        glm::vec3 &getPosition();
 
         ComponentType getType() const;
 
@@ -50,7 +50,7 @@ namespace Bess::Simulator::Components {
 
         virtual void update();
 
-        virtual void generate(const glm::vec3& pos = { 0.f, 0.f, 0.f }) = 0;
+        virtual void generate(const glm::vec3 &pos = {0.f, 0.f, 0.f}) = 0;
 
         virtual void deleteComponent() = 0;
 
@@ -59,9 +59,9 @@ namespace Bess::Simulator::Components {
 
         virtual void drawProperties();
 
-        void simulate();
+        virtual void simulate();
 
-    protected:
+      protected:
         int m_renderId;
         uuids::uuid m_uid;
         glm::vec3 m_position;

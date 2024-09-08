@@ -8,6 +8,7 @@
 #include "ui/ui.h"
 #include <GLFW/glfw3.h>
 
+#include "components/flip_flops/flip_flops.h"
 #include "components_manager/component_bank.h"
 #include "components_manager/components_manager.h"
 
@@ -18,6 +19,7 @@
 #include "window.h"
 
 using Bess::Renderer2D::Renderer;
+using namespace Bess::Simulator::Components;
 
 namespace Bess {
     Application::Application() {
@@ -141,6 +143,9 @@ namespace Bess {
         Simulator::ComponentBank::addToCollection("I/O", {Simulator::ComponentType::clock, "Clock"});
         Simulator::ComponentBank::addToCollection("Misc", {Simulator::ComponentType::text, "Text"});
         Simulator::ComponentBank::loadMultiFromJson("assets/comp_collections.json");
+
+        Simulator::ComponentBank::addToCollection("Flip Flops", {Simulator::ComponentType::flipFlop, JKFlipFlop::name});
+        Simulator::ComponentBank::addToCollection("Flip Flops", {Simulator::ComponentType::flipFlop, DFlipFlop::name});
 
         UI::init(m_mainWindow->getGLFWHandle());
 

@@ -6,13 +6,14 @@ namespace Bess::Simulator {
         outputSlot,
         connection,
         button,
-        //draggable compoenents start below
+        // draggable components start below
         jcomponent = 101,
         inputProbe,
         outputProbe,
         text,
         connectionPoint,
         clock,
+        flipFlop
     };
 
     enum class FrequencyUnit {
@@ -20,4 +21,4 @@ namespace Bess::Simulator {
         kiloHertz,
         megaHertz
     };
-}
+} // namespace Bess::Simulator
