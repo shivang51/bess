@@ -33,6 +33,17 @@ namespace Bess::Simulator::Components {
         };
     }
 
+    FlipFlop::FlipFlop(const uuids::uuid &uid, int renderId, const glm::vec3 &position, const std::vector<uuids::uuid> &inputSlots, const std::string &name, const std::vector<uuids::uuid> &outputSlots, const uuids::uuid &clockSlot)
+        : Component(uid, renderId, position, ComponentType::flipFlop) {
+        m_name = name;
+        m_inputSlots = inputSlots;
+        m_outputSlots = outputSlots;
+        m_clockSlot = clockSlot;
+        m_events[ComponentEventType::leftClick] = (OnLeftClickCB)[this](auto pos) {
+            Pages::MainPageState::getInstance()->setSelectedId(m_uid);
+        };
+    }
+
     void FlipFlop::drawBackground(const glm::vec4 &borderThicknessPx, float rPx, float headerHeight, const glm::vec2 &gateSize) {
         bool selected = Pages::MainPageState::getInstance()->getSelectedId() == m_uid;
 
@@ -165,5 +176,72 @@ namespace Bess::Simulator::Components {
 
         auto comp = ComponentsManager::components[m_clockSlot];
         comp->deleteComponent();
+    }
+
+    void FlipFlop::fromJson(const nlohmann::json &data) {
+        auto type = data["type"].get<int>();
+        auto uid = Common::Helpers::strToUUID(data["uid"]);
+        auto pos = Common::Helpers::DecodeVec3(data["pos"]);
+        auto name = data["name"].get<std::string>();
+
+        std::vector<uuids::uuid> inputSlots;
+        for (const auto &slot : data["inputSlots"]) {
+            auto sid = Common::Helpers::strToUUID(slot);
+            inputSlots.push_back(sid);
+            auto renderId = ComponentsManager::getNextRenderId();
+            ComponentsManager::components[sid] = std::make_shared<Components::Slot>(sid, uid, renderId, ComponentType::inputSlot);
+            ComponentsManager::addCompIdToRId(renderId, sid);
+            ComponentsManager::addRenderIdToCId(renderId, sid);
+        }
+
+        std::vector<uuids::uuid> outputSlots;
+        for (const auto &slot : data["outputSlots"]) {
+            auto sid = Common::Helpers::strToUUID(slot);
+            outputSlots.push_back(sid);
+            auto renderId = ComponentsManager::getNextRenderId();
+            ComponentsManager::components[sid] = std::make_shared<Components::Slot>(sid, uid, renderId, ComponentType::outputSlot);
+            ComponentsManager::addCompIdToRId(renderId, sid);
+            ComponentsManager::addRenderIdToCId(renderId, sid);
+        }
+
+        auto sid = Common::Helpers::strToUUID(data["clockSlot"]);
+        auto renderId = ComponentsManager::getNextRenderId();
+        ComponentsManager::components[sid] = std::make_shared<Components::Slot>(sid, uid, renderId, ComponentType::inputSlot);
+        ComponentsManager::addCompIdToRId(renderId, sid);
+        ComponentsManager::addRenderIdToCId(renderId, sid);
+
+        renderId = ComponentsManager::getNextRenderId();
+        ComponentsManager::renderComponenets.emplace_back(uid);
+        ComponentsManager::addCompIdToRId(renderId, uid);
+        ComponentsManager::addRenderIdToCId(renderId, uid);
+
+        if (name == JKFlipFlop::name)
+            ComponentsManager::components[uid] = std::make_shared<JKFlipFlop>(uid, renderId, pos, inputSlots, outputSlots, sid);
+        // else if (name == DFlipFlop::name)
+        //     ComponentsManager::components[uid] = std::make_shared<DFlipFlop>(uid, ComponentsManager::getNextRenderId(), pos, inputSlots, outputSlots, clkSlot);
+    }
+
+    nlohmann::json FlipFlop::toJson() {
+        nlohmann::json data;
+        data["type"] = (int)m_type;
+        data["uid"] = Common::Helpers::uuidToStr(m_uid);
+        data["pos"] = Common::Helpers::EncodeVec3(m_position);
+        data["name"] = m_name;
+
+        nlohmann::json inputSlots;
+        for (const auto &slot : m_inputSlots) {
+            inputSlots.push_back(Common::Helpers::uuidToStr(slot));
+        }
+        data["inputSlots"] = inputSlots;
+
+        nlohmann::json outputSlots;
+        for (const auto &slot : m_outputSlots) {
+            outputSlots.push_back(Common::Helpers::uuidToStr(slot));
+        }
+        data["outputSlots"] = outputSlots;
+
+        data["clockSlot"] = Common::Helpers::uuidToStr(m_clockSlot);
+
+        return data;
     }
 } // namespace Bess::Simulator::Components

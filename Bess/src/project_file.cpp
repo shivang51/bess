@@ -1,10 +1,12 @@
 #include "project_file.h"
 #include "common/helpers.h"
 #include "components/clock.h"
+#include "components/flip_flops/flip_flop.h"
 #include "components/input_probe.h"
 #include "components/jcomponent.h"
 #include "components/output_probe.h"
 #include "components/text_component.h"
+#include "components_manager/component_type.h"
 #include "components_manager/components_manager.h"
 #include "json.hpp"
 
@@ -104,6 +106,10 @@ namespace Bess {
                 auto comp = (Bess::Simulator::Components::Clock *)ent.get();
                 data["components"].emplace_back(comp->toJson());
             } break;
+            case Bess::Simulator::ComponentType::flipFlop: {
+                auto comp = (Bess::Simulator::Components::FlipFlop *)ent.get();
+                data["components"].emplace_back(comp->toJson());
+            } break;
             case Bess::Simulator::ComponentType::connectionPoint: {
                 auto comp = (Bess::Simulator::Components::ConnectionPoint *)ent.get();
                 data["connectionPoints"].emplace_back(comp->toJson());
@@ -140,6 +146,9 @@ namespace Bess {
                 break;
             case Bess::Simulator::ComponentType::clock:
                 Simulator::Components::Clock::fromJson(comp);
+                break;
+            case Bess::Simulator::ComponentType::flipFlop:
+                Simulator::Components::FlipFlop::fromJson(comp);
                 break;
             default:
                 break;

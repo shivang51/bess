@@ -7,12 +7,15 @@
 #include "components/slot.h"
 #include "components_manager/components_manager.h"
 #include "imgui.h"
-#include <iostream>
 
 namespace Bess::Simulator::Components {
     JKFlipFlop::JKFlipFlop(const uuids::uuid &uid, int renderId, glm::vec3 position, std::vector<uuids::uuid> inputSlots)
         : FlipFlop(uid, renderId, position, inputSlots) {
         m_name = "JK Flip Flop";
+    }
+
+    JKFlipFlop::JKFlipFlop(const uuids::uuid &uid, int renderId, glm::vec3 position, std::vector<uuids::uuid> inputSlots, std::vector<uuids::uuid> outputSlots, uuids::uuid clockSlot)
+        : FlipFlop(uid, renderId, position, inputSlots, "JK Flip Flop", outputSlots, clockSlot) {
     }
 
     void JKFlipFlop::update() {
@@ -45,7 +48,7 @@ namespace Bess::Simulator::Components {
         if (j == DigitalState::high && k == DigitalState::high) {
             qState = !qState;
         } else if (j == low && k == low) {
-            return;
+            q_->setState(m_uid, !qState);
         } else {
             qState = jslot->getState();
         }

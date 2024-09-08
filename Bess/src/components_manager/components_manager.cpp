@@ -73,6 +73,8 @@ namespace Bess::Simulator {
         std::any data = NULL;
         if (comp.getType() == Simulator::ComponentType::jcomponent) {
             data = comp.getJCompData();
+        } else if (comp.getType() == Simulator::ComponentType::flipFlop) {
+            data = comp.getName();
         }
         generateComponent(comp.getType(), data, pos);
     }

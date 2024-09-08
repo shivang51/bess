@@ -1,0 +1,24 @@
+{
+    "components": [
+        {
+            "clockSlot": "e6a3222e-32fe-41ca-8f23-9f5c025a7386",
+            "inputSlots": [
+                "abbdfd5e-a59b-4941-9b1b-986055553c37",
+                "2d90aac9-9ec8-4f66-89fe-efde6b034e6f"
+            ],
+            "name": "JK Flip Flop",
+            "outputSlots": [
+                "489cf3df-1c6b-4a17-becb-f47f4d27f525",
+                "04ddf6ed-0285-4c25-8f87-d9ec3061628e"
+            ],
+            "pos": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 9.999999747378752e-05
+            },
+            "type": 107,
+            "uid": "d95d58c4-bd01-4a86-b330-72f09789abd6"
+        }
+    ],
+    "name": "Unnamed"
+}

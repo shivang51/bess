@@ -4,6 +4,7 @@
 #include "common/helpers.h"
 #include "components/slot.h"
 #include "components_manager/components_manager.h"
+#include "json.hpp"
 #include "uuid.h"
 
 namespace Bess::Simulator::Components {
@@ -11,6 +12,7 @@ namespace Bess::Simulator::Components {
     class FlipFlop : public Component {
       public:
         FlipFlop(const uuids::uuid &uid, int renderId, glm::vec3 position, std::vector<uuids::uuid> inputSlots);
+        FlipFlop(const uuids::uuid &uid, int renderId, const glm::vec3 &position, const std::vector<uuids::uuid> &inputSlots, const std::string &name, const std::vector<uuids::uuid> &outputSlots, const uuids::uuid &clockSlot);
 
         FlipFlop() = default;
         ~FlipFlop() = default;
@@ -52,6 +54,10 @@ namespace Bess::Simulator::Components {
         void drawProperties() override = 0;
 
         void simulate() override = 0;
+
+        static void fromJson(const nlohmann::json &data);
+
+        nlohmann::json toJson();
 
       protected:
         std::vector<uuids::uuid> m_inputSlots;

@@ -224,6 +224,8 @@ namespace Bess::Pages {
         if (!pressed && isCursorInViewport()) {
             auto pos = glm::vec3(getNVPMousePos(), 0.f);
             // Simulator::ComponentsManager::generateNandGate(pos);
+            auto prevGen = m_state->getPrevGenBankElement();
+            Simulator::ComponentsManager::generateComponent(*prevGen, glm::vec3({getNVPMousePos(), 0.f}));
             return;
         }
 
@@ -232,8 +234,6 @@ namespace Bess::Pages {
         if (Simulator::ComponentsManager::emptyId == cid) {
             if (m_state->getPrevGenBankElement() == nullptr)
                 return;
-            auto prevGen = m_state->getPrevGenBankElement();
-            Simulator::ComponentsManager::generateComponent(*prevGen, glm::vec3({getNVPMousePos(), 0.f}));
             return;
         }
 
