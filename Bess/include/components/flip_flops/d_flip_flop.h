@@ -5,10 +5,9 @@
 namespace Bess::Simulator::Components {
     class DFlipFlop : public FlipFlop {
       public:
-        static constexpr std::string name = "D Flip Flop";
+        static constexpr char name[] = "D Flip Flop";
         DFlipFlop(const uuids::uuid &uid, int renderId, glm::vec3 position, std::vector<uuids::uuid> inputSlots);
         DFlipFlop() = default;
-        ~DFlipFlop() = default;
 
         void update() override;
 
