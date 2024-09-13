@@ -69,6 +69,7 @@ set(Header_Files
 "include/renderer/gl/texture.h"
 "include/renderer/gl/vertex.h"
 "include/renderer/gl/shader.h"
+"include/renderer/gl/fb_attachment.h"
 "include/renderer/gl/framebuffer.h"
 "include/renderer/gl/primitive_type.h"
 "include/renderer/gl/vao.h"
@@ -124,6 +125,7 @@ set(Source_Files
 "src/renderer/gl/gl_wrapper.cpp"
 "src/renderer/gl/shader.cpp"
 "src/renderer/gl/texture.cpp"
+"src/renderer/gl/fb_attachment.cpp"
 "src/renderer/gl/framebuffer.cpp"
 "src/renderer/gl/vao.cpp"
 "src/renderer/renderer.cpp"
@@ -140,7 +142,7 @@ set(ALL_FILES
 ################################################################################
 # Target
 ################################################################################
-add_executable(${PROJECT_NAME} ${ALL_FILES}  "include/settings/themes.h" "include/components/clock.h" "src/components/clock.cpp")
+add_executable(${PROJECT_NAME} ${ALL_FILES})
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
 
 

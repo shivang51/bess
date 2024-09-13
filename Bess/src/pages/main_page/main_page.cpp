@@ -27,12 +27,15 @@ namespace Bess::Pages {
         if (m_parentWindow == nullptr && parentWindow == nullptr) {
             throw std::runtime_error("MainPage: parentWindow is nullptr. Need to pass a parent window.");
         }
-        std::cout << "creating main page instance" << std::endl;
         m_camera = std::make_shared<Camera>(800, 600);
-        m_framebuffer = std::make_unique<Gl::FrameBuffer>(800, 600);
         m_parentWindow = parentWindow;
+        
+        std::vector<Gl::FBAttachmentType> attachments = {Gl::FBAttachmentType::RGB_RGB, Gl::FBAttachmentType::R32I_REDI, Gl::DEPTH24_STENCIL8};
+        
+        m_framebuffer = std::make_unique<Gl::FrameBuffer>(800, 600, attachments);
+        
         UI::UIMain::state.cameraZoom = Camera::defaultZoom;
-        UI::UIMain::state.viewportTexture = m_framebuffer->getTexture();
+        UI::UIMain::state.viewportTexture = m_framebuffer->getColorBufferTexId(0);
         m_state = MainPageState::getInstance();
     }
 
@@ -43,6 +46,14 @@ namespace Bess::Pages {
 
     void MainPage::drawScene() {
         m_framebuffer->bind();
+
+        auto bgColor = ViewportTheme::backgroundColor;
+        float clearColor[] = {bgColor.x, bgColor.y, bgColor.z, bgColor.a};
+        m_framebuffer->clearColorAttachment<GL_FLOAT>(0, clearColor);
+        static int value = -1;
+        m_framebuffer->clearColorAttachment<GL_INT>(1, &value);
+
+        m_framebuffer->clearDepthStencilBuf();
 
         Renderer::begin(m_camera);
 
@@ -69,7 +80,7 @@ namespace Bess::Pages {
         if (isCursorInViewport()) {
             auto viewportMousePos = getViewportMousePos();
             viewportMousePos.y = UI::UIMain::state.viewportSize.y - viewportMousePos.y;
-            m_state->setHoveredId(m_framebuffer->readId((int)viewportMousePos.x, (int)viewportMousePos.y));
+            m_state->setHoveredId(m_framebuffer->readIntFromColAttachment(1, (int)viewportMousePos.x, (int)viewportMousePos.y));
         }
 
         m_framebuffer->unbind();
