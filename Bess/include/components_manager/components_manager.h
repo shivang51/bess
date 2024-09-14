@@ -30,7 +30,7 @@ namespace Bess::Simulator {
 
         static void deleteComponent(const uuids::uuid uid);
 
-        static void addConnection(const uuids::uuid &start, const uuids::uuid &end);
+        static uuids::uuid addConnection(const uuids::uuid &start, const uuids::uuid &end);
 
         static const uuids::uuid &renderIdToCid(int rId);
 

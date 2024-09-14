@@ -1,6 +1,8 @@
 #include "components/slot.h"
 #include "components/connection.h"
 #include "components/jcomponent.h"
+#include "components_manager/components_manager.h"
+#include "ext/vector_float3.hpp"
 #include "pages/main_page/main_page_state.h"
 #include "renderer/renderer.h"
 #include "settings/viewport_theme.h"
@@ -9,6 +11,7 @@
 #include "simulator/simulator_engine.h"
 #include "ui/ui.h"
 #include <common/bind_helpers.h>
+#include <memory>
 
 namespace Bess::Simulator::Components {
     float fontSize = 10.f;
@@ -16,10 +19,8 @@ namespace Bess::Simulator::Components {
 
     Slot::Slot(const uuids::uuid &uid, const uuids::uuid &parentUid, int id, ComponentType type)
         : Component(uid, id, {0.f, 0.f, 0.f}, type), m_parentUid{parentUid} {
-        m_events[ComponentEventType::leftClick] =
-            (OnLeftClickCB)BIND_FN_1(Slot::onLeftClick);
-        m_events[ComponentEventType::mouseHover] =
-            (VoidCB)BIND_FN(Slot::onMouseHover);
+        m_events[ComponentEventType::leftClick] = (OnLeftClickCB)BIND_FN_1(Slot::onLeftClick);
+        m_events[ComponentEventType::mouseHover] = (VoidCB)BIND_FN(Slot::onMouseHover);
         m_state = DigitalState::low;
     }
 
@@ -88,22 +89,27 @@ namespace Bess::Simulator::Components {
     void Slot::onLeftClick(const glm::vec2 &pos) {
         if (Pages::MainPageState::getInstance()->getDrawMode() == UI::Types::DrawMode::none) {
             Pages::MainPageState::getInstance()->setConnStartId(m_uid);
-            Pages::MainPageState::getInstance()->getPointsRef().emplace_back(m_position);
             Pages::MainPageState::getInstance()->setDrawMode(UI::Types::DrawMode::connection);
             return;
         }
+        auto connStartId = Pages::MainPageState::getInstance()->getConnStartId();
+        auto slot = ComponentsManager::components[connStartId];
+        auto connEndId = ComponentsManager::emptyId;
+        // conditions for invalid selection
+        if (slot == nullptr || connStartId == m_uid || slot->getType() == m_type)
+            return;
 
-        auto slot = ComponentsManager::components[Pages::MainPageState::getInstance()->getConnStartId()];
-
-        if (slot == nullptr || Pages::MainPageState::getInstance()->getConnStartId() == m_uid || slot->getType() == m_type)
+        auto &points = Pages::MainPageState::getInstance()->getPointsRef();
+        auto uid = ComponentsManager::addConnection(Pages::MainPageState::getInstance()->getConnStartId(), m_uid);
+        std::shared_ptr<Connection> connection;
+        if (uid == ComponentsManager::emptyId)
             goto clear;
-
-        ComponentsManager::addConnection(Pages::MainPageState::getInstance()->getConnStartId(), m_uid);
-
+        connection = ComponentsManager::getComponent<Connection>(uid);
+        connection->setPoints(points);
     clear:
         Pages::MainPageState::getInstance()->setDrawMode(UI::Types::DrawMode::none);
         Pages::MainPageState::getInstance()->setConnStartId(ComponentsManager::emptyId);
-        Pages::MainPageState::getInstance()->getPointsRef().pop_back();
+        points.clear();
     }
 
     void Slot::onMouseHover() { UI::setCursorPointer(); }
@@ -248,5 +254,6 @@ namespace Bess::Simulator::Components {
         m_connections.erase(m_connections.begin() + i);
         if (m_type == ComponentType::inputSlot && m_stateChangeHistory.find(uid) != m_stateChangeHistory.end())
             m_stateChangeHistory.erase(uid);
+        setState(uid, DigitalState::low);
     }
 } // namespace Bess::Simulator::Components

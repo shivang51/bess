@@ -4,6 +4,7 @@
 #include "components_manager/components_manager.h"
 #include "events/application_event.h"
 #include "ext/matrix_transform.hpp"
+#include "ext/vector_float3.hpp"
 #include "pages/page_identifier.h"
 #include "renderer/renderer.h"
 #include "settings/viewport_theme.h"
@@ -13,7 +14,7 @@
 using namespace Bess::Renderer2D;
 
 namespace Bess::Pages {
-    std::shared_ptr<Page> MainPage::getInstance(const std::shared_ptr<Window>& parentWindow) {
+    std::shared_ptr<Page> MainPage::getInstance(const std::shared_ptr<Window> &parentWindow) {
         static auto instance = std::make_shared<MainPage>(parentWindow);
         return instance;
     }
@@ -29,12 +30,12 @@ namespace Bess::Pages {
         }
         m_camera = std::make_shared<Camera>(800, 600);
         m_parentWindow = parentWindow;
-        
+
         std::vector<Gl::FBAttachmentType> attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::R32I_REDI, Gl::DEPTH32F_STENCIL8};
         m_multiSampledFramebuffer = std::make_unique<Gl::FrameBuffer>(800, 600, attachments, true);
 
         attachments = {Gl::FBAttachmentType::RGB_RGB, Gl::FBAttachmentType::R32I_REDI};
-        m_normalFramebuffer = std::make_unique<Gl::FrameBuffer>(800, 600, attachments );
+        m_normalFramebuffer = std::make_unique<Gl::FrameBuffer>(800, 600, attachments);
 
         UI::UIMain::state.cameraZoom = Camera::defaultZoom;
         UI::UIMain::state.viewportTexture = m_normalFramebuffer->getColorBufferTexId(0);
@@ -44,7 +45,7 @@ namespace Bess::Pages {
     void MainPage::draw() {
         drawScene();
 
-        for(int i = 0; i < 2; i++) {
+        for (int i = 0; i < 2; i++) {
             m_multiSampledFramebuffer->bindColorAttachmentForRead(i);
             m_normalFramebuffer->bindColorAttachmentForDraw(i);
             Gl::FrameBuffer::blitColorBuffer(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
@@ -72,10 +73,24 @@ namespace Bess::Pages {
 
         switch (m_state->getDrawMode()) {
         case UI::Types::DrawMode::connection: {
-            auto sPos = m_state->getPoints()[0];
-            sPos.z = -1;
+            std::vector<glm::vec3> points = m_state->getPoints();
+            auto startPos = Simulator::ComponentsManager::components[m_state->getConnStartId()]->getPosition();
+            points.insert(points.begin(), startPos);
             const auto mPos = glm::vec3(getNVPMousePos(), -1);
-            Renderer::curve(sPos, mPos, 2.5, ViewportTheme::wireColor, -1);
+            points.emplace_back(mPos);
+            float weight = 2.f;
+
+            for (int i = 0; i < points.size() - 1; i++) {
+                auto sPos = points[i];
+                auto ePos = points[i + 1];
+                float offset = weight / 2.f;
+                if (sPos.y > ePos.y)
+                    offset = -offset;
+                float midX = (sPos.x + ePos.x) / 2.f;
+                Renderer::line(sPos, {midX, sPos.y, -1}, weight, ViewportTheme::wireColor, -1);
+                Renderer::line({midX, sPos.y - offset, -1}, {midX, ePos.y + offset, -1}, weight, ViewportTheme::wireColor, -1);
+                Renderer::line({midX, ePos.y, -1}, ePos, weight, ViewportTheme::wireColor, -1);
+            }
         } break;
         default:
             break;
@@ -225,12 +240,17 @@ namespace Bess::Pages {
 
         if (Simulator::ComponentsManager::emptyId == cid) {
             if (m_state->getDrawMode() == UI::Types::DrawMode::connection) {
-                m_state->setConnStartId(Simulator::ComponentsManager::emptyId);
-                m_state->getPointsRef().pop_back();
+                if (m_state->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
+                    m_state->getPointsRef().emplace_back(glm::vec3(getNVPMousePos(), 0.f));
+                } else {
+                    m_state->setConnStartId(Simulator::ComponentsManager::emptyId);
+                    m_state->getPointsRef().clear();
+                    m_state->setDrawMode(UI::Types::DrawMode::none);
+                }
+            } else {
+                m_state->setSelectedId(Simulator::ComponentsManager::emptyId);
+                m_state->setDrawMode(UI::Types::DrawMode::none);
             }
-            m_state->setSelectedId(Simulator::ComponentsManager::emptyId);
-            m_state->setDrawMode(UI::Types::DrawMode::none);
-
             return;
         }
 

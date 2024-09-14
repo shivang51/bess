@@ -65,6 +65,7 @@ namespace Bess::Simulator {
             //     Components::SRFlipFlop().generate(pos);
         } break;
         default:
+            std::runtime_error("Component type not registered in components manager " + std::to_string((int)type));
             break;
         }
     }
@@ -98,7 +99,7 @@ namespace Bess::Simulator {
         components.erase(cid);
     }
 
-    void ComponentsManager::addConnection(const uuids::uuid &slot1, const uuids::uuid &slot2) {
+    uuids::uuid ComponentsManager::addConnection(const uuids::uuid &slot1, const uuids::uuid &slot2) {
         auto slotA = (Bess::Simulator::Components::Slot *)components[slot1].get();
         auto slotB = (Bess::Simulator::Components::Slot *)components[slot2].get();
 
@@ -116,13 +117,13 @@ namespace Bess::Simulator {
         auto oId = outputSlot->getId();
 
         if (outputSlot->isConnectedTo(iId))
-            return;
+            return emptyId;
 
         outputSlot->addConnection(iId);
         inputSlot->addConnection(oId);
 
         // adding interative wire
-        Components::Connection::generate(iId, oId);
+        return Components::Connection::generate(iId, oId);
     }
 
     const uuids::uuid &ComponentsManager::renderIdToCid(int rId) {

@@ -1,11 +1,15 @@
 #include "components/connection.h"
-#include "components/connection_point.h"
-#include "components/slot.h"
-#include "ui/ui.h"
-
 #include "common/bind_helpers.h"
 #include "common/helpers.h"
+#include "components/connection_point.h"
+#include "components/slot.h"
+#include "components_manager/components_manager.h"
+#include "ext/vector_float3.hpp"
+#include "ext/vector_float4.hpp"
 #include "pages/main_page/main_page_state.h"
+#include "renderer/renderer.h"
+#include "ui/m_widgets.h"
+#include "ui/ui.h"
 #include <imgui.h>
 
 namespace Bess::Simulator::Components {
@@ -29,17 +33,10 @@ namespace Bess::Simulator::Components {
     Connection::Connection() : Component() {
     }
 
-    void Connection::render() {
-        auto slotA = ComponentsManager::components[m_slot1];
-        auto slotB = ComponentsManager::components[m_slot2];
+    void Connection::renderCurveConnection(glm::vec3 startPos, glm::vec3 endPos, float weight, glm::vec4 color) {
+        auto slot = ComponentsManager::getComponent<Slot>(m_slot1);
         auto m_selected = Pages::MainPageState::getInstance()->getSelectedId() == m_uid;
         auto m_hovered = Pages::MainPageState::getInstance()->getHoveredId() == m_renderId;
-
-        auto slot = (Components::Slot *)slotA.get();
-
-        auto startPos = slotB->getPosition();
-
-        auto endPos = slotA->getPosition();
 
         auto posA = startPos;
         for (auto &pointId : m_points) {
@@ -65,6 +62,53 @@ namespace Bess::Simulator::Components {
             m_renderId);
     }
 
+    void Connection::renderStraightConnection(glm::vec3 startPos, glm::vec3 endPos, float weight, glm::vec4 color) {
+        std::vector<glm::vec3> points = {{startPos.x, startPos.y, -ComponentsManager::zIncrement}};
+        for (auto &pointId : m_points) {
+            auto point = std::dynamic_pointer_cast<ConnectionPoint>(ComponentsManager::components[pointId]);
+            points.emplace_back(point->getPosition());
+            point->render();
+        }
+
+        points.emplace_back(glm::vec3({endPos.x, endPos.y, -ComponentsManager::zIncrement}));
+        for (int i = 0; i < points.size() - 1; i++) {
+            auto sPos = points[i];
+            auto ePos = points[i + 1];
+            float midX = (sPos.x + ePos.x) / 2.f;
+            float offset = weight / 2.f;
+
+            if (sPos.y > ePos.y)
+                offset = -offset;
+
+            Renderer2D::Renderer::line(sPos, {midX, sPos.y, -1}, weight, color, m_renderId);
+            Renderer2D::Renderer::line({midX, sPos.y - offset, -1}, {midX, ePos.y + offset, -1}, weight, color, m_renderId);
+            Renderer2D::Renderer::line({midX, ePos.y, -1}, ePos, weight, color, m_renderId);
+        }
+    }
+
+    void Connection::render() {
+        auto slotA = ComponentsManager::components[m_slot1];
+        auto slotB = ComponentsManager::components[m_slot2];
+
+        auto slot = ComponentsManager::getComponent<Slot>(m_slot1);
+
+        auto startPos = slotB->getPosition();
+        auto endPos = slotA->getPosition();
+
+        auto m_selected = Pages::MainPageState::getInstance()->getSelectedId() == m_uid;
+        auto m_hovered = Pages::MainPageState::getInstance()->getHoveredId() == m_renderId;
+
+        float weight = m_hovered ? 2.5f : 2.0f;
+        glm::vec4 color = m_selected ? ViewportTheme::selectedWireColor : (slot->getState() == DigitalState::high) ? ViewportTheme::stateHighColor
+                                                                                                                   : m_color;
+
+        if (m_type == ConnectionType::curve) {
+            renderCurveConnection(startPos, endPos, weight, color);
+        } else {
+            renderStraightConnection(startPos, endPos, weight, color);
+        }
+    }
+
     void Connection::deleteComponent() {
         auto slotA = (Slot *)ComponentsManager::components[m_slot1].get();
         slotA->removeConnection(m_slot2);
@@ -82,14 +126,30 @@ namespace Bess::Simulator::Components {
 
     void Connection::drawProperties() {
         ImGui::ColorEdit3("Wire Color", &m_color[0]);
+        static std::string currentValue = (m_type == ConnectionType::straight) ? "Straight" : "Curve";
+        if (UI::MWidgets::ComboBox("Connection Type", currentValue, std::vector<std::string>{"Straight", "Curve"})) {
+            if (currentValue == "Straight") {
+                m_type = ConnectionType::straight;
+            } else {
+                m_type = ConnectionType::curve;
+            }
+        }
     }
 
     const std::vector<uuids::uuid> &Connection::getPoints() {
         return m_points;
     }
 
-    void Connection::setPoints(const std::vector<uuids::uuid> &points) {
-        m_points = points;
+    void Connection::setPoints(const std::vector<glm::vec3> &points) {
+        m_points.clear();
+        for (const auto &point : points) {
+            auto uid = Common::Helpers::uuidGenerator.getUUID();
+            auto renderId = ComponentsManager::getNextRenderId();
+            ComponentsManager::components[uid] = std::make_shared<ConnectionPoint>(uid, m_uid, renderId, point);
+            ComponentsManager::addRenderIdToCId(renderId, uid);
+            ComponentsManager::addCompIdToRId(renderId, uid);
+            m_points.emplace_back(uid);
+        }
     }
 
     void Connection::addPoint(const uuids::uuid &point) {
@@ -100,7 +160,7 @@ namespace Bess::Simulator::Components {
         m_points.erase(std::remove(m_points.begin(), m_points.end(), point), m_points.end());
     }
 
-    void Connection::generate(const uuids::uuid &slot1, const uuids::uuid &slot2, const glm::vec3 &pos) {
+    uuids::uuid Connection::generate(const uuids::uuid &slot1, const uuids::uuid &slot2, const glm::vec3 &pos) {
         auto uid = Common::Helpers::uuidGenerator.getUUID();
         auto renderId = ComponentsManager::getNextRenderId();
         ComponentsManager::components[uid] = std::make_shared<Components::Connection>(uid, renderId, slot1, slot2);
@@ -108,6 +168,7 @@ namespace Bess::Simulator::Components {
         ComponentsManager::addCompIdToRId(renderId, uid);
         ComponentsManager::renderComponenets.emplace_back(uid);
         ComponentsManager::addSlotsToConn(slot1, slot2, uid);
+        return uid;
     }
 
     void Connection::onLeftClick(const glm::vec2 &pos) {
@@ -116,15 +177,7 @@ namespace Bess::Simulator::Components {
         if (!Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL))
             return;
 
-        // add connection point
-        auto uid = Common::Helpers::uuidGenerator.getUUID();
-        auto renderId = ComponentsManager::getNextRenderId();
-        auto parentId = m_uid;
-        auto position = glm::vec3(pos.x, pos.y, m_position.z + ComponentsManager::zIncrement);
-        ComponentsManager::components[uid] = std::make_shared<ConnectionPoint>(uid, parentId, renderId, position);
-        ComponentsManager::addRenderIdToCId(renderId, uid);
-        ComponentsManager::addCompIdToRId(renderId, uid);
-        m_points.emplace_back(uid);
+        createConnectionPoint(pos);
     }
 
     void Connection::onMouseHover() {
@@ -143,5 +196,16 @@ namespace Bess::Simulator::Components {
         auto slotB = (Slot *)ComponentsManager::components[m_slot2].get();
         slotA->highlightBorder(true);
         slotB->highlightBorder(true);
+    }
+
+    void Connection::createConnectionPoint(const glm::vec2 &pos) {
+        auto uid = Common::Helpers::uuidGenerator.getUUID();
+        auto renderId = ComponentsManager::getNextRenderId();
+        auto parentId = m_uid;
+        auto position = glm::vec3(pos.x, pos.y, -ComponentsManager::zIncrement);
+        ComponentsManager::components[uid] = std::make_shared<ConnectionPoint>(uid, parentId, renderId, position);
+        ComponentsManager::addRenderIdToCId(renderId, uid);
+        ComponentsManager::addCompIdToRId(renderId, uid);
+        m_points.emplace_back(uid);
     }
 } // namespace Bess::Simulator::Components
