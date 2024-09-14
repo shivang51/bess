@@ -290,9 +290,7 @@ else()
 endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
 
-SET(CMAKE_CXX_FLAGS  "-march=native")
-
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
+if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64" AND NOT UNIX)
     target_link_directories(${PROJECT_NAME} PRIVATE
         "${CMAKE_SOURCE_DIR}/external/glfw/lib-vc2022"
         "${CMAKE_SOURCE_DIR}/external/freetype/libs/windows"
@@ -305,4 +303,4 @@ add_custom_target(run
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
-INSTALL(TARGETS ${PROJECT_NAME} DESTINATION bin)
+#INSTALL(TARGETS ${PROJECT_NAME} DESTINATION bin)
