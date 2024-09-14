@@ -15,7 +15,7 @@ namespace Bess::Gl {
         glGenFramebuffers(1, &m_fbo);
         glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 
-        std::vector<GLenum> drawAttachments = {};
+        m_drawAttachments = {};
         m_colorAttachments = {};
 
         for (const auto attachmentType : attachments) {
@@ -36,22 +36,23 @@ namespace Bess::Gl {
             } else {
                 GLenum attachmentInd = GL_COLOR_ATTACHMENT0 + static_cast<int>(m_colorAttachments.size());
                 auto [fst, snd] = getFormatsForAttachmentType(attachmentType);
-                auto attachment = FBAttachment(attachmentType, width, height, fst, snd, attachmentInd);
+                auto attachment = FBAttachment(attachmentType, width, height, fst, snd, attachmentInd, multisampled);
 
                 if(multisampled) {
                     glFramebufferTexture2D(GL_FRAMEBUFFER, attachmentInd, GL_TEXTURE_2D_MULTISAMPLE, attachment.getTextureId(), 0);
                 }else {
                     glFramebufferTexture2D(GL_FRAMEBUFFER, attachmentInd, GL_TEXTURE_2D, attachment.getTextureId(), 0);
                 }
-                drawAttachments.emplace_back(attachmentInd);
+                m_drawAttachments.emplace_back(attachmentInd);
                 m_colorAttachments.emplace_back(attachment);
             }
         }
-        
-        glDrawBuffers(static_cast<int>(drawAttachments.size()), drawAttachments.data());
+
+        glDrawBuffers(static_cast<int>(m_drawAttachments.size()), m_drawAttachments.data());
 
         if (const GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER); status != GL_FRAMEBUFFER_COMPLETE) {
             std::cerr << "[-] Framebuffer is not complete: " << getFramebufferStatusReason(status) << std::endl;
+            assert(false);
         }
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
@@ -72,6 +73,10 @@ namespace Bess::Gl {
 
     void FrameBuffer::unbindForDraw() { glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); }
 
+    void FrameBuffer::unbindAll() {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
     void FrameBuffer::resize(const float width, const float height) {
         bind();
         m_width = width;
@@ -82,19 +87,27 @@ namespace Bess::Gl {
             attachment.resize(width, height);
         }
 
-        if (m_rbo == 0)
-            return;
+        GLint internalFormat = -1;
 
+        if (m_rbo == 0) goto end;
         GL_CHECK(glBindRenderbuffer(GL_RENDERBUFFER, m_rbo));
-        const GLint internalFormat = getDepthStencilInternalFormat(m_depthBufferStencilType);
+        internalFormat = getDepthStencilInternalFormat(m_depthBufferStencilType);
         if (m_multisampled) {
-            GL_CHECK(glRenderbufferStorageMultisample(GL_RENDERBUFFER, 5, internalFormat, static_cast<GLsizei>(m_width),
+            GL_CHECK(glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, internalFormat, static_cast<GLsizei>(m_width),
                                              static_cast<GLsizei>(m_height)));
         } else {
             GL_CHECK(glRenderbufferStorage(GL_RENDERBUFFER, internalFormat, static_cast<GLsizei>(m_width),
                                   static_cast<GLsizei>(m_height)));
         }
         GL_CHECK(glBindRenderbuffer(GL_RENDERBUFFER, 0));
+
+        if (const GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER); status != GL_FRAMEBUFFER_COMPLETE) {
+            std::cerr << "[-] Framebuffer is not complete after resize: " << getFramebufferStatusReason(status) << std::endl;
+            assert(false);
+        }
+
+        end:
+        unbindAll();
     }
 
     void FrameBuffer::clearDepthStencilBuf() {
@@ -103,9 +116,30 @@ namespace Bess::Gl {
 
     int FrameBuffer::readIntFromColAttachment(const int idx, const int x, const int y) const {
         return readFromColorAttachment<int, GL_INT>(idx, x, y);
+        return -1;
+    }
+
+    void FrameBuffer::resetDrawAttachments() const {
+        bind();
+        glDrawBuffers(static_cast<int>(m_drawAttachments.size()), m_drawAttachments.data());
     }
 
     glm::vec2 FrameBuffer::getSize() const { return {m_width, m_height}; }
+
+    void FrameBuffer::bindColorAttachmentForDraw(const int idx) const {
+        GL_CHECK(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo));
+        GL_CHECK(glDrawBuffer(GL_COLOR_ATTACHMENT0 + idx));
+    }
+
+    void FrameBuffer::bindColorAttachmentForRead(const int idx) const {
+        GL_CHECK(glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo));
+        GL_CHECK(glReadBuffer(GL_COLOR_ATTACHMENT0 + idx));
+    }
+
+    void FrameBuffer::blitColorBuffer(const float width, const float height) {
+        GL_CHECK(glBlitFramebuffer(0, 0, static_cast<GLint>(width), static_cast<GLint>(height), 0, 0, static_cast<GLint>(width),
+                          static_cast<GLint>(height), GL_COLOR_BUFFER_BIT, GL_NEAREST));
+    }
 
 
     std::pair<GLint, GLenum> FrameBuffer::getFormatsForAttachmentType(const FBAttachmentType type) {

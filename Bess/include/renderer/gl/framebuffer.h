@@ -19,10 +19,14 @@ namespace Bess::Gl {
 
         glm::vec2 getSize() const;
 
+        void bindColorAttachmentForDraw(int idx) const;
+        void bindColorAttachmentForRead(int idx) const;
 
+        static void blitColorBuffer(float width, float height);
 
         void bind() const;
         static void unbindForDraw() ;
+        static void unbindAll();
         void resize(float width, float height);
 
         template<GLenum GlType>
@@ -30,6 +34,7 @@ namespace Bess::Gl {
             bind();
             const auto texId = m_colorAttachments[idx].getTextureId();
             auto [_, type] = getFormatsForAttachmentType(m_colorAttachments[idx].getType());
+            m_colorAttachments[idx].bindTexture();
             GL_CHECK(glClearTexImage(texId, 0, type, GlType, data));
         }
 
@@ -37,20 +42,22 @@ namespace Bess::Gl {
 
         int readIntFromColAttachment(int idx, int x, int y) const;
 
+        void resetDrawAttachments() const;
+
         template<class T, GLenum GlType>
         T readFromColorAttachment(const int idx, const int x, const int y) const {
             auto& attachment = m_colorAttachments[idx];
-            GL_CHECK(glReadBuffer(GL_COLOR_ATTACHMENT0 + idx));
+            bindColorAttachmentForRead(idx);
             T data{};
             GL_CHECK(glReadPixels(x, y, 1, 1, attachment.getFormat(), GlType, &data));
-			return data;
+            return data;
         }
-
 
     private:
         GLuint m_fbo;
 
         std::vector<FBAttachment> m_colorAttachments;
+        std::vector<GLenum> m_drawAttachments;
         GLuint m_rbo = 0;
 
         float m_width;

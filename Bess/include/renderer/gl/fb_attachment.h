@@ -17,21 +17,24 @@ namespace Bess::Gl {
 
     class FBAttachment {
       public:
-        FBAttachment(FBAttachmentType type, float width, float height, GLint internalFormat, GLenum format, GLenum index);
-        void resize(float width, float height);
+        FBAttachment(FBAttachmentType type, float width, float height, GLint internalFormat, GLenum format, GLenum index, bool multisampled = false);
+        void resize(float width, float height) const;
 
         GLuint getTextureId() const;
 
         GLenum getIndex() const;
 
         FBAttachmentType getType() const;
-        GLuint getIntenalFormat() const;
+        GLuint getInternalFormat() const;
         GLenum getFormat() const;
+
+        void bindTexture() const;
 
       private:
         std::shared_ptr<Texture> m_texture;
         GLuint m_internalFormat;
         GLenum m_format, m_index;
         FBAttachmentType m_type;
+        bool m_multisampled;
     };
 } // namespace Bess::Gl

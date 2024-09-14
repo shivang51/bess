@@ -1,7 +1,13 @@
 #include "renderer/gl/texture.h"
+
+#include <iostream>
+#include <ostream>
+
 #include "glad/glad.h"
 #include <stb_image.h>
 #include <stdexcept>
+
+#include "renderer/gl/gl_wrapper.h"
 
 namespace Bess::Gl {
 Texture::Texture(const std::string &path)
@@ -56,9 +62,9 @@ Texture::~Texture() { glDeleteTextures(1, &m_id); }
 
 void Texture::bind() const {
     if(m_multisampled) {
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_id);
+      GL_CHECK(glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_id));
     }else{
-        glBindTexture(GL_TEXTURE_2D, m_id);
+       GL_CHECK(glBindTexture(GL_TEXTURE_2D, m_id));
     }
 }
 
@@ -80,11 +86,10 @@ void Texture::setData(const void* data) const {
 void Texture::resize(const int width, const int height, const void* data) {
     m_width = width;
     m_height = height;
+    bind();
     if(m_multisampled) {
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_id);
         glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, m_internalFormat, m_width, m_height, GL_TRUE);
     }else{
-        glBindTexture(GL_TEXTURE_2D, m_id);
         glTexImage2D(GL_TEXTURE_2D, 0, m_internalFormat, m_width, m_height, 0,
                      m_format, GL_UNSIGNED_BYTE, data);
     }

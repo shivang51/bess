@@ -15,7 +15,7 @@ namespace Bess::Pages {
       public:
         MainPage(std::shared_ptr<Window> parentWindow);
 
-        static std::shared_ptr<Page> getInstance(std::shared_ptr<Window> parentWindow = nullptr);
+        static std::shared_ptr<Page> getInstance(const std::shared_ptr<Window>& parentWindow = nullptr);
 
         static std::shared_ptr<MainPage> getTypedInstance(std::shared_ptr<Window> parentWindow = nullptr);
 
@@ -31,7 +31,7 @@ namespace Bess::Pages {
 
       private:
         std::shared_ptr<Camera> m_camera;
-        std::unique_ptr<Gl::FrameBuffer> m_framebuffer;
+        std::unique_ptr<Gl::FrameBuffer> m_multiSampledFramebuffer, m_normalFramebuffer;
         std::shared_ptr<Window> m_parentWindow;
 
         // event handlers
