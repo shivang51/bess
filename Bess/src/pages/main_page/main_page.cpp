@@ -264,21 +264,21 @@ namespace Bess::Pages {
     void MainPage::onRightMouse(bool pressed) {
         m_rightMousePressed = pressed;
 
-        if (!pressed && isCursorInViewport()) {
+        auto hoveredId = m_state->getHoveredId();
+        auto &cid = Simulator::ComponentsManager::renderIdToCid(hoveredId);
+
+        if (!pressed && isCursorInViewport() && cid == Simulator::ComponentsManager::emptyId) {
             auto pos = glm::vec3(getNVPMousePos(), 0.f);
             // Simulator::ComponentsManager::generateNandGate(pos);
             const auto prevGen = m_state->getPrevGenBankElement();
+            if (prevGen == nullptr)
+                return;
             Simulator::ComponentsManager::generateComponent(*prevGen, glm::vec3({getNVPMousePos(), 0.f}));
             return;
         }
 
-        auto &cid = Simulator::ComponentsManager::renderIdToCid(m_state->getHoveredId());
-
-        if (Simulator::ComponentsManager::emptyId == cid) {
-            if (m_state->getPrevGenBankElement() == nullptr)
-                return;
+        if (cid == Simulator::ComponentsManager::emptyId)
             return;
-        }
 
         Simulator::Components::ComponentEventData e;
         e.type = Simulator::Components::ComponentEventType::rightClick;
