@@ -5,12 +5,12 @@
 #include <iostream>
 
 namespace Bess::Gl {
-
-    FrameBuffer::FrameBuffer(float width, float height, const std::vector<FBAttachmentType> attachements, bool multisampled) {
+    FrameBuffer::FrameBuffer(const float width, const float height, const std::vector<FBAttachmentType>& attachments, const bool multisampled) {
         assert(Bess::Window::isGladInitialized);
-
+        m_multisampled = multisampled;
         m_width = width;
         m_height = height;
+        m_fbo = 0;
 
         glGenFramebuffers(1, &m_fbo);
         glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
@@ -18,44 +18,39 @@ namespace Bess::Gl {
         std::vector<GLenum> drawAttachments = {};
         m_colorAttachments = {};
 
-        for (auto attachmentType : attachements) {
-            if ((int)attachmentType > 10) {
+        for (const auto attachmentType : attachments) {
+            if (static_cast<int>(attachmentType) > 10) {
                 m_depthBufferStencilType = attachmentType;
-                switch (attachmentType) {
-                case FBAttachmentType::DEPTH24_STENCIL8: {
-                    glGenRenderbuffers(1, &m_rbo);
-                    glBindRenderbuffer(GL_RENDERBUFFER, m_rbo);
-                    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, (GLsizei)m_width, (GLsizei)m_height);
-                    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_rbo);
-                } break;
-                case FBAttachmentType::DEPTH32F_STENCIL8: {
-                    glGenRenderbuffers(1, &m_rbo);
-                    glBindRenderbuffer(GL_RENDERBUFFER, m_rbo);
-                    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH32F_STENCIL8, (GLsizei)m_width, (GLsizei)m_height);
-                    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_rbo);
-                } break;
-                default:
-                    throw std::runtime_error("Invalid depth-stencil attachment. Maybe a color attachemnt? " + std::to_string(attachmentType));
-                    break;
+                const GLint internalFormat = getDepthStencilInternalFormat(attachmentType);
+
+                glGenRenderbuffers(1, &m_rbo);
+                glBindRenderbuffer(GL_RENDERBUFFER, m_rbo);
+                if(multisampled) {
+                    glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, internalFormat, static_cast<GLsizei>(m_width),
+                                                     static_cast<GLsizei>(m_height));
+                }else {
+                    glRenderbufferStorage(GL_RENDERBUFFER, internalFormat, static_cast<GLsizei>(m_width),
+                                          static_cast<GLsizei>(m_height));
                 }
+                glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_rbo);
             } else {
+                GLenum attachmentInd = GL_COLOR_ATTACHMENT0 + static_cast<int>(m_colorAttachments.size());
+                auto [fst, snd] = getFormatsForAttachmentType(attachmentType);
+                auto attachment = FBAttachment(attachmentType, width, height, fst, snd, attachmentInd);
 
-                GLenum attachmentInd = GL_COLOR_ATTACHMENT0 + (int)m_colorAttachments.size();
-
-                auto formats = getFormatsForAttachementType(attachmentType);
-
-                auto attachment = FBAttachment(attachmentType, width, height, formats.first, formats.second, attachmentInd);
-                glFramebufferTexture2D(GL_FRAMEBUFFER, attachmentInd, GL_TEXTURE_2D, attachment.getTextureId(), 0);
-                
+                if(multisampled) {
+                    glFramebufferTexture2D(GL_FRAMEBUFFER, attachmentInd, GL_TEXTURE_2D_MULTISAMPLE, attachment.getTextureId(), 0);
+                }else {
+                    glFramebufferTexture2D(GL_FRAMEBUFFER, attachmentInd, GL_TEXTURE_2D, attachment.getTextureId(), 0);
+                }
                 drawAttachments.emplace_back(attachmentInd);
                 m_colorAttachments.emplace_back(attachment);
             }
         }
         
-        glDrawBuffers((int)drawAttachments.size(), drawAttachments.data());
+        glDrawBuffers(static_cast<int>(drawAttachments.size()), drawAttachments.data());
 
-        GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-        if (status != GL_FRAMEBUFFER_COMPLETE) {
+        if (const GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER); status != GL_FRAMEBUFFER_COMPLETE) {
             std::cerr << "[-] Framebuffer is not complete: " << getFramebufferStatusReason(status) << std::endl;
         }
         glBindTexture(GL_TEXTURE_2D, 0);
@@ -69,26 +64,19 @@ namespace Bess::Gl {
         if (m_rbo != 0) glDeleteRenderbuffers(1, &m_rbo);
     }
 
-    GLuint FrameBuffer::getColorBufferTexId(int idx) const { return m_colorAttachments[idx].getTextureId(); }
+    GLuint FrameBuffer::getColorBufferTexId(const int idx) const { return m_colorAttachments[idx].getTextureId(); }
 
     void FrameBuffer::bind() const {
         GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, m_fbo));
     }
 
-    //void FrameBuffer::clear() const {
-    //    GL_CHECK(glClearColor(ViewportTheme::backgroundColor.x, ViewportTheme::backgroundColor.y,
-    //                          ViewportTheme::backgroundColor.z, 1.0f));
-    //    GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT));
-    //    int value = -1;
-    //    GL_CHECK(glClearTexImage(m_textures[1]->getId(), 0, GL_RED_INTEGER, GL_INT, &value));
-    //}
+    void FrameBuffer::unbindForDraw() { glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); }
 
-    void FrameBuffer::unbind() const { glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); }
-
-    void FrameBuffer::resize(float width, float height) {
+    void FrameBuffer::resize(const float width, const float height) {
+        bind();
         m_width = width;
         m_height = height;
-        glViewport(0, 0, (GLsizei)width, (GLsizei)height);
+        glViewport(0, 0, static_cast<GLsizei>(width), static_cast<GLsizei>(height));
 
         for (auto &attachment : m_colorAttachments) {
             attachment.resize(width, height);
@@ -97,56 +85,70 @@ namespace Bess::Gl {
         if (m_rbo == 0)
             return;
 
-        glBindRenderbuffer(GL_RENDERBUFFER, m_rbo);
-        switch (m_depthBufferStencilType) {
-        case FBAttachmentType::DEPTH24_STENCIL8: {
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, (GLsizei)m_width, (GLsizei)m_height);
-        } break;
-        case FBAttachmentType::DEPTH32F_STENCIL8: {
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH32F_STENCIL8, (GLsizei)m_width, (GLsizei)m_height);
-        } break;
-        default:
-            break;
+        GL_CHECK(glBindRenderbuffer(GL_RENDERBUFFER, m_rbo));
+        const GLint internalFormat = getDepthStencilInternalFormat(m_depthBufferStencilType);
+        if (m_multisampled) {
+            GL_CHECK(glRenderbufferStorageMultisample(GL_RENDERBUFFER, 5, internalFormat, static_cast<GLsizei>(m_width),
+                                             static_cast<GLsizei>(m_height)));
+        } else {
+            GL_CHECK(glRenderbufferStorage(GL_RENDERBUFFER, internalFormat, static_cast<GLsizei>(m_width),
+                                  static_cast<GLsizei>(m_height)));
         }
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_rbo);
+        GL_CHECK(glBindRenderbuffer(GL_RENDERBUFFER, 0));
     }
 
     void FrameBuffer::clearDepthStencilBuf() {
         GL_CHECK(glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT));
     }
 
-    int FrameBuffer::readIntFromColAttachment(int idx, int x, int y) const {
+    int FrameBuffer::readIntFromColAttachment(const int idx, const int x, const int y) const {
         return readFromColorAttachment<int, GL_INT>(idx, x, y);
     }
 
     glm::vec2 FrameBuffer::getSize() const { return {m_width, m_height}; }
 
 
-    std::pair<GLenum, GLuint> FrameBuffer::getFormatsForAttachementType(FBAttachmentType type) {
-        GLuint internalFormat = -1;
-        GLenum format = -1;
+    std::pair<GLint, GLenum> FrameBuffer::getFormatsForAttachmentType(const FBAttachmentType type) {
+        GLuint internalFormat;
+        GLenum format;
         switch (type) {
-        case FBAttachmentType::R32I_REDI: {
-            internalFormat = GL_R32I;
-            format = GL_RED_INTEGER;
-        } break;
-        case FBAttachmentType::RGB_RGB: {
-            internalFormat = GL_RGB;
-            format = GL_RGB;
-        } break;
-        case FBAttachmentType::RGBA_RGBA: {
-            internalFormat = GL_RGBA;
-            format = GL_RGBA;
-        } break;
-        default:
-            throw std::runtime_error("Invalid color attachment type passed " + std::to_string(type));
-            break;
+            case FBAttachmentType::R32I_REDI: {
+                internalFormat = GL_R32I;
+                format = GL_RED_INTEGER;
+            } break;
+            case FBAttachmentType::RGB_RGB: {
+                internalFormat = GL_RGB;
+                format = GL_RGB;
+            } break;
+            case FBAttachmentType::RGBA_RGBA: {
+                internalFormat = GL_RGBA;
+                format = GL_RGBA;
+            } break;
+            default:
+                throw std::runtime_error("Invalid color attachment type passed " + std::to_string(type));
         }
 
         return {internalFormat, format};
     }
 
-    std::string FrameBuffer::getFramebufferStatusReason(GLenum status) {
+    GLint FrameBuffer::getDepthStencilInternalFormat(const FBAttachmentType type) {
+        GLint internalFormat;
+
+        switch (type) {
+            case FBAttachmentType::DEPTH24_STENCIL8: {
+                internalFormat = GL_DEPTH24_STENCIL8;
+            } break;
+            case FBAttachmentType::DEPTH32F_STENCIL8: {
+                internalFormat = GL_DEPTH32F_STENCIL8;
+            } break;
+            default:
+                throw std::runtime_error("Invalid depth-stencil attachment. Maybe a color attachment? " + std::to_string(type));
+        }
+
+        return internalFormat;
+    }
+
+    std::string FrameBuffer::getFramebufferStatusReason(const GLenum status) {
         switch (status) {
         case GL_FRAMEBUFFER_UNDEFINED:
             return "GL_FRAMEBUFFER_UNDEFINED: The default framebuffer does not exist, and FBO 0 is bound.";

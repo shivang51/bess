@@ -83,7 +83,7 @@ namespace Bess::Pages {
             m_state->setHoveredId(m_framebuffer->readIntFromColAttachment(1, (int)viewportMousePos.x, (int)viewportMousePos.y));
         }
 
-        m_framebuffer->unbind();
+        m_framebuffer->unbindForDraw();
     }
 
     void MainPage::update(const std::vector<ApplicationEvent> &events) {

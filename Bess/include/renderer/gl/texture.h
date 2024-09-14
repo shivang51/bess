@@ -5,18 +5,18 @@
 namespace Bess::Gl {
 class Texture {
   public:
-    Texture(const std::string &path);
-    Texture(const GLint internalFormat, const GLenum format, const int width,
-            const int height, void* data = nullptr);
+    explicit Texture(const std::string &path);
+    Texture(GLint internalFormat, GLenum format, int width, int height, const void* data = nullptr, bool multisampled = false);
 
     ~Texture();
-    void bind();
-    void unbind();
-    GLuint getId();
+    void bind() const;
 
-    void resize(int width, int height, void* data = nullptr);
+    void unbind() const;
+    GLuint getId() const;
 
-    void setData(void* data);
+    void resize(int width, int height, const void* data = nullptr);
+
+    void setData(const void* data) const;
 
   private:
     GLuint m_id;
@@ -24,7 +24,9 @@ class Texture {
     int m_bpp; // bits per pixel
     std::string m_path;
 
-    GLuint m_internalFormat;
+    GLint m_internalFormat;
     GLenum m_format;
+
+    bool m_multisampled{};
 };
 } // namespace Bess::Gl

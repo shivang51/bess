@@ -6,7 +6,7 @@ extern "C" {
 
 void GLClearError();
 
-void GLCheckError(const char *stmt, const char *fname, int line);
+void GLCheckError(const char *stmt, const char *filename, int line);
 
 #ifdef _DEBUG
 #define GL_CHECK(stmt)                                                         \
