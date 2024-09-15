@@ -215,7 +215,7 @@ namespace Bess::Pages {
             }
         } else {
             m_camera->incrementPos(
-                {x * 10 / m_camera->getZoom(), -y * 10 / m_camera->getZoom()});
+                {-x * 10 / m_camera->getZoom(), y * 10 / m_camera->getZoom()});
         }
     }
 
@@ -316,16 +316,15 @@ namespace Bess::Pages {
             if (hoveredId < 0 || !Simulator::ComponentsManager::isRenderIdPresent(hoveredId))
                 return;
 
-
-            auto &cid = Simulator::ComponentsManager::renderIdToCid( hoveredId);
+            auto &cid = Simulator::ComponentsManager::renderIdToCid(hoveredId);
             Simulator::Components::ComponentEventData e;
             e.type = Simulator::Components::ComponentEventType::mouseEnter;
             Simulator::ComponentsManager::components[cid]->onEvent(e);
         }
 
         if (m_middleMousePressed) {
-            m_camera->incrementPos({dx / UI::UIMain::state.cameraZoom,
-                                    -dy / UI::UIMain::state.cameraZoom});
+            m_camera->incrementPos({-dx / UI::UIMain::state.cameraZoom,
+                                    dy / UI::UIMain::state.cameraZoom});
         } else if (m_leftMousePressed &&
                    m_state->getSelectedId() !=
                        Simulator::ComponentsManager::emptyId) {
