@@ -5,6 +5,18 @@ set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
 project(bess C CXX)
 set(CMAKE_CXX_STANDARD 20)
 
+message("Build type: ${CMAKE_BUILD_TYPE}")
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    message("Building in Debug mode")
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    message("Building in Release mode")
+elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    message("Building in Release with Debug Info mode")
+elseif(CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
+    message("Building in Minimal Size Release mode")
+endif()
+
 ################################################################################
 # Set target arch type if empty. Visual studio solution generator provides it.
 ################################################################################
@@ -17,15 +29,6 @@ if(NOT ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64"
      OR "${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86"))
     message(FATAL_ERROR "${CMAKE_VS_PLATFORM_NAME} arch is not supported!")
 endif()
-
-################################################################################
-# Global configuration types
-################################################################################
-set(CMAKE_CONFIGURATION_TYPES
-    "Debug"
-    "Release"
-    CACHE STRING "" FORCE
-)
 
 ################################################################################
 # Global compiler options

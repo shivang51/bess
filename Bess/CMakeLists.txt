@@ -258,20 +258,6 @@ if(MSVC)
 endif()
 
 ################################################################################
-# Post build events
-################################################################################
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    if(UNIX)
-        add_custom_command_if(
-            TARGET ${PROJECT_NAME}
-            POST_BUILD
-            COMMANDS
-            COMMAND $<CONFIG:Release> cp -r $<SHELL_PATH:${CMAKE_SOURCE_DIR}/>assets ${OUTPUT_DIRECTORY}/assets
-        )
-    endif()
-endif()
-
-################################################################################
 # Dependencies
 ################################################################################
 if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64" AND NOT UNIX)
@@ -296,6 +282,8 @@ if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64" AND NOT UNIX)
         "${CMAKE_SOURCE_DIR}/external/freetype/libs/windows"
     )
 endif()
+
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 
 add_custom_target(run
     COMMAND ${PROJECT_NAME}
