@@ -6,7 +6,7 @@
 #include <vector>
 
 namespace Bess::Pages {
-    class StartPage : public Page {
+    class StartPage final : public Page {
       public:
         StartPage();
         static std::shared_ptr<Page> getInstance();

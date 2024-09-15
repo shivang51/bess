@@ -13,7 +13,7 @@ namespace Bess::Pages {
     }
 
     std::shared_ptr<Page> StartPage::getInstance() {
-        static std::shared_ptr<StartPage> instance = std::make_shared<StartPage>();
+        static auto instance = std::make_shared<StartPage>();
         return instance;
     }
 
@@ -23,7 +23,7 @@ namespace Bess::Pages {
         if (firstTime) {
             firstTime = false;
 
-            auto mainDockspaceId = ImGui::GetID("MainDockspace");
+            const auto mainDockspaceId = ImGui::GetID("MainDockspace");
 
             ImGui::DockBuilderRemoveNode(mainDockspaceId);
             ImGui::DockBuilderAddNode(mainDockspaceId, ImGuiDockNodeFlags_NoTabBar);
@@ -36,27 +36,27 @@ namespace Bess::Pages {
 
         drawTitle();
 
-        auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking;
+        constexpr auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking;
 
-        ImGuiViewport *mainViewport = ImGui::GetMainViewport();
+        const ImGuiViewport *mainViewport = ImGui::GetMainViewport();
 
         ImGui::SetNextWindowPos(ImVec2(mainViewport->WorkPos.x + mainViewport->WorkSize.x / 2,
                                        mainViewport->WorkPos.y + mainViewport->WorkSize.y / 2),
                                 ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::SetNextWindowViewport(mainViewport->ID);
 
-        ImGui::SetNextWindowSizeConstraints(ImVec2(500, mainViewport->WorkSize.y * 0.7f), ImVec2(mainViewport->WorkSize.x, mainViewport->WorkSize.y * 0.7));
+        ImGui::SetNextWindowSizeConstraints(ImVec2(500, mainViewport->WorkSize.y * 0.7f), ImVec2(mainViewport->WorkSize.x, mainViewport->WorkSize.y * 0.7f));
 
         if (ImGui::Begin("Menu", nullptr, flags)) {
             // Adjust window size dynamically if necessary
-            ImVec2 windowSize = ImGui::GetWindowSize();
+            const ImVec2 windowSize = ImGui::GetWindowSize();
             ImGui::SetWindowFontScale(1.5);
             ImGui::Text("Previous Projects");
             ImGui::SetWindowFontScale(1.0);
 
             if (m_previousProjects.empty()) {
-                std::string text = "No previous projects found";
-                auto textSize = ImGui::CalcTextSize(text.c_str());
+                const std::string text = "No previous projects found";
+                const auto textSize = ImGui::CalcTextSize(text.c_str());
                 ImGui::SetCursorPosX((windowSize.x - textSize.x) / 2);
                 ImGui::SetCursorPosY((windowSize.y - textSize.y) / 2);
                 ImGui::Text("No previous projects found");
@@ -75,8 +75,9 @@ namespace Bess::Pages {
     }
 
     void StartPage::drawTitle() {
-        auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
-        int width = 500, height = 200;
+        constexpr auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
+        constexpr float width = 500;
+        constexpr float height = 200;
 
         ImGui::SetNextWindowSize(ImVec2(width, height));
         ImGui::SetCursorPos(ImVec2(32, 64));

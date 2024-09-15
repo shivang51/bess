@@ -12,6 +12,7 @@
 #include "components_manager/component_bank.h"
 #include "pages/main_page/main_page_state.h"
 
+#include <execinfo.h>
 #include <iostream>
 
 namespace Bess::Simulator {
@@ -124,6 +125,23 @@ namespace Bess::Simulator {
         return Components::Connection::generate(iId, oId);
     }
 
+    void printStackTrace() {
+        // Buffer to store stack trace addresses
+        const int maxFrames = 10;
+        void *array[maxFrames];
+        size_t size;
+
+        // Get the addresses for the current call stack
+        size = backtrace(array, maxFrames);
+
+        // Print out the function names and addresses to stdout
+        std::cerr << "Stack trace:\n";
+        char **symbols = backtrace_symbols(array, size);
+        for (size_t i = 0; i < size; i++) {
+            std::cerr << symbols[i] << std::endl;
+        }
+        free(symbols);  // Clean up memory allocated for symbols
+    }
     const uuids::uuid &ComponentsManager::renderIdToCid(const int rId) {
         if (!m_renderIdToCId.contains(rId)) {
             std::cout << "Render Id not found " << rId << std::endl;
