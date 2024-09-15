@@ -3,7 +3,8 @@
 
 namespace Bess::UI::Types {
     enum class DrawMode { none = 0,
-                          connection };
+                          connection,
+                          selectionBox };
 
     struct DragData {
         glm::vec2 dragOffset;

@@ -44,11 +44,11 @@ namespace Bess::Simulator::Components {
         bool selected = Pages::MainPageState::getInstance()->getSelectedId() == m_uid;
 
         auto borderColor = selected ? ViewportTheme::selectedCompColor : ViewportTheme::componentBorderColor;
-
+        auto color = ViewportTheme::componentBGColor;
         Renderer2D::Renderer::quad(
             m_position,
             gateSize,
-            ViewportTheme::componentBGColor,
+            color,
             m_renderId,
             glm::vec4(rPx),
             true,

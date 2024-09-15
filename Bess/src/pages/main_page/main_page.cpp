@@ -1,10 +1,13 @@
 #include "pages/main_page/main_page.h"
+#include "common/helpers.h"
 #include "common/types.h"
 #include "components/clock.h"
 #include "components_manager/components_manager.h"
 #include "events/application_event.h"
 #include "ext/matrix_transform.hpp"
 #include "ext/vector_float3.hpp"
+#include "ext/vector_float4.hpp"
+#include "geometric.hpp"
 #include "pages/page_identifier.h"
 #include "renderer/renderer.h"
 #include "settings/viewport_theme.h"
@@ -90,6 +93,17 @@ namespace Bess::Pages {
                 Renderer::line({midX, sPos.y - offset, -1}, {midX, ePos.y + offset, -1}, weight, ViewportTheme::wireColor, -1);
                 Renderer::line({midX, ePos.y, -1}, ePos, weight, ViewportTheme::wireColor, -1);
             }
+        } break;
+        case UI::Types::DrawMode::selectionBox: {
+            auto &dragData = m_state->getDragDataRef();
+            auto mp = getNVPMousePos();
+            auto start = dragData.dragOffset;
+            auto end = mp;
+            auto size = mp - dragData.dragOffset;
+            auto pos = dragData.dragOffset;
+            pos += size / 2.f;
+            size = glm::abs(size);
+            Renderer::quad({pos.x, pos.y, 10.f}, size, {0.529, 0.808, 0.980, 0.3}, -1, glm::vec4(0.f), {0.0, 0.3, 1.0, 0.3}, glm::vec4(1.f));
         } break;
         default:
             break;
@@ -182,7 +196,6 @@ namespace Bess::Pages {
             Simulator::ComponentsManager::deleteComponent(compId);
         }
 
-
         if (!m_state->isSimulationPaused()) {
             for (auto &comp : Simulator::ComponentsManager::components) {
                 if (comp.second->getType() == Simulator::ComponentType::clock) {
@@ -224,17 +237,18 @@ namespace Bess::Pages {
         m_leftMousePressed = pressed;
         if (!pressed || !isCursorInViewport()) {
             auto &dragData = m_state->getDragDataRef();
+
+            if (m_state->getDrawMode() == UI::Types::DrawMode::selectionBox) {
+                dragData.isDragging = false;
+                dragData.dragOffset = {0.f, 0.f};
+                m_state->setDrawMode(UI::Types::DrawMode::none);
+            }
+
             if (dragData.isDragging) {
                 dragData.isDragging = false;
                 dragData.dragOffset = {0.f, 0.f};
             }
             return;
-        }
-
-        if (pressed) {
-            if (isCursorInViewport()) {
-                auto pos = glm::vec3(getNVPMousePos(), 0.f);
-            }
         }
 
         auto &cid = Simulator::ComponentsManager::renderIdToCid(m_state->getHoveredId());
@@ -326,30 +340,39 @@ namespace Bess::Pages {
         if (m_middleMousePressed) {
             m_camera->incrementPos({-dx / UI::UIMain::state.cameraZoom,
                                     dy / UI::UIMain::state.cameraZoom});
-        } else if (m_leftMousePressed &&
-                   m_state->getSelectedId() !=
-                       Simulator::ComponentsManager::emptyId) {
-            const auto &entity = Simulator::ComponentsManager::components
-                [m_state->getSelectedId()];
+        } else if (m_leftMousePressed) {
+            // dragging an entity
+            if (m_state->getSelectedId() != Simulator::ComponentsManager::emptyId) {
+                const auto &entity = Simulator::ComponentsManager::components[m_state->getSelectedId()];
 
-            // dragable components start from 101
-            if (static_cast<int>(entity->getType()) <= 100)
-                return;
+                // dragable components start from 101
+                if (static_cast<int>(entity->getType()) <= 100)
+                    return;
 
-            auto &pos = entity->getPosition();
+                auto &pos = entity->getPosition();
 
-            auto &dragData = m_state->getDragDataRef();
-            if (!dragData.isDragging) {
-                dragData.isDragging = true;
-                dragData.dragOffset =
-                    getNVPMousePos() - glm::vec2(pos);
+                auto &dragData = m_state->getDragDataRef();
+                if (!dragData.isDragging) {
+                    dragData.isDragging = true;
+                    dragData.dragOffset = getNVPMousePos() - glm::vec2(pos);
+                }
+
+                auto dPos = getNVPMousePos() - dragData.dragOffset;
+                float snap = 4.f;
+                dPos = glm::round(dPos / snap) * snap;
+
+                pos = {dPos, pos.z};
+            } else { // box selection when draggin in empty space
+                auto &dragData = m_state->getDragDataRef();
+
+                auto mp = getNVPMousePos();
+
+                if (!dragData.isDragging) {
+                    dragData.isDragging = true;
+                    dragData.dragOffset = mp;
+                    m_state->setDrawMode(UI::Types::DrawMode::selectionBox);
+                }
             }
-
-            auto dPos = getNVPMousePos() - dragData.dragOffset;
-            float snap = 4.f;
-            dPos = glm::round(dPos / snap) * snap;
-
-            pos = {dPos, pos.z};
         }
     }
 
