@@ -7,6 +7,7 @@
 namespace Bess::Pages {
     class Page {
       public:
+        virtual ~Page() = default;
         Page(PageIdentifier identifier);
 
         void show();

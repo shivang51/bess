@@ -135,7 +135,7 @@ namespace Bess::Simulator {
     bool ComponentsManager::isRenderIdPresent(const int rId) {
         return m_renderIdToCId.contains(rId);
     }
-    
+
     int ComponentsManager::compIdToRid(const uuids::uuid &cid) {
         return m_compIdToRId[cid];
     }

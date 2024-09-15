@@ -20,7 +20,7 @@ namespace Bess::Pages {
         };
 
       private:
-        void drawTitle();
+        static void drawTitle();
         std::vector<PreviousProject> m_previousProjects = {};
     };
 } // namespace Bess::Pages

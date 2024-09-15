@@ -40,23 +40,16 @@ namespace Bess::Pages {
 
         ImGuiViewport *mainViewport = ImGui::GetMainViewport();
 
-        int width = 500, height = std::max(mainViewport->WorkSize.y * 0.6, 300.0);
-
         ImGui::SetNextWindowPos(ImVec2(mainViewport->WorkPos.x + mainViewport->WorkSize.x / 2,
                                        mainViewport->WorkPos.y + mainViewport->WorkSize.y / 2),
                                 ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::SetNextWindowViewport(mainViewport->ID);
 
-        ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(mainViewport->WorkSize.x, mainViewport->WorkSize.y));
+        ImGui::SetNextWindowSizeConstraints(ImVec2(500, mainViewport->WorkSize.y * 0.7f), ImVec2(mainViewport->WorkSize.x, mainViewport->WorkSize.y * 0.7));
 
         if (ImGui::Begin("Menu", nullptr, flags)) {
             // Adjust window size dynamically if necessary
             ImVec2 windowSize = ImGui::GetWindowSize();
-            ImVec2 maxSize = mainViewport->WorkSize;
-            windowSize.x = std::min(windowSize.x, maxSize.x);
-            windowSize.y = std::min(windowSize.y, maxSize.y);
-
-            ImGui::SetWindowSize(windowSize);
             ImGui::SetWindowFontScale(1.5);
             ImGui::Text("Previous Projects");
             ImGui::SetWindowFontScale(1.0);
