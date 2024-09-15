@@ -346,6 +346,8 @@ namespace Bess::Pages {
             }
 
             auto dPos = getNVPMousePos() - dragData.dragOffset;
+            float snap = 4.f;
+            dPos = glm::round(dPos / snap) * snap;
 
             pos = {dPos, pos.z};
         }
