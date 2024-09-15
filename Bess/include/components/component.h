@@ -12,6 +12,7 @@
 namespace Bess::Simulator::Components {
 
     enum class ComponentEventType {
+        none = -1,
         leftClick,
         rightClick,
         mouseEnter,
@@ -50,7 +51,7 @@ namespace Bess::Simulator::Components {
 
         virtual void update();
 
-        virtual void generate(const glm::vec3 &pos = {0.f, 0.f, 0.f}) = 0;
+        virtual void generate(const glm::vec3& pos) = 0;
 
         virtual void deleteComponent() = 0;
 
@@ -62,11 +63,11 @@ namespace Bess::Simulator::Components {
         virtual void simulate();
 
       protected:
-        int m_renderId;
+        int m_renderId{};
         uuids::uuid m_uid;
-        glm::vec3 m_position;
-        ComponentType m_type;
+        glm::vec3 m_position{};
+        ComponentType m_type = ComponentType::none;
         std::string m_name = "Unknown";
-        std::unordered_map<ComponentEventType, std::any> m_events;
+        std::unordered_map<ComponentEventType, std::any> m_events = {};
     };
 } // namespace Bess::Simulator::Components

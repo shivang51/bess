@@ -168,7 +168,7 @@ namespace Bess::Pages {
             }
         }
 
-        if (m_state->getHoveredId() != -1) {
+        if (m_state->getHoveredId() != -1 && Simulator::ComponentsManager::isRenderIdPresent(m_state->getHoveredId())) {
             auto &cid = Simulator::ComponentsManager::renderIdToCid(m_state->getHoveredId());
             Simulator::Components::ComponentEventData e;
             e.type = Simulator::Components::ComponentEventType::mouseHover;
@@ -182,15 +182,16 @@ namespace Bess::Pages {
             Simulator::ComponentsManager::deleteComponent(compId);
         }
 
-        for (auto &comp : Simulator::ComponentsManager::components) {
-            if (comp.second->getType() == Simulator::ComponentType::clock) {
-                const auto clockCmp = std::dynamic_pointer_cast<Simulator::Components::Clock>(comp.second);
-                clockCmp->update();
-            }
-        }
 
-        if (!m_state->isSimulationPaused())
+        if (!m_state->isSimulationPaused()) {
+            for (auto &comp : Simulator::ComponentsManager::components) {
+                if (comp.second->getType() == Simulator::ComponentType::clock) {
+                    const auto clockCmp = std::dynamic_pointer_cast<Simulator::Components::Clock>(comp.second);
+                    clockCmp->update();
+                }
+            }
             Simulator::Engine::Simulate();
+        }
     }
 
     glm::vec2 MainPage::getCameraPos() {

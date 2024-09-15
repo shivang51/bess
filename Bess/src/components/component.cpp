@@ -1,6 +1,8 @@
 #include "components/component.h"
 
 namespace Bess::Simulator::Components {
+
+
 Component::Component(const uuids::uuid &uid, int renderId, glm::vec3 position,
                      ComponentType type)
     : m_uid(uid), m_renderId(renderId), m_position(position), m_type(type) {}

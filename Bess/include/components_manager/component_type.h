@@ -2,6 +2,7 @@
 
 namespace Bess::Simulator {
     enum class ComponentType {
+        none = -1,
         inputSlot = 0,
         outputSlot,
         connection,
