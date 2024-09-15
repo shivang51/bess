@@ -12,6 +12,8 @@
 #include "components_manager/component_bank.h"
 #include "pages/main_page/main_page_state.h"
 
+#include <iostream>
+
 namespace Bess::Simulator {
 
     std::unordered_map<int, uuids::uuid> ComponentsManager::m_renderIdToCId;
@@ -24,7 +26,7 @@ namespace Bess::Simulator {
 
     std::unordered_map<uuids::uuid, ComponentPtr> ComponentsManager::components;
 
-    std::vector<uuids::uuid> ComponentsManager::renderComponenets;
+    std::vector<uuids::uuid> ComponentsManager::renderComponents;
 
     uuids::uuid ComponentsManager::emptyId;
 
@@ -40,7 +42,7 @@ namespace Bess::Simulator {
     void ComponentsManager::generateComponent(ComponentType type, const std::any &data, const glm::vec3 &pos) {
         switch (type) {
         case ComponentType::jcomponent: {
-            auto val = std::any_cast<const std::shared_ptr<Components::JComponentData>>(data);
+            const auto val = std::any_cast<const std::shared_ptr<Components::JComponentData>>(data);
             Components::JComponent().generate(val, pos);
         } break;
         case ComponentType::inputProbe: {
@@ -56,8 +58,7 @@ namespace Bess::Simulator {
             Components::Clock().generate(pos);
         } break;
         case ComponentType::flipFlop: {
-            std::string name = std::any_cast<std::string>(data);
-            if (name == Components::JKFlipFlop::name)
+            if (const auto name = std::any_cast<std::string>(data); name == Components::JKFlipFlop::name)
                 Components::JKFlipFlop().generate(pos);
             else if (name == Components::DFlipFlop::name)
                 Components::DFlipFlop().generate(pos);
@@ -65,12 +66,11 @@ namespace Bess::Simulator {
             //     Components::SRFlipFlop().generate(pos);
         } break;
         default:
-            std::runtime_error("Component type not registered in components manager " + std::to_string((int)type));
-            break;
+            throw std::runtime_error("Component type not registered in components manager " + std::to_string(static_cast<int>(type)));
         }
     }
 
-    void ComponentsManager::generateComponent(ComponentBankElement comp, const glm::vec3 &pos) {
+    void ComponentsManager::generateComponent(const ComponentBankElement& comp, const glm::vec3 &pos) {
         std::any data = NULL;
         if (comp.getType() == Simulator::ComponentType::jcomponent) {
             data = comp.getJCompData();
@@ -80,30 +80,28 @@ namespace Bess::Simulator {
         generateComponent(comp.getType(), data, pos);
     }
 
-    void ComponentsManager::deleteComponent(const uuids::uuid cid) {
-        if (cid.is_nil() || components.find(cid) == components.end())
+    void ComponentsManager::deleteComponent(const uuids::uuid uid) {
+        if (uid.is_nil() || !components.contains(uid))
             return;
 
-        auto renderIt = std::find(renderComponenets.begin(), renderComponenets.end(), cid);
-        if (renderIt != renderComponenets.end()) {
-            renderComponenets.erase(renderIt);
+        if (const auto renderIt = std::ranges::find(renderComponents, uid); renderIt != renderComponents.end()) {
+            renderComponents.erase(renderIt);
         }
-        auto state = Pages::MainPageState::getInstance();
-        if (state->getSelectedId() == cid)
+        if (const auto state = Pages::MainPageState::getInstance(); state->getSelectedId() == uid)
             state->setSelectedId(emptyId, false);
 
-        m_renderIdToCId.erase(m_compIdToRId[cid]);
-        m_compIdToRId.erase(cid);
-        components[cid]->deleteComponent();
+        m_renderIdToCId.erase(m_compIdToRId[uid]);
+        m_compIdToRId.erase(uid);
+        components[uid]->deleteComponent();
 
-        components.erase(cid);
+        components.erase(uid);
     }
 
-    uuids::uuid ComponentsManager::addConnection(const uuids::uuid &slot1, const uuids::uuid &slot2) {
-        auto slotA = (Bess::Simulator::Components::Slot *)components[slot1].get();
-        auto slotB = (Bess::Simulator::Components::Slot *)components[slot2].get();
+    uuids::uuid ComponentsManager::addConnection(const uuids::uuid &start, const uuids::uuid &end) {
+        const auto slotA = getComponent<Components::Slot>(start);
+        const auto slotB = getComponent<Components::Slot>(end);
 
-        Bess::Simulator::Components::Slot *outputSlot, *inputSlot;
+        std::shared_ptr<Components::Slot> outputSlot, inputSlot;
 
         if (slotA->getType() == ComponentType::outputSlot) {
             inputSlot = slotB;
@@ -113,8 +111,8 @@ namespace Bess::Simulator {
             outputSlot = slotB;
         }
 
-        auto iId = inputSlot->getId();
-        auto oId = outputSlot->getId();
+        const auto iId = inputSlot->getId();
+        const auto oId = outputSlot->getId();
 
         if (outputSlot->isConnectedTo(iId))
             return emptyId;
@@ -122,37 +120,41 @@ namespace Bess::Simulator {
         outputSlot->addConnection(iId);
         inputSlot->addConnection(oId);
 
-        // adding interative wire
+        // adding interactive wire
         return Components::Connection::generate(iId, oId);
     }
 
-    const uuids::uuid &ComponentsManager::renderIdToCid(int rId) {
+    const uuids::uuid &ComponentsManager::renderIdToCid(const int rId) {
+        if (!m_renderIdToCId.contains(rId)) {
+            std::cout << "Render Id not found " << rId << std::endl;
+            assert(false);
+        }
         return m_renderIdToCId[rId];
     }
 
-    bool ComponentsManager::isRenderIdPresent(int rId) {
-        return m_renderIdToCId.find(rId) != m_renderIdToCId.end();
+    bool ComponentsManager::isRenderIdPresent(const int rId) {
+        return m_renderIdToCId.contains(rId);
     }
 
-    int ComponentsManager::compIdToRid(const uuids::uuid &uId) {
-        return m_compIdToRId[uId];
+    int ComponentsManager::compIdToRid(const uuids::uuid &cid) {
+        return m_compIdToRId[cid];
     }
 
-    void ComponentsManager::addRenderIdToCId(int rid, const uuids::uuid &cid) {
+    void ComponentsManager::addRenderIdToCId(const int rid, const uuids::uuid &cid) {
         m_renderIdToCId[rid] = cid;
     }
 
-    void ComponentsManager::addCompIdToRId(int rid, const uuids::uuid &cid) {
+    void ComponentsManager::addCompIdToRId(const int rid, const uuids::uuid &cid) {
         m_compIdToRId[cid] = rid;
     }
 
     void ComponentsManager::addSlotsToConn(const uuids::uuid &inpSlot, const uuids::uuid &outSlot, const uuids::uuid &conn) {
-        std::string key = Common::Helpers::uuidToStr(inpSlot) + "," + Common::Helpers::uuidToStr(outSlot);
+        const std::string key = Common::Helpers::uuidToStr(inpSlot) + "," + Common::Helpers::uuidToStr(outSlot);
         m_slotsToConn[key] = conn;
     }
 
     const uuids::uuid &ComponentsManager::getConnectionBetween(const uuids::uuid &inpSlot, const uuids::uuid &outSlot) {
-        std::string key = Common::Helpers::uuidToStr(inpSlot) + "," + Common::Helpers::uuidToStr(outSlot);
+        const std::string key = Common::Helpers::uuidToStr(inpSlot) + "," + Common::Helpers::uuidToStr(outSlot);
         return m_slotsToConn[key];
     }
 
@@ -161,8 +163,8 @@ namespace Bess::Simulator {
     }
 
     void ComponentsManager::removeSlotsToConn(const uuids::uuid &inpSlot, const uuids::uuid &outSlot) {
-        std::string key = Common::Helpers::uuidToStr(inpSlot) + "," + Common::Helpers::uuidToStr(outSlot);
-        if (m_slotsToConn.find(key) == m_slotsToConn.end())
+        const std::string key = Common::Helpers::uuidToStr(inpSlot) + "," + Common::Helpers::uuidToStr(outSlot);
+        if (!m_slotsToConn.contains(key))
             return;
         m_slotsToConn.erase(key);
     }
@@ -183,7 +185,7 @@ namespace Bess::Simulator {
         zPos = 0.0f;
         renderIdCounter = 0;
         components.clear();
-        renderComponenets.clear();
+        renderComponents.clear();
         m_compIdToRId.clear();
         m_renderIdToCId.clear();
         m_compIdToRId[emptyId] = -1;

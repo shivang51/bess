@@ -216,7 +216,7 @@ namespace Bess::Simulator::Components {
         ComponentsManager::addRenderIdToCId(renderId, uid);
         ComponentsManager::addCompIdToRId(renderId, uid);
 
-        ComponentsManager::renderComponenets.emplace_back(uid);
+        ComponentsManager::renderComponents.emplace_back(uid);
     }
 
     void JComponent::deleteComponent() {
@@ -276,7 +276,7 @@ namespace Bess::Simulator::Components {
 
         ComponentsManager::addRenderIdToCId(renderId, uid);
         ComponentsManager::addCompIdToRId(renderId, uid);
-        ComponentsManager::renderComponenets.emplace_back(uid);
+        ComponentsManager::renderComponents.emplace_back(uid);
     }
 
     void JComponent::onLeftClick(const glm::vec2 &pos) {

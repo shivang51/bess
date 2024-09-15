@@ -78,7 +78,7 @@ namespace Bess::Simulator::Components {
             std::make_shared<Components::OutputProbe>(uid, renderId, pos_, slotId);
         ComponentsManager::addRenderIdToCId(renderId, uid);
         ComponentsManager::addCompIdToRId(renderId, uid);
-        ComponentsManager::renderComponenets.emplace_back(uid);
+        ComponentsManager::renderComponents.emplace_back(uid);
     }
 
     nlohmann::json OutputProbe::toJson() {
@@ -104,6 +104,6 @@ namespace Bess::Simulator::Components {
         ComponentsManager::components[uid] = std::make_shared<Components::OutputProbe>(uid, renderId, pos, slotId);
         ComponentsManager::addRenderIdToCId(renderId, uid);
         ComponentsManager::addCompIdToRId(renderId, uid);
-        ComponentsManager::renderComponenets.emplace_back(uid);
+        ComponentsManager::renderComponents.emplace_back(uid);
     }
 } // namespace Bess::Simulator::Components

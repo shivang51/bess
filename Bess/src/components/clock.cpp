@@ -72,7 +72,7 @@ namespace Bess::Simulator::Components {
         ComponentsManager::components[uid] = std::make_shared<Components::Clock>(uid, renderId, pos, slotId);
         ComponentsManager::addRenderIdToCId(renderId, uid);
         ComponentsManager::addCompIdToRId(renderId, uid);
-        ComponentsManager::renderComponenets.emplace_back(uid);
+        ComponentsManager::renderComponents.emplace_back(uid);
 
         auto clockCmp = std::dynamic_pointer_cast<Clock>(ComponentsManager::components[uid]);
         clockCmp->setFrequency(frequency);
@@ -137,7 +137,7 @@ namespace Bess::Simulator::Components {
         ComponentsManager::components[uid] = std::make_shared<Components::Clock>(uid, renderId, pos_, slotId);
         ComponentsManager::addRenderIdToCId(renderId, uid);
         ComponentsManager::addCompIdToRId(renderId, uid);
-        ComponentsManager::renderComponenets.emplace_back(uid);
+        ComponentsManager::renderComponents.emplace_back(uid);
     }
 
     void Clock::deleteComponent() {

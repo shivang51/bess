@@ -64,7 +64,7 @@ namespace Bess::UI {
             m_pageState->setSimulationPaused(!isSimulationPaused);
         }
 
-        for (auto &id : Simulator::ComponentsManager::renderComponenets) {
+        for (auto &id : Simulator::ComponentsManager::renderComponents) {
             auto &entity = Simulator::ComponentsManager::components[id];
             if (ImGui::Selectable(entity->getRenderName().c_str(), entity->getId() == m_pageState->getSelectedId())) {
                 m_pageState->setSelectedId(entity->getId());

@@ -56,7 +56,6 @@ namespace Bess::Pages {
 
     void MainPage::drawScene() {
         static int value = -1;
-        m_normalFramebuffer->clearColorAttachment<GL_INT>(1, &value);
 
         m_multiSampledFramebuffer->bind();
 
@@ -96,7 +95,7 @@ namespace Bess::Pages {
             break;
         }
 
-        for (auto &id : Simulator::ComponentsManager::renderComponenets) {
+        for (auto &id : Simulator::ComponentsManager::renderComponents) {
             const auto &entity = Simulator::ComponentsManager::components[id];
             entity->render();
         }
@@ -132,7 +131,8 @@ namespace Bess::Pages {
         if (isCursorInViewport()) {
             auto viewportMousePos = getViewportMousePos();
             viewportMousePos.y = UI::UIMain::state.viewportSize.y - viewportMousePos.y;
-            m_state->setHoveredId(m_normalFramebuffer->readIntFromColAttachment(1, static_cast<int>(viewportMousePos.x), static_cast<int>(viewportMousePos.y)));
+            const int hoveredId = m_normalFramebuffer->readIntFromColAttachment(1, static_cast<int>(viewportMousePos.x), static_cast<int>(viewportMousePos.y));
+            m_state->setHoveredId(hoveredId);
         }
 
         for (auto &event : events) {
@@ -313,11 +313,11 @@ namespace Bess::Pages {
 
             prevHoveredId = hoveredId;
 
-            if (hoveredId < 0)
+            if (hoveredId < 0 || !Simulator::ComponentsManager::isRenderIdPresent(hoveredId))
                 return;
 
-            auto &cid = Simulator::ComponentsManager::renderIdToCid(
-                hoveredId);
+
+            auto &cid = Simulator::ComponentsManager::renderIdToCid( hoveredId);
             Simulator::Components::ComponentEventData e;
             e.type = Simulator::Components::ComponentEventType::mouseEnter;
             Simulator::ComponentsManager::components[cid]->onEvent(e);

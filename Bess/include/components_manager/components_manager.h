@@ -22,13 +22,13 @@ namespace Bess::Simulator {
 
         // contains all the components whose render function needs to be called from
         // scene.
-        static std::vector<uuids::uuid> renderComponenets;
+        static std::vector<uuids::uuid> renderComponents;
 
-        static void generateComponent(ComponentBankElement comp, const glm::vec3 &pos = {0.f, 0.f, 0.f});
+        static void generateComponent(const ComponentBankElement& comp, const glm::vec3 &pos = {0.f, 0.f, 0.f});
 
         static void generateComponent(ComponentType type, const std::any &data = NULL, const glm::vec3 &pos = {0.f, 0.f, 0.f});
 
-        static void deleteComponent(const uuids::uuid uid);
+        static void deleteComponent(uuids::uuid uid);
 
         static uuids::uuid addConnection(const uuids::uuid &start, const uuids::uuid &end);
 

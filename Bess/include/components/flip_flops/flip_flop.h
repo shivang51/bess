@@ -42,7 +42,7 @@ namespace Bess::Simulator::Components {
             pos_.z = ComponentsManager::getNextZPos();
 
             ComponentsManager::components[pId] = std::make_shared<T>(pId, renderId, pos_, inputSlots);
-            ComponentsManager::renderComponenets.emplace_back(pId);
+            ComponentsManager::renderComponents.emplace_back(pId);
             ComponentsManager::addCompIdToRId(renderId, pId);
             ComponentsManager::addRenderIdToCId(renderId, pId);
         }

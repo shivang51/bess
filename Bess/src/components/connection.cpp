@@ -166,7 +166,7 @@ namespace Bess::Simulator::Components {
         ComponentsManager::components[uid] = std::make_shared<Components::Connection>(uid, renderId, slot1, slot2);
         ComponentsManager::addRenderIdToCId(renderId, uid);
         ComponentsManager::addCompIdToRId(renderId, uid);
-        ComponentsManager::renderComponenets.emplace_back(uid);
+        ComponentsManager::renderComponents.emplace_back(uid);
         ComponentsManager::addSlotsToConn(slot1, slot2, uid);
         return uid;
     }

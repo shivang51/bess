@@ -24,7 +24,7 @@ namespace Bess::Simulator::Components {
         auto uid = Common::Helpers::uuidGenerator.getUUID();
         auto rid = ComponentsManager::getNextRenderId();
         ComponentsManager::components[uid] = std::make_shared<TextComponent>(uid, rid, pos_);
-        ComponentsManager::renderComponenets.push_back(uid);
+        ComponentsManager::renderComponents.push_back(uid);
         ComponentsManager::addCompIdToRId(rid, uid);
         ComponentsManager::addRenderIdToCId(rid, uid);
     }
@@ -91,7 +91,7 @@ namespace Bess::Simulator::Components {
 
         auto rid = ComponentsManager::getNextRenderId();
         ComponentsManager::components[uid] = std::make_shared<TextComponent>(uid, rid, pos);
-        ComponentsManager::renderComponenets.push_back(uid);
+        ComponentsManager::renderComponents.push_back(uid);
         ComponentsManager::addCompIdToRId(rid, uid);
         ComponentsManager::addRenderIdToCId(rid, uid);
 

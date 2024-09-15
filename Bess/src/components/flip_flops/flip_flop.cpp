@@ -211,7 +211,7 @@ namespace Bess::Simulator::Components {
         ComponentsManager::addRenderIdToCId(renderId, sid);
 
         renderId = ComponentsManager::getNextRenderId();
-        ComponentsManager::renderComponenets.emplace_back(uid);
+        ComponentsManager::renderComponents.emplace_back(uid);
         ComponentsManager::addCompIdToRId(renderId, uid);
         ComponentsManager::addRenderIdToCId(renderId, uid);
 

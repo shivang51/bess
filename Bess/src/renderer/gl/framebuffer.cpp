@@ -116,7 +116,6 @@ namespace Bess::Gl {
 
     int FrameBuffer::readIntFromColAttachment(const int idx, const int x, const int y) const {
         return readFromColorAttachment<int, GL_INT>(idx, x, y);
-        return -1;
     }
 
     void FrameBuffer::resetDrawAttachments() const {
