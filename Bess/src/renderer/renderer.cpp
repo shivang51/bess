@@ -193,7 +193,7 @@ namespace Bess {
         if (shadow) {
             std::vector<Gl::QuadVertex> vertices(4);
 
-            auto transform = glm::translate(glm::mat4(1.0f), pos + glm::vec3(8.f, -8.f, 0.f));
+            auto transform = glm::translate(glm::mat4(1.0f), pos + glm::vec3(6.f, -4.f, 0.f));
             transform = glm::rotate(transform, angle, {0.f, 0.f, 1.f});
             transform = glm::scale(transform, {size.x, size.y, 1.f});
 

@@ -12,18 +12,26 @@ in flat int v_FragId;
 uniform int u_SelectedObjId;
 uniform float u_zoom;
 
+float sdRoundedBox( in vec2 p, in vec2 b, in vec4 r )
+{
+    r.xy = (p.x>0.0)?r.xy : r.zw;
+    r.x  = (p.y>0.0)?r.x  : r.y;
+    vec2 q = abs(p)-b+r.x;
+    return min(max(q.x,q.y),0.0) + length(max(q,0.0)) - r.x;
+}
 
 void main() {
-    vec2 fragPos = gl_FragCoord.xy;
     float ar = v_Size.x / v_Size.y;
     vec2 p = v_TexCoord;
     vec4 bgColor = vec4(0.0, 0.0, 0.0, 1.);
-
+    
     p = (p * 2.f) - 1.f;
-    p.y += 0.1f;
+    p.x *= ar;
 
-    // float a = smoothstep(1.5f, 0.5, length(p));;
-    float a = 1.f - distance(p,  vec2(clamp(p.x, -0.4, 0.4), 0.));  
+    vec4 br = v_BorderRadius / v_Size.y;
+
+    float a = 1.f - sdRoundedBox(p, vec2(ar, 1.f) * 0.9f, br);
+    a = smoothstep(0.8, 1.f, a);
 
     fragColor = bgColor * a;
     fragColor1 = v_FragId;
