@@ -95,7 +95,7 @@ namespace Bess::Renderer2D {
         static void circle(const glm::vec3 &center, float radius,
                            const glm::vec4 &color, int id);
 
-        static void grid(const glm::vec3 &pos, const glm::vec2 &size, int id);
+        static void grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const glm::vec4 &color);
 
         static void text(const std::string &data, const glm::vec3 &pos, const size_t size, const glm::vec4 &color, const int id);
 

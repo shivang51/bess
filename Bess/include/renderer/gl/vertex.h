@@ -14,6 +14,7 @@ namespace Bess::Gl {
         glm::vec3 position;
         glm::vec2 texCoord;
         int id;
+        glm::vec4 color;
         float ar;
     };
 

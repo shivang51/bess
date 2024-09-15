@@ -42,6 +42,7 @@ namespace Bess {
             attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::GridVertex, position)));
             attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::GridVertex, texCoord)));
             attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::GridVertex, id)));
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::GridVertex, color)));
             attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::float_t, offsetof(Gl::GridVertex, ar)));
 
             m_GridVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::GridVertex));
@@ -239,7 +240,7 @@ namespace Bess {
         addQuadVertices(vertices);
     }
 
-    void Renderer::grid(const glm::vec3 &pos, const glm::vec2 &size, int id) {
+    void Renderer::grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const glm::vec4 &color) {
         std::vector<Gl::GridVertex> vertices(4);
 
         auto size_ = size;
@@ -254,6 +255,7 @@ namespace Bess {
             vertex.position = transform * m_StandardQuadVertices[i];
             vertex.id = id;
             vertex.ar = size_.x / size_.y;
+            vertex.color = color;
         }
 
         vertices[0].texCoord = {0.0f, 1.0f};

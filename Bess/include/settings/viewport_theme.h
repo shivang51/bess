@@ -1,4 +1,5 @@
 #pragma once
+#include "ext/vector_float4.hpp"
 #include "glm.hpp"
 
 namespace Bess {
@@ -13,7 +14,7 @@ namespace Bess {
         static glm::vec4 selectedWireColor;
         static glm::vec4 compHeaderColor;
         static glm::vec4 textColor;
-
+        static glm::vec4 gridColor;
         static void updateColorsFromImGuiStyle();
     };
 } // namespace Bess

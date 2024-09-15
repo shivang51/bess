@@ -11,6 +11,7 @@ namespace Bess {
     glm::vec4 ViewportTheme::compHeaderColor;
     glm::vec4 ViewportTheme::selectedCompColor;
     glm::vec4 ViewportTheme::textColor;
+    glm::vec4 ViewportTheme::gridColor;
 
     void ViewportTheme::updateColorsFromImGuiStyle() {
         ImGuiStyle &style = ImGui::GetStyle();
@@ -37,6 +38,8 @@ namespace Bess {
 
         color = colors[ImGuiCol_Text];
         textColor = glm::vec4(color.x, color.y, color.z, color.w);
+
+        gridColor = textColor * 0.3f;
 
         stateHighColor = glm::vec4(0.42f, 0.72f, 0.42f, 1.00f);
         selectedWireColor = glm::vec4(1.0f, 0.64f, 0.0f, 1.0f);
