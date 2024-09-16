@@ -1,15 +1,12 @@
 #include "application.h"
 #include <csignal>
 #include <cstdlib>
-#include <execinfo.h>
 #include <filesystem>
 #include <iostream>
-#include <unistd.h>
 
-static bool isValidStartDir() {
-    auto cwd = std::filesystem::current_path();
-    return std::filesystem::exists(std::filesystem::path(cwd.string() + "/assets"));
-}
+#ifdef _LINUX
+#include <execinfo.h>
+#include <unistd.h>
 
 static std::string binary;
 
@@ -33,6 +30,13 @@ void signal_handler(int sig) {
     exit(1);
 }
 
+#endif // _LINUX
+
+static bool isValidStartDir() {
+    auto cwd = std::filesystem::current_path();
+    return std::filesystem::exists(std::filesystem::path(cwd.string() + "/assets"));
+}
+
 int main(int argc, char **argv) {
     std::vector<std::string> args(argv, argv + argc);
 
@@ -44,7 +48,8 @@ int main(int argc, char **argv) {
         }
     }
 
-#ifndef NDEBUG
+#ifdef _LINUX
+    #ifdef _DEBUG
     binary = args[0];
     std::cout << "[+] Debug mode for " << binary << std::endl;
     struct sigaction sa;
@@ -52,7 +57,8 @@ int main(int argc, char **argv) {
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
     sigaction(SIGSEGV, &sa, nullptr);
-#endif
+    #endif
+#endif // _LINUX
 
     Bess::Application app = Bess::Application();
     try {
