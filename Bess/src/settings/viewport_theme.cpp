@@ -12,6 +12,8 @@ namespace Bess {
     glm::vec4 ViewportTheme::selectedCompColor;
     glm::vec4 ViewportTheme::textColor;
     glm::vec4 ViewportTheme::gridColor;
+    glm::vec4 ViewportTheme::selectionBoxBorderColor;
+    glm::vec4 ViewportTheme::selectionBoxFillColor;
 
     void ViewportTheme::updateColorsFromImGuiStyle() {
         ImGuiStyle &style = ImGui::GetStyle();
@@ -43,5 +45,8 @@ namespace Bess {
 
         stateHighColor = glm::vec4(0.42f, 0.72f, 0.42f, 1.00f);
         selectedWireColor = glm::vec4(1.0f, 0.64f, 0.0f, 1.0f);
+
+        selectionBoxBorderColor = glm::vec4({0.0, 0.3, 1.0, 1.f});
+        selectionBoxFillColor = glm::vec4({0.0, 0.3, .7, .5f});
     }
 } // namespace Bess
