@@ -26,26 +26,7 @@ namespace Bess::Simulator::Components {
         if (m_events.find(e.type) == m_events.end())
             return;
 
-        switch (e.type) {
-        case ComponentEventType::leftClick: {
-            auto cb = std::any_cast<OnLeftClickCB>(m_events[e.type]);
-            cb(e.pos);
-        } break;
-        case ComponentEventType::rightClick: {
-            auto cb = std::any_cast<OnRightClickCB>(m_events[e.type]);
-            cb(e.pos);
-        } break;
-        case ComponentEventType::mouseEnter:
-        case ComponentEventType::mouseLeave:
-        case ComponentEventType::mouseHover:
-        case ComponentEventType::focus:
-        case ComponentEventType::focusLost: {
-            auto cb = std::any_cast<VoidCB>(m_events[e.type]);
-            cb();
-        } break;
-        default:
-            break;
-        }
+        m_eventsQueue.push(e);
     }
 
     std::string Component::getName() const {
@@ -63,6 +44,32 @@ namespace Bess::Simulator::Components {
         auto mainPageState = Pages::MainPageState::getInstance();
         m_isSelected = mainPageState->isBulkIdPresent(m_uid);
         m_isHovered = mainPageState->getHoveredId() == m_renderId;
+
+        while (!m_eventsQueue.empty()) {
+            auto e = m_eventsQueue.front();
+            m_eventsQueue.pop();
+
+            switch (e.type) {
+            case ComponentEventType::leftClick: {
+                auto cb = std::any_cast<OnLeftClickCB>(m_events[e.type]);
+                cb(e.pos);
+            } break;
+            case ComponentEventType::rightClick: {
+                auto cb = std::any_cast<OnRightClickCB>(m_events[e.type]);
+                cb(e.pos);
+            } break;
+            case ComponentEventType::mouseEnter:
+            case ComponentEventType::mouseLeave:
+            case ComponentEventType::mouseHover:
+            case ComponentEventType::focus:
+            case ComponentEventType::focusLost: {
+                auto cb = std::any_cast<VoidCB>(m_events[e.type]);
+                cb();
+            } break;
+            default:
+                break;
+            }
+        }
     }
 
 } // namespace Bess::Simulator::Components
