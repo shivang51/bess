@@ -105,11 +105,12 @@ namespace Bess::Pages {
             auto pos = dragData.dragOffset;
             pos += size / 2.f;
             size = glm::abs(size);
-            Renderer::line({start.x, start.y, -1}, {end.x, start.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, -1);
-            Renderer::line({end.x, start.y, -1}, {end.x, end.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, -1);
-            Renderer::line({end.x, end.y, -1}, {start.x, end.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, -1);
-            Renderer::line({start.x, end.y, -1}, {start.x, start.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, -1);
-            Renderer::quad({pos.x, pos.y, 10.f}, size, ViewportTheme::selectionBoxFillColor, -1);
+            float z = 9.f;
+            Renderer::line({start.x, start.y, z}, {end.x, start.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, -1);
+            Renderer::line({end.x, start.y, z}, {end.x, end.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, -1);
+            Renderer::line({end.x, end.y, z}, {start.x, end.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, -1);
+            Renderer::line({start.x, end.y, z}, {start.x, start.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, -1);
+            Renderer::quad({pos.x, pos.y, z}, size, ViewportTheme::selectionBoxFillColor, -1);
         } break;
         default:
             break;
