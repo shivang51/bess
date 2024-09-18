@@ -105,7 +105,11 @@ namespace Bess::Pages {
             auto pos = dragData.dragOffset;
             pos += size / 2.f;
             size = glm::abs(size);
-            Renderer::quad({pos.x, pos.y, 10.f}, size, {0.529, 0.808, 0.980, 0.3}, -5, glm::vec4(0.f), {0.0, 0.3, 1.0, 0.3}, glm::vec4(1.f));
+            Renderer::line({start.x, start.y, -1}, {end.x, start.y, -1}, 1.f, {0.0, 0.3, 1.0, 1.f}, -1);
+            Renderer::line({end.x, start.y, -1}, {end.x, end.y, -1}, 1.f, {0.0, 0.3, 1.0, 1.f}, -1);
+            Renderer::line({end.x, end.y, -1}, {start.x, end.y, -1}, 1.f, {0.0, 0.3, 1.0, 1.f}, -1);
+            Renderer::line({start.x, end.y, -1}, {start.x, start.y, -1}, 1.f, {0.0, 0.3, 1.0, 1.f}, -1);
+            Renderer::quad({pos.x, pos.y, 10.f}, size, {0.0, 0.3, .7, .5f}, -1);
         } break;
         default:
             break;
