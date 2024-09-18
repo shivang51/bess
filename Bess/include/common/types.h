@@ -9,6 +9,7 @@ namespace Bess::UI::Types {
     struct DragData {
         glm::vec2 dragOffset;
         bool isDragging;
+        glm::vec2 vpMousePos;
     };
 
 } // namespace Bess::UI::Types

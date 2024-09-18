@@ -1,6 +1,6 @@
 #include "ui/ui_main/properties_panel.h"
-#include "pages/main_page/main_page_state.h"
 #include "components_manager/components_manager.h"
+#include "pages/main_page/main_page_state.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include <imgui.h>
 
@@ -8,13 +8,13 @@ namespace Bess::UI {
     void PropertiesPanel::draw() {
         ImGui::Begin("Properties");
 
-        if (Pages::MainPageState::getInstance()->getSelectedId() == Simulator::ComponentsManager::emptyId) {
+        if (Pages::MainPageState::getInstance()->getBulkIds().size() != 1) {
             ImGui::End();
             return;
         }
 
         bool deleted = false;
-        auto &selectedEnt = Simulator::ComponentsManager::components[Pages::MainPageState::getInstance()->getSelectedId()];
+        auto &selectedEnt = Simulator::ComponentsManager::components[Pages::MainPageState::getInstance()->getBulkIdAt(0)];
         if (selectedEnt == nullptr)
             goto end;
 
@@ -23,7 +23,7 @@ namespace Bess::UI {
             float textHeight = ImGui::GetTextLineHeight(), buttonHeight = ImGui::GetFrameHeight();
             float verticalOffset = (buttonHeight - textHeight) * 0.5f;
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + verticalOffset);
-            ImGui::Text(selectedEnt->getName().c_str());
+            ImGui::Text("%s", selectedEnt->getName().c_str());
             ImGui::SameLine();
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() - verticalOffset);
         }
@@ -43,7 +43,7 @@ namespace Bess::UI {
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(185.0f / 255.0f, 62.0f / 255.0f, 58.0f / 255.0f, 1.0f));
 
             if (ImGui::Button(temp.c_str())) {
-                Simulator::ComponentsManager::deleteComponent(Pages::MainPageState::getInstance()->getSelectedId());
+                Simulator::ComponentsManager::deleteComponent(Pages::MainPageState::getInstance()->getBulkIdAt(0));
                 deleted = true;
             }
             ImGui::PopStyleColor(3);

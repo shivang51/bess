@@ -1,64 +1,68 @@
 #include "components/component.h"
+#include "pages/main_page/main_page_state.h"
+#include <iostream>
 
 namespace Bess::Simulator::Components {
 
+    Component::Component(const uuids::uuid &uid, int renderId, glm::vec3 position,
+                         ComponentType type)
+        : m_uid(uid), m_renderId(renderId), m_position(position), m_type(type) {}
 
-Component::Component(const uuids::uuid &uid, int renderId, glm::vec3 position,
-                     ComponentType type)
-    : m_uid(uid), m_renderId(renderId), m_position(position), m_type(type) {}
+    int Component::getRenderId() const { return m_renderId; }
 
-int Component::getRenderId() const { return m_renderId; }
+    uuids::uuid Component::getId() const { return m_uid; }
 
-uuids::uuid Component::getId() const { return m_uid; }
+    glm::vec3 &Component::getPosition() { return m_position; }
 
-glm::vec3 &Component::getPosition() { return m_position; }
-
-std::string Component::getIdStr() const {
-    return uuids::to_string(m_uid);
-}
-
-ComponentType Component::getType() const { return m_type; }
-
-void Component::simulate(){}
-
-void Component::onEvent(ComponentEventData e) {
-    if (m_events.find(e.type) == m_events.end())
-        return;
-
-    switch (e.type) {
-    case ComponentEventType::leftClick: {
-        auto cb = std::any_cast<OnLeftClickCB>(m_events[e.type]);
-        cb(e.pos);
-    } break;
-    case ComponentEventType::rightClick: {
-        auto cb = std::any_cast<OnRightClickCB>(m_events[e.type]);
-        cb(e.pos);
-    } break;
-    case ComponentEventType::mouseEnter:
-    case ComponentEventType::mouseLeave:
-    case ComponentEventType::mouseHover:
-    case ComponentEventType::focus:
-    case ComponentEventType::focusLost: {
-        auto cb = std::any_cast<VoidCB>(m_events[e.type]);
-        cb();
-    } break;
-    default:
-        break;
+    std::string Component::getIdStr() const {
+        return uuids::to_string(m_uid);
     }
-}
 
-std::string Component::getName() const
-{
-    return m_name;
-}
+    ComponentType Component::getType() const { return m_type; }
 
-std::string Component::getRenderName() const {
-    std::string name = m_name + " " + std::to_string(m_renderId);
-    return name;
-}
+    void Component::simulate() {}
 
-void Component::drawProperties(){}
+    void Component::onEvent(ComponentEventData e) {
+        if (m_events.find(e.type) == m_events.end())
+            return;
 
-void Component::update() {}
+        switch (e.type) {
+        case ComponentEventType::leftClick: {
+            auto cb = std::any_cast<OnLeftClickCB>(m_events[e.type]);
+            cb(e.pos);
+        } break;
+        case ComponentEventType::rightClick: {
+            auto cb = std::any_cast<OnRightClickCB>(m_events[e.type]);
+            cb(e.pos);
+        } break;
+        case ComponentEventType::mouseEnter:
+        case ComponentEventType::mouseLeave:
+        case ComponentEventType::mouseHover:
+        case ComponentEventType::focus:
+        case ComponentEventType::focusLost: {
+            auto cb = std::any_cast<VoidCB>(m_events[e.type]);
+            cb();
+        } break;
+        default:
+            break;
+        }
+    }
+
+    std::string Component::getName() const {
+        return m_name;
+    }
+
+    std::string Component::getRenderName() const {
+        std::string name = m_name + " " + std::to_string(m_renderId);
+        return name;
+    }
+
+    void Component::drawProperties() {}
+
+    void Component::update() {
+        auto mainPageState = Pages::MainPageState::getInstance();
+        m_isSelected = mainPageState->isBulkIdPresent(m_uid);
+        m_isHovered = mainPageState->getHoveredId() == m_renderId;
+    }
 
 } // namespace Bess::Simulator::Components

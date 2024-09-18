@@ -17,10 +17,6 @@ namespace Bess::Pages {
         void setHoveredId(int id);
         bool isHoveredIdChanged();
 
-        void setSelectedId(const uuids::uuid &uid, bool updatePrevSel = true, bool dispatchFocusEvts = true);
-        const uuids::uuid &getSelectedId();
-        const uuids::uuid &getPrevSelectedId();
-
         void setConnStartId(const uuids::uuid &uid);
         const uuids::uuid &getConnStartId();
 
@@ -56,6 +52,31 @@ namespace Bess::Pages {
         void setPrevGenBankElement(const Simulator::ComponentBankElement &element);
         Simulator::ComponentBankElement *getPrevGenBankElement();
 
+        void setReadBulkIds(bool readBulkIds);
+
+        bool shouldReadBulkIds();
+
+        void setBulkIds(const std::vector<uuids::uuid> &ids);
+        void setBulkId(const uuids::uuid &ids);
+
+        const std::vector<uuids::uuid> &getBulkIds();
+
+        void clearBulkIds();
+
+        void addBulkId(const uuids::uuid &id);
+
+        bool isBulkIdPresent(const uuids::uuid &id);
+
+        void removeBulkId(const uuids::uuid &id, bool dispatchEvent = true);
+
+        bool isBulkIdEmpty();
+
+        const uuids::uuid &getBulkIdAt(int index);
+
+      private:
+        void addFocusLostEvent(const uuids::uuid &id);
+        void addFocusEvent(const uuids::uuid &id);
+
       private:
         // ids of entity hovered by mouse
         int m_hoveredId = -1;
@@ -71,10 +92,6 @@ namespace Bess::Pages {
 
         bool m_simulationPaused = false;
 
-        // id of selected entity
-        uuids::uuid m_selectedId;
-        uuids::uuid m_prevSelectedId;
-
         // contains the state of keyboard keys pressed
         std::unordered_map<int, bool> m_pressedKeys = {};
 
@@ -86,5 +103,11 @@ namespace Bess::Pages {
         UI::Types::DrawMode m_drawMode = UI::Types::DrawMode::none;
 
         UI::Types::DragData m_dragData = {};
+
+        bool m_readBulkIds = false;
+
+        // ids of selected entities for bulk operations
+        std::vector<uuids::uuid> m_bulkIds = {};
+        std::vector<uuids::uuid> m_prevBulkIds = {};
     };
 } // namespace Bess::Pages

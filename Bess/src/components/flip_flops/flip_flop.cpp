@@ -8,6 +8,7 @@
 #include "renderer/renderer.h"
 #include "settings/viewport_theme.h"
 #include "uuid.h"
+#include <iostream>
 
 namespace Bess::Simulator::Components {
     FlipFlop::FlipFlop(const uuids::uuid &uid, int renderId, glm::vec3 position, std::vector<uuids::uuid> inputSlots)
@@ -29,7 +30,7 @@ namespace Bess::Simulator::Components {
         }
 
         m_events[ComponentEventType::leftClick] = (OnLeftClickCB)[this](auto pos) {
-            Pages::MainPageState::getInstance()->setSelectedId(m_uid);
+            Pages::MainPageState::getInstance()->setBulkId(m_uid);
         };
     }
 
@@ -40,14 +41,12 @@ namespace Bess::Simulator::Components {
         m_outputSlots = outputSlots;
         m_clockSlot = clockSlot;
         m_events[ComponentEventType::leftClick] = (OnLeftClickCB)[this](auto pos) {
-            Pages::MainPageState::getInstance()->setSelectedId(m_uid);
+            Pages::MainPageState::getInstance()->setBulkId(m_uid);
         };
     }
 
     void FlipFlop::drawBackground(const glm::vec4 &borderThicknessPx, float rPx, float headerHeight, const glm::vec2 &gateSize) {
-        bool selected = Pages::MainPageState::getInstance()->getSelectedId() == m_uid;
-
-        auto borderColor = selected ? ViewportTheme::selectedCompColor : ViewportTheme::componentBorderColor;
+        auto borderColor = m_isSelected ? ViewportTheme::selectedCompColor : ViewportTheme::componentBorderColor;
 
         Renderer2D::Renderer::quad(
             m_position,
@@ -73,7 +72,6 @@ namespace Bess::Simulator::Components {
     const glm::vec2 FLIP_FLOP_SIZE = {140.f, 100.f};
 
     void FlipFlop::render() {
-        bool selected = Pages::MainPageState::getInstance()->getSelectedId() == m_uid;
         float rPx = 16.f;
 
         glm::vec4 borderThicknessPx({1.f, 1.f, 1.f, 1.f});
@@ -159,6 +157,7 @@ namespace Bess::Simulator::Components {
     }
 
     void FlipFlop::update() {
+        Component::update();
     }
 
     void FlipFlop::generate(const glm::vec3 &pos) {}

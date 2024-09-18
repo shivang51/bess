@@ -1,9 +1,9 @@
 #include "components/connection_point.h"
-#include "pages/main_page/main_page_state.h"
 #include "common/bind_helpers.h"
 #include "common/helpers.h"
 #include "components/connection.h"
 #include "components_manager/components_manager.h"
+#include "pages/main_page/main_page_state.h"
 #include "renderer/renderer.h"
 #include "settings/viewport_theme.h"
 
@@ -58,6 +58,6 @@ namespace Bess::Simulator::Components {
     }
 
     void ConnectionPoint::onLeftClick(const glm::vec2 &pos) {
-        Pages::MainPageState::getInstance()->setSelectedId(m_uid);
+        Pages::MainPageState::getInstance()->setBulkId(m_uid);
     }
 } // namespace Bess::Simulator::Components

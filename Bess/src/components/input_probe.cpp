@@ -1,8 +1,8 @@
 #include "components/input_probe.h"
-#include "pages/main_page/main_page_state.h"
 #include "common/bind_helpers.h"
 #include "common/helpers.h"
 #include "components/connection.h"
+#include "pages/main_page/main_page_state.h"
 #include "renderer/renderer.h"
 #include "settings/viewport_theme.h"
 #include "simulator/simulator_engine.h"
@@ -24,7 +24,6 @@ namespace Bess::Simulator::Components {
 
     void InputProbe::render() {
 
-        bool selected = Pages::MainPageState::getInstance()->getSelectedId() == m_uid;
         float thickness = 1.f;
 
         Slot *slot =
@@ -109,7 +108,7 @@ namespace Bess::Simulator::Components {
     }
 
     void InputProbe::onLeftClick(const glm::vec2 &pos) {
-        Pages::MainPageState::getInstance()->setSelectedId(m_uid);
+        Pages::MainPageState::getInstance()->setBulkId(m_uid);
         auto slot = (Slot *)ComponentsManager::components[m_outputSlot].get();
         slot->flipState();
     }

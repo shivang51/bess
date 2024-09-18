@@ -39,14 +39,14 @@ namespace Bess::Simulator::Components {
         pos.x += width / 2.f;
         pos.y += height / 2.f;
 
-        if (Pages::MainPageState::getInstance()->getSelectedId() == m_uid) {
+        if (m_isSelected) {
             pos.y -= 4.f;
             height += 8.f;
             width += 12.f;
         }
 
         pos.z -= ComponentsManager::zIncrement;
-        Renderer2D::Renderer::quad(pos, {width, height}, ViewportTheme::backgroundColor, m_renderId, glm::vec4(8.f), ViewportTheme::componentBorderColor, glm::vec4(Pages::MainPageState::getInstance()->getSelectedId() == m_uid ? 1.f : 0.f));
+        Renderer2D::Renderer::quad(pos, {width, height}, ViewportTheme::backgroundColor, m_renderId, glm::vec4(8.f), ViewportTheme::componentBorderColor, glm::vec4(m_isSelected ? 1.f : 0.f));
 
         Renderer2D::Renderer::text(m_text, m_position, m_fontSize, m_color, m_renderId);
     }
@@ -121,7 +121,7 @@ namespace Bess::Simulator::Components {
     }
 
     void TextComponent::onLeftClick(const glm::vec2 &pos) {
-        Pages::MainPageState::getInstance()->setSelectedId(m_uid);
+        Pages::MainPageState::getInstance()->setBulkId(m_uid);
     }
 
 } // namespace Bess::Simulator::Components

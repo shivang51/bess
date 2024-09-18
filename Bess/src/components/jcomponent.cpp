@@ -41,9 +41,7 @@ namespace Bess::Simulator::Components {
     }
 
     void JComponent::drawBackground(const glm::vec4 &borderThicknessPx, float rPx, float headerHeight, const glm::vec2 &gateSize) {
-        bool selected = Pages::MainPageState::getInstance()->getSelectedId() == m_uid;
-
-        auto borderColor = selected ? ViewportTheme::selectedCompColor : ViewportTheme::componentBorderColor;
+        auto borderColor = m_isSelected ? ViewportTheme::selectedCompColor : ViewportTheme::componentBorderColor;
         auto color = ViewportTheme::componentBGColor;
         Renderer2D::Renderer::quad(
             m_position,
@@ -77,7 +75,6 @@ namespace Bess::Simulator::Components {
     }
 
     void JComponent::render() {
-        bool selected = Pages::MainPageState::getInstance()->getSelectedId() == m_uid;
         float rPx = 16.f;
 
         glm::vec4 borderThicknessPx({1.f, 1.f, 1.f, 1.f});
@@ -280,7 +277,7 @@ namespace Bess::Simulator::Components {
     }
 
     void JComponent::onLeftClick(const glm::vec2 &pos) {
-        Pages::MainPageState::getInstance()->setSelectedId(m_uid);
+        Pages::MainPageState::getInstance()->setBulkId(m_uid);
     }
 
     void JComponent::onRightClick(const glm::vec2 &pos) {

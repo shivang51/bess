@@ -8,6 +8,7 @@ namespace Bess::Simulator::Components {
     }
 
     void DFlipFlop::update() {
+        FlipFlop::update();
     }
 
     void DFlipFlop::generate(const glm::vec3 &pos) {

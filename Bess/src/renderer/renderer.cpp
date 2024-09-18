@@ -410,8 +410,8 @@ namespace Bess {
         shader->setUniformVec4("textColor", color);
         shader->setUniformMat4("u_mvp", m_camera->getTransform());
 
-        auto selId = Simulator::ComponentsManager::compIdToRid(Pages::MainPageState::getInstance()->getSelectedId());
-        shader->setUniform1i("u_SelectedObjId", selId);
+        // auto selId = Simulator::ComponentsManager::compIdToRid(Pages::MainPageState::getInstance()->getSelectedId());
+        shader->setUniform1i("u_SelectedObjId", -1);
 
         float scale = Font::getScale(size), x = pos.x, y = pos.y;
 
@@ -553,14 +553,14 @@ namespace Bess {
 
     void Renderer::flush(PrimitiveType type) {
         auto &vao = m_vaos[type];
-        auto selId = Simulator::ComponentsManager::compIdToRid(Pages::MainPageState::getInstance()->getSelectedId());
+        // auto selId = Simulator::ComponentsManager::compIdToRid(Pages::MainPageState::getInstance()->getSelectedId());
 
         if (type == PrimitiveType::quad) {
             vao->bind();
             auto &shader = m_quadShadowShader;
             shader->bind();
             shader->setUniformMat4("u_mvp", m_camera->getTransform());
-            shader->setUniform1i("u_SelectedObjId", selId);
+            shader->setUniform1i("u_SelectedObjId", -1);
             shader->setUniform1f("u_zoom", m_camera->getZoom());
 
             auto &vertices = m_RenderData.quadShadowVertices;
@@ -578,7 +578,7 @@ namespace Bess {
         shader->bind();
 
         shader->setUniformMat4("u_mvp", m_camera->getTransform());
-        shader->setUniform1i("u_SelectedObjId", selId);
+        shader->setUniform1i("u_SelectedObjId", -1);
 
         switch (type) {
         case PrimitiveType::quad: {

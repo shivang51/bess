@@ -35,9 +35,6 @@ namespace Bess::Simulator::Components {
 
     void Connection::renderCurveConnection(glm::vec3 startPos, glm::vec3 endPos, float weight, glm::vec4 color) {
         auto slot = ComponentsManager::getComponent<Slot>(m_slot1);
-        auto m_selected = Pages::MainPageState::getInstance()->getSelectedId() == m_uid;
-        auto m_hovered = Pages::MainPageState::getInstance()->getHoveredId() == m_renderId;
-
         auto posA = startPos;
         for (auto &pointId : m_points) {
             auto point = std::dynamic_pointer_cast<ConnectionPoint>(ComponentsManager::components[pointId]);
@@ -46,9 +43,9 @@ namespace Bess::Simulator::Components {
             Renderer2D::Renderer::curve(
                 {posA.x, posA.y, m_position.z},
                 {posB.x, posB.y, m_position.z},
-                m_hovered ? 2.5f : 2.0f,
-                m_selected ? ViewportTheme::selectedWireColor : (slot->getState() == DigitalState::high) ? ViewportTheme::stateHighColor
-                                                                                                         : m_color,
+                m_isHovered ? 2.5f : 2.0f,
+                m_isSelected ? ViewportTheme::selectedWireColor : (slot->getState() == DigitalState::high) ? ViewportTheme::stateHighColor
+                                                                                                           : m_color,
                 m_renderId);
             posA = posB;
         }
@@ -56,9 +53,9 @@ namespace Bess::Simulator::Components {
         Renderer2D::Renderer::curve(
             {posA.x, posA.y, m_position.z},
             {posB.x, posB.y, m_position.z},
-            m_hovered ? 2.5f : 2.0f,
-            m_selected ? ViewportTheme::selectedWireColor : (slot->getState() == DigitalState::high) ? ViewportTheme::stateHighColor
-                                                                                                     : m_color,
+            m_isHovered ? 2.5f : 2.0f,
+            m_isSelected ? ViewportTheme::selectedWireColor : (slot->getState() == DigitalState::high) ? ViewportTheme::stateHighColor
+                                                                                                       : m_color,
             m_renderId);
     }
 
@@ -95,12 +92,9 @@ namespace Bess::Simulator::Components {
         auto startPos = slotB->getPosition();
         auto endPos = slotA->getPosition();
 
-        auto m_selected = Pages::MainPageState::getInstance()->getSelectedId() == m_uid;
-        auto m_hovered = Pages::MainPageState::getInstance()->getHoveredId() == m_renderId;
-
-        float weight = m_hovered ? 2.5f : 2.0f;
-        glm::vec4 color = m_selected ? ViewportTheme::selectedWireColor : (slot->getState() == DigitalState::high) ? ViewportTheme::stateHighColor
-                                                                                                                   : m_color;
+        float weight = m_isHovered ? 2.5f : 2.0f;
+        glm::vec4 color = m_isSelected ? ViewportTheme::selectedWireColor : (slot->getState() == DigitalState::high) ? ViewportTheme::stateHighColor
+                                                                                                                     : m_color;
 
         if (m_type == ConnectionType::curve) {
             renderCurveConnection(startPos, endPos, weight, color);
@@ -172,7 +166,7 @@ namespace Bess::Simulator::Components {
     }
 
     void Connection::onLeftClick(const glm::vec2 &pos) {
-        Pages::MainPageState::getInstance()->setSelectedId(m_uid);
+        Pages::MainPageState::getInstance()->setBulkId(m_uid);
 
         if (!Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL))
             return;

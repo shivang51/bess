@@ -1,10 +1,12 @@
 #include "pages/main_page/main_page.h"
+#include "GLFW/glfw3.h"
 #include "common/helpers.h"
 #include "common/types.h"
 #include "components/clock.h"
 #include "components_manager/components_manager.h"
 #include "events/application_event.h"
 #include "ext/matrix_transform.hpp"
+#include "ext/vector_float2.hpp"
 #include "ext/vector_float3.hpp"
 #include "ext/vector_float4.hpp"
 #include "geometric.hpp"
@@ -13,6 +15,7 @@
 #include "settings/viewport_theme.h"
 #include "simulator/simulator_engine.h"
 #include "ui/ui_main/ui_main.h"
+#include <set>
 
 using namespace Bess::Renderer2D;
 
@@ -59,7 +62,6 @@ namespace Bess::Pages {
 
     void MainPage::drawScene() {
         static int value = -1;
-
         m_multiSampledFramebuffer->bind();
 
         const auto bgColor = ViewportTheme::backgroundColor;
@@ -103,7 +105,7 @@ namespace Bess::Pages {
             auto pos = dragData.dragOffset;
             pos += size / 2.f;
             size = glm::abs(size);
-            Renderer::quad({pos.x, pos.y, 10.f}, size, {0.529, 0.808, 0.980, 0.3}, -1, glm::vec4(0.f), {0.0, 0.3, 1.0, 0.3}, glm::vec4(1.f));
+            Renderer::quad({pos.x, pos.y, 10.f}, size, {0.529, 0.808, 0.980, 0.3}, -5, glm::vec4(0.f), {0.0, 0.3, 1.0, 0.3}, glm::vec4(1.f));
         } break;
         default:
             break;
@@ -120,14 +122,6 @@ namespace Bess::Pages {
     }
 
     void MainPage::update(const std::vector<ApplicationEvent> &events) {
-        static bool firstTime = true;
-        if (firstTime) {
-            if (UI::UIMain::state.viewportSize.x != 800.f)
-                firstTime = false;
-            auto pos = UI::UIMain::state.viewportSize / 2.f;
-            // m_camera->setPos({pos.x, pos.y});
-        }
-
         if (m_multiSampledFramebuffer->getSize() != UI::UIMain::state.viewportSize) {
             m_multiSampledFramebuffer->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
             m_normalFramebuffer->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
@@ -147,6 +141,36 @@ namespace Bess::Pages {
             viewportMousePos.y = UI::UIMain::state.viewportSize.y - viewportMousePos.y;
             const int hoveredId = m_normalFramebuffer->readIntFromColAttachment(1, static_cast<int>(viewportMousePos.x), static_cast<int>(viewportMousePos.y));
             m_state->setHoveredId(hoveredId);
+        }
+
+        if (m_state->shouldReadBulkIds()) {
+            m_state->setReadBulkIds(false);
+            m_state->clearBulkIds();
+            auto &dragData = m_state->getDragDataRef();
+            auto end = getViewportMousePos();
+            auto start = dragData.vpMousePos;
+            auto size = end - start;
+            glm::vec2 pos = {std::min(start.x, end.x), std::max(start.y, end.y)};
+            size = glm::abs(size);
+
+            int w = (int)size.x;
+            int h = (int)size.y;
+            int x = pos.x, y = UI::UIMain::state.viewportSize.y - pos.y;
+
+            auto ids = m_normalFramebuffer->readIntsFromColAttachment(1, x, y, w, h);
+
+            if (ids.size() == 0)
+                return;
+
+            std::set<int> uniqueIds(ids.begin(), ids.end());
+
+            for (auto &id : uniqueIds) {
+                if (!Simulator::ComponentsManager::isRenderComponent(id))
+                    continue;
+                m_state->addBulkId(Simulator::ComponentsManager::renderIdToCid(id));
+            }
+
+            dragData.isDragging = false;
         }
 
         for (auto &event : events) {
@@ -182,6 +206,25 @@ namespace Bess::Pages {
             }
         }
 
+        // key board bindings
+        {
+            if (m_state->isKeyPressed(GLFW_KEY_DELETE)) {
+                for (auto &compId : m_state->getBulkIds()) {
+                    if (compId == Simulator::ComponentsManager::emptyId)
+                        continue;
+                    Simulator::ComponentsManager::deleteComponent(compId);
+                }
+            }
+
+            if (m_state->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
+                if (m_state->isKeyPressed(GLFW_KEY_A)) {
+                    m_state->clearBulkIds();
+                    for (auto &compId : Simulator::ComponentsManager::renderComponents)
+                        m_state->addBulkId(compId);
+                }
+            }
+        }
+
         if (m_state->getHoveredId() != -1 && Simulator::ComponentsManager::isRenderIdPresent(m_state->getHoveredId())) {
             auto &cid = Simulator::ComponentsManager::renderIdToCid(m_state->getHoveredId());
             Simulator::Components::ComponentEventData e;
@@ -189,20 +232,16 @@ namespace Bess::Pages {
             Simulator::ComponentsManager::components[cid]->onEvent(e);
         }
 
-        if (m_state->isKeyPressed(GLFW_KEY_DELETE)) {
-            auto &compId = m_state->getSelectedId();
-            if (compId == Simulator::ComponentsManager::emptyId)
-                return;
-            Simulator::ComponentsManager::deleteComponent(compId);
+        for (auto &comp : Simulator::ComponentsManager::components) {
+            if (comp.second->getType() == Simulator::ComponentType::clock) {
+                const auto clockCmp = std::dynamic_pointer_cast<Simulator::Components::Clock>(comp.second);
+                clockCmp->update();
+            } else {
+                comp.second->update();
+            }
         }
 
         if (!m_state->isSimulationPaused()) {
-            for (auto &comp : Simulator::ComponentsManager::components) {
-                if (comp.second->getType() == Simulator::ComponentType::clock) {
-                    const auto clockCmp = std::dynamic_pointer_cast<Simulator::Components::Clock>(comp.second);
-                    clockCmp->update();
-                }
-            }
             Simulator::Engine::Simulate();
         }
     }
@@ -235,19 +274,17 @@ namespace Bess::Pages {
 
     void MainPage::onLeftMouse(bool pressed) {
         m_leftMousePressed = pressed;
-        if (!pressed || !isCursorInViewport()) {
-            auto &dragData = m_state->getDragDataRef();
 
+        if (!isCursorInViewport())
+            return;
+
+        if (!pressed) {
             if (m_state->getDrawMode() == UI::Types::DrawMode::selectionBox) {
-                dragData.isDragging = false;
-                dragData.dragOffset = {0.f, 0.f};
+                m_state->setReadBulkIds(true);
                 m_state->setDrawMode(UI::Types::DrawMode::none);
             }
-
-            if (dragData.isDragging) {
-                dragData.isDragging = false;
-                dragData.dragOffset = {0.f, 0.f};
-            }
+            auto &dragData = m_state->getDragDataRef();
+            dragData.isDragging = false;
             return;
         }
 
@@ -263,7 +300,7 @@ namespace Bess::Pages {
                     m_state->setDrawMode(UI::Types::DrawMode::none);
                 }
             } else {
-                m_state->setSelectedId(Simulator::ComponentsManager::emptyId);
+                m_state->clearBulkIds();
                 m_state->setDrawMode(UI::Types::DrawMode::none);
             }
             return;
@@ -279,10 +316,12 @@ namespace Bess::Pages {
     void MainPage::onRightMouse(bool pressed) {
         m_rightMousePressed = pressed;
 
-        auto hoveredId = m_state->getHoveredId();
-        auto &cid = Simulator::ComponentsManager::renderIdToCid(hoveredId);
+        if (!isCursorInViewport())
+            return;
 
-        if (!pressed && isCursorInViewport() && cid == Simulator::ComponentsManager::emptyId) {
+        auto hoveredId = m_state->getHoveredId();
+
+        if (!pressed && hoveredId == -1) {
             auto pos = glm::vec3(getNVPMousePos(), 0.f);
             const auto prevGen = m_state->getPrevGenBankElement();
             if (prevGen == nullptr)
@@ -291,6 +330,7 @@ namespace Bess::Pages {
             return;
         }
 
+        auto &cid = Simulator::ComponentsManager::renderIdToCid(hoveredId);
         if (cid == Simulator::ComponentsManager::emptyId)
             return;
 
@@ -303,6 +343,9 @@ namespace Bess::Pages {
 
     void MainPage::onMiddleMouse(bool pressed) {
         m_middleMousePressed = pressed;
+
+        if (!isCursorInViewport())
+            return;
     }
 
     void MainPage::onMouseMove(double x, double y) {
@@ -328,13 +371,12 @@ namespace Bess::Pages {
 
             prevHoveredId = hoveredId;
 
-            if (hoveredId < 0 || !Simulator::ComponentsManager::isRenderIdPresent(hoveredId))
-                return;
-
-            auto &cid = Simulator::ComponentsManager::renderIdToCid(hoveredId);
-            Simulator::Components::ComponentEventData e;
-            e.type = Simulator::Components::ComponentEventType::mouseEnter;
-            Simulator::ComponentsManager::components[cid]->onEvent(e);
+            if (hoveredId > 0 && Simulator::ComponentsManager::isRenderIdPresent(hoveredId)) {
+                auto &cid = Simulator::ComponentsManager::renderIdToCid(hoveredId);
+                Simulator::Components::ComponentEventData e;
+                e.type = Simulator::Components::ComponentEventType::mouseEnter;
+                Simulator::ComponentsManager::components[cid]->onEvent(e);
+            }
         }
 
         if (m_middleMousePressed) {
@@ -342,27 +384,29 @@ namespace Bess::Pages {
                                     dy / UI::UIMain::state.cameraZoom});
         } else if (m_leftMousePressed) {
             // dragging an entity
-            if (m_state->getSelectedId() != Simulator::ComponentsManager::emptyId) {
-                const auto &entity = Simulator::ComponentsManager::components[m_state->getSelectedId()];
+            if (!m_state->isBulkIdEmpty()) {
+                for (auto &id : m_state->getBulkIds()) {
+                    const auto &entity = Simulator::ComponentsManager::components[id];
 
-                // dragable components start from 101
-                if (static_cast<int>(entity->getType()) <= 100)
-                    return;
+                    // dragable components start from 101
+                    if (static_cast<int>(entity->getType()) <= 100)
+                        return;
 
-                auto &pos = entity->getPosition();
+                    auto &pos = entity->getPosition();
 
-                auto &dragData = m_state->getDragDataRef();
-                if (!dragData.isDragging) {
-                    dragData.isDragging = true;
-                    dragData.dragOffset = getNVPMousePos() - glm::vec2(pos);
+                    auto &dragData = m_state->getDragDataRef();
+                    if (!dragData.isDragging) {
+                        dragData.isDragging = true;
+                        dragData.dragOffset = getNVPMousePos() - glm::vec2(pos);
+                    }
+
+                    auto dPos = getNVPMousePos() - dragData.dragOffset;
+                    float snap = 4.f;
+                    dPos = glm::round(dPos / snap) * snap;
+
+                    pos = {dPos, pos.z};
                 }
-
-                auto dPos = getNVPMousePos() - dragData.dragOffset;
-                float snap = 4.f;
-                dPos = glm::round(dPos / snap) * snap;
-
-                pos = {dPos, pos.z};
-            } else { // box selection when draggin in empty space
+            } else { // box selection when dragging in empty space
                 auto &dragData = m_state->getDragDataRef();
 
                 auto mp = getNVPMousePos();
@@ -370,6 +414,7 @@ namespace Bess::Pages {
                 if (!dragData.isDragging) {
                     dragData.isDragging = true;
                     dragData.dragOffset = mp;
+                    dragData.vpMousePos = getViewportMousePos();
                     m_state->setDrawMode(UI::Types::DrawMode::selectionBox);
                 }
             }
