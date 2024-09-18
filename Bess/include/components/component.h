@@ -7,6 +7,7 @@
 
 #include <any>
 #include <functional>
+#include <queue>
 #include <unordered_map>
 
 namespace Bess::Simulator::Components {
@@ -71,5 +72,8 @@ namespace Bess::Simulator::Components {
         std::unordered_map<ComponentEventType, std::any> m_events = {};
         bool m_isSelected = false;
         bool m_isHovered = false;
+
+      private:
+        std::queue<ComponentEventData> m_eventsQueue = {};
     };
 } // namespace Bess::Simulator::Components
