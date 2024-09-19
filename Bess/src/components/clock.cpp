@@ -22,6 +22,7 @@ namespace Bess::Simulator::Components {
     }
 
     void Clock::update() {
+        Component::update();
         float frequency = m_frequency;
         switch (m_frequencyUnit) {
         case Bess::Simulator::FrequencyUnit::kiloHertz:
@@ -98,7 +99,6 @@ namespace Bess::Simulator::Components {
     }
 
     void Clock::render() {
-        bool selected = Pages::MainPageState::getInstance()->getSelectedId() == m_uid;
         float thickness = 1.f;
 
         Slot *slot = (Slot *)Simulator::ComponentsManager::components[m_outputSlotId].get();
@@ -144,6 +144,7 @@ namespace Bess::Simulator::Components {
         ComponentsManager::deleteComponent(m_outputSlotId);
     }
     void Clock::onLeftClick(const glm::vec2 &pos) {
-        Pages::MainPageState::getInstance()->setSelectedId(m_uid);
+        auto mainPageState = Pages::MainPageState::getInstance();
+        mainPageState->setBulkId(m_uid);
     }
 } // namespace Bess::Simulator::Components

@@ -1,11 +1,11 @@
 #include "renderer/gl/framebuffer.h"
-#include "settings/viewport_theme.h"
 #include "glad/glad.h"
+#include "settings/viewport_theme.h"
 #include "window.h"
 #include <iostream>
 
 namespace Bess::Gl {
-    FrameBuffer::FrameBuffer(const float width, const float height, const std::vector<FBAttachmentType>& attachments, const bool multisampled) {
+    FrameBuffer::FrameBuffer(const float width, const float height, const std::vector<FBAttachmentType> &attachments, const bool multisampled) {
         assert(Bess::Window::isGladInitialized);
         m_multisampled = multisampled;
         m_width = width;
@@ -25,10 +25,10 @@ namespace Bess::Gl {
 
                 glGenRenderbuffers(1, &m_rbo);
                 glBindRenderbuffer(GL_RENDERBUFFER, m_rbo);
-                if(multisampled) {
+                if (multisampled) {
                     glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, internalFormat, static_cast<GLsizei>(m_width),
                                                      static_cast<GLsizei>(m_height));
-                }else {
+                } else {
                     glRenderbufferStorage(GL_RENDERBUFFER, internalFormat, static_cast<GLsizei>(m_width),
                                           static_cast<GLsizei>(m_height));
                 }
@@ -38,9 +38,9 @@ namespace Bess::Gl {
                 auto [fst, snd] = getFormatsForAttachmentType(attachmentType);
                 auto attachment = FBAttachment(attachmentType, width, height, fst, snd, attachmentInd, multisampled);
 
-                if(multisampled) {
+                if (multisampled) {
                     glFramebufferTexture2D(GL_FRAMEBUFFER, attachmentInd, GL_TEXTURE_2D_MULTISAMPLE, attachment.getTextureId(), 0);
-                }else {
+                } else {
                     glFramebufferTexture2D(GL_FRAMEBUFFER, attachmentInd, GL_TEXTURE_2D, attachment.getTextureId(), 0);
                 }
                 m_drawAttachments.emplace_back(attachmentInd);
@@ -62,7 +62,8 @@ namespace Bess::Gl {
     FrameBuffer::~FrameBuffer() {
         glDeleteFramebuffers(1, &m_fbo);
         m_colorAttachments.clear();
-        if (m_rbo != 0) glDeleteRenderbuffers(1, &m_rbo);
+        if (m_rbo != 0)
+            glDeleteRenderbuffers(1, &m_rbo);
     }
 
     GLuint FrameBuffer::getColorBufferTexId(const int idx) const { return m_colorAttachments[idx].getTextureId(); }
@@ -89,15 +90,16 @@ namespace Bess::Gl {
 
         GLint internalFormat = -1;
 
-        if (m_rbo == 0) goto end;
+        if (m_rbo == 0)
+            goto end;
         GL_CHECK(glBindRenderbuffer(GL_RENDERBUFFER, m_rbo));
         internalFormat = getDepthStencilInternalFormat(m_depthBufferStencilType);
         if (m_multisampled) {
             GL_CHECK(glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, internalFormat, static_cast<GLsizei>(m_width),
-                                             static_cast<GLsizei>(m_height)));
+                                                      static_cast<GLsizei>(m_height)));
         } else {
             GL_CHECK(glRenderbufferStorage(GL_RENDERBUFFER, internalFormat, static_cast<GLsizei>(m_width),
-                                  static_cast<GLsizei>(m_height)));
+                                           static_cast<GLsizei>(m_height)));
         }
         GL_CHECK(glBindRenderbuffer(GL_RENDERBUFFER, 0));
 
@@ -106,7 +108,7 @@ namespace Bess::Gl {
             assert(false);
         }
 
-        end:
+    end:
         unbindAll();
     }
 
@@ -115,7 +117,15 @@ namespace Bess::Gl {
     }
 
     int FrameBuffer::readIntFromColAttachment(const int idx, const int x, const int y) const {
-        return readFromColorAttachment<int, GL_INT>(idx, x, y);
+        int data = -1;
+        readFromColorAttachment<GL_INT>(idx, x, y, 1, 1, &data);
+        return data;
+    }
+
+    std::vector<int> FrameBuffer::readIntsFromColAttachment(const int idx, const int x, const int y, const int w, const int h) const {
+        std::vector<int> data(w * h, -2);
+        readFromColorAttachment<GL_INT>(idx, x, y, w, h, data.data());
+        return data;
     }
 
     void FrameBuffer::resetDrawAttachments() const {
@@ -137,28 +147,27 @@ namespace Bess::Gl {
 
     void FrameBuffer::blitColorBuffer(const float width, const float height) {
         GL_CHECK(glBlitFramebuffer(0, 0, static_cast<GLint>(width), static_cast<GLint>(height), 0, 0, static_cast<GLint>(width),
-                          static_cast<GLint>(height), GL_COLOR_BUFFER_BIT, GL_NEAREST));
+                                   static_cast<GLint>(height), GL_COLOR_BUFFER_BIT, GL_NEAREST));
     }
-
 
     std::pair<GLint, GLenum> FrameBuffer::getFormatsForAttachmentType(const FBAttachmentType type) {
         GLuint internalFormat;
         GLenum format;
         switch (type) {
-            case FBAttachmentType::R32I_REDI: {
-                internalFormat = GL_R32I;
-                format = GL_RED_INTEGER;
-            } break;
-            case FBAttachmentType::RGB_RGB: {
-                internalFormat = GL_RGB;
-                format = GL_RGB;
-            } break;
-            case FBAttachmentType::RGBA_RGBA: {
-                internalFormat = GL_RGBA;
-                format = GL_RGBA;
-            } break;
-            default:
-                throw std::runtime_error("Invalid color attachment type passed " + std::to_string(type));
+        case FBAttachmentType::R32I_REDI: {
+            internalFormat = GL_R32I;
+            format = GL_RED_INTEGER;
+        } break;
+        case FBAttachmentType::RGB_RGB: {
+            internalFormat = GL_RGB;
+            format = GL_RGB;
+        } break;
+        case FBAttachmentType::RGBA_RGBA: {
+            internalFormat = GL_RGBA;
+            format = GL_RGBA;
+        } break;
+        default:
+            throw std::runtime_error("Invalid color attachment type passed " + std::to_string(type));
         }
 
         return {internalFormat, format};
@@ -168,14 +177,14 @@ namespace Bess::Gl {
         GLint internalFormat;
 
         switch (type) {
-            case FBAttachmentType::DEPTH24_STENCIL8: {
-                internalFormat = GL_DEPTH24_STENCIL8;
-            } break;
-            case FBAttachmentType::DEPTH32F_STENCIL8: {
-                internalFormat = GL_DEPTH32F_STENCIL8;
-            } break;
-            default:
-                throw std::runtime_error("Invalid depth-stencil attachment. Maybe a color attachment? " + std::to_string(type));
+        case FBAttachmentType::DEPTH24_STENCIL8: {
+            internalFormat = GL_DEPTH24_STENCIL8;
+        } break;
+        case FBAttachmentType::DEPTH32F_STENCIL8: {
+            internalFormat = GL_DEPTH32F_STENCIL8;
+        } break;
+        default:
+            throw std::runtime_error("Invalid depth-stencil attachment. Maybe a color attachment? " + std::to_string(type));
         }
 
         return internalFormat;

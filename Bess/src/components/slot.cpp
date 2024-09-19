@@ -11,6 +11,7 @@
 #include "simulator/simulator_engine.h"
 #include "ui/ui.h"
 #include <common/bind_helpers.h>
+#include <iostream>
 #include <memory>
 
 namespace Bess::Simulator::Components {
@@ -43,6 +44,10 @@ namespace Bess::Simulator::Components {
     void Slot::update(const glm::vec3 &pos) { m_position = pos; }
 
     void Slot::render() {
+        if (m_isHovered) {
+            UI::setCursorPointer();
+        }
+
         float r = 4.0f;
         Renderer2D::Renderer::circle(m_position, m_highlightBorder ? r + 2.0f : r + 1.f,
                                      m_highlightBorder

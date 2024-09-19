@@ -19,6 +19,7 @@ namespace Bess::Simulator::Components {
     }
 
     void JKFlipFlop::update() {
+        FlipFlop::update();
     }
 
     void JKFlipFlop::generate(const glm::vec3 &pos) {

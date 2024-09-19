@@ -70,7 +70,7 @@ namespace Bess::Simulator {
         }
     }
 
-    void ComponentsManager::generateComponent(const ComponentBankElement& comp, const glm::vec3 &pos) {
+    void ComponentsManager::generateComponent(const ComponentBankElement &comp, const glm::vec3 &pos) {
         std::any data = NULL;
         if (comp.getType() == Simulator::ComponentType::jcomponent) {
             data = comp.getJCompData();
@@ -87,8 +87,8 @@ namespace Bess::Simulator {
         if (const auto renderIt = std::ranges::find(renderComponents, uid); renderIt != renderComponents.end()) {
             renderComponents.erase(renderIt);
         }
-        if (const auto state = Pages::MainPageState::getInstance(); state->getSelectedId() == uid)
-            state->setSelectedId(emptyId, false);
+        if (const auto state = Pages::MainPageState::getInstance(); state->isBulkIdPresent(uid))
+            state->removeBulkId(uid, false);
 
         m_renderIdToCId.erase(m_compIdToRId[uid]);
         m_compIdToRId.erase(uid);
@@ -195,5 +195,9 @@ namespace Bess::Simulator {
     float ComponentsManager::getNextZPos() {
         zPos += zIncrement;
         return zPos;
+    }
+
+    bool ComponentsManager::isRenderComponent(const int rId) {
+        return std::ranges::find(renderComponents, m_renderIdToCId[rId]) != renderComponents.end();
     }
 } // namespace Bess::Simulator

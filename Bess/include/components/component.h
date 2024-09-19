@@ -7,6 +7,7 @@
 
 #include <any>
 #include <functional>
+#include <queue>
 #include <unordered_map>
 
 namespace Bess::Simulator::Components {
@@ -51,7 +52,7 @@ namespace Bess::Simulator::Components {
 
         virtual void update();
 
-        virtual void generate(const glm::vec3& pos) = 0;
+        virtual void generate(const glm::vec3 &pos) = 0;
 
         virtual void deleteComponent() = 0;
 
@@ -69,5 +70,10 @@ namespace Bess::Simulator::Components {
         ComponentType m_type = ComponentType::none;
         std::string m_name = "Unknown";
         std::unordered_map<ComponentEventType, std::any> m_events = {};
+        bool m_isSelected = false;
+        bool m_isHovered = false;
+
+      private:
+        std::queue<ComponentEventData> m_eventsQueue = {};
     };
 } // namespace Bess::Simulator::Components

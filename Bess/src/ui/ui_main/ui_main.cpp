@@ -66,8 +66,8 @@ namespace Bess::UI {
 
         for (auto &id : Simulator::ComponentsManager::renderComponents) {
             auto &entity = Simulator::ComponentsManager::components[id];
-            if (ImGui::Selectable(entity->getRenderName().c_str(), entity->getId() == m_pageState->getSelectedId())) {
-                m_pageState->setSelectedId(entity->getId());
+            if (ImGui::Selectable(entity->getRenderName().c_str(), m_pageState->isBulkIdPresent(entity->getId()))) {
+                m_pageState->setBulkId(entity->getId());
             }
         }
 

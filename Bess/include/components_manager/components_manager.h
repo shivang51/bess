@@ -24,7 +24,7 @@ namespace Bess::Simulator {
         // scene.
         static std::vector<uuids::uuid> renderComponents;
 
-        static void generateComponent(const ComponentBankElement& comp, const glm::vec3 &pos = {0.f, 0.f, 0.f});
+        static void generateComponent(const ComponentBankElement &comp, const glm::vec3 &pos = {0.f, 0.f, 0.f});
 
         static void generateComponent(ComponentType type, const std::any &data = NULL, const glm::vec3 &pos = {0.f, 0.f, 0.f});
 
@@ -65,6 +65,8 @@ namespace Bess::Simulator {
         static std::shared_ptr<T> getComponent(const uuids::uuid &cid) {
             return std::dynamic_pointer_cast<T>(components[cid]);
         }
+
+        static bool isRenderComponent(int rId);
 
       private:
         // mapping from render id to components id.

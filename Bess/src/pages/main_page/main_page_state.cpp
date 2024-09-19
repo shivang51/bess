@@ -42,38 +42,22 @@ namespace Bess::Pages {
         return m_mousePos;
     }
 
-    void MainPageState::setSelectedId(const uuids::uuid &uid, bool updatePrevSel, bool dispatchFocusEvts) {
-        uuids::uuid localPrev = m_selectedId;
-        if (updatePrevSel)
-            m_prevSelectedId = m_selectedId;
-        m_selectedId = uid;
-
-        if (!dispatchFocusEvts)
-            return;
-
+    void MainPageState::addFocusLostEvent(const uuids::uuid &uid) {
         Simulator::Components::ComponentEventData e{};
-        if (localPrev != Simulator::ComponentsManager::emptyId) {
-            e.type = Simulator::Components::ComponentEventType::focusLost;
-            Simulator::ComponentsManager::components[localPrev]->onEvent(e);
-        }
-        if (m_selectedId != Simulator::ComponentsManager::emptyId) {
-            e.type = Simulator::Components::ComponentEventType::focus;
-            Simulator::ComponentsManager::components[m_selectedId]->onEvent(e);
-        }
+        e.type = Simulator::Components::ComponentEventType::focusLost;
+        Simulator::ComponentsManager::components[uid]->onEvent(e);
     }
 
-    const uuids::uuid &MainPageState::getSelectedId() {
-        return m_selectedId;
-    }
-
-    const uuids::uuid &MainPageState::getPrevSelectedId() {
-        return m_prevSelectedId;
+    void MainPageState::addFocusEvent(const uuids::uuid &uid) {
+        Simulator::Components::ComponentEventData e{};
+        e.type = Simulator::Components::ComponentEventType::focus;
+        Simulator::ComponentsManager::components[uid]->onEvent(e);
     }
 
     void MainPageState::resetProjectState() {
         m_drawMode = UI::Types::DrawMode::none;
-        m_selectedId = Simulator::ComponentsManager::emptyId;
-        m_prevSelectedId = Simulator::ComponentsManager::emptyId;
+        m_bulkIds.clear();
+        m_prevBulkIds.clear();
         m_connStartId = Simulator::ComponentsManager::emptyId;
 
         m_hoveredId = -1;
@@ -187,4 +171,59 @@ namespace Bess::Pages {
         return m_prevGenBankElement;
     }
 
+    void MainPageState::setReadBulkIds(bool readBulkIds) {
+        m_readBulkIds = readBulkIds;
+    }
+
+    bool MainPageState::shouldReadBulkIds() {
+        return m_readBulkIds;
+    }
+
+    void MainPageState::addBulkId(const uuids::uuid &id) {
+        m_bulkIds.emplace_back(id);
+        addFocusEvent(id);
+    }
+
+    void MainPageState::setBulkIds(const std::vector<uuids::uuid> &ids) {
+        clearBulkIds();
+        m_bulkIds = ids;
+        for (const auto &id : m_bulkIds) {
+            addFocusEvent(id);
+        }
+    }
+
+    void MainPageState::setBulkId(const uuids::uuid &id) {
+        clearBulkIds();
+        m_bulkIds.emplace_back(id);
+        addFocusEvent(id);
+    }
+
+    const std::vector<uuids::uuid> &MainPageState::getBulkIds() {
+        return m_bulkIds;
+    }
+
+    void MainPageState::clearBulkIds() {
+        for (const auto &id : m_bulkIds) {
+            addFocusLostEvent(id);
+        }
+        m_bulkIds.clear();
+    }
+
+    void MainPageState::removeBulkId(const uuids::uuid &id, bool dispatchEvent) {
+        m_bulkIds.erase(std::remove(m_bulkIds.begin(), m_bulkIds.end(), id), m_bulkIds.end());
+        if (dispatchEvent)
+            addFocusLostEvent(id);
+    }
+
+    bool MainPageState::isBulkIdPresent(const uuids::uuid &id) {
+        return std::ranges::find(m_bulkIds, id) != m_bulkIds.end();
+    }
+
+    bool MainPageState::isBulkIdEmpty() {
+        return m_bulkIds.empty();
+    }
+
+    const uuids::uuid &MainPageState::getBulkIdAt(int index) {
+        return m_bulkIds.at(index);
+    }
 } // namespace Bess::Pages
