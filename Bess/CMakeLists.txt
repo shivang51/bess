@@ -283,8 +283,6 @@ if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64" AND NOT UNIX)
     )
 endif()
 
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
-
 add_custom_target(run
     COMMAND ${PROJECT_NAME}
     DEPENDS ${PROJECT_NAME}
