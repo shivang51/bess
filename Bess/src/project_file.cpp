@@ -163,5 +163,7 @@ namespace Bess {
     void ProjectFile::browsePath() {
         auto path = UI::Dialogs::showSaveFileDialog("Save To", "");
         m_path = path;
+        m_name = path.substr(path.find_last_of("/\\") + 1);
+        std::cout << "[+] Project path: " << m_path << " with name " << m_name << std::endl;
     }
 } // namespace Bess

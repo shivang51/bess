@@ -3,6 +3,7 @@
 #include "components/component.h"
 #include "components/flip_flops/flip_flops.h"
 #include "components/flip_flops/jk_flip_flop.h"
+#include "components/slot.h"
 #include "components_manager/components_manager.h"
 #include "pages/main_page/main_page_state.h"
 #include "renderer/renderer.h"
@@ -185,31 +186,19 @@ namespace Bess::Simulator::Components {
 
         std::vector<uuids::uuid> inputSlots;
         for (const auto &slot : data["inputSlots"]) {
-            auto sid = Common::Helpers::strToUUID(slot);
-            inputSlots.push_back(sid);
-            auto renderId = ComponentsManager::getNextRenderId();
-            ComponentsManager::components[sid] = std::make_shared<Components::Slot>(sid, uid, renderId, ComponentType::inputSlot);
-            ComponentsManager::addCompIdToRId(renderId, sid);
-            ComponentsManager::addRenderIdToCId(renderId, sid);
+            auto id = Slot::fromJson(slot, uid);
+            inputSlots.emplace_back(id);
         }
 
         std::vector<uuids::uuid> outputSlots;
         for (const auto &slot : data["outputSlots"]) {
-            auto sid = Common::Helpers::strToUUID(slot);
-            outputSlots.push_back(sid);
-            auto renderId = ComponentsManager::getNextRenderId();
-            ComponentsManager::components[sid] = std::make_shared<Components::Slot>(sid, uid, renderId, ComponentType::outputSlot);
-            ComponentsManager::addCompIdToRId(renderId, sid);
-            ComponentsManager::addRenderIdToCId(renderId, sid);
+            auto id = Slot::fromJson(slot, uid);
+            outputSlots.emplace_back(id);
         }
 
-        auto sid = Common::Helpers::strToUUID(data["clockSlot"]);
-        auto renderId = ComponentsManager::getNextRenderId();
-        ComponentsManager::components[sid] = std::make_shared<Components::Slot>(sid, uid, renderId, ComponentType::inputSlot);
-        ComponentsManager::addCompIdToRId(renderId, sid);
-        ComponentsManager::addRenderIdToCId(renderId, sid);
+        auto sid = Slot::fromJson(data["clockSlot"], uid);
 
-        renderId = ComponentsManager::getNextRenderId();
+        float renderId = ComponentsManager::getNextRenderId();
         ComponentsManager::renderComponents.emplace_back(uid);
         ComponentsManager::addCompIdToRId(renderId, uid);
         ComponentsManager::addRenderIdToCId(renderId, uid);
@@ -228,18 +217,20 @@ namespace Bess::Simulator::Components {
         data["name"] = m_name;
 
         nlohmann::json inputSlots;
-        for (const auto &slot : m_inputSlots) {
-            inputSlots.push_back(Common::Helpers::uuidToStr(slot));
+        for (const auto &slotId : m_inputSlots) {
+            auto slot = ComponentsManager::getComponent<Slot>(slotId);
+            inputSlots.push_back(slot->toJson());
         }
         data["inputSlots"] = inputSlots;
 
         nlohmann::json outputSlots;
-        for (const auto &slot : m_outputSlots) {
-            outputSlots.push_back(Common::Helpers::uuidToStr(slot));
+        for (const auto &slotId : m_outputSlots) {
+            auto slot = ComponentsManager::getComponent<Slot>(slotId);
+            outputSlots.push_back(slot->toJson());
         }
         data["outputSlots"] = outputSlots;
 
-        data["clockSlot"] = Common::Helpers::uuidToStr(m_clockSlot);
+        data["clockSlot"] = ComponentsManager::getComponent<Slot>(m_clockSlot)->toJson();
 
         return data;
     }
