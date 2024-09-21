@@ -32,6 +32,8 @@ namespace Bess::Simulator::Components {
         m_events[ComponentEventType::leftClick] = (OnLeftClickCB)[this](auto pos) {
             Pages::MainPageState::getInstance()->setBulkId(m_uid);
         };
+
+        m_transform.setScale({140.f, 100.f});
     }
 
     FlipFlop::FlipFlop(const uuids::uuid &uid, int renderId, const glm::vec3 &position, const std::vector<uuids::uuid> &inputSlots, const std::string &name, const std::vector<uuids::uuid> &outputSlots, const uuids::uuid &clockSlot)
@@ -43,6 +45,7 @@ namespace Bess::Simulator::Components {
         m_events[ComponentEventType::leftClick] = (OnLeftClickCB)[this](auto pos) {
             Pages::MainPageState::getInstance()->setBulkId(m_uid);
         };
+        m_transform.setScale({140.f, 100.f});
     }
 
     void FlipFlop::drawBackground(const glm::vec4 &borderThicknessPx, float rPx, float headerHeight, const glm::vec2 &gateSize) {
@@ -70,8 +73,6 @@ namespace Bess::Simulator::Components {
             glm::vec4(rPx, rPx, 0.f, 0.f));
     }
 
-    const glm::vec2 FLIP_FLOP_SIZE = {140.f, 100.f};
-
     void FlipFlop::render() {
         float rPx = 16.f;
 
@@ -90,7 +91,7 @@ namespace Bess::Simulator::Components {
 
         maxWidth += labelGap + 8.f + sampleCharSize.x + 16.f + (gatePadding.x * 2.f);
 
-        auto gateSize_ = FLIP_FLOP_SIZE;
+        auto gateSize_ = m_transform.getScale();
 
         if (maxWidth > gateSize_.x) {
             gateSize_.x += maxWidth - gateSize_.x + 16.f;

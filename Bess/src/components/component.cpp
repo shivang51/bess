@@ -1,6 +1,5 @@
 #include "components/component.h"
 #include "pages/main_page/main_page_state.h"
-#include <iostream>
 
 namespace Bess::Simulator::Components {
 

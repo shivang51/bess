@@ -6,9 +6,6 @@
 #include "settings/viewport_theme.h"
 
 namespace Bess::Simulator::Components {
-
-    glm::vec2 inputProbeSize = {65.f, 25.f};
-
     InputProbe::InputProbe() : Component() {
     }
 
@@ -18,6 +15,7 @@ namespace Bess::Simulator::Components {
         m_name = "Input Probe";
         m_outputSlot = outputSlot;
         m_events[ComponentEventType::leftClick] = (OnLeftClickCB)BIND_FN_1(InputProbe::onLeftClick);
+        m_transform.setScale({65.f, 25.f});
     }
 
     void InputProbe::render() {
@@ -40,10 +38,11 @@ namespace Bess::Simulator::Components {
         }
 
         auto pos = m_transform.getPosition();
+        auto size = m_transform.getScale();
 
-        Renderer2D::Renderer::quad(pos, inputProbeSize, bgColor, m_renderId, glm::vec4(r), true, borderColor, thickness);
+        Renderer2D::Renderer::quad(pos, size, bgColor, m_renderId, glm::vec4(r), true, borderColor, thickness);
 
-        slot->update(pos + glm::vec3({(inputProbeSize.x / 2) - 12.f, 0.f, 0.f}), {-12.f, 0.f}, label);
+        slot->update(pos + glm::vec3({(size.x / 2) - 12.f, 0.f, 0.f}), {-12.f, 0.f}, label);
         slot->render();
     }
 

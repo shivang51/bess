@@ -8,7 +8,6 @@
 
 namespace Bess::Simulator::Components {
 
-    glm::vec2 outputProbeSize = {50.f, 25.f};
     OutputProbe::OutputProbe() : Component() {
     }
 
@@ -21,6 +20,7 @@ namespace Bess::Simulator::Components {
             (OnLeftClickCB)[&](const glm::vec2 &pos) {
             Pages::MainPageState::getInstance()->setBulkId(m_uid);
         };
+        m_transform.setScale({50.f, 25.f});
     }
 
     void OutputProbe::render() {
@@ -40,10 +40,11 @@ namespace Bess::Simulator::Components {
         }
 
         auto pos = m_transform.getPosition();
+        auto size = m_transform.getScale();
 
         Renderer2D::Renderer::quad(
             pos,
-            outputProbeSize,
+            size,
             bgColor,
             m_renderId,
             glm::vec4(r),
@@ -51,7 +52,7 @@ namespace Bess::Simulator::Components {
             borderColor,
             thickness);
 
-        slot->update(pos + glm::vec3({-(outputProbeSize.x / 2) + 10.f, 0.f, 0.f}), {12.f, 0.f}, label);
+        slot->update(pos + glm::vec3({-(size.x / 2) + 10.f, 0.f, 0.f}), {12.f, 0.f}, label);
         slot->render();
     }
 
