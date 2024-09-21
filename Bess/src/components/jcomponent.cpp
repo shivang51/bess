@@ -3,7 +3,7 @@
 #include "components_manager/component_bank.h"
 
 #include "pages/main_page/main_page_state.h"
-#include "renderer/renderer.h"
+#include "scene/renderer/renderer.h"
 
 #include "common/helpers.h"
 #include "settings/viewport_theme.h"

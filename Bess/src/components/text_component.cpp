@@ -3,7 +3,7 @@
 #include "common/bind_helpers.h"
 #include "common/helpers.h"
 #include "components_manager/components_manager.h"
-#include "renderer/renderer.h"
+#include "scene/renderer/renderer.h"
 #include "settings/viewport_theme.h"
 
 #include "imgui.h"

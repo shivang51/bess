@@ -6,7 +6,7 @@
 #include "components/slot.h"
 #include "components_manager/components_manager.h"
 #include "pages/main_page/main_page_state.h"
-#include "renderer/renderer.h"
+#include "scene/renderer/renderer.h"
 #include "settings/viewport_theme.h"
 #include "uuid.h"
 

@@ -1,10 +1,10 @@
-#include "renderer/gl/vao.h"
+#include "scene/renderer/gl/vao.h"
 #include <cstddef>
 #include <iostream>
 #include <vector>
 
-#include "renderer/gl/gl_wrapper.h"
-#include "renderer/gl/vertex.h"
+#include "scene/renderer/gl/gl_wrapper.h"
+#include "scene/renderer/gl/vertex.h"
 
 namespace Bess::Gl
 {

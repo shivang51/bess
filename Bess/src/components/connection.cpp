@@ -7,7 +7,7 @@
 #include "ext/vector_float3.hpp"
 #include "ext/vector_float4.hpp"
 #include "pages/main_page/main_page_state.h"
-#include "renderer/renderer.h"
+#include "scene/renderer/renderer.h"
 #include "ui/m_widgets.h"
 #include "ui/ui.h"
 #include <imgui.h>

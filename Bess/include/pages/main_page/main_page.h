@@ -4,7 +4,7 @@
 #include "events/application_event.h"
 #include "pages/main_page/main_page_state.h"
 #include "pages/page.h"
-#include "renderer/gl/framebuffer.h"
+#include "scene/renderer/gl/framebuffer.h"
 #include "window.h"
 
 #include <memory>

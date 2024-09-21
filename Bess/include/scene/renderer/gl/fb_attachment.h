@@ -1,7 +1,7 @@
 #pragma once
 #include "fwd.hpp"
 #include "gl_wrapper.h"
-#include "renderer/gl/texture.h"
+#include "scene/renderer/gl/texture.h"
 #include <memory>
 #include <vector>
 

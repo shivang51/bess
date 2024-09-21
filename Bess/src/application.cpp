@@ -5,7 +5,7 @@
 #include "pages/main_page/main_page_state.h"
 #include "pages/page_identifier.h"
 #include "pages/start_page/start_page.h"
-#include "renderer/renderer.h"
+#include "scene/renderer/renderer.h"
 #include "ui/ui.h"
 #include <GLFW/glfw3.h>
 

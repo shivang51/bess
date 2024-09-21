@@ -11,7 +11,7 @@
 #include "ext/vector_float4.hpp"
 #include "geometric.hpp"
 #include "pages/page_identifier.h"
-#include "renderer/renderer.h"
+#include "scene/renderer/renderer.h"
 #include "settings/viewport_theme.h"
 #include "simulator/simulator_engine.h"
 #include "ui/ui_main/ui_main.h"

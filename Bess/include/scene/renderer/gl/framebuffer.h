@@ -3,7 +3,7 @@
 #include "fwd.hpp"
 #include "gl_wrapper.h"
 #include "glad/glad.h"
-#include "renderer/gl/texture.h"
+#include "scene/renderer/gl/texture.h"
 #include <iostream>
 #include <memory>
 #include <vector>

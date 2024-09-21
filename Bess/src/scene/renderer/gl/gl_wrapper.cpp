@@ -1,4 +1,4 @@
-#include "renderer/gl/gl_wrapper.h"
+#include "scene/renderer/gl/gl_wrapper.h"
 
 #include <iostream>
 

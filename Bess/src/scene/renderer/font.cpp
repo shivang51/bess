@@ -1,4 +1,4 @@
-#include "renderer/font.h"
+#include "scene/renderer/font.h"
 #include <iostream>
 
 namespace Bess::Renderer2D {

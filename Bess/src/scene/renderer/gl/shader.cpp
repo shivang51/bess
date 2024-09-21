@@ -1,4 +1,4 @@
-#include "renderer/gl/shader.h"
+#include "scene/renderer/gl/shader.h"
 #include "gtc/type_ptr.hpp"
 #include <fstream>
 #include <iostream>

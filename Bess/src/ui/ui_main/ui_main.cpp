@@ -9,7 +9,7 @@
 #include "camera.h"
 #include "components_manager/components_manager.h"
 #include "pages/main_page/main_page_state.h"
-#include "renderer/gl/gl_wrapper.h"
+#include "scene/renderer/gl/gl_wrapper.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/m_widgets.h"
 #include "ui/ui_main/component_explorer.h"

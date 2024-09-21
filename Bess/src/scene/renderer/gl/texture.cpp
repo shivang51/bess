@@ -1,4 +1,4 @@
-#include "renderer/gl/texture.h"
+#include "scene/renderer/gl/texture.h"
 
 #include <iostream>
 #include <ostream>
@@ -7,7 +7,7 @@
 #include <stb_image.h>
 #include <stdexcept>
 
-#include "renderer/gl/gl_wrapper.h"
+#include "scene/renderer/gl/gl_wrapper.h"
 
 namespace Bess::Gl {
     Texture::Texture(const std::string &path)

@@ -1,6 +1,6 @@
 #include "window.h"
 #include "glad/glad.h"
-#include "renderer/gl/gl_wrapper.h"
+#include "scene/renderer/gl/gl_wrapper.h"
 #include <cassert>
 #include <imgui.h>
 #include <iostream>

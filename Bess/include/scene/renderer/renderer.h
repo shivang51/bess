@@ -2,10 +2,10 @@
 
 #include "fwd.hpp"
 
-#include "renderer/font.h"
-#include "renderer/gl/shader.h"
-#include "renderer/gl/vao.h"
-#include "renderer/gl/vertex.h"
+#include "scene/renderer/font.h"
+#include "scene/renderer/gl/shader.h"
+#include "scene/renderer/gl/vao.h"
+#include "scene/renderer/gl/vertex.h"
 
 #include "camera.h"
 #include <memory>

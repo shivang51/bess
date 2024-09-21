@@ -1,4 +1,4 @@
-#include "renderer/gl/fb_attachment.h"
+#include "scene/renderer/gl/fb_attachment.h"
 
 namespace Bess::Gl {
 

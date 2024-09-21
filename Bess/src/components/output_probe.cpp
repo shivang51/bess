@@ -3,7 +3,7 @@
 #include "common/helpers.h"
 #include "components/connection.h"
 #include "pages/main_page/main_page_state.h"
-#include "renderer/renderer.h"
+#include "scene/renderer/renderer.h"
 #include "settings/viewport_theme.h"
 
 namespace Bess::Simulator::Components {

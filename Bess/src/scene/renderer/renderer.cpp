@@ -1,11 +1,11 @@
-#include "renderer/renderer.h"
+#include "scene/renderer/renderer.h"
 #include "camera.h"
 #include "fwd.hpp"
 #include "geometric.hpp"
 #include "glm.hpp"
-#include "renderer/gl/gl_wrapper.h"
-#include "renderer/gl/primitive_type.h"
-#include "renderer/gl/vertex.h"
+#include "scene/renderer/gl/gl_wrapper.h"
+#include "scene/renderer/gl/primitive_type.h"
+#include "scene/renderer/gl/vertex.h"
 #include "ui/ui_main/ui_main.h"
 #include <GL/gl.h>
 #include <GLFW/glfw3.h>

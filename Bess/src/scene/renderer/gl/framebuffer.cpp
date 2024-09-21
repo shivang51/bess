@@ -1,4 +1,4 @@
-#include "renderer/gl/framebuffer.h"
+#include "scene/renderer/gl/framebuffer.h"
 #include "glad/glad.h"
 #include "settings/viewport_theme.h"
 #include "window.h"

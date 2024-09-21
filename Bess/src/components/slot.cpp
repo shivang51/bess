@@ -1,17 +1,15 @@
 #include "components/slot.h"
 #include "components/connection.h"
-#include "components/jcomponent.h"
 #include "components_manager/components_manager.h"
 #include "ext/vector_float3.hpp"
 #include "pages/main_page/main_page_state.h"
-#include "renderer/renderer.h"
+#include "scene/renderer/renderer.h"
 #include "settings/viewport_theme.h"
 
 #include "common/helpers.h"
 #include "simulator/simulator_engine.h"
 #include "ui/ui.h"
 #include <common/bind_helpers.h>
-#include <iostream>
 #include <memory>
 
 namespace Bess::Simulator::Components {
