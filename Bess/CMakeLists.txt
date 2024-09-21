@@ -75,6 +75,7 @@ set(Header_Files
 "include/renderer/gl/vao.h"
 "include/renderer/gl/gl_wrapper.h"
 "include/renderer/gl/utils.h"
+"include/scene/transform/transform_2d.h"
 
 )
 source_group("Shaders" FILES ${Shaders})
@@ -106,6 +107,7 @@ set(Source_Files
 "src/pages/main_page/main_page_state.cpp"
 "src/pages/start_page/start_page.cpp"
 "src/window.cpp"
+"src/scene/transform/transform_2d.cpp"
 "src/simulator/simulator_engine.cpp"
 "src/common/helpers.cpp"
 "src/ui/ui.cpp"

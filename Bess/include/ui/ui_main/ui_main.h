@@ -2,9 +2,7 @@
 
 #include "camera.h"
 #include "fwd.hpp"
-#include "glad/glad.h"
 #include "pages/main_page/main_page_state.h"
-#include <GLFW/glfw3.h>
 
 namespace Bess::UI {
 
@@ -17,7 +15,7 @@ namespace Bess::UI {
         float cameraZoom = Camera::defaultZoom;
         glm::vec2 viewportSize = {800, 500};
         glm::vec2 viewportPos = {0, 0};
-        GLuint64 viewportTexture = 0;
+        std::uint64_t viewportTexture = 0;
 
         InternalData _internalData;
     };
@@ -26,7 +24,7 @@ namespace Bess::UI {
       public:
         static void draw();
 
-        static void setViewportTexture(GLuint64 texture);
+        static void setViewportTexture(std::uint64_t texture);
 
         static void drawStats(int fps);
 

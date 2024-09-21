@@ -7,9 +7,9 @@ namespace Bess::UI::Types {
                           selectionBox };
 
     struct DragData {
-        glm::vec2 dragOffset;
-        bool isDragging;
-        glm::vec2 vpMousePos;
+        glm::vec2 dragOffset = {0, 0};
+        bool isDragging = false;
+        glm::vec2 vpMousePos = {0, 0};
     };
 
 } // namespace Bess::UI::Types

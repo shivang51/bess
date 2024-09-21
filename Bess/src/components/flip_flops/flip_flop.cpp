@@ -9,7 +9,6 @@
 #include "renderer/renderer.h"
 #include "settings/viewport_theme.h"
 #include "uuid.h"
-#include <iostream>
 
 namespace Bess::Simulator::Components {
     FlipFlop::FlipFlop(const uuids::uuid &uid, int renderId, glm::vec3 position, std::vector<uuids::uuid> inputSlots)
@@ -48,9 +47,10 @@ namespace Bess::Simulator::Components {
 
     void FlipFlop::drawBackground(const glm::vec4 &borderThicknessPx, float rPx, float headerHeight, const glm::vec2 &gateSize) {
         auto borderColor = m_isSelected ? ViewportTheme::selectedCompColor : ViewportTheme::componentBorderColor;
+        auto pos = m_transform.getPosition();
 
         Renderer2D::Renderer::quad(
-            m_position,
+            pos,
             gateSize,
             ViewportTheme::componentBGColor,
             m_renderId,
@@ -59,8 +59,8 @@ namespace Bess::Simulator::Components {
             borderColor,
             borderThicknessPx);
 
-        auto headerPos = m_position;
-        headerPos.y = m_position.y + ((gateSize.y / 2) - (headerHeight / 2.f));
+        auto headerPos = pos;
+        headerPos.y = pos.y + ((gateSize.y / 2) - (headerHeight / 2.f));
 
         Renderer2D::Renderer::quad(
             headerPos,
@@ -107,7 +107,7 @@ namespace Bess::Simulator::Components {
             startChar = 'D';
         }
 
-        auto leftCornerPos = Common::Helpers::GetLeftCornerPos(m_position, gateSize_);
+        auto leftCornerPos = Common::Helpers::GetLeftCornerPos(m_transform.getPosition(), gateSize_);
 
         {
             glm::vec3 inpSlotRowPos = {leftCornerPos.x + 8.f + gatePadding.x, leftCornerPos.y - headerHeight - 4.f, leftCornerPos.z};
@@ -213,7 +213,7 @@ namespace Bess::Simulator::Components {
         nlohmann::json data;
         data["type"] = (int)m_type;
         data["uid"] = Common::Helpers::uuidToStr(m_uid);
-        data["pos"] = Common::Helpers::EncodeVec3(m_position);
+        data["pos"] = Common::Helpers::EncodeVec3(m_transform.getPosition());
         data["name"] = m_name;
 
         nlohmann::json inputSlots;

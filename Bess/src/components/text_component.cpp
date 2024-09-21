@@ -35,7 +35,7 @@ namespace Bess::Simulator::Components {
         float width = Common::Helpers::calculateTextWidth(m_text, m_fontSize);
         float height = Common::Helpers::getAnyCharHeight(m_fontSize);
 
-        auto pos = m_position;
+        auto pos = m_transform.getPosition();
         pos.x += width / 2.f;
         pos.y += height / 2.f;
 
@@ -48,7 +48,7 @@ namespace Bess::Simulator::Components {
         pos.z -= ComponentsManager::zIncrement;
         Renderer2D::Renderer::quad(pos, {width, height}, ViewportTheme::backgroundColor, m_renderId, glm::vec4(8.f), ViewportTheme::componentBorderColor, glm::vec4(m_isSelected ? 1.f : 0.f));
 
-        Renderer2D::Renderer::text(m_text, m_position, m_fontSize, m_color, m_renderId);
+        Renderer2D::Renderer::text(m_text, m_transform.getPosition(), m_fontSize, m_color, m_renderId);
     }
 
     void TextComponent::drawProperties() {
@@ -108,7 +108,7 @@ namespace Bess::Simulator::Components {
         j["text"] = m_text;
         j["fontSize"] = m_fontSize;
         j["color"] = Common::Helpers::EncodeVec3(m_color);
-        j["pos"] = Common::Helpers::EncodeVec3(m_position);
+        j["pos"] = Common::Helpers::EncodeVec3(m_transform.getPosition());
         return j;
     }
 

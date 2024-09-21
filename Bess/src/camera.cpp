@@ -1,13 +1,11 @@
 #include "camera.h"
 #include "ext/matrix_clip_space.hpp"
 #include "ext/matrix_transform.hpp"
-#include <iostream>
 
 namespace Bess {
     float Camera::zoomMin = 0.5f, Camera::zoomMax = 4.f, Camera::defaultZoom = 1.517f;
 
-    Camera::Camera(float width, float height)
-        : m_zoom(1.0f), m_width(width), m_height(height) {
+    Camera::Camera(float width, float height) : m_zoom(1.0f), m_width(width), m_height(height) {
         m_aspectRatio = width / height;
         m_pos = {0.f, 0.f};
     }

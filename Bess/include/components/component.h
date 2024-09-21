@@ -2,6 +2,7 @@
 #include "components_manager/component_type.h"
 #include "ext/vector_float2.hpp"
 #include "ext/vector_float3.hpp"
+#include "scene/transform/transform_2d.h"
 
 #include "uuid.h"
 
@@ -21,6 +22,9 @@ namespace Bess::Simulator::Components {
         mouseHover,
         focus,
         focusLost,
+        dragStart,
+        drag,
+        dragEnd,
     };
 
     struct ComponentEventData {
@@ -30,6 +34,7 @@ namespace Bess::Simulator::Components {
 
     typedef std::function<void(const glm::vec2 &pos)> OnLeftClickCB;
     typedef std::function<void(const glm::vec2 &pos)> OnRightClickCB;
+    typedef std::function<void(const glm::vec2 &pos)> Vec2CB;
     typedef std::function<void()> VoidCB;
 
     class Component {
@@ -42,9 +47,11 @@ namespace Bess::Simulator::Components {
         std::string getIdStr() const;
 
         int getRenderId() const;
-        glm::vec3 &getPosition();
+        const glm::vec3 &getPosition();
+        void setPosition(const glm::vec3 &pos);
 
-        ComponentType getType() const;
+        ComponentType
+        getType() const;
 
         void onEvent(ComponentEventData e);
 
@@ -66,12 +73,12 @@ namespace Bess::Simulator::Components {
       protected:
         int m_renderId{};
         uuids::uuid m_uid;
-        glm::vec3 m_position{};
         ComponentType m_type = ComponentType::none;
         std::string m_name = "Unknown";
         std::unordered_map<ComponentEventType, std::any> m_events = {};
         bool m_isSelected = false;
         bool m_isHovered = false;
+        Scene::Transform::Transform2D m_transform{};
 
       private:
         std::queue<ComponentEventData> m_eventsQueue = {};

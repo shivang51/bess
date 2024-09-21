@@ -3,6 +3,7 @@
 #include "fwd.hpp"
 #include "geometric.hpp"
 #include "glm.hpp"
+#include "renderer/gl/gl_wrapper.h"
 #include "renderer/gl/primitive_type.h"
 #include "renderer/gl/vertex.h"
 #include "ui/ui_main/ui_main.h"
@@ -50,11 +51,11 @@ namespace Bess {
 
         m_AvailablePrimitives = {PrimitiveType::curve, PrimitiveType::quad,
                                  PrimitiveType::circle, PrimitiveType::font, PrimitiveType::triangle};
-        m_MaxRenderLimit[PrimitiveType::quad] = 250;
-        m_MaxRenderLimit[PrimitiveType::curve] = 250;
-        m_MaxRenderLimit[PrimitiveType::circle] = 250;
-        m_MaxRenderLimit[PrimitiveType::font] = 250;
-        m_MaxRenderLimit[PrimitiveType::triangle] = 250;
+        m_MaxRenderLimit[PrimitiveType::quad] = 2000;
+        m_MaxRenderLimit[PrimitiveType::curve] = 2000;
+        m_MaxRenderLimit[PrimitiveType::circle] = 2000;
+        m_MaxRenderLimit[PrimitiveType::font] = 2000;
+        m_MaxRenderLimit[PrimitiveType::triangle] = 2000;
 
         std::string vertexShader, fragmentShader;
 
@@ -270,7 +271,8 @@ namespace Bess {
         m_GridShader->setUniform1f("u_zoom", m_camera->getZoom());
         m_GridShader->setUniformVec2("u_cameraOffset", -m_camera->getPos());
         m_GridVao->setVertices(vertices.data(), vertices.size());
-        GL_CHECK(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
+
+        Gl::Api::drawElements(GL_TRIANGLES, 6);
 
         m_GridShader->unbind();
         m_GridVao->unbind();
@@ -444,9 +446,7 @@ namespace Bess {
             ch.Texture->bind();
 
             m_vaos[PrimitiveType::font]->setVertices(vertices.data(), vertices.size());
-            GL_CHECK(glDrawElements(GL_TRIANGLES,
-                                    (GLsizei)(vertices.size() / 4) * 6,
-                                    GL_UNSIGNED_INT, nullptr));
+            Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
             x += (ch.Advance >> 6) * scale;
         }
     }
@@ -565,7 +565,7 @@ namespace Bess {
 
             auto &vertices = m_RenderData.quadShadowVertices;
             vao->setVertices(vertices.data(), vertices.size());
-            GL_CHECK(glDrawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6, GL_UNSIGNED_INT, nullptr));
+            Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
             vertices.clear();
 
             vao->unbind();
@@ -585,32 +585,26 @@ namespace Bess {
             shader->setUniform1f("u_zoom", m_camera->getZoom());
             auto &vertices = m_RenderData.quadVertices;
             vao->setVertices(vertices.data(), vertices.size());
-            GL_CHECK(glDrawElements(GL_TRIANGLES,
-                                    (GLsizei)(vertices.size() / 4) * 6,
-                                    GL_UNSIGNED_INT, nullptr));
+            Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
             vertices.clear();
         } break;
         case PrimitiveType::curve: {
             shader->setUniform1f("u_zoom", m_camera->getZoom());
             auto &vertices = m_RenderData.curveVertices;
             vao->setVertices(vertices.data(), vertices.size());
-            GL_CHECK(glDrawElements(GL_TRIANGLES,
-                                    (GLsizei)(vertices.size() / 4) * 6,
-                                    GL_UNSIGNED_INT, nullptr));
+            Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
             vertices.clear();
         } break;
         case PrimitiveType::circle: {
             auto &vertices = m_RenderData.circleVertices;
             vao->setVertices(vertices.data(), vertices.size());
-            GL_CHECK(glDrawElements(GL_TRIANGLES,
-                                    (GLsizei)(vertices.size() / 4) * 6,
-                                    GL_UNSIGNED_INT, nullptr));
+            Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
             vertices.clear();
         } break;
         case PrimitiveType::triangle: {
             auto &vertices = m_RenderData.triangleVertices;
             vao->setVertices(vertices.data(), vertices.size());
-            GL_CHECK(glDrawElements(GL_TRIANGLES, vertices.size(), GL_UNSIGNED_INT, nullptr));
+            Gl::Api::drawElements(GL_TRIANGLES, vertices.size());
             vertices.clear();
         } break;
         }
@@ -621,6 +615,7 @@ namespace Bess {
 
     void Renderer::begin(std::shared_ptr<Camera> camera) {
         m_camera = camera;
+        Gl::Api::clearStats();
     }
 
     QuadBezierCurvePoints Renderer::generateQuadBezierPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius) {

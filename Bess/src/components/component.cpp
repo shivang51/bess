@@ -6,13 +6,20 @@ namespace Bess::Simulator::Components {
 
     Component::Component(const uuids::uuid &uid, int renderId, glm::vec3 position,
                          ComponentType type)
-        : m_uid(uid), m_renderId(renderId), m_position(position), m_type(type) {}
+        : m_uid(uid), m_renderId(renderId), m_type(type) {
+
+        m_transform.setPosition(position);
+    }
 
     int Component::getRenderId() const { return m_renderId; }
 
     uuids::uuid Component::getId() const { return m_uid; }
 
-    glm::vec3 &Component::getPosition() { return m_position; }
+    const glm::vec3 &Component::getPosition() { return m_transform.getPosition(); }
+
+    void Component::setPosition(const glm::vec3 &pos) {
+        m_transform.setPosition(pos);
+    }
 
     std::string Component::getIdStr() const {
         return uuids::to_string(m_uid);

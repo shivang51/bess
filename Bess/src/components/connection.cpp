@@ -36,13 +36,14 @@ namespace Bess::Simulator::Components {
     void Connection::renderCurveConnection(glm::vec3 startPos, glm::vec3 endPos, float weight, glm::vec4 color) {
         auto slot = ComponentsManager::getComponent<Slot>(m_slot1);
         auto posA = startPos;
+        auto pos = m_transform.getPosition();
         for (auto &pointId : m_points) {
             auto point = std::dynamic_pointer_cast<ConnectionPoint>(ComponentsManager::components[pointId]);
             point->render();
             auto posB = point->getPosition();
             Renderer2D::Renderer::curve(
-                {posA.x, posA.y, m_position.z},
-                {posB.x, posB.y, m_position.z},
+                {posA.x, posA.y, pos.z},
+                {posB.x, posB.y, pos.z},
                 m_isHovered ? 2.5f : 2.0f,
                 m_isSelected ? ViewportTheme::selectedWireColor : (slot->getState() == DigitalState::high) ? ViewportTheme::stateHighColor
                                                                                                            : m_color,
@@ -51,8 +52,8 @@ namespace Bess::Simulator::Components {
         }
         auto posB = endPos;
         Renderer2D::Renderer::curve(
-            {posA.x, posA.y, m_position.z},
-            {posB.x, posB.y, m_position.z},
+            {posA.x, posA.y, pos.z},
+            {posB.x, posB.y, pos.z},
             m_isHovered ? 2.5f : 2.0f,
             m_isSelected ? ViewportTheme::selectedWireColor : (slot->getState() == DigitalState::high) ? ViewportTheme::stateHighColor
                                                                                                        : m_color,

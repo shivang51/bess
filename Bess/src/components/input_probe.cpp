@@ -1,11 +1,9 @@
 #include "components/input_probe.h"
 #include "common/bind_helpers.h"
 #include "common/helpers.h"
-#include "components/connection.h"
 #include "pages/main_page/main_page_state.h"
 #include "renderer/renderer.h"
 #include "settings/viewport_theme.h"
-#include "simulator/simulator_engine.h"
 
 namespace Bess::Simulator::Components {
 
@@ -41,9 +39,11 @@ namespace Bess::Simulator::Components {
             label = "On";
         }
 
-        Renderer2D::Renderer::quad(m_position, inputProbeSize, bgColor, m_renderId, glm::vec4(r), true, borderColor, thickness);
+        auto pos = m_transform.getPosition();
 
-        slot->update(m_position + glm::vec3({(inputProbeSize.x / 2) - 12.f, 0.f, 0.f}), {-12.f, 0.f}, label);
+        Renderer2D::Renderer::quad(pos, inputProbeSize, bgColor, m_renderId, glm::vec4(r), true, borderColor, thickness);
+
+        slot->update(pos + glm::vec3({(inputProbeSize.x / 2) - 12.f, 0.f, 0.f}), {-12.f, 0.f}, label);
         slot->render();
     }
 
@@ -75,7 +75,7 @@ namespace Bess::Simulator::Components {
         nlohmann::json data;
         data["uid"] = Common::Helpers::uuidToStr(m_uid);
         data["type"] = (int)m_type;
-        data["pos"] = Common::Helpers::EncodeVec3(m_position);
+        data["pos"] = Common::Helpers::EncodeVec3(m_transform.getPosition());
         auto slot = (Slot *)ComponentsManager::components[m_outputSlot].get();
         data["slot"] = slot->toJson();
         return data;

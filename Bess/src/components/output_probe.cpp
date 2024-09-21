@@ -39,8 +39,10 @@ namespace Bess::Simulator::Components {
             label = "H";
         }
 
+        auto pos = m_transform.getPosition();
+
         Renderer2D::Renderer::quad(
-            m_position,
+            pos,
             outputProbeSize,
             bgColor,
             m_renderId,
@@ -49,7 +51,7 @@ namespace Bess::Simulator::Components {
             borderColor,
             thickness);
 
-        slot->update(m_position + glm::vec3({-(outputProbeSize.x / 2) + 10.f, 0.f, 0.f}), {12.f, 0.f}, label);
+        slot->update(pos + glm::vec3({-(outputProbeSize.x / 2) + 10.f, 0.f, 0.f}), {12.f, 0.f}, label);
         slot->render();
     }
 
@@ -84,7 +86,7 @@ namespace Bess::Simulator::Components {
         nlohmann::json data;
         data["uid"] = Common::Helpers::uuidToStr(m_uid);
         data["type"] = (int)m_type;
-        data["pos"] = Common::Helpers::EncodeVec3(m_position);
+        data["pos"] = Common::Helpers::EncodeVec3(m_transform.getPosition());
         auto slot = (Slot *)ComponentsManager::components[m_inputSlot].get();
         data["slot"] = slot->toJson();
         return data;

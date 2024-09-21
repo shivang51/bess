@@ -4,9 +4,9 @@
 #include <filesystem>
 #include <iostream>
 
-#ifdef _LINUX
-#include <execinfo.h>
-#include <unistd.h>
+#ifdef __linux__
+    #include <execinfo.h>
+    #include <unistd.h>
 
 static std::string binary;
 
@@ -38,6 +38,10 @@ static bool isValidStartDir() {
 }
 
 int main(int argc, char **argv) {
+#ifndef NDEBUG
+    std::cout << "[+] Debug mode" << std::endl;
+#endif
+
     std::vector<std::string> args(argv, argv + argc);
 
     if (!isValidStartDir()) {
@@ -48,8 +52,8 @@ int main(int argc, char **argv) {
         }
     }
 
-#ifdef _LINUX
-    #ifdef _DEBUG
+#ifdef __linux__
+    #ifndef NDEBUG
     binary = args[0];
     std::cout << "[+] Debug mode for " << binary << std::endl;
     struct sigaction sa;

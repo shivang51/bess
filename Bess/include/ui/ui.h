@@ -7,9 +7,11 @@ namespace Bess::UI {
     void init(GLFWwindow *window);
     void begin();
     void end();
+
+    void drawStats(int fps);
+
     void shutdown();
     void loadFontAndSetScale(float fontSize, float scale);
-
     void setCursorPointer();
 
     class Fonts {

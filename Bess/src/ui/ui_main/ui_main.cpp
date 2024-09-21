@@ -9,6 +9,7 @@
 #include "camera.h"
 #include "components_manager/components_manager.h"
 #include "pages/main_page/main_page_state.h"
+#include "renderer/gl/gl_wrapper.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/m_widgets.h"
 #include "ui/ui_main/component_explorer.h"
@@ -39,14 +40,10 @@ namespace Bess::UI {
     }
 
     void UIMain::drawStats(int fps) {
-        ImGui::Begin("Stats");
-        ImGui::Text("FPS:");
-        ImGui::SameLine();
-        ImGui::Text("%s", std::to_string(fps).c_str());
-        ImGui::Text("Hover Id");
-        ImGui::SameLine();
-        ImGui::Text("%s", std::to_string(m_pageState->getHoveredId()).c_str());
-        ImGui::End();
+        auto stats = Gl::Api::getStats();
+        ImGui::Text("Draw Calls: %d", stats.drawCalls);
+        ImGui::Text("Vertices: %d", stats.vertices);
+        ImGui::Text("GL Check Calls: %d", stats.glCheckCalls);
     }
 
     void UIMain::setViewportTexture(GLuint64 texture) {

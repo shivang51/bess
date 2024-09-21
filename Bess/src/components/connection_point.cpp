@@ -19,7 +19,7 @@ namespace Bess::Simulator::Components {
     }
 
     void ConnectionPoint::render() {
-        Renderer2D::Renderer::circle(m_position, 4.0f, ViewportTheme::wireColor,
+        Renderer2D::Renderer::circle(m_transform.getPosition(), 4.0f, ViewportTheme::wireColor,
                                      m_renderId);
     }
 
@@ -53,7 +53,7 @@ namespace Bess::Simulator::Components {
         j["type"] = (int)ComponentType::connectionPoint;
         j["uid"] = getIdStr();
         j["parentSlots"] = ComponentsManager::getSlotsForConnection(m_parentId);
-        j["position"] = Common::Helpers::EncodeVec3(m_position);
+        j["position"] = Common::Helpers::EncodeVec3(m_transform.getPosition());
         return j;
     }
 

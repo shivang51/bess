@@ -1,4 +1,5 @@
 #include "ui/ui.h"
+#include "application_state.h"
 #include "settings/settings.h"
 
 #include "imgui.h"
@@ -7,7 +8,7 @@
 #include "imgui_internal.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/icons/MaterialIcons.h"
-#include <memory>
+#include "ui/ui_main/ui_main.h"
 
 namespace Bess::UI {
     void init(GLFWwindow *window) {
@@ -126,5 +127,20 @@ namespace Bess::UI {
     }
 
     void setCursorReset() { ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow); }
+
+    void drawStats(int fps) {
+        ImGui::Begin("Stats");
+        ImGui::Text("FPS: %d", fps);
+        switch (ApplicationState::getCurrentPage()->getIdentifier()) {
+        case Pages::PageIdentifier::MainPage:
+            UI::UIMain::drawStats(fps);
+            break;
+        case Pages::PageIdentifier::StartPage:
+        default:
+            break;
+        }
+
+        ImGui::End();
+    }
 
 } // namespace Bess::UI

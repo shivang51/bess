@@ -174,8 +174,7 @@ namespace Bess::Pages {
                     continue;
                 m_state->addBulkId(Simulator::ComponentsManager::renderIdToCid(id));
             }
-
-            dragData.isDragging = false;
+            dragData = {};
         }
 
         for (auto &event : events) {
@@ -284,12 +283,14 @@ namespace Bess::Pages {
             return;
 
         if (!pressed) {
+            auto &dragData = m_state->getDragDataRef();
             if (m_state->getDrawMode() == UI::Types::DrawMode::selectionBox) {
                 m_state->setReadBulkIds(true);
                 m_state->setDrawMode(UI::Types::DrawMode::none);
+                dragData.isDragging = false;
+            } else {
+                dragData = {};
             }
-            auto &dragData = m_state->getDragDataRef();
-            dragData.isDragging = false;
             return;
         }
 
@@ -388,8 +389,9 @@ namespace Bess::Pages {
             m_camera->incrementPos({-dx / UI::UIMain::state.cameraZoom,
                                     dy / UI::UIMain::state.cameraZoom});
         } else if (m_leftMousePressed) {
+            auto &dragData = m_state->getDragDataRef();
             // dragging an entity
-            if (!m_state->isBulkIdEmpty()) {
+            if (m_state->getHoveredId() > -1) {
                 for (auto &id : m_state->getBulkIds()) {
                     const auto &entity = Simulator::ComponentsManager::components[id];
 
@@ -397,9 +399,8 @@ namespace Bess::Pages {
                     if (static_cast<int>(entity->getType()) <= 100)
                         return;
 
-                    auto &pos = entity->getPosition();
+                    auto pos = entity->getPosition();
 
-                    auto &dragData = m_state->getDragDataRef();
                     if (!dragData.isDragging) {
                         dragData.isDragging = true;
                         dragData.dragOffset = getNVPMousePos() - glm::vec2(pos);
@@ -410,15 +411,13 @@ namespace Bess::Pages {
                     dPos = glm::round(dPos / snap) * snap;
 
                     pos = {dPos, pos.z};
+                    entity->setPosition(pos);
                 }
-            } else { // box selection when dragging in empty space
-                auto &dragData = m_state->getDragDataRef();
-
-                auto mp = getNVPMousePos();
+            } else if (m_state->getHoveredId() == -1) { // box selection when dragging in empty space
 
                 if (!dragData.isDragging) {
                     dragData.isDragging = true;
-                    dragData.dragOffset = mp;
+                    dragData.dragOffset = getNVPMousePos();
                     dragData.vpMousePos = getViewportMousePos();
                     m_state->setDrawMode(UI::Types::DrawMode::selectionBox);
                 }

@@ -26,22 +26,25 @@ namespace Bess::Simulator::Components {
     }
 
     void Slot::update(const glm::vec3 &pos, const std::string &label) {
-        m_position = pos;
+        m_transform.setPosition(pos);
         setLabel(label);
     }
 
     void Slot::update(const glm::vec3 &pos, const glm::vec2 &labelOffset) {
-        m_position = pos;
+        m_transform.setPosition(pos);
         m_labelOffset = labelOffset;
     }
 
     void Slot::update(const glm::vec3 &pos, const glm::vec2 &labelOffset, const std::string &label) {
-        m_position = pos;
+        m_transform.setPosition(pos);
         m_labelOffset = labelOffset;
         setLabel(label);
     }
 
-    void Slot::update(const glm::vec3 &pos) { m_position = pos; }
+    void Slot::update(const glm::vec3 &pos) {
+
+        m_transform.setPosition(pos);
+    }
 
     void Slot::render() {
         if (m_isHovered) {
@@ -49,14 +52,16 @@ namespace Bess::Simulator::Components {
         }
 
         float r = 4.0f;
-        Renderer2D::Renderer::circle(m_position, m_highlightBorder ? r + 2.0f : r + 1.f,
+        auto pos = m_transform.getPosition();
+
+        Renderer2D::Renderer::circle(pos, m_highlightBorder ? r + 2.0f : r + 1.f,
                                      m_highlightBorder
                                          ? ViewportTheme::selectedWireColor
                                          : ViewportTheme::componentBorderColor,
                                      m_renderId);
 
         Renderer2D::Renderer::circle(
-            m_position, r,
+            pos, r,
             (m_connections.size() == 0) ? ViewportTheme::backgroundColor : connectedBg,
             m_renderId);
 
@@ -68,7 +73,7 @@ namespace Bess::Simulator::Components {
             offset.x -= m_labelWidth;
         }
         offset.y -= charSize.y / 2.f;
-        Renderer2D::Renderer::text(m_label, m_position + offset, fontSize, ViewportTheme::textColor, ComponentsManager::compIdToRid(m_parentUid));
+        Renderer2D::Renderer::text(m_label, pos + offset, fontSize, ViewportTheme::textColor, ComponentsManager::compIdToRid(m_parentUid));
     }
 
     void Slot::deleteComponent() {

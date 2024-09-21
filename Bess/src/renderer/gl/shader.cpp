@@ -129,35 +129,52 @@ namespace Bess::Gl {
     }
 
     void Shader::setUniformVec4(const std::string &name, const glm::vec4 &value) {
-        glUniform4fv(glGetUniformLocation(m_id, name.c_str()), 1, glm::value_ptr(value));
+        if (m_uniformLocationCache.find(name) == m_uniformLocationCache.end()) {
+            m_uniformLocationCache[name] = glGetUniformLocation(m_id, name.c_str());
+        }
+        GL_CHECK(glUniform4fv(m_uniformLocationCache[name], 1, glm::value_ptr(value)));
     }
 
     void Shader::setUniformMat4(const std::string &name, const glm::mat4 &value) {
-        glUniformMatrix4fv(glGetUniformLocation(m_id, name.c_str()), 1, GL_FALSE,
-                           glm::value_ptr(value));
+        if (m_uniformLocationCache.find(name) == m_uniformLocationCache.end()) {
+            m_uniformLocationCache[name] = glGetUniformLocation(m_id, name.c_str());
+        }
+        GL_CHECK(glUniformMatrix4fv(m_uniformLocationCache[name], 1, GL_FALSE, glm::value_ptr(value)));
     }
 
     void Shader::setUniform1i(const std::string &name, int value) {
-        GL_CHECK(glUniform1i(glGetUniformLocation(m_id, name.c_str()), value));
+        if (m_uniformLocationCache.find(name) == m_uniformLocationCache.end()) {
+            m_uniformLocationCache[name] = glGetUniformLocation(m_id, name.c_str());
+        }
+        GL_CHECK(glUniform1i(m_uniformLocationCache[name], value));
     }
 
     void Shader::setUniform1f(const std::string &name, float value) {
-        GL_CHECK(glUniform1f(glGetUniformLocation(m_id, name.c_str()), value));
+        if (m_uniformLocationCache.find(name) == m_uniformLocationCache.end()) {
+            m_uniformLocationCache[name] = glGetUniformLocation(m_id, name.c_str());
+        }
+        GL_CHECK(glUniform1f(m_uniformLocationCache[name], value));
     }
 
-    void Shader::setUniformIV(const std::string &name,
-                              const std::vector<int> &value) {
-        GL_CHECK(glUniform1iv(glGetUniformLocation(m_id, name.c_str()),
-                              (GLsizei)value.size(), value.data()));
+    void Shader::setUniformIV(const std::string &name, const std::vector<int> &value) {
+        if (m_uniformLocationCache.find(name) == m_uniformLocationCache.end()) {
+            m_uniformLocationCache[name] = glGetUniformLocation(m_id, name.c_str());
+        }
+        GL_CHECK(glUniform1iv(m_uniformLocationCache[name], (GLsizei)value.size(), value.data()));
     }
 
     void Shader::setUniform3f(const std::string &name, const glm::vec3 &value) {
-        glUniform3fv(glGetUniformLocation(m_id, name.c_str()), 1,
-                     glm::value_ptr(value));
+        if (m_uniformLocationCache.find(name) == m_uniformLocationCache.end()) {
+            m_uniformLocationCache[name] = glGetUniformLocation(m_id, name.c_str());
+        }
+        GL_CHECK(glUniform3fv(m_uniformLocationCache[name], 1, glm::value_ptr(value)));
     }
 
     void Shader::setUniformVec2(const std::string &name, const glm::vec2 &value) {
-        glUniform2fv(glGetUniformLocation(m_id, name.c_str()), 1, glm::value_ptr(value));
+        if (m_uniformLocationCache.find(name) == m_uniformLocationCache.end()) {
+            m_uniformLocationCache[name] = glGetUniformLocation(m_id, name.c_str());
+        }
+        GL_CHECK(glUniform2fv(m_uniformLocationCache[name], 1, glm::value_ptr(value)));
     }
 
 } // namespace Bess::Gl

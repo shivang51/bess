@@ -11,14 +11,13 @@
 #include <GLFW/glfw3.h>
 
 namespace Bess::Simulator::Components {
-
-    glm::vec2 clockSize = {65.f, 25.f};
-
     Clock::Clock(const uuids::uuid &uid, int renderId, glm::vec3 position, const uuids::uuid &slotUid) : Component(uid, renderId, position, ComponentType::clock) {
         m_frequency = 1.f;
         m_outputSlotId = slotUid;
         m_events[ComponentEventType::leftClick] = (OnLeftClickCB)BIND_FN_1(Clock::onLeftClick);
         m_name = "Clock";
+
+        m_transform.setScale({65.f, 25.f});
     }
 
     void Clock::update() {
@@ -83,7 +82,7 @@ namespace Bess::Simulator::Components {
         nlohmann::json data;
         data["uid"] = Common::Helpers::uuidToStr(m_uid);
         data["type"] = (int)m_type;
-        data["pos"] = Common::Helpers::EncodeVec3(m_position);
+        data["pos"] = Common::Helpers::EncodeVec3(m_transform.getPosition());
         auto slot = (Slot *)ComponentsManager::components[m_outputSlotId].get();
         data["slot"] = slot->toJson();
         data["frequency"] = m_frequency;
@@ -114,9 +113,12 @@ namespace Bess::Simulator::Components {
             borderColor = ViewportTheme::stateHighColor;
         }
 
-        Renderer2D::Renderer::quad(m_position, clockSize, bgColor, m_renderId, glm::vec4(r), borderColor, thickness);
+        auto size = m_transform.getScale();
+        auto pos = m_transform.getPosition();
 
-        slot->update(m_position + glm::vec3({(clockSize.x / 2) - 12.f, 0.f, 0.f}), {-12.f, 0.f}, label);
+        Renderer2D::Renderer::quad(pos, size, bgColor, m_renderId, glm::vec4(r), borderColor, thickness);
+
+        slot->update(pos + glm::vec3({(size.x / 2) - 12.f, 0.f, 0.f}), {-12.f, 0.f}, label);
         slot->render();
     }
 

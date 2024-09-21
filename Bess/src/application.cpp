@@ -3,6 +3,7 @@
 #include "events/application_event.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
+#include "pages/page_identifier.h"
 #include "pages/start_page/start_page.h"
 #include "renderer/renderer.h"
 #include "ui/ui.h"
@@ -16,6 +17,7 @@
 #include "settings/settings.h"
 
 #include "common/bind_helpers.h"
+#include "ui/ui_main/ui_main.h"
 #include "window.h"
 
 using Bess::Renderer2D::Renderer;
@@ -45,7 +47,7 @@ namespace Bess {
     void Application::draw() {
         UI::begin();
         ApplicationState::getCurrentPage()->draw();
-        // UI::UIMain::drawStats(fps);
+        UI::drawStats(fps);
         UI::end();
     }
 

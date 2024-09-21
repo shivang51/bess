@@ -1,9 +1,7 @@
 #include "components/jcomponent.h"
-#include "components/connection.h"
 
 #include "components_manager/component_bank.h"
 
-#include "glm.hpp"
 #include "pages/main_page/main_page_state.h"
 #include "renderer/renderer.h"
 
@@ -17,8 +15,6 @@ namespace Bess::Simulator::Components {
 
 #define BIND_EVENT_FN_1(fn) \
     std::bind(&JComponent::fn, this, std::placeholders::_1)
-
-    glm::vec2 GATE_SIZE = {142.f, 100.f};
 
     JComponent::JComponent() : Component(), m_data{} {
     }
@@ -37,14 +33,18 @@ namespace Bess::Simulator::Components {
         m_events[ComponentEventType::rightClick] =
             (OnRightClickCB)BIND_EVENT_FN_1(onRightClick);
 
+        m_transform.setScale({142.f, 100.f});
+
         simulate();
     }
 
     void JComponent::drawBackground(const glm::vec4 &borderThicknessPx, float rPx, float headerHeight, const glm::vec2 &gateSize) {
         auto borderColor = m_isSelected ? ViewportTheme::selectedCompColor : ViewportTheme::componentBorderColor;
         auto color = ViewportTheme::componentBGColor;
+        auto pos = m_transform.getPosition();
+
         Renderer2D::Renderer::quad(
-            m_position,
+            pos,
             gateSize,
             color,
             m_renderId,
@@ -53,8 +53,8 @@ namespace Bess::Simulator::Components {
             borderColor,
             borderThicknessPx);
 
-        auto headerPos = m_position;
-        headerPos.y = m_position.y + ((gateSize.y / 2) - (headerHeight / 2.f));
+        auto headerPos = pos;
+        headerPos.y = pos.y + ((gateSize.y / 2) - (headerHeight / 2.f));
 
         Renderer2D::Renderer::quad(
             headerPos,
@@ -97,7 +97,7 @@ namespace Bess::Simulator::Components {
 
         maxWidth += labelGap + 8.f + sampleCharSize.x + 16.f + (gatePadding.x * 2.f);
 
-        auto gateSize_ = GATE_SIZE;
+        auto gateSize_ = m_transform.getScale();
 
         if (maxWidth > gateSize_.x) {
             gateSize_.x += maxWidth - gateSize_.x + 16.f;
@@ -107,7 +107,7 @@ namespace Bess::Simulator::Components {
 
         drawBackground(borderThicknessPx, rPx, headerHeight, gateSize_);
 
-        auto leftCornerPos = Common::Helpers::GetLeftCornerPos(m_position, gateSize_);
+        auto leftCornerPos = Common::Helpers::GetLeftCornerPos(m_transform.getPosition(), gateSize_);
 
         {
             glm::vec3 inpSlotRowPos = {leftCornerPos.x + 8.f + gatePadding.x, leftCornerPos.y - headerHeight - 4.f, leftCornerPos.z};
@@ -230,7 +230,7 @@ namespace Bess::Simulator::Components {
         nlohmann::json data;
 
         data["uid"] = Common::Helpers::uuidToStr(m_uid);
-        data["pos"] = Common::Helpers::EncodeVec3(m_position);
+        data["pos"] = Common::Helpers::EncodeVec3(m_transform.getPosition());
         data["type"] = (int)m_type;
 
         data["jCompData"]["collection"] = m_data->getCollectionName();
