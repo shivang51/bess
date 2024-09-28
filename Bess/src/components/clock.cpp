@@ -34,10 +34,14 @@ namespace Bess::Simulator::Components {
             break;
         }
 
+        auto simPaused = Pages::MainPageState::getInstance()->isSimulationPaused();
+
+        if (simPaused)
+            return;
+
         float cycleTime = 1.f / frequency;
         double currTime = glfwGetTime();
         double delta = currTime - m_prevUpdateTime;
-
         if (delta > cycleTime) {
             m_prevUpdateTime = currTime;
 

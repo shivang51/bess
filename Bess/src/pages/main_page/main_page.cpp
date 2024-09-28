@@ -363,7 +363,9 @@ namespace Bess::Pages {
         if (!isCursorInViewport())
             return;
 
-        if (m_state->isHoveredIdChanged()) {
+        auto &dragData = m_state->getDragDataRef();
+
+        if (m_state->isHoveredIdChanged() && !dragData.isDragging) {
             auto prevHoveredId = m_state->getPrevHoveredId();
             const auto hoveredId = m_state->getHoveredId();
 
@@ -389,7 +391,6 @@ namespace Bess::Pages {
             m_camera->incrementPos({-dx / UI::UIMain::state.cameraZoom,
                                     dy / UI::UIMain::state.cameraZoom});
         } else if (m_leftMousePressed) {
-            auto &dragData = m_state->getDragDataRef();
             // dragging an entity
             if (m_state->getHoveredId() > -1) {
                 for (auto &id : m_state->getBulkIds()) {
