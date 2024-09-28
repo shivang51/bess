@@ -6,6 +6,7 @@ namespace Bess {
     glm::vec4 ViewportTheme::componentBGColor;
     glm::vec4 ViewportTheme::componentBorderColor;
     glm::vec4 ViewportTheme::stateHighColor;
+    glm::vec4 ViewportTheme::stateLowColor;
     glm::vec4 ViewportTheme::wireColor;
     glm::vec4 ViewportTheme::selectedWireColor;
     glm::vec4 ViewportTheme::compHeaderColor;
@@ -30,7 +31,8 @@ namespace Bess {
         componentBorderColor = glm::vec4(color.x, color.y, color.z, color.w);
 
         color = colors[ImGuiCol_Text];
-        wireColor = glm::vec4(color.x, color.y, color.z, color.w);
+        wireColor = glm::vec4(color.x, color.y, color.z, color.w) * darkenFactor;
+        wireColor.w = color.w;
 
         color = colors[ImGuiCol_Header];
         compHeaderColor = glm::vec4(color.x, color.y, color.z, color.w);
@@ -44,6 +46,7 @@ namespace Bess {
         gridColor = textColor * 0.3f;
 
         stateHighColor = glm::vec4(0.42f, 0.72f, 0.42f, 1.00f);
+        stateLowColor = glm::vec4(0.82f, 0.2f, 0.2f, 1.00f);
         selectedWireColor = glm::vec4(1.0f, 0.64f, 0.0f, 1.0f);
 
         selectionBoxBorderColor = glm::vec4({0.0, 0.3, 1.0, 1.f});

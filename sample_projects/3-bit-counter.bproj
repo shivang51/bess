@@ -1,10 +1,56 @@
 {
     "components": [
         {
+            "clockSlot": {
+                "connections": [
+                    "e5d7642c-badc-4370-b7f4-19e319498863"
+                ],
+                "type": 0,
+                "uid": "21ad5a4f-0ef1-4213-b8f7-6a8328b36fc2"
+            },
+            "inputSlots": [
+                {
+                    "connections": [
+                        "8a830cd1-c678-43f7-b8ba-37fddad2e3a9"
+                    ],
+                    "type": 0,
+                    "uid": "4c9a55be-0e4b-4d1c-b2c4-e7d8781b5518"
+                },
+                {
+                    "connections": [
+                        "8a830cd1-c678-43f7-b8ba-37fddad2e3a9"
+                    ],
+                    "type": 0,
+                    "uid": "4d7a04f9-03f3-4f25-ab81-f9874c56a8c0"
+                }
+            ],
+            "name": "JK Flip Flop",
+            "outputSlots": [
+                {
+                    "connections": [
+                        "c4b5630f-741b-4a6f-bb2a-65f8d66d076b"
+                    ],
+                    "type": 1,
+                    "uid": "8e398ccb-b602-4489-929a-dfd3e956846b"
+                },
+                {
+                    "type": 1,
+                    "uid": "e3dbeeea-9595-41ce-8643-fde410c12443"
+                }
+            ],
             "pos": {
-                "x": -88.0,
-                "y": -96.0,
-                "z": 0.0007999999797903001
+                "x": 208.0,
+                "y": 20.0,
+                "z": 0.00029999998514540493
+            },
+            "type": 107,
+            "uid": "dea87af2-adbf-411b-884c-b5ec99f7f3fe"
+        },
+        {
+            "pos": {
+                "x": -56.0,
+                "y": -84.0,
+                "z": 9.999999747378752e-05
             },
             "slot": {
                 "connections": [
@@ -18,9 +64,9 @@
         },
         {
             "pos": {
-                "x": 148.0,
-                "y": -96.0,
-                "z": 0.000699999975040555
+                "x": 80.0,
+                "y": -84.0,
+                "z": 0.00019999999494757503
             },
             "slot": {
                 "connections": [
@@ -34,9 +80,9 @@
         },
         {
             "pos": {
-                "x": 20.0,
-                "y": -120.0,
-                "z": 0.0005999999702908099
+                "x": 12.0,
+                "y": -84.0,
+                "z": 0.00029999998514540493
             },
             "slot": {
                 "connections": [
@@ -47,6 +93,27 @@
             },
             "type": 103,
             "uid": "1bec957c-0801-4500-a72a-bb7a432b16f8"
+        },
+        {
+            "pos": {
+                "x": -348.0,
+                "y": 88.0,
+                "z": 0.0004999999655410647
+            },
+            "slot": {
+                "connections": [
+                    "2034c54f-c56d-4252-83f9-284f67f17357",
+                    "2706ee36-3be9-423d-a052-d80c0760d11b",
+                    "f3f38bbd-e23b-465a-bf92-2ea192dbc173",
+                    "e8286e11-8704-4735-8c3c-611ff25b9263",
+                    "4c9a55be-0e4b-4d1c-b2c4-e7d8781b5518",
+                    "4d7a04f9-03f3-4f25-ab81-f9874c56a8c0"
+                ],
+                "type": 1,
+                "uid": "8a830cd1-c678-43f7-b8ba-37fddad2e3a9"
+            },
+            "type": 102,
+            "uid": "ed71658c-00f9-4aae-86af-aa95aaa3b19d"
         },
         {
             "clockSlot": {
@@ -139,8 +206,8 @@
                 }
             ],
             "pos": {
-                "x": 28.0,
-                "y": 104.0,
+                "x": 8.0,
+                "y": 20.0,
                 "z": 0.00019999999494757503
             },
             "type": 107,
@@ -149,9 +216,9 @@
         {
             "frequency": 1.0,
             "pos": {
-                "x": -336.0,
-                "y": -28.0,
-                "z": 0.0004999999655410647
+                "x": -344.0,
+                "y": 12.0,
+                "z": 0.00039999998989515007
             },
             "slot": {
                 "connections": [
@@ -162,95 +229,98 @@
             },
             "type": 106,
             "uid": "b4b48b6b-a4da-4c63-b6f4-dee5ee0b316b"
-        },
-        {
-            "clockSlot": {
-                "connections": [
-                    "e5d7642c-badc-4370-b7f4-19e319498863"
-                ],
-                "type": 0,
-                "uid": "21ad5a4f-0ef1-4213-b8f7-6a8328b36fc2"
-            },
-            "inputSlots": [
-                {
-                    "connections": [
-                        "8a830cd1-c678-43f7-b8ba-37fddad2e3a9"
-                    ],
-                    "type": 0,
-                    "uid": "4c9a55be-0e4b-4d1c-b2c4-e7d8781b5518"
-                },
-                {
-                    "connections": [
-                        "8a830cd1-c678-43f7-b8ba-37fddad2e3a9"
-                    ],
-                    "type": 0,
-                    "uid": "4d7a04f9-03f3-4f25-ab81-f9874c56a8c0"
-                }
-            ],
-            "name": "JK Flip Flop",
-            "outputSlots": [
-                {
-                    "connections": [
-                        "c4b5630f-741b-4a6f-bb2a-65f8d66d076b"
-                    ],
-                    "type": 1,
-                    "uid": "8e398ccb-b602-4489-929a-dfd3e956846b"
-                },
-                {
-                    "type": 1,
-                    "uid": "e3dbeeea-9595-41ce-8643-fde410c12443"
-                }
-            ],
-            "pos": {
-                "x": 260.0,
-                "y": 180.0,
-                "z": 0.00029999998514540493
-            },
-            "type": 107,
-            "uid": "dea87af2-adbf-411b-884c-b5ec99f7f3fe"
-        },
-        {
-            "pos": {
-                "x": -360.0,
-                "y": 152.0,
-                "z": 0.00039999998989515007
-            },
-            "slot": {
-                "connections": [
-                    "2034c54f-c56d-4252-83f9-284f67f17357",
-                    "2706ee36-3be9-423d-a052-d80c0760d11b",
-                    "f3f38bbd-e23b-465a-bf92-2ea192dbc173",
-                    "e8286e11-8704-4735-8c3c-611ff25b9263",
-                    "4c9a55be-0e4b-4d1c-b2c4-e7d8781b5518",
-                    "4d7a04f9-03f3-4f25-ab81-f9874c56a8c0"
-                ],
-                "type": 1,
-                "uid": "8a830cd1-c678-43f7-b8ba-37fddad2e3a9"
-            },
-            "type": 102,
-            "uid": "ed71658c-00f9-4aae-86af-aa95aaa3b19d"
         }
     ],
     "connectionPoints": [
         {
-            "parentSlots": "2c6d1a68-9aa3-4c3c-b253-e7892e89a253,7771e20d-a79e-4278-b51d-c2015b72fbbf",
+            "parentSlots": "4c9a55be-0e4b-4d1c-b2c4-e7d8781b5518,8a830cd1-c678-43f7-b8ba-37fddad2e3a9",
             "position": {
-                "x": 216.0,
-                "y": 112.0,
+                "x": 124.0,
+                "y": 32.0,
                 "z": -9.999999747378752e-05
             },
             "type": 105,
-            "uid": "ff696161-06d8-46e3-8b09-882a0eb2f7c3"
+            "uid": "d8b654ff-89ee-4864-8a37-84d00865ebb2"
         },
         {
             "parentSlots": "c4b5630f-741b-4a6f-bb2a-65f8d66d076b,8e398ccb-b602-4489-929a-dfd3e956846b",
             "position": {
-                "x": 316.0,
+                "x": 292.0,
+                "y": -48.0,
+                "z": -9.999999747378752e-05
+            },
+            "type": 105,
+            "uid": "a4923a15-917f-4bb1-b8ce-0b2f4e956d7b"
+        },
+        {
+            "parentSlots": "2034c54f-c56d-4252-83f9-284f67f17357,8a830cd1-c678-43f7-b8ba-37fddad2e3a9",
+            "position": {
+                "x": -276.0,
+                "y": 32.0,
+                "z": -9.999999747378752e-05
+            },
+            "type": 105,
+            "uid": "47250171-8d7a-4ff3-9799-b507c1412ca1"
+        },
+        {
+            "parentSlots": "2706ee36-3be9-423d-a052-d80c0760d11b,8a830cd1-c678-43f7-b8ba-37fddad2e3a9",
+            "position": {
+                "x": -288.0,
+                "y": -16.0,
+                "z": -9.999999747378752e-05
+            },
+            "type": 105,
+            "uid": "1b2c59bd-2ff1-431b-bf7d-e7d1cf3adfed"
+        },
+        {
+            "parentSlots": "48b46ec3-c64d-4eff-b55a-7750de583e35,5a19174c-2b66-439c-aa65-70302ff4fc2a",
+            "position": {
+                "x": -100.0,
+                "y": -60.0,
+                "z": -9.999999747378752e-05
+            },
+            "type": 105,
+            "uid": "4cf20f64-5a10-4401-853f-0a27def8f0e6"
+        },
+        {
+            "parentSlots": "e8286e11-8704-4735-8c3c-611ff25b9263,8a830cd1-c678-43f7-b8ba-37fddad2e3a9",
+            "position": {
+                "x": -88.0,
+                "y": -8.0,
+                "z": -9.999999747378752e-05
+            },
+            "type": 105,
+            "uid": "53a137f9-97d1-4542-acfc-c642f2503b7a"
+        },
+        {
+            "parentSlots": "2c6d1a68-9aa3-4c3c-b253-e7892e89a253,7771e20d-a79e-4278-b51d-c2015b72fbbf",
+            "position": {
+                "x": 92.0,
                 "y": -36.0,
                 "z": -9.999999747378752e-05
             },
             "type": 105,
-            "uid": "c54e742e-e08a-4636-a4a1-399be38a241f"
+            "uid": "eb7dacad-3953-4b74-9030-005d0a41968c"
+        },
+        {
+            "parentSlots": "f3f38bbd-e23b-465a-bf92-2ea192dbc173,8a830cd1-c678-43f7-b8ba-37fddad2e3a9",
+            "position": {
+                "x": -76.0,
+                "y": 32.0,
+                "z": -9.999999747378752e-05
+            },
+            "type": 105,
+            "uid": "9fbe477e-ec1b-4809-bc37-dc803706a4f4"
+        },
+        {
+            "parentSlots": "4d7a04f9-03f3-4f25-ab81-f9874c56a8c0,8a830cd1-c678-43f7-b8ba-37fddad2e3a9",
+            "position": {
+                "x": 108.0,
+                "y": -12.0,
+                "z": -9.999999747378752e-05
+            },
+            "type": 105,
+            "uid": "1e0e1f7e-ff11-4b7b-a372-a3cb4b26f7f8"
         }
     ],
     "name": "3-bit-counter.bproj"

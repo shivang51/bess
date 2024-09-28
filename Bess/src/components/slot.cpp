@@ -51,6 +51,7 @@ namespace Bess::Simulator::Components {
 
         float r = 4.0f;
         auto pos = m_transform.getPosition();
+        auto isHigh = m_state == DigitalState::high;
 
         Renderer2D::Renderer::circle(pos, m_highlightBorder ? r + 2.0f : r + 1.f,
                                      m_highlightBorder
@@ -58,10 +59,8 @@ namespace Bess::Simulator::Components {
                                          : ViewportTheme::componentBorderColor,
                                      m_renderId);
 
-        Renderer2D::Renderer::circle(
-            pos, r,
-            (m_connections.size() == 0) ? ViewportTheme::backgroundColor : connectedBg,
-            m_renderId);
+        auto bgColor = (isHigh) ? ViewportTheme::stateHighColor : ViewportTheme::stateLowColor;
+        Renderer2D::Renderer::circle(pos, r, bgColor, m_renderId);
 
         if (m_label == "")
             return;

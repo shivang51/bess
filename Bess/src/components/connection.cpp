@@ -72,7 +72,7 @@ namespace Bess::Simulator::Components {
         for (int i = 0; i < points.size() - 1; i++) {
             auto sPos = points[i];
             auto ePos = points[i + 1];
-            float midX = (sPos.x + ePos.x) / 2.f;
+            float midX = ePos.x;
             float offset = weight / 2.f;
 
             if (sPos.y > ePos.y)

@@ -109,8 +109,8 @@ namespace Bess::Simulator::Components {
 
         std::string label = "Clock";
 
-        if (slot->getState() == DigitalState::high) {
-            borderColor = ViewportTheme::stateHighColor;
+        if (m_isSelected) {
+            borderColor = ViewportTheme::componentBorderColor;
         }
 
         auto size = m_transform.getScale();

@@ -17,6 +17,7 @@ namespace Bess {
         static glm::vec4 gridColor;
         static glm::vec4 selectionBoxBorderColor;
         static glm::vec4 selectionBoxFillColor;
+        static glm::vec4 stateLowColor;
         static void updateColorsFromImGuiStyle();
     };
 } // namespace Bess

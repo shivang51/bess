@@ -29,12 +29,12 @@ namespace Bess::Simulator::Components {
 
         auto bgColor = ViewportTheme::componentBGColor;
         auto borderColor = ViewportTheme::componentBorderColor;
+        auto isHigh = slot->getState() == DigitalState::high;
 
-        std::string label = "Off";
+        std::string label = (isHigh) ? "On" : "Off";
 
-        if (slot->getState() == DigitalState::high) {
-            borderColor = ViewportTheme::stateHighColor;
-            label = "On";
+        if (m_isSelected) {
+            borderColor = ViewportTheme::selectedCompColor;
         }
 
         auto pos = m_transform.getPosition();

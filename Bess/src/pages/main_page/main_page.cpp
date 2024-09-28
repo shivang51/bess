@@ -90,7 +90,7 @@ namespace Bess::Pages {
                 float offset = weight / 2.f;
                 if (sPos.y > ePos.y)
                     offset = -offset;
-                float midX = (sPos.x + ePos.x) / 2.f;
+                float midX = ePos.x;
                 Renderer::line(sPos, {midX, sPos.y, -1}, weight, ViewportTheme::wireColor, -1);
                 Renderer::line({midX, sPos.y - offset, -1}, {midX, ePos.y + offset, -1}, weight, ViewportTheme::wireColor, -1);
                 Renderer::line({midX, ePos.y, -1}, ePos, weight, ViewportTheme::wireColor, -1);
