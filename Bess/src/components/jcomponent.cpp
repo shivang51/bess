@@ -2,6 +2,7 @@
 
 #include "components_manager/component_bank.h"
 
+#include "ext/vector_float4.hpp"
 #include "pages/main_page/main_page_state.h"
 #include "scene/renderer/renderer.h"
 
@@ -9,6 +10,7 @@
 #include "settings/viewport_theme.h"
 
 #include "simulator/simulator_engine.h"
+#include <cstdlib>
 #include <iostream>
 
 namespace Bess::Simulator::Components {
@@ -44,24 +46,29 @@ namespace Bess::Simulator::Components {
         auto pos = m_transform.getPosition();
 
         Renderer2D::Renderer::quad(
-            pos,
+            {pos.x, pos.y - headerHeight, pos.z},
             gateSize,
             color,
             m_renderId,
-            glm::vec4(rPx),
+            glm::vec4(0.f, 0.f, rPx, rPx),
             true,
             borderColor,
-            borderThicknessPx);
+            glm::vec4(0.f, borderThicknessPx.y, borderThicknessPx.z, borderThicknessPx.w));
 
         auto headerPos = pos;
         headerPos.y = pos.y + ((gateSize.y / 2) - (headerHeight / 2.f));
 
+        // header
+        static glm::vec4 headerColor = ViewportTheme::compHeaderColor;
         Renderer2D::Renderer::quad(
             headerPos,
             {gateSize.x, headerHeight},
-            ViewportTheme::compHeaderColor,
+            headerColor,
             m_renderId,
-            glm::vec4(rPx, rPx, 0.f, 0.f));
+            glm::vec4(rPx, rPx, 0.f, 0.f),
+            true,
+            borderColor,
+            glm::vec4(borderThicknessPx.x, borderThicknessPx.y, 0.f, borderThicknessPx.w));
     }
 
     std::string decodeExpr(const std::string &str) {

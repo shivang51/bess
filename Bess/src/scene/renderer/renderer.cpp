@@ -159,10 +159,13 @@ namespace Bess {
     void Renderer2D::Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size, const glm::vec4 &color, int id, float angle, const glm::vec4 &borderRadius, const glm::vec4 &borderColor, const glm::vec4 &borderSize) {
 
         if (borderSize.x || borderSize.y || borderSize.z || borderSize.w) {
-            glm::vec3 borderPos = pos;
-            glm::vec2 borderSize_ = size + glm::vec2(borderSize.w + borderSize.y, borderSize.x + borderSize.z);
+            glm::vec2 dXYP = {borderSize.y + borderSize.w, borderSize.x + borderSize.z};
+            glm::vec2 dXYM = {borderSize.y - borderSize.w, borderSize.x - borderSize.z};
+            dXYM *= 0.5f;
+            glm::vec2 borderPos = glm::vec2(pos) - glm::vec2(dXYM.x, -dXYM.y);
+            glm::vec2 borderSize_ = size + dXYP;
             auto borderRadius_ = borderRadius + borderSize;
-            Renderer::drawQuad(borderPos, borderSize_, borderColor, id, angle, borderRadius_);
+            Renderer::drawQuad(glm::vec3(borderPos, pos.z), borderSize_, borderColor, id, angle, borderRadius_);
         }
         Renderer::drawQuad(pos, size, color, id, angle, borderRadius);
     }

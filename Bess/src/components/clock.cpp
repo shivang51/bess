@@ -22,6 +22,11 @@ namespace Bess::Simulator::Components {
 
     void Clock::update() {
         Component::update();
+
+        auto simPaused = Pages::MainPageState::getInstance()->isSimulationPaused();
+        if (simPaused)
+            return;
+
         float frequency = m_frequency;
         switch (m_frequencyUnit) {
         case Bess::Simulator::FrequencyUnit::kiloHertz:
@@ -33,11 +38,6 @@ namespace Bess::Simulator::Components {
         default:
             break;
         }
-
-        auto simPaused = Pages::MainPageState::getInstance()->isSimulationPaused();
-
-        if (simPaused)
-            return;
 
         float cycleTime = 1.f / frequency;
         double currTime = glfwGetTime();
@@ -114,7 +114,7 @@ namespace Bess::Simulator::Components {
         std::string label = "Clock";
 
         if (m_isSelected) {
-            borderColor = ViewportTheme::componentBorderColor;
+            borderColor = ViewportTheme::selectedCompColor;
         }
 
         auto size = m_transform.getScale();

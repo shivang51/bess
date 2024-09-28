@@ -47,7 +47,7 @@ namespace Bess {
     void Application::draw() {
         UI::begin();
         ApplicationState::getCurrentPage()->draw();
-        UI::drawStats(fps);
+        // UI::drawStats(fps);
         UI::end();
     }
 
