@@ -11,7 +11,7 @@
 #include "pages/main_page/main_page_state.h"
 #include "scene/renderer/gl/gl_wrapper.h"
 #include "ui/icons/FontAwesomeIcons.h"
-#include "ui/m_widgets.h"
+#include "ui/icons/MaterialIcons.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/dialogs.h"
 #include "ui/ui_main/popups.h"
@@ -52,14 +52,6 @@ namespace Bess::UI {
 
     void UIMain::drawProjectExplorer() {
         ImGui::Begin("Project Explorer");
-
-        bool isSimulationPaused = m_pageState->isSimulationPaused();
-        std::string temp = !isSimulationPaused ? Icons::FontAwesomeIcons::FA_PAUSE
-                                               : Icons::FontAwesomeIcons::FA_PLAY;
-        temp += isSimulationPaused ? " Play" : " Pause";
-        if (ImGui::Button(temp.c_str())) {
-            m_pageState->setSimulationPaused(!isSimulationPaused);
-        }
 
         for (auto &id : Simulator::ComponentsManager::renderComponents) {
             auto &entity = Simulator::ComponentsManager::components[id];
@@ -131,8 +123,18 @@ namespace Bess::UI {
 
         if (ImGui::BeginMenu("Edit")) {
 
-            if (ImGui::MenuItem("Project Settings")) {
+            if (ImGui::MenuItem("Project Settings", "Ctrl+P")) {
                 ProjectSettingsWindow::show();
+            }
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Simulation")) {
+            std::string text = m_pageState->isSimulationPaused() ? Icons::FontAwesomeIcons::FA_PLAY : Icons::FontAwesomeIcons::FA_PAUSE;
+            text += m_pageState->isSimulationPaused() ? " Play" : " Pause";
+
+            if (ImGui::MenuItem(text.c_str(), "Ctrl+Space")) {
+                m_pageState->setSimulationPaused(!m_pageState->isSimulationPaused());
             }
             ImGui::EndMenu();
         }
