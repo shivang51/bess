@@ -2,6 +2,7 @@
 #include "GLFW/glfw3.h"
 #include "common/types.h"
 #include "components/clock.h"
+#include "components/connection.h"
 #include "components_manager/components_manager.h"
 #include "events/application_event.h"
 #include "ext/matrix_transform.hpp"
@@ -243,7 +244,10 @@ namespace Bess::Pages {
             if (comp.second->getType() == Simulator::ComponentType::clock) {
                 const auto clockCmp = std::dynamic_pointer_cast<Simulator::Components::Clock>(comp.second);
                 clockCmp->update();
-            } else {
+            } else if (comp.second->getType() == Simulator::ComponentType::connection) {
+                const auto connCmp = std::dynamic_pointer_cast<Simulator::Components::Connection>(comp.second);
+                connCmp->update();
+            } else if (comp.second->getType() != Simulator::ComponentType::connectionPoint) {
                 comp.second->update();
             }
         }
@@ -369,8 +373,8 @@ namespace Bess::Pages {
         const auto prevMousePos = m_state->getMousePos();
         const float dx = static_cast<float>(x) - prevMousePos.x;
         const float dy = static_cast<float>(y) - prevMousePos.y;
-
         m_state->setMousePos({x, y});
+
         if (!isCursorInViewport()) {
             return;
         }
@@ -449,9 +453,9 @@ namespace Bess::Pages {
         const auto &viewportPos = UI::UIMain::state.viewportPos;
         const auto &viewportSize = UI::UIMain::state.viewportSize;
         const auto mousePos = getViewportMousePos();
-        return mousePos.x >= 0.f &&
+        return mousePos.x >= 5.f &&
                mousePos.x < viewportSize.x &&
-               mousePos.y >= 0.f &&
+               mousePos.y >= 5.f &&
                mousePos.y < viewportSize.y;
     }
 

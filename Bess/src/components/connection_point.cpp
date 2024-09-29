@@ -1,6 +1,7 @@
 #include "components/connection_point.h"
 #include "common/bind_helpers.h"
 #include "common/helpers.h"
+#include "components/component.h"
 #include "components/connection.h"
 #include "components_manager/components_manager.h"
 #include "pages/main_page/main_page_state.h"
@@ -13,14 +14,17 @@ namespace Bess::Simulator::Components {
                                      const glm::vec3 &pos)
         : Component(uid, renderId, pos, ComponentType::connectionPoint) {
         m_parentId = parentId;
-        m_events[ComponentEventType::leftClick] =
-            (OnLeftClickCB)BIND_FN_1(ConnectionPoint::onLeftClick);
+        m_events[ComponentEventType::leftClick] = (OnLeftClickCB)BIND_FN_1(ConnectionPoint::onLeftClick);
         m_name = "Connection Point";
     }
 
     void ConnectionPoint::render() {
-        Renderer2D::Renderer::circle(m_transform.getPosition(), 4.0f, ViewportTheme::wireColor,
-                                     m_renderId);
+        float r = 3.0f;
+        if (m_isHovered || m_isSelected) {
+            r = 4.5f;
+            Renderer2D::Renderer::circle(m_transform.getPosition(), r + 1.f, ViewportTheme::selectedWireColor, m_renderId);
+        }
+        Renderer2D::Renderer::circle(m_transform.getPosition(), r, ViewportTheme::wireColor, m_renderId);
     }
 
     void ConnectionPoint::deleteComponent() {
@@ -32,6 +36,10 @@ namespace Bess::Simulator::Components {
     void ConnectionPoint::generate(const glm::vec3 &pos) {}
 
     void ConnectionPoint::drawProperties() {}
+
+    void ConnectionPoint::setSelected(bool selected) {
+        m_isSelected = selected;
+    }
 
     void ConnectionPoint::fromJson(const nlohmann::json &j) {
         auto uid = Common::Helpers::strToUUID(j["uid"].get<std::string>());

@@ -61,14 +61,15 @@ namespace Bess::Simulator::Components {
     }
 
     void Connection::renderStraightConnection(glm::vec3 startPos, glm::vec3 endPos, float weight, glm::vec4 color) {
-        std::vector<glm::vec3> points = {{startPos.x, startPos.y, -ComponentsManager::zIncrement}};
+        auto z = -ComponentsManager::zIncrement;
+        std::vector<glm::vec3> points = {{startPos.x, startPos.y, z}};
         for (auto &pointId : m_points) {
             auto point = std::dynamic_pointer_cast<ConnectionPoint>(ComponentsManager::components[pointId]);
             points.emplace_back(point->getPosition());
             point->render();
         }
+        points.emplace_back(glm::vec3({endPos.x, endPos.y, z}));
 
-        points.emplace_back(glm::vec3({endPos.x, endPos.y, -ComponentsManager::zIncrement}));
         for (int i = 0; i < points.size() - 1; i++) {
             auto sPos = points[i];
             auto ePos = points[i + 1];
@@ -78,9 +79,12 @@ namespace Bess::Simulator::Components {
             if (sPos.y > ePos.y)
                 offset = -offset;
 
-            Renderer2D::Renderer::line(sPos, {midX, sPos.y, -1}, weight, color, m_renderId);
-            Renderer2D::Renderer::line({midX, sPos.y - offset, -1}, {midX, ePos.y + offset, -1}, weight, color, m_renderId);
-            Renderer2D::Renderer::line({midX, ePos.y, -1}, ePos, weight, color, m_renderId);
+            sPos.z = z;
+            ePos.z = z;
+
+            Renderer2D::Renderer::line(sPos, {midX, sPos.y, z}, weight, color, m_renderId);
+            Renderer2D::Renderer::line({midX, sPos.y - offset, z}, {midX, ePos.y + offset, z}, weight, color, m_renderId);
+            Renderer2D::Renderer::line({midX, ePos.y, z}, ePos, weight, color, m_renderId);
         }
     }
 
@@ -101,6 +105,17 @@ namespace Bess::Simulator::Components {
             renderCurveConnection(startPos, endPos, weight, color);
         } else {
             renderStraightConnection(startPos, endPos, weight, color);
+        }
+    }
+
+    void Connection::update() {
+        Component::update();
+        if (m_isSelected) {
+            for (auto &cpId : m_points) {
+                auto cp = std::dynamic_pointer_cast<ConnectionPoint>(ComponentsManager::components[cpId]);
+                cp->update();
+                cp->setSelected(true);
+            }
         }
     }
 
@@ -184,6 +199,11 @@ namespace Bess::Simulator::Components {
         auto slotB = (Slot *)ComponentsManager::components[m_slot2].get();
         slotA->highlightBorder(false);
         slotB->highlightBorder(false);
+        for (auto &cpId : m_points) {
+            auto cp = std::dynamic_pointer_cast<ConnectionPoint>(ComponentsManager::components[cpId]);
+            cp->update();
+            cp->setSelected(false);
+        }
     }
 
     void Connection::onFocus() {

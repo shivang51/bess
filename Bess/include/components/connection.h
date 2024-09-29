@@ -18,6 +18,7 @@ namespace Bess::Simulator::Components {
         Connection();
 
         void render() override;
+        void update() override;
 
         void deleteComponent() override;
 
