@@ -15,7 +15,7 @@ namespace Bess::Pages {
       public:
         MainPage(std::shared_ptr<Window> parentWindow);
 
-        static std::shared_ptr<Page> getInstance(const std::shared_ptr<Window>& parentWindow = nullptr);
+        static std::shared_ptr<Page> getInstance(const std::shared_ptr<Window> &parentWindow = nullptr);
 
         static std::shared_ptr<MainPage> getTypedInstance(std::shared_ptr<Window> parentWindow = nullptr);
 
@@ -50,6 +50,8 @@ namespace Bess::Pages {
         bool m_leftMousePressed = false;
         bool m_rightMousePressed = false;
         bool m_middleMousePressed = false;
+
+        std::chrono::time_point<std::chrono::steady_clock> m_lastUpdateTime;
 
         std::shared_ptr<MainPageState> m_state;
     };

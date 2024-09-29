@@ -1,4 +1,5 @@
 #pragma once
+#include "ext/vector_float2.hpp"
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <any>
@@ -66,6 +67,8 @@ namespace Bess {
         void onRightMouse(RightMouseCallback callback);
         void onMiddleMouse(MiddleMouseCallback callback);
         void onMouseMove(MouseMoveCallback callback);
+
+        glm::vec2 getMousePos() const;
 
         GLFWwindow *getGLFWHandle() const { return mp_window.get(); }
 

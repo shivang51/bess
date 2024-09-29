@@ -26,9 +26,9 @@ namespace Bess::Pages {
         void setDrawMode(UI::Types::DrawMode mode);
         UI::Types::DrawMode getDrawMode();
 
-        void setDragData(const UI::Types::DragData &data);
-        const UI::Types::DragData &getDragData();
-        UI::Types::DragData &getDragDataRef();
+        void setDragData(const Types::DragData &data);
+        const Types::DragData &getDragData();
+        void clearDragData();
 
         void setPoints(const std::vector<glm::vec3> &points);
         const std::vector<glm::vec3> &getPoints();
@@ -102,7 +102,7 @@ namespace Bess::Pages {
 
         UI::Types::DrawMode m_drawMode = UI::Types::DrawMode::none;
 
-        UI::Types::DragData m_dragData = {};
+        Types::DragData m_dragData = {};
 
         bool m_readBulkIds = false;
 

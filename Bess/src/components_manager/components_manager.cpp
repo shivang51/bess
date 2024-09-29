@@ -192,6 +192,10 @@ namespace Bess::Simulator {
         m_renderIdToCId[-1] = emptyId;
     }
 
+    std::shared_ptr<Components::Component> ComponentsManager::getComponent(const uuids::uuid &cid) {
+        return components[cid];
+    }
+
     float ComponentsManager::getNextZPos() {
         zPos += zIncrement;
         return zPos;

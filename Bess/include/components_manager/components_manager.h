@@ -61,6 +61,8 @@ namespace Bess::Simulator {
 
         static void reset();
 
+        static std::shared_ptr<Components::Component> getComponent(const uuids::uuid &cid);
+
         template <typename T>
         static std::shared_ptr<T> getComponent(const uuids::uuid &cid) {
             return std::dynamic_pointer_cast<T>(components[cid]);

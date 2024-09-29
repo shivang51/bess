@@ -131,16 +131,16 @@ namespace Bess::Pages {
         return m_drawMode;
     }
 
-    void MainPageState::setDragData(const UI::Types::DragData &data) {
+    void MainPageState::setDragData(const Types::DragData &data) {
         m_dragData = data;
     }
 
-    const UI::Types::DragData &MainPageState::getDragData() {
+    const Types::DragData &MainPageState::getDragData() {
         return m_dragData;
     }
 
-    UI::Types::DragData &MainPageState::getDragDataRef() {
-        return m_dragData;
+    void MainPageState::clearDragData() {
+        m_dragData = {};
     }
 
     void MainPageState::setPoints(const std::vector<glm::vec3> &points) {

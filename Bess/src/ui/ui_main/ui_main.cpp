@@ -179,13 +179,14 @@ namespace Bess::UI {
             ImGuiWindowFlags_NoDecoration;
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-        ImGui::SetNextWindowSizeConstraints({400.f, -1.f}, {-1.f, -1.f});
+        ImGui::SetNextWindowSizeConstraints({400.f, 400.f}, {-1.f, -1.f});
 
         ImGui::Begin("Viewport", nullptr, flags);
-        auto offset = ImGui::GetCursorPos();
 
         auto viewportPanelSize = ImGui::GetContentRegionAvail();
         state.viewportSize = {viewportPanelSize.x, viewportPanelSize.y};
+
+        auto offset = ImGui::GetCursorPos();
 
         ImGui::Image((void *)state.viewportTexture,
                      ImVec2(viewportPanelSize.x, viewportPanelSize.y), ImVec2(0, 1),
@@ -193,7 +194,7 @@ namespace Bess::UI {
 
         auto pos = ImGui::GetWindowPos();
         auto gPos = ImGui::GetMainViewport()->Pos;
-        state.viewportPos = {pos.x - gPos.x + offset.x, pos.y - gPos.y + offset.y};
+        state.viewportPos = {pos.x - gPos.x + offset.x + 5.f, pos.y - gPos.y + offset.y + 5.f};
 
         ImGui::End();
         ImGui::PopStyleVar();

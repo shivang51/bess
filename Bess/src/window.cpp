@@ -212,4 +212,9 @@ namespace Bess {
         glfwSetWindowTitle(mp_window.get(), name.c_str());
     }
 
+    glm::vec2 Window::getMousePos() const {
+        double x, y;
+        glfwGetCursorPos(mp_window.get(), &x, &y);
+        return glm::vec2(x, y);
+    }
 } // namespace Bess
