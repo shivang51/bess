@@ -162,7 +162,7 @@ namespace Bess {
             glm::vec2 dXYP = {borderSize.y + borderSize.w, borderSize.x + borderSize.z};
             glm::vec2 dXYM = {borderSize.y - borderSize.w, borderSize.x - borderSize.z};
             dXYM *= 0.5f;
-            glm::vec2 borderPos = glm::vec2(pos) - glm::vec2(dXYM.x, -dXYM.y);
+            glm::vec2 borderPos = glm::vec2(pos) - glm::vec2(dXYM.x, dXYM.y);
             glm::vec2 borderSize_ = size + dXYP;
             auto borderRadius_ = borderRadius + borderSize;
             Renderer::drawQuad(glm::vec3(borderPos, pos.z), borderSize_, borderColor, id, angle, borderRadius_);
@@ -198,7 +198,7 @@ namespace Bess {
         if (shadow) {
             std::vector<Gl::QuadVertex> vertices(4);
 
-            auto transform = glm::translate(glm::mat4(1.0f), pos + glm::vec3(6.f, -4.f, 0.f));
+            auto transform = glm::translate(glm::mat4(1.0f), pos + glm::vec3(6.f, 4.f, 0.f));
             transform = glm::rotate(transform, angle, {0.f, 0.f, 1.f});
             transform = glm::scale(transform, {size.x, size.y, 1.f});
 
@@ -424,14 +424,14 @@ namespace Bess {
             auto &ch = m_Font->getCharacter(c);
 
             float xpos = x + ch.Bearing.x * scale;
-            float ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
+            float ypos = y + (ch.Size.y - ch.Bearing.y) * scale;
 
             float w = ch.Size.x * scale;
             float h = ch.Size.y * scale;
 
             std::vector<Gl::Vertex> vertices(4);
 
-            auto transform = glm::translate(glm::mat4(1.0f), {xpos + w / 2, ypos + h / 2, pos.z});
+            auto transform = glm::translate(glm::mat4(1.0f), {xpos + w / 2, ypos - h / 2, pos.z});
             transform = glm::scale(transform, {w, h, 1.f});
 
             for (int i = 0; i < 4; i++) {
@@ -441,10 +441,10 @@ namespace Bess {
                 vertex.color = color;
             }
 
-            vertices[0].texCoord = {0.0f, 0.0f};
-            vertices[1].texCoord = {0.0f, 1.0f};
-            vertices[2].texCoord = {1.0f, 1.0f};
-            vertices[3].texCoord = {1.0f, 0.0f};
+            vertices[0].texCoord = {0.0f, 1.0f};
+            vertices[1].texCoord = {0.0f, 0.0f};
+            vertices[2].texCoord = {1.0f, 0.0f};
+            vertices[3].texCoord = {1.0f, 1.0f};
 
             ch.Texture->bind();
 

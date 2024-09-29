@@ -271,8 +271,9 @@ namespace Bess::Pages {
                 UI::UIMain::state.cameraZoom = Camera::zoomMax;
             }
         } else {
-            m_camera->incrementPos(
-                {-x * 10 / m_camera->getZoom(), y * 10 / m_camera->getZoom()});
+            glm::vec2 dPos = {x, y};
+            dPos *= 10 / m_camera->getZoom() * -1;
+            m_camera->incrementPos(dPos);
         }
     }
 
@@ -388,11 +389,12 @@ namespace Bess::Pages {
         }
 
         if (m_middleMousePressed) {
-            m_camera->incrementPos({-dx / UI::UIMain::state.cameraZoom,
-                                    dy / UI::UIMain::state.cameraZoom});
+            glm::vec2 dPos = {dx / UI::UIMain::state.cameraZoom, dy / UI::UIMain::state.cameraZoom};
+            dPos *= -1;
+            m_camera->incrementPos(dPos);
         } else if (m_leftMousePressed) {
             // dragging an entity
-            if (m_state->getHoveredId() > -1) {
+            if (m_state->getHoveredId() > -1 || (dragData.isDragging && m_state->getDrawMode() != UI::Types::DrawMode::selectionBox)) {
                 for (auto &id : m_state->getBulkIds()) {
                     const auto &entity = Simulator::ComponentsManager::components[id];
 
@@ -453,9 +455,9 @@ namespace Bess::Pages {
         glm::mat4 tansform = glm::translate(glm::mat4(1.f), glm::vec3(cameraPos.x, cameraPos.y, 0.f));
         tansform = glm::scale(tansform, glm::vec3(1.f / UI::UIMain::state.cameraZoom, 1.f / UI::UIMain::state.cameraZoom, 1.f));
 
-        pos = glm::vec2(tansform * glm::vec4(pos.x, -pos.y, 0.f, 1.f));
+        pos = glm::vec2(tansform * glm::vec4(pos.x, pos.y, 0.f, 1.f));
         auto span = m_camera->getSpan() / 2.f;
-        pos += glm::vec2({-span.x, span.y});
+        pos -= glm::vec2({span.x, span.y});
         return pos;
     }
 

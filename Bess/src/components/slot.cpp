@@ -69,7 +69,7 @@ namespace Bess::Simulator::Components {
         if (offset.x < 0.f) {
             offset.x -= m_labelWidth;
         }
-        offset.y -= charSize.y / 2.f;
+        offset.y += charSize.y / 2.f;
         Renderer2D::Renderer::text(m_label, pos + offset, fontSize, ViewportTheme::textColor, ComponentsManager::compIdToRid(m_parentUid));
     }
 

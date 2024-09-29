@@ -37,16 +37,18 @@ namespace Bess::Simulator::Components {
 
         auto pos = m_transform.getPosition();
         pos.x += width / 2.f;
-        pos.y += height / 2.f;
+        pos.y -= height / 2.f;
 
         if (m_isSelected) {
-            pos.y -= 4.f;
+            pos.y += 4.f;
             height += 8.f;
             width += 12.f;
         }
 
         pos.z -= ComponentsManager::zIncrement;
-        Renderer2D::Renderer::quad(pos, {width, height}, ViewportTheme::backgroundColor, m_renderId, glm::vec4(8.f), ViewportTheme::componentBorderColor, glm::vec4(m_isSelected ? 1.f : 0.f));
+        auto bgColor = ViewportTheme::backgroundColor;
+        bgColor.w = static_cast<float>(m_isSelected);
+        Renderer2D::Renderer::quad(pos, {width, height}, bgColor, m_renderId, glm::vec4(8.f), ViewportTheme::componentBorderColor, glm::vec4(m_isSelected ? 1.f : 0.f));
 
         Renderer2D::Renderer::text(m_text, m_transform.getPosition(), m_fontSize, m_color, m_renderId);
     }
@@ -107,7 +109,7 @@ namespace Bess::Simulator::Components {
         j["uid"] = Common::Helpers::uuidToStr(m_uid);
         j["text"] = m_text;
         j["fontSize"] = m_fontSize;
-        j["color"] = Common::Helpers::EncodeVec3(m_color);
+        j["color"] = Common::Helpers::EncodeVec4(m_color);
         j["pos"] = Common::Helpers::EncodeVec3(m_transform.getPosition());
         return j;
     }

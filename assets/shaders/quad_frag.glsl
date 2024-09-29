@@ -46,7 +46,7 @@ void main() {
     p.x *= ar;
     vec2 si = vec2(ar, 1.f);
 
-    vec4 ra = vec4(bR.y, bR.z, bR.x, bR.w);
+    vec4 ra = vec4(bR.w, bR.x, bR.z, bR.y);
     
     float a = calculateQuad(p, si, ra);
     if (a == 0.f) discard;

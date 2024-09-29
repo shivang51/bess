@@ -63,7 +63,7 @@ namespace Bess {
         float ySpan = m_height / m_zoom;
         auto x = xSpan / 2.f;
         auto y = ySpan / 2.f;
-        m_ortho = glm::ortho(-x, x, -y, y, -10.0f, 10.0f);
+        m_ortho = glm::ortho(-x, x, y, -y, -10.0f, 10.0f);
         updateTransform();
     }
 

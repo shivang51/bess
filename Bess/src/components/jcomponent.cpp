@@ -46,8 +46,8 @@ namespace Bess::Simulator::Components {
         auto pos = m_transform.getPosition();
 
         Renderer2D::Renderer::quad(
-            {pos.x, pos.y - headerHeight, pos.z},
-            gateSize,
+            {pos.x, pos.y + headerHeight / 2.f, pos.z},
+            {gateSize.x, gateSize.y - headerHeight},
             color,
             m_renderId,
             glm::vec4(0.f, 0.f, rPx, rPx),
@@ -56,7 +56,7 @@ namespace Bess::Simulator::Components {
             glm::vec4(0.f, borderThicknessPx.y, borderThicknessPx.z, borderThicknessPx.w));
 
         auto headerPos = pos;
-        headerPos.y = pos.y + ((gateSize.y / 2) - (headerHeight / 2.f));
+        headerPos.y = pos.y - ((gateSize.y / 2) - (headerHeight / 2.f));
 
         // header
         static glm::vec4 headerColor = ViewportTheme::compHeaderColor;
@@ -94,22 +94,19 @@ namespace Bess::Simulator::Components {
         float sCharHeight = sampleCharSize.y;
         float rowHeight = (slotRowPadding.y * 2) + sCharHeight;
 
-        float maxSlotsCount = std::max(m_inputSlots.size(), m_outputSlots.size());
         float maxWidth = 0.f;
         for (auto &expr : m_data->getOutputs()) {
-            int l = expr.size();
-            float width = l * sampleCharSize.x;
+            float width = expr.size() * sampleCharSize.x;
             maxWidth = std::fmaxf(width, maxWidth);
         }
 
-        maxWidth += labelGap + 8.f + sampleCharSize.x + 16.f + (gatePadding.x * 2.f);
+        maxWidth += labelGap + 8.f + 16.f + sampleCharSize.x + (gatePadding.x * 2.f);
 
         auto gateSize_ = m_transform.getScale();
 
-        if (maxWidth > gateSize_.x) {
-            gateSize_.x += maxWidth - gateSize_.x + 16.f;
-        }
+        gateSize_.x = maxWidth + 16.f;
 
+        float maxSlotsCount = std::max(m_inputSlots.size(), m_outputSlots.size());
         gateSize_.y = headerHeight + (rowHeight + rowGap) * maxSlotsCount + 4.f;
 
         drawBackground(borderThicknessPx, rPx, headerHeight, gateSize_);
@@ -117,7 +114,7 @@ namespace Bess::Simulator::Components {
         auto leftCornerPos = Common::Helpers::GetLeftCornerPos(m_transform.getPosition(), gateSize_);
 
         {
-            glm::vec3 inpSlotRowPos = {leftCornerPos.x + 8.f + gatePadding.x, leftCornerPos.y - headerHeight - 4.f, leftCornerPos.z};
+            glm::vec3 inpSlotRowPos = {leftCornerPos.x + 8.f + gatePadding.x, leftCornerPos.y + headerHeight + 4.f, leftCornerPos.z};
 
             for (int i = 0; i < m_inputSlots.size(); i++) {
                 char ch = 'A' + i;
@@ -125,35 +122,35 @@ namespace Bess::Simulator::Components {
                 auto height = (slotRowPadding.y * 2) + sCharHeight;
 
                 auto pos = inpSlotRowPos;
-                pos.y -= height / 2.f;
+                pos.y += height / 2.f;
 
                 Slot *slot = (Slot *)Simulator::ComponentsManager::components[m_inputSlots[i]].get();
                 slot->update(pos, {labelGap, 0.f}, std::string(1, ch));
                 slot->render();
 
-                inpSlotRowPos.y -= height + rowGap;
+                inpSlotRowPos.y += height + rowGap;
             }
         }
 
         {
-            glm::vec3 outSlotRowPos = {leftCornerPos.x + gateSize_.x - 8.f - gatePadding.x, leftCornerPos.y - headerHeight - 4.f, leftCornerPos.z};
+            glm::vec3 outSlotRowPos = {leftCornerPos.x + gateSize_.x - 8.f - gatePadding.x, leftCornerPos.y + headerHeight + 4.f, leftCornerPos.z};
 
             for (int i = 0; i < m_outputSlots.size(); i++) {
                 auto height = rowHeight;
 
                 auto pos = outSlotRowPos;
-                pos.y -= height / 2.f;
+                pos.y += height / 2.f;
 
                 Slot *slot = (Slot *)Simulator::ComponentsManager::components[m_outputSlots[i]].get();
                 auto &expr = m_data->getOutputs()[i];
                 slot->update(pos, {-labelGap, 0.f}, decodeExpr(expr));
                 slot->render();
 
-                outSlotRowPos.y -= height + rowGap;
+                outSlotRowPos.y += height + rowGap;
             }
         }
 
-        Renderer2D::Renderer::text(m_name, leftCornerPos + glm::vec3({8.f, -8.f - (sCharHeight / 2.f), ComponentsManager::zIncrement}), 11.f, ViewportTheme::textColor, m_renderId);
+        Renderer2D::Renderer::text(m_name, leftCornerPos + glm::vec3({8.f, 8.f + (sCharHeight / 2.f), ComponentsManager::zIncrement}), 11.f, ViewportTheme::textColor, m_renderId);
     }
 
     void JComponent::simulate() {

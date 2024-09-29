@@ -51,26 +51,32 @@ namespace Bess::Simulator::Components {
     void FlipFlop::drawBackground(const glm::vec4 &borderThicknessPx, float rPx, float headerHeight, const glm::vec2 &gateSize) {
         auto borderColor = m_isSelected ? ViewportTheme::selectedCompColor : ViewportTheme::componentBorderColor;
         auto pos = m_transform.getPosition();
+        auto color = ViewportTheme::componentBGColor;
 
         Renderer2D::Renderer::quad(
-            pos,
-            gateSize,
-            ViewportTheme::componentBGColor,
+            {pos.x, pos.y + headerHeight / 2.f, pos.z},
+            {gateSize.x, gateSize.y - headerHeight},
+            color,
             m_renderId,
-            glm::vec4(rPx),
+            glm::vec4(0.f, 0.f, rPx, rPx),
             true,
             borderColor,
-            borderThicknessPx);
+            glm::vec4(0.f, borderThicknessPx.y, borderThicknessPx.z, borderThicknessPx.w));
 
         auto headerPos = pos;
-        headerPos.y = pos.y + ((gateSize.y / 2) - (headerHeight / 2.f));
+        headerPos.y = pos.y - ((gateSize.y / 2) - (headerHeight / 2.f));
 
+        // header
+        static glm::vec4 headerColor = ViewportTheme::compHeaderColor;
         Renderer2D::Renderer::quad(
             headerPos,
             {gateSize.x, headerHeight},
-            ViewportTheme::compHeaderColor,
+            headerColor,
             m_renderId,
-            glm::vec4(rPx, rPx, 0.f, 0.f));
+            glm::vec4(rPx, rPx, 0.f, 0.f),
+            true,
+            borderColor,
+            glm::vec4(borderThicknessPx.x, borderThicknessPx.y, 0.f, borderThicknessPx.w));
     }
 
     void FlipFlop::render() {
@@ -111,7 +117,7 @@ namespace Bess::Simulator::Components {
         auto leftCornerPos = Common::Helpers::GetLeftCornerPos(m_transform.getPosition(), gateSize_);
 
         {
-            glm::vec3 inpSlotRowPos = {leftCornerPos.x + 8.f + gatePadding.x, leftCornerPos.y - headerHeight - 4.f, leftCornerPos.z};
+            glm::vec3 inpSlotRowPos = {leftCornerPos.x + 8.f + gatePadding.x, leftCornerPos.y + headerHeight + 4.f, leftCornerPos.z};
 
             for (int i = 0; i < m_inputSlots.size(); i++) {
                 char ch = startChar + i;
@@ -119,43 +125,43 @@ namespace Bess::Simulator::Components {
                 auto height = (slotRowPadding.y * 2) + sCharHeight;
 
                 auto pos = inpSlotRowPos;
-                pos.y -= height / 2.f;
+                pos.y += height / 2.f;
 
                 Slot *slot = (Slot *)Simulator::ComponentsManager::components[m_inputSlots[i]].get();
                 slot->update(pos, {labelGap, 0.f}, std::string(1, ch));
                 slot->render();
 
-                inpSlotRowPos.y -= height + rowGap;
+                inpSlotRowPos.y += height + rowGap;
 
                 if ((i + 1) == (m_inputSlots.size() / 2)) {
                     pos = inpSlotRowPos;
-                    pos.y -= height / 2.f;
+                    pos.y += height / 2.f;
                     auto slot = ComponentsManager::getComponent<Slot>(m_clockSlot);
                     slot->update(pos, {labelGap, 0.f}, "CLK");
                     slot->render();
-                    inpSlotRowPos.y -= height + rowGap;
+                    inpSlotRowPos.y += height + rowGap;
                 }
             }
         }
 
         {
-            glm::vec3 outSlotRowPos = {leftCornerPos.x + gateSize_.x - 8.f - gatePadding.x, leftCornerPos.y - headerHeight - 4.f, leftCornerPos.z};
+            glm::vec3 outSlotRowPos = {leftCornerPos.x + gateSize_.x - 8.f - gatePadding.x, leftCornerPos.y + headerHeight + 4.f, leftCornerPos.z};
 
             for (int i = 0; i < m_outputSlots.size(); i++) {
                 auto height = rowHeight;
 
                 auto pos = outSlotRowPos;
-                pos.y -= height / 2.f;
+                pos.y += height / 2.f;
 
                 Slot *slot = (Slot *)Simulator::ComponentsManager::components[m_outputSlots[i]].get();
                 slot->update(pos, {-labelGap, 0.f}, (i == 0) ? "Q" : "Q'");
                 slot->render();
 
-                outSlotRowPos.y -= height + rowGap;
+                outSlotRowPos.y += height + rowGap;
             }
         }
 
-        Renderer2D::Renderer::text(m_name, leftCornerPos + glm::vec3({8.f, -8.f - (sCharHeight / 2.f), ComponentsManager::zIncrement}), 11.f, ViewportTheme::textColor, m_renderId);
+        Renderer2D::Renderer::text(m_name, leftCornerPos + glm::vec3({8.f, 8.f + (sCharHeight / 2.f), ComponentsManager::zIncrement}), 11.f, ViewportTheme::textColor, m_renderId);
     }
 
     void FlipFlop::update() {
