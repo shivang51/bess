@@ -112,12 +112,10 @@ namespace Bess::Simulator::Components {
 
     void Connection::update() {
         Component::update();
-        if (m_isSelected) {
-            for (auto &cpId : m_points) {
-                auto cp = std::dynamic_pointer_cast<ConnectionPoint>(ComponentsManager::components[cpId]);
-                cp->update();
-                cp->setSelected(true);
-            }
+        for (auto &cpId : m_points) {
+            auto cp = std::dynamic_pointer_cast<ConnectionPoint>(ComponentsManager::components[cpId]);
+            cp->update();
+            if(m_isSelected) cp->setSelected(true);
         }
     }
 
@@ -219,7 +217,8 @@ namespace Bess::Simulator::Components {
         auto uid = Common::Helpers::uuidGenerator.getUUID();
         auto renderId = ComponentsManager::getNextRenderId();
         auto parentId = m_uid;
-        auto position = glm::vec3(pos.x, pos.y, -ComponentsManager::zIncrement);
+        auto z = m_transform.getPosition().z;
+        auto position = glm::vec3(pos.x, pos.y, z+ComponentsManager::zIncrement);
         ComponentsManager::components[uid] = std::make_shared<ConnectionPoint>(uid, parentId, renderId, position);
         ComponentsManager::addRenderIdToCId(renderId, uid);
         ComponentsManager::addCompIdToRId(renderId, uid);
