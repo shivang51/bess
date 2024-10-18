@@ -126,6 +126,7 @@ namespace Bess::Simulator::Components {
 
                 auto pos = inpSlotRowPos;
                 pos.y += height / 2.f;
+                pos.z += ComponentsManager::zIncrement / 10;
 
                 Slot *slot = (Slot *)Simulator::ComponentsManager::components[m_inputSlots[i]].get();
                 slot->update(pos, {labelGap, 0.f}, std::string(1, ch));
@@ -152,6 +153,7 @@ namespace Bess::Simulator::Components {
 
                 auto pos = outSlotRowPos;
                 pos.y += height / 2.f;
+                pos.z += ComponentsManager::zIncrement / 10;
 
                 Slot *slot = (Slot *)Simulator::ComponentsManager::components[m_outputSlots[i]].get();
                 slot->update(pos, {-labelGap, 0.f}, (i == 0) ? "Q" : "Q'");
