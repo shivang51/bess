@@ -49,8 +49,8 @@ namespace Bess {
             m_GridVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::GridVertex));
         }
 
-        m_AvailablePrimitives = {PrimitiveType::curve, PrimitiveType::quad,
-                                 PrimitiveType::circle, PrimitiveType::font, PrimitiveType::triangle};
+        m_AvailablePrimitives = {PrimitiveType::curve, PrimitiveType::circle,
+                                 PrimitiveType::font, PrimitiveType::triangle, PrimitiveType::quad };
         m_MaxRenderLimit[PrimitiveType::quad] = 2000;
         m_MaxRenderLimit[PrimitiveType::curve] = 2000;
         m_MaxRenderLimit[PrimitiveType::circle] = 2000;

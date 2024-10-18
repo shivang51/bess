@@ -43,6 +43,8 @@ namespace Bess::Pages {
         void onMouseMove(double x, double y);
 
         bool isCursorInViewport();
+        void finishDragging();
+
         glm::vec2 getViewportMousePos();
         glm::vec2 getNVPMousePos();
 

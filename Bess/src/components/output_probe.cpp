@@ -55,7 +55,7 @@ namespace Bess::Simulator::Components {
             borderColor,
             thickness);
 
-        slot->update(pos + glm::vec3({-(size.x / 2) + 10.f, 0.f, 0.f}), {12.f, 0.f}, label);
+        slot->update(pos + glm::vec3({-(size.x / 2) + 10.f, 0.f, ComponentsManager::zIncrement / 10}), {12.f, 0.f}, label);
         slot->render();
     }
 

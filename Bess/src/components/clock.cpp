@@ -122,7 +122,7 @@ namespace Bess::Simulator::Components {
 
         Renderer2D::Renderer::quad(pos, size, bgColor, m_renderId, glm::vec4(r), borderColor, thickness);
 
-        slot->update(pos + glm::vec3({(size.x / 2) - 12.f, 0.f, 0.f}), {-12.f, 0.f}, label);
+        slot->update(pos + glm::vec3({(size.x / 2) - 12.f, 0.f, ComponentsManager::zIncrement / 10}), {-12.f, 0.f}, label);
         slot->render();
     }
 
