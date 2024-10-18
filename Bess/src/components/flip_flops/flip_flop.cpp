@@ -137,6 +137,7 @@ namespace Bess::Simulator::Components {
                 if ((i + 1) == (m_inputSlots.size() / 2)) {
                     pos = inpSlotRowPos;
                     pos.y += height / 2.f;
+                    pos.z += ComponentsManager::zIncrement / 10;
                     auto slot = ComponentsManager::getComponent<Slot>(m_clockSlot);
                     slot->update(pos, {labelGap, 0.f}, "CLK");
                     slot->render();
