@@ -63,11 +63,13 @@ namespace Bess::Simulator::Components {
     void Connection::renderStraightConnection(glm::vec3 startPos, glm::vec3 endPos, float weight, glm::vec4 color) {
         auto z = -ComponentsManager::zIncrement;
         std::vector<glm::vec3> points = {{startPos.x, startPos.y, z}};
+        points.emplace_back(startPos + glm::vec3({30.f, 0.f, 0.f}));
         for (auto &pointId : m_points) {
             auto point = std::dynamic_pointer_cast<ConnectionPoint>(ComponentsManager::components[pointId]);
             points.emplace_back(point->getPosition());
             point->render();
         }
+        points.emplace_back(endPos - glm::vec3({30.f, 0.f, 0.f}));
         points.emplace_back(glm::vec3({endPos.x, endPos.y, z}));
 
         for (int i = 0; i < points.size() - 1; i++) {

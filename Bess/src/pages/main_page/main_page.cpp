@@ -91,6 +91,9 @@ namespace Bess::Pages {
             for (int i = 0; i < points.size() - 1; i++) {
                 auto sPos = points[i];
                 auto ePos = points[i + 1];
+                sPos.z = -1;
+                ePos.z = -1;
+
                 float offset = weight / 2.f;
                 if (sPos.y > ePos.y)
                     offset = -offset;
