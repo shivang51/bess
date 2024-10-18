@@ -186,8 +186,10 @@ namespace Bess::Simulator::Components {
 
         if (!Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL))
             return;
-
-        createConnectionPoint(pos);
+        
+		float snap = 4.f;
+        auto snapedPos = glm::round(pos / snap) * snap;
+        createConnectionPoint(snapedPos);
     }
 
     void Connection::onMouseHover() {

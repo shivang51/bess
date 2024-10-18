@@ -329,7 +329,9 @@ namespace Bess::Pages {
         if (Simulator::ComponentsManager::emptyId == cid) {
             if (m_state->getDrawMode() == UI::Types::DrawMode::connection) {
                 if (m_state->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
-                    m_state->getPointsRef().emplace_back(glm::vec3(getNVPMousePos(), 0.f));
+                    float snap = 4.f;
+                    auto pos = glm::round(getNVPMousePos() / snap) * snap;
+                    m_state->getPointsRef().emplace_back(glm::vec3(pos, -1.f));
                 } else {
                     m_state->setConnStartId(Simulator::ComponentsManager::emptyId);
                     m_state->getPointsRef().clear();
