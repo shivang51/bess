@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AvaloniaProject">
+    <option name="projectPerEditor">
+      <map>
+        <entry key="Bess/Views/MainPageViews/BessSceneControl.axaml" value="Bess/Bess.csproj" />
+        <entry key="Bess/Views/MainPageViews/ComponentExplorer.axaml" value="Bess/Bess.csproj" />
+        <entry key="Bess/Views/MainPageViews/ProjectExplorer.axaml" value="Bess/Bess.csproj" />
+        <entry key="Bess/Views/MainWindow.axaml" value="Bess/Bess.csproj" />
+      </map>
+    </option>
+  </component>
+</project>
