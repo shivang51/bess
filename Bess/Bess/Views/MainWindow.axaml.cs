@@ -1,4 +1,6 @@
+using System;
 using Avalonia.Controls;
+using Avalonia.Media;
 using FluentAvalonia.UI.Windowing;
 
 namespace Bess.Views;

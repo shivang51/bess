@@ -3,14 +3,18 @@
              x:Class="Bess.App"
              xmlns:local="using:Bess"
              xmlns:styling="clr-namespace:FluentAvalonia.Styling;assembly=FluentAvalonia"
-             RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
-
+             xmlns:converters="clr-namespace:Bess.Converters"
+             RequestedThemeVariant="Dark">
+    <Application.Resources>
+        <converters:ResourceToGeometryConverter x:Key="ResourceToGeometryConverter" />
+    </Application.Resources>
+    
     <Application.DataTemplates>
-        <local:ViewLocator/>
+        <local:ViewLocator />
     </Application.DataTemplates>
-  
+
     <Application.Styles>
-        <styling:FluentAvaloniaTheme PreferUserAccentColor="True"/>
+        <styling:FluentAvaloniaTheme PreferUserAccentColor="True" />
+        <StyleInclude Source="avares://Bess/FluentIcons.axaml"></StyleInclude>
     </Application.Styles>
 </Application>

@@ -1,0 +1,11 @@
+bin/
+obj/
+
+.idea
+.vs
+.vscode
+
+*.dll
+*.exe
+*.obj
+*.pdb
