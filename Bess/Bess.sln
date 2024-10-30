@@ -2,6 +2,10 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bess", "Bess\Bess.csproj", "{42C62D72-89A7-4621-854B-0396CB95DFE8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BessScene", "BessScene\BessScene.csproj", "{109527DA-BA37-47AA-8E78-83BD7B2134CF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BessSimEngine", "BessSimEngine\BessSimEngine.csproj", "{75A39780-FAC9-49CD-B39A-6188EA116E32}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +16,13 @@ Global
 		{42C62D72-89A7-4621-854B-0396CB95DFE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{42C62D72-89A7-4621-854B-0396CB95DFE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{42C62D72-89A7-4621-854B-0396CB95DFE8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{109527DA-BA37-47AA-8E78-83BD7B2134CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{109527DA-BA37-47AA-8E78-83BD7B2134CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{109527DA-BA37-47AA-8E78-83BD7B2134CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{109527DA-BA37-47AA-8E78-83BD7B2134CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{75A39780-FAC9-49CD-B39A-6188EA116E32}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75A39780-FAC9-49CD-B39A-6188EA116E32}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75A39780-FAC9-49CD-B39A-6188EA116E32}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75A39780-FAC9-49CD-B39A-6188EA116E32}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

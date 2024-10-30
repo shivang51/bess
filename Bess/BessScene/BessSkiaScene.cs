@@ -1,10 +1,11 @@
 ﻿using System;
-using Avalonia;
+using System.Numerics;
+using BessScene.SceneCore;
 using SkiaSharp;
 
-namespace Bess.Controls;
+namespace BessScene;
 
-public class SceneRenderer
+public class BessSkiaScene
 {
     private int Width { get; set; }
     private int Height { get; set; }
@@ -12,7 +13,7 @@ public class SceneRenderer
     private SKBitmap _colorBuffer = null!;
     private SKBitmap _idBuffer = null!;
 
-    public SceneRenderer(double width, double height)
+    public BessSkiaScene(double width, double height)
     {
         Width = (int)width;
         Height = (int)height;
@@ -22,7 +23,7 @@ public class SceneRenderer
     private void InitializeBuffers()
     {
         _colorBuffer = new SKBitmap(Width, Height, SKColorType.Rgba8888, SKAlphaType.Premul);
-        _idBuffer = new SKBitmap(Width, Height, SKColorType.Rgba8888, SKAlphaType.Opaque);
+        _idBuffer = new SKBitmap(Width, Height, SKColorType.Rgba8888, SKAlphaType.Premul);
     }
 
     public void Resize(double newWidth, double newHeight)
@@ -41,11 +42,11 @@ public class SceneRenderer
 
     public void RenderScene(CameraController cameraController)
     {
-        using var colorCanvas = new SKCanvas(_colorBuffer);
-        using var idCanvas = new SKCanvas(_idBuffer);
+        var colorCanvas = new SKCanvas(_colorBuffer);
+        var idCanvas = new SKCanvas(_idBuffer);
         
         colorCanvas.Clear(new SKColor(30, 30, 30, 255));
-        idCanvas.Clear(new SKColor(0, 0, 0, 255));
+        idCanvas.Clear(new SKColor(0, 0, 0, 0));
 
         colorCanvas.Scale(cameraController.GetZoomPoint());
         idCanvas.Scale(cameraController.GetZoomPoint());
@@ -54,27 +55,22 @@ public class SceneRenderer
         colorCanvas.Translate(position);
         idCanvas.Translate(position);
 
-        using (var paint = new SKPaint())
+        SkRenderer.Begin(colorCanvas, idCanvas);
+        
+        foreach (var ent in SceneState.Instance.Entities)
         {
-            paint.Color = SKColors.Gray;
-            paint.IsAntialias = true;
-            colorCanvas.DrawCircle(50, 50, 30, paint);
+            ent.Render();
         }
 
-        using (var idPaint = new SKPaint())
-        {
-            idPaint.Color = new SKColor(150, 0, 0); // ID color
-            idCanvas.DrawCircle(50, 50, 30, idPaint);
-        }
 
         colorCanvas.Flush();
         idCanvas.Flush();
     }
 
-    public int GetRenderObjectId(int x, int y)
+    public uint GetRenderObjectId(int x, int y)
     {
         var color = ReadPixel(_idBuffer, x, y);
-        return color.Red;
+        return UIntFromRgba(color.Red, color.Green, color.Blue, color.Alpha);
     }
     
     private static SKColor ReadPixel(SKBitmap bitmap, int x, int y)
@@ -87,5 +83,11 @@ public class SceneRenderer
         throw new ArgumentOutOfRangeException($"Pixel coordinates ({x} or {y}) are out of bounds.");
     }
     
-    private static SKPoint VectorToSkPoint(Vector vector) => new((float)vector.X, (float)vector.Y);
+    private static uint UIntFromRgba(byte r, byte g, byte b, byte a)
+    {
+        var id = (uint)r << 24 | (uint)g << 16 | (uint)b << 8 | a;
+        return id;
+    } 
+    
+    private static SKPoint VectorToSkPoint(Vector2 vector) => new((float)vector.X, (float)vector.Y);
 }

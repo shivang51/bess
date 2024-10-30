@@ -2,34 +2,50 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Numerics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Skia;
+using Avalonia.Threading;
+using BessScene;
 using SkiaSharp;
 
 namespace Bess.Controls;
 
-public class BessScene: Control
+public class BessSceneControl: Control
 {
-    private readonly SceneRenderer _renderer;
+    private readonly BessSkiaScene _scene;
     private readonly CameraController _cameraController;
     private readonly Dictionary<Key, bool> _keys = new();
+    private static DispatcherTimer? _timer;
     
-    public BessScene()
+    public BessSceneControl()
     {
-        _renderer = new SceneRenderer(Bounds.Width, Bounds.Height);
+        _scene = new BessSkiaScene(Bounds.Width, Bounds.Height);
         _cameraController = new CameraController();
         
         KeyUpEvent.AddClassHandler<TopLevel>(OnKeyUp, handledEventsToo: true);
         KeyDownEvent.AddClassHandler<TopLevel>(OnKeyDown, handledEventsToo: true);
+        
+        StartTimer();
+    }
+    
+    private void StartTimer()
+    {
+        _timer = new DispatcherTimer()
+        {
+            Interval = TimeSpan.FromMilliseconds(1000.0 / 60.0)
+        };
+        _timer.Tick += (sender, args) => UpdateContent();
+        _timer.Start();
     }
 
     private void UpdateContent()
     {
-        _renderer.RenderScene(_cameraController);
+        _scene.RenderScene(_cameraController);
         InvalidateVisual(); // Redraw control with updated buffers
     }
 
@@ -38,7 +54,7 @@ public class BessScene: Control
         context.DrawImage(ColorBuffer, new Rect(0, 0, Bounds.Width, Bounds.Height));
     }
 
-    private Bitmap ColorBuffer => ConvertToAvaloniaBitmap(_renderer.GetColorBuffer());
+    private Bitmap ColorBuffer => ConvertToAvaloniaBitmap(_scene.GetColorBuffer());
     
     private static Bitmap ConvertToAvaloniaBitmap(SKBitmap skBitmap)
     {
@@ -50,7 +66,7 @@ public class BessScene: Control
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        _renderer.Resize(availableSize.Width, availableSize.Height);
+        _scene.Resize(availableSize.Width, availableSize.Height);
         UpdateContent();   
         return base.MeasureOverride(availableSize);
     }
@@ -59,13 +75,13 @@ public class BessScene: Control
     {
         base.OnPointerPressed(e);
         var pos = e.GetCurrentPoint(this).Position;
-        Console.WriteLine(_renderer.GetRenderObjectId((int)pos.X, (int)pos.Y));
+        Console.WriteLine(_scene.GetRenderObjectId((int)pos.X, (int)pos.Y));
     }
 
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
     {
         base.OnPointerWheelChanged(e);
-        var delta = e.Delta;
+        var delta = new Vector2((float)e.Delta.X, (float)e.Delta.Y);
         if(IsKeyPressed(Key.LeftCtrl) || IsKeyPressed(Key.RightCtrl))
         {
             _cameraController.UpdateZoom(delta);

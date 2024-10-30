@@ -3,33 +3,32 @@
         xmlns:vm="using:Bess.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:controls="clr-namespace:Bess.Controls"
         xmlns:mainPageViews="clr-namespace:Bess.Views.MainPageViews"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Bess.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/logo-1024.png"
         Title="Bess">
 
     <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         <vm:MainWindowViewModel/>
     </Design.DataContext>
     
     <Grid RowDefinitions="Auto, *">
         <Border Grid.Row="0" Height="32">
-            <TextBlock Text="{Binding Title, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"
-                       VerticalAlignment="Center"
-                       Margin="10 0"
-                       />
+            <StackPanel Orientation="Horizontal">
+                <Image Source="/Assets/logo.png" Width="24" Height="24" Margin="4 0"></Image>
+                <TextBlock Text="{Binding Title, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"
+                           VerticalAlignment="Center"
+                           Margin="10 0" />
+            </StackPanel>
         </Border>
         <Grid Grid.Row="1" ColumnDefinitions="Auto,2,*,2,Auto">
-            <mainPageViews:ComponentExplorer Grid.Column="0"/>
+            <mainPageViews:ComponentExplorer Grid.Column="0" Width="300"/>
             <GridSplitter Grid.Column="1"></GridSplitter>
-            <mainPageViews:BessSceneControl Grid.Column="2" />
+            <mainPageViews:BessSceneView Grid.Column="2" />
             <GridSplitter Grid.Column="3"></GridSplitter>
-            <mainPageViews:ProjectExplorer Grid.Column="4"/>
+            <mainPageViews:ProjectExplorer Grid.Column="4" Width="300"/>
         </Grid>
     </Grid>
 

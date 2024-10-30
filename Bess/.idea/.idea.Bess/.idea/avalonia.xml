@@ -3,6 +3,8 @@
   <component name="AvaloniaProject">
     <option name="projectPerEditor">
       <map>
+        <entry key="Bess/App.axaml" value="Bess/Bess.csproj" />
+        <entry key="Bess/FluentIcons.axaml" value="Bess/Bess.csproj" />
         <entry key="Bess/Views/MainPageViews/BessSceneControl.axaml" value="Bess/Bess.csproj" />
         <entry key="Bess/Views/MainPageViews/ComponentExplorer.axaml" value="Bess/Bess.csproj" />
         <entry key="Bess/Views/MainPageViews/ProjectExplorer.axaml" value="Bess/Bess.csproj" />

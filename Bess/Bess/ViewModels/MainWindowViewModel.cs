@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using Bess.Models.ComponentExplorer;
 using CommunityToolkit.Mvvm.ComponentModel;
 // ReSharper disable MemberCanBePrivate.Global
@@ -17,19 +18,34 @@ public partial class MainWindowViewModel : ViewModelBase
     
     public ObservableCollection<ComponentTreeNode> ComponentTree { get; }
     
+    public ObservableCollection<AddedComponent> AddedComponents { get; }
+
+    [ObservableProperty] 
+    public ComponentTreeNode? _selectedComponent = null;
+    
     public MainWindowViewModel()
     {
         ComponentTree =
         [
             new ComponentTreeNode("Digital Gates", [
-                new ComponentTreeNode("AND Gate", "AndGate"),
-                new ComponentTreeNode("OR Gate"),
-                new ComponentTreeNode("NOT Gate"),
-                new ComponentTreeNode("NAND Gate"),
-                new ComponentTreeNode("NOR Gate"),
-                new ComponentTreeNode("XOR Gate"),
-                new ComponentTreeNode("XNOR Gate")
+                new ComponentTreeNode("AND Gate", "AndGate", new NotGateModel()),
+                // new ComponentTreeNode("OR Gate"),
+                // new ComponentTreeNode("NOT Gate"),
+                // new ComponentTreeNode("NAND Gate"),
+                // new ComponentTreeNode("NOR Gate"),
+                // new ComponentTreeNode("XOR Gate"),
+                // new ComponentTreeNode("XNOR Gate")
             ])
         ];
+        
+        AddedComponents = [];
+    }
+    
+    public void AddComponent(ComponentModel? componentModel)
+    {
+        if (componentModel == null) return;
+        
+        var addedComponent = componentModel.Generate();
+        AddedComponents.Add(addedComponent);
     }
 }

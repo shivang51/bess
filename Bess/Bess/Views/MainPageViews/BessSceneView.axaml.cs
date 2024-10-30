@@ -6,10 +6,10 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bess.Views.MainPageViews;
 
-public partial class BessSceneControl : UserControl
+public partial class BessSceneView : UserControl
 {
     
-    public BessSceneControl()
+    public BessSceneView()
     {
         InitializeComponent();
         var fontFamily = FontFamily;

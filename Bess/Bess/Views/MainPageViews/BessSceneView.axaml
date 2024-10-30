@@ -5,10 +5,10 @@
              xmlns:controls="clr-namespace:Bess.Controls"
              xmlns:viewModels="clr-namespace:Bess.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Bess.Views.MainPageViews.BessSceneControl"
+             x:Class="Bess.Views.MainPageViews.BessSceneView"
              x:DataType="viewModels:MainWindowViewModel">
     <Canvas MinWidth="300" MinHeight="300">
-            <controls:BessScene
+            <controls:BessSceneControl
                 Width="{Binding RelativeSource={RelativeSource AncestorType=Canvas}, Path=Bounds.Width}" 
                 Height="{Binding RelativeSource={RelativeSource AncestorType=Canvas}, Path=Bounds.Height}"/>
         <StackPanel Canvas.Right="8" Canvas.Bottom="8" Orientation="Horizontal" Spacing="8">
