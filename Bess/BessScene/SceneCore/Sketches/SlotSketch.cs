@@ -13,7 +13,7 @@ public class SlotSketch: SceneEntity
         Bottom
     }
     
-    public const float SlotSize = 10;
+    public const float SlotSize = 8;
     public const float LabelGap = 4;
     public const float FontSize = 10;
     
@@ -35,7 +35,7 @@ public class SlotSketch: SceneEntity
         
         // Calculating label offset
         float xOffset = 0;
-        float yOffset = 0;
+        float yOffset = (FontSize - SlotSize) / 2;
         
         switch (LabelLoc)
         {
@@ -59,9 +59,18 @@ public class SlotSketch: SceneEntity
 
     public override void Render()
     {
+        float borderWeight = 1;
+        var radius = SlotSize / 2;
+        if (IsHovered)
+        {
+            borderWeight = (float)1.5;
+            radius = SlotSize / (float)2.1;
+        }
+        
+        
         if(!string.IsNullOrEmpty(Name))
             SkRenderer.DrawText(Name, SkPosition + SkLabelOffset, SKColors.White, FontSize);
-        SkRenderer.DrawCircle(SkPosition, SlotSize / 2, SKColors.Transparent, GetRIdColor(), SKColors.White, 1);
+        SkRenderer.DrawCircle(SkPosition, radius, SKColors.Transparent, GetRIdColor(), SKColors.White, borderWeight);
     }
 
     private SKPoint SkLabelOffset => new(_labelOffset.X, _labelOffset.Y);

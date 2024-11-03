@@ -11,7 +11,6 @@ public abstract class SceneEntity
     private static uint _renderIdCounter = 1;
     
     public bool IsSelected = false;
-    public bool IsHovered = false;
 
     protected SceneEntity(Transform transform, uint renderId)
     {
@@ -69,10 +68,11 @@ public abstract class SceneEntity
 
     public abstract void Render();
 
-    public void Update()
+    public virtual void Update()
     {
-        IsHovered = RenderId == SceneState.Instance.HoveredEntityId;
     }
+
+    protected bool IsHovered => RenderId == SceneState.Instance.HoveredEntityId;
 
     private static uint NextRenderId => _renderIdCounter++;
 }

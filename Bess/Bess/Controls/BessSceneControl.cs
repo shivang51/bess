@@ -26,6 +26,8 @@ public class BessSceneControl: Control
     private readonly CameraController _cameraController;
     private readonly Dictionary<Key, bool> _keys = new();
     private static DispatcherTimer? _timer;
+    private const int Fps = 120;
+    private const int FrameRateMs = (1000 / Fps);
     
     public float Zoom
     {
@@ -66,7 +68,7 @@ public class BessSceneControl: Control
     {
         _timer = new DispatcherTimer()
         {
-            Interval = TimeSpan.FromMilliseconds(1000.0 / 60.0)
+            Interval = TimeSpan.FromMilliseconds(FrameRateMs)
         };
         _timer.Tick += (sender, args) => UpdateContent();
         _timer.Start();
@@ -123,12 +125,10 @@ public class BessSceneControl: Control
 
         if (IsKeyPressed(Key.LeftCtrl) || IsKeyPressed(Key.RightCtrl))
         {
-            // Throttle zoom updates
             ThrottleZoomUpdate(delta.Y);
         }
         else
         {
-            // Throttle camera position updates
             ThrottleCameraUpdate(delta);
         }
     }
@@ -138,7 +138,7 @@ public class BessSceneControl: Control
         _cancellationTokenSource?.Cancel();
         _cancellationTokenSource = new CancellationTokenSource();
 
-        Task.Delay(ThrottleDelay, _cancellationTokenSource.Token).ContinueWith(t =>
+        Task.Delay(FrameRateMs, _cancellationTokenSource.Token).ContinueWith(t =>
         {
             if (t.IsCanceled) return;
             
@@ -153,14 +153,12 @@ public class BessSceneControl: Control
         });
     }
 
-    private const int ThrottleDelay = 1 / 60;
-
     private void ThrottleCameraUpdate(Vector2 delta)
     {
         _cancellationTokenSource?.Cancel();
         _cancellationTokenSource = new CancellationTokenSource();
 
-        Task.Delay(ThrottleDelay, _cancellationTokenSource.Token).ContinueWith(t =>
+        Task.Delay(FrameRateMs, _cancellationTokenSource.Token).ContinueWith(t =>
         {
             if (t.IsCanceled) return;
             _cameraPosition += delta * 20;
@@ -183,13 +181,6 @@ public class BessSceneControl: Control
     {
         base.OnPointerMoved(e);
         var pos = e.GetCurrentPoint(this).Position;
-        // if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-        // {
-        //     var delta = e.GetPosition(this) - e.GetPreviousPosition(this);
-        //     _cameraController.MoveCamera(-delta);
-        //     UpdateContent();
-        // }
-        
         SceneState.Instance.SetMousePosition((float)pos.X, (float)pos.Y);
     }
 }
