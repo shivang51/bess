@@ -23,7 +23,7 @@ public class BessSkiaScene
     private void InitializeBuffers()
     {
         _colorBuffer = new SKBitmap(Width, Height, SKColorType.Rgba8888, SKAlphaType.Premul);
-        _idBuffer = new SKBitmap(Width, Height, SKColorType.Rgba8888, SKAlphaType.Premul);
+        _idBuffer = new SKBitmap(Width, Height, SKColorType.Rgba8888, SKAlphaType.Opaque);
     }
 
     public void Resize(double newWidth, double newHeight)
@@ -36,6 +36,17 @@ public class BessSkiaScene
         _colorBuffer?.Dispose();
         _idBuffer?.Dispose();
         InitializeBuffers();
+    }
+
+    public void Update()
+    {
+        var entities = SceneState.Instance.Entities;
+        SceneState.Instance.HoveredEntityId = GetRenderObjectId((int)SceneState.Instance.MousePosition.X, (int)SceneState.Instance.MousePosition.Y);
+        
+        foreach (var ent in entities)
+        {
+            ent.Update();
+        }
     }
 
     public SKBitmap GetColorBuffer() => _colorBuffer;
@@ -79,13 +90,14 @@ public class BessSkiaScene
         {
             return bitmap.GetPixel(x, y);
         }
-        
-        throw new ArgumentOutOfRangeException($"Pixel coordinates ({x} or {y}) are out of bounds.");
+
+        return new SKColor(0);
+        // throw new ArgumentOutOfRangeException($"Pixel coordinates ({x} or {y}) are out of bounds.");
     }
     
     private static uint UIntFromRgba(byte r, byte g, byte b, byte a)
     {
-        var id = (uint)r << 24 | (uint)g << 16 | (uint)b << 8 | a;
+        var id = (uint)r << 16 | (uint)g << 8 | (uint)b << 0 | 0;
         return id;
     } 
     

@@ -7,13 +7,30 @@ public abstract class SceneEntity
 {
     private readonly Transform _transform;
     public uint RenderId { get; private set; }
+    
+    private static uint _renderIdCounter = 1;
+    
+    public bool IsSelected = false;
+    public bool IsHovered = false;
 
     protected SceneEntity(Transform transform, uint renderId)
     {
         _transform = transform;
         RenderId = renderId;
     }
-
+    
+    protected SceneEntity(Vector2 position, Vector2 scale)
+    {
+        _transform = new Transform(position, scale);
+        RenderId = NextRenderId;
+    }
+    
+    protected SceneEntity(Vector2 position)
+    {
+        _transform = new Transform(position, new Vector2(0, 0));
+        RenderId = NextRenderId;
+    }
+    
     protected SceneEntity(Vector2 position, Vector2 scale, float rotation, uint renderId)
     {
         _transform = new Transform(position, scale, rotation);
@@ -40,12 +57,10 @@ public abstract class SceneEntity
 
     protected SKColor GetRIdColor()
     {
-        var r = (byte)((RenderId >> 24) & 0xFF);
-        var g = (byte)((RenderId >> 16) & 0xFF);
-        var b = (byte)((RenderId >> 8) & 0xFF);
-        var a = (byte)((RenderId >> 0) & 0xFF);
-
-        return new SKColor(r, g, b, a);
+        var r = (byte)((RenderId >> 16) & 0xFF);
+        var g = (byte)((RenderId >> 8) & 0xFF);
+        var b = (byte)((RenderId >> 0) & 0xFF);
+        return new SKColor(r, g, b);
     }
 
     protected SKPoint SkPosition => new(Position.X, Position.Y);
@@ -54,4 +69,10 @@ public abstract class SceneEntity
 
     public abstract void Render();
 
+    public void Update()
+    {
+        IsHovered = RenderId == SceneState.Instance.HoveredEntityId;
+    }
+
+    private static uint NextRenderId => _renderIdCounter++;
 }

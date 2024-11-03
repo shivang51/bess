@@ -29,6 +29,29 @@ public static class SkRenderer
         idPaint.Color = renderId;
         IdCanvas.DrawRoundRect(roundedRect, idPaint);
     }
+    
+    public static void DrawRoundRect(SKPoint position, SKSize size, Vector4 radius, SKColor color, SKColor renderId)
+    {
+        var rect = new SKRect(position.X, position.Y, position.X + size.Width, position.Y + size.Height);
+        var roundedRect = new SKRoundRect();
+        
+        roundedRect.SetRectRadii(rect , new[]
+        {
+            new SKPoint(radius.X, radius.X),
+            new SKPoint(radius.Y, radius.Y),
+            new SKPoint(radius.Z, radius.Z),
+            new SKPoint(radius.W, radius.W),
+        });
+        
+        using var paint = new SKPaint();
+        paint.IsAntialias = true;
+        paint.Color = color;
+        ColorCanvas.DrawRoundRect(roundedRect, paint);
+        
+        using var idPaint = new SKPaint();
+        idPaint.Color = renderId;
+        IdCanvas.DrawRoundRect(roundedRect, idPaint);
+    }
 
     public static void DrawRoundRect(SKPoint position, SKSize size, float radius, SKColor color, SKColor renderId,
         SKColor borderColor, float borderWidth)
@@ -76,5 +99,15 @@ public static class SkRenderer
         IdCanvas.DrawCircle(position, radius, paint);
         
         DrawCircle(position, radius, color, renderId);
+    }
+    
+    public static void DrawText(string text, SKPoint position, SKColor color, float fontSize)
+    {
+        using var paint = new SKPaint();
+        paint.TextSize = fontSize;
+        paint.Color = color;
+        paint.IsAntialias = true;
+        position.Y += fontSize / 2 - paint.FontMetrics.Descent;
+        ColorCanvas.DrawText(text, position, paint);
     }
 }

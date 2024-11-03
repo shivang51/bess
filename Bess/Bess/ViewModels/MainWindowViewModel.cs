@@ -16,31 +16,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public string ZoomStr => $"{Zoom * 10} %";
     
-    public ObservableCollection<ComponentTreeNode> ComponentTree { get; }
     
-    public ObservableCollection<AddedComponent> AddedComponents { get; }
+    public ObservableCollection<AddedComponent> AddedComponents { get; } = [];
 
-    [ObservableProperty] 
-    public ComponentTreeNode? _selectedComponent = null;
-    
-    public MainWindowViewModel()
-    {
-        ComponentTree =
-        [
-            new ComponentTreeNode("Digital Gates", [
-                new ComponentTreeNode("AND Gate", "AndGate", new NotGateModel()),
-                // new ComponentTreeNode("OR Gate"),
-                // new ComponentTreeNode("NOT Gate"),
-                // new ComponentTreeNode("NAND Gate"),
-                // new ComponentTreeNode("NOR Gate"),
-                // new ComponentTreeNode("XOR Gate"),
-                // new ComponentTreeNode("XNOR Gate")
-            ])
-        ];
-        
-        AddedComponents = [];
-    }
-    
     public void AddComponent(ComponentModel? componentModel)
     {
         if (componentModel == null) return;
@@ -48,4 +26,5 @@ public partial class MainWindowViewModel : ViewModelBase
         var addedComponent = componentModel.Generate();
         AddedComponents.Add(addedComponent);
     }
+
 }

@@ -45,6 +45,7 @@ public class BessSceneControl: Control
 
     private void UpdateContent()
     {
+        _scene.Update();
         _scene.RenderScene(_cameraController);
         InvalidateVisual(); // Redraw control with updated buffers
     }
@@ -105,4 +106,18 @@ public class BessSceneControl: Control
     }
 
     private bool IsKeyPressed(Key key) => _keys.TryGetValue(key, out var isPressed) && isPressed;
+
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        base.OnPointerMoved(e);
+        var pos = e.GetCurrentPoint(this).Position;
+        // if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        // {
+        //     var delta = e.GetPosition(this) - e.GetPreviousPosition(this);
+        //     _cameraController.MoveCamera(-delta);
+        //     UpdateContent();
+        // }
+        
+        SceneState.Instance.SetMousePosition((float)pos.X, (float)pos.Y);
+    }
 }

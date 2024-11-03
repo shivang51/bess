@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:mainPageViews="clr-namespace:Bess.Views.MainPageViews"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="450"
         x:Class="Bess.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/logo-1024.png"
@@ -17,10 +17,8 @@
     <Grid RowDefinitions="Auto, *">
         <Border Grid.Row="0" Height="32">
             <StackPanel Orientation="Horizontal">
-                <Image Source="/Assets/logo.png" Width="24" Height="24" Margin="4 0"></Image>
-                <TextBlock Text="{Binding Title, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"
-                           VerticalAlignment="Center"
-                           Margin="10 0" />
+                <Image Source="/Assets/logo.png" Width="16" Height="16" Margin="4 0"></Image>
+                <mainPageViews:MenuBar/>
             </StackPanel>
         </Border>
         <Grid Grid.Row="1" ColumnDefinitions="Auto,2,*,2,Auto">

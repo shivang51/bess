@@ -20,25 +20,22 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Border CornerRadius="8" Padding="8 2 2 2">
+                    <Border Classes="ProjectExplorerItem" CornerRadius="8" Padding="8 2 2 2">
                         <Border.Styles>
-                            <Style Selector="Border:pointerover">
-                                <Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}" />
-                            </Style>
-                        </Border.Styles>
+							<Style Selector="Border.ProjectExplorerItem">
+								<Style Selector="^:pointerover">
+									<Setter Property="Background" Value="{DynamicResource ButtonBackgroundPointerOver}" />
+								</Style>
+							</Style>
+							<Style Selector="Button.DeleteButton">
+								<Setter Property="Padding" Value="2"></Setter>
+								<Setter Property="Background" Value="Transparent"></Setter>
+								<Setter Property="BorderBrush" Value="Transparent"></Setter>
+							</Style>
+						</Border.Styles>
                         <DockPanel HorizontalAlignment="Stretch" Background="Transparent">
                             <TextBlock VerticalAlignment="Center" Text="{Binding Name}"/>
-                            <Button HorizontalAlignment="Right">
-                                <Button.Styles>
-                                    <Style Selector="Button">
-                                        <Setter Property="Padding" Value="2"></Setter>
-                                        <Setter Property="Background" Value="Transparent"></Setter>
-                                        <Setter Property="BorderBrush" Value="Transparent"></Setter>
-                                    </Style>
-                                    <Style Selector="PathIcon > Border:pointerover">
-                                        <Setter Property="Background" Value="Transparent" />
-                                    </Style>
-                                </Button.Styles>
+                            <Button Classes="DeleteButton" HorizontalAlignment="Right">
                                 <PathIcon Height="16" Data="{StaticResource DeleteRegular}"/>
                             </Button>
                         </DockPanel>

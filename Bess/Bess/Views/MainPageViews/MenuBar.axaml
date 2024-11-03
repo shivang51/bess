@@ -1,0 +1,53 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:Bess.ViewModels.MainWindowViewModels"
+             mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="450"
+             x:Class="Bess.Views.MainPageViews.MenuBar"
+             x:DataType="viewModels:MenuBarViewModel"
+             >
+	<Design.DataContext>
+		<viewModels:MenuBarViewModel />
+	</Design.DataContext>
+	<UserControl.DataContext>
+		<viewModels:MenuBarViewModel></viewModels:MenuBarViewModel>
+	</UserControl.DataContext>
+	<Menu DockPanel.Dock="Top">
+		<MenuItem Header="_File">
+			<MenuItem Header="_New" />
+			<MenuItem Header="_Open" InputGesture="Ctrl+O" Command="{Binding OnFileOpen}" CommandParameter="{Binding RelativeSource={RelativeSource Self}}">
+				<MenuItem.Icon>
+					<PathIcon Data="{StaticResource FolderOpenRegular}" />
+				</MenuItem.Icon>
+			</MenuItem>
+			<MenuItem Header="Close" />
+			<MenuItem Header="Save">
+				<MenuItem.Icon>
+					<PathIcon Data="{StaticResource SaveRegular}" />
+				</MenuItem.Icon>
+			</MenuItem>
+			<Separator />
+			<MenuItem Header="Preferences">
+				<MenuItem.Icon>
+					<PathIcon Data="{StaticResource SettingsRegular}" />
+				</MenuItem.Icon>
+			</MenuItem>
+			<MenuItem Header="Export">
+				<MenuItem.Icon>
+					<PathIcon Data="{StaticResource DocumentSaveRegular}" />
+				</MenuItem.Icon>
+				<MenuItem.Items>
+					<MenuItem Header="Schematic View PNG" />
+					<MenuItem Header="PNG Image" />
+				</MenuItem.Items>
+			</MenuItem>
+			<Separator />
+			<MenuItem Header="_Exit" />
+		</MenuItem>
+		<MenuItem Header="_Edit">
+			<MenuItem Header="Copy" />
+			<MenuItem Header="Paste" />
+		</MenuItem>
+	</Menu>
+</UserControl>
