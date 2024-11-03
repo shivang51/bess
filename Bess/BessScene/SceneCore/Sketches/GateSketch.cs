@@ -13,10 +13,10 @@ public class GateSketch: SceneEntity
     private readonly List<SlotSketch> _outputSlots;
 
     private const float Padding = 4;
-    private const float Width = 100;
-    private const float HeaderHeight = 20;
-    private const float RowPadding = 4;
-    private const float RowGap = 2;
+    private const float Width = 120;
+    private const float HeaderHeight = 25;
+    private const float RowPadding = 6;
+    private const float RowGap = 4;
     private const float BorderRadius = 4;
     private const float SlotSize = SlotSketch.SlotSize;
     
@@ -34,9 +34,8 @@ public class GateSketch: SceneEntity
 
     public override void Render()
     {
-        var borderColor = IsHovered ? SKColors.RosyBrown : SKColors.White;
-        SkRenderer.DrawRoundRect(SkPosition, SkScale, BorderRadius, SKColors.Gray, GetRIdColor(), borderColor, 2);
-        SkRenderer.DrawRoundRect(SkPosition, HeaderSize, new Vector4(BorderRadius, BorderRadius, 0, 0), SKColors.DarkGray, GetRIdColor());
+        SkRenderer.DrawMicaRoundRect(SkPosition, SkScale, BorderRadius, GetRIdColor());
+        SkRenderer.DrawMicaRoundRect(SkPosition, HeaderSize, new Vector4(BorderRadius, BorderRadius, 0, 0));
         
         SkRenderer.DrawText(_name, GetHeaderTextPosition(), SKColors.White, 12);
         
@@ -74,9 +73,13 @@ public class GateSketch: SceneEntity
         var x = inputSlots ? Position.X + Padding + SlotSize : RightCornerPos.X - Padding - SlotSize;
         var y = Position.Y + HeaderHeight + RowGap + RowHeight / 2;
         var slots = new List<SlotSketch>();
+        var labelCounter = 0;
+        var labelChar = inputSlots ? 'X' : 'Y';
         while (count-- > 0)
         {
-            var slot = new SlotSketch(new Vector2(x, y));
+            var label = $"{labelChar}{labelCounter++}"; 
+            var dir = inputSlots ? SlotSketch.LabelLocation.Right : SlotSketch.LabelLocation.Left;
+            var slot = new SlotSketch(label, new Vector2(x, y), dir);
             slots.Add(slot);
             y += RowHeight + RowGap;
         }
