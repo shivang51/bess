@@ -23,7 +23,7 @@ public class SlotSketch: SceneEntity
 
     public LabelLocation LabelLoc { get; set; } = LabelLocation.Right;
     
-    private Vector2 _labelOffset;
+    private readonly Vector2 _labelOffset;
     
     public SlotSketch(Vector2 pos): base(pos){}
 

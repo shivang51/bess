@@ -13,6 +13,8 @@ public class SceneState
     
     public uint HoveredEntityId { get; set; }
     
+    // private float _zoom = CameraController.DefaultZoom;
+    
     private SceneState()
     {
         Init();   
@@ -49,4 +51,22 @@ public class SceneState
     {
         MousePosition = new Vector2(x, y);
     }
+    
+    // public void SetZoom(float zoom)
+    // {
+    //     _zoom = zoom;
+    //     if(_zoom < CameraController.MinZoom)
+    //     {
+    //         _zoom = CameraController.MinZoom;
+    //     }else if(_zoom > CameraController.MaxZoom)
+    //     {
+    //         _zoom = CameraController.MaxZoom;
+    //     }
+    // }
+    //
+    // public void SetZoomByPercentage(float zoomPercent)
+    // {
+    //     var val = CameraController.DefaultZoom * zoomPercent / 100;
+    //     SetZoom(val);
+    // }
 }

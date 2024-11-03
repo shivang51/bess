@@ -12,11 +12,11 @@ public class GateSketch: SceneEntity
     private readonly List<SlotSketch> _inputSlots;
     private readonly List<SlotSketch> _outputSlots;
 
-    private const float Padding = 4;
+    private const float Padding = 6;
     private const float Width = 120;
     private const float HeaderHeight = 25;
-    private const float RowPadding = 6;
-    private const float RowGap = 4;
+    private const float RowPadding = 2;
+    private const float RowGap = 8;
     private const float BorderRadius = 4;
     private const float SlotSize = SlotSketch.SlotSize;
     
@@ -53,7 +53,7 @@ public class GateSketch: SceneEntity
     private float GetHeight()
     {
         var n = Math.Max(_inputCount, _outputCount);
-        return HeaderHeight + RowHeight * n + RowGap * (n - 1) + Padding;
+        return HeaderHeight + RowHeight * n + RowGap * (n - 1) + Padding + Padding;
     }
     
     private static SKSize HeaderSize => new(Width, HeaderHeight);
@@ -64,14 +64,14 @@ public class GateSketch: SceneEntity
     
     private SKPoint GetHeaderTextPosition()
     {
-        var pos = Position + new Vector2(4, HeaderHeight / 2);
+        var pos = Position + new Vector2(Padding, HeaderHeight / 2);
         return new SKPoint(pos.X, pos.Y);
     }
 
     private List<SlotSketch> GenerateSlots(int count, bool inputSlots = true)
     {
-        var x = inputSlots ? Position.X + Padding + SlotSize : RightCornerPos.X - Padding - SlotSize;
-        var y = Position.Y + HeaderHeight + RowGap + RowHeight / 2;
+        var x = inputSlots ? Position.X + Padding + SlotSize / 2 : RightCornerPos.X - Padding - SlotSize / 2;
+        var y = Position.Y + HeaderHeight + RowPadding + SlotSize;
         var slots = new List<SlotSketch>();
         var labelCounter = 0;
         var labelChar = inputSlots ? 'X' : 'Y';

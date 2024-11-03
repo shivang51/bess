@@ -3,17 +3,29 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="clr-namespace:Bess.Controls"
-             xmlns:viewModels="clr-namespace:Bess.ViewModels"
+             xmlns:viewModels="clr-namespace:Bess.ViewModels.MainWindowViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Bess.Views.MainPageViews.BessSceneView"
-             x:DataType="viewModels:MainWindowViewModel">
+             x:DataType="viewModels:BessSceneViewModel">
+    <Design.DataContext>
+        <viewModels:BessSceneViewModel/>
+    </Design.DataContext>
+    
+    <Control.DataContext>
+        <viewModels:BessSceneViewModel/>
+    </Control.DataContext>
+    
     <Canvas MinWidth="300" MinHeight="300">
             <controls:BessSceneControl
+                Zoom="{Binding Zoom}"
+                OnZoomChanged="{Binding SetZoomCommand}"
                 Width="{Binding RelativeSource={RelativeSource AncestorType=Canvas}, Path=Bounds.Width}" 
                 Height="{Binding RelativeSource={RelativeSource AncestorType=Canvas}, Path=Bounds.Height}"/>
         <StackPanel Canvas.Right="8" Canvas.Bottom="8" Orientation="Horizontal" Spacing="8">
             <TextBlock VerticalAlignment="Center" HorizontalAlignment="Left" Text="{Binding ZoomStr}"></TextBlock>
-            <Slider Maximum="20" Minimum="1" Width="100" Value="{Binding Zoom}"/>
+            <Slider Maximum="{Binding MaxZoom}" 
+                    Minimum="{Binding MinZoom}" 
+                    Width="100" Value="{Binding Zoom}"/>
         </StackPanel>
     </Canvas>
 </UserControl>

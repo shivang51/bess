@@ -1,13 +1,16 @@
-﻿using System.Drawing;
-using System.Numerics;
+﻿using System.Numerics;
 using SkiaSharp;
 
 namespace BessScene;
 
 public class CameraController
 {
-    private readonly Vector2 DefaultZoom = new Vector2(1, 1);
-    private const float ZoomFactor = (float)1.1;
+    public const float DefaultZoom = (float)1.4;
+    public const float MaxZoom = (float)2.5;
+    public const float ZoomFactor = (float)1.1;
+    public const float MinZoom = (float)0.5;
+
+    private readonly Vector2 _defaultZoomVec = new(DefaultZoom);
     
     private Vector2 Position { get; set; }
     
@@ -18,17 +21,12 @@ public class CameraController
         ResetCamera();
     }
     
-    public void MoveCamera(Vector2 delta)
-    {
-        Position += delta;
-    }
-    
-    public void SetCameraPosition(Vector2 position)
+    public void SetPosition(Vector2 position)
     {
         Position = position;
     }
     
-    public Vector2 GetZoom() => Zoom;
+    public float ZoomPercentage => (Zoom.X) * 100;
     
     public SKPoint GetZoomPoint() => new((float)Zoom.X, (float)Zoom.Y);
     
@@ -36,19 +34,26 @@ public class CameraController
     
     public SKPoint GetPositionPoint() => new((float)Position.X, (float)Position.Y);
     
-    public void UpdateZoom(float factor)
+    public void UpdateZoom(float percentage)
     {
-        Zoom = DefaultZoom * factor;
-    }
-
-    public void UpdateZoom(Vector2 delta)
-    {
-        Zoom = delta.Y > 0 ? Zoom * ZoomFactor : Zoom / ZoomFactor;
+        SetZoom(percentage / 100);
     }
     
     private void ResetCamera()
     {
         Position = new Vector2(0, 0);
-        Zoom = DefaultZoom;
+        Zoom = _defaultZoomVec;
+    }
+
+    private void SetZoom(float val)
+    {
+        val = val switch
+        {
+            < MinZoom => MinZoom,
+            > MaxZoom => MaxZoom,
+            _ => val
+        };
+
+        Zoom = new Vector2(val);
     }
 }

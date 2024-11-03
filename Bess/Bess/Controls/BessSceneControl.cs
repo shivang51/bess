@@ -3,14 +3,19 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Numerics;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Skia;
 using Avalonia.Threading;
 using BessScene;
+using CommunityToolkit.Mvvm.Input;
 using SkiaSharp;
 
 namespace Bess.Controls;
@@ -22,17 +27,41 @@ public class BessSceneControl: Control
     private readonly Dictionary<Key, bool> _keys = new();
     private static DispatcherTimer? _timer;
     
+    public float Zoom
+    {
+        get => GetValue(ZoomProperty);
+        set => SetValue(ZoomProperty!, value);
+    }
+
+    public RelayCommand<float>? OnZoomChanged
+    {
+        get => GetValue(OnZoomChangedProperty);
+        set => SetValue(OnZoomChangedProperty!, value);
+    }
+    
+    public static readonly StyledProperty<RelayCommand<float>> OnZoomChangedProperty = 
+        AvaloniaProperty.Register<BessSceneControl, RelayCommand<float>>(nameof(OnZoomChanged));
+
+    public static readonly StyledProperty<float> ZoomProperty = 
+        AvaloniaProperty.Register<BessSceneControl, float>(nameof(Zoom));
+    
+    private Vector2 _cameraPosition;
+    private CancellationTokenSource _cancellationTokenSource;
+
     public BessSceneControl()
     {
+        _cancellationTokenSource = new CancellationTokenSource();
         _scene = new BessSkiaScene(Bounds.Width, Bounds.Height);
         _cameraController = new CameraController();
+        
+        _cameraPosition = _cameraController.GetPosition();
         
         KeyUpEvent.AddClassHandler<TopLevel>(OnKeyUp, handledEventsToo: true);
         KeyDownEvent.AddClassHandler<TopLevel>(OnKeyDown, handledEventsToo: true);
         
         StartTimer();
     }
-    
+
     private void StartTimer()
     {
         _timer = new DispatcherTimer()
@@ -45,9 +74,16 @@ public class BessSceneControl: Control
 
     private void UpdateContent()
     {
+        UpdateCamera();
         _scene.Update();
         _scene.RenderScene(_cameraController);
         InvalidateVisual(); // Redraw control with updated buffers
+    }
+
+    private void UpdateCamera()
+    {
+        _cameraController.UpdateZoom(Zoom);
+        _cameraController.SetPosition(_cameraPosition / (Zoom / 100));
     }
 
     public override void Render(DrawingContext context)
@@ -81,18 +117,54 @@ public class BessSceneControl: Control
 
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
     {
-        base.OnPointerWheelChanged(e);
+        base.OnPointerWheelChanged(e); // Don't forget to call the base method if necessary
+
         var delta = new Vector2((float)e.Delta.X, (float)e.Delta.Y);
-        if(IsKeyPressed(Key.LeftCtrl) || IsKeyPressed(Key.RightCtrl))
+
+        if (IsKeyPressed(Key.LeftCtrl) || IsKeyPressed(Key.RightCtrl))
         {
-            _cameraController.UpdateZoom(delta);
+            // Throttle zoom updates
+            ThrottleZoomUpdate(delta.Y);
         }
         else
         {
-            _cameraController.MoveCamera(delta * 20);
+            // Throttle camera position updates
+            ThrottleCameraUpdate(delta);
         }
-        
-        UpdateContent();
+    }
+
+    private void ThrottleZoomUpdate(float deltaY)
+    {
+        _cancellationTokenSource?.Cancel();
+        _cancellationTokenSource = new CancellationTokenSource();
+
+        Task.Delay(ThrottleDelay, _cancellationTokenSource.Token).ContinueWith(t =>
+        {
+            if (t.IsCanceled) return;
+            
+            Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var dZoom = deltaY * CameraController.ZoomFactor * 100;
+                _cameraController.UpdateZoom(Zoom + dZoom);
+                Zoom = _cameraController.ZoomPercentage;
+                OnZoomChanged?.Execute(Zoom);
+            });
+
+        });
+    }
+
+    private const int ThrottleDelay = 1 / 60;
+
+    private void ThrottleCameraUpdate(Vector2 delta)
+    {
+        _cancellationTokenSource?.Cancel();
+        _cancellationTokenSource = new CancellationTokenSource();
+
+        Task.Delay(ThrottleDelay, _cancellationTokenSource.Token).ContinueWith(t =>
+        {
+            if (t.IsCanceled) return;
+            _cameraPosition += delta * 20;
+        });
     }
     
     private void OnKeyDown(object? sender, KeyEventArgs e)
