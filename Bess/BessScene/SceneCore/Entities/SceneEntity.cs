@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using SkiaSharp;
 
-namespace BessScene.SceneCore;
+namespace BessScene.SceneCore.State.SceneCore.Entities;
 
 public abstract class SceneEntity
 {

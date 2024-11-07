@@ -24,7 +24,7 @@
         <Grid Grid.Row="1" ColumnDefinitions="Auto,2,*,2,Auto">
             <mainPageViews:ComponentExplorer Grid.Column="0" Width="300"/>
             <GridSplitter Grid.Column="1"></GridSplitter>
-            <mainPageViews:BessSceneView Grid.Column="2" />
+            <mainPageViews:BessSceneView Grid.Column="2"  CornerRadius="32"/>
             <GridSplitter Grid.Column="3"></GridSplitter>
             <mainPageViews:ProjectExplorer Grid.Column="4" Width="300"/>
         </Grid>

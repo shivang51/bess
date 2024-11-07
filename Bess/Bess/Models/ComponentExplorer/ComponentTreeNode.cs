@@ -1,7 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
-using BessScene;
-using BessScene.SceneCore;
+using BessScene.SceneCore.State;
+using BessScene.SceneCore.State.SceneCore.Entities;
 using BessSimEngine;
 using BessSimEngine.Components;
 

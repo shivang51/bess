@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.Sketches;
+namespace BessScene.SceneCore.State.SceneCore.Entities.Sketches;
 
 public class GateSketch: SceneEntity
 {
@@ -14,10 +14,11 @@ public class GateSketch: SceneEntity
 
     private const float Padding = 6;
     private const float Width = 120;
-    private const float HeaderHeight = 25;
+    private const float HeaderHeight = 14;
     private const float RowPadding = 2;
     private const float RowGap = 8;
     private const float BorderRadius = 4;
+    private const float SlotsTopMargin = 4;
     private const float SlotSize = SlotSketch.SlotSize;
     
     public GateSketch(string name, int inputCount, int outputCount) : base(new Vector2(20, 20))
@@ -34,31 +35,29 @@ public class GateSketch: SceneEntity
 
     public override void Render()
     {
-        SkRenderer.DrawMicaRoundRect(SkPosition, SkScale, BorderRadius, GetRIdColor());
+        SkRenderer.DrawMicaRoundRect(SkPosition, SkScale, BorderRadius, GetRIdColor(), SKColors.BlueViolet);
         SkRenderer.DrawMicaRoundRect(SkPosition, HeaderSize, new Vector4(BorderRadius, BorderRadius, 0, 0));
         
-        SkRenderer.DrawText(_name, GetHeaderTextPosition(), SKColors.White, 12);
+        SkRenderer.DrawText(_name, GetHeaderTextPosition(), SKColors.White, 10);
         
         foreach (var slot in _inputSlots)
         {
-            slot.Render();
+            slot.Render(SkPosition);
         }
         
         foreach (var slot in _outputSlots)
         {
-            slot.Render();
+            slot.Render(SkPosition);
         }
     }
     
     private float GetHeight()
     {
         var n = Math.Max(_inputCount, _outputCount);
-        return HeaderHeight + RowHeight * n + RowGap * (n - 1) + Padding + Padding;
+        return HeaderHeight + RowHeight * n + RowGap * (n - 1) + Padding + Padding + SlotsTopMargin;
     }
     
     private static SKSize HeaderSize => new(Width, HeaderHeight);
-
-    private Vector2 RightCornerPos => new(Position.X + Width, Position.Y);
     
     private static float RowHeight => SlotSize + RowPadding + RowPadding;
     
@@ -70,8 +69,8 @@ public class GateSketch: SceneEntity
 
     private List<SlotSketch> GenerateSlots(int count, bool inputSlots = true)
     {
-        var x = inputSlots ? Position.X + Padding + SlotSize / 2 : RightCornerPos.X - Padding - SlotSize / 2;
-        var y = Position.Y + HeaderHeight + RowPadding + SlotSize;
+        var x = inputSlots ? Padding + SlotSize / 2 : Width - Padding - SlotSize / 2;
+        var y = HeaderHeight + RowPadding + SlotSize + SlotsTopMargin;
         var slots = new List<SlotSketch>();
         var labelCounter = 0;
         var labelChar = inputSlots ? 'X' : 'Y';
@@ -79,7 +78,7 @@ public class GateSketch: SceneEntity
         {
             var label = $"{labelChar}{labelCounter++}"; 
             var dir = inputSlots ? SlotSketch.LabelLocation.Right : SlotSketch.LabelLocation.Left;
-            var slot = new SlotSketch(label, new Vector2(x, y), dir);
+            var slot = new SlotSketch(label, new Vector2(x, y), RenderId, dir);
             slots.Add(slot);
             y += RowHeight + RowGap;
         }

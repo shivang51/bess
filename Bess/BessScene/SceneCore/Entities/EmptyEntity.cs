@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace BessScene.SceneCore;
+namespace BessScene.SceneCore.State.SceneCore.Entities;
 
 public class EmptyEntity : SceneEntity
 {

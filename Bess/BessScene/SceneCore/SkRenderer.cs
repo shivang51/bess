@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using SkiaSharp;
 
-namespace BessScene.SceneCore;
+namespace BessScene.SceneCore.State.SceneCore.Entities;
 
 public static class SkRenderer
 {
@@ -27,7 +27,7 @@ public static class SkRenderer
         IdCanvas = idCanvas;
     }
     
-    public static void DrawMicaRoundRect(SKPoint position, SKSize size, Vector4 radius, SKColor? renderId = null)
+    public static void DrawMicaRoundRect(SKPoint position, SKSize size, Vector4 radius, SKColor? renderId = null, SKColor? splashColor = null)
     {
         var rect = new SKRect(position.X, position.Y, position.X + size.Width, position.Y + size.Height);
         var roundedRect = new SKRoundRect();
@@ -40,16 +40,16 @@ public static class SkRenderer
             new SKPoint(radius.W, radius.W),
         });
         
-        DrawMicaRRect(rect, roundedRect);
+        DrawMicaRRect(rect, roundedRect, splashColor);
         if(renderId != null) DrawRRectId(rect, roundedRect, (SKColor)renderId!);
     }
     
-    public static void DrawMicaRoundRect(SKPoint position, SKSize size, float radius, SKColor? renderId = null)
+    public static void DrawMicaRoundRect(SKPoint position, SKSize size, float radius, SKColor? renderId = null, SKColor? splashColor = null)
     {
         var rect = new SKRect(position.X, position.Y, position.X + size.Width, position.Y + size.Height);
         var roundedRect = new SKRoundRect(rect , radius);
         
-        DrawMicaRRect(rect, roundedRect);
+        DrawMicaRRect(rect, roundedRect, splashColor);
         if(renderId != null) DrawRRectId(rect, roundedRect, (SKColor)renderId!);
     }
     
@@ -191,7 +191,7 @@ public static class SkRenderer
         IdCanvas.DrawRoundRect(roundedRect, idPaint);
     }
     
-    private static void DrawMicaRRect(SKRect rect, SKRoundRect roundedRect)
+    private static void DrawMicaRRect(SKRect rect, SKRoundRect roundedRect, SKColor? splashColor = null)
     {
         // Step 1: Background gradient
         using (var gradientPaint = new SKPaint())
@@ -201,7 +201,7 @@ public static class SkRenderer
             gradientPaint.Shader = SKShader.CreateLinearGradient(
                 new SKPoint(rect.Left, rect.Top),
                 new SKPoint(rect.Right, rect.Bottom),
-                new[] { new SKColor(30, 30, 30, 100), new SKColor(60, 60, 60, 150) },
+                new[] { new SKColor(40, 40, 40, 100), new SKColor(70, 70, 70, 150) },
                 new float[] { 0.0f, 1.0f },
                 SKShaderTileMode.Clamp
             );
@@ -223,7 +223,8 @@ public static class SkRenderer
         // Step 3: Overlay with semi-transparent tint to finalize the mica effect
         using (var overlayPaint = new SKPaint())
         {
-            overlayPaint.Color = new SKColor(255, 255, 255, 40); // Adjust alpha for subtle tint
+            var color = splashColor ?? SKColors.White;
+            overlayPaint.Color = color.WithAlpha(30);
             overlayPaint.BlendMode = SKBlendMode.SrcOver;
             overlayPaint.IsAntialias = true;
             

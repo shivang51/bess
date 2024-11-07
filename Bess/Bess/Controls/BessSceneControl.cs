@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,20 +15,28 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Skia;
 using Avalonia.Threading;
-using BessScene;
+using BessScene.SceneCore.State;
+using BessScene.SceneCore.State.Events;
 using CommunityToolkit.Mvvm.Input;
 using SkiaSharp;
+using MouseButton = BessScene.SceneCore.State.Events.MouseButton;
 
 namespace Bess.Controls;
 
 public class BessSceneControl: Control
 {
     private readonly BessSkiaScene _scene;
-    private readonly CameraController _cameraController;
     private readonly Dictionary<Key, bool> _keys = new();
     private static DispatcherTimer? _timer;
     private const int Fps = 120;
     private const int FrameRateMs = (1000 / Fps);
+    
+    private readonly Dictionary<EventType, SceneEvent> _sceneEventsDict = new();
+    
+    private void AddSceneEvent(SceneEvent sceneEvent)
+    {
+        _sceneEventsDict[sceneEvent.Type] = sceneEvent;
+    }
     
     public float Zoom
     {
@@ -54,9 +63,8 @@ public class BessSceneControl: Control
     {
         _cancellationTokenSource = new CancellationTokenSource();
         _scene = new BessSkiaScene(Bounds.Width, Bounds.Height);
-        _cameraController = new CameraController();
         
-        _cameraPosition = _cameraController.GetPosition();
+        _cameraPosition = _scene.Camera.Position;
         
         KeyUpEvent.AddClassHandler<TopLevel>(OnKeyUp, handledEventsToo: true);
         KeyDownEvent.AddClassHandler<TopLevel>(OnKeyDown, handledEventsToo: true);
@@ -70,22 +78,26 @@ public class BessSceneControl: Control
         {
             Interval = TimeSpan.FromMilliseconds(FrameRateMs)
         };
-        _timer.Tick += (sender, args) => UpdateContent();
+        _timer.Tick += (_, __) => UpdateContent();
         _timer.Start();
     }
 
     private void UpdateContent()
     {
         UpdateCamera();
-        _scene.Update();
-        _scene.RenderScene(_cameraController);
+        _scene.Update(_sceneEventsDict.Values.ToList());
+        _sceneEventsDict.Clear();
+        _scene.RenderScene();
         InvalidateVisual(); // Redraw control with updated buffers
+        
+        _cameraPosition = _scene.Camera.Position;
+        Zoom = _scene.Camera.ZoomPercentage;
     }
 
     private void UpdateCamera()
     {
-        _cameraController.UpdateZoom(Zoom);
-        _cameraController.SetPosition(_cameraPosition / (Zoom / 100));
+        _scene.Camera.SetZoomPercentage(Zoom);
+        _scene.Camera.SetPosition(_cameraPosition);
     }
 
     public override void Render(DrawingContext context)
@@ -110,11 +122,40 @@ public class BessSceneControl: Control
         return base.MeasureOverride(availableSize);
     }
 
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        base.OnPointerReleased(e);
+        OnMouseButtonEvent(e, false);
+    }
+    
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
+        OnMouseButtonEvent(e, true);
+    }
+
+    private void OnMouseButtonEvent(PointerEventArgs e, bool pressed)
+    {
+        var properties = e.GetCurrentPoint(this).Properties;
         var pos = e.GetCurrentPoint(this).Position;
-        Console.WriteLine(_scene.GetRenderObjectId((int)pos.X, (int)pos.Y));
+        MouseButton? button = properties.PointerUpdateKind switch
+        {
+            PointerUpdateKind.LeftButtonReleased => MouseButton.Left,
+            PointerUpdateKind.RightButtonReleased => MouseButton.Right,
+            PointerUpdateKind.MiddleButtonReleased => MouseButton.Middle,
+            PointerUpdateKind.LeftButtonPressed => MouseButton.Left,
+            PointerUpdateKind.RightButtonPressed => MouseButton.Right,
+            PointerUpdateKind.MiddleButtonPressed => MouseButton.Middle,
+            _ => null
+        };
+
+        if (button == null)
+        {
+            throw new InvalidDataException($"Invalid button {properties.PointerUpdateKind}");
+        }
+        
+        var mouseEvent = new MouseButtonEvent((MouseButton)button!, (float)pos.X, (float)pos.Y, pressed);
+        AddSceneEvent(mouseEvent);
     }
 
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
@@ -145,8 +186,8 @@ public class BessSceneControl: Control
             Dispatcher.UIThread.InvokeAsync(() =>
             {
                 var dZoom = deltaY * CameraController.ZoomFactor * 100;
-                _cameraController.UpdateZoom(Zoom + dZoom);
-                Zoom = _cameraController.ZoomPercentage;
+                Zoom = CameraController.ConstrainZoomPercentage(Zoom + dZoom);
+                _scene.Camera.UpdateZoomPercentage(Zoom);
                 OnZoomChanged?.Execute(Zoom);
             });
 
@@ -161,7 +202,11 @@ public class BessSceneControl: Control
         Task.Delay(FrameRateMs, _cancellationTokenSource.Token).ContinueWith(t =>
         {
             if (t.IsCanceled) return;
-            _cameraPosition += delta * 20;
+            Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                _cameraPosition += delta * 10;
+                _scene.Camera.SetPosition(_cameraPosition);
+            });
         });
     }
     
@@ -181,6 +226,6 @@ public class BessSceneControl: Control
     {
         base.OnPointerMoved(e);
         var pos = e.GetCurrentPoint(this).Position;
-        SceneState.Instance.SetMousePosition((float)pos.X, (float)pos.Y);
+        AddSceneEvent(new MouseMoveEvent((float)pos.X, (float)pos.Y));
     }
 }

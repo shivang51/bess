@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
+using SkiaSharp;
 
-namespace BessScene.SceneCore;
+namespace BessScene.SceneCore.State.SceneCore.Entities;
 
 public class Transform
 {
@@ -22,5 +23,10 @@ public class Transform
         Position = position;
         Scale = scale;
         Rotation = 0;
+    }
+    
+    public static Vector2 ScaleAndTranslate(Vector2 point, Vector2 scale, Vector2 translate)
+    {
+        return new Vector2(point.X * scale.X + translate.X, point.Y * scale.Y + translate.Y);
     }
 }

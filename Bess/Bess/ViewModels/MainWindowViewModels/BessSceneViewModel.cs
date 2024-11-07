@@ -1,5 +1,5 @@
 using System;
-using BessScene;
+using BessScene.SceneCore.State;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 

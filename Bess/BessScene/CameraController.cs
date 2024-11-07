@@ -1,20 +1,20 @@
 ﻿using System.Numerics;
 using SkiaSharp;
 
-namespace BessScene;
+namespace BessScene.SceneCore.State;
 
 public class CameraController
 {
     public const float DefaultZoom = (float)1.4;
     public const float MaxZoom = (float)2.5;
-    public const float ZoomFactor = (float)1.1;
+    public const float ZoomFactor = (float)0.1;
     public const float MinZoom = (float)0.5;
 
     private readonly Vector2 _defaultZoomVec = new(DefaultZoom);
     
-    private Vector2 Position { get; set; }
+    public Vector2 Position { get; private set; }
     
-    private Vector2 Zoom { get; set; }
+    public Vector2 Zoom { get; private set; }
     
     public CameraController()
     {
@@ -26,15 +26,29 @@ public class CameraController
         Position = position;
     }
     
+    public void SetZoomPercentage(float zoom)
+    {
+        SetZoom(zoom / 100);
+    }
+    
+    /// <summary>
+    /// Adds given value to current position
+    /// </summary>
+    /// <param name="dPos"></param>
+    public void UpdatePositionBy(Vector2 dPos)
+    {
+        Position += dPos;
+    }
+    
     public float ZoomPercentage => (Zoom.X) * 100;
     
-    public SKPoint GetZoomPoint() => new((float)Zoom.X, (float)Zoom.Y);
+    public SKPoint GetZoomSkPoint => new(Zoom.X, Zoom.Y);
     
-    public Vector2 GetPosition() => Position;
+    public Vector2 ZoomInv => new(1 / Zoom.X, 1 / Zoom.Y);
     
-    public SKPoint GetPositionPoint() => new((float)Position.X, (float)Position.Y);
+    public SKPoint PositionSkPoint => new((float)Position.X, (float)Position.Y);
     
-    public void UpdateZoom(float percentage)
+    public void UpdateZoomPercentage(float percentage)
     {
         SetZoom(percentage / 100);
     }
@@ -47,13 +61,16 @@ public class CameraController
 
     private void SetZoom(float val)
     {
-        val = val switch
-        {
-            < MinZoom => MinZoom,
-            > MaxZoom => MaxZoom,
-            _ => val
-        };
+        Zoom = new Vector2(ConstrainZoom(val));
+    }
 
-        Zoom = new Vector2(val);
+    public static float ConstrainZoom(float val)
+    {
+        return Math.Clamp(val, MinZoom, MaxZoom);
+    }
+    
+    public static float ConstrainZoomPercentage(float val)
+    {
+        return ConstrainZoom(val / 100) * 100;
     }
 }
