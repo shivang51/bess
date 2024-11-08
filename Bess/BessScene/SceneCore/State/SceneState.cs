@@ -1,8 +1,11 @@
 ﻿using System.Numerics;
-using BessScene.SceneCore.State.SceneCore.Entities;
+using BessScene.SceneCore.Entities;
+using BessScene.SceneCore.ShadersCollection;
+using BessScene.SceneCore.Sketches;
+using BessScene.SceneCore.State;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.State;
+namespace BessScene.SceneCore;
 
 public class SceneState
 {
@@ -16,7 +19,9 @@ public class SceneState
     
     public bool IsMiddleMousePressed { get; set; }
     
-    public DragData DragData { get; set; } = new();
+    public DragData DragData { get; private set; } = new();
+    
+    public ConnectionData ConnectionData { get; private set; } = new();
     
     public uint HoveredEntityId { get; set; }
     
@@ -35,6 +40,8 @@ public class SceneState
     private void Init()
     {
         Entities = new List<SceneEntity>();
+        SlotEntities = new List<SlotEntity>();
+        ConnectionEntities = new List<ConnectionEntity>();
         _selectedEntityId = 0;
     }
     
@@ -52,14 +59,36 @@ public class SceneState
     {
         Entities.Clear();
     }
+
+    public List<ConnectionEntity> ConnectionEntities { get; private set; } = null!;
     
     public List<SceneEntity> Entities { get; private set; } = null!;
     
     /// <summary>
     ///  Entities that are children of other entities in Entities list 
     /// </summary>
-    public List<SceneEntity> ChildEntities { get; private set; } = null!;
+    public List<SlotEntity> SlotEntities { get; private set; } = null!;
 
+    public bool IsParentEntity(uint rid)
+    {
+        return Entities.Any(entity => entity.RenderId == rid);
+    }
+    
+    public bool IsSlotEntity(uint rid)
+    {
+        return SlotEntities.Any(entity => entity.RenderId == rid);
+    }
+    
+    public void AddSlotEntity(SlotEntity entity)
+    {
+        SlotEntities.Add(entity);
+    }
+    
+    public void RemoveSlotEntity(SlotEntity entity)
+    {
+        SlotEntities.Remove(entity);
+    }
+    
     
     /// <summary>
     /// Searches all the entities -> Entities + ChildEntities and returns null if not found
@@ -69,7 +98,7 @@ public class SceneState
     public SceneEntity? GetEntityOrNull(uint rid)
     {
         var entity = Entities.FirstOrDefault(ent => ent.RenderId == rid);
-        entity ??= ChildEntities.FirstOrDefault(ent => ent.RenderId == rid);
+        entity ??= SlotEntities.FirstOrDefault(ent => ent.RenderId == rid);
         return entity;
     }
     
@@ -84,10 +113,15 @@ public class SceneState
 
         return ent;
     }
-    
-    public SceneEntity GetChildEntityByRenderId(uint rid)
+
+    public T GetEntityByRenderId<T>(uint rid) where T: SceneEntity
     {
-        var ent = ChildEntities.FirstOrDefault(entity => entity.RenderId == rid);
+        return (T)GetEntityByRenderId(rid);
+    }
+    
+    public SlotEntity GetSlotEntityByRenderId(uint rid)
+    {
+        var ent = SlotEntities.FirstOrDefault(entity => entity.RenderId == rid);
 
         if (ent == null)
         {
@@ -108,6 +142,22 @@ public class SceneState
     public void EndDrag()
     {
         DragData.IsDragging = false;
+    }
+    
+    public void StartConnection(uint startEntityId)
+    {
+        ConnectionData.IsConnecting = true;
+        ConnectionData.StartEntityId = startEntityId;
+        ConnectionData.StartPoint = ((SlotSketch)GetSlotEntityByRenderId(startEntityId)).AbsPosition;
+    }
+
+    public void EndConnection(bool join = false)
+    {
+        ConnectionData.IsConnecting = false;
+        
+        if(!join) return;
+
+        new ConnectionSketch(ConnectionData.StartEntityId, ConnectionData.EndEntityId);
     }
     
     public void SetMousePosition(float x, float y)

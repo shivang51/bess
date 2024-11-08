@@ -21,7 +21,7 @@
         <PackageReference Include="Avalonia.Xaml.Interactions" Version="11.1.0.6" />
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
         <PackageReference Include="FluentAvaloniaUI" Version="2.1.0" />
-        <PackageReference Include="SkiaSharp" Version="2.88.8" />
+        <PackageReference Include="SkiaSharp" Version="3.118.0-preview.1.2" />
     </ItemGroup>
 
     <ItemGroup>

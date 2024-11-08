@@ -15,11 +15,11 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Skia;
 using Avalonia.Threading;
-using BessScene.SceneCore.State;
-using BessScene.SceneCore.State.Events;
+using BessScene.SceneCore;
+using BessScene.SceneCore.Events;
 using CommunityToolkit.Mvvm.Input;
 using SkiaSharp;
-using MouseButton = BessScene.SceneCore.State.Events.MouseButton;
+using MouseButton = BessScene.SceneCore.Events.MouseButton;
 
 namespace Bess.Controls;
 

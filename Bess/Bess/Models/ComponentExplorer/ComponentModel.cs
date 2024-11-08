@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Reflection;
-using BessScene.SceneCore.State;
-using BessScene.SceneCore.State.SceneCore.Entities;
-using BessScene.SceneCore.State.SceneCore.Entities.Sketches;
+using BessScene.SceneCore;
+using BessScene.SceneCore.ShadersCollection;
+using BessScene.SceneCore.Sketches;
 using BessSimEngine;
 using BessSimEngine.Components;
 using BessSimEngine.Components.DigitalComponents.Gates;

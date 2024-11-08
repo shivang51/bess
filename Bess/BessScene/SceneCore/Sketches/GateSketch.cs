@@ -1,7 +1,9 @@
 ﻿using System.Numerics;
+using BessScene.SceneCore.Entities;
+using BessScene.SceneCore.ShadersCollection;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.State.SceneCore.Entities.Sketches;
+namespace BessScene.SceneCore.Sketches;
 
 public class GateSketch: SceneEntity
 {
@@ -9,8 +11,8 @@ public class GateSketch: SceneEntity
     private readonly int _outputCount;
     private readonly string _name;
     
-    private readonly List<SlotSketch> _inputSlots;
-    private readonly List<SlotSketch> _outputSlots;
+    private readonly List<uint> _inputSlots;
+    private readonly List<uint> _outputSlots;
 
     private const float Padding = 6;
     private const float Width = 120;
@@ -19,7 +21,7 @@ public class GateSketch: SceneEntity
     private const float RowGap = 8;
     private const float BorderRadius = 4;
     private const float SlotsTopMargin = 4;
-    private const float SlotSize = SlotSketch.SlotSize;
+    private static readonly float SlotSize = SlotSketch.SlotSize;
     
     public GateSketch(string name, int inputCount, int outputCount) : base(new Vector2(20, 20))
     {
@@ -39,15 +41,19 @@ public class GateSketch: SceneEntity
         SkRenderer.DrawMicaRoundRect(SkPosition, HeaderSize, new Vector4(BorderRadius, BorderRadius, 0, 0));
         
         SkRenderer.DrawText(_name, GetHeaderTextPosition(), SKColors.White, 10);
-        
+    }
+
+    public void UpdatePos(Vector2 pos)
+    {
+        Position = pos;
         foreach (var slot in _inputSlots)
         {
-            slot.Render(SkPosition);
+            SceneState.Instance.GetSlotEntityByRenderId(slot).ParentPos = pos;
         }
         
         foreach (var slot in _outputSlots)
         {
-            slot.Render(SkPosition);
+            SceneState.Instance.GetSlotEntityByRenderId(slot).ParentPos = pos;
         }
     }
     
@@ -67,19 +73,22 @@ public class GateSketch: SceneEntity
         return new SKPoint(pos.X, pos.Y);
     }
 
-    private List<SlotSketch> GenerateSlots(int count, bool inputSlots = true)
+    private List<uint> GenerateSlots(int count, bool inputSlots = true)
     {
         var x = inputSlots ? Padding + SlotSize / 2 : Width - Padding - SlotSize / 2;
         var y = HeaderHeight + RowPadding + SlotSize + SlotsTopMargin;
-        var slots = new List<SlotSketch>();
+        var slots = new List<uint>();
         var labelCounter = 0;
         var labelChar = inputSlots ? 'X' : 'Y';
         while (count-- > 0)
         {
             var label = $"{labelChar}{labelCounter++}"; 
-            var dir = inputSlots ? SlotSketch.LabelLocation.Right : SlotSketch.LabelLocation.Left;
-            var slot = new SlotSketch(label, new Vector2(x, y), RenderId, dir);
-            slots.Add(slot);
+            var dir = inputSlots ? SlotEntity.LabelLocation.Right : SlotEntity.LabelLocation.Left;
+            var slot = new SlotSketch(label, new Vector2(x, y), RenderId, dir)
+            {
+                ParentPos = Position
+            };
+            slots.Add(slot.RenderId);
             y += RowHeight + RowGap;
         }
         return slots;

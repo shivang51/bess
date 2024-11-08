@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.State.SceneCore.Entities;
+namespace BessScene.SceneCore.ShadersCollection;
 
 public static class SkRenderer
 {
@@ -11,6 +11,21 @@ public static class SkRenderer
     private static SKCanvas IdCanvas { get; set; } = null!;
 
     private static readonly SKTypeface? FontTypeFace;
+    
+    private static SKPaint BlurPaint { get; } = new()
+    {
+        ImageFilter = SKImageFilter.CreateBlur(35f, 35f),
+        ColorFilter = SKColorFilter.CreateBlendMode(SKColors.Transparent, SKBlendMode.SrcIn)
+        // IsAntialias = true
+    };
+
+    private static SKPaint Shadow { get; } = new()
+    {
+        ImageFilter = SKImageFilter.CreateBlur(10f, 10f),
+        Color = new SKColor(0, 0, 0, 100),
+    };
+
+    private static readonly float[] BlurColorPos = new float[] { 0.0f, 1.0f };
 
     static SkRenderer()
     {
@@ -27,7 +42,7 @@ public static class SkRenderer
         IdCanvas = idCanvas;
     }
     
-    public static void DrawMicaRoundRect(SKPoint position, SKSize size, Vector4 radius, SKColor? renderId = null, SKColor? splashColor = null)
+    public static void DrawMicaRoundRect(SKPoint position, SKSize size, Vector4 radius, SKColor? renderId = null, SKColor? splashColor = null, bool shadow = false)
     {
         var rect = new SKRect(position.X, position.Y, position.X + size.Width, position.Y + size.Height);
         var roundedRect = new SKRoundRect();
@@ -40,16 +55,16 @@ public static class SkRenderer
             new SKPoint(radius.W, radius.W),
         });
         
-        DrawMicaRRect(rect, roundedRect, splashColor);
+        DrawMicaRRect(rect, roundedRect, splashColor, shadow);
         if(renderId != null) DrawRRectId(rect, roundedRect, (SKColor)renderId!);
     }
     
-    public static void DrawMicaRoundRect(SKPoint position, SKSize size, float radius, SKColor? renderId = null, SKColor? splashColor = null)
+    public static void DrawMicaRoundRect(SKPoint position, SKSize size, float radius, SKColor? renderId = null, SKColor? splashColor = null, bool shadow = false)
     {
         var rect = new SKRect(position.X, position.Y, position.X + size.Width, position.Y + size.Height);
         var roundedRect = new SKRoundRect(rect , radius);
         
-        DrawMicaRRect(rect, roundedRect, splashColor);
+        DrawMicaRRect(rect, roundedRect, splashColor, shadow);
         if(renderId != null) DrawRRectId(rect, roundedRect, (SKColor)renderId!);
     }
     
@@ -172,7 +187,7 @@ public static class SkRenderer
         paint.TextSize = fontSize;
         paint.Color = color;
         paint.IsAntialias = true;
-        position.Y += fontSize / 2 - paint.FontMetrics.Descent;
+        position.Y += (fontSize - paint.FontMetrics.Descent) / 2;
         ColorCanvas.DrawText(text, position, paint);
     }
     
@@ -184,6 +199,56 @@ public static class SkRenderer
         return paint.MeasureText(text);
     }
 
+    public static void DrawGrid(SKPoint position, SKSize size, SKPoint cameraOffset, float zoom, SKColor color)
+    {
+        Shaders.GridShader.SetUniform("zoom", zoom);
+        Shaders.GridShader.SetUniform("cameraOffset", cameraOffset);
+        Shaders.GridShader.SetUniform("color", color);
+        
+        var paint = new SKPaint
+        {
+            Shader = Shaders.GridShader.Get,
+            IsAntialias = true
+        };
+
+        var rect = new SKRect(position.X, position.Y, position.X + size.Width, position.Y + size.Height);
+        ColorCanvas.DrawRect(rect, paint);
+    }
+
+    public static void DrawCubicBezier(SKPoint start, SKPoint end, SKColor color, float weight, SKColor? idColor = null)
+    {
+        var dX = Math.Abs(start.X - end.X);
+        var dY = Math.Abs(start.X - end.X);
+
+        var offsetX = dX * (float)0.35;
+
+        var controlPoint1 = new SKPoint(start.X + offsetX, start.Y);
+        var controlPoint2 = new SKPoint(end.X - offsetX, end.Y);
+        
+        SKPath path = new();
+        path.MoveTo(start);
+        if (dX <= 0.35 || dY <= 0.35)
+            path.LineTo(end);
+        else
+            path.CubicTo(controlPoint1, controlPoint2, end);
+        
+        using var paint = new SKPaint();
+        paint.IsAntialias = true;
+        paint.Color = color;
+        paint.IsStroke = true;
+        paint.StrokeWidth = weight;
+        
+        ColorCanvas.DrawPath(path, paint);
+        
+        if(idColor == null) return;
+        
+        paint.IsAntialias = false;
+        paint.Color = (SKColor)idColor!;
+        
+        IdCanvas.DrawPath(path, paint);
+    }
+    
+
     private static void DrawRRectId(SKRect rect, SKRoundRect roundedRect, SKColor id)
     {
         using var idPaint = new SKPaint();
@@ -191,44 +256,40 @@ public static class SkRenderer
         IdCanvas.DrawRoundRect(roundedRect, idPaint);
     }
     
-    private static void DrawMicaRRect(SKRect rect, SKRoundRect roundedRect, SKColor? splashColor = null)
+    private static void DrawMicaRRect(SKRect rect, SKRoundRect roundedRect, SKColor? splashColor = null, bool shadow = false)
     {
-        // Step 1: Background gradient
         using (var gradientPaint = new SKPaint())
         {
             gradientPaint.IsAntialias = true;
-            // Define gradient colors and positions to add depth
             gradientPaint.Shader = SKShader.CreateLinearGradient(
                 new SKPoint(rect.Left, rect.Top),
                 new SKPoint(rect.Right, rect.Bottom),
-                new[] { new SKColor(40, 40, 40, 100), new SKColor(70, 70, 70, 150) },
-                new float[] { 0.0f, 1.0f },
+                new[] { new SKColor(40, 40, 40, 100), new SKColor(100, 100, 100, 150) },
+                BlurColorPos,
                 SKShaderTileMode.Clamp
             );
         
             ColorCanvas.DrawRoundRect(roundedRect, gradientPaint);
         }
-
-        // Step 2: Apply a blur to simulate frosted glass effect on the background
-        using (var blurPaint = new SKPaint())
+        
+        if (shadow)
         {
-            blurPaint.ImageFilter = SKImageFilter.CreateBlur(8f, 8f); // Adjust blur radius as needed
-            blurPaint.IsAntialias = true;
-            
-            ColorCanvas.SaveLayer(blurPaint);
-            ColorCanvas.DrawRoundRect(roundedRect, blurPaint);
-            ColorCanvas.Restore();
+            roundedRect.Offset(8, 8);
+            roundedRect.Deflate(4, 4);
+            ColorCanvas.DrawRoundRect(roundedRect, Shadow);
+            roundedRect.Offset(-8, -8);
+            roundedRect.Inflate(4, 4);
         }
+        
+        // ColorCanvas.DrawRoundRect(roundedRect, BlurPaint);
 
-        // Step 3: Overlay with semi-transparent tint to finalize the mica effect
         using (var overlayPaint = new SKPaint())
         {
             var color = splashColor ?? SKColors.White;
-            overlayPaint.Color = color.WithAlpha(30);
+            overlayPaint.Color = color.WithAlpha(50);
             overlayPaint.BlendMode = SKBlendMode.SrcOver;
             overlayPaint.IsAntialias = true;
             
-            // Draw the overlay tint for the Mica look
             ColorCanvas.DrawRoundRect(roundedRect, overlayPaint);
         }
     }

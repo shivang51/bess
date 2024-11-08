@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Numerics;
-using BessScene.SceneCore.State.Events;
-using BessScene.SceneCore.State.SceneCore.Entities;
+using BessScene.SceneCore.Events;
+using BessScene.SceneCore.ShadersCollection;
+using BessScene.SceneCore.Sketches;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.State;
+namespace BessScene.SceneCore;
 
 public class BessSkiaScene
 {
@@ -102,24 +103,51 @@ public class BessSkiaScene
         
         var colorCanvas = new SKCanvas(_colorBuffer);
         var idCanvas = new SKCanvas(_idBuffer);
-        
-        colorCanvas.Clear(new SKColor(30, 30, 30, 255));
+        var backgroundColor = new SKColor(30, 30, 30, 255);
+        colorCanvas.Clear(backgroundColor);
         idCanvas.Clear(new SKColor(0, 0, 0, 0));
 
+        SkRenderer.Begin(colorCanvas, idCanvas);
+
+        var gridColor = backgroundColor.Multiply(2).WithAlpha(255);
+        
+        SkRenderer.DrawGrid(
+            new SKPoint(0, 0),
+            new SKSize(Width, Height), 
+            Camera.PositionSkPoint, 
+            Camera.Zoom.X, 
+            gridColor
+        );
+        
         colorCanvas.Scale(Camera.GetZoomSkPoint);
         idCanvas.Scale(Camera.GetZoomSkPoint);
         
         var position = VectorToSkPoint(Camera.Position);
         colorCanvas.Translate(position);
         idCanvas.Translate(position);
-
+        
         SkRenderer.Begin(colorCanvas, idCanvas);
+
+        foreach (var connection in SceneState.Instance.ConnectionEntities)
+        {
+            connection.Render();
+        }
+        
+        var connectionData = SceneState.Instance.ConnectionData;
+        if (connectionData.IsConnecting)
+        {
+            SkRenderer.DrawCubicBezier(connectionData.StartPoint, ToWorldPos(SceneState.Instance.MousePosition), SKColors.Bisque, (float)1.5);
+        }
         
         foreach (var ent in SceneState.Instance.Entities)
         {
             ent.Render();
         }
 
+        foreach (var ent in SceneState.Instance.SlotEntities)
+        {
+            ent.Render();
+        }
 
         colorCanvas.Flush();
         idCanvas.Flush();
@@ -149,13 +177,12 @@ public class BessSkiaScene
     } 
     
     private static SKPoint VectorToSkPoint(Vector2 vector) => new((float)vector.X, (float)vector.Y);
-    
+
     private void OnMouseMove(MouseMoveData data)
     {
         var prevPos = SceneState.Instance.MousePosition;
         var dPos = data.Position - prevPos;
         SceneState.Instance.MousePosition = data.Position;
-        var selEntity = SceneState.Instance.SelectedEntityId;
         var mousePos = SceneState.Instance.MousePosition;
 
         var dragData = SceneState.Instance.DragData;
@@ -164,10 +191,11 @@ public class BessSkiaScene
         {
             if (dragData.IsDragging)
             {
-                var ent = SceneState.Instance.GetEntityByRenderId(dragData.EntityId);    
-                ent.Position = ToWorldPos(mousePos) - dragData.DragOffset;
+                var ent = SceneState.Instance.GetEntityByRenderId<GateSketch>(dragData.EntityId);
+                ent.UpdatePos(ToWorldPos(mousePos) - dragData.DragOffset);
             }
-        }else if (SceneState.Instance.IsMiddleMousePressed)
+        }
+        else if (SceneState.Instance.IsMiddleMousePressed)
         {
             Camera.UpdatePositionBy(dPos);
         }
@@ -185,15 +213,36 @@ public class BessSkiaScene
         SceneState.Instance.SelectedEntityId = rid;
         SceneState.Instance.MousePosition = pos;
         SceneState.Instance.IsLeftMousePressed = data.Pressed;
-        
-        if (SceneState.Instance.SelectedEntityId == EmptyId) return;
+
+        if (SceneState.Instance.SelectedEntityId == EmptyId)
+        {
+            if (SceneState.Instance.ConnectionData.IsConnecting)
+            {
+                SceneState.Instance.EndConnection();
+            }
+            return;
+        }
 
         if (data.Pressed)
         {
-            SceneState.Instance.StartDrag(rid, ToWorldPos(pos));
+            if(SceneState.Instance.IsParentEntity(rid))
+                SceneState.Instance.StartDrag(rid, ToWorldPos(pos));
+            else if (SceneState.Instance.IsSlotEntity(rid))
+            {
+                if (!SceneState.Instance.ConnectionData.IsConnecting)
+                {
+                    SceneState.Instance.StartConnection(rid);
+                }
+                else
+                {
+                    SceneState.Instance.ConnectionData.EndEntityId = rid;
+                    SceneState.Instance.EndConnection(true);
+                }
+            }
         }else
         {
-            SceneState.Instance.EndDrag();
+            if(SceneState.Instance.DragData.IsDragging)
+                SceneState.Instance.EndDrag();
         }
     }
     

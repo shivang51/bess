@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.State.SceneCore.Entities;
+namespace BessScene.SceneCore.ShadersCollection;
 
 public class Transform
 {
