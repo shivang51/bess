@@ -22,6 +22,8 @@ public class GateSketch: SceneEntity
     private const float BorderRadius = 4;
     private const float SlotsTopMargin = 4;
     private static readonly float SlotSize = SlotSketch.SlotSize;
+
+    private readonly SKColor _color;
     
     public GateSketch(string name, int inputCount, int outputCount) : base(new Vector2(20, 20))
     {
@@ -33,11 +35,13 @@ public class GateSketch: SceneEntity
         
         _inputSlots = GenerateSlots(inputCount);
         _outputSlots = GenerateSlots(outputCount, false);
+
+        _color = SkiaExtensions.GenerateRandomColor();
     }
 
     public override void Render()
     {
-        SkRenderer.DrawMicaRoundRect(SkPosition, SkScale, BorderRadius, GetRIdColor(), SKColors.BlueViolet);
+        SkRenderer.DrawMicaRoundRect(SkPosition, SkScale, BorderRadius, GetRIdColor(), _color);
         SkRenderer.DrawMicaRoundRect(SkPosition, HeaderSize, new Vector4(BorderRadius, BorderRadius, 0, 0));
         
         SkRenderer.DrawText(_name, GetHeaderTextPosition(), SKColors.White, 10);

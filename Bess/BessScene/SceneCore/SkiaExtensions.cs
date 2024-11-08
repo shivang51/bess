@@ -16,4 +16,15 @@ public static class SkiaExtensions
     }
     
     public static SKPoint ToSkPoint(this Vector2 vector) => new((float)vector.X, (float)vector.Y);
+    
+    private static readonly Random _random = new();
+    public static SKColor GenerateRandomColor()
+    {
+        byte red = (byte)_random.Next(256);
+        byte green = (byte)_random.Next(256);
+        byte blue = (byte)_random.Next(256);
+        byte alpha = 255; // Set to 255 for full opacity, or randomize if you want transparency
+
+        return new SKColor(red, green, blue, alpha);
+    }
 }

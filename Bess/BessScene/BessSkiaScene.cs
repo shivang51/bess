@@ -103,7 +103,7 @@ public class BessSkiaScene
         
         var colorCanvas = new SKCanvas(_colorBuffer);
         var idCanvas = new SKCanvas(_idBuffer);
-        var backgroundColor = new SKColor(30, 30, 30, 255);
+        var backgroundColor = new SKColor(30, 30, 30, 200);
         colorCanvas.Clear(backgroundColor);
         idCanvas.Clear(new SKColor(0, 0, 0, 0));
 

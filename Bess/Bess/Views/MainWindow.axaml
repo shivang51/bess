@@ -8,6 +8,8 @@
         x:Class="Bess.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/logo-1024.png"
+        Background="Transparent"
+        TransparencyLevelHint="AcrylicBlur"
         Title="Bess">
 
     <Design.DataContext>
@@ -21,16 +23,24 @@
                 <mainPageViews:MenuBar/>
             </StackPanel>
         </Border>
-        <Grid Grid.Row="1" ColumnDefinitions="Auto,2,*,2,Auto">
-            <mainPageViews:ComponentExplorer Grid.Column="0" Width="300"/>
-            <GridSplitter Grid.Column="1"></GridSplitter>
-            <Border Grid.Column="2" CornerRadius="32">
-            <mainPageViews:BessSceneView/>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto" MaxWidth="1"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto" MaxWidth="1"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <GridSplitter Margin="0 16" Grid.Column="1" ResizeDirection="Columns" HorizontalAlignment="Stretch"/>
+            <mainPageViews:ComponentExplorer Grid.Column="0"/>
+            <Border Grid.Column="4" Background="#10FFFFFF">
+                <Border.Effect>
+                    <BlurEffect Radius="31"></BlurEffect>
+                </Border.Effect>
             </Border>
-            <GridSplitter Grid.Column="3"></GridSplitter>
-            <mainPageViews:ProjectExplorer Grid.Column="4" Width="300"/>
+            <mainPageViews:ProjectExplorer Grid.Column="4" Name="ProjectExplorer" />
+            <GridSplitter Margin="0 16" Grid.Column="3" ResizeDirection="Columns" HorizontalAlignment="Stretch"/>
+            <mainPageViews:BessSceneView Grid.Column="2"/>
         </Grid>
     </Grid>
-
-
 </Window>

@@ -44,6 +44,12 @@ public class BessSceneControl: Control
         set => SetValue(ZoomProperty!, value);
     }
 
+    public CornerRadius Radius
+    {
+        get => GetValue(CornerRadiusProperty);
+        set => SetValue(CornerRadiusProperty!, value);
+    }
+    
     public RelayCommand<float>? OnZoomChanged
     {
         get => GetValue(OnZoomChangedProperty);
@@ -53,6 +59,9 @@ public class BessSceneControl: Control
     public static readonly StyledProperty<RelayCommand<float>> OnZoomChangedProperty = 
         AvaloniaProperty.Register<BessSceneControl, RelayCommand<float>>(nameof(OnZoomChanged));
 
+    public static readonly StyledProperty<CornerRadius> CornerRadiusProperty = 
+        AvaloniaProperty.Register<BessSceneControl, CornerRadius>(nameof(Radius));
+    
     public static readonly StyledProperty<float> ZoomProperty = 
         AvaloniaProperty.Register<BessSceneControl, float>(nameof(Zoom));
     
@@ -102,7 +111,13 @@ public class BessSceneControl: Control
 
     public override void Render(DrawingContext context)
     {
-        context.DrawImage(ColorBuffer, new Rect(0, 0, Bounds.Width, Bounds.Height));
+        var rect = new Rect(0, 0, Bounds.Width, Bounds.Height);
+        var geometry = new RoundedRect(rect, Radius);
+
+        using (context.PushClip(geometry))
+        {
+            context.DrawImage(ColorBuffer, new Rect(0, 0, rect.Width, rect.Height));
+        }
     }
 
     private Bitmap ColorBuffer => ConvertToAvaloniaBitmap(_scene.GetColorBuffer());

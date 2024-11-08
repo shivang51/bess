@@ -264,7 +264,7 @@ public static class SkRenderer
             gradientPaint.Shader = SKShader.CreateLinearGradient(
                 new SKPoint(rect.Left, rect.Top),
                 new SKPoint(rect.Right, rect.Bottom),
-                new[] { new SKColor(40, 40, 40, 100), new SKColor(100, 100, 100, 150) },
+                new[] { new SKColor(40, 40, 40, 100), new SKColor(80, 80, 80, 200) },
                 BlurColorPos,
                 SKShaderTileMode.Clamp
             );
@@ -286,7 +286,7 @@ public static class SkRenderer
         using (var overlayPaint = new SKPaint())
         {
             var color = splashColor ?? SKColors.White;
-            overlayPaint.Color = color.WithAlpha(50);
+            overlayPaint.Color = color.WithAlpha(40);
             overlayPaint.BlendMode = SKBlendMode.SrcOver;
             overlayPaint.IsAntialias = true;
             
