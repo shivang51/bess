@@ -12,6 +12,9 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     public ObservableCollection<AddedComponent> AddedComponents { get; } = [];
 
+    [ObservableProperty]
+    public bool _isNotLinux = !OperatingSystem.IsLinux();
+    
     public void AddComponent(ComponentModel? componentModel)
     {
         if (componentModel == null) return;

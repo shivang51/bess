@@ -8,13 +8,21 @@
         x:Class="Bess.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/logo-1024.png"
-        Background="Transparent"
-        TransparencyLevelHint="AcrylicBlur"
         Title="Bess">
 
     <Design.DataContext>
         <vm:MainWindowViewModel/>
     </Design.DataContext>
+    
+    <Window.Styles>
+        <Style Selector="Border.BlurBackground">
+            <Setter Property="IsVisible" Value="{Binding IsNotLinux}"></Setter>
+        </Style>
+    </Window.Styles>
+    
+    <Window.Resources>
+        <x:Boolean x:Key="IsNotLinux">false</x:Boolean>
+    </Window.Resources>
     
     <Grid RowDefinitions="Auto, *">
         <Border Grid.Row="0" Height="32">
@@ -33,9 +41,9 @@
             </Grid.ColumnDefinitions>
             <GridSplitter Margin="0 16" Grid.Column="1" ResizeDirection="Columns" HorizontalAlignment="Stretch"/>
             <mainPageViews:ComponentExplorer Grid.Column="0"/>
-            <Border Grid.Column="4" Background="#10FFFFFF">
+            <Border Classes="BlurBackground" Grid.Column="4" Background="#10FFFFFF">
                 <Border.Effect>
-                    <BlurEffect Radius="31"></BlurEffect>
+                    <BlurEffect Radius="32"></BlurEffect>
                 </Border.Effect>
             </Border>
             <mainPageViews:ProjectExplorer Grid.Column="4" Name="ProjectExplorer" />
