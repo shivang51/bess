@@ -49,5 +49,9 @@
 			<MenuItem Header="Copy" />
 			<MenuItem Header="Paste" />
 		</MenuItem>
+		<MenuItem Header="View">
+		</MenuItem>
+		<MenuItem Header="Help">
+		</MenuItem>
 	</Menu>
 </UserControl>

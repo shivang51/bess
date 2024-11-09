@@ -10,8 +10,19 @@
         <viewModels:MainWindowViewModel/>
     </Design.DataContext>
     
-    <StackPanel MinWidth="200" Margin="8">
-        <TextBlock Text="Project Explorer"></TextBlock>
+    <StackPanel MinWidth="200" Margin="16">
+
+        <DockPanel HorizontalAlignment="Stretch" Background="Transparent">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon VerticalAlignment="Center" Height="16" Width="16"
+                          Data="{StaticResource ProjectExplorer}" />
+                <TextBlock VerticalAlignment="Center" Text="Project Explorer"></TextBlock>
+            </StackPanel>
+            <Button VerticalAlignment="Center" HorizontalAlignment="Right" Background="Transparent"
+                    BorderBrush="Transparent">
+                <PathIcon Width="4" Height="16" Padding="2" Data="{StaticResource EllipsisVertical}" />
+            </Button>
+        </DockPanel>
         <ItemsControl x:Name="ProjectExplorerStack" ItemsSource="{Binding AddedComponents}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>

@@ -22,7 +22,11 @@ public partial class MainWindow : AppWindow
         TitleBar.ExtendsContentIntoTitleBar = true;
         TitleBar.TitleBarHitTestType = TitleBarHitTestType.Complex;
 
-        if (OperatingSystem.IsLinux()) return;
+        if (OperatingSystem.IsLinux())
+        {
+            FontFamily = new FontFamily( new Uri("avares://Assets/fonts/Roboto/Roboto-Regular.ttf"),"Roboto");
+            return;
+        }
         
         Background = Brushes.Transparent;
         TransparencyLevelHint = [WindowTransparencyLevel.AcrylicBlur];
