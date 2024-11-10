@@ -8,6 +8,7 @@
         x:Class="Bess.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/logo-1024.png"
+        FontFamily="{DynamicResource RobotoRegular}"
         Title="Bess">
 
     <Design.DataContext>
@@ -18,19 +19,10 @@
         <Style Selector="Border.BlurBackground">
             <Setter Property="IsVisible" Value="{Binding IsNotLinux}"></Setter>
         </Style>
-        <Style Selector="GridSplitter:pointerover">
-            <Setter Property="RenderTransform">
-                <ScaleTransform ScaleX="2"></ScaleTransform>
-            </Setter>
-        </Style>
     </Window.Styles>
     
-    <Window.Resources>
-        <x:Boolean x:Key="IsNotLinux">false</x:Boolean>
-    </Window.Resources>
-    
     <Grid RowDefinitions="Auto, *, Auto">
-        <Border Grid.Row="0" Height="32" Background="{DynamicResource ButtonBackground}">
+        <Border Grid.Row="0" Height="32">
             <Grid ColumnDefinitions="*">
                 <DockPanel HorizontalAlignment="Stretch" Background="Transparent">
                     <Image Source="/Assets/logo.png" Width="16" Height="16" Margin="4 0"></Image>
@@ -48,7 +40,7 @@
                 <ColumnDefinition Width="Auto" MaxWidth="1"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <mainPageViews:ComponentExplorer Grid.Column="0" Background="{DynamicResource ButtonBackground}"/>
+            <mainPageViews:ComponentExplorer Grid.Column="0"/>
             <GridSplitter Margin="1 16" Grid.Column="3"/>
             <mainPageViews:BessSceneView Grid.Column="2"/>
             <GridSplitter Margin="1 16" Grid.Column="1"/>
@@ -60,7 +52,7 @@
             <mainPageViews:ProjectExplorer Grid.Column="4" Name="ProjectExplorer" />
         </Grid>
         
-        <DockPanel Grid.Row="2" Background="{DynamicResource ButtonBackground}">
+        <DockPanel Grid.Row="2">
             <Border Padding="8 4">
                 <TextBlock Text="Simulation Running" HorizontalAlignment="Right"></TextBlock>
             </Border>

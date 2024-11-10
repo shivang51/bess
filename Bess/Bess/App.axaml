@@ -7,6 +7,12 @@
              RequestedThemeVariant="Dark">
     <Application.Resources>
         <converters:ResourceToGeometryConverter x:Key="ResourceToGeometryConverter" />
+        <FontFamily x:Key="RobotoRegular">/Assets/fonts/Roboto/Roboto-Regular.ttf#Roboto</FontFamily>
+        
+        <LinearGradientBrush x:Key="PrimaryBackgroundGradient" StartPoint="0%, 0%" EndPoint="100%, 0%">
+            <GradientStop Offset="0" Color="#7E303B4A"/>
+            <GradientStop Offset="1" Color="#2E2C243B"/>
+        </LinearGradientBrush>
     </Application.Resources>
     
     <Application.DataTemplates>
@@ -16,5 +22,10 @@
     <Application.Styles>
         <styling:FluentAvaloniaTheme PreferUserAccentColor="True" />
         <StyleInclude Source="avares://Bess/FluentIcons.axaml"></StyleInclude>
+        <StyleInclude Source="avares://Bess/Styles/WindowStyles.axaml"></StyleInclude>
+        
+        <Style Selector="Window">
+            <Setter Property="Background" Value="Red"></Setter>
+        </Style>
     </Application.Styles>
 </Application>

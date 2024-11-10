@@ -26,6 +26,9 @@ public class SlotSketch: SlotEntity
         
         if(!string.IsNullOrEmpty(Name))
             SkRenderer.DrawText(Name, pos + SkLabelOffset, SKColors.White, FontSize);
-        SkRenderer.DrawCircle(pos, radius, SKColors.Transparent, GetRIdColor(), SKColors.White, borderWeight);
+
+        var bgColor = SKColors.IndianRed.WithAlpha(200);
+        if (High) bgColor = SKColors.LimeGreen.WithAlpha(200);
+        SkRenderer.DrawCircle(pos, radius, bgColor, GetRIdColor(), SKColors.White, borderWeight);
     }
 }

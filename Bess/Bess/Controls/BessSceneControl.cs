@@ -125,6 +125,7 @@ public class BessSceneControl: Control
     private static Bitmap ConvertToAvaloniaBitmap(SKBitmap skBitmap)
     {
         using var image = SKImage.FromBitmap(skBitmap);
+        if (image == null) return new Bitmap(Stream.Null);
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
         using var stream = new MemoryStream(data.ToArray());
         return new Bitmap(stream);

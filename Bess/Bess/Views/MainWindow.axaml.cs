@@ -24,7 +24,16 @@ public partial class MainWindow : AppWindow
 
         if (OperatingSystem.IsLinux())
         {
-            FontFamily = new FontFamily( new Uri("avares://Assets/fonts/Roboto/Roboto-Regular.ttf"),"Roboto");
+            Background = new LinearGradientBrush()
+            {
+                GradientStops =
+                [
+                    new GradientStop(Color.FromUInt32(0xFF1B1827), 0),
+                    new GradientStop(Color.FromUInt32(0xFF11111B), 1),
+                ],
+                StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+                EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative)
+            };
             return;
         }
         
