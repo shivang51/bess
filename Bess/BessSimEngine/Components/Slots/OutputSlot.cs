@@ -8,6 +8,16 @@ public class OutputSlot: Slot
 
     public override void Simulate()
     {
-        throw new NotImplementedException();
+        foreach (var component1 in Connections.Select(GetConnection))
+        {
+            var component = (InputSlot)component1!;
+            component.SetState(State);
+        }
+    }
+    
+    public override void SetState(DigitalState state)
+    {
+        State = state;
+        Simulate();
     }
 }

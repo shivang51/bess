@@ -5,9 +5,22 @@ namespace BessSimEngine;
 
 public class SimEngineState
 {
-    public static SimEngineState Instance { get; } = new();
+    static SimEngineState()
+    {
+        Instance = new SimEngineState();
+    }
     
-    private List<Component> Components { get; set;} = new();
+    public static SimEngineState Instance { get; }
+    
+    public List<Component> Components { get; set;} = new();
+    
+    private PriorityQueue<Component, DateTime> SimulationQueue { get; set;} = new();
+
+    public void Init()
+    {
+        Components.Clear();
+        SimulationQueue.Clear();
+    }
     
     public void AddComponent(Component component)
     {
@@ -19,11 +32,8 @@ public class SimEngineState
         Components.RemoveAll(c => c.Id == id);
     }
     
-    public void Simulate()
+    public void ScheduleSim(Component component, DateTime time)
     {
-        foreach (var component in Components)
-        {
-            component.Simulate();
-        }
+        SimulationQueue.Enqueue(component, time);
     }
 }

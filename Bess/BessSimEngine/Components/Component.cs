@@ -8,11 +8,21 @@ public abstract class Component
     
     public string Name { get; private set; }
     
-    public List<InputSlot> Inputs { get; private set; }
+    protected List<InputSlot> Inputs { get;}
     
-    public List<OutputSlot> Outputs { get; private set; }
+    protected List<OutputSlot> Outputs { get;}
+    
+    public DateTime NextSimTime { get; private set; }
+    
+    protected TimeSpan Delay { get; set; } = TimeSpan.Zero;
     
     public abstract void Simulate();
+    
+    public void ScheduleSim()
+    {
+        NextSimTime = DateTime.Now.Add(Delay);
+        SimEngineState.Instance.ScheduleSim(this, NextSimTime);
+    }
 
     protected Component(Guid id, string name, List<InputSlot> inputs, List<OutputSlot> outputs)
     {

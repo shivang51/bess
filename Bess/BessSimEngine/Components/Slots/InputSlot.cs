@@ -8,6 +8,12 @@ public class InputSlot: Slot
 
     public override void Simulate()
     {
-        throw new NotImplementedException();
+        Parent?.ScheduleSim();
+    }
+    
+    public override void SetState(DigitalState state)
+    {
+        State = state;
+        Simulate();
     }
 }

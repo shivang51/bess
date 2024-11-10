@@ -9,6 +9,7 @@ public class NotGate: DigitalComponent
     public override void Simulate()
     {
         Outputs[0].State = Inputs[0].IsHigh ? DigitalState.Low : DigitalState.High;
+        Outputs[0].Simulate();
     }
 }
 
