@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Reflection;
-using BessScene.SceneCore;
-using BessScene.SceneCore.ShadersCollection;
-using BessScene.SceneCore.Sketches;
+using BessScene.SceneCore.State;
+using BessScene.SceneCore.State.ShadersCollection;
+using BessScene.SceneCore.State.Sketches;
 using BessSimEngine;
 using BessSimEngine.Components;
 using BessSimEngine.Components.DigitalComponents.Gates;
@@ -17,7 +17,7 @@ public class ComponentModel
 
     private static (Guid, uint) Generate(Component simComponent, SceneEntity entity)
     {
-        SimState.Instance.AddComponent(simComponent);
+        SimEngineState.Instance.AddComponent(simComponent);
         SceneState.Instance.AddEntity(entity);
         
         return (simComponent.Id, entity.RenderId);

@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Numerics;
-using BessScene.SceneCore.Events;
-using BessScene.SceneCore.ShadersCollection;
-using BessScene.SceneCore.Sketches;
+using BessScene.SceneCore.State.Events;
+using BessScene.SceneCore.State.ShadersCollection;
+using BessScene.SceneCore.State.Sketches;
 using SkiaSharp;
 
-namespace BessScene.SceneCore;
+namespace BessScene.SceneCore.State;
 
 public class BessSkiaScene
 {
@@ -89,11 +89,10 @@ public class BessSkiaScene
         var entities = SceneState.Instance.Entities;
         SceneState.Instance.HoveredEntityId = GetRenderObjectId((int)SceneState.Instance.MousePosition.X, (int)SceneState.Instance.MousePosition.Y);
         
-        foreach (var ent in entities)
+        foreach (var ent in entities.Values)
         {
             ent.Update();
         }
-        
     }
 
     public SKBitmap GetColorBuffer() => _colorBuffer;
@@ -128,7 +127,7 @@ public class BessSkiaScene
         
         SkRenderer.Begin(colorCanvas, idCanvas);
 
-        foreach (var connection in SceneState.Instance.ConnectionEntities)
+        foreach (var connection in SceneState.Instance.ConnectionEntities.Values)
         {
             connection.Render();
         }
@@ -139,12 +138,12 @@ public class BessSkiaScene
             SkRenderer.DrawCubicBezier(connectionData.StartPoint, ToWorldPos(SceneState.Instance.MousePosition), SKColors.Bisque, (float)1.5);
         }
         
-        foreach (var ent in SceneState.Instance.Entities)
+        foreach (var ent in SceneState.Instance.Entities.Values)
         {
             ent.Render();
         }
 
-        foreach (var ent in SceneState.Instance.SlotEntities)
+        foreach (var ent in SceneState.Instance.SlotEntities.Values)
         {
             ent.Render();
         }

@@ -2,13 +2,18 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:viewModels="clr-namespace:Bess.ViewModels"
+             xmlns:viewModels="clr-namespace:Bess.ViewModels.MainWindowViewModels"
+             xmlns:parentVm="clr-namespace:Bess.ViewModels"
              mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="450"
              x:Class="Bess.Views.MainPageViews.ProjectExplorer"
-             x:DataType="viewModels:MainWindowViewModel">
+             x:DataType="viewModels:ProjectExplorerViewModel">
     <Design.DataContext>
-        <viewModels:MainWindowViewModel/>
+        <viewModels:ProjectExplorerViewModel/>
     </Design.DataContext>
+    
+    <Control.DataContext>
+        <viewModels:ProjectExplorerViewModel/>
+    </Control.DataContext>
     
     <StackPanel MinWidth="200" Margin="16">
 
@@ -23,7 +28,8 @@
                 <PathIcon Width="4" Height="16" Padding="2" Data="{StaticResource EllipsisVertical}" />
             </Button>
         </DockPanel>
-        <ItemsControl x:Name="ProjectExplorerStack" ItemsSource="{Binding AddedComponents}">
+        <ItemsControl x:Name="ProjectExplorerStack" 
+                      ItemsSource="{Binding ((parentVm:MainWindowViewModel)DataContext).AddedComponents, RelativeSource={RelativeSource AncestorType=Window}}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <StackPanel MaxWidth="350" Spacing="4" Margin="4 8"/>
@@ -46,7 +52,11 @@
 						</Border.Styles>
                         <DockPanel HorizontalAlignment="Stretch" Background="Transparent">
                             <TextBlock VerticalAlignment="Center" Text="{Binding Name}"/>
-                            <Button Classes="DeleteButton" HorizontalAlignment="Right">
+                            <Button Classes="DeleteButton" 
+                                    HorizontalAlignment="Right" 
+                                    Command="{Binding ((parentVm:MainWindowViewModel)DataContext).RemoveComponent, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"
+                                    >
                                 <PathIcon Height="16" Data="{StaticResource DeleteRegular}"/>
                             </Button>
                         </DockPanel>

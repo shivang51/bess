@@ -1,4 +1,4 @@
-﻿namespace BessScene.SceneCore.Events;
+﻿namespace BessScene.SceneCore.State.Events;
 
 public enum EventType
 {

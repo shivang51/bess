@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
-using BessScene.SceneCore.ShadersCollection;
+using BessScene.SceneCore.State.ShadersCollection;
 
-namespace BessScene.SceneCore.Entities;
+namespace BessScene.SceneCore.State.Entities;
 
 public abstract class ConnectionEntity: SceneEntity
 {
@@ -13,6 +13,17 @@ public abstract class ConnectionEntity: SceneEntity
         StartSlotId = startSlotId;
         EndSlotId = endSlotId;
         
-        SceneState.Instance.ConnectionEntities.Add(this);
+        SceneState.Instance.AddConnectionEntity(this);
+        
+        SceneState.Instance.AddToConnectionMap(StartSlotId, RenderId);
+        SceneState.Instance.AddToConnectionMap(EndSlotId, RenderId);
+    }
+    
+    public override void Remove()
+    {
+        SceneState.Instance.RemoveFromConnectionMap(StartSlotId, RenderId);
+        SceneState.Instance.RemoveFromConnectionMap(EndSlotId, RenderId);
+        
+        SceneState.Instance.RemoveConnectionEntity(this);
     }
 }

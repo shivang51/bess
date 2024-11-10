@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
-using BessScene.SceneCore.ShadersCollection;
+using BessScene.SceneCore.State.ShadersCollection;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.Entities;
+namespace BessScene.SceneCore.State.Entities;
 
 public abstract class SlotEntity: SceneEntity
 {
@@ -21,12 +21,11 @@ public abstract class SlotEntity: SceneEntity
     
     public bool High { get; set; }
     
-    private uint _parentRenderId;
     public Vector2 ParentPos = new();
 
     public Vector2 AbsPosition => ParentPos + Position;
     
-    public string Name { get; set; } = "";
+    public string Name { get; set; }
 
     public LabelLocation LabelLoc { get; set; } = LabelLocation.Right;
     
@@ -36,8 +35,6 @@ public abstract class SlotEntity: SceneEntity
     {
         Name = name;
         LabelLoc = labelLocation;
-
-        _parentRenderId = parentId;
         
         // Calculating label offset
         float xOffset = 0;
@@ -57,11 +54,24 @@ public abstract class SlotEntity: SceneEntity
             case LabelLocation.Bottom:
                 yOffset = (SlotDiameter / 2) + LabelGap;
                 break;
+            default:
+                throw new ArgumentOutOfRangeException($"{labelLocation}");
         }
         
         LabelOffset = new Vector2(xOffset, yOffset);
         
         SceneState.Instance.AddSlotEntity(this);
+    }
+    
+    public override void Remove()
+    {
+        foreach(var conn in SceneState.Instance.GetConnectionEntitiesForSlot(RenderId))
+        {
+            conn.Remove();
+        }
+        
+        SceneState.Instance.RemoveSlotEntity(this);
+        SceneState.Instance.ClearConnectionMapForSlotId(RenderId);
     }
     
     protected SKPoint SkLabelOffset => new(LabelOffset.X, LabelOffset.Y);

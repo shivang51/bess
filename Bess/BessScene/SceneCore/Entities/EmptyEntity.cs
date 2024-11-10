@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace BessScene.SceneCore.ShadersCollection;
+namespace BessScene.SceneCore.State.ShadersCollection;
 
 public class EmptyEntity : SceneEntity
 {
@@ -9,6 +9,10 @@ public class EmptyEntity : SceneEntity
     }
     
     public override void Render()
+    {
+    }
+    
+    public override void Remove()
     {
     }
 }

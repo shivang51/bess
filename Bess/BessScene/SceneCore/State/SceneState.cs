@@ -1,11 +1,11 @@
 ﻿using System.Numerics;
-using BessScene.SceneCore.Entities;
-using BessScene.SceneCore.ShadersCollection;
-using BessScene.SceneCore.Sketches;
-using BessScene.SceneCore.State;
+using BessScene.SceneCore.State.Entities;
+using BessScene.SceneCore.State.ShadersCollection;
+using BessScene.SceneCore.State.Sketches;
+using BessScene.SceneCore.State.State;
 using SkiaSharp;
 
-namespace BessScene.SceneCore;
+namespace BessScene.SceneCore.State;
 
 public class SceneState
 {
@@ -23,9 +23,19 @@ public class SceneState
     
     public ConnectionData ConnectionData { get; private set; } = new();
     
+    
+    /// <summary>
+    /// Contains connection ids from slot render id
+    /// </summary>
+    private Dictionary<uint, List<uint>> _connectionMap = new();
+    
     public uint HoveredEntityId { get; set; }
     
     private uint _selectedEntityId = 0;
+    
+    public Dictionary<uint, ConnectionEntity> ConnectionEntities { get; private set; } = new();
+    public Dictionary<uint, SceneEntity> Entities { get; private set; } = new();
+    public Dictionary<uint, SlotEntity> SlotEntities { get; private set; } = new();
     
     public uint SelectedEntityId { 
         get => _selectedEntityId;
@@ -39,72 +49,118 @@ public class SceneState
 
     private void Init()
     {
-        Entities = new List<SceneEntity>();
-        SlotEntities = new List<SlotEntity>();
-        ConnectionEntities = new List<ConnectionEntity>();
         _selectedEntityId = 0;
+        Entities.Clear();
+        SlotEntities.Clear();
+        ConnectionEntities.Clear();
+        _connectionMap.Clear();
     }
     
     public void AddEntity(SceneEntity entity)
     {
-        Entities.Add(entity);
+        Entities.Add(entity.RenderId, entity);
+    }
+    
+    public void RemoveEntityById(uint renderId)
+    {
+        var ent = GetEntityOrNull(renderId);
+        if (ent == null) throw new InvalidDataException($"Failed to removed an entity with render id {renderId}");
+        ent.Remove();
     }
     
     public void RemoveEntity(SceneEntity entity)
     {
-        Entities.Remove(entity);
+        Entities.Remove(entity.RenderId);
     }
-    
-    public void ClearEntities()
-    {
-        Entities.Clear();
-    }
-
-    public List<ConnectionEntity> ConnectionEntities { get; private set; } = null!;
-    
-    public List<SceneEntity> Entities { get; private set; } = null!;
-    
-    /// <summary>
-    ///  Entities that are children of other entities in Entities list 
-    /// </summary>
-    public List<SlotEntity> SlotEntities { get; private set; } = null!;
 
     public bool IsParentEntity(uint rid)
     {
-        return Entities.Any(entity => entity.RenderId == rid);
+        return Entities.ContainsKey(rid);
     }
     
     public bool IsSlotEntity(uint rid)
     {
-        return SlotEntities.Any(entity => entity.RenderId == rid);
+        return SlotEntities.ContainsKey(rid);
     }
     
     public void AddSlotEntity(SlotEntity entity)
     {
-        SlotEntities.Add(entity);
+        SlotEntities.Add(entity.RenderId, entity);
     }
     
     public void RemoveSlotEntity(SlotEntity entity)
     {
-        SlotEntities.Remove(entity);
+        SlotEntities.Remove(entity.RenderId);
     }
     
+    public void AddConnectionEntity(ConnectionEntity entity)
+    {
+        ConnectionEntities.Add(entity.RenderId, entity);
+    }
+    
+    public ConnectionEntity GetConnectionEntity(uint rid)
+    {
+        var ent = ConnectionEntities.GetValueOrDefault(rid);
+        
+        if (ent == null)
+        {
+            throw new InvalidDataException($"Entity with render id {rid} not found");
+        }
+        
+        return ent;
+    }
+    
+    public void RemoveConnectionEntity(ConnectionEntity entity)
+    {
+        ConnectionEntities.Remove(entity.RenderId);
+    }
+    
+    public void RemoveFromConnectionMap(uint slotId, uint connId)
+    {
+        if (_connectionMap.TryGetValue(slotId, out var value))
+        {
+            value.Remove(connId);
+        }
+    }
+    
+    public void AddToConnectionMap(uint slotId, uint connId)
+    {
+        if (!_connectionMap.TryGetValue(slotId, out var value))
+        {
+            value = new List<uint>();
+            _connectionMap[slotId] = value;
+        }
+
+        value.Add(connId);
+    }
+    
+    public List<ConnectionEntity> GetConnectionEntitiesForSlot(uint slotId)
+    {
+        var connIds = _connectionMap.GetValueOrDefault(slotId);
+        return connIds == null ? new List<ConnectionEntity>() : connIds.Select(GetConnectionEntity).ToList();
+    }
+
+    public void ClearConnectionMapForSlotId(uint slotId)
+    {
+        _connectionMap.Remove(slotId);
+    }
     
     /// <summary>
     /// Searches all the entities -> Entities + ChildEntities and returns null if not found
     /// </summary>
     /// <param name="rid">Render ID of entity to be searched</param>
     /// <returns></returns>
-    public SceneEntity? GetEntityOrNull(uint rid)
+    private SceneEntity? GetEntityOrNull(uint rid)
     {
-        var entity = Entities.FirstOrDefault(ent => ent.RenderId == rid);
-        entity ??= SlotEntities.FirstOrDefault(ent => ent.RenderId == rid);
+        var entity = Entities.GetValueOrDefault(rid);
+        entity ??= SlotEntities.GetValueOrDefault(rid);
+        entity ??= ConnectionEntities.GetValueOrDefault(rid);
         return entity;
     }
     
     public SceneEntity GetEntityByRenderId(uint rid)
     {
-        var ent = Entities.FirstOrDefault(entity => entity.RenderId == rid);
+        var ent = Entities.GetValueOrDefault(rid);
         
         if (ent == null)
         {
@@ -121,7 +177,7 @@ public class SceneState
     
     public SlotEntity GetSlotEntityByRenderId(uint rid)
     {
-        var ent = SlotEntities.FirstOrDefault(entity => entity.RenderId == rid);
+        var ent = SlotEntities.GetValueOrDefault(rid);
 
         if (ent == null)
         {
@@ -157,7 +213,7 @@ public class SceneState
         
         if(!join) return;
 
-        new ConnectionSketch(ConnectionData.StartEntityId, ConnectionData.EndEntityId);
+        var _ = new ConnectionSketch(ConnectionData.StartEntityId, ConnectionData.EndEntityId);
     }
     
     public void SetMousePosition(float x, float y)

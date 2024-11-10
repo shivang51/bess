@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
-using BessScene.SceneCore.Entities;
-using BessScene.SceneCore.ShadersCollection;
+using BessScene.SceneCore.State.Entities;
+using BessScene.SceneCore.State.ShadersCollection;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.Sketches;
+namespace BessScene.SceneCore.State.Sketches;
 
 public class GateSketch: SceneEntity
 {
@@ -45,6 +45,21 @@ public class GateSketch: SceneEntity
         SkRenderer.DrawMicaRoundRect(SkPosition, HeaderSize, new Vector4(BorderRadius, BorderRadius, 0, 0));
         
         SkRenderer.DrawText(_name, GetHeaderTextPosition(), SKColors.White, 10);
+    }
+    
+    public override void Remove()
+    {
+        foreach (var slot in _inputSlots)
+        {
+            SceneState.Instance.GetSlotEntityByRenderId(slot).Remove();
+        }
+        
+        foreach (var slot in _outputSlots)
+        {
+            SceneState.Instance.GetSlotEntityByRenderId(slot).Remove();
+        }
+
+        SceneState.Instance.RemoveEntity(this);
     }
 
     public void UpdatePos(Vector2 pos)

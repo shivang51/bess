@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.ShadersCollection;
+namespace BessScene.SceneCore.State.ShadersCollection;
 
 public abstract class SceneEntity
 {
@@ -67,6 +67,8 @@ public abstract class SceneEntity
     protected SKSize SkScale => new(Scale.X, Scale.Y);
 
     public abstract void Render();
+    
+    public abstract void Remove();
 
     public virtual void Update()
     {

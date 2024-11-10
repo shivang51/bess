@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
-using BessScene.SceneCore.Entities;
-using BessScene.SceneCore.ShadersCollection;
+using BessScene.SceneCore.State.Entities;
+using BessScene.SceneCore.State.ShadersCollection;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.Sketches;
+namespace BessScene.SceneCore.State.Sketches;
 
 public class ConnectionSketch: ConnectionEntity
 {
@@ -18,4 +18,5 @@ public class ConnectionSketch: ConnectionEntity
         
         SkRenderer.DrawCubicBezier(startPos.ToSkPoint(), endPos.ToSkPoint(), SKColors.Olive, 1.5f, GetRIdColor());
     }
+    
 }

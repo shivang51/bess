@@ -1,10 +1,10 @@
 ﻿using System.Numerics;
 using System.Reflection.Metadata;
-using BessScene.SceneCore.Entities;
-using BessScene.SceneCore.ShadersCollection;
+using BessScene.SceneCore.State.Entities;
+using BessScene.SceneCore.State.ShadersCollection;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.Sketches;
+namespace BessScene.SceneCore.State.Sketches;
 
 public class SlotSketch: SlotEntity
 {

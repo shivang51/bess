@@ -3,9 +3,9 @@ using BessSimEngine.Components;
 
 namespace BessSimEngine;
 
-public class SimState
+public class SimEngineState
 {
-    public static SimState Instance { get; } = new();
+    public static SimEngineState Instance { get; } = new();
     
     private List<Component> Components { get; set;} = new();
     
