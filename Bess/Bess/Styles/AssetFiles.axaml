@@ -8,5 +8,6 @@
     <x:String x:Key="IconXnorGate">/Assets/Icons/DigitalComponents/XnorGate.svg</x:String>
     <x:String x:Key="IconNotGate">/Assets/Icons/DigitalComponents/NotGate.svg</x:String>
     <x:String x:Key="OutputProbe">/Assets/Icons/DigitalComponents/OutputProbe.svg</x:String>
+    <x:String x:Key="InputProbe">/Assets/Icons/DigitalComponents/InputProbe.svg</x:String>
     <x:String x:Key="CombinationalCircuits">/Assets/Icons/DigitalComponents/CombinationalCircuits.svg</x:String>
 </ResourceDictionary>
