@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:mainPageViews="clr-namespace:Bess.Views.MainPageViews"
+        xmlns:viewModels="clr-namespace:Bess.ViewModels"
         mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="450"
         x:Class="Bess.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -53,6 +54,10 @@
             <GridSplitter Margin="1 16" Grid.Column="1"/>
             <GridSplitter Margin="1 16" Grid.Column="3"/>
             <mainPageViews:BessSceneView Grid.Column="2"/>
+            <Label Grid.Column="2" IsVisible="{Binding ShowHelpText}"
+                   FontSize="24" Opacity="0.7" 
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                   Content="{Binding HelpText}"/>
         </Grid>
         
         <DockPanel Grid.Row="2">

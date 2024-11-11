@@ -17,7 +17,13 @@ public class ComponentTreeNode
     public bool ShowIcon => !string.IsNullOrEmpty(Icon);
     
     public string Icon { get; }
-  
+
+    public ComponentTreeNode(string title)
+    {
+        Title = title;
+        Icon = "";
+    }
+    
     public ComponentTreeNode(string title, ComponentModel component)
     {
         Title = title;
@@ -32,6 +38,13 @@ public class ComponentTreeNode
         GeneratorModel = component;
     }
 
+    public ComponentTreeNode(string title, string icon, ObservableCollection<ComponentTreeNode> subNodes)
+    {
+        Title = title;
+        SubNodes = subNodes;
+        Icon = icon;
+    }
+    
     public ComponentTreeNode(string title, ObservableCollection<ComponentTreeNode> subNodes)
     {
         Title = title;

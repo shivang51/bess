@@ -23,4 +23,5 @@
 	<s:String x:Key="/Default/Environment/AssemblyExplorer/XmlDocument/@EntryValue">&lt;AssemblyExplorer&gt;
   &lt;Assembly Path="/home/shivang/.nuget/packages/fluentavaloniaui/2.1.0/lib/net6.0/FluentAvalonia.dll" /&gt;
 &lt;/AssemblyExplorer&gt;</s:String>
+	<s:Boolean x:Key="/Default/UserDictionary/Words/=sequ/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=xnor/@EntryIndexedValue">True</s:Boolean></wpf:ResourceDictionary>
