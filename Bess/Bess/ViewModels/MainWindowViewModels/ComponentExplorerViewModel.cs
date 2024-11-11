@@ -10,7 +10,7 @@ public partial class ComponentExplorerViewModel: ViewModelBase
     [
         new ("I/O", [
             new ComponentTreeNode("Input Probe"),
-            new ComponentTreeNode("Output Probe"),
+            new ComponentTreeNode("Output Probe", "OutputProbe"),
             new ComponentTreeNode("Clock")
         ]),
         new ("Digital Gates", [

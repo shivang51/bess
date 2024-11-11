@@ -24,6 +24,12 @@ public class ComponentTreeNode
         Icon = "";
     }
     
+    public ComponentTreeNode(string title, string icon)
+    {
+        Title = title;
+        Icon = icon;
+    }
+    
     public ComponentTreeNode(string title, ComponentModel component)
     {
         Title = title;
