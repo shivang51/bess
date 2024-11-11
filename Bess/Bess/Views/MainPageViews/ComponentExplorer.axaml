@@ -16,7 +16,7 @@
         <viewModels:ComponentExplorerViewModel/>
     </Control.DataContext>
     
-    <StackPanel MinWidth="200" Margin="8" Spacing="16">
+    <StackPanel MinWidth="250" Margin="16" Spacing="16">
         <StackPanel Orientation="Horizontal" Spacing="8">
             <PathIcon VerticalAlignment="Center" Height="16" Width="16"
                       Data="{StaticResource ComponentExplorer}" />
@@ -37,6 +37,7 @@
                             </EventTriggerBehavior>
                         </Interaction.Behaviors>
                         <StackPanel HorizontalAlignment="Stretch" Orientation="Horizontal" Spacing="8">
+                            <Svg Width="24" Height="24" Path="/Assets/icons/digital_components/nand_gate.svg"></Svg>
                             <PathIcon IsVisible="{Binding ShowIcon}"
                                       VerticalAlignment="Center" Height="24" Width="24"
                                       Data="{Binding Icon, Converter={StaticResource ResourceToGeometryConverter}}" />

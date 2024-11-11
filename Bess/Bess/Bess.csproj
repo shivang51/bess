@@ -13,6 +13,10 @@
         <DebugType>None</DebugType>
     </PropertyGroup>
 
+    <PropertyGroup>
+        <ApplicationIcon>Assets\logo-icon.ico</ApplicationIcon>
+    </PropertyGroup>
+
     <ItemGroup>
         <AvaloniaResource Include="Assets\**" />
     </ItemGroup>
@@ -23,6 +27,7 @@
         <PackageReference Include="Avalonia.Fonts.Inter" Version="11.1.0" />
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
         <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.1.0" />
+        <PackageReference Include="Avalonia.Svg.Skia" Version="11.1.0" />
         <PackageReference Include="Avalonia.Xaml.Interactions" Version="11.1.0.6" />
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
         <PackageReference Include="FluentAvaloniaUI" Version="2.1.0" />

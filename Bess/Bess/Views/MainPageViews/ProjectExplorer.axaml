@@ -15,8 +15,7 @@
         <viewModels:ProjectExplorerViewModel/>
     </Control.DataContext>
     
-    <StackPanel MinWidth="200" Margin="16">
-
+    <StackPanel MinWidth="250" Margin="16" Spacing="16">
         <DockPanel HorizontalAlignment="Stretch" Background="Transparent">
             <StackPanel Orientation="Horizontal" Spacing="8">
                 <PathIcon VerticalAlignment="Center" Height="16" Width="16"

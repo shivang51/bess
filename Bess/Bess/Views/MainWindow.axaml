@@ -7,7 +7,7 @@
         mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="450"
         x:Class="Bess.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/logo-1024.png"
+        Icon="/Assets/logo-icon.ico"
         FontFamily="{DynamicResource RobotoRegular}"
         Title="Bess">
 
@@ -22,7 +22,7 @@
     </Window.Styles>
     
     <Grid RowDefinitions="Auto, *, Auto">
-        <Border Grid.Row="0" Height="32">
+        <Border Grid.Row="0" Height="34">
             <Grid ColumnDefinitions="*">
                 <DockPanel HorizontalAlignment="Stretch" Background="Transparent">
                     <Image Source="/Assets/logo.png" Width="16" Height="16" Margin="4 0"></Image>
@@ -40,20 +40,23 @@
                 <ColumnDefinition Width="Auto" MaxWidth="1"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
+            
             <mainPageViews:ComponentExplorer Grid.Column="0"/>
-            <GridSplitter Margin="1 16" Grid.Column="3"/>
-            <mainPageViews:BessSceneView Grid.Column="2"/>
-            <GridSplitter Margin="1 16" Grid.Column="1"/>
+            
             <Border Classes="BlurBackground" Grid.Column="4" Background="#10FFFFFF">
                 <Border.Effect>
                     <BlurEffect Radius="32"></BlurEffect>
                 </Border.Effect>
             </Border>
             <mainPageViews:ProjectExplorer Grid.Column="4" Name="ProjectExplorer" />
+            
+            <GridSplitter Margin="1 16" Grid.Column="1"/>
+            <GridSplitter Margin="1 16" Grid.Column="3"/>
+            <mainPageViews:BessSceneView Grid.Column="2"/>
         </Grid>
         
         <DockPanel Grid.Row="2">
-            <Border Padding="8 4">
+            <Border Padding="16 4">
                 <TextBlock Text="Simulation Running" HorizontalAlignment="Right"></TextBlock>
             </Border>
         </DockPanel>
