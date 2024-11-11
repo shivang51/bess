@@ -10,4 +10,12 @@
             <ScaleTransform ScaleX="2"></ScaleTransform>
         </Setter>
     </Style>
+    
+    <Styles.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="AssetFiles.axaml"></ResourceInclude>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Styles.Resources>
 </Styles>

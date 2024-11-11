@@ -7,7 +7,7 @@ using Avalonia.Media;
 
 namespace Bess.Converters;
 
-public class ResourceToGeometryConverter: IValueConverter
+public class StringToResourceConverter: IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {

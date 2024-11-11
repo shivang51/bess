@@ -6,10 +6,8 @@
              xmlns:converters="clr-namespace:Bess.Converters"
              RequestedThemeVariant="Dark">
     <Application.Resources>
-        <converters:ResourceToGeometryConverter x:Key="ResourceToGeometryConverter" />
+        <converters:StringToResourceConverter x:Key="ResourceToGeometryConverter" />
         
-        <!-- <ResourceDictionary> -->
-        <!-- </ResourceDictionary> -->
         
         <FontFamily x:Key="RobotoRegular">/Assets/fonts/Roboto/Roboto-Regular.ttf#Roboto</FontFamily>
         
@@ -27,7 +25,5 @@
         <styling:FluentAvaloniaTheme PreferUserAccentColor="True" />
         <StyleInclude Source="avares://Bess/Styles/FluentIcons.axaml"></StyleInclude>
         <StyleInclude Source="avares://Bess/Styles/WindowStyles.axaml"></StyleInclude>
-        <StyleInclude Source="avares://Bess/Styles/ComponentIcons.axaml"></StyleInclude>
-        
     </Application.Styles>
 </Application>

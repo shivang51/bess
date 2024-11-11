@@ -1,0 +1,10 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <x:String x:Key="IconNandGate">/Assets/Icons/DigitalComponents/NandGate.svg</x:String>
+    <x:String x:Key="IconNorGate">/Assets/Icons/DigitalComponents/NorGate.svg</x:String>
+    <x:String x:Key="IconAndGate">/Assets/Icons/DigitalComponents/AndGate.svg</x:String>
+    <x:String x:Key="IconOrGate">/Assets/Icons/DigitalComponents/OrGate.svg</x:String>
+    <x:String x:Key="IconXorGate">/Assets/Icons/DigitalComponents/XorGate.svg</x:String>
+    <x:String x:Key="IconXnorGate">/Assets/Icons/DigitalComponents/XnorGate.svg</x:String>
+    <x:String x:Key="IconNotGate">/Assets/Icons/DigitalComponents/NotGate.svg</x:String>
+</ResourceDictionary>

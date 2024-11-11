@@ -37,10 +37,10 @@
                             </EventTriggerBehavior>
                         </Interaction.Behaviors>
                         <StackPanel HorizontalAlignment="Stretch" Orientation="Horizontal" Spacing="8">
-                            <Svg Width="24" Height="24" Path="/Assets/icons/digital_components/nand_gate.svg"></Svg>
-                            <PathIcon IsVisible="{Binding ShowIcon}"
-                                      VerticalAlignment="Center" Height="24" Width="24"
-                                      Data="{Binding Icon, Converter={StaticResource ResourceToGeometryConverter}}" />
+                            <Svg Width="24" Height="24" IsVisible="{Binding ShowIcon}"  
+                                 Path="{Binding Icon, Converter={StaticResource ResourceToGeometryConverter}}" 
+                                 Css="path { fill: #FFFFFF; }">
+                            </Svg>
                             <TextBlock Text="{Binding Title}" VerticalAlignment="Center"></TextBlock>
                         </StackPanel>
                     </Border>
