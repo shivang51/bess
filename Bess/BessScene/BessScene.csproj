@@ -7,6 +7,11 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(Configuration)'=='Release'">
+        <DebugSymbols>False</DebugSymbols>
+        <DebugType>None</DebugType>
+    </PropertyGroup>
+
     <ItemGroup>
       <PackageReference Include="SkiaSharp" Version="3.0.0-preview.5.4" />
     </ItemGroup>
