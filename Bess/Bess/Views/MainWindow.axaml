@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:mainPageViews="clr-namespace:Bess.Views.MainPageViews"
         xmlns:viewModels="clr-namespace:Bess.ViewModels"
+        xmlns:models="clr-namespace:Bess.Models"
         mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="450"
         x:Class="Bess.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -42,22 +43,24 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             
+            <Grid Grid.Column="2">
+                <Rectangle StrokeDashArray="5, 1" Opacity="0.7"
+                           Stroke="{DynamicResource ButtonForeground}" 
+                           MaxWidth="600" MaxHeight="200"
+                           StrokeThickness="3" RadiusX="8" RadiusY="8"/>
+                <Label IsVisible="{Binding ShowHelpText}"
+                       FontSize="24" Opacity="0.7"
+                       FontFamily="{DynamicResource DeliusSwashRegular}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Content="{Binding HelpText}" />
+            </Grid>
             <mainPageViews:ComponentExplorer Grid.Column="0"/>
             
-            <Border Classes="BlurBackground" Grid.Column="4" Background="#10FFFFFF">
-                <Border.Effect>
-                    <BlurEffect Radius="32"></BlurEffect>
-                </Border.Effect>
-            </Border>
-            <mainPageViews:ProjectExplorer Grid.Column="4" Name="ProjectExplorer" />
+            <mainPageViews:ProjectExplorer Grid.Column="4" Name="ProjectExplorer" Background="{DynamicResource PrimaryBackgroundGradient}"/>
             
             <GridSplitter Margin="1 16" Grid.Column="1"/>
             <GridSplitter Margin="1 16" Grid.Column="3"/>
             <mainPageViews:BessSceneView Grid.Column="2"/>
-            <Label Grid.Column="2" IsVisible="{Binding ShowHelpText}"
-                   FontSize="24" Opacity="0.7" 
-                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                   Content="{Binding HelpText}"/>
         </Grid>
         
         <DockPanel Grid.Row="2">

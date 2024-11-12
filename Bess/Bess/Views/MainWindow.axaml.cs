@@ -42,8 +42,8 @@ public partial class MainWindow : AppWindow
             {
                 GradientStops =
                 [
-                    new GradientStop(Color.FromUInt32(0x5E1B1827), 0),
-                    new GradientStop(Color.FromUInt32(0x5E11111B), 1),
+                    new GradientStop(Color.FromUInt32(0x5F1B1827), 0),
+                    new GradientStop(Color.FromUInt32(0x5F11111B), 1),
                 ],
                 StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
                 EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative)
