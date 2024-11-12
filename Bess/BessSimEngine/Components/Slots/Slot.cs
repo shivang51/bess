@@ -6,16 +6,20 @@ public abstract class Slot: Component
     protected Guid ParentId;
     protected List<Guid> Connections;
     
-    public DigitalState State { get; set; }
+    public DigitalState State { get; private set; }
 
     private readonly SlotType _type;
     
-    protected Slot(Guid parentId, SlotType type): base("Slot", 0, 0)
+    private readonly int _ind;
+    
+    
+    
+    protected Slot(Guid parentId, SlotType type, int ind): base("Slot", 0, 0)
     {
         _type = type;
         ParentId = parentId;
         Connections = new List<Guid>();
-        
+        _ind = ind;    
         SimEngineState.Instance.Slots.Add(this);
     }
     
@@ -35,8 +39,15 @@ public abstract class Slot: Component
     public int StateInt => (int)State;
     
     public bool IsInputSlot => _type == SlotType.Input;
-    
-    public abstract void SetState(DigitalState state);
+
+    public virtual void SetState(DigitalState state)
+    {
+        State = state;
+        Simulate();
+
+        var entry = new ChangeEntry(ParentId, _ind, StateInt);
+        SimEngineState.Instance.AddChangeEntry(entry);
+    }
 
     public override List<List<int>> GetState()
     {

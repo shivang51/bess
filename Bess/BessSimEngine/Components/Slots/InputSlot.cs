@@ -2,18 +2,12 @@
 
 public class InputSlot: Slot
 {
-    public InputSlot(Guid parentId) : base(parentId, SlotType.Input)
+    public InputSlot(Guid parentId, int ind) : base(parentId, SlotType.Input, ind)
     {
     }
 
     public override void Simulate()
     {
         Parent?.ScheduleSim();
-    }
-    
-    public override void SetState(DigitalState state)
-    {
-        State = state;
-        Simulate();
     }
 }

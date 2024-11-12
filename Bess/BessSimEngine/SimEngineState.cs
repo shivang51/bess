@@ -19,10 +19,14 @@ public class SimEngineState
     
     public PriorityQueue<Component, DateTime> SimulationQueue { get;} = new();
 
+    private List<ChangeEntry> _changeEntries { get; } = new();
+
     public void Init()
     {
         Components.Clear();
         SimulationQueue.Clear();
+        Slots.Clear();
+        _changeEntries.Clear();
     }
     
     public void AddComponent(Component component)
@@ -81,5 +85,16 @@ public class SimEngineState
         {
             targetComponent.SetState(sourceComponent.State);
         }
+    }
+    
+    internal void AddChangeEntry(ChangeEntry entry)
+    {
+        _changeEntries.Add(entry);
+    }
+    
+    public void FillChangeEntries(out List<ChangeEntry> entries)
+    {
+        entries = _changeEntries.ToList();
+        _changeEntries.Clear();
     }
 }

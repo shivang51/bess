@@ -40,15 +40,15 @@ public abstract class Component
         Name = name;
         
         Inputs = new List<InputSlot>();
-        while (inputCount-- > 0)
+        for(var i = 0; i < inputCount; i++)
         {
-            Inputs.Add(new InputSlot(Id));
+            Inputs.Add(new InputSlot(Id, i));
         }
         
         Outputs = new List<OutputSlot>();
-        while (outputCount-- > 0)
+        for(var i = 0; i < outputCount; i++)
         {
-            Outputs.Add(new OutputSlot(Id));
+            Outputs.Add(new OutputSlot(Id, i));
         }
     }
 }
