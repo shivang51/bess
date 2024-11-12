@@ -9,4 +9,9 @@ public class EmptyComponent: Component
     public override void Simulate()
     {
     }
+    
+    public override List<List<int>> GetState()
+    {
+        return new List<List<int>>();
+    }
 }

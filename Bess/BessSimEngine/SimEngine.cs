@@ -1,4 +1,5 @@
 using System.Timers;
+using BessSimEngine.Components.DigitalComponents;
 using Timer = System.Timers.Timer;
 
 namespace BessSimEngine;
@@ -18,19 +19,50 @@ public class SimEngine
         _timer.Stop();
     }
 
+    private const string LogPath = @"c:\temp\log_.txt";
+
     private static void ProcessSimQueue(object? sender, ElapsedEventArgs e)
     {
-        var components =  SimEngineState.Instance.Components;
-
-        foreach (var component in components.TakeWhile(component => component.NextSimTime <= DateTime.Now))
+        var n = SimEngineState.Instance.SimulationQueue.Count;
+        if(n == 0) return;
+        
+        File.AppendAllText(LogPath, $"Processing queue at {DateTime.Now} with {n} elements\n");
+        
+        var comp = SimEngineState.Instance.SimulationQueue.Dequeue();
+        while(comp.NextSimTime <= DateTime.Now)
         {
-            component.Simulate();
+            File.AppendAllText(LogPath, $"Simulating {comp.Name} at {DateTime.Now}\n");
+            comp.Simulate();
+            if(SimEngineState.Instance.SimulationQueue.Count == 0) break;
+            comp = SimEngineState.Instance.SimulationQueue.Dequeue();
         }
+        
+        if(comp.NextSimTime > DateTime.Now)
+        {
+            SimEngineState.Instance.SimulationQueue.Enqueue(comp, comp.NextSimTime);
+        }
+    }
+    
+    public static void Connect(Guid source, Guid target)
+    {
+        SimEngineState.Instance.AddConnection(source, target);
     }
 
     public void Start()
     {
+        File.WriteAllText(LogPath, "");
         Resume();
+    }
+
+    public static Dictionary<Guid, List<List<int>>> GetState()
+    {
+        File.AppendAllText(LogPath, "Getting state\n");
+        var state = new Dictionary<Guid, List<List<int>>>();
+        foreach(var component in SimEngineState.Instance.Components)
+        {
+            state[component.Id] = component.GetState();
+        }
+        return state;
     }
 
     public void Reset()

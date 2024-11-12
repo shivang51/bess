@@ -8,7 +8,7 @@ public class OutputSlot: Slot
 
     public override void Simulate()
     {
-        foreach (var component1 in Connections.Select(GetConnection))
+        foreach (var component1 in Connections.Select(SimEngineState.Instance.GetSlot))
         {
             var component = (InputSlot)component1!;
             component.SetState(State);

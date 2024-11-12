@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BessScene", "BessScene\Bess
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BessSimEngine", "BessSimEngine\BessSimEngine.csproj", "{75A39780-FAC9-49CD-B39A-6188EA116E32}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimRunner", "SimRunner\SimRunner.csproj", "{15B693F5-57B3-4E68-B84D-0E9F3F3367CC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{75A39780-FAC9-49CD-B39A-6188EA116E32}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{75A39780-FAC9-49CD-B39A-6188EA116E32}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{75A39780-FAC9-49CD-B39A-6188EA116E32}.Release|Any CPU.Build.0 = Release|Any CPU
+		{15B693F5-57B3-4E68-B84D-0E9F3F3367CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15B693F5-57B3-4E68-B84D-0E9F3F3367CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15B693F5-57B3-4E68-B84D-0E9F3F3367CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15B693F5-57B3-4E68-B84D-0E9F3F3367CC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

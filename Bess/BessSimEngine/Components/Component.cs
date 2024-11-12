@@ -17,6 +17,8 @@ public abstract class Component
     protected TimeSpan Delay { get; set; } = TimeSpan.Zero;
     
     public abstract void Simulate();
+
+    public abstract List<List<int>> GetState();
     
     public void ScheduleSim()
     {

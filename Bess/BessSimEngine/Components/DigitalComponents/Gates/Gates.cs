@@ -21,7 +21,8 @@ public class AndGate : DigitalComponent
 
     public override void Simulate()
     {
-        Outputs[0].State = Inputs[0].IsHigh && Inputs[1].IsHigh ? DigitalState.High : DigitalState.Low;
+        var state = Inputs[0].IsHigh && Inputs[1].IsHigh ? DigitalState.High : DigitalState.Low;
+        Outputs[0].SetState(state);
     }
 }
 
@@ -34,6 +35,7 @@ public class OrGate : DigitalComponent
     public override void Simulate()
     {
         Outputs[0].State = Inputs[0].IsHigh || Inputs[1].IsHigh ? DigitalState.High : DigitalState.Low;
+        Outputs[0].Simulate();
     }
 }
 
@@ -46,6 +48,7 @@ public class NandGate : DigitalComponent
     public override void Simulate()
     {
         Outputs[0].State = !(Inputs[0].IsHigh && Inputs[1].IsHigh) ? DigitalState.High : DigitalState.Low;
+        Outputs[0].Simulate();
     }
 }
 
@@ -58,6 +61,7 @@ public class NorGate : DigitalComponent
     public override void Simulate()
     {
         Outputs[0].State = !(Inputs[0].IsHigh || Inputs[1].IsHigh) ? DigitalState.High : DigitalState.Low;
+        Outputs[0].Simulate();
     }
 }
 
@@ -70,6 +74,7 @@ public class XorGate : DigitalComponent
     public override void Simulate()
     {
         Outputs[0].State = Inputs[0].IsHigh != Inputs[1].IsHigh ? DigitalState.High : DigitalState.Low;
+        Outputs[0].Simulate();
     }
 }
 
@@ -82,5 +87,6 @@ public class XnorGate : DigitalComponent
     public override void Simulate()
     {
         Outputs[0].State = Inputs[0].IsHigh == Inputs[1].IsHigh ? DigitalState.High : DigitalState.Low;
+        Outputs[0].Simulate();
     }
 }

@@ -15,11 +15,11 @@ public abstract class Slot: Component
         _type = type;
         ParentId = parentId;
         Connections = new List<Guid>();
+        
+        SimEngineState.Instance.Slots.Add(this);
     }
     
     protected Component? Parent => SimEngineState.Instance.Components.Find(c => c.Id == ParentId);
-    
-    protected static Component? GetConnection(Guid id) => SimEngineState.Instance.Components.Find(c => c.Id == id);
     
     protected bool IsInput => _type == SlotType.Input;
     
@@ -32,5 +32,14 @@ public abstract class Slot: Component
         Connections.Add(id);
     }
 
+    public int StateInt => (int)State;
+    
+    public bool IsInputSlot => _type == SlotType.Input;
+    
     public abstract void SetState(DigitalState state);
+
+    public override List<List<int>> GetState()
+    {
+        return new List<List<int>>() { new(){ StateInt }};
+    }
 }
