@@ -4,8 +4,6 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:mainPageViews="clr-namespace:Bess.Views.MainPageViews"
-        xmlns:viewModels="clr-namespace:Bess.ViewModels"
-        xmlns:models="clr-namespace:Bess.Models"
         mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="450"
         x:Class="Bess.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -43,13 +41,12 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             
-            <Grid Grid.Column="2">
+            <Grid Grid.Column="2" IsVisible="{Binding ShowHelpText}">
                 <Rectangle StrokeDashArray="5, 1" Opacity="0.7"
                            Stroke="{DynamicResource ButtonForeground}" 
                            MaxWidth="600" MaxHeight="200"
                            StrokeThickness="3" RadiusX="8" RadiusY="8"/>
-                <Label IsVisible="{Binding ShowHelpText}"
-                       FontSize="24" Opacity="0.7"
+                <Label FontSize="24" Opacity="0.7"
                        FontFamily="{DynamicResource DeliusSwashRegular}"
                        HorizontalAlignment="Center" VerticalAlignment="Center"
                        Content="{Binding HelpText}" />
