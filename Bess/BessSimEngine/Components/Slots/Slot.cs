@@ -47,6 +47,8 @@ public abstract class Slot: Component
 
     public virtual void SetState(DigitalState state)
     {
+        if(state == State) return;
+        
         State = state;
         Simulate();
 
