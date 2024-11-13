@@ -17,11 +17,11 @@
     </Control.DataContext>
     
     <Canvas MinWidth="300" MinHeight="300">
+            <!-- AddedComponents="{Binding ((parentVm:MainWindowViewModel)DataContext).AddedComponents, RelativeSource={RelativeSource AncestorType=Window}}" -->
         <controls:BessSceneControl
             Radius="8 0 0 8"
             Zoom="{Binding Zoom}"
             OnZoomChanged="{Binding SetZoomCommand}"
-            AddedComponents="{Binding ((parentVm:MainWindowViewModel)DataContext).AddedComponents, RelativeSource={RelativeSource AncestorType=Window}}"
             Width="{Binding RelativeSource={RelativeSource AncestorType=Canvas}, Path=Bounds.Width}"
             Height="{Binding RelativeSource={RelativeSource AncestorType=Canvas}, Path=Bounds.Height}" />
         

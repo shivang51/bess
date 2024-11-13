@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using Bess.Models.ComponentExplorer;
 using BessScene.SceneCore;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -20,9 +23,13 @@ public partial class BessSceneViewModel: ViewModelBase
 
     public RelayCommand<float> SetZoomCommand { get; }
     
+    
+    // public ObservableCollection<AddedComponent> AddedComponents { get; set; }
+    
     public BessSceneViewModel()
     {
         SetZoomCommand = new RelayCommand<float>(SetZoom);
+        // AddedComponents = new();
     }
     
     public string ZoomStr => $"{Zoom} %";

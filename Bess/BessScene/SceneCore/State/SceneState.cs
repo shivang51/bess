@@ -28,6 +28,8 @@ public class SceneState
     
     public List<NewConnectionEntry> ApprovedConnectionEntries { get; } = new();
     
+    public List<Action<uint>> OnSelectedEntityChangedCB { get; } = new();
+    
     /// <summary>
     /// Contains connection ids from slot render id
     /// </summary>
@@ -246,6 +248,11 @@ public class SceneState
     private void SetSelectedEntity(uint rid)
     {
         _selectedEntityId = rid;
+        
+        foreach (var action in OnSelectedEntityChangedCB)
+        {
+            action(rid);
+        }
     }
     
 }

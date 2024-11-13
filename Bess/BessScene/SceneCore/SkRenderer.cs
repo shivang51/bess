@@ -42,7 +42,7 @@ public static class SkRenderer
         IdCanvas = idCanvas;
     }
     
-    public static void DrawMicaRoundRect(SKPoint position, SKSize size, Vector4 radius, SKColor? renderId = null, SKColor? splashColor = null, bool shadow = false)
+    public static void DrawMicaRoundRect(SKPoint position, SKSize size, Vector4 radius, SKColor? renderId = null, SKColor? splashColor = null, SKColor? borderColor = null, float borderWidth = 1)
     {
         var rect = new SKRect(position.X, position.Y, position.X + size.Width, position.Y + size.Height);
         var roundedRect = new SKRoundRect();
@@ -54,17 +54,17 @@ public static class SkRenderer
             new SKPoint(radius.Z, radius.Z),
             new SKPoint(radius.W, radius.W),
         });
-        
-        DrawMicaRRect(rect, roundedRect, splashColor, shadow);
+
+        DrawMicaRRect(rect, roundedRect, splashColor, borderColor, borderWidth);
         if(renderId != null) DrawRRectId(rect, roundedRect, (SKColor)renderId!);
     }
     
-    public static void DrawMicaRoundRect(SKPoint position, SKSize size, float radius, SKColor? renderId = null, SKColor? splashColor = null, bool shadow = false)
+    public static void DrawMicaRoundRect(SKPoint position, SKSize size, float radius, SKColor? renderId = null, SKColor? splashColor = null, SKColor? borderColor = null, float borderWidth = 1)
     {
         var rect = new SKRect(position.X, position.Y, position.X + size.Width, position.Y + size.Height);
         var roundedRect = new SKRoundRect(rect , radius);
         
-        DrawMicaRRect(rect, roundedRect, splashColor, shadow);
+        DrawMicaRRect(rect, roundedRect, splashColor, borderColor, borderWidth);
         if(renderId != null) DrawRRectId(rect, roundedRect, (SKColor)renderId!);
     }
     
@@ -256,7 +256,7 @@ public static class SkRenderer
         IdCanvas.DrawRoundRect(roundedRect, idPaint);
     }
     
-    private static void DrawMicaRRect(SKRect rect, SKRoundRect roundedRect, SKColor? splashColor = null, bool shadow = false)
+    private static void DrawMicaRRect(SKRect rect, SKRoundRect roundedRect, SKColor? splashColor = null, SKColor? borderColor = null, float borderWidth = 1)
     {
         using (var gradientPaint = new SKPaint())
         {
@@ -272,13 +272,17 @@ public static class SkRenderer
             ColorCanvas.DrawRoundRect(roundedRect, gradientPaint);
         }
         
-        if (shadow)
+        if (borderColor != null)
         {
-            roundedRect.Offset(8, 8);
-            roundedRect.Deflate(4, 4);
-            ColorCanvas.DrawRoundRect(roundedRect, Shadow);
-            roundedRect.Offset(-8, -8);
-            roundedRect.Inflate(4, 4);
+            var borderPaint = new SKPaint
+            {
+                IsStroke = true,
+                Color = (SKColor)borderColor!,
+                StrokeWidth = borderWidth,
+                IsAntialias = true
+            };
+            
+            ColorCanvas.DrawRoundRect(roundedRect, borderPaint);
         }
         
         // ColorCanvas.DrawRoundRect(roundedRect, BlurPaint);

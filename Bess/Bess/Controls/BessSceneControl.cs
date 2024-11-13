@@ -49,11 +49,6 @@ public class BessSceneControl: Control
         set => SetValue(ZoomProperty!, value);
     }
     
-    public List<AddedComponent> AddedComponents
-    {
-        get => GetValue(AddedComponentsProperty);
-        set => SetValue(AddedComponentsProperty!, value);
-    }
 
     public CornerRadius Radius
     {
@@ -75,9 +70,6 @@ public class BessSceneControl: Control
     
     public static readonly StyledProperty<float> ZoomProperty = 
         AvaloniaProperty.Register<BessSceneControl, float>(nameof(Zoom));
-    
-    public static readonly StyledProperty<List<AddedComponent>> AddedComponentsProperty = 
-        AvaloniaProperty.Register<BessSceneControl, List<AddedComponent>>(nameof(AddedComponents));
     
     private Vector2 _cameraPosition;
     private CancellationTokenSource _cancellationTokenSource;

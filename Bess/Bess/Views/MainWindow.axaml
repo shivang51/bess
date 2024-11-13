@@ -53,7 +53,10 @@
             </Grid>
             <mainPageViews:ComponentExplorer Grid.Column="0"/>
             
-            <mainPageViews:ProjectExplorer Grid.Column="4" Name="ProjectExplorer" Background="{DynamicResource PrimaryBackgroundGradient}"/>
+            <mainPageViews:ProjectExplorer Grid.Column="4" 
+                                           Name="ProjectExplorer"
+                                           DataContext="{Binding ProjectExplorerVm}"
+                                           Background="{DynamicResource PrimaryBackgroundGradient}"/>
             
             <GridSplitter Margin="1 16" Grid.Column="1"/>
             <GridSplitter Margin="1 16" Grid.Column="3"/>

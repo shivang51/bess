@@ -42,7 +42,9 @@ public class GateSketch: SceneEntity
 
     public override void Render()
     {
-        SkRenderer.DrawMicaRoundRect(SkPosition, SkScale, BorderRadius, GetRIdColor(), _color);
+        var borderColor = IsSelected ? SKColors.White : SKColors.Transparent;
+        
+        SkRenderer.DrawMicaRoundRect(SkPosition, SkScale, BorderRadius, GetRIdColor(), _color, borderColor, 0.5f);
         SkRenderer.DrawMicaRoundRect(SkPosition, HeaderSize, new Vector4(BorderRadius, BorderRadius, 0, 0));
         
         SkRenderer.DrawText(_name, GetHeaderTextPosition(), SKColors.White, 10);
@@ -135,6 +137,8 @@ public class GateSketch: SceneEntity
         }
         
     }
+    
+    private bool IsSelected => SceneState.Instance.SelectedEntityId == RenderId;
     
     public uint GetInputSlotIdAt(int index)
     {

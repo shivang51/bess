@@ -3,6 +3,8 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
 using Bess.Models.ComponentExplorer;
+using Bess.ViewModels.MainWindowViewModels;
+using Bess.Views.MainPageViews;
 using BessScene.SceneCore;
 using BessSimEngine;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -15,32 +17,26 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     public MainWindowViewModel()
     {
-        AddedComponents.CollectionChanged += AddedComponentsOnCollectionChanged;
+        _addedComponents.CollectionChanged += AddedComponentsOnCollectionChanged;
     }
+    
+    private ObservableCollection<AddedComponent> _addedComponents => ProjectExplorerVm.AddedComponents;
+
+    [ObservableProperty] public ProjectExplorerViewModel _projectExplorerVm = new();
 
     private void AddedComponentsOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        ShowHelpText = AddedComponents.Count == 0;
+        ShowHelpText = _addedComponents.Count == 0;
     }
 
     [ObservableProperty]
     public bool _isNotLinux = !OperatingSystem.IsLinux();
     
-    public ObservableCollection<AddedComponent> AddedComponents { get; } = [];
-    
     public void AddComponent(ComponentModel? componentModel)
     {
-        if (componentModel == null) return;
-        
-        var addedComponent = componentModel.Generate();
-        AddedComponents.Add(addedComponent);
+        ProjectExplorerVm.AddComponent(componentModel);
     }
     
-    public void RemoveComponent(AddedComponent component)
-    {
-        component.Remove();
-        AddedComponents.Remove(component);
-    }
     
     [ObservableProperty]
     public bool _showHelpText = true;
