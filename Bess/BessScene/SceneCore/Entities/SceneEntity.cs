@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.State.ShadersCollection;
+namespace BessScene.SceneCore.Entities;
 
 public abstract class SceneEntity
 {
@@ -70,9 +70,7 @@ public abstract class SceneEntity
     
     public abstract void Remove();
 
-    public virtual void Update()
-    {
-    }
+    public abstract void Update();
 
     protected bool IsHovered => RenderId == SceneState.Instance.HoveredEntityId;
 

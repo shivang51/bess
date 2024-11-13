@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
 using Bess.Models.ComponentExplorer;
-using BessScene.SceneCore.State;
+using BessScene.SceneCore;
 using BessSimEngine;
 using CommunityToolkit.Mvvm.ComponentModel;
 // ReSharper disable MemberCanBePrivate.Global
@@ -38,9 +38,8 @@ public partial class MainWindowViewModel : ViewModelBase
     
     public void RemoveComponent(AddedComponent component)
     {
+        component.Remove();
         AddedComponents.Remove(component);
-        SimEngineState.Instance.RemoveComponent(component.ComponentId);
-        SceneState.Instance.RemoveEntityById(component.RenderId);
     }
     
     [ObservableProperty]

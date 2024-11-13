@@ -9,7 +9,6 @@ class Program
         
     public static void Main(string[] args)
     {
-        
         SimEngine.Start();
         
         var notGate = new NotGate();
@@ -36,15 +35,25 @@ class Program
         PrintState("After connecting NotGate to AndGate both inputs");
         
         notGate.SetInputState(0, DigitalState.High);
-        
         PrintState("After setting NotGate input to High");
+     
+        notGate.SetInputState(0, DigitalState.Low);
+        PrintState("After setting NotGate input to Low");
+        
+        SimEngine.RemoveComponent(notGate.Id);
+        PrintState("After Removing");
+        Console.WriteLine("Total Connections of And Gate = " + andGate.GetConnectionsCount());
+        
+        var res = SimEngine.Connect(notGate1.GetOutputId(0), notGate1.GetInputId(0));
+        PrintState("After connecting NotGate1 to itself result = " + res);
     }
     
     private static void PrintState(string message = "")
     {
+        Console.WriteLine("Press something to continue...");
         Console.ReadLine();
         var state = SimEngine.GetState();
-        Console.Write($"{DateTime.Now} {message} State: ");
+        Console.Write($"{DateTime.Now} {message} | State for: ");
         foreach (var component in state)
         {
             Console.WriteLine(component.Key);

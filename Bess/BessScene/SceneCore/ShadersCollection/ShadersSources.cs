@@ -1,4 +1,4 @@
-﻿namespace BessScene.SceneCore.State.ShadersCollection;
+﻿namespace BessScene.SceneCore.Entities;
 
 public static class ShadersSources
 {

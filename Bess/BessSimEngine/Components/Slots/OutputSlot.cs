@@ -14,4 +14,14 @@ public class OutputSlot: Slot
             component.SetState(State);
         }
     }
+
+    public override void Remove()
+    {
+        foreach (var component1 in Connections.Select(SimEngineState.Instance.GetSlot))
+        {
+            var component = (InputSlot)component1!;
+            component.SetState(DigitalState.Low);
+        }
+        base.Remove();
+    }
 }

@@ -1,9 +1,9 @@
-﻿using System.Numerics;
-using BessScene.SceneCore.State.Entities;
-using BessScene.SceneCore.State.ShadersCollection;
+﻿using System.Drawing;
+using System.Numerics;
+using BessScene.SceneCore.Entities;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.State.Sketches;
+namespace BessScene.SceneCore.Sketches;
 
 public class ConnectionSketch: ConnectionEntity
 {
@@ -13,10 +13,15 @@ public class ConnectionSketch: ConnectionEntity
 
     public override void Render()
     {
-        var startPos = SceneState.Instance.GetSlotEntityByRenderId(StartSlotId).AbsPosition;
+        var slot1 = SceneState.Instance.GetSlotEntityByRenderId(StartSlotId);
+        var startPos = slot1.AbsPosition;
         var endPos = SceneState.Instance.GetSlotEntityByRenderId(EndSlotId).AbsPosition;
-        
-        SkRenderer.DrawCubicBezier(startPos.ToSkPoint(), endPos.ToSkPoint(), SKColors.Olive, 1.5f, GetRIdColor());
+
+        var color = slot1.High ? SKColors.DarkOliveGreen : SKColors.IndianRed.WithAlpha(150);
+        SkRenderer.DrawCubicBezier(startPos.ToSkPoint(), endPos.ToSkPoint(), color, 1.5f, GetRIdColor());
     }
     
+    public override void Update()
+    {
+    }
 }

@@ -1,11 +1,10 @@
 ﻿using System.Numerics;
-using BessScene.SceneCore.State.Entities;
-using BessScene.SceneCore.State.ShadersCollection;
-using BessScene.SceneCore.State.Sketches;
-using BessScene.SceneCore.State.State;
+using BessScene.SceneCore.Entities;
+using BessScene.SceneCore.Sketches;
+using BessScene.SceneCore.State;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.State;
+namespace BessScene.SceneCore;
 
 public class SceneState
 {
@@ -23,11 +22,16 @@ public class SceneState
     
     public ConnectionData ConnectionData { get; private set; } = new();
     
+    public Dictionary<uint, List<SceneChangeEntry>> SceneChangeEntries { get; set; } = new();
+
+    public List<NewConnectionEntry> NewConnectionEntries { get; } = new();
+    
+    public List<NewConnectionEntry> ApprovedConnectionEntries { get; } = new();
     
     /// <summary>
     /// Contains connection ids from slot render id
     /// </summary>
-    private Dictionary<uint, List<uint>> _connectionMap = new();
+    private readonly Dictionary<uint, List<uint>> _connectionMap = new();
     
     public uint HoveredEntityId { get; set; }
     
@@ -54,6 +58,9 @@ public class SceneState
         SlotEntities.Clear();
         ConnectionEntities.Clear();
         _connectionMap.Clear();
+        
+        SceneChangeEntries.Clear();
+        NewConnectionEntries.Clear();
     }
     
     public void AddEntity(SceneEntity entity)
@@ -213,12 +220,27 @@ public class SceneState
         
         if(!join) return;
 
-        var _ = new ConnectionSketch(ConnectionData.StartEntityId, ConnectionData.EndEntityId);
+        var startSlot = Instance.GetSlotEntityByRenderId(ConnectionData.StartEntityId);
+        var endSlot = Instance.GetSlotEntityByRenderId(ConnectionData.EndEntityId);
+        
+        if(startSlot.IsInput && endSlot.IsInput || !startSlot.IsInput && !endSlot.IsInput)
+        {
+            return;
+        }
+        
+        var newConnectionEntry = new NewConnectionEntry(startSlot.ParentId, startSlot.Index, endSlot.ParentId, endSlot.Index, startSlot.IsInput);
+        Instance.NewConnectionEntries.Add(newConnectionEntry);
     }
     
     public void SetMousePosition(float x, float y)
     {
         MousePosition = new Vector2(x, y);
+    }
+    
+    public void FillNewConnectionEntry(out List<NewConnectionEntry> entries)
+    {
+        entries = new List<NewConnectionEntry>(NewConnectionEntries);
+        NewConnectionEntries.Clear();
     }
 
     private void SetSelectedEntity(uint rid)

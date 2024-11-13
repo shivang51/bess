@@ -1,6 +1,6 @@
 using System.Collections.ObjectModel;
 using Bess.Models.ComponentExplorer;
-using BessScene.SceneCore.State;
+using BessScene.SceneCore;
 using BessSimEngine;
 
 namespace Bess.ViewModels.MainWindowViewModels;

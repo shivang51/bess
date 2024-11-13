@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Numerics;
-using BessScene.SceneCore.State.Events;
-using BessScene.SceneCore.State.ShadersCollection;
-using BessScene.SceneCore.State.Sketches;
+using BessScene.SceneCore.Events;
+using BessScene.SceneCore.Entities;
+using BessScene.SceneCore.Sketches;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.State;
+namespace BessScene.SceneCore;
 
 public class BessSkiaScene
 {
@@ -86,13 +86,46 @@ public class BessSkiaScene
             }
         }
         
-        var entities = SceneState.Instance.Entities;
         SceneState.Instance.HoveredEntityId = GetRenderObjectId((int)SceneState.Instance.MousePosition.X, (int)SceneState.Instance.MousePosition.Y);
         
-        foreach (var ent in entities.Values)
+        var approvedConnections = SceneState.Instance.ApprovedConnectionEntries;
+        
+        foreach (var entry in approvedConnections)
+        {
+            var startEntity = SceneState.Instance.GetEntityByRenderId<GateSketch>(entry.StartParentId);
+            var endEntity = SceneState.Instance.GetEntityByRenderId<GateSketch>(entry.EndParentId);
+            uint startSlotId;
+            uint endSlotId;
+            if (entry.IsStartSlotInput)
+            {
+                startSlotId = startEntity.GetInputSlotIdAt(entry.StartSlotIndex);
+                endSlotId = endEntity.GetOutputSlotIdAt(entry.EndSlotIndex);
+            }
+            else
+            {
+                startSlotId = startEntity.GetOutputSlotIdAt(entry.StartSlotIndex);
+                endSlotId = endEntity.GetInputSlotIdAt(entry.EndSlotIndex);
+            }
+            new ConnectionSketch(startSlotId, endSlotId);
+        }
+        
+        foreach (var ent in SceneState.Instance.Entities.Values)
         {
             ent.Update();
         }
+        
+        foreach (var ent in SceneState.Instance.SlotEntities.Values)
+        {
+            ent.Update();
+        }
+        
+        foreach (var ent in SceneState.Instance.ConnectionEntities.Values)
+        {
+            ent.Update();
+        }
+        
+        SceneState.Instance.ApprovedConnectionEntries.Clear();
+        SceneState.Instance.SceneChangeEntries.Clear();
     }
 
     public SKBitmap GetColorBuffer() => _colorBuffer;
@@ -135,7 +168,7 @@ public class BessSkiaScene
         var connectionData = SceneState.Instance.ConnectionData;
         if (connectionData.IsConnecting)
         {
-            SkRenderer.DrawCubicBezier(connectionData.StartPoint, ToWorldPos(SceneState.Instance.MousePosition), SKColors.Bisque, (float)1.5);
+            SkRenderer.DrawCubicBezier(connectionData.StartPoint, ToWorldPos(SceneState.Instance.MousePosition), SKColors.Bisque, 1.5f);
         }
         
         foreach (var ent in SceneState.Instance.Entities.Values)

@@ -14,4 +14,8 @@ public class EmptyComponent: Component
     {
         return new List<List<int>>();
     }
+    
+    public override void Remove()
+    {
+    }
 }

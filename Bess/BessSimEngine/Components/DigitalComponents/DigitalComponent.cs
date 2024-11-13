@@ -35,4 +35,23 @@ public abstract class DigitalComponent: Component
     {
         return Inputs[index].Id;
     }
+
+    public override void Remove()
+    {
+        foreach (var slot in Inputs)
+            slot.Remove();
+        
+        foreach (var slot in Outputs)
+            slot.Remove();
+        
+        SimEngineState.Instance.Components.Remove(this);
+    }
+
+    public int GetConnectionsCount()
+    {
+        var inputConnections = Inputs.Select(i => i.ConnectionCount).Sum();
+        var outputConnections = Outputs.Select(o => o.ConnectionCount).Sum();
+        
+        return inputConnections + outputConnections;
+    }
 }

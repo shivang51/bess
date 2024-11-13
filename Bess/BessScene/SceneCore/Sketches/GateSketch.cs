@@ -1,9 +1,8 @@
 ﻿using System.Numerics;
-using BessScene.SceneCore.State.Entities;
-using BessScene.SceneCore.State.ShadersCollection;
+using BessScene.SceneCore.Entities;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.State.Sketches;
+namespace BessScene.SceneCore.Sketches;
 
 public class GateSketch: SceneEntity
 {
@@ -37,6 +36,8 @@ public class GateSketch: SceneEntity
         _outputSlots = GenerateSlots(outputCount, false);
 
         _color = SkiaExtensions.GenerateRandomColor();
+        
+        SceneState.Instance.AddEntity(this);
     }
 
     public override void Render()
@@ -99,11 +100,11 @@ public class GateSketch: SceneEntity
         var slots = new List<uint>();
         var labelCounter = 0;
         var labelChar = inputSlots ? 'X' : 'Y';
-        while (count-- > 0)
+        for(var i = 0; i < count; i++)
         {
             var label = $"{labelChar}{labelCounter++}"; 
             var dir = inputSlots ? SlotEntity.LabelLocation.Right : SlotEntity.LabelLocation.Left;
-            var slot = new SlotSketch(label, new Vector2(x, y), RenderId, dir)
+            var slot = new SlotSketch(label, new Vector2(x, y), RenderId, i, inputSlots, dir)
             {
                 ParentPos = Position
             };
@@ -113,4 +114,35 @@ public class GateSketch: SceneEntity
         return slots;
     }
     
+    public override void Update()
+    {
+        var changeEntries = SceneState.Instance.SceneChangeEntries;
+        
+        if(!changeEntries.TryGetValue(RenderId, out var changes)) return;
+
+        foreach (var change in changes)
+        {
+            if (change.IsInputSlot)
+            {
+                var slot = SceneState.Instance.GetSlotEntityByRenderId(_inputSlots[change.SlotIndex]);
+                slot.High = change.IsHigh;
+            }
+            else
+            {
+                var slot = SceneState.Instance.GetSlotEntityByRenderId(_outputSlots[change.SlotIndex]);
+                slot.High = change.IsHigh;
+            }
+        }
+        
+    }
+    
+    public uint GetInputSlotIdAt(int index)
+    {
+        return _inputSlots[index];
+    }
+    
+    public uint GetOutputSlotIdAt(int index)
+    {
+        return _outputSlots[index];
+    }
 }

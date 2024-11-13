@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.State.ShadersCollection;
+namespace BessScene.SceneCore.Entities;
 
 public static class SkRenderer
 {
@@ -227,7 +227,7 @@ public static class SkRenderer
         
         SKPath path = new();
         path.MoveTo(start);
-        if (dX <= 0.35 || dY <= 0.35)
+        if (dX <= weight || dY <= weight)
             path.LineTo(end);
         else
             path.CubicTo(controlPoint1, controlPoint2, end);

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -15,11 +16,15 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Skia;
 using Avalonia.Threading;
+using Bess.Models.ComponentExplorer;
+using BessScene.SceneCore;
+using BessScene.SceneCore.Events;
 using BessScene.SceneCore.State;
-using BessScene.SceneCore.State.Events;
+using BessSimEngine;
+using BessSimEngine.Components;
 using CommunityToolkit.Mvvm.Input;
 using SkiaSharp;
-using MouseButton = BessScene.SceneCore.State.Events.MouseButton;
+using MouseButton = BessScene.SceneCore.Events.MouseButton;
 
 namespace Bess.Controls;
 
@@ -43,6 +48,12 @@ public class BessSceneControl: Control
         get => GetValue(ZoomProperty);
         set => SetValue(ZoomProperty!, value);
     }
+    
+    public List<AddedComponent> AddedComponents
+    {
+        get => GetValue(AddedComponentsProperty);
+        set => SetValue(AddedComponentsProperty!, value);
+    }
 
     public CornerRadius Radius
     {
@@ -65,8 +76,13 @@ public class BessSceneControl: Control
     public static readonly StyledProperty<float> ZoomProperty = 
         AvaloniaProperty.Register<BessSceneControl, float>(nameof(Zoom));
     
+    public static readonly StyledProperty<List<AddedComponent>> AddedComponentsProperty = 
+        AvaloniaProperty.Register<BessSceneControl, List<AddedComponent>>(nameof(AddedComponents));
+    
     private Vector2 _cameraPosition;
     private CancellationTokenSource _cancellationTokenSource;
+
+    private BessSimEngine.SimEngine _simEngine;
 
     public BessSceneControl()
     {
@@ -79,6 +95,8 @@ public class BessSceneControl: Control
         KeyDownEvent.AddClassHandler<TopLevel>(OnKeyDown, handledEventsToo: true);
         
         StartTimer();
+        _simEngine = new BessSimEngine.SimEngine();
+        _simEngine.Start();
     }
 
     private void StartTimer()
@@ -93,14 +111,56 @@ public class BessSceneControl: Control
 
     private void UpdateContent()
     {
+        UpdateChangesFromScene();
+        UpdateChangesFromSimEngine();
         UpdateCamera();
         _scene.Update(_sceneEventsDict.Values.ToList());
         _sceneEventsDict.Clear();
         _scene.RenderScene();
         InvalidateVisual(); // Redraw control with updated buffers
-        
         _cameraPosition = _scene.Camera.Position;
         Zoom = _scene.Camera.ZoomPercentage;
+    }
+
+    private static void UpdateChangesFromSimEngine()
+    {
+        SimEngineState.Instance.FillChangeEntries(out var changeEntries);
+        
+        if(changeEntries.Count == 0) return;
+
+        Dictionary<uint, List<SceneChangeEntry>> sceneChangeEntries = new();
+        
+        foreach (var entry in changeEntries)
+        {
+            var rid = AddedComponent.ComponentIdToRenderId[entry.ComponentId];
+            var sceneChangeEntry = new SceneChangeEntry(rid, entry.SlotIndex, entry.State == 1, entry.IsInputSlot);
+         
+            if (sceneChangeEntries.TryGetValue(rid, out var entries))
+            {
+                entries.Add(sceneChangeEntry);
+            }
+            else
+            {
+                sceneChangeEntries[rid] = [sceneChangeEntry];
+            }
+        }
+        
+        SceneState.Instance.SceneChangeEntries = sceneChangeEntries; 
+    }
+    
+    private static void UpdateChangesFromScene()
+    {
+        SceneState.Instance.FillNewConnectionEntry(out var newConnectionEntries);
+
+        foreach (var connectionEntry in newConnectionEntries)
+        {
+            var startId = AddedComponent.RenderIdToComponentId[connectionEntry.StartParentId];
+            var endId = AddedComponent.RenderIdToComponentId[connectionEntry.EndParentId];
+            var success = SimEngine.Connect(startId, connectionEntry.StartSlotIndex, endId, connectionEntry.EndSlotIndex, connectionEntry.IsStartSlotInput);
+            if(!success) continue;
+            Console.WriteLine("Connection added");
+            SceneState.Instance.ApprovedConnectionEntries.Add(connectionEntry);
+        }
     }
 
     private void UpdateCamera()

@@ -51,4 +51,16 @@ public abstract class Component
             Outputs.Add(new OutputSlot(Id, i));
         }
     }
+    
+    public Guid GetInputId(int index)
+    {
+        return Inputs[index].Id;
+    }
+    
+    public Guid GetOutputId(int index)
+    {
+        return Outputs[index].Id;
+    }
+    
+    public abstract void Remove();
 }

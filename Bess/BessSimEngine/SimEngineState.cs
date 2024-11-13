@@ -13,20 +13,20 @@ public class SimEngineState
     
     public static SimEngineState Instance { get; }
     
-    public List<Component> Components { get; set;} = new();
+    public List<Component> Components { get; } = new();
     
-    public List<Slot> Slots { get; set;} = new();
+    public List<Slot> Slots { get; } = new();
     
     public PriorityQueue<Component, DateTime> SimulationQueue { get;} = new();
 
-    private List<ChangeEntry> _changeEntries { get; } = new();
+    private List<ChangeEntry> ChangeEntries { get; } = new();
 
     public void Init()
     {
         Components.Clear();
         SimulationQueue.Clear();
         Slots.Clear();
-        _changeEntries.Clear();
+        ChangeEntries.Clear();
     }
     
     public void AddComponent(Component component)
@@ -36,7 +36,7 @@ public class SimEngineState
     
     public void RemoveComponent(Guid id)
     {
-        Components.RemoveAll(c => c.Id == id);
+        GetComponent<Component>(id).Remove();
     }
     
     public void ScheduleSim(Component component, DateTime time)
@@ -69,15 +69,20 @@ public class SimEngineState
         return (TComponent)component;
     }
     
-    public void AddConnection(Guid source, Guid target)
+    public bool AddConnection(Guid source, Guid target)
     {
         var sourceComponent = GetSlot(source);
         var targetComponent = GetSlot(target);
         
+        if(!IsValidConnection(sourceComponent, targetComponent))
+        {
+            return false;
+        }
+        
         sourceComponent.AddConnection(target);
         targetComponent.AddConnection(source);
 
-        if (sourceComponent.IsInputSlot)
+        if (sourceComponent.IsInput)
         {
             sourceComponent.SetState(targetComponent.State);
         }
@@ -85,16 +90,42 @@ public class SimEngineState
         {
             targetComponent.SetState(sourceComponent.State);
         }
+        
+        return true;
+    }
+    
+    private static bool IsValidConnection(Slot source, Slot target)
+    {
+        var isNotSameType = (source.IsInput && target.IsOutput) || (source.IsOutput && target.IsInput);
+        var isNotSameParent = source.ParentId != target.ParentId;
+        var isNotConnected = !source.Connections.Contains(target.Id);
+        return isNotSameType && isNotSameParent && isNotConnected;
+    }
+    
+    public void RemoveConnection(Guid source, Guid target)
+    {
+        var sourceComponent = GetSlot(source);
+        var targetComponent = GetSlot(target);
+        
+        sourceComponent.RemoveConnection(target);
+        targetComponent.RemoveConnection(source);
     }
     
     internal void AddChangeEntry(ChangeEntry entry)
     {
-        _changeEntries.Add(entry);
+        ChangeEntries.Add(entry);
     }
     
     public void FillChangeEntries(out List<ChangeEntry> entries)
     {
-        entries = _changeEntries.ToList();
-        _changeEntries.Clear();
+        entries = ChangeEntries.ToList();
+        ChangeEntries.Clear();
+    }
+    
+    public Guid GetCompSlotIdAtInd(Guid compId, int slotInd, SlotType type)
+    {
+        var component = GetComponent<Component>(compId);
+
+        return type == SlotType.Input ? component.GetInputId(slotInd) : component.GetOutputId(slotInd);
     }
 }

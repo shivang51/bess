@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="clr-namespace:Bess.Controls"
              xmlns:viewModels="clr-namespace:Bess.ViewModels.MainWindowViewModels"
+             xmlns:parentVm="clr-namespace:Bess.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Bess.Views.MainPageViews.BessSceneView"
              x:DataType="viewModels:BessSceneViewModel">
@@ -20,6 +21,7 @@
             Radius="8 0 0 8"
             Zoom="{Binding Zoom}"
             OnZoomChanged="{Binding SetZoomCommand}"
+            AddedComponents="{Binding ((parentVm:MainWindowViewModel)DataContext).AddedComponents, RelativeSource={RelativeSource AncestorType=Window}}"
             Width="{Binding RelativeSource={RelativeSource AncestorType=Canvas}, Path=Bounds.Width}"
             Height="{Binding RelativeSource={RelativeSource AncestorType=Canvas}, Path=Bounds.Height}" />
         

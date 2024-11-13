@@ -3,8 +3,8 @@
 
 public abstract class Slot: Component
 {
-    protected Guid ParentId;
-    protected List<Guid> Connections;
+    public Guid ParentId { get; }
+    public readonly List<Guid> Connections;
     
     public DigitalState State { get; private set; }
 
@@ -23,11 +23,13 @@ public abstract class Slot: Component
         SimEngineState.Instance.Slots.Add(this);
     }
     
+    public int ConnectionCount => Connections.Count;
+    
     protected Component? Parent => SimEngineState.Instance.Components.Find(c => c.Id == ParentId);
     
-    protected bool IsInput => _type == SlotType.Input;
+    public bool IsInput => _type == SlotType.Input;
     
-    protected bool IsOutput => _type == SlotType.Output;
+    public bool IsOutput => _type == SlotType.Output;
     
     public bool IsHigh => State == DigitalState.High;
     
@@ -35,22 +37,35 @@ public abstract class Slot: Component
     {
         Connections.Add(id);
     }
+    
+    public void RemoveConnection(Guid id)
+    {
+        Connections.Remove(id);
+    }
 
     public int StateInt => (int)State;
-    
-    public bool IsInputSlot => _type == SlotType.Input;
 
     public virtual void SetState(DigitalState state)
     {
         State = state;
         Simulate();
 
-        var entry = new ChangeEntry(ParentId, _ind, StateInt);
+        var entry = new ChangeEntry(ParentId, _ind, StateInt, _type == SlotType.Input);
         SimEngineState.Instance.AddChangeEntry(entry);
     }
 
     public override List<List<int>> GetState()
     {
         return new List<List<int>>() { new(){ StateInt }};
+    }
+    
+    public override void Remove()
+    {
+        foreach (var connection in Connections)
+        {
+            var slot = SimEngineState.Instance.GetSlot(connection);
+            slot.RemoveConnection(Id);
+        }
+        SimEngineState.Instance.Slots.Remove(this);
     }
 }

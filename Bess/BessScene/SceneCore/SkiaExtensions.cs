@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.State;
+namespace BessScene.SceneCore;
 
 public static class SkiaExtensions
 {

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Timers;
 using BessSimEngine.Components.DigitalComponents;
 using Timer = System.Timers.Timer;
@@ -43,10 +44,35 @@ public class SimEngine
         }
     }
     
-    public static void Connect(Guid source, Guid target)
+    public static bool Connect(Guid source, Guid target)
     {
-        SimEngineState.Instance.AddConnection(source, target);
+        return SimEngineState.Instance.AddConnection(source, target);
     }
+    
+    public static void RemoveComponent(Guid id)
+    {
+        SimEngineState.Instance.RemoveComponent(id);
+    }
+    
+    public static bool Connect(Guid start, int slotInd, Guid target, int targetInd, bool isStartSlotInput = false)
+    {
+        Guid startSlotId;
+        Guid endSlotId;
+        
+        if (isStartSlotInput)
+        {
+            startSlotId = SimEngineState.Instance.GetCompSlotIdAtInd(start, slotInd, SlotType.Input);
+            endSlotId = SimEngineState.Instance.GetCompSlotIdAtInd(target, targetInd, SlotType.Output);
+        }
+        else
+        {
+            startSlotId = SimEngineState.Instance.GetCompSlotIdAtInd(start, slotInd, SlotType.Output);
+            endSlotId = SimEngineState.Instance.GetCompSlotIdAtInd(target, targetInd, SlotType.Input);
+        }
+        
+        return Connect(startSlotId, endSlotId);
+    }
+    
 
     public void Start()
     {

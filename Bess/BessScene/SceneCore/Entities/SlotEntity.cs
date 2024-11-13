@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
-using BessScene.SceneCore.State.ShadersCollection;
+using BessScene.SceneCore.Entities;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.State.Entities;
+namespace BessScene.SceneCore.Entities;
 
 public abstract class SlotEntity: SceneEntity
 {
@@ -19,6 +19,10 @@ public abstract class SlotEntity: SceneEntity
     protected const float FontSize = 10;
     public static readonly float SlotSize = Math.Max(SlotDiameter, FontSize);
     
+    public uint ParentId { get; }
+    
+    public int Index { get;}
+    
     public bool High { get; set; }
     
     public Vector2 ParentPos = new();
@@ -31,10 +35,15 @@ public abstract class SlotEntity: SceneEntity
     
     protected readonly Vector2 LabelOffset;
 
-    public SlotEntity(string name, Vector2 pos, uint parentId, LabelLocation labelLocation = LabelLocation.Right) : base(pos)
+    public bool IsInput { get; set; }
+    
+    public SlotEntity(string name, Vector2 pos, uint parentId, int index, bool isInput, LabelLocation labelLocation = LabelLocation.Right) : base(pos)
     {
         Name = name;
         LabelLoc = labelLocation;
+        ParentId = parentId;
+        Index = index;
+        IsInput = isInput;
         
         // Calculating label offset
         float xOffset = 0;
@@ -75,4 +84,9 @@ public abstract class SlotEntity: SceneEntity
     }
     
     protected SKPoint SkLabelOffset => new(LabelOffset.X, LabelOffset.Y);
+    
+    public override void Update()
+    {
+        
+    }
 }

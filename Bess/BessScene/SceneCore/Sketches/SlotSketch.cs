@@ -1,14 +1,14 @@
 ﻿using System.Numerics;
 using System.Reflection.Metadata;
-using BessScene.SceneCore.State.Entities;
-using BessScene.SceneCore.State.ShadersCollection;
+using BessScene.SceneCore.Entities;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.State.Sketches;
+namespace BessScene.SceneCore.Sketches;
 
 public class SlotSketch: SlotEntity
 {
-    public SlotSketch(string name, Vector2 pos, uint parentId, LabelLocation labelLocation = LabelLocation.Right) : base(name, pos, parentId, labelLocation)
+    public SlotSketch(string name, Vector2 pos, uint parentId,  int index, bool isInput,LabelLocation labelLocation = LabelLocation.Right) : 
+        base(name, pos, parentId, index, isInput, labelLocation)
     {
     }
 
