@@ -4,7 +4,7 @@ using SkiaSharp;
 
 namespace BessScene.SceneCore.Sketches;
 
-public class GateSketch: SceneEntity
+public class GateSketch: DraggableSceneEntity
 {
     private readonly int _inputCount;
     private readonly int _outputCount;
@@ -63,20 +63,6 @@ public class GateSketch: SceneEntity
         }
 
         SceneState.Instance.RemoveEntity(this);
-    }
-
-    public void UpdatePos(Vector2 pos)
-    {
-        Position = pos;
-        foreach (var slot in _inputSlots)
-        {
-            SceneState.Instance.GetSlotEntityByRenderId(slot).ParentPos = pos;
-        }
-        
-        foreach (var slot in _outputSlots)
-        {
-            SceneState.Instance.GetSlotEntityByRenderId(slot).ParentPos = pos;
-        }
     }
     
     private float GetHeight()
@@ -148,5 +134,24 @@ public class GateSketch: SceneEntity
     public uint GetOutputSlotIdAt(int index)
     {
         return _outputSlots[index];
+    }
+
+    public override void UpdatePosition(Vector2 pos)
+    {
+        Position = pos;
+        foreach (var slot in _inputSlots)
+        {
+            SceneState.Instance.GetSlotEntityByRenderId(slot).UpdateParentPos(pos);
+        }
+        
+        foreach (var slot in _outputSlots)
+        {
+            SceneState.Instance.GetSlotEntityByRenderId(slot).UpdateParentPos(pos);
+        }
+    }
+
+    public override Vector2 GetOffset(Vector2 point)
+    {
+        return point - Position;
     }
 }

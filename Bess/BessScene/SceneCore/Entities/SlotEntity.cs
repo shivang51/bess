@@ -89,4 +89,14 @@ public abstract class SlotEntity: SceneEntity
     {
         
     }
+    
+    public void UpdateParentPos(Vector2 pos)
+    {
+        ParentPos = pos;
+        
+        foreach(var conn in SceneState.Instance.GetConnectionEntitiesForSlot(RenderId))
+        {
+            conn.UpdateParentPos(AbsPosition);
+        }
+    }
 }

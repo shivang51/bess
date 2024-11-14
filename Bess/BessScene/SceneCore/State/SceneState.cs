@@ -35,13 +35,17 @@ public class SceneState
     /// </summary>
     private readonly Dictionary<uint, List<uint>> _connectionMap = new();
     
-    public uint HoveredEntityId { get; set; }
+    public uint HoveredEntityId { get; private set; }
+    
+    public uint SecondaryHoveredEntityId { get; private set; }
     
     private uint _selectedEntityId = 0;
     
     public Dictionary<uint, ConnectionEntity> ConnectionEntities { get; private set; } = new();
     public Dictionary<uint, SceneEntity> Entities { get; private set; } = new();
     public Dictionary<uint, SlotEntity> SlotEntities { get; private set; } = new();
+    public Dictionary<uint, DraggableSceneEntity> DraggableEntities { get; private set; } = new();
+    public Dictionary<uint, ConnectionSegment> ConnectionSegments { get; } = new();
     
     public uint SelectedEntityId { 
         get => _selectedEntityId;
@@ -63,6 +67,13 @@ public class SceneState
         
         SceneChangeEntries.Clear();
         NewConnectionEntries.Clear();
+        ConnectionSegments.Clear();
+        DraggableEntities.Clear();
+    }
+    
+    public bool IsDraggableEntity(uint rid)
+    {
+        return DraggableEntities.ContainsKey(rid);
     }
     
     public void AddEntity(SceneEntity entity)
@@ -90,6 +101,11 @@ public class SceneState
     public bool IsSlotEntity(uint rid)
     {
         return SlotEntities.ContainsKey(rid);
+    }
+    
+    public bool IsConnectionSegment(uint rid)
+    {
+        return ConnectionSegments.ContainsKey(rid);
     }
     
     public void AddSlotEntity(SlotEntity entity)
@@ -167,6 +183,12 @@ public class SceneState
         return entity;
     }
     
+    public T GetEntityByRenderId<T>(uint rid) where T: SceneEntity
+    {
+        var entity = GetEntityByRenderId(rid);
+        return (T)entity;
+    }
+    
     public SceneEntity GetEntityByRenderId(uint rid)
     {
         var ent = Entities.GetValueOrDefault(rid);
@@ -179,9 +201,26 @@ public class SceneState
         return ent;
     }
 
-    public T GetEntityByRenderId<T>(uint rid) where T: SceneEntity
+    public T GetDraggableEntity<T>(uint rid) where T: DraggableSceneEntity
     {
-        return (T)GetEntityByRenderId(rid);
+        var obj = GetEntityOrConnectionSeg<T>(rid);
+        if (obj == null) throw new InvalidDataException($"Object with render id {rid} not found");
+        return obj;
+    }
+    
+    public T GetEntityOrConnectionSeg<T>(uint rid) where T: SceneEntity
+    {
+        var entity = GetEntityOrNull(rid);
+        if (entity != null) return (T)entity;
+        
+        entity = ConnectionSegments.GetValueOrDefault(rid);
+        
+        if (entity == null)
+        {
+            throw new InvalidDataException($"Entity with render id {rid} not found");
+        }
+        
+        return (T)entity;
     }
     
     public SlotEntity GetSlotEntityByRenderId(uint rid)
@@ -201,7 +240,9 @@ public class SceneState
         DragData.IsDragging = true;
         DragData.EntityId = entityId;
         DragData.StartPosition = MousePosition;
-        DragData.DragOffset = worldMousePos - GetEntityByRenderId(entityId).Position;
+        
+        var ent = GetDraggableEntity<DraggableSceneEntity>(entityId);
+        DragData.DragOffset = ent.GetOffset(worldMousePos);
     }
     
     public void EndDrag()
@@ -253,6 +294,21 @@ public class SceneState
         {
             action(rid);
         }
+    }
+    
+    public void SetHoveredEntityId(uint rid)
+    {
+        if (ConnectionSegments.TryGetValue(rid, out var segment))
+        {
+            SecondaryHoveredEntityId = rid;
+            rid = segment.ParentId;
+        }
+        else
+        {
+            SecondaryHoveredEntityId = 0;
+        }
+        
+        HoveredEntityId = rid;
     }
     
 }

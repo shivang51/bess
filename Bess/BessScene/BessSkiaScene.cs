@@ -86,7 +86,8 @@ public class BessSkiaScene
             }
         }
         
-        SceneState.Instance.HoveredEntityId = GetRenderObjectId((int)SceneState.Instance.MousePosition.X, (int)SceneState.Instance.MousePosition.Y);
+        var rid = GetRenderObjectId((int)SceneState.Instance.MousePosition.X, (int)SceneState.Instance.MousePosition.Y);
+        SceneState.Instance.SetHoveredEntityId(rid);
         
         var approvedConnections = SceneState.Instance.ApprovedConnectionEntries;
         
@@ -106,7 +107,7 @@ public class BessSkiaScene
                 startSlotId = startEntity.GetOutputSlotIdAt(entry.StartSlotIndex);
                 endSlotId = endEntity.GetInputSlotIdAt(entry.EndSlotIndex);
             }
-            new ConnectionSketch(startSlotId, endSlotId);
+            _ = new ConnectionSketch(startSlotId, endSlotId);
         }
         
         foreach (var ent in SceneState.Instance.Entities.Values)
@@ -120,6 +121,11 @@ public class BessSkiaScene
         }
         
         foreach (var ent in SceneState.Instance.ConnectionEntities.Values)
+        {
+            ent.Update();
+        }
+        
+        foreach (var ent in SceneState.Instance.ConnectionSegments.Values)
         {
             ent.Update();
         }
@@ -181,6 +187,7 @@ public class BessSkiaScene
             ent.Render();
         }
 
+        
         colorCanvas.Flush();
         idCanvas.Flush();
     }
@@ -223,8 +230,8 @@ public class BessSkiaScene
         {
             if (dragData.IsDragging)
             {
-                var ent = SceneState.Instance.GetEntityByRenderId<GateSketch>(dragData.EntityId);
-                ent.UpdatePos(ToWorldPos(mousePos) - dragData.DragOffset);
+                var ent = SceneState.Instance.GetDraggableEntity<DraggableSceneEntity>(dragData.EntityId);
+                ent.UpdatePosition(ToWorldPos(mousePos) - dragData.DragOffset);
             }
         }
         else if (SceneState.Instance.IsMiddleMousePressed)
@@ -257,8 +264,10 @@ public class BessSkiaScene
 
         if (data.Pressed)
         {
-            if(SceneState.Instance.IsParentEntity(rid))
+            if (SceneState.Instance.IsDraggableEntity(rid))
+            {
                 SceneState.Instance.StartDrag(rid, ToWorldPos(pos));
+            }
             else if (SceneState.Instance.IsSlotEntity(rid))
             {
                 if (!SceneState.Instance.ConnectionData.IsConnecting)

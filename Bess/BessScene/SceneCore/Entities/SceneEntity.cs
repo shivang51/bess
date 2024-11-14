@@ -74,5 +74,5 @@ public abstract class SceneEntity
 
     protected bool IsHovered => RenderId == SceneState.Instance.HoveredEntityId;
 
-    private static uint NextRenderId => _renderIdCounter++;
+    public static uint NextRenderId => _renderIdCounter++;
 }

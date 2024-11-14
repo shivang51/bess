@@ -42,6 +42,23 @@ public static class SkRenderer
         IdCanvas = idCanvas;
     }
     
+    public static void DrawLine(SKPoint start, SKPoint end, SKColor color, float weight, SKColor? idColor = null)
+    {
+        using var paint = new SKPaint();
+        paint.IsAntialias = true;
+        paint.Color = color;
+        paint.IsStroke = true;
+        paint.StrokeWidth = weight;
+        ColorCanvas.DrawLine(start, end, paint);
+        
+        if(idColor == null) return;
+        
+        paint.IsAntialias = false;
+        paint.Color = (SKColor)idColor!;
+        
+        IdCanvas.DrawLine(start, end, paint);
+    }
+    
     public static void DrawMicaRoundRect(SKPoint position, SKSize size, Vector4 radius, SKColor? renderId = null, SKColor? splashColor = null, SKColor? borderColor = null, float borderWidth = 1)
     {
         var rect = new SKRect(position.X, position.Y, position.X + size.Width, position.Y + size.Height);
@@ -247,7 +264,31 @@ public static class SkRenderer
         
         IdCanvas.DrawPath(path, paint);
     }
-    
+
+    public static void DrawLinePath(SKPoint[] points, SKColor color, float weight, SKColor? renderIdColor = null)
+    {
+        var path = new SKPath();
+        path.MoveTo(points[0]);
+        for (var i = 1; i < points.Length; i++)
+        {
+            path.LineTo(points[i]);
+        }
+        
+        using var paint = new SKPaint();
+        paint.IsAntialias = true;
+        paint.Color = color;
+        paint.IsStroke = true;
+        paint.StrokeWidth = weight;
+        
+        ColorCanvas.DrawPath(path, paint);
+        
+        if(renderIdColor == null) return;
+        
+        paint.IsAntialias = false;
+        paint.Color = (SKColor)renderIdColor!;
+        
+        IdCanvas.DrawPath(path, paint);
+    }
 
     private static void DrawRRectId(SKRect rect, SKRoundRect roundedRect, SKColor id)
     {

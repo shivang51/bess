@@ -11,17 +11,32 @@ public class ConnectionSketch: ConnectionEntity
     {
     }
 
-    public override void Render()
-    {
+    private void RenderCurve(){
         var slot1 = SceneState.Instance.GetSlotEntityByRenderId(StartSlotId);
         var startPos = slot1.AbsPosition;
         var endPos = SceneState.Instance.GetSlotEntityByRenderId(EndSlotId).AbsPosition;
 
         var color = slot1.High ? SKColors.DarkOliveGreen : SKColors.IndianRed.WithAlpha(150);
-        SkRenderer.DrawCubicBezier(startPos.ToSkPoint(), endPos.ToSkPoint(), color, 1.5f, GetRIdColor());
+        SkRenderer.DrawCubicBezier(startPos.ToSkPoint(), endPos.ToSkPoint(), color, Weight, GetRIdColor());
+    }
+
+    private void RenderLine()
+    {
+        var slot1 = SceneState.Instance.GetSlotEntityByRenderId(StartSlotId);
+        var startPos = slot1.AbsPosition;
+
+        var color = slot1.High ? SKColors.DarkOliveGreen : SKColors.IndianRed.WithAlpha(150);
+
+        foreach (var segment in ConnectionSegments)
+        {
+            segment.Render(startPos, color, Weight);
+        }
     }
     
-    public override void Update()
+    public override void Render()
     {
+        RenderLine();
     }
+    
+    private float Weight => IsHovered ? 2.0f : 1.5f;
 }
