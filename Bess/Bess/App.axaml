@@ -11,11 +11,10 @@
         <FontFamily x:Key="RobotoRegular">/Assets/fonts/Roboto/Roboto-Regular.ttf#Roboto</FontFamily>
         <FontFamily x:Key="DeliusSwashRegular">/Assets/fonts/DeliusSwashCaps/DeliusSwashCaps-Regular.ttf#Delius Swash Caps</FontFamily>
         
-        
-        <LinearGradientBrush x:Key="PrimaryBackgroundGradient" StartPoint="0%, 0%" EndPoint="100%, 0%">
-            <GradientStop Offset="0" Color="#7E303B4A"/>
-            <GradientStop Offset="1" Color="#2E2C243B"/>
-        </LinearGradientBrush>
+        <!-- <LinearGradientBrush x:Key="PrimaryBackgroundGradient" StartPoint="0%, 0%" EndPoint="100%, 0%"> -->
+        <!--     <GradientStop Offset="0" Color="#7E303B4A"/> -->
+        <!--     <GradientStop Offset="1" Color="#2E2C243B"/> -->
+        <!-- </LinearGradientBrush> -->
     </Application.Resources>
     
     <Application.DataTemplates>
