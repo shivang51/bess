@@ -26,6 +26,7 @@ public abstract class SceneEntity
     
     protected SceneEntity(Vector2 position)
     {
+        Console.WriteLine("Create at " + position);
         _transform = new Transform(position, new Vector2(0, 0));
         RenderId = NextRenderId;
     }

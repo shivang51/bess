@@ -16,14 +16,16 @@ public class BessSkiaScene
     private SKBitmap _idBuffer = null!;
     
     private uint EmptyId { get; } = 0;
-    
-    public CameraController Camera { get; } = new();
 
+    public CameraController Camera { get; set; } = new();
+    
     public BessSkiaScene(double width, double height)
     {
         Width = (int)width;
         Height = (int)height;
         InitializeBuffers();
+
+        SceneState.Instance.Camera = Camera;
     }
 
     private void InitializeBuffers()
@@ -39,6 +41,7 @@ public class BessSkiaScene
         if (w == Width && h == Height) return;
         Width = w;
         Height = h;
+        Camera.Resize(new Vector2(Width, Height));
         _colorBuffer?.Dispose();
         _idBuffer?.Dispose();
         InitializeBuffers();

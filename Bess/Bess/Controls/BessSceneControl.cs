@@ -228,53 +228,40 @@ public class BessSceneControl: Control
 
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
     {
-        base.OnPointerWheelChanged(e); // Don't forget to call the base method if necessary
-
+        base.OnPointerWheelChanged(e); 
+        
         var delta = new Vector2((float)e.Delta.X, (float)e.Delta.Y);
+        var isTouchPad = e.Pointer.Type == PointerType.Touch;
 
         if (IsKeyPressed(Key.LeftCtrl) || IsKeyPressed(Key.RightCtrl))
         {
-            ThrottleZoomUpdate(delta.Y);
+            DoZoomUpdate(delta.Y);
         }
         else
         {
-            ThrottleCameraUpdate(delta);
+            DoCameraPosUpdate(delta, isTouchPad);
         }
     }
 
-    private void ThrottleZoomUpdate(float deltaY)
+    private void DoZoomUpdate(float deltaY)
     {
-        _cancellationTokenSource?.Cancel();
-        _cancellationTokenSource = new CancellationTokenSource();
-
-        Task.Delay(FrameRateMs, _cancellationTokenSource.Token).ContinueWith(t =>
+        Dispatcher.UIThread.InvokeAsync(() =>
         {
-            if (t.IsCanceled) return;
-            
-            Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                var dZoom = deltaY * CameraController.ZoomFactor * 100;
-                Zoom = CameraController.ConstrainZoomPercentage(Zoom + dZoom);
-                _scene.Camera.UpdateZoomPercentage(Zoom);
-                OnZoomChanged?.Execute(Zoom);
-            });
-
+            var dZoom = deltaY * CameraController.ZoomFactor * 100;
+            Zoom = CameraController.ConstrainZoomPercentage(Zoom + dZoom);
+            _scene.Camera.UpdateZoomPercentage(Zoom);
+            OnZoomChanged?.Execute(Zoom);
         });
+
     }
 
-    private void ThrottleCameraUpdate(Vector2 delta)
+    private void DoCameraPosUpdate(Vector2 delta, bool isTouchPad)
     {
-        _cancellationTokenSource?.Cancel();
-        _cancellationTokenSource = new CancellationTokenSource();
-
-        Task.Delay(FrameRateMs, _cancellationTokenSource.Token).ContinueWith(t =>
+        Dispatcher.UIThread.InvokeAsync(() =>
         {
-            if (t.IsCanceled) return;
-            Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                _cameraPosition += delta * 10;
-                _scene.Camera.SetPosition(_cameraPosition);
-            });
+            var amt = isTouchPad ? 2 : 1;
+            _cameraPosition += delta * 25 * amt;
+            _scene.Camera.SetPosition(_cameraPosition);
         });
     }
     

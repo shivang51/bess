@@ -29,6 +29,8 @@ public class SceneState
     public List<NewConnectionEntry> ApprovedConnectionEntries { get; } = new();
     
     public List<Action<uint>> OnSelectedEntityChangedCB { get; } = new();
+
+    public CameraController Camera { get; set; }
     
     /// <summary>
     /// Contains connection ids from slot render id

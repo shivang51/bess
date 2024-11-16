@@ -16,6 +16,10 @@ public class CameraController
     
     public Vector2 Zoom { get; private set; }
     
+    public Vector2 Span { get; private set; }
+    
+    public Vector2 Center => (Span / 2 - Position);
+    
     public CameraController()
     {
         ResetCamera();
@@ -72,5 +76,10 @@ public class CameraController
     public static float ConstrainZoomPercentage(float val)
     {
         return ConstrainZoom(val / 100) * 100;
+    }
+
+    public void Resize(Vector2 size)
+    {
+        Span = size / Zoom;
     }
 }

@@ -24,7 +24,7 @@ public class GateSketch: DraggableSceneEntity
 
     private readonly SKColor _color;
     
-    public GateSketch(string name, int inputCount, int outputCount) : base(new Vector2(20, 20))
+    public GateSketch(string name, int inputCount, int outputCount) : base(SceneState.Instance.Camera.Center)
     {
         _name = name;
         _inputCount = inputCount;
@@ -36,6 +36,8 @@ public class GateSketch: DraggableSceneEntity
         _outputSlots = GenerateSlots(outputCount, false);
 
         _color = SkiaExtensions.GenerateRandomColor();
+
+        UpdatePosition(Position - (Scale / 2));
         
         SceneState.Instance.AddEntity(this);
     }
@@ -136,7 +138,7 @@ public class GateSketch: DraggableSceneEntity
         return _outputSlots[index];
     }
 
-    public override void UpdatePosition(Vector2 pos)
+    public sealed override void UpdatePosition(Vector2 pos)
     {
         Position = pos;
         foreach (var slot in _inputSlots)

@@ -13,7 +13,7 @@ public abstract class DraggableSceneEntity: SceneEntity
     {
         SceneState.Instance.DraggableEntities.Add(RenderId, this);
     }
-
+    
     protected DraggableSceneEntity(Vector2 position) : base(position)
     {
         SceneState.Instance.DraggableEntities.Add(RenderId, this);
