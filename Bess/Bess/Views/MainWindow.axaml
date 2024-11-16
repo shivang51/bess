@@ -8,6 +8,7 @@
         x:Class="Bess.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/logo-icon.ico"
+        WindowState="Maximized"
         FontFamily="{DynamicResource RobotoRegular}"
         Title="Bess">
 
