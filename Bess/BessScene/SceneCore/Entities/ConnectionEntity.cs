@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using BessScene.SceneCore.Sketches;
 using BessScene.SceneCore.State;
 using SkiaSharp;
 
@@ -69,10 +70,29 @@ public class ConnectionSegment: DraggableSceneEntity
         {
             PreviousSegment.EndPos = StartPos;
         }
+        else // first entity
+        {
+            var newSeg = new ConnectionSegment(Vector2.Zero, StartPos, ParentId);
+            var parentEnt = SceneState.Instance.GetConnectionEntity(ParentId);
+            
+            parentEnt.ConnectionSegments.Insert(0, newSeg);
+            parentEnt.ConnectionSegments[1].PreviousSegment = newSeg;
+            newSeg.NextSegment = parentEnt.ConnectionSegments[1];
+        }
         
         if (NextSegment != null)
         {
             NextSegment.StartPos = EndPos;
+        }
+        else // last entity
+        {
+            var parentEnt = SceneState.Instance.GetConnectionEntity(ParentId);
+            var startSlot = SceneState.Instance.GetSlotEntityByRenderId(parentEnt.StartSlotId);
+            var endSlot = SceneState.Instance.GetSlotEntityByRenderId(parentEnt.EndSlotId);
+            var newSeg = new ConnectionSegment(EndPos, endSlot.AbsPosition - startSlot.AbsPosition, ParentId);
+            parentEnt.ConnectionSegments.Add(newSeg);
+            parentEnt.ConnectionSegments[^2].NextSegment = newSeg;
+            newSeg.PreviousSegment = parentEnt.ConnectionSegments[^2];
         }
     }
     
@@ -81,14 +101,9 @@ public class ConnectionSegment: DraggableSceneEntity
         return point - StartPos;
     }
 
-    public void Render(Vector2 startPos, SKColor color, float weight)
+    public void Render(Vector2 startPos, float weight)
     {
-        if (IsHovered)
-        {
-            weight += 0.5f;
-            color = SKColors.Beige;
-        }
-        SkRenderer.DrawLine((StartPos + startPos).ToSkPoint(), (EndPos + startPos).ToSkPoint(), color, weight, GetRIdColor());
+        SkRenderer.DrawLineId((StartPos + startPos).ToSkPoint(), (EndPos + startPos).ToSkPoint(), weight, GetRIdColor());
     }
 }
 
@@ -97,7 +112,7 @@ public abstract class ConnectionEntity: SceneEntity
     public uint StartSlotId { get; set; }
     public uint EndSlotId { get; set; }
     
-    protected readonly List<ConnectionSegment> ConnectionSegments = new();
+    public readonly List<ConnectionSegment> ConnectionSegments = new();
     
     protected ConnectionEntity(uint startSlotId, uint endSlotId) : base(new Vector2(), new Vector2())
     {
@@ -150,38 +165,39 @@ public abstract class ConnectionEntity: SceneEntity
     
     public override void Update()
     {
-        var slot1 = SceneState.Instance.GetSlotEntityByRenderId(StartSlotId);
-        var startPos = slot1.AbsPosition;
-        var endPos = SceneState.Instance.GetSlotEntityByRenderId(EndSlotId).AbsPosition;
-        
-        
-        if (ConnectionSegments.First().AbsStart(startPos) != startPos)
-        {
-            var absStart = ConnectionSegments.First().AbsStart(startPos);
-            var newSeg = new ConnectionSegment(Vector2.Zero, absStart - startPos, RenderId);
-            ConnectionSegments.Insert(0, newSeg);
-            ConnectionSegments[1].PreviousSegment = newSeg;
-            newSeg.NextSegment = ConnectionSegments[1];
-        }
-        
-        if(ConnectionSegments.Last().AbsEnd(startPos) != endPos)
-        {
-            var absEnd = ConnectionSegments.Last().AbsEnd(startPos);
-            var newSeg = new ConnectionSegment(absEnd - startPos, endPos - startPos, RenderId);
-            ConnectionSegments.Add(newSeg);
-            ConnectionSegments[^2].NextSegment = newSeg;
-            newSeg.PreviousSegment = ConnectionSegments[^2];
-        }
     }
     
     public void UpdateParentPos(Vector2 _)
     {
-        Console.WriteLine("updating parent");
         var slot1 = SceneState.Instance.GetSlotEntityByRenderId(StartSlotId);
         var startPos = slot1.AbsPosition;
         var endPos = SceneState.Instance.GetSlotEntityByRenderId(EndSlotId).AbsPosition;
         
         // [TODO] (Shivang) : Fix end pos calculation
+        // -- fixed for horizontal end connection
+
+        var lastSeg = ConnectionSegments.Last();
+        var currentDif = lastSeg.EndPos - lastSeg.StartPos;
+
+        var dPos = endPos - startPos;
+        lastSeg.EndPos = dPos;
+        lastSeg.StartPos = dPos - currentDif;
+        currentDif = lastSeg.PreviousSegment.EndPos - lastSeg.PreviousSegment.StartPos;
+        lastSeg.PreviousSegment.EndPos = lastSeg.StartPos;
+
+        var pos = lastSeg.PreviousSegment.EndPos - currentDif;
+
+        currentDif = lastSeg.EndPos - lastSeg.StartPos;
+        if (currentDif.X == 0)
+        {
+            lastSeg.PreviousSegment.StartPos = lastSeg.PreviousSegment.StartPos with { Y = pos.Y };
+        }
+        else if (currentDif.Y == 0)
+        {
+            lastSeg.PreviousSegment.StartPos = lastSeg.PreviousSegment.StartPos with { X = pos.X };
+        }
+            
+        lastSeg.PreviousSegment.PreviousSegment.EndPos = lastSeg.PreviousSegment.StartPos;
     }
     
 }

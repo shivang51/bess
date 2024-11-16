@@ -58,6 +58,18 @@ public static class SkRenderer
         
         IdCanvas.DrawLine(start, end, paint);
     }
+
+
+    public static void DrawLineId(SKPoint start, SKPoint end, float weight, SKColor idColor)
+    {
+        using var paint = new SKPaint();
+        paint.IsStroke = true;
+        paint.StrokeWidth = weight;
+        paint.IsAntialias = false;
+        paint.Color = (SKColor)idColor!;
+        
+        IdCanvas.DrawLine(start, end, paint);
+    }
     
     public static void DrawMicaRoundRect(SKPoint position, SKSize size, Vector4 radius, SKColor? renderId = null, SKColor? splashColor = null, SKColor? borderColor = null, float borderWidth = 1)
     {
@@ -279,6 +291,7 @@ public static class SkRenderer
         paint.Color = color;
         paint.IsStroke = true;
         paint.StrokeWidth = weight;
+        paint.PathEffect = SKPathEffect.CreateCorner(8.0f / 2);
         
         ColorCanvas.DrawPath(path, paint);
         

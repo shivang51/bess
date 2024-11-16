@@ -29,8 +29,14 @@ public class ConnectionSketch: ConnectionEntity
 
         foreach (var segment in ConnectionSegments)
         {
-            segment.Render(startPos, color, Weight);
+            segment.Render(startPos, Weight);
         }
+
+        var points = ConnectionSegments.Select(el => el.AbsStart(startPos).ToSkPoint()).ToList();
+        
+        points.Add(SceneState.Instance.GetSlotEntityByRenderId(EndSlotId).AbsPosition.ToSkPoint());
+        
+        SkRenderer.DrawLinePath(points.ToArray(), color, Weight);
     }
     
     public override void Render()
