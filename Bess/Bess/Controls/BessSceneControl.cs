@@ -29,6 +29,29 @@ using MouseButton = BessScene.SceneCore.State.Events.MouseButton;
 
 namespace Bess.Controls;
 
+class ZoomChangeObserver: IObserver<AvaloniaPropertyChangedEventArgs<float>>
+{
+    private readonly Action<float> _callback;
+    
+    public ZoomChangeObserver(Action<float> callback)
+    {
+        _callback = callback;
+    }
+    
+    public void OnCompleted()
+    {
+    }
+
+    public void OnError(Exception error)
+    {
+    }
+
+    public void OnNext(AvaloniaPropertyChangedEventArgs<float> value)
+    {
+        _callback(value.NewValue.Value);
+    }
+}
+
 public class BessSceneControl: Control
 {
     private readonly BessSkiaScene _scene;
@@ -49,7 +72,7 @@ public class BessSceneControl: Control
         get => GetValue(ZoomProperty);
         set => SetValue(ZoomProperty!, value);
     }
-    
+
 
     public CornerRadius Radius
     {
@@ -97,6 +120,9 @@ public class BessSceneControl: Control
         StartTimer();
         _simEngine = new BessSimEngine.SimEngine();
         _simEngine.Start();
+
+        var obs = new ZoomChangeObserver((v) => _scene.Camera.SetZoomPercentage(v));
+        ZoomProperty.Changed.Subscribe(obs);
     }
 
     private void StartTimer()
@@ -157,7 +183,6 @@ public class BessSceneControl: Control
             var endId = AddedComponent.RenderIdToComponentId[connectionEntry.EndParentId];
             var success = SimEngine.Connect(startId, connectionEntry.StartSlotIndex, endId, connectionEntry.EndSlotIndex, connectionEntry.IsStartSlotInput);
             if(!success) continue;
-            Console.WriteLine("Connection added");
             SceneState.Instance.ApprovedConnectionEntries.Add(connectionEntry);
         }
         
