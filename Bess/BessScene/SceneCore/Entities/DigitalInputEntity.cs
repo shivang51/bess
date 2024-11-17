@@ -41,6 +41,7 @@ public abstract class DigitalInputEntity: DraggableDigitalEntity
     
     public override void Remove()
     {
+        SceneState.Instance.ButtonRenderIds.Remove(ButtonRenderId);
         SceneState.Instance.GetSlotEntityByRenderId(OutputSlotId).Remove();
         SceneState.Instance.RemoveEntity(this);
     }

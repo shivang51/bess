@@ -157,3 +157,25 @@ public class DigitalInputModel : ComponentModel
         return new AddedComponent(sketch.RenderId, component.Id, Name);
     }
 }
+
+public class DigitalOutputModel : ComponentModel
+{
+    public DigitalOutputModel()
+    {
+        Name = "Digital Output";
+        InputCount = 1;
+        OutputCount = 0;
+    }
+    
+    public override AddedComponent Generate()
+    {
+        return Generate<DigitalOutput>();
+    }
+
+    protected override AddedComponent Generate<TSimComponent>()
+    {
+        var component = new TSimComponent();
+        var sketch = new DigitalOutputSketch();
+        return new AddedComponent(sketch.RenderId, component.Id, Name);
+    }
+}
