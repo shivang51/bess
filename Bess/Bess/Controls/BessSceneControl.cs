@@ -58,7 +58,7 @@ public class BessSceneControl: Control
     private readonly Dictionary<Key, bool> _keys = new();
     private static DispatcherTimer? _timer;
     private const int Fps = 120;
-    private const int FrameRateMs = (1000 / Fps);
+    private const double FrameRateMicroSec = (10e6 / Fps);
     
     private readonly Dictionary<EventType, SceneEvent> _sceneEventsDict = new();
     
@@ -129,7 +129,7 @@ public class BessSceneControl: Control
     {
         _timer = new DispatcherTimer()
         {
-            Interval = TimeSpan.FromMilliseconds(FrameRateMs)
+            Interval = TimeSpan.FromMicroseconds(FrameRateMicroSec)
         };
         _timer.Tick += (_, __) => UpdateContent();
         _timer.Start();
