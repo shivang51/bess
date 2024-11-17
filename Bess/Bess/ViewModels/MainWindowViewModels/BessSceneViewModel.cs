@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Numerics;
 using Bess.Models.ComponentExplorer;
 using BessScene.SceneCore.State;
+using BessSimEngine;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -49,5 +50,34 @@ public partial class BessSceneViewModel: ViewModelBase
     private void SetCameraPos(Vector2 pos)
     {
         CameraPos = pos;
+    }
+    
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSimRunning))]
+    public bool _isSimPaused = false;
+
+    [ObservableProperty]
+    public string _buttonIcon = "PauseFilled";
+    
+    public bool IsSimRunning => !IsSimPaused;
+
+    public void PlayPauseSim()
+    {
+        if(IsSimPaused) ResumeSim();
+        else PauseSim();
+    }
+    
+    public void PauseSim()
+    {
+        SimEngineState.Instance.PauseSim();
+        IsSimPaused = true;
+        ButtonIcon = "PlayFilled";
+    }
+    
+    public void ResumeSim()
+    {
+        SimEngineState.Instance.ResumeSim();
+        IsSimPaused = false;
+        ButtonIcon = "PauseFilled";
     }
 }

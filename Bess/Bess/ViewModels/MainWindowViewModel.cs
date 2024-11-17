@@ -18,11 +18,15 @@ public partial class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel()
     {
         _addedComponents.CollectionChanged += AddedComponentsOnCollectionChanged;
+
+        SimEngineState.Instance.OnSimTick += span => ElapsedSimTime = span.ToString(@"hh\:mm\:ss\.fff");
     }
     
     private ObservableCollection<AddedComponent> _addedComponents => ProjectExplorerVm.AddedComponents;
 
     [ObservableProperty] public ProjectExplorerViewModel _projectExplorerVm = new();
+    [ObservableProperty] public ComponentExplorerViewModel _componentExplorerVm = new();
+    [ObservableProperty] public BessSceneViewModel _bessSceneVm = new();
 
     private void AddedComponentsOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
@@ -36,7 +40,9 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         ProjectExplorerVm.AddComponent(componentModel);
     }
-    
+
+    [ObservableProperty]
+    public string _elapsedSimTime = "00:00:00";
     
     [ObservableProperty]
     public bool _showHelpText = true;

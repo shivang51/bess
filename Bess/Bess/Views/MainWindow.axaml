@@ -52,7 +52,9 @@
                        HorizontalAlignment="Center" VerticalAlignment="Center"
                        Content="{Binding HelpText}" />
             </Grid>
-            <mainPageViews:ComponentExplorer Grid.Column="0"/>
+            <mainPageViews:ComponentExplorer Grid.Column="0" 
+                                             DataContext="{Binding  ComponentExplorerVm}"
+                                             />
             
             <mainPageViews:ProjectExplorer Grid.Column="4" 
                                            Name="ProjectExplorer"
@@ -61,12 +63,23 @@
             
             <GridSplitter Margin="1 16" Grid.Column="1"/>
             <GridSplitter Margin="1 16" Grid.Column="3"/>
-            <mainPageViews:BessSceneView Grid.Column="2"/>
+            <mainPageViews:BessSceneView Grid.Column="2" DataContext="{Binding BessSceneVm}"/>
         </Grid>
         
         <DockPanel Grid.Row="2">
             <Border Padding="16 4">
-                <TextBlock Text="Simulation Running" HorizontalAlignment="Right"></TextBlock>
+                <TextBlock Text="{Binding ElapsedSimTime}"
+                           Classes.Disabled="{Binding BessSceneVm.IsSimPaused}"
+                           HorizontalAlignment="Right">
+                    <TextBlock.Styles>
+                        <Style Selector="TextBlock">
+                            <Setter Property="Foreground" Value="#FF4B8653"></Setter>
+                            <Style Selector="^.Disabled">
+                                <Setter Property="Foreground" Value="Chocolate"></Setter>
+                            </Style>
+                        </Style>
+                    </TextBlock.Styles>
+                </TextBlock>
             </Border>
         </DockPanel>
     </Grid>

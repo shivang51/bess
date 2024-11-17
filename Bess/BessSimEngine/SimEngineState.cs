@@ -1,6 +1,7 @@
-﻿
+﻿using Timer = System.Timers.Timer;
 using BessSimEngine.Components;
 using BessSimEngine.Components.Slots;
+
 
 namespace BessSimEngine;
 
@@ -10,6 +11,10 @@ public class SimEngineState
     {
         Instance = new SimEngineState();
     }
+
+    public Timer SimTimer { get; set; }
+    
+    public TimeSpan ElapsedSimTime { get; set; }
     
     public static SimEngineState Instance { get; }
     
@@ -23,6 +28,8 @@ public class SimEngineState
 
     private List<ChangeEntry> ChangeEntries { get; } = new();
 
+    public Action<TimeSpan>? OnSimTick = null;
+
     public void Init()
     {
         Components.Clear();
@@ -30,6 +37,7 @@ public class SimEngineState
         SimulationQueue.Clear();
         Slots.Clear();
         ChangeEntries.Clear();
+        ElapsedSimTime = new TimeSpan();
     }
     
     public void AddComponent(Component component)
@@ -130,5 +138,15 @@ public class SimEngineState
         var component = GetComponent<Component>(compId);
 
         return type == SlotType.Input ? component.GetInputId(slotInd) : component.GetOutputId(slotInd);
+    }
+
+    public void PauseSim()
+    {
+        SimTimer.Enabled = false;
+    }
+
+    public void ResumeSim()
+    {
+        SimTimer.Enabled = true;
     }
 }

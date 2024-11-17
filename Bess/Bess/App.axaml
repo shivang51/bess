@@ -6,7 +6,7 @@
              xmlns:converters="clr-namespace:Bess.Converters"
              RequestedThemeVariant="Dark">
     <Application.Resources>
-        <converters:StringToResourceConverter x:Key="ResourceToGeometryConverter" />
+        <converters:StringToResourceConverter x:Key="StringToResourceConverter" />
         
         <FontFamily x:Key="RobotoRegular">/Assets/fonts/Roboto/Roboto-Regular.ttf#Roboto</FontFamily>
         <FontFamily x:Key="DeliusSwashRegular">/Assets/fonts/DeliusSwashCaps/DeliusSwashCaps-Regular.ttf#Delius Swash Caps</FontFamily>

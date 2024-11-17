@@ -38,7 +38,7 @@
                         </Interaction.Behaviors>
                         <StackPanel HorizontalAlignment="Stretch" Orientation="Horizontal" Spacing="8">
                             <Svg Width="24" Height="24" IsVisible="{Binding ShowIcon}"  
-                                 Path="{Binding Icon, Converter={StaticResource ResourceToGeometryConverter}}" 
+                                 Path="{Binding Icon, Converter={StaticResource StringToResourceConverter}}" 
                                  Css="path { fill: #FFFFFF; }">
                             </Svg>
                             <TextBlock Text="{Binding Title}" VerticalAlignment="Center"></TextBlock>

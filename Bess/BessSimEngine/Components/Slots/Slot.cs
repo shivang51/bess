@@ -48,12 +48,25 @@ public abstract class Slot: Component
     public virtual void SetState(DigitalState state)
     {
         if(state == State) return;
+
+        if (IsInput && state == DigitalState.Low && !AreAllInputsLow())
+        {
+            state = DigitalState.High;
+            if (State == state) return;
+        }
         
         State = state;
         Simulate();
 
         var entry = new ChangeEntry(ParentId, _ind, StateInt, _type == SlotType.Input);
         SimEngineState.Instance.AddChangeEntry(entry);
+    }
+
+    private bool AreAllInputsLow()
+    {
+        var highSlots = Connections.Select(SimEngineState.Instance.GetSlot)
+            .Where(el => el is { IsOutput: true, State: DigitalState.High });
+        return !highSlots.Any();
     }
 
     public override List<List<int>> GetState()

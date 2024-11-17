@@ -28,11 +28,22 @@
         
             <Border Canvas.Right="8" Canvas.Top="8" CornerRadius="8" Padding="4" Background="{DynamicResource ButtonBackground}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button Padding="2" Background="Transparent" BorderBrush="Transparent" Foreground="#FF4B8653">
-                        <PathIcon Data="{StaticResource PauseFilled}" Width="12" Height="12"/>
-                    </Button>
-                    <Button Padding="2" Background="Transparent" BorderBrush="Transparent" Foreground="#FF4B8653">
-                        <PathIcon Data="{StaticResource PlayFilled}" Width="12" Height=" 12"/>
+                    <Button Padding="2" Background="Transparent" 
+                            Command="{Binding PlayPauseSim}"
+                            Classes.SimPaused = "{Binding IsSimPaused}"
+                            BorderBrush="Transparent">
+                        
+                        <Button.Styles>
+                            <Style Selector="Button">
+                                    <Setter Property="Foreground" Value="Chocolate"/>
+                                <Style Selector="^.SimPaused">
+                                    <Setter Property="Foreground" Value="#FF4B8653"/>
+                                </Style>
+                            </Style>
+                        </Button.Styles>
+                        
+                        <PathIcon  Data="{Binding ButtonIcon, Converter={StaticResource StringToResourceConverter}}" 
+                                   Width="12" Height="12"/>
                     </Button>
                 </StackPanel>
             </Border>

@@ -9,21 +9,30 @@ public class SimEngine
 {
     private readonly Timer _timer;
     
+    private const double Interval = 10e6 / 240.0;
+    
+    private static readonly TimeSpan IntervalTimeSpan = TimeSpan.FromMicroseconds(Interval);
+    
     public SimEngine()
     {
         SimEngineState.Instance.Init();
         
-        _timer = new Timer(1000.0 / 120.0);
+        _timer = new Timer(IntervalTimeSpan);
         _timer.Elapsed += ProcessSimQueue;
         _timer.AutoReset = true;
         _timer.Enabled = true;
         _timer.Stop();
+
+        SimEngineState.Instance.SimTimer = _timer;
     }
 
     private const string LogPath = @"c:\temp\log_.txt";
 
     private static void ProcessSimQueue(object? sender, ElapsedEventArgs e)
     {
+        SimEngineState.Instance.ElapsedSimTime += IntervalTimeSpan;
+        SimEngineState.Instance.OnSimTick?.Invoke(SimEngineState.Instance.ElapsedSimTime);
+        
         var n = SimEngineState.Instance.SimulationQueue.Count;
         if(n <= 0) return;
         
@@ -77,7 +86,7 @@ public class SimEngine
     public void Start()
     {
         File.WriteAllText(LogPath, "");
-        Resume();
+        _timer.Start();
     }
 
     public static Dictionary<Guid, List<List<int>>> GetState()
@@ -105,7 +114,7 @@ public class SimEngine
 
     public void Resume()
     {
-        _timer.Start();
+        _timer.Enabled = true;
     }
 
     public void Pause()
