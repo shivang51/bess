@@ -9,8 +9,8 @@ public partial class ComponentExplorerViewModel: ViewModelBase
     public ObservableCollection<ComponentTreeNode> ComponentTree { get; } =
     [
         new ("I/O", [
-            new ComponentTreeNode("Input Probe", "InputProbe", new DigitalInputModel()),
-            new ComponentTreeNode("Output Probe", "OutputProbe", new DigitalOutputModel()),
+            new ComponentTreeNode("Digital Input", "DigitalInput", new DigitalInputModel()),
+            new ComponentTreeNode("Digital Output", "DigitalOutput", new DigitalOutputModel()),
             new ComponentTreeNode("Clock")
         ]),
         new ("Digital Gates", [
