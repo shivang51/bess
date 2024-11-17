@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Reflection;
-using BessScene.SceneCore;
+using BessScene.SceneCore.State;
 using BessScene.SceneCore.Entities;
 using BessScene.SceneCore.Sketches;
 using BessSimEngine;
 using BessSimEngine.Components;
+using BessSimEngine.Components.DigitalComponents;
 using BessSimEngine.Components.DigitalComponents.Gates;
 
 namespace Bess.Models.ComponentExplorer;
@@ -131,5 +132,28 @@ public class XnorGateModel : ComponentModel
     public override AddedComponent Generate()
     {
         return Generate<XnorGate>();
+    }
+}
+
+public class DigitalInputModel : ComponentModel
+{
+    public DigitalInputModel()
+    {
+        Name = "Digital Input";
+        InputCount = 0;
+        OutputCount = 1;
+    }
+    
+    public override AddedComponent Generate()
+    {
+        return Generate<DigitalInput>();
+    }
+    
+    
+    protected override AddedComponent Generate<TSimComponent>()
+    {
+        var component = new TSimComponent();
+        var sketch = new DigitalInputSketch();
+        return new AddedComponent(sketch.RenderId, component.Id, Name);
     }
 }

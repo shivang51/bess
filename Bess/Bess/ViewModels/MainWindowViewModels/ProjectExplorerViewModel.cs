@@ -1,7 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Linq;
 using Bess.Models.ComponentExplorer;
-using BessScene.SceneCore;
+using BessScene.SceneCore.State;
 using BessSimEngine;
 using CommunityToolkit.Mvvm.ComponentModel;
 

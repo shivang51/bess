@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Numerics;
-using BessScene.SceneCore.Events;
 using BessScene.SceneCore.Entities;
+using BessScene.SceneCore.State.Events;
 using BessScene.SceneCore.Sketches;
 using SkiaSharp;
 
-namespace BessScene.SceneCore;
+namespace BessScene.SceneCore.State;
 
 public class BessSkiaScene
 {
@@ -96,8 +96,8 @@ public class BessSkiaScene
         
         foreach (var entry in approvedConnections)
         {
-            var startEntity = SceneState.Instance.GetEntityByRenderId<GateSketch>(entry.StartParentId);
-            var endEntity = SceneState.Instance.GetEntityByRenderId<GateSketch>(entry.EndParentId);
+            var startEntity = SceneState.Instance.GetEntityByRenderId<DigitalEntity>(entry.StartParentId);
+            var endEntity = SceneState.Instance.GetEntityByRenderId<DigitalEntity>(entry.EndParentId);
             uint startSlotId;
             uint endSlotId;
             if (entry.IsStartSlotInput)
@@ -233,7 +233,7 @@ public class BessSkiaScene
         {
             if (dragData.IsDragging)
             {
-                var ent = SceneState.Instance.GetDraggableEntity<DraggableSceneEntity>(dragData.EntityId);
+                var ent = SceneState.Instance.GetDraggableEntity<IDraggableSceneEntity>(dragData.EntityId);
                 ent.UpdatePosition(ToWorldPos(mousePos) - dragData.DragOffset);
             }
         }
@@ -251,10 +251,18 @@ public class BessSkiaScene
     private void OnMouseLeftEvent(MouseButtonEventData data)
     {
         var pos = data.Position;
-        var rid = GetRenderObjectId((int)pos.X, (int)pos.Y);
-        SceneState.Instance.SelectedEntityId = rid;
+        var rid = SceneState.Instance.HoveredEntityId;
         SceneState.Instance.MousePosition = pos;
         SceneState.Instance.IsLeftMousePressed = data.Pressed;
+
+        if (!data.Pressed)
+        {
+            if (SceneState.Instance.DragData.IsDragging)
+                SceneState.Instance.EndDrag();
+            return;
+        }
+        
+        SceneState.Instance.SelectedEntityId = rid;
 
         if (SceneState.Instance.SelectedEntityId == EmptyId)
         {
@@ -262,34 +270,42 @@ public class BessSkiaScene
             {
                 SceneState.Instance.EndConnection();
             }
+
             return;
         }
 
-        if (data.Pressed)
+        var dragEntId = rid;
+        if (SceneState.Instance.ConnectionEntities.ContainsKey(rid))
+            dragEntId = SceneState.Instance.SecondaryHoveredEntityId;
+        
+        if (SceneState.Instance.IsDraggableEntity(dragEntId))
         {
-            if (SceneState.Instance.IsDraggableEntity(rid))
-            {
-                SceneState.Instance.StartDrag(rid, ToWorldPos(pos));
-            }
-            else if (SceneState.Instance.IsSlotEntity(rid))
-            {
-                if (!SceneState.Instance.ConnectionData.IsConnecting)
-                {
-                    SceneState.Instance.StartConnection(rid);
-                }
-                else
-                {
-                    SceneState.Instance.ConnectionData.EndEntityId = rid;
-                    SceneState.Instance.EndConnection(true);
-                }
-            }
-        }else
+            SceneState.Instance.StartDrag(dragEntId, ToWorldPos(pos));
+        }
+        else if (SceneState.Instance.IsSlotEntity(rid))
         {
-            if(SceneState.Instance.DragData.IsDragging)
-                SceneState.Instance.EndDrag();
+            if (!SceneState.Instance.ConnectionData.IsConnecting)
+            {
+                SceneState.Instance.StartConnection(rid);
+            }
+            else
+            {
+                SceneState.Instance.ConnectionData.EndEntityId = rid;
+                SceneState.Instance.EndConnection(true);
+            }
+        }
+        
+        if (SceneState.Instance.SecondaryHoveredEntityId != 0)
+        {
+            var secHoveredId = SceneState.Instance.SecondaryHoveredEntityId;
+            if (SceneState.Instance.ButtonRenderIds.TryGetValue(secHoveredId, out var entId))
+            {
+                var inpEnt = SceneState.Instance.GetEntityByRenderId<DigitalInputEntity>(entId);
+                inpEnt.ToggleState();
+            }
         }
     }
-    
+
     private void OnMouseMiddleEvent(MouseButtonEventData data)
     {
         SceneState.Instance.IsMiddleMousePressed = data.Pressed;

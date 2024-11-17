@@ -1,10 +1,10 @@
 ﻿using System.Numerics;
 using BessScene.SceneCore.Entities;
 using BessScene.SceneCore.Sketches;
-using BessScene.SceneCore.State;
+using BessScene.SceneCore.State.State;
 using SkiaSharp;
 
-namespace BessScene.SceneCore;
+namespace BessScene.SceneCore.State;
 
 public class SceneState
 {
@@ -28,7 +28,11 @@ public class SceneState
     
     public List<NewConnectionEntry> ApprovedConnectionEntries { get; } = new();
     
+    public Dictionary<uint, bool> ChangedInputIds { get; } = new();
+    
     public List<Action<uint>> OnSelectedEntityChangedCB { get; } = new();
+
+    public Dictionary<uint, uint> ButtonRenderIds { get; } = new();
 
     public CameraController Camera { get; set; }
     
@@ -46,7 +50,7 @@ public class SceneState
     public Dictionary<uint, ConnectionEntity> ConnectionEntities { get; private set; } = new();
     public Dictionary<uint, SceneEntity> Entities { get; private set; } = new();
     public Dictionary<uint, SlotEntity> SlotEntities { get; private set; } = new();
-    public Dictionary<uint, DraggableSceneEntity> DraggableEntities { get; private set; } = new();
+    public Dictionary<uint, IDraggableSceneEntity> DraggableEntities { get; private set; } = new();
     public Dictionary<uint, ConnectionSegment> ConnectionSegments { get; } = new();
     
     public uint SelectedEntityId { 
@@ -71,6 +75,7 @@ public class SceneState
         NewConnectionEntries.Clear();
         ConnectionSegments.Clear();
         DraggableEntities.Clear();
+        ButtonRenderIds.Clear();
     }
     
     public bool IsDraggableEntity(uint rid)
@@ -203,17 +208,17 @@ public class SceneState
         return ent;
     }
 
-    public T GetDraggableEntity<T>(uint rid) where T: DraggableSceneEntity
+    public T GetDraggableEntity<T>(uint rid) where T: IDraggableSceneEntity
     {
-        var obj = GetEntityOrConnectionSeg<T>(rid);
+        var obj = GetEntityOrConnectionSeg(rid);
         if (obj == null) throw new InvalidDataException($"Object with render id {rid} not found");
-        return obj;
+        return (T)obj;
     }
     
-    public T GetEntityOrConnectionSeg<T>(uint rid) where T: SceneEntity
+    public object GetEntityOrConnectionSeg(uint rid)
     {
         var entity = GetEntityOrNull(rid);
-        if (entity != null) return (T)entity;
+        if (entity != null) return entity;
         
         entity = ConnectionSegments.GetValueOrDefault(rid);
         
@@ -222,7 +227,7 @@ public class SceneState
             throw new InvalidDataException($"Entity with render id {rid} not found");
         }
         
-        return (T)entity;
+        return entity;
     }
     
     public SlotEntity GetSlotEntityByRenderId(uint rid)
@@ -243,7 +248,7 @@ public class SceneState
         DragData.EntityId = entityId;
         DragData.StartPosition = MousePosition;
         
-        var ent = GetDraggableEntity<DraggableSceneEntity>(entityId);
+        var ent = GetDraggableEntity<IDraggableSceneEntity>(entityId);
         DragData.DragOffset = ent.GetOffset(worldMousePos);
     }
     
@@ -305,6 +310,11 @@ public class SceneState
             SecondaryHoveredEntityId = rid;
             rid = segment.ParentId;
         }
+        else if (ButtonRenderIds.TryGetValue(rid, out var id))
+        {
+            SecondaryHoveredEntityId = rid;
+            rid = id;
+        }
         else
         {
             SecondaryHoveredEntityId = 0;
@@ -312,5 +322,11 @@ public class SceneState
         
         HoveredEntityId = rid;
     }
-    
+
+
+    public void FillChangedInputIds(out Dictionary<uint, bool> ids)
+    {
+        ids = ChangedInputIds.ToDictionary();
+        ChangedInputIds.Clear();
+    }
 }

@@ -1,17 +1,16 @@
 ﻿using System.Numerics;
+using BessScene.SceneCore.State;
 using BessScene.SceneCore.Entities;
 using SkiaSharp;
+using SkiaExtensions = SkiaSharp.SkiaExtensions;
 
 namespace BessScene.SceneCore.Sketches;
 
-public class GateSketch: DraggableSceneEntity
+public class GateSketch: DraggableDigitalEntity
 {
     private readonly int _inputCount;
     private readonly int _outputCount;
     private readonly string _name;
-    
-    private readonly List<uint> _inputSlots;
-    private readonly List<uint> _outputSlots;
 
     private const float Padding = 6;
     private const float Width = 120;
@@ -32,8 +31,8 @@ public class GateSketch: DraggableSceneEntity
         
         Scale = new Vector2(Width, GetHeight());
         
-        _inputSlots = GenerateSlots(inputCount);
-        _outputSlots = GenerateSlots(outputCount, false);
+        InputSlots = GenerateSlots(inputCount);
+        OutputSlots = GenerateSlots(outputCount, false);
 
         _color = SkiaExtensions.GenerateRandomColor();
 
@@ -54,12 +53,12 @@ public class GateSketch: DraggableSceneEntity
     
     public override void Remove()
     {
-        foreach (var slot in _inputSlots)
+        foreach (var slot in InputSlots)
         {
             SceneState.Instance.GetSlotEntityByRenderId(slot).Remove();
         }
         
-        foreach (var slot in _outputSlots)
+        foreach (var slot in OutputSlots)
         {
             SceneState.Instance.GetSlotEntityByRenderId(slot).Remove();
         }
@@ -114,46 +113,15 @@ public class GateSketch: DraggableSceneEntity
         {
             if (change.IsInputSlot)
             {
-                var slot = SceneState.Instance.GetSlotEntityByRenderId(_inputSlots[change.SlotIndex]);
+                var slot = SceneState.Instance.GetSlotEntityByRenderId(InputSlots[change.SlotIndex]);
                 slot.High = change.IsHigh;
             }
             else
             {
-                var slot = SceneState.Instance.GetSlotEntityByRenderId(_outputSlots[change.SlotIndex]);
+                var slot = SceneState.Instance.GetSlotEntityByRenderId(OutputSlots[change.SlotIndex]);
                 slot.High = change.IsHigh;
             }
         }
         
-    }
-    
-    private bool IsSelected => SceneState.Instance.SelectedEntityId == RenderId;
-    
-    public uint GetInputSlotIdAt(int index)
-    {
-        return _inputSlots[index];
-    }
-    
-    public uint GetOutputSlotIdAt(int index)
-    {
-        return _outputSlots[index];
-    }
-
-    public sealed override void UpdatePosition(Vector2 pos)
-    {
-        Position = pos;
-        foreach (var slot in _inputSlots)
-        {
-            SceneState.Instance.GetSlotEntityByRenderId(slot).UpdateParentPos(pos);
-        }
-        
-        foreach (var slot in _outputSlots)
-        {
-            SceneState.Instance.GetSlotEntityByRenderId(slot).UpdateParentPos(pos);
-        }
-    }
-
-    public override Vector2 GetOffset(Vector2 point)
-    {
-        return point - Position;
     }
 }

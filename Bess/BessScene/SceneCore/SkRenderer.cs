@@ -1,7 +1,8 @@
 ﻿using System.Numerics;
+using BessScene.SceneCore.ShadersCollection;
 using SkiaSharp;
 
-namespace BessScene.SceneCore.Entities;
+namespace BessScene.SceneCore;
 
 public static class SkRenderer
 {

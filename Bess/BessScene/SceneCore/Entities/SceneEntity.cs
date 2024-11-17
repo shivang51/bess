@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using BessScene.SceneCore.State;
 using SkiaSharp;
 
 namespace BessScene.SceneCore.Entities;
@@ -10,13 +11,13 @@ public abstract class SceneEntity
     
     private static uint _renderIdCounter = 1;
     
-    public bool IsSelected = false;
-
     protected SceneEntity(Transform transform, uint renderId)
     {
         _transform = transform;
         RenderId = renderId;
     }
+
+    protected bool IsSelected => SceneState.Instance.SelectedEntityId == RenderId;
     
     protected SceneEntity(Vector2 position, Vector2 scale)
     {
@@ -57,9 +58,14 @@ public abstract class SceneEntity
 
     protected SKColor GetRIdColor()
     {
-        var r = (byte)((RenderId >> 16) & 0xFF);
-        var g = (byte)((RenderId >> 8) & 0xFF);
-        var b = (byte)((RenderId >> 0) & 0xFF);
+        return RIdToColor(RenderId);
+    }
+
+    public static SKColor RIdToColor(uint rid)
+    {
+        var r = (byte)((rid >> 16) & 0xFF);
+        var g = (byte)((rid >> 8) & 0xFF);
+        var b = (byte)((rid >> 0) & 0xFF);
         return new SKColor(r, g, b);
     }
 

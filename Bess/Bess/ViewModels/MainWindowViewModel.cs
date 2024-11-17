@@ -5,7 +5,7 @@ using System.Linq;
 using Bess.Models.ComponentExplorer;
 using Bess.ViewModels.MainWindowViewModels;
 using Bess.Views.MainPageViews;
-using BessScene.SceneCore;
+using BessScene.SceneCore.State;
 using BessSimEngine;
 using CommunityToolkit.Mvvm.ComponentModel;
 // ReSharper disable MemberCanBePrivate.Global

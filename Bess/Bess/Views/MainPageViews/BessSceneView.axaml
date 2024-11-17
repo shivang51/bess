@@ -22,23 +22,24 @@
             Radius="8 0 0 8"
             Zoom="{Binding Zoom}"
             OnZoomChanged="{Binding SetZoomCommand}"
+            OnCameraPositionChanged="{Binding SetCamPosChanged}"
             Width="{Binding RelativeSource={RelativeSource AncestorType=Canvas}, Path=Bounds.Width}"
             Height="{Binding RelativeSource={RelativeSource AncestorType=Canvas}, Path=Bounds.Height}" />
         
-            <Border Canvas.Right="8" Canvas.Top="8" CornerRadius="8" Padding="8" Background="{DynamicResource ButtonBackground}">
+            <Border Canvas.Right="8" Canvas.Top="8" CornerRadius="8" Padding="4" Background="{DynamicResource ButtonBackground}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button Padding="2" Background="Transparent" BorderBrush="Transparent">
-                        <PathIcon Data="{StaticResource PauseFilled}" Width="16" Height="16" Foreground="#FF4B8653"/>
+                    <Button Padding="2" Background="Transparent" BorderBrush="Transparent" Foreground="#FF4B8653">
+                        <PathIcon Data="{StaticResource PauseFilled}" Width="12" Height="12"/>
                     </Button>
                     <Button Padding="2" Background="Transparent" BorderBrush="Transparent" Foreground="#FF4B8653">
-                        <PathIcon Data="{StaticResource PlayFilled}" Width="16" Height=" 16"/>
+                        <PathIcon Data="{StaticResource PlayFilled}" Width="12" Height=" 12"/>
                     </Button>
                 </StackPanel>
             </Border>
         
         <StackPanel Canvas.Right="8" Canvas.Bottom="8" Orientation="Horizontal" Spacing="8">
-            <TextBlock VerticalAlignment="Center" HorizontalAlignment="Left" Text="{Binding ZoomStr}"></TextBlock>
-            <Slider Maximum="{Binding MaxZoom}" 
+            <TextBlock FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Left" Text="{Binding ZoomStr}"></TextBlock>
+            <Slider VerticalAlignment="Bottom" Maximum="{Binding MaxZoom}" 
                     Minimum="{Binding MinZoom}" 
                     Width="100" Value="{Binding Zoom}"/>
         </StackPanel>

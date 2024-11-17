@@ -17,6 +17,8 @@ public static class SkiaExtensions
     
     public static SKPoint ToSkPoint(this Vector2 vector) => new((float)vector.X, (float)vector.Y);
     
+    public static SKSize ToSkSize(this Vector2 vector) => new((float)vector.X, (float)vector.Y);
+    
     private static readonly Random _random = new();
     public static SKColor GenerateRandomColor()
     {

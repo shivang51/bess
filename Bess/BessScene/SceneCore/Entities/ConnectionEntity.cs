@@ -1,11 +1,12 @@
 ﻿using System.Numerics;
 using BessScene.SceneCore.Sketches;
 using BessScene.SceneCore.State;
+using BessScene.SceneCore.State.State;
 using SkiaSharp;
 
 namespace BessScene.SceneCore.Entities;
 
-public class ConnectionSegment: DraggableSceneEntity
+public class ConnectionSegment: DraggableDigitalEntity
 {
     // these points are relative to the start slot position
     public Vector2 StartPos { get; set; }

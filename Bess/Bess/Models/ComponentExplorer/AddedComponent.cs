@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using BessScene.SceneCore;
+using BessScene.SceneCore.State;
 
 namespace Bess.Models.ComponentExplorer;
 

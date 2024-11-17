@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace BessScene.SceneCore.State;
+namespace BessScene.SceneCore.State.State;
 
 public class ConnectionData
 {   

@@ -25,16 +25,16 @@ public class SimEngine
     private static void ProcessSimQueue(object? sender, ElapsedEventArgs e)
     {
         var n = SimEngineState.Instance.SimulationQueue.Count;
-        if(n == 0) return;
+        if(n <= 0) return;
         
-        File.AppendAllText(LogPath, $"Processing queue at {DateTime.Now} with {n} elements\n");
+        // File.AppendAllText(LogPath, $"Processing queue at {DateTime.Now} with {n} elements\n");
         
         var comp = SimEngineState.Instance.SimulationQueue.Dequeue();
         while(comp.NextSimTime <= DateTime.Now)
         {
             File.AppendAllText(LogPath, $"Simulating {comp.Name} at {DateTime.Now}\n");
             comp.Simulate();
-            if(SimEngineState.Instance.SimulationQueue.Count == 0) break;
+            if(SimEngineState.Instance.SimulationQueue.Count <= 0) break;
             comp = SimEngineState.Instance.SimulationQueue.Dequeue();
         }
         
@@ -95,6 +95,12 @@ public class SimEngine
     {
         SimEngineState.Instance.Init();
         _timer.Stop();
+    }
+
+    public void SetInputValue(Guid id, bool isHigh)
+    {
+        var comp = SimEngineState.Instance.GetComponent<DigitalInput>(id);
+        comp.SetState(isHigh ? DigitalState.High : DigitalState.Low);
     }
 
     public void Resume()

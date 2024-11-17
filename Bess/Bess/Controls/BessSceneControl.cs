@@ -18,13 +18,14 @@ using Avalonia.Skia;
 using Avalonia.Threading;
 using Bess.Models.ComponentExplorer;
 using BessScene.SceneCore;
-using BessScene.SceneCore.Events;
 using BessScene.SceneCore.State;
+using BessScene.SceneCore.State.Events;
+using BessScene.SceneCore.State.State;
 using BessSimEngine;
 using BessSimEngine.Components;
 using CommunityToolkit.Mvvm.Input;
 using SkiaSharp;
-using MouseButton = BessScene.SceneCore.Events.MouseButton;
+using MouseButton = BessScene.SceneCore.State.Events.MouseButton;
 
 namespace Bess.Controls;
 
@@ -58,9 +59,18 @@ public class BessSceneControl: Control
     
     public RelayCommand<float>? OnZoomChanged
     {
-        get => GetValue(OnZoomChangedProperty);
+        private get => GetValue(OnZoomChangedProperty);
         set => SetValue(OnZoomChangedProperty!, value);
     }
+    
+    public RelayCommand<Vector2>? OnCameraPositionChanged
+    {
+        private get => GetValue(OnCameraPositionChangedProperty);
+        set => SetValue(OnCameraPositionChangedProperty!, value);
+    }
+    
+    public static readonly StyledProperty<RelayCommand<Vector2>> OnCameraPositionChangedProperty = 
+        AvaloniaProperty.Register<BessSceneControl, RelayCommand<Vector2>>(nameof(OnCameraPositionChanged));
     
     public static readonly StyledProperty<RelayCommand<float>> OnZoomChangedProperty = 
         AvaloniaProperty.Register<BessSceneControl, RelayCommand<float>>(nameof(OnZoomChanged));
@@ -72,13 +82,11 @@ public class BessSceneControl: Control
         AvaloniaProperty.Register<BessSceneControl, float>(nameof(Zoom));
     
     private Vector2 _cameraPosition;
-    private CancellationTokenSource _cancellationTokenSource;
 
     private BessSimEngine.SimEngine _simEngine;
 
     public BessSceneControl()
     {
-        _cancellationTokenSource = new CancellationTokenSource();
         _scene = new BessSkiaScene(Bounds.Width, Bounds.Height);
         
         _cameraPosition = _scene.Camera.Position;
@@ -105,7 +113,6 @@ public class BessSceneControl: Control
     {
         UpdateChangesFromScene();
         UpdateChangesFromSimEngine();
-        UpdateCamera();
         _scene.Update(_sceneEventsDict.Values.ToList());
         _sceneEventsDict.Clear();
         _scene.RenderScene();
@@ -140,7 +147,7 @@ public class BessSceneControl: Control
         SceneState.Instance.SceneChangeEntries = sceneChangeEntries; 
     }
     
-    private static void UpdateChangesFromScene()
+    private void UpdateChangesFromScene()
     {
         SceneState.Instance.FillNewConnectionEntry(out var newConnectionEntries);
 
@@ -153,14 +160,16 @@ public class BessSceneControl: Control
             Console.WriteLine("Connection added");
             SceneState.Instance.ApprovedConnectionEntries.Add(connectionEntry);
         }
-    }
+        
+        SceneState.Instance.FillChangedInputIds(out var inputChangedIds);
 
-    private void UpdateCamera()
-    {
-        _scene.Camera.SetZoomPercentage(Zoom);
-        _scene.Camera.SetPosition(_cameraPosition);
+        foreach (var (id, value) in inputChangedIds)
+        {
+            var comp = AddedComponent.RenderIdToComponentId[id];
+            _simEngine.SetInputValue(comp, value);
+        }
     }
-
+    
     public override void Render(DrawingContext context)
     {
         var rect = new Rect(0, 0, Bounds.Width, Bounds.Height);
@@ -262,6 +271,7 @@ public class BessSceneControl: Control
             var amt = isTouchPad ? 2 : 1;
             _cameraPosition += delta * 25 * amt;
             _scene.Camera.SetPosition(_cameraPosition);
+            OnCameraPositionChanged?.Execute(_cameraPosition);
         });
     }
     

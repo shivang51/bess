@@ -1,5 +1,6 @@
 ﻿using System.Drawing;
 using System.Numerics;
+using BessScene.SceneCore.State;
 using BessScene.SceneCore.Entities;
 using SkiaSharp;
 
@@ -26,6 +27,11 @@ public class ConnectionSketch: ConnectionEntity
         var startPos = slot1.AbsPosition;
 
         var color = slot1.High ? SKColors.DarkOliveGreen : SKColors.IndianRed.WithAlpha(150);
+
+        if (IsSelected)
+        {
+            color = SKColors.Bisque;
+        }
 
         foreach (var segment in ConnectionSegments)
         {

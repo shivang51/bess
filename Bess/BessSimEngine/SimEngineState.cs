@@ -15,6 +15,8 @@ public class SimEngineState
     
     public List<Component> Components { get; } = new();
     
+    public List<Guid> DigitalInputs { get; } = new();
+    
     public List<Slot> Slots { get; } = new();
     
     public PriorityQueue<Component, DateTime> SimulationQueue { get;} = new();
@@ -24,6 +26,7 @@ public class SimEngineState
     public void Init()
     {
         Components.Clear();
+        DigitalInputs.Clear();
         SimulationQueue.Clear();
         Slots.Clear();
         ChangeEntries.Clear();

@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace BessScene.SceneCore.Events;
+namespace BessScene.SceneCore.State.Events;
 
 public class MouseMoveEvent : Event<MouseMoveData>
 {

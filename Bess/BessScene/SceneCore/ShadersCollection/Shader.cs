@@ -1,6 +1,6 @@
 ﻿using SkiaSharp;
 
-namespace BessScene.SceneCore.Entities;
+namespace BessScene.SceneCore.ShadersCollection;
 
 public class Shader
 {
