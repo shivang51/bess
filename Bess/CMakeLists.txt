@@ -165,6 +165,7 @@ endif()
 if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
     target_include_directories(${PROJECT_NAME} PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/uuid;"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../external/skia;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/freetype/include;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui/backends;"
@@ -268,12 +269,16 @@ if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64" AND NOT UNIX)
         "opengl32;"
         "gdi32;"
         "freetype;"
+        "skia;"
+        "png;"
     )
 else()
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
         "glfw;"
         "GL;"
         "freetype;"
+        "skia;"
+        "png;"
     )
 endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
@@ -282,6 +287,10 @@ if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64" AND NOT UNIX)
     target_link_directories(${PROJECT_NAME} PRIVATE
         "${CMAKE_SOURCE_DIR}/external/glfw/lib-vc2022"
         "${CMAKE_SOURCE_DIR}/external/freetype/libs/windows"
+    )
+else()
+    target_link_directories(${PROJECT_NAME} PRIVATE
+        "${CMAKE_SOURCE_DIR}/external/skia/libs"
     )
 endif()
 

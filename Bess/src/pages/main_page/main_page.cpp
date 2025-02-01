@@ -9,11 +9,36 @@
 #include "ext/vector_float2.hpp"
 #include "ext/vector_float3.hpp"
 #include "ext/vector_float4.hpp"
+#include "include/core/SkCanvas.h"
+#include "include/core/SkColor.h"
+#include "include/core/SkColorSpace.h"
+#include "include/core/SkColorType.h"
+#include "include/core/SkFont.h"
+#include "include/core/SkImage.h"
+#include "include/core/SkPath.h"
+#include "include/core/SkRRect.h"
+#include "include/core/SkStream.h"
+#include "include/core/SkSurface.h"
+#include "include/core/SkTextBlob.h"
+#include "include/encode/SkPngEncoder.h"
+#include "include/gpu/ganesh/GrBackendSurface.h"
+#include "include/gpu/ganesh/GrDirectContext.h"
+#include "include/gpu/ganesh/GrTypes.h"
+#include "include/gpu/ganesh/SkSurfaceGanesh.h"
+#include "include/gpu/ganesh/gl/GrGLAssembleInterface.h"
+#include "include/gpu/ganesh/gl/GrGLBackendSurface.h"
+#include "include/gpu/ganesh/gl/GrGLDirectContext.h"
+#include "include/gpu/ganesh/gl/GrGLInterface.h"
+#include "include/gpu/ganesh/gl/GrGLTypes.h"
+#include "include/gpu/ganesh/mock/GrMockTypes.h"
 #include "pages/page_identifier.h"
+#include "scene/renderer/gl/texture.h"
 #include "scene/renderer/renderer.h"
 #include "settings/viewport_theme.h"
 #include "simulator/simulator_engine.h"
 #include "ui/ui_main/ui_main.h"
+#include <GL/gl.h>
+#include <ostream>
 #include <set>
 
 using namespace Bess::Renderer2D;
@@ -27,6 +52,102 @@ namespace Bess::Pages {
     std::shared_ptr<MainPage> MainPage::getTypedInstance(std::shared_ptr<Window> parentWindow) {
         const auto instance = getInstance(parentWindow);
         return std::dynamic_pointer_cast<MainPage>(instance);
+    }
+
+    void skdraw(SkCanvas *canvas) {
+        canvas->clear(30);
+
+        SkPaint paint;
+        paint.setStrokeWidth(4);
+        paint.setColor(SK_ColorRED);
+        paint.setAntiAlias(true);
+
+        SkRect rect = SkRect::MakeXYWH(50, 250, 40, 60);
+        canvas->drawRect(rect, paint);
+
+        SkRRect oval;
+        oval.setOval(rect);
+        oval.offset(40, 60);
+        paint.setColor(SK_ColorCYAN);
+        canvas->drawRRect(oval, paint);
+
+        paint.setColor(SK_ColorCYAN);
+        canvas->drawCircle(180, 50, 25, paint);
+
+        rect.offset(80, 0);
+        paint.setColor(SK_ColorYELLOW);
+        canvas->drawRoundRect(rect, 10, 10, paint);
+
+        canvas->drawCircle({250, 250}, 50, paint);
+
+        SkPath path;
+        path.moveTo(10, 10);
+        path.cubicTo({100, 0}, {200, 300}, {300, 300});
+        paint.setColor(SK_ColorWHITE);
+        paint.setStrokeWidth(2);
+        paint.setStroke(true);
+        canvas->drawPath(path, paint);
+
+        // canvas->drawImage(image, 128, 128, SkSamplingOptions(), &paint);
+
+        SkRect rect2 = SkRect::MakeXYWH(0, 0, 40, 60);
+        // canvas->drawImageRect(image, rect2, SkSamplingOptions(), &paint);
+
+        // SkPaint paint2;
+        // auto text = SkTextBlob::MakeFromString("Hello, Skia!", SkFont(nullptr, 18));
+        // canvas->drawTextBlob(text.get(), 50, 25, paint2);
+    }
+
+    void saveSkiaImage(sk_sp<SkImage> img, sk_sp<GrDirectContext> ctx) {
+        if (!img) {
+            return;
+        }
+        sk_sp<SkData> png = SkPngEncoder::Encode(ctx.get(), img.get(), {});
+        if (!png) {
+            return;
+        }
+        SkFILEWStream out("./gl_skia_sample_new.png");
+        (void)out.write(png->data(), png->size());
+    }
+
+    void MainPage::skiaInit(int width, int height) {
+
+        sk_sp<const GrGLInterface> interface = GrGLMakeNativeInterface();
+        if (interface == nullptr) {
+            interface = GrGLMakeAssembledInterface(
+                nullptr, (GrGLGetProc) * [](void *, const char *p) -> void * { return (void *)glfwGetProcAddress(p); });
+        }
+
+        skiaContext = GrDirectContexts::MakeGL(interface);
+
+        auto format = skiaContext->defaultBackendFormat(SkColorType::kRGBA_F16_SkColorType, GrRenderable::kYes);
+        skiaBackendTexture = skiaContext->createBackendTexture(
+            width, height,
+            format,
+            skgpu::Mipmapped::kYes,
+            GrRenderable::kYes);
+
+        if (!skiaBackendTexture.isValid()) {
+            std::cerr << "Failed to allocate backend texture!" << std::endl;
+            throw;
+        }
+
+        skiaSurface = SkSurfaces::WrapBackendTexture(skiaContext.get(), skiaBackendTexture,
+                                                     kBottomLeft_GrSurfaceOrigin,
+                                                     1,
+                                                     kRGBA_F16_SkColorType,
+                                                     nullptr,
+                                                     nullptr);
+        if (!skiaSurface) {
+            SkDebugf("SkSurfaces::RenderTarget returned null\n");
+            throw;
+        }
+
+        // GrGLTextureInfo textureInfo;
+        // if (!GrBackendTextures::GetGLTextureInfo(skiaBackendTexture, &textureInfo)) {
+        //     std::cerr << "Getting info failed" << std::endl;
+        // }
+        // skiaTextureId = textureInfo.fID;
     }
 
     MainPage::MainPage(std::shared_ptr<Window> parentWindow) : Page(PageIdentifier::MainPage) {
@@ -45,10 +166,12 @@ namespace Bess::Pages {
         UI::UIMain::state.cameraZoom = Camera::defaultZoom;
         UI::UIMain::state.viewportTexture = m_normalFramebuffer->getColorBufferTexId(0);
         m_state = MainPageState::getInstance();
+
+        skiaInit(800, 600);
     }
 
     void MainPage::draw() {
-        drawScene();
+        drawSkiaScene();
 
         for (int i = 0; i < 2; i++) {
             m_multiSampledFramebuffer->bindColorAttachmentForRead(i);
@@ -57,6 +180,26 @@ namespace Bess::Pages {
         }
         Gl::FrameBuffer::unbindAll();
         UI::UIMain::draw();
+    }
+
+    void MainPage::drawSkiaScene() {
+        static int value = -1;
+        const auto bgColor = ViewportTheme::backgroundColor;
+        const float clearColor[] = {bgColor.x, bgColor.y, bgColor.z, bgColor.a};
+        m_multiSampledFramebuffer->clearColorAttachment<GL_FLOAT>(0, clearColor);
+        m_multiSampledFramebuffer->clearColorAttachment<GL_INT>(1, &value);
+
+        Gl::FrameBuffer::clearDepthStencilBuf();
+        float scale = 1 / m_camera->getZoom();
+        auto pos = m_camera->getPos();
+        pos *= -1;
+        auto skiaCanvas = skiaSurface->getCanvas();
+        skiaCanvas->save();
+        skiaCanvas->scale(scale, scale);
+        skiaCanvas->translate(pos.x, pos.y);
+        skdraw(skiaCanvas);
+        skiaContext->flushAndSubmit();
+        skiaCanvas->restore();
     }
 
     void MainPage::drawScene() {
@@ -123,7 +266,6 @@ namespace Bess::Pages {
             break;
         }
 
-
         Renderer::end();
 
         Gl::FrameBuffer::unbindAll();
@@ -134,6 +276,7 @@ namespace Bess::Pages {
             m_multiSampledFramebuffer->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
             m_normalFramebuffer->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
             m_camera->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
+            skiaSurface = skiaSurface->makeSurface(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
         }
 
         if (UI::UIMain::state.cameraZoom != m_camera->getZoom()) {
@@ -310,7 +453,8 @@ namespace Bess::Pages {
         }
 
         // update only on release when outside viewport
-        if (!pressed) m_leftMousePressed = pressed;
+        if (!pressed)
+            m_leftMousePressed = pressed;
 
         if (!isCursorInViewport())
             return;
@@ -318,7 +462,7 @@ namespace Bess::Pages {
         m_leftMousePressed = pressed;
 
         if (!pressed) {
-            auto& dragData = m_state->getDragData();
+            auto &dragData = m_state->getDragData();
             if (dragData.isDragging) {
                 finishDragging();
             }
@@ -399,7 +543,6 @@ namespace Bess::Pages {
             }
             return;
         }
-
 
         if (m_state->isHoveredIdChanged() && !dragData.isDragging) {
             auto prevHoveredId = m_state->getPrevHoveredId();

@@ -1,10 +1,18 @@
 #pragma once
-
+#include "include/core/SkImage.h"
+#include "include/gpu/ganesh/GrBackendSurface.h"
+#include "include/gpu/ganesh/GrDirectContext.h"
+#define Sk_GL
 #include "camera.h"
 #include "events/application_event.h"
+#include "include/core/SkCanvas.h"
+#include "include/core/SkRefCnt.h"
+#include "include/core/SkSurface.h"
+#include "include/gpu/ganesh/gl/GrGLTypes.h"
 #include "pages/main_page/main_page_state.h"
 #include "pages/page.h"
 #include "scene/renderer/gl/framebuffer.h"
+#include "scene/renderer/gl/texture.h"
 #include "window.h"
 
 #include <memory>
@@ -24,6 +32,7 @@ namespace Bess::Pages {
         void update(const std::vector<ApplicationEvent> &events) override;
 
         void drawScene();
+        void drawSkiaScene();
 
         glm::vec2 getCameraPos();
 
@@ -33,7 +42,10 @@ namespace Bess::Pages {
         std::shared_ptr<Camera> m_camera;
         std::unique_ptr<Gl::FrameBuffer> m_multiSampledFramebuffer, m_normalFramebuffer;
         std::shared_ptr<Window> m_parentWindow;
-
+        sk_sp<SkSurface> skiaSurface = nullptr;
+        sk_sp<GrDirectContext> skiaContext = nullptr;
+        void skiaInit(int width, int height);
+        GrBackendTexture skiaBackendTexture;
         // event handlers
       private:
         void onMouseWheel(double x, double y);

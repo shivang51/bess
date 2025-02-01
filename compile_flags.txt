@@ -10,6 +10,7 @@
 -Iexternal/glfw/include
 -Iexternal/uuid
 -Iexternal/json
+-Iexternal/skia
 -Iexternal/freetype/include
 -Iexternal/stb_image/include
 -Iexternal/tinyfiledialogs

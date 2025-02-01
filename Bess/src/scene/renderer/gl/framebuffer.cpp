@@ -78,6 +78,10 @@ namespace Bess::Gl {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
+    GLuint FrameBuffer::getId() {
+        return this->m_fbo;
+    }
+
     void FrameBuffer::resize(const float width, const float height) {
         bind();
         m_width = width;

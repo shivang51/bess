@@ -17,6 +17,8 @@ namespace Bess::Gl {
         FrameBuffer(float width, float height, const std::vector<FBAttachmentType> &attachments, bool multisampled = false);
         ~FrameBuffer();
 
+        GLuint getId();
+
         GLuint getColorBufferTexId(int idx = 0) const;
 
         glm::vec2 getSize() const;
