@@ -40,7 +40,7 @@ namespace Bess::Pages {
 
       private:
         std::shared_ptr<Camera> m_camera;
-        std::unique_ptr<Gl::FrameBuffer> m_multiSampledFramebuffer, m_normalFramebuffer;
+        std::unique_ptr<Gl::FrameBuffer> m_normalFramebuffer;
         std::shared_ptr<Window> m_parentWindow;
         sk_sp<SkSurface> skiaSurface = nullptr;
         sk_sp<GrDirectContext> skiaContext = nullptr;

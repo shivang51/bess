@@ -55,7 +55,8 @@ namespace Bess::Pages {
     }
 
     void skdraw(SkCanvas *canvas) {
-        canvas->clear(30);
+        const auto bgColor = ViewportTheme::backgroundColor;
+        canvas->drawColor(SkColorSetARGB(bgColor.w, bgColor.x, bgColor.y, bgColor.z));
 
         SkPaint paint;
         paint.setStrokeWidth(4);
@@ -71,83 +72,21 @@ namespace Bess::Pages {
         paint.setColor(SK_ColorCYAN);
         canvas->drawRRect(oval, paint);
 
-        paint.setColor(SK_ColorCYAN);
-        canvas->drawCircle(180, 50, 25, paint);
-
         rect.offset(80, 0);
         paint.setColor(SK_ColorYELLOW);
         canvas->drawRoundRect(rect, 10, 10, paint);
 
         canvas->drawCircle({250, 250}, 50, paint);
 
+        paint.setColor(SK_ColorWHITE);
+        paint.setStroke(true);
+        paint.setStrokeWidth(2);
+        canvas->drawCircle(180, 50, 25, paint);
+
         SkPath path;
         path.moveTo(10, 10);
-        path.cubicTo({100, 0}, {200, 300}, {300, 300});
-        paint.setColor(SK_ColorWHITE);
-        paint.setStrokeWidth(2);
-        paint.setStroke(true);
+        path.cubicTo({300, 0}, {300, 300}, {600, 300});
         canvas->drawPath(path, paint);
-
-        // canvas->drawImage(image, 128, 128, SkSamplingOptions(), &paint);
-
-        SkRect rect2 = SkRect::MakeXYWH(0, 0, 40, 60);
-        // canvas->drawImageRect(image, rect2, SkSamplingOptions(), &paint);
-
-        // SkPaint paint2;
-        // auto text = SkTextBlob::MakeFromString("Hello, Skia!", SkFont(nullptr, 18));
-        // canvas->drawTextBlob(text.get(), 50, 25, paint2);
-    }
-
-    void saveSkiaImage(sk_sp<SkImage> img, sk_sp<GrDirectContext> ctx) {
-        if (!img) {
-            return;
-        }
-        sk_sp<SkData> png = SkPngEncoder::Encode(ctx.get(), img.get(), {});
-        if (!png) {
-            return;
-        }
-        SkFILEWStream out("./gl_skia_sample_new.png");
-        (void)out.write(png->data(), png->size());
-    }
-
-    void MainPage::skiaInit(int width, int height) {
-
-        sk_sp<const GrGLInterface> interface = GrGLMakeNativeInterface();
-        if (interface == nullptr) {
-            interface = GrGLMakeAssembledInterface(
-                nullptr, (GrGLGetProc) * [](void *, const char *p) -> void * { return (void *)glfwGetProcAddress(p); });
-        }
-
-        skiaContext = GrDirectContexts::MakeGL(interface);
-
-        auto format = skiaContext->defaultBackendFormat(SkColorType::kRGBA_F16_SkColorType, GrRenderable::kYes);
-        skiaBackendTexture = skiaContext->createBackendTexture(
-            width, height,
-            format,
-            skgpu::Mipmapped::kYes,
-            GrRenderable::kYes);
-
-        if (!skiaBackendTexture.isValid()) {
-            std::cerr << "Failed to allocate backend texture!" << std::endl;
-            throw;
-        }
-
-        skiaSurface = SkSurfaces::WrapBackendTexture(skiaContext.get(), skiaBackendTexture,
-                                                     kBottomLeft_GrSurfaceOrigin,
-                                                     1,
-                                                     kRGBA_F16_SkColorType,
-                                                     nullptr,
-                                                     nullptr);
-        if (!skiaSurface) {
-            SkDebugf("SkSurfaces::RenderTarget returned null\n");
-            throw;
-        }
-
-        // GrGLTextureInfo textureInfo;
-        // if (!GrBackendTextures::GetGLTextureInfo(skiaBackendTexture, &textureInfo)) {
-        //     std::cerr << "Getting info failed" << std::endl;
-        // }
-        // skiaTextureId = textureInfo.fID;
     }
 
     MainPage::MainPage(std::shared_ptr<Window> parentWindow) : Page(PageIdentifier::MainPage) {
@@ -157,10 +96,7 @@ namespace Bess::Pages {
         m_camera = std::make_shared<Camera>(800, 600);
         m_parentWindow = parentWindow;
 
-        std::vector<Gl::FBAttachmentType> attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::R32I_REDI, Gl::DEPTH32F_STENCIL8};
-        m_multiSampledFramebuffer = std::make_unique<Gl::FrameBuffer>(800, 600, attachments, true);
-
-        attachments = {Gl::FBAttachmentType::RGB_RGB, Gl::FBAttachmentType::R32I_REDI};
+        auto attachments = {Gl::FBAttachmentType::RGB_RGB, Gl::FBAttachmentType::R32I_REDI};
         m_normalFramebuffer = std::make_unique<Gl::FrameBuffer>(800, 600, attachments);
 
         UI::UIMain::state.cameraZoom = Camera::defaultZoom;
@@ -170,110 +106,126 @@ namespace Bess::Pages {
         skiaInit(800, 600);
     }
 
+    void MainPage::skiaInit(int width, int height) {
+        sk_sp<const GrGLInterface> interface = GrGLMakeNativeInterface();
+        if (interface == nullptr) {
+            interface = GrGLMakeAssembledInterface(
+                nullptr, (GrGLGetProc) * [](void *, const char *p) -> void * { return (void *)glfwGetProcAddress(p); });
+        }
+
+        skiaContext = GrDirectContexts::MakeGL(interface);
+
+        SkImageInfo info = SkImageInfo::MakeN32Premul(width, height);
+        skiaSurface = SkSurfaces::RenderTarget(skiaContext.get(), skgpu::Budgeted::kNo, info);
+
+        if (!skiaSurface) {
+            SkDebugf("SkSurfaces::RenderTarget returned null\n");
+            throw;
+        }
+    }
+
     void MainPage::draw() {
         drawSkiaScene();
 
-        for (int i = 0; i < 2; i++) {
-            m_multiSampledFramebuffer->bindColorAttachmentForRead(i);
-            m_normalFramebuffer->bindColorAttachmentForDraw(i);
-            Gl::FrameBuffer::blitColorBuffer(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
-        }
-        Gl::FrameBuffer::unbindAll();
         UI::UIMain::draw();
     }
 
     void MainPage::drawSkiaScene() {
-        static int value = -1;
-        const auto bgColor = ViewportTheme::backgroundColor;
-        const float clearColor[] = {bgColor.x, bgColor.y, bgColor.z, bgColor.a};
-        m_multiSampledFramebuffer->clearColorAttachment<GL_FLOAT>(0, clearColor);
-        m_multiSampledFramebuffer->clearColorAttachment<GL_INT>(1, &value);
-
-        Gl::FrameBuffer::clearDepthStencilBuf();
-        float scale = 1 / m_camera->getZoom();
+        auto size = m_camera->getSpan();
         auto pos = m_camera->getPos();
         pos *= -1;
+
+        SkMatrix transform;
+        transform.setIdentity();
+        transform.preTranslate(pos.x, pos.y);
+        transform.preScale(m_camera->getZoom(), m_camera->getZoom());
+
         auto skiaCanvas = skiaSurface->getCanvas();
-        skiaCanvas->save();
-        skiaCanvas->scale(scale, scale);
-        skiaCanvas->translate(pos.x, pos.y);
+        skiaCanvas->setMatrix(transform);
         skdraw(skiaCanvas);
-        skiaContext->flushAndSubmit();
-        skiaCanvas->restore();
-    }
 
-    void MainPage::drawScene() {
         static int value = -1;
-        m_multiSampledFramebuffer->bind();
-
         const auto bgColor = ViewportTheme::backgroundColor;
         const float clearColor[] = {bgColor.x, bgColor.y, bgColor.z, bgColor.a};
-        m_multiSampledFramebuffer->clearColorAttachment<GL_FLOAT>(0, clearColor);
-        m_multiSampledFramebuffer->clearColorAttachment<GL_INT>(1, &value);
+        m_normalFramebuffer->clearColorAttachment<GL_FLOAT>(0, clearColor);
+        m_normalFramebuffer->clearColorAttachment<GL_INT>(1, &value);
 
         Gl::FrameBuffer::clearDepthStencilBuf();
-
-        Renderer::begin(m_camera);
-
-        Renderer::grid({0.f, 0.f, -2.f}, m_camera->getSpan(), -1, ViewportTheme::gridColor);
-
-        for (auto &id : Simulator::ComponentsManager::renderComponents) {
-            const auto &entity = Simulator::ComponentsManager::components[id];
-            entity->render();
-        }
-
-        switch (m_state->getDrawMode()) {
-        case UI::Types::DrawMode::connection: {
-            std::vector<glm::vec3> points = m_state->getPoints();
-            auto startPos = Simulator::ComponentsManager::components[m_state->getConnStartId()]->getPosition();
-            points.insert(points.begin(), startPos);
-            const auto mPos = glm::vec3(getNVPMousePos(), -1);
-            points.emplace_back(mPos);
-            float weight = 2.f;
-
-            for (int i = 0; i < points.size() - 1; i++) {
-                auto sPos = points[i];
-                auto ePos = points[i + 1];
-                sPos.z = -1;
-                ePos.z = -1;
-
-                float offset = weight / 2.f;
-                if (sPos.y > ePos.y)
-                    offset = -offset;
-                float midX = ePos.x;
-                Renderer::line(sPos, {midX, sPos.y, -1}, weight, ViewportTheme::wireColor, -1);
-                Renderer::line({midX, sPos.y - offset, -1}, {midX, ePos.y + offset, -1}, weight, ViewportTheme::wireColor, -1);
-                Renderer::line({midX, ePos.y, -1}, ePos, weight, ViewportTheme::wireColor, -1);
-            }
-        } break;
-        case UI::Types::DrawMode::selectionBox: {
-            auto &dragData = m_state->getDragData();
-            auto mp = getNVPMousePos();
-            auto start = dragData.dragOffset;
-            auto end = mp;
-            auto size = mp - dragData.dragOffset;
-            auto pos = dragData.dragOffset;
-            pos += size / 2.f;
-            size = glm::abs(size);
-            float z = 9.f;
-            Renderer::line({start.x, start.y, z}, {end.x, start.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, -1);
-            Renderer::line({end.x, start.y, z}, {end.x, end.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, -1);
-            Renderer::line({end.x, end.y, z}, {start.x, end.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, -1);
-            Renderer::line({start.x, end.y, z}, {start.x, start.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, -1);
-            Renderer::quad({pos.x, pos.y, z}, size, ViewportTheme::selectionBoxFillColor, -1);
-        } break;
-        default:
-            break;
-        }
-
-        Renderer::end();
-
+        skiaContext->flush();
         Gl::FrameBuffer::unbindAll();
     }
 
+    void MainPage::drawScene() {
+        // static int value = -1;
+        // m_multiSampledFramebuffer->bind();
+        //
+        // const auto bgColor = ViewportTheme::backgroundColor;
+        // const float clearColor[] = {bgColor.x, bgColor.y, bgColor.z, bgColor.a};
+        // m_multiSampledFramebuffer->clearColorAttachment<GL_FLOAT>(0, clearColor);
+        // m_multiSampledFramebuffer->clearColorAttachment<GL_INT>(1, &value);
+        //
+        // Gl::FrameBuffer::clearDepthStencilBuf();
+        //
+        // Renderer::begin(m_camera);
+        //
+        // Renderer::grid({0.f, 0.f, -2.f}, m_camera->getSpan(), -1, ViewportTheme::gridColor);
+        //
+        // for (auto &id : Simulator::ComponentsManager::renderComponents) {
+        //     const auto &entity = Simulator::ComponentsManager::components[id];
+        //     entity->render();
+        // }
+        //
+        // switch (m_state->getDrawMode()) {
+        // case UI::Types::DrawMode::connection: {
+        //     std::vector<glm::vec3> points = m_state->getPoints();
+        //     auto startPos = Simulator::ComponentsManager::components[m_state->getConnStartId()]->getPosition();
+        //     points.insert(points.begin(), startPos);
+        //     const auto mPos = glm::vec3(getNVPMousePos(), -1);
+        //     points.emplace_back(mPos);
+        //     float weight = 2.f;
+        //
+        //     for (int i = 0; i < points.size() - 1; i++) {
+        //         auto sPos = points[i];
+        //         auto ePos = points[i + 1];
+        //         sPos.z = -1;
+        //         ePos.z = -1;
+        //
+        //         float offset = weight / 2.f;
+        //         if (sPos.y > ePos.y)
+        //             offset = -offset;
+        //         float midX = ePos.x;
+        //         Renderer::line(sPos, {midX, sPos.y, -1}, weight, ViewportTheme::wireColor, -1);
+        //         Renderer::line({midX, sPos.y - offset, -1}, {midX, ePos.y + offset, -1}, weight, ViewportTheme::wireColor, -1);
+        //         Renderer::line({midX, ePos.y, -1}, ePos, weight, ViewportTheme::wireColor, -1);
+        //     }
+        // } break;
+        // case UI::Types::DrawMode::selectionBox: {
+        //     auto &dragData = m_state->getDragData();
+        //     auto mp = getNVPMousePos();
+        //     auto start = dragData.dragOffset;
+        //     auto end = mp;
+        //     auto size = mp - dragData.dragOffset;
+        //     auto pos = dragData.dragOffset;
+        //     pos += size / 2.f;
+        //     size = glm::abs(size);
+        //     float z = 9.f;
+        //     Renderer::line({start.x, start.y, z}, {end.x, start.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, -1);
+        //     Renderer::line({end.x, start.y, z}, {end.x, end.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, -1);
+        //     Renderer::line({end.x, end.y, z}, {start.x, end.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, -1);
+        //     Renderer::line({start.x, end.y, z}, {start.x, start.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, -1);
+        //     Renderer::quad({pos.x, pos.y, z}, size, ViewportTheme::selectionBoxFillColor, -1);
+        // } break;
+        // default:
+        //     break;
+        // }
+        //
+        // Renderer::end();
+        //
+        // Gl::FrameBuffer::unbindAll();
+    }
+
     void MainPage::update(const std::vector<ApplicationEvent> &events) {
-        if (m_multiSampledFramebuffer->getSize() != UI::UIMain::state.viewportSize) {
-            m_multiSampledFramebuffer->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
+        if (m_normalFramebuffer->getSize() != UI::UIMain::state.viewportSize) {
             m_normalFramebuffer->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
             m_camera->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
             skiaSurface = skiaSurface->makeSurface(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);

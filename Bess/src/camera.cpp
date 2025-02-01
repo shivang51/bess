@@ -12,6 +12,14 @@ namespace Bess {
 
     Camera::~Camera() {}
 
+    float Camera::aspectRatio() {
+        return m_aspectRatio;
+    }
+
+    glm::vec2 Camera::getSize() {
+        return glm::vec2(m_width, m_height);
+    }
+
     void Camera::setPos(const glm::vec2 &pos) {
         m_pos = pos;
         updateTransform();
