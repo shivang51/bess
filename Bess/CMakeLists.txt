@@ -65,6 +65,7 @@ set(Header_Files
 "include/window.h"
 "include/application_state.h"
 "include/scene/renderer/renderer.h"
+"include/scene/renderer/skia_renderer.h"
 "include/scene/renderer/font.h"
 "include/scene/renderer/gl/texture.h"
 "include/scene/renderer/gl/vertex.h"
@@ -131,6 +132,7 @@ set(Source_Files
 "src/scene/renderer/gl/framebuffer.cpp"
 "src/scene/renderer/gl/vao.cpp"
 "src/scene/renderer/renderer.cpp"
+"src/scene/renderer/skia_renderer.cpp"
 )
 source_group("Source Files" FILES ${Source_Files})
 
@@ -279,6 +281,8 @@ else()
         "freetype;"
         "skia;"
         "png;"
+        "skparagraph;"
+        "fontconfig;"
     )
 endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")

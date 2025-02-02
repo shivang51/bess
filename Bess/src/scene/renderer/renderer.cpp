@@ -13,9 +13,7 @@
 #include <iostream>
 #include <ostream>
 
-using namespace Bess::Renderer2D;
-
-namespace Bess {
+namespace Bess::Renderer2D {
 
     std::vector<PrimitiveType> Renderer::m_AvailablePrimitives;
 
@@ -50,7 +48,7 @@ namespace Bess {
         }
 
         m_AvailablePrimitives = {PrimitiveType::curve, PrimitiveType::circle,
-                                 PrimitiveType::font, PrimitiveType::triangle, PrimitiveType::quad };
+                                 PrimitiveType::font, PrimitiveType::triangle, PrimitiveType::quad};
         m_MaxRenderLimit[PrimitiveType::quad] = 2000;
         m_MaxRenderLimit[PrimitiveType::curve] = 2000;
         m_MaxRenderLimit[PrimitiveType::circle] = 2000;
@@ -269,7 +267,7 @@ namespace Bess {
 
         m_GridShader->bind();
         m_GridVao->bind();
-       
+
         auto camOffset = m_camera->getPos();
         m_GridShader->setUniformMat4("u_mvp", m_camera->getOrtho());
         m_GridShader->setUniform1f("u_zoom", m_camera->getZoom());
@@ -646,4 +644,4 @@ namespace Bess {
         size = {size.x * scale, size.y * scale};
         return size;
     }
-} // namespace Bess
+} // namespace Bess::Renderer2D

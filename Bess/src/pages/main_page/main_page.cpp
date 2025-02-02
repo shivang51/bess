@@ -34,6 +34,7 @@
 #include "pages/page_identifier.h"
 #include "scene/renderer/gl/texture.h"
 #include "scene/renderer/renderer.h"
+#include "scene/renderer/skia_renderer.h"
 #include "settings/viewport_theme.h"
 #include "simulator/simulator_engine.h"
 #include "ui/ui_main/ui_main.h"
@@ -104,6 +105,7 @@ namespace Bess::Pages {
         m_state = MainPageState::getInstance();
 
         skiaInit(800, 600);
+        SkiaRenderer::init();
     }
 
     void MainPage::skiaInit(int width, int height) {
@@ -131,18 +133,59 @@ namespace Bess::Pages {
     }
 
     void MainPage::drawSkiaScene() {
-        auto size = m_camera->getSpan();
+        auto size = m_camera->getSpan() / 2.0f;
         auto pos = m_camera->getPos();
         pos *= -1;
 
         SkMatrix transform;
         transform.setIdentity();
-        transform.preTranslate(pos.x, pos.y);
+
         transform.preScale(m_camera->getZoom(), m_camera->getZoom());
+        transform.preTranslate(pos.x + size.x, pos.y + size.y);
 
         auto skiaCanvas = skiaSurface->getCanvas();
+        skiaCanvas->resetMatrix();
+        Renderer2D::SkiaRenderer::begin(skiaCanvas);
+        Renderer2D::SkiaRenderer::grid(1, {0.f, 0.f, 0.f}, pos,
+                                       m_camera->getSize(), m_camera->getZoom(),
+                                       {0.f, 0.f, 255.0, 255.0});
+
         skiaCanvas->setMatrix(transform);
-        skdraw(skiaCanvas);
+
+        // for (auto &id : Simulator::ComponentsManager::renderComponents) {
+        //     const auto &entity = Simulator::ComponentsManager::components[id];
+        //     entity->render();
+        // }
+        Renderer2D::SkiaRenderer::quad(1, {100.f, 100.f, 0.f}, {250.f, 125.f},
+                                       {30.f, 30.f, 30.f, 255.f}, 16.f,
+                                       {240.f, 240.f, 240.f, 255.f}, 1.f);
+
+        Renderer2D::SkiaRenderer::quad(1, {101.f, 101.f, 0.f}, {248.f, 30.f},
+                                       {45.f, 45.f, 45.f, 105.f},
+                                       {15.f, 15.f, 0.f, 0.f});
+
+        glm::vec3 start = glm::vec3({102.f, 155.f, 0.f});
+        auto end = getNVPMousePos();
+        auto dx = end.x - start.x;
+        auto dy = end.x - start.x;
+
+        Renderer2D::SkiaRenderer::cubicBezier(1, start, glm::vec3(end, 0.f),
+                                              {start.x + (dx * 0.35), start.y},
+                                              {end.x - (dx * 0.35), end.y}, 2.0f, glm::vec4(255.0f));
+
+        Renderer2D::SkiaRenderer::circle(1, glm::vec3(end, 0.f), 10,
+                                         {100.0f, 50.0f, 50.0f, 255.f},
+                                         {255.0f, 255.0f, 255.0f, 255.f},
+                                         1.f);
+
+        Renderer2D::SkiaRenderer::text(1, "hello from skia renderer", {0.f, 0.f, 0.f}, 14.f, glm::vec4(255));
+
+        Renderer2D::SkiaRenderer::line(1,
+                                       {{0.f, 0.f, 0.f}, {dx / 2.f, 0.f, 0.f}, glm::vec3(dx / 2.f, end.y, 0.f), glm::vec3(end, 0.f)},
+                                       2.f,
+                                       {100.0f, 100.0f, 100.0f, 255.f});
+
+        Renderer2D::SkiaRenderer::end();
 
         static int value = -1;
         const auto bgColor = ViewportTheme::backgroundColor;
