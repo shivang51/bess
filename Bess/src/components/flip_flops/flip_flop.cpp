@@ -7,6 +7,7 @@
 #include "components_manager/components_manager.h"
 #include "pages/main_page/main_page_state.h"
 #include "scene/renderer/renderer.h"
+#include "scene/renderer/skia_renderer.h"
 #include "settings/viewport_theme.h"
 #include "uuid.h"
 
@@ -53,13 +54,12 @@ namespace Bess::Simulator::Components {
         auto pos = m_transform.getPosition();
         auto color = ViewportTheme::componentBGColor;
 
-        Renderer2D::Renderer::quad(
+        Renderer2D::SkiaRenderer::quad(
+            m_renderId,
             {pos.x, pos.y + headerHeight / 2.f, pos.z},
             {gateSize.x, gateSize.y - headerHeight},
             color,
-            m_renderId,
             glm::vec4(0.f, 0.f, rPx, rPx),
-            true,
             borderColor,
             glm::vec4(0.f, borderThicknessPx.y, borderThicknessPx.z, borderThicknessPx.w));
 
@@ -68,13 +68,12 @@ namespace Bess::Simulator::Components {
 
         // header
         static glm::vec4 headerColor = ViewportTheme::compHeaderColor;
-        Renderer2D::Renderer::quad(
+        Renderer2D::SkiaRenderer::quad(
+            m_renderId,
             headerPos,
             {gateSize.x, headerHeight},
             headerColor,
-            m_renderId,
             glm::vec4(rPx, rPx, 0.f, 0.f),
-            true,
             borderColor,
             glm::vec4(borderThicknessPx.x, borderThicknessPx.y, 0.f, borderThicknessPx.w));
     }
@@ -88,7 +87,8 @@ namespace Bess::Simulator::Components {
         glm::vec2 gatePadding = {4.0f, 4.f};
         float labelGap = 8.f;
         float rowGap = 4.f;
-        auto sampleCharSize = Renderer2D::Renderer::getCharRenderSize('Z', 12.f);
+        // auto sampleCharSize = Renderer2D::Renderer::getCharRenderSize('Z', 12.f);
+        auto sampleCharSize = glm::vec2(12);
         float sCharHeight = sampleCharSize.y;
         float rowHeight = (slotRowPadding.y * 2) + sCharHeight;
 
@@ -164,7 +164,7 @@ namespace Bess::Simulator::Components {
             }
         }
 
-        Renderer2D::Renderer::text(m_name, leftCornerPos + glm::vec3({8.f, 8.f + (sCharHeight / 2.f), ComponentsManager::zIncrement}), 11.f, ViewportTheme::textColor, m_renderId);
+        Renderer2D::SkiaRenderer::text(m_renderId, m_name, leftCornerPos + glm::vec3({8.f, 8.f + (sCharHeight / 2.f), ComponentsManager::zIncrement}), 11.f, ViewportTheme::textColor);
     }
 
     void FlipFlop::update() {

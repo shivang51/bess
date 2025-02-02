@@ -1,12 +1,12 @@
 #include "components/slot.h"
+#include "common/helpers.h"
 #include "components/connection.h"
 #include "components_manager/components_manager.h"
 #include "ext/vector_float3.hpp"
 #include "pages/main_page/main_page_state.h"
 #include "scene/renderer/renderer.h"
+#include "scene/renderer/skia_renderer.h"
 #include "settings/viewport_theme.h"
-
-#include "common/helpers.h"
 #include "simulator/simulator_engine.h"
 #include "ui/ui.h"
 #include <common/bind_helpers.h>
@@ -53,24 +53,27 @@ namespace Bess::Simulator::Components {
         auto pos = m_transform.getPosition();
         auto isHigh = m_state == DigitalState::high;
 
-        Renderer2D::Renderer::circle(pos, m_highlightBorder ? r + 2.0f : r + 1.f,
-                                     m_highlightBorder
-                                         ? ViewportTheme::selectedWireColor
-                                         : ViewportTheme::componentBorderColor,
-                                     m_renderId);
+        Renderer2D::SkiaRenderer::circle(m_renderId, pos, m_highlightBorder ? r + 2.0f : r + 1.f,
+                                         m_highlightBorder
+                                             ? ViewportTheme::selectedWireColor
+                                             : ViewportTheme::componentBorderColor);
 
         auto bgColor = (isHigh) ? ViewportTheme::stateHighColor : ViewportTheme::stateLowColor;
-        Renderer2D::Renderer::circle(pos, r, bgColor, m_renderId);
+        Renderer2D::SkiaRenderer::circle(m_renderId, pos, r, bgColor);
 
         if (m_label == "")
             return;
-        auto charSize = Renderer2D::Renderer::getCharRenderSize('Z', fontSize);
+        glm::vec2 charSize(12.f);
         glm::vec3 offset = glm::vec3(m_labelOffset, ComponentsManager::zIncrement);
         if (offset.x < 0.f) {
             offset.x -= m_labelWidth;
         }
         offset.y += charSize.y / 2.f;
-        Renderer2D::Renderer::text(m_label, pos + offset, fontSize, ViewportTheme::textColor, ComponentsManager::compIdToRid(m_parentUid));
+
+        // add parent render id to text
+        Renderer2D::SkiaRenderer::text(m_renderId, m_label, pos, fontSize, ViewportTheme::textColor);
+        // Renderer2D::SkiaRenderer::text(m_renderId, m_label, pos + offset, fontSize, ViewportTheme::textColor,
+        //                                ComponentsManager::compIdToRid(m_parentUid));
     }
 
     void Slot::deleteComponent() {

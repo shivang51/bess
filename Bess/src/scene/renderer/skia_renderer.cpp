@@ -45,7 +45,7 @@ namespace Bess::Renderer2D {
     void SkiaRenderer::quad(const int id, const glm::vec3 &pos, const glm::vec2 &size,
                             const glm::vec4 &color) {
         SkPaint paint;
-        paint.setColor(vec4ToSkColor(color));
+        paint.setColor(vec4NormalizedToSkColor(color));
         paint.setAntiAlias(true);
 
         SkRect rect = SkRect::MakeXYWH(pos.x, pos.y, size.x, size.y);
@@ -57,7 +57,7 @@ namespace Bess::Renderer2D {
                             const glm::vec4 &color,
                             const glm::vec4 &borderRadius) {
         SkPaint paint;
-        paint.setColor(vec4ToSkColor(color));
+        paint.setColor(vec4NormalizedToSkColor(color));
         paint.setAntiAlias(true);
 
         SkRect rect = SkRect::MakeXYWH(pos.x, pos.y, size.x, size.y);
@@ -87,7 +87,7 @@ namespace Bess::Renderer2D {
 
         // border
         SkPaint paint;
-        paint.setColor(vec4ToSkColor(borderColor));
+        paint.setColor(vec4NormalizedToSkColor(borderColor));
         paint.setAntiAlias(true);
         paint.setStroke(true);
 
@@ -141,7 +141,7 @@ namespace Bess::Renderer2D {
 
         // content
         paint.setStroke(false);
-        paint.setColor(vec4ToSkColor(color));
+        paint.setColor(vec4NormalizedToSkColor(color));
         glm::vec3 pos_ = glm::vec3(pos.x + borderSize.w,
                                    pos.y + borderSize.x, pos.z);
         glm::vec2 size_ = glm::vec2(size.x - borderSize.y - borderSize.w,
@@ -171,7 +171,7 @@ namespace Bess::Renderer2D {
         paint.setAntiAlias(true);
         paint.setStroke(true);
         paint.setStrokeWidth(weight);
-        paint.setColor(vec4ToSkColor(color));
+        paint.setColor(vec4NormalizedToSkColor(color));
 
         colorCanvas->drawPath(path, paint);
     }
@@ -180,7 +180,7 @@ namespace Bess::Renderer2D {
                               const glm::vec4 &color) {
         SkPaint paint;
         paint.setAntiAlias(true);
-        paint.setColor(vec4ToSkColor(color));
+        paint.setColor(vec4NormalizedToSkColor(color));
 
         colorCanvas->drawCircle(vec2ToSkPoint(glm::vec2(center)),
                                 radius, paint);
@@ -199,7 +199,7 @@ namespace Bess::Renderer2D {
         SkPaint paint;
         paint.setAntiAlias(true);
         paint.setStrokeWidth(borderSize);
-        paint.setColor(vec4ToSkColor(borderColor));
+        paint.setColor(vec4NormalizedToSkColor(borderColor));
         paint.setStroke(true);
 
         colorCanvas->drawCircle(vec2ToSkPoint(glm::vec2(center)),
@@ -257,7 +257,7 @@ namespace Bess::Renderer2D {
                             const glm::vec3 &pos, const size_t size,
                             const glm::vec4 &color) {
         SkPaint paint;
-        paint.setColor(vec4ToSkColor(color));
+        paint.setColor(vec4NormalizedToSkColor(color));
 
         SkFont font;
         font.setSize(size);
@@ -276,7 +276,7 @@ namespace Bess::Renderer2D {
     void SkiaRenderer::line(const int id, const std::vector<glm::vec3> &vertices,
                             float weight, const glm::vec4 &color) {
         SkPaint paint;
-        paint.setColor(vec4ToSkColor(color));
+        paint.setColor(vec4NormalizedToSkColor(color));
         paint.setStrokeWidth(weight);
         paint.setStroke(true);
         paint.setAntiAlias(true);
