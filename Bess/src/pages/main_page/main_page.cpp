@@ -11,29 +11,19 @@
 #include "ext/vector_float4.hpp"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkColor.h"
-#include "include/core/SkColorSpace.h"
-#include "include/core/SkColorType.h"
 #include "include/core/SkFont.h"
 #include "include/core/SkImage.h"
 #include "include/core/SkPath.h"
 #include "include/core/SkRRect.h"
-#include "include/core/SkStream.h"
 #include "include/core/SkSurface.h"
 #include "include/core/SkTextBlob.h"
 #include "include/encode/SkPngEncoder.h"
-#include "include/gpu/ganesh/GrBackendSurface.h"
 #include "include/gpu/ganesh/GrDirectContext.h"
-#include "include/gpu/ganesh/GrTypes.h"
 #include "include/gpu/ganesh/SkSurfaceGanesh.h"
 #include "include/gpu/ganesh/gl/GrGLAssembleInterface.h"
-#include "include/gpu/ganesh/gl/GrGLBackendSurface.h"
 #include "include/gpu/ganesh/gl/GrGLDirectContext.h"
 #include "include/gpu/ganesh/gl/GrGLInterface.h"
-#include "include/gpu/ganesh/gl/GrGLTypes.h"
-#include "include/gpu/ganesh/mock/GrMockTypes.h"
 #include "pages/page_identifier.h"
-#include "scene/renderer/gl/texture.h"
-#include "scene/renderer/renderer.h"
 #include "scene/renderer/skia_renderer.h"
 #include "settings/viewport_theme.h"
 #include "simulator/simulator_engine.h"
@@ -139,9 +129,8 @@ namespace Bess::Pages {
 
         SkMatrix transform;
         transform.setIdentity();
-        transform.preScale(m_camera->getZoom(), m_camera->getZoom());
-
-        transform.preTranslate(pos.x + size.x, pos.y + size.y);
+        transform.postTranslate(pos.x + size.x, pos.y + size.y);
+        transform.postScale(m_camera->getZoom(), m_camera->getZoom());
 
         auto skiaCanvas = skiaSurface->getCanvas();
         skiaCanvas->resetMatrix();
@@ -156,27 +145,6 @@ namespace Bess::Pages {
             const auto &entity = Simulator::ComponentsManager::components[id];
             entity->render();
         }
-
-        // glm::vec3 start = glm::vec3({102.f, 155.f, 0.f});
-        // auto end = getNVPMousePos();
-        // auto dx = end.x - start.x;
-        // auto dy = end.x - start.x;
-        //
-        // Renderer2D::SkiaRenderer::cubicBezier(1, start, glm::vec3(end, 0.f),
-        //                                       {start.x + (dx * 0.35), start.y},
-        //                                       {end.x - (dx * 0.35), end.y}, 2.0f, glm::vec4(255.0f));
-        //
-        // Renderer2D::SkiaRenderer::circle(1, glm::vec3(end, 0.f), 10,
-        //                                  {100.0f, 50.0f, 50.0f, 255.f},
-        //                                  {255.0f, 255.0f, 255.0f, 255.f},
-        //                                  1.f);
-        //
-        // Renderer2D::SkiaRenderer::text(1, "hello from skia renderer", {0.f, 0.f, 0.f}, 14.f, glm::vec4(255));
-        //
-        // Renderer2D::SkiaRenderer::line(1,
-        //                                {{0.f, 0.f, 0.f}, {dx / 2.f, 0.f, 0.f}, glm::vec3(dx / 2.f, end.y, 0.f), glm::vec3(end, 0.f)},
-        //                                2.f,
-        //                                {100.0f, 100.0f, 100.0f, 255.f});
 
         Renderer2D::SkiaRenderer::end();
 

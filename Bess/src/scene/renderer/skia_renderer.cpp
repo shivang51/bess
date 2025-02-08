@@ -1,4 +1,5 @@
 #include "scene/renderer/skia_renderer.h"
+#include "ext/vector_float4.hpp"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkColor.h"
 #include "include/core/SkFont.h"
@@ -60,7 +61,9 @@ namespace Bess::Renderer2D {
         paint.setColor(vec4NormalizedToSkColor(color));
         paint.setAntiAlias(true);
 
-        SkRect rect = SkRect::MakeXYWH(pos.x, pos.y, size.x, size.y);
+        auto offset = size / 2.f;
+
+        SkRect rect = SkRect::MakeXYWH(pos.x - offset.x, pos.y - offset.y, size.x, size.y);
         SkRRect rRect;
 
         SkVector radii[] = {
@@ -94,60 +97,63 @@ namespace Bess::Renderer2D {
         SkPath path;
         auto offset = borderSize / 2.0f;
 
-        // top border
+        auto posTranslated = glm::vec2(pos) - (size / 2.f);
+        posTranslated += glm::vec2({offset.w + offset.y, offset.x + offset.z});
+        auto posShifted = posTranslated;
+
+        // ---- top left arc and top border -----
+        posShifted += glm::vec2(0.f, borderRadius.x);
+        path.moveTo(posShifted.x, posShifted.y);
+        posShifted += glm::vec2(0.f, -borderRadius.x);
+        glm::vec2 arcTo = {posShifted.x + borderRadius.x, posShifted.y};
+        path.arcTo({posShifted.x, posShifted.y}, {arcTo.x, arcTo.y}, borderRadius.x);
+        posShifted = {posTranslated.x + size.x - borderRadius.y, posTranslated.y};
+        path.lineTo({posShifted.x, posShifted.y});
         paint.setStrokeWidth(borderSize.x);
-        auto y = pos.y + offset.x;
-        path.moveTo(pos.x + borderRadius.x, y);
-        path.lineTo(pos.x + size.x - borderRadius.y, y);
+        colorCanvas->drawPath(path, paint);
 
-        // join top-right
-        auto x = pos.x + size.x - offset.y;
-        path.arcTo({x, y},
-                   {x, y + borderRadius.y},
-                   borderRadius.y - offset.y);
-
-        // right border
+        // ---- top right arc and right border -----
+        path = SkPath();
+        path.moveTo(posShifted.x, posShifted.y);
+        posShifted += glm::vec2(borderRadius.y, 0);
+        arcTo = {posShifted.x, posShifted.y + borderRadius.y};
+        path.arcTo({posShifted.x, posShifted.y}, {arcTo.x, arcTo.y}, borderRadius.y);
+        posShifted = {posShifted.x, posTranslated.y + size.y - borderRadius.z};
+        path.lineTo({posShifted.x, posShifted.y});
         paint.setStrokeWidth(borderSize.y);
-        path.lineTo(x, pos.y + size.y - borderRadius.z);
+        colorCanvas->drawPath(path, paint);
 
-        // join bottom-right
-        y = pos.y + size.y - offset.z;
-        path.arcTo({x, y},
-                   {x - borderRadius.z, y},
-                   borderRadius.z - offset.z);
-
-        // bottom border
-        x = pos.x + borderRadius.z - offset.w;
+        // ---- bottom right arc and bottom border -----
+        path = SkPath();
+        path.moveTo(posShifted.x, posShifted.y);
+        posShifted += glm::vec2(0, borderRadius.z);
+        arcTo = {posShifted.x - borderRadius.z, posShifted.y};
+        path.arcTo({posShifted.x, posShifted.y}, {arcTo.x, arcTo.y}, borderRadius.z);
+        posShifted = {posTranslated.x + borderRadius.w, posShifted.y};
+        path.lineTo(posShifted.x, posShifted.y);
         paint.setStrokeWidth(borderSize.z);
-        path.lineTo(x, pos.y + size.y - offset.z);
+        colorCanvas->drawPath(path, paint);
 
-        // join bottom-left
-        x = pos.x + offset.w;
-        path.arcTo({x, y},
-                   {x, y - borderRadius.w},
-                   borderRadius.w - offset.w);
-
-        // left border
+        // ---- bottom left arc and left border -----
+        path = SkPath();
+        path.moveTo(posShifted.x, posShifted.y);
+        posShifted += glm::vec2(-borderRadius.w, 0);
+        arcTo = {posShifted.x, posShifted.y - borderRadius.w};
+        path.arcTo({posShifted.x, posShifted.y}, {arcTo.x, arcTo.y}, borderRadius.w);
+        posShifted = {posTranslated.x, posTranslated.y + borderRadius.x};
+        path.lineTo(posShifted.x, posShifted.y);
         paint.setStrokeWidth(borderSize.w);
-        path.lineTo(x, pos.y + borderRadius.w);
-
-        // join top-left
-        y = pos.y + offset.x;
-        path.arcTo({x, y},
-                   {x + borderRadius.x, y},
-                   borderRadius.x - offset.x);
-
         colorCanvas->drawPath(path, paint);
 
         // content
-        paint.setStroke(false);
-        paint.setColor(vec4NormalizedToSkColor(color));
         glm::vec3 pos_ = glm::vec3(pos.x + borderSize.w,
                                    pos.y + borderSize.x, pos.z);
-        glm::vec2 size_ = glm::vec2(size.x - borderSize.y - borderSize.w,
-                                    size.y - borderSize.z - borderSize.x);
+        glm::vec2 size_ = glm::vec2(size.x - borderSize.y,
+                                    size.y - borderSize.z);
 
-        quad(id, pos_, size_, color, borderRadius);
+        glm::vec4 borderRadius_ = borderRadius - offset;
+
+        quad(id, pos_, size_, color, borderRadius_);
     }
 
     void SkiaRenderer::quad(const int id, const glm::vec3 &pos, const glm::vec2 &size,
@@ -258,13 +264,14 @@ namespace Bess::Renderer2D {
                             const glm::vec4 &color) {
         SkPaint paint;
         paint.setColor(vec4NormalizedToSkColor(color));
+        paint.setAntiAlias(true);
 
         SkFont font;
         font.setSize(size);
         font.setTypeface(robotoTypeface);
 
         colorCanvas->drawSimpleText(data.c_str(), data.size(), SkTextEncoding::kUTF8,
-                                    0, 0,
+                                    pos.x, pos.y,
                                     font, paint);
     }
 
