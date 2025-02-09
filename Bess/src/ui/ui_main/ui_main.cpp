@@ -36,7 +36,6 @@ namespace Bess::UI {
         ComponentExplorer::draw();
         PropertiesPanel::draw();
         drawExternalWindows();
-        // ImGui::ShowDemoWindow();
     }
 
     void UIMain::drawStats(int fps) {

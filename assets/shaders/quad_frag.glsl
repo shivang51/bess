@@ -12,8 +12,8 @@ in flat int v_FragId;
 uniform int u_SelectedObjId;
 uniform float u_zoom;
 
-float smoothBlur = 0.035f;
 
+float smoothBlur = 0.035f;
 float sdRoundBox(in vec2 p, in vec2 b, in vec4 r)
 {
     r.xy = (p.x > 0.0) ? r.xy : r.zw;
@@ -32,6 +32,10 @@ float minVec2(vec2 v){
     return (v.x <= v.y) ? v.x : v.y;  
 }
 
+float rand(vec2 uv) {
+    return fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
 void main() {
     vec2 fragPos = gl_FragCoord.xy;
     float ar = v_Size.x / v_Size.y;
@@ -40,7 +44,7 @@ void main() {
     vec4 bR = v_BorderRadius;
     bR /= minVec2(v_Size);
 
-    smoothBlur /= u_zoom;
+    smoothBlur = fwidth(length(p));
 
     p = (p * 2.f) - 1.f;
     p.x *= ar;
@@ -51,6 +55,13 @@ void main() {
     float a = calculateQuad(p, si, ra);
     if (a == 0.f) discard;
     bgColor.w = min(bgColor.w, a);
-    fragColor = bgColor;
+
+    float noise = rand(p * 100.f) * 0.01f;
+    vec4 tintColor = vec4(0.2, 0.2, 0.3, 0.7);
+    vec4 micaColor = mix(bgColor, tintColor, tintColor.a);
+    micaColor.rgb += noise; // Add subtle grain
+    micaColor.rgb *= 0.3f; // Apply vignette
+
+    fragColor = micaColor;
     fragColor1 = v_FragId;
 }

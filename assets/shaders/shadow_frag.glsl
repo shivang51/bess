@@ -23,16 +23,18 @@ float sdRoundedBox( in vec2 p, in vec2 b, in vec4 r )
 void main() {
     float ar = v_Size.x / v_Size.y;
     vec2 p = v_TexCoord;
-    vec4 bgColor = vec4(0.0, 0.0, 0.0, 1.);
+    vec4 bgColor = vec4(0.0, 0.0, 0.0, 0.3f);
     
     p = (p * 2.f) - 1.f;
     p.x *= ar;
 
-    vec4 br = v_BorderRadius / v_Size.y;
+    vec4 bR = v_BorderRadius / v_Size.y;
+    vec4 ra = vec4(bR.w, bR.x, bR.z, bR.y);
 
-    float a = 1.f - sdRoundedBox(p, vec2(ar, 1.f) * 0.9f, br);
-    a = smoothstep(0.8, 1.f, a);
+    float a = sdRoundedBox(p, vec2(ar, 1.f), ra);
+    a = smoothstep(fwidth(length(p)), 0.f, a);
+    bgColor.a = min(bgColor.a, a);
 
-    fragColor = bgColor * a;
+    fragColor = bgColor;
     fragColor1 = v_FragId;
 }

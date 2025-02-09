@@ -50,7 +50,7 @@ namespace Bess {
         }
 
         m_AvailablePrimitives = {PrimitiveType::curve, PrimitiveType::circle,
-                                 PrimitiveType::font, PrimitiveType::triangle, PrimitiveType::quad };
+                                 PrimitiveType::font, PrimitiveType::triangle, PrimitiveType::quad};
         m_MaxRenderLimit[PrimitiveType::quad] = 2000;
         m_MaxRenderLimit[PrimitiveType::curve] = 2000;
         m_MaxRenderLimit[PrimitiveType::circle] = 2000;
@@ -198,7 +198,7 @@ namespace Bess {
         if (shadow) {
             std::vector<Gl::QuadVertex> vertices(4);
 
-            auto transform = glm::translate(glm::mat4(1.0f), pos + glm::vec3(6.f, 4.f, 0.f));
+            auto transform = glm::translate(glm::mat4(1.0f), pos + glm::vec3(4.f, 4.f, 0.f));
             transform = glm::rotate(transform, angle, {0.f, 0.f, 1.f});
             transform = glm::scale(transform, {size.x, size.y, 1.f});
 
@@ -269,7 +269,7 @@ namespace Bess {
 
         m_GridShader->bind();
         m_GridVao->bind();
-       
+
         auto camOffset = m_camera->getPos();
         m_GridShader->setUniformMat4("u_mvp", m_camera->getOrtho());
         m_GridShader->setUniform1f("u_zoom", m_camera->getZoom());

@@ -4,6 +4,7 @@
 #include "components_manager/component_bank.h"
 #include "components_manager/components_manager.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
 #include "ui/m_widgets.h"
@@ -29,10 +30,15 @@ namespace Bess::UI {
             ImGui::PopItemWidth();
         }
 
+        ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.f, 0.5f));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0, 0, 0, 0)); // for tree node to have no bg normally
         auto &vault = Simulator::ComponentBank::getVault();
 
+        ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_Framed;
+
         for (auto &ent : vault) {
-            if (ImGui::TreeNode(ent.first.c_str())) {
+            if (ImGui::TreeNodeEx(ent.first.c_str(), treeNodeFlags)) {
                 for (auto &comp : ent.second) {
                     auto &name = comp.getName();
                     if (m_searchQuery != "" && Common::Helpers::toLowerCase(name).find(m_searchQuery) == std::string::npos)
@@ -54,7 +60,8 @@ namespace Bess::UI {
             }
         }
 
-        ImGui::PopStyleVar();
+        ImGui::PopStyleColor(2);
+        ImGui::PopStyleVar(2);
         ImGui::End();
     }
 

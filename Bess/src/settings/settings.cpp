@@ -53,7 +53,7 @@ namespace Bess::Config {
 
     void Settings::init() {
         m_themes = Themes();
-        m_currentTheme = "Fluent UI";
+        m_currentTheme = "New Dark";
     }
 
     std::string Settings::m_currentTheme;
