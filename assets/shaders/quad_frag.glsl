@@ -8,7 +8,7 @@ in vec2 v_TexCoord;
 in vec4 v_FragColor;
 in vec4 v_BorderRadius;
 in flat int v_FragId;
-in flat int v_isMica;
+in flat int v_IsMica;
 
 uniform int u_SelectedObjId;
 uniform float u_zoom;
@@ -38,7 +38,7 @@ float rand(vec2 uv) {
 }
 
 void main() {
-    bool isMica = v_isMica == 1;
+    bool isMica = v_IsMica == 1;
     vec2 fragPos = gl_FragCoord.xy;
     float ar = v_Size.x / v_Size.y;
     vec2 p = v_TexCoord;
