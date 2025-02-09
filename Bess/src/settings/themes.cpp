@@ -39,6 +39,8 @@ namespace Bess::Config {
         colors[ImGuiCol_WindowBg] = ImVec4(0.07f, 0.07f, 0.09f, 1.00f);  // #131318
         colors[ImGuiCol_MenuBarBg] = ImVec4(0.07f, 0.07f, 0.09f, 1.00f); // #131318
 
+        colors[ImGuiCol_PopupBg] = ImVec4(0.18f, 0.18f, 0.22f, 1.00f);
+
         // Headers
         colors[ImGuiCol_Header] = ImVec4(0.18f, 0.18f, 0.22f, 1.00f);
         colors[ImGuiCol_HeaderHovered] = ImVec4(0.30f, 0.30f, 0.40f, 1.00f);
@@ -98,6 +100,7 @@ namespace Bess::Config {
         style.WindowPadding = ImVec2(10, 10);
         style.FramePadding = ImVec2(6, 4);
         style.ItemSpacing = ImVec2(8, 6);
+        style.PopupBorderSize = 0.f;
     }
 
     void Themes::setCatpuccinMochaColors() {

@@ -103,6 +103,7 @@ namespace Bess::UI {
         bool newFileClicked = false, openFileClicked = false;
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
         ImGui::BeginMainMenuBar();
+
         if (ImGui::BeginMenu("File")) {
             // New File
             std::string temp_name = Icons::FontAwesomeIcons::FA_FILE_ALT;
