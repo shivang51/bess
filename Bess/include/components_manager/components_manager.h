@@ -40,6 +40,8 @@ namespace Bess::Simulator {
 
         static uuids::uuid emptyId;
 
+        static int emptyRenderId;
+
         static const float zIncrement;
 
         static void addRenderIdToCId(int rid, const uuids::uuid &cid);
@@ -58,6 +60,7 @@ namespace Bess::Simulator {
         static float getNextZPos();
 
         static int getNextRenderId();
+        static int getCurrentRenderId();
 
         static void reset();
 

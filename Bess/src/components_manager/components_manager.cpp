@@ -30,12 +30,15 @@ namespace Bess::Simulator {
 
     uuids::uuid ComponentsManager::emptyId;
 
+    int ComponentsManager::emptyRenderId;
+
     const float ComponentsManager::zIncrement = 0.0001f;
 
     float ComponentsManager::zPos;
 
     void ComponentsManager::init() {
         ComponentsManager::emptyId = Common::Helpers::uuidGenerator.getUUID();
+        ComponentsManager::emptyRenderId = 0;
         reset();
     }
 
@@ -129,7 +132,7 @@ namespace Bess::Simulator {
             std::cout << "Render Id not found " << rId << std::endl;
             assert(false);
         }
-        return m_renderIdToCId[rId];
+        return m_renderIdToCId.at(rId);
     }
 
     bool ComponentsManager::isRenderIdPresent(const int rId) {
@@ -137,7 +140,7 @@ namespace Bess::Simulator {
     }
 
     int ComponentsManager::compIdToRid(const uuids::uuid &cid) {
-        return m_compIdToRId[cid];
+        return m_compIdToRId.at(cid);
     }
 
     void ComponentsManager::addRenderIdToCId(const int rid, const uuids::uuid &cid) {
@@ -155,11 +158,11 @@ namespace Bess::Simulator {
 
     const uuids::uuid &ComponentsManager::getConnectionBetween(const uuids::uuid &inpSlot, const uuids::uuid &outSlot) {
         const std::string key = Common::Helpers::uuidToStr(inpSlot) + "," + Common::Helpers::uuidToStr(outSlot);
-        return m_slotsToConn[key];
+        return m_slotsToConn.at(key);
     }
 
     const uuids::uuid &ComponentsManager::getConnectionBetween(const std::string &inputOutputSlot) {
-        return m_slotsToConn[inputOutputSlot];
+        return m_slotsToConn.at(inputOutputSlot);
     }
 
     void ComponentsManager::removeSlotsToConn(const uuids::uuid &inpSlot, const uuids::uuid &outSlot) {
@@ -181,19 +184,21 @@ namespace Bess::Simulator {
 
     int ComponentsManager::getNextRenderId() { return renderIdCounter++; }
 
+    int ComponentsManager::getCurrentRenderId() { return renderIdCounter; }
+
     void ComponentsManager::reset() {
         zPos = 0.0f;
-        renderIdCounter = 0;
         components.clear();
         renderComponents.clear();
         m_compIdToRId.clear();
         m_renderIdToCId.clear();
-        m_compIdToRId[emptyId] = -1;
-        m_renderIdToCId[-1] = emptyId;
+        renderIdCounter = emptyRenderId + 1;
+        m_compIdToRId[emptyId] = emptyRenderId;
+        m_renderIdToCId[emptyRenderId] = emptyId;
     }
 
     std::shared_ptr<Components::Component> ComponentsManager::getComponent(const uuids::uuid &cid) {
-        return components[cid];
+        return components.at(cid);
     }
 
     float ComponentsManager::getNextZPos() {

@@ -60,19 +60,18 @@ namespace Bess::Pages {
     }
 
     void MainPage::drawScene() {
-        static int value = -1;
         m_multiSampledFramebuffer->bind();
 
         const auto bgColor = ViewportTheme::backgroundColor;
         const float clearColor[] = {bgColor.x, bgColor.y, bgColor.z, bgColor.a};
         m_multiSampledFramebuffer->clearColorAttachment<GL_FLOAT>(0, clearColor);
-        m_multiSampledFramebuffer->clearColorAttachment<GL_INT>(1, &value);
+        m_multiSampledFramebuffer->clearColorAttachment<GL_INT>(1, &Simulator::ComponentsManager::emptyRenderId);
 
         Gl::FrameBuffer::clearDepthStencilBuf();
 
         Renderer::begin(m_camera);
 
-        Renderer::grid({0.f, 0.f, -2.f}, m_camera->getSpan(), -1, ViewportTheme::gridColor);
+        Renderer::grid({0.f, 0.f, -2.f}, m_camera->getSpan(), 0, ViewportTheme::gridColor);
 
         for (auto &id : Simulator::ComponentsManager::renderComponents) {
             const auto &entity = Simulator::ComponentsManager::components[id];
@@ -123,7 +122,6 @@ namespace Bess::Pages {
             break;
         }
 
-
         Renderer::end();
 
         Gl::FrameBuffer::unbindAll();
@@ -146,14 +144,14 @@ namespace Bess::Pages {
 
         auto &dragData = m_state->getDragData();
 
-        if (!dragData.isDragging) {
+        if (!dragData.isDragging && isCursorInViewport()) {
             auto viewportMousePos = getViewportMousePos();
             viewportMousePos.y = UI::UIMain::state.viewportSize.y - viewportMousePos.y;
-            int hoverId = m_normalFramebuffer->readIntFromColAttachment(1, static_cast<int>(viewportMousePos.x), static_cast<int>(viewportMousePos.y));
-            if (Simulator::ComponentsManager::renderComponents.size() == 0 && hoverId != -1) {
-                std::cout << "No render components found but hover id was " << hoverId << std::endl;
-                hoverId = -1;
-            }
+            int x = static_cast<int>(viewportMousePos.x);
+            int y = static_cast<int>(viewportMousePos.y);
+            int hoverId = m_normalFramebuffer->readIntFromColAttachment(1, x, y);
+            if (hoverId < Simulator::ComponentsManager::emptyRenderId || hoverId > Simulator::ComponentsManager::getCurrentRenderId())
+                hoverId = Simulator::ComponentsManager::emptyRenderId;
             m_state->setHoveredId(hoverId);
         }
 
@@ -237,7 +235,7 @@ namespace Bess::Pages {
             }
         }
 
-        if (isCursorInViewport() && m_state->getHoveredId() != -1) {
+        if (isCursorInViewport() && m_state->getHoveredId() > Simulator::ComponentsManager::emptyRenderId) {
             auto &cid = Simulator::ComponentsManager::renderIdToCid(m_state->getHoveredId());
             Simulator::Components::ComponentEventData e;
             e.type = Simulator::Components::ComponentEventType::mouseHover;
@@ -310,7 +308,8 @@ namespace Bess::Pages {
         }
 
         // update only on release when outside viewport
-        if (!pressed) m_leftMousePressed = pressed;
+        if (!pressed)
+            m_leftMousePressed = pressed;
 
         if (!isCursorInViewport())
             return;
@@ -318,7 +317,7 @@ namespace Bess::Pages {
         m_leftMousePressed = pressed;
 
         if (!pressed) {
-            auto& dragData = m_state->getDragData();
+            auto &dragData = m_state->getDragData();
             if (dragData.isDragging) {
                 finishDragging();
             }
@@ -358,7 +357,7 @@ namespace Bess::Pages {
 
         auto hoveredId = m_state->getHoveredId();
 
-        if (!pressed && hoveredId == -1) {
+        if (!pressed && hoveredId == Simulator::ComponentsManager::emptyRenderId) {
             auto pos = glm::vec3(getNVPMousePos(), 0.f);
             const auto prevGen = m_state->getPrevGenBankElement();
             if (prevGen == nullptr)
@@ -400,12 +399,11 @@ namespace Bess::Pages {
             return;
         }
 
-
         if (m_state->isHoveredIdChanged() && !dragData.isDragging) {
             auto prevHoveredId = m_state->getPrevHoveredId();
             const auto hoveredId = m_state->getHoveredId();
 
-            if (prevHoveredId != -1 && Simulator::ComponentsManager::isRenderIdPresent(prevHoveredId)) {
+            if (prevHoveredId != Simulator::ComponentsManager::emptyRenderId && Simulator::ComponentsManager::isRenderIdPresent(prevHoveredId)) {
                 auto &cid = Simulator::ComponentsManager::renderIdToCid(
                     prevHoveredId);
                 Simulator::Components::ComponentEventData e;
@@ -415,7 +413,7 @@ namespace Bess::Pages {
 
             prevHoveredId = hoveredId;
 
-            if (hoveredId > 0 && Simulator::ComponentsManager::isRenderIdPresent(hoveredId)) {
+            if (hoveredId > Simulator::ComponentsManager::emptyRenderId && Simulator::ComponentsManager::isRenderIdPresent(hoveredId)) {
                 auto &cid = Simulator::ComponentsManager::renderIdToCid(hoveredId);
                 Simulator::Components::ComponentEventData e;
                 e.type = Simulator::Components::ComponentEventType::mouseEnter;
@@ -431,7 +429,7 @@ namespace Bess::Pages {
             m_camera->incrementPos(dPos);
         } else if (m_leftMousePressed && (diff > 50 || dragData.isDragging)) {
             // dragging an entity
-            if (m_state->getHoveredId() > -1 || (dragData.isDragging && m_state->getDrawMode() != UI::Types::DrawMode::selectionBox)) {
+            if (m_state->getHoveredId() > Simulator::ComponentsManager::emptyRenderId || (dragData.isDragging && m_state->getDrawMode() != UI::Types::DrawMode::selectionBox)) {
                 for (auto &id : m_state->getBulkIds()) {
                     const auto &entity = Simulator::ComponentsManager::components[id];
 
@@ -455,7 +453,7 @@ namespace Bess::Pages {
 
                     entity->setPosition({dPos, 9.f});
                 }
-            } else if (m_state->getHoveredId() == -1) { // box selection when dragging in empty space
+            } else if (m_state->getHoveredId() == Simulator::ComponentsManager::emptyRenderId) { // box selection when dragging in empty space
                 if (!dragData.isDragging) {
                     Types::DragData dragData{};
                     dragData.isDragging = true;
@@ -474,9 +472,9 @@ namespace Bess::Pages {
         const auto &viewportSize = UI::UIMain::state.viewportSize;
         const auto mousePos = getViewportMousePos();
         return mousePos.x >= 5.f &&
-               mousePos.x < viewportSize.x &&
+               mousePos.x < viewportSize.x - 5.f &&
                mousePos.y >= 5.f &&
-               mousePos.y < viewportSize.y;
+               mousePos.y < viewportSize.y - 5.f;
     }
 
     glm::vec2 MainPage::getViewportMousePos() {
