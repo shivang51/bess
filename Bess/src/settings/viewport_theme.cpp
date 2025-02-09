@@ -25,11 +25,11 @@ namespace Bess {
         backgroundColor = glm::vec4(windowBg.x * darkenFactor, windowBg.y * darkenFactor, windowBg.z * darkenFactor, windowBg.w);
 
         auto color = colors[ImGuiCol_WindowBg];
-        componentBGColor = glm::vec4(color.x, color.y, color.z, color.w);
+        componentBGColor = glm::vec4(color.x, color.y, color.z, 0.74f);
 
         color = colors[ImGuiCol_Border];
         darkenFactor = 0.7f;
-        componentBorderColor = glm::vec4(color.x * darkenFactor, color.y * darkenFactor, color.z * darkenFactor, color.w);
+        componentBorderColor = glm::vec4(color.x * darkenFactor, color.y * darkenFactor, color.z * darkenFactor, 0.74f);
 
         color = colors[ImGuiCol_Text];
         wireColor = glm::vec4(color.x, color.y, color.z, color.w) * darkenFactor;
@@ -40,7 +40,7 @@ namespace Bess {
         compHeaderColor = glm::vec4(color.x * darkenFactor, color.y * darkenFactor, color.z * darkenFactor, 0.74f);
 
         color = colors[ImGuiCol_Border];
-        selectedCompColor = glm::vec4(color.x, color.y, color.z, color.w);
+        selectedCompColor = glm::vec4(color.x, color.y, color.z, 0.74f);
 
         color = colors[ImGuiCol_Text];
         textColor = glm::vec4(color.x, color.y, color.z, color.w);
@@ -51,7 +51,7 @@ namespace Bess {
         stateLowColor = glm::vec4(0.82f, 0.2f, 0.2f, 1.00f);
         selectedWireColor = glm::vec4(1.0f, 0.64f, 0.0f, 1.0f);
 
-        selectionBoxBorderColor = glm::vec4({0.0, 0.3, 1.0, 1.f});
-        selectionBoxFillColor = glm::vec4({0.0, 0.3, .7, .5f});
+        selectionBoxBorderColor = glm::vec4({0.3, 0.3, 8.0, 1.f});
+        selectionBoxFillColor = glm::vec4({0.3, 0.3, .7, .5f});
     }
 } // namespace Bess

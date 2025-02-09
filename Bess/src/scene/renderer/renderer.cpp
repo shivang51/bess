@@ -51,11 +51,10 @@ namespace Bess {
 
         m_AvailablePrimitives = {PrimitiveType::curve, PrimitiveType::circle,
                                  PrimitiveType::font, PrimitiveType::triangle, PrimitiveType::quad};
-        m_MaxRenderLimit[PrimitiveType::quad] = 2000;
-        m_MaxRenderLimit[PrimitiveType::curve] = 2000;
-        m_MaxRenderLimit[PrimitiveType::circle] = 2000;
-        m_MaxRenderLimit[PrimitiveType::font] = 2000;
-        m_MaxRenderLimit[PrimitiveType::triangle] = 2000;
+
+        for (auto &prim : m_AvailablePrimitives) {
+            m_MaxRenderLimit[prim] = 2000;
+        }
 
         std::string vertexShader, fragmentShader;
 
@@ -164,7 +163,7 @@ namespace Bess {
             glm::vec2 borderPos = glm::vec2(pos) - glm::vec2(dXYM.x, dXYM.y);
             glm::vec2 borderSize_ = size + dXYP;
             auto borderRadius_ = borderRadius + borderSize;
-            Renderer::drawQuad(glm::vec3(borderPos, pos.z), borderSize_, borderColor, id, angle, isMica, borderRadius);
+            Renderer::drawQuad(glm::vec3(borderPos, pos.z), borderSize_, borderColor, id, angle, false, borderRadius);
         }
         Renderer::drawQuad(pos, size, color, id, angle, isMica, borderRadius);
     }

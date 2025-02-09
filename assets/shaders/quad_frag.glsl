@@ -58,12 +58,12 @@ void main() {
     if (a == 0.f) discard;
     bgColor.w = min(bgColor.w, a);
 
-    if(false && isMica){
-        float noise = rand(p * 100.f) * 0.05f;
-        vec4 tintColor = vec4(0.2, 0.2, 0.3, 0.7);
-        vec4 micaColor = mix(bgColor, tintColor, tintColor.a);
-        micaColor.rgb += noise * 0.6f; // Add subtle grain
-        bgColor = micaColor;
+    if(isMica){
+        float noise = rand(p * 80.f) * 0.1f;
+        vec4 tintColor = vec4(0.5f, 0.5f, 0.8f, 0.25f);
+        vec4 micaColor = mix(vec4(vec3(0.1f, 0.1f, 0.5f), 0.25f), tintColor, length(v_TexCoord.x));
+        micaColor.rgb += noise * 0.8f; // Add subtle grain
+        bgColor.rgb *= micaColor.rgb;
     }
     
     fragColor = bgColor;
