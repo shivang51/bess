@@ -71,10 +71,10 @@ namespace Bess::Pages {
 
         Renderer::begin(m_camera);
 
-        Renderer::grid({0.f, 0.f, -2.f}, m_camera->getSpan(), 0, ViewportTheme::gridColor);
+        Renderer::grid({0.f, 0.f, -2.f}, m_camera->getSpan(), Simulator::ComponentsManager::emptyRenderId, ViewportTheme::gridColor);
 
         for (auto &id : Simulator::ComponentsManager::renderComponents) {
-            const auto &entity = Simulator::ComponentsManager::components[id];
+            const auto &entity = Simulator::ComponentsManager::getComponent(id);
             entity->render();
         }
 
