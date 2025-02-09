@@ -116,7 +116,7 @@ namespace Bess::Pages {
             Renderer::line({end.x, start.y, z}, {end.x, end.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, Simulator::ComponentsManager::emptyRenderId);
             Renderer::line({end.x, end.y, z}, {start.x, end.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, Simulator::ComponentsManager::emptyRenderId);
             Renderer::line({start.x, end.y, z}, {start.x, start.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, Simulator::ComponentsManager::emptyRenderId);
-            Renderer::quad({pos.x, pos.y, z}, size, ViewportTheme::selectionBoxFillColor, Simulator::ComponentsManager::emptyRenderId);
+            Renderer::quad({pos.x, pos.y, z}, size, ViewportTheme::selectionBoxFillColor, Simulator::ComponentsManager::emptyRenderId, 0.f, false);
         } break;
         default:
             break;

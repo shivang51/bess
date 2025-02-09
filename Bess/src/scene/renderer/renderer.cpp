@@ -136,7 +136,7 @@ namespace Bess {
                         const glm::vec4 &color, int id,
                         const glm::vec4 &borderRadius, const glm::vec4 &borderColor,
                         float borderSize) {
-        Renderer::quad(pos, size, color, id, 0.f, borderRadius, borderColor,
+        Renderer::quad(pos, size, color, id, 0.f, false, borderRadius, borderColor,
                        borderSize);
     }
 
@@ -145,14 +145,14 @@ namespace Bess {
                         const glm::vec4 &borderRadius, const glm::vec4 &borderColor,
                         const glm::vec4 &borderSize) {
         Renderer::quad(pos, size, color, id, 0.f, borderRadius, borderColor,
-                       borderSize);
+                       borderSize, false);
     }
 
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
-                        const glm::vec4 &color, int id, float angle,
+                        const glm::vec4 &color, int id, float angle, bool isMica,
                         const glm::vec4 &borderRadius, const glm::vec4 &borderColor,
                         float borderSize) {
-        Renderer::quad(pos, size, color, id, angle, borderRadius, borderColor, glm::vec4(borderSize));
+        Renderer::quad(pos, size, color, id, angle, borderRadius, borderColor, glm::vec4(borderSize), isMica);
     }
 
     void Renderer2D::Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size, const glm::vec4 &color, int id, float angle, const glm::vec4 &borderRadius, const glm::vec4 &borderColor, const glm::vec4 &borderSize, bool isMica) {

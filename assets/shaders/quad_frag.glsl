@@ -58,12 +58,11 @@ void main() {
     if (a == 0.f) discard;
     bgColor.w = min(bgColor.w, a);
 
-    if(isMica){
-        float noise = rand(p * 100.f) * 0.01f;
+    if(false && isMica){
+        float noise = rand(p * 100.f) * 0.05f;
         vec4 tintColor = vec4(0.2, 0.2, 0.3, 0.7);
         vec4 micaColor = mix(bgColor, tintColor, tintColor.a);
-        micaColor.rgb += noise; // Add subtle grain
-        micaColor.rgb *= 0.3f; // Apply vignette
+        micaColor.rgb += noise * 0.6f; // Add subtle grain
         bgColor = micaColor;
     }
     

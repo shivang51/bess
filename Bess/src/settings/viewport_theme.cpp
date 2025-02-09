@@ -24,20 +24,22 @@ namespace Bess {
         float darkenFactor = 0.75f;
         backgroundColor = glm::vec4(windowBg.x * darkenFactor, windowBg.y * darkenFactor, windowBg.z * darkenFactor, windowBg.w);
 
-        auto color = colors[ImGuiCol_FrameBg];
+        auto color = colors[ImGuiCol_WindowBg];
         componentBGColor = glm::vec4(color.x, color.y, color.z, color.w);
 
         color = colors[ImGuiCol_Border];
-        componentBorderColor = glm::vec4(color.x, color.y, color.z, color.w);
+        darkenFactor = 0.7f;
+        componentBorderColor = glm::vec4(color.x * darkenFactor, color.y * darkenFactor, color.z * darkenFactor, color.w);
 
         color = colors[ImGuiCol_Text];
         wireColor = glm::vec4(color.x, color.y, color.z, color.w) * darkenFactor;
         wireColor.w = color.w;
 
-        color = colors[ImGuiCol_Header];
-        compHeaderColor = glm::vec4(color.x, color.y, color.z, color.w);
+        color = colors[ImGuiCol_WindowBg];
+        darkenFactor = 0.5f;
+        compHeaderColor = glm::vec4(color.x * darkenFactor, color.y * darkenFactor, color.z * darkenFactor, 0.74f);
 
-        color = colors[ImGuiCol_Text];
+        color = colors[ImGuiCol_Border];
         selectedCompColor = glm::vec4(color.x, color.y, color.z, color.w);
 
         color = colors[ImGuiCol_Text];

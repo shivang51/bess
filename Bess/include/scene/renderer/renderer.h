@@ -54,7 +54,7 @@ namespace Bess::Renderer2D {
                          const glm::vec4 &borderSize = glm::vec4(0.f));
 
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
-                         const glm::vec4 &color, int id, float angle,
+                         const glm::vec4 &color, int id, float angle, bool isMica = true,
                          const glm::vec4 &borderRadius = {0.f, 0.f, 0.f, 0.f},
                          const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
                          float borderSize = 0.f);
@@ -78,13 +78,13 @@ namespace Bess::Renderer2D {
                          const glm::vec4 &borderRadius,
                          bool shadow,
                          const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
-                         const glm::vec4 &borderSize = glm::vec4(0.f), bool isMica = false);
+                         const glm::vec4 &borderSize = glm::vec4(0.f), bool isMica = true);
 
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
                          const glm::vec4 &color, int id, float angle,
                          const glm::vec4 &borderRadius,
                          const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
-                         const glm::vec4 &borderSize = glm::vec4(0.f), bool isMica = false);
+                         const glm::vec4 &borderSize = glm::vec4(0.f), bool isMica = true);
 
         static void curve(const glm::vec3 &start, const glm::vec3 &end, float weight, const glm::vec4 &color, int id);
 
