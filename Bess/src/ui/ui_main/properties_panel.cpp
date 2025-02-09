@@ -50,9 +50,6 @@ namespace Bess::UI {
             ImGui::PopStyleColor(3);
         }
 
-        if (UI::UIMain::state.isViewportFocused)
-            ImGui::Text("Viewport focused");
-
         if (!deleted)
             selectedEnt->drawProperties();
     end:

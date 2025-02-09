@@ -85,15 +85,13 @@ namespace Bess {
             }
 
             if (vertexShader.empty() || fragmentShader.empty()) {
-                std::cerr << "[-] Primitive " << (int)primitive
-                          << "is not available" << std::endl;
+                std::cerr << "[-] Primitive " << (int)primitive << "is not available" << std::endl;
                 return;
             }
 
             auto max_render_count = m_MaxRenderLimit[primitive];
 
-            m_shaders[primitive] =
-                std::make_unique<Gl::Shader>(vertexShader, fragmentShader);
+            m_shaders[primitive] = std::make_unique<Gl::Shader>(vertexShader, fragmentShader);
 
             if (primitive == PrimitiveType::quad) {
                 std::vector<Gl::VaoAttribAttachment> attachments;
@@ -157,7 +155,7 @@ namespace Bess {
         Renderer::quad(pos, size, color, id, angle, borderRadius, borderColor, glm::vec4(borderSize));
     }
 
-    void Renderer2D::Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size, const glm::vec4 &color, int id, float angle, const glm::vec4 &borderRadius, const glm::vec4 &borderColor, const glm::vec4 &borderSize) {
+    void Renderer2D::Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size, const glm::vec4 &color, int id, float angle, const glm::vec4 &borderRadius, const glm::vec4 &borderColor, const glm::vec4 &borderSize, bool isMica) {
 
         if (borderSize.x || borderSize.y || borderSize.z || borderSize.w) {
             glm::vec2 dXYP = {borderSize.y + borderSize.w, borderSize.x + borderSize.z};
@@ -166,9 +164,9 @@ namespace Bess {
             glm::vec2 borderPos = glm::vec2(pos) - glm::vec2(dXYM.x, dXYM.y);
             glm::vec2 borderSize_ = size + dXYP;
             auto borderRadius_ = borderRadius + borderSize;
-            Renderer::drawQuad(glm::vec3(borderPos, pos.z), borderSize_, borderColor, id, angle, borderRadius_);
+            Renderer::drawQuad(glm::vec3(borderPos, pos.z), borderSize_, borderColor, id, angle, isMica, borderRadius);
         }
-        Renderer::drawQuad(pos, size, color, id, angle, borderRadius);
+        Renderer::drawQuad(pos, size, color, id, angle, isMica, borderRadius);
     }
 
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
@@ -194,7 +192,8 @@ namespace Bess {
                         const glm::vec4 &borderRadius,
                         bool shadow,
                         const glm::vec4 &borderColor,
-                        const glm::vec4 &borderSize) {
+                        const glm::vec4 &borderSize,
+                        bool isMica) {
 
         if (shadow) {
             std::vector<Gl::QuadVertex> vertices(4);
@@ -210,6 +209,7 @@ namespace Bess {
                 vertex.color = color;
                 vertex.borderRadius = borderRadius;
                 vertex.size = size;
+                vertex.isMica = false;
             }
 
             vertices[0].texCoord = {0.0f, 1.0f};
@@ -218,10 +218,10 @@ namespace Bess {
             vertices[3].texCoord = {1.0f, 1.0f};
             m_RenderData.quadShadowVertices.insert(m_RenderData.quadShadowVertices.end(), vertices.begin(), vertices.end());
         }
-        Renderer::quad(pos, size, color, id, angle, borderRadius, borderColor, borderSize);
+        Renderer::quad(pos, size, color, id, angle, borderRadius, borderColor, borderSize, isMica);
     }
 
-    void Renderer2D::Renderer::drawQuad(const glm::vec3 &pos, const glm::vec2 &size, const glm::vec4 &color, int id, float angle, const glm::vec4 &borderRadius) {
+    void Renderer2D::Renderer::drawQuad(const glm::vec3 &pos, const glm::vec2 &size, const glm::vec4 &color, int id, float angle, bool isMica, const glm::vec4 &borderRadius) {
         std::vector<Gl::QuadVertex> vertices(4);
 
         auto transform = glm::translate(glm::mat4(1.0f), pos);
@@ -235,7 +235,7 @@ namespace Bess {
             vertex.color = color;
             vertex.borderRadius = borderRadius;
             vertex.size = size;
-            vertex.isMica = false;
+            vertex.isMica = isMica;
         }
 
         vertices[0].texCoord = {0.0f, 1.0f};
@@ -465,7 +465,7 @@ namespace Bess {
 
         float angle = glm::atan(direction.y, direction.x);
 
-        drawQuad(glm::vec3(pos, start.z), {length, size}, color, id, angle);
+        drawQuad(glm::vec3(pos, start.z), {length, size}, color, id, angle, false);
     }
 
     void Renderer2D::Renderer::drawPath(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const int id, bool closed) {

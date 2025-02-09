@@ -68,7 +68,7 @@ namespace Bess::Simulator {
 
         template <typename T>
         static std::shared_ptr<T> getComponent(const uuids::uuid &cid) {
-            return std::dynamic_pointer_cast<T>(components[cid]);
+            return std::dynamic_pointer_cast<T>(components.at(cid));
         }
 
         static bool isRenderComponent(int rId);

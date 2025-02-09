@@ -15,7 +15,7 @@ out vec2 v_TexCoord;
 out vec4 v_BorderRadius;
 out vec2 v_Size;
 out flat int v_FragId;
-out flat int v_isMica;
+out int v_isMica;
 
 uniform mat4 u_mvp;
 
@@ -26,6 +26,7 @@ void main() {
     v_BorderRadius = a_BorderRadius;
     v_FragId = a_FragId;
     v_Size = a_Size;
+    v_isMica = a_isMica;
 
     gl_Position = pos;
 }

@@ -97,9 +97,9 @@ namespace Bess::Pages {
                 if (sPos.y > ePos.y)
                     offset = -offset;
                 float midX = ePos.x;
-                Renderer::line(sPos, {midX, sPos.y, -1}, weight, ViewportTheme::wireColor, -1);
-                Renderer::line({midX, sPos.y - offset, -1}, {midX, ePos.y + offset, -1}, weight, ViewportTheme::wireColor, -1);
-                Renderer::line({midX, ePos.y, -1}, ePos, weight, ViewportTheme::wireColor, -1);
+                Renderer::line(sPos, {midX, sPos.y, -1}, weight, ViewportTheme::wireColor, Simulator::ComponentsManager::emptyRenderId);
+                Renderer::line({midX, sPos.y - offset, -1}, {midX, ePos.y + offset, -1}, weight, ViewportTheme::wireColor, Simulator::ComponentsManager::emptyRenderId);
+                Renderer::line({midX, ePos.y, -1}, ePos, weight, ViewportTheme::wireColor, Simulator::ComponentsManager::emptyRenderId);
             }
         } break;
         case UI::Types::DrawMode::selectionBox: {
@@ -112,11 +112,11 @@ namespace Bess::Pages {
             pos += size / 2.f;
             size = glm::abs(size);
             float z = 9.f;
-            Renderer::line({start.x, start.y, z}, {end.x, start.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, -1);
-            Renderer::line({end.x, start.y, z}, {end.x, end.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, -1);
-            Renderer::line({end.x, end.y, z}, {start.x, end.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, -1);
-            Renderer::line({start.x, end.y, z}, {start.x, start.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, -1);
-            Renderer::quad({pos.x, pos.y, z}, size, ViewportTheme::selectionBoxFillColor, -1);
+            Renderer::line({start.x, start.y, z}, {end.x, start.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, Simulator::ComponentsManager::emptyRenderId);
+            Renderer::line({end.x, start.y, z}, {end.x, end.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, Simulator::ComponentsManager::emptyRenderId);
+            Renderer::line({end.x, end.y, z}, {start.x, end.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, Simulator::ComponentsManager::emptyRenderId);
+            Renderer::line({start.x, end.y, z}, {start.x, start.y, -1}, 1.f, ViewportTheme::selectionBoxBorderColor, Simulator::ComponentsManager::emptyRenderId);
+            Renderer::quad({pos.x, pos.y, z}, size, ViewportTheme::selectionBoxFillColor, Simulator::ComponentsManager::emptyRenderId);
         } break;
         default:
             break;
@@ -176,7 +176,7 @@ namespace Bess::Pages {
             std::set<int> uniqueIds(ids.begin(), ids.end());
 
             for (auto &id : uniqueIds) {
-                if (!Simulator::ComponentsManager::isRenderComponent(id))
+                if (id <= Simulator::ComponentsManager::emptyRenderId || id > Simulator::ComponentsManager::getCurrentRenderId() || !Simulator::ComponentsManager::isRenderComponent(id))
                     continue;
                 m_state->addBulkId(Simulator::ComponentsManager::renderIdToCid(id));
             }
@@ -225,6 +225,7 @@ namespace Bess::Pages {
                         continue;
                     Simulator::ComponentsManager::deleteComponent(compId);
                 }
+                m_state->setHoveredId(Simulator::ComponentsManager::emptyRenderId);
             }
 
             if (m_state->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
@@ -240,15 +241,15 @@ namespace Bess::Pages {
             auto &cid = Simulator::ComponentsManager::renderIdToCid(m_state->getHoveredId());
             Simulator::Components::ComponentEventData e;
             e.type = Simulator::Components::ComponentEventType::mouseHover;
-            Simulator::ComponentsManager::components[cid]->onEvent(e);
+            Simulator::ComponentsManager::getComponent(cid)->onEvent(e);
         }
 
         for (auto &comp : Simulator::ComponentsManager::components) {
             if (comp.second->getType() == Simulator::ComponentType::clock) {
-                const auto clockCmp = std::dynamic_pointer_cast<Simulator::Components::Clock>(comp.second);
+                const auto clockCmp = Simulator::ComponentsManager::getComponent<Simulator::Components::Clock>(comp.first);
                 clockCmp->update();
             } else if (comp.second->getType() == Simulator::ComponentType::connection) {
-                const auto connCmp = std::dynamic_pointer_cast<Simulator::Components::Connection>(comp.second);
+                const auto connCmp = Simulator::ComponentsManager::getComponent<Simulator::Components::Connection>(comp.first);
                 connCmp->update();
             } else if (comp.second->getType() != Simulator::ComponentType::connectionPoint) {
                 comp.second->update();

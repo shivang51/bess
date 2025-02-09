@@ -93,10 +93,12 @@ namespace Bess::Simulator {
         if (const auto state = Pages::MainPageState::getInstance(); state->isBulkIdPresent(uid))
             state->removeBulkId(uid, false);
 
-        m_renderIdToCId.erase(m_compIdToRId[uid]);
-        m_compIdToRId.erase(uid);
-        components[uid]->deleteComponent();
+        getComponent(uid)->deleteComponent();
 
+        std::cout << "[+] Deleted component with render id " << compIdToRid(uid) << std::endl;
+
+        m_renderIdToCId.erase(compIdToRid(uid));
+        m_compIdToRId.erase(uid);
         components.erase(uid);
     }
 
@@ -207,6 +209,6 @@ namespace Bess::Simulator {
     }
 
     bool ComponentsManager::isRenderComponent(const int rId) {
-        return std::ranges::find(renderComponents, m_renderIdToCId[rId]) != renderComponents.end();
+        return std::ranges::find(renderComponents, renderIdToCid(rId)) != renderComponents.end();
     }
 } // namespace Bess::Simulator

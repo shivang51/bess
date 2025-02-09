@@ -38,6 +38,7 @@ float rand(vec2 uv) {
 }
 
 void main() {
+    bool isMica = v_isMica == 1;
     vec2 fragPos = gl_FragCoord.xy;
     float ar = v_Size.x / v_Size.y;
     vec2 p = v_TexCoord;
