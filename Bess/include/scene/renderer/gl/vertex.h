@@ -25,5 +25,6 @@ namespace Bess::Gl {
         glm::vec4 borderRadius;
         glm::vec2 size;
         int id;
+        int isMica;
     };
 } // namespace Bess::Gl

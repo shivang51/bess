@@ -8,12 +8,14 @@ layout(location = 2) in vec2 a_TexCoord;
 layout(location = 3) in vec4 a_BorderRadius;
 layout(location = 4) in vec2 a_Size;
 layout(location = 5) in int a_FragId;
+layout(location = 5) in int a_isMica;
 
 out vec4 v_FragColor;
 out vec2 v_TexCoord;
 out vec4 v_BorderRadius;
 out vec2 v_Size;
 out flat int v_FragId;
+out flat int v_isMica;
 
 uniform mat4 u_mvp;
 

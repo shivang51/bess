@@ -103,6 +103,7 @@ namespace Bess {
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::QuadVertex, borderRadius)));
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::QuadVertex, size)));
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::QuadVertex, id)));
+                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::QuadVertex, isMica)));
                 m_vaos[primitive] = std::make_unique<Gl::Vao>(max_render_count * 4, max_render_count * 6, attachments, sizeof(Gl::QuadVertex));
             } else {
                 std::vector<Gl::VaoAttribAttachment> attachments;
@@ -234,6 +235,7 @@ namespace Bess {
             vertex.color = color;
             vertex.borderRadius = borderRadius;
             vertex.size = size;
+            vertex.isMica = false;
         }
 
         vertices[0].texCoord = {0.0f, 1.0f};

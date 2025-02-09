@@ -8,6 +8,7 @@ in vec2 v_TexCoord;
 in vec4 v_FragColor;
 in vec4 v_BorderRadius;
 in flat int v_FragId;
+in flat int v_isMica;
 
 uniform int u_SelectedObjId;
 uniform float u_zoom;
@@ -56,12 +57,15 @@ void main() {
     if (a == 0.f) discard;
     bgColor.w = min(bgColor.w, a);
 
-    float noise = rand(p * 100.f) * 0.01f;
-    vec4 tintColor = vec4(0.2, 0.2, 0.3, 0.7);
-    vec4 micaColor = mix(bgColor, tintColor, tintColor.a);
-    micaColor.rgb += noise; // Add subtle grain
-    micaColor.rgb *= 0.3f; // Apply vignette
-
-    fragColor = micaColor;
+    if(isMica){
+        float noise = rand(p * 100.f) * 0.01f;
+        vec4 tintColor = vec4(0.2, 0.2, 0.3, 0.7);
+        vec4 micaColor = mix(bgColor, tintColor, tintColor.a);
+        micaColor.rgb += noise; // Add subtle grain
+        micaColor.rgb *= 0.3f; // Apply vignette
+        bgColor = micaColor;
+    }
+    
+    fragColor = bgColor;
     fragColor1 = v_FragId;
 }
