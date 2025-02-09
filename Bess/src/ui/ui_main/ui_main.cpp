@@ -49,12 +49,49 @@ namespace Bess::UI {
         state.viewportTexture = texture;
     }
 
+    bool RoundedSelectable(const char *label, bool selected = false, float rounding = 6.0f) {
+        ImVec2 min = ImGui::GetCursorScreenPos();
+
+        ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_HeaderActive, IM_COL32(0, 0, 0, 0));
+        auto pressed = ImGui::Selectable(label, &selected, ImGuiSelectableFlags_SpanAvailWidth);
+        ImGui::PopStyleColor(3);
+
+        ImVec2 size = ImGui::CalcTextSize(label);
+        auto padding = ImGui::GetStyle().FramePadding;
+        size.x = ImGui::GetWindowWidth() - (padding.x * 2) - 4.f;
+        size.y += padding.y;
+
+        ImVec2 max = ImVec2(min.x + size.x, min.y + size.y);
+
+        auto colors = ImGui::GetStyle().Colors;
+
+        ImVec4 bgColor = selected ? colors[ImGuiCol_Header] : ImVec4(0, 0, 0, 0);
+        if (ImGui::IsItemHovered())
+            bgColor = colors[ImGuiCol_HeaderHovered];
+
+        auto drawList = ImGui::GetWindowDrawList();
+        auto textStart = min;
+        min.x -= padding.x;
+        min.y -= padding.y;
+        drawList->AddRectFilled(min, max, IM_COL32(bgColor.x * 255, bgColor.y * 255, bgColor.z * 255, bgColor.w * 255), rounding);
+        if (ImGui::IsItemHovered() || selected) {
+            auto fgColor = colors[ImGuiCol_Text];
+            drawList->AddText(textStart, IM_COL32(fgColor.x * 255, fgColor.y * 255, fgColor.z * 255, fgColor.w * 255), label);
+        }
+
+        ImGui::SetCursorPosY(ImGui::GetCursorPos().y + padding.y);
+
+        return pressed;
+    }
+
     void UIMain::drawProjectExplorer() {
         ImGui::Begin("Project Explorer");
 
         for (auto &id : Simulator::ComponentsManager::renderComponents) {
             auto &entity = Simulator::ComponentsManager::components[id];
-            if (ImGui::Selectable(entity->getRenderName().c_str(), m_pageState->isBulkIdPresent(entity->getId()))) {
+            if (RoundedSelectable(entity->getRenderName().c_str(), m_pageState->isBulkIdPresent(entity->getId()))) {
                 m_pageState->setBulkId(entity->getId());
             }
         }
@@ -64,6 +101,7 @@ namespace Bess::UI {
 
     void UIMain::drawMenubar() {
         bool newFileClicked = false, openFileClicked = false;
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
         ImGui::BeginMainMenuBar();
         if (ImGui::BeginMenu("File")) {
             // New File
@@ -140,6 +178,7 @@ namespace Bess::UI {
 
         auto menubar_size = ImGui::GetWindowSize();
         ImGui::EndMainMenuBar();
+        ImGui::PopStyleVar();
 
         if (newFileClicked) {
             onNewProject();
