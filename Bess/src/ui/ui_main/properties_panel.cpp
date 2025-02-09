@@ -2,6 +2,7 @@
 #include "components_manager/components_manager.h"
 #include "pages/main_page/main_page_state.h"
 #include "ui/icons/FontAwesomeIcons.h"
+#include "ui/ui_main/ui_main.h"
 #include <imgui.h>
 
 namespace Bess::UI {
@@ -48,6 +49,9 @@ namespace Bess::UI {
             }
             ImGui::PopStyleColor(3);
         }
+
+        if (UI::UIMain::state.isViewportFocused)
+            ImGui::Text("Viewport focused");
 
         if (!deleted)
             selectedEnt->drawProperties();

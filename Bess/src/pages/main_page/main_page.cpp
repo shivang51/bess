@@ -144,7 +144,7 @@ namespace Bess::Pages {
 
         auto &dragData = m_state->getDragData();
 
-        if (!dragData.isDragging && isCursorInViewport()) {
+        if (!dragData.isDragging && isCursorInViewport() && UI::UIMain::state.isViewportFocused) {
             auto viewportMousePos = getViewportMousePos();
             viewportMousePos.y = UI::UIMain::state.viewportSize.y - viewportMousePos.y;
             int x = static_cast<int>(viewportMousePos.x);
@@ -183,39 +183,40 @@ namespace Bess::Pages {
             m_state->clearDragData();
         }
 
-        for (auto &event : events) {
-            switch (event.getType()) {
-            case ApplicationEventType::MouseWheel: {
-                const auto data = event.getData<ApplicationEvent::MouseWheelData>();
-                onMouseWheel(data.x, data.y);
-            } break;
-            case ApplicationEventType::MouseButton: {
-                const auto data = event.getData<ApplicationEvent::MouseButtonData>();
-                if (data.button == MouseButton::left) {
-                    onLeftMouse(data.pressed);
-                } else if (data.button == MouseButton::right) {
-                    onRightMouse(data.pressed);
-                } else if (data.button == MouseButton::middle) {
-                    onMiddleMouse(data.pressed);
+        if (UI::UIMain::state.isViewportFocused) {
+            for (auto &event : events) {
+                switch (event.getType()) {
+                case ApplicationEventType::MouseWheel: {
+                    const auto data = event.getData<ApplicationEvent::MouseWheelData>();
+                    onMouseWheel(data.x, data.y);
+                } break;
+                case ApplicationEventType::MouseButton: {
+                    const auto data = event.getData<ApplicationEvent::MouseButtonData>();
+                    if (data.button == MouseButton::left) {
+                        onLeftMouse(data.pressed);
+                    } else if (data.button == MouseButton::right) {
+                        onRightMouse(data.pressed);
+                    } else if (data.button == MouseButton::middle) {
+                        onMiddleMouse(data.pressed);
+                    }
+                } break;
+                case ApplicationEventType::MouseMove: {
+                    const auto data = event.getData<ApplicationEvent::MouseMoveData>();
+                    onMouseMove(data.x, data.y);
+                } break;
+                case ApplicationEventType::KeyPress: {
+                    const auto data = event.getData<ApplicationEvent::KeyPressData>();
+                    m_state->setKeyPressed(data.key, true);
+                } break;
+                case ApplicationEventType::KeyRelease: {
+                    const auto data = event.getData<ApplicationEvent::KeyReleaseData>();
+                    m_state->setKeyPressed(data.key, false);
+                } break;
+                default:
+                    break;
                 }
-            } break;
-            case ApplicationEventType::MouseMove: {
-                const auto data = event.getData<ApplicationEvent::MouseMoveData>();
-                onMouseMove(data.x, data.y);
-            } break;
-            case ApplicationEventType::KeyPress: {
-                const auto data = event.getData<ApplicationEvent::KeyPressData>();
-                m_state->setKeyPressed(data.key, true);
-            } break;
-            case ApplicationEventType::KeyRelease: {
-                const auto data = event.getData<ApplicationEvent::KeyReleaseData>();
-                m_state->setKeyPressed(data.key, false);
-            } break;
-            default:
-                break;
             }
         }
-
         // key board bindings
         {
             if (m_state->isKeyPressed(GLFW_KEY_DELETE)) {
@@ -235,7 +236,7 @@ namespace Bess::Pages {
             }
         }
 
-        if (isCursorInViewport() && m_state->getHoveredId() > Simulator::ComponentsManager::emptyRenderId) {
+        if (UI::UIMain::state.isViewportFocused && isCursorInViewport() && m_state->getHoveredId() > Simulator::ComponentsManager::emptyRenderId) {
             auto &cid = Simulator::ComponentsManager::renderIdToCid(m_state->getHoveredId());
             Simulator::Components::ComponentEventData e;
             e.type = Simulator::Components::ComponentEventType::mouseHover;

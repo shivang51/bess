@@ -16,7 +16,7 @@ namespace Bess::UI {
         glm::vec2 viewportSize = {800, 500};
         glm::vec2 viewportPos = {0, 0};
         std::uint64_t viewportTexture = 0;
-
+        bool isViewportFocused = false;
         InternalData _internalData;
     };
 

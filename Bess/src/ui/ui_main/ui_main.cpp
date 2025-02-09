@@ -235,6 +235,11 @@ namespace Bess::UI {
         auto gPos = ImGui::GetMainViewport()->Pos;
         state.viewportPos = {pos.x - gPos.x + offset.x, pos.y - gPos.y + offset.y};
 
+        if (ImGui::IsWindowHovered()) {
+            ImGui::SetWindowFocus();
+        }
+
+        state.isViewportFocused = ImGui::IsWindowFocused();
         ImGui::End();
         ImGui::PopStyleVar();
 
