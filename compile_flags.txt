@@ -12,4 +12,5 @@
 -Iexternal/json
 -Iexternal/freetype/include
 -Iexternal/stb_image/include
+-Iexternal/entt/include
 -Iexternal/tinyfiledialogs

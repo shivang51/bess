@@ -174,6 +174,7 @@ if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/glad/include;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/stb_image/include;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/tinyfiledialogs;"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../external/entt/include;"
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
     )
 endif()
