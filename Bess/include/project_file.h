@@ -1,6 +1,6 @@
 #pragma once
 
-#include "components_manager/components_manager.h"
+// #include "components_manager/components_manager.h"
 #include <string>
 
 #include "json.hpp"
@@ -13,7 +13,7 @@ namespace Bess {
         ~ProjectFile();
 
         void save();
-        void update(const Simulator::TComponents components);
+        // void update(const Simulator::TComponents components);
 
         const std::string &getName() const;
         std::string &getNameRef();

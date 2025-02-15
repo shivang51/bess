@@ -2,9 +2,8 @@
 #include "common/types.h"
 
 #include "components_manager/component_bank.h"
-#include "components_manager/components_manager.h"
+// #include "components_manager/components_manager.h"
 #include "pages/main_page/main_page.h"
-#include "simulator/simulator_engine.h"
 
 namespace Bess::Pages {
 
@@ -43,29 +42,29 @@ namespace Bess::Pages {
     }
 
     void MainPageState::addFocusLostEvent(const uuids::uuid &uid) {
-        Simulator::Components::ComponentEventData e{};
-        e.type = Simulator::Components::ComponentEventType::focusLost;
-        Simulator::ComponentsManager::components[uid]->onEvent(e);
+        // Simulator::Components::ComponentEventData e{};
+        // e.type = Simulator::Components::ComponentEventType::focusLost;
+        // Simulator::ComponentsManager::components[uid]->onEvent(e);
     }
 
     void MainPageState::addFocusEvent(const uuids::uuid &uid) {
-        Simulator::Components::ComponentEventData e{};
-        e.type = Simulator::Components::ComponentEventType::focus;
-        Simulator::ComponentsManager::components[uid]->onEvent(e);
+        // Simulator::Components::ComponentEventData e{};
+        // e.type = Simulator::Components::ComponentEventType::focus;
+        // Simulator::ComponentsManager::components[uid]->onEvent(e);
     }
 
     void MainPageState::resetProjectState() {
-        m_drawMode = UI::Types::DrawMode::none;
-        m_bulkIds.clear();
-        m_prevBulkIds.clear();
-        m_connStartId = Simulator::ComponentsManager::emptyId;
-
-        m_hoveredId = -1;
-        m_prevHoveredId = -1;
-        m_simulationPaused = false;
-
-        Simulator::ComponentsManager::reset();
-        Simulator::Engine::clearQueue();
+        // m_drawMode = UI::Types::DrawMode::none;
+        // m_bulkIds.clear();
+        // m_prevBulkIds.clear();
+        // m_connStartId = Simulator::ComponentsManager::emptyId;
+        //
+        // m_hoveredId = -1;
+        // m_prevHoveredId = -1;
+        // m_simulationPaused = false;
+        //
+        // Simulator::ComponentsManager::reset();
+        // Simulator::Engine::clearQueue();
     }
 
     void MainPageState::createNewProject(bool updateWindowName) {

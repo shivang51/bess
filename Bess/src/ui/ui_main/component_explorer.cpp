@@ -2,7 +2,6 @@
 
 #include "common/helpers.h"
 #include "components_manager/component_bank.h"
-#include "components_manager/components_manager.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/main_page.h"
@@ -45,14 +44,14 @@ namespace Bess::UI {
                         continue;
 
                     if (ImGui::Button(name.c_str(), {-1, 0})) {
-                        auto pos = Pages::MainPage::getTypedInstance()->getCameraPos();
+                        // auto pos = Pages::MainPage::getTypedInstance()->getCameraPos();
                         std::any data = NULL;
                         if (comp.getType() == Simulator::ComponentType::jcomponent) {
                             data = comp.getJCompData();
                         } else if (comp.getType() == Simulator::ComponentType::flipFlop) {
                             data = name;
                         }
-                        Simulator::ComponentsManager::generateComponent(comp.getType(), data, {pos, 0.f});
+                        // Simulator::ComponentsManager::generateComponent(comp.getType(), data, {pos, 0.f});
                         Pages::MainPageState::getInstance()->setPrevGenBankElement(comp);
                     }
                 }

@@ -7,7 +7,6 @@
 #include <string>
 
 #include "camera.h"
-#include "components_manager/components_manager.h"
 #include "pages/main_page/main_page_state.h"
 #include "scene/renderer/gl/gl_wrapper.h"
 #include "ui/icons/FontAwesomeIcons.h"
@@ -89,12 +88,12 @@ namespace Bess::UI {
     void UIMain::drawProjectExplorer() {
         ImGui::Begin("Project Explorer");
 
-        for (auto &id : Simulator::ComponentsManager::renderComponents) {
-            auto &entity = Simulator::ComponentsManager::components[id];
-            if (RoundedSelectable(entity->getRenderName().c_str(), m_pageState->isBulkIdPresent(entity->getId()))) {
-                m_pageState->setBulkId(entity->getId());
-            }
-        }
+        // for (auto &id : Simulator::ComponentsManager::renderComponents) {
+        //     auto &entity = Simulator::ComponentsManager::components[id];
+        //     if (RoundedSelectable(entity->getRenderName().c_str(), m_pageState->isBulkIdPresent(entity->getId()))) {
+        //         m_pageState->setBulkId(entity->getId());
+        //     }
+        // }
 
         ImGui::End();
     }
@@ -123,8 +122,8 @@ namespace Bess::UI {
             temp_name = Icons::FontAwesomeIcons::FA_SAVE;
             temp_name += "   Save";
             if (ImGui::MenuItem(temp_name.c_str(), "Ctrl+S")) {
-                m_pageState->getCurrentProjectFile()->update(Simulator::ComponentsManager::components);
-                m_pageState->getCurrentProjectFile()->save();
+                // m_pageState->getCurrentProjectFile()->update(Simulator::ComponentsManager::components);
+                // m_pageState->getCurrentProjectFile()->save();
             };
 
             ImGui::Spacing();
