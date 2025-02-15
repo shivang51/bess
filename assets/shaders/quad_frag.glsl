@@ -61,7 +61,7 @@ void main() {
     if(isMica){
         float noise = rand(p * 80.f) * 0.1f;
         vec4 tintColor = vec4(0.5f, 0.5f, 0.8f, 0.25f);
-        vec4 micaColor = mix(vec4(vec3(0.1f, 0.1f, 0.5f), 0.25f), tintColor, length(v_TexCoord.x));
+        vec4 micaColor = mix(vec4(vec3(0.1f, 0.5f, 0.1f), 0.25f), tintColor, length(v_TexCoord.x));
         micaColor.rgb += noise * 0.8f; // Add subtle grain
         bgColor.rgb *= micaColor.rgb;
     }
