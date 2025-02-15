@@ -50,8 +50,8 @@ namespace Bess::Renderer2D {
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
                          const glm::vec4 &color, int id,
                          const glm::vec4 &borderRadius,
-                         const glm::vec4 &borderColor,
-                         const glm::vec4 &borderSize = glm::vec4(0.f));
+                         const glm::vec4 &borderSize,
+                         const glm::vec4 &borderColor);
 
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
                          const glm::vec4 &color, int id, float angle, bool isMica = true,
@@ -83,8 +83,9 @@ namespace Bess::Renderer2D {
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
                          const glm::vec4 &color, int id, float angle,
                          const glm::vec4 &borderRadius,
-                         const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
-                         const glm::vec4 &borderSize = glm::vec4(0.f), bool isMica = true);
+                         const glm::vec4 &borderSize,
+                         const glm::vec4 &borderColor,
+                         bool isMica = true);
 
         static void curve(const glm::vec3 &start, const glm::vec3 &end, float weight, const glm::vec4 &color, int id);
 
@@ -125,7 +126,8 @@ namespace Bess::Renderer2D {
         static void drawQuad(const glm::vec3 &pos, const glm::vec2 &size,
                              const glm::vec4 &color, int id, float angle,
                              bool isMica,
-                             const glm::vec4 &borderRadius = {0.f, 0.f, 0.f, 0.f});
+                             const glm::vec4 &borderRadius,
+                             const glm::vec4 &borderSize, const glm::vec4 &borderColor);
 
         static QuadBezierCurvePoints generateQuadBezierPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius);
 
