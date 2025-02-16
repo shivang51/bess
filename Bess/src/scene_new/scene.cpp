@@ -23,6 +23,7 @@ namespace Bess::Canvas {
         reset();
 
         createSimEntity("And Gate", 2, 1);
+        createSimEntity("Not Gate", 2, 1);
     }
 
     Scene::~Scene() {}
@@ -66,7 +67,7 @@ namespace Bess::Canvas {
         tag.name = name;
         tag.id = (uint64_t)entity;
 
-        glm::mat4 transform = glm::translate(glm::mat4(1.f), glm::vec3(0.f));
+        glm::mat4 transform = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, 0.001f * (uint64_t)entity));
         transform = glm::scale(transform, glm::vec3(200.f, 150.f, 1.f));
 
         transformComp = transform;
@@ -76,17 +77,17 @@ namespace Bess::Canvas {
         sprite.borderSize = glm::vec4(1.f);
         sprite.borderColor = ViewportTheme::componentBorderColor;
 
-        while (inputs--) {
-            simComp.inputSlots.emplace_back(createSlotEntity(Components::SlotType::digitalInput, entity));
+        for (int i = 0; i < inputs; i++) {
+            simComp.inputSlots.emplace_back(createSlotEntity(Components::SlotType::digitalInput, entity, i));
         }
 
-        while (outputs--) {
-            simComp.outputSlots.emplace_back(createSlotEntity(Components::SlotType::digitalOutput, entity));
+        for (int i = 0; i < outputs; i++) {
+            simComp.outputSlots.emplace_back(createSlotEntity(Components::SlotType::digitalOutput, entity, i));
         }
         return entity;
     }
 
-    entt::entity Scene::createSlotEntity(Components::SlotType type, entt::entity parent) {
+    entt::entity Scene::createSlotEntity(Components::SlotType type, entt::entity parent, uint idx) {
         auto entity = m_registry.create();
         auto &transform = m_registry.emplace<Components::TransformComponent>(entity);
         auto &sprite = m_registry.emplace<Components::SpriteComponent>(entity);
@@ -99,6 +100,7 @@ namespace Bess::Canvas {
 
         slot.parentId = (uint64_t)parent;
         slot.slotType = type;
+        slot.idx = idx;
 
         return entity;
     }

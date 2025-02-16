@@ -1,4 +1,5 @@
 #include "scene_new/artist.h"
+#include "imgui.h"
 #include "scene/renderer/renderer.h"
 #include "scene_new/components/components.h"
 #include "settings/viewport_theme.h"
@@ -14,8 +15,10 @@ namespace Bess::Canvas {
 
         auto &transformComp = registry.get<Components::TransformComponent>(entity);
         auto &spriteComp = registry.get<Components::SpriteComponent>(entity);
+        auto &tagComp = registry.get<Components::TagComponent>(entity);
 
         auto [pos, rotation, scale] = transformComp.decompose();
+        pos.z = 0.f;
 
         float headerHeight = 24.f;
         float radius = headerHeight / 2.f;
@@ -23,13 +26,21 @@ namespace Bess::Canvas {
 
         spriteComp.borderRadius = glm::vec4(radius);
 
-        Renderer::quad(pos, glm::vec2(scale), spriteComp.color, (uint64_t)entity, 0.f, spriteComp.borderRadius, spriteComp.borderSize, spriteComp.borderColor, true);
+        uint64_t id = (uint64_t)entity;
+
+        glm::vec3 textPos = glm::vec3(pos.x - scale.x / 2.f + 12.f, headerPos.y, pos.z + 0.001f);
+
+        Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, 0.f,
+                       spriteComp.borderRadius,
+                       spriteComp.borderSize, spriteComp.borderColor, true);
 
         Renderer::quad(headerPos,
                        glm::vec2(scale.x, headerHeight), ViewportTheme::compHeaderColor,
-                       (uint64_t)entity,
+                       id,
                        0.f,
                        glm::vec4(0.f, 0.f, radius, radius),
                        spriteComp.borderSize, glm::vec4(0.f), true);
+
+        Renderer::text(tagComp.name, textPos, 12.f, ViewportTheme::textColor, id);
     }
 } // namespace Bess::Canvas

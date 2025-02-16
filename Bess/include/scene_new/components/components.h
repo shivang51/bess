@@ -103,6 +103,7 @@ namespace Bess::Canvas::Components {
         SlotComponent() = default;
         SlotComponent(SlotComponent &other) = default;
         uint64_t parentId = 0;
+        uint idx = 0;
         SlotType slotType = SlotType::digitalInput;
     };
 

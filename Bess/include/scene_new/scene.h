@@ -33,7 +33,7 @@ namespace Bess::Canvas {
         entt::registry &getEnttRegistry();
         const glm::vec2 &getSize();
 
-        entt::entity createSlotEntity(Components::SlotType type, entt::entity parent);
+        entt::entity createSlotEntity(Components::SlotType type, entt::entity parent, uint idx);
         entt::entity createSimEntity(std::string name, int inputs, int ouputs);
 
       private:
