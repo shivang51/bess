@@ -42,7 +42,7 @@ namespace Bess::Gl {
 
         static void clearDepthStencilBuf();
 
-        int readIntFromColAttachment(int idx, int x, int y) const;
+        int32_t readIntFromColAttachment(int idx, int x, int y) const;
 
         std::vector<int> readIntsFromColAttachment(int idx, int x, int y, int w, int h) const;
 

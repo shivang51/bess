@@ -8,6 +8,7 @@
 namespace Bess::Gl {
     enum FBAttachmentType {
         R32I_REDI,
+        R64I_REDI,
         RGB_RGB,
         RGBA_RGBA,
         // non-color attachments

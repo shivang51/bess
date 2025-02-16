@@ -41,12 +41,18 @@ namespace Bess::Pages {
     }
 
     void MainPage::draw() {
-        m_scene->render();
         UI::UIMain::draw();
+        m_scene->render();
     }
 
     void MainPage::update(const std::vector<ApplicationEvent> &events) {
-        m_scene->update();
+        if (m_scene->getSize() != UI::UIMain::state.viewportSize) {
+            m_scene->resize(UI::UIMain::state.viewportSize);
+        }
+
+        if (UI::UIMain::state.cameraZoom != m_scene->getCameraZoom()) {
+            m_scene->setZoom(UI::UIMain::state.cameraZoom);
+        }
 
         // auto &dragData = m_state->getDragData();
         //
@@ -89,40 +95,42 @@ namespace Bess::Pages {
         //     m_state->clearDragData();
         // }
         //
-        // if (UI::UIMain::state.isViewportFocused) {
-        //     for (auto &event : events) {
-        //         switch (event.getType()) {
-        //         case ApplicationEventType::MouseWheel: {
-        //             const auto data = event.getData<ApplicationEvent::MouseWheelData>();
-        //             onMouseWheel(data.x, data.y);
-        //         } break;
-        //         case ApplicationEventType::MouseButton: {
-        //             const auto data = event.getData<ApplicationEvent::MouseButtonData>();
-        //             if (data.button == MouseButton::left) {
-        //                 onLeftMouse(data.pressed);
-        //             } else if (data.button == MouseButton::right) {
-        //                 onRightMouse(data.pressed);
-        //             } else if (data.button == MouseButton::middle) {
-        //                 onMiddleMouse(data.pressed);
-        //             }
-        //         } break;
-        //         case ApplicationEventType::MouseMove: {
-        //             const auto data = event.getData<ApplicationEvent::MouseMoveData>();
-        //             onMouseMove(data.x, data.y);
-        //         } break;
-        //         case ApplicationEventType::KeyPress: {
-        //             const auto data = event.getData<ApplicationEvent::KeyPressData>();
-        //             m_state->setKeyPressed(data.key, true);
-        //         } break;
-        //         case ApplicationEventType::KeyRelease: {
-        //             const auto data = event.getData<ApplicationEvent::KeyReleaseData>();
-        //             m_state->setKeyPressed(data.key, false);
-        //         } break;
-        //         default:
-        //             break;
-        //         }
-        //     }
-        // }
+        for (auto &event : events) {
+            switch (event.getType()) {
+                //         case ApplicationEventType::MouseWheel: {
+                //             const auto data = event.getData<ApplicationEvent::MouseWheelData>();
+                //             onMouseWheel(data.x, data.y);
+                //         } break;
+                //         case ApplicationEventType::MouseButton: {
+                //             const auto data = event.getData<ApplicationEvent::MouseButtonData>();
+                //             if (data.button == MouseButton::left) {
+                //                 onLeftMouse(data.pressed);
+                //             } else if (data.button == MouseButton::right) {
+                //                 onRightMouse(data.pressed);
+                //             } else if (data.button == MouseButton::middle) {
+                //                 onMiddleMouse(data.pressed);
+                //             }
+                //         } break;
+            case ApplicationEventType::MouseMove: {
+                const auto data = event.getData<ApplicationEvent::MouseMoveData>();
+                onMouseMove(data.x, data.y);
+            } break;
+            case ApplicationEventType::KeyPress: {
+                const auto data = event.getData<ApplicationEvent::KeyPressData>();
+                m_state->setKeyPressed(data.key, true);
+            } break;
+            case ApplicationEventType::KeyRelease: {
+                const auto data = event.getData<ApplicationEvent::KeyReleaseData>();
+                m_state->setKeyPressed(data.key, false);
+            } break;
+            default:
+                break;
+            }
+        }
+
+        if (UI::UIMain::state.isViewportFocused)
+            m_scene->update(events);
+
         // // key board bindings
         // {
         //     // if (m_state->isKeyPressed(GLFW_KEY_DELETE)) {
@@ -169,6 +177,10 @@ namespace Bess::Pages {
 
     std::shared_ptr<Window> MainPage::getParentWindow() {
         return m_parentWindow;
+    }
+
+    std::shared_ptr<Canvas::Scene> MainPage::getScene() {
+        return m_scene;
     }
 
     void MainPage::onMouseWheel(double x, double y) {
@@ -387,21 +399,6 @@ namespace Bess::Pages {
         auto x = mousePos.x - viewportPos.x;
         auto y = mousePos.y - viewportPos.y;
         return {x, y};
-    }
-
-    glm::vec2 MainPage::getNVPMousePos() {
-        const auto &viewportPos = getViewportMousePos();
-
-        glm::vec2 pos = viewportPos;
-
-        // const auto cameraPos = m_camera->getPos();
-        // glm::mat4 tansform = glm::translate(glm::mat4(1.f), glm::vec3(cameraPos.x, cameraPos.y, 0.f));
-        // tansform = glm::scale(tansform, glm::vec3(1.f / UI::UIMain::state.cameraZoom, 1.f / UI::UIMain::state.cameraZoom, 1.f));
-        //
-        // pos = glm::vec2(tansform * glm::vec4(pos.x, pos.y, 0.f, 1.f));
-        // auto span = m_camera->getSpan() / 2.f;
-        // pos -= glm::vec2({span.x, span.y});
-        // return pos;
     }
 
 } // namespace Bess::Pages

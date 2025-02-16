@@ -1,10 +1,8 @@
 #pragma once
 
-#include "camera.h"
 #include "events/application_event.h"
 #include "pages/main_page/main_page_state.h"
 #include "pages/page.h"
-#include "scene/renderer/gl/framebuffer.h"
 #include "scene_new/scene.h"
 #include "window.h"
 
@@ -25,10 +23,11 @@ namespace Bess::Pages {
         void update(const std::vector<ApplicationEvent> &events) override;
 
         std::shared_ptr<Window> getParentWindow();
+        std::shared_ptr<Canvas::Scene> getScene();
 
       private:
         std::shared_ptr<Window> m_parentWindow;
-        std::unique_ptr<Bess::Canvas::Scene> m_scene;
+        std::shared_ptr<Bess::Canvas::Scene> m_scene;
 
         // event handlers
       private:

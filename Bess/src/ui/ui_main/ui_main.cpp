@@ -7,8 +7,10 @@
 #include <string>
 
 #include "camera.h"
+#include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
 #include "scene/renderer/gl/gl_wrapper.h"
+#include "scene_new/components/components.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/icons/MaterialIcons.h"
 #include "ui/ui_main/component_explorer.h"
@@ -87,13 +89,22 @@ namespace Bess::UI {
 
     void UIMain::drawProjectExplorer() {
         ImGui::Begin("Project Explorer");
+        bool pressed = Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
+        ImGui::Text(pressed ? "Left Ctrl Pressed" : "");
+        auto scene = Pages::MainPage::getTypedInstance()->getScene();
+        auto &registry = scene->getEnttRegistry();
+        auto view = registry.view<Canvas::Components::RenderComponent, Canvas::Components::TagComponent>();
 
-        // for (auto &id : Simulator::ComponentsManager::renderComponents) {
-        //     auto &entity = Simulator::ComponentsManager::components[id];
-        //     if (RoundedSelectable(entity->getRenderName().c_str(), m_pageState->isBulkIdPresent(entity->getId()))) {
-        //         m_pageState->setBulkId(entity->getId());
-        //     }
-        // }
+        for (auto &entity : view) {
+            bool isSelected = registry.all_of<Canvas::Components::SelectedComponent>(entity);
+            auto &tagComp = view.get<Canvas::Components::TagComponent>(entity);
+            if (RoundedSelectable((tagComp.name + " " + std::to_string(tagComp.id)).c_str(), isSelected)) {
+                if (isSelected)
+                    registry.erase<Canvas::Components::SelectedComponent>(entity);
+                else
+                    registry.emplace<Canvas::Components::SelectedComponent>(entity);
+            }
+        }
 
         ImGui::End();
     }
@@ -261,6 +272,7 @@ namespace Bess::UI {
                 float stepSize = 0.1f;
                 state.cameraZoom = roundf(state.cameraZoom / stepSize) * stepSize;
             }
+            state.isViewportFocused &= !ImGui::IsWindowHovered();
             ImGui::PopStyleVar(2);
             ImGui::End();
             ImGui::PopStyleVar(2);

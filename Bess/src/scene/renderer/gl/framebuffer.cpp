@@ -116,7 +116,7 @@ namespace Bess::Gl {
         GL_CHECK(glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT));
     }
 
-    int FrameBuffer::readIntFromColAttachment(const int idx, const int x, const int y) const {
+    int32_t FrameBuffer::readIntFromColAttachment(const int idx, const int x, const int y) const {
         int data = -1;
         readFromColorAttachment<GL_INT>(idx, x, y, 1, 1, &data);
         return data;
