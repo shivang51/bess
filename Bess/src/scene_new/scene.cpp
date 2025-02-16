@@ -9,6 +9,7 @@
 #include "gtc/type_ptr.hpp"
 #include "pages/main_page/main_page_state.h"
 #include "scene/renderer/renderer.h"
+#include "scene_new/artist.h"
 #include "scene_new/components/components.h"
 #include "settings/viewport_theme.h"
 #include "ui/ui_main/ui_main.h"
@@ -20,67 +21,8 @@ namespace Bess::Canvas {
     Scene::Scene() {
         Renderer2D::Renderer::init();
         reset();
-        auto fn = [&](Components::TransformComponent &tc, Components::SpriteComponent &sc, Components::TagComponent &tagC) {
-            auto [pos, _, scale] = tc.decompose();
-            auto entt = (entt::entity)tagC.id;
-            bool isHovered = this->m_hoveredEntiy == entt;
-            bool isSelected = this->m_registry.all_of<Components::SelectedComponent>(entt);
-            auto borderColor = sc.borderColor;
-            if (isHovered)
-                borderColor = glm::vec4(1.f, 1.f, 0.f, 1.f);
-            if (isSelected)
-                borderColor = glm::vec4(1.f, 1.f, 0.5f, 1.f);
-            Renderer2D::Renderer::quad(pos, scale,
-                                       sc.color, tagC.id,
-                                       sc.borderRadius, sc.borderSize, borderColor);
-        };
 
-        {
-            auto entity = m_registry.create();
-            auto &transformComponent = m_registry.emplace<Components::TransformComponent>(entity);
-            auto &renderComponent = m_registry.emplace<Components::RenderComponent>(entity);
-            auto &spriteComponent = m_registry.emplace<Components::SpriteComponent>(entity);
-            auto &tagComponent = m_registry.emplace<Components::TagComponent>(entity);
-
-            tagComponent.name = "Something something";
-            tagComponent.id = (uint64_t)entity;
-
-            spriteComponent.color = glm::vec4(1.f, 1.f, 1.f, 0.1f);
-            spriteComponent.borderColor = glm::vec4(1.f, 0.f, 0.f, 1.f);
-            spriteComponent.borderSize = glm::vec4(2.f);
-            spriteComponent.borderRadius = glm::vec4(50.f);
-
-            glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.f));
-            transform = glm::rotate(transform, 0.f, {0.f, 0.f, 1.f});
-            transform = glm::scale(transform, {100.f, 100.f, 1.f});
-
-            transformComponent = transform;
-
-            renderComponent.render = fn;
-        }
-        {
-            auto entity = m_registry.create();
-            auto &transformComponent = m_registry.emplace<Components::TransformComponent>(entity);
-            auto &renderComponent = m_registry.emplace<Components::RenderComponent>(entity);
-            auto &spriteComponent = m_registry.emplace<Components::SpriteComponent>(entity);
-            auto &tagComponent = m_registry.emplace<Components::TagComponent>(entity);
-
-            tagComponent.name = "Something something";
-            tagComponent.id = (uint64_t)entity;
-
-            spriteComponent.color = glm::vec4(1.f, 1.f, 1.f, 0.1f);
-            spriteComponent.borderColor = glm::vec4(1.f, 0.f, 1.f, 1.f);
-            spriteComponent.borderSize = glm::vec4(2.f);
-            spriteComponent.borderRadius = glm::vec4(50.f);
-
-            glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(100.f, 100.f, 0.f));
-            transform = glm::rotate(transform, 0.f, {0.f, 0.f, 1.f});
-            transform = glm::scale(transform, {100.f, 100.f, 1.f});
-
-            transformComponent = transform;
-
-            renderComponent.render = fn;
-        }
+        createSimEntity("And Gate", 2, 1);
     }
 
     Scene::~Scene() {}
@@ -94,6 +36,8 @@ namespace Bess::Canvas {
         attachments = {Gl::FBAttachmentType::RGB_RGB, Gl::FBAttachmentType::R32I_REDI};
         m_normalFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments);
         m_registry.clear();
+
+        Artist::sceneRef = this;
     }
 
     unsigned int Scene::getTextureId() {
@@ -104,13 +48,59 @@ namespace Bess::Canvas {
         beginScene();
         Renderer::grid({0.f, 0.f, -2.f}, m_camera->getSpan(), -1, ViewportTheme::gridColor);
 
-        auto view = m_registry.view<Components::RenderComponent, Components::TransformComponent, Components::SpriteComponent, Components::TagComponent>();
+        auto view = m_registry.view<Components::SimulationComponent>();
         for (auto entity : view) {
-            auto [rc, tc, sc, tagC] = view.get<Components::RenderComponent, Components::TransformComponent, Components::SpriteComponent, Components::TagComponent>(entity);
-            rc.render(tc, sc, tagC);
+            Artist::drawSimEntity(entity);
         }
 
         endScene();
+    }
+
+    entt::entity Scene::createSimEntity(std::string name, int inputs, int outputs) {
+        auto entity = m_registry.create();
+        auto &transformComp = m_registry.emplace<Components::TransformComponent>(entity);
+        auto &sprite = m_registry.emplace<Components::SpriteComponent>(entity);
+        auto &tag = m_registry.emplace<Components::TagComponent>(entity);
+        auto &simComp = m_registry.emplace<Components::SimulationComponent>(entity);
+
+        tag.name = name;
+        tag.id = (uint64_t)entity;
+
+        glm::mat4 transform = glm::translate(glm::mat4(1.f), glm::vec3(0.f));
+        transform = glm::scale(transform, glm::vec3(200.f, 150.f, 1.f));
+
+        transformComp = transform;
+
+        sprite.color = ViewportTheme::componentBGColor;
+        sprite.borderRadius = glm::vec4(16.f);
+        sprite.borderSize = glm::vec4(1.f);
+        sprite.borderColor = ViewportTheme::componentBorderColor;
+
+        while (inputs--) {
+            simComp.inputSlots.emplace_back(createSlotEntity(Components::SlotType::digitalInput, entity));
+        }
+
+        while (outputs--) {
+            simComp.outputSlots.emplace_back(createSlotEntity(Components::SlotType::digitalOutput, entity));
+        }
+        return entity;
+    }
+
+    entt::entity Scene::createSlotEntity(Components::SlotType type, entt::entity parent) {
+        auto entity = m_registry.create();
+        auto &transform = m_registry.emplace<Components::TransformComponent>(entity);
+        auto &sprite = m_registry.emplace<Components::SpriteComponent>(entity);
+        auto &slot = m_registry.emplace<Components::SlotComponent>(entity);
+
+        transform.scale(glm::vec2(20.f));
+        sprite.color = ViewportTheme::stateLowColor;
+        sprite.borderColor = ViewportTheme::componentBorderColor;
+        sprite.borderSize = glm::vec4(10.f);
+
+        slot.parentId = (uint64_t)parent;
+        slot.slotType = type;
+
+        return entity;
     }
 
     const glm::vec2 &Scene::getSize() {

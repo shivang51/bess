@@ -10,9 +10,7 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
 #include "scene/renderer/gl/gl_wrapper.h"
-#include "scene_new/components/components.h"
 #include "ui/icons/FontAwesomeIcons.h"
-#include "ui/icons/MaterialIcons.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/dialogs.h"
 #include "ui/ui_main/popups.h"
@@ -93,7 +91,7 @@ namespace Bess::UI {
         ImGui::Text(pressed ? "Left Ctrl Pressed" : "");
         auto scene = Pages::MainPage::getTypedInstance()->getScene();
         auto &registry = scene->getEnttRegistry();
-        auto view = registry.view<Canvas::Components::RenderComponent, Canvas::Components::TagComponent>();
+        auto view = registry.view<Canvas::Components::TagComponent>();
 
         for (auto &entity : view) {
             bool isSelected = registry.all_of<Canvas::Components::SelectedComponent>(entity);

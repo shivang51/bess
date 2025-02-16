@@ -1,6 +1,9 @@
 #pragma once
 
+#include "entt/entity/fwd.hpp"
 #include <cstdint>
+#include <iostream>
+#include <vector>
 #define GLM_ENABLE_EXPERIMENTAL
 #include "ext/vector_float3.hpp"
 #include "ext/vector_float4.hpp"
@@ -28,6 +31,24 @@ namespace Bess::Canvas::Components {
 
         void translate(const glm::vec3 &pos) {
             m_transform[3] = glm::vec4(pos, m_transform[3][3]);
+        }
+
+        void scale(const glm::vec2 &scale) {
+            glm::vec3 xAxis = glm::vec3(m_transform[0]);
+            glm::vec3 yAxis = glm::vec3(m_transform[1]);
+
+            if (glm::length(xAxis) > 0.0f)
+                xAxis = glm::normalize(xAxis) * scale.x;
+            else
+                xAxis = glm::vec3(scale.x, 0.0f, 0.0f);
+
+            if (glm::length(yAxis) > 0.0f)
+                yAxis = glm::normalize(yAxis) * scale.y;
+            else
+                yAxis = glm::vec3(0.0f, scale.y, 0.0f);
+
+            m_transform[0] = glm::vec4(xAxis, 0.0f);
+            m_transform[1] = glm::vec4(yAxis, 0.0f);
         }
 
         glm::vec3 getPosition() {
@@ -72,17 +93,26 @@ namespace Bess::Canvas::Components {
         uint64_t id = 0;
     };
 
+    enum class SlotType {
+        digitalInput,
+        digitalOutput,
+    };
+
+    class SlotComponent {
+      public:
+        SlotComponent() = default;
+        SlotComponent(SlotComponent &other) = default;
+        uint64_t parentId = 0;
+        SlotType slotType = SlotType::digitalInput;
+    };
+
     class SimulationComponent {
       public:
         SimulationComponent() = default;
         SimulationComponent(SimulationComponent &other) = default;
-        uint64_t id = 0;
+        uint64_t id = 0; // this should be mapped to id in simulator
+        std::vector<entt::entity> inputSlots = {};
+        std::vector<entt::entity> outputSlots = {};
     };
 
-    class RenderComponent {
-      public:
-        RenderComponent() = default;
-        RenderComponent(RenderComponent &other) = default;
-        std::function<void(TransformComponent &, SpriteComponent &, TagComponent &)> render = [&](TransformComponent &tc, SpriteComponent &rc, TagComponent &tgc) {};
-    };
 } // namespace Bess::Canvas::Components

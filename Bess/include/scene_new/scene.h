@@ -6,6 +6,7 @@
 #include "events/application_event.h"
 #include "glm.hpp"
 #include "scene/renderer/gl/framebuffer.h"
+#include "scene_new/components/components.h"
 
 namespace Bess::Canvas {
     class Scene {
@@ -31,6 +32,9 @@ namespace Bess::Canvas {
         void resize(const glm::vec2 &size);
         entt::registry &getEnttRegistry();
         const glm::vec2 &getSize();
+
+        entt::entity createSlotEntity(Components::SlotType type, entt::entity parent);
+        entt::entity createSimEntity(std::string name, int inputs, int ouputs);
 
       private:
         void onMouseMove(const glm::vec2 &pos);
