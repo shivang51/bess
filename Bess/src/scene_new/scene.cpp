@@ -172,11 +172,10 @@ namespace Bess::Canvas {
     bool Scene::isCursorInViewport(const glm::vec2 &pos) {
         const auto &viewportPos = UI::UIMain::state.viewportPos;
         const auto &viewportSize = UI::UIMain::state.viewportSize;
-        const auto mousePos = getViewportMousePos(pos);
-        return mousePos.x >= 5.f &&
-               mousePos.x < viewportSize.x - 5.f &&
-               mousePos.y >= 5.f &&
-               mousePos.y < viewportSize.y - 5.f;
+        return pos.x >= 5.f &&
+               pos.x < viewportSize.x - 5.f &&
+               pos.y >= 5.f &&
+               pos.y < viewportSize.y - 5.f;
     }
 
     void Scene::onLeftMouse(bool isPressed) {
@@ -206,16 +205,17 @@ namespace Bess::Canvas {
             switch (event.getType()) {
             case ApplicationEventType::MouseMove: {
                 const auto data = event.getData<ApplicationEvent::MouseMoveData>();
-                glm::vec2 pos = {data.x, data.y};
+                auto pos = getViewportMousePos(glm::vec2(data.x, data.y));
                 if (!isCursorInViewport(pos)) {
+                    m_isLeftMousePressed = false;
                     m_mousePos = pos;
                     break;
                 }
-                auto pos_ = getViewportMousePos(glm::vec2(data.x, data.y));
-                onMouseMove(pos_);
+                onMouseMove(pos);
             } break;
             case ApplicationEventType::MouseButton: {
                 if (!isCursorInViewport(m_mousePos)) {
+                    m_isLeftMousePressed = false;
                     break;
                 }
                 const auto data = event.getData<ApplicationEvent::MouseButtonData>();
