@@ -25,7 +25,7 @@ namespace Bess {
         backgroundColor = glm::vec4(windowBg.x * darkenFactor, windowBg.y * darkenFactor, windowBg.z * darkenFactor, windowBg.w);
 
         auto color = colors[ImGuiCol_WindowBg];
-        componentBGColor = glm::vec4(color.x, color.y, color.z, 0.74f);
+        componentBGColor = glm::vec4(color.x, color.y, color.z, 1.f);
 
         color = colors[ImGuiCol_Border];
         darkenFactor = 0.7f;
@@ -36,14 +36,16 @@ namespace Bess {
         wireColor.w = color.w;
 
         color = colors[ImGuiCol_WindowBg];
-        darkenFactor = 0.5f;
-        compHeaderColor = glm::vec4(color.x * darkenFactor, color.y * darkenFactor, color.z * darkenFactor, 0.74f);
+        glm::vec3 compHeaderTint = glm::vec3(1.1f, 1.1f, 0.7f);
+        compHeaderColor = glm::vec4(glm::vec3(componentBGColor) * compHeaderTint, componentBGColor.w);
+        compHeaderColor = componentBGColor;
 
         color = colors[ImGuiCol_Border];
         selectedCompColor = glm::vec4(color.x, color.y, color.z, 0.74f);
 
         color = colors[ImGuiCol_Text];
-        textColor = glm::vec4(color.x, color.y, color.z, color.w);
+        textColor = glm::vec4(color.x, color.y, color.z, color.w) * 0.8f;
+        textColor.w = color.w;
 
         gridColor = textColor * 0.3f;
 

@@ -12,6 +12,7 @@
 #include "scene_new/artist.h"
 #include "scene_new/components/components.h"
 #include "settings/viewport_theme.h"
+#include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
 #include <cstdint>
 
@@ -23,7 +24,7 @@ namespace Bess::Canvas {
         reset();
 
         createSimEntity("And Gate", 2, 1);
-        createSimEntity("Not Gate", 2, 1);
+        createSimEntity("Not Gate", 1, 1);
     }
 
     Scene::~Scene() {}
@@ -45,9 +46,30 @@ namespace Bess::Canvas {
         return m_normalFramebuffer->getColorBufferTexId(0);
     }
 
+    void Scene::drawConnection() {
+        if (!m_registry.valid(m_connectionStartEntity)) {
+            m_drawMode = ScenDrawMode::none;
+            return;
+        }
+
+        Artist::drawGhostConnection(m_connectionStartEntity, getNVPMousePos(m_mousePos));
+    }
+
     void Scene::render() {
+        if (m_registry.valid(m_hoveredEntiy) && m_registry.all_of<Components::SlotComponent>(m_hoveredEntiy)) {
+            UI::setCursorPointer();
+        }
+
         beginScene();
         Renderer::grid({0.f, 0.f, -2.f}, m_camera->getSpan(), -1, ViewportTheme::gridColor);
+
+        switch (m_drawMode) {
+        case ScenDrawMode::connection:
+            drawConnection();
+            break;
+        default:
+            break;
+        }
 
         auto view = m_registry.view<Components::SimulationComponent>();
         for (auto entity : view) {
@@ -68,7 +90,7 @@ namespace Bess::Canvas {
         tag.id = (uint64_t)entity;
 
         glm::mat4 transform = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, 0.001f * (uint64_t)entity));
-        transform = glm::scale(transform, glm::vec3(200.f, 150.f, 1.f));
+        transform = glm::scale(transform, glm::vec3(150.f, 150.f, 1.f));
 
         transformComp = transform;
 
@@ -177,16 +199,26 @@ namespace Bess::Canvas {
 
         // toggeling selection of hovered entity on click
         if (m_registry.valid(m_hoveredEntiy)) {
-            bool isSelected = m_registry.all_of<Canvas::Components::SelectedComponent>(m_hoveredEntiy);
-            if (!Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
-                m_registry.clear<Components::SelectedComponent>();
-                isSelected = false;
+            if (m_registry.all_of<Components::SlotComponent>(m_hoveredEntiy)) {
+                if (m_drawMode == ScenDrawMode::none) {
+                    m_connectionStartEntity = m_hoveredEntiy;
+                    m_drawMode = ScenDrawMode::connection;
+                } else if (m_drawMode == ScenDrawMode::connection) {
+                    m_drawMode = ScenDrawMode::none;
+                }
+            } else {
+                bool isSelected = m_registry.all_of<Canvas::Components::SelectedComponent>(m_hoveredEntiy);
+                if (!Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
+                    m_registry.clear<Components::SelectedComponent>();
+                    isSelected = false;
+                }
+
+                if (isSelected)
+                    m_registry.erase<Canvas::Components::SelectedComponent>(m_hoveredEntiy);
+                else
+                    m_registry.emplace<Canvas::Components::SelectedComponent>(m_hoveredEntiy);
             }
 
-            if (isSelected)
-                m_registry.erase<Canvas::Components::SelectedComponent>(m_hoveredEntiy);
-            else
-                m_registry.emplace<Canvas::Components::SelectedComponent>(m_hoveredEntiy);
         } else { // deselecting all when clicking outside
             m_registry.clear<Components::SelectedComponent>();
         }

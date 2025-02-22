@@ -478,11 +478,11 @@ namespace Bess {
 
         for (int i = 1; i < (int)newPoints.size(); i++) {
             auto p1 = newPoints[i], p1_ = newPoints[i];
-            if (i + 1 < newPoints.size()) {
-                auto curve_ = generateQuadBezierPoints(newPoints[i - 1], newPoints[i], newPoints[i + 1], 8.f);
-                Renderer2D::Renderer::quadraticBezier(glm::vec3(curve_.startPoint, prev.z), glm::vec3(curve_.endPoint, p1.z), curve_.controlPoint, weight, color, id, true);
-                p1 = glm::vec3(curve_.startPoint, prev.z), p1_ = glm::vec3(curve_.endPoint, newPoints[i + 1].z);
-            }
+            // if (i + 1 < newPoints.size()) {
+            //     auto curve_ = generateQuadBezierPoints(newPoints[i - 1], newPoints[i], newPoints[i + 1], 4.f);
+            //     Renderer2D::Renderer::quadraticBezier(glm::vec3(curve_.startPoint, prev.z), glm::vec3(curve_.endPoint, p1.z), curve_.controlPoint, weight, color, id, true);
+            //     p1 = glm::vec3(curve_.startPoint, prev.z), p1_ = glm::vec3(curve_.endPoint, newPoints[i + 1].z);
+            // }
             Renderer2D::Renderer::line(prev, p1, 2.f, color, -1);
             prev = p1_;
         }

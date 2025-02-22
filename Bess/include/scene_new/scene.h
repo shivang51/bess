@@ -9,6 +9,11 @@
 #include "scene_new/components/components.h"
 
 namespace Bess::Canvas {
+    enum class ScenDrawMode {
+        none,
+        connection
+    };
+
     class Scene {
       public:
         Scene();
@@ -42,6 +47,7 @@ namespace Bess::Canvas {
         glm::vec2 getNVPMousePos(const glm::vec2 &mousePos);
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos);
         bool isCursorInViewport(const glm::vec2 &pos);
+        void drawConnection();
 
       private:
         std::unique_ptr<Gl::FrameBuffer> m_msaaFramebuffer;
@@ -54,5 +60,7 @@ namespace Bess::Canvas {
       private:
         entt::registry m_registry;
         entt::entity m_hoveredEntiy;
+        entt::entity m_connectionStartEntity;
+        ScenDrawMode m_drawMode = ScenDrawMode::none;
     };
 } // namespace Bess::Canvas
