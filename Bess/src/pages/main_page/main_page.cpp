@@ -2,19 +2,10 @@
 #include "GLFW/glfw3.h"
 #include "common/types.h"
 #include "events/application_event.h"
-#include "ext/matrix_transform.hpp"
 #include "ext/vector_float2.hpp"
-#include "ext/vector_float3.hpp"
-#include "ext/vector_float4.hpp"
 #include "pages/page_identifier.h"
-#include "scene/renderer/renderer.h"
-#include "scene_new/scene.h"
-#include "settings/viewport_theme.h"
 #include "ui/ui_main/ui_main.h"
 #include <memory>
-#include <set>
-
-using namespace Bess::Renderer2D;
 
 namespace Bess::Pages {
     std::shared_ptr<Page> MainPage::getInstance(const std::shared_ptr<Window> &parentWindow) {

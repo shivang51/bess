@@ -1,10 +1,10 @@
-#include "scene_new/artist.h"
+#include "scene/artist.h"
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
 #include "geometric.hpp"
 #include "imgui.h"
+#include "scene/components/components.h"
 #include "scene/renderer/renderer.h"
-#include "scene_new/components/components.h"
 #include "settings/viewport_theme.h"
 #include <cstdint>
 #include <string>

@@ -3,7 +3,7 @@
 #include "events/application_event.h"
 #include "pages/main_page/main_page_state.h"
 #include "pages/page.h"
-#include "scene_new/scene.h"
+#include "scene/scene.h"
 #include "window.h"
 
 #include <memory>

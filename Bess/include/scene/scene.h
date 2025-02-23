@@ -5,8 +5,8 @@
 #include "entt/entt.hpp"
 #include "events/application_event.h"
 #include "glm.hpp"
+#include "scene/components/components.h"
 #include "scene/renderer/gl/framebuffer.h"
-#include "scene_new/components/components.h"
 
 namespace Bess::Canvas {
     enum class ScenDrawMode {

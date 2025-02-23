@@ -50,9 +50,9 @@ set(Header_Files
 "include/window.h"
 "include/application_state.h"
 "include/scene/renderer/renderer.h"
-"include/scene_new/scene.h"
-"include/scene_new/artist.h"
-"include/scene_new/components/components.h"
+"include/scene/scene.h"
+"include/scene/artist.h"
+"include/scene/components/components.h"
 "include/scene/renderer/font.h"
 "include/scene/renderer/gl/texture.h"
 "include/scene/renderer/gl/vertex.h"
@@ -63,8 +63,6 @@ set(Header_Files
 "include/scene/renderer/gl/vao.h"
 "include/scene/renderer/gl/gl_wrapper.h"
 "include/scene/renderer/gl/utils.h"
-"include/scene/transform/transform_2d.h"
-
 )
 source_group("Shaders" FILES ${Shaders})
 
@@ -81,7 +79,6 @@ set(Source_Files
 "src/pages/main_page/main_page_state.cpp"
 "src/pages/start_page/start_page.cpp"
 "src/window.cpp"
-"src/scene/transform/transform_2d.cpp"
 "src/common/helpers.cpp"
 "src/ui/ui.cpp"
 "src/ui/m_widgets.cpp"
@@ -96,8 +93,8 @@ set(Source_Files
 "src/project_file.cpp"
 "src/events/application_event.cpp"
 "src/camera.cpp"
-"src/scene_new/scene.cpp"
-"src/scene_new/artist.cpp"
+"src/scene/scene.cpp"
+"src/scene/artist.cpp"
 "src/scene/renderer/font.cpp"
 "src/scene/renderer/gl/gl_wrapper.cpp"
 "src/scene/renderer/gl/shader.cpp"

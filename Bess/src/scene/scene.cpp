@@ -1,4 +1,4 @@
-#include "scene_new/scene.h"
+#include "scene/scene.h"
 #include "GLFW/glfw3.h"
 #include "entt/entity/fwd.hpp"
 #include "events/application_event.h"
@@ -8,9 +8,9 @@
 #include "ext/vector_float4.hpp"
 #include "gtc/type_ptr.hpp"
 #include "pages/main_page/main_page_state.h"
+#include "scene/artist.h"
+#include "scene/components/components.h"
 #include "scene/renderer/renderer.h"
-#include "scene_new/artist.h"
-#include "scene_new/components/components.h"
 #include "settings/viewport_theme.h"
 #include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
@@ -200,6 +200,7 @@ namespace Bess::Canvas {
         // toggeling selection of hovered entity on click
         if (m_registry.valid(m_hoveredEntiy)) {
             if (m_registry.all_of<Components::SlotComponent>(m_hoveredEntiy)) {
+                m_registry.clear<Components::SelectedComponent>();
                 if (m_drawMode == ScenDrawMode::none) {
                     m_connectionStartEntity = m_hoveredEntiy;
                     m_drawMode = ScenDrawMode::connection;

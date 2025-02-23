@@ -1,7 +1,7 @@
 #pragma once
 
 #include "entt/entity/fwd.hpp"
-#include "scene_new/scene.h"
+#include "scene/scene.h"
 
 namespace Bess::Canvas {
     class Artist {

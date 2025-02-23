@@ -8,7 +8,6 @@
 #include "scene/renderer/gl/vertex.h"
 
 #include "camera.h"
-#include "scene_new/components/components.h"
 #include <memory>
 #include <unordered_map>
 
