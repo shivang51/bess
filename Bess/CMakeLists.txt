@@ -117,6 +117,8 @@ set(ALL_FILES
 # Target
 ################################################################################
 add_executable(${PROJECT_NAME} ${ALL_FILES})
+target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine)
+add_dependencies(${PROJECT_NAME} BessSimEngine)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
 
 
@@ -148,6 +150,7 @@ if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/tinyfiledialogs;"
         "${CMAKE_CURRENT_SOURCE_DIR}/../external/entt/include;"
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../BessSimEngine/include;"
     )
 endif()
 
