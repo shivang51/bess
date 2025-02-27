@@ -12,6 +12,7 @@
 #include "scene/components/components.h"
 #include "scene/renderer/renderer.h"
 #include "settings/viewport_theme.h"
+#include "simulation_engine.h"
 #include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
 #include <cstdint>
@@ -22,12 +23,14 @@ namespace Bess::Canvas {
     Scene::Scene() {
         Renderer2D::Renderer::init();
         reset();
-
-        createSimEntity("And Gate", 2, 1);
-        createSimEntity("Not Gate", 1, 1);
     }
 
     Scene::~Scene() {}
+
+    Scene &Scene::instance() {
+        static Scene m_instance;
+        return m_instance;
+    }
 
     void Scene::reset() {
         m_size = glm::vec2(800.f / 600.f, 1.f);
@@ -63,6 +66,11 @@ namespace Bess::Canvas {
         beginScene();
         Renderer::grid({0.f, 0.f, -2.f}, m_camera->getSpan(), -1, ViewportTheme::gridColor);
 
+        auto connectionsView = m_registry.view<Components::ConnectionComponent>();
+        for (auto entity : connectionsView) {
+            Artist::drawConnectionEntity(entity);
+        }
+
         switch (m_drawMode) {
         case ScenDrawMode::connection:
             drawConnection();
@@ -79,7 +87,7 @@ namespace Bess::Canvas {
         endScene();
     }
 
-    entt::entity Scene::createSimEntity(std::string name, int inputs, int outputs) {
+    entt::entity Scene::createSimEntity(entt::entity simEngineEntt, std::string name, int inputs, int outputs) {
         auto entity = m_registry.create();
         auto &transformComp = m_registry.emplace<Components::TransformComponent>(entity);
         auto &sprite = m_registry.emplace<Components::SpriteComponent>(entity);
@@ -98,6 +106,8 @@ namespace Bess::Canvas {
         sprite.borderRadius = glm::vec4(16.f);
         sprite.borderSize = glm::vec4(1.f);
         sprite.borderColor = ViewportTheme::componentBorderColor;
+
+        simComp.simEngineEntity = simEngineEntt;
 
         for (int i = 0; i < inputs; i++) {
             simComp.inputSlots.emplace_back(createSlotEntity(Components::SlotType::digitalInput, entity, i));
@@ -192,6 +202,29 @@ namespace Bess::Canvas {
                pos.y < viewportSize.y - 5.f;
     }
 
+    void Scene::connectSlots(entt::entity startSlot, entt::entity endSlot) {
+        auto &startSlotComp = m_registry.get<Components::SlotComponent>(startSlot);
+        auto &endSlotComp = m_registry.get<Components::SlotComponent>(endSlot);
+
+        auto startSimParent = m_registry.get<Components::SimulationComponent>((entt::entity)startSlotComp.parentId).simEngineEntity;
+        auto endSimParent = m_registry.get<Components::SimulationComponent>((entt::entity)endSlotComp.parentId).simEngineEntity;
+
+        auto startPinType = startSlotComp.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
+        auto dstPinType = endSlotComp.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
+
+        auto successful = SimEngine::SimulationEngine::instance().connectComponent(startSimParent, startSlotComp.idx, startPinType,
+                                                                                   endSimParent, endSlotComp.idx, dstPinType);
+
+        if (!successful)
+            return;
+
+        auto connEntt = m_registry.create();
+        auto &connComp = m_registry.emplace<Components::ConnectionComponent>(connEntt);
+
+        connComp.slotAEntity = startSlot;
+        connComp.slotBEntity = endSlot;
+    }
+
     void Scene::onLeftMouse(bool isPressed) {
         m_isLeftMousePressed = isPressed;
         if (!isPressed)
@@ -206,6 +239,7 @@ namespace Bess::Canvas {
                     m_drawMode = ScenDrawMode::connection;
                 } else if (m_drawMode == ScenDrawMode::connection) {
                     m_drawMode = ScenDrawMode::none;
+                    connectSlots(m_connectionStartEntity, m_hoveredEntiy);
                 }
             } else {
                 bool isSelected = m_registry.all_of<Canvas::Components::SelectedComponent>(m_hoveredEntiy);

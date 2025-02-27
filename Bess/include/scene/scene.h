@@ -20,6 +20,8 @@ namespace Bess::Canvas {
         ~Scene();
 
       public:
+        static Scene &instance();
+
         void reset();
         void render();
         void update(const std::vector<ApplicationEvent> &events);
@@ -39,7 +41,7 @@ namespace Bess::Canvas {
         const glm::vec2 &getSize();
 
         entt::entity createSlotEntity(Components::SlotType type, entt::entity parent, uint idx);
-        entt::entity createSimEntity(std::string name, int inputs, int ouputs);
+        entt::entity createSimEntity(entt::entity simEngineEntt, std::string name, int inputs, int ouputs);
 
       private:
         void onMouseMove(const glm::vec2 &pos);
@@ -48,6 +50,8 @@ namespace Bess::Canvas {
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos);
         bool isCursorInViewport(const glm::vec2 &pos);
         void drawConnection();
+
+        void connectSlots(entt::entity startSlot, entt::entity endSlot);
 
       private:
         std::unique_ptr<Gl::FrameBuffer> m_msaaFramebuffer;

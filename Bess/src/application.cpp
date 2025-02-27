@@ -3,22 +3,13 @@
 #include "events/application_event.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
-#include "pages/page_identifier.h"
-#include "pages/start_page/start_page.h"
-#include "scene/renderer/renderer.h"
 #include "ui/ui.h"
 #include <GLFW/glfw3.h>
-
-#include "components_manager/component_bank.h"
 
 #include "settings/settings.h"
 
 #include "common/bind_helpers.h"
-#include "ui/ui_main/ui_main.h"
 #include "window.h"
-
-using Bess::Renderer2D::Renderer;
-using namespace Bess::Simulator::Components;
 
 namespace Bess {
     Application::Application() {

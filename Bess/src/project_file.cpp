@@ -1,13 +1,4 @@
 #include "project_file.h"
-#include "common/helpers.h"
-// #include "components/clock.h"
-// #include "components/flip_flops/flip_flop.h"
-// #include "components/input_probe.h"
-// #include "components/jcomponent.h"
-// #include "components/output_probe.h"
-// #include "components/text_component.h"
-#include "components_manager/component_type.h"
-// #include "components_manager/components_manager.h"
 #include "json.hpp"
 
 #include "ui/ui_main/dialogs.h"

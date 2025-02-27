@@ -4,6 +4,8 @@
 #include "events/application_event.h"
 #include "ext/vector_float2.hpp"
 #include "pages/page_identifier.h"
+#include "scene/scene.h"
+#include "simulation_engine.h"
 #include "ui/ui_main/ui_main.h"
 #include <memory>
 
@@ -24,25 +26,25 @@ namespace Bess::Pages {
         }
         m_parentWindow = parentWindow;
 
-        m_scene = std::make_unique<Bess::Canvas::Scene>();
+        SimEngine::SimulationEngine::instance();
 
         UI::UIMain::state.cameraZoom = Camera::defaultZoom;
-        UI::UIMain::state.viewportTexture = m_scene->getTextureId();
+        UI::UIMain::state.viewportTexture = m_scene.getTextureId();
         m_state = MainPageState::getInstance();
     }
 
     void MainPage::draw() {
         UI::UIMain::draw();
-        m_scene->render();
+        m_scene.render();
     }
 
     void MainPage::update(const std::vector<ApplicationEvent> &events) {
-        if (m_scene->getSize() != UI::UIMain::state.viewportSize) {
-            m_scene->resize(UI::UIMain::state.viewportSize);
+        if (m_scene.getSize() != UI::UIMain::state.viewportSize) {
+            m_scene.resize(UI::UIMain::state.viewportSize);
         }
 
-        if (UI::UIMain::state.cameraZoom != m_scene->getCameraZoom()) {
-            m_scene->setZoom(UI::UIMain::state.cameraZoom);
+        if (UI::UIMain::state.cameraZoom != m_scene.getCameraZoom()) {
+            m_scene.setZoom(UI::UIMain::state.cameraZoom);
         }
 
         // auto &dragData = m_state->getDragData();
@@ -120,7 +122,7 @@ namespace Bess::Pages {
         }
 
         if (UI::UIMain::state.isViewportFocused)
-            m_scene->update(events);
+            m_scene.update(events);
 
         // // key board bindings
         // {
@@ -170,7 +172,7 @@ namespace Bess::Pages {
         return m_parentWindow;
     }
 
-    std::shared_ptr<Canvas::Scene> MainPage::getScene() {
+    Canvas::Scene &MainPage::getScene() {
         return m_scene;
     }
 

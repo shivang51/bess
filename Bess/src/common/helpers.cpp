@@ -34,8 +34,8 @@ namespace Bess::Common {
         return data;
     }
 
-    Simulator::ComponentType Helpers::intToCompType(int type) {
-        return static_cast<Simulator::ComponentType>(type);
+    SimEngine::ComponentType Helpers::intToCompType(int type) {
+        return static_cast<SimEngine::ComponentType>(type);
     }
 
     std::string Helpers::uuidToStr(const uuids::uuid &uid) {

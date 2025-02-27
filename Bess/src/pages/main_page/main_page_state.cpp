@@ -1,8 +1,6 @@
 #include "pages/main_page/main_page_state.h"
 #include "common/types.h"
 
-#include "components_manager/component_bank.h"
-// #include "components_manager/components_manager.h"
 #include "pages/main_page/main_page.h"
 
 namespace Bess::Pages {
@@ -160,14 +158,6 @@ namespace Bess::Pages {
 
     std::vector<glm::vec3> &MainPageState::getPointsRef() {
         return m_points;
-    }
-
-    void MainPageState::setPrevGenBankElement(const Simulator::ComponentBankElement &element) {
-        m_prevGenBankElement = (Simulator::ComponentBankElement *)&element;
-    }
-
-    Simulator::ComponentBankElement *MainPageState::getPrevGenBankElement() {
-        return m_prevGenBankElement;
     }
 
     void MainPageState::setReadBulkIds(bool readBulkIds) {

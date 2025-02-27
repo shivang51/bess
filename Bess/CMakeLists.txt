@@ -18,9 +18,6 @@ set(External
 source_group("External" FILES ${External})
 
 set(Header_Files
-"include/components_manager/component_type.h"
-"include/components_manager/component_bank.h"
-"include/components_manager/jcomponent_data.h"
 "include/settings/themes.h"
 "include/settings/settings.h"
 "include/settings/viewport_theme.h"
@@ -67,8 +64,6 @@ set(Header_Files
 source_group("Shaders" FILES ${Shaders})
 
 set(Source_Files
-"src/components_manager/component_bank.cpp"
-"src/components_manager/jcomponent_data.cpp"
 "src/application_state.cpp"
 "src/application.cpp"
 "src/settings/viewport_theme.cpp"

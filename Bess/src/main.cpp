@@ -1,5 +1,4 @@
 #include "application.h"
-#include "bse.h"
 #include <csignal>
 #include <cstdlib>
 #include <filesystem>
@@ -64,7 +63,6 @@ int main(int argc, char **argv) {
     sigaction(SIGSEGV, &sa, nullptr);
     #endif
 #endif // _LINUX
-    BessSimEngine::helloBSE();
     Bess::Application app = Bess::Application();
     try {
         app.run();

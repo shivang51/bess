@@ -1,5 +1,5 @@
 #pragma once
-#include "components_manager/component_type.h"
+#include "component_catalog.h"
 #include "glm.hpp"
 
 #include "json.hpp"
@@ -30,7 +30,7 @@ namespace Bess::Common {
 
         static nlohmann::json EncodeVec4(const glm::vec4 &val);
 
-        static Simulator::ComponentType intToCompType(int type);
+        static SimEngine::ComponentType intToCompType(int type);
 
         static UUIDGenerator uuidGenerator;
 

@@ -10,6 +10,7 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
 #include "scene/renderer/gl/gl_wrapper.h"
+#include "scene/scene.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/dialogs.h"
@@ -89,8 +90,8 @@ namespace Bess::UI {
         ImGui::Begin("Project Explorer");
         bool pressed = Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
         ImGui::Text(pressed ? "Left Ctrl Pressed" : "");
-        auto scene = Pages::MainPage::getTypedInstance()->getScene();
-        auto &registry = scene->getEnttRegistry();
+        auto &scene = Canvas::Scene::instance();
+        auto &registry = scene.getEnttRegistry();
         auto view = registry.view<Canvas::Components::TagComponent>();
 
         for (auto &entity : view) {

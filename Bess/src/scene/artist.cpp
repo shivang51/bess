@@ -6,6 +6,7 @@
 #include "scene/components/components.h"
 #include "scene/renderer/renderer.h"
 #include "settings/viewport_theme.h"
+#include "simulation_engine.h"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -58,10 +59,17 @@ namespace Bess::Canvas {
 
         float labeldx = componentStyles.slotMargin + (componentStyles.slotRadius * 2.f);
 
-        for (auto &slot : comp.inputSlots) {
+        auto compState = SimEngine::SimulationEngine::instance().getComponentState(comp.simEngineEntity);
+
+        for (size_t i = 0; i < comp.inputSlots.size(); i++) {
+            auto slot = comp.inputSlots[i];
+            auto isHigh = compState.inputStates[i];
             auto &slotComp = registry.get<Components::SlotComponent>(slot);
             auto slotPos = getSlotPos(slotComp);
-            Renderer::quad(slotPos, glm::vec2(componentStyles.slotRadius * 2.f), ViewportTheme::componentBGColor, (uint64_t)slot, 0.f,
+
+            auto bgColor = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::componentBGColor;
+
+            Renderer::quad(slotPos, glm::vec2(componentStyles.slotRadius * 2.f), bgColor, (uint64_t)slot, 0.f,
                            glm::vec4(componentStyles.slotRadius),
                            glm::vec4(componentStyles.slotBorderSize), ViewportTheme::stateLowColor, false);
 
@@ -70,10 +78,14 @@ namespace Bess::Canvas {
         }
 
         float labelWidth = (Renderer::getCharRenderSize('Z', componentStyles.slotLabelSize).x * 2.f);
-        for (auto &slot : comp.outputSlots) {
+        for (size_t i = 0; i < comp.outputSlots.size(); i++) {
+            auto slot = comp.outputSlots[i];
+            auto isHigh = compState.outputStates[i];
             auto &slotComp = registry.get<Components::SlotComponent>(slot);
             auto slotPos = getSlotPos(slotComp);
-            Renderer::quad(slotPos, glm::vec2(componentStyles.slotRadius * 2.f), ViewportTheme::componentBGColor, (uint64_t)slot, 0.f,
+
+            auto bgColor = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::componentBGColor;
+            Renderer::quad(slotPos, glm::vec2(componentStyles.slotRadius * 2.f), bgColor, (uint64_t)slot, 0.f,
                            glm::vec4(componentStyles.slotRadius),
                            glm::vec4(componentStyles.slotBorderSize), ViewportTheme::stateLowColor, false);
             float labelX = slotPos.x - labeldx - labelWidth;
@@ -98,6 +110,31 @@ namespace Bess::Canvas {
         points.emplace_back(glm::vec3(pos, 0.f));
 
         Renderer::drawPath(points, 2.f, ViewportTheme::wireColor, -1);
+    }
+
+    void Artist::drawConnection(entt::entity startEntity, entt::entity endEntity) {
+        auto &registry = sceneRef->getEnttRegistry();
+        auto startPos = Artist::getSlotPos(registry.get<Components::SlotComponent>(startEntity));
+        auto endPos = Artist::getSlotPos(registry.get<Components::SlotComponent>(endEntity));
+        startPos.z = 0.f;
+        endPos.z = 0.f;
+
+        auto midX = startPos.x + ((endPos.x - startPos.x) / 2.f);
+
+        std::vector<glm::vec3> points;
+        points.emplace_back(startPos);
+        points.emplace_back(glm::vec3(midX, startPos.y, 0.f));
+        points.emplace_back(glm::vec3(midX, endPos.y, 0.f));
+        points.emplace_back(glm::vec3(endPos));
+
+        Renderer::drawPath(points, 2.f, ViewportTheme::wireColor, -1);
+    }
+
+    void Artist::drawConnectionEntity(entt::entity entity) {
+        auto &registry = sceneRef->getEnttRegistry();
+
+        auto &connComp = registry.get<Components::ConnectionComponent>(entity);
+        Artist::drawConnection(connComp.slotAEntity, connComp.slotBEntity);
     }
 
     void Artist::drawSimEntity(entt::entity entity) {

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/types.h"
-#include "components_manager/component_bank.h"
 #include "project_file.h"
 #include "uuid.h"
 
@@ -49,9 +48,6 @@ namespace Bess::Pages {
         void setMousePos(const glm::vec2 &pos);
         const glm::vec2 &getMousePos();
 
-        void setPrevGenBankElement(const Simulator::ComponentBankElement &element);
-        Simulator::ComponentBankElement *getPrevGenBankElement();
-
         void setReadBulkIds(bool readBulkIds);
 
         bool shouldReadBulkIds();
@@ -87,8 +83,6 @@ namespace Bess::Pages {
 
         // handle to currently open project file
         std::shared_ptr<ProjectFile> m_currentProjectFile;
-
-        Simulator::ComponentBankElement *m_prevGenBankElement = nullptr;
 
         bool m_simulationPaused = false;
 

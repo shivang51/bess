@@ -7,12 +7,16 @@ set(External
 source_group("External" FILES ${External})
 
 set(Header_Files
-    "include/bse.h"
+    "include/gate.h"
+    "include/simulation_engine.h"
+    "include/component_catalog.h"
 )
 source_group("Header Files" FILES ${Header_Files})
 
 set(Source_Files
-    "src/bse.cpp"
+    "src/gate.cpp"
+    "src/simulation_engine.cpp"
+    "src/component_catalog.cpp"
 )
 source_group("Source Files" FILES ${Source_Files})
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "entt/entity/entity.hpp"
 #include "entt/entity/fwd.hpp"
 #include <cstdint>
 #include <iostream>
@@ -111,9 +112,18 @@ namespace Bess::Canvas::Components {
       public:
         SimulationComponent() = default;
         SimulationComponent(SimulationComponent &other) = default;
-        uint64_t id = 0; // this should be mapped to id in simulator
+        entt::entity simEngineEntity = entt::null_t(); // this should be mapped to entity in simulator, will be used to fetch state from simulator
         std::vector<entt::entity> inputSlots = {};
         std::vector<entt::entity> outputSlots = {};
+    };
+
+    class ConnectionComponent {
+      public:
+        ConnectionComponent() = default;
+        ConnectionComponent(ConnectionComponent &other) = default;
+
+        entt::entity slotAEntity;
+        entt::entity slotBEntity;
     };
 
 } // namespace Bess::Canvas::Components
