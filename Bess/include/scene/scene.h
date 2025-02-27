@@ -42,6 +42,7 @@ namespace Bess::Canvas {
 
         entt::entity createSlotEntity(Components::SlotType type, entt::entity parent, uint idx);
         entt::entity createSimEntity(entt::entity simEngineEntt, std::string name, int inputs, int ouputs);
+        void deleteEntity(entt::entity ent);
 
       private:
         void onMouseMove(const glm::vec2 &pos);
@@ -52,6 +53,8 @@ namespace Bess::Canvas {
         void drawConnection();
 
         void connectSlots(entt::entity startSlot, entt::entity endSlot);
+
+        float getNextZCoord();
 
       private:
         std::unique_ptr<Gl::FrameBuffer> m_msaaFramebuffer;
@@ -66,5 +69,8 @@ namespace Bess::Canvas {
         entt::entity m_hoveredEntiy;
         entt::entity m_connectionStartEntity;
         ScenDrawMode m_drawMode = ScenDrawMode::none;
+
+        float m_compZCoord = 0.f;
+        const float m_zIncrement = 0.001;
     };
 } // namespace Bess::Canvas

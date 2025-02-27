@@ -47,6 +47,7 @@ namespace Bess::SimEngine {
         entt::entity addComponent(ComponentType type);
         ComponentState getComponentState(entt::entity entity);
         bool connectComponent(entt::entity src, int srcPin, PinType srcPinType, entt::entity dst, int dstPin, PinType dstPinType);
+        void deleteComponent(entt::entity component);
 
       private:
         entt::registry registry;

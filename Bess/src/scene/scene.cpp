@@ -1,5 +1,7 @@
 #include "scene/scene.h"
 #include "GLFW/glfw3.h"
+#include "application_state.h"
+#include "entt/entity/entity.hpp"
 #include "entt/entity/fwd.hpp"
 #include "events/application_event.h"
 #include "ext/matrix_transform.hpp"
@@ -97,7 +99,7 @@ namespace Bess::Canvas {
         tag.name = name;
         tag.id = (uint64_t)entity;
 
-        glm::mat4 transform = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, 0.001f * (uint64_t)entity));
+        glm::mat4 transform = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, getNextZCoord()));
         transform = glm::scale(transform, glm::vec3(150.f, 150.f, 1.f));
 
         transformComp = transform;
@@ -116,7 +118,41 @@ namespace Bess::Canvas {
         for (int i = 0; i < outputs; i++) {
             simComp.outputSlots.emplace_back(createSlotEntity(Components::SlotType::digitalOutput, entity, i));
         }
+        std::cout << "[Scene] Created entity " << (uint64_t)entity << std::endl;
         return entity;
+    }
+
+    void Scene::deleteEntity(entt::entity ent) {
+        if (ent == m_hoveredEntiy)
+            m_hoveredEntiy = entt::null;
+
+        auto &simComp = m_registry.get<Components::SimulationComponent>(ent);
+
+        // take care of connections
+        auto view = m_registry.view<Components::ConnectionComponent>();
+        for (auto connEntt : view) {
+            auto &connComp = view.get<Components::ConnectionComponent>(connEntt);
+            auto parentA = (entt::entity)m_registry.get<Components::SlotComponent>(connComp.slotAEntity).parentId;
+            auto parentB = (entt::entity)m_registry.get<Components::SlotComponent>(connComp.slotBEntity).parentId;
+            if (parentA != ent && parentB != ent)
+                continue;
+            std::cout << "[Scene] Deleted connection " << (uint64_t)connEntt << std::endl;
+            m_registry.destroy(connEntt);
+        }
+
+        // take care of slots
+        for (auto slot : simComp.inputSlots)
+            m_registry.destroy(slot);
+
+        for (auto slot : simComp.outputSlots)
+            m_registry.destroy(slot);
+
+        // remove from simlation engine
+        SimEngine::SimulationEngine::instance().deleteComponent(simComp.simEngineEntity);
+
+        // remove from registry
+        m_registry.destroy(ent);
+        std::cout << "[Scene] Deleted entity " << (uint64_t)ent << std::endl;
     }
 
     entt::entity Scene::createSlotEntity(Components::SlotType type, entt::entity parent, uint idx) {
@@ -290,6 +326,13 @@ namespace Bess::Canvas {
                 break;
             }
         }
+        auto mainPageState = Pages::MainPageState::getInstance();
+        if (mainPageState->isKeyPressed(GLFW_KEY_DELETE)) {
+            auto view = m_registry.view<Canvas::Components::SelectedComponent>();
+            for (auto &entt : view) {
+                deleteEntity(entt);
+            }
+        }
     }
 
     void Scene::beginScene() {
@@ -326,6 +369,12 @@ namespace Bess::Canvas {
 
     entt::registry &Scene::getEnttRegistry() {
         return m_registry;
+    }
+
+    float Scene::getNextZCoord() {
+        float z = m_compZCoord;
+        m_compZCoord += m_zIncrement;
+        return z;
     }
 
 } // namespace Bess::Canvas

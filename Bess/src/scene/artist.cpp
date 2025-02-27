@@ -51,7 +51,7 @@ namespace Bess::Canvas {
         posX += slotdx;
         float posY = pPos.y - pScale.y / 2.f + SLOT_START_Y + (SLOT_ROW_SIZE * comp.idx);
 
-        return glm::vec3(posX, posY, pPos.z + 0.002f);
+        return glm::vec3(posX, posY, pPos.z + 0.0005);
     }
 
     void Artist::drawSlots(const Components::SimulationComponent &comp, const glm::vec3 &componentPos, float width) {
@@ -159,7 +159,7 @@ namespace Bess::Canvas {
 
         uint64_t id = (uint64_t)entity;
 
-        glm::vec3 textPos = glm::vec3(pos.x - scale.x / 2.f + componentStyles.paddingX, headerPos.y + componentStyles.paddingY, pos.z + 0.001f);
+        glm::vec3 textPos = glm::vec3(pos.x - scale.x / 2.f + componentStyles.paddingX, headerPos.y + componentStyles.paddingY, pos.z + 0.0005f);
 
         Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, 0.f,
                        spriteComp.borderRadius,

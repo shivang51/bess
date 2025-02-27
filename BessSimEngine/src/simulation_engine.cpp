@@ -3,6 +3,7 @@
 #include "entt/entity/fwd.hpp"
 #include "gate.h"
 #include <chrono>
+#include <cstdint>
 #include <iostream>
 namespace Bess::SimEngine {
 
@@ -196,7 +197,7 @@ namespace Bess::SimEngine {
         gateComp.outputPins.resize(def->outputCount);
         gateComp.outputStates.resize(def->outputCount, false);
         gateComp.delay = std::chrono::milliseconds(100);
-
+        std::cout << "[+] Added component " << (uint64_t)ent << std::endl;
         scheduleEvent(ent, std::chrono::steady_clock::now() + gateComp.delay);
 
         return ent;
@@ -257,6 +258,76 @@ namespace Bess::SimEngine {
         scheduleEvent(enttToSim, std::chrono::steady_clock::now() + gateToSim.delay);
 
         return true;
+    }
+
+    void SimulationEngine::deleteComponent(entt::entity component) {
+        // Remove any scheduled events for the gate.
+        {
+            std::lock_guard<std::mutex> lock(queueMutex);
+            std::vector<SimulationEvent> remaining;
+            while (!eventQueue.empty()) {
+                SimulationEvent ev = eventQueue.top();
+                eventQueue.pop();
+                if (ev.entity != component) {
+                    remaining.push_back(ev);
+                }
+            }
+            for (const auto &ev : remaining) {
+                eventQueue.push(ev);
+            }
+        }
+
+        // gates which needs to be simulated after the deletion
+        std::unordered_set<entt::entity> affectedGates;
+
+        // Remove all connections to/from the gate in other components.
+        {
+            std::lock_guard<std::mutex> lock(registryMutex);
+            // Iterate over all gate components.
+            auto view = registry.view<GateComponent>();
+            for (auto other : view) {
+                if (other == component)
+                    continue;
+                auto &comp = view.get<GateComponent>(other);
+                // Remove any connection in inputPins where the source is the gate to be deleted.
+                for (auto &inPin : comp.inputPins) {
+                    int n = inPin.size();
+                    inPin.erase(
+                        std::remove_if(inPin.begin(), inPin.end(),
+                                       [component](const std::pair<entt::entity, int> &conn) {
+                                           return conn.first == component;
+                                       }),
+                        inPin.end());
+                    if (inPin.size() < n) {
+                        affectedGates.insert(other);
+                    }
+                }
+                // Remove any connection in outputPins where the destination is the gate to be deleted.
+                for (auto &outPin : comp.outputPins) {
+                    outPin.erase(
+                        std::remove_if(outPin.begin(), outPin.end(),
+                                       [component](const std::pair<entt::entity, int> &conn) {
+                                           return conn.first == component;
+                                       }),
+                        outPin.end());
+                }
+            }
+            // Finally, destroy the gate entity.
+            if (registry.valid(component)) {
+                registry.destroy(component);
+            }
+        }
+
+        // For each gate that lost an input connection, schedule a simulation event.
+        for (auto entity : affectedGates) {
+            // Lock registryMutex briefly to retrieve the delay value.
+            std::lock_guard<std::mutex> lock(registryMutex);
+            if (registry.valid(entity)) {
+                auto &comp = registry.get<GateComponent>(entity);
+                scheduleEvent(entity, std::chrono::steady_clock::now() + comp.delay);
+            }
+        }
+        std::cout << "[+] Gate " << static_cast<uint32_t>(component) << " deleted successfully." << std::endl;
     }
 
     ComponentState SimulationEngine::getComponentState(entt::entity entity) {
