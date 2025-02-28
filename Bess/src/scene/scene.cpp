@@ -117,9 +117,16 @@ namespace Bess::Canvas {
         beginScene();
         Renderer::grid({0.f, 0.f, -2.f}, m_camera->getSpan(), -1, ViewportTheme::gridColor);
 
+        // draw connections
         auto connectionsView = m_registry.view<Components::ConnectionComponent>();
         for (auto entity : connectionsView) {
             Artist::drawConnectionEntity(entity);
+        }
+
+        // draw entities
+        auto view = m_registry.view<Components::TagComponent>();
+        for (auto entity : view) {
+            Artist::drawSimEntity(entity);
         }
 
         switch (m_drawMode) {
@@ -131,11 +138,6 @@ namespace Bess::Canvas {
             break;
         default:
             break;
-        }
-
-        auto view = m_registry.view<Components::TagComponent>();
-        for (auto entity : view) {
-            Artist::drawSimEntity(entity);
         }
 
         endScene();

@@ -83,7 +83,7 @@ namespace Bess::Canvas {
 
         SceneDrawMode m_drawMode = SceneDrawMode::none;
 
-        float m_compZCoord = 0.f;
         const float m_zIncrement = 0.001;
+        float m_compZCoord = m_zIncrement;
     };
 } // namespace Bess::Canvas
