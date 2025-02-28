@@ -6,12 +6,46 @@
 #include "imgui_internal.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
+#include "ui/icons/FontAwesomeIcons.h"
 #include "ui/m_widgets.h"
 
 namespace Bess::UI {
 
     bool ComponentExplorer::isfirstTimeDraw = false;
     std::string ComponentExplorer::m_searchQuery = "";
+
+    bool MyTreeNode(const char *label) {
+        ImGuiContext &g = *ImGui::GetCurrentContext();
+        ImGuiWindow *window = g.CurrentWindow;
+
+        ImGuiID id = window->GetID(label);
+        ImVec2 pos = window->DC.CursorPos;
+        ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x, pos.y + g.FontSize + g.Style.FramePadding.y * 2));
+        bool opened = ImGui::TreeNodeBehaviorIsOpen(id, ImGuiTreeNodeFlags_None);
+        bool hovered, held;
+
+        auto style = ImGui::GetStyle();
+        auto rounding = style.FrameRounding;
+
+        if (ImGui::ButtonBehavior(bb, id, &hovered, &held, ImGuiButtonFlags_PressedOnClick))
+            window->DC.StateStorage->SetInt(id, opened ? 0 : 1);
+        if (hovered || held)
+            window->DrawList->AddRectFilled(bb.Min, bb.Max, ImGui::GetColorU32(held ? ImGuiCol_HeaderActive : ImGuiCol_HeaderHovered), rounding);
+
+        // Icon, text
+        float button_sz = g.FontSize;
+        pos.x += rounding / 2.f;
+        auto icon = opened ? Icons::FontAwesomeIcons::FA_CHEVRON_DOWN : Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT;
+        ImGui::RenderText(ImVec2(pos.x + g.Style.ItemInnerSpacing.x, pos.y + g.Style.FramePadding.y), icon);
+        ImGui::RenderText(ImVec2(pos.x + button_sz + g.Style.ItemInnerSpacing.x, pos.y + g.Style.FramePadding.y), label);
+
+        ImGui::ItemSize(bb, g.Style.FramePadding.y);
+        ImGui::ItemAdd(bb, id);
+
+        if (opened)
+            ImGui::TreePush(label);
+        return opened;
+    }
 
     void ComponentExplorer::draw() {
         if (isfirstTimeDraw)
@@ -36,7 +70,7 @@ namespace Bess::UI {
         ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_Framed;
 
         for (auto &ent : components) {
-            if (ImGui::TreeNodeEx(ent.first.c_str(), treeNodeFlags)) {
+            if (MyTreeNode(ent.first.c_str())) {
                 for (auto &comp : ent.second) {
                     auto &name = comp.name;
                     if (m_searchQuery != "" && Common::Helpers::toLowerCase(name).find(m_searchQuery) == std::string::npos)

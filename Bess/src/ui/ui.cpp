@@ -99,8 +99,10 @@ namespace Bess::UI {
         Fonts::largeFont = io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Bold.ttf", fontSize * 2.f);
         Fonts::mediumFont = io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Bold.ttf", fontSize * 1.5f);
         io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Regular.ttf", fontSize);
+
         ImFontConfig config;
         config.MergeMode = true;
+        config.PixelSnapH = true;
         static const ImWchar mat_icon_ranges[] = {Icons::MaterialIcons::ICON_MIN_MD, Icons::MaterialIcons::ICON_MAX_MD, 0};
         io.Fonts->AddFontFromFileTTF("assets/icons/MaterialIcons-Regular.ttf", fontSize, &config, mat_icon_ranges);
 
@@ -110,7 +112,8 @@ namespace Bess::UI {
         // &config, fa_icon_ranges);
 
         static const ImWchar fa_icon_ranges_r[] = {Icons::FontAwesomeIcons::SIZE_MIN_FA, Icons::FontAwesomeIcons::SIZE_MAX_FA, 0};
-        io.Fonts->AddFontFromFileTTF("assets/icons/fa-solid-900.ttf", fontSize, &config, fa_icon_ranges_r);
+        config.GlyphOffset.y = -2.0f / 3.0f;
+        io.Fonts->AddFontFromFileTTF("assets/icons/fa-solid-900.ttf", fontSize * 2.0f / 3.0f, &config, fa_icon_ranges_r);
 
         io.FontGlobalScale = scale;
 
