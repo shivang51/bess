@@ -5,8 +5,7 @@
 namespace Bess {
     float Camera::zoomMin = 0.5f, Camera::zoomMax = 4.f, Camera::defaultZoom = 1.517f;
 
-    Camera::Camera(float width, float height) : m_zoom(1.0f), m_width(width), m_height(height) {
-        m_aspectRatio = width / height;
+    Camera::Camera(float width, float height) : m_zoom(defaultZoom), m_width(width), m_height(height) {
         m_pos = {0.f, 0.f};
     }
 
@@ -27,13 +26,16 @@ namespace Bess {
     glm::vec2 &Camera::getPosRef() { return m_pos; }
 
     void Camera::setZoom(float zoom) {
+        if (zoom > zoomMax)
+            zoom = zoomMax;
+        else if (zoom < zoomMin)
+            zoom = zoomMin;
         m_zoom = zoom;
         recalculateOrtho();
     }
 
-    void Camera::updateZoom(float value) {
-        m_zoom += value;
-        recalculateOrtho();
+    void Camera::incrementZoom(float value) {
+        setZoom(m_zoom + value);
     }
 
     void Camera::zoomToPoint(const glm::vec2 &point, float value) {
@@ -44,6 +46,8 @@ namespace Bess {
 
     float Camera::getZoom() const { return m_zoom; }
 
+    float &Camera::getZoomRef() { return m_zoom; }
+
     glm::vec2 Camera::getSpan() const {
         float xSpan = m_width / m_zoom;
         float ySpan = m_height / m_zoom;
@@ -53,8 +57,6 @@ namespace Bess {
     void Camera::resize(float width, float height) {
         m_width = width;
         m_height = height;
-        m_aspectRatio = width / height;
-        m_zoom = m_zoom / m_aspectRatio;
         recalculateOrtho();
     }
 

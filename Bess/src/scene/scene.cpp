@@ -51,9 +51,24 @@ namespace Bess::Canvas {
         return m_normalFramebuffer->getColorBufferTexId(0);
     }
 
+    std::shared_ptr<Camera> Scene::getCamera() {
+        return m_camera;
+    }
+
+    void Scene::drawSelectionBox() {
+        auto start = getNVPMousePos(m_selectionBoxStart);
+        auto end = getNVPMousePos(m_mousePos);
+
+        auto size = end - start;
+        auto pos = start + size / 2.f;
+        size = glm::abs(size);
+
+        Renderer2D::Renderer::quad(glm::vec3(pos, 9.f), size, ViewportTheme::selectionBoxFillColor, 0.f, 0.f, glm::vec4(0.f), glm::vec4(1.f), ViewportTheme::selectionBoxBorderColor, false);
+    }
+
     void Scene::drawConnection() {
         if (!m_registry.valid(m_connectionStartEntity)) {
-            m_drawMode = ScenDrawMode::none;
+            m_drawMode = SceneDrawMode::none;
             return;
         }
 
@@ -74,8 +89,11 @@ namespace Bess::Canvas {
         }
 
         switch (m_drawMode) {
-        case ScenDrawMode::connection:
+        case SceneDrawMode::connection:
             drawConnection();
+            break;
+        case SceneDrawMode::selectionBox:
+            drawSelectionBox();
             break;
         default:
             break;
@@ -196,7 +214,8 @@ namespace Bess::Canvas {
 
         const auto cameraPos = m_camera->getPos();
         glm::mat4 tansform = glm::translate(glm::mat4(1.f), glm::vec3(cameraPos.x, cameraPos.y, 0.f));
-        tansform = glm::scale(tansform, glm::vec3(1.f / UI::UIMain::state.cameraZoom, 1.f / UI::UIMain::state.cameraZoom, 1.f));
+        auto zoom = m_camera->getZoom();
+        tansform = glm::scale(tansform, glm::vec3(1.f / zoom, 1.f / zoom, 1.f));
 
         pos = glm::vec2(tansform * glm::vec4(pos.x, pos.y, 0.f, 1.f));
         auto span = m_camera->getSpan() / 2.f;
@@ -218,13 +237,18 @@ namespace Bess::Canvas {
             m_hoveredEntiy = (entt::entity)hoverId;
         }
 
-        if (m_isLeftMousePressed) {
-            auto view = m_registry.view<Components::SelectedComponent, Components::TransformComponent>();
+        if (m_isLeftMousePressed && m_drawMode != SceneDrawMode::selectionBox) {
+            if (!m_registry.valid(m_hoveredEntiy) && m_registry.view<Components::SelectedComponent>()->size() == 0) {
+                m_drawMode = SceneDrawMode::selectionBox;
+                m_selectionBoxStart = m_mousePos;
+            } else {
+                auto view = m_registry.view<Components::SelectedComponent, Components::TransformComponent>();
 
-            for (auto &ent : view) {
-                auto &transformComp = view.get<Components::TransformComponent>(ent);
-                auto dPos_ = glm::vec3(dPos, 0.f);
-                transformComp.translate(transformComp.getPosition() + dPos_);
+                for (auto &ent : view) {
+                    auto &transformComp = view.get<Components::TransformComponent>(ent);
+                    auto dPos_ = glm::vec3(dPos, 0.f);
+                    transformComp.translate(transformComp.getPosition() + dPos_);
+                }
             }
         }
     }
@@ -263,18 +287,24 @@ namespace Bess::Canvas {
 
     void Scene::onLeftMouse(bool isPressed) {
         m_isLeftMousePressed = isPressed;
-        if (!isPressed)
+        if (!isPressed) {
+            if (m_drawMode == SceneDrawMode::selectionBox) {
+                m_drawMode = SceneDrawMode::none;
+                m_selectInSelectionBox = true;
+                m_selectionBoxEnd = m_mousePos;
+            }
             return;
+        }
 
         // toggeling selection of hovered entity on click
         if (m_registry.valid(m_hoveredEntiy)) {
             if (m_registry.all_of<Components::SlotComponent>(m_hoveredEntiy)) {
                 m_registry.clear<Components::SelectedComponent>();
-                if (m_drawMode == ScenDrawMode::none) {
+                if (m_drawMode == SceneDrawMode::none) {
                     m_connectionStartEntity = m_hoveredEntiy;
-                    m_drawMode = ScenDrawMode::connection;
-                } else if (m_drawMode == ScenDrawMode::connection) {
-                    m_drawMode = ScenDrawMode::none;
+                    m_drawMode = SceneDrawMode::connection;
+                } else if (m_drawMode == SceneDrawMode::connection) {
+                    m_drawMode = SceneDrawMode::none;
                     connectSlots(m_connectionStartEntity, m_hoveredEntiy);
                 }
             } else {
@@ -295,7 +325,37 @@ namespace Bess::Canvas {
         }
     }
 
+    void Scene::selectEntitesInArea(const glm::vec2 &start, const glm::vec2 &end) {
+        m_registry.clear<Components::SelectedComponent>();
+        auto size = end - start;
+        glm::vec2 pos = {std::min(start.x, end.x), std::max(start.y, end.y)};
+        size = glm::abs(size);
+        int w = (int)size.x;
+        int h = (int)size.y;
+        int x = pos.x, y = UI::UIMain::state.viewportSize.y - pos.y;
+
+        auto ids = m_normalFramebuffer->readIntsFromColAttachment(1, x, y, w, h);
+
+        if (ids.size() == 0)
+            return;
+
+        std::set<int> uniqueIds(ids.begin(), ids.end());
+
+        for (auto &id : uniqueIds) {
+            auto entt = (entt::entity)id;
+            if (!m_registry.valid(entt) || !m_registry.all_of<Components::SimulationComponent>(entt))
+                continue;
+            m_registry.emplace<Components::SelectedComponent>(entt);
+        }
+    }
+
     void Scene::update(const std::vector<ApplicationEvent> &events) {
+        // doing it here so selection box does not interfere with selection
+        if (m_selectInSelectionBox) {
+            selectEntitesInArea(m_selectionBoxStart, m_selectionBoxEnd);
+            m_selectInSelectionBox = false;
+        }
+
         for (auto &event : events) {
             switch (event.getType()) {
             case ApplicationEventType::MouseMove: {
@@ -322,6 +382,10 @@ namespace Bess::Canvas {
                     // onMiddleMouse(data.pressed);
                 }
             } break;
+            case ApplicationEventType::MouseWheel: {
+                const auto data = event.getData<ApplicationEvent::MouseWheelData>();
+                onMouseWheel(data.x, data.y);
+            } break;
             default:
                 break;
             }
@@ -345,6 +409,27 @@ namespace Bess::Canvas {
                 for (auto &entt : view)
                     m_registry.emplace_or_replace<Components::SelectedComponent>(entt);
             }
+        }
+    }
+
+    void Scene::onMouseWheel(double x, double y) {
+        if (!isCursorInViewport(m_mousePos))
+            return;
+
+        auto mainPageState = Pages::MainPageState::getInstance();
+        if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
+            const float delta = static_cast<float>(y) * 0.1f;
+            m_camera->incrementZoom(delta);
+            /*UI::UIMain::state.cameraZoom += delta;*/
+            /*if (UI::UIMain::state.cameraZoom < Camera::zoomMin) {*/
+            /*    UI::UIMain::state.cameraZoom = Camera::zoomMin;*/
+            /*} else if (UI::UIMain::state.cameraZoom > Camera::zoomMax) {*/
+            /*    UI::UIMain::state.cameraZoom = Camera::zoomMax;*/
+            /*}*/
+        } else {
+            glm::vec2 dPos = {x, y};
+            dPos *= 10 / m_camera->getZoom() * -1;
+            m_camera->incrementPos(dPos);
         }
     }
 

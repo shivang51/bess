@@ -7,11 +7,13 @@
 #include "glm.hpp"
 #include "scene/components/components.h"
 #include "scene/renderer/gl/framebuffer.h"
+#include <memory>
 
 namespace Bess::Canvas {
-    enum class ScenDrawMode {
+    enum class SceneDrawMode {
         none,
-        connection
+        connection,
+        selectionBox
     };
 
     class Scene {
@@ -27,6 +29,7 @@ namespace Bess::Canvas {
         void update(const std::vector<ApplicationEvent> &events);
 
         unsigned int getTextureId();
+        std::shared_ptr<Camera> getCamera();
 
         void beginScene();
         void endScene();
@@ -47,12 +50,17 @@ namespace Bess::Canvas {
       private:
         void onMouseMove(const glm::vec2 &pos);
         void onLeftMouse(bool isPressed);
+        void onMouseWheel(double x, double y);
+
         glm::vec2 getNVPMousePos(const glm::vec2 &mousePos);
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos);
         bool isCursorInViewport(const glm::vec2 &pos);
         void drawConnection();
+        void drawSelectionBox();
         void handleKeyboardShorcuts();
         void connectSlots(entt::entity startSlot, entt::entity endSlot);
+
+        void selectEntitesInArea(const glm::vec2 &start, const glm::vec2 &end);
 
         float getNextZCoord();
 
@@ -68,7 +76,12 @@ namespace Bess::Canvas {
         entt::registry m_registry;
         entt::entity m_hoveredEntiy;
         entt::entity m_connectionStartEntity;
-        ScenDrawMode m_drawMode = ScenDrawMode::none;
+        // selection box
+        glm::vec2 m_selectionBoxStart;
+        glm::vec2 m_selectionBoxEnd;
+        bool m_selectInSelectionBox = false;
+
+        SceneDrawMode m_drawMode = SceneDrawMode::none;
 
         float m_compZCoord = 0.f;
         const float m_zIncrement = 0.001;

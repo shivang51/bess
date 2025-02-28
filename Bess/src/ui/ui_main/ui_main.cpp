@@ -264,12 +264,14 @@ namespace Bess::UI {
             ImGui::Begin("Camera", nullptr, flags);
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8);
             ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 8);
-            if (ImGui::SliderFloat("Zoom", &state.cameraZoom, Camera::zoomMin,
+            auto camera = Canvas::Scene::instance().getCamera();
+            if (ImGui::SliderFloat("Zoom", &camera->getZoomRef(), Camera::zoomMin,
                                    Camera::zoomMax, nullptr,
                                    ImGuiSliderFlags_AlwaysClamp)) {
                 // step size logic
                 float stepSize = 0.1f;
-                state.cameraZoom = roundf(state.cameraZoom / stepSize) * stepSize;
+                float val = roundf(camera->getZoom() / stepSize) * stepSize;
+                camera->setZoom(val);
             }
             state.isViewportFocused &= !ImGui::IsWindowHovered();
             ImGui::PopStyleVar(2);

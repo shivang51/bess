@@ -31,12 +31,6 @@ namespace Bess::Pages {
 
         // event handlers
       private:
-        void onMouseWheel(double x, double y);
-        void onLeftMouse(bool pressed);
-        void onRightMouse(bool pressed);
-        void onMiddleMouse(bool pressed);
-        void onMouseMove(double x, double y);
-
         bool isCursorInViewport();
         void finishDragging();
 
