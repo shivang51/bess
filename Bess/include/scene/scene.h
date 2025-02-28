@@ -57,7 +57,7 @@ namespace Bess::Canvas {
         bool isCursorInViewport(const glm::vec2 &pos);
         void drawConnection();
         void drawSelectionBox();
-        void handleKeyboardShorcuts();
+        void handleKeyboardShortcuts();
         void connectSlots(entt::entity startSlot, entt::entity endSlot);
 
         void selectEntitesInArea(const glm::vec2 &start, const glm::vec2 &end);

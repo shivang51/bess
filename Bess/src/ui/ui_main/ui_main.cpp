@@ -88,8 +88,6 @@ namespace Bess::UI {
 
     void UIMain::drawProjectExplorer() {
         ImGui::Begin("Project Explorer");
-        bool pressed = Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
-        ImGui::Text(pressed ? "Left Ctrl Pressed" : "");
         auto &scene = Canvas::Scene::instance();
         auto &registry = scene.getEnttRegistry();
         auto view = registry.view<Canvas::Components::TagComponent>();
@@ -97,7 +95,7 @@ namespace Bess::UI {
         for (auto &entity : view) {
             bool isSelected = registry.all_of<Canvas::Components::SelectedComponent>(entity);
             auto &tagComp = view.get<Canvas::Components::TagComponent>(entity);
-            if (RoundedSelectable((tagComp.name + " " + std::to_string(tagComp.id)).c_str(), isSelected)) {
+            if (RoundedSelectable(tagComp.name.c_str(), isSelected)) {
                 if (isSelected)
                     registry.erase<Canvas::Components::SelectedComponent>(entity);
                 else

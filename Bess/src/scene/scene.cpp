@@ -1,6 +1,5 @@
 #include "scene/scene.h"
 #include "GLFW/glfw3.h"
-#include "application_state.h"
 #include "entt/entity/entity.hpp"
 #include "entt/entity/fwd.hpp"
 #include "events/application_event.h"
@@ -47,32 +46,67 @@ namespace Bess::Canvas {
         Artist::sceneRef = this;
     }
 
-    unsigned int Scene::getTextureId() {
-        return m_normalFramebuffer->getColorBufferTexId(0);
-    }
-
-    std::shared_ptr<Camera> Scene::getCamera() {
-        return m_camera;
-    }
-
-    void Scene::drawSelectionBox() {
-        auto start = getNVPMousePos(m_selectionBoxStart);
-        auto end = getNVPMousePos(m_mousePos);
-
-        auto size = end - start;
-        auto pos = start + size / 2.f;
-        size = glm::abs(size);
-
-        Renderer2D::Renderer::quad(glm::vec3(pos, 9.f), size, ViewportTheme::selectionBoxFillColor, 0.f, 0.f, glm::vec4(0.f), glm::vec4(1.f), ViewportTheme::selectionBoxBorderColor, false);
-    }
-
-    void Scene::drawConnection() {
-        if (!m_registry.valid(m_connectionStartEntity)) {
-            m_drawMode = SceneDrawMode::none;
-            return;
+    void Scene::update(const std::vector<ApplicationEvent> &events) {
+        // doing it here so selection box does not interfere with selection
+        if (m_selectInSelectionBox) {
+            selectEntitesInArea(m_selectionBoxStart, m_selectionBoxEnd);
+            m_selectInSelectionBox = false;
         }
 
-        Artist::drawGhostConnection(m_connectionStartEntity, getNVPMousePos(m_mousePos));
+        for (auto &event : events) {
+            switch (event.getType()) {
+            case ApplicationEventType::MouseMove: {
+                const auto data = event.getData<ApplicationEvent::MouseMoveData>();
+                auto pos = getViewportMousePos(glm::vec2(data.x, data.y));
+                if (!isCursorInViewport(pos)) {
+                    m_isLeftMousePressed = false;
+                    m_mousePos = pos;
+                    break;
+                }
+                onMouseMove(pos);
+            } break;
+            case ApplicationEventType::MouseButton: {
+                if (!isCursorInViewport(m_mousePos)) {
+                    m_isLeftMousePressed = false;
+                    break;
+                }
+                const auto data = event.getData<ApplicationEvent::MouseButtonData>();
+                if (data.button == MouseButton::left) {
+                    onLeftMouse(data.pressed);
+                } else if (data.button == MouseButton::right) {
+                    // onRightMouse(data.pressed);
+                } else if (data.button == MouseButton::middle) {
+                    // onMiddleMouse(data.pressed);
+                }
+            } break;
+            case ApplicationEventType::MouseWheel: {
+                const auto data = event.getData<ApplicationEvent::MouseWheelData>();
+                onMouseWheel(data.x, data.y);
+            } break;
+            default:
+                break;
+            }
+        }
+
+        handleKeyboardShortcuts();
+    }
+
+    void Scene::handleKeyboardShortcuts() {
+        auto mainPageState = Pages::MainPageState::getInstance();
+        if (mainPageState->isKeyPressed(GLFW_KEY_DELETE)) {
+            auto view = m_registry.view<Canvas::Components::SelectedComponent>();
+            for (auto &entt : view) {
+                deleteEntity(entt);
+            }
+        }
+
+        if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
+            if (mainPageState->isKeyPressed(GLFW_KEY_A)) { // ctrl-a select all components
+                auto view = m_registry.view<Canvas::Components::SimulationComponent>();
+                for (auto &entt : view)
+                    m_registry.emplace_or_replace<Components::SelectedComponent>(entt);
+            }
+        }
     }
 
     void Scene::render() {
@@ -99,12 +133,32 @@ namespace Bess::Canvas {
             break;
         }
 
-        auto view = m_registry.view<Components::SimulationComponent>();
+        auto view = m_registry.view<Components::TagComponent>();
         for (auto entity : view) {
             Artist::drawSimEntity(entity);
         }
 
         endScene();
+    }
+
+    void Scene::drawSelectionBox() {
+        auto start = getNVPMousePos(m_selectionBoxStart);
+        auto end = getNVPMousePos(m_mousePos);
+
+        auto size = end - start;
+        auto pos = start + size / 2.f;
+        size = glm::abs(size);
+
+        Renderer2D::Renderer::quad(glm::vec3(pos, 9.f), size, ViewportTheme::selectionBoxFillColor, 0.f, 0.f, glm::vec4(0.f), glm::vec4(1.f), ViewportTheme::selectionBoxBorderColor, false);
+    }
+
+    void Scene::drawConnection() {
+        if (!m_registry.valid(m_connectionStartEntity)) {
+            m_drawMode = SceneDrawMode::none;
+            return;
+        }
+
+        Artist::drawGhostConnection(m_connectionStartEntity, getNVPMousePos(m_mousePos));
     }
 
     entt::entity Scene::createSimEntity(entt::entity simEngineEntt, std::string name, int inputs, int outputs) {
@@ -322,6 +376,7 @@ namespace Bess::Canvas {
 
         } else { // deselecting all when clicking outside
             m_registry.clear<Components::SelectedComponent>();
+            m_drawMode = SceneDrawMode::none;
         }
     }
 
@@ -346,69 +401,6 @@ namespace Bess::Canvas {
             if (!m_registry.valid(entt) || !m_registry.all_of<Components::SimulationComponent>(entt))
                 continue;
             m_registry.emplace<Components::SelectedComponent>(entt);
-        }
-    }
-
-    void Scene::update(const std::vector<ApplicationEvent> &events) {
-        // doing it here so selection box does not interfere with selection
-        if (m_selectInSelectionBox) {
-            selectEntitesInArea(m_selectionBoxStart, m_selectionBoxEnd);
-            m_selectInSelectionBox = false;
-        }
-
-        for (auto &event : events) {
-            switch (event.getType()) {
-            case ApplicationEventType::MouseMove: {
-                const auto data = event.getData<ApplicationEvent::MouseMoveData>();
-                auto pos = getViewportMousePos(glm::vec2(data.x, data.y));
-                if (!isCursorInViewport(pos)) {
-                    m_isLeftMousePressed = false;
-                    m_mousePos = pos;
-                    break;
-                }
-                onMouseMove(pos);
-            } break;
-            case ApplicationEventType::MouseButton: {
-                if (!isCursorInViewport(m_mousePos)) {
-                    m_isLeftMousePressed = false;
-                    break;
-                }
-                const auto data = event.getData<ApplicationEvent::MouseButtonData>();
-                if (data.button == MouseButton::left) {
-                    onLeftMouse(data.pressed);
-                } else if (data.button == MouseButton::right) {
-                    // onRightMouse(data.pressed);
-                } else if (data.button == MouseButton::middle) {
-                    // onMiddleMouse(data.pressed);
-                }
-            } break;
-            case ApplicationEventType::MouseWheel: {
-                const auto data = event.getData<ApplicationEvent::MouseWheelData>();
-                onMouseWheel(data.x, data.y);
-            } break;
-            default:
-                break;
-            }
-        }
-
-        handleKeyboardShorcuts();
-    }
-
-    void Scene::handleKeyboardShorcuts() {
-        auto mainPageState = Pages::MainPageState::getInstance();
-        if (mainPageState->isKeyPressed(GLFW_KEY_DELETE)) {
-            auto view = m_registry.view<Canvas::Components::SelectedComponent>();
-            for (auto &entt : view) {
-                deleteEntity(entt);
-            }
-        }
-
-        if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
-            if (mainPageState->isKeyPressed(GLFW_KEY_A)) { // ctrl-a select all components
-                auto view = m_registry.view<Canvas::Components::SimulationComponent>();
-                for (auto &entt : view)
-                    m_registry.emplace_or_replace<Components::SelectedComponent>(entt);
-            }
         }
     }
 
@@ -473,6 +465,14 @@ namespace Bess::Canvas {
         float z = m_compZCoord;
         m_compZCoord += m_zIncrement;
         return z;
+    }
+
+    unsigned int Scene::getTextureId() {
+        return m_normalFramebuffer->getColorBufferTexId(0);
+    }
+
+    std::shared_ptr<Camera> Scene::getCamera() {
+        return m_camera;
     }
 
 } // namespace Bess::Canvas
