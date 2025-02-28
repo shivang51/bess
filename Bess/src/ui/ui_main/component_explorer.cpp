@@ -7,12 +7,14 @@
 #include "scene/scene.h"
 #include "simulation_engine.h"
 #include "ui/icons/FontAwesomeIcons.h"
+#include "ui/icons/MaterialIcons.h"
 #include "ui/m_widgets.h"
 
 namespace Bess::UI {
 
     bool ComponentExplorer::isfirstTimeDraw = false;
     std::string ComponentExplorer::m_searchQuery = "";
+    std::string ComponentExplorer::windowName = (std::string(Icons::MaterialIcons::APPS) + " Component Explorer");
 
     bool MyTreeNode(const char *label) {
         ImGuiContext &g = *ImGui::GetCurrentContext();
@@ -51,7 +53,7 @@ namespace Bess::UI {
         if (isfirstTimeDraw)
             firstTime();
 
-        ImGui::Begin("Component Explorer");
+        ImGui::Begin(windowName.c_str());
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4);
 
         {

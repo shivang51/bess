@@ -101,24 +101,21 @@ namespace Bess::UI {
         io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Regular.ttf", fontSize);
 
         ImFontConfig config;
+        float r = 2.2f / 3.f;
+        config.GlyphOffset.y = r;
         config.MergeMode = true;
         config.PixelSnapH = true;
-        static const ImWchar mat_icon_ranges[] = {Icons::MaterialIcons::ICON_MIN_MD, Icons::MaterialIcons::ICON_MAX_MD, 0};
-        io.Fonts->AddFontFromFileTTF("assets/icons/MaterialIcons-Regular.ttf", fontSize, &config, mat_icon_ranges);
 
-        // const ImWchar fa_icon_ranges[] = { Icons::FontAwesomeIcons::SIZE_MIN_FAB,
-        // Icons::FontAwesomeIcons::SIZE_MAX_FAB, 0 };
-        // io.Fonts->AddFontFromFileTTF("assets/icons/fa-brands-400.ttf", 16.0f,
-        // &config, fa_icon_ranges);
+        static const ImWchar mat_icon_ranges[] = {Icons::MaterialIcons::ICON_MIN_MD, Icons::MaterialIcons::ICON_MAX_MD, 0};
+        io.Fonts->AddFontFromFileTTF("assets/icons/MaterialIcons-Regular.ttf", fontSize * r, &config, mat_icon_ranges);
 
         static const ImWchar fa_icon_ranges_r[] = {Icons::FontAwesomeIcons::SIZE_MIN_FA, Icons::FontAwesomeIcons::SIZE_MAX_FA, 0};
-        config.GlyphOffset.y = -2.0f / 3.0f;
-        io.Fonts->AddFontFromFileTTF("assets/icons/fa-solid-900.ttf", fontSize * 2.0f / 3.0f, &config, fa_icon_ranges_r);
+        config.GlyphOffset.y = -r;
+        io.Fonts->AddFontFromFileTTF("assets/icons/fa-solid-900.ttf", fontSize * r, &config, fa_icon_ranges_r);
 
         io.FontGlobalScale = scale;
-
         io.Fonts->Build();
-        config.MergeMode = false;
+
         if (Config::Settings::shouldFontRebuild()) {
             ImGui_ImplOpenGL3_DestroyDeviceObjects();
             ImGui_ImplOpenGL3_CreateDeviceObjects();

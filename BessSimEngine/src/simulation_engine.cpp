@@ -16,23 +16,12 @@ namespace Bess::SimEngine {
     }
 
     void initComponentCatalog() {
-        ComponentCatalog::instance().registerComponent({ComponentType::INPUT,
-                                                        "Input",
-                                                        "IO", // Category for input/output components.
-                                                        0,
-                                                        1,
+        ComponentCatalog::instance().registerComponent({ComponentType::INPUT, "Input", "IO", 0, 1,
                                                         [](entt::registry &, entt::entity) -> bool {
-                                                            // INPUT component: output is controlled externally.
-                                                            // No simulation update is performed.
                                                             return false;
                                                         }});
 
-        // Register OUTPUT component (under "IO").
-        ComponentCatalog::instance().registerComponent({ComponentType::OUTPUT,
-                                                        "Output",
-                                                        "IO", // Category for input/output components.
-                                                        1,
-                                                        0, // Typically, an output element might not drive any output pins.
+        ComponentCatalog::instance().registerComponent({ComponentType::OUTPUT, "Output", "IO", 1, 0,
                                                         [](entt::registry &registry, entt::entity e) -> bool {
                                                             auto &gate = registry.get<GateComponent>(e);
                                                             bool newState = false;
@@ -49,7 +38,6 @@ namespace Bess::SimEngine {
                                                                 newState = pinState;
                                                             }
                                                             bool changed = false;
-                                                            // Even though output count is zero, if there were outputs, we would update them.
                                                             for (auto state : gate.outputStates) {
                                                                 if (state != newState) {
                                                                     state = newState;
@@ -59,12 +47,7 @@ namespace Bess::SimEngine {
                                                             return changed;
                                                         }});
 
-        // Register AND gate (under "Gates").
-        ComponentCatalog::instance().registerComponent({ComponentType::AND,
-                                                        "AND Gate",
-                                                        "Gates", // Category for standard logic gates.
-                                                        2,
-                                                        1,
+        ComponentCatalog::instance().registerComponent({ComponentType::AND, "AND Gate", "Digital Gates", 2, 1,
                                                         [](entt::registry &registry, entt::entity e) -> bool {
                                                             auto &gate = registry.get<GateComponent>(e);
                                                             std::vector<bool> pinValues;
@@ -91,12 +74,7 @@ namespace Bess::SimEngine {
                                                             return changed;
                                                         }});
 
-        // Register OR gate (under "Gates").
-        ComponentCatalog::instance().registerComponent({ComponentType::OR,
-                                                        "OR Gate",
-                                                        "Gates", // Category for standard logic gates.
-                                                        2,
-                                                        1,
+        ComponentCatalog::instance().registerComponent({ComponentType::OR, "OR Gate", "Digital Gates", 2, 1,
                                                         [](entt::registry &registry, entt::entity e) -> bool {
                                                             auto &gate = registry.get<GateComponent>(e);
                                                             std::vector<bool> pinValues;
@@ -123,12 +101,7 @@ namespace Bess::SimEngine {
                                                             return changed;
                                                         }});
 
-        // Register NOT gate (under "Gates").
-        ComponentCatalog::instance().registerComponent({ComponentType::NOT,
-                                                        "NOT Gate",
-                                                        "Gates", // Category for standard logic gates.
-                                                        1,
-                                                        1,
+        ComponentCatalog::instance().registerComponent({ComponentType::NOT, "NOT Gate", "Digital Gates", 1, 1,
                                                         [](entt::registry &registry, entt::entity e) -> bool {
                                                             auto &gate = registry.get<GateComponent>(e);
                                                             bool newState = true;

@@ -138,8 +138,8 @@ namespace Bess::UI {
             ImGui::Separator();
             ImGui::Spacing();
 
-            temp_name = Icons::FontAwesomeIcons::FA_WRENCH;
-            temp_name += "  Settings";
+            temp_name = Icons::FontAwesomeIcons::FA_PENCIL_ALT;
+            temp_name += "  Prefrences";
             if (ImGui::MenuItem(temp_name.c_str())) {
                 SettingsWindow::show();
             }
@@ -167,8 +167,8 @@ namespace Bess::UI {
         }
 
         if (ImGui::BeginMenu("Edit")) {
-
-            if (ImGui::MenuItem("Project Settings", "Ctrl+P")) {
+            std::string icon = Icons::FontAwesomeIcons::FA_WRENCH;
+            if (ImGui::MenuItem((icon + "  Project Settings").c_str(), "Ctrl+P")) {
                 ProjectSettingsWindow::show();
             }
             ImGui::EndMenu();
@@ -176,7 +176,7 @@ namespace Bess::UI {
 
         if (ImGui::BeginMenu("Simulation")) {
             std::string text = m_pageState->isSimulationPaused() ? Icons::FontAwesomeIcons::FA_PLAY : Icons::FontAwesomeIcons::FA_PAUSE;
-            text += m_pageState->isSimulationPaused() ? " Play" : " Pause";
+            text += m_pageState->isSimulationPaused() ? "  Play" : "  Pause";
 
             if (ImGui::MenuItem(text.c_str(), "Ctrl+Space")) {
                 m_pageState->setSimulationPaused(!m_pageState->isSimulationPaused());
@@ -289,7 +289,7 @@ namespace Bess::UI {
 
         auto dock_id_right_bot = ImGui::DockBuilderSplitNode(dock_id_right, ImGuiDir_Down, 0.5f, nullptr, &dock_id_right);
 
-        ImGui::DockBuilderDockWindow("Component Explorer", dock_id_left);
+        ImGui::DockBuilderDockWindow(ComponentExplorer::windowName.c_str(), dock_id_left);
         ImGui::DockBuilderDockWindow("Viewport", mainDockspaceId);
         ImGui::DockBuilderDockWindow("Project Explorer", dock_id_right);
         ImGui::DockBuilderDockWindow("Properties", dock_id_right_bot);
