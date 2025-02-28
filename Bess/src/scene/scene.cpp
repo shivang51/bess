@@ -326,11 +326,24 @@ namespace Bess::Canvas {
                 break;
             }
         }
+
+        handleKeyboardShorcuts();
+    }
+
+    void Scene::handleKeyboardShorcuts() {
         auto mainPageState = Pages::MainPageState::getInstance();
         if (mainPageState->isKeyPressed(GLFW_KEY_DELETE)) {
             auto view = m_registry.view<Canvas::Components::SelectedComponent>();
             for (auto &entt : view) {
                 deleteEntity(entt);
+            }
+        }
+
+        if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
+            if (mainPageState->isKeyPressed(GLFW_KEY_A)) { // ctrl-a select all components
+                auto view = m_registry.view<Canvas::Components::SimulationComponent>();
+                for (auto &entt : view)
+                    m_registry.emplace_or_replace<Components::SelectedComponent>(entt);
             }
         }
     }

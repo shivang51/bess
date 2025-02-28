@@ -51,7 +51,7 @@ namespace Bess::Canvas {
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos);
         bool isCursorInViewport(const glm::vec2 &pos);
         void drawConnection();
-
+        void handleKeyboardShorcuts();
         void connectSlots(entt::entity startSlot, entt::entity endSlot);
 
         float getNextZCoord();
