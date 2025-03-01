@@ -1,10 +1,10 @@
 #pragma once
 
 #include "camera.h"
+#include "component_catalog.h"
 #include "entt/entity/fwd.hpp"
 #include "entt/entt.hpp"
 #include "events/application_event.h"
-#include "glm.hpp"
 #include "scene/components/components.h"
 #include "scene/renderer/gl/framebuffer.h"
 #include <memory>
@@ -34,6 +34,8 @@ namespace Bess::Canvas {
         void beginScene();
         void endScene();
 
+        void setLastCreatedComp(SimEngine::ComponentDefinition *comp);
+
       public:
         glm::vec2 getCameraPos();
         float getCameraZoom();
@@ -44,12 +46,13 @@ namespace Bess::Canvas {
         const glm::vec2 &getSize();
 
         entt::entity createSlotEntity(Components::SlotType type, entt::entity parent, uint idx);
-        entt::entity createSimEntity(entt::entity simEngineEntt, std::string name, int inputs, int ouputs);
+        entt::entity createSimEntity(entt::entity simEngineEntt, std::string name, int inputs, int ouputs, const glm::vec2 &pos);
         void deleteEntity(entt::entity ent);
 
       private:
         void onMouseMove(const glm::vec2 &pos);
         void onLeftMouse(bool isPressed);
+        void onRightMouse(bool isPressed);
         void onMouseWheel(double x, double y);
 
         glm::vec2 getNVPMousePos(const glm::vec2 &mousePos);
@@ -85,5 +88,7 @@ namespace Bess::Canvas {
 
         const float m_zIncrement = 0.001;
         float m_compZCoord = m_zIncrement;
+
+        SimEngine::ComponentDefinition *m_lastCreatedComp = nullptr;
     };
 } // namespace Bess::Canvas

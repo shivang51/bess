@@ -74,7 +74,7 @@ namespace Bess::Canvas {
                 if (data.button == MouseButton::left) {
                     onLeftMouse(data.pressed);
                 } else if (data.button == MouseButton::right) {
-                    // onRightMouse(data.pressed);
+                    onRightMouse(data.pressed);
                 } else if (data.button == MouseButton::middle) {
                     // onMiddleMouse(data.pressed);
                 }
@@ -163,7 +163,7 @@ namespace Bess::Canvas {
         Artist::drawGhostConnection(m_connectionStartEntity, getNVPMousePos(m_mousePos));
     }
 
-    entt::entity Scene::createSimEntity(entt::entity simEngineEntt, std::string name, int inputs, int outputs) {
+    entt::entity Scene::createSimEntity(entt::entity simEngineEntt, std::string name, int inputs, int outputs, const glm::vec2 &pos) {
         auto entity = m_registry.create();
         auto &transformComp = m_registry.emplace<Components::TransformComponent>(entity);
         auto &sprite = m_registry.emplace<Components::SpriteComponent>(entity);
@@ -173,7 +173,7 @@ namespace Bess::Canvas {
         tag.name = name;
         tag.id = (uint64_t)entity;
 
-        glm::mat4 transform = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, getNextZCoord()));
+        glm::mat4 transform = glm::translate(glm::mat4(1.f), glm::vec3(pos, getNextZCoord()));
         transform = glm::scale(transform, glm::vec3(150.f, 150.f, 1.f));
 
         transformComp = transform;
@@ -346,6 +346,18 @@ namespace Bess::Canvas {
         }
     }
 
+    void Scene::onRightMouse(bool isPressed) {
+        if (!isPressed) {
+            return;
+        }
+
+        if (!m_registry.valid(m_hoveredEntiy) && m_lastCreatedComp != nullptr) {
+            auto comp = (*m_lastCreatedComp);
+            auto simEntt = SimEngine::SimulationEngine::instance().addComponent(comp.type);
+            createSimEntity(simEntt, comp.name, comp.inputCount, comp.outputCount, getNVPMousePos(m_mousePos));
+        }
+    }
+
     void Scene::onLeftMouse(bool isPressed) {
         m_isLeftMousePressed = isPressed;
         if (!isPressed) {
@@ -480,6 +492,10 @@ namespace Bess::Canvas {
 
     std::shared_ptr<Camera> Scene::getCamera() {
         return m_camera;
+    }
+
+    void Scene::setLastCreatedComp(SimEngine::ComponentDefinition *comp) {
+        m_lastCreatedComp = comp;
     }
 
 } // namespace Bess::Canvas

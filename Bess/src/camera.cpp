@@ -1,6 +1,7 @@
 #include "camera.h"
 #include "ext/matrix_clip_space.hpp"
 #include "ext/matrix_transform.hpp"
+#include <iostream>
 
 namespace Bess {
     float Camera::zoomMin = 0.5f, Camera::zoomMax = 4.f, Camera::defaultZoom = 1.517f;
@@ -66,6 +67,7 @@ namespace Bess {
         auto x = xSpan / 2.f;
         auto y = ySpan / 2.f;
         m_ortho = glm::ortho(-x, x, y, -y, -10.0f, 10.0f);
+
         updateTransform();
     }
 
