@@ -81,7 +81,7 @@ namespace Bess::UI {
                     if (ImGui::Button(name.c_str(), {-1, 0})) {
                         auto simEntt = SimEngine::SimulationEngine::instance().addComponent(comp.type);
                         auto &scene = Canvas::Scene::instance();
-                        scene.createSimEntity(simEntt, comp.name, comp.inputCount, comp.outputCount, scene.getCameraPos());
+                        scene.createSimEntity(simEntt, comp, scene.getCameraPos());
                         scene.setLastCreatedComp(&comp);
                     }
                 }

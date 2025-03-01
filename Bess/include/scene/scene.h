@@ -46,7 +46,7 @@ namespace Bess::Canvas {
         const glm::vec2 &getSize();
 
         entt::entity createSlotEntity(Components::SlotType type, entt::entity parent, uint idx);
-        entt::entity createSimEntity(entt::entity simEngineEntt, std::string name, int inputs, int ouputs, const glm::vec2 &pos);
+        entt::entity createSimEntity(entt::entity simEngineEntt, const SimEngine::ComponentDefinition &comp, const glm::vec2 &pos);
         void deleteEntity(entt::entity ent);
 
       private:

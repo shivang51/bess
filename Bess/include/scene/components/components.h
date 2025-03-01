@@ -126,4 +126,20 @@ namespace Bess::Canvas::Components {
         entt::entity outputSlot;
     };
 
+    class SimulationOutputComponent {
+      public:
+        SimulationOutputComponent() = default;
+        SimulationOutputComponent(SimulationOutputComponent &other) = default;
+
+        bool recordOutput = false;
+    };
+
+    class SimulationInputComponent {
+      public:
+        SimulationInputComponent() = default;
+        SimulationInputComponent(SimulationInputComponent &other) = default;
+
+        bool clockBhaviour = false;
+    };
+
 } // namespace Bess::Canvas::Components

@@ -49,6 +49,9 @@ namespace Bess::SimEngine {
         bool connectComponent(entt::entity src, int srcPin, PinType srcPinType, entt::entity dst, int dstPin, PinType dstPinType);
         void deleteComponent(entt::entity component);
 
+        void setDigitalInput(entt::entity entity, bool value);
+        bool getDigitalPinState(entt::entity entity, PinType type, int idx);
+
       private:
         entt::registry registry;
         std::thread simThread;

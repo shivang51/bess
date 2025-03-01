@@ -2,6 +2,7 @@
 #include "component_catalog.h"
 #include "entt/entity/fwd.hpp"
 #include "gate.h"
+#include <cassert>
 #include <chrono>
 #include <cstdint>
 #include <iostream>
@@ -301,6 +302,28 @@ namespace Bess::SimEngine {
             }
         }
         std::cout << "[+] Gate " << static_cast<uint32_t>(component) << " deleted successfully." << std::endl;
+    }
+
+    bool SimulationEngine::getDigitalPinState(entt::entity entity, PinType type, int idx) {
+        assert(registry.valid(entity));
+        auto &gateComp = registry.get<GateComponent>(entity);
+        assert(gateComp.type == ComponentType::INPUT);
+        return gateComp.outputStates[0];
+    }
+
+    void SimulationEngine::setDigitalInput(entt::entity entity, bool value) {
+        assert(registry.valid(entity));
+        auto &gateComp = registry.get<GateComponent>(entity);
+        assert(gateComp.type == ComponentType::INPUT);
+
+        if (gateComp.outputStates[0] == value)
+            return;
+
+        gateComp.outputStates[0] = value;
+        for (auto &conn : gateComp.outputPins[0]) {
+            auto &connComp = registry.get<GateComponent>(conn.first);
+            scheduleEvent(conn.first, std::chrono::steady_clock::now() + std::chrono::milliseconds(connComp.delay));
+        }
     }
 
     ComponentState SimulationEngine::getComponentState(entt::entity entity) {

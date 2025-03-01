@@ -1,5 +1,6 @@
 #include "scene/scene.h"
 #include "GLFW/glfw3.h"
+#include "component_catalog.h"
 #include "entt/entity/entity.hpp"
 #include "entt/entity/fwd.hpp"
 #include "events/application_event.h"
@@ -163,14 +164,20 @@ namespace Bess::Canvas {
         Artist::drawGhostConnection(m_connectionStartEntity, getNVPMousePos(m_mousePos));
     }
 
-    entt::entity Scene::createSimEntity(entt::entity simEngineEntt, std::string name, int inputs, int outputs, const glm::vec2 &pos) {
+    entt::entity Scene::createSimEntity(entt::entity simEngineEntt, const SimEngine::ComponentDefinition &comp, const glm::vec2 &pos) {
         auto entity = m_registry.create();
         auto &transformComp = m_registry.emplace<Components::TransformComponent>(entity);
         auto &sprite = m_registry.emplace<Components::SpriteComponent>(entity);
         auto &tag = m_registry.emplace<Components::TagComponent>(entity);
         auto &simComp = m_registry.emplace<Components::SimulationComponent>(entity);
 
-        tag.name = name;
+        if (comp.type == SimEngine::ComponentType::INPUT) {
+            m_registry.emplace<Components::SimulationInputComponent>(entity);
+        } else if (comp.type == SimEngine::ComponentType::OUTPUT) {
+            m_registry.emplace<Components::SimulationOutputComponent>(entity);
+        }
+
+        tag.name = comp.name;
         tag.id = (uint64_t)entity;
 
         glm::mat4 transform = glm::translate(glm::mat4(1.f), glm::vec3(pos, getNextZCoord()));
@@ -185,11 +192,11 @@ namespace Bess::Canvas {
 
         simComp.simEngineEntity = simEngineEntt;
 
-        for (int i = 0; i < inputs; i++) {
+        for (int i = 0; i < comp.inputCount; i++) {
             simComp.inputSlots.emplace_back(createSlotEntity(Components::SlotType::digitalInput, entity, i));
         }
 
-        for (int i = 0; i < outputs; i++) {
+        for (int i = 0; i < comp.outputCount; i++) {
             simComp.outputSlots.emplace_back(createSlotEntity(Components::SlotType::digitalOutput, entity, i));
         }
         std::cout << "[Scene] Created entity " << (uint64_t)entity << std::endl;
@@ -354,7 +361,15 @@ namespace Bess::Canvas {
         if (!m_registry.valid(m_hoveredEntiy) && m_lastCreatedComp != nullptr) {
             auto comp = (*m_lastCreatedComp);
             auto simEntt = SimEngine::SimulationEngine::instance().addComponent(comp.type);
-            createSimEntity(simEntt, comp.name, comp.inputCount, comp.outputCount, getNVPMousePos(m_mousePos));
+            createSimEntity(simEntt, comp, getNVPMousePos(m_mousePos));
+        }
+
+        if (m_registry.valid(m_hoveredEntiy)) {
+            if (m_registry.all_of<Components::SimulationInputComponent>(m_hoveredEntiy)) {
+                auto &simComp = m_registry.get<Components::SimulationComponent>(m_hoveredEntiy);
+                bool currentState = SimEngine::SimulationEngine::instance().getDigitalPinState(simComp.simEngineEntity, SimEngine::PinType::output, 0);
+                SimEngine::SimulationEngine::instance().setDigitalInput(simComp.simEngineEntity, !currentState);
+            }
         }
     }
 
