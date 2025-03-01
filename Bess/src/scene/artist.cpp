@@ -221,9 +221,8 @@ namespace Bess::Canvas {
         auto &simComp = registry.get<Components::SimulationComponent>(entity);
 
         auto [pos, rotation, scale] = transformComp.decompose();
-        float rowSize = componentStyles.rowMargin + (componentStyles.slotRadius * 2.f) + componentStyles.rowGap;
         int maxRows = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
-        scale.y = componentStyles.headerHeight + componentStyles.rowMargin + componentStyles.slotRadius + (maxRows * rowSize);
+        scale.y = componentStyles.headerHeight + componentStyles.rowGap + (maxRows * SLOT_ROW_SIZE);
         transformComp.scale(scale);
 
         float headerHeight = componentStyles.headerHeight;
