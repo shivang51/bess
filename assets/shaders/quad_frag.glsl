@@ -78,8 +78,9 @@ void main(){
 
     if(isMica){
         float noise = rand(uv * 80.0) * 0.1;
-        vec4 tintColor = vec4(0.5, 0.5, 0.6, 0.25);
-        vec4 micaColor = mix(vec4(0.7, 0.7, 0.5, 0.25), tintColor, abs(v_TexCoord.x));
+        vec4 tintColor1 = vec4(0.8, 0.5, 0.5, 1.f);
+        vec4 tintColor2 = vec4(0.5, 0.8, 0.5, 1.f);
+        vec4 micaColor = mix(tintColor1, tintColor2, abs(v_TexCoord.x));
         micaColor.rgb += noise * 0.8;
         bgColor.rgb *= micaColor.rgb;
     }

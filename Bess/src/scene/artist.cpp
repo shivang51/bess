@@ -23,7 +23,7 @@ namespace Bess::Canvas {
         float paddingY = 4.f;
         float slotRadius = 4.5f;
         float slotMargin = 4.f;
-        float slotBorderSize = 0.5f;
+        float slotBorderSize = 1.f;
         float rowMargin = 4.f;
         float rowGap = 8.f;
         float slotLabelSize = 10.f;
@@ -54,6 +54,21 @@ namespace Bess::Canvas {
         return glm::vec3(posX, posY, pPos.z + 0.0005);
     }
 
+    void Artist::paintSlot(uint64_t id, int idx, uint64_t parentId, const glm::vec3 &pos, const std::string &label, float labelDx, bool isHigh) {
+        auto bgColor = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::componentBGColor;
+        auto borderColor = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::stateLowColor;
+        Renderer::quad(pos, glm::vec2(componentStyles.slotRadius * 2.f), ViewportTheme::componentBGColor, id, 0.f,
+                       glm::vec4(componentStyles.slotRadius),
+                       glm::vec4(componentStyles.slotBorderSize), borderColor, false);
+
+        float r = componentStyles.slotRadius - componentStyles.slotBorderSize - 1.f;
+        Renderer::quad(pos, glm::vec2(r * 2.f), bgColor, id, 0.f, glm::vec4(r),
+                       glm::vec4(componentStyles.slotBorderSize), ViewportTheme::componentBGColor, false);
+
+        float labelX = pos.x + labelDx;
+        Renderer::text(label + std::to_string(idx), {labelX, pos.y + (componentStyles.slotLabelSize / 2.f) - 1.f, pos.z}, componentStyles.slotLabelSize, ViewportTheme::textColor * 0.9f, parentId);
+    }
+
     void Artist::drawSlots(const Components::SimulationComponent &comp, const glm::vec3 &componentPos, float width) {
         auto &registry = sceneRef->getEnttRegistry();
 
@@ -66,33 +81,17 @@ namespace Bess::Canvas {
             auto isHigh = compState.inputStates[i];
             auto &slotComp = registry.get<Components::SlotComponent>(slot);
             auto slotPos = getSlotPos(slotComp);
-
-            auto bgColor = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::componentBGColor;
-
-            Renderer::quad(slotPos, glm::vec2(componentStyles.slotRadius * 2.f), bgColor, (uint64_t)slot, 0.f,
-                           glm::vec4(componentStyles.slotRadius),
-                           glm::vec4(componentStyles.slotBorderSize), ViewportTheme::stateLowColor, false);
-
-            float labelX = slotPos.x + labeldx;
-            Renderer::text("X" + std::to_string(slotComp.idx), {labelX, slotPos.y + (componentStyles.slotLabelSize / 2.f) - 1.f, slotPos.z}, componentStyles.slotLabelSize, ViewportTheme::textColor * 0.9f, slotComp.parentId);
+            paintSlot((uint64_t)slot, slotComp.idx, slotComp.parentId, slotPos, "X", labeldx, isHigh);
         }
 
         float labelWidth = (Renderer::getCharRenderSize('Z', componentStyles.slotLabelSize).x * 2.f);
+        labeldx += labelWidth;
         for (size_t i = 0; i < comp.outputSlots.size(); i++) {
             auto slot = comp.outputSlots[i];
             auto isHigh = compState.outputStates[i];
             auto &slotComp = registry.get<Components::SlotComponent>(slot);
             auto slotPos = getSlotPos(slotComp);
-
-            auto bgColor = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::componentBGColor;
-            Renderer::quad(slotPos, glm::vec2(componentStyles.slotRadius * 2.f), bgColor, (uint64_t)slot, 0.f,
-                           glm::vec4(componentStyles.slotRadius),
-                           glm::vec4(componentStyles.slotBorderSize), ViewportTheme::stateLowColor, false);
-            float labelX = slotPos.x - labeldx - labelWidth;
-
-            Renderer::text("Y" + std::to_string(slotComp.idx), {labelX, slotPos.y + (componentStyles.slotLabelSize / 2.f) - 1.f, slotPos.z}, componentStyles.slotLabelSize, ViewportTheme::textColor * 0.9f, slotComp.parentId);
-
-            slotPos.y += componentStyles.rowMargin + (componentStyles.slotRadius * 2.f) + componentStyles.rowGap;
+            paintSlot((uint64_t)slot, slotComp.idx, slotComp.parentId, slotPos, "Y", -labeldx, isHigh);
         }
     }
 
@@ -112,10 +111,11 @@ namespace Bess::Canvas {
         Renderer::drawPath(points, 2.f, ViewportTheme::wireColor, -1);
     }
 
-    void Artist::drawConnection(entt::entity startEntity, entt::entity endEntity) {
+    void Artist::drawConnection(entt::entity inputEntity, entt::entity outputEntity) {
         auto &registry = sceneRef->getEnttRegistry();
-        auto startPos = Artist::getSlotPos(registry.get<Components::SlotComponent>(startEntity));
-        auto endPos = Artist::getSlotPos(registry.get<Components::SlotComponent>(endEntity));
+        auto &outputSlotComp = registry.get<Components::SlotComponent>(outputEntity);
+        auto startPos = Artist::getSlotPos(registry.get<Components::SlotComponent>(inputEntity));
+        auto endPos = Artist::getSlotPos(outputSlotComp);
         startPos.z = 0.f;
         endPos.z = 0.f;
 
@@ -127,14 +127,19 @@ namespace Bess::Canvas {
         points.emplace_back(glm::vec3(midX, endPos.y, 0.f));
         points.emplace_back(glm::vec3(endPos));
 
-        Renderer::drawPath(points, 2.f, ViewportTheme::wireColor, -1);
+        auto &simComp = registry.get<Components::SimulationComponent>((entt::entity)outputSlotComp.parentId);
+        bool isHigh = SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity).outputStates[outputSlotComp.idx];
+
+        auto color = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::wireColor;
+
+        Renderer::drawPath(points, 2.f, color, -1);
     }
 
     void Artist::drawConnectionEntity(entt::entity entity) {
         auto &registry = sceneRef->getEnttRegistry();
 
         auto &connComp = registry.get<Components::ConnectionComponent>(entity);
-        Artist::drawConnection(connComp.slotAEntity, connComp.slotBEntity);
+        Artist::drawConnection(connComp.inputSlot, connComp.outputSlot);
     }
 
     void Artist::drawSimEntity(entt::entity entity) {
@@ -152,7 +157,7 @@ namespace Bess::Canvas {
         transformComp.scale(scale);
 
         float headerHeight = componentStyles.headerHeight;
-        float radius = headerHeight / 2.f;
+        float radius = 4.f;
         auto headerPos = glm::vec3(pos.x, pos.y - scale.y / 2.f + headerHeight / 2.f, pos.z);
 
         spriteComp.borderRadius = glm::vec4(radius);

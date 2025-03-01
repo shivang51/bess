@@ -206,8 +206,8 @@ namespace Bess::Canvas {
         auto view = m_registry.view<Components::ConnectionComponent>();
         for (auto connEntt : view) {
             auto &connComp = view.get<Components::ConnectionComponent>(connEntt);
-            auto parentA = (entt::entity)m_registry.get<Components::SlotComponent>(connComp.slotAEntity).parentId;
-            auto parentB = (entt::entity)m_registry.get<Components::SlotComponent>(connComp.slotBEntity).parentId;
+            auto parentA = (entt::entity)m_registry.get<Components::SlotComponent>(connComp.inputSlot).parentId;
+            auto parentB = (entt::entity)m_registry.get<Components::SlotComponent>(connComp.outputSlot).parentId;
             if (parentA != ent && parentB != ent)
                 continue;
             std::cout << "[Scene] Deleted connection " << (uint64_t)connEntt << std::endl;
@@ -337,8 +337,13 @@ namespace Bess::Canvas {
         auto connEntt = m_registry.create();
         auto &connComp = m_registry.emplace<Components::ConnectionComponent>(connEntt);
 
-        connComp.slotAEntity = startSlot;
-        connComp.slotBEntity = endSlot;
+        if (startSlotComp.slotType == Components::SlotType::digitalInput) {
+            connComp.inputSlot = startSlot;
+            connComp.outputSlot = endSlot;
+        } else {
+            connComp.inputSlot = endSlot;
+            connComp.outputSlot = startSlot;
+        }
     }
 
     void Scene::onLeftMouse(bool isPressed) {

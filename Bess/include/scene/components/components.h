@@ -122,8 +122,8 @@ namespace Bess::Canvas::Components {
         ConnectionComponent() = default;
         ConnectionComponent(ConnectionComponent &other) = default;
 
-        entt::entity slotAEntity;
-        entt::entity slotBEntity;
+        entt::entity inputSlot;
+        entt::entity outputSlot;
     };
 
 } // namespace Bess::Canvas::Components
