@@ -45,9 +45,9 @@ void main(){
     float aa = fwidth(length(uv));
     
     vec4 oR = v_BorderRadius;
-    oR /= minVec2(iResolution);
+    oR /= iResolution.y;
     
-    vec4 borderSize = v_BorderSize / minVec2(iResolution);
+    vec4 borderSize = v_BorderSize / iResolution.y;
     float bT = borderSize.x;
     float bR = borderSize.y;
     float bB = borderSize.z;
