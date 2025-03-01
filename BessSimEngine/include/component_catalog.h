@@ -13,7 +13,11 @@ namespace Bess::SimEngine {
         OUTPUT,
         AND,
         OR,
-        NOT
+        NOT,
+        NOR,
+        NAND,
+        XOR,
+        XNOR
     };
 
     // Definition for a digital component/gate.

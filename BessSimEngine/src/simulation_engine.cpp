@@ -126,6 +126,113 @@ namespace Bess::SimEngine {
                                                             }
                                                             return changed;
                                                         }});
+        ComponentCatalog::instance().registerComponent({ComponentType::XOR, "XOR Gate", "Digital Gates", 2, 1,
+                                                        [](entt::registry &registry, entt::entity e) -> bool {
+                                                            auto &gate = registry.get<GateComponent>(e);
+                                                            std::vector<bool> pinValues;
+                                                            for (const auto &pin : gate.inputPins) {
+                                                                bool pinState = false;
+                                                                for (const auto &conn : pin) {
+                                                                    if (registry.valid(conn.first)) {
+                                                                        auto &srcGate = registry.get<GateComponent>(conn.first);
+                                                                        if (!srcGate.outputStates.empty()) {
+                                                                            pinState = pinState || srcGate.outputStates[0];
+                                                                        }
+                                                                    }
+                                                                }
+                                                                pinValues.push_back(pinState);
+                                                            }
+                                                            bool newState = (pinValues.size() >= 2) ? (pinValues[0] ^ pinValues[1]) : false;
+                                                            bool changed = false;
+                                                            for (auto state : gate.outputStates) {
+                                                                if (state != newState) {
+                                                                    state = newState;
+                                                                    changed = true;
+                                                                }
+                                                            }
+                                                            return changed;
+                                                        }});
+
+        ComponentCatalog::instance().registerComponent({ComponentType::XNOR, "XNOR Gate", "Digital Gates", 2, 1,
+                                                        [](entt::registry &registry, entt::entity e) -> bool {
+                                                            auto &gate = registry.get<GateComponent>(e);
+                                                            std::vector<bool> pinValues;
+                                                            for (const auto &pin : gate.inputPins) {
+                                                                bool pinState = false;
+                                                                for (const auto &conn : pin) {
+                                                                    if (registry.valid(conn.first)) {
+                                                                        auto &srcGate = registry.get<GateComponent>(conn.first);
+                                                                        if (!srcGate.outputStates.empty()) {
+                                                                            pinState = pinState || srcGate.outputStates[0];
+                                                                        }
+                                                                    }
+                                                                }
+                                                                pinValues.push_back(pinState);
+                                                            }
+                                                            bool newState = (pinValues.size() >= 2) ? !(pinValues[0] ^ pinValues[1]) : false;
+                                                            bool changed = false;
+                                                            for (auto state : gate.outputStates) {
+                                                                if (state != newState) {
+                                                                    state = newState;
+                                                                    changed = true;
+                                                                }
+                                                            }
+                                                            return changed;
+                                                        }});
+
+        ComponentCatalog::instance().registerComponent({ComponentType::NAND, "NAND Gate", "Digital Gates", 2, 1,
+                                                        [](entt::registry &registry, entt::entity e) -> bool {
+                                                            auto &gate = registry.get<GateComponent>(e);
+                                                            std::vector<bool> pinValues;
+                                                            for (const auto &pin : gate.inputPins) {
+                                                                bool pinState = false;
+                                                                for (const auto &conn : pin) {
+                                                                    if (registry.valid(conn.first)) {
+                                                                        auto &srcGate = registry.get<GateComponent>(conn.first);
+                                                                        if (!srcGate.outputStates.empty()) {
+                                                                            pinState = pinState || srcGate.outputStates[0];
+                                                                        }
+                                                                    }
+                                                                }
+                                                                pinValues.push_back(pinState);
+                                                            }
+                                                            bool newState = (pinValues.size() >= 2) ? !(pinValues[0] && pinValues[1]) : true;
+                                                            bool changed = false;
+                                                            for (auto state : gate.outputStates) {
+                                                                if (state != newState) {
+                                                                    state = newState;
+                                                                    changed = true;
+                                                                }
+                                                            }
+                                                            return changed;
+                                                        }});
+
+        ComponentCatalog::instance().registerComponent({ComponentType::NOR, "NOR Gate", "Digital Gates", 2, 1,
+                                                        [](entt::registry &registry, entt::entity e) -> bool {
+                                                            auto &gate = registry.get<GateComponent>(e);
+                                                            std::vector<bool> pinValues;
+                                                            for (const auto &pin : gate.inputPins) {
+                                                                bool pinState = false;
+                                                                for (const auto &conn : pin) {
+                                                                    if (registry.valid(conn.first)) {
+                                                                        auto &srcGate = registry.get<GateComponent>(conn.first);
+                                                                        if (!srcGate.outputStates.empty()) {
+                                                                            pinState = pinState || srcGate.outputStates[0];
+                                                                        }
+                                                                    }
+                                                                }
+                                                                pinValues.push_back(pinState);
+                                                            }
+                                                            bool newState = (pinValues.size() >= 2) ? !(pinValues[0] || pinValues[1]) : false;
+                                                            bool changed = false;
+                                                            for (auto state : gate.outputStates) {
+                                                                if (state != newState) {
+                                                                    state = newState;
+                                                                    changed = true;
+                                                                }
+                                                            }
+                                                            return changed;
+                                                        }});
     }
 
     SimulationEngine::SimulationEngine()
