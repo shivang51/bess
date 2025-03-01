@@ -48,7 +48,7 @@ namespace Bess::SimEngine {
                                                             return changed;
                                                         }});
 
-        ComponentCatalog::instance().registerComponent({ComponentType::AND, "AND Gate", "Digital Gates", 3, 1,
+        ComponentCatalog::instance().registerComponent({ComponentType::AND, "AND Gate", "Digital Gates", 2, 1,
                                                         [](entt::registry &registry, entt::entity e) -> bool {
                                                             auto &gate = registry.get<GateComponent>(e);
                                                             std::vector<bool> pinValues;
