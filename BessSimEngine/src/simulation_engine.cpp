@@ -58,13 +58,21 @@ namespace Bess::SimEngine {
                                                                     if (registry.valid(conn.first)) {
                                                                         auto &srcGate = registry.get<GateComponent>(conn.first);
                                                                         if (!srcGate.outputStates.empty()) {
-                                                                            pinState = pinState || srcGate.outputStates[0];
+                                                                            pinState = pinState || srcGate.outputStates[conn.second];
+                                                                            if (pinState)
+                                                                                break;
                                                                         }
                                                                     }
                                                                 }
                                                                 pinValues.push_back(pinState);
                                                             }
-                                                            bool newState = (pinValues.size() >= 2) ? (pinValues[0] && pinValues[1]) : false;
+                                                            bool newState = true;
+                                                            for (auto state : pinValues) {
+                                                                newState = newState && state;
+                                                                if (!newState)
+                                                                    break;
+                                                            }
+
                                                             bool changed = false;
                                                             for (auto state : gate.outputStates) {
                                                                 if (state != newState) {
