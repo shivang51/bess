@@ -119,7 +119,7 @@ namespace Bess::Canvas {
         Renderer::drawPath(points, 2.f, ViewportTheme::wireColor, -1);
     }
 
-    void Artist::drawConnection(entt::entity inputEntity, entt::entity outputEntity) {
+    void Artist::drawConnection(uint64_t id, entt::entity inputEntity, entt::entity outputEntity, bool isSelected) {
         auto &registry = sceneRef->getEnttRegistry();
         auto &outputSlotComp = registry.get<Components::SlotComponent>(outputEntity);
         auto startPos = Artist::getSlotPos(registry.get<Components::SlotComponent>(inputEntity));
@@ -139,15 +139,17 @@ namespace Bess::Canvas {
         bool isHigh = SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity).outputStates[outputSlotComp.idx];
 
         auto color = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::wireColor;
+        color = isSelected ? ViewportTheme::selectedWireColor : color;
 
-        Renderer::drawPath(points, 2.f, color, -1);
+        Renderer::drawPath(points, 2.f, color, id);
     }
 
     void Artist::drawConnectionEntity(entt::entity entity) {
         auto &registry = sceneRef->getEnttRegistry();
 
         auto &connComp = registry.get<Components::ConnectionComponent>(entity);
-        Artist::drawConnection(connComp.inputSlot, connComp.outputSlot);
+        bool isSelected = registry.all_of<Components::SelectedComponent>(entity);
+        Artist::drawConnection((uint64_t)entity, connComp.inputSlot, connComp.outputSlot, isSelected);
     }
 
     void Artist::drawOutput(entt::entity entity) {

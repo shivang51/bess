@@ -97,7 +97,11 @@ namespace Bess::Canvas {
         if (mainPageState->isKeyPressed(GLFW_KEY_DELETE)) {
             auto view = m_registry.view<Canvas::Components::SelectedComponent>();
             for (auto &entt : view) {
-                deleteEntity(entt);
+                if (m_registry.all_of<Components::ConnectionComponent>(entt)) {
+                    deleteConnection(entt);
+                } else {
+                    deleteEntity(entt);
+                }
             }
         }
 
@@ -111,7 +115,7 @@ namespace Bess::Canvas {
     }
 
     void Scene::render() {
-        if (m_registry.valid(m_hoveredEntiy) && m_registry.all_of<Components::SlotComponent>(m_hoveredEntiy)) {
+        if (m_registry.valid(m_hoveredEntiy) && m_registry.any_of<Components::SlotComponent, Components::ConnectionComponent>(m_hoveredEntiy)) {
             UI::setCursorPointer();
         }
 
@@ -325,6 +329,27 @@ namespace Bess::Canvas {
                pos.y < viewportSize.y - 5.f;
     }
 
+    void Scene::deleteConnection(entt::entity entity) {
+        assert(m_registry.valid(entity));
+        m_hoveredEntiy = entt::null;
+        auto &connComp = m_registry.get<Components::ConnectionComponent>(entity);
+
+        auto &slotCompA = m_registry.get<Components::SlotComponent>(connComp.inputSlot);
+        auto &slotCompB = m_registry.get<Components::SlotComponent>(connComp.outputSlot);
+
+        auto &simCompA = m_registry.get<Components::SimulationComponent>((entt::entity)slotCompA.parentId);
+        auto &simCompB = m_registry.get<Components::SimulationComponent>((entt::entity)slotCompB.parentId);
+
+        auto pinTypeA = slotCompA.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
+        auto pinTypeB = slotCompB.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
+
+        SimEngine::SimulationEngine::instance().deleteConnection(simCompA.simEngineEntity, pinTypeA, slotCompA.idx, simCompB.simEngineEntity, pinTypeB, slotCompB.idx);
+
+        m_registry.destroy(entity);
+
+        std::cout << "[Scene] Deleted connection" << std::endl;
+    }
+
     void Scene::connectSlots(entt::entity startSlot, entt::entity endSlot) {
         auto &startSlotComp = m_registry.get<Components::SlotComponent>(startSlot);
         auto &endSlotComp = m_registry.get<Components::SlotComponent>(endSlot);
@@ -395,6 +420,10 @@ namespace Bess::Canvas {
                     m_drawMode = SceneDrawMode::none;
                     connectSlots(m_connectionStartEntity, m_hoveredEntiy);
                 }
+            }
+            if (m_registry.all_of<Components::ConnectionComponent>(m_hoveredEntiy)) {
+                m_registry.clear<Components::SelectedComponent>();
+                m_registry.emplace<Canvas::Components::SelectedComponent>(m_hoveredEntiy);
             } else {
                 bool isSelected = m_registry.all_of<Canvas::Components::SelectedComponent>(m_hoveredEntiy);
                 if (!Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {

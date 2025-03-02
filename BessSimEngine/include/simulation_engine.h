@@ -48,6 +48,7 @@ namespace Bess::SimEngine {
         ComponentState getComponentState(entt::entity entity);
         bool connectComponent(entt::entity src, int srcPin, PinType srcPinType, entt::entity dst, int dstPin, PinType dstPinType);
         void deleteComponent(entt::entity component);
+        void deleteConnection(entt::entity componentA, PinType pinAType, int idx, entt::entity componentB, PinType pinBType, int idxB);
 
         void setDigitalInput(entt::entity entity, bool value);
         bool getDigitalPinState(entt::entity entity, PinType type, int idx);

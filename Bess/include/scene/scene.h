@@ -48,6 +48,7 @@ namespace Bess::Canvas {
         entt::entity createSlotEntity(Components::SlotType type, entt::entity parent, uint idx);
         entt::entity createSimEntity(entt::entity simEngineEntt, const SimEngine::ComponentDefinition &comp, const glm::vec2 &pos);
         void deleteEntity(entt::entity ent);
+        void deleteConnection(entt::entity ent);
 
       private:
         void onMouseMove(const glm::vec2 &pos);

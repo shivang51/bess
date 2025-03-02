@@ -483,7 +483,7 @@ namespace Bess {
             //     Renderer2D::Renderer::quadraticBezier(glm::vec3(curve_.startPoint, prev.z), glm::vec3(curve_.endPoint, p1.z), curve_.controlPoint, weight, color, id, true);
             //     p1 = glm::vec3(curve_.startPoint, prev.z), p1_ = glm::vec3(curve_.endPoint, newPoints[i + 1].z);
             // }
-            Renderer2D::Renderer::line(prev, p1, 2.f, color, -1);
+            Renderer2D::Renderer::line(prev, p1, 2.f, color, id);
             prev = p1_;
         }
     }

@@ -261,6 +261,35 @@ namespace Bess::SimEngine {
         return instance;
     }
 
+    void SimulationEngine::deleteConnection(entt::entity componentA, PinType pinAType, int idxA, entt::entity componentB, PinType pinBType, int idxB) {
+        auto &compA = registry.get<GateComponent>(componentA);
+        auto &compB = registry.get<GateComponent>(componentB);
+
+        auto &pinA = (pinAType == PinType::input) ? compA.inputPins[idxA] : compA.outputPins[idxA];
+        auto &pinB = (pinBType == PinType::input) ? compB.inputPins[idxB] : compB.outputPins[idxB];
+        pinA.erase(
+            std::remove_if(pinA.begin(), pinA.end(),
+                           [componentB, idxB](const std::pair<entt::entity, int> &conn) {
+                               return conn.first == componentB && conn.second == idxB;
+                           }),
+            pinA.end());
+
+        pinB.erase(
+            std::remove_if(pinB.begin(), pinB.end(),
+                           [componentA, idxA](const std::pair<entt::entity, int> &conn) {
+                               return conn.first == componentA && conn.second == idxA;
+                           }),
+            pinB.end());
+
+        if (pinAType == PinType::output) {
+            scheduleEvent(componentB, std::chrono::steady_clock::now() + compB.delay);
+        } else {
+            scheduleEvent(componentA, std::chrono::steady_clock::now() + compA.delay);
+        }
+
+        std::cout << "[SimEngine] Deleted connection" << std::endl;
+    }
+
     void SimulationEngine::stop() {
         {
             std::lock_guard<std::mutex> lock(queueMutex);
