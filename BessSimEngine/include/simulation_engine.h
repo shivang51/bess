@@ -52,6 +52,7 @@ namespace Bess::SimEngine {
 
         void setDigitalInput(entt::entity entity, bool value);
         bool getDigitalPinState(entt::entity entity, PinType type, int idx);
+        ComponentType getComponentType(entt::entity entity);
 
       private:
         entt::registry registry;

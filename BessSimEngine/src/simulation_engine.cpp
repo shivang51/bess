@@ -496,6 +496,12 @@ namespace Bess::SimEngine {
         return states;
     }
 
+    ComponentType SimulationEngine::getComponentType(entt::entity entity) {
+        assert(registry.valid(entity));
+        auto &gateComp = registry.get<GateComponent>(entity);
+        return gateComp.type;
+    }
+
     bool SimulationEngine::simulateComponent(entt::entity e) {
         auto &comp = registry.get<GateComponent>(e);
         const auto *def = ComponentCatalog::instance().getComponent(comp.type);

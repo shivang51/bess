@@ -63,7 +63,8 @@ namespace Bess::Canvas {
         void drawSelectionBox();
         void handleKeyboardShortcuts();
         void connectSlots(entt::entity startSlot, entt::entity endSlot);
-
+        void copySelectedComponents();
+        void generateCopiedComponents();
         void selectEntitesInArea(const glm::vec2 &start, const glm::vec2 &end);
 
         float getNextZCoord();
@@ -91,5 +92,6 @@ namespace Bess::Canvas {
         float m_compZCoord = m_zIncrement;
 
         SimEngine::ComponentDefinition *m_lastCreatedComp = nullptr;
+        std::vector<SimEngine::ComponentType> m_copiedComponents = {};
     };
 } // namespace Bess::Canvas

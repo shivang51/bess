@@ -84,12 +84,13 @@ namespace Bess::Canvas {
                 const auto data = event.getData<ApplicationEvent::MouseWheelData>();
                 onMouseWheel(data.x, data.y);
             } break;
+            case ApplicationEventType::KeyPress: {
+                handleKeyboardShortcuts();
+            } break;
             default:
                 break;
             }
         }
-
-        handleKeyboardShortcuts();
     }
 
     void Scene::handleKeyboardShortcuts() {
@@ -110,6 +111,10 @@ namespace Bess::Canvas {
                 auto view = m_registry.view<Canvas::Components::SimulationComponent>();
                 for (auto &entt : view)
                     m_registry.emplace_or_replace<Components::SelectedComponent>(entt);
+            } else if (mainPageState->isKeyPressed(GLFW_KEY_C)) { // ctrl-c copy selected components
+                copySelectedComponents();
+            } else if (mainPageState->isKeyPressed(GLFW_KEY_V)) { // ctrl-v generate copied components
+                generateCopiedComponents();
             }
         }
     }
@@ -440,6 +445,29 @@ namespace Bess::Canvas {
         } else { // deselecting all when clicking outside
             m_registry.clear<Components::SelectedComponent>();
             m_drawMode = SceneDrawMode::none;
+        }
+    }
+
+    void Scene::copySelectedComponents() {
+        m_copiedComponents.clear();
+
+        auto view = m_registry.view<Components::SelectedComponent, Components::SimulationComponent>();
+
+        for (auto entt : view) {
+            auto &comp = view.get<Components::SimulationComponent>(entt);
+            m_copiedComponents.emplace_back(SimEngine::SimulationEngine::instance().getComponentType(comp.simEngineEntity));
+        }
+    }
+
+    void Scene::generateCopiedComponents() {
+        auto &simEngineInstance = SimEngine::SimulationEngine::instance();
+        auto &catalogInstance = SimEngine::ComponentCatalog::instance();
+        auto pos = getCameraPos();
+        for (auto &compType : m_copiedComponents) {
+            auto simEngineEntity = simEngineInstance.addComponent(compType);
+            auto def = catalogInstance.getComponent(compType);
+            createSimEntity(simEngineEntity, *def, pos);
+            pos += glm::vec2(50.f, 50.f);
         }
     }
 
