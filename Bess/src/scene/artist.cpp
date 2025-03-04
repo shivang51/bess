@@ -138,7 +138,7 @@ namespace Bess::Canvas {
         auto &simComp = registry.get<Components::SimulationComponent>((entt::entity)outputSlotComp.parentId);
         bool isHigh = SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity).outputStates[outputSlotComp.idx];
 
-        auto color = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::wireColor;
+        auto color = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::stateLowColor;
         color = isSelected ? ViewportTheme::selectedWireColor : color;
 
         Renderer::drawPath(points, 2.f, color, id);
@@ -232,6 +232,8 @@ namespace Bess::Canvas {
         auto headerPos = glm::vec3(pos.x, pos.y - scale.y / 2.f + headerHeight / 2.f, pos.z);
 
         spriteComp.borderRadius = glm::vec4(radius);
+        bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
+        auto borderColor = isSelected ? ViewportTheme::selectedCompColor : spriteComp.color;
 
         uint64_t id = (uint64_t)entity;
 
@@ -239,7 +241,7 @@ namespace Bess::Canvas {
 
         Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, 0.f,
                        spriteComp.borderRadius,
-                       spriteComp.borderSize, spriteComp.borderColor, true);
+                       spriteComp.borderSize, borderColor, true);
 
         Renderer::quad(headerPos,
                        glm::vec2(scale.x, headerHeight), ViewportTheme::compHeaderColor,

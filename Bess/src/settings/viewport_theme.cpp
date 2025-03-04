@@ -40,20 +40,18 @@ namespace Bess {
         compHeaderColor = glm::vec4(glm::vec3(componentBGColor) * compHeaderTint, componentBGColor.w);
         compHeaderColor = componentBGColor;
 
-        color = colors[ImGuiCol_Border];
-        selectedCompColor = glm::vec4(color.x, color.y, color.z, 0.74f);
-
         color = colors[ImGuiCol_Text];
         textColor = glm::vec4(color.x, color.y, color.z, color.w) * 0.8f;
         textColor.w = color.w;
 
         gridColor = textColor * 0.3f;
 
-        stateHighColor = glm::vec4(0.42f, 0.72f, 0.42f, 1.00f);
+        stateHighColor = glm::vec4(0.6f, 0.8f, 0.4f, 1.00f);
         stateLowColor = glm::vec4(0.82f, 0.2f, 0.2f, 1.00f);
-        selectedWireColor = glm::vec4(1.0f, 0.64f, 0.0f, 1.0f);
 
+        selectedWireColor = glm::vec4(1.0f, 0.64f, 0.0f, 1.0f);
         selectionBoxBorderColor = glm::vec4({0.3, 0.3, 8.0, 1.f});
         selectionBoxFillColor = glm::vec4({0.3, 0.3, .7, .5f});
+        selectedCompColor = selectedWireColor;
     }
 } // namespace Bess
