@@ -3,9 +3,7 @@
 // for use with https://github.com/google/material-design-icons/blob/master/iconfont/MaterialIcons-Regular.ttf
 #pragma once
 
-
-namespace Bess::UI::Icons::MaterialIcons
-{
+namespace Bess::UI::Icons::MaterialIcons {
     constexpr auto ICON_MIN_MD = 0xe000;
     constexpr auto ICON_MAX_MD = 0xeb4c;
     constexpr auto AC_UNIT = "\xee\xac\xbb";
@@ -940,4 +938,4 @@ namespace Bess::UI::Icons::MaterialIcons
     constexpr auto ZOOM_IN = "\xee\xa3\xbf";
     constexpr auto ZOOM_OUT = "\xee\xa4\x80";
     constexpr auto ZOOM_OUT_MAP = "\xee\x95\xab";
-}
+} // namespace Bess::UI::Icons::MaterialIcons

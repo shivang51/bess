@@ -6,6 +6,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_internal.h"
+#include "ui/icons/CodIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/icons/MaterialIcons.h"
 #include "ui/ui_main/ui_main.h"
@@ -102,10 +103,14 @@ namespace Bess::UI {
 
         ImFontConfig config;
         float r = 2.2f / 3.f;
-        config.GlyphOffset.y = r;
         config.MergeMode = true;
         config.PixelSnapH = true;
 
+        static const ImWchar codicon_icon_ranges[] = {Icons::CodIcons::ICON_MIN_CI, Icons::CodIcons::ICON_MAX_CI, 0};
+        config.GlyphOffset.y = fontSize / 5.f;
+        io.Fonts->AddFontFromFileTTF("assets/icons/codicon.ttf", fontSize, &config, codicon_icon_ranges);
+
+        config.GlyphOffset.y = r;
         static const ImWchar mat_icon_ranges[] = {Icons::MaterialIcons::ICON_MIN_MD, Icons::MaterialIcons::ICON_MAX_MD, 0};
         io.Fonts->AddFontFromFileTTF("assets/icons/MaterialIcons-Regular.ttf", fontSize * r, &config, mat_icon_ranges);
 
