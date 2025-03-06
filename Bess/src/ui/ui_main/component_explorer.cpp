@@ -68,7 +68,7 @@ namespace Bess::UI {
             break;
         }
 
-        return "       ";
+        return std::string(" ") + Icons::FontAwesomeIcons::FA_SNOWFLAKE + "  ";
     }
 
     void ComponentExplorer::draw() {
