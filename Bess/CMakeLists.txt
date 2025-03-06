@@ -34,6 +34,7 @@ set(Header_Files
 "include/project_file.h"
 "include/ui/m_widgets.h"
 "include/ui/icons/FontAwesomeIcons.h"
+"include/ui/icons/ComponentIcons.h"
 "include/ui/icons/MaterialIcons.h"
 "include/ui/ui.h"
 "include/ui/ui_main/properties_panel.h"

@@ -6,6 +6,7 @@
 #include "imgui_internal.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
+#include "ui/icons/ComponentIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/icons/MaterialIcons.h"
 #include "ui/m_widgets.h"
@@ -49,6 +50,27 @@ namespace Bess::UI {
         return opened;
     }
 
+    std::string getIcon(SimEngine::ComponentType type) {
+        switch (type) {
+        case SimEngine::ComponentType::AND:
+            return Icons::ComponentIcons::AND_GATE;
+        case SimEngine::ComponentType::NAND:
+            return Icons::ComponentIcons::NAND_GATE;
+        case SimEngine::ComponentType::OR:
+            return Icons::ComponentIcons::OR_GATE;
+        case SimEngine::ComponentType::NOR:
+            return Icons::ComponentIcons::NOR_GATE;
+        case SimEngine::ComponentType::XOR:
+            return Icons::ComponentIcons::XOR_GATE;
+        case SimEngine::ComponentType::XNOR:
+            return Icons::ComponentIcons::XNOR_GATE;
+        default:
+            break;
+        }
+
+        return "       ";
+    }
+
     void ComponentExplorer::draw() {
         if (isfirstTimeDraw)
             firstTime();
@@ -74,10 +96,11 @@ namespace Bess::UI {
         for (auto &ent : components) {
             if (MyTreeNode(ent.first.c_str())) {
                 for (auto &comp : ent.second) {
-                    auto &name = comp.name;
+                    auto name = comp.name;
                     if (m_searchQuery != "" && Common::Helpers::toLowerCase(name).find(m_searchQuery) == std::string::npos)
                         continue;
 
+                    name = getIcon(comp.type) + "  " + name;
                     if (ImGui::Button(name.c_str(), {-1, 0})) {
                         auto simEntt = SimEngine::SimulationEngine::instance().addComponent(comp.type);
                         auto &scene = Canvas::Scene::instance();
