@@ -13,6 +13,7 @@
 #include "scene/scene.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
+#include "ui/m_widgets.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/dialogs.h"
 #include "ui/ui_main/popups.h"
@@ -114,6 +115,7 @@ namespace Bess::UI {
     void UIMain::drawMenubar() {
         bool newFileClicked = false, openFileClicked = false;
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.f, 6.f));
         ImGui::BeginMainMenuBar();
 
         if (ImGui::BeginMenu("File")) {
@@ -190,8 +192,21 @@ namespace Bess::UI {
         }
 
         auto menubar_size = ImGui::GetWindowSize();
-        ImGui::EndMainMenuBar();
+
+        static std::string projectName = "*New Project";
+
+        ImGui::SameLine(menubar_size.x / 2.f); // Align to the right side
+        ImGui::SetCursorPosY(menubar_size.y / 2.f - (ImGui::GetFontSize() / 2.f) - 4.f);
+        ImGui::PushItemWidth(150);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 4.f));
+        auto colors = ImGui::GetStyle().Colors;
+        ImGui::PushStyleColor(ImGuiCol_FrameBg, colors[ImGuiCol_WindowBg]);
+        MWidgets::TextBox("", projectName, "Project Name");
         ImGui::PopStyleVar();
+        ImGui::PopStyleColor();
+        ImGui::PopItemWidth();
+        ImGui::EndMainMenuBar();
+        ImGui::PopStyleVar(2);
 
         if (newFileClicked) {
             onNewProject();
