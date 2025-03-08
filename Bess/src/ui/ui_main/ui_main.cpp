@@ -4,13 +4,14 @@
 #include "glad/glad.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include <cstdint>
 #include <string>
 
 #include "camera.h"
-#include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
 #include "scene/renderer/gl/gl_wrapper.h"
 #include "scene/scene.h"
+#include "ui/icons/CodIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/dialogs.h"
@@ -22,6 +23,8 @@
 namespace Bess::UI {
     UIState UIMain::state{};
     std::shared_ptr<Pages::MainPageState> UIMain::m_pageState;
+
+    std::string ProjectExplorerTitle = std::string(Icons::CodIcons::TYPE_HIERARCHY) + "  Project Explorer";
 
     void UIMain::draw() {
         static bool firstTime = true;
@@ -49,13 +52,15 @@ namespace Bess::UI {
         state.viewportTexture = texture;
     }
 
-    bool RoundedSelectable(const char *label, bool selected = false, float rounding = 6.0f) {
+    bool RoundedSelectable(uint64_t id, const char *label, bool selected = false, float rounding = 6.0f) {
         ImVec2 min = ImGui::GetCursorScreenPos();
 
         ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(0, 0, 0, 0));
         ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(0, 0, 0, 0));
         ImGui::PushStyleColor(ImGuiCol_HeaderActive, IM_COL32(0, 0, 0, 0));
+        ImGui::PushID(id);
         auto pressed = ImGui::Selectable(label, &selected, ImGuiSelectableFlags_SpanAvailWidth);
+        ImGui::PopID();
         ImGui::PopStyleColor(3);
 
         ImVec2 size = ImGui::CalcTextSize(label);
@@ -87,7 +92,7 @@ namespace Bess::UI {
     }
 
     void UIMain::drawProjectExplorer() {
-        ImGui::Begin("Project Explorer");
+        ImGui::Begin(ProjectExplorerTitle.c_str());
         auto &scene = Canvas::Scene::instance();
         auto &registry = scene.getEnttRegistry();
         auto view = registry.view<Canvas::Components::TagComponent>();
@@ -95,7 +100,7 @@ namespace Bess::UI {
         for (auto &entity : view) {
             bool isSelected = registry.all_of<Canvas::Components::SelectedComponent>(entity);
             auto &tagComp = view.get<Canvas::Components::TagComponent>(entity);
-            if (RoundedSelectable(tagComp.name.c_str(), isSelected)) {
+            if (RoundedSelectable((uint64_t)entity, tagComp.name.c_str(), isSelected)) {
                 if (isSelected)
                     registry.erase<Canvas::Components::SelectedComponent>(entity);
                 else
@@ -291,7 +296,7 @@ namespace Bess::UI {
 
         ImGui::DockBuilderDockWindow(ComponentExplorer::windowName.c_str(), dock_id_left);
         ImGui::DockBuilderDockWindow("Viewport", mainDockspaceId);
-        ImGui::DockBuilderDockWindow("Project Explorer", dock_id_right);
+        ImGui::DockBuilderDockWindow(ProjectExplorerTitle.c_str(), dock_id_right);
         ImGui::DockBuilderDockWindow("Properties", dock_id_right_bot);
 
         ImGui::DockBuilderFinish(mainDockspaceId);

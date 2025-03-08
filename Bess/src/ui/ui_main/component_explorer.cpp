@@ -8,14 +8,13 @@
 #include "simulation_engine.h"
 #include "ui/icons/ComponentIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
-#include "ui/icons/MaterialIcons.h"
 #include "ui/m_widgets.h"
 
 namespace Bess::UI {
 
     bool ComponentExplorer::isfirstTimeDraw = false;
     std::string ComponentExplorer::m_searchQuery = "";
-    std::string ComponentExplorer::windowName = (std::string(Icons::MaterialIcons::APPS) + " Component Explorer");
+    std::string ComponentExplorer::windowName = (std::string(Icons::FontAwesomeIcons::FA_TOOLBOX) + "  Component Explorer");
 
     bool MyTreeNode(const char *label) {
         ImGuiContext &g = *ImGui::GetCurrentContext();
