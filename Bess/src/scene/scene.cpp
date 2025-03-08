@@ -120,7 +120,7 @@ namespace Bess::Canvas {
     }
 
     void Scene::render() {
-        if (m_registry.valid(m_hoveredEntiy) && m_registry.any_of<Components::SlotComponent, Components::ConnectionComponent>(m_hoveredEntiy)) {
+        if (m_registry.valid(m_hoveredEntiy) && m_registry.any_of<Components::SlotComponent, Components::ConnectionSegmentComponent>(m_hoveredEntiy)) {
             UI::setCursorPointer();
         }
 
@@ -295,32 +295,81 @@ namespace Bess::Canvas {
         return pos;
     }
 
+    void Scene::dragConnectionSegment(const glm::vec2 &dPos) {
+        auto &comp = m_registry.get<Components::ConnectionSegmentComponent>(m_hoveredEntiy);
+
+        if (comp.isHead() || comp.isTail()) {
+            auto &adjComp = m_registry.get<Components::ConnectionSegmentComponent>(comp.isHead() ? comp.next : comp.prev);
+            bool isHorizontal = comp.isHead() ? adjComp.pos.x != 0 : comp.pos.x == 0;
+            auto newEntt = m_registry.create();
+            auto &compNew = m_registry.emplace<Components::ConnectionSegmentComponent>(newEntt);
+            compNew.parent = comp.parent;
+
+            if (comp.isHead()) {
+                comp.prev = newEntt;
+                compNew.next = m_hoveredEntiy;
+                auto &connComponent = m_registry.get<Components::ConnectionComponent>(comp.parent);
+                connComponent.segmentHead = newEntt;
+                if (isHorizontal)
+                    comp.pos.y = getNVPMousePos(m_mousePos).y;
+                else
+                    comp.pos.x = getNVPMousePos(m_mousePos).x;
+            } else {
+                comp.next = newEntt;
+                compNew.prev = m_hoveredEntiy;
+                auto &connComponent = m_registry.get<Components::ConnectionComponent>(comp.parent);
+                auto &slotComponent = m_registry.get<Components::SlotComponent>(connComponent.outputSlot);
+                auto slotPos = Artist::getSlotPos(slotComponent);
+                if (comp.pos.x == 0)
+                    compNew.pos.x = slotPos.x;
+                else
+                    compNew.pos.y = slotPos.y;
+            }
+
+            if (isHorizontal)
+                comp.pos.y += dPos.y;
+            else
+                comp.pos.x += dPos.x;
+
+        } else if (comp.pos.x == 0) {
+            comp.pos.y += dPos.y;
+        } else if (comp.pos.y == 0) {
+            comp.pos.x += dPos.x;
+        }
+        m_isDragging = true;
+    }
+
     void Scene::onMouseMove(const glm::vec2 &pos) {
         auto dPos = getNVPMousePos(pos) - getNVPMousePos(m_mousePos);
         m_mousePos = pos;
 
         // reading the hoverid
-        {
+        if (!m_isDragging) {
             auto m_mousePos_ = pos;
             m_mousePos_.y = UI::UIMain::state.viewportSize.y - m_mousePos_.y;
             int x = static_cast<int>(m_mousePos_.x);
             int y = static_cast<int>(m_mousePos_.y);
             int32_t hoverId = m_normalFramebuffer->readIntFromColAttachment(1, x, y);
+            m_registry.clear<Components::HoveredEntityComponent>();
             m_hoveredEntiy = (entt::entity)hoverId;
+            if (m_registry.valid(m_hoveredEntiy))
+                m_registry.emplace<Components::HoveredEntityComponent>(m_hoveredEntiy);
         }
 
         if (m_isLeftMousePressed && m_drawMode != SceneDrawMode::selectionBox) {
             if (!m_registry.valid(m_hoveredEntiy) && m_registry.view<Components::SelectedComponent>()->size() == 0) {
                 m_drawMode = SceneDrawMode::selectionBox;
                 m_selectionBoxStart = m_mousePos;
+            } else if (m_registry.valid(m_hoveredEntiy) && m_registry.all_of<Components::ConnectionSegmentComponent>(m_hoveredEntiy)) {
+                dragConnectionSegment(dPos);
             } else {
                 auto view = m_registry.view<Components::SelectedComponent, Components::TransformComponent>();
-
                 for (auto &ent : view) {
                     auto &transformComp = view.get<Components::TransformComponent>(ent);
                     auto dPos_ = glm::vec3(dPos, 0.f);
                     transformComp.translate(transformComp.getPosition() + dPos_);
                 }
+                m_isDragging = true;
             }
         }
     }
@@ -350,9 +399,49 @@ namespace Bess::Canvas {
 
         SimEngine::SimulationEngine::instance().deleteConnection(simCompA.simEngineEntity, pinTypeA, slotCompA.idx, simCompB.simEngineEntity, pinTypeB, slotCompB.idx);
 
+        auto segEntt = connComp.segmentHead;
+        while (segEntt != entt::null) {
+            auto connSegComp = m_registry.get<Components::ConnectionSegmentComponent>(segEntt);
+            m_registry.destroy(segEntt);
+            segEntt = connSegComp.next;
+        }
+
         m_registry.destroy(entity);
 
         std::cout << "[Scene] Deleted connection" << std::endl;
+    }
+
+    void Scene::generateBasicConnection(entt::entity inputSlot, entt::entity outputSlot) {
+        auto connEntt = m_registry.create();
+        auto &connComp = m_registry.emplace<Components::ConnectionComponent>(connEntt);
+        connComp.inputSlot = inputSlot;
+        connComp.outputSlot = outputSlot;
+
+        connComp.segmentHead = m_registry.create();
+        auto connSeg1 = connComp.segmentHead;
+        auto connSeg2 = m_registry.create();
+        auto connSeg3 = m_registry.create();
+
+        auto &connSegComp1 = m_registry.emplace<Components::ConnectionSegmentComponent>(connSeg1);
+        auto &connSegComp2 = m_registry.emplace<Components::ConnectionSegmentComponent>(connSeg2);
+        auto &connSegComp3 = m_registry.emplace<Components::ConnectionSegmentComponent>(connSeg3);
+
+        connSegComp1.parent = connEntt;
+        connSegComp2.parent = connEntt;
+        connSegComp3.parent = connEntt;
+
+        connSegComp1.next = connSeg2;
+        connSegComp2.next = connSeg3;
+        connSegComp2.prev = connSeg1;
+        connSegComp3.prev = connSeg2;
+
+        auto inputSlotPos = Artist::getSlotPos(m_registry.get<Components::SlotComponent>(inputSlot));
+        auto outputSlotPos = Artist::getSlotPos(m_registry.get<Components::SlotComponent>(outputSlot));
+
+        auto dX = outputSlotPos.x - inputSlotPos.x;
+
+        connSegComp2.pos = glm::vec2(inputSlotPos.x + (dX / 2.f), 0);
+        connSegComp3.pos = glm::vec2(0, outputSlotPos.y);
     }
 
     void Scene::connectSlots(entt::entity startSlot, entt::entity endSlot) {
@@ -371,15 +460,10 @@ namespace Bess::Canvas {
         if (!successful)
             return;
 
-        auto connEntt = m_registry.create();
-        auto &connComp = m_registry.emplace<Components::ConnectionComponent>(connEntt);
-
         if (startSlotComp.slotType == Components::SlotType::digitalInput) {
-            connComp.inputSlot = startSlot;
-            connComp.outputSlot = endSlot;
+            generateBasicConnection(startSlot, endSlot);
         } else {
-            connComp.inputSlot = endSlot;
-            connComp.outputSlot = startSlot;
+            generateBasicConnection(endSlot, startSlot);
         }
     }
 
@@ -411,6 +495,7 @@ namespace Bess::Canvas {
                 m_selectInSelectionBox = true;
                 m_selectionBoxEnd = m_mousePos;
             }
+            m_isDragging = false;
             return;
         }
 
@@ -426,9 +511,11 @@ namespace Bess::Canvas {
                     connectSlots(m_connectionStartEntity, m_hoveredEntiy);
                 }
             }
-            if (m_registry.all_of<Components::ConnectionComponent>(m_hoveredEntiy)) {
+            if (m_registry.all_of<Components::ConnectionSegmentComponent>(m_hoveredEntiy)) {
                 m_registry.clear<Components::SelectedComponent>();
-                m_registry.emplace<Canvas::Components::SelectedComponent>(m_hoveredEntiy);
+                auto &segComp = m_registry.get<Components::ConnectionSegmentComponent>(m_hoveredEntiy);
+                if (m_registry.valid(segComp.parent))
+                    m_registry.emplace<Canvas::Components::SelectedComponent>(segComp.parent);
             } else {
                 bool isSelected = m_registry.all_of<Canvas::Components::SelectedComponent>(m_hoveredEntiy);
                 if (!Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {

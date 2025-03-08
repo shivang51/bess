@@ -121,19 +121,12 @@ namespace Bess::Canvas {
 
     void Artist::drawConnection(uint64_t id, entt::entity inputEntity, entt::entity outputEntity, bool isSelected) {
         auto &registry = sceneRef->getEnttRegistry();
+        auto &connectionComponent = registry.get<Components::ConnectionComponent>((entt::entity)id);
         auto &outputSlotComp = registry.get<Components::SlotComponent>(outputEntity);
         auto startPos = Artist::getSlotPos(registry.get<Components::SlotComponent>(inputEntity));
         auto endPos = Artist::getSlotPos(outputSlotComp);
         startPos.z = 0.f;
         endPos.z = 0.f;
-
-        auto midX = startPos.x + ((endPos.x - startPos.x) / 2.f);
-
-        std::vector<glm::vec3> points;
-        points.emplace_back(startPos);
-        points.emplace_back(glm::vec3(midX, startPos.y, 0.f));
-        points.emplace_back(glm::vec3(midX, endPos.y, 0.f));
-        points.emplace_back(glm::vec3(endPos));
 
         auto &simComp = registry.get<Components::SimulationComponent>((entt::entity)outputSlotComp.parentId);
         bool isHigh = SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity).outputStates[outputSlotComp.idx];
@@ -141,7 +134,35 @@ namespace Bess::Canvas {
         auto color = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::stateLowColor;
         color = isSelected ? ViewportTheme::selectedWireColor : color;
 
-        Renderer::drawPath(points, 2.f, color, id);
+        auto connSegComp = registry.get<Components::ConnectionSegmentComponent>(connectionComponent.segmentHead);
+        auto segId = (uint64_t)connectionComponent.segmentHead;
+        auto prevPos = startPos;
+
+        while (connSegComp.next != entt::null) {
+            auto newSegId = (uint64_t)connSegComp.next;
+            connSegComp = registry.get<Components::ConnectionSegmentComponent>(connSegComp.next);
+
+            glm::vec3 pos = glm::vec3(connSegComp.pos, prevPos.z);
+            if (pos.x == 0.f) {
+                pos.x = prevPos.x;
+                if (connSegComp.isTail())
+                    pos.y = endPos.y;
+            } else {
+                pos.y = prevPos.y;
+                if (connSegComp.isTail())
+                    pos.x = endPos.x;
+            }
+
+            bool isHovered = registry.all_of<Components::HoveredEntityComponent>((entt::entity)segId);
+            auto size = isHovered ? 3.0 : 2.f;
+            Renderer::line(prevPos, pos, size, color, segId);
+            segId = newSegId;
+            prevPos = pos;
+        }
+
+        bool isHovered = registry.all_of<Components::HoveredEntityComponent>((entt::entity)segId);
+        auto size = isHovered ? 3.0 : 2.f;
+        Renderer::line(prevPos, endPos, size, color, segId);
     }
 
     void Artist::drawConnectionEntity(entt::entity entity) {

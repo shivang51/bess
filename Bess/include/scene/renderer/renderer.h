@@ -103,6 +103,7 @@ namespace Bess::Renderer2D {
         static void line(const glm::vec3 &start, const glm::vec3 &end, float size, const glm::vec4 &color, const int id);
 
         static void drawPath(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const int id, bool closed = false);
+        static void drawPath(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const std::vector<int> &ids, bool closed = false);
 
         static void triangle(const std::vector<glm::vec3> &points, const glm::vec4 &color, const int id);
 

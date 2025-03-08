@@ -466,6 +466,19 @@ namespace Bess {
                  glm::vec4(0.f), glm::vec4(0.f), glm::vec4(0.f));
     }
 
+    void Renderer2D::Renderer::drawPath(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const std::vector<int> &ids, bool closed) {
+        if (points.empty())
+            return;
+
+        auto prev = points[0];
+
+        for (int i = 1; i < (int)points.size(); i++) {
+            auto p1 = points[i];
+            Renderer2D::Renderer::line(prev, p1, 2.f, color, ids[i - 1]);
+            prev = p1;
+        }
+    }
+
     void Renderer2D::Renderer::drawPath(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const int id, bool closed) {
         if (points.empty())
             return;

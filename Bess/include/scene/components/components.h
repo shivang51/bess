@@ -1,5 +1,6 @@
 #pragma once
 
+#include "component_catalog.h"
 #include "entt/entity/entity.hpp"
 #include "entt/entity/fwd.hpp"
 #include <cstdint>
@@ -117,6 +118,26 @@ namespace Bess::Canvas::Components {
         std::vector<entt::entity> outputSlots = {};
     };
 
+    class ConnectionSegmentComponent {
+      public:
+        ConnectionSegmentComponent() = default;
+        ConnectionSegmentComponent(ConnectionSegmentComponent &other) = default;
+
+        bool isHead() {
+            return prev == entt::null;
+        }
+
+        bool isTail() {
+            return next == entt::null;
+        }
+
+        glm::vec2 pos = {};
+        entt::entity parent = entt::null;
+
+        entt::entity prev = entt::null;
+        entt::entity next = entt::null;
+    };
+
     class ConnectionComponent {
       public:
         ConnectionComponent() = default;
@@ -124,6 +145,16 @@ namespace Bess::Canvas::Components {
 
         entt::entity inputSlot;
         entt::entity outputSlot;
+
+        entt::entity segmentHead = entt::null;
+    };
+
+    class HoveredEntityComponent {
+      public:
+        HoveredEntityComponent() = default;
+        HoveredEntityComponent(HoveredEntityComponent &other) = default;
+
+        entt::entity prevHovered = entt::null;
     };
 
     class SimulationOutputComponent {

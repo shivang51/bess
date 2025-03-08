@@ -63,11 +63,14 @@ namespace Bess::Canvas {
         void drawSelectionBox();
         void handleKeyboardShortcuts();
         void connectSlots(entt::entity startSlot, entt::entity endSlot);
+        void generateBasicConnection(entt::entity startSlot, entt::entity endSlot);
         void copySelectedComponents();
         void generateCopiedComponents();
         void selectEntitesInArea(const glm::vec2 &start, const glm::vec2 &end);
 
         float getNextZCoord();
+
+        void dragConnectionSegment(const glm::vec2 &dPos);
 
       private:
         std::unique_ptr<Gl::FrameBuffer> m_msaaFramebuffer;
@@ -90,6 +93,7 @@ namespace Bess::Canvas {
 
         const float m_zIncrement = 0.001;
         float m_compZCoord = m_zIncrement;
+        bool m_isDragging = false;
 
         SimEngine::ComponentDefinition *m_lastCreatedComp = nullptr;
         std::vector<SimEngine::ComponentType> m_copiedComponents = {};
