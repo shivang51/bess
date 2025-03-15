@@ -205,30 +205,41 @@ namespace Bess::SimEngine {
                                                             }
                                                             return changed; }, SimDelayMilliSeconds(100)));
 
-        ComponentCatalog::instance().registerComponent(ComponentDefinition(ComponentType::NAND, "NAND Gate", "Digital Gates", 2, 1, [](entt::registry &registry, entt::entity e) -> bool {
-                                                            auto &gate = registry.get<GateComponent>(e);
-                                                            std::vector<bool> pinValues;
-                                                            for (const auto &pin : gate.inputPins) {
-                                                                bool pinState = false;
-                                                                for (const auto &conn : pin) {
-                                                                    if (registry.valid(conn.first)) {
-                                                                        auto &srcGate = registry.get<GateComponent>(conn.first);
-                                                                        if (!srcGate.outputStates.empty()) {
-                                                                            pinState = pinState || srcGate.outputStates[0];
-                                                                        }
-                                                                    }
-                                                                }
-                                                                pinValues.push_back(pinState);
-                                                            }
-                                                            bool newState = (pinValues.size() >= 2) ? !(pinValues[0] && pinValues[1]) : true;
-                                                            bool changed = false;
-                                                            for (auto state : gate.outputStates) {
-                                                                if (state != newState) {
-                                                                    state = newState;
-                                                                    changed = true;
-                                                                }
-                                                            }
-                                                            return changed; }, SimDelayMilliSeconds(100)));
+        auto nandGate = ComponentDefinition(ComponentType::NAND, "NAND Gate", "Digital Gates", 2, 1, [](entt::registry &registry, entt::entity e) -> bool {
+                                           auto &gate = registry.get<GateComponent>(e);
+                                           std::vector<bool> pinValues;
+                                           for (const auto &pin : gate.inputPins) {
+                                               bool pinState = false;
+                                               for (const auto &conn : pin) {
+                                                   if (registry.valid(conn.first)) {
+                                                       auto &srcGate = registry.get<GateComponent>(conn.first);
+                                                       if (!srcGate.outputStates.empty()) {
+                                                           pinState = pinState || srcGate.outputStates[conn.second];
+                                                           if (pinState)
+                                                               break;
+                                                       }
+                                                   }
+                                               }
+                                               pinValues.push_back(pinState);
+                                           }
+                                           bool newState = true;
+                                           for (auto state : pinValues) {
+                                               newState = newState && state;
+                                               if (!newState)
+                                                   break;
+                                           }
+					   newState = !newState;
+
+                                           bool changed = false;
+                                           for (auto state : gate.outputStates) {
+                                               if (state != newState) {
+                                                   state = newState;
+                                                   changed = true;
+                                               }
+                                           }
+                                           return changed; }, SimDelayMilliSeconds(100));
+        nandGate.addModifiableProperty(Properties::ComponentProperty::inputCount, {3, 4, 5});
+        ComponentCatalog::instance().registerComponent(nandGate);
 
         ComponentCatalog::instance().registerComponent(ComponentDefinition(ComponentType::NOR, "NOR Gate", "Digital Gates", 2, 1, [](entt::registry &registry, entt::entity e) -> bool {
                                                             auto &gate = registry.get<GateComponent>(e);
