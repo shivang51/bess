@@ -17,4 +17,8 @@ namespace Bess::SimEngine {
         this->outputCount = outputCount;
         this->delay = delay;
     }
+
+    const ModifiableProperties &ComponentDefinition::getModifiableProperties() const {
+        return m_modifiableProperties;
+    }
 } // namespace Bess::SimEngine

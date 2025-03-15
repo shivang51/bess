@@ -3,6 +3,7 @@
 #include "component_definition.h"
 #include "entt/entity/fwd.hpp"
 #include "entt_components.h"
+#include "properties.h"
 #include "types.h"
 #include <cassert>
 #include <chrono>
@@ -48,41 +49,45 @@ namespace Bess::SimEngine {
                                                         },
                                                         SimDelayMilliSeconds(100)});
 
-        ComponentCatalog::instance().registerComponent({ComponentType::AND, "AND Gate", "Digital Gates", 2, 1,
-                                                        [](entt::registry &registry, entt::entity e) -> bool {
-                                                            auto &gate = registry.get<GateComponent>(e);
-                                                            std::vector<bool> pinValues;
-                                                            for (const auto &pin : gate.inputPins) {
-                                                                bool pinState = false;
-                                                                for (const auto &conn : pin) {
-                                                                    if (registry.valid(conn.first)) {
-                                                                        auto &srcGate = registry.get<GateComponent>(conn.first);
-                                                                        if (!srcGate.outputStates.empty()) {
-                                                                            pinState = pinState || srcGate.outputStates[conn.second];
-                                                                            if (pinState)
-                                                                                break;
-                                                                        }
-                                                                    }
-                                                                }
-                                                                pinValues.push_back(pinState);
-                                                            }
-                                                            bool newState = true;
-                                                            for (auto state : pinValues) {
-                                                                newState = newState && state;
-                                                                if (!newState)
-                                                                    break;
-                                                            }
+        ComponentDefinition andGate = {ComponentType::AND, "AND Gate", "Digital Gates", 2, 1,
+                                       [](entt::registry &registry, entt::entity e) -> bool {
+                                           auto &gate = registry.get<GateComponent>(e);
+                                           std::vector<bool> pinValues;
+                                           for (const auto &pin : gate.inputPins) {
+                                               bool pinState = false;
+                                               for (const auto &conn : pin) {
+                                                   if (registry.valid(conn.first)) {
+                                                       auto &srcGate = registry.get<GateComponent>(conn.first);
+                                                       if (!srcGate.outputStates.empty()) {
+                                                           pinState = pinState || srcGate.outputStates[conn.second];
+                                                           if (pinState)
+                                                               break;
+                                                       }
+                                                   }
+                                               }
+                                               pinValues.push_back(pinState);
+                                           }
+                                           bool newState = true;
+                                           for (auto state : pinValues) {
+                                               newState = newState && state;
+                                               if (!newState)
+                                                   break;
+                                           }
 
-                                                            bool changed = false;
-                                                            for (auto state : gate.outputStates) {
-                                                                if (state != newState) {
-                                                                    state = newState;
-                                                                    changed = true;
-                                                                }
-                                                            }
-                                                            return changed;
-                                                        },
-                                                        SimDelayMilliSeconds(100)});
+                                           bool changed = false;
+                                           for (auto state : gate.outputStates) {
+                                               if (state != newState) {
+                                                   state = newState;
+                                                   changed = true;
+                                               }
+                                           }
+                                           return changed;
+                                       },
+                                       SimDelayMilliSeconds(100)};
+
+        andGate.addModifiableProperty(Properties::ComponentProperty::inputCount, {3, 4, 5});
+
+        ComponentCatalog::instance().registerComponent(andGate);
 
         ComponentCatalog::instance().registerComponent({ComponentType::OR, "OR Gate", "Digital Gates", 2, 1,
                                                         [](entt::registry &registry, entt::entity e) -> bool {

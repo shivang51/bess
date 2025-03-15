@@ -5,11 +5,15 @@
 #include "component_definition.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "properties.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
 #include "ui/icons/ComponentIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/m_widgets.h"
+#include <any>
+#include <iostream>
+#include <unordered_map>
 
 namespace Bess::UI {
 
@@ -50,7 +54,7 @@ namespace Bess::UI {
         return opened;
     }
 
-    bool ButtonWithPopup(const std::string &label, const std::string &popupName) {
+    bool ButtonWithPopup(const std::string &label, const std::string &popupName, bool showMenuButton = true) {
         ImGuiContext &g = *ImGui::GetCurrentContext();
         ImGuiWindow *window = g.CurrentWindow;
         ImVec2 pos = window->DC.CursorPos;
@@ -81,7 +85,7 @@ namespace Bess::UI {
         ImGui::ItemSize(bb, g.Style.FramePadding.y);
         ImGui::ItemAdd(bb, id);
 
-        if (hovered || menuHovered) {
+        if (showMenuButton && (hovered || menuHovered)) {
             if (menuHovered)
                 bgColor = ImGui::GetColorU32(ImGuiCol_TabActive);
             window->DrawList->AddRectFilled(bbMenuButton.Min, bbMenuButton.Max, bgColor, rounding);
@@ -122,6 +126,45 @@ namespace Bess::UI {
         scene.setLastCreatedComp({&def, inputCount, outputCount});
     }
 
+    typedef std::unordered_map<SimEngine::ComponentType, std::vector<std::pair<std::string, std::pair<SimEngine::Properties::ComponentProperty, std::any>>>> ModifiablePropertiesStr;
+
+    ModifiablePropertiesStr generateModifiablePropertiesStr() {
+        auto &components = SimEngine::ComponentCatalog::instance().getComponents();
+
+        ModifiablePropertiesStr propertiesStr = {};
+
+        for (auto &comp : components) {
+            auto &p = comp.getModifiableProperties();
+            if (p.empty())
+                continue;
+
+            propertiesStr[comp.type] = {};
+
+            for (auto &mp : p) {
+                std::string name;
+                switch (mp.first) {
+                case Bess::SimEngine::Properties::ComponentProperty::inputCount:
+                    name = "Input Pins";
+                    break;
+                case Bess::SimEngine::Properties::ComponentProperty::outputCount:
+                    name = "Output Pins";
+                    break;
+                default:
+                    name = "Unknown Property";
+                    break;
+                }
+                std::pair<std::string, std::pair<SimEngine::Properties::ComponentProperty, std::any>> v = {};
+                for (auto &val : mp.second) {
+                    v.first = std::to_string(std::any_cast<int>(val)) + " " + name;
+                    v.second = {mp.first, val};
+                    propertiesStr[comp.type].emplace_back(v);
+                }
+            }
+        }
+
+        return propertiesStr;
+    }
+
     void ComponentExplorer::draw() {
         if (isfirstTimeDraw)
             firstTime();
@@ -141,6 +184,7 @@ namespace Bess::UI {
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
         ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0, 0, 0, 0)); // for tree node to have no bg normally
         static auto components = SimEngine::ComponentCatalog::instance().getComponentsTree();
+        static auto modifiableProperties = generateModifiablePropertiesStr();
 
         ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_Framed;
 
@@ -152,19 +196,21 @@ namespace Bess::UI {
                         continue;
 
                     name = getIcon(comp.type) + "  " + name;
-                    if (ButtonWithPopup(name, name + "OptionsMenu")) {
+                    auto &properties = modifiableProperties[comp.type];
+
+                    if (ButtonWithPopup(name, name + "OptionsMenu", !properties.empty())) {
                         createComponent(comp, -1, -1);
                     }
 
                     if (ImGui::BeginPopup((name + "OptionsMenu").c_str())) {
-                        if (ImGui::MenuItem("3 Input Pins")) {
-                            createComponent(comp, 3, -1);
-                        }
-                        if (ImGui::MenuItem("4 Input Pins")) {
-                            createComponent(comp, 4, -1);
-                        }
-                        if (ImGui::MenuItem("5 Input Pins")) {
-                            createComponent(comp, 5, -1);
+                        for (auto &p : properties) {
+                            if (ImGui::MenuItem(p.first.c_str())) {
+                                if (p.second.first == SimEngine::Properties::ComponentProperty::inputCount) {
+                                    createComponent(comp, std::any_cast<int>(p.second.second), -1);
+                                } else if (p.second.first == SimEngine::Properties::ComponentProperty::outputCount) {
+                                    createComponent(comp, -1, std::any_cast<int>(p.second.second));
+                                }
+                            }
                         }
                         ImGui::EndPopup();
                     }
