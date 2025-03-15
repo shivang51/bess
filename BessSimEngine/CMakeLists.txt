@@ -1,5 +1,5 @@
 set(PROJECT_NAME BessSimEngine)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 
 set(External
@@ -7,7 +7,7 @@ set(External
 source_group("External" FILES ${External})
 
 set(Header_Files
-    "include/gate.h"
+    "include/entt_components.h"
     "include/types.h"
     "include/properties.h"
     "include/simulation_engine.h"
@@ -18,7 +18,6 @@ set(Header_Files
 source_group("Header Files" FILES ${Header_Files})
 
 set(Source_Files
-    "src/gate.cpp"
     "src/simulation_engine.cpp"
     "src/component_catalog.cpp"
     "src/component_definition.cpp"

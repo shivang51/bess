@@ -1,5 +1,5 @@
 set(PROJECT_NAME Bess)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 ################################################################################
 # Source groups
 ################################################################################
@@ -263,4 +263,3 @@ add_custom_target(run
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
-#INSTALL(TARGETS ${PROJECT_NAME} DESTINATION bin)

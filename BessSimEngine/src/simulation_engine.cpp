@@ -2,7 +2,7 @@
 #include "component_catalog.h"
 #include "component_definition.h"
 #include "entt/entity/fwd.hpp"
-#include "gate.h"
+#include "entt_components.h"
 #include "types.h"
 #include <cassert>
 #include <chrono>
@@ -308,7 +308,7 @@ namespace Bess::SimEngine {
         auto ent = registry.create();
         const auto *def = ComponentCatalog::instance().getComponentDefinition(type);
         registry.emplace<GateComponent>(ent, type, def->inputCount, def->outputCount, def->delay);
-        std::cout << "[+] Added component " << (uint64_t)ent << std::endl;
+        std::cout << "[SimEngine] Added component " << (uint64_t)ent << std::endl;
         scheduleEvent(ent, std::chrono::steady_clock::now() + def->delay);
         return ent;
     }
@@ -437,7 +437,7 @@ namespace Bess::SimEngine {
                 scheduleEvent(entity, std::chrono::steady_clock::now() + comp.delay);
             }
         }
-        std::cout << "[+] Gate " << static_cast<uint32_t>(component) << " deleted successfully." << std::endl;
+        std::cout << "[SimEngine] Gate " << static_cast<uint32_t>(component) << " deleted successfully." << std::endl;
     }
 
     bool SimulationEngine::getDigitalPinState(entt::entity entity, PinType type, int idx) {
@@ -497,7 +497,7 @@ namespace Bess::SimEngine {
     bool SimulationEngine::simulateComponent(entt::entity e) {
         auto &comp = registry.get<GateComponent>(e);
         const auto *def = ComponentCatalog::instance().getComponentDefinition(comp.type);
-        std::cout << "[+] Simulating " << def->name << std::endl;
+        std::cout << "[SimEngine] Simulating " << def->name << std::endl;
         if (def && def->simulationFunction) {
             bool val = def->simulationFunction(registry, e);
             return val;
@@ -506,7 +506,7 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::run() {
-        std::cout << "[+] Simulation Loop Started" << std::endl;
+        std::cout << "[SimEngine] Simulation Loop Started" << std::endl;
         while (true) {
             std::unique_lock<std::mutex> lock(queueMutex);
             if (stopFlag)

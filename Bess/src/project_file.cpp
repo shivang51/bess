@@ -15,7 +15,7 @@ namespace Bess {
     }
 
     ProjectFile::ProjectFile(const std::string &path) {
-        std::cout << "[+] Opening project " << path << std::endl;
+        std::cout << "[Bess] Opening project " << path << std::endl;
         m_path = path;
         decode();
         m_saved = true;
@@ -34,7 +34,7 @@ namespace Bess {
                 return;
         }
 
-        std::cout << "[+] Saving project " << m_path << std::endl;
+        std::cout << "[Bess] Saving project " << m_path << std::endl;
         auto data = encode();
         std::ofstream o(m_path);
         o << std::setw(4) << data << std::endl;
@@ -155,6 +155,6 @@ namespace Bess {
         auto path = UI::Dialogs::showSaveFileDialog("Save To", "");
         m_path = path;
         m_name = path.substr(path.find_last_of("/\\") + 1);
-        std::cout << "[+] Project path: " << m_path << " with name " << m_name << std::endl;
+        std::cout << "[Bess] Project path: " << m_path << " with name " << m_name << std::endl;
     }
 } // namespace Bess
