@@ -1,40 +1,13 @@
 #pragma once
 
+#include "component_definition.h"
+#include "component_types.h"
 #include <entt/entt.hpp>
-#include <functional>
-#include <string>
-#include <unordered_map>
-#include <vector>
 
 namespace Bess::SimEngine {
-    // Enum for all supported component types.
-    enum class ComponentType {
-        INPUT,
-        OUTPUT,
-        AND,
-        OR,
-        NOT,
-        NOR,
-        NAND,
-        XOR,
-        XNOR
-    };
-
-    // Definition for a digital component/gate.
-    struct ComponentDefinition {
-        ComponentType type; // Enum type
-        std::string name;   // Human-readable name for the component.
-        std::string category;
-        int inputCount;  // Number of input pins.
-        int outputCount; // Number of output pins.
-        // Lambda function to simulate the component.
-        // Returns true if the component's state changed.
-        std::function<bool(entt::registry &, entt::entity)> simulationFunction;
-    };
 
     class ComponentCatalog {
       public:
-        // Access the singleton instance.
         static ComponentCatalog &instance();
 
         // Register a new component definition.
@@ -43,10 +16,12 @@ namespace Bess::SimEngine {
 
         // Get the full list of registered components.
         const std::vector<ComponentDefinition> &getComponents() const;
+
+        // Get the full list of registered components as tree format, grouped based on the category.
         std::unordered_map<std::string, std::vector<ComponentDefinition>> getComponentsTree() const;
 
         // Look up a component definition by its enum type.
-        const ComponentDefinition *getComponent(ComponentType type) const;
+        const ComponentDefinition *getComponentDefinition(ComponentType type) const;
 
       private:
         ComponentCatalog() = default;

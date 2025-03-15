@@ -552,7 +552,7 @@ namespace Bess::Canvas {
         auto pos = getCameraPos();
         for (auto &compType : m_copiedComponents) {
             auto simEngineEntity = simEngineInstance.addComponent(compType);
-            auto def = catalogInstance.getComponent(compType);
+            auto def = catalogInstance.getComponentDefinition(compType);
             createSimEntity(simEngineEntity, *def, pos);
             pos += glm::vec2(50.f, 50.f);
         }

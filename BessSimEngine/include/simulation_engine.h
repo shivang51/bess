@@ -1,8 +1,7 @@
 #pragma once
 
-#include "component_catalog.h"
+#include "component_types.h"
 #include "entt/entity/fwd.hpp"
-#include "gate.h"
 #include <chrono>
 #include <condition_variable>
 #include <entt/entt.hpp>

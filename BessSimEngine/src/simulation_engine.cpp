@@ -1,7 +1,9 @@
 #include "simulation_engine.h"
 #include "component_catalog.h"
+#include "component_definition.h"
 #include "entt/entity/fwd.hpp"
 #include "gate.h"
+#include "types.h"
 #include <cassert>
 #include <chrono>
 #include <cstdint>
@@ -17,10 +19,7 @@ namespace Bess::SimEngine {
     }
 
     void initComponentCatalog() {
-        ComponentCatalog::instance().registerComponent({ComponentType::INPUT, "Input", "IO", 0, 1,
-                                                        [](entt::registry &, entt::entity) -> bool {
-                                                            return false;
-                                                        }});
+        ComponentCatalog::instance().registerComponent(ComponentDefinition(ComponentType::INPUT, "Input", "IO", 0, 1, [](entt::registry &, entt::entity) -> bool { return false; }, SimDelayMilliSeconds(100)));
 
         ComponentCatalog::instance().registerComponent({ComponentType::OUTPUT, "Output", "IO", 1, 0,
                                                         [](entt::registry &registry, entt::entity e) -> bool {
@@ -46,7 +45,8 @@ namespace Bess::SimEngine {
                                                                 }
                                                             }
                                                             return changed;
-                                                        }});
+                                                        },
+                                                        SimDelayMilliSeconds(100)});
 
         ComponentCatalog::instance().registerComponent({ComponentType::AND, "AND Gate", "Digital Gates", 2, 1,
                                                         [](entt::registry &registry, entt::entity e) -> bool {
@@ -81,7 +81,8 @@ namespace Bess::SimEngine {
                                                                 }
                                                             }
                                                             return changed;
-                                                        }});
+                                                        },
+                                                        SimDelayMilliSeconds(100)});
 
         ComponentCatalog::instance().registerComponent({ComponentType::OR, "OR Gate", "Digital Gates", 2, 1,
                                                         [](entt::registry &registry, entt::entity e) -> bool {
@@ -108,7 +109,8 @@ namespace Bess::SimEngine {
                                                                 }
                                                             }
                                                             return changed;
-                                                        }});
+                                                        },
+                                                        SimDelayMilliSeconds(100)});
 
         ComponentCatalog::instance().registerComponent({ComponentType::NOT, "NOT Gate", "Digital Gates", 1, 1,
                                                         [](entt::registry &registry, entt::entity e) -> bool {
@@ -133,7 +135,8 @@ namespace Bess::SimEngine {
                                                                 changed = true;
                                                             }
                                                             return changed;
-                                                        }});
+                                                        },
+                                                        SimDelayMilliSeconds(100)});
         ComponentCatalog::instance().registerComponent({ComponentType::XOR, "XOR Gate", "Digital Gates", 2, 1,
                                                         [](entt::registry &registry, entt::entity e) -> bool {
                                                             auto &gate = registry.get<GateComponent>(e);
@@ -159,10 +162,10 @@ namespace Bess::SimEngine {
                                                                 }
                                                             }
                                                             return changed;
-                                                        }});
+                                                        },
+                                                        SimDelayMilliSeconds(100)});
 
-        ComponentCatalog::instance().registerComponent({ComponentType::XNOR, "XNOR Gate", "Digital Gates", 2, 1,
-                                                        [](entt::registry &registry, entt::entity e) -> bool {
+        ComponentCatalog::instance().registerComponent(ComponentDefinition(ComponentType::XNOR, "XNOR Gate", "Digital Gates", 2, 1, [](entt::registry &registry, entt::entity e) -> bool {
                                                             auto &gate = registry.get<GateComponent>(e);
                                                             std::vector<bool> pinValues;
                                                             for (const auto &pin : gate.inputPins) {
@@ -185,11 +188,9 @@ namespace Bess::SimEngine {
                                                                     changed = true;
                                                                 }
                                                             }
-                                                            return changed;
-                                                        }});
+                                                            return changed; }, SimDelayMilliSeconds(100)));
 
-        ComponentCatalog::instance().registerComponent({ComponentType::NAND, "NAND Gate", "Digital Gates", 2, 1,
-                                                        [](entt::registry &registry, entt::entity e) -> bool {
+        ComponentCatalog::instance().registerComponent(ComponentDefinition(ComponentType::NAND, "NAND Gate", "Digital Gates", 2, 1, [](entt::registry &registry, entt::entity e) -> bool {
                                                             auto &gate = registry.get<GateComponent>(e);
                                                             std::vector<bool> pinValues;
                                                             for (const auto &pin : gate.inputPins) {
@@ -212,11 +213,9 @@ namespace Bess::SimEngine {
                                                                     changed = true;
                                                                 }
                                                             }
-                                                            return changed;
-                                                        }});
+                                                            return changed; }, SimDelayMilliSeconds(100)));
 
-        ComponentCatalog::instance().registerComponent({ComponentType::NOR, "NOR Gate", "Digital Gates", 2, 1,
-                                                        [](entt::registry &registry, entt::entity e) -> bool {
+        ComponentCatalog::instance().registerComponent(ComponentDefinition(ComponentType::NOR, "NOR Gate", "Digital Gates", 2, 1, [](entt::registry &registry, entt::entity e) -> bool {
                                                             auto &gate = registry.get<GateComponent>(e);
                                                             std::vector<bool> pinValues;
                                                             for (const auto &pin : gate.inputPins) {
@@ -239,8 +238,7 @@ namespace Bess::SimEngine {
                                                                     changed = true;
                                                                 }
                                                             }
-                                                            return changed;
-                                                        }});
+                                                            return changed; }, SimDelayMilliSeconds(100)));
     }
 
     SimulationEngine::SimulationEngine()
@@ -308,16 +306,10 @@ namespace Bess::SimEngine {
 
     entt::entity SimulationEngine::addComponent(ComponentType type) {
         auto ent = registry.create();
-        auto &gateComp = registry.emplace<GateComponent>(ent);
-        const auto *def = ComponentCatalog::instance().getComponent(type);
-        gateComp.type = type;
-        gateComp.inputPins.resize(def->inputCount);
-        gateComp.outputPins.resize(def->outputCount);
-        gateComp.outputStates.resize(def->outputCount, false);
-        gateComp.delay = std::chrono::milliseconds(100);
+        const auto *def = ComponentCatalog::instance().getComponentDefinition(type);
+        registry.emplace<GateComponent>(ent, type, def->inputCount, def->outputCount, def->delay);
         std::cout << "[+] Added component " << (uint64_t)ent << std::endl;
-        scheduleEvent(ent, std::chrono::steady_clock::now() + gateComp.delay);
-
+        scheduleEvent(ent, std::chrono::steady_clock::now() + def->delay);
         return ent;
     }
 
@@ -504,7 +496,7 @@ namespace Bess::SimEngine {
 
     bool SimulationEngine::simulateComponent(entt::entity e) {
         auto &comp = registry.get<GateComponent>(e);
-        const auto *def = ComponentCatalog::instance().getComponent(comp.type);
+        const auto *def = ComponentCatalog::instance().getComponentDefinition(comp.type);
         std::cout << "[+] Simulating " << def->name << std::endl;
         if (def && def->simulationFunction) {
             bool val = def->simulationFunction(registry, e);

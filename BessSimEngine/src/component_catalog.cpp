@@ -31,7 +31,7 @@ namespace Bess::SimEngine {
         return catalog;
     }
 
-    const ComponentDefinition *ComponentCatalog::getComponent(ComponentType type) const {
+    const ComponentDefinition *ComponentCatalog::getComponentDefinition(ComponentType type) const {
         auto it = std::find_if(components.begin(), components.end(),
                                [type](const ComponentDefinition &def) {
                                    return def.type == type;

@@ -8,8 +8,12 @@ source_group("External" FILES ${External})
 
 set(Header_Files
     "include/gate.h"
+    "include/types.h"
+    "include/properties.h"
     "include/simulation_engine.h"
     "include/component_catalog.h"
+    "include/component_definition.h"
+    "include/component_types.h"
 )
 source_group("Header Files" FILES ${Header_Files})
 
@@ -17,6 +21,7 @@ set(Source_Files
     "src/gate.cpp"
     "src/simulation_engine.cpp"
     "src/component_catalog.cpp"
+    "src/component_definition.cpp"
 )
 source_group("Source Files" FILES ${Source_Files})
 
