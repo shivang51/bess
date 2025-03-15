@@ -43,7 +43,7 @@ namespace Bess::SimEngine {
         void scheduleEvent(entt::entity entity, std::chrono::steady_clock::time_point time);
         bool simulateComponent(entt::entity e);
 
-        entt::entity addComponent(ComponentType type);
+        entt::entity addComponent(ComponentType type, int inputCount = -1, int outputCount = -1);
         ComponentState getComponentState(entt::entity entity);
         bool connectComponent(entt::entity src, int srcPin, PinType srcPinType, entt::entity dst, int dstPin, PinType dstPinType);
         void deleteComponent(entt::entity component);

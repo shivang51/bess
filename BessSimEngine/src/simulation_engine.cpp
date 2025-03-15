@@ -304,10 +304,14 @@ namespace Bess::SimEngine {
         cv.notify_all();
     }
 
-    entt::entity SimulationEngine::addComponent(ComponentType type) {
+    entt::entity SimulationEngine::addComponent(ComponentType type, int inputCount, int outputCount) {
         auto ent = registry.create();
         const auto *def = ComponentCatalog::instance().getComponentDefinition(type);
-        registry.emplace<GateComponent>(ent, type, def->inputCount, def->outputCount, def->delay);
+        inputCount = inputCount == -1 ? def->inputCount : inputCount;
+        outputCount = outputCount == -1 ? def->outputCount : outputCount;
+        assert(def->inputCount <= inputCount);
+        assert(def->outputCount <= outputCount);
+        registry.emplace<GateComponent>(ent, type, inputCount, outputCount, def->delay);
         std::cout << "[SimEngine] Added component " << (uint64_t)ent << std::endl;
         scheduleEvent(ent, std::chrono::steady_clock::now() + def->delay);
         return ent;

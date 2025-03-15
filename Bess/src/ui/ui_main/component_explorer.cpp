@@ -49,6 +49,50 @@ namespace Bess::UI {
         return opened;
     }
 
+    bool ButtonWithMenu(const std::string &label) {
+        ImGuiContext &g = *ImGui::GetCurrentContext();
+        ImGuiWindow *window = g.CurrentWindow;
+        ImVec2 pos = window->DC.CursorPos;
+        auto style = ImGui::GetStyle();
+        ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x, pos.y + g.FontSize + g.Style.FramePadding.y * 2));
+        ImRect bbButton(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x - style.FramePadding.x * 3 - g.Style.ItemInnerSpacing.x, pos.y + g.FontSize + g.Style.FramePadding.y * 2));
+        float menuBtnX = bbButton.Max.x;
+        float menuBtnSizeX = bb.Max.x - bbButton.Max.x;
+        ImRect bbMenuButton(ImVec2(menuBtnX, pos.y + g.Style.FramePadding.y * 0.5f), ImVec2(menuBtnX + menuBtnSizeX, pos.y + g.FontSize + g.Style.FramePadding.y * 1.5));
+
+        ImGuiID id = window->GetID(label.c_str());
+
+        bool hovered, held;
+        bool clicked = ImGui::ButtonBehavior(bbButton, id, &hovered, &held, ImGuiButtonFlags_PressedOnClick);
+        bool menuHovered, menuHeld;
+        bool menuClicked = ImGui::ButtonBehavior(bbMenuButton, id, &menuHovered, &menuHeld, ImGuiButtonFlags_PressedOnClick);
+
+        auto rounding = style.FrameRounding;
+
+        auto bgColor = ImGui::GetColorU32(ImGuiCol_Button);
+        if (menuHovered || hovered || held)
+            bgColor = ImGui::GetColorU32(held ? ImGuiCol_ButtonActive : ImGuiCol_ButtonHovered);
+
+        window->DrawList->AddRectFilled(bb.Min, bb.Max, bgColor, rounding);
+        ImGui::RenderText(ImVec2(pos.x + style.FramePadding.x + g.Style.ItemInnerSpacing.x, pos.y + g.Style.FramePadding.y), label.c_str());
+
+        ImGui::ItemSize(bb, g.Style.FramePadding.y);
+        ImGui::ItemAdd(bb, id);
+
+        if (hovered || menuHovered) {
+            if (menuHovered)
+                bgColor = ImGui::GetColorU32(ImGuiCol_TabActive);
+            window->DrawList->AddRectFilled(bbMenuButton.Min, bbMenuButton.Max, bgColor, rounding);
+            float x = bbMenuButton.Min.x + (bbMenuButton.Max.x - bbMenuButton.Min.x) / 2.f - 3.f;
+            ImGui::RenderText(ImVec2(x, pos.y + g.Style.FramePadding.y), Icons::FontAwesomeIcons::FA_ELLIPSIS_V);
+            if (menuClicked) {
+                std::cout << "3 dot menu clicked" << std::endl;
+            }
+        }
+
+        return clicked;
+    }
+
     std::string getIcon(SimEngine::ComponentType type) {
         switch (type) {
         case SimEngine::ComponentType::AND:
@@ -100,7 +144,7 @@ namespace Bess::UI {
                         continue;
 
                     name = getIcon(comp.type) + "  " + name;
-                    if (ImGui::Button(name.c_str(), {-1, 0})) {
+                    if (ButtonWithMenu(name)) {
                         auto simEntt = SimEngine::SimulationEngine::instance().addComponent(comp.type);
                         auto &scene = Canvas::Scene::instance();
                         scene.createSimEntity(simEntt, comp, scene.getCameraPos());
