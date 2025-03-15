@@ -2,6 +2,7 @@
 
 #include "camera.h"
 #include "component_catalog.h"
+#include "component_definition.h"
 #include "entt/entity/fwd.hpp"
 #include "entt/entt.hpp"
 #include "events/application_event.h"
@@ -14,6 +15,12 @@ namespace Bess::Canvas {
         none,
         connection,
         selectionBox
+    };
+
+    struct LastCreatedComponent {
+        const SimEngine::ComponentDefinition *componentDefinition;
+        int inputCount = -1;
+        int outputCount = -1;
     };
 
     class Scene {
@@ -34,7 +41,7 @@ namespace Bess::Canvas {
         void beginScene();
         void endScene();
 
-        void setLastCreatedComp(SimEngine::ComponentDefinition *comp);
+        void setLastCreatedComp(const LastCreatedComponent &comp);
 
       public:
         glm::vec2 getCameraPos();
@@ -95,7 +102,7 @@ namespace Bess::Canvas {
         float m_compZCoord = m_zIncrement;
         bool m_isDragging = false;
 
-        SimEngine::ComponentDefinition *m_lastCreatedComp = nullptr;
+        LastCreatedComponent m_lastCreatedComp = {};
         std::vector<SimEngine::ComponentType> m_copiedComponents = {};
     };
 } // namespace Bess::Canvas

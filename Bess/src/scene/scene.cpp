@@ -201,11 +201,13 @@ namespace Bess::Canvas {
 
         simComp.simEngineEntity = simEngineEntt;
 
-        for (int i = 0; i < comp.inputCount; i++) {
+        auto state = SimEngine::SimulationEngine::instance().getComponentState(simEngineEntt);
+
+        for (int i = 0; i < state.inputStates.size(); i++) {
             simComp.inputSlots.emplace_back(createSlotEntity(Components::SlotType::digitalInput, entity, i));
         }
 
-        for (int i = 0; i < comp.outputCount; i++) {
+        for (int i = 0; i < state.outputStates.size(); i++) {
             simComp.outputSlots.emplace_back(createSlotEntity(Components::SlotType::digitalOutput, entity, i));
         }
         std::cout << "[Scene] Created entity " << (uint64_t)entity << std::endl;
@@ -472,10 +474,11 @@ namespace Bess::Canvas {
             return;
         }
 
-        if (!m_registry.valid(m_hoveredEntiy) && m_lastCreatedComp != nullptr) {
-            auto comp = (*m_lastCreatedComp);
-            auto simEntt = SimEngine::SimulationEngine::instance().addComponent(comp.type);
-            createSimEntity(simEntt, comp, getNVPMousePos(m_mousePos));
+        if (!m_registry.valid(m_hoveredEntiy) && m_lastCreatedComp.componentDefinition != nullptr) {
+            auto simEntt = SimEngine::SimulationEngine::instance().addComponent(m_lastCreatedComp.componentDefinition->type,
+                                                                                m_lastCreatedComp.inputCount,
+                                                                                m_lastCreatedComp.outputCount);
+            createSimEntity(simEntt, *m_lastCreatedComp.componentDefinition, getNVPMousePos(m_mousePos));
         }
 
         if (m_registry.valid(m_hoveredEntiy)) {
@@ -653,7 +656,7 @@ namespace Bess::Canvas {
         return m_camera;
     }
 
-    void Scene::setLastCreatedComp(SimEngine::ComponentDefinition *comp) {
+    void Scene::setLastCreatedComp(const LastCreatedComponent &comp) {
         m_lastCreatedComp = comp;
     }
 

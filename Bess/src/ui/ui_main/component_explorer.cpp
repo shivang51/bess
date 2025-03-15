@@ -2,6 +2,7 @@
 
 #include "common/helpers.h"
 #include "component_catalog.h"
+#include "component_definition.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "scene/scene.h"
@@ -49,7 +50,7 @@ namespace Bess::UI {
         return opened;
     }
 
-    bool ButtonWithMenu(const std::string &label) {
+    bool ButtonWithPopup(const std::string &label, const std::string &popupName) {
         ImGuiContext &g = *ImGui::GetCurrentContext();
         ImGuiWindow *window = g.CurrentWindow;
         ImVec2 pos = window->DC.CursorPos;
@@ -71,7 +72,7 @@ namespace Bess::UI {
         auto rounding = style.FrameRounding;
 
         auto bgColor = ImGui::GetColorU32(ImGuiCol_Button);
-        if (menuHovered || hovered || held)
+        if (menuHovered || hovered || held || ImGui::IsPopupOpen(popupName.c_str()))
             bgColor = ImGui::GetColorU32(held ? ImGuiCol_ButtonActive : ImGuiCol_ButtonHovered);
 
         window->DrawList->AddRectFilled(bb.Min, bb.Max, bgColor, rounding);
@@ -86,9 +87,8 @@ namespace Bess::UI {
             window->DrawList->AddRectFilled(bbMenuButton.Min, bbMenuButton.Max, bgColor, rounding);
             float x = bbMenuButton.Min.x + (bbMenuButton.Max.x - bbMenuButton.Min.x) / 2.f - 3.f;
             ImGui::RenderText(ImVec2(x, pos.y + g.Style.FramePadding.y), Icons::FontAwesomeIcons::FA_ELLIPSIS_V);
-            if (menuClicked) {
-                std::cout << "3 dot menu clicked" << std::endl;
-            }
+            if (menuClicked)
+                ImGui::OpenPopup(popupName.c_str());
         }
 
         return clicked;
@@ -113,6 +113,13 @@ namespace Bess::UI {
         }
 
         return std::string(" ") + Icons::FontAwesomeIcons::FA_CUBE + " ";
+    }
+
+    void createComponent(const SimEngine::ComponentDefinition &def, int inputCount, int outputCount) {
+        auto simEntt = SimEngine::SimulationEngine::instance().addComponent(def.type, inputCount, outputCount);
+        auto &scene = Canvas::Scene::instance();
+        scene.createSimEntity(simEntt, def, scene.getCameraPos());
+        scene.setLastCreatedComp({&def, inputCount, outputCount});
     }
 
     void ComponentExplorer::draw() {
@@ -145,11 +152,21 @@ namespace Bess::UI {
                         continue;
 
                     name = getIcon(comp.type) + "  " + name;
-                    if (ButtonWithMenu(name)) {
-                        auto simEntt = SimEngine::SimulationEngine::instance().addComponent(comp.type);
-                        auto &scene = Canvas::Scene::instance();
-                        scene.createSimEntity(simEntt, comp, scene.getCameraPos());
-                        scene.setLastCreatedComp(&comp);
+                    if (ButtonWithPopup(name, name + "OptionsMenu")) {
+                        createComponent(comp, -1, -1);
+                    }
+
+                    if (ImGui::BeginPopup((name + "OptionsMenu").c_str())) {
+                        if (ImGui::MenuItem("3 Input Pins")) {
+                            createComponent(comp, 3, -1);
+                        }
+                        if (ImGui::MenuItem("4 Input Pins")) {
+                            createComponent(comp, 4, -1);
+                        }
+                        if (ImGui::MenuItem("5 Input Pins")) {
+                            createComponent(comp, 5, -1);
+                        }
+                        ImGui::EndPopup();
                     }
                 }
                 ImGui::TreePop();
