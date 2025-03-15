@@ -1,12 +1,14 @@
 #include "simulation_engine.h"
 #include "component_catalog.h"
 #include "component_definition.h"
+#include "component_types.h"
 #include "entt/entity/fwd.hpp"
 #include "entt_components.h"
 #include "properties.h"
 #include "types.h"
 #include <cassert>
 #include <chrono>
+#include <condition_variable>
 #include <cstdint>
 #include <iostream>
 namespace Bess::SimEngine {
@@ -117,31 +119,39 @@ namespace Bess::SimEngine {
                                                         },
                                                         SimDelayMilliSeconds(100)});
 
-        ComponentCatalog::instance().registerComponent({ComponentType::NOT, "NOT Gate", "Digital Gates", 1, 1,
-                                                        [](entt::registry &registry, entt::entity e) -> bool {
-                                                            auto &gate = registry.get<GateComponent>(e);
-                                                            bool newState = true;
-                                                            if (!gate.inputPins.empty()) {
-                                                                bool pinState = false;
-                                                                // For NOT, we only use the first input pin.
-                                                                for (const auto &conn : gate.inputPins[0]) {
-                                                                    if (registry.valid(conn.first)) {
-                                                                        auto &srcGate = registry.get<GateComponent>(conn.first);
-                                                                        if (!srcGate.outputStates.empty()) {
-                                                                            pinState = pinState || srcGate.outputStates[0];
-                                                                        }
-                                                                    }
-                                                                }
-                                                                newState = !pinState;
-                                                            }
-                                                            bool changed = false;
-                                                            if (gate.outputStates[0] != newState) {
-                                                                gate.outputStates[0] = newState;
-                                                                changed = true;
-                                                            }
-                                                            return changed;
-                                                        },
-                                                        SimDelayMilliSeconds(100)});
+        ComponentDefinition notGate = {ComponentType::NOT, "NOT Gate", "Digital Gates", 1, 1,
+                                       [](entt::registry &registry, entt::entity e) -> bool {
+                                           auto &gate = registry.get<GateComponent>(e);
+                                           std::vector<bool> newStates = {};
+                                           if (!gate.inputPins.empty()) {
+                                               for (const auto &pin : gate.inputPins) {
+                                                   bool pinState = false;
+                                                   for (const auto &conn : pin) {
+                                                       if (registry.valid(conn.first)) {
+                                                           auto &srcGate = registry.get<GateComponent>(conn.first);
+                                                           if (!srcGate.outputStates.empty()) {
+                                                               pinState = pinState || srcGate.outputStates[0];
+                                                           }
+                                                       }
+                                                   }
+                                                   newStates.emplace_back(!pinState);
+                                               }
+                                           }
+                                           bool changed = false;
+                                           for (int i = 0; i < newStates.size(); i++) {
+                                               if (gate.outputStates[i] != newStates[i]) {
+                                                   changed = true;
+                                                   break;
+                                               }
+                                           }
+                                           if (changed)
+                                               gate.outputStates = newStates;
+                                           return changed;
+                                       },
+                                       SimDelayMilliSeconds(100)};
+        notGate.addModifiableProperty(Properties::ComponentProperty::inputCount, {2, 3, 4, 5, 6});
+        ComponentCatalog::instance().registerComponent(notGate);
+
         ComponentCatalog::instance().registerComponent({ComponentType::XOR, "XOR Gate", "Digital Gates", 2, 1,
                                                         [](entt::registry &registry, entt::entity e) -> bool {
                                                             auto &gate = registry.get<GateComponent>(e);
@@ -316,6 +326,12 @@ namespace Bess::SimEngine {
         outputCount = outputCount == -1 ? def->outputCount : outputCount;
         assert(def->inputCount <= inputCount);
         assert(def->outputCount <= outputCount);
+
+        if (type == ComponentType::NOT) {
+            inputCount = std::max(inputCount, outputCount);
+            outputCount = inputCount;
+        }
+
         registry.emplace<GateComponent>(ent, type, inputCount, outputCount, def->delay);
         std::cout << "[SimEngine] Added component " << (uint64_t)ent << std::endl;
         scheduleEvent(ent, std::chrono::steady_clock::now() + def->delay);
