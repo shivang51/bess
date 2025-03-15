@@ -61,11 +61,12 @@ namespace Bess::UI {
         ImRect bbMenuButton(ImVec2(menuBtnX, pos.y + g.Style.FramePadding.y * 0.5f), ImVec2(menuBtnX + menuBtnSizeX, pos.y + g.FontSize + g.Style.FramePadding.y * 1.5));
 
         ImGuiID id = window->GetID(label.c_str());
+        ImGuiID menuID = window->GetID((label + "##menu").c_str());
 
         bool hovered, held;
         bool clicked = ImGui::ButtonBehavior(bbButton, id, &hovered, &held, ImGuiButtonFlags_PressedOnClick);
         bool menuHovered, menuHeld;
-        bool menuClicked = ImGui::ButtonBehavior(bbMenuButton, id, &menuHovered, &menuHeld, ImGuiButtonFlags_PressedOnClick);
+        bool menuClicked = ImGui::ButtonBehavior(bbMenuButton, menuID, &menuHovered, &menuHeld, ImGuiButtonFlags_PressedOnClick);
 
         auto rounding = style.FrameRounding;
 
