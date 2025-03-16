@@ -9,6 +9,7 @@
 #include "ui/ui_main/ui_main.h"
 #include <GL/gl.h>
 #include <GLFW/glfw3.h>
+#include <cstdlib>
 #include <ext/matrix_transform.hpp>
 #include <iostream>
 #include <ostream>
@@ -490,13 +491,18 @@ namespace Bess {
         }
 
         for (int i = 1; i < (int)newPoints.size(); i++) {
-            auto p1 = newPoints[i], p1_ = newPoints[i];
-            // if (i + 1 < newPoints.size()) {
-            //     auto curve_ = generateQuadBezierPoints(newPoints[i - 1], newPoints[i], newPoints[i + 1], 4.f);
-            //     Renderer2D::Renderer::quadraticBezier(glm::vec3(curve_.startPoint, prev.z), glm::vec3(curve_.endPoint, p1.z), curve_.controlPoint, weight, color, id, true);
-            //     p1 = glm::vec3(curve_.startPoint, prev.z), p1_ = glm::vec3(curve_.endPoint, newPoints[i + 1].z);
-            // }
-            Renderer2D::Renderer::line(prev, p1, 2.f, color, id);
+            auto p1 = newPoints[i], p1_ = glm::vec3(newPoints[i]);
+            /*if (i + 1 < newPoints.size()) {*/
+            /*    auto curve_ = generateQuadBezierPoints(newPoints[i - 1], newPoints[i], newPoints[i + 1], 4.f);*/
+            /*    Renderer2D::Renderer::quadraticBezier(glm::vec3(curve_.startPoint, prev.z), glm::vec3(curve_.endPoint, p1.z), curve_.controlPoint, weight, color, id, true);*/
+            /*    p1 = glm::vec3(curve_.startPoint, prev.z), p1_ = glm::vec3(curve_.endPoint, newPoints[i + 1].z);*/
+            /*}*/
+            auto offSet = (prev.y <= p1.y) ? weight / 2.f : -weight / 2.f;
+            if (std::abs(prev.x - p1.x) <= 0.0001f) { // veritcal
+                p1.y += offSet;
+                prev.y -= offSet;
+            }
+            Renderer2D::Renderer::line(prev, p1, weight, color, id);
             prev = p1_;
         }
     }

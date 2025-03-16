@@ -123,12 +123,14 @@ namespace Bess::Canvas {
         auto &registry = sceneRef->getEnttRegistry();
         auto &connectionComponent = registry.get<Components::ConnectionComponent>((entt::entity)id);
         auto &outputSlotComp = registry.get<Components::SlotComponent>(outputEntity);
+        auto &simComp = registry.get<Components::SimulationComponent>((entt::entity)outputSlotComp.parentId);
+
         auto startPos = Artist::getSlotPos(registry.get<Components::SlotComponent>(inputEntity));
         auto endPos = Artist::getSlotPos(outputSlotComp);
+
         startPos.z = 0.f;
         endPos.z = 0.f;
 
-        auto &simComp = registry.get<Components::SimulationComponent>((entt::entity)outputSlotComp.parentId);
         bool isHigh = SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity).outputStates[outputSlotComp.idx];
 
         auto color = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::stateLowColor;
@@ -155,13 +157,24 @@ namespace Bess::Canvas {
 
             bool isHovered = registry.all_of<Components::HoveredEntityComponent>((entt::entity)segId);
             auto size = isHovered ? 3.0 : 2.f;
-            Renderer::line(prevPos, pos, size, color, segId);
+            auto offPos = pos;
+            auto offSet = (prevPos.y <= pos.y) ? size / 2.f : -size / 2.f;
+            if (std::abs(prevPos.x - pos.x) <= 0.0001f) { // veritcal
+                offPos.y += offSet;
+                prevPos.y -= offSet;
+            }
+            Renderer::line(prevPos, offPos, size, color, segId);
             segId = newSegId;
             prevPos = pos;
         }
 
         bool isHovered = registry.all_of<Components::HoveredEntityComponent>((entt::entity)segId);
         auto size = isHovered ? 3.0 : 2.f;
+        auto offSet = (prevPos.y <= endPos.y) ? size / 2.f : -size / 2.f;
+        if (std::abs(prevPos.x - endPos.x) <= 0.0001f) { // veritcal
+            endPos.y += offSet;
+            prevPos.y -= offSet;
+        }
         Renderer::line(prevPos, endPos, size, color, segId);
     }
 
@@ -254,7 +267,7 @@ namespace Bess::Canvas {
 
         spriteComp.borderRadius = glm::vec4(radius);
         bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
-        auto borderColor = isSelected ? ViewportTheme::selectedCompColor : spriteComp.color;
+        auto borderColor = isSelected ? ViewportTheme::selectedCompColor : spriteComp.borderColor;
 
         uint64_t id = (uint64_t)entity;
 
@@ -264,12 +277,13 @@ namespace Bess::Canvas {
                        spriteComp.borderRadius,
                        spriteComp.borderSize, borderColor, true);
 
-        Renderer::quad(headerPos,
-                       glm::vec2(scale.x, headerHeight), ViewportTheme::compHeaderColor,
-                       id,
-                       0.f,
-                       glm::vec4(0.f, 0.f, radius, radius),
-                       spriteComp.borderSize, glm::vec4(0.f), true);
+        /*Renderer::quad(headerPos,*/
+        /*               glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),*/
+        /*               ViewportTheme::compHeaderColor,*/
+        /*               id,*/
+        /*               0.f,*/
+        /*               glm::vec4(radius),*/
+        /*               glm::vec4(0.f), glm::vec4(0.f), true);*/
 
         Renderer::text(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id);
 
