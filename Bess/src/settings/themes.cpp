@@ -7,6 +7,7 @@ namespace Bess::Config {
         m_themes["Bess Dark"] = [this]() { setBessDarkThemeColors(); };
         m_themes["Dark"] = [this]() { setDarkThemeColors(); };
         m_themes["New Dark"] = [this]() { setNewDarkTheme(); };
+        m_themes["New Modern Dark"] = [this]() { newModernDarkTheme(); };
         m_themes["Catpuccin Mocha"] = [this]() { setCatpuccinMochaColors(); };
         m_themes["Modern"] = [this]() { setModernColors(); };
         m_themes["Material You"] = [this]() { setMaterialYouColors(); };
@@ -29,6 +30,128 @@ namespace Bess::Config {
 
     const std::unordered_map<std::string, std::function<void()>> &Themes::getThemes() const {
         return m_themes;
+    }
+
+    ImVec4 BlendColors(const ImVec4 &base, const ImVec4 &accent, float blendFactor) {
+        return ImVec4(
+            base.x * (1.0f - blendFactor) + accent.x * blendFactor,
+            base.y * (1.0f - blendFactor) + accent.y * blendFactor,
+            base.z * (1.0f - blendFactor) + accent.z * blendFactor,
+            base.w);
+    }
+
+    void ApplyGreyerDarkTheme() {
+        ImGuiStyle &style = ImGui::GetStyle();
+        ImVec4 *colors = style.Colors;
+
+        // Define base, accent, and text colors
+        ImVec4 baseColor = ImVec4(0.165f, 0.165f, 0.165f, 1.0f);         // #2A2A2A (dark grey)
+        ImVec4 accentColor = ImVec4(0.310f, 0.310f, 0.310f, 1.0f);       // #4F4F4F (neutral grey)
+        ImVec4 textColor = ImVec4(0.878f, 0.878f, 0.878f, 1.0f);         // #E0E0E0 (light grey)
+        ImVec4 disabledTextColor = ImVec4(0.502f, 0.502f, 0.502f, 1.0f); // #808080 (medium grey)
+
+        // Variations for hover and active states
+        ImVec4 accentHover = ImVec4(0.350f, 0.350f, 0.350f, 1.0f);  // #595959 (slightly lighter grey)
+        ImVec4 accentActive = ImVec4(0.270f, 0.270f, 0.270f, 1.0f); // #454545 (slightly darker grey)
+
+        // Blended backgrounds
+        ImVec4 windowBg = BlendColors(baseColor, accentColor, 0.10f); // 10% accent for window backgrounds
+        ImVec4 frameBg = BlendColors(baseColor, accentColor, 0.15f);  // 15% accent for frame backgrounds
+
+        // Backgrounds
+        colors[ImGuiCol_WindowBg] = windowBg;
+        colors[ImGuiCol_ChildBg] = windowBg;
+        colors[ImGuiCol_PopupBg] = windowBg;
+        colors[ImGuiCol_FrameBg] = frameBg;
+        colors[ImGuiCol_FrameBgHovered] = BlendColors(frameBg, accentColor, 0.2f);
+        colors[ImGuiCol_FrameBgActive] = BlendColors(frameBg, accentColor, 0.4f);
+
+        // Text
+        colors[ImGuiCol_Text] = textColor;
+        colors[ImGuiCol_TextDisabled] = disabledTextColor;
+
+        // Buttons
+        colors[ImGuiCol_Button] = accentColor;
+        colors[ImGuiCol_ButtonHovered] = accentHover;
+        colors[ImGuiCol_ButtonActive] = accentActive;
+
+        // Headers
+        colors[ImGuiCol_Header] = BlendColors(baseColor, accentColor, 0.20f);
+        colors[ImGuiCol_HeaderHovered] = accentColor;
+        colors[ImGuiCol_HeaderActive] = accentActive;
+
+        // Tabs
+        colors[ImGuiCol_Tab] = BlendColors(baseColor, accentColor, 0.15f);
+        colors[ImGuiCol_TabHovered] = accentHover;
+        colors[ImGuiCol_TabActive] = accentActive;
+        colors[ImGuiCol_TabUnfocused] = BlendColors(baseColor, accentColor, 0.05f);
+        colors[ImGuiCol_TabUnfocusedActive] = BlendColors(baseColor, accentColor, 0.10f);
+
+        // Titles
+        colors[ImGuiCol_TitleBg] = BlendColors(baseColor, accentColor, 0.10f);
+        colors[ImGuiCol_TitleBgActive] = accentColor;
+        colors[ImGuiCol_TitleBgCollapsed] = BlendColors(baseColor, accentColor, 0.05f);
+
+        // Menu Bar
+        colors[ImGuiCol_MenuBarBg] = BlendColors(baseColor, accentColor, 0.10f);
+
+        // Scrollbars
+        colors[ImGuiCol_ScrollbarBg] = BlendColors(baseColor, accentColor, 0.05f);
+        colors[ImGuiCol_ScrollbarGrab] = accentColor;
+        colors[ImGuiCol_ScrollbarGrabHovered] = accentHover;
+        colors[ImGuiCol_ScrollbarGrabActive] = accentActive;
+
+        // Checkmarks and Sliders
+        colors[ImGuiCol_CheckMark] = textColor; // Light grey for visibility
+        colors[ImGuiCol_SliderGrab] = accentColor;
+        colors[ImGuiCol_SliderGrabActive] = accentActive;
+
+        // Separators
+        colors[ImGuiCol_Separator] = BlendColors(baseColor, accentColor, 0.20f);
+        colors[ImGuiCol_SeparatorHovered] = accentHover;
+        colors[ImGuiCol_SeparatorActive] = accentActive;
+
+        // Resize Grips
+        colors[ImGuiCol_ResizeGrip] = BlendColors(baseColor, accentColor, 0.10f);
+        colors[ImGuiCol_ResizeGripHovered] = accentHover;
+        colors[ImGuiCol_ResizeGripActive] = accentActive;
+
+        // Plots
+        colors[ImGuiCol_PlotLines] = accentColor;
+        colors[ImGuiCol_PlotLinesHovered] = accentHover;
+        colors[ImGuiCol_PlotHistogram] = accentColor;
+        colors[ImGuiCol_PlotHistogramHovered] = accentHover;
+
+        // Tables
+        colors[ImGuiCol_TableHeaderBg] = BlendColors(baseColor, accentColor, 0.15f);
+        colors[ImGuiCol_TableBorderStrong] = BlendColors(baseColor, accentColor, 0.20f);
+        colors[ImGuiCol_TableBorderLight] = BlendColors(baseColor, accentColor, 0.10f);
+        colors[ImGuiCol_TableRowBg] = windowBg;
+        colors[ImGuiCol_TableRowBgAlt] = BlendColors(windowBg, baseColor, 0.05f);
+
+        // Miscellaneous
+        colors[ImGuiCol_TextSelectedBg] = BlendColors(accentColor, baseColor, 0.50f);
+        colors[ImGuiCol_DragDropTarget] = ImVec4(1.0f, 1.0f, 0.0f, 0.90f); // Yellow for visibility
+        colors[ImGuiCol_NavHighlight] = accentHover;
+        colors[ImGuiCol_NavWindowingHighlight] = accentHover;
+        colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.20f);
+        colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.35f);
+
+        // Style settings for a polished look
+        style.WindowRounding = 5.0f;
+        style.FrameRounding = 4.0f;
+        style.PopupRounding = 4.0f;
+        style.ScrollbarRounding = 4.0f;
+        style.GrabRounding = 4.0f;
+        style.TabRounding = 4.0f;
+        style.WindowPadding = ImVec2(8, 8);
+        style.FramePadding = ImVec2(6, 4);
+        style.ItemSpacing = ImVec2(8, 4);
+        style.ItemInnerSpacing = ImVec2(4, 4);
+    }
+
+    void Themes::newModernDarkTheme() {
+        ApplyGreyerDarkTheme();
     }
 
     void Themes::setNewDarkTheme() {

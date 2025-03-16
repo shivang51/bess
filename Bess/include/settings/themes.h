@@ -23,6 +23,7 @@ namespace Bess::Config {
         static void setFluentUITheme();
         static void setFluentUILightTheme();
         static void setNewDarkTheme();
+        static void newModernDarkTheme();
 
         // theme name and a void callback
         std::unordered_map<std::string, std::function<void()>> m_themes = {};
