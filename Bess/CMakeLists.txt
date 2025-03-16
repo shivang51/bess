@@ -133,21 +133,37 @@ endif()
 # Include directories
 ################################################################################
 if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    target_include_directories(${PROJECT_NAME} PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/uuid;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/freetype/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui/backends;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/glm;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/json;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/glfw/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/glad/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/stb_image/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/tinyfiledialogs;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/entt/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../BessSimEngine/include;"
-    )
+	target_include_directories(${PROJECT_NAME} PRIVATE
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/uuid"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/freetype/include"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui/backends"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/glm"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/json"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/glfw/include"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/glad/include"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/stb_image/include"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/tinyfiledialogs"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/entt/include"
+			"${CMAKE_CURRENT_SOURCE_DIR}/include"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../BessSimEngine/include"
+	)
+
+	target_compile_options(${PROJECT_NAME} PRIVATE
+    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/uuid"
+    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui"
+    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/freetype/include"
+    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui/backends"
+    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/glm"
+    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/json"
+    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/glfw/include"
+    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/glad/include"
+    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/stb_image/include"
+    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/tinyfiledialogs"
+    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/entt/include"
+    -I"${CMAKE_CURRENT_SOURCE_DIR}/include"
+    -I"${CMAKE_CURRENT_SOURCE_DIR}/../BessSimEngine/include"
+	)
 endif()
 
 ################################################################################

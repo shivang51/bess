@@ -1,6 +1,0 @@
--xc++
--std=c++20
-
--Iinclude
--I../external/json
--I../external/entt/include
