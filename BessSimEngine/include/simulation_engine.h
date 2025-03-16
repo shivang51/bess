@@ -54,7 +54,7 @@ namespace Bess::SimEngine {
         ComponentType getComponentType(entt::entity entity);
 
       private:
-        entt::registry registry;
+        entt::registry m_registry;
         std::thread simThread;
         std::mutex queueMutex;
         std::condition_variable cv;
