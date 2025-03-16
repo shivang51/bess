@@ -20,38 +20,41 @@ namespace Bess {
         ImGuiStyle &style = ImGui::GetStyle();
         ImVec4 *colors = style.Colors;
 
+        // Background: Use WindowBg directly
         ImVec4 windowBg = colors[ImGuiCol_WindowBg];
-        float darkenFactor = 0.75f;
-        backgroundColor = glm::vec4(windowBg.x * darkenFactor, windowBg.y * darkenFactor, windowBg.z * darkenFactor, windowBg.w);
+        backgroundColor = glm::vec4(windowBg.x, windowBg.y, windowBg.z, windowBg.w);
 
+        // Component Background: Slightly lighter than WindowBg
         auto color = colors[ImGuiCol_WindowBg];
-        componentBGColor = glm::vec4(color.x, color.y, color.z, 1.f);
+        componentBGColor = glm::vec4(color.x + 0.05f, color.y + 0.05f, color.z + 0.05f, 1.0f);
+        componentBGColor = glm::clamp(componentBGColor, 0.0f, 1.0f); // Ensure values stay in [0, 1]
 
+        // Component Border: Subtle darkening of Border
         color = colors[ImGuiCol_Border];
-        darkenFactor = 0.7f;
+        float darkenFactor = 0.9f;
         componentBorderColor = glm::vec4(color.x * darkenFactor, color.y * darkenFactor, color.z * darkenFactor, 0.74f);
 
+        // Wire Color: Bright but slightly softened Text color
         color = colors[ImGuiCol_Text];
-        wireColor = glm::vec4(color.x, color.y, color.z, color.w) * darkenFactor;
-        wireColor.w = color.w;
+        wireColor = glm::vec4(color.x * 0.9f, color.y * 0.9f, color.z * 0.9f, color.w);
 
-        color = colors[ImGuiCol_WindowBg];
-        glm::vec3 compHeaderTint = glm::vec3(1.1f, 1.1f, 0.7f);
-        compHeaderColor = glm::vec4(glm::vec3(componentBGColor) * compHeaderTint, componentBGColor.w);
-        compHeaderColor = componentBGColor;
+        // Component Header: Slightly lighter than componentBGColor
+        compHeaderColor = glm::vec4(componentBGColor.x + 0.03f, componentBGColor.y + 0.03f, componentBGColor.z + 0.03f, componentBGColor.w);
+        compHeaderColor = glm::clamp(compHeaderColor, 0.0f, 1.0f);
 
+        // Text: Full brightness for readability
         color = colors[ImGuiCol_Text];
-        textColor = glm::vec4(color.x, color.y, color.z, color.w) * 0.8f;
-        textColor.w = color.w;
+        textColor = glm::vec4(color.x, color.y, color.z, color.w);
 
+        // Grid: Subtle but visible with brighter textColor
         gridColor = textColor * 0.3f;
 
-        stateHighColor = glm::vec4(0.6f, 0.8f, 0.4f, 1.00f);
-        stateLowColor = glm::vec4(0.82f, 0.2f, 0.2f, 1.00f);
-
-        selectedWireColor = glm::vec4(1.0f, 0.64f, 0.0f, 1.0f);
-        selectionBoxBorderColor = glm::vec4({0.3, 0.3, 8.0, 1.f});
-        selectionBoxFillColor = glm::vec4({0.3, 0.3, .7, .5f});
-        selectedCompColor = selectedWireColor;
+        // Fixed colors (unchanged except for correction)
+        stateHighColor = glm::vec4(0.6f, 0.8f, 0.4f, 1.00f);         // Greenish
+        stateLowColor = glm::vec4(0.82f, 0.2f, 0.2f, 1.00f);         // Reddish
+        selectedWireColor = glm::vec4(1.0f, 0.64f, 0.0f, 1.0f);      // Orange
+        selectionBoxBorderColor = glm::vec4(0.3f, 0.3f, 0.8f, 1.0f); // Blueish (corrected from 8.0)
+        selectionBoxFillColor = glm::vec4(0.3f, 0.3f, 0.7f, 0.5f);   // Semi-transparent blue
+        selectedCompColor = selectedWireColor;                       // Orange
     }
 } // namespace Bess
