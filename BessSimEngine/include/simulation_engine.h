@@ -53,6 +53,8 @@ namespace Bess::SimEngine {
         bool getDigitalPinState(entt::entity entity, PinType type, int idx);
         ComponentType getComponentType(entt::entity entity);
 
+        friend class SimEngineSerializer;
+
       private:
         entt::registry m_registry;
         std::thread simThread;

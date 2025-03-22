@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_uuid.h"
 #include "component_types.h"
 #include "types.h"
 #include <entt/entt.hpp>
@@ -7,8 +8,16 @@
 #include <vector>
 
 namespace Bess::SimEngine {
+    struct IdComponent {
+        IdComponent() = default;
+        IdComponent(UUID uuid) { this->uuid = uuid; }
+        IdComponent(const IdComponent &) = default;
+        UUID uuid;
+    };
+
     struct GateComponent {
         GateComponent() = default;
+        GateComponent(const GateComponent &) = default;
         GateComponent(ComponentType type, int inputPinsCount, int outputPinsCount, SimDelayMilliSeconds delay) {
             this->type = type;
             this->delay = delay;

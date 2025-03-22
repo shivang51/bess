@@ -11,7 +11,9 @@ set(Header_Files
     "include/types.h"
     "include/bess_uuid.h"
     "include/properties.h"
+    "include/entt_registry_serializer.h"
     "include/simulation_engine.h"
+    "include/simulation_engine_serializer.h"
     "include/component_catalog.h"
     "include/component_definition.h"
     "include/component_types.h"
@@ -20,7 +22,9 @@ source_group("Header Files" FILES ${Header_Files})
 
 set(Source_Files
     "src/simulation_engine.cpp"
+    "src/simulation_engine_serializer.cpp"
     "src/bess_uuid.cpp"
+		"src/entt_registry_serializer.cpp"
     "src/component_catalog.cpp"
     "src/component_definition.cpp"
 )

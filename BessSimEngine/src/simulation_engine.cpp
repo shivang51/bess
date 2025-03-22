@@ -4,7 +4,9 @@
 #include "component_types.h"
 #include "entt/entity/fwd.hpp"
 #include "entt_components.h"
+#include "entt_registry_serializer.h"
 #include "properties.h"
+#include "simulation_engine_serializer.h"
 #include "types.h"
 #include <cassert>
 #include <chrono>
@@ -343,6 +345,7 @@ namespace Bess::SimEngine {
             outputCount = inputCount;
         }
 
+        m_registry.emplace<IdComponent>(ent);
         m_registry.emplace<GateComponent>(ent, type, inputCount, outputCount, def->delay);
         std::cout << "[SimEngine] Added component " << (uint64_t)ent << std::endl;
         scheduleEvent(ent, std::chrono::steady_clock::now() + def->delay);

@@ -1,17 +1,14 @@
 #pragma once
 
-#include "component_catalog.h"
 #include "entt/entity/entity.hpp"
 #include "entt/entity/fwd.hpp"
 #include <cstdint>
-#include <iostream>
 #include <vector>
 #define GLM_ENABLE_EXPERIMENTAL
 #include "ext/vector_float3.hpp"
 #include "ext/vector_float4.hpp"
 #include "fwd.hpp"
 #include "gtx/matrix_decompose.hpp"
-#include <functional>
 #include <glm.hpp>
 #include <string>
 

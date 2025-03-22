@@ -4,6 +4,7 @@
 #include "glad/glad.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "simulation_engine.h"
 #include <cstdint>
 #include <string>
 
@@ -11,6 +12,7 @@
 #include "pages/main_page/main_page_state.h"
 #include "scene/renderer/gl/gl_wrapper.h"
 #include "scene/scene.h"
+#include "simulation_engine_serializer.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/m_widgets.h"
@@ -94,6 +96,12 @@ namespace Bess::UI {
 
     void UIMain::drawProjectExplorer() {
         ImGui::Begin(ProjectExplorerTitle.c_str());
+
+        if (ImGui::Button("Save Sim Engine")) {
+            SimEngine::SimEngineSerializer simEngineSerializer;
+            simEngineSerializer.serializeToPath("simenginestate.json", 4);
+        }
+
         auto &scene = Canvas::Scene::instance();
         auto &registry = scene.getEnttRegistry();
         auto view = registry.view<Canvas::Components::TagComponent>();
