@@ -9,6 +9,7 @@ source_group("External" FILES ${External})
 set(Header_Files
     "include/entt_components.h"
     "include/types.h"
+    "include/bess_uuid.h"
     "include/properties.h"
     "include/simulation_engine.h"
     "include/component_catalog.h"
@@ -19,6 +20,7 @@ source_group("Header Files" FILES ${Header_Files})
 
 set(Source_Files
     "src/simulation_engine.cpp"
+    "src/bess_uuid.cpp"
     "src/component_catalog.cpp"
     "src/component_definition.cpp"
 )

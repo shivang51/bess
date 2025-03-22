@@ -134,7 +134,6 @@ endif()
 ################################################################################
 if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
 	target_include_directories(${PROJECT_NAME} PRIVATE
-			"${CMAKE_CURRENT_SOURCE_DIR}/../external/uuid"
 			"${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui"
 			"${CMAKE_CURRENT_SOURCE_DIR}/../external/freetype/include"
 			"${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui/backends"
@@ -150,7 +149,6 @@ if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
 	)
 
 	target_compile_options(${PROJECT_NAME} PRIVATE
-    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/uuid"
     -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui"
     -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/freetype/include"
     -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui/backends"
