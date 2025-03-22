@@ -52,12 +52,16 @@ namespace Bess::Canvas {
         entt::registry &getEnttRegistry();
         const glm::vec2 &getSize();
 
-        entt::entity createSlotEntity(Components::SlotType type, entt::entity parent, uint idx);
-        entt::entity createSimEntity(entt::entity simEngineEntt, const SimEngine::ComponentDefinition &comp, const glm::vec2 &pos);
-        void deleteEntity(entt::entity ent);
-        void deleteConnection(entt::entity ent);
+        UUID createSlotEntity(Components::SlotType type, const UUID &parent, uint idx);
+        UUID createSimEntity(const UUID &simEngineEntt, const SimEngine::ComponentDefinition &comp, const glm::vec2 &pos);
+
+        void deleteEntity(const UUID &entUuid);
+        void deleteConnection(const UUID &entUuid);
+        entt::entity getEntityWithUuid(const UUID &uuid);
 
       private:
+        const UUID &getUuidOfEntity(entt::entity ent);
+
         void onMouseMove(const glm::vec2 &pos);
         void onLeftMouse(bool isPressed);
         void onRightMouse(bool isPressed);
@@ -89,8 +93,8 @@ namespace Bess::Canvas {
 
       private:
         entt::registry m_registry;
-        entt::entity m_hoveredEntiy;
-        entt::entity m_connectionStartEntity;
+        UUID m_hoveredEntity;
+        UUID m_connectionStartEntity;
         // selection box
         glm::vec2 m_selectionBoxStart;
         glm::vec2 m_selectionBoxEnd;

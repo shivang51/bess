@@ -36,7 +36,7 @@ namespace Bess::Canvas {
 
     glm::vec3 Artist::getSlotPos(const Components::SlotComponent &comp) {
         auto &registry = sceneRef->getEnttRegistry();
-        auto parentEntt = (entt::entity)comp.parentId;
+        auto parentEntt = sceneRef->getEntityWithUuid(comp.parentId);
         auto &pTransform = registry.get<Components::TransformComponent>(parentEntt);
         auto [pPos, _, pScale] = pTransform.decompose();
 
@@ -85,7 +85,7 @@ namespace Bess::Canvas {
         auto compState = SimEngine::SimulationEngine::instance().getComponentState(comp.simEngineEntity);
 
         for (size_t i = 0; i < comp.inputSlots.size(); i++) {
-            auto slot = comp.inputSlots[i];
+            auto slot = sceneRef->getEntityWithUuid(comp.inputSlots[i]);
             auto isHigh = compState.inputStates[i];
             auto &slotComp = registry.get<Components::SlotComponent>(slot);
             auto slotPos = getSlotPos(slotComp);
@@ -95,7 +95,7 @@ namespace Bess::Canvas {
         float labelWidth = (Renderer::getCharRenderSize('Z', componentStyles.slotLabelSize).x * 2.f);
         labeldx += labelWidth;
         for (size_t i = 0; i < comp.outputSlots.size(); i++) {
-            auto slot = comp.outputSlots[i];
+            auto slot = sceneRef->getEntityWithUuid(comp.outputSlots[i]);
             auto isHigh = compState.outputStates[i];
             auto &slotComp = registry.get<Components::SlotComponent>(slot);
             auto slotPos = getSlotPos(slotComp);
@@ -123,7 +123,7 @@ namespace Bess::Canvas {
         auto &registry = sceneRef->getEnttRegistry();
         auto &connectionComponent = registry.get<Components::ConnectionComponent>((entt::entity)id);
         auto &outputSlotComp = registry.get<Components::SlotComponent>(outputEntity);
-        auto &simComp = registry.get<Components::SimulationComponent>((entt::entity)outputSlotComp.parentId);
+        auto &simComp = registry.get<Components::SimulationComponent>(sceneRef->getEntityWithUuid(outputSlotComp.parentId));
 
         auto startPos = Artist::getSlotPos(registry.get<Components::SlotComponent>(inputEntity));
         auto endPos = Artist::getSlotPos(outputSlotComp);
@@ -135,14 +135,15 @@ namespace Bess::Canvas {
 
         auto color = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::stateLowColor;
         color = isSelected ? ViewportTheme::selectedWireColor : color;
-
-        auto connSegComp = registry.get<Components::ConnectionSegmentComponent>(connectionComponent.segmentHead);
-        auto segId = (uint64_t)connectionComponent.segmentHead;
+        auto connSegEntt = sceneRef->getEntityWithUuid(connectionComponent.segmentHead);
+        auto connSegComp = registry.get<Components::ConnectionSegmentComponent>(connSegEntt);
+        auto connSegId = registry.get<Components::IdComponent>(connSegEntt);
+        auto segId = connSegId.uuid;
         auto prevPos = startPos;
 
-        while (connSegComp.next != entt::null) {
-            auto newSegId = (uint64_t)connSegComp.next;
-            connSegComp = registry.get<Components::ConnectionSegmentComponent>(connSegComp.next);
+        while (connSegComp.next != UUID::null) {
+            auto newSegId = connSegComp.next;
+            connSegComp = registry.get<Components::ConnectionSegmentComponent>(sceneRef->getEntityWithUuid(connSegComp.next));
 
             glm::vec3 pos = glm::vec3(connSegComp.pos, prevPos.z);
             if (pos.x == 0.f) {
@@ -155,7 +156,7 @@ namespace Bess::Canvas {
                     pos.x = endPos.x;
             }
 
-            bool isHovered = registry.all_of<Components::HoveredEntityComponent>((entt::entity)segId);
+            bool isHovered = registry.all_of<Components::HoveredEntityComponent>(sceneRef->getEntityWithUuid(segId));
             auto size = isHovered ? 3.0 : 2.f;
             auto offPos = pos;
             auto offSet = (prevPos.y <= pos.y) ? size / 2.f : -size / 2.f;
@@ -168,7 +169,7 @@ namespace Bess::Canvas {
             prevPos = pos;
         }
 
-        bool isHovered = registry.all_of<Components::HoveredEntityComponent>((entt::entity)segId);
+        bool isHovered = registry.all_of<Components::HoveredEntityComponent>(sceneRef->getEntityWithUuid(segId));
         auto size = isHovered ? 3.0 : 2.f;
         auto offSet = (prevPos.y <= endPos.y) ? size / 2.f : -size / 2.f;
         if (std::abs(prevPos.x - endPos.x) <= 0.0001f) { // veritcal
@@ -182,8 +183,9 @@ namespace Bess::Canvas {
         auto &registry = sceneRef->getEnttRegistry();
 
         auto &connComp = registry.get<Components::ConnectionComponent>(entity);
+        auto &idComp = registry.get<Components::IdComponent>(entity);
         bool isSelected = registry.all_of<Components::SelectedComponent>(entity);
-        Artist::drawConnection((uint64_t)entity, connComp.inputSlot, connComp.outputSlot, isSelected);
+        Artist::drawConnection(idComp.uuid, sceneRef->getEntityWithUuid(connComp.inputSlot), sceneRef->getEntityWithUuid(connComp.outputSlot), isSelected);
     }
 
     void Artist::drawOutput(entt::entity entity) {
@@ -193,6 +195,7 @@ namespace Bess::Canvas {
         auto &spriteComp = registry.get<Components::SpriteComponent>(entity);
         auto &tagComp = registry.get<Components::TagComponent>(entity);
         auto &simComp = registry.get<Components::SimulationComponent>(entity);
+        auto &idComp = registry.get<Components::IdComponent>(entity);
 
         uint64_t id = (uint64_t)entity;
         auto [pos, rotation, scale] = transformComp.decompose();
@@ -221,6 +224,7 @@ namespace Bess::Canvas {
         auto &spriteComp = registry.get<Components::SpriteComponent>(entity);
         auto &tagComp = registry.get<Components::TagComponent>(entity);
         auto &simComp = registry.get<Components::SimulationComponent>(entity);
+        auto &idComp = registry.get<Components::IdComponent>(entity);
 
         uint64_t id = (uint64_t)entity;
         auto [pos, rotation, scale] = transformComp.decompose();

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_uuid.h"
 #include "entt/entity/entity.hpp"
 #include "entt/entity/fwd.hpp"
 #include <cstdint>
@@ -13,6 +14,13 @@
 #include <string>
 
 namespace Bess::Canvas::Components {
+    struct IdComponent {
+        IdComponent() = default;
+        IdComponent(UUID uuid) { this->uuid = uuid; }
+        IdComponent(const IdComponent &) = default;
+        UUID uuid;
+    };
+
     class TransformComponent {
       public:
         TransformComponent() = default;
@@ -82,14 +90,13 @@ namespace Bess::Canvas::Components {
         TagComponent(TagComponent &other) = default;
 
         std::string name = "";
-        uint64_t id = 0;
     };
 
     class SelectedComponent {
       public:
         SelectedComponent() = default;
         SelectedComponent(SelectedComponent &other) = default;
-        uint64_t id = 0;
+        entt::entity id = entt::null;
     };
 
     enum class SlotType {
@@ -101,7 +108,7 @@ namespace Bess::Canvas::Components {
       public:
         SlotComponent() = default;
         SlotComponent(SlotComponent &other) = default;
-        uint64_t parentId = 0;
+        UUID parentId = 0;
         uint idx = 0;
         SlotType slotType = SlotType::digitalInput;
     };
@@ -110,9 +117,9 @@ namespace Bess::Canvas::Components {
       public:
         SimulationComponent() = default;
         SimulationComponent(SimulationComponent &other) = default;
-        entt::entity simEngineEntity = entt::null_t(); // this should be mapped to entity in simulator, will be used to fetch state from simulator
-        std::vector<entt::entity> inputSlots = {};
-        std::vector<entt::entity> outputSlots = {};
+        UUID simEngineEntity = UUID::null; // this should be mapped to entity in simulator, will be used to fetch state from simulator
+        std::vector<UUID> inputSlots = {};
+        std::vector<UUID> outputSlots = {};
     };
 
     class ConnectionSegmentComponent {
@@ -121,18 +128,17 @@ namespace Bess::Canvas::Components {
         ConnectionSegmentComponent(ConnectionSegmentComponent &other) = default;
 
         bool isHead() {
-            return prev == entt::null;
+            return prev == UUID::null;
         }
 
         bool isTail() {
-            return next == entt::null;
+            return next == UUID::null;
         }
 
         glm::vec2 pos = {};
-        entt::entity parent = entt::null;
-
-        entt::entity prev = entt::null;
-        entt::entity next = entt::null;
+        UUID parent = UUID::null;
+        UUID prev = UUID::null;
+        UUID next = UUID::null;
     };
 
     class ConnectionComponent {
@@ -140,10 +146,10 @@ namespace Bess::Canvas::Components {
         ConnectionComponent() = default;
         ConnectionComponent(ConnectionComponent &other) = default;
 
-        entt::entity inputSlot;
-        entt::entity outputSlot;
+        UUID inputSlot;
+        UUID outputSlot;
 
-        entt::entity segmentHead = entt::null;
+        UUID segmentHead = UUID::null;
     };
 
     class HoveredEntityComponent {

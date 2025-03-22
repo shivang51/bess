@@ -58,17 +58,17 @@ namespace Bess::SimEngine {
             gateComp.delay = SimDelayMilliSeconds(j["GateComponent"]["delay"].get<long long>());
 
             for (const auto &inputJson : j["GateComponent"]["inputPins"]) {
-                std::vector<std::pair<entt::entity, int>> inputVec;
+                std::vector<std::pair<UUID, int>> inputVec;
                 for (const auto &input : inputJson) {
-                    inputVec.emplace_back(static_cast<entt::entity>(input["entity"].get<uint32_t>()), input["index"].get<int>());
+                    inputVec.emplace_back(static_cast<UUID>(input["entity"].get<uint64_t>()), input["index"].get<int>());
                 }
                 gateComp.inputPins.push_back(inputVec);
             }
 
             for (const auto &outputJson : j["GateComponent"]["outputPins"]) {
-                std::vector<std::pair<entt::entity, int>> outputVec;
+                std::vector<std::pair<UUID, int>> outputVec;
                 for (const auto &output : outputJson) {
-                    outputVec.emplace_back(static_cast<entt::entity>(output["entity"].get<uint32_t>()), output["index"].get<int>());
+                    outputVec.emplace_back(static_cast<UUID>(output["entity"].get<uint32_t>()), output["index"].get<int>());
                 }
                 gateComp.outputPins.push_back(outputVec);
             }

@@ -6,6 +6,8 @@
 namespace Bess {
     class UUID {
       public:
+        static UUID null;
+
         UUID();
         UUID(uint64_t id);
         UUID(const UUID &) = default;

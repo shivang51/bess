@@ -21,15 +21,15 @@ namespace Bess::SimEngine {
         GateComponent(ComponentType type, int inputPinsCount, int outputPinsCount, SimDelayMilliSeconds delay) {
             this->type = type;
             this->delay = delay;
-            this->inputPins = std::vector<std::vector<std::pair<entt::entity, int>>>(inputPinsCount, std::vector<std::pair<entt::entity, int>>());
-            this->outputPins = std::vector<std::vector<std::pair<entt::entity, int>>>(outputPinsCount, std::vector<std::pair<entt::entity, int>>());
+            this->inputPins = std::vector<std::vector<std::pair<UUID, int>>>(inputPinsCount, std::vector<std::pair<UUID, int>>());
+            this->outputPins = std::vector<std::vector<std::pair<UUID, int>>>(outputPinsCount, std::vector<std::pair<UUID, int>>());
             this->outputStates = std::vector<bool>(outputPinsCount, false);
         }
 
         ComponentType type;
         SimDelayMilliSeconds delay;
-        std::vector<std::vector<std::pair<entt::entity, int>>> inputPins;
-        std::vector<std::vector<std::pair<entt::entity, int>>> outputPins;
+        std::vector<std::vector<std::pair<UUID, int>>> inputPins;
+        std::vector<std::vector<std::pair<UUID, int>>> outputPins;
         std::vector<bool> outputStates;
     };
 } // namespace Bess::SimEngine

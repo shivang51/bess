@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_uuid.h"
 #include "component_types.h"
 #include "entt/entity/fwd.hpp"
 #include <chrono>
@@ -43,15 +44,15 @@ namespace Bess::SimEngine {
         void scheduleEvent(entt::entity entity, std::chrono::steady_clock::time_point time);
         bool simulateComponent(entt::entity e);
 
-        entt::entity addComponent(ComponentType type, int inputCount = -1, int outputCount = -1);
-        ComponentState getComponentState(entt::entity entity);
-        bool connectComponent(entt::entity src, int srcPin, PinType srcPinType, entt::entity dst, int dstPin, PinType dstPinType);
-        void deleteComponent(entt::entity component);
-        void deleteConnection(entt::entity componentA, PinType pinAType, int idx, entt::entity componentB, PinType pinBType, int idxB);
+        const UUID &addComponent(ComponentType type, int inputCount = -1, int outputCount = -1);
+        ComponentState getComponentState(const UUID &entity);
+        bool connectComponent(const UUID &src, int srcPin, PinType srcPinType, const UUID &dst, int dstPin, PinType dstPinType);
+        void deleteComponent(const UUID &component);
+        void deleteConnection(const UUID &componentA, PinType pinAType, int idx, const UUID &componentB, PinType pinBType, int idxB);
 
-        void setDigitalInput(entt::entity entity, bool value);
-        bool getDigitalPinState(entt::entity entity, PinType type, int idx);
-        ComponentType getComponentType(entt::entity entity);
+        void setDigitalInput(const UUID &entity, bool value);
+        bool getDigitalPinState(const UUID &entity, PinType type, int idx);
+        ComponentType getComponentType(const UUID &entity);
 
         friend class SimEngineSerializer;
 
@@ -62,6 +63,8 @@ namespace Bess::SimEngine {
         std::condition_variable cv;
         bool stopFlag;
         std::priority_queue<SimulationEvent> eventQueue;
+        entt::entity getEntityWithUuid(const UUID &uuid);
+        const UUID &getUuidOfEntity(entt::entity ent);
 
         // Main simulation loop.
         void run();
