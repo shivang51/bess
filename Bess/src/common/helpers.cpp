@@ -38,35 +38,6 @@ namespace Bess::Common {
         return static_cast<SimEngine::ComponentType>(type);
     }
 
-    std::string Helpers::uuidToStr(const uuids::uuid &uid) {
-        return uuids::to_string(uid);
-    }
-
-    uuids::uuid Helpers::strToUUID(const std::string &uuid) {
-        return uuids::uuid::from_string(uuid).value();
-    }
-
-    Helpers::UUIDGenerator Helpers::uuidGenerator = Helpers::UUIDGenerator();
-
-    Helpers::UUIDGenerator::UUIDGenerator() {
-        std::random_device rd;
-        auto seed_data = std::array<int, std::mt19937::state_size>{};
-        std::generate(std::begin(seed_data), std::end(seed_data), std::ref(rd));
-        std::seed_seq seq(std::begin(seed_data), std::end(seed_data));
-        std::mt19937 generator(seq);
-        m_gen = uuids::uuid_random_generator{generator};
-    }
-
-    uuids::uuid Helpers::UUIDGenerator::getUUID() {
-        std::random_device rd;
-        auto seed_data = std::array<int, std::mt19937::state_size>{};
-        std::generate(std::begin(seed_data), std::end(seed_data), std::ref(rd));
-        std::seed_seq seq(std::begin(seed_data), std::end(seed_data));
-        std::mt19937 generator(seq);
-        uuids::uuid_random_generator gen{generator};
-        return gen();
-    }
-
     float Helpers::calculateTextWidth(const std::string &text, float fontSize) {
         float w = 0.f;
         for (auto &ch_ : text) {
