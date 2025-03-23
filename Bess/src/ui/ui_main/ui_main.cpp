@@ -97,11 +97,6 @@ namespace Bess::UI {
     void UIMain::drawProjectExplorer() {
         ImGui::Begin(ProjectExplorerTitle.c_str());
 
-        if (ImGui::Button("Save Sim Engine")) {
-            SimEngine::SimEngineSerializer simEngineSerializer;
-            simEngineSerializer.serializeToPath("simenginestate.json", 4);
-        }
-
         auto &scene = Canvas::Scene::instance();
         auto &registry = scene.getEnttRegistry();
         auto view = registry.view<Canvas::Components::TagComponent>();
