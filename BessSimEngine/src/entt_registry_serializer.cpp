@@ -29,7 +29,7 @@ namespace Bess {
     }
 
     void EnttRegistrySerializer::deserialize(entt::registry &registry, const std::string &json) {
-        nlohmann::json jsonData = json;
+        nlohmann::json jsonData = nlohmann::json::parse(json);
         for (const auto &j : jsonData["entities"]) {
             deserializeEntity(registry, j);
         }

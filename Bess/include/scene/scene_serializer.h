@@ -2,7 +2,7 @@
 
 #include "entt_registry_serializer.h"
 
-namespace Bess::SimEngine {
+namespace Bess {
     class SceneSerializer : EnttRegistrySerializer {
       public:
         SceneSerializer() = default;
@@ -10,7 +10,10 @@ namespace Bess::SimEngine {
         void serializeToPath(const std::string &path, int indent = -1);
         std::string serialize(int indent = -1);
 
+        void deserializeFromPath(const std::string &path);
+        void deserialize(const std::string &json);
+
         nlohmann::json serializeEntity(entt::registry &registry, entt::entity entity) override;
         void deserializeEntity(entt::registry &registry, const nlohmann::json &j) override;
     };
-} // namespace Bess::SimEngine
+} // namespace Bess
