@@ -9,7 +9,9 @@ namespace Bess::SimEngine {
     }
 
     void SimEngineSerializer::deserializeFromPath(const std::string &path) {
-        EnttRegistrySerializer::deserializeFromPath(SimEngine::SimulationEngine::instance().m_registry, path);
+        auto &registry = SimEngine::SimulationEngine::instance().m_registry;
+        registry.clear();
+        EnttRegistrySerializer::deserializeFromPath(registry, path);
     }
 
     std::string SimEngineSerializer::serialize(int indent) {
@@ -17,7 +19,9 @@ namespace Bess::SimEngine {
     }
 
     void SimEngineSerializer::deserialize(const std::string &json) {
-        EnttRegistrySerializer::deserialize(SimEngine::SimulationEngine::instance().m_registry, json);
+        auto &registry = SimEngine::SimulationEngine::instance().m_registry;
+        registry.clear();
+        EnttRegistrySerializer::deserialize(registry, json);
     }
 
     nlohmann::json SimEngineSerializer::serializeEntity(entt::registry &registry, entt::entity entity) {
@@ -56,7 +60,7 @@ namespace Bess::SimEngine {
     void SimEngineSerializer::deserializeEntity(entt::registry &registry, const nlohmann::json &j) {
         entt::entity entity = registry.create();
 
-        std::cout << "Creating entity " << (uint64_t)entity;
+        std::cout << "[SimEngine] Creating entity " << (uint64_t)entity;
 
         if (j.contains("IdComponent")) {
             auto &idComp = registry.emplace<IdComponent>(entity);
