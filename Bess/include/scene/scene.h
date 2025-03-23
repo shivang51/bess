@@ -58,6 +58,7 @@ namespace Bess::Canvas {
         void deleteEntity(const UUID &entUuid);
         void deleteConnection(const UUID &entUuid);
         entt::entity getEntityWithUuid(const UUID &uuid);
+        bool isEntityValid(const UUID &uuid);
 
       private:
         const UUID &getUuidOfEntity(entt::entity ent);

@@ -444,8 +444,8 @@ namespace Bess::Canvas {
         auto connEntt = m_registry.create();
         auto &idComp = m_registry.emplace<Components::IdComponent>(connEntt);
         auto &connComp = m_registry.emplace<Components::ConnectionComponent>(connEntt);
-        connComp.inputSlot = idComp.uuid;
-        connComp.outputSlot = idComp.uuid;
+        connComp.inputSlot = getUuidOfEntity(inputSlot);
+        connComp.outputSlot = getUuidOfEntity(outputSlot);
 
         auto connSeg1 = m_registry.create();
         auto connSeg2 = m_registry.create();
@@ -502,25 +502,30 @@ namespace Bess::Canvas {
         }
     }
 
+    bool Scene::isEntityValid(const UUID &uuid) {
+        return uuid != UUID::null && m_registry.valid(getEntityWithUuid(uuid));
+    }
+
     void Scene::onRightMouse(bool isPressed) {
         if (!isPressed) {
             return;
         }
 
-        /*if (!m_registry.valid(m_hoveredEntity) && m_lastCreatedComp.componentDefinition != nullptr) {*/
-        /*    auto simEntt = SimEngine::SimulationEngine::instance().addComponent(m_lastCreatedComp.componentDefinition->type,*/
-        /*                                                                        m_lastCreatedComp.inputCount,*/
-        /*                                                                        m_lastCreatedComp.outputCount);*/
-        /*    createSimEntity(simEntt, *m_lastCreatedComp.componentDefinition, getNVPMousePos(m_mousePos));*/
-        /*}*/
-        /**/
-        /*if (m_registry.valid(m_hoveredEntity)) {*/
-        /*    if (m_registry.all_of<Components::SimulationInputComponent>(m_hoveredEntity)) {*/
-        /*        auto &simComp = m_registry.get<Components::SimulationComponent>(m_hoveredEntity);*/
-        /*        bool currentState = SimEngine::SimulationEngine::instance().getDigitalPinState(simComp.simEngineEntity, SimEngine::PinType::output, 0);*/
-        /*        SimEngine::SimulationEngine::instance().setDigitalInput(simComp.simEngineEntity, !currentState);*/
-        /*    }*/
-        /*}*/
+        if (!isEntityValid(m_hoveredEntity) && m_lastCreatedComp.componentDefinition != nullptr) {
+            auto simEntt = SimEngine::SimulationEngine::instance().addComponent(m_lastCreatedComp.componentDefinition->type,
+                                                                                m_lastCreatedComp.inputCount,
+                                                                                m_lastCreatedComp.outputCount);
+            createSimEntity(simEntt, *m_lastCreatedComp.componentDefinition, getNVPMousePos(m_mousePos));
+        }
+
+        if (isEntityValid(m_hoveredEntity)) {
+            auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
+            if (m_registry.all_of<Components::SimulationInputComponent>(hoveredEntity)) {
+                auto &simComp = m_registry.get<Components::SimulationComponent>(hoveredEntity);
+                bool currentState = SimEngine::SimulationEngine::instance().getDigitalPinState(simComp.simEngineEntity, SimEngine::PinType::output, 0);
+                SimEngine::SimulationEngine::instance().setDigitalInput(simComp.simEngineEntity, !currentState);
+            }
+        }
     }
 
     void Scene::onLeftMouse(bool isPressed) {

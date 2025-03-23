@@ -119,9 +119,9 @@ namespace Bess::Canvas {
         Renderer::drawPath(points, 2.f, ViewportTheme::wireColor, -1);
     }
 
-    void Artist::drawConnection(uint64_t id, entt::entity inputEntity, entt::entity outputEntity, bool isSelected) {
+    void Artist::drawConnection(const UUID &id, entt::entity inputEntity, entt::entity outputEntity, bool isSelected) {
         auto &registry = sceneRef->getEnttRegistry();
-        auto &connectionComponent = registry.get<Components::ConnectionComponent>((entt::entity)id);
+        auto &connectionComponent = registry.get<Components::ConnectionComponent>(sceneRef->getEntityWithUuid(id));
         auto &outputSlotComp = registry.get<Components::SlotComponent>(outputEntity);
         auto &simComp = registry.get<Components::SimulationComponent>(sceneRef->getEntityWithUuid(outputSlotComp.parentId));
 
@@ -137,13 +137,13 @@ namespace Bess::Canvas {
         color = isSelected ? ViewportTheme::selectedWireColor : color;
         auto connSegEntt = sceneRef->getEntityWithUuid(connectionComponent.segmentHead);
         auto connSegComp = registry.get<Components::ConnectionSegmentComponent>(connSegEntt);
-        auto connSegId = registry.get<Components::IdComponent>(connSegEntt);
-        auto segId = connSegId.uuid;
+        auto segId = connectionComponent.segmentHead;
         auto prevPos = startPos;
 
         while (connSegComp.next != UUID::null) {
             auto newSegId = connSegComp.next;
-            connSegComp = registry.get<Components::ConnectionSegmentComponent>(sceneRef->getEntityWithUuid(connSegComp.next));
+            auto newSegEntt = sceneRef->getEntityWithUuid(connSegComp.next);
+            connSegComp = registry.get<Components::ConnectionSegmentComponent>(newSegEntt);
 
             glm::vec3 pos = glm::vec3(connSegComp.pos, prevPos.z);
             if (pos.x == 0.f) {
@@ -156,7 +156,8 @@ namespace Bess::Canvas {
                     pos.x = endPos.x;
             }
 
-            bool isHovered = registry.all_of<Components::HoveredEntityComponent>(sceneRef->getEntityWithUuid(segId));
+            auto segEntt = sceneRef->getEntityWithUuid(segId);
+            bool isHovered = registry.all_of<Components::HoveredEntityComponent>(segEntt);
             auto size = isHovered ? 3.0 : 2.f;
             auto offPos = pos;
             auto offSet = (prevPos.y <= pos.y) ? size / 2.f : -size / 2.f;
@@ -164,19 +165,20 @@ namespace Bess::Canvas {
                 offPos.y += offSet;
                 prevPos.y -= offSet;
             }
-            Renderer::line(prevPos, offPos, size, color, segId);
+            Renderer::line(prevPos, offPos, size, color, (uint64_t)segEntt);
             segId = newSegId;
             prevPos = pos;
         }
 
-        bool isHovered = registry.all_of<Components::HoveredEntityComponent>(sceneRef->getEntityWithUuid(segId));
+        auto segEntt = sceneRef->getEntityWithUuid(segId);
+        bool isHovered = registry.all_of<Components::HoveredEntityComponent>(segEntt);
         auto size = isHovered ? 3.0 : 2.f;
         auto offSet = (prevPos.y <= endPos.y) ? size / 2.f : -size / 2.f;
         if (std::abs(prevPos.x - endPos.x) <= 0.0001f) { // veritcal
             endPos.y += offSet;
             prevPos.y -= offSet;
         }
-        Renderer::line(prevPos, endPos, size, color, segId);
+        Renderer::line(prevPos, endPos, size, color, (uint64_t)segEntt);
     }
 
     void Artist::drawConnectionEntity(entt::entity entity) {
