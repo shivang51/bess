@@ -145,8 +145,7 @@ namespace Bess::UI {
             temp_name = Icons::FontAwesomeIcons::FA_SAVE;
             temp_name += "   Save";
             if (ImGui::MenuItem(temp_name.c_str(), "Ctrl+S")) {
-                // m_pageState->getCurrentProjectFile()->update(Simulator::ComponentsManager::components);
-                // m_pageState->getCurrentProjectFile()->save();
+                m_pageState->getCurrentProjectFile()->save();
             };
 
             ImGui::Spacing();
@@ -201,15 +200,13 @@ namespace Bess::UI {
 
         auto menubar_size = ImGui::GetWindowSize();
 
-        static std::string projectName = "*New Project";
-
         ImGui::SameLine(menubar_size.x / 2.f); // Align to the right side
         ImGui::SetCursorPosY(menubar_size.y / 2.f - (ImGui::GetFontSize() / 2.f) - 4.f);
         ImGui::PushItemWidth(150);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 4.f));
         auto colors = ImGui::GetStyle().Colors;
         ImGui::PushStyleColor(ImGuiCol_FrameBg, colors[ImGuiCol_WindowBg]);
-        MWidgets::TextBox("", projectName, "Project Name");
+        MWidgets::TextBox("", Pages::MainPageState::getInstance()->getCurrentProjectFile()->getNameRef(), "Project Name");
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
         ImGui::PopItemWidth();

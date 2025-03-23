@@ -14,11 +14,11 @@ namespace Bess::SimEngine {
         EnttRegistrySerializer::deserializeFromPath(registry, path);
     }
 
-    std::string SimEngineSerializer::serialize(int indent) {
-        return EnttRegistrySerializer::serialize(SimEngine::SimulationEngine::instance().m_registry, indent);
+    nlohmann::json SimEngineSerializer::serialize() {
+        return EnttRegistrySerializer::serialize(SimEngine::SimulationEngine::instance().m_registry);
     }
 
-    void SimEngineSerializer::deserialize(const std::string &json) {
+    void SimEngineSerializer::deserialize(const nlohmann::json &json) {
         auto &registry = SimEngine::SimulationEngine::instance().m_registry;
         registry.clear();
         EnttRegistrySerializer::deserialize(registry, json);

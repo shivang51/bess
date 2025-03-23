@@ -31,10 +31,11 @@ namespace Bess::UI {
         ImGui::SameLine();
 
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() - verticalOffset);
-        if (ImGui::Button("Browse")) {
+        if (m_projectFile->getPath() == "" && ImGui::Button("Browse")) {
         }
 
         if (ImGui::Button("Save")) {
+            m_projectFile->getNameRef() = m_projectName;
             m_projectFile->save();
         }
         ImGui::End();

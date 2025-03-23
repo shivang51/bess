@@ -1,12 +1,12 @@
 #include "project_file.h"
 #include "json.hpp"
 
+#include "scene/scene_serializer.h"
+#include "simulation_engine_serializer.h"
 #include "ui/ui_main/dialogs.h"
 
 #include <fstream>
 #include <iostream>
-
-// #include "components/connection_point.h"
 
 namespace Bess {
     ProjectFile::ProjectFile() {
@@ -19,15 +19,13 @@ namespace Bess {
         m_path = path;
         decode();
         m_saved = true;
+        std::cout << "[Bess] Project Loaded Successfully" << path << std::endl;
     }
 
     ProjectFile::~ProjectFile() {
     }
 
     void ProjectFile::save() {
-        if (m_saved)
-            return;
-
         if (m_path == "") {
             browsePath();
             if (m_path == "")
@@ -40,10 +38,6 @@ namespace Bess {
         o << std::setw(4) << data << std::endl;
         m_saved = true;
     }
-
-    // void ProjectFile::update(const Simulator::TComponents components) {
-    //     m_saved = false;
-    // }
 
     const std::string &ProjectFile::getName() const {
         return m_name;
@@ -71,84 +65,26 @@ namespace Bess {
 
     nlohmann::json ProjectFile::encode() {
         nlohmann::json data;
-        //     data["name"] = m_name;
-        //     for (auto &kvp : Simulator::ComponentsManager::components) {
-        //         auto ent = kvp.second;
-        //         switch (ent->getType()) {
-        //         case Bess::Simulator::ComponentType::inputProbe: {
-        //             auto comp = (Bess::Simulator::Components::InputProbe *)ent.get();
-        //             data["components"].emplace_back(comp->toJson());
-        //         } break;
-        //         case Bess::Simulator::ComponentType::outputProbe: {
-        //             auto comp = (Bess::Simulator::Components::OutputProbe *)ent.get();
-        //             data["components"].emplace_back(comp->toJson());
-        //         } break;
-        //         case Bess::Simulator::ComponentType::jcomponent: {
-        //
-        //             auto comp = (Bess::Simulator::Components::JComponent *)ent.get();
-        //             data["components"].emplace_back(comp->toJson());
-        //         } break;
-        //         case Bess::Simulator::ComponentType::text: {
-        //
-        //             auto comp = (Bess::Simulator::Components::TextComponent *)ent.get();
-        //             data["components"].emplace_back(comp->toJson());
-        //         } break;
-        //         case Bess::Simulator::ComponentType::clock: {
-        //             auto comp = (Bess::Simulator::Components::Clock *)ent.get();
-        //             data["components"].emplace_back(comp->toJson());
-        //         } break;
-        //         case Bess::Simulator::ComponentType::flipFlop: {
-        //             auto comp = (Bess::Simulator::Components::FlipFlop *)ent.get();
-        //             data["components"].emplace_back(comp->toJson());
-        //         } break;
-        //         case Bess::Simulator::ComponentType::connectionPoint: {
-        //             auto comp = (Bess::Simulator::Components::ConnectionPoint *)ent.get();
-        //             data["connectionPoints"].emplace_back(comp->toJson());
-        //         }
-        //         default:
-        //             break;
-        //         }
-        //     }
-        //
+        data["name"] = m_name;
+        data["version"] = "<dev>";
+        data["scene_data"] = SceneSerializer().serialize();
+        data["sim_engine_data"] = SimEngine::SimEngineSerializer().serialize();
         return data;
     }
 
     void ProjectFile::decode() {
-        //     std::ifstream file(m_path);
-        //     nlohmann::json data = nlohmann::json::parse(file);
-        //     m_name = data["name"];
-        //     auto &components = data["components"];
-        //
-        //     for (auto &comp : components) {
-        //         auto compType = Common::Helpers::intToCompType(comp["type"]);
-        //
-        //         switch (compType) {
-        //         case Bess::Simulator::ComponentType::inputProbe:
-        //             Simulator::Components::InputProbe::fromJson(comp);
-        //             break;
-        //         case Bess::Simulator::ComponentType::outputProbe:
-        //             Simulator::Components::OutputProbe::fromJson(comp);
-        //             break;
-        //         case Bess::Simulator::ComponentType::jcomponent:
-        //             Simulator::Components::JComponent::fromJson(comp);
-        //             break;
-        //         case Bess::Simulator::ComponentType::text:
-        //             Simulator::Components::TextComponent::fromJson(comp);
-        //             break;
-        //         case Bess::Simulator::ComponentType::clock:
-        //             Simulator::Components::Clock::fromJson(comp);
-        //             break;
-        //         case Bess::Simulator::ComponentType::flipFlop:
-        //             Simulator::Components::FlipFlop::fromJson(comp);
-        //             break;
-        //         default:
-        //             break;
-        //         }
-        //     }
-        //
-        //     for (auto &comp : data["connectionPoints"]) {
-        //         Simulator::Components::ConnectionPoint::fromJson(comp);
-        //     }
+        std::ifstream inFile(m_path);
+        if (!inFile.is_open()) {
+            std::cerr << "Failed to open file for reading: " << m_path << std::endl;
+            return;
+        }
+        nlohmann::json data;
+        inFile >> data;
+
+        m_name = data["name"];
+
+        SimEngine::SimEngineSerializer().deserialize(data["sim_engine_data"]);
+        SceneSerializer().deserialize(data["scene_data"]);
     }
 
     void ProjectFile::browsePath() {

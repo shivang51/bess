@@ -6,31 +6,30 @@
 using namespace Bess::SimEngine;
 
 namespace Bess {
-    std::string EnttRegistrySerializer::serialize(const entt::registry &registry, int indent) {
+    nlohmann::json EnttRegistrySerializer::serialize(const entt::registry &registry) {
         nlohmann::json jsonData;
 
         for (auto entity : registry.view<entt::entity>()) {
             jsonData["entities"].push_back(serializeEntity(const_cast<entt::registry &>(registry), entity));
         };
 
-        return jsonData.dump(indent);
+        return jsonData;
     }
 
     void EnttRegistrySerializer::serializeToPath(const entt::registry &registry, const std::string &filename, int indent) {
-        auto serializedData = serialize(registry, indent);
+        auto serializedData = serialize(registry);
 
         std::ofstream outFile(filename, std::ios::out);
         if (outFile.is_open()) {
-            outFile << serializedData;
+            outFile << serializedData.dump(indent);
             outFile.close();
         } else {
             std::cerr << "Failed to open file for writing: " << filename << std::endl;
         }
     }
 
-    void EnttRegistrySerializer::deserialize(entt::registry &registry, const std::string &json) {
-        nlohmann::json jsonData = nlohmann::json::parse(json);
-        for (const auto &j : jsonData["entities"]) {
+    void EnttRegistrySerializer::deserialize(entt::registry &registry, const nlohmann::json &json) {
+        for (const auto &j : json["entities"]) {
             deserializeEntity(registry, j);
         }
     }
@@ -41,8 +40,8 @@ namespace Bess {
             std::cerr << "Failed to open file for reading: " << filename << std::endl;
             return;
         }
-        std::stringstream buffer;
-        buffer << inFile.rdbuf();
-        deserialize(registry, buffer.str());
+        nlohmann::json data;
+        inFile >> data;
+        deserialize(registry, data);
     }
 } // namespace Bess

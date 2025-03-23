@@ -16,11 +16,11 @@ namespace Bess {
         EnttRegistrySerializer::deserializeFromPath(reg, path);
     }
 
-    std::string SceneSerializer::serialize(int indent) {
-        return EnttRegistrySerializer::serialize(Canvas::Scene::instance().getEnttRegistry(), indent);
+    nlohmann::json SceneSerializer::serialize() {
+        return EnttRegistrySerializer::serialize(Canvas::Scene::instance().getEnttRegistry());
     }
 
-    void SceneSerializer::deserialize(const std::string &json) {
+    void SceneSerializer::deserialize(const nlohmann::json &json) {
         auto &reg = Canvas::Scene::instance().getEnttRegistry();
         reg.clear();
         EnttRegistrySerializer::deserialize(reg, json);
