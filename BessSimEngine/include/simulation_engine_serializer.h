@@ -15,5 +15,8 @@ namespace Bess::SimEngine {
 
         nlohmann::json serializeEntity(entt::registry &registry, entt::entity entity) override;
         void deserializeEntity(entt::registry &registry, const nlohmann::json &j) override;
+
+      private:
+        void simulateClockedComponents();
     };
 } // namespace Bess::SimEngine

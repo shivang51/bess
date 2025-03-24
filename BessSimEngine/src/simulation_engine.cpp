@@ -246,6 +246,9 @@ namespace Bess::SimEngine {
 
     void SimulationEngine::setDigitalInput(const UUID &entityUuid, bool value) {
         auto entity = getEntityWithUuid(entityUuid);
+        bool isClocked = m_registry.all_of<ClockComponent>(entity);
+        if (isClocked)
+            return;
         auto &gateComp = m_registry.get<GateComponent>(entity);
         assert(gateComp.type == ComponentType::INPUT);
 
@@ -286,6 +289,30 @@ namespace Bess::SimEngine {
         return states;
     }
 
+    bool SimulationEngine::updateClock(const UUID &uuid, bool shouldClock, float frequency, FrequencyUnit unit) {
+        auto entt = getEntityWithUuid(uuid);
+        assert(m_registry.valid(entt));
+        bool hasClockComp = m_registry.all_of<ClockComponent>(entt);
+        bool changed = false;
+        if (shouldClock) {
+            std::cout << "[SimEngine] Adding or Updating Clock" << std::endl;
+            ClockComponent &clockComp = m_registry.get_or_emplace<ClockComponent>(entt);
+            changed = !hasClockComp || frequency != clockComp.frequency || clockComp.frequencyUnit != unit;
+            clockComp.frequency = frequency;
+            clockComp.frequencyUnit = unit;
+        } else if (hasClockComp) {
+            std::cout << "[SimEngine] Removing Clock" << std::endl;
+            m_registry.remove<ClockComponent>(entt);
+            changed = true;
+        }
+
+        if (changed) {
+            clearEventsForEntity(entt);
+            scheduleEvent(entt, std::chrono::steady_clock::now());
+        }
+        return changed;
+    }
+
     ComponentType SimulationEngine::getComponentType(const UUID &entityUuid) {
         auto entity = getEntityWithUuid(entityUuid);
         assert(m_registry.valid(entity));
@@ -302,6 +329,27 @@ namespace Bess::SimEngine {
             return val;
         }
         return false;
+    }
+
+    void SimulationEngine::clearEventsForEntity(entt::entity entity) {
+        std::lock_guard<std::mutex> lock(queueMutex);
+
+        std::vector<SimulationEvent> remainingEvents;
+
+        while (!eventQueue.empty()) {
+            const SimulationEvent ev = eventQueue.top();
+            eventQueue.pop();
+            if (ev.entity != entity) {
+                remainingEvents.push_back(ev);
+            }
+        }
+
+        for (const auto &ev : remainingEvents) {
+            eventQueue.push(ev);
+        }
+
+        std::cout << "[SimEngine] Removed all events for entity "
+                  << static_cast<uint32_t>(entity) << std::endl;
     }
 
     void SimulationEngine::run() {
@@ -328,6 +376,7 @@ namespace Bess::SimEngine {
                     std::lock_guard<std::mutex> regLock(registryMutex);
                     if (!m_registry.valid(nextEvent.entity))
                         continue;
+                    bool hasClockComp = m_registry.all_of<ClockComponent>(nextEvent.entity);
                     bool changed = simulateComponent(nextEvent.entity);
                     // If state changed, schedule simulation events for all connected gates.
                     if (changed) {
@@ -343,6 +392,30 @@ namespace Bess::SimEngine {
                             }
                         }
                     }
+
+                    if (hasClockComp) {
+                        auto &comp = m_registry.get<ClockComponent>(nextEvent.entity);
+                        auto time = comp.getTimeInMS();
+
+                        auto &gateComp = m_registry.get<GateComponent>(nextEvent.entity);
+                        assert(gateComp.type == ComponentType::INPUT);
+
+                        bool isHigh = gateComp.outputStates[0];
+                        gateComp.outputStates[0] = !isHigh;
+
+                        float dutyTime = comp.dutyCycle;
+
+                        if (!isHigh)
+                            dutyTime = 1.f - dutyTime;
+
+                        auto changeTime = (int)(time.count() * dutyTime);
+                        time = SimDelayMilliSeconds(changeTime);
+
+                        auto scheduledTime = std::chrono::steady_clock::now() + time;
+                        scheduleEvent(nextEvent.entity, scheduledTime);
+                    }
+
+                    /*std::cout << "[SimEngine] Sim Queue Size " << eventQueue.size() << std::endl;*/
                 }
             } else {
                 cv.wait_until(lock, nextEvent.time);

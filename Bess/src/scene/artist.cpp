@@ -226,6 +226,7 @@ namespace Bess::Canvas {
         auto &spriteComp = registry.get<Components::SpriteComponent>(entity);
         auto &tagComp = registry.get<Components::TagComponent>(entity);
         auto &simComp = registry.get<Components::SimulationComponent>(entity);
+        auto &simInComp = registry.get<Components::SimulationInputComponent>(entity);
         auto &idComp = registry.get<Components::IdComponent>(entity);
 
         uint64_t id = (uint64_t)entity;
@@ -243,7 +244,12 @@ namespace Bess::Canvas {
 
         float yOff = componentStyles.headerFontSize / 2.f - 2.f;
         glm::vec3 textPos = glm::vec3(pos.x - scale.x / 2.f + componentStyles.paddingX, pos.y + yOff, pos.z + 0.0005f);
-        Renderer::text(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id);
+
+        auto name = tagComp.name;
+        if (simInComp.clockBhaviour) {
+            name = "¤ " + name;
+        }
+        Renderer::text(name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id);
         drawSlots(simComp, pos, scale.x);
     }
 

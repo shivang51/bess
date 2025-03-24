@@ -7,7 +7,7 @@
 namespace Bess::SimEngine {
 
     inline void initComponentCatalog() {
-        ComponentCatalog::instance().registerComponent(ComponentDefinition(ComponentType::INPUT, "Input", "IO", 0, 1, [](entt::registry &, entt::entity, auto fn) -> bool { return false; }, SimDelayMilliSeconds(100)));
+        ComponentCatalog::instance().registerComponent(ComponentDefinition(ComponentType::INPUT, "Input", "IO", 0, 1, [](entt::registry &, entt::entity, auto fn) -> bool { return false; }, SimDelayMilliSeconds(0)));
 
         ComponentCatalog::instance().registerComponent({ComponentType::OUTPUT, "Output", "IO", 1, 0,
                                                         [&](entt::registry &registry, entt::entity e, auto fn) -> bool {

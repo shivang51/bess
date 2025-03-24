@@ -11,8 +11,10 @@
 #include "ext/vector_float4.hpp"
 #include "fwd.hpp"
 #include "gtx/matrix_decompose.hpp"
+#include "simulation_engine.h"
 #include <glm.hpp>
 #include <string>
+
 namespace nlohmann {
     inline void to_json(nlohmann::json &j, const Bess::UUID &uuid) {
         j = (uint64_t)uuid;
@@ -357,13 +359,24 @@ namespace Bess::Canvas::Components {
       public:
         SimulationInputComponent() = default;
         SimulationInputComponent(const SimulationInputComponent &other) = default;
+
+        bool updateClock(const UUID &uuid) {
+            return SimEngine::SimulationEngine::instance().updateClock(uuid, clockBhaviour, frequency, frequencyUnit);
+        }
+
         bool clockBhaviour = false;
+        float frequency = 1.f;
+        SimEngine::FrequencyUnit frequencyUnit = SimEngine::FrequencyUnit::hz;
     };
 
     inline void to_json(nlohmann::json &j, const SimulationInputComponent &comp) {
         j = nlohmann::json{{"clockBhaviour", comp.clockBhaviour}};
+        j["frequency"] = comp.frequency;
+        j["frequencyUnit"] = (int)comp.frequencyUnit;
     }
     inline void from_json(const nlohmann::json &j, SimulationInputComponent &comp) {
         comp.clockBhaviour = j.at("clockBhaviour").get<bool>();
+        comp.frequencyUnit = j.at("frequencyUnit").get<SimEngine::FrequencyUnit>();
+        comp.frequency = j.at("frequency").get<float>();
     }
 } // namespace Bess::Canvas::Components

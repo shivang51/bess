@@ -2,6 +2,7 @@
 
 #include "bess_uuid.h"
 #include "component_types.h"
+#include "json.hpp"
 #include "types.h"
 #include <entt/entt.hpp>
 #include <utility>
@@ -14,6 +15,44 @@ namespace Bess::SimEngine {
         IdComponent(const IdComponent &) = default;
         UUID uuid;
     };
+
+    struct ClockComponent {
+        ClockComponent() = default;
+        ClockComponent(const ClockComponent &) = default;
+
+        SimDelayMilliSeconds getTimeInMS() {
+            auto f = frequency;
+            switch (frequencyUnit) {
+            case FrequencyUnit::hz:
+                break;
+            case FrequencyUnit::MHz:
+                f *= 10e6;
+                break;
+            case FrequencyUnit::kHz:
+                f *= 10e3;
+                break;
+            default:
+                throw std::runtime_error("Unhandled clock frequency");
+                break;
+            }
+
+            return SimDelayMilliSeconds((int)((1.0 / f) * 1000));
+        }
+
+        float dutyCycle = 0.50;
+        FrequencyUnit frequencyUnit = FrequencyUnit::hz;
+        float frequency = 1.f;
+    };
+
+    inline void to_json(nlohmann::json &j, const ClockComponent &comp) {
+        j["frequency"] = comp.frequency;
+        j["frequencyUnit"] = (int)comp.frequencyUnit;
+    }
+
+    inline void from_json(const nlohmann::json &j, ClockComponent &comp) {
+        comp.frequencyUnit = j.at("frequencyUnit").get<SimEngine::FrequencyUnit>();
+        comp.frequency = j.at("frequency").get<float>();
+    }
 
     struct GateComponent {
         GateComponent() = default;

@@ -8,10 +8,20 @@ namespace Bess::SimEngine {
         EnttRegistrySerializer::serializeToPath(SimEngine::SimulationEngine::instance().m_registry, path, indent);
     }
 
+    void SimEngineSerializer::simulateClockedComponents() {
+        const auto &registry = SimEngine::SimulationEngine::instance().m_registry;
+        auto view = registry.view<SimEngine::ClockComponent>();
+
+        for (auto entt : view) {
+            SimulationEngine::instance().scheduleEvent(entt, std::chrono::steady_clock::now());
+        }
+    }
+
     void SimEngineSerializer::deserializeFromPath(const std::string &path) {
         auto &registry = SimEngine::SimulationEngine::instance().m_registry;
         registry.clear();
         EnttRegistrySerializer::deserializeFromPath(registry, path);
+        simulateClockedComponents();
     }
 
     nlohmann::json SimEngineSerializer::serialize() {
@@ -22,6 +32,7 @@ namespace Bess::SimEngine {
         auto &registry = SimEngine::SimulationEngine::instance().m_registry;
         registry.clear();
         EnttRegistrySerializer::deserialize(registry, json);
+        simulateClockedComponents();
     }
 
     nlohmann::json SimEngineSerializer::serializeEntity(entt::registry &registry, entt::entity entity) {
@@ -52,6 +63,10 @@ namespace Bess::SimEngine {
             }
 
             j["GateComponent"]["outputStates"] = gateComp->outputStates;
+        }
+
+        if (auto *clockComp = registry.try_get<ClockComponent>(entity)) {
+            j["ClockComponent"] = *clockComp;
         }
 
         return j;
@@ -93,6 +108,11 @@ namespace Bess::SimEngine {
             }
 
             gateComp.outputStates = j["GateComponent"]["outputStates"].get<std::vector<bool>>();
+        }
+
+        if (j.contains("ClockComponent")) {
+            auto clockComp = j["ClockComponent"].get<ClockComponent>();
+            registry.emplace<ClockComponent>(entity, clockComp);
         }
     }
 } // namespace Bess::SimEngine

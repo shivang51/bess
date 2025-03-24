@@ -3,6 +3,7 @@
 #include "bess_uuid.h"
 #include "component_types.h"
 #include "entt/entity/fwd.hpp"
+#include "types.h"
 #include <chrono>
 #include <condition_variable>
 #include <entt/entt.hpp>
@@ -22,11 +23,6 @@ namespace Bess::SimEngine {
     struct ComponentState {
         std::vector<bool> inputStates;
         std::vector<bool> outputStates;
-    };
-
-    enum PinType {
-        input,
-        output
     };
 
     class SimulationEngine {
@@ -54,9 +50,12 @@ namespace Bess::SimEngine {
         bool getDigitalPinState(const UUID &entity, PinType type, int idx);
         ComponentType getComponentType(const UUID &entity);
 
+        bool updateClock(const UUID &uuid, bool shouldClock, float frequency, FrequencyUnit unit);
+
         friend class SimEngineSerializer;
 
       private:
+        void clearEventsForEntity(entt::entity entity);
         entt::registry m_registry;
         std::thread simThread;
         std::mutex queueMutex;
