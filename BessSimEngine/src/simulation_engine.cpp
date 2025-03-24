@@ -379,7 +379,7 @@ namespace Bess::SimEngine {
                     bool hasClockComp = m_registry.all_of<ClockComponent>(nextEvent.entity);
                     bool changed = simulateComponent(nextEvent.entity);
                     // If state changed, schedule simulation events for all connected gates.
-                    if (changed) {
+                    if (changed || hasClockComp) {
                         auto &comp = m_registry.get<GateComponent>(nextEvent.entity);
                         for (const auto &pin : comp.outputPins) {
                             for (const auto &conn : pin) {
