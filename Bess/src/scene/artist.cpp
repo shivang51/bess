@@ -247,7 +247,7 @@ namespace Bess::Canvas {
 
         auto name = tagComp.name;
         if (simInComp.clockBhaviour) {
-            name = "¤ " + name;
+            /*name = "¤ " + name;*/
         }
         Renderer::text(name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id);
         drawSlots(simComp, pos, scale.x);
