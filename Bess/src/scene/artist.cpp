@@ -89,7 +89,8 @@ namespace Bess::Canvas {
             auto isHigh = compState.inputStates[i];
             auto &slotComp = registry.get<Components::SlotComponent>(slot);
             auto slotPos = getSlotPos(slotComp);
-            paintSlot((uint64_t)slot, slotComp.idx, slotComp.parentId, slotPos, "X", labeldx, isHigh);
+            uint64_t parentId = (uint64_t)sceneRef->getEntityWithUuid(slotComp.parentId);
+            paintSlot((uint64_t)slot, slotComp.idx, parentId, slotPos, "X", labeldx, isHigh);
         }
 
         float labelWidth = (Renderer::getCharRenderSize('Z', componentStyles.slotLabelSize).x * 2.f);
@@ -99,7 +100,8 @@ namespace Bess::Canvas {
             auto isHigh = compState.outputStates[i];
             auto &slotComp = registry.get<Components::SlotComponent>(slot);
             auto slotPos = getSlotPos(slotComp);
-            paintSlot((uint64_t)slot, slotComp.idx, slotComp.parentId, slotPos, "Y", -labeldx, isHigh);
+            uint64_t parentId = (uint64_t)sceneRef->getEntityWithUuid(slotComp.parentId);
+            paintSlot((uint64_t)slot, slotComp.idx, parentId, slotPos, "Y", -labeldx, isHigh);
         }
     }
 
