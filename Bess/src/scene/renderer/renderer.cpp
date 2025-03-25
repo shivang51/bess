@@ -406,7 +406,8 @@ namespace Bess {
         addCircleVertices(vertices);
     }
 
-    void Renderer::text(const std::string &text, const glm::vec3 &pos, const size_t size, const glm::vec4 &color, const int id) {
+    void Renderer::text(const std::string &text, const glm::vec3 &pos, const size_t size,
+                        const glm::vec4 &color, const int id, float angle) {
         auto &shader = m_shaders[PrimitiveType::font];
         auto &vao = m_vaos[PrimitiveType::font];
 
@@ -415,26 +416,60 @@ namespace Bess {
 
         shader->setUniformVec4("textColor", color);
         shader->setUniformMat4("u_mvp", m_camera->getTransform());
-
-        // auto selId = Simulator::ComponentsManager::compIdToRid(Pages::MainPageState::getInstance()->getSelectedId());
         shader->setUniform1i("u_SelectedObjId", -1);
 
-        float scale = Font::getScale(size), x = pos.x, y = pos.y;
+        float scale = Font::getScale(size);
 
-        for (auto &c : text) {
+        // First, compute the bounding box of the text.
+        float totalWidth = 0.0f;
+        float maxHeight = 0.0f;
+        for (const char &c : text) {
+            auto &ch = m_Font->getCharacter(c);
+            totalWidth += (ch.Advance >> 6) * scale;
+            float h = ch.Size.y * scale;
+            if (h > maxHeight) {
+                maxHeight = h;
+            }
+        }
+        // Assume that 'pos' is the top-left corner of the text block.
+        // Compute the center of the text block.
+        glm::vec2 pivot = {pos.x + totalWidth / 2.0f, pos.y - maxHeight / 2.0f};
+
+        // Create a global transform that rotates the entire text block about the center pivot.
+        glm::mat4 globalTransform(1.0f);
+        // Translate so that the pivot is at the origin.
+        globalTransform = glm::translate(globalTransform, {pivot.x, pivot.y, pos.z});
+        // Rotate around the Z axis.
+        globalTransform = glm::rotate(globalTransform, angle, {0.f, 0.f, 1.f});
+        // Translate back.
+        globalTransform = glm::translate(globalTransform, {-pivot.x, -pivot.y, -pos.z});
+
+        // Now layout each glyph as if the text were unrotated (horizontally laid out).
+        float x = pos.x;
+        float y = pos.y;
+        for (const char &c : text) {
             auto &ch = m_Font->getCharacter(c);
 
+            // Compute the position of the glyph quad.
             float xpos = x + ch.Bearing.x * scale;
+            // Note: We assume a coordinate system where y increases upward;
+            // adjust this if your system is different.
             float ypos = y + (ch.Size.y - ch.Bearing.y) * scale;
 
             float w = ch.Size.x * scale;
             float h = ch.Size.y * scale;
 
+            // Build the local transform for this glyph.
+            glm::mat4 localTransform(1.0f);
+            localTransform = glm::translate(localTransform, {xpos, ypos, pos.z});
+            // Translate to center the quad before scaling.
+            localTransform = glm::translate(localTransform, {w / 2.0f, -h / 2.0f, 0.f});
+            localTransform = glm::scale(localTransform, {w, h, 1.f});
+
+            // Apply the global transform to rotate the whole text block.
+            glm::mat4 transform = globalTransform * localTransform;
+
             std::vector<Gl::Vertex> vertices(4);
-
-            auto transform = glm::translate(glm::mat4(1.0f), {xpos + w / 2, ypos - h / 2, pos.z});
-            transform = glm::scale(transform, {w, h, 1.f});
-
             for (int i = 0; i < 4; i++) {
                 auto &vertex = vertices[i];
                 vertex.position = transform * m_StandardQuadVertices[i];
@@ -442,15 +477,17 @@ namespace Bess {
                 vertex.color = color;
             }
 
+            // Set texture coordinates.
             vertices[0].texCoord = {0.0f, 1.0f};
             vertices[1].texCoord = {0.0f, 0.0f};
             vertices[2].texCoord = {1.0f, 0.0f};
             vertices[3].texCoord = {1.0f, 1.0f};
 
             ch.Texture->bind();
-
-            m_vaos[PrimitiveType::font]->setVertices(vertices.data(), vertices.size());
+            vao->setVertices(vertices.data(), vertices.size());
             Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
+
+            // Advance horizontally as usual.
             x += (ch.Advance >> 6) * scale;
         }
     }

@@ -99,54 +99,30 @@ namespace Bess::Canvas::Components {
         TransformComponent() = default;
         TransformComponent(const TransformComponent &other) = default;
 
-        std::array<glm::vec3, 3> decompose() {
-            glm::vec3 scale;
-            glm::quat orientation;
-            glm::vec3 translation;
-            glm::vec3 skew;
-            glm::vec4 perspective;
-            glm::decompose(m_transform, scale, orientation, translation, skew, perspective);
-            return {translation, glm::vec3(orientation.x, orientation.y, orientation.z), scale};
+        glm::mat4 getTransform() {
+            auto transform = glm::translate(glm::mat4(1), position);
+            transform = glm::rotate(transform, angle, {0.f, 0.f, 1.f});
+            transform = glm::scale(transform, glm::vec3(scale, 1.f));
+            return transform;
         }
 
-        void translate(const glm::vec3 &pos) {
-            m_transform[3] = glm::vec4(pos, m_transform[3][3]);
-        }
+        operator glm::mat4() { return getTransform(); }
 
-        void scale(const glm::vec2 &scale) {
-            glm::vec3 xAxis = glm::vec3(m_transform[0]);
-            glm::vec3 yAxis = glm::vec3(m_transform[1]);
-
-            if (glm::length(xAxis) > 0.0f)
-                xAxis = glm::normalize(xAxis) * scale.x;
-            else
-                xAxis = glm::vec3(scale.x, 0.0f, 0.0f);
-
-            if (glm::length(yAxis) > 0.0f)
-                yAxis = glm::normalize(yAxis) * scale.y;
-            else
-                yAxis = glm::vec3(0.0f, scale.y, 0.0f);
-
-            m_transform[0] = glm::vec4(xAxis, 0.0f);
-            m_transform[1] = glm::vec4(yAxis, 0.0f);
-        }
-
-        glm::vec3 getPosition() {
-            return glm::vec3(m_transform[3]);
-        }
-
-        operator glm::mat4() { return m_transform; }
-
-        void operator=(glm::mat4 transform) { m_transform = transform; }
-
-        glm::mat4 m_transform{};
+        glm::vec3 position = {0.f, 0.f, 0.f};
+        glm::vec2 scale = {1.f, 1.f};
+        float angle = 0.f;
     };
 
     inline void to_json(nlohmann::json &j, const TransformComponent &comp) {
-        j = nlohmann::json{{"transform", comp.m_transform}};
+        j["position"] = comp.position;
+        j["scale"] = comp.scale;
+        j["angle"] = comp.angle;
     }
+
     inline void from_json(const nlohmann::json &j, TransformComponent &comp) {
-        comp.m_transform = j.at("transform").get<glm::mat4>();
+        comp.position = j.at("position").get<glm::vec3>();
+        comp.angle = j.at("angle").get<float>();
+        comp.scale = j.at("scale").get<glm::vec3>();
     }
 
     // SpriteComponent

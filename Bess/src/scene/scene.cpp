@@ -191,10 +191,8 @@ namespace Bess::Canvas {
 
         tag.name = comp.name;
 
-        glm::mat4 transform = glm::translate(glm::mat4(1.f), glm::vec3(pos, getNextZCoord()));
-        transform = glm::scale(transform, glm::vec3(100.f, 150.f, 1.f));
-
-        transformComp = transform;
+        transformComp.position = glm::vec3(pos, getNextZCoord());
+        transformComp.scale = glm::vec2(100.f, 100.f);
 
         sprite.color = ViewportTheme::componentBGColor;
         sprite.borderRadius = glm::vec4(16.f);
@@ -258,7 +256,7 @@ namespace Bess::Canvas {
         auto &sprite = m_registry.emplace<Components::SpriteComponent>(entity);
         auto &slot = m_registry.emplace<Components::SlotComponent>(entity);
 
-        transform.scale(glm::vec2(20.f));
+        transform.scale = glm::vec2(20.f);
         sprite.color = ViewportTheme::stateLowColor;
         sprite.borderColor = ViewportTheme::componentBorderColor;
         sprite.borderSize = glm::vec4(10.f);
@@ -396,7 +394,7 @@ namespace Bess::Canvas {
                 for (auto &ent : view) {
                     auto &transformComp = view.get<Components::TransformComponent>(ent);
                     auto dPos_ = glm::vec3(dPos, 0.f);
-                    transformComp.translate(transformComp.getPosition() + dPos_);
+                    transformComp.position += dPos_;
                 }
                 m_isDragging = true;
             }
