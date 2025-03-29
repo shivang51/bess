@@ -8,4 +8,5 @@ It is written in `C++` and uses its own renderer made with `OpenGL`.
 It now uses its own `Time Based Simulation Engine`.
 
 
-![Screenshot 2](screenshots/ss1.png)
+![Screenshot 1](screenshots/ss1.png)
+![Screenshot 2](screenshots/ss2.png)
