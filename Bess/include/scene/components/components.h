@@ -122,7 +122,7 @@ namespace Bess::Canvas::Components {
     inline void from_json(const nlohmann::json &j, TransformComponent &comp) {
         comp.position = j.at("position").get<glm::vec3>();
         comp.angle = j.at("angle").get<float>();
-        comp.scale = j.at("scale").get<glm::vec3>();
+        comp.scale = j.at("scale").get<glm::vec2>();
     }
 
     // SpriteComponent
