@@ -218,12 +218,15 @@ namespace Bess::Canvas {
         scale.x = 90.f;
         transformComp.scale = scale;
 
+        bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
+        auto borderColor = isSelected ? ViewportTheme::selectedCompColor : spriteComp.borderColor;
+
         float radius = 4.f;
         spriteComp.borderRadius = glm::vec4(radius);
 
         Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, 0.f,
                        spriteComp.borderRadius,
-                       spriteComp.borderSize, spriteComp.borderColor, true);
+                       spriteComp.borderSize, borderColor, true);
 
         float yOff = componentStyles.headerFontSize / 2.f - 2.f;
         auto labelSize = Renderer::getCharRenderSize('Z', componentStyles.headerFontSize).x * tagComp.name.size();
@@ -250,12 +253,15 @@ namespace Bess::Canvas {
         scale.x = 80.f;
         transformComp.scale = scale;
 
+        bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
+        auto borderColor = isSelected ? ViewportTheme::selectedCompColor : spriteComp.borderColor;
+
         float radius = 4.f;
         spriteComp.borderRadius = glm::vec4(radius);
 
         Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, 0.f,
                        spriteComp.borderRadius,
-                       spriteComp.borderSize, spriteComp.borderColor, true);
+                       spriteComp.borderSize, borderColor, true);
 
         float yOff = componentStyles.headerFontSize / 2.f - 2.f;
         glm::vec3 textPos = glm::vec3(pos.x - scale.x / 2.f + componentStyles.paddingX, pos.y + yOff, pos.z + 0.0005f);
