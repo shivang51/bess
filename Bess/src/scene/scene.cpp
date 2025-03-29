@@ -442,6 +442,7 @@ namespace Bess::Canvas {
         auto connEntt = m_registry.create();
         auto &idComp = m_registry.emplace<Components::IdComponent>(connEntt);
         auto &connComp = m_registry.emplace<Components::ConnectionComponent>(connEntt);
+        m_registry.emplace<Components::SpriteComponent>(connEntt);
         connComp.inputSlot = getUuidOfEntity(inputSlot);
         connComp.outputSlot = getUuidOfEntity(outputSlot);
 

@@ -1,4 +1,5 @@
 #include "ui/ui_main/properties_panel.h"
+#include "gtc/type_ptr.hpp"
 #include "imgui_internal.h"
 #include "scene/components/components.h"
 #include "scene/scene.h"
@@ -64,6 +65,12 @@ namespace Bess::UI {
         }
     }
 
+    void drawSpriteComponent(SpriteComponent &comp) {
+        ImGui::Indent();
+        ImGui::ColorEdit4("Color", glm::value_ptr(comp.color));
+        ImGui::Unindent();
+    }
+
     void PropertiesPanel::draw() {
         ImGui::Begin("Properties");
 
@@ -94,6 +101,15 @@ namespace Bess::UI {
             auto simulationComp = registry.get<SimulationComponent>(entt);
             drawSimulationInputComponent(registry.get<SimulationInputComponent>(entt), simulationComp.simEngineEntity);
         }
+
+        if (registry.all_of<ConnectionComponent>(entt)) {
+            auto &connectionComponent = registry.get<ConnectionComponent>(entt);
+            CheckboxWithLabel("Use Custom Color", &connectionComponent.useCustomColor);
+            if (connectionComponent.useCustomColor) {
+                drawSpriteComponent(registry.get<SpriteComponent>(entt));
+            }
+        }
+
         ImGui::End();
     }
 } // namespace Bess::UI

@@ -126,7 +126,8 @@ namespace Bess::Canvas {
 
     void Artist::drawConnection(const UUID &id, entt::entity inputEntity, entt::entity outputEntity, bool isSelected) {
         auto &registry = sceneRef->getEnttRegistry();
-        auto &connectionComponent = registry.get<Components::ConnectionComponent>(sceneRef->getEntityWithUuid(id));
+        auto connEntity = sceneRef->getEntityWithUuid(id);
+        auto &connectionComponent = registry.get<Components::ConnectionComponent>(connEntity);
         auto &outputSlotComp = registry.get<Components::SlotComponent>(outputEntity);
         auto &simComp = registry.get<Components::SimulationComponent>(sceneRef->getEntityWithUuid(outputSlotComp.parentId));
 
@@ -135,10 +136,14 @@ namespace Bess::Canvas {
 
         startPos.z = 0.f;
         endPos.z = 0.f;
-
-        bool isHigh = SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity).outputStates[outputSlotComp.idx];
-
-        auto color = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::stateLowColor;
+        glm::vec4 color;
+        if (connectionComponent.useCustomColor) {
+            auto &spriteComponent = registry.get<Components::SpriteComponent>(connEntity);
+            color = spriteComponent.color;
+        } else {
+            bool isHigh = SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity).outputStates[outputSlotComp.idx];
+            color = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::stateLowColor;
+        }
         color = isSelected ? ViewportTheme::selectedWireColor : color;
         auto connSegEntt = sceneRef->getEntityWithUuid(connectionComponent.segmentHead);
         auto connSegComp = registry.get<Components::ConnectionSegmentComponent>(connSegEntt);

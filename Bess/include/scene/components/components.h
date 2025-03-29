@@ -285,18 +285,22 @@ namespace Bess::Canvas::Components {
         UUID inputSlot = 0;
         UUID outputSlot = 0;
         UUID segmentHead = 0;
+        bool useCustomColor = false;
     };
 
     inline void to_json(nlohmann::json &j, const ConnectionComponent &comp) {
         j = nlohmann::json{
             {"inputSlot", comp.inputSlot},
             {"outputSlot", comp.outputSlot},
-            {"segmentHead", comp.segmentHead}};
+            {"segmentHead", comp.segmentHead},
+            {"useCustomColor", comp.useCustomColor}};
     }
     inline void from_json(const nlohmann::json &j, ConnectionComponent &comp) {
         comp.inputSlot = j.at("inputSlot").get<UUID>();
         comp.outputSlot = j.at("outputSlot").get<UUID>();
         comp.segmentHead = j.at("segmentHead").get<UUID>();
+        if (j.contains("useCustomColor"))
+            comp.useCustomColor = j.at("useCustomColor").get<bool>();
     }
 
     // HoveredEntityComponent
