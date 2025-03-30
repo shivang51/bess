@@ -17,6 +17,7 @@ set(External
 )
 source_group("External" FILES ${External})
 
+#!CMAKE_WATCHER_OBSERVE
 set(Header_Files
 "include/settings/themes.h"
 "include/settings/settings.h"
@@ -63,8 +64,10 @@ set(Header_Files
 "include/scene/renderer/gl/gl_wrapper.h"
 "include/scene/renderer/gl/utils.h"
 )
+
 source_group("Shaders" FILES ${Shaders})
 
+#!CMAKE_WATCHER_OBSERVE
 set(Source_Files
 "src/application_state.cpp"
 "src/application.cpp"
