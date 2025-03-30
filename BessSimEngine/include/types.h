@@ -8,17 +8,32 @@
 namespace Bess::SimEngine {
     typedef std::chrono::milliseconds SimDelayMilliSeconds;
     typedef std::chrono::seconds SimDelaySeconds;
-    typedef std::function<bool(entt::registry &, entt::entity, std::function<entt::entity(const UUID &)>)> SimulationFunction;
 
-    enum PinType {
+    // registry, entity, inputs, function to convert uuid to entity
+    typedef std::function<bool(entt::registry &, entt::entity, const std::vector<bool> &, std::function<entt::entity(const UUID &)>)> SimulationFunction;
+
+    enum class PinType {
         input,
         output
     };
 
-    enum FrequencyUnit {
+    enum class FrequencyUnit {
         hz,
         kHz,
         MHz
+    };
+
+    // Represents a scheduled simulation event.
+    struct SimulationEvent {
+        std::chrono::steady_clock::time_point time;
+        entt::entity entity;
+        // For the priority queue: earlier times have higher priority.
+        bool operator<(const SimulationEvent &other) const;
+    };
+
+    struct ComponentState {
+        std::vector<bool> inputStates;
+        std::vector<bool> outputStates;
     };
 
 } // namespace Bess::SimEngine

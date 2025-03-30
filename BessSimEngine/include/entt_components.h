@@ -9,6 +9,26 @@
 #include <vector>
 
 namespace Bess::SimEngine {
+
+    struct FlipFlopComponent {
+        FlipFlopComponent() = default;
+        FlipFlopComponent(FlipFlopType type, int clockPinIndex) {
+            this->type = type;
+            this->clockPinIdx = clockPinIndex;
+        }
+        FlipFlopComponent(const FlipFlopComponent &) = default;
+        FlipFlopType type = FlipFlopType::FLIP_FLOP_JK;
+        int clockPinIdx = 1;
+    };
+
+    inline void to_json(nlohmann::json &j, const FlipFlopComponent &comp) {
+        j["type"] = (int)comp.type;
+    }
+
+    inline void from_json(const nlohmann::json &j, FlipFlopComponent &comp) {
+        comp.type = (FlipFlopType)j.at("type").get<FlipFlopType>();
+    }
+
     struct IdComponent {
         IdComponent() = default;
         IdComponent(UUID uuid) { this->uuid = uuid; }
@@ -54,15 +74,16 @@ namespace Bess::SimEngine {
         comp.frequency = j.at("frequency").get<float>();
     }
 
-    struct GateComponent {
-        GateComponent() = default;
-        GateComponent(const GateComponent &) = default;
-        GateComponent(ComponentType type, int inputPinsCount, int outputPinsCount, SimDelayMilliSeconds delay) {
+    struct DigitalComponent {
+        DigitalComponent() = default;
+        DigitalComponent(const DigitalComponent &) = default;
+        DigitalComponent(ComponentType type, int inputPinsCount, int outputPinsCount, SimDelayMilliSeconds delay) {
             this->type = type;
             this->delay = delay;
             this->inputPins = std::vector<std::vector<std::pair<UUID, int>>>(inputPinsCount, std::vector<std::pair<UUID, int>>());
             this->outputPins = std::vector<std::vector<std::pair<UUID, int>>>(outputPinsCount, std::vector<std::pair<UUID, int>>());
             this->outputStates = std::vector<bool>(outputPinsCount, false);
+            this->inputStates = std::vector<bool>(inputPinsCount, false);
         }
 
         ComponentType type;
@@ -70,5 +91,6 @@ namespace Bess::SimEngine {
         std::vector<std::vector<std::pair<UUID, int>>> inputPins;
         std::vector<std::vector<std::pair<UUID, int>>> outputPins;
         std::vector<bool> outputStates;
+        std::vector<bool> inputStates;
     };
 } // namespace Bess::SimEngine

@@ -42,16 +42,16 @@ namespace Bess::SimEngine {
             j["IdComponent"]["uuid"] = static_cast<uint64_t>(idComp->uuid);
         }
 
-        if (auto *gateComp = registry.try_get<GateComponent>(entity)) {
-            j["GateComponent"]["type"] = static_cast<int>(gateComp->type);
-            j["GateComponent"]["delay"] = gateComp->delay.count();
+        if (auto *gateComp = registry.try_get<DigitalComponent>(entity)) {
+            j["DigitalComponent"]["type"] = static_cast<int>(gateComp->type);
+            j["DigitalComponent"]["delay"] = gateComp->delay.count();
 
             for (const auto &input : gateComp->inputPins) {
                 nlohmann::json inputJson;
                 for (const auto &[id, idx] : input) {
                     inputJson.push_back({{"id", static_cast<uint64_t>(id)}, {"index", idx}});
                 }
-                j["GateComponent"]["inputPins"].push_back(inputJson);
+                j["DigitalComponent"]["inputPins"].push_back(inputJson);
             }
 
             for (const auto &output : gateComp->outputPins) {
@@ -59,36 +59,41 @@ namespace Bess::SimEngine {
                 for (const auto &[id, idx] : output) {
                     outputJson.push_back({{"id", static_cast<uint64_t>(id)}, {"index", idx}});
                 }
-                j["GateComponent"]["outputPins"].push_back(outputJson);
+                j["DigitalComponent"]["outputPins"].push_back(outputJson);
             }
 
-            j["GateComponent"]["outputStates"] = gateComp->outputStates;
+            j["DigitalComponent"]["outputStates"] = gateComp->outputStates;
+            j["DigitalComponent"]["inputStates"] = gateComp->inputStates;
         }
 
         if (auto *clockComp = registry.try_get<ClockComponent>(entity)) {
             j["ClockComponent"] = *clockComp;
         }
 
+        if (auto *comp = registry.try_get<FlipFlopComponent>(entity)) {
+            j["FlipFlopComponent"] = *comp;
+        }
         return j;
     }
 
     void SimEngineSerializer::deserializeEntity(entt::registry &registry, const nlohmann::json &j) {
         entt::entity entity = registry.create();
 
-        std::cout << "[SimEngine] Creating entity " << (uint64_t)entity;
-
         if (j.contains("IdComponent")) {
             auto &idComp = registry.emplace<IdComponent>(entity);
             idComp.uuid = j["IdComponent"]["uuid"].get<uint64_t>();
-            std::cout << " with id " << idComp.uuid << std::endl;
         }
 
-        if (j.contains("GateComponent")) {
-            auto &gateComp = registry.emplace<GateComponent>(entity);
-            gateComp.type = static_cast<ComponentType>(j["GateComponent"]["type"].get<int>());
-            gateComp.delay = SimDelayMilliSeconds(j["GateComponent"]["delay"].get<long long>());
-            if (j["GateComponent"].contains("inputPins")) {
-                for (const auto &inputJson : j["GateComponent"]["inputPins"]) {
+        if (j.contains("FlipFlopComponent")) {
+            registry.emplace<FlipFlopComponent>(entity, j.at("FlipFlopComponent").get<FlipFlopComponent>());
+        }
+
+        if (j.contains("DigitalComponent")) {
+            auto &gateComp = registry.emplace<DigitalComponent>(entity);
+            gateComp.type = static_cast<ComponentType>(j["DigitalComponent"]["type"].get<int>());
+            gateComp.delay = SimDelayMilliSeconds(j["DigitalComponent"]["delay"].get<long long>());
+            if (j["DigitalComponent"].contains("inputPins")) {
+                for (const auto &inputJson : j["DigitalComponent"]["inputPins"]) {
                     std::vector<std::pair<UUID, int>> inputVec;
                     for (const auto &input : inputJson) {
                         inputVec.emplace_back(static_cast<UUID>(input["id"].get<uint64_t>()), input["index"].get<int>());
@@ -97,8 +102,8 @@ namespace Bess::SimEngine {
                 }
             }
 
-            if (j["GateComponent"].contains("outputPins")) {
-                for (const auto &outputJson : j["GateComponent"]["outputPins"]) {
+            if (j["DigitalComponent"].contains("outputPins")) {
+                for (const auto &outputJson : j["DigitalComponent"]["outputPins"]) {
                     std::vector<std::pair<UUID, int>> outputVec;
                     for (const auto &output : outputJson) {
                         outputVec.emplace_back(static_cast<UUID>(output["id"].get<uint64_t>()), output["index"].get<int>());
@@ -107,7 +112,8 @@ namespace Bess::SimEngine {
                 }
             }
 
-            gateComp.outputStates = j["GateComponent"]["outputStates"].get<std::vector<bool>>();
+            gateComp.outputStates = j["DigitalComponent"]["outputStates"].get<std::vector<bool>>();
+            gateComp.inputStates = j["DigitalComponent"]["inputStates"].get<std::vector<bool>>();
         }
 
         if (j.contains("ClockComponent")) {

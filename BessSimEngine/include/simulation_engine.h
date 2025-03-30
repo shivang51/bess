@@ -12,19 +12,6 @@
 #include <thread>
 
 namespace Bess::SimEngine {
-    // Represents a scheduled simulation event.
-    struct SimulationEvent {
-        std::chrono::steady_clock::time_point time;
-        entt::entity entity;
-        // For the priority queue: earlier times have higher priority.
-        bool operator<(const SimulationEvent &other) const;
-    };
-
-    struct ComponentState {
-        std::vector<bool> inputStates;
-        std::vector<bool> outputStates;
-    };
-
     class SimulationEngine {
       public:
         // Constructor: pass a reference to an entt registry.
@@ -38,7 +25,7 @@ namespace Bess::SimEngine {
 
         // Schedule an event for a given entity at the specified time.
         void scheduleEvent(entt::entity entity, std::chrono::steady_clock::time_point time);
-        bool simulateComponent(entt::entity e);
+        bool simulateComponent(entt::entity e, const std::vector<bool> &inputs);
 
         const UUID &addComponent(ComponentType type, int inputCount = -1, int outputCount = -1);
         ComponentState getComponentState(const UUID &entity);
