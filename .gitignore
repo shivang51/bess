@@ -21,3 +21,4 @@ vgcore*
 # this is generated through cmake (check build.sh)
 compile_commands.json
 .cache
+.cmake_observer_backup
