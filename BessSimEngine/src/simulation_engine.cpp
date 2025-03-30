@@ -120,11 +120,6 @@ namespace Bess::SimEngine {
             return false;
         }
 
-        if (src == dst) {
-            std::cout << "Cannot connect pins of the same gate." << std::endl;
-            return false;
-        }
-
         if (srcPinType == dstPinType) {
             std::cout << "Cannot connect pins of the same type i.e. input -> input or output -> output" << std::endl;
             return false;
