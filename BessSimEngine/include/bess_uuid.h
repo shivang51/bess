@@ -1,10 +1,11 @@
 #pragma once
 
+#include "bess_api.h"
 #include <cstdint>
 #include <functional>
 
 namespace Bess {
-    class UUID {
+    class BESS_API UUID {
       public:
         static UUID null;
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_api.h"
 #include "bess_uuid.h"
 #include <chrono>
 #include <entt/entt.hpp>
@@ -24,14 +25,14 @@ namespace Bess::SimEngine {
     };
 
     // Represents a scheduled simulation event.
-    struct SimulationEvent {
+    struct BESS_API SimulationEvent {
         std::chrono::steady_clock::time_point time;
         entt::entity entity;
         // For the priority queue: earlier times have higher priority.
         bool operator<(const SimulationEvent &other) const;
     };
 
-    struct ComponentState {
+    struct BESS_API ComponentState {
         std::vector<bool> inputStates;
         std::vector<bool> outputStates;
     };

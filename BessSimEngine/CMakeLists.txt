@@ -39,6 +39,8 @@ set(ALL_FILES
 
 add_library(${PROJECT_NAME} SHARED ${ALL_FILES})
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE BESS_EXPORTS)
+
 target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include;"
     "${CMAKE_CURRENT_SOURCE_DIR}/../external/json;"

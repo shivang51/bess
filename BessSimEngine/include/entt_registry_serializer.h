@@ -1,9 +1,10 @@
 #pragma once
+#include "bess_api.h"
 #include "json.hpp"
 #include <entt/entt.hpp>
 
 namespace Bess {
-    class EnttRegistrySerializer {
+    class BESS_API EnttRegistrySerializer {
       public:
         void serializeToPath(const entt::registry &registry, const std::string &filename, int indent = -1);
         nlohmann::json serialize(const entt::registry &registry);

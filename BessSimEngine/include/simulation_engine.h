@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_api.h"
 #include "bess_uuid.h"
 #include "component_types.h"
 #include "entt/entity/fwd.hpp"
@@ -12,7 +13,7 @@
 #include <thread>
 
 namespace Bess::SimEngine {
-    class SimulationEngine {
+    class BESS_API SimulationEngine {
       public:
         // Constructor: pass a reference to an entt registry.
         SimulationEngine();

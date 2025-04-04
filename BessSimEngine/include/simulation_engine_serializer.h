@@ -1,9 +1,10 @@
 #pragma once
 
+#include "bess_api.h"
 #include "entt_registry_serializer.h"
 
 namespace Bess::SimEngine {
-    class SimEngineSerializer : EnttRegistrySerializer {
+    class BESS_API SimEngineSerializer : EnttRegistrySerializer {
       public:
         SimEngineSerializer() = default;
 

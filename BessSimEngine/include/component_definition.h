@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_api.h"
 #include "component_types.h"
 #include "properties.h"
 #include "types.h"
@@ -11,7 +12,7 @@ namespace Bess::SimEngine {
 
     typedef std::unordered_map<Properties::ComponentProperty, std::vector<std::any>> ModifiableProperties;
 
-    class ComponentDefinition {
+    class BESS_API ComponentDefinition {
       public:
         ComponentDefinition(ComponentType type,
                             const std::string &name,

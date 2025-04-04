@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_api.h"
 #include "bess_uuid.h"
 #include "component_types.h"
 #include "json.hpp"
@@ -10,7 +11,7 @@
 
 namespace Bess::SimEngine {
 
-    struct FlipFlopComponent {
+    struct BESS_API FlipFlopComponent {
         FlipFlopComponent() = default;
         FlipFlopComponent(FlipFlopType type, int clockPinIndex) {
             this->type = type;
@@ -29,14 +30,14 @@ namespace Bess::SimEngine {
         comp.type = (FlipFlopType)j.at("type").get<FlipFlopType>();
     }
 
-    struct IdComponent {
+    struct BESS_API IdComponent {
         IdComponent() = default;
         IdComponent(UUID uuid) { this->uuid = uuid; }
         IdComponent(const IdComponent &) = default;
         UUID uuid;
     };
 
-    struct ClockComponent {
+    struct BESS_API ClockComponent {
         ClockComponent() = default;
         ClockComponent(const ClockComponent &) = default;
 
@@ -74,7 +75,7 @@ namespace Bess::SimEngine {
         comp.frequency = j.at("frequency").get<float>();
     }
 
-    struct DigitalComponent {
+    struct BESS_API DigitalComponent {
         DigitalComponent() = default;
         DigitalComponent(const DigitalComponent &) = default;
         DigitalComponent(ComponentType type, int inputPinsCount, int outputPinsCount, SimDelayMilliSeconds delay) {
