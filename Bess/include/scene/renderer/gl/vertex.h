@@ -18,6 +18,11 @@ namespace Bess::Gl {
         float ar;
     };
 
+    struct RenderPassVertex {
+        glm::vec3 position;
+        glm::vec2 texCoord;
+    };
+
     struct QuadVertex {
         glm::vec3 position;
         glm::vec4 color;

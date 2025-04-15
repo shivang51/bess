@@ -2,6 +2,7 @@
 
 layout(location = 0) out vec4 fragColor;
 layout(location = 1) out int fragColor1;
+layout(location = 2) out vec4 fragColor2;
 
 in vec3 v_FragPos;
 in vec2 v_TexCoord;
@@ -20,5 +21,6 @@ void main(){
     sampled.w = min(sampled.w, a);
 
     fragColor = sampled;
-    fragColor1 = v_TextureIndex;	
+    fragColor1 = v_TextureIndex;
+		fragColor2 = vec4(0.f);
 }

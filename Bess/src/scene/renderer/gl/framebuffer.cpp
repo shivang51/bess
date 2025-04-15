@@ -145,6 +145,10 @@ namespace Bess::Gl {
         GL_CHECK(glReadBuffer(GL_COLOR_ATTACHMENT0 + idx));
     }
 
+    void FrameBuffer::bindColorAttachmentTexture(int idx, int slotIdx) const {
+        m_colorAttachments[idx].bindTexture(slotIdx);
+    }
+
     void FrameBuffer::blitColorBuffer(const float width, const float height) {
         GL_CHECK(glBlitFramebuffer(0, 0, static_cast<GLint>(width), static_cast<GLint>(height), 0, 0, static_cast<GLint>(width),
                                    static_cast<GLint>(height), GL_COLOR_BUFFER_BIT, GL_NEAREST));

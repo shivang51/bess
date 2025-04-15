@@ -1,8 +1,4 @@
 #include "scene/renderer/gl/texture.h"
-
-#include <iostream>
-#include <ostream>
-
 #include "glad/glad.h"
 #include <stb_image.h>
 #include <stdexcept>
@@ -59,7 +55,10 @@ namespace Bess::Gl {
 
     Texture::~Texture() { glDeleteTextures(1, &m_id); }
 
-    void Texture::bind() const {
+    void Texture::bind(int slotIdx) const {
+        if (slotIdx != -1) {
+            GL_CHECK(glActiveTexture(GL_TEXTURE0 + slotIdx));
+        }
         if (m_multisampled) {
             GL_CHECK(glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_id));
         } else {

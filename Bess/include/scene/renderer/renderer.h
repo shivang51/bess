@@ -41,6 +41,9 @@ namespace Bess::Renderer2D {
         static glm::vec2 getCharRenderSize(char ch, float renderSize);
 
       public:
+        static void doShadowRenderPass(float width, float height);
+        static void doCompositeRenderPass(float width, float height);
+
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
                          const glm::vec4 &color, int id,
                          const glm::vec4 &borderRadius = {0.f, 0.f, 0.f, 0.f},
@@ -133,6 +136,8 @@ namespace Bess::Renderer2D {
         static QuadBezierCurvePoints generateQuadBezierPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius);
 
       private:
+        static std::vector<Gl::RenderPassVertex> getRenderPassVertices(float width, float height);
+
         static std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Shader>> m_shaders;
 
         static std::unique_ptr<Gl::Shader> m_quadShadowShader;
@@ -152,7 +157,10 @@ namespace Bess::Renderer2D {
         static RenderData m_RenderData;
 
         static std::unique_ptr<Gl::Shader> m_GridShader;
+        static std::unique_ptr<Gl::Shader> m_shadowPassShader;
+        static std::unique_ptr<Gl::Shader> m_compositePassShader;
         static std::unique_ptr<Gl::Vao> m_GridVao;
+        static std::unique_ptr<Gl::Vao> m_renderPassVao;
 
         static std::unique_ptr<Font> m_Font;
     };

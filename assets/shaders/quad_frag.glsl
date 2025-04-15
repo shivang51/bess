@@ -2,6 +2,7 @@
 
 layout(location = 0) out vec4 fragColor;
 layout(location = 1) out int fragColor1;
+layout(location = 2) out vec4 fragColor2;
 
 in vec2 v_Size;
 in vec2 v_TexCoord;
@@ -87,5 +88,6 @@ void main(){
     
     fragColor = bgColor;
     fragColor1 = v_FragId;
+		fragColor2 = vec4(isMica, length(fc - 0.5f), 0.f, isMica);
 }
 

@@ -86,6 +86,8 @@ namespace Bess::Canvas {
 
       private:
         std::unique_ptr<Gl::FrameBuffer> m_msaaFramebuffer;
+        std::unique_ptr<Gl::FrameBuffer> m_shadowFramebuffer;
+        std::unique_ptr<Gl::FrameBuffer> m_placeHolderFramebuffer;
         std::unique_ptr<Gl::FrameBuffer> m_normalFramebuffer;
         glm::vec2 m_size, m_mousePos;
         std::shared_ptr<Camera> m_camera;

@@ -37,11 +37,21 @@ namespace Bess::Canvas {
     void Scene::reset() {
         m_size = glm::vec2(800.f / 600.f, 1.f);
         m_camera = std::make_shared<Camera>(m_size.x, m_size.y);
-        std::vector<Gl::FBAttachmentType> attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::R32I_REDI, Gl::DEPTH32F_STENCIL8};
-        m_msaaFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments, true);
+        std::vector<Gl::FBAttachmentType> attachments = {Gl::FBAttachmentType::RGBA_RGBA,
+                                                         Gl::FBAttachmentType::R32I_REDI,
+                                                         Gl::FBAttachmentType::RGBA_RGBA,
+                                                         Gl::DEPTH32F_STENCIL8};
+        m_msaaFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments);
+
+        attachments = {Gl::FBAttachmentType::RGBA_RGBA};
+        m_shadowFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments);
+
+        attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::RGBA_RGBA};
+        m_placeHolderFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments);
 
         attachments = {Gl::FBAttachmentType::RGB_RGB, Gl::FBAttachmentType::R32I_REDI};
         m_normalFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments);
+
         m_registry.clear();
 
         Artist::sceneRef = this;
@@ -291,6 +301,8 @@ namespace Bess::Canvas {
         m_size = UI::UIMain::state.viewportSize;
         m_msaaFramebuffer->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
         m_normalFramebuffer->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
+        m_shadowFramebuffer->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
+        m_placeHolderFramebuffer->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
         m_camera->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
     }
 
@@ -646,9 +658,14 @@ namespace Bess::Canvas {
 
     void Scene::beginScene() {
         static int value = -1;
+        m_shadowFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::backgroundColor));
+        m_normalFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::backgroundColor));
+
         m_msaaFramebuffer->bind();
         m_msaaFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::backgroundColor));
         m_msaaFramebuffer->clearColorAttachment<GL_INT>(1, &value);
+        m_msaaFramebuffer->clearColorAttachment<GL_FLOAT>(2, glm::value_ptr(ViewportTheme::backgroundColor));
+
         Gl::FrameBuffer::clearDepthStencilBuf();
         Renderer::begin(m_camera);
     }
@@ -656,11 +673,45 @@ namespace Bess::Canvas {
     void Scene::endScene() {
         Renderer2D::Renderer::end();
         Gl::FrameBuffer::unbindAll();
-        for (int i = 0; i < 2; i++) {
+        auto span = m_camera->getSpan();
+
+        // from msaa to normal
+        // -- normal color
+        m_msaaFramebuffer->bindColorAttachmentForRead(0);
+        m_placeHolderFramebuffer->bindColorAttachmentForDraw(0);
+        Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);
+        // -- shadow mask
+        m_msaaFramebuffer->bindColorAttachmentForRead(2);
+        m_placeHolderFramebuffer->bindColorAttachmentForDraw(1);
+        Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);
+
+        // shadow pass
+        m_placeHolderFramebuffer->bindColorAttachmentTexture(1);
+        m_shadowFramebuffer->bind();
+        Renderer2D::Renderer::doShadowRenderPass(span.x, span.y);
+
+        // rendering to normal to display
+        Gl::FrameBuffer::unbindAll();
+        m_placeHolderFramebuffer->bindColorAttachmentTexture(0, 0); // color
+        m_shadowFramebuffer->bindColorAttachmentTexture(0, 1);      // shadow
+        m_normalFramebuffer->bind();
+        Renderer2D::Renderer::doCompositeRenderPass(span.x, span.y);
+
+        /*m_placeHolderFramebuffer->bindColorAttachmentForRead(0);*/
+        /*m_normalFramebuffer->bindColorAttachmentForDraw(0);*/
+        /*Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);*/
+
+        /*m_shadowFramebuffer->bindColorAttachmentForRead(0);*/
+        /*m_normalFramebuffer->bindColorAttachmentForDraw(0);*/
+        /*Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);*/
+
+        for (int i = 1; i < 2; i++) {
             m_msaaFramebuffer->bindColorAttachmentForRead(i);
             m_normalFramebuffer->bindColorAttachmentForDraw(i);
             Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);
         }
+
+        GL_CHECK(glActiveTexture(GL_TEXTURE0));
         Gl::FrameBuffer::unbindAll();
     }
 
