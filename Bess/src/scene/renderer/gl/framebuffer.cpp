@@ -167,7 +167,7 @@ namespace Bess::Gl {
             format = GL_RGB;
         } break;
         case FBAttachmentType::RGBA_RGBA: {
-            internalFormat = GL_RGBA;
+            internalFormat = GL_RGBA8;
             format = GL_RGBA;
         } break;
         default:

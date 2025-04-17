@@ -630,13 +630,6 @@ namespace Bess {
         auto transform = glm::translate(glm::mat4(1.0f), {0, 0, 0});
         transform = glm::scale(transform, {width, height, 1.f});
 
-        static std::array<glm::vec4, 4> quadVeritices = {
-            glm::vec4({-1.f, 1.f, 0.f, 1.f}),
-            {-1.f, -1.f, 0.f, 1.f},
-            {1.f, -1.f, 0.f, 1.f},
-            {1.f, 1.f, 0.f, 1.f},
-        };
-
         for (int i = 0; i < 4; i++) {
             auto &vertex = vertices[i];
             vertex.position = transform * m_StandardQuadVertices[i];

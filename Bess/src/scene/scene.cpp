@@ -40,16 +40,16 @@ namespace Bess::Canvas {
         std::vector<Gl::FBAttachmentType> attachments = {Gl::FBAttachmentType::RGBA_RGBA,
                                                          Gl::FBAttachmentType::R32I_REDI,
                                                          Gl::FBAttachmentType::RGBA_RGBA,
-                                                         Gl::DEPTH32F_STENCIL8};
+                                                         Gl::FBAttachmentType::DEPTH32F_STENCIL8};
         m_msaaFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments);
 
-        attachments = {Gl::FBAttachmentType::RGBA_RGBA};
+        attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::DEPTH32F_STENCIL8};
         m_shadowFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments);
 
         attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::RGBA_RGBA};
         m_placeHolderFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments);
 
-        attachments = {Gl::FBAttachmentType::RGB_RGB, Gl::FBAttachmentType::R32I_REDI};
+        attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::R32I_REDI};
         m_normalFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments);
 
         m_registry.clear();
@@ -658,8 +658,12 @@ namespace Bess::Canvas {
 
     void Scene::beginScene() {
         static int value = -1;
-        m_shadowFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::backgroundColor));
-        m_normalFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::backgroundColor));
+        /*static glm::vec4 col = glm::vec4(0.0);*/
+        /*m_shadowFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(col));*/
+        /*Gl::FrameBuffer::clearDepthStencilBuf();*/
+        /*m_normalFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(col));*/
+        /*m_placeHolderFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(col));*/
+        /*m_placeHolderFramebuffer->clearColorAttachment<GL_FLOAT>(1, glm::value_ptr(col));*/
 
         m_msaaFramebuffer->bind();
         m_msaaFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::backgroundColor));
@@ -673,45 +677,47 @@ namespace Bess::Canvas {
     void Scene::endScene() {
         Renderer2D::Renderer::end();
         Gl::FrameBuffer::unbindAll();
-        auto span = m_camera->getSpan();
-
-        // from msaa to normal
-        // -- normal color
-        m_msaaFramebuffer->bindColorAttachmentForRead(0);
-        m_placeHolderFramebuffer->bindColorAttachmentForDraw(0);
-        Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);
-        // -- shadow mask
-        m_msaaFramebuffer->bindColorAttachmentForRead(2);
-        m_placeHolderFramebuffer->bindColorAttachmentForDraw(1);
-        Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);
-
-        // shadow pass
-        m_placeHolderFramebuffer->bindColorAttachmentTexture(1);
-        m_shadowFramebuffer->bind();
-        Renderer2D::Renderer::doShadowRenderPass(span.x, span.y);
-
-        // rendering to normal to display
-        Gl::FrameBuffer::unbindAll();
-        m_placeHolderFramebuffer->bindColorAttachmentTexture(0, 0); // color
-        m_shadowFramebuffer->bindColorAttachmentTexture(0, 1);      // shadow
-        m_normalFramebuffer->bind();
-        Renderer2D::Renderer::doCompositeRenderPass(span.x, span.y);
-
-        /*m_placeHolderFramebuffer->bindColorAttachmentForRead(0);*/
-        /*m_normalFramebuffer->bindColorAttachmentForDraw(0);*/
+        /*auto span = m_camera->getSpan();*/
+        /**/
+        /*// from msaa to normal*/
+        /*// -- normal color*/
+        /*m_msaaFramebuffer->bindColorAttachmentForRead(0);*/
+        /*m_placeHolderFramebuffer->bindColorAttachmentForDraw(0);*/
         /*Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);*/
-
+        /*// -- shadow mask*/
+        /*m_msaaFramebuffer->bindColorAttachmentForRead(2);*/
+        /*m_placeHolderFramebuffer->bindColorAttachmentForDraw(1);*/
+        /*Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);*/
+        /**/
+        /*// shadow pass*/
+        /*m_placeHolderFramebuffer->bindColorAttachmentTexture(1);*/
+        /*m_shadowFramebuffer->bind();*/
+        /*Renderer2D::Renderer::doShadowRenderPass(span.x, span.y);*/
+        /**/
+        /*m_shadowFramebuffer->bindColorAttachmentForRead(0);*/
+        /*m_placeHolderFramebuffer->bindColorAttachmentForDraw(1);*/
+        /*Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);*/
+        /**/
+        /*// rendering to normal for display*/
+        /*m_shadowFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::backgroundColor));*/
+        /*Gl::FrameBuffer::clearDepthStencilBuf();*/
+        /*m_placeHolderFramebuffer->bindColorAttachmentTexture(0, 0); // color*/
+        /*m_placeHolderFramebuffer->bindColorAttachmentTexture(1, 1); // shadow*/
+        /*m_shadowFramebuffer->bind();*/
+        /*Renderer2D::Renderer::doCompositeRenderPass(span.x, span.y);*/
+        /*GL_CHECK(glActiveTexture(GL_TEXTURE0));*/
+        /*GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));*/
+        /**/
         /*m_shadowFramebuffer->bindColorAttachmentForRead(0);*/
         /*m_normalFramebuffer->bindColorAttachmentForDraw(0);*/
         /*Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);*/
 
-        for (int i = 1; i < 2; i++) {
+        for (int i = 0; i < 2; i++) {
             m_msaaFramebuffer->bindColorAttachmentForRead(i);
             m_normalFramebuffer->bindColorAttachmentForDraw(i);
             Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);
         }
 
-        GL_CHECK(glActiveTexture(GL_TEXTURE0));
         Gl::FrameBuffer::unbindAll();
     }
 

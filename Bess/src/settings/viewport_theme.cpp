@@ -26,28 +26,27 @@ namespace Bess {
 
         // Component Background: Slightly lighter than WindowBg
         auto color = colors[ImGuiCol_WindowBg];
-        componentBGColor = glm::vec4(color.x + 0.05f, color.y + 0.05f, color.z + 0.05f, 1.0f);
+        componentBGColor = glm::vec4(color.x + 0.05f, color.y + 0.05f, color.z + 0.05f, 0.8f);
         componentBGColor = glm::clamp(componentBGColor, 0.0f, 1.0f); // Ensure values stay in [0, 1]
 
         // Component Border: Subtle darkening of Border
-        color = colors[ImGuiCol_Border];
-        float darkenFactor = 0.9f;
-        componentBorderColor = glm::vec4(color.x * darkenFactor, color.y * darkenFactor, color.z * darkenFactor, 0.74f);
+        auto color_ = 1.f - componentBGColor;
+        float darkenFactor = 0.5f;
+        componentBorderColor = glm::vec4(color_.x * darkenFactor, color_.y * darkenFactor, color_.z * darkenFactor, 0.8f);
 
         // Wire Color: Bright but slightly softened Text color
         color = colors[ImGuiCol_Text];
         wireColor = glm::vec4(color.x * 0.9f, color.y * 0.9f, color.z * 0.9f, color.w);
 
         // Component Header: Slightly lighter than componentBGColor
-        compHeaderColor = glm::vec4(componentBGColor.x + 0.03f, componentBGColor.y + 0.03f, componentBGColor.z + 0.03f, componentBGColor.w);
-        compHeaderColor = glm::clamp(compHeaderColor, 0.0f, 1.0f);
+        compHeaderColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.8f);
 
         // Text: Full brightness for readability
         color = colors[ImGuiCol_Text];
         textColor = glm::vec4(color.x * darkenFactor, color.y * darkenFactor, color.z * darkenFactor, color.w);
 
         // Grid: Subtle but visible with brighter textColor
-        gridColor = textColor * 0.3f;
+        gridColor = textColor * 0.45f;
 
         // Fixed colors (unchanged except for correction)
         stateHighColor = glm::vec4(0.6f, 0.8f, 0.4f, 1.00f);         // Greenish

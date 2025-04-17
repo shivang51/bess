@@ -30,8 +30,8 @@ namespace Bess::Pages {
     }
 
     void MainPage::draw() {
-        UI::UIMain::draw();
         m_scene.render();
+        UI::UIMain::draw();
     }
 
     void MainPage::update(const std::vector<ApplicationEvent> &events) {

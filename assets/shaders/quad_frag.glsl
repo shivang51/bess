@@ -78,16 +78,11 @@ void main(){
     bgColor.a *= mO;      
 
     if(isMica){
-        float noise = rand(uv * 80.0) * 0.1;
-        vec4 tintColor1 = vec4(0.8, 0.5, 0.5, 1.f);
-        vec4 tintColor2 = vec4(0.5, 0.8, 0.5, 1.f);
-        vec4 micaColor = mix(tintColor1, tintColor2, abs(v_TexCoord.x));
-        micaColor.rgb += noise * 0.8;
-        bgColor.rgb *= micaColor.rgb;
+        bgColor.rgb *= length((fc - 0.5f) * vec2(0.5f, 0.95f));
     }
     
     fragColor = bgColor;
     fragColor1 = v_FragId;
-		fragColor2 = vec4(isMica, length(fc - 0.5f), 0.f, isMica);
+		fragColor2 = vec4(v_IsMica, length(fc - 0.5f), 0.f, v_IsMica);
 }
 

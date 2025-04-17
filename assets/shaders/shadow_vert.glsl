@@ -9,6 +9,5 @@ uniform mat4 u_mvp;
 
 void main() {
     v_TexCoord = a_TexCoord;
-
-    gl_Position = u_mvp * vec4(a_Vertex - 0.1f, 1.0);
+    gl_Position = u_mvp * vec4(a_Vertex + vec3(-4.0, 4.0, 0.0), 1.0);
 }

@@ -312,13 +312,13 @@ namespace Bess::Canvas {
                        spriteComp.borderRadius,
                        spriteComp.borderSize, borderColor, true);
 
-        /*Renderer::quad(headerPos,*/
-        /*               glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),*/
-        /*               ViewportTheme::compHeaderColor,*/
-        /*               id,*/
-        /*               0.f,*/
-        /*               glm::vec4(radius),*/
-        /*               glm::vec4(0.f), glm::vec4(0.f), true);*/
+        Renderer::quad(headerPos,
+                       glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
+                       ViewportTheme::compHeaderColor,
+                       id,
+                       0.f,
+                       glm::vec4(radius),
+                       glm::vec4(0.f), glm::vec4(0.f), true);
 
         Renderer::text(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id, rotation);
 
