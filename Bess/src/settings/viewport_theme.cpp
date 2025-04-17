@@ -34,15 +34,13 @@ namespace Bess {
         float darkenFactor = 0.5f;
         componentBorderColor = glm::vec4(color_.x * darkenFactor, color_.y * darkenFactor, color_.z * darkenFactor, 0.8f);
 
-        // Wire Color: Bright but slightly softened Text color
-        color = colors[ImGuiCol_Text];
-        wireColor = glm::vec4(color.x * 0.9f, color.y * 0.9f, color.z * 0.9f, color.w);
 
         // Component Header: Slightly lighter than componentBGColor
-        compHeaderColor = glm::vec4(0.8f, 0.0f, 0.0f, 0.8f);
+        compHeaderColor = glm::vec4(0.8f, 0.1f, 0.1f, 0.8f);
 
         // Text: Full brightness for readability
         color = colors[ImGuiCol_Text];
+        darkenFactor = 0.8f;
         textColor = glm::vec4(color.x * darkenFactor, color.y * darkenFactor, color.z * darkenFactor, color.w);
 
         // Grid: Subtle but visible with brighter textColor
@@ -50,10 +48,11 @@ namespace Bess {
 
         // Fixed colors (unchanged except for correction)
         stateHighColor = glm::vec4(0.6f, 0.8f, 0.4f, 1.00f);         // Greenish
-        stateLowColor = glm::vec4(0.4f, 0.5f, 0.3f, 1.00f);          // Dark Greenish
+        stateLowColor = glm::vec4(0.2f, 0.3f, 0.1f, 1.00f);          // Dark Greenish
         selectedWireColor = glm::vec4(1.0f, 0.64f, 0.0f, 1.0f);      // Orange
         selectionBoxBorderColor = glm::vec4(0.3f, 0.3f, 0.8f, 1.0f); // Blueish (corrected from 8.0)
         selectionBoxFillColor = glm::vec4(0.3f, 0.3f, 0.7f, 0.5f);   // Semi-transparent blue
         selectedCompColor = selectedWireColor;                       // Orange
+        wireColor = componentBorderColor;
     }
 } // namespace Bess
