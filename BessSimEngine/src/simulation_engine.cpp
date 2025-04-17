@@ -31,11 +31,13 @@ namespace Bess::SimEngine {
             simThread.join();
     }
 
-    void SimulationEngine::scheduleEvent(entt::entity e, TimePoint t) {
+    void SimulationEngine::scheduleEvent(entt::entity e, SimDelayMilliSeconds simTime) {
+
         std::lock_guard lk(queueMutex);
-        uint64_t id = nextEventId++;
-        auto [it, ok] = eventSet.emplace(SimulationEvent{t, e, id});
-        eventMap[id] = it;
+        static uint64_t eventId = 0;
+        SimulationEvent ev{simTime, e, eventId++};
+        eventSet.insert(ev);
+        eventMap[ev.id] = ev;
         cv.notify_all();
     }
 
@@ -73,7 +75,7 @@ namespace Bess::SimEngine {
             type == ComponentType::FLIP_FLOP_D || type == ComponentType::FLIP_FLOP_T) {
             m_registry.emplace<FlipFlopComponent>(ent, FlipFlopType(type), 1);
         }
-        scheduleEvent(ent, std::chrono::steady_clock::now() + def->delay);
+        scheduleEvent(ent, currentSimTime + def->delay);
         std::cout << "[SimEngine] Added component " << def->name << std::endl;
         return idComp.uuid;
     }
@@ -92,7 +94,7 @@ namespace Bess::SimEngine {
 
         outPins[srcPin].emplace_back(dst, dstPin);
         inPins[dstPin].emplace_back(src, srcPin);
-        scheduleEvent(dstEnt, std::chrono::steady_clock::now() + dstComp.delay);
+        scheduleEvent(dstEnt, currentSimTime + dstComp.delay);
         std::cout << "[SimEngine] Connected components" << std::endl;
         return true;
     }
@@ -136,7 +138,7 @@ namespace Bess::SimEngine {
         for (auto e : affected) {
             if (m_registry.valid(e)) {
                 auto &dc = m_registry.get<DigitalComponent>(e);
-                scheduleEvent(e, std::chrono::steady_clock::now() + dc.delay);
+                scheduleEvent(e, currentSimTime + dc.delay);
             }
         }
 
@@ -159,7 +161,7 @@ namespace Bess::SimEngine {
             auto dest = getEntityWithUuid(conn.first);
             if (dest != entt::null) {
                 auto &dc = m_registry.get<DigitalComponent>(dest);
-                scheduleEvent(dest, std::chrono::steady_clock::now() + dc.delay);
+                scheduleEvent(dest, currentSimTime + dc.delay);
             }
         }
     }
@@ -173,7 +175,7 @@ namespace Bess::SimEngine {
             m_registry.remove<ClockComponent>(ent);
         }
         clearEventsForEntity(ent);
-        scheduleEvent(ent, std::chrono::steady_clock::now());
+        scheduleEvent(ent, currentSimTime);
         return hadClock != enable;
     }
 
@@ -220,7 +222,7 @@ namespace Bess::SimEngine {
         // Schedule next simulation on the appropriate side
         entt::entity toSchedule = (pinAType == PinType::output ? entB : entA);
         auto &dc = m_registry.get<DigitalComponent>(toSchedule);
-        scheduleEvent(toSchedule, std::chrono::steady_clock::now() + dc.delay);
+        scheduleEvent(toSchedule, currentSimTime + dc.delay);
         std::cout << "[SimEngine] Deleted connection" << std::endl;
     }
 
@@ -255,54 +257,63 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::run() {
-        try {
-            std::cout << "[SimEngine] Simulation loop started" << std::endl;
-            while (!stopFlag.load()) {
-                std::unique_lock lk(queueMutex);
-                cv.wait(lk, [&] { return stopFlag.load() || !eventSet.empty(); });
-                if (stopFlag.load())
-                    break;
-                auto now = std::chrono::steady_clock::now();
-                auto it = eventSet.begin();
-                if (it->time <= now) {
-                    auto ev = *it;
-                    eventMap.erase(ev.id);
-                    eventSet.erase(it);
-                    lk.unlock();
+        std::cout << "[SimEngine] Simulation loop started" << std::endl;
+        currentSimTime = std::chrono::milliseconds(0);
+        while (!stopFlag.load()) {
+            std::unique_lock lk(queueMutex);
+            cv.wait(lk, [&] { return stopFlag.load() || !eventSet.empty(); });
+            if (stopFlag.load())
+                break;
+
+            if (eventSet.empty())
+                continue;
+
+            currentSimTime = eventSet.begin()->simTime;
+
+            while (!eventSet.empty() && eventSet.begin()->simTime == currentSimTime) {
+                auto ev = *eventSet.begin();
+                eventMap.erase(ev.id);
+                eventSet.erase(eventSet.begin());
+                lk.unlock();
+
+                {
                     std::lock_guard regLock(registryMutex);
                     if (!m_registry.valid(ev.entity))
                         continue;
+
                     bool hasClk = m_registry.all_of<ClockComponent>(ev.entity);
                     auto inputs = getInputPinsState(ev.entity);
                     bool changed = simulateComponent(ev.entity, inputs);
+
                     if (changed || hasClk) {
                         auto &dc = m_registry.get<DigitalComponent>(ev.entity);
-                        for (auto &pin : dc.outputPins)
+                        for (auto &pin : dc.outputPins) {
                             for (auto &c : pin) {
                                 auto d = getEntityWithUuid(c.first);
                                 if (d == entt::null)
                                     continue;
                                 auto &destDc = m_registry.get<DigitalComponent>(d);
-                                scheduleEvent(d,
-                                              std::chrono::steady_clock::now() + destDc.delay);
+                                scheduleEvent(d, currentSimTime + destDc.delay);
                             }
+                        }
                     }
+
                     if (hasClk) {
                         auto &clk = m_registry.get<ClockComponent>(ev.entity);
                         auto &dc = m_registry.get<DigitalComponent>(ev.entity);
-                        assert(dc.type == ComponentType::INPUT);
                         bool isHigh = dc.outputStates[0];
                         dc.outputStates[0] = !isHigh;
-                        scheduleEvent(ev.entity,
-                                      std::chrono::steady_clock::now() + clk.getNextDelay());
+                        scheduleEvent(ev.entity, currentSimTime + clk.getNextDelay());
                     }
-                } else {
-                    cv.wait_until(lk, it->time);
                 }
+
+                lk.lock();
             }
-            std::cout << "[SimEngine] Simulation loop stopped" << std::endl;
-        } catch (const std::exception &e) {
-            std::cerr << "[SimEngine] Exception: " << e.what() << std::endl;
+
+            if (!eventSet.empty()) {
+                cv.wait_until(lk, std::chrono::steady_clock::now() +
+                                      (eventSet.begin()->simTime - currentSimTime));
+            }
         }
     }
 

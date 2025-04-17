@@ -9,7 +9,6 @@
 namespace Bess::SimEngine {
     typedef std::chrono::milliseconds SimDelayMilliSeconds;
     typedef std::chrono::seconds SimDelaySeconds;
-    using TimePoint = std::chrono::steady_clock::time_point;
 
     // registry, entity, inputs, function to convert uuid to entity
     typedef std::function<bool(entt::registry &, entt::entity, const std::vector<bool> &, std::function<entt::entity(const UUID &)>)> SimulationFunction;
@@ -25,15 +24,13 @@ namespace Bess::SimEngine {
         MHz
     };
 
-    // Represents a scheduled simulation event.
     struct BESS_API SimulationEvent {
-        TimePoint time;
+        std::chrono::milliseconds simTime;
         entt::entity entity;
         uint64_t id;
-
-        bool operator<(SimulationEvent const &other) const noexcept {
-            if (time != other.time)
-                return time < other.time;
+        bool operator<(const SimulationEvent &other) const noexcept {
+            if (simTime != other.simTime)
+                return simTime < other.simTime;
             return id < other.id;
         }
     };

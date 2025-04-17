@@ -13,7 +13,7 @@ namespace Bess::SimEngine {
         auto view = registry.view<SimEngine::ClockComponent>();
 
         for (auto entt : view) {
-            SimulationEngine::instance().scheduleEvent(entt, std::chrono::steady_clock::now());
+            SimulationEngine::instance().scheduleEvent(entt, SimulationEngine::instance().currentSimTime);
         }
     }
 
