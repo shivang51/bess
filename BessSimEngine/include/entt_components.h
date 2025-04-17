@@ -20,6 +20,7 @@ namespace Bess::SimEngine {
         FlipFlopComponent(const FlipFlopComponent &) = default;
         FlipFlopType type = FlipFlopType::FLIP_FLOP_JK;
         int clockPinIdx = 1;
+        bool prevClock = false;
     };
 
     inline void to_json(nlohmann::json &j, const FlipFlopComponent &comp) {

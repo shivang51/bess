@@ -41,9 +41,13 @@ namespace Bess::SimEngine {
             // getting values of input pins
             comp.inputStates = inputs;
             auto inPinValues = comp.inputStates;
-
-            if (!inPinValues[flipFlopComp.clockPinIdx])
+            auto clockValue = inPinValues[flipFlopComp.clockPinIdx];
+            if (!clockValue || flipFlopComp.prevClock) {
+                flipFlopComp.prevClock = clockValue;
                 return false;
+            }
+
+            flipFlopComp.prevClock = clockValue;
 
             bool q = comp.outputStates[0], q0 = comp.outputStates[2];
             bool changed = false;
