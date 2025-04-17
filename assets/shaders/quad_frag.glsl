@@ -78,7 +78,7 @@ void main(){
     bgColor.a *= mO;      
 
     if(isMica){
-        bgColor.rgb *= length((fc - 0.5f) * vec2(0.5f, 0.95f));
+        bgColor.rgb *= length((fc + vec2(-0.35f, -0.5f)));
     }
     
     fragColor = bgColor;

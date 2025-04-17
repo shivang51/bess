@@ -136,7 +136,10 @@ namespace Bess::Canvas {
         }
 
         beginScene();
-        Renderer::grid({0.f, 0.f, -2.f}, m_camera->getSpan(), -1, ViewportTheme::gridColor);
+
+        if (m_drawMode == SceneDrawMode::connection) {
+            drawConnection();
+        }
 
         // draw connections
         auto connectionsView = m_registry.view<Components::ConnectionComponent>();
@@ -150,16 +153,11 @@ namespace Bess::Canvas {
             Artist::drawSimEntity(entity);
         }
 
-        switch (m_drawMode) {
-        case SceneDrawMode::connection:
-            drawConnection();
-            break;
-        case SceneDrawMode::selectionBox:
+        if (m_drawMode == SceneDrawMode::selectionBox) {
             drawSelectionBox();
-            break;
-        default:
-            break;
         }
+
+        Renderer::grid({0.f, 0.f, -2.f}, m_camera->getSpan(), -1, ViewportTheme::gridColor);
 
         endScene();
     }

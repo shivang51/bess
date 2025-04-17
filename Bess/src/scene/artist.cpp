@@ -19,7 +19,7 @@ namespace Bess::Canvas {
     Scene *Artist::sceneRef = nullptr;
 
     struct ComponentStyles {
-        float headerHeight = 22.f;
+        float headerHeight = 18.f;
         float headerFontSize = 10.f;
         float paddingX = 8.f;
         float paddingY = 4.f;
@@ -317,7 +317,7 @@ namespace Bess::Canvas {
                        ViewportTheme::compHeaderColor,
                        id,
                        0.f,
-                       glm::vec4(radius),
+                       glm::vec4(0, 0, radius, radius),
                        glm::vec4(0.f), glm::vec4(0.f), true);
 
         Renderer::text(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id, rotation);

@@ -39,7 +39,7 @@ namespace Bess {
         wireColor = glm::vec4(color.x * 0.9f, color.y * 0.9f, color.z * 0.9f, color.w);
 
         // Component Header: Slightly lighter than componentBGColor
-        compHeaderColor = glm::vec4(0.4f, 0.2f, 0.2f, 0.8f);
+        compHeaderColor = glm::vec4(0.8f, 0.0f, 0.0f, 0.8f);
 
         // Text: Full brightness for readability
         color = colors[ImGuiCol_Text];
@@ -50,7 +50,7 @@ namespace Bess {
 
         // Fixed colors (unchanged except for correction)
         stateHighColor = glm::vec4(0.6f, 0.8f, 0.4f, 1.00f);         // Greenish
-        stateLowColor = glm::vec4(0.82f, 0.2f, 0.2f, 1.00f);         // Reddish
+        stateLowColor = glm::vec4(0.4f, 0.5f, 0.3f, 1.00f);          // Dark Greenish
         selectedWireColor = glm::vec4(1.0f, 0.64f, 0.0f, 1.0f);      // Orange
         selectionBoxBorderColor = glm::vec4(0.3f, 0.3f, 0.8f, 1.0f); // Blueish (corrected from 8.0)
         selectionBoxFillColor = glm::vec4(0.3f, 0.3f, 0.7f, 0.5f);   // Semi-transparent blue
