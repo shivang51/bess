@@ -41,38 +41,56 @@ namespace Bess::SimEngine {
         ClockComponent() = default;
         ClockComponent(const ClockComponent &) = default;
 
-        SimDelayMilliSeconds getTimeInMS() {
-            auto f = frequency;
+        void setup(float freq, FrequencyUnit unit) {
+            frequency = freq;
+            frequencyUnit = unit;
+            high = false;
+        }
+
+        void toggle() {
+            high = !high;
+        }
+
+        std::chrono::milliseconds getNextDelay() const {
+            double f = frequency;
             switch (frequencyUnit) {
             case FrequencyUnit::hz:
                 break;
-            case FrequencyUnit::MHz:
-                f *= 10e6;
-                break;
             case FrequencyUnit::kHz:
-                f *= 10e3;
+                f *= 1e3;
+                break;
+            case FrequencyUnit::MHz:
+                f *= 1e6;
                 break;
             default:
-                throw std::runtime_error("Unhandled clock frequency");
-                break;
+                throw std::runtime_error("Unhandled clock frequency unit");
             }
-
-            return SimDelayMilliSeconds((int)((1.0 / f) * 1000));
+            if (f <= 0.0) {
+                throw std::runtime_error("Invalid clock frequency");
+            }
+            double periodMs = 1000.0 / f;
+            double phaseMs = high ? periodMs * dutyCycle : periodMs * (1.0 - dutyCycle);
+            return std::chrono::milliseconds(static_cast<int>(phaseMs));
         }
 
-        float dutyCycle = 0.50;
+        float dutyCycle = 0.5f;
         FrequencyUnit frequencyUnit = FrequencyUnit::hz;
-        float frequency = 1.f;
+        float frequency = 1.0f;
+
+      private:
+        bool high = false; // current output phase
     };
 
-    inline void to_json(nlohmann::json &j, const ClockComponent &comp) {
-        j["frequency"] = comp.frequency;
-        j["frequencyUnit"] = (int)comp.frequencyUnit;
+    inline void to_json(nlohmann::json &j, const ClockComponent &c) {
+        j["frequency"] = c.frequency;
+        j["frequencyUnit"] = (int)c.frequencyUnit;
+        j["dutyCycle"] = c.dutyCycle;
     }
 
-    inline void from_json(const nlohmann::json &j, ClockComponent &comp) {
-        comp.frequencyUnit = j.at("frequencyUnit").get<SimEngine::FrequencyUnit>();
-        comp.frequency = j.at("frequency").get<float>();
+    inline void from_json(const nlohmann::json &j, ClockComponent &c) {
+        c.frequencyUnit = j.at("frequencyUnit").get<FrequencyUnit>();
+        c.frequency = j.at("frequency").get<float>();
+        c.dutyCycle = j.value("dutyCycle", c.dutyCycle);
     }
 
     struct BESS_API DigitalComponent {

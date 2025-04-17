@@ -14,425 +14,44 @@
 
 namespace Bess::SimEngine {
 
-    // Global mutex to protect registry access.
-    static std::mutex registryMutex;
-
-    bool SimulationEvent::operator<(const SimulationEvent &other) const {
-        // Earlier times get higher priority.
-        return time > other.time;
+    SimulationEngine &SimulationEngine::instance() {
+        static SimulationEngine inst;
+        return inst;
     }
 
-    SimulationEngine::SimulationEngine()
-        : stopFlag(false) {
-        simThread = std::thread(&SimulationEngine::run, this);
+    SimulationEngine::SimulationEngine() {
         initComponentCatalog();
+        simThread = std::thread(&SimulationEngine::run, this);
     }
 
     SimulationEngine::~SimulationEngine() {
-        stop();
-        if (simThread.joinable()) {
+        stopFlag.store(true);
+        cv.notify_all();
+        if (simThread.joinable())
             simThread.join();
-        }
     }
 
-    SimulationEngine &SimulationEngine::instance() {
-        static SimulationEngine instance;
-        return instance;
-    }
-
-    void SimulationEngine::deleteConnection(const UUID &componentA, PinType pinAType, int idxA, const UUID &componentB, PinType pinBType, int idxB) {
-        auto componentAEntt = getEntityWithUuid(componentA);
-        auto componentBEntt = getEntityWithUuid(componentB);
-        auto &compA = m_registry.get<DigitalComponent>(componentAEntt);
-        auto &compB = m_registry.get<DigitalComponent>(componentBEntt);
-        auto &pinA = (pinAType == PinType::input) ? compA.inputPins[idxA] : compA.outputPins[idxA];
-        auto &pinB = (pinBType == PinType::input) ? compB.inputPins[idxB] : compB.outputPins[idxB];
-        pinA.erase(
-            std::remove_if(pinA.begin(), pinA.end(),
-                           [componentB, idxB](const std::pair<UUID, int> &conn) {
-                               return conn.first == componentB && conn.second == idxB;
-                           }),
-            pinA.end());
-
-        pinB.erase(
-            std::remove_if(pinB.begin(), pinB.end(),
-                           [componentA, idxA](const std::pair<UUID, int> &conn) {
-                               return conn.first == componentA && conn.second == idxA;
-                           }),
-            pinB.end());
-
-        if (pinAType == PinType::output) {
-            scheduleEvent(componentBEntt, std::chrono::steady_clock::now() + compB.delay);
-        } else {
-            scheduleEvent(componentAEntt, std::chrono::steady_clock::now() + compA.delay);
-        }
-
-        std::cout << "[SimEngine] Deleted connection" << std::endl;
-    }
-
-    void SimulationEngine::stop() {
-        {
-            std::lock_guard<std::mutex> lock(queueMutex);
-            stopFlag = true;
-        }
+    void SimulationEngine::scheduleEvent(entt::entity e, TimePoint t) {
+        std::lock_guard lk(queueMutex);
+        uint64_t id = nextEventId++;
+        auto [it, ok] = eventSet.emplace(SimulationEvent{t, e, id});
+        eventMap[id] = it;
         cv.notify_all();
     }
 
-    void SimulationEngine::scheduleEvent(entt::entity entity, std::chrono::steady_clock::time_point time) {
-        {
-            std::lock_guard<std::mutex> lock(queueMutex);
-            eventQueue.push({time, entity});
-        }
-        cv.notify_all();
-    }
-
-    const UUID &SimulationEngine::addComponent(ComponentType type, int inputCount, int outputCount) {
-        auto ent = m_registry.create();
-        const auto *def = ComponentCatalog::instance().getComponentDefinition(type);
-        inputCount = inputCount == -1 ? def->inputCount : inputCount;
-        outputCount = outputCount == -1 ? def->outputCount : outputCount;
-        assert(def->inputCount <= inputCount);
-        assert(def->outputCount <= outputCount);
-
-        if (type == ComponentType::NOT) {
-            inputCount = std::max(inputCount, outputCount);
-            outputCount = inputCount;
-        }
-
-        auto &idComp = m_registry.emplace<IdComponent>(ent);
-        auto &digiComp = m_registry.emplace<DigitalComponent>(ent, type, inputCount, outputCount, def->delay);
-
-        if (type == ComponentType::FLIP_FLOP_JK || type == ComponentType::FLIP_FLOP_SR) {
-            m_registry.emplace<FlipFlopComponent>(ent, (FlipFlopType)type, 1);
-        } else if (type == ComponentType::FLIP_FLOP_D || type == ComponentType::FLIP_FLOP_T) {
-            m_registry.emplace<FlipFlopComponent>(ent, (FlipFlopType)type, 1);
-        }
-        std::cout << "[SimEngine] Added component " << def->name << std::endl;
-        scheduleEvent(ent, std::chrono::steady_clock::now() + def->delay);
-        return idComp.uuid;
-    }
-
-    bool SimulationEngine::connectComponent(const UUID &srcUuid, int srcPin, PinType srcPinType, const UUID &dstUuid, int dstPin, PinType dstPinType) {
-        auto src = getEntityWithUuid(srcUuid);
-        auto dst = getEntityWithUuid(dstUuid);
-        if (!m_registry.valid(src) || !m_registry.valid(dst)) {
-            std::cout << "Invalid gate id(s)." << std::endl;
-            return false;
-        }
-
-        if (srcPinType == dstPinType) {
-            std::cout << "Cannot connect pins of the same type i.e. input -> input or output -> output" << std::endl;
-            return false;
-        }
-
-        auto &srcGate = m_registry.get<DigitalComponent>(src);
-        auto &dstGate = m_registry.get<DigitalComponent>(dst);
-
-        auto &srcPins = srcPinType == PinType::input ? srcGate.inputPins : srcGate.outputPins;
-        auto &dstPins = dstPinType == PinType::input ? dstGate.inputPins : dstGate.outputPins;
-
-        if (srcPin < 0 || srcPin >= static_cast<int>(srcPins.size())) {
-            std::cout << "Invalid source pin index. Valid range: 0 to "
-                      << (srcGate.outputPins.size() - 1) << std::endl;
-            return false;
-        }
-        if (dstPin < 0 || dstPin >= static_cast<int>(dstPins.size())) {
-            std::cout << "Invalid destination pin index. Valid range: 0 to "
-                      << (dstGate.inputPins.size() - 1) << std::endl;
-            return false;
-        }
-        // Check for duplicate connection.
-        for (const auto &conn : srcPins[srcPin]) {
-            if (conn.first == dstUuid && conn.second == dstPin) {
-                std::cout << "Connection already exists." << std::endl;
-                return false;
-            }
-        }
-        srcPins[srcPin].emplace_back(dstUuid, dstPin);
-        dstPins[dstPin].emplace_back(srcUuid, srcPin);
-
-        auto srcPinTypeName = (srcPinType == PinType::input ? "input" : "output");
-        auto dstPinTypeName = (dstPinType == PinType::input ? "input" : "output");
-
-        std::cout << "Connected gate " << static_cast<uint32_t>(src)
-                  << " (" << srcPinTypeName << " " << srcPin << ") to gate "
-                  << static_cast<uint32_t>(dst) << " (" << dstPinTypeName << " " << dstPin << ")." << std::endl;
-
-        auto gateToSim = (srcPinType == PinType::input) ? srcGate : dstGate;
-        auto enttToSim = (srcPinType == PinType::input) ? src : dst;
-
-        scheduleEvent(enttToSim, std::chrono::steady_clock::now() + gateToSim.delay);
-
-        return true;
-    }
-
-    void SimulationEngine::deleteComponent(const UUID &componentUuid) {
-        auto component = getEntityWithUuid(componentUuid);
-
-        // Remove any scheduled events for the gate.
-        {
-            std::lock_guard<std::mutex> lock(queueMutex);
-            std::vector<SimulationEvent> remaining;
-            while (!eventQueue.empty()) {
-                SimulationEvent ev = eventQueue.top();
-                eventQueue.pop();
-                if (ev.entity != component) {
-                    remaining.push_back(ev);
-                }
-            }
-            for (const auto &ev : remaining) {
-                eventQueue.push(ev);
-            }
-        }
-
-        // gates which needs to be simulated after the deletion
-        std::unordered_set<entt::entity> affectedGates;
-
-        // Remove all connections to/from the gate in other components.
-        {
-            std::lock_guard<std::mutex> lock(registryMutex);
-            // Iterate over all gate components.
-            auto view = m_registry.view<DigitalComponent>();
-            for (auto other : view) {
-                if (other == component)
-                    continue;
-                auto &comp = view.get<DigitalComponent>(other);
-                // Remove any connection in inputPins where the source is the gate to be deleted.
-                for (auto &inPin : comp.inputPins) {
-                    int n = inPin.size();
-                    inPin.erase(
-                        std::remove_if(inPin.begin(), inPin.end(),
-                                       [componentUuid](const std::pair<UUID, int> &conn) {
-                                           return conn.first == componentUuid;
-                                       }),
-                        inPin.end());
-                    if (inPin.size() < n) {
-                        affectedGates.insert(other);
-                    }
-                }
-                // Remove any connection in outputPins where the destination is the gate to be deleted.
-                for (auto &outPin : comp.outputPins) {
-                    outPin.erase(
-                        std::remove_if(outPin.begin(), outPin.end(),
-                                       [componentUuid](const std::pair<UUID, int> &conn) {
-                                           return conn.first == componentUuid;
-                                       }),
-                        outPin.end());
-                }
-            }
-            // Finally, destroy the gate entity.
-            if (m_registry.valid(component)) {
-                m_registry.destroy(component);
-            }
-        }
-
-        // For each gate that lost an input connection, schedule a simulation event.
-        for (auto entity : affectedGates) {
-            // Lock registryMutex briefly to retrieve the delay value.
-            std::lock_guard<std::mutex> lock(registryMutex);
-            if (m_registry.valid(entity)) {
-                auto &comp = m_registry.get<DigitalComponent>(entity);
-                scheduleEvent(entity, std::chrono::steady_clock::now() + comp.delay);
-            }
-        }
-        std::cout << "[SimEngine] Gate " << static_cast<uint32_t>(component) << " deleted successfully." << std::endl;
-    }
-
-    bool SimulationEngine::getDigitalPinState(const UUID &entityUuid, PinType type, int idx) {
-        auto entity = getEntityWithUuid(entityUuid);
-        auto &gateComp = m_registry.get<DigitalComponent>(entity);
-        assert(gateComp.type == ComponentType::INPUT);
-        return gateComp.outputStates[0];
-    }
-
-    void SimulationEngine::setDigitalInput(const UUID &entityUuid, bool value) {
-        auto entity = getEntityWithUuid(entityUuid);
-        auto &gateComp = m_registry.get<DigitalComponent>(entity);
-        assert(gateComp.type == ComponentType::INPUT);
-
-        bool isClocked = m_registry.all_of<ClockComponent>(entity);
-        if (isClocked)
-            return;
-
-        if (gateComp.outputStates[0] == value)
-            return;
-
-        gateComp.outputStates[0] = value;
-        std::unordered_map<entt::entity, bool> scheduled = {};
-        for (auto &conn : gateComp.outputPins[0]) {
-            auto e = getEntityWithUuid(conn.first);
-            if (scheduled.contains(e))
-                continue;
-            auto &connComp = m_registry.get<DigitalComponent>(e);
-            scheduleEvent(e, std::chrono::steady_clock::now() + std::chrono::milliseconds(connComp.delay));
-            scheduled[e] = true;
-        }
-    }
-
-    ComponentState SimulationEngine::getComponentState(const UUID &entityUuid) {
-        auto entity = getEntityWithUuid(entityUuid);
-        ComponentState state;
-        /*state.inputStates = getInputPinsState(entity);*/
-        auto &gateComp = m_registry.get<DigitalComponent>(entity);
-        state.inputStates = gateComp.inputStates;
-        state.outputStates = gateComp.outputStates;
-        return state;
-    }
-
-    std::vector<bool> SimulationEngine::getInputPinsState(entt::entity entity) {
-        std::vector<bool> states;
-        auto &gateComp = m_registry.get<DigitalComponent>(entity);
-        for (auto &pin : gateComp.inputPins) {
-            bool state = false;
-            for (auto &conn : pin) {
-                auto &connComp = m_registry.get<DigitalComponent>(getEntityWithUuid(conn.first));
-                state = state || connComp.outputStates[conn.second];
-                if (state)
-                    break;
-            }
-            states.emplace_back(state);
-        }
-        return states;
-    }
-
-    bool SimulationEngine::updateClock(const UUID &uuid, bool shouldClock, float frequency, FrequencyUnit unit) {
-        auto entt = getEntityWithUuid(uuid);
-        assert(m_registry.valid(entt));
-        bool hasClockComp = m_registry.all_of<ClockComponent>(entt);
-        bool changed = false;
-        if (shouldClock) {
-            std::cout << "[SimEngine] Adding or Updating Clock" << std::endl;
-            ClockComponent &clockComp = m_registry.get_or_emplace<ClockComponent>(entt);
-            changed = !hasClockComp || frequency != clockComp.frequency || clockComp.frequencyUnit != unit;
-            clockComp.frequency = frequency;
-            clockComp.frequencyUnit = unit;
-        } else if (hasClockComp) {
-            std::cout << "[SimEngine] Removing Clock" << std::endl;
-            m_registry.remove<ClockComponent>(entt);
-            changed = true;
-        }
-
-        if (changed) {
-            clearEventsForEntity(entt);
-            scheduleEvent(entt, std::chrono::steady_clock::now());
-        }
-        return changed;
-    }
-
-    ComponentType SimulationEngine::getComponentType(const UUID &entityUuid) {
-        auto entity = getEntityWithUuid(entityUuid);
-        assert(m_registry.valid(entity));
-        auto &gateComp = m_registry.get<DigitalComponent>(entity);
-        return gateComp.type;
-    }
-
-    bool SimulationEngine::simulateComponent(entt::entity e, const std::vector<bool> &inputs) {
-        auto &comp = m_registry.get<DigitalComponent>(e);
-        const auto *def = ComponentCatalog::instance().getComponentDefinition(comp.type);
-        std::cout << "[SimEngine] Simulating " << def->name << std::endl;
-        if (def && def->simulationFunction) {
-            bool val = def->simulationFunction(m_registry, e, inputs, std::bind(&SimulationEngine::getEntityWithUuid, this, std::placeholders::_1));
-            return val;
-        }
-        return false;
-    }
-
-    void SimulationEngine::clearEventsForEntity(entt::entity entity) {
-        std::lock_guard<std::mutex> lock(queueMutex);
-
-        std::vector<SimulationEvent> remainingEvents;
-
-        while (!eventQueue.empty()) {
-            const SimulationEvent ev = eventQueue.top();
-            eventQueue.pop();
-            if (ev.entity != entity) {
-                remainingEvents.push_back(ev);
-            }
-        }
-
-        for (const auto &ev : remainingEvents) {
-            eventQueue.push(ev);
-        }
-
-        std::cout << "[SimEngine] Removed all events for entity "
-                  << static_cast<uint32_t>(entity) << std::endl;
-    }
-
-    void SimulationEngine::run() {
-        std::cout << "[SimEngine] Simulation Loop Started" << std::endl;
-        while (true) {
-            std::unique_lock<std::mutex> lock(queueMutex);
-            if (stopFlag)
-                break;
-
-            if (eventQueue.empty()) {
-                cv.wait(lock, [this]() { return stopFlag || !eventQueue.empty(); });
-                if (stopFlag)
-                    break;
-            }
-
-            auto now = std::chrono::steady_clock::now();
-            SimulationEvent nextEvent = eventQueue.top();
-            if (now >= nextEvent.time) {
-                eventQueue.pop();
-                lock.unlock();
-
-                // Protect registry access.
-                {
-                    std::lock_guard<std::mutex> regLock(registryMutex);
-                    if (!m_registry.valid(nextEvent.entity))
-                        continue;
-                    bool hasClockComp = m_registry.all_of<ClockComponent>(nextEvent.entity);
-                    bool changed = simulateComponent(nextEvent.entity, getInputPinsState(nextEvent.entity));
-                    // If state changed, schedule simulation events for all connected gates.
-                    if (changed || hasClockComp) {
-                        auto &comp = m_registry.get<DigitalComponent>(nextEvent.entity);
-                        std::unordered_map<entt::entity, bool> scheduled = {};
-                        for (const auto &pin : comp.outputPins) {
-                            for (const auto &conn : pin) {
-                                auto e = getEntityWithUuid(conn.first);
-                                if (scheduled.contains(e) && scheduled.at(e))
-                                    continue;
-                                if (m_registry.valid(e)) {
-                                    auto &dstGate = m_registry.get<DigitalComponent>(e);
-                                    auto scheduledTime = std::chrono::steady_clock::now() + dstGate.delay;
-                                    auto inputs = getInputPinsState(e);
-                                    scheduleEvent(e, scheduledTime);
-                                    scheduled[e] = true;
-                                }
-                            }
-                        }
-                    }
-                    if (hasClockComp) {
-                        auto &comp = m_registry.get<ClockComponent>(nextEvent.entity);
-                        auto time = comp.getTimeInMS();
-
-                        auto &gateComp = m_registry.get<DigitalComponent>(nextEvent.entity);
-                        assert(gateComp.type == ComponentType::INPUT);
-
-                        bool isHigh = gateComp.outputStates[0];
-                        gateComp.outputStates[0] = !isHigh;
-
-                        float dutyTime = comp.dutyCycle;
-
-                        if (isHigh)
-                            dutyTime = 1.f - dutyTime;
-
-                        auto changeTime = (int)(time.count() * dutyTime);
-                        time = SimDelayMilliSeconds(changeTime);
-
-                        auto scheduledTime = std::chrono::steady_clock::now() + time;
-                        scheduleEvent(nextEvent.entity, scheduledTime);
-                    }
-                    /*std::cout << "[SimEngine] Sim Queue Size " << eventQueue.size() << std::endl;*/
-                }
+    void SimulationEngine::clearEventsForEntity(entt::entity e) {
+        std::lock_guard lk(queueMutex);
+        for (auto it = eventSet.begin(); it != eventSet.end();) {
+            if (it->entity == e) {
+                eventMap.erase(it->id);
+                it = eventSet.erase(it);
             } else {
-                cv.wait_until(lock, nextEvent.time);
+                ++it;
             }
         }
     }
 
-    entt::entity SimulationEngine::getEntityWithUuid(const UUID &uuid) {
+    entt::entity SimulationEngine::getEntityWithUuid(const UUID &uuid) const {
         auto view = m_registry.view<IdComponent>();
         for (const auto &ent : view) {
             auto &idComp = view.get<IdComponent>(ent);
@@ -442,8 +61,249 @@ namespace Bess::SimEngine {
         return entt::null;
     }
 
-    const UUID &SimulationEngine::getUuidOfEntity(entt::entity ent) {
-        auto &idComp = m_registry.get<IdComponent>(ent);
+    const UUID &SimulationEngine::addComponent(ComponentType type, int inputCount, int outputCount) {
+        auto ent = m_registry.create();
+        auto &idComp = m_registry.emplace<IdComponent>(ent);
+        uuidMap.emplace(idComp.uuid, ent);
+        const auto *def = ComponentCatalog::instance().getComponentDefinition(type);
+        inputCount = (inputCount < 0 ? def->inputCount : inputCount);
+        outputCount = (outputCount < 0 ? def->outputCount : outputCount);
+        auto &digi = m_registry.emplace<DigitalComponent>(ent, type, inputCount, outputCount, def->delay);
+        if (type == ComponentType::FLIP_FLOP_JK || type == ComponentType::FLIP_FLOP_SR ||
+            type == ComponentType::FLIP_FLOP_D || type == ComponentType::FLIP_FLOP_T) {
+            m_registry.emplace<FlipFlopComponent>(ent, FlipFlopType(type), 1);
+        }
+        scheduleEvent(ent, std::chrono::steady_clock::now() + def->delay);
+        std::cout << "[SimEngine] Added component " << def->name << std::endl;
         return idComp.uuid;
     }
+
+    bool SimulationEngine::connectComponent(const UUID &src, int srcPin, PinType srcType,
+                                            const UUID &dst, int dstPin, PinType dstType) {
+        auto srcEnt = getEntityWithUuid(src);
+        auto dstEnt = getEntityWithUuid(dst);
+        if (!m_registry.valid(srcEnt) || !m_registry.valid(dstEnt))
+            return false;
+
+        auto &srcComp = m_registry.get<DigitalComponent>(srcEnt);
+        auto &dstComp = m_registry.get<DigitalComponent>(dstEnt);
+        auto &outPins = (srcType == PinType::output ? srcComp.outputPins : srcComp.inputPins);
+        auto &inPins = (dstType == PinType::input ? dstComp.inputPins : dstComp.outputPins);
+
+        outPins[srcPin].emplace_back(dst, dstPin);
+        inPins[dstPin].emplace_back(src, srcPin);
+        scheduleEvent(dstEnt, std::chrono::steady_clock::now() + dstComp.delay);
+        std::cout << "[SimEngine] Connected components" << std::endl;
+        return true;
+    }
+
+    void SimulationEngine::deleteComponent(const UUID &uuid) {
+        auto ent = getEntityWithUuid(uuid);
+        if (ent == entt::null)
+            return;
+
+        clearEventsForEntity(ent);
+        std::vector<entt::entity> affected;
+
+        {
+            std::lock_guard lk(registryMutex);
+            auto view = m_registry.view<DigitalComponent>();
+            for (auto other : view) {
+                if (other == ent)
+                    continue;
+                auto &comp = view.get<DigitalComponent>(other);
+                bool lost = false;
+                for (auto &pin : comp.inputPins) {
+                    size_t before = pin.size();
+                    pin.erase(std::remove_if(pin.begin(), pin.end(),
+                                             [&](auto &c) { return c.first == uuid; }),
+                              pin.end());
+                    if (pin.size() < before)
+                        lost = true;
+                }
+                if (lost)
+                    affected.push_back(other);
+                for (auto &pin : comp.outputPins) {
+                    pin.erase(std::remove_if(pin.begin(), pin.end(),
+                                             [&](auto &c) { return c.first == uuid; }),
+                              pin.end());
+                }
+            }
+            uuidMap.erase(uuid);
+            m_registry.destroy(ent);
+        }
+
+        for (auto e : affected) {
+            if (m_registry.valid(e)) {
+                auto &dc = m_registry.get<DigitalComponent>(e);
+                scheduleEvent(e, std::chrono::steady_clock::now() + dc.delay);
+            }
+        }
+
+        std::cout << "[SimEngine] Deleted component" << std::endl;
+    }
+
+    bool SimulationEngine::getDigitalPinState(const UUID &uuid, PinType type, int idx) {
+        auto ent = getEntityWithUuid(uuid);
+        auto &comp = m_registry.get<DigitalComponent>(ent);
+        return comp.outputStates[idx];
+    }
+
+    void SimulationEngine::setDigitalInput(const UUID &uuid, bool value) {
+        auto ent = getEntityWithUuid(uuid);
+        auto &comp = m_registry.get<DigitalComponent>(ent);
+        if (comp.outputStates[0] == value)
+            return;
+        comp.outputStates[0] = value;
+        for (auto &conn : comp.outputPins[0]) {
+            auto dest = getEntityWithUuid(conn.first);
+            if (dest != entt::null) {
+                auto &dc = m_registry.get<DigitalComponent>(dest);
+                scheduleEvent(dest, std::chrono::steady_clock::now() + dc.delay);
+            }
+        }
+    }
+
+    bool SimulationEngine::updateClock(const UUID &uuid, bool enable, float freq, FrequencyUnit unit) {
+        auto ent = getEntityWithUuid(uuid);
+        bool hadClock = m_registry.all_of<ClockComponent>(ent);
+        if (enable) {
+            m_registry.get_or_emplace<ClockComponent>(ent).setup(freq, unit);
+        } else if (hadClock) {
+            m_registry.remove<ClockComponent>(ent);
+        }
+        clearEventsForEntity(ent);
+        scheduleEvent(ent, std::chrono::steady_clock::now());
+        return hadClock != enable;
+    }
+
+    ComponentState SimulationEngine::getComponentState(const UUID &uuid) {
+        auto ent = getEntityWithUuid(uuid);
+        ComponentState st;
+        assert(m_registry.all_of<DigitalComponent>(ent));
+        auto &comp = m_registry.get<DigitalComponent>(ent);
+        st.inputStates = getInputPinsState(ent);
+        st.outputStates = comp.outputStates;
+        return st;
+    }
+
+    ComponentType SimulationEngine::getComponentType(const UUID &uuid) {
+        auto ent = getEntityWithUuid(uuid);
+        return m_registry.get<DigitalComponent>(ent).type;
+    }
+
+    void SimulationEngine::deleteConnection(const UUID &compA, PinType pinAType, int idxA,
+                                            const UUID &compB, PinType pinBType, int idxB) {
+        auto entA = getEntityWithUuid(compA);
+        auto entB = getEntityWithUuid(compB);
+        if (!m_registry.valid(entA) || !m_registry.valid(entB))
+            return;
+
+        std::lock_guard lk(registryMutex);
+        auto &compARef = m_registry.get<DigitalComponent>(entA);
+        auto &compBRef = m_registry.get<DigitalComponent>(entB);
+
+        auto &pinsA = (pinAType == PinType::input ? compARef.inputPins : compARef.outputPins);
+        auto &pinsB = (pinBType == PinType::input ? compBRef.inputPins : compBRef.outputPins);
+
+        // Erase connection from A -> B
+        pinsA[idxA].erase(
+            std::remove_if(pinsA[idxA].begin(), pinsA[idxA].end(),
+                           [&](auto &c) { return c.first == compB && c.second == idxB; }),
+            pinsA[idxA].end());
+        // Erase connection from B -> A
+        pinsB[idxB].erase(
+            std::remove_if(pinsB[idxB].begin(), pinsB[idxB].end(),
+                           [&](auto &c) { return c.first == compA && c.second == idxA; }),
+            pinsB[idxB].end());
+
+        // Schedule next simulation on the appropriate side
+        entt::entity toSchedule = (pinAType == PinType::output ? entB : entA);
+        auto &dc = m_registry.get<DigitalComponent>(toSchedule);
+        scheduleEvent(toSchedule, std::chrono::steady_clock::now() + dc.delay);
+        std::cout << "[SimEngine] Deleted connection" << std::endl;
+    }
+
+    std::vector<bool> SimulationEngine::getInputPinsState(entt::entity ent) const {
+        std::vector<bool> states;
+        auto &comp = m_registry.get<DigitalComponent>(ent);
+        for (auto &pin : comp.inputPins) {
+            bool s = false;
+            for (auto &conn : pin) {
+                auto e = getEntityWithUuid(conn.first);
+                if (e == entt::null)
+                    continue;
+                auto &dc = m_registry.get<DigitalComponent>(e);
+                s = s || dc.outputStates[conn.second];
+                if (s)
+                    break;
+            }
+            states.push_back(s);
+        }
+        return states;
+    }
+
+    bool SimulationEngine::simulateComponent(entt::entity e, const std::vector<bool> &inputs) {
+        auto &comp = m_registry.get<DigitalComponent>(e);
+        const auto *def = ComponentCatalog::instance().getComponentDefinition(comp.type);
+        if (def && def->simulationFunction) {
+            return def->simulationFunction(
+                m_registry, e, inputs,
+                std::bind(&SimulationEngine::getEntityWithUuid, this, std::placeholders::_1));
+        }
+        return false;
+    }
+
+    void SimulationEngine::run() {
+        try {
+            std::cout << "[SimEngine] Simulation loop started" << std::endl;
+            while (!stopFlag.load()) {
+                std::unique_lock lk(queueMutex);
+                cv.wait(lk, [&] { return stopFlag.load() || !eventSet.empty(); });
+                if (stopFlag.load())
+                    break;
+                auto now = std::chrono::steady_clock::now();
+                auto it = eventSet.begin();
+                if (it->time <= now) {
+                    auto ev = *it;
+                    eventMap.erase(ev.id);
+                    eventSet.erase(it);
+                    lk.unlock();
+                    std::lock_guard regLock(registryMutex);
+                    if (!m_registry.valid(ev.entity))
+                        continue;
+                    bool hasClk = m_registry.all_of<ClockComponent>(ev.entity);
+                    auto inputs = getInputPinsState(ev.entity);
+                    bool changed = simulateComponent(ev.entity, inputs);
+                    if (changed || hasClk) {
+                        auto &dc = m_registry.get<DigitalComponent>(ev.entity);
+                        for (auto &pin : dc.outputPins)
+                            for (auto &c : pin) {
+                                auto d = getEntityWithUuid(c.first);
+                                if (d == entt::null)
+                                    continue;
+                                auto &destDc = m_registry.get<DigitalComponent>(d);
+                                scheduleEvent(d,
+                                              std::chrono::steady_clock::now() + destDc.delay);
+                            }
+                    }
+                    if (hasClk) {
+                        auto &clk = m_registry.get<ClockComponent>(ev.entity);
+                        auto &dc = m_registry.get<DigitalComponent>(ev.entity);
+                        assert(dc.type == ComponentType::INPUT);
+                        bool isHigh = dc.outputStates[0];
+                        dc.outputStates[0] = !isHigh;
+                        scheduleEvent(ev.entity,
+                                      std::chrono::steady_clock::now() + clk.getNextDelay());
+                    }
+                } else {
+                    cv.wait_until(lk, it->time);
+                }
+            }
+            std::cout << "[SimEngine] Simulation loop stopped" << std::endl;
+        } catch (const std::exception &e) {
+            std::cerr << "[SimEngine] Exception: " << e.what() << std::endl;
+        }
+    }
+
 } // namespace Bess::SimEngine

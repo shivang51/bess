@@ -13,50 +13,53 @@
 #include <thread>
 
 namespace Bess::SimEngine {
+
     class BESS_API SimulationEngine {
       public:
-        // Constructor: pass a reference to an entt registry.
+        static SimulationEngine &instance();
+
         SimulationEngine();
         ~SimulationEngine();
 
-        static SimulationEngine &instance();
-
-        // Stop the simulation thread.
-        void stop();
-
-        // Schedule an event for a given entity at the specified time.
-        void scheduleEvent(entt::entity entity, std::chrono::steady_clock::time_point time);
-        bool simulateComponent(entt::entity e, const std::vector<bool> &inputs);
-
         const UUID &addComponent(ComponentType type, int inputCount = -1, int outputCount = -1);
-        ComponentState getComponentState(const UUID &entity);
-        bool connectComponent(const UUID &src, int srcPin, PinType srcPinType, const UUID &dst, int dstPin, PinType dstPinType);
-        void deleteComponent(const UUID &component);
-        void deleteConnection(const UUID &componentA, PinType pinAType, int idx, const UUID &componentB, PinType pinBType, int idxB);
 
-        void setDigitalInput(const UUID &entity, bool value);
-        bool getDigitalPinState(const UUID &entity, PinType type, int idx);
-        ComponentType getComponentType(const UUID &entity);
+        bool connectComponent(const UUID &src, int srcPin, PinType srcType,
+                              const UUID &dst, int dstPin, PinType dstType);
 
-        bool updateClock(const UUID &uuid, bool shouldClock, float frequency, FrequencyUnit unit);
+        void deleteComponent(const UUID &uuid);
+
+        void deleteConnection(const UUID &compA, PinType pinAType, int idxA,
+                              const UUID &compB, PinType pinBType, int idxB);
+
+        bool getDigitalPinState(const UUID &uuid, PinType type, int idx);
+        void setDigitalInput(const UUID &uuid, bool value);
+        bool updateClock(const UUID &uuid, bool enable, float frequency, FrequencyUnit unit);
+
+        ComponentState getComponentState(const UUID &uuid);
+        ComponentType getComponentType(const UUID &uuid);
 
         friend class SimEngineSerializer;
 
       private:
-        void clearEventsForEntity(entt::entity entity);
-        entt::registry m_registry;
-        std::thread simThread;
-        std::mutex queueMutex;
-        std::condition_variable cv;
-        bool stopFlag;
-        std::priority_queue<SimulationEvent> eventQueue;
-        entt::entity getEntityWithUuid(const UUID &uuid);
-        const UUID &getUuidOfEntity(entt::entity ent);
-
-        // Main simulation loop.
+        void scheduleEvent(entt::entity e, TimePoint t);
+        void clearEventsForEntity(entt::entity e);
+        std::vector<bool> getInputPinsState(entt::entity e) const;
+        bool simulateComponent(entt::entity e, const std::vector<bool> &inputs);
         void run();
 
-        std::vector<bool> getInputPinsState(entt::entity gateEntt);
-    };
+        entt::entity getEntityWithUuid(const UUID &uuid) const;
 
+        std::thread simThread;
+        std::atomic<bool> stopFlag{false};
+        mutable std::mutex queueMutex;
+        std::condition_variable cv;
+
+        std::set<SimulationEvent> eventSet;
+        std::unordered_map<uint64_t, decltype(eventSet.begin())> eventMap;
+        uint64_t nextEventId{0};
+
+        mutable std::mutex registryMutex;
+        entt::registry m_registry;
+        std::unordered_map<UUID, entt::entity> uuidMap;
+    };
 } // namespace Bess::SimEngine
