@@ -156,7 +156,7 @@ namespace Bess::SimEngine {
 
     void SimulationEngine::setDigitalInput(const UUID &uuid, bool value) {
         auto ent = getEntityWithUuid(uuid);
-        if (m_registry.all_of<DigitalComponent>(ent))
+        if (m_registry.all_of<ClockComponent>(ent))
             return;
 
         auto &comp = m_registry.get<DigitalComponent>(ent);
@@ -200,7 +200,10 @@ namespace Bess::SimEngine {
 
     ComponentType SimulationEngine::getComponentType(const UUID &uuid) {
         auto ent = getEntityWithUuid(uuid);
-        return m_registry.get<DigitalComponent>(ent).type;
+        if (auto *comp = m_registry.try_get<DigitalComponent>(ent)) {
+            return comp->type;
+        }
+        throw std::runtime_error("Digital Component was not found for entity with uuid " + std::to_string(uuid));
     }
 
     void SimulationEngine::deleteConnection(const UUID &compA, PinType pinAType, int idxA,

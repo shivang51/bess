@@ -1,6 +1,8 @@
 #include "project_file.h"
 #include "json.hpp"
 
+#include "scene/components/components.h"
+#include "scene/scene.h"
 #include "scene/scene_serializer.h"
 #include "simulation_engine_serializer.h"
 #include "ui/ui_main/dialogs.h"
@@ -18,6 +20,7 @@ namespace Bess {
         std::cout << "[Bess] Opening project " << path << std::endl;
         m_path = path;
         decode();
+        patchFile();
         m_saved = true;
         std::cout << "[Bess] Project Loaded Successfully" << path << std::endl;
     }
@@ -92,5 +95,31 @@ namespace Bess {
         m_path = path;
         m_name = path.substr(path.find_last_of("/\\") + 1);
         std::cout << "[Bess] Project path: " << m_path << " with name " << m_name << std::endl;
+    }
+
+    void ProjectFile::patchFile() {
+        std::cout << "[Bess] Running Patch..." << std::endl;
+        using namespace Bess::Canvas;
+        auto &scene = Canvas::Scene::instance();
+        auto &reg = scene.getEnttRegistry();
+
+        for (auto &ent : reg.view<entt::entity>()) {
+            if (auto *comp = reg.try_get<Components::TagComponent>(ent)) {
+                // if component type is not there in tag, then query it and add it
+                if (comp->type == Bess::SimEngine::ComponentType::EMPTY) {
+                    auto *simComp = reg.try_get<Components::SimulationComponent>(ent);
+                    if (simComp == nullptr)
+                        continue;
+                    try {
+                        std::cout << "[Bess] Patching empty component type..." << std::flush;
+                        auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
+                        comp->type = simEngine.getComponentType(simComp->simEngineEntity);
+                        std::cout << "(Done)" << std::endl;
+                    } catch (std::exception e) {
+                        std::cout << "(Failed)" << std::endl;
+                    }
+                }
+            }
+        }
     }
 } // namespace Bess

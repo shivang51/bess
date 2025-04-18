@@ -160,10 +160,14 @@ namespace Bess::Canvas::Components {
     };
 
     inline void to_json(nlohmann::json &j, const TagComponent &comp) {
-        j = nlohmann::json{{"name", comp.name}};
+        j["name"] = comp.name;
+        j["type"] = (int)comp.type;
     }
     inline void from_json(const nlohmann::json &j, TagComponent &comp) {
         comp.name = j.at("name").get<std::string>();
+        if (j.contains("type")) {
+            comp.type = j.at("type").get<SimEngine::ComponentType>();
+        }
     }
 
     // SelectedComponent
