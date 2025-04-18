@@ -198,6 +198,7 @@ namespace Bess::Canvas {
         }
 
         tag.name = comp.name;
+        tag.type = comp.type;
 
         transformComp.position = glm::vec3(pos, getNextZCoord());
         transformComp.scale = glm::vec2(100.f, 100.f);

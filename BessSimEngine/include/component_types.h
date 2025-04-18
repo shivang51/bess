@@ -1,7 +1,8 @@
 #pragma once
 
 namespace Bess::SimEngine {
-    enum class ComponentType : unsigned int {
+    enum class ComponentType : int {
+        EMPTY = -1,
         INPUT,
         OUTPUT,
         AND,
@@ -17,7 +18,7 @@ namespace Bess::SimEngine {
         FLIP_FLOP_T
     };
 
-    enum FlipFlopType : unsigned int {
+    enum FlipFlopType : int {
         FLIP_FLOP_JK = 20,
         FLIP_FLOP_SR,
         FLIP_FLOP_D,

@@ -1,6 +1,7 @@
 #include "ui/ui_main/ui_main.h"
 
 #include "application_state.h"
+#include "common/helpers.h"
 #include "glad/glad.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -19,6 +20,7 @@
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/dialogs.h"
 #include "ui/ui_main/popups.h"
+#include "ui/ui_main/project_explorer.h"
 #include "ui/ui_main/project_settings_window.h"
 #include "ui/ui_main/properties_panel.h"
 #include "ui/ui_main/settings_window.h"
@@ -26,8 +28,6 @@
 namespace Bess::UI {
     UIState UIMain::state{};
     std::shared_ptr<Pages::MainPageState> UIMain::m_pageState;
-
-    std::string ProjectExplorerTitle = std::string(Icons::CodIcons::TYPE_HIERARCHY) + "  Project Explorer";
 
     void UIMain::draw() {
         static bool firstTime = true;
@@ -37,9 +37,9 @@ namespace Bess::UI {
             resetDockspace();
         }
         drawMenubar();
-        drawProjectExplorer();
         drawViewport();
         ComponentExplorer::draw();
+        ProjectExplorer::draw();
         PropertiesPanel::draw();
         drawExternalWindows();
     }
@@ -53,66 +53,6 @@ namespace Bess::UI {
 
     void UIMain::setViewportTexture(GLuint64 texture) {
         state.viewportTexture = texture;
-    }
-
-    bool RoundedSelectable(uint64_t id, const char *label, bool selected = false, float rounding = 6.0f) {
-        ImVec2 min = ImGui::GetCursorScreenPos();
-
-        ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(0, 0, 0, 0));
-        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(0, 0, 0, 0));
-        ImGui::PushStyleColor(ImGuiCol_HeaderActive, IM_COL32(0, 0, 0, 0));
-        ImGui::PushID(id);
-        auto pressed = ImGui::Selectable(label, &selected, ImGuiSelectableFlags_SpanAvailWidth);
-        ImGui::PopID();
-        ImGui::PopStyleColor(3);
-
-        ImVec2 size = ImGui::CalcTextSize(label);
-        auto padding = ImGui::GetStyle().FramePadding;
-        size.x = ImGui::GetWindowWidth() - (padding.x * 2) - 4.f;
-        size.y += padding.y;
-
-        ImVec2 max = ImVec2(min.x + size.x, min.y + size.y);
-
-        auto colors = ImGui::GetStyle().Colors;
-
-        ImVec4 bgColor = selected ? colors[ImGuiCol_Header] : ImVec4(0, 0, 0, 0);
-        if (ImGui::IsItemHovered())
-            bgColor = colors[ImGuiCol_HeaderHovered];
-
-        auto drawList = ImGui::GetWindowDrawList();
-        auto textStart = min;
-        min.x -= padding.x;
-        min.y -= padding.y;
-        drawList->AddRectFilled(min, max, IM_COL32(bgColor.x * 255, bgColor.y * 255, bgColor.z * 255, bgColor.w * 255), rounding);
-        if (ImGui::IsItemHovered() || selected) {
-            auto fgColor = colors[ImGuiCol_Text];
-            drawList->AddText(textStart, IM_COL32(fgColor.x * 255, fgColor.y * 255, fgColor.z * 255, fgColor.w * 255), label);
-        }
-
-        ImGui::SetCursorPosY(ImGui::GetCursorPos().y + padding.y);
-
-        return pressed;
-    }
-
-    void UIMain::drawProjectExplorer() {
-        ImGui::Begin(ProjectExplorerTitle.c_str());
-
-        auto &scene = Canvas::Scene::instance();
-        auto &registry = scene.getEnttRegistry();
-        auto view = registry.view<Canvas::Components::TagComponent>();
-
-        for (auto &entity : view) {
-            bool isSelected = registry.all_of<Canvas::Components::SelectedComponent>(entity);
-            auto &tagComp = view.get<Canvas::Components::TagComponent>(entity);
-            if (RoundedSelectable((uint64_t)entity, tagComp.name.c_str(), isSelected)) {
-                if (isSelected)
-                    registry.erase<Canvas::Components::SelectedComponent>(entity);
-                else
-                    registry.emplace<Canvas::Components::SelectedComponent>(entity);
-            }
-        }
-
-        ImGui::End();
     }
 
     void UIMain::drawMenubar() {
@@ -311,7 +251,7 @@ namespace Bess::UI {
 
         ImGui::DockBuilderDockWindow(ComponentExplorer::windowName.c_str(), dock_id_left);
         ImGui::DockBuilderDockWindow("Viewport", mainDockspaceId);
-        ImGui::DockBuilderDockWindow(ProjectExplorerTitle.c_str(), dock_id_right);
+        ImGui::DockBuilderDockWindow(ProjectExplorer::windowName.c_str(), dock_id_right);
         ImGui::DockBuilderDockWindow("Properties", dock_id_right_bot);
 
         ImGui::DockBuilderFinish(mainDockspaceId);

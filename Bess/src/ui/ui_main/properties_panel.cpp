@@ -1,8 +1,10 @@
 #include "ui/ui_main/properties_panel.h"
+#include "common/helpers.h"
 #include "gtc/type_ptr.hpp"
 #include "imgui_internal.h"
 #include "scene/components/components.h"
 #include "scene/scene.h"
+#include "ui/icons/FontAwesomeIcons.h"
 #include "ui/m_widgets.h"
 #include <imgui.h>
 
@@ -11,7 +13,8 @@ using namespace Bess::Canvas::Components;
 namespace Bess::UI {
 
     void drawTagComponent(const TagComponent &comp) {
-        ImGui::Text("%s", comp.name.c_str());
+        auto icon = Common::Helpers::getComponentIcon(comp.type);
+        ImGui::Text("%s", (icon + "  " + comp.name).c_str());
     }
 
     void drawSimulationOutputComponent(SimulationOutputComponent &comp) {
@@ -25,23 +28,48 @@ namespace Bess::UI {
         ImGui::SameLine();
         float checkboxWidth = ImGui::CalcTextSize("X").x + style.FramePadding.x;
         ImGui::SetCursorPosX(availWidth - checkboxWidth);
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
         bool changed = ImGui::Checkbox(("##" + std::string(label)).c_str(), value);
         ImGui::PopStyleVar();
         return changed;
     }
 
     bool MyCollapsingHeader(const char *label) {
-        auto flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding;
-        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0, 0, 0, 0));
-        bool opened = ImGui::CollapsingHeader(label, flags);
-        ImGui::PopStyleColor();
+        ImGuiContext &g = *ImGui::GetCurrentContext();
+        ImGuiWindow *window = g.CurrentWindow;
+
+        ImGuiID id = window->GetID(label);
+        ImVec2 pos = window->DC.CursorPos;
+        ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x, pos.y + g.FontSize + g.Style.FramePadding.y * 2));
+        bool opened = ImGui::TreeNodeBehaviorIsOpen(id, ImGuiTreeNodeFlags_DefaultOpen);
+        bool hovered, held;
+
+        auto style = ImGui::GetStyle();
+        auto rounding = style.FrameRounding;
+
+        if (ImGui::ButtonBehavior(bb, id, &hovered, &held, ImGuiButtonFlags_PressedOnClick))
+            window->DC.StateStorage->SetInt(id, opened ? 0 : 1);
+        if (hovered || held)
+            window->DrawList->AddRectFilled(bb.Min, bb.Max, ImGui::GetColorU32(held ? ImGuiCol_HeaderActive : ImGuiCol_HeaderHovered), rounding);
+
+        // Icon, text
+        float button_sz = g.FontSize;
+        pos.x += rounding / 2.f;
+        auto icon = opened ? Icons::FontAwesomeIcons::FA_CARET_DOWN : Icons::FontAwesomeIcons::FA_CARET_RIGHT;
+        ImGui::RenderText(ImVec2(pos.x + g.Style.ItemInnerSpacing.x, pos.y + g.Style.FramePadding.y), icon);
+        ImGui::RenderText(ImVec2(pos.x + button_sz + g.Style.ItemInnerSpacing.x, pos.y + g.Style.FramePadding.y), label);
+
+        ImGui::ItemSize(bb, g.Style.FramePadding.y);
+        ImGui::ItemAdd(bb, id);
+
+        if (opened) {
+            ImGui::Indent();
+        }
         return opened;
     }
 
     void drawSimulationInputComponent(SimulationInputComponent &comp, const UUID &uuid) {
         if (MyCollapsingHeader("Input Behaviour")) {
-            ImGui::Indent();
             if (CheckboxWithLabel("Clocked", &comp.clockBhaviour)) {
                 comp.updateClock(uuid);
             }

@@ -156,6 +156,7 @@ namespace Bess::Canvas::Components {
         TagComponent() = default;
         TagComponent(const TagComponent &other) = default;
         std::string name = "";
+        SimEngine::ComponentType type = SimEngine::ComponentType::EMPTY;
     };
 
     inline void to_json(nlohmann::json &j, const TagComponent &comp) {

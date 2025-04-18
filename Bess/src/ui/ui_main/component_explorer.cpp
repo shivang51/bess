@@ -8,11 +8,9 @@
 #include "properties.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
-#include "ui/icons/ComponentIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/m_widgets.h"
 #include <any>
-#include <iostream>
 #include <unordered_map>
 
 namespace Bess::UI {
@@ -98,27 +96,6 @@ namespace Bess::UI {
         return clicked;
     }
 
-    std::string getIcon(SimEngine::ComponentType type) {
-        switch (type) {
-        case SimEngine::ComponentType::AND:
-            return Icons::ComponentIcons::AND_GATE;
-        case SimEngine::ComponentType::NAND:
-            return Icons::ComponentIcons::NAND_GATE;
-        case SimEngine::ComponentType::OR:
-            return Icons::ComponentIcons::OR_GATE;
-        case SimEngine::ComponentType::NOR:
-            return Icons::ComponentIcons::NOR_GATE;
-        case SimEngine::ComponentType::XOR:
-            return Icons::ComponentIcons::XOR_GATE;
-        case SimEngine::ComponentType::XNOR:
-            return Icons::ComponentIcons::XNOR_GATE;
-        default:
-            break;
-        }
-
-        return std::string(" ") + Icons::FontAwesomeIcons::FA_CUBE + " ";
-    }
-
     void createComponent(const SimEngine::ComponentDefinition &def, int inputCount, int outputCount) {
         auto simEntt = SimEngine::SimulationEngine::instance().addComponent(def.type, inputCount, outputCount);
         auto &scene = Canvas::Scene::instance();
@@ -186,8 +163,6 @@ namespace Bess::UI {
         static auto components = SimEngine::ComponentCatalog::instance().getComponentsTree();
         static auto modifiableProperties = generateModifiablePropertiesStr();
 
-        ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_Framed;
-
         for (auto &ent : components) {
             if (MyTreeNode(ent.first.c_str())) {
                 for (auto &comp : ent.second) {
@@ -195,7 +170,7 @@ namespace Bess::UI {
                     if (m_searchQuery != "" && Common::Helpers::toLowerCase(name).find(m_searchQuery) == std::string::npos)
                         continue;
 
-                    name = getIcon(comp.type) + "  " + name;
+                    name = Common::Helpers::getComponentIcon(comp.type) + "  " + name;
                     auto &properties = modifiableProperties[comp.type];
 
                     if (ButtonWithPopup(name, name + "OptionsMenu", !properties.empty())) {
