@@ -156,7 +156,13 @@ namespace Bess::SimEngine {
 
     void SimulationEngine::setDigitalInput(const UUID &uuid, bool value) {
         auto ent = getEntityWithUuid(uuid);
+        if (m_registry.all_of<DigitalComponent>(ent))
+            return;
+
         auto &comp = m_registry.get<DigitalComponent>(ent);
+
+        assert(comp.type == ComponentType::INPUT);
+
         if (comp.outputStates[0] == value)
             return;
         comp.outputStates[0] = value;
