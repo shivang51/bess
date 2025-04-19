@@ -79,10 +79,14 @@ namespace Bess::Canvas {
         void copySelectedComponents();
         void generateCopiedComponents();
         void selectEntitesInArea(const glm::vec2 &start, const glm::vec2 &end);
+        void toggleSelectComponent(const UUID &uuid);
+        void toggleSelectComponent(entt::entity ent);
+        void selectAllEntities();
+
+        void moveConnection(entt::entity ent, glm::vec2 &dPos);
+        void dragConnectionSegment(entt::entity ent, const glm::vec2 &dPos);
 
         float getNextZCoord();
-
-        void dragConnectionSegment(const glm::vec2 &dPos);
 
       private:
         std::unique_ptr<Gl::FrameBuffer> m_msaaFramebuffer;

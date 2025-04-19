@@ -103,6 +103,15 @@ namespace Bess::Canvas {
         }
     }
 
+    void Scene::selectAllEntities() {
+        auto view = m_registry.view<Canvas::Components::SimulationComponent>();
+        for (auto &entt : view)
+            m_registry.emplace_or_replace<Components::SelectedComponent>(entt);
+        auto connectionView = m_registry.view<Canvas::Components::ConnectionComponent>();
+        for (auto &entt : connectionView)
+            m_registry.emplace_or_replace<Components::SelectedComponent>(entt);
+    }
+
     void Scene::handleKeyboardShortcuts() {
         auto mainPageState = Pages::MainPageState::getInstance();
         if (mainPageState->isKeyPressed(GLFW_KEY_DELETE)) {
@@ -118,9 +127,7 @@ namespace Bess::Canvas {
 
         if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
             if (mainPageState->isKeyPressed(GLFW_KEY_A)) { // ctrl-a select all components
-                auto view = m_registry.view<Canvas::Components::SimulationComponent>();
-                for (auto &entt : view)
-                    m_registry.emplace_or_replace<Components::SelectedComponent>(entt);
+                selectAllEntities();
             } else if (mainPageState->isKeyPressed(GLFW_KEY_C)) { // ctrl-c copy selected components
                 copySelectedComponents();
             } else if (mainPageState->isKeyPressed(GLFW_KEY_V)) { // ctrl-v generate copied components
@@ -326,9 +333,8 @@ namespace Bess::Canvas {
         return pos;
     }
 
-    void Scene::dragConnectionSegment(const glm::vec2 &dPos) {
-        auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
-        auto &comp = m_registry.get<Components::ConnectionSegmentComponent>(hoveredEntity);
+    void Scene::dragConnectionSegment(entt::entity ent, const glm::vec2 &dPos) {
+        auto &comp = m_registry.get<Components::ConnectionSegmentComponent>(ent);
 
         if (comp.isHead() || comp.isTail()) {
             auto &adjComp = m_registry.get<Components::ConnectionSegmentComponent>(comp.isHead() ? getEntityWithUuid(comp.next) : getEntityWithUuid(comp.prev));
@@ -340,7 +346,7 @@ namespace Bess::Canvas {
 
             if (comp.isHead()) {
                 comp.prev = idComp.uuid;
-                compNew.next = getUuidOfEntity(hoveredEntity);
+                compNew.next = getUuidOfEntity(ent);
                 auto &connComponent = m_registry.get<Components::ConnectionComponent>(getEntityWithUuid(comp.parent));
                 connComponent.segmentHead = idComp.uuid;
                 if (isHorizontal)
@@ -349,7 +355,7 @@ namespace Bess::Canvas {
                     comp.pos.x = getNVPMousePos(m_mousePos).x;
             } else {
                 comp.next = idComp.uuid;
-                compNew.prev = getUuidOfEntity(hoveredEntity);
+                compNew.prev = getUuidOfEntity(ent);
                 auto &connComponent = m_registry.get<Components::ConnectionComponent>(getEntityWithUuid(comp.parent));
                 auto &slotComponent = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComponent.outputSlot));
                 auto slotPos = Artist::getSlotPos(slotComponent);
@@ -370,6 +376,29 @@ namespace Bess::Canvas {
             comp.pos.x += dPos.x;
         }
         m_isDragging = true;
+    }
+
+    void Scene::moveConnection(entt::entity ent, glm::vec2 &dPos) {
+
+        auto &connComp = m_registry.get<Components::ConnectionComponent>(ent);
+        auto seg = connComp.segmentHead;
+
+        while (seg != UUID::null) {
+            auto &segComp = m_registry.get<Components::ConnectionSegmentComponent>(getEntityWithUuid(seg));
+
+            if (segComp.isHead() || segComp.isTail()) {
+                seg = segComp.next;
+                continue;
+            }
+
+            if (segComp.pos.y == 0) {
+                segComp.pos.x += dPos.x;
+            } else {
+                segComp.pos.y += dPos.y;
+            }
+
+            seg = segComp.next;
+        }
     }
 
     void Scene::onMouseMove(const glm::vec2 &pos) {
@@ -395,17 +424,23 @@ namespace Bess::Canvas {
 
         if (m_isLeftMousePressed && m_drawMode != SceneDrawMode::selectionBox) {
             auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
-            if (!m_registry.valid(hoveredEntity) && m_registry.view<Components::SelectedComponent>()->size() == 0) {
+            auto selectComponentsSize = m_registry.view<Components::SelectedComponent>()->size();
+            if (!m_registry.valid(hoveredEntity) && selectComponentsSize == 0) {
                 m_drawMode = SceneDrawMode::selectionBox;
                 m_selectionBoxStart = m_mousePos;
-            } else if (m_registry.valid(hoveredEntity) && m_registry.all_of<Components::ConnectionSegmentComponent>(hoveredEntity)) {
-                dragConnectionSegment(dPos);
+            } else if (selectComponentsSize == 1 && m_registry.valid(hoveredEntity) && m_registry.all_of<Components::ConnectionSegmentComponent>(hoveredEntity)) {
+                dragConnectionSegment(hoveredEntity, dPos);
             } else {
                 auto view = m_registry.view<Components::SelectedComponent, Components::TransformComponent>();
                 for (auto &ent : view) {
                     auto &transformComp = view.get<Components::TransformComponent>(ent);
                     auto dPos_ = glm::vec3(dPos, 0.f);
                     transformComp.position += dPos_;
+                }
+
+                auto connectionView = m_registry.view<Components::SelectedComponent, Components::ConnectionComponent>();
+                for (auto &ent : connectionView) {
+                    moveConnection(ent, dPos);
                 }
                 m_isDragging = true;
             }
@@ -562,29 +597,35 @@ namespace Bess::Canvas {
                     m_drawMode = SceneDrawMode::none;
                     connectSlots(getEntityWithUuid(m_connectionStartEntity), hoveredEntity);
                 }
-            }
-            if (m_registry.all_of<Components::ConnectionSegmentComponent>(hoveredEntity)) {
-                m_registry.clear<Components::SelectedComponent>();
-                auto &segComp = m_registry.get<Components::ConnectionSegmentComponent>(hoveredEntity);
-                if (m_registry.valid(getEntityWithUuid(segComp.parent)))
-                    m_registry.emplace<Canvas::Components::SelectedComponent>(getEntityWithUuid(segComp.parent));
             } else {
-                bool isSelected = m_registry.all_of<Canvas::Components::SelectedComponent>(hoveredEntity);
                 if (!Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
                     m_registry.clear<Components::SelectedComponent>();
-                    isSelected = false;
                 }
 
-                if (isSelected)
-                    m_registry.erase<Canvas::Components::SelectedComponent>(hoveredEntity);
-                else
-                    m_registry.emplace<Canvas::Components::SelectedComponent>(hoveredEntity);
+                if (m_registry.all_of<Components::ConnectionSegmentComponent>(hoveredEntity)) {
+                    auto &segComp = m_registry.get<Components::ConnectionSegmentComponent>(hoveredEntity);
+                    toggleSelectComponent(segComp.parent);
+                } else {
+                    toggleSelectComponent(hoveredEntity);
+                }
             }
-
         } else { // deselecting all when clicking outside
             m_registry.clear<Components::SelectedComponent>();
             m_drawMode = SceneDrawMode::none;
         }
+    }
+
+    void Scene::toggleSelectComponent(const UUID &uuid) {
+        auto ent = getEntityWithUuid(uuid);
+        toggleSelectComponent(ent);
+    }
+
+    void Scene::toggleSelectComponent(entt::entity ent) {
+        bool isSelected = m_registry.all_of<Canvas::Components::SelectedComponent>(ent);
+        if (isSelected)
+            m_registry.remove<Canvas::Components::SelectedComponent>(ent);
+        else
+            m_registry.emplace<Canvas::Components::SelectedComponent>(ent);
     }
 
     void Scene::copySelectedComponents() {
