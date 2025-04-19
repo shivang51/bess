@@ -406,7 +406,7 @@ namespace Bess::Canvas {
         m_mousePos = pos;
 
         // reading the hoverid
-        if (!m_isDragging) {
+        if (!m_isDragging || m_drawMode == SceneDrawMode::connection) {
             auto m_mousePos_ = pos;
             m_mousePos_.y = UI::UIMain::state.viewportSize.y - m_mousePos_.y;
             int x = static_cast<int>(m_mousePos_.x);
@@ -422,7 +422,7 @@ namespace Bess::Canvas {
             }
         }
 
-        if (m_isLeftMousePressed && m_drawMode != SceneDrawMode::selectionBox) {
+        if (m_isLeftMousePressed && m_drawMode == SceneDrawMode::none) {
             auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
             auto selectComponentsSize = m_registry.view<Components::SelectedComponent>()->size();
             if (!m_registry.valid(hoveredEntity) && selectComponentsSize == 0) {
