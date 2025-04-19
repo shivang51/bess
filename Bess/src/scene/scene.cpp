@@ -666,12 +666,27 @@ namespace Bess::Canvas {
             return;
 
         std::set<int> uniqueIds(ids.begin(), ids.end());
+        std::unordered_map<int, bool> selected = {};
 
         for (auto &id : uniqueIds) {
             auto entt = (entt::entity)id;
-            if (!m_registry.valid(entt) || !m_registry.all_of<Components::SimulationComponent>(entt))
+            if (!m_registry.valid(entt))
                 continue;
-            m_registry.emplace<Components::SelectedComponent>(entt);
+
+            bool isConnection = false;
+            if (auto *segComp = m_registry.try_get<Components::ConnectionSegmentComponent>(entt)) {
+                entt = getEntityWithUuid(segComp->parent);
+                isConnection = true;
+            }
+
+            if (selected.find(id) != selected.end())
+                continue;
+
+            if (isConnection || m_registry.any_of<Components::SimulationComponent>(entt)) {
+                m_registry.emplace_or_replace<Components::SelectedComponent>(entt);
+            }
+
+            selected[id] = true;
         }
     }
 
