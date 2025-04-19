@@ -90,10 +90,33 @@ namespace Bess::SimEngine {
         if (!m_registry.valid(srcEnt) || !m_registry.valid(dstEnt))
             return false;
 
+        if (srcType == dstType) {
+            std::cout << "Cannot connect pins of the same type i.e. input -> input or output -> output" << std::endl;
+            return false;
+        }
+
         auto &srcComp = m_registry.get<DigitalComponent>(srcEnt);
         auto &dstComp = m_registry.get<DigitalComponent>(dstEnt);
         auto &outPins = (srcType == PinType::output ? srcComp.outputPins : srcComp.inputPins);
         auto &inPins = (dstType == PinType::input ? dstComp.inputPins : dstComp.outputPins);
+
+        if (srcPin < 0 || srcPin >= static_cast<int>(outPins.size())) {
+            std::cout << "Invalid source pin index. Valid range: 0 to "
+                      << (srcComp.outputPins.size() - 1) << std::endl;
+            return false;
+        }
+        if (dstPin < 0 || dstPin >= static_cast<int>(inPins.size())) {
+            std::cout << "Invalid destination pin index. Valid range: 0 to "
+                      << (dstComp.inputPins.size() - 1) << std::endl;
+            return false;
+        }
+        // Check for duplicate connection.
+        for (const auto &conn : outPins[srcPin]) {
+            if (conn.first == dst && conn.second == dstPin) {
+                std::cout << "Connection already exists." << std::endl;
+                return false;
+            }
+        }
 
         outPins[srcPin].emplace_back(dst, dstPin);
         inPins[dstPin].emplace_back(src, srcPin);
