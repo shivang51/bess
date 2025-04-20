@@ -97,7 +97,7 @@ namespace Bess::UI {
             temp_name += "  Export";
             if (ImGui::BeginMenu(temp_name.c_str())) {
                 temp_name = Icons::FontAwesomeIcons::FA_FILE_IMAGE;
-                temp_name += "  Export to Image";
+                temp_name += "  Schematic View (Yet to implement)";
                 if (ImGui::MenuItem(temp_name.c_str())) {
                 }
                 ImGui::EndMenu();
