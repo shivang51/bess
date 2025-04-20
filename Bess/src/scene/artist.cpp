@@ -221,9 +221,6 @@ namespace Bess::Canvas {
         bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
         auto borderColor = isSelected ? ViewportTheme::selectedCompColor : spriteComp.borderColor;
 
-        float radius = 4.f;
-        spriteComp.borderRadius = glm::vec4(radius);
-
         Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, 0.f,
                        spriteComp.borderRadius,
                        spriteComp.borderSize, borderColor, true);
@@ -255,9 +252,6 @@ namespace Bess::Canvas {
 
         bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
         auto borderColor = isSelected ? ViewportTheme::selectedCompColor : spriteComp.borderColor;
-
-        float radius = 4.f;
-        spriteComp.borderRadius = glm::vec4(radius);
 
         Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, 0.f,
                        spriteComp.borderRadius,
@@ -297,10 +291,9 @@ namespace Bess::Canvas {
         transformComp.scale = scale;
 
         float headerHeight = componentStyles.headerHeight;
-        float radius = 4.f;
         auto headerPos = glm::vec3(pos.x, pos.y - scale.y / 2.f + headerHeight / 2.f, pos.z);
 
-        spriteComp.borderRadius = glm::vec4(radius);
+        /*spriteComp.borderRadius = glm::vec4(radius);*/
         bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
         auto borderColor = isSelected ? ViewportTheme::selectedCompColor : spriteComp.borderColor;
 
@@ -317,7 +310,7 @@ namespace Bess::Canvas {
                        ViewportTheme::compHeaderColor,
                        id,
                        0.f,
-                       glm::vec4(0, 0, radius, radius),
+                       glm::vec4(0, 0, spriteComp.borderRadius.x, spriteComp.borderRadius.y),
                        glm::vec4(0.f), glm::vec4(0.f), true);
 
         Renderer::text(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id, rotation);

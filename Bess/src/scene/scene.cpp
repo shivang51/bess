@@ -210,8 +210,15 @@ namespace Bess::Canvas {
         transformComp.position = glm::vec3(pos, getNextZCoord());
         transformComp.scale = glm::vec2(100.f, 100.f);
 
-        sprite.color = ViewportTheme::componentBGColor;
-        sprite.borderRadius = glm::vec4(16.f);
+        if (comp.type == SimEngine::ComponentType::INPUT || comp.type == SimEngine::ComponentType::OUTPUT) {
+            glm::vec4 ioCompColor = glm::vec4(0.2f, 0.2f, 0.4f, 0.6f);
+            sprite.color = ioCompColor;
+            sprite.borderRadius = glm::vec4(8.f);
+        } else {
+            sprite.color = ViewportTheme::componentBGColor;
+            sprite.borderRadius = glm::vec4(6.f);
+        }
+
         sprite.borderSize = glm::vec4(1.f);
         sprite.borderColor = ViewportTheme::componentBorderColor;
 
