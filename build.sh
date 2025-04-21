@@ -2,6 +2,6 @@
 mkdir build
 cd build
 cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-ln -s ./build/compile_commands.json ..
+ln -sf ./build/compile_commands.json ..
 make -j8
 cd ..
