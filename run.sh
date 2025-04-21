@@ -1,2 +1,2 @@
 #!/bin/zsh
-./build/Bess/Bess
+./bin/Debug/x64/Bess

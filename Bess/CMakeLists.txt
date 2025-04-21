@@ -1,8 +1,6 @@
 set(PROJECT_NAME Bess)
 set(CMAKE_CXX_STANDARD 23)
-################################################################################
-# Source groups
-################################################################################
+
 set(External
     "../external/glad/src/glad.c"
     "../external/imgui/backends/imgui_impl_glfw.cpp"
@@ -15,9 +13,8 @@ set(External
     "../external/stb_image/src/stb_image.cpp"
     "../external/tinyfiledialogs/tinyfiledialogs.c"
 )
-source_group("External" FILES ${External})
+source_group("external" FILES ${External})
 
-#!CMAKE_WATCHER_OBSERVE
 set(Header_Files
 "include/settings/themes.h"
 "include/settings/settings.h"
@@ -66,9 +63,8 @@ set(Header_Files
 "include/scene/renderer/gl/utils.h"
 )
 
-source_group("Shaders" FILES ${Shaders})
+source_group("include" FILES ${Header_Files})
 
-#!CMAKE_WATCHER_OBSERVE
 set(Source_Files
 "src/application_state.cpp"
 "src/application.cpp"
@@ -107,39 +103,42 @@ set(Source_Files
 "src/scene/renderer/gl/vao.cpp"
 "src/scene/renderer/renderer.cpp"
 )
-source_group("Source Files" FILES ${Source_Files})
+
+source_group("src" FILES ${Source_Files})
 
 set(ALL_FILES
     ${External}
     ${Header_Files}
-    ${Shaders}
     ${Source_Files}
 )
 
-################################################################################
-# Target
-################################################################################
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine)
 add_dependencies(${PROJECT_NAME} BessSimEngine)
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
 
-
-use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
-set(ROOT_NAMESPACE Bess)
-
-
-set_target_properties(${PROJECT_NAME} PROPERTIES VS_GLOBAL_KEYWORD "Win32Proj")
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    set_target_properties(${PROJECT_NAME} PROPERTIES INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
+if("${BUILD_ARCH}" STREQUAL "x64" AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    set(ADDITIONAL_LIBRARY_DEPENDENCIES
+        "glfw3;"
+        "opengl32;"
+        "gdi32;"
+        "freetype;"
     )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
-    set_target_properties(${PROJECT_NAME} PROPERTIES INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE")
+
+    target_link_directories(${PROJECT_NAME} PRIVATE
+        "${CMAKE_SOURCE_DIR}/external/glfw/lib-vc2022"
+        "${CMAKE_SOURCE_DIR}/external/freetype/libs/windows"
+    )
+else()
+    set(ADDITIONAL_LIBRARY_DEPENDENCIES
+        "glfw;"
+        "GL;"
+        "freetype;"
+    )
 endif()
-################################################################################
-# Include directories
-################################################################################
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
+
+target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
+
+if("${BUILD_ARCH}" STREQUAL "x64")
 	target_include_directories(${PROJECT_NAME} PRIVATE
 			"${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui"
 			"${CMAKE_CURRENT_SOURCE_DIR}/../external/freetype/include"
@@ -154,133 +153,11 @@ if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
 			"${CMAKE_CURRENT_SOURCE_DIR}/include"
 			"${CMAKE_CURRENT_SOURCE_DIR}/../BessSimEngine/include"
 	)
-
-	target_compile_options(${PROJECT_NAME} PRIVATE
-    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui"
-    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/freetype/include"
-    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui/backends"
-    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/glm"
-    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/json"
-    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/glfw/include"
-    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/glad/include"
-    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/stb_image/include"
-    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/tinyfiledialogs"
-    -I"${CMAKE_CURRENT_SOURCE_DIR}/../external/entt/include"
-    -I"${CMAKE_CURRENT_SOURCE_DIR}/include"
-    -I"${CMAKE_CURRENT_SOURCE_DIR}/../BessSimEngine/include"
-	)
 endif()
 
-################################################################################
-# Compile definitions
-################################################################################
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        "$<$<CONFIG:Debug>:"
-            "_DEBUG"
-        ">"
-        "$<$<CONFIG:Release>:"
-            "NDEBUG"
-        ">"
-        "_CONSOLE;"
-        "UNICODE;"
-        "_UNICODE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        "$<$<CONFIG:Debug>:"
-            "_DEBUG"
-        ">"
-        "$<$<CONFIG:Release>:"
-            "NDEBUG"
-        ">"
-        "WIN32;"
-        "_CONSOLE;"
-        "UNICODE;"
-        "_UNICODE"
-    )
-endif()
 
-################################################################################
-# Compile and link options
-################################################################################
 if(MSVC)
     set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
-    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Release>:
-                /Oi;
-                /Gy
-            >
-            /permissive-;
-            /sdl;
-            /W3;
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            ${DEFAULT_CXX_EXCEPTION_HANDLING}
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Release>:
-                /Oi;
-                /Gy
-            >
-            /permissive-;
-            /sdl;
-            /W3;
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            ${DEFAULT_CXX_EXCEPTION_HANDLING}
-        )
-    endif()
-    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Release>:
-                /OPT:REF;
-                /OPT:ICF
-            >
-            /DEBUG;
-            /SUBSYSTEM:CONSOLE
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Release>:
-                /OPT:REF;
-                /OPT:ICF
-            >
-            /DEBUG;
-            /SUBSYSTEM:CONSOLE
-        )
-    endif()
+		set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
 endif()
-
-################################################################################
-# Dependencies
-################################################################################
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64" AND NOT UNIX)
-    set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "glfw3;"
-        "opengl32;"
-        "gdi32;"
-        "freetype;"
-    )
-else()
-    set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "glfw;"
-        "GL;"
-        "freetype;"
-    )
-endif()
-target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
-
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64" AND NOT UNIX)
-    target_link_directories(${PROJECT_NAME} PRIVATE
-        "${CMAKE_SOURCE_DIR}/external/glfw/lib-vc2022"
-        "${CMAKE_SOURCE_DIR}/external/freetype/libs/windows"
-    )
-endif()
-
-add_custom_target(run
-    COMMAND ${PROJECT_NAME}
-    DEPENDS ${PROJECT_NAME}
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-)
 
