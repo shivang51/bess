@@ -1,21 +1,39 @@
-# Basic Electrical Simulation Software - BESS
+# BESS: Basic Electrical Simulation Software
 
-> This branch will include EnTT integration, ui refactoring and new time based simulation engine.
+> **Branch focus:** EnTT integration, UI refactoring, and a new time‑based simulation engine.
 
 BESS is a software for simulating electrical circuits. It is designed to be simple to use and easy to understand. It is intended for educational purposes, but can also be used for professional work.
 
 It is written in `C++` and uses its own renderer made with `OpenGL`.
 It now uses its own `Time Based Simulation Engine`.
 
+## 📸 Screenshots
 
-![Screenshot 1](screenshots/ss1.png)
-![Screenshot 2](screenshots/ss2.png)
+<div align="center">
+  <img src="screenshots/ss1.png" alt="BESS SS1" width="45%" />
+  <img src="screenshots/ss2.png" alt="BESS SS2" width="45%" />
+</div>
 
-## Build Steps
-> Run all script files from `CMake Source File Folder` (./scripts/script_name.sh)
+## ⚙️ Build & Run
 
-- To run in debug mode `./scripts/build_run_debug.sh`
-_Make sure to run `./scripts/clean.sh` or clean the `build` folder before running other build script._
-- To build in release mode `./scripts/build_release.sh`.
-    - Running this script will build the project in release mode and also copy the assets in the correct folder
-    - Navigate to build path e.g. bin/Relase/x64/ and run ./Bess
+All build scripts live in the **scripts/** folder inside the CMake source directory.
+
+1. **Clean previous builds** (if you are building after another build)
+   ```bash
+   ./scripts/clean.sh
+   ```
+2. **Debug build & run**  
+   ```bash
+   ./scripts/build_run_debug.sh
+   ```
+3. **Release build**  
+   ```bash
+   ./scripts/build_release.sh
+   ```
+   - Copies assets automatically.
+   - Binaries will be in `bin/Release/x64/`.
+   - **Execute**  
+       ```bash
+       cd bin/Release/x64/
+       ./Bess
+       ```
