@@ -2,14 +2,11 @@
 #define GLM_FORCE_DEGREES
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
-#include "geometric.hpp"
-#include "imgui.h"
 #include "scene/components/components.h"
 #include "scene/renderer/renderer.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include <cstdint>
-#include <semaphore.h>
 #include <string>
 #include <vector>
 

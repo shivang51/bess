@@ -272,7 +272,7 @@ namespace Bess::Canvas {
         std::cout << "[Scene] Deleted entity " << (uint64_t)ent << std::endl;
     }
 
-    UUID Scene::createSlotEntity(Components::SlotType type, const UUID &parent, uint idx) {
+    UUID Scene::createSlotEntity(Components::SlotType type, const UUID &parent, unsigned int idx) {
         auto entity = m_registry.create();
         auto &idComp = m_registry.emplace<Components::IdComponent>(entity);
         auto &transform = m_registry.emplace<Components::TransformComponent>(entity);

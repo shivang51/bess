@@ -49,7 +49,7 @@ namespace Bess::SimEngine {
 
             flipFlopComp.prevClock = clockValue;
 
-            bool q = comp.outputStates[0], q0 = comp.outputStates[2];
+            bool q = comp.outputStates[0], q0 = comp.outputStates[1];
             bool changed = false;
             if (flipFlopComp.type == FlipFlopType::FLIP_FLOP_JK) {
                 assert(comp.inputPins.size() == 3);

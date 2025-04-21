@@ -17,6 +17,7 @@ set(Header_Files
     "include/component_catalog.h"
     "include/component_definition.h"
     "include/component_types.h"
+    "include/init_components.h"
 )
 source_group("Header Files" FILES ${Header_Files})
 

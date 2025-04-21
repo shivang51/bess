@@ -52,7 +52,7 @@ namespace Bess::Canvas {
         entt::registry &getEnttRegistry();
         const glm::vec2 &getSize();
 
-        UUID createSlotEntity(Components::SlotType type, const UUID &parent, uint idx);
+        UUID createSlotEntity(Components::SlotType type, const UUID &parent, unsigned int idx);
         UUID createSimEntity(const UUID &simEngineEntt, const SimEngine::ComponentDefinition &comp, const glm::vec2 &pos);
 
         void deleteEntity(const UUID &entUuid);
