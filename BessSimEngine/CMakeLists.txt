@@ -47,3 +47,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/../external/json;"
     "${CMAKE_CURRENT_SOURCE_DIR}/../external/entt/include;"
 )
+
+if(MSVC)
+	set_property(TARGET ${PROJECT_NAME} PROPERTY
+			MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+	)
+endif()

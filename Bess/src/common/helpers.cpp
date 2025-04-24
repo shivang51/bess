@@ -2,6 +2,7 @@
 #include "scene/renderer/renderer.h"
 #include "ui/icons/ComponentIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
+#include <algorithm>
 
 namespace Bess::Common {
     std::string Helpers::toLowerCase(const std::string &str) {
