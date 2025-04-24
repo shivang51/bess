@@ -322,13 +322,51 @@ namespace Bess::SimEngine {
 
                     if (changed || hasClk) {
                         auto &dc = m_registry.get<DigitalComponent>(ev.entity);
+
+                        if (hasClk) {
+                            bool isHigh = dc.outputStates[0];
+                            dc.outputStates[0] = !isHigh;
+                            auto &clk = m_registry.get<ClockComponent>(ev.entity);
+                            clk.high = dc.outputStates[0];
+                        }
+
                         for (auto &pin : dc.outputPins) {
+                            std::set<entt::entity> uniqueEntites{};
+                            std::unordered_map<entt::entity, std::vector<bool>> inps = {};
                             for (auto &c : pin) {
                                 auto d = getEntityWithUuid(c.first);
-                                if (d == entt::null)
+                                if (d == entt::null || uniqueEntites.find(d) != uniqueEntites.end())
                                     continue;
-                                auto &destDc = m_registry.get<DigitalComponent>(d);
-                                scheduleEvent(d, currentSimTime + destDc.delay);
+
+                                uniqueEntites.insert(d);
+                                inps[d] = getInputPinsState(d);
+                            }
+
+                            for (auto &ent : uniqueEntites) {
+                                auto &destDc = m_registry.get<DigitalComponent>(ent);
+                                if (!hasClk) {
+                                    scheduleEvent(ent, currentSimTime + destDc.delay);
+                                    continue;
+                                }
+
+                                bool changed = simulateComponent(ent, inps[ent]);
+
+                                if (changed) {
+                                    auto &dc = m_registry.get<DigitalComponent>(ent);
+                                    for (auto &pin : destDc.outputPins) {
+                                        std::set<entt::entity> uniqueEntites{};
+                                        for (auto &c : pin) {
+                                            auto d = getEntityWithUuid(c.first);
+                                            if (d == entt::null)
+                                                continue;
+                                            uniqueEntites.insert(d);
+                                        }
+
+                                        for (auto &ent : uniqueEntites) {
+                                            scheduleEvent(ent, currentSimTime + destDc.delay);
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -336,8 +374,6 @@ namespace Bess::SimEngine {
                     if (hasClk) {
                         auto &clk = m_registry.get<ClockComponent>(ev.entity);
                         auto &dc = m_registry.get<DigitalComponent>(ev.entity);
-                        bool isHigh = dc.outputStates[0];
-                        dc.outputStates[0] = !isHigh;
                         scheduleEvent(ev.entity, currentSimTime + clk.getNextDelay());
                     }
                 }

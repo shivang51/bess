@@ -78,7 +78,6 @@ namespace Bess::SimEngine {
         FrequencyUnit frequencyUnit = FrequencyUnit::hz;
         float frequency = 1.0f;
 
-      private:
         bool high = false; // current output phase
     };
 
