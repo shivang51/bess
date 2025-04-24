@@ -1,5 +1,4 @@
 #include "settings/settings.h"
-#include "ui/ui.h"
 
 namespace Bess::Config {
     std::string Settings::getCurrentTheme() {
@@ -53,7 +52,7 @@ namespace Bess::Config {
 
     void Settings::init() {
         m_themes = Themes();
-        m_currentTheme = "New Dark";
+        m_currentTheme = "Bess Dark";
     }
 
     std::string Settings::m_currentTheme;

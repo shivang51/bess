@@ -14,16 +14,11 @@ namespace Bess::Config {
         const std::unordered_map<std::string, std::function<void()>> &getThemes() const;
 
       private:
-        static void setModernColors();
-        static void setMaterialYouColors();
         static void setDarkThemeColors();
-        static void setBessDarkThemeColors();
         static void setCatpuccinMochaColors();
-        static void setGlassTheme();
-        static void setFluentUITheme();
-        static void setFluentUILightTheme();
-        static void setNewDarkTheme();
-        static void newModernDarkTheme();
+        static void setFluentUIColors();
+        static void setBessDarkColors();
+        static void setModernDarkColors();
 
         // theme name and a void callback
         std::unordered_map<std::string, std::function<void()>> m_themes = {};
