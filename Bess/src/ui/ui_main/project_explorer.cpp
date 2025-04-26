@@ -7,7 +7,6 @@
 
 namespace Bess::UI {
     std::string ProjectExplorer::windowName = std::string(Icons::CodIcons::TYPE_HIERARCHY) + "  Project Explorer";
-    bool ProjectExplorer::m_multiSelectMode = false;
 
     std::pair<bool, bool> ProjectExplorerNode(uint64_t id_, const char *label, bool selected, bool multiSelectMode) {
         ImGuiContext &g = *ImGui::GetCurrentContext();
@@ -67,26 +66,35 @@ namespace Bess::UI {
         auto &scene = Bess::Canvas::Scene::instance();
         auto &registry = scene.getEnttRegistry();
         auto view = registry.view<Canvas::Components::TagComponent>();
-        bool multiSelected = registry.view<Canvas::Components::SelectedComponent>().size() > 1;
-        bool multiSelectMode = m_multiSelectMode || multiSelected;
+        auto sel = registry.view<Canvas::Components::SelectedComponent>().size();
+        bool isMultiSelected = sel > 1;
+
+        auto size = view.size();
+        if (size == 0) {
+            ImGui::Text("No Components Added");
+        } else if (size == 1) {
+            ImGui::Text("%lu Component Added", view.size());
+        } else {
+            ImGui::Text("%lu Components Added", view.size());
+        }
+
+        if (sel > 1) {
+            ImGui::SameLine();
+            ImGui::Text("(%lu / %lu Selected)", sel, size);
+        }
 
         for (auto &entity : view) {
             bool isSelected = registry.all_of<Canvas::Components::SelectedComponent>(entity);
             auto &tagComp = view.get<Canvas::Components::TagComponent>(entity);
             auto icon = Common::Helpers::getComponentIcon(tagComp.type);
-            auto [pressed, cbPressed] = ProjectExplorerNode((uint64_t)entity, (icon + "  " + tagComp.name).c_str(), isSelected, multiSelectMode);
+            auto [pressed, cbPressed] = ProjectExplorerNode((uint64_t)entity, (icon + "  " + tagComp.name).c_str(), isSelected, isMultiSelected);
             if (pressed || cbPressed) {
-                if (isSelected)
-                    registry.erase<Canvas::Components::SelectedComponent>(entity);
-                else
-                    registry.emplace<Canvas::Components::SelectedComponent>(entity);
+                if (pressed) {
+                    registry.clear<Canvas::Components::SelectedComponent>();
+                }
+                registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
             }
-
-            if (cbPressed && !m_multiSelectMode)
-                multiSelectMode = true;
         }
-
-        m_multiSelectMode = m_multiSelectMode && registry.view<Canvas::Components::SelectedComponent>().size() != 0;
 
         ImGui::End();
     }

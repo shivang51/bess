@@ -11,7 +11,6 @@ namespace Bess::UI {
         static void draw();
 
       private:
-        static bool m_multiSelectMode;
         static void firstTime();
         static bool isfirstTimeDraw;
     };
