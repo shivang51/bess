@@ -63,6 +63,8 @@ namespace Bess::Canvas {
       private:
         const UUID &getUuidOfEntity(entt::entity ent);
 
+        void updateHoveredId();
+
         void onMouseMove(const glm::vec2 &pos);
         void onLeftMouse(bool isPressed);
         void onRightMouse(bool isPressed);

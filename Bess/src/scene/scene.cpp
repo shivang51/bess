@@ -78,9 +78,11 @@ namespace Bess::Canvas {
             } break;
             case ApplicationEventType::MouseButton: {
                 if (!isCursorInViewport(m_mousePos)) {
+                    if (!m_isLeftMousePressed)
+                        break;
                     m_isLeftMousePressed = false;
-                    break;
                 }
+                updateHoveredId();
                 const auto data = event.getData<ApplicationEvent::MouseButtonData>();
                 if (data.button == MouseButton::left) {
                     onLeftMouse(data.pressed);
@@ -408,25 +410,29 @@ namespace Bess::Canvas {
         }
     }
 
+    void Scene::updateHoveredId() {
+        auto mousePos_ = m_mousePos;
+        mousePos_.y = UI::UIMain::state.viewportSize.y - mousePos_.y;
+        int x = static_cast<int>(mousePos_.x);
+        int y = static_cast<int>(mousePos_.y);
+        int32_t hoverId = m_normalFramebuffer->readIntFromColAttachment(1, x, y);
+        m_registry.clear<Components::HoveredEntityComponent>();
+        auto e = (entt::entity)hoverId;
+        if (m_registry.valid(e)) {
+            m_registry.emplace<Components::HoveredEntityComponent>(e);
+            m_hoveredEntity = getUuidOfEntity(e);
+        } else {
+            m_hoveredEntity = UUID::null;
+        }
+    }
+
     void Scene::onMouseMove(const glm::vec2 &pos) {
         auto dPos = getNVPMousePos(pos) - getNVPMousePos(m_mousePos);
         m_mousePos = pos;
 
         // reading the hoverid
         if (!m_isDragging || m_drawMode == SceneDrawMode::connection) {
-            auto m_mousePos_ = pos;
-            m_mousePos_.y = UI::UIMain::state.viewportSize.y - m_mousePos_.y;
-            int x = static_cast<int>(m_mousePos_.x);
-            int y = static_cast<int>(m_mousePos_.y);
-            int32_t hoverId = m_normalFramebuffer->readIntFromColAttachment(1, x, y);
-            m_registry.clear<Components::HoveredEntityComponent>();
-            auto e = (entt::entity)hoverId;
-            if (m_registry.valid(e)) {
-                m_registry.emplace<Components::HoveredEntityComponent>(e);
-                m_hoveredEntity = getUuidOfEntity(e);
-            } else {
-                m_hoveredEntity = UUID::null;
-            }
+            updateHoveredId();
         }
 
         if (m_isLeftMousePressed && m_drawMode == SceneDrawMode::none) {
