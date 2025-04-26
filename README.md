@@ -1,6 +1,6 @@
 # BESS: Basic Electrical Simulation Software
 
-BESS is a software for simulating electrical circuits. It is designed to be simple to use and easy to understand. It is intended for educational purposes, but can also be used for professional work.
+BESS is a software for simulating electrical circuits (for now digital components). It is designed to be simple to use and easy to understand. It is intended for educational purposes, but can also be used for professional work.
 
 It is written in `C++` and uses its own renderer made with `OpenGL`.
 It now uses its own `Time Based Simulation Engine`.
@@ -38,4 +38,5 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
 ## TODO
 - [ ] Schmetic diagram generator from nodes
 - [ ] Asset Manager, MSDF font rendering
+- [ ] Snaplines, More non-simulating nodes e.g. text node
 - [ ] Lua Scripting, so anyone can add components dynamically
