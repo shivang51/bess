@@ -124,19 +124,6 @@ namespace Bess {
         ApplicationState::setParentWindow(m_mainWindow);
 
         Config::Settings::init();
-
-        // Simulator::ComponentsManager::init();
-        //
-        // Simulator::ComponentBankElement el(Simulator::ComponentType::inputProbe, "Input Probe");
-        // Simulator::ComponentBank::addToCollection("I/O", el);
-        // Simulator::ComponentBank::addToCollection("I/O", {Simulator::ComponentType::outputProbe, "Ouput Probe"});
-        // Simulator::ComponentBank::addToCollection("I/O", {Simulator::ComponentType::clock, "Clock"});
-        // Simulator::ComponentBank::addToCollection("Misc", {Simulator::ComponentType::text, "Text"});
-        // Simulator::ComponentBank::loadMultiFromJson("assets/comp_collections.json");
-        //
-        // Simulator::ComponentBank::addToCollection("Flip Flops", {Simulator::ComponentType::flipFlop, JKFlipFlop::name});
-        // Simulator::ComponentBank::addToCollection("Flip Flops", {Simulator::ComponentType::flipFlop, DFlipFlop::name});
-        //
         UI::init(m_mainWindow->getGLFWHandle());
 
         m_mainWindow->onWindowResize(BIND_FN_2(Application::onWindowResize));

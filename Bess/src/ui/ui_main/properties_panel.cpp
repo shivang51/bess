@@ -66,7 +66,7 @@ namespace Bess::UI {
 
     void drawSimulationOutputComponent(SimulationOutputComponent &comp) {
         ImGui::Spacing();
-        CheckboxWithLabel("Record Ouput", &comp.recordOutput);
+        CheckboxWithLabel("Record Output", &comp.recordOutput);
     }
 
     void drawSimulationInputComponent(SimulationInputComponent &comp, const UUID &uuid) {
