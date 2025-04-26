@@ -93,7 +93,7 @@ namespace Bess::Canvas {
             paintSlot((uint64_t)slot, slotComp.idx, parentId, slotPos, angle, "X", labeldx, isHigh);
         }
 
-        float labelWidth = (Renderer::getCharRenderSize('Z', componentStyles.slotLabelSize).x * 2.f);
+        float labelWidth = (Renderer::getCharRenderSize('W', componentStyles.slotLabelSize).x * 2.f);
         labeldx += labelWidth;
         for (size_t i = 0; i < comp.outputSlots.size(); i++) {
             auto slot = sceneRef->getEntityWithUuid(comp.outputSlots[i]);
@@ -223,8 +223,8 @@ namespace Bess::Canvas {
                        spriteComp.borderSize, borderColor, true);
 
         float yOff = componentStyles.headerFontSize / 2.f - 2.f;
-        auto labelSize = Renderer::getCharRenderSize('Z', componentStyles.headerFontSize).x * tagComp.name.size();
-        glm::vec3 textPos = glm::vec3(pos.x + scale.x / 2.f - labelSize, pos.y + yOff, pos.z + 0.0005f);
+        auto labelSize = Renderer::getStringRenderSize(tagComp.name, componentStyles.headerFontSize).x;
+        glm::vec3 textPos = glm::vec3(pos.x + scale.x / 2.f - labelSize - componentStyles.paddingX, pos.y + yOff, pos.z + 0.0005f);
         Renderer::text(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id);
         drawSlots(simComp, pos, scale.x, rotation);
     }

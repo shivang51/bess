@@ -39,6 +39,7 @@ namespace Bess {
     std::unique_ptr<Gl::Vao> Renderer::m_renderPassVao;
 
     std::unique_ptr<Font> Renderer::m_Font;
+    std::unordered_map<std::string, glm::vec2> Renderer::m_charSizeCache;
 
     void Renderer::init() {
         {
@@ -757,10 +758,26 @@ namespace Bess {
     }
 
     glm::vec2 Renderer2D::Renderer::getCharRenderSize(char ch, float renderSize) {
+        std::string key = std::to_string(renderSize) + ch;
+        if (m_charSizeCache.find(key) != m_charSizeCache.end()) {
+            return m_charSizeCache.at(key);
+        }
         auto ch_ = m_Font->getCharacter(ch);
         float scale = m_Font->getScale(renderSize);
         glm::vec2 size = {(ch_.Advance >> 6), ch_.Size.y};
         size = {size.x * scale, size.y * scale};
+        m_charSizeCache[key] = size;
         return size;
+    }
+
+    glm::vec2 Renderer2D::Renderer::getStringRenderSize(const std::string &str, float renderSize) {
+        float xSize = 0;
+        float ySize = 0;
+        for (auto &ch : str) {
+            auto s = getCharRenderSize(ch, renderSize);
+            xSize += s.x;
+            ySize = std::max(xSize, s.y);
+        }
+        return {xSize, ySize};
     }
 } // namespace Bess

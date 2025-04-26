@@ -12,13 +12,9 @@ using namespace Bess::Canvas::Components;
 
 namespace Bess::UI {
 
-    void drawTagComponent(const TagComponent &comp) {
+    void drawTagComponent(TagComponent &comp) {
         auto icon = Common::Helpers::getComponentIcon(comp.type);
-        ImGui::Text("%s", (icon + "  " + comp.name).c_str());
-    }
-
-    void drawSimulationOutputComponent(SimulationOutputComponent &comp) {
-        ImGui::Checkbox("Record Ouput", &comp.recordOutput);
+        MWidgets::TextBox("Name", comp.name);
     }
 
     bool CheckboxWithLabel(const char *label, bool *value) {
@@ -66,6 +62,11 @@ namespace Bess::UI {
             ImGui::Indent();
         }
         return opened;
+    }
+
+    void drawSimulationOutputComponent(SimulationOutputComponent &comp) {
+        ImGui::Spacing();
+        CheckboxWithLabel("Record Ouput", &comp.recordOutput);
     }
 
     void drawSimulationInputComponent(SimulationInputComponent &comp, const UUID &uuid) {

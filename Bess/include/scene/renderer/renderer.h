@@ -39,6 +39,7 @@ namespace Bess::Renderer2D {
         static void end();
 
         static glm::vec2 getCharRenderSize(char ch, float renderSize);
+        static glm::vec2 getStringRenderSize(const std::string &str, float renderSize);
 
       public:
         static void doShadowRenderPass(float width, float height);
@@ -161,6 +162,7 @@ namespace Bess::Renderer2D {
         static std::unique_ptr<Gl::Shader> m_compositePassShader;
         static std::unique_ptr<Gl::Vao> m_GridVao;
         static std::unique_ptr<Gl::Vao> m_renderPassVao;
+        static std::unordered_map<std::string, glm::vec2> m_charSizeCache;
 
         static std::unique_ptr<Font> m_Font;
     };
