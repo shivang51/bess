@@ -216,6 +216,9 @@ namespace Bess::SimEngine {
         auto &comp = m_registry.get<DigitalComponent>(ent);
         st.inputStates = getInputPinsState(ent);
         st.outputStates = comp.outputStates;
+        auto connectedStatus = getIOPinsConnectedState(ent);
+        st.inputConnected = connectedStatus.first;
+        st.outputConnected = connectedStatus.second;
         return st;
     }
 
@@ -257,6 +260,20 @@ namespace Bess::SimEngine {
         auto &dc = m_registry.get<DigitalComponent>(toSchedule);
         scheduleEvent(toSchedule, entt::null, currentSimTime + dc.delay);
         std::cout << "[SimEngine] Deleted connection" << std::endl;
+    }
+
+    std::pair<std::vector<bool>, std::vector<bool>> SimulationEngine::getIOPinsConnectedState(entt::entity e) const {
+        auto &comp = m_registry.get<DigitalComponent>(e);
+        std::vector<bool> iPinsState, oPinsState;
+        for (auto &pin : comp.inputPins) {
+            iPinsState.push_back(!pin.empty());
+        }
+
+        for (auto &pin : comp.outputPins) {
+            oPinsState.push_back(!pin.empty());
+        }
+
+        return {iPinsState, oPinsState};
     }
 
     std::vector<bool> SimulationEngine::getInputPinsState(entt::entity ent) const {

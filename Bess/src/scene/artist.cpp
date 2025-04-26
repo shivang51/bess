@@ -61,9 +61,16 @@ namespace Bess::Canvas {
         return glm::vec3(posX, posY, pPos.z + 0.0005);
     }
 
-    void Artist::paintSlot(uint64_t id, int idx, uint64_t parentId, const glm::vec3 &pos, float angle, const std::string &label, float labelDx, bool isHigh) {
-        auto bgColor = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::componentBGColor;
-        auto borderColor = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::stateLowColor;
+    void Artist::paintSlot(uint64_t id, int idx, uint64_t parentId, const glm::vec3 &pos,
+                           float angle, const std::string &label, float labelDx, bool isHigh, bool isConnected) {
+        auto bgColor = isConnected ? ViewportTheme::stateLowColor : ViewportTheme::componentBGColor;
+        auto borderColor = ViewportTheme::stateLowColor;
+
+        if (isHigh) {
+            bgColor = ViewportTheme::stateHighColor;
+            borderColor = ViewportTheme::stateHighColor;
+        }
+
         Renderer::quad(pos, glm::vec2(componentStyles.slotRadius * 2.f), ViewportTheme::componentBGColor, id, angle,
                        glm::vec4(componentStyles.slotRadius),
                        glm::vec4(componentStyles.slotBorderSize), borderColor, false);
@@ -87,10 +94,11 @@ namespace Bess::Canvas {
         for (size_t i = 0; i < comp.inputSlots.size(); i++) {
             auto slot = sceneRef->getEntityWithUuid(comp.inputSlots[i]);
             auto isHigh = compState.inputStates[i];
+            auto isConnected = compState.inputConnected[i];
             auto &slotComp = registry.get<Components::SlotComponent>(slot);
             auto slotPos = getSlotPos(slotComp);
             uint64_t parentId = (uint64_t)sceneRef->getEntityWithUuid(slotComp.parentId);
-            paintSlot((uint64_t)slot, slotComp.idx, parentId, slotPos, angle, "X", labeldx, isHigh);
+            paintSlot((uint64_t)slot, slotComp.idx, parentId, slotPos, angle, "X", labeldx, isHigh, isConnected);
         }
 
         float labelWidth = (Renderer::getCharRenderSize('W', componentStyles.slotLabelSize).x * 2.f);
@@ -98,10 +106,11 @@ namespace Bess::Canvas {
         for (size_t i = 0; i < comp.outputSlots.size(); i++) {
             auto slot = sceneRef->getEntityWithUuid(comp.outputSlots[i]);
             auto isHigh = compState.outputStates[i];
+            auto isConnected = compState.outputConnected[i];
             auto &slotComp = registry.get<Components::SlotComponent>(slot);
             auto slotPos = getSlotPos(slotComp);
             uint64_t parentId = (uint64_t)sceneRef->getEntityWithUuid(slotComp.parentId);
-            paintSlot((uint64_t)slot, slotComp.idx, parentId, slotPos, angle, "Y", -labeldx, isHigh);
+            paintSlot((uint64_t)slot, slotComp.idx, parentId, slotPos, angle, "Y", -labeldx, isHigh, isConnected);
         }
     }
 

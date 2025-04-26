@@ -44,6 +44,7 @@ namespace Bess::SimEngine {
         void scheduleEvent(entt::entity e, entt::entity schedulerEntity, SimDelayMilliSeconds t);
         void clearEventsForEntity(entt::entity e);
         std::vector<bool> getInputPinsState(entt::entity e) const;
+        std::pair<std::vector<bool>, std::vector<bool>> getIOPinsConnectedState(entt::entity e) const;
         bool simulateComponent(entt::entity e, const std::vector<bool> &inputs);
         void run();
 
