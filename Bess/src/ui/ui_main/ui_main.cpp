@@ -1,20 +1,26 @@
 #include "ui/ui_main/ui_main.h"
 
 #include "application_state.h"
+#include "common/helpers.h"
 #include "glad/glad.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "simulation_engine.h"
+#include <cstdint>
 #include <string>
 
 #include "camera.h"
-#include "components_manager/components_manager.h"
 #include "pages/main_page/main_page_state.h"
 #include "scene/renderer/gl/gl_wrapper.h"
+#include "scene/scene.h"
+#include "simulation_engine_serializer.h"
+#include "ui/icons/CodIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
-#include "ui/icons/MaterialIcons.h"
+#include "ui/m_widgets.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/dialogs.h"
 #include "ui/ui_main/popups.h"
+#include "ui/ui_main/project_explorer.h"
 #include "ui/ui_main/project_settings_window.h"
 #include "ui/ui_main/properties_panel.h"
 #include "ui/ui_main/settings_window.h"
@@ -31,9 +37,9 @@ namespace Bess::UI {
             resetDockspace();
         }
         drawMenubar();
-        drawProjectExplorer();
         drawViewport();
         ComponentExplorer::draw();
+        ProjectExplorer::draw();
         PropertiesPanel::draw();
         drawExternalWindows();
     }
@@ -49,59 +55,10 @@ namespace Bess::UI {
         state.viewportTexture = texture;
     }
 
-    bool RoundedSelectable(const char *label, bool selected = false, float rounding = 6.0f) {
-        ImVec2 min = ImGui::GetCursorScreenPos();
-
-        ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(0, 0, 0, 0));
-        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(0, 0, 0, 0));
-        ImGui::PushStyleColor(ImGuiCol_HeaderActive, IM_COL32(0, 0, 0, 0));
-        auto pressed = ImGui::Selectable(label, &selected, ImGuiSelectableFlags_SpanAvailWidth);
-        ImGui::PopStyleColor(3);
-
-        ImVec2 size = ImGui::CalcTextSize(label);
-        auto padding = ImGui::GetStyle().FramePadding;
-        size.x = ImGui::GetWindowWidth() - (padding.x * 2) - 4.f;
-        size.y += padding.y;
-
-        ImVec2 max = ImVec2(min.x + size.x, min.y + size.y);
-
-        auto colors = ImGui::GetStyle().Colors;
-
-        ImVec4 bgColor = selected ? colors[ImGuiCol_Header] : ImVec4(0, 0, 0, 0);
-        if (ImGui::IsItemHovered())
-            bgColor = colors[ImGuiCol_HeaderHovered];
-
-        auto drawList = ImGui::GetWindowDrawList();
-        auto textStart = min;
-        min.x -= padding.x;
-        min.y -= padding.y;
-        drawList->AddRectFilled(min, max, IM_COL32(bgColor.x * 255, bgColor.y * 255, bgColor.z * 255, bgColor.w * 255), rounding);
-        if (ImGui::IsItemHovered() || selected) {
-            auto fgColor = colors[ImGuiCol_Text];
-            drawList->AddText(textStart, IM_COL32(fgColor.x * 255, fgColor.y * 255, fgColor.z * 255, fgColor.w * 255), label);
-        }
-
-        ImGui::SetCursorPosY(ImGui::GetCursorPos().y + padding.y);
-
-        return pressed;
-    }
-
-    void UIMain::drawProjectExplorer() {
-        ImGui::Begin("Project Explorer");
-
-        for (auto &id : Simulator::ComponentsManager::renderComponents) {
-            auto &entity = Simulator::ComponentsManager::components[id];
-            if (RoundedSelectable(entity->getRenderName().c_str(), m_pageState->isBulkIdPresent(entity->getId()))) {
-                m_pageState->setBulkId(entity->getId());
-            }
-        }
-
-        ImGui::End();
-    }
-
     void UIMain::drawMenubar() {
         bool newFileClicked = false, openFileClicked = false;
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.f, 6.f));
         ImGui::BeginMainMenuBar();
 
         if (ImGui::BeginMenu("File")) {
@@ -123,7 +80,6 @@ namespace Bess::UI {
             temp_name = Icons::FontAwesomeIcons::FA_SAVE;
             temp_name += "   Save";
             if (ImGui::MenuItem(temp_name.c_str(), "Ctrl+S")) {
-                m_pageState->getCurrentProjectFile()->update(Simulator::ComponentsManager::components);
                 m_pageState->getCurrentProjectFile()->save();
             };
 
@@ -131,8 +87,8 @@ namespace Bess::UI {
             ImGui::Separator();
             ImGui::Spacing();
 
-            temp_name = Icons::FontAwesomeIcons::FA_WRENCH;
-            temp_name += "  Settings";
+            temp_name = Icons::FontAwesomeIcons::FA_PENCIL_ALT;
+            temp_name += "  Prefrences";
             if (ImGui::MenuItem(temp_name.c_str())) {
                 SettingsWindow::show();
             }
@@ -141,7 +97,7 @@ namespace Bess::UI {
             temp_name += "  Export";
             if (ImGui::BeginMenu(temp_name.c_str())) {
                 temp_name = Icons::FontAwesomeIcons::FA_FILE_IMAGE;
-                temp_name += "  Export to Image";
+                temp_name += "  Schematic View (Yet to implement)";
                 if (ImGui::MenuItem(temp_name.c_str())) {
                 }
                 ImGui::EndMenu();
@@ -160,8 +116,8 @@ namespace Bess::UI {
         }
 
         if (ImGui::BeginMenu("Edit")) {
-
-            if (ImGui::MenuItem("Project Settings", "Ctrl+P")) {
+            std::string icon = Icons::FontAwesomeIcons::FA_WRENCH;
+            if (ImGui::MenuItem((icon + "  Project Settings").c_str(), "Ctrl+P")) {
                 ProjectSettingsWindow::show();
             }
             ImGui::EndMenu();
@@ -169,7 +125,7 @@ namespace Bess::UI {
 
         if (ImGui::BeginMenu("Simulation")) {
             std::string text = m_pageState->isSimulationPaused() ? Icons::FontAwesomeIcons::FA_PLAY : Icons::FontAwesomeIcons::FA_PAUSE;
-            text += m_pageState->isSimulationPaused() ? " Play" : " Pause";
+            text += m_pageState->isSimulationPaused() ? "  Play" : "  Pause";
 
             if (ImGui::MenuItem(text.c_str(), "Ctrl+Space")) {
                 m_pageState->setSimulationPaused(!m_pageState->isSimulationPaused());
@@ -178,8 +134,19 @@ namespace Bess::UI {
         }
 
         auto menubar_size = ImGui::GetWindowSize();
-        ImGui::EndMainMenuBar();
+
+        ImGui::SameLine(menubar_size.x / 2.f); // Align to the right side
+        ImGui::SetCursorPosY(menubar_size.y / 2.f - (ImGui::GetFontSize() / 2.f) - 4.f);
+        ImGui::PushItemWidth(150);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 4.f));
+        auto colors = ImGui::GetStyle().Colors;
+        ImGui::PushStyleColor(ImGuiCol_FrameBg, colors[ImGuiCol_WindowBg]);
+        MWidgets::TextBox("", Pages::MainPageState::getInstance()->getCurrentProjectFile()->getNameRef(), "Project Name");
         ImGui::PopStyleVar();
+        ImGui::PopStyleColor();
+        ImGui::PopItemWidth();
+        ImGui::EndMainMenuBar();
+        ImGui::PopStyleVar(2);
 
         if (newFileClicked) {
             onNewProject();
@@ -255,13 +222,16 @@ namespace Bess::UI {
             ImGui::Begin("Camera", nullptr, flags);
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8);
             ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 8);
-            if (ImGui::SliderFloat("Zoom", &state.cameraZoom, Camera::zoomMin,
+            auto camera = Canvas::Scene::instance().getCamera();
+            if (ImGui::SliderFloat("Zoom", &camera->getZoomRef(), Camera::zoomMin,
                                    Camera::zoomMax, nullptr,
                                    ImGuiSliderFlags_AlwaysClamp)) {
                 // step size logic
                 float stepSize = 0.1f;
-                state.cameraZoom = roundf(state.cameraZoom / stepSize) * stepSize;
+                float val = roundf(camera->getZoom() / stepSize) * stepSize;
+                camera->setZoom(val);
             }
+            state.isViewportFocused &= !ImGui::IsWindowHovered();
             ImGui::PopStyleVar(2);
             ImGui::End();
             ImGui::PopStyleVar(2);
@@ -279,9 +249,9 @@ namespace Bess::UI {
 
         auto dock_id_right_bot = ImGui::DockBuilderSplitNode(dock_id_right, ImGuiDir_Down, 0.5f, nullptr, &dock_id_right);
 
-        ImGui::DockBuilderDockWindow("Component Explorer", dock_id_left);
+        ImGui::DockBuilderDockWindow(ComponentExplorer::windowName.c_str(), dock_id_left);
         ImGui::DockBuilderDockWindow("Viewport", mainDockspaceId);
-        ImGui::DockBuilderDockWindow("Project Explorer", dock_id_right);
+        ImGui::DockBuilderDockWindow(ProjectExplorer::windowName.c_str(), dock_id_right);
         ImGui::DockBuilderDockWindow("Properties", dock_id_right_bot);
 
         ImGui::DockBuilderFinish(mainDockspaceId);

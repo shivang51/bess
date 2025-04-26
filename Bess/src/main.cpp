@@ -38,10 +38,6 @@ static bool isValidStartDir() {
 }
 
 int main(int argc, char **argv) {
-#ifndef NDEBUG
-    std::cout << "[+] Debug mode" << std::endl;
-#endif
-
     std::vector<std::string> args(argv, argv + argc);
 
     if (!isValidStartDir()) {
@@ -55,7 +51,7 @@ int main(int argc, char **argv) {
 #ifdef __linux__
     #ifndef NDEBUG
     binary = args[0];
-    std::cout << "[+] Debug mode for " << binary << std::endl;
+    std::cout << "[Bess] Starting in debug mode for " << binary << std::endl;
     struct sigaction sa;
     sa.sa_handler = signal_handler;
     sigemptyset(&sa.sa_mask);
@@ -71,5 +67,7 @@ int main(int argc, char **argv) {
         std::cerr << e.what() << std::endl;
         app.quit();
     }
+
+    std::cout << "[Bess] Application Closed" << std::endl;
     return 0;
 }

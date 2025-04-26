@@ -1,13 +1,11 @@
 #pragma once
-#include "fwd.hpp"
-#include "gl_wrapper.h"
 #include "scene/renderer/gl/texture.h"
 #include <memory>
-#include <vector>
 
 namespace Bess::Gl {
     enum FBAttachmentType {
         R32I_REDI,
+        R64I_REDI,
         RGB_RGB,
         RGBA_RGBA,
         // non-color attachments
@@ -28,7 +26,7 @@ namespace Bess::Gl {
         GLuint getInternalFormat() const;
         GLenum getFormat() const;
 
-        void bindTexture() const;
+        void bindTexture(int slotIdx = -1) const;
 
       private:
         std::shared_ptr<Texture> m_texture;

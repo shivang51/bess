@@ -6,6 +6,8 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_internal.h"
+#include "ui/icons/CodIcons.h"
+#include "ui/icons/ComponentIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/icons/MaterialIcons.h"
 #include "ui/ui_main/ui_main.h"
@@ -99,23 +101,30 @@ namespace Bess::UI {
         Fonts::largeFont = io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Bold.ttf", fontSize * 2.f);
         Fonts::mediumFont = io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Bold.ttf", fontSize * 1.5f);
         io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Regular.ttf", fontSize);
-        ImFontConfig config;
-        config.MergeMode = true;
-        static const ImWchar mat_icon_ranges[] = {Icons::MaterialIcons::ICON_MIN_MD, Icons::MaterialIcons::ICON_MAX_MD, 0};
-        io.Fonts->AddFontFromFileTTF("assets/icons/MaterialIcons-Regular.ttf", fontSize, &config, mat_icon_ranges);
 
-        // const ImWchar fa_icon_ranges[] = { Icons::FontAwesomeIcons::SIZE_MIN_FAB,
-        // Icons::FontAwesomeIcons::SIZE_MAX_FAB, 0 };
-        // io.Fonts->AddFontFromFileTTF("assets/icons/fa-brands-400.ttf", 16.0f,
-        // &config, fa_icon_ranges);
+        ImFontConfig config;
+        float r = 2.2f / 3.f;
+        config.MergeMode = true;
+        config.PixelSnapH = true;
+
+        static const ImWchar comp_icon_ranges[] = {Icons::ComponentIcons::SIZE_MIN_CI, Icons::ComponentIcons::SIZE_MAX_CI, 0};
+        io.Fonts->AddFontFromFileTTF("assets/icons/ComponentIcons.ttf", fontSize * r, &config, comp_icon_ranges);
+
+        static const ImWchar codicon_icon_ranges[] = {Icons::CodIcons::ICON_MIN_CI, Icons::CodIcons::ICON_MAX_CI, 0};
+        config.GlyphOffset.y = fontSize / 5.f;
+        io.Fonts->AddFontFromFileTTF("assets/icons/codicon.ttf", fontSize, &config, codicon_icon_ranges);
+
+        config.GlyphOffset.y = r;
+        static const ImWchar mat_icon_ranges[] = {Icons::MaterialIcons::ICON_MIN_MD, Icons::MaterialIcons::ICON_MAX_MD, 0};
+        io.Fonts->AddFontFromFileTTF("assets/icons/MaterialIcons-Regular.ttf", fontSize * r, &config, mat_icon_ranges);
 
         static const ImWchar fa_icon_ranges_r[] = {Icons::FontAwesomeIcons::SIZE_MIN_FA, Icons::FontAwesomeIcons::SIZE_MAX_FA, 0};
-        io.Fonts->AddFontFromFileTTF("assets/icons/fa-solid-900.ttf", fontSize, &config, fa_icon_ranges_r);
+        config.GlyphOffset.y = -r;
+        io.Fonts->AddFontFromFileTTF("assets/icons/fa-solid-900.ttf", fontSize * r, &config, fa_icon_ranges_r);
 
         io.FontGlobalScale = scale;
-
         io.Fonts->Build();
-        config.MergeMode = false;
+
         if (Config::Settings::shouldFontRebuild()) {
             ImGui_ImplOpenGL3_DestroyDeviceObjects();
             ImGui_ImplOpenGL3_CreateDeviceObjects();

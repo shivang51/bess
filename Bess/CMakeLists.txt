@@ -1,8 +1,6 @@
 set(PROJECT_NAME Bess)
-set(CMAKE_CXX_STANDARD 20)
-################################################################################
-# Source groups
-################################################################################
+set(CMAKE_CXX_STANDARD 23)
+
 set(External
     "../external/glad/src/glad.c"
     "../external/imgui/backends/imgui_impl_glfw.cpp"
@@ -15,26 +13,9 @@ set(External
     "../external/stb_image/src/stb_image.cpp"
     "../external/tinyfiledialogs/tinyfiledialogs.c"
 )
-source_group("External" FILES ${External})
+source_group("external" FILES ${External})
 
 set(Header_Files
-"include/components_manager/component_type.h"
-"include/components_manager/component_bank.h"
-"include/components_manager/components_manager.h"
-"include/components_manager/jcomponent_data.h"
-"include/components/component.h"
-"include/components/button.h"
-"include/components/jcomponent.h"
-"include/components/text_component.h"
-"include/components/slot.h"
-"include/components/output_probe.h"
-"include/components/connection.h"
-"include/components/connection_point.h"
-"include/components/input_probe.h"
-"include/components/clock.h"
-"include/components/flip_flops/d_flip_flop.h"
-"include/components/flip_flops/jk_flip_flop.h"
-"include/components/flip_flops/flip_flop.h"
 "include/settings/themes.h"
 "include/settings/settings.h"
 "include/settings/viewport_theme.h"
@@ -44,7 +25,6 @@ set(Header_Files
 "include/pages/start_page/start_page.h"
 "include/pages/page_identifier.h"
 "include/application.h"
-"include/simulator/simulator_engine.h"
 "include/camera.h"
 "include/common/helpers.h"
 "include/common/bind_helpers.h"
@@ -52,12 +32,14 @@ set(Header_Files
 "include/project_file.h"
 "include/ui/m_widgets.h"
 "include/ui/icons/FontAwesomeIcons.h"
+"include/ui/icons/ComponentIcons.h"
 "include/ui/icons/MaterialIcons.h"
 "include/ui/ui.h"
 "include/ui/ui_main/properties_panel.h"
 "include/ui/ui_main/project_settings_window.h"
 "include/ui/ui_main/settings_window.h"
 "include/ui/ui_main/component_explorer.h"
+"include/ui/ui_main/project_explorer.h"
 "include/ui/ui_main/ui_main.h"
 "include/ui/ui_main/popups.h"
 "include/ui/ui_main/dialogs.h"
@@ -65,6 +47,10 @@ set(Header_Files
 "include/window.h"
 "include/application_state.h"
 "include/scene/renderer/renderer.h"
+"include/scene/scene.h"
+"include/scene/scene_serializer.h"
+"include/scene/artist.h"
+"include/scene/components/components.h"
 "include/scene/renderer/font.h"
 "include/scene/renderer/gl/texture.h"
 "include/scene/renderer/gl/vertex.h"
@@ -75,28 +61,11 @@ set(Header_Files
 "include/scene/renderer/gl/vao.h"
 "include/scene/renderer/gl/gl_wrapper.h"
 "include/scene/renderer/gl/utils.h"
-"include/scene/transform/transform_2d.h"
-
 )
-source_group("Shaders" FILES ${Shaders})
+
+source_group("include" FILES ${Header_Files})
 
 set(Source_Files
-"src/components_manager/component_bank.cpp"
-"src/components_manager/components_manager.cpp"
-"src/components_manager/jcomponent_data.cpp"
-"src/components/input_probe.cpp"
-"src/components/button.cpp"
-"src/components/component.cpp"
-"src/components/output_probe.cpp"
-"src/components/clock.cpp"
-"src/components/text_component.cpp"
-"src/components/slot.cpp"
-"src/components/connection.cpp"
-"src/components/connection_point.cpp"
-"src/components/jcomponent.cpp"
-"src/components/flip_flops/d_flip_flop.cpp"
-"src/components/flip_flops/jk_flip_flop.cpp"
-"src/components/flip_flops/flip_flop.cpp"
 "src/application_state.cpp"
 "src/application.cpp"
 "src/settings/viewport_theme.cpp"
@@ -107,12 +76,11 @@ set(Source_Files
 "src/pages/main_page/main_page_state.cpp"
 "src/pages/start_page/start_page.cpp"
 "src/window.cpp"
-"src/scene/transform/transform_2d.cpp"
-"src/simulator/simulator_engine.cpp"
 "src/common/helpers.cpp"
 "src/ui/ui.cpp"
 "src/ui/m_widgets.cpp"
 "src/ui/ui_main/component_explorer.cpp"
+"src/ui/ui_main/project_explorer.cpp"
 "src/ui/ui_main/properties_panel.cpp"
 "src/ui/ui_main/dialogs.cpp"
 "src/ui/ui_main/ui_main.cpp"
@@ -123,6 +91,9 @@ set(Source_Files
 "src/project_file.cpp"
 "src/events/application_event.cpp"
 "src/camera.cpp"
+"src/scene/scene.cpp"
+"src/scene/scene_serializer.cpp"
+"src/scene/artist.cpp"
 "src/scene/renderer/font.cpp"
 "src/scene/renderer/gl/gl_wrapper.cpp"
 "src/scene/renderer/gl/shader.cpp"
@@ -132,142 +103,30 @@ set(Source_Files
 "src/scene/renderer/gl/vao.cpp"
 "src/scene/renderer/renderer.cpp"
 )
-source_group("Source Files" FILES ${Source_Files})
+
+source_group("src" FILES ${Source_Files})
 
 set(ALL_FILES
     ${External}
     ${Header_Files}
-    ${Shaders}
     ${Source_Files}
 )
 
-################################################################################
-# Target
-################################################################################
 add_executable(${PROJECT_NAME} ${ALL_FILES})
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine)
+add_dependencies(${PROJECT_NAME} BessSimEngine)
 
-
-use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
-set(ROOT_NAMESPACE Bess)
-
-
-set_target_properties(${PROJECT_NAME} PROPERTIES VS_GLOBAL_KEYWORD "Win32Proj")
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    set_target_properties(${PROJECT_NAME} PROPERTIES INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
-    set_target_properties(${PROJECT_NAME} PROPERTIES INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE")
-endif()
-################################################################################
-# Include directories
-################################################################################
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    target_include_directories(${PROJECT_NAME} PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/uuid;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/freetype/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui/backends;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/glm;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/json;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/glfw/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/glad/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/stb_image/include;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../external/tinyfiledialogs;"
-        "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    )
-endif()
-
-################################################################################
-# Compile definitions
-################################################################################
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        "$<$<CONFIG:Debug>:"
-            "_DEBUG"
-        ">"
-        "$<$<CONFIG:Release>:"
-            "NDEBUG"
-        ">"
-        "_CONSOLE;"
-        "UNICODE;"
-        "_UNICODE"
-    )
-elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        "$<$<CONFIG:Debug>:"
-            "_DEBUG"
-        ">"
-        "$<$<CONFIG:Release>:"
-            "NDEBUG"
-        ">"
-        "WIN32;"
-        "_CONSOLE;"
-        "UNICODE;"
-        "_UNICODE"
-    )
-endif()
-
-################################################################################
-# Compile and link options
-################################################################################
-if(MSVC)
-    set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
-    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Release>:
-                /Oi;
-                /Gy
-            >
-            /permissive-;
-            /sdl;
-            /W3;
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            ${DEFAULT_CXX_EXCEPTION_HANDLING}
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Release>:
-                /Oi;
-                /Gy
-            >
-            /permissive-;
-            /sdl;
-            /W3;
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            ${DEFAULT_CXX_EXCEPTION_HANDLING}
-        )
-    endif()
-    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Release>:
-                /OPT:REF;
-                /OPT:ICF
-            >
-            /DEBUG;
-            /SUBSYSTEM:CONSOLE
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Release>:
-                /OPT:REF;
-                /OPT:ICF
-            >
-            /DEBUG;
-            /SUBSYSTEM:CONSOLE
-        )
-    endif()
-endif()
-
-################################################################################
-# Dependencies
-################################################################################
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64" AND NOT UNIX)
+if("${BUILD_ARCH}" STREQUAL "x64" AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
         "glfw3;"
         "opengl32;"
         "gdi32;"
         "freetype;"
+    )
+
+    target_link_directories(${PROJECT_NAME} PRIVATE
+        "${CMAKE_SOURCE_DIR}/external/glfw/lib-vc2022"
+        "${CMAKE_SOURCE_DIR}/external/freetype/libs/windows"
     )
 else()
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
@@ -276,19 +135,42 @@ else()
         "freetype;"
     )
 endif()
+
 target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
 
-if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64" AND NOT UNIX)
-    target_link_directories(${PROJECT_NAME} PRIVATE
-        "${CMAKE_SOURCE_DIR}/external/glfw/lib-vc2022"
-        "${CMAKE_SOURCE_DIR}/external/freetype/libs/windows"
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(ASSETS_DST_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets")
+
+    file(MAKE_DIRECTORY "${ASSETS_DST_DIR}")
+
+    add_custom_command(
+				TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/assets" "${ASSETS_DST_DIR}"
+        COMMENT "Copying assets to build directory"
     )
 endif()
 
-add_custom_target(run
-    COMMAND ${PROJECT_NAME}
-    DEPENDS ${PROJECT_NAME}
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-)
+if("${BUILD_ARCH}" STREQUAL "x64")
+	target_include_directories(${PROJECT_NAME} PRIVATE
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/freetype/include"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui/backends"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/glm"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/json"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/glfw/include"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/glad/include"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/stb_image/include"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/tinyfiledialogs"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/entt/include"
+			"${CMAKE_CURRENT_SOURCE_DIR}/include"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../BessSimEngine/include"
+	)
+endif()
 
-#INSTALL(TARGETS ${PROJECT_NAME} DESTINATION bin)
+
+if(MSVC)
+    set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+		set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+endif()
+

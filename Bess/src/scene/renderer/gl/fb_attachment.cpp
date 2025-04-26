@@ -35,7 +35,7 @@ namespace Bess::Gl {
         return m_format;
     }
 
-    void FBAttachment::bindTexture() const {
-        m_texture->bind();
+    void FBAttachment::bindTexture(int slotIdx) const {
+        m_texture->bind(slotIdx);
     }
 } // namespace Bess::Gl

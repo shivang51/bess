@@ -1,5 +1,6 @@
 #include "ui/m_widgets.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 
 namespace Bess::UI {
     static int InputTextCallback(ImGuiInputTextCallbackData *data) {
@@ -12,7 +13,14 @@ namespace Bess::UI {
     }
 
     bool MWidgets::TextBox(const std::string &label, std::string &value, const std::string &hintText) {
-        if (ImGui::InputTextWithHint(label.c_str(), hintText.c_str(), value.data(), value.capacity() + 1, ImGuiInputTextFlags_CallbackResize, InputTextCallback, (void *)&value)) {
+        if (label[0] != '#' && label[1] != '#') {
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("%s", label.c_str());
+        }
+        ImGui::SameLine();
+        if (ImGui::InputTextWithHint(("##Tb" + label).c_str(), hintText.c_str(),
+                                     value.data(), value.capacity() + 1, ImGuiInputTextFlags_CallbackResize,
+                                     InputTextCallback, (void *)&value)) {
             return true;
         }
 

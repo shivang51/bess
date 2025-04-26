@@ -39,8 +39,12 @@ namespace Bess::Renderer2D {
         static void end();
 
         static glm::vec2 getCharRenderSize(char ch, float renderSize);
+        static glm::vec2 getStringRenderSize(const std::string &str, float renderSize);
 
       public:
+        static void doShadowRenderPass(float width, float height);
+        static void doCompositeRenderPass(float width, float height);
+
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
                          const glm::vec4 &color, int id,
                          const glm::vec4 &borderRadius = {0.f, 0.f, 0.f, 0.f},
@@ -50,8 +54,8 @@ namespace Bess::Renderer2D {
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
                          const glm::vec4 &color, int id,
                          const glm::vec4 &borderRadius,
-                         const glm::vec4 &borderColor,
-                         const glm::vec4 &borderSize = glm::vec4(0.f));
+                         const glm::vec4 &borderSize,
+                         const glm::vec4 &borderColor);
 
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
                          const glm::vec4 &color, int id, float angle, bool isMica = true,
@@ -83,8 +87,9 @@ namespace Bess::Renderer2D {
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
                          const glm::vec4 &color, int id, float angle,
                          const glm::vec4 &borderRadius,
-                         const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
-                         const glm::vec4 &borderSize = glm::vec4(0.f), bool isMica = true);
+                         const glm::vec4 &borderSize,
+                         const glm::vec4 &borderColor,
+                         bool isMica = true);
 
         static void curve(const glm::vec3 &start, const glm::vec3 &end, float weight, const glm::vec4 &color, int id);
 
@@ -97,11 +102,12 @@ namespace Bess::Renderer2D {
 
         static void grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const glm::vec4 &color);
 
-        static void text(const std::string &data, const glm::vec3 &pos, const size_t size, const glm::vec4 &color, const int id);
+        static void text(const std::string &data, const glm::vec3 &pos, const size_t size, const glm::vec4 &color, const int id, float angle = 0.f);
 
         static void line(const glm::vec3 &start, const glm::vec3 &end, float size, const glm::vec4 &color, const int id);
 
         static void drawPath(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const int id, bool closed = false);
+        static void drawPath(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const std::vector<int> &ids, bool closed = false);
 
         static void triangle(const std::vector<glm::vec3> &points, const glm::vec4 &color, const int id);
 
@@ -125,11 +131,14 @@ namespace Bess::Renderer2D {
         static void drawQuad(const glm::vec3 &pos, const glm::vec2 &size,
                              const glm::vec4 &color, int id, float angle,
                              bool isMica,
-                             const glm::vec4 &borderRadius = {0.f, 0.f, 0.f, 0.f});
+                             const glm::vec4 &borderRadius,
+                             const glm::vec4 &borderSize, const glm::vec4 &borderColor);
 
         static QuadBezierCurvePoints generateQuadBezierPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius);
 
       private:
+        static std::vector<Gl::RenderPassVertex> getRenderPassVertices(float width, float height);
+
         static std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Shader>> m_shaders;
 
         static std::unique_ptr<Gl::Shader> m_quadShadowShader;
@@ -149,7 +158,11 @@ namespace Bess::Renderer2D {
         static RenderData m_RenderData;
 
         static std::unique_ptr<Gl::Shader> m_GridShader;
+        static std::unique_ptr<Gl::Shader> m_shadowPassShader;
+        static std::unique_ptr<Gl::Shader> m_compositePassShader;
         static std::unique_ptr<Gl::Vao> m_GridVao;
+        static std::unique_ptr<Gl::Vao> m_renderPassVao;
+        static std::unordered_map<std::string, glm::vec2> m_charSizeCache;
 
         static std::unique_ptr<Font> m_Font;
     };

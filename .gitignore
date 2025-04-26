@@ -4,6 +4,7 @@ cmake-build-release/
 x64/
 out/
 build/
+bin/
 
 *.o
 *.a
@@ -17,3 +18,8 @@ build/
 *.ini
 
 vgcore*
+
+# this is generated through cmake (check build.sh)
+compile_commands.json
+.cache
+.cmake_observer_backup

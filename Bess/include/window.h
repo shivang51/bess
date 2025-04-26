@@ -35,7 +35,6 @@ namespace Bess {
       public:
         struct GLFWwindowDeleter {
             void operator()(GLFWwindow *window) {
-                std::cout << "Deleting the window" << std::endl;
                 glfwDestroyWindow(window);
             }
         };

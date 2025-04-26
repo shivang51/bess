@@ -9,6 +9,7 @@
 #include "ui/ui_main/ui_main.h"
 #include <GL/gl.h>
 #include <GLFW/glfw3.h>
+#include <cstdlib>
 #include <ext/matrix_transform.hpp>
 #include <iostream>
 #include <ostream>
@@ -32,9 +33,13 @@ namespace Bess {
     RenderData Renderer::m_RenderData;
 
     std::unique_ptr<Gl::Shader> Renderer::m_GridShader;
+    std::unique_ptr<Gl::Shader> Renderer::m_shadowPassShader;
+    std::unique_ptr<Gl::Shader> Renderer::m_compositePassShader;
     std::unique_ptr<Gl::Vao> Renderer::m_GridVao;
+    std::unique_ptr<Gl::Vao> Renderer::m_renderPassVao;
 
     std::unique_ptr<Font> Renderer::m_Font;
+    std::unordered_map<std::string, glm::vec2> Renderer::m_charSizeCache;
 
     void Renderer::init() {
         {
@@ -47,6 +52,16 @@ namespace Bess {
             attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::float_t, offsetof(Gl::GridVertex, ar)));
 
             m_GridVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::GridVertex));
+        }
+
+        {
+
+            m_shadowPassShader = std::make_unique<Gl::Shader>("assets/shaders/shadow_vert.glsl", "assets/shaders/shadow_frag.glsl");
+            m_compositePassShader = std::make_unique<Gl::Shader>("assets/shaders/composite_vert.glsl", "assets/shaders/composite_frag.glsl");
+            std::vector<Gl::VaoAttribAttachment> attachments;
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::GridVertex, position)));
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::GridVertex, texCoord)));
+            m_renderPassVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::RenderPassVertex));
         }
 
         m_AvailablePrimitives = {PrimitiveType::curve, PrimitiveType::circle,
@@ -98,6 +113,8 @@ namespace Bess {
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::QuadVertex, color)));
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::QuadVertex, texCoord)));
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::QuadVertex, borderRadius)));
+                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::QuadVertex, borderSize)));
+                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::QuadVertex, borderColor)));
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::QuadVertex, size)));
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::QuadVertex, id)));
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::QuadVertex, isMica)));
@@ -141,10 +158,10 @@ namespace Bess {
 
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
                         const glm::vec4 &color, int id,
-                        const glm::vec4 &borderRadius, const glm::vec4 &borderColor,
-                        const glm::vec4 &borderSize) {
-        Renderer::quad(pos, size, color, id, 0.f, borderRadius, borderColor,
-                       borderSize, false);
+                        const glm::vec4 &borderRadius, const glm::vec4 &borderSize,
+                        const glm::vec4 &borderColor) {
+        Renderer::quad(pos, size, color, id, 0.f, borderRadius, borderSize,
+                       borderColor, false);
     }
 
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
@@ -154,18 +171,8 @@ namespace Bess {
         Renderer::quad(pos, size, color, id, angle, borderRadius, borderColor, glm::vec4(borderSize), isMica);
     }
 
-    void Renderer2D::Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size, const glm::vec4 &color, int id, float angle, const glm::vec4 &borderRadius, const glm::vec4 &borderColor, const glm::vec4 &borderSize, bool isMica) {
-
-        if (borderSize.x || borderSize.y || borderSize.z || borderSize.w) {
-            glm::vec2 dXYP = {borderSize.y + borderSize.w, borderSize.x + borderSize.z};
-            glm::vec2 dXYM = {borderSize.y - borderSize.w, borderSize.x - borderSize.z};
-            dXYM *= 0.5f;
-            glm::vec2 borderPos = glm::vec2(pos) - glm::vec2(dXYM.x, dXYM.y);
-            glm::vec2 borderSize_ = size + dXYP;
-            auto borderRadius_ = borderRadius + borderSize;
-            Renderer::drawQuad(glm::vec3(borderPos, pos.z), borderSize_, borderColor, id, angle, false, borderRadius);
-        }
-        Renderer::drawQuad(pos, size, color, id, angle, isMica, borderRadius);
+    void Renderer2D::Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size, const glm::vec4 &color, int id, float angle, const glm::vec4 &borderRadius, const glm::vec4 &borderSize, const glm::vec4 &borderColor, bool isMica) {
+        Renderer::drawQuad(pos, size, color, id, angle, isMica, borderRadius, borderSize, borderColor);
     }
 
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
@@ -220,7 +227,11 @@ namespace Bess {
         Renderer::quad(pos, size, color, id, angle, borderRadius, borderColor, borderSize, isMica);
     }
 
-    void Renderer2D::Renderer::drawQuad(const glm::vec3 &pos, const glm::vec2 &size, const glm::vec4 &color, int id, float angle, bool isMica, const glm::vec4 &borderRadius) {
+    void Renderer2D::Renderer::drawQuad(const glm::vec3 &pos, const glm::vec2 &size,
+                                        const glm::vec4 &color, int id, float angle, bool isMica,
+                                        const glm::vec4 &borderRadius,
+                                        const glm::vec4 &borderSize,
+                                        const glm::vec4 &borderColor) {
         std::vector<Gl::QuadVertex> vertices(4);
 
         auto transform = glm::translate(glm::mat4(1.0f), pos);
@@ -235,6 +246,8 @@ namespace Bess {
             vertex.borderRadius = borderRadius;
             vertex.size = size;
             vertex.isMica = isMica;
+            vertex.borderColor = borderColor;
+            vertex.borderSize = borderSize;
         }
 
         vertices[0].texCoord = {0.0f, 1.0f};
@@ -407,7 +420,8 @@ namespace Bess {
         addCircleVertices(vertices);
     }
 
-    void Renderer::text(const std::string &text, const glm::vec3 &pos, const size_t size, const glm::vec4 &color, const int id) {
+    void Renderer::text(const std::string &text, const glm::vec3 &pos, const size_t size,
+                        const glm::vec4 &color, const int id, float angle) {
         auto &shader = m_shaders[PrimitiveType::font];
         auto &vao = m_vaos[PrimitiveType::font];
 
@@ -416,26 +430,60 @@ namespace Bess {
 
         shader->setUniformVec4("textColor", color);
         shader->setUniformMat4("u_mvp", m_camera->getTransform());
-
-        // auto selId = Simulator::ComponentsManager::compIdToRid(Pages::MainPageState::getInstance()->getSelectedId());
         shader->setUniform1i("u_SelectedObjId", -1);
 
-        float scale = Font::getScale(size), x = pos.x, y = pos.y;
+        float scale = Font::getScale(size);
 
-        for (auto &c : text) {
+        // First, compute the bounding box of the text.
+        float totalWidth = 0.0f;
+        float maxHeight = 0.0f;
+        for (const char &c : text) {
+            auto &ch = m_Font->getCharacter(c);
+            totalWidth += (ch.Advance >> 6) * scale;
+            float h = ch.Size.y * scale;
+            if (h > maxHeight) {
+                maxHeight = h;
+            }
+        }
+        // Assume that 'pos' is the top-left corner of the text block.
+        // Compute the center of the text block.
+        glm::vec2 pivot = {pos.x + totalWidth / 2.0f, pos.y - maxHeight / 2.0f};
+
+        // Create a global transform that rotates the entire text block about the center pivot.
+        glm::mat4 globalTransform(1.0f);
+        // Translate so that the pivot is at the origin.
+        globalTransform = glm::translate(globalTransform, {pivot.x, pivot.y, pos.z});
+        // Rotate around the Z axis.
+        globalTransform = glm::rotate(globalTransform, angle, {0.f, 0.f, 1.f});
+        // Translate back.
+        globalTransform = glm::translate(globalTransform, {-pivot.x, -pivot.y, -pos.z});
+
+        // Now layout each glyph as if the text were unrotated (horizontally laid out).
+        float x = pos.x;
+        float y = pos.y;
+        for (const char &c : text) {
             auto &ch = m_Font->getCharacter(c);
 
+            // Compute the position of the glyph quad.
             float xpos = x + ch.Bearing.x * scale;
+            // Note: We assume a coordinate system where y increases upward;
+            // adjust this if your system is different.
             float ypos = y + (ch.Size.y - ch.Bearing.y) * scale;
 
             float w = ch.Size.x * scale;
             float h = ch.Size.y * scale;
 
+            // Build the local transform for this glyph.
+            glm::mat4 localTransform(1.0f);
+            localTransform = glm::translate(localTransform, {xpos, ypos, pos.z});
+            // Translate to center the quad before scaling.
+            localTransform = glm::translate(localTransform, {w / 2.0f, -h / 2.0f, 0.f});
+            localTransform = glm::scale(localTransform, {w, h, 1.f});
+
+            // Apply the global transform to rotate the whole text block.
+            glm::mat4 transform = globalTransform * localTransform;
+
             std::vector<Gl::Vertex> vertices(4);
-
-            auto transform = glm::translate(glm::mat4(1.0f), {xpos + w / 2, ypos - h / 2, pos.z});
-            transform = glm::scale(transform, {w, h, 1.f});
-
             for (int i = 0; i < 4; i++) {
                 auto &vertex = vertices[i];
                 vertex.position = transform * m_StandardQuadVertices[i];
@@ -443,15 +491,17 @@ namespace Bess {
                 vertex.color = color;
             }
 
+            // Set texture coordinates.
             vertices[0].texCoord = {0.0f, 1.0f};
             vertices[1].texCoord = {0.0f, 0.0f};
             vertices[2].texCoord = {1.0f, 0.0f};
             vertices[3].texCoord = {1.0f, 1.0f};
 
             ch.Texture->bind();
-
-            m_vaos[PrimitiveType::font]->setVertices(vertices.data(), vertices.size());
+            vao->setVertices(vertices.data(), vertices.size());
             Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
+
+            // Advance horizontally as usual.
             x += (ch.Advance >> 6) * scale;
         }
     }
@@ -464,7 +514,21 @@ namespace Bess {
 
         float angle = glm::atan(direction.y, direction.x);
 
-        drawQuad(glm::vec3(pos, start.z), {length, size}, color, id, angle, false);
+        drawQuad(glm::vec3(pos, start.z), {length, size}, color, id, angle, false,
+                 glm::vec4(0.f), glm::vec4(0.f), glm::vec4(0.f));
+    }
+
+    void Renderer2D::Renderer::drawPath(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const std::vector<int> &ids, bool closed) {
+        if (points.empty())
+            return;
+
+        auto prev = points[0];
+
+        for (int i = 1; i < (int)points.size(); i++) {
+            auto p1 = points[i];
+            Renderer2D::Renderer::line(prev, p1, 2.f, color, ids[i - 1]);
+            prev = p1;
+        }
     }
 
     void Renderer2D::Renderer::drawPath(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const int id, bool closed) {
@@ -478,13 +542,18 @@ namespace Bess {
         }
 
         for (int i = 1; i < (int)newPoints.size(); i++) {
-            auto p1 = newPoints[i], p1_ = newPoints[i];
-            if (i + 1 < newPoints.size()) {
-                auto curve_ = generateQuadBezierPoints(newPoints[i - 1], newPoints[i], newPoints[i + 1], 8.f);
-                Renderer2D::Renderer::quadraticBezier(glm::vec3(curve_.startPoint, prev.z), glm::vec3(curve_.endPoint, p1.z), curve_.controlPoint, weight, color, id, true);
-                p1 = glm::vec3(curve_.startPoint, prev.z), p1_ = glm::vec3(curve_.endPoint, newPoints[i + 1].z);
+            auto p1 = newPoints[i], p1_ = glm::vec3(newPoints[i]);
+            /*if (i + 1 < newPoints.size()) {*/
+            /*    auto curve_ = generateQuadBezierPoints(newPoints[i - 1], newPoints[i], newPoints[i + 1], 4.f);*/
+            /*    Renderer2D::Renderer::quadraticBezier(glm::vec3(curve_.startPoint, prev.z), glm::vec3(curve_.endPoint, p1.z), curve_.controlPoint, weight, color, id, true);*/
+            /*    p1 = glm::vec3(curve_.startPoint, prev.z), p1_ = glm::vec3(curve_.endPoint, newPoints[i + 1].z);*/
+            /*}*/
+            auto offSet = (prev.y <= p1.y) ? weight / 2.f : -weight / 2.f;
+            if (std::abs(prev.x - p1.x) <= 0.0001f) { // veritcal
+                p1.y += offSet;
+                prev.y -= offSet;
             }
-            Renderer2D::Renderer::line(prev, p1, 2.f, color, -1);
+            Renderer2D::Renderer::line(prev, p1, weight, color, id);
             prev = p1_;
         }
     }
@@ -556,6 +625,53 @@ namespace Bess {
         primitive_vertices.insert(primitive_vertices.end(), vertices.begin(), vertices.end());
     }
 
+    std::vector<Gl::RenderPassVertex> Renderer::getRenderPassVertices(float width, float height) {
+        std::vector<Gl::RenderPassVertex> vertices(4);
+
+        auto transform = glm::translate(glm::mat4(1.0f), {0, 0, 0});
+        transform = glm::scale(transform, {width, height, 1.f});
+
+        for (int i = 0; i < 4; i++) {
+            auto &vertex = vertices[i];
+            vertex.position = transform * m_StandardQuadVertices[i];
+        }
+
+        vertices[0].texCoord = {0.0f, 1.0f};
+        vertices[1].texCoord = {0.0f, 0.0f};
+        vertices[2].texCoord = {1.0f, 0.0f};
+        vertices[3].texCoord = {1.0f, 1.0f};
+
+        return vertices;
+    }
+
+    void Renderer::doShadowRenderPass(float width, float height) {
+        m_shadowPassShader->bind();
+        m_renderPassVao->bind();
+
+        m_shadowPassShader->setUniformMat4("u_mvp", m_camera->getTransform());
+
+        auto vertices = getRenderPassVertices(width, height);
+        m_renderPassVao->setVertices(vertices.data(), vertices.size());
+        Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
+        m_renderPassVao->unbind();
+        m_shadowPassShader->unbind();
+    }
+
+    void Renderer::doCompositeRenderPass(float width, float height) {
+        m_compositePassShader->bind();
+        m_renderPassVao->bind();
+
+        m_compositePassShader->setUniformMat4("u_mvp", m_camera->getTransform());
+        m_compositePassShader->setUniform1i("uBaseColTex", 0);
+        m_compositePassShader->setUniform1i("uShadowTex", 1);
+
+        auto vertices = getRenderPassVertices(width, height);
+        m_renderPassVao->setVertices(vertices.data(), vertices.size());
+        Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
+        m_renderPassVao->unbind();
+        m_compositePassShader->unbind();
+    }
+
     void Renderer::flush(PrimitiveType type) {
         auto &vao = m_vaos[type];
         // auto selId = Simulator::ComponentsManager::compIdToRid(Pages::MainPageState::getInstance()->getSelectedId());
@@ -598,6 +714,7 @@ namespace Bess {
             auto &vertices = m_RenderData.curveVertices;
             vao->setVertices(vertices.data(), vertices.size());
             Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
+
             vertices.clear();
         } break;
         case PrimitiveType::circle: {
@@ -641,10 +758,26 @@ namespace Bess {
     }
 
     glm::vec2 Renderer2D::Renderer::getCharRenderSize(char ch, float renderSize) {
+        std::string key = std::to_string(renderSize) + ch;
+        if (m_charSizeCache.find(key) != m_charSizeCache.end()) {
+            return m_charSizeCache.at(key);
+        }
         auto ch_ = m_Font->getCharacter(ch);
         float scale = m_Font->getScale(renderSize);
         glm::vec2 size = {(ch_.Advance >> 6), ch_.Size.y};
         size = {size.x * scale, size.y * scale};
+        m_charSizeCache[key] = size;
         return size;
+    }
+
+    glm::vec2 Renderer2D::Renderer::getStringRenderSize(const std::string &str, float renderSize) {
+        float xSize = 0;
+        float ySize = 0;
+        for (auto &ch : str) {
+            auto s = getCharRenderSize(ch, renderSize);
+            xSize += s.x;
+            ySize = std::max(xSize, s.y);
+        }
+        return {xSize, ySize};
     }
 } // namespace Bess

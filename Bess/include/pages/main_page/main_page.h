@@ -1,10 +1,9 @@
 #pragma once
 
-#include "camera.h"
 #include "events/application_event.h"
 #include "pages/main_page/main_page_state.h"
 #include "pages/page.h"
-#include "scene/renderer/gl/framebuffer.h"
+#include "scene/scene.h"
 #include "window.h"
 
 #include <memory>
@@ -23,25 +22,15 @@ namespace Bess::Pages {
 
         void update(const std::vector<ApplicationEvent> &events) override;
 
-        void drawScene();
-
-        glm::vec2 getCameraPos();
-
         std::shared_ptr<Window> getParentWindow();
+        Canvas::Scene &getScene();
 
       private:
-        std::shared_ptr<Camera> m_camera;
-        std::unique_ptr<Gl::FrameBuffer> m_multiSampledFramebuffer, m_normalFramebuffer;
         std::shared_ptr<Window> m_parentWindow;
+        Bess::Canvas::Scene &m_scene = Bess::Canvas::Scene::instance();
 
         // event handlers
       private:
-        void onMouseWheel(double x, double y);
-        void onLeftMouse(bool pressed);
-        void onRightMouse(bool pressed);
-        void onMiddleMouse(bool pressed);
-        void onMouseMove(double x, double y);
-
         bool isCursorInViewport();
         void finishDragging();
 

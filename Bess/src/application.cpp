@@ -3,31 +3,19 @@
 #include "events/application_event.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
-#include "pages/page_identifier.h"
-#include "pages/start_page/start_page.h"
-#include "scene/renderer/renderer.h"
 #include "ui/ui.h"
 #include <GLFW/glfw3.h>
 
-#include "components/flip_flops/flip_flops.h"
-#include "components_manager/component_bank.h"
-#include "components_manager/components_manager.h"
-
-#include "components/clock.h"
 #include "settings/settings.h"
 
 #include "common/bind_helpers.h"
-#include "ui/ui_main/ui_main.h"
 #include "window.h"
-
-using Bess::Renderer2D::Renderer;
-using namespace Bess::Simulator::Components;
 
 namespace Bess {
     Application::Application() {
         m_mainWindow = std::make_shared<Window>(800, 600, "Bess");
         init();
-        Pages::StartPage::getInstance()->show();
+        Pages::MainPage::getInstance(ApplicationState::getParentWindow())->show();
     }
 
     Application::Application(const std::string &path) {
@@ -137,21 +125,19 @@ namespace Bess {
 
         Config::Settings::init();
 
-        Simulator::ComponentsManager::init();
-
-        Simulator::ComponentBankElement el(Simulator::ComponentType::inputProbe, "Input Probe");
-        Simulator::ComponentBank::addToCollection("I/O", el);
-        Simulator::ComponentBank::addToCollection("I/O", {Simulator::ComponentType::outputProbe, "Ouput Probe"});
-        Simulator::ComponentBank::addToCollection("I/O", {Simulator::ComponentType::clock, "Clock"});
-        Simulator::ComponentBank::addToCollection("Misc", {Simulator::ComponentType::text, "Text"});
-        Simulator::ComponentBank::loadMultiFromJson("assets/comp_collections.json");
-
-        Simulator::ComponentBank::addToCollection("Flip Flops", {Simulator::ComponentType::flipFlop, JKFlipFlop::name});
-        Simulator::ComponentBank::addToCollection("Flip Flops", {Simulator::ComponentType::flipFlop, DFlipFlop::name});
-
+        // Simulator::ComponentsManager::init();
+        //
+        // Simulator::ComponentBankElement el(Simulator::ComponentType::inputProbe, "Input Probe");
+        // Simulator::ComponentBank::addToCollection("I/O", el);
+        // Simulator::ComponentBank::addToCollection("I/O", {Simulator::ComponentType::outputProbe, "Ouput Probe"});
+        // Simulator::ComponentBank::addToCollection("I/O", {Simulator::ComponentType::clock, "Clock"});
+        // Simulator::ComponentBank::addToCollection("Misc", {Simulator::ComponentType::text, "Text"});
+        // Simulator::ComponentBank::loadMultiFromJson("assets/comp_collections.json");
+        //
+        // Simulator::ComponentBank::addToCollection("Flip Flops", {Simulator::ComponentType::flipFlop, JKFlipFlop::name});
+        // Simulator::ComponentBank::addToCollection("Flip Flops", {Simulator::ComponentType::flipFlop, DFlipFlop::name});
+        //
         UI::init(m_mainWindow->getGLFWHandle());
-
-        Renderer::init();
 
         m_mainWindow->onWindowResize(BIND_FN_2(Application::onWindowResize));
         m_mainWindow->onMouseWheel(BIND_FN_2(Application::onMouseWheel));

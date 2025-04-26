@@ -23,6 +23,7 @@ namespace Bess::Gl {
 
         void bindColorAttachmentForDraw(int idx) const;
         void bindColorAttachmentForRead(int idx) const;
+        void bindColorAttachmentTexture(int idx, int slotIdx = -1) const;
 
         static void blitColorBuffer(float width, float height);
 
@@ -42,7 +43,7 @@ namespace Bess::Gl {
 
         static void clearDepthStencilBuf();
 
-        int readIntFromColAttachment(int idx, int x, int y) const;
+        int32_t readIntFromColAttachment(int idx, int x, int y) const;
 
         std::vector<int> readIntsFromColAttachment(int idx, int x, int y, int w, int h) const;
 

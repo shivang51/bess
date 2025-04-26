@@ -116,7 +116,7 @@ namespace Bess::Gl {
         GL_CHECK(glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT));
     }
 
-    int FrameBuffer::readIntFromColAttachment(const int idx, const int x, const int y) const {
+    int32_t FrameBuffer::readIntFromColAttachment(const int idx, const int x, const int y) const {
         int data = -1;
         readFromColorAttachment<GL_INT>(idx, x, y, 1, 1, &data);
         return data;
@@ -145,6 +145,10 @@ namespace Bess::Gl {
         GL_CHECK(glReadBuffer(GL_COLOR_ATTACHMENT0 + idx));
     }
 
+    void FrameBuffer::bindColorAttachmentTexture(int idx, int slotIdx) const {
+        m_colorAttachments[idx].bindTexture(slotIdx);
+    }
+
     void FrameBuffer::blitColorBuffer(const float width, const float height) {
         GL_CHECK(glBlitFramebuffer(0, 0, static_cast<GLint>(width), static_cast<GLint>(height), 0, 0, static_cast<GLint>(width),
                                    static_cast<GLint>(height), GL_COLOR_BUFFER_BIT, GL_NEAREST));
@@ -163,7 +167,7 @@ namespace Bess::Gl {
             format = GL_RGB;
         } break;
         case FBAttachmentType::RGBA_RGBA: {
-            internalFormat = GL_RGBA;
+            internalFormat = GL_RGBA8;
             format = GL_RGBA;
         } break;
         default:
