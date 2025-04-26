@@ -41,7 +41,7 @@ namespace Bess::SimEngine {
         friend class SimEngineSerializer;
 
       private:
-        void scheduleEvent(entt::entity e, SimDelayMilliSeconds t);
+        void scheduleEvent(entt::entity e, entt::entity schedulerEntity, SimDelayMilliSeconds t);
         void clearEventsForEntity(entt::entity e);
         std::vector<bool> getInputPinsState(entt::entity e) const;
         bool simulateComponent(entt::entity e, const std::vector<bool> &inputs);
@@ -55,7 +55,6 @@ namespace Bess::SimEngine {
         std::condition_variable cv;
 
         std::set<SimulationEvent> eventSet;
-        std::unordered_map<uint64_t, SimulationEvent> eventMap;
         uint64_t nextEventId{0};
         std::chrono::milliseconds currentSimTime;
 

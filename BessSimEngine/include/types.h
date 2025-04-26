@@ -27,6 +27,7 @@ namespace Bess::SimEngine {
     struct BESS_API SimulationEvent {
         std::chrono::milliseconds simTime;
         entt::entity entity;
+        entt::entity schedulerEntity; // enitity that triggered the change
         uint64_t id;
         bool operator<(const SimulationEvent &other) const noexcept {
             if (simTime != other.simTime)
