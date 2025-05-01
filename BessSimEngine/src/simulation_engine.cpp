@@ -11,7 +11,6 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
-#include <iostream>
 
 namespace Bess::SimEngine {
 
@@ -80,7 +79,7 @@ namespace Bess::SimEngine {
         }
         scheduleEvent(ent, entt::null, currentSimTime + def->delay);
 
-        BESS_SE_INFO("[SimEngine] Added component %s", def->name);
+        BESS_SE_INFO("Added component {}", def->name);
         return idComp.uuid;
     }
 
@@ -102,13 +101,13 @@ namespace Bess::SimEngine {
         auto &inPins = (dstType == PinType::input ? dstComp.inputPins : dstComp.outputPins);
 
         if (srcPin < 0 || srcPin >= static_cast<int>(outPins.size())) {
-            std::cout << "Invalid source pin index. Valid range: 0 to "
-                      << (srcComp.outputPins.size() - 1) << std::endl;
+            BESS_SE_WARN("Invalid source pin index. Valid range: 0 to {}",
+                         srcComp.outputPins.size() - 1);
             return false;
         }
         if (dstPin < 0 || dstPin >= static_cast<int>(inPins.size())) {
-            std::cout << "Invalid destination pin index. Valid range: 0 to "
-                      << (dstComp.inputPins.size() - 1) << std::endl;
+            BESS_SE_WARN("Invalid source pin index. Valid range: 0 to {}",
+                         srcComp.inputPins.size() - 1);
             return false;
         }
         // Check for duplicate connection.
@@ -122,7 +121,7 @@ namespace Bess::SimEngine {
         outPins[srcPin].emplace_back(dst, dstPin);
         inPins[dstPin].emplace_back(src, srcPin);
         scheduleEvent(dstEnt, srcEnt, currentSimTime + dstComp.delay);
-        BESS_SE_WARN("[SimEngine] Connected components");
+        BESS_SE_INFO("Connected components");
         return true;
     }
 
@@ -169,7 +168,7 @@ namespace Bess::SimEngine {
             }
         }
 
-        BESS_SE_WARN("[SimEngine] Deleted component");
+        BESS_SE_INFO("Deleted component");
     }
 
     bool SimulationEngine::getDigitalPinState(const UUID &uuid, PinType type, int idx) {
@@ -262,7 +261,7 @@ namespace Bess::SimEngine {
         entt::entity toSchedule = (pinAType == PinType::output ? entB : entA);
         auto &dc = m_registry.get<DigitalComponent>(toSchedule);
         scheduleEvent(toSchedule, entt::null, currentSimTime + dc.delay);
-        BESS_SE_INFO("[SimEngine] Deleted connection");
+        BESS_SE_INFO("Deleted connection");
     }
 
     std::pair<std::vector<bool>, std::vector<bool>> SimulationEngine::getIOPinsConnectedState(entt::entity e) const {
@@ -310,7 +309,7 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::run() {
-        BESS_SE_INFO("[SimEngine] Simulation loop started");
+        BESS_SE_INFO("Simulation loop started");
         currentSimTime = std::chrono::milliseconds(0);
         while (!stopFlag.load()) {
             std::unique_lock lk(queueMutex);
