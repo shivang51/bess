@@ -1,5 +1,6 @@
 #include "scene/scene.h"
 #include "GLFW/glfw3.h"
+#include "common/log.h"
 #include "component_catalog.h"
 #include "entt/entity/entity.hpp"
 #include "entt/entity/fwd.hpp"
@@ -235,7 +236,7 @@ namespace Bess::Canvas {
         for (int i = 0; i < state.outputStates.size(); i++) {
             simComp.outputSlots.emplace_back(createSlotEntity(Components::SlotType::digitalOutput, idComp.uuid, i));
         }
-        std::cout << "[Scene] Created entity " << (uint64_t)idComp.uuid << std::endl;
+        BESS_INFO("[Scene] Created entity {}", (uint64_t)entity);
         return idComp.uuid;
     }
 
@@ -255,7 +256,7 @@ namespace Bess::Canvas {
             auto parentB = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.outputSlot)).parentId;
             if (parentA != entUuid && parentB != entUuid)
                 continue;
-            std::cout << "[Scene] Deleted connection " << (uint64_t)connEntt << std::endl;
+            BESS_INFO("[Scene] Deleted connection {}", (uint64_t)connEntt);
             m_registry.destroy(connEntt);
         }
 
@@ -271,7 +272,7 @@ namespace Bess::Canvas {
 
         // remove from registry
         m_registry.destroy(ent);
-        std::cout << "[Scene] Deleted entity " << (uint64_t)ent << std::endl;
+        BESS_INFO("[Scene] Deleted entity {}", (uint64_t)ent);
     }
 
     UUID Scene::createSlotEntity(Components::SlotType type, const UUID &parent, unsigned int idx) {
@@ -494,7 +495,7 @@ namespace Bess::Canvas {
 
         m_registry.destroy(entity);
 
-        std::cout << "[Scene] Deleted connection" << std::endl;
+        BESS_INFO("[Scene] Deleted connection");
     }
 
     void Scene::generateBasicConnection(entt::entity inputSlot, entt::entity outputSlot) {

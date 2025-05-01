@@ -1,22 +1,22 @@
 #include "scene/renderer/font.h"
-#include <iostream>
+#include "common/log.h"
 
 namespace Bess::Renderer2D {
     Font::Font(const std::string &path) {
         if (FT_Init_FreeType(&m_ft)) {
-            std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl;
+            BESS_ERROR("ERROR::FREETYPE: Could not init FreeType Library");
             assert(false);
         }
 
         if (FT_New_Face(m_ft, path.c_str(), 0, &m_face)) {
-            std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
+            BESS_ERROR("ERROR::FREETYPE: Failed to load font");
             assert(false);
         }
 
         FT_Set_Pixel_Sizes(m_face, 0, m_defaultSize);
 
         if (FT_Load_Char(m_face, 'X', FT_LOAD_RENDER)) {
-            std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
+            BESS_ERROR("ERROR::FREETYTPE: Failed to load Glyph");
             assert(false);
         }
 
@@ -36,7 +36,7 @@ namespace Bess::Renderer2D {
 
         for (unsigned char c = 0; c < 128; c++) {
             if (FT_Load_Char(m_face, c, FT_LOAD_RENDER)) {
-                std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
+                BESS_ERROR("ERROR::FREETYTPE: Failed to load Glyph");
                 continue;
             }
 

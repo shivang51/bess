@@ -7,8 +7,6 @@
 #ifdef __linux__
     #include <stacktrace>
 
-static std::string binary;
-
 void print_stacktrace() {
     std::stacktrace st = std::stacktrace::current(10);
     std::cout << st << std::endl;
@@ -23,25 +21,25 @@ void signal_handler(int sig) {
 #endif // _LINUX
 
 static bool isValidStartDir() {
-    auto cwd = std::filesystem::current_path();
-    return std::filesystem::exists(std::filesystem::path(cwd.string() + "/assets"));
+    return std::filesystem::exists("assets");
 }
 
 int main(int argc, char **argv) {
     std::vector<std::string> args(argv, argv + argc);
 
     if (!isValidStartDir()) {
-        std::filesystem::current_path(std::filesystem::path(args[0]).parent_path());
+        std::filesystem::path exePath = std::filesystem::absolute(argv[0]);
+        std::filesystem::path exeDir = exePath.parent_path();
+        std::filesystem::current_path(exeDir);
+
         if (!isValidStartDir()) {
-            std::cerr << "[-] Wrong current working directory!. Exiting now." << std::endl;
+            std::cerr << "[-] Wrong working directory. Expected 'assets/' folder. Exiting." << std::endl;
             return -1;
         }
     }
 
 #ifdef __linux__
     #ifndef NDEBUG
-    binary = args[0];
-    std::cout << "[Bess] Starting in debug mode for " << binary << std::endl;
     struct sigaction sa;
     sa.sa_handler = signal_handler;
     sigemptyset(&sa.sa_mask);
@@ -57,7 +55,5 @@ int main(int argc, char **argv) {
         std::cerr << e.what() << std::endl;
         app.quit();
     }
-
-    std::cout << "[Bess] Application Closed" << std::endl;
     return 0;
 }

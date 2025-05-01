@@ -2,6 +2,7 @@
 
 #include "application_state.h"
 #include "common/helpers.h"
+#include "common/log.h"
 #include "glad/glad.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -276,8 +277,10 @@ namespace Bess::UI {
         auto filepath =
             Dialogs::showOpenFileDialog("Open BESS Project File", "*.bproj|");
 
-        if (filepath == "" || !std::filesystem::exists(filepath))
+        if (filepath == "" || !std::filesystem::exists(filepath)) {
+            BESS_WARN("No or invalid file path selcted");
             return;
+        }
 
         if (!m_pageState->getCurrentProjectFile()->isSaved()) {
             state._internalData.openFileClicked = true;

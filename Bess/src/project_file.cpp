@@ -1,4 +1,5 @@
 #include "project_file.h"
+#include "common/log.h"
 #include "json.hpp"
 
 #include "scene/components/components.h"
@@ -8,7 +9,6 @@
 #include "ui/ui_main/dialogs.h"
 
 #include <fstream>
-#include <iostream>
 
 namespace Bess {
     ProjectFile::ProjectFile() {
@@ -17,12 +17,12 @@ namespace Bess {
     }
 
     ProjectFile::ProjectFile(const std::string &path) {
-        std::cout << "[Bess] Opening project " << path << std::endl;
+        BESS_INFO("Opening project from {}", path);
         m_path = path;
         decode();
         patchFile();
         m_saved = true;
-        std::cout << "[Bess] Project Loaded Successfully" << path << std::endl;
+        BESS_INFO("Project Loaded Successfully");
     }
 
     ProjectFile::~ProjectFile() {
@@ -35,7 +35,7 @@ namespace Bess {
                 return;
         }
 
-        std::cout << "[Bess] Saving project " << m_path << std::endl;
+        BESS_INFO("Saving project {}", m_path);
         auto data = encode();
         std::ofstream o(m_path);
         o << std::setw(4) << data << std::endl;
@@ -92,13 +92,17 @@ namespace Bess {
 
     void ProjectFile::browsePath() {
         auto path = UI::Dialogs::showSaveFileDialog("Save To", "");
+        if (path.size() == 0) {
+            BESS_WARN("No path selected");
+            return;
+        }
         m_path = path;
         m_name = path.substr(path.find_last_of("/\\") + 1);
-        std::cout << "[Bess] Project path: " << m_path << " with name " << m_name << std::endl;
+        BESS_INFO("Project path {} selected with name {}", m_path, m_name);
     }
 
     void ProjectFile::patchFile() {
-        std::cout << "[Bess] Running Patch..." << std::endl;
+        BESS_INFO("Running Patch...");
         using namespace Bess::Canvas;
         auto &scene = Canvas::Scene::instance();
         auto &reg = scene.getEnttRegistry();
@@ -111,12 +115,12 @@ namespace Bess {
                     if (simComp == nullptr)
                         continue;
                     try {
-                        std::cout << "[Bess] Patching empty component type..." << std::flush;
+                        BESS_INFO("Patching empty component type...");
                         auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
                         comp->type = simEngine.getComponentType(simComp->simEngineEntity);
-                        std::cout << "(Done)" << std::endl;
+                        BESS_INFO("(Done)");
                     } catch (std::exception e) {
-                        std::cout << "(Failed)" << std::endl;
+                        BESS_ERROR("(Failed)");
                     }
                 }
             }

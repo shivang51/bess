@@ -6,20 +6,18 @@
 #include "ui/ui.h"
 #include <GLFW/glfw3.h>
 
-#include "settings/settings.h"
-
 #include "common/bind_helpers.h"
+#include "common/log.h"
+#include "settings/settings.h"
 #include "window.h"
 
 namespace Bess {
     Application::Application() {
-        m_mainWindow = std::make_shared<Window>(800, 600, "Bess");
         init();
         Pages::MainPage::getInstance(ApplicationState::getParentWindow())->show();
     }
 
     Application::Application(const std::string &path) {
-        m_mainWindow = std::make_shared<Window>(800, 600, "Bess");
         init();
         loadProject(path);
         Pages::MainPage::getInstance(ApplicationState::getParentWindow())->show();
@@ -121,6 +119,8 @@ namespace Bess {
     }
 
     void Application::init() {
+        SimEngine::Logger::getInstance().initLogger(BESS_LOGGER_NAME);
+        m_mainWindow = std::make_shared<Window>(800, 600, "Bess");
         ApplicationState::setParentWindow(m_mainWindow);
 
         Config::Settings::init();
