@@ -9,10 +9,10 @@ namespace Bess {
 
     class Application {
       public:
-        Application();
-        Application(const std::string &projectPath);
+        Application() = default;
         ~Application();
 
+        void init(const std::string &path);
         void run();
         void quit();
 
@@ -27,7 +27,6 @@ namespace Bess {
 
       private:
         void draw();
-        void init();
         void shutdown();
 
       private: // callbacks

@@ -48,12 +48,14 @@ int main(int argc, char **argv) {
     #endif
 #endif // _LINUX
 
-    Bess::Application app = Bess::Application();
+    Bess::Application app;
     try {
+        app.init("");
         app.run();
     } catch (const std::exception &e) {
         std::cerr << e.what() << std::endl;
         app.quit();
+        return -1;
     }
     return 0;
 }

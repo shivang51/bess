@@ -12,17 +12,6 @@
 #include "window.h"
 
 namespace Bess {
-    Application::Application() {
-        init();
-        Pages::MainPage::getInstance(ApplicationState::getParentWindow())->show();
-    }
-
-    Application::Application(const std::string &path) {
-        init();
-        loadProject(path);
-        Pages::MainPage::getInstance(ApplicationState::getParentWindow())->show();
-    }
-
     Application::~Application() {
         UI::shutdown();
         shutdown();
@@ -118,7 +107,7 @@ namespace Bess {
         m_events.emplace_back(event);
     }
 
-    void Application::init() {
+    void Application::init(const std::string &path) {
         SimEngine::Logger::getInstance().initLogger(BESS_LOGGER_NAME);
         m_mainWindow = std::make_shared<Window>(800, 600, "Bess");
         ApplicationState::setParentWindow(m_mainWindow);
@@ -134,6 +123,10 @@ namespace Bess {
         m_mainWindow->onRightMouse(BIND_FN_1(Application::onRightMouse));
         m_mainWindow->onMiddleMouse(BIND_FN_1(Application::onMiddleMouse));
         m_mainWindow->onMouseMove(BIND_FN_2(Application::onMouseMove));
+
+        if (!path.empty())
+            loadProject(path);
+        Pages::MainPage::getInstance(ApplicationState::getParentWindow())->show();
     }
 
     void Application::shutdown() { m_mainWindow->close(); }
