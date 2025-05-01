@@ -1,5 +1,4 @@
 #pragma once
-
 #include "bess_api.h"
 #include "bess_uuid.h"
 #include "component_types.h"
@@ -9,7 +8,6 @@
 #include <condition_variable>
 #include <entt/entt.hpp>
 #include <mutex>
-#include <queue>
 #include <thread>
 
 namespace Bess::SimEngine {

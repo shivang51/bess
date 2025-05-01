@@ -1,5 +1,6 @@
 set(PROJECT_NAME BessSimEngine)
 set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 
 set(External
@@ -10,6 +11,7 @@ set(Header_Files
     "include/entt_components.h"
     "include/types.h"
     "include/bess_uuid.h"
+    "include/logger.h"
     "include/properties.h"
     "include/entt_registry_serializer.h"
     "include/simulation_engine.h"
@@ -25,6 +27,7 @@ set(Source_Files
     "src/simulation_engine.cpp"
     "src/simulation_engine_serializer.cpp"
     "src/bess_uuid.cpp"
+    "src/logger.cpp"
 		"src/entt_registry_serializer.cpp"
     "src/component_catalog.cpp"
     "src/component_definition.cpp"
@@ -40,12 +43,19 @@ set(ALL_FILES
 
 add_library(${PROJECT_NAME} SHARED ${ALL_FILES})
 
+if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14")
+    target_link_libraries(${PROJECT_NAME} PRIVATE stdc++exp)
+else()
+    target_link_libraries(${PROJECT_NAME} PRIVATE stdc++_libbacktrace)
+endif()
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE BESS_EXPORTS)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include;"
     "${CMAKE_CURRENT_SOURCE_DIR}/../external/json;"
     "${CMAKE_CURRENT_SOURCE_DIR}/../external/entt/include;"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../external/spdlog/include;"
 )
 
 if(MSVC)

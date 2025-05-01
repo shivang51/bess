@@ -5,23 +5,13 @@
 #include <iostream>
 
 #ifdef __linux__
-    #include <execinfo.h>
-    #include <unistd.h>
+    #include <stacktrace>
 
 static std::string binary;
 
 void print_stacktrace() {
-    void *array[10];
-    size_t size = backtrace(array, 10);
-    char **symbols = backtrace_symbols(array, size);
-    for (size_t i = 0; i < size; ++i) {
-        std::cerr << symbols[i] << std::endl;
-        // Extract the address and resolve it using addr2line
-        char command[256];
-        snprintf(command, sizeof(command), "addr2line -e %s %p", binary.c_str(), array[i]);
-        system(command); // Run addr2line for each address
-    }
-    free(symbols);
+    std::stacktrace st = std::stacktrace::current(10);
+    std::cout << st << std::endl;
 }
 
 void signal_handler(int sig) {

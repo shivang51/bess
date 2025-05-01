@@ -116,6 +116,12 @@ add_executable(${PROJECT_NAME} ${ALL_FILES})
 target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine)
 add_dependencies(${PROJECT_NAME} BessSimEngine)
 
+if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14")
+	target_link_libraries(${PROJECT_NAME} PRIVATE stdc++exp)
+else()
+    target_link_libraries(${PROJECT_NAME} PRIVATE stdc++_libbacktrace)
+endif()
+
 if("${BUILD_ARCH}" STREQUAL "x64" AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
         "glfw3;"
