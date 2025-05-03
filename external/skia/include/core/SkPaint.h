@@ -177,7 +177,7 @@ public:
     }
 
     /** Requests, but does not require, to distribute color error.
-        @param dither  setting for dithering
+        @param dither  setting for ditering
     */
     void setDither(bool dither) { fBitfields.fDither = static_cast<unsigned>(dither); }
 

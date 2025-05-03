@@ -13,9 +13,7 @@
 
 class GrDirectContext;
 struct GrContextOptions;
-namespace skgpu {
-struct VulkanBackendContext;
-}
+struct GrVkBackendContext;
 
 namespace GrDirectContexts {
 /**
@@ -25,9 +23,8 @@ namespace GrDirectContexts {
  * refs on the GrDirectContext. Once all these objects and the GrDirectContext are released,
  * then it is safe to delete the vulkan objects.
  */
-SK_API sk_sp<GrDirectContext> MakeVulkan(const skgpu::VulkanBackendContext&,
-                                         const GrContextOptions&);
-SK_API sk_sp<GrDirectContext> MakeVulkan(const skgpu::VulkanBackendContext&);
+SK_API sk_sp<GrDirectContext> MakeVulkan(const GrVkBackendContext&, const GrContextOptions&);
+SK_API sk_sp<GrDirectContext> MakeVulkan(const GrVkBackendContext&);
 }
 
 #endif

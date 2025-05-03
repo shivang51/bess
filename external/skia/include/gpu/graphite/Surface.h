@@ -12,8 +12,6 @@
 #include "include/core/SkSurface.h"
 #include "include/gpu/GpuTypes.h"
 
-#include <string_view>
-
 class SkImage;
 struct SkImageInfo;
 
@@ -61,8 +59,7 @@ SK_API sk_sp<SkImage> AsImageCopy(sk_sp<const SkSurface>,
 SK_API sk_sp<SkSurface> RenderTarget(skgpu::graphite::Recorder*,
                                      const SkImageInfo& imageInfo,
                                      skgpu::Mipmapped = skgpu::Mipmapped::kNo,
-                                     const SkSurfaceProps* surfaceProps = nullptr,
-                                     std::string_view label = {});
+                                     const SkSurfaceProps* surfaceProps = nullptr);
 
 /**
  * Wraps a GPU-backed texture in an SkSurface. Depending on the backend gpu API, the caller may
@@ -83,8 +80,7 @@ SK_API sk_sp<SkSurface> WrapBackendTexture(skgpu::graphite::Recorder*,
                                            sk_sp<SkColorSpace> colorSpace,
                                            const SkSurfaceProps* props,
                                            TextureReleaseProc = nullptr,
-                                           ReleaseContext = nullptr,
-                                           std::string_view label = {});
+                                           ReleaseContext = nullptr);
 }  // namespace SkSurfaces
 
 #endif  // skgpu_graphite_Surface_DEFINED

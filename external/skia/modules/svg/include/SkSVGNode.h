@@ -8,19 +8,15 @@
 #ifndef SkSVGNode_DEFINED
 #define SkSVGNode_DEFINED
 
-#include "include/core/SkRect.h"
 #include "include/core/SkRefCnt.h"
-#include "include/private/base/SkAPI.h"
 #include "modules/svg/include/SkSVGAttribute.h"
 #include "modules/svg/include/SkSVGAttributeParser.h"
-#include "modules/svg/include/SkSVGTypes.h"
 
-#include <utility>
-
+class SkCanvas;
 class SkMatrix;
 class SkPaint;
 class SkPath;
-class SkSVGNode;
+class SkSVGLengthContext;
 class SkSVGRenderContext;
 class SkSVGValue;
 
@@ -31,20 +27,13 @@ enum class SkSVGTag {
     kEllipse,
     kFeBlend,
     kFeColorMatrix,
-    kFeComponentTransfer,
     kFeComposite,
     kFeDiffuseLighting,
     kFeDisplacementMap,
     kFeDistantLight,
     kFeFlood,
-    kFeFuncA,
-    kFeFuncR,
-    kFeFuncG,
-    kFeFuncB,
     kFeGaussianBlur,
     kFeImage,
-    kFeMerge,
-    kFeMergeNode,
     kFeMorphology,
     kFeOffset,
     kFePointLight,

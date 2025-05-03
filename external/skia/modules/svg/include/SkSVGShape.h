@@ -8,18 +8,11 @@
 #ifndef SkSVGShape_DEFINED
 #define SkSVGShape_DEFINED
 
-#include "include/core/SkRect.h"
-#include "include/core/SkRefCnt.h"
-#include "include/private/base/SkAPI.h"
+#include "include/core/SkPath.h"
 #include "modules/svg/include/SkSVGTransformableNode.h"
 
-class SkCanvas;
-class SkPaint;
 class SkSVGLengthContext;
-class SkSVGNode;
-class SkSVGRenderContext;
-enum class SkPathFillType;
-enum class SkSVGTag;
+class SkPaint;
 
 class SK_API SkSVGShape : public SkSVGTransformableNode {
 public:

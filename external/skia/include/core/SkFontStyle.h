@@ -41,7 +41,7 @@ public:
         kUltraExpanded_Width    = 9,
     };
 
-    enum Slant : uint8_t {
+    enum Slant {
         kUpright_Slant,
         kItalic_Slant,
         kOblique_Slant,

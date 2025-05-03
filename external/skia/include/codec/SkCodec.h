@@ -240,16 +240,6 @@ public:
     }
 
     /**
-     * Whether the encoded input uses 16 or more bits per component.
-     */
-    bool hasHighBitDepthEncodedData() const {
-        // API design note: We don't return `bitsPerComponent` because it may be
-        // misleading in some cases - see https://crbug.com/359350061#comment4
-        // for more details.
-        return this->getEncodedInfo().bitsPerComponent() >= 16;
-    }
-
-    /**
      *  Returns the image orientation stored in the EXIF data.
      *  If there is no EXIF data, or if we cannot read the EXIF data, returns kTopLeft.
      */
@@ -411,9 +401,6 @@ public:
      *
      *  If a scanline decode is in progress, scanline mode will end, requiring the client to call
      *  startScanlineDecode() in order to return to decoding scanlines.
-     *
-     *  For certain codecs, reading into a smaller bitmap than the original dimensions may not
-     *  produce correct results (e.g. animated webp).
      *
      *  @return Result kSuccess, or another value explaining the type of failure.
      */
@@ -650,12 +637,6 @@ public:
      *  Return the number of frames in the image.
      *
      *  May require reading through the stream.
-     *
-     *  Note that some codecs may be unable to gather `FrameInfo` for all frames
-     *  in case of `kIncompleteInput`.  For such codecs `getFrameCount` may
-     *  initially report a low frame count.  After the underlying `SkStream`
-     *  provides additional data, then calling `getFrameCount` again may return
-     *  an updated, increased frame count.
      */
     int getFrameCount() {
         return this->onGetFrameCount();
@@ -667,6 +648,11 @@ public:
     // - Options::fPriorFrame set to this value means no (relevant) prior frame
     //   is residing in dst's memory.
     static constexpr int kNoFrame = -1;
+
+    // This transitional definition was added in August 2018, and will eventually be removed.
+#ifdef SK_LEGACY_SKCODEC_NONE_ENUM
+    static constexpr int kNone = kNoFrame;
+#endif
 
     /**
      *  Information about individual frames in a multi-framed image.
@@ -814,11 +800,6 @@ protected:
         return fSrcXformFormat;
     }
 
-    virtual bool onGetGainmapCodec(SkGainmapInfo*, std::unique_ptr<SkCodec>*) { return false; }
-    virtual bool onGetGainmapInfo(SkGainmapInfo*) { return false; }
-
-    // TODO(issues.skia.org/363544350): This API only works for JPEG images. Remove this API once
-    // it is no longer used.
     virtual bool onGetGainmapInfo(SkGainmapInfo*, std::unique_ptr<SkStream>*) { return false; }
 
     virtual SkISize onGetScaledDimensions(float /*desiredScale*/) const {
@@ -1057,9 +1038,8 @@ private:
     friend class PNGCodecGM;    // for fillIncompleteImage
     friend class SkSampledCodec;
     friend class SkIcoCodec;
-    friend class SkPngCodec;     // for onGetGainmapCodec
-    friend class SkAndroidCodec;  // for handleFrameIndex
-    friend class SkCodecPriv;     // for fEncodedInfo
+    friend class SkAndroidCodec; // for fEncodedInfo
+    friend class SkPDFBitmap; // for fEncodedInfo
 };
 
 namespace SkCodecs {

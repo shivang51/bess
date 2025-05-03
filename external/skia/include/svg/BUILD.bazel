@@ -1,17 +1,13 @@
-load("//bazel:skia_rules.bzl", "skia_filegroup")
-
-package(
-    default_applicable_licenses = ["//:license"],
-)
+load("//bazel:skia_rules.bzl", "exports_files_legacy", "skia_filegroup")
 
 licenses(["notice"])
+
+exports_files_legacy()
 
 skia_filegroup(
     name = "public_hdrs",
     srcs = [
         "SkSVGCanvas.h",
     ],
-    visibility = [
-        "//src/svg:__pkg__",
-    ],
+    visibility = ["//include:__pkg__"],
 )

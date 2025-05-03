@@ -9,7 +9,6 @@
 #define skgpu_graphite_Recording_DEFINED
 
 #include "include/core/SkRefCnt.h"
-#include "include/core/SkSize.h"
 #include "include/private/base/SkTArray.h"
 
 #include <memory>
@@ -22,12 +21,11 @@ class RefCntedCallback;
 
 namespace skgpu::graphite {
 
-class Caps;
 class CommandBuffer;
 class RecordingPriv;
 class Resource;
 class ResourceProvider;
-class TaskList;
+class TaskGraph;
 class Texture;
 class TextureInfo;
 class TextureProxy;
@@ -46,7 +44,7 @@ private:
     // replay, and it handles the target proxy's instantiation with the provided target.
     class LazyProxyData {
     public:
-        LazyProxyData(const Caps*, SkISize dimensions, const TextureInfo&);
+        LazyProxyData(const TextureInfo&);
 
         TextureProxy* lazyProxy();
         sk_sp<TextureProxy> refLazyProxy();
@@ -64,6 +62,7 @@ private:
 
     Recording(uint32_t uniqueID,
               uint32_t recorderID,
+              std::unique_ptr<TaskGraph>,
               std::unordered_set<sk_sp<TextureProxy>, ProxyHash>&& nonVolatileLazyProxies,
               std::unordered_set<sk_sp<TextureProxy>, ProxyHash>&& volatileLazyProxies,
               std::unique_ptr<LazyProxyData> targetProxyData,
@@ -76,8 +75,7 @@ private:
     uint32_t fUniqueID;
     uint32_t fRecorderID;
 
-    // This is held by a pointer instead of being inline to allow TaskList to be forward declared.
-    std::unique_ptr<TaskList> fRootTaskList;
+    std::unique_ptr<TaskGraph> fGraph;
     // We don't always take refs to all resources used by specific Tasks (e.g. a common buffer used
     // for uploads). Instead we'll just hold onto one ref for those Resources outside the Tasks.
     // Those refs are stored in the array here and will eventually be passed onto a CommandBuffer

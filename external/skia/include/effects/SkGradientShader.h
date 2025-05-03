@@ -94,12 +94,7 @@ public:
             kHSL,
             kHWB,
 
-            kDisplayP3,
-            kRec2020,
-            kProphotoRGB,
-            kA98RGB,
-
-            kLastColorSpace = kA98RGB,
+            kLastColorSpace = kHWB,
         };
         static constexpr int kColorSpaceCount = static_cast<int>(ColorSpace::kLastColorSpace) + 1;
 

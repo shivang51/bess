@@ -15,7 +15,6 @@
 #include "include/core/SkImageInfo.h"
 #include "include/core/SkRefCnt.h"
 #include "include/core/SkTypes.h"
-#include "include/private/base/SkTo.h"
 #include "modules/skcms/skcms.h"
 
 #include <cstdint>
@@ -166,13 +165,8 @@ public:
                 break;
         }
 
-        return SkEncodedInfo(width,
-                             height,
-                             color,
-                             alpha,
-                             SkToU8(bitsPerComponent),
-                             SkToU8(colorDepth),
-                             std::move(profile));
+        return SkEncodedInfo(width, height, color, alpha,
+                bitsPerComponent, colorDepth, std::move(profile));
     }
 
     /*

@@ -10,13 +10,8 @@
 
 #include "include/core/SkColor.h"
 #include "include/core/SkOpenTypeSVGDecoder.h"
-#include "include/core/SkRefCnt.h"
 #include "include/core/SkSpan.h"
 #include "include/core/SkTypes.h"
-
-#include <cstddef>
-#include <cstdint>
-#include <memory>
 
 class SkCanvas;
 class SkSVGDOM;

@@ -15,6 +15,11 @@
 #include "include/core/SkYUVAPixmaps.h"
 #include "include/private/base/SkAPI.h"
 
+#if defined(SK_GRAPHITE)
+#include "include/core/SkImage.h"
+#include "include/gpu/graphite/Recorder.h"
+#endif
+
 #include <cstddef>
 #include <cstdint>
 

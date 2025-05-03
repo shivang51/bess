@@ -8,8 +8,6 @@
 #ifndef skgpu_MtlMemoryAllocator_DEFINED
 #define skgpu_MtlMemoryAllocator_DEFINED
 
-#include "include/core/SkRefCnt.h"
-
 #ifdef __APPLE__
 
 #ifdef __OBJC__

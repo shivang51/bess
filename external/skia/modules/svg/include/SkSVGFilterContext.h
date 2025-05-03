@@ -8,14 +8,14 @@
 #ifndef SkSVGFilterContext_DEFINED
 #define SkSVGFilterContext_DEFINED
 
-#include "include/core/SkImageFilter.h"
 #include "include/core/SkRect.h"
 #include "include/core/SkRefCnt.h"
+#include "include/core/SkString.h"
 #include "modules/svg/include/SkSVGTypes.h"
 #include "src/core/SkTHash.h"
 
-#include <tuple>
-
+class SkImageFilter;
+class SkSVGFeInputType;
 class SkSVGRenderContext;
 
 class SkSVGFilterContext {

@@ -18,15 +18,13 @@ class SkStream;
 
 namespace SkAvifDecoder {
 
-namespace LibAvif {
-
-/** Returns true if this data claims to be an AVIF image. */
+/** Returns true if this data claims to be a AVIF image. */
 SK_API bool IsAvif(const void*, size_t);
 
 /**
- *  Attempts to decode the given bytes as an AVIF.
+ *  Attempts to decode the given bytes as a AVIF.
  *
- *  If the bytes are not an AVIF, returns nullptr.
+ *  If the bytes are not a AVIF, returns nullptr.
  *
  *  DecodeContext is ignored
  */
@@ -40,40 +38,6 @@ SK_API std::unique_ptr<SkCodec> Decode(sk_sp<SkData>,
 inline constexpr SkCodecs::Decoder Decoder() {
     return { "avif", IsAvif, Decode };
 }
-
-}  // namespace LibAvif
-
-// This function is in the root SkAvifDecoder namespace. It simply routes
-// everything through the LibAvif namespace and exists for backwards
-// compatibility.
-inline constexpr SkCodecs::Decoder Decoder() {
-    return { "avif", LibAvif::IsAvif, LibAvif::Decode };
-}
-
-namespace CrabbyAvif {
-
-/** Returns true if this data claims to be an AVIF image. */
-SK_API bool IsAvif(const void*, size_t);
-
-/**
- *  Attempts to decode the given bytes as an AVIF.
- *
- *  If the bytes are not an AVIF, returns nullptr.
- *
- *  DecodeContext is ignored
- */
-SK_API std::unique_ptr<SkCodec> Decode(std::unique_ptr<SkStream>,
-                                       SkCodec::Result*,
-                                       SkCodecs::DecodeContext = nullptr);
-SK_API std::unique_ptr<SkCodec> Decode(sk_sp<SkData>,
-                                       SkCodec::Result*,
-                                       SkCodecs::DecodeContext = nullptr);
-
-inline constexpr SkCodecs::Decoder Decoder() {
-    return { "avif", IsAvif, Decode };
-}
-
-}  // namespace CrabbyAvif
 
 }  // namespace SkAvifDecoder
 

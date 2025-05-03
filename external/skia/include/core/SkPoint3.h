@@ -10,7 +10,7 @@
 
 #include "include/core/SkScalar.h"
 #include "include/private/base/SkAPI.h"
-#include "include/private/base/SkFloatingPoint.h"
+#include "include/private/base/SkAssert.h"
 
 struct SK_API SkPoint3 {
     SkScalar fX, fY, fZ;
@@ -114,7 +114,17 @@ struct SK_API SkPoint3 {
      @return  true for values other than infinities and NaN
      */
     bool isFinite() const {
-        return SkIsFinite(fX, fY, fZ);
+        SkScalar accum = 0;
+        accum *= fX;
+        accum *= fY;
+        accum *= fZ;
+
+        // accum is either NaN or it is finite (zero).
+        SkASSERT(0 == accum || SkScalarIsNaN(accum));
+
+        // value==value will be true iff value is not NaN
+        // TODO: is it faster to say !accum or accum==accum?
+        return !SkScalarIsNaN(accum);
     }
 
     /** Returns the dot product of a and b, treating them as 3D vectors

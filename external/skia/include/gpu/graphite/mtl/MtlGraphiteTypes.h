@@ -8,35 +8,52 @@
 #ifndef skgpu_graphite_MtlGraphiteTypes_DEFINED
 #define skgpu_graphite_MtlGraphiteTypes_DEFINED
 
-#if __OBJC__  // <Metal/Metal.h> only works when compiled for Objective C
-
-#include "include/core/SkTypes.h"
-
 #include "include/gpu/graphite/GraphiteTypes.h"
-#include "include/gpu/graphite/mtl/MtlGraphiteTypesUtils.h"
-#include "include/private/base/SkAPI.h"
+#include "include/ports/SkCFObject.h"
 
-#import <CoreFoundation/CoreFoundation.h>
-#import <Metal/Metal.h>
-#import <TargetConditionals.h>
+///////////////////////////////////////////////////////////////////////////////
+
+#ifdef __APPLE__
+
+#include <CoreFoundation/CoreFoundation.h>
+#include <TargetConditionals.h>
+
+#if TARGET_OS_SIMULATOR
+#define SK_API_AVAILABLE_CA_METAL_LAYER SK_API_AVAILABLE(macos(10.11), ios(13.0), tvos(13.0))
+#else  // TARGET_OS_SIMULATOR
+#define SK_API_AVAILABLE_CA_METAL_LAYER SK_API_AVAILABLE(macos(10.11), ios(8.0), tvos(9.0))
+#endif  // TARGET_OS_SIMULATOR
+
+#endif // __APPLE__
+
 
 namespace skgpu::graphite {
-struct SK_API MtlTextureInfo {
+
+/**
+ * Declares typedefs for Metal types used in Graphite cpp code
+ */
+using MtlPixelFormat = unsigned int;
+using MtlTextureUsage = unsigned int;
+using MtlStorageMode = unsigned int;
+
+struct MtlTextureInfo {
     uint32_t fSampleCount = 1;
     skgpu::Mipmapped fMipmapped = skgpu::Mipmapped::kNo;
 
-    MTLPixelFormat fFormat = MTLPixelFormatInvalid;
-    MTLTextureUsage fUsage = MTLTextureUsageUnknown;
-    MTLStorageMode fStorageMode = MTLStorageModeShared;
+    // Since we aren't in an Obj-C header we can't directly use Mtl types here. Each of these can
+    // cast to their mapped Mtl types list below.
+    MtlPixelFormat fFormat = 0;       // MTLPixelFormat fFormat = MTLPixelFormatInvalid;
+    MtlTextureUsage fUsage = 0;       // MTLTextureUsage fUsage = MTLTextureUsageUnknown;
+    MtlStorageMode fStorageMode = 0;  // MTLStorageMode fStorageMode = MTLStorageModeShared;
     bool fFramebufferOnly = false;
 
     MtlTextureInfo() = default;
     MtlTextureInfo(CFTypeRef mtlTexture);
     MtlTextureInfo(uint32_t sampleCount,
                    skgpu::Mipmapped mipmapped,
-                   MTLPixelFormat format,
-                   MTLTextureUsage usage,
-                   MTLStorageMode storageMode,
+                   MtlPixelFormat format,
+                   MtlTextureUsage usage,
+                   MtlStorageMode storageMode,
                    bool framebufferOnly)
             : fSampleCount(sampleCount)
             , fMipmapped(mipmapped)
@@ -45,8 +62,7 @@ struct SK_API MtlTextureInfo {
             , fStorageMode(storageMode)
             , fFramebufferOnly(framebufferOnly) {}
 };
-}  // namespace skgpu::graphite
 
-#endif  // __OBJC__
+} // namespace skgpu::graphite
 
 #endif // skgpu_graphite_MtlGraphiteTypes_DEFINED

@@ -74,12 +74,6 @@
 */
 //#define SK_R32_SHIFT    16
 
-/*  This controls how much space should be pre-allocated in an SkCanvas object
-    to store the SkMatrix and clip via calls to SkCanvas::save() (and balanced with
-    SkCanvas::restore()).
-*/
-//#define SK_CANVAS_SAVE_RESTORE_PREALLOC_COUNT 32
-
 /* Determines whether to build code that supports the Ganesh GPU backend. Some classes
    that are not GPU-specific, such as SkShader subclasses, have optional code
    that is used allows them to interact with this GPU backend. If you'd like to
@@ -96,15 +90,9 @@
    integrate with their histogram collection backend.
 */
 //#define SK_HISTOGRAM_BOOLEAN(name, sample)
-//#define SK_HISTOGRAM_ENUMERATION(name, sampleEnum, enumSize)
-//#define SK_HISTOGRAM_EXACT_LINEAR(name, sample, valueMax)
+//#define SK_HISTOGRAM_ENUMERATION(name, sample, enum_size)
+//#define SK_HISTOGRAM_EXACT_LINEAR(name, sample, value_max)
 //#define SK_HISTOGRAM_MEMORY_KB(name, sample)
-//#define SK_HISTOGRAM_CUSTOM_MICROSECONDS_TIMES(name, sampleUSec, minUSec, maxUSec, bucketCount)
-
-/*
- * Skia can provide extensive logging of Graphite Pipeline lifetimes.
- */
-//#define SK_PIPELINE_LIFETIME_LOGGING
 
 // To use smaller but slower mipmap builder
 //#define SK_USE_DRAWING_MIPMAP_DOWNSAMPLER

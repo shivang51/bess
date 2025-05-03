@@ -8,17 +8,11 @@
 #ifndef SkSVGText_DEFINED
 #define SkSVGText_DEFINED
 
-#include "include/core/SkPath.h"
-#include "include/core/SkRect.h"
-#include "include/core/SkRefCnt.h"
-#include "include/private/base/SkAPI.h"
-#include "modules/svg/include/SkSVGNode.h"
+#include <vector>
+
 #include "modules/svg/include/SkSVGTransformableNode.h"
 #include "modules/svg/include/SkSVGTypes.h"
 
-#include <vector>
-
-class SkSVGRenderContext;
 class SK_API SkSVGTextContext;
 
 // Base class for text-rendering nodes.
@@ -75,7 +69,7 @@ private:
 
     void onRender(const SkSVGRenderContext&) const override;
 
-    SkRect onTransformableObjectBoundingBox(const SkSVGRenderContext&) const override;
+    SkRect onObjectBoundingBox(const SkSVGRenderContext&) const override;
     SkPath onAsPath(const SkSVGRenderContext&) const override;
 
     using INHERITED = SkSVGTextContainer;

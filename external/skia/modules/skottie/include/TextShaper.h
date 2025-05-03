@@ -28,8 +28,6 @@ class SkString;
 class SkTypeface;
 struct SkRect;
 
-namespace SkShapers { class Factory; }
-
 namespace skottie {
 
 // Helper implementing After Effects text shaping semantics on top of SkShaper.
@@ -176,20 +174,13 @@ public:
     // Performs text layout along an infinite horizontal line, starting at |point|.
     // Only explicit line breaks (\r) are observed.
     static Result Shape(const SkString& text, const TextDesc& desc, const SkPoint& point,
-                        const sk_sp<SkFontMgr>&, const sk_sp<SkShapers::Factory>&);
+                        const sk_sp<SkFontMgr>&);
 
     // Performs text layout within |box|, injecting line breaks as needed to ensure
     // horizontal fitting.  The result is *not* guaranteed to fit vertically (it may extend
     // below the box bottom).
     static Result Shape(const SkString& text, const TextDesc& desc, const SkRect& box,
-                        const sk_sp<SkFontMgr>&, const sk_sp<SkShapers::Factory>&);
-
-#if !defined(SK_DISABLE_LEGACY_SHAPER_FACTORY)
-    static Result Shape(const SkString& text, const TextDesc& desc, const SkPoint& point,
                         const sk_sp<SkFontMgr>&);
-    static Result Shape(const SkString& text, const TextDesc& desc, const SkRect& box,
-                        const sk_sp<SkFontMgr>&);
-#endif
 
 private:
     Shaper() = delete;

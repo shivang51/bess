@@ -23,6 +23,7 @@
 #include "include/private/base/SkDebug.h"
 // IWYU pragma: end_exports
 
+#include <climits>
 #include <cstdint>
 
 #if !defined(SK_GANESH) && !defined(SK_GRAPHITE)
@@ -96,8 +97,7 @@
 #if defined(SK_HISTOGRAM_ENUMERATION)  || \
     defined(SK_HISTOGRAM_BOOLEAN)      || \
     defined(SK_HISTOGRAM_EXACT_LINEAR) || \
-    defined(SK_HISTOGRAM_MEMORY_KB)    || \
-    defined(SK_HISTOGRAM_CUSTOM_MICROSECONDS_TIMES)
+    defined(SK_HISTOGRAM_MEMORY_KB)
 #  define SK_HISTOGRAMS_ENABLED 1
 #else
 #  define SK_HISTOGRAMS_ENABLED 0
@@ -108,19 +108,15 @@
 #endif
 
 #ifndef SK_HISTOGRAM_ENUMERATION
-#  define SK_HISTOGRAM_ENUMERATION(name, sampleEnum, enumSize)
+#  define SK_HISTOGRAM_ENUMERATION(name, sample, enum_size)
 #endif
 
 #ifndef SK_HISTOGRAM_EXACT_LINEAR
-#  define SK_HISTOGRAM_EXACT_LINEAR(name, sample, valueMax)
+#  define SK_HISTOGRAM_EXACT_LINEAR(name, sample, value_max)
 #endif
 
 #ifndef SK_HISTOGRAM_MEMORY_KB
 #  define SK_HISTOGRAM_MEMORY_KB(name, sample)
-#endif
-
-#ifndef SK_HISTOGRAM_CUSTOM_MICROSECONDS_TIMES
-#  define SK_HISTOGRAM_CUSTOM_MICROSECONDS_TIMES(name, sampleUSec, minUSec, maxUSec, bucketCount)
 #endif
 
 #define SK_HISTOGRAM_PERCENTAGE(name, percent_as_int) \
@@ -158,12 +154,19 @@
 #endif
 
 #if !defined(GR_GPU_STATS)
-  #if defined(SK_DEBUG) || defined(SK_DUMP_STATS) || defined(GPU_TEST_UTILS)
+  #if defined(SK_DEBUG) || defined(SK_DUMP_STATS) || defined(GR_TEST_UTILS)
       #define GR_GPU_STATS    1
   #else
       #define GR_GPU_STATS    0
   #endif
 #endif
+
+////////////////////////////////////////////////////////////////////////////////
+
+typedef uint32_t SkFourByteTag;
+static inline constexpr SkFourByteTag SkSetFourByteTag(char a, char b, char c, char d) {
+    return (((uint32_t)a << 24) | ((uint32_t)b << 16) | ((uint32_t)c << 8) | (uint32_t)d);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -175,6 +178,15 @@ typedef int32_t SkUnichar;
 */
 typedef uint16_t SkGlyphID;
 
+/** 32 bit value to hold a millisecond duration
+    Note that SK_MSecMax is about 25 days.
+*/
+typedef uint32_t SkMSec;
+
+/** Maximum representable milliseconds; 24d 20h 31m 23.647s.
+*/
+static constexpr SkMSec SK_MSecMax = INT32_MAX;
+
 /** The generation IDs in Skia reserve 0 has an invalid marker.
 */
 static constexpr uint32_t SK_InvalidGenID = 0;
@@ -182,5 +194,6 @@ static constexpr uint32_t SK_InvalidGenID = 0;
 /** The unique IDs in Skia reserve 0 has an invalid marker.
 */
 static constexpr uint32_t SK_InvalidUniqueID = 0;
+
 
 #endif
