@@ -5,9 +5,9 @@ x64/
 out/
 build/
 
-*.o
-*.a
-*.so
+bin/*.o
+bin/*.a
+bin/*.so
 
 .idea
 .code
