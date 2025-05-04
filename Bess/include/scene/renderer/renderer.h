@@ -15,6 +15,7 @@ namespace Bess::Renderer2D {
 
     struct RenderData {
         std::vector<Gl::Vertex> circleVertices;
+        std::vector<Gl::Vertex> lineVertices;
         std::vector<Gl::Vertex> curveVertices;
         std::vector<Gl::Vertex> fontVertices;
         std::vector<Gl::Vertex> triangleVertices;
@@ -117,6 +118,8 @@ namespace Bess::Renderer2D {
                                         const glm::vec4 &color, int id, float weight = 3.0f);
 
         static int calculateSegments(const glm::vec2 &p1, const glm::vec2 &p2);
+
+        static void addLineVertices(const std::vector<Gl::Vertex> &vertices);
 
         static void addCircleVertices(const std::vector<Gl::Vertex> &vertices);
 
