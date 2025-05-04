@@ -85,10 +85,6 @@ namespace Bess::UI {
                     ImGui::Text("Unknown State");
                 }
 
-                if (ImGui::Button("Play / Pause")) {
-                    simEngine.toggleSimState();
-                }
-
                 std::string rightContent[] = {};
                 float offset = style.FramePadding.x;
                 for (auto &content : rightContent)
