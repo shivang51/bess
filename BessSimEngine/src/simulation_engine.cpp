@@ -33,7 +33,6 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::scheduleEvent(entt::entity e, entt::entity schedulerEntity, SimDelayMilliSeconds simTime) {
-
         std::lock_guard lk(m_queueMutex);
         static uint64_t eventId = 0;
         SimulationEvent ev{simTime, e, schedulerEntity, eventId++};
@@ -312,6 +311,14 @@ namespace Bess::SimEngine {
         return m_simState.load();
     }
 
+    void SimulationEngine::stepSimulation() {
+        std::unique_lock stateLock(m_stateMutex);
+        if (m_simState.load() != SimulationState::paused || m_stepFlag.load())
+            return;
+        m_stepFlag.store(true);
+        m_stateCV.notify_all();
+    }
+
     SimulationState SimulationEngine::toggleSimState() {
         if (m_simState == SimulationState::paused) {
             setSimulationState(SimulationState::running);
@@ -344,7 +351,8 @@ namespace Bess::SimEngine {
             std::unique_lock stateLock(m_stateMutex);
             if (m_simState.load() == SimulationState::paused) {
                 queueLock.unlock();
-                m_stateCV.wait(stateLock, [&] { return m_simState.load() == SimulationState::running; });
+                m_stepFlag.store(false);
+                m_stateCV.wait(stateLock, [&] { return m_simState.load() == SimulationState::running || m_stepFlag.load(); });
                 queueLock.lock();
             }
 

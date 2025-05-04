@@ -41,6 +41,9 @@ namespace Bess::SimEngine {
         SimulationState getSimulationState();
         void setSimulationState(SimulationState state);
 
+        // only steps if sim state is paused
+        void stepSimulation();
+
         ComponentState getComponentState(const UUID &uuid);
         ComponentType getComponentType(const UUID &uuid);
 
@@ -63,6 +66,7 @@ namespace Bess::SimEngine {
         mutable std::mutex m_registryMutex;
 
         std::atomic<bool> m_stopFlag{false};
+        std::atomic<bool> m_stepFlag{false};
         std::atomic<SimulationState> m_simState;
         std::condition_variable m_queueCV;
         std::condition_variable m_stateCV;
