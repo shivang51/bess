@@ -258,7 +258,71 @@ namespace Bess::UI {
         ImGui::End();
         ImGui::PopStyleVar();
 
-        // Camera controls
+        // actions (on top right)
+        {
+
+            ImGuiContext &g = *ImGui::GetCurrentContext();
+            auto colors = g.Style.Colors;
+            auto &simEngine = SimEngine::SimulationEngine::instance();
+            ImGui::SetNextWindowPos(
+                {pos.x + viewportPanelSize.x - 208, pos.y + 4});
+            ImGui::SetNextWindowSize({204, 0});
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+
+            auto col = colors[ImGuiCol_Header];
+            col.w = 0.5;
+            ImGui::PushStyleColor(ImGuiCol_WindowBg, col);
+            ImGui::Begin("ViewportActions", nullptr, flags);
+
+            auto isSimPaused = simEngine.getSimulationState() == SimEngine::SimulationState::paused;
+
+            // Play / Pause
+            {
+
+                auto icon = Icons::FontAwesomeIcons::FA_PAUSE;
+                if (isSimPaused) {
+                    // #574735
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.f, 0.667f, 0.f, 1.f});
+                    icon = Icons::FontAwesomeIcons::FA_PLAY;
+                }
+
+                if (ImGui::Button(icon)) {
+                    simEngine.toggleSimState();
+                }
+
+                if (isSimPaused)
+                    ImGui::PopStyleColor();
+
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                    auto msg = isSimPaused ? "Resume Simulation" : "Pause Simulation";
+                    ImGui::SetTooltip("%s", msg);
+                }
+            }
+
+            ImGui::SameLine();
+
+            // Step when paused
+            {
+                ImGui::BeginDisabled(!isSimPaused);
+
+                if (ImGui::Button(Icons::MaterialIcons::REDO)) {
+                    simEngine.stepSimulation();
+                }
+
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                    ImGui::SetTooltip("%s", "Step");
+                }
+                ImGui::EndDisabled();
+            }
+
+            state.isViewportFocused &= !ImGui::IsWindowHovered();
+            ImGui::End();
+            ImGui::PopStyleVar(2);
+            ImGui::PopStyleColor(1);
+        }
+
+        // Camera controls (on bottom right)
         {
             ImGui::SetNextWindowPos(
                 {pos.x + viewportPanelSize.x - 208, pos.y + viewportPanelSize.y - 40});
