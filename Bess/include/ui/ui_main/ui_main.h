@@ -32,6 +32,7 @@ namespace Bess::UI {
       private:
         static void drawProjectExplorer();
         static void drawMenubar();
+        static void drawStatusbar();
         static void drawViewport();
         static void resetDockspace();
         static void drawExternalWindows();

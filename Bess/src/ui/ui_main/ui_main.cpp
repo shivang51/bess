@@ -42,6 +42,7 @@ namespace Bess::UI {
         ComponentExplorer::draw();
         ProjectExplorer::draw();
         PropertiesPanel::draw();
+        drawStatusbar();
         drawExternalWindows();
     }
 
@@ -54,6 +55,52 @@ namespace Bess::UI {
 
     void UIMain::setViewportTexture(GLuint64 texture) {
         state.viewportTexture = texture;
+    }
+
+    ImVec2 getTextSize(const std::string &text, bool includePadding = true) {
+        auto size = ImGui::CalcTextSize(text.c_str());
+        if (!includePadding)
+            return size;
+        ImGuiContext &g = *ImGui::GetCurrentContext();
+        auto style = g.Style;
+        size.x += style.FramePadding.x * 2;
+        size.y += style.FramePadding.y * 2;
+        return size;
+    }
+
+    void UIMain::drawStatusbar() {
+        ImGuiContext &g = *ImGui::GetCurrentContext();
+        auto style = g.Style;
+        ImGuiViewportP *viewport = (ImGuiViewportP *)(void *)ImGui::GetMainViewport();
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+        float height = ImGui::GetFrameHeight();
+        if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down, height, window_flags)) {
+            if (ImGui::BeginMenuBar()) {
+                if (simEngine.getSimulationState() == SimEngine::SimulationState::running) {
+                    ImGui::Text("Simulation Running");
+                } else if (simEngine.getSimulationState() == SimEngine::SimulationState::paused) {
+                    ImGui::Text("Simulation Paused");
+                } else {
+                    ImGui::Text("Unknown State");
+                }
+
+                if (ImGui::Button("Play / Pause")) {
+                    simEngine.toggleSimState();
+                }
+
+                std::string rightContent[] = {};
+                float offset = style.FramePadding.x;
+                for (auto &content : rightContent)
+                    offset += getTextSize(content).x;
+
+                ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - offset);
+                for (auto &content : rightContent)
+                    ImGui::Text("%s", content.c_str());
+                ImGui::EndMenuBar();
+            }
+            ImGui::End();
+        }
     }
 
     void UIMain::drawMenubar() {
