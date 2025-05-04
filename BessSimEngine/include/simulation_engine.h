@@ -30,8 +30,16 @@ namespace Bess::SimEngine {
                               const UUID &compB, PinType pinBType, int idxB);
 
         bool getDigitalPinState(const UUID &uuid, PinType type, int idx);
+
         void setDigitalInput(const UUID &uuid, bool value);
+
         bool updateClock(const UUID &uuid, bool enable, float frequency, FrequencyUnit unit);
+
+        std::chrono::milliseconds getSimulationTimeMS();
+
+        SimulationState toggleSimState();
+        SimulationState getSimulationState();
+        void setSimulationState(SimulationState state);
 
         ComponentState getComponentState(const UUID &uuid);
         ComponentType getComponentType(const UUID &uuid);
@@ -48,17 +56,22 @@ namespace Bess::SimEngine {
 
         entt::entity getEntityWithUuid(const UUID &uuid) const;
 
-        std::thread simThread;
-        std::atomic<bool> stopFlag{false};
-        mutable std::mutex queueMutex;
-        std::condition_variable cv;
+        std::thread m_simThread;
 
-        std::set<SimulationEvent> eventSet;
-        uint64_t nextEventId{0};
-        std::chrono::milliseconds currentSimTime;
+        mutable std::mutex m_queueMutex;
+        mutable std::mutex m_stateMutex;
+        mutable std::mutex m_registryMutex;
 
-        mutable std::mutex registryMutex;
+        std::atomic<bool> m_stopFlag{false};
+        std::atomic<SimulationState> m_simState;
+        std::condition_variable m_queueCV;
+        std::condition_variable m_stateCV;
+
+        std::set<SimulationEvent> m_eventSet;
+        uint64_t m_nextEventId{0};
+        SimTime m_currentSimTime;
+
         entt::registry m_registry;
-        std::unordered_map<UUID, entt::entity> uuidMap;
+        std::unordered_map<UUID, entt::entity> m_uuidMap;
     };
 } // namespace Bess::SimEngine

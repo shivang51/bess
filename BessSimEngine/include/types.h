@@ -8,6 +8,7 @@
 
 namespace Bess::SimEngine {
     typedef std::chrono::milliseconds SimDelayMilliSeconds;
+    typedef std::chrono::milliseconds SimTime;
     typedef std::chrono::seconds SimDelaySeconds;
 
     // registry, entity, inputs, function to convert uuid to entity
@@ -22,6 +23,11 @@ namespace Bess::SimEngine {
         hz,
         kHz,
         MHz
+    };
+
+    enum class SimulationState {
+        running,
+        paused
     };
 
     struct BESS_API SimulationEvent {
