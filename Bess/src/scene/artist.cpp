@@ -174,8 +174,8 @@ namespace Bess::Canvas {
 
             auto segEntt = sceneRef->getEntityWithUuid(segId);
             bool isHovered = registry.all_of<Components::HoveredEntityComponent>(segEntt);
+            auto size = isHovered ? 3.0 : 2.f;
             auto offPos = pos;
-            float size = 2.f;
             auto offSet = (prevPos.y <= pos.y) ? size / 2.f : -size / 2.f;
             if (std::abs(prevPos.x - pos.x) <= 0.0001f) { // veritcal
                 offPos.y -= offSet;
@@ -184,7 +184,6 @@ namespace Bess::Canvas {
                 offPos.x -= offSet;
                 prevPos.x += offSet;
             }
-            size = isHovered ? 3.0 : 2.f;
             Renderer::line(prevPos, offPos, size, color, (uint64_t)segEntt);
             segId = newSegId;
             prevPos = pos;
@@ -192,9 +191,8 @@ namespace Bess::Canvas {
 
         auto segEntt = sceneRef->getEntityWithUuid(segId);
         bool isHovered = registry.all_of<Components::HoveredEntityComponent>(segEntt);
-        float size = 2.f;
+        auto size = isHovered ? 3.0 : 2.f;
         auto offSet = (prevPos.y <= endPos.y) ? size / 2.f : -size / 2.f;
-        size = isHovered ? 3.0 : 2.f;
         if (std::abs(prevPos.x - endPos.x) <= 0.0001f) { // veritcal
             endPos.y += offSet;
             prevPos.y -= offSet;
