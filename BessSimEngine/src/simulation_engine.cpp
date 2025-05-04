@@ -28,11 +28,16 @@ namespace Bess::SimEngine {
     SimulationEngine::~SimulationEngine() {
         m_stopFlag.store(true);
         m_queueCV.notify_all();
+        m_stateCV.notify_all();
         if (m_simThread.joinable())
             m_simThread.join();
     }
 
     void SimulationEngine::scheduleEvent(entt::entity e, entt::entity schedulerEntity, SimDelayMilliSeconds simTime) {
+        auto &digiComp = m_registry.get<DigitalComponent>(e);
+        if (digiComp.type == ComponentType::OUTPUT)
+            return;
+
         std::lock_guard lk(m_queueMutex);
         static uint64_t eventId = 0;
         SimulationEvent ev{simTime, e, schedulerEntity, eventId++};
@@ -344,6 +349,7 @@ namespace Bess::SimEngine {
         m_currentSimTime = SimTime(0);
         while (!m_stopFlag.load()) {
             std::unique_lock queueLock(m_queueMutex);
+
             m_queueCV.wait(queueLock, [&] { return m_stopFlag.load() || !m_eventSet.empty(); });
             if (m_stopFlag.load())
                 break;
@@ -352,9 +358,12 @@ namespace Bess::SimEngine {
             if (m_simState.load() == SimulationState::paused) {
                 queueLock.unlock();
                 m_stepFlag.store(false);
-                m_stateCV.wait(stateLock, [&] { return m_simState.load() == SimulationState::running || m_stepFlag.load(); });
+                m_stateCV.wait(stateLock, [&] { return m_stopFlag.load() || m_simState.load() == SimulationState::running || m_stepFlag.load(); });
                 queueLock.lock();
             }
+
+            if (m_stopFlag.load())
+                break;
 
             if (m_eventSet.empty())
                 continue;
@@ -378,6 +387,7 @@ namespace Bess::SimEngine {
 
             for (auto &ev : eventsToSim) {
                 queueLock.unlock();
+                stateLock.unlock();
 
                 {
                     std::lock_guard regLock(m_registryMutex);
@@ -421,6 +431,7 @@ namespace Bess::SimEngine {
                 }
 
                 queueLock.lock();
+                stateLock.lock();
             }
 
             if (!m_eventSet.empty()) {
