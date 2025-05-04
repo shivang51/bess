@@ -260,9 +260,10 @@ namespace Bess::UI {
             ImGuiContext &g = *ImGui::GetCurrentContext();
             auto colors = g.Style.Colors;
             auto &simEngine = SimEngine::SimulationEngine::instance();
+            static float size = 64;
             ImGui::SetNextWindowPos(
-                {pos.x + viewportPanelSize.x - 208, pos.y + 4});
-            ImGui::SetNextWindowSize({204, 0});
+                {pos.x + viewportPanelSize.x - size - g.Style.FramePadding.x, pos.y + g.Style.FramePadding.y});
+            ImGui::SetNextWindowSize({size, 0});
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
             ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
 
