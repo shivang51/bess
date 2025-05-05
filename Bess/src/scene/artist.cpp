@@ -159,12 +159,18 @@ namespace Bess::Canvas {
         static int wireSize = 2.f;
         static int hoveredSize = 3.f;
 
-        while (connSegComp.next != UUID::null) {
+        while (segId != UUID::null) {
+            glm::vec3 pos = {};
             auto newSegId = connSegComp.next;
-            auto newSegEntt = sceneRef->getEntityWithUuid(connSegComp.next);
-            connSegComp = registry.get<Components::ConnectionSegmentComponent>(newSegEntt);
 
-            glm::vec3 pos = glm::vec3(connSegComp.pos, prevPos.z);
+            if (newSegId != UUID::null) {
+                auto newSegEntt = sceneRef->getEntityWithUuid(newSegId);
+                connSegComp = registry.get<Components::ConnectionSegmentComponent>(newSegEntt);
+                pos = glm::vec3(connSegComp.pos, prevPos.z);
+            } else {
+                pos = endPos;
+            }
+
             if (pos.x == 0.f) {
                 pos.x = prevPos.x;
                 if (connSegComp.isTail())
@@ -180,35 +186,18 @@ namespace Bess::Canvas {
             auto size = isHovered ? hoveredSize : wireSize;
             auto offPos = pos;
             auto offSet = (prevPos.y <= pos.y) ? wireSize / 2.f : -wireSize / 2.f;
-            // if (std::abs(prevPos.x - pos.x) <= 0.0001f) { // veritcal
-            //     offPos.y += offSet;
-            //     prevPos.y -= offSet;
-            // } else {
-            //     offPos.x -= offSet;
-            //     prevPos.x += offSet;
-            // }
             Renderer::line(prevPos, offPos, size, color, (uint64_t)segEntt);
             offPos.z += 0.0001f;
 
-            Renderer::quad(offPos, glm::vec2(size), color, id, 0.f, glm::vec4(size / 2.f),
-                           glm::vec4(0), color, false);
-            // Renderer::circle(offPos, size / 2.f, color, (uint64_t)segEntt);
+            if (newSegId != UUID::null) {
+                // circle at the join
+                Renderer::quad(offPos, glm::vec2(size), color, id, 0.f, glm::vec4(size / 2.f),
+                               glm::vec4(0), color, false);
+            }
+
             segId = newSegId;
             prevPos = pos;
         }
-
-        auto segEntt = sceneRef->getEntityWithUuid(segId);
-        bool isHovered = registry.all_of<Components::HoveredEntityComponent>(segEntt);
-        auto size = isHovered ? 3.0 : 2.f;
-        auto offSet = (prevPos.y <= endPos.y) ? wireSize / 4.f : -wireSize / 4.f;
-        // if (std::abs(prevPos.x - endPos.x) <= 0.0001f) { // veritcal
-        //     endPos.y += offSet;
-        //     prevPos.y -= offSet;
-        // } else {
-        //     endPos.x -= offSet;
-        //     prevPos.x += offSet;
-        // }
-        Renderer::line(prevPos, endPos, size, color, (uint64_t)segEntt);
     }
 
     void Artist::drawConnectionEntity(entt::entity entity) {
