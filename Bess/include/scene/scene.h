@@ -6,6 +6,7 @@
 #include "entt/entity/fwd.hpp"
 #include "entt/entt.hpp"
 #include "events/application_event.h"
+#include "modules/schematic_gen/schematic_view.h"
 #include "scene/components/components.h"
 #include "scene/renderer/gl/framebuffer.h"
 #include <memory>
@@ -43,6 +44,8 @@ namespace Bess::Canvas {
 
         void setLastCreatedComp(const LastCreatedComponent &comp);
 
+        friend class Modules::SchematicGen::SchematicView;
+
       public:
         glm::vec2 getCameraPos();
         float getCameraZoom();
@@ -62,6 +65,9 @@ namespace Bess::Canvas {
 
       private:
         const UUID &getUuidOfEntity(entt::entity ent);
+
+        // gets entity from scene that has reference to passed simulation engine uuid
+        entt::entity getSceneEntityFromSimUuid(const UUID &uuid) const;
 
         void updateHoveredId();
 

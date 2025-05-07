@@ -30,7 +30,11 @@ namespace Bess::SimEngine {
                               const UUID &compB, PinType pinBType, int idxB);
 
         bool getDigitalPinState(const UUID &uuid, PinType type, int idx);
+
+        std::pair<Connections, Connections> getConnections(const UUID &uuid);
+
         void setDigitalInput(const UUID &uuid, bool value);
+
         bool updateClock(const UUID &uuid, bool enable, float frequency, FrequencyUnit unit);
 
         ComponentState getComponentState(const UUID &uuid);

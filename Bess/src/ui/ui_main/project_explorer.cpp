@@ -68,7 +68,7 @@ namespace Bess::UI {
         auto &registry = scene.getEnttRegistry();
 
         if (ImGui::Button("Gen Schemetic Diagram")) {
-            Modules::SchematicGen::SchematicView::getInstance().generateDiagram(registry);
+            Modules::SchematicGen::SchematicView(Canvas::Scene::instance(), registry).generateDiagram();
         }
 
         auto view = registry.view<Canvas::Components::TagComponent>();

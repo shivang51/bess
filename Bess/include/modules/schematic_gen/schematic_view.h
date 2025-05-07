@@ -3,6 +3,10 @@
 #include "entt/entt.hpp"
 #include <vector>
 
+namespace Bess::Canvas {
+    class Scene;
+}
+
 namespace Bess::Modules::SchematicGen {
     enum GraphNodeType {
         unknown,
@@ -11,20 +15,31 @@ namespace Bess::Modules::SchematicGen {
         other
     };
 
+    struct Connection {
+        entt::entity gateEnt;
+        int pinIdx;
+    };
+
     struct GraphNode {
         uint64_t id = -1;
         GraphNodeType type = GraphNodeType::unknown;
-        std::vector<uint64_t> connections = {};
+        int inputCount = 0;
+        std::vector<Connection> outputs = {};
     };
 
     class SchematicView {
       public:
-        static SchematicView &getInstance();
-
-        SchematicView() = default;
-        void generateDiagram(const entt::registry &registry);
+        SchematicView(const Canvas::Scene &sceneRef, const entt::registry &registry);
+        void generateDiagram();
 
       private:
-        void generateCompGraph(const entt::registry &registry);
+        void generateCompGraphAndLevels();
+        std::pair<int, std::vector<Connection>> getConnectionsForEntity(entt::entity ent);
+
+        std::vector<GraphNode *> m_graph;
+        std::vector<std::vector<GraphNode *>> m_levels;
+
+        const entt::registry &m_registry;
+        const Canvas::Scene &m_sceneRef;
     };
 } // namespace Bess::Modules::SchematicGen

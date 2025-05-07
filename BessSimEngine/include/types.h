@@ -10,6 +10,8 @@ namespace Bess::SimEngine {
     typedef std::chrono::milliseconds SimDelayMilliSeconds;
     typedef std::chrono::seconds SimDelaySeconds;
 
+    typedef std::vector<std::vector<std::pair<UUID, int>>> Connections;
+
     // registry, entity, inputs, function to convert uuid to entity
     typedef std::function<bool(entt::registry &, entt::entity, const std::vector<bool> &, std::function<entt::entity(const UUID &)>)> SimulationFunction;
 

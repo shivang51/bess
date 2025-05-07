@@ -99,16 +99,16 @@ namespace Bess::SimEngine {
         DigitalComponent(ComponentType type, int inputPinsCount, int outputPinsCount, SimDelayMilliSeconds delay) {
             this->type = type;
             this->delay = delay;
-            this->inputPins = std::vector<std::vector<std::pair<UUID, int>>>(inputPinsCount, std::vector<std::pair<UUID, int>>());
-            this->outputPins = std::vector<std::vector<std::pair<UUID, int>>>(outputPinsCount, std::vector<std::pair<UUID, int>>());
+            this->inputPins = Connections(inputPinsCount, decltype(Connections())::value_type());
+            this->outputPins = Connections(outputPinsCount, decltype(Connections())::value_type());
             this->outputStates = std::vector<bool>(outputPinsCount, false);
             this->inputStates = std::vector<bool>(inputPinsCount, false);
         }
 
         ComponentType type;
         SimDelayMilliSeconds delay;
-        std::vector<std::vector<std::pair<UUID, int>>> inputPins;
-        std::vector<std::vector<std::pair<UUID, int>>> outputPins;
+        Connections inputPins;
+        Connections outputPins;
         std::vector<bool> outputStates;
         std::vector<bool> inputStates;
     };

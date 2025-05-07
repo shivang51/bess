@@ -313,6 +313,17 @@ namespace Bess::Canvas {
         return idComp.uuid;
     }
 
+    entt::entity Scene::getSceneEntityFromSimUuid(const UUID &uuid) const {
+        for (auto ent : m_registry.view<Components::SimulationComponent>()) {
+            auto &comp = m_registry.get<Components::SimulationComponent>(ent);
+            if (comp.simEngineEntity == uuid)
+                return ent;
+        }
+
+        BESS_ASSERT(false, "Failed to find a Simulation Component in scene with this mapped uuid");
+        throw std::runtime_error("Failed to find a Simulation Component in scene with this mapped uuid");
+    }
+
     void Scene::resize(const glm::vec2 &size) {
         m_size = UI::UIMain::state.viewportSize;
         m_msaaFramebuffer->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);

@@ -177,6 +177,12 @@ namespace Bess::SimEngine {
         return comp.outputStates[idx];
     }
 
+    std::pair<Connections, Connections> SimulationEngine::getConnections(const UUID &uuid) {
+        auto ent = getEntityWithUuid(uuid);
+        auto &comp = m_registry.get<DigitalComponent>(ent);
+        return {comp.inputPins, comp.outputPins};
+    }
+
     void SimulationEngine::setDigitalInput(const UUID &uuid, bool value) {
         auto ent = getEntityWithUuid(uuid);
         if (m_registry.all_of<ClockComponent>(ent))
