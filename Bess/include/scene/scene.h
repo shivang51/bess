@@ -67,6 +67,7 @@ namespace Bess::Canvas {
 
         void onMouseMove(const glm::vec2 &pos);
         void onLeftMouse(bool isPressed);
+        void onMiddleMouse(bool isPressed);
         void onRightMouse(bool isPressed);
         void onMouseWheel(double x, double y);
 
@@ -95,10 +96,10 @@ namespace Bess::Canvas {
         std::unique_ptr<Gl::FrameBuffer> m_shadowFramebuffer;
         std::unique_ptr<Gl::FrameBuffer> m_placeHolderFramebuffer;
         std::unique_ptr<Gl::FrameBuffer> m_normalFramebuffer;
-        glm::vec2 m_size, m_mousePos;
+        glm::vec2 m_size, m_mousePos, m_dMousePos;
         std::shared_ptr<Camera> m_camera;
 
-        bool m_isLeftMousePressed = false;
+        bool m_isLeftMousePressed = false, m_isMiddleMousePressed = false;
 
       private:
         entt::registry m_registry;

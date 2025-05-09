@@ -90,7 +90,7 @@ namespace Bess::Canvas {
                 } else if (data.button == MouseButton::right) {
                     onRightMouse(data.pressed);
                 } else if (data.button == MouseButton::middle) {
-                    // onMiddleMouse(data.pressed);
+                    onMiddleMouse(data.pressed);
                 }
             } break;
             case ApplicationEventType::MouseWheel: {
@@ -428,7 +428,7 @@ namespace Bess::Canvas {
     }
 
     void Scene::onMouseMove(const glm::vec2 &pos) {
-        auto dPos = getNVPMousePos(pos) - getNVPMousePos(m_mousePos);
+        m_dMousePos = getNVPMousePos(pos) - getNVPMousePos(m_mousePos);
         m_mousePos = pos;
 
         // reading the hoverid
@@ -443,21 +443,25 @@ namespace Bess::Canvas {
                 m_drawMode = SceneDrawMode::selectionBox;
                 m_selectionBoxStart = m_mousePos;
             } else if (selectComponentsSize == 1 && m_registry.valid(hoveredEntity) && m_registry.all_of<Components::ConnectionSegmentComponent>(hoveredEntity)) {
-                dragConnectionSegment(hoveredEntity, dPos);
+                dragConnectionSegment(hoveredEntity, m_dMousePos);
             } else {
                 auto view = m_registry.view<Components::SelectedComponent, Components::TransformComponent>();
                 for (auto &ent : view) {
                     auto &transformComp = view.get<Components::TransformComponent>(ent);
-                    auto dPos_ = glm::vec3(dPos, 0.f);
+                    auto dPos_ = glm::vec3(m_dMousePos, 0.f);
                     transformComp.position += dPos_;
                 }
 
                 auto connectionView = m_registry.view<Components::SelectedComponent, Components::ConnectionComponent>();
                 for (auto &ent : connectionView) {
-                    moveConnection(ent, dPos);
+                    moveConnection(ent, m_dMousePos);
                 }
                 m_isDragging = true;
             }
+        } else if (m_isMiddleMousePressed) {
+            glm::vec2 dPos = m_dMousePos;
+            dPos *= m_camera->getZoom() * -1;
+            m_camera->incrementPos(dPos);
         }
     }
 
@@ -585,6 +589,10 @@ namespace Bess::Canvas {
                 SimEngine::SimulationEngine::instance().setDigitalInput(simComp.simEngineEntity, !currentState);
             }
         }
+    }
+
+    void Scene::onMiddleMouse(bool isPressed) {
+        m_isMiddleMousePressed = isPressed;
     }
 
     void Scene::onLeftMouse(bool isPressed) {
