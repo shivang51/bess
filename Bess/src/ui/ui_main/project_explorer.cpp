@@ -66,10 +66,13 @@ namespace Bess::UI {
         auto &scene = Bess::Canvas::Scene::instance();
         auto &registry = scene.getEnttRegistry();
         auto view = registry.view<Canvas::Components::TagComponent>();
+        auto size = view.size();
+
         auto sel = registry.view<Canvas::Components::SelectedComponent>().size();
+        sel = std::min(sel, size); // because selecting wire make the sel count more than the visible components in the tree
+
         bool isMultiSelected = sel > 1;
 
-        auto size = view.size();
         if (size == 0) {
             ImGui::Text("No Components Added");
         } else if (size == 1) {
