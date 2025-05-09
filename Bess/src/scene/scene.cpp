@@ -36,8 +36,11 @@ namespace Bess::Canvas {
     }
 
     void Scene::reset() {
-        m_size = glm::vec2(800.f / 600.f, 1.f);
+        clear();
+
+        m_camera.reset();
         m_camera = std::make_shared<Camera>(m_size.x, m_size.y);
+
         std::vector<Gl::FBAttachmentType> attachments = {Gl::FBAttachmentType::RGBA_RGBA,
                                                          Gl::FBAttachmentType::R32I_REDI,
                                                          Gl::FBAttachmentType::RGBA_RGBA,
@@ -53,9 +56,14 @@ namespace Bess::Canvas {
         attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::R32I_REDI};
         m_normalFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments);
 
-        m_registry.clear();
-
         Artist::sceneRef = this;
+    }
+
+    void Scene::clear() {
+        m_registry.clear();
+        m_lastCreatedComp = {};
+        m_copiedComponents = {};
+        m_drawMode = SceneDrawMode::none;
     }
 
     void Scene::update(const std::vector<ApplicationEvent> &events) {
@@ -818,6 +826,10 @@ namespace Bess::Canvas {
         float z = m_compZCoord;
         m_compZCoord += m_zIncrement;
         return z;
+    }
+
+    void Scene::setZCoord(float value) {
+        m_compZCoord = value + m_zIncrement;
     }
 
     unsigned int Scene::getTextureId() {

@@ -32,6 +32,7 @@ namespace Bess::Canvas {
         static Scene &instance();
 
         void reset();
+        void clear();
         void render();
         void update(const std::vector<ApplicationEvent> &events);
 
@@ -59,6 +60,7 @@ namespace Bess::Canvas {
         void deleteConnection(const UUID &entUuid);
         entt::entity getEntityWithUuid(const UUID &uuid);
         bool isEntityValid(const UUID &uuid);
+        void setZCoord(float val);
 
       private:
         const UUID &getUuidOfEntity(entt::entity ent);

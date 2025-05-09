@@ -15,5 +15,8 @@ namespace Bess {
 
         nlohmann::json serializeEntity(entt::registry &registry, entt::entity entity) override;
         void deserializeEntity(entt::registry &registry, const nlohmann::json &j) override;
+
+      private:
+        float m_maxZ = 0;
     };
 } // namespace Bess
