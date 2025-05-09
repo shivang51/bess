@@ -14,6 +14,8 @@ namespace Bess::Pages {
     }
 
     void MainPageState::resetProjectState() {
+        Canvas::Scene::instance().clear();
+        SimEngine::SimulationEngine::instance().clear();
     }
 
     void MainPageState::createNewProject(bool updateWindowName) {
@@ -22,7 +24,7 @@ namespace Bess::Pages {
         if (!updateWindowName)
             return;
         auto win = MainPage::getTypedInstance()->getParentWindow();
-        win->setName("Unnamed - BESS");
+        win->setName(m_currentProjectFile->getName());
     }
 
     void MainPageState::loadProject(const std::string &path) {

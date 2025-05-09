@@ -38,7 +38,7 @@ namespace Bess::Canvas {
     void Scene::reset() {
         clear();
 
-        m_camera.reset();
+        m_size = glm::vec2(800.f / 600.f, 1.f);
         m_camera = std::make_shared<Camera>(m_size.x, m_size.y);
 
         std::vector<Gl::FBAttachmentType> attachments = {Gl::FBAttachmentType::RGBA_RGBA,
@@ -61,6 +61,7 @@ namespace Bess::Canvas {
 
     void Scene::clear() {
         m_registry.clear();
+        m_compZCoord = m_zIncrement;
         m_lastCreatedComp = {};
         m_copiedComponents = {};
         m_drawMode = SceneDrawMode::none;

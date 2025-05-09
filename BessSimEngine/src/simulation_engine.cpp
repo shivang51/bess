@@ -25,6 +25,17 @@ namespace Bess::SimEngine {
         m_simThread = std::thread(&SimulationEngine::run, this);
     }
 
+    void SimulationEngine::clear() {
+        std::lock_guard lkEventQueue(m_queueMutex);
+        m_eventSet.clear();
+
+        std::lock_guard lkRegistry(m_registryMutex);
+        m_registry.clear();
+        m_uuidMap.clear();
+        m_nextEventId = 0;
+        m_currentSimTime = {};
+    }
+
     SimulationEngine::~SimulationEngine() {
         m_stopFlag.store(true);
         m_queueCV.notify_all();

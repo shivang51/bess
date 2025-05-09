@@ -47,6 +47,8 @@ namespace Bess::SimEngine {
         ComponentState getComponentState(const UUID &uuid);
         ComponentType getComponentType(const UUID &uuid);
 
+        void clear();
+
         friend class SimEngineSerializer;
 
       private:
