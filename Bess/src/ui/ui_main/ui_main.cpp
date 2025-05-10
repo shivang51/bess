@@ -260,7 +260,8 @@ namespace Bess::UI {
             ImGuiContext &g = *ImGui::GetCurrentContext();
             auto colors = g.Style.Colors;
             auto &simEngine = SimEngine::SimulationEngine::instance();
-            static float size = 64;
+            static int n = 4; // number of action buttons
+            static float size = (32 * n) - (n - 1);
             ImGui::SetNextWindowPos(
                 {pos.x + viewportPanelSize.x - size - g.Style.FramePadding.x, pos.y + g.Style.FramePadding.y});
             ImGui::SetNextWindowSize({size, 0});
@@ -271,6 +272,51 @@ namespace Bess::UI {
             col.w = 0.5;
             ImGui::PushStyleColor(ImGuiCol_WindowBg, col);
             ImGui::Begin("ViewportActions", nullptr, flags);
+
+            auto &scene = Canvas::Scene::instance();
+
+            // scene modes
+            {
+
+                bool isGeneral = scene.getSceneMode() == Canvas::SceneMode::general;
+
+                // general mode
+                if (isGeneral) {
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.f, 0.667f, 0.f, 1.f});
+                }
+
+                auto icon = Icons::FontAwesomeIcons::FA_MOUSE_POINTER;
+                if (ImGui::Button(icon)) {
+                    scene.setSceneMode(Canvas::SceneMode::general);
+                }
+                if (isGeneral) {
+                    ImGui::PopStyleColor();
+                }
+
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                    auto msg = "General Mode";
+                    ImGui::SetTooltip("%s", msg);
+                }
+
+                // move mode
+                if (!isGeneral) {
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.f, 0.667f, 0.f, 1.f});
+                }
+                ImGui::SameLine();
+                icon = Icons::FontAwesomeIcons::FA_ARROWS_ALT;
+                if (ImGui::Button(icon)) {
+                    scene.setSceneMode(Canvas::SceneMode::move);
+                }
+
+                if (!isGeneral) {
+                    ImGui::PopStyleColor();
+                }
+
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                    auto msg = "Move Mode";
+                    ImGui::SetTooltip("%s", msg);
+                }
+            }
 
             auto isSimPaused = simEngine.getSimulationState() == SimEngine::SimulationState::paused;
 
@@ -284,6 +330,7 @@ namespace Bess::UI {
                     icon = Icons::FontAwesomeIcons::FA_PLAY;
                 }
 
+                ImGui::SameLine();
                 if (ImGui::Button(icon)) {
                     simEngine.toggleSimState();
                 }

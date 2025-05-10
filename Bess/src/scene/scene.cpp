@@ -150,8 +150,17 @@ namespace Bess::Canvas {
 
     void Scene::render() {
         auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
-        if (m_registry.valid(hoveredEntity) && m_registry.any_of<Components::SlotComponent, Components::ConnectionSegmentComponent>(hoveredEntity)) {
-            UI::setCursorPointer();
+
+        switch (m_sceneMode) {
+        case SceneMode::general: {
+            if (m_registry.valid(hoveredEntity) && m_registry.any_of<Components::SlotComponent, Components::ConnectionSegmentComponent>(hoveredEntity)) {
+                UI::setCursorPointer();
+            }
+
+        } break;
+        case SceneMode::move: {
+            UI::setCursorMove();
+        } break;
         }
 
         beginScene();
@@ -629,7 +638,8 @@ namespace Bess::Canvas {
                     connectSlots(getEntityWithUuid(m_connectionStartEntity), hoveredEntity);
                 }
             } else {
-                if (!Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
+                if (m_sceneMode != SceneMode::move &&
+                    !Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
                     m_registry.clear<Components::SelectedComponent>();
                 }
 
@@ -640,7 +650,7 @@ namespace Bess::Canvas {
                     toggleSelectComponent(hoveredEntity);
                 }
             }
-        } else { // deselecting all when clicking outside
+        } else if (m_sceneMode != SceneMode::move) { // deselecting all when clicking outside
             m_registry.clear<Components::SelectedComponent>();
             m_drawMode = SceneDrawMode::none;
         }
@@ -845,4 +855,10 @@ namespace Bess::Canvas {
         m_lastCreatedComp = comp;
     }
 
+    void Scene::setSceneMode(SceneMode mode) {
+        m_sceneMode = mode;
+    }
+    SceneMode Scene::getSceneMode() {
+        return m_sceneMode;
+    }
 } // namespace Bess::Canvas

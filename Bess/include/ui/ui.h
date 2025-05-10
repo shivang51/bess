@@ -13,6 +13,8 @@ namespace Bess::UI {
     void shutdown();
     void loadFontAndSetScale(float fontSize, float scale);
     void setCursorPointer();
+    void setCursorMove();
+    void setCursorNormal();
 
     class Fonts {
       public:

@@ -11,6 +11,12 @@
 #include <memory>
 
 namespace Bess::Canvas {
+
+    enum class SceneMode {
+        general,
+        move
+    };
+
     enum class SceneDrawMode {
         none,
         connection,
@@ -48,6 +54,9 @@ namespace Bess::Canvas {
         glm::vec2 getCameraPos();
         float getCameraZoom();
         void setZoom(float value);
+
+        void setSceneMode(SceneMode mode);
+        SceneMode getSceneMode();
 
         void resize(const glm::vec2 &size);
         entt::registry &getEnttRegistry();
@@ -113,6 +122,7 @@ namespace Bess::Canvas {
         bool m_selectInSelectionBox = false;
 
         SceneDrawMode m_drawMode = SceneDrawMode::none;
+        SceneMode m_sceneMode = SceneMode::general;
 
         const float m_zIncrement = 0.001;
         float m_compZCoord = m_zIncrement;
