@@ -116,10 +116,12 @@ namespace Bess::Canvas {
 
     void Artist::drawGhostConnection(const entt::entity &startEntity, const glm::vec2 pos) {
         auto &registry = sceneRef->getEnttRegistry();
-        auto startPos = Artist::getSlotPos(registry.get<Components::SlotComponent>(startEntity));
+        auto &slotComp = registry.get<Components::SlotComponent>(startEntity);
+        auto startPos = Artist::getSlotPos(slotComp);
         startPos.z = 0.f;
 
-        auto midX = startPos.x + ((pos.x - startPos.x) * 0.2f);
+        float ratio = slotComp.slotType == Components::SlotType::digitalInput ? 0.8f : 0.2f;
+        auto midX = startPos.x + ((pos.x - startPos.x) * ratio);
 
         std::vector<glm::vec3> points;
         points.emplace_back(startPos);
