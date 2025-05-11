@@ -365,45 +365,39 @@ namespace Bess::Canvas {
         auto &comp = m_registry.get<Components::ConnectionSegmentComponent>(ent);
 
         if (comp.isHead() || comp.isTail()) {
-            auto &adjComp = m_registry.get<Components::ConnectionSegmentComponent>(comp.isHead() ? getEntityWithUuid(comp.next) : getEntityWithUuid(comp.prev));
-            bool isHorizontal = comp.isHead() ? adjComp.pos.x != 0 : comp.pos.x == 0;
             auto newEntt = m_registry.create();
             auto &idComp = m_registry.emplace<Components::IdComponent>(newEntt);
             auto &compNew = m_registry.emplace<Components::ConnectionSegmentComponent>(newEntt);
             compNew.parent = comp.parent;
 
+            glm::vec2 slotPos;
+
             if (comp.isHead()) {
                 comp.prev = idComp.uuid;
                 compNew.next = getUuidOfEntity(ent);
                 auto &connComponent = m_registry.get<Components::ConnectionComponent>(getEntityWithUuid(comp.parent));
+                auto &slotComponent = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComponent.inputSlot));
                 connComponent.segmentHead = idComp.uuid;
-                if (isHorizontal)
-                    comp.pos.y = getNVPMousePos(m_mousePos).y;
-                else
-                    comp.pos.x = getNVPMousePos(m_mousePos).x;
+                slotPos = Artist::getSlotPos(slotComponent);
             } else {
                 comp.next = idComp.uuid;
                 compNew.prev = getUuidOfEntity(ent);
                 auto &connComponent = m_registry.get<Components::ConnectionComponent>(getEntityWithUuid(comp.parent));
                 auto &slotComponent = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComponent.outputSlot));
-                auto slotPos = Artist::getSlotPos(slotComponent);
-                if (comp.pos.x == 0)
-                    compNew.pos.x = slotPos.x;
-                else
-                    compNew.pos.y = slotPos.y;
+                slotPos = Artist::getSlotPos(slotComponent);
             }
 
-            if (isHorizontal)
-                comp.pos.y += dPos.y;
+            if (comp.pos.x == 0) // if current is vertical
+                compNew.pos.x = slotPos.x;
             else
-                comp.pos.x += dPos.x;
+                compNew.pos.y = slotPos.y;
+        }
 
-        } else if (comp.pos.x == 0) {
+        if (comp.pos.x == 0) {
             comp.pos.y += dPos.y;
         } else if (comp.pos.y == 0) {
             comp.pos.x += dPos.x;
         }
-        m_isDragging = true;
     }
 
     void Scene::moveConnection(entt::entity ent, glm::vec2 &dPos) {
@@ -456,13 +450,15 @@ namespace Bess::Canvas {
 
         if (m_isLeftMousePressed && m_drawMode == SceneDrawMode::none) {
             auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
-            auto selectComponentsSize = m_registry.view<Components::SelectedComponent>()->size();
-            if (!m_registry.valid(hoveredEntity) && selectComponentsSize == 0) {
+            auto selectedComponentsSize = m_registry.view<Components::SelectedComponent>()->size();
+            if (!m_registry.valid(hoveredEntity) && selectedComponentsSize == 0) {
                 m_drawMode = SceneDrawMode::selectionBox;
                 m_selectionBoxStart = m_mousePos;
-            } else if (selectComponentsSize == 1 && m_registry.valid(hoveredEntity) && m_registry.all_of<Components::ConnectionSegmentComponent>(hoveredEntity)) {
+            } else if (selectedComponentsSize == 1 && m_registry.valid(hoveredEntity) && m_registry.all_of<Components::ConnectionSegmentComponent>(hoveredEntity)) {
+                m_isDragging = true;
                 dragConnectionSegment(hoveredEntity, m_dMousePos);
             } else {
+                m_isDragging = true;
                 auto view = m_registry.view<Components::SelectedComponent, Components::TransformComponent>();
                 for (auto &ent : view) {
                     auto &transformComp = view.get<Components::TransformComponent>(ent);
@@ -474,7 +470,6 @@ namespace Bess::Canvas {
                 for (auto &ent : connectionView) {
                     moveConnection(ent, m_dMousePos);
                 }
-                m_isDragging = true;
             }
         } else if (m_isMiddleMousePressed) {
             glm::vec2 dPos = m_dMousePos;
@@ -556,7 +551,8 @@ namespace Bess::Canvas {
 
         auto dX = outputSlotPos.x - inputSlotPos.x;
 
-        connSegComp2.pos = glm::vec2(inputSlotPos.x + (dX / 2.f), 0);
+        connSegComp1.pos = glm::vec2(0, inputSlotPos.y);
+        connSegComp2.pos = glm::vec2(inputSlotPos.x + (dX * 0.8f), 0);
         connSegComp3.pos = glm::vec2(0, outputSlotPos.y);
     }
 

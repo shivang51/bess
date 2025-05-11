@@ -119,7 +119,7 @@ namespace Bess::Canvas {
         auto startPos = Artist::getSlotPos(registry.get<Components::SlotComponent>(startEntity));
         startPos.z = 0.f;
 
-        auto midX = startPos.x + ((pos.x - startPos.x) / 2.f);
+        auto midX = startPos.x + ((pos.x - startPos.x) * 0.2f);
 
         std::vector<glm::vec3> points;
         points.emplace_back(startPos);
@@ -139,9 +139,9 @@ namespace Bess::Canvas {
 
         auto startPos = Artist::getSlotPos(registry.get<Components::SlotComponent>(inputEntity));
         auto endPos = Artist::getSlotPos(outputSlotComp);
-
         startPos.z = 0.f;
         endPos.z = 0.f;
+
         glm::vec4 color;
         if (connectionComponent.useCustomColor) {
             auto &spriteComponent = registry.get<Components::SpriteComponent>(connEntity);
@@ -151,6 +151,7 @@ namespace Bess::Canvas {
             color = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::stateLowColor;
         }
         color = isSelected ? ViewportTheme::selectedWireColor : color;
+
         auto connSegEntt = sceneRef->getEntityWithUuid(connectionComponent.segmentHead);
         auto connSegComp = registry.get<Components::ConnectionSegmentComponent>(connSegEntt);
         auto segId = connectionComponent.segmentHead;
@@ -160,25 +161,22 @@ namespace Bess::Canvas {
         static int hoveredSize = 3.f;
 
         while (segId != UUID::null) {
-            glm::vec3 pos = {};
+            glm::vec3 pos = endPos;
             auto newSegId = connSegComp.next;
 
             if (newSegId != UUID::null) {
                 auto newSegEntt = sceneRef->getEntityWithUuid(newSegId);
                 connSegComp = registry.get<Components::ConnectionSegmentComponent>(newSegEntt);
                 pos = glm::vec3(connSegComp.pos, prevPos.z);
-            } else {
-                pos = endPos;
-            }
-
-            if (pos.x == 0.f) {
-                pos.x = prevPos.x;
-                if (connSegComp.isTail())
-                    pos.y = endPos.y;
-            } else {
-                pos.y = prevPos.y;
-                if (connSegComp.isTail())
-                    pos.x = endPos.x;
+                if (pos.x == 0.f) {
+                    pos.x = prevPos.x;
+                    if (connSegComp.isTail()) // for leveling with the end pos
+                        pos.y = endPos.y;
+                } else {
+                    pos.y = prevPos.y;
+                    if (connSegComp.isTail()) // for leveling with the end pos
+                        pos.x = endPos.x;
+                }
             }
 
             auto segEntt = sceneRef->getEntityWithUuid(segId);
