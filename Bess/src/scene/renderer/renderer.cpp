@@ -288,10 +288,13 @@ namespace Bess {
         m_GridShader->bind();
         m_GridVao->bind();
 
-        auto camOffset = m_camera->getPos();
         m_GridShader->setUniformMat4("u_mvp", m_camera->getOrtho());
         m_GridShader->setUniform1f("u_zoom", m_camera->getZoom());
-        m_GridShader->setUniformVec2("u_cameraOffset", {-camOffset.x, camOffset.y});
+
+        auto camPos = m_camera->getPos();
+        auto viewportPos = UI::UIMain::state.viewportPos / m_camera->getZoom();
+        m_GridShader->setUniformVec2("u_cameraOffset", {-viewportPos.x - camPos.x, viewportPos.y + m_camera->getSpan().y + camPos.y});
+
         m_GridVao->setVertices(vertices.data(), vertices.size());
 
         Gl::Api::drawElements(GL_TRIANGLES, 6);
