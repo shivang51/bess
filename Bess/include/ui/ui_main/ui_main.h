@@ -9,6 +9,7 @@ namespace Bess::UI {
     struct InternalData {
         std::string path;
         bool newFileClicked = false, openFileClicked = false;
+        bool isTbFocused = false;
     };
 
     struct UIState {

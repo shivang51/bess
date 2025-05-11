@@ -1,23 +1,19 @@
 #include "ui/ui_main/ui_main.h"
-
 #include "application_state.h"
-#include "common/helpers.h"
 #include "common/log.h"
 #include "glad/glad.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "scene/renderer/renderer.h"
 #include "simulation_engine.h"
-#include <cstdint>
+#include "ui/m_widgets.h"
 #include <string>
 
 #include "camera.h"
 #include "pages/main_page/main_page_state.h"
 #include "scene/renderer/gl/gl_wrapper.h"
 #include "scene/scene.h"
-#include "simulation_engine_serializer.h"
-#include "ui/icons/CodIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
-#include "ui/m_widgets.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/dialogs.h"
 #include "ui/ui_main/popups.h"
@@ -179,16 +175,31 @@ namespace Bess::UI {
 
         auto menubar_size = ImGui::GetWindowSize();
 
-        ImGui::SameLine(menubar_size.x / 2.f); // Align to the right side
-        ImGui::SetCursorPosY(menubar_size.y / 2.f - (ImGui::GetFontSize() / 2.f) - 4.f);
-        ImGui::PushItemWidth(150);
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 4.f));
-        auto colors = ImGui::GetStyle().Colors;
-        ImGui::PushStyleColor(ImGuiCol_FrameBg, colors[ImGuiCol_WindowBg]);
-        MWidgets::TextBox("", Pages::MainPageState::getInstance()->getCurrentProjectFile()->getNameRef(), "Project Name");
+        // project name textbox - begin
+
+        auto style = ImGui::GetStyle();
+        auto &name = Pages::MainPageState::getInstance()->getCurrentProjectFile()->getNameRef();
+        auto fontSize = Renderer2D::Renderer::getStringRenderSize(name, ImGui::GetFontSize());
+        auto width = fontSize.x + (style.FramePadding.x * 2);
+        if (width < 150)
+            width = 150;
+        else if (width > 200)
+            width = 200;
+
+        ImGui::PushItemWidth(width);
+        ImGui::SameLine(menubar_size.x / 2.f - width / 2.f); // Align to the right side
+        ImGui::SetCursorPosY((menubar_size.y - ImGui::GetFontSize()) / 2.f - 2.f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 2.f));
+        ImGui::PushStyleColor(ImGuiCol_FrameBg, style.Colors[ImGuiCol_WindowBg]);
+        MWidgets::TextBox("", name, "Project Name");
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
         ImGui::PopItemWidth();
+
+        state._internalData.isTbFocused = ImGui::IsItemFocused();
+
+        // project name textbox - end
+
         ImGui::EndMainMenuBar();
         ImGui::PopStyleVar(2);
 
@@ -246,7 +257,7 @@ namespace Bess::UI {
         auto gPos = ImGui::GetMainViewport()->Pos;
         state.viewportPos = {pos.x - gPos.x + offset.x, pos.y - gPos.y + offset.y};
 
-        if (ImGui::IsWindowHovered()) {
+        if (!state._internalData.isTbFocused && ImGui::IsWindowHovered()) {
             ImGui::SetWindowFocus();
         }
 
