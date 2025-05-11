@@ -13,11 +13,11 @@ namespace Bess::UI {
     }
 
     bool MWidgets::TextBox(const std::string &label, std::string &value, const std::string &hintText) {
-        if (label[0] != '#' && label[1] != '#') {
-            ImGui::AlignTextToFramePadding();
+        ImGui::AlignTextToFramePadding();
+        if (!label.empty() && label[0] != '#' && label[1] != '#') {
             ImGui::Text("%s", label.c_str());
+            ImGui::SameLine();
         }
-        ImGui::SameLine();
         if (ImGui::InputTextWithHint(("##Tb" + label).c_str(), hintText.c_str(),
                                      value.data(), value.capacity() + 1, ImGuiInputTextFlags_CallbackResize,
                                      InputTextCallback, (void *)&value)) {
