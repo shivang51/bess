@@ -60,6 +60,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 if(MSVC)
 	target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)
 	set_property(TARGET ${PROJECT_NAME} PROPERTY
 			MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
 	)

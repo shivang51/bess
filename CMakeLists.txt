@@ -19,7 +19,6 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8)
 		set(BUILD_ARCH "x64")
 elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
 		set(BUILD_ARCH "x32")
-    message(STATUS "Target is 32-bit")
 endif()
 
 message(STATUS "Arch: ${BUILD_ARCH}")
@@ -33,4 +32,7 @@ message(STATUS "Output location: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 add_subdirectory(BessSimEngine)
 add_subdirectory(Bess)
 
-
+if(MSVC)
+	# startup projects needs to be set here
+	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Bess)
+endif()
