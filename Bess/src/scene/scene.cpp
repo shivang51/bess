@@ -393,6 +393,14 @@ namespace Bess::Canvas {
                 compNew.pos.y = slotPos.y;
         }
 
+        // glm::vec2 newPos = getNVPMousePos(m_mousePos);
+        // if (!m_isDragging) {
+        //     auto offset = newPos - comp.pos;
+        //     m_dragOffsets[ent] = offset;
+        // }
+        // newPos -= m_dragOffsets[ent];
+        // newPos = glm::vec2({(int)(std::round(newPos.x) / 4), (int)(std::round(newPos.y) / 4)}) * 4.f;
+
         if (comp.pos.x == 0) {
             comp.pos.y += dPos.y;
         } else if (comp.pos.y == 0) {
@@ -455,21 +463,28 @@ namespace Bess::Canvas {
                 m_drawMode = SceneDrawMode::selectionBox;
                 m_selectionBoxStart = m_mousePos;
             } else if (selectedComponentsSize == 1 && m_registry.valid(hoveredEntity) && m_registry.all_of<Components::ConnectionSegmentComponent>(hoveredEntity)) {
-                m_isDragging = true;
                 dragConnectionSegment(hoveredEntity, m_dMousePos);
-            } else {
                 m_isDragging = true;
+            } else {
                 auto view = m_registry.view<Components::SelectedComponent, Components::TransformComponent>();
                 for (auto &ent : view) {
                     auto &transformComp = view.get<Components::TransformComponent>(ent);
-                    auto dPos_ = glm::vec3(m_dMousePos, 0.f);
-                    transformComp.position += dPos_;
+                    glm::vec2 newPos = getNVPMousePos(m_mousePos);
+                    if (!m_isDragging) {
+                        auto offset = newPos - glm::vec2(transformComp.position);
+                        m_dragOffsets[ent] = offset;
+                    }
+                    newPos -= m_dragOffsets[ent];
+                    newPos = glm::vec2({(int)(std::round(newPos.x) / 4), (int)(std::round(newPos.y) / 4)}) * 4.f;
+                    transformComp.position = {newPos, transformComp.position.z};
                 }
 
                 auto connectionView = m_registry.view<Components::SelectedComponent, Components::ConnectionComponent>();
                 for (auto &ent : connectionView) {
                     moveConnection(ent, m_dMousePos);
                 }
+
+                m_isDragging = true;
             }
         } else if (m_isMiddleMousePressed) {
             glm::vec2 dPos = m_dMousePos;
@@ -617,7 +632,10 @@ namespace Bess::Canvas {
                 m_selectInSelectionBox = true;
                 m_selectionBoxEnd = m_mousePos;
             }
-            m_isDragging = false;
+            if (m_isDragging) {
+                m_isDragging = false;
+                m_dragOffsets.clear();
+            }
             return;
         }
         auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);

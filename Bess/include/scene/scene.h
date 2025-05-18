@@ -125,8 +125,10 @@ namespace Bess::Canvas {
         SceneMode m_sceneMode = SceneMode::general;
 
         const float m_zIncrement = 0.001;
+        const int snapSize = 2;
         float m_compZCoord = m_zIncrement;
         bool m_isDragging = false;
+        std::unordered_map<entt::entity, glm::vec2> m_dragOffsets = {};
 
         LastCreatedComponent m_lastCreatedComp = {};
         std::vector<SimEngine::ComponentType> m_copiedComponents = {};
