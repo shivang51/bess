@@ -1,10 +1,11 @@
 #pragma once
 
+#include "bess_api.h"
 #include "spdlog/spdlog.h"
 #include <string>
 
 namespace Bess::SimEngine {
-    class Logger {
+    class BESS_API Logger {
       public:
         static Logger &getInstance();
 

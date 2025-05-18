@@ -1,3 +1,4 @@
+#define FMT_UNICODE 0
 #include "application.h"
 #include <csignal>
 #include <cstdlib>

@@ -81,14 +81,14 @@ namespace Bess::UI {
                     ImGui::Text("Unknown State");
                 }
 
-                std::string rightContent[] = {};
-                float offset = style.FramePadding.x;
-                for (auto &content : rightContent)
-                    offset += getTextSize(content).x;
+                //std::string rightContent[] = {};
+                //float offset = style.FramePadding.x;
+                //for (auto &content : rightContent)
+                //    offset += getTextSize(content).x;
 
-                ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - offset);
-                for (auto &content : rightContent)
-                    ImGui::Text("%s", content.c_str());
+                //ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - offset);
+                //for (auto &content : rightContent)
+                //    ImGui::Text("%s", content.c_str());
                 ImGui::EndMenuBar();
             }
             ImGui::End();
