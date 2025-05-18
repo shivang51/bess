@@ -207,7 +207,7 @@ namespace Bess::UI::Icons::CodIcons {
     constexpr auto DEBUG_STEP_OUT = "\xee\xab\x95";                          // U+ead5
     constexpr auto DEBUG_STEP_OVER = "\xee\xab\x96";                         // U+ead6
     constexpr auto DEBUG_STOP = "\xee\xab\x97";                              // U+ead7
-    constexpr auto DEBUG = "\xee\xab\x98";                                   // U+ead8
+    constexpr auto DEBUG_ICON = "\xee\xab\x98";                              // U+ead8
     constexpr auto DEVICE_CAMERA_VIDEO = "\xee\xab\x99";                     // U+ead9
     constexpr auto DEVICE_CAMERA = "\xee\xab\x9a";                           // U+eada
     constexpr auto DEVICE_MOBILE = "\xee\xab\x9b";                           // U+eadb

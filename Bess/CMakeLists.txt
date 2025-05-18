@@ -132,7 +132,7 @@ else()
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14")
 	    target_link_libraries(${PROJECT_NAME} PRIVATE stdc++exp)
     else()
-	target_link_libraries(${PROJECT_NAME} PRIVATE stdc++_libbacktrace)
+		target_link_libraries(${PROJECT_NAME} PRIVATE stdc++_libbacktrace)
     endif()
 
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
@@ -175,10 +175,10 @@ if("${BUILD_ARCH}" STREQUAL "x64")
 	)
 endif()
 
+set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)
 
 if(MSVC)
 	target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)
-    set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 endif()
 
