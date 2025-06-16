@@ -1,6 +1,5 @@
 #include "scene/renderer/gl/gl_wrapper.h"
-
-#include <iostream>
+#include "common/log.h"
 
 void GLCheckError(const char *stmt, const char *filename, const int line) {
     while (const GLenum err = glGetError()) {
@@ -31,7 +30,7 @@ void GLCheckError(const char *stmt, const char *filename, const int line) {
             error = "Unknown OpenGL error.";
         }
 
-        std::cerr << "OpenGL error " << err << " (" << error << ") in " << filename << ": " << line << " at " << stmt << std::endl;
+        BESS_ERROR("OpenGL error {} ({}) in {}: {} at {}", err, error, filename, line, stmt);
     }
 }
 

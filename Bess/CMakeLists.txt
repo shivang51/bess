@@ -117,13 +117,6 @@ set(ALL_FILES
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine)
 add_dependencies(${PROJECT_NAME} BessSimEngine)
-
-if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14")
-	target_link_libraries(${PROJECT_NAME} PRIVATE stdc++exp)
-else()
-    target_link_libraries(${PROJECT_NAME} PRIVATE stdc++_libbacktrace)
-endif()
-
 if("${BUILD_ARCH}" STREQUAL "x64" AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
         "glfw3;"
@@ -136,7 +129,14 @@ if("${BUILD_ARCH}" STREQUAL "x64" AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
         "${CMAKE_SOURCE_DIR}/external/glfw/lib-vc2022"
         "${CMAKE_SOURCE_DIR}/external/freetype/libs/windows"
     )
+
 else()
+    if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14")
+	    target_link_libraries(${PROJECT_NAME} PRIVATE stdc++exp)
+    else()
+		target_link_libraries(${PROJECT_NAME} PRIVATE stdc++_libbacktrace)
+    endif()
+
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
         "glfw;"
         "GL;"
@@ -173,12 +173,14 @@ if("${BUILD_ARCH}" STREQUAL "x64")
 			"${CMAKE_CURRENT_SOURCE_DIR}/../external/entt/include"
 			"${CMAKE_CURRENT_SOURCE_DIR}/include"
 			"${CMAKE_CURRENT_SOURCE_DIR}/../BessSimEngine/include"
+			"${CMAKE_CURRENT_SOURCE_DIR}/../external/spdlog/include;"
 	)
 endif()
 
+set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)
 
 if(MSVC)
-    set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
-		set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+	target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8")
 endif()
 

@@ -1,4 +1,5 @@
 #include "scene/renderer/gl/shader.h"
+#include "common/log.h"
 #include "gtc/type_ptr.hpp"
 #include <fstream>
 #include <iostream>
@@ -54,8 +55,7 @@ namespace Bess::Gl {
         glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
         if (!success) {
             glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
-            std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
-                      << infoLog << std::endl;
+            BESS_ERROR("ERROR::SHADER::PROGRAM::LINKING_FAILED -> {}\n", infoLog);
         }
 
         glDeleteShader(vertexShaderId);
@@ -84,9 +84,7 @@ namespace Bess::Gl {
         glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
         if (!success) {
             glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
-            std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED -> "
-                      << fragmentPath << "\n"
-                      << infoLog << std::endl;
+            BESS_ERROR("ERROR::SHADER::PROGRAM::LINKING_FAILED:({}) -> {}", fragmentPath, infoLog);
         }
 
         glDeleteShader(vertexShaderId);
@@ -105,7 +103,7 @@ namespace Bess::Gl {
             fileStream.read((char *)content.data(), fileSize);
             fileStream.close();
         } else {
-            std::cerr << "Could not read file " << path << std::endl;
+            BESS_ERROR("Could not read file {}", path);
         }
         return content;
     }
@@ -121,8 +119,7 @@ namespace Bess::Gl {
         glGetShaderiv(shaderId, GL_COMPILE_STATUS, &success);
         if (!success) {
             glGetShaderInfoLog(shaderId, 512, nullptr, infoLog);
-            std::cerr << "ERROR::SHADER::COMPILATION_FAILED\n"
-                      << infoLog << std::endl;
+            BESS_ERROR("ERROR::SHADER::COMPILATION_FAILED: {}", infoLog);
         }
 
         return shaderId;

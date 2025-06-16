@@ -42,13 +42,13 @@ set(ALL_FILES
 )
 
 add_library(${PROJECT_NAME} SHARED ${ALL_FILES})
-
+if(UNIX)
 if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14")
     target_link_libraries(${PROJECT_NAME} PRIVATE stdc++exp)
 else()
     target_link_libraries(${PROJECT_NAME} PRIVATE stdc++_libbacktrace)
 endif()
-
+endif()
 target_compile_definitions(${PROJECT_NAME} PRIVATE BESS_EXPORTS)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -58,7 +58,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/../external/spdlog/include;"
 )
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)
+
 if(MSVC)
+	target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8")
 	set_property(TARGET ${PROJECT_NAME} PROPERTY
 			MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
 	)

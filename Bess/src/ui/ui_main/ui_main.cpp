@@ -1,23 +1,19 @@
 #include "ui/ui_main/ui_main.h"
-
 #include "application_state.h"
-#include "common/helpers.h"
 #include "common/log.h"
 #include "glad/glad.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "scene/renderer/renderer.h"
 #include "simulation_engine.h"
-#include <cstdint>
+#include "ui/m_widgets.h"
 #include <string>
 
 #include "camera.h"
 #include "pages/main_page/main_page_state.h"
 #include "scene/renderer/gl/gl_wrapper.h"
 #include "scene/scene.h"
-#include "simulation_engine_serializer.h"
-#include "ui/icons/CodIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
-#include "ui/m_widgets.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/dialogs.h"
 #include "ui/ui_main/popups.h"
@@ -42,6 +38,7 @@ namespace Bess::UI {
         ComponentExplorer::draw();
         ProjectExplorer::draw();
         PropertiesPanel::draw();
+        drawStatusbar();
         drawExternalWindows();
     }
 
@@ -54,6 +51,48 @@ namespace Bess::UI {
 
     void UIMain::setViewportTexture(GLuint64 texture) {
         state.viewportTexture = texture;
+    }
+
+    ImVec2 getTextSize(const std::string &text, bool includePadding = true) {
+        auto size = ImGui::CalcTextSize(text.c_str());
+        if (!includePadding)
+            return size;
+        ImGuiContext &g = *ImGui::GetCurrentContext();
+        auto style = g.Style;
+        size.x += style.FramePadding.x * 2;
+        size.y += style.FramePadding.y * 2;
+        return size;
+    }
+
+    void UIMain::drawStatusbar() {
+        ImGuiContext &g = *ImGui::GetCurrentContext();
+        auto style = g.Style;
+        ImGuiViewportP *viewport = (ImGuiViewportP *)(void *)ImGui::GetMainViewport();
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+        float height = ImGui::GetFrameHeight();
+        if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down, height, window_flags)) {
+            if (ImGui::BeginMenuBar()) {
+                if (simEngine.getSimulationState() == SimEngine::SimulationState::running) {
+                    ImGui::Text("Simulation Running");
+                } else if (simEngine.getSimulationState() == SimEngine::SimulationState::paused) {
+                    ImGui::Text("Simulation Paused");
+                } else {
+                    ImGui::Text("Unknown State");
+                }
+
+                //std::string rightContent[] = {};
+                //float offset = style.FramePadding.x;
+                //for (auto &content : rightContent)
+                //    offset += getTextSize(content).x;
+
+                //ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - offset);
+                //for (auto &content : rightContent)
+                //    ImGui::Text("%s", content.c_str());
+                ImGui::EndMenuBar();
+            }
+            ImGui::End();
+        }
     }
 
     void UIMain::drawMenubar() {
@@ -136,16 +175,31 @@ namespace Bess::UI {
 
         auto menubar_size = ImGui::GetWindowSize();
 
-        ImGui::SameLine(menubar_size.x / 2.f); // Align to the right side
-        ImGui::SetCursorPosY(menubar_size.y / 2.f - (ImGui::GetFontSize() / 2.f) - 4.f);
-        ImGui::PushItemWidth(150);
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 4.f));
-        auto colors = ImGui::GetStyle().Colors;
-        ImGui::PushStyleColor(ImGuiCol_FrameBg, colors[ImGuiCol_WindowBg]);
-        MWidgets::TextBox("", Pages::MainPageState::getInstance()->getCurrentProjectFile()->getNameRef(), "Project Name");
+        // project name textbox - begin
+
+        auto style = ImGui::GetStyle();
+        auto &name = Pages::MainPageState::getInstance()->getCurrentProjectFile()->getNameRef();
+        auto fontSize = Renderer2D::Renderer::getStringRenderSize(name, ImGui::GetFontSize());
+        auto width = fontSize.x + (style.FramePadding.x * 2);
+        if (width < 150)
+            width = 150;
+        else if (width > 200)
+            width = 200;
+
+        ImGui::PushItemWidth(width);
+        ImGui::SameLine(menubar_size.x / 2.f - width / 2.f); // Align to the right side
+        ImGui::SetCursorPosY((menubar_size.y - ImGui::GetFontSize()) / 2.f - 2.f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 2.f));
+        ImGui::PushStyleColor(ImGuiCol_FrameBg, style.Colors[ImGuiCol_WindowBg]);
+        MWidgets::TextBox("", name, "Project Name");
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
         ImGui::PopItemWidth();
+
+        state._internalData.isTbFocused = ImGui::IsItemFocused();
+
+        // project name textbox - end
+
         ImGui::EndMainMenuBar();
         ImGui::PopStyleVar(2);
 
@@ -203,7 +257,7 @@ namespace Bess::UI {
         auto gPos = ImGui::GetMainViewport()->Pos;
         state.viewportPos = {pos.x - gPos.x + offset.x, pos.y - gPos.y + offset.y};
 
-        if (ImGui::IsWindowHovered()) {
+        if (!state._internalData.isTbFocused && ImGui::IsWindowHovered()) {
             ImGui::SetWindowFocus();
         }
 
@@ -211,7 +265,119 @@ namespace Bess::UI {
         ImGui::End();
         ImGui::PopStyleVar();
 
-        // Camera controls
+        // actions (on top right)
+        {
+
+            ImGuiContext &g = *ImGui::GetCurrentContext();
+            auto colors = g.Style.Colors;
+            auto &simEngine = SimEngine::SimulationEngine::instance();
+            static int n = 4; // number of action buttons
+            static float size = (32 * n) - (n - 1);
+            ImGui::SetNextWindowPos(
+                {pos.x + viewportPanelSize.x - size - g.Style.FramePadding.x, pos.y + g.Style.FramePadding.y});
+            ImGui::SetNextWindowSize({size, 0});
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+
+            auto col = colors[ImGuiCol_Header];
+            col.w = 0.5;
+            ImGui::PushStyleColor(ImGuiCol_WindowBg, col);
+            ImGui::Begin("ViewportActions", nullptr, flags);
+
+            auto &scene = Canvas::Scene::instance();
+
+            // scene modes
+            {
+
+                bool isGeneral = scene.getSceneMode() == Canvas::SceneMode::general;
+
+                // general mode
+                if (isGeneral) {
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.f, 0.667f, 0.f, 1.f});
+                }
+
+                auto icon = Icons::FontAwesomeIcons::FA_MOUSE_POINTER;
+                if (ImGui::Button(icon)) {
+                    scene.setSceneMode(Canvas::SceneMode::general);
+                }
+                if (isGeneral) {
+                    ImGui::PopStyleColor();
+                }
+
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                    auto msg = "General Mode";
+                    ImGui::SetTooltip("%s", msg);
+                }
+
+                // move mode
+                if (!isGeneral) {
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.f, 0.667f, 0.f, 1.f});
+                }
+                ImGui::SameLine();
+                icon = Icons::FontAwesomeIcons::FA_ARROWS_ALT;
+                if (ImGui::Button(icon)) {
+                    scene.setSceneMode(Canvas::SceneMode::move);
+                }
+
+                if (!isGeneral) {
+                    ImGui::PopStyleColor();
+                }
+
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                    auto msg = "Move Mode";
+                    ImGui::SetTooltip("%s", msg);
+                }
+            }
+
+            auto isSimPaused = simEngine.getSimulationState() == SimEngine::SimulationState::paused;
+
+            // Play / Pause
+            {
+
+                auto icon = Icons::FontAwesomeIcons::FA_PAUSE;
+                if (isSimPaused) {
+                    // #574735
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.f, 0.667f, 0.f, 1.f});
+                    icon = Icons::FontAwesomeIcons::FA_PLAY;
+                }
+
+                ImGui::SameLine();
+                if (ImGui::Button(icon)) {
+                    simEngine.toggleSimState();
+                }
+
+                if (isSimPaused)
+                    ImGui::PopStyleColor();
+
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                    auto msg = isSimPaused ? "Resume Simulation" : "Pause Simulation";
+                    ImGui::SetTooltip("%s", msg);
+                }
+            }
+
+            ImGui::SameLine();
+
+            // Step when paused
+            {
+                ImGui::BeginDisabled(!isSimPaused);
+
+                if (ImGui::Button(Icons::MaterialIcons::REDO)) {
+                    simEngine.stepSimulation();
+                }
+
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                    ImGui::SetTooltip("%s", "Step");
+                }
+                ImGui::EndDisabled();
+            }
+
+            state.isViewportFocused &= !ImGui::IsWindowHovered();
+            ImGui::End();
+            ImGui::PopStyleVar(2);
+            ImGui::PopStyleColor(1);
+        }
+
+        // Camera controls (on bottom right)
         {
             ImGui::SetNextWindowPos(
                 {pos.x + viewportPanelSize.x - 208, pos.y + viewportPanelSize.y - 40});

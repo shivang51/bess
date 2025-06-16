@@ -21,9 +21,15 @@ namespace Bess {
     }
 
     void SceneSerializer::deserialize(const nlohmann::json &json) {
-        auto &reg = Canvas::Scene::instance().getEnttRegistry();
-        reg.clear();
+        m_maxZ = 0;
+
+        auto &scene = Canvas::Scene::instance();
+        scene.clear();
+
+        auto &reg = scene.getEnttRegistry();
         EnttRegistrySerializer::deserialize(reg, json);
+
+        scene.setZCoord(m_maxZ);
     }
 
     nlohmann::json SceneSerializer::serializeEntity(entt::registry &registry, entt::entity entity) {
@@ -94,6 +100,8 @@ namespace Bess {
         if (j.contains("TransformComponent")) {
             auto transformComp = j.at("TransformComponent").get<TransformComponent>();
             registry.emplace_or_replace<TransformComponent>(entity, transformComp);
+            if (m_maxZ < transformComp.position.z)
+                m_maxZ = transformComp.position.z;
         }
 
         // SpriteComponent

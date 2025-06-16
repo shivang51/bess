@@ -9,6 +9,7 @@ namespace Bess::UI {
     struct InternalData {
         std::string path;
         bool newFileClicked = false, openFileClicked = false;
+        bool isTbFocused = false;
     };
 
     struct UIState {
@@ -32,6 +33,7 @@ namespace Bess::UI {
       private:
         static void drawProjectExplorer();
         static void drawMenubar();
+        static void drawStatusbar();
         static void drawViewport();
         static void resetDockspace();
         static void drawExternalWindows();

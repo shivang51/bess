@@ -36,8 +36,11 @@ namespace Bess::Canvas {
     }
 
     void Scene::reset() {
+        clear();
+
         m_size = glm::vec2(800.f / 600.f, 1.f);
         m_camera = std::make_shared<Camera>(m_size.x, m_size.y);
+
         std::vector<Gl::FBAttachmentType> attachments = {Gl::FBAttachmentType::RGBA_RGBA,
                                                          Gl::FBAttachmentType::R32I_REDI,
                                                          Gl::FBAttachmentType::RGBA_RGBA,
@@ -53,9 +56,15 @@ namespace Bess::Canvas {
         attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::R32I_REDI};
         m_normalFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments);
 
-        m_registry.clear();
-
         Artist::sceneRef = this;
+    }
+
+    void Scene::clear() {
+        m_registry.clear();
+        m_compZCoord = m_zIncrement;
+        m_lastCreatedComp = {};
+        m_copiedComponents = {};
+        m_drawMode = SceneDrawMode::none;
     }
 
     void Scene::update(const std::vector<ApplicationEvent> &events) {
@@ -90,7 +99,7 @@ namespace Bess::Canvas {
                 } else if (data.button == MouseButton::right) {
                     onRightMouse(data.pressed);
                 } else if (data.button == MouseButton::middle) {
-                    // onMiddleMouse(data.pressed);
+                    onMiddleMouse(data.pressed);
                 }
             } break;
             case ApplicationEventType::MouseWheel: {
@@ -141,8 +150,17 @@ namespace Bess::Canvas {
 
     void Scene::render() {
         auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
-        if (m_registry.valid(hoveredEntity) && m_registry.any_of<Components::SlotComponent, Components::ConnectionSegmentComponent>(hoveredEntity)) {
-            UI::setCursorPointer();
+
+        switch (m_sceneMode) {
+        case SceneMode::general: {
+            if (m_registry.valid(hoveredEntity) && m_registry.any_of<Components::SlotComponent, Components::ConnectionSegmentComponent>(hoveredEntity)) {
+                UI::setCursorPointer();
+            }
+
+        } break;
+        case SceneMode::move: {
+            UI::setCursorMove();
+        } break;
         }
 
         beginScene();
@@ -358,45 +376,47 @@ namespace Bess::Canvas {
         auto &comp = m_registry.get<Components::ConnectionSegmentComponent>(ent);
 
         if (comp.isHead() || comp.isTail()) {
-            auto &adjComp = m_registry.get<Components::ConnectionSegmentComponent>(comp.isHead() ? getEntityWithUuid(comp.next) : getEntityWithUuid(comp.prev));
-            bool isHorizontal = comp.isHead() ? adjComp.pos.x != 0 : comp.pos.x == 0;
             auto newEntt = m_registry.create();
             auto &idComp = m_registry.emplace<Components::IdComponent>(newEntt);
             auto &compNew = m_registry.emplace<Components::ConnectionSegmentComponent>(newEntt);
             compNew.parent = comp.parent;
 
+            glm::vec2 slotPos;
+
             if (comp.isHead()) {
                 comp.prev = idComp.uuid;
                 compNew.next = getUuidOfEntity(ent);
                 auto &connComponent = m_registry.get<Components::ConnectionComponent>(getEntityWithUuid(comp.parent));
+                auto &slotComponent = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComponent.inputSlot));
                 connComponent.segmentHead = idComp.uuid;
-                if (isHorizontal)
-                    comp.pos.y = getNVPMousePos(m_mousePos).y;
-                else
-                    comp.pos.x = getNVPMousePos(m_mousePos).x;
+                slotPos = Artist::getSlotPos(slotComponent);
             } else {
                 comp.next = idComp.uuid;
                 compNew.prev = getUuidOfEntity(ent);
                 auto &connComponent = m_registry.get<Components::ConnectionComponent>(getEntityWithUuid(comp.parent));
                 auto &slotComponent = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComponent.outputSlot));
-                auto slotPos = Artist::getSlotPos(slotComponent);
-                if (comp.pos.x == 0)
-                    compNew.pos.x = slotPos.x;
-                else
-                    compNew.pos.y = slotPos.y;
+                slotPos = Artist::getSlotPos(slotComponent);
             }
 
-            if (isHorizontal)
-                comp.pos.y += dPos.y;
+            if (comp.pos.x == 0) // if current is vertical
+                compNew.pos.x = slotPos.x;
             else
-                comp.pos.x += dPos.x;
+                compNew.pos.y = slotPos.y;
+        }
 
-        } else if (comp.pos.x == 0) {
+        // glm::vec2 newPos = getNVPMousePos(m_mousePos);
+        // if (!m_isDragging) {
+        //     auto offset = newPos - comp.pos;
+        //     m_dragOffsets[ent] = offset;
+        // }
+        // newPos -= m_dragOffsets[ent];
+        // newPos = glm::vec2({(int)(std::round(newPos.x) / 4), (int)(std::round(newPos.y) / 4)}) * 4.f;
+
+        if (comp.pos.x == 0) {
             comp.pos.y += dPos.y;
         } else if (comp.pos.y == 0) {
             comp.pos.x += dPos.x;
         }
-        m_isDragging = true;
     }
 
     void Scene::moveConnection(entt::entity ent, glm::vec2 &dPos) {
@@ -439,7 +459,7 @@ namespace Bess::Canvas {
     }
 
     void Scene::onMouseMove(const glm::vec2 &pos) {
-        auto dPos = getNVPMousePos(pos) - getNVPMousePos(m_mousePos);
+        m_dMousePos = getNVPMousePos(pos) - getNVPMousePos(m_mousePos);
         m_mousePos = pos;
 
         // reading the hoverid
@@ -449,26 +469,38 @@ namespace Bess::Canvas {
 
         if (m_isLeftMousePressed && m_drawMode == SceneDrawMode::none) {
             auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
-            auto selectComponentsSize = m_registry.view<Components::SelectedComponent>()->size();
-            if (!m_registry.valid(hoveredEntity) && selectComponentsSize == 0) {
+            auto selectedComponentsSize = m_registry.view<Components::SelectedComponent>()->size();
+            if (!m_registry.valid(hoveredEntity) && selectedComponentsSize == 0) {
                 m_drawMode = SceneDrawMode::selectionBox;
                 m_selectionBoxStart = m_mousePos;
-            } else if (selectComponentsSize == 1 && m_registry.valid(hoveredEntity) && m_registry.all_of<Components::ConnectionSegmentComponent>(hoveredEntity)) {
-                dragConnectionSegment(hoveredEntity, dPos);
+            } else if (selectedComponentsSize == 1 && m_registry.valid(hoveredEntity) && m_registry.all_of<Components::ConnectionSegmentComponent>(hoveredEntity)) {
+                dragConnectionSegment(hoveredEntity, m_dMousePos);
+                m_isDragging = true;
             } else {
                 auto view = m_registry.view<Components::SelectedComponent, Components::TransformComponent>();
                 for (auto &ent : view) {
                     auto &transformComp = view.get<Components::TransformComponent>(ent);
-                    auto dPos_ = glm::vec3(dPos, 0.f);
-                    transformComp.position += dPos_;
+                    glm::vec2 newPos = getNVPMousePos(m_mousePos);
+                    if (!m_isDragging) {
+                        auto offset = newPos - glm::vec2(transformComp.position);
+                        m_dragOffsets[ent] = offset;
+                    }
+                    newPos -= m_dragOffsets[ent];
+                    newPos = glm::vec2({(int)(std::round(newPos.x) / 4), (int)(std::round(newPos.y) / 4)}) * 4.f;
+                    transformComp.position = {newPos, transformComp.position.z};
                 }
 
                 auto connectionView = m_registry.view<Components::SelectedComponent, Components::ConnectionComponent>();
                 for (auto &ent : connectionView) {
-                    moveConnection(ent, dPos);
+                    moveConnection(ent, m_dMousePos);
                 }
+
                 m_isDragging = true;
             }
+        } else if (m_isMiddleMousePressed) {
+            glm::vec2 dPos = m_dMousePos;
+            dPos *= m_camera->getZoom() * -1;
+            m_camera->incrementPos(dPos);
         }
     }
 
@@ -545,7 +577,8 @@ namespace Bess::Canvas {
 
         auto dX = outputSlotPos.x - inputSlotPos.x;
 
-        connSegComp2.pos = glm::vec2(inputSlotPos.x + (dX / 2.f), 0);
+        connSegComp1.pos = glm::vec2(0, inputSlotPos.y);
+        connSegComp2.pos = glm::vec2(inputSlotPos.x + (dX * 0.8f), 0);
         connSegComp3.pos = glm::vec2(0, outputSlotPos.y);
     }
 
@@ -598,6 +631,10 @@ namespace Bess::Canvas {
         }
     }
 
+    void Scene::onMiddleMouse(bool isPressed) {
+        m_isMiddleMousePressed = isPressed;
+    }
+
     void Scene::onLeftMouse(bool isPressed) {
         m_isLeftMousePressed = isPressed;
         if (!isPressed) {
@@ -606,7 +643,10 @@ namespace Bess::Canvas {
                 m_selectInSelectionBox = true;
                 m_selectionBoxEnd = m_mousePos;
             }
-            m_isDragging = false;
+            if (m_isDragging) {
+                m_isDragging = false;
+                m_dragOffsets.clear();
+            }
             return;
         }
         auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
@@ -623,7 +663,8 @@ namespace Bess::Canvas {
                     connectSlots(getEntityWithUuid(m_connectionStartEntity), hoveredEntity);
                 }
             } else {
-                if (!Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
+                if (m_sceneMode != SceneMode::move &&
+                    !Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
                     m_registry.clear<Components::SelectedComponent>();
                 }
 
@@ -634,7 +675,7 @@ namespace Bess::Canvas {
                     toggleSelectComponent(hoveredEntity);
                 }
             }
-        } else { // deselecting all when clicking outside
+        } else if (m_sceneMode != SceneMode::move) { // deselecting all when clicking outside
             m_registry.clear<Components::SelectedComponent>();
             m_drawMode = SceneDrawMode::none;
         }
@@ -823,6 +864,10 @@ namespace Bess::Canvas {
         return z;
     }
 
+    void Scene::setZCoord(float value) {
+        m_compZCoord = value + m_zIncrement;
+    }
+
     unsigned int Scene::getTextureId() {
         return m_normalFramebuffer->getColorBufferTexId(0);
     }
@@ -835,4 +880,10 @@ namespace Bess::Canvas {
         m_lastCreatedComp = comp;
     }
 
+    void Scene::setSceneMode(SceneMode mode) {
+        m_sceneMode = mode;
+    }
+    SceneMode Scene::getSceneMode() {
+        return m_sceneMode;
+    }
 } // namespace Bess::Canvas

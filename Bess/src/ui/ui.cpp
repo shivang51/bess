@@ -135,7 +135,11 @@ namespace Bess::UI {
         ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
     }
 
-    void setCursorReset() { ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow); }
+    void setCursorMove() {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+    }
+
+    void setCursorNormal() { ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow); }
 
     void drawStats(int fps) {
         ImGui::Begin("Stats");

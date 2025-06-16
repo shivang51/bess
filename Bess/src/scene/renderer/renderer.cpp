@@ -64,7 +64,7 @@ namespace Bess {
             m_renderPassVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::RenderPassVertex));
         }
 
-        m_AvailablePrimitives = {PrimitiveType::curve, PrimitiveType::circle,
+        m_AvailablePrimitives = {PrimitiveType::curve, PrimitiveType::circle, PrimitiveType::line,
                                  PrimitiveType::font, PrimitiveType::triangle, PrimitiveType::quad};
 
         for (auto &prim : m_AvailablePrimitives) {
@@ -95,6 +95,10 @@ namespace Bess {
             case PrimitiveType::triangle:
                 vertexShader = "assets/shaders/vert.glsl";
                 fragmentShader = "assets/shaders/triangle_frag.glsl";
+                break;
+            case PrimitiveType::line:
+                vertexShader = "assets/shaders/vert.glsl";
+                fragmentShader = "assets/shaders/line_frag.glsl";
                 break;
             }
 
@@ -284,10 +288,13 @@ namespace Bess {
         m_GridShader->bind();
         m_GridVao->bind();
 
-        auto camOffset = m_camera->getPos();
         m_GridShader->setUniformMat4("u_mvp", m_camera->getOrtho());
         m_GridShader->setUniform1f("u_zoom", m_camera->getZoom());
-        m_GridShader->setUniformVec2("u_cameraOffset", {-camOffset.x, camOffset.y});
+
+        auto camPos = m_camera->getPos();
+        auto viewportPos = UI::UIMain::state.viewportPos / m_camera->getZoom();
+        m_GridShader->setUniformVec2("u_cameraOffset", {-viewportPos.x - camPos.x, viewportPos.y + m_camera->getSpan().y + camPos.y});
+
         m_GridVao->setVertices(vertices.data(), vertices.size());
 
         Gl::Api::drawElements(GL_TRIANGLES, 6);
@@ -514,8 +521,24 @@ namespace Bess {
 
         float angle = glm::atan(direction.y, direction.x);
 
-        drawQuad(glm::vec3(pos, start.z), {length, size}, color, id, angle, false,
-                 glm::vec4(0.f), glm::vec4(0.f), glm::vec4(0.f));
+        auto transform = glm::translate(glm::mat4(1.0f), {pos, start.z});
+        transform = glm::rotate(transform, angle, {0.f, 0.f, 1.f});
+        transform = glm::scale(transform, {length, size, 1.f});
+
+        std::vector<Gl::Vertex> vertices(4);
+        for (int i = 0; i < vertices.size(); i++) {
+            auto &vertex = vertices[i];
+            vertex.position = transform * m_StandardQuadVertices[i];
+            vertex.id = id;
+            vertex.color = color;
+        }
+
+        vertices[0].texCoord = {0.0f, 1.0f};
+        vertices[1].texCoord = {0.0f, 0.0f};
+        vertices[2].texCoord = {1.0f, 0.0f};
+        vertices[3].texCoord = {1.0f, 1.0f};
+
+        addLineVertices(vertices);
     }
 
     void Renderer2D::Renderer::drawPath(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const std::vector<int> &ids, bool closed) {
@@ -599,6 +622,18 @@ namespace Bess {
 
         primitive_vertices.insert(primitive_vertices.end(), vertices.begin(),
                                   vertices.end());
+    }
+
+    void Renderer::addLineVertices(const std::vector<Gl::Vertex> &vertices) {
+        auto max_render_count = m_MaxRenderLimit[PrimitiveType::line];
+
+        auto &primitive_vertices = m_RenderData.lineVertices;
+
+        if (primitive_vertices.size() >= (max_render_count - 1) * 4) {
+            flush(PrimitiveType::line);
+        }
+
+        primitive_vertices.insert(primitive_vertices.end(), vertices.begin(), vertices.end());
     }
 
     void Renderer::addQuadVertices(const std::vector<Gl::QuadVertex> &vertices) {
@@ -714,7 +749,6 @@ namespace Bess {
             auto &vertices = m_RenderData.curveVertices;
             vao->setVertices(vertices.data(), vertices.size());
             Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
-
             vertices.clear();
         } break;
         case PrimitiveType::circle: {
@@ -727,6 +761,12 @@ namespace Bess {
             auto &vertices = m_RenderData.triangleVertices;
             vao->setVertices(vertices.data(), vertices.size());
             Gl::Api::drawElements(GL_TRIANGLES, vertices.size());
+            vertices.clear();
+        } break;
+        case PrimitiveType::line: {
+            auto &vertices = m_RenderData.lineVertices;
+            vao->setVertices(vertices.data(), vertices.size());
+            Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
             vertices.clear();
         } break;
         }

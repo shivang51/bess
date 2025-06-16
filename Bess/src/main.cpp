@@ -1,3 +1,4 @@
+#define FMT_UNICODE 0
 #include "application.h"
 #include <csignal>
 #include <cstdlib>
@@ -7,14 +8,10 @@
 #ifdef __linux__
     #include <stacktrace>
 
-void print_stacktrace() {
+void signalHandler(int sig) {
+    std::cerr << "Error: signal " << sig << std::endl;
     std::stacktrace st = std::stacktrace::current(10);
     std::cout << st << std::endl;
-}
-
-void signal_handler(int sig) {
-    std::cerr << "Error: signal " << sig << std::endl;
-    print_stacktrace();
     exit(1);
 }
 
@@ -41,7 +38,7 @@ int main(int argc, char **argv) {
 #ifdef __linux__
     #ifndef NDEBUG
     struct sigaction sa;
-    sa.sa_handler = signal_handler;
+    sa.sa_handler = signalHandler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
     sigaction(SIGSEGV, &sa, nullptr);

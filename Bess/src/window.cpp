@@ -1,4 +1,5 @@
 #include "window.h"
+#include "common/log.h"
 #include "glad/glad.h"
 #include "scene/renderer/gl/gl_wrapper.h"
 #include <cassert>
@@ -119,7 +120,7 @@ namespace Bess {
         glfwSetErrorCallback([](int code, const char *msg) {
             if (code == 65548)
                 return;
-            std::cerr << "[-] GLFW ERROR " << code << "-> " << msg << std::endl;
+            BESS_ERROR("[-] GLFW ERROR {} -> {}", code, msg);
         });
         auto res = glfwInit();
         assert(res == GLFW_TRUE);

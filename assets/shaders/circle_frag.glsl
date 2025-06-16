@@ -13,17 +13,18 @@ uniform int u_SelectedObjId;
 void main() {
     int id = u_SelectedObjId;
 
-    vec2 uv = v_TexCoord - 0.5;
+    vec2 uv = (v_TexCoord - 0.5);
     float r = 0.5f;
-    float blur = 0.06;
+    float blur = fwidth(length(uv));
 
     vec4 col = v_FragColor;
 
     float alpha = smoothstep(r, r - blur, length(uv));
-    if (alpha == 0.f) discard;
+    if (alpha < 0.001f) discard;
 
-    col.w = min(col.w, alpha);
+		float m = (1.f - abs(uv.y - 0.05)) * 1.1f;
+		col *= m;
 
-    fragColor = col;
+    fragColor = vec4(col.rgb, alpha);
     fragColor1 = v_TextureIndex;
 }

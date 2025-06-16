@@ -1,10 +1,11 @@
 #pragma once
 
+#include "bess_api.h"
 #include "spdlog/spdlog.h"
 #include <string>
 
 namespace Bess::SimEngine {
-    class Logger {
+    class BESS_API Logger {
       public:
         static Logger &getInstance();
 
@@ -18,9 +19,17 @@ namespace Bess::SimEngine {
     };
 } // namespace Bess::SimEngine
 
-// from https://github.com/TheCherno/Hazel/blob/master/Hazel/src/Hazel/Core/Log.h
-#define BESS_SE_TRACE(...) ::Bess::SimEngine::Logger::getInstance().getLogger("BessSimEngine")->trace(__VA_ARGS__)
-#define BESS_SE_INFO(...) ::Bess::SimEngine::Logger::getInstance().getLogger("BessSimEngine")->info(__VA_ARGS__)
-#define BESS_SE_WARN(...) ::Bess::SimEngine::Logger::getInstance().getLogger("BessSimEngine")->warn(__VA_ARGS__)
-#define BESS_SE_ERROR(...) ::Bess::SimEngine::Logger::getInstance().getLogger("BessSimEngine")->error(__VA_ARGS__)
-#define BESS_SE_CRITICAL(...) ::Bess::SimEngine::Logger::getInstance().getLogger("BessSimEngine")->critical(__VA_ARGS__)
+// idea from https://github.com/TheCherno/Hazel/blob/master/Hazel/src/Hazel/Core/Log.h
+#ifdef DEBUG
+    #define BESS_SE_TRACE(...) ::Bess::SimEngine::Logger::getInstance().getLogger("BessSimEngine")->trace(__VA_ARGS__)
+	#define BESS_SE_INFO(...) ::Bess::SimEngine::Logger::getInstance().getLogger("BessSimEngine")->info(__VA_ARGS__)
+	#define BESS_SE_WARN(...) ::Bess::SimEngine::Logger::getInstance().getLogger("BessSimEngine")->warn(__VA_ARGS__)
+	#define BESS_SE_ERROR(...) ::Bess::SimEngine::Logger::getInstance().getLogger("BessSimEngine")->error(__VA_ARGS__)
+	#define BESS_SE_CRITICAL(...) ::Bess::SimEngine::Logger::getInstance().getLogger("BessSimEngine")->critical(__VA_ARGS__)
+#else
+    #define BESS_SE_TRACE(...)
+	#define BESS_SE_INFO(...)
+	#define BESS_SE_WARN(...)
+	#define BESS_SE_ERROR(...)
+	#define BESS_SE_CRITICAL(...)
+#endif

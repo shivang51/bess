@@ -12,6 +12,12 @@
 #include <memory>
 
 namespace Bess::Canvas {
+
+    enum class SceneMode {
+        general,
+        move
+    };
+
     enum class SceneDrawMode {
         none,
         connection,
@@ -33,6 +39,7 @@ namespace Bess::Canvas {
         static Scene &instance();
 
         void reset();
+        void clear();
         void render();
         void update(const std::vector<ApplicationEvent> &events);
 
@@ -51,6 +58,9 @@ namespace Bess::Canvas {
         float getCameraZoom();
         void setZoom(float value);
 
+        void setSceneMode(SceneMode mode);
+        SceneMode getSceneMode();
+
         void resize(const glm::vec2 &size);
         entt::registry &getEnttRegistry();
         const glm::vec2 &getSize();
@@ -62,6 +72,7 @@ namespace Bess::Canvas {
         void deleteConnection(const UUID &entUuid);
         entt::entity getEntityWithUuid(const UUID &uuid);
         bool isEntityValid(const UUID &uuid);
+        void setZCoord(float val);
 
       private:
         const UUID &getUuidOfEntity(entt::entity ent);
@@ -73,6 +84,7 @@ namespace Bess::Canvas {
 
         void onMouseMove(const glm::vec2 &pos);
         void onLeftMouse(bool isPressed);
+        void onMiddleMouse(bool isPressed);
         void onRightMouse(bool isPressed);
         void onMouseWheel(double x, double y);
 
@@ -101,10 +113,10 @@ namespace Bess::Canvas {
         std::unique_ptr<Gl::FrameBuffer> m_shadowFramebuffer;
         std::unique_ptr<Gl::FrameBuffer> m_placeHolderFramebuffer;
         std::unique_ptr<Gl::FrameBuffer> m_normalFramebuffer;
-        glm::vec2 m_size, m_mousePos;
+        glm::vec2 m_size, m_mousePos, m_dMousePos;
         std::shared_ptr<Camera> m_camera;
 
-        bool m_isLeftMousePressed = false;
+        bool m_isLeftMousePressed = false, m_isMiddleMousePressed = false;
 
       private:
         entt::registry m_registry;
@@ -116,10 +128,13 @@ namespace Bess::Canvas {
         bool m_selectInSelectionBox = false;
 
         SceneDrawMode m_drawMode = SceneDrawMode::none;
+        SceneMode m_sceneMode = SceneMode::general;
 
         const float m_zIncrement = 0.001;
+        const int snapSize = 2;
         float m_compZCoord = m_zIncrement;
         bool m_isDragging = false;
+        std::unordered_map<entt::entity, glm::vec2> m_dragOffsets = {};
 
         LastCreatedComponent m_lastCreatedComp = {};
         std::vector<SimEngine::ComponentType> m_copiedComponents = {};
