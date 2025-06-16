@@ -31,7 +31,7 @@ namespace Bess::SimEngine {
 
         bool getDigitalPinState(const UUID &uuid, PinType type, int idx);
 
-        std::pair<Connections, Connections> getConnections(const UUID &uuid);
+        ConnectionBundle getConnections(const UUID &uuid);
 
         void setDigitalInput(const UUID &uuid, bool value);
 

@@ -13,6 +13,11 @@ namespace Bess::SimEngine {
 
     typedef std::vector<std::vector<std::pair<UUID, int>>> Connections;
 
+    struct BESS_API ConnectionBundle {
+        Connections inputs;
+        Connections outputs;
+    };
+
     // registry, entity, inputs, function to convert uuid to entity
     typedef std::function<bool(entt::registry &, entt::entity, const std::vector<bool> &, std::function<entt::entity(const UUID &)>)> SimulationFunction;
 

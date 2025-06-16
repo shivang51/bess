@@ -16,14 +16,14 @@ namespace Bess::Modules::SchematicGen {
     };
 
     struct Connection {
-        entt::entity gateEnt;
+        uint64_t gateEnt;
         int pinIdx;
     };
 
     struct GraphNode {
         uint64_t id = -1;
         GraphNodeType type = GraphNodeType::unknown;
-        int inputCount = 0;
+        size_t inputCount = 0;
         std::vector<Connection> outputs = {};
     };
 
@@ -34,7 +34,7 @@ namespace Bess::Modules::SchematicGen {
 
       private:
         void generateCompGraphAndLevels();
-        std::pair<int, std::vector<Connection>> getConnectionsForEntity(entt::entity ent);
+        std::pair<size_t, std::vector<Connection>> getConnectionsForEntity(entt::entity ent);
 
         std::vector<GraphNode *> m_graph;
         std::vector<std::vector<GraphNode *>> m_levels;

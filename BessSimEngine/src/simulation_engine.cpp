@@ -192,7 +192,7 @@ namespace Bess::SimEngine {
         return comp.outputStates[idx];
     }
 
-    std::pair<Connections, Connections> SimulationEngine::getConnections(const UUID &uuid) {
+    ConnectionBundle SimulationEngine::getConnections(const UUID &uuid) {
         auto ent = getEntityWithUuid(uuid);
         auto &comp = m_registry.get<DigitalComponent>(ent);
         return {comp.inputPins, comp.outputPins};
