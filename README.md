@@ -14,7 +14,7 @@ It now uses its own `Time Based Simulation Engine`.
 
 ## Build & Run
 Tested Build On:
-- [x] Linux
+- [x] Linux (Arch)
 - [x] Windows
 - [ ] MacOS
 
