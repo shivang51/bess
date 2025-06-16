@@ -13,6 +13,10 @@ It now uses its own `Time Based Simulation Engine`.
 </div>
 
 ## Build & Run
+Tested Build On:
+- [x] Linux (Arch)
+- [x] Windows
+- [ ] MacOS
 
 All build scripts live in the **scripts/** folder inside the CMake source directory.
 
