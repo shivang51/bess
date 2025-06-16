@@ -1,6 +1,7 @@
 #pragma once
 
 #include "entt/entt.hpp"
+#include "glm.hpp"
 #include <vector>
 
 namespace Bess::Canvas {
@@ -34,10 +35,12 @@ namespace Bess::Modules::SchematicGen {
 
       private:
         void generateCompGraphAndLevels();
+        void generateTransform();
         std::pair<size_t, std::vector<Connection>> getConnectionsForEntity(entt::entity ent);
 
         std::vector<GraphNode *> m_graph;
         std::vector<std::vector<GraphNode *>> m_levels;
+        std::unordered_map<uint64_t, glm::vec2> m_transforms;
 
         const entt::registry &m_registry;
         const Canvas::Scene &m_sceneRef;

@@ -13,6 +13,28 @@ namespace Bess::Modules::SchematicGen {
     void SchematicView::generateDiagram() {
         BESS_INFO("[SchemeticGen] Reading registry");
         generateCompGraphAndLevels();
+        generateTransform();
+    }
+
+    void SchematicView::generateTransform() {
+        BESS_TRACE("[SchemeticGen] Generating transform");
+        m_transforms = {};
+        size_t levelsCount = m_levels.size();
+
+        size_t x = 0, y = 0;
+        size_t W = 600, H = 600;
+        float dx = (float)W / (levelsCount + 1);
+
+        for (size_t i = 0; i < m_levels.size(); i++) {
+            x = dx * (i + 1);
+            float dh = (float)H / (m_levels[i].size() + 1);
+            for (size_t j = 0; j < m_levels[i].size(); j++) {
+                GraphNode *node = m_levels[i][j];
+                y = dh * (j + 1);
+                m_transforms[node->id] = glm::vec2(x, y);
+                BESS_TRACE("{} -> {}, {}", node->id, x, y);
+            }
+        }
     }
 
     void SchematicView::generateCompGraphAndLevels() {
@@ -33,10 +55,12 @@ namespace Bess::Modules::SchematicGen {
                                        0, // input should have any input pins
                                        connections.second});
             m_graph.emplace_back(node);
+            
             nodes.emplace(node);
-        };
+        }
 
         BESS_TRACE("[SchemeticGen] Found {} input nodes", m_graph.size());
+
 
         if (m_graph.empty()) {
             BESS_INFO("[SchemeticGen] Exiting due to no input nodes");
@@ -44,6 +68,10 @@ namespace Bess::Modules::SchematicGen {
         }
 
         BESS_TRACE("[SchemeticGen] Generating Levels");
+
+        // adding input nodes as level 0
+        m_levels.emplace_back(m_graph);
+        BESS_TRACE("[SchemeticGen] Level 0 has {} nodes", m_graph.size());
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
         std::vector<uint64_t> processedNodes = {};
@@ -67,7 +95,7 @@ namespace Bess::Modules::SchematicGen {
                     entt::entity entity = (entt::entity)conn.gateEnt;
                     auto connections = getConnectionsForEntity(entity);
 
-                    if (connections.second.size() == 0 && connections.first == 0) {
+                    if (connections.second.empty() && connections.first == 0) {
                         BESS_WARN("[SchematicGen] Ignoring component {}, due to zero connections", conn.gateEnt);
                     }
 
@@ -77,7 +105,7 @@ namespace Bess::Modules::SchematicGen {
                     auto type = compType == SimEngine::ComponentType::OUTPUT ? GraphNodeType::output : GraphNodeType::other;
 
                     auto newNode = new GraphNode({conn.gateEnt,
-                                                  GraphNodeType::other,
+                                                  type,
                                                   connections.first, // input should have any input pins
                                                   connections.second});
 
@@ -86,6 +114,11 @@ namespace Bess::Modules::SchematicGen {
                     level.emplace_back(newNode);
                 }
             }
+
+            if (level.empty())
+                continue;
+			
+            BESS_TRACE("[SchematicGen] Level {} has {} nodes", m_levels.size(), level.size());
             m_levels.emplace_back(level);
         }
 
