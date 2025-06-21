@@ -17,9 +17,10 @@
 using namespace Bess::Renderer2D;
 
 namespace Bess {
-	static constexpr uint32_t PRIMITIVE_RESTART = 0xFFFFFFFF;
-	static constexpr float BEZIER_EPSILON = 0.0002f;
+    static constexpr uint32_t PRIMITIVE_RESTART = 0xFFFFFFFF;
+    static constexpr float BEZIER_EPSILON = 0.0002f;
 
+    bool Renderer::m_curveBroken = false;
     std::vector<PrimitiveType> Renderer::m_AvailablePrimitives;
 
     std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Shader>> Renderer::m_shaders;
@@ -33,14 +34,17 @@ namespace Bess {
     std::unordered_map<PrimitiveType, size_t> Renderer::m_MaxRenderLimit;
 
     RenderData Renderer::m_RenderData;
+    PathData Renderer::m_pathData;
 
     std::unique_ptr<Gl::Shader> Renderer::m_GridShader;
     std::unique_ptr<Gl::Shader> Renderer::m_shadowPassShader;
     std::unique_ptr<Gl::Shader> Renderer::m_compositePassShader;
     std::unique_ptr<Gl::Vao> Renderer::m_GridVao;
     std::unique_ptr<Gl::Vao> Renderer::m_renderPassVao;
-	std::vector<Gl::Vertex> Renderer::m_curveStripVertices;
-	std::vector<GLuint> Renderer::m_curveStripIndices;
+    std::vector<Gl::Vertex> Renderer::m_curveStripVertices;
+    std::vector<GLuint> Renderer::m_curveStripIndices;
+    std::vector<Gl::Vertex> Renderer::m_pathStripVertices;
+    std::vector<GLuint> Renderer::m_pathStripIndices;
 
     std::unique_ptr<Font> Renderer::m_Font;
     std::unordered_map<std::string, glm::vec2> Renderer::m_charSizeCache;
@@ -69,7 +73,7 @@ namespace Bess {
         //}
 
         m_AvailablePrimitives = {PrimitiveType::curve, PrimitiveType::circle, PrimitiveType::line,
-                                 PrimitiveType::font, PrimitiveType::triangle, PrimitiveType::quad};
+                                 PrimitiveType::font, PrimitiveType::triangle, PrimitiveType::quad, PrimitiveType::path};
 
         for (auto &prim : m_AvailablePrimitives) {
             m_MaxRenderLimit[prim] = 2000;
@@ -85,6 +89,7 @@ namespace Bess {
                 m_quadShadowShader = std::make_unique<Gl::Shader>("assets/shaders/quad_vert.glsl", "assets/shaders/shadow_frag.glsl");
                 break;
             case PrimitiveType::curve:
+            case PrimitiveType::path:
                 vertexShader = "assets/shaders/vert.glsl";
                 fragmentShader = "assets/shaders/curve_frag.glsl";
                 break;
@@ -133,11 +138,11 @@ namespace Bess {
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::Vertex, color)));
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::Vertex, texCoord)));
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::Vertex, id)));
-                bool triangle = primitive == PrimitiveType::triangle || primitive == PrimitiveType::curve;
+                bool triangle = primitive == PrimitiveType::triangle || primitive == PrimitiveType::curve || primitive == PrimitiveType::path;
                 Gl::VaoElementType elType = Gl::VaoElementType::quad;
                 if (primitive == PrimitiveType::triangle) {
                     elType = Gl::VaoElementType::triangle;
-                } else if(primitive == PrimitiveType::curve) {
+                } else if (primitive == PrimitiveType::curve || primitive == PrimitiveType::path) {
                     elType = Gl::VaoElementType::triangleStrip;
                 }
                 size_t maxVertices = max_render_count * (triangle ? 3 : 4);
@@ -334,12 +339,12 @@ namespace Bess {
     }
 
     void Renderer::addCurveSegmentStrip(
-            const glm::vec3 &prev_,
-            const glm::vec3 &curr_,
-            const glm::vec4 &color,
-            int id,
-            float weight,
-            bool firstSegment) {
+        const glm::vec3 &prev_,
+        const glm::vec3 &curr_,
+        const glm::vec4 &color,
+        int id,
+        float weight,
+        bool firstSegment) {
         glm::vec2 prev = {prev_.x, prev_.y};
         glm::vec2 curr = {curr_.x, curr_.y};
 
@@ -373,49 +378,15 @@ namespace Bess {
 
         uint32_t base = (uint32_t)m_curveStripVertices.size();
         m_curveStripVertices.emplace_back(makeV(vCurrOut, {1.0f, 1.0f})); // base + 0
-        m_curveStripVertices.emplace_back(makeV(vCurrIn, {1.0f, 0.0f})); // base + 1
+        m_curveStripVertices.emplace_back(makeV(vCurrIn, {1.0f, 0.0f}));  // base + 1
         m_curveStripIndices.emplace_back(base + 0);
         m_curveStripIndices.emplace_back(base + 1);
     }
 
-    void Renderer::createCurveVertices(const glm::vec3 &start_, const glm::vec3 &end_, const glm::vec4 &color, const int id, float weight) {
-        auto end = end_;
-        auto start = start_;
-
-        float dy = end.y - start.y;
-        if (std::abs(dy) < 0.0001f) {
-            end.y = start.y;
-        }
-        glm::vec2 direction = glm::normalize(end - start);
-        float length = glm::distance(start, end);
-        glm::vec2 pos = (start + end) * 0.5f;
-        float angle = glm::atan(direction.y, direction.x);
-        glm::vec2 size = {length, weight};
-
-        auto transform = glm::translate(glm::mat4(1.0f), {pos, start.z});
-        transform = glm::rotate(transform, angle, {0.f, 0.f, 1.f});
-        transform = glm::scale(transform, {size, 1.f});
-
-        std::vector<Gl::Vertex> vertices(4);
-        for (int i = 0; i < 4; i++) {
-            auto &vertex = vertices[i];
-            vertex.position = transform * m_StandardQuadVertices[i];
-            vertex.id = id;
-            vertex.color = color;
-        }
-
-        vertices[0].texCoord = {0.0f, 1.0f};
-        vertices[1].texCoord = {0.0f, 0.0f};
-        vertices[2].texCoord = {1.0f, 0.0f};
-        vertices[3].texCoord = {1.0f, 1.0f};
-
-        addCurveVertices(vertices);
-    }
-
     int Renderer::calculateCubicBezierSegments(const glm::vec2 &p0,
-                                    const glm::vec2 &p1,
-                                    const glm::vec2 &p2,
-                                    const glm::vec2 &p3) {
+                                               const glm::vec2 &p1,
+                                               const glm::vec2 &p2,
+                                               const glm::vec2 &p3) {
         glm::vec2 n0 = p0 / UI::UIMain::state.viewportSize;
         glm::vec2 n1 = p1 / UI::UIMain::state.viewportSize;
         glm::vec2 n2 = p2 / UI::UIMain::state.viewportSize;
@@ -434,8 +405,8 @@ namespace Bess {
     }
 
     int Renderer::calculateQuadBezierSegments(const glm::vec2 &p0,
-                              const glm::vec2 &p1,
-                              const glm::vec2 &p2) {
+                                              const glm::vec2 &p1,
+                                              const glm::vec2 &p2) {
         glm::vec2 n0 = p0 / UI::UIMain::state.viewportSize;
         glm::vec2 n1 = p1 / UI::UIMain::state.viewportSize;
         glm::vec2 n2 = p2 / UI::UIMain::state.viewportSize;
@@ -459,7 +430,7 @@ namespace Bess {
     }
 
     void Renderer::quadraticBezier(const glm::vec3 &start, const glm::vec3 &end, const glm::vec2 &controlPoint, float weight,
-                                   const glm::vec4 &color, const int id) {
+                                   const glm::vec4 &color, const int id, bool breakCurve) {
         int segments = calculateQuadBezierSegments(start, controlPoint, end);
 
         auto prev = start;
@@ -469,10 +440,14 @@ namespace Bess {
             addCurveSegmentStrip(prev, p, color, id, weight, i == 1);
             prev = p;
         }
-        m_curveStripIndices.emplace_back(PRIMITIVE_RESTART);
+
+        m_curveBroken = breakCurve;
+        if (breakCurve)
+            m_curveStripIndices.emplace_back(PRIMITIVE_RESTART);
     }
 
-    void Renderer::cubicBezier(const glm::vec3 &start, const glm::vec3 &end, const glm::vec2 &cp1, const glm::vec2 &cp2, float weight, const glm::vec4 &color, const int id) {
+    void Renderer::cubicBezier(const glm::vec3 &start, const glm::vec3 &end, const glm::vec2 &cp1, const glm::vec2 &cp2, float weight,
+                               const glm::vec4 &color, const int id, bool breakCurve) {
         int segments = calculateCubicBezierSegments(start, cp1, cp2, end);
 
         auto prev = start;
@@ -482,7 +457,9 @@ namespace Bess {
             addCurveSegmentStrip(prev, p, color, id, weight, i == 1);
             prev = p;
         }
-        m_curveStripIndices.emplace_back(PRIMITIVE_RESTART);
+
+        if (breakCurve)
+            m_curveStripIndices.emplace_back(PRIMITIVE_RESTART);
     }
 
     void Renderer::circle(const glm::vec3 &center, const float radius,
@@ -647,11 +624,11 @@ namespace Bess {
 
         for (int i = 1; i < (int)points.size(); i++) {
             auto p1 = points[i], p1_ = points[i];
-            //if (i + 1 < points.size()) {
-            //    auto curve_ = generateQuadBezierPoints(points[i - 1], points[i], points[i + 1], 4.f);
-            //    Renderer2D::Renderer::quadraticBezier(glm::vec3(curve_.startPoint, prev.z), glm::vec3(curve_.endPoint, p1.z), curve_.controlPoint, weight, color, id);
-            //    p1 = glm::vec3(curve_.startPoint, prev.z), p1_ = glm::vec3(curve_.endPoint, points[i + 1].z);
-            //}
+            // if (i + 1 < points.size()) {
+            //     auto curve_ = generateQuadBezierPoints(points[i - 1], points[i], points[i + 1], 4.f);
+            //     Renderer2D::Renderer::quadraticBezier(glm::vec3(curve_.startPoint, prev.z), glm::vec3(curve_.endPoint, p1.z), curve_.controlPoint, weight, color, id);
+            //     p1 = glm::vec3(curve_.startPoint, prev.z), p1_ = glm::vec3(curve_.endPoint, points[i + 1].z);
+            // }
             Renderer2D::Renderer::line(prev, p1, weight, color, id);
             prev = p1_;
         }
@@ -728,18 +705,6 @@ namespace Bess {
         primitive_vertices.insert(primitive_vertices.end(), vertices.begin(), vertices.end());
     }
 
-    void Renderer::addCurveVertices(const std::vector<Gl::Vertex> &vertices) {
-        auto max_render_count = m_MaxRenderLimit[PrimitiveType::curve];
-
-        auto &primitive_vertices = m_RenderData.curveVertices;
-
-        if (primitive_vertices.size() >= (max_render_count - 1) * 4) {
-            flush(PrimitiveType::curve);
-        }
-
-        primitive_vertices.insert(primitive_vertices.end(), vertices.begin(), vertices.end());
-    }
-
     std::vector<Gl::RenderPassVertex> Renderer::getRenderPassVertices(float width, float height) {
         std::vector<Gl::RenderPassVertex> vertices(4);
 
@@ -787,17 +752,107 @@ namespace Bess {
         m_compositePassShader->unbind();
     }
 
+    void Renderer::beginPathMode(const glm::vec3 &startPos) {
+        m_pathData.ended = false;
+        m_pathData.currentPos = startPos;
+    }
+
+    void Renderer::endPathMode(bool closePath) {
+        if(closePath){
+            m_pathStripIndices.emplace_back(m_pathStripIndices[0]);
+            m_pathStripIndices.emplace_back(m_pathStripIndices[1]);
+        }
+        m_pathData = {};
+        m_pathStripIndices.emplace_back(PRIMITIVE_RESTART);
+    }
+
+    void Renderer::addPathSegmentStrip(
+        const glm::vec3 &prev_,
+        const glm::vec3 &curr_,
+        const glm::vec4 &color,
+        int id,
+        float weight) {
+        glm::vec2 prev = {prev_.x, prev_.y};
+        glm::vec2 curr = {curr_.x, curr_.y};
+
+        glm::vec2 dir = glm::normalize(curr - prev);
+        glm::vec2 normal = {-dir.y, dir.x};
+
+        bool isFirstSegment = m_pathStripIndices.size() == 0 || m_pathStripIndices.back() == PRIMITIVE_RESTART;
+
+        float halfW = weight * 0.5f;
+        glm::vec2 offset = normal * halfW;
+
+        glm::vec3 vPrevOut = {prev + offset, prev_.z};
+        glm::vec3 vPrevIn = {prev - offset, prev_.z};
+        glm::vec3 vCurrOut = {curr + offset, curr_.z};
+        glm::vec3 vCurrIn = {curr - offset, curr_.z};
+
+        auto makeV = [&](const glm::vec3 &p, const glm::vec2 &uv) {
+            Gl::Vertex v;
+            v.position = p;
+            v.color = color;
+            v.id = id;
+            v.texCoord = uv;
+            return v;
+        };
+
+        if (isFirstSegment) {
+            uint32_t base = (uint32_t)m_pathStripVertices.size();
+            m_pathStripVertices.emplace_back(makeV(vPrevOut, {0.0f, 1.0f})); // base + 0
+            m_pathStripVertices.emplace_back(makeV(vPrevIn, {0.0f, 0.0f}));  // base + 1
+            m_pathStripIndices.emplace_back(base + 0);
+            m_pathStripIndices.emplace_back(base + 1);
+        }
+
+        uint32_t base = (uint32_t)m_pathStripVertices.size();
+        m_pathStripVertices.emplace_back(makeV(vCurrOut, {1.0f, 1.0f})); // base + 0
+        m_pathStripVertices.emplace_back(makeV(vCurrIn, {1.0f, 0.0f}));  // base + 1
+        m_pathStripIndices.emplace_back(base + 0);
+        m_pathStripIndices.emplace_back(base + 1);
+    }
+
+    void Renderer::pathLineTo(const glm::vec3 &pos, float weight, const glm::vec4 &color, const int id) {
+        assert(!m_pathData.ended);
+        bool isFirstSegment = m_pathStripIndices.size() == 0 || m_pathStripIndices.back() == PRIMITIVE_RESTART;
+        if (!isFirstSegment) {
+            float halfW = weight * 0.5f;
+            glm::vec3 join = m_pathData.currentPos;
+            glm::vec2 dirNext = glm::normalize(glm::vec2(pos - join));
+            glm::vec2 nNext = {dirNext.x, dirNext.y};
+            glm::vec2 shift = {dirNext.y, dirNext.x};
+
+            // I have no idea how I figured it out, it was just hit and trial :)
+            size_t N = m_pathStripVertices.size();
+            if(std::abs(nNext.x) == 1.f){
+                m_pathStripVertices[N - 1].position += glm::vec3(glm::vec2(shift) * halfW * -1.f, 0.0f);
+                m_pathStripVertices[N - 2].position += glm::vec3(glm::vec2(shift) * halfW, 0.0f);
+            }else{
+                m_pathStripVertices[N - 2].position += glm::vec3(glm::vec2(shift) * halfW * -1.f, 0.0f);
+                m_pathStripVertices[N - 1].position += glm::vec3(glm::vec2(shift) * halfW, 0.0f);
+            }
+
+            glm::vec3 extrude = join + glm::vec3(nNext * halfW, 0.0f);
+            std::cout << nNext.x << ", " << nNext.y << std::endl;
+            addPathSegmentStrip(join, extrude, color, id, weight);
+
+            m_pathData.currentPos = extrude;
+        }
+        addPathSegmentStrip(m_pathData.currentPos, pos, color, id, weight);
+        m_pathData.setCurrentPos(pos);
+    }
+
     void Renderer::flush(PrimitiveType type) {
         auto &vao = m_vaos[type];
         // auto selId = Simulator::ComponentsManager::compIdToRid(Pages::MainPageState::getInstance()->getSelectedId());
 
-        //if (type == PrimitiveType::quad) {
-        //    vao->bind();
-        //    auto &shader = m_quadShadowShader;
-        //    shader->bind();
-        //    shader->setUniformMat4("u_mvp", m_camera->getTransform());
-        //    shader->setUniform1i("u_SelectedObjId", -1);
-        //    shader->setUniform1f("u_zoom", m_camera->getZoom());
+        // if (type == PrimitiveType::quad) {
+        //     vao->bind();
+        //     auto &shader = m_quadShadowShader;
+        //     shader->bind();
+        //     shader->setUniformMat4("u_mvp", m_camera->getTransform());
+        //     shader->setUniform1i("u_SelectedObjId", -1);
+        //     shader->setUniform1f("u_zoom", m_camera->getZoom());
 
         //    auto &vertices = m_RenderData.quadShadowVertices;
         //    vao->setVertices(vertices.data(), vertices.size());
@@ -833,6 +888,15 @@ namespace Bess {
             m_curveStripVertices.clear();
             m_curveStripIndices.clear();
         } break;
+        case PrimitiveType::path: {
+            shader->setUniform1f("u_zoom", m_camera->getZoom());
+            vao->setVerticesAndIndices(m_pathStripVertices.data(), m_pathStripVertices.size(), m_pathStripIndices.data(), m_pathStripIndices.size());
+            GL_CHECK(glEnable(GL_PRIMITIVE_RESTART));
+            GL_CHECK(glPrimitiveRestartIndex(PRIMITIVE_RESTART));
+            Gl::Api::drawElements(GL_TRIANGLE_STRIP, (GLsizei)(m_pathStripIndices.size()));
+            m_pathStripVertices.clear();
+            m_pathStripIndices.clear();
+        } break;
         case PrimitiveType::circle: {
             auto &vertices = m_RenderData.circleVertices;
             vao->setVertices(vertices.data(), vertices.size());
@@ -860,7 +924,7 @@ namespace Bess {
     void Renderer::begin(std::shared_ptr<Camera> camera) {
         m_camera = camera;
         Gl::Api::clearStats();
-        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
 
     QuadBezierCurvePoints Renderer::generateQuadBezierPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius) {
