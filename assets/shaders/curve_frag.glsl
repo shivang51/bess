@@ -11,14 +11,12 @@ in flat int v_TextureIndex;
 uniform int u_SelectedObjId;
 uniform float u_zoom;
 
-float smoothBlur = 0.1f;
-
 void main() {
     int id = u_SelectedObjId;
     vec2 uv = v_TexCoord - 0.5;
     vec4 col = v_FragColor;
 
-    smoothBlur *= u_zoom;
+    float smoothBlur = fwidth(length(uv));
 
     float alpha = smoothstep(0.5,  0.5 - smoothBlur, abs(uv.y));
 
