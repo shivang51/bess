@@ -630,36 +630,34 @@ namespace Bess {
         auto prev = points[0];
 
         for (int i = 1; i < (int)points.size(); i++) {
-            auto p1 = points[i];
-            Renderer2D::Renderer::line(prev, p1, 2.f, color, ids[i - 1]);
-            prev = p1;
+            Renderer2D::Renderer::line(prev, points[i], weight, color, ids[i - 1]);
+            prev = points[i];
+        }
+
+        if (closed) {
+            Renderer2D::Renderer::line(prev, points[0], weight, color, ids[0]);
         }
     }
 
     void Renderer2D::Renderer::drawPath(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const int id, bool closed) {
         if (points.empty())
             return;
-        auto newPoints = points;
-        auto prev = newPoints[0];
 
-        if (closed) {
-            newPoints.emplace_back(prev);
-        }
+        auto prev = points[0];
 
-        for (int i = 1; i < (int)newPoints.size(); i++) {
-            auto p1 = newPoints[i], p1_ = glm::vec3(newPoints[i]);
-            /*if (i + 1 < newPoints.size()) {*/
-            /*    auto curve_ = generateQuadBezierPoints(newPoints[i - 1], newPoints[i], newPoints[i + 1], 4.f);*/
-            /*    Renderer2D::Renderer::quadraticBezier(glm::vec3(curve_.startPoint, prev.z), glm::vec3(curve_.endPoint, p1.z), curve_.controlPoint, weight, color, id, true);*/
-            /*    p1 = glm::vec3(curve_.startPoint, prev.z), p1_ = glm::vec3(curve_.endPoint, newPoints[i + 1].z);*/
-            /*}*/
-            auto offSet = (prev.y <= p1.y) ? weight / 2.f : -weight / 2.f;
-            if (std::abs(prev.x - p1.x) <= 0.0001f) { // veritcal
-                p1.y += offSet;
-                prev.y -= offSet;
-            }
+        for (int i = 1; i < (int)points.size(); i++) {
+            auto p1 = points[i], p1_ = points[i];
+            //if (i + 1 < points.size()) {
+            //    auto curve_ = generateQuadBezierPoints(points[i - 1], points[i], points[i + 1], 4.f);
+            //    Renderer2D::Renderer::quadraticBezier(glm::vec3(curve_.startPoint, prev.z), glm::vec3(curve_.endPoint, p1.z), curve_.controlPoint, weight, color, id);
+            //    p1 = glm::vec3(curve_.startPoint, prev.z), p1_ = glm::vec3(curve_.endPoint, points[i + 1].z);
+            //}
             Renderer2D::Renderer::line(prev, p1, weight, color, id);
             prev = p1_;
+        }
+
+        if (closed) {
+            Renderer2D::Renderer::line(prev, points[0], weight, color, id);
         }
     }
 
