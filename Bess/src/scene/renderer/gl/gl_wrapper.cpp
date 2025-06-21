@@ -51,6 +51,15 @@ namespace Bess::Gl {
         m_stats.vertices += count;
     }
 
+    void Api::drawArrays(const GLenum mode, const GLsizei count) {
+        if (count == 0) {
+            return;
+        }
+        GL_CHECK(glDrawArrays(mode, 0, count));
+        m_stats.drawCalls++;
+        m_stats.vertices += count;
+    }
+
     const Api::GlStats &Api::getStats() {
         return m_stats;
     }
