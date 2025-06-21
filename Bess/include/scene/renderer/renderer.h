@@ -94,7 +94,7 @@ namespace Bess::Renderer2D {
 
         static void curve(const glm::vec3 &start, const glm::vec3 &end, float weight, const glm::vec4 &color, int id);
 
-        static void quadraticBezier(const glm::vec3 &start, const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, const int id, bool pathMode = false);
+        static void quadraticBezier(const glm::vec3 &start, const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, const int id);
 
         static void cubicBezier(const glm::vec3 &start, const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2, float weight, const glm::vec4 &color, const int id);
 
@@ -182,8 +182,6 @@ namespace Bess::Renderer2D {
 
         static std::vector<Gl::Vertex> m_curveStripVertices;
         static std::vector<GLuint> m_curveStripIndices;
-
-        static constexpr uint32_t PRIMITIVE_RESTART = 0xFFFFFFFF;
     };
 
 } // namespace Bess::Renderer2D
