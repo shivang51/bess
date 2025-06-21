@@ -117,7 +117,18 @@ namespace Bess::Renderer2D {
                                         const glm::vec3 &end,
                                         const glm::vec4 &color, int id, float weight = 3.0f);
 
-        static int calculateSegments(const glm::vec2 &p1, const glm::vec2 &p2);
+
+		static void addCurveSegmentStrip(
+            const glm::vec3 &prev_,
+            const glm::vec3 &curr_,
+            const glm::vec4 &color,
+            int id,
+            float weight,
+            bool firstSegment);
+
+		static int calculateQuadBezierSegments(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2);
+
+		static int calculateCubicBezierSegments(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2, const glm::vec2 &p3);
 
         static void addLineVertices(const std::vector<Gl::Vertex> &vertices);
 
@@ -168,6 +179,11 @@ namespace Bess::Renderer2D {
         static std::unordered_map<std::string, glm::vec2> m_charSizeCache;
 
         static std::unique_ptr<Font> m_Font;
+
+        static std::vector<Gl::Vertex> m_curveStripVertices;
+        static std::vector<GLuint> m_curveStripIndices;
+
+        static constexpr uint32_t PRIMITIVE_RESTART = 0xFFFFFFFF;
     };
 
 } // namespace Bess::Renderer2D
