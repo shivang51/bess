@@ -29,10 +29,11 @@ namespace Bess::Renderer2D {
         glm::vec2 endPoint;
     };
 
-    struct PathData{
+    struct PathContext{
         glm::vec3 currentPos;
         glm::vec3 prevPos;
         bool ended = true;
+        glm::vec2 lastDir = {};
 
         void setCurrentPos(const glm::vec3& pos){
           prevPos = currentPos;
@@ -62,6 +63,9 @@ namespace Bess::Renderer2D {
         static void beginPathMode(const glm::vec3& startPos);
         static void endPathMode(bool closePath = false);
         static void pathLineTo(const glm::vec3& pos, float size, const glm::vec4 &color, const int id);
+        static void pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
+                                      float weight, const glm::vec4 &color, const int id);
+        static void pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, const int id);
         // --- path api end ---
 
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
@@ -144,7 +148,8 @@ namespace Bess::Renderer2D {
             const glm::vec3 &curr_,
             const glm::vec4 &color,
             int id,
-            float weight
+            float weight,
+            bool forceFirstSegment = false
           );
 
         static void addSharpJoinTriangle(
@@ -215,7 +220,7 @@ namespace Bess::Renderer2D {
 
         static bool m_curveBroken;
 
-        static PathData m_pathData;
+        static PathContext m_pathData;
     };
 
 } // namespace Bess::Renderer2D

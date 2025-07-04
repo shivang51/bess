@@ -18,7 +18,7 @@ using namespace Bess::Renderer2D;
 
 namespace Bess {
     static constexpr uint32_t PRIMITIVE_RESTART = 0xFFFFFFFF;
-    static constexpr float BEZIER_EPSILON = 0.0002f;
+    static constexpr float BEZIER_EPSILON = 0.0001f;
 
     bool Renderer::m_curveBroken = false;
     std::vector<PrimitiveType> Renderer::m_AvailablePrimitives;
@@ -34,7 +34,7 @@ namespace Bess {
     std::unordered_map<PrimitiveType, size_t> Renderer::m_MaxRenderLimit;
 
     RenderData Renderer::m_RenderData;
-    PathData Renderer::m_pathData;
+    PathContext Renderer::m_pathData;
 
     std::unique_ptr<Gl::Shader> Renderer::m_GridShader;
     std::unique_ptr<Gl::Shader> Renderer::m_shadowPassShader;
@@ -758,7 +758,7 @@ namespace Bess {
     }
 
     void Renderer::endPathMode(bool closePath) {
-        if(closePath){
+        if (closePath) {
             m_pathStripIndices.emplace_back(m_pathStripIndices[0]);
             m_pathStripIndices.emplace_back(m_pathStripIndices[1]);
         }
@@ -767,18 +767,16 @@ namespace Bess {
     }
 
     void Renderer::addPathSegmentStrip(
-        const glm::vec3 &prev_,
-        const glm::vec3 &curr_,
+        const glm::vec3 &prev_, const glm::vec3 &curr_,
         const glm::vec4 &color,
-        int id,
-        float weight) {
+        int id, float weight, bool forceFirstSegment) {
         glm::vec2 prev = {prev_.x, prev_.y};
         glm::vec2 curr = {curr_.x, curr_.y};
 
         glm::vec2 dir = glm::normalize(curr - prev);
         glm::vec2 normal = {-dir.y, dir.x};
 
-        bool isFirstSegment = m_pathStripIndices.size() == 0 || m_pathStripIndices.back() == PRIMITIVE_RESTART;
+        bool isFirstSegment = forceFirstSegment || m_pathStripIndices.size() == 0 || m_pathStripIndices.back() == PRIMITIVE_RESTART;
 
         float halfW = weight * 0.5f;
         glm::vec2 offset = normal * halfW;
@@ -815,6 +813,7 @@ namespace Bess {
     void Renderer::pathLineTo(const glm::vec3 &pos, float weight, const glm::vec4 &color, const int id) {
         assert(!m_pathData.ended);
         bool isFirstSegment = m_pathStripIndices.size() == 0 || m_pathStripIndices.back() == PRIMITIVE_RESTART;
+        glm::vec2 dirOut = glm::normalize(glm::vec2(pos) - glm::vec2(m_pathData.currentPos));
         if (!isFirstSegment) {
             float halfW = weight * 0.5f;
             glm::vec3 join = m_pathData.currentPos;
@@ -822,24 +821,65 @@ namespace Bess {
             glm::vec2 nNext = {dirNext.x, dirNext.y};
             glm::vec2 shift = {dirNext.y, dirNext.x};
 
-            // I have no idea how I figured it out, it was just hit and trial :)
+            glm::vec3 extrude = join + glm::vec3(nNext * halfW, 0.0f);
+
+            /// I have no idea how I figured it out, it was just hit and trial :)
+            /// Need to still work out the maths
+
             size_t N = m_pathStripVertices.size();
-            if(std::abs(nNext.x) == 1.f){
+            if (std::abs(nNext.x) == 1.f) {
                 m_pathStripVertices[N - 1].position += glm::vec3(glm::vec2(shift) * halfW * -1.f, 0.0f);
                 m_pathStripVertices[N - 2].position += glm::vec3(glm::vec2(shift) * halfW, 0.0f);
-            }else{
+            } else {
                 m_pathStripVertices[N - 2].position += glm::vec3(glm::vec2(shift) * halfW * -1.f, 0.0f);
                 m_pathStripVertices[N - 1].position += glm::vec3(glm::vec2(shift) * halfW, 0.0f);
             }
 
-            glm::vec3 extrude = join + glm::vec3(nNext * halfW, 0.0f);
-            std::cout << nNext.x << ", " << nNext.y << std::endl;
             addPathSegmentStrip(join, extrude, color, id, weight);
-
-            m_pathData.currentPos = extrude;
+            m_pathData.setCurrentPos(extrude);
         }
         addPathSegmentStrip(m_pathData.currentPos, pos, color, id, weight);
         m_pathData.setCurrentPos(pos);
+        m_pathData.lastDir = dirOut;
+    }
+
+    void Renderer2D::Renderer::pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2, float weight, const glm::vec4 &color, const int id) {
+        assert(!m_pathData.ended);
+        m_pathData.setCurrentPos(end);
+    }
+
+
+    void Renderer2D::Renderer::pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, const int id) {
+        assert(!m_pathData.ended);
+        int segments = calculateQuadBezierSegments(m_pathData.currentPos, controlPoint, end);
+
+        bool isFirstSegment = m_pathStripIndices.size() == 0 || m_pathStripIndices.back() == PRIMITIVE_RESTART;
+        glm::vec2 dirOut = glm::normalize(glm::vec2(end) - glm::vec2(m_pathData.currentPos));
+
+        if (!isFirstSegment) {
+            float halfW = weight * 0.5f;
+            glm::vec3 join = m_pathData.currentPos;
+            glm::vec2 dirNext = glm::normalize(glm::vec2(end - join));
+            glm::vec2 shift = {dirNext.y, dirNext.x};
+
+            glm::vec3 extrude = join + glm::vec3(shift.x, 0.f, 0.0f);
+
+            /// added a bear minimum logic, enough for my use case
+            size_t N = m_pathStripVertices.size();
+            auto& vertexToUpdate = m_pathStripVertices[N - 1];
+            vertexToUpdate.position += glm::vec3(glm::vec2(shift).x * halfW, 0.f, 0.0f);
+            m_pathData.setCurrentPos(extrude);
+        }
+
+        auto prev = m_pathData.currentPos;
+        for (int i = 1; i <= segments; i++) {
+            glm::vec2 bP = bernstineQuadBezier(m_pathData.currentPos, controlPoint, end, (float)i / (float)segments);
+            glm::vec3 p = {bP.x, bP.y, prev.z};
+            addPathSegmentStrip(prev, p, color, id, weight);
+            prev = p;
+        }
+
+        m_pathData.setCurrentPos(end);
     }
 
     void Renderer::flush(PrimitiveType type) {
