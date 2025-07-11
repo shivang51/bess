@@ -786,7 +786,7 @@ namespace Bess {
             // Determine the previous, current, and next points, handling wrapping for closed paths.
             const size_t pointCount = points.size();
             const auto &p_curr = points[i];
-            const auto &p_prev = isClosed ? points[(i + pointCount - 1) % pointCount] : points[std::max<size_t>(0, i - 1)];
+            const auto &p_prev = isClosed ? points[(i + pointCount - 1) % pointCount] : points[std::max<long int>(0, i - 1)];
             const auto &p_next = isClosed ? points[(i + 1) % pointCount] : points[std::min(pointCount - 1, i + 1)];
 
             // Update cumulative length for UVs. For the first point, it's 0.
@@ -829,7 +829,9 @@ namespace Bess {
             float miterLength = halfWidth / dotProduct;
             float crossProductZ = dir_in.x * dir_out.y - dir_in.y * dir_out.x;
 
-            if (miterLength / halfWidth > miterLimit) {
+            // Note (Shivang): There is bug here if remove stripVertices.empty() it crashes and if keep it
+            // it distorts the shape for some points. Keeping it felt like best bet
+            if (!stripVertices.empty() && miterLength / halfWidth > miterLimit) {
                 // --- Bevel Join ---
                 const auto &lastLeft = stripVertices.back();
                 if (crossProductZ > 0) { // Left turn
@@ -886,7 +888,7 @@ namespace Bess {
 
     void Renderer::endPathMode(bool closePath) {
         auto vertices = generateStrokeGeometry(m_pathData.points, m_pathData.weight, m_pathData.color, 0, 4.f, closePath);
-        int idx = m_pathStripVertices.size();
+        size_t idx = m_pathStripVertices.size();
         for (auto &v : vertices) {
             m_pathStripVertices.emplace_back(v);
             m_pathStripIndices.emplace_back(idx++);
@@ -930,24 +932,6 @@ namespace Bess {
 
     void Renderer::flush(PrimitiveType type) {
         auto &vao = m_vaos[type];
-        // auto selId = Simulator::ComponentsManager::compIdToRid(Pages::MainPageState::getInstance()->getSelectedId());
-
-        // if (type == PrimitiveType::quad) {
-        //     vao->bind();
-        //     auto &shader = m_quadShadowShader;
-        //     shader->bind();
-        //     shader->setUniformMat4("u_mvp", m_camera->getTransform());
-        //     shader->setUniform1i("u_SelectedObjId", -1);
-        //     shader->setUniform1f("u_zoom", m_camera->getZoom());
-
-        //    auto &vertices = m_RenderData.quadShadowVertices;
-        //    vao->setVertices(vertices.data(), vertices.size());
-        //    Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
-        //    vertices.clear();
-
-        //    vao->unbind();
-        //    shader->unbind();
-        //}
 
         auto &shader = m_shaders[type];
 
