@@ -29,15 +29,15 @@ namespace Bess::Renderer2D {
         glm::vec2 endPoint;
     };
 
-    struct PathContext{
-        glm::vec3 currentPos;
-        glm::vec3 prevPos;
+    struct PathContext {
         bool ended = true;
-        glm::vec2 lastDir = {};
+        float weight = 1.f;
+        glm::vec4 color = glm::vec4(1.f);
+        glm::vec3 currentPos;
+        std::vector<glm::vec3> points;
 
-        void setCurrentPos(const glm::vec3& pos){
-          prevPos = currentPos;
-          currentPos = pos;
+        void setCurrentPos(const glm::vec3 &pos) {
+            currentPos = pos;
         }
     };
 
@@ -59,10 +59,9 @@ namespace Bess::Renderer2D {
         static void doCompositeRenderPass(float width, float height);
 
         // --- path api start---
-        // TODO(Shivang): fix angle lines and closing path
-        static void beginPathMode(const glm::vec3& startPos);
+        static void beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4& color);
         static void endPathMode(bool closePath = false);
-        static void pathLineTo(const glm::vec3& pos, float size, const glm::vec4 &color, const int id);
+        static void pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, const int id);
         static void pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
                                       float weight, const glm::vec4 &color, const int id);
         static void pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, const int id);
@@ -135,6 +134,11 @@ namespace Bess::Renderer2D {
         static void triangle(const std::vector<glm::vec3> &points, const glm::vec4 &color, const int id);
 
       private:
+        static std::vector<Gl::Vertex> generateStrokeGeometry(const std::vector<glm::vec3> &points,
+                                                              float width,
+                                                              const glm::vec4 &color,
+                                                              int id, float miterLimit, bool isClosed);
+
         static void addCurveSegmentStrip(
             const glm::vec3 &prev_,
             const glm::vec3 &curr_,
@@ -143,22 +147,6 @@ namespace Bess::Renderer2D {
             float weight,
             bool firstSegment);
 
-        static void addPathSegmentStrip(
-            const glm::vec3 &prev_,
-            const glm::vec3 &curr_,
-            const glm::vec4 &color,
-            int id,
-            float weight,
-            bool forceFirstSegment = false
-          );
-
-        static void addSharpJoinTriangle(
-            const glm::vec3 &prev,
-            const glm::vec3 &joint,
-            const glm::vec3 &next,
-            const glm::vec4 &color,
-            int id,
-            float weight);
 
         static int calculateQuadBezierSegments(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2);
 
