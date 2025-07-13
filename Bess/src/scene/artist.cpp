@@ -330,7 +330,8 @@ namespace Bess::Canvas {
         auto pos = transformComp.position;
         auto scale = transformComp.scale;
 
-        float nodeWeight = 2.f;
+        static float nodeWeight = 2.f;
+        static float negCircleR = 4.f;
 
         auto boundInfo = getCompBoundInfo(type, pos, scale);
         float w = scale.x / 2, h = scale.y;
@@ -338,8 +339,15 @@ namespace Bess::Canvas {
         float y = pos.y - h / 2, y1 = pos.y + h / 2;
         float rb = boundInfo.outPinStart;
 
+        auto negateCircleAt = [&](glm::vec3 pos) {
+            Renderer::quad(pos, glm::vec2(negCircleR * 2.f), glm::vec4(0.f), -1, 0.f,
+                           glm::vec4(negCircleR),
+                           glm::vec4(nodeWeight), ViewportTheme::compHeaderColor, false);
+        };
+
         switch (type) {
-        case SimEngine::ComponentType::AND: {
+        case SimEngine::ComponentType::AND:
+        case SimEngine::ComponentType::NAND: {
             float cpX = x1 + (w * 0.65);
             // diagram
             Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
@@ -348,7 +356,8 @@ namespace Bess::Canvas {
             Renderer::pathLineTo({x, y1, pos.z}, 4.f, ViewportTheme::wireColor, -1);
             Renderer::endPathMode(true);
         } break;
-        case SimEngine::ComponentType::OR: {
+        case SimEngine::ComponentType::OR:
+        case SimEngine::ComponentType::NOR: {
             float cpX = x + (w * 0.65);
             float off = w * 0.25;
 
@@ -356,7 +365,7 @@ namespace Bess::Canvas {
             Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
             Renderer::pathQuadBeizerTo({x, y1, pos.z}, {cpX, y + (y1 - y) / 2}, 4, ViewportTheme::compHeaderColor, -1);
             Renderer::pathLineTo({x1 - off, y1, pos.z}, 4.f, ViewportTheme::compHeaderColor, -1);
-            Renderer::pathQuadBeizerTo({rb, y + (y1 - y) / 2.f, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.85}, 4.f, ViewportTheme::compHeaderColor, -1);
+            Renderer::pathQuadBeizerTo({x1 + off, y + (y1 - y) / 2.f, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.85}, 4.f, ViewportTheme::compHeaderColor, -1);
             Renderer::pathQuadBeizerTo({x1 - off, y, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.15}, 4.f, ViewportTheme::compHeaderColor, -1);
             Renderer::endPathMode(true);
         } break;
@@ -365,7 +374,7 @@ namespace Bess::Canvas {
             Renderer::pathLineTo({x1, y + (y1 - y) / 2.f, pos.z}, 4.f, ViewportTheme::compHeaderColor, -1);
             Renderer::pathLineTo({x, y1, pos.z}, 4.f, ViewportTheme::compHeaderColor, -1);
             Renderer::endPathMode(true);
-        }break;
+        } break;
         default:
             w = scale.x, h = scale.y;
             x = pos.x - w / 2, x1 = pos.x + w / 2;
@@ -379,7 +388,14 @@ namespace Bess::Canvas {
             break;
         }
 
-        float inPinStart = boundInfo.inpPinStart;                              // need to be set node specific for some (its always right side of the pin)
+
+        // circle for negating components
+        if(type == SimEngine::ComponentType::NAND || type == SimEngine::ComponentType::NOR
+            || type == SimEngine::ComponentType::NOT || type == SimEngine::ComponentType::XNOR){
+            negateCircleAt({rb - negCircleR, y + (y1 - y) / 2.f, pos.z});
+        }
+
+        float inPinStart = boundInfo.inpPinStart; // need to be set node specific for some (its always right side of the pin)
         // name
         {
             const auto &tagComp = registry.get<Components::TagComponent>(entity);
@@ -487,7 +503,8 @@ namespace Bess::Canvas {
         float w = scale.x / 2, h = scale.y;
         float x = pos.x - w / 2, x1 = pos.x + w / 2;
         float y = pos.y - h / 2, y1 = pos.y + h / 2;
-        float pinW = 20.f;
+        static float pinW = 20.f;
+        static float negCircleR = 4.f, negCircleOff = negCircleR * 2.f;
         ArtistCompBoundInfo info;
 
         switch (type) {
@@ -496,16 +513,28 @@ namespace Bess::Canvas {
             info.outPinStart = x1 + ((w * 0.65) / 2);
             info.inpConnStart = info.inpPinStart - 20.f;
             info.outConnStart = info.outPinStart + 20.f;
-        }break;
+        } break;
+        case SimEngine::ComponentType::NAND: {
+            info.inpPinStart = x;
+            info.outPinStart = x1 + ((w * 0.65) / 2) + negCircleOff;
+            info.inpConnStart = info.inpPinStart - 20.f;
+            info.outConnStart = info.outPinStart + 20.f;
+        } break;
         case SimEngine::ComponentType::OR: {
-            info.outPinStart = x1 + w * 0.25;
             info.inpPinStart = x + (w * 0.55) / 2.f;
+            info.outPinStart = x1 + w * 0.25;
+            info.inpConnStart = x - pinW;
+            info.outConnStart = info.outPinStart + 20.f;
+        } break;
+        case SimEngine::ComponentType::NOR: {
+            info.inpPinStart = x + (w * 0.55) / 2.f;
+            info.outPinStart = x1 + w * 0.25 + negCircleOff;
             info.inpConnStart = x - pinW;
             info.outConnStart = info.outPinStart + 20.f;
         } break;
         case SimEngine::ComponentType::NOT: {
             info.inpPinStart = x;
-            info.outPinStart = x1;
+            info.outPinStart = x1 + negCircleOff;
             info.inpConnStart = info.inpPinStart - 20.f;
             info.outConnStart = info.outPinStart + 20.f;
         } break;
