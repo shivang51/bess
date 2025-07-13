@@ -2,12 +2,11 @@
 #include "tinyfiledialogs.h"
 
 namespace Bess::UI {
-    std::vector<std::string> Dialogs::filterList = {"*.bproj"};
+    const char* filterList[1] = {"*.bproj"};
 
     std::string Dialogs::showSaveFileDialog(const std::string &title, const std::string &filters) {
 
-        auto filepath = tinyfd_saveFileDialog("Open Bess Project", "", filterList.size(),
-                                              (const char *const *)filterList.data(), "Bess Project");
+        auto filepath = tinyfd_saveFileDialog("Open Bess Project", "", 1, filterList, "Bess Project");
 
         if (filepath == NULL)
             return "";
@@ -16,8 +15,7 @@ namespace Bess::UI {
     }
 
     std::string Dialogs::showOpenFileDialog(const std::string &title, const std::string &filters) {
-        auto filepath = tinyfd_openFileDialog("Open Bess Project", "", filterList.size(),
-                                              (const char *const *)filterList.data(), "Bess Project", false);
+        auto filepath = tinyfd_openFileDialog("Open Bess Project", "", 1, filterList, "Bess Project", false);
 
         if (filepath == NULL)
             return "";
