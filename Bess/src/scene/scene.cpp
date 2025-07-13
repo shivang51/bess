@@ -850,6 +850,10 @@ namespace Bess::Canvas {
         Gl::FrameBuffer::unbindAll();
     }
 
+    void Scene::saveScenePNG(const std::string& path){
+        m_normalFramebuffer->saveColorAttachment(0, path, 4);
+    }
+
     glm::vec2 Scene::getCameraPos() {
         return m_camera->getPos();
     }

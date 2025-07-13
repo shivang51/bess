@@ -14,6 +14,15 @@ namespace Bess::UI {
         return filepath;
     }
 
+    std::string Dialogs::showSelectPathDialog(const std::string &title) {
+        auto filepath = tinyfd_selectFolderDialog("Select Location", "");
+
+        if (filepath == NULL)
+            return "";
+
+        return filepath;
+    }
+
     std::string Dialogs::showOpenFileDialog(const std::string &title, const std::string &filters) {
         auto filepath = tinyfd_openFileDialog("Open Bess Project", "", 1, filterList, "Bess Project", false);
 

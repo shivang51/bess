@@ -51,6 +51,8 @@ namespace Bess::Canvas {
 
         void setLastCreatedComp(const LastCreatedComponent &comp);
 
+        void saveScenePNG(const std::string& path);
+
         friend class Modules::SchematicGen::SchematicView;
 
       public:

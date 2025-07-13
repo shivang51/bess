@@ -121,7 +121,7 @@ namespace Bess::UI {
             temp_name = Icons::FontAwesomeIcons::FA_SAVE;
             temp_name += "   Save";
             if (ImGui::MenuItem(temp_name.c_str(), "Ctrl+S")) {
-                m_pageState->getCurrentProjectFile()->save();
+                onSaveProject();
             };
 
             ImGui::Spacing();
@@ -138,8 +138,9 @@ namespace Bess::UI {
             temp_name += "  Export";
             if (ImGui::BeginMenu(temp_name.c_str())) {
                 temp_name = Icons::FontAwesomeIcons::FA_FILE_IMAGE;
-                temp_name += "  Schematic View (Yet to implement)";
+                temp_name += "  Scene View PNG";
                 if (ImGui::MenuItem(temp_name.c_str())) {
+                    onExportSceneView();
                 }
                 ImGui::EndMenu();
             }
@@ -485,6 +486,15 @@ namespace Bess::UI {
         }
     }
 
-    void UIMain::onSaveProject() {}
+    void UIMain::onSaveProject() {
+        m_pageState->getCurrentProjectFile()->save();
+    }
+
+    void UIMain::onExportSceneView(){
+        auto path = UI::Dialogs::showSelectPathDialog("Save To");
+        if(path == "") return;
+        BESS_TRACE("[ExportSceneView] Saving to {}", path);
+        Canvas::Scene::instance().saveScenePNG(path);
+    }
 
 } // namespace Bess::UI

@@ -32,6 +32,7 @@ namespace Bess::Gl {
         static void unbindAll();
         void resize(float width, float height);
 
+
         template <GLenum GlType>
         void clearColorAttachment(const unsigned int idx, const void *data) const {
             bind();
@@ -62,6 +63,8 @@ namespace Bess::Gl {
             bindColorAttachmentForRead(idx);
             GL_CHECK(glReadnPixels(x, y, w, h, attachment.getFormat(), GlType, n, data));
         }
+
+        void saveColorAttachment(int idx, const std::string& path, int channels);
 
       private:
         GLuint m_fbo;

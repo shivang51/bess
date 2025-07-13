@@ -9,6 +9,7 @@ namespace Bess::UI {
     struct InternalData {
         std::string path;
         bool newFileClicked = false, openFileClicked = false;
+        bool exportSchematicClicked = false;
         bool isTbFocused = false;
     };
 
@@ -43,6 +44,7 @@ namespace Bess::UI {
         static void onNewProject();
         static void onOpenProject();
         static void onSaveProject();
+        static void onExportSceneView();
 
         static std::shared_ptr<Pages::MainPageState> m_pageState;
     };
