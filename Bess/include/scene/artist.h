@@ -5,6 +5,15 @@
 #include "scene/scene.h"
 
 namespace Bess::Canvas {
+
+    struct ArtistCompBoundInfo {
+      float inpConnStart = 0.f;
+      float outConnStart = 0.f;
+      float inpPinStart = 0.f;
+      float outPinStart = 0.f;
+      float rb = 0.f;
+    };
+
     class Artist {
       public:
         static Scene *sceneRef;
@@ -30,7 +39,7 @@ namespace Bess::Canvas {
 
         static void drawSlots(const Components::SimulationComponent &comp, const glm::vec3 &componentPos, float width, float angle);
 
-        static float getRightBoundForComp(SimEngine::ComponentType type, glm::vec2 pos, glm::vec2 scale);
+        static ArtistCompBoundInfo getCompBoundInfo(SimEngine::ComponentType type, glm::vec2 pos, glm::vec2 scale);
 
         static bool m_isSchematicMode;
     };
