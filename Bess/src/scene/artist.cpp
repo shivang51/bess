@@ -369,6 +369,23 @@ namespace Bess::Canvas {
             Renderer::pathQuadBeizerTo({x1 - off, y, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.15}, 4.f, ViewportTheme::compHeaderColor, -1);
             Renderer::endPathMode(true);
         } break;
+        case SimEngine::ComponentType::XNOR: 
+        case SimEngine::ComponentType::XOR: {
+            float cpX = x + (w * 0.65);
+            float off = w * 0.25;
+
+            // diagram
+            Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
+            Renderer::pathQuadBeizerTo({x, y1, pos.z}, {cpX, y + (y1 - y) / 2}, 4, ViewportTheme::compHeaderColor, -1);
+            Renderer::endPathMode(false);
+            float gapX = 8.f;
+            Renderer::beginPathMode({x + gapX, y, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
+            Renderer::pathQuadBeizerTo({x + gapX, y1, pos.z}, {cpX + gapX, y + (y1 - y) / 2}, 4, ViewportTheme::compHeaderColor, -1);
+            Renderer::pathLineTo({x1 - off, y1, pos.z}, 4.f, ViewportTheme::compHeaderColor, -1);
+            Renderer::pathQuadBeizerTo({x1 + off, y + (y1 - y) / 2.f, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.85}, 4.f, ViewportTheme::compHeaderColor, -1);
+            Renderer::pathQuadBeizerTo({x1 - off, y, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.15}, 4.f, ViewportTheme::compHeaderColor, -1);
+            Renderer::endPathMode(true);
+        } break;
         case SimEngine::ComponentType::NOT: {
             Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
             Renderer::pathLineTo({x1, y + (y1 - y) / 2.f, pos.z}, 4.f, ViewportTheme::compHeaderColor, -1);
@@ -520,12 +537,14 @@ namespace Bess::Canvas {
             info.inpConnStart = info.inpPinStart - 20.f;
             info.outConnStart = info.outPinStart + 20.f;
         } break;
+        case SimEngine::ComponentType::XOR:
         case SimEngine::ComponentType::OR: {
             info.inpPinStart = x + (w * 0.55) / 2.f;
             info.outPinStart = x1 + w * 0.25;
             info.inpConnStart = x - pinW;
             info.outConnStart = info.outPinStart + 20.f;
         } break;
+        case SimEngine::ComponentType::XNOR: 
         case SimEngine::ComponentType::NOR: {
             info.inpPinStart = x + (w * 0.55) / 2.f;
             info.outPinStart = x1 + w * 0.25 + negCircleOff;
