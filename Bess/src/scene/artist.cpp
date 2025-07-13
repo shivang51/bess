@@ -83,16 +83,18 @@ namespace Bess::Canvas {
         float x = 0, y = 0;
 
         bool isOutputSlot = comp.slotType == Components::SlotType::digitalOutput;
+        auto info = getCompBoundInfo(type, pTransform.position, pTransform.scale);
 
+        float yIncr = 0;
         if (isOutputSlot) {
-            x = getRightBoundForComp(type, pTransform.position, pTransform.scale) + 20.f;
-            float yIncr = pScale.y / (simComp.outputSlots.size() + 1);
-            y = pPos.y + yIncr * (comp.idx + 1);
+            x = info.outConnStart;
+            yIncr = pScale.y / (simComp.outputSlots.size() + 1);
         } else {
-            x = pPos.x - 20.f;
-            float yIncr = pScale.y / (simComp.inputSlots.size() + 1);
-            y = pPos.y + yIncr * (comp.idx + 1);
+            x = info.inpConnStart;
+            yIncr = pScale.y / (simComp.inputSlots.size() + 1);
         }
+
+        y = pPos.y + yIncr * (comp.idx + 1);
 
         return {x, y, pPos.z + 0.0005};
     }
@@ -329,20 +331,16 @@ namespace Bess::Canvas {
         auto scale = transformComp.scale;
 
         float nodeWeight = 2.f;
-        float pinW = 20.f;
 
+        auto boundInfo = getCompBoundInfo(type, pos, scale);
         float w = scale.x / 2, h = scale.y;
         float x = pos.x - w / 2, x1 = pos.x + w / 2;
         float y = pos.y - h / 2, y1 = pos.y + h / 2;
-        float rb = getRightBoundForComp(type, pos, scale); // right most extent of the node, needs to be node specific
-        float outPinStart = rb;                           // need to be set node specific if not rb
-        float inPinStart = x;                              // need to be set node specific for some (its always right side of the pin)
+        float rb = boundInfo.outPinStart;
 
         switch (type) {
         case SimEngine::ComponentType::AND: {
             float cpX = x1 + (w * 0.65);
-            outPinStart = rb;
-
             // diagram
             Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
             Renderer::pathLineTo({x1, y, pos.z}, 4.f, ViewportTheme::compHeaderColor, -1);
@@ -353,7 +351,6 @@ namespace Bess::Canvas {
         case SimEngine::ComponentType::OR: {
             float cpX = x + (w * 0.65);
             float off = w * 0.25;
-            inPinStart = x + (w * 0.55) / 2.f;
 
             // diagram
             Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
@@ -370,6 +367,9 @@ namespace Bess::Canvas {
             Renderer::endPathMode(true);
         }break;
         default:
+            w = scale.x, h = scale.y;
+            x = pos.x - w / 2, x1 = pos.x + w / 2;
+            y = pos.y - h / 2, y1 = pos.y + h / 2;
             // a square with name in center
             Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
             Renderer::pathLineTo({x1, y, pos.z}, 4.f, ViewportTheme::compHeaderColor, -1);
@@ -379,6 +379,7 @@ namespace Bess::Canvas {
             break;
         }
 
+        float inPinStart = boundInfo.inpPinStart;                              // need to be set node specific for some (its always right side of the pin)
         // name
         {
             const auto &tagComp = registry.get<Components::TagComponent>(entity);
@@ -396,10 +397,10 @@ namespace Bess::Canvas {
             for (int i = 1; i <= inpCount; i++) {
                 float yOff = yIncr * i;
                 Renderer::beginPathMode({inPinStart, y + yOff, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
-                Renderer::pathLineTo({x - pinW, y + yOff, 1}, 4.f, ViewportTheme::compHeaderColor, -1);
+                Renderer::pathLineTo({boundInfo.inpConnStart, y + yOff, 1}, 4.f, ViewportTheme::compHeaderColor, -1);
                 Renderer::endPathMode(false);
                 Renderer::text("X" + std::to_string(i - 1),
-                               {x - pinW / 1.5, y + yOff - componentStyles.headerFontSize / 2.f, pos.z + 0.0005f},
+                               {boundInfo.inpConnStart, y + yOff - componentStyles.headerFontSize / 2.f, pos.z + 0.0005f},
                                componentStyles.headerFontSize, ViewportTheme::textColor, 0, 0.f);
             }
         }
@@ -410,11 +411,13 @@ namespace Bess::Canvas {
             float yIncr = h / (outCount + 1);
             for (int i = 1; i <= outCount; i++) {
                 float yOff = yIncr * i;
-                Renderer::beginPathMode({rb, y + yOff, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
-                Renderer::pathLineTo({rb + pinW, y + yOff, 1}, 4.f, ViewportTheme::compHeaderColor, -1);
+                Renderer::beginPathMode({boundInfo.outPinStart, y + yOff, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
+                Renderer::pathLineTo({boundInfo.outConnStart, y + yOff, 1}, 4.f, ViewportTheme::compHeaderColor, -1);
                 Renderer::endPathMode(false);
-                Renderer::text("Y" + std::to_string(i - 1),
-                               {rb + pinW / 2.5, y + yOff - componentStyles.headerFontSize / 2.f, pos.z + 0.0005f},
+                std::string label = "Y" + std::to_string(i - 1);
+                float size = Renderer2D::Renderer::getStringRenderSize(label, componentStyles.headerFontSize).x;
+                Renderer::text(label,
+                               {boundInfo.outConnStart - size, y + yOff - componentStyles.headerFontSize / 2.f, pos.z + 0.0005f},
                                componentStyles.headerFontSize, ViewportTheme::textColor, 0, 0.f);
             }
         }
@@ -480,23 +483,42 @@ namespace Bess::Canvas {
         drawSlots(simComp, glm::vec3(glm::vec2(pos) - (glm::vec2(scale) / 2.f), pos.z), scale.x, rotation);
     }
 
-    float Artist::getRightBoundForComp(SimEngine::ComponentType type, glm::vec2 pos, glm::vec2 scale) {
+    ArtistCompBoundInfo Artist::getCompBoundInfo(SimEngine::ComponentType type, glm::vec2 pos, glm::vec2 scale) {
         float w = scale.x / 2, h = scale.y;
         float x = pos.x - w / 2, x1 = pos.x + w / 2;
         float y = pos.y - h / 2, y1 = pos.y + h / 2;
+        float pinW = 20.f;
+        ArtistCompBoundInfo info;
 
         switch (type) {
         case SimEngine::ComponentType::AND: {
-            return x1 + ((w * 0.65) / 2);
-        }
+            info.inpPinStart = x;
+            info.outPinStart = x1 + ((w * 0.65) / 2);
+            info.inpConnStart = info.inpPinStart - 20.f;
+            info.outConnStart = info.outPinStart + 20.f;
+        }break;
         case SimEngine::ComponentType::OR: {
-            return x1 + w * 0.25;
+            info.outPinStart = x1 + w * 0.25;
+            info.inpPinStart = x + (w * 0.55) / 2.f;
+            info.inpConnStart = x - pinW;
+            info.outConnStart = info.outPinStart + 20.f;
         } break;
         case SimEngine::ComponentType::NOT: {
-            return x1;
+            info.inpPinStart = x;
+            info.outPinStart = x1;
+            info.inpConnStart = info.inpPinStart - 20.f;
+            info.outConnStart = info.outPinStart + 20.f;
         } break;
         default:
-            return x1;
+            w = scale.x, h = scale.y;
+            x = pos.x - w / 2, x1 = pos.x + w / 2;
+            y = pos.y - h / 2, y1 = pos.y + h / 2;
+            info.inpPinStart = x;
+            info.outPinStart = x1;
+            info.inpConnStart = info.inpPinStart - 20.f;
+            info.outConnStart = info.outPinStart + 20.f;
         }
+
+        return info;
     }
 } // namespace Bess::Canvas
