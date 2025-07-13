@@ -30,6 +30,7 @@ namespace Bess::Canvas {
       public:
         static void setSchematicMode(bool value);
         static bool getSchematicMode();
+        static bool* getSchematicModePtr();
 
       private:
         static void paintSchematicView(entt::entity entity);

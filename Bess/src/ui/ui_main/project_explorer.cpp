@@ -5,7 +5,6 @@
 #include "modules/schematic_gen/schematic_view.h"
 #include "scene/scene.h"
 #include "ui/icons/CodIcons.h"
-#include "scene/artist.h"
 
 namespace Bess::UI {
     std::string ProjectExplorer::windowName = std::string(Icons::CodIcons::TYPE_HIERARCHY) + "  Project Explorer";
@@ -68,10 +67,7 @@ namespace Bess::UI {
         auto &scene = Bess::Canvas::Scene::instance();
         auto &registry = scene.getEnttRegistry();
 
-        if (ImGui::Button("Schemetic Mode Toggle")) {
-            // Modules::SchematicGen::SchematicView(Canvas::Scene::instance(), registry).generateDiagram();
-            Canvas::Artist::setSchematicMode(!Canvas::Artist::getSchematicMode());
-        }
+        // Modules::SchematicGen::SchematicView(Canvas::Scene::instance(), registry).generateDiagram();
 
         auto view = registry.view<Canvas::Components::TagComponent>();
         auto size = view.size();

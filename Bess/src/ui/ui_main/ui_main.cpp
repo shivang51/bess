@@ -12,6 +12,7 @@
 #include "camera.h"
 #include "pages/main_page/main_page_state.h"
 #include "scene/renderer/gl/gl_wrapper.h"
+#include "scene/artist.h"
 #include "scene/scene.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/ui_main/component_explorer.h"
@@ -265,6 +266,33 @@ namespace Bess::UI {
         ImGui::End();
         ImGui::PopStyleVar();
 
+        // top left actions
+        {
+            ImGuiContext &g = *ImGui::GetCurrentContext();
+            auto colors = g.Style.Colors;
+            auto &simEngine = SimEngine::SimulationEngine::instance();
+            static float checkboxWidth = ImGui::CalcTextSize("W").x + g.Style.FramePadding.x + 2.f;
+            static float size = ImGui::CalcTextSize("Schematic Mode").x + checkboxWidth + 12.f;
+            ImGui::SetNextWindowPos({pos.x + g.Style.FramePadding.x, pos.y + g.Style.FramePadding.y});
+            ImGui::SetNextWindowSize({size, 0});
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+
+            auto col = colors[ImGuiCol_Header];
+            col.w = 0.1f;
+            ImGui::PushStyleColor(ImGuiCol_WindowBg, col);
+            ImGui::Begin("TopLeftViewportActions", nullptr, flags);
+            ImGui::Text("Schematic Mode");
+            ImGui::SameLine();
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+            ImGui::Checkbox("##CheckBoxSchematicMode", Canvas::Artist::getSchematicModePtr());
+            ImGui::PopStyleVar();
+            state.isViewportFocused &= !ImGui::IsWindowHovered();
+            ImGui::End();
+            ImGui::PopStyleVar(2);
+            ImGui::PopStyleColor(1);
+        }
+
         // actions (on top right)
         {
 
@@ -282,7 +310,7 @@ namespace Bess::UI {
             auto col = colors[ImGuiCol_Header];
             col.w = 0.5;
             ImGui::PushStyleColor(ImGuiCol_WindowBg, col);
-            ImGui::Begin("ViewportActions", nullptr, flags);
+            ImGui::Begin("TopRightViewportActions", nullptr, flags);
 
             auto &scene = Canvas::Scene::instance();
 

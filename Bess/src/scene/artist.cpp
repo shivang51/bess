@@ -33,14 +33,6 @@ namespace Bess::Canvas {
     float SLOT_START_Y = componentStyles.headerHeight;
     float SLOT_ROW_SIZE = (componentStyles.rowMargin * 2.f) + (componentStyles.slotRadius * 2.f) + componentStyles.rowGap;
 
-    void Artist::setSchematicMode(bool value) {
-        m_isSchematicMode = value;
-    }
-
-    bool Artist::getSchematicMode() {
-        return m_isSchematicMode;
-    }
-
     glm::vec3 Artist::getSlotPos(const Components::SlotComponent &comp) {
         auto &registry = sceneRef->getEnttRegistry();
         auto parentEntt = sceneRef->getEntityWithUuid(comp.parentId);
@@ -568,5 +560,17 @@ namespace Bess::Canvas {
         }
 
         return info;
+    }
+
+    void Artist::setSchematicMode(bool value) {
+        m_isSchematicMode = value;
+    }
+
+    bool Artist::getSchematicMode() {
+        return m_isSchematicMode;
+    }
+
+    bool* Artist::getSchematicModePtr() {
+        return &m_isSchematicMode;
     }
 } // namespace Bess::Canvas
