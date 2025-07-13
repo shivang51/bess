@@ -53,6 +53,9 @@ namespace Bess::Renderer2D {
                 glm::ivec2(m_face->glyph->bitmap_left, m_face->glyph->bitmap_top),
                 (int)m_face->glyph->advance.x};
             Characters.insert(std::pair<char, Character>(c, character));
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glGenerateMipmap(GL_TEXTURE_2D);
         }
     }
 
