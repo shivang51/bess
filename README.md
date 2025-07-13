@@ -39,10 +39,8 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
        cd bin/Release/x64/
        ./Bess
        ```
-## TODO
+## Next TODO
 - [X] Logging
-- [ ] Schmetic diagram toggle, from nodes
-- [ ] Improve looks of wires, joints are not good :(
+- [ ] (On-going) Schematic diagram generator from nodes
 - [ ] Asset Manager, MSDF font rendering
-- [ ] Snaplines, More non-simulating nodes e.g. text node
-- [ ] Lua Scripting, so anyone can add components dynamically
+- [ ] More non-simulating nodes e.g. text node
