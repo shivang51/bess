@@ -324,7 +324,7 @@ namespace Bess::Canvas {
         auto &registry = sceneRef->getEnttRegistry();
         auto &simComp = registry.get<Components::SimulationComponent>(entity);
         SimEngine::ComponentType type = SimEngine::SimulationEngine::instance().getComponentType(simComp.simEngineEntity);
-        auto &transformComp = registry.get<Components::TransformComponent>(entity);
+        const auto &transformComp = registry.get<Components::TransformComponent>(entity);
         auto pos = transformComp.position;
         auto scale = transformComp.scale;
 
@@ -335,8 +335,8 @@ namespace Bess::Canvas {
         float x = pos.x - w / 2, x1 = pos.x + w / 2;
         float y = pos.y - h / 2, y1 = pos.y + h / 2;
         float rb = getRightBoundForComp(type, pos, scale); // right most extent of the node, needs to be node specific
-        float outPinStart = 0.f; // need to be set node specific
-        float inPinStart = x;    // need to be set node specific for some (its always right side of the pin)
+        float outPinStart = rb;                           // need to be set node specific if not rb
+        float inPinStart = x;                              // need to be set node specific for some (its always right side of the pin)
 
         switch (type) {
         case SimEngine::ComponentType::AND: {
@@ -350,6 +350,25 @@ namespace Bess::Canvas {
             Renderer::pathLineTo({x, y1, pos.z}, 4.f, ViewportTheme::wireColor, -1);
             Renderer::endPathMode(true);
         } break;
+        case SimEngine::ComponentType::OR: {
+            float cpX = x + (w * 0.65);
+            float off = w * 0.25;
+            inPinStart = x + (w * 0.55) / 2.f;
+
+            // diagram
+            Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
+            Renderer::pathQuadBeizerTo({x, y1, pos.z}, {cpX, y + (y1 - y) / 2}, 4, ViewportTheme::compHeaderColor, -1);
+            Renderer::pathLineTo({x1 - off, y1, pos.z}, 4.f, ViewportTheme::compHeaderColor, -1);
+            Renderer::pathQuadBeizerTo({rb, y + (y1 - y) / 2.f, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.85}, 4.f, ViewportTheme::compHeaderColor, -1);
+            Renderer::pathQuadBeizerTo({x1 - off, y, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.15}, 4.f, ViewportTheme::compHeaderColor, -1);
+            Renderer::endPathMode(true);
+        } break;
+        case SimEngine::ComponentType::NOT: {
+            Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
+            Renderer::pathLineTo({x1, y + (y1 - y) / 2.f, pos.z}, 4.f, ViewportTheme::compHeaderColor, -1);
+            Renderer::pathLineTo({x, y1, pos.z}, 4.f, ViewportTheme::compHeaderColor, -1);
+            Renderer::endPathMode(true);
+        }break;
         default:
             // a square with name in center
             Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
@@ -364,7 +383,7 @@ namespace Bess::Canvas {
         {
             const auto &tagComp = registry.get<Components::TagComponent>(entity);
             auto textSize = Renderer2D::Renderer::getStringRenderSize(tagComp.name, componentStyles.headerFontSize);
-            glm::vec3 textPos = {x + (rb - x) / 2.f, y + (y1 - y) / 2.f, pos.z + 0.0005f};
+            glm::vec3 textPos = {inPinStart + (rb - inPinStart) / 2.f, y + (y1 - y) / 2.f, pos.z + 0.0005f};
             textPos.x -= textSize.x / 2.f;
             textPos.y += componentStyles.headerFontSize / 2.f;
             Renderer::text(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, 0, 0.f);
@@ -377,7 +396,7 @@ namespace Bess::Canvas {
             for (int i = 1; i <= inpCount; i++) {
                 float yOff = yIncr * i;
                 Renderer::beginPathMode({inPinStart, y + yOff, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
-                Renderer::pathLineTo({inPinStart - pinW, y + yOff, 1}, 4.f, ViewportTheme::compHeaderColor, -1);
+                Renderer::pathLineTo({x - pinW, y + yOff, 1}, 4.f, ViewportTheme::compHeaderColor, -1);
                 Renderer::endPathMode(false);
                 Renderer::text("X" + std::to_string(i - 1),
                                {x - pinW / 1.5, y + yOff - componentStyles.headerFontSize / 2.f, pos.z + 0.0005f},
@@ -405,22 +424,17 @@ namespace Bess::Canvas {
         /// Note (Shivang): this way is temporary, most likely me will move to a better way
         auto &registry = sceneRef->getEnttRegistry();
 
-        if (m_isSchematicMode) {
-            paintSchematicView(entity);
-            return;
-        }
-
-        if (registry.all_of<Components::SimulationInputComponent>(entity)) {
-            drawInput(entity);
-            return;
-        } else if (registry.all_of<Components::SimulationOutputComponent>(entity)) {
-            drawOutput(entity);
-            return;
+        if (!m_isSchematicMode) {
+            if (registry.all_of<Components::SimulationInputComponent>(entity)) {
+                drawInput(entity);
+                return;
+            } else if (registry.all_of<Components::SimulationOutputComponent>(entity)) {
+                drawOutput(entity);
+                return;
+            }
         }
 
         auto &transformComp = registry.get<Components::TransformComponent>(entity);
-        const auto &spriteComp = registry.get<Components::SpriteComponent>(entity);
-        const auto &tagComp = registry.get<Components::TagComponent>(entity);
         const auto &simComp = registry.get<Components::SimulationComponent>(entity);
 
         auto pos = transformComp.position;
@@ -429,6 +443,14 @@ namespace Bess::Canvas {
         int maxRows = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
         scale.y = componentStyles.headerHeight + componentStyles.rowGap + (maxRows * SLOT_ROW_SIZE);
         transformComp.scale = scale;
+
+        if (m_isSchematicMode) {
+            paintSchematicView(entity);
+            return;
+        }
+
+        const auto &spriteComp = registry.get<Components::SpriteComponent>(entity);
+        const auto &tagComp = registry.get<Components::TagComponent>(entity);
 
         float headerHeight = componentStyles.headerHeight;
         auto headerPos = glm::vec3(pos.x, pos.y - scale.y / 2.f + headerHeight / 2.f, pos.z);
@@ -465,10 +487,14 @@ namespace Bess::Canvas {
 
         switch (type) {
         case SimEngine::ComponentType::AND: {
-            float cpX = x1 + (w * 0.65);
-            return x1 + ((cpX - x1) / 2);
+            return x1 + ((w * 0.65) / 2);
         }
-        break;
+        case SimEngine::ComponentType::OR: {
+            return x1 + w * 0.25;
+        } break;
+        case SimEngine::ComponentType::NOT: {
+            return x1;
+        } break;
         default:
             return x1;
         }
