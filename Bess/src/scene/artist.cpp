@@ -14,6 +14,7 @@ using Renderer = Bess::Renderer2D::Renderer;
 
 namespace Bess::Canvas {
     Scene *Artist::sceneRef = nullptr;
+    bool Artist::m_isSchematicMode = false;
 
     struct ComponentStyles {
         float headerHeight = 18.f;
@@ -31,6 +32,14 @@ namespace Bess::Canvas {
     float SLOT_DX = componentStyles.paddingX + componentStyles.slotRadius + componentStyles.slotMargin;
     float SLOT_START_Y = componentStyles.headerHeight;
     float SLOT_ROW_SIZE = (componentStyles.rowMargin * 2.f) + (componentStyles.slotRadius * 2.f) + componentStyles.rowGap;
+
+    void Artist::setSchematicMode(bool value) {
+        m_isSchematicMode = value;
+    }
+
+    bool Artist::getSchematicMode() {
+        return m_isSchematicMode;
+    }
 
     glm::vec3 Artist::getSlotPos(const Components::SlotComponent &comp) {
         auto &registry = sceneRef->getEnttRegistry();
@@ -59,6 +68,33 @@ namespace Bess::Canvas {
             posY += SLOT_START_Y;
 
         return glm::vec3(posX, posY, pPos.z + 0.0005);
+    }
+
+    glm::vec3 Artist::getPinPos(const Components::SlotComponent &comp) {
+        auto &registry = sceneRef->getEnttRegistry();
+        auto parentEntt = sceneRef->getEntityWithUuid(comp.parentId);
+        const auto &pTransform = registry.get<Components::TransformComponent>(parentEntt);
+        auto &simComp = registry.get<Components::SimulationComponent>(parentEntt);
+
+        auto pScale = pTransform.scale;
+        auto pPos = pTransform.position - glm::vec3(pScale.x * 0.25f, pScale.y * 0.5f, 0.f);
+        SimEngine::ComponentType type = SimEngine::SimulationEngine::instance().getComponentType(simComp.simEngineEntity);
+
+        float x = 0, y = 0;
+
+        bool isOutputSlot = comp.slotType == Components::SlotType::digitalOutput;
+
+        if (isOutputSlot) {
+            x = getRightBoundForComp(type, pTransform.position, pTransform.scale) + 20.f;
+            float yIncr = pScale.y / (simComp.outputSlots.size() + 1);
+            y = pPos.y + yIncr * (comp.idx + 1);
+        } else {
+            x = pPos.x - 20.f;
+            float yIncr = pScale.y / (simComp.inputSlots.size() + 1);
+            y = pPos.y + yIncr * (comp.idx + 1);
+        }
+
+        return {x, y, pPos.z + 0.0005};
     }
 
     void Artist::paintSlot(uint64_t id, int idx, uint64_t parentId, const glm::vec3 &pos,
@@ -139,8 +175,15 @@ namespace Bess::Canvas {
         auto &outputSlotComp = registry.get<Components::SlotComponent>(outputEntity);
         auto &simComp = registry.get<Components::SimulationComponent>(sceneRef->getEntityWithUuid(outputSlotComp.parentId));
 
-        auto startPos = Artist::getSlotPos(registry.get<Components::SlotComponent>(inputEntity));
-        auto endPos = Artist::getSlotPos(outputSlotComp);
+        glm::vec3 startPos, endPos;
+        if (m_isSchematicMode) {
+            startPos = Artist::getPinPos(registry.get<Components::SlotComponent>(inputEntity));
+            endPos = Artist::getPinPos(outputSlotComp);
+        } else {
+            startPos = Artist::getSlotPos(registry.get<Components::SlotComponent>(inputEntity));
+            endPos = Artist::getSlotPos(outputSlotComp);
+        }
+
         startPos.z = 0.f;
         endPos.z = 0.f;
 
@@ -277,8 +320,96 @@ namespace Bess::Canvas {
         drawSlots(simComp, pos, scale.x, rotation);
     }
 
-    void Artist::drawSimEntity(entt::entity entity) {
+    void Artist::paintSchematicView(entt::entity entity) {
         auto &registry = sceneRef->getEnttRegistry();
+        auto &simComp = registry.get<Components::SimulationComponent>(entity);
+        SimEngine::ComponentType type = SimEngine::SimulationEngine::instance().getComponentType(simComp.simEngineEntity);
+        auto &transformComp = registry.get<Components::TransformComponent>(entity);
+        auto pos = transformComp.position;
+        auto scale = transformComp.scale;
+
+        float nodeWeight = 2.f;
+        float pinW = 20.f;
+
+        float w = scale.x / 2, h = scale.y;
+        float x = pos.x - w / 2, x1 = pos.x + w / 2;
+        float y = pos.y - h / 2, y1 = pos.y + h / 2;
+        float rb = getRightBoundForComp(type, pos, scale); // right most extent of the node, needs to be node specific
+        float outPinStart = 0.f; // need to be set node specific
+        float inPinStart = x;    // need to be set node specific for some (its always right side of the pin)
+
+        switch (type) {
+        case SimEngine::ComponentType::AND: {
+            float cpX = x1 + (w * 0.65);
+            outPinStart = rb;
+
+            // diagram
+            Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
+            Renderer::pathLineTo({x1, y, pos.z}, 4.f, ViewportTheme::compHeaderColor, -1);
+            Renderer::pathQuadBeizerTo({x1, y1, pos.z}, {cpX, y + (y1 - y) / 2}, 4, ViewportTheme::compHeaderColor, -1);
+            Renderer::pathLineTo({x, y1, pos.z}, 4.f, ViewportTheme::wireColor, -1);
+            Renderer::endPathMode(true);
+        } break;
+        default:
+            // a square with name in center
+            Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
+            Renderer::pathLineTo({x1, y, pos.z}, 4.f, ViewportTheme::compHeaderColor, -1);
+            Renderer::pathLineTo({x1, y1, pos.z}, 4.f, ViewportTheme::compHeaderColor, -1);
+            Renderer::pathLineTo({x, y1, pos.z}, 4.f, ViewportTheme::wireColor, -1);
+            Renderer::endPathMode(true);
+            break;
+        }
+
+        // name
+        {
+            const auto &tagComp = registry.get<Components::TagComponent>(entity);
+            auto textSize = Renderer2D::Renderer::getStringRenderSize(tagComp.name, componentStyles.headerFontSize);
+            glm::vec3 textPos = {x + (rb - x) / 2.f, y + (y1 - y) / 2.f, pos.z + 0.0005f};
+            textPos.x -= textSize.x / 2.f;
+            textPos.y += componentStyles.headerFontSize / 2.f;
+            Renderer::text(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, 0, 0.f);
+        }
+
+        // inputs
+        {
+            size_t inpCount = simComp.inputSlots.size();
+            float yIncr = h / (inpCount + 1);
+            for (int i = 1; i <= inpCount; i++) {
+                float yOff = yIncr * i;
+                Renderer::beginPathMode({inPinStart, y + yOff, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
+                Renderer::pathLineTo({inPinStart - pinW, y + yOff, 1}, 4.f, ViewportTheme::compHeaderColor, -1);
+                Renderer::endPathMode(false);
+                Renderer::text("X" + std::to_string(i - 1),
+                               {x - pinW / 1.5, y + yOff - componentStyles.headerFontSize / 2.f, pos.z + 0.0005f},
+                               componentStyles.headerFontSize, ViewportTheme::textColor, 0, 0.f);
+            }
+        }
+
+        // outputs
+        {
+            size_t outCount = simComp.outputSlots.size();
+            float yIncr = h / (outCount + 1);
+            for (int i = 1; i <= outCount; i++) {
+                float yOff = yIncr * i;
+                Renderer::beginPathMode({rb, y + yOff, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
+                Renderer::pathLineTo({rb + pinW, y + yOff, 1}, 4.f, ViewportTheme::compHeaderColor, -1);
+                Renderer::endPathMode(false);
+                Renderer::text("Y" + std::to_string(i - 1),
+                               {rb + pinW / 2.5, y + yOff - componentStyles.headerFontSize / 2.f, pos.z + 0.0005f},
+                               componentStyles.headerFontSize, ViewportTheme::textColor, 0, 0.f);
+            }
+        }
+    }
+
+    void Artist::drawSimEntity(entt::entity entity) {
+        /// Note (Shivang): this way is temporary, most likely me will move to a better way
+        auto &registry = sceneRef->getEnttRegistry();
+
+        if (m_isSchematicMode) {
+            paintSchematicView(entity);
+            return;
+        }
+
         if (registry.all_of<Components::SimulationInputComponent>(entity)) {
             drawInput(entity);
             return;
@@ -288,9 +419,9 @@ namespace Bess::Canvas {
         }
 
         auto &transformComp = registry.get<Components::TransformComponent>(entity);
-        auto &spriteComp = registry.get<Components::SpriteComponent>(entity);
-        auto &tagComp = registry.get<Components::TagComponent>(entity);
-        auto &simComp = registry.get<Components::SimulationComponent>(entity);
+        const auto &spriteComp = registry.get<Components::SpriteComponent>(entity);
+        const auto &tagComp = registry.get<Components::TagComponent>(entity);
+        const auto &simComp = registry.get<Components::SimulationComponent>(entity);
 
         auto pos = transformComp.position;
         auto rotation = transformComp.angle;
@@ -325,5 +456,21 @@ namespace Bess::Canvas {
         Renderer::text(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id, rotation);
 
         drawSlots(simComp, glm::vec3(glm::vec2(pos) - (glm::vec2(scale) / 2.f), pos.z), scale.x, rotation);
+    }
+
+    float Artist::getRightBoundForComp(SimEngine::ComponentType type, glm::vec2 pos, glm::vec2 scale) {
+        float w = scale.x / 2, h = scale.y;
+        float x = pos.x - w / 2, x1 = pos.x + w / 2;
+        float y = pos.y - h / 2, y1 = pos.y + h / 2;
+
+        switch (type) {
+        case SimEngine::ComponentType::AND: {
+            float cpX = x1 + (w * 0.65);
+            return x1 + ((cpX - x1) / 2);
+        }
+        break;
+        default:
+            return x1;
+        }
     }
 } // namespace Bess::Canvas
