@@ -337,9 +337,7 @@ namespace Bess::Canvas {
         float rb = boundInfo.outPinStart;
 
         auto negateCircleAt = [&](glm::vec3 pos) {
-            // Renderer::quad(pos, glm::vec2(negCircleR * 2.f), glm::vec4(0.f), -1, 0.f,
-            //                glm::vec4(negCircleR),
-            //                glm::vec4(nodeWeight), ViewportTheme::compHeaderColor, false);
+            Renderer::circle(pos, negCircleR, ViewportTheme::compHeaderColor, -1, negCircleR - nodeWeight);
         };
 
         switch (type) {

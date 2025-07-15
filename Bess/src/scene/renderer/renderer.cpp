@@ -652,7 +652,7 @@ namespace Bess {
     }
 
     void Renderer::endPathMode(bool closePath) {
-        auto vertices = generateStrokeGeometry(m_pathData.points, m_pathData.weight, m_pathData.color, -1, 4.f, closePath);
+        auto vertices = generateStrokeGeometry(m_pathData.points, m_pathData.weight, m_pathData.color, -1, 6.f, closePath);
         size_t idx = m_pathStripVertices.size();
         for (auto &v : vertices) {
             m_pathStripVertices.emplace_back(v);
