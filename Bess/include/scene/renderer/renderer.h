@@ -100,6 +100,8 @@ namespace Bess::Renderer2D {
 
         static void text(const std::string &data, const glm::vec3 &pos, const size_t size, const glm::vec4 &color, const int id, float angle = 0.f);
 
+        static void msdfText(const std::string &data, const glm::vec3 &pos, const size_t size, const glm::vec4 &color, const int id, float angle = 0.f);
+
         static void line(const glm::vec3 &start, const glm::vec3 &end, float size, const glm::vec4 &color, const int id);
 
         static void drawLines(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const int id, bool closed = false);
@@ -181,6 +183,8 @@ namespace Bess::Renderer2D {
         static PathContext m_pathData;
 
         static std::unordered_map<std::shared_ptr<Gl::Texture>, std::vector<Gl::QuadVertex>> m_textureQuadVertices;
+
+        static std::shared_ptr<Gl::Texture> m_fontTextureAtlas;
     };
 
 } // namespace Bess::Renderer2D

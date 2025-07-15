@@ -8,6 +8,7 @@ namespace Bess::Gl {
         glm::vec4 color;
         glm::vec2 texCoord;
         int id;
+        int texSlotIdx;
     };
 
     struct CircleVertex {

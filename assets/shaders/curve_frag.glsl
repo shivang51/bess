@@ -6,7 +6,7 @@ layout(location = 1) out int fragColor1;
 in vec3 v_FragPos;
 in vec2 v_TexCoord;
 in vec4 v_FragColor;
-in flat int v_TextureIndex;
+in flat int v_FragId;
 
 uniform int u_SelectedObjId;
 uniform float u_zoom;
@@ -25,5 +25,5 @@ void main() {
     col.w = min(col.w, alpha);
 
     fragColor = col;
-    fragColor1 = v_TextureIndex;
+    fragColor1 = v_FragId;
 }

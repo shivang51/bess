@@ -45,6 +45,7 @@ namespace Bess {
     std::unique_ptr<Gl::Shader> Renderer::m_compositePassShader;
     std::unique_ptr<Gl::Vao> Renderer::m_GridVao;
     std::unique_ptr<Gl::Vao> Renderer::m_renderPassVao;
+    std::shared_ptr<Gl::Texture> Renderer::m_fontTextureAtlas;
     std::vector<Gl::Vertex> Renderer::m_curveStripVertices;
     std::vector<GLuint> Renderer::m_curveStripIndices;
     std::vector<Gl::Vertex> Renderer::m_pathStripVertices;
@@ -80,7 +81,7 @@ namespace Bess {
 #endif
 
         m_AvailablePrimitives = {PrimitiveType::curve, PrimitiveType::line, PrimitiveType::triangle,
-                                 PrimitiveType::quad, PrimitiveType::circle, PrimitiveType::path};
+                                 PrimitiveType::quad, PrimitiveType::circle, PrimitiveType::path, PrimitiveType::text};
 
         for (auto &prim : m_AvailablePrimitives) {
             m_MaxRenderLimit[prim] = 8000;
@@ -111,6 +112,10 @@ namespace Bess {
             case PrimitiveType::line:
                 vertexShader = "assets/shaders/vert.glsl";
                 fragmentShader = "assets/shaders/line_frag.glsl";
+                break;
+            case PrimitiveType::text:
+                vertexShader = "assets/shaders/vert.glsl";
+                fragmentShader = "assets/shaders/text_frag.glsl";
                 break;
             }
 
@@ -150,6 +155,7 @@ namespace Bess {
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::Vertex, color)));
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::Vertex, texCoord)));
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::Vertex, id)));
+                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::Vertex, texSlotIdx)));
                 bool triangle = primitive == PrimitiveType::triangle || primitive == PrimitiveType::curve || primitive == PrimitiveType::path;
                 Gl::VaoElementType elType = Gl::VaoElementType::quad;
                 if (primitive == PrimitiveType::triangle) {
@@ -179,6 +185,7 @@ namespace Bess {
             {0.0f, 0.5f, 0.f, 1.f}};
 
         m_Font = std::make_unique<Font>("assets/fonts/Roboto/Roboto-Regular.ttf");
+        m_fontTextureAtlas = std::make_shared<Gl::Texture>("assets/fonts/Roboto/msdf/msdf_atlas.png");
     }
 
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
@@ -402,6 +409,34 @@ namespace Bess {
         }
 
         addCircleVertices(vertices);
+    }
+
+    void Renderer::msdfText(const std::string &text, const glm::vec3 &pos, const size_t size,
+                            const glm::vec4 &color, const int id, float angle) {
+
+        // Command to use to generate MSDF font texture atlas
+        // https://github.com/soimy/msdf-bmfont-xml
+        // msdf-bmfont.cmd -f json -o %1.png %1
+
+        std::vector<Gl::Vertex> vertices(4);
+        auto subTexture = std::make_shared<Gl::SubTexture>(m_fontTextureAtlas,
+                                                           glm::vec2({0, 0}), glm::vec2({15, 47}));
+
+        auto texCoords = subTexture->getTexCoords();
+
+        auto transform = glm::translate(glm::mat4(1.0f), pos);
+        transform = glm::scale(transform, {15, 47, 1.f});
+
+        for (int i = 0; i < 4; i++) {
+            auto &vertex = vertices[i];
+            vertex.position = transform * m_StandardQuadVertices[i];
+            vertex.id = id;
+            vertex.color = color;
+            vertex.texCoord = texCoords[i];
+            vertex.texSlotIdx = 1;
+        }
+
+        m_RenderData.fontVertices.insert(m_RenderData.fontVertices.end(), vertices.begin(), vertices.end());
     }
 
     void Renderer::text(const std::string &text, const glm::vec3 &pos, const size_t size,
@@ -730,7 +765,7 @@ namespace Bess {
                 std::vector<Gl::QuadVertex> texVertices = {};
                 for (auto &[tex, vertices] : m_textureQuadVertices) {
                     tex->bind(vertices.front().texSlotIdx);
-                    if(texVertices.size() + vertices.size() >= (m_MaxRenderLimit[PrimitiveType::quad] - 1) * 4) {
+                    if (texVertices.size() + vertices.size() >= (m_MaxRenderLimit[PrimitiveType::quad] - 1) * 4) {
                         vao->setVertices(texVertices.data(), texVertices.size());
                         Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(texVertices.size() / 4) * 6);
                         texVertices.clear();
@@ -738,7 +773,7 @@ namespace Bess {
                     texVertices.insert(texVertices.end(), vertices.begin(), vertices.end());
                 }
 
-                if(!texVertices.empty()){
+                if (!texVertices.empty()) {
                     vao->setVertices(texVertices.data(), texVertices.size());
                     Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(texVertices.size() / 4) * 6);
                     texVertices.clear();
@@ -779,6 +814,25 @@ namespace Bess {
         } break;
         case PrimitiveType::line: {
             auto &vertices = m_RenderData.lineVertices;
+            vao->setVertices(vertices.data(), vertices.size());
+            Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
+            vertices.clear();
+        } break;
+        case PrimitiveType::text: {
+            auto &vertices = m_RenderData.fontVertices;
+            if (vertices.empty()) {
+                vao->unbind();
+                shader->unbind();
+                return;
+            }
+            shader->setUniform1f("u_zoom", m_camera->getZoom());
+            std::array<int, 32> texSlots = {};
+            for (int i = 0; i < 32; i++) {
+                texSlots[i] = i;
+            }
+            shader->setUniform1iv("u_Textures", texSlots.data(), 32);
+            m_fontTextureAtlas->bind(1);
+            std::cout << vertices.front().texSlotIdx << std::endl;
             vao->setVertices(vertices.data(), vertices.size());
             Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
             vertices.clear();

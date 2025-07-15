@@ -97,9 +97,9 @@ namespace Bess::UI {
         ImGuiStyle &style = ImGui::GetStyle();
 
         io.Fonts->Clear();
-        io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Bold.ttf", fontSize);
-        Fonts::largeFont = io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Bold.ttf", fontSize * 2.f);
-        Fonts::mediumFont = io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Bold.ttf", fontSize * 1.5f);
+        io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Regular.ttf", fontSize);
+        Fonts::largeFont = io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Regular.ttf", fontSize * 2.f);
+        Fonts::mediumFont = io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Regular.ttf", fontSize * 1.5f);
         io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Regular.ttf", fontSize);
 
         ImFontConfig config;

@@ -60,6 +60,7 @@ namespace Bess::Canvas {
         m_placeHolderSubTexture = std::make_shared<Gl::SubTexture>(m_placeHolderTexture, glm::vec2(5.f, 5.f),
                                                                    glm::vec2(64.f, 64.f), 5, glm::vec2(1.f, 1.f));
 
+
         Artist::sceneRef = this;
     }
 
@@ -189,6 +190,8 @@ namespace Bess::Canvas {
         for (auto entity : view) {
             Artist::drawSimEntity(entity);
         }
+
+        Renderer::msdfText("Bess", {10.f, 10.f, 0.f}, 24, ViewportTheme::textColor, 0);
 
         Renderer2D::Renderer::end();
 

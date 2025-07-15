@@ -56,6 +56,7 @@ namespace Bess::Gl {
         if (!success) {
             glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
             BESS_ERROR("ERROR::SHADER::PROGRAM::LINKING_FAILED -> {}\n", infoLog);
+            assert(false);
         }
 
         glDeleteShader(vertexShaderId);
@@ -85,6 +86,7 @@ namespace Bess::Gl {
         if (!success) {
             glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
             BESS_ERROR("ERROR::SHADER::PROGRAM::LINKING_FAILED:({}) -> {}", fragmentPath, infoLog);
+            assert(false);
         }
 
         glDeleteShader(vertexShaderId);
@@ -104,6 +106,7 @@ namespace Bess::Gl {
             fileStream.close();
         } else {
             BESS_ERROR("Could not read file {}", path);
+            assert(false);
         }
         return content;
     }

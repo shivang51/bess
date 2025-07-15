@@ -6,11 +6,11 @@ layout(location = 1) out int fragColor1;
 in vec3 v_FragPos;
 in vec2 v_TexCoord;
 in vec4 v_FragColor;
-in flat int v_TextureIndex;
+in flat int v_FragId;
 
 uniform int u_SelectedObjId;
 
 void main(){
     fragColor = v_FragColor;
-    fragColor1 = v_TextureIndex;	
+    fragColor1 = v_FragId;	
 }

@@ -7,6 +7,7 @@ namespace Bess::Renderer2D {
         circle,
         triangle,
         line,
-        path
+        path,
+        text
     };
 }
