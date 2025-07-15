@@ -16,8 +16,12 @@ namespace Bess::Gl {
 
         void resize(int width, int height, const void *data = nullptr);
 
-        void setData(const void *data) const;
+        void setData(const void *data);
 
+        void saveToPath(const std::string &path, bool bindTexture = true) const;
+
+      private:
+        int getChannelsFromFormat() const;
       private:
         GLuint m_id;
         int m_width, m_height;

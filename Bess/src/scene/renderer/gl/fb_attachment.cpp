@@ -38,4 +38,8 @@ namespace Bess::Gl {
     void FBAttachment::bindTexture(int slotIdx) const {
         m_texture->bind(slotIdx);
     }
+
+    std::shared_ptr<Texture> FBAttachment::getTextureHandle() const {
+        return m_texture;
+    }
 } // namespace Bess::Gl

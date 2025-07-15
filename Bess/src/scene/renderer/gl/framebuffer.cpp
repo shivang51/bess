@@ -197,32 +197,10 @@ namespace Bess::Gl {
         return internalFormat;
     }
 
-    void FrameBuffer::saveColorAttachment(int idx, const std::string &path, int channels) {
+    void FrameBuffer::saveColorAttachment(int idx, const std::string &path) {
         bindColorAttachmentForRead(idx);
-        std::filesystem::path dir = path;
-        std::filesystem::path fullPath = dir / "schemeatic_view.png";
-        size_t n =  m_width * m_height * channels;
-        int* buffer = new int[n];
-        GL_CHECK(glReadPixels(0, 0, m_width, m_height, m_colorAttachments[idx].getFormat(), GL_UNSIGNED_BYTE, buffer));
-
-        std::string pathStr = fullPath.string();
-
-        stbi_flip_vertically_on_write(1);
-        int result = stbi_write_png(
-            pathStr.c_str(),
-            m_width,
-            m_height,
-            channels,
-            buffer,
-            m_width * channels
-        );
-
-        if (result == 0) {
-            BESS_ERROR("[FrameBuffer] Failed to save file to {}", pathStr);
-            return;
-        }
-
-        BESS_TRACE("[FrameBuffer] Successfully saved file to {}", pathStr);
+        m_colorAttachments[idx].getTextureHandle()->saveToPath(path, false);
+        unbindAll();
     }
 
     std::string FrameBuffer::getFramebufferStatusReason(const GLenum status) {

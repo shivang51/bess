@@ -1,9 +1,11 @@
 #include "scene/renderer/gl/texture.h"
 #include "glad/glad.h"
-#include <stb_image.h>
-#include <stdexcept>
-
+#include "stb_image.h"
+#include "stb_image_write.h"
 #include "scene/renderer/gl/gl_wrapper.h"
+#include "common/log.h"
+
+#include <filesystem>
 
 namespace Bess::Gl {
     Texture::Texture(const std::string &path)
@@ -59,7 +61,7 @@ namespace Bess::Gl {
         if (slotIdx != -1) {
             GL_CHECK(glActiveTexture(GL_TEXTURE0 + slotIdx));
         }
-        if (m_multisampled) {
+        else if (m_multisampled) {
             GL_CHECK(glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_id));
         } else {
             GL_CHECK(glBindTexture(GL_TEXTURE_2D, m_id));
@@ -76,7 +78,7 @@ namespace Bess::Gl {
 
     GLuint Texture::getId() const { return m_id; }
 
-    void Texture::setData(const void *data) const {
+    void Texture::setData(const void *data){
         this->bind();
         glTexImage2D(GL_TEXTURE_2D, 0, m_internalFormat, m_width, m_height, 0, m_format, GL_UNSIGNED_BYTE, data);
     }
@@ -94,4 +96,53 @@ namespace Bess::Gl {
         }
     }
 
+    void Texture::saveToPath(const std::string &path, bool bindTexture) const {
+        std::filesystem::path dir = path;
+        std::filesystem::path fullPath = dir / "schemeatic_view.png";
+        int channels = getChannelsFromFormat();
+        size_t n =  m_width * m_height * channels;
+        std::vector<int> buffer(n, 255);
+
+        if (bindTexture) 
+            bind();
+
+        GL_CHECK(glReadPixels(0, 0, m_width, m_height, m_format, GL_UNSIGNED_BYTE, buffer.data()));
+
+        if (bindTexture)
+            unbind();
+
+        std::string pathStr = fullPath.string();
+
+        stbi_flip_vertically_on_write(1);
+        int result = stbi_write_png(
+            pathStr.c_str(),
+            m_width,
+            m_height,
+            channels,
+            buffer.data(),
+            m_width * channels
+        );
+
+        if (result == 0) {
+            BESS_ERROR("[Texture] Failed to save file to {}", pathStr);
+            return;
+        }
+
+        BESS_TRACE("[Texture] Successfully saved file to {}", pathStr);
+    }
+
+    int Texture::getChannelsFromFormat() const {
+        switch (m_format) {
+            case GL_RED:
+                return 1;
+            case GL_RG:
+                return 2;
+            case GL_RGB:
+                return 3;
+            case GL_RGBA:
+                return 4;
+            default:
+                throw std::runtime_error("Unsupported texture format");
+        }
+    }
 } // namespace Bess::Gl

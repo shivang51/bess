@@ -64,7 +64,7 @@ namespace Bess::Gl {
             GL_CHECK(glReadnPixels(x, y, w, h, attachment.getFormat(), GlType, n, data));
         }
 
-        void saveColorAttachment(int idx, const std::string& path, int channels);
+        void saveColorAttachment(int idx, const std::string& path);
 
       private:
         GLuint m_fbo;

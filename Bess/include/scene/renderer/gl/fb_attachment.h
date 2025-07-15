@@ -28,6 +28,8 @@ namespace Bess::Gl {
 
         void bindTexture(int slotIdx = -1) const;
 
+        std::shared_ptr<Texture> getTextureHandle() const;
+
       private:
         std::shared_ptr<Texture> m_texture;
         GLuint m_internalFormat;
