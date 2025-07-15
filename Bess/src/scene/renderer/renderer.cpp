@@ -83,7 +83,7 @@ namespace Bess {
                                  PrimitiveType::quad, PrimitiveType::circle, PrimitiveType::path};
 
         for (auto &prim : m_AvailablePrimitives) {
-            m_MaxRenderLimit[prim] = 2000;
+            m_MaxRenderLimit[prim] = 8000;
         }
 
         std::string vertexShader, fragmentShader;
@@ -691,12 +691,20 @@ namespace Bess {
                 std::vector<Gl::QuadVertex> texVertices = {};
                 for (auto &[tex, vertices] : m_textureQuadVertices) {
                     tex->bind(vertices.front().texSlotIdx);
+                    if(texVertices.size() + vertices.size() >= (m_MaxRenderLimit[PrimitiveType::quad] - 1) * 4) {
+                        vao->setVertices(texVertices.data(), texVertices.size());
+                        Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(texVertices.size() / 4) * 6);
+                        texVertices.clear();
+                    }
                     texVertices.insert(texVertices.end(), vertices.begin(), vertices.end());
                 }
 
-                vao->setVertices(texVertices.data(), texVertices.size());
-                Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(texVertices.size() / 4) * 6);
-                texVertices.clear();
+                if(!texVertices.empty()){
+                    vao->setVertices(texVertices.data(), texVertices.size());
+                    Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(texVertices.size() / 4) * 6);
+                    texVertices.clear();
+                }
+
                 m_textureQuadVertices.clear();
             }
         } break;
