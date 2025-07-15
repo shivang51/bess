@@ -27,11 +27,15 @@ namespace Bess::Gl {
             return (m_id == other.m_id);
         }
 
+        size_t getWidth() const { return m_width; }
+        size_t getHeight() const { return m_height; }
+
+
       private:
         int getChannelsFromFormat() const;
       private:
         GLuint m_id = 0;
-        int m_width, m_height;
+        size_t m_width, m_height;
         int m_bpp; // bits per pixel
         std::string m_path;
 

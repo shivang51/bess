@@ -12,7 +12,10 @@ namespace Bess::Gl {
         : m_id(0), m_width(0), m_height(0), m_bpp(0), m_path(path),
           m_internalFormat(GL_RGBA8), m_format(GL_RGBA), m_multisampled(false) {
         // stbi_set_flip_vertically_on_load(1);
-        const auto data = stbi_load(path.c_str(), &m_width, &m_height, &m_bpp, 4);
+        int w, h;
+        const auto data = stbi_load(path.c_str(), &w, &h, &m_bpp, 4);
+        m_width = w;
+        m_height = h;
         if (data == nullptr) {
             throw std::runtime_error("Failed to load texture");
         }

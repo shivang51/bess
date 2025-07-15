@@ -56,6 +56,10 @@ namespace Bess::Canvas {
         attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::R32I_REDI};
         m_normalFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments);
 
+        m_placeHolderTexture = std::make_shared<Gl::Texture>("assets/images/crosshairs_tilesheet_white.png");
+        m_placeHolderSubTexture = std::make_shared<Gl::SubTexture>(m_placeHolderTexture, glm::vec2(5.f, 5.f),
+                                                                   glm::vec2(64.f, 64.f), 5, glm::vec2(1.f, 1.f));
+
         Artist::sceneRef = this;
     }
 

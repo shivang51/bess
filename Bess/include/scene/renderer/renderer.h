@@ -6,6 +6,8 @@
 #include "scene/renderer/gl/shader.h"
 #include "scene/renderer/gl/vao.h"
 #include "scene/renderer/gl/vertex.h"
+#include "scene/renderer/gl/texture.h"
+#include "scene/renderer/gl/subtexture.h"
 
 #include "camera.h"
 #include <memory>
@@ -80,6 +82,9 @@ namespace Bess::Renderer2D {
                          const glm::vec4 &color, int id, QuadRenderProperties properties = {});
 
         static void quad(const glm::vec3 &pos, const glm::vec2 &size, std::shared_ptr<Gl::Texture>,
+                         const glm::vec4 &tintColor, int id, QuadRenderProperties properties = {});
+
+        static void quad(const glm::vec3 &pos, const glm::vec2 &size, std::shared_ptr<Gl::SubTexture>,
                          const glm::vec4 &tintColor, int id, QuadRenderProperties properties = {});
 
         static void curve(const glm::vec3 &start, const glm::vec3 &end, float weight, const glm::vec4 &color, int id);

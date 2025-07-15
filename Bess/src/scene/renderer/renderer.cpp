@@ -255,6 +255,45 @@ namespace Bess {
         verticesStore.insert(verticesStore.end(), vertices.begin(), vertices.end());
     }
 
+    void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size, std::shared_ptr<Gl::SubTexture> subTexture,
+                        const glm::vec4 &tintColor, int id, QuadRenderProperties properties) {
+
+        auto texture = subTexture->getTexture();
+        auto texCoords = subTexture->getTexCoords();
+
+        int idx = 0;
+        if (m_textureQuadVertices.find(texture) == m_textureQuadVertices.end()) {
+            m_textureQuadVertices[texture] = std::vector<Gl::QuadVertex>();
+            idx = m_textureQuadVertices.size();
+        }
+
+        auto &verticesStore = m_textureQuadVertices[texture];
+        if (!verticesStore.empty())
+            idx = verticesStore.front().texSlotIdx;
+
+        std::vector<Gl::QuadVertex> vertices(4);
+
+        auto transform = glm::translate(glm::mat4(1.0f), pos);
+        transform = glm::rotate(transform, properties.angle, {0.f, 0.f, 1.f});
+        transform = glm::scale(transform, {size.y, size.y, 1.f});
+
+        for (int i = 0; i < 4; i++) {
+            auto &vertex = vertices[i];
+            vertex.position = transform * m_StandardQuadVertices[i];
+            vertex.id = id;
+            vertex.color = tintColor;
+            vertex.borderRadius = properties.borderRadius;
+            vertex.size = size;
+            vertex.isMica = properties.isMica ? 1 : 0;
+            vertex.borderColor = properties.borderColor;
+            vertex.borderSize = properties.borderSize;
+            vertex.texCoord = texCoords[i];
+            vertex.texSlotIdx = idx;
+        }
+
+        verticesStore.insert(verticesStore.end(), vertices.begin(), vertices.end());
+    }
+
     void Renderer::grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const glm::vec4 &color) {
         std::vector<Gl::GridVertex> vertices(4);
 

@@ -9,6 +9,7 @@
 #include "modules/schematic_gen/schematic_view.h"
 #include "scene/components/components.h"
 #include "scene/renderer/gl/framebuffer.h"
+#include "scene/renderer/gl/subtexture.h"
 #include <memory>
 
 namespace Bess::Canvas {
@@ -140,5 +141,8 @@ namespace Bess::Canvas {
 
         LastCreatedComponent m_lastCreatedComp = {};
         std::vector<SimEngine::ComponentType> m_copiedComponents = {};
+
+        std::shared_ptr<Gl::Texture> m_placeHolderTexture;
+        std::shared_ptr<Gl::SubTexture> m_placeHolderSubTexture;
     };
 } // namespace Bess::Canvas
