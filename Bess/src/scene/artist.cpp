@@ -93,7 +93,7 @@ namespace Bess::Canvas {
 
     void Artist::paintSlot(uint64_t id, int idx, uint64_t parentId, const glm::vec3 &pos,
                            float angle, const std::string &label, float labelDx, bool isHigh, bool isConnected) {
-        auto bgColor = isConnected ? ViewportTheme::stateLowColor : ViewportTheme::componentBGColor;
+        auto bgColor = ViewportTheme::stateLowColor;
         auto borderColor = ViewportTheme::stateLowColor;
 
         if (isHigh) {
@@ -101,13 +101,14 @@ namespace Bess::Canvas {
             borderColor = ViewportTheme::stateHighColor;
         }
 
-        // Renderer::quad(pos, glm::vec2(componentStyles.slotRadius * 2.f), ViewportTheme::componentBGColor, id, angle,
-        //                glm::vec4(componentStyles.slotRadius),
-        //                glm::vec4(componentStyles.slotBorderSize), borderColor, false);
 
-        // float r = componentStyles.slotRadius - componentStyles.slotBorderSize - 1.f;
-        // Renderer::quad(pos, glm::vec2(r * 2.f), bgColor, id, angle, glm::vec4(r),
-        //                glm::vec4(componentStyles.slotBorderSize), ViewportTheme::componentBGColor, false);
+        float ir = componentStyles.slotRadius - componentStyles.slotBorderSize;
+        float r = componentStyles.slotRadius;
+
+        Renderer::circle(pos, r, borderColor, id, ir);
+        if(isConnected){
+            Renderer::circle(pos, ir - 1.f, bgColor, id);
+        }
 
         float labelX = pos.x + labelDx;
         float dY = componentStyles.slotRadius - std::abs(componentStyles.slotRadius * 2.f - componentStyles.slotLabelSize) / 2.f;
