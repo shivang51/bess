@@ -52,7 +52,7 @@ namespace Bess {
 
     std::unique_ptr<Font> Renderer::m_Font;
     std::unordered_map<std::string, glm::vec2> Renderer::m_charSizeCache;
-    std::unordered_map<Gl::Texture, std::vector<Gl::QuadVertex>> Renderer::m_textureQuadVertices;
+    std::unordered_map<std::shared_ptr<Gl::Texture>, std::vector<Gl::QuadVertex>> Renderer::m_textureQuadVertices;
 
     void Renderer::init() {
         {
@@ -79,8 +79,7 @@ namespace Bess {
         }
 #endif
 
-        m_AvailablePrimitives = {PrimitiveType::curve, PrimitiveType::line,
-                                 PrimitiveType::font, PrimitiveType::triangle,
+        m_AvailablePrimitives = {PrimitiveType::curve, PrimitiveType::line, PrimitiveType::triangle,
                                  PrimitiveType::quad, PrimitiveType::circle, PrimitiveType::path};
 
         for (auto &prim : m_AvailablePrimitives) {
@@ -104,10 +103,6 @@ namespace Bess {
             case PrimitiveType::circle:
                 vertexShader = "assets/shaders/circle_vert.glsl";
                 fragmentShader = "assets/shaders/circle_frag.glsl";
-                break;
-            case PrimitiveType::font:
-                vertexShader = "assets/shaders/vert.glsl";
-                fragmentShader = "assets/shaders/font_frag.glsl";
                 break;
             case PrimitiveType::triangle:
                 vertexShader = "assets/shaders/vert.glsl";
@@ -219,9 +214,8 @@ namespace Bess {
         addQuadVertices(vertices);
     }
 
-    void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
-                        const Gl::Texture &texture, const glm::vec4 &tintColor, int id,
-                        QuadRenderProperties properties) {
+    void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size, std::shared_ptr<Gl::Texture> texture,
+                        const glm::vec4 &tintColor, int id, QuadRenderProperties properties) {
         std::vector<glm::vec2> texCoords = {
             {0.0f, 1.0f},
             {0.0f, 0.0f},
@@ -373,86 +367,21 @@ namespace Bess {
 
     void Renderer::text(const std::string &text, const glm::vec3 &pos, const size_t size,
                         const glm::vec4 &color, const int id, float angle) {
-        auto &shader = m_shaders[PrimitiveType::font];
-        auto &vao = m_vaos[PrimitiveType::font];
-
-        vao->bind();
-        shader->bind();
-
-        shader->setUniformVec4("textColor", color);
-        shader->setUniformMat4("u_mvp", m_camera->getTransform());
-        shader->setUniform1i("u_SelectedObjId", -1);
-
         float scale = Font::getScale(size);
 
-        // First, compute the bounding box of the text.
-        float totalWidth = 0.0f;
-        float maxHeight = 0.0f;
-        for (const char &c : text) {
-            auto &ch = m_Font->getCharacter(c);
-            totalWidth += (ch.Advance >> 6) * scale;
-            float h = ch.Size.y * scale;
-            if (h > maxHeight) {
-                maxHeight = h;
-            }
-        }
-        // Assume that 'pos' is the top-left corner of the text block.
-        // Compute the center of the text block.
-        glm::vec2 pivot = {pos.x + totalWidth / 2.0f, pos.y - maxHeight / 2.0f};
-
-        // Create a global transform that rotates the entire text block about the center pivot.
-        glm::mat4 globalTransform(1.0f);
-        // Translate so that the pivot is at the origin.
-        globalTransform = glm::translate(globalTransform, {pivot.x, pivot.y, pos.z});
-        // Rotate around the Z axis.
-        globalTransform = glm::rotate(globalTransform, angle, {0.f, 0.f, 1.f});
-        // Translate back.
-        globalTransform = glm::translate(globalTransform, {-pivot.x, -pivot.y, -pos.z});
-
-        // Now layout each glyph as if the text were unrotated (horizontally laid out).
         float x = pos.x;
         float y = pos.y;
         for (const char &c : text) {
             auto &ch = m_Font->getCharacter(c);
 
-            // Compute the position of the glyph quad.
             float xpos = x + ch.Bearing.x * scale;
-            // Note: We assume a coordinate system where y increases upward;
-            // adjust this if your system is different.
             float ypos = y + (ch.Size.y - ch.Bearing.y) * scale;
 
             float w = ch.Size.x * scale;
             float h = ch.Size.y * scale;
 
-            // Build the local transform for this glyph.
-            glm::mat4 localTransform(1.0f);
-            localTransform = glm::translate(localTransform, {xpos, ypos, pos.z});
-            // Translate to center the quad before scaling.
-            localTransform = glm::translate(localTransform, {w / 2.0f, -h / 2.0f, 0.f});
-            localTransform = glm::scale(localTransform, {w, h, 1.f});
+            quad({xpos + w / 2.f, ypos - h / 2.f, pos.z}, {w, h}, ch.Texture, color, id);
 
-            // Apply the global transform to rotate the whole text block.
-            glm::mat4 transform = globalTransform * localTransform;
-
-            std::vector<Gl::Vertex> vertices(4);
-            for (int i = 0; i < 4; i++) {
-                auto &vertex = vertices[i];
-                vertex.position = transform * m_StandardQuadVertices[i];
-                vertex.id = id;
-                vertex.color = color;
-            }
-
-            // Set texture coordinates.
-            vertices[0].texCoord = {0.0f, 1.0f};
-            vertices[1].texCoord = {0.0f, 0.0f};
-            vertices[2].texCoord = {1.0f, 0.0f};
-            vertices[3].texCoord = {1.0f, 1.0f};
-
-            ch.Texture->bind();
-            vao->setVertices(vertices.data(), vertices.size());
-            Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
-
-            // Advance horizontally as usual.
             x += (ch.Advance >> 6) * scale;
         }
     }
@@ -761,7 +690,7 @@ namespace Bess {
                 shader->setUniform1iv("u_Textures", texSlots.data(), 32);
                 std::vector<Gl::QuadVertex> texVertices = {};
                 for (auto &[tex, vertices] : m_textureQuadVertices) {
-                    tex.bind(vertices.front().texSlotIdx);
+                    tex->bind(vertices.front().texSlotIdx);
                     texVertices.insert(texVertices.end(), vertices.begin(), vertices.end());
                 }
 

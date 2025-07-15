@@ -80,13 +80,15 @@ void main(){
 
     if(mO < 0.01) discard;
     
-    bgColor = texColor * mix(v_BorderColor, bgColor, mI);
-    bgColor.a *= mO;      
+    bgColor =  mix(v_BorderColor, bgColor, mI);
+    bgColor.a *= mO;
 
     if(isMica){
         bgColor.rgb *= length((fc + vec2(-0.35f, -0.5f)));
     }
-    
+
+    bgColor *= texColor;
+
     fragColor = bgColor;
     fragColor1 = v_FragId;
 }

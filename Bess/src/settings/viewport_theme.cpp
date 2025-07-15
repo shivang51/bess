@@ -40,7 +40,7 @@ namespace Bess {
 
         // Text: Full brightness for readability
         color = colors[ImGuiCol_Text];
-        darkenFactor = 0.8f;
+        darkenFactor = 1.f;
         textColor = glm::vec4(color.x * darkenFactor, color.y * darkenFactor, color.z * darkenFactor, color.w);
 
         // Grid: Subtle but visible with brighter textColor

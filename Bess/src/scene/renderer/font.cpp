@@ -26,33 +26,45 @@ namespace Bess::Renderer2D {
     }
 
     Font::~Font() {
-        for (auto &ch : Characters) {
-            delete ch.second.Texture;
-        }
+        Characters.clear();
     }
 
     void Font::loadCharacters() {
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        FT_UInt glyphIdx;
+        FT_ULong charCode = FT_Get_First_Char(m_face, &glyphIdx);
 
-        for (unsigned char c = 0; c < 128; c++) {
-            if (FT_Load_Char(m_face, c, FT_LOAD_RENDER)) {
+        if (glyphIdx == 0) {
+            BESS_ERROR("ERROR::FREETYPE: No characters found in font");
+            return;
+        }
+
+        while (glyphIdx != 0) {
+            if (FT_Load_Char(m_face, charCode, FT_LOAD_RENDER)) {
                 BESS_ERROR("ERROR::FREETYTPE: Failed to load Glyph");
                 continue;
             }
 
-            auto texture = new Gl::Texture(
-                GL_RED,
+            auto texture = std::make_shared<Gl::Texture>(
+                GL_RGB,
                 GL_RED,
                 m_face->glyph->bitmap.width,
                 m_face->glyph->bitmap.rows,
                 m_face->glyph->bitmap.buffer);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
 
             Character character = {
                 texture,
                 glm::ivec2(m_face->glyph->bitmap.width, m_face->glyph->bitmap.rows),
                 glm::ivec2(m_face->glyph->bitmap_left, m_face->glyph->bitmap_top),
                 (int)m_face->glyph->advance.x};
-            Characters.insert(std::pair<char, Character>(c, character));
+            Characters.insert(std::pair<char, Character>(charCode, character));
+            charCode = FT_Get_Next_Char(m_face, charCode, &glyphIdx);
+
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             glGenerateMipmap(GL_TEXTURE_2D);

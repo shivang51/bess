@@ -58,6 +58,10 @@ namespace Bess::Gl {
     Texture::~Texture() { glDeleteTextures(1, &m_id); }
 
     void Texture::bind(int slotIdx) const {
+        if(m_id == 0){
+            BESS_ERROR("[Texture] Attempted to bind an uninitialized texture.");
+            assert(false);
+        }
         if (slotIdx != -1) {
             glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
             GL_CHECK(glBindTextureUnit(slotIdx, m_id));

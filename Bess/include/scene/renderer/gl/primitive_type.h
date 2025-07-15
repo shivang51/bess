@@ -5,7 +5,6 @@ namespace Bess::Renderer2D {
         quad,
         curve,
         circle,
-        font,
         triangle,
         line,
         path

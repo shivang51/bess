@@ -5,6 +5,7 @@
 #include "glm.hpp"
 #include <map>
 #include <string>
+#include <memory>
 
 #include FT_FREETYPE_H
 
@@ -12,10 +13,10 @@ namespace Bess::Renderer2D {
     class Font {
       public:
         struct Character {
-            Gl::Texture *Texture; // ID handle of the glyph texture
-            glm::ivec2 Size;      // Size of glyph
-            glm::ivec2 Bearing;   // Offset from baseline to left/top of glyph
-            int Advance;          // Offset to advance to next glyph
+            std::shared_ptr<Gl::Texture> Texture; 
+            glm::ivec2 Size;     
+            glm::ivec2 Bearing;  
+            int Advance;         
         };
 
         Font() = default;

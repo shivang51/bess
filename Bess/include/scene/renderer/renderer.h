@@ -79,7 +79,7 @@ namespace Bess::Renderer2D {
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
                          const glm::vec4 &color, int id, QuadRenderProperties properties = {});
 
-        static void quad(const glm::vec3 &pos, const glm::vec2 &size, const Gl::Texture &texture,
+        static void quad(const glm::vec3 &pos, const glm::vec2 &size, std::shared_ptr<Gl::Texture>,
                          const glm::vec4 &tintColor, int id, QuadRenderProperties properties = {});
 
         static void curve(const glm::vec3 &start, const glm::vec3 &end, float weight, const glm::vec4 &color, int id);
@@ -175,7 +175,7 @@ namespace Bess::Renderer2D {
 
         static PathContext m_pathData;
 
-        static std::unordered_map<Gl::Texture, std::vector<Gl::QuadVertex>> m_textureQuadVertices;
+        static std::unordered_map<std::shared_ptr<Gl::Texture>, std::vector<Gl::QuadVertex>> m_textureQuadVertices;
     };
 
 } // namespace Bess::Renderer2D

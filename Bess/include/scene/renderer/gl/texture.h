@@ -7,7 +7,8 @@
 namespace Bess::Gl {
     class Texture {
       public:
-        explicit Texture(const std::string &path);
+        // Texture() = default;
+        Texture(const std::string &path);
         Texture(GLint internalFormat, GLenum format, int width, int height, const void *data = nullptr, bool multisampled = false);
 
         ~Texture();
@@ -29,7 +30,7 @@ namespace Bess::Gl {
       private:
         int getChannelsFromFormat() const;
       private:
-        GLuint m_id;
+        GLuint m_id = 0;
         int m_width, m_height;
         int m_bpp; // bits per pixel
         std::string m_path;
