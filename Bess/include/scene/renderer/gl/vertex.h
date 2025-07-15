@@ -10,17 +10,20 @@ namespace Bess::Gl {
         int id;
     };
 
+    struct CircleVertex {
+        glm::vec3 position;
+        glm::vec4 color;
+        glm::vec2 texCoord;
+        float innerRadius;
+        int id;
+    };
+
     struct GridVertex {
         glm::vec3 position;
         glm::vec2 texCoord;
         int id;
         glm::vec4 color;
         float ar;
-    };
-
-    struct RenderPassVertex {
-        glm::vec3 position;
-        glm::vec2 texCoord;
     };
 
     struct QuadVertex {
@@ -33,5 +36,10 @@ namespace Bess::Gl {
         glm::vec2 size;
         int id;
         int isMica;
+    };
+
+    struct RenderPassVertex {
+        glm::vec3 position;
+        glm::vec2 texCoord;
     };
 } // namespace Bess::Gl

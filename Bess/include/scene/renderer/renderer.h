@@ -14,7 +14,7 @@
 namespace Bess::Renderer2D {
 
     struct RenderData {
-        std::vector<Gl::Vertex> circleVertices;
+        std::vector<Gl::CircleVertex> circleVertices;
         std::vector<Gl::Vertex> lineVertices;
         std::vector<Gl::Vertex> curveVertices;
         std::vector<Gl::Vertex> fontVertices;
@@ -87,7 +87,7 @@ namespace Bess::Renderer2D {
         static void cubicBezier(const glm::vec3 &start, const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2, float weight, const glm::vec4 &color, const int id, bool breakCurve = true);
 
         static void circle(const glm::vec3 &center, float radius,
-                           const glm::vec4 &color, int id);
+                           const glm::vec4 &color, int id, float innerRadius = 0.0f);
 
         static void grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const glm::vec4 &color);
 
@@ -120,7 +120,7 @@ namespace Bess::Renderer2D {
 
         static void addLineVertices(const std::vector<Gl::Vertex> &vertices);
 
-        static void addCircleVertices(const std::vector<Gl::Vertex> &vertices);
+        static void addCircleVertices(const std::vector<Gl::CircleVertex> &vertices);
 
         static void addTriangleVertices(const std::vector<Gl::Vertex> &vertices);
 
