@@ -41,6 +41,15 @@ namespace Bess::Renderer2D {
         }
     };
 
+    struct QuadRenderProperties {
+        glm::vec4 borderRadius = {0.0f, 0.0f, 0.0f, 0.0f};
+        glm::vec4 borderColor = {0.0f, 0.0f, 0.0f, 0.0f};
+        glm::vec4 borderSize = {0.0f, 0.0f, 0.0f, 0.0f};
+        float angle = 0.0f;
+        bool hasShadow = false;
+        bool isMica = false;
+    };
+
     class Renderer {
       public:
         Renderer() = default;
@@ -59,7 +68,7 @@ namespace Bess::Renderer2D {
         static void doCompositeRenderPass(float width, float height);
 
         // --- path api start---
-        static void beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4& color);
+        static void beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color);
         static void endPathMode(bool closePath = false);
         static void pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, const int id);
         static void pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
@@ -69,49 +78,7 @@ namespace Bess::Renderer2D {
 
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
                          const glm::vec4 &color, int id,
-                         const glm::vec4 &borderRadius = {0.f, 0.f, 0.f, 0.f},
-                         const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
-                         float borderSize = 0.f);
-
-        static void quad(const glm::vec3 &pos, const glm::vec2 &size,
-                         const glm::vec4 &color, int id,
-                         const glm::vec4 &borderRadius,
-                         const glm::vec4 &borderSize,
-                         const glm::vec4 &borderColor);
-
-        static void quad(const glm::vec3 &pos, const glm::vec2 &size,
-                         const glm::vec4 &color, int id, float angle, bool isMica = true,
-                         const glm::vec4 &borderRadius = {0.f, 0.f, 0.f, 0.f},
-                         const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
-                         float borderSize = 0.f);
-
-        static void quad(const glm::vec3 &pos, const glm::vec2 &size,
-                         const glm::vec4 &color, int id,
-                         const glm::vec4 &borderRadius,
-                         bool shadow,
-                         const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
-                         const glm::vec4 &borderSize = glm::vec4(0.f));
-
-        static void quad(const glm::vec3 &pos, const glm::vec2 &size,
-                         const glm::vec4 &color, int id,
-                         const glm::vec4 &borderRadius,
-                         bool shadow,
-                         const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
-                         float borderSize = 0.f);
-
-        static void quad(const glm::vec3 &pos, const glm::vec2 &size,
-                         const glm::vec4 &color, int id, float angle,
-                         const glm::vec4 &borderRadius,
-                         bool shadow,
-                         const glm::vec4 &borderColor = {0.f, 0.f, 0.f, 0.f},
-                         const glm::vec4 &borderSize = glm::vec4(0.f), bool isMica = true);
-
-        static void quad(const glm::vec3 &pos, const glm::vec2 &size,
-                         const glm::vec4 &color, int id, float angle,
-                         const glm::vec4 &borderRadius,
-                         const glm::vec4 &borderSize,
-                         const glm::vec4 &borderColor,
-                         bool isMica = true);
+                         QuadRenderProperties properties = {});
 
         static void curve(const glm::vec3 &start, const glm::vec3 &end, float weight, const glm::vec4 &color, int id);
 
@@ -128,8 +95,8 @@ namespace Bess::Renderer2D {
 
         static void line(const glm::vec3 &start, const glm::vec3 &end, float size, const glm::vec4 &color, const int id);
 
-        static void drawPath(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const int id, bool closed = false);
-        static void drawPath(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const std::vector<int> &ids, bool closed = false);
+        static void drawLines(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const int id, bool closed = false);
+        static void drawLines(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const std::vector<int> &ids, bool closed = false);
 
         static void triangle(const std::vector<glm::vec3> &points, const glm::vec4 &color, const int id);
 
@@ -147,7 +114,6 @@ namespace Bess::Renderer2D {
             float weight,
             bool firstSegment);
 
-
         static int calculateQuadBezierSegments(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2);
 
         static int calculateCubicBezierSegments(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2, const glm::vec2 &p3);
@@ -162,13 +128,15 @@ namespace Bess::Renderer2D {
 
         static void flush(PrimitiveType type);
 
-        static void drawQuad(const glm::vec3 &pos, const glm::vec2 &size,
-                             const glm::vec4 &color, int id, float angle,
-                             bool isMica,
-                             const glm::vec4 &borderRadius,
-                             const glm::vec4 &borderSize, const glm::vec4 &borderColor);
+        static QuadBezierCurvePoints generateSmoothBendPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius);
 
-        static QuadBezierCurvePoints generateQuadBezierPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius);
+        static glm::vec2 nextBernstinePointCubicBezier(const glm::vec2 &p0, const glm::vec2 &p1,
+                                              const glm::vec2 &p2, const glm::vec2 &p3, const float t);
+
+        static glm::vec2 nextBernstinePointQuadBezier(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2, const float t);
+
+        static std::vector<glm::vec3> generateCubicBezierPoints(const glm::vec3 &start, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2, const glm::vec3 &end);
+        static std::vector<glm::vec3> generateQuadBezierPoints(const glm::vec3 &start, const glm::vec2 &controlPoint, const glm::vec3 &end);
 
       private:
         static std::vector<Gl::RenderPassVertex> getRenderPassVertices(float width, float height);

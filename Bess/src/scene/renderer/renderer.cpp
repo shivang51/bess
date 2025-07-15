@@ -17,6 +17,9 @@
 using namespace Bess::Renderer2D;
 
 namespace Bess {
+
+    #define BESS_RENDERER_DISABLE_RENDERPASS
+
     static constexpr uint32_t PRIMITIVE_RESTART = 0xFFFFFFFF;
     static constexpr float BEZIER_EPSILON = 0.0001f;
 
@@ -62,15 +65,17 @@ namespace Bess {
             m_GridVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::GridVertex));
         }
 
-        //{
+        #ifndef BESS_RENDERER_DISABLE_RENDERPASS
+        {
 
-        //    m_shadowPassShader = std::make_unique<Gl::Shader>("assets/shaders/shadow_vert.glsl", "assets/shaders/shadow_frag.glsl");
-        //    m_compositePassShader = std::make_unique<Gl::Shader>("assets/shaders/composite_vert.glsl", "assets/shaders/composite_frag.glsl");
-        //    std::vector<Gl::VaoAttribAttachment> attachments;
-        //    attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::GridVertex, position)));
-        //    attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::GridVertex, texCoord)));
-        //    m_renderPassVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::RenderPassVertex));
-        //}
+           m_shadowPassShader = std::make_unique<Gl::Shader>("assets/shaders/shadow_vert.glsl", "assets/shaders/shadow_frag.glsl");
+           m_compositePassShader = std::make_unique<Gl::Shader>("assets/shaders/composite_vert.glsl", "assets/shaders/composite_frag.glsl");
+           std::vector<Gl::VaoAttribAttachment> attachments;
+           attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::GridVertex, position)));
+           attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::GridVertex, texCoord)));
+           m_renderPassVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::RenderPassVertex));
+        }
+        #endif
 
         m_AvailablePrimitives = {PrimitiveType::curve, PrimitiveType::circle, PrimitiveType::line,
                                  PrimitiveType::font, PrimitiveType::triangle, PrimitiveType::quad, PrimitiveType::path};
@@ -170,93 +175,20 @@ namespace Bess {
     }
 
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
-                        const glm::vec4 &color, int id,
-                        const glm::vec4 &borderRadius, const glm::vec4 &borderColor,
-                        float borderSize) {
-        Renderer::quad(pos, size, color, id, 0.f, false, borderRadius, borderColor,
-                       borderSize);
-    }
+                         const glm::vec4 &color, int id,
+                         QuadRenderProperties properties = {}) {
 
-    void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
-                        const glm::vec4 &color, int id,
-                        const glm::vec4 &borderRadius, const glm::vec4 &borderSize,
-                        const glm::vec4 &borderColor) {
-        Renderer::quad(pos, size, color, id, 0.f, borderRadius, borderSize,
-                       borderColor, false);
-    }
+        std::vector<glm::vec2> texCoords = {
+            {0.0f, 1.0f},
+            {0.0f, 0.0f},
+            {1.0f, 0.0f},
+            {1.0f, 1.0f}
+        };
 
-    void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
-                        const glm::vec4 &color, int id, float angle, bool isMica,
-                        const glm::vec4 &borderRadius, const glm::vec4 &borderColor,
-                        float borderSize) {
-        Renderer::quad(pos, size, color, id, angle, borderRadius, borderColor, glm::vec4(borderSize), isMica);
-    }
-
-    void Renderer2D::Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size, const glm::vec4 &color, int id, float angle, const glm::vec4 &borderRadius, const glm::vec4 &borderSize, const glm::vec4 &borderColor, bool isMica) {
-        Renderer::drawQuad(pos, size, color, id, angle, isMica, borderRadius, borderSize, borderColor);
-    }
-
-    void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
-                        const glm::vec4 &color, int id,
-                        const glm::vec4 &borderRadius,
-                        bool shadow,
-                        const glm::vec4 &borderColor,
-                        const glm::vec4 &borderSize) {
-        Renderer::quad(pos, size, color, id, 0.f, borderRadius, shadow, borderColor, borderSize);
-    }
-
-    void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
-                        const glm::vec4 &color, int id,
-                        const glm::vec4 &borderRadius,
-                        bool shadow,
-                        const glm::vec4 &borderColor,
-                        float borderSize) {
-        Renderer::quad(pos, size, color, id, 0.f, borderRadius, shadow, borderColor, glm::vec4(borderSize));
-    }
-
-    void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
-                        const glm::vec4 &color, int id, float angle,
-                        const glm::vec4 &borderRadius,
-                        bool shadow,
-                        const glm::vec4 &borderColor,
-                        const glm::vec4 &borderSize,
-                        bool isMica) {
-
-        if (shadow) {
-            std::vector<Gl::QuadVertex> vertices(4);
-
-            auto transform = glm::translate(glm::mat4(1.0f), pos + glm::vec3(4.f, 4.f, 0.f));
-            transform = glm::rotate(transform, angle, {0.f, 0.f, 1.f});
-            transform = glm::scale(transform, {size.x, size.y, 1.f});
-
-            for (int i = 0; i < 4; i++) {
-                auto &vertex = vertices[i];
-                vertex.position = transform * m_StandardQuadVertices[i];
-                vertex.id = id;
-                vertex.color = color;
-                vertex.borderRadius = borderRadius;
-                vertex.size = size;
-                vertex.isMica = false;
-            }
-
-            vertices[0].texCoord = {0.0f, 1.0f};
-            vertices[1].texCoord = {0.0f, 0.0f};
-            vertices[2].texCoord = {1.0f, 0.0f};
-            vertices[3].texCoord = {1.0f, 1.0f};
-            m_RenderData.quadShadowVertices.insert(m_RenderData.quadShadowVertices.end(), vertices.begin(), vertices.end());
-        }
-        Renderer::quad(pos, size, color, id, angle, borderRadius, borderColor, borderSize, isMica);
-    }
-
-    void Renderer2D::Renderer::drawQuad(const glm::vec3 &pos, const glm::vec2 &size,
-                                        const glm::vec4 &color, int id, float angle, bool isMica,
-                                        const glm::vec4 &borderRadius,
-                                        const glm::vec4 &borderSize,
-                                        const glm::vec4 &borderColor) {
         std::vector<Gl::QuadVertex> vertices(4);
 
         auto transform = glm::translate(glm::mat4(1.0f), pos);
-        transform = glm::rotate(transform, angle, {0.f, 0.f, 1.f});
+        transform = glm::rotate(transform, properties.angle, {0.f, 0.f, 1.f});
         transform = glm::scale(transform, {size.x, size.y, 1.f});
 
         for (int i = 0; i < 4; i++) {
@@ -264,19 +196,16 @@ namespace Bess {
             vertex.position = transform * m_StandardQuadVertices[i];
             vertex.id = id;
             vertex.color = color;
-            vertex.borderRadius = borderRadius;
+            vertex.borderRadius = properties.borderRadius;
             vertex.size = size;
-            vertex.isMica = isMica;
-            vertex.borderColor = borderColor;
-            vertex.borderSize = borderSize;
+            vertex.isMica = properties.isMica ? 1 : 0;
+            vertex.borderColor = properties.borderColor;
+            vertex.borderSize = properties.borderSize;
+            vertex.texCoord = texCoords[i];
         }
 
-        vertices[0].texCoord = {0.0f, 1.0f};
-        vertices[1].texCoord = {0.0f, 0.0f};
-        vertices[2].texCoord = {1.0f, 0.0f};
-        vertices[3].texCoord = {1.0f, 1.0f};
-
         addQuadVertices(vertices);
+
     }
 
     void Renderer::grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const glm::vec4 &color) {
@@ -320,106 +249,6 @@ namespace Bess {
         m_GridVao->unbind();
     }
 
-    glm::vec2 bernstine(const glm::vec2 &p0, const glm::vec2 &p1,
-                        const glm::vec2 &p2, const glm::vec2 &p3, const float t) {
-        auto t_ = 1 - t;
-
-        glm::vec2 B0 = (float)std::pow(t_, 3) * p0;
-        glm::vec2 B1 = (float)(3 * t * std::pow(t_, 2)) * p1;
-        glm::vec2 B2 = (float)(3 * t * t * std::pow(t_, 1)) * p2;
-        glm::vec2 B3 = (float)(t * t * t) * p3;
-
-        return B0 + B1 + B2 + B3;
-    }
-
-    glm::vec2 bernstineQuadBezier(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2, const float t) {
-        float t_ = 1.0f - t;
-        glm::vec2 point = (t_ * t_) * p0 + 2.0f * (t_ * t) * p1 + (t * t) * p2;
-        return point;
-    }
-
-    void Renderer::addCurveSegmentStrip(
-        const glm::vec3 &prev_,
-        const glm::vec3 &curr_,
-        const glm::vec4 &color,
-        int id,
-        float weight,
-        bool firstSegment) {
-        glm::vec2 prev = {prev_.x, prev_.y};
-        glm::vec2 curr = {curr_.x, curr_.y};
-
-        glm::vec2 dir = glm::normalize(curr - prev);
-        glm::vec2 normal = {-dir.y, dir.x};
-
-        float halfW = weight * 0.5f;
-        glm::vec2 offset = normal * halfW;
-
-        glm::vec3 vPrevOut = {prev + offset, prev_.z};
-        glm::vec3 vPrevIn = {prev - offset, prev_.z};
-        glm::vec3 vCurrOut = {curr + offset, curr_.z};
-        glm::vec3 vCurrIn = {curr - offset, curr_.z};
-
-        auto makeV = [&](const glm::vec3 &p, const glm::vec2 &uv) {
-            Gl::Vertex v;
-            v.position = p;
-            v.color = color;
-            v.id = id;
-            v.texCoord = uv;
-            return v;
-        };
-
-        if (firstSegment) {
-            uint32_t base = (uint32_t)m_curveStripVertices.size();
-            m_curveStripVertices.emplace_back(makeV(vPrevOut, {0.0f, 1.0f})); // base + 0
-            m_curveStripVertices.emplace_back(makeV(vPrevIn, {0.0f, 0.0f}));  // base + 1
-            m_curveStripIndices.emplace_back(base + 0);
-            m_curveStripIndices.emplace_back(base + 1);
-        }
-
-        uint32_t base = (uint32_t)m_curveStripVertices.size();
-        m_curveStripVertices.emplace_back(makeV(vCurrOut, {1.0f, 1.0f})); // base + 0
-        m_curveStripVertices.emplace_back(makeV(vCurrIn, {1.0f, 0.0f}));  // base + 1
-        m_curveStripIndices.emplace_back(base + 0);
-        m_curveStripIndices.emplace_back(base + 1);
-    }
-
-    int Renderer::calculateCubicBezierSegments(const glm::vec2 &p0,
-                                               const glm::vec2 &p1,
-                                               const glm::vec2 &p2,
-                                               const glm::vec2 &p3) {
-        glm::vec2 n0 = p0 / UI::UIMain::state.viewportSize;
-        glm::vec2 n1 = p1 / UI::UIMain::state.viewportSize;
-        glm::vec2 n2 = p2 / UI::UIMain::state.viewportSize;
-        glm::vec2 n3 = p3 / UI::UIMain::state.viewportSize;
-
-        glm::vec2 d1 = n0 - 2.0f * n1 + n2;
-        glm::vec2 d2 = n1 - 2.0f * n2 + n3;
-
-        float m1 = glm::length(d1);
-        float m2 = glm::length(d2);
-        float M = 6.0f * std::max(m1, m2);
-
-        float Nf = std::sqrt(M / (8.0f * BEZIER_EPSILON));
-
-        return std::max(1, (int)std::ceil(Nf));
-    }
-
-    int Renderer::calculateQuadBezierSegments(const glm::vec2 &p0,
-                                              const glm::vec2 &p1,
-                                              const glm::vec2 &p2) {
-        glm::vec2 n0 = p0 / UI::UIMain::state.viewportSize;
-        glm::vec2 n1 = p1 / UI::UIMain::state.viewportSize;
-        glm::vec2 n2 = p2 / UI::UIMain::state.viewportSize;
-
-        glm::vec2 d = n0 - 2.0f * n1 + n2;
-
-        float M = 2.0f * glm::length(d);
-
-        float Nf = std::sqrt(M / (8.0f * BEZIER_EPSILON));
-
-        return std::max(1, (int)std::ceil(Nf));
-    }
-
     void Renderer::curve(const glm::vec3 &start, const glm::vec3 &end, float weight, const glm::vec4 &color, const int id) {
         double dx = end.x - start.x;
         double offsetX = dx * 0.5;
@@ -431,12 +260,11 @@ namespace Bess {
 
     void Renderer::quadraticBezier(const glm::vec3 &start, const glm::vec3 &end, const glm::vec2 &controlPoint, float weight,
                                    const glm::vec4 &color, const int id, bool breakCurve) {
-        int segments = calculateQuadBezierSegments(start, controlPoint, end);
+        auto points = generateQuadBezierPoints(start, controlPoint, end);
 
         auto prev = start;
-        for (int i = 1; i <= segments; i++) {
-            glm::vec2 bP = bernstineQuadBezier(start, controlPoint, end, (float)i / (float)segments);
-            glm::vec3 p = {bP.x, bP.y, start.z};
+        for (size_t i = 1; i < points.size(); i++) {
+            glm::vec3& p = points[i];
             addCurveSegmentStrip(prev, p, color, id, weight, i == 1);
             prev = p;
         }
@@ -448,16 +276,17 @@ namespace Bess {
 
     void Renderer::cubicBezier(const glm::vec3 &start, const glm::vec3 &end, const glm::vec2 &cp1, const glm::vec2 &cp2, float weight,
                                const glm::vec4 &color, const int id, bool breakCurve) {
-        int segments = calculateCubicBezierSegments(start, cp1, cp2, end);
+
+        auto points = generateCubicBezierPoints(start, cp1, cp2, end);
 
         auto prev = start;
-        for (int i = 1; i <= segments; i++) {
-            glm::vec2 bP = bernstine(start, cp1, cp2, end, (float)i / (float)segments);
-            glm::vec3 p = {bP.x, bP.y, start.z};
+        for (size_t i = 1; i < points.size(); i++) {
+            glm::vec3& p = points[i];
             addCurveSegmentStrip(prev, p, color, id, weight, i == 1);
             prev = p;
         }
 
+        m_curveBroken = breakCurve;
         if (breakCurve)
             m_curveStripIndices.emplace_back(PRIMITIVE_RESTART);
     }
@@ -600,7 +429,7 @@ namespace Bess {
         addLineVertices(vertices);
     }
 
-    void Renderer2D::Renderer::drawPath(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const std::vector<int> &ids, bool closed) {
+    void Renderer2D::Renderer::drawLines(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const std::vector<int> &ids, bool closed) {
         if (points.empty())
             return;
 
@@ -616,7 +445,7 @@ namespace Bess {
         }
     }
 
-    void Renderer2D::Renderer::drawPath(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const int id, bool closed) {
+    void Renderer2D::Renderer::drawLines(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const int id, bool closed) {
         if (points.empty())
             return;
 
@@ -705,6 +534,53 @@ namespace Bess {
         primitive_vertices.insert(primitive_vertices.end(), vertices.begin(), vertices.end());
     }
 
+    void Renderer::addCurveSegmentStrip(
+        const glm::vec3 &prev_,
+        const glm::vec3 &curr_,
+        const glm::vec4 &color,
+        int id,
+        float weight,
+        bool firstSegment) {
+        glm::vec2 prev = {prev_.x, prev_.y};
+        glm::vec2 curr = {curr_.x, curr_.y};
+
+        glm::vec2 dir = glm::normalize(curr - prev);
+        glm::vec2 normal = {-dir.y, dir.x};
+
+        float halfW = weight * 0.5f;
+        glm::vec2 offset = normal * halfW;
+
+        glm::vec3 vPrevOut = {prev + offset, prev_.z};
+        glm::vec3 vPrevIn = {prev - offset, prev_.z};
+        glm::vec3 vCurrOut = {curr + offset, curr_.z};
+        glm::vec3 vCurrIn = {curr - offset, curr_.z};
+
+        auto makeV = [&](const glm::vec3 &p, const glm::vec2 &uv) {
+            Gl::Vertex v;
+            v.position = p;
+            v.color = color;
+            v.id = id;
+            v.texCoord = uv;
+            return v;
+        };
+
+        if (firstSegment) {
+            uint32_t base = (uint32_t)m_curveStripVertices.size();
+            m_curveStripVertices.emplace_back(makeV(vPrevOut, {0.0f, 1.0f})); // base + 0
+            m_curveStripVertices.emplace_back(makeV(vPrevIn, {0.0f, 0.0f}));  // base + 1
+            m_curveStripIndices.emplace_back(base + 0);
+            m_curveStripIndices.emplace_back(base + 1);
+        }
+
+        uint32_t base = (uint32_t)m_curveStripVertices.size();
+        m_curveStripVertices.emplace_back(makeV(vCurrOut, {1.0f, 1.0f})); // base + 0
+        m_curveStripVertices.emplace_back(makeV(vCurrIn, {1.0f, 0.0f}));  // base + 1
+        m_curveStripIndices.emplace_back(base + 0);
+        m_curveStripIndices.emplace_back(base + 1);
+    }
+
+// disabled composite pass logic
+#ifndef BESS_RENDERER_DISABLE_RENDERPASS
     std::vector<Gl::RenderPassVertex> Renderer::getRenderPassVertices(float width, float height) {
         std::vector<Gl::RenderPassVertex> vertices(4);
 
@@ -750,6 +626,201 @@ namespace Bess {
         Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
         m_renderPassVao->unbind();
         m_compositePassShader->unbind();
+    }
+#endif
+
+    void Renderer::beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color) {
+        m_pathData.ended = false;
+        m_pathData.currentPos = startPos;
+        m_pathData.points.emplace_back(startPos);
+        m_pathData.color = color;
+        m_pathData.weight = weight;
+    }
+
+    void Renderer::endPathMode(bool closePath) {
+        auto vertices = generateStrokeGeometry(m_pathData.points, m_pathData.weight, m_pathData.color, -1, 4.f, closePath);
+        size_t idx = m_pathStripVertices.size();
+        for (auto &v : vertices) {
+            m_pathStripVertices.emplace_back(v);
+            m_pathStripIndices.emplace_back(idx++);
+        }
+        m_pathData = {};
+        m_pathStripIndices.emplace_back(PRIMITIVE_RESTART);
+    }
+
+    void Renderer::pathLineTo(const glm::vec3 &pos, float weight, const glm::vec4 &color, const int id) {
+        assert(!m_pathData.ended);
+        m_pathData.points.emplace_back(pos);
+        m_pathData.setCurrentPos(pos);
+    }
+
+    void Renderer2D::Renderer::pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2, float weight, const glm::vec4 &color, const int id) {
+        assert(!m_pathData.ended);
+        auto points = generateCubicBezierPoints(m_pathData.currentPos, controlPoint1, controlPoint2, end);
+        m_pathData.points.insert_range(m_pathData.points.end(), points.begin(), points.end());
+        m_pathData.setCurrentPos(end);
+    }
+
+    void Renderer2D::Renderer::pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, const int id) {
+        assert(!m_pathData.ended);
+        auto points = generateQuadBezierPoints(m_pathData.currentPos, controlPoint, end);
+        m_pathData.points.insert_range(m_pathData.points.end(), points.begin(), points.end());
+        m_pathData.setCurrentPos(end);
+    }
+
+    void Renderer::begin(std::shared_ptr<Camera> camera) {
+        m_camera = camera;
+        Gl::Api::clearStats();
+        // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    }
+
+    void Renderer::end() {
+        for (auto primitive : m_AvailablePrimitives) {
+            flush(primitive);
+        }
+    }
+
+    void Renderer::flush(PrimitiveType type) {
+        auto &vao = m_vaos[type];
+
+        auto &shader = m_shaders[type];
+
+        vao->bind();
+        shader->bind();
+
+        shader->setUniformMat4("u_mvp", m_camera->getTransform());
+        shader->setUniform1i("u_SelectedObjId", -1);
+
+        switch (type) {
+        case PrimitiveType::quad: {
+            shader->setUniform1f("u_zoom", m_camera->getZoom());
+            auto &vertices = m_RenderData.quadVertices;
+            vao->setVertices(vertices.data(), vertices.size());
+            Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
+            vertices.clear();
+        } break;
+        case PrimitiveType::curve: {
+            shader->setUniform1f("u_zoom", m_camera->getZoom());
+            vao->setVerticesAndIndices(m_curveStripVertices.data(), m_curveStripVertices.size(), m_curveStripIndices.data(), m_curveStripIndices.size());
+            GL_CHECK(glEnable(GL_PRIMITIVE_RESTART));
+            GL_CHECK(glPrimitiveRestartIndex(PRIMITIVE_RESTART));
+            Gl::Api::drawElements(GL_TRIANGLE_STRIP, (GLsizei)(m_curveStripIndices.size()));
+            m_curveStripVertices.clear();
+            m_curveStripIndices.clear();
+        } break;
+        case PrimitiveType::path: {
+            shader->setUniform1f("u_zoom", m_camera->getZoom());
+            vao->setVerticesAndIndices(m_pathStripVertices.data(), m_pathStripVertices.size(), m_pathStripIndices.data(), m_pathStripIndices.size());
+            GL_CHECK(glEnable(GL_PRIMITIVE_RESTART));
+            GL_CHECK(glPrimitiveRestartIndex(PRIMITIVE_RESTART));
+            Gl::Api::drawElements(GL_TRIANGLE_STRIP, (GLsizei)(m_pathStripIndices.size()));
+            m_pathStripVertices.clear();
+            m_pathStripIndices.clear();
+        } break;
+        case PrimitiveType::circle: {
+            auto &vertices = m_RenderData.circleVertices;
+            vao->setVertices(vertices.data(), vertices.size());
+            Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
+            vertices.clear();
+        } break;
+        case PrimitiveType::triangle: {
+            auto &vertices = m_RenderData.triangleVertices;
+            vao->setVertices(vertices.data(), vertices.size());
+            Gl::Api::drawElements(GL_TRIANGLES, vertices.size());
+            vertices.clear();
+        } break;
+        case PrimitiveType::line: {
+            auto &vertices = m_RenderData.lineVertices;
+            vao->setVertices(vertices.data(), vertices.size());
+            Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
+            vertices.clear();
+        } break;
+        }
+
+        vao->unbind();
+        shader->unbind();
+    }
+
+
+    glm::vec2 Renderer2D::Renderer::getCharRenderSize(char ch, float renderSize) {
+        std::string key = std::to_string(renderSize) + ch;
+        if (m_charSizeCache.find(key) != m_charSizeCache.end()) {
+            return m_charSizeCache.at(key);
+        }
+        auto ch_ = m_Font->getCharacter(ch);
+        float scale = m_Font->getScale(renderSize);
+        glm::vec2 size = {(ch_.Advance >> 6), ch_.Size.y};
+        size = {size.x * scale, size.y * scale};
+        m_charSizeCache[key] = size;
+        return size;
+    }
+
+    glm::vec2 Renderer2D::Renderer::getStringRenderSize(const std::string &str, float renderSize) {
+        float xSize = 0;
+        float ySize = 0;
+        for (auto &ch : str) {
+            auto s = getCharRenderSize(ch, renderSize);
+            xSize += s.x;
+            ySize = std::max(xSize, s.y);
+        }
+        return {xSize, ySize};
+    }
+
+    glm::vec2 Renderer::nextBernstinePointCubicBezier(const glm::vec2 &p0, const glm::vec2 &p1,
+                        const glm::vec2 &p2, const glm::vec2 &p3, const float t) {
+        auto t_ = 1 - t;
+
+        glm::vec2 B0 = (float)std::pow(t_, 3) * p0;
+        glm::vec2 B1 = (float)(3 * t * std::pow(t_, 2)) * p1;
+        glm::vec2 B2 = (float)(3 * t * t * std::pow(t_, 1)) * p2;
+        glm::vec2 B3 = (float)(t * t * t) * p3;
+
+        return B0 + B1 + B2 + B3;
+    }
+
+    std::vector<glm::vec3> Renderer2D::Renderer::generateCubicBezierPoints(const glm::vec3 &start, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2, const glm::vec3 &end) {
+        std::vector<glm::vec3> points;
+        int segments = calculateCubicBezierSegments(m_pathData.currentPos, controlPoint1, controlPoint2, end);
+
+        for (int i = 1; i <= segments; i++) {
+            float t = (float)i / (float)segments;
+            glm::vec2 bP = nextBernstinePointCubicBezier(start, controlPoint1, controlPoint2, end, t);
+            glm::vec3 p = {bP.x, bP.y, glm::mix(start.z, end.z, t)};
+            points.emplace_back(p);
+        }
+
+        return points;
+    }
+
+    glm::vec2 Renderer::nextBernstinePointQuadBezier(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2, const float t) {
+        float t_ = 1.0f - t;
+        glm::vec2 point = (t_ * t_) * p0 + 2.0f * (t_ * t) * p1 + (t * t) * p2;
+        return point;
+    }
+
+    std::vector<glm::vec3> Renderer2D::Renderer::generateQuadBezierPoints(const glm::vec3 &start, const glm::vec2 &controlPoint, const glm::vec3 &end) {
+        std::vector<glm::vec3> points;
+        int segments = calculateQuadBezierSegments(m_pathData.currentPos, controlPoint, end);
+
+        for (int i = 1; i <= segments; i++) {
+            float t = (float)i / (float)segments;
+            glm::vec2 bP = nextBernstinePointQuadBezier(start, controlPoint, end, t);
+            glm::vec3 p = {bP.x, bP.y, glm::mix(start.z, end.z, t)};
+            points.emplace_back(p);
+        }
+
+        return points;
+    }
+
+    QuadBezierCurvePoints Renderer::generateSmoothBendPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius) {
+        glm::vec2 dir1 = glm::normalize(joinPoint - prevPoint);
+        glm::vec2 dir2 = glm::normalize(nextPoint - joinPoint);
+        glm::vec2 bisector = glm::normalize(dir1 + dir2);
+        float offset = glm::dot(bisector, dir1);
+        glm::vec2 controlPoint = joinPoint + bisector * offset;
+        glm::vec2 startPoint = joinPoint - dir1 * curveRadius;
+        glm::vec2 endPoint = joinPoint + dir2 * curveRadius;
+        return {startPoint, controlPoint, endPoint};
     }
 
     std::vector<Gl::Vertex> Renderer::generateStrokeGeometry(const std::vector<glm::vec3> &points,
@@ -878,163 +949,41 @@ namespace Bess {
         return stripVertices;
     }
 
-    void Renderer::beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color) {
-        m_pathData.ended = false;
-        m_pathData.currentPos = startPos;
-        m_pathData.points.emplace_back(startPos);
-        m_pathData.color = color;
-        m_pathData.weight = weight;
+    int Renderer::calculateCubicBezierSegments(const glm::vec2 &p0,
+                                               const glm::vec2 &p1,
+                                               const glm::vec2 &p2,
+                                               const glm::vec2 &p3) {
+        glm::vec2 n0 = p0 / UI::UIMain::state.viewportSize;
+        glm::vec2 n1 = p1 / UI::UIMain::state.viewportSize;
+        glm::vec2 n2 = p2 / UI::UIMain::state.viewportSize;
+        glm::vec2 n3 = p3 / UI::UIMain::state.viewportSize;
+
+        glm::vec2 d1 = n0 - 2.0f * n1 + n2;
+        glm::vec2 d2 = n1 - 2.0f * n2 + n3;
+
+        float m1 = glm::length(d1);
+        float m2 = glm::length(d2);
+        float M = 6.0f * std::max(m1, m2);
+
+        float Nf = std::sqrt(M / (8.0f * BEZIER_EPSILON));
+
+        return std::max(1, (int)std::ceil(Nf));
     }
 
-    void Renderer::endPathMode(bool closePath) {
-        auto vertices = generateStrokeGeometry(m_pathData.points, m_pathData.weight, m_pathData.color, -1, 4.f, closePath);
-        size_t idx = m_pathStripVertices.size();
-        for (auto &v : vertices) {
-            m_pathStripVertices.emplace_back(v);
-            m_pathStripIndices.emplace_back(idx++);
-        }
-        m_pathData = {};
-        m_pathStripIndices.emplace_back(PRIMITIVE_RESTART);
+    int Renderer::calculateQuadBezierSegments(const glm::vec2 &p0,
+                                              const glm::vec2 &p1,
+                                              const glm::vec2 &p2) {
+        glm::vec2 n0 = p0 / UI::UIMain::state.viewportSize;
+        glm::vec2 n1 = p1 / UI::UIMain::state.viewportSize;
+        glm::vec2 n2 = p2 / UI::UIMain::state.viewportSize;
+
+        glm::vec2 d = n0 - 2.0f * n1 + n2;
+
+        float M = 2.0f * glm::length(d);
+
+        float Nf = std::sqrt(M / (8.0f * BEZIER_EPSILON));
+
+        return std::max(1, (int)std::ceil(Nf));
     }
 
-    void Renderer::pathLineTo(const glm::vec3 &pos, float weight, const glm::vec4 &color, const int id) {
-        assert(!m_pathData.ended);
-        m_pathData.points.emplace_back(pos);
-        m_pathData.setCurrentPos(pos);
-    }
-
-    void Renderer2D::Renderer::pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2, float weight, const glm::vec4 &color, const int id) {
-        assert(!m_pathData.ended);
-        int segments = calculateCubicBezierSegments(m_pathData.currentPos, controlPoint1, controlPoint2, end);
-
-        auto prev = m_pathData.currentPos;
-        for (int i = 1; i <= segments; i++) {
-            glm::vec2 bP = bernstine(m_pathData.currentPos, controlPoint1, controlPoint2, end, (float)i / (float)segments);
-            glm::vec3 p = {bP.x, bP.y, prev.z};
-            m_pathData.points.emplace_back(p);
-        }
-        m_pathData.setCurrentPos(end);
-    }
-
-    void Renderer2D::Renderer::pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, const int id) {
-        assert(!m_pathData.ended);
-        int segments = calculateQuadBezierSegments(m_pathData.currentPos, controlPoint, end);
-
-        auto prev = m_pathData.currentPos;
-        for (int i = 1; i <= segments; i++) {
-            glm::vec2 bP = bernstineQuadBezier(m_pathData.currentPos, controlPoint, end, (float)i / (float)segments);
-            glm::vec3 p = {bP.x, bP.y, prev.z};
-            m_pathData.points.emplace_back(p);
-        }
-
-        m_pathData.setCurrentPos(end);
-    }
-
-    void Renderer::flush(PrimitiveType type) {
-        auto &vao = m_vaos[type];
-
-        auto &shader = m_shaders[type];
-
-        vao->bind();
-        shader->bind();
-
-        shader->setUniformMat4("u_mvp", m_camera->getTransform());
-        shader->setUniform1i("u_SelectedObjId", -1);
-
-        switch (type) {
-        case PrimitiveType::quad: {
-            shader->setUniform1f("u_zoom", m_camera->getZoom());
-            auto &vertices = m_RenderData.quadVertices;
-            vao->setVertices(vertices.data(), vertices.size());
-            Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
-            vertices.clear();
-        } break;
-        case PrimitiveType::curve: {
-            shader->setUniform1f("u_zoom", m_camera->getZoom());
-            vao->setVerticesAndIndices(m_curveStripVertices.data(), m_curveStripVertices.size(), m_curveStripIndices.data(), m_curveStripIndices.size());
-            GL_CHECK(glEnable(GL_PRIMITIVE_RESTART));
-            GL_CHECK(glPrimitiveRestartIndex(PRIMITIVE_RESTART));
-            Gl::Api::drawElements(GL_TRIANGLE_STRIP, (GLsizei)(m_curveStripIndices.size()));
-            m_curveStripVertices.clear();
-            m_curveStripIndices.clear();
-        } break;
-        case PrimitiveType::path: {
-            shader->setUniform1f("u_zoom", m_camera->getZoom());
-            vao->setVerticesAndIndices(m_pathStripVertices.data(), m_pathStripVertices.size(), m_pathStripIndices.data(), m_pathStripIndices.size());
-            GL_CHECK(glEnable(GL_PRIMITIVE_RESTART));
-            GL_CHECK(glPrimitiveRestartIndex(PRIMITIVE_RESTART));
-            Gl::Api::drawElements(GL_TRIANGLE_STRIP, (GLsizei)(m_pathStripIndices.size()));
-            m_pathStripVertices.clear();
-            m_pathStripIndices.clear();
-        } break;
-        case PrimitiveType::circle: {
-            auto &vertices = m_RenderData.circleVertices;
-            vao->setVertices(vertices.data(), vertices.size());
-            Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
-            vertices.clear();
-        } break;
-        case PrimitiveType::triangle: {
-            auto &vertices = m_RenderData.triangleVertices;
-            vao->setVertices(vertices.data(), vertices.size());
-            Gl::Api::drawElements(GL_TRIANGLES, vertices.size());
-            vertices.clear();
-        } break;
-        case PrimitiveType::line: {
-            auto &vertices = m_RenderData.lineVertices;
-            vao->setVertices(vertices.data(), vertices.size());
-            Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
-            vertices.clear();
-        } break;
-        }
-
-        vao->unbind();
-        shader->unbind();
-    }
-
-    void Renderer::begin(std::shared_ptr<Camera> camera) {
-        m_camera = camera;
-        Gl::Api::clearStats();
-        // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    }
-
-    QuadBezierCurvePoints Renderer::generateQuadBezierPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius) {
-        glm::vec2 dir1 = glm::normalize(joinPoint - prevPoint);
-        glm::vec2 dir2 = glm::normalize(nextPoint - joinPoint);
-        glm::vec2 bisector = glm::normalize(dir1 + dir2);
-        float offset = glm::dot(bisector, dir1);
-        glm::vec2 controlPoint = joinPoint + bisector * offset;
-        glm::vec2 startPoint = joinPoint - dir1 * curveRadius;
-        glm::vec2 endPoint = joinPoint + dir2 * curveRadius;
-        return {startPoint, controlPoint, endPoint};
-    }
-
-    void Renderer::end() {
-        for (auto primitive : m_AvailablePrimitives) {
-            flush(primitive);
-        }
-    }
-
-    glm::vec2 Renderer2D::Renderer::getCharRenderSize(char ch, float renderSize) {
-        std::string key = std::to_string(renderSize) + ch;
-        if (m_charSizeCache.find(key) != m_charSizeCache.end()) {
-            return m_charSizeCache.at(key);
-        }
-        auto ch_ = m_Font->getCharacter(ch);
-        float scale = m_Font->getScale(renderSize);
-        glm::vec2 size = {(ch_.Advance >> 6), ch_.Size.y};
-        size = {size.x * scale, size.y * scale};
-        m_charSizeCache[key] = size;
-        return size;
-    }
-
-    glm::vec2 Renderer2D::Renderer::getStringRenderSize(const std::string &str, float renderSize) {
-        float xSize = 0;
-        float ySize = 0;
-        for (auto &ch : str) {
-            auto s = getCharRenderSize(ch, renderSize);
-            xSize += s.x;
-            ySize = std::max(xSize, s.y);
-        }
-        return {xSize, ySize};
-    }
 } // namespace Bess
