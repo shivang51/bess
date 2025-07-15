@@ -657,14 +657,14 @@ namespace Bess {
     void Renderer2D::Renderer::pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2, float weight, const glm::vec4 &color, const int id) {
         assert(!m_pathData.ended);
         auto points = generateCubicBezierPoints(m_pathData.currentPos, controlPoint1, controlPoint2, end);
-        m_pathData.points.insert_range(m_pathData.points.end(), points.begin(), points.end());
+        m_pathData.points.insert(m_pathData.points.end(), points.begin(), points.end());
         m_pathData.setCurrentPos(end);
     }
 
     void Renderer2D::Renderer::pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, const int id) {
         assert(!m_pathData.ended);
         auto points = generateQuadBezierPoints(m_pathData.currentPos, controlPoint, end);
-        m_pathData.points.insert_range(m_pathData.points.end(), points.begin(), points.end());
+        m_pathData.points.insert(m_pathData.points.end(), points.begin(), points.end());
         m_pathData.setCurrentPos(end);
     }
 
