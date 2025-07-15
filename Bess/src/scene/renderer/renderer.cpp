@@ -170,16 +170,16 @@ namespace Bess {
         }
 
         m_StandardQuadVertices = {
-            {-0.5f, 0.5f, 0.f, 1.f},
+            {-0.5f,  0.5f, 0.f, 1.f},
             {-0.5f, -0.5f, 0.f, 1.f},
-            {0.5f, -0.5f, 0.f, 1.f},
-            {0.5f, 0.5f, 0.f, 1.f},
+            { 0.5f, -0.5f, 0.f, 1.f},
+            { 0.5f,  0.5f, 0.f, 1.f},
         };
 
         m_StandardTriVertices = {
-            {-0.5f, 0.5f, 0.f, 1.f},
-            {0.f, -0.5f, 0.f, 1.f},
-            {0.5f, 0.5f, 0.f, 1.f}};
+            {-0.5f, 0.0f, 0.f, 1.f},
+            { 0.5f, 0.0f, 0.f, 1.f},
+            { 0.0f, 0.5f, 0.f, 1.f}};
 
         m_Font = std::make_unique<Font>("assets/fonts/Roboto/Roboto-Regular.ttf");
     }
