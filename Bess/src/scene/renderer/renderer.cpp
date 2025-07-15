@@ -77,8 +77,9 @@ namespace Bess {
         }
         #endif
 
-        m_AvailablePrimitives = {PrimitiveType::curve, PrimitiveType::circle, PrimitiveType::line,
-                                 PrimitiveType::font, PrimitiveType::triangle, PrimitiveType::quad, PrimitiveType::path};
+        m_AvailablePrimitives = {PrimitiveType::curve,  PrimitiveType::line,
+                                 PrimitiveType::font, PrimitiveType::triangle, 
+                                 PrimitiveType::quad, PrimitiveType::circle,PrimitiveType::path};
 
         for (auto &prim : m_AvailablePrimitives) {
             m_MaxRenderLimit[prim] = 2000;

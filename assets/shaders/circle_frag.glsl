@@ -20,10 +20,12 @@ void main() {
     vec4 col = v_FragColor;
 
     float alphaR = smoothstep(r, r - blur, length(uv));
-    float alphaIR = smoothstep(ir, ir - blur, length(uv));
-    float alpha = alphaR - alphaIR;
-    if (alpha < 0.001f) discard;
+    float alphaIR = smoothstep(ir - blur, ir, length(uv));
+    float alpha = alphaR * alphaIR;
+    alpha = clamp(alpha, 0.0, 1.0);
 
-    fragColor = vec4(col.rgb, alpha);
+    if(alpha < 0.001) discard;
+
+    fragColor = vec4(col.rgb, min(alpha, col.a));
     fragColor1 = v_TextureIndex;
 }
