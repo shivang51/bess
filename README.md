@@ -41,6 +41,6 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
        ```
 ## Next TODO
 - [X] Logging
-- [ ] (On-going) Schematic diagram generator from nodes
+- [X] Schematic diagram generator from nodes
 - [ ] Asset Manager, MSDF font rendering
 - [ ] More non-simulating nodes e.g. text node
