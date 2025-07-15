@@ -101,14 +101,13 @@ namespace Bess::Canvas {
             borderColor = ViewportTheme::stateHighColor;
         }
 
+        if(!isConnected) bgColor.a = 0.1f;
 
         float ir = componentStyles.slotRadius - componentStyles.slotBorderSize;
         float r = componentStyles.slotRadius;
 
         Renderer::circle(pos, r, borderColor, id, ir);
-        if(isConnected){
-            Renderer::circle(pos, ir - 1.f, bgColor, id);
-        }
+        Renderer::circle(pos, ir - 1.f, bgColor, id);
 
         float labelX = pos.x + labelDx;
         float dY = componentStyles.slotRadius - std::abs(componentStyles.slotRadius * 2.f - componentStyles.slotLabelSize) / 2.f;
@@ -229,7 +228,7 @@ namespace Bess::Canvas {
 
             if (newSegId != UUID::null) {
                 // circle at the join
-                Renderer::circle(offPos, size, color, id);
+                Renderer::circle(offPos, size * 0.5f, color, id);
             }
 
             segId = newSegId;
