@@ -99,7 +99,7 @@ namespace Bess {
                 fragmentShader = "assets/shaders/curve_frag.glsl";
                 break;
             case PrimitiveType::circle:
-                vertexShader = "assets/shaders/vert.glsl";
+                vertexShader = "assets/shaders/circle_vert.glsl";
                 fragmentShader = "assets/shaders/circle_frag.glsl";
                 break;
             case PrimitiveType::font:
@@ -137,7 +137,16 @@ namespace Bess {
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::QuadVertex, id)));
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::QuadVertex, isMica)));
                 m_vaos[primitive] = std::make_unique<Gl::Vao>(max_render_count * 4, max_render_count * 6, attachments, sizeof(Gl::QuadVertex));
-            } else {
+            } else if (primitive == PrimitiveType::circle) {
+                std::vector<Gl::VaoAttribAttachment> attachments;
+                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::CircleVertex, position)));
+                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::CircleVertex, color)));
+                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::CircleVertex, texCoord)));
+                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::float_t, offsetof(Gl::CircleVertex, innerRadius)));
+                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::CircleVertex, id)));
+                m_vaos[primitive] = std::make_unique<Gl::Vao>(max_render_count * 4, max_render_count * 6, attachments, sizeof(Gl::CircleVertex));
+            }
+            else {
                 std::vector<Gl::VaoAttribAttachment> attachments;
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::Vertex, position)));
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::Vertex, color)));
@@ -292,10 +301,17 @@ namespace Bess {
     }
 
     void Renderer::circle(const glm::vec3 &center, const float radius,
-                          const glm::vec4 &color, const int id) {
+                          const glm::vec4 &color, const int id, float innerRadius) {
         glm::vec2 size = {radius * 2, radius * 2};
 
-        std::vector<Gl::Vertex> vertices(4);
+        std::vector<glm::vec2> texCoords = {
+            {0.0f, 1.0f},
+            {0.0f, 0.0f},
+            {1.0f, 0.0f},
+            {1.0f, 1.0f}
+        };
+
+        std::vector<Gl::CircleVertex> vertices(4);
 
         auto transform = glm::translate(glm::mat4(1.0f), center);
         transform = glm::scale(transform, {size.x, size.y, 1.f});
@@ -305,12 +321,9 @@ namespace Bess {
             vertex.position = transform * m_StandardQuadVertices[i];
             vertex.id = id;
             vertex.color = color;
+            vertex.innerRadius = innerRadius / radius; // Normalize inner radius to the outer radius
+            vertex.texCoord = texCoords[i];
         }
-
-        vertices[0].texCoord = {0.0f, 1.0f};
-        vertices[1].texCoord = {0.0f, 0.0f};
-        vertices[2].texCoord = {1.0f, 0.0f};
-        vertices[3].texCoord = {1.0f, 1.0f};
 
         addCircleVertices(vertices);
     }
@@ -497,7 +510,7 @@ namespace Bess {
         primitive_vertices.insert(primitive_vertices.end(), vertices.begin(), vertices.end());
     }
 
-    void Renderer::addCircleVertices(const std::vector<Gl::Vertex> &vertices) {
+    void Renderer::addCircleVertices(const std::vector<Gl::CircleVertex> &vertices) {
         auto max_render_count = m_MaxRenderLimit[PrimitiveType::circle];
 
         auto &primitive_vertices = m_RenderData.circleVertices;
