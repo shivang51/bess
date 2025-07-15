@@ -16,7 +16,7 @@ namespace Bess::Canvas {
     Scene *Artist::sceneRef = nullptr;
     bool Artist::m_isSchematicMode = false;
 
-    struct ComponentStyles {
+    const struct ComponentStyles {
         float headerHeight = 18.f;
         float headerFontSize = 10.f;
         float paddingX = 8.f;
@@ -101,13 +101,13 @@ namespace Bess::Canvas {
             borderColor = ViewportTheme::stateHighColor;
         }
 
-        Renderer::quad(pos, glm::vec2(componentStyles.slotRadius * 2.f), ViewportTheme::componentBGColor, id, angle,
-                       glm::vec4(componentStyles.slotRadius),
-                       glm::vec4(componentStyles.slotBorderSize), borderColor, false);
+        // Renderer::quad(pos, glm::vec2(componentStyles.slotRadius * 2.f), ViewportTheme::componentBGColor, id, angle,
+        //                glm::vec4(componentStyles.slotRadius),
+        //                glm::vec4(componentStyles.slotBorderSize), borderColor, false);
 
-        float r = componentStyles.slotRadius - componentStyles.slotBorderSize - 1.f;
-        Renderer::quad(pos, glm::vec2(r * 2.f), bgColor, id, angle, glm::vec4(r),
-                       glm::vec4(componentStyles.slotBorderSize), ViewportTheme::componentBGColor, false);
+        // float r = componentStyles.slotRadius - componentStyles.slotBorderSize - 1.f;
+        // Renderer::quad(pos, glm::vec2(r * 2.f), bgColor, id, angle, glm::vec4(r),
+        //                glm::vec4(componentStyles.slotBorderSize), ViewportTheme::componentBGColor, false);
 
         float labelX = pos.x + labelDx;
         float dY = componentStyles.slotRadius - std::abs(componentStyles.slotRadius * 2.f - componentStyles.slotLabelSize) / 2.f;
@@ -159,7 +159,7 @@ namespace Bess::Canvas {
         points.emplace_back(glm::vec3(midX, pos.y, 0.f));
         points.emplace_back(glm::vec3(pos, 0.f));
 
-        Renderer::drawPath(points, 2.f, ViewportTheme::wireColor, -1);
+        Renderer::drawLines(points, 2.f, ViewportTheme::wireColor, -1);
     }
 
     void Artist::drawConnection(const UUID &id, entt::entity inputEntity, entt::entity outputEntity, bool isSelected) {
@@ -228,8 +228,7 @@ namespace Bess::Canvas {
 
             if (newSegId != UUID::null) {
                 // circle at the join
-                Renderer::quad(offPos, glm::vec2(size), color, id, 0.f, glm::vec4(size / 2.f),
-                               glm::vec4(0), color, false);
+                Renderer::circle(offPos, size, color, id);
             }
 
             segId = newSegId;
@@ -267,9 +266,12 @@ namespace Bess::Canvas {
         bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
         auto borderColor = isSelected ? ViewportTheme::selectedCompColor : spriteComp.borderColor;
 
-        Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, 0.f,
-                       spriteComp.borderRadius,
-                       spriteComp.borderSize, borderColor, true);
+        Renderer2D::QuadRenderProperties props;
+        props.borderRadius = spriteComp.borderRadius;
+        props.borderColor = borderColor;
+        props.borderSize = spriteComp.borderSize;
+        props.isMica = true;
+        Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
 
         float yOff = componentStyles.headerFontSize / 2.f - 2.f;
         auto labelSize = Renderer::getStringRenderSize(tagComp.name, componentStyles.headerFontSize).x;
@@ -299,9 +301,12 @@ namespace Bess::Canvas {
         bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
         auto borderColor = isSelected ? ViewportTheme::selectedCompColor : spriteComp.borderColor;
 
-        Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, 0.f,
-                       spriteComp.borderRadius,
-                       spriteComp.borderSize, borderColor, true);
+        Renderer2D::QuadRenderProperties props;
+        props.borderRadius = spriteComp.borderRadius;
+        props.borderColor = borderColor;
+        props.borderSize = spriteComp.borderSize;
+        props.isMica = true;
+        Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
 
         float yOff = componentStyles.headerFontSize / 2.f - 2.f;
         glm::vec3 textPos = glm::vec3(pos.x - scale.x / 2.f + componentStyles.paddingX, pos.y + yOff, pos.z + 0.0005f);
@@ -332,9 +337,9 @@ namespace Bess::Canvas {
         float rb = boundInfo.outPinStart;
 
         auto negateCircleAt = [&](glm::vec3 pos) {
-            Renderer::quad(pos, glm::vec2(negCircleR * 2.f), glm::vec4(0.f), -1, 0.f,
-                           glm::vec4(negCircleR),
-                           glm::vec4(nodeWeight), ViewportTheme::compHeaderColor, false);
+            // Renderer::quad(pos, glm::vec2(negCircleR * 2.f), glm::vec4(0.f), -1, 0.f,
+            //                glm::vec4(negCircleR),
+            //                glm::vec4(nodeWeight), ViewportTheme::compHeaderColor, false);
         };
 
         switch (type) {
@@ -491,17 +496,26 @@ namespace Bess::Canvas {
 
         glm::vec3 textPos = glm::vec3(pos.x - scale.x / 2.f + componentStyles.paddingX, headerPos.y + componentStyles.paddingY, pos.z + 0.0005f);
 
-        Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, rotation,
-                       spriteComp.borderRadius,
-                       spriteComp.borderSize, borderColor, true);
+        Renderer2D::QuadRenderProperties props;
+        props.angle = rotation;
+        props.borderRadius = spriteComp.borderRadius;
+        props.borderSize = spriteComp.borderSize;
+        props.borderColor = borderColor;
+        props.isMica = true;
+
+        Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
+
+        props = {};
+        props.angle = rotation;
+        props.borderSize = glm::vec4(0.f);
+        props.borderRadius = glm::vec4(0, 0, spriteComp.borderRadius.x, spriteComp.borderRadius.y);
+        props.isMica = true;
 
         Renderer::quad(headerPos,
                        glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
                        ViewportTheme::compHeaderColor,
                        id,
-                       0.f,
-                       glm::vec4(0, 0, spriteComp.borderRadius.x, spriteComp.borderRadius.y),
-                       glm::vec4(0.f), glm::vec4(0.f), true);
+                       props);
 
         Renderer::text(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id, rotation);
 

@@ -206,7 +206,11 @@ namespace Bess::Canvas {
         auto pos = start + size / 2.f;
         size = glm::abs(size);
 
-        Renderer2D::Renderer::quad(glm::vec3(pos, 9.f), size, ViewportTheme::selectionBoxFillColor, 0.f, 0.f, glm::vec4(0.f), glm::vec4(1.f), ViewportTheme::selectionBoxBorderColor, false);
+
+        Renderer2D::QuadRenderProperties props;
+        props.borderColor = ViewportTheme::selectionBoxBorderColor;
+        props.borderSize = glm::vec4(1.f);
+        Renderer2D::Renderer::quad(glm::vec3(pos, 9.f), size, ViewportTheme::selectionBoxFillColor, 0, props);
     }
 
     void Scene::drawConnection() {
