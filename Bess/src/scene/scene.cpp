@@ -165,6 +165,11 @@ namespace Bess::Canvas {
 
         beginScene();
 
+        Renderer2D::Renderer::begin(m_camera);
+        Renderer::grid({0.f, 0.f, -2.f}, m_camera->getSpan(), -1, ViewportTheme::gridColor);
+        Renderer2D::Renderer::end();
+
+        Renderer2D::Renderer::begin(m_camera);
         if (m_drawMode == SceneDrawMode::connection) {
             drawConnection();
         }
@@ -180,20 +185,13 @@ namespace Bess::Canvas {
         for (auto entity : view) {
             Artist::drawSimEntity(entity);
         }
+        Renderer2D::Renderer::end();
 
         if (m_drawMode == SceneDrawMode::selectionBox) {
+            Renderer2D::Renderer::begin(m_camera);
             drawSelectionBox();
+            Renderer2D::Renderer::end();
         }
-
-        Renderer::grid({0.f, 0.f, -2.f}, m_camera->getSpan(), -1, ViewportTheme::gridColor);
-
-        //float y = 200, x1 = getNVPMousePos(m_mousePos).x, y1 = getNVPMousePos(m_mousePos).y;
-        //Renderer::beginPathMode({0, 0, 0}, 4, ViewportTheme::wireColor);
-        //Renderer::pathLineTo({100, 0, 1}, 4.f, ViewportTheme::wireColor, -1);
-        //Renderer::pathQuadBeizerTo({100, 100, 1}, {150, 50}, 4, ViewportTheme::wireColor, -1);
-        //Renderer::pathLineTo({0, 100, 1}, 4.f, ViewportTheme::wireColor, -1);
-        //Renderer::endPathMode(true);
-
 
         endScene();
     }
@@ -804,11 +802,9 @@ namespace Bess::Canvas {
         m_msaaFramebuffer->clearColorAttachment<GL_FLOAT>(2, glm::value_ptr(ViewportTheme::backgroundColor));
 
         Gl::FrameBuffer::clearDepthStencilBuf();
-        Renderer::begin(m_camera);
     }
 
     void Scene::endScene() {
-        Renderer2D::Renderer::end();
         Gl::FrameBuffer::unbindAll();
         /*auto span = m_camera->getSpan();*/
         /**/
