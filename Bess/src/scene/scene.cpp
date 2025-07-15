@@ -185,6 +185,7 @@ namespace Bess::Canvas {
         for (auto entity : view) {
             Artist::drawSimEntity(entity);
         }
+
         Renderer2D::Renderer::end();
 
         if (m_drawMode == SceneDrawMode::selectionBox) {

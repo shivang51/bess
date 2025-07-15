@@ -77,8 +77,10 @@ namespace Bess::Renderer2D {
         // --- path api end ---
 
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
-                         const glm::vec4 &color, int id,
-                         QuadRenderProperties properties = {});
+                         const glm::vec4 &color, int id, QuadRenderProperties properties = {});
+
+        static void quad(const glm::vec3 &pos, const glm::vec2 &size, const Gl::Texture &texture,
+                         const glm::vec4 &tintColor, int id, QuadRenderProperties properties = {});
 
         static void curve(const glm::vec3 &start, const glm::vec3 &end, float weight, const glm::vec4 &color, int id);
 
@@ -106,13 +108,8 @@ namespace Bess::Renderer2D {
                                                               const glm::vec4 &color,
                                                               int id, float miterLimit, bool isClosed);
 
-        static void addCurveSegmentStrip(
-            const glm::vec3 &prev_,
-            const glm::vec3 &curr_,
-            const glm::vec4 &color,
-            int id,
-            float weight,
-            bool firstSegment);
+        static void addCurveSegmentStrip( const glm::vec3 &prev_, const glm::vec3 &curr_, const glm::vec4 &color,
+            int id, float weight, bool firstSegment);
 
         static int calculateQuadBezierSegments(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2);
 
@@ -177,6 +174,8 @@ namespace Bess::Renderer2D {
         static bool m_curveBroken;
 
         static PathContext m_pathData;
+
+        static std::unordered_map<Gl::Texture, std::vector<Gl::QuadVertex>> m_textureQuadVertices;
     };
 
 } // namespace Bess::Renderer2D

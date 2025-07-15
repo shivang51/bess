@@ -18,7 +18,8 @@ using namespace Bess::Renderer2D;
 
 namespace Bess {
 
-    #define BESS_RENDERER_DISABLE_RENDERPASS
+// disabled composite pass logic for now
+#define BESS_RENDERER_DISABLE_RENDERPASS
 
     static constexpr uint32_t PRIMITIVE_RESTART = 0xFFFFFFFF;
     static constexpr float BEZIER_EPSILON = 0.0001f;
@@ -51,6 +52,7 @@ namespace Bess {
 
     std::unique_ptr<Font> Renderer::m_Font;
     std::unordered_map<std::string, glm::vec2> Renderer::m_charSizeCache;
+    std::unordered_map<Gl::Texture, std::vector<Gl::QuadVertex>> Renderer::m_textureQuadVertices;
 
     void Renderer::init() {
         {
@@ -65,21 +67,21 @@ namespace Bess {
             m_GridVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::GridVertex));
         }
 
-        #ifndef BESS_RENDERER_DISABLE_RENDERPASS
+#ifndef BESS_RENDERER_DISABLE_RENDERPASS
         {
 
-           m_shadowPassShader = std::make_unique<Gl::Shader>("assets/shaders/shadow_vert.glsl", "assets/shaders/shadow_frag.glsl");
-           m_compositePassShader = std::make_unique<Gl::Shader>("assets/shaders/composite_vert.glsl", "assets/shaders/composite_frag.glsl");
-           std::vector<Gl::VaoAttribAttachment> attachments;
-           attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::GridVertex, position)));
-           attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::GridVertex, texCoord)));
-           m_renderPassVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::RenderPassVertex));
+            m_shadowPassShader = std::make_unique<Gl::Shader>("assets/shaders/shadow_vert.glsl", "assets/shaders/shadow_frag.glsl");
+            m_compositePassShader = std::make_unique<Gl::Shader>("assets/shaders/composite_vert.glsl", "assets/shaders/composite_frag.glsl");
+            std::vector<Gl::VaoAttribAttachment> attachments;
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::GridVertex, position)));
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::GridVertex, texCoord)));
+            m_renderPassVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::RenderPassVertex));
         }
-        #endif
+#endif
 
-        m_AvailablePrimitives = {PrimitiveType::curve,  PrimitiveType::line,
-                                 PrimitiveType::font, PrimitiveType::triangle, 
-                                 PrimitiveType::quad, PrimitiveType::circle,PrimitiveType::path};
+        m_AvailablePrimitives = {PrimitiveType::curve, PrimitiveType::line,
+                                 PrimitiveType::font, PrimitiveType::triangle,
+                                 PrimitiveType::quad, PrimitiveType::circle, PrimitiveType::path};
 
         for (auto &prim : m_AvailablePrimitives) {
             m_MaxRenderLimit[prim] = 2000;
@@ -137,6 +139,7 @@ namespace Bess {
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::QuadVertex, size)));
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::QuadVertex, id)));
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::QuadVertex, isMica)));
+                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::QuadVertex, texSlotIdx)));
                 m_vaos[primitive] = std::make_unique<Gl::Vao>(max_render_count * 4, max_render_count * 6, attachments, sizeof(Gl::QuadVertex));
             } else if (primitive == PrimitiveType::circle) {
                 std::vector<Gl::VaoAttribAttachment> attachments;
@@ -146,8 +149,7 @@ namespace Bess {
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::float_t, offsetof(Gl::CircleVertex, innerRadius)));
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::CircleVertex, id)));
                 m_vaos[primitive] = std::make_unique<Gl::Vao>(max_render_count * 4, max_render_count * 6, attachments, sizeof(Gl::CircleVertex));
-            }
-            else {
+            } else {
                 std::vector<Gl::VaoAttribAttachment> attachments;
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::Vertex, position)));
                 attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::Vertex, color)));
@@ -170,30 +172,29 @@ namespace Bess {
         }
 
         m_StandardQuadVertices = {
-            {-0.5f,  0.5f, 0.f, 1.f},
+            {-0.5f, 0.5f, 0.f, 1.f},
             {-0.5f, -0.5f, 0.f, 1.f},
-            { 0.5f, -0.5f, 0.f, 1.f},
-            { 0.5f,  0.5f, 0.f, 1.f},
+            {0.5f, -0.5f, 0.f, 1.f},
+            {0.5f, 0.5f, 0.f, 1.f},
         };
 
         m_StandardTriVertices = {
             {-0.5f, 0.0f, 0.f, 1.f},
-            { 0.5f, 0.0f, 0.f, 1.f},
-            { 0.0f, 0.5f, 0.f, 1.f}};
+            {0.5f, 0.0f, 0.f, 1.f},
+            {0.0f, 0.5f, 0.f, 1.f}};
 
         m_Font = std::make_unique<Font>("assets/fonts/Roboto/Roboto-Regular.ttf");
     }
 
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
-                         const glm::vec4 &color, int id,
-                         QuadRenderProperties properties) {
+                        const glm::vec4 &color, int id,
+                        QuadRenderProperties properties) {
 
         std::vector<glm::vec2> texCoords = {
             {0.0f, 1.0f},
             {0.0f, 0.0f},
             {1.0f, 0.0f},
-            {1.0f, 1.0f}
-        };
+            {1.0f, 1.0f}};
 
         std::vector<Gl::QuadVertex> vertices(4);
 
@@ -212,10 +213,52 @@ namespace Bess {
             vertex.borderColor = properties.borderColor;
             vertex.borderSize = properties.borderSize;
             vertex.texCoord = texCoords[i];
+            vertex.texSlotIdx = 0;
         }
 
         addQuadVertices(vertices);
+    }
 
+    void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
+                        const Gl::Texture &texture, const glm::vec4 &tintColor, int id,
+                        QuadRenderProperties properties) {
+        std::vector<glm::vec2> texCoords = {
+            {0.0f, 1.0f},
+            {0.0f, 0.0f},
+            {1.0f, 0.0f},
+            {1.0f, 1.0f}};
+
+        int idx = 0;
+        if (m_textureQuadVertices.find(texture) == m_textureQuadVertices.end()) {
+            m_textureQuadVertices[texture] = std::vector<Gl::QuadVertex>();
+            idx = m_textureQuadVertices.size();
+        }
+
+        auto &verticesStore = m_textureQuadVertices[texture];
+        if (!verticesStore.empty())
+            idx = verticesStore.front().texSlotIdx;
+
+        std::vector<Gl::QuadVertex> vertices(4);
+
+        auto transform = glm::translate(glm::mat4(1.0f), pos);
+        transform = glm::rotate(transform, properties.angle, {0.f, 0.f, 1.f});
+        transform = glm::scale(transform, {size.x, size.y, 1.f});
+
+        for (int i = 0; i < 4; i++) {
+            auto &vertex = vertices[i];
+            vertex.position = transform * m_StandardQuadVertices[i];
+            vertex.id = id;
+            vertex.color = tintColor;
+            vertex.borderRadius = properties.borderRadius;
+            vertex.size = size;
+            vertex.isMica = properties.isMica ? 1 : 0;
+            vertex.borderColor = properties.borderColor;
+            vertex.borderSize = properties.borderSize;
+            vertex.texCoord = texCoords[i];
+            vertex.texSlotIdx = idx;
+        }
+
+        verticesStore.insert(verticesStore.end(), vertices.begin(), vertices.end());
     }
 
     void Renderer::grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const glm::vec4 &color) {
@@ -274,7 +317,7 @@ namespace Bess {
 
         auto prev = start;
         for (size_t i = 1; i < points.size(); i++) {
-            glm::vec3& p = points[i];
+            glm::vec3 &p = points[i];
             addCurveSegmentStrip(prev, p, color, id, weight, i == 1);
             prev = p;
         }
@@ -291,7 +334,7 @@ namespace Bess {
 
         auto prev = start;
         for (size_t i = 1; i < points.size(); i++) {
-            glm::vec3& p = points[i];
+            glm::vec3 &p = points[i];
             addCurveSegmentStrip(prev, p, color, id, weight, i == 1);
             prev = p;
         }
@@ -309,8 +352,7 @@ namespace Bess {
             {0.0f, 1.0f},
             {0.0f, 0.0f},
             {1.0f, 0.0f},
-            {1.0f, 1.0f}
-        };
+            {1.0f, 1.0f}};
 
         std::vector<Gl::CircleVertex> vertices(4);
 
@@ -593,7 +635,6 @@ namespace Bess {
         m_curveStripIndices.emplace_back(base + 1);
     }
 
-// disabled composite pass logic
 #ifndef BESS_RENDERER_DISABLE_RENDERPASS
     std::vector<Gl::RenderPassVertex> Renderer::getRenderPassVertices(float width, float height) {
         std::vector<Gl::RenderPassVertex> vertices(4);
@@ -712,6 +753,23 @@ namespace Bess {
             vao->setVertices(vertices.data(), vertices.size());
             Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
             vertices.clear();
+            if (!m_textureQuadVertices.empty()) {
+                std::array<int, 32> texSlots = {};
+                for (int i = 0; i < 32; i++) {
+                    texSlots[i] = i;
+                }
+                shader->setUniform1iv("u_Textures", texSlots.data(), 32);
+                std::vector<Gl::QuadVertex> texVertices = {};
+                for (auto &[tex, vertices] : m_textureQuadVertices) {
+                    tex.bind(vertices.front().texSlotIdx);
+                    texVertices.insert(texVertices.end(), vertices.begin(), vertices.end());
+                }
+
+                vao->setVertices(texVertices.data(), texVertices.size());
+                Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(texVertices.size() / 4) * 6);
+                texVertices.clear();
+                m_textureQuadVertices.clear();
+            }
         } break;
         case PrimitiveType::curve: {
             shader->setUniform1f("u_zoom", m_camera->getZoom());
@@ -755,7 +813,6 @@ namespace Bess {
         shader->unbind();
     }
 
-
     glm::vec2 Renderer2D::Renderer::getCharRenderSize(char ch, float renderSize) {
         std::string key = std::to_string(renderSize) + ch;
         if (m_charSizeCache.find(key) != m_charSizeCache.end()) {
@@ -781,7 +838,7 @@ namespace Bess {
     }
 
     glm::vec2 Renderer::nextBernstinePointCubicBezier(const glm::vec2 &p0, const glm::vec2 &p1,
-                        const glm::vec2 &p2, const glm::vec2 &p3, const float t) {
+                                                      const glm::vec2 &p2, const glm::vec2 &p3, const float t) {
         auto t_ = 1 - t;
 
         glm::vec2 B0 = (float)std::pow(t_, 3) * p0;

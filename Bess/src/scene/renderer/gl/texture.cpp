@@ -11,7 +11,7 @@ namespace Bess::Gl {
     Texture::Texture(const std::string &path)
         : m_id(0), m_width(0), m_height(0), m_bpp(0), m_path(path),
           m_internalFormat(GL_RGBA8), m_format(GL_RGBA), m_multisampled(false) {
-        stbi_set_flip_vertically_on_load(1);
+        // stbi_set_flip_vertically_on_load(1);
         const auto data = stbi_load(path.c_str(), &m_width, &m_height, &m_bpp, 4);
         if (data == nullptr) {
             throw std::runtime_error("Failed to load texture");
@@ -59,7 +59,8 @@ namespace Bess::Gl {
 
     void Texture::bind(int slotIdx) const {
         if (slotIdx != -1) {
-            GL_CHECK(glActiveTexture(GL_TEXTURE0 + slotIdx));
+            glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+            GL_CHECK(glBindTextureUnit(slotIdx, m_id));
         }
         else if (m_multisampled) {
             GL_CHECK(glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_id));

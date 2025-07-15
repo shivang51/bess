@@ -2,6 +2,8 @@
 
 #include "glad/glad.h"
 #include <string>
+#include <functional>
+
 namespace Bess::Gl {
     class Texture {
       public:
@@ -20,6 +22,10 @@ namespace Bess::Gl {
 
         void saveToPath(const std::string &path, bool bindTexture = true) const;
 
+        bool operator==(const Texture &other) const {
+            return (m_id == other.m_id);
+        }
+
       private:
         int getChannelsFromFormat() const;
       private:
@@ -34,3 +40,16 @@ namespace Bess::Gl {
         bool m_multisampled{};
     };
 } // namespace Bess::Gl
+
+namespace std {
+    template <>
+    struct hash<Bess::Gl::Texture> {
+        size_t operator()(const Bess::Gl::Texture &texture) const {
+            // Use the OpenGL ID as the basis for the hash.
+            // Since GLuint is an unsigned integer, directly casting to size_t or
+            // using it is usually fine, as std::hash for integral types
+            // typically just returns the value itself or a slightly transformed version.
+            return std::hash<GLuint>{}(texture.getId());
+        }
+    };
+} // namespace std

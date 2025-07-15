@@ -2,7 +2,6 @@
 
 layout(location = 0) out vec4 fragColor;
 layout(location = 1) out int fragColor1;
-layout(location = 2) out vec4 fragColor2;
 
 in vec2 v_Size;
 in vec2 v_TexCoord;
@@ -12,7 +11,9 @@ in vec4 v_BorderSize;   // ordering: top, right, bottom, left
 in vec4 v_BorderColor;
 in flat int v_FragId;
 in flat int v_IsMica;
+in flat int v_TexSlotIdx;
 
+uniform sampler2D u_Textures[32];
 uniform int u_SelectedObjId;
 uniform float u_zoom;
 
@@ -37,6 +38,11 @@ void main(){
     vec2 fc = v_TexCoord;
     vec4 bgColor = v_FragColor;
     vec2 iResolution = v_Size;
+
+    vec4 texColor = vec4(1.f);
+    if(v_TexSlotIdx > 0){
+        texColor = texture(u_Textures[v_TexSlotIdx], v_TexCoord);
+    }
     
     vec2 uv = fc - 0.5;
     uv.x *= iResolution.x / iResolution.y;
@@ -74,7 +80,7 @@ void main(){
 
     if(mO < 0.01) discard;
     
-    bgColor = mix(v_BorderColor, bgColor, mI);
+    bgColor = texColor * mix(v_BorderColor, bgColor, mI);
     bgColor.a *= mO;      
 
     if(isMica){
@@ -83,6 +89,5 @@ void main(){
     
     fragColor = bgColor;
     fragColor1 = v_FragId;
-		fragColor2 = vec4(v_IsMica, length(fc - 0.5f), 0.f, v_IsMica);
 }
 

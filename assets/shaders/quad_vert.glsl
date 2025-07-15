@@ -11,6 +11,7 @@ layout(location = 5) in vec4 a_BorderColor;
 layout(location = 6) in vec2 a_Size;
 layout(location = 7) in int a_FragId;
 layout(location = 8) in int a_IsMica;
+layout(location = 9) in int a_TexSlotIdx;
 
 out vec4 v_FragColor;
 out vec2 v_TexCoord;
@@ -20,6 +21,7 @@ out vec4 v_BorderColor;
 out vec2 v_Size;
 out flat int v_FragId;
 out int v_IsMica;
+out flat int v_TexSlotIdx;
 
 uniform mat4 u_mvp;
 
@@ -33,6 +35,7 @@ void main() {
     v_FragId = a_FragId;
     v_Size = a_Size;
     v_IsMica = a_IsMica;
+    v_TexSlotIdx = a_TexSlotIdx;
 
     gl_Position = pos;
 }

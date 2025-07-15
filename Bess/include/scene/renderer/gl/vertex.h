@@ -36,6 +36,7 @@ namespace Bess::Gl {
         glm::vec2 size;
         int id;
         int isMica;
+        int texSlotIdx;
     };
 
     struct RenderPassVertex {

@@ -146,6 +146,13 @@ namespace Bess::Gl {
         GL_CHECK(glUniform1i(m_uniformLocationCache[name], value));
     }
 
+    void Shader::setUniform1iv(const std::string &name, int *values, int count) {
+        if (m_uniformLocationCache.find(name) == m_uniformLocationCache.end()) {
+            m_uniformLocationCache[name] = glGetUniformLocation(m_id, name.c_str());
+        }
+        GL_CHECK(glUniform1iv(m_uniformLocationCache[name], count, values));
+    }
+
     void Shader::setUniform1f(const std::string &name, float value) {
         if (m_uniformLocationCache.find(name) == m_uniformLocationCache.end()) {
             m_uniformLocationCache[name] = glGetUniformLocation(m_id, name.c_str());
