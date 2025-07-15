@@ -176,7 +176,7 @@ namespace Bess {
 
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
                          const glm::vec4 &color, int id,
-                         QuadRenderProperties properties = {}) {
+                         QuadRenderProperties properties) {
 
         std::vector<glm::vec2> texCoords = {
             {0.0f, 1.0f},
