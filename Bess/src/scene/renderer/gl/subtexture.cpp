@@ -36,11 +36,12 @@ namespace Bess::Gl {
             {texOffset.x + texSize.x, texOffset.y + texSize.y}};
     }
 
-    void SubTexture::calcCoordsFrom(const glm::vec2 &pos, const glm::vec2 &size) {
+    void SubTexture::calcCoordsFrom(std::shared_ptr<Gl::Texture> tex, const glm::vec2 &pos, const glm::vec2 &size) {
         float startX = pos.x;
         float startY = pos.y;
         float texSizeX = size.x;
         float texSizeY = size.y;
+        m_texture = tex;
         glm::vec2 texOffset = {startX / m_texture->getWidth(), startY /   m_texture->getHeight()};
         glm::vec2 texSize = {texSizeX / m_texture->getWidth(), texSizeY / m_texture->getHeight()};
         m_texCoords = {

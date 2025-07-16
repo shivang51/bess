@@ -191,8 +191,6 @@ namespace Bess::Canvas {
             Artist::drawSimEntity(entity);
         }
 
-        Renderer::msdfText("Bess", {10.f, 10.f, 0.f}, 24, ViewportTheme::textColor, 0);
-
         Renderer2D::Renderer::end();
 
         if (m_drawMode == SceneDrawMode::selectionBox) {

@@ -8,6 +8,7 @@
 #include "scene/renderer/gl/vertex.h"
 #include "scene/renderer/gl/texture.h"
 #include "scene/renderer/gl/subtexture.h"
+#include "scene/renderer/msdf_font.h"
 
 #include "camera.h"
 #include <memory>
@@ -184,7 +185,7 @@ namespace Bess::Renderer2D {
 
         static std::unordered_map<std::shared_ptr<Gl::Texture>, std::vector<Gl::QuadVertex>> m_textureQuadVertices;
 
-        static std::shared_ptr<Gl::Texture> m_fontTextureAtlas;
+        static std::unique_ptr<MsdfFont> m_msdfFont;
     };
 
 } // namespace Bess::Renderer2D

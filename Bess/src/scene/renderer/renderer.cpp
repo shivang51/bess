@@ -45,7 +45,7 @@ namespace Bess {
     std::unique_ptr<Gl::Shader> Renderer::m_compositePassShader;
     std::unique_ptr<Gl::Vao> Renderer::m_GridVao;
     std::unique_ptr<Gl::Vao> Renderer::m_renderPassVao;
-    std::shared_ptr<Gl::Texture> Renderer::m_fontTextureAtlas;
+    std::unique_ptr<MsdfFont> Renderer::m_msdfFont;
     std::vector<Gl::Vertex> Renderer::m_curveStripVertices;
     std::vector<GLuint> Renderer::m_curveStripIndices;
     std::vector<Gl::Vertex> Renderer::m_pathStripVertices;
@@ -185,7 +185,7 @@ namespace Bess {
             {0.0f, 0.5f, 0.f, 1.f}};
 
         m_Font = std::make_unique<Font>("assets/fonts/Roboto/Roboto-Regular.ttf");
-        m_fontTextureAtlas = std::make_shared<Gl::Texture>("assets/fonts/Roboto/msdf/msdf_atlas.png");
+        m_msdfFont = std::make_unique<MsdfFont>("assets/fonts/Roboto/msdf/", "Roboto-Regular.json", 32.f);
     }
 
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
@@ -416,27 +416,49 @@ namespace Bess {
 
         // Command to use to generate MSDF font texture atlas
         // https://github.com/soimy/msdf-bmfont-xml
-        // msdf-bmfont.cmd -f json -o %1.png %1
+        // msdf-bmfont.cmd -f json --smart-size -s 32 -o %1.png %1
+        // %1 should be replaed with file name
 
-        std::vector<Gl::Vertex> vertices(4);
-        auto subTexture = std::make_shared<Gl::SubTexture>(m_fontTextureAtlas,
-                                                           glm::vec2({0, 0}), glm::vec2({15, 47}));
+        if(text.empty())
+            return;
 
-        auto texCoords = subTexture->getTexCoords();
+        float scale = m_msdfFont->getScale(size);
+        float lineHeight = 34.f;
 
-        auto transform = glm::translate(glm::mat4(1.0f), pos);
-        transform = glm::scale(transform, {15, 47, 1.f});
+        MsdfCharacter yCharInfo = m_msdfFont->getCharacterData('y');
+        MsdfCharacter wCharInfo = m_msdfFont->getCharacterData('W');
 
-        for (int i = 0; i < 4; i++) {
-            auto &vertex = vertices[i];
-            vertex.position = transform * m_StandardQuadVertices[i];
-            vertex.id = id;
-            vertex.color = color;
-            vertex.texCoord = texCoords[i];
-            vertex.texSlotIdx = 1;
+        float baseLineOff = yCharInfo.offset.y - wCharInfo.offset.y;
+
+        glm::vec2 charPos = pos;
+        for(auto& ch: text){
+            float yTempOff = 4.f;
+            if(ch >= 'a' && ch <= 'z') yTempOff = 3.f;
+
+            std::vector<Gl::Vertex> vertices(4);
+
+            MsdfCharacter charInfo = m_msdfFont->getCharacterData(ch);
+            auto subTexture = charInfo.subTexture;
+            auto texCoords = subTexture->getTexCoords();
+            glm::vec2 size_ = charInfo.size * scale;
+            float xOff = (charInfo.offset.x + charInfo.size.x / 2.f) * scale;
+            float yOff = (-lineHeight + charInfo.size.y + charInfo.offset.y - charInfo.size.y / 2.f + baseLineOff) * scale;
+            auto transform = glm::translate(glm::mat4(1.0f), {charPos.x + xOff, charPos.y + yOff, pos.z});
+            transform = glm::scale(transform, {size_, 1.f});
+
+            for (int i = 0; i < 4; i++) {
+                auto &vertex = vertices[i];
+                vertex.position = transform * m_StandardQuadVertices[i];
+                vertex.id = id;
+                vertex.color = color;
+                vertex.texCoord = texCoords[i];
+                vertex.texSlotIdx = 1;
+            }
+
+            charPos.x += charInfo.advance * scale;
+
+            m_RenderData.fontVertices.insert(m_RenderData.fontVertices.end(), vertices.begin(), vertices.end());
         }
-
-        m_RenderData.fontVertices.insert(m_RenderData.fontVertices.end(), vertices.begin(), vertices.end());
     }
 
     void Renderer::text(const std::string &text, const glm::vec3 &pos, const size_t size,
@@ -831,8 +853,7 @@ namespace Bess {
                 texSlots[i] = i;
             }
             shader->setUniform1iv("u_Textures", texSlots.data(), 32);
-            m_fontTextureAtlas->bind(1);
-            std::cout << vertices.front().texSlotIdx << std::endl;
+            m_msdfFont->getTextureAtlas()->bind(1);
             vao->setVertices(vertices.data(), vertices.size());
             Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
             vertices.clear();

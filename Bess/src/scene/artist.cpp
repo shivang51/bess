@@ -111,7 +111,7 @@ namespace Bess::Canvas {
 
         float labelX = pos.x + labelDx;
         float dY = componentStyles.slotRadius - std::abs(componentStyles.slotRadius * 2.f - componentStyles.slotLabelSize) / 2.f;
-        Renderer::text(label + std::to_string(idx), {labelX, pos.y + dY, pos.z}, componentStyles.slotLabelSize, ViewportTheme::textColor, parentId, angle);
+        Renderer::msdfText(label + std::to_string(idx), {labelX, pos.y + dY, pos.z}, componentStyles.slotLabelSize, ViewportTheme::textColor, parentId, angle);
     }
 
     void Artist::drawSlots(const Components::SimulationComponent &comp, const glm::vec3 &componentPos, float width, float angle) {
@@ -276,7 +276,7 @@ namespace Bess::Canvas {
         float yOff = componentStyles.headerFontSize / 2.f - 2.f;
         auto labelSize = Renderer::getStringRenderSize(tagComp.name, componentStyles.headerFontSize).x;
         glm::vec3 textPos = glm::vec3(pos.x + scale.x / 2.f - labelSize - componentStyles.paddingX, pos.y + yOff, pos.z + 0.0005f);
-        Renderer::text(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id);
+        Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id);
         drawSlots(simComp, pos, scale.x, rotation);
     }
 
@@ -315,7 +315,7 @@ namespace Bess::Canvas {
         if (simInComp.clockBhaviour) {
             /*name = "¤ " + name;*/
         }
-        Renderer::text(name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id);
+        Renderer::msdfText(name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id);
         drawSlots(simComp, pos, scale.x, rotation);
     }
 
@@ -415,7 +415,7 @@ namespace Bess::Canvas {
             glm::vec3 textPos = {inPinStart + (rb - inPinStart) / 2.f, y + (y1 - y) / 2.f, pos.z + 0.0005f};
             textPos.x -= textSize.x / 2.f;
             textPos.y += componentStyles.headerFontSize / 2.f;
-            Renderer::text(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, 0, 0.f);
+            Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, 0, 0.f);
         }
 
         // inputs
@@ -427,8 +427,8 @@ namespace Bess::Canvas {
                 Renderer::beginPathMode({inPinStart, y + yOff, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
                 Renderer::pathLineTo({boundInfo.inpConnStart, y + yOff, 1}, 4.f, ViewportTheme::compHeaderColor, -1);
                 Renderer::endPathMode(false);
-                Renderer::text("X" + std::to_string(i - 1),
-                               {boundInfo.inpConnStart, y + yOff - componentStyles.headerFontSize / 2.f, pos.z + 0.0005f},
+                Renderer::msdfText("X" + std::to_string(i - 1),
+                               {boundInfo.inpConnStart, y + yOff - nodeWeight, pos.z + 0.0005f},
                                componentStyles.headerFontSize, ViewportTheme::textColor, 0, 0.f);
             }
         }
@@ -444,8 +444,8 @@ namespace Bess::Canvas {
                 Renderer::endPathMode(false);
                 std::string label = "Y" + std::to_string(i - 1);
                 float size = Renderer2D::Renderer::getStringRenderSize(label, componentStyles.headerFontSize).x;
-                Renderer::text(label,
-                               {boundInfo.outConnStart - size, y + yOff - componentStyles.headerFontSize / 2.f, pos.z + 0.0005f},
+                Renderer::msdfText(label,
+                               {boundInfo.outConnStart - size, y + yOff - nodeWeight, pos.z + 0.0005f},
                                componentStyles.headerFontSize, ViewportTheme::textColor, 0, 0.f);
             }
         }
@@ -515,7 +515,7 @@ namespace Bess::Canvas {
                        id,
                        props);
 
-        Renderer::text(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id, rotation);
+        Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id, rotation);
 
         drawSlots(simComp, glm::vec3(glm::vec2(pos) - (glm::vec2(scale) / 2.f), pos.z), scale.x, rotation);
     }
