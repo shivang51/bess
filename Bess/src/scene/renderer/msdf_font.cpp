@@ -13,7 +13,7 @@ namespace Bess::Renderer2D {
     MsdfFont::~MsdfFont() = default;
 
     void MsdfFont::loadFont(const std::string &path, const std::string& jsonFileName) {
-
+        m_lineHeight = 34.f;
         std::filesystem::path path_ = path;
         std::ifstream inFile(path_ / jsonFileName);
         if (!inFile.is_open()) {
@@ -60,6 +60,10 @@ namespace Bess::Renderer2D {
 
     float MsdfFont::getScale(float size) const {
         return size / m_fontSize;
+    }
+
+    float MsdfFont::getLineHeight() const {
+        return m_lineHeight;
     }
 
     MsdfCharacter MsdfFont::getCharacterData(char c) const {

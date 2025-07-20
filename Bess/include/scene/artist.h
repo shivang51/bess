@@ -17,7 +17,7 @@ namespace Bess::Canvas {
     class Artist {
       public:
         static Scene *sceneRef;
-        static void drawSimEntity(entt::entity entity);
+        static void drawEntity(entt::entity entity);
         static void drawInput(entt::entity entity);
         static void drawOutput(entt::entity entity);
         static void drawConnectionEntity(entt::entity entity);
@@ -33,6 +33,9 @@ namespace Bess::Canvas {
         static bool* getSchematicModePtr();
 
       private:
+        static void drawSimEntity(entt::entity entity);
+        static void drawNonSimEntity(entt::entity entity);
+
         static void paintSchematicView(entt::entity entity);
 
         static void paintSlot(uint64_t id, int idx, uint64_t parentId, const glm::vec3 &pos, float angle,

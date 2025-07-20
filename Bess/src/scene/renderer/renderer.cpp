@@ -423,7 +423,7 @@ namespace Bess {
             return;
 
         float scale = m_msdfFont->getScale(size);
-        float lineHeight = 34.f;
+        float lineHeight = m_msdfFont->getLineHeight();
 
         MsdfCharacter yCharInfo = m_msdfFont->getCharacterData('y');
         MsdfCharacter wCharInfo = m_msdfFont->getCharacterData('W');
@@ -877,7 +877,7 @@ namespace Bess {
         return size;
     }
 
-    glm::vec2 Renderer2D::Renderer::getStringRenderSize(const std::string &str, float renderSize) {
+    glm::vec2 Renderer2D::Renderer::getTextRenderSize(const std::string &str, float renderSize) {
         float xSize = 0;
         float ySize = 0;
         for (auto &ch : str) {
@@ -886,6 +886,22 @@ namespace Bess {
             ySize = std::max(xSize, s.y);
         }
         return {xSize, ySize};
+    }
+
+    glm::vec2 Renderer2D::Renderer::getMSDFTextRenderSize(const std::string &str, float renderSize) {
+        float scale = m_msdfFont->getScale(renderSize);
+
+        float xSize = 0;
+        MsdfCharacter yCharInfo = m_msdfFont->getCharacterData('y');
+        MsdfCharacter wCharInfo = m_msdfFont->getCharacterData('W');
+        float baseLineOff = yCharInfo.offset.y - wCharInfo.offset.y;
+        float ySize = m_msdfFont->getLineHeight() + baseLineOff;
+
+        for (auto &ch : str) {
+            auto chInfo = m_msdfFont->getCharacterData(ch);
+            xSize += chInfo.advance;
+        }
+        return glm::vec2({xSize, ySize}) * scale;
     }
 
     glm::vec2 Renderer::nextBernstinePointCubicBezier(const glm::vec2 &p0, const glm::vec2 &p1,

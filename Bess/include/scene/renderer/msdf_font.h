@@ -33,6 +33,8 @@ namespace Bess::Renderer2D {
 
             float getScale(float size) const;
 
+            float getLineHeight() const;
+
             MsdfCharacter getCharacterData(char c) const;
 
             std::shared_ptr<Gl::Texture> getTextureAtlas() const;
@@ -40,6 +42,6 @@ namespace Bess::Renderer2D {
         private:
             std::shared_ptr<Gl::Texture> m_fontTextureAtlas;
             std::unordered_map<char, MsdfCharacter> m_charData = {};
-            float m_fontSize;
+            float m_fontSize, m_lineHeight;
     };
 }

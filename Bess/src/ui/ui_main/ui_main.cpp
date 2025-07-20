@@ -181,7 +181,7 @@ namespace Bess::UI {
 
         auto style = ImGui::GetStyle();
         auto &name = Pages::MainPageState::getInstance()->getCurrentProjectFile()->getNameRef();
-        auto fontSize = Renderer2D::Renderer::getStringRenderSize(name, ImGui::GetFontSize());
+        auto fontSize = Renderer2D::Renderer::getTextRenderSize(name, ImGui::GetFontSize());
         auto width = fontSize.x + (style.FramePadding.x * 2);
         if (width < 150)
             width = 150;

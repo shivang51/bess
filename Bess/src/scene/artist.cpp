@@ -274,7 +274,7 @@ namespace Bess::Canvas {
         Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
 
         float yOff = componentStyles.headerFontSize / 2.f - 2.f;
-        auto labelSize = Renderer::getStringRenderSize(tagComp.name, componentStyles.headerFontSize).x;
+        auto labelSize = Renderer::getTextRenderSize(tagComp.name, componentStyles.headerFontSize).x;
         glm::vec3 textPos = glm::vec3(pos.x + scale.x / 2.f - labelSize - componentStyles.paddingX, pos.y + yOff, pos.z + 0.0005f);
         Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id);
         drawSlots(simComp, pos, scale.x, rotation);
@@ -411,7 +411,7 @@ namespace Bess::Canvas {
         // name
         {
             const auto &tagComp = registry.get<Components::TagComponent>(entity);
-            auto textSize = Renderer2D::Renderer::getStringRenderSize(tagComp.name, componentStyles.headerFontSize);
+            auto textSize = Renderer2D::Renderer::getTextRenderSize(tagComp.name, componentStyles.headerFontSize);
             glm::vec3 textPos = {inPinStart + (rb - inPinStart) / 2.f, y + (y1 - y) / 2.f, pos.z + 0.0005f};
             textPos.x -= textSize.x / 2.f;
             textPos.y += componentStyles.headerFontSize / 2.f;
@@ -443,11 +443,64 @@ namespace Bess::Canvas {
                 Renderer::pathLineTo({boundInfo.outConnStart, y + yOff, 1}, 4.f, ViewportTheme::compHeaderColor, -1);
                 Renderer::endPathMode(false);
                 std::string label = "Y" + std::to_string(i - 1);
-                float size = Renderer2D::Renderer::getStringRenderSize(label, componentStyles.headerFontSize).x;
+                float size = Renderer2D::Renderer::getTextRenderSize(label, componentStyles.headerFontSize).x;
                 Renderer::msdfText(label,
                                {boundInfo.outConnStart - size, y + yOff - nodeWeight, pos.z + 0.0005f},
                                componentStyles.headerFontSize, ViewportTheme::textColor, 0, 0.f);
             }
+        }
+    }
+
+    void Artist::drawEntity(entt::entity entity) {
+        auto &registry = sceneRef->getEnttRegistry();
+        const auto &tagComp = registry.get<Components::TagComponent>(entity);
+
+        if(tagComp.isSimComponent){
+            drawSimEntity(entity);
+        }
+        else{
+            drawNonSimEntity(entity);
+        }
+    }
+
+    void Artist::drawNonSimEntity(entt::entity entity) {
+        auto &registry = sceneRef->getEnttRegistry();
+        const auto &tagComp = registry.get<Components::TagComponent>(entity);
+        bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
+
+        uint64_t id = (uint64_t)entity;
+
+        switch (tagComp.type.nsCompType)
+        {
+        case Components::NSComponentType::text:
+        {
+            auto &textComp = registry.get<Components::TextNodeComponent>(entity);
+            auto &transformComp = registry.get<Components::TransformComponent>(entity);
+            auto pos = transformComp.position;
+            auto rotation = transformComp.angle;
+            auto scale = transformComp.scale;
+            Renderer::msdfText(textComp.text, pos, textComp.fontSize, textComp.color, id, rotation);
+
+            if(isSelected) {
+                Renderer2D::QuadRenderProperties props{
+                    .angle = rotation,
+                    .borderColor = ViewportTheme::selectedCompColor,
+                    .borderRadius = glm::vec4(4.f),
+                    .borderSize = glm::vec4(1.f),
+                    .isMica = true,
+                };
+                auto size = Renderer::getMSDFTextRenderSize(textComp.text, textComp.fontSize);
+                pos.x += size.x * 0.5f;
+                pos.y -= size.y * 0.25f;
+                size.x += componentStyles.paddingX * 2.f;
+                size.y += componentStyles.paddingY * 2.f;
+                Renderer::quad(pos, size, ViewportTheme::componentBGColor, id, props);
+            }
+        }
+            break;
+        default:
+            BESS_ERROR("[Artist] Tried to draw a non-simulation component with type: {}", tagComp.type.typeId);
+            break;
         }
     }
 

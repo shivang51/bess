@@ -110,14 +110,14 @@ namespace Bess {
         for (auto &ent : reg.view<entt::entity>()) {
             if (auto *comp = reg.try_get<Components::TagComponent>(ent)) {
                 // if component type is not there in tag, then query it and add it
-                if (comp->type == Bess::SimEngine::ComponentType::EMPTY) {
+                if (comp->isSimComponent && comp->type.simCompType == Bess::SimEngine::ComponentType::EMPTY) {
                     auto *simComp = reg.try_get<Components::SimulationComponent>(ent);
                     if (simComp == nullptr)
                         continue;
                     try {
                         BESS_INFO("Patching empty component type...");
                         auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
-                        comp->type = simEngine.getComponentType(simComp->simEngineEntity);
+                        comp->type.simCompType = simEngine.getComponentType(simComp->simEngineEntity);
                         BESS_INFO("(Done)");
                     } catch (std::exception e) {
                         BESS_ERROR("(Failed)");

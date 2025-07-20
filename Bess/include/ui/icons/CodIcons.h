@@ -110,7 +110,7 @@ namespace Bess::UI::Icons::CodIcons {
     constexpr auto REPL = "\xee\xaa\x85";                                    // U+ea85
     constexpr auto ZAP = "\xee\xaa\x86";                                     // U+ea86
     constexpr auto SYMBOL_EVENT = "\xee\xaa\x86";                            // U+ea86
-    constexpr auto ERROR = "\xee\xaa\x87";                                   // U+ea87
+    constexpr auto ERROR_ICON = "\xee\xaa\x87";                              // U+ea87
     constexpr auto STOP = "\xee\xaa\x87";                                    // U+ea87
     constexpr auto VARIABLE = "\xee\xaa\x88";                                // U+ea88
     constexpr auto SYMBOL_VARIABLE = "\xee\xaa\x88";                         // U+ea88

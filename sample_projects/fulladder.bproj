@@ -3,6 +3,28 @@
     "scene_data": {
         "entities": [
             {
+                "IdComponent": {
+                    "uuid": 11898778371237987699
+                },
+                "TagComponent": {
+                    "isSimComponent": false,
+                    "name": "Text",
+                    "type": 0
+                },
+                "TransformComponent": {
+                    "angle": 0.0,
+                    "position": [
+                        0.0,
+                        0.0,
+                        0.012000001035630703
+                    ],
+                    "scale": [
+                        100.0,
+                        100.0
+                    ]
+                }
+            },
+            {
                 "ConnectionSegmentComponent": {
                     "next": 0,
                     "parent": 9139722670157367481,
@@ -170,6 +192,7 @@
                     ]
                 },
                 "TagComponent": {
+                    "isSimComponent": true,
                     "name": "Carry",
                     "type": 1
                 },
@@ -354,6 +377,7 @@
                     ]
                 },
                 "TagComponent": {
+                    "isSimComponent": true,
                     "name": "Sum",
                     "type": 1
                 },
@@ -1014,6 +1038,7 @@
                     ]
                 },
                 "TagComponent": {
+                    "isSimComponent": true,
                     "name": "C",
                     "type": 0
                 },
@@ -1121,6 +1146,7 @@
                     ]
                 },
                 "TagComponent": {
+                    "isSimComponent": true,
                     "name": "B",
                     "type": 0
                 },
@@ -1228,6 +1254,7 @@
                     ]
                 },
                 "TagComponent": {
+                    "isSimComponent": true,
                     "name": "A",
                     "type": 0
                 },
@@ -1587,6 +1614,7 @@
                     ]
                 },
                 "TagComponent": {
+                    "isSimComponent": true,
                     "name": "OR Gate",
                     "type": 3
                 },
@@ -1788,6 +1816,7 @@
                     ]
                 },
                 "TagComponent": {
+                    "isSimComponent": true,
                     "name": "AND Gate",
                     "type": 2
                 },
@@ -1989,6 +2018,7 @@
                     ]
                 },
                 "TagComponent": {
+                    "isSimComponent": true,
                     "name": "AND Gate",
                     "type": 2
                 },
@@ -2269,6 +2299,7 @@
                     ]
                 },
                 "TagComponent": {
+                    "isSimComponent": true,
                     "name": "XOR Gate",
                     "type": 7
                 },
@@ -2470,6 +2501,7 @@
                     ]
                 },
                 "TagComponent": {
+                    "isSimComponent": true,
                     "name": "XOR Gate",
                     "type": 7
                 },

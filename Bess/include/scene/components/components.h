@@ -1,6 +1,8 @@
 #pragma once
 
 #include "bess_uuid.h"
+#include "non_sim_comp.h"
+#include "common/log.h"
 #include "json_convert_helpers.h"
 #include "entt/entity/entity.hpp"
 #include "entt/entity/fwd.hpp"
@@ -93,17 +95,30 @@ namespace Bess::Canvas::Components {
         TagComponent() = default;
         TagComponent(const TagComponent &other) = default;
         std::string name = "";
-        SimEngine::ComponentType type = SimEngine::ComponentType::EMPTY;
+
+        union CompType{
+            int typeId = -1;
+            SimEngine::ComponentType simCompType;
+            Components::NSComponentType nsCompType;
+        } type;
+
+        bool isSimComponent = false;
     };
 
     inline void to_json(nlohmann::json &j, const TagComponent &comp) {
         j["name"] = comp.name;
-        j["type"] = (int)comp.type;
+        j["type"] = comp.type.typeId;
+        j["isSimComponent"] = comp.isSimComponent;
     }
     inline void from_json(const nlohmann::json &j, TagComponent &comp) {
         comp.name = j.at("name").get<std::string>();
         if (j.contains("type")) {
-            comp.type = j.at("type").get<SimEngine::ComponentType>();
+            comp.type.typeId = j.at("type").get<int>();
+        }
+        if (j.contains("isSimComponent")) {
+            comp.isSimComponent = j.at("isSimComponent").get<bool>();
+        } else {
+            comp.isSimComponent = true; // Default to false if not present
         }
     }
 
@@ -303,26 +318,4 @@ namespace Bess::Canvas::Components {
     }
 
 
-    // TextNodeComponent
-    class TextNodeComponent {
-        public:
-            TextNodeComponent() = default;
-            TextNodeComponent(const TextNodeComponent &other) = default;
-    
-            std::string text = "";
-            glm::vec4 color = {1.f, 1.f, 1.f, 1.f};
-            float fontSize = 16.f;
-    };
-
-    inline void to_json(nlohmann::json &j, const TextNodeComponent &comp) {
-        j = nlohmann::json{
-            {"text", comp.text},
-            {"color", comp.color},
-            {"fontSize", comp.fontSize}};
-    }
-    inline void from_json(const nlohmann::json &j, TextNodeComponent &comp) {
-        comp.text = j.at("text").get<std::string>();
-        comp.color = j.at("color").get<glm::vec4>();
-        comp.fontSize = j.at("fontSize").get<float>();
-    }
 } // namespace Bess::Canvas::Components

@@ -45,10 +45,10 @@ namespace Bess::Renderer2D {
     };
 
     struct QuadRenderProperties {
-        glm::vec4 borderRadius = {0.0f, 0.0f, 0.0f, 0.0f};
-        glm::vec4 borderColor = {0.0f, 0.0f, 0.0f, 0.0f};
-        glm::vec4 borderSize = {0.0f, 0.0f, 0.0f, 0.0f};
         float angle = 0.0f;
+        glm::vec4 borderColor = {0.0f, 0.0f, 0.0f, 0.0f};
+        glm::vec4 borderRadius = {0.0f, 0.0f, 0.0f, 0.0f};
+        glm::vec4 borderSize = {0.0f, 0.0f, 0.0f, 0.0f};
         bool hasShadow = false;
         bool isMica = false;
     };
@@ -64,7 +64,8 @@ namespace Bess::Renderer2D {
         static void end();
 
         static glm::vec2 getCharRenderSize(char ch, float renderSize);
-        static glm::vec2 getStringRenderSize(const std::string &str, float renderSize);
+        static glm::vec2 getTextRenderSize(const std::string &str, float renderSize);
+        static glm::vec2 getMSDFTextRenderSize(const std::string &str, float renderSize);
 
       public:
         static void doShadowRenderPass(float width, float height);

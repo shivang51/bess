@@ -2,6 +2,7 @@
 #include "scene/renderer/renderer.h"
 #include "ui/icons/ComponentIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
+#include "ui/icons/MaterialIcons.h"
 #include <algorithm>
 
 namespace Bess::Common {
@@ -31,6 +32,18 @@ namespace Bess::Common {
             break;
         }
 
+        return std::string(" ") + FontAwesomeIcons::FA_CUBE + " ";
+    }
+
+    std::string Helpers::getComponentIcon(Canvas::Components::NSComponentType type) {
+        using namespace UI::Icons;
+        switch (type) {
+        case Canvas::Components::NSComponentType::text:
+            return MaterialIcons::TEXT_FIELDS;
+            break;
+        default:
+            break;
+        }
         return std::string(" ") + FontAwesomeIcons::FA_CUBE + " ";
     }
 

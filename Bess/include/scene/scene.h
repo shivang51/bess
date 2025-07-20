@@ -8,6 +8,7 @@
 #include "events/application_event.h"
 #include "modules/schematic_gen/schematic_view.h"
 #include "scene/components/components.h"
+#include "scene/components/non_sim_comp.h"
 #include "scene/renderer/gl/framebuffer.h"
 #include "scene/renderer/gl/subtexture.h"
 #include <memory>
@@ -70,6 +71,7 @@ namespace Bess::Canvas {
 
         UUID createSlotEntity(Components::SlotType type, const UUID &parent, unsigned int idx);
         UUID createSimEntity(const UUID &simEngineEntt, const SimEngine::ComponentDefinition &comp, const glm::vec2 &pos);
+        UUID createNonSimEntity(const Canvas::Components::NSComponent &comp, const glm::vec2 &pos);
 
         void deleteEntity(const UUID &entUuid);
         void deleteConnection(const UUID &entUuid);

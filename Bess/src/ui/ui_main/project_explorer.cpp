@@ -93,7 +93,12 @@ namespace Bess::UI {
         for (auto &entity : view) {
             bool isSelected = registry.all_of<Canvas::Components::SelectedComponent>(entity);
             auto &tagComp = view.get<Canvas::Components::TagComponent>(entity);
-            auto icon = Common::Helpers::getComponentIcon(tagComp.type);
+            std::string icon;
+            if (tagComp.isSimComponent) {
+                icon = Common::Helpers::getComponentIcon(tagComp.type.simCompType);
+            } else {
+                icon = Common::Helpers::getComponentIcon(tagComp.type.nsCompType);
+            }
             auto [pressed, cbPressed] = ProjectExplorerNode((uint64_t)entity, (icon + "  " + tagComp.name).c_str(), isSelected, isMultiSelected);
             if (pressed || cbPressed) {
                 if (pressed) {

@@ -13,7 +13,12 @@ using namespace Bess::Canvas::Components;
 namespace Bess::UI {
 
     void drawTagComponent(TagComponent &comp) {
-        auto icon = Common::Helpers::getComponentIcon(comp.type);
+        std::string icon;
+        if(comp.isSimComponent) {
+            icon = Common::Helpers::getComponentIcon(comp.type.simCompType);
+        } else {
+            icon = Common::Helpers::getComponentIcon(comp.type.nsCompType);
+        }
         MWidgets::TextBox("Name", comp.name);
     }
 

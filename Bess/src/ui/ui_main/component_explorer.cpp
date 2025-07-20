@@ -1,13 +1,10 @@
 #include "ui/ui_main/component_explorer.h"
 
 #include "common/helpers.h"
-#include "component_catalog.h"
-#include "component_definition.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "properties.h"
 #include "scene/scene.h"
-#include "simulation_engine.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/m_widgets.h"
 #include <any>
@@ -64,11 +61,12 @@ namespace Bess::UI {
         ImRect bbMenuButton(ImVec2(menuBtnX, pos.y + g.Style.FramePadding.y * 0.5f), ImVec2(menuBtnX + menuBtnSizeX, pos.y + g.FontSize + g.Style.FramePadding.y * 1.5));
 
         ImGuiID id = window->GetID(label.c_str());
-        ImGuiID menuID = window->GetID((label + "##menu").c_str());
 
         bool hovered, held;
         bool clicked = ImGui::ButtonBehavior(bbButton, id, &hovered, &held, ImGuiButtonFlags_PressedOnClick);
-        bool menuHovered, menuHeld;
+
+        bool menuHovered = false, menuHeld = false;
+        ImGuiID menuID = window->GetID((label + "##menu").c_str());
         bool menuClicked = ImGui::ButtonBehavior(bbMenuButton, menuID, &menuHovered, &menuHeld, ImGuiButtonFlags_PressedOnClick);
 
         auto rounding = style.FrameRounding;
@@ -96,16 +94,20 @@ namespace Bess::UI {
         return clicked;
     }
 
-    void createComponent(const SimEngine::ComponentDefinition &def, int inputCount, int outputCount) {
+    void ComponentExplorer::createComponent(const SimEngine::ComponentDefinition &def, int inputCount, int outputCount) {
         auto simEntt = SimEngine::SimulationEngine::instance().addComponent(def.type, inputCount, outputCount);
         auto &scene = Canvas::Scene::instance();
         scene.createSimEntity(simEntt, def, scene.getCameraPos());
         scene.setLastCreatedComp({&def, inputCount, outputCount});
     }
 
-    typedef std::unordered_map<SimEngine::ComponentType, std::vector<std::pair<std::string, std::pair<SimEngine::Properties::ComponentProperty, std::any>>>> ModifiablePropertiesStr;
+    void ComponentExplorer::createComponent(const Canvas::Components::NSComponent &comp) {
+        auto &scene = Canvas::Scene::instance();
+        scene.createNonSimEntity(comp, scene.getCameraPos());
+    }
 
-    ModifiablePropertiesStr generateModifiablePropertiesStr() {
+
+    ComponentExplorer::ModifiablePropertiesStr ComponentExplorer::generateModifiablePropertiesStr() {
         auto &components = SimEngine::ComponentCatalog::instance().getComponents();
 
         ModifiablePropertiesStr propertiesStr = {};
@@ -160,36 +162,59 @@ namespace Bess::UI {
         ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.f, 0.5f));
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
         ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0, 0, 0, 0)); // for tree node to have no bg normally
-        static auto components = SimEngine::ComponentCatalog::instance().getComponentsTree();
-        static auto modifiableProperties = generateModifiablePropertiesStr();
 
-        for (auto &ent : components) {
-            if (MyTreeNode(ent.first.c_str())) {
-                for (auto &comp : ent.second) {
-                    auto name = comp.name;
-                    if (m_searchQuery != "" && Common::Helpers::toLowerCase(name).find(m_searchQuery) == std::string::npos)
-                        continue;
+        // simulation components
+        {
+            static auto components = SimEngine::ComponentCatalog::instance().getComponentsTree();
+            static auto modifiableProperties = generateModifiablePropertiesStr();
 
-                    name = Common::Helpers::getComponentIcon(comp.type) + "  " + name;
-                    auto &properties = modifiableProperties[comp.type];
+            for (auto &ent : components) {
+                if (MyTreeNode(ent.first.c_str())) {
+                    for (auto &comp : ent.second) {
+                        auto name = comp.name;
+                        if (m_searchQuery != "" && Common::Helpers::toLowerCase(name).find(m_searchQuery) == std::string::npos)
+                            continue;
 
-                    if (ButtonWithPopup(name, name + "OptionsMenu", !properties.empty())) {
-                        createComponent(comp, -1, -1);
-                    }
+                        name = Common::Helpers::getComponentIcon(comp.type) + "  " + name;
+                        auto &properties = modifiableProperties[comp.type];
 
-                    if (ImGui::BeginPopup((name + "OptionsMenu").c_str())) {
-                        for (auto &p : properties) {
-                            if (ImGui::MenuItem(p.first.c_str())) {
-                                if (p.second.first == SimEngine::Properties::ComponentProperty::inputCount) {
-                                    createComponent(comp, std::any_cast<int>(p.second.second), -1);
-                                } else if (p.second.first == SimEngine::Properties::ComponentProperty::outputCount) {
-                                    createComponent(comp, -1, std::any_cast<int>(p.second.second));
+                        if (ButtonWithPopup(name, name + "OptionsMenu", !properties.empty())) {
+                            createComponent(comp, -1, -1);
+                        }
+
+                        if (ImGui::BeginPopup((name + "OptionsMenu").c_str())) {
+                            for (auto &p : properties) {
+                                if (ImGui::MenuItem(p.first.c_str())) {
+                                    if (p.second.first == SimEngine::Properties::ComponentProperty::inputCount) {
+                                        createComponent(comp, std::any_cast<int>(p.second.second), -1);
+                                    } else if (p.second.first == SimEngine::Properties::ComponentProperty::outputCount) {
+                                        createComponent(comp, -1, std::any_cast<int>(p.second.second));
+                                    }
                                 }
                             }
+                            ImGui::EndPopup();
                         }
-                        ImGui::EndPopup();
                     }
+                    ImGui::TreePop();
                 }
+            }
+
+        }
+
+        // non simulation components
+        if(MyTreeNode("Miscellaneous")) {
+            static auto nonSimComponents = Canvas::Components::getNSComponents();
+            for(auto& comp: nonSimComponents) {
+                if (m_searchQuery != "" && Common::Helpers::toLowerCase(comp.name).find(m_searchQuery) == std::string::npos)
+                    continue;
+
+                std::string name = comp.name;
+                name = Common::Helpers::getComponentIcon(comp.type) + "  " + name;
+
+                if (ButtonWithPopup(name, "", false)) {
+                    createComponent(comp);
+                }
+
                 ImGui::TreePop();
             }
         }

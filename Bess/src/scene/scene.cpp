@@ -12,7 +12,6 @@
 #include "gtc/type_ptr.hpp"
 #include "pages/main_page/main_page_state.h"
 #include "scene/artist.h"
-#include "scene/components/components.h"
 #include "scene/renderer/renderer.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
@@ -59,7 +58,6 @@ namespace Bess::Canvas {
         m_placeHolderTexture = std::make_shared<Gl::Texture>("assets/images/crosshairs_tilesheet_white.png");
         m_placeHolderSubTexture = std::make_shared<Gl::SubTexture>(m_placeHolderTexture, glm::vec2(5.f, 5.f),
                                                                    glm::vec2(64.f, 64.f), 5, glm::vec2(1.f, 1.f));
-
 
         Artist::sceneRef = this;
     }
@@ -185,10 +183,10 @@ namespace Bess::Canvas {
             Artist::drawConnectionEntity(entity);
         }
 
-        // draw entities
+        // draw sim entities
         auto view = m_registry.view<Components::TagComponent>();
         for (auto entity : view) {
-            Artist::drawSimEntity(entity);
+            Artist::drawEntity(entity);
         }
 
         Renderer2D::Renderer::end();
@@ -209,7 +207,6 @@ namespace Bess::Canvas {
         auto size = end - start;
         auto pos = start + size / 2.f;
         size = glm::abs(size);
-
 
         Renderer2D::QuadRenderProperties props;
         props.borderColor = ViewportTheme::selectionBoxBorderColor;
@@ -242,7 +239,8 @@ namespace Bess::Canvas {
         }
 
         tag.name = comp.name;
-        tag.type = comp.type;
+        tag.type.simCompType = comp.type;
+        tag.isSimComponent = true;
 
         transformComp.position = glm::vec3(pos, getNextZCoord());
         transformComp.scale = glm::vec2(100.f, 100.f);
@@ -274,35 +272,66 @@ namespace Bess::Canvas {
         return idComp.uuid;
     }
 
+    UUID Scene::createNonSimEntity(const Canvas::Components::NSComponent &comp, const glm::vec2 &pos) {
+        using namespace Canvas::Components;
+        auto entity = m_registry.create();
+        auto &idComp = m_registry.emplace<Components::IdComponent>(entity);
+        auto &tag = m_registry.emplace<Components::TagComponent>(entity);
+        auto &transformComp = m_registry.emplace<Components::TransformComponent>(entity);
+
+        tag.name = comp.name;
+        tag.type.nsCompType = comp.type;
+
+        transformComp.position = glm::vec3(pos, getNextZCoord());
+        transformComp.scale = glm::vec2(0.f, 0.f);
+
+        switch (comp.type) {
+            {
+            case Components::NSComponentType::text: {
+                auto &textComp = m_registry.emplace<Components::TextNodeComponent>(entity);
+                textComp.text = "New Text yo yo go";
+                textComp.fontSize = 20.f;
+                textComp.color = ViewportTheme::textColor;
+            } break;
+            default:
+                break;
+            }
+        }
+        BESS_INFO("[Scene] Created Non simulation entity {}", (uint64_t)entity);
+        return idComp.uuid;
+    }
+
     void Scene::deleteEntity(const UUID &entUuid) {
         auto ent = getEntityWithUuid(entUuid);
         auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
         if (ent == hoveredEntity)
             hoveredEntity = entt::null;
 
-        auto &simComp = m_registry.get<Components::SimulationComponent>(ent);
+        if (m_registry.all_of<Components::SimulationComponent>(ent)) {
+            auto &simComp = m_registry.get<Components::SimulationComponent>(ent);
 
-        // take care of connections
-        auto view = m_registry.view<Components::ConnectionComponent>();
-        for (auto connEntt : view) {
-            auto &connComp = view.get<Components::ConnectionComponent>(connEntt);
-            auto parentA = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.inputSlot)).parentId;
-            auto parentB = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.outputSlot)).parentId;
-            if (parentA != entUuid && parentB != entUuid)
-                continue;
-            BESS_INFO("[Scene] Deleted connection {}", (uint64_t)connEntt);
-            m_registry.destroy(connEntt);
+            // take care of connections
+            auto view = m_registry.view<Components::ConnectionComponent>();
+            for (auto connEntt : view) {
+                auto &connComp = view.get<Components::ConnectionComponent>(connEntt);
+                auto parentA = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.inputSlot)).parentId;
+                auto parentB = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.outputSlot)).parentId;
+                if (parentA != entUuid && parentB != entUuid)
+                    continue;
+                BESS_INFO("[Scene] Deleted connection {}", (uint64_t)connEntt);
+                m_registry.destroy(connEntt);
+            }
+
+            // take care of slots
+            for (auto slot : simComp.inputSlots)
+                m_registry.destroy(getEntityWithUuid(slot));
+
+            for (auto slot : simComp.outputSlots)
+                m_registry.destroy(getEntityWithUuid(slot));
+
+            // remove from simlation engine
+            SimEngine::SimulationEngine::instance().deleteComponent(simComp.simEngineEntity);
         }
-
-        // take care of slots
-        for (auto slot : simComp.inputSlots)
-            m_registry.destroy(getEntityWithUuid(slot));
-
-        for (auto slot : simComp.outputSlots)
-            m_registry.destroy(getEntityWithUuid(slot));
-
-        // remove from simlation engine
-        SimEngine::SimulationEngine::instance().deleteComponent(simComp.simEngineEntity);
 
         // remove from registry
         m_registry.destroy(ent);
@@ -856,7 +885,7 @@ namespace Bess::Canvas {
         Gl::FrameBuffer::unbindAll();
     }
 
-    void Scene::saveScenePNG(const std::string& path){
+    void Scene::saveScenePNG(const std::string &path) {
         m_normalFramebuffer->saveColorAttachment(0, path);
     }
 
