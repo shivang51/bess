@@ -3,6 +3,7 @@
 #include "gtc/type_ptr.hpp"
 #include "imgui_internal.h"
 #include "scene/components/components.h"
+#include "scene/components/non_sim_comp.h"
 #include "scene/scene.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/m_widgets.h"
@@ -14,7 +15,7 @@ namespace Bess::UI {
 
     void drawTagComponent(TagComponent &comp) {
         std::string icon;
-        if(comp.isSimComponent) {
+        if (comp.isSimComponent) {
             icon = Common::Helpers::getComponentIcon(comp.type.simCompType);
         } else {
             icon = Common::Helpers::getComponentIcon(comp.type.nsCompType);
@@ -105,6 +106,14 @@ namespace Bess::UI {
         ImGui::Unindent();
     }
 
+    void drawTextNodeComponent(TextNodeComponent &comp) {
+        ImGui::Indent();
+        MWidgets::TextBox("Text", comp.text);
+        ImGui::SliderFloat("Font Size", &comp.fontSize, 1.0f, 100.0f, "%.1f");
+        ImGui::ColorEdit4("Color", glm::value_ptr(comp.color));
+        ImGui::Unindent();
+    }
+
     void PropertiesPanel::draw() {
         ImGui::Begin("Properties");
 
@@ -142,6 +151,10 @@ namespace Bess::UI {
             if (connectionComponent.useCustomColor) {
                 drawSpriteComponent(registry.get<SpriteComponent>(entt));
             }
+        }
+
+        if (registry.all_of<TextNodeComponent>(entt)) {
+            drawTextNodeComponent(registry.get<TextNodeComponent>(entt));
         }
 
         ImGui::End();
