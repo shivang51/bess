@@ -38,6 +38,14 @@ namespace Bess::SimEngine {
         UUID uuid;
     };
 
+    inline void to_json(nlohmann::json &j, const IdComponent &idComp) {
+        j["uuid"] = static_cast<uint64_t>(idComp.uuid);
+    }
+
+    inline void from_json(const nlohmann::json &j, IdComponent &idComp) {
+        idComp.uuid = UUID(j.at("uuid").get<uint64_t>());
+    }
+
     struct BESS_API ClockComponent {
         ClockComponent() = default;
         ClockComponent(const ClockComponent &) = default;
@@ -112,4 +120,55 @@ namespace Bess::SimEngine {
         std::vector<bool> outputStates;
         std::vector<bool> inputStates;
     };
+
+    inline void to_json(nlohmann::json &j, const DigitalComponent &comp) {
+        j["type"] = static_cast<int>(comp.type);
+        j["delay"] = comp.delay.count();
+        j["inputPins"] = nlohmann::json::array();
+        for(const auto &input : comp.inputPins) {
+            nlohmann::json inputJson = nlohmann::json::array();
+            for (const auto &[id, idx] : input) {
+                inputJson.push_back({{"id", static_cast<uint64_t>(id)}, {"index", idx}});
+            }
+            j["inputPins"].push_back(inputJson);
+        }
+        j["outputPins"] = nlohmann::json::array();
+        for(const auto &output : comp.outputPins) {
+            nlohmann::json outputJson = nlohmann::json::array();
+            for (const auto &[id, idx] : output) {
+                outputJson.push_back({{"id", static_cast<uint64_t>(id)}, {"index", idx}});
+            }
+            j["outputPins"].push_back(outputJson);
+        }
+        j["outputStates"] = comp.outputStates;
+        j["inputStates"] = comp.inputStates;
+    }
+
+    inline void from_json(const nlohmann::json &j, DigitalComponent &comp) {
+        comp.type = static_cast<ComponentType>(j.at("type").get<int>());
+        comp.delay = SimDelayMilliSeconds(j.at("delay").get<long long>());
+
+        if (j.contains("inputPins")) {
+            for (const auto &inputJson : j["inputPins"]) {
+                std::vector<std::pair<UUID, int>> inputVec;
+                for (const auto &input : inputJson) {
+                    inputVec.emplace_back(static_cast<UUID>(input["id"].get<uint64_t>()), input["index"].get<int>());
+                }
+                comp.inputPins.push_back(inputVec);
+            }
+        }
+
+        if (j.contains("outputPins")) {
+            for (const auto &outputJson : j["outputPins"]) {
+                std::vector<std::pair<UUID, int>> outputVec;
+                for (const auto &output : outputJson) {
+                    outputVec.emplace_back(static_cast<UUID>(output["id"].get<uint64_t>()), output["index"].get<int>());
+                }
+                comp.outputPins.push_back(outputVec);
+            }
+        }
+
+        comp.outputStates = j.value("outputStates", std::vector<bool>());
+        comp.inputStates = j.value("inputStates", std::vector<bool>());
+    }
 } // namespace Bess::SimEngine

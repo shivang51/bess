@@ -1,8 +1,9 @@
 #pragma once
 
-#include <string>
-
+#include "scene/scene_serializer.h"
+#include "simulation_engine_serializer.h"
 #include "json.hpp"
+#include <string>
 
 namespace Bess {
     class ProjectFile {
@@ -24,7 +25,7 @@ namespace Bess {
         bool isSaved();
 
       private:
-        nlohmann::json encode();
+        void encodeAndSave();
         void decode();
         void browsePath();
 
@@ -33,7 +34,10 @@ namespace Bess {
       private:
         std::string m_name = "";
         std::string m_path = "";
-
+        
         bool m_saved = false;
+        
+        SimEngine::SimEngineSerializer m_simEngineSerializer;
+        SceneSerializer m_sceneSerializer;
     };
 } // namespace Bess

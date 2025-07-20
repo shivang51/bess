@@ -4,8 +4,6 @@
 
 #include "scene/components/components.h"
 #include "scene/scene.h"
-#include "scene/scene_serializer.h"
-#include "simulation_engine_serializer.h"
 #include "ui/ui_main/dialogs.h"
 
 #include <fstream>
@@ -36,9 +34,8 @@ namespace Bess {
         }
 
         BESS_INFO("Saving project {}", m_path);
-        auto data = encode();
-        std::ofstream o(m_path);
-        o << std::setw(4) << data << std::endl;
+        encodeAndSave();
+        BESS_INFO("Saving Successfull");
         m_saved = true;
     }
 
@@ -66,13 +63,19 @@ namespace Bess {
         return m_saved;
     }
 
-    nlohmann::json ProjectFile::encode() {
+    void ProjectFile::encodeAndSave() {
         nlohmann::json data;
         data["name"] = m_name;
         data["version"] = "<dev>";
-        data["scene_data"] = SceneSerializer().serialize();
-        data["sim_engine_data"] = SimEngine::SimEngineSerializer().serialize();
-        return data;
+        m_sceneSerializer.serialize(data["scene_data"]);
+        m_simEngineSerializer.serialize(data["sim_engine_data"]);
+        if (std::ofstream outFile(m_path, std::ios::out); outFile.is_open()) {
+            outFile << data.dump(4);
+            outFile.close();
+        } else {
+            BESS_ERROR("Failed to open file for writing: {}", m_path);
+        }
+        data.clear();
     }
 
     void ProjectFile::decode() {
@@ -86,8 +89,8 @@ namespace Bess {
 
         m_name = data["name"];
 
-        SimEngine::SimEngineSerializer().deserialize(data["sim_engine_data"]);
-        SceneSerializer().deserialize(data["scene_data"]);
+        m_simEngineSerializer.deserialize(data["sim_engine_data"]);
+        m_sceneSerializer.deserialize(data["scene_data"]);
     }
 
     void ProjectFile::browsePath() {

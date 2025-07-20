@@ -297,7 +297,7 @@ namespace Bess::Canvas::Components {
         SimulationInputComponent() = default;
         SimulationInputComponent(const SimulationInputComponent &other) = default;
 
-        bool updateClock(const UUID &uuid) {
+        bool updateClock(const UUID &uuid) const {
             return SimEngine::SimulationEngine::instance().updateClock(uuid, clockBhaviour, frequency, frequencyUnit);
         }
 
