@@ -27,5 +27,6 @@ namespace Bess::UI {
         static std::string m_searchQuery;
         static void firstTime();
         static bool isfirstTimeDraw;
+        static std::unordered_map<std::string, std::vector<Bess::SimEngine::ComponentDefinition>> m_componentTree;
     };
 } // namespace Bess::UI

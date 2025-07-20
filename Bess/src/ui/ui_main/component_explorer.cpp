@@ -15,6 +15,7 @@ namespace Bess::UI {
     bool ComponentExplorer::isfirstTimeDraw = false;
     std::string ComponentExplorer::m_searchQuery = "";
     std::string ComponentExplorer::windowName = (std::string(Icons::FontAwesomeIcons::FA_TOOLBOX) + "  Component Explorer");
+	std::unordered_map<std::string, std::vector<Bess::SimEngine::ComponentDefinition>> ComponentExplorer::m_componentTree;
 
     bool MyTreeNode(const char *label) {
         ImGuiContext &g = *ImGui::GetCurrentContext();
@@ -165,10 +166,9 @@ namespace Bess::UI {
 
         // simulation components
         {
-            static auto components = SimEngine::ComponentCatalog::instance().getComponentsTree();
             static auto modifiableProperties = generateModifiablePropertiesStr();
 
-            for (auto &ent : components) {
+            for (auto &ent : m_componentTree) {
                 if (MyTreeNode(ent.first.c_str())) {
                     for (auto &comp : ent.second) {
                         auto name = comp.name;
@@ -225,8 +225,8 @@ namespace Bess::UI {
     }
 
     void ComponentExplorer::firstTime() {
-        if (!isfirstTimeDraw)
-            return;
+        assert(isfirstTimeDraw);
         isfirstTimeDraw = false;
+        m_componentTree = SimEngine::ComponentCatalog::instance().getComponentsTree();
     }
 } // namespace Bess::UI
