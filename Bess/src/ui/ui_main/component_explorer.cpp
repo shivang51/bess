@@ -12,7 +12,7 @@
 
 namespace Bess::UI {
 
-    bool ComponentExplorer::isfirstTimeDraw = false;
+    bool ComponentExplorer::m_isfirstTimeDraw = true;
     std::string ComponentExplorer::m_searchQuery = "";
     std::string ComponentExplorer::windowName = (std::string(Icons::FontAwesomeIcons::FA_TOOLBOX) + "  Component Explorer");
 	std::unordered_map<std::string, std::vector<Bess::SimEngine::ComponentDefinition>> ComponentExplorer::m_componentTree;
@@ -146,7 +146,7 @@ namespace Bess::UI {
     }
 
     void ComponentExplorer::draw() {
-        if (isfirstTimeDraw)
+        if (m_isfirstTimeDraw)
             firstTime();
 
         ImGui::Begin(windowName.c_str());
@@ -225,8 +225,8 @@ namespace Bess::UI {
     }
 
     void ComponentExplorer::firstTime() {
-        assert(isfirstTimeDraw);
-        isfirstTimeDraw = false;
+        assert(m_isfirstTimeDraw);
+        m_isfirstTimeDraw = false;
         m_componentTree = SimEngine::ComponentCatalog::instance().getComponentsTree();
     }
 } // namespace Bess::UI
