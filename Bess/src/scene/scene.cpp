@@ -289,7 +289,7 @@ namespace Bess::Canvas {
             {
             case Components::NSComponentType::text: {
                 auto &textComp = m_registry.emplace<Components::TextNodeComponent>(entity);
-                textComp.text = "New Text yo yo go";
+                textComp.text = "New Text";
                 textComp.fontSize = 20.f;
                 textComp.color = ViewportTheme::textColor;
             } break;

@@ -85,6 +85,11 @@ namespace Bess {
             j["SimulationInputComponent"] = *simInputComp;
         }
 
+        // TextNodeComponent
+        if (auto *textNodeComp = registry.try_get<Bess::Canvas::Components::TextNodeComponent>(entity)) {
+            j["TextNodeComponent"] = *textNodeComp;
+        }
+
         return j;
     }
 
@@ -150,6 +155,12 @@ namespace Bess {
         if (j.contains("SimulationInputComponent")) {
             auto simInputComp = j.at("SimulationInputComponent").get<SimulationInputComponent>();
             registry.emplace_or_replace<SimulationInputComponent>(entity, simInputComp);
+        }
+
+        // TextNodeComponent
+        if (j.contains("TextNodeComponent")) {
+            auto textNodeComp = j.at("TextNodeComponent").get<TextNodeComponent>();
+            registry.emplace_or_replace<TextNodeComponent>(entity, textNodeComp);
         }
     }
 } // namespace Bess
