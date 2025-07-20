@@ -67,6 +67,8 @@ namespace Bess {
         nlohmann::json data;
         data["name"] = m_name;
         data["version"] = "<dev>";
+        data["scene_data"] = nlohmann::json::object();
+        data["sim_engine_data"] = nlohmann::json::object();
         m_sceneSerializer.serialize(data["scene_data"]);
         m_simEngineSerializer.serialize(data["sim_engine_data"]);
         if (std::ofstream outFile(m_path, std::ios::out); outFile.is_open()) {

@@ -11,8 +11,6 @@ namespace Bess {
             registerAll();
         }
 
-        j = nlohmann::json::object();
-
         for (auto entity : registry.view<entt::entity>()) {
             serializeEntity(registry, entity, j["entities"].emplace_back());
         }
