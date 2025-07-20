@@ -48,8 +48,9 @@ namespace Bess {
     }
 
     void EnttRegistrySerializer::deserializeEntity(entt::registry &registry, const nlohmann::json &j) {
+        auto entity = registry.create();
         for (const auto &[name, deserializeCB] : m_ComponentDeserializers) {
-            deserializeCB(registry, j);
+            deserializeCB(registry, entity, j);
         }
     }
 

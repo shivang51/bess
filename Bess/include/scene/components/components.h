@@ -307,7 +307,7 @@ namespace Bess::Canvas::Components {
     };
 
     inline void to_json(nlohmann::json &j, const SimulationInputComponent &comp) {
-        j = nlohmann::json{{"clockBhaviour", comp.clockBhaviour}};
+        j["clockBhaviour"] = comp.clockBhaviour;
         j["frequency"] = comp.frequency;
         j["frequencyUnit"] = (int)comp.frequencyUnit;
     }

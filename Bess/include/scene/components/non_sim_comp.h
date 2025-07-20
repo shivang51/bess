@@ -17,7 +17,7 @@ namespace Bess::Canvas::Components {
     };
 
     inline void to_json(nlohmann::json &j, const TextNodeComponent &comp) {
-        j = nlohmann::json{
+        j = {
             {"text", comp.text},
             {"color", comp.color},
             {"fontSize", comp.fontSize}};

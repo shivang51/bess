@@ -25,10 +25,9 @@ namespace Bess {
             }
           };
 
-          m_ComponentDeserializers[name] = [name](entt::registry& registry, const nlohmann::json& j) {
+          m_ComponentDeserializers[name] = [name](entt::registry& registry, entt::entity entity, const nlohmann::json& j) {
             if (j.contains(name)) {
                 auto component = j.at(name).get<T>();
-                auto entity = registry.create();
                 registry.emplace<T>(entity, component);
             }
           };
@@ -36,7 +35,7 @@ namespace Bess {
 
       private:
         using SerializeCB = std::function<void(const entt::registry&, entt::entity, nlohmann::json&)>;
-        using DeserializeCB = std::function<void(entt::registry&, const nlohmann::json&)>;
+        using DeserializeCB = std::function<void(entt::registry&, entt::entity, const nlohmann::json&)>;
 
         // using map instead of unordered_map because unordered_map was causing heap corruption when map had to resize.
         std::map<std::string, SerializeCB> m_ComponentSerializers;
