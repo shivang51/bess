@@ -3,21 +3,6 @@
 #include "gtc/type_ptr.hpp"
 #include "json.hpp"
 
-namespace nlohmann {
-    template <>
-    struct adl_serializer<glm::vec4> {
-        static void to_json(json &j, const glm::vec4 &vec) {
-            j = json{vec.x, vec.y, vec.z, vec.w};
-        }
-        static void from_json(const json &j, glm::vec4 &vec) {
-            j.at(0).get_to(vec.x);
-            j.at(1).get_to(vec.y);
-            j.at(2).get_to(vec.z);
-            j.at(3).get_to(vec.w);
-        }
-    };
-} // namespace nlohmann
-
 namespace Bess::Canvas::Components {
 
     inline void to_json(nlohmann::json &j, const glm::vec2 &v) {
