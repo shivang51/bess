@@ -182,7 +182,6 @@ if("${BUILD_ARCH}" STREQUAL "x64")
 			"${CMAKE_SOURCE_DIR}/external/freetype/include"
 			"${CMAKE_SOURCE_DIR}/external/imgui/backends"
 			"${CMAKE_SOURCE_DIR}/external/glm"
-			"${CMAKE_SOURCE_DIR}/external/json"
 			"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
 			"${CMAKE_SOURCE_DIR}/external/glfw/include"
 			"${CMAKE_SOURCE_DIR}/external/glad/include"
