@@ -3,9 +3,14 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 
+file(GLOB EXT_JSON_INCLUDES "${CMAKE_SOURCE_DIR}/external/jsoncpp/include/*.h")
+file(GLOB EXT_JSON_SRC "${CMAKE_SOURCE_DIR}/external/jsoncpp/src/lib_json/*.cpp")
+source_group("external/jsoncpp" FILES ${EXT_JSON_SRC})
+
 set(External
+	 "${EXT_JSON_SRC}"
 )
-source_group("External" FILES ${External})
+
 
 set(Header_Files
     "include/entt_components.h"
@@ -19,20 +24,21 @@ set(Header_Files
     "include/component_catalog.h"
     "include/component_definition.h"
     "include/component_types.h"
-    "include/init_components.h"
+    "include/init_components.h" 
+    "include/json_helpers.h"
 )
-source_group("Header Files" FILES ${Header_Files})
+source_group("include" FILES ${Header_Files})
 
 set(Source_Files
     "src/simulation_engine.cpp"
     "src/simulation_engine_serializer.cpp"
     "src/bess_uuid.cpp"
     "src/logger.cpp"
-		"src/entt_registry_serializer.cpp"
+	"src/entt_registry_serializer.cpp"
     "src/component_catalog.cpp"
     "src/component_definition.cpp"
 )
-source_group("Source Files" FILES ${Source_Files})
+source_group("src" FILES ${Source_Files})
 
 set(ALL_FILES
     ${External}
@@ -53,9 +59,10 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE BESS_EXPORTS)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include;"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../external/json;"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../external/entt/include;"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../external/spdlog/include;"
+    "${CMAKE_SOURCE_DIR}/external/json;"
+	"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
+    "${CMAKE_SOURCE_DIR}/external/entt/include;"
+    "${CMAKE_SOURCE_DIR}/external/spdlog/include;"
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)

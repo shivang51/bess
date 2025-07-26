@@ -1,19 +1,27 @@
 set(PROJECT_NAME Bess)
 set(CMAKE_CXX_STANDARD 23)
 
-set(External
+file(GLOB EXT_JSON_SRC "${CMAKE_SOURCE_DIR}/external/jsoncpp/src/lib_json/*.cpp")
+source_group("external/jsoncpp" FILES ${EXT_JSON_SRC})
+
+file(GLOB EXT_IMGUI_SRC
+    "../external/imgui/backends/*.cpp"
+    "../external/imgui/*.cpp"
+)
+source_group("external/imgui" FILES ${EXT_IMGUI_SRC})
+
+set(EXT_OTHERS_SRC
     "../external/glad/src/glad.c"
-    "../external/imgui/backends/imgui_impl_glfw.cpp"
-    "../external/imgui/backends/imgui_impl_opengl3.cpp"
-    "../external/imgui/imgui.cpp"
-    "../external/imgui/imgui_draw.cpp"
-    "../external/imgui/imgui_tables.cpp"
-    "../external/imgui/imgui_widgets.cpp"
-    "../external/imgui/imgui_demo.cpp"
     "../external/stb_image/src/stb_image.cpp"
     "../external/tinyfiledialogs/tinyfiledialogs.c"
 )
-source_group("external" FILES ${External})
+source_group("external/others" FILES ${EXT_OTHERS_SRC})
+
+set(External
+    ${EXT_JSON_SRC}
+    ${EXT_IMGUI_SRC}
+    ${EXT_OTHERS_SRC}
+)
 
 set(Header_Files
 "include/settings/themes.h"
@@ -167,19 +175,20 @@ endif()
 
 if("${BUILD_ARCH}" STREQUAL "x64")
 	target_include_directories(${PROJECT_NAME} PRIVATE
-			"${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui"
-			"${CMAKE_CURRENT_SOURCE_DIR}/../external/freetype/include"
-			"${CMAKE_CURRENT_SOURCE_DIR}/../external/imgui/backends"
-			"${CMAKE_CURRENT_SOURCE_DIR}/../external/glm"
-			"${CMAKE_CURRENT_SOURCE_DIR}/../external/json"
-			"${CMAKE_CURRENT_SOURCE_DIR}/../external/glfw/include"
-			"${CMAKE_CURRENT_SOURCE_DIR}/../external/glad/include"
-			"${CMAKE_CURRENT_SOURCE_DIR}/../external/stb_image/include"
-			"${CMAKE_CURRENT_SOURCE_DIR}/../external/tinyfiledialogs"
-			"${CMAKE_CURRENT_SOURCE_DIR}/../external/entt/include"
 			"${CMAKE_CURRENT_SOURCE_DIR}/include"
-			"${CMAKE_CURRENT_SOURCE_DIR}/../BessSimEngine/include"
-			"${CMAKE_CURRENT_SOURCE_DIR}/../external/spdlog/include;"
+			"${CMAKE_SOURCE_DIR}/BessSimEngine/include"
+			"${CMAKE_SOURCE_DIR}/external/imgui"
+			"${CMAKE_SOURCE_DIR}/external/freetype/include"
+			"${CMAKE_SOURCE_DIR}/external/imgui/backends"
+			"${CMAKE_SOURCE_DIR}/external/glm"
+			"${CMAKE_SOURCE_DIR}/external/json"
+			"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
+			"${CMAKE_SOURCE_DIR}/external/glfw/include"
+			"${CMAKE_SOURCE_DIR}/external/glad/include"
+			"${CMAKE_SOURCE_DIR}/external/stb_image/include"
+			"${CMAKE_SOURCE_DIR}/external/tinyfiledialogs"
+			"${CMAKE_SOURCE_DIR}/external/entt/include"
+			"${CMAKE_SOURCE_DIR}/external/spdlog/include;"
 	)
 endif()
 
