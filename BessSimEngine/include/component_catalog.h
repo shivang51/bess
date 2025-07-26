@@ -19,13 +19,15 @@ namespace Bess::SimEngine {
         const std::vector<ComponentDefinition> &getComponents() const;
 
         // Get the full list of registered components as tree format, grouped based on the category.
-        std::unordered_map<std::string, std::vector<ComponentDefinition>> getComponentsTree() const;
+        typedef std::unordered_map<std::string, std::vector<const ComponentDefinition*>> ComponentTree;
+        std::shared_ptr<ComponentTree> getComponentsTree();
 
         // Look up a component definition by its enum type.
         const ComponentDefinition *getComponentDefinition(ComponentType type) const;
 
       private:
         ComponentCatalog() = default;
-        std::vector<ComponentDefinition> components;
+        std::vector<ComponentDefinition> m_components;
+        std::shared_ptr<ComponentTree> m_componentTree = nullptr;
     };
 } // namespace Bess::SimEngine

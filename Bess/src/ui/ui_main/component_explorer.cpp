@@ -15,7 +15,6 @@ namespace Bess::UI {
     bool ComponentExplorer::m_isfirstTimeDraw = true;
     std::string ComponentExplorer::m_searchQuery = "";
     std::string ComponentExplorer::windowName = (std::string(Icons::FontAwesomeIcons::FA_TOOLBOX) + "  Component Explorer");
-	std::unordered_map<std::string, std::vector<Bess::SimEngine::ComponentDefinition>> ComponentExplorer::m_componentTree;
 
     bool MyTreeNode(const char *label) {
         ImGuiContext &g = *ImGui::GetCurrentContext();
@@ -164,31 +163,32 @@ namespace Bess::UI {
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
         ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0, 0, 0, 0)); // for tree node to have no bg normally
 
+        auto componentTree = SimEngine::ComponentCatalog::instance().getComponentsTree();
         // simulation components
         {
             static auto modifiableProperties = generateModifiablePropertiesStr();
 
-            for (auto &ent : m_componentTree) {
+            for (auto &ent : *componentTree) {
                 if (MyTreeNode(ent.first.c_str())) {
                     for (auto &comp : ent.second) {
-                        auto name = comp.name;
+                        auto name = comp->name;
                         if (m_searchQuery != "" && Common::Helpers::toLowerCase(name).find(m_searchQuery) == std::string::npos)
                             continue;
 
-                        name = Common::Helpers::getComponentIcon(comp.type) + "  " + name;
-                        auto &properties = modifiableProperties[comp.type];
+                        name = Common::Helpers::getComponentIcon(comp->type) + "  " + name;
+                        auto &properties = modifiableProperties[comp->type];
 
                         if (ButtonWithPopup(name, name + "OptionsMenu", !properties.empty())) {
-                            createComponent(comp, -1, -1);
+                            createComponent(*comp, -1, -1);
                         }
 
                         if (ImGui::BeginPopup((name + "OptionsMenu").c_str())) {
                             for (auto &p : properties) {
                                 if (ImGui::MenuItem(p.first.c_str())) {
                                     if (p.second.first == SimEngine::Properties::ComponentProperty::inputCount) {
-                                        createComponent(comp, std::any_cast<int>(p.second.second), -1);
+                                        createComponent(*comp, std::any_cast<int>(p.second.second), -1);
                                     } else if (p.second.first == SimEngine::Properties::ComponentProperty::outputCount) {
-                                        createComponent(comp, -1, std::any_cast<int>(p.second.second));
+                                        createComponent(*comp, -1, std::any_cast<int>(p.second.second));
                                     }
                                 }
                             }
@@ -227,6 +227,5 @@ namespace Bess::UI {
     void ComponentExplorer::firstTime() {
         assert(m_isfirstTimeDraw);
         m_isfirstTimeDraw = false;
-        m_componentTree = SimEngine::ComponentCatalog::instance().getComponentsTree();
     }
 } // namespace Bess::UI
