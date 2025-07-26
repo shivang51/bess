@@ -1,6 +1,6 @@
 #include "project_file.h"
 #include "common/log.h"
-#include "json.hpp"
+#include "json/json.h"
 
 #include "scene/components/components.h"
 #include "scene/scene.h"
@@ -64,19 +64,27 @@ namespace Bess {
     }
 
     void ProjectFile::encodeAndSave() {
-        nlohmann::json data;
+        Json::Value data;
+
         data["name"] = m_name;
         data["version"] = "<dev>";
-        data["scene_data"] = nlohmann::json::object();
-        data["sim_engine_data"] = nlohmann::json::object();
+
+        data["scene_data"] = Json::objectValue;
+        data["sim_engine_data"] = Json::objectValue;
+
         m_sceneSerializer.serialize(data["scene_data"]);
         m_simEngineSerializer.serialize(data["sim_engine_data"]);
+
         if (std::ofstream outFile(m_path, std::ios::out); outFile.is_open()) {
-            outFile << data.dump(4);
-            outFile.close();
+            Json::StreamWriterBuilder builder;
+            builder["commentStyle"] = "None";
+            builder["indentation"] = "    ";
+            std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+            writer->write(data, &outFile);
         } else {
             BESS_ERROR("Failed to open file for writing: {}", m_path);
         }
+
         data.clear();
     }
 
@@ -86,13 +94,26 @@ namespace Bess {
             std::cerr << "Failed to open file for reading: " << m_path << std::endl;
             return;
         }
-        nlohmann::json data;
-        inFile >> data;
+        Json::Value data;
+        std::string errs;
 
-        m_name = data["name"];
+        Json::CharReaderBuilder builder;
+        bool parsingSuccessful = Json::parseFromStream(builder, inFile, &data, &errs);
 
-        m_simEngineSerializer.deserialize(data["sim_engine_data"]);
-        m_sceneSerializer.deserialize(data["scene_data"]);
+        if (!parsingSuccessful) {
+            std::cerr << "Failed to parse JSON from " << m_path << ":" << std::endl
+                      << errs << std::endl;
+            return;
+        }
+
+        m_name = data.get("name", "Unnamed Project").asString();
+        if (data.isMember("sim_engine_data")) {
+            m_simEngineSerializer.deserialize(data["sim_engine_data"]);
+        }
+
+        if (data.isMember("scene_data")) {
+            m_sceneSerializer.deserialize(data["scene_data"]);
+        }
     }
 
     void ProjectFile::browsePath() {

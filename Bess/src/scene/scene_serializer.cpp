@@ -16,11 +16,11 @@ namespace Bess {
         EnttRegistrySerializer::deserializeFromPath(reg, path);
     }
 
-    void SceneSerializer::serialize(nlohmann::json& j) {
+    void SceneSerializer::serialize(Json::Value& j) {
         EnttRegistrySerializer::serialize(Canvas::Scene::instance().getEnttRegistry(), j);
     }
 
-    void SceneSerializer::deserialize(const nlohmann::json &json) {
+    void SceneSerializer::deserialize(const Json::Value &json) {
         m_maxZ = 0;
 
         auto &scene = Canvas::Scene::instance();
@@ -33,7 +33,7 @@ namespace Bess {
     }
 
     void SceneSerializer::registerAll() {
-        registerComponent<IdComponent>("IdComponent");
+        registerComponent<SimEngine::IdComponent>("IdComponent");
         registerComponent<TransformComponent>("TransformComponent");
         registerComponent<SpriteComponent>("SpriteComponent");
         registerComponent<TagComponent>("TagComponent");

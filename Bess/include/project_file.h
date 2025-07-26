@@ -2,7 +2,6 @@
 
 #include "scene/scene_serializer.h"
 #include "simulation_engine_serializer.h"
-#include "json.hpp"
 #include <string>
 
 namespace Bess {

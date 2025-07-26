@@ -17,6 +17,9 @@
 #include <string>
 
 namespace Bess::Canvas::Components {
+
+    using IdComponent = Bess::SimEngine::IdComponent;
+
     class TransformComponent {
       public:
         TransformComponent() = default;
@@ -165,18 +168,6 @@ namespace Bess::Canvas::Components {
 
 namespace Bess::JsonConvert {
     using namespace Bess::Canvas::Components;
-
-    inline void toJsonValue(const IdComponent &comp, Json::Value &j) {
-        j = Json::Value(Json::objectValue);
-        toJsonValue(comp.uuid, j["uuid"]);
-    }
-
-    inline void fromJsonValue(const Json::Value &j, IdComponent &comp) {
-        if (j.isMember("uuid")) {
-            // Reuse the existing helper for Bess::UUID to deserialize the uuid member.
-            fromJsonValue(j["uuid"], comp.uuid);
-        }
-    }
 
     // --- TransformComponent ---
 

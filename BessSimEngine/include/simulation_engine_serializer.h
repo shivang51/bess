@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bess_api.h"
+#include "comp_json_converters.h"
 #include "entt_registry_serializer.h"
 
 namespace Bess::SimEngine {
@@ -9,10 +10,10 @@ namespace Bess::SimEngine {
         SimEngineSerializer() = default;
 
         void serializeToPath(const std::string &path, int indent = -1);
-        void serialize(nlohmann::json &j);
+        void serialize(Json::Value &j);
 
         void deserializeFromPath(const std::string &path);
-        void deserialize(const nlohmann::json &json);
+        void deserialize(const Json::Value &json);
 
         void registerAll() override;
 

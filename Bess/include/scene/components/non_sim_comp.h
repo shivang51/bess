@@ -32,6 +32,8 @@ namespace Bess::Canvas::Components {
 
 namespace Bess::JsonConvert {
     using namespace Bess::Canvas::Components;
+    
+    // --- TextNodeComponent --- 
     inline void toJsonValue(const TextNodeComponent &comp, Json::Value &j) {
         j = Json::Value(Json::objectValue);
 
@@ -40,4 +42,23 @@ namespace Bess::JsonConvert {
 
         toJsonValue(comp.color, j["color"]);
     }
+
+    /**
+     * @brief Converts a Json::Value object back to a TextNodeComponent.
+     * @param j The source Json::Value.
+     * @param comp The destination TextNodeComponent to be populated.
+     */
+    inline void fromJsonValue(const Json::Value &j, TextNodeComponent &comp) {
+        if (!j.isObject()) {
+            return;
+        }
+
+        comp.text = j.get("text", "").asString();
+        comp.fontSize = j.get("fontSize", 16.f).asFloat();
+
+        if (j.isMember("color")) {
+            fromJsonValue(j["color"], comp.color);
+        }
+    }
+
 }

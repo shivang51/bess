@@ -22,6 +22,7 @@
 #include "ui/ui_main/project_settings_window.h"
 #include "ui/ui_main/properties_panel.h"
 #include "ui/ui_main/settings_window.h"
+#include <filesystem>
 
 namespace Bess::UI {
     UIState UIMain::state{};

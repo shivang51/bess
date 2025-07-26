@@ -6,48 +6,50 @@
 using namespace Bess::SimEngine;
 
 namespace Bess {
-    void EnttRegistrySerializer::serialize(const entt::registry &registry, nlohmann::json &j) {
+    void EnttRegistrySerializer::serialize(const entt::registry &registry, Json::Value &j) {
         if(m_ComponentSerializers.empty()) {
             registerAll();
         }
 
         for (auto entity : registry.view<entt::entity>()) {
-            serializeEntity(registry, entity, j["entities"].emplace_back());
+            serializeEntity(registry, entity, j["entities"].append(Json::objectValue));
         }
     }
 
-    void EnttRegistrySerializer::serializeEntity(const entt::registry &registry, entt::entity entity, nlohmann::json &j) {
+    void EnttRegistrySerializer::serializeEntity(const entt::registry &registry, entt::entity entity, Json::Value &j) {
         for (const auto &[name, serializeCB] : m_ComponentSerializers) {
             serializeCB(registry, entity, j);
         }
     }
 
     void EnttRegistrySerializer::serializeToPath(const entt::registry &registry, const std::string &filename, int indent) {
-        nlohmann::json j;
+        Json::Value j;
         serialize(registry, j);
 
         std::ofstream outFile(filename, std::ios::out);
         if (outFile.is_open()) {
-            outFile << j.dump(indent);
+            Json::StreamWriterBuilder builder;
+            const std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+            writer->write(j, &outFile);
             outFile.close();
         } else {
             std::cerr << "Failed to open file for writing: " << filename << std::endl;
         }
     }
 
-    void EnttRegistrySerializer::deserialize(entt::registry &registry, const nlohmann::json &json) {
+    void EnttRegistrySerializer::deserialize(entt::registry &registry, const Json::Value &json) {
         if(m_ComponentDeserializers.empty()) {
             registerAll();
         }
 
-        if(json.contains("entities")) {
+        if(json.isMember("entities")) {
             for (const auto &j : json["entities"]) {
                 deserializeEntity(registry, j);
             }
         }
     }
 
-    void EnttRegistrySerializer::deserializeEntity(entt::registry &registry, const nlohmann::json &j) {
+    void EnttRegistrySerializer::deserializeEntity(entt::registry &registry, const Json::Value &j) {
         auto entity = registry.create();
         for (const auto &[name, deserializeCB] : m_ComponentDeserializers) {
             deserializeCB(registry, entity, j);
@@ -60,7 +62,7 @@ namespace Bess {
             std::cerr << "Failed to open file for reading: " << filename << std::endl;
             return;
         }
-        nlohmann::json data;
+        Json::Value data;
         inFile >> data;
         deserialize(registry, data);
     }

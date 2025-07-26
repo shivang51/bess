@@ -24,11 +24,11 @@ namespace Bess::SimEngine {
         simulateClockedComponents();
     }
 
-    void SimEngineSerializer::serialize(nlohmann::json& j) {
+    void SimEngineSerializer::serialize(Json::Value& j) {
         EnttRegistrySerializer::serialize(SimEngine::SimulationEngine::instance().m_registry, j);
     }
 
-    void SimEngineSerializer::deserialize(const nlohmann::json &json) {
+    void SimEngineSerializer::deserialize(const Json::Value &json) {
         auto &registry = SimEngine::SimulationEngine::instance().m_registry;
         registry.clear();
         EnttRegistrySerializer::deserialize(registry, json);
