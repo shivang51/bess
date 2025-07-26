@@ -25,7 +25,7 @@ set(Header_Files
     "include/component_definition.h"
     "include/component_types.h"
     "include/init_components.h" 
-    "include/json_helpers.h"
+    "include/comp_json_converters.h"
 )
 source_group("include" FILES ${Header_Files})
 

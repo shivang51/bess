@@ -60,6 +60,7 @@ set(Header_Files
 "include/scene/scene_serializer.h"
 "include/scene/artist.h"
 "include/scene/components/components.h"
+"include/scene/components/json_converters.h"
 "include/scene/components/non_sim_comp.h"
 "include/scene/renderer/font.h"
 "include/scene/renderer/msdf_font.h"

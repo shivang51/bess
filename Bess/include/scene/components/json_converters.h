@@ -1,53 +1,102 @@
 #pragma once
 #include "glm.hpp"
 #include "gtc/type_ptr.hpp"
-#include "json.hpp"
+#include "json/json.h"
+#include "comp_json_converters.h"
 
-namespace Bess::Canvas::Components {
-
-    inline void to_json(nlohmann::json &j, const glm::vec2 &v) {
-        j = nlohmann::json{v.x, v.y};
-    }
-    inline void from_json(const nlohmann::json &j, glm::vec2 &v) {
-        j.at(0).get_to(v.x);
-        j.at(1).get_to(v.y);
-    }
-
-    // glm::vec3
-    inline void to_json(nlohmann::json &j, const glm::vec3 &v) {
-        j = nlohmann::json{v.x, v.y, v.z};
-    }
-    inline void from_json(const nlohmann::json &j, glm::vec3 &v) {
-        j.at(0).get_to(v.x);
-        j.at(1).get_to(v.y);
-        j.at(2).get_to(v.z);
+namespace Bess::JsonConvert {
+    // --- glm::vec2 ---
+    inline void toJsonValue(const glm::vec2 &vec, Json::Value &j) {
+        // Explicitly create an array and append elements.
+        j = Json::Value(Json::arrayValue);
+        j.append(vec.x);
+        j.append(vec.y);
     }
 
-    // glm::vec4
-    inline void to_json(nlohmann::json &j, const glm::vec4 &v) {
-        j = nlohmann::json{v.x, v.y, v.z, v.w};
-    }
-    inline void from_json(const nlohmann::json &j, glm::vec4 &v) {
-        j.at(0).get_to(v.x);
-        j.at(1).get_to(v.y);
-        j.at(2).get_to(v.z);
-        j.at(3).get_to(v.w);
-    }
-
-    // glm::mat4: store as an array of 16 floats (row-major)
-    inline void to_json(nlohmann::json &j, const glm::mat4 &m) {
-        j = nlohmann::json{
-            m[0][0], m[0][1], m[0][2], m[0][3],
-            m[1][0], m[1][1], m[1][2], m[1][3],
-            m[2][0], m[2][1], m[2][2], m[2][3],
-            m[3][0], m[3][1], m[3][2], m[3][3]};
-    }
-    inline void from_json(const nlohmann::json &j, glm::mat4 &m) {
-        float values[16];
-        for (int i = 0; i < 16; ++i) {
-            values[i] = j.at(i).get<float>();
+    /**
+     * @brief Converts a Json::Value array back to a glm::vec2.
+     * @param j The source Json::Value.
+     * @param vec The destination vector to be populated.
+     */
+    inline void fromJsonValue(const Json::Value &j, glm::vec2 &vec) {
+        if (!j.isArray() || j.size() != 2) {
+            throw std::runtime_error("Bess::JsonHelpers: Invalid JSON for glm::vec2. Must be an array of size 2.");
         }
-        m = glm::make_mat4(values);
+        // Access elements by index and use the 'as' methods for type conversion.
+        vec.x = j[0].asFloat();
+        vec.y = j[1].asFloat();
     }
 
+    // --- glm::vec3 ---
+
+    inline void toJsonValue(const glm::vec3 &vec, Json::Value &j) {
+        j = Json::Value(Json::arrayValue);
+        j.append(vec.x);
+        j.append(vec.y);
+        j.append(vec.z);
+    }
+
+    inline void fromJsonValue(const Json::Value &j, glm::vec3 &vec) {
+        if (!j.isArray() || j.size() != 3) {
+            throw std::runtime_error("Bess::JsonHelpers: Invalid JSON for glm::vec3. Must be an array of size 3.");
+        }
+        vec.x = j[0].asFloat();
+        vec.y = j[1].asFloat();
+        vec.z = j[2].asFloat();
+    }
+
+    // --- glm::vec4 ---
+
+    inline void toJsonValue(const glm::vec4 &vec, Json::Value &j) {
+        j = Json::Value(Json::arrayValue);
+        j.append(vec.x);
+        j.append(vec.y);
+        j.append(vec.z);
+        j.append(vec.w);
+    }
+
+    inline void fromJsonValue(const Json::Value &j, glm::vec4 &vec) {
+        if (!j.isArray() || j.size() != 4) {
+            throw std::runtime_error("Bess::JsonHelpers: Invalid JSON for glm::vec4. Must be an array of size 4.");
+        }
+        vec.x = j[0].asFloat();
+        vec.y = j[1].asFloat();
+        vec.z = j[2].asFloat();
+        vec.w = j[3].asFloat();
+    }
+
+    // --- glm::mat4 ---
+
+    /**
+     * @brief Converts a glm::mat4 to a Json::Value array of 16 floats.
+     * @param mat The source matrix.
+     * @param j The destination Json::Value to be populated.
+     */
+    inline void toJsonValue(const glm::mat4 &mat, Json::Value &j) {
+        j = Json::Value(Json::arrayValue);
+        // GLM matrices are column-major. We store row-major for simplicity and readability.
+        for (int row = 0; row < 4; ++row) {
+            for (int col = 0; col < 4; ++col) {
+                j.append(mat[col][row]);
+            }
+        }
+    }
+
+    /**
+     * @brief Converts a Json::Value array of 16 floats back to a glm::mat4.
+     * @param j The source Json::Value.
+     * @param mat The destination matrix to be populated.
+     */
+    inline void fromJsonValue(const Json::Value &j, glm::mat4 &mat) {
+        if (!j.isArray() || j.size() != 16) {
+            throw std::runtime_error("Bess::JsonHelpers: Invalid JSON for glm::mat4. Must be an array of size 16.");
+        }
+        for (int row = 0; row < 4; ++row) {
+            for (int col = 0; col < 4; ++col) {
+                // The index into the flat array
+                Json::ArrayIndex index = row * 4 + col;
+                mat[col][row] = j[index].asFloat();
+            }
+        }
+    }
 } // namespace Bess::Canvas::Components

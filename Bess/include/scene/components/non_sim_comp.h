@@ -1,32 +1,20 @@
 #pragma once
-#include "json.hpp"
-#include "json_convert_helpers.h"
+#include "json/json.h"
+#include "scene/components/json_converters.h"
 #include <string>
 #include <unordered_map>
 
 namespace Bess::Canvas::Components {
     // TextNodeComponent
     class TextNodeComponent {
-        public:
-            TextNodeComponent() = default;
-            TextNodeComponent(const TextNodeComponent &other) = default;
-    
-            std::string text = "";
-            glm::vec4 color = {1.f, 1.f, 1.f, 1.f};
-            float fontSize = 16.f;
-    };
+      public:
+        TextNodeComponent() = default;
+        TextNodeComponent(const TextNodeComponent &other) = default;
 
-    inline void to_json(nlohmann::json &j, const TextNodeComponent &comp) {
-        j = {
-            {"text", comp.text},
-            {"color", comp.color},
-            {"fontSize", comp.fontSize}};
-    }
-    inline void from_json(const nlohmann::json &j, TextNodeComponent &comp) {
-        comp.text = j.at("text").get<std::string>();
-        comp.color = j.at("color").get<glm::vec4>();
-        comp.fontSize = j.at("fontSize").get<float>();
-    }
+        std::string text = "";
+        glm::vec4 color = {1.f, 1.f, 1.f, 1.f};
+        float fontSize = 16.f;
+    };
 
     /// @brief Non-simulation component types.
     enum class NSComponentType {
@@ -34,11 +22,22 @@ namespace Bess::Canvas::Components {
         text,
     };
 
-
-    struct NSComponent{
+    struct NSComponent {
         NSComponentType type;
         std::string name;
     };
 
     std::vector<NSComponent> getNSComponents();
+} // namespace Bess::Canvas::Components
+
+namespace Bess::JsonConvert {
+    using namespace Bess::Canvas::Components;
+    inline void toJsonValue(const TextNodeComponent &comp, Json::Value &j) {
+        j = Json::Value(Json::objectValue);
+
+        j["text"] = comp.text;
+        j["fontSize"] = comp.fontSize;
+
+        toJsonValue(comp.color, j["color"]);
+    }
 }
