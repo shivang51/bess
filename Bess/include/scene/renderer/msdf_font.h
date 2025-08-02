@@ -23,7 +23,7 @@ namespace Bess::Renderer2D {
 
             // Constructor that loads the font from texture atlas
             // path is the path of the json file with character data
-            MsdfFont(const std::string &path, const std::string& jsonFileName, float fontSize = 32.f);
+            MsdfFont(const std::string &path, const std::string& jsonFileName);
 
             ~MsdfFont();
 
@@ -42,6 +42,6 @@ namespace Bess::Renderer2D {
         private:
             std::shared_ptr<Gl::Texture> m_fontTextureAtlas;
             std::unordered_map<char, MsdfCharacter> m_charData = {};
-            float m_fontSize, m_lineHeight;
+            float m_fontSize = 0.f, m_lineHeight = 0.f;
     };
 }

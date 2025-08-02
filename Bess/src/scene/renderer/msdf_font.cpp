@@ -7,14 +7,13 @@
 
 namespace Bess::Renderer2D {
 
-    MsdfFont::MsdfFont(const std::string &path, const std::string& jsonFileName, float fontSize) : m_fontSize(fontSize) {
+    MsdfFont::MsdfFont(const std::string &path, const std::string& jsonFileName){
         loadFont(path, jsonFileName);
     }
 
     MsdfFont::~MsdfFont() = default;
 
     void MsdfFont::loadFont(const std::string &path, const std::string& jsonFileName) {
-        m_lineHeight = 34.f;
         std::filesystem::path path_ = path;
         std::ifstream inFile(path_ / jsonFileName);
         if (!inFile.is_open()) {
@@ -47,6 +46,9 @@ namespace Bess::Renderer2D {
                 BESS_INFO("Loaded MSDF font texture atlas from: {}", pagePath.string());
             }
         }
+
+        m_fontSize = charData["info"]["size"].asFloat();
+        m_lineHeight = charData["common"]["lineHeight"].asFloat();
 
         if (charData.isMember("chars") && charData["chars"].isArray()) {
             const Json::Value &chars = charData["chars"];

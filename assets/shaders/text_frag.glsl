@@ -14,7 +14,7 @@ uniform int u_SelectedObjId;
 uniform float u_zoom;
 
 float screenPxRange() {
-	const float pxRange = 2.0; // set to distance field's pixel range
+	const float pxRange = 4.0; // set to distance field's pixel range
     vec2 unitRange = vec2(pxRange)/vec2(textureSize(u_Textures[v_TexSlotIdx], 0));
     vec2 screenTexSize = vec2(1.0)/fwidth(v_TexCoord);
     return max(0.5*dot(unitRange, screenTexSize), 1.0);
@@ -33,18 +33,12 @@ void main(){
         return;
     }
 
-    vec4 texColor = texture(u_Textures[v_TexSlotIdx], v_TexCoord);
-    vec3 msd = texColor.rgb;
-
+    vec3 msd = texture(u_Textures[v_TexSlotIdx], v_TexCoord).rgb;
     float sd = median(msd.r, msd.g, msd.b);
-    float screenPxDistance = screenPxRange() * (sd - 0.5);
+    float screenPxDistance = screenPxRange()*(sd - 0.5);
     float opacity = clamp(screenPxDistance + 0.5, 0.0, 1.0);
-	if (opacity == 0.0)
-		discard;
-
-    bgColor = mix(vec4(0.f), bgColor, opacity);
-
-    if(bgColor.a == 0.0) discard;
+    bgColor = mix(vec4(0.0), bgColor, opacity);
+    if(bgColor.a <= 0.001f) discard;
 
     fragColor = bgColor;
     fragColor1 = v_FragId;
