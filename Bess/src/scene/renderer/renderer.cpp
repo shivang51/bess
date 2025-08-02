@@ -185,7 +185,7 @@ namespace Bess {
             {0.0f, 0.5f, 0.f, 1.f}};
 
         m_Font = std::make_unique<Font>("assets/fonts/Roboto/Roboto-Regular.ttf");
-        m_msdfFont = std::make_unique<MsdfFont>("assets/fonts/Roboto/msdf/", "Roboto-Regular.json", 32.f);
+        m_msdfFont = std::make_unique<MsdfFont>("assets/fonts/Roboto/msdf/", "Roboto-Regular.json");
     }
 
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,

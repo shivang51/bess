@@ -22,7 +22,14 @@ namespace Bess::Canvas::Components {
         text,
     };
 
+    /// Non Simulation Component
     struct NSComponent {
+        NSComponent() = default;
+        NSComponent(NSComponentType type, const std::string& name){
+            this->type = type;
+            this->name = name;
+        }
+        NSComponent(const NSComponent &other) = default;
         NSComponentType type;
         std::string name;
     };

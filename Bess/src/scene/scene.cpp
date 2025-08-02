@@ -276,11 +276,13 @@ namespace Bess::Canvas {
         using namespace Canvas::Components;
         auto entity = m_registry.create();
         auto &idComp = m_registry.emplace<Components::IdComponent>(entity);
+        auto &nonSimComp = m_registry.emplace<Components::NSComponent>(entity);
         auto &tag = m_registry.emplace<Components::TagComponent>(entity);
         auto &transformComp = m_registry.emplace<Components::TransformComponent>(entity);
 
         tag.name = comp.name;
         tag.type.nsCompType = comp.type;
+		nonSimComp.type = comp.type;
 
         transformComp.position = glm::vec3(pos, getNextZCoord());
         transformComp.scale = glm::vec2(0.f, 0.f);
@@ -793,7 +795,7 @@ namespace Bess::Canvas {
             if (selected.find(id) != selected.end())
                 continue;
 
-            if (isConnection || m_registry.any_of<Components::SimulationComponent>(entt)) {
+            if (isConnection || m_registry.any_of<Components::SimulationComponent, Components::NSComponent>(entt)) {
                 m_registry.emplace_or_replace<Components::SelectedComponent>(entt);
             }
 
