@@ -10,7 +10,8 @@ namespace Bess::Gl {
         // Texture() = default;
         Texture(const std::string &path);
         Texture(GLint internalFormat, GLenum format, int width, int height, const void *data = nullptr, bool multisampled = false);
-
+        Texture(const Texture &) = delete;
+        Texture &operator=(const Texture &) = delete;
         ~Texture();
         void bind(int slotIdx = -1) const;
 

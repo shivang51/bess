@@ -149,7 +149,8 @@ namespace Bess::Gl {
             {GL_FLOAT, 2, sizeof(QuadVertex), offsetof(QuadVertex, size), false, true},
             {GL_INT, 1, sizeof(QuadVertex), offsetof(QuadVertex, id), false, true},
             {GL_INT, 1, sizeof(QuadVertex), offsetof(QuadVertex, isMica), false, true},
-            {GL_INT, 1, sizeof(QuadVertex), offsetof(QuadVertex, texSlotIdx), false, true}};
+            {GL_INT, 1, sizeof(QuadVertex), offsetof(QuadVertex, texSlotIdx), false, true},
+            {GL_FLOAT, 4, sizeof(QuadVertex), offsetof(QuadVertex, texData), false, true}};
     }
 
     BufferLayout CircleVao::getInstanceLayout() {

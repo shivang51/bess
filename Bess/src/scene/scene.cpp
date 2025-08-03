@@ -646,11 +646,11 @@ namespace Bess::Canvas {
         connSegComp3.prev = idComp2.uuid;
         
         auto view = m_registry.view<Components::SlotComponent, Components::TransformComponent>();
-        auto &slotComp = view.get<Components::SlotComponent>(inputSlot);
-        auto &parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(slotComp.parentId));
-        auto inputSlotPos = Artist::getSlotPos(slotComp, parentTransform);
-        slotComp = view.get<Components::SlotComponent>(outputSlot);
-        parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(slotComp.parentId));
+        const auto &inpSlotComp = view.get<Components::SlotComponent>(inputSlot);
+        const auto &inpParentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(inpSlotComp.parentId));
+        auto inputSlotPos = Artist::getSlotPos(inpSlotComp, inpParentTransform);
+        const auto& slotComp = view.get<Components::SlotComponent>(outputSlot);
+        const auto& parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(slotComp.parentId));
         auto outputSlotPos = Artist::getSlotPos(slotComp, parentTransform);
 
         auto dX = outputSlotPos.x - inputSlotPos.x;

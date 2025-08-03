@@ -20,7 +20,7 @@ namespace Bess::Renderer2D {
         std::vector<Gl::CircleVertex> circleVertices;
         std::vector<Gl::InstanceVertex> lineVertices;
         std::vector<Gl::Vertex> curveVertices;
-        std::vector<Gl::Vertex> fontVertices;
+        std::vector<Gl::InstanceVertex> fontVertices;
         std::vector<Gl::Vertex> triangleVertices;
         std::vector<Gl::QuadVertex> quadVertices;
     };
@@ -192,7 +192,7 @@ namespace Bess::Renderer2D {
         static std::unique_ptr<Bess::Gl::CircleVao> m_circleRendererVao;
         static std::unique_ptr<Bess::Gl::TriangleVao> m_triangleRendererVao;
         static std::unique_ptr<Bess::Gl::InstancedVao<Gl::InstanceVertex>> m_lineRendererVao;
-        static std::unique_ptr<Bess::Gl::BatchVao<Gl::Vertex>> m_textRendererVao;
+        static std::unique_ptr<Bess::Gl::InstancedVao<Gl::InstanceVertex>> m_textRendererVao;
         static std::unique_ptr<Bess::Gl::BatchVao<Gl::Vertex>> m_pathRendererVao;
     };
 

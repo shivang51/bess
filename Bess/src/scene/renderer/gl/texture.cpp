@@ -66,7 +66,7 @@ namespace Bess::Gl {
             assert(false);
         }
         if (slotIdx != -1) {
-            glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0));
             GL_CHECK(glBindTextureUnit(slotIdx, m_id));
         }
         else if (m_multisampled) {

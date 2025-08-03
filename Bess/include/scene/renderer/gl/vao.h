@@ -202,6 +202,7 @@ namespace Bess::Gl {
                 {GL_FLOAT, 4, sizeof(InstanceVertex), offsetof(InstanceVertex, color), false, true},
                 {GL_INT, 1, sizeof(InstanceVertex), offsetof(InstanceVertex, id), false, true},
                 {GL_INT, 1, sizeof(InstanceVertex), offsetof(InstanceVertex, texSlotIdx), false, true},
+                {GL_FLOAT, 4, sizeof(InstanceVertex), offsetof(InstanceVertex, texData), false, true},
             };
         }
 

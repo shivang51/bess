@@ -9,8 +9,8 @@ layout(location = 4) in float a_Angle;
 layout(location = 5) in vec4 a_Color;
 layout(location = 6) in int a_FragId;
 layout(location = 7) in int a_TexSlotIdx;
+layout(location = 8) in vec4 a_TexData;
 
-out vec3 v_FragPos;
 out vec4 v_FragColor;
 out vec2 v_TexCoord;
 out flat int v_FragId;
@@ -32,8 +32,11 @@ void main() {
 
     gl_Position = u_mvp * vec4(worldPos, 1.0);
 
+    vec2 start = a_TexData.xy;
+    vec2 size = a_TexData.zw;
+
     v_FragColor = a_Color;
-    v_TexCoord = a_LocalTexCoord;
+    v_TexCoord = start + (size * a_LocalTexCoord);
     v_FragId = a_FragId;
     v_TexSlotIdx = a_TexSlotIdx;
 }

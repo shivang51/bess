@@ -85,11 +85,7 @@ namespace Bess::Renderer2D {
     }
 
     MsdfCharacter MsdfFont::getCharacterData(char c) const {
-        if (m_charData.find(c) != m_charData.end()) {
-            return m_charData.at(c);
-        }
-        BESS_ERROR("Character '{}' not found in MSDF font data. Returning for *", c);
-        return m_charData.at('*');
+        return m_charData.at(c);
     }
 
     std::shared_ptr<Gl::Texture> MsdfFont::getTextureAtlas() const {

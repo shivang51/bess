@@ -14,10 +14,11 @@ namespace Bess::Gl {
     struct InstanceVertex {
         glm::vec3 position;
         glm::vec2 size;
-        float angle;
+        float angle = 0.f;
         glm::vec4 color;
         int id;
         int texSlotIdx;
+        glm::vec4 texData = {0.f, 0.f, 1.f, 1.f};
     };
 
     struct CircleVertex {
@@ -46,6 +47,7 @@ namespace Bess::Gl {
         int id;
         int isMica;
         int texSlotIdx;
+        glm::vec4 texData;
     };
 
     struct RenderPassVertex {

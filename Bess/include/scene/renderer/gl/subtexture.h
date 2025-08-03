@@ -12,7 +12,9 @@ namespace Bess::Gl {
         SubTexture(std::shared_ptr<Texture> texture, const glm::vec2 &coord, const glm::vec2 &spriteSize);
 
         SubTexture(std::shared_ptr<Texture> texture, const glm::vec2 &coord, const glm::vec2 &spriteSize,
-            float margin, glm::vec2 cellSize);
+            float margin, const glm::vec2& cellSize);
+
+        const glm::vec4& getStartWH() const;
 
         const std::vector<glm::vec2> &getTexCoords() const;
 
@@ -30,5 +32,6 @@ namespace Bess::Gl {
             float m_margin;
             glm::vec2 m_cellSize;
             std::vector<glm::vec2> m_texCoords;
+            glm::vec4 m_startWH;
     };
 }

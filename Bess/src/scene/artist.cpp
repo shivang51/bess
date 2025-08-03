@@ -177,11 +177,11 @@ namespace Bess::Canvas {
             startPos = Artist::getPinPos(registry.get<Components::SlotComponent>(inputEntity));
             endPos = Artist::getPinPos(outputSlotComp);
         } else {
-            auto &inpSlotComp = registry.get<Components::SlotComponent>(inputEntity);
-			auto &parentTransform = registry.get<Components::TransformComponent>(sceneRef->getEntityWithUuid(inpSlotComp.parentId));
+            const auto &inpSlotComp = registry.get<Components::SlotComponent>(inputEntity);
+			const auto &parentTransform = registry.get<Components::TransformComponent>(sceneRef->getEntityWithUuid(inpSlotComp.parentId));
             startPos = Artist::getSlotPos(inpSlotComp, parentTransform);
-			parentTransform = registry.get<Components::TransformComponent>(sceneRef->getEntityWithUuid(outputSlotComp.parentId));
-            endPos = Artist::getSlotPos(outputSlotComp, parentTransform);
+			const auto &endParentTransform = registry.get<Components::TransformComponent>(sceneRef->getEntityWithUuid(outputSlotComp.parentId));
+            endPos = Artist::getSlotPos(outputSlotComp, endParentTransform);
         }
 
         startPos.z = 0.f;
