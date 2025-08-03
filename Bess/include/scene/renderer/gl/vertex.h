@@ -11,10 +11,19 @@ namespace Bess::Gl {
         int texSlotIdx;
     };
 
+    struct InstanceVertex {
+        glm::vec3 position;
+        glm::vec2 size;
+        float angle;
+        glm::vec4 color;
+        int id;
+        int texSlotIdx;
+    };
+
     struct CircleVertex {
         glm::vec3 position;
         glm::vec4 color;
-        glm::vec2 texCoord;
+        float radius;
         float innerRadius;
         int id;
     };
@@ -30,7 +39,6 @@ namespace Bess::Gl {
     struct QuadVertex {
         glm::vec3 position;
         glm::vec4 color;
-        glm::vec2 texCoord;
         glm::vec4 borderRadius;
         glm::vec4 borderColor;
         glm::vec4 borderSize;

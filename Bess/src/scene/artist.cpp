@@ -1,5 +1,4 @@
 #include "scene/artist.h"
-#define GLM_FORCE_DEGREES
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
 #include "scene/components/components.h"
@@ -33,15 +32,14 @@ namespace Bess::Canvas {
     float SLOT_START_Y = componentStyles.headerHeight;
     float SLOT_ROW_SIZE = (componentStyles.rowMargin * 2.f) + (componentStyles.slotRadius * 2.f) + componentStyles.rowGap;
 
-    glm::vec3 Artist::getSlotPos(const Components::SlotComponent &comp) {
+    glm::vec3 Artist::getSlotPos(const Components::SlotComponent &comp, const Components::TransformComponent &parentTransform) {
         auto &registry = sceneRef->getEnttRegistry();
-        auto parentEntt = sceneRef->getEntityWithUuid(comp.parentId);
-        auto &pTransform = registry.get<Components::TransformComponent>(parentEntt);
 
-        auto pPos = pTransform.position;
-        auto pScale = pTransform.scale;
+        auto pPos = parentTransform.position;
+        auto pScale = parentTransform.scale;
 
-        bool isNonHeader = registry.any_of<Components::SimulationInputComponent, Components::SimulationOutputComponent>(parentEntt);
+        //bool isNonHeader = registry.any_of<Components::SimulationInputComponent, Components::SimulationOutputComponent>(parentEntt);
+        bool isNonHeader = false;
 
         auto slotdx = SLOT_DX;
 
@@ -114,19 +112,22 @@ namespace Bess::Canvas {
         Renderer::msdfText(label + std::to_string(idx), {labelX, pos.y + dY, pos.z}, componentStyles.slotLabelSize, ViewportTheme::textColor, parentId, angle);
     }
 
-    void Artist::drawSlots(const Components::SimulationComponent &comp, const glm::vec3 &componentPos, float width, float angle) {
+    void Artist::drawSlots(const Components::SimulationComponent &comp, const const Components::TransformComponent &transformComp) {
         auto &registry = sceneRef->getEnttRegistry();
+        auto slotsView = registry.view<Components::SlotComponent>();
 
         float labeldx = componentStyles.slotMargin + (componentStyles.slotRadius * 2.f);
 
         auto compState = SimEngine::SimulationEngine::instance().getComponentState(comp.simEngineEntity);
 
+        float angle = transformComp.angle;
+
         for (size_t i = 0; i < comp.inputSlots.size(); i++) {
             auto slot = sceneRef->getEntityWithUuid(comp.inputSlots[i]);
             auto isHigh = compState.inputStates[i];
             auto isConnected = compState.inputConnected[i];
-            auto &slotComp = registry.get<Components::SlotComponent>(slot);
-            auto slotPos = getSlotPos(slotComp);
+            auto &slotComp = slotsView.get<Components::SlotComponent>(slot);
+            auto slotPos = getSlotPos(slotComp, transformComp);
             uint64_t parentId = (uint64_t)sceneRef->getEntityWithUuid(slotComp.parentId);
             paintSlot((uint64_t)slot, slotComp.idx, parentId, slotPos, angle, "X", labeldx, isHigh, isConnected);
         }
@@ -137,8 +138,8 @@ namespace Bess::Canvas {
             auto slot = sceneRef->getEntityWithUuid(comp.outputSlots[i]);
             auto isHigh = compState.outputStates[i];
             auto isConnected = compState.outputConnected[i];
-            auto &slotComp = registry.get<Components::SlotComponent>(slot);
-            auto slotPos = getSlotPos(slotComp);
+            auto &slotComp = slotsView.get<Components::SlotComponent>(slot);
+            auto slotPos = getSlotPos(slotComp, transformComp);
             uint64_t parentId = (uint64_t)sceneRef->getEntityWithUuid(slotComp.parentId);
             paintSlot((uint64_t)slot, slotComp.idx, parentId, slotPos, angle, "Y", -labeldx, isHigh, isConnected);
         }
@@ -146,8 +147,10 @@ namespace Bess::Canvas {
 
     void Artist::drawGhostConnection(const entt::entity &startEntity, const glm::vec2 pos) {
         auto &registry = sceneRef->getEnttRegistry();
-        auto &slotComp = registry.get<Components::SlotComponent>(startEntity);
-        auto startPos = Artist::getSlotPos(slotComp);
+        auto slotsView = registry.view<Components::SlotComponent, Components::TransformComponent>();
+        auto &slotComp = slotsView.get<Components::SlotComponent>(startEntity);
+        auto &parentTransform = slotsView.get<Components::TransformComponent>(sceneRef->getEntityWithUuid(slotComp.parentId));
+        auto startPos = Artist::getSlotPos(slotComp, parentTransform);
         startPos.z = 0.f;
 
         float ratio = slotComp.slotType == Components::SlotType::digitalInput ? 0.8f : 0.2f;
@@ -174,8 +177,11 @@ namespace Bess::Canvas {
             startPos = Artist::getPinPos(registry.get<Components::SlotComponent>(inputEntity));
             endPos = Artist::getPinPos(outputSlotComp);
         } else {
-            startPos = Artist::getSlotPos(registry.get<Components::SlotComponent>(inputEntity));
-            endPos = Artist::getSlotPos(outputSlotComp);
+            auto &inpSlotComp = registry.get<Components::SlotComponent>(inputEntity);
+			auto &parentTransform = registry.get<Components::TransformComponent>(sceneRef->getEntityWithUuid(inpSlotComp.parentId));
+            startPos = Artist::getSlotPos(inpSlotComp, parentTransform);
+			parentTransform = registry.get<Components::TransformComponent>(sceneRef->getEntityWithUuid(outputSlotComp.parentId));
+            endPos = Artist::getSlotPos(outputSlotComp, parentTransform);
         }
 
         startPos.z = 0.f;
@@ -277,7 +283,7 @@ namespace Bess::Canvas {
         auto labelSize = Renderer::getTextRenderSize(tagComp.name, componentStyles.headerFontSize).x;
         glm::vec3 textPos = glm::vec3(pos.x + scale.x / 2.f - labelSize - componentStyles.paddingX, pos.y + yOff, pos.z + 0.0005f);
         Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id);
-        drawSlots(simComp, pos, scale.x, rotation);
+        drawSlots(simComp, transformComp);
     }
 
     void Artist::drawInput(entt::entity entity) {
@@ -316,7 +322,7 @@ namespace Bess::Canvas {
             /*name = "¤ " + name;*/
         }
         Renderer::msdfText(name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id);
-        drawSlots(simComp, pos, scale.x, rotation);
+        drawSlots(simComp, transformComp);
     }
 
     void Artist::paintSchematicView(entt::entity entity) {
@@ -451,18 +457,6 @@ namespace Bess::Canvas {
         }
     }
 
-    void Artist::drawEntity(entt::entity entity) {
-        auto &registry = sceneRef->getEnttRegistry();
-        const auto &tagComp = registry.get<Components::TagComponent>(entity);
-
-        if(tagComp.isSimComponent){
-            drawSimEntity(entity);
-        }
-        else{
-            drawNonSimEntity(entity);
-        }
-    }
-
     void Artist::drawNonSimEntity(entt::entity entity) {
         auto &registry = sceneRef->getEnttRegistry();
         const auto &tagComp = registry.get<Components::TagComponent>(entity);
@@ -570,7 +564,75 @@ namespace Bess::Canvas {
 
         Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id, rotation);
 
-        drawSlots(simComp, glm::vec3(glm::vec2(pos) - (glm::vec2(scale) / 2.f), pos.z), scale.x, rotation);
+        drawSlots(simComp, transformComp);
+    }
+
+    void Artist::drawSimEntity(
+        entt::entity entity,
+        Components::TagComponent &tagComp,
+        Components::TransformComponent &transform,
+        Components::SpriteComponent &spriteComp,
+        Components::SimulationComponent &simComp) {
+        auto &registry = sceneRef->getEnttRegistry();
+
+        if (!m_isSchematicMode) {
+            if (registry.all_of<Components::SimulationInputComponent>(entity)) {
+                drawInput(entity);
+                return;
+            } else if (registry.all_of<Components::SimulationOutputComponent>(entity)) {
+                drawOutput(entity);
+                return;
+            }
+        }
+
+
+        auto pos = transform.position;
+        auto rotation = transform.angle;
+        auto scale = transform.scale;
+        int maxRows = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
+        scale.y = componentStyles.headerHeight + componentStyles.rowGap + (maxRows * SLOT_ROW_SIZE);
+        transform.scale = scale;
+
+        if (m_isSchematicMode) {
+            paintSchematicView(entity);
+            return;
+        }
+
+        float headerHeight = componentStyles.headerHeight;
+        auto headerPos = glm::vec3(pos.x, pos.y - scale.y / 2.f + headerHeight / 2.f, pos.z);
+
+        /*spriteComp.borderRadius = glm::vec4(radius);*/
+        bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
+        auto borderColor = isSelected ? ViewportTheme::selectedCompColor : spriteComp.borderColor;
+
+        uint64_t id = (uint64_t)entity;
+
+        glm::vec3 textPos = glm::vec3(pos.x - scale.x / 2.f + componentStyles.paddingX, headerPos.y + componentStyles.paddingY, pos.z + 0.0005f);
+
+        Renderer2D::QuadRenderProperties props;
+        props.angle = rotation;
+        props.borderRadius = spriteComp.borderRadius;
+        props.borderSize = spriteComp.borderSize;
+        props.borderColor = borderColor;
+        props.isMica = true;
+
+        Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
+
+        props = {};
+        props.angle = rotation;
+        props.borderSize = glm::vec4(0.f);
+        props.borderRadius = glm::vec4(0, 0, spriteComp.borderRadius.x, spriteComp.borderRadius.y);
+        props.isMica = true;
+
+        Renderer::quad(headerPos,
+                       glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
+                       ViewportTheme::compHeaderColor,
+                       id,
+                       props);
+
+        Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id, rotation);
+
+        drawSlots(simComp, transform);
     }
 
     ArtistCompBoundInfo Artist::getCompBoundInfo(SimEngine::ComponentType type, glm::vec2 pos, glm::vec2 scale) {

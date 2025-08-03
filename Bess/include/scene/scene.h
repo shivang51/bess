@@ -140,6 +140,7 @@ namespace Bess::Canvas {
         float m_compZCoord = m_zIncrement;
         bool m_isDragging = false;
         std::unordered_map<entt::entity, glm::vec2> m_dragOffsets = {};
+        std::unordered_map<UUID, entt::entity> m_uuidToEntt = {};
 
         LastCreatedComponent m_lastCreatedComp = {};
         std::vector<SimEngine::ComponentType> m_copiedComponents = {};

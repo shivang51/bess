@@ -37,7 +37,7 @@ namespace Bess {
     std::vector<glm::vec4> Renderer::m_StandardTriVertices;
     std::unordered_map<PrimitiveType, size_t> Renderer::m_MaxRenderLimit;
 
-    RenderData Renderer::m_RenderData;
+    RenderData Renderer::m_renderData;
     PathContext Renderer::m_pathData;
 
     std::unique_ptr<Gl::Shader> Renderer::m_GridShader;
@@ -55,6 +55,13 @@ namespace Bess {
     std::unordered_map<std::string, glm::vec2> Renderer::m_charSizeCache;
     std::unordered_map<std::shared_ptr<Gl::Texture>, std::vector<Gl::QuadVertex>> Renderer::m_textureQuadVertices;
 
+	std::unique_ptr<Bess::Gl::QuadVao> Renderer::m_quadRendererVao;
+	std::unique_ptr<Bess::Gl::CircleVao> Renderer::m_circleRendererVao;
+	std::unique_ptr<Bess::Gl::TriangleVao> Renderer::m_triangleRendererVao;
+	std::unique_ptr<Bess::Gl::BatchVao<Gl::Vertex>> Renderer::m_textRendererVao;
+	std::unique_ptr<Bess::Gl::BatchVao<Gl::Vertex>> Renderer::m_pathRendererVao;
+	std::unique_ptr<Bess::Gl::InstancedVao<Gl::InstanceVertex>> Renderer::m_lineRendererVao;
+
     void Renderer::init() {
         {
             m_GridShader = std::make_unique<Gl::Shader>("assets/shaders/grid_vert.glsl", "assets/shaders/grid_frag.glsl");
@@ -65,7 +72,7 @@ namespace Bess {
             attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::GridVertex, color)));
             attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::float_t, offsetof(Gl::GridVertex, ar)));
 
-            m_GridVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::GridVertex));
+            //m_GridVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::GridVertex));
         }
 
 #ifndef BESS_RENDERER_DISABLE_RENDERPASS
@@ -87,8 +94,15 @@ namespace Bess {
             m_MaxRenderLimit[prim] = 8000;
         }
 
-        std::string vertexShader, fragmentShader;
+        m_quadRendererVao = std::make_unique<Bess::Gl::QuadVao>(m_MaxRenderLimit[PrimitiveType::quad]);
+        m_circleRendererVao = std::make_unique<Bess::Gl::CircleVao>(m_MaxRenderLimit[PrimitiveType::circle]);
+        m_triangleRendererVao = std::make_unique<Bess::Gl::TriangleVao>(m_MaxRenderLimit[PrimitiveType::triangle]);
+        m_textRendererVao = std::make_unique<Bess::Gl::BatchVao<Gl::Vertex>>(m_MaxRenderLimit[PrimitiveType::text], 4, 6);
+        m_pathRendererVao = std::make_unique<Bess::Gl::BatchVao<Gl::Vertex>>(m_MaxRenderLimit[PrimitiveType::path], 3, 3, true, false);
+        m_lineRendererVao = std::make_unique<Bess::Gl::InstancedVao<Gl::InstanceVertex>>(m_MaxRenderLimit[PrimitiveType::line]);
 
+        std::string vertexShader, fragmentShader;
+        
         for (auto primitive : m_AvailablePrimitives) {
             switch (primitive) {
             case PrimitiveType::quad:
@@ -110,7 +124,7 @@ namespace Bess {
                 fragmentShader = "assets/shaders/triangle_frag.glsl";
                 break;
             case PrimitiveType::line:
-                vertexShader = "assets/shaders/vert.glsl";
+                vertexShader = "assets/shaders/instance_vert.glsl";
                 fragmentShader = "assets/shaders/line_frag.glsl";
                 break;
             case PrimitiveType::text:
@@ -121,52 +135,29 @@ namespace Bess {
 
             if (vertexShader.empty() || fragmentShader.empty()) {
                 std::cerr << "[-] Primitive " << (int)primitive << "is not available" << std::endl;
-                return;
+                continue;
             }
-
-            auto max_render_count = m_MaxRenderLimit[primitive];
 
             m_shaders[primitive] = std::make_unique<Gl::Shader>(vertexShader, fragmentShader);
+            continue;
 
-            if (primitive == PrimitiveType::quad) {
-                std::vector<Gl::VaoAttribAttachment> attachments;
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::QuadVertex, position)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::QuadVertex, color)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::QuadVertex, texCoord)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::QuadVertex, borderRadius)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::QuadVertex, borderSize)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::QuadVertex, borderColor)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::QuadVertex, size)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::QuadVertex, id)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::QuadVertex, isMica)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::QuadVertex, texSlotIdx)));
-                m_vaos[primitive] = std::make_unique<Gl::Vao>(max_render_count * 4, max_render_count * 6, attachments, sizeof(Gl::QuadVertex));
-            } else if (primitive == PrimitiveType::circle) {
-                std::vector<Gl::VaoAttribAttachment> attachments;
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::CircleVertex, position)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::CircleVertex, color)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::CircleVertex, texCoord)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::float_t, offsetof(Gl::CircleVertex, innerRadius)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::CircleVertex, id)));
-                m_vaos[primitive] = std::make_unique<Gl::Vao>(max_render_count * 4, max_render_count * 6, attachments, sizeof(Gl::CircleVertex));
-            } else {
-                std::vector<Gl::VaoAttribAttachment> attachments;
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::Vertex, position)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::Vertex, color)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::Vertex, texCoord)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::Vertex, id)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::Vertex, texSlotIdx)));
-                bool triangle = primitive == PrimitiveType::triangle || primitive == PrimitiveType::curve || primitive == PrimitiveType::path;
-                Gl::VaoElementType elType = Gl::VaoElementType::quad;
-                if (primitive == PrimitiveType::triangle) {
-                    elType = Gl::VaoElementType::triangle;
-                } else if (primitive == PrimitiveType::curve || primitive == PrimitiveType::path) {
-                    elType = Gl::VaoElementType::triangleStrip;
-                }
-                size_t maxVertices = max_render_count * (triangle ? 3 : 4);
-                size_t maxIndices = max_render_count * (triangle ? 3 : 6);
-                m_vaos[primitive] = std::make_unique<Gl::Vao>(maxVertices, maxIndices, attachments, sizeof(Gl::Vertex), elType);
+            auto max_render_count = m_MaxRenderLimit[primitive];
+			std::vector<Gl::VaoAttribAttachment> attachments;
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::Vertex, position)));
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::Vertex, color)));
+            // attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::Vertex, texCoord)));
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::Vertex, id)));
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::Vertex, texSlotIdx)));
+            bool triangle = primitive == PrimitiveType::triangle || primitive == PrimitiveType::curve || primitive == PrimitiveType::path;
+            Gl::VaoElementType elType = Gl::VaoElementType::quad;
+            if (primitive == PrimitiveType::triangle) {
+                elType = Gl::VaoElementType::triangle;
+            } else if (primitive == PrimitiveType::curve || primitive == PrimitiveType::path) {
+                elType = Gl::VaoElementType::triangleStrip;
             }
+            size_t maxVertices = max_render_count * (triangle ? 3 : 4);
+            size_t maxIndices = max_render_count * (triangle ? 3 : 6);
+            // m_vaos[primitive] = std::make_unique<Gl::Vao>(maxVertices, maxIndices, attachments, sizeof(Gl::Vertex), elType);
 
             vertexShader.clear();
             fragmentShader.clear();
@@ -191,44 +182,21 @@ namespace Bess {
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
                         const glm::vec4 &color, int id,
                         QuadRenderProperties properties) {
-
-        std::vector<glm::vec2> texCoords = {
-            {0.0f, 1.0f},
-            {0.0f, 0.0f},
-            {1.0f, 0.0f},
-            {1.0f, 1.0f}};
-
-        std::vector<Gl::QuadVertex> vertices(4);
-
-        auto transform = glm::translate(glm::mat4(1.0f), pos);
-        transform = glm::rotate(transform, properties.angle, {0.f, 0.f, 1.f});
-        transform = glm::scale(transform, {size.x, size.y, 1.f});
-
-        for (int i = 0; i < 4; i++) {
-            auto &vertex = vertices[i];
-            vertex.position = transform * m_StandardQuadVertices[i];
-            vertex.id = id;
-            vertex.color = color;
-            vertex.borderRadius = properties.borderRadius;
-            vertex.size = size;
-            vertex.isMica = properties.isMica ? 1 : 0;
-            vertex.borderColor = properties.borderColor;
-            vertex.borderSize = properties.borderSize;
-            vertex.texCoord = texCoords[i];
-            vertex.texSlotIdx = 0;
-        }
-
-        addQuadVertices(vertices);
+        Gl::QuadVertex quadInstance{};
+        quadInstance.position = pos;
+        quadInstance.size = size;
+        quadInstance.color = color;
+        quadInstance.id = id;
+        quadInstance.borderRadius = properties.borderRadius;
+        quadInstance.borderColor = properties.borderColor;
+        quadInstance.borderSize = properties.borderSize;
+        quadInstance.isMica = properties.isMica ? 1 : 0;
+        quadInstance.texSlotIdx = 0;
+        m_renderData.quadVertices.emplace_back(quadInstance);
     }
 
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size, std::shared_ptr<Gl::Texture> texture,
                         const glm::vec4 &tintColor, int id, QuadRenderProperties properties) {
-        std::vector<glm::vec2> texCoords = {
-            {0.0f, 1.0f},
-            {0.0f, 0.0f},
-            {1.0f, 0.0f},
-            {1.0f, 1.0f}};
-
         int idx = 0;
         if (m_textureQuadVertices.find(texture) == m_textureQuadVertices.end()) {
             m_textureQuadVertices[texture] = std::vector<Gl::QuadVertex>();
@@ -239,27 +207,17 @@ namespace Bess {
         if (!verticesStore.empty())
             idx = verticesStore.front().texSlotIdx;
 
-        std::vector<Gl::QuadVertex> vertices(4);
-
-        auto transform = glm::translate(glm::mat4(1.0f), pos);
-        transform = glm::rotate(transform, properties.angle, {0.f, 0.f, 1.f});
-        transform = glm::scale(transform, {size.x, size.y, 1.f});
-
-        for (int i = 0; i < 4; i++) {
-            auto &vertex = vertices[i];
-            vertex.position = transform * m_StandardQuadVertices[i];
-            vertex.id = id;
-            vertex.color = tintColor;
-            vertex.borderRadius = properties.borderRadius;
-            vertex.size = size;
-            vertex.isMica = properties.isMica ? 1 : 0;
-            vertex.borderColor = properties.borderColor;
-            vertex.borderSize = properties.borderSize;
-            vertex.texCoord = texCoords[i];
-            vertex.texSlotIdx = idx;
-        }
-
-        verticesStore.insert(verticesStore.end(), vertices.begin(), vertices.end());
+        Gl::QuadVertex quadInstance{};
+        quadInstance.position = pos;
+        quadInstance.size = size;
+        quadInstance.color = tintColor;
+        quadInstance.id = id;
+        quadInstance.borderRadius = properties.borderRadius;
+        quadInstance.borderColor = properties.borderColor;
+        quadInstance.borderSize = properties.borderSize;
+        quadInstance.isMica = properties.isMica ? 1 : 0;
+        quadInstance.texSlotIdx = idx;
+        m_renderData.quadVertices.emplace_back(quadInstance);
     }
 
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size, std::shared_ptr<Gl::SubTexture> subTexture,
@@ -294,7 +252,7 @@ namespace Bess {
             vertex.isMica = properties.isMica ? 1 : 0;
             vertex.borderColor = properties.borderColor;
             vertex.borderSize = properties.borderSize;
-            vertex.texCoord = texCoords[i];
+            //vertex.texCoord = texCoords[i];
             vertex.texSlotIdx = idx;
         }
 
@@ -302,6 +260,7 @@ namespace Bess {
     }
 
     void Renderer::grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const glm::vec4 &color) {
+        return;
         std::vector<Gl::GridVertex> vertices(4);
 
         auto size_ = size;
@@ -334,7 +293,7 @@ namespace Bess {
         auto viewportPos = UI::UIMain::state.viewportPos / m_camera->getZoom();
         m_GridShader->setUniformVec2("u_cameraOffset", {-viewportPos.x - camPos.x, viewportPos.y + m_camera->getSpan().y + camPos.y});
 
-        m_GridVao->setVertices(vertices.data(), vertices.size());
+        //m_GridVao->setVertices(vertices.data(), vertices.size());
 
         Gl::Api::drawElements(GL_TRIANGLES, 6);
 
@@ -386,34 +345,41 @@ namespace Bess {
 
     void Renderer::circle(const glm::vec3 &center, const float radius,
                           const glm::vec4 &color, const int id, float innerRadius) {
-        glm::vec2 size = {radius * 2, radius * 2};
 
-        std::vector<glm::vec2> texCoords = {
-            {0.0f, 1.0f},
-            {0.0f, 0.0f},
-            {1.0f, 0.0f},
-            {1.0f, 1.0f}};
+        //static const std::array<glm::vec2, 4> texCoords = {{{0.0f, 1.0f},
+        //                                                    {0.0f, 0.0f},
+        //                                                    {1.0f, 0.0f},
+        //                                                    {1.0f, 1.0f}}};
 
-        std::vector<Gl::CircleVertex> vertices(4);
+        //std::vector<Gl::CircleVertex> vertices(4);
 
-        auto transform = glm::translate(glm::mat4(1.0f), center);
-        transform = glm::scale(transform, {size.x, size.y, 1.f});
+        //auto transform = glm::translate(glm::mat4(1.0f), center);
+        //transform = glm::scale(transform, {radius * 2, radius * 2, 1.f});
 
-        for (int i = 0; i < 4; i++) {
-            auto &vertex = vertices[i];
-            vertex.position = transform * m_StandardQuadVertices[i];
-            vertex.id = id;
-            vertex.color = color;
-            vertex.innerRadius = innerRadius / radius; // Normalize inner radius to the outer radius
-            vertex.texCoord = texCoords[i];
-        }
+        //const float normalizedInnerRadius = (radius == 0.0f) ? 0.0f : innerRadius / radius;
 
-        addCircleVertices(vertices);
+        //for (int i = 0; i < 4; i++) {
+        //    auto &vertex = vertices[i];
+        //    vertex.position = transform * m_StandardQuadVertices[i];
+        //    vertex.id = id;
+        //    vertex.color = color;
+        //    vertex.innerRadius = normalizedInnerRadius; // Normalize inner radius to the outer radius
+        //    vertex.texCoord = texCoords[i];
+        //}
+
+        Gl::CircleVertex vertex {
+            .position = center,
+            .color = color,
+            .radius = radius,
+            .innerRadius = innerRadius,
+            .id = id
+        };
+
+        m_renderData.circleVertices.emplace_back(vertex);
     }
 
     void Renderer::msdfText(const std::string &text, const glm::vec3 &pos, const size_t size,
                             const glm::vec4 &color, const int id, float angle) {
-
         // Command to use to generate MSDF font texture atlas
         // https://github.com/soimy/msdf-bmfont-xml
         // msdf-bmfont.cmd -f json --smart-size -s 32 -o %1.png %1
@@ -431,11 +397,10 @@ namespace Bess {
         float baseLineOff = yCharInfo.offset.y - wCharInfo.offset.y;
 
         glm::vec2 charPos = pos;
-        for(auto& ch: text){
+        for (auto &ch : text) {
             float yTempOff = 4.f;
-            if(ch >= 'a' && ch <= 'z') yTempOff = 3.f;
-
-            std::vector<Gl::Vertex> vertices(4);
+            if (ch >= 'a' && ch <= 'z')
+                yTempOff = 3.f;
 
             MsdfCharacter charInfo = m_msdfFont->getCharacterData(ch);
             auto subTexture = charInfo.subTexture;
@@ -443,22 +408,21 @@ namespace Bess {
             glm::vec2 size_ = charInfo.size * scale;
             float xOff = (charInfo.offset.x + charInfo.size.x / 2.f) * scale;
             float yOff = (-lineHeight + charInfo.size.y + charInfo.offset.y - charInfo.size.y / 2.f + baseLineOff) * scale;
-            auto transform = glm::translate(glm::mat4(1.0f), {charPos.x + xOff, charPos.y + yOff, pos.z});
+            auto transform = glm::translate(glm::mat4(1.0f), {charPos.x + xOff, charPos.y + yOff, pos.z });
             transform = glm::scale(transform, {size_, 1.f});
 
             for (int i = 0; i < 4; i++) {
-                auto &vertex = vertices[i];
+                Gl::Vertex vertex{};
                 vertex.position = transform * m_StandardQuadVertices[i];
                 vertex.id = id;
                 vertex.color = color;
                 vertex.texCoord = texCoords[i];
                 vertex.texSlotIdx = 1;
+				m_renderData.fontVertices.emplace_back(vertex);
             }
-
             charPos.x += charInfo.advance * scale;
-
-            m_RenderData.fontVertices.insert(m_RenderData.fontVertices.end(), vertices.begin(), vertices.end());
         }
+
     }
 
     void Renderer::text(const std::string &text, const glm::vec3 &pos, const size_t size,
@@ -485,29 +449,19 @@ namespace Bess {
     void Renderer2D::Renderer::line(const glm::vec3 &start, const glm::vec3 &end, float size, const glm::vec4 &color, const int id) {
         glm::vec2 direction = end - start;
         float length = glm::length(direction);
-
         glm::vec2 pos = (start + end) * 0.5f;
-
         float angle = glm::atan(direction.y, direction.x);
 
-        auto transform = glm::translate(glm::mat4(1.0f), {pos, start.z});
-        transform = glm::rotate(transform, angle, {0.f, 0.f, 1.f});
-        transform = glm::scale(transform, {length, size, 1.f});
+        Gl::InstanceVertex v{
+            .position = glm::vec3({pos, start.z}),
+            .size = glm::vec2({length, size}),
+            .angle = angle,
+            .color = color,
+            .id = id,
+            .texSlotIdx = 0
+        };
 
-        std::vector<Gl::Vertex> vertices(4);
-        for (int i = 0; i < vertices.size(); i++) {
-            auto &vertex = vertices[i];
-            vertex.position = transform * m_StandardQuadVertices[i];
-            vertex.id = id;
-            vertex.color = color;
-        }
-
-        vertices[0].texCoord = {0.0f, 1.0f};
-        vertices[1].texCoord = {0.0f, 0.0f};
-        vertices[2].texCoord = {1.0f, 0.0f};
-        vertices[3].texCoord = {1.0f, 1.0f};
-
-        addLineVertices(vertices);
+        m_renderData.lineVertices.emplace_back(v);
     }
 
     void Renderer2D::Renderer::drawLines(const std::vector<glm::vec3> &points, float weight, const glm::vec4 &color, const std::vector<int> &ids, bool closed) {
@@ -559,9 +513,9 @@ namespace Bess {
             vertex.color = color;
         }
 
-        vertices[0].texCoord = {0.0f, 0.0f};
-        vertices[1].texCoord = {0.0f, 0.5f};
-        vertices[2].texCoord = {1.0f, 1.0f};
+        //vertices[0].texCoord = {0.0f, 0.0f};
+        //vertices[1].texCoord = {0.0f, 0.5f};
+        //vertices[2].texCoord = {1.0f, 1.0f};
 
         addTriangleVertices(vertices);
     }
@@ -569,19 +523,19 @@ namespace Bess {
     void Renderer::addTriangleVertices(const std::vector<Gl::Vertex> &vertices) {
         auto max_render_count = m_MaxRenderLimit[PrimitiveType::circle];
 
-        auto &primitive_vertices = m_RenderData.triangleVertices;
+        //auto &primitive_vertices = m_RenderData.triangleVertices;
 
-        if (primitive_vertices.size() >= (max_render_count - 1) * 4) {
-            flush(PrimitiveType::triangle);
-        }
+        //if (primitive_vertices.size() >= (max_render_count - 1) * 4) {
+        //    flush(PrimitiveType::triangle);
+        //}
 
-        primitive_vertices.insert(primitive_vertices.end(), vertices.begin(), vertices.end());
+        //primitive_vertices.insert(primitive_vertices.end(), vertices.begin(), vertices.end());
     }
 
     void Renderer::addCircleVertices(const std::vector<Gl::CircleVertex> &vertices) {
         auto max_render_count = m_MaxRenderLimit[PrimitiveType::circle];
 
-        auto &primitive_vertices = m_RenderData.circleVertices;
+        auto &primitive_vertices = m_renderData.circleVertices;
 
         if (primitive_vertices.size() >= (max_render_count - 1) * 4) {
             flush(PrimitiveType::circle);
@@ -594,19 +548,19 @@ namespace Bess {
     void Renderer::addLineVertices(const std::vector<Gl::Vertex> &vertices) {
         auto max_render_count = m_MaxRenderLimit[PrimitiveType::line];
 
-        auto &primitive_vertices = m_RenderData.lineVertices;
+        auto &primitive_vertices = m_renderData.lineVertices;
 
         if (primitive_vertices.size() >= (max_render_count - 1) * 4) {
             flush(PrimitiveType::line);
         }
 
-        primitive_vertices.insert(primitive_vertices.end(), vertices.begin(), vertices.end());
+        //primitive_vertices.insert(primitive_vertices.end(), vertices.begin(), vertices.end());
     }
 
     void Renderer::addQuadVertices(const std::vector<Gl::QuadVertex> &vertices) {
         auto max_render_count = m_MaxRenderLimit[PrimitiveType::quad];
 
-        auto &primitive_vertices = m_RenderData.quadVertices;
+        auto &primitive_vertices = m_renderData.quadVertices;
 
         if (primitive_vertices.size() >= (max_render_count - 1) * 4) {
             flush(PrimitiveType::quad);
@@ -761,21 +715,61 @@ namespace Bess {
     }
 
     void Renderer::flush(PrimitiveType type) {
-        auto &vao = m_vaos[type];
+        if (type == PrimitiveType::quad || type == PrimitiveType::circle) {
+            auto &shader = m_shaders[type];
+            shader->bind();
+
+            shader->setUniformMat4("u_mvp", m_camera->getTransform());
+            shader->setUniform1i("u_SelectedObjId", -1);
+
+            if (type == PrimitiveType::quad) {
+                shader->setUniform1f("u_zoom", m_camera->getZoom());
+
+                m_quadRendererVao->bind();
+                m_quadRendererVao->updateInstanceData(m_renderData.quadVertices);
+                glDrawElementsInstanced(
+                    GL_TRIANGLES,
+                    m_quadRendererVao->getIndexCount(),
+                    GL_UNSIGNED_INT,
+                    nullptr,
+                    m_renderData.quadVertices.size());
+
+                m_quadRendererVao->unbind();
+                m_renderData.quadVertices.clear();
+            }
+            else if (type == PrimitiveType::circle) {
+
+                m_circleRendererVao->bind();
+                m_circleRendererVao->updateInstanceData(m_renderData.circleVertices);
+                glDrawElementsInstanced(
+                    GL_TRIANGLES,
+                    m_circleRendererVao->getIndexCount(),
+                    GL_UNSIGNED_INT,
+                    nullptr,
+                    m_renderData.circleVertices.size());
+
+                m_circleRendererVao->unbind();
+                m_renderData.circleVertices.clear();
+            }
+
+            return;
+        }
+        //auto &vao = m_vaos[type];
 
         auto &shader = m_shaders[type];
 
-        vao->bind();
+        //vao->bind();
         shader->bind();
 
         shader->setUniformMat4("u_mvp", m_camera->getTransform());
         shader->setUniform1i("u_SelectedObjId", -1);
 
+
         switch (type) {
-        case PrimitiveType::quad: {
+        /* case PrimitiveType::quad: {
             shader->setUniform1f("u_zoom", m_camera->getZoom());
-            auto &vertices = m_RenderData.quadVertices;
-            vao->setVertices(vertices.data(), vertices.size());
+            auto &vertices = m_renderData.quadVertices;
+            //vao->setVertices(vertices.data(), vertices.size());
             Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
             vertices.clear();
             if (!m_textureQuadVertices.empty()) {
@@ -788,7 +782,7 @@ namespace Bess {
                 for (auto &[tex, vertices] : m_textureQuadVertices) {
                     tex->bind(vertices.front().texSlotIdx);
                     if (texVertices.size() + vertices.size() >= (m_MaxRenderLimit[PrimitiveType::quad] - 1) * 4) {
-                        vao->setVertices(texVertices.data(), texVertices.size());
+                        //vao->setVertices(texVertices.data(), texVertices.size());
                         Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(texVertices.size() / 4) * 6);
                         texVertices.clear();
                     }
@@ -796,7 +790,7 @@ namespace Bess {
                 }
 
                 if (!texVertices.empty()) {
-                    vao->setVertices(texVertices.data(), texVertices.size());
+                    //vao->setVertices(texVertices.data(), texVertices.size());
                     Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(texVertices.size() / 4) * 6);
                     texVertices.clear();
                 }
@@ -806,44 +800,47 @@ namespace Bess {
         } break;
         case PrimitiveType::curve: {
             shader->setUniform1f("u_zoom", m_camera->getZoom());
-            vao->setVerticesAndIndices(m_curveStripVertices.data(), m_curveStripVertices.size(), m_curveStripIndices.data(), m_curveStripIndices.size());
+            //vao->setVerticesAndIndices(m_curveStripVertices.data(), m_curveStripVertices.size(), m_curveStripIndices.data(), m_curveStripIndices.size());
             GL_CHECK(glEnable(GL_PRIMITIVE_RESTART));
             GL_CHECK(glPrimitiveRestartIndex(PRIMITIVE_RESTART));
             Gl::Api::drawElements(GL_TRIANGLE_STRIP, (GLsizei)(m_curveStripIndices.size()));
             m_curveStripVertices.clear();
             m_curveStripIndices.clear();
-        } break;
+        } break;*/
         case PrimitiveType::path: {
             shader->setUniform1f("u_zoom", m_camera->getZoom());
-            vao->setVerticesAndIndices(m_pathStripVertices.data(), m_pathStripVertices.size(), m_pathStripIndices.data(), m_pathStripIndices.size());
+            m_pathRendererVao->bind();
+            m_pathRendererVao->setVerticesAndIndicies(m_pathStripVertices, m_pathStripIndices);
             GL_CHECK(glEnable(GL_PRIMITIVE_RESTART));
             GL_CHECK(glPrimitiveRestartIndex(PRIMITIVE_RESTART));
             Gl::Api::drawElements(GL_TRIANGLE_STRIP, (GLsizei)(m_pathStripIndices.size()));
+            m_pathRendererVao->unbind();
             m_pathStripVertices.clear();
             m_pathStripIndices.clear();
-        } break;
-        case PrimitiveType::circle: {
-            auto &vertices = m_RenderData.circleVertices;
-            vao->setVertices(vertices.data(), vertices.size());
-            Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
-            vertices.clear();
-        } break;
+        } break; /*
         case PrimitiveType::triangle: {
-            auto &vertices = m_RenderData.triangleVertices;
-            vao->setVertices(vertices.data(), vertices.size());
+            auto &vertices = m_renderData.triangleVertices;
+            //vao->setVertices(vertices.data(), vertices.size());
             Gl::Api::drawElements(GL_TRIANGLES, vertices.size());
             vertices.clear();
-        } break;
+        } break;*/
         case PrimitiveType::line: {
-            auto &vertices = m_RenderData.lineVertices;
-            vao->setVertices(vertices.data(), vertices.size());
-            Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
+            auto &vertices = m_renderData.lineVertices;
+            m_lineRendererVao->bind();
+            m_lineRendererVao->updateInstanceData(vertices);
+            glDrawElementsInstanced(
+                GL_TRIANGLES,
+                m_lineRendererVao->getIndexCount(),
+                GL_UNSIGNED_INT,
+                nullptr,
+                vertices.size());
+            m_lineRendererVao->unbind();
             vertices.clear();
         } break;
         case PrimitiveType::text: {
-            auto &vertices = m_RenderData.fontVertices;
+            auto &vertices = m_renderData.fontVertices;
             if (vertices.empty()) {
-                vao->unbind();
+                //vao->unbind();
                 shader->unbind();
                 return;
             }
@@ -854,13 +851,15 @@ namespace Bess {
             }
             shader->setUniform1iv("u_Textures", texSlots.data(), 32);
             m_msdfFont->getTextureAtlas()->bind(1);
-            vao->setVertices(vertices.data(), vertices.size());
+            m_textRendererVao->bind();
+            m_textRendererVao->setVertices(vertices);
             Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
             vertices.clear();
+            m_textRendererVao->unbind();
         } break;
         }
 
-        vao->unbind();
+        //vao->unbind();
         shader->unbind();
     }
 
@@ -1076,9 +1075,9 @@ namespace Bess {
         if (isClosed && !stripVertices.empty()) {
             // Create two new vertices with the position of the first two, but with u=1
             Gl::Vertex finalRight = stripVertices[0];
-            finalRight.texCoord.x = 1.0f;
+            //finalRight.texCoord.x = 1.0f;
             Gl::Vertex finalLeft = stripVertices[1];
-            finalLeft.texCoord.x = 1.0f;
+            //finalLeft.texCoord.x = 1.0f;
 
             stripVertices.push_back(finalRight);
             stripVertices.push_back(finalLeft);

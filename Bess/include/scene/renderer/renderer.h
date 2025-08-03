@@ -18,12 +18,11 @@ namespace Bess::Renderer2D {
 
     struct RenderData {
         std::vector<Gl::CircleVertex> circleVertices;
-        std::vector<Gl::Vertex> lineVertices;
+        std::vector<Gl::InstanceVertex> lineVertices;
         std::vector<Gl::Vertex> curveVertices;
         std::vector<Gl::Vertex> fontVertices;
         std::vector<Gl::Vertex> triangleVertices;
         std::vector<Gl::QuadVertex> quadVertices;
-        std::vector<Gl::QuadVertex> quadShadowVertices;
     };
 
     struct QuadBezierCurvePoints {
@@ -117,8 +116,8 @@ namespace Bess::Renderer2D {
                                                               const glm::vec4 &color,
                                                               int id, float miterLimit, bool isClosed);
 
-        static void addCurveSegmentStrip( const glm::vec3 &prev_, const glm::vec3 &curr_, const glm::vec4 &color,
-            int id, float weight, bool firstSegment);
+        static void addCurveSegmentStrip(const glm::vec3 &prev_, const glm::vec3 &curr_, const glm::vec4 &color,
+                                         int id, float weight, bool firstSegment);
 
         static int calculateQuadBezierSegments(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2);
 
@@ -137,7 +136,7 @@ namespace Bess::Renderer2D {
         static QuadBezierCurvePoints generateSmoothBendPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius);
 
         static glm::vec2 nextBernstinePointCubicBezier(const glm::vec2 &p0, const glm::vec2 &p1,
-                                              const glm::vec2 &p2, const glm::vec2 &p3, const float t);
+                                                       const glm::vec2 &p2, const glm::vec2 &p3, const float t);
 
         static glm::vec2 nextBernstinePointQuadBezier(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2, const float t);
 
@@ -163,13 +162,14 @@ namespace Bess::Renderer2D {
 
         static std::unordered_map<PrimitiveType, size_t> m_MaxRenderLimit;
 
-        static RenderData m_RenderData;
+        static RenderData m_renderData;
 
         static std::unique_ptr<Gl::Shader> m_GridShader;
         static std::unique_ptr<Gl::Shader> m_shadowPassShader;
         static std::unique_ptr<Gl::Shader> m_compositePassShader;
         static std::unique_ptr<Gl::Vao> m_GridVao;
         static std::unique_ptr<Gl::Vao> m_renderPassVao;
+
         static std::unordered_map<std::string, glm::vec2> m_charSizeCache;
 
         static std::unique_ptr<Font> m_Font;
@@ -187,6 +187,13 @@ namespace Bess::Renderer2D {
         static std::unordered_map<std::shared_ptr<Gl::Texture>, std::vector<Gl::QuadVertex>> m_textureQuadVertices;
 
         static std::unique_ptr<MsdfFont> m_msdfFont;
+
+        static std::unique_ptr<Bess::Gl::QuadVao> m_quadRendererVao;
+        static std::unique_ptr<Bess::Gl::CircleVao> m_circleRendererVao;
+        static std::unique_ptr<Bess::Gl::TriangleVao> m_triangleRendererVao;
+        static std::unique_ptr<Bess::Gl::InstancedVao<Gl::InstanceVertex>> m_lineRendererVao;
+        static std::unique_ptr<Bess::Gl::BatchVao<Gl::Vertex>> m_textRendererVao;
+        static std::unique_ptr<Bess::Gl::BatchVao<Gl::Vertex>> m_pathRendererVao;
     };
 
 } // namespace Bess::Renderer2D
