@@ -1,4 +1,8 @@
-# BESS: Basic Electrical Simulation Software
+<h1>
+  <img alt="BESS:" style="height: 2em;" src="assets/images/logo/BessLogo.png"/> 
+  Basic Electrical Simulation Software
+</h1>
+
 
 BESS is a software for simulating electrical circuits (for now digital components). It is designed to be simple to use and easy to understand. It is intended for educational purposes, but can also be used for professional work.
 
@@ -18,6 +22,7 @@ Tested Build On:
 - [x] Windows
 - [ ] MacOS
 
+Following commands are only valid for Linux, as build scripts for windows have not been written yet.
 All build scripts live in the **scripts/** folder inside the CMake source directory.
 
 1. **Clean previous builds** (if you are building after another build)
@@ -43,5 +48,5 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
 - [X] Logging
 - [X] Schematic diagram generator from nodes
 - [X] MSDF font rendering
-- [ ] More non-simulating nodes e.g. text node
+- [x] More non-simulating nodes e.g. text node
 - [ ] Asset Manager
