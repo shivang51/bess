@@ -147,7 +147,6 @@ namespace Bess::Renderer2D {
         static std::vector<Gl::RenderPassVertex> getRenderPassVertices(float width, float height);
 
         static std::vector<std::shared_ptr<Gl::Shader>> m_shaders;
-        static std::vector<std::unique_ptr<Gl::Vao>> m_vaos;
         static std::vector<size_t> m_MaxRenderLimit;
 
         static std::shared_ptr<Camera> m_camera;
@@ -182,6 +181,13 @@ namespace Bess::Renderer2D {
         static std::unordered_map<std::shared_ptr<Gl::Texture>, std::vector<Gl::QuadVertex>> m_textureQuadVertices;
 
         static std::shared_ptr<MsdfFont> m_msdfFont;
+
+		static std::unique_ptr<Bess::Gl::QuadVao> m_quadRendererVao;
+        static std::unique_ptr<Bess::Gl::CircleVao> m_circleRendererVao;
+        static std::unique_ptr<Bess::Gl::TriangleVao> m_triangleRendererVao;
+        static std::unique_ptr<Bess::Gl::InstancedVao<Gl::InstanceVertex>> m_lineRendererVao;
+        static std::unique_ptr<Bess::Gl::InstancedVao<Gl::InstanceVertex>> m_textRendererVao;
+        static std::unique_ptr<Bess::Gl::BatchVao<Gl::Vertex>> m_pathRendererVao;
     };
 
 } // namespace Bess::Renderer2D

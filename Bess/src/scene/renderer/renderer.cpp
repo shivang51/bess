@@ -29,7 +29,6 @@ namespace Bess {
     std::vector<PrimitiveType> Renderer::m_AvailablePrimitives;
 
     std::vector<std::shared_ptr<Gl::Shader>> Renderer::m_shaders;
-    std::vector<std::unique_ptr<Gl::Vao>> Renderer::m_vaos;
     std::vector<size_t> Renderer::m_MaxRenderLimit;
 
     std::shared_ptr<Camera> Renderer::m_camera;
@@ -85,7 +84,6 @@ namespace Bess {
         maxPrimNum += 1;
 
         m_shaders.resize(maxPrimNum);
-        m_vaos.resize(maxPrimNum);
         m_MaxRenderLimit.resize(maxPrimNum);
 
         for (auto prim : m_AvailablePrimitives) {
@@ -93,9 +91,13 @@ namespace Bess {
         }
 
         auto& assetManager = Assets::AssetManager::instance();
+        m_quadRendererVao = std::make_unique<Bess::Gl::QuadVao>(m_MaxRenderLimit[(int)PrimitiveType::quad]);
+        m_circleRendererVao = std::make_unique<Bess::Gl::CircleVao>(m_MaxRenderLimit[(int)PrimitiveType::circle]);
+        m_triangleRendererVao = std::make_unique<Bess::Gl::TriangleVao>(m_MaxRenderLimit[(int)PrimitiveType::triangle]);
+        m_textRendererVao = std::make_unique<Bess::Gl::InstancedVao<Gl::InstanceVertex>>(m_MaxRenderLimit[(int)PrimitiveType::text]);
+        m_lineRendererVao = std::make_unique<Bess::Gl::InstancedVao<Gl::InstanceVertex>>(m_MaxRenderLimit[(int)PrimitiveType::line]);
+        m_pathRendererVao = std::make_unique<Bess::Gl::BatchVao<Gl::Vertex>>(m_MaxRenderLimit[(int)PrimitiveType::path], 3, 3, true, false);
 
-        std::string vertexShader, fragmentShader;
-        
         for (auto primitive : m_AvailablePrimitives) {
             int primIdx = (int)primitive;
             switch (primitive) {
@@ -119,48 +121,6 @@ namespace Bess {
                 m_shaders[primIdx] = assetManager.get(Assets::Shaders::text);
                 break;
             }
-
-            auto max_render_count = m_MaxRenderLimit[(int)primIdx];
-
-            if (primitive == PrimitiveType::quad) {
-                std::vector<Gl::VaoAttribAttachment> attachments;
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::QuadVertex, position)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::QuadVertex, color)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::QuadVertex, texCoord)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::QuadVertex, borderRadius)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::QuadVertex, borderSize)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::QuadVertex, borderColor)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::QuadVertex, size)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::QuadVertex, id)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::QuadVertex, isMica)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::QuadVertex, texSlotIdx)));
-                m_vaos[primIdx] = std::make_unique<Gl::Vao>(max_render_count * 4, max_render_count * 6, attachments, sizeof(Gl::QuadVertex));
-            } else if (primitive == PrimitiveType::circle) {
-                std::vector<Gl::VaoAttribAttachment> attachments;
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::CircleVertex, position)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::CircleVertex, color)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::CircleVertex, texCoord)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::float_t, offsetof(Gl::CircleVertex, innerRadius)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::CircleVertex, id)));
-                m_vaos[primIdx] = std::make_unique<Gl::Vao>(max_render_count * 4, max_render_count * 6, attachments, sizeof(Gl::CircleVertex));
-            } else {
-                std::vector<Gl::VaoAttribAttachment> attachments;
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::Vertex, position)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::Vertex, color)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::Vertex, texCoord)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::Vertex, id)));
-                attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::Vertex, texSlotIdx)));
-                bool triangle = primitive == PrimitiveType::triangle || primitive == PrimitiveType::curve || primitive == PrimitiveType::path;
-                Gl::VaoElementType elType = Gl::VaoElementType::quad;
-                if (primitive == PrimitiveType::triangle) {
-                    elType = Gl::VaoElementType::triangle;
-                } else if (primitive == PrimitiveType::curve || primitive == PrimitiveType::path) {
-                    elType = Gl::VaoElementType::triangleStrip;
-                }
-                size_t maxVertices = max_render_count * (triangle ? 3 : 4);
-                size_t maxIndices = max_render_count * (triangle ? 3 : 6);
-                m_vaos[primIdx] = std::make_unique<Gl::Vao>(maxVertices, maxIndices, attachments, sizeof(Gl::Vertex), elType);
-            }
         }
 
         {
@@ -171,7 +131,7 @@ namespace Bess {
             attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::GridVertex, color)));
             attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::float_t, offsetof(Gl::GridVertex, ar)));
 
-            m_GridVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::GridVertex));
+            //m_GridVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::GridVertex));
             m_GridShader = assetManager.get(Assets::Shaders::grid);
         }
 
@@ -711,10 +671,7 @@ namespace Bess {
     }
 
     void Renderer::flush(PrimitiveType type) {
-        auto &vao = m_vaos[(int)type];
         auto &shader = m_shaders[(int)type];
-
-        vao->bind();
         shader->bind();
 
         shader->setUniformMat4("u_mvp", m_camera->getTransform());
