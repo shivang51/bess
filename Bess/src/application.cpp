@@ -4,7 +4,6 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
 #include "ui/ui.h"
-#include <GLFW/glfw3.h>
 
 #include "common/bind_helpers.h"
 #include "common/log.h"

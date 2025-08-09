@@ -1,16 +1,17 @@
 #include "ui/ui.h"
 #include "application_state.h"
 #include "settings/settings.h"
-
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-#include "imgui_internal.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/icons/ComponentIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/icons/MaterialIcons.h"
 #include "ui/ui_main/ui_main.h"
+#include "assets.h"
+
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+#include "imgui_internal.h"
 
 namespace Bess::UI {
     void init(GLFWwindow *window) {
@@ -95,6 +96,8 @@ namespace Bess::UI {
     void loadFontAndSetScale(float fontSize, float scale) {
         ImGuiIO &io = ImGui::GetIO();
         ImGuiStyle &style = ImGui::GetStyle();
+
+        const auto &robotoPath = Assets::Fonts::Paths::roboto.paths[0];
 
         io.Fonts->Clear();
         io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Regular.ttf", fontSize);

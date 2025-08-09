@@ -1,7 +1,6 @@
 #include "ui/ui_main/ui_main.h"
 #include "application_state.h"
 #include "common/log.h"
-#include "glad/glad.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "scene/renderer/renderer.h"

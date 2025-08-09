@@ -2,7 +2,6 @@
 #include "fb_attachment.h"
 #include "fwd.hpp"
 #include "gl_wrapper.h"
-#include "glad/glad.h"
 #include "scene/renderer/gl/texture.h"
 #include <iostream>
 #include <memory>

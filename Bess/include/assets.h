@@ -8,6 +8,13 @@ namespace Bess::Assets {
     namespace Fonts {
         constexpr auto roboto = AssetID<Renderer2D::Font, 1>("assets/fonts/Roboto/Roboto-Regular.ttf");
         constexpr auto robotoMsdf = AssetID<Renderer2D::MsdfFont, 2>("assets/fonts/Roboto/msdf/", "Roboto-Regular.json");
+        namespace Paths {
+			constexpr auto roboto  = AssetID<std::string, 1>("assets/fonts/Roboto/Roboto-Regular.ttf");
+			constexpr auto componentIcons  = AssetID<std::string, 1>("assets/icons/ComponentIcons.ttf");
+			constexpr auto codeIcons  = AssetID<std::string, 1>("assets/icons/codicon.ttf");
+			constexpr auto materialIcons  = AssetID<std::string, 1>("assets/icons/MaterialIcons-Regular.ttf");
+			constexpr auto fontAwesomeIcons  = AssetID<std::string, 1>("assets/icons/fa-solid-900.ttf");
+        }
     } // namespace Fonts
 
     namespace Shaders {

@@ -1,5 +1,4 @@
 #include "scene/renderer/gl/texture.h"
-#include "glad/glad.h"
 #include "stb_image.h"
 #include "stb_image_write.h"
 #include "scene/renderer/gl/gl_wrapper.h"

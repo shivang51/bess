@@ -1,5 +1,4 @@
 #include "scene/scene.h"
-#include "GLFW/glfw3.h"
 #include "common/log.h"
 #include "component_catalog.h"
 #include "entt/entity/entity.hpp"

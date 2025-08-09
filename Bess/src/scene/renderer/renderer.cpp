@@ -10,8 +10,6 @@
 #include "scene/renderer/gl/primitive_type.h"
 #include "scene/renderer/gl/vertex.h"
 #include "ui/ui_main/ui_main.h"
-#include <GL/gl.h>
-#include <GLFW/glfw3.h>
 #include <cstdlib>
 #include <ext/matrix_transform.hpp>
 #include <iostream>

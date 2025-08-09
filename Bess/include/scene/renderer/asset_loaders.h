@@ -26,4 +26,11 @@ namespace Bess::Assets{
             return std::make_shared<Bess::Renderer2D::MsdfFont>(path, json);
         }
     };
+
+    template <>
+    struct AssetLoader<std::string> {
+        static std::shared_ptr<std::string> load(const std::string& path) {
+            return std::make_shared<std::string>(path);
+        }
+    };
 }
