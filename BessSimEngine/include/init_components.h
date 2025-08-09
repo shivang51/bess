@@ -6,32 +6,6 @@
 #include <iostream>
 
 namespace Bess::SimEngine {
-
-    static std::vector<bool> getInputPinStates(entt::registry &reg, const DigitalComponent &gateComp, entt::entity callerEnt, auto fn) {
-        std::vector<bool> inPinValues = gateComp.inputStates;
-        for (int i = 0; i < gateComp.inputPins.size(); i++) {
-            auto pin = gateComp.inputPins[i];
-            bool pinValue = false;
-            bool update = false;
-            for (const auto &conn : pin) {
-                auto e = fn(conn.first);
-                if (reg.valid(e)) {
-                    update = update || !reg.valid(callerEnt) || e == callerEnt;
-                    auto &srcGate = reg.get<DigitalComponent>(e);
-                    if (!srcGate.outputStates.empty()) {
-                        pinValue = pinValue || srcGate.outputStates[conn.second];
-                        if (pinValue)
-                            break;
-                    }
-                }
-            }
-            if (update) {
-                inPinValues[i] = pinValue;
-            }
-        }
-        return inPinValues;
-    }
-
     inline void initFlipFlops() {
         auto simFunc = [&](entt::registry &reg, entt::entity e, const std::vector<bool> &inputs, auto fn) -> bool {
             assert(reg.all_of<FlipFlopComponent>(e));
