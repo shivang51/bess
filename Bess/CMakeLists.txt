@@ -23,6 +23,10 @@ set(External
 )
 
 set(Header_Files
+"include/assets.h"
+"include/asset_manager/asset_id.h"
+"include/asset_manager/asset_loader.h"
+"include/asset_manager/asset_manager.h"
 "include/settings/themes.h"
 "include/settings/settings.h"
 "include/settings/viewport_theme.h"
@@ -78,6 +82,7 @@ set(Header_Files
 source_group("include" FILES ${Header_Files})
 
 set(Source_Files
+"src/asset_manager/asset_manager.cpp"
 "src/application_state.cpp"
 "src/application.cpp"
 "src/settings/viewport_theme.cpp"
