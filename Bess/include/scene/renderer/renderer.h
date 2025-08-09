@@ -147,9 +147,7 @@ namespace Bess::Renderer2D {
       private:
         static std::vector<Gl::RenderPassVertex> getRenderPassVertices(float width, float height);
 
-        static std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Shader>> m_shaders;
-
-        static std::unique_ptr<Gl::Shader> m_quadShadowShader;
+        static std::unordered_map<PrimitiveType, std::shared_ptr<Gl::Shader>> m_shaders;
 
         static std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Vao>> m_vaos;
 
@@ -165,14 +163,14 @@ namespace Bess::Renderer2D {
 
         static RenderData m_RenderData;
 
-        static std::unique_ptr<Gl::Shader> m_GridShader;
+        static std::shared_ptr<Gl::Shader> m_GridShader;
         static std::unique_ptr<Gl::Shader> m_shadowPassShader;
         static std::unique_ptr<Gl::Shader> m_compositePassShader;
         static std::unique_ptr<Gl::Vao> m_GridVao;
         static std::unique_ptr<Gl::Vao> m_renderPassVao;
         static std::unordered_map<std::string, glm::vec2> m_charSizeCache;
 
-        static std::unique_ptr<Font> m_Font;
+        static std::shared_ptr<Font> m_Font;
 
         static std::vector<Gl::Vertex> m_curveStripVertices;
         static std::vector<GLuint> m_curveStripIndices;
@@ -186,7 +184,7 @@ namespace Bess::Renderer2D {
 
         static std::unordered_map<std::shared_ptr<Gl::Texture>, std::vector<Gl::QuadVertex>> m_textureQuadVertices;
 
-        static std::unique_ptr<MsdfFont> m_msdfFont;
+        static std::shared_ptr<MsdfFont> m_msdfFont;
     };
 
 } // namespace Bess::Renderer2D

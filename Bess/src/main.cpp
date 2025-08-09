@@ -22,8 +22,6 @@ static bool isValidStartDir() {
 }
 
 int main(int argc, char **argv) {
-    std::vector<std::string> args(argv, argv + argc);
-
     if (!isValidStartDir()) {
         std::filesystem::path exePath = std::filesystem::absolute(argv[0]);
         std::filesystem::path exeDir = exePath.parent_path();

@@ -1,4 +1,7 @@
 ﻿#include "scene/renderer/renderer.h"
+#include "scene/renderer/asset_loaders.h"
+#include "asset_manager/asset_manager.h"
+#include "assets.h"
 #include "camera.h"
 #include "fwd.hpp"
 #include "geometric.hpp"
@@ -27,8 +30,7 @@ namespace Bess {
     bool Renderer::m_curveBroken = false;
     std::vector<PrimitiveType> Renderer::m_AvailablePrimitives;
 
-    std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Shader>> Renderer::m_shaders;
-    std::unique_ptr<Gl::Shader> Renderer::m_quadShadowShader;
+    std::unordered_map<PrimitiveType, std::shared_ptr<Gl::Shader>> Renderer::m_shaders;
     std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Vao>> Renderer::m_vaos;
 
     std::shared_ptr<Camera> Renderer::m_camera;
@@ -40,34 +42,22 @@ namespace Bess {
     RenderData Renderer::m_RenderData;
     PathContext Renderer::m_pathData;
 
-    std::unique_ptr<Gl::Shader> Renderer::m_GridShader;
+    std::shared_ptr<Gl::Shader> Renderer::m_GridShader;
     std::unique_ptr<Gl::Shader> Renderer::m_shadowPassShader;
     std::unique_ptr<Gl::Shader> Renderer::m_compositePassShader;
     std::unique_ptr<Gl::Vao> Renderer::m_GridVao;
     std::unique_ptr<Gl::Vao> Renderer::m_renderPassVao;
-    std::unique_ptr<MsdfFont> Renderer::m_msdfFont;
     std::vector<Gl::Vertex> Renderer::m_curveStripVertices;
     std::vector<GLuint> Renderer::m_curveStripIndices;
     std::vector<Gl::Vertex> Renderer::m_pathStripVertices;
     std::vector<GLuint> Renderer::m_pathStripIndices;
 
-    std::unique_ptr<Font> Renderer::m_Font;
+    std::shared_ptr<Font> Renderer::m_Font;
+    std::shared_ptr<MsdfFont> Renderer::m_msdfFont;
     std::unordered_map<std::string, glm::vec2> Renderer::m_charSizeCache;
     std::unordered_map<std::shared_ptr<Gl::Texture>, std::vector<Gl::QuadVertex>> Renderer::m_textureQuadVertices;
 
     void Renderer::init() {
-        {
-            m_GridShader = std::make_unique<Gl::Shader>("assets/shaders/grid_vert.glsl", "assets/shaders/grid_frag.glsl");
-            std::vector<Gl::VaoAttribAttachment> attachments;
-            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::GridVertex, position)));
-            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::GridVertex, texCoord)));
-            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::GridVertex, id)));
-            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::GridVertex, color)));
-            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::float_t, offsetof(Gl::GridVertex, ar)));
-
-            m_GridVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::GridVertex));
-        }
-
 #ifndef BESS_RENDERER_DISABLE_RENDERPASS
         {
 
@@ -87,46 +77,32 @@ namespace Bess {
             m_MaxRenderLimit[prim] = 8000;
         }
 
-        std::string vertexShader, fragmentShader;
+        auto& assetManager = Assets::AssetManager::instance();
 
         for (auto primitive : m_AvailablePrimitives) {
             switch (primitive) {
             case PrimitiveType::quad:
-                vertexShader = "assets/shaders/quad_vert.glsl";
-                fragmentShader = "assets/shaders/quad_frag.glsl";
-                m_quadShadowShader = std::make_unique<Gl::Shader>("assets/shaders/quad_vert.glsl", "assets/shaders/shadow_frag.glsl");
+                m_shaders[primitive] = assetManager.get(Assets::Shaders::quad);
                 break;
             case PrimitiveType::curve:
             case PrimitiveType::path:
-                vertexShader = "assets/shaders/vert.glsl";
-                fragmentShader = "assets/shaders/curve_frag.glsl";
+                m_shaders[primitive] = assetManager.get(Assets::Shaders::path);
                 break;
             case PrimitiveType::circle:
-                vertexShader = "assets/shaders/circle_vert.glsl";
-                fragmentShader = "assets/shaders/circle_frag.glsl";
+                m_shaders[primitive] = assetManager.get(Assets::Shaders::circle);
                 break;
             case PrimitiveType::triangle:
-                vertexShader = "assets/shaders/vert.glsl";
-                fragmentShader = "assets/shaders/triangle_frag.glsl";
+                m_shaders[primitive] = assetManager.get(Assets::Shaders::triangle);
                 break;
             case PrimitiveType::line:
-                vertexShader = "assets/shaders/vert.glsl";
-                fragmentShader = "assets/shaders/line_frag.glsl";
+                m_shaders[primitive] = assetManager.get(Assets::Shaders::line);
                 break;
             case PrimitiveType::text:
-                vertexShader = "assets/shaders/vert.glsl";
-                fragmentShader = "assets/shaders/text_frag.glsl";
+                m_shaders[primitive] = assetManager.get(Assets::Shaders::text);
                 break;
-            }
-
-            if (vertexShader.empty() || fragmentShader.empty()) {
-                std::cerr << "[-] Primitive " << (int)primitive << "is not available" << std::endl;
-                return;
             }
 
             auto max_render_count = m_MaxRenderLimit[primitive];
-
-            m_shaders[primitive] = std::make_unique<Gl::Shader>(vertexShader, fragmentShader);
 
             if (primitive == PrimitiveType::quad) {
                 std::vector<Gl::VaoAttribAttachment> attachments;
@@ -167,10 +143,20 @@ namespace Bess {
                 size_t maxIndices = max_render_count * (triangle ? 3 : 6);
                 m_vaos[primitive] = std::make_unique<Gl::Vao>(maxVertices, maxIndices, attachments, sizeof(Gl::Vertex), elType);
             }
-
-            vertexShader.clear();
-            fragmentShader.clear();
         }
+
+        {
+            std::vector<Gl::VaoAttribAttachment> attachments;
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::GridVertex, position)));
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::GridVertex, texCoord)));
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::GridVertex, id)));
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::GridVertex, color)));
+            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::float_t, offsetof(Gl::GridVertex, ar)));
+
+            m_GridVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::GridVertex));
+            m_GridShader = assetManager.get(Assets::Shaders::grid);
+        }
+
 
         m_StandardQuadVertices = {
             {-0.5f, 0.5f, 0.f, 1.f},
@@ -184,8 +170,8 @@ namespace Bess {
             {0.5f, 0.0f, 0.f, 1.f},
             {0.0f, 0.5f, 0.f, 1.f}};
 
-        m_Font = std::make_unique<Font>("assets/fonts/Roboto/Roboto-Regular.ttf");
-        m_msdfFont = std::make_unique<MsdfFont>("assets/fonts/Roboto/msdf/", "Roboto-Regular.json");
+        m_Font = assetManager.get(Assets::Fonts::roboto);
+        m_msdfFont = assetManager.get<MsdfFont>(Assets::Fonts::robotoMsdf);
     }
 
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
