@@ -33,13 +33,8 @@ namespace Bess::Canvas {
     float SLOT_ROW_SIZE = (componentStyles.rowMargin * 2.f) + (componentStyles.slotRadius * 2.f) + componentStyles.rowGap;
 
     glm::vec3 Artist::getSlotPos(const Components::SlotComponent &comp, const Components::TransformComponent &parentTransform) {
-        auto &registry = sceneRef->getEnttRegistry();
-
         auto pPos = parentTransform.position;
         auto pScale = parentTransform.scale;
-
-        //bool isNonHeader = registry.any_of<Components::SimulationInputComponent, Components::SimulationOutputComponent>(parentEntt);
-        bool isNonHeader = false;
 
         auto slotdx = SLOT_DX;
 
@@ -54,6 +49,8 @@ namespace Bess::Canvas {
         posX += slotdx;
         float posY = pPos.y - pScale.y / 2.f + (SLOT_ROW_SIZE * comp.idx) + SLOT_ROW_SIZE / 2.f;
 
+        auto parentEntt = sceneRef->getEntityWithUuid(comp.parentId);
+        const auto &isNonHeader = sceneRef->getEnttRegistry().any_of<Components::SimulationInputComponent, Components::SimulationOutputComponent>(parentEntt);
         if (!isNonHeader)
             posY += SLOT_START_Y;
 
@@ -150,9 +147,10 @@ namespace Bess::Canvas {
 
     void Artist::drawGhostConnection(const entt::entity &startEntity, const glm::vec2 pos) {
         auto &registry = sceneRef->getEnttRegistry();
-        auto slotsView = registry.view<Components::SlotComponent, Components::TransformComponent>();
+        auto slotsView = registry.view<Components::SlotComponent, Components::TransformComponent, Components::SimulationComponent>();
         auto &slotComp = slotsView.get<Components::SlotComponent>(startEntity);
-        auto &parentTransform = slotsView.get<Components::TransformComponent>(sceneRef->getEntityWithUuid(slotComp.parentId));
+        auto parentEntt = sceneRef->getEntityWithUuid(slotComp.parentId);
+        auto &parentTransform = slotsView.get<Components::TransformComponent>(parentEntt);
         auto startPos = Artist::getSlotPos(slotComp, parentTransform);
         startPos.z = 0.f;
 

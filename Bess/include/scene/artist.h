@@ -30,7 +30,8 @@ namespace Bess::Canvas {
         static void drawInput(entt::entity entity);
         static void drawOutput(entt::entity entity);
         static void drawConnectionEntity(entt::entity entity);
-        static glm::vec3 getSlotPos(const Components::SlotComponent &comp, const Components::TransformComponent &parentTransform);
+        static glm::vec3 getSlotPos(const Components::SlotComponent &comp, 
+            const Components::TransformComponent &parentTransform);
         // use in schematic mode
         static glm::vec3 getPinPos(const Components::SlotComponent &comp);
         static void drawGhostConnection(const entt::entity &startEntity, const glm::vec2 pos);
