@@ -61,6 +61,8 @@ namespace Bess {
 	std::unique_ptr<Bess::Gl::BatchVao<Gl::Vertex>> Renderer::m_pathRendererVao;
 	std::unique_ptr<Bess::Gl::InstancedVao<Gl::InstanceVertex>> Renderer::m_lineRendererVao;
 
+	std::array<int, 32> Renderer::m_texSlots;
+
     void Renderer::init() {
 #ifndef BESS_RENDERER_DISABLE_RENDERPASS
         {
@@ -140,7 +142,11 @@ namespace Bess {
             {0.0f, 0.5f, 0.f, 1.f}};
 
         m_Font = assetManager.get(Assets::Fonts::roboto);
-        m_msdfFont = assetManager.get<MsdfFont>(Assets::Fonts::robotoMsdf);
+        m_msdfFont = assetManager.get(Assets::Fonts::robotoMsdf);
+
+		for (int i = 0; i < 32; i++) {
+            m_texSlots[i] = i;
+        }
     }
 
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
@@ -157,7 +163,12 @@ namespace Bess {
         quadInstance.isMica = properties.isMica ? 1 : 0;
         quadInstance.texSlotIdx = 0;
         quadInstance.texData = {0.f, 0.f, 1.f, 1.f};
-        m_renderData.quadVertices.emplace_back(quadInstance);
+
+            auto& vertices = m_renderData.quadVertices;
+            if (vertices.size() == m_MaxRenderLimit[(int)PrimitiveType::quad]) {
+                flush(PrimitiveType::quad);
+            }
+            vertices.emplace_back(quadInstance);
     }
 
     void Renderer::quad(const glm::vec3 &pos, const glm::vec2 &size, std::shared_ptr<Gl::Texture> texture,
@@ -296,28 +307,6 @@ namespace Bess {
 
     void Renderer::circle(const glm::vec3 &center, const float radius,
                           const glm::vec4 &color, const int id, float innerRadius) {
-
-        //static const std::array<glm::vec2, 4> texCoords = {{{0.0f, 1.0f},
-        //                                                    {0.0f, 0.0f},
-        //                                                    {1.0f, 0.0f},
-        //                                                    {1.0f, 1.0f}}};
-
-        //std::vector<Gl::CircleVertex> vertices(4);
-
-        //auto transform = glm::translate(glm::mat4(1.0f), center);
-        //transform = glm::scale(transform, {radius * 2, radius * 2, 1.f});
-
-        //const float normalizedInnerRadius = (radius == 0.0f) ? 0.0f : innerRadius / radius;
-
-        //for (int i = 0; i < 4; i++) {
-        //    auto &vertex = vertices[i];
-        //    vertex.position = transform * m_StandardQuadVertices[i];
-        //    vertex.id = id;
-        //    vertex.color = color;
-        //    vertex.innerRadius = normalizedInnerRadius; // Normalize inner radius to the outer radius
-        //    vertex.texCoord = texCoords[i];
-        //}
-
         Gl::CircleVertex vertex {
             .position = center,
             .color = color,
@@ -362,7 +351,11 @@ namespace Bess {
             vertex.id = id;
             vertex.texSlotIdx = 1;
             vertex.texData = subTexture->getStartWH();
-            m_renderData.fontVertices.emplace_back(vertex);
+            auto& vertices = m_renderData.fontVertices;
+            if (vertices.size() == m_MaxRenderLimit[(int)PrimitiveType::text]) {
+                flush(PrimitiveType::text);
+            }
+            vertices.emplace_back(vertex);
             charPos.x += charInfo.advance * scale;
         }
     }
@@ -671,11 +664,7 @@ namespace Bess {
             m_renderData.quadVertices.clear();
 
             if (!m_textureQuadVertices.empty()) {
-                std::array<int, 32> texSlots = {};
-                for (int i = 0; i < 32; i++) {
-                    texSlots[i] = i;
-                }
-                shader->setUniform1iv("u_Textures", texSlots.data(), 32);
+                shader->setUniform1iv("u_Textures", m_texSlots.data(), m_texSlots.size());
                 for (auto &[tex, verticies] : m_textureQuadVertices) {
                     tex->bind(verticies.front().texSlotIdx);
                     m_quadRendererVao->updateInstanceData(verticies);
@@ -735,11 +724,7 @@ namespace Bess {
                 return;
             }
             shader->setUniform1f("u_zoom", m_camera->getZoom());
-            std::array<int, 32> texSlots = {};
-            for (int i = 0; i < 32; i++) {
-                texSlots[i] = i;
-            }
-            shader->setUniform1iv("u_Textures", texSlots.data(), 32);
+            shader->setUniform1iv("u_Textures", m_texSlots.data(), m_texSlots.size());
             m_msdfFont->getTextureAtlas()->bind(1);
             m_textRendererVao->bind();
             m_textRendererVao->updateInstanceData(vertices);

@@ -188,6 +188,8 @@ namespace Bess::Renderer2D {
         static std::unique_ptr<Gl::InstancedVao<Gl::InstanceVertex>> m_textRendererVao;
         static std::unique_ptr<Gl::BatchVao<Gl::Vertex>> m_pathRendererVao;
         static std::unique_ptr<Gl::GridVao> m_gridVao;
+
+		static std::array<int, 32> m_texSlots;
     };
 
 } // namespace Bess::Renderer2D
