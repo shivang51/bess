@@ -44,9 +44,5 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
        cd bin/Release/x64/
        ./Bess
        ```
-## Next TODO
-- [X] Logging
-- [X] Schematic diagram generator from nodes
-- [X] MSDF font rendering
-- [x] More non-simulating nodes e.g. text node
-- [ ] Asset Manager
+## TODO
+- [ ] Using emscripten to host on web 
