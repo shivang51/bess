@@ -160,10 +160,9 @@ namespace Bess::Renderer2D {
 
         static RenderData m_renderData;
 
-        static std::shared_ptr<Gl::Shader> m_GridShader;
+        static std::shared_ptr<Gl::Shader> m_gridShader;
         static std::unique_ptr<Gl::Shader> m_shadowPassShader;
         static std::unique_ptr<Gl::Shader> m_compositePassShader;
-        static std::unique_ptr<Gl::Vao> m_GridVao;
         static std::unique_ptr<Gl::Vao> m_renderPassVao;
 
         static std::shared_ptr<Font> m_Font;
@@ -182,12 +181,13 @@ namespace Bess::Renderer2D {
 
         static std::shared_ptr<MsdfFont> m_msdfFont;
 
-		static std::unique_ptr<Bess::Gl::QuadVao> m_quadRendererVao;
-        static std::unique_ptr<Bess::Gl::CircleVao> m_circleRendererVao;
-        static std::unique_ptr<Bess::Gl::TriangleVao> m_triangleRendererVao;
-        static std::unique_ptr<Bess::Gl::InstancedVao<Gl::InstanceVertex>> m_lineRendererVao;
-        static std::unique_ptr<Bess::Gl::InstancedVao<Gl::InstanceVertex>> m_textRendererVao;
-        static std::unique_ptr<Bess::Gl::BatchVao<Gl::Vertex>> m_pathRendererVao;
+		static std::unique_ptr<Gl::QuadVao> m_quadRendererVao;
+        static std::unique_ptr<Gl::CircleVao> m_circleRendererVao;
+        static std::unique_ptr<Gl::TriangleVao> m_triangleRendererVao;
+        static std::unique_ptr<Gl::InstancedVao<Gl::InstanceVertex>> m_lineRendererVao;
+        static std::unique_ptr<Gl::InstancedVao<Gl::InstanceVertex>> m_textRendererVao;
+        static std::unique_ptr<Gl::BatchVao<Gl::Vertex>> m_pathRendererVao;
+        static std::unique_ptr<Gl::GridVao> m_gridVao;
     };
 
 } // namespace Bess::Renderer2D

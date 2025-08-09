@@ -39,10 +39,11 @@ namespace Bess {
     RenderData Renderer::m_renderData;
     PathContext Renderer::m_pathData;
 
-    std::shared_ptr<Gl::Shader> Renderer::m_GridShader;
+    std::shared_ptr<Gl::Shader> Renderer::m_gridShader;
+    std::unique_ptr<Gl::GridVao> Renderer::m_gridVao;
+
     std::unique_ptr<Gl::Shader> Renderer::m_shadowPassShader;
     std::unique_ptr<Gl::Shader> Renderer::m_compositePassShader;
-    std::unique_ptr<Gl::Vao> Renderer::m_GridVao;
     std::unique_ptr<Gl::Vao> Renderer::m_renderPassVao;
     std::vector<Gl::Vertex> Renderer::m_curveStripVertices;
     std::vector<GLuint> Renderer::m_curveStripIndices;
@@ -87,7 +88,7 @@ namespace Bess {
         m_MaxRenderLimit.resize(maxPrimNum);
 
         for (auto prim : m_AvailablePrimitives) {
-            m_MaxRenderLimit[(int)(int)prim] = 8000;
+            m_MaxRenderLimit[(int)prim] = 8000;
         }
 
         auto& assetManager = Assets::AssetManager::instance();
@@ -97,6 +98,9 @@ namespace Bess {
         m_textRendererVao = std::make_unique<Bess::Gl::InstancedVao<Gl::InstanceVertex>>(m_MaxRenderLimit[(int)PrimitiveType::text]);
         m_lineRendererVao = std::make_unique<Bess::Gl::InstancedVao<Gl::InstanceVertex>>(m_MaxRenderLimit[(int)PrimitiveType::line]);
         m_pathRendererVao = std::make_unique<Bess::Gl::BatchVao<Gl::Vertex>>(m_MaxRenderLimit[(int)PrimitiveType::path], 3, 3, true, false);
+
+        m_gridVao = std::make_unique<Bess::Gl::GridVao>();
+		m_gridShader = assetManager.get(Assets::Shaders::grid);
 
         for (auto primitive : m_AvailablePrimitives) {
             int primIdx = (int)primitive;
@@ -122,19 +126,6 @@ namespace Bess {
                 break;
             }
         }
-
-        {
-            std::vector<Gl::VaoAttribAttachment> attachments;
-            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::GridVertex, position)));
-            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::GridVertex, texCoord)));
-            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::int_t, offsetof(Gl::GridVertex, id)));
-            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec4, offsetof(Gl::GridVertex, color)));
-            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::float_t, offsetof(Gl::GridVertex, ar)));
-
-            //m_GridVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::GridVertex));
-            m_GridShader = assetManager.get(Assets::Shaders::grid);
-        }
-
 
         m_StandardQuadVertices = {
             {-0.5f, 0.5f, 0.f, 1.f},
@@ -225,21 +216,16 @@ namespace Bess {
     }
 
     void Renderer::grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const glm::vec4 &color) {
-        return;
         std::vector<Gl::GridVertex> vertices(4);
 
-        auto size_ = size;
-        // size_.x = std::max(size.y, size.x);
-        // size_.y = std::max(size.y, size.x);
-
         auto transform = glm::translate(glm::mat4(1.0f), pos);
-        transform = glm::scale(transform, {size_.x, size_.y, 1.f});
+        transform = glm::scale(transform, {size.x, size.y, 1.f});
 
         for (int i = 0; i < 4; i++) {
             auto &vertex = vertices[i];
             vertex.position = transform * m_StandardQuadVertices[i];
             vertex.id = id;
-            vertex.ar = size_.x / size_.y;
+            vertex.ar = size.x / size.y;
             vertex.color = color;
         }
 
@@ -248,22 +234,22 @@ namespace Bess {
         vertices[2].texCoord = {1.0f, 0.0f};
         vertices[3].texCoord = {1.0f, 1.0f};
 
-        m_GridShader->bind();
-        m_GridVao->bind();
+        m_gridShader->bind();
+        m_gridVao->bind();
 
-        m_GridShader->setUniformMat4("u_mvp", m_camera->getOrtho());
-        m_GridShader->setUniform1f("u_zoom", m_camera->getZoom());
+        m_gridShader->setUniformMat4("u_mvp", m_camera->getOrtho());
+        m_gridShader->setUniform1f("u_zoom", m_camera->getZoom());
 
         auto camPos = m_camera->getPos();
         auto viewportPos = UI::UIMain::state.viewportPos / m_camera->getZoom();
-        m_GridShader->setUniformVec2("u_cameraOffset", {-viewportPos.x - camPos.x, viewportPos.y + m_camera->getSpan().y + camPos.y});
+        m_gridShader->setUniformVec2("u_cameraOffset", {-viewportPos.x - camPos.x, viewportPos.y + m_camera->getSpan().y + camPos.y});
 
-        //m_GridVao->setVertices(vertices.data(), vertices.size());
+        m_gridVao->setVertices(vertices);
 
         Gl::Api::drawElements(GL_TRIANGLES, 6);
 
-        m_GridShader->unbind();
-        m_GridVao->unbind();
+        m_gridShader->unbind();
+        m_gridVao->unbind();
     }
 
     void Renderer::curve(const glm::vec3 &start, const glm::vec3 &end, float weight, const glm::vec4 &color, const int id) {

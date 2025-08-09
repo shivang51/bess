@@ -38,7 +38,6 @@ namespace Bess::Gl {
         uint32_t m_Stride = 0;
     };
 
-    // VBO Wrapper
     class Vbo {
       public:
         Vbo(size_t size, const void *data = nullptr);
@@ -51,7 +50,6 @@ namespace Bess::Gl {
         GLuint m_id = 0;
     };
 
-    // IBO Wrapper
     class Ibo {
       public:
         Ibo(size_t count, const GLuint *data = nullptr);
@@ -92,7 +90,6 @@ namespace Bess::Gl {
         void bind() const;
         void unbind() const;
 
-        // New methods to link buffers and layouts
         void addVertexBuffer(const Vbo &vbo, const BufferLayout &layout);
         void setIndexBuffer(const Ibo &ibo);
 
@@ -101,8 +98,6 @@ namespace Bess::Gl {
         uint32_t m_attribIndex = 0;
     };
 
-    // A simple internal struct for the template vertex data.
-    // This is separate from QuadVertex because it only contains per-vertex attributes.
     struct TemplateVertex {
         glm::vec2 position;
         glm::vec2 texCoord;
@@ -326,6 +321,48 @@ namespace Bess::Gl {
             return indicies;
         }
 
+      protected:
+        std::unique_ptr<Vao> m_vao;
+        std::unique_ptr<Ibo> m_ibo;
+        std::unique_ptr<Vbo> m_vbo;
+        bool m_isQuad;
+    };
+
+
+    class GridVao {
+      public:
+        GridVao() {
+            m_vao = std::make_unique<Vao>();
+
+            m_vbo = std::make_unique<Vbo>(sizeof(GridVertex) * 4);
+            m_vao->addVertexBuffer(*m_vbo, getVertexLayout());
+
+            GLuint indicies[] = {0, 1, 2, 2, 3, 0};
+            m_ibo = std::make_unique<Ibo>(6, indicies);
+            m_vao->setIndexBuffer(*m_ibo);
+        }
+
+        void bind() const {
+            m_vao->bind();
+        }
+
+        void unbind() const {
+            m_vao->unbind();
+        }
+
+        void setVertices(const std::vector<GridVertex> &verticies) {
+            m_vbo->setData(verticies.data(), verticies.size() * sizeof(Vertex));
+        }
+
+        BufferLayout getVertexLayout() {
+            return BufferLayout{
+                {GL_FLOAT, 3, sizeof(GridVertex), offsetof(GridVertex, position), false, false},
+                {GL_FLOAT, 2, sizeof(GridVertex), offsetof(GridVertex, texCoord), false, false},
+                {GL_INT  , 1, sizeof(GridVertex), offsetof(GridVertex, id), false, false},
+                {GL_FLOAT, 4, sizeof(GridVertex), offsetof(GridVertex, color), false, false},
+                {GL_FLOAT, 1, sizeof(GridVertex), offsetof(GridVertex, ar), false, false},
+            };
+        }
       protected:
         std::unique_ptr<Vao> m_vao;
         std::unique_ptr<Ibo> m_ibo;
