@@ -35,7 +35,6 @@ namespace Bess::Renderer2D {
         }
 
 
-        // Check if the "pages" member exists and is an array.
         if (charData.isMember("pages") && charData["pages"].isArray()) {
             const Json::Value &pagesArray = charData["pages"];
             if (!pagesArray.empty()) {

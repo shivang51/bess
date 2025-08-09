@@ -147,9 +147,9 @@ namespace Bess::Renderer2D {
       private:
         static std::vector<Gl::RenderPassVertex> getRenderPassVertices(float width, float height);
 
-        static std::unordered_map<PrimitiveType, std::shared_ptr<Gl::Shader>> m_shaders;
-
-        static std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Vao>> m_vaos;
+        static std::vector<std::shared_ptr<Gl::Shader>> m_shaders;
+        static std::vector<std::unique_ptr<Gl::Vao>> m_vaos;
+        static std::vector<size_t> m_MaxRenderLimit;
 
         static std::shared_ptr<Camera> m_camera;
 
@@ -159,7 +159,6 @@ namespace Bess::Renderer2D {
 
         static std::vector<glm::vec4> m_StandardTriVertices;
 
-        static std::unordered_map<PrimitiveType, size_t> m_MaxRenderLimit;
 
         static RenderData m_RenderData;
 
@@ -168,7 +167,6 @@ namespace Bess::Renderer2D {
         static std::unique_ptr<Gl::Shader> m_compositePassShader;
         static std::unique_ptr<Gl::Vao> m_GridVao;
         static std::unique_ptr<Gl::Vao> m_renderPassVao;
-        static std::unordered_map<std::string, glm::vec2> m_charSizeCache;
 
         static std::shared_ptr<Font> m_Font;
 

@@ -1,7 +1,7 @@
 #pragma once
 
 namespace Bess::Renderer2D {
-    enum class PrimitiveType {
+    enum class PrimitiveType: int {
         quad,
         curve,
         circle,

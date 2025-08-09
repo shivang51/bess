@@ -91,7 +91,7 @@ namespace Bess::Canvas {
         return {x, y, pPos.z + 0.0005};
     }
 
-    void Artist::paintSlot(uint64_t id, int idx, uint64_t parentId, const glm::vec3 &pos,
+    void Artist::paintSlot(uint64_t id, uint64_t parentId, const glm::vec3 &pos,
                            float angle, const std::string &label, float labelDx, bool isHigh, bool isConnected) {
         auto bgColor = ViewportTheme::stateLowColor;
         auto borderColor = ViewportTheme::stateLowColor;
@@ -111,7 +111,7 @@ namespace Bess::Canvas {
 
         float labelX = pos.x + labelDx;
         float dY = componentStyles.slotRadius - std::abs(componentStyles.slotRadius * 2.f - componentStyles.slotLabelSize) / 2.f;
-        Renderer::msdfText(label + std::to_string(idx), {labelX, pos.y + dY, pos.z}, componentStyles.slotLabelSize, ViewportTheme::textColor, parentId, angle);
+        Renderer::msdfText(label, {labelX, pos.y + dY, pos.z}, componentStyles.slotLabelSize, ViewportTheme::textColor, parentId, angle);
     }
 
     void Artist::drawSlots(const Components::SimulationComponent &comp, const glm::vec3 &componentPos, float width, float angle) {
@@ -121,6 +121,7 @@ namespace Bess::Canvas {
 
         auto compState = SimEngine::SimulationEngine::instance().getComponentState(comp.simEngineEntity);
 
+        std::string label;
         for (size_t i = 0; i < comp.inputSlots.size(); i++) {
             auto slot = sceneRef->getEntityWithUuid(comp.inputSlots[i]);
             auto isHigh = compState.inputStates[i];
@@ -128,10 +129,11 @@ namespace Bess::Canvas {
             auto &slotComp = registry.get<Components::SlotComponent>(slot);
             auto slotPos = getSlotPos(slotComp);
             uint64_t parentId = (uint64_t)sceneRef->getEntityWithUuid(slotComp.parentId);
-            paintSlot((uint64_t)slot, slotComp.idx, parentId, slotPos, angle, "X", labeldx, isHigh, isConnected);
+            label = "X" + std::to_string(i);
+            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, labeldx, isHigh, isConnected);
         }
 
-        float labelWidth = (Renderer::getCharRenderSize('W', componentStyles.slotLabelSize).x * 2.f);
+        float labelWidth = Renderer::getMSDFTextRenderSize("Y0", componentStyles.slotLabelSize).x;
         labeldx += labelWidth;
         for (size_t i = 0; i < comp.outputSlots.size(); i++) {
             auto slot = sceneRef->getEntityWithUuid(comp.outputSlots[i]);
@@ -140,7 +142,8 @@ namespace Bess::Canvas {
             auto &slotComp = registry.get<Components::SlotComponent>(slot);
             auto slotPos = getSlotPos(slotComp);
             uint64_t parentId = (uint64_t)sceneRef->getEntityWithUuid(slotComp.parentId);
-            paintSlot((uint64_t)slot, slotComp.idx, parentId, slotPos, angle, "Y", -labeldx, isHigh, isConnected);
+            label = "Y" + std::to_string(i);
+            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, -labeldx, isHigh, isConnected);
         }
     }
 
@@ -274,7 +277,7 @@ namespace Bess::Canvas {
         Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
 
         float yOff = componentStyles.headerFontSize / 2.f - 2.f;
-        auto labelSize = Renderer::getTextRenderSize(tagComp.name, componentStyles.headerFontSize).x;
+        auto labelSize = Renderer::getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize).x;
         glm::vec3 textPos = glm::vec3(pos.x + scale.x / 2.f - labelSize - componentStyles.paddingX, pos.y + yOff, pos.z + 0.0005f);
         Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id);
         drawSlots(simComp, pos, scale.x, rotation);
@@ -411,7 +414,7 @@ namespace Bess::Canvas {
         // name
         {
             const auto &tagComp = registry.get<Components::TagComponent>(entity);
-            auto textSize = Renderer2D::Renderer::getTextRenderSize(tagComp.name, componentStyles.headerFontSize);
+            auto textSize = Renderer2D::Renderer::getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
             glm::vec3 textPos = {inPinStart + (rb - inPinStart) / 2.f, y + (y1 - y) / 2.f, pos.z + 0.0005f};
             textPos.x -= textSize.x / 2.f;
             textPos.y += componentStyles.headerFontSize / 2.f;
@@ -443,7 +446,7 @@ namespace Bess::Canvas {
                 Renderer::pathLineTo({boundInfo.outConnStart, y + yOff, 1}, 4.f, ViewportTheme::compHeaderColor, -1);
                 Renderer::endPathMode(false);
                 std::string label = "Y" + std::to_string(i - 1);
-                float size = Renderer2D::Renderer::getTextRenderSize(label, componentStyles.headerFontSize).x;
+                float size = Renderer2D::Renderer::getMSDFTextRenderSize(label, componentStyles.headerFontSize).x;
                 Renderer::msdfText(label,
                                {boundInfo.outConnStart - size, y + yOff - nodeWeight, pos.z + 0.0005f},
                                componentStyles.headerFontSize, ViewportTheme::textColor, 0, 0.f);

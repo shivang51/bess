@@ -38,7 +38,7 @@ namespace Bess::Canvas {
 
         static void paintSchematicView(entt::entity entity);
 
-        static void paintSlot(uint64_t id, int idx, uint64_t parentId, const glm::vec3 &pos, float angle,
+        static void paintSlot(uint64_t id,  uint64_t parentId, const glm::vec3 &pos, float angle,
                               const std::string &label, float labelDx, bool isHigh, bool isConnected);
 
         static void drawSlots(const Components::SimulationComponent &comp, const glm::vec3 &componentPos, float width, float angle);
