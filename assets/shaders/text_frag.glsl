@@ -13,7 +13,7 @@ uniform int u_SelectedObjId;
 uniform float u_zoom;
 
 float screenPxRange() {
-	const float pxRange = 4.0; // set to distance field's pixel range
+	const float pxRange = 6.0; // set to distance field's pixel range
     vec2 unitRange = vec2(pxRange)/vec2(textureSize(u_Textures[v_TexSlotIdx], 0));
     vec2 screenTexSize = vec2(1.0)/fwidth(v_TexCoord);
     return max(0.5*dot(unitRange, screenTexSize), 1.0);
