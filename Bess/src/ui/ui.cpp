@@ -1,16 +1,17 @@
 #include "ui/ui.h"
 #include "application_state.h"
 #include "settings/settings.h"
-
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-#include "imgui_internal.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/icons/ComponentIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/icons/MaterialIcons.h"
 #include "ui/ui_main/ui_main.h"
+#include "assets.h"
+
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+#include "imgui_internal.h"
 
 namespace Bess::UI {
     void init(GLFWwindow *window) {
@@ -96,31 +97,38 @@ namespace Bess::UI {
         ImGuiIO &io = ImGui::GetIO();
         ImGuiStyle &style = ImGui::GetStyle();
 
+        constexpr auto robotoPath = Assets::Fonts::Paths::roboto.paths[0].data();
+
         io.Fonts->Clear();
-        io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Regular.ttf", fontSize);
-        Fonts::largeFont = io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Regular.ttf", fontSize * 2.f);
-        Fonts::mediumFont = io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Regular.ttf", fontSize * 1.5f);
-        io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto/Roboto-Regular.ttf", fontSize);
+        io.Fonts->AddFontFromFileTTF(robotoPath, fontSize);
+        Fonts::largeFont = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize * 2.f);
+        Fonts::mediumFont = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize * 1.5f);
+        io.FontDefault = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize);
 
         ImFontConfig config;
         float r = 2.2f / 3.f;
         config.MergeMode = true;
         config.PixelSnapH = true;
 
+        constexpr auto compIconsPath = Assets::Fonts::Paths::componentIcons.paths[0].data();
+        constexpr auto codeIconsPath = Assets::Fonts::Paths::codeIcons.paths[0].data();
+        constexpr auto materialIconsPath = Assets::Fonts::Paths::materialIcons.paths[0].data();
+        constexpr auto fontAwesomeIconsPath = Assets::Fonts::Paths::fontAwesomeIcons.paths[0].data();
+
         static const ImWchar comp_icon_ranges[] = {Icons::ComponentIcons::SIZE_MIN_CI, Icons::ComponentIcons::SIZE_MAX_CI, 0};
-        io.Fonts->AddFontFromFileTTF("assets/icons/ComponentIcons.ttf", fontSize * r, &config, comp_icon_ranges);
+        io.Fonts->AddFontFromFileTTF(compIconsPath, fontSize * r, &config, comp_icon_ranges);
 
         static const ImWchar codicon_icon_ranges[] = {Icons::CodIcons::ICON_MIN_CI, Icons::CodIcons::ICON_MAX_CI, 0};
         config.GlyphOffset.y = fontSize / 5.f;
-        io.Fonts->AddFontFromFileTTF("assets/icons/codicon.ttf", fontSize, &config, codicon_icon_ranges);
+        io.Fonts->AddFontFromFileTTF(codeIconsPath, fontSize, &config, codicon_icon_ranges);
 
         config.GlyphOffset.y = r;
         static const ImWchar mat_icon_ranges[] = {Icons::MaterialIcons::ICON_MIN_MD, Icons::MaterialIcons::ICON_MAX_MD, 0};
-        io.Fonts->AddFontFromFileTTF("assets/icons/MaterialIcons-Regular.ttf", fontSize * r, &config, mat_icon_ranges);
+        io.Fonts->AddFontFromFileTTF(materialIconsPath, fontSize * r, &config, mat_icon_ranges);
 
         static const ImWchar fa_icon_ranges_r[] = {Icons::FontAwesomeIcons::SIZE_MIN_FA, Icons::FontAwesomeIcons::SIZE_MAX_FA, 0};
         config.GlyphOffset.y = -r;
-        io.Fonts->AddFontFromFileTTF("assets/icons/fa-solid-900.ttf", fontSize * r, &config, fa_icon_ranges_r);
+        io.Fonts->AddFontFromFileTTF(fontAwesomeIconsPath, fontSize * r, &config, fa_icon_ranges_r);
 
         io.FontGlobalScale = scale;
         io.Fonts->Build();

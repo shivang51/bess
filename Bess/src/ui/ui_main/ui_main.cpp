@@ -1,7 +1,6 @@
 #include "ui/ui_main/ui_main.h"
 #include "application_state.h"
 #include "common/log.h"
-#include "glad/glad.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "scene/renderer/renderer.h"
@@ -180,9 +179,9 @@ namespace Bess::UI {
 
         // project name textbox - begin
 
-        auto style = ImGui::GetStyle();
+        auto& style = ImGui::GetStyle();
         auto &name = Pages::MainPageState::getInstance()->getCurrentProjectFile()->getNameRef();
-        auto fontSize = Renderer2D::Renderer::getTextRenderSize(name, ImGui::GetFontSize());
+        auto fontSize = ImGui::CalcTextSize(name.c_str());
         auto width = fontSize.x + (style.FramePadding.x * 2);
         if (width < 150)
             width = 150;

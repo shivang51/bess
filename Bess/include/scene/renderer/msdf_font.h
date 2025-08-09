@@ -41,7 +41,7 @@ namespace Bess::Renderer2D {
 
         private:
             std::shared_ptr<Gl::Texture> m_fontTextureAtlas;
-            std::unordered_map<char, MsdfCharacter> m_charData = {};
+            std::vector<MsdfCharacter> m_charTable;
             float m_fontSize = 0.f, m_lineHeight = 0.f;
     };
 }

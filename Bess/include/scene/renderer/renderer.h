@@ -146,11 +146,9 @@ namespace Bess::Renderer2D {
       private:
         static std::vector<Gl::RenderPassVertex> getRenderPassVertices(float width, float height);
 
-        static std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Shader>> m_shaders;
-
-        static std::unique_ptr<Gl::Shader> m_quadShadowShader;
-
-        static std::unordered_map<PrimitiveType, std::unique_ptr<Gl::Vao>> m_vaos;
+        static std::vector<std::shared_ptr<Gl::Shader>> m_shaders;
+        static std::vector<std::unique_ptr<Gl::Vao>> m_vaos;
+        static std::vector<size_t> m_MaxRenderLimit;
 
         static std::shared_ptr<Camera> m_camera;
 
@@ -160,19 +158,16 @@ namespace Bess::Renderer2D {
 
         static std::vector<glm::vec4> m_StandardTriVertices;
 
-        static std::unordered_map<PrimitiveType, size_t> m_MaxRenderLimit;
 
         static RenderData m_renderData;
 
-        static std::unique_ptr<Gl::Shader> m_GridShader;
+        static std::shared_ptr<Gl::Shader> m_GridShader;
         static std::unique_ptr<Gl::Shader> m_shadowPassShader;
         static std::unique_ptr<Gl::Shader> m_compositePassShader;
         static std::unique_ptr<Gl::Vao> m_GridVao;
         static std::unique_ptr<Gl::Vao> m_renderPassVao;
 
-        static std::unordered_map<std::string, glm::vec2> m_charSizeCache;
-
-        static std::unique_ptr<Font> m_Font;
+        static std::shared_ptr<Font> m_Font;
 
         static std::vector<Gl::Vertex> m_curveStripVertices;
         static std::vector<GLuint> m_curveStripIndices;
@@ -186,14 +181,7 @@ namespace Bess::Renderer2D {
 
         static std::unordered_map<std::shared_ptr<Gl::Texture>, std::vector<Gl::QuadVertex>> m_textureQuadVertices;
 
-        static std::unique_ptr<MsdfFont> m_msdfFont;
-
-        static std::unique_ptr<Bess::Gl::QuadVao> m_quadRendererVao;
-        static std::unique_ptr<Bess::Gl::CircleVao> m_circleRendererVao;
-        static std::unique_ptr<Bess::Gl::TriangleVao> m_triangleRendererVao;
-        static std::unique_ptr<Bess::Gl::InstancedVao<Gl::InstanceVertex>> m_lineRendererVao;
-        static std::unique_ptr<Bess::Gl::InstancedVao<Gl::InstanceVertex>> m_textRendererVao;
-        static std::unique_ptr<Bess::Gl::BatchVao<Gl::Vertex>> m_pathRendererVao;
+        static std::shared_ptr<MsdfFont> m_msdfFont;
     };
 
 } // namespace Bess::Renderer2D

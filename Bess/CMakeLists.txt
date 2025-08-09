@@ -1,5 +1,4 @@
 set(PROJECT_NAME Bess)
-set(CMAKE_CXX_STANDARD 23)
 
 file(GLOB EXT_JSON_SRC "${CMAKE_SOURCE_DIR}/external/jsoncpp/src/lib_json/*.cpp")
 source_group("external/jsoncpp" FILES ${EXT_JSON_SRC})
@@ -24,6 +23,10 @@ set(External
 )
 
 set(Header_Files
+"include/assets.h"
+"include/asset_manager/asset_id.h"
+"include/asset_manager/asset_loader.h"
+"include/asset_manager/asset_manager.h"
 "include/settings/themes.h"
 "include/settings/settings.h"
 "include/settings/viewport_theme.h"
@@ -79,6 +82,7 @@ set(Header_Files
 source_group("include" FILES ${Header_Files})
 
 set(Source_Files
+"src/asset_manager/asset_manager.cpp"
 "src/application_state.cpp"
 "src/application.cpp"
 "src/settings/viewport_theme.cpp"
@@ -196,6 +200,6 @@ set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)
 
 if(MSVC)
-	target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8")
+	target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8" "/Zc:__cplusplus")
 endif()
 

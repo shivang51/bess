@@ -35,7 +35,6 @@ namespace Bess::Renderer2D {
         }
 
 
-        // Check if the "pages" member exists and is an array.
         if (charData.isMember("pages") && charData["pages"].isArray()) {
             const Json::Value &pagesArray = charData["pages"];
             if (!pagesArray.empty()) {
@@ -52,6 +51,8 @@ namespace Bess::Renderer2D {
 
         if (charData.isMember("chars") && charData["chars"].isArray()) {
             const Json::Value &chars = charData["chars"];
+            std::unordered_map<char, MsdfCharacter> charData;
+            size_t maxAscii = 0;
             for (const auto &c : chars) {
                 if (!c.isObject())
                     continue; // Skip if an element is not a valid object.
@@ -71,8 +72,17 @@ namespace Bess::Renderer2D {
                 character.subTexture = subTex;
 
                 subTex->calcCoordsFrom(m_fontTextureAtlas, character.texPos, character.size);
-                m_charData[character.character] = character;
+                charData[character.character] = character;
+                maxAscii = std::max(maxAscii, (size_t)character.character);
             }
+
+            m_charTable.resize(maxAscii + 1);
+
+            for (auto &[ch, data] : charData) {
+                m_charTable[(size_t)ch] = data;
+            }
+
+            BESS_TRACE("[MsdfFont] Made lookup table of size {} characters", maxAscii);
         }
     }
 
@@ -85,7 +95,7 @@ namespace Bess::Renderer2D {
     }
 
     MsdfCharacter MsdfFont::getCharacterData(char c) const {
-        return m_charData.at(c);
+        return m_charTable[(size_t)c];
     }
 
     std::shared_ptr<Gl::Texture> MsdfFont::getTextureAtlas() const {
