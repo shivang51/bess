@@ -28,7 +28,7 @@ namespace Bess::SimEngine {
                             int inputCount,
                             int outputCount,
                             SimulationFunction simFunction,
-                            SimDelayMilliSeconds delay, const std::string &expr = "");
+                            SimDelayMilliSeconds delay, const std::vector<std::string> &expr = {});
 
         ComponentType type;
         std::string name;
@@ -38,7 +38,7 @@ namespace Bess::SimEngine {
         int inputCount;
         int outputCount;
         char op = '0';
-        std::string expression = "";
+        std::vector<std::string> expressions = {};
         bool negate = false;
 
         const ModifiableProperties &getModifiableProperties() const;
@@ -53,7 +53,7 @@ namespace Bess::SimEngine {
             return *this;
         }
 
-        std::string getExpression(int n = -1) const;
+        std::vector<std::string> getExpressions(int inputCount = -1) const;
       private:
         ModifiableProperties m_modifiableProperties = {};
     };

@@ -67,7 +67,7 @@ namespace Bess::SimEngine {
         };
 
         auto &catalog = ComponentCatalog::instance();
-        auto flipFlop = ComponentDefinition(ComponentType::FLIP_FLOP_JK, "JK Flip Flop", "Flip Flop", 3, 2, simFunc, SimDelayMilliSeconds(100), "");
+        auto flipFlop = ComponentDefinition(ComponentType::FLIP_FLOP_JK, "JK Flip Flop", "Flip Flop", 3, 2, simFunc, SimDelayMilliSeconds(100));
         catalog.registerComponent(flipFlop);
 
         flipFlop.name = "SR Flip Flop";
@@ -99,18 +99,21 @@ namespace Bess::SimEngine {
     }
 
 
-    /// single output expression simulation function
-    bool soExprSimFunc(entt::registry &registry, entt::entity e, const std::vector<bool> &inputs, std::function<entt::entity(const UUID &)> fn) {
+    /// expression evaluator simulation function
+    bool exprEvalSimFunc(entt::registry &registry, entt::entity e, const std::vector<bool> &inputs, std::function<entt::entity(const UUID &)> fn) {
         auto &comp = registry.get<DigitalComponent>(e);
         comp.inputStates = inputs;
-        bool newState = ExprEval::evaluateExpression(comp.expression, comp.inputStates);
-        bool changed = comp.outputStates[0] != newState;
-        comp.outputStates[0] = newState;
+        bool changed = false;
+        for (int i = 0; i < (int)comp.expressions.size(); i++) {
+            bool newState = ExprEval::evaluateExpression(comp.expressions[i], comp.inputStates);
+            changed = changed || comp.outputStates[i] != newState;
+            comp.outputStates[i] = newState;
+        }
         return changed;
     }
 
     inline void initDigitalGates() {
-        ComponentDefinition digitalGate = {ComponentType::AND, "AND Gate", "Digital Gates", 2, 1, &soExprSimFunc,
+        ComponentDefinition digitalGate = {ComponentType::AND, "AND Gate", "Digital Gates", 2, 1, &exprEvalSimFunc,
                                        SimDelayMilliSeconds(100), '*'};
         digitalGate.addModifiableProperty(Properties::ComponentProperty::inputCount, {3, 4, 5});
         ComponentCatalog::instance().registerComponent(digitalGate);
@@ -141,26 +144,8 @@ namespace Bess::SimEngine {
         digitalGate.op = '+';
         ComponentCatalog::instance().registerComponent(digitalGate);
 
-        ComponentDefinition notGate = {ComponentType::NOT, "NOT Gate", "Digital Gates", 1, 1,
-                                       [&](entt::registry &registry, entt::entity e, const std::vector<bool> &inputs, auto fn) -> bool {
-                                           auto &gate = registry.get<DigitalComponent>(e);
-                                           gate.inputStates = inputs;
-                                           std::vector<bool> newStates = {};
-                                           for (auto state : gate.inputStates)
-                                               newStates.emplace_back(!state);
-
-                                           bool changed = false;
-                                           for (int i = 0; i < newStates.size(); i++) {
-                                               if (gate.outputStates[i] != newStates[i]) {
-                                                   changed = true;
-                                                   break;
-                                               }
-                                           }
-                                           if (changed)
-                                               gate.outputStates = newStates;
-                                           return changed;
-                                       },
-                                       SimDelayMilliSeconds(100)};
+        ComponentDefinition notGate = {ComponentType::NOT, "NOT Gate", "Digital Gates", 1, 1, &exprEvalSimFunc,
+                                       SimDelayMilliSeconds(100), '!'};
         notGate.addModifiableProperty(Properties::ComponentProperty::inputCount, {2, 3, 4, 5, 6});
         ComponentCatalog::instance().registerComponent(notGate);
     }
