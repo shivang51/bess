@@ -15,7 +15,19 @@ namespace Bess::SimEngine {
         FLIP_FLOP_JK = 20,
         FLIP_FLOP_SR,
         FLIP_FLOP_D,
-        FLIP_FLOP_T
+        FLIP_FLOP_T,
+        FULL_ADDER,
+        HALF_ADDER,
+        MULTIPLEXER_4_1,
+        DECODER_2_4,
+        DEMUX_1_4,
+        ENCODER_4_2,
+        HALF_SUBTRACTOR,
+        MULTIPLEXER_2_1,
+        COMPARATOR_1_BIT,
+        PRIORITY_ENCODER_4_2,
+        FULL_SUBTRACTOR,
+        COMPARATOR_2_BIT
     };
 
     enum FlipFlopType : int {

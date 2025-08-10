@@ -15,8 +15,7 @@ namespace Bess::SimEngine {
 
             // getting values of input pins
             comp.inputStates = inputs;
-            auto inPinValues = comp.inputStates;
-            auto clockValue = inPinValues[flipFlopComp.clockPinIdx];
+            auto clockValue = inputs[flipFlopComp.clockPinIdx];
             if (!clockValue || flipFlopComp.prevClock) {
                 flipFlopComp.prevClock = clockValue;
                 return false;
@@ -28,11 +27,11 @@ namespace Bess::SimEngine {
             bool changed = false;
             if (flipFlopComp.type == FlipFlopType::FLIP_FLOP_JK) {
                 assert(comp.inputPins.size() == 3);
-                if (inPinValues[0] && inPinValues[2]) {
+                if (inputs[0] && inputs[2]) {
                     q = !q;
-                } else if (inPinValues[0]) {
+                } else if (inputs[0]) {
                     q = true;
-                } else if (inPinValues[2]) {
+                } else if (inputs[2]) {
                     q = false;
                 }
                 q0 = !q;
@@ -40,9 +39,9 @@ namespace Bess::SimEngine {
                 comp.outputStates = {q, q0};
             } else if (flipFlopComp.type == FlipFlopType::FLIP_FLOP_SR) {
                 assert(comp.inputPins.size() == 3);
-                if (inPinValues[0]) {
+                if (inputs[0]) {
                     q = true;
-                } else if (inPinValues[2]) {
+                } else if (inputs[2]) {
                     q = false;
                 }
                 q0 = !q;
@@ -50,13 +49,13 @@ namespace Bess::SimEngine {
                 comp.outputStates = {q, q0};
             } else if (flipFlopComp.type == FlipFlopType::FLIP_FLOP_D) {
                 assert(comp.inputPins.size() == 2);
-                q = inPinValues[0];
+                q = inputs[0];
                 q0 = !q;
                 changed = comp.outputStates[0] != q;
                 comp.outputStates = {q, q0};
             } else if (flipFlopComp.type == FlipFlopType::FLIP_FLOP_T) {
                 assert(comp.inputPins.size() == 2);
-                if (inPinValues[0])
+                if (inputs[0])
                     q = !q;
                 q0 = !q;
                 changed = comp.outputStates[0] != q;
@@ -80,7 +79,6 @@ namespace Bess::SimEngine {
         catalog.registerComponent(flipFlop);
 
         flipFlop.name = "D Flip Flop";
-        flipFlop.inputCount = 2;
         flipFlop.type = ComponentType::FLIP_FLOP_D;
         catalog.registerComponent(flipFlop);
     }
@@ -150,9 +148,55 @@ namespace Bess::SimEngine {
         ComponentCatalog::instance().registerComponent(notGate);
     }
 
+    inline void initCombCircuits() {
+        const std::string groupName = "Combinational Circuits";
+        ComponentDefinition comp = {ComponentType::FULL_ADDER, "Full Adder", "Combinational Circuits", 3, 2, 
+            &exprEvalSimFunc, SimDelayMilliSeconds(100), {"0^1^2", "(0*1) + 2*(0^1)"}};
+        ComponentCatalog::instance().registerComponent(comp);
+
+		comp = {ComponentType::HALF_ADDER, "Half Adder", groupName, 2, 2,
+            &exprEvalSimFunc, SimDelayMilliSeconds(100), {"0^1", "0*1"}};
+        ComponentCatalog::instance().registerComponent(comp);
+
+        comp = {ComponentType::MULTIPLEXER_4_1, "4-to-1 Mux", groupName,
+            6, 1, &exprEvalSimFunc, SimDelayMilliSeconds(100), {"(0*!5*!4) + (1*!5*4) + (2*5*!4) + (3*5*4)"}};
+        ComponentCatalog::instance().registerComponent(comp);
+
+		comp = {ComponentType::DECODER_2_4, "2-to-4 Decoder", groupName, 2, 4, &exprEvalSimFunc, 
+            SimDelayMilliSeconds(100), {"!1*!0", "!1*0", "1*!0", "1*0"}};
+        ComponentCatalog::instance().registerComponent(comp);
+
+        comp = {ComponentType::DEMUX_1_4, "1-to-4 Demux", groupName, 3, 4, &exprEvalSimFunc, 
+            SimDelayMilliSeconds(100), {"0*!2*!1", "0*!2*1", "0*2*!1", "0*2*1"}};
+        ComponentCatalog::instance().registerComponent(comp);
+
+        comp = {ComponentType::COMPARATOR_1_BIT, "1-Bit Comparator", groupName, 2, 3, 
+            &exprEvalSimFunc, SimDelayMilliSeconds(100), {"0*!1", "!0*1", "!(0^1)"}};
+        ComponentCatalog::instance().registerComponent(comp);
+
+        comp = {ComponentType::ENCODER_4_2, "4-to-2 Encoder", groupName, 4, 2, &exprEvalSimFunc, SimDelayMilliSeconds(100), {"1+3", "2+3"}};
+        ComponentCatalog::instance().registerComponent(comp);
+
+        comp = {ComponentType::HALF_SUBTRACTOR, "Half Subtractor", groupName, 2, 2, &exprEvalSimFunc, SimDelayMilliSeconds(100), {"0^1", "!0*1"}};
+        ComponentCatalog::instance().registerComponent(comp);
+
+        comp = {ComponentType::MULTIPLEXER_2_1, "2-to-1 Mux", groupName, 3, 1, &exprEvalSimFunc, SimDelayMilliSeconds(100), {"(0*!2) + (1*2)"}};
+        ComponentCatalog::instance().registerComponent(comp);
+
+        comp = {ComponentType::PRIORITY_ENCODER_4_2, "4-to-2 Priority Encoder", groupName, 4, 3, &exprEvalSimFunc, SimDelayMilliSeconds(100), {"3 + (!2*1)", "3 + (2*!3)", "0+1+2+3"}};
+        ComponentCatalog::instance().registerComponent(comp);
+
+        comp = {ComponentType::FULL_SUBTRACTOR, "Full Subtractor", groupName, 3, 2, &exprEvalSimFunc, SimDelayMilliSeconds(100), {"0^1^2", "(!0*1) + (!(0^1)*2)"}};
+        ComponentCatalog::instance().registerComponent(comp);
+
+        comp = {ComponentType::COMPARATOR_2_BIT, "2-Bit Comparator", groupName, 4, 3, &exprEvalSimFunc, SimDelayMilliSeconds(100), {"(1*!3)+(!(1^3)*(0*!2))", "(!1*3)+(!(1^3)*(!0*2))", "(!(1^3))*(!(0^2))"}};
+        ComponentCatalog::instance().registerComponent(comp);
+    }
+
     inline void initComponentCatalog() {
         initFlipFlops();
         initDigitalGates();
         initIO();
+        initCombCircuits();
     }
 } // namespace Bess::SimEngine
