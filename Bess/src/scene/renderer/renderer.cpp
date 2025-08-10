@@ -398,6 +398,7 @@ namespace Bess {
     }
 
     void Renderer2D::Renderer::triangle(const std::vector<glm::vec3> &points, const glm::vec4 &color, const int id) {
+        std::runtime_error("Triangle API is not implemented");
         std::vector<Gl::Vertex> vertices(3);
 
         for (int i = 0; i < vertices.size(); i++) {
@@ -561,15 +562,6 @@ namespace Bess {
             m_circleRendererVao->unbind();
             m_renderData.circleVertices.clear();
         } break;
-        /*case PrimitiveType::curve: {
-            shader->setUniform1f("u_zoom", m_camera->getZoom());
-            //vao->setVerticesAndIndices(m_curveStripVertices.data(), m_curveStripVertices.size(), m_curveStripIndices.data(), m_curveStripIndices.size());
-            GL_CHECK(glEnable(GL_PRIMITIVE_RESTART));
-            GL_CHECK(glPrimitiveRestartIndex(PRIMITIVE_RESTART));
-            Gl::Api::drawElements(GL_TRIANGLE_STRIP, (GLsizei)(m_curveStripIndices.size()));
-            m_curveStripVertices.clear();
-            m_curveStripIndices.clear();
-        } break;*/
         case PrimitiveType::path: {
             shader->setUniform1f("u_zoom", m_camera->getZoom());
             m_pathRendererVao->bind();
