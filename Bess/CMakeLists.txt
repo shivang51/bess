@@ -77,6 +77,9 @@ set(Header_Files
 "include/scene/renderer/gl/vao.h"
 "include/scene/renderer/gl/gl_wrapper.h"
 "include/scene/renderer/gl/utils.h"
+"include/scene/renderer/gl/instanced_vao.h"
+"include/scene/renderer/gl/batch_vao.h"
+"include/scene/renderer/gl/vaos.h" 
 )
 
 source_group("include" FILES ${Header_Files})
@@ -122,7 +125,8 @@ set(Source_Files
 "src/scene/renderer/gl/fb_attachment.cpp"
 "src/scene/renderer/gl/framebuffer.cpp"
 "src/scene/renderer/gl/vao.cpp"
-"src/scene/renderer/renderer.cpp"
+"src/scene/renderer/renderer.cpp" 
+"src/scene/renderer/gl/vaos.cpp"
 )
 
 source_group("src" FILES ${Source_Files})

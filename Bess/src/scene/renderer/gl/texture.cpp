@@ -30,6 +30,7 @@ namespace Bess::Gl {
 
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_width, m_height, 0, GL_RGBA,
                      GL_UNSIGNED_BYTE, data);
+
         glGenerateMipmap(GL_TEXTURE_2D);
         stbi_image_free(data);
     }
@@ -65,7 +66,7 @@ namespace Bess::Gl {
             assert(false);
         }
         if (slotIdx != -1) {
-            glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0));
             GL_CHECK(glBindTextureUnit(slotIdx, m_id));
         }
         else if (m_multisampled) {

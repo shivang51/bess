@@ -50,10 +50,10 @@ namespace Bess::SimEngine {
     };
 
     struct BESS_API ComponentState {
-        std::vector<bool> inputStates;
-        std::vector<bool> inputConnected;
-        std::vector<bool> outputStates;
-        std::vector<bool> outputConnected;
+        const std::vector<bool>& inputStates;
+        const std::vector<bool>& inputConnected;
+        const std::vector<bool>& outputStates;
+        const std::vector<bool>& outputConnected;
     };
 
 } // namespace Bess::SimEngine

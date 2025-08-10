@@ -3,7 +3,6 @@
 layout(location = 0) out vec4 fragColor;
 layout(location = 1) out int fragColor1;
 
-in vec2 v_Size;
 in vec2 v_TexCoord;
 in vec4 v_FragColor;
 in flat int v_FragId;
@@ -14,7 +13,7 @@ uniform int u_SelectedObjId;
 uniform float u_zoom;
 
 float screenPxRange() {
-	const float pxRange = 4.0; // set to distance field's pixel range
+	const float pxRange = 6.0; // set to distance field's pixel range
     vec2 unitRange = vec2(pxRange)/vec2(textureSize(u_Textures[v_TexSlotIdx], 0));
     vec2 screenTexSize = vec2(1.0)/fwidth(v_TexCoord);
     return max(0.5*dot(unitRange, screenTexSize), 1.0);

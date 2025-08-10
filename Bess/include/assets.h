@@ -22,8 +22,8 @@ namespace Bess::Assets {
         constexpr auto path = AssetID<Gl::Shader, 2>("assets/shaders/vert.glsl", "assets/shaders/curve_frag.glsl");
         constexpr auto circle = AssetID<Gl::Shader, 2>("assets/shaders/circle_vert.glsl", "assets/shaders/circle_frag.glsl");
         constexpr auto triangle = AssetID<Gl::Shader, 2>("assets/shaders/vert.glsl", "assets/shaders/triangle_frag.glsl");
-        constexpr auto line = AssetID<Gl::Shader, 2>("assets/shaders/vert.glsl", "assets/shaders/line_frag.glsl");
-        constexpr auto text = AssetID<Gl::Shader, 2>("assets/shaders/vert.glsl", "assets/shaders/text_frag.glsl");
+        constexpr auto line = AssetID<Gl::Shader, 2>("assets/shaders/instance_vert.glsl", "assets/shaders/line_frag.glsl");
+        constexpr auto text = AssetID<Gl::Shader, 2>("assets/shaders/instance_vert.glsl", "assets/shaders/text_frag.glsl");
         constexpr auto grid = AssetID<Gl::Shader, 2>("assets/shaders/grid_vert.glsl", "assets/shaders/grid_frag.glsl");
     } // namespace Shaders
 } // namespace Bess::Assets

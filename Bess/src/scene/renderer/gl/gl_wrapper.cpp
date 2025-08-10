@@ -51,6 +51,21 @@ namespace Bess::Gl {
         m_stats.vertices += count;
     }
 
+    void Api::drawElementsInstanced(const GLenum mode, const GLsizei indiciesCount, const GLsizei verticiesCount) {
+        if (indiciesCount == 0) {
+            return;
+        }
+        GL_CHECK(glDrawElementsInstanced(
+            mode,
+            indiciesCount,
+            GL_UNSIGNED_INT,
+            nullptr,
+            verticiesCount));
+
+        m_stats.drawCalls++;
+        m_stats.vertices += verticiesCount;
+    }
+
     void Api::drawArrays(const GLenum mode, const GLsizei count) {
         if (count == 0) {
             return;

@@ -29,6 +29,7 @@ namespace Bess::Gl {
         };
 
         static void drawElements(GLenum mode, GLsizei count);
+        static void drawElementsInstanced(const GLenum mode, const GLsizei indiciesCount, const GLsizei verticiesCount);
         static void drawArrays(GLenum mode, GLsizei count);
 
         static const GlStats &getStats();

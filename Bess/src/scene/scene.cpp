@@ -182,10 +182,25 @@ namespace Bess::Canvas {
             Artist::drawConnectionEntity(entity);
         }
 
-        // draw sim entities
-        auto view = m_registry.view<Components::TagComponent>();
-        for (auto entity : view) {
-            Artist::drawEntity(entity);
+        auto simCompView = m_registry.view<
+            Components::SimulationComponent,
+            Components::TagComponent,
+            Components::SpriteComponent,
+            Components::TransformComponent
+        >();
+        for (auto entity : simCompView) {
+            Artist::drawSimEntity(
+                entity, 
+                simCompView.get<Components::TagComponent>(entity), 
+                simCompView.get<Components::TransformComponent>(entity), 
+                simCompView.get<Components::SpriteComponent>(entity), 
+                simCompView.get<Components::SimulationComponent>(entity) 
+                );
+        }
+
+        auto nonSimCompView = m_registry.view<Components::NSComponent>();
+        for (auto entity : nonSimCompView) {
+            Artist::drawNonSimEntity(entity);
         }
 
         Renderer2D::Renderer::end();
@@ -363,11 +378,16 @@ namespace Bess::Canvas {
     }
 
     entt::entity Scene::getEntityWithUuid(const UUID &uuid) {
+        if (m_uuidToEntt.contains(uuid)) {
+            return m_uuidToEntt.at(uuid);
+        }
         auto view = m_registry.view<Components::IdComponent>();
         for (const auto &ent : view) {
-            auto &idComp = view.get<Components::IdComponent>(ent);
-            if (idComp.uuid == uuid)
+            const auto &idComp = view.get<Components::IdComponent>(ent);
+            if (idComp.uuid == uuid) {
+                m_uuidToEntt[uuid] = ent;
                 return ent;
+            }
         }
         return entt::null;
     }
@@ -419,7 +439,11 @@ namespace Bess::Canvas {
     }
 
     void Scene::dragConnectionSegment(entt::entity ent, const glm::vec2 &dPos) {
-        auto &comp = m_registry.get<Components::ConnectionSegmentComponent>(ent);
+        auto view = m_registry.view<Components::TransformComponent,
+            Components::ConnectionSegmentComponent,
+            Components::SlotComponent,
+            Components::ConnectionComponent>();
+        auto &comp = view.get<Components::ConnectionSegmentComponent>(ent);
 
         if (comp.isHead() || comp.isTail()) {
             auto newEntt = m_registry.create();
@@ -432,16 +456,18 @@ namespace Bess::Canvas {
             if (comp.isHead()) {
                 comp.prev = idComp.uuid;
                 compNew.next = getUuidOfEntity(ent);
-                auto &connComponent = m_registry.get<Components::ConnectionComponent>(getEntityWithUuid(comp.parent));
-                auto &slotComponent = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComponent.inputSlot));
+                auto &connComponent = view.get<Components::ConnectionComponent>(getEntityWithUuid(comp.parent));
+                auto &slotComponent = view.get<Components::SlotComponent>(getEntityWithUuid(connComponent.inputSlot));
+                auto &parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(slotComponent.parentId));
                 connComponent.segmentHead = idComp.uuid;
-                slotPos = Artist::getSlotPos(slotComponent);
+                slotPos = Artist::getSlotPos(slotComponent, parentTransform);
             } else {
                 comp.next = idComp.uuid;
                 compNew.prev = getUuidOfEntity(ent);
                 auto &connComponent = m_registry.get<Components::ConnectionComponent>(getEntityWithUuid(comp.parent));
                 auto &slotComponent = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComponent.outputSlot));
-                slotPos = Artist::getSlotPos(slotComponent);
+                auto &parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(slotComponent.parentId));
+                slotPos = Artist::getSlotPos(slotComponent, parentTransform);
             }
 
             if (comp.pos.x == 0) // if current is vertical
@@ -617,9 +643,14 @@ namespace Bess::Canvas {
         connSegComp2.next = idComp3.uuid;
         connSegComp2.prev = idComp1.uuid;
         connSegComp3.prev = idComp2.uuid;
-
-        auto inputSlotPos = Artist::getSlotPos(m_registry.get<Components::SlotComponent>(inputSlot));
-        auto outputSlotPos = Artist::getSlotPos(m_registry.get<Components::SlotComponent>(outputSlot));
+        
+        auto view = m_registry.view<Components::SlotComponent, Components::TransformComponent>();
+        const auto &inpSlotComp = view.get<Components::SlotComponent>(inputSlot);
+        const auto &inpParentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(inpSlotComp.parentId));
+        auto inputSlotPos = Artist::getSlotPos(inpSlotComp, inpParentTransform);
+        const auto& slotComp = view.get<Components::SlotComponent>(outputSlot);
+        const auto& parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(slotComp.parentId));
+        auto outputSlotPos = Artist::getSlotPos(slotComp, parentTransform);
 
         auto dX = outputSlotPos.x - inputSlotPos.x;
 
