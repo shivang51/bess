@@ -1,8 +1,8 @@
 #include "pages/page.h"
 
-#include "application_state.h"
 #include "pages/main_page/main_page.h"
 #include "pages/start_page/start_page.h"
+#include "application_state.h"
 
 namespace Bess::Pages {
     Page::Page(PageIdentifier identifier) : m_identifier(identifier) {

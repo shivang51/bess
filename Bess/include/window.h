@@ -1,7 +1,8 @@
 #pragma once
-#include "ext/vector_float2.hpp"
 #define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
+#include "GLFW/glfw3.h"
+#include "glm.hpp"
+
 #include <any>
 #include <functional>
 #include <iostream>

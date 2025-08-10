@@ -1,8 +1,8 @@
 #include "pages/start_page/start_page.h"
-#include "application_state.h"
 #include "pages/main_page/main_page.h"
 #include "pages/page_identifier.h"
 #include "ui/ui.h"
+#include "application_state.h"
 
 #include "imgui.h"
 #include "imgui_internal.h"

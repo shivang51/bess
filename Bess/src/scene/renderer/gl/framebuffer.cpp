@@ -1,10 +1,10 @@
+#include "common/log.h"
 #include "scene/renderer/gl/framebuffer.h"
 #include "settings/viewport_theme.h"
 #include "window.h"
 #include "stb_image_write.h"
 #include <filesystem>
 #include <iostream>
-#include <common/log.h>
 
 namespace Bess::Gl {
     FrameBuffer::FrameBuffer(const float width, const float height, const std::vector<FBAttachmentType> &attachments, const bool multisampled) {

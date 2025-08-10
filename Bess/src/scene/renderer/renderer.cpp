@@ -3,15 +3,14 @@
 #include "asset_manager/asset_manager.h"
 #include "assets.h"
 #include "camera.h"
-#include "fwd.hpp"
-#include "geometric.hpp"
-#include "glm.hpp"
 #include "scene/renderer/gl/gl_wrapper.h"
 #include "scene/renderer/gl/primitive_type.h"
 #include "scene/renderer/gl/vertex.h"
 #include "ui/ui_main/ui_main.h"
+#include "ext/matrix_transform.hpp"
+#include "glm.hpp"
+
 #include <cstdlib>
-#include <ext/matrix_transform.hpp>
 #include <iostream>
 #include <ostream>
 
@@ -490,7 +489,7 @@ namespace Bess {
         size_t idx = m_pathStripVertices.size();
         for (auto &v : vertices) {
             m_pathStripVertices.emplace_back(v);
-            m_pathStripIndices.emplace_back(idx++);
+            m_pathStripIndices.emplace_back((GLuint)idx++);
         }
         m_pathData = {};
         m_pathStripIndices.emplace_back(PRIMITIVE_RESTART);

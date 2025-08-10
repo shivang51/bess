@@ -47,7 +47,7 @@ set(ALL_FILES
     ${Source_Files}
 )
 
-add_library(${PROJECT_NAME} SHARED ${ALL_FILES})
+add_library(${PROJECT_NAME} SHARED ${ALL_FILES} "include/expression_evalutator/expr_evaluator.h")
 if(UNIX)
 if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14")
     target_link_libraries(${PROJECT_NAME} PRIVATE stdc++exp)

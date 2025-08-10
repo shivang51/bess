@@ -1,3 +1,4 @@
+#include "common/log.h"
 #include "application.h"
 #include "application_state.h"
 #include "events/application_event.h"
@@ -6,7 +7,6 @@
 #include "ui/ui.h"
 
 #include "common/bind_helpers.h"
-#include "common/log.h"
 #include "settings/settings.h"
 #include "window.h"
 

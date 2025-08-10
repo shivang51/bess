@@ -1,12 +1,13 @@
 #include "ui/ui.h"
-#include "application_state.h"
-#include "settings/settings.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/icons/ComponentIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/icons/MaterialIcons.h"
-#include "ui/ui_main/ui_main.h"
+
 #include "assets.h"
+#include "ui/ui_main/ui_main.h"
+#include "settings/settings.h"
+#include "application_state.h"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
