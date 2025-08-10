@@ -16,14 +16,14 @@ namespace Bess::UI {
     std::string ComponentExplorer::m_searchQuery = "";
     std::string ComponentExplorer::windowName = (std::string(Icons::FontAwesomeIcons::FA_TOOLBOX) + "  Component Explorer");
 
-    bool MyTreeNode(const char *label) {
+    bool MyTreeNode(const char *label, ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None) {
         ImGuiContext &g = *ImGui::GetCurrentContext();
         ImGuiWindow *window = g.CurrentWindow;
 
         ImGuiID id = window->GetID(label);
         ImVec2 pos = window->DC.CursorPos;
         ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x, pos.y + g.FontSize + g.Style.FramePadding.y * 2));
-        bool opened = ImGui::TreeNodeBehaviorIsOpen(id, ImGuiTreeNodeFlags_None);
+        bool opened = ImGui::TreeNodeBehaviorIsOpen(id, flags);
         bool hovered, held;
 
         auto style = ImGui::GetStyle();
@@ -169,7 +169,7 @@ namespace Bess::UI {
             static auto modifiableProperties = generateModifiablePropertiesStr();
 
             for (auto &ent : *componentTree) {
-                if (MyTreeNode(ent.first.c_str())) {
+                if (MyTreeNode(ent.first.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
                     for (auto &comp : ent.second) {
                         auto name = comp->name;
                         if (m_searchQuery != "" && Common::Helpers::toLowerCase(name).find(m_searchQuery) == std::string::npos)
@@ -202,7 +202,7 @@ namespace Bess::UI {
         }
 
         // non simulation components
-        if(MyTreeNode("Miscellaneous")) {
+        if(MyTreeNode("Miscellaneous", ImGuiTreeNodeFlags_DefaultOpen)) {
             static auto nonSimComponents = Canvas::Components::getNSComponents();
             for(auto& comp: nonSimComponents) {
                 if (m_searchQuery != "" && Common::Helpers::toLowerCase(comp.name).find(m_searchQuery) == std::string::npos)
