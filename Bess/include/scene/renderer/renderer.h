@@ -20,7 +20,6 @@ namespace Bess::Renderer2D {
     struct RenderData {
         std::vector<Gl::CircleVertex> circleVertices;
         std::vector<Gl::InstanceVertex> lineVertices;
-        std::vector<Gl::Vertex> curveVertices;
         std::vector<Gl::InstanceVertex> fontVertices;
         std::vector<Gl::Vertex> triangleVertices;
         std::vector<Gl::QuadVertex> quadVertices;
@@ -89,12 +88,6 @@ namespace Bess::Renderer2D {
         static void quad(const glm::vec3 &pos, const glm::vec2 &size, std::shared_ptr<Gl::SubTexture>,
                          const glm::vec4 &tintColor, int id, QuadRenderProperties properties = {});
 
-        static void curve(const glm::vec3 &start, const glm::vec3 &end, float weight, const glm::vec4 &color, int id);
-
-        static void quadraticBezier(const glm::vec3 &start, const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, const int id, bool breakCurve = true);
-
-        static void cubicBezier(const glm::vec3 &start, const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2, float weight, const glm::vec4 &color, const int id, bool breakCurve = true);
-
         static void circle(const glm::vec3 &center, float radius,
                            const glm::vec4 &color, int id, float innerRadius = 0.0f);
 
@@ -116,9 +109,6 @@ namespace Bess::Renderer2D {
                                                               float width,
                                                               const glm::vec4 &color,
                                                               int id, float miterLimit, bool isClosed);
-
-        static void addCurveSegmentStrip(const glm::vec3 &prev_, const glm::vec3 &curr_, const glm::vec4 &color,
-                                         int id, float weight, bool firstSegment);
 
         static int calculateQuadBezierSegments(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2);
 
@@ -168,13 +158,8 @@ namespace Bess::Renderer2D {
 
         static std::shared_ptr<Font> m_Font;
 
-        static std::vector<Gl::Vertex> m_curveStripVertices;
-        static std::vector<GLuint> m_curveStripIndices;
-
         static std::vector<Gl::Vertex> m_pathStripVertices;
         static std::vector<GLuint> m_pathStripIndices;
-
-        static bool m_curveBroken;
 
         static PathContext m_pathData;
 
