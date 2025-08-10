@@ -86,7 +86,7 @@ namespace Bess::SimEngine {
         if (type == ComponentType::NOT) {
             outputCount = inputCount;
         }
-        auto &digi = m_registry.emplace<DigitalComponent>(ent, type, inputCount, outputCount, def->delay);
+        auto &digi = m_registry.emplace<DigitalComponent>(ent, type, inputCount, outputCount, def->delay, def->getExpression(inputCount));
         if (type == ComponentType::FLIP_FLOP_JK || type == ComponentType::FLIP_FLOP_SR ||
             type == ComponentType::FLIP_FLOP_D || type == ComponentType::FLIP_FLOP_T) {
             m_registry.emplace<FlipFlopComponent>(ent, FlipFlopType(type), 1);

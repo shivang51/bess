@@ -3,6 +3,7 @@
 #include "component_catalog.h"
 #include "entt_components.h"
 #include "types.h"
+#include "expression_evalutator/expr_evaluator.h"
 #include <iostream>
 
 namespace Bess::SimEngine {
@@ -66,7 +67,7 @@ namespace Bess::SimEngine {
         };
 
         auto &catalog = ComponentCatalog::instance();
-        auto flipFlop = ComponentDefinition(ComponentType::FLIP_FLOP_JK, "JK Flip Flop", "Flip Flop", 3, 2, simFunc, SimDelayMilliSeconds(100));
+        auto flipFlop = ComponentDefinition(ComponentType::FLIP_FLOP_JK, "JK Flip Flop", "Flip Flop", 3, 2, simFunc, SimDelayMilliSeconds(100), "");
         catalog.registerComponent(flipFlop);
 
         flipFlop.name = "SR Flip Flop";
@@ -85,7 +86,8 @@ namespace Bess::SimEngine {
     }
 
     inline void initIO() {
-        ComponentCatalog::instance().registerComponent(ComponentDefinition(ComponentType::INPUT, "Input", "IO", 0, 1, [](auto &, auto, auto, auto fn) -> bool { return false; }, SimDelayMilliSeconds(0)));
+        ComponentCatalog::instance().registerComponent(ComponentDefinition(ComponentType::INPUT, "Input", "IO", 0, 1, 
+            [](auto &, auto, auto, auto fn) -> bool { return false; }, SimDelayMilliSeconds(0)));
 
         ComponentCatalog::instance().registerComponent({ComponentType::OUTPUT, "Output", "IO", 1, 0,
                                                         [&](entt::registry &registry, entt::entity e, const std::vector<bool> &inputs, auto fn) -> bool {
@@ -96,43 +98,48 @@ namespace Bess::SimEngine {
                                                         SimDelayMilliSeconds(0)});
     }
 
+
+    /// single output expression simulation function
+    bool soExprSimFunc(entt::registry &registry, entt::entity e, const std::vector<bool> &inputs, std::function<entt::entity(const UUID &)> fn) {
+        auto &comp = registry.get<DigitalComponent>(e);
+        comp.inputStates = inputs;
+        bool newState = ExprEval::evaluateExpression(comp.expression, comp.inputStates);
+        bool changed = comp.outputStates[0] != newState;
+        comp.outputStates[0] = newState;
+        return changed;
+    }
+
     inline void initDigitalGates() {
-        ComponentDefinition andGate = {ComponentType::AND, "AND Gate", "Digital Gates", 2, 1,
-                                       [&](entt::registry &registry, entt::entity e, const std::vector<bool> &inputs, auto fn) -> bool {
-                                           auto &gate = registry.get<DigitalComponent>(e);
-                                           gate.inputStates = inputs;
-                                           bool newState = true;
-                                           for (auto state : gate.inputStates) {
-                                               newState = newState && state;
-                                               if (!newState)
-                                                   break;
-                                           }
+        ComponentDefinition digitalGate = {ComponentType::AND, "AND Gate", "Digital Gates", 2, 1, &soExprSimFunc,
+                                       SimDelayMilliSeconds(100), '*'};
+        digitalGate.addModifiableProperty(Properties::ComponentProperty::inputCount, {3, 4, 5});
+        ComponentCatalog::instance().registerComponent(digitalGate);
 
-                                           bool changed = gate.outputStates[0] != newState;
-                                           gate.outputStates[0] = newState;
-                                           return changed;
-                                       },
-                                       SimDelayMilliSeconds(100)};
+        digitalGate.type = ComponentType::OR;
+        digitalGate.name = "OR Gate";
+        digitalGate.op = '+';
+        ComponentCatalog::instance().registerComponent(digitalGate);
 
-        andGate.addModifiableProperty(Properties::ComponentProperty::inputCount, {3, 4, 5});
+        digitalGate.type = ComponentType::XOR;
+        digitalGate.name = "XOR Gate";
+        digitalGate.op = '^';
+        ComponentCatalog::instance().registerComponent(digitalGate);
 
-        ComponentCatalog::instance().registerComponent(andGate);
+        digitalGate.type = ComponentType::XNOR;
+        digitalGate.name = "XNOR Gate";
+        digitalGate.op = '^';
+        digitalGate.negate = true;
+        ComponentCatalog::instance().registerComponent(digitalGate);
 
-        ComponentCatalog::instance().registerComponent({ComponentType::OR, "OR Gate", "Digital Gates", 2, 1,
-                                                        [&](entt::registry &registry, entt::entity e, const std::vector<bool> &inputs, auto fn) -> bool {
-                                                            auto &gate = registry.get<DigitalComponent>(e);
-                                                            gate.inputStates = inputs;
-                                                            bool newState = false;
-                                                            for (auto state : gate.inputStates) {
-                                                                newState = newState || state;
-                                                                if (newState)
-                                                                    break;
-                                                            }
-                                                            bool changed = gate.outputStates[0] != newState;
-                                                            gate.outputStates[0] = newState;
-                                                            return changed;
-                                                        },
-                                                        SimDelayMilliSeconds(100)});
+        digitalGate.type = ComponentType::NAND;
+        digitalGate.name = "NAND Gate";
+        digitalGate.op = '*';
+        ComponentCatalog::instance().registerComponent(digitalGate);
+
+        digitalGate.type = ComponentType::NOR;
+        digitalGate.name = "NOR Gate";
+        digitalGate.op = '+';
+        ComponentCatalog::instance().registerComponent(digitalGate);
 
         ComponentDefinition notGate = {ComponentType::NOT, "NOT Gate", "Digital Gates", 1, 1,
                                        [&](entt::registry &registry, entt::entity e, const std::vector<bool> &inputs, auto fn) -> bool {
@@ -156,79 +163,6 @@ namespace Bess::SimEngine {
                                        SimDelayMilliSeconds(100)};
         notGate.addModifiableProperty(Properties::ComponentProperty::inputCount, {2, 3, 4, 5, 6});
         ComponentCatalog::instance().registerComponent(notGate);
-
-        ComponentCatalog::instance().registerComponent({ComponentType::XOR, "XOR Gate", "Digital Gates", 2, 1,
-                                                        [&](entt::registry &registry, entt::entity e, const std::vector<bool> &inputs, auto fn) -> bool {
-                                                            auto &gate = registry.get<DigitalComponent>(e);
-                                                            gate.inputStates = inputs;
-                                                            std::vector<bool> pinValues = gate.inputStates;
-                                                            bool newState = (pinValues.size() >= 2) ? (pinValues[0] ^ pinValues[1]) : false;
-                                                            bool changed = false;
-                                                            for (auto state : gate.outputStates) {
-                                                                if (state != newState) {
-                                                                    state = newState;
-                                                                    changed = true;
-                                                                }
-                                                            }
-                                                            return changed;
-                                                        },
-                                                        SimDelayMilliSeconds(100)});
-
-        ComponentCatalog::instance().registerComponent(ComponentDefinition(ComponentType::XNOR, "XNOR Gate", "Digital Gates", 2, 1, [&](entt::registry &registry, entt::entity e, const std::vector<bool> &inputs, auto fn) -> bool {
-                                                            auto &gate = registry.get<DigitalComponent>(e);
-                                                            gate.inputStates = inputs;
-                                                            std::vector<bool> pinValues = gate.inputStates;
-                                                            bool newState = (pinValues.size() >= 2) ? !(pinValues[0] ^ pinValues[1]) : false;
-                                                            bool changed = false;
-                                                            for (auto state : gate.outputStates) {
-                                                                if (state != newState) {
-                                                                    state = newState;
-                                                                    changed = true;
-                                                                }
-                                                            }
-                                                            return changed; }, SimDelayMilliSeconds(100)));
-
-        auto nandGate = ComponentDefinition(
-            ComponentType::NAND, "NAND Gate",
-            "Digital Gates", 2, 1,
-            [&](entt::registry &registry, entt::entity e, const std::vector<bool> &inputs, auto fn) -> bool {
-                auto &gate = registry.get<DigitalComponent>(e);
-                gate.inputStates = inputs;
-                std::vector<bool> pinValues = gate.inputStates;
-                bool newState = true;
-                for (auto state : pinValues) {
-                    newState = newState && state;
-                    if (!newState)
-                        break;
-                }
-                newState = !newState;
-
-                bool changed = false;
-                for (auto state : gate.outputStates) {
-                    if (state != newState) {
-                        state = newState;
-                        changed = true;
-                    }
-                }
-                return changed;
-            },
-            SimDelayMilliSeconds(100));
-        nandGate.addModifiableProperty(Properties::ComponentProperty::inputCount, {3, 4, 5});
-        ComponentCatalog::instance().registerComponent(nandGate);
-
-        ComponentCatalog::instance().registerComponent(ComponentDefinition(ComponentType::NOR, "NOR Gate", "Digital Gates", 2, 1, [&](entt::registry &registry, entt::entity e, const std::vector<bool> &inputs, auto fn) -> bool {
-                                                            auto &gate = registry.get<DigitalComponent>(e);
-                                                            gate.inputStates = inputs;
-                                                            std::vector<bool> pinValues = gate.inputStates;
-                                                            bool newState = (pinValues.size() >= 2) ? !(pinValues[0] || pinValues[1]) : false;
-                                                            bool changed = false;
-                                                            for (auto state : gate.outputStates) {
-                                                                if (state != newState) {
-                                                                    state = newState;
-                                                                    changed = true;
-                                                                }
-                                                            }
-                                                            return changed; }, SimDelayMilliSeconds(100)));
     }
 
     inline void initComponentCatalog() {
