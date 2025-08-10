@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <string_view>
+#include <array>
 
 namespace Bess::Assets {
     constexpr uint64_t FNV_OFFSET_BASIS = 0xcbf29ce484222325;

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include "settings/themes.h"
+#include <string>
 
 namespace Bess::Config {
 	class Settings

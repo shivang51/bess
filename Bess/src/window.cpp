@@ -1,8 +1,7 @@
-#include "window.h"
 #include "common/log.h"
+#include "window.h"
 #include "scene/renderer/gl/gl_wrapper.h"
 #include <cassert>
-#include <imgui.h>
 #include <iostream>
 #include <memory>
 
