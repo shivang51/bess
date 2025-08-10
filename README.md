@@ -45,4 +45,6 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
        ./Bess
        ```
 ## TODO
+- [ ] Command System
+- [ ] Undo, Redo functionality
 - [ ] Using emscripten to host on web 
