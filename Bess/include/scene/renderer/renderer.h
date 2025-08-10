@@ -4,7 +4,8 @@
 
 #include "scene/renderer/font.h"
 #include "scene/renderer/gl/shader.h"
-#include "scene/renderer/gl/vao.h"
+#include "scene/renderer/gl/vaos.h"
+#include "scene/renderer/gl/batch_vao.h"
 #include "scene/renderer/gl/vertex.h"
 #include "scene/renderer/gl/texture.h"
 #include "scene/renderer/gl/subtexture.h"

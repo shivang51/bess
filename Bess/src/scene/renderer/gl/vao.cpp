@@ -7,10 +7,6 @@
 #include "scene/renderer/gl/vertex.h"
 
 namespace Bess::Gl {
-
-    // --- BufferElement & BufferLayout Implementations ---
-
-    // Helper function to get the size of a GL type in bytes
     static uint32_t getGLTypeSize(GLenum type) {
         switch (type) {
         case GL_FLOAT:
@@ -22,7 +18,6 @@ namespace Bess::Gl {
         case GL_UNSIGNED_BYTE:
             return 1;
         }
-        // This should not be reached
         return 0;
     }
 
@@ -138,31 +133,5 @@ namespace Bess::Gl {
             m_attribIndex++;
         }
     }
-
-    BufferLayout QuadVao::getInstanceLayout() {
-        return BufferLayout{
-            {GL_FLOAT, 3, sizeof(QuadVertex), offsetof(QuadVertex, position), false, true},
-            {GL_FLOAT, 4, sizeof(QuadVertex), offsetof(QuadVertex, color), false, true},
-            {GL_FLOAT, 4, sizeof(QuadVertex), offsetof(QuadVertex, borderRadius), false, true},
-            {GL_FLOAT, 4, sizeof(QuadVertex), offsetof(QuadVertex, borderColor), false, true},
-            {GL_FLOAT, 4, sizeof(QuadVertex), offsetof(QuadVertex, borderSize), false, true},
-            {GL_FLOAT, 2, sizeof(QuadVertex), offsetof(QuadVertex, size), false, true},
-            {GL_INT, 1, sizeof(QuadVertex), offsetof(QuadVertex, id), false, true},
-            {GL_INT, 1, sizeof(QuadVertex), offsetof(QuadVertex, isMica), false, true},
-            {GL_INT, 1, sizeof(QuadVertex), offsetof(QuadVertex, texSlotIdx), false, true},
-            {GL_FLOAT, 4, sizeof(QuadVertex), offsetof(QuadVertex, texData), false, true}};
-    }
-
-    BufferLayout CircleVao::getInstanceLayout() {
-        return BufferLayout{
-            {GL_FLOAT, 3, sizeof(CircleVertex), offsetof(CircleVertex, position), false, true},
-            {GL_FLOAT, 4, sizeof(CircleVertex), offsetof(CircleVertex, color), false, true},
-            {GL_FLOAT, 1, sizeof(CircleVertex), offsetof(CircleVertex, radius), false, true},
-            {GL_FLOAT, 1, sizeof(CircleVertex), offsetof(CircleVertex, innerRadius), false, true},
-            {GL_INT, 1, sizeof(CircleVertex), offsetof(CircleVertex, id), false, true},
-        };
-    }
-
-
 
 } // namespace Bess::Gl

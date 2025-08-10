@@ -133,7 +133,7 @@ set(ALL_FILES
     ${Source_Files}
 )
 
-add_executable(${PROJECT_NAME} ${ALL_FILES})
+add_executable(${PROJECT_NAME} ${ALL_FILES} "include/scene/renderer/gl/instanced_vao.h" "include/scene/renderer/gl/batch_vao.h" "include/scene/renderer/gl/vaos.h" "src/scene/renderer/gl/vaos.cpp")
 target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine)
 add_dependencies(${PROJECT_NAME} BessSimEngine)
 if("${BUILD_ARCH}" STREQUAL "x64" AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
