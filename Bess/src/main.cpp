@@ -45,7 +45,8 @@ int main(int argc, char **argv) {
 
     Bess::Application app;
     try {
-        app.init("");
+        const char *projectFile = (argc == 2) ? argv[1] : "";
+        app.init(projectFile);
         app.run();
     } catch (const std::exception &e) {
         std::cerr << e.what() << std::endl;

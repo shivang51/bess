@@ -123,9 +123,10 @@ namespace Bess {
         m_mainWindow->onMiddleMouse(BIND_FN_1(Application::onMiddleMouse));
         m_mainWindow->onMouseMove(BIND_FN_2(Application::onMouseMove));
 
+        Pages::MainPage::getInstance(ApplicationState::getParentWindow())->show();
+
         if (!path.empty())
             loadProject(path);
-        Pages::MainPage::getInstance(ApplicationState::getParentWindow())->show();
     }
 
     void Application::shutdown() { m_mainWindow->close(); }
