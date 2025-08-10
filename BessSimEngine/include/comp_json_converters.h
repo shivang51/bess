@@ -4,6 +4,7 @@
 #include "bess_uuid.h"
 #include "entt_components.h"
 #include "types.h"
+#include "component_catalog.h"
 
 namespace Bess::JsonConvert{
     // --- Bess::UUID ---
@@ -151,6 +152,11 @@ namespace Bess::JsonConvert{
         for (bool state : comp.inputStates) {
             inputStatesArray.append(state);
         }
+
+        Json::Value &expressionsArray = j["expressions"] = Json::Value(Json::arrayValue);
+        for (const auto&  expr : comp.expressions) {
+            expressionsArray.append(expr);
+        }
     }
 
     /**
@@ -211,6 +217,16 @@ namespace Bess::JsonConvert{
             for (const auto &state : inputStatesArray) {
                 comp.inputStates.push_back(state.asBool());
             }
+        }
+
+        if (j.isMember("expressions")) {
+            const Json::Value &expressionsArr = j["expressions"];
+            comp.expressions.clear();
+            for (const auto &expr : expressionsArr) {
+                comp.expressions.push_back(expr.asString());
+            }
+        } else {
+			comp.expressions = ComponentCatalog::instance().getComponentDefinition(comp.type)->getExpressions(comp.inputPins.size());
         }
     }
 }
