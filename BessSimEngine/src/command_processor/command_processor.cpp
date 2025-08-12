@@ -4,6 +4,11 @@
 #include <logger.h>
 
 namespace Bess::SimEngine {
+    CommandProcessor &CommandProcessor::instance() {
+        static CommandProcessor processor;
+        return processor;
+    }
+
     void CommandProcessor::registerCommand(const std::string &name, CommandCreationFunc func) {
         std::string lowerName = name;
         std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);

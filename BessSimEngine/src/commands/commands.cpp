@@ -38,6 +38,7 @@ namespace Bess::SimEngine::Commands {
     void ConnectCommand::undo() {
         SimulationEngine::instance().deleteConnection(m_src, m_srcType, m_srcPin, m_dst, m_dstType, m_dstPin);
     }
+
     std::any ConnectCommand::getResult() {
         return "successfully deleted";
     }

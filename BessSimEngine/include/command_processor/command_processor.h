@@ -12,6 +12,8 @@
 namespace Bess::SimEngine {
     class CommandProcessor {
       public:
+        static CommandProcessor &instance();
+
         using CommandCreationFunc = std::function<std::unique_ptr<Commands::Command>(const std::vector<std::string> &args)>;
         using CommandResult = std::expected<std::any, std::string>;
 

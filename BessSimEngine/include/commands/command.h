@@ -12,6 +12,6 @@ namespace Bess::SimEngine::Commands{
         
         virtual void undo() = 0;
 
-        virtual std::any getResult();
+        virtual std::any getResult() = 0;
     };
 }
