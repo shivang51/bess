@@ -1,5 +1,4 @@
 #include "commands/commands_manager.h"
-#include "command_processor/commands_reg.h"
 #include "command_processor/command_processor.h"
 
 namespace Bess::SimEngine::Commands {
@@ -11,7 +10,6 @@ namespace Bess::SimEngine::Commands {
     CommandsManager::CommandsManager() {
         m_undoStack = {};
         m_redoStack = {};
-        Commands::registerAllCommands(CommandProcessor::instance());
     }
 
     void CommandsManager::undo() {

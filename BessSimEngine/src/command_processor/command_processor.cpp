@@ -1,5 +1,6 @@
 #include "command_processor/command_processor.h"
-#include <algorithm> // For std::transform
+#include "command_processor/commands_reg.h"
+#include <algorithm>
 #include <sstream>
 #include <logger.h>
 
@@ -7,6 +8,10 @@ namespace Bess::SimEngine {
     CommandProcessor &CommandProcessor::instance() {
         static CommandProcessor processor;
         return processor;
+    }
+
+    CommandProcessor::CommandProcessor(){
+        Commands::registerAllCommands(CommandProcessor::instance());
     }
 
     void CommandProcessor::registerCommand(const std::string &name, CommandCreationFunc func) {

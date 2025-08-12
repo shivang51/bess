@@ -17,6 +17,8 @@ namespace Bess::SimEngine {
         using CommandCreationFunc = std::function<std::unique_ptr<Commands::Command>(const std::vector<std::string> &args)>;
         using CommandResult = std::expected<std::any, std::string>;
 
+        CommandProcessor();
+
         /// Registers a command with its creation logic.
         void registerCommand(const std::string &name, CommandCreationFunc func);
 
