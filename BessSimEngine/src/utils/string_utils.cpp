@@ -21,4 +21,14 @@ namespace Bess::SimEngine::StringUtils {
 
         return ComponentType::EMPTY;
     }
+
+    PinType toPinType(std::string str) {
+        std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+
+        if (str == "output") {
+            return PinType::output;
+        }
+
+        return PinType::input;
+    }
 } // namespace Bess::SimEngine::StringUtils

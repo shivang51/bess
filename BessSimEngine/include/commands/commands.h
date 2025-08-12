@@ -36,4 +36,47 @@ namespace Bess::SimEngine::Commands {
         int m_dstPin;
         PinType m_dstType;
     };
+
+	class DeleteCompCommand : public Command {
+      public:
+        DeleteCompCommand(const UUID &compId);
+        bool execute() override;
+        void undo() override;
+        std::any getResult() override;
+
+      private:
+        UUID m_compId;
+        ComponentType m_compType = ComponentType::EMPTY;
+        ConnectionBundle m_connections{};
+    };
+
+    class DelConnectionCommand : public Command {
+      public:
+        DelConnectionCommand(const UUID &src, int srcPin, PinType srcType,
+                          const UUID &dst, int dstPin, PinType dstType);
+        bool execute() override;
+        void undo() override;
+        std::any getResult() override;
+
+      private:
+        UUID m_src;
+        int m_srcPin;
+        PinType m_srcType;
+        UUID m_dst;
+        int m_dstPin;
+        PinType m_dstType;
+    };
+
+    class SetInputCommand : public Command {
+      public:
+        SetInputCommand(const UUID &compId, bool state);
+        bool execute() override;
+        void undo() override;
+        std::any getResult() override;
+
+      private:
+        UUID m_compId;
+        bool m_newState;
+        bool m_oldState;
+    };
 } // namespace Bess::SimEngine::Commands
