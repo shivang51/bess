@@ -1,4 +1,5 @@
 #pragma once
+#include <any>
 
 namespace Bess::SimEngine::Commands{
     class Command {
@@ -10,5 +11,7 @@ namespace Bess::SimEngine::Commands{
         virtual bool execute() = 0;
         
         virtual void undo() = 0;
+
+        virtual std::any getResult();
     };
 }

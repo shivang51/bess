@@ -15,7 +15,15 @@ namespace Bess::SimEngine::Commands {
             if (!cmd->execute()) {
                 return;
             }
-            m_undoStack.push(std::move(cmd));
+            CommandsManager::instance().m_undoStack.push(std::move(cmd));
+        }
+
+        template <typename T>
+        static void execute(std::unique_ptr<T> cmd) {
+            if (!cmd->execute()) {
+                return;
+            }
+            CommandsManager::instance().m_undoStack.push(std::move(cmd));
         }
 
         CommandsManager();

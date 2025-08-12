@@ -48,7 +48,7 @@ set(ALL_FILES
     ${Source_Files}
 )
 
-add_library(${PROJECT_NAME} SHARED ${ALL_FILES} "include/expression_evalutator/expr_evaluator.h" "include/commands/command.h" "include/commands/commands.h" "src/commands/commands.cpp" "src/commands/commands_manager.cpp" "include/commands/commands_manager.h")
+add_library(${PROJECT_NAME} SHARED ${ALL_FILES} "include/expression_evalutator/expr_evaluator.h" "include/commands/command.h" "include/commands/commands.h" "src/commands/commands.cpp" "src/commands/commands_manager.cpp" "include/commands/commands_manager.h" "include/utils/string_utils.h" "src/utils/string_utils.cpp" "include/command_processor/command_processor.h" "src/command_processor/command_processor.cpp")
 if(UNIX)
 if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14")
     target_link_libraries(${PROJECT_NAME} PRIVATE stdc++exp)

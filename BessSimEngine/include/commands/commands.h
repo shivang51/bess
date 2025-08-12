@@ -11,6 +11,7 @@ namespace Bess::SimEngine::Commands {
         AddCommand(ComponentType type, int inputCount, int outputCount);
         bool execute() override;
         void undo() override;
+        std::any getResult() override;
 
       private:
         ComponentType m_compType;
@@ -25,6 +26,7 @@ namespace Bess::SimEngine::Commands {
                        const UUID &dst, int dstPin, PinType dstType);
         bool execute() override;
         void undo() override;
+        std::any getResult() override;
 
       private:
         UUID m_src;

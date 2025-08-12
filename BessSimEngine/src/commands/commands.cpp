@@ -18,6 +18,10 @@ namespace Bess::SimEngine::Commands {
         SimulationEngine::instance().deleteComponent(m_compId);
     }
 
+    std::any AddCommand::getResult() {
+        return m_compId;
+    }
+
     ConnectCommand::ConnectCommand(const UUID &src, int srcPin, PinType srcType, const UUID &dst, int dstPin, PinType dstType) {
         m_src = src;
         m_srcPin = srcPin;
@@ -33,5 +37,8 @@ namespace Bess::SimEngine::Commands {
 
     void ConnectCommand::undo() {
         SimulationEngine::instance().deleteConnection(m_src, m_srcType, m_srcPin, m_dst, m_dstType, m_dstPin);
+    }
+    std::any ConnectCommand::getResult() {
+        return "successfully deleted";
     }
 } // namespace Bess::SimEngine::Commands
