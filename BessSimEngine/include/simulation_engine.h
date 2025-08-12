@@ -1,7 +1,7 @@
 #pragma once
 #include "bess_api.h"
 #include "bess_uuid.h"
-#include "component_types.h"
+#include "component_types/component_types.h"
 #include "entt/entity/fwd.hpp"
 #include "types.h"
 #include <chrono>

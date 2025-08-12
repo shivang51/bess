@@ -1,7 +1,6 @@
 #include "simulation_engine.h"
 #include "component_catalog.h"
 #include "component_definition.h"
-#include "component_types.h"
 #include "entt/entity/fwd.hpp"
 #include "entt_components.h"
 #include "init_components.h"

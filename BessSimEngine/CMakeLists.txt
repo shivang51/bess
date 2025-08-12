@@ -13,6 +13,8 @@ set(External
 
 
 set(Header_Files
+    "include/component_types/component_types.h"
+    "include/component_types/component_types.def"
     "include/entt_components.h"
     "include/types.h"
     "include/bess_uuid.h"
@@ -23,7 +25,6 @@ set(Header_Files
     "include/simulation_engine_serializer.h"
     "include/component_catalog.h"
     "include/component_definition.h"
-    "include/component_types.h"
     "include/init_components.h" 
     "include/comp_json_converters.h"
 )

@@ -1,5 +1,5 @@
 #pragma once
-#include "component_types.h"
+#include "component_types/component_types.h"
 #include "scene/components/non_sim_comp.h"
 #include <string>
 

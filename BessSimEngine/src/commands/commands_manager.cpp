@@ -30,7 +30,7 @@ namespace Bess::SimEngine::Commands {
         m_redoStack.pop();
 
         if(cmd->execute())
-			m_undoStack.push(cmd);
+			m_undoStack.push(std::move(cmd));
     }
 
     void CommandsManager::clearStacks() {

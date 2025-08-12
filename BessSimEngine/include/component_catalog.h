@@ -2,7 +2,7 @@
 
 #include "bess_api.h"
 #include "component_definition.h"
-#include "component_types.h"
+#include "component_types/component_types.h"
 #include <entt/entt.hpp>
 
 namespace Bess::SimEngine {

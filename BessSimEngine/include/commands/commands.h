@@ -1,7 +1,7 @@
 #pragma once
 
 #include "command.h"
-#include "component_types.h"
+#include "component_types/component_types.h"
 #include "types.h"
 #include "bess_uuid.h"
 
