@@ -13,7 +13,6 @@
 #include <cstdint>
 
 namespace Bess::SimEngine {
-
     SimulationEngine &SimulationEngine::instance() {
         static SimulationEngine inst;
         return inst;
