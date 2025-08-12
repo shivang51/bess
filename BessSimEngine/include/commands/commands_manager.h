@@ -1,11 +1,14 @@
 #pragma once
+#include "bess_api.h"
 #include "command.h"
 #include <memory>
 #include <stack>
 
 namespace Bess::SimEngine::Commands {
-    class CommandsManager {
+    class BESS_API CommandsManager {
       public:
+        CommandsManager();
+
         template <typename T, typename... Args>
         void execute(Args &&...args) {
             std::unique_ptr<T> cmd = std::make_unique<T>(std::forward<Args>(args)...);
@@ -23,8 +26,6 @@ namespace Bess::SimEngine::Commands {
             }
             m_undoStack.push(std::move(cmd));
         }
-
-        CommandsManager();
 
         void undo();
         void redo();

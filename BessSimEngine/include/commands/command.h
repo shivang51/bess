@@ -1,8 +1,9 @@
 #pragma once
+#include "bess_api.h"
 #include <any>
 
 namespace Bess::SimEngine::Commands{
-    class Command {
+    class BESS_API Command {
         public:
 		Command() = default;
         Command(Command &other) = default;

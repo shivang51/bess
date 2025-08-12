@@ -4,6 +4,7 @@
 #include "component_types/component_types.h"
 #include "entt/entity/fwd.hpp"
 #include "types.h"
+#include "commands/commands_manager.h"
 #include <chrono>
 #include <condition_variable>
 #include <entt/entt.hpp>
@@ -51,13 +52,15 @@ namespace Bess::SimEngine {
 
         void clear();
 
+        Commands::CommandsManager &getCmdManager();
+
         friend class SimEngineSerializer;
 
       private:
         void scheduleEvent(entt::entity e, entt::entity schedulerEntity, SimDelayMilliSeconds t);
         void clearEventsForEntity(entt::entity e);
         std::vector<bool> getInputPinsState(entt::entity e) const;
-        const std::pair<std::vector<bool>, std::vector<bool>>& getIOPinsConnectedState(entt::entity e);
+        const std::pair<std::vector<bool>, std::vector<bool>> &getIOPinsConnectedState(entt::entity e);
         bool simulateComponent(entt::entity e, const std::vector<bool> &inputs);
         void run();
 
@@ -82,5 +85,7 @@ namespace Bess::SimEngine {
         entt::registry m_registry;
         std::unordered_map<UUID, entt::entity> m_uuidMap;
         std::unordered_map<entt::entity, std::pair<std::vector<bool>, std::vector<bool>>> m_connectionsCache;
+
+        Commands::CommandsManager m_cmdManager;
     };
 } // namespace Bess::SimEngine

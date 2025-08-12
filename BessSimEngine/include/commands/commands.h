@@ -1,12 +1,13 @@
 #pragma once
 
+#include "bess_api.h"
 #include "command.h"
 #include "component_types/component_types.h"
 #include "types.h"
 #include "bess_uuid.h"
 
 namespace Bess::SimEngine::Commands {
-    class AddCommand : public Command {
+    class BESS_API AddCommand : public Command {
       public:
         AddCommand(ComponentType type, int inputCount, int outputCount);
         bool execute() override;
@@ -20,7 +21,7 @@ namespace Bess::SimEngine::Commands {
         UUID m_compId = UUID::null;
     };
 
-    class ConnectCommand : public Command {
+    class BESS_API ConnectCommand : public Command {
       public:
         ConnectCommand(const UUID &src, int srcPin, PinType srcType,
                        const UUID &dst, int dstPin, PinType dstType);
@@ -37,7 +38,7 @@ namespace Bess::SimEngine::Commands {
         PinType m_dstType;
     };
 
-	class DeleteCompCommand : public Command {
+	class BESS_API DeleteCompCommand : public Command {
       public:
         DeleteCompCommand(const UUID &compId);
         bool execute() override;
@@ -50,7 +51,7 @@ namespace Bess::SimEngine::Commands {
         ConnectionBundle m_connections{};
     };
 
-    class DelConnectionCommand : public Command {
+    class BESS_API DelConnectionCommand : public Command {
       public:
         DelConnectionCommand(const UUID &src, int srcPin, PinType srcType,
                           const UUID &dst, int dstPin, PinType dstType);
@@ -67,7 +68,7 @@ namespace Bess::SimEngine::Commands {
         PinType m_dstType;
     };
 
-    class SetInputCommand : public Command {
+    class BESS_API SetInputCommand : public Command {
       public:
         SetInputCommand(const UUID &compId, bool state);
         bool execute() override;
