@@ -1,17 +1,12 @@
 #include "command_processor/command_processor.h"
 #include "command_processor/commands_reg.h"
+#include <logger.h>
 #include <algorithm>
 #include <sstream>
-#include <logger.h>
 
 namespace Bess::SimEngine {
-    CommandProcessor &CommandProcessor::instance() {
-        static CommandProcessor processor;
-        return processor;
-    }
-
-    CommandProcessor::CommandProcessor(){
-        Commands::registerAllCommands(CommandProcessor::instance());
+    CommandProcessor::CommandProcessor(Commands::CommandsManager &manager) : m_cmdManager(manager) {
+        Commands::registerAllCommands(*this);
     }
 
     void CommandProcessor::registerCommand(const std::string &name, CommandCreationFunc func) {
@@ -46,7 +41,7 @@ namespace Bess::SimEngine {
         }
 
         auto *cmd = command.get();
-		Commands::CommandsManager::instance().execute(std::move(command));
+		m_cmdManager.execute(std::move(command));
         return cmd->getResult();
     }
 

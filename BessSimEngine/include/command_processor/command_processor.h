@@ -12,12 +12,10 @@
 namespace Bess::SimEngine {
     class CommandProcessor {
       public:
-        static CommandProcessor &instance();
-
         using CommandCreationFunc = std::function<std::unique_ptr<Commands::Command>(const std::vector<std::string> &args)>;
         using CommandResult = std::expected<std::any, std::string>;
 
-        CommandProcessor();
+        CommandProcessor(Commands::CommandsManager& manager);
 
         /// Registers a command with its creation logic.
         void registerCommand(const std::string &name, CommandCreationFunc func);
@@ -29,5 +27,6 @@ namespace Bess::SimEngine {
       private:
         std::map<std::string, CommandCreationFunc> m_commandFactory;
         std::vector<std::string> tokenize(const std::string &str);
+        Commands::CommandsManager& m_cmdManager;
     };
 } // namespace Bess::SimEngine

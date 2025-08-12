@@ -6,24 +6,22 @@
 namespace Bess::SimEngine::Commands {
     class CommandsManager {
       public:
-        static CommandsManager &instance();
-
         template <typename T, typename... Args>
-        static void execute(Args &&...args) {
+        void execute(Args &&...args) {
             std::unique_ptr<T> cmd = std::make_unique<T>(std::forward<Args>(args)...);
 
             if (!cmd->execute()) {
                 return;
             }
-            CommandsManager::instance().m_undoStack.push(std::move(cmd));
+            m_undoStack.push(std::move(cmd));
         }
 
         template <typename T>
-        static void execute(std::unique_ptr<T> cmd) {
+        void execute(std::unique_ptr<T> cmd) {
             if (!cmd->execute()) {
                 return;
             }
-            CommandsManager::instance().m_undoStack.push(std::move(cmd));
+            m_undoStack.push(std::move(cmd));
         }
 
         CommandsManager();

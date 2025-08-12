@@ -2,11 +2,6 @@
 #include "command_processor/command_processor.h"
 
 namespace Bess::SimEngine::Commands {
-    CommandsManager &CommandsManager::instance() {
-        static CommandsManager manager;
-        return manager;
-    }
-
     CommandsManager::CommandsManager() {
         m_undoStack = {};
         m_redoStack = {};
