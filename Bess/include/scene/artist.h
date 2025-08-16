@@ -7,11 +7,11 @@
 namespace Bess::Canvas {
 
     struct ArtistCompBoundInfo {
-      float inpConnStart = 0.f;
-      float outConnStart = 0.f;
-      float inpPinStart = 0.f;
-      float outPinStart = 0.f;
-      float rb = 0.f;
+        float inpConnStart = 0.f;
+        float outConnStart = 0.f;
+        float inpPinStart = 0.f;
+        float outPinStart = 0.f;
+        float rb = 0.f;
     };
 
     class Artist {
@@ -19,8 +19,8 @@ namespace Bess::Canvas {
         static Scene *sceneRef;
         static void drawSimEntity(entt::entity entity);
         static void drawSimEntity(
-			entt::entity entity,
-        Components::TagComponent &tagComp,
+            entt::entity entity,
+            Components::TagComponent &tagComp,
             Components::TransformComponent &transform,
             Components::SpriteComponent &spriteComp,
             Components::SimulationComponent &simComponent);
@@ -30,8 +30,8 @@ namespace Bess::Canvas {
         static void drawInput(entt::entity entity);
         static void drawOutput(entt::entity entity);
         static void drawConnectionEntity(entt::entity entity);
-        static glm::vec3 getSlotPos(const Components::SlotComponent &comp, 
-            const Components::TransformComponent &parentTransform);
+        static glm::vec3 getSlotPos(const Components::SlotComponent &comp,
+                                    const Components::TransformComponent &parentTransform);
         // use in schematic mode
         static glm::vec3 getPinPos(const Components::SlotComponent &comp);
         static void drawGhostConnection(const entt::entity &startEntity, const glm::vec2 pos);
@@ -40,15 +40,15 @@ namespace Bess::Canvas {
       public:
         static void setSchematicMode(bool value);
         static bool getSchematicMode();
-        static bool* getSchematicModePtr();
-      private:
+        static bool *getSchematicModePtr();
 
+      private:
         static void paintSchematicView(entt::entity entity);
 
-        static void paintSlot(uint64_t id,  uint64_t parentId, const glm::vec3 &pos, float angle,
+        static void paintSlot(uint64_t id, uint64_t parentId, const glm::vec3 &pos, float angle,
                               const std::string &label, float labelDx, bool isHigh, bool isConnected);
 
-        static void drawSlots(const Components::SimulationComponent &comp, const const Components::TransformComponent &transformComp);
+        static void drawSlots(const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp);
 
         static ArtistCompBoundInfo getCompBoundInfo(SimEngine::ComponentType type, glm::vec2 pos, glm::vec2 scale);
 
