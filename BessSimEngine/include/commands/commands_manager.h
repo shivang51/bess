@@ -1,6 +1,7 @@
 #pragma once
 #include "bess_api.h"
 #include "command.h"
+#include <expected>
 #include <memory>
 #include <stack>
 
@@ -10,20 +11,20 @@ namespace Bess::SimEngine::Commands {
         CommandsManager();
 
         template <typename T, typename RT, typename... Args>
-        RT execute(Args &&...args) {
+        std::expected<RT, bool> execute(Args &&...args) {
             std::unique_ptr<T> cmd = std::make_unique<T>(std::forward<Args>(args)...);
 
             if (!cmd->execute()) {
-                return;
+                return std::unexpected(false);
             }
             m_undoStack.push(std::move(cmd));
-            return cmd->getResult<RT>();
+            return cmd->template getResult<RT>();
         }
 
         template <typename T>
-        void execute(std::unique_ptr<T> cmd) {
+        bool execute(std::unique_ptr<T> cmd) {
             if (!cmd->execute()) {
-                return;
+                return false;
             }
             m_undoStack.push(std::move(cmd));
         }

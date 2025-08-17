@@ -1,5 +1,4 @@
 #include "commands/commands_manager.h"
-#include "command_processor/command_processor.h"
 
 namespace Bess::SimEngine::Commands {
     CommandsManager::CommandsManager() {
@@ -25,8 +24,8 @@ namespace Bess::SimEngine::Commands {
         auto cmd = std::move(m_redoStack.top());
         m_redoStack.pop();
 
-        if(cmd->execute())
-			m_undoStack.push(std::move(cmd));
+        if (cmd->execute())
+            m_undoStack.push(std::move(cmd));
     }
 
     void CommandsManager::clearStacks() {
