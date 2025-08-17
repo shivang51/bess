@@ -17,8 +17,9 @@ namespace Bess::SimEngine::Commands {
             if (!cmd->execute()) {
                 return std::unexpected(false);
             }
+            auto res = cmd->template getResult<RT>();
             m_undoStack.push(std::move(cmd));
-            return cmd->template getResult<RT>();
+            return res;
         }
 
         template <typename T>
@@ -27,12 +28,16 @@ namespace Bess::SimEngine::Commands {
                 return false;
             }
             m_undoStack.push(std::move(cmd));
+            return true;
         }
 
         void undo();
         void redo();
 
         void clearStacks();
+
+        bool canUndo() const;
+        bool canRedo() const;
 
       private:
         std::stack<std::unique_ptr<Command>> m_undoStack;

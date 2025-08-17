@@ -32,4 +32,12 @@ namespace Bess::SimEngine::Commands {
         m_undoStack = {};
         m_redoStack = {};
     }
+
+    bool CommandsManager::canUndo() const {
+        return !m_undoStack.empty();
+    }
+
+    bool CommandsManager::canRedo() const {
+        return !m_redoStack.empty();
+    }
 } // namespace Bess::SimEngine::Commands

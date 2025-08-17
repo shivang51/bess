@@ -10,8 +10,8 @@
 
 #include "camera.h"
 #include "pages/main_page/main_page_state.h"
-#include "scene/renderer/gl/gl_wrapper.h"
 #include "scene/artist.h"
+#include "scene/renderer/gl/gl_wrapper.h"
 #include "scene/scene.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/ui_main/component_explorer.h"
@@ -82,14 +82,14 @@ namespace Bess::UI {
                     ImGui::Text("Unknown State");
                 }
 
-                //std::string rightContent[] = {};
-                //float offset = style.FramePadding.x;
-                //for (auto &content : rightContent)
-                //    offset += getTextSize(content).x;
+                // std::string rightContent[] = {};
+                // float offset = style.FramePadding.x;
+                // for (auto &content : rightContent)
+                //     offset += getTextSize(content).x;
 
-                //ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - offset);
-                //for (auto &content : rightContent)
-                //    ImGui::Text("%s", content.c_str());
+                // ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - offset);
+                // for (auto &content : rightContent)
+                //     ImGui::Text("%s", content.c_str());
                 ImGui::EndMenuBar();
             }
             ImGui::End();
@@ -158,10 +158,21 @@ namespace Bess::UI {
         }
 
         if (ImGui::BeginMenu("Edit")) {
+            static auto &scene = Canvas::Scene::instance();
+            static auto &cmdManager = scene.getCmdManager();
             std::string icon = Icons::FontAwesomeIcons::FA_WRENCH;
             if (ImGui::MenuItem((icon + "  Project Settings").c_str(), "Ctrl+P")) {
                 ProjectSettingsWindow::show();
             }
+
+            if (ImGui::MenuItem((icon + "  Undo").c_str(), "Ctrl+Z", false, cmdManager.canUndo())) {
+                cmdManager.undo();
+            }
+
+            if (ImGui::MenuItem((icon + "  Redo").c_str(), "Ctrl+Shift+Z", false, cmdManager.canRedo())) {
+                cmdManager.redo();
+            }
+
             ImGui::EndMenu();
         }
 
@@ -179,7 +190,7 @@ namespace Bess::UI {
 
         // project name textbox - begin
 
-        auto& style = ImGui::GetStyle();
+        auto &style = ImGui::GetStyle();
         auto &name = Pages::MainPageState::getInstance()->getCurrentProjectFile()->getNameRef();
         auto fontSize = ImGui::CalcTextSize(name.c_str());
         auto width = fontSize.x + (style.FramePadding.x * 2);
@@ -490,9 +501,10 @@ namespace Bess::UI {
         m_pageState->getCurrentProjectFile()->save();
     }
 
-    void UIMain::onExportSceneView(){
+    void UIMain::onExportSceneView() {
         auto path = UI::Dialogs::showSelectPathDialog("Save To");
-        if(path == "") return;
+        if (path == "")
+            return;
         BESS_TRACE("[ExportSceneView] Saving to {}", path);
         Canvas::Scene::instance().saveScenePNG(path);
     }

@@ -16,6 +16,7 @@ namespace Bess::Canvas::Commands {
             int inpCount, int outCount);
         bool execute() override;
         void undo() override;
+        using Command::getResult;
         std::any getResult() override;
 
       private:

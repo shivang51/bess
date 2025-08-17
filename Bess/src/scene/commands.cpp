@@ -17,7 +17,7 @@ namespace Bess::Canvas::Commands {
     bool AddCommand::execute() {
         auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
         auto simEngineUuid = cmdMngr.execute<SimEngine::Commands::AddCommand, Bess::UUID>(m_compDef->type, m_inpCount, m_outCount);
-        if (simEngineUuid.error())
+        if (!simEngineUuid.has_value())
             return false;
         m_compId = Scene::instance().createSimEntity(simEngineUuid.value(), m_compDef, m_lastPos);
         Scene::instance().setLastCreatedComp({m_compDef, m_inpCount, m_outCount});

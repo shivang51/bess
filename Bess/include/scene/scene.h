@@ -1,7 +1,7 @@
 #pragma once
 
 #include "camera.h"
-#include "component_catalog.h"
+#include "commands/commands_manager.h"
 #include "component_definition.h"
 #include "entt/entity/fwd.hpp"
 #include "entt/entt.hpp"
@@ -11,8 +11,6 @@
 #include "scene/components/non_sim_comp.h"
 #include "scene/renderer/gl/framebuffer.h"
 #include "scene/renderer/gl/subtexture.h"
-
-#include "commands/commands_manager.h"
 #include <memory>
 
 namespace Bess::Canvas {

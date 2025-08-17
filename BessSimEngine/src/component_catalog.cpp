@@ -28,8 +28,8 @@ namespace Bess::SimEngine {
 
         m_componentTree = std::make_shared<ComponentTree>();
 
-        for (auto &comp : m_components) {
-            m_componentTree->operator[](comp->category).emplace_back();
+        for (const auto &comp : m_components) {
+            m_componentTree->operator[](comp->category).emplace_back(comp);
         }
         return m_componentTree;
     }

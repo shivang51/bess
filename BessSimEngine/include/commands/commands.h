@@ -1,10 +1,10 @@
 #pragma once
 
 #include "bess_api.h"
+#include "bess_uuid.h"
 #include "command.h"
 #include "component_types/component_types.h"
 #include "types.h"
-#include "bess_uuid.h"
 
 namespace Bess::SimEngine::Commands {
     class BESS_API AddCommand : public Command {
@@ -13,6 +13,7 @@ namespace Bess::SimEngine::Commands {
         bool execute() override;
         void undo() override;
         std::any getResult() override;
+        using Command::getResult;
 
       private:
         ComponentType m_compType;
@@ -38,7 +39,7 @@ namespace Bess::SimEngine::Commands {
         PinType m_dstType;
     };
 
-	class BESS_API DeleteCompCommand : public Command {
+    class BESS_API DeleteCompCommand : public Command {
       public:
         DeleteCompCommand(const UUID &compId);
         bool execute() override;
@@ -54,7 +55,7 @@ namespace Bess::SimEngine::Commands {
     class BESS_API DelConnectionCommand : public Command {
       public:
         DelConnectionCommand(const UUID &src, int srcPin, PinType srcType,
-                          const UUID &dst, int dstPin, PinType dstType);
+                             const UUID &dst, int dstPin, PinType dstType);
         bool execute() override;
         void undo() override;
         std::any getResult() override;
