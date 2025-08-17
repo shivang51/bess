@@ -29,7 +29,7 @@ namespace Bess::Canvas {
     };
 
     struct LastCreatedComponent {
-        const SimEngine::ComponentDefinition *componentDefinition;
+        std::shared_ptr<const SimEngine::ComponentDefinition> componentDefinition = nullptr;
         int inputCount = -1;
         int outputCount = -1;
     };
@@ -53,9 +53,9 @@ namespace Bess::Canvas {
         void beginScene();
         void endScene();
 
-        void setLastCreatedComp(const LastCreatedComponent &comp);
+        void setLastCreatedComp(LastCreatedComponent comp);
 
-        void saveScenePNG(const std::string& path);
+        void saveScenePNG(const std::string &path);
 
         friend class Modules::SchematicGen::SchematicView;
 
@@ -72,14 +72,19 @@ namespace Bess::Canvas {
         const glm::vec2 &getSize();
 
         UUID createSlotEntity(Components::SlotType type, const UUID &parent, unsigned int idx);
-        UUID createSimEntity(const UUID &simEngineEntt, const SimEngine::ComponentDefinition &comp, const glm::vec2 &pos);
+        UUID createSimEntity(const UUID &simEngineEntt, std::shared_ptr<const SimEngine::ComponentDefinition> comp, const glm::vec2 &pos);
         UUID createNonSimEntity(const Canvas::Components::NSComponent &comp, const glm::vec2 &pos);
 
+        void deleteSceneEntity(const UUID &entUuid);
+
+        /// deletes entity from sim engine as well
         void deleteEntity(const UUID &entUuid);
         void deleteConnection(const UUID &entUuid);
         entt::entity getEntityWithUuid(const UUID &uuid);
         bool isEntityValid(const UUID &uuid);
         void setZCoord(float val);
+
+        SimEngine::Commands::CommandsManager &getCmdManager();
 
       private:
         const UUID &getUuidOfEntity(entt::entity ent);

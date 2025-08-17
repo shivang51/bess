@@ -4,6 +4,7 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "properties.h"
+#include "scene/commands/commands.h"
 #include "scene/scene.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/m_widgets.h"
@@ -94,11 +95,15 @@ namespace Bess::UI {
         return clicked;
     }
 
-    void ComponentExplorer::createComponent(const SimEngine::ComponentDefinition &def, int inputCount, int outputCount) {
-        auto simEntt = SimEngine::SimulationEngine::instance().addComponent(def.type, inputCount, outputCount);
+    void ComponentExplorer::createComponent(const std::shared_ptr<const SimEngine::ComponentDefinition> def, int inputCount, int outputCount) {
+        auto simEntt = SimEngine::SimulationEngine::instance().addComponent(def->type, inputCount, outputCount);
         auto &scene = Canvas::Scene::instance();
-        scene.createSimEntity(simEntt, def, scene.getCameraPos());
-        scene.setLastCreatedComp({&def, inputCount, outputCount});
+        auto &cmdManager = scene.getCmdManager();
+        auto res = cmdManager.execute<Canvas::Commands::AddCommand, UUID>(def, inputCount, outputCount);
+        if (res.error()) {
+            BESS_ERROR("[ComponentExplorer] Failed to execute AddCommand");
+            return;
+        }
     }
 
     void ComponentExplorer::createComponent(const Canvas::Components::NSComponent &comp) {
@@ -112,11 +117,11 @@ namespace Bess::UI {
         ModifiablePropertiesStr propertiesStr = {};
 
         for (auto &comp : components) {
-            auto &p = comp.getModifiableProperties();
+            auto &p = comp->getModifiableProperties();
             if (p.empty())
                 continue;
 
-            propertiesStr[comp.type] = {};
+            propertiesStr[comp->type] = {};
 
             for (auto &mp : p) {
                 std::string name;
@@ -199,13 +204,12 @@ namespace Bess::UI {
                     ImGui::TreePop();
                 }
             }
-
         }
 
         // non simulation components
-        if(MyTreeNode("Miscellaneous", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (MyTreeNode("Miscellaneous", ImGuiTreeNodeFlags_DefaultOpen)) {
             static auto nonSimComponents = Canvas::Components::getNSComponents();
-            for(auto& comp: nonSimComponents) {
+            for (auto &comp : nonSimComponents) {
                 if (m_searchQuery != "" && Common::Helpers::toLowerCase(comp.name).find(m_searchQuery) == std::string::npos)
                     continue;
 

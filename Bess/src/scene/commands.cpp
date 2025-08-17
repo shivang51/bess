@@ -4,7 +4,6 @@
 // sim engine commands
 #include "commands/commands.h"
 
-
 namespace Bess::Canvas::Commands {
     AddCommand::AddCommand(std::shared_ptr<const SimEngine::ComponentDefinition> comp,
                            const glm::vec2 &pos,
@@ -16,8 +15,23 @@ namespace Bess::Canvas::Commands {
     }
 
     bool AddCommand::execute() {
-        auto& cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
+        auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
         auto simEngineUuid = cmdMngr.execute<SimEngine::Commands::AddCommand, Bess::UUID>(m_compDef->type, m_inpCount, m_outCount);
-        Scene::instance().createSimEntity(simEngineUuid);
+        if (simEngineUuid.error())
+            return false;
+        m_compId = Scene::instance().createSimEntity(simEngineUuid.value(), m_compDef, m_lastPos);
+        Scene::instance().setLastCreatedComp({m_compDef, m_inpCount, m_outCount});
+        return true;
     }
-} // namespace Bess::Canvas::Scene::Commands
+
+    void AddCommand::undo() {
+        auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
+        cmdMngr.undo();
+
+        Scene::instance().deleteSceneEntity(m_compId);
+    }
+
+    std::any AddCommand::getResult() {
+        return m_compId;
+    }
+} // namespace Bess::Canvas::Commands

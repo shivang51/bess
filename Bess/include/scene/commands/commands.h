@@ -1,14 +1,14 @@
 #pragma once
 
-#include "commands/command.h"
 #include "bess_uuid.h"
+#include "commands/command.h"
 #include "vec2.hpp"
 
 #include "component_definition.h"
 
-namespace Bess::Canvas::Commands{
+namespace Bess::Canvas::Commands {
     using Command = SimEngine::Commands::Command;
-    class AddCommand: public Command {
+    class AddCommand : public Command {
       public:
         AddCommand(
             std::shared_ptr<const SimEngine::ComponentDefinition> comp,
@@ -25,4 +25,4 @@ namespace Bess::Canvas::Commands{
         int m_inpCount;
         int m_outCount;
     };
-}
+} // namespace Bess::Canvas::Commands
