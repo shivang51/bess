@@ -9,14 +9,15 @@ namespace Bess::SimEngine::Commands {
       public:
         CommandsManager();
 
-        template <typename T, typename... Args>
-        void execute(Args &&...args) {
+        template <typename T, typename RT, typename... Args>
+        RT execute(Args &&...args) {
             std::unique_ptr<T> cmd = std::make_unique<T>(std::forward<Args>(args)...);
 
             if (!cmd->execute()) {
                 return;
             }
             m_undoStack.push(std::move(cmd));
+            return cmd->getResult<RT>();
         }
 
         template <typename T>

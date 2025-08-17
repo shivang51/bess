@@ -11,6 +11,8 @@
 #include "scene/components/non_sim_comp.h"
 #include "scene/renderer/gl/framebuffer.h"
 #include "scene/renderer/gl/subtexture.h"
+
+#include "commands/commands_manager.h"
 #include <memory>
 
 namespace Bess::Canvas {
@@ -147,5 +149,7 @@ namespace Bess::Canvas {
 
         std::shared_ptr<Gl::Texture> m_placeHolderTexture;
         std::shared_ptr<Gl::SubTexture> m_placeHolderSubTexture;
+
+        SimEngine::Commands::CommandsManager m_cmdManager;
     };
 } // namespace Bess::Canvas

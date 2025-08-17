@@ -78,7 +78,7 @@ namespace Bess::SimEngine {
         auto ent = m_registry.create();
         auto &idComp = m_registry.emplace<IdComponent>(ent);
         m_uuidMap.emplace(idComp.uuid, ent);
-        const auto *def = ComponentCatalog::instance().getComponentDefinition(type);
+        const auto def = ComponentCatalog::instance().getComponentDefinition(type);
         inputCount = (inputCount < 0 ? def->inputCount : inputCount);
         outputCount = (outputCount < 0 ? def->outputCount : outputCount);
         if (type == ComponentType::NOT) {
@@ -329,7 +329,7 @@ namespace Bess::SimEngine {
 
     bool SimulationEngine::simulateComponent(entt::entity e, const std::vector<bool> &inputs) {
         const auto &comp = m_registry.get<DigitalComponent>(e);
-        const auto *def = ComponentCatalog::instance().getComponentDefinition(comp.type);
+        const auto def = ComponentCatalog::instance().getComponentDefinition(comp.type);
         if (def && def->simulationFunction) {
             return def->simulationFunction(
                 m_registry, e, inputs,

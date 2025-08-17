@@ -14,5 +14,10 @@ namespace Bess::SimEngine::Commands{
         virtual void undo() = 0;
 
         virtual std::any getResult() = 0;
+
+        template<typename T>
+        T getResult(){
+            return std::any_cast<T>(getResult());
+        }
     };
 }

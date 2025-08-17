@@ -106,7 +106,6 @@ namespace Bess::UI {
         scene.createNonSimEntity(comp, scene.getCameraPos());
     }
 
-
     ComponentExplorer::ModifiablePropertiesStr ComponentExplorer::generateModifiablePropertiesStr() {
         auto &components = SimEngine::ComponentCatalog::instance().getComponents();
 
@@ -132,7 +131,9 @@ namespace Bess::UI {
                     name = "Unknown Property";
                     break;
                 }
+
                 std::pair<std::string, std::pair<SimEngine::Properties::ComponentProperty, std::any>> v = {};
+
                 for (auto &val : mp.second) {
                     v.first = std::to_string(std::any_cast<int>(val)) + " " + name;
                     v.second = {mp.first, val};

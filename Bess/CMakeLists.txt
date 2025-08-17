@@ -137,7 +137,7 @@ set(ALL_FILES
     ${Source_Files}
 )
 
-add_executable(${PROJECT_NAME} ${ALL_FILES})
+add_executable(${PROJECT_NAME} ${ALL_FILES} "include/scene/commands/commands.h" "src/scene/commands.cpp")
 target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine)
 add_dependencies(${PROJECT_NAME} BessSimEngine)
 if("${BUILD_ARCH}" STREQUAL "x64" AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")

@@ -13,21 +13,21 @@ namespace Bess::SimEngine {
 
         // Register a new component definition.
         // If one with the same ComponentType exists, it won't be added.
-        void registerComponent(const ComponentDefinition &def);
+        void registerComponent(ComponentDefinition def);
 
         // Get the full list of registered components.
-        const std::vector<ComponentDefinition> &getComponents() const;
+        const std::vector<std::shared_ptr<const ComponentDefinition>> &getComponents() const;
 
         // Get the full list of registered components as tree format, grouped based on the category.
-        typedef std::unordered_map<std::string, std::vector<const ComponentDefinition*>> ComponentTree;
+        typedef std::unordered_map<std::string, std::vector<std::shared_ptr<const ComponentDefinition>>> ComponentTree;
         std::shared_ptr<ComponentTree> getComponentsTree();
 
         // Look up a component definition by its enum type.
-        const ComponentDefinition *getComponentDefinition(ComponentType type) const;
+        std::shared_ptr<const ComponentDefinition> getComponentDefinition(ComponentType type) const;
 
       private:
         ComponentCatalog() = default;
-        std::vector<ComponentDefinition> m_components;
+        std::vector<std::shared_ptr<const ComponentDefinition>> m_components;
         std::shared_ptr<ComponentTree> m_componentTree = nullptr;
     };
 } // namespace Bess::SimEngine
