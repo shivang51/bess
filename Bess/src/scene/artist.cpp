@@ -96,7 +96,8 @@ namespace Bess::Canvas {
             borderColor = ViewportTheme::stateHighColor;
         }
 
-        if(!isConnected) bgColor.a = 0.1f;
+        if (!isConnected)
+            bgColor.a = 0.1f;
 
         float ir = componentStyles.slotRadius - componentStyles.slotBorderSize;
         float r = componentStyles.slotRadius;
@@ -109,7 +110,7 @@ namespace Bess::Canvas {
         Renderer::msdfText(label, {labelX, pos.y + dY, pos.z}, componentStyles.slotLabelSize, ViewportTheme::textColor, parentId, angle);
     }
 
-    void Artist::drawSlots(const Components::SimulationComponent &comp, const const Components::TransformComponent &transformComp) {
+    void Artist::drawSlots(const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp) {
         auto &registry = sceneRef->getEnttRegistry();
         auto slotsView = registry.view<Components::SlotComponent>();
 
@@ -179,9 +180,9 @@ namespace Bess::Canvas {
             endPos = Artist::getPinPos(outputSlotComp);
         } else {
             const auto &inpSlotComp = registry.get<Components::SlotComponent>(inputEntity);
-			const auto &parentTransform = registry.get<Components::TransformComponent>(sceneRef->getEntityWithUuid(inpSlotComp.parentId));
+            const auto &parentTransform = registry.get<Components::TransformComponent>(sceneRef->getEntityWithUuid(inpSlotComp.parentId));
             startPos = Artist::getSlotPos(inpSlotComp, parentTransform);
-			const auto &endParentTransform = registry.get<Components::TransformComponent>(sceneRef->getEntityWithUuid(outputSlotComp.parentId));
+            const auto &endParentTransform = registry.get<Components::TransformComponent>(sceneRef->getEntityWithUuid(outputSlotComp.parentId));
             endPos = Artist::getSlotPos(outputSlotComp, endParentTransform);
         }
 
@@ -371,7 +372,7 @@ namespace Bess::Canvas {
             Renderer::pathQuadBeizerTo({x1 - off, y, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.15}, 4.f, ViewportTheme::compHeaderColor, -1);
             Renderer::endPathMode(true);
         } break;
-        case SimEngine::ComponentType::XNOR: 
+        case SimEngine::ComponentType::XNOR:
         case SimEngine::ComponentType::XOR: {
             float cpX = x + (w * 0.65);
             float off = w * 0.25;
@@ -407,10 +408,8 @@ namespace Bess::Canvas {
             break;
         }
 
-
         // circle for negating components
-        if(type == SimEngine::ComponentType::NAND || type == SimEngine::ComponentType::NOR
-            || type == SimEngine::ComponentType::NOT || type == SimEngine::ComponentType::XNOR){
+        if (type == SimEngine::ComponentType::NAND || type == SimEngine::ComponentType::NOR || type == SimEngine::ComponentType::NOT || type == SimEngine::ComponentType::XNOR) {
             negateCircleAt({rb - negCircleR, y + (y1 - y) / 2.f, pos.z});
         }
 
@@ -435,8 +434,8 @@ namespace Bess::Canvas {
                 Renderer::pathLineTo({boundInfo.inpConnStart, y + yOff, 1}, 4.f, ViewportTheme::compHeaderColor, -1);
                 Renderer::endPathMode(false);
                 Renderer::msdfText("X" + std::to_string(i - 1),
-                               {boundInfo.inpConnStart, y + yOff - nodeWeight, pos.z + 0.0005f},
-                               componentStyles.headerFontSize, ViewportTheme::textColor, 0, 0.f);
+                                   {boundInfo.inpConnStart, y + yOff - nodeWeight, pos.z + 0.0005f},
+                                   componentStyles.headerFontSize, ViewportTheme::textColor, 0, 0.f);
             }
         }
 
@@ -452,8 +451,8 @@ namespace Bess::Canvas {
                 std::string label = "Y" + std::to_string(i - 1);
                 float size = Renderer2D::Renderer::getMSDFTextRenderSize(label, componentStyles.headerFontSize).x;
                 Renderer::msdfText(label,
-                               {boundInfo.outConnStart - size, y + yOff - nodeWeight, pos.z + 0.0005f},
-                               componentStyles.headerFontSize, ViewportTheme::textColor, 0, 0.f);
+                                   {boundInfo.outConnStart - size, y + yOff - nodeWeight, pos.z + 0.0005f},
+                                   componentStyles.headerFontSize, ViewportTheme::textColor, 0, 0.f);
             }
         }
     }
@@ -465,10 +464,8 @@ namespace Bess::Canvas {
 
         uint64_t id = (uint64_t)entity;
 
-        switch (tagComp.type.nsCompType)
-        {
-        case Components::NSComponentType::text:
-        {
+        switch (tagComp.type.nsCompType) {
+        case Components::NSComponentType::text: {
             auto &textComp = registry.get<Components::TextNodeComponent>(entity);
             auto &transformComp = registry.get<Components::TransformComponent>(entity);
             auto pos = transformComp.position;
@@ -476,7 +473,7 @@ namespace Bess::Canvas {
             auto scale = transformComp.scale;
             Renderer::msdfText(textComp.text, pos, textComp.fontSize, textComp.color, id, rotation);
 
-            if(isSelected) {
+            if (isSelected) {
                 Renderer2D::QuadRenderProperties props{
                     .angle = rotation,
                     .borderColor = ViewportTheme::selectedCompColor,
@@ -491,8 +488,7 @@ namespace Bess::Canvas {
                 size.y += componentStyles.paddingY * 2.f;
                 Renderer::quad(pos, size, ViewportTheme::componentBGColor, id, props);
             }
-        }
-            break;
+        } break;
         default:
             BESS_ERROR("[Artist] Tried to draw a non-simulation component with type: {}", tagComp.type.typeId);
             break;
@@ -586,7 +582,6 @@ namespace Bess::Canvas {
             }
         }
 
-
         auto pos = transform.position;
         auto rotation = transform.angle;
         auto scale = transform.scale;
@@ -664,7 +659,7 @@ namespace Bess::Canvas {
             info.inpConnStart = x - pinW;
             info.outConnStart = info.outPinStart + 20.f;
         } break;
-        case SimEngine::ComponentType::XNOR: 
+        case SimEngine::ComponentType::XNOR:
         case SimEngine::ComponentType::NOR: {
             info.inpPinStart = x + (w * 0.55) / 2.f;
             info.outPinStart = x1 + w * 0.25 + negCircleOff;
@@ -698,7 +693,7 @@ namespace Bess::Canvas {
         return m_isSchematicMode;
     }
 
-    bool* Artist::getSchematicModePtr() {
+    bool *Artist::getSchematicModePtr() {
         return &m_isSchematicMode;
     }
 } // namespace Bess::Canvas
