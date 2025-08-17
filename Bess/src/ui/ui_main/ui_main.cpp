@@ -160,17 +160,24 @@ namespace Bess::UI {
         if (ImGui::BeginMenu("Edit")) {
             static auto &scene = Canvas::Scene::instance();
             static auto &cmdManager = scene.getCmdManager();
-            std::string icon = Icons::FontAwesomeIcons::FA_WRENCH;
-            if (ImGui::MenuItem((icon + "  Project Settings").c_str(), "Ctrl+P")) {
-                ProjectSettingsWindow::show();
-            }
 
+            std::string icon = Icons::FontAwesomeIcons::FA_UNDO;
             if (ImGui::MenuItem((icon + "  Undo").c_str(), "Ctrl+Z", false, cmdManager.canUndo())) {
                 cmdManager.undo();
             }
 
+            icon = Icons::FontAwesomeIcons::FA_REDO;
             if (ImGui::MenuItem((icon + "  Redo").c_str(), "Ctrl+Shift+Z", false, cmdManager.canRedo())) {
                 cmdManager.redo();
+            }
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            icon = Icons::FontAwesomeIcons::FA_WRENCH;
+            if (ImGui::MenuItem((icon + "  Project Settings").c_str(), "Ctrl+P")) {
+                ProjectSettingsWindow::show();
             }
 
             ImGui::EndMenu();
