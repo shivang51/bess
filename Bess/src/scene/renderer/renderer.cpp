@@ -1,14 +1,14 @@
 ﻿#include "scene/renderer/renderer.h"
-#include "scene/renderer/asset_loaders.h"
 #include "asset_manager/asset_manager.h"
 #include "assets.h"
 #include "camera.h"
+#include "ext/matrix_transform.hpp"
+#include "glm.hpp"
+#include "scene/renderer/asset_loaders.h"
 #include "scene/renderer/gl/gl_wrapper.h"
 #include "scene/renderer/gl/primitive_type.h"
 #include "scene/renderer/gl/vertex.h"
 #include "ui/ui_main/ui_main.h"
-#include "ext/matrix_transform.hpp"
-#include "glm.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -278,8 +278,7 @@ namespace Bess {
                             const glm::vec4 &color, const int id, float angle) {
         // Command to use to generate MSDF font texture atlas
         // https://github.com/soimy/msdf-bmfont-xml
-        // msdf-bmfont.cmd -f json --smart-size -s 32 -o %1.png %1
-        // %1 should be replaed with file name
+        // msdf-bmfont -f json --smart-size -s 64 -r 4 -m 2048,2048 --edge-coloring errorcorrect -o roboto.png Roboto-Regular.ttf
 
         if (text.empty())
             return;
