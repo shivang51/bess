@@ -591,7 +591,7 @@ namespace Bess {
                 shader->unbind();
                 return;
             }
-            shader->setUniform1f("u_zoom", m_camera->getZoom());
+            shader->setUniform1f("u_pxRange", 4);
             shader->setUniform1iv("u_Textures", m_texSlots.data(), m_texSlots.size());
             m_msdfFont->getTextureAtlas()->bind(1);
             m_textRendererVao->bind();

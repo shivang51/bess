@@ -9,7 +9,7 @@ in flat int v_FragId;
 in flat int v_TexSlotIdx;
 
 uniform sampler2D u_Textures[32];
-float pxRange = 4;
+uniform float u_pxRange;
 
 float median(float r, float g, float b) {
     return max(min(r, g), min(max(r, g), b));
@@ -26,7 +26,7 @@ void main() {
     float sd = median(msd.r, msd.g, msd.b);
 
     float scale = length(fwidth(v_TexCoord) * textureSize(u_Textures[v_TexSlotIdx], 0));
-    float screenDist = (sd - 0.5) * pxRange / scale;
+    float screenDist = (sd - 0.5) * u_pxRange / scale;
 
     float opacity = smoothstep(-0.5, 0.5, screenDist);
 
