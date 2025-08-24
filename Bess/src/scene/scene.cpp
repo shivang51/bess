@@ -43,7 +43,7 @@ namespace Bess::Canvas {
                                                          Gl::FBAttachmentType::R32I_REDI,
                                                          Gl::FBAttachmentType::RGBA_RGBA,
                                                          Gl::FBAttachmentType::DEPTH32F_STENCIL8};
-        m_msaaFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments);
+        m_msaaFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments, true);
 
         attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::DEPTH32F_STENCIL8};
         m_shadowFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments);
@@ -186,16 +186,14 @@ namespace Bess::Canvas {
             Components::SimulationComponent,
             Components::TagComponent,
             Components::SpriteComponent,
-            Components::TransformComponent
-        >();
+            Components::TransformComponent>();
         for (auto entity : simCompView) {
             Artist::drawSimEntity(
-                entity, 
-                simCompView.get<Components::TagComponent>(entity), 
-                simCompView.get<Components::TransformComponent>(entity), 
-                simCompView.get<Components::SpriteComponent>(entity), 
-                simCompView.get<Components::SimulationComponent>(entity) 
-                );
+                entity,
+                simCompView.get<Components::TagComponent>(entity),
+                simCompView.get<Components::TransformComponent>(entity),
+                simCompView.get<Components::SpriteComponent>(entity),
+                simCompView.get<Components::SimulationComponent>(entity));
         }
 
         auto nonSimCompView = m_registry.view<Components::NSComponent>();
@@ -296,7 +294,7 @@ namespace Bess::Canvas {
 
         tag.name = comp.name;
         tag.type.nsCompType = comp.type;
-		nonSimComp.type = comp.type;
+        nonSimComp.type = comp.type;
 
         transformComp.position = glm::vec3(pos, getNextZCoord());
         transformComp.scale = glm::vec2(0.f, 0.f);
@@ -440,9 +438,9 @@ namespace Bess::Canvas {
 
     void Scene::dragConnectionSegment(entt::entity ent, const glm::vec2 &dPos) {
         auto view = m_registry.view<Components::TransformComponent,
-            Components::ConnectionSegmentComponent,
-            Components::SlotComponent,
-            Components::ConnectionComponent>();
+                                    Components::ConnectionSegmentComponent,
+                                    Components::SlotComponent,
+                                    Components::ConnectionComponent>();
         auto &comp = view.get<Components::ConnectionSegmentComponent>(ent);
 
         if (comp.isHead() || comp.isTail()) {
@@ -643,13 +641,13 @@ namespace Bess::Canvas {
         connSegComp2.next = idComp3.uuid;
         connSegComp2.prev = idComp1.uuid;
         connSegComp3.prev = idComp2.uuid;
-        
+
         auto view = m_registry.view<Components::SlotComponent, Components::TransformComponent>();
         const auto &inpSlotComp = view.get<Components::SlotComponent>(inputSlot);
         const auto &inpParentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(inpSlotComp.parentId));
         auto inputSlotPos = Artist::getSlotPos(inpSlotComp, inpParentTransform);
-        const auto& slotComp = view.get<Components::SlotComponent>(outputSlot);
-        const auto& parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(slotComp.parentId));
+        const auto &slotComp = view.get<Components::SlotComponent>(outputSlot);
+        const auto &parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(slotComp.parentId));
         auto outputSlotPos = Artist::getSlotPos(slotComp, parentTransform);
 
         auto dX = outputSlotPos.x - inputSlotPos.x;
@@ -855,14 +853,7 @@ namespace Bess::Canvas {
     }
 
     void Scene::beginScene() {
-        static int value = -1;
-        /*static glm::vec4 col = glm::vec4(0.0);*/
-        /*m_shadowFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(col));*/
-        /*Gl::FrameBuffer::clearDepthStencilBuf();*/
-        /*m_normalFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(col));*/
-        /*m_placeHolderFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(col));*/
-        /*m_placeHolderFramebuffer->clearColorAttachment<GL_FLOAT>(1, glm::value_ptr(col));*/
-
+        static constexpr int value = -1;
         m_msaaFramebuffer->bind();
         m_msaaFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::backgroundColor));
         m_msaaFramebuffer->clearColorAttachment<GL_INT>(1, &value);
@@ -873,40 +864,6 @@ namespace Bess::Canvas {
 
     void Scene::endScene() {
         Gl::FrameBuffer::unbindAll();
-        /*auto span = m_camera->getSpan();*/
-        /**/
-        /*// from msaa to normal*/
-        /*// -- normal color*/
-        /*m_msaaFramebuffer->bindColorAttachmentForRead(0);*/
-        /*m_placeHolderFramebuffer->bindColorAttachmentForDraw(0);*/
-        /*Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);*/
-        /*// -- shadow mask*/
-        /*m_msaaFramebuffer->bindColorAttachmentForRead(2);*/
-        /*m_placeHolderFramebuffer->bindColorAttachmentForDraw(1);*/
-        /*Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);*/
-        /**/
-        /*// shadow pass*/
-        /*m_placeHolderFramebuffer->bindColorAttachmentTexture(1);*/
-        /*m_shadowFramebuffer->bind();*/
-        /*Renderer2D::Renderer::doShadowRenderPass(span.x, span.y);*/
-        /**/
-        /*m_shadowFramebuffer->bindColorAttachmentForRead(0);*/
-        /*m_placeHolderFramebuffer->bindColorAttachmentForDraw(1);*/
-        /*Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);*/
-        /**/
-        /*// rendering to normal for display*/
-        /*m_shadowFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::backgroundColor));*/
-        /*Gl::FrameBuffer::clearDepthStencilBuf();*/
-        /*m_placeHolderFramebuffer->bindColorAttachmentTexture(0, 0); // color*/
-        /*m_placeHolderFramebuffer->bindColorAttachmentTexture(1, 1); // shadow*/
-        /*m_shadowFramebuffer->bind();*/
-        /*Renderer2D::Renderer::doCompositeRenderPass(span.x, span.y);*/
-        /*GL_CHECK(glActiveTexture(GL_TEXTURE0));*/
-        /*GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));*/
-        /**/
-        /*m_shadowFramebuffer->bindColorAttachmentForRead(0);*/
-        /*m_normalFramebuffer->bindColorAttachmentForDraw(0);*/
-        /*Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);*/
 
         for (int i = 0; i < 2; i++) {
             m_msaaFramebuffer->bindColorAttachmentForRead(i);

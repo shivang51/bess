@@ -1,8 +1,8 @@
-#include "common/log.h"
 #include "scene/renderer/gl/framebuffer.h"
+#include "common/log.h"
 #include "settings/viewport_theme.h"
-#include "window.h"
 #include "stb_image_write.h"
+#include "window.h"
 #include <filesystem>
 #include <iostream>
 
@@ -170,6 +170,10 @@ namespace Bess::Gl {
         } break;
         case FBAttachmentType::RGBA_RGBA: {
             internalFormat = GL_RGBA8;
+            format = GL_RGBA;
+        } break;
+        case FBAttachmentType::SRGBA_RGBA: {
+            internalFormat = GL_SRGB8_ALPHA8; // sRGB format with alpha
             format = GL_RGBA;
         } break;
         default:

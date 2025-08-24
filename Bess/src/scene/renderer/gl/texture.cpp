@@ -1,8 +1,8 @@
 #include "scene/renderer/gl/texture.h"
+#include "common/log.h"
+#include "scene/renderer/gl/gl_wrapper.h"
 #include "stb_image.h"
 #include "stb_image_write.h"
-#include "scene/renderer/gl/gl_wrapper.h"
-#include "common/log.h"
 
 #include <filesystem>
 
@@ -22,7 +22,7 @@ namespace Bess::Gl {
         glGenTextures(1, &m_id);
         glBindTexture(GL_TEXTURE_2D, m_id);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -61,15 +61,14 @@ namespace Bess::Gl {
     Texture::~Texture() { glDeleteTextures(1, &m_id); }
 
     void Texture::bind(int slotIdx) const {
-        if(m_id == 0){
+        if (m_id == 0) {
             BESS_ERROR("[Texture] Attempted to bind an uninitialized texture.");
             assert(false);
         }
         if (slotIdx != -1) {
             GL_CHECK(glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0));
             GL_CHECK(glBindTextureUnit(slotIdx, m_id));
-        }
-        else if (m_multisampled) {
+        } else if (m_multisampled) {
             GL_CHECK(glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_id));
         } else {
             GL_CHECK(glBindTexture(GL_TEXTURE_2D, m_id));
@@ -86,7 +85,7 @@ namespace Bess::Gl {
 
     GLuint Texture::getId() const { return m_id; }
 
-    void Texture::setData(const void *data){
+    void Texture::setData(const void *data) {
         this->bind();
         glTexImage2D(GL_TEXTURE_2D, 0, m_internalFormat, m_width, m_height, 0, m_format, GL_UNSIGNED_BYTE, data);
     }
@@ -108,10 +107,10 @@ namespace Bess::Gl {
         std::filesystem::path dir = path;
         std::filesystem::path fullPath = dir / "schemeatic_view.png";
         int channels = getChannelsFromFormat();
-        size_t n =  m_width * m_height * channels;
+        size_t n = m_width * m_height * channels;
         std::vector<int> buffer(n, 255);
 
-        if (bindTexture) 
+        if (bindTexture)
             bind();
 
         GL_CHECK(glReadPixels(0, 0, m_width, m_height, m_format, GL_UNSIGNED_BYTE, buffer.data()));
@@ -128,8 +127,7 @@ namespace Bess::Gl {
             m_height,
             channels,
             buffer.data(),
-            m_width * channels
-        );
+            m_width * channels);
 
         if (result == 0) {
             BESS_ERROR("[Texture] Failed to save file to {}", pathStr);
@@ -141,16 +139,16 @@ namespace Bess::Gl {
 
     int Texture::getChannelsFromFormat() const {
         switch (m_format) {
-            case GL_RED:
-                return 1;
-            case GL_RG:
-                return 2;
-            case GL_RGB:
-                return 3;
-            case GL_RGBA:
-                return 4;
-            default:
-                throw std::runtime_error("Unsupported texture format");
+        case GL_RED:
+            return 1;
+        case GL_RG:
+            return 2;
+        case GL_RGB:
+            return 3;
+        case GL_RGBA:
+            return 4;
+        default:
+            throw std::runtime_error("Unsupported texture format");
         }
     }
 } // namespace Bess::Gl

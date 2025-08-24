@@ -8,6 +8,7 @@ namespace Bess::Gl {
         R64I_REDI,
         RGB_RGB,
         RGBA_RGBA,
+        SRGBA_RGBA,
         // non-color attachments
         DEPTH24_STENCIL8 = 11,
         DEPTH32F_STENCIL8,
