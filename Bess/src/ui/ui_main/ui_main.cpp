@@ -3,7 +3,6 @@
 #include "common/log.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "scene/renderer/renderer.h"
 #include "simulation_engine.h"
 #include "ui/m_widgets.h"
 #include <string>
