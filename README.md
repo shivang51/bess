@@ -48,4 +48,5 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
 - [ ] Command System
 - [ ] Test Cases for simulation engine
 - [ ] Undo, Redo functionality
-- [ ] Using emscripten to host on web 
+- [ ] Using emscripten to host on web
+- [ ] Move to vulkan
