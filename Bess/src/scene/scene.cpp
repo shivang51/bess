@@ -11,6 +11,7 @@
 #include "gtc/type_ptr.hpp"
 #include "pages/main_page/main_page_state.h"
 #include "scene/artist.h"
+#include "scene/commands/commands.h"
 #include "scene/renderer/renderer.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
@@ -591,6 +592,23 @@ namespace Bess::Canvas {
                pos.y < viewportSize.y - 5.f;
     }
 
+    void Scene::removeConnectionEntt(const entt::entity ent) {
+        m_hoveredEntity = UUID::null;
+        auto &connComp = m_registry.get<Components::ConnectionComponent>(ent);
+
+        auto segEntt = connComp.segmentHead;
+        while (segEntt != UUID::null) {
+            auto connSegComp = m_registry.get<
+                Components::ConnectionSegmentComponent>(getEntityWithUuid(segEntt));
+            m_registry.destroy(getEntityWithUuid(segEntt));
+            segEntt = connSegComp.next;
+        }
+
+        m_registry.destroy(ent);
+
+        BESS_INFO("[Scene] Deleted connection");
+    }
+
     void Scene::deleteConnection(const UUID &entityUuid) {
         auto entity = getEntityWithUuid(entityUuid);
         m_hoveredEntity = UUID::null;
@@ -619,7 +637,7 @@ namespace Bess::Canvas {
         BESS_INFO("[Scene] Deleted connection");
     }
 
-    void Scene::generateBasicConnection(entt::entity inputSlot, entt::entity outputSlot) {
+    entt::entity Scene::generateBasicConnection(entt::entity inputSlot, entt::entity outputSlot) {
         auto connEntt = m_registry.create();
         auto &idComp = m_registry.emplace<Components::IdComponent>(connEntt);
         auto &connComp = m_registry.emplace<Components::ConnectionComponent>(connEntt);
@@ -663,29 +681,12 @@ namespace Bess::Canvas {
         connSegComp1.pos = glm::vec2(0, inputSlotPos.y);
         connSegComp2.pos = glm::vec2(inputSlotPos.x + (dX * 0.8f), 0);
         connSegComp3.pos = glm::vec2(0, outputSlotPos.y);
+
+        return connEntt;
     }
 
     void Scene::connectSlots(entt::entity startSlot, entt::entity endSlot) {
-        auto &startSlotComp = m_registry.get<Components::SlotComponent>(startSlot);
-        auto &endSlotComp = m_registry.get<Components::SlotComponent>(endSlot);
-
-        auto startSimParent = m_registry.get<Components::SimulationComponent>(getEntityWithUuid(startSlotComp.parentId)).simEngineEntity;
-        auto endSimParent = m_registry.get<Components::SimulationComponent>(getEntityWithUuid(endSlotComp.parentId)).simEngineEntity;
-
-        auto startPinType = startSlotComp.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
-        auto dstPinType = endSlotComp.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
-
-        auto successful = SimEngine::SimulationEngine::instance().connectComponent(startSimParent, startSlotComp.idx, startPinType,
-                                                                                   endSimParent, endSlotComp.idx, dstPinType);
-
-        if (!successful)
-            return;
-
-        if (startSlotComp.slotType == Components::SlotType::digitalInput) {
-            generateBasicConnection(startSlot, endSlot);
-        } else {
-            generateBasicConnection(endSlot, startSlot);
-        }
+        auto res = m_cmdManager.execute<Commands::ConnectCommand, bool>(startSlot, endSlot);
     }
 
     bool Scene::isEntityValid(const UUID &uuid) {

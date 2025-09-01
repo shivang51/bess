@@ -16,8 +16,7 @@ namespace Bess::Canvas::Commands {
             int inpCount, int outCount);
         bool execute() override;
         void undo() override;
-        using Command::getResult;
-        std::any getResult() override;
+        RESULT_OVERRIDE;
 
       private:
         UUID m_compId = UUID::null;
@@ -25,5 +24,18 @@ namespace Bess::Canvas::Commands {
         std::shared_ptr<const SimEngine::ComponentDefinition> m_compDef;
         int m_inpCount;
         int m_outCount;
+    };
+
+    class ConnectCommand : public Command {
+      public:
+        ConnectCommand(entt::entity startSlot, entt::entity endSlot);
+        bool execute() override;
+        void undo() override;
+        RESULT_OVERRIDE;
+
+      private:
+        entt::entity m_startSlot;
+        entt::entity m_endSlot;
+        entt::entity m_connection;
     };
 } // namespace Bess::Canvas::Commands

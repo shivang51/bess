@@ -2,8 +2,7 @@
 #include "simulation_engine.h"
 
 namespace Bess::SimEngine::Commands {
-    AddCommand::AddCommand(ComponentType type, int inputCount, int outputCount) : 
-        m_compType(type), m_inputCount(inputCount), m_outputCount(outputCount) {
+    AddCommand::AddCommand(ComponentType type, int inputCount, int outputCount) : m_compType(type), m_inputCount(inputCount), m_outputCount(outputCount) {
     }
 
     bool AddCommand::execute() {
@@ -40,10 +39,10 @@ namespace Bess::SimEngine::Commands {
     }
 
     std::any ConnectCommand::getResult() {
-        return "successfully connected";
+        return std::string("successfully connected");
     }
 
-	DeleteCompCommand::DeleteCompCommand(const UUID &compId) : m_compId(compId) {}
+    DeleteCompCommand::DeleteCompCommand(const UUID &compId) : m_compId(compId) {}
 
     bool DeleteCompCommand::execute() {
         if (m_compId == UUID::null)
@@ -62,7 +61,9 @@ namespace Bess::SimEngine::Commands {
             return;
 
         auto &engine = SimulationEngine::instance();
-        const auto &newId = engine.addComponent(m_compType);
+        m_compId = engine.addComponent(m_compType);
+
+        // TODO (Shivang): Add connections as well and restore them
     }
 
     std::any DeleteCompCommand::getResult() {

@@ -78,11 +78,14 @@ namespace Bess::Canvas {
         /// deletes entity from sim engine as well
         void deleteEntity(const UUID &entUuid);
         void deleteConnection(const UUID &entUuid);
+        void removeConnectionEntt(const entt::entity ent);
         entt::entity getEntityWithUuid(const UUID &uuid);
         bool isEntityValid(const UUID &uuid);
         void setZCoord(float val);
 
         SimEngine::Commands::CommandsManager &getCmdManager();
+        entt::entity generateBasicConnection(entt::entity startSlot, entt::entity endSlot);
+        void connectSlots(entt::entity startSlot, entt::entity endSlot);
 
       private:
         const UUID &getUuidOfEntity(entt::entity ent);
@@ -104,8 +107,6 @@ namespace Bess::Canvas {
         void drawConnection();
         void drawSelectionBox();
         void handleKeyboardShortcuts();
-        void connectSlots(entt::entity startSlot, entt::entity endSlot);
-        void generateBasicConnection(entt::entity startSlot, entt::entity endSlot);
         void copySelectedComponents();
         void generateCopiedComponents();
         void selectEntitesInArea(const glm::vec2 &start, const glm::vec2 &end);
