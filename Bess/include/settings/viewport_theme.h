@@ -1,6 +1,8 @@
 #pragma once
+#include "component_types.h"
 #include "ext/vector_float4.hpp"
 #include "glm.hpp"
+#include <unordered_map>
 
 namespace Bess {
     class ViewportTheme {
@@ -19,5 +21,11 @@ namespace Bess {
         static glm::vec4 selectionBoxFillColor;
         static glm::vec4 stateLowColor;
         static void updateColorsFromImGuiStyle();
+
+        static glm::vec4 getCompHeaderColor(Bess::SimEngine::ComponentType type);
+
+      private:
+        static void initCompColorMap();
+        static std::unordered_map<Bess::SimEngine::ComponentType, glm::vec4> s_compColorMap;
     };
 } // namespace Bess

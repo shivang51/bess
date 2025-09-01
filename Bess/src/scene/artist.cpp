@@ -1,4 +1,5 @@
 #include "scene/artist.h"
+#include "common/log.h"
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
 #include "scene/components/components.h"
@@ -555,7 +556,7 @@ namespace Bess::Canvas {
 
         Renderer::quad(headerPos,
                        glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
-                       ViewportTheme::compHeaderColor,
+                       spriteComp.headerColor,
                        id,
                        props);
 
@@ -617,12 +618,12 @@ namespace Bess::Canvas {
         props = {};
         props.angle = rotation;
         props.borderSize = glm::vec4(0.f);
-        props.borderRadius = glm::vec4(0, 0, spriteComp.borderRadius.x, spriteComp.borderRadius.y);
+        props.borderRadius = glm::vec4(0, 0, spriteComp.borderRadius.x - spriteComp.borderSize.x, spriteComp.borderRadius.y - spriteComp.borderSize.y);
         props.isMica = true;
 
         Renderer::quad(headerPos,
                        glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
-                       ViewportTheme::compHeaderColor,
+                       spriteComp.headerColor,
                        id,
                        props);
 
