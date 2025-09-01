@@ -2,15 +2,11 @@
 
 #include "bess_uuid.h"
 #include "non_sim_comp.h"
-#include "common/log.h"
 #include "scene/components/json_converters.h"
-#include "entt/entity/entity.hpp"
-#include "entt/entity/fwd.hpp"
-#include "json/json.h"
+#include "settings/viewport_theme.h"
 #include <cstdint>
 #include <vector>
 #define GLM_ENABLE_EXPERIMENTAL
-#include "glm.hpp"
 #include "gtx/matrix_decompose.hpp"
 #include "simulation_engine.h"
 #include <glm.hpp>
@@ -47,6 +43,7 @@ namespace Bess::Canvas::Components {
         glm::vec4 borderColor = glm::vec4(1.f);
         glm::vec4 borderSize = glm::vec4(0.f);
         glm::vec4 borderRadius = glm::vec4(0.f);
+        glm::vec4 headerColor = ViewportTheme::compHeaderColor;
     };
 
     class TagComponent {
@@ -55,7 +52,7 @@ namespace Bess::Canvas::Components {
         TagComponent(const TagComponent &other) = default;
         std::string name = "";
 
-        union CompType{
+        union CompType {
             int typeId = -1;
             SimEngine::ComponentType simCompType;
             Components::NSComponentType nsCompType;
@@ -202,7 +199,7 @@ namespace Bess::JsonConvert {
             fromJsonValue(j["scale"], comp.scale);
         }
         if (j.isMember("angle")) {
-			comp.angle = j.get("angle", 0.f).asFloat();
+            comp.angle = j.get("angle", 0.f).asFloat();
         }
     }
 
@@ -486,4 +483,4 @@ namespace Bess::JsonConvert {
             comp.frequencyUnit = static_cast<SimEngine::FrequencyUnit>(j["frequencyUnit"].asInt());
         }
     }
-}
+} // namespace Bess::JsonConvert
