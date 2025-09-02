@@ -206,6 +206,13 @@ namespace Bess::Gl {
         unbindAll();
     }
 
+    std::vector<unsigned char> FrameBuffer::getPixelsFromColorAttachment(int idx) {
+        bindColorAttachmentForRead(idx);
+        auto buffer = m_colorAttachments[idx].getTextureHandle()->getData(false);
+        unbindAll();
+        return buffer;
+    }
+
     std::string FrameBuffer::getFramebufferStatusReason(const GLenum status) {
         switch (status) {
         case GL_FRAMEBUFFER_UNDEFINED:

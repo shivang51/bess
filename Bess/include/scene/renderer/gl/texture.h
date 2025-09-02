@@ -24,6 +24,8 @@ namespace Bess::Gl {
 
         void saveToPath(const std::string &path, bool bindTexture = true) const;
 
+        std::vector<unsigned char> getData(bool bindTexture = true) const;
+
         bool operator==(const Texture &other) const {
             return (m_id == other.m_id);
         }
