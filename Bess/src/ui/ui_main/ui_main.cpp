@@ -3,10 +3,10 @@
 #include "common/log.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "scene/renderer/renderer.h"
 #include "simulation_engine.h"
 #include "stb_image_write.h"
 #include "ui/m_widgets.h"
+#include "ui/ui_main/scene_export_window.h"
 #include <string>
 
 #include "camera.h"
@@ -28,130 +28,6 @@ namespace Bess::UI {
     UIState UIMain::state{};
     std::shared_ptr<Pages::MainPageState> UIMain::m_pageState;
 
-    bool showExportWindow = false;
-
-    void drawExportWindow() {
-        if (!showExportWindow)
-            return;
-        ImGui::Begin("Export View", &showExportWindow);
-        ImGui::Text("Export the scene as PNG");
-        if (ImGui::Button("Start Export")) {
-            const auto &reg = Canvas::Scene::instance().getEnttRegistry();
-            const auto view = reg.view<Canvas::Components::TransformComponent>();
-
-            glm::vec2 min, max;
-            for (const auto &ent : view) {
-                const auto &comp = view.get<Canvas::Components::TransformComponent>(ent);
-                if (comp.position.x - comp.scale.x < min.x)
-                    min.x = comp.position.x - comp.scale.x;
-                if (comp.position.x + comp.scale.x > max.x)
-                    max.x = comp.position.x + comp.scale.x;
-
-                if (comp.position.y + comp.scale.y > max.y)
-                    max.y = comp.position.y + comp.scale.y;
-                if (comp.position.y - comp.scale.y < min.y)
-                    min.y = comp.position.y - comp.scale.y;
-            }
-
-            auto size = Canvas::Scene::instance().getSize();
-            std::shared_ptr<Camera> camera = std::make_shared<Camera>(size.x, size.y);
-            std::vector<Gl::FBAttachmentType> attachments = {Gl::FBAttachmentType::RGBA_RGBA,
-                                                             Gl::FBAttachmentType::R32I_REDI,
-                                                             Gl::FBAttachmentType::RGBA_RGBA,
-                                                             Gl::FBAttachmentType::DEPTH32F_STENCIL8};
-            auto msaaFramebuffer = std::make_unique<Gl::FrameBuffer>(size.x, size.y, attachments, true);
-
-            attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::R32I_REDI};
-            auto normalFramebuffer = std::make_unique<Gl::FrameBuffer>(size.x, size.y, attachments);
-
-            static constexpr int value = -1;
-
-            const float zoom = 4.f;
-            camera->setPos(min);
-            camera->setZoom(zoom);
-            auto span = camera->getSpan();
-
-            glm::vec2 dist = max - min;
-
-            glm::vec2 rem = {(int)dist.x % (int)span.x, (int)dist.y % (int)span.y};
-            rem = span - rem;
-            rem /= 2;
-            min -= rem;
-            max += rem;
-
-            dist = max - min;
-
-            glm::ivec2 snaps = glm::round(dist / span);
-
-            std::vector<unsigned char> buffer(snaps.y * size.y * snaps.x * size.x * 4, 255);
-
-            BESS_INFO("[ExportSceneView] Exporting between ({}, {}) and  ({}, {}) covering dist of ({}, {}) with sliding window of {}, {}",
-                      min.x, min.y, max.x, max.y, dist.x, dist.y, span.x, span.y);
-            BESS_INFO("[ExportSceneView] Snaps = {}, {} with size per snap {}, {}", snaps.x, snaps.y, size.x, size.y);
-            BESS_INFO("[ExportSceneView] Generating image of size {}x{}", snaps.x * size.x, snaps.y * size.y);
-
-            auto pos = min + span / 2.f;
-            stbi_flip_vertically_on_write(1);
-
-            for (int i = 0; i < snaps.y; i++) {
-                pos.x = min.x + (span.x / 2.f);
-                for (int j = 0; j < snaps.x; j++) {
-                    camera->setPos(pos);
-
-                    msaaFramebuffer->bind();
-                    msaaFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::backgroundColor));
-                    msaaFramebuffer->clearColorAttachment<GL_INT>(1, &value);
-                    msaaFramebuffer->clearColorAttachment<GL_FLOAT>(2, glm::value_ptr(ViewportTheme::backgroundColor));
-
-                    Gl::FrameBuffer::clearDepthStencilBuf();
-                    Canvas::Scene::instance().drawScene(camera);
-
-                    Gl::FrameBuffer::unbindAll();
-
-                    for (int i_ = 0; i_ < 2; i_++) {
-                        msaaFramebuffer->bindColorAttachmentForRead(i_);
-                        normalFramebuffer->bindColorAttachmentForDraw(i_);
-                        Gl::FrameBuffer::blitColorBuffer(size.x, size.y);
-                    }
-                    Gl::FrameBuffer::unbindAll();
-
-                    pos.x += span.x;
-
-                    auto data = normalFramebuffer->getPixelsFromColorAttachment(0);
-
-                    const size_t sourceStride = size.x * 4;
-                    const size_t destStride = snaps.x * size.x * 4;
-
-                    for (int row = 0; row < size.y; row++) {
-                        unsigned char *srcPtr = data.data() + row * sourceStride;
-                        int destRow = (snaps.y - 1 - i) * size.y + row;
-                        int destColOffset = j * size.x * 4;
-                        unsigned char *destPtr = buffer.data() + destRow * destStride + destColOffset;
-                        memcpy(destPtr, srcPtr, sourceStride);
-                    }
-                }
-                pos.y += span.y;
-            }
-
-            std::string pathStr = "./save.png";
-            int result = stbi_write_png(
-                pathStr.c_str(),
-                snaps.x * size.x,
-                snaps.y * size.y,
-                4,
-                buffer.data(),
-                snaps.x * size.x * 4);
-
-            if (result == 0) {
-                BESS_ERROR("[ExportSceneView] Failed to save file to {}", pathStr);
-            } else {
-                BESS_TRACE("[ExportSceneView] Successfully saved file to {}", pathStr);
-            }
-        }
-
-        ImGui::End();
-    }
-
     void UIMain::draw() {
         static bool firstTime = true;
         if (firstTime) {
@@ -166,7 +42,6 @@ namespace Bess::UI {
         PropertiesPanel::draw();
         drawStatusbar();
         drawExternalWindows();
-        drawExportWindow();
     }
 
     void UIMain::drawStats(int fps) {
@@ -266,8 +141,7 @@ namespace Bess::UI {
                 temp_name = Icons::FontAwesomeIcons::FA_FILE_IMAGE;
                 temp_name += "  Scene View PNG";
                 if (ImGui::MenuItem(temp_name.c_str())) {
-                    // onExportSceneView();
-                    showExportWindow = true;
+                    SceneExportWindow::show();
                 }
                 ImGui::EndMenu();
             }
@@ -583,6 +457,7 @@ namespace Bess::UI {
     void UIMain::drawExternalWindows() {
         SettingsWindow::draw();
         ProjectSettingsWindow::draw();
+        SceneExportWindow::draw();
     }
 
     void UIMain::onNewProject() {
