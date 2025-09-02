@@ -150,7 +150,7 @@ namespace Bess::Canvas {
         }
     }
 
-    void Scene::render() {
+    void Scene::renderWithCamera(std::shared_ptr<Camera> camera) {
         auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
 
         switch (m_sceneMode) {
@@ -166,12 +166,20 @@ namespace Bess::Canvas {
         }
 
         beginScene();
+        drawScene(camera);
+        endScene();
+    }
 
-        Renderer2D::Renderer::begin(m_camera);
-        Renderer::grid({0.f, 0.f, -2.f}, m_camera->getSpan(), -1, ViewportTheme::gridColor);
+    void Scene::render() {
+        renderWithCamera(m_camera);
+    }
+
+    void Scene::drawScene(std::shared_ptr<Camera> camera) {
+        Renderer2D::Renderer::begin(camera);
+        Renderer::grid({0.f, 0.f, -2.f}, camera->getSpan(), -1, ViewportTheme::gridColor);
         Renderer2D::Renderer::end();
 
-        Renderer2D::Renderer::begin(m_camera);
+        Renderer2D::Renderer::begin(camera);
         if (m_drawMode == SceneDrawMode::connection) {
             drawConnection();
         }
@@ -204,12 +212,10 @@ namespace Bess::Canvas {
         Renderer2D::Renderer::end();
 
         if (m_drawMode == SceneDrawMode::selectionBox) {
-            Renderer2D::Renderer::begin(m_camera);
+            Renderer2D::Renderer::begin(camera);
             drawSelectionBox();
             Renderer2D::Renderer::end();
         }
-
-        endScene();
     }
 
     void Scene::drawSelectionBox() {

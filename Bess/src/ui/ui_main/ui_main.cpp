@@ -3,15 +3,16 @@
 #include "common/log.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "scene/renderer/renderer.h"
 #include "simulation_engine.h"
+#include "stb_image_write.h"
 #include "ui/m_widgets.h"
+#include "ui/ui_main/scene_export_window.h"
 #include <string>
 
 #include "camera.h"
 #include "pages/main_page/main_page_state.h"
-#include "scene/renderer/gl/gl_wrapper.h"
 #include "scene/artist.h"
+#include "scene/renderer/gl/gl_wrapper.h"
 #include "scene/scene.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/ui_main/component_explorer.h"
@@ -82,14 +83,14 @@ namespace Bess::UI {
                     ImGui::Text("Unknown State");
                 }
 
-                //std::string rightContent[] = {};
-                //float offset = style.FramePadding.x;
-                //for (auto &content : rightContent)
-                //    offset += getTextSize(content).x;
+                // std::string rightContent[] = {};
+                // float offset = style.FramePadding.x;
+                // for (auto &content : rightContent)
+                //     offset += getTextSize(content).x;
 
-                //ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - offset);
-                //for (auto &content : rightContent)
-                //    ImGui::Text("%s", content.c_str());
+                // ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - offset);
+                // for (auto &content : rightContent)
+                //     ImGui::Text("%s", content.c_str());
                 ImGui::EndMenuBar();
             }
             ImGui::End();
@@ -140,7 +141,7 @@ namespace Bess::UI {
                 temp_name = Icons::FontAwesomeIcons::FA_FILE_IMAGE;
                 temp_name += "  Scene View PNG";
                 if (ImGui::MenuItem(temp_name.c_str())) {
-                    onExportSceneView();
+                    SceneExportWindow::show();
                 }
                 ImGui::EndMenu();
             }
@@ -179,7 +180,7 @@ namespace Bess::UI {
 
         // project name textbox - begin
 
-        auto& style = ImGui::GetStyle();
+        auto &style = ImGui::GetStyle();
         auto &name = Pages::MainPageState::getInstance()->getCurrentProjectFile()->getNameRef();
         auto fontSize = ImGui::CalcTextSize(name.c_str());
         auto width = fontSize.x + (style.FramePadding.x * 2);
@@ -456,6 +457,7 @@ namespace Bess::UI {
     void UIMain::drawExternalWindows() {
         SettingsWindow::draw();
         ProjectSettingsWindow::draw();
+        SceneExportWindow::draw();
     }
 
     void UIMain::onNewProject() {
@@ -490,9 +492,10 @@ namespace Bess::UI {
         m_pageState->getCurrentProjectFile()->save();
     }
 
-    void UIMain::onExportSceneView(){
+    void UIMain::onExportSceneView() {
         auto path = UI::Dialogs::showSelectPathDialog("Save To");
-        if(path == "") return;
+        if (path == "")
+            return;
         BESS_TRACE("[ExportSceneView] Saving to {}", path);
         Canvas::Scene::instance().saveScenePNG(path);
     }

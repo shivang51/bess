@@ -104,21 +104,12 @@ namespace Bess::Gl {
     }
 
     void Texture::saveToPath(const std::string &path, bool bindTexture) const {
-        std::filesystem::path dir = path;
-        std::filesystem::path fullPath = dir / "schemeatic_view.png";
-        int channels = getChannelsFromFormat();
-        size_t n = m_width * m_height * channels;
-        std::vector<int> buffer(n, 255);
-
-        if (bindTexture)
-            bind();
-
-        GL_CHECK(glReadPixels(0, 0, m_width, m_height, m_format, GL_UNSIGNED_BYTE, buffer.data()));
-
-        if (bindTexture)
-            unbind();
+        std::filesystem::path fullPath = path;
 
         std::string pathStr = fullPath.string();
+
+        int channels = getChannelsFromFormat();
+        auto buffer = getData(bindTexture);
 
         stbi_flip_vertically_on_write(1);
         int result = stbi_write_png(
@@ -135,6 +126,22 @@ namespace Bess::Gl {
         }
 
         BESS_TRACE("[Texture] Successfully saved file to {}", pathStr);
+    }
+
+    std::vector<unsigned char> Texture::getData(bool bindTexture) const {
+        int channels = getChannelsFromFormat();
+        size_t n = m_width * m_height * channels;
+        std::vector<unsigned char> buffer(n, 255);
+
+        if (bindTexture)
+            bind();
+
+        GL_CHECK(glReadPixels(0, 0, m_width, m_height, m_format, GL_UNSIGNED_BYTE, buffer.data()));
+
+        if (bindTexture)
+            unbind();
+
+        return buffer;
     }
 
     int Texture::getChannelsFromFormat() const {
