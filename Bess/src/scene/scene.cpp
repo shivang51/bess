@@ -23,6 +23,7 @@ using Renderer = Bess::Renderer2D::Renderer;
 namespace Bess::Canvas {
     Scene::Scene() {
         Renderer2D::Renderer::init();
+        Artist::init();
         reset();
     }
 

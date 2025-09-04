@@ -75,9 +75,8 @@ namespace Bess::SimEngine {
     struct BESS_API DigitalComponent {
         DigitalComponent() = default;
         DigitalComponent(const DigitalComponent &) = default;
-        DigitalComponent(ComponentType type, int inputPinsCount, int outputPinsCount, SimDelayMilliSeconds delay, 
-            const std::vector<std::string>& expr
-        ) {
+        DigitalComponent(ComponentType type, int inputPinsCount, int outputPinsCount, SimDelayMilliSeconds delay,
+                         const std::vector<std::string> &expr) {
             this->type = type;
             this->delay = delay;
             this->inputPins = Connections(inputPinsCount, decltype(Connections())::value_type());
@@ -94,5 +93,6 @@ namespace Bess::SimEngine {
         std::vector<bool> outputStates;
         std::vector<bool> inputStates;
         std::vector<std::string> expressions;
+        void *auxData = nullptr;
     };
 } // namespace Bess::SimEngine
