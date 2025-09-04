@@ -110,16 +110,16 @@ namespace Bess::SimEngine {
                                                                 val = 0b00000110;
                                                                 break;
                                                             case 2:
-                                                                val = 0b01101011;
+                                                                val = 0b01011011;
                                                                 break;
                                                             case 3:
                                                                 val = 0b01001111;
                                                                 break;
                                                             case 4:
-                                                                val = 0b01010110;
+                                                                val = 0b01100110;
                                                                 break;
                                                             case 5:
-                                                                val = 0b01011111;
+                                                                val = 0b01101101;
                                                                 break;
                                                             case 6:
                                                                 val = 0b01111101;
