@@ -28,7 +28,8 @@ namespace Bess::SimEngine {
         PRIORITY_ENCODER_4_2,
         FULL_SUBTRACTOR,
         COMPARATOR_2_BIT,
-        SEVEN_SEG_DISPLAY
+        SEVEN_SEG_DISPLAY,
+        SEVEN_SEG_DISPLAY_DRIVER
     };
 
     enum FlipFlopType : int {

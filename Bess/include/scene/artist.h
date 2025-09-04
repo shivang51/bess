@@ -18,7 +18,7 @@ namespace Bess::Canvas {
     };
 
     struct ArtistTools {
-        std::array<std::shared_ptr<Gl::SubTexture>, 10> sevenSegDispTexs;
+        std::array<std::shared_ptr<Gl::SubTexture>, 8> sevenSegDispTexs;
     };
 
     class Artist {

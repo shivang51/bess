@@ -94,52 +94,65 @@ namespace Bess::SimEngine {
                                                         },
                                                         SimDelayMilliSeconds(0)});
 
+        ComponentCatalog::instance().registerComponent({ComponentType::SEVEN_SEG_DISPLAY_DRIVER, "7-Seg Display Driver", "IO", 4, 7,
+                                                        [&](entt::registry &registry, entt::entity e, const std::vector<bool> &inputs, auto fn) -> bool {
+                                                            auto &gate = registry.get<DigitalComponent>(e);
+                                                            gate.inputStates = inputs;
+                                                            int dec = 0;
+                                                            for (int i = 0; i < (int)inputs.size(); i++) {
+                                                                if (inputs[i])
+                                                                    dec |= 1 << i;
+                                                            }
+
+                                                            int val = 0;
+                                                            switch (dec) {
+                                                            case 1:
+                                                                val = 0b00000110;
+                                                                break;
+                                                            case 2:
+                                                                val = 0b01101011;
+                                                                break;
+                                                            case 3:
+                                                                val = 0b01001111;
+                                                                break;
+                                                            case 4:
+                                                                val = 0b01010110;
+                                                                break;
+                                                            case 5:
+                                                                val = 0b01011111;
+                                                                break;
+                                                            case 6:
+                                                                val = 0b01111101;
+                                                                break;
+                                                            case 7:
+                                                                val = 0b00000111;
+                                                                break;
+                                                            case 8:
+                                                                val = 0b01111111;
+                                                                break;
+                                                            case 9:
+                                                                val = 0b01101111;
+                                                                break;
+                                                            default:
+                                                                val = 0;
+                                                                break;
+                                                            }
+
+                                                            bool changed = false;
+                                                            for (int i = 0; i < (int)gate.outputStates.size(); i++) {
+                                                                bool out = val & (1 << i);
+                                                                changed = changed || out != gate.outputStates[i];
+                                                                gate.outputStates[i] = out;
+                                                            }
+
+                                                            return changed;
+                                                        },
+                                                        SimDelayMilliSeconds(0)});
+
         ComponentCatalog::instance().registerComponent({ComponentType::SEVEN_SEG_DISPLAY, "Seven Segment Display", "IO", 7, 0,
                                                         [&](entt::registry &registry, entt::entity e, const std::vector<bool> &inputs, auto fn) -> bool {
                                                             auto &gate = registry.get<DigitalComponent>(e);
                                                             gate.inputStates = inputs;
-                                                            int val = 0;
-                                                            for (int i = 0; i < (int)inputs.size(); i++) {
-                                                                if (inputs[i])
-                                                                    val |= 1 << i;
-                                                            }
-
-                                                            int idx = 0;
-                                                            switch (val) {
-                                                            case 0b00000110:
-                                                                idx = 1;
-                                                                break;
-                                                            case 0b01101011:
-                                                                idx = 2;
-                                                                break;
-                                                            case 0b01001111:
-                                                                idx = 3;
-                                                                break;
-                                                            case 0b01010110:
-                                                                idx = 4;
-                                                                break;
-                                                            case 0b01011111:
-                                                                idx = 5;
-                                                                break;
-                                                            case 0b01111101:
-                                                                idx = 6;
-                                                                break;
-                                                            case 0b00000111:
-                                                                idx = 7;
-                                                                break;
-                                                            case 0b01111111:
-                                                                idx = 8;
-                                                                break;
-                                                            case 0b01101111:
-                                                                idx = 9;
-                                                                break;
-                                                            default:
-                                                                idx = 0;
-                                                                break;
-                                                            }
-
-                                                            *((int *)gate.auxData) = idx;
-
                                                             return false;
                                                         },
                                                         SimDelayMilliSeconds(0)});

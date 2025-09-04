@@ -42,7 +42,7 @@ namespace Bess::Canvas {
             auto tex = Assets::AssetManager::instance().get(Assets::TileMaps::sevenSegDisplay);
             float margin = 4.f;
             glm::vec2 size(128.f, 234.f);
-            m_artistTools.sevenSegDispTexs = std::array<std::shared_ptr<Gl::SubTexture>, 10>{
+            m_artistTools.sevenSegDispTexs = std::array<std::shared_ptr<Gl::SubTexture>, 8>{
                 std::make_shared<Gl::SubTexture>(tex, glm::vec2({0.f, 0.f}), size, margin, glm::vec2(1.f)),
                 std::make_shared<Gl::SubTexture>(tex, glm::vec2({1.f, 0.f}), size, margin, glm::vec2(1.f)),
                 std::make_shared<Gl::SubTexture>(tex, glm::vec2({2.f, 0.f}), size, margin, glm::vec2(1.f)),
@@ -51,8 +51,8 @@ namespace Bess::Canvas {
                 std::make_shared<Gl::SubTexture>(tex, glm::vec2({0.f, 1.f}), size, margin, glm::vec2(1.f)),
                 std::make_shared<Gl::SubTexture>(tex, glm::vec2({1.f, 1.f}), size, margin, glm::vec2(1.f)),
                 std::make_shared<Gl::SubTexture>(tex, glm::vec2({2.f, 1.f}), size, margin, glm::vec2(1.f)),
-                std::make_shared<Gl::SubTexture>(tex, glm::vec2({3.f, 1.f}), size, margin, glm::vec2(1.f)),
-                std::make_shared<Gl::SubTexture>(tex, glm::vec2({4.f, 1.f}), size, margin, glm::vec2(1.f)),
+                // std::make_shared<Gl::SubTexture>(tex, glm::vec2({3.f, 1.f}), size, margin, glm::vec2(1.f)),
+                // std::make_shared<Gl::SubTexture>(tex, glm::vec2({4.f, 1.f}), size, margin, glm::vec2(1.f)),
             };
         }
     }
@@ -641,11 +641,18 @@ namespace Bess::Canvas {
 
         {
             auto compState = SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity);
-            auto tex = m_artistTools.sevenSegDispTexs[*((int *)compState.auxData)];
+            auto tex = m_artistTools.sevenSegDispTexs[0];
             auto texSize = tex->getScale();
             float texWidth = 64;
             float texHeight = (texSize.y / texSize.x) * texWidth;
             Renderer::quad(transform.position + glm::vec3(24.f, 0.f, 0.f), {texWidth, texHeight}, tex, glm::vec4(1.f), (uint64_t)entity);
+
+            for (int i = 0; i < (int)compState.inputStates.size(); i++) {
+                if (!compState.inputStates[i])
+                    continue;
+                tex = m_artistTools.sevenSegDispTexs[i + 1];
+                Renderer::quad(transform.position + glm::vec3(24.f, 0.f, 0.f), {texWidth, texHeight}, tex, glm::vec4(1.f), (uint64_t)entity);
+            }
         }
         drawSlots(simComp, transform);
     }

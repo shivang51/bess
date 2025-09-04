@@ -91,8 +91,6 @@ namespace Bess::SimEngine {
         if (type == ComponentType::FLIP_FLOP_JK || type == ComponentType::FLIP_FLOP_SR ||
             type == ComponentType::FLIP_FLOP_D || type == ComponentType::FLIP_FLOP_T) {
             m_registry.emplace<FlipFlopComponent>(ent, FlipFlopType(type), 1);
-        } else if (type == ComponentType::SEVEN_SEG_DISPLAY) {
-            digi.auxData = (void *)new int(0);
         }
         scheduleEvent(ent, entt::null, m_currentSimTime + def->delay);
 
@@ -179,9 +177,6 @@ namespace Bess::SimEngine {
             }
             m_uuidMap.erase(uuid);
             auto &comp = view.get<DigitalComponent>(ent);
-            if (comp.type == ComponentType::SEVEN_SEG_DISPLAY) {
-                delete (int *)comp.auxData;
-            }
             m_registry.destroy(ent);
             m_connectionsCache.erase(ent);
         }

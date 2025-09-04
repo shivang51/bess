@@ -28,6 +28,6 @@ namespace Bess::Assets {
     } // namespace Shaders
 
     namespace TileMaps {
-        constexpr auto sevenSegDisplay = AssetID<Gl::Texture, 1>("assets/images/7-seg-display-tilemap.png");
+        constexpr auto sevenSegDisplay = AssetID<Gl::Texture, 1>("assets/images/7-seg-display-tilemap-per-seg.png");
     }
 } // namespace Bess::Assets
