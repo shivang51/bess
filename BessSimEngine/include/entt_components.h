@@ -18,7 +18,9 @@ namespace Bess::SimEngine {
         FlipFlopComponent(const FlipFlopComponent &) = default;
         ComponentType type;
         int clockPinIdx = 1;
-        bool prevClock = false;
+        LogicState prevClockState = LogicState::low;
+        SimTime setupTime{15};
+        SimTime holdTime{3};
     };
 
     struct BESS_API IdComponent {
@@ -74,14 +76,14 @@ namespace Bess::SimEngine {
     struct BESS_API DigitalComponent {
         DigitalComponent() = default;
         DigitalComponent(const DigitalComponent &) = default;
-        DigitalComponent(ComponentType type, int inputPinsCount, int outputPinsCount, SimDelayMilliSeconds delay,
+        DigitalComponent(ComponentType type, int inputPinsCount, int outputPinsCount, SimDelayNanoSeconds delay,
                          const std::vector<std::string> &expr) {
             this->type = type;
             this->delay = delay;
             this->inputPins = Connections(inputPinsCount, decltype(Connections())::value_type());
             this->outputPins = Connections(outputPinsCount, decltype(Connections())::value_type());
-            this->outputStates = std::vector<bool>(outputPinsCount, false);
-            this->inputStates = std::vector<bool>(inputPinsCount, false);
+            this->outputStates = std::vector<PinState>(outputPinsCount, {LogicState::low, SimTime(0)});
+            this->inputStates = std::vector<PinState>(inputPinsCount, {LogicState::low, SimTime(0)});
             this->expressions = expr;
         }
 
@@ -91,11 +93,11 @@ namespace Bess::SimEngine {
         }
 
         ComponentType type;
-        SimDelayMilliSeconds delay;
+        SimDelayNanoSeconds delay;
         Connections inputPins;
         Connections outputPins;
-        std::vector<bool> outputStates;
-        std::vector<bool> inputStates;
+        std::vector<PinState> outputStates;
+        std::vector<PinState> inputStates;
         std::vector<std::string> expressions;
         void *auxData = nullptr;
     };

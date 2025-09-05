@@ -57,11 +57,11 @@ namespace Bess::SimEngine {
         friend class SimEngineSerializer;
 
       private:
-        void scheduleEvent(entt::entity e, entt::entity schedulerEntity, SimDelayMilliSeconds t);
+        void scheduleEvent(entt::entity e, entt::entity schedulerEntity, SimDelayNanoSeconds t);
         void clearEventsForEntity(entt::entity e);
-        std::vector<bool> getInputPinsState(entt::entity e) const;
+        std::vector<PinState> getInputPinsState(entt::entity e) const;
         const std::pair<std::vector<bool>, std::vector<bool>> &getIOPinsConnectedState(entt::entity e);
-        bool simulateComponent(entt::entity e, const std::vector<bool> &inputs);
+        bool simulateComponent(entt::entity e, const std::vector<PinState> &inputs);
         void run();
 
         entt::entity getEntityWithUuid(const UUID &uuid) const;

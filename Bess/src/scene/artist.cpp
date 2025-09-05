@@ -154,7 +154,7 @@ namespace Bess::Canvas {
             auto slotPos = getSlotPos(slotComp, transformComp);
             uint64_t parentId = (uint64_t)sceneRef->getEntityWithUuid(slotComp.parentId);
             label = "X" + std::to_string(i);
-            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, labeldx, isHigh, isConnected);
+            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, labeldx, (bool)isHigh, isConnected);
         }
 
         float labelWidth = Renderer::getMSDFTextRenderSize("Y0", componentStyles.slotLabelSize).x;
@@ -167,7 +167,7 @@ namespace Bess::Canvas {
             auto slotPos = getSlotPos(slotComp, transformComp);
             uint64_t parentId = (uint64_t)sceneRef->getEntityWithUuid(slotComp.parentId);
             label = "Y" + std::to_string(i);
-            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, -labeldx, isHigh, isConnected);
+            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, -labeldx, (bool)isHigh, isConnected);
         }
     }
 
@@ -219,7 +219,7 @@ namespace Bess::Canvas {
             auto &spriteComponent = registry.get<Components::SpriteComponent>(connEntity);
             color = spriteComponent.color;
         } else {
-            bool isHigh = SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity).outputStates[outputSlotComp.idx];
+            bool isHigh = (bool)SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity).outputStates[outputSlotComp.idx];
             color = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::stateLowColor;
         }
         color = isSelected ? ViewportTheme::selectedWireColor : color;
