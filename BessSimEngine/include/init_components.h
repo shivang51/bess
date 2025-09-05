@@ -12,9 +12,17 @@ namespace Bess::SimEngine {
             assert(reg.all_of<FlipFlopComponent>(e));
             auto &flipFlopComp = reg.get<FlipFlopComponent>(e);
             auto &comp = reg.get<DigitalComponent>(e);
+            comp.inputStates = inputs;
+
+            // --- CLR ---
+            if (inputs[inputs.size() - 1]) {
+                bool changed = comp.outputStates[0];
+                comp.outputStates[0] = false;
+                comp.outputStates[1] = true;
+                return changed;
+            }
 
             // getting values of input pins
-            comp.inputStates = inputs;
             auto clockValue = inputs[flipFlopComp.clockPinIdx];
             if (!clockValue || flipFlopComp.prevClock) {
                 flipFlopComp.prevClock = clockValue;
@@ -25,8 +33,8 @@ namespace Bess::SimEngine {
 
             bool q = comp.outputStates[0], q0 = comp.outputStates[1];
             bool changed = false;
-            if (flipFlopComp.type == FlipFlopType::FLIP_FLOP_JK) {
-                assert(comp.inputPins.size() == 3);
+            if (flipFlopComp.type == ComponentType::FLIP_FLOP_JK) {
+                assert(comp.inputPins.size() == 4);
                 if (inputs[0] && inputs[2]) {
                     q = !q;
                 } else if (inputs[0]) {
@@ -37,8 +45,8 @@ namespace Bess::SimEngine {
                 q0 = !q;
                 changed = comp.outputStates[0] != q;
                 comp.outputStates = {q, q0};
-            } else if (flipFlopComp.type == FlipFlopType::FLIP_FLOP_SR) {
-                assert(comp.inputPins.size() == 3);
+            } else if (flipFlopComp.type == ComponentType::FLIP_FLOP_SR) {
+                assert(comp.inputPins.size() == 4);
                 if (inputs[0]) {
                     q = true;
                 } else if (inputs[2]) {
@@ -47,14 +55,14 @@ namespace Bess::SimEngine {
                 q0 = !q;
                 changed = comp.outputStates[0] != q;
                 comp.outputStates = {q, q0};
-            } else if (flipFlopComp.type == FlipFlopType::FLIP_FLOP_D) {
-                assert(comp.inputPins.size() == 2);
+            } else if (flipFlopComp.type == ComponentType::FLIP_FLOP_D) {
+                assert(comp.inputPins.size() == 3);
                 q = inputs[0];
                 q0 = !q;
                 changed = comp.outputStates[0] != q;
                 comp.outputStates = {q, q0};
-            } else if (flipFlopComp.type == FlipFlopType::FLIP_FLOP_T) {
-                assert(comp.inputPins.size() == 2);
+            } else if (flipFlopComp.type == ComponentType::FLIP_FLOP_T) {
+                assert(comp.inputPins.size() == 3);
                 if (inputs[0])
                     q = !q;
                 q0 = !q;
@@ -66,7 +74,7 @@ namespace Bess::SimEngine {
         };
 
         auto &catalog = ComponentCatalog::instance();
-        auto flipFlop = ComponentDefinition(ComponentType::FLIP_FLOP_JK, "JK Flip Flop", "Flip Flop", 3, 2, simFunc, SimDelayMilliSeconds(100));
+        auto flipFlop = ComponentDefinition(ComponentType::FLIP_FLOP_JK, "JK Flip Flop", "Flip Flop", 4, 2, simFunc, SimDelayMilliSeconds(100));
         catalog.registerComponent(flipFlop);
 
         flipFlop.name = "SR Flip Flop";
@@ -74,7 +82,7 @@ namespace Bess::SimEngine {
         catalog.registerComponent(flipFlop);
 
         flipFlop.name = "T Flip Flop";
-        flipFlop.inputCount = 2;
+        flipFlop.inputCount = 3;
         flipFlop.type = ComponentType::FLIP_FLOP_T;
         catalog.registerComponent(flipFlop);
 

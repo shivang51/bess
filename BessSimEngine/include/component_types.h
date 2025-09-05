@@ -32,10 +32,8 @@ namespace Bess::SimEngine {
         SEVEN_SEG_DISPLAY_DRIVER
     };
 
-    enum FlipFlopType : int {
-        FLIP_FLOP_JK = 20,
-        FLIP_FLOP_SR,
-        FLIP_FLOP_D,
-        FLIP_FLOP_T
+    enum FlipFlopBound : int {
+        start = (int)ComponentType::FLIP_FLOP_JK,
+        end = (int)ComponentType::FLIP_FLOP_T
     };
 } // namespace Bess::SimEngine

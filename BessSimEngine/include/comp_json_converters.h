@@ -1,24 +1,23 @@
 #pragma once
-#include "json/json.h"
 #include "bess_api.h"
 #include "bess_uuid.h"
+#include "component_catalog.h"
 #include "entt_components.h"
 #include "types.h"
-#include "component_catalog.h"
+#include "json/json.h"
 
-namespace Bess::JsonConvert{
+namespace Bess::JsonConvert {
     // --- Bess::UUID ---
     BESS_API inline void toJsonValue(const Bess::UUID &uuid, Json::Value &j) {
         j = (Json::UInt64)uuid;
     }
 
     /**
-    * @brief Converts json back to Bess::UUID
-    **/ 
+     * @brief Converts json back to Bess::UUID
+     **/
     BESS_API inline void fromJsonValue(const Json::Value &j, Bess::UUID &uuid) {
         uuid = j.asUInt64();
     }
-
 
     using namespace Bess::SimEngine;
     // --- IdComponent ---
@@ -63,7 +62,7 @@ namespace Bess::JsonConvert{
      */
     inline void fromJsonValue(const Json::Value &j, FlipFlopComponent &comp) {
         if (j.isMember("type")) {
-            comp.type = (FlipFlopType)j["type"].asInt();
+            comp.type = (ComponentType)j["type"].asInt();
         }
     }
 
@@ -99,8 +98,8 @@ namespace Bess::JsonConvert{
             comp.frequency = j["frequency"].asFloat();
         }
 
-        if (j.isMember("dutyCycle")){
-			comp.dutyCycle = j.get("dutyCycle", comp.dutyCycle).asFloat();
+        if (j.isMember("dutyCycle")) {
+            comp.dutyCycle = j.get("dutyCycle", comp.dutyCycle).asFloat();
         }
     }
 
@@ -154,7 +153,7 @@ namespace Bess::JsonConvert{
         }
 
         Json::Value &expressionsArray = j["expressions"] = Json::Value(Json::arrayValue);
-        for (const auto&  expr : comp.expressions) {
+        for (const auto &expr : comp.expressions) {
             expressionsArray.append(expr);
         }
     }
@@ -226,7 +225,7 @@ namespace Bess::JsonConvert{
                 comp.expressions.push_back(expr.asString());
             }
         } else {
-			comp.expressions = ComponentCatalog::instance().getComponentDefinition(comp.type)->getExpressions(comp.inputPins.size());
+            comp.expressions = ComponentCatalog::instance().getComponentDefinition(comp.type)->getExpressions(comp.inputPins.size());
         }
     }
-}
+} // namespace Bess::JsonConvert

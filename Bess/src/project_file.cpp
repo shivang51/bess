@@ -128,22 +128,40 @@ namespace Bess {
     }
 
     void ProjectFile::patchFile() {
-        BESS_INFO("Running Patch...");
         using namespace Bess::Canvas;
         auto &scene = Canvas::Scene::instance();
         auto &reg = scene.getEnttRegistry();
 
         for (auto &ent : reg.view<entt::entity>()) {
             if (auto *comp = reg.try_get<Components::TagComponent>(ent)) {
-                // if component type is not there in tag, then query it and add it
-                if (comp->isSimComponent && comp->type.simCompType == Bess::SimEngine::ComponentType::EMPTY) {
+                if (comp->isSimComponent) {
                     auto *simComp = reg.try_get<Components::SimulationComponent>(ent);
                     if (simComp == nullptr)
                         continue;
                     try {
-                        BESS_INFO("Patching empty component type...");
+                        BESS_INFO("Running patch for {}...", (uint64_t)simComp->simEngineEntity);
                         auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
-                        comp->type.simCompType = simEngine.getComponentType(simComp->simEngineEntity);
+                        auto &idComp = reg.get<Components::IdComponent>(ent);
+
+                        if (comp->type.simCompType == Bess::SimEngine::ComponentType::EMPTY) {
+                            BESS_INFO("Patching empty component type...");
+                            comp->type.simCompType = simEngine.getComponentType(simComp->simEngineEntity);
+                        }
+
+                        if ((comp->type.simCompType == SimEngine::ComponentType::FLIP_FLOP_JK ||
+                             comp->type.simCompType == SimEngine::ComponentType::FLIP_FLOP_SR) &&
+                            simComp->inputSlots.size() != 4) {
+                            BESS_INFO("Patching flip flop input count...");
+
+                            simEngine.updateInputCount(simComp->simEngineEntity, 4);
+                            simComp->inputSlots.emplace_back(scene.createSlotEntity(Components::SlotType::digitalInput, idComp.uuid, 3));
+                        } else if ((comp->type.simCompType == SimEngine::ComponentType::FLIP_FLOP_D ||
+                                    comp->type.simCompType == SimEngine::ComponentType::FLIP_FLOP_T) &&
+                                   simComp->inputSlots.size() != 3) {
+                            BESS_INFO("Patching flip flop input count...");
+                            simEngine.updateInputCount(simComp->simEngineEntity, 3);
+                            simComp->inputSlots.emplace_back(scene.createSlotEntity(Components::SlotType::digitalInput, idComp.uuid, 2));
+                        }
                         BESS_INFO("(Done)");
                     } catch (std::exception e) {
                         BESS_ERROR("(Failed)");

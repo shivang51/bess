@@ -3,6 +3,7 @@
 #include "bess_uuid.h"
 #include "component_types.h"
 #include "entt/entity/fwd.hpp"
+#include "entt_components.h"
 #include "types.h"
 #include <chrono>
 #include <condition_variable>
@@ -51,13 +52,15 @@ namespace Bess::SimEngine {
 
         void clear();
 
+        bool updateInputCount(const UUID &uuid, int n);
+
         friend class SimEngineSerializer;
 
       private:
         void scheduleEvent(entt::entity e, entt::entity schedulerEntity, SimDelayMilliSeconds t);
         void clearEventsForEntity(entt::entity e);
         std::vector<bool> getInputPinsState(entt::entity e) const;
-        const std::pair<std::vector<bool>, std::vector<bool>>& getIOPinsConnectedState(entt::entity e);
+        const std::pair<std::vector<bool>, std::vector<bool>> &getIOPinsConnectedState(entt::entity e);
         bool simulateComponent(entt::entity e, const std::vector<bool> &inputs);
         void run();
 

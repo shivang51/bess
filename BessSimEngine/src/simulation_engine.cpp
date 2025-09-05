@@ -90,7 +90,7 @@ namespace Bess::SimEngine {
                                                           def->delay, def->getExpressions(inputCount));
         if (type == ComponentType::FLIP_FLOP_JK || type == ComponentType::FLIP_FLOP_SR ||
             type == ComponentType::FLIP_FLOP_D || type == ComponentType::FLIP_FLOP_T) {
-            m_registry.emplace<FlipFlopComponent>(ent, FlipFlopType(type), 1);
+            m_registry.emplace<FlipFlopComponent>(ent, ComponentType(type), 1);
         }
         scheduleEvent(ent, entt::null, m_currentSimTime + def->delay);
 
@@ -472,4 +472,13 @@ namespace Bess::SimEngine {
         }
     }
 
+    bool SimulationEngine::updateInputCount(const UUID &uuid, int n) {
+        auto ent = getEntityWithUuid(uuid);
+        if (!m_registry.all_of<DigitalComponent>(ent))
+            return false;
+
+        auto &digiComp = m_registry.get<DigitalComponent>(ent);
+        digiComp.updateInputCount(n);
+        return true;
+    }
 } // namespace Bess::SimEngine

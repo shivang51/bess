@@ -5,19 +5,18 @@
 #include "component_types.h"
 #include "types.h"
 #include <entt/entt.hpp>
-#include <utility>
 #include <vector>
 
 namespace Bess::SimEngine {
 
     struct BESS_API FlipFlopComponent {
         FlipFlopComponent() = default;
-        FlipFlopComponent(FlipFlopType type, int clockPinIndex) {
+        FlipFlopComponent(ComponentType type, int clockPinIndex) {
             this->type = type;
             this->clockPinIdx = clockPinIndex;
         }
         FlipFlopComponent(const FlipFlopComponent &) = default;
-        FlipFlopType type = FlipFlopType::FLIP_FLOP_JK;
+        ComponentType type;
         int clockPinIdx = 1;
         bool prevClock = false;
     };
@@ -84,6 +83,11 @@ namespace Bess::SimEngine {
             this->outputStates = std::vector<bool>(outputPinsCount, false);
             this->inputStates = std::vector<bool>(inputPinsCount, false);
             this->expressions = expr;
+        }
+
+        void updateInputCount(int n) {
+            this->inputPins.resize(n);
+            this->inputStates.resize(n);
         }
 
         ComponentType type;
