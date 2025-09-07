@@ -368,6 +368,7 @@ namespace Bess::SimEngine {
     bool SimulationEngine::simulateComponent(entt::entity e, const std::vector<PinState> &inputs) {
         const auto &comp = m_registry.get<DigitalComponent>(e);
         const auto *def = ComponentCatalog::instance().getComponentDefinition(comp.type);
+        BESS_SE_TRACE("[BessSimEngine] Simulating {}", def->name);
         if (def && def->simulationFunction) {
             return def->simulationFunction(
                 m_registry, e, inputs, m_currentSimTime,
@@ -409,7 +410,7 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::run() {
-        BESS_SE_INFO("Simulation loop started");
+        BESS_SE_INFO("[SimulationEngine] Simulation loop started");
         m_currentSimTime = SimTime(0);
         while (!m_stopFlag.load()) {
             std::unique_lock queueLock(m_queueMutex);
@@ -432,6 +433,7 @@ namespace Bess::SimEngine {
             if (m_eventSet.empty())
                 continue;
 
+            auto deltaTime = m_eventSet.begin()->simTime - m_currentSimTime;
             m_currentSimTime = m_eventSet.begin()->simTime;
 
             std::set<SimulationEvent> eventsToSim = {};
@@ -443,26 +445,30 @@ namespace Bess::SimEngine {
                 m_eventSet.erase(m_eventSet.begin());
             }
 
+            BESS_SE_TRACE("");
+            BESS_SE_TRACE("[SimulationEngine][t = {}ns][dt = {}ns] Picked {} events to simulate", m_currentSimTime.count(), deltaTime.count(), eventsToSim.size());
+
             std::unordered_map<entt::entity, std::vector<PinState>> inputsMap = {};
 
             for (auto &ev : eventsToSim) {
                 inputsMap[ev.entity] = getInputPinsState(ev.entity);
             }
+            BESS_SE_TRACE("[SimulationEngine] Selected {} unique entites to simulate", inputsMap.size());
 
-            for (auto &ev : eventsToSim) {
+            for (auto &[entity, inputs] : inputsMap) {
                 queueLock.unlock();
                 stateLock.unlock();
 
                 {
                     std::lock_guard regLock(m_registryMutex);
-                    if (!m_registry.valid(ev.entity))
+                    if (!m_registry.valid(entity))
                         continue;
 
-                    bool hasClk = m_registry.all_of<ClockComponent>(ev.entity);
-                    bool changed = simulateComponent(ev.entity, inputsMap[ev.entity]);
+                    bool hasClk = m_registry.all_of<ClockComponent>(entity);
+                    bool changed = simulateComponent(entity, inputs);
 
                     if (changed || hasClk) {
-                        auto &dc = m_registry.get<DigitalComponent>(ev.entity);
+                        auto &dc = m_registry.get<DigitalComponent>(entity);
 
                         for (auto &pin : dc.outputPins) {
                             std::set<entt::entity> uniqueEntites{};
@@ -480,24 +486,27 @@ namespace Bess::SimEngine {
 
                             for (auto &ent : uniqueEntites) {
                                 auto &destDc = m_registry.get<DigitalComponent>(ent);
-                                scheduleEvent(ent, ev.entity, m_currentSimTime + destDc.delay);
+                                scheduleEvent(ent, entity, m_currentSimTime + dc.delay);
                             }
                         }
                     }
 
                     if (hasClk) {
-                        auto &clk = m_registry.get<ClockComponent>(ev.entity);
-                        auto &dc = m_registry.get<DigitalComponent>(ev.entity);
+                        auto &clk = m_registry.get<ClockComponent>(entity);
+                        auto &dc = m_registry.get<DigitalComponent>(entity);
                         bool isHigh = (bool)dc.outputStates[0];
                         dc.outputStates[0] = isHigh ? PinState(LogicState::low, m_currentSimTime) : PinState(LogicState::high, m_currentSimTime);
                         clk.high = (bool)dc.outputStates[0];
-                        scheduleEvent(ev.entity, entt::null, m_currentSimTime + clk.getNextDelay());
+                        scheduleEvent(entity, entt::null, m_currentSimTime + clk.getNextDelay());
                     }
                 }
 
                 queueLock.lock();
                 stateLock.lock();
             }
+
+            BESS_SE_TRACE("[BessSimEngine] Sim Cycle End");
+            BESS_SE_TRACE("");
 
             if (!m_eventSet.empty()) {
                 m_queueCV.wait_until(queueLock, std::chrono::steady_clock::now() +
