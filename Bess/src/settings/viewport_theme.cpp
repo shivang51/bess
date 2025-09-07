@@ -53,6 +53,8 @@ namespace Bess {
     }
 
     glm::vec4 ViewportTheme::getCompHeaderColor(Bess::SimEngine::ComponentType type) {
+        if (!s_compColorMap.contains(type))
+            return ViewportTheme::compHeaderColor;
         return s_compColorMap.at(type);
     }
 

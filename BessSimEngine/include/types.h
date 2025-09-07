@@ -7,9 +7,9 @@
 #include <functional>
 
 namespace Bess::SimEngine {
-    typedef std::chrono::milliseconds SimDelayMilliSeconds;
-    typedef std::chrono::milliseconds SimTime;
+    typedef std::chrono::nanoseconds SimTime;
     typedef std::chrono::seconds SimDelaySeconds;
+    typedef std::chrono::nanoseconds SimDelayNanoSeconds;
 
     typedef std::vector<std::vector<std::pair<UUID, int>>> Connections;
 
@@ -19,7 +19,6 @@ namespace Bess::SimEngine {
     };
 
     // registry, entity, inputs, function to convert uuid to entity
-    typedef std::function<bool(entt::registry &, entt::entity, const std::vector<bool> &, std::function<entt::entity(const UUID &)>)> SimulationFunction;
 
     enum class PinType {
         input,
@@ -37,8 +36,39 @@ namespace Bess::SimEngine {
         paused
     };
 
+    enum class LogicState { low,
+                            high,
+                            unknown };
+
+    struct BESS_API PinState {
+        LogicState state = LogicState::low;
+        SimTime lastChangeTime{0};
+
+        PinState() = default;
+
+        PinState(LogicState state, SimTime time) {
+            this->state = state;
+            lastChangeTime = time;
+        }
+
+        PinState(bool value) {
+            state = value ? LogicState::high : LogicState::low;
+        }
+
+        explicit operator bool() const {
+            return state == LogicState::high;
+        }
+
+        PinState &operator=(const bool &val) {
+            this->state = val ? LogicState::high : LogicState::low;
+            return *this;
+        }
+    };
+
+    typedef std::function<bool(entt::registry &, entt::entity, const std::vector<PinState> &, SimTime, std::function<entt::entity(const UUID &)>)> SimulationFunction;
+
     struct BESS_API SimulationEvent {
-        std::chrono::milliseconds simTime;
+        SimTime simTime;
         entt::entity entity;
         entt::entity schedulerEntity; // enitity that triggered the change
         uint64_t id;
@@ -50,10 +80,11 @@ namespace Bess::SimEngine {
     };
 
     struct BESS_API ComponentState {
-        const std::vector<bool>& inputStates;
-        const std::vector<bool>& inputConnected;
-        const std::vector<bool>& outputStates;
-        const std::vector<bool>& outputConnected;
+        const std::vector<PinState> &inputStates;
+        const std::vector<bool> &inputConnected;
+        const std::vector<PinState> &outputStates;
+        const std::vector<bool> &outputConnected;
+        const void *auxData;
     };
 
 } // namespace Bess::SimEngine

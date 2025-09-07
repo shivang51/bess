@@ -1,4 +1,5 @@
 #include "scene/artist.h"
+#include "assets.h"
 #include "common/log.h"
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
@@ -32,6 +33,29 @@ namespace Bess::Canvas {
     float SLOT_DX = componentStyles.paddingX + componentStyles.slotRadius + componentStyles.slotMargin;
     float SLOT_START_Y = componentStyles.headerHeight;
     float SLOT_ROW_SIZE = (componentStyles.rowMargin * 2.f) + (componentStyles.slotRadius * 2.f) + componentStyles.rowGap;
+
+    ArtistTools Artist::m_artistTools;
+
+    void Artist::init() {
+        {
+
+            auto tex = Assets::AssetManager::instance().get(Assets::TileMaps::sevenSegDisplay);
+            float margin = 4.f;
+            glm::vec2 size(128.f, 234.f);
+            m_artistTools.sevenSegDispTexs = std::array<std::shared_ptr<Gl::SubTexture>, 8>{
+                std::make_shared<Gl::SubTexture>(tex, glm::vec2({0.f, 0.f}), size, margin, glm::vec2(1.f)),
+                std::make_shared<Gl::SubTexture>(tex, glm::vec2({1.f, 0.f}), size, margin, glm::vec2(1.f)),
+                std::make_shared<Gl::SubTexture>(tex, glm::vec2({2.f, 0.f}), size, margin, glm::vec2(1.f)),
+                std::make_shared<Gl::SubTexture>(tex, glm::vec2({3.f, 0.f}), size, margin, glm::vec2(1.f)),
+                std::make_shared<Gl::SubTexture>(tex, glm::vec2({4.f, 0.f}), size, margin, glm::vec2(1.f)),
+                std::make_shared<Gl::SubTexture>(tex, glm::vec2({0.f, 1.f}), size, margin, glm::vec2(1.f)),
+                std::make_shared<Gl::SubTexture>(tex, glm::vec2({1.f, 1.f}), size, margin, glm::vec2(1.f)),
+                std::make_shared<Gl::SubTexture>(tex, glm::vec2({2.f, 1.f}), size, margin, glm::vec2(1.f)),
+                // std::make_shared<Gl::SubTexture>(tex, glm::vec2({3.f, 1.f}), size, margin, glm::vec2(1.f)),
+                // std::make_shared<Gl::SubTexture>(tex, glm::vec2({4.f, 1.f}), size, margin, glm::vec2(1.f)),
+            };
+        }
+    }
 
     glm::vec3 Artist::getSlotPos(const Components::SlotComponent &comp, const Components::TransformComponent &parentTransform) {
         auto pPos = parentTransform.position;
@@ -130,7 +154,7 @@ namespace Bess::Canvas {
             auto slotPos = getSlotPos(slotComp, transformComp);
             uint64_t parentId = (uint64_t)sceneRef->getEntityWithUuid(slotComp.parentId);
             label = "X" + std::to_string(i);
-            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, labeldx, isHigh, isConnected);
+            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, labeldx, (bool)isHigh, isConnected);
         }
 
         float labelWidth = Renderer::getMSDFTextRenderSize("Y0", componentStyles.slotLabelSize).x;
@@ -143,7 +167,7 @@ namespace Bess::Canvas {
             auto slotPos = getSlotPos(slotComp, transformComp);
             uint64_t parentId = (uint64_t)sceneRef->getEntityWithUuid(slotComp.parentId);
             label = "Y" + std::to_string(i);
-            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, -labeldx, isHigh, isConnected);
+            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, -labeldx, (bool)isHigh, isConnected);
         }
     }
 
@@ -195,7 +219,7 @@ namespace Bess::Canvas {
             auto &spriteComponent = registry.get<Components::SpriteComponent>(connEntity);
             color = spriteComponent.color;
         } else {
-            bool isHigh = SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity).outputStates[outputSlotComp.idx];
+            bool isHigh = (bool)SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity).outputStates[outputSlotComp.idx];
             color = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::stateLowColor;
         }
         color = isSelected ? ViewportTheme::selectedWireColor : color;
@@ -565,6 +589,74 @@ namespace Bess::Canvas {
         drawSlots(simComp, transformComp);
     }
 
+    void Artist::drawSevenSegDisplay(
+        entt::entity entity,
+        Components::TagComponent &tagComp,
+        Components::TransformComponent &transform,
+        Components::SpriteComponent &spriteComp,
+        Components::SimulationComponent &simComp) {
+
+        auto pos = transform.position;
+        auto rotation = transform.angle;
+        auto scale = transform.scale;
+        int maxRows = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
+        scale.y = componentStyles.headerHeight + componentStyles.rowGap + (maxRows * SLOT_ROW_SIZE);
+        scale.x = 150.f;
+        transform.scale = scale;
+
+        float headerHeight = componentStyles.headerHeight;
+        auto headerPos = glm::vec3(pos.x, pos.y - scale.y / 2.f + headerHeight / 2.f, pos.z);
+
+        auto &registry = sceneRef->getEnttRegistry();
+        bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
+        auto borderColor = isSelected ? ViewportTheme::selectedCompColor : spriteComp.borderColor;
+
+        uint64_t id = (uint64_t)entity;
+
+        glm::vec3 textPos = glm::vec3(pos.x - scale.x / 2.f + componentStyles.paddingX, headerPos.y + componentStyles.paddingY, pos.z + 0.0005f);
+
+        Renderer2D::QuadRenderProperties props;
+        props = {};
+        props.angle = rotation;
+        props.borderRadius = spriteComp.borderRadius;
+        props.borderSize = spriteComp.borderSize;
+        props.borderColor = borderColor;
+        props.isMica = true;
+
+        Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
+
+        props = {};
+        props.angle = rotation;
+        props.borderSize = glm::vec4(0.f);
+        props.borderRadius = glm::vec4(0, 0, spriteComp.borderRadius.x - spriteComp.borderSize.x, spriteComp.borderRadius.y - spriteComp.borderSize.y);
+        props.isMica = true;
+
+        Renderer::quad(headerPos,
+                       glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
+                       spriteComp.headerColor,
+                       id,
+                       props);
+
+        Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id, rotation);
+
+        {
+            auto compState = SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity);
+            auto tex = m_artistTools.sevenSegDispTexs[0];
+            auto texSize = tex->getScale();
+            float texWidth = 64;
+            float texHeight = (texSize.y / texSize.x) * texWidth;
+            Renderer::quad(transform.position + glm::vec3(24.f, 0.f, 0.f), {texWidth, texHeight}, tex, glm::vec4(1.f), (uint64_t)entity);
+
+            for (int i = 0; i < (int)compState.inputStates.size(); i++) {
+                if (!compState.inputStates[i])
+                    continue;
+                tex = m_artistTools.sevenSegDispTexs[i + 1];
+                Renderer::quad(transform.position + glm::vec3(24.f, 0.f, 0.f), {texWidth, texHeight}, tex, glm::vec4(1.f), (uint64_t)entity);
+            }
+        }
+        drawSlots(simComp, transform);
+    }
+
     void Artist::drawSimEntity(
         entt::entity entity,
         Components::TagComponent &tagComp,
@@ -572,6 +664,11 @@ namespace Bess::Canvas {
         Components::SpriteComponent &spriteComp,
         Components::SimulationComponent &simComp) {
         auto &registry = sceneRef->getEnttRegistry();
+
+        if (tagComp.isSimComponent && tagComp.type.simCompType == SimEngine::ComponentType::SEVEN_SEG_DISPLAY) {
+            drawSevenSegDisplay(entity, tagComp, transform, spriteComp, simComp);
+            return;
+        }
 
         if (!m_isSchematicMode) {
             if (registry.all_of<Components::SimulationInputComponent>(entity)) {

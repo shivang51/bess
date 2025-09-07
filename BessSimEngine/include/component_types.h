@@ -27,13 +27,13 @@ namespace Bess::SimEngine {
         COMPARATOR_1_BIT,
         PRIORITY_ENCODER_4_2,
         FULL_SUBTRACTOR,
-        COMPARATOR_2_BIT
+        COMPARATOR_2_BIT,
+        SEVEN_SEG_DISPLAY,
+        SEVEN_SEG_DISPLAY_DRIVER
     };
 
-    enum FlipFlopType : int {
-        FLIP_FLOP_JK = 20,
-        FLIP_FLOP_SR,
-        FLIP_FLOP_D,
-        FLIP_FLOP_T
+    enum FlipFlopBound : int {
+        start = (int)ComponentType::FLIP_FLOP_JK,
+        end = (int)ComponentType::FLIP_FLOP_T
     };
 } // namespace Bess::SimEngine

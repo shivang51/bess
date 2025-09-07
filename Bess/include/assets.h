@@ -26,4 +26,8 @@ namespace Bess::Assets {
         constexpr auto text = AssetID<Gl::Shader, 2>("assets/shaders/instance_vert.glsl", "assets/shaders/text_frag.glsl");
         constexpr auto grid = AssetID<Gl::Shader, 2>("assets/shaders/grid_vert.glsl", "assets/shaders/grid_frag.glsl");
     } // namespace Shaders
+
+    namespace TileMaps {
+        constexpr auto sevenSegDisplay = AssetID<Gl::Texture, 1>("assets/images/7-seg-display-tilemap.png");
+    }
 } // namespace Bess::Assets

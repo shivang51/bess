@@ -8,7 +8,7 @@ namespace Bess::SimEngine {
         const std::string &category,
         int inputCount, int outputCount,
         SimulationFunction simFunction,
-        SimDelayMilliSeconds delay, char op) {
+        SimDelayNanoSeconds delay, char op) {
         this->type = type;
         this->name = name;
         this->category = category;
@@ -25,7 +25,7 @@ namespace Bess::SimEngine {
         const std::string &category,
         int inputCount, int outputCount,
         SimulationFunction simFunction,
-        SimDelayMilliSeconds delay, const std::vector<std::string>& expr) {
+        SimDelayNanoSeconds delay, const std::vector<std::string> &expr) {
         this->type = type;
         this->name = name;
         this->category = category;

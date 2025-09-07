@@ -1,8 +1,11 @@
 #pragma once
 
+#include "asset_manager/asset_manager.h"
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
 #include "scene/scene.h"
+
+#include <memory.h>
 
 namespace Bess::Canvas {
 
@@ -14,8 +17,14 @@ namespace Bess::Canvas {
         float rb = 0.f;
     };
 
+    struct ArtistTools {
+        std::array<std::shared_ptr<Gl::SubTexture>, 8> sevenSegDispTexs;
+    };
+
     class Artist {
       public:
+        static void init();
+
         static Scene *sceneRef;
         static void drawSimEntity(entt::entity entity);
         static void drawSimEntity(
@@ -50,8 +59,16 @@ namespace Bess::Canvas {
 
         static void drawSlots(const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp);
 
+        static void drawSevenSegDisplay(entt::entity entity,
+                                        Components::TagComponent &tagComp,
+                                        Components::TransformComponent &transform,
+                                        Components::SpriteComponent &spriteComp,
+                                        Components::SimulationComponent &simComponent);
+
         static ArtistCompBoundInfo getCompBoundInfo(SimEngine::ComponentType type, glm::vec2 pos, glm::vec2 scale);
 
         static bool m_isSchematicMode;
+
+        static ArtistTools m_artistTools;
     };
 } // namespace Bess::Canvas
