@@ -19,8 +19,6 @@ namespace Bess::SimEngine {
         ComponentType type;
         int clockPinIdx = 1;
         LogicState prevClockState = LogicState::low;
-        SimTime setupTime{15};
-        SimTime holdTime{3};
     };
 
     struct BESS_API IdComponent {

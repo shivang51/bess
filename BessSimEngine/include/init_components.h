@@ -11,9 +11,17 @@ namespace Bess::SimEngine {
         auto simFunc = [&](entt::registry &reg, entt::entity e, const std::vector<PinState> &inputs, SimTime currentTime, auto fn) -> bool {
             auto &flipFlopComp = reg.get<FlipFlopComponent>(e);
             auto &comp = reg.get<DigitalComponent>(e);
+
+            // very very very important to check and update clock before executing clear step
+            const auto &clockPinState = inputs[flipFlopComp.clockPinIdx];
+            bool isRisingEdge = (clockPinState.state == LogicState::high && flipFlopComp.prevClockState == LogicState::low);
+            flipFlopComp.prevClockState = clockPinState.state;
+
+            auto prevClr = comp.inputStates.back();
             comp.inputStates = inputs;
 
             const auto &clrPinState = inputs.back();
+            bool clrChanged = prevClr.state != clrPinState.state;
             if (clrPinState.state == LogicState::high) {
                 bool changed = (comp.outputStates[0].state != LogicState::low);
                 comp.outputStates[0] = {LogicState::low, currentTime};
@@ -21,37 +29,12 @@ namespace Bess::SimEngine {
                 return changed;
             }
 
-            const auto &clockPinState = inputs[flipFlopComp.clockPinIdx];
-            bool isRisingEdge = (clockPinState.state == LogicState::high && flipFlopComp.prevClockState == LogicState::low);
-
-            flipFlopComp.prevClockState = clockPinState.state;
-
             if (!isRisingEdge) {
                 return false;
             }
 
-            const auto &dataPin1 = inputs[0]; // Represents D, T, J, S
-
-            if ((currentTime - dataPin1.lastChangeTime) < flipFlopComp.setupTime) {
-                bool changed = (comp.outputStates[0].state != LogicState::unknown);
-                comp.outputStates[0] = {LogicState::unknown, currentTime};
-                comp.outputStates[1] = {LogicState::unknown, currentTime}; // Q' is also unknown
-                return changed;
-            }
-
-            if (dataPin1.lastChangeTime == currentTime) {
-                bool changed = (comp.outputStates[0].state != LogicState::unknown);
-                comp.outputStates[0] = {LogicState::unknown, currentTime};
-                comp.outputStates[1] = {LogicState::unknown, currentTime};
-                return changed;
-            }
-
             LogicState currentQ = comp.outputStates[0].state;
             LogicState newQ = currentQ;
-
-            if (currentQ == LogicState::unknown) {
-                return false; // No change from unknown state
-            }
 
             const auto &j_input = inputs[0];
             const auto &k_input = inputs[2];
@@ -60,21 +43,21 @@ namespace Bess::SimEngine {
                 if (j_input.state == LogicState::high && k_input.state == LogicState::high) {
                     newQ = (currentQ == LogicState::low) ? LogicState::high : LogicState::low; // Toggle
                 } else if (j_input.state == LogicState::high) {
-                    newQ = LogicState::high; // Set
+                    newQ = LogicState::high;
                 } else if (k_input.state == LogicState::high) {
-                    newQ = LogicState::low; // Reset
+                    newQ = LogicState::low;
                 }
             } else if (flipFlopComp.type == ComponentType::FLIP_FLOP_D) {
-                newQ = j_input.state; // D follows the input
+                newQ = j_input.state;
             } else if (flipFlopComp.type == ComponentType::FLIP_FLOP_T) {
                 if (j_input.state == LogicState::high) {
                     newQ = (currentQ == LogicState::low) ? LogicState::high : LogicState::low; // Toggle
                 }
             } else if (flipFlopComp.type == ComponentType::FLIP_FLOP_SR) {
                 if (j_input.state == LogicState::high) {
-                    newQ = LogicState::high; // Set
+                    newQ = LogicState::high;
                 } else if (k_input.state == LogicState::high) {
-                    newQ = LogicState::low; // Reset
+                    newQ = LogicState::low;
                 }
             }
 
@@ -90,7 +73,7 @@ namespace Bess::SimEngine {
         };
 
         auto &catalog = ComponentCatalog::instance();
-        auto flipFlop = ComponentDefinition(ComponentType::FLIP_FLOP_JK, "JK Flip Flop", "Flip Flop", 4, 2, simFunc, SimDelayNanoSeconds(15));
+        auto flipFlop = ComponentDefinition(ComponentType::FLIP_FLOP_JK, "JK Flip Flop", "Flip Flop", 4, 2, simFunc, SimDelayNanoSeconds(5));
         catalog.registerComponent(flipFlop);
 
         flipFlop.name = "SR Flip Flop";
@@ -201,7 +184,7 @@ namespace Bess::SimEngine {
 
     inline void initDigitalGates() {
         ComponentDefinition digitalGate = {ComponentType::AND, "AND Gate", "Digital Gates", 2, 1, &exprEvalSimFunc,
-                                           SimDelayNanoSeconds(100), '*'};
+                                           SimDelayNanoSeconds(1), '*'};
         digitalGate.addModifiableProperty(Properties::ComponentProperty::inputCount, {3, 4, 5});
         ComponentCatalog::instance().registerComponent(digitalGate);
 
@@ -232,47 +215,47 @@ namespace Bess::SimEngine {
         ComponentCatalog::instance().registerComponent(digitalGate);
 
         ComponentDefinition notGate = {ComponentType::NOT, "NOT Gate", "Digital Gates", 1, 1, &exprEvalSimFunc,
-                                       SimDelayNanoSeconds(100), '!'};
+                                       SimDelayNanoSeconds(2), '!'};
         notGate.addModifiableProperty(Properties::ComponentProperty::inputCount, {2, 3, 4, 5, 6});
         ComponentCatalog::instance().registerComponent(notGate);
     }
 
     inline void initCombCircuits() {
         const std::string groupName = "Combinational Circuits";
-        ComponentDefinition comp = {ComponentType::FULL_ADDER, "Full Adder", "Combinational Circuits", 3, 2, &exprEvalSimFunc, SimDelayNanoSeconds(100), {"0^1^2", "(0*1) + 2*(0^1)"}};
+        ComponentDefinition comp = {ComponentType::FULL_ADDER, "Full Adder", "Combinational Circuits", 3, 2, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"0^1^2", "(0*1) + 2*(0^1)"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::HALF_ADDER, "Half Adder", groupName, 2, 2, &exprEvalSimFunc, SimDelayNanoSeconds(100), {"0^1", "0*1"}};
+        comp = {ComponentType::HALF_ADDER, "Half Adder", groupName, 2, 2, &exprEvalSimFunc, SimDelayNanoSeconds(2), {"0^1", "0*1"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::MULTIPLEXER_4_1, "4-to-1 Mux", groupName, 6, 1, &exprEvalSimFunc, SimDelayNanoSeconds(100), {"(0*!5*!4) + (1*!5*4) + (2*5*!4) + (3*5*4)"}};
+        comp = {ComponentType::MULTIPLEXER_4_1, "4-to-1 Mux", groupName, 6, 1, &exprEvalSimFunc, SimDelayNanoSeconds(2), {"(0*!5*!4) + (1*!5*4) + (2*5*!4) + (3*5*4)"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::DECODER_2_4, "2-to-4 Decoder", groupName, 2, 4, &exprEvalSimFunc, SimDelayNanoSeconds(100), {"!1*!0", "!1*0", "1*!0", "1*0"}};
+        comp = {ComponentType::DECODER_2_4, "2-to-4 Decoder", groupName, 2, 4, &exprEvalSimFunc, SimDelayNanoSeconds(2), {"!1*!0", "!1*0", "1*!0", "1*0"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::DEMUX_1_4, "1-to-4 Demux", groupName, 3, 4, &exprEvalSimFunc, SimDelayNanoSeconds(100), {"0*!2*!1", "0*!2*1", "0*2*!1", "0*2*1"}};
+        comp = {ComponentType::DEMUX_1_4, "1-to-4 Demux", groupName, 3, 4, &exprEvalSimFunc, SimDelayNanoSeconds(2), {"0*!2*!1", "0*!2*1", "0*2*!1", "0*2*1"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::COMPARATOR_1_BIT, "1-Bit Comparator", groupName, 2, 3, &exprEvalSimFunc, SimDelayNanoSeconds(100), {"0*!1", "!0*1", "!(0^1)"}};
+        comp = {ComponentType::COMPARATOR_1_BIT, "1-Bit Comparator", groupName, 2, 3, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"0*!1", "!0*1", "!(0^1)"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::ENCODER_4_2, "4-to-2 Encoder", groupName, 4, 2, &exprEvalSimFunc, SimDelayNanoSeconds(100), {"1+3", "2+3"}};
+        comp = {ComponentType::ENCODER_4_2, "4-to-2 Encoder", groupName, 4, 2, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"1+3", "2+3"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::HALF_SUBTRACTOR, "Half Subtractor", groupName, 2, 2, &exprEvalSimFunc, SimDelayNanoSeconds(100), {"0^1", "!0*1"}};
+        comp = {ComponentType::HALF_SUBTRACTOR, "Half Subtractor", groupName, 2, 2, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"0^1", "!0*1"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::MULTIPLEXER_2_1, "2-to-1 Mux", groupName, 3, 1, &exprEvalSimFunc, SimDelayNanoSeconds(100), {"(0*!2) + (1*2)"}};
+        comp = {ComponentType::MULTIPLEXER_2_1, "2-to-1 Mux", groupName, 3, 1, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"(0*!2) + (1*2)"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::PRIORITY_ENCODER_4_2, "4-to-2 Priority Encoder", groupName, 4, 3, &exprEvalSimFunc, SimDelayNanoSeconds(100), {"3 + (!2*1)", "3 + (2*!3)", "0+1+2+3"}};
+        comp = {ComponentType::PRIORITY_ENCODER_4_2, "4-to-2 Priority Encoder", groupName, 4, 3, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"3 + (!2*1)", "3 + (2*!3)", "0+1+2+3"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::FULL_SUBTRACTOR, "Full Subtractor", groupName, 3, 2, &exprEvalSimFunc, SimDelayNanoSeconds(100), {"0^1^2", "(!0*1) + (!(0^1)*2)"}};
+        comp = {ComponentType::FULL_SUBTRACTOR, "Full Subtractor", groupName, 3, 2, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"0^1^2", "(!0*1) + (!(0^1)*2)"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::COMPARATOR_2_BIT, "2-Bit Comparator", groupName, 4, 3, &exprEvalSimFunc, SimDelayNanoSeconds(100), {"(1*!3)+(!(1^3)*(0*!2))", "(!1*3)+(!(1^3)*(!0*2))", "(!(1^3))*(!(0^2))"}};
+        comp = {ComponentType::COMPARATOR_2_BIT, "2-Bit Comparator", groupName, 4, 3, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"(1*!3)+(!(1^3)*(0*!2))", "(!1*3)+(!(1^3)*(!0*2))", "(!(1^3))*(!(0^2))"}};
         ComponentCatalog::instance().registerComponent(comp);
     }
 
