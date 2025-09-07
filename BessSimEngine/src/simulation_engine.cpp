@@ -12,6 +12,14 @@
 #include <condition_variable>
 #include <cstdint>
 
+#define BESS_SE_DISABLE_LOG_EVENTS
+
+#ifndef BESS_SE_DISABLE_LOG_EVENTS
+    #define BESS_SE_LOG_EVENT(...) BESS_SE_TRACE(__VA_ARGS__);
+#else
+    #define BESS_SE_LOG_EVENT(...)
+#endif // !BESS_SE_LOG_EVENT
+
 namespace Bess::SimEngine {
 
     SimulationEngine &SimulationEngine::instance() {
@@ -368,7 +376,7 @@ namespace Bess::SimEngine {
     bool SimulationEngine::simulateComponent(entt::entity e, const std::vector<PinState> &inputs) {
         const auto &comp = m_registry.get<DigitalComponent>(e);
         const auto *def = ComponentCatalog::instance().getComponentDefinition(comp.type);
-        BESS_SE_TRACE("[BessSimEngine] Simulating {}", def->name);
+        BESS_SE_LOG_EVENT("[BessSimEngine] Simulating {}", def->name);
         if (def && def->simulationFunction) {
             return def->simulationFunction(
                 m_registry, e, inputs, m_currentSimTime,
@@ -445,15 +453,15 @@ namespace Bess::SimEngine {
                 m_eventSet.erase(m_eventSet.begin());
             }
 
-            BESS_SE_TRACE("");
-            BESS_SE_TRACE("[SimulationEngine][t = {}ns][dt = {}ns] Picked {} events to simulate", m_currentSimTime.count(), deltaTime.count(), eventsToSim.size());
+            BESS_SE_LOG_EVENT("");
+            BESS_SE_LOG_EVENT("[SimulationEngine][t = {}ns][dt = {}ns] Picked {} events to simulate", m_currentSimTime.count(), deltaTime.count(), eventsToSim.size());
 
             std::unordered_map<entt::entity, std::vector<PinState>> inputsMap = {};
 
             for (auto &ev : eventsToSim) {
                 inputsMap[ev.entity] = getInputPinsState(ev.entity);
             }
-            BESS_SE_TRACE("[SimulationEngine] Selected {} unique entites to simulate", inputsMap.size());
+            BESS_SE_LOG_EVENT("[SimulationEngine] Selected {} unique entites to simulate", inputsMap.size());
 
             for (auto &[entity, inputs] : inputsMap) {
                 queueLock.unlock();
@@ -505,8 +513,8 @@ namespace Bess::SimEngine {
                 stateLock.lock();
             }
 
-            BESS_SE_TRACE("[BessSimEngine] Sim Cycle End");
-            BESS_SE_TRACE("");
+            BESS_SE_LOG_EVENT("[BessSimEngine] Sim Cycle End");
+            BESS_SE_LOG_EVENT("");
 
             if (!m_eventSet.empty()) {
                 m_queueCV.wait_until(queueLock, std::chrono::steady_clock::now() +
