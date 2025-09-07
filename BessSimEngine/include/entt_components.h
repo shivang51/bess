@@ -44,7 +44,7 @@ namespace Bess::SimEngine {
             high = !high;
         }
 
-        std::chrono::milliseconds getNextDelay() const {
+        std::chrono::nanoseconds getNextDelay() const {
             double f = frequency;
             switch (frequencyUnit) {
             case FrequencyUnit::hz:
@@ -58,12 +58,16 @@ namespace Bess::SimEngine {
             default:
                 throw std::runtime_error("Unhandled clock frequency unit");
             }
+
             if (f <= 0.0) {
                 throw std::runtime_error("Invalid clock frequency");
             }
-            double periodMs = 1000.0 / f;
-            double phaseMs = high ? periodMs * dutyCycle : periodMs * (1.0 - dutyCycle);
-            return std::chrono::milliseconds(static_cast<int>(phaseMs));
+
+            double periodNs = 1e9 / f;
+
+            double phaseNs = high ? periodNs * dutyCycle : periodNs * (1.0 - dutyCycle);
+
+            return std::chrono::nanoseconds(static_cast<long long>(phaseNs));
         }
 
         float dutyCycle = 0.5f;
