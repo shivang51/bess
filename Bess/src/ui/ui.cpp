@@ -4,20 +4,22 @@
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/icons/MaterialIcons.h"
 
-#include "assets.h"
-#include "ui/ui_main/ui_main.h"
-#include "settings/settings.h"
 #include "application_state.h"
+#include "assets.h"
+#include "settings/settings.h"
+#include "ui/ui_main/ui_main.h"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_internal.h"
+#include "implot.h"
 
 namespace Bess::UI {
     void init(GLFWwindow *window) {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
+        ImPlot::CreateContext();
         ImGuiIO &io = ImGui::GetIO();
 
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
@@ -43,6 +45,7 @@ namespace Bess::UI {
     void shutdown() {
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplGlfw_Shutdown();
+        ImPlot::DestroyContext();
         ImGui::DestroyContext();
     }
 

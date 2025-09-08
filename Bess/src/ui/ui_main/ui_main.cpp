@@ -3,6 +3,7 @@
 #include "common/log.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "implot.h"
 #include "simulation_engine.h"
 #include "stb_image_write.h"
 #include "ui/m_widgets.h"
@@ -28,6 +29,119 @@ namespace Bess::UI {
     UIState UIMain::state{};
     std::shared_ptr<Pages::MainPageState> UIMain::m_pageState;
 
+    struct LabeledDigitalSignal {
+        std::string name;
+        std::vector<int> values;
+    };
+
+    void PlotDigitalSignals(const std::string &plotName, const std::vector<double> &timeStamps, const std::vector<LabeledDigitalSignal> &signals, float plotHeight = 150.0f) {
+        if (signals.size() <= 0) {
+            return;
+        }
+
+        static double x_min = NAN, x_max = NAN;
+
+        if (std::isnan(x_min) || std::isnan(x_max)) {
+            x_min = timeStamps[0];
+            x_max = timeStamps[timeStamps.size() - 1];
+        }
+
+        ImGui::BeginChild(plotName.c_str(), ImVec2(0, 0), false, ImGuiWindowFlags_None);
+
+        int numSignals = signals.size();
+
+        for (int i = 0; i < numSignals; ++i) {
+            float height = plotHeight + (i == numSignals - 1 ? 20 : 0);
+            const LabeledDigitalSignal &signal = signals[i];
+
+            if (ImPlot::BeginPlot(signal.name.c_str(), ImVec2(-1, height), ImPlotFlags_NoLegend | ImPlotFlags_NoTitle)) {
+
+                ImPlot::SetupAxis(ImAxis_Y1, signal.name.c_str(), ImPlotAxisFlags_NoTickLabels);
+                ImPlot::SetupAxisLimits(ImAxis_Y1, -0.2, 1.2, ImGuiCond_Always);
+
+                ImPlot::SetupAxisLinks(ImAxis_X1, &x_min, &x_max);
+
+                if (i < numSignals - 1) {
+                    ImPlot::SetupAxis(ImAxis_X1, nullptr, ImPlotAxisFlags_NoTickLabels);
+                } else {
+                    ImPlot::SetupAxis(ImAxis_X1, "Time");
+                }
+
+                std::vector<double> plotX;
+                std::vector<double> plotY;
+                int dataCount = signal.values.size();
+
+                plotX.push_back(timeStamps[0]);
+
+                const auto &data = signal.values;
+                plotY.push_back(signal.values[0]);
+
+                for (int i = 1; i < dataCount; ++i) {
+                    while (i < dataCount && data[i] == plotY.back()) {
+                        i++;
+                        continue;
+                    }
+
+                    if (i == dataCount)
+                        break;
+
+                    plotX.push_back(timeStamps[i]);
+                    plotY.push_back(signal.values[i - 1]);
+
+                    if (signal.values[i] != signal.values[i - 1]) {
+                        plotX.push_back(timeStamps[i]);
+                        plotY.push_back(signal.values[i]);
+                    }
+                }
+
+                ImPlot::PlotLine(signals[i].name.c_str(), plotX.data(), plotY.data(), dataCount);
+
+                ImPlot::EndPlot();
+            }
+        }
+
+        // 4. End the main scrolling container
+        ImGui::EndChild();
+    }
+
+    static std::vector<int> GenerateSampleData(int count) {
+        std::vector<int> data(count);
+        for (int i = 0; i < count; ++i) {
+            data[i] = rand() % 2;
+        }
+        return data;
+    }
+
+    void drawGraphWindow() {
+        auto &reg = Canvas::Scene::instance().getEnttRegistry();
+        auto view = reg.view<Bess::Canvas::Components::TagComponent, Bess::Canvas::Components::SimulationComponent>();
+        ImGui::Begin("Graph");
+
+        std::vector<std::string> comps = {};
+        for (auto &ent : view) {
+            const auto &tagComponent = view.get<Bess::Canvas::Components::TagComponent>(ent);
+            comps.emplace_back(tagComponent.name);
+        }
+
+        static std::string selected = "";
+        MWidgets::ComboBox("Select a node", selected, comps);
+
+        static std::vector<double> times = {0.0, 0.5, 0.6, 1.2, 1.8, 2.0, 2.1, 2.8, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.1, 7.2, 7.5};
+
+        static std::vector<int> signal_A_data = GenerateSampleData(10); // Chip Enable
+        static std::vector<int> signal_B_data = GenerateSampleData(18); // Data Ready
+        static std::vector<int> signal_C_data = GenerateSampleData(5);  // Clock
+
+        static std::vector<LabeledDigitalSignal> allSignals = {
+            {"Chip Enable", signal_A_data},
+            {"Data Ready", signal_B_data},
+            {"Clock", signal_C_data}};
+
+        PlotDigitalSignals("Signals", times, allSignals);
+
+        ImGui::End();
+    }
+
     void UIMain::draw() {
         static bool firstTime = true;
         if (firstTime) {
@@ -40,6 +154,9 @@ namespace Bess::UI {
         ComponentExplorer::draw();
         ProjectExplorer::draw();
         PropertiesPanel::draw();
+
+        drawGraphWindow();
+
         drawStatusbar();
         drawExternalWindows();
     }
