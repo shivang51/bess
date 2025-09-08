@@ -1,89 +1,84 @@
 #include "scene/renderer/msdf_font.h"
 #include "common/log.h"
-#include "json/json.h"
 
-#include <fstream>
 #include <filesystem>
+#include <fstream>
 
 namespace Bess::Renderer2D {
 
-    MsdfFont::MsdfFont(const std::string &path, const std::string& jsonFileName){
+    MsdfFont::MsdfFont(const std::string &path, const std::string &jsonFileName) {
         loadFont(path, jsonFileName);
     }
 
     MsdfFont::~MsdfFont() = default;
 
-    void MsdfFont::loadFont(const std::string &path, const std::string& jsonFileName) {
+    void MsdfFont::loadFont(const std::string &path, const std::string &fileName) {
         std::filesystem::path path_ = path;
+        const std::string jsonFileName = fileName + ".json";
         std::ifstream inFile(path_ / jsonFileName);
         if (!inFile.is_open()) {
             BESS_ERROR("Failed to open MSDF font json file: {}", path);
             return;
         }
+
         Json::Value charData;
         inFile >> charData;
+        const std::string pngFilePath = path_ / (fileName + ".png");
 
-
-        if(!charData.isMember("pages")){
-            BESS_ERROR("Invalid MSDF font json file: {}\n\tUnable to locate pages", path);
+        if (!isValidJson(charData)) {
+            BESS_ERROR("Invalid MSDF font json file: {}\n\tUnable to locate required fields", path);
+            assert(false);
             return;
         }
 
-        if(!charData.isMember("chars")){
-            BESS_ERROR("Invalid MSDF font json file: {}\n\tUnable to locate chars", path);
-            return;
-        }
+        m_fontTextureAtlas = std::make_shared<Gl::Texture>(pngFilePath);
+        BESS_INFO("Loaded MSDF font texture atlas from: {}", pngFilePath);
 
+        m_fontSize = charData["atlas"]["size"].asFloat();
+        m_lineHeight = charData["metrics"]["lineHeight"].asFloat();
 
-        if (charData.isMember("pages") && charData["pages"].isArray()) {
-            const Json::Value &pagesArray = charData["pages"];
-            if (!pagesArray.empty()) {
-                // Get the first page name.
-                std::string pageName = pagesArray[0].asString();
-                auto pagePath = path_ / pageName;
-                m_fontTextureAtlas = std::make_shared<Gl::Texture>(pagePath.string());
-                BESS_INFO("Loaded MSDF font texture atlas from: {}", pagePath.string());
-            }
-        }
+        const Json::Value &chars = charData["glyphs"];
+        std::unordered_map<char, MsdfCharacter> glyphs;
+        size_t maxAscii = 0;
 
-        m_fontSize = charData["info"]["size"].asFloat();
-        m_lineHeight = charData["common"]["lineHeight"].asFloat();
+        for (const auto &c : chars) {
+            if (!c.isObject())
+                continue; // Skip if an element is not a valid object.
 
-        if (charData.isMember("chars") && charData["chars"].isArray()) {
-            const Json::Value &chars = charData["chars"];
-            std::unordered_map<char, MsdfCharacter> charData;
-            size_t maxAscii = 0;
-            for (const auto &c : chars) {
-                if (!c.isObject())
-                    continue; // Skip if an element is not a valid object.
+            MsdfCharacter character;
 
-                MsdfCharacter character;
-                character.offset = glm::vec2(c.get("xoffset", 0.f).asFloat(), c.get("yoffset", 0.f).asFloat());
-                character.size = glm::vec2(c.get("width", 0.f).asFloat(), c.get("height", 0.f).asFloat());
-                character.texPos = glm::vec2(c.get("x", 0.f).asFloat(), c.get("y", 0.f).asFloat());
-                character.advance = c.get("xadvance", 0.f).asFloat();
+            character.advance = c.get("advance", 0.f).asFloat();
 
-                std::string charStr = c.get("char", "").asString();
-                if (!charStr.empty()) {
-                    character.character = charStr[0];
-                }
+            if (c.isMember("atlasBounds")) {
+                auto atlasBounds = getBounds(c["atlasBounds"]);
 
+                auto atlasPos = glm::vec2(atlasBounds.left, m_fontTextureAtlas->getHeight() - atlasBounds.top);
+                auto atlasSize = glm::vec2(atlasBounds.right - atlasBounds.left, atlasBounds.top - atlasBounds.bottom);
                 auto subTex = std::make_shared<Gl::SubTexture>();
                 character.subTexture = subTex;
 
-                subTex->calcCoordsFrom(m_fontTextureAtlas, character.texPos, character.size);
-                charData[character.character] = character;
-                maxAscii = std::max(maxAscii, (size_t)character.character);
+                subTex->calcCoordsFrom(m_fontTextureAtlas, atlasPos, atlasSize);
             }
 
-            m_charTable.resize(maxAscii + 1);
-
-            for (auto &[ch, data] : charData) {
-                m_charTable[(size_t)ch] = data;
+            if (c.isMember("planeBounds")) {
+                Bounds planeBounds = getBounds(c["planeBounds"]);
+                character.offset = glm::vec2(planeBounds.left, planeBounds.bottom);
+                character.size = glm::vec2(planeBounds.right - planeBounds.left, planeBounds.top - planeBounds.bottom);
             }
 
-            BESS_TRACE("[MsdfFont] Made lookup table of size {} characters", maxAscii);
+            character.character = (char)c.get("unicode", 32).asUInt64();
+
+            glyphs[character.character] = character;
+            maxAscii = std::max(maxAscii, (size_t)character.character);
         }
+
+        m_charTable.resize(maxAscii + 1);
+
+        for (auto &[ch, data] : glyphs) {
+            m_charTable[(size_t)ch] = data;
+        }
+
+        BESS_TRACE("[MsdfFont] Made lookup table of size {} characters", maxAscii);
     }
 
     float MsdfFont::getScale(float size) const {
@@ -94,7 +89,7 @@ namespace Bess::Renderer2D {
         return m_lineHeight;
     }
 
-    MsdfCharacter MsdfFont::getCharacterData(char c) const {
+    const MsdfCharacter &MsdfFont::getCharacterData(char c) const {
         return m_charTable[(size_t)c];
     }
 
@@ -102,4 +97,16 @@ namespace Bess::Renderer2D {
         return m_fontTextureAtlas;
     }
 
+    bool MsdfFont::isValidJson(const Json::Value &json) {
+        return json.isMember("atlas") && json.isMember("metrics") && json.isMember("glyphs");
+    }
+
+    MsdfFont::Bounds MsdfFont::getBounds(const Json::Value &val) {
+        Bounds bounds;
+        bounds.left = val["left"].as<float>();
+        bounds.right = val["right"].as<float>();
+        bounds.top = val["top"].as<float>();
+        bounds.bottom = val["bottom"].as<float>();
+        return bounds;
+    }
 } // namespace Bess::Renderer2D

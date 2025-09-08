@@ -7,7 +7,7 @@
 namespace Bess::Assets {
     namespace Fonts {
         constexpr auto roboto = AssetID<Renderer2D::Font, 1>("assets/fonts/Roboto/Roboto-Regular.ttf");
-        constexpr auto robotoMsdf = AssetID<Renderer2D::MsdfFont, 2>("assets/fonts/Roboto/msdf/", "Roboto-Regular.json");
+        constexpr auto robotoMsdf = AssetID<Renderer2D::MsdfFont, 2>("assets/fonts/Roboto/msdf/", "Roboto-Regular");
         namespace Paths {
             constexpr auto roboto = AssetID<std::string, 1>("assets/fonts/Roboto/Roboto-Regular.ttf");
             constexpr auto componentIcons = AssetID<std::string, 1>("assets/icons/ComponentIcons.ttf");

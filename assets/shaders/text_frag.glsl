@@ -22,13 +22,18 @@ void main() {
         return;
     }
 
-    vec3 msd = texture(u_Textures[v_TexSlotIdx], v_TexCoord).rgb;
-    float sd = median(msd.r, msd.g, msd.b);
+    vec4 msd = texture(u_Textures[v_TexSlotIdx], v_TexCoord);
+		float sdMsdf = median(msd.r, msd.g, msd.b);
+		float sdSdf  = msd.a;
 
     float scale = length(fwidth(v_TexCoord) * textureSize(u_Textures[v_TexSlotIdx], 0));
-    float screenDist = (sd - 0.5) * u_pxRange / scale;
 
-    float opacity = smoothstep(-0.5, 0.5, screenDist);
+		float blend = smoothstep(8.f, 16.f, scale);
+		float dist = mix(sdSdf, sdMsdf, blend);
+
+    float screenDist = (dist - 0.5) * u_pxRange / scale;
+
+		float opacity = smoothstep(-0.5, 0.5, screenDist);
 
     vec4 finalColor = vec4(v_FragColor.rgb, v_FragColor.a * opacity);
 
