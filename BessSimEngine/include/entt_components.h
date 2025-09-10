@@ -103,4 +103,31 @@ namespace Bess::SimEngine {
         std::vector<std::string> expressions;
         void *auxData = nullptr;
     };
+
+    struct BESS_API StateMonitorComponent {
+        StateMonitorComponent() = default;
+        StateMonitorComponent(const StateMonitorComponent &) = default;
+        StateMonitorComponent(ComponentPin pin) {
+            attachedTo = pin;
+        }
+
+        void clear() {
+            values.clear();
+        }
+
+        void appendState(SimTime time, const LogicState &state) {
+            values.emplace_back(std::pair(time.count(), state));
+        }
+
+        void attacthTo(ComponentPin pin) {
+            clear();
+            attachedTo = pin;
+        }
+
+        ComponentPin attachedTo;
+
+        /// Values of states of attached pin
+        /// vector of  pair<<time in nanoseconds, LogicState>>
+        std::vector<std::pair<float, LogicState>> values = {};
+    };
 } // namespace Bess::SimEngine

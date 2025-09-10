@@ -29,7 +29,8 @@ namespace Bess::SimEngine {
         FULL_SUBTRACTOR,
         COMPARATOR_2_BIT,
         SEVEN_SEG_DISPLAY,
-        SEVEN_SEG_DISPLAY_DRIVER
+        SEVEN_SEG_DISPLAY_DRIVER,
+        STATE_MONITOR
     };
 
     enum FlipFlopBound : int {

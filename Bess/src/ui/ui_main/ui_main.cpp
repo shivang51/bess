@@ -154,7 +154,7 @@ namespace Bess::UI {
         ProjectExplorer::draw();
         PropertiesPanel::draw();
 
-        drawGraphWindow();
+        // drawGraphWindow();
 
         drawStatusbar();
         drawExternalWindows();
