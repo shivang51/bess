@@ -128,7 +128,6 @@ namespace Bess::SimEngine {
             }
 
             float diff = std::chrono::duration<float>(clockTime - lastUpdateTime).count();
-            std::cout << diff << std::endl;
             float value = timestepedBoolData.back().first + diff;
             timestepedBoolData.emplace_back(value, isHigh);
             lastUpdateTime = clockTime;
