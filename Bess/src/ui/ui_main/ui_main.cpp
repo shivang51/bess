@@ -94,13 +94,12 @@ namespace Bess::UI {
                     }
                 }
 
-                ImPlot::PlotLine(signals[i].name.c_str(), plotX.data(), plotY.data(), dataCount);
+                ImPlot::PlotLine(signals[i].name.c_str(), plotX.data(), plotY.data(), plotX.size());
 
                 ImPlot::EndPlot();
             }
         }
 
-        // 4. End the main scrolling container
         ImGui::EndChild();
     }
 
@@ -128,9 +127,9 @@ namespace Bess::UI {
 
         static std::vector<double> times = {0.0, 0.5, 0.6, 1.2, 1.8, 2.0, 2.1, 2.8, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.1, 7.2, 7.5};
 
-        static std::vector<int> signal_A_data = GenerateSampleData(10); // Chip Enable
-        static std::vector<int> signal_B_data = GenerateSampleData(18); // Data Ready
-        static std::vector<int> signal_C_data = GenerateSampleData(5);  // Clock
+        static std::vector<int> signal_A_data = GenerateSampleData(7); // Chip Enable
+        static std::vector<int> signal_B_data = GenerateSampleData(7); // Data Ready
+        static std::vector<int> signal_C_data = GenerateSampleData(7); // Clock
 
         static std::vector<LabeledDigitalSignal> allSignals = {
             {"Chip Enable", signal_A_data},
