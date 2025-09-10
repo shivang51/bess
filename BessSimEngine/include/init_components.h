@@ -163,6 +163,19 @@ namespace Bess::SimEngine {
                                                             return false;
                                                         },
                                                         SimDelayNanoSeconds(0)});
+
+        ComponentCatalog::instance().registerComponent({ComponentType::STATE_MONITOR, "State Monitor", "IO", 1, 0,
+                                                        [&](entt::registry &registry, entt::entity e, const std::vector<PinState> &inputs, SimTime simTime, auto fn) -> bool {
+                                                            if (inputs.size() == 0)
+                                                                return false;
+                                                            auto &comp = registry.get<StateMonitorComponent>(e);
+                                                            comp.appendState(inputs[0].lastChangeTime, inputs[0].state);
+
+                                                            auto &digiComp = registry.get<DigitalComponent>(e);
+                                                            digiComp.inputStates = inputs;
+                                                            return false;
+                                                        },
+                                                        SimDelayNanoSeconds(0)});
     }
 
     /// expression evaluator simulation function
