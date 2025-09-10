@@ -161,6 +161,7 @@ namespace Bess::SimEngine {
 
             if (stateMonitorComp) {
                 stateMonitorComp->attacthTo(pin, type);
+                BESS_SE_INFO("Attached state monitor");
             }
         }
 
@@ -426,12 +427,17 @@ namespace Bess::SimEngine {
     }
 
     std::chrono::milliseconds SimulationEngine::getSimulationTimeMS() {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(m_currentSimTime);
+        return std::chrono::time_point_cast<std::chrono::milliseconds>(m_realWorldClock.now()).time_since_epoch();
+    }
+
+    std::chrono::seconds SimulationEngine::getSimulationTimeS() {
+        return std::chrono::time_point_cast<std::chrono::seconds>(m_realWorldClock.now()).time_since_epoch();
     }
 
     void SimulationEngine::run() {
         BESS_SE_INFO("[SimulationEngine] Simulation loop started");
         m_currentSimTime = SimTime(0);
+        m_realWorldClock = std::chrono::steady_clock();
         while (!m_stopFlag.load()) {
             std::unique_lock queueLock(m_queueMutex);
 
@@ -543,5 +549,16 @@ namespace Bess::SimEngine {
         auto &digiComp = m_registry.get<DigitalComponent>(ent);
         digiComp.updateInputCount(n);
         return true;
+    }
+
+    std::vector<std::pair<float, bool>> SimulationEngine::getStateMonitorData(UUID uuid) {
+        auto ent = getEntityWithUuid(uuid);
+        if (!m_registry.try_get<StateMonitorComponent>(ent)) {
+            BESS_SE_WARN("[SimulationEngine] getStateMonitorData was called on entity with no StateMonitorComponent: {}", (uint64_t)uuid);
+            return {};
+        }
+
+        auto &comp = m_registry.get<StateMonitorComponent>(ent);
+        return comp.timestepedBoolData;
     }
 } // namespace Bess::SimEngine

@@ -31,10 +31,10 @@ namespace Bess::UI {
 
     struct LabeledDigitalSignal {
         std::string name;
-        std::vector<int> values;
+        std::vector<std::pair<float, int>> values;
     };
 
-    void PlotDigitalSignals(const std::string &plotName, const std::vector<double> &timeStamps, const std::vector<LabeledDigitalSignal> &signals, float plotHeight = 150.0f) {
+    void PlotDigitalSignals(const std::string &plotName, const std::unordered_map<std::string, LabeledDigitalSignal> &signals, float plotHeight = 150.0f) {
         if (signals.size() <= 0) {
             return;
         }
@@ -42,20 +42,19 @@ namespace Bess::UI {
         static double x_min = NAN, x_max = NAN;
 
         if (std::isnan(x_min) || std::isnan(x_max)) {
-            x_min = timeStamps[0];
-            x_max = timeStamps[timeStamps.size() - 1];
+            x_min = 0.f;
+            x_max = 100.f;
         }
 
         ImGui::BeginChild(plotName.c_str(), ImVec2(0, 0), false, ImGuiWindowFlags_None);
 
         int numSignals = signals.size();
 
-        for (int i = 0; i < numSignals; ++i) {
+        int i = 0;
+        for (auto &[name, signal] : signals) {
             float height = plotHeight + (i == numSignals - 1 ? 20 : 0);
-            const LabeledDigitalSignal &signal = signals[i];
 
             if (ImPlot::BeginPlot(signal.name.c_str(), ImVec2(-1, height), ImPlotFlags_NoLegend | ImPlotFlags_NoTitle)) {
-
                 ImPlot::SetupAxis(ImAxis_Y1, signal.name.c_str(), ImPlotAxisFlags_NoTickLabels);
                 ImPlot::SetupAxisLimits(ImAxis_Y1, -0.2, 1.2, ImGuiCond_Always);
 
@@ -71,33 +70,31 @@ namespace Bess::UI {
                 std::vector<double> plotY;
                 int dataCount = signal.values.size();
 
-                plotX.push_back(timeStamps[0]);
-
                 const auto &data = signal.values;
-                plotY.push_back(signal.values[0]);
+
+                plotX.push_back(signal.values[0].first);
+                plotY.push_back(signal.values[0].second);
 
                 for (int i = 1; i < dataCount; ++i) {
-                    while (i < dataCount && data[i] == plotY.back()) {
-                        i++;
+                    if (data[i].second == plotY.back()) {
+                        if (i == dataCount - 1) {
+                            plotX.push_back(data[i].first);
+                            plotY.push_back(data[i].second);
+                        }
                         continue;
                     }
 
-                    if (i == dataCount)
-                        break;
-
-                    plotX.push_back(timeStamps[i]);
-                    plotY.push_back(signal.values[i - 1]);
-
-                    if (signal.values[i] != signal.values[i - 1]) {
-                        plotX.push_back(timeStamps[i]);
-                        plotY.push_back(signal.values[i]);
-                    }
+                    plotX.push_back(data[i].first);
+                    plotY.push_back(data[i - 1].second);
+                    plotX.push_back(data[i].first);
+                    plotY.push_back(data[i].second);
                 }
 
-                ImPlot::PlotLine(signals[i].name.c_str(), plotX.data(), plotY.data(), plotX.size());
+                ImPlot::PlotLine(name.c_str(), plotX.data(), plotY.data(), plotX.size());
 
                 ImPlot::EndPlot();
             }
+            i++;
         }
 
         ImGui::EndChild();
@@ -111,32 +108,41 @@ namespace Bess::UI {
         return data;
     }
 
+    std::unordered_map<std::string, LabeledDigitalSignal> allSignals;
+
+    LabeledDigitalSignal fetchSignal(const std::string &name, const Canvas::Components::SimulationComponent &comp) {
+        const auto &data = SimEngine::SimulationEngine::instance().getStateMonitorData(comp.simEngineEntity);
+
+        std::vector<std::pair<float, int>> parsedData;
+        for (const auto &d : data) {
+            parsedData.emplace_back(std::pair(d.first, (int)d.second));
+        }
+        return {name, parsedData};
+    }
+
     void drawGraphWindow() {
         auto &reg = Canvas::Scene::instance().getEnttRegistry();
-        auto view = reg.view<Bess::Canvas::Components::TagComponent, Bess::Canvas::Components::SimulationComponent>();
+        auto view = reg.view<Bess::Canvas::Components::TagComponent,
+                             Bess::Canvas::Components::SimulationStateMonitor,
+                             Bess::Canvas::Components::SimulationComponent>();
         ImGui::Begin("Graph");
 
         std::vector<std::string> comps = {};
+        std::unordered_map<std::string, entt::entity> entities = {};
         for (auto &ent : view) {
             const auto &tagComponent = view.get<Bess::Canvas::Components::TagComponent>(ent);
             comps.emplace_back(tagComponent.name);
+            entities[tagComponent.name] = ent;
         }
 
         static std::string selected = "";
         MWidgets::ComboBox("Select a node", selected, comps);
 
-        static std::vector<double> times = {0.0, 0.5, 0.6, 1.2, 1.8, 2.0, 2.1, 2.8, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.1, 7.2, 7.5};
+        if (selected != "") {
+            allSignals[selected] = fetchSignal(selected, view.get<Canvas::Components::SimulationComponent>(entities[selected]));
+        }
 
-        static std::vector<int> signal_A_data = GenerateSampleData(7); // Chip Enable
-        static std::vector<int> signal_B_data = GenerateSampleData(7); // Data Ready
-        static std::vector<int> signal_C_data = GenerateSampleData(7); // Clock
-
-        static std::vector<LabeledDigitalSignal> allSignals = {
-            {"Chip Enable", signal_A_data},
-            {"Data Ready", signal_B_data},
-            {"Clock", signal_C_data}};
-
-        PlotDigitalSignals("Signals", times, allSignals);
+        PlotDigitalSignals("Signals", allSignals);
 
         ImGui::End();
     }
@@ -154,7 +160,7 @@ namespace Bess::UI {
         ProjectExplorer::draw();
         PropertiesPanel::draw();
 
-        // drawGraphWindow();
+        drawGraphWindow();
 
         drawStatusbar();
         drawExternalWindows();

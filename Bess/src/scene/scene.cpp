@@ -255,6 +255,8 @@ namespace Bess::Canvas {
             m_registry.emplace<Components::SimulationInputComponent>(entity);
         } else if (comp.type == SimEngine::ComponentType::OUTPUT) {
             m_registry.emplace<Components::SimulationOutputComponent>(entity);
+        } else if (comp.type == SimEngine::ComponentType::STATE_MONITOR) {
+            m_registry.emplace<Components::SimulationStateMonitor>(entity);
         }
 
         tag.name = comp.name;
@@ -288,6 +290,7 @@ namespace Bess::Canvas {
         for (int i = 0; i < state.outputStates.size(); i++) {
             simComp.outputSlots.emplace_back(createSlotEntity(Components::SlotType::digitalOutput, idComp.uuid, i));
         }
+
         BESS_INFO("[Scene] Created entity {}", (uint64_t)entity);
         return idComp.uuid;
     }

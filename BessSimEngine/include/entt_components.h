@@ -5,6 +5,7 @@
 #include "component_types.h"
 #include "types.h"
 #include <entt/entt.hpp>
+#include <iostream>
 #include <vector>
 
 namespace Bess::SimEngine {
@@ -61,11 +62,9 @@ namespace Bess::SimEngine {
                 throw std::runtime_error("Invalid clock frequency");
             }
 
-            double periodNs = 1e9 / f;
-
-            double phaseNs = high ? periodNs * dutyCycle : periodNs * (1.0 - dutyCycle);
-
-            return std::chrono::nanoseconds(static_cast<long long>(phaseNs));
+            double period = 1 / f;
+            double phase = high ? period * dutyCycle : period * (1.0 - dutyCycle);
+            return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(phase));
         }
 
         float dutyCycle = 0.5f;
@@ -114,18 +113,28 @@ namespace Bess::SimEngine {
 
         void clear() {
             values.clear();
-            timesteps.clear();
+            timestepedBoolData.clear();
         }
 
         void appendState(SimTime time, const LogicState &state) {
-            values.emplace_back(std::pair(time.count(), state));
+            values.emplace_back(time.count(), state);
+
             bool isHigh = state == LogicState::high;
-            if (timesteps.size() == 0) {
-                timesteps = {std::pair(0.f, isHigh)};
+            auto clockTime = clock.now();
+            if (timestepedBoolData.empty()) {
+                timestepedBoolData.emplace_back(0.f, isHigh);
+                lastUpdateTime = clockTime;
                 return;
             }
-            timesteps.emplace_back(std::pair(std::chrono::duration_cast<std::chrono::seconds>(time).count(), isHigh));
+
+            float diff = std::chrono::duration<float>(clockTime - lastUpdateTime).count();
+            std::cout << diff << std::endl;
+            float value = timestepedBoolData.back().first + diff;
+            timestepedBoolData.emplace_back(value, isHigh);
+            lastUpdateTime = clockTime;
         }
+
+        static constexpr std::chrono::steady_clock clock{};
 
         void attacthTo(ComponentPin pin, PinType type) {
             clear();
@@ -142,6 +151,8 @@ namespace Bess::SimEngine {
 
         /// Vector of <timestep, bool>, timesteps are in seconds here
         /// Note(Shivang): I have no idea if this is right thing to do, to track data along a consistent time
-        std::vector<std::pair<float, bool>> timesteps;
+        std::vector<std::pair<float, bool>> timestepedBoolData;
+
+        std::chrono::steady_clock::time_point lastUpdateTime{};
     };
 } // namespace Bess::SimEngine

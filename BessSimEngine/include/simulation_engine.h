@@ -39,6 +39,7 @@ namespace Bess::SimEngine {
         bool updateClock(const UUID &uuid, bool enable, float frequency, FrequencyUnit unit);
 
         std::chrono::milliseconds getSimulationTimeMS();
+        std::chrono::seconds getSimulationTimeS();
 
         SimulationState toggleSimState();
         SimulationState getSimulationState();
@@ -54,6 +55,8 @@ namespace Bess::SimEngine {
 
         bool updateInputCount(const UUID &uuid, int n);
 
+        std::vector<std::pair<float, bool>> getStateMonitorData(UUID uuid);
+
         friend class SimEngineSerializer;
 
       private:
@@ -67,6 +70,8 @@ namespace Bess::SimEngine {
         entt::entity getEntityWithUuid(const UUID &uuid) const;
 
         std::thread m_simThread;
+
+        std::chrono::steady_clock m_realWorldClock;
 
         mutable std::mutex m_queueMutex;
         mutable std::mutex m_stateMutex;
