@@ -124,7 +124,7 @@ namespace Bess::SimEngine {
                 timesteps = {std::pair(0.f, isHigh)};
                 return;
             }
-            timesteps.emplace_back(std::pair(timesteps.back().first + 0.5f, isHigh));
+            timesteps.emplace_back(std::pair(std::chrono::duration_cast<std::chrono::seconds>(time).count(), isHigh));
         }
 
         void attacthTo(ComponentPin pin, PinType type) {
@@ -140,8 +140,8 @@ namespace Bess::SimEngine {
         /// vector of  pair<<time in nanoseconds, LogicState>>
         std::vector<std::pair<float, LogicState>> values = {};
 
-        /// Vector of <timestep, bool>, timesteps starts form 0 with step diff of 0.5 :-)
-        /// Note(Shivang): I have no idea if this is right thing to do, its basically copy of data
+        /// Vector of <timestep, bool>, timesteps are in seconds here
+        /// Note(Shivang): I have no idea if this is right thing to do, to track data along a consistent time
         std::vector<std::pair<float, bool>> timesteps;
     };
 } // namespace Bess::SimEngine
