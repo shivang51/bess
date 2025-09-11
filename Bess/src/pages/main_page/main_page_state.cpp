@@ -56,12 +56,4 @@ namespace Bess::Pages {
     void MainPageState::setKeyPressed(int key, bool pressed) {
         m_pressedKeys[key] = pressed;
     }
-
-    void MainPageState::setSimulationPaused(bool paused) {
-        m_simulationPaused = paused;
-    }
-
-    bool MainPageState::isSimulationPaused() {
-        return m_simulationPaused;
-    }
 } // namespace Bess::Pages

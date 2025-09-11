@@ -12,9 +12,9 @@
 
 namespace Bess::UI {
 
+    bool ComponentExplorer::isShown = true;
     bool ComponentExplorer::m_isfirstTimeDraw = true;
     std::string ComponentExplorer::m_searchQuery = "";
-    std::string ComponentExplorer::windowName = (std::string(Icons::FontAwesomeIcons::FA_TOOLBOX) + "  Component Explorer");
 
     bool MyTreeNode(const char *label, ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None) {
         ImGuiContext &g = *ImGui::GetCurrentContext();
@@ -106,7 +106,6 @@ namespace Bess::UI {
         scene.createNonSimEntity(comp, scene.getCameraPos());
     }
 
-
     ComponentExplorer::ModifiablePropertiesStr ComponentExplorer::generateModifiablePropertiesStr() {
         auto &components = SimEngine::ComponentCatalog::instance().getComponents();
 
@@ -145,10 +144,13 @@ namespace Bess::UI {
     }
 
     void ComponentExplorer::draw() {
+        if (!isShown)
+            return;
+
         if (m_isfirstTimeDraw)
             firstTime();
 
-        ImGui::Begin(windowName.c_str());
+        ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4);
 
         {
@@ -198,13 +200,12 @@ namespace Bess::UI {
                     ImGui::TreePop();
                 }
             }
-
         }
 
         // non simulation components
-        if(MyTreeNode("Miscellaneous", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (MyTreeNode("Miscellaneous", ImGuiTreeNodeFlags_DefaultOpen)) {
             static auto nonSimComponents = Canvas::Components::getNSComponents();
-            for(auto& comp: nonSimComponents) {
+            for (auto &comp : nonSimComponents) {
                 if (m_searchQuery != "" && Common::Helpers::toLowerCase(comp.name).find(m_searchQuery) == std::string::npos)
                     continue;
 
