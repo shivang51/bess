@@ -2,7 +2,6 @@
 
 #include "implot.h"
 #include "scene/scene.h"
-
 #include "ui/m_widgets.h"
 
 namespace Bess::UI {
@@ -31,6 +30,11 @@ namespace Bess::UI {
 
         ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
+        if (ImGui::Button("Add Graph")) {
+            s_data.graphs[s_data.offset] = "";
+            s_data.offset++;
+        }
+
         std::vector<std::string> comps = {};
         std::unordered_map<std::string, entt::entity> entities = {};
         for (auto &ent : view) {
@@ -39,15 +43,30 @@ namespace Bess::UI {
             entities[tagComponent.name] = ent;
         }
 
-        static std::string selected = "";
-        MWidgets::ComboBox("Select a node", selected, comps);
+        int eraseIdx = -1;
+        for (auto &[idx, name] : s_data.graphs) {
+            std::string prevName = name;
+            if (MWidgets::ComboBox(std::format("Select node for graph {}", idx), name, comps)) {
+                s_data.allSignals.erase(prevName);
+            }
 
-        if (selected != "") {
-            s_data.allSignals[selected] = fetchSignal(selected, view.get<Canvas::Components::SimulationComponent>(entities[selected]));
+            if (name != "") {
+                s_data.allSignals[name] = fetchSignal(name, view.get<Canvas::Components::SimulationComponent>(entities[name]));
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::SmallButton(Icons::CodIcons::TRASH)) {
+                eraseIdx = idx;
+            }
+        }
+
+        if (eraseIdx != -1) {
+            s_data.allSignals.erase(s_data.graphs[eraseIdx]);
+            s_data.graphs.erase(eraseIdx);
         }
 
         plotDigitalSignals("Signals", s_data.allSignals);
-
         ImGui::End();
     }
 

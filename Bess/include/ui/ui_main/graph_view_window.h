@@ -10,6 +10,8 @@ namespace Bess::UI {
     };
 
     struct GraphViewWindowData {
+        int offset = 0;
+        std::unordered_map<int, std::string> graphs = {};
         std::unordered_map<std::string, LabeledDigitalSignal> allSignals = {};
     };
 
