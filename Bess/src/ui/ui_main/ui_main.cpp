@@ -3,7 +3,6 @@
 #include "common/log.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "implot.h"
 #include "simulation_engine.h"
 #include "stb_image_write.h"
 #include "ui/icons/MaterialIcons.h"
@@ -30,100 +29,6 @@
 namespace Bess::UI {
     UIState UIMain::state{};
     std::shared_ptr<Pages::MainPageState> UIMain::m_pageState;
-
-    struct LabeledDigitalSignal {
-        std::string name;
-        std::vector<std::pair<float, int>> values;
-    };
-
-    void PlotDigitalSignals(const std::string &plotName, const std::unordered_map<std::string, LabeledDigitalSignal> &signals, float plotHeight = 150.0f) {
-        if (signals.size() <= 0) {
-            return;
-        }
-
-        static double x_min = NAN, x_max = NAN;
-
-        if (std::isnan(x_min) || std::isnan(x_max)) {
-            x_min = 0.f;
-            x_max = 100.f;
-        }
-
-        ImGui::BeginChild(plotName.c_str(), ImVec2(0, 0), false, ImGuiWindowFlags_None);
-
-        int numSignals = signals.size();
-
-        int i = 0;
-        for (auto &[name, signal] : signals) {
-            float height = plotHeight + (i == numSignals - 1 ? 20 : 0);
-
-            if (ImPlot::BeginPlot(signal.name.c_str(), ImVec2(-1, height), ImPlotFlags_NoLegend | ImPlotFlags_NoTitle)) {
-                ImPlot::SetupAxis(ImAxis_Y1, signal.name.c_str(), ImPlotAxisFlags_NoTickLabels);
-                ImPlot::SetupAxisLimits(ImAxis_Y1, -0.2, 1.2, ImGuiCond_Always);
-
-                ImPlot::SetupAxisLinks(ImAxis_X1, &x_min, &x_max);
-
-                if (i < numSignals - 1) {
-                    ImPlot::SetupAxis(ImAxis_X1, nullptr, ImPlotAxisFlags_NoTickLabels);
-                } else {
-                    ImPlot::SetupAxis(ImAxis_X1, "Time");
-                }
-
-                std::vector<double> plotX;
-                std::vector<double> plotY;
-                int dataCount = signal.values.size();
-
-                const auto &data = signal.values;
-
-                plotX.push_back(signal.values[0].first);
-                plotY.push_back(signal.values[0].second);
-
-                for (int i = 1; i < dataCount; ++i) {
-                    if (data[i].second == plotY.back()) {
-                        if (i == dataCount - 1) {
-                            plotX.push_back(data[i].first);
-                            plotY.push_back(data[i].second);
-                        }
-                        continue;
-                    }
-
-                    plotX.push_back(data[i].first);
-                    plotY.push_back(data[i - 1].second);
-                    plotX.push_back(data[i].first);
-                    plotY.push_back(data[i].second);
-                }
-
-                ImPlot::PlotLine(name.c_str(), plotX.data(), plotY.data(), plotX.size());
-
-                ImPlot::EndPlot();
-            }
-            i++;
-        }
-
-        ImGui::EndChild();
-    }
-
-    static std::vector<int> GenerateSampleData(int count) {
-        std::vector<int> data(count);
-        for (int i = 0; i < count; ++i) {
-            data[i] = rand() % 2;
-        }
-        return data;
-    }
-
-    std::unordered_map<std::string, LabeledDigitalSignal> allSignals;
-
-    LabeledDigitalSignal fetchSignal(const std::string &name, const Canvas::Components::SimulationComponent &comp) {
-        const auto &data = SimEngine::SimulationEngine::instance().getStateMonitorData(comp.simEngineEntity);
-
-        std::vector<std::pair<float, int>> parsedData;
-        for (const auto &d : data) {
-            parsedData.emplace_back(std::pair(d.first, (int)d.second));
-        }
-        return {name, parsedData};
-    }
-
-    void drawGraphWindow() {
-    }
 
     void UIMain::draw() {
         static bool firstTime = true;
@@ -274,7 +179,7 @@ namespace Bess::UI {
 
             MWidgets::CheckboxWithLabel(PropertiesPanel::windowName.data(), &PropertiesPanel::isShown);
 
-            MWidgets::CheckboxWithLabel(GraphViewWindow::windowName.data(), &GraphViewWindow::getDataRef().isWindowShown);
+            MWidgets::CheckboxWithLabel(GraphViewWindow::windowName.data(), &GraphViewWindow::isShown);
 
             ImGui::EndMenu();
         }

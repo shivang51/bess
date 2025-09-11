@@ -1,5 +1,6 @@
 #include "ui/ui_main/graph_view_window.h"
 
+#include "implot.h"
 #include "scene/scene.h"
 
 #include "ui/m_widgets.h"
@@ -7,17 +8,20 @@
 namespace Bess::UI {
 
     GraphViewWindowData GraphViewWindow::s_data{};
+    bool GraphViewWindow::isShown = false;
 
-    void GraphViewWindow::hide() {
-        s_data.isWindowShown = false;
-    }
+    LabeledDigitalSignal fetchSignal(const std::string &name, const Canvas::Components::SimulationComponent &comp) {
+        const auto &data = SimEngine::SimulationEngine::instance().getStateMonitorData(comp.simEngineEntity);
 
-    void GraphViewWindow::show() {
-        s_data.isWindowShown = true;
+        std::vector<std::pair<float, int>> parsedData;
+        for (const auto &d : data) {
+            parsedData.emplace_back(std::pair(d.first, (int)d.second));
+        }
+        return {name, parsedData};
     }
 
     void GraphViewWindow::draw() {
-        if (!s_data.isWindowShown)
+        if (!isShown)
             return;
 
         auto &reg = Canvas::Scene::instance().getEnttRegistry();
@@ -38,16 +42,82 @@ namespace Bess::UI {
         static std::string selected = "";
         MWidgets::ComboBox("Select a node", selected, comps);
 
-        // if (selected != "") {
-        //     allSignals[selected] = fetchSignal(selected, view.get<Canvas::Components::SimulationComponent>(entities[selected]));
-        // }
-        //
-        // PlotDigitalSignals("Signals", allSignals);
+        if (selected != "") {
+            s_data.allSignals[selected] = fetchSignal(selected, view.get<Canvas::Components::SimulationComponent>(entities[selected]));
+        }
+
+        plotDigitalSignals("Signals", s_data.allSignals);
 
         ImGui::End();
     }
 
     GraphViewWindowData &GraphViewWindow::getDataRef() {
         return s_data;
+    }
+
+    void GraphViewWindow::plotDigitalSignals(const std::string &plotName, const std::unordered_map<std::string, LabeledDigitalSignal> &signals, float plotHeight) {
+        if (signals.size() <= 0) {
+            return;
+        }
+
+        static double x_min = NAN, x_max = NAN;
+
+        if (std::isnan(x_min) || std::isnan(x_max)) {
+            x_min = 0.f;
+            x_max = 100.f;
+        }
+
+        ImGui::BeginChild(plotName.c_str(), ImVec2(0, 0), false, ImGuiWindowFlags_None);
+
+        int numSignals = signals.size();
+
+        int i = 0;
+        for (auto &[name, signal] : signals) {
+            float height = plotHeight + (i == numSignals - 1 ? 20 : 0);
+
+            if (ImPlot::BeginPlot(signal.name.c_str(), ImVec2(-1, height), ImPlotFlags_NoLegend | ImPlotFlags_NoTitle)) {
+                ImPlot::SetupAxis(ImAxis_Y1, signal.name.c_str(), ImPlotAxisFlags_NoTickLabels);
+                ImPlot::SetupAxisLimits(ImAxis_Y1, -0.2, 1.2, ImGuiCond_Always);
+
+                ImPlot::SetupAxisLinks(ImAxis_X1, &x_min, &x_max);
+
+                if (i < numSignals - 1) {
+                    ImPlot::SetupAxis(ImAxis_X1, nullptr, ImPlotAxisFlags_NoTickLabels);
+                } else {
+                    ImPlot::SetupAxis(ImAxis_X1, "Time");
+                }
+
+                std::vector<double> plotX;
+                std::vector<double> plotY;
+                int dataCount = signal.values.size();
+
+                const auto &data = signal.values;
+
+                plotX.push_back(signal.values[0].first);
+                plotY.push_back(signal.values[0].second);
+
+                for (int i = 1; i < dataCount; ++i) {
+                    if (data[i].second == plotY.back()) {
+                        if (i == dataCount - 1) {
+                            plotX.push_back(data[i].first);
+                            plotY.push_back(data[i].second);
+                        }
+                        continue;
+                    }
+
+                    plotX.push_back(data[i].first);
+                    plotY.push_back(data[i - 1].second);
+                    plotX.push_back(data[i].first);
+                    plotY.push_back(data[i].second);
+                }
+
+                ImPlot::PlotLine(name.c_str(), plotX.data(), plotY.data(), plotX.size());
+
+                ImPlot::EndPlot();
+            }
+            i++;
+        }
+
+        ImGui::EndChild();
     }
 } // namespace Bess::UI

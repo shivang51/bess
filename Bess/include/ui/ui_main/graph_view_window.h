@@ -4,9 +4,13 @@
 #include "ui/icons/CodIcons.h"
 
 namespace Bess::UI {
+    struct LabeledDigitalSignal {
+        std::string name;
+        std::vector<std::pair<float, int>> values;
+    };
 
     struct GraphViewWindowData {
-        bool isWindowShown;
+        std::unordered_map<std::string, LabeledDigitalSignal> allSignals = {};
     };
 
     class GraphViewWindow {
@@ -15,14 +19,14 @@ namespace Bess::UI {
         static void show();
         static void draw();
 
-        static bool isShown();
+        static bool isShown;
 
         static constexpr auto windowName = Common::Helpers::concat(Icons::CodIcons::GRAPH_LINE, "  Graph View");
 
         static GraphViewWindowData &getDataRef();
 
       private:
-        static void plotDigitalSignals();
+        static void plotDigitalSignals(const std::string &plotName, const std::unordered_map<std::string, LabeledDigitalSignal> &signals, float plotHeight = 150.0f);
 
       private:
         static GraphViewWindowData s_data;
