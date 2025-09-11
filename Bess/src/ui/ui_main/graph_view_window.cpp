@@ -75,7 +75,7 @@ namespace Bess::UI {
     }
 
     void GraphViewWindow::plotDigitalSignals(const std::string &plotName, const std::unordered_map<std::string, LabeledDigitalSignal> &signals, float plotHeight) {
-        if (signals.size() <= 0) {
+        if (signals.empty()) {
             return;
         }
 
@@ -111,9 +111,10 @@ namespace Bess::UI {
                 int dataCount = signal.values.size();
 
                 const auto &data = signal.values;
-
-                plotX.push_back(signal.values[0].first);
-                plotY.push_back(signal.values[0].second);
+                if (dataCount > 0) {
+                    plotX.push_back(signal.values[0].first);
+                    plotY.push_back(signal.values[0].second);
+                }
 
                 for (int i = 1; i < dataCount; ++i) {
                     if (data[i].second == plotY.back()) {
