@@ -10,7 +10,7 @@
 
 void signalHandler(int sig) {
     std::cerr << "Error: signal " << sig << std::endl;
-    std::stacktrace st = std::stacktrace::current(10);
+    std::stacktrace st = std::stacktrace::current();
     std::cout << st << std::endl;
     exit(1);
 }
