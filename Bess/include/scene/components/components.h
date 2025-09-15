@@ -161,6 +161,14 @@ namespace Bess::Canvas::Components {
         float frequency = 1.f;
         SimEngine::FrequencyUnit frequencyUnit = SimEngine::FrequencyUnit::hz;
     };
+
+    class SimulationStateMonitor {
+      public:
+        SimulationStateMonitor() = default;
+        SimulationStateMonitor(const SimulationStateMonitor &other) = default;
+
+        bool monitor = false;
+    };
 } // namespace Bess::Canvas::Components
 
 namespace Bess::JsonConvert {

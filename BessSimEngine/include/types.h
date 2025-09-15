@@ -11,7 +11,9 @@ namespace Bess::SimEngine {
     typedef std::chrono::seconds SimDelaySeconds;
     typedef std::chrono::nanoseconds SimDelayNanoSeconds;
 
-    typedef std::vector<std::vector<std::pair<UUID, int>>> Connections;
+    typedef std::pair<UUID, int> ComponentPin;
+
+    typedef std::vector<std::vector<ComponentPin>> Connections;
 
     struct BESS_API ConnectionBundle {
         Connections inputs;

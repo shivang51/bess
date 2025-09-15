@@ -6,6 +6,7 @@ source_group("external/jsoncpp" FILES ${EXT_JSON_SRC})
 file(GLOB EXT_IMGUI_SRC
     "../external/imgui/backends/*.cpp"
     "../external/imgui/*.cpp"
+    "../external/implot/*.cpp"
 )
 source_group("external/imgui" FILES ${EXT_IMGUI_SRC})
 
@@ -48,6 +49,7 @@ set(Header_Files
 "include/ui/ui.h"
 "include/ui/ui_main/properties_panel.h"
 "include/ui/ui_main/project_settings_window.h"
+"include/ui/ui_main/graph_view_window.h"
 "include/ui/ui_main/scene_export_window.h"
 "include/ui/ui_main/settings_window.h"
 "include/ui/ui_main/component_explorer.h"
@@ -107,6 +109,7 @@ set(Source_Files
 "src/ui/ui_main/dialogs.cpp"
 "src/ui/ui_main/ui_main.cpp"
 "src/ui/ui_main/project_settings_window.cpp"
+"src/ui/ui_main/graph_view_window.cpp"
 "src/ui/ui_main/scene_export_window.cpp"
 "src/ui/ui_main/settings_window.cpp"
 "src/ui/ui_main/popups.cpp"
@@ -189,6 +192,7 @@ if("${BUILD_ARCH}" STREQUAL "x64")
 			"${CMAKE_CURRENT_SOURCE_DIR}/include"
 			"${CMAKE_SOURCE_DIR}/BessSimEngine/include"
 			"${CMAKE_SOURCE_DIR}/external/imgui"
+			"${CMAKE_SOURCE_DIR}/external/implot"
 			"${CMAKE_SOURCE_DIR}/external/freetype/include"
 			"${CMAKE_SOURCE_DIR}/external/imgui/backends"
 			"${CMAKE_SOURCE_DIR}/external/glm"

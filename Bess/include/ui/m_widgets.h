@@ -29,5 +29,18 @@ namespace Bess::UI {
             }
             return valueChanged;
         }
+
+        static bool CheckboxWithLabel(const char *label, bool *value) {
+            ImGui::Text("%s", label);
+            auto style = ImGui::GetStyle();
+            float availWidth = ImGui::GetContentRegionAvail().x;
+            ImGui::SameLine();
+            float checkboxWidth = ImGui::CalcTextSize("X").x + style.FramePadding.x;
+            ImGui::SetCursorPosX(availWidth - checkboxWidth);
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+            bool changed = ImGui::Checkbox(("##" + std::string(label)).c_str(), value);
+            ImGui::PopStyleVar();
+            return changed;
+        }
     };
 } // namespace Bess::UI
