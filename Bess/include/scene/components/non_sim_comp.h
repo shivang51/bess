@@ -50,11 +50,6 @@ namespace Bess::JsonConvert {
         toJsonValue(comp.color, j["color"]);
     }
 
-    /**
-     * @brief Converts a Json::Value object back to a TextNodeComponent.
-     * @param j The source Json::Value.
-     * @param comp The destination TextNodeComponent to be populated.
-     */
     inline void fromJsonValue(const Json::Value &j, TextNodeComponent &comp) {
         if (!j.isObject()) {
             return;
@@ -66,6 +61,23 @@ namespace Bess::JsonConvert {
         if (j.isMember("color")) {
             fromJsonValue(j["color"], comp.color);
         }
+    }
+
+    // ---- NSComponent ----
+    inline void toJsonValue(const NSComponent &comp, Json::Value &j) {
+        j = Json::Value(Json::objectValue);
+
+        j["type"] = static_cast<int>(comp.type);
+        j["name"] = comp.name;
+    }
+
+    inline void fromJsonValue(const Json::Value &j, NSComponent &comp) {
+        if (!j.isObject()) {
+            return;
+        }
+
+        comp.type = static_cast<NSComponentType>(j.get("type", -1).asInt());
+        comp.name = j.get("name", "").asString();
     }
 
 }

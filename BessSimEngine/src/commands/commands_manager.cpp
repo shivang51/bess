@@ -6,15 +6,17 @@ namespace Bess::SimEngine::Commands {
         m_redoStack = {};
     }
 
-    void CommandsManager::undo() {
+    std::any CommandsManager::undo() {
         if (m_undoStack.empty())
-            return;
+            return 0;
 
         auto cmd = std::move(m_undoStack.top());
         m_undoStack.pop();
 
-        cmd->undo();
+        auto val = cmd->undo();
         m_redoStack.push(std::move(cmd));
+
+        return val;
     }
 
     void CommandsManager::redo() {

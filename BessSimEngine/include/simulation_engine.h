@@ -1,10 +1,10 @@
 #pragma once
 #include "bess_api.h"
 #include "bess_uuid.h"
+#include "commands/commands_manager.h"
 #include "component_types/component_types.h"
 #include "entt/entity/fwd.hpp"
 #include "types.h"
-#include "commands/commands_manager.h"
 #include <chrono>
 #include <condition_variable>
 #include <entt/entt.hpp>
@@ -23,7 +23,7 @@ namespace Bess::SimEngine {
         const UUID &addComponent(ComponentType type, int inputCount = -1, int outputCount = -1);
 
         bool connectComponent(const UUID &src, int srcPin, PinType srcType,
-                              const UUID &dst, int dstPin, PinType dstType);
+                              const UUID &dst, int dstPin, PinType dstType, bool overrideConn = false);
 
         void deleteComponent(const UUID &uuid);
 
@@ -53,6 +53,12 @@ namespace Bess::SimEngine {
         void clear();
 
         Commands::CommandsManager &getCmdManager();
+
+        template <typename EnttComponentType>
+        EnttComponentType &getEnttComp(const UUID &uuid) {
+            auto ent = getEntityWithUuid(uuid);
+            return m_registry.get<EnttComponentType>(ent);
+        }
 
         friend class SimEngineSerializer;
 

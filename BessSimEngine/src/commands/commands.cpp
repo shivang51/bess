@@ -1,5 +1,6 @@
 #include "commands/commands.h"
 #include "simulation_engine.h"
+#include "simulation_engine_serializer.h"
 
 namespace Bess::SimEngine::Commands {
     AddCommand::AddCommand(ComponentType type, int inputCount, int outputCount) : m_compType(type), m_inputCount(inputCount), m_outputCount(outputCount) {
@@ -10,9 +11,9 @@ namespace Bess::SimEngine::Commands {
         return m_compId != UUID::null;
     }
 
-    void AddCommand::undo() {
+    std::any AddCommand::undo() {
         if (m_compId == UUID::null)
-            return;
+            return UUID::null;
 
         SimulationEngine::instance().deleteComponent(m_compId);
     }
@@ -34,7 +35,7 @@ namespace Bess::SimEngine::Commands {
         return SimulationEngine::instance().connectComponent(m_src, m_srcPin, m_srcType, m_dst, m_dstPin, m_dstType);
     }
 
-    void ConnectCommand::undo() {
+    std::any ConnectCommand::undo() {
         SimulationEngine::instance().deleteConnection(m_src, m_srcType, m_srcPin, m_dst, m_dstType, m_dstPin);
     }
 
@@ -49,28 +50,45 @@ namespace Bess::SimEngine::Commands {
             return false;
 
         auto &engine = SimulationEngine::instance();
-        m_compType = engine.getComponentType(m_compId);
+
+        SimEngineSerializer ser;
+        ser.serializeEntity(m_compId, m_compJson);
+
         m_connections = engine.getConnections(m_compId);
 
         engine.deleteComponent(m_compId);
         return true;
     }
 
-    void DeleteCompCommand::undo() {
+    std::any DeleteCompCommand::undo() {
         if (m_compId == UUID::null)
-            return;
+            return UUID::null;
+
+        SimEngineSerializer ser;
+        ser.deserializeEntity(m_compJson);
 
         auto &engine = SimulationEngine::instance();
-        m_compId = engine.addComponent(m_compType);
 
-        // TODO (Shivang): Add connections as well and restore them
+        for (int i = 0; i < m_connections.inputs.size(); i++) {
+            for (auto& conn: m_connections.inputs[i]) {
+                engine.connectComponent(m_compId, i, PinType::input, conn.first, conn.second, PinType::output, true);
+            }
+        }
+
+        for (int i = 0; i < m_connections.outputs.size(); i++) {
+            for (auto& conn: m_connections.outputs[i]) {
+                engine.connectComponent(m_compId, i, PinType::output, conn.first, conn.second, PinType::input, true);
+            }
+        }
+
+        return m_compId;
     }
 
     std::any DeleteCompCommand::getResult() {
         return std::string("deletion successful");
     }
 
-    // --- Delelete Connection Command ---
+    // --- Delete Connection Command ---
     DelConnectionCommand::DelConnectionCommand(const UUID &src, int srcPin, PinType srcType, const UUID &dst, int dstPin, PinType dstType)
         : m_src(src), m_srcPin(srcPin), m_srcType(srcType), m_dst(dst), m_dstPin(dstPin), m_dstType(dstType) {}
 
@@ -79,7 +97,7 @@ namespace Bess::SimEngine::Commands {
         return true;
     }
 
-    void DelConnectionCommand::undo() {
+    std::any DelConnectionCommand::undo() {
         SimulationEngine::instance().connectComponent(m_src, m_srcPin, m_srcType, m_dst, m_dstPin, m_dstType);
     }
 
@@ -103,7 +121,7 @@ namespace Bess::SimEngine::Commands {
         return true;
     }
 
-    void SetInputCommand::undo() {
+    std::any SetInputCommand::undo() {
         SimulationEngine::instance().setDigitalInput(m_compId, m_oldState);
     }
 

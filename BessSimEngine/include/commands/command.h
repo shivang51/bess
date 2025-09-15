@@ -11,7 +11,7 @@ namespace Bess::SimEngine::Commands {
         /// Return false if failed
         virtual bool execute() = 0;
 
-        virtual void undo() = 0;
+        virtual std::any undo() = 0;
 
         virtual std::any getResult() = 0;
 
@@ -21,7 +21,7 @@ namespace Bess::SimEngine::Commands {
         }
     };
 
-#define RESULT_OVERRIDE            \
+#define COMMAND_RESULT_OVERRIDE    \
     std::any getResult() override; \
     using Command::getResult;
 } // namespace Bess::SimEngine::Commands

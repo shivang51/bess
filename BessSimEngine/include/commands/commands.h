@@ -4,15 +4,19 @@
 #include "bess_uuid.h"
 #include "command.h"
 #include "component_types/component_types.h"
+#include "entt_components.h"
 #include "types.h"
+
+#include "json/config.h"
+#include "json/value.h"
 
 namespace Bess::SimEngine::Commands {
     class BESS_API AddCommand : public Command {
       public:
         AddCommand(ComponentType type, int inputCount, int outputCount);
         bool execute() override;
-        void undo() override;
-        RESULT_OVERRIDE;
+        std::any undo() override;
+        COMMAND_RESULT_OVERRIDE;
 
       private:
         ComponentType m_compType;
@@ -26,8 +30,8 @@ namespace Bess::SimEngine::Commands {
         ConnectCommand(const UUID &src, int srcPin, PinType srcType,
                        const UUID &dst, int dstPin, PinType dstType);
         bool execute() override;
-        void undo() override;
-        RESULT_OVERRIDE;
+        std::any undo() override;
+        COMMAND_RESULT_OVERRIDE;
 
       private:
         UUID m_src;
@@ -42,13 +46,13 @@ namespace Bess::SimEngine::Commands {
       public:
         DeleteCompCommand(const UUID &compId);
         bool execute() override;
-        void undo() override;
-        RESULT_OVERRIDE;
+        std::any undo() override;
+        COMMAND_RESULT_OVERRIDE;
 
       private:
         UUID m_compId;
-        ComponentType m_compType = ComponentType::EMPTY;
-        ConnectionBundle m_connections{};
+        Json::Value m_compJson;
+        ConnectionBundle m_connections;
     };
 
     class BESS_API DelConnectionCommand : public Command {
@@ -56,8 +60,8 @@ namespace Bess::SimEngine::Commands {
         DelConnectionCommand(const UUID &src, int srcPin, PinType srcType,
                              const UUID &dst, int dstPin, PinType dstType);
         bool execute() override;
-        void undo() override;
-        RESULT_OVERRIDE;
+        std::any undo() override;
+        COMMAND_RESULT_OVERRIDE;
 
       private:
         UUID m_src;
@@ -72,8 +76,8 @@ namespace Bess::SimEngine::Commands {
       public:
         SetInputCommand(const UUID &compId, bool state);
         bool execute() override;
-        void undo() override;
-        RESULT_OVERRIDE;
+        std::any undo() override;
+        COMMAND_RESULT_OVERRIDE;
 
       private:
         UUID m_compId;

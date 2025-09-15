@@ -4,6 +4,10 @@
 #include <iostream>
 
 namespace Bess::SimEngine {
+    SimEngineSerializer::SimEngineSerializer() {
+       SimEngineSerializer::registerAll();
+    }
+
     void SimEngineSerializer::serializeToPath(const std::string &path, int indent) {
         EnttRegistrySerializer::serializeToPath(SimEngine::SimulationEngine::instance().m_registry, path, indent);
     }
@@ -28,11 +32,21 @@ namespace Bess::SimEngine {
         EnttRegistrySerializer::serialize(SimEngine::SimulationEngine::instance().m_registry, j);
     }
 
+    void SimEngineSerializer::serializeEntity(const UUID uid, Json::Value &j) {
+        const auto ent = SimEngine::SimulationEngine::instance().getEntityWithUuid(uid);
+        EnttRegistrySerializer::serializeEntity(SimEngine::SimulationEngine::instance().m_registry, ent, j);
+    }
+
     void SimEngineSerializer::deserialize(const Json::Value &json) {
         auto &registry = SimEngine::SimulationEngine::instance().m_registry;
         registry.clear();
         EnttRegistrySerializer::deserialize(registry, json);
         simulateClockedComponents();
+    }
+
+    void SimEngineSerializer::deserializeEntity(const Json::Value &json) {
+        auto &registry = SimEngine::SimulationEngine::instance().m_registry;
+        EnttRegistrySerializer::deserializeEntity(registry, json);
     }
 
     void SimEngineSerializer::registerAll() {

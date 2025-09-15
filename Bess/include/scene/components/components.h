@@ -1,12 +1,14 @@
 #pragma once
 
 #include "bess_uuid.h"
-#include "non_sim_comp.h"
 #include "common/log.h"
-#include "scene/components/json_converters.h"
+#include "comp_json_converters.h"
 #include "entt/entity/entity.hpp"
 #include "entt/entity/fwd.hpp"
+#include "non_sim_comp.h"
+#include "scene/components/json_converters.h"
 #include "json/json.h"
+#include "json/value.h"
 #include <cstdint>
 #include <vector>
 #define GLM_ENABLE_EXPERIMENTAL
@@ -55,7 +57,7 @@ namespace Bess::Canvas::Components {
         TagComponent(const TagComponent &other) = default;
         std::string name = "";
 
-        union CompType{
+        union CompType {
             int typeId = -1;
             SimEngine::ComponentType simCompType;
             Components::NSComponentType nsCompType;
@@ -103,6 +105,7 @@ namespace Bess::Canvas::Components {
         UUID parentId = 0;
         uint32_t idx = 0;
         SlotType slotType = SlotType::digitalInput;
+        std::vector<UUID> connections{};
     };
 
     class SimulationComponent {
@@ -140,7 +143,6 @@ namespace Bess::Canvas::Components {
       public:
         HoveredEntityComponent() = default;
         HoveredEntityComponent(HoveredEntityComponent &other) = default;
-        // Assuming entt::entity is convertible to an unsigned int.
         unsigned int prevHovered = 0;
     };
 
@@ -202,7 +204,7 @@ namespace Bess::JsonConvert {
             fromJsonValue(j["scale"], comp.scale);
         }
         if (j.isMember("angle")) {
-			comp.angle = j.get("angle", 0.f).asFloat();
+            comp.angle = j.get("angle", 0.f).asFloat();
         }
     }
 
@@ -293,6 +295,10 @@ namespace Bess::JsonConvert {
         toJsonValue(comp.parentId, j["parentId"]);
         j["idx"] = comp.idx;
         j["slotType"] = slotTypeToString(comp.slotType);
+
+        for (const auto &conn : comp.connections) {
+            toJsonValue(conn, j["connections"].append(Json::intValue));
+        }
     }
 
     /**
@@ -308,6 +314,14 @@ namespace Bess::JsonConvert {
         comp.idx = j.get("idx", 0).asUInt();
         if (j.isMember("slotType")) {
             comp.slotType = stringToSlotType(j["slotType"].asString());
+        }
+
+        if (j.isMember("connections")) {
+            for (const auto &conn : j["connections"]) {
+                UUID val;
+                fromJsonValue(conn, val);
+                comp.connections.emplace_back(val);
+            }
         }
     }
 
@@ -486,4 +500,4 @@ namespace Bess::JsonConvert {
             comp.frequencyUnit = static_cast<SimEngine::FrequencyUnit>(j["frequencyUnit"].asInt());
         }
     }
-}
+} // namespace Bess::JsonConvert

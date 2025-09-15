@@ -12,6 +12,7 @@
 #include "pages/main_page/main_page_state.h"
 #include "scene/artist.h"
 #include "scene/commands/commands.h"
+#include "scene/components/components.h"
 #include "scene/renderer/renderer.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
@@ -135,7 +136,7 @@ namespace Bess::Canvas {
                 if (m_registry.all_of<Components::ConnectionComponent>(entt)) {
                     deleteConnection(getUuidOfEntity(entt));
                 } else {
-                    deleteEntity(getUuidOfEntity(entt));
+                    m_cmdManager.execute<Commands::DeleteCompCommand, std::string>(getUuidOfEntity(entt));
                 }
             }
         }
@@ -188,6 +189,7 @@ namespace Bess::Canvas {
             Components::TagComponent,
             Components::SpriteComponent,
             Components::TransformComponent>();
+
         for (auto entity : simCompView) {
             Artist::drawSimEntity(
                 entity,
@@ -238,8 +240,15 @@ namespace Bess::Canvas {
     }
 
     UUID Scene::createSimEntity(const UUID &simEngineEntt, std::shared_ptr<const SimEngine::ComponentDefinition> comp, const glm::vec2 &pos) {
+        const std::vector<UUID> inputSlotIds(comp->inputCount), outputSlotIds(comp->outputCount);
+        const UUID uuid;
+        return createSimEntity(simEngineEntt, comp, pos, uuid, inputSlotIds, outputSlotIds);
+    }
+
+    UUID Scene::createSimEntity(const UUID &simEngineEntt, std::shared_ptr<const SimEngine::ComponentDefinition> comp, const glm::vec2 &pos,
+                                UUID uuid, const std::vector<UUID> &inputSlotIds, const std::vector<UUID> &outputSlotIds) {
         auto entity = m_registry.create();
-        auto &idComp = m_registry.emplace<Components::IdComponent>(entity);
+        auto &idComp = m_registry.emplace<Components::IdComponent>(entity, uuid);
         auto &transformComp = m_registry.emplace<Components::TransformComponent>(entity);
         auto &sprite = m_registry.emplace<Components::SpriteComponent>(entity);
         auto &tag = m_registry.emplace<Components::TagComponent>(entity);
@@ -275,11 +284,11 @@ namespace Bess::Canvas {
         auto state = SimEngine::SimulationEngine::instance().getComponentState(simEngineEntt);
 
         for (int i = 0; i < state.inputStates.size(); i++) {
-            simComp.inputSlots.emplace_back(createSlotEntity(Components::SlotType::digitalInput, idComp.uuid, i));
+            simComp.inputSlots.emplace_back(createSlotEntity(inputSlotIds[i], Components::SlotType::digitalInput, idComp.uuid, i));
         }
 
         for (int i = 0; i < state.outputStates.size(); i++) {
-            simComp.outputSlots.emplace_back(createSlotEntity(Components::SlotType::digitalOutput, idComp.uuid, i));
+            simComp.outputSlots.emplace_back(createSlotEntity(outputSlotIds[i], Components::SlotType::digitalOutput, idComp.uuid, i));
         }
         BESS_INFO("[Scene] Created entity {}", (uint64_t)entity);
         return idComp.uuid;
@@ -325,45 +334,54 @@ namespace Bess::Canvas {
         if (m_registry.all_of<Components::SimulationComponent>(ent)) {
             auto &simComp = m_registry.get<Components::SimulationComponent>(ent);
 
-            // take care of connections
-            auto view = m_registry.view<Components::ConnectionComponent>();
-            for (auto connEntt : view) {
-                auto &connComp = view.get<Components::ConnectionComponent>(connEntt);
-                auto parentA = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.inputSlot)).parentId;
-                auto parentB = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.outputSlot)).parentId;
-                if (parentA != entUuid && parentB != entUuid)
-                    continue;
-                BESS_INFO("[Scene] Deleted connection {}", (uint64_t)connEntt);
-                m_registry.destroy(connEntt);
+            // take care of slots
+            for (auto slot : simComp.inputSlots) {
+                auto &slotComp = m_registry.get<Components::SlotComponent>(getEntityWithUuid(slot));
+                for (auto &conn : slotComp.connections) {
+                    removeConnectionEntt(getEntityWithUuid(conn));
+                    m_uuidToEntt.erase(conn);
+                }
+
+                m_registry.destroy(getEntityWithUuid(slot));
+                m_uuidToEntt.erase(slot);
             }
 
-            // take care of slots
-            for (auto slot : simComp.inputSlots)
-                m_registry.destroy(getEntityWithUuid(slot));
+            for (auto slot : simComp.outputSlots) {
+                auto &slotComp = m_registry.get<Components::SlotComponent>(getEntityWithUuid(slot));
+                for (auto &conn : slotComp.connections) {
+                    removeConnectionEntt(getEntityWithUuid(conn));
+                    m_uuidToEntt.erase(conn);
+                }
 
-            for (auto slot : simComp.outputSlots)
                 m_registry.destroy(getEntityWithUuid(slot));
+                m_uuidToEntt.erase(slot);
+            }
         }
 
         // remove from registry
         m_registry.destroy(ent);
+        m_uuidToEntt.erase(entUuid);
         BESS_INFO("[Scene] Deleted entity {}", (uint64_t)ent);
     }
 
-    void Scene::deleteEntity(const UUID &entUuid) {
-        auto ent = getEntityWithUuid(entUuid);
-        if (m_registry.all_of<Components::SimulationComponent>(ent)) {
-            auto &simComp = m_registry.get<Components::SimulationComponent>(ent);
-            // remove from simlation engine
-            SimEngine::SimulationEngine::instance().deleteComponent(simComp.simEngineEntity);
-        }
-
-        deleteEntity(entUuid);
-    }
+    // void Scene::deleteEntity(const UUID &entUuid) {
+    //     auto ent = getEntityWithUuid(entUuid);
+    //     if (m_registry.all_of<Components::SimulationComponent>(ent)) {
+    //         auto &simComp = m_registry.get<Components::SimulationComponent>(ent);
+    //         // remove from simlation engine
+    //         SimEngine::SimulationEngine::instance().deleteComponent(simComp.simEngineEntity);
+    //     }
+    //
+    //     deleteSceneEntity(entUuid);
+    // }
 
     UUID Scene::createSlotEntity(Components::SlotType type, const UUID &parent, unsigned int idx) {
+        return createSlotEntity(UUID{}, type, parent, idx);
+    }
+
+    UUID Scene::createSlotEntity(UUID uuid, Components::SlotType type, const UUID &parent, unsigned int idx) {
         auto entity = m_registry.create();
-        auto &idComp = m_registry.emplace<Components::IdComponent>(entity);
+        const auto &idComp = m_registry.emplace<Components::IdComponent>(entity, uuid);
         auto &transform = m_registry.emplace<Components::TransformComponent>(entity);
         auto &sprite = m_registry.emplace<Components::SpriteComponent>(entity);
         auto &slot = m_registry.emplace<Components::SlotComponent>(entity);
@@ -601,6 +619,7 @@ namespace Bess::Canvas {
             auto connSegComp = m_registry.get<
                 Components::ConnectionSegmentComponent>(getEntityWithUuid(segEntt));
             m_registry.destroy(getEntityWithUuid(segEntt));
+            m_uuidToEntt.erase(segEntt);
             segEntt = connSegComp.next;
         }
 
@@ -631,6 +650,9 @@ namespace Bess::Canvas {
             m_registry.destroy(getEntityWithUuid(segEntt));
             segEntt = connSegComp.next;
         }
+
+        slotCompA.connections.erase(std::ranges::remove(slotCompA.connections, entityUuid).begin(), slotCompA.connections.end());
+        slotCompB.connections.erase(std::ranges::remove(slotCompB.connections, entityUuid).begin(), slotCompB.connections.end());
 
         m_registry.destroy(entity);
 
@@ -669,7 +691,8 @@ namespace Bess::Canvas {
         connSegComp3.prev = idComp2.uuid;
 
         auto view = m_registry.view<Components::SlotComponent, Components::TransformComponent>();
-        const auto &inpSlotComp = view.get<Components::SlotComponent>(inputSlot);
+        auto &inpSlotComp = view.get<Components::SlotComponent>(inputSlot);
+        auto &outSlotComp = view.get<Components::SlotComponent>(outputSlot);
         const auto &inpParentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(inpSlotComp.parentId));
         auto inputSlotPos = Artist::getSlotPos(inpSlotComp, inpParentTransform);
         const auto &slotComp = view.get<Components::SlotComponent>(outputSlot);
@@ -681,6 +704,9 @@ namespace Bess::Canvas {
         connSegComp1.pos = glm::vec2(0, inputSlotPos.y);
         connSegComp2.pos = glm::vec2(inputSlotPos.x + (dX * 0.8f), 0);
         connSegComp3.pos = glm::vec2(0, outputSlotPos.y);
+
+        inpSlotComp.connections.emplace_back(idComp.uuid);
+        outSlotComp.connections.emplace_back(idComp.uuid);
 
         return connEntt;
     }

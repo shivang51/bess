@@ -97,7 +97,7 @@ namespace Bess::SimEngine {
     }
 
     bool SimulationEngine::connectComponent(const UUID &src, int srcPin, PinType srcType,
-                                            const UUID &dst, int dstPin, PinType dstType) {
+                                            const UUID &dst, int dstPin, PinType dstType, bool overrideConn) {
         auto srcEnt = getEntityWithUuid(src);
         auto dstEnt = getEntityWithUuid(dst);
         if (!m_registry.valid(srcEnt) || !m_registry.valid(dstEnt))
@@ -124,9 +124,14 @@ namespace Bess::SimEngine {
             return false;
         }
         // Check for duplicate connection.
-        for (const auto &conn : outPins[srcPin]) {
-            if (conn.first == dst && conn.second == dstPin) {
-                BESS_SE_WARN("Connection already exists.");
+        auto &conns = outPins[srcPin];
+        for (auto it = conns.begin(); it != conns.end(); ++it) {
+            if (it->first == dst && it->second == dstPin) {
+                if (overrideConn) {
+                    conns.erase(it);
+                    break;
+                }
+                BESS_SE_WARN("Connection already exists, skipping");
                 return false;
             }
         }
@@ -471,4 +476,5 @@ namespace Bess::SimEngine {
     Commands::CommandsManager &SimulationEngine::getCmdManager() {
         return m_cmdManager;
     }
+
 } // namespace Bess::SimEngine

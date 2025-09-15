@@ -70,7 +70,11 @@ namespace Bess::Canvas {
         const glm::vec2 &getSize();
 
         UUID createSlotEntity(Components::SlotType type, const UUID &parent, unsigned int idx);
+        UUID createSlotEntity(UUID uuid, Components::SlotType type, const UUID &parent, unsigned int idx);
+
         UUID createSimEntity(const UUID &simEngineEntt, std::shared_ptr<const SimEngine::ComponentDefinition> comp, const glm::vec2 &pos);
+        UUID createSimEntity(const UUID &simEngineEntt, std::shared_ptr<const SimEngine::ComponentDefinition> comp,
+            const glm::vec2 &pos, UUID uuid, const std::vector<UUID>& inputSlotIds, const std::vector<UUID> &outputSlotIds);
         UUID createNonSimEntity(const Canvas::Components::NSComponent &comp, const glm::vec2 &pos);
 
         void deleteSceneEntity(const UUID &entUuid);

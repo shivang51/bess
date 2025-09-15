@@ -31,7 +31,7 @@ namespace Bess::SimEngine::Commands {
             return true;
         }
 
-        void undo();
+        std::any undo();
         void redo();
 
         void clearStacks();
