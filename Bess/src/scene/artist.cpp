@@ -17,7 +17,7 @@ namespace Bess::Canvas {
     Scene *Artist::sceneRef = nullptr;
     bool Artist::m_isSchematicMode = false;
 
-    const struct ComponentStyles {
+    constexpr struct ComponentStyles {
         float headerHeight = 18.f;
         float headerFontSize = 10.f;
         float paddingX = 8.f;
@@ -28,11 +28,19 @@ namespace Bess::Canvas {
         float rowMargin = 4.f;
         float rowGap = 4.f;
         float slotLabelSize = 10.f;
+
+        inline float getSlotColumnSize() const {
+            return (slotRadius * 2.f) + slotMargin + slotLabelSize;
+        }
     } componentStyles;
 
-    float SLOT_DX = componentStyles.paddingX + componentStyles.slotRadius + componentStyles.slotMargin;
-    float SLOT_START_Y = componentStyles.headerHeight;
-    float SLOT_ROW_SIZE = (componentStyles.rowMargin * 2.f) + (componentStyles.slotRadius * 2.f) + componentStyles.rowGap;
+    constexpr float SLOT_DX = componentStyles.paddingX + componentStyles.slotRadius + componentStyles.slotMargin;
+
+    constexpr float SLOT_START_Y = componentStyles.headerHeight;
+
+    constexpr float SLOT_ROW_SIZE = (componentStyles.rowMargin * 2.f) + (componentStyles.slotRadius * 2.f) + componentStyles.rowGap;
+
+    constexpr float SLOT_COLUMN_SIZE = (componentStyles.slotRadius + componentStyles.slotMargin + componentStyles.slotLabelSize) * 2;
 
     ArtistTools Artist::m_artistTools;
 
@@ -51,8 +59,6 @@ namespace Bess::Canvas {
                 std::make_shared<Gl::SubTexture>(tex, glm::vec2({0.f, 1.f}), size, margin, glm::vec2(1.f)),
                 std::make_shared<Gl::SubTexture>(tex, glm::vec2({1.f, 1.f}), size, margin, glm::vec2(1.f)),
                 std::make_shared<Gl::SubTexture>(tex, glm::vec2({2.f, 1.f}), size, margin, glm::vec2(1.f)),
-                // std::make_shared<Gl::SubTexture>(tex, glm::vec2({3.f, 1.f}), size, margin, glm::vec2(1.f)),
-                // std::make_shared<Gl::SubTexture>(tex, glm::vec2({4.f, 1.f}), size, margin, glm::vec2(1.f)),
             };
         }
     }
@@ -75,10 +81,15 @@ namespace Bess::Canvas {
         float posY = pPos.y - pScale.y / 2.f + (SLOT_ROW_SIZE * comp.idx) + SLOT_ROW_SIZE / 2.f;
 
         auto parentEntt = sceneRef->getEntityWithUuid(comp.parentId);
-        const auto &isNonHeader = sceneRef->getEnttRegistry().any_of<Components::SimulationInputComponent, Components::SimulationOutputComponent>(parentEntt);
+        const auto &isNonHeader = sceneRef->getEnttRegistry().any_of<Components::SimulationInputComponent, Components::SimulationOutputComponent, Components::SimulationStateMonitor>(parentEntt);
         if (!isNonHeader)
             posY += SLOT_START_Y;
 
+        static bool isFirst = true;
+        if (isFirst) {
+            std::cout << posY << std::endl;
+            isFirst = false;
+        }
         return glm::vec3(posX, posY, pPos.z + 0.0005);
     }
 
@@ -311,6 +322,68 @@ namespace Bess::Canvas {
         glm::vec3 textPos = glm::vec3(pos.x + scale.x / 2.f - labelSize - componentStyles.paddingX, pos.y + yOff, pos.z + 0.0005f);
         Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id);
         drawSlots(simComp, transformComp);
+    }
+
+    void Artist::drawHeaderLessComp(entt::entity entity,
+                                    Components::TagComponent &tagComp,
+                                    Components::TransformComponent &transform,
+                                    Components::SpriteComponent &spriteComp,
+                                    Components::SimulationComponent &simComp) {
+        auto &registry = sceneRef->getEnttRegistry();
+
+        auto labelSize = Renderer::getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
+
+        uint64_t id = (uint64_t)entity;
+        auto pos = transform.position;
+        auto rotation = transform.angle;
+        auto scale = transform.scale;
+        float columnSize = componentStyles.getSlotColumnSize();
+
+        float xSize = labelSize.x;
+        xSize += componentStyles.paddingX * 2.f;
+
+        float labelXGapL = 0.f, labelXGapR = 0.f;
+        float labelLOffset = componentStyles.paddingX;
+
+        if (!simComp.inputSlots.empty()) {
+            labelXGapL = 2.f;
+            xSize += SLOT_COLUMN_SIZE + labelXGapL;
+            labelLOffset += SLOT_COLUMN_SIZE + labelXGapL;
+        }
+
+        if (!simComp.outputSlots.empty()) {
+            labelXGapR = 2.f;
+            xSize += SLOT_COLUMN_SIZE + labelXGapR;
+        }
+
+        scale.x = xSize;
+
+        scale.y = SLOT_ROW_SIZE * std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
+        transform.scale = scale;
+
+        bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
+        auto borderColor = isSelected ? ViewportTheme::selectedCompColor : spriteComp.borderColor;
+
+        Renderer2D::QuadRenderProperties props;
+        props.borderRadius = spriteComp.borderRadius;
+        props.borderColor = borderColor;
+        props.borderSize = spriteComp.borderSize;
+        props.isMica = true;
+        Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
+
+        glm::vec3 textPos = glm::vec3(
+            pos.x - (scale.x / 2.f) + labelLOffset,
+            pos.y, pos.z + 0.0005f);
+
+        static bool isFirst = true;
+        if (isFirst) {
+            std::cout << textPos.y << std::endl;
+            isFirst = false;
+        }
+        auto name = tagComp.name;
+        Renderer::msdfText(name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id);
+
+        drawSlots(simComp, transform);
     }
 
     void Artist::drawInput(entt::entity entity) {
@@ -671,11 +744,8 @@ namespace Bess::Canvas {
         }
 
         if (!m_isSchematicMode) {
-            if (registry.all_of<Components::SimulationInputComponent>(entity)) {
-                drawInput(entity);
-                return;
-            } else if (registry.all_of<Components::SimulationOutputComponent>(entity)) {
-                drawOutput(entity);
+            if (tagComp.type.simCompType == SimEngine::ComponentType::INPUT || tagComp.type.simCompType == SimEngine::ComponentType::OUTPUT || tagComp.type.simCompType == SimEngine::ComponentType::STATE_MONITOR) {
+                drawHeaderLessComp(entity, tagComp, transform, spriteComp, simComp);
                 return;
             }
         }
