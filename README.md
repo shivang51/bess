@@ -42,7 +42,7 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
        ```
 ## TODO
 - [x] Add seven segment display (Added CLR for flip flops as well)
-- [ ] Add some graph visulization for clock cycles
+- [x] Add some graph visulization for clock cycles
 - [ ] Command System
 - [ ] Test Cases for simulation engine
 - [ ] Undo, Redo functionality
