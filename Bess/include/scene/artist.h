@@ -42,8 +42,6 @@ namespace Bess::Canvas {
                                        Components::SimulationComponent &simComp);
         static void drawNonSimEntity(entt::entity entity);
 
-        static void drawInput(entt::entity entity);
-        static void drawOutput(entt::entity entity);
         static void drawConnectionEntity(entt::entity entity);
         static glm::vec3 getSlotPos(const Components::SlotComponent &comp,
                                     const Components::TransformComponent &parentTransform);

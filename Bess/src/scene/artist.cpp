@@ -85,11 +85,6 @@ namespace Bess::Canvas {
         if (!isNonHeader)
             posY += SLOT_START_Y;
 
-        static bool isFirst = true;
-        if (isFirst) {
-            std::cout << posY << std::endl;
-            isFirst = false;
-        }
         return glm::vec3(posX, posY, pPos.z + 0.0005);
     }
 
@@ -289,41 +284,6 @@ namespace Bess::Canvas {
         Artist::drawConnection(idComp.uuid, sceneRef->getEntityWithUuid(connComp.inputSlot), sceneRef->getEntityWithUuid(connComp.outputSlot), isSelected);
     }
 
-    void Artist::drawOutput(entt::entity entity) {
-        auto &registry = sceneRef->getEnttRegistry();
-
-        auto &transformComp = registry.get<Components::TransformComponent>(entity);
-        auto &spriteComp = registry.get<Components::SpriteComponent>(entity);
-        auto &tagComp = registry.get<Components::TagComponent>(entity);
-        auto &simComp = registry.get<Components::SimulationComponent>(entity);
-        auto &idComp = registry.get<Components::IdComponent>(entity);
-
-        uint64_t id = (uint64_t)entity;
-        auto pos = transformComp.position;
-        auto rotation = transformComp.angle;
-        auto scale = transformComp.scale;
-
-        scale.y = SLOT_ROW_SIZE;
-        scale.x = 90.f;
-        transformComp.scale = scale;
-
-        bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
-        auto borderColor = isSelected ? ViewportTheme::selectedCompColor : spriteComp.borderColor;
-
-        Renderer2D::QuadRenderProperties props;
-        props.borderRadius = spriteComp.borderRadius;
-        props.borderColor = borderColor;
-        props.borderSize = spriteComp.borderSize;
-        props.isMica = true;
-        Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
-
-        float yOff = componentStyles.headerFontSize / 2.f - 2.f;
-        auto labelSize = Renderer::getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize).x;
-        glm::vec3 textPos = glm::vec3(pos.x + scale.x / 2.f - labelSize - componentStyles.paddingX, pos.y + yOff, pos.z + 0.0005f);
-        Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id);
-        drawSlots(simComp, transformComp);
-    }
-
     void Artist::drawHeaderLessComp(entt::entity entity,
                                     Components::TagComponent &tagComp,
                                     Components::TransformComponent &transform,
@@ -373,56 +333,12 @@ namespace Bess::Canvas {
 
         glm::vec3 textPos = glm::vec3(
             pos.x - (scale.x / 2.f) + labelLOffset,
-            pos.y, pos.z + 0.0005f);
+            pos.y + (componentStyles.headerFontSize / 2.f) - 1.f, pos.z + 0.0005f);
 
-        static bool isFirst = true;
-        if (isFirst) {
-            std::cout << textPos.y << std::endl;
-            isFirst = false;
-        }
         auto name = tagComp.name;
         Renderer::msdfText(name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id);
 
         drawSlots(simComp, transform);
-    }
-
-    void Artist::drawInput(entt::entity entity) {
-        auto &registry = sceneRef->getEnttRegistry();
-
-        auto &transformComp = registry.get<Components::TransformComponent>(entity);
-        auto &spriteComp = registry.get<Components::SpriteComponent>(entity);
-        auto &tagComp = registry.get<Components::TagComponent>(entity);
-        auto &simComp = registry.get<Components::SimulationComponent>(entity);
-        auto &simInComp = registry.get<Components::SimulationInputComponent>(entity);
-        auto &idComp = registry.get<Components::IdComponent>(entity);
-
-        uint64_t id = (uint64_t)entity;
-        auto pos = transformComp.position;
-        auto rotation = transformComp.angle;
-        auto scale = transformComp.scale;
-        scale.y = SLOT_ROW_SIZE;
-        scale.x = 80.f;
-        transformComp.scale = scale;
-
-        bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
-        auto borderColor = isSelected ? ViewportTheme::selectedCompColor : spriteComp.borderColor;
-
-        Renderer2D::QuadRenderProperties props;
-        props.borderRadius = spriteComp.borderRadius;
-        props.borderColor = borderColor;
-        props.borderSize = spriteComp.borderSize;
-        props.isMica = true;
-        Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
-
-        float yOff = componentStyles.headerFontSize / 2.f - 2.f;
-        glm::vec3 textPos = glm::vec3(pos.x - scale.x / 2.f + componentStyles.paddingX, pos.y + yOff, pos.z + 0.0005f);
-
-        auto name = tagComp.name;
-        if (simInComp.clockBhaviour) {
-            /*name = "¤ " + name;*/
-        }
-        Renderer::msdfText(name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id);
-        drawSlots(simComp, transformComp);
     }
 
     void Artist::paintSchematicView(entt::entity entity) {
@@ -591,75 +507,6 @@ namespace Bess::Canvas {
             BESS_ERROR("[Artist] Tried to draw a non-simulation component with type: {}", tagComp.type.typeId);
             break;
         }
-    }
-
-    void Artist::drawSimEntity(entt::entity entity) {
-        /// Note (Shivang): this way is temporary, most likely me will move to a better way
-        auto &registry = sceneRef->getEnttRegistry();
-
-        if (!m_isSchematicMode) {
-            if (registry.all_of<Components::SimulationInputComponent>(entity)) {
-                drawInput(entity);
-                return;
-            } else if (registry.all_of<Components::SimulationOutputComponent>(entity)) {
-                drawOutput(entity);
-                return;
-            }
-        }
-
-        auto &transformComp = registry.get<Components::TransformComponent>(entity);
-        const auto &simComp = registry.get<Components::SimulationComponent>(entity);
-
-        auto pos = transformComp.position;
-        auto rotation = transformComp.angle;
-        auto scale = transformComp.scale;
-        int maxRows = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
-        scale.y = componentStyles.headerHeight + componentStyles.rowGap + (maxRows * SLOT_ROW_SIZE);
-        transformComp.scale = scale;
-
-        if (m_isSchematicMode) {
-            paintSchematicView(entity);
-            return;
-        }
-
-        const auto &spriteComp = registry.get<Components::SpriteComponent>(entity);
-        const auto &tagComp = registry.get<Components::TagComponent>(entity);
-
-        float headerHeight = componentStyles.headerHeight;
-        auto headerPos = glm::vec3(pos.x, pos.y - scale.y / 2.f + headerHeight / 2.f, pos.z);
-
-        /*spriteComp.borderRadius = glm::vec4(radius);*/
-        bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
-        auto borderColor = isSelected ? ViewportTheme::selectedCompColor : spriteComp.borderColor;
-
-        uint64_t id = (uint64_t)entity;
-
-        glm::vec3 textPos = glm::vec3(pos.x - scale.x / 2.f + componentStyles.paddingX, headerPos.y + componentStyles.paddingY, pos.z + 0.0005f);
-
-        Renderer2D::QuadRenderProperties props;
-        props.angle = rotation;
-        props.borderRadius = spriteComp.borderRadius;
-        props.borderSize = spriteComp.borderSize;
-        props.borderColor = borderColor;
-        props.isMica = true;
-
-        Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
-
-        props = {};
-        props.angle = rotation;
-        props.borderSize = glm::vec4(0.f);
-        props.borderRadius = glm::vec4(0, 0, spriteComp.borderRadius.x, spriteComp.borderRadius.y);
-        props.isMica = true;
-
-        Renderer::quad(headerPos,
-                       glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
-                       spriteComp.headerColor,
-                       id,
-                       props);
-
-        Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id, rotation);
-
-        drawSlots(simComp, transformComp);
     }
 
     void Artist::drawSevenSegDisplay(
