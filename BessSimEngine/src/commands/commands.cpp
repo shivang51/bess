@@ -125,6 +125,8 @@ namespace Bess::SimEngine::Commands {
 
     std::any SetInputCommand::undo() {
         SimulationEngine::instance().setDigitalInput(m_compId, m_oldState);
+
+        return {};
     }
 
     std::any SetInputCommand::getResult() {

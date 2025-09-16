@@ -14,6 +14,7 @@
 #include "scene/commands/connect_command.h"
 #include "scene/commands/del_connection_command.h"
 #include "scene/commands/delete_comp_command.h"
+#include "scene/commands/set_input_command.h"
 #include "scene/components/components.h"
 #include "scene/renderer/renderer.h"
 #include "settings/viewport_theme.h"
@@ -747,7 +748,8 @@ namespace Bess::Canvas {
             if (m_registry.all_of<Components::SimulationInputComponent>(hoveredEntity)) {
                 auto &simComp = m_registry.get<Components::SimulationComponent>(hoveredEntity);
                 bool currentState = SimEngine::SimulationEngine::instance().getDigitalPinState(simComp.simEngineEntity, SimEngine::PinType::output, 0);
-                SimEngine::SimulationEngine::instance().setDigitalInput(simComp.simEngineEntity, !currentState);
+
+                auto _ = m_cmdManager.execute<Commands::SetInputCommand, std::string>(m_hoveredEntity, !currentState);
             }
         }
     }
