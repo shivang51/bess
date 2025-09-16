@@ -1,12 +1,13 @@
 #pragma once
-#include "common/log.h"
-#include "asset_loader.h"
 #include "asset_id.h"
-#include <string>
-#include <memory>
-#include <unordered_map>
-#include <typeindex>
+#include "asset_loader.h"
+#include "common/log.h"
+#include "scene/renderer/asset_loaders.h"
 #include <any>
+#include <memory>
+#include <string>
+#include <typeindex>
+#include <unordered_map>
 
 namespace Bess::Assets {
     class AssetManager {
@@ -21,7 +22,7 @@ namespace Bess::Assets {
 
         static AssetManager &instance();
 
-		template <typename T, size_t N>
+        template <typename T, size_t N>
         std::shared_ptr<T> get(const AssetID<T, N> &id) {
             const auto typeIdx = std::type_index(typeid(T));
 
@@ -54,7 +55,7 @@ namespace Bess::Assets {
             return asset;
         }
 
-		void clear() {
+        void clear() {
             m_assetCaches.clear();
             BESS_INFO("[AssetManager] Cache Cleared");
         }
@@ -62,4 +63,4 @@ namespace Bess::Assets {
       private:
         std::unordered_map<std::type_index, std::any> m_assetCaches;
     };
-} // namespace Bess
+} // namespace Bess::Assets

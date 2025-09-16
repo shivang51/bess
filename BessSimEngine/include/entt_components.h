@@ -5,21 +5,21 @@
 #include "component_types/component_types.h"
 #include "types.h"
 #include <entt/entt.hpp>
-#include <utility>
+#include <iostream>
 #include <vector>
 
 namespace Bess::SimEngine {
 
     struct BESS_API FlipFlopComponent {
         FlipFlopComponent() = default;
-        FlipFlopComponent(FlipFlopType type, int clockPinIndex) {
+        FlipFlopComponent(ComponentType type, int clockPinIndex) {
             this->type = type;
             this->clockPinIdx = clockPinIndex;
         }
         FlipFlopComponent(const FlipFlopComponent &) = default;
-        FlipFlopType type = FlipFlopType::FLIP_FLOP_JK;
+        ComponentType type;
         int clockPinIdx = 1;
-        bool prevClock = false;
+        LogicState prevClockState = LogicState::low;
     };
 
     struct BESS_API IdComponent {
@@ -43,7 +43,7 @@ namespace Bess::SimEngine {
             high = !high;
         }
 
-        std::chrono::milliseconds getNextDelay() const {
+        std::chrono::nanoseconds getNextDelay() const {
             double f = frequency;
             switch (frequencyUnit) {
             case FrequencyUnit::hz:
@@ -57,12 +57,14 @@ namespace Bess::SimEngine {
             default:
                 throw std::runtime_error("Unhandled clock frequency unit");
             }
+
             if (f <= 0.0) {
                 throw std::runtime_error("Invalid clock frequency");
             }
-            double periodMs = 1000.0 / f;
-            double phaseMs = high ? periodMs * dutyCycle : periodMs * (1.0 - dutyCycle);
-            return std::chrono::milliseconds(static_cast<int>(phaseMs));
+
+            double period = 1 / f;
+            double phase = high ? period * dutyCycle : period * (1.0 - dutyCycle);
+            return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(phase));
         }
 
         float dutyCycle = 0.5f;
@@ -75,24 +77,81 @@ namespace Bess::SimEngine {
     struct BESS_API DigitalComponent {
         DigitalComponent() = default;
         DigitalComponent(const DigitalComponent &) = default;
-        DigitalComponent(ComponentType type, int inputPinsCount, int outputPinsCount, SimDelayMilliSeconds delay, 
-            const std::vector<std::string>& expr
-        ) {
+        DigitalComponent(ComponentType type, int inputPinsCount, int outputPinsCount, SimDelayNanoSeconds delay,
+                         const std::vector<std::string> &expr) {
             this->type = type;
             this->delay = delay;
             this->inputPins = Connections(inputPinsCount, decltype(Connections())::value_type());
             this->outputPins = Connections(outputPinsCount, decltype(Connections())::value_type());
-            this->outputStates = std::vector<bool>(outputPinsCount, false);
-            this->inputStates = std::vector<bool>(inputPinsCount, false);
+            this->outputStates = std::vector<PinState>(outputPinsCount, {LogicState::low, SimTime(0)});
+            this->inputStates = std::vector<PinState>(inputPinsCount, {LogicState::low, SimTime(0)});
             this->expressions = expr;
         }
 
+        void updateInputCount(int n) {
+            this->inputPins.resize(n);
+            this->inputStates.resize(n);
+        }
+
         ComponentType type;
-        SimDelayMilliSeconds delay;
+        SimDelayNanoSeconds delay;
         Connections inputPins;
         Connections outputPins;
-        std::vector<bool> outputStates;
-        std::vector<bool> inputStates;
+        std::vector<PinState> outputStates;
+        std::vector<PinState> inputStates;
         std::vector<std::string> expressions;
+        void *auxData = nullptr;
+    };
+
+    struct BESS_API StateMonitorComponent {
+        StateMonitorComponent() = default;
+        StateMonitorComponent(const StateMonitorComponent &) = default;
+        StateMonitorComponent(ComponentPin pin, PinType type) {
+            attachedTo = pin;
+            attachedToType = type;
+        }
+
+        void clear() {
+            values.clear();
+            timestepedBoolData.clear();
+        }
+
+        void appendState(SimTime time, const LogicState &state) {
+            values.emplace_back(time.count(), state);
+
+            bool isHigh = state == LogicState::high;
+            auto clockTime = clock.now();
+            if (timestepedBoolData.empty()) {
+                timestepedBoolData.emplace_back(0.f, isHigh);
+                lastUpdateTime = clockTime;
+                return;
+            }
+
+            float diff = std::chrono::duration<float>(clockTime - lastUpdateTime).count();
+            float value = timestepedBoolData.back().first + diff;
+            timestepedBoolData.emplace_back(value, isHigh);
+            lastUpdateTime = clockTime;
+        }
+
+        static constexpr std::chrono::steady_clock clock{};
+
+        void attacthTo(ComponentPin pin, PinType type) {
+            clear();
+            attachedTo = pin;
+            attachedToType = type;
+        }
+
+        ComponentPin attachedTo;
+        PinType attachedToType;
+
+        /// Values of states of attached pin
+        /// vector of  pair<<time in nanoseconds, LogicState>>
+        std::vector<std::pair<float, LogicState>> values = {};
+
+        /// Vector of <timestep, bool>, timesteps are in seconds here
+        /// Note(Shivang): I have no idea if this is right thing to do, to track data along a consistent time
+        std::vector<std::pair<float, bool>> timestepedBoolData;
+
+        std::chrono::steady_clock::time_point lastUpdateTime{};
     };
 } // namespace Bess::SimEngine

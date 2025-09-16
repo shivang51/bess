@@ -8,7 +8,7 @@ namespace Bess::Gl {
     }
 
     SubTexture::SubTexture(std::shared_ptr<Texture> texture, const glm::vec2 &coord, const glm::vec2 &spriteSize,
-                           float margin, const glm::vec2& cellSize)
+                           float margin, const glm::vec2 &cellSize)
         : m_texture(std::move(texture)), m_coord(coord), m_spriteSize(spriteSize), m_margin(margin), m_cellSize(cellSize) {
         calculateCoords();
     }
@@ -17,8 +17,12 @@ namespace Bess::Gl {
         return m_texCoords;
     }
 
-	const glm::vec4& SubTexture::getStartWH() const {
+    const glm::vec4 &SubTexture::getStartWH() const {
         return m_startWH;
+    }
+
+    glm::vec2 SubTexture::getScale() const {
+        return m_spriteSize;
     }
 
     std::shared_ptr<Texture> SubTexture::getTexture() {
@@ -30,10 +34,10 @@ namespace Bess::Gl {
         float startY = m_coord.y * (m_spriteSize.y + m_margin);
         float texSizeX = m_spriteSize.x * m_cellSize.x;
         float texSizeY = m_spriteSize.y * m_cellSize.y;
-        glm::vec2 texOffset = {startX / m_texture->getWidth(), startY /   m_texture->getHeight()};
+        glm::vec2 texOffset = {startX / m_texture->getWidth(), startY / m_texture->getHeight()};
         glm::vec2 texSize = {texSizeX / m_texture->getWidth(), texSizeY / m_texture->getHeight()};
 
-        m_startWH = { texOffset.x, texOffset.y, texSize.x, texSize.y };
+        m_startWH = {texOffset.x, texOffset.y, texSize.x, texSize.y};
 
         m_texCoords = {
             {texOffset.x, texOffset.y + texSize.y},
@@ -48,9 +52,9 @@ namespace Bess::Gl {
         float texSizeX = size.x;
         float texSizeY = size.y;
         m_texture = tex;
-        glm::vec2 texOffset = {startX / m_texture->getWidth(), startY /   m_texture->getHeight()};
+        glm::vec2 texOffset = {startX / m_texture->getWidth(), startY / m_texture->getHeight()};
         glm::vec2 texSize = {texSizeX / m_texture->getWidth(), texSizeY / m_texture->getHeight()};
-        m_startWH = { texOffset.x, texOffset.y, texSize.x, texSize.y };
+        m_startWH = {texOffset.x, texOffset.y, texSize.x, texSize.y};
         m_texCoords = {
             {texOffset.x, texOffset.y + texSize.y},
             {texOffset.x, texOffset.y},

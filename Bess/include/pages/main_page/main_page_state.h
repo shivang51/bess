@@ -9,9 +9,6 @@ namespace Bess::Pages {
 
         MainPageState();
 
-        void setSimulationPaused(bool paused);
-        bool isSimulationPaused();
-
         void setKeyPressed(int key, bool pressed);
         bool isKeyPressed(int key);
 

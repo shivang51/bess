@@ -1,18 +1,12 @@
 #pragma once
 
 #include "bess_uuid.h"
-#include "common/log.h"
-#include "comp_json_converters.h"
-#include "entt/entity/entity.hpp"
-#include "entt/entity/fwd.hpp"
 #include "non_sim_comp.h"
 #include "scene/components/json_converters.h"
-#include "json/json.h"
-#include "json/value.h"
+#include "settings/viewport_theme.h"
 #include <cstdint>
 #include <vector>
 #define GLM_ENABLE_EXPERIMENTAL
-#include "glm.hpp"
 #include "gtx/matrix_decompose.hpp"
 #include "simulation_engine.h"
 #include <glm.hpp>
@@ -49,6 +43,7 @@ namespace Bess::Canvas::Components {
         glm::vec4 borderColor = glm::vec4(1.f);
         glm::vec4 borderSize = glm::vec4(0.f);
         glm::vec4 borderRadius = glm::vec4(0.f);
+        glm::vec4 headerColor = ViewportTheme::compHeaderColor;
     };
 
     class TagComponent {
@@ -165,6 +160,14 @@ namespace Bess::Canvas::Components {
         bool clockBhaviour = false;
         float frequency = 1.f;
         SimEngine::FrequencyUnit frequencyUnit = SimEngine::FrequencyUnit::hz;
+    };
+
+    class SimulationStateMonitor {
+      public:
+        SimulationStateMonitor() = default;
+        SimulationStateMonitor(const SimulationStateMonitor &other) = default;
+
+        bool monitor = false;
     };
 } // namespace Bess::Canvas::Components
 

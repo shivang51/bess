@@ -29,6 +29,7 @@ using Renderer = Bess::Renderer2D::Renderer;
 namespace Bess::Canvas {
     Scene::Scene() {
         Renderer2D::Renderer::init();
+        Artist::init();
         reset();
     }
 
@@ -49,7 +50,7 @@ namespace Bess::Canvas {
                                                          Gl::FBAttachmentType::R32I_REDI,
                                                          Gl::FBAttachmentType::RGBA_RGBA,
                                                          Gl::FBAttachmentType::DEPTH32F_STENCIL8};
-        m_msaaFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments);
+        m_msaaFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments, true);
 
         attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::DEPTH32F_STENCIL8};
         m_shadowFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments);
@@ -175,7 +176,7 @@ namespace Bess::Canvas {
         }
     }
 
-    void Scene::render() {
+    void Scene::renderWithCamera(std::shared_ptr<Camera> camera) {
         auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
 
         switch (m_sceneMode) {
@@ -191,12 +192,20 @@ namespace Bess::Canvas {
         }
 
         beginScene();
+        drawScene(camera);
+        endScene();
+    }
 
-        Renderer2D::Renderer::begin(m_camera);
-        Renderer::grid({0.f, 0.f, -2.f}, m_camera->getSpan(), -1, ViewportTheme::gridColor);
+    void Scene::render() {
+        renderWithCamera(m_camera);
+    }
+
+    void Scene::drawScene(std::shared_ptr<Camera> camera) {
+        Renderer2D::Renderer::begin(camera);
+        Renderer::grid({0.f, 0.f, -2.f}, camera->getSpan(), -1, ViewportTheme::gridColor);
         Renderer2D::Renderer::end();
 
-        Renderer2D::Renderer::begin(m_camera);
+        Renderer2D::Renderer::begin(camera);
         if (m_drawMode == SceneDrawMode::connection) {
             drawConnection();
         }
@@ -212,7 +221,6 @@ namespace Bess::Canvas {
             Components::TagComponent,
             Components::SpriteComponent,
             Components::TransformComponent>();
-
         for (auto entity : simCompView) {
             Artist::drawSimEntity(
                 entity,
@@ -230,12 +238,10 @@ namespace Bess::Canvas {
         Renderer2D::Renderer::end();
 
         if (m_drawMode == SceneDrawMode::selectionBox) {
-            Renderer2D::Renderer::begin(m_camera);
+            Renderer2D::Renderer::begin(camera);
             drawSelectionBox();
             Renderer2D::Renderer::end();
         }
-
-        endScene();
     }
 
     void Scene::drawSelectionBox() {
@@ -281,6 +287,8 @@ namespace Bess::Canvas {
             m_registry.emplace<Components::SimulationInputComponent>(entity);
         } else if (comp->type == SimEngine::ComponentType::OUTPUT) {
             m_registry.emplace<Components::SimulationOutputComponent>(entity);
+        } else if (comp.type == SimEngine::ComponentType::STATE_MONITOR) {
+            m_registry.emplace<Components::SimulationStateMonitor>(entity);
         }
 
         tag.name = comp->name;
@@ -297,6 +305,7 @@ namespace Bess::Canvas {
         } else {
             sprite.color = ViewportTheme::componentBGColor;
             sprite.borderRadius = glm::vec4(6.f);
+            sprite.headerColor = ViewportTheme::getCompHeaderColor(comp.type);
         }
 
         sprite.borderSize = glm::vec4(1.f);
@@ -313,6 +322,7 @@ namespace Bess::Canvas {
         for (int i = 0; i < state.outputStates.size(); i++) {
             simComp.outputSlots.emplace_back(createSlotEntity(outputSlotIds[i], Components::SlotType::digitalOutput, idComp.uuid, i));
         }
+
         BESS_INFO("[Scene] Created entity {}", (uint64_t)entity);
         return idComp.uuid;
     }
@@ -917,14 +927,7 @@ namespace Bess::Canvas {
     }
 
     void Scene::beginScene() {
-        static int value = -1;
-        /*static glm::vec4 col = glm::vec4(0.0);*/
-        /*m_shadowFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(col));*/
-        /*Gl::FrameBuffer::clearDepthStencilBuf();*/
-        /*m_normalFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(col));*/
-        /*m_placeHolderFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(col));*/
-        /*m_placeHolderFramebuffer->clearColorAttachment<GL_FLOAT>(1, glm::value_ptr(col));*/
-
+        static constexpr int value = -1;
         m_msaaFramebuffer->bind();
         m_msaaFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::backgroundColor));
         m_msaaFramebuffer->clearColorAttachment<GL_INT>(1, &value);
@@ -935,40 +938,6 @@ namespace Bess::Canvas {
 
     void Scene::endScene() {
         Gl::FrameBuffer::unbindAll();
-        /*auto span = m_camera->getSpan();*/
-        /**/
-        /*// from msaa to normal*/
-        /*// -- normal color*/
-        /*m_msaaFramebuffer->bindColorAttachmentForRead(0);*/
-        /*m_placeHolderFramebuffer->bindColorAttachmentForDraw(0);*/
-        /*Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);*/
-        /*// -- shadow mask*/
-        /*m_msaaFramebuffer->bindColorAttachmentForRead(2);*/
-        /*m_placeHolderFramebuffer->bindColorAttachmentForDraw(1);*/
-        /*Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);*/
-        /**/
-        /*// shadow pass*/
-        /*m_placeHolderFramebuffer->bindColorAttachmentTexture(1);*/
-        /*m_shadowFramebuffer->bind();*/
-        /*Renderer2D::Renderer::doShadowRenderPass(span.x, span.y);*/
-        /**/
-        /*m_shadowFramebuffer->bindColorAttachmentForRead(0);*/
-        /*m_placeHolderFramebuffer->bindColorAttachmentForDraw(1);*/
-        /*Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);*/
-        /**/
-        /*// rendering to normal for display*/
-        /*m_shadowFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::backgroundColor));*/
-        /*Gl::FrameBuffer::clearDepthStencilBuf();*/
-        /*m_placeHolderFramebuffer->bindColorAttachmentTexture(0, 0); // color*/
-        /*m_placeHolderFramebuffer->bindColorAttachmentTexture(1, 1); // shadow*/
-        /*m_shadowFramebuffer->bind();*/
-        /*Renderer2D::Renderer::doCompositeRenderPass(span.x, span.y);*/
-        /*GL_CHECK(glActiveTexture(GL_TEXTURE0));*/
-        /*GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));*/
-        /**/
-        /*m_shadowFramebuffer->bindColorAttachmentForRead(0);*/
-        /*m_normalFramebuffer->bindColorAttachmentForDraw(0);*/
-        /*Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);*/
 
         for (int i = 0; i < 2; i++) {
             m_msaaFramebuffer->bindColorAttachmentForRead(i);

@@ -1,14 +1,14 @@
 ﻿#include "scene/renderer/renderer.h"
-#include "scene/renderer/asset_loaders.h"
 #include "asset_manager/asset_manager.h"
 #include "assets.h"
 #include "camera.h"
+#include "ext/matrix_transform.hpp"
+#include "glm.hpp"
+#include "scene/renderer/asset_loaders.h"
 #include "scene/renderer/gl/gl_wrapper.h"
 #include "scene/renderer/gl/primitive_type.h"
 #include "scene/renderer/gl/vertex.h"
 #include "ui/ui_main/ui_main.h"
-#include "ext/matrix_transform.hpp"
-#include "glm.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -277,15 +277,14 @@ namespace Bess {
     void Renderer::msdfText(const std::string &text, const glm::vec3 &pos, const size_t size,
                             const glm::vec4 &color, const int id, float angle) {
         // Command to use to generate MSDF font texture atlas
-        // https://github.com/soimy/msdf-bmfont-xml
-        // msdf-bmfont.cmd -f json --smart-size -s 32 -o %1.png %1
-        // %1 should be replaed with file name
+        // https://github.com/Chlumsky/msdf-atlas-gen
+        // msdf-atlas-gen -font Roboto-Regular.ttf -type mtsdf -size 64 -imageout roboto_mtsdf.png -json roboto.json -pxrange 4
 
         if (text.empty())
             return;
 
-        float scale = m_msdfFont->getScale(size);
-        float lineHeight = m_msdfFont->getLineHeight();
+        float scale = size;
+        float lineHeight = m_msdfFont->getLineHeight() * scale;
 
         MsdfCharacter yCharInfo = m_msdfFont->getCharacterData('y');
         MsdfCharacter wCharInfo = m_msdfFont->getCharacterData('W');
@@ -294,14 +293,18 @@ namespace Bess {
 
         glm::vec2 charPos = pos;
         for (auto &ch : text) {
-            MsdfCharacter charInfo = m_msdfFont->getCharacterData(ch);
+            const MsdfCharacter &charInfo = m_msdfFont->getCharacterData(ch);
+            if (ch == ' ') {
+                charPos.x += charInfo.advance * scale;
+                continue;
+            }
             const auto &subTexture = charInfo.subTexture;
             glm::vec2 size_ = charInfo.size * scale;
             float xOff = (charInfo.offset.x + charInfo.size.x / 2.f) * scale;
-            float yOff = (-lineHeight + charInfo.size.y + charInfo.offset.y - charInfo.size.y / 2.f + baseLineOff) * scale;
+            float yOff = (charInfo.offset.y + charInfo.size.y / 2.f) * scale;
 
             Gl::InstanceVertex vertex{};
-            vertex.position = {charPos.x + xOff, charPos.y + yOff, pos.z};
+            vertex.position = {charPos.x + xOff, charPos.y - yOff, pos.z};
             vertex.size = size_;
             vertex.color = color;
             vertex.id = id;
@@ -592,7 +595,7 @@ namespace Bess {
                 shader->unbind();
                 return;
             }
-            shader->setUniform1f("u_zoom", m_camera->getZoom());
+            shader->setUniform1f("u_pxRange", 4);
             shader->setUniform1iv("u_Textures", m_texSlots.data(), m_texSlots.size());
             m_msdfFont->getTextureAtlas()->bind(1);
             m_textRendererVao->bind();
@@ -627,19 +630,14 @@ namespace Bess {
     }
 
     glm::vec2 Renderer2D::Renderer::getMSDFTextRenderSize(const std::string &str, float renderSize) {
-        float scale = m_msdfFont->getScale(renderSize);
-
         float xSize = 0;
-        MsdfCharacter yCharInfo = m_msdfFont->getCharacterData('y');
-        MsdfCharacter wCharInfo = m_msdfFont->getCharacterData('W');
-        float baseLineOff = yCharInfo.offset.y - wCharInfo.offset.y;
-        float ySize = m_msdfFont->getLineHeight() + baseLineOff;
+        float ySize = m_msdfFont->getLineHeight();
 
         for (auto &ch : str) {
             auto chInfo = m_msdfFont->getCharacterData(ch);
             xSize += chInfo.advance;
         }
-        return glm::vec2({xSize, ySize}) * scale;
+        return glm::vec2({xSize, ySize}) * renderSize;
     }
 
     glm::vec2 Renderer::nextBernstinePointCubicBezier(const glm::vec2 &p0, const glm::vec2 &p1,

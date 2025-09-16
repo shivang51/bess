@@ -13,9 +13,9 @@
 
 namespace Bess::UI {
 
+    bool ComponentExplorer::isShown = true;
     bool ComponentExplorer::m_isfirstTimeDraw = true;
     std::string ComponentExplorer::m_searchQuery = "";
-    std::string ComponentExplorer::windowName = (std::string(Icons::FontAwesomeIcons::FA_TOOLBOX) + "  Component Explorer");
 
     bool MyTreeNode(const char *label, ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None) {
         ImGuiContext &g = *ImGui::GetCurrentContext();
@@ -149,10 +149,13 @@ namespace Bess::UI {
     }
 
     void ComponentExplorer::draw() {
+        if (!isShown)
+            return;
+
         if (m_isfirstTimeDraw)
             firstTime();
 
-        ImGui::Begin(windowName.c_str());
+        ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4);
 
         {

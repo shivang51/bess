@@ -1,8 +1,8 @@
 #pragma once
 
 #include "gl_wrapper.h"
-#include <string>
 #include <functional>
+#include <string>
 
 namespace Bess::Gl {
     class Texture {
@@ -24,6 +24,8 @@ namespace Bess::Gl {
 
         void saveToPath(const std::string &path, bool bindTexture = true) const;
 
+        std::vector<unsigned char> getData(bool bindTexture = true) const;
+
         bool operator==(const Texture &other) const {
             return (m_id == other.m_id);
         }
@@ -31,9 +33,9 @@ namespace Bess::Gl {
         size_t getWidth() const { return m_width; }
         size_t getHeight() const { return m_height; }
 
-
       private:
         int getChannelsFromFormat() const;
+
       private:
         GLuint m_id = 0;
         size_t m_width, m_height;
@@ -51,10 +53,6 @@ namespace std {
     template <>
     struct hash<Bess::Gl::Texture> {
         size_t operator()(const Bess::Gl::Texture &texture) const {
-            // Use the OpenGL ID as the basis for the hash.
-            // Since GLuint is an unsigned integer, directly casting to size_t or
-            // using it is usually fine, as std::hash for integral types
-            // typically just returns the value itself or a slightly transformed version.
             return std::hash<GLuint>{}(texture.getId());
         }
     };

@@ -1,8 +1,8 @@
-#include "common/log.h"
 #include "scene/renderer/gl/framebuffer.h"
+#include "common/log.h"
 #include "settings/viewport_theme.h"
-#include "window.h"
 #include "stb_image_write.h"
+#include "window.h"
 #include <filesystem>
 #include <iostream>
 
@@ -172,6 +172,10 @@ namespace Bess::Gl {
             internalFormat = GL_RGBA8;
             format = GL_RGBA;
         } break;
+        case FBAttachmentType::SRGBA_RGBA: {
+            internalFormat = GL_SRGB8_ALPHA8; // sRGB format with alpha
+            format = GL_RGBA;
+        } break;
         default:
             throw std::runtime_error("Invalid color attachment type passed " + std::to_string(type));
         }
@@ -200,6 +204,13 @@ namespace Bess::Gl {
         bindColorAttachmentForRead(idx);
         m_colorAttachments[idx].getTextureHandle()->saveToPath(path, false);
         unbindAll();
+    }
+
+    std::vector<unsigned char> FrameBuffer::getPixelsFromColorAttachment(int idx) {
+        bindColorAttachmentForRead(idx);
+        auto buffer = m_colorAttachments[idx].getTextureHandle()->getData(false);
+        unbindAll();
+        return buffer;
     }
 
     std::string FrameBuffer::getFramebufferStatusReason(const GLenum status) {

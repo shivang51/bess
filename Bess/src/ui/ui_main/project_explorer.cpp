@@ -4,10 +4,10 @@
 #include "imgui_internal.h"
 #include "modules/schematic_gen/schematic_view.h"
 #include "scene/scene.h"
-#include "ui/icons/CodIcons.h"
 
 namespace Bess::UI {
-    std::string ProjectExplorer::windowName = std::string(Icons::CodIcons::TYPE_HIERARCHY) + "  Project Explorer";
+
+    bool ProjectExplorer::isShown = true;
 
     std::pair<bool, bool> ProjectExplorerNode(uint64_t id_, const char *label, bool selected, bool multiSelectMode) {
         ImGuiContext &g = *ImGui::GetCurrentContext();
@@ -62,7 +62,10 @@ namespace Bess::UI {
     }
 
     void ProjectExplorer::draw() {
-        ImGui::Begin(windowName.c_str());
+        if (!isShown)
+            return;
+
+        ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
         auto &scene = Bess::Canvas::Scene::instance();
         auto &registry = scene.getEnttRegistry();

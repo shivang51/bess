@@ -4,7 +4,10 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "simulation_engine.h"
+#include "stb_image_write.h"
+#include "ui/icons/MaterialIcons.h"
 #include "ui/m_widgets.h"
+#include "ui/ui_main/scene_export_window.h"
 #include <string>
 
 #include "camera.h"
@@ -15,6 +18,7 @@
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/dialogs.h"
+#include "ui/ui_main/graph_view_window.h"
 #include "ui/ui_main/popups.h"
 #include "ui/ui_main/project_explorer.h"
 #include "ui/ui_main/project_settings_window.h"
@@ -38,6 +42,8 @@ namespace Bess::UI {
         ComponentExplorer::draw();
         ProjectExplorer::draw();
         PropertiesPanel::draw();
+        GraphViewWindow::draw();
+
         drawStatusbar();
         drawExternalWindows();
     }
@@ -139,7 +145,7 @@ namespace Bess::UI {
                 temp_name = Icons::FontAwesomeIcons::FA_FILE_IMAGE;
                 temp_name += "  Scene View PNG";
                 if (ImGui::MenuItem(temp_name.c_str())) {
-                    onExportSceneView();
+                    SceneExportWindow::show();
                 }
                 ImGui::EndMenu();
             }
@@ -182,13 +188,17 @@ namespace Bess::UI {
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("Simulation")) {
-            std::string text = m_pageState->isSimulationPaused() ? Icons::FontAwesomeIcons::FA_PLAY : Icons::FontAwesomeIcons::FA_PAUSE;
-            text += m_pageState->isSimulationPaused() ? "  Play" : "  Pause";
+        ImGui::SetNextWindowSize(ImVec2(300, 0));
+        if (ImGui::BeginMenu("View")) {
 
-            if (ImGui::MenuItem(text.c_str(), "Ctrl+Space")) {
-                m_pageState->setSimulationPaused(!m_pageState->isSimulationPaused());
-            }
+            MWidgets::CheckboxWithLabel(ProjectExplorer::windowName.data(), &ProjectExplorer::isShown);
+
+            MWidgets::CheckboxWithLabel(ComponentExplorer::windowName.data(), &ComponentExplorer::isShown);
+
+            MWidgets::CheckboxWithLabel(PropertiesPanel::windowName.data(), &PropertiesPanel::isShown);
+
+            MWidgets::CheckboxWithLabel(GraphViewWindow::windowName.data(), &GraphViewWindow::isShown);
+
             ImGui::EndMenu();
         }
 
@@ -459,13 +469,15 @@ namespace Bess::UI {
 
         auto dock_id_left = ImGui::DockBuilderSplitNode(mainDockspaceId, ImGuiDir_Left, 0.15f, nullptr, &mainDockspaceId);
         auto dock_id_right = ImGui::DockBuilderSplitNode(mainDockspaceId, ImGuiDir_Right, 0.25f, nullptr, &mainDockspaceId);
+        auto dock_id_bot = ImGui::DockBuilderSplitNode(mainDockspaceId, ImGuiDir_Down, 0.25f, nullptr, &mainDockspaceId);
 
         auto dock_id_right_bot = ImGui::DockBuilderSplitNode(dock_id_right, ImGuiDir_Down, 0.5f, nullptr, &dock_id_right);
 
-        ImGui::DockBuilderDockWindow(ComponentExplorer::windowName.c_str(), dock_id_left);
+        ImGui::DockBuilderDockWindow(ComponentExplorer::windowName.data(), dock_id_left);
         ImGui::DockBuilderDockWindow("Viewport", mainDockspaceId);
-        ImGui::DockBuilderDockWindow(ProjectExplorer::windowName.c_str(), dock_id_right);
-        ImGui::DockBuilderDockWindow("Properties", dock_id_right_bot);
+        ImGui::DockBuilderDockWindow(ProjectExplorer::windowName.data(), dock_id_right);
+        ImGui::DockBuilderDockWindow(PropertiesPanel::windowName.data(), dock_id_right_bot);
+        ImGui::DockBuilderDockWindow(GraphViewWindow::windowName.data(), dock_id_bot);
 
         ImGui::DockBuilderFinish(mainDockspaceId);
     }
@@ -473,6 +485,7 @@ namespace Bess::UI {
     void UIMain::drawExternalWindows() {
         SettingsWindow::draw();
         ProjectSettingsWindow::draw();
+        SceneExportWindow::draw();
     }
 
     void UIMain::onNewProject() {

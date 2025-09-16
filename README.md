@@ -1,8 +1,4 @@
-<h1>
-  <img alt="BESS:" style="height: 2em;" src="assets/images/logo/BessLogo.png"/> 
-  Basic Electrical Simulation Software
-</h1>
-
+# <img alt="BESS: Basic Electrical Simulation Software" src="assets/images/logo/NameLogo.png"/>
 
 BESS is a software for simulating electrical circuits (for now digital components). It is designed to be simple to use and easy to understand. It is intended for educational purposes, but can also be used for professional work.
 
@@ -45,7 +41,9 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
        ./Bess
        ```
 ## TODO
+- [x] Add seven segment display (Added CLR for flip flops as well)
+- [x] Add some graph visulization for clock cycles
 - [ ] Command System
 - [ ] Test Cases for simulation engine
 - [ ] Undo, Redo functionality
-- [ ] Using emscripten to host on web 
+- [ ] Using emscripten to host on web

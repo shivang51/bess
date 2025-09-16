@@ -4,6 +4,7 @@
 #include "commands/commands_manager.h"
 #include "component_types/component_types.h"
 #include "entt/entity/fwd.hpp"
+#include "entt_components.h"
 #include "types.h"
 #include <chrono>
 #include <condition_variable>
@@ -39,6 +40,7 @@ namespace Bess::SimEngine {
         bool updateClock(const UUID &uuid, bool enable, float frequency, FrequencyUnit unit);
 
         std::chrono::milliseconds getSimulationTimeMS();
+        std::chrono::seconds getSimulationTimeS();
 
         SimulationState toggleSimState();
         SimulationState getSimulationState();
@@ -59,20 +61,25 @@ namespace Bess::SimEngine {
             auto ent = getEntityWithUuid(uuid);
             return m_registry.get<EnttComponentType>(ent);
         }
+        bool updateInputCount(const UUID &uuid, int n);
+
+        std::vector<std::pair<float, bool>> getStateMonitorData(UUID uuid);
 
         friend class SimEngineSerializer;
 
       private:
-        void scheduleEvent(entt::entity e, entt::entity schedulerEntity, SimDelayMilliSeconds t);
+        void scheduleEvent(entt::entity e, entt::entity schedulerEntity, SimDelayNanoSeconds t);
         void clearEventsForEntity(entt::entity e);
-        std::vector<bool> getInputPinsState(entt::entity e) const;
+        std::vector<PinState> getInputPinsState(entt::entity e) const;
         const std::pair<std::vector<bool>, std::vector<bool>> &getIOPinsConnectedState(entt::entity e);
-        bool simulateComponent(entt::entity e, const std::vector<bool> &inputs);
+        bool simulateComponent(entt::entity e, const std::vector<PinState> &inputs);
         void run();
 
         entt::entity getEntityWithUuid(const UUID &uuid) const;
 
         std::thread m_simThread;
+
+        std::chrono::steady_clock m_realWorldClock;
 
         mutable std::mutex m_queueMutex;
         mutable std::mutex m_stateMutex;

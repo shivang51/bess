@@ -44,11 +44,13 @@ namespace Bess::Canvas {
         void reset();
         void clear();
         void render();
+        void renderWithCamera(std::shared_ptr<Camera> camera);
         void update(const std::vector<ApplicationEvent> &events);
 
         unsigned int getTextureId();
         std::shared_ptr<Camera> getCamera();
 
+        void drawScene(std::shared_ptr<Camera> camera);
         void beginScene();
         void endScene();
 

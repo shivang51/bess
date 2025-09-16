@@ -1,6 +1,6 @@
-#include "common/log.h"
 #include "application.h"
 #include "application_state.h"
+#include "common/log.h"
 #include "events/application_event.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
