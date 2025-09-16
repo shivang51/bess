@@ -4,7 +4,7 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "properties.h"
-#include "scene/commands/commands.h"
+#include "scene/commands/add_command.h"
 #include "scene/scene.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/m_widgets.h"

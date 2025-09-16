@@ -79,7 +79,10 @@ set(Header_Files
 "include/scene/renderer/gl/utils.h"
 "include/scene/renderer/gl/instanced_vao.h"
 "include/scene/renderer/gl/batch_vao.h"
-"include/scene/renderer/gl/vaos.h" 
+"include/scene/renderer/gl/vaos.h"
+"include/scene/commands/add_command.h"
+"include/scene/commands/connect_command.h"
+"include/scene/commands/delete_comp_command.h"
 )
 
 source_group("include" FILES ${Header_Files})
@@ -125,8 +128,11 @@ set(Source_Files
 "src/scene/renderer/gl/fb_attachment.cpp"
 "src/scene/renderer/gl/framebuffer.cpp"
 "src/scene/renderer/gl/vao.cpp"
-"src/scene/renderer/renderer.cpp" 
+"src/scene/renderer/renderer.cpp"
 "src/scene/renderer/gl/vaos.cpp"
+"src/scene/commands/add_command.cpp"
+"src/scene/commands/connect_command.cpp"
+"src/scene/commands/delete_comp_command.cpp"
 )
 
 source_group("src" FILES ${Source_Files})
@@ -137,7 +143,7 @@ set(ALL_FILES
     ${Source_Files}
 )
 
-add_executable(${PROJECT_NAME} ${ALL_FILES} "include/scene/commands/commands.h" "src/scene/commands.cpp")
+add_executable(${PROJECT_NAME} ${ALL_FILES})
 target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine)
 add_dependencies(${PROJECT_NAME} BessSimEngine)
 if("${BUILD_ARCH}" STREQUAL "x64" AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
