@@ -7,7 +7,27 @@ namespace Bess::SimEngine::Commands {
     }
 
     bool AddCommand::execute() {
-        m_compId = SimulationEngine::instance().addComponent(m_compType, m_inputCount, m_outputCount);
+
+        auto &engine = SimulationEngine::instance();
+
+        if (m_redo) {
+            SimEngineSerializer ser;
+            ser.deserializeEntity(m_compJson);
+            for (int i = 0; i < m_connections.inputs.size(); i++) {
+                for (auto &conn : m_connections.inputs[i]) {
+                    engine.connectComponent(m_compId, i, PinType::input, conn.first, conn.second, PinType::output, true);
+                }
+            }
+
+            for (int i = 0; i < m_connections.outputs.size(); i++) {
+                for (auto &conn : m_connections.outputs[i]) {
+                    engine.connectComponent(m_compId, i, PinType::output, conn.first, conn.second, PinType::input, true);
+                }
+            }
+        } else {
+            m_compId = engine.addComponent(m_compType, m_inputCount, m_outputCount);
+        }
+
         return m_compId != UUID::null;
     }
 
@@ -15,7 +35,19 @@ namespace Bess::SimEngine::Commands {
         if (m_compId == UUID::null)
             return UUID::null;
 
-        SimulationEngine::instance().deleteComponent(m_compId);
+        auto &engine = SimulationEngine::instance();
+
+        m_compJson.clear();
+        SimEngineSerializer ser;
+        ser.serializeEntity(m_compId, m_compJson);
+
+        m_connections = engine.getConnections(m_compId);
+
+        engine.deleteComponent(m_compId);
+
+        m_redo = true;
+
+        return {};
     }
 
     std::any AddCommand::getResult() {
@@ -37,6 +69,7 @@ namespace Bess::SimEngine::Commands {
 
     std::any ConnectCommand::undo() {
         SimulationEngine::instance().deleteConnection(m_src, m_srcType, m_srcPin, m_dst, m_dstType, m_dstPin);
+        return {};
     }
 
     std::any ConnectCommand::getResult() {

@@ -5,6 +5,7 @@
 
 #include "component_definition.h"
 #include "scene/components/components.h"
+#include "json/value.h"
 
 namespace Bess::Canvas::Commands {
     using Command = SimEngine::Commands::Command;
@@ -24,5 +25,7 @@ namespace Bess::Canvas::Commands {
         std::shared_ptr<const SimEngine::ComponentDefinition> m_compDef;
         int m_inpCount;
         int m_outCount;
+        Json::Value m_compJson;
+        bool m_redo = false;
     };
 } // namespace Bess::Canvas::Commands

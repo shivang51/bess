@@ -1,4 +1,5 @@
 #include "scene/scene.h"
+#include "bess_uuid.h"
 #include "common/log.h"
 #include "component_catalog.h"
 #include "entt/entity/entity.hpp"
@@ -135,11 +136,24 @@ namespace Bess::Canvas {
         auto mainPageState = Pages::MainPageState::getInstance();
         if (mainPageState->isKeyPressed(GLFW_KEY_DELETE)) {
             auto view = m_registry.view<Components::IdComponent, Components::SelectedComponent>();
+
+            std::vector<entt::entity> connEntites = {};
             for (auto &entt : view) {
+                if (!m_registry.valid(entt))
+                    continue;
+
                 if (m_registry.all_of<Components::ConnectionComponent>(entt)) {
-                    auto _ = m_cmdManager.execute<Commands::DelConnectionCommand, std::string>(getUuidOfEntity(entt));
+                    connEntites.emplace_back(entt);
                 } else {
                     auto _ = m_cmdManager.execute<Commands::DeleteCompCommand, std::string>(getUuidOfEntity(entt));
+                }
+            }
+
+            for (auto entt : connEntites) {
+                if (!m_registry.valid(entt))
+                    continue;
+                if (m_registry.all_of<Components::ConnectionComponent>(entt)) {
+                    auto _ = m_cmdManager.execute<Commands::DelConnectionCommand, std::string>(getUuidOfEntity(entt));
                 }
             }
         }
@@ -671,7 +685,7 @@ namespace Bess::Canvas {
         deleteConnectionFromScene(entityUuid);
     }
 
-    entt::entity Scene::generateBasicConnection(entt::entity inputSlot, entt::entity outputSlot) {
+    UUID Scene::generateBasicConnection(entt::entity inputSlot, entt::entity outputSlot) {
         auto connEntt = m_registry.create();
         auto &idComp = m_registry.emplace<Components::IdComponent>(connEntt);
         auto &connComp = m_registry.emplace<Components::ConnectionComponent>(connEntt);
@@ -720,11 +734,12 @@ namespace Bess::Canvas {
         inpSlotComp.connections.emplace_back(idComp.uuid);
         outSlotComp.connections.emplace_back(idComp.uuid);
 
-        return connEntt;
+        return idComp.uuid;
     }
 
-    void Scene::connectSlots(entt::entity startSlot, entt::entity endSlot) {
-        auto res = m_cmdManager.execute<Commands::ConnectCommand, bool>(startSlot, endSlot);
+    UUID Scene::connectSlots(UUID startSlot, UUID endSlot) {
+        return generateBasicConnection(getEntityWithUuid(startSlot),
+                                       getEntityWithUuid(endSlot));
     }
 
     bool Scene::isEntityValid(const UUID &uuid) {
@@ -783,7 +798,8 @@ namespace Bess::Canvas {
                     m_drawMode = SceneDrawMode::connection;
                 } else if (m_drawMode == SceneDrawMode::connection) {
                     m_drawMode = SceneDrawMode::none;
-                    connectSlots(getEntityWithUuid(m_connectionStartEntity), hoveredEntity);
+                    auto _ = m_cmdManager.execute<Commands::ConnectCommand, UUID>(
+                        m_connectionStartEntity, m_hoveredEntity);
                 }
             } else {
                 if (m_sceneMode != SceneMode::move &&

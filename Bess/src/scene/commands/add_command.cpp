@@ -3,6 +3,7 @@
 
 // sim engine commands
 #include "commands/commands.h"
+#include "scene/scene_serializer.h"
 
 namespace Bess::Canvas::Commands {
     AddCommand::AddCommand(std::shared_ptr<const SimEngine::ComponentDefinition> comp,
@@ -16,6 +17,14 @@ namespace Bess::Canvas::Commands {
 
     bool AddCommand::execute() {
         auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
+
+        if (m_redo) {
+            cmdMngr.redo();
+            SceneSerializer ser;
+            ser.deserializeEntity(m_compJson);
+            return true;
+        }
+
         auto simEngineUuid = cmdMngr.execute<SimEngine::Commands::AddCommand, Bess::UUID>(m_compDef->type, m_inpCount, m_outCount);
         if (!simEngineUuid.has_value())
             return false;
@@ -27,6 +36,11 @@ namespace Bess::Canvas::Commands {
     std::any AddCommand::undo() {
         auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
         cmdMngr.undo();
+
+        m_compJson.clear();
+        SceneSerializer ser;
+        ser.serializeEntity(m_compId, m_compJson);
+        m_redo = true;
 
         Scene::instance().deleteSceneEntity(m_compId);
         return {};

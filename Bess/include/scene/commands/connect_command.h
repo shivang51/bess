@@ -5,19 +5,25 @@
 
 #include "component_definition.h"
 #include "scene/components/components.h"
+#include "json/value.h"
+#include "json/writer.h"
 
 namespace Bess::Canvas::Commands {
     using Command = SimEngine::Commands::Command;
     class ConnectCommand : public Command {
       public:
-        ConnectCommand(entt::entity startSlot, entt::entity endSlot);
+        ConnectCommand(UUID startSlot, UUID endSlot);
         bool execute() override;
         std::any undo() override;
         COMMAND_RESULT_OVERRIDE;
 
       private:
-        entt::entity m_startSlot;
-        entt::entity m_endSlot;
-        entt::entity m_connection;
+        UUID m_startSlot;
+        UUID m_endSlot;
+        UUID m_connection;
+        Json::Value m_json;
+
+        bool m_redo = false;
+        bool m_delete = false;
     };
 } // namespace Bess::Canvas::Commands

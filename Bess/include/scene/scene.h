@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_uuid.h"
 #include "camera.h"
 #include "commands/commands_manager.h"
 #include "component_definition.h"
@@ -83,14 +84,13 @@ namespace Bess::Canvas {
         void deleteEntity(const UUID &entUuid);
         void deleteConnection(const UUID &entUuid);
         void deleteConnectionFromScene(const UUID &entUuid);
-        void removeConnectionEntt(const entt::entity ent);
         entt::entity getEntityWithUuid(const UUID &uuid);
         bool isEntityValid(const UUID &uuid);
         void setZCoord(float val);
 
         SimEngine::Commands::CommandsManager &getCmdManager();
-        entt::entity generateBasicConnection(entt::entity startSlot, entt::entity endSlot);
-        void connectSlots(entt::entity startSlot, entt::entity endSlot);
+        UUID generateBasicConnection(entt::entity startSlot, entt::entity endSlot);
+        UUID connectSlots(UUID startSlot, UUID endSlot);
 
       private:
         const UUID &getUuidOfEntity(entt::entity ent);
@@ -98,6 +98,7 @@ namespace Bess::Canvas {
         // gets entity from scene that has reference to passed simulation engine uuid
         entt::entity getSceneEntityFromSimUuid(const UUID &uuid) const;
 
+        void removeConnectionEntt(const entt::entity ent);
         void updateHoveredId();
 
         void onMouseMove(const glm::vec2 &pos);

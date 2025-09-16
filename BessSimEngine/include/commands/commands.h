@@ -23,6 +23,10 @@ namespace Bess::SimEngine::Commands {
         int m_inputCount;
         int m_outputCount;
         UUID m_compId = UUID::null;
+        Json::Value m_compJson;
+        ConnectionBundle m_connections;
+
+        bool m_redo = false;
     };
 
     class BESS_API ConnectCommand : public Command {
