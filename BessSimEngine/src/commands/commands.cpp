@@ -70,13 +70,13 @@ namespace Bess::SimEngine::Commands {
         auto &engine = SimulationEngine::instance();
 
         for (int i = 0; i < m_connections.inputs.size(); i++) {
-            for (auto& conn: m_connections.inputs[i]) {
+            for (auto &conn : m_connections.inputs[i]) {
                 engine.connectComponent(m_compId, i, PinType::input, conn.first, conn.second, PinType::output, true);
             }
         }
 
         for (int i = 0; i < m_connections.outputs.size(); i++) {
-            for (auto& conn: m_connections.outputs[i]) {
+            for (auto &conn : m_connections.outputs[i]) {
                 engine.connectComponent(m_compId, i, PinType::output, conn.first, conn.second, PinType::input, true);
             }
         }
@@ -99,6 +99,8 @@ namespace Bess::SimEngine::Commands {
 
     std::any DelConnectionCommand::undo() {
         SimulationEngine::instance().connectComponent(m_src, m_srcPin, m_srcType, m_dst, m_dstPin, m_dstType);
+
+        return {};
     }
 
     std::any DelConnectionCommand::getResult() {

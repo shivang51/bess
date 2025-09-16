@@ -12,6 +12,7 @@
 #include "pages/main_page/main_page_state.h"
 #include "scene/artist.h"
 #include "scene/commands/connect_command.h"
+#include "scene/commands/del_connection_command.h"
 #include "scene/commands/delete_comp_command.h"
 #include "scene/components/components.h"
 #include "scene/renderer/renderer.h"
@@ -135,20 +136,26 @@ namespace Bess::Canvas {
             auto view = m_registry.view<Components::IdComponent, Components::SelectedComponent>();
             for (auto &entt : view) {
                 if (m_registry.all_of<Components::ConnectionComponent>(entt)) {
-                    deleteConnection(getUuidOfEntity(entt));
+                    auto _ = m_cmdManager.execute<Commands::DelConnectionCommand, std::string>(getUuidOfEntity(entt));
                 } else {
-                    m_cmdManager.execute<Commands::DeleteCompCommand, std::string>(getUuidOfEntity(entt));
+                    auto _ = m_cmdManager.execute<Commands::DeleteCompCommand, std::string>(getUuidOfEntity(entt));
                 }
             }
         }
 
         if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
-            if (mainPageState->isKeyPressed(GLFW_KEY_A)) { // ctrl-a select all components
+            if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
+                if (mainPageState->isKeyPressed(GLFW_KEY_Z)) {
+                    m_cmdManager.redo();
+                }
+            } else if (mainPageState->isKeyPressed(GLFW_KEY_A)) { // ctrl-a select all components
                 selectAllEntities();
             } else if (mainPageState->isKeyPressed(GLFW_KEY_C)) { // ctrl-c copy selected components
                 copySelectedComponents();
             } else if (mainPageState->isKeyPressed(GLFW_KEY_V)) { // ctrl-v generate copied components
                 generateCopiedComponents();
+            } else if (mainPageState->isKeyPressed(GLFW_KEY_Z)) {
+                m_cmdManager.undo();
             }
         }
     }
@@ -339,8 +346,7 @@ namespace Bess::Canvas {
             for (auto slot : simComp.inputSlots) {
                 auto &slotComp = m_registry.get<Components::SlotComponent>(getEntityWithUuid(slot));
                 for (auto &conn : slotComp.connections) {
-                    removeConnectionEntt(getEntityWithUuid(conn));
-                    m_uuidToEntt.erase(conn);
+                    deleteConnectionFromScene(conn);
                 }
 
                 m_registry.destroy(getEntityWithUuid(slot));
@@ -350,8 +356,7 @@ namespace Bess::Canvas {
             for (auto slot : simComp.outputSlots) {
                 auto &slotComp = m_registry.get<Components::SlotComponent>(getEntityWithUuid(slot));
                 for (auto &conn : slotComp.connections) {
-                    removeConnectionEntt(getEntityWithUuid(conn));
-                    m_uuidToEntt.erase(conn);
+                    deleteConnectionFromScene(conn);
                 }
 
                 m_registry.destroy(getEntityWithUuid(slot));
@@ -626,12 +631,29 @@ namespace Bess::Canvas {
 
         m_registry.destroy(ent);
 
-        BESS_INFO("[Scene] Deleted connection");
+        BESS_INFO("[Scene] Deleted connection entity");
+    }
+
+    void Scene::deleteConnectionFromScene(const UUID &uuid) {
+        if (m_hoveredEntity == uuid)
+            m_hoveredEntity = UUID::null;
+
+        auto entity = getEntityWithUuid(uuid);
+        auto &connComp = m_registry.get<Components::ConnectionComponent>(entity);
+
+        auto &slotCompA = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.inputSlot));
+        auto &slotCompB = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.outputSlot));
+
+        removeConnectionEntt(entity);
+        m_uuidToEntt.erase(uuid);
+
+        slotCompA.connections.erase(std::ranges::remove(slotCompA.connections, uuid).begin(), slotCompA.connections.end());
+        slotCompB.connections.erase(std::ranges::remove(slotCompB.connections, uuid).begin(), slotCompB.connections.end());
+        BESS_INFO("[Scene] Removed connection from scene");
     }
 
     void Scene::deleteConnection(const UUID &entityUuid) {
         auto entity = getEntityWithUuid(entityUuid);
-        m_hoveredEntity = UUID::null;
         auto &connComp = m_registry.get<Components::ConnectionComponent>(entity);
 
         auto &slotCompA = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.inputSlot));
@@ -645,19 +667,7 @@ namespace Bess::Canvas {
 
         SimEngine::SimulationEngine::instance().deleteConnection(simCompA.simEngineEntity, pinTypeA, slotCompA.idx, simCompB.simEngineEntity, pinTypeB, slotCompB.idx);
 
-        auto segEntt = connComp.segmentHead;
-        while (segEntt != UUID::null) {
-            auto connSegComp = m_registry.get<Components::ConnectionSegmentComponent>(getEntityWithUuid(segEntt));
-            m_registry.destroy(getEntityWithUuid(segEntt));
-            segEntt = connSegComp.next;
-        }
-
-        slotCompA.connections.erase(std::ranges::remove(slotCompA.connections, entityUuid).begin(), slotCompA.connections.end());
-        slotCompB.connections.erase(std::ranges::remove(slotCompB.connections, entityUuid).begin(), slotCompB.connections.end());
-
-        m_registry.destroy(entity);
-
-        BESS_INFO("[Scene] Deleted connection");
+        deleteConnectionFromScene(entityUuid);
     }
 
     entt::entity Scene::generateBasicConnection(entt::entity inputSlot, entt::entity outputSlot) {

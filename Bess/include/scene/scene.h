@@ -74,7 +74,7 @@ namespace Bess::Canvas {
 
         UUID createSimEntity(const UUID &simEngineEntt, std::shared_ptr<const SimEngine::ComponentDefinition> comp, const glm::vec2 &pos);
         UUID createSimEntity(const UUID &simEngineEntt, std::shared_ptr<const SimEngine::ComponentDefinition> comp,
-            const glm::vec2 &pos, UUID uuid, const std::vector<UUID>& inputSlotIds, const std::vector<UUID> &outputSlotIds);
+                             const glm::vec2 &pos, UUID uuid, const std::vector<UUID> &inputSlotIds, const std::vector<UUID> &outputSlotIds);
         UUID createNonSimEntity(const Canvas::Components::NSComponent &comp, const glm::vec2 &pos);
 
         void deleteSceneEntity(const UUID &entUuid);
@@ -82,6 +82,7 @@ namespace Bess::Canvas {
         /// deletes entity from sim engine as well
         void deleteEntity(const UUID &entUuid);
         void deleteConnection(const UUID &entUuid);
+        void deleteConnectionFromScene(const UUID &entUuid);
         void removeConnectionEntt(const entt::entity ent);
         entt::entity getEntityWithUuid(const UUID &uuid);
         bool isEntityValid(const UUID &uuid);

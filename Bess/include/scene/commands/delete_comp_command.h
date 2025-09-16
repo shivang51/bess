@@ -19,7 +19,7 @@ namespace Bess::Canvas::Commands {
       private:
         UUID m_compId;
         Json::Value m_compJson;
-        bool m_isSimComponent = false;
+        bool m_isSimComponent = false, m_redo = false;
         std::unordered_map<UUID, std::vector<UUID>> m_connections;
     };
 } // namespace Bess::Canvas::Commands

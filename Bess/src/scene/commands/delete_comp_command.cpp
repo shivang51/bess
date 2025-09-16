@@ -14,12 +14,19 @@ namespace Bess::Canvas::Commands {
 
         const auto ent = Scene::instance().getEntityWithUuid(m_compId);
 
-        if (auto* simComp = registry.try_get<Components::SimulationComponent>(ent)) {
+        if (auto *simComp = registry.try_get<Components::SimulationComponent>(ent)) {
             auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
-            auto res = cmdMngr.execute<SimEngine::Commands::DeleteCompCommand, std::string>(simComp->simEngineEntity);
+
+            if (!m_redo) {
+                auto _ = cmdMngr.execute<SimEngine::Commands::DeleteCompCommand, std::string>(simComp->simEngineEntity);
+            } else {
+                cmdMngr.redo();
+            }
+
             m_isSimComponent = true;
         }
 
+        m_compJson.clear();
         SceneSerializer ser;
         ser.serializeEntity(m_compId, m_compJson);
 
@@ -36,6 +43,8 @@ namespace Bess::Canvas::Commands {
 
         SceneSerializer ser;
         ser.deserializeEntity(m_compJson);
+
+        m_redo = true;
 
         return true;
     }
