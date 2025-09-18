@@ -6,20 +6,27 @@
 #include "component_definition.h"
 #include "scene/components/components.h"
 #include "json/json.h"
+#include "json/value.h"
 
 namespace Bess::Canvas::Commands {
     using Command = SimEngine::Commands::Command;
-    class BESS_API DeleteCompCommand : public Command {
+
+    class DeleteCompCommand : public Command {
       public:
-        DeleteCompCommand(const UUID &compId);
+        DeleteCompCommand(const std::vector<UUID> &compIds);
         bool execute() override;
         std::any undo() override;
         COMMAND_RESULT_OVERRIDE;
 
       private:
-        UUID m_compId;
-        Json::Value m_compJson;
-        bool m_isSimComponent = false, m_redo = false;
-        std::unordered_map<UUID, std::vector<UUID>> m_connections;
+        struct DeleteCompCommandData {
+            UUID id, simCompId = UUID::null;
+            std::unordered_map<UUID, std::vector<UUID>> connections;
+            Json::Value compJson;
+        };
+        std::vector<UUID> m_compIds;
+        std::vector<DeleteCompCommandData> m_delData;
+        std::vector<UUID> m_simEngineComps = {};
+        bool m_redo = false;
     };
 } // namespace Bess::Canvas::Commands

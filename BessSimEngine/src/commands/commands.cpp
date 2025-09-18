@@ -1,6 +1,8 @@
 #include "commands/commands.h"
+#include "bess_uuid.h"
 #include "simulation_engine.h"
 #include "simulation_engine_serializer.h"
+#include "json/value.h"
 
 namespace Bess::SimEngine::Commands {
     AddCommand::AddCommand(ComponentType type, int inputCount, int outputCount) : m_compType(type), m_inputCount(inputCount), m_outputCount(outputCount) {
@@ -76,45 +78,50 @@ namespace Bess::SimEngine::Commands {
         return std::string("successfully connected");
     }
 
-    DeleteCompCommand::DeleteCompCommand(const UUID &compId) : m_compId(compId) {}
+    DeleteCompCommand::DeleteCompCommand(const std::vector<UUID> &compIds) : m_compIds(compIds) {
+        m_delCompData = std::vector<DelCompData>(m_compIds.size(), {UUID::null, {}, Json::objectValue});
+    }
 
     bool DeleteCompCommand::execute() {
-        if (m_compId == UUID::null)
-            return false;
-
         auto &engine = SimulationEngine::instance();
-
         SimEngineSerializer ser;
-        ser.serializeEntity(m_compId, m_compJson);
+        size_t i = 0;
+        for (const auto compId : m_compIds) {
+            auto &data = m_delCompData[i++];
+            data.id = compId;
+            data.json.clear();
+            ser.serializeEntity(compId, data.json);
+            data.connections = engine.getConnections(compId);
+            engine.deleteComponent(compId);
+        }
 
-        m_connections = engine.getConnections(m_compId);
-
-        engine.deleteComponent(m_compId);
         return true;
     }
 
     std::any DeleteCompCommand::undo() {
-        if (m_compId == UUID::null)
-            return UUID::null;
-
         SimEngineSerializer ser;
-        ser.deserializeEntity(m_compJson);
+        for (const auto &delData : m_delCompData) {
+            ser.deserializeEntity(delData.json);
 
-        auto &engine = SimulationEngine::instance();
+            auto &engine = SimulationEngine::instance();
 
-        for (int i = 0; i < m_connections.inputs.size(); i++) {
-            for (auto &conn : m_connections.inputs[i]) {
-                engine.connectComponent(m_compId, i, PinType::input, conn.first, conn.second, PinType::output, true);
+            const auto compId = delData.id;
+            const auto &connections = delData.connections;
+
+            for (int i = 0; i < connections.inputs.size(); i++) {
+                for (auto &conn : connections.inputs[i]) {
+                    engine.connectComponent(compId, i, PinType::input, conn.first, conn.second, PinType::output, true);
+                }
+            }
+
+            for (int i = 0; i < connections.outputs.size(); i++) {
+                for (auto &conn : connections.outputs[i]) {
+                    engine.connectComponent(compId, i, PinType::output, conn.first, conn.second, PinType::input, true);
+                }
             }
         }
 
-        for (int i = 0; i < m_connections.outputs.size(); i++) {
-            for (auto &conn : m_connections.outputs[i]) {
-                engine.connectComponent(m_compId, i, PinType::output, conn.first, conn.second, PinType::input, true);
-            }
-        }
-
-        return m_compId;
+        return true;
     }
 
     std::any DeleteCompCommand::getResult() {

@@ -222,6 +222,7 @@ namespace Bess::JsonConvert {
         toJsonValue(comp.borderColor, j["borderColor"]);
         toJsonValue(comp.borderSize, j["borderSize"]);
         toJsonValue(comp.borderRadius, j["borderRadius"]);
+        toJsonValue(comp.headerColor, j["headerColor"]);
     }
 
     /**
@@ -242,6 +243,9 @@ namespace Bess::JsonConvert {
         }
         if (j.isMember("borderRadius")) {
             fromJsonValue(j["borderRadius"], comp.borderRadius);
+        }
+        if (j.isMember("headerColor")) {
+            fromJsonValue(j["headerColor"], comp.headerColor);
         }
     }
 

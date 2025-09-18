@@ -48,15 +48,20 @@ namespace Bess::SimEngine::Commands {
 
     class BESS_API DeleteCompCommand : public Command {
       public:
-        DeleteCompCommand(const UUID &compId);
+        DeleteCompCommand(const std::vector<UUID> &compId);
         bool execute() override;
         std::any undo() override;
         COMMAND_RESULT_OVERRIDE;
 
       private:
-        UUID m_compId;
-        Json::Value m_compJson;
-        ConnectionBundle m_connections;
+        struct DelCompData {
+            UUID id;
+            ConnectionBundle connections;
+            Json::Value json;
+        };
+
+        std::vector<UUID> m_compIds;
+        std::vector<DelCompData> m_delCompData;
     };
 
     class BESS_API DelConnectionCommand : public Command {

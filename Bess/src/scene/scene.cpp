@@ -138,19 +138,22 @@ namespace Bess::Canvas {
         if (mainPageState->isKeyPressed(GLFW_KEY_DELETE)) {
             auto view = m_registry.view<Components::IdComponent, Components::SelectedComponent>();
 
-            std::vector<entt::entity> connEntites = {};
+            std::vector<UUID> entitesToDel = {};
+            std::vector<entt::entity> connEntitesToDel = {};
             for (auto &entt : view) {
                 if (!m_registry.valid(entt))
                     continue;
 
                 if (m_registry.all_of<Components::ConnectionComponent>(entt)) {
-                    connEntites.emplace_back(entt);
+                    connEntitesToDel.emplace_back(entt);
                 } else {
-                    auto _ = m_cmdManager.execute<Commands::DeleteCompCommand, std::string>(getUuidOfEntity(entt));
+                    entitesToDel.emplace_back(getUuidOfEntity(entt));
                 }
             }
 
-            for (auto entt : connEntites) {
+            auto _ = m_cmdManager.execute<Commands::DeleteCompCommand, std::string>(entitesToDel);
+
+            for (auto entt : connEntitesToDel) {
                 if (!m_registry.valid(entt))
                     continue;
                 if (m_registry.all_of<Components::ConnectionComponent>(entt)) {

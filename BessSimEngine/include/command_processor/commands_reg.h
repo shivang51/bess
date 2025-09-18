@@ -21,13 +21,12 @@ namespace Bess::SimEngine::Commands {
             }
         });
 
-		// --- DELETE COMPONENT ---
+        // --- DELETE COMPONENT ---
         processor.registerCommand("del-comp", [](const std::vector<std::string> &args) -> std::unique_ptr<Command> {
             if (args.size() != 1)
                 return nullptr;
             try {
-                // Convert string to uint64_t, then to UUID
-                UUID id(std::stoull(args[0]));
+                std::vector<UUID> id = {std::stoull(args[0])};
                 return std::make_unique<DeleteCompCommand>(id);
             } catch (const std::exception &) {
                 return nullptr;
