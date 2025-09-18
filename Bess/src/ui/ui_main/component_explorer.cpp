@@ -98,8 +98,13 @@ namespace Bess::UI {
 
     void ComponentExplorer::createComponent(std::shared_ptr<const SimEngine::ComponentDefinition> def, int inputCount, int outputCount) {
         auto &scene = Canvas::Scene::instance();
+        Canvas::Commands::AddCommandData data;
+        data.def = def;
+        data.pos = scene.getCameraPos();
+        data.inputCount = inputCount;
+        data.outputCount = outputCount;
         auto &cmdManager = scene.getCmdManager();
-        auto res = cmdManager.execute<Canvas::Commands::AddCommand, UUID>(def, scene.getCameraPos(), inputCount, outputCount);
+        auto res = cmdManager.execute<Canvas::Commands::AddCommand, UUID>(data);
         if (!res.has_value()) {
             BESS_ERROR("[ComponentExplorer] Failed to execute AddCommand");
         }
@@ -107,7 +112,14 @@ namespace Bess::UI {
 
     void ComponentExplorer::createComponent(const Canvas::Components::NSComponent &comp) {
         auto &scene = Canvas::Scene::instance();
-        scene.createNonSimEntity(comp, scene.getCameraPos());
+        Canvas::Commands::AddCommandData data;
+        data.nsComp = comp;
+        data.pos = scene.getCameraPos();
+        auto &cmdManager = scene.getCmdManager();
+        auto res = cmdManager.execute<Canvas::Commands::AddCommand, UUID>(data);
+        if (!res.has_value()) {
+            BESS_ERROR("[ComponentExplorer] Failed to execute AddCommand");
+        }
     }
 
     ComponentExplorer::ModifiablePropertiesStr ComponentExplorer::generateModifiablePropertiesStr() {

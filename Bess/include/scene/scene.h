@@ -160,7 +160,16 @@ namespace Bess::Canvas {
         std::unordered_map<UUID, entt::entity> m_uuidToEntt = {};
 
         LastCreatedComponent m_lastCreatedComp = {};
-        std::vector<SimEngine::ComponentType> m_copiedComponents = {};
+        struct CopiedComponent {
+            std::shared_ptr<const SimEngine::ComponentDefinition> def = nullptr;
+            Components::NSComponent nsComp;
+            int inputCount, outputCount;
+
+            bool isSimComp() {
+                return def != nullptr;
+            }
+        };
+        std::vector<CopiedComponent> m_copiedComponents = {};
 
         std::shared_ptr<Gl::Texture> m_placeHolderTexture;
         std::shared_ptr<Gl::SubTexture> m_placeHolderSubTexture;

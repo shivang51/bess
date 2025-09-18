@@ -9,22 +9,28 @@
 
 namespace Bess::Canvas::Commands {
     using Command = SimEngine::Commands::Command;
+
+    struct AddCommandData {
+        std::shared_ptr<const SimEngine::ComponentDefinition> def = nullptr;
+        Components::NSComponent nsComp;
+        int inputCount, outputCount;
+        glm::vec2 pos;
+        bool isSimComp() {
+            return def != nullptr;
+        }
+    };
+
     class AddCommand : public Command {
       public:
-        AddCommand(
-            std::shared_ptr<const SimEngine::ComponentDefinition> comp,
-            const glm::vec2 &pos,
-            int inpCount, int outCount);
+        AddCommand(const AddCommandData &data);
+
         bool execute() override;
         std::any undo() override;
         COMMAND_RESULT_OVERRIDE;
 
       private:
+        AddCommandData m_data;
         UUID m_compId = UUID::null;
-        glm::vec2 m_lastPos;
-        std::shared_ptr<const SimEngine::ComponentDefinition> m_compDef;
-        int m_inpCount;
-        int m_outCount;
         Json::Value m_compJson;
         bool m_redo = false;
     };
