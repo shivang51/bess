@@ -152,8 +152,11 @@ namespace Bess::Canvas {
         const float m_zIncrement = 0.001;
         const int snapSize = 2;
         float m_compZCoord = m_zIncrement;
+
         bool m_isDragging = false;
         std::unordered_map<entt::entity, glm::vec2> m_dragOffsets = {};
+        std::unordered_map<UUID, Components::TransformComponent> m_dragStartTransforms = {};
+
         std::unordered_map<UUID, entt::entity> m_uuidToEntt = {};
 
         LastCreatedComponent m_lastCreatedComp = {};

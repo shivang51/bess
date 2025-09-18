@@ -16,6 +16,7 @@
 #include "scene/commands/del_connection_command.h"
 #include "scene/commands/delete_comp_command.h"
 #include "scene/commands/set_input_command.h"
+#include "scene/commands/update_entt_comp_command.h"
 #include "scene/components/components.h"
 #include "scene/renderer/renderer.h"
 #include "settings/viewport_theme.h"
@@ -613,6 +614,9 @@ namespace Bess::Canvas {
                 auto view = m_registry.view<Components::SelectedComponent, Components::TransformComponent>();
                 for (auto &ent : view) {
                     auto &transformComp = view.get<Components::TransformComponent>(ent);
+                    if (!m_dragStartTransforms.contains(getUuidOfEntity(ent))) {
+                        m_dragStartTransforms[getUuidOfEntity(ent)] = transformComp;
+                    }
                     glm::vec2 newPos = getNVPMousePos(m_mousePos);
                     if (!m_isDragging) {
                         auto offset = newPos - glm::vec2(transformComp.position);
@@ -799,6 +803,11 @@ namespace Bess::Canvas {
             if (m_isDragging) {
                 m_isDragging = false;
                 m_dragOffsets.clear();
+                if (!m_dragStartTransforms.empty()) {
+                    auto itr = m_dragStartTransforms.begin();
+                    auto _ = m_cmdManager.execute<Commands::UpdateEnttCompCommand<Components::TransformComponent>, std::string>(itr->first, itr->second, true);
+                }
+                m_dragStartTransforms.clear();
             }
             return;
         }
