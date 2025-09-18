@@ -153,13 +153,15 @@ namespace Bess::Canvas {
 
             auto _ = m_cmdManager.execute<Commands::DeleteCompCommand, std::string>(entitesToDel);
 
-            for (auto entt : connEntitesToDel) {
-                if (!m_registry.valid(entt))
+            std::vector<UUID> connToDel = {};
+            for (auto ent : connEntitesToDel) {
+                if (!m_registry.valid(ent))
                     continue;
-                if (m_registry.all_of<Components::ConnectionComponent>(entt)) {
-                    auto _ = m_cmdManager.execute<Commands::DelConnectionCommand, std::string>(getUuidOfEntity(entt));
-                }
+
+                connToDel.emplace_back(getUuidOfEntity(ent));
             }
+
+            auto __ = m_cmdManager.execute<Commands::DelConnectionCommand, std::string>(connToDel);
         }
 
         if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {

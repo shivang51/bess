@@ -129,16 +129,22 @@ namespace Bess::SimEngine::Commands {
     }
 
     // --- Delete Connection Command ---
-    DelConnectionCommand::DelConnectionCommand(const UUID &src, int srcPin, PinType srcType, const UUID &dst, int dstPin, PinType dstType)
-        : m_src(src), m_srcPin(srcPin), m_srcType(srcType), m_dst(dst), m_dstPin(dstPin), m_dstType(dstType) {}
+    DelConnectionCommand::DelConnectionCommand(const std::vector<DelConnectionCommandData> &data)
+        : m_delData(data) {}
 
     bool DelConnectionCommand::execute() {
-        SimulationEngine::instance().deleteConnection(m_src, m_srcType, m_srcPin, m_dst, m_dstType, m_dstPin);
+        auto &engine = SimulationEngine::instance();
+        for (auto &data : m_delData) {
+            engine.deleteConnection(data.src, data.srcType, data.srcPin, data.dst, data.dstType, data.dstPin);
+        }
         return true;
     }
 
     std::any DelConnectionCommand::undo() {
-        SimulationEngine::instance().connectComponent(m_src, m_srcPin, m_srcType, m_dst, m_dstPin, m_dstType);
+        auto &engine = SimulationEngine::instance();
+        for (auto &data : m_delData) {
+            engine.connectComponent(data.src, data.srcPin, data.srcType, data.dst, data.dstPin, data.dstType);
+        }
 
         return {};
     }

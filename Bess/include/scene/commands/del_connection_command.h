@@ -6,14 +6,14 @@
 namespace Bess::Canvas::Commands {
     class DelConnectionCommand : public SimEngine::Commands::Command {
       public:
-        DelConnectionCommand(UUID uuid);
+        DelConnectionCommand(const std::vector<UUID> &uuid);
         bool execute() override;
         std::any undo() override;
         COMMAND_RESULT_OVERRIDE;
 
       private:
-        UUID m_uuid;
-        Json::Value m_json;
+        std::vector<UUID> m_uuids;
+        std::vector<Json::Value> m_jsons;
         bool m_redo = false;
     };
 } // namespace Bess::Canvas::Commands

@@ -2,6 +2,7 @@
 #include "command_processor/command_processor.h"
 #include "commands/commands.h"
 #include "utils/string_utils.h"
+#include <cstdint>
 
 namespace Bess::SimEngine::Commands {
     void registerAllCommands(CommandProcessor &processor) {
@@ -70,12 +71,13 @@ namespace Bess::SimEngine::Commands {
                 return nullptr;
             try {
                 UUID srcId(std::stoull(args[0]));
-                int srcPin = std::stoi(args[1]);
+                uint32_t srcPin = std::stoul(args[1]);
                 PinType srcType = StringUtils::toPinType(args[2]);
                 UUID dstId(std::stoull(args[3]));
-                int dstPin = std::stoi(args[4]);
+                uint32_t dstPin = std::stoul(args[4]);
                 PinType dstType = StringUtils::toPinType(args[5]);
-                return std::make_unique<DelConnectionCommand>(srcId, srcPin, srcType, dstId, dstPin, dstType);
+                DelConnectionCommandData data = {srcId, srcPin, srcType, dstId, dstPin, dstType};
+                return std::make_unique<DelConnectionCommand>(std::vector{data});
             } catch (const std::exception &) {
                 return nullptr;
             }
