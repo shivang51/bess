@@ -1,6 +1,7 @@
 #include "ui/ui_main/component_explorer.h"
 
 #include "common/helpers.h"
+#include "common/log.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "properties.h"

@@ -1,4 +1,5 @@
 #include "settings/viewport_theme.h"
+#include "glm.hpp"
 #include "imgui.h"
 
 namespace Bess {

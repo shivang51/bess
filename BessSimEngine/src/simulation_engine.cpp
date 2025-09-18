@@ -391,7 +391,7 @@ namespace Bess::SimEngine {
 
     bool SimulationEngine::simulateComponent(entt::entity e, const std::vector<PinState> &inputs) {
         const auto &comp = m_registry.get<DigitalComponent>(e);
-        const auto *def = ComponentCatalog::instance().getComponentDefinition(comp.type);
+        const auto def = ComponentCatalog::instance().getComponentDefinition(comp.type);
         BESS_SE_LOG_EVENT("[BessSimEngine] Simulating {}", def->name);
         if (def && def->simulationFunction) {
             return def->simulationFunction(

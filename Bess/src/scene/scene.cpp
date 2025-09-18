@@ -287,7 +287,7 @@ namespace Bess::Canvas {
             m_registry.emplace<Components::SimulationInputComponent>(entity);
         } else if (comp->type == SimEngine::ComponentType::OUTPUT) {
             m_registry.emplace<Components::SimulationOutputComponent>(entity);
-        } else if (comp.type == SimEngine::ComponentType::STATE_MONITOR) {
+        } else if (comp->type == SimEngine::ComponentType::STATE_MONITOR) {
             m_registry.emplace<Components::SimulationStateMonitor>(entity);
         }
 
@@ -305,7 +305,7 @@ namespace Bess::Canvas {
         } else {
             sprite.color = ViewportTheme::componentBGColor;
             sprite.borderRadius = glm::vec4(6.f);
-            sprite.headerColor = ViewportTheme::getCompHeaderColor(comp.type);
+            sprite.headerColor = ViewportTheme::getCompHeaderColor(comp->type);
         }
 
         sprite.borderSize = glm::vec4(1.f);
