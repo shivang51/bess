@@ -3,59 +3,96 @@
 #include "bess_uuid.h"
 #include "commands/command.h"
 #include "scene/scene.h"
+
+#include <entt/entt.hpp>
+#include <memory>
+#include <vector>
+
 namespace Bess::Canvas::Commands {
+    struct IUpdateOp {
+        virtual ~IUpdateOp() = default;
+        virtual void apply(entt::registry &reg) = 0;
+        virtual void undo(entt::registry &reg) = 0;
+        virtual void redo(entt::registry &reg) = 0;
+    };
 
-    using Command = SimEngine::Commands::Command;
+    template <typename T>
+    struct UpdateOp final : IUpdateOp {
+        UUID m_uuid;
+        T m_newData;
+        T m_oldData;
+        bool m_skipApply{false};
 
-    template <typename TComponent>
-    class UpdateEnttCompCommand : public Command {
+        UpdateOp(UUID uuid, const T &data, bool skip)
+            : m_uuid(uuid), m_newData(data), m_skipApply(skip) {}
+
+        void apply(entt::registry &reg) override {
+            auto ent = Scene::instance().getEntityWithUuid(m_uuid);
+            if (m_skipApply) {
+                m_oldData = m_newData;
+                m_newData = reg.get<T>(ent);
+                return;
+            }
+
+            assert(reg.any_of<T>(ent));
+            m_oldData = reg.get<T>(ent);
+
+            reg.emplace_or_replace<T>(ent, m_newData);
+        }
+
+        void undo(entt::registry &reg) override {
+            auto ent = Scene::instance().getEntityWithUuid(m_uuid);
+            reg.emplace_or_replace<T>(ent, m_oldData);
+        }
+
+        void redo(entt::registry &reg) override {
+            auto ent = Scene::instance().getEntityWithUuid(m_uuid);
+            reg.emplace_or_replace<T>(ent, m_newData);
+        }
+    };
+
+    class UpdateEnttComponentsCommand final : public SimEngine::Commands::Command {
       public:
-        /// If skipExcute is true, then we will skip the exectuion and will assume passed comp is the original
-        /// So, m_updatedComponent will be populated from the registry and m_component will be stored with passed value
-        UpdateEnttCompCommand(UUID uuid, const TComponent &comp, bool skipExcute = false) : m_uuid(uuid), m_updatedComponent(comp), m_skipExecute(true) {
+        explicit UpdateEnttComponentsCommand(entt::registry &reg)
+            : m_registry(reg) {}
+
+        template <typename T>
+        void addUpdate(UUID uuid, const T &updatedComponent, bool skipExecute = false) {
+            m_updates.emplace_back(std::make_unique<UpdateOp<T>>(uuid, updatedComponent, skipExecute));
         }
 
         bool execute() override {
-            auto &scene = Scene::instance();
-            if (!scene.isEntityValid(m_uuid))
-                return false;
-
-            const auto ent = scene.getEntityWithUuid(m_uuid);
-            auto &reg = scene.getEnttRegistry();
-
-            if (!m_redo && m_skipExecute) {
-                m_component = m_updatedComponent;
-                m_updatedComponent = reg.get<TComponent>(ent);
-                return true;
+            if (m_redo) {
+                for (auto &u : m_updates) {
+                    u->redo(m_registry);
+                }
+            } else {
+                for (auto &u : m_updates) {
+                    u->apply(m_registry);
+                }
             }
-
-            m_component = reg.get<TComponent>(ent);
-            reg.emplace_or_replace<TComponent>(ent, m_updatedComponent);
 
             return true;
         }
 
         std::any undo() override {
-            auto &scene = Scene::instance();
-            auto &reg = scene.getEnttRegistry();
-
-            const auto ent = scene.getEntityWithUuid(m_uuid);
-            reg.emplace_or_replace<TComponent>(ent, m_component);
+            for (auto &u : m_updates) {
+                u->undo(m_registry);
+            }
             m_redo = true;
             return {};
         }
 
         std::any getResult() override {
-            return std::string("updated successfully");
+            return std::string("updated all components");
         }
 
         using Command::getResult;
 
       private:
-        UUID m_uuid;
-        TComponent m_updatedComponent;
-        TComponent m_component;
-        bool m_skipExecute, m_redo = false;
+        entt::registry &m_registry;
+        std::vector<std::unique_ptr<IUpdateOp>> m_updates;
+        bool m_redo = false;
     };
 
 } // namespace Bess::Canvas::Commands

@@ -26,6 +26,7 @@
 #include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
 #include <cstdint>
+#include <memory>
 
 using Renderer = Bess::Renderer2D::Renderer;
 
@@ -816,8 +817,13 @@ namespace Bess::Canvas {
                 m_isDragging = false;
                 m_dragOffsets.clear();
                 if (!m_dragStartTransforms.empty()) {
-                    auto itr = m_dragStartTransforms.begin();
-                    auto _ = m_cmdManager.execute<Commands::UpdateEnttCompCommand<Components::TransformComponent>, std::string>(itr->first, itr->second, true);
+                    std::unique_ptr<Commands::UpdateEnttComponentsCommand> cmd =
+                        std::make_unique<Commands::UpdateEnttComponentsCommand>(m_registry);
+                    for (auto &[uuid, transform] : m_dragStartTransforms) {
+                        cmd->addUpdate<Components::TransformComponent>(uuid, transform, true);
+                    }
+
+                    m_cmdManager.execute(std::move(cmd));
                 }
                 m_dragStartTransforms.clear();
             }
