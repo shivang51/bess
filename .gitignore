@@ -25,3 +25,4 @@ compile_commands.json
 .cache
 .cmake_observer_backup
 /CMakeSettings.json
+tests_output/
