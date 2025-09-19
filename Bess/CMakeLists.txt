@@ -88,6 +88,7 @@ set(Header_Files
 "include/scene/commands/delete_comp_command.h"
 "include/scene/commands/del_connection_command.h"
 "include/scene/commands/set_input_command.h"
+"include/scene/commands/update_entt_comp_command.h"
 )
 
 source_group("include" FILES ${Header_Files})
