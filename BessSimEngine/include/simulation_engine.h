@@ -1,7 +1,8 @@
 #pragma once
 #include "bess_api.h"
 #include "bess_uuid.h"
-#include "component_types.h"
+#include "commands/commands_manager.h"
+#include "component_types/component_types.h"
 #include "entt/entity/fwd.hpp"
 #include "entt_components.h"
 #include "types.h"
@@ -23,7 +24,7 @@ namespace Bess::SimEngine {
         const UUID &addComponent(ComponentType type, int inputCount = -1, int outputCount = -1);
 
         bool connectComponent(const UUID &src, int srcPin, PinType srcType,
-                              const UUID &dst, int dstPin, PinType dstType);
+                              const UUID &dst, int dstPin, PinType dstType, bool overrideConn = false);
 
         void deleteComponent(const UUID &uuid);
 
@@ -53,6 +54,13 @@ namespace Bess::SimEngine {
 
         void clear();
 
+        Commands::CommandsManager &getCmdManager();
+
+        template <typename EnttComponentType>
+        EnttComponentType &getEnttComp(const UUID &uuid) {
+            auto ent = getEntityWithUuid(uuid);
+            return m_registry.get<EnttComponentType>(ent);
+        }
         bool updateInputCount(const UUID &uuid, int n);
 
         std::vector<std::pair<float, bool>> getStateMonitorData(UUID uuid);
@@ -90,5 +98,7 @@ namespace Bess::SimEngine {
         entt::registry m_registry;
         std::unordered_map<UUID, entt::entity> m_uuidMap;
         std::unordered_map<entt::entity, std::pair<std::vector<bool>, std::vector<bool>>> m_connectionsCache;
+
+        Commands::CommandsManager m_cmdManager;
     };
 } // namespace Bess::SimEngine

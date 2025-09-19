@@ -82,7 +82,13 @@ set(Header_Files
 "include/scene/renderer/gl/utils.h"
 "include/scene/renderer/gl/instanced_vao.h"
 "include/scene/renderer/gl/batch_vao.h"
-"include/scene/renderer/gl/vaos.h" 
+"include/scene/renderer/gl/vaos.h"
+"include/scene/commands/add_command.h"
+"include/scene/commands/connect_command.h"
+"include/scene/commands/delete_comp_command.h"
+"include/scene/commands/del_connection_command.h"
+"include/scene/commands/set_input_command.h"
+"include/scene/commands/update_entt_comp_command.h"
 )
 
 source_group("include" FILES ${Header_Files})
@@ -130,8 +136,13 @@ set(Source_Files
 "src/scene/renderer/gl/fb_attachment.cpp"
 "src/scene/renderer/gl/framebuffer.cpp"
 "src/scene/renderer/gl/vao.cpp"
-"src/scene/renderer/renderer.cpp" 
+"src/scene/renderer/renderer.cpp"
 "src/scene/renderer/gl/vaos.cpp"
+"src/scene/commands/add_command.cpp"
+"src/scene/commands/connect_command.cpp"
+"src/scene/commands/delete_comp_command.cpp"
+"src/scene/commands/del_connection_command.cpp"
+"src/scene/commands/set_input_command.cpp"
 )
 
 source_group("src" FILES ${Source_Files})

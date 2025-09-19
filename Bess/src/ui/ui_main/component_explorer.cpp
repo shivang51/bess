@@ -1,9 +1,11 @@
 #include "ui/ui_main/component_explorer.h"
 
 #include "common/helpers.h"
+#include "common/log.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "properties.h"
+#include "scene/commands/add_command.h"
 #include "scene/scene.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/m_widgets.h"
@@ -94,16 +96,30 @@ namespace Bess::UI {
         return clicked;
     }
 
-    void ComponentExplorer::createComponent(const SimEngine::ComponentDefinition &def, int inputCount, int outputCount) {
-        auto simEntt = SimEngine::SimulationEngine::instance().addComponent(def.type, inputCount, outputCount);
+    void ComponentExplorer::createComponent(std::shared_ptr<const SimEngine::ComponentDefinition> def, int inputCount, int outputCount) {
         auto &scene = Canvas::Scene::instance();
-        scene.createSimEntity(simEntt, def, scene.getCameraPos());
-        scene.setLastCreatedComp({&def, inputCount, outputCount});
+        Canvas::Commands::AddCommandData data;
+        data.def = def;
+        data.pos = scene.getCameraPos();
+        data.inputCount = inputCount;
+        data.outputCount = outputCount;
+        auto &cmdManager = scene.getCmdManager();
+        auto res = cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{data});
+        if (!res.has_value()) {
+            BESS_ERROR("[ComponentExplorer] Failed to execute AddCommand");
+        }
     }
 
     void ComponentExplorer::createComponent(const Canvas::Components::NSComponent &comp) {
         auto &scene = Canvas::Scene::instance();
-        scene.createNonSimEntity(comp, scene.getCameraPos());
+        Canvas::Commands::AddCommandData data;
+        data.nsComp = comp;
+        data.pos = scene.getCameraPos();
+        auto &cmdManager = scene.getCmdManager();
+        auto res = cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{data});
+        if (!res.has_value()) {
+            BESS_ERROR("[ComponentExplorer] Failed to execute AddCommand");
+        }
     }
 
     ComponentExplorer::ModifiablePropertiesStr ComponentExplorer::generateModifiablePropertiesStr() {
@@ -112,11 +128,11 @@ namespace Bess::UI {
         ModifiablePropertiesStr propertiesStr = {};
 
         for (auto &comp : components) {
-            auto &p = comp.getModifiableProperties();
+            auto &p = comp->getModifiableProperties();
             if (p.empty())
                 continue;
 
-            propertiesStr[comp.type] = {};
+            propertiesStr[comp->type] = {};
 
             for (auto &mp : p) {
                 std::string name;
@@ -131,11 +147,13 @@ namespace Bess::UI {
                     name = "Unknown Property";
                     break;
                 }
+
                 std::pair<std::string, std::pair<SimEngine::Properties::ComponentProperty, std::any>> v = {};
+
                 for (auto &val : mp.second) {
                     v.first = std::to_string(std::any_cast<int>(val)) + " " + name;
                     v.second = {mp.first, val};
-                    propertiesStr[comp.type].emplace_back(v);
+                    propertiesStr[comp->type].emplace_back(v);
                 }
             }
         }
@@ -181,16 +199,16 @@ namespace Bess::UI {
                         auto &properties = modifiableProperties[comp->type];
 
                         if (ButtonWithPopup(name, name + "OptionsMenu", !properties.empty())) {
-                            createComponent(*comp, -1, -1);
+                            createComponent(comp, -1, -1);
                         }
 
                         if (ImGui::BeginPopup((name + "OptionsMenu").c_str())) {
                             for (auto &p : properties) {
                                 if (ImGui::MenuItem(p.first.c_str())) {
                                     if (p.second.first == SimEngine::Properties::ComponentProperty::inputCount) {
-                                        createComponent(*comp, std::any_cast<int>(p.second.second), -1);
+                                        createComponent(comp, std::any_cast<int>(p.second.second), -1);
                                     } else if (p.second.first == SimEngine::Properties::ComponentProperty::outputCount) {
-                                        createComponent(*comp, -1, std::any_cast<int>(p.second.second));
+                                        createComponent(comp, -1, std::any_cast<int>(p.second.second));
                                     }
                                 }
                             }

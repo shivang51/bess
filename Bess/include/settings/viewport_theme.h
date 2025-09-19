@@ -1,7 +1,6 @@
 #pragma once
-#include "component_types.h"
+#include "component_types/component_types.h"
 #include "ext/vector_float4.hpp"
-#include "glm.hpp"
 #include <unordered_map>
 
 namespace Bess {

@@ -1,7 +1,8 @@
 #pragma once
 
+#include "bess_uuid.h"
 #include "camera.h"
-#include "component_catalog.h"
+#include "commands/commands_manager.h"
 #include "component_definition.h"
 #include "entt/entity/fwd.hpp"
 #include "entt/entt.hpp"
@@ -27,7 +28,7 @@ namespace Bess::Canvas {
     };
 
     struct LastCreatedComponent {
-        const SimEngine::ComponentDefinition *componentDefinition;
+        std::shared_ptr<const SimEngine::ComponentDefinition> componentDefinition = nullptr;
         int inputCount = -1;
         int outputCount = -1;
     };
@@ -53,7 +54,7 @@ namespace Bess::Canvas {
         void beginScene();
         void endScene();
 
-        void setLastCreatedComp(const LastCreatedComponent &comp);
+        void setLastCreatedComp(LastCreatedComponent comp);
 
         void saveScenePNG(const std::string &path);
 
@@ -72,14 +73,26 @@ namespace Bess::Canvas {
         const glm::vec2 &getSize();
 
         UUID createSlotEntity(Components::SlotType type, const UUID &parent, unsigned int idx);
-        UUID createSimEntity(const UUID &simEngineEntt, const SimEngine::ComponentDefinition &comp, const glm::vec2 &pos);
+        UUID createSlotEntity(UUID uuid, Components::SlotType type, const UUID &parent, unsigned int idx);
+
+        UUID createSimEntity(const UUID &simEngineEntt, std::shared_ptr<const SimEngine::ComponentDefinition> comp, const glm::vec2 &pos);
+        UUID createSimEntity(const UUID &simEngineEntt, std::shared_ptr<const SimEngine::ComponentDefinition> comp,
+                             const glm::vec2 &pos, UUID uuid, const std::vector<UUID> &inputSlotIds, const std::vector<UUID> &outputSlotIds);
         UUID createNonSimEntity(const Canvas::Components::NSComponent &comp, const glm::vec2 &pos);
 
+        void deleteSceneEntity(const UUID &entUuid);
+
+        /// deletes entity from sim engine as well
         void deleteEntity(const UUID &entUuid);
         void deleteConnection(const UUID &entUuid);
+        void deleteConnectionFromScene(const UUID &entUuid);
         entt::entity getEntityWithUuid(const UUID &uuid);
         bool isEntityValid(const UUID &uuid);
         void setZCoord(float val);
+
+        SimEngine::Commands::CommandsManager &getCmdManager();
+        UUID generateBasicConnection(entt::entity startSlot, entt::entity endSlot);
+        UUID connectSlots(UUID startSlot, UUID endSlot);
 
       private:
         const UUID &getUuidOfEntity(entt::entity ent);
@@ -87,6 +100,7 @@ namespace Bess::Canvas {
         // gets entity from scene that has reference to passed simulation engine uuid
         entt::entity getSceneEntityFromSimUuid(const UUID &uuid) const;
 
+        void removeConnectionEntt(const entt::entity ent);
         void updateHoveredId();
 
         void onMouseMove(const glm::vec2 &pos);
@@ -101,8 +115,6 @@ namespace Bess::Canvas {
         void drawConnection();
         void drawSelectionBox();
         void handleKeyboardShortcuts();
-        void connectSlots(entt::entity startSlot, entt::entity endSlot);
-        void generateBasicConnection(entt::entity startSlot, entt::entity endSlot);
         void copySelectedComponents();
         void generateCopiedComponents();
         void selectEntitesInArea(const glm::vec2 &start, const glm::vec2 &end);
@@ -111,7 +123,7 @@ namespace Bess::Canvas {
         void selectAllEntities();
 
         void moveConnection(entt::entity ent, glm::vec2 &dPos);
-        void dragConnectionSegment(entt::entity ent, const glm::vec2 &dPos);
+        void dragConnectionSegment(entt::entity ent);
 
         float getNextZCoord();
 
@@ -140,14 +152,29 @@ namespace Bess::Canvas {
         const float m_zIncrement = 0.001;
         const int snapSize = 2;
         float m_compZCoord = m_zIncrement;
+
         bool m_isDragging = false;
         std::unordered_map<entt::entity, glm::vec2> m_dragOffsets = {};
+        std::unordered_map<UUID, Components::TransformComponent> m_dragStartTransforms = {};
+        std::unordered_map<UUID, Components::ConnectionSegmentComponent> m_dragStartConnSeg = {};
+
         std::unordered_map<UUID, entt::entity> m_uuidToEntt = {};
 
         LastCreatedComponent m_lastCreatedComp = {};
-        std::vector<SimEngine::ComponentType> m_copiedComponents = {};
+        struct CopiedComponent {
+            std::shared_ptr<const SimEngine::ComponentDefinition> def = nullptr;
+            Components::NSComponent nsComp;
+            int inputCount, outputCount;
+
+            bool isSimComp() {
+                return def != nullptr;
+            }
+        };
+        std::vector<CopiedComponent> m_copiedComponents = {};
 
         std::shared_ptr<Gl::Texture> m_placeHolderTexture;
         std::shared_ptr<Gl::SubTexture> m_placeHolderSubTexture;
+
+        SimEngine::Commands::CommandsManager m_cmdManager;
     };
 } // namespace Bess::Canvas

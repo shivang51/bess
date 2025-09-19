@@ -100,6 +100,7 @@ namespace Bess::Canvas::Components {
         UUID parentId = 0;
         uint32_t idx = 0;
         SlotType slotType = SlotType::digitalInput;
+        std::vector<UUID> connections{};
     };
 
     class SimulationComponent {
@@ -137,7 +138,6 @@ namespace Bess::Canvas::Components {
       public:
         HoveredEntityComponent() = default;
         HoveredEntityComponent(HoveredEntityComponent &other) = default;
-        // Assuming entt::entity is convertible to an unsigned int.
         unsigned int prevHovered = 0;
     };
 
@@ -222,6 +222,7 @@ namespace Bess::JsonConvert {
         toJsonValue(comp.borderColor, j["borderColor"]);
         toJsonValue(comp.borderSize, j["borderSize"]);
         toJsonValue(comp.borderRadius, j["borderRadius"]);
+        toJsonValue(comp.headerColor, j["headerColor"]);
     }
 
     /**
@@ -242,6 +243,9 @@ namespace Bess::JsonConvert {
         }
         if (j.isMember("borderRadius")) {
             fromJsonValue(j["borderRadius"], comp.borderRadius);
+        }
+        if (j.isMember("headerColor")) {
+            fromJsonValue(j["headerColor"], comp.headerColor);
         }
     }
 
@@ -298,6 +302,10 @@ namespace Bess::JsonConvert {
         toJsonValue(comp.parentId, j["parentId"]);
         j["idx"] = comp.idx;
         j["slotType"] = slotTypeToString(comp.slotType);
+
+        for (const auto &conn : comp.connections) {
+            toJsonValue(conn, j["connections"].append(Json::intValue));
+        }
     }
 
     /**
@@ -313,6 +321,14 @@ namespace Bess::JsonConvert {
         comp.idx = j.get("idx", 0).asUInt();
         if (j.isMember("slotType")) {
             comp.slotType = stringToSlotType(j["slotType"].asString());
+        }
+
+        if (j.isMember("connections")) {
+            for (const auto &conn : j["connections"]) {
+                UUID val;
+                fromJsonValue(conn, val);
+                comp.connections.emplace_back(val);
+            }
         }
     }
 

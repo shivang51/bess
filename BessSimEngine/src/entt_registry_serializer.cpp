@@ -50,8 +50,8 @@ namespace Bess {
     }
 
     void EnttRegistrySerializer::deserializeEntity(entt::registry &registry, const Json::Value &j) {
-        auto entity = registry.create();
-        for (const auto &[name, deserializeCB] : m_ComponentDeserializers) {
+        const auto entity = registry.create();
+        for (const auto &deserializeCB : m_ComponentDeserializers | std::views::values) {
             deserializeCB(registry, entity, j);
         }
     }

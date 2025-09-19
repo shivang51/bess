@@ -1,7 +1,6 @@
 #include "simulation_engine.h"
 #include "component_catalog.h"
 #include "component_definition.h"
-#include "component_types.h"
 #include "entt/entity/fwd.hpp"
 #include "entt_components.h"
 #include "init_components.h"
@@ -21,7 +20,6 @@
 #endif // !BESS_SE_LOG_EVENT
 
 namespace Bess::SimEngine {
-
     SimulationEngine &SimulationEngine::instance() {
         static SimulationEngine inst;
         return inst;
@@ -88,7 +86,7 @@ namespace Bess::SimEngine {
         auto ent = m_registry.create();
         auto &idComp = m_registry.emplace<IdComponent>(ent);
         m_uuidMap.emplace(idComp.uuid, ent);
-        const auto *def = ComponentCatalog::instance().getComponentDefinition(type);
+        const auto def = ComponentCatalog::instance().getComponentDefinition(type);
         inputCount = (inputCount < 0 ? def->inputCount : inputCount);
         outputCount = (outputCount < 0 ? def->outputCount : outputCount);
         if (type == ComponentType::NOT) {
@@ -109,7 +107,7 @@ namespace Bess::SimEngine {
     }
 
     bool SimulationEngine::connectComponent(const UUID &src, int srcPin, PinType srcType,
-                                            const UUID &dst, int dstPin, PinType dstType) {
+                                            const UUID &dst, int dstPin, PinType dstType, bool overrideConn) {
         auto srcEnt = getEntityWithUuid(src);
         auto dstEnt = getEntityWithUuid(dst);
         if (!m_registry.valid(srcEnt) || !m_registry.valid(dstEnt))
@@ -138,9 +136,14 @@ namespace Bess::SimEngine {
         }
 
         // Check for duplicate connection.
-        for (const auto &conn : outPins[srcPin]) {
-            if (conn.first == dst && conn.second == dstPin) {
-                BESS_SE_WARN("Connection already exists.");
+        auto &conns = outPins[srcPin];
+        for (auto it = conns.begin(); it != conns.end(); ++it) {
+            if (it->first == dst && it->second == dstPin) {
+                if (overrideConn) {
+                    conns.erase(it);
+                    break;
+                }
+                BESS_SE_WARN("Connection already exists, skipping");
                 return false;
             }
         }
@@ -388,7 +391,7 @@ namespace Bess::SimEngine {
 
     bool SimulationEngine::simulateComponent(entt::entity e, const std::vector<PinState> &inputs) {
         const auto &comp = m_registry.get<DigitalComponent>(e);
-        const auto *def = ComponentCatalog::instance().getComponentDefinition(comp.type);
+        const auto def = ComponentCatalog::instance().getComponentDefinition(comp.type);
         BESS_SE_LOG_EVENT("[BessSimEngine] Simulating {}", def->name);
         if (def && def->simulationFunction) {
             return def->simulationFunction(
@@ -539,6 +542,10 @@ namespace Bess::SimEngine {
                                                     (m_eventSet.begin()->simTime - m_currentSimTime));
             }
         }
+    }
+
+    Commands::CommandsManager &SimulationEngine::getCmdManager() {
+        return m_cmdManager;
     }
 
     bool SimulationEngine::updateInputCount(const UUID &uuid, int n) {

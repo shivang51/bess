@@ -13,6 +13,8 @@ set(External
 
 
 set(Header_Files
+    "include/component_types/component_types.h"
+    "include/component_types/component_types.def"
     "include/entt_components.h"
     "include/types.h"
     "include/bess_uuid.h"
@@ -23,7 +25,6 @@ set(Header_Files
     "include/simulation_engine_serializer.h"
     "include/component_catalog.h"
     "include/component_definition.h"
-    "include/component_types.h"
     "include/init_components.h" 
     "include/comp_json_converters.h"
 )
@@ -47,7 +48,7 @@ set(ALL_FILES
     ${Source_Files}
 )
 
-add_library(${PROJECT_NAME} SHARED ${ALL_FILES} "include/expression_evalutator/expr_evaluator.h")
+add_library(${PROJECT_NAME} SHARED ${ALL_FILES} "include/expression_evalutator/expr_evaluator.h" "include/commands/command.h" "include/commands/commands.h" "src/commands/commands.cpp" "src/commands/commands_manager.cpp" "include/commands/commands_manager.h" "include/utils/string_utils.h" "src/utils/string_utils.cpp" "include/command_processor/command_processor.h" "src/command_processor/command_processor.cpp" "include/command_processor/commands_reg.h")
 if(UNIX)
 if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14")
     target_link_libraries(${PROJECT_NAME} PRIVATE stdc++exp)

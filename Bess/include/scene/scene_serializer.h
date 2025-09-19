@@ -6,15 +6,17 @@
 
 
 namespace Bess {
-    class SceneSerializer : EnttRegistrySerializer {
+    class SceneSerializer : public EnttRegistrySerializer {
       public:
-        SceneSerializer() = default;
+        SceneSerializer();
 
         void serializeToPath(const std::string &path, int indent = -1);
         void serialize(Json::Value &j);
+        void serializeEntity(UUID uid, Json::Value &j);
 
         void deserializeFromPath(const std::string &path);
         void deserialize(const Json::Value &json);
+        void deserializeEntity(const Json::Value &json);
 
         void registerAll() override;
 
