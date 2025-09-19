@@ -1,9 +1,10 @@
 # <img alt="BESS: Basic Electrical Simulation Software" src="assets/images/logo/NameLogo.png"/>
-> Only digital components are there for now, analog are planned for future.
 [![GitHub stars](https://img.shields.io/github/stars/shivang51/bess?style=social)](https://github.com/shivang51/bess)
 [![GitHub forks](https://img.shields.io/github/forks/shivang51/bess?style=social)](https://github.com/shivang51/bess/network/members)
 [![GitHub issues](https://img.shields.io/github/issues/shivang51/bess)](https://github.com/shivang51/bess/issues)
 [![GitHub license](https://img.shields.io/github/license/shivang51/bess)](https://github.com/shivang51/bess/blob/main/LICENSE)
+
+> Only digital components are there for now, analog components are planned for future.
 
 BESS (Basic Electrical Simulation Software) is an open-source circuit simulator designed to be accessible, modern, and cross-platform.
 
