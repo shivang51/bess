@@ -16,7 +16,8 @@ namespace Bess::SimEngine::Commands {
 
                 int inputCount = std::stoi(args[1]);
                 int outputCount = std::stoi(args[2]);
-                return std::make_unique<Bess::SimEngine::Commands::AddCommand>(type, inputCount, outputCount);
+                SimEngine::Commands::AddCommandData data = {type, inputCount, outputCount};
+                return std::make_unique<Bess::SimEngine::Commands::AddCommand>(std::vector{data});
             } catch (const std::exception &e) {
                 return nullptr;
             }

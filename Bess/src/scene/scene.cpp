@@ -783,7 +783,7 @@ namespace Bess::Canvas {
                 .pos = getNVPMousePos(m_mousePos),
             };
 
-            const auto res = m_cmdManager.execute<Canvas::Commands::AddCommand, UUID>(cmdData);
+            const auto res = m_cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{cmdData});
             if (!res.has_value()) {
                 BESS_ERROR("Failed to execute AddCommand");
             }
@@ -896,18 +896,34 @@ namespace Bess::Canvas {
     }
 
     void Scene::generateCopiedComponents() {
-        auto &simEngineInstance = SimEngine::SimulationEngine::instance();
-        auto &catalogInstance = SimEngine::ComponentCatalog::instance();
         auto pos = getCameraPos();
+
+        std::vector<Commands::AddCommandData> cmdData = {};
+        Commands::AddCommandData data;
+
         for (auto &comp : m_copiedComponents) {
+            data = {};
+
             if (comp.isSimComp()) {
-                auto simEngineEntity = simEngineInstance.addComponent(comp.def->type, comp.inputCount, comp.outputCount);
-                createSimEntity(simEngineEntity, comp.def, pos);
+                data.def = comp.def;
+                data.inputCount = comp.inputCount;
+                data.outputCount = comp.outputCount;
             } else {
-                createNonSimEntity(comp.nsComp, pos);
+                data.nsComp = comp.nsComp;
             }
+
+            data.pos = pos;
+            cmdData.emplace_back(data);
             pos += glm::vec2(50.f, 50.f);
         }
+
+        const auto res = m_cmdManager.execute<Canvas::Commands::AddCommand,
+                                              std::vector<UUID>>(std::vector{cmdData});
+
+        if (!res.has_value()) {
+            BESS_ERROR("Failed to execute AddCommand");
+        }
+
         m_copiedComponents.clear();
     }
 

@@ -104,7 +104,7 @@ namespace Bess::UI {
         data.inputCount = inputCount;
         data.outputCount = outputCount;
         auto &cmdManager = scene.getCmdManager();
-        auto res = cmdManager.execute<Canvas::Commands::AddCommand, UUID>(data);
+        auto res = cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{data});
         if (!res.has_value()) {
             BESS_ERROR("[ComponentExplorer] Failed to execute AddCommand");
         }
@@ -116,7 +116,7 @@ namespace Bess::UI {
         data.nsComp = comp;
         data.pos = scene.getCameraPos();
         auto &cmdManager = scene.getCmdManager();
-        auto res = cmdManager.execute<Canvas::Commands::AddCommand, UUID>(data);
+        auto res = cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{data});
         if (!res.has_value()) {
             BESS_ERROR("[ComponentExplorer] Failed to execute AddCommand");
         }

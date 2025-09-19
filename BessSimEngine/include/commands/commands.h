@@ -12,20 +12,24 @@
 #include <cstdint>
 
 namespace Bess::SimEngine::Commands {
+    struct BESS_API AddCommandData {
+        ComponentType type;
+        int inputCount;
+        int outputCount;
+    };
+
     class BESS_API AddCommand : public Command {
       public:
-        AddCommand(ComponentType type, int inputCount, int outputCount);
+        AddCommand(const std::vector<AddCommandData> &data);
         bool execute() override;
         std::any undo() override;
         COMMAND_RESULT_OVERRIDE;
 
       private:
-        ComponentType m_compType;
-        int m_inputCount;
-        int m_outputCount;
-        UUID m_compId = UUID::null;
-        Json::Value m_compJson;
-        ConnectionBundle m_connections;
+        std::vector<AddCommandData> m_data;
+        std::vector<UUID> m_compIds = {};
+        std::vector<Json::Value> m_compJsons = {};
+        std::vector<ConnectionBundle> m_connections;
 
         bool m_redo = false;
     };

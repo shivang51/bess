@@ -15,23 +15,23 @@ namespace Bess::Canvas::Commands {
         Components::NSComponent nsComp;
         int inputCount, outputCount;
         glm::vec2 pos;
-        bool isSimComp() {
+        bool isSimComp() const {
             return def != nullptr;
         }
     };
 
     class AddCommand : public Command {
       public:
-        AddCommand(const AddCommandData &data);
+        AddCommand(const std::vector<AddCommandData> &data);
 
         bool execute() override;
         std::any undo() override;
         COMMAND_RESULT_OVERRIDE;
 
       private:
-        AddCommandData m_data;
-        UUID m_compId = UUID::null;
-        Json::Value m_compJson;
+        std::vector<AddCommandData> m_data;
+        std::vector<UUID> m_compIds = {};
+        std::vector<Json::Value> m_compJsons = {};
         bool m_redo = false;
     };
 } // namespace Bess::Canvas::Commands
