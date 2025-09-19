@@ -46,7 +46,7 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
 ## TODO
 - [x] Add seven segment display (Added CLR for flip flops as well)
 - [x] Add some graph visulization for clock cycles
-- [ ] Command System
+- [x] Command System
+- [x] Undo, Redo functionality (for most interactions done)
 - [ ] Test Cases for simulation engine
-- [ ] Undo, Redo functionality
-- [ ] Using emscripten to host on web
+- [ ] Moving to vulkan renderer
