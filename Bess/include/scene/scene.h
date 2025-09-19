@@ -123,7 +123,7 @@ namespace Bess::Canvas {
         void selectAllEntities();
 
         void moveConnection(entt::entity ent, glm::vec2 &dPos);
-        void dragConnectionSegment(entt::entity ent, const glm::vec2 &dPos);
+        void dragConnectionSegment(entt::entity ent);
 
         float getNextZCoord();
 
@@ -156,6 +156,7 @@ namespace Bess::Canvas {
         bool m_isDragging = false;
         std::unordered_map<entt::entity, glm::vec2> m_dragOffsets = {};
         std::unordered_map<UUID, Components::TransformComponent> m_dragStartTransforms = {};
+        std::unordered_map<UUID, Components::ConnectionSegmentComponent> m_dragStartConnSeg = {};
 
         std::unordered_map<UUID, entt::entity> m_uuidToEntt = {};
 

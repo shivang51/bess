@@ -505,11 +505,14 @@ namespace Bess::Canvas {
         return pos;
     }
 
-    void Scene::dragConnectionSegment(entt::entity ent, const glm::vec2 &dPos) {
+    void Scene::dragConnectionSegment(entt::entity ent) {
         auto view = m_registry.view<Components::TransformComponent,
                                     Components::ConnectionSegmentComponent,
                                     Components::SlotComponent,
                                     Components::ConnectionComponent>();
+
+        glm::vec2 newPos = getNVPMousePos(m_mousePos);
+
         auto &comp = view.get<Components::ConnectionSegmentComponent>(ent);
 
         if (comp.isHead() || comp.isTail()) {
@@ -543,18 +546,10 @@ namespace Bess::Canvas {
                 compNew.pos.y = slotPos.y;
         }
 
-        // glm::vec2 newPos = getNVPMousePos(m_mousePos);
-        // if (!m_isDragging) {
-        //     auto offset = newPos - comp.pos;
-        //     m_dragOffsets[ent] = offset;
-        // }
-        // newPos -= m_dragOffsets[ent];
-        // newPos = glm::vec2({(int)(std::round(newPos.x) / 4), (int)(std::round(newPos.y) / 4)}) * 4.f;
-
         if (comp.pos.x == 0) {
-            comp.pos.y += dPos.y;
+            comp.pos.y = newPos.y;
         } else if (comp.pos.y == 0) {
-            comp.pos.x += dPos.x;
+            comp.pos.x = newPos.x;
         }
     }
 
@@ -564,7 +559,12 @@ namespace Bess::Canvas {
         auto seg = connComp.segmentHead;
 
         while (seg != UUID::null) {
-            auto &segComp = m_registry.get<Components::ConnectionSegmentComponent>(getEntityWithUuid(seg));
+            auto segEnt = getEntityWithUuid(seg);
+            auto &segComp = m_registry.get<Components::ConnectionSegmentComponent>(segEnt);
+
+            if (!m_dragStartConnSeg.contains(getUuidOfEntity(segEnt))) {
+                m_dragStartConnSeg[getUuidOfEntity(segEnt)] = segComp;
+            }
 
             if (segComp.isHead() || segComp.isTail()) {
                 seg = segComp.next;
@@ -613,7 +613,7 @@ namespace Bess::Canvas {
                 m_drawMode = SceneDrawMode::selectionBox;
                 m_selectionBoxStart = m_mousePos;
             } else if (selectedComponentsSize == 1 && m_registry.valid(hoveredEntity) && m_registry.all_of<Components::ConnectionSegmentComponent>(hoveredEntity)) {
-                dragConnectionSegment(hoveredEntity, m_dMousePos);
+                dragConnectionSegment(hoveredEntity);
                 m_isDragging = true;
             } else {
                 auto view = m_registry.view<Components::SelectedComponent, Components::TransformComponent>();
@@ -623,7 +623,7 @@ namespace Bess::Canvas {
                         m_dragStartTransforms[getUuidOfEntity(ent)] = transformComp;
                     }
                     glm::vec2 newPos = getNVPMousePos(m_mousePos);
-                    if (!m_isDragging) {
+                    if (!m_dragOffsets.contains(ent)) {
                         auto offset = newPos - glm::vec2(transformComp.position);
                         m_dragOffsets[ent] = offset;
                     }
@@ -816,16 +816,19 @@ namespace Bess::Canvas {
             if (m_isDragging) {
                 m_isDragging = false;
                 m_dragOffsets.clear();
-                if (!m_dragStartTransforms.empty()) {
-                    std::unique_ptr<Commands::UpdateEnttComponentsCommand> cmd =
-                        std::make_unique<Commands::UpdateEnttComponentsCommand>(m_registry);
-                    for (auto &[uuid, transform] : m_dragStartTransforms) {
-                        cmd->addUpdate<Components::TransformComponent>(uuid, transform, true);
-                    }
-
-                    m_cmdManager.execute(std::move(cmd));
+                std::unique_ptr<Commands::UpdateEnttComponentsCommand> cmd =
+                    std::make_unique<Commands::UpdateEnttComponentsCommand>(m_registry);
+                for (auto &[uuid, comp] : m_dragStartTransforms) {
+                    cmd->addUpdate<Components::TransformComponent>(uuid, comp, true);
                 }
+
+                for (auto &[uuid, comp] : m_dragStartConnSeg) {
+                    cmd->addUpdate<Components::ConnectionSegmentComponent>(uuid, comp, true);
+                }
+
+                m_cmdManager.execute(std::move(cmd));
                 m_dragStartTransforms.clear();
+                m_dragStartConnSeg.clear();
             }
             return;
         }

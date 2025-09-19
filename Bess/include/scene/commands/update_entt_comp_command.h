@@ -62,6 +62,9 @@ namespace Bess::Canvas::Commands {
         }
 
         bool execute() override {
+            if (m_updates.empty())
+                return false;
+
             if (m_redo) {
                 for (auto &u : m_updates) {
                     u->redo(m_registry);
