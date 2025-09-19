@@ -1,4 +1,5 @@
 # <img alt="BESS: Basic Electrical Simulation Software" src="assets/images/logo/NameLogo.png"/>
+> Only digital components are there for now, analog are planned for future.
 [![GitHub stars](https://img.shields.io/github/stars/shivang51/bess?style=social)](https://github.com/shivang51/bess)
 [![GitHub forks](https://img.shields.io/github/forks/shivang51/bess?style=social)](https://github.com/shivang51/bess/network/members)
 [![GitHub issues](https://img.shields.io/github/issues/shivang51/bess)](https://github.com/shivang51/bess/issues)
