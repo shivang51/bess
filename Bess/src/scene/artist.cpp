@@ -626,6 +626,7 @@ namespace Bess::Canvas {
         props.borderSize = spriteComp.borderSize;
         props.borderColor = borderColor;
         props.isMica = true;
+        props.hasShadow = true;
 
         Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
 

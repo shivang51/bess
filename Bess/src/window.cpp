@@ -21,6 +21,8 @@ namespace Bess {
         mp_window = std::unique_ptr<GLFWwindow, GLFWwindowDeleter>(window);
         this->makeCurrent();
 
+        glfwSwapInterval(0);
+
         glfwSetWindowSizeLimits(window, 600, 500, GLFW_DONT_CARE, GLFW_DONT_CARE);
 
         glfwSetFramebufferSizeCallback(

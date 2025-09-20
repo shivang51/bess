@@ -1,8 +1,9 @@
 #include "pages/start_page/start_page.h"
+#include "application_state.h"
 #include "pages/main_page/main_page.h"
 #include "pages/page_identifier.h"
+#include "types.h"
 #include "ui/ui.h"
-#include "application_state.h"
 
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -71,7 +72,7 @@ namespace Bess::Pages {
         ImGui::End();
     }
 
-    void StartPage::update(const std::vector<ApplicationEvent> &events) {
+    void StartPage::update(TFrameTime ts, const std::vector<ApplicationEvent> &events) {
     }
 
     void StartPage::drawTitle() {

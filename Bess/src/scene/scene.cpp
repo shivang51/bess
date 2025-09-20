@@ -23,6 +23,7 @@
 #include "scene/renderer/renderer.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
+#include "types.h"
 #include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
 #include <cstdint>
@@ -80,12 +81,14 @@ namespace Bess::Canvas {
         m_drawMode = SceneDrawMode::none;
     }
 
-    void Scene::update(const std::vector<ApplicationEvent> &events) {
+    void Scene::update(TFrameTime ts, const std::vector<ApplicationEvent> &events) {
         // doing it here so selection box does not interfere with selection
         if (m_selectInSelectionBox) {
             selectEntitesInArea(m_selectionBoxStart, m_selectionBoxEnd);
             m_selectInSelectionBox = false;
         }
+
+        m_camera->update(ts);
 
         for (auto &event : events) {
             switch (event.getType()) {
@@ -139,7 +142,21 @@ namespace Bess::Canvas {
 
     void Scene::handleKeyboardShortcuts() {
         auto mainPageState = Pages::MainPageState::getInstance();
-        if (mainPageState->isKeyPressed(GLFW_KEY_DELETE)) {
+        if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
+            if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
+                if (mainPageState->isKeyPressed(GLFW_KEY_Z)) {
+                    m_cmdManager.redo();
+                }
+            } else if (mainPageState->isKeyPressed(GLFW_KEY_A)) { // ctrl-a select all components
+                selectAllEntities();
+            } else if (mainPageState->isKeyPressed(GLFW_KEY_C)) { // ctrl-c copy selected components
+                copySelectedComponents();
+            } else if (mainPageState->isKeyPressed(GLFW_KEY_V)) { // ctrl-v generate copied components
+                generateCopiedComponents();
+            } else if (mainPageState->isKeyPressed(GLFW_KEY_Z)) {
+                m_cmdManager.undo();
+            }
+        } else if (mainPageState->isKeyPressed(GLFW_KEY_DELETE)) {
             auto view = m_registry.view<Components::IdComponent, Components::SelectedComponent>();
 
             std::vector<UUID> entitesToDel = {};
@@ -166,21 +183,16 @@ namespace Bess::Canvas {
             }
 
             auto __ = m_cmdManager.execute<Commands::DelConnectionCommand, std::string>(connToDel);
-        }
+        } else if (mainPageState->isKeyPressed(GLFW_KEY_F)) {
+            auto view = m_registry.view<Components::IdComponent,
+                                        Components::SelectedComponent,
+                                        Components::TransformComponent>();
 
-        if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
-            if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
-                if (mainPageState->isKeyPressed(GLFW_KEY_Z)) {
-                    m_cmdManager.redo();
-                }
-            } else if (mainPageState->isKeyPressed(GLFW_KEY_A)) { // ctrl-a select all components
-                selectAllEntities();
-            } else if (mainPageState->isKeyPressed(GLFW_KEY_C)) { // ctrl-c copy selected components
-                copySelectedComponents();
-            } else if (mainPageState->isKeyPressed(GLFW_KEY_V)) { // ctrl-v generate copied components
-                generateCopiedComponents();
-            } else if (mainPageState->isKeyPressed(GLFW_KEY_Z)) {
-                m_cmdManager.undo();
+            // pick the first one to focus. if many are selected
+            for (auto &ent : view) {
+                const auto &transform = view.get<Components::TransformComponent>(ent);
+                m_camera->focusAtPoint(glm::vec2(transform.position), true);
+                break;
             }
         }
     }
@@ -640,9 +652,7 @@ namespace Bess::Canvas {
                 m_isDragging = true;
             }
         } else if (m_isMiddleMousePressed) {
-            glm::vec2 dPos = m_dMousePos;
-            dPos *= m_camera->getZoom() * -1;
-            m_camera->incrementPos(dPos);
+            m_camera->incrementPos(-m_dMousePos);
         }
     }
 
@@ -982,13 +992,7 @@ namespace Bess::Canvas {
         auto mainPageState = Pages::MainPageState::getInstance();
         if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
             const float delta = static_cast<float>(y) * 0.1f;
-            m_camera->incrementZoom(delta);
-            /*UI::UIMain::state.cameraZoom += delta;*/
-            /*if (UI::UIMain::state.cameraZoom < Camera::zoomMin) {*/
-            /*    UI::UIMain::state.cameraZoom = Camera::zoomMin;*/
-            /*} else if (UI::UIMain::state.cameraZoom > Camera::zoomMax) {*/
-            /*    UI::UIMain::state.cameraZoom = Camera::zoomMax;*/
-            /*}*/
+            m_camera->incrementZoomToPoint(getNVPMousePos(m_mousePos), delta);
         } else {
             glm::vec2 dPos = {x, y};
             dPos *= 10 / m_camera->getZoom() * -1;

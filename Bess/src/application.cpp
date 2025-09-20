@@ -6,6 +6,8 @@
 #include "pages/main_page/main_page_state.h"
 #include "ui/ui.h"
 
+#include "types.h"
+
 #include "common/bind_helpers.h"
 #include "settings/settings.h"
 #include "window.h"
@@ -26,32 +28,33 @@ namespace Bess {
     }
 
     void Application::run() {
-        double prevTime = glfwGetTime();
-        double frameTime = 1.0 / 60.0;
-        double accumulatedTime = 0.0;
+        constexpr TFrameTime logicTimestep(1000.0f / 60.0f);
+
+        m_clock = {};
+        auto previousTime = m_clock.now();
+
+        TFrameTime accumulatedTime(0.0);
 
         while (!m_mainWindow->isClosed()) {
-            double currTime = glfwGetTime();
-            double deltaTime = currTime - prevTime;
-            prevTime = currTime;
+            auto currentTime = m_clock.now();
+            TFrameTime deltaTime = currentTime - previousTime;
+            previousTime = currentTime;
 
             accumulatedTime += deltaTime;
 
-            if (accumulatedTime >= frameTime) {
-                update();
+            if (accumulatedTime >= logicTimestep) {
+                update(accumulatedTime);
                 draw();
-                fps = static_cast<int>(std::round(1.0 / accumulatedTime));
-                accumulatedTime = 0.0;
+                fps = static_cast<int>(std::round(1000.0 / accumulatedTime.count()));
+                accumulatedTime = std::chrono::duration<double>(0.0);
             }
-
-            // Poll events
             Window::pollEvents();
         }
     }
 
-    void Application::update() {
+    void Application::update(TFrameTime ts) {
         m_mainWindow->update();
-        ApplicationState::getCurrentPage()->update(m_events);
+        ApplicationState::getCurrentPage()->update(ts, m_events);
         m_events.clear();
     }
 

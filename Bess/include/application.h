@@ -1,7 +1,9 @@
 #pragma once
 
 #include "events/application_event.h"
+#include "types.h"
 #include "window.h"
+#include <chrono>
 #include <memory>
 #include <vector>
 
@@ -16,7 +18,7 @@ namespace Bess {
         void run();
         void quit();
 
-        void update();
+        void update(TFrameTime ts);
 
         void loadProject(const std::string &path);
         void saveProject();
@@ -24,6 +26,7 @@ namespace Bess {
       private:
         std::shared_ptr<Window> m_mainWindow;
         std::vector<ApplicationEvent> m_events;
+        std::chrono::steady_clock m_clock;
 
       private:
         void draw();

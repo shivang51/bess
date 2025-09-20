@@ -1,7 +1,6 @@
 #include "camera.h"
 #include "ext/matrix_clip_space.hpp"
 #include "ext/matrix_transform.hpp"
-#include <iostream>
 
 namespace Bess {
     float Camera::zoomMin = 0.5f, Camera::zoomMax = 4.f, Camera::defaultZoom = 1.517f;
@@ -11,6 +10,18 @@ namespace Bess {
     }
 
     Camera::~Camera() {}
+
+    void Camera::update(TFrameTime ts) {
+        if (!m_posAnimation.finised) {
+            setPos(m_posAnimation.getNextPos(ts));
+        }
+
+        if (!m_posZoomAnimation.finised) {
+            const auto &[pos, zoom] = m_posZoomAnimation.getNextVal(ts);
+            setPos(pos);
+            setZoom(zoom);
+        }
+    }
 
     void Camera::setPos(const glm::vec2 &pos) {
         m_pos = pos;
@@ -39,10 +50,30 @@ namespace Bess {
         setZoom(m_zoom + value);
     }
 
-    void Camera::zoomToPoint(const glm::vec2 &point, float value) {
-        m_pos += (point - m_pos) * (1.0f - value / m_zoom);
-        m_zoom = value;
-        recalculateOrtho();
+    void Camera::incrementZoomToPoint(const glm::vec2 &point, float value) {
+        auto newZoom = m_zoom + value;
+        auto oldZoom = m_zoom;
+        setZoom(newZoom);
+        if (m_zoom == oldZoom)
+            return;
+        m_pos += (point - m_pos) * (1.0f - oldZoom / newZoom);
+        updateTransform();
+    }
+
+    void Camera::focusAtPoint(const glm::vec2 &pos, bool smooth) {
+        if (!smooth) {
+            setZoom(2.f);
+            setPos(pos);
+            return;
+        }
+
+        m_posZoomAnimation = {};
+        m_posZoomAnimation.startPos = m_pos;
+        m_posZoomAnimation.endPos = pos;
+        m_posZoomAnimation.startZoom = m_zoom;
+        m_posZoomAnimation.endZoom = 2.f;
+        m_posZoomAnimation.duration = TAnimationTime(100);
+        m_posZoomAnimation.finised = false;
     }
 
     float Camera::getZoom() const { return m_zoom; }
@@ -81,5 +112,4 @@ namespace Bess {
         transform = glm::translate(glm::mat4(1.f), glm::vec3(-m_pos, 0.0f));
         transform = m_ortho * transform;
     }
-
 } // namespace Bess
