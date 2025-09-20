@@ -982,7 +982,7 @@ namespace Bess::Canvas {
         auto mainPageState = Pages::MainPageState::getInstance();
         if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
             const float delta = static_cast<float>(y) * 0.1f;
-            m_camera->incrementZoom(delta);
+            m_camera->incrementZoomToPoint(getNVPMousePos(m_mousePos), delta);
             /*UI::UIMain::state.cameraZoom += delta;*/
             /*if (UI::UIMain::state.cameraZoom < Camera::zoomMin) {*/
             /*    UI::UIMain::state.cameraZoom = Camera::zoomMin;*/

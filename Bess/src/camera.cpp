@@ -39,10 +39,14 @@ namespace Bess {
         setZoom(m_zoom + value);
     }
 
-    void Camera::zoomToPoint(const glm::vec2 &point, float value) {
-        m_pos += (point - m_pos) * (1.0f - value / m_zoom);
-        m_zoom = value;
-        recalculateOrtho();
+    void Camera::incrementZoomToPoint(const glm::vec2 &point, float value) {
+        auto newZoom = m_zoom + value;
+        auto oldZoom = m_zoom;
+        setZoom(newZoom);
+        if (m_zoom == oldZoom)
+            return;
+        m_pos += (point - m_pos) * (1.0f - oldZoom / newZoom);
+        updateTransform();
     }
 
     float Camera::getZoom() const { return m_zoom; }

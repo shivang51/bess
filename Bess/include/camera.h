@@ -16,8 +16,7 @@ namespace Bess {
         void setZoom(float zoom);
 
         void incrementZoom(float value);
-
-        void zoomToPoint(const glm::vec2 &point, float value);
+        void incrementZoomToPoint(const glm::vec2 &point, float value);
 
         float getZoom() const;
         float &getZoomRef();
