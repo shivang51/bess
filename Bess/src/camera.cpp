@@ -11,6 +11,12 @@ namespace Bess {
 
     Camera::~Camera() {}
 
+    void Camera::update(TFrameTime ts) {
+        if (!m_posAnimation.finised) {
+            setPos(m_posAnimation.getNextPos(ts));
+        }
+    }
+
     void Camera::setPos(const glm::vec2 &pos) {
         m_pos = pos;
         updateTransform();
@@ -48,9 +54,18 @@ namespace Bess {
         updateTransform();
     }
 
-    void Camera::focusAtPoint(const glm::vec2 &pos) {
-        setPos(pos);
+    void Camera::focusAtPoint(const glm::vec2 &pos, bool smooth) {
         setZoom(2.f);
+        if (!smooth) {
+            setPos(pos);
+            return;
+        }
+
+        m_posAnimation = CameraPositionAnimation();
+        m_posAnimation.startPos = m_pos;
+        m_posAnimation.endPos = pos;
+        m_posAnimation.duration = TAnimationTime(200);
+        m_posAnimation.finised = false;
     }
 
     float Camera::getZoom() const { return m_zoom; }

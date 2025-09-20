@@ -1,12 +1,31 @@
 #pragma once
 
 #include "glm.hpp"
+#include "types.h"
 
 namespace Bess {
+    struct CameraPositionAnimation {
+        glm::vec2 startPos, endPos;
+        TAnimationTime duration;
+        TAnimationTime currentTime = TAnimationTime(0);
+        bool finised = true;
+
+        glm::vec2 getNextPos(TFrameTime ts) {
+            auto pos = glm::mix(startPos, endPos, (currentTime / duration));
+            currentTime += ts;
+            if (currentTime >= duration) {
+                finised = true;
+            }
+            return pos;
+        }
+    };
+
     class Camera {
       public:
         Camera(float width, float height);
         ~Camera();
+
+        void update(TFrameTime ts);
 
         void setPos(const glm::vec2 &pos);
         glm::vec2 getPos() const;
@@ -18,7 +37,7 @@ namespace Bess {
         void incrementZoom(float value);
         void incrementZoomToPoint(const glm::vec2 &point, float value);
 
-        void focusAtPoint(const glm::vec2 &pos);
+        void focusAtPoint(const glm::vec2 &pos, bool smooth = true);
 
         float getZoom() const;
         float &getZoomRef();
@@ -43,7 +62,8 @@ namespace Bess {
         glm::mat4 transform;
 
         void updateTransform();
-
         void recalculateOrtho();
+
+        CameraPositionAnimation m_posAnimation;
     };
 } // namespace Bess

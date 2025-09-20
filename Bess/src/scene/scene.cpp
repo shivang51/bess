@@ -88,6 +88,8 @@ namespace Bess::Canvas {
             m_selectInSelectionBox = false;
         }
 
+        m_camera->update(ts);
+
         for (auto &event : events) {
             switch (event.getType()) {
             case ApplicationEventType::MouseMove: {
@@ -185,9 +187,13 @@ namespace Bess::Canvas {
             auto view = m_registry.view<Components::IdComponent,
                                         Components::SelectedComponent,
                                         Components::TransformComponent>();
-            auto ent = view.front();
-            const auto &transform = view.get<Components::TransformComponent>(ent);
-            m_camera->focusAtPoint(glm::vec2(transform.position));
+
+            // pick the first one to focus. if many are selected
+            for (auto &ent : view) {
+                const auto &transform = view.get<Components::TransformComponent>(ent);
+                m_camera->focusAtPoint(glm::vec2(transform.position), true);
+                break;
+            }
         }
     }
 
