@@ -1,7 +1,6 @@
 #include "camera.h"
 #include "ext/matrix_clip_space.hpp"
 #include "ext/matrix_transform.hpp"
-#include <iostream>
 
 namespace Bess {
     float Camera::zoomMin = 0.5f, Camera::zoomMax = 4.f, Camera::defaultZoom = 1.517f;
