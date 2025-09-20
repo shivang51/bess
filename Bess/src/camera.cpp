@@ -64,7 +64,7 @@ namespace Bess {
         m_posAnimation = CameraPositionAnimation();
         m_posAnimation.startPos = m_pos;
         m_posAnimation.endPos = pos;
-        m_posAnimation.duration = TAnimationTime(200);
+        m_posAnimation.duration = TAnimationTime(100);
         m_posAnimation.finised = false;
     }
 
