@@ -139,7 +139,21 @@ namespace Bess::Canvas {
 
     void Scene::handleKeyboardShortcuts() {
         auto mainPageState = Pages::MainPageState::getInstance();
-        if (mainPageState->isKeyPressed(GLFW_KEY_DELETE)) {
+        if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
+            if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
+                if (mainPageState->isKeyPressed(GLFW_KEY_Z)) {
+                    m_cmdManager.redo();
+                }
+            } else if (mainPageState->isKeyPressed(GLFW_KEY_A)) { // ctrl-a select all components
+                selectAllEntities();
+            } else if (mainPageState->isKeyPressed(GLFW_KEY_C)) { // ctrl-c copy selected components
+                copySelectedComponents();
+            } else if (mainPageState->isKeyPressed(GLFW_KEY_V)) { // ctrl-v generate copied components
+                generateCopiedComponents();
+            } else if (mainPageState->isKeyPressed(GLFW_KEY_Z)) {
+                m_cmdManager.undo();
+            }
+        } else if (mainPageState->isKeyPressed(GLFW_KEY_DELETE)) {
             auto view = m_registry.view<Components::IdComponent, Components::SelectedComponent>();
 
             std::vector<UUID> entitesToDel = {};
@@ -166,22 +180,13 @@ namespace Bess::Canvas {
             }
 
             auto __ = m_cmdManager.execute<Commands::DelConnectionCommand, std::string>(connToDel);
-        }
-
-        if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
-            if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
-                if (mainPageState->isKeyPressed(GLFW_KEY_Z)) {
-                    m_cmdManager.redo();
-                }
-            } else if (mainPageState->isKeyPressed(GLFW_KEY_A)) { // ctrl-a select all components
-                selectAllEntities();
-            } else if (mainPageState->isKeyPressed(GLFW_KEY_C)) { // ctrl-c copy selected components
-                copySelectedComponents();
-            } else if (mainPageState->isKeyPressed(GLFW_KEY_V)) { // ctrl-v generate copied components
-                generateCopiedComponents();
-            } else if (mainPageState->isKeyPressed(GLFW_KEY_Z)) {
-                m_cmdManager.undo();
-            }
+        } else if (mainPageState->isKeyPressed(GLFW_KEY_F)) {
+            auto view = m_registry.view<Components::IdComponent,
+                                        Components::SelectedComponent,
+                                        Components::TransformComponent>();
+            auto ent = view.front();
+            const auto &transform = view.get<Components::TransformComponent>(ent);
+            m_camera->focusAtPoint(glm::vec2(transform.position));
         }
     }
 

@@ -49,6 +49,11 @@ namespace Bess {
         updateTransform();
     }
 
+    void Camera::focusAtPoint(const glm::vec2 &pos) {
+        setPos(pos);
+        setZoom(2.f);
+    }
+
     float Camera::getZoom() const { return m_zoom; }
 
     float &Camera::getZoomRef() { return m_zoom; }
@@ -85,5 +90,4 @@ namespace Bess {
         transform = glm::translate(glm::mat4(1.f), glm::vec3(-m_pos, 0.0f));
         transform = m_ortho * transform;
     }
-
 } // namespace Bess
