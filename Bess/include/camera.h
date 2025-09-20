@@ -11,12 +11,40 @@ namespace Bess {
         bool finised = true;
 
         glm::vec2 getNextPos(TFrameTime ts) {
-            auto pos = glm::mix(startPos, endPos, (currentTime / duration));
-            currentTime += ts;
             if (currentTime >= duration) {
                 finised = true;
             }
+
+            float t = currentTime / duration;
+            if (t > 1.f)
+                t = 1.f;
+
+            auto pos = glm::mix(startPos, endPos, t);
+            currentTime += ts;
             return pos;
+        }
+    };
+
+    struct CameraPositionZoomAnimation {
+        glm::vec2 startPos, endPos;
+        float startZoom, endZoom;
+        TAnimationTime duration;
+        TAnimationTime currentTime = TAnimationTime(0);
+        bool finised = true;
+
+        std::pair<glm::vec2, float> getNextVal(TFrameTime ts) {
+            if (currentTime >= duration) {
+                finised = true;
+            }
+
+            float t = currentTime / duration;
+            if (t > 1.f)
+                t = 1.f;
+
+            auto pos = glm::mix(startPos, endPos, t);
+            auto zoom = glm::mix(startZoom, endZoom, t);
+            currentTime += ts;
+            return {pos, zoom};
         }
     };
 
@@ -65,5 +93,6 @@ namespace Bess {
         void recalculateOrtho();
 
         CameraPositionAnimation m_posAnimation;
+        CameraPositionZoomAnimation m_posZoomAnimation;
     };
 } // namespace Bess
