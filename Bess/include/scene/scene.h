@@ -12,6 +12,8 @@
 #include "scene/components/non_sim_comp.h"
 #include "scene/renderer/gl/framebuffer.h"
 #include "scene/renderer/gl/subtexture.h"
+#include "types.h"
+#include <chrono>
 #include <memory>
 
 namespace Bess::Canvas {
@@ -45,7 +47,7 @@ namespace Bess::Canvas {
         void clear();
         void render();
         void renderWithCamera(std::shared_ptr<Camera> camera);
-        void update(const std::vector<ApplicationEvent> &events);
+        void update(TFrameTime ts, const std::vector<ApplicationEvent> &events);
 
         unsigned int getTextureId();
         std::shared_ptr<Camera> getCamera();

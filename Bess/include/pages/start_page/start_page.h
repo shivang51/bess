@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pages/page.h"
+#include "types.h"
 #include <memory>
 #include <string>
 #include <vector>
@@ -12,7 +13,7 @@ namespace Bess::Pages {
         static std::shared_ptr<Page> getInstance();
 
         void draw() override;
-        void update(const std::vector<ApplicationEvent> &events) override;
+        void update(TFrameTime ts, const std::vector<ApplicationEvent> &events) override;
 
         struct PreviousProject {
             std::string name;

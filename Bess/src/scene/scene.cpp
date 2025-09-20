@@ -23,6 +23,7 @@
 #include "scene/renderer/renderer.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
+#include "types.h"
 #include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
 #include <cstdint>
@@ -80,7 +81,7 @@ namespace Bess::Canvas {
         m_drawMode = SceneDrawMode::none;
     }
 
-    void Scene::update(const std::vector<ApplicationEvent> &events) {
+    void Scene::update(TFrameTime ts, const std::vector<ApplicationEvent> &events) {
         // doing it here so selection box does not interfere with selection
         if (m_selectInSelectionBox) {
             selectEntitesInArea(m_selectionBoxStart, m_selectionBoxEnd);

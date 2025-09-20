@@ -4,8 +4,10 @@
 #include "pages/main_page/main_page_state.h"
 #include "pages/page.h"
 #include "scene/scene.h"
+#include "types.h"
 #include "window.h"
 
+#include <chrono>
 #include <memory>
 #include <vector>
 
@@ -20,7 +22,7 @@ namespace Bess::Pages {
 
         void draw() override;
 
-        void update(const std::vector<ApplicationEvent> &events) override;
+        void update(TFrameTime ts, const std::vector<ApplicationEvent> &events) override;
 
         std::shared_ptr<Window> getParentWindow();
         Canvas::Scene &getScene();

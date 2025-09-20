@@ -3,6 +3,7 @@
 #include "pages/page_identifier.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
+#include "types.h"
 #include "ui/ui_main/ui_main.h"
 #include <memory>
 
@@ -34,7 +35,7 @@ namespace Bess::Pages {
         UI::UIMain::draw();
     }
 
-    void MainPage::update(const std::vector<ApplicationEvent> &events) {
+    void MainPage::update(TFrameTime ts, const std::vector<ApplicationEvent> &events) {
         if (m_scene.getSize() != UI::UIMain::state.viewportSize) {
             m_scene.resize(UI::UIMain::state.viewportSize);
         }
@@ -55,7 +56,7 @@ namespace Bess::Pages {
         }
 
         if (UI::UIMain::state.isViewportFocused)
-            m_scene.update(events);
+            m_scene.update(ts, events);
     }
 
     std::shared_ptr<Window> MainPage::getParentWindow() {
