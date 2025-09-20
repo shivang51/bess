@@ -640,9 +640,7 @@ namespace Bess::Canvas {
                 m_isDragging = true;
             }
         } else if (m_isMiddleMousePressed) {
-            glm::vec2 dPos = m_dMousePos;
-            dPos *= m_camera->getZoom() * -1;
-            m_camera->incrementPos(dPos);
+            m_camera->incrementPos(-m_dMousePos);
         }
     }
 
@@ -983,12 +981,6 @@ namespace Bess::Canvas {
         if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
             const float delta = static_cast<float>(y) * 0.1f;
             m_camera->incrementZoomToPoint(getNVPMousePos(m_mousePos), delta);
-            /*UI::UIMain::state.cameraZoom += delta;*/
-            /*if (UI::UIMain::state.cameraZoom < Camera::zoomMin) {*/
-            /*    UI::UIMain::state.cameraZoom = Camera::zoomMin;*/
-            /*} else if (UI::UIMain::state.cameraZoom > Camera::zoomMax) {*/
-            /*    UI::UIMain::state.cameraZoom = Camera::zoomMax;*/
-            /*}*/
         } else {
             glm::vec2 dPos = {x, y};
             dPos *= 10 / m_camera->getZoom() * -1;
