@@ -4,8 +4,8 @@
 #include "primitive_type.h"
 #include "vertex.h"
 
-#include <iostream>
 #include <array>
+#include <iostream>
 #include <memory>
 #include <vector>
 
@@ -117,9 +117,9 @@ namespace Bess::Gl {
         };
 
         constexpr std::array<TemplateVertex, 3> TriangleTemplateVertices = {{
-            {{-0.5f, -0.5f}, {0.0f, 0.0f}}, // Position, TexCoord (Bottom-left)
-            {{0.5f, -0.5f}, {1.0f, 0.0f}},  // (Bottom-right)
-            {{0.f, 0.5f}, {1.0f, 1.0f}},   // (Top-right)
+            {{-0.5f, -0.5f}, {0.0f, 0.0f}},
+            {{0.5f, -0.5f}, {1.0f, 0.0f}},
+            {{0.f, 0.5f}, {1.0f, 1.0f}},
         }};
 
         constexpr std::array<GLuint, 3> TriangleTemplateIndices = {

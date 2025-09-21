@@ -3,12 +3,12 @@
 #include "fwd.hpp"
 
 #include "scene/renderer/font.h"
-#include "scene/renderer/gl/shader.h"
-#include "scene/renderer/gl/vaos.h"
 #include "scene/renderer/gl/batch_vao.h"
-#include "scene/renderer/gl/vertex.h"
-#include "scene/renderer/gl/texture.h"
+#include "scene/renderer/gl/shader.h"
 #include "scene/renderer/gl/subtexture.h"
+#include "scene/renderer/gl/texture.h"
+#include "scene/renderer/gl/vaos.h"
+#include "scene/renderer/gl/vertex.h"
 #include "scene/renderer/msdf_font.h"
 
 #include "camera.h"
@@ -114,14 +114,6 @@ namespace Bess::Renderer2D {
 
         static int calculateCubicBezierSegments(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2, const glm::vec2 &p3);
 
-        static void addLineVertices(const std::vector<Gl::Vertex> &vertices);
-
-        static void addCircleVertices(const std::vector<Gl::CircleVertex> &vertices);
-
-        static void addTriangleVertices(const std::vector<Gl::Vertex> &vertices);
-
-        static void addQuadVertices(const std::vector<Gl::QuadVertex> &vertices);
-
         static void flush(PrimitiveType type);
 
         static QuadBezierCurvePoints generateSmoothBendPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius);
@@ -148,7 +140,6 @@ namespace Bess::Renderer2D {
 
         static std::vector<glm::vec4> m_StandardTriVertices;
 
-
         static RenderData m_renderData;
 
         static std::shared_ptr<Gl::Shader> m_gridShader;
@@ -167,15 +158,15 @@ namespace Bess::Renderer2D {
 
         static std::shared_ptr<MsdfFont> m_msdfFont;
 
-		static std::unique_ptr<Gl::QuadVao> m_quadRendererVao;
+        static std::unique_ptr<Gl::QuadVao> m_quadRendererVao;
         static std::unique_ptr<Gl::CircleVao> m_circleRendererVao;
-        static std::unique_ptr<Gl::TriangleVao> m_triangleRendererVao;
+        static std::unique_ptr<Gl::BatchVao<Gl::Vertex>> m_triangleRendererVao;
         static std::unique_ptr<Gl::InstancedVao<Gl::InstanceVertex>> m_lineRendererVao;
         static std::unique_ptr<Gl::InstancedVao<Gl::InstanceVertex>> m_textRendererVao;
         static std::unique_ptr<Gl::BatchVao<Gl::Vertex>> m_pathRendererVao;
         static std::unique_ptr<Gl::GridVao> m_gridVao;
 
-		static std::array<int, 32> m_texSlots;
+        static std::array<int, 32> m_texSlots;
     };
 
 } // namespace Bess::Renderer2D

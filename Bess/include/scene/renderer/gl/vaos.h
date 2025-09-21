@@ -14,14 +14,6 @@ namespace Bess::Gl {
         BufferLayout getInstanceLayout() override;
     };
 
-    class TriangleVao : public InstancedVao<InstanceVertex> {
-      public:
-        TriangleVao(size_t limit) : InstancedVao(limit, 
-            sizeof(TriangleTemplateVertices), (void*)TriangleTemplateVertices.data(),
-            sizeof(TriangleTemplateIndices), (GLuint*)TriangleTemplateIndices.data()
-        ) {}
-    };
-
     class GridVao {
       public:
         GridVao() {
@@ -51,11 +43,12 @@ namespace Bess::Gl {
             return BufferLayout{
                 {GL_FLOAT, 3, sizeof(GridVertex), offsetof(GridVertex, position), false, false},
                 {GL_FLOAT, 2, sizeof(GridVertex), offsetof(GridVertex, texCoord), false, false},
-                {GL_INT  , 1, sizeof(GridVertex), offsetof(GridVertex, id), false, false},
+                {GL_INT, 1, sizeof(GridVertex), offsetof(GridVertex, id), false, false},
                 {GL_FLOAT, 4, sizeof(GridVertex), offsetof(GridVertex, color), false, false},
                 {GL_FLOAT, 1, sizeof(GridVertex), offsetof(GridVertex, ar), false, false},
             };
         }
+
       protected:
         std::unique_ptr<Vao> m_vao;
         std::unique_ptr<Ibo> m_ibo;
@@ -63,4 +56,4 @@ namespace Bess::Gl {
         bool m_isQuad;
     };
 
-}
+} // namespace Bess::Gl

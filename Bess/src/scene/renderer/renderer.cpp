@@ -52,7 +52,7 @@ namespace Bess {
 
     std::unique_ptr<Bess::Gl::QuadVao> Renderer::m_quadRendererVao;
     std::unique_ptr<Bess::Gl::CircleVao> Renderer::m_circleRendererVao;
-    std::unique_ptr<Bess::Gl::TriangleVao> Renderer::m_triangleRendererVao;
+    std::unique_ptr<Bess::Gl::BatchVao<Gl::Vertex>> Renderer::m_triangleRendererVao;
     std::unique_ptr<Bess::Gl::InstancedVao<Gl::InstanceVertex>> Renderer::m_textRendererVao;
     std::unique_ptr<Bess::Gl::BatchVao<Gl::Vertex>> Renderer::m_pathRendererVao;
     std::unique_ptr<Bess::Gl::InstancedVao<Gl::InstanceVertex>> Renderer::m_lineRendererVao;
@@ -92,7 +92,7 @@ namespace Bess {
         auto &assetManager = Assets::AssetManager::instance();
         m_quadRendererVao = std::make_unique<Bess::Gl::QuadVao>(m_MaxRenderLimit[(int)PrimitiveType::quad]);
         m_circleRendererVao = std::make_unique<Bess::Gl::CircleVao>(m_MaxRenderLimit[(int)PrimitiveType::circle]);
-        m_triangleRendererVao = std::make_unique<Bess::Gl::TriangleVao>(m_MaxRenderLimit[(int)PrimitiveType::triangle]);
+        m_triangleRendererVao = std::make_unique<Bess::Gl::BatchVao<Gl::Vertex>>(m_MaxRenderLimit[(int)PrimitiveType::triangle], 3, 3, true, false);
         m_textRendererVao = std::make_unique<Bess::Gl::InstancedVao<Gl::InstanceVertex>>(m_MaxRenderLimit[(int)PrimitiveType::text]);
         m_lineRendererVao = std::make_unique<Bess::Gl::InstancedVao<Gl::InstanceVertex>>(m_MaxRenderLimit[(int)PrimitiveType::line]);
         m_pathRendererVao = std::make_unique<Bess::Gl::BatchVao<Gl::Vertex>>(m_MaxRenderLimit[(int)PrimitiveType::path], 3, 3, true, false);
@@ -410,34 +410,15 @@ namespace Bess {
     }
 
     void Renderer2D::Renderer::triangle(const std::vector<glm::vec3> &points, const glm::vec4 &color, const int id) {
-        std::runtime_error("Triangle API is not implemented");
-        std::vector<Gl::Vertex> vertices(3);
+        auto &vertices = m_renderData.triangleVertices;
 
-        for (int i = 0; i < vertices.size(); i++) {
-            auto transform = glm::translate(glm::mat4(1.0f), points[i]);
-            auto &vertex = vertices[i];
-            vertex.position = transform * m_StandardTriVertices[i];
+        for (int i = 0; i < 3; i++) {
+            Gl::Vertex vertex = {};
+            vertex.position = points[i];
             vertex.id = id;
             vertex.color = color;
+            vertices.emplace_back(vertex);
         }
-
-        // vertices[0].texCoord = {0.0f, 0.0f};
-        // vertices[1].texCoord = {0.0f, 0.5f};
-        // vertices[2].texCoord = {1.0f, 1.0f};
-
-        addTriangleVertices(vertices);
-    }
-
-    void Renderer::addTriangleVertices(const std::vector<Gl::Vertex> &vertices) {
-        auto max_render_count = m_MaxRenderLimit[(int)PrimitiveType::circle];
-
-        // auto &primitive_vertices = m_RenderData.triangleVertices;
-
-        // if (primitive_vertices.size() >= (max_render_count - 1) * 4) {
-        //     flush(PrimitiveType::triangle);
-        // }
-
-        // primitive_vertices.insert(primitive_vertices.end(), vertices.begin(), vertices.end());
     }
 
 #ifndef BESS_RENDERER_DISABLE_RENDERPASS
@@ -584,13 +565,15 @@ namespace Bess {
             m_pathRendererVao->unbind();
             m_pathStripVertices.clear();
             m_pathStripIndices.clear();
-        } break; /*
+        } break;
         case PrimitiveType::triangle: {
-            auto &vertices = m_renderData.triangleVertices;
-            //vao->setVertices(vertices.data(), vertices.size());
-            Gl::Api::drawElements(GL_TRIANGLES, vertices.size());
-            vertices.clear();
-        } break;*/
+            m_triangleRendererVao->bind();
+            m_triangleRendererVao->setVertices(m_renderData.triangleVertices);
+            Gl::Api::drawElements(GL_TRIANGLES,
+                                  m_renderData.triangleVertices.size());
+            m_triangleRendererVao->unbind();
+            m_renderData.triangleVertices.clear();
+        } break;
         case PrimitiveType::line: {
             auto &vertices = m_renderData.lineVertices;
             m_lineRendererVao->bind();
