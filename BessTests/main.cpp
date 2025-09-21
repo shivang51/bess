@@ -577,6 +577,116 @@ TEST_F(SimulationEngineTest, Clock) {
     ASSERT_EQ(last_state, current_state);
 }
 
+TEST_F(SimulationEngineTest, TFlipFlopCounter) {
+    auto t_ff = simEngine_.addComponent(Bess::SimEngine::ComponentType::FLIP_FLOP_T);
+    auto clock = simEngine_.addComponent(Bess::SimEngine::ComponentType::INPUT);
+    auto t_input = simEngine_.addComponent(Bess::SimEngine::ComponentType::INPUT);
+    auto clr = simEngine_.addComponent(Bess::SimEngine::ComponentType::INPUT);
+
+    simEngine_.connectComponent(t_input, 0, Bess::SimEngine::PinType::output, t_ff, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(clock, 0, Bess::SimEngine::PinType::output, t_ff, 1, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(clr, 0, Bess::SimEngine::PinType::output, t_ff, 2, Bess::SimEngine::PinType::input);
+
+    simEngine_.setDigitalInput(t_input, true); // Enable toggling
+    simEngine_.setDigitalInput(clr, false);
+
+    // Initial state should be low
+    ASSERT_FALSE(simEngine_.getDigitalPinState(t_ff, Bess::SimEngine::PinType::output, 0));
+
+    for (int i = 0; i < 4; ++i) {
+        // Rising edge
+        simEngine_.setDigitalInput(clock, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        simEngine_.setDigitalInput(clock, false);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        ASSERT_EQ(simEngine_.getDigitalPinState(t_ff, Bess::SimEngine::PinType::output, 0), (i % 2 == 0));
+    }
+}
+
+TEST_F(SimulationEngineTest, TwoBitRippleCounter) {
+    auto clock = simEngine_.addComponent(Bess::SimEngine::ComponentType::INPUT);
+    auto high_input = simEngine_.addComponent(Bess::SimEngine::ComponentType::INPUT);
+    simEngine_.setDigitalInput(high_input, true);
+
+    auto ff0 = simEngine_.addComponent(Bess::SimEngine::ComponentType::FLIP_FLOP_JK);
+    auto ff1 = simEngine_.addComponent(Bess::SimEngine::ComponentType::FLIP_FLOP_JK);
+
+    // Connect J and K to high to make them toggle
+    simEngine_.connectComponent(high_input, 0, Bess::SimEngine::PinType::output, ff0, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(high_input, 0, Bess::SimEngine::PinType::output, ff0, 2, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(high_input, 0, Bess::SimEngine::PinType::output, ff1, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(high_input, 0, Bess::SimEngine::PinType::output, ff1, 2, Bess::SimEngine::PinType::input);
+
+    // Connect clock
+    simEngine_.connectComponent(clock, 0, Bess::SimEngine::PinType::output, ff0, 1, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(ff0, 1, Bess::SimEngine::PinType::output, ff1, 1, Bess::SimEngine::PinType::input);
+
+    for (int i = 0; i < 8; ++i) {
+        int expected_q0 = (i + 1) / 1 % 2;
+        int expected_q1 = (i + 1) / 2 % 2;
+        
+        simEngine_.setDigitalInput(clock, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        simEngine_.setDigitalInput(clock, false);
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+
+        bool q0 = simEngine_.getDigitalPinState(ff0, Bess::SimEngine::PinType::output, 0);
+        bool q1 = simEngine_.getDigitalPinState(ff1, Bess::SimEngine::PinType::output, 0);
+
+        ASSERT_EQ(q0, expected_q0);
+        ASSERT_EQ(q1, expected_q1);
+    }
+}
+
+TEST_F(SimulationEngineTest, ThreeBitSynchronousCounter) {
+    auto clock = simEngine_.addComponent(Bess::SimEngine::ComponentType::INPUT);
+    auto high_input = simEngine_.addComponent(Bess::SimEngine::ComponentType::INPUT);
+    simEngine_.setDigitalInput(high_input, true);
+
+    auto ff0 = simEngine_.addComponent(Bess::SimEngine::ComponentType::FLIP_FLOP_JK);
+    auto ff1 = simEngine_.addComponent(Bess::SimEngine::ComponentType::FLIP_FLOP_JK);
+    auto ff2 = simEngine_.addComponent(Bess::SimEngine::ComponentType::FLIP_FLOP_JK);
+
+    auto and1 = simEngine_.addComponent(Bess::SimEngine::ComponentType::AND, 2);
+
+    // FF0 is always in toggle mode
+    simEngine_.connectComponent(high_input, 0, Bess::SimEngine::PinType::output, ff0, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(high_input, 0, Bess::SimEngine::PinType::output, ff0, 2, Bess::SimEngine::PinType::input);
+
+    // FF1 toggles when Q0 is high
+    simEngine_.connectComponent(ff0, 0, Bess::SimEngine::PinType::output, ff1, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(ff0, 0, Bess::SimEngine::PinType::output, ff1, 2, Bess::SimEngine::PinType::input);
+
+    // FF2 toggles when Q0 and Q1 are high
+    simEngine_.connectComponent(ff0, 0, Bess::SimEngine::PinType::output, and1, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(ff1, 0, Bess::SimEngine::PinType::output, and1, 1, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(and1, 0, Bess::SimEngine::PinType::output, ff2, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(and1, 0, Bess::SimEngine::PinType::output, ff2, 2, Bess::SimEngine::PinType::input);
+
+    // Connect clock to all FFs
+    simEngine_.connectComponent(clock, 0, Bess::SimEngine::PinType::output, ff0, 1, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(clock, 0, Bess::SimEngine::PinType::output, ff1, 1, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(clock, 0, Bess::SimEngine::PinType::output, ff2, 1, Bess::SimEngine::PinType::input);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+
+    for (int i = 0; i < 8; ++i) {
+        bool q0 = simEngine_.getDigitalPinState(ff0, Bess::SimEngine::PinType::output, 0);
+        bool q1 = simEngine_.getDigitalPinState(ff1, Bess::SimEngine::PinType::output, 0);
+        bool q2 = simEngine_.getDigitalPinState(ff2, Bess::SimEngine::PinType::output, 0);
+
+        ASSERT_EQ(q0, (i & 1));
+        ASSERT_EQ(q1, (i & 2) >> 1);
+        ASSERT_EQ(q2, (i & 4) >> 2);
+
+        simEngine_.setDigitalInput(clock, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        simEngine_.setDigitalInput(clock, false);
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+}
+
+
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
