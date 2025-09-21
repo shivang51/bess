@@ -29,7 +29,8 @@ namespace Bess::Assets {
 
     namespace TileMaps {
         constexpr auto sevenSegDisplay = AssetID<Gl::Texture, 1>("assets/images/7-seg-display-tilemap.png");
-    }
+        constexpr auto sceneIcons = AssetID<Gl::Texture, 1>("assets/images/scene_icons_tilesheet.png");
+    } // namespace TileMaps
 
     namespace Textures {
         constexpr auto shadowTexture = AssetID<Gl::Texture, 1>("assets/images/shadow_texture.png");

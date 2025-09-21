@@ -19,6 +19,7 @@ namespace Bess::Canvas {
 
     struct ArtistTools {
         std::array<std::shared_ptr<Gl::SubTexture>, 8> sevenSegDispTexs;
+        std::array<std::shared_ptr<Gl::SubTexture>, 2> clockSlotsTexs;
     };
 
     class Artist {
@@ -58,10 +59,11 @@ namespace Bess::Canvas {
       private:
         static void paintSchematicView(entt::entity entity);
 
-        static void paintSlot(uint64_t id, uint64_t parentId, const glm::vec3 &pos, float angle,
-                              const std::string &label, float labelDx, bool isHigh, bool isConnected);
+        static void paintSlot(uint64_t id, uint64_t parentId, const glm::vec3 &pos,
+                              float angle, const std::string &label, float labelDx,
+                              bool isHigh, bool isConnected, bool isClock = false);
 
-        static void drawSlots(const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp);
+        static void drawSlots(const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp, const SimEngine::ComponentType compType);
 
         static void drawSevenSegDisplay(entt::entity entity,
                                         Components::TagComponent &tagComp,

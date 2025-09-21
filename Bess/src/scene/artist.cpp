@@ -61,6 +61,17 @@ namespace Bess::Canvas {
                 std::make_shared<Gl::SubTexture>(tex, glm::vec2({2.f, 1.f}), size, margin, glm::vec2(1.f)),
             };
         }
+
+        {
+
+            auto tex = Assets::AssetManager::instance().get(Assets::TileMaps::sceneIcons);
+            float margin = 5.f;
+            glm::vec2 size(60.f, 60.f);
+            m_artistTools.clockSlotsTexs = std::array<std::shared_ptr<Gl::SubTexture>, 2>{
+                std::make_shared<Gl::SubTexture>(tex, glm::vec2({0.f, 0.f}), size, margin, glm::vec2(1.f)),
+                std::make_shared<Gl::SubTexture>(tex, glm::vec2({1.f, 0.f}), size, margin, glm::vec2(1.f)),
+            };
+        }
     }
 
     glm::vec3 Artist::getSlotPos(const Components::SlotComponent &comp, const Components::TransformComponent &parentTransform) {
@@ -118,7 +129,8 @@ namespace Bess::Canvas {
     }
 
     void Artist::paintSlot(uint64_t id, uint64_t parentId, const glm::vec3 &pos,
-                           float angle, const std::string &label, float labelDx, bool isHigh, bool isConnected) {
+                           float angle, const std::string &label, float labelDx,
+                           bool isHigh, bool isConnected, bool isClock) {
         auto bgColor = ViewportTheme::stateLowColor;
         auto borderColor = ViewportTheme::stateLowColor;
 
@@ -133,15 +145,22 @@ namespace Bess::Canvas {
         float ir = componentStyles.slotRadius - componentStyles.slotBorderSize;
         float r = componentStyles.slotRadius;
 
+        // if (isClock) {
+        //     if (!isConnected)
+        //         Renderer::quad(pos, glm::vec2(r * 2.f), m_artistTools.clockSlotsTexs[0], borderColor, id, {});
+        //     else
+        //         Renderer::quad(pos, glm::vec2(r * 2.f), m_artistTools.clockSlotsTexs[1], borderColor, id, {});
+        // } else {
         Renderer::circle(pos, r, borderColor, id, ir);
         Renderer::circle(pos, ir - 1.f, bgColor, id);
+        // }
 
         float labelX = pos.x + labelDx;
         float dY = componentStyles.slotRadius - std::abs(componentStyles.slotRadius * 2.f - componentStyles.slotLabelSize) / 2.f;
         Renderer::msdfText(label, {labelX, pos.y + dY, pos.z}, componentStyles.slotLabelSize, ViewportTheme::textColor, parentId, angle);
     }
 
-    void Artist::drawSlots(const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp) {
+    void Artist::drawSlots(const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp, const SimEngine::ComponentType compType) {
         auto &registry = sceneRef->getEnttRegistry();
         auto slotsView = registry.view<Components::SlotComponent>();
 
@@ -150,6 +169,8 @@ namespace Bess::Canvas {
         auto compState = SimEngine::SimulationEngine::instance().getComponentState(comp.simEngineEntity);
 
         float angle = transformComp.angle;
+
+        bool hasClockPin = compType == SimEngine::ComponentType::FLIP_FLOP_JK;
 
         std::string label;
         for (size_t i = 0; i < comp.inputSlots.size(); i++) {
@@ -160,7 +181,7 @@ namespace Bess::Canvas {
             auto slotPos = getSlotPos(slotComp, transformComp);
             uint64_t parentId = (uint64_t)sceneRef->getEntityWithUuid(slotComp.parentId);
             label = "X" + std::to_string(i);
-            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, labeldx, (bool)isHigh, isConnected);
+            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, labeldx, (bool)isHigh, isConnected, hasClockPin && i == 1);
         }
 
         float labelWidth = Renderer::getMSDFTextRenderSize("Y0", componentStyles.slotLabelSize).x;
@@ -338,7 +359,7 @@ namespace Bess::Canvas {
         auto name = tagComp.name;
         Renderer::msdfText(name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id);
 
-        drawSlots(simComp, transform);
+        drawSlots(simComp, transform, tagComp.type.simCompType);
     }
 
     void Artist::paintSchematicView(entt::entity entity) {
@@ -574,7 +595,7 @@ namespace Bess::Canvas {
                 Renderer::quad(transform.position + glm::vec3(24.f, 0.f, 0.f), {texWidth, texHeight}, tex, glm::vec4(1.f), (uint64_t)entity);
             }
         }
-        drawSlots(simComp, transform);
+        drawSlots(simComp, transform, tagComp.type.simCompType);
     }
 
     void Artist::drawSimEntity(
@@ -644,7 +665,7 @@ namespace Bess::Canvas {
 
         Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id, rotation);
 
-        drawSlots(simComp, transform);
+        drawSlots(simComp, transform, tagComp.type.simCompType);
     }
 
     ArtistCompBoundInfo Artist::getCompBoundInfo(SimEngine::ComponentType type, glm::vec2 pos, glm::vec2 scale) {
