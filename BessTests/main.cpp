@@ -686,6 +686,174 @@ TEST_F(SimulationEngineTest, ThreeBitSynchronousCounter) {
     }
 }
 
+TEST_F(SimulationEngineTest, DecadeCounter) {
+    auto clock = simEngine_.addComponent(Bess::SimEngine::ComponentType::INPUT);
+    auto high_input = simEngine_.addComponent(Bess::SimEngine::ComponentType::INPUT);
+    simEngine_.setDigitalInput(high_input, true);
+
+    auto ff0 = simEngine_.addComponent(Bess::SimEngine::ComponentType::FLIP_FLOP_JK);
+    auto ff1 = simEngine_.addComponent(Bess::SimEngine::ComponentType::FLIP_FLOP_JK);
+    auto ff2 = simEngine_.addComponent(Bess::SimEngine::ComponentType::FLIP_FLOP_JK);
+    auto ff3 = simEngine_.addComponent(Bess::SimEngine::ComponentType::FLIP_FLOP_JK);
+
+    auto and1 = simEngine_.addComponent(Bess::SimEngine::ComponentType::AND, 2);
+
+    // FF0 toggles on each clock pulse
+    simEngine_.connectComponent(high_input, 0, Bess::SimEngine::PinType::output, ff0, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(high_input, 0, Bess::SimEngine::PinType::output, ff0, 2, Bess::SimEngine::PinType::input);
+
+    // FF1 toggles when Q0 is high and Q3 is low
+    auto and_ff1 = simEngine_.addComponent(Bess::SimEngine::ComponentType::AND, 2);
+    auto not_ff3 = simEngine_.addComponent(Bess::SimEngine::ComponentType::NOT, 1);
+    simEngine_.connectComponent(ff3, 0, Bess::SimEngine::PinType::output, not_ff3, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(ff0, 0, Bess::SimEngine::PinType::output, and_ff1, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(not_ff3, 0, Bess::SimEngine::PinType::output, and_ff1, 1, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(and_ff1, 0, Bess::SimEngine::PinType::output, ff1, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(and_ff1, 0, Bess::SimEngine::PinType::output, ff1, 2, Bess::SimEngine::PinType::input);
+
+    // FF2 toggles when Q0 and Q1 are high
+    simEngine_.connectComponent(ff0, 0, Bess::SimEngine::PinType::output, and1, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(ff1, 0, Bess::SimEngine::PinType::output, and1, 1, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(and1, 0, Bess::SimEngine::PinType::output, ff2, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(and1, 0, Bess::SimEngine::PinType::output, ff2, 2, Bess::SimEngine::PinType::input);
+
+    // FF3 J is high when Q0, Q1, Q2 are high. K is high when Q0 is high.
+    auto and_ff3_j = simEngine_.addComponent(Bess::SimEngine::ComponentType::AND, 2);
+    simEngine_.connectComponent(and1, 0, Bess::SimEngine::PinType::output, and_ff3_j, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(ff2, 0, Bess::SimEngine::PinType::output, and_ff3_j, 1, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(and_ff3_j, 0, Bess::SimEngine::PinType::output, ff3, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(ff0, 0, Bess::SimEngine::PinType::output, ff3, 2, Bess::SimEngine::PinType::input);
+
+    // Connect clock to all FFs
+    simEngine_.connectComponent(clock, 0, Bess::SimEngine::PinType::output, ff0, 1, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(clock, 0, Bess::SimEngine::PinType::output, ff1, 1, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(clock, 0, Bess::SimEngine::PinType::output, ff2, 1, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(clock, 0, Bess::SimEngine::PinType::output, ff3, 1, Bess::SimEngine::PinType::input);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+    for (int i = 0; i < 20; ++i) {
+        bool q0 = simEngine_.getDigitalPinState(ff0, Bess::SimEngine::PinType::output, 0);
+        bool q1 = simEngine_.getDigitalPinState(ff1, Bess::SimEngine::PinType::output, 0);
+        bool q2 = simEngine_.getDigitalPinState(ff2, Bess::SimEngine::PinType::output, 0);
+        bool q3 = simEngine_.getDigitalPinState(ff3, Bess::SimEngine::PinType::output, 0);
+
+        int count = (q3 << 3) | (q2 << 2) | (q1 << 1) | q0;
+        ASSERT_EQ(count, i % 10);
+
+        simEngine_.setDigitalInput(clock, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        simEngine_.setDigitalInput(clock, false);
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+}
+
+TEST_F(SimulationEngineTest, FourBitSynchronousCounter) {
+    auto clock = simEngine_.addComponent(Bess::SimEngine::ComponentType::INPUT);
+    auto high_input = simEngine_.addComponent(Bess::SimEngine::ComponentType::INPUT);
+    simEngine_.setDigitalInput(high_input, true);
+
+    auto ff0 = simEngine_.addComponent(Bess::SimEngine::ComponentType::FLIP_FLOP_JK);
+    auto ff1 = simEngine_.addComponent(Bess::SimEngine::ComponentType::FLIP_FLOP_JK);
+    auto ff2 = simEngine_.addComponent(Bess::SimEngine::ComponentType::FLIP_FLOP_JK);
+    auto ff3 = simEngine_.addComponent(Bess::SimEngine::ComponentType::FLIP_FLOP_JK);
+
+    auto and1 = simEngine_.addComponent(Bess::SimEngine::ComponentType::AND, 2);
+    auto and2 = simEngine_.addComponent(Bess::SimEngine::ComponentType::AND, 2);
+
+    // FF0 is always in toggle mode
+    simEngine_.connectComponent(high_input, 0, Bess::SimEngine::PinType::output, ff0, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(high_input, 0, Bess::SimEngine::PinType::output, ff0, 2, Bess::SimEngine::PinType::input);
+
+    // FF1 toggles when Q0 is high
+    simEngine_.connectComponent(ff0, 0, Bess::SimEngine::PinType::output, ff1, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(ff0, 0, Bess::SimEngine::PinType::output, ff1, 2, Bess::SimEngine::PinType::input);
+
+    // FF2 toggles when Q0 and Q1 are high
+    simEngine_.connectComponent(ff0, 0, Bess::SimEngine::PinType::output, and1, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(ff1, 0, Bess::SimEngine::PinType::output, and1, 1, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(and1, 0, Bess::SimEngine::PinType::output, ff2, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(and1, 0, Bess::SimEngine::PinType::output, ff2, 2, Bess::SimEngine::PinType::input);
+
+    // FF3 toggles when Q0, Q1 and Q2 are high
+    simEngine_.connectComponent(and1, 0, Bess::SimEngine::PinType::output, and2, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(ff2, 0, Bess::SimEngine::PinType::output, and2, 1, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(and2, 0, Bess::SimEngine::PinType::output, ff3, 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(and2, 0, Bess::SimEngine::PinType::output, ff3, 2, Bess::SimEngine::PinType::input);
+
+    // Connect clock to all FFs
+    simEngine_.connectComponent(clock, 0, Bess::SimEngine::PinType::output, ff0, 1, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(clock, 0, Bess::SimEngine::PinType::output, ff1, 1, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(clock, 0, Bess::SimEngine::PinType::output, ff2, 1, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(clock, 0, Bess::SimEngine::PinType::output, ff3, 1, Bess::SimEngine::PinType::input);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+
+    for (int i = 0; i < 16; ++i) {
+        bool q0 = simEngine_.getDigitalPinState(ff0, Bess::SimEngine::PinType::output, 0);
+        bool q1 = simEngine_.getDigitalPinState(ff1, Bess::SimEngine::PinType::output, 0);
+        bool q2 = simEngine_.getDigitalPinState(ff2, Bess::SimEngine::PinType::output, 0);
+        bool q3 = simEngine_.getDigitalPinState(ff3, Bess::SimEngine::PinType::output, 0);
+
+        ASSERT_EQ(q0, (i & 1));
+        ASSERT_EQ(q1, (i & 2) >> 1);
+        ASSERT_EQ(q2, (i & 4) >> 2);
+        ASSERT_EQ(q3, (i & 8) >> 3);
+
+        simEngine_.setDigitalInput(clock, true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        simEngine_.setDigitalInput(clock, false);
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+}
+
+TEST_F(SimulationEngineTest, FourBitRippleCarryAdder) {
+    auto a = std::vector<Bess::UUID>(4);
+    auto b = std::vector<Bess::UUID>(4);
+    auto sum = std::vector<Bess::UUID>(4);
+    auto fa = std::vector<Bess::UUID>(4);
+
+    for (int i = 0; i < 4; ++i) {
+        a[i] = simEngine_.addComponent(Bess::SimEngine::ComponentType::INPUT);
+        b[i] = simEngine_.addComponent(Bess::SimEngine::ComponentType::INPUT);
+        fa[i] = simEngine_.addComponent(Bess::SimEngine::ComponentType::FULL_ADDER);
+    }
+
+    auto cin = simEngine_.addComponent(Bess::SimEngine::ComponentType::INPUT);
+    simEngine_.setDigitalInput(cin, false);
+
+    simEngine_.connectComponent(a[0], 0, Bess::SimEngine::PinType::output, fa[0], 0, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(b[0], 0, Bess::SimEngine::PinType::output, fa[0], 1, Bess::SimEngine::PinType::input);
+    simEngine_.connectComponent(cin, 0, Bess::SimEngine::PinType::output, fa[0], 2, Bess::SimEngine::PinType::input);
+
+    for (int i = 1; i < 4; ++i) {
+        simEngine_.connectComponent(a[i], 0, Bess::SimEngine::PinType::output, fa[i], 0, Bess::SimEngine::PinType::input);
+        simEngine_.connectComponent(b[i], 0, Bess::SimEngine::PinType::output, fa[i], 1, Bess::SimEngine::PinType::input);
+        simEngine_.connectComponent(fa[i-1], 1, Bess::SimEngine::PinType::output, fa[i], 2, Bess::SimEngine::PinType::input);
+    }
+
+    for (int i = 0; i < 16; ++i) {
+        for (int j = 0; j < 16; ++j) {
+            for (int k = 0; k < 4; ++k) {
+                simEngine_.setDigitalInput(a[k], (i >> k) & 1);
+                simEngine_.setDigitalInput(b[k], (j >> k) & 1);
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            int expected_sum = i + j;
+            int actual_sum = 0;
+            for (int k = 0; k < 4; ++k) {
+                if (simEngine_.getDigitalPinState(fa[k], Bess::SimEngine::PinType::output, 0)) {
+                    actual_sum |= (1 << k);
+                }
+            }
+            bool cout = simEngine_.getDigitalPinState(fa[3], Bess::SimEngine::PinType::output, 1);
+            expected_sum = (cout << 4) | actual_sum;
+            ASSERT_EQ(actual_sum, (i+j) & 0xF);
+            ASSERT_EQ(cout, (i+j) > 15);
+        }
+    }
+}
+
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
