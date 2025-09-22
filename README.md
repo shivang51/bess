@@ -50,5 +50,5 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
 - [x] Add some graph visulization for clock cycles
 - [x] Command System
 - [x] Undo, Redo functionality (for most interactions done)
-- [ ] Test Cases for simulation engine
+- [x] Test Cases for simulation engine
 - [ ] Moving to vulkan renderer
