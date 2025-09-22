@@ -7,7 +7,9 @@ class SimulationEngineTest : public testing::Test {
   protected:
     SimulationEngineTest() {}
 
-    ~SimulationEngineTest() override {}
+    ~SimulationEngineTest() override {
+        simEngine_.clear();
+    }
 
     Bess::SimEngine::SimulationEngine simEngine_;
 };
@@ -56,7 +58,6 @@ TEST_F(SimulationEngineTest, ComponentManipulation) {
     connections = simEngine_.getConnections(and_gate);
     ASSERT_EQ(connections.inputs[1].size(), 0);
 }
-
 
 TEST_F(SimulationEngineTest, GateLogic) {
     auto input1 = simEngine_.addComponent(Bess::SimEngine::ComponentType::INPUT);
@@ -541,7 +542,6 @@ TEST_F(SimulationEngineTest, Comparator2BitLogic) {
     }
 }
 
-
 TEST_F(SimulationEngineTest, PauseAndStep) {
     auto input = simEngine_.addComponent(Bess::SimEngine::ComponentType::INPUT);
     auto not_gate = simEngine_.addComponent(Bess::SimEngine::ComponentType::NOT);
@@ -624,7 +624,7 @@ TEST_F(SimulationEngineTest, TwoBitRippleCounter) {
     for (int i = 0; i < 8; ++i) {
         int expected_q0 = (i + 1) / 1 % 2;
         int expected_q1 = (i + 1) / 2 % 2;
-        
+
         simEngine_.setDigitalInput(clock, true);
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
         simEngine_.setDigitalInput(clock, false);
@@ -829,7 +829,7 @@ TEST_F(SimulationEngineTest, FourBitRippleCarryAdder) {
     for (int i = 1; i < 4; ++i) {
         simEngine_.connectComponent(a[i], 0, Bess::SimEngine::PinType::output, fa[i], 0, Bess::SimEngine::PinType::input);
         simEngine_.connectComponent(b[i], 0, Bess::SimEngine::PinType::output, fa[i], 1, Bess::SimEngine::PinType::input);
-        simEngine_.connectComponent(fa[i-1], 1, Bess::SimEngine::PinType::output, fa[i], 2, Bess::SimEngine::PinType::input);
+        simEngine_.connectComponent(fa[i - 1], 1, Bess::SimEngine::PinType::output, fa[i], 2, Bess::SimEngine::PinType::input);
     }
 
     for (int i = 0; i < 16; ++i) {
@@ -848,12 +848,11 @@ TEST_F(SimulationEngineTest, FourBitRippleCarryAdder) {
             }
             bool cout = simEngine_.getDigitalPinState(fa[3], Bess::SimEngine::PinType::output, 1);
             expected_sum = (cout << 4) | actual_sum;
-            ASSERT_EQ(actual_sum, (i+j) & 0xF);
-            ASSERT_EQ(cout, (i+j) > 15);
+            ASSERT_EQ(actual_sum, (i + j) & 0xF);
+            ASSERT_EQ(cout, (i + j) > 15);
         }
     }
 }
-
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
