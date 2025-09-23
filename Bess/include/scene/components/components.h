@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bess_uuid.h"
+#include "component_types/component_types.h"
 #include "non_sim_comp.h"
 #include "scene/components/json_converters.h"
 #include "settings/viewport_theme.h"
@@ -108,6 +109,7 @@ namespace Bess::Canvas::Components {
         SimulationComponent() = default;
         SimulationComponent(const SimulationComponent &other) = default;
         UUID simEngineEntity = UUID::null; // mapped to entity in simulator
+        SimEngine::ComponentType type = SimEngine::ComponentType::EMPTY;
         std::vector<UUID> inputSlots = {};
         std::vector<UUID> outputSlots = {};
     };

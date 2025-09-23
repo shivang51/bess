@@ -4,6 +4,7 @@
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
 #include "scene/scene.h"
+#include "types.h"
 
 #include <memory.h>
 
@@ -59,7 +60,7 @@ namespace Bess::Canvas {
         static void paintSchematicView(entt::entity entity);
 
         static void paintSlot(uint64_t id, uint64_t parentId, const glm::vec3 &pos, float angle,
-                              const std::string &label, float labelDx, bool isHigh, bool isConnected);
+                              const std::string &label, float labelDx, bool isHigh, bool isConnected, SimEngine::ExtendedPinType extendedType);
 
         static void drawSlots(const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp);
 

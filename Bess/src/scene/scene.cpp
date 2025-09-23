@@ -346,6 +346,8 @@ namespace Bess::Canvas {
             simComp.outputSlots.emplace_back(createSlotEntity(outputSlotIds[i], Components::SlotType::digitalOutput, idComp.uuid, i));
         }
 
+        simComp.type = comp->type;
+
         BESS_INFO("[Scene] Created entity {}", (uint64_t)entity);
         return idComp.uuid;
     }

@@ -3,6 +3,7 @@
 #include "bess_api.h"
 #include "component_types/component_types.h"
 #include "properties.h"
+#include "spdlog/fmt/bundled/base.h"
 #include "types.h"
 #include <string>
 #include <unordered_map>
@@ -35,25 +36,23 @@ namespace Bess::SimEngine {
         std::string category;
         SimDelayNanoSeconds delay, setupTime, holdTime;
         SimulationFunction simulationFunction;
+        std::vector<std::string> expressions = {};
+        std::vector<PinDetails> inputPinDetails = {};
+        std::vector<PinDetails> outputPinDetails = {};
         int inputCount;
         int outputCount;
         char op = '0';
-        std::vector<std::string> expressions = {};
         bool negate = false;
 
         const ModifiableProperties &getModifiableProperties() const;
 
-        ComponentDefinition &addModifiableProperty(Properties::ComponentProperty property, std::any value) {
-            m_modifiableProperties[property].emplace_back(value);
-            return *this;
-        }
+        ComponentDefinition &addModifiableProperty(Properties::ComponentProperty property, std::any value);
 
-        ComponentDefinition &addModifiableProperty(Properties::ComponentProperty property, const std::vector<std::any> &value) {
-            m_modifiableProperties[property] = value;
-            return *this;
-        }
+        ComponentDefinition &addModifiableProperty(Properties::ComponentProperty property, const std::vector<std::any> &value);
 
         std::vector<std::string> getExpressions(int inputCount = -1) const;
+
+        std::pair<std::span<const PinDetails>, std::span<const PinDetails>> getPinDetails() const;
 
       private:
         ModifiableProperties m_modifiableProperties = {};

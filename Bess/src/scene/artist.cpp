@@ -7,6 +7,7 @@
 #include "scene/renderer/renderer.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
+#include "types.h"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -118,7 +119,8 @@ namespace Bess::Canvas {
     }
 
     void Artist::paintSlot(uint64_t id, uint64_t parentId, const glm::vec3 &pos,
-                           float angle, const std::string &label, float labelDx, bool isHigh, bool isConnected) {
+                           float angle, const std::string &label, float labelDx,
+                           bool isHigh, bool isConnected, SimEngine::ExtendedPinType extendedType) {
         auto bgColor = ViewportTheme::stateLowColor;
         auto borderColor = ViewportTheme::stateLowColor;
 
@@ -133,8 +135,17 @@ namespace Bess::Canvas {
         float ir = componentStyles.slotRadius - componentStyles.slotBorderSize;
         float r = componentStyles.slotRadius;
 
-        Renderer::circle(pos, r, borderColor, id, ir);
-        Renderer::circle(pos, ir - 1.f, bgColor, id);
+        if (extendedType == SimEngine::ExtendedPinType::inputClear) {
+            Renderer2D::QuadRenderProperties props;
+            props.borderColor = borderColor;
+            props.borderSize = glm::vec4(componentStyles.slotBorderSize);
+            Renderer::quad(pos, glm::vec2(r * 2.f), glm::vec4(0.f), id, props);
+            props.borderSize = {};
+            Renderer::quad(pos, glm::vec2(ir * 2.f), glm::vec4(bgColor), id, props);
+        } else {
+            Renderer::circle(pos, r, borderColor, id, ir);
+            Renderer::circle(pos, ir - 1.f, bgColor, id);
+        }
 
         float labelX = pos.x + labelDx;
         float dY = componentStyles.slotRadius - std::abs(componentStyles.slotRadius * 2.f - componentStyles.slotLabelSize) / 2.f;
@@ -142,6 +153,7 @@ namespace Bess::Canvas {
     }
 
     void Artist::drawSlots(const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp) {
+        auto def = SimEngine::ComponentCatalog::instance().getComponentDefinition(comp.type);
         auto &registry = sceneRef->getEnttRegistry();
         auto slotsView = registry.view<Components::SlotComponent>();
 
@@ -150,6 +162,7 @@ namespace Bess::Canvas {
         auto compState = SimEngine::SimulationEngine::instance().getComponentState(comp.simEngineEntity);
 
         float angle = transformComp.angle;
+        auto [inpDetails, outDetails] = def->getPinDetails();
 
         std::string label;
         for (size_t i = 0; i < comp.inputSlots.size(); i++) {
@@ -159,12 +172,11 @@ namespace Bess::Canvas {
             auto &slotComp = slotsView.get<Components::SlotComponent>(slot);
             auto slotPos = getSlotPos(slotComp, transformComp);
             uint64_t parentId = (uint64_t)sceneRef->getEntityWithUuid(slotComp.parentId);
-            label = "X" + std::to_string(i);
-            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, labeldx, (bool)isHigh, isConnected);
+            label = inpDetails.size() > i ? inpDetails[i].name : "X" + std::to_string(i);
+            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, labeldx, (bool)isHigh, isConnected,
+                      inpDetails.size() > i ? inpDetails[i].extendedType : SimEngine::ExtendedPinType::none);
         }
 
-        float labelWidth = Renderer::getMSDFTextRenderSize("Y0", componentStyles.slotLabelSize).x;
-        labeldx += labelWidth;
         for (size_t i = 0; i < comp.outputSlots.size(); i++) {
             auto slot = sceneRef->getEntityWithUuid(comp.outputSlots[i]);
             auto isHigh = compState.outputStates[i];
@@ -172,8 +184,10 @@ namespace Bess::Canvas {
             auto &slotComp = slotsView.get<Components::SlotComponent>(slot);
             auto slotPos = getSlotPos(slotComp, transformComp);
             uint64_t parentId = (uint64_t)sceneRef->getEntityWithUuid(slotComp.parentId);
-            label = "Y" + std::to_string(i);
-            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, -labeldx, (bool)isHigh, isConnected);
+            label = outDetails.size() > i ? outDetails[i].name : "Y" + std::to_string(i);
+            float labelWidth = Renderer::getMSDFTextRenderSize(label, componentStyles.slotLabelSize).x;
+            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, -labeldx - labelWidth, (bool)isHigh, isConnected,
+                      outDetails.size() > i ? outDetails[i].extendedType : SimEngine::ExtendedPinType::none);
         }
     }
 
