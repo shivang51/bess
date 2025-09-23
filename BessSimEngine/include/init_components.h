@@ -4,7 +4,6 @@
 #include "entt_components.h"
 #include "expression_evalutator/expr_evaluator.h"
 #include "types.h"
-#include <iostream>
 
 namespace Bess::SimEngine {
     inline void initFlipFlops() {
@@ -109,15 +108,34 @@ namespace Bess::SimEngine {
     }
 
     inline void initIO() {
-        ComponentCatalog::instance().registerComponent(ComponentDefinition(ComponentType::INPUT, "Input", "IO", 0, 1, [](auto &, auto, auto, auto, auto) -> bool { return false; }, SimDelayNanoSeconds(0)));
+        auto inpDef = ComponentDefinition(ComponentType::INPUT, "Input", "IO", 0, 1, [](auto &, auto, auto, auto, auto) -> bool { return false; }, SimDelayNanoSeconds(0));
+        inpDef.outputPinDetails = {{PinType::output, ""}};
+        ComponentCatalog::instance().registerComponent(inpDef);
 
-        ComponentCatalog::instance().registerComponent({ComponentType::OUTPUT, "Output", "IO", 1, 0,
-                                                        [&](entt::registry &registry, entt::entity e, const std::vector<PinState> &inputs, SimTime _, auto fn) -> bool {
-                                                            auto &gate = registry.get<DigitalComponent>(e);
-                                                            gate.inputStates = inputs;
-                                                            return false;
-                                                        },
-                                                        SimDelayNanoSeconds(0)});
+        ComponentDefinition outDef = {ComponentType::OUTPUT, "Output", "IO", 1, 0,
+                                      [&](entt::registry &registry, entt::entity e, const std::vector<PinState> &inputs, SimTime _, auto fn) -> bool {
+                                          auto &gate = registry.get<DigitalComponent>(e);
+                                          gate.inputStates = inputs;
+                                          return false;
+                                      },
+                                      SimDelayNanoSeconds(0)};
+        outDef.inputPinDetails = {{PinType::input, ""}};
+        ComponentCatalog::instance().registerComponent(outDef);
+
+        ComponentDefinition stateMonDef = {ComponentType::STATE_MONITOR, "State Monitor", "IO", 1, 0,
+                                           [&](entt::registry &registry, entt::entity e, const std::vector<PinState> &inputs, SimTime simTime, auto fn) -> bool {
+                                               if (inputs.size() == 0)
+                                                   return false;
+                                               auto &comp = registry.get<StateMonitorComponent>(e);
+                                               comp.appendState(inputs[0].lastChangeTime, inputs[0].state);
+
+                                               auto &digiComp = registry.get<DigitalComponent>(e);
+                                               digiComp.inputStates = inputs;
+                                               return false;
+                                           },
+                                           SimDelayNanoSeconds(0)};
+        outDef.inputPinDetails = {{PinType::input, ""}};
+        ComponentCatalog::instance().registerComponent(stateMonDef);
 
         ComponentCatalog::instance().registerComponent({ComponentType::SEVEN_SEG_DISPLAY_DRIVER, "7-Seg Display Driver", "IO", 4, 7,
                                                         [&](entt::registry &registry, entt::entity e, const std::vector<PinState> &inputs, SimTime _, auto fn) -> bool {
@@ -178,19 +196,6 @@ namespace Bess::SimEngine {
                                                         [&](entt::registry &registry, entt::entity e, const std::vector<PinState> &inputs, SimTime _, auto fn) -> bool {
                                                             auto &gate = registry.get<DigitalComponent>(e);
                                                             gate.inputStates = inputs;
-                                                            return false;
-                                                        },
-                                                        SimDelayNanoSeconds(0)});
-
-        ComponentCatalog::instance().registerComponent({ComponentType::STATE_MONITOR, "State Monitor", "IO", 1, 0,
-                                                        [&](entt::registry &registry, entt::entity e, const std::vector<PinState> &inputs, SimTime simTime, auto fn) -> bool {
-                                                            if (inputs.size() == 0)
-                                                                return false;
-                                                            auto &comp = registry.get<StateMonitorComponent>(e);
-                                                            comp.appendState(inputs[0].lastChangeTime, inputs[0].state);
-
-                                                            auto &digiComp = registry.get<DigitalComponent>(e);
-                                                            digiComp.inputStates = inputs;
                                                             return false;
                                                         },
                                                         SimDelayNanoSeconds(0)});
