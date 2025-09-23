@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR)
 set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
 
 project(bess C CXX)
+enable_testing()
 set(CMAKE_CXX_STANDARD 23)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -31,6 +32,7 @@ message(STATUS "Output location: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 
 add_subdirectory(BessSimEngine)
 add_subdirectory(Bess)
+add_subdirectory(BessTests)
 
 if(MSVC)
 	# startup projects needs to be set here

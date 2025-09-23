@@ -155,7 +155,7 @@ namespace Bess {
             quad({pos.x, pos.y + 2.5f, pos.z - 0.001},
                  {size.x + 4.f, size.y + 1.f},
                  Assets::AssetManager::instance().get(Assets::Textures::shadowTexture),
-                 glm::vec4(glm::vec3(0.15), 0.35f), id, props);
+                 glm::vec4(glm::vec3(0.25), 0.35f), id, props);
         }
         Gl::QuadVertex quadInstance{};
         quadInstance.position = pos;

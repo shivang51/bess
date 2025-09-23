@@ -34,6 +34,8 @@ namespace Bess {
         float darkenFactor = 0.5f;
         componentBorderColor = glm::vec4(color_.x * darkenFactor, color_.y * darkenFactor, color_.z * darkenFactor, 0.8f);
 
+        componentBorderColor = glm::vec4(0.05f, 0.05f, 0.05f, 0.8f);
+
         compHeaderColor = glm::vec4(0.8f, 0.1f, 0.1f, 0.8f);
 
         color = colors[ImGuiCol_Text];
