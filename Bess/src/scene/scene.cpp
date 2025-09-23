@@ -223,7 +223,7 @@ namespace Bess::Canvas {
 
     void Scene::drawScene(std::shared_ptr<Camera> camera) {
         Renderer2D::Renderer::begin(camera);
-        Renderer::grid({0.f, 0.f, -2.f}, camera->getSpan(), -1, ViewportTheme::gridColor);
+        Renderer::grid({0.f, 0.f, -2.f}, camera->getSpan(), -1, ViewportTheme::colors.grid);
         Renderer2D::Renderer::end();
 
         Renderer2D::Renderer::begin(camera);
@@ -274,9 +274,9 @@ namespace Bess::Canvas {
         size = glm::abs(size);
 
         Renderer2D::QuadRenderProperties props;
-        props.borderColor = ViewportTheme::selectionBoxBorderColor;
+        props.borderColor = ViewportTheme::colors.selectionBoxBorder;
         props.borderSize = glm::vec4(1.f);
-        Renderer2D::Renderer::quad(glm::vec3(pos, 9.f), size, ViewportTheme::selectionBoxFillColor, 0, props);
+        Renderer2D::Renderer::quad(glm::vec3(pos, 9.f), size, ViewportTheme::colors.selectionBoxFill, 0, props);
     }
 
     void Scene::drawConnection() {
@@ -326,13 +326,13 @@ namespace Bess::Canvas {
             sprite.color = ioCompColor;
             sprite.borderRadius = glm::vec4(8.f);
         } else {
-            sprite.color = ViewportTheme::componentBGColor;
+            sprite.color = ViewportTheme::colors.componentBG;
             sprite.borderRadius = glm::vec4(6.f);
             sprite.headerColor = ViewportTheme::getCompHeaderColor(comp->type);
         }
 
         sprite.borderSize = glm::vec4(1.f);
-        sprite.borderColor = ViewportTheme::componentBorderColor;
+        sprite.borderColor = ViewportTheme::colors.componentBorder;
 
         simComp.simEngineEntity = simEngineEntt;
 
@@ -373,7 +373,7 @@ namespace Bess::Canvas {
                 auto &textComp = m_registry.emplace<Components::TextNodeComponent>(entity);
                 textComp.text = "New Text";
                 textComp.fontSize = 20.f;
-                textComp.color = ViewportTheme::textColor;
+                textComp.color = ViewportTheme::colors.text;
             } break;
             default:
                 break;
@@ -443,8 +443,8 @@ namespace Bess::Canvas {
         auto &slot = m_registry.emplace<Components::SlotComponent>(entity);
 
         transform.scale = glm::vec2(20.f);
-        sprite.color = ViewportTheme::stateLowColor;
-        sprite.borderColor = ViewportTheme::componentBorderColor;
+        sprite.color = ViewportTheme::colors.stateLow;
+        sprite.borderColor = ViewportTheme::colors.stateLow;
         sprite.borderSize = glm::vec4(10.f);
 
         slot.parentId = parent;
@@ -1005,9 +1005,9 @@ namespace Bess::Canvas {
     void Scene::beginScene() {
         static constexpr int value = -1;
         m_msaaFramebuffer->bind();
-        m_msaaFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::backgroundColor));
+        m_msaaFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::colors.background));
         m_msaaFramebuffer->clearColorAttachment<GL_INT>(1, &value);
-        m_msaaFramebuffer->clearColorAttachment<GL_FLOAT>(2, glm::value_ptr(ViewportTheme::backgroundColor));
+        m_msaaFramebuffer->clearColorAttachment<GL_FLOAT>(2, glm::value_ptr(ViewportTheme::colors.background));
 
         Gl::FrameBuffer::clearDepthStencilBuf();
     }

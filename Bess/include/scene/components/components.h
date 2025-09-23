@@ -44,7 +44,7 @@ namespace Bess::Canvas::Components {
         glm::vec4 borderColor = glm::vec4(1.f);
         glm::vec4 borderSize = glm::vec4(0.f);
         glm::vec4 borderRadius = glm::vec4(0.f);
-        glm::vec4 headerColor = ViewportTheme::compHeaderColor;
+        glm::vec4 headerColor = ViewportTheme::colors.compHeader;
     };
 
     class TagComponent {

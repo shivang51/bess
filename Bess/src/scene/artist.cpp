@@ -121,35 +121,37 @@ namespace Bess::Canvas {
     void Artist::paintSlot(uint64_t id, uint64_t parentId, const glm::vec3 &pos,
                            float angle, const std::string &label, float labelDx,
                            bool isHigh, bool isConnected, SimEngine::ExtendedPinType extendedType) {
-        auto bgColor = ViewportTheme::stateLowColor;
-        auto borderColor = ViewportTheme::stateLowColor;
+        auto bg = ViewportTheme::colors.stateLow;
+        auto border = ViewportTheme::colors.stateLow;
 
         if (isHigh) {
-            bgColor = ViewportTheme::stateHighColor;
-            borderColor = ViewportTheme::stateHighColor;
+            bg = ViewportTheme::colors.stateHigh;
+            border = ViewportTheme::colors.stateHigh;
         }
 
         if (!isConnected)
-            bgColor.a = 0.1f;
+            bg.a = 0.1f;
 
         float ir = componentStyles.slotRadius - componentStyles.slotBorderSize;
         float r = componentStyles.slotRadius;
 
         if (extendedType == SimEngine::ExtendedPinType::inputClear) {
             Renderer2D::QuadRenderProperties props;
-            props.borderColor = borderColor;
-            props.borderSize = glm::vec4(componentStyles.slotBorderSize);
+            props.borderColor = border;
+            props.borderRadius = glm::vec4(2.5f);
+            props.borderSize = glm::vec4(componentStyles.slotBorderSize + 0.5);
             Renderer::quad(pos, glm::vec2(r * 2.f), glm::vec4(0.f), id, props);
             props.borderSize = {};
-            Renderer::quad(pos, glm::vec2(ir * 2.f), glm::vec4(bgColor), id, props);
+            props.borderRadius = glm::vec4(1.5f);
+            Renderer::quad(pos, glm::vec2((ir - 1) * 2.f), glm::vec4(bg), id, props);
         } else {
-            Renderer::circle(pos, r, borderColor, id, ir);
-            Renderer::circle(pos, ir - 1.f, bgColor, id);
+            Renderer::circle(pos, r, border, id, ir);
+            Renderer::circle(pos, ir - 1.f, bg, id);
         }
 
         float labelX = pos.x + labelDx;
         float dY = componentStyles.slotRadius - std::abs(componentStyles.slotRadius * 2.f - componentStyles.slotLabelSize) / 2.f;
-        Renderer::msdfText(label, {labelX, pos.y + dY, pos.z}, componentStyles.slotLabelSize, ViewportTheme::textColor, parentId, angle);
+        Renderer::msdfText(label, {labelX, pos.y + dY, pos.z}, componentStyles.slotLabelSize, ViewportTheme::colors.text, parentId, angle);
     }
 
     void Artist::drawSlots(const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp) {
@@ -209,7 +211,7 @@ namespace Bess::Canvas {
         points.emplace_back(glm::vec3(midX, pos.y, 0.f));
         points.emplace_back(glm::vec3(pos, 0.f));
 
-        Renderer::drawLines(points, 2.f, ViewportTheme::wireColor, -1);
+        Renderer::drawLines(points, 2.f, ViewportTheme::colors.ghostWire, -1);
     }
 
     void Artist::drawConnection(const UUID &id, entt::entity inputEntity, entt::entity outputEntity, bool isSelected) {
@@ -240,17 +242,18 @@ namespace Bess::Canvas {
             color = spriteComponent.color;
         } else {
             bool isHigh = (bool)SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity).outputStates[outputSlotComp.idx];
-            color = isHigh ? ViewportTheme::stateHighColor : ViewportTheme::stateLowColor;
+            color = isHigh ? ViewportTheme::colors.stateHigh : ViewportTheme::colors.stateLow;
         }
-        color = isSelected ? ViewportTheme::selectedWireColor : color;
+
+        color = isSelected ? ViewportTheme::colors.selectedWire : color;
 
         auto connSegEntt = sceneRef->getEntityWithUuid(connectionComponent.segmentHead);
         auto connSegComp = registry.get<Components::ConnectionSegmentComponent>(connSegEntt);
         auto segId = connectionComponent.segmentHead;
         auto prevPos = startPos;
 
-        static int wireSize = 2.f;
-        static int hoveredSize = 3.f;
+        static constexpr int wireSize = 2.f;
+        static constexpr int hoveredSize = 3.f;
 
         while (segId != UUID::null) {
             glm::vec3 pos = endPos;
@@ -336,11 +339,11 @@ namespace Bess::Canvas {
         transform.scale = scale;
 
         bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
-        auto borderColor = isSelected ? ViewportTheme::selectedCompColor : spriteComp.borderColor;
+        auto border = isSelected ? ViewportTheme::colors.selectedComp : spriteComp.borderColor;
 
         Renderer2D::QuadRenderProperties props;
         props.borderRadius = spriteComp.borderRadius;
-        props.borderColor = borderColor;
+        props.borderColor = border;
         props.borderSize = spriteComp.borderSize;
         props.isMica = true;
         Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
@@ -350,7 +353,7 @@ namespace Bess::Canvas {
             pos.y + (componentStyles.headerFontSize / 2.f) - 1.f, pos.z + 0.0005f);
 
         auto name = tagComp.name;
-        Renderer::msdfText(name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id);
+        Renderer::msdfText(name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, id);
 
         drawSlots(simComp, transform);
     }
@@ -373,7 +376,7 @@ namespace Bess::Canvas {
         float rb = boundInfo.outPinStart;
 
         auto negateCircleAt = [&](glm::vec3 pos) {
-            Renderer::circle(pos, negCircleR, ViewportTheme::compHeaderColor, -1, negCircleR - nodeWeight);
+            Renderer::circle(pos, negCircleR, ViewportTheme::colors.compHeader, -1, negCircleR - nodeWeight);
         };
 
         switch (type) {
@@ -381,10 +384,10 @@ namespace Bess::Canvas {
         case SimEngine::ComponentType::NAND: {
             float cpX = x1 + (w * 0.65);
             // diagram
-            Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
-            Renderer::pathLineTo({x1, y, pos.z}, 4.f, ViewportTheme::compHeaderColor, -1);
-            Renderer::pathQuadBeizerTo({x1, y1, pos.z}, {cpX, y + (y1 - y) / 2}, 4, ViewportTheme::compHeaderColor, -1);
-            Renderer::pathLineTo({x, y1, pos.z}, 4.f, ViewportTheme::wireColor, -1);
+            Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::colors.compHeader);
+            Renderer::pathLineTo({x1, y, pos.z}, 4.f, ViewportTheme::colors.compHeader, -1);
+            Renderer::pathQuadBeizerTo({x1, y1, pos.z}, {cpX, y + (y1 - y) / 2}, 4, ViewportTheme::colors.compHeader, -1);
+            Renderer::pathLineTo({x, y1, pos.z}, 4.f, ViewportTheme::colors.wire, -1);
             Renderer::endPathMode(true);
         } break;
         case SimEngine::ComponentType::OR:
@@ -393,11 +396,11 @@ namespace Bess::Canvas {
             float off = w * 0.25;
 
             // diagram
-            Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
-            Renderer::pathQuadBeizerTo({x, y1, pos.z}, {cpX, y + (y1 - y) / 2}, 4, ViewportTheme::compHeaderColor, -1);
-            Renderer::pathLineTo({x1 - off, y1, pos.z}, 4.f, ViewportTheme::compHeaderColor, -1);
-            Renderer::pathQuadBeizerTo({x1 + off, y + (y1 - y) / 2.f, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.85}, 4.f, ViewportTheme::compHeaderColor, -1);
-            Renderer::pathQuadBeizerTo({x1 - off, y, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.15}, 4.f, ViewportTheme::compHeaderColor, -1);
+            Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::colors.compHeader);
+            Renderer::pathQuadBeizerTo({x, y1, pos.z}, {cpX, y + (y1 - y) / 2}, 4, ViewportTheme::colors.compHeader, -1);
+            Renderer::pathLineTo({x1 - off, y1, pos.z}, 4.f, ViewportTheme::colors.compHeader, -1);
+            Renderer::pathQuadBeizerTo({x1 + off, y + (y1 - y) / 2.f, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.85}, 4.f, ViewportTheme::colors.compHeader, -1);
+            Renderer::pathQuadBeizerTo({x1 - off, y, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.15}, 4.f, ViewportTheme::colors.compHeader, -1);
             Renderer::endPathMode(true);
         } break;
         case SimEngine::ComponentType::XNOR:
@@ -406,21 +409,21 @@ namespace Bess::Canvas {
             float off = w * 0.25;
 
             // diagram
-            Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
-            Renderer::pathQuadBeizerTo({x, y1, pos.z}, {cpX, y + (y1 - y) / 2}, 4, ViewportTheme::compHeaderColor, -1);
+            Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::colors.compHeader);
+            Renderer::pathQuadBeizerTo({x, y1, pos.z}, {cpX, y + (y1 - y) / 2}, 4, ViewportTheme::colors.compHeader, -1);
             Renderer::endPathMode(false);
             float gapX = 8.f;
-            Renderer::beginPathMode({x + gapX, y, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
-            Renderer::pathQuadBeizerTo({x + gapX, y1, pos.z}, {cpX + gapX, y + (y1 - y) / 2}, 4, ViewportTheme::compHeaderColor, -1);
-            Renderer::pathLineTo({x1 - off, y1, pos.z}, 4.f, ViewportTheme::compHeaderColor, -1);
-            Renderer::pathQuadBeizerTo({x1 + off, y + (y1 - y) / 2.f, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.85}, 4.f, ViewportTheme::compHeaderColor, -1);
-            Renderer::pathQuadBeizerTo({x1 - off, y, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.15}, 4.f, ViewportTheme::compHeaderColor, -1);
+            Renderer::beginPathMode({x + gapX, y, pos.z}, nodeWeight, ViewportTheme::colors.compHeader);
+            Renderer::pathQuadBeizerTo({x + gapX, y1, pos.z}, {cpX + gapX, y + (y1 - y) / 2}, 4, ViewportTheme::colors.compHeader, -1);
+            Renderer::pathLineTo({x1 - off, y1, pos.z}, 4.f, ViewportTheme::colors.compHeader, -1);
+            Renderer::pathQuadBeizerTo({x1 + off, y + (y1 - y) / 2.f, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.85}, 4.f, ViewportTheme::colors.compHeader, -1);
+            Renderer::pathQuadBeizerTo({x1 - off, y, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.15}, 4.f, ViewportTheme::colors.compHeader, -1);
             Renderer::endPathMode(true);
         } break;
         case SimEngine::ComponentType::NOT: {
-            Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
-            Renderer::pathLineTo({x1, y + (y1 - y) / 2.f, pos.z}, 4.f, ViewportTheme::compHeaderColor, -1);
-            Renderer::pathLineTo({x, y1, pos.z}, 4.f, ViewportTheme::compHeaderColor, -1);
+            Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::colors.compHeader);
+            Renderer::pathLineTo({x1, y + (y1 - y) / 2.f, pos.z}, 4.f, ViewportTheme::colors.compHeader, -1);
+            Renderer::pathLineTo({x, y1, pos.z}, 4.f, ViewportTheme::colors.compHeader, -1);
             Renderer::endPathMode(true);
         } break;
         default:
@@ -428,10 +431,10 @@ namespace Bess::Canvas {
             x = pos.x - w / 2, x1 = pos.x + w / 2;
             y = pos.y - h / 2, y1 = pos.y + h / 2;
             // a square with name in center
-            Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
-            Renderer::pathLineTo({x1, y, pos.z}, 4.f, ViewportTheme::compHeaderColor, -1);
-            Renderer::pathLineTo({x1, y1, pos.z}, 4.f, ViewportTheme::compHeaderColor, -1);
-            Renderer::pathLineTo({x, y1, pos.z}, 4.f, ViewportTheme::wireColor, -1);
+            Renderer::beginPathMode({x, y, pos.z}, nodeWeight, ViewportTheme::colors.compHeader);
+            Renderer::pathLineTo({x1, y, pos.z}, 4.f, ViewportTheme::colors.compHeader, -1);
+            Renderer::pathLineTo({x1, y1, pos.z}, 4.f, ViewportTheme::colors.compHeader, -1);
+            Renderer::pathLineTo({x, y1, pos.z}, 4.f, ViewportTheme::colors.wire, -1);
             Renderer::endPathMode(true);
             break;
         }
@@ -449,7 +452,7 @@ namespace Bess::Canvas {
             glm::vec3 textPos = {inPinStart + (rb - inPinStart) / 2.f, y + (y1 - y) / 2.f, pos.z + 0.0005f};
             textPos.x -= textSize.x / 2.f;
             textPos.y += componentStyles.headerFontSize / 2.f;
-            Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, 0, 0.f);
+            Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, 0, 0.f);
         }
 
         // inputs
@@ -458,12 +461,12 @@ namespace Bess::Canvas {
             float yIncr = h / (inpCount + 1);
             for (int i = 1; i <= inpCount; i++) {
                 float yOff = yIncr * i;
-                Renderer::beginPathMode({inPinStart, y + yOff, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
-                Renderer::pathLineTo({boundInfo.inpConnStart, y + yOff, 1}, 4.f, ViewportTheme::compHeaderColor, -1);
+                Renderer::beginPathMode({inPinStart, y + yOff, pos.z}, nodeWeight, ViewportTheme::colors.compHeader);
+                Renderer::pathLineTo({boundInfo.inpConnStart, y + yOff, 1}, 4.f, ViewportTheme::colors.compHeader, -1);
                 Renderer::endPathMode(false);
                 Renderer::msdfText("X" + std::to_string(i - 1),
                                    {boundInfo.inpConnStart, y + yOff - nodeWeight, pos.z + 0.0005f},
-                                   componentStyles.headerFontSize, ViewportTheme::textColor, 0, 0.f);
+                                   componentStyles.headerFontSize, ViewportTheme::colors.text, 0, 0.f);
             }
         }
 
@@ -473,14 +476,14 @@ namespace Bess::Canvas {
             float yIncr = h / (outCount + 1);
             for (int i = 1; i <= outCount; i++) {
                 float yOff = yIncr * i;
-                Renderer::beginPathMode({boundInfo.outPinStart, y + yOff, pos.z}, nodeWeight, ViewportTheme::compHeaderColor);
-                Renderer::pathLineTo({boundInfo.outConnStart, y + yOff, 1}, 4.f, ViewportTheme::compHeaderColor, -1);
+                Renderer::beginPathMode({boundInfo.outPinStart, y + yOff, pos.z}, nodeWeight, ViewportTheme::colors.compHeader);
+                Renderer::pathLineTo({boundInfo.outConnStart, y + yOff, 1}, 4.f, ViewportTheme::colors.compHeader, -1);
                 Renderer::endPathMode(false);
                 std::string label = "Y" + std::to_string(i - 1);
                 float size = Renderer2D::Renderer::getMSDFTextRenderSize(label, componentStyles.headerFontSize).x;
                 Renderer::msdfText(label,
                                    {boundInfo.outConnStart - size, y + yOff - nodeWeight, pos.z + 0.0005f},
-                                   componentStyles.headerFontSize, ViewportTheme::textColor, 0, 0.f);
+                                   componentStyles.headerFontSize, ViewportTheme::colors.text, 0, 0.f);
             }
         }
     }
@@ -504,7 +507,7 @@ namespace Bess::Canvas {
             if (isSelected) {
                 Renderer2D::QuadRenderProperties props{
                     .angle = rotation,
-                    .borderColor = ViewportTheme::selectedCompColor,
+                    .borderColor = ViewportTheme::colors.selectedComp,
                     .borderRadius = glm::vec4(4.f),
                     .borderSize = glm::vec4(1.f),
                     .isMica = true,
@@ -514,7 +517,7 @@ namespace Bess::Canvas {
                 pos.y -= size.y * 0.25f;
                 size.x += componentStyles.paddingX * 2.f;
                 size.y += componentStyles.paddingY * 2.f;
-                Renderer::quad(pos, size, ViewportTheme::componentBGColor, id, props);
+                Renderer::quad(pos, size, ViewportTheme::colors.componentBG, id, props);
             }
         } break;
         default:
@@ -543,7 +546,7 @@ namespace Bess::Canvas {
 
         auto &registry = sceneRef->getEnttRegistry();
         bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
-        auto borderColor = isSelected ? ViewportTheme::selectedCompColor : spriteComp.borderColor;
+        auto border = isSelected ? ViewportTheme::colors.selectedComp : spriteComp.borderColor;
 
         uint64_t id = (uint64_t)entity;
 
@@ -554,7 +557,7 @@ namespace Bess::Canvas {
         props.angle = rotation;
         props.borderRadius = spriteComp.borderRadius;
         props.borderSize = spriteComp.borderSize;
-        props.borderColor = borderColor;
+        props.borderColor = border;
         props.isMica = true;
 
         Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
@@ -571,7 +574,7 @@ namespace Bess::Canvas {
                        id,
                        props);
 
-        Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id, rotation);
+        Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, id, rotation);
 
         {
             auto compState = SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity);
@@ -628,7 +631,7 @@ namespace Bess::Canvas {
 
         /*spriteComp.borderRadius = glm::vec4(radius);*/
         bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
-        auto borderColor = isSelected ? ViewportTheme::selectedCompColor : spriteComp.borderColor;
+        auto border = isSelected ? ViewportTheme::colors.selectedComp : spriteComp.borderColor;
 
         uint64_t id = (uint64_t)entity;
 
@@ -638,7 +641,7 @@ namespace Bess::Canvas {
         props.angle = rotation;
         props.borderRadius = spriteComp.borderRadius;
         props.borderSize = spriteComp.borderSize;
-        props.borderColor = borderColor;
+        props.borderColor = border;
         props.isMica = true;
         props.hasShadow = true;
 
@@ -656,7 +659,7 @@ namespace Bess::Canvas {
                        id,
                        props);
 
-        Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::textColor, id, rotation);
+        Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, id, rotation);
 
         drawSlots(simComp, transform);
     }

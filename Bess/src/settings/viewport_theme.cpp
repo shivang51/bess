@@ -1,64 +1,66 @@
 #include "settings/viewport_theme.h"
-#include "glm.hpp"
 #include "imgui.h"
 
 namespace Bess {
-    glm::vec4 ViewportTheme::backgroundColor;
-    glm::vec4 ViewportTheme::componentBGColor;
-    glm::vec4 ViewportTheme::componentBorderColor;
-    glm::vec4 ViewportTheme::stateHighColor;
-    glm::vec4 ViewportTheme::stateLowColor;
-    glm::vec4 ViewportTheme::wireColor;
-    glm::vec4 ViewportTheme::selectedWireColor;
-    glm::vec4 ViewportTheme::compHeaderColor;
-    glm::vec4 ViewportTheme::selectedCompColor;
-    glm::vec4 ViewportTheme::textColor;
-    glm::vec4 ViewportTheme::gridColor;
-    glm::vec4 ViewportTheme::selectionBoxBorderColor;
-    glm::vec4 ViewportTheme::selectionBoxFillColor;
+    SceneColors ViewportTheme::colors;
 
-    std::unordered_map<Bess::SimEngine::ComponentType, glm::vec4> ViewportTheme::s_compColorMap;
+    std::unordered_map<Bess::SimEngine::ComponentType, glm::vec4> ViewportTheme::s_compHeaderColorMap;
 
     void ViewportTheme::updateColorsFromImGuiStyle() {
         ImGuiStyle &style = ImGui::GetStyle();
-        ImVec4 *colors = style.Colors;
+        ImVec4 *imguiColors = style.Colors;
 
-        ImVec4 windowBg = colors[ImGuiCol_WindowBg];
-        backgroundColor = glm::vec4(windowBg.x, windowBg.y, windowBg.z, windowBg.w);
+        ImVec4 windowBg = imguiColors[ImGuiCol_WindowBg];
+        colors.background = glm::vec4(windowBg.x, windowBg.y, windowBg.z, windowBg.w);
 
-        auto color = colors[ImGuiCol_WindowBg];
-        componentBGColor = glm::vec4(color.x + 0.05f, color.y + 0.05f, color.z + 0.05f, 0.8f);
-        componentBGColor = glm::clamp(componentBGColor, 0.0f, 1.0f); // Ensure values stay in [0, 1]
+        auto compBg = imguiColors[ImGuiCol_WindowBg];
+        colors.componentBG = glm::vec4(
+            compBg.x + 0.05f,
+            compBg.y + 0.05f,
+            compBg.z + 0.05f,
+            0.8f);
+        colors.componentBG = glm::clamp(colors.componentBG, 0.0f, 1.0f);
 
-        auto color_ = 1.f - componentBGColor;
+        auto color_ = 1.f - colors.componentBG;
         float darkenFactor = 0.5f;
-        componentBorderColor = glm::vec4(color_.x * darkenFactor, color_.y * darkenFactor, color_.z * darkenFactor, 0.8f);
+        colors.componentBorder = glm::vec4(
+            color_.x * darkenFactor,
+            color_.y * darkenFactor,
+            color_.z * darkenFactor,
+            0.8f);
 
-        componentBorderColor = glm::vec4(0.05f, 0.05f, 0.05f, 0.8f);
+        colors.componentBorder = glm::vec4(0.05f, 0.05f, 0.05f, 0.8f);
 
-        compHeaderColor = glm::vec4(0.8f, 0.1f, 0.1f, 0.8f);
+        colors.compHeader = glm::vec4(0.8f, 0.1f, 0.1f, 0.8f);
 
-        color = colors[ImGuiCol_Text];
-        darkenFactor = 1.f;
-        textColor = glm::vec4(color.x * darkenFactor, color.y * darkenFactor, color.z * darkenFactor, color.w);
+        auto textCol = imguiColors[ImGuiCol_Text];
+        colors.text = glm::vec4(
+            textCol.x,
+            textCol.y,
+            textCol.z,
+            textCol.w);
 
-        gridColor = textColor * 0.45f;
+        colors.grid = colors.text * 0.45f;
 
-        stateHighColor = glm::vec4(0.6f, 0.8f, 0.4f, 1.00f);         // Greenish
-        stateLowColor = glm::vec4(0.2f, 0.3f, 0.1f, 1.00f);          // Dark Greenish
-        selectedWireColor = glm::vec4(1.0f, 0.64f, 0.0f, 1.0f);      // Orange
-        selectionBoxBorderColor = glm::vec4(0.3f, 0.3f, 0.8f, 1.0f); // Blueish (corrected from 8.0)
-        selectionBoxFillColor = glm::vec4(0.3f, 0.3f, 0.7f, 0.5f);   // Semi-transparent blue
-        selectedCompColor = selectedWireColor;                       // Orange
-        wireColor = componentBorderColor;
+        colors.stateHigh = glm::vec4(0.6f, 0.8f, 0.4f, 1.00f); // Greenish
+        colors.stateLow = glm::vec4(0.2f, 0.3f, 0.1f, 1.00f);  // Dark greenish
+
+        colors.wire = colors.componentBorder;
+        colors.ghostWire = glm::vec4(0.5f, 0.5f, 0.5f, 0.5f);
+        colors.selectedWire = glm::vec4(1.0f, 0.64f, 0.0f, 1.0f); // Orange
+
+        colors.selectionBoxBorder = glm::vec4(0.3f, 0.3f, 0.8f, 1.0f); // Bluish
+        colors.selectionBoxFill = glm::vec4(0.3f, 0.3f, 0.7f, 0.5f);   // Semi-transparent blue
+
+        colors.selectedComp = colors.selectedWire; // Orange
 
         initCompColorMap();
     }
 
     glm::vec4 ViewportTheme::getCompHeaderColor(Bess::SimEngine::ComponentType type) {
-        if (!s_compColorMap.contains(type))
-            return ViewportTheme::compHeaderColor;
-        return s_compColorMap.at(type);
+        if (!s_compHeaderColorMap.contains(type))
+            return colors.compHeader;
+        return s_compHeaderColorMap.at(type);
     }
 
     void ViewportTheme::initCompColorMap() {
@@ -70,46 +72,39 @@ namespace Bess {
         const glm::vec4 comparatorColor = glm::vec4(0.3f, 0.6f, 0.55f, 0.85f);      // Lighter Teal
         const glm::vec4 specialColor = glm::vec4(0.4f, 0.4f, 0.4f, 0.8f);           // Neutral Grey
 
-        s_compColorMap.clear();
+        s_compHeaderColorMap.clear();
 
-        // --- Special / Uncategorized ---
-        s_compColorMap[Bess::SimEngine::ComponentType::EMPTY] = specialColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::EMPTY] = specialColor;
 
-        // --- Category: Logic & I/O ---
-        s_compColorMap[Bess::SimEngine::ComponentType::INPUT] = logicColor;
-        s_compColorMap[Bess::SimEngine::ComponentType::OUTPUT] = logicColor;
-        s_compColorMap[Bess::SimEngine::ComponentType::AND] = logicColor;
-        s_compColorMap[Bess::SimEngine::ComponentType::OR] = logicColor;
-        s_compColorMap[Bess::SimEngine::ComponentType::NOT] = logicColor;
-        s_compColorMap[Bess::SimEngine::ComponentType::NOR] = logicColor;
-        s_compColorMap[Bess::SimEngine::ComponentType::NAND] = logicColor;
-        s_compColorMap[Bess::SimEngine::ComponentType::XOR] = logicColor;
-        s_compColorMap[Bess::SimEngine::ComponentType::XNOR] = logicColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::INPUT] = logicColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::OUTPUT] = logicColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::AND] = logicColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::OR] = logicColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::NOT] = logicColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::NOR] = logicColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::NAND] = logicColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::XOR] = logicColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::XNOR] = logicColor;
 
-        // --- Category: Sequential / Flip-Flops ---
-        s_compColorMap[Bess::SimEngine::ComponentType::FLIP_FLOP_JK] = memoryColor;
-        s_compColorMap[Bess::SimEngine::ComponentType::FLIP_FLOP_SR] = memoryColor;
-        s_compColorMap[Bess::SimEngine::ComponentType::FLIP_FLOP_D] = memoryColor;
-        s_compColorMap[Bess::SimEngine::ComponentType::FLIP_FLOP_T] = memoryColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::FLIP_FLOP_JK] = memoryColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::FLIP_FLOP_SR] = memoryColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::FLIP_FLOP_D] = memoryColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::FLIP_FLOP_T] = memoryColor;
 
-        // --- Sub-Category: Arithmetic ---
-        s_compColorMap[Bess::SimEngine::ComponentType::FULL_ADDER] = arithmeticColor;
-        s_compColorMap[Bess::SimEngine::ComponentType::HALF_ADDER] = arithmeticColor;
-        s_compColorMap[Bess::SimEngine::ComponentType::FULL_SUBTRACTOR] = arithmeticColor;
-        s_compColorMap[Bess::SimEngine::ComponentType::HALF_SUBTRACTOR] = arithmeticColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::FULL_ADDER] = arithmeticColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::HALF_ADDER] = arithmeticColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::FULL_SUBTRACTOR] = arithmeticColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::HALF_SUBTRACTOR] = arithmeticColor;
 
-        // --- Sub-Category: Data Routing ---
-        s_compColorMap[Bess::SimEngine::ComponentType::MULTIPLEXER_4_1] = routingColor;
-        s_compColorMap[Bess::SimEngine::ComponentType::MULTIPLEXER_2_1] = routingColor;
-        s_compColorMap[Bess::SimEngine::ComponentType::DEMUX_1_4] = routingColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::MULTIPLEXER_4_1] = routingColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::MULTIPLEXER_2_1] = routingColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::DEMUX_1_4] = routingColor;
 
-        // --- Sub-Category: Encoders/Decoders ---
-        s_compColorMap[Bess::SimEngine::ComponentType::DECODER_2_4] = encoderDecoderColor;
-        s_compColorMap[Bess::SimEngine::ComponentType::ENCODER_4_2] = encoderDecoderColor;
-        s_compColorMap[Bess::SimEngine::ComponentType::PRIORITY_ENCODER_4_2] = encoderDecoderColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::DECODER_2_4] = encoderDecoderColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::ENCODER_4_2] = encoderDecoderColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::PRIORITY_ENCODER_4_2] = encoderDecoderColor;
 
-        // --- Sub-Category: Comparators ---
-        s_compColorMap[Bess::SimEngine::ComponentType::COMPARATOR_1_BIT] = comparatorColor;
-        s_compColorMap[Bess::SimEngine::ComponentType::COMPARATOR_2_BIT] = comparatorColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::COMPARATOR_1_BIT] = comparatorColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::COMPARATOR_2_BIT] = comparatorColor;
     }
 } // namespace Bess

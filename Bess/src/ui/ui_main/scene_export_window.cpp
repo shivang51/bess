@@ -85,9 +85,9 @@ namespace Bess::UI {
                 camera->setPos(pos);
 
                 msaaFramebuffer->bind();
-                msaaFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::backgroundColor));
+                msaaFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::colors.background));
                 msaaFramebuffer->clearColorAttachment<GL_INT>(1, &value);
-                msaaFramebuffer->clearColorAttachment<GL_FLOAT>(2, glm::value_ptr(ViewportTheme::backgroundColor));
+                msaaFramebuffer->clearColorAttachment<GL_FLOAT>(2, glm::value_ptr(ViewportTheme::colors.background));
 
                 Gl::FrameBuffer::clearDepthStencilBuf();
                 Canvas::Scene::instance().drawScene(camera);
