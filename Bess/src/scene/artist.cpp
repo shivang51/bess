@@ -248,7 +248,7 @@ namespace Bess::Canvas {
             auto &spriteComponent = registry.get<Components::SpriteComponent>(connEntity);
             color = spriteComponent.color;
         } else if (m_instructions.isSchematicView) {
-            color = ViewportTheme::schmaticViewColors.connection;
+            color = ViewportTheme::schematicViewColors.connection;
         } else {
             bool isHigh = (bool)SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity).outputStates[outputSlotComp.idx];
             color = isHigh ? ViewportTheme::colors.stateHigh : ViewportTheme::colors.stateLow;
@@ -388,9 +388,9 @@ namespace Bess::Canvas {
         float y = pos.y - h / 2, y1 = pos.y + h / 2;
         float rb = boundInfo.outPinStart;
 
-        const auto &strokeColor = ViewportTheme::schmaticViewColors.componentStroke;
-        const auto &textColor = ViewportTheme::schmaticViewColors.text;
-        const auto &pinColor = ViewportTheme::schmaticViewColors.pin;
+        const auto &pinColor = ViewportTheme::schematicViewColors.pin;
+        const auto &textColor = ViewportTheme::schematicViewColors.text;
+        const auto &strokeColor = ViewportTheme::schematicViewColors.componentStroke;
 
         auto negateCircleAt = [&](glm::vec3 pos) {
             Renderer::circle(pos, negCircleR, strokeColor, -1, negCircleR - nodeWeight);

@@ -29,7 +29,7 @@ namespace Bess {
         glm::vec4 stateLow;
     };
 
-    struct SchmaticViewColors {
+    struct SchematicViewColors {
         glm::vec4 pin = glm::vec4(0.25f, 0.85f, 0.75f, 1.0f);
         glm::vec4 text = glm::vec4(0.90f, 0.92f, 0.95f, 1.0f);
         glm::vec4 connection = glm::vec4(0.55f, 0.80f, 0.45f, 1.0f);
@@ -40,7 +40,7 @@ namespace Bess {
     class ViewportTheme {
       public:
         static SceneColors colors;
-        static SchmaticViewColors schmaticViewColors;
+        static SchematicViewColors schematicViewColors;
         static void updateColorsFromImGuiStyle();
 
         static glm::vec4 getCompHeaderColor(Bess::SimEngine::ComponentType type);
