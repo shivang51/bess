@@ -227,23 +227,25 @@ namespace Bess::Canvas {
 
         Artist::setInstructions({.isSchematicView = m_isSchematicView});
 
+        // Grid
         Renderer2D::Renderer::begin(camera);
         Renderer::grid({0.f, 0.f, -2.f}, camera->getSpan(), -1, ViewportTheme::colors.grid);
         Renderer2D::Renderer::end();
 
+        // Connections
         Renderer2D::Renderer::begin(camera);
         auto connectionsView = m_registry.view<Components::ConnectionComponent>();
         for (auto entity : connectionsView) {
             Artist::drawConnectionEntity(entity);
         }
 
-        Renderer2D::Renderer::end();
-
-        Renderer2D::Renderer::begin(camera);
         if (m_drawMode == SceneDrawMode::connection) {
             drawConnection();
         }
+        Renderer2D::Renderer::end();
 
+        // Components
+        Renderer2D::Renderer::begin(camera);
         auto simCompView = m_registry.view<
             Components::SimulationComponent,
             Components::TagComponent,
