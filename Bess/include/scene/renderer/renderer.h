@@ -86,7 +86,7 @@ namespace Bess::Renderer2D {
 
         // --- path api start---
         static void beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, const int id);
-        static void endPathMode(bool closePath = false, bool genFill = false, bool genStroke = true);
+        static void endPathMode(bool closePath = false, bool genFill = false, const glm::vec4 &fillColor = glm::vec4(1.f), bool genStroke = true);
         static void pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, const int id);
         static void pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
                                       float weight, const glm::vec4 &color, const int id);

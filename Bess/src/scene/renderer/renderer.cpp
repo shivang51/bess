@@ -499,7 +499,7 @@ namespace Bess {
         m_pathData.color = color;
     }
 
-    void Renderer::endPathMode(bool closePath, bool genFill, bool genStroke) {
+    void Renderer::endPathMode(bool closePath, bool genFill, const glm::vec4 &fillColor, bool genStroke) {
         if (genStroke) {
             auto &vertices = m_renderData.pathData.strokeVertices;
             auto &indices = m_renderData.pathData.strokeIndices;
@@ -517,7 +517,7 @@ namespace Bess {
 
             auto &vertices = m_renderData.pathData.fillVertices;
             auto &indices = m_renderData.pathData.fillIndices;
-            auto genVertices = generateFillGeometry(m_pathData.points, glm::vec4(1.f));
+            auto genVertices = generateFillGeometry(m_pathData.points, fillColor);
             GLuint idx = vertices.size();
             for (auto &v : genVertices) {
                 vertices.emplace_back(v);

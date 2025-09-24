@@ -1,6 +1,7 @@
 #include "scene/artist.h"
 #include "assets.h"
 #include "common/log.h"
+#include "component_catalog.h"
 #include "ext/vector_float3.hpp"
 #include "scene/components/components.h"
 #include "scene/renderer/renderer.h"
@@ -374,7 +375,7 @@ namespace Bess::Canvas {
     void Artist::paintSchematicView(entt::entity entity) {
         auto &registry = sceneRef->getEnttRegistry();
         auto &simComp = registry.get<Components::SimulationComponent>(entity);
-        SimEngine::ComponentType type = SimEngine::SimulationEngine::instance().getComponentType(simComp.simEngineEntity);
+        SimEngine::ComponentType type = simComp.type;
         const auto &transformComp = registry.get<Components::TransformComponent>(entity);
         auto pos = transformComp.position;
         auto scale = transformComp.scale;
@@ -390,6 +391,7 @@ namespace Bess::Canvas {
 
         const auto &pinColor = ViewportTheme::schematicViewColors.pin;
         const auto &textColor = ViewportTheme::schematicViewColors.text;
+        const auto &fillColor = ViewportTheme::schematicViewColors.componentFill;
         const auto &strokeColor = ViewportTheme::schematicViewColors.componentStroke;
 
         auto negateCircleAt = [&](glm::vec3 pos) {
@@ -407,7 +409,7 @@ namespace Bess::Canvas {
             Renderer::pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);
             Renderer::pathQuadBeizerTo({x1, y1, pos.z}, {cpX, y + (y1 - y) / 2}, nodeWeight, strokeColor, id);
             Renderer::pathLineTo({x, y1, pos.z}, nodeWeight, ViewportTheme::colors.wire, id);
-            Renderer::endPathMode(true);
+            Renderer::endPathMode(true, true, fillColor);
         } break;
         case SimEngine::ComponentType::OR:
         case SimEngine::ComponentType::NOR: {
@@ -420,7 +422,7 @@ namespace Bess::Canvas {
             Renderer::pathLineTo({x1 - off, y1, pos.z}, nodeWeight, strokeColor, id);
             Renderer::pathQuadBeizerTo({x1 + off, y + (y1 - y) / 2.f, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.85}, nodeWeight, strokeColor, id);
             Renderer::pathQuadBeizerTo({x1 - off, y, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.15}, nodeWeight, strokeColor, id);
-            Renderer::endPathMode(true);
+            Renderer::endPathMode(true, true, fillColor);
         } break;
         case SimEngine::ComponentType::XNOR:
         case SimEngine::ComponentType::XOR: {
@@ -437,13 +439,13 @@ namespace Bess::Canvas {
             Renderer::pathLineTo({x1 - off, y1, pos.z}, nodeWeight, strokeColor, id);
             Renderer::pathQuadBeizerTo({x1 + off, y + (y1 - y) / 2.f, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.85}, nodeWeight, strokeColor, id);
             Renderer::pathQuadBeizerTo({x1 - off, y, pos.z}, {x1 + off * 0.45, y + (y1 - y) * 0.15}, nodeWeight, strokeColor, id);
-            Renderer::endPathMode(true);
+            Renderer::endPathMode(true, true, fillColor);
         } break;
         case SimEngine::ComponentType::NOT: {
             Renderer::beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
             Renderer::pathLineTo({x1, y + (y1 - y) / 2.f, pos.z}, nodeWeight, strokeColor, id);
             Renderer::pathLineTo({x, y1, pos.z}, nodeWeight, strokeColor, id);
-            Renderer::endPathMode(true);
+            Renderer::endPathMode(true, true, fillColor);
         } break;
         default:
             w = scale.x, h = scale.y;
@@ -454,7 +456,7 @@ namespace Bess::Canvas {
             Renderer::pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);
             Renderer::pathLineTo({x1, y1, pos.z}, nodeWeight, strokeColor, id);
             Renderer::pathLineTo({x, y1, pos.z}, nodeWeight, ViewportTheme::colors.wire, id);
-            Renderer::endPathMode(true);
+            Renderer::endPathMode(true, true, fillColor);
             break;
         }
 
@@ -474,16 +476,21 @@ namespace Bess::Canvas {
             Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, textColor, id, 0.f);
         }
 
+        auto def = SimEngine::ComponentCatalog::instance().getComponentDefinition(type);
+        auto [inpDetails, outDetails] = def->getPinDetails();
+
+        std::string label = "";
         // inputs
         {
             size_t inpCount = simComp.inputSlots.size();
             float yIncr = h / (inpCount + 1);
-            for (int i = 1; i <= inpCount; i++) {
-                float yOff = yIncr * i;
+            for (int i = 0; i < inpCount; i++) {
+                float yOff = yIncr * (i + 1);
                 Renderer::beginPathMode({inPinStart, y + yOff, pos.z}, nodeWeight, pinColor, id);
                 Renderer::pathLineTo({boundInfo.inpConnStart, y + yOff, 1}, nodeWeight, pinColor, id);
                 Renderer::endPathMode(false);
-                Renderer::msdfText("X" + std::to_string(i - 1),
+                label = inpDetails.size() > i ? inpDetails[i].name : "X" + std::to_string(i);
+                Renderer::msdfText(label,
                                    {boundInfo.inpConnStart, y + yOff - nodeWeight, pos.z + 0.0005f},
                                    componentStyles.headerFontSize, ViewportTheme::colors.text, 0, 0.f);
             }
@@ -493,12 +500,12 @@ namespace Bess::Canvas {
         {
             size_t outCount = simComp.outputSlots.size();
             float yIncr = h / (outCount + 1);
-            for (int i = 1; i <= outCount; i++) {
-                float yOff = yIncr * i;
+            for (int i = 0; i < outCount; i++) {
+                float yOff = yIncr * (i + 1);
                 Renderer::beginPathMode({boundInfo.outPinStart, y + yOff, pos.z}, nodeWeight, pinColor, id);
                 Renderer::pathLineTo({boundInfo.outConnStart, y + yOff, 1}, nodeWeight, pinColor, id);
                 Renderer::endPathMode(false);
-                std::string label = "Y" + std::to_string(i - 1);
+                label = outDetails.size() > i ? outDetails[i].name : "Y" + std::to_string(i);
                 float size = Renderer2D::Renderer::getMSDFTextRenderSize(label, componentStyles.headerFontSize).x;
                 Renderer::msdfText(label,
                                    {boundInfo.outConnStart - size, y + yOff - nodeWeight, pos.z + 0.0005f},
