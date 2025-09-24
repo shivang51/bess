@@ -48,6 +48,8 @@ namespace Bess {
         colors.wire = colors.componentBorder;
         colors.ghostWire = glm::vec4(0.5f, 0.5f, 0.5f, 0.5f);
         colors.selectedWire = glm::vec4(1.0f, 0.64f, 0.0f, 1.0f); // Orange
+        colors.clockConnectionHigh = glm::vec4(0.30f, 0.75f, 0.95f, 1.0f);
+        colors.clockConnectionLow = glm::vec4(0.10f, 0.35f, 0.55f, 1.0f);
 
         colors.selectionBoxBorder = glm::vec4(0.3f, 0.3f, 0.8f, 1.0f); // Bluish
         colors.selectionBoxFill = glm::vec4(0.3f, 0.3f, 0.7f, 0.5f);   // Semi-transparent blue

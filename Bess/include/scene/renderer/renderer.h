@@ -3,15 +3,16 @@
 #include "fwd.hpp"
 
 #include "scene/renderer/font.h"
-#include "scene/renderer/gl/shader.h"
-#include "scene/renderer/gl/vaos.h"
 #include "scene/renderer/gl/batch_vao.h"
-#include "scene/renderer/gl/vertex.h"
-#include "scene/renderer/gl/texture.h"
+#include "scene/renderer/gl/shader.h"
 #include "scene/renderer/gl/subtexture.h"
+#include "scene/renderer/gl/texture.h"
+#include "scene/renderer/gl/vaos.h"
+#include "scene/renderer/gl/vertex.h"
 #include "scene/renderer/msdf_font.h"
 
 #include "camera.h"
+#include <cstdint>
 #include <memory>
 #include <unordered_map>
 
@@ -31,12 +32,17 @@ namespace Bess::Renderer2D {
         glm::vec2 endPoint;
     };
 
+    struct PathPoint {
+        glm::vec3 pos;
+        float weight = 1.f;
+        uint64_t id = 0.f;
+    };
+
     struct PathContext {
         bool ended = true;
-        float weight = 1.f;
         glm::vec4 color = glm::vec4(1.f);
         glm::vec3 currentPos;
-        std::vector<glm::vec3> points;
+        std::vector<PathPoint> points;
 
         void setCurrentPos(const glm::vec3 &pos) {
             currentPos = pos;
@@ -71,7 +77,7 @@ namespace Bess::Renderer2D {
         static void doCompositeRenderPass(float width, float height);
 
         // --- path api start---
-        static void beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color);
+        static void beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, const int id);
         static void endPathMode(bool closePath = false);
         static void pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, const int id);
         static void pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
@@ -105,10 +111,8 @@ namespace Bess::Renderer2D {
         static void triangle(const std::vector<glm::vec3> &points, const glm::vec4 &color, const int id);
 
       private:
-        static std::vector<Gl::Vertex> generateStrokeGeometry(const std::vector<glm::vec3> &points,
-                                                              float width,
-                                                              const glm::vec4 &color,
-                                                              int id, float miterLimit, bool isClosed);
+        static std::vector<Gl::Vertex> generateStrokeGeometry(const std::vector<PathPoint> &points,
+                                                              const glm::vec4 &color, float miterLimit, bool isClosed);
 
         static int calculateQuadBezierSegments(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2);
 
@@ -148,7 +152,6 @@ namespace Bess::Renderer2D {
 
         static std::vector<glm::vec4> m_StandardTriVertices;
 
-
         static RenderData m_renderData;
 
         static std::shared_ptr<Gl::Shader> m_gridShader;
@@ -167,7 +170,7 @@ namespace Bess::Renderer2D {
 
         static std::shared_ptr<MsdfFont> m_msdfFont;
 
-		static std::unique_ptr<Gl::QuadVao> m_quadRendererVao;
+        static std::unique_ptr<Gl::QuadVao> m_quadRendererVao;
         static std::unique_ptr<Gl::CircleVao> m_circleRendererVao;
         static std::unique_ptr<Gl::TriangleVao> m_triangleRendererVao;
         static std::unique_ptr<Gl::InstancedVao<Gl::InstanceVertex>> m_lineRendererVao;
@@ -175,7 +178,7 @@ namespace Bess::Renderer2D {
         static std::unique_ptr<Gl::BatchVao<Gl::Vertex>> m_pathRendererVao;
         static std::unique_ptr<Gl::GridVao> m_gridVao;
 
-		static std::array<int, 32> m_texSlots;
+        static std::array<int, 32> m_texSlots;
     };
 
 } // namespace Bess::Renderer2D

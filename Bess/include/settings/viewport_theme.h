@@ -17,6 +17,8 @@ namespace Bess {
         glm::vec4 wire;
         glm::vec4 ghostWire;
         glm::vec4 selectedWire;
+        glm::vec4 clockConnectionLow;
+        glm::vec4 clockConnectionHigh;
 
         glm::vec4 text;
 

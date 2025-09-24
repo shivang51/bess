@@ -3,13 +3,18 @@
 #include "assets.h"
 #include "camera.h"
 #include "ext/matrix_transform.hpp"
+#include "ext/quaternion_geometric.hpp"
+#include "geometric.hpp"
 #include "glm.hpp"
+#define GLM_ENABLE_EXPERIMENTAL
+#include "gtx/vector_angle.hpp"
 #include "scene/renderer/asset_loaders.h"
 #include "scene/renderer/gl/gl_wrapper.h"
 #include "scene/renderer/gl/primitive_type.h"
 #include "scene/renderer/gl/vertex.h"
 #include "ui/ui_main/ui_main.h"
 
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <ostream>
@@ -489,16 +494,15 @@ namespace Bess {
     }
 #endif
 
-    void Renderer::beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color) {
+    void Renderer::beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, const int id) {
         m_pathData.ended = false;
         m_pathData.currentPos = startPos;
-        m_pathData.points.emplace_back(startPos);
+        m_pathData.points.emplace_back(startPos, weight, id);
         m_pathData.color = color;
-        m_pathData.weight = weight;
     }
 
     void Renderer::endPathMode(bool closePath) {
-        auto vertices = generateStrokeGeometry(m_pathData.points, m_pathData.weight, m_pathData.color, -1, 4.f, closePath);
+        auto vertices = generateStrokeGeometry(m_pathData.points, m_pathData.color, 4.f, closePath);
         size_t idx = m_pathStripVertices.size();
         for (auto &v : vertices) {
             m_pathStripVertices.emplace_back(v);
@@ -510,21 +514,21 @@ namespace Bess {
 
     void Renderer::pathLineTo(const glm::vec3 &pos, float weight, const glm::vec4 &color, const int id) {
         assert(!m_pathData.ended);
-        m_pathData.points.emplace_back(pos);
+        m_pathData.points.emplace_back(pos, weight, id);
         m_pathData.setCurrentPos(pos);
     }
 
     void Renderer2D::Renderer::pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2, float weight, const glm::vec4 &color, const int id) {
         assert(!m_pathData.ended);
-        auto points = generateCubicBezierPoints(m_pathData.currentPos, controlPoint1, controlPoint2, end);
-        m_pathData.points.insert(m_pathData.points.end(), points.begin(), points.end());
+        auto pos = generateCubicBezierPoints(m_pathData.currentPos, controlPoint1, controlPoint2, end);
+        // m_pathData.points.insert(m_pathData.points.end(), points.begin(), points.end());
         m_pathData.setCurrentPos(end);
     }
 
     void Renderer2D::Renderer::pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, const int id) {
         assert(!m_pathData.ended);
         auto points = generateQuadBezierPoints(m_pathData.currentPos, controlPoint, end);
-        m_pathData.points.insert(m_pathData.points.end(), points.begin(), points.end());
+        // m_pathData.points.insert(m_pathData.points.end(), points.begin(), points.end());
         m_pathData.setCurrentPos(end);
     }
 
@@ -707,14 +711,13 @@ namespace Bess {
         return {startPoint, controlPoint, endPoint};
     }
 
-    std::vector<Gl::Vertex> Renderer::generateStrokeGeometry(const std::vector<glm::vec3> &points,
-                                                             float width,
-                                                             const glm::vec4 &color, int id, float miterLimit, bool isClosed) {
+    std::vector<Gl::Vertex> Renderer::generateStrokeGeometry(const std::vector<PathPoint> &points,
+                                                             const glm::vec4 &color, float miterLimit, bool isClosed) {
         if (points.size() < (isClosed ? 3 : 2)) {
             return {};
         }
 
-        auto makeVertex = [&](const glm::vec2 &pos, float z, const glm::vec2 &uv) {
+        auto makeVertex = [&](const glm::vec2 &pos, float z, uint64_t id, const glm::vec2 &uv) {
             Gl::Vertex v;
             v.position = glm::vec3(pos, z);
             v.color = color;
@@ -726,94 +729,103 @@ namespace Bess {
         // --- 1. Pre-calculate total path length for correct UV mapping ---
         float totalLength = 0.0f;
         for (size_t i = 0; i < points.size() - 1; ++i) {
-            totalLength += glm::distance(glm::vec2(points[i]), glm::vec2(points[i + 1]));
+            totalLength += glm::distance(glm::vec2(points[i].pos), glm::vec2(points[i + 1].pos));
         }
         if (isClosed) {
-            totalLength += glm::distance(glm::vec2(points.back()), glm::vec2(points.front()));
+            totalLength += glm::distance(glm::vec2(points.back().pos), glm::vec2(points.front().pos));
         }
 
         std::vector<Gl::Vertex> stripVertices;
-        const float halfWidth = width / 2.0f;
         float cumulativeLength = 0.0f;
 
         // --- 2. Generate Joins and Caps ---
         for (size_t i = 0; i < points.size(); ++i) {
             // Determine the previous, current, and next points, handling wrapping for closed paths.
             const size_t pointCount = points.size();
-            const auto &p_curr = points[i];
-            const auto &p_prev = isClosed ? points[(i + pointCount - 1) % pointCount] : points[std::max<long int>(0, i - 1)];
-            const auto &p_next = isClosed ? points[(i + 1) % pointCount] : points[std::min(pointCount - 1, i + 1)];
+            const auto &pCurr = points[i];
+            const auto &pPrev = isClosed ? points[(i + pointCount - 1) % pointCount] : points[std::max<long int>(0, i - 1)];
+            const auto &pNext = isClosed ? points[(i + 1) % pointCount] : points[std::min(pointCount - 1, i + 1)];
 
             // Update cumulative length for UVs. For the first point, it's 0.
             if (i > 0) {
-                cumulativeLength += glm::distance(glm::vec2(p_curr), glm::vec2(points[i - 1]));
+                cumulativeLength += glm::distance(glm::vec2(pCurr.pos), glm::vec2(points[i - 1].pos));
             }
             float u = (totalLength > 0) ? (cumulativeLength / totalLength) : 0;
 
             // --- Handle Caps for Open Paths ---
             if (!isClosed && i == 0) { // Start Cap
-                glm::vec2 dir = glm::normalize(glm::vec2(p_next) - glm::vec2(p_curr));
-                glm::vec2 normalVec = glm::vec2(-dir.y, dir.x) * halfWidth;
-                stripVertices.push_back(makeVertex(glm::vec2(p_curr) - normalVec, p_curr.z, {u, 1.f}));
-                stripVertices.push_back(makeVertex(glm::vec2(p_curr) + normalVec, p_curr.z, {u, 0.f}));
+                glm::vec2 dir = glm::normalize(glm::vec2(pNext.pos) - glm::vec2(pCurr.pos));
+                glm::vec2 normalVec = glm::vec2(-dir.y, dir.x) * pCurr.weight / 2.f;
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normalVec, pCurr.pos.z, pCurr.id, {u, 1.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normalVec, pCurr.pos.z, pCurr.id, {u, 0.f}));
                 continue;
             }
             if (!isClosed && i == pointCount - 1) { // End Cap
-                glm::vec2 dir = glm::normalize(glm::vec2(p_curr) - glm::vec2(p_prev));
-                glm::vec2 normalVec = glm::vec2(-dir.y, dir.x) * halfWidth;
-                stripVertices.push_back(makeVertex(glm::vec2(p_curr) - normalVec, p_curr.z, {u, 1.f}));
-                stripVertices.push_back(makeVertex(glm::vec2(p_curr) + normalVec, p_curr.z, {u, 0.f}));
+                glm::vec2 dir = glm::normalize(glm::vec2(pCurr.pos) - glm::vec2(pPrev.pos));
+                glm::vec2 normalVec = glm::vec2(-dir.y, dir.x) * pCurr.weight / 2.f;
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normalVec, pCurr.pos.z, pCurr.id, {u, 1.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normalVec, pCurr.pos.z, pCurr.id, {u, 0.f}));
                 continue;
             }
 
             // --- Handle Interior and Closed Path Joins ---
-            glm::vec2 dir_in = glm::normalize(glm::vec2(p_curr) - glm::vec2(p_prev));
-            glm::vec2 dir_out = glm::normalize(glm::vec2(p_next) - glm::vec2(p_curr));
-            glm::vec2 normal_in(-dir_in.y, dir_in.x);
-            glm::vec2 normal_out(-dir_out.y, dir_out.x);
-            glm::vec2 miterVec = glm::normalize(normal_in + normal_out);
-            float dotProduct = glm::dot(normal_in, miterVec);
+            glm::vec2 dirIn = glm::normalize(glm::vec2(pCurr.pos) - glm::vec2(pPrev.pos));
+            glm::vec2 dirOut = glm::normalize(glm::vec2(pNext.pos) - glm::vec2(pCurr.pos));
+            glm::vec2 dirOutToPrev = glm::normalize(glm::vec2(pPrev.pos - pCurr.pos));
+            glm::vec2 normalIn(-dirIn.y, dirIn.x);
+            glm::vec2 normalOut(-dirOut.y, dirOut.x);
+            glm::vec2 miterVec = glm::normalize(normalIn + normalOut);
+            float dotProduct = glm::dot(normalIn, miterVec);
 
-            if (std::abs(dotProduct) < 1e-6f) { // Handle straight lines
-                glm::vec2 normal = normal_in * halfWidth;
-                stripVertices.push_back(makeVertex(glm::vec2(p_curr) - normal, p_curr.z, {u, 1.f}));
-                stripVertices.push_back(makeVertex(glm::vec2(p_curr) + normal, p_curr.z, {u, 0.f}));
+            // Handle straight lines
+            if (std::abs(dotProduct) < 1e-6f) {
+                glm::vec2 normal = normalIn * pCurr.weight / 2.f;
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normal, pCurr.pos.z, pCurr.id, {u, 1.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normal, pCurr.pos.z, pCurr.id, {u, 0.f}));
                 continue;
             }
 
-            float miterLength = halfWidth / dotProduct;
-            float crossProductZ = dir_in.x * dir_out.y - dir_in.y * dir_out.x;
+            // Joint
+            auto uVec = dirOutToPrev;
+            auto vVec = dirOut;
+            float angle = glm::angle(uVec, vVec);
 
-            // Note (Shivang): There is bug here if remove stripVertices.empty() it crashes and if keep it
-            // it distorts the shape for some points. Keeping it felt like best bet
-            if (!stripVertices.empty() && miterLength / halfWidth > miterLimit) {
-                // --- Bevel Join ---
-                const auto &lastLeft = stripVertices.back();
-                if (crossProductZ > 0) { // Left turn
-                    glm::vec2 innerMiterPoint = glm::vec2(p_curr) - miterVec * miterLength;
-                    glm::vec2 bevelP2 = glm::vec2(p_curr) + normal_out * halfWidth;
-                    stripVertices.push_back(makeVertex(innerMiterPoint, p_curr.z, {u, 1.f}));
-                    stripVertices.push_back(lastLeft);
-                    stripVertices.push_back(makeVertex(innerMiterPoint, p_curr.z, {u, 1.f}));
-                    stripVertices.push_back(makeVertex(bevelP2, p_curr.z, {u, 0.f}));
-                } else { // Right turn
-                    glm::vec2 innerMiterPoint = glm::vec2(p_curr) + miterVec * miterLength;
-                    glm::vec2 bevelP2 = glm::vec2(p_curr) - normal_out * halfWidth;
-                    stripVertices.push_back(makeVertex(bevelP2, p_curr.z, {u, 1.f}));
-                    stripVertices.push_back(makeVertex(innerMiterPoint, p_curr.z, {u, 0.f}));
-                    stripVertices.push_back(lastLeft);
-                    stripVertices.push_back(makeVertex(bevelP2, p_curr.z, {u, 0.f}));
-                }
+            float uMag = pNext.weight / (2 * glm::sin(angle));
+            float vMag = pCurr.weight / (2 * glm::sin(angle));
+
+            uVec *= uMag;
+            vVec *= vMag;
+
+            auto disp = uVec + vVec;
+
+            float crossProductZ = dirIn.x * dirOut.y - dirIn.y * dirOut.x;
+
+            if (glm::length(disp) > miterLimit) {
+                glm::vec2 normalIn = glm::normalize(glm::vec2(-dirIn.y, dirIn.x));
+
+                glm::vec2 pos = pCurr.pos;
+                float halfWidth = pCurr.weight / 2.f; // Assuming constant width through the joint
+
+                glm::vec2 outerPrev = pos + normalIn * halfWidth;
+                glm::vec2 innerPrev = pos - normalIn * halfWidth;
+
+                glm::vec2 outerNext = pos + normalOut * halfWidth;
+                glm::vec2 innerNext = pos - normalOut * halfWidth;
+                stripVertices.push_back(makeVertex(innerPrev, pCurr.pos.z, pCurr.id, {u, 1.f}));
+                stripVertices.push_back(makeVertex(outerPrev, pCurr.pos.z, pCurr.id, {u, 0.f}));
+
+                stripVertices.push_back(makeVertex(innerNext, pCurr.pos.z, pCurr.id, {u, 1.f}));
+                stripVertices.push_back(makeVertex(outerNext, pCurr.pos.z, pCurr.id, {u, 0.f}));
             } else {
-                // --- Miter Join ---
-                glm::vec2 outerMiterPoint = glm::vec2(p_curr) + miterVec * miterLength;
-                glm::vec2 innerMiterPoint = glm::vec2(p_curr) - miterVec * miterLength;
+                auto D = glm::vec2(pCurr.pos) + disp;
+                auto E = glm::vec2(pCurr.pos) - disp;
+
                 if (crossProductZ > 0) { // Left turn
-                    stripVertices.push_back(makeVertex(innerMiterPoint, p_curr.z, {u, 1.f}));
-                    stripVertices.push_back(makeVertex(outerMiterPoint, p_curr.z, {u, 0.f}));
+                    stripVertices.push_back(makeVertex(E, pCurr.pos.z, pCurr.id, {u, 1.f}));
+                    stripVertices.push_back(makeVertex(D, pCurr.pos.z, pCurr.id, {u, 0.f}));
                 } else { // Right turn
-                    stripVertices.push_back(makeVertex(innerMiterPoint, p_curr.z, {u, 1.f}));
-                    stripVertices.push_back(makeVertex(outerMiterPoint, p_curr.z, {u, 0.f}));
+                    stripVertices.push_back(makeVertex(D, pCurr.pos.z, pCurr.id, {u, 1.f}));
+                    stripVertices.push_back(makeVertex(E, pCurr.pos.z, pCurr.id, {u, 0.f}));
                 }
             }
         }

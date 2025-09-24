@@ -95,6 +95,7 @@ namespace Bess::Canvas {
         SimEngine::Commands::CommandsManager &getCmdManager();
         UUID generateBasicConnection(entt::entity startSlot, entt::entity endSlot);
         UUID connectSlots(UUID startSlot, UUID endSlot);
+        UUID connectComponents(UUID compIdA, int slotIdxA, bool isAInput, UUID compIdB, int slotIdxB);
 
       private:
         const UUID &getUuidOfEntity(entt::entity ent);
