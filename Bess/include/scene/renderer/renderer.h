@@ -18,12 +18,20 @@
 
 namespace Bess::Renderer2D {
 
+    struct PathRenderData {
+        std::vector<GLuint> strokeIndices = {};
+        std::vector<GLuint> fillIndices = {};
+        std::vector<Gl::Vertex> strokeVertices = {};
+        std::vector<Gl::Vertex> fillVertices = {};
+    };
+
     struct RenderData {
         std::vector<Gl::CircleVertex> circleVertices;
         std::vector<Gl::InstanceVertex> lineVertices;
         std::vector<Gl::InstanceVertex> fontVertices;
         std::vector<Gl::Vertex> triangleVertices;
         std::vector<Gl::QuadVertex> quadVertices;
+        PathRenderData pathData = {};
     };
 
     struct QuadBezierCurvePoints {
@@ -78,7 +86,7 @@ namespace Bess::Renderer2D {
 
         // --- path api start---
         static void beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, const int id);
-        static void endPathMode(bool closePath = false);
+        static void endPathMode(bool closePath = false, bool genFill = false, bool genStroke = true);
         static void pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, const int id);
         static void pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
                                       float weight, const glm::vec4 &color, const int id);
@@ -113,6 +121,8 @@ namespace Bess::Renderer2D {
       private:
         static std::vector<Gl::Vertex> generateStrokeGeometry(const std::vector<PathPoint> &points,
                                                               const glm::vec4 &color, float miterLimit, bool isClosed);
+
+        static std::vector<Gl::Vertex> generateFillGeometry(const std::vector<PathPoint> &points, const glm::vec4 &color);
 
         static int calculateQuadBezierSegments(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2);
 
@@ -160,9 +170,6 @@ namespace Bess::Renderer2D {
         static std::unique_ptr<Gl::Vao> m_renderPassVao;
 
         static std::shared_ptr<Font> m_Font;
-
-        static std::vector<Gl::Vertex> m_pathStripVertices;
-        static std::vector<GLuint> m_pathStripIndices;
 
         static PathContext m_pathData;
 

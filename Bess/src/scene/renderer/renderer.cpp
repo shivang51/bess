@@ -48,8 +48,6 @@ namespace Bess {
     std::unique_ptr<Gl::Shader> Renderer::m_shadowPassShader;
     std::unique_ptr<Gl::Shader> Renderer::m_compositePassShader;
     std::unique_ptr<Gl::Vao> Renderer::m_renderPassVao;
-    std::vector<Gl::Vertex> Renderer::m_pathStripVertices;
-    std::vector<GLuint> Renderer::m_pathStripIndices;
 
     std::shared_ptr<Font> Renderer::m_Font;
     std::shared_ptr<MsdfFont> Renderer::m_msdfFont;
@@ -415,7 +413,7 @@ namespace Bess {
     }
 
     void Renderer2D::Renderer::triangle(const std::vector<glm::vec3> &points, const glm::vec4 &color, const int id) {
-        std::runtime_error("Triangle API is not implemented");
+        throw std::runtime_error("Triangle API is not implemented");
         std::vector<Gl::Vertex> vertices(3);
 
         for (int i = 0; i < vertices.size(); i++) {
@@ -501,15 +499,34 @@ namespace Bess {
         m_pathData.color = color;
     }
 
-    void Renderer::endPathMode(bool closePath) {
-        auto vertices = generateStrokeGeometry(m_pathData.points, m_pathData.color, 4.f, closePath);
-        size_t idx = m_pathStripVertices.size();
-        for (auto &v : vertices) {
-            m_pathStripVertices.emplace_back(v);
-            m_pathStripIndices.emplace_back((GLuint)idx++);
+    void Renderer::endPathMode(bool closePath, bool genFill, bool genStroke) {
+        if (genStroke) {
+            auto &vertices = m_renderData.pathData.strokeVertices;
+            auto &indices = m_renderData.pathData.strokeIndices;
+            auto genVertices = generateStrokeGeometry(m_pathData.points, m_pathData.color, 4.f, closePath);
+            GLuint idx = vertices.size();
+            for (auto &v : genVertices) {
+                vertices.emplace_back(v);
+                indices.emplace_back(idx++);
+            }
+            indices.emplace_back(PRIMITIVE_RESTART);
         }
+
+        if (genFill) {
+            m_pathData.points.push_back(m_pathData.points.front());
+
+            auto &vertices = m_renderData.pathData.fillVertices;
+            auto &indices = m_renderData.pathData.fillIndices;
+            auto genVertices = generateFillGeometry(m_pathData.points, glm::vec4(1.f));
+            GLuint idx = vertices.size();
+            for (auto &v : genVertices) {
+                vertices.emplace_back(v);
+                indices.emplace_back(idx++);
+            }
+            indices.emplace_back(PRIMITIVE_RESTART);
+        }
+
         m_pathData = {};
-        m_pathStripIndices.emplace_back(PRIMITIVE_RESTART);
     }
 
     void Renderer::pathLineTo(const glm::vec3 &pos, float weight, const glm::vec4 &color, const int id) {
@@ -593,13 +610,18 @@ namespace Bess {
         case PrimitiveType::path: {
             shader->setUniform1f("u_zoom", m_camera->getZoom());
             m_pathRendererVao->bind();
-            m_pathRendererVao->setVerticesAndIndicies(m_pathStripVertices, m_pathStripIndices);
             GL_CHECK(glEnable(GL_PRIMITIVE_RESTART));
             GL_CHECK(glPrimitiveRestartIndex(PRIMITIVE_RESTART));
-            Gl::Api::drawElements(GL_TRIANGLE_STRIP, (GLsizei)(m_pathStripIndices.size()));
+            if (!m_renderData.pathData.fillVertices.empty()) {
+                m_pathRendererVao->setVerticesAndIndicies(m_renderData.pathData.fillVertices, m_renderData.pathData.fillIndices);
+                Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(m_renderData.pathData.fillIndices.size()));
+            }
+            if (!m_renderData.pathData.strokeVertices.empty()) {
+                m_pathRendererVao->setVerticesAndIndicies(m_renderData.pathData.strokeVertices, m_renderData.pathData.strokeIndices);
+                Gl::Api::drawElements(GL_TRIANGLE_STRIP, (GLsizei)(m_renderData.pathData.strokeIndices.size()));
+            }
             m_pathRendererVao->unbind();
-            m_pathStripVertices.clear();
-            m_pathStripIndices.clear();
+            m_renderData.pathData = {};
         } break; /*
         case PrimitiveType::triangle: {
             auto &vertices = m_renderData.triangleVertices;
@@ -721,6 +743,112 @@ namespace Bess {
         glm::vec2 startPoint = joinPoint - dir1 * curveRadius;
         glm::vec2 endPoint = joinPoint + dir2 * curveRadius;
         return {startPoint, controlPoint, endPoint};
+    }
+
+    float cross_product(const glm::vec2 &O, const glm::vec2 &A, const glm::vec2 &B) {
+        return (A.x - O.x) * (B.y - O.y) - (A.y - O.y) * (B.x - O.x);
+    }
+
+    std::vector<Gl::Vertex> Renderer2D::Renderer::generateFillGeometry(const std::vector<PathPoint> &points, const glm::vec4 &color) {
+        if (points.size() < 3) {
+            return {};
+        }
+
+        std::vector<Gl::Vertex> fillVertices;
+
+        std::vector<glm::vec2> polygonVertices;
+        for (const auto &p : points) {
+            polygonVertices.push_back(glm::vec2(p.pos));
+        }
+
+        float area = 0.0f;
+        for (size_t i = 0; i < polygonVertices.size(); ++i) {
+            const auto &p1 = polygonVertices[i];
+            const auto &p2 = polygonVertices[(i + 1) % polygonVertices.size()];
+            area += (p1.x * p2.y - p2.x * p1.y);
+        }
+
+        if (area < 0) { // Ensure Counter-Clockwise winding for Y-up systems
+            std::reverse(polygonVertices.begin(), polygonVertices.end());
+        }
+
+        glm::vec2 minBounds = polygonVertices[0];
+        glm::vec2 maxBounds = polygonVertices[0];
+        for (const auto &v : polygonVertices) {
+            minBounds = glm::min(minBounds, v);
+            maxBounds = glm::max(maxBounds, v);
+        }
+        glm::vec2 extent = maxBounds - minBounds;
+        if (extent.x == 0)
+            extent.x = 1;
+        if (extent.y == 0)
+            extent.y = 1;
+
+        auto makeVertex = [&](const glm::vec2 &pos) {
+            Gl::Vertex v;
+            v.position = glm::vec3(pos, points[0].pos.z);
+            v.color = color;
+            v.id = points[0].id;
+            v.texCoord = (pos - minBounds) / extent;
+            return v;
+        };
+
+        std::vector<int> indices;
+        indices.reserve(polygonVertices.size());
+        for (int i = 0; i < polygonVertices.size(); ++i) {
+            indices.push_back(i);
+        }
+
+        int iterations = 0;
+        const int maxIterations = indices.size() + 5; // Failsafe for invalid polygons
+
+        while (indices.size() > 2 && iterations++ < maxIterations) {
+            bool earFound = false;
+            for (int i = 0; i < indices.size(); ++i) {
+                int prev_idx = indices[(i + indices.size() - 1) % indices.size()];
+                int curr_idx = indices[i];
+                int next_idx = indices[(i + 1) % indices.size()];
+
+                const auto &a = polygonVertices[prev_idx];
+                const auto &b = polygonVertices[curr_idx];
+                const auto &c = polygonVertices[next_idx];
+
+                if (cross_product(a, b, c) < 0) {
+                    continue;
+                }
+
+                bool isEar = true;
+
+                for (int p_idx : indices) {
+                    if (p_idx == prev_idx || p_idx == curr_idx || p_idx == next_idx) {
+                        continue;
+                    }
+                    const auto &p = polygonVertices[p_idx];
+
+                    float d1 = cross_product(a, b, p);
+                    float d2 = cross_product(b, c, p);
+                    float d3 = cross_product(c, a, p);
+                    if (d1 >= 0 && d2 >= 0 && d3 >= 0) {
+                        isEar = false;
+                        break;
+                    }
+                }
+
+                if (isEar) {
+                    fillVertices.push_back(makeVertex(a));
+                    fillVertices.push_back(makeVertex(b));
+                    fillVertices.push_back(makeVertex(c));
+                    indices.erase(indices.begin() + i);
+                    earFound = true;
+                    break;
+                }
+            }
+            if (!earFound) {
+                break;
+            }
+        }
+
+        return fillVertices;
     }
 
     std::vector<Gl::Vertex> Renderer::generateStrokeGeometry(const std::vector<PathPoint> &points,
