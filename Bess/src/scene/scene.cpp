@@ -194,6 +194,8 @@ namespace Bess::Canvas {
                 m_camera->focusAtPoint(glm::vec2(transform.position), true);
                 break;
             }
+        } else if (mainPageState->isKeyPressed(GLFW_KEY_TAB)) {
+            toggleSchematicView();
         }
     }
 
@@ -222,19 +224,24 @@ namespace Bess::Canvas {
     }
 
     void Scene::drawScene(std::shared_ptr<Camera> camera) {
+
+        Artist::setInstructions({.isSchematicView = m_isSchematicView});
+
         Renderer2D::Renderer::begin(camera);
         Renderer::grid({0.f, 0.f, -2.f}, camera->getSpan(), -1, ViewportTheme::colors.grid);
         Renderer2D::Renderer::end();
 
         Renderer2D::Renderer::begin(camera);
-        if (m_drawMode == SceneDrawMode::connection) {
-            drawConnection();
-        }
-
-        // draw connections
         auto connectionsView = m_registry.view<Components::ConnectionComponent>();
         for (auto entity : connectionsView) {
             Artist::drawConnectionEntity(entity);
+        }
+
+        Renderer2D::Renderer::end();
+
+        Renderer2D::Renderer::begin(camera);
+        if (m_drawMode == SceneDrawMode::connection) {
+            drawConnection();
         }
 
         auto simCompView = m_registry.view<
@@ -778,6 +785,19 @@ namespace Bess::Canvas {
                                        getEntityWithUuid(endSlot));
     }
 
+    UUID Scene::connectComponents(UUID compIdA, int slotIdxA, bool isAInput, UUID compIdB, int slotIdxB) {
+        auto entA = getEntityWithUuid(compIdA);
+        const auto &simComp = m_registry.get<Components::SimulationComponent>(entA);
+        UUID slotA = isAInput ? simComp.inputSlots[slotIdxA] : simComp.outputSlots[slotIdxA];
+        auto entB = getEntityWithUuid(compIdB);
+        const auto &simCompB = m_registry.get<Components::SimulationComponent>(entB);
+        UUID slotB = !isAInput ? simCompB.inputSlots[slotIdxB] : simCompB.outputSlots[slotIdxB];
+
+        auto _ = m_cmdManager.execute<Commands::ConnectCommand, UUID>(
+            slotA, slotB);
+        return _.value();
+    }
+
     bool Scene::isEntityValid(const UUID &uuid) {
         return uuid != UUID::null && m_registry.valid(getEntityWithUuid(uuid));
     }
@@ -1073,7 +1093,16 @@ namespace Bess::Canvas {
     void Scene::setSceneMode(SceneMode mode) {
         m_sceneMode = mode;
     }
+
     SceneMode Scene::getSceneMode() {
         return m_sceneMode;
+    }
+
+    bool *Scene::getIsSchematicViewPtr() {
+        return &m_isSchematicView;
+    }
+
+    void Scene::toggleSchematicView() {
+        m_isSchematicView = !m_isSchematicView;
     }
 } // namespace Bess::Canvas

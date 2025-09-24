@@ -22,6 +22,10 @@ namespace Bess::Canvas {
         std::array<std::shared_ptr<Gl::SubTexture>, 8> sevenSegDispTexs;
     };
 
+    struct ArtistInstructions {
+        bool isSchematicView = false;
+    };
+
     class Artist {
       public:
         static void init();
@@ -52,9 +56,7 @@ namespace Bess::Canvas {
         static void drawConnection(const UUID &id, entt::entity inputEntity, entt::entity outputEntity, bool isSelected);
 
       public:
-        static void setSchematicMode(bool value);
-        static bool getSchematicMode();
-        static bool *getSchematicModePtr();
+        static void setInstructions(const ArtistInstructions &value);
 
       private:
         static void paintSchematicView(entt::entity entity);
@@ -72,8 +74,8 @@ namespace Bess::Canvas {
 
         static ArtistCompBoundInfo getCompBoundInfo(SimEngine::ComponentType type, glm::vec2 pos, glm::vec2 scale);
 
-        static bool m_isSchematicMode;
-
         static ArtistTools m_artistTools;
+
+        static ArtistInstructions m_instructions;
     };
 } // namespace Bess::Canvas

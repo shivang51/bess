@@ -3,6 +3,7 @@
 
 namespace Bess {
     SceneColors ViewportTheme::colors;
+    SchmaticViewColors ViewportTheme::schmaticViewColors;
 
     std::unordered_map<Bess::SimEngine::ComponentType, glm::vec4> ViewportTheme::s_compHeaderColorMap;
 
