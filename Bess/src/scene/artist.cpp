@@ -144,20 +144,21 @@ namespace Bess::Canvas {
         float ir = componentStyles.slotRadius - componentStyles.slotBorderSize;
         float r = componentStyles.slotRadius;
 
-        if (extendedType == SimEngine::ExtendedPinType::inputClock) {
-            auto shift = (componentStyles.slotRadius);
-            auto top = glm::vec3{pos.x - shift, pos.y - shift, pos.z};
-            auto bottom = glm::vec3{pos.x - shift, pos.y + shift, pos.z};
-            auto right = glm::vec3{pos.x + shift, pos.y, pos.z};
-            auto ctrlPoint = glm::vec2{pos.x - 2.f, pos.y};
-            float borderSize = componentStyles.slotBorderSize * 1.5f;
-
-            std::cout << borderSize << std::endl;
-            Renderer::beginPathMode(top, borderSize, border, id);
-            Renderer::pathQuadBeizerTo(bottom, ctrlPoint, borderSize, border, id);
-            Renderer::pathLineTo(right, borderSize, border, id);
-            Renderer::endPathMode(true, true, bg);
-        } else if (extendedType == SimEngine::ExtendedPinType::inputClear) {
+        // if (extendedType == SimEngine::ExtendedPinType::inputClock) {
+        //     auto shift = (componentStyles.slotRadius);
+        //     auto top = glm::vec3{pos.x - shift, pos.y - shift, pos.z};
+        //     auto bottom = glm::vec3{pos.x - shift, pos.y + shift, pos.z};
+        //     auto right = glm::vec3{pos.x + shift, pos.y, pos.z};
+        //     auto ctrlPoint = glm::vec2{pos.x - 2.f, pos.y};
+        //     float borderSize = componentStyles.slotBorderSize * 1.5f;
+        //
+        //     std::cout << borderSize << std::endl;
+        //     Renderer::beginPathMode(top, borderSize, border, id);
+        //     Renderer::pathQuadBeizerTo(bottom, ctrlPoint, borderSize, border, id);
+        //     Renderer::pathLineTo(right, borderSize, border, id);
+        //     Renderer::endPathMode(true, true, bg);
+        // } else
+        if (extendedType == SimEngine::ExtendedPinType::inputClear) {
             Renderer2D::QuadRenderProperties props;
             props.borderColor = border;
             props.borderRadius = glm::vec4(2.5f);
@@ -227,13 +228,11 @@ namespace Bess::Canvas {
         float ratio = slotComp.slotType == Components::SlotType::digitalInput ? 0.8f : 0.2f;
         auto midX = startPos.x + ((pos.x - startPos.x) * ratio);
 
-        std::vector<glm::vec3> points;
-        points.emplace_back(startPos);
-        points.emplace_back(glm::vec3(midX, startPos.y, 0.f));
-        points.emplace_back(glm::vec3(midX, pos.y, 0.f));
-        points.emplace_back(glm::vec3(pos, 0.f));
-
-        Renderer::drawLines(points, 2.f, ViewportTheme::colors.ghostWire, -1);
+        Renderer::beginPathMode(startPos, 2.f, ViewportTheme::colors.ghostWire, -1);
+        Renderer::pathLineTo(glm::vec3(midX, startPos.y, 0.f), 2.f, ViewportTheme::colors.ghostWire, -1);
+        Renderer::pathLineTo(glm::vec3(midX, pos.y, 0.f), 2.f, ViewportTheme::colors.ghostWire, -1);
+        Renderer::pathLineTo(glm::vec3(pos, 0.f), 2.f, ViewportTheme::colors.ghostWire, -1);
+        Renderer::endPathMode();
     }
 
     void Artist::drawConnection(const UUID &id, entt::entity inputEntity, entt::entity outputEntity, bool isSelected) {
