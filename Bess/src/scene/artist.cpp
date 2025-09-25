@@ -562,13 +562,14 @@ namespace Bess::Canvas {
             float yIncr = h / (inpCount + 1);
             for (int i = 0; i < inpCount; i++) {
                 float pinY = y + yIncr * (i + 1);
-                Renderer::beginPathMode({inPinStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, id);
-                Renderer::pathLineTo({schematicInfo.inpConnStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, id);
+                int pinId = (uint64_t)sceneRef->getEntityWithUuid(simComp.inputSlots[i]);
+                Renderer::beginPathMode({inPinStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
+                Renderer::pathLineTo({schematicInfo.inpConnStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
                 Renderer::endPathMode(false);
                 label = inpDetails.size() > i ? inpDetails[i].name : "X" + std::to_string(i);
                 Renderer::msdfText(label,
                                    {schematicInfo.inpConnStart, pinY - nodeWeight, pos.z - 0.0005f},
-                                   componentStyles.headerFontSize, ViewportTheme::colors.text, 0, 0.f);
+                                   componentStyles.headerFontSize, ViewportTheme::colors.text, id, 0.f);
             }
         }
 
@@ -578,14 +579,15 @@ namespace Bess::Canvas {
             float yIncr = h / (outCount + 1);
             for (int i = 0; i < outCount; i++) {
                 float pinY = y + yIncr * (i + 1);
-                Renderer::beginPathMode({schematicInfo.outPinStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, id);
-                Renderer::pathLineTo({schematicInfo.outConnStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, id);
+                int pinId = (uint64_t)sceneRef->getEntityWithUuid(simComp.outputSlots[i]);
+                Renderer::beginPathMode({schematicInfo.outPinStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
+                Renderer::pathLineTo({schematicInfo.outConnStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
                 Renderer::endPathMode(false);
                 label = outDetails.size() > i ? outDetails[i].name : "Y" + std::to_string(i);
                 float size = Renderer2D::Renderer::getMSDFTextRenderSize(label, componentStyles.headerFontSize).x;
                 Renderer::msdfText(label,
                                    {schematicInfo.outConnStart - size, pinY - nodeWeight, pos.z - 0.0005f},
-                                   componentStyles.headerFontSize, ViewportTheme::colors.text, 0, 0.f);
+                                   componentStyles.headerFontSize, ViewportTheme::colors.text, id, 0.f);
             }
         }
     }
