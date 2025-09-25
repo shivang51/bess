@@ -148,6 +148,8 @@ namespace Bess {
                         comp->type.simCompType = simEngine.getComponentType(simComp->simEngineEntity);
                     }
 
+                    simComp->type = comp->type.simCompType;
+
                     if ((comp->type.simCompType == SimEngine::ComponentType::FLIP_FLOP_JK ||
                          comp->type.simCompType == SimEngine::ComponentType::FLIP_FLOP_SR) &&
                         simComp->inputSlots.size() != 4) {
