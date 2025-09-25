@@ -1,8 +1,9 @@
 #pragma once
 
-#include "asset_manager/asset_manager.h"
+#include "bess_uuid.h"
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
+#include "scene/components/components.h"
 #include "scene/scene.h"
 #include "types.h"
 
@@ -10,12 +11,14 @@
 
 namespace Bess::Canvas {
 
-    struct ArtistCompBoundInfo {
+    struct ArtistCompSchematicInfo {
         float inpConnStart = 0.f;
         float outConnStart = 0.f;
         float inpPinStart = 0.f;
         float outPinStart = 0.f;
         float rb = 0.f;
+        float width, height = 0.f;
+        bool shouldDraw = true;
     };
 
     struct ArtistTools {
@@ -52,6 +55,7 @@ namespace Bess::Canvas {
                                     const Components::TransformComponent &parentTransform);
         // use in schematic mode
         static glm::vec3 getPinPos(const Components::SlotComponent &comp);
+        static glm::vec3 getPinPos(UUID uuid);
         static void drawGhostConnection(const entt::entity &startEntity, const glm::vec2 pos);
         static void drawConnection(const UUID &id, entt::entity inputEntity, entt::entity outputEntity, bool isSelected);
 
@@ -72,7 +76,7 @@ namespace Bess::Canvas {
                                         Components::SpriteComponent &spriteComp,
                                         Components::SimulationComponent &simComponent);
 
-        static ArtistCompBoundInfo getCompBoundInfo(SimEngine::ComponentType type, glm::vec2 pos, glm::vec2 scale);
+        static ArtistCompSchematicInfo getCompSchematicInfo(entt::entity ent);
 
         static ArtistTools m_artistTools;
 
