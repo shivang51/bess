@@ -508,6 +508,10 @@ namespace Bess {
             for (auto &v : genVertices) {
                 vertices.emplace_back(v);
                 indices.emplace_back(idx++);
+
+                if (vertices.size() >= m_MaxRenderLimit[(int)PrimitiveType::path]) {
+                    flush(PrimitiveType::path);
+                }
             }
             indices.emplace_back(PRIMITIVE_RESTART);
         }
@@ -522,6 +526,10 @@ namespace Bess {
             for (auto &v : genVertices) {
                 vertices.emplace_back(v);
                 indices.emplace_back(idx++);
+
+                if (vertices.size() >= m_MaxRenderLimit[(int)PrimitiveType::path]) {
+                    flush(PrimitiveType::path);
+                }
             }
             indices.emplace_back(PRIMITIVE_RESTART);
         }
