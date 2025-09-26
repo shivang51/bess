@@ -766,6 +766,8 @@ namespace Bess {
 
         std::vector<glm::vec2> polygonVertices;
         for (const auto &p : points) {
+            if (!polygonVertices.empty() && glm::vec2(p.pos) == polygonVertices.back())
+                continue;
             polygonVertices.push_back(glm::vec2(p.pos));
         }
 
@@ -879,6 +881,7 @@ namespace Bess {
         for (size_t i = 0; i < points.size() - 1; ++i) {
             totalLength += glm::distance(glm::vec2(points[i].pos), glm::vec2(points[i + 1].pos));
         }
+
         if (isClosed) {
             totalLength += glm::distance(glm::vec2(points.back().pos), glm::vec2(points.front().pos));
         }
@@ -888,16 +891,22 @@ namespace Bess {
         const size_t pointCount = points.size();
         const size_t n = isClosed ? pointCount : pointCount;
 
+        size_t ni = 0;
         // --- 2. Generate Joins and Caps ---
-        for (size_t i = 0; i < n; ++i) {
-            // Determine the previous, current, and next points, handling wrapping for closed paths.
+        for (size_t i = 0; i < n; i = ni) {
+            // skipping continuous same points
+            ni = i + 1;
+            while (ni < n && points[ni].pos == points[i].pos) {
+                ni++;
+            }
+
             const auto &pCurr = points[i];
             const auto &pPrev = isClosed ? points[(i + pointCount - 1) % pointCount] : points[std::max<long int>(0, i - 1)];
-            const auto &pNext = isClosed ? points[(i + 1) % pointCount] : points[std::min(pointCount - 1, i + 1)];
+            const auto &pNext = isClosed ? points[ni % pointCount] : points[std::min(pointCount - 1, ni)];
 
             // Update cumulative length for UVs. For the first point, it's 0.
             if (i > 0) {
-                cumulativeLength += glm::distance(glm::vec2(pCurr.pos), glm::vec2(points[i - 1].pos));
+                cumulativeLength += glm::distance(glm::vec2(pCurr.pos), glm::vec2(pPrev.pos));
             }
             float u = (totalLength > 0) ? (cumulativeLength / totalLength) : 0;
 
@@ -924,11 +933,10 @@ namespace Bess {
             glm::vec2 dirOutToPrev = glm::normalize(glm::vec2(pPrev.pos - pCurr.pos));
             glm::vec2 normalIn(-dirIn.y, dirIn.x);
             glm::vec2 normalOut(-dirOut.y, dirOut.x);
-            glm::vec2 miterVec = glm::normalize(normalIn + normalOut);
-            float dotProduct = glm::dot(normalIn, miterVec);
+            float dotProduct = glm::dot(dirIn, dirOut);
 
             // Handle straight lines
-            if (std::abs(dotProduct) < 1e-6f) {
+            if (std::abs(dotProduct) == 1.f) {
                 glm::vec2 normal = normalIn * pCurr.weight / 2.f;
                 stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normal, pCurr.pos.z, pCurr.id, {u, 1.f}));
                 stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normal, pCurr.pos.z, pCurr.id, {u, 0.f}));
