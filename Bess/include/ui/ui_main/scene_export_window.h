@@ -10,5 +10,6 @@ namespace Bess::UI {
 
       private:
         static bool m_shown;
+        static bool m_firstDraw;
     };
 } // namespace Bess::UI
