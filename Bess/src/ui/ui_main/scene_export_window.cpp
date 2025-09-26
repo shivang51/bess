@@ -9,6 +9,7 @@
 
 #include "png.h"
 #include "stb_image_write.h"
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 
@@ -27,8 +28,25 @@ namespace Bess::UI {
     std::string fileName = "bess_scene_export";
     std::string exportPath = homeDir / "Pictures" / "bess";
 
-    /// will move this to separate thread when vulkan is integrated
-    void exportScene() {
+    struct SceneBounds {
+        glm::vec2 min, max;
+    };
+
+    struct SceneSnapsInfo {
+        glm::ivec2 count;
+        glm::vec2 span;
+        glm::vec2 size;
+    };
+
+    struct SceneExportInfo {
+        SceneBounds sceneBounds;
+        SceneSnapsInfo snapsInfo;
+        float scale;
+        glm::ivec2 imgSize;
+        std::filesystem::path path;
+    };
+
+    SceneBounds computeSceneBounds() {
         const auto &reg = Canvas::Scene::instance().getEnttRegistry();
         const auto view = reg.view<Canvas::Components::TransformComponent>();
 
@@ -53,43 +71,55 @@ namespace Bess::UI {
                 min.y = comp.position.y - comp.scale.y;
         }
 
+        return {min, max};
+    }
+
+    SceneExportInfo getSceneExportInfo(const SceneBounds &bounds, float zoom) {
         auto size = Canvas::Scene::instance().getSize();
         std::shared_ptr<Camera> camera = std::make_shared<Camera>(size.x, size.y);
-        std::vector<Gl::FBAttachmentType> attachments = {Gl::FBAttachmentType::RGBA_RGBA,
-                                                         Gl::FBAttachmentType::R32I_REDI,
-                                                         Gl::FBAttachmentType::RGBA_RGBA,
-                                                         Gl::FBAttachmentType::DEPTH32F_STENCIL8};
-        auto msaaFramebuffer = std::make_unique<Gl::FrameBuffer>(size.x, size.y, attachments, true);
-
-        attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::R32I_REDI};
-        auto normalFramebuffer = std::make_unique<Gl::FrameBuffer>(size.x, size.y, attachments);
-
-        static constexpr int value = -1;
-        camera->setPos(min);
+        camera->setPos(bounds.min);
         camera->setZoom(zoom);
-        auto span = camera->getSpan();
+        auto snapSize = camera->getSpan();
+
+        auto min = bounds.min;
+        auto max = bounds.max;
 
         glm::vec2 dist = max - min;
 
-        glm::vec2 rem = {(int)dist.x % (int)span.x, (int)dist.y % (int)span.y};
-        rem = span - rem;
+        glm::vec2 rem = {(int)dist.x % (int)snapSize.x, (int)dist.y % (int)snapSize.y};
+        rem = snapSize - rem;
         rem /= 2;
         min -= rem;
         max += rem;
 
         dist = max - min;
 
-        glm::ivec2 snaps = glm::round(dist / span);
+        glm::ivec2 snaps = glm::round(dist / snapSize);
 
-        const int finalWidth = snaps.x * size.x;
-        const int finalHeight = snaps.y * size.y;
+        SceneExportInfo info;
+        info.sceneBounds = {min, max};
+        info.snapsInfo = {.count = snaps, .span = snapSize, .size = size};
+        info.imgSize = {snaps.x * size.x, snaps.y * size.y};
+        info.scale = zoom;
+
+        return info;
+    }
+
+    /// will move this to separate thread when vulkan is integrated
+    void exportScene(const SceneExportInfo &info) {
+        const auto &size = info.snapsInfo.size;
+        const auto &sceneBounds = info.sceneBounds;
+        const auto &min = sceneBounds.min;
+
+        const auto &snapSpan = info.snapsInfo.span;
+        const glm::ivec2 &snaps = info.snapsInfo.count;
+        const int finalWidth = info.imgSize.x;
+        const int finalHeight = info.imgSize.y;
 
         BESS_INFO("[ExportSceneView] Snaps = {}, {} with size per snap {}, {}", snaps.x, snaps.y, size.x, size.y);
         BESS_INFO("[ExportSceneView] Generating image of size {}x{}", finalWidth, finalHeight);
 
-        std::filesystem::path path = exportPath;
-        path /= (fileName + ".png");
-
+        const auto &path = info.path;
         std::ofstream imgFile = std::ofstream(path, std::ios::binary);
         if (!imgFile.is_open()) {
             BESS_ERROR("[ExportSceneView] Failed to open file for writing: {}", path.string());
@@ -129,10 +159,22 @@ namespace Bess::UI {
         std::vector<unsigned char> imgRowBuffer(finalWidth * 4);
         const size_t snapRowSize = size.x * 4;
 
-        auto pos = min + span / 2.f;
+        std::vector<Gl::FBAttachmentType> attachments = {Gl::FBAttachmentType::RGBA_RGBA,
+                                                         Gl::FBAttachmentType::R32I_REDI,
+                                                         Gl::FBAttachmentType::RGBA_RGBA,
+                                                         Gl::FBAttachmentType::DEPTH32F_STENCIL8};
+        auto msaaFramebuffer = std::make_unique<Gl::FrameBuffer>(size.x, size.y, attachments, true);
+
+        attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::R32I_REDI};
+        auto normalFramebuffer = std::make_unique<Gl::FrameBuffer>(size.x, size.y, attachments);
+
+        auto pos = min + snapSpan / 2.f;
+        std::shared_ptr<Camera> camera = std::make_shared<Camera>(size.x, size.y);
+        camera->setPos(pos);
+        camera->setZoom(info.scale);
 
         for (int i = 0; i < snaps.y; i++) {
-            pos.x = min.x + (span.x / 2.f);
+            pos.x = min.x + (snapSpan.x / 2.f);
             std::vector<std::vector<unsigned char>> snapsData;
             snapsData.reserve(snaps.x);
             for (int j = 0; j < snaps.x; j++) {
@@ -150,7 +192,7 @@ namespace Bess::UI {
 
                 snapsData.emplace_back(normalFramebuffer->getPixelsFromColorAttachment(0));
 
-                pos.x += span.x;
+                pos.x += snapSpan.x;
             }
 
             for (int imgRow = size.y - 1; imgRow >= 0; imgRow--) {
@@ -162,7 +204,7 @@ namespace Bess::UI {
                 }
                 png_write_row(pngPtr, imgRowBuffer.data());
             }
-            pos.y += span.y;
+            pos.y += snapSpan.y;
         }
 
         png_write_end(pngPtr, NULL);
@@ -171,6 +213,8 @@ namespace Bess::UI {
         BESS_TRACE("[ExportSceneView] Successfully saved file to {}", path.string());
     }
 
+    SceneBounds sceneBounds;
+    glm::vec2 imgSize;
     void SceneExportWindow::draw() {
         if (!m_shown)
             return;
@@ -186,6 +230,9 @@ namespace Bess::UI {
             const std::chrono::zoned_time localTime{std::chrono::current_zone(), now};
 
             fileName = std::format("{}_{:%Y-%m-%d_%H:%M:%S}", mainPage->getCurrentProjectFile()->getName(), localTime);
+
+            sceneBounds = computeSceneBounds();
+            imgSize = getSceneExportInfo(sceneBounds, zoom).imgSize;
         }
 
         ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_FirstUseEver);
@@ -216,13 +263,20 @@ namespace Bess::UI {
         }
 
         ImGui::Spacing();
-        ImGui::SliderInt("Scale", &zoom, 1, 4);
+        if (ImGui::SliderInt("Scale", &zoom, 1, 4)) {
+            imgSize = getSceneExportInfo(sceneBounds, zoom).imgSize;
+        }
+
+        ImGui::TextDisabled("Image Size %lux%lu px.", (uint64_t)imgSize.x, (uint64_t)imgSize.y);
 
         ImGui::Spacing();
         ImGui::Spacing();
 
         if (ImGui::Button("Start Export")) {
-            exportScene();
+            auto info = getSceneExportInfo(sceneBounds, zoom);
+            info.path = exportPath;
+            info.path /= fileName + ".png";
+            exportScene(info);
         }
 
         ImGui::End();
