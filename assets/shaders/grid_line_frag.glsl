@@ -3,7 +3,6 @@
 layout(location = 0) out vec4 fragColor;
 layout(location = 1) out int fragColor1;
 
-in vec3 v_FragPos;
 in vec2 v_TexCoord;
 in flat int v_FragId;
 in vec4 v_FragColor;
