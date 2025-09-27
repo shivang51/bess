@@ -51,9 +51,6 @@ namespace Bess::SimEngine {
 
     void SimulationEngine::scheduleEvent(entt::entity e, entt::entity schedulerEntity, SimDelayNanoSeconds simTime) {
         const auto &digiComp = m_registry.get<DigitalComponent>(e);
-        if (digiComp.type == ComponentType::OUTPUT)
-            return;
-
         std::lock_guard lk(m_queueMutex);
         static uint64_t eventId = 0;
         SimulationEvent ev{simTime, e, schedulerEntity, eventId++};

@@ -133,6 +133,6 @@ namespace Bess {
         s_compHeaderColorMap[Bess::SimEngine::ComponentType::COMPARATOR_1_BIT] = comparatorColor;
         s_compHeaderColorMap[Bess::SimEngine::ComponentType::COMPARATOR_2_BIT] = comparatorColor;
 
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::TRI_STATE_BUFFER] = comparatorColor;
+        s_compHeaderColorMap[Bess::SimEngine::ComponentType::TRISTATE_BUFFER] = comparatorColor;
     }
 } // namespace Bess
