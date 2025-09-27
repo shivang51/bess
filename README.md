@@ -10,6 +10,8 @@ BESS (Basic Electrical Simulation Software) is an open-source circuit simulator 
 
 The project began as an attempt to remove the barriers students often face when working with existing tools. Many popular circuit simulators are proprietary, restricted to a single operating system, or rely on outdated interfaces. BESS was created to provide a free, user-friendly, and modern alternative that works consistently across platforms. Its goal is to make learning and experimenting with circuits simpler and more approachable for everyone.
 
+Check out [Bess Wiki](https://github.com/shivang51/bess/wiki) to see available component.
+
 ## Screenshots
 
 <div align="center">
@@ -51,4 +53,5 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
 - [x] Command System
 - [x] Undo, Redo functionality (for most interactions done)
 - [x] Test Cases for simulation engine
+- [x] UI Improvements
 - [ ] Moving to vulkan renderer
