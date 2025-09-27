@@ -370,15 +370,17 @@ namespace Bess::SimEngine {
                 const auto &sourceComponent = m_registry.get<DigitalComponent>(sourceEntity);
                 const auto &sourcePin = sourceComponent.outputStates[conn.second];
 
+                if (sourcePin.state == LogicState::high_z) {
+                    continue;
+                }
+
                 if (sourcePin.state == LogicState::high) {
                     if (aggregatedPinState.state != LogicState::high) {
                         aggregatedPinState = sourcePin;
                     } else if (sourcePin.lastChangeTime > aggregatedPinState.lastChangeTime) {
                         aggregatedPinState.lastChangeTime = sourcePin.lastChangeTime;
                     }
-                }
-
-                else if (sourcePin.state == LogicState::unknown && aggregatedPinState.state == LogicState::low) {
+                } else if (sourcePin.state == LogicState::unknown && aggregatedPinState.state == LogicState::low) {
                     aggregatedPinState = sourcePin;
                 }
             }

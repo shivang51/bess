@@ -335,7 +335,7 @@ namespace Bess::SimEngine {
             return changed;
         };
 
-        ComponentDefinition tri(ComponentType::TRI_STATE_BUFFER, "Tri-State Buffer", groupName, 2, 1, simFunc, SimDelayNanoSeconds(3));
+        ComponentDefinition tri(ComponentType::TRISTATE_BUFFER, "Tri-State Buffer", groupName, 2, 1, simFunc, SimDelayNanoSeconds(3));
         tri.inputPinDetails = {{PinType::input, "D"}, {PinType::input, "OE"}};
         tri.outputPinDetails = {{PinType::output, "Q"}};
         ComponentCatalog::instance().registerComponent(tri);
