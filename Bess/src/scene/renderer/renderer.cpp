@@ -36,18 +36,11 @@ namespace Bess {
 
     std::shared_ptr<Camera> Renderer::m_camera;
 
-    std::vector<glm::vec4> Renderer::m_StandardQuadVertices;
-    std::vector<glm::vec4> Renderer::m_StandardTriVertices;
-
     RenderData Renderer::m_renderData;
     PathContext Renderer::m_pathData;
 
     std::shared_ptr<Gl::Shader> Renderer::m_gridShader;
     std::unique_ptr<Gl::GridVao> Renderer::m_gridVao;
-
-    std::unique_ptr<Gl::Shader> Renderer::m_shadowPassShader;
-    std::unique_ptr<Gl::Shader> Renderer::m_compositePassShader;
-    std::unique_ptr<Gl::Vao> Renderer::m_renderPassVao;
 
     std::shared_ptr<Font> Renderer::m_Font;
     std::shared_ptr<MsdfFont> Renderer::m_msdfFont;
@@ -63,18 +56,6 @@ namespace Bess {
     std::array<int, 32> Renderer::m_texSlots;
 
     void Renderer::init() {
-#ifndef BESS_RENDERER_DISABLE_RENDERPASS
-        {
-
-            m_shadowPassShader = std::make_unique<Gl::Shader>("assets/shaders/shadow_vert.glsl", "assets/shaders/shadow_frag.glsl");
-            m_compositePassShader = std::make_unique<Gl::Shader>("assets/shaders/composite_vert.glsl", "assets/shaders/composite_frag.glsl");
-            std::vector<Gl::VaoAttribAttachment> attachments;
-            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::GridVertex, position)));
-            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::GridVertex, texCoord)));
-            m_renderPassVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::RenderPassVertex));
-        }
-#endif
-
         m_AvailablePrimitives = {PrimitiveType::line, PrimitiveType::triangle,
                                  PrimitiveType::quad, PrimitiveType::circle, PrimitiveType::path, PrimitiveType::text};
 
@@ -126,18 +107,6 @@ namespace Bess {
                 break;
             }
         }
-
-        m_StandardQuadVertices = {
-            {-0.5f, 0.5f, 0.f, 1.f},
-            {-0.5f, -0.5f, 0.f, 1.f},
-            {0.5f, -0.5f, 0.f, 1.f},
-            {0.5f, 0.5f, 0.f, 1.f},
-        };
-
-        m_StandardTriVertices = {
-            {-0.5f, 0.0f, 0.f, 1.f},
-            {0.5f, 0.0f, 0.f, 1.f},
-            {0.0f, 0.5f, 0.f, 1.f}};
 
         m_Font = assetManager.get(Assets::Fonts::roboto);
         m_msdfFont = assetManager.get(Assets::Fonts::robotoMsdf);
@@ -242,16 +211,12 @@ namespace Bess {
 
         for (int i = 0; i < 4; i++) {
             auto &vertex = vertices[i];
-            vertex.position = transform * m_StandardQuadVertices[i];
+            vertex.position = transform * glm::vec4(Gl::QuadTemplateVertices[i].position, 0.f, 1.f);
             vertex.id = id;
             vertex.ar = size.x / size.y;
             vertex.color = color;
+            vertex.texCoord = Gl::QuadTemplateVertices[i].texCoord;
         }
-
-        vertices[0].texCoord = {0.0f, 1.0f};
-        vertices[1].texCoord = {0.0f, 0.0f};
-        vertices[2].texCoord = {1.0f, 0.0f};
-        vertices[3].texCoord = {1.0f, 1.0f};
 
         m_gridShader->bind();
         m_gridVao->bind();
@@ -414,33 +379,6 @@ namespace Bess {
 
     void Renderer2D::Renderer::triangle(const std::vector<glm::vec3> &points, const glm::vec4 &color, const int id) {
         throw std::runtime_error("Triangle API is not implemented");
-        std::vector<Gl::Vertex> vertices(3);
-
-        for (int i = 0; i < vertices.size(); i++) {
-            auto transform = glm::translate(glm::mat4(1.0f), points[i]);
-            auto &vertex = vertices[i];
-            vertex.position = transform * m_StandardTriVertices[i];
-            vertex.id = id;
-            vertex.color = color;
-        }
-
-        // vertices[0].texCoord = {0.0f, 0.0f};
-        // vertices[1].texCoord = {0.0f, 0.5f};
-        // vertices[2].texCoord = {1.0f, 1.0f};
-
-        addTriangleVertices(vertices);
-    }
-
-    void Renderer::addTriangleVertices(const std::vector<Gl::Vertex> &vertices) {
-        auto max_render_count = m_MaxRenderLimit[(int)PrimitiveType::circle];
-
-        // auto &primitive_vertices = m_RenderData.triangleVertices;
-
-        // if (primitive_vertices.size() >= (max_render_count - 1) * 4) {
-        //     flush(PrimitiveType::triangle);
-        // }
-
-        // primitive_vertices.insert(primitive_vertices.end(), vertices.begin(), vertices.end());
     }
 
 #ifndef BESS_RENDERER_DISABLE_RENDERPASS
