@@ -13,9 +13,9 @@ Check out [Bess Wiki](https://github.com/shivang51/bess/wiki) to see available c
 
 ## Screenshots
 
-<div align="center">
-  <img src="screenshots/ss1.png" alt="BESS SS1" height="300px" />
-  <img src="screenshots/ss2.png" alt="BESS SS2" height="300px" />
+<div align="center" height="100px">
+  <img src="screenshots/ss1.png" alt="BESS SS1" width="45%"/>
+  <img src="screenshots/ss2.png" alt="BESS SS2" width="45%"/>
 </div>
 
 ## Build & Run
