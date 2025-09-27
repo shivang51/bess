@@ -24,7 +24,8 @@ namespace Bess::Assets {
         constexpr auto triangle = AssetID<Gl::Shader, 2>("assets/shaders/vert.glsl", "assets/shaders/triangle_frag.glsl");
         constexpr auto line = AssetID<Gl::Shader, 2>("assets/shaders/instance_vert.glsl", "assets/shaders/line_frag.glsl");
         constexpr auto text = AssetID<Gl::Shader, 2>("assets/shaders/instance_vert.glsl", "assets/shaders/text_frag.glsl");
-        constexpr auto grid = AssetID<Gl::Shader, 2>("assets/shaders/grid_vert.glsl", "assets/shaders/grid_frag.glsl");
+        constexpr auto dottedGrid = AssetID<Gl::Shader, 2>("assets/shaders/grid_vert.glsl", "assets/shaders/grid_frag.glsl");
+        constexpr auto lineGrid = AssetID<Gl::Shader, 2>("assets/shaders/grid_vert.glsl", "assets/shaders/grid_line_frag.glsl");
     } // namespace Shaders
 
     namespace TileMaps {

@@ -7,7 +7,6 @@ namespace Bess {
 
     struct SceneColors {
         glm::vec4 background;
-        glm::vec4 grid;
 
         glm::vec4 compHeader;
         glm::vec4 componentBG;
@@ -27,6 +26,11 @@ namespace Bess {
 
         glm::vec4 stateHigh;
         glm::vec4 stateLow;
+
+        glm::vec4 gridMinorColor;
+        glm::vec4 gridMajorColor;
+        glm::vec4 gridAxisXColor;
+        glm::vec4 gridAxisYColor;
     };
 
     struct SchematicViewColors {

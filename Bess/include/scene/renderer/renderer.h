@@ -66,6 +66,13 @@ namespace Bess::Renderer2D {
         bool isMica = false;
     };
 
+    struct GridColors {
+        glm::vec4 minorColor;
+        glm::vec4 majorColor;
+        glm::vec4 axisXColor;
+        glm::vec4 axisYColor;
+    };
+
     class Renderer {
       public:
         Renderer() = default;
@@ -104,7 +111,7 @@ namespace Bess::Renderer2D {
         static void circle(const glm::vec3 &center, float radius,
                            const glm::vec4 &color, int id, float innerRadius = 0.0f);
 
-        static void grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const glm::vec4 &color);
+        static void grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const GridColors &colors);
 
         static void text(const std::string &data, const glm::vec3 &pos, const size_t size, const glm::vec4 &color, const int id, float angle = 0.f);
 

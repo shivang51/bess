@@ -41,8 +41,6 @@ namespace Bess {
             textCol.z,
             textCol.w);
 
-        colors.grid = colors.text * 0.45f;
-
         colors.stateHigh = glm::vec4(0.6f, 0.8f, 0.4f, 1.00f); // Greenish
         colors.stateLow = glm::vec4(0.2f, 0.3f, 0.1f, 1.00f);  // Dark greenish
 
@@ -56,6 +54,31 @@ namespace Bess {
         colors.selectionBoxFill = glm::vec4(0.3f, 0.3f, 0.7f, 0.5f);   // Semi-transparent blue
 
         colors.selectedComp = colors.selectedWire; // Orange
+
+        {
+            glm::vec4 base = colors.background;
+
+            float avgLum = (base.r + base.g + base.b) / 3.0f;
+
+            float minorDelta = (avgLum < 0.5f ? 0.08f : -0.08f);
+            colors.gridMinorColor = glm::vec4(
+                glm::clamp(base.r + minorDelta, 0.0f, 1.0f),
+                glm::clamp(base.g + minorDelta, 0.0f, 1.0f),
+                glm::clamp(base.b + minorDelta, 0.0f, 1.0f),
+                0.2f // subtle alpha
+            );
+
+            float majorDelta = (avgLum < 0.5f ? 0.15f : -0.15f);
+            colors.gridMajorColor = glm::vec4(
+                glm::clamp(base.r + majorDelta, 0.0f, 1.0f),
+                glm::clamp(base.g + majorDelta, 0.0f, 1.0f),
+                glm::clamp(base.b + majorDelta, 0.0f, 1.0f),
+                0.35f);
+
+            colors.gridAxisXColor = glm::vec4(0.6f, 0.2f, 0.2f, 0.3f);
+            // since wires are green colors so keeping it red as well
+            colors.gridAxisYColor = glm::vec4(0.6f, 0.2f, 0.2f, 0.3f);
+        }
 
         initCompColorMap();
     }

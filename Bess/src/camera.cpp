@@ -6,7 +6,8 @@ namespace Bess {
     float Camera::zoomMin = 0.5f, Camera::zoomMax = 4.f, Camera::defaultZoom = 1.517f;
 
     Camera::Camera(float width, float height) : m_zoom(defaultZoom), m_width(width), m_height(height) {
-        m_pos = {0.f, 0.f};
+        setZoom(defaultZoom);
+        setPos({0.f, 0.f});
     }
 
     Camera::~Camera() {}
@@ -36,6 +37,10 @@ namespace Bess {
     glm::vec2 Camera::getPos() const { return m_pos; }
 
     glm::vec2 &Camera::getPosRef() { return m_pos; }
+
+    glm::vec2 Camera::getSize() const {
+        return {m_width, m_height};
+    }
 
     void Camera::setZoom(float zoom) {
         if (zoom > zoomMax)

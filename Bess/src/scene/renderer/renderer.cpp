@@ -4,6 +4,7 @@
 #include "camera.h"
 #include "ext/matrix_transform.hpp"
 #include "geometric.hpp"
+#include "settings/viewport_theme.h"
 #define GLM_ENABLE_EXPERIMENTAL
 #include "gtx/vector_angle.hpp"
 #include "scene/renderer/gl/gl_wrapper.h"
@@ -57,7 +58,7 @@ namespace Bess {
         auto &assetManager = Assets::AssetManager::instance();
 
         m_gridVao = std::make_unique<Bess::Gl::GridVao>();
-        m_gridShader = assetManager.get(Assets::Shaders::grid);
+        m_gridShader = assetManager.get(Assets::Shaders::lineGrid);
 
         for (auto primitive : m_AvailablePrimitives) {
             int primIdx = (int)primitive;
@@ -180,7 +181,7 @@ namespace Bess {
         verticesStore.emplace_back(quadInstance);
     }
 
-    void Renderer::grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const glm::vec4 &color) {
+    void Renderer::grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const GridColors &colors) {
         std::vector<Gl::GridVertex> vertices(4);
 
         auto transform = glm::translate(glm::mat4(1.0f), pos);
@@ -191,19 +192,22 @@ namespace Bess {
             vertex.position = transform * glm::vec4(Gl::QuadTemplateVertices[i].position, 0.f, 1.f);
             vertex.id = id;
             vertex.ar = size.x / size.y;
-            vertex.color = color;
+            vertex.color = colors.majorColor;
             vertex.texCoord = Gl::QuadTemplateVertices[i].texCoord;
         }
 
         m_gridShader->bind();
         m_gridVao->bind();
 
-        m_gridShader->setUniformMat4("u_mvp", m_camera->getOrtho());
+        const auto &camPos = m_camera->getPos();
         m_gridShader->setUniform1f("u_zoom", m_camera->getZoom());
-
-        auto camPos = m_camera->getPos();
-        auto viewportPos = UI::UIMain::state.viewportPos / m_camera->getZoom();
-        m_gridShader->setUniformVec2("u_cameraOffset", {-viewportPos.x - camPos.x, viewportPos.y + m_camera->getSpan().y + camPos.y});
+        m_gridShader->setUniformVec2("u_cameraOffset", {-camPos.x, camPos.y});
+        m_gridShader->setUniformMat4("u_mvp", m_camera->getOrtho());
+        m_gridShader->setUniformVec4("u_gridMinorColor", colors.majorColor);
+        m_gridShader->setUniformVec4("u_gridMajorColor", colors.minorColor);
+        m_gridShader->setUniformVec4("u_axisXColor", colors.axisXColor);
+        m_gridShader->setUniformVec4("u_axisYColor", colors.axisYColor);
+        m_gridShader->setUniformVec2("u_resolution", m_camera->getSize());
 
         m_gridVao->setVertices(vertices);
 

@@ -57,6 +57,7 @@ namespace Bess {
 
         void setPos(const glm::vec2 &pos);
         glm::vec2 getPos() const;
+        glm::vec2 getSize() const;
 
         glm::vec2 &getPosRef();
 

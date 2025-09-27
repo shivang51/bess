@@ -9,6 +9,7 @@
 #include "ext/vector_float2.hpp"
 #include "ext/vector_float3.hpp"
 #include "ext/vector_float4.hpp"
+#include "fwd.hpp"
 #include "gtc/type_ptr.hpp"
 #include "pages/main_page/main_page_state.h"
 #include "scene/artist.h"
@@ -229,7 +230,13 @@ namespace Bess::Canvas {
 
         // Grid
         Renderer2D::Renderer::begin(camera);
-        Renderer::grid({0.f, 0.f, -2.f}, camera->getSpan(), -1, ViewportTheme::colors.grid);
+        Renderer::grid({0.f, 0.f, -2.f}, camera->getSpan(), -1,
+                       {
+                           .minorColor = ViewportTheme::colors.gridMinorColor,
+                           .majorColor = ViewportTheme::colors.gridMajorColor,
+                           .axisXColor = ViewportTheme::colors.gridAxisXColor,
+                           .axisYColor = ViewportTheme::colors.gridAxisYColor,
+                       });
         Renderer2D::Renderer::end();
 
         // Connections
@@ -651,7 +658,8 @@ namespace Bess::Canvas {
                         m_dragOffsets[ent] = offset;
                     }
                     newPos -= m_dragOffsets[ent];
-                    newPos = glm::vec2({(int)(std::round(newPos.x) / 4), (int)(std::round(newPos.y) / 4)}) * 4.f;
+                    const float snapSize = 5.f;
+                    newPos = glm::vec2(glm::round(newPos / snapSize)) * snapSize;
                     transformComp.position = {newPos, transformComp.position.z};
                 }
 
