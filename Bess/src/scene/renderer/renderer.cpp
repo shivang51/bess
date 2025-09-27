@@ -3,12 +3,9 @@
 #include "assets.h"
 #include "camera.h"
 #include "ext/matrix_transform.hpp"
-#include "ext/quaternion_geometric.hpp"
 #include "geometric.hpp"
-#include "glm.hpp"
 #define GLM_ENABLE_EXPERIMENTAL
 #include "gtx/vector_angle.hpp"
-#include "scene/renderer/asset_loaders.h"
 #include "scene/renderer/gl/gl_wrapper.h"
 #include "scene/renderer/gl/primitive_type.h"
 #include "scene/renderer/gl/vertex.h"
@@ -16,8 +13,6 @@
 
 #include <cstdint>
 #include <cstdlib>
-#include <iostream>
-#include <ostream>
 
 using namespace Bess::Renderer2D;
 
@@ -381,55 +376,6 @@ namespace Bess {
         throw std::runtime_error("Triangle API is not implemented");
     }
 
-#ifndef BESS_RENDERER_DISABLE_RENDERPASS
-    std::vector<Gl::RenderPassVertex> Renderer::getRenderPassVertices(float width, float height) {
-        std::vector<Gl::RenderPassVertex> vertices(4);
-
-        auto transform = glm::translate(glm::mat4(1.0f), {0, 0, 0});
-        transform = glm::scale(transform, {width, height, 1.f});
-
-        for (int i = 0; i < 4; i++) {
-            auto &vertex = vertices[i];
-            vertex.position = transform * m_StandardQuadVertices[i];
-        }
-
-        vertices[0].texCoord = {0.0f, 1.0f};
-        vertices[1].texCoord = {0.0f, 0.0f};
-        vertices[2].texCoord = {1.0f, 0.0f};
-        vertices[3].texCoord = {1.0f, 1.0f};
-
-        return vertices;
-    }
-
-    void Renderer::doShadowRenderPass(float width, float height) {
-        m_shadowPassShader->bind();
-        m_renderPassVao->bind();
-
-        m_shadowPassShader->setUniformMat4("u_mvp", m_camera->getTransform());
-
-        auto vertices = getRenderPassVertices(width, height);
-        m_renderPassVao->setVertices(vertices.data(), vertices.size());
-        Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
-        m_renderPassVao->unbind();
-        m_shadowPassShader->unbind();
-    }
-
-    void Renderer::doCompositeRenderPass(float width, float height) {
-        m_compositePassShader->bind();
-        m_renderPassVao->bind();
-
-        m_compositePassShader->setUniformMat4("u_mvp", m_camera->getTransform());
-        m_compositePassShader->setUniform1i("uBaseColTex", 0);
-        m_compositePassShader->setUniform1i("uShadowTex", 1);
-
-        auto vertices = getRenderPassVertices(width, height);
-        m_renderPassVao->setVertices(vertices.data(), vertices.size());
-        Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
-        m_renderPassVao->unbind();
-        m_compositePassShader->unbind();
-    }
-#endif
-
     void Renderer::beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, const int id) {
         m_pathData.ended = false;
         m_pathData.currentPos = startPos;
@@ -598,6 +544,8 @@ namespace Bess {
             m_textRendererVao->unbind();
             vertices.clear();
         } break;
+        default:
+            break;
         }
 
         shader->unbind();
