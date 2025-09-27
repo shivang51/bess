@@ -8,6 +8,7 @@
 #include "ui/icons/MaterialIcons.h"
 #include "ui/m_widgets.h"
 #include "ui/ui_main/scene_export_window.h"
+#include <ranges>
 #include <string>
 
 #include "camera.h"
@@ -330,7 +331,8 @@ namespace Bess::UI {
             static int n = 4; // number of action buttons
             static float size = (32 * n) - (n - 1);
             ImGui::SetNextWindowPos(
-                {pos.x + viewportPanelSize.x - size - g.Style.FramePadding.x, pos.y + g.Style.FramePadding.y});
+                {pos.x + viewportPanelSize.x - size - g.Style.FramePadding.x,
+                 pos.y + g.Style.FramePadding.y});
             ImGui::SetNextWindowSize({size, 0});
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
             ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
@@ -435,27 +437,42 @@ namespace Bess::UI {
 
         // Camera controls (on bottom right)
         {
+            const auto &mousePos = Canvas::Scene::instance().getSceneMousePos();
+            auto posLabel = std::format("X:{:.2f}, Y:{:.2f}", mousePos.x, mousePos.y);
+            auto posLabelCStr = posLabel.c_str();
+            auto posLabelSize = ImGui::CalcTextSize(posLabelCStr);
             ImGui::SetNextWindowPos(
-                {pos.x + viewportPanelSize.x - 208, pos.y + viewportPanelSize.y - 40});
-            ImGui::SetNextWindowSize({208, 0});
+                {pos.x + viewportPanelSize.x - 208 - posLabelSize.x,
+                 pos.y + viewportPanelSize.y - 40});
             ImGui::SetNextWindowBgAlpha(0.f);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
             ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
 
-            ImGui::Begin("Camera", nullptr, flags);
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8);
-            ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 8);
-            auto camera = Canvas::Scene::instance().getCamera();
-            if (ImGui::SliderFloat("Zoom", &camera->getZoomRef(), Camera::zoomMin,
-                                   Camera::zoomMax, nullptr,
-                                   ImGuiSliderFlags_AlwaysClamp)) {
-                // step size logic
-                float stepSize = 0.1f;
-                float val = roundf(camera->getZoom() / stepSize) * stepSize;
-                camera->setZoom(val);
+            ImGui::Begin("SceneBottomRightControls", nullptr, flags);
+            // Mouse Pos
+            {
+                ImGui::Text("%s", posLabelCStr);
+                ImGui::SameLine();
+            }
+
+            ImGui::SameLine();
+
+            // Zoom Slider
+            {
+                const auto &camera = Canvas::Scene::instance().getCamera();
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8);
+                ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 8);
+                ImGui::SetNextItemWidth(150.0f);
+                if (ImGui::SliderFloat("Zoom", &camera->getZoomRef(), Camera::zoomMin,
+                                       Camera::zoomMax, nullptr,
+                                       ImGuiSliderFlags_AlwaysClamp)) {
+                    float stepSize = 0.1f;
+                    float val = roundf(camera->getZoom() / stepSize) * stepSize;
+                    camera->setZoom(val);
+                }
+                ImGui::PopStyleVar(2);
             }
             state.isViewportFocused &= !ImGui::IsWindowHovered();
-            ImGui::PopStyleVar(2);
             ImGui::End();
             ImGui::PopStyleVar(2);
         }

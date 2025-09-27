@@ -56,10 +56,10 @@ namespace Bess {
         void update(TFrameTime ts);
 
         void setPos(const glm::vec2 &pos);
-        glm::vec2 getPos() const;
-        glm::vec2 getSize() const;
-
+        const glm::vec2 &getPos() const;
         glm::vec2 &getPosRef();
+
+        glm::vec2 getSize() const;
 
         void setZoom(float zoom);
 
@@ -75,9 +75,9 @@ namespace Bess {
 
         void resize(float width, float height);
 
-        glm::mat4 getTransform() const;
+        const glm::mat4 &getTransform() const;
 
-        glm::mat4 getOrtho() const;
+        const glm::mat4 &getOrtho() const;
 
         void incrementPos(const glm::vec2 &pos);
 

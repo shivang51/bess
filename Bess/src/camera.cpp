@@ -34,7 +34,7 @@ namespace Bess {
         updateTransform();
     }
 
-    glm::vec2 Camera::getPos() const { return m_pos; }
+    const glm::vec2 &Camera::getPos() const { return m_pos; }
 
     glm::vec2 &Camera::getPosRef() { return m_pos; }
 
@@ -107,9 +107,9 @@ namespace Bess {
         updateTransform();
     }
 
-    glm::mat4 Camera::getTransform() const { return transform; }
+    const glm::mat4 &Camera::getTransform() const { return transform; }
 
-    glm::mat4 Camera::getOrtho() const {
+    const glm::mat4 &Camera::getOrtho() const {
         return m_ortho;
     }
 

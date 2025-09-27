@@ -63,7 +63,9 @@ namespace Bess::Canvas {
         friend class Modules::SchematicGen::SchematicView;
 
       public:
-        glm::vec2 getCameraPos();
+        const glm::vec2 &getMousePos();
+        glm::vec2 getSceneMousePos();
+        const glm::vec2 &getCameraPos();
         float getCameraZoom();
         void setZoom(float value);
 
@@ -115,7 +117,7 @@ namespace Bess::Canvas {
         void onRightMouse(bool isPressed);
         void onMouseWheel(double x, double y);
 
-        glm::vec2 getNVPMousePos(const glm::vec2 &mousePos);
+        glm::vec2 toScenePos(const glm::vec2 &mousePos);
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos);
         bool isCursorInViewport(const glm::vec2 &pos);
         void drawConnection();

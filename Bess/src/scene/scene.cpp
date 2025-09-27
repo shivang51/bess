@@ -282,8 +282,8 @@ namespace Bess::Canvas {
     }
 
     void Scene::drawSelectionBox() {
-        auto start = getNVPMousePos(m_selectionBoxStart);
-        auto end = getNVPMousePos(m_mousePos);
+        auto start = toScenePos(m_selectionBoxStart);
+        auto end = toScenePos(m_mousePos);
 
         auto size = end - start;
         auto pos = start + size / 2.f;
@@ -302,7 +302,7 @@ namespace Bess::Canvas {
             return;
         }
 
-        Artist::drawGhostConnection(connStartEntity, getNVPMousePos(m_mousePos));
+        Artist::drawGhostConnection(connStartEntity, toScenePos(m_mousePos));
     }
 
     UUID Scene::createSimEntity(const UUID &simEngineEntt,
@@ -521,7 +521,7 @@ namespace Bess::Canvas {
         return {x, y};
     }
 
-    glm::vec2 Scene::getNVPMousePos(const glm::vec2 &mousePos) {
+    glm::vec2 Scene::toScenePos(const glm::vec2 &mousePos) {
         glm::vec2 pos = mousePos;
 
         const auto cameraPos = m_camera->getPos();
@@ -541,7 +541,7 @@ namespace Bess::Canvas {
                                     Components::SlotComponent,
                                     Components::ConnectionComponent>();
 
-        glm::vec2 newPos = getNVPMousePos(m_mousePos);
+        glm::vec2 newPos = toScenePos(m_mousePos);
 
         auto &comp = view.get<Components::ConnectionSegmentComponent>(ent);
 
@@ -628,7 +628,7 @@ namespace Bess::Canvas {
     }
 
     void Scene::onMouseMove(const glm::vec2 &pos) {
-        m_dMousePos = getNVPMousePos(pos) - getNVPMousePos(m_mousePos);
+        m_dMousePos = toScenePos(pos) - toScenePos(m_mousePos);
         m_mousePos = pos;
 
         // reading the hoverid
@@ -652,7 +652,7 @@ namespace Bess::Canvas {
                     if (!m_dragStartTransforms.contains(getUuidOfEntity(ent))) {
                         m_dragStartTransforms[getUuidOfEntity(ent)] = transformComp;
                     }
-                    glm::vec2 newPos = getNVPMousePos(m_mousePos);
+                    glm::vec2 newPos = toScenePos(m_mousePos);
                     if (!m_dragOffsets.contains(ent)) {
                         auto offset = newPos - glm::vec2(transformComp.position);
                         m_dragOffsets[ent] = offset;
@@ -823,7 +823,7 @@ namespace Bess::Canvas {
                 .def = def,
                 .inputCount = m_lastCreatedComp.inputCount,
                 .outputCount = m_lastCreatedComp.outputCount,
-                .pos = getNVPMousePos(m_mousePos),
+                .pos = toScenePos(m_mousePos),
             };
 
             const auto res = m_cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{cmdData});
@@ -1024,7 +1024,7 @@ namespace Bess::Canvas {
         auto mainPageState = Pages::MainPageState::getInstance();
         if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
             const float delta = static_cast<float>(y) * 0.1f;
-            m_camera->incrementZoomToPoint(getNVPMousePos(m_mousePos), delta);
+            m_camera->incrementZoomToPoint(toScenePos(m_mousePos), delta);
         } else {
             glm::vec2 dPos = {x, y};
             dPos *= 10 / m_camera->getZoom() * -1;
@@ -1058,8 +1058,16 @@ namespace Bess::Canvas {
         m_normalFramebuffer->saveColorAttachment(0, path);
     }
 
-    glm::vec2 Scene::getCameraPos() {
+    const glm::vec2 &Scene::getCameraPos() {
         return m_camera->getPos();
+    }
+
+    const glm::vec2 &Scene::getMousePos() {
+        return m_mousePos;
+    }
+
+    glm::vec2 Scene::getSceneMousePos() {
+        return toScenePos(m_mousePos);
     }
 
     float Scene::getCameraZoom() {
