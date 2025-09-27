@@ -26,6 +26,8 @@ namespace Bess {
 
         glm::vec4 stateHigh;
         glm::vec4 stateLow;
+        glm::vec4 stateHighZ = glm::vec4(0.60f, 0.60f, 0.90f, 1.0f);
+        glm::vec4 stateUnknow = glm::vec4(0.90f, 0.45f, 0.45f, 1.0f);
 
         glm::vec4 gridMinorColor;
         glm::vec4 gridMajorColor;

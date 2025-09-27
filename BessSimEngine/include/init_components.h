@@ -315,6 +315,30 @@ namespace Bess::SimEngine {
         comp.inputPinDetails = {{PinType::input, "A0"}, {PinType::input, "A1"}, {PinType::input, "B0"}, {PinType::input, "B1"}};
         comp.outputPinDetails = {{PinType::output, "A>B"}, {PinType::output, "A<B"}, {PinType::output, "A=B"}};
         ComponentCatalog::instance().registerComponent(comp);
+
+        auto simFunc = [&](entt::registry &reg, entt::entity e, const std::vector<PinState> &inputs, SimTime t, auto fn) -> bool {
+            // inputs: D, OE
+            auto &comp = reg.get<DigitalComponent>(e);
+            comp.inputStates = inputs;
+            PinState out;
+            if (inputs.size() < 2)
+                return false;
+            const PinState &d = inputs[0];
+            const PinState &oe = inputs[1];
+            if (oe.state == LogicState::high) {
+                out = {d.state, t};
+            } else {
+                out = {LogicState::high_z, t};
+            }
+            bool changed = (comp.outputStates[0].state != out.state);
+            comp.outputStates[0] = out;
+            return changed;
+        };
+
+        ComponentDefinition tri(ComponentType::TRI_STATE_BUFFER, "Tri-State Buffer", groupName, 2, 1, simFunc, SimDelayNanoSeconds(3));
+        tri.inputPinDetails = {{PinType::input, "D"}, {PinType::input, "OE"}};
+        tri.outputPinDetails = {{PinType::output, "Q"}};
+        ComponentCatalog::instance().registerComponent(tri);
     }
 
     inline void initComponentCatalog() {

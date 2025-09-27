@@ -44,7 +44,9 @@ namespace Bess::SimEngine {
 
     enum class LogicState { low,
                             high,
-                            unknown };
+                            unknown,
+                            high_z
+    };
 
     struct BESS_API PinDetails {
         PinType type;

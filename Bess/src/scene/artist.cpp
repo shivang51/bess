@@ -148,23 +148,32 @@ namespace Bess::Canvas {
 
     void Artist::paintSlot(uint64_t id, uint64_t parentId, const glm::vec3 &pos,
                            float angle, const std::string &label, float labelDx,
-                           bool isHigh, bool isConnected, SimEngine::ExtendedPinType extendedType) {
+                           SimEngine::LogicState state, bool isConnected, SimEngine::ExtendedPinType extendedType) {
         auto bg = ViewportTheme::colors.stateLow;
-        auto border = ViewportTheme::colors.stateLow;
         if (extendedType == SimEngine::ExtendedPinType::inputClock) {
-            if (isHigh) {
+            if ((bool)state) {
                 bg = ViewportTheme::colors.clockConnectionHigh;
-                border = ViewportTheme::colors.clockConnectionHigh;
             } else {
                 bg = ViewportTheme::colors.clockConnectionLow;
-                border = ViewportTheme::colors.clockConnectionLow;
             }
-
-        } else if (isHigh) {
-            bg = ViewportTheme::colors.stateHigh;
-            border = ViewportTheme::colors.stateHigh;
+        } else {
+            switch (state) {
+            case SimEngine::LogicState::low:
+                bg = ViewportTheme::colors.stateLow;
+                break;
+            case SimEngine::LogicState::high:
+                bg = ViewportTheme::colors.stateHigh;
+                break;
+            case SimEngine::LogicState::unknown:
+                bg = ViewportTheme::colors.stateUnknow;
+                break;
+            case SimEngine::LogicState::high_z:
+                bg = ViewportTheme::colors.stateHighZ;
+                break;
+            }
         }
 
+        auto border = bg;
         if (!isConnected)
             bg.a = 0.1f;
 
@@ -219,26 +228,26 @@ namespace Bess::Canvas {
         std::string label;
         for (size_t i = 0; i < comp.inputSlots.size(); i++) {
             auto slot = sceneRef->getEntityWithUuid(comp.inputSlots[i]);
-            auto isHigh = compState.inputStates[i];
+            auto state = compState.inputStates[i];
             auto isConnected = compState.inputConnected[i];
             auto &slotComp = slotsView.get<Components::SlotComponent>(slot);
             auto slotPos = getSlotPos(slotComp, transformComp);
             uint64_t parentId = (uint64_t)sceneRef->getEntityWithUuid(slotComp.parentId);
             label = inpDetails.size() > i ? inpDetails[i].name : "X" + std::to_string(i);
-            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, labeldx, (bool)isHigh, isConnected,
+            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, labeldx, state.state, isConnected,
                       inpDetails.size() > i ? inpDetails[i].extendedType : SimEngine::ExtendedPinType::none);
         }
 
         for (size_t i = 0; i < comp.outputSlots.size(); i++) {
             auto slot = sceneRef->getEntityWithUuid(comp.outputSlots[i]);
-            auto isHigh = compState.outputStates[i];
+            auto state = compState.outputStates[i];
             auto isConnected = compState.outputConnected[i];
             auto &slotComp = slotsView.get<Components::SlotComponent>(slot);
             auto slotPos = getSlotPos(slotComp, transformComp);
             uint64_t parentId = (uint64_t)sceneRef->getEntityWithUuid(slotComp.parentId);
             label = outDetails.size() > i ? outDetails[i].name : "Y" + std::to_string(i);
             float labelWidth = Renderer::getMSDFTextRenderSize(label, componentStyles.slotLabelSize).x;
-            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, -labeldx - labelWidth, (bool)isHigh, isConnected,
+            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, -labeldx - labelWidth, state.state, isConnected,
                       outDetails.size() > i ? outDetails[i].extendedType : SimEngine::ExtendedPinType::none);
         }
     }
