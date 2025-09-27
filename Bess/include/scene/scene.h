@@ -95,6 +95,10 @@ namespace Bess::Canvas {
         SimEngine::Commands::CommandsManager &getCmdManager();
         UUID generateBasicConnection(entt::entity startSlot, entt::entity endSlot);
         UUID connectSlots(UUID startSlot, UUID endSlot);
+        UUID connectComponents(UUID compIdA, int slotIdxA, bool isAInput, UUID compIdB, int slotIdxB);
+
+        bool *getIsSchematicViewPtr();
+        void toggleSchematicView();
 
       private:
         const UUID &getUuidOfEntity(entt::entity ent);
@@ -147,6 +151,8 @@ namespace Bess::Canvas {
         glm::vec2 m_selectionBoxStart;
         glm::vec2 m_selectionBoxEnd;
         bool m_selectInSelectionBox = false;
+
+        bool m_isSchematicView = false;
 
         SceneDrawMode m_drawMode = SceneDrawMode::none;
         SceneMode m_sceneMode = SceneMode::general;

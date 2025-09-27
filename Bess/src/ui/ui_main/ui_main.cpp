@@ -313,7 +313,7 @@ namespace Bess::UI {
             ImGui::Text("Schematic Mode");
             ImGui::SameLine();
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-            ImGui::Checkbox("##CheckBoxSchematicMode", Canvas::Artist::getSchematicModePtr());
+            ImGui::Checkbox("##CheckBoxSchematicMode", Canvas::Scene::instance().getIsSchematicViewPtr());
             ImGui::PopStyleVar();
             state.isViewportFocused &= !ImGui::IsWindowHovered();
             ImGui::End();

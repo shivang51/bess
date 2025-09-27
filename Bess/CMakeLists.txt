@@ -217,6 +217,11 @@ if("${BUILD_ARCH}" STREQUAL "x64")
 	)
 endif()
 
+find_package(PNG REQUIRED)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC ${PNG_LIBRARIES})
+target_include_directories(${PROJECT_NAME} PUBLIC ${PNG_INCLUDE_DIRS})
+
 set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)
 

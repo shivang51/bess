@@ -13,7 +13,7 @@ namespace Bess::Canvas::Commands {
     struct AddCommandData {
         std::shared_ptr<const SimEngine::ComponentDefinition> def = nullptr;
         Components::NSComponent nsComp;
-        int inputCount, outputCount;
+        int inputCount = -1, outputCount = -1;
         glm::vec2 pos;
         bool isSimComp() const {
             return def != nullptr;

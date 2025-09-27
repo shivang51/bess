@@ -1,4 +1,5 @@
 #include "project_file.h"
+#include "bess_uuid.h"
 #include "common/log.h"
 #include "json/json.h"
 
@@ -6,6 +7,7 @@
 #include "scene/scene.h"
 #include "ui/ui_main/dialogs.h"
 
+#include <cstdint>
 #include <fstream>
 
 namespace Bess {
@@ -148,6 +150,8 @@ namespace Bess {
                         comp->type.simCompType = simEngine.getComponentType(simComp->simEngineEntity);
                     }
 
+                    simComp->type = comp->type.simCompType;
+
                     if ((comp->type.simCompType == SimEngine::ComponentType::FLIP_FLOP_JK ||
                          comp->type.simCompType == SimEngine::ComponentType::FLIP_FLOP_SR) &&
                         simComp->inputSlots.size() != 4) {
@@ -162,6 +166,45 @@ namespace Bess {
                         simEngine.updateInputCount(simComp->simEngineEntity, 3);
                         simComp->inputSlots.emplace_back(scene.createSlotEntity(Components::SlotType::digitalInput, idComp.uuid, 2));
                     }
+
+                    auto connView = reg.view<Components::IdComponent, Components::ConnectionComponent>();
+
+                    for (const auto slotUuid : simComp->inputSlots) {
+                        auto &slotComp = reg.get<Components::SlotComponent>(scene.getEntityWithUuid(slotUuid));
+                        if (!slotComp.connections.empty())
+                            continue;
+                        std::set<UUID> connections = {};
+                        for (const auto connEnt : connView) {
+                            const auto &conn = connView.get<Components::ConnectionComponent>(connEnt);
+                            if (slotUuid == conn.inputSlot || slotUuid == conn.outputSlot) {
+                                const auto &id = connView.get<Components::IdComponent>(connEnt);
+                                connections.insert(id.uuid);
+                            }
+                        }
+                        if (connections.empty())
+                            continue;
+                        BESS_WARN("Patching {} connections for slot {}", connections.size(), (uint64_t)slotUuid);
+                        slotComp.connections.insert(slotComp.connections.begin(), connections.begin(), connections.end());
+                    }
+
+                    for (const auto slotUuid : simComp->outputSlots) {
+                        auto &slotComp = reg.get<Components::SlotComponent>(scene.getEntityWithUuid(slotUuid));
+                        if (!slotComp.connections.empty())
+                            continue;
+                        std::set<UUID> connections = {};
+                        for (const auto connEnt : connView) {
+                            const auto &conn = connView.get<Components::ConnectionComponent>(connEnt);
+                            if (slotUuid == conn.inputSlot || slotUuid == conn.outputSlot) {
+                                const auto &id = connView.get<Components::IdComponent>(connEnt);
+                                connections.insert(id.uuid);
+                            }
+                        }
+                        if (connections.empty())
+                            continue;
+                        BESS_WARN("Patching {} connections for slot {}", connections.size(), (uint64_t)slotUuid);
+                        slotComp.connections.insert(slotComp.connections.begin(), connections.begin(), connections.end());
+                    }
+
                     BESS_WARN("(Done)");
                 } catch (std::exception e) {
                     BESS_ERROR("(Failed)");

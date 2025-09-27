@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bess_uuid.h"
+#include "component_types/component_types.h"
 #include "non_sim_comp.h"
 #include "scene/components/json_converters.h"
 #include "settings/viewport_theme.h"
@@ -43,7 +44,7 @@ namespace Bess::Canvas::Components {
         glm::vec4 borderColor = glm::vec4(1.f);
         glm::vec4 borderSize = glm::vec4(0.f);
         glm::vec4 borderRadius = glm::vec4(0.f);
-        glm::vec4 headerColor = ViewportTheme::compHeaderColor;
+        glm::vec4 headerColor = ViewportTheme::colors.compHeader;
     };
 
     class TagComponent {
@@ -108,6 +109,7 @@ namespace Bess::Canvas::Components {
         SimulationComponent() = default;
         SimulationComponent(const SimulationComponent &other) = default;
         UUID simEngineEntity = UUID::null; // mapped to entity in simulator
+        SimEngine::ComponentType type = SimEngine::ComponentType::EMPTY;
         std::vector<UUID> inputSlots = {};
         std::vector<UUID> outputSlots = {};
     };

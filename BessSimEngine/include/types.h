@@ -20,11 +20,15 @@ namespace Bess::SimEngine {
         Connections outputs;
     };
 
-    // registry, entity, inputs, function to convert uuid to entity
-
     enum class PinType {
         input,
         output
+    };
+
+    enum class ExtendedPinType {
+        none = -1,
+        inputClock,
+        inputClear
     };
 
     enum class FrequencyUnit {
@@ -41,6 +45,12 @@ namespace Bess::SimEngine {
     enum class LogicState { low,
                             high,
                             unknown };
+
+    struct BESS_API PinDetails {
+        PinType type;
+        std::string name = "";
+        ExtendedPinType extendedType = ExtendedPinType::none;
+    };
 
     struct BESS_API PinState {
         LogicState state = LogicState::low;

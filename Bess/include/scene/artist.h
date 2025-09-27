@@ -1,24 +1,32 @@
 #pragma once
 
-#include "asset_manager/asset_manager.h"
+#include "bess_uuid.h"
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
+#include "scene/components/components.h"
 #include "scene/scene.h"
+#include "types.h"
 
 #include <memory.h>
 
 namespace Bess::Canvas {
 
-    struct ArtistCompBoundInfo {
+    struct ArtistCompSchematicInfo {
         float inpConnStart = 0.f;
         float outConnStart = 0.f;
         float inpPinStart = 0.f;
         float outPinStart = 0.f;
         float rb = 0.f;
+        float width, height = 0.f;
+        bool shouldDraw = true;
     };
 
     struct ArtistTools {
         std::array<std::shared_ptr<Gl::SubTexture>, 8> sevenSegDispTexs;
+    };
+
+    struct ArtistInstructions {
+        bool isSchematicView = false;
     };
 
     class Artist {
@@ -47,19 +55,18 @@ namespace Bess::Canvas {
                                     const Components::TransformComponent &parentTransform);
         // use in schematic mode
         static glm::vec3 getPinPos(const Components::SlotComponent &comp);
+        static glm::vec3 getPinPos(UUID uuid);
         static void drawGhostConnection(const entt::entity &startEntity, const glm::vec2 pos);
         static void drawConnection(const UUID &id, entt::entity inputEntity, entt::entity outputEntity, bool isSelected);
 
       public:
-        static void setSchematicMode(bool value);
-        static bool getSchematicMode();
-        static bool *getSchematicModePtr();
+        static void setInstructions(const ArtistInstructions &value);
 
       private:
         static void paintSchematicView(entt::entity entity);
 
         static void paintSlot(uint64_t id, uint64_t parentId, const glm::vec3 &pos, float angle,
-                              const std::string &label, float labelDx, bool isHigh, bool isConnected);
+                              const std::string &label, float labelDx, bool isHigh, bool isConnected, SimEngine::ExtendedPinType extendedType);
 
         static void drawSlots(const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp);
 
@@ -69,10 +76,10 @@ namespace Bess::Canvas {
                                         Components::SpriteComponent &spriteComp,
                                         Components::SimulationComponent &simComponent);
 
-        static ArtistCompBoundInfo getCompBoundInfo(SimEngine::ComponentType type, glm::vec2 pos, glm::vec2 scale);
-
-        static bool m_isSchematicMode;
+        static ArtistCompSchematicInfo getCompSchematicInfo(entt::entity ent);
 
         static ArtistTools m_artistTools;
+
+        static ArtistInstructions m_instructions;
     };
 } // namespace Bess::Canvas

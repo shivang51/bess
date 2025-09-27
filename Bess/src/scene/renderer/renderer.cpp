@@ -3,48 +3,36 @@
 #include "assets.h"
 #include "camera.h"
 #include "ext/matrix_transform.hpp"
-#include "glm.hpp"
-#include "scene/renderer/asset_loaders.h"
+#include "geometric.hpp"
+#define GLM_ENABLE_EXPERIMENTAL
+#include "gtx/vector_angle.hpp"
 #include "scene/renderer/gl/gl_wrapper.h"
 #include "scene/renderer/gl/primitive_type.h"
 #include "scene/renderer/gl/vertex.h"
 #include "ui/ui_main/ui_main.h"
 
+#include <cstdint>
 #include <cstdlib>
-#include <iostream>
-#include <ostream>
 
 using namespace Bess::Renderer2D;
 
 namespace Bess {
-
-// disabled composite pass logic for now
-#define BESS_RENDERER_DISABLE_RENDERPASS
-
     static constexpr uint32_t PRIMITIVE_RESTART = 0xFFFFFFFF;
     static constexpr float BEZIER_EPSILON = 0.0001f;
 
-    std::vector<PrimitiveType> Renderer::m_AvailablePrimitives;
+    std::vector<PrimitiveType> Renderer::m_AvailablePrimitives = {PrimitiveType::line, PrimitiveType::quad, PrimitiveType::circle,
+                                                                  PrimitiveType::path, PrimitiveType::text};
 
     std::vector<std::shared_ptr<Gl::Shader>> Renderer::m_shaders;
     std::vector<size_t> Renderer::m_MaxRenderLimit;
 
     std::shared_ptr<Camera> Renderer::m_camera;
 
-    std::vector<glm::vec4> Renderer::m_StandardQuadVertices;
-    std::vector<glm::vec4> Renderer::m_StandardTriVertices;
-
     RenderData Renderer::m_renderData;
     PathContext Renderer::m_pathData;
 
     std::shared_ptr<Gl::Shader> Renderer::m_gridShader;
     std::unique_ptr<Gl::GridVao> Renderer::m_gridVao;
-
-    std::unique_ptr<Gl::Shader> Renderer::m_shadowPassShader;
-    std::unique_ptr<Gl::Shader> Renderer::m_compositePassShader;
-    std::unique_ptr<Gl::Vao> Renderer::m_renderPassVao;
-    std::vector<Gl::Vertex> Renderer::m_pathStripVertices;
-    std::vector<GLuint> Renderer::m_pathStripIndices;
 
     std::shared_ptr<Font> Renderer::m_Font;
     std::shared_ptr<MsdfFont> Renderer::m_msdfFont;
@@ -57,45 +45,16 @@ namespace Bess {
     std::unique_ptr<Bess::Gl::BatchVao<Gl::Vertex>> Renderer::m_pathRendererVao;
     std::unique_ptr<Bess::Gl::InstancedVao<Gl::InstanceVertex>> Renderer::m_lineRendererVao;
 
-    std::array<int, 32> Renderer::m_texSlots;
-
     void Renderer::init() {
-#ifndef BESS_RENDERER_DISABLE_RENDERPASS
-        {
-
-            m_shadowPassShader = std::make_unique<Gl::Shader>("assets/shaders/shadow_vert.glsl", "assets/shaders/shadow_frag.glsl");
-            m_compositePassShader = std::make_unique<Gl::Shader>("assets/shaders/composite_vert.glsl", "assets/shaders/composite_frag.glsl");
-            std::vector<Gl::VaoAttribAttachment> attachments;
-            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec3, offsetof(Gl::GridVertex, position)));
-            attachments.emplace_back(Gl::VaoAttribAttachment(Gl::VaoAttribType::vec2, offsetof(Gl::GridVertex, texCoord)));
-            m_renderPassVao = std::make_unique<Gl::Vao>(8, 12, attachments, sizeof(Gl::RenderPassVertex));
-        }
-#endif
-
-        m_AvailablePrimitives = {PrimitiveType::line, PrimitiveType::triangle,
-                                 PrimitiveType::quad, PrimitiveType::circle, PrimitiveType::path, PrimitiveType::text};
-
-        int maxPrimNum = 0;
-        for (auto prim : m_AvailablePrimitives) {
-            maxPrimNum = std::max(maxPrimNum, (int)prim);
-        }
-
-        maxPrimNum += 1;
-
-        m_shaders.resize(maxPrimNum);
-        m_MaxRenderLimit.resize(maxPrimNum);
+        std::sort(m_AvailablePrimitives.begin(), m_AvailablePrimitives.end());
+        m_shaders.resize((size_t)m_AvailablePrimitives.back() + 1);
+        m_MaxRenderLimit.resize(m_shaders.size());
 
         for (auto prim : m_AvailablePrimitives) {
-            m_MaxRenderLimit[(int)prim] = 8000;
+            m_MaxRenderLimit[(int)prim] = 64000;
         }
 
         auto &assetManager = Assets::AssetManager::instance();
-        m_quadRendererVao = std::make_unique<Bess::Gl::QuadVao>(m_MaxRenderLimit[(int)PrimitiveType::quad]);
-        m_circleRendererVao = std::make_unique<Bess::Gl::CircleVao>(m_MaxRenderLimit[(int)PrimitiveType::circle]);
-        m_triangleRendererVao = std::make_unique<Bess::Gl::TriangleVao>(m_MaxRenderLimit[(int)PrimitiveType::triangle]);
-        m_textRendererVao = std::make_unique<Bess::Gl::InstancedVao<Gl::InstanceVertex>>(m_MaxRenderLimit[(int)PrimitiveType::text]);
-        m_lineRendererVao = std::make_unique<Bess::Gl::InstancedVao<Gl::InstanceVertex>>(m_MaxRenderLimit[(int)PrimitiveType::line]);
-        m_pathRendererVao = std::make_unique<Bess::Gl::BatchVao<Gl::Vertex>>(m_MaxRenderLimit[(int)PrimitiveType::path], 3, 3, true, false);
 
         m_gridVao = std::make_unique<Bess::Gl::GridVao>();
         m_gridShader = assetManager.get(Assets::Shaders::grid);
@@ -104,43 +63,33 @@ namespace Bess {
             int primIdx = (int)primitive;
             switch (primitive) {
             case PrimitiveType::quad:
+                m_quadRendererVao = std::make_unique<Bess::Gl::QuadVao>(m_MaxRenderLimit[primIdx]);
                 m_shaders[primIdx] = assetManager.get(Assets::Shaders::quad);
                 break;
             case PrimitiveType::path:
+                m_pathRendererVao = std::make_unique<Bess::Gl::BatchVao<Gl::Vertex>>(m_MaxRenderLimit[primIdx],
+                                                                                     3, 3, true, false);
                 m_shaders[primIdx] = assetManager.get(Assets::Shaders::path);
                 break;
             case PrimitiveType::circle:
+                m_circleRendererVao = std::make_unique<Bess::Gl::CircleVao>(m_MaxRenderLimit[primIdx]);
                 m_shaders[primIdx] = assetManager.get(Assets::Shaders::circle);
                 break;
             case PrimitiveType::triangle:
+                m_triangleRendererVao = std::make_unique<Bess::Gl::TriangleVao>(m_MaxRenderLimit[primIdx]);
                 m_shaders[primIdx] = assetManager.get(Assets::Shaders::triangle);
                 break;
             case PrimitiveType::line:
+                m_lineRendererVao = std::make_unique<Bess::Gl::InstancedVao<Gl::InstanceVertex>>(m_MaxRenderLimit[primIdx]);
                 m_shaders[primIdx] = assetManager.get(Assets::Shaders::line);
                 break;
             case PrimitiveType::text:
+                m_textRendererVao = std::make_unique<Bess::Gl::InstancedVao<Gl::InstanceVertex>>(m_MaxRenderLimit[primIdx]);
                 m_shaders[primIdx] = assetManager.get(Assets::Shaders::text);
+                m_Font = assetManager.get(Assets::Fonts::roboto);
+                m_msdfFont = assetManager.get(Assets::Fonts::robotoMsdf);
                 break;
             }
-        }
-
-        m_StandardQuadVertices = {
-            {-0.5f, 0.5f, 0.f, 1.f},
-            {-0.5f, -0.5f, 0.f, 1.f},
-            {0.5f, -0.5f, 0.f, 1.f},
-            {0.5f, 0.5f, 0.f, 1.f},
-        };
-
-        m_StandardTriVertices = {
-            {-0.5f, 0.0f, 0.f, 1.f},
-            {0.5f, 0.0f, 0.f, 1.f},
-            {0.0f, 0.5f, 0.f, 1.f}};
-
-        m_Font = assetManager.get(Assets::Fonts::roboto);
-        m_msdfFont = assetManager.get(Assets::Fonts::robotoMsdf);
-
-        for (int i = 0; i < 32; i++) {
-            m_texSlots[i] = i;
         }
     }
 
@@ -239,16 +188,12 @@ namespace Bess {
 
         for (int i = 0; i < 4; i++) {
             auto &vertex = vertices[i];
-            vertex.position = transform * m_StandardQuadVertices[i];
+            vertex.position = transform * glm::vec4(Gl::QuadTemplateVertices[i].position, 0.f, 1.f);
             vertex.id = id;
             vertex.ar = size.x / size.y;
             vertex.color = color;
+            vertex.texCoord = Gl::QuadTemplateVertices[i].texCoord;
         }
-
-        vertices[0].texCoord = {0.0f, 1.0f};
-        vertices[1].texCoord = {0.0f, 0.0f};
-        vertices[2].texCoord = {1.0f, 0.0f};
-        vertices[3].texCoord = {1.0f, 1.0f};
 
         m_gridShader->bind();
         m_gridVao->bind();
@@ -410,121 +355,83 @@ namespace Bess {
     }
 
     void Renderer2D::Renderer::triangle(const std::vector<glm::vec3> &points, const glm::vec4 &color, const int id) {
-        std::runtime_error("Triangle API is not implemented");
-        std::vector<Gl::Vertex> vertices(3);
-
-        for (int i = 0; i < vertices.size(); i++) {
-            auto transform = glm::translate(glm::mat4(1.0f), points[i]);
-            auto &vertex = vertices[i];
-            vertex.position = transform * m_StandardTriVertices[i];
-            vertex.id = id;
-            vertex.color = color;
-        }
-
-        // vertices[0].texCoord = {0.0f, 0.0f};
-        // vertices[1].texCoord = {0.0f, 0.5f};
-        // vertices[2].texCoord = {1.0f, 1.0f};
-
-        addTriangleVertices(vertices);
+        throw std::runtime_error("Triangle API is not implemented");
     }
 
-    void Renderer::addTriangleVertices(const std::vector<Gl::Vertex> &vertices) {
-        auto max_render_count = m_MaxRenderLimit[(int)PrimitiveType::circle];
-
-        // auto &primitive_vertices = m_RenderData.triangleVertices;
-
-        // if (primitive_vertices.size() >= (max_render_count - 1) * 4) {
-        //     flush(PrimitiveType::triangle);
-        // }
-
-        // primitive_vertices.insert(primitive_vertices.end(), vertices.begin(), vertices.end());
-    }
-
-#ifndef BESS_RENDERER_DISABLE_RENDERPASS
-    std::vector<Gl::RenderPassVertex> Renderer::getRenderPassVertices(float width, float height) {
-        std::vector<Gl::RenderPassVertex> vertices(4);
-
-        auto transform = glm::translate(glm::mat4(1.0f), {0, 0, 0});
-        transform = glm::scale(transform, {width, height, 1.f});
-
-        for (int i = 0; i < 4; i++) {
-            auto &vertex = vertices[i];
-            vertex.position = transform * m_StandardQuadVertices[i];
-        }
-
-        vertices[0].texCoord = {0.0f, 1.0f};
-        vertices[1].texCoord = {0.0f, 0.0f};
-        vertices[2].texCoord = {1.0f, 0.0f};
-        vertices[3].texCoord = {1.0f, 1.0f};
-
-        return vertices;
-    }
-
-    void Renderer::doShadowRenderPass(float width, float height) {
-        m_shadowPassShader->bind();
-        m_renderPassVao->bind();
-
-        m_shadowPassShader->setUniformMat4("u_mvp", m_camera->getTransform());
-
-        auto vertices = getRenderPassVertices(width, height);
-        m_renderPassVao->setVertices(vertices.data(), vertices.size());
-        Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
-        m_renderPassVao->unbind();
-        m_shadowPassShader->unbind();
-    }
-
-    void Renderer::doCompositeRenderPass(float width, float height) {
-        m_compositePassShader->bind();
-        m_renderPassVao->bind();
-
-        m_compositePassShader->setUniformMat4("u_mvp", m_camera->getTransform());
-        m_compositePassShader->setUniform1i("uBaseColTex", 0);
-        m_compositePassShader->setUniform1i("uShadowTex", 1);
-
-        auto vertices = getRenderPassVertices(width, height);
-        m_renderPassVao->setVertices(vertices.data(), vertices.size());
-        Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(vertices.size() / 4) * 6);
-        m_renderPassVao->unbind();
-        m_compositePassShader->unbind();
-    }
-#endif
-
-    void Renderer::beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color) {
+    void Renderer::beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, const int id) {
         m_pathData.ended = false;
         m_pathData.currentPos = startPos;
-        m_pathData.points.emplace_back(startPos);
+        m_pathData.points.emplace_back(startPos, weight, id);
         m_pathData.color = color;
-        m_pathData.weight = weight;
     }
 
-    void Renderer::endPathMode(bool closePath) {
-        auto vertices = generateStrokeGeometry(m_pathData.points, m_pathData.weight, m_pathData.color, -1, 4.f, closePath);
-        size_t idx = m_pathStripVertices.size();
-        for (auto &v : vertices) {
-            m_pathStripVertices.emplace_back(v);
-            m_pathStripIndices.emplace_back((GLuint)idx++);
+    void Renderer::endPathMode(bool closePath, bool genFill, const glm::vec4 &fillColor, bool genStroke) {
+        if (genStroke) {
+            auto &vertices = m_renderData.pathData.strokeVertices;
+            auto &indices = m_renderData.pathData.strokeIndices;
+            auto genVertices = generateStrokeGeometry(m_pathData.points, m_pathData.color, 4.f, closePath);
+            GLuint idx = vertices.size();
+            for (auto &v : genVertices) {
+                vertices.emplace_back(v);
+                indices.emplace_back(idx++);
+
+                if (vertices.size() >= m_MaxRenderLimit[(int)PrimitiveType::path]) {
+                    flush(PrimitiveType::path);
+                }
+            }
+            indices.emplace_back(PRIMITIVE_RESTART);
         }
+
+        if (genFill) {
+            m_pathData.points.push_back(m_pathData.points.front());
+
+            auto &vertices = m_renderData.pathData.fillVertices;
+            auto &indices = m_renderData.pathData.fillIndices;
+            auto genVertices = generateFillGeometry(m_pathData.points, fillColor);
+            GLuint idx = vertices.size();
+            for (auto &v : genVertices) {
+                vertices.emplace_back(v);
+                indices.emplace_back(idx++);
+
+                if (vertices.size() >= m_MaxRenderLimit[(int)PrimitiveType::path]) {
+                    flush(PrimitiveType::path);
+                }
+            }
+            indices.emplace_back(PRIMITIVE_RESTART);
+        }
+
         m_pathData = {};
-        m_pathStripIndices.emplace_back(PRIMITIVE_RESTART);
     }
 
     void Renderer::pathLineTo(const glm::vec3 &pos, float weight, const glm::vec4 &color, const int id) {
         assert(!m_pathData.ended);
-        m_pathData.points.emplace_back(pos);
+        m_pathData.points.emplace_back(pos, weight, id);
         m_pathData.setCurrentPos(pos);
     }
 
     void Renderer2D::Renderer::pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2, float weight, const glm::vec4 &color, const int id) {
         assert(!m_pathData.ended);
-        auto points = generateCubicBezierPoints(m_pathData.currentPos, controlPoint1, controlPoint2, end);
-        m_pathData.points.insert(m_pathData.points.end(), points.begin(), points.end());
+        auto positions = generateCubicBezierPoints(m_pathData.currentPos, controlPoint1, controlPoint2, end);
+        PathPoint p{};
+        for (auto pos : positions) {
+            p.pos = pos;
+            p.weight = weight;
+            p.id = id;
+            m_pathData.points.emplace_back(p);
+        }
         m_pathData.setCurrentPos(end);
     }
 
     void Renderer2D::Renderer::pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, const int id) {
         assert(!m_pathData.ended);
-        auto points = generateQuadBezierPoints(m_pathData.currentPos, controlPoint, end);
-        m_pathData.points.insert(m_pathData.points.end(), points.begin(), points.end());
+        auto positions = generateQuadBezierPoints(m_pathData.currentPos, controlPoint, end);
+        PathPoint p{};
+        for (auto pos : positions) {
+            p.pos = pos;
+            p.weight = weight;
+            p.id = id;
+            m_pathData.points.emplace_back(p);
+        }
         m_pathData.setCurrentPos(end);
     }
 
@@ -577,13 +484,18 @@ namespace Bess {
         case PrimitiveType::path: {
             shader->setUniform1f("u_zoom", m_camera->getZoom());
             m_pathRendererVao->bind();
-            m_pathRendererVao->setVerticesAndIndicies(m_pathStripVertices, m_pathStripIndices);
             GL_CHECK(glEnable(GL_PRIMITIVE_RESTART));
             GL_CHECK(glPrimitiveRestartIndex(PRIMITIVE_RESTART));
-            Gl::Api::drawElements(GL_TRIANGLE_STRIP, (GLsizei)(m_pathStripIndices.size()));
+            if (!m_renderData.pathData.fillVertices.empty()) {
+                m_pathRendererVao->setVerticesAndIndicies(m_renderData.pathData.fillVertices, m_renderData.pathData.fillIndices);
+                Gl::Api::drawElements(GL_TRIANGLES, (GLsizei)(m_renderData.pathData.fillIndices.size()));
+            }
+            if (!m_renderData.pathData.strokeVertices.empty()) {
+                m_pathRendererVao->setVerticesAndIndicies(m_renderData.pathData.strokeVertices, m_renderData.pathData.strokeIndices);
+                Gl::Api::drawElements(GL_TRIANGLE_STRIP, (GLsizei)(m_renderData.pathData.strokeIndices.size()));
+            }
             m_pathRendererVao->unbind();
-            m_pathStripVertices.clear();
-            m_pathStripIndices.clear();
+            m_renderData.pathData = {};
         } break; /*
         case PrimitiveType::triangle: {
             auto &vertices = m_renderData.triangleVertices;
@@ -614,6 +526,8 @@ namespace Bess {
             m_textRendererVao->unbind();
             vertices.clear();
         } break;
+        default:
+            break;
         }
 
         shader->unbind();
@@ -707,14 +621,121 @@ namespace Bess {
         return {startPoint, controlPoint, endPoint};
     }
 
-    std::vector<Gl::Vertex> Renderer::generateStrokeGeometry(const std::vector<glm::vec3> &points,
-                                                             float width,
-                                                             const glm::vec4 &color, int id, float miterLimit, bool isClosed) {
+    float cross_product(const glm::vec2 &O, const glm::vec2 &A, const glm::vec2 &B) {
+        return (A.x - O.x) * (B.y - O.y) - (A.y - O.y) * (B.x - O.x);
+    }
+
+    std::vector<Gl::Vertex> Renderer2D::Renderer::generateFillGeometry(const std::vector<PathPoint> &points, const glm::vec4 &color) {
+        if (points.size() < 3) {
+            return {};
+        }
+
+        std::vector<Gl::Vertex> fillVertices;
+
+        std::vector<glm::vec2> polygonVertices;
+        for (const auto &p : points) {
+            if (!polygonVertices.empty() && glm::vec2(p.pos) == polygonVertices.back())
+                continue;
+            polygonVertices.push_back(glm::vec2(p.pos));
+        }
+
+        float area = 0.0f;
+        for (size_t i = 0; i < polygonVertices.size(); ++i) {
+            const auto &p1 = polygonVertices[i];
+            const auto &p2 = polygonVertices[(i + 1) % polygonVertices.size()];
+            area += (p1.x * p2.y - p2.x * p1.y);
+        }
+
+        if (area < 0) { // Ensure Counter-Clockwise winding for Y-up systems
+            std::reverse(polygonVertices.begin(), polygonVertices.end());
+        }
+
+        glm::vec2 minBounds = polygonVertices[0];
+        glm::vec2 maxBounds = polygonVertices[0];
+        for (const auto &v : polygonVertices) {
+            minBounds = glm::min(minBounds, v);
+            maxBounds = glm::max(maxBounds, v);
+        }
+        glm::vec2 extent = maxBounds - minBounds;
+        if (extent.x == 0)
+            extent.x = 1;
+        if (extent.y == 0)
+            extent.y = 1;
+
+        auto makeVertex = [&](const glm::vec2 &pos) {
+            Gl::Vertex v;
+            v.position = glm::vec3(pos, points[0].pos.z);
+            v.color = color;
+            v.id = points[0].id;
+            v.texCoord = (pos - minBounds) / extent;
+            return v;
+        };
+
+        std::vector<int> indices;
+        indices.reserve(polygonVertices.size());
+        for (int i = 0; i < polygonVertices.size(); ++i) {
+            indices.push_back(i);
+        }
+
+        int iterations = 0;
+        const int maxIterations = indices.size() + 5; // Failsafe for invalid polygons
+
+        while (indices.size() > 2 && iterations++ < maxIterations) {
+            bool earFound = false;
+            for (int i = 0; i < indices.size(); ++i) {
+                int prev_idx = indices[(i + indices.size() - 1) % indices.size()];
+                int curr_idx = indices[i];
+                int next_idx = indices[(i + 1) % indices.size()];
+
+                const auto &a = polygonVertices[prev_idx];
+                const auto &b = polygonVertices[curr_idx];
+                const auto &c = polygonVertices[next_idx];
+
+                if (cross_product(a, b, c) < 0) {
+                    continue;
+                }
+
+                bool isEar = true;
+
+                for (int p_idx : indices) {
+                    if (p_idx == prev_idx || p_idx == curr_idx || p_idx == next_idx) {
+                        continue;
+                    }
+                    const auto &p = polygonVertices[p_idx];
+
+                    float d1 = cross_product(a, b, p);
+                    float d2 = cross_product(b, c, p);
+                    float d3 = cross_product(c, a, p);
+                    if (d1 >= 0 && d2 >= 0 && d3 >= 0) {
+                        isEar = false;
+                        break;
+                    }
+                }
+
+                if (isEar) {
+                    fillVertices.push_back(makeVertex(a));
+                    fillVertices.push_back(makeVertex(b));
+                    fillVertices.push_back(makeVertex(c));
+                    indices.erase(indices.begin() + i);
+                    earFound = true;
+                    break;
+                }
+            }
+            if (!earFound) {
+                break;
+            }
+        }
+
+        return fillVertices;
+    }
+
+    std::vector<Gl::Vertex> Renderer::generateStrokeGeometry(const std::vector<PathPoint> &points,
+                                                             const glm::vec4 &color, float miterLimit, bool isClosed) {
         if (points.size() < (isClosed ? 3 : 2)) {
             return {};
         }
 
-        auto makeVertex = [&](const glm::vec2 &pos, float z, const glm::vec2 &uv) {
+        auto makeVertex = [&](const glm::vec2 &pos, float z, uint64_t id, const glm::vec2 &uv) {
             Gl::Vertex v;
             v.position = glm::vec3(pos, z);
             v.color = color;
@@ -726,105 +747,122 @@ namespace Bess {
         // --- 1. Pre-calculate total path length for correct UV mapping ---
         float totalLength = 0.0f;
         for (size_t i = 0; i < points.size() - 1; ++i) {
-            totalLength += glm::distance(glm::vec2(points[i]), glm::vec2(points[i + 1]));
+            totalLength += glm::distance(glm::vec2(points[i].pos), glm::vec2(points[i + 1].pos));
         }
+
         if (isClosed) {
-            totalLength += glm::distance(glm::vec2(points.back()), glm::vec2(points.front()));
+            totalLength += glm::distance(glm::vec2(points.back().pos), glm::vec2(points.front().pos));
         }
 
         std::vector<Gl::Vertex> stripVertices;
-        const float halfWidth = width / 2.0f;
         float cumulativeLength = 0.0f;
+        const size_t pointCount = points.size();
+        const size_t n = isClosed ? pointCount : pointCount;
 
+        size_t ni = 0;
         // --- 2. Generate Joins and Caps ---
-        for (size_t i = 0; i < points.size(); ++i) {
-            // Determine the previous, current, and next points, handling wrapping for closed paths.
-            const size_t pointCount = points.size();
-            const auto &p_curr = points[i];
-            const auto &p_prev = isClosed ? points[(i + pointCount - 1) % pointCount] : points[std::max<long int>(0, i - 1)];
-            const auto &p_next = isClosed ? points[(i + 1) % pointCount] : points[std::min(pointCount - 1, i + 1)];
+        for (size_t i = 0; i < n; i = ni) {
+            // skipping continuous same points
+            ni = i + 1;
+            while (ni < n && points[ni].pos == points[i].pos) {
+                ni++;
+            }
+
+            const auto &pCurr = points[i];
+            const auto &pPrev = isClosed ? points[(i + pointCount - 1) % pointCount] : points[std::max<long int>(0, i - 1)];
+            const auto &pNext = isClosed ? points[ni % pointCount] : points[std::min(pointCount - 1, ni)];
 
             // Update cumulative length for UVs. For the first point, it's 0.
             if (i > 0) {
-                cumulativeLength += glm::distance(glm::vec2(p_curr), glm::vec2(points[i - 1]));
+                cumulativeLength += glm::distance(glm::vec2(pCurr.pos), glm::vec2(pPrev.pos));
             }
             float u = (totalLength > 0) ? (cumulativeLength / totalLength) : 0;
 
             // --- Handle Caps for Open Paths ---
             if (!isClosed && i == 0) { // Start Cap
-                glm::vec2 dir = glm::normalize(glm::vec2(p_next) - glm::vec2(p_curr));
-                glm::vec2 normalVec = glm::vec2(-dir.y, dir.x) * halfWidth;
-                stripVertices.push_back(makeVertex(glm::vec2(p_curr) - normalVec, p_curr.z, {u, 1.f}));
-                stripVertices.push_back(makeVertex(glm::vec2(p_curr) + normalVec, p_curr.z, {u, 0.f}));
+                glm::vec2 dir = glm::normalize(glm::vec2(pNext.pos) - glm::vec2(pCurr.pos));
+                glm::vec2 normalVec = glm::vec2(-dir.y, dir.x) * pCurr.weight / 2.f;
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normalVec, pCurr.pos.z, pCurr.id, {u, 1.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normalVec, pCurr.pos.z, pCurr.id, {u, 0.f}));
                 continue;
             }
-            if (!isClosed && i == pointCount - 1) { // End Cap
-                glm::vec2 dir = glm::normalize(glm::vec2(p_curr) - glm::vec2(p_prev));
-                glm::vec2 normalVec = glm::vec2(-dir.y, dir.x) * halfWidth;
-                stripVertices.push_back(makeVertex(glm::vec2(p_curr) - normalVec, p_curr.z, {u, 1.f}));
-                stripVertices.push_back(makeVertex(glm::vec2(p_curr) + normalVec, p_curr.z, {u, 0.f}));
+
+            if (!isClosed && i == n - 1) { // End Cap
+                glm::vec2 dir = glm::normalize(glm::vec2(pCurr.pos) - glm::vec2(pPrev.pos));
+                glm::vec2 normalVec = glm::vec2(-dir.y, dir.x) * pCurr.weight / 2.f;
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normalVec, pCurr.pos.z, pCurr.id, {u, 1.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normalVec, pCurr.pos.z, pCurr.id, {u, 0.f}));
                 continue;
             }
 
             // --- Handle Interior and Closed Path Joins ---
-            glm::vec2 dir_in = glm::normalize(glm::vec2(p_curr) - glm::vec2(p_prev));
-            glm::vec2 dir_out = glm::normalize(glm::vec2(p_next) - glm::vec2(p_curr));
-            glm::vec2 normal_in(-dir_in.y, dir_in.x);
-            glm::vec2 normal_out(-dir_out.y, dir_out.x);
-            glm::vec2 miterVec = glm::normalize(normal_in + normal_out);
-            float dotProduct = glm::dot(normal_in, miterVec);
+            glm::vec2 dirIn = glm::normalize(glm::vec2(pCurr.pos) - glm::vec2(pPrev.pos));
+            glm::vec2 dirOut = glm::normalize(glm::vec2(pNext.pos) - glm::vec2(pCurr.pos));
+            glm::vec2 dirOutToPrev = glm::normalize(glm::vec2(pPrev.pos - pCurr.pos));
+            glm::vec2 normalIn(-dirIn.y, dirIn.x);
+            glm::vec2 normalOut(-dirOut.y, dirOut.x);
+            float dotProduct = glm::dot(dirIn, dirOut);
 
-            if (std::abs(dotProduct) < 1e-6f) { // Handle straight lines
-                glm::vec2 normal = normal_in * halfWidth;
-                stripVertices.push_back(makeVertex(glm::vec2(p_curr) - normal, p_curr.z, {u, 1.f}));
-                stripVertices.push_back(makeVertex(glm::vec2(p_curr) + normal, p_curr.z, {u, 0.f}));
+            // Handle straight lines
+            if (std::abs(dotProduct) == 1.f) {
+                glm::vec2 normal = normalIn * pCurr.weight / 2.f;
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normal, pCurr.pos.z, pCurr.id, {u, 1.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normal, pCurr.pos.z, pCurr.id, {u, 0.f}));
                 continue;
             }
 
-            float miterLength = halfWidth / dotProduct;
-            float crossProductZ = dir_in.x * dir_out.y - dir_in.y * dir_out.x;
+            // Joint
+            {
+                auto uVec = dirOutToPrev;
+                auto vVec = dirOut;
+                float angle = glm::angle(uVec, vVec);
 
-            // Note (Shivang): There is bug here if remove stripVertices.empty() it crashes and if keep it
-            // it distorts the shape for some points. Keeping it felt like best bet
-            if (!stripVertices.empty() && miterLength / halfWidth > miterLimit) {
-                // --- Bevel Join ---
-                const auto &lastLeft = stripVertices.back();
-                if (crossProductZ > 0) { // Left turn
-                    glm::vec2 innerMiterPoint = glm::vec2(p_curr) - miterVec * miterLength;
-                    glm::vec2 bevelP2 = glm::vec2(p_curr) + normal_out * halfWidth;
-                    stripVertices.push_back(makeVertex(innerMiterPoint, p_curr.z, {u, 1.f}));
-                    stripVertices.push_back(lastLeft);
-                    stripVertices.push_back(makeVertex(innerMiterPoint, p_curr.z, {u, 1.f}));
-                    stripVertices.push_back(makeVertex(bevelP2, p_curr.z, {u, 0.f}));
-                } else { // Right turn
-                    glm::vec2 innerMiterPoint = glm::vec2(p_curr) + miterVec * miterLength;
-                    glm::vec2 bevelP2 = glm::vec2(p_curr) - normal_out * halfWidth;
-                    stripVertices.push_back(makeVertex(bevelP2, p_curr.z, {u, 1.f}));
-                    stripVertices.push_back(makeVertex(innerMiterPoint, p_curr.z, {u, 0.f}));
-                    stripVertices.push_back(lastLeft);
-                    stripVertices.push_back(makeVertex(bevelP2, p_curr.z, {u, 0.f}));
-                }
-            } else {
-                // --- Miter Join ---
-                glm::vec2 outerMiterPoint = glm::vec2(p_curr) + miterVec * miterLength;
-                glm::vec2 innerMiterPoint = glm::vec2(p_curr) - miterVec * miterLength;
-                if (crossProductZ > 0) { // Left turn
-                    stripVertices.push_back(makeVertex(innerMiterPoint, p_curr.z, {u, 1.f}));
-                    stripVertices.push_back(makeVertex(outerMiterPoint, p_curr.z, {u, 0.f}));
-                } else { // Right turn
-                    stripVertices.push_back(makeVertex(innerMiterPoint, p_curr.z, {u, 1.f}));
-                    stripVertices.push_back(makeVertex(outerMiterPoint, p_curr.z, {u, 0.f}));
+                float uMag = pNext.weight / (2 * glm::sin(angle));
+                float vMag = pCurr.weight / (2 * glm::sin(angle));
+
+                uVec *= uMag;
+                vVec *= vMag;
+
+                auto disp = uVec + vVec;
+
+                float crossProductZ = dirIn.x * dirOut.y - dirIn.y * dirOut.x;
+
+                if (glm::length(disp) > miterLimit) {
+                    glm::vec2 normalIn = glm::normalize(glm::vec2(-dirIn.y, dirIn.x));
+
+                    glm::vec2 pos = pCurr.pos;
+                    float halfWidth = pCurr.weight / 2.f; // Assuming constant width through the joint
+
+                    glm::vec2 outerPrev = pos + normalIn * halfWidth;
+                    glm::vec2 innerPrev = pos - normalIn * halfWidth;
+
+                    glm::vec2 outerNext = pos + normalOut * halfWidth;
+                    glm::vec2 innerNext = pos - normalOut * halfWidth;
+                    stripVertices.push_back(makeVertex(innerPrev, pCurr.pos.z, pCurr.id, {u, 1.f}));
+                    stripVertices.push_back(makeVertex(outerPrev, pCurr.pos.z, pCurr.id, {u, 0.f}));
+
+                    stripVertices.push_back(makeVertex(innerNext, pCurr.pos.z, pCurr.id, {u, 1.f}));
+                    stripVertices.push_back(makeVertex(outerNext, pCurr.pos.z, pCurr.id, {u, 0.f}));
+                } else {
+                    auto D = glm::vec2(pCurr.pos) + disp;
+                    auto E = glm::vec2(pCurr.pos) - disp;
+
+                    if (crossProductZ > 0) { // Left turn
+                        stripVertices.push_back(makeVertex(E, pCurr.pos.z, pCurr.id, {u, 1.f}));
+                        stripVertices.push_back(makeVertex(D, pCurr.pos.z, pCurr.id, {u, 0.f}));
+                    } else { // Right turn
+                        stripVertices.push_back(makeVertex(D, pCurr.pos.z, pCurr.id, {u, 1.f}));
+                        stripVertices.push_back(makeVertex(E, pCurr.pos.z, pCurr.id, {u, 0.f}));
+                    }
                 }
             }
         }
 
-        // --- 3. For closed paths, connect the end of the strip to the beginning ---
         if (isClosed && !stripVertices.empty()) {
-            // Create two new vertices with the position of the first two, but with u=1
             Gl::Vertex finalRight = stripVertices[0];
-            // finalRight.texCoord.x = 1.0f;
+            finalRight.texCoord.x = 1.0f;
             Gl::Vertex finalLeft = stripVertices[1];
-            // finalLeft.texCoord.x = 1.0f;
+            finalLeft.texCoord.x = 1.0f;
 
             stripVertices.push_back(finalRight);
             stripVertices.push_back(finalLeft);

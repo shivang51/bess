@@ -1,4 +1,5 @@
 #include "component_definition.h"
+#include "types.h"
 #include <logger.h>
 
 namespace Bess::SimEngine {
@@ -64,5 +65,28 @@ namespace Bess::SimEngine {
 
         BESS_SE_ERROR("Invalid IO config for expression generation");
         assert(false);
+    }
+
+    std::pair<std::span<const PinDetails>, std::span<const PinDetails>> ComponentDefinition::getPinDetails() const {
+        std::span<const PinDetails> in, out;
+
+        if (inputPinDetails.size() == inputCount) {
+            in = inputPinDetails;
+        }
+        if (outputPinDetails.size() == outputCount) {
+            out = outputPinDetails;
+        }
+
+        return {in, out};
+    }
+
+    ComponentDefinition &ComponentDefinition::addModifiableProperty(Properties::ComponentProperty property, std::any value) {
+        m_modifiableProperties[property].emplace_back(value);
+        return *this;
+    }
+
+    ComponentDefinition &ComponentDefinition::addModifiableProperty(Properties::ComponentProperty property, const std::vector<std::any> &value) {
+        m_modifiableProperties[property] = value;
+        return *this;
     }
 } // namespace Bess::SimEngine
