@@ -1,6 +1,5 @@
 #include "simulation_engine.h"
 #include "component_catalog.h"
-#include "component_definition.h"
 #include "entt/entity/fwd.hpp"
 #include "entt_components.h"
 #include "init_components.h"
@@ -11,9 +10,9 @@
 #include <condition_variable>
 #include <cstdint>
 
-#define BESS_SE_DISABLE_LOG_EVENTS
+// #define BESS_SE_ENABLE_LOG_EVENTS
 
-#ifndef BESS_SE_DISABLE_LOG_EVENTS
+#ifdef BESS_SE_ENABLE_LOG_EVENTS
     #define BESS_SE_LOG_EVENT(...) BESS_SE_TRACE(__VA_ARGS__);
 #else
     #define BESS_SE_LOG_EVENT(...)
@@ -392,7 +391,12 @@ namespace Bess::SimEngine {
     bool SimulationEngine::simulateComponent(entt::entity e, const std::vector<PinState> &inputs) {
         const auto &comp = m_registry.get<DigitalComponent>(e);
         const auto def = ComponentCatalog::instance().getComponentDefinition(comp.type);
-        BESS_SE_LOG_EVENT("[BessSimEngine] Simulating {}", def->name);
+        BESS_SE_LOG_EVENT("Simulating {}", def->name);
+        BESS_SE_LOG_EVENT("\tInputs:");
+        for (auto &inp : inputs) {
+            BESS_SE_LOG_EVENT("\t\t{}", (int)inp.state);
+        }
+        BESS_SE_LOG_EVENT("");
         if (def && def->simulationFunction) {
             return def->simulationFunction(
                 m_registry, e, inputs, m_currentSimTime,

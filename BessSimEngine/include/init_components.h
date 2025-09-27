@@ -11,22 +11,21 @@ namespace Bess::SimEngine {
             auto &flipFlopComp = reg.get<FlipFlopComponent>(e);
             auto &comp = reg.get<DigitalComponent>(e);
 
-            // very very very important to check and update clock before executing clear step
-            const auto &clockPinState = inputs[flipFlopComp.clockPinIdx];
-            bool isRisingEdge = (clockPinState.state == LogicState::high && flipFlopComp.prevClockState == LogicState::low);
-            flipFlopComp.prevClockState = clockPinState.state;
-
-            auto prevClr = comp.inputStates.back();
             comp.inputStates = inputs;
 
             const auto &clrPinState = inputs.back();
-            bool clrChanged = prevClr.state != clrPinState.state;
             if (clrPinState.state == LogicState::high) {
                 bool changed = (comp.outputStates[0].state != LogicState::low);
+                comp.inputStates[flipFlopComp.clockPinIdx].state = LogicState::high;
+                flipFlopComp.prevClockState = LogicState::high;
                 comp.outputStates[0] = {LogicState::low, currentTime};
                 comp.outputStates[1] = {LogicState::high, currentTime}; // Q' is HIGH
                 return changed;
             }
+
+            const auto &clockPinState = inputs[flipFlopComp.clockPinIdx];
+            bool isRisingEdge = (clockPinState.state == LogicState::high && flipFlopComp.prevClockState == LogicState::low);
+            flipFlopComp.prevClockState = clockPinState.state;
 
             if (!isRisingEdge) {
                 return false;
@@ -202,7 +201,7 @@ namespace Bess::SimEngine {
     }
 
     /// expression evaluator simulation function
-    bool exprEvalSimFunc(entt::registry &registry, entt::entity e, const std::vector<PinState> &inputs, SimTime currentTime, std::function<entt::entity(const UUID &)> fn) {
+    inline bool exprEvalSimFunc(entt::registry &registry, entt::entity e, const std::vector<PinState> &inputs, SimTime currentTime, std::function<entt::entity(const UUID &)> fn) {
         auto &comp = registry.get<DigitalComponent>(e);
         comp.inputStates = inputs;
         bool changed = false;
@@ -213,7 +212,6 @@ namespace Bess::SimEngine {
             bool newState = ExprEval::evaluateExpression(comp.expressions[i], states);
             changed = changed || (bool)comp.outputStates[i] != newState;
             comp.outputStates[i] = {newState ? LogicState::high : LogicState::low, currentTime};
-            ;
         }
         return changed;
     }
