@@ -21,7 +21,7 @@ namespace Bess::Gl {
         void setUniformVec4(const std::string &name, const glm::vec4 &value);
         void setUniformMat4(const std::string &name, const glm::mat4 &value);
         void setUniform1i(const std::string &name, int value);
-        void setUniform1iv(const std::string &name, int* values, int count);
+        void setUniform1iv(const std::string &name, const int *values, int count);
         void setUniform1f(const std::string &name, float value);
         void setUniform3f(const std::string &name, const glm::vec3 &value);
         void setUniformVec2(const std::string &name, const glm::vec2 &value);

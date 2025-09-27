@@ -17,14 +17,11 @@
 using namespace Bess::Renderer2D;
 
 namespace Bess {
-
-// disabled composite pass logic for now
-#define BESS_RENDERER_DISABLE_RENDERPASS
-
     static constexpr uint32_t PRIMITIVE_RESTART = 0xFFFFFFFF;
     static constexpr float BEZIER_EPSILON = 0.0001f;
 
-    std::vector<PrimitiveType> Renderer::m_AvailablePrimitives;
+    std::vector<PrimitiveType> Renderer::m_AvailablePrimitives = {PrimitiveType::line, PrimitiveType::quad, PrimitiveType::circle,
+                                                                  PrimitiveType::path, PrimitiveType::text};
 
     std::vector<std::shared_ptr<Gl::Shader>> Renderer::m_shaders;
     std::vector<size_t> Renderer::m_MaxRenderLimit;
@@ -48,33 +45,16 @@ namespace Bess {
     std::unique_ptr<Bess::Gl::BatchVao<Gl::Vertex>> Renderer::m_pathRendererVao;
     std::unique_ptr<Bess::Gl::InstancedVao<Gl::InstanceVertex>> Renderer::m_lineRendererVao;
 
-    std::array<int, 32> Renderer::m_texSlots;
-
     void Renderer::init() {
-        m_AvailablePrimitives = {PrimitiveType::line, PrimitiveType::triangle,
-                                 PrimitiveType::quad, PrimitiveType::circle, PrimitiveType::path, PrimitiveType::text};
-
-        int maxPrimNum = 0;
-        for (auto prim : m_AvailablePrimitives) {
-            maxPrimNum = std::max(maxPrimNum, (int)prim);
-        }
-
-        maxPrimNum += 1;
-
-        m_shaders.resize(maxPrimNum);
-        m_MaxRenderLimit.resize(maxPrimNum);
+        std::sort(m_AvailablePrimitives.begin(), m_AvailablePrimitives.end());
+        m_shaders.resize((size_t)m_AvailablePrimitives.back() + 1);
+        m_MaxRenderLimit.resize(m_shaders.size());
 
         for (auto prim : m_AvailablePrimitives) {
-            m_MaxRenderLimit[(int)prim] = 8000;
+            m_MaxRenderLimit[(int)prim] = 64000;
         }
 
         auto &assetManager = Assets::AssetManager::instance();
-        m_quadRendererVao = std::make_unique<Bess::Gl::QuadVao>(m_MaxRenderLimit[(int)PrimitiveType::quad]);
-        m_circleRendererVao = std::make_unique<Bess::Gl::CircleVao>(m_MaxRenderLimit[(int)PrimitiveType::circle]);
-        m_triangleRendererVao = std::make_unique<Bess::Gl::TriangleVao>(m_MaxRenderLimit[(int)PrimitiveType::triangle]);
-        m_textRendererVao = std::make_unique<Bess::Gl::InstancedVao<Gl::InstanceVertex>>(m_MaxRenderLimit[(int)PrimitiveType::text]);
-        m_lineRendererVao = std::make_unique<Bess::Gl::InstancedVao<Gl::InstanceVertex>>(m_MaxRenderLimit[(int)PrimitiveType::line]);
-        m_pathRendererVao = std::make_unique<Bess::Gl::BatchVao<Gl::Vertex>>(m_MaxRenderLimit[(int)PrimitiveType::path], 3, 3, true, false);
 
         m_gridVao = std::make_unique<Bess::Gl::GridVao>();
         m_gridShader = assetManager.get(Assets::Shaders::grid);
@@ -83,31 +63,33 @@ namespace Bess {
             int primIdx = (int)primitive;
             switch (primitive) {
             case PrimitiveType::quad:
+                m_quadRendererVao = std::make_unique<Bess::Gl::QuadVao>(m_MaxRenderLimit[primIdx]);
                 m_shaders[primIdx] = assetManager.get(Assets::Shaders::quad);
                 break;
             case PrimitiveType::path:
+                m_pathRendererVao = std::make_unique<Bess::Gl::BatchVao<Gl::Vertex>>(m_MaxRenderLimit[primIdx],
+                                                                                     3, 3, true, false);
                 m_shaders[primIdx] = assetManager.get(Assets::Shaders::path);
                 break;
             case PrimitiveType::circle:
+                m_circleRendererVao = std::make_unique<Bess::Gl::CircleVao>(m_MaxRenderLimit[primIdx]);
                 m_shaders[primIdx] = assetManager.get(Assets::Shaders::circle);
                 break;
             case PrimitiveType::triangle:
+                m_triangleRendererVao = std::make_unique<Bess::Gl::TriangleVao>(m_MaxRenderLimit[primIdx]);
                 m_shaders[primIdx] = assetManager.get(Assets::Shaders::triangle);
                 break;
             case PrimitiveType::line:
+                m_lineRendererVao = std::make_unique<Bess::Gl::InstancedVao<Gl::InstanceVertex>>(m_MaxRenderLimit[primIdx]);
                 m_shaders[primIdx] = assetManager.get(Assets::Shaders::line);
                 break;
             case PrimitiveType::text:
+                m_textRendererVao = std::make_unique<Bess::Gl::InstancedVao<Gl::InstanceVertex>>(m_MaxRenderLimit[primIdx]);
                 m_shaders[primIdx] = assetManager.get(Assets::Shaders::text);
+                m_Font = assetManager.get(Assets::Fonts::roboto);
+                m_msdfFont = assetManager.get(Assets::Fonts::robotoMsdf);
                 break;
             }
-        }
-
-        m_Font = assetManager.get(Assets::Fonts::roboto);
-        m_msdfFont = assetManager.get(Assets::Fonts::robotoMsdf);
-
-        for (int i = 0; i < 32; i++) {
-            m_texSlots[i] = i;
         }
     }
 
