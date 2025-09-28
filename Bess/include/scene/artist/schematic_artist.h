@@ -42,6 +42,13 @@ namespace Bess::Canvas {
                                 const Components::TransformComponent &transform,
                                 const Components::SpriteComponent &spriteComp,
                                 const Components::SimulationComponent &simComponent);
+
+        void drawSevenSegDisplay(entt::entity entity,
+                                 const Components::TagComponent &tagComp,
+                                 const Components::TransformComponent &transform,
+                                 const Components::SpriteComponent &spriteComp,
+                                 const Components::SimulationComponent &simComponent);
+
         ArtistCompSchematicInfo getCompSchematicInfo(entt::entity ent);
         ArtistCompSchematicInfo getCompSchematicInfo(UUID uuid);
     };

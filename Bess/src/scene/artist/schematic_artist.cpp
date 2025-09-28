@@ -3,6 +3,7 @@
 #include "component_types/component_types.h"
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
+#include "scene/artist/nodes_artist.h"
 #include "scene/components/components.h"
 #include "scene/renderer/renderer.h"
 #include "scene/scene.h"
@@ -43,12 +44,66 @@ namespace Bess::Canvas {
 
         auto &registry = m_sceneRef->getEnttRegistry();
 
-        if (tagComp.isSimComponent && tagComp.type.simCompType == SimEngine::ComponentType::SEVEN_SEG_DISPLAY) {
+        if (simComponent.type == SimEngine::ComponentType::SEVEN_SEG_DISPLAY) {
             drawSevenSegDisplay(entity, tagComp, transform, spriteComp, simComponent);
-            return;
+        } else {
+            paintSchematicView(entity, tagComp, transform, spriteComp, simComponent);
         }
 
-        paintSchematicView(entity, tagComp, transform, spriteComp, simComponent);
+        drawSlots(entity, simComponent, transform);
+    }
+
+    void SchematicArtist::drawSevenSegDisplay(entt::entity entity,
+                                              const Components::TagComponent &tagComp,
+                                              const Components::TransformComponent &transform,
+                                              const Components::SpriteComponent &spriteComp,
+                                              const Components::SimulationComponent &simComp) {
+        auto schematicInfo = getCompSchematicInfo(entity);
+        const auto &textColor = ViewportTheme::schematicViewColors.text;
+        const auto &fillColor = ViewportTheme::schematicViewColors.componentFill;
+        const auto &strokeColor = ViewportTheme::schematicViewColors.componentStroke;
+        float strokeSize = schematicCompStyles.strokeSize;
+
+        const int id = (uint64_t)entity;
+        const auto &pos = transform.position;
+
+        const float w = schematicInfo.width, h = schematicInfo.height;
+        const float x = pos.x - w / 2, x1 = pos.x + w / 2;
+        const float y = pos.y - h / 2, y1 = pos.y + h / 2;
+
+        Renderer::beginPathMode({x, y, pos.z}, strokeSize, strokeColor, id);
+        Renderer::pathLineTo({x1, y, pos.z}, strokeSize, strokeColor, id);
+        Renderer::pathLineTo({x1, y1, pos.z}, strokeSize, strokeColor, id);
+        Renderer::pathLineTo({x, y1, pos.z}, strokeSize, ViewportTheme::colors.wire, id);
+        Renderer::endPathMode(true, true, fillColor);
+
+        auto textSize = Renderer2D::Renderer::getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
+        glm::vec3 textPos = {pos.x,
+                             y + componentStyles.paddingY + strokeSize,
+                             pos.z + 0.0005f};
+        textPos.x -= textSize.x / 2.f;
+        textPos.y += componentStyles.headerFontSize / 2.f;
+        Renderer::msdfText(tagComp.name, textPos, schematicCompStyles.nameFontSize, textColor, id, 0.f);
+
+        {
+            auto compState = SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity);
+            auto tex = m_artistTools.sevenSegDispTexs[0];
+            auto texSize = tex->getScale();
+            float texWidth = 60;
+            float texHeight = (texSize.y / texSize.x) * texWidth;
+            glm::vec3 texPos = {pos.x,
+                                pos.y,
+                                transform.position.z + 0.0001};
+
+            Renderer::quad(texPos, {texWidth, texHeight}, tex, glm::vec4(1.f), (uint64_t)entity);
+
+            for (int i = 0; i < (int)compState.inputStates.size(); i++) {
+                if (!compState.inputStates[i])
+                    continue;
+                tex = m_artistTools.sevenSegDispTexs[i + 1];
+                Renderer::quad(texPos, {texWidth, texHeight}, tex, glm::vec4(1.f), (uint64_t)entity);
+            }
+        }
     }
 
     void SchematicArtist::paintSchematicView(entt::entity entity,
@@ -175,14 +230,12 @@ namespace Bess::Canvas {
         }
 
         if (showName) {
-            auto textSize = Renderer2D::Renderer::getMSDFTextRenderSize(tagComp.name, 10.f); // headerFontSize
+            auto textSize = Renderer2D::Renderer::getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
             glm::vec3 textPos = {pos.x, y + (y1 - y) / 2.f, pos.z + 0.0005f};
             textPos.x -= textSize.x / 2.f;
-            textPos.y += 10.f / 2.f; // headerFontSize / 2
+            textPos.y += componentStyles.headerFontSize / 2.f;
             Renderer::msdfText(tagComp.name, textPos, schematicCompStyles.nameFontSize, textColor, id, 0.f);
         }
-
-        drawSlots(entity, simComponent, transform);
     }
 
     void SchematicArtist::drawSlots(const entt::entity parentEntt, const Components::SimulationComponent &simComp, const Components::TransformComponent &transformComp) {
@@ -213,7 +266,7 @@ namespace Bess::Canvas {
                 label = inpDetails.size() > i ? inpDetails[i].name : "X" + std::to_string(i);
                 Renderer::msdfText(label,
                                    {schematicInfo.inpConnStart, pinY - nodeWeight, pos.z - 0.0005f},
-                                   10.f, ViewportTheme::colors.text, (int)parentEntt, 0.f); // headerFontSize
+                                   componentStyles.slotLabelSize, ViewportTheme::colors.text, (int)parentEntt, 0.f);
             }
         }
 
@@ -228,10 +281,10 @@ namespace Bess::Canvas {
                 Renderer::pathLineTo({schematicInfo.outConnStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
                 Renderer::endPathMode(false);
                 label = outDetails.size() > i ? outDetails[i].name : "Y" + std::to_string(i);
-                float size = Renderer2D::Renderer::getMSDFTextRenderSize(label, 10.f).x; // headerFontSize
+                float size = Renderer2D::Renderer::getMSDFTextRenderSize(label, componentStyles.slotLabelSize).x;
                 Renderer::msdfText(label,
                                    {schematicInfo.outConnStart - size, pinY - nodeWeight, pos.z - 0.0005f},
-                                   10.f, ViewportTheme::colors.text, (int)parentEntt, 0.f); // headerFontSize
+                                   componentStyles.slotLabelSize, ViewportTheme::colors.text, (int)parentEntt, 0.f);
             }
         }
     }
@@ -294,7 +347,7 @@ namespace Bess::Canvas {
         //     info.shouldDraw = false;
         // } break;
         default:
-            w = Renderer::getMSDFTextRenderSize(tagComp.name, schematicCompStyles.nameFontSize).x + 8.f * 2.f; // paddingX * 2
+            w = Renderer::getMSDFTextRenderSize(tagComp.name, schematicCompStyles.nameFontSize).x + componentStyles.paddingX * 2.f;
             x = pos.x - w / 2, x1 = pos.x + w / 2;
             y = pos.y - h / 2, y1 = pos.y + h / 2;
 

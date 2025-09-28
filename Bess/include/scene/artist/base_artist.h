@@ -61,12 +61,6 @@ namespace Bess::Canvas {
       protected:
         virtual void drawSlots(const entt::entity parentEntt, const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp) = 0;
 
-        void drawSevenSegDisplay(entt::entity entity,
-                                 const Components::TagComponent &tagComp,
-                                 const Components::TransformComponent &transform,
-                                 const Components::SpriteComponent &spriteComp,
-                                 const Components::SimulationComponent &simComponent);
-
         virtual void drawConnection(const UUID &id, entt::entity inputEntity, entt::entity outputEntity, bool isSelected);
 
         std::shared_ptr<Scene> m_sceneRef;
