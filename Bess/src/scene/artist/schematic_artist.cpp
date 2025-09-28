@@ -1,5 +1,4 @@
 #include "scene/artist/schematic_artist.h"
-#include "common/log.h"
 #include "component_catalog.h"
 #include "component_types/component_types.h"
 #include "entt/entity/fwd.hpp"
@@ -8,8 +7,6 @@
 #include "scene/renderer/renderer.h"
 #include "scene/scene.h"
 #include "settings/viewport_theme.h"
-#include "simulation_engine.h"
-#include "types.h"
 #include <cstdint>
 #include <string>
 
@@ -37,22 +34,12 @@ namespace Bess::Canvas {
     SchematicArtist::SchematicArtist(Scene *scene) : BaseArtist(scene) {
     }
 
-    void SchematicArtist::drawSimEntity(entt::entity entity) {
-        auto &registry = m_sceneRef->getEnttRegistry();
-        auto &tagComp = registry.get<Components::TagComponent>(entity);
-        auto &transform = registry.get<Components::TransformComponent>(entity);
-        auto &spriteComp = registry.get<Components::SpriteComponent>(entity);
-        auto &simComp = registry.get<Components::SimulationComponent>(entity);
-
-        drawSimEntity(entity, tagComp, transform, spriteComp, simComp);
-    }
-
     void SchematicArtist::drawSimEntity(
         entt::entity entity,
-        Components::TagComponent &tagComp,
-        Components::TransformComponent &transform,
-        Components::SpriteComponent &spriteComp,
-        Components::SimulationComponent &simComponent) {
+        const Components::TagComponent &tagComp,
+        const Components::TransformComponent &transform,
+        const Components::SpriteComponent &spriteComp,
+        const Components::SimulationComponent &simComponent) {
 
         auto &registry = m_sceneRef->getEnttRegistry();
 
@@ -61,26 +48,19 @@ namespace Bess::Canvas {
             return;
         }
 
-        auto pos = transform.position;
-        auto rotation = transform.angle;
-        auto scale = transform.scale;
-        int maxRows = std::max(simComponent.inputSlots.size(), simComponent.outputSlots.size());
-        scale.y = 18.f + 4.f + (maxRows * 30.f); // headerHeight + rowGap + (maxRows * SLOT_ROW_SIZE)
-        transform.scale = scale;
-
-        paintSchematicView(entity);
+        paintSchematicView(entity, tagComp, transform, spriteComp, simComponent);
     }
 
-    void SchematicArtist::paintSchematicView(entt::entity entity) {
+    void SchematicArtist::paintSchematicView(entt::entity entity,
+                                             const Components::TagComponent &tagComp,
+                                             const Components::TransformComponent &transform,
+                                             const Components::SpriteComponent &spriteComp,
+                                             const Components::SimulationComponent &simComponent) {
         const auto &registry = m_sceneRef->getEnttRegistry();
-        const auto &simComp = registry.get<Components::SimulationComponent>(entity);
-        SimEngine::ComponentType type = simComp.type;
+        SimEngine::ComponentType type = simComponent.type;
 
-        const auto &transformComp = registry.get<Components::TransformComponent>(entity);
-        const auto &pos = transformComp.position;
-        const auto &scale = transformComp.scale;
-
-        const auto &tagComp = registry.get<Components::TagComponent>(entity);
+        const auto &pos = transform.position;
+        const auto &scale = transform.scale;
 
         auto schematicInfo = getCompSchematicInfo(entity);
 
@@ -202,7 +182,7 @@ namespace Bess::Canvas {
             Renderer::msdfText(tagComp.name, textPos, schematicCompStyles.nameFontSize, textColor, id, 0.f);
         }
 
-        drawSlots(entity, simComp, transformComp);
+        drawSlots(entity, simComponent, transform);
     }
 
     void SchematicArtist::drawSlots(const entt::entity parentEntt, const Components::SimulationComponent &simComp, const Components::TransformComponent &transformComp) {

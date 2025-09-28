@@ -34,13 +34,12 @@ namespace Bess::Canvas {
         NodesArtist(Scene *scene);
         virtual ~NodesArtist() = default;
 
-        void drawSimEntity(entt::entity entity) override;
         void drawSimEntity(
             entt::entity entity,
-            Components::TagComponent &tagComp,
-            Components::TransformComponent &transform,
-            Components::SpriteComponent &spriteComp,
-            Components::SimulationComponent &simComponent) override;
+            const Components::TagComponent &tagComp,
+            const Components::TransformComponent &transform,
+            const Components::SpriteComponent &spriteComp,
+            const Components::SimulationComponent &simComponent) override;
 
         glm::vec3 getSlotPos(const Components::SlotComponent &comp, const Components::TransformComponent &parentTransform) override;
 
@@ -52,10 +51,10 @@ namespace Bess::Canvas {
                        SimEngine::LogicState state, bool isConnected, SimEngine::ExtendedPinType extendedType);
 
         void drawHeaderLessComp(entt::entity entity,
-                                Components::TagComponent &tagComp,
-                                Components::TransformComponent &transform,
-                                Components::SpriteComponent &spriteComp,
-                                Components::SimulationComponent &simComp);
+                                const Components::TagComponent &tagComp,
+                                const Components::TransformComponent &transform,
+                                const Components::SpriteComponent &spriteComp,
+                                const Components::SimulationComponent &simComp);
     };
 
 } // namespace Bess::Canvas

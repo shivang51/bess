@@ -24,13 +24,12 @@ namespace Bess::Canvas {
         SchematicArtist(Scene *scene);
         virtual ~SchematicArtist() = default;
 
-        void drawSimEntity(entt::entity entity) override;
         void drawSimEntity(
             entt::entity entity,
-            Components::TagComponent &tagComp,
-            Components::TransformComponent &transform,
-            Components::SpriteComponent &spriteComp,
-            Components::SimulationComponent &simComponent) override;
+            const Components::TagComponent &tagComp,
+            const Components::TransformComponent &transform,
+            const Components::SpriteComponent &spriteComp,
+            const Components::SimulationComponent &simComponent) override;
 
         glm::vec3 getSlotPos(const Components::SlotComponent &comp,
                              const Components::TransformComponent &parentTransform) override;
@@ -38,8 +37,11 @@ namespace Bess::Canvas {
         void drawSlots(const entt::entity parentEntt, const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp) override;
 
       private:
-        // Schematic-specific methods
-        void paintSchematicView(entt::entity entity);
+        void paintSchematicView(entt::entity entity,
+                                const Components::TagComponent &tagComp,
+                                const Components::TransformComponent &transform,
+                                const Components::SpriteComponent &spriteComp,
+                                const Components::SimulationComponent &simComponent);
         ArtistCompSchematicInfo getCompSchematicInfo(entt::entity ent);
         ArtistCompSchematicInfo getCompSchematicInfo(UUID uuid);
     };

@@ -13,6 +13,7 @@
 #include "gtc/type_ptr.hpp"
 #include "pages/main_page/main_page_state.h"
 #include "scene/artist/artist_manager.h"
+#include "scene/artist/base_artist.h"
 #include "scene/commands/add_command.h"
 #include "scene/commands/connect_command.h"
 #include "scene/commands/del_connection_command.h"
@@ -337,7 +338,6 @@ namespace Bess::Canvas {
         tag.isSimComponent = true;
 
         transformComp.position = glm::vec3(pos, getNextZCoord());
-        transformComp.scale = glm::vec2(100.f, 100.f);
 
         if (comp->type == SimEngine::ComponentType::INPUT || comp->type == SimEngine::ComponentType::OUTPUT) {
             glm::vec4 ioCompColor = glm::vec4(0.2f, 0.2f, 0.4f, 0.6f);
@@ -365,6 +365,8 @@ namespace Bess::Canvas {
         }
 
         simComp.type = comp->type;
+
+        transformComp.scale = BaseArtist::calcCompSize(entity, simComp, comp->name);
 
         BESS_INFO("[Scene] Created entity {}", (uint64_t)entity);
         return idComp.uuid;

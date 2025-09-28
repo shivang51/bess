@@ -187,19 +187,14 @@ namespace Bess::Canvas {
 
     void BaseArtist::drawSevenSegDisplay(
         entt::entity entity,
-        Components::TagComponent &tagComp,
-        Components::TransformComponent &transform,
-        Components::SpriteComponent &spriteComp,
-        Components::SimulationComponent &simComp) {
+        const Components::TagComponent &tagComp,
+        const Components::TransformComponent &transform,
+        const Components::SpriteComponent &spriteComp,
+        const Components::SimulationComponent &simComp) {
 
-        auto pos = transform.position;
-        auto rotation = transform.angle;
-        auto scale = transform.scale;
-
-        int maxRows = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
-        scale.y = componentStyles.headerHeight + componentStyles.rowGap + (maxRows * SLOT_ROW_SIZE);
-        scale.x = 150.f;
-        transform.scale = scale;
+        const auto &pos = transform.position;
+        const auto &rotation = transform.angle;
+        const auto &scale = transform.scale;
 
         float headerHeight = componentStyles.headerHeight;
         auto headerPos = glm::vec3(pos.x, pos.y - scale.y / 2.f + headerHeight / 2.f, pos.z);
@@ -256,8 +251,51 @@ namespace Bess::Canvas {
         artists->getNodesArtist()->drawSlots(entity, simComp, transform);
     }
 
+    glm::vec2 BaseArtist::calcCompSize(entt::entity ent,
+                                       const Components::SimulationComponent &simComp,
+                                       const std::string &name) {
+
+        int maxRows = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
+        float height = (maxRows * SLOT_ROW_SIZE);
+
+        auto labelSize = Renderer::getMSDFTextRenderSize(name, componentStyles.headerFontSize);
+
+        float width = labelSize.x + componentStyles.paddingX * 2.f;
+
+        if (!isHeaderLessComp(simComp)) {
+            width = std::max(width, 100.f);
+            height += componentStyles.headerHeight + componentStyles.rowGap;
+        } else { // header less component
+            float labelXGapL = 2.f, labelXGapR = 2.f;
+
+            if (!simComp.inputSlots.empty()) {
+                width += SLOT_COLUMN_SIZE + labelXGapL;
+            }
+
+            if (!simComp.outputSlots.empty()) {
+                width += SLOT_COLUMN_SIZE + labelXGapR;
+            }
+        }
+
+        return {width, height};
+    }
+
     void BaseArtist::setInstructions(const ArtistInstructions &value) {
         m_instructions = value;
     }
 
+    void BaseArtist::drawSimEntity(entt::entity entity) {
+        auto &registry = m_sceneRef->getEnttRegistry();
+        auto &tagComp = registry.get<Components::TagComponent>(entity);
+        auto &transform = registry.get<Components::TransformComponent>(entity);
+        auto &spriteComp = registry.get<Components::SpriteComponent>(entity);
+        auto &simComp = registry.get<Components::SimulationComponent>(entity);
+
+        drawSimEntity(entity, tagComp, transform, spriteComp, simComp);
+    }
+
+    bool BaseArtist::isHeaderLessComp(const Components::SimulationComponent &simComp) {
+        int n = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
+        return n == 1;
+    }
 } // namespace Bess::Canvas
