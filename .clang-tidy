@@ -5,6 +5,7 @@ Checks: >
   readability-*,
   modernize-*,
   cppcoreguidelines-*,
+  readability-make-member-function-const,
   -modernize-use-trailing-return-type,
   -readability-magic-numbers,
   -cppcoreguidelines-avoid-magic-numbers,
@@ -13,7 +14,7 @@ Checks: >
   -cppcoreguidelines-pro-type-member-init,
   -performance-avoid-endl,
   -readability-braces-around-statements,
-  -cppcoreguidelines-pro-bounds-pointer-arithmetic
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
   -readability-identifier-naming
 
 WarningsAsErrors: ''
@@ -28,3 +29,9 @@ CheckOptions:
   - key: readability-identifier-naming.StructCase
     value: CamelCase
 
+  - key: modernize-use-constexpr.MinimalNumericType
+    value: 'true'
+  - key: modernize-use-constexpr.MinValue
+    value: '0'
+  - key: modernize-use-constexpr.MaxValue
+    value: '18446744073709551615'
