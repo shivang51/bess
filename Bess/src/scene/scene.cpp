@@ -36,8 +36,6 @@ namespace Bess::Canvas {
         reset();
     }
 
-    Scene::~Scene() {}
-
     Scene &Scene::instance() {
         static Scene m_instance;
         return m_instance;
@@ -130,7 +128,7 @@ namespace Bess::Canvas {
     }
 
     void Scene::selectAllEntities() {
-        const auto view = m_registry.view<Canvas::Components::SimulationComponent>();
+        const auto view = m_registry.view<Canvas::Components::TagComponent>();
         for (auto &entt : view)
             m_registry.emplace_or_replace<Components::SelectedComponent>(entt);
         const auto connectionView = m_registry.view<Canvas::Components::ConnectionComponent>();
@@ -159,7 +157,7 @@ namespace Bess::Canvas {
 
             std::vector<UUID> entitesToDel = {};
             std::vector<entt::entity> connEntitesToDel = {};
-            for (auto &entt : view) {
+            for (const auto entt : view) {
                 if (!m_registry.valid(entt))
                     continue;
 
@@ -183,8 +181,8 @@ namespace Bess::Canvas {
             auto __ = m_cmdManager.execute<Commands::DelConnectionCommand, std::string>(connToDel);
         } else if (mainPageState->isKeyPressed(GLFW_KEY_F)) {
             const auto view = m_registry.view<Components::IdComponent,
-                                        Components::SelectedComponent,
-                                        Components::TransformComponent>();
+                                              Components::SelectedComponent,
+                                              Components::TransformComponent>();
 
             // pick the first one to focus. if many are selected
             for (auto &ent : view) {
@@ -538,9 +536,9 @@ namespace Bess::Canvas {
 
     void Scene::dragConnectionSegment(const entt::entity ent) {
         const auto view = m_registry.view<Components::TransformComponent,
-                                    Components::ConnectionSegmentComponent,
-                                    Components::SlotComponent,
-                                    Components::ConnectionComponent>();
+                                          Components::ConnectionSegmentComponent,
+                                          Components::SlotComponent,
+                                          Components::ConnectionComponent>();
 
         const glm::vec2 newPos = toScenePos(m_mousePos);
 

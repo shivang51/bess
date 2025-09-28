@@ -342,6 +342,7 @@ namespace Bess::JsonConvert {
     inline void toJsonValue(const SimulationComponent &comp, Json::Value &j) {
         j = Json::Value(Json::objectValue);
         toJsonValue(comp.simEngineEntity, j["simEngineEntity"]);
+        j["type"] = (int)comp.type;
 
         Json::Value &inputSlotsArray = j["inputSlots"] = Json::Value(Json::arrayValue);
         for (const auto &slotId : comp.inputSlots) {
@@ -361,6 +362,11 @@ namespace Bess::JsonConvert {
         if (!j.isObject()) {
             return;
         }
+
+        if (j.isMember("type")) {
+            comp.type = (ComponentType)j["type"].asInt();
+        }
+
         if (j.isMember("simEngineEntity")) {
             fromJsonValue(j["simEngineEntity"], comp.simEngineEntity);
         }

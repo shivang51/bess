@@ -43,9 +43,8 @@ namespace Bess::Canvas {
     class Scene {
       public:
         Scene();
-        ~Scene();
+        ~Scene() = default;
 
-      public:
         static Scene &instance();
 
         void reset();
