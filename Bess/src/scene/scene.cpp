@@ -12,7 +12,7 @@
 #include "fwd.hpp"
 #include "gtc/type_ptr.hpp"
 #include "pages/main_page/main_page_state.h"
-#include "scene/artist.h"
+#include "scene/artist/artist_manager.h"
 #include "scene/commands/add_command.h"
 #include "scene/commands/connect_command.h"
 #include "scene/commands/del_connection_command.h"
@@ -35,7 +35,6 @@ using Renderer = Bess::Renderer2D::Renderer;
 namespace Bess::Canvas {
     Scene::Scene() {
         Renderer2D::Renderer::init();
-        Artist::init();
         reset();
     }
 
@@ -71,7 +70,7 @@ namespace Bess::Canvas {
         m_placeHolderSubTexture = std::make_shared<Gl::SubTexture>(m_placeHolderTexture, glm::vec2(5.f, 5.f),
                                                                    glm::vec2(64.f, 64.f), 5, glm::vec2(1.f, 1.f));
 
-        Artist::sceneRef = this;
+        m_artistManager = std::make_shared<ArtistManager>(this);
     }
 
     void Scene::clear() {
@@ -226,7 +225,9 @@ namespace Bess::Canvas {
 
     void Scene::drawScene(std::shared_ptr<Camera> camera) {
 
-        Artist::setInstructions({.isSchematicView = m_isSchematicView});
+        // Set the appropriate artist mode
+        m_artistManager->setSchematicMode(m_isSchematicView);
+        auto artist = m_artistManager->getCurrentArtist();
 
         // Grid
         Renderer2D::Renderer::begin(camera);
@@ -243,7 +244,7 @@ namespace Bess::Canvas {
         Renderer2D::Renderer::begin(camera);
         auto connectionsView = m_registry.view<Components::ConnectionComponent>();
         for (auto entity : connectionsView) {
-            Artist::drawConnectionEntity(entity);
+            artist->drawConnectionEntity(entity);
         }
 
         if (m_drawMode == SceneDrawMode::connection) {
@@ -259,7 +260,7 @@ namespace Bess::Canvas {
             Components::SpriteComponent,
             Components::TransformComponent>();
         for (auto entity : simCompView) {
-            Artist::drawSimEntity(
+            artist->drawSimEntity(
                 entity,
                 simCompView.get<Components::TagComponent>(entity),
                 simCompView.get<Components::TransformComponent>(entity),
@@ -269,7 +270,7 @@ namespace Bess::Canvas {
 
         auto nonSimCompView = m_registry.view<Components::NSComponent>();
         for (auto entity : nonSimCompView) {
-            Artist::drawNonSimEntity(entity);
+            artist->drawNonSimEntity(entity);
         }
 
         Renderer2D::Renderer::end();
@@ -302,7 +303,8 @@ namespace Bess::Canvas {
             return;
         }
 
-        Artist::drawGhostConnection(connStartEntity, toScenePos(m_mousePos));
+        auto artist = m_artistManager->getCurrentArtist();
+        artist->drawGhostConnection(connStartEntity, toScenePos(m_mousePos));
     }
 
     UUID Scene::createSimEntity(const UUID &simEngineEntt,
@@ -544,6 +546,7 @@ namespace Bess::Canvas {
         glm::vec2 newPos = toScenePos(m_mousePos);
 
         auto &comp = view.get<Components::ConnectionSegmentComponent>(ent);
+        auto artist = m_artistManager->getCurrentArtist();
 
         if (comp.isHead() || comp.isTail()) {
             auto newEntt = m_registry.create();
@@ -560,14 +563,14 @@ namespace Bess::Canvas {
                 auto &slotComponent = view.get<Components::SlotComponent>(getEntityWithUuid(connComponent.inputSlot));
                 auto &parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(slotComponent.parentId));
                 connComponent.segmentHead = idComp.uuid;
-                slotPos = Artist::getSlotPos(slotComponent, parentTransform);
+                slotPos = artist->getSlotPos(slotComponent, parentTransform);
             } else {
                 comp.next = idComp.uuid;
                 compNew.prev = getUuidOfEntity(ent);
                 auto &connComponent = m_registry.get<Components::ConnectionComponent>(getEntityWithUuid(comp.parent));
                 auto &slotComponent = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComponent.outputSlot));
                 auto &parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(slotComponent.parentId));
-                slotPos = Artist::getSlotPos(slotComponent, parentTransform);
+                slotPos = artist->getSlotPos(slotComponent, parentTransform);
             }
 
             if (comp.pos.x == 0) // if current is vertical
@@ -773,10 +776,11 @@ namespace Bess::Canvas {
         auto &inpSlotComp = view.get<Components::SlotComponent>(inputSlot);
         auto &outSlotComp = view.get<Components::SlotComponent>(outputSlot);
         const auto &inpParentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(inpSlotComp.parentId));
-        auto inputSlotPos = Artist::getSlotPos(inpSlotComp, inpParentTransform);
+        auto artist = m_artistManager->getCurrentArtist();
+        auto inputSlotPos = artist->getSlotPos(inpSlotComp, inpParentTransform);
         const auto &slotComp = view.get<Components::SlotComponent>(outputSlot);
         const auto &parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(slotComp.parentId));
-        auto outputSlotPos = Artist::getSlotPos(slotComp, parentTransform);
+        auto outputSlotPos = artist->getSlotPos(slotComp, parentTransform);
 
         auto dX = outputSlotPos.x - inputSlotPos.x;
 
@@ -1122,5 +1126,9 @@ namespace Bess::Canvas {
 
     void Scene::toggleSchematicView() {
         m_isSchematicView = !m_isSchematicView;
+    }
+
+    std::shared_ptr<ArtistManager> Scene::getArtistManager() {
+        return m_artistManager;
     }
 } // namespace Bess::Canvas
