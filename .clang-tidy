@@ -1,0 +1,30 @@
+Checks: >
+  clang-analyzer-*,
+  bugprone-*,
+  performance-*,
+  readability-*,
+  modernize-*,
+  cppcoreguidelines-*,
+  -modernize-use-trailing-return-type,
+  -readability-magic-numbers,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -modernize-use-auto,
+  -readability-identifier-length,
+  -cppcoreguidelines-pro-type-member-init,
+  -performance-avoid-endl,
+  -readability-braces-around-statements,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic
+  -readability-identifier-naming
+
+WarningsAsErrors: ''
+
+CheckOptions:
+  - key: readability-identifier-naming.VariableCase
+    value: camelBack
+  - key: readability-identifier-naming.FunctionCase
+    value: camelBack
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+
