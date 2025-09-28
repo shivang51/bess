@@ -11,7 +11,7 @@ namespace Bess::Canvas {
           m_nodesArtist(std::make_shared<NodesArtist>(scene)), m_isSchematicMode(false) {
     }
 
-    std::shared_ptr<BaseArtist> ArtistManager::getCurrentArtist() {
+    std::shared_ptr<BaseArtist> ArtistManager::getCurrentArtist() const {
         return m_isSchematicMode ? std::static_pointer_cast<BaseArtist>(m_schematicArtist) : std::static_pointer_cast<BaseArtist>(m_nodesArtist);
     }
 

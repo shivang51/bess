@@ -17,7 +17,7 @@ namespace Bess::Canvas {
         ArtistManager(Scene *scene);
         ~ArtistManager() = default;
 
-        std::shared_ptr<BaseArtist> getCurrentArtist();
+        std::shared_ptr<BaseArtist> getCurrentArtist() const;
         std::shared_ptr<SchematicArtist> getSchematicArtist();
         std::shared_ptr<NodesArtist> getNodesArtist();
 

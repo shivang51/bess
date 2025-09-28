@@ -34,23 +34,23 @@ namespace Bess::Canvas {
         glm::vec3 getSlotPos(const Components::SlotComponent &comp,
                              const Components::TransformComponent &parentTransform) override;
 
-        void drawSlots(const entt::entity parentEntt, const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp) override;
+        void drawSlots(const entt::entity parentEntt, const Components::SimulationComponent &simComp, const Components::TransformComponent &transformComp) override;
 
       private:
         void paintSchematicView(entt::entity entity,
                                 const Components::TagComponent &tagComp,
                                 const Components::TransformComponent &transform,
                                 const Components::SpriteComponent &spriteComp,
-                                const Components::SimulationComponent &simComponent);
+                                const Components::SimulationComponent &simComponent) const;
 
         void drawSevenSegDisplay(entt::entity entity,
                                  const Components::TagComponent &tagComp,
                                  const Components::TransformComponent &transform,
                                  const Components::SpriteComponent &spriteComp,
-                                 const Components::SimulationComponent &simComponent);
+                                 const Components::SimulationComponent &simComponent) const;
 
-        ArtistCompSchematicInfo getCompSchematicInfo(entt::entity ent);
-        ArtistCompSchematicInfo getCompSchematicInfo(UUID uuid);
+        ArtistCompSchematicInfo getCompSchematicInfo(entt::entity ent) const;
+        ArtistCompSchematicInfo getCompSchematicInfo(UUID uuid) const;
     };
 
 } // namespace Bess::Canvas

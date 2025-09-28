@@ -4,7 +4,6 @@
 #include "common/log.h"
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
-#include "scene/artist/artist_manager.h"
 #include "scene/artist/nodes_artist.h"
 #include "scene/components/components.h"
 #include "scene/renderer/renderer.h"
@@ -45,15 +44,15 @@ namespace Bess::Canvas {
 
     void BaseArtist::drawGhostConnection(const entt::entity &startEntity, const glm::vec2 pos) {
         auto &registry = m_sceneRef->getEnttRegistry();
-        auto slotsView = registry.view<Components::SlotComponent, Components::TransformComponent, Components::SimulationComponent>();
-        auto &slotComp = slotsView.get<Components::SlotComponent>(startEntity);
-        auto parentEntt = m_sceneRef->getEntityWithUuid(slotComp.parentId);
-        auto &parentTransform = slotsView.get<Components::TransformComponent>(parentEntt);
+        const auto slotsView = registry.view<Components::SlotComponent, Components::TransformComponent, Components::SimulationComponent>();
+        const auto &slotComp = slotsView.get<Components::SlotComponent>(startEntity);
+        const auto parentEntt = m_sceneRef->getEntityWithUuid(slotComp.parentId);
+        const auto &parentTransform = slotsView.get<Components::TransformComponent>(parentEntt);
         auto startPos = getSlotPos(slotComp, parentTransform);
         startPos.z = 0.f;
 
-        float ratio = slotComp.slotType == Components::SlotType::digitalInput ? 0.8f : 0.2f;
-        auto midX = startPos.x + ((pos.x - startPos.x) * ratio);
+        const float ratio = slotComp.slotType == Components::SlotType::digitalInput ? 0.8f : 0.2f;
+        const auto midX = startPos.x + ((pos.x - startPos.x) * ratio);
 
         Renderer::beginPathMode(startPos, 2.f, ViewportTheme::colors.ghostWire, -1);
         Renderer::pathLineTo(glm::vec3(midX, startPos.y, 0.f), 2.f, ViewportTheme::colors.ghostWire, -1);
@@ -88,7 +87,7 @@ namespace Bess::Canvas {
         } else if (m_instructions.isSchematicView) {
             color = ViewportTheme::schematicViewColors.connection;
         } else {
-            bool isHigh = (bool)SimEngine::SimulationEngine::instance().getComponentState(outParentSimComp.simEngineEntity).outputStates[outputSlotComp.idx];
+            bool isHigh = static_cast<bool>(SimEngine::SimulationEngine::instance().getComponentState(outParentSimComp.simEngineEntity).outputStates[outputSlotComp.idx]);
             color = isHigh ? ViewportTheme::colors.stateHigh : ViewportTheme::colors.stateLow;
         }
 
@@ -99,12 +98,12 @@ namespace Bess::Canvas {
         auto segId = connectionComponent.segmentHead;
         auto prevPos = startPos;
 
-        static constexpr int wireSize = 2.f;
-        static constexpr int hoveredSize = 3.f;
+        static constexpr float wireSize = 2.f;
+        static constexpr float hoveredSize = 3.f;
 
         bool isHovered = registry.all_of<Components::HoveredEntityComponent>(connSegEntt);
 
-        Renderer::beginPathMode(startPos, isHovered ? hoveredSize : wireSize, color, (uint64_t)connSegEntt);
+        Renderer::beginPathMode(startPos, isHovered ? hoveredSize : wireSize, color, static_cast<uint64_t>(connSegEntt));
         while (segId != UUID::null) {
             glm::vec3 pos = endPos;
             auto newSegId = connSegComp.next;
@@ -125,11 +124,10 @@ namespace Bess::Canvas {
             }
 
             auto segEntt = m_sceneRef->getEntityWithUuid(segId);
-            bool isHovered = registry.all_of<Components::HoveredEntityComponent>(segEntt);
+            isHovered = registry.all_of<Components::HoveredEntityComponent>(segEntt);
             auto size = isHovered ? hoveredSize : wireSize;
             auto offPos = pos;
-            auto offSet = (prevPos.y <= pos.y) ? wireSize / 2.f : -wireSize / 2.f;
-            Renderer::pathLineTo(offPos, size, color, (uint64_t)segEntt);
+            Renderer::pathLineTo(offPos, size, color, static_cast<uint64_t>(segEntt));
             offPos.z += 0.0001f;
 
             segId = newSegId;
@@ -138,33 +136,32 @@ namespace Bess::Canvas {
         Renderer::endPathMode();
     }
 
-    void BaseArtist::drawConnectionEntity(entt::entity entity) {
+    void BaseArtist::drawConnectionEntity(const entt::entity entity) {
         auto &registry = m_sceneRef->getEnttRegistry();
 
-        auto &connComp = registry.get<Components::ConnectionComponent>(entity);
-        auto &idComp = registry.get<Components::IdComponent>(entity);
-        bool isSelected = registry.all_of<Components::SelectedComponent>(entity);
+        const auto &connComp = registry.get<Components::ConnectionComponent>(entity);
+        const auto &idComp = registry.get<Components::IdComponent>(entity);
+        const bool isSelected = registry.all_of<Components::SelectedComponent>(entity);
         drawConnection(idComp.uuid, m_sceneRef->getEntityWithUuid(connComp.inputSlot), m_sceneRef->getEntityWithUuid(connComp.outputSlot), isSelected);
     }
 
     void BaseArtist::drawNonSimEntity(entt::entity entity) {
         auto &registry = m_sceneRef->getEnttRegistry();
         const auto &tagComp = registry.get<Components::TagComponent>(entity);
-        bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
+        const bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
 
-        uint64_t id = (uint64_t)entity;
+        const uint64_t id = static_cast<uint64_t>(entity);
 
         switch (tagComp.type.nsCompType) {
         case Components::NSComponentType::text: {
-            auto &textComp = registry.get<Components::TextNodeComponent>(entity);
-            auto &transformComp = registry.get<Components::TransformComponent>(entity);
+            const auto &textComp = registry.get<Components::TextNodeComponent>(entity);
+            const auto &transformComp = registry.get<Components::TransformComponent>(entity);
             auto pos = transformComp.position;
-            auto rotation = transformComp.angle;
-            auto scale = transformComp.scale;
+            const auto rotation = transformComp.angle;
             Renderer::msdfText(textComp.text, pos, textComp.fontSize, textComp.color, id, rotation);
 
             if (isSelected) {
-                Renderer2D::QuadRenderProperties props{
+                const Renderer2D::QuadRenderProperties props{
                     .angle = rotation,
                     .borderColor = ViewportTheme::colors.selectedComp,
                     .borderRadius = glm::vec4(4.f),
@@ -189,10 +186,10 @@ namespace Bess::Canvas {
                                        const Components::SimulationComponent &simComp,
                                        const std::string &name) {
 
-        int maxRows = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
+        const int maxRows = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
         float height = (maxRows * SLOT_ROW_SIZE);
 
-        auto labelSize = Renderer::getMSDFTextRenderSize(name, componentStyles.headerFontSize);
+        const auto labelSize = Renderer::getMSDFTextRenderSize(name, componentStyles.headerFontSize);
 
         float width = labelSize.x + componentStyles.paddingX * 2.f;
 
@@ -200,13 +197,14 @@ namespace Bess::Canvas {
             width = std::max(width, 100.f);
             height += componentStyles.headerHeight + componentStyles.rowGap;
         } else { // header less component
-            float labelXGapL = 2.f, labelXGapR = 2.f;
 
             if (!simComp.inputSlots.empty()) {
+                constexpr float labelXGapL = 2.f;
                 width += SLOT_COLUMN_SIZE + labelXGapL;
             }
 
             if (!simComp.outputSlots.empty()) {
+                constexpr float labelXGapR = 2.f;
                 width += SLOT_COLUMN_SIZE + labelXGapR;
             }
         }
@@ -218,18 +216,18 @@ namespace Bess::Canvas {
         m_instructions = value;
     }
 
-    void BaseArtist::drawSimEntity(entt::entity entity) {
+    void BaseArtist::drawSimEntity(const entt::entity entity) {
         auto &registry = m_sceneRef->getEnttRegistry();
-        auto &tagComp = registry.get<Components::TagComponent>(entity);
-        auto &transform = registry.get<Components::TransformComponent>(entity);
-        auto &spriteComp = registry.get<Components::SpriteComponent>(entity);
-        auto &simComp = registry.get<Components::SimulationComponent>(entity);
+        const auto &tagComp = registry.get<Components::TagComponent>(entity);
+        const auto &transform = registry.get<Components::TransformComponent>(entity);
+        const auto &spriteComp = registry.get<Components::SpriteComponent>(entity);
+        const auto &simComp = registry.get<Components::SimulationComponent>(entity);
 
         drawSimEntity(entity, tagComp, transform, spriteComp, simComp);
     }
 
     bool BaseArtist::isHeaderLessComp(const Components::SimulationComponent &simComp) {
-        int n = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
+        const int n = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
         return n == 1;
     }
 } // namespace Bess::Canvas

@@ -26,17 +26,16 @@ namespace Bess::Canvas {
 
     class BaseArtist {
       public:
-        BaseArtist(Scene *scene);
+        explicit BaseArtist(Scene *scene);
+        virtual ~BaseArtist() = default;
 
-        void init();
+        static void init();
 
         static glm::vec2 calcCompSize(entt::entity ent,
                                       const Components::SimulationComponent &simComp,
                                       const std::string &name);
 
         static bool isHeaderLessComp(const Components::SimulationComponent &simComp);
-
-        virtual ~BaseArtist() = default;
 
         virtual void drawSimEntity(entt::entity entity);
 
@@ -63,7 +62,7 @@ namespace Bess::Canvas {
 
         virtual void drawConnection(const UUID &id, entt::entity inputEntity, entt::entity outputEntity, bool isSelected);
 
-        std::shared_ptr<Scene> m_sceneRef;
+        Scene* m_sceneRef;
         ArtistInstructions m_instructions;
 
         static ArtistTools m_artistTools;
