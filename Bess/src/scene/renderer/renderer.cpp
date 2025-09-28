@@ -362,7 +362,7 @@ namespace Bess {
         throw std::runtime_error("Triangle API is not implemented");
     }
 
-    void Renderer::beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, const int id) {
+    void Renderer::beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, const uint64_t id) {
         m_pathData.ended = false;
         m_pathData.currentPos = startPos;
         m_pathData.points.emplace_back(startPos, weight, id);

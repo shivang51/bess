@@ -16,6 +16,11 @@
 #include <chrono>
 #include <memory>
 
+// Forward declaration
+namespace Bess::Canvas {
+    class ArtistManager;
+}
+
 namespace Bess::Canvas {
 
     enum class SceneMode {
@@ -102,6 +107,8 @@ namespace Bess::Canvas {
         bool *getIsSchematicViewPtr();
         void toggleSchematicView();
 
+        std::shared_ptr<ArtistManager> getArtistManager();
+
       private:
         const UUID &getUuidOfEntity(entt::entity ent);
 
@@ -186,5 +193,7 @@ namespace Bess::Canvas {
         std::shared_ptr<Gl::SubTexture> m_placeHolderSubTexture;
 
         SimEngine::Commands::CommandsManager m_cmdManager;
+
+        std::shared_ptr<ArtistManager> m_artistManager;
     };
 } // namespace Bess::Canvas
