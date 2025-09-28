@@ -23,7 +23,7 @@ namespace Bess::Canvas {
         return m_nodesArtist;
     }
 
-    void ArtistManager::setSchematicMode(bool isSchematic) {
+    void ArtistManager::setSchematicMode(const bool isSchematic) {
         m_isSchematicMode = isSchematic;
     }
 } // namespace Bess::Canvas

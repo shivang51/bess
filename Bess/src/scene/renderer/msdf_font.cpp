@@ -81,7 +81,7 @@ namespace Bess::Renderer2D {
         BESS_TRACE("[MsdfFont] Made lookup table of size {} characters", maxAscii);
     }
 
-    float MsdfFont::getScale(float size) const {
+    float MsdfFont::getScale(const float size) const {
         return size / m_fontSize;
     }
 
@@ -89,7 +89,7 @@ namespace Bess::Renderer2D {
         return m_lineHeight;
     }
 
-    const MsdfCharacter &MsdfFont::getCharacterData(char c) const {
+    const MsdfCharacter &MsdfFont::getCharacterData(const char c) const {
         return m_charTable[(size_t)c];
     }
 

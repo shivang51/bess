@@ -24,7 +24,7 @@ namespace Bess::Config {
         return m_fontSize;
     }
 
-    void Settings::setFontSize(float size) {
+    void Settings::setFontSize(const float size) {
         if (m_fontRebuild)
             return;
         m_fontSize = size;
@@ -35,7 +35,7 @@ namespace Bess::Config {
         return m_scale;
     }
 
-    void Settings::setScale(float scale) {
+    void Settings::setScale(const float scale) {
         if (m_fontRebuild)
             return;
         m_scale = scale;
@@ -46,7 +46,7 @@ namespace Bess::Config {
         return m_fontRebuild;
     }
 
-    void Settings::setFontRebuild(bool rebuild) {
+    void Settings::setFontRebuild(const bool rebuild) {
         m_fontRebuild = !rebuild;
     }
 

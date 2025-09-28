@@ -51,41 +51,41 @@ namespace Bess::Canvas {
         void reset();
         void clear();
         void render();
-        void renderWithCamera(std::shared_ptr<Camera> camera);
+        void renderWithCamera(const std::shared_ptr<Camera> &camera);
         void update(TFrameTime ts, const std::vector<ApplicationEvent> &events);
 
-        unsigned int getTextureId();
+        unsigned int getTextureId() const;
         std::shared_ptr<Camera> getCamera();
 
-        void drawScene(std::shared_ptr<Camera> camera);
-        void beginScene();
-        void endScene();
+        void drawScene(const std::shared_ptr<Camera> &camera);
+        void beginScene() const;
+        void endScene() const;
 
         void setLastCreatedComp(LastCreatedComponent comp);
 
-        void saveScenePNG(const std::string &path);
+        void saveScenePNG(const std::string &path) const;
 
         friend class Modules::SchematicGen::SchematicView;
 
       public:
-        const glm::vec2 &getMousePos();
+        const glm::vec2 &getMousePos() const;
         glm::vec2 getSceneMousePos();
-        const glm::vec2 &getCameraPos();
-        float getCameraZoom();
-        void setZoom(float value);
+        const glm::vec2 &getCameraPos() const;
+        float getCameraZoom() const;
+        void setZoom(float value) const;
 
         void setSceneMode(SceneMode mode);
-        SceneMode getSceneMode();
+        SceneMode getSceneMode() const;
 
         void resize(const glm::vec2 &size);
         entt::registry &getEnttRegistry();
-        const glm::vec2 &getSize();
+        const glm::vec2 &getSize() const;
 
         UUID createSlotEntity(Components::SlotType type, const UUID &parent, unsigned int idx);
         UUID createSlotEntity(UUID uuid, Components::SlotType type, const UUID &parent, unsigned int idx);
 
-        UUID createSimEntity(const UUID &simEngineEntt, std::shared_ptr<const SimEngine::ComponentDefinition> comp, const glm::vec2 &pos);
-        UUID createSimEntity(const UUID &simEngineEntt, std::shared_ptr<const SimEngine::ComponentDefinition> comp,
+        UUID createSimEntity(const UUID &simEngineEntt, const std::shared_ptr<const SimEngine::ComponentDefinition> &comp, const glm::vec2 &pos);
+        UUID createSimEntity(const UUID &simEngineEntt, const std::shared_ptr<const SimEngine::ComponentDefinition> &comp,
                              const glm::vec2 &pos, UUID uuid, const std::vector<UUID> &inputSlotIds, const std::vector<UUID> &outputSlotIds);
         UUID createNonSimEntity(const Canvas::Components::NSComponent &comp, const glm::vec2 &pos);
 
@@ -124,7 +124,7 @@ namespace Bess::Canvas {
         void onRightMouse(bool isPressed);
         void onMouseWheel(double x, double y);
 
-        glm::vec2 toScenePos(const glm::vec2 &mousePos);
+        glm::vec2 toScenePos(const glm::vec2 &mousePos) const;
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos);
         bool isCursorInViewport(const glm::vec2 &pos);
         void drawConnection();

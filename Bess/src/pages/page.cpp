@@ -5,10 +5,10 @@
 #include "application_state.h"
 
 namespace Bess::Pages {
-    Page::Page(PageIdentifier identifier) : m_identifier(identifier) {
+    Page::Page(const PageIdentifier identifier) : m_identifier(identifier) {
     }
 
-    void Page::show() {
+    void Page::show() const {
         std::shared_ptr<Page> instance;
         switch (m_identifier) {
         case PageIdentifier::MainPage:

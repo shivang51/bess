@@ -44,7 +44,7 @@ namespace Bess::Gl {
         ~Vbo();
         void bind() const;
         void unbind() const;
-        void setData(const void *data, size_t size);
+        void setData(const void *data, size_t size) const;
 
       private:
         GLuint m_id = 0;
@@ -57,7 +57,7 @@ namespace Bess::Gl {
         void bind() const;
         void unbind() const;
         size_t getCount() const { return m_Count; }
-        void setData(const void *data, size_t size);
+        void setData(const void *data, size_t size) const;
 
       private:
         GLuint m_id = 0;
@@ -91,7 +91,7 @@ namespace Bess::Gl {
         void unbind() const;
 
         void addVertexBuffer(const Vbo &vbo, const BufferLayout &layout);
-        void setIndexBuffer(const Ibo &ibo);
+        void setIndexBuffer(const Ibo &ibo) const;
 
       private:
         GLuint m_vao_id = 0;

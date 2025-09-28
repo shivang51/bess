@@ -8,16 +8,16 @@ namespace Bess::SimEngine {
        SimEngineSerializer::registerAll();
     }
 
-    void SimEngineSerializer::serializeToPath(const std::string &path, int indent) {
+    void SimEngineSerializer::serializeToPath(const std::string &path, const int indent) {
         EnttRegistrySerializer::serializeToPath(SimEngine::SimulationEngine::instance().m_registry, path, indent);
     }
 
     void SimEngineSerializer::simulateClockedComponents() {
         const auto &registry = SimEngine::SimulationEngine::instance().m_registry;
-        auto view = registry.view<SimEngine::ClockComponent>();
+        const auto view = registry.view<SimEngine::ClockComponent>();
 
-        for (auto entt : view) {
-            SimulationEngine::instance().scheduleEvent(entt, entt::null, SimulationEngine::instance().m_currentSimTime);
+        for (const auto ent : view) {
+            SimulationEngine::instance().scheduleEvent(ent, entt::null, SimulationEngine::instance().m_currentSimTime);
         }
     }
 

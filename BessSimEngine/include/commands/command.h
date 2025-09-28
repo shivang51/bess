@@ -6,6 +6,7 @@ namespace Bess::SimEngine::Commands {
     class BESS_API Command {
       public:
         Command() = default;
+        virtual ~Command() = default;
         Command(Command &other) = default;
 
         /// Return false if failed

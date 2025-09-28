@@ -44,17 +44,17 @@ namespace Bess::Canvas::Commands {
         if (m_redo)
             return true;
 
-        auto simEngineUuids = cmdMngr.execute<SimEngine::Commands::AddCommand, std::vector<UUID>>(simAddCmdData);
+        const auto simEngineUuids = cmdMngr.execute<SimEngine::Commands::AddCommand, std::vector<UUID>>(simAddCmdData);
 
         if (!simEngineUuids.has_value())
             return false;
 
         int i = 0;
-        for (auto &simEngineId : simEngineUuids.value()) {
+        for (const auto &simEngineId : simEngineUuids.value()) {
             const auto &data = m_data[i];
             m_compIds.emplace_back(scene.createSimEntity(simEngineId, data.def, data.pos));
             if (i == m_data.size() - 1)
-                scene.setLastCreatedComp({data.def, data.inputCount, data.outputCount});
+                scene.setLastCreatedComp({.componentDefinition = data.def, .inputCount = data.inputCount, .outputCount = data.outputCount});
             i++;
         }
 
@@ -67,7 +67,6 @@ namespace Bess::Canvas::Commands {
 
         auto &scene = Scene::instance();
         for (size_t i = 0; i < m_data.size(); i++) {
-            const auto &data = m_data[i];
             auto &compJson = m_compJsons[i];
             compJson.clear();
             SceneSerializer ser;

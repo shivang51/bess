@@ -7,7 +7,7 @@
 
 namespace Bess::SimEngine {
     inline void initFlipFlops() {
-        auto simFunc = [&](entt::registry &reg, entt::entity e, const std::vector<PinState> &inputs, SimTime currentTime, auto fn) -> bool {
+        auto simFunc = [&](entt::registry &reg, const entt::entity e, const std::vector<PinState> &inputs, SimTime currentTime, auto fn) -> bool {
             auto &flipFlopComp = reg.get<FlipFlopComponent>(e);
             auto &comp = reg.get<DigitalComponent>(e);
 
@@ -15,7 +15,7 @@ namespace Bess::SimEngine {
 
             const auto &clrPinState = inputs.back();
             if (clrPinState.state == LogicState::high) {
-                bool changed = (comp.outputStates[0].state != LogicState::low);
+                const bool changed = (comp.outputStates[0].state != LogicState::low);
                 comp.inputStates[flipFlopComp.clockPinIdx].state = LogicState::high;
                 flipFlopComp.prevClockState = LogicState::high;
                 comp.outputStates[0] = {LogicState::low, currentTime};
@@ -24,14 +24,14 @@ namespace Bess::SimEngine {
             }
 
             const auto &clockPinState = inputs[flipFlopComp.clockPinIdx];
-            bool isRisingEdge = (clockPinState.state == LogicState::high && flipFlopComp.prevClockState == LogicState::low);
+            const bool isRisingEdge = (clockPinState.state == LogicState::high && flipFlopComp.prevClockState == LogicState::low);
             flipFlopComp.prevClockState = clockPinState.state;
 
             if (!isRisingEdge) {
                 return false;
             }
 
-            LogicState currentQ = comp.outputStates[0].state;
+            const LogicState currentQ = comp.outputStates[0].state;
             LogicState newQ = currentQ;
 
             const auto &j_input = inputs[0];
@@ -59,7 +59,7 @@ namespace Bess::SimEngine {
                 }
             }
 
-            bool changed = (comp.outputStates[0].state != newQ);
+            const bool changed = (comp.outputStates[0].state != newQ);
 
             comp.outputStates[0] = {newQ, currentTime};
 
@@ -112,7 +112,7 @@ namespace Bess::SimEngine {
         ComponentCatalog::instance().registerComponent(inpDef);
 
         ComponentDefinition outDef = {ComponentType::OUTPUT, "Output", "IO", 1, 0,
-                                      [&](entt::registry &registry, entt::entity e, const std::vector<PinState> &inputs, SimTime _, auto fn) -> bool {
+                                      [&](entt::registry &registry, const entt::entity e, const std::vector<PinState> &inputs, SimTime _, auto fn) -> bool {
                                           auto &gate = registry.get<DigitalComponent>(e);
                                           gate.inputStates = inputs;
                                           return false;
@@ -122,7 +122,7 @@ namespace Bess::SimEngine {
         ComponentCatalog::instance().registerComponent(outDef);
 
         ComponentDefinition stateMonDef = {ComponentType::STATE_MONITOR, "State Monitor", "IO", 1, 0,
-                                           [&](entt::registry &registry, entt::entity e, const std::vector<PinState> &inputs, SimTime simTime, auto fn) -> bool {
+                                           [&](entt::registry &registry, const entt::entity e, const std::vector<PinState> &inputs, SimTime simTime, auto fn) -> bool {
                                                if (inputs.size() == 0)
                                                    return false;
                                                auto &comp = registry.get<StateMonitorComponent>(e);
@@ -137,7 +137,7 @@ namespace Bess::SimEngine {
         ComponentCatalog::instance().registerComponent(stateMonDef);
 
         ComponentCatalog::instance().registerComponent({ComponentType::SEVEN_SEG_DISPLAY_DRIVER, "7-Seg Display Driver", "IO", 4, 7,
-                                                        [&](entt::registry &registry, entt::entity e, const std::vector<PinState> &inputs, SimTime _, auto fn) -> bool {
+                                                        [&](entt::registry &registry, const entt::entity e, const std::vector<PinState> &inputs, SimTime _, auto fn) -> bool {
                                                             auto &gate = registry.get<DigitalComponent>(e);
                                                             gate.inputStates = inputs;
                                                             int dec = 0;
@@ -182,7 +182,7 @@ namespace Bess::SimEngine {
 
                                                             bool changed = false;
                                                             for (int i = 0; i < (int)gate.outputStates.size(); i++) {
-                                                                bool out = val & (1 << i);
+                                                                const bool out = val & (1 << i);
                                                                 changed = changed || out != (bool)gate.outputStates[i];
                                                                 gate.outputStates[i] = out;
                                                             }
@@ -192,7 +192,7 @@ namespace Bess::SimEngine {
                                                         SimDelayNanoSeconds(0)});
 
         ComponentCatalog::instance().registerComponent({ComponentType::SEVEN_SEG_DISPLAY, "Seven Segment Display", "IO", 7, 0,
-                                                        [&](entt::registry &registry, entt::entity e, const std::vector<PinState> &inputs, SimTime _, auto fn) -> bool {
+                                                        [&](entt::registry &registry, const entt::entity e, const std::vector<PinState> &inputs, SimTime _, auto fn) -> bool {
                                                             auto &gate = registry.get<DigitalComponent>(e);
                                                             gate.inputStates = inputs;
                                                             return false;
@@ -201,7 +201,7 @@ namespace Bess::SimEngine {
     }
 
     /// expression evaluator simulation function
-    inline bool exprEvalSimFunc(entt::registry &registry, entt::entity e, const std::vector<PinState> &inputs, SimTime currentTime, std::function<entt::entity(const UUID &)> fn) {
+    inline bool exprEvalSimFunc(entt::registry &registry, const entt::entity e, const std::vector<PinState> &inputs, SimTime currentTime, std::function<entt::entity(const UUID &)> fn) {
         auto &comp = registry.get<DigitalComponent>(e);
         comp.inputStates = inputs;
         bool changed = false;
@@ -210,7 +210,7 @@ namespace Bess::SimEngine {
             states.reserve(comp.inputStates.size());
             for (auto &state : comp.inputStates)
                 states.emplace_back((bool)state);
-            bool newState = ExprEval::evaluateExpression(comp.expressions[i], states);
+            const bool newState = ExprEval::evaluateExpression(comp.expressions[i], states);
             changed = changed || (bool)comp.outputStates[i] != newState;
             comp.outputStates[i] = {newState ? LogicState::high : LogicState::low, currentTime};
         }
@@ -254,15 +254,15 @@ namespace Bess::SimEngine {
         notGate.addModifiableProperty(Properties::ComponentProperty::inputCount, {2, 3, 4, 5, 6});
         ComponentCatalog::instance().registerComponent(notGate);
 
-        auto registerTriBufferN = [&](int N, ComponentType type, const std::string &humanName, const std::string &shortName) {
-            auto simFuncN = [N](entt::registry &reg, entt::entity e, const std::vector<PinState> &inputs, SimTime currentTime, auto fn) -> bool {
+        auto registerTriBufferN = [&](int N, const ComponentType type, const std::string &humanName, const std::string &shortName) {
+            auto simFuncN = [N](entt::registry &reg, const entt::entity e, const std::vector<PinState> &inputs, const SimTime currentTime, auto fn) -> bool {
                 // inputs expected: D0..D(N-1), OE  => inputs.size() == N+1
                 if ((int)inputs.size() < N + 1)
                     return false;
                 auto &comp = reg.get<DigitalComponent>(e);
 
                 const PinState &oe = inputs[N];
-                bool enabled = (oe.state == LogicState::high);
+                const bool enabled = (oe.state == LogicState::high);
 
                 if (comp.outputStates.size() < (size_t)N)
                     comp.outputStates.resize(N, {LogicState::high_z, SimTime(0)});

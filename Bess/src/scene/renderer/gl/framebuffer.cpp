@@ -147,7 +147,7 @@ namespace Bess::Gl {
         GL_CHECK(glReadBuffer(GL_COLOR_ATTACHMENT0 + idx));
     }
 
-    void FrameBuffer::bindColorAttachmentTexture(int idx, int slotIdx) const {
+    void FrameBuffer::bindColorAttachmentTexture(const int idx, const int slotIdx) const {
         m_colorAttachments[idx].bindTexture(slotIdx);
     }
 
@@ -200,13 +200,13 @@ namespace Bess::Gl {
         return internalFormat;
     }
 
-    void FrameBuffer::saveColorAttachment(int idx, const std::string &path) {
+    void FrameBuffer::saveColorAttachment(const int idx, const std::string &path) const {
         bindColorAttachmentForRead(idx);
         m_colorAttachments[idx].getTextureHandle()->saveToPath(path, false);
         unbindAll();
     }
 
-    std::vector<unsigned char> FrameBuffer::getPixelsFromColorAttachment(int idx) {
+    std::vector<unsigned char> FrameBuffer::getPixelsFromColorAttachment(const int idx) const {
         bindColorAttachmentForRead(idx);
         auto buffer = m_colorAttachments[idx].getTextureHandle()->getData(false);
         unbindAll();

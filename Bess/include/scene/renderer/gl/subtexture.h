@@ -21,7 +21,7 @@ namespace Bess::Gl {
 
         std::shared_ptr<Texture> getTexture();
 
-        void calcCoordsFrom(std::shared_ptr<Gl::Texture> tex, const glm::vec2 &pos, const glm::vec2 &size);
+        void calcCoordsFrom(const std::shared_ptr<Gl::Texture> &tex, const glm::vec2 &pos, const glm::vec2 &size);
 
       private:
         void calculateCoords();

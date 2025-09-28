@@ -5,14 +5,14 @@
 namespace Bess {
     float Camera::zoomMin = 0.5f, Camera::zoomMax = 4.f, Camera::defaultZoom = 1.517f;
 
-    Camera::Camera(float width, float height) : m_zoom(defaultZoom), m_width(width), m_height(height) {
+    Camera::Camera(const float width, const float height) : m_zoom(defaultZoom), m_width(width), m_height(height) {
         setZoom(defaultZoom);
         setPos({0.f, 0.f});
     }
 
     Camera::~Camera() {}
 
-    void Camera::update(TFrameTime ts) {
+    void Camera::update(const TFrameTime ts) {
         if (!m_posAnimation.finised) {
             setPos(m_posAnimation.getNextPos(ts));
         }
@@ -51,13 +51,13 @@ namespace Bess {
         recalculateOrtho();
     }
 
-    void Camera::incrementZoom(float value) {
+    void Camera::incrementZoom(const float value) {
         setZoom(m_zoom + value);
     }
 
-    void Camera::incrementZoomToPoint(const glm::vec2 &point, float value) {
-        auto newZoom = m_zoom + value;
-        auto oldZoom = m_zoom;
+    void Camera::incrementZoomToPoint(const glm::vec2 &point, const float value) {
+        const auto newZoom = m_zoom + value;
+        const auto oldZoom = m_zoom;
         setZoom(newZoom);
         if (m_zoom == oldZoom)
             return;
@@ -65,7 +65,7 @@ namespace Bess {
         updateTransform();
     }
 
-    void Camera::focusAtPoint(const glm::vec2 &pos, bool smooth) {
+    void Camera::focusAtPoint(const glm::vec2 &pos, const bool smooth) {
         if (!smooth) {
             setZoom(2.f);
             setPos(pos);
@@ -91,17 +91,17 @@ namespace Bess {
         return {xSpan, ySpan};
     }
 
-    void Camera::resize(float width, float height) {
+    void Camera::resize(const float width, const float height) {
         m_width = width;
         m_height = height;
         recalculateOrtho();
     }
 
     void Camera::recalculateOrtho() {
-        float xSpan = m_width / m_zoom;
-        float ySpan = m_height / m_zoom;
-        auto x = xSpan / 2.f;
-        auto y = ySpan / 2.f;
+        const float xSpan = m_width / m_zoom;
+        const float ySpan = m_height / m_zoom;
+        const auto x = xSpan / 2.f;
+        const auto y = ySpan / 2.f;
         m_ortho = glm::ortho(-x, x, y, -y, -10.0f, 10.0f);
 
         updateTransform();

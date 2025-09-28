@@ -10,7 +10,7 @@ namespace Bess::Pages {
         virtual ~Page() = default;
         Page(PageIdentifier identifier);
 
-        void show();
+        void show() const;
         PageIdentifier getIdentifier() const;
 
         virtual void draw() = 0;

@@ -8,23 +8,23 @@
 #ifdef __linux__
     #include <stacktrace>
 
-void signalHandler(int sig) {
+void signalHandler(const int sig) {
     std::cerr << "Error: signal " << sig << std::endl;
-    std::stacktrace st = std::stacktrace::current();
+    const std::stacktrace st = std::stacktrace::current();
     std::cout << st << std::endl;
     exit(1);
 }
 
-#endif // _LINUX
+#endif // __linux__
 
 static bool isValidStartDir() {
     return std::filesystem::exists("assets");
 }
 
-int main(int argc, char **argv) {
+int main(const int argc, char **argv) {
     if (!isValidStartDir()) {
-        std::filesystem::path exePath = std::filesystem::absolute(argv[0]);
-        std::filesystem::path exeDir = exePath.parent_path();
+        const std::filesystem::path exePath = std::filesystem::absolute(argv[0]);
+        const std::filesystem::path exeDir = exePath.parent_path();
         std::filesystem::current_path(exeDir);
 
         if (!isValidStartDir()) {
@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
     sa.sa_flags = SA_RESTART;
     sigaction(SIGSEGV, &sa, nullptr);
     #endif
-#endif // _LINUX
+#endif // __linux__
 
     Bess::Application app;
     try {
@@ -49,7 +49,9 @@ int main(int argc, char **argv) {
         app.init(projectFile);
         app.run();
     } catch (const std::exception &e) {
+        const std::stacktrace st = std::stacktrace::current();
         std::cerr << e.what() << std::endl;
+        std::cout << st << std::endl;
         app.quit();
         return -1;
     }

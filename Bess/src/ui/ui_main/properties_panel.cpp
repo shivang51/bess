@@ -71,7 +71,7 @@ namespace Bess::UI {
             if (comp.clockBhaviour) {
 
                 if (ImGui::SliderFloat("Frequency", &comp.frequency, 0.1f, 3.0f, "%.1f Hz", ImGuiSliderFlags_AlwaysClamp)) {
-                    float stepSize = 0.1f;
+                    constexpr float stepSize = 0.1f;
                     comp.frequency = roundf(comp.frequency / stepSize) * stepSize; // Force step increments
                     comp.updateClock(uuid);
                 }
@@ -109,7 +109,7 @@ namespace Bess::UI {
         ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
         auto &registry = Canvas::Scene::instance().getEnttRegistry();
-        auto view = registry.view<SelectedComponent>();
+        const auto view = registry.view<SelectedComponent>();
 
         if (view.size() == 0) {
             ImGui::Text("No Component Selected");
@@ -117,7 +117,7 @@ namespace Bess::UI {
             return;
         }
 
-        auto entt = view.front();
+        const auto entt = view.front();
         if (!registry.valid(entt)) {
             ImGui::End();
             return;
@@ -132,7 +132,7 @@ namespace Bess::UI {
         }
 
         if (registry.all_of<SimulationInputComponent>(entt)) {
-            auto simulationComp = registry.get<SimulationComponent>(entt);
+            const auto simulationComp = registry.get<SimulationComponent>(entt);
             drawSimulationInputComponent(registry.get<SimulationInputComponent>(entt), simulationComp.simEngineEntity);
         }
 

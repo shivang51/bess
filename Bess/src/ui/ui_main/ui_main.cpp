@@ -4,11 +4,9 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "simulation_engine.h"
-#include "stb_image_write.h"
 #include "ui/icons/MaterialIcons.h"
 #include "ui/m_widgets.h"
 #include "ui/ui_main/scene_export_window.h"
-#include <ranges>
 #include <string>
 
 #include "camera.h"
@@ -50,35 +48,33 @@ namespace Bess::UI {
     }
 
     void UIMain::drawStats(int fps) {
-        auto stats = Gl::Api::getStats();
+        const auto stats = Gl::Api::getStats();
         ImGui::Text("Draw Calls: %d", stats.drawCalls);
         ImGui::Text("Vertices: %d", stats.vertices);
         ImGui::Text("GL Check Calls: %d", stats.glCheckCalls);
     }
 
-    void UIMain::setViewportTexture(GLuint64 texture) {
+    void UIMain::setViewportTexture(const GLuint64 texture) {
         state.viewportTexture = texture;
     }
 
-    ImVec2 getTextSize(const std::string &text, bool includePadding = true) {
+    ImVec2 getTextSize(const std::string &text, const bool includePadding = true) {
         auto size = ImGui::CalcTextSize(text.c_str());
         if (!includePadding)
             return size;
-        ImGuiContext &g = *ImGui::GetCurrentContext();
-        auto style = g.Style;
+        const ImGuiContext &g = *ImGui::GetCurrentContext();
+        const auto style = g.Style;
         size.x += style.FramePadding.x * 2;
         size.y += style.FramePadding.y * 2;
         return size;
     }
 
     void UIMain::drawStatusbar() {
-        ImGuiContext &g = *ImGui::GetCurrentContext();
-        auto style = g.Style;
-        ImGuiViewportP *viewport = (ImGuiViewportP *)(void *)ImGui::GetMainViewport();
-        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
-        auto &simEngine = SimEngine::SimulationEngine::instance();
-        float height = ImGui::GetFrameHeight();
-        if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down, height, window_flags)) {
+        const auto viewport = (ImGuiViewportP *)(void *)ImGui::GetMainViewport();
+        constexpr ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
+        const auto &simEngine = SimEngine::SimulationEngine::instance();
+        const float height = ImGui::GetFrameHeight();
+        if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down, height, windowFlags)) {
             if (ImGui::BeginMenuBar()) {
                 if (simEngine.getSimulationState() == SimEngine::SimulationState::running) {
                     ImGui::Text("Simulation Running");
@@ -135,7 +131,7 @@ namespace Bess::UI {
             ImGui::Spacing();
 
             temp_name = Icons::FontAwesomeIcons::FA_PENCIL_ALT;
-            temp_name += "  Prefrences";
+            temp_name += "  Preferences";
             if (ImGui::MenuItem(temp_name.c_str())) {
                 SettingsWindow::show();
             }
@@ -203,13 +199,13 @@ namespace Bess::UI {
             ImGui::EndMenu();
         }
 
-        auto menubar_size = ImGui::GetWindowSize();
+        const auto menubar_size = ImGui::GetWindowSize();
 
         // project name textbox - begin
 
-        auto &style = ImGui::GetStyle();
+        const auto &style = ImGui::GetStyle();
         auto &name = Pages::MainPageState::getInstance()->getCurrentProjectFile()->getNameRef();
-        auto fontSize = ImGui::CalcTextSize(name.c_str());
+        const auto fontSize = ImGui::CalcTextSize(name.c_str());
         auto width = fontSize.x + (style.FramePadding.x * 2);
         if (width < 150)
             width = 150;
@@ -264,7 +260,7 @@ namespace Bess::UI {
     }
 
     void UIMain::drawViewport() {
-        ImGuiWindowFlags flags =
+        constexpr ImGuiWindowFlags flags =
             ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
             ImGuiWindowFlags_NoDecoration;
@@ -277,14 +273,14 @@ namespace Bess::UI {
         auto viewportPanelSize = ImGui::GetContentRegionAvail();
         state.viewportSize = {viewportPanelSize.x, viewportPanelSize.y};
 
-        auto offset = ImGui::GetCursorPos();
+        const auto offset = ImGui::GetCursorPos();
 
         ImGui::Image((void *)state.viewportTexture,
                      ImVec2(viewportPanelSize.x, viewportPanelSize.y), ImVec2(0, 1),
                      ImVec2(1, 0));
 
-        auto pos = ImGui::GetWindowPos();
-        auto gPos = ImGui::GetMainViewport()->Pos;
+        const auto pos = ImGui::GetWindowPos();
+        const auto gPos = ImGui::GetMainViewport()->Pos;
         state.viewportPos = {pos.x - gPos.x + offset.x, pos.y - gPos.y + offset.y};
 
         if (!state._internalData.isTbFocused && ImGui::IsWindowHovered()) {
@@ -297,9 +293,8 @@ namespace Bess::UI {
 
         // top left actions
         {
-            ImGuiContext &g = *ImGui::GetCurrentContext();
-            auto colors = g.Style.Colors;
-            auto &simEngine = SimEngine::SimulationEngine::instance();
+            const ImGuiContext &g = *ImGui::GetCurrentContext();
+            const auto colors = g.Style.Colors;
             static float checkboxWidth = ImGui::CalcTextSize("W").x + g.Style.FramePadding.x + 2.f;
             static float size = ImGui::CalcTextSize("Schematic Mode").x + checkboxWidth + 12.f;
             ImGui::SetNextWindowPos({pos.x + g.Style.FramePadding.x, pos.y + g.Style.FramePadding.y});
@@ -325,8 +320,8 @@ namespace Bess::UI {
         // actions (on top right)
         {
 
-            ImGuiContext &g = *ImGui::GetCurrentContext();
-            auto colors = g.Style.Colors;
+            const ImGuiContext &g = *ImGui::GetCurrentContext();
+            const auto colors = g.Style.Colors;
             auto &simEngine = SimEngine::SimulationEngine::instance();
             static int n = 4; // number of action buttons
             static float size = (32 * n) - (n - 1);
@@ -342,12 +337,11 @@ namespace Bess::UI {
             ImGui::PushStyleColor(ImGuiCol_WindowBg, col);
             ImGui::Begin("TopRightViewportActions", nullptr, flags);
 
-            auto &scene = Canvas::Scene::instance();
-
             // scene modes
             {
+                auto &scene = Canvas::Scene::instance();
 
-                bool isGeneral = scene.getSceneMode() == Canvas::SceneMode::general;
+                const bool isGeneral = scene.getSceneMode() == Canvas::SceneMode::general;
 
                 // general mode
                 if (isGeneral) {
@@ -363,7 +357,7 @@ namespace Bess::UI {
                 }
 
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                    auto msg = "General Mode";
+                    const auto msg = "General Mode";
                     ImGui::SetTooltip("%s", msg);
                 }
 
@@ -382,12 +376,12 @@ namespace Bess::UI {
                 }
 
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                    auto msg = "Move Mode";
+                    const auto msg = "Move Mode";
                     ImGui::SetTooltip("%s", msg);
                 }
             }
 
-            auto isSimPaused = simEngine.getSimulationState() == SimEngine::SimulationState::paused;
+            const auto isSimPaused = simEngine.getSimulationState() == SimEngine::SimulationState::paused;
 
             // Play / Pause
             {
@@ -408,7 +402,7 @@ namespace Bess::UI {
                     ImGui::PopStyleColor();
 
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                    auto msg = isSimPaused ? "Resume Simulation" : "Pause Simulation";
+                    const auto msg = isSimPaused ? "Resume Simulation" : "Pause Simulation";
                     ImGui::SetTooltip("%s", msg);
                 }
             }
@@ -438,9 +432,9 @@ namespace Bess::UI {
         // Camera controls (on bottom right)
         {
             const auto &mousePos = Canvas::Scene::instance().getSceneMousePos();
-            auto posLabel = std::format("X:{:.2f}, Y:{:.2f}", mousePos.x, mousePos.y);
-            auto posLabelCStr = posLabel.c_str();
-            auto posLabelSize = ImGui::CalcTextSize(posLabelCStr);
+            const auto posLabel = std::format("X:{:.2f}, Y:{:.2f}", mousePos.x, mousePos.y);
+            const auto posLabelCStr = posLabel.c_str();
+            const auto posLabelSize = ImGui::CalcTextSize(posLabelCStr);
             ImGui::SetNextWindowPos(
                 {pos.x + viewportPanelSize.x - 208 - posLabelSize.x,
                  pos.y + viewportPanelSize.y - 40});
@@ -466,8 +460,8 @@ namespace Bess::UI {
                 if (ImGui::SliderFloat("Zoom", &camera->getZoomRef(), Camera::zoomMin,
                                        Camera::zoomMax, nullptr,
                                        ImGuiSliderFlags_AlwaysClamp)) {
-                    float stepSize = 0.1f;
-                    float val = roundf(camera->getZoom() / stepSize) * stepSize;
+                    constexpr float stepSize = 0.1f;
+                    const float val = roundf(camera->getZoom() / stepSize) * stepSize;
                     camera->setZoom(val);
                 }
                 ImGui::PopStyleVar(2);
@@ -484,11 +478,11 @@ namespace Bess::UI {
         ImGui::DockBuilderRemoveNode(mainDockspaceId);
         ImGui::DockBuilderAddNode(mainDockspaceId, ImGuiDockNodeFlags_NoTabBar);
 
-        auto dock_id_left = ImGui::DockBuilderSplitNode(mainDockspaceId, ImGuiDir_Left, 0.15f, nullptr, &mainDockspaceId);
+        const auto dock_id_left = ImGui::DockBuilderSplitNode(mainDockspaceId, ImGuiDir_Left, 0.15f, nullptr, &mainDockspaceId);
         auto dock_id_right = ImGui::DockBuilderSplitNode(mainDockspaceId, ImGuiDir_Right, 0.25f, nullptr, &mainDockspaceId);
-        auto dock_id_bot = ImGui::DockBuilderSplitNode(mainDockspaceId, ImGuiDir_Down, 0.25f, nullptr, &mainDockspaceId);
+        const auto dock_id_bot = ImGui::DockBuilderSplitNode(mainDockspaceId, ImGuiDir_Down, 0.25f, nullptr, &mainDockspaceId);
 
-        auto dock_id_right_bot = ImGui::DockBuilderSplitNode(dock_id_right, ImGuiDir_Down, 0.5f, nullptr, &dock_id_right);
+        const auto dock_id_right_bot = ImGui::DockBuilderSplitNode(dock_id_right, ImGuiDir_Down, 0.5f, nullptr, &dock_id_right);
 
         ImGui::DockBuilderDockWindow(ComponentExplorer::windowName.data(), dock_id_left);
         ImGui::DockBuilderDockWindow("Viewport", mainDockspaceId);
@@ -516,7 +510,7 @@ namespace Bess::UI {
 
     void UIMain::onOpenProject() {
 
-        auto filepath =
+        const auto filepath =
             Dialogs::showOpenFileDialog("Open BESS Project File", "*.bproj|");
 
         if (filepath == "" || !std::filesystem::exists(filepath)) {

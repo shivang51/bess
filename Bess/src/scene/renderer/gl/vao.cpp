@@ -7,7 +7,7 @@
 #include "scene/renderer/gl/vertex.h"
 
 namespace Bess::Gl {
-    static uint32_t getGLTypeSize(GLenum type) {
+    static uint32_t getGLTypeSize(const GLenum type) {
         switch (type) {
         case GL_FLOAT:
             return 4;
@@ -33,7 +33,7 @@ namespace Bess::Gl {
 
     // --- Vbo Implementations ---
 
-    Vbo::Vbo(size_t size, const void *data) {
+    Vbo::Vbo(const size_t size, const void *data) {
         GL_CHECK(glGenBuffers(1, &m_id));
         GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, m_id));
         GL_CHECK(glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW));
@@ -51,14 +51,14 @@ namespace Bess::Gl {
         GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, 0));
     }
 
-    void Vbo::setData(const void *data, size_t size) {
+    void Vbo::setData(const void *data, const size_t size) const {
         bind();
         GL_CHECK(glBufferSubData(GL_ARRAY_BUFFER, 0, size, data));
     }
 
     // --- Ibo Implementations ---
 
-    Ibo::Ibo(size_t count, const GLuint *data) : m_Count(count) {
+    Ibo::Ibo(const size_t count, const GLuint *data) : m_Count(count) {
         GL_CHECK(glGenBuffers(1, &m_id));
         GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_id));
         GL_CHECK(glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(GLuint), data, GL_STATIC_DRAW));
@@ -76,7 +76,7 @@ namespace Bess::Gl {
         GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
     }
 
-    void Ibo::setData(const void *data, size_t size) {
+    void Ibo::setData(const void *data, const size_t size) const {
         bind();
         GL_CHECK(glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, size * sizeof(GLuint), data));
     }
@@ -97,7 +97,7 @@ namespace Bess::Gl {
         GL_CHECK(glBindVertexArray(0));
     }
 
-    void Vao::setIndexBuffer(const Ibo &ibo) {
+    void Vao::setIndexBuffer(const Ibo &ibo) const {
         bind();
         ibo.bind();
     }

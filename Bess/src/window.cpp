@@ -9,7 +9,7 @@ namespace Bess {
     bool Window::isGLFWInitialized = false;
     bool Window::isGladInitialized = false;
 
-    Window::Window(int width, int height, const std::string &title) {
+    Window::Window(const int width, const int height, const std::string &title) {
 
         this->initGLFW();
 
@@ -26,43 +26,39 @@ namespace Bess {
         glfwSetWindowSizeLimits(window, 600, 500, GLFW_DONT_CARE, GLFW_DONT_CARE);
 
         glfwSetFramebufferSizeCallback(
-            window, [](GLFWwindow *window, int w, int h) {
-                auto this_ = (Window *)glfwGetWindowUserPointer(window);
-                if (this_->m_callbacks.find(Callback::WindowResize) ==
-                    this_->m_callbacks.end())
+            window, [](GLFWwindow *window, const int w, const int h) {
+                const auto this_ = (Window *)glfwGetWindowUserPointer(window);
+                if (!this_->m_callbacks.contains(Callback::WindowResize))
                     return;
-                auto cb = std::any_cast<WindowResizeCallback>(
+                const auto cb = std::any_cast<WindowResizeCallback>(
                     this_->m_callbacks[Callback::WindowResize]);
                 cb(w, h);
             });
 
-        glfwSetScrollCallback(window, [](GLFWwindow *window, double x, double y) {
-            auto this_ = (Window *)glfwGetWindowUserPointer(window);
-            if (this_->m_callbacks.find(Callback::WindowResize) ==
-                this_->m_callbacks.end())
+        glfwSetScrollCallback(window, [](GLFWwindow *window, const double x, const double y) {
+            const auto this_ = (Window *)glfwGetWindowUserPointer(window);
+            if (!this_->m_callbacks.contains(Callback::WindowResize))
                 return;
-            auto cb = std::any_cast<MouseWheelCallback>(
+            const auto cb = std::any_cast<MouseWheelCallback>(
                 this_->m_callbacks[Callback::MouseWheel]);
             cb(x, y);
         });
 
-        glfwSetKeyCallback(window, [](GLFWwindow *window, int key, int scancode,
-                                      int action, int mods) {
-            auto this_ = (Window *)glfwGetWindowUserPointer(window);
+        glfwSetKeyCallback(window, [](GLFWwindow *window, const int key, int scancode,
+                                      const int action, int mods) {
+            const auto this_ = (Window *)glfwGetWindowUserPointer(window);
             switch (action) {
             case GLFW_PRESS: {
-                if (this_->m_callbacks.find(Callback::KeyPress) ==
-                    this_->m_callbacks.end())
+                if (!this_->m_callbacks.contains(Callback::KeyPress))
                     return;
-                auto cb = std::any_cast<KeyPressCallback>(
+                const auto cb = std::any_cast<KeyPressCallback>(
                     this_->m_callbacks[Callback::KeyPress]);
                 cb(key);
             } break;
             case GLFW_RELEASE: {
-                if (this_->m_callbacks.find(Callback::KeyRelease) ==
-                    this_->m_callbacks.end())
+                if (!this_->m_callbacks.contains(Callback::KeyRelease))
                     return;
-                auto cb = std::any_cast<KeyReleaseCallback>(
+                const auto cb = std::any_cast<KeyReleaseCallback>(
                     this_->m_callbacks[Callback::KeyRelease]);
                 cb(key);
             } break;
@@ -70,30 +66,27 @@ namespace Bess {
         });
 
         glfwSetMouseButtonCallback(
-            window, [](GLFWwindow *window, int button, int action, int mods) {
-                auto this_ = (Window *)glfwGetWindowUserPointer(window);
+            window, [](GLFWwindow *window, const int button, const int action, int mods) {
+                const auto this_ = (Window *)glfwGetWindowUserPointer(window);
                 switch (button) {
                 case GLFW_MOUSE_BUTTON_LEFT: {
-                    if (this_->m_callbacks.find(Callback::LeftMouse) ==
-                        this_->m_callbacks.end())
+                    if (!this_->m_callbacks.contains(Callback::LeftMouse))
                         return;
-                    auto cb = std::any_cast<LeftMouseCallback>(
+                    const auto cb = std::any_cast<LeftMouseCallback>(
                         this_->m_callbacks[Callback::LeftMouse]);
                     cb(action == GLFW_PRESS);
                 } break;
                 case GLFW_MOUSE_BUTTON_RIGHT: {
-                    if (this_->m_callbacks.find(Callback::RightMouse) ==
-                        this_->m_callbacks.end())
+                    if (!this_->m_callbacks.contains(Callback::RightMouse))
                         return;
-                    auto cb = std::any_cast<RightMouseCallback>(
+                    const auto cb = std::any_cast<RightMouseCallback>(
                         this_->m_callbacks[Callback::RightMouse]);
                     cb(action == GLFW_PRESS);
                 } break;
                 case GLFW_MOUSE_BUTTON_MIDDLE: {
-                    if (this_->m_callbacks.find(Callback::MiddleMouse) ==
-                        this_->m_callbacks.end())
+                    if (!this_->m_callbacks.contains(Callback::MiddleMouse))
                         return;
-                    auto cb = std::any_cast<MiddleMouseCallback>(
+                    const auto cb = std::any_cast<MiddleMouseCallback>(
                         this_->m_callbacks[Callback::MiddleMouse]);
                     cb(action == GLFW_PRESS);
                 } break;
@@ -101,12 +94,11 @@ namespace Bess {
             });
 
         glfwSetCursorPosCallback(
-            window, [](GLFWwindow *window, double x, double y) {
-                auto this_ = (Window *)glfwGetWindowUserPointer(window);
-                if (this_->m_callbacks.find(Callback::MouseMove) ==
-                    this_->m_callbacks.end())
+            window, [](GLFWwindow *window, const double x, const double y) {
+                const auto this_ = (Window *)glfwGetWindowUserPointer(window);
+                if (!this_->m_callbacks.contains(Callback::MouseMove))
                     return;
-                auto cb = std::any_cast<MouseMoveCallback>(this_->m_callbacks[Callback::MouseMove]);
+                const auto cb = std::any_cast<MouseMoveCallback>(this_->m_callbacks[Callback::MouseMove]);
                 cb(x, y);
             });
 
@@ -122,7 +114,7 @@ namespace Bess {
                 return;
             BESS_ERROR("[-] GLFW ERROR {} -> {}", code, msg);
         });
-        auto res = glfwInit();
+        const auto res = glfwInit();
         assert(res == GLFW_TRUE);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);

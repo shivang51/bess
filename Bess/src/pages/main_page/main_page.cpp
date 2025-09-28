@@ -13,12 +13,12 @@ namespace Bess::Pages {
         return instance;
     }
 
-    std::shared_ptr<MainPage> MainPage::getTypedInstance(std::shared_ptr<Window> parentWindow) {
+    std::shared_ptr<MainPage> MainPage::getTypedInstance(const std::shared_ptr<Window> &parentWindow) {
         const auto instance = getInstance(parentWindow);
         return std::dynamic_pointer_cast<MainPage>(instance);
     }
 
-    MainPage::MainPage(std::shared_ptr<Window> parentWindow) : Page(PageIdentifier::MainPage) {
+    MainPage::MainPage(const std::shared_ptr<Window> &parentWindow) : Page(PageIdentifier::MainPage) {
         if (m_parentWindow == nullptr && parentWindow == nullptr) {
             throw std::runtime_error("MainPage: parentWindow is nullptr. Need to pass a parent window.");
         }
@@ -35,7 +35,7 @@ namespace Bess::Pages {
         UI::UIMain::draw();
     }
 
-    void MainPage::update(TFrameTime ts, const std::vector<ApplicationEvent> &events) {
+    void MainPage::update(const TFrameTime ts, const std::vector<ApplicationEvent> &events) {
         if (m_scene.getSize() != UI::UIMain::state.viewportSize) {
             m_scene.resize(UI::UIMain::state.viewportSize);
         }
@@ -43,12 +43,12 @@ namespace Bess::Pages {
         for (auto &event : events) {
             switch (event.getType()) {
             case ApplicationEventType::KeyPress: {
-                const auto data = event.getData<ApplicationEvent::KeyPressData>();
-                m_state->setKeyPressed(data.key, true);
+                const auto [key] = event.getData<ApplicationEvent::KeyPressData>();
+                m_state->setKeyPressed(key, true);
             } break;
             case ApplicationEventType::KeyRelease: {
-                const auto data = event.getData<ApplicationEvent::KeyReleaseData>();
-                m_state->setKeyPressed(data.key, false);
+                const auto [key] = event.getData<ApplicationEvent::KeyReleaseData>();
+                m_state->setKeyPressed(key, false);
             } break;
             default:
                 break;
@@ -63,7 +63,7 @@ namespace Bess::Pages {
         return m_parentWindow;
     }
 
-    Canvas::Scene &MainPage::getScene() {
+    Canvas::Scene &MainPage::getScene() const {
         return m_scene;
     }
 

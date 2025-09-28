@@ -79,7 +79,7 @@ namespace Bess::Renderer2D {
 
         static void init();
 
-        static void begin(std::shared_ptr<Camera> camera);
+        static void begin(const std::shared_ptr<Camera> &camera);
 
         static void end();
 
@@ -101,11 +101,11 @@ namespace Bess::Renderer2D {
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
                          const glm::vec4 &color, int id, QuadRenderProperties properties = {});
 
-        static void quad(const glm::vec3 &pos, const glm::vec2 &size, std::shared_ptr<Gl::Texture>,
-                         const glm::vec4 &tintColor, int id, QuadRenderProperties properties = {});
+        static void quad(const glm::vec3 &pos, const glm::vec2 &size, const std::shared_ptr<Gl::Texture> &,
+                         const glm::vec4 &tintColor, int id, const QuadRenderProperties &properties = {});
 
-        static void quad(const glm::vec3 &pos, const glm::vec2 &size, std::shared_ptr<Gl::SubTexture>,
-                         const glm::vec4 &tintColor, int id, QuadRenderProperties properties = {});
+        static void quad(const glm::vec3 &pos, const glm::vec2 &size, const std::shared_ptr<Gl::SubTexture> &,
+                         const glm::vec4 &tintColor, int id, const QuadRenderProperties &properties = {});
         // --- quad api---
 
         static void circle(const glm::vec3 &center, float radius,

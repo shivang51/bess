@@ -9,7 +9,7 @@ namespace Bess::SimEngine {
     }
 
     void ComponentCatalog::registerComponent(ComponentDefinition def) {
-        auto it = std::find_if(m_components.begin(), m_components.end(),
+        const auto it = std::find_if(m_components.begin(), m_components.end(),
                                [&def](const std::shared_ptr<const ComponentDefinition> existing) {
                                    return existing->type == def.type;
                                });
@@ -35,7 +35,7 @@ namespace Bess::SimEngine {
     }
 
     std::shared_ptr<const ComponentDefinition> ComponentCatalog::getComponentDefinition(ComponentType type) const {
-        auto it = std::find_if(m_components.begin(), m_components.end(),
+        const auto it = std::find_if(m_components.begin(), m_components.end(),
                                [&type](const std::shared_ptr<const ComponentDefinition> existing) {
                                    return existing->type == type;
                                });

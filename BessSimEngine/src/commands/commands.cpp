@@ -69,7 +69,7 @@ namespace Bess::SimEngine::Commands {
         return m_compIds;
     }
 
-    ConnectCommand::ConnectCommand(const UUID &src, int srcPin, PinType srcType, const UUID &dst, int dstPin, PinType dstType) {
+    ConnectCommand::ConnectCommand(const UUID &src, const int srcPin, const PinType srcType, const UUID &dst, const int dstPin, const PinType dstType) {
         m_src = src;
         m_srcPin = srcPin;
         m_srcType = srcType;
@@ -167,7 +167,7 @@ namespace Bess::SimEngine::Commands {
     }
 
     // --- SetInputCommand ---
-    SetInputCommand::SetInputCommand(const UUID &compId, bool state)
+    SetInputCommand::SetInputCommand(const UUID &compId, const bool state)
         : m_compId(compId), m_newState(state), m_oldState(false) {}
 
     bool SetInputCommand::execute() {

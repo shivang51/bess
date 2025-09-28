@@ -27,7 +27,7 @@ namespace Bess::SimEngine {
         m_loggers[name] = std::move(logger);
     }
 
-    const std::shared_ptr<spdlog::logger> Logger::getLogger(const std::string &name) {
+    std::shared_ptr<spdlog::logger> Logger::getLogger(const std::string &name) {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_loggers[name];
     }

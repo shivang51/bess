@@ -7,10 +7,10 @@
 namespace Bess {
     class ApplicationState {
       public:
-        static void setCurrentPage(std::shared_ptr<Pages::Page> page);
+        static void setCurrentPage(const std::shared_ptr<Pages::Page> &page);
         static std::shared_ptr<Pages::Page> getCurrentPage();
 
-        static void setParentWindow(std::shared_ptr<Window> parentWindow);
+        static void setParentWindow(const std::shared_ptr<Window> &parentWindow);
 
         static std::shared_ptr<Window> getParentWindow();
 

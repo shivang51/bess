@@ -12,7 +12,7 @@ namespace Bess::Config {
     }
 
     void Themes::applyTheme(const std::string &theme) {
-        if (m_themes.find(theme) == m_themes.end())
+        if (!m_themes.contains(theme))
             return;
 
         m_themes[theme]();
@@ -27,7 +27,7 @@ namespace Bess::Config {
         return m_themes;
     }
 
-    ImVec4 BlendColors(const ImVec4 &base, const ImVec4 &accent, float blendFactor) {
+    ImVec4 BlendColors(const ImVec4 &base, const ImVec4 &accent, const float blendFactor) {
         return ImVec4(
             base.x * (1.0f - blendFactor) + accent.x * blendFactor,
             base.y * (1.0f - blendFactor) + accent.y * blendFactor,

@@ -27,8 +27,8 @@ namespace Bess::SimEngine::Commands {
 
       private:
         std::vector<AddCommandData> m_data;
-        std::vector<UUID> m_compIds = {};
-        std::vector<Json::Value> m_compJsons = {};
+        std::vector<UUID> m_compIds;
+        std::vector<Json::Value> m_compJsons;
         std::vector<ConnectionBundle> m_connections;
 
         bool m_redo = false;

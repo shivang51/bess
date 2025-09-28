@@ -77,13 +77,13 @@ namespace Bess::UI {
         ImGui::Begin("DockSpace", nullptr, window_flags);
         ImGui::PopStyleVar(3);
 
-        auto mainDockspaceId = ImGui::GetID("MainDockspace");
+        const auto mainDockspaceId = ImGui::GetID("MainDockspace");
         ImGui::DockSpace(mainDockspaceId);
     }
 
     void end() {
         ImGui::End();
-        ImGuiIO &io = ImGui::GetIO();
+        const ImGuiIO &io = ImGui::GetIO();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -97,7 +97,7 @@ namespace Bess::UI {
 
     ImFont *Fonts::largeFont = nullptr;
     ImFont *Fonts::mediumFont = nullptr;
-    void loadFontAndSetScale(float fontSize, float scale) {
+    void loadFontAndSetScale(const float fontSize, const float scale) {
         ImGuiIO &io = ImGui::GetIO();
         ImGuiStyle &style = ImGui::GetStyle();
 
@@ -110,7 +110,7 @@ namespace Bess::UI {
         io.FontDefault = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize);
 
         ImFontConfig config;
-        float r = 2.2f / 3.f;
+        const float r = 2.2f / 3.f;
         config.MergeMode = true;
         config.PixelSnapH = true;
 
@@ -153,7 +153,7 @@ namespace Bess::UI {
 
     void setCursorNormal() { ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow); }
 
-    void drawStats(int fps) {
+    void drawStats(const int fps) {
         ImGui::Begin("Stats");
         ImGui::Text("FPS: %d", fps);
         switch (ApplicationState::getCurrentPage()->getIdentifier()) {

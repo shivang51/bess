@@ -17,6 +17,7 @@ namespace Bess::JsonConvert {
 namespace Bess {
     class BESS_API EnttRegistrySerializer {
       public:
+        virtual ~EnttRegistrySerializer() = default;
         void serializeToPath(const entt::registry &registry, const std::string &filename, int indent = -1);
         void serialize(const entt::registry &registry, Json::Value &j);
 
@@ -29,7 +30,7 @@ namespace Bess {
     protected:
         template<typename T>
         void registerComponent(const std::string &name) {
-          m_ComponentSerializers[name] = [name](const entt::registry& registry, entt::entity entity, Json::Value& j) {
+          m_ComponentSerializers[name] = [name](const entt::registry& registry, const entt::entity entity, Json::Value& j) {
             if (auto* component = registry.try_get<T>(entity)) {
                 Bess::JsonConvert::toJsonValue(*component, j[name]);
             }

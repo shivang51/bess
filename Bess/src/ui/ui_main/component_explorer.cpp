@@ -96,7 +96,7 @@ namespace Bess::UI {
         return clicked;
     }
 
-    void ComponentExplorer::createComponent(std::shared_ptr<const SimEngine::ComponentDefinition> def, int inputCount, int outputCount) {
+    void ComponentExplorer::createComponent(const std::shared_ptr<const SimEngine::ComponentDefinition> &def, const int inputCount, const int outputCount) {
         auto &scene = Canvas::Scene::instance();
         Canvas::Commands::AddCommandData data;
         data.def = def;
@@ -104,7 +104,7 @@ namespace Bess::UI {
         data.inputCount = inputCount;
         data.outputCount = outputCount;
         auto &cmdManager = scene.getCmdManager();
-        auto res = cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{data});
+        const auto res = cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{data});
         if (!res.has_value()) {
             BESS_ERROR("[ComponentExplorer] Failed to execute AddCommand");
         }
@@ -116,7 +116,7 @@ namespace Bess::UI {
         data.nsComp = comp;
         data.pos = scene.getCameraPos();
         auto &cmdManager = scene.getCmdManager();
-        auto res = cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{data});
+        const auto res = cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{data});
         if (!res.has_value()) {
             BESS_ERROR("[ComponentExplorer] Failed to execute AddCommand");
         }
@@ -183,14 +183,14 @@ namespace Bess::UI {
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
         ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0, 0, 0, 0)); // for tree node to have no bg normally
 
-        auto componentTree = SimEngine::ComponentCatalog::instance().getComponentsTree();
+        const auto componentTree = SimEngine::ComponentCatalog::instance().getComponentsTree();
         // simulation components
         {
             static auto modifiableProperties = generateModifiablePropertiesStr();
 
             for (auto &ent : *componentTree) {
                 if (MyTreeNode(ent.first.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
-                    for (auto &comp : ent.second) {
+                    for (const auto &comp : ent.second) {
                         auto name = comp->name;
                         if (m_searchQuery != "" && Common::Helpers::toLowerCase(name).find(m_searchQuery) == std::string::npos)
                             continue;

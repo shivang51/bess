@@ -53,14 +53,14 @@ namespace Bess::Gl {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-            auto dataType = (format == GL_RED_INTEGER) ? GL_INT : GL_UNSIGNED_BYTE;
+            const auto dataType = (format == GL_RED_INTEGER) ? GL_INT : GL_UNSIGNED_BYTE;
             glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, m_width, m_height, 0, format, dataType, data);
         }
     }
 
     Texture::~Texture() { glDeleteTextures(1, &m_id); }
 
-    void Texture::bind(int slotIdx) const {
+    void Texture::bind(const int slotIdx) const {
         if (m_id == 0) {
             BESS_ERROR("[Texture] Attempted to bind an uninitialized texture.");
             assert(false);
@@ -85,7 +85,7 @@ namespace Bess::Gl {
 
     GLuint Texture::getId() const { return m_id; }
 
-    void Texture::setData(const void *data) {
+    void Texture::setData(const void *data) const {
         this->bind();
         glTexImage2D(GL_TEXTURE_2D, 0, m_internalFormat, m_width, m_height, 0, m_format, GL_UNSIGNED_BYTE, data);
     }
@@ -97,22 +97,22 @@ namespace Bess::Gl {
         if (m_multisampled) {
             glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, m_internalFormat, m_width, m_height, GL_TRUE);
         } else {
-            auto dataType = (m_format == GL_RED_INTEGER) ? GL_INT : GL_UNSIGNED_BYTE;
+            const auto dataType = (m_format == GL_RED_INTEGER) ? GL_INT : GL_UNSIGNED_BYTE;
             glTexImage2D(GL_TEXTURE_2D, 0, m_internalFormat, m_width, m_height, 0,
                          m_format, dataType, data);
         }
     }
 
-    void Texture::saveToPath(const std::string &path, bool bindTexture) const {
-        std::filesystem::path fullPath = path;
+    void Texture::saveToPath(const std::string &path, const bool bindTexture) const {
+        const std::filesystem::path fullPath = path;
 
         std::string pathStr = fullPath.string();
 
-        int channels = getChannelsFromFormat();
-        auto buffer = getData(bindTexture);
+        const int channels = getChannelsFromFormat();
+        const auto buffer = getData(bindTexture);
 
         stbi_flip_vertically_on_write(1);
-        int result = stbi_write_png(
+        const int result = stbi_write_png(
             pathStr.c_str(),
             m_width,
             m_height,
@@ -128,9 +128,9 @@ namespace Bess::Gl {
         BESS_TRACE("[Texture] Successfully saved file to {}", pathStr);
     }
 
-    std::vector<unsigned char> Texture::getData(bool bindTexture) const {
-        int channels = getChannelsFromFormat();
-        size_t n = m_width * m_height * channels;
+    std::vector<unsigned char> Texture::getData(const bool bindTexture) const {
+        const int channels = getChannelsFromFormat();
+        const size_t n = m_width * m_height * channels;
         std::vector<unsigned char> buffer(n, 255);
 
         if (bindTexture)

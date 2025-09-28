@@ -14,9 +14,9 @@ namespace Bess::Pages {
 
         void resetProjectState();
         void createNewProject(bool updateWindowName = true);
-        void saveCurrentProject();
+        void saveCurrentProject() const;
         void loadProject(const std::string &path);
-        void updateCurrentProject(std::shared_ptr<ProjectFile> project);
+        void updateCurrentProject(const std::shared_ptr<ProjectFile> &project);
         std::shared_ptr<ProjectFile> getCurrentProjectFile();
 
         // handle to currently open project file

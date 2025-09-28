@@ -1,7 +1,7 @@
 #include "events/application_event.h"
 
 namespace Bess {
-    ApplicationEvent::ApplicationEvent(ApplicationEventType type, std::any data) : m_type(type), m_data(data) {
+    ApplicationEvent::ApplicationEvent(const ApplicationEventType type, const std::any &data) : m_type(type), m_data(data) {
     }
 
     ApplicationEventType ApplicationEvent::getType() const {

@@ -9,7 +9,7 @@ namespace Bess::UI {
         if (!m_shown)
             return;
 
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
+        constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
 
         ImGui::SetNextWindowSize(ImVec2(600, 600));
 

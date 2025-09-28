@@ -76,7 +76,7 @@ namespace Bess::UI {
 
     SceneExportInfo getSceneExportInfo(const SceneBounds &bounds, float zoom) {
         auto size = Canvas::Scene::instance().getSize();
-        std::shared_ptr<Camera> camera = std::make_shared<Camera>(size.x, size.y);
+        auto camera = std::make_shared<Camera>(size.x, size.y);
         camera->setPos(bounds.min);
         camera->setZoom(zoom);
         auto snapSize = camera->getSpan();
@@ -120,7 +120,7 @@ namespace Bess::UI {
         BESS_INFO("[ExportSceneView] Generating image of size {}x{}", finalWidth, finalHeight);
 
         const auto &path = info.path;
-        std::ofstream imgFile = std::ofstream(path, std::ios::binary);
+        auto imgFile = std::ofstream(path, std::ios::binary);
         if (!imgFile.is_open()) {
             BESS_ERROR("[ExportSceneView] Failed to open file for writing: {}", path.string());
             return;
@@ -145,9 +145,9 @@ namespace Bess::UI {
             return;
         }
 
-        png_set_write_fn(pngPtr, &imgFile, [](png_structp png_ptr, png_bytep data, png_size_t length) {
+        png_set_write_fn(pngPtr, &imgFile, [](const png_structp png_ptr, const png_bytep data, const png_size_t length) {
 							auto& stream = *static_cast<std::ostream*>(png_get_io_ptr(png_ptr));
-							stream.write(reinterpret_cast<const char*>(data), length); }, [](png_structp png_ptr) {
+							stream.write(reinterpret_cast<const char*>(data), length); }, [](const png_structp png_ptr) {
 							auto& stream = *static_cast<std::ostream*>(png_get_io_ptr(png_ptr));
             stream.flush(); });
 
@@ -169,7 +169,7 @@ namespace Bess::UI {
         auto normalFramebuffer = std::make_unique<Gl::FrameBuffer>(size.x, size.y, attachments);
 
         auto pos = min + snapSpan / 2.f;
-        std::shared_ptr<Camera> camera = std::make_shared<Camera>(size.x, size.y);
+        auto camera = std::make_shared<Camera>(size.x, size.y);
         camera->setPos(pos);
         camera->setZoom(info.scale);
 
@@ -224,7 +224,7 @@ namespace Bess::UI {
             if (!std::filesystem::exists(exportPath))
                 std::filesystem::create_directories(exportPath);
 
-            auto mainPage = Pages::MainPageState::getInstance();
+            const auto mainPage = Pages::MainPageState::getInstance();
 
             const auto now = std::chrono::system_clock::now();
             const std::chrono::zoned_time localTime{std::chrono::current_zone(), now};
@@ -239,9 +239,9 @@ namespace Bess::UI {
         ImGui::Begin("Export scene as PNG", &m_shown);
 
         {
-            float buttonHeight = ImGui::GetFrameHeight();
-            float textHeight = ImGui::CalcTextSize("ajP").y;
-            float verticalOffset = (buttonHeight - textHeight) / 2.0f;
+            const float buttonHeight = ImGui::GetFrameHeight();
+            const float textHeight = ImGui::CalcTextSize("ajP").y;
+            const float verticalOffset = (buttonHeight - textHeight) / 2.0f;
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + verticalOffset);
             ImGui::Text("File Name");
             ImGui::SameLine();
@@ -256,7 +256,7 @@ namespace Bess::UI {
             MWidgets::TextBox("##Export Path", exportPath);
             ImGui::SameLine();
             if (ImGui::SmallButton(UI::Icons::FontAwesomeIcons::FA_FOLDER_OPEN)) {
-                auto sel = Dialogs::showSelectPathDialog("Path to save");
+                const auto sel = Dialogs::showSelectPathDialog("Path to save");
                 if (sel.size() > 0)
                     exportPath = sel;
             }

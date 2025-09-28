@@ -37,7 +37,7 @@ namespace Bess {
 
         while (!m_mainWindow->isClosed()) {
             auto currentTime = m_clock.now();
-            TFrameTime deltaTime = currentTime - previousTime;
+            const TFrameTime deltaTime = currentTime - previousTime;
             previousTime = currentTime;
 
             accumulatedTime += deltaTime;
@@ -52,7 +52,7 @@ namespace Bess {
         }
     }
 
-    void Application::update(TFrameTime ts) {
+    void Application::update(const TFrameTime ts) {
         m_mainWindow->update();
         ApplicationState::getCurrentPage()->update(ts, m_events);
         m_events.clear();
@@ -61,49 +61,49 @@ namespace Bess {
     void Application::quit() { m_mainWindow->close(); }
 
     // callbacks
-    void Application::onWindowResize(int w, int h) {
+    void Application::onWindowResize(const int w, const int h) {
         ApplicationEvent::WindowResizeData data(w, h);
         ApplicationEvent event(ApplicationEventType::WindowResize, data);
         m_events.emplace_back(event);
     }
 
-    void Application::onMouseWheel(double x, double y) {
+    void Application::onMouseWheel(const double x, const double y) {
         ApplicationEvent::MouseWheelData data(x, y);
         ApplicationEvent event(ApplicationEventType::MouseWheel, data);
         m_events.emplace_back(event);
     }
 
-    void Application::onKeyPress(int key) {
+    void Application::onKeyPress(const int key) {
         ApplicationEvent::KeyPressData data(key);
         ApplicationEvent event(ApplicationEventType::KeyPress, data);
         m_events.emplace_back(event);
     }
 
-    void Application::onKeyRelease(int key) {
+    void Application::onKeyRelease(const int key) {
         ApplicationEvent::KeyReleaseData data(key);
         ApplicationEvent event(ApplicationEventType::KeyRelease, data);
         m_events.emplace_back(event);
     }
 
-    void Application::onLeftMouse(bool pressed) {
+    void Application::onLeftMouse(const bool pressed) {
         ApplicationEvent::MouseButtonData data(MouseButton::left, pressed);
         ApplicationEvent event(ApplicationEventType::MouseButton, data);
         m_events.emplace_back(event);
     }
 
-    void Application::onRightMouse(bool pressed) {
+    void Application::onRightMouse(const bool pressed) {
         ApplicationEvent::MouseButtonData data(MouseButton::right, pressed);
         ApplicationEvent event(ApplicationEventType::MouseButton, data);
         m_events.emplace_back(event);
     }
 
-    void Application::onMiddleMouse(bool pressed) {
+    void Application::onMiddleMouse(const bool pressed) {
         ApplicationEvent::MouseButtonData data(MouseButton::middle, pressed);
         ApplicationEvent event(ApplicationEventType::MouseButton, data);
         m_events.emplace_back(event);
     }
 
-    void Application::onMouseMove(double x, double y) {
+    void Application::onMouseMove(const double x, const double y) {
         ApplicationEvent::MouseMoveData data(x, y);
         ApplicationEvent event(ApplicationEventType::MouseMove, data);
         m_events.emplace_back(event);

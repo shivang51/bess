@@ -4,12 +4,12 @@
 
 namespace Bess::SimEngine {
     ComponentDefinition::ComponentDefinition(
-        ComponentType type,
+        const ComponentType type,
         const std::string &name,
         const std::string &category,
-        int inputCount, int outputCount,
+        const int inputCount, const int outputCount,
         SimulationFunction simFunction,
-        SimDelayNanoSeconds delay, char op) {
+        const SimDelayNanoSeconds delay, const char op) {
         this->type = type;
         this->name = name;
         this->category = category;
@@ -21,12 +21,12 @@ namespace Bess::SimEngine {
     }
 
     ComponentDefinition::ComponentDefinition(
-        ComponentType type,
+        const ComponentType type,
         const std::string &name,
         const std::string &category,
-        int inputCount, int outputCount,
+        const int inputCount, const int outputCount,
         SimulationFunction simFunction,
-        SimDelayNanoSeconds delay, const std::vector<std::string> &expr) {
+        const SimDelayNanoSeconds delay, const std::vector<std::string> &expr) {
         this->type = type;
         this->name = name;
         this->category = category;
@@ -41,7 +41,7 @@ namespace Bess::SimEngine {
         return m_modifiableProperties;
     }
 
-    std::vector<std::string> ComponentDefinition::getExpressions(int n) const {
+    std::vector<std::string> ComponentDefinition::getExpressions(const int n) const {
         if (op == '0') {
             return expressions;
         }
@@ -80,12 +80,12 @@ namespace Bess::SimEngine {
         return {in, out};
     }
 
-    ComponentDefinition &ComponentDefinition::addModifiableProperty(Properties::ComponentProperty property, std::any value) {
+    ComponentDefinition &ComponentDefinition::addModifiableProperty(const Properties::ComponentProperty property, std::any value) {
         m_modifiableProperties[property].emplace_back(value);
         return *this;
     }
 
-    ComponentDefinition &ComponentDefinition::addModifiableProperty(Properties::ComponentProperty property, const std::vector<std::any> &value) {
+    ComponentDefinition &ComponentDefinition::addModifiableProperty(const Properties::ComponentProperty property, const std::vector<std::any> &value) {
         m_modifiableProperties[property] = value;
         return *this;
     }

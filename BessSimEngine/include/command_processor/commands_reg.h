@@ -10,13 +10,13 @@ namespace Bess::SimEngine::Commands {
             if (args.size() != 3)
                 return nullptr;
             try {
-                auto type = Bess::SimEngine::StringUtils::toComponentType(args[0]);
+                const auto type = Bess::SimEngine::StringUtils::toComponentType(args[0]);
                 if (type == Bess::SimEngine::ComponentType::EMPTY)
                     return nullptr;
 
-                int inputCount = std::stoi(args[1]);
-                int outputCount = std::stoi(args[2]);
-                SimEngine::Commands::AddCommandData data = {type, inputCount, outputCount};
+                const int inputCount = std::stoi(args[1]);
+                const int outputCount = std::stoi(args[2]);
+                const SimEngine::Commands::AddCommandData data = {type, inputCount, outputCount};
                 return std::make_unique<Bess::SimEngine::Commands::AddCommand>(std::vector{data});
             } catch (const std::exception &e) {
                 return nullptr;
@@ -71,13 +71,13 @@ namespace Bess::SimEngine::Commands {
             if (args.size() != 6)
                 return nullptr;
             try {
-                UUID srcId(std::stoull(args[0]));
-                uint32_t srcPin = std::stoul(args[1]);
-                PinType srcType = StringUtils::toPinType(args[2]);
-                UUID dstId(std::stoull(args[3]));
-                uint32_t dstPin = std::stoul(args[4]);
-                PinType dstType = StringUtils::toPinType(args[5]);
-                DelConnectionCommandData data = {srcId, srcPin, srcType, dstId, dstPin, dstType};
+                const UUID srcId(std::stoull(args[0]));
+                const uint32_t srcPin = std::stoul(args[1]);
+                const PinType srcType = StringUtils::toPinType(args[2]);
+                const UUID dstId(std::stoull(args[3]));
+                const uint32_t dstPin = std::stoul(args[4]);
+                const PinType dstType = StringUtils::toPinType(args[5]);
+                const DelConnectionCommandData data = {srcId, srcPin, srcType, dstId, dstPin, dstType};
                 return std::make_unique<DelConnectionCommand>(std::vector{data});
             } catch (const std::exception &) {
                 return nullptr;

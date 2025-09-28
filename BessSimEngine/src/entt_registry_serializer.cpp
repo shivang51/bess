@@ -11,12 +11,12 @@ namespace Bess {
             registerAll();
         }
 
-        for (auto entity : registry.view<entt::entity>()) {
+        for (const auto entity : registry.view<entt::entity>()) {
             serializeEntity(registry, entity, j["entities"].append(Json::objectValue));
         }
     }
 
-    void EnttRegistrySerializer::serializeEntity(const entt::registry &registry, entt::entity entity, Json::Value &j) {
+    void EnttRegistrySerializer::serializeEntity(const entt::registry &registry, const entt::entity entity, Json::Value &j) {
         for (const auto &[name, serializeCB] : m_ComponentSerializers) {
             serializeCB(registry, entity, j);
         }

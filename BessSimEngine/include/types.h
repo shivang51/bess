@@ -60,12 +60,12 @@ namespace Bess::SimEngine {
 
         PinState() = default;
 
-        PinState(LogicState state, SimTime time) {
+        PinState(const LogicState state, const SimTime time) {
             this->state = state;
             lastChangeTime = time;
         }
 
-        PinState(bool value) {
+        PinState(const bool value) {
             state = value ? LogicState::high : LogicState::low;
         }
 

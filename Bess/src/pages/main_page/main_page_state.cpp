@@ -5,7 +5,7 @@
 namespace Bess::Pages {
 
     std::shared_ptr<MainPageState> MainPageState::getInstance() {
-        static std::shared_ptr<MainPageState> instance = std::make_shared<MainPageState>();
+        static auto instance = std::make_shared<MainPageState>();
         return instance;
     }
 
@@ -18,30 +18,30 @@ namespace Bess::Pages {
         SimEngine::SimulationEngine::instance().clear();
     }
 
-    void MainPageState::createNewProject(bool updateWindowName) {
+    void MainPageState::createNewProject(const bool updateWindowName) {
         resetProjectState();
         m_currentProjectFile = std::make_shared<ProjectFile>();
         if (!updateWindowName)
             return;
-        auto win = MainPage::getTypedInstance()->getParentWindow();
+        const auto win = MainPage::getTypedInstance()->getParentWindow();
         win->setName(m_currentProjectFile->getName());
     }
 
     void MainPageState::loadProject(const std::string &path) {
         resetProjectState();
-        auto project = std::make_shared<ProjectFile>(path);
+        const auto project = std::make_shared<ProjectFile>(path);
         updateCurrentProject(project);
     }
 
-    void MainPageState::saveCurrentProject() {
+    void MainPageState::saveCurrentProject() const {
         m_currentProjectFile->save();
     }
 
-    void MainPageState::updateCurrentProject(std::shared_ptr<ProjectFile> project) {
+    void MainPageState::updateCurrentProject(const std::shared_ptr<ProjectFile> &project) {
         if (project == nullptr)
             return;
         m_currentProjectFile = project;
-        auto win = MainPage::getTypedInstance()->getParentWindow();
+        const auto win = MainPage::getTypedInstance()->getParentWindow();
         win->setName(m_currentProjectFile->getName() + " - BESS");
     }
 
@@ -49,11 +49,11 @@ namespace Bess::Pages {
         return m_currentProjectFile;
     }
 
-    bool MainPageState::isKeyPressed(int key) {
+    bool MainPageState::isKeyPressed(const int key) {
         return m_pressedKeys[key];
     }
 
-    void MainPageState::setKeyPressed(int key, bool pressed) {
+    void MainPageState::setKeyPressed(const int key, const bool pressed) {
         m_pressedKeys[key] = pressed;
     }
 } // namespace Bess::Pages

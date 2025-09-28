@@ -20,7 +20,7 @@ namespace Bess::Gl {
 
         void resize(int width, int height, const void *data = nullptr);
 
-        void setData(const void *data);
+        void setData(const void *data) const;
 
         void saveToPath(const std::string &path, bool bindTexture = true) const;
 

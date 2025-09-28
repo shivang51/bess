@@ -11,7 +11,7 @@ namespace Bess::SimEngine {
 
         Logger() = default;
         void initLogger(const std::string &name);
-        const std::shared_ptr<spdlog::logger> getLogger(const std::string &name);
+        std::shared_ptr<spdlog::logger> getLogger(const std::string &name);
 
       private:
         std::unordered_map<std::string, std::shared_ptr<spdlog::logger>> m_loggers;

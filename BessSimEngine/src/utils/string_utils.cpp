@@ -12,9 +12,9 @@ namespace Bess::SimEngine::StringUtils {
 #undef COMPONENT
         };
 
-        std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+        std::ranges::transform(str, str.begin(), ::tolower);
 
-        auto it = stringToTypeMap.find(str);
+        const auto it = stringToTypeMap.find(str);
         if (it != stringToTypeMap.end()) {
             return it->second;
         }
@@ -23,7 +23,7 @@ namespace Bess::SimEngine::StringUtils {
     }
 
     PinType toPinType(std::string str) {
-        std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+        std::ranges::transform(str, str.begin(), ::tolower);
 
         if (str == "output") {
             return PinType::output;

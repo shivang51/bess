@@ -8,7 +8,7 @@ namespace Bess::Gl {
     }
 
     SubTexture::SubTexture(std::shared_ptr<Texture> texture, const glm::vec2 &coord, const glm::vec2 &spriteSize,
-                           float margin, const glm::vec2 &cellSize)
+                           const float margin, const glm::vec2 &cellSize)
         : m_texture(std::move(texture)), m_coord(coord), m_spriteSize(spriteSize), m_margin(margin), m_cellSize(cellSize) {
         calculateCoords();
     }
@@ -30,10 +30,10 @@ namespace Bess::Gl {
     }
 
     void SubTexture::calculateCoords() {
-        float startX = m_coord.x * (m_spriteSize.x + m_margin);
-        float startY = m_coord.y * (m_spriteSize.y + m_margin);
-        float texSizeX = m_spriteSize.x * m_cellSize.x;
-        float texSizeY = m_spriteSize.y * m_cellSize.y;
+        const float startX = m_coord.x * (m_spriteSize.x + m_margin);
+        const float startY = m_coord.y * (m_spriteSize.y + m_margin);
+        const float texSizeX = m_spriteSize.x * m_cellSize.x;
+        const float texSizeY = m_spriteSize.y * m_cellSize.y;
         glm::vec2 texOffset = {startX / m_texture->getWidth(), startY / m_texture->getHeight()};
         glm::vec2 texSize = {texSizeX / m_texture->getWidth(), texSizeY / m_texture->getHeight()};
 
@@ -46,11 +46,11 @@ namespace Bess::Gl {
             {texOffset.x + texSize.x, texOffset.y + texSize.y}};
     }
 
-    void SubTexture::calcCoordsFrom(std::shared_ptr<Gl::Texture> tex, const glm::vec2 &pos, const glm::vec2 &size) {
-        float startX = pos.x;
-        float startY = pos.y;
-        float texSizeX = size.x;
-        float texSizeY = size.y;
+    void SubTexture::calcCoordsFrom(const std::shared_ptr<Gl::Texture> &tex, const glm::vec2 &pos, const glm::vec2 &size) {
+        const float startX = pos.x;
+        const float startY = pos.y;
+        const float texSizeX = size.x;
+        const float texSizeY = size.y;
         m_texture = tex;
         glm::vec2 texOffset = {startX / m_texture->getWidth(), startY / m_texture->getHeight()};
         glm::vec2 texSize = {texSizeX / m_texture->getWidth(), texSizeY / m_texture->getHeight()};

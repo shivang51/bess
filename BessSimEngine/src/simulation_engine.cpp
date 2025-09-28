@@ -16,7 +16,7 @@
     #define BESS_SE_LOG_EVENT(...) BESS_SE_TRACE(__VA_ARGS__);
 #else
     #define BESS_SE_LOG_EVENT(...)
-#endif // !BESS_SE_LOG_EVENT
+#endif // BESS_SE_ENABLE_LOG_EVENTS
 
 namespace Bess::SimEngine {
     SimulationEngine &SimulationEngine::instance() {
@@ -49,11 +49,10 @@ namespace Bess::SimEngine {
             m_simThread.join();
     }
 
-    void SimulationEngine::scheduleEvent(entt::entity e, entt::entity schedulerEntity, SimDelayNanoSeconds simTime) {
-        const auto &digiComp = m_registry.get<DigitalComponent>(e);
+    void SimulationEngine::scheduleEvent(const entt::entity e, const entt::entity schedulerEntity, const SimDelayNanoSeconds simTime) {
         std::lock_guard lk(m_queueMutex);
         static uint64_t eventId = 0;
-        SimulationEvent ev{simTime, e, schedulerEntity, eventId++};
+        const SimulationEvent ev{simTime, e, schedulerEntity, eventId++};
         m_eventSet.insert(ev);
         m_queueCV.notify_all();
     }
@@ -69,7 +68,7 @@ namespace Bess::SimEngine {
         if (m_uuidMap.contains(uuid))
             return m_uuidMap.at(uuid);
 
-        auto view = m_registry.view<IdComponent>();
+        const auto view = m_registry.view<IdComponent>();
         for (const auto &ent : view) {
             auto &idComp = view.get<IdComponent>(ent);
             if (idComp.uuid == uuid)
@@ -78,7 +77,7 @@ namespace Bess::SimEngine {
         return entt::null;
     }
 
-    const UUID &SimulationEngine::addComponent(ComponentType type, int inputCount, int outputCount) {
+    const UUID &SimulationEngine::addComponent(const ComponentType type, int inputCount, int outputCount) {
         auto ent = m_registry.create();
         auto &idComp = m_registry.emplace<IdComponent>(ent);
         m_uuidMap.emplace(idComp.uuid, ent);
@@ -88,7 +87,7 @@ namespace Bess::SimEngine {
         if (type == ComponentType::NOT) {
             outputCount = inputCount;
         }
-        auto &digi = m_registry.emplace<DigitalComponent>(ent, type, inputCount, outputCount,
+         m_registry.emplace<DigitalComponent>(ent, type, inputCount, outputCount,
                                                           def->delay, def->getExpressions(inputCount));
         if (type == ComponentType::FLIP_FLOP_JK || type == ComponentType::FLIP_FLOP_SR ||
             type == ComponentType::FLIP_FLOP_D || type == ComponentType::FLIP_FLOP_T) {
@@ -102,10 +101,10 @@ namespace Bess::SimEngine {
         return idComp.uuid;
     }
 
-    bool SimulationEngine::connectComponent(const UUID &src, int srcPin, PinType srcType,
-                                            const UUID &dst, int dstPin, PinType dstType, bool overrideConn) {
-        auto srcEnt = getEntityWithUuid(src);
-        auto dstEnt = getEntityWithUuid(dst);
+    bool SimulationEngine::connectComponent(const UUID &src, int srcPin, const PinType srcType,
+                                            const UUID &dst, int dstPin, const PinType dstType, const bool overrideConn) {
+        const auto srcEnt = getEntityWithUuid(src);
+        const auto dstEnt = getEntityWithUuid(dst);
         if (!m_registry.valid(srcEnt) || !m_registry.valid(dstEnt))
             return false;
 
@@ -174,7 +173,7 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::deleteComponent(const UUID &uuid) {
-        auto ent = getEntityWithUuid(uuid);
+        const auto ent = getEntityWithUuid(uuid);
         if (ent == entt::null)
             return;
 
@@ -183,7 +182,7 @@ namespace Bess::SimEngine {
 
         {
             std::lock_guard lk(m_registryMutex);
-            auto view = m_registry.view<DigitalComponent>();
+            const auto view = m_registry.view<DigitalComponent>();
             for (auto other : view) {
                 if (other == ent)
                     continue;
@@ -191,28 +190,25 @@ namespace Bess::SimEngine {
                 auto &comp = view.get<DigitalComponent>(other);
                 bool lost = false;
                 for (auto &pin : comp.inputPins) {
-                    size_t before = pin.size();
-                    pin.erase(std::remove_if(pin.begin(), pin.end(),
-                                             [&](auto &c) { return c.first == uuid; }),
-                              pin.end());
+                    const size_t before = pin.size();
+                    std::erase_if(pin,
+                                  [&](auto &c) { return c.first == uuid; });
                     if (pin.size() < before)
                         lost = true;
                 }
                 if (lost)
                     affected.push_back(other);
                 for (auto &pin : comp.outputPins) {
-                    pin.erase(std::remove_if(pin.begin(), pin.end(),
-                                             [&](auto &c) { return c.first == uuid; }),
-                              pin.end());
+                    std::erase_if(pin,
+                                  [&](auto &c) { return c.first == uuid; });
                 }
             }
             m_uuidMap.erase(uuid);
-            auto &comp = view.get<DigitalComponent>(ent);
             m_registry.destroy(ent);
             m_connectionsCache.erase(ent);
         }
 
-        for (auto e : affected) {
+        for (const auto e : affected) {
             if (m_registry.valid(e)) {
                 auto &dc = m_registry.get<DigitalComponent>(e);
                 scheduleEvent(e, entt::null, m_currentSimTime + dc.delay);
@@ -222,20 +218,20 @@ namespace Bess::SimEngine {
         BESS_SE_INFO("Deleted component");
     }
 
-    bool SimulationEngine::getDigitalPinState(const UUID &uuid, PinType type, int idx) {
-        auto ent = getEntityWithUuid(uuid);
-        auto &comp = m_registry.get<DigitalComponent>(ent);
+    bool SimulationEngine::getDigitalPinState(const UUID &uuid, PinType type, const int idx) {
+        const auto ent = getEntityWithUuid(uuid);
+        const auto &comp = m_registry.get<DigitalComponent>(ent);
         return comp.outputStates[idx].state == LogicState::high;
     }
 
     ConnectionBundle SimulationEngine::getConnections(const UUID &uuid) {
-        auto ent = getEntityWithUuid(uuid);
-        auto &comp = m_registry.get<DigitalComponent>(ent);
+        const auto ent = getEntityWithUuid(uuid);
+        const auto &comp = m_registry.get<DigitalComponent>(ent);
         return {comp.inputPins, comp.outputPins};
     }
 
-    void SimulationEngine::setDigitalInput(const UUID &uuid, bool value) {
-        auto ent = getEntityWithUuid(uuid);
+    void SimulationEngine::setDigitalInput(const UUID &uuid, const bool value) {
+        const auto ent = getEntityWithUuid(uuid);
         if (m_registry.all_of<ClockComponent>(ent))
             return;
 
@@ -243,13 +239,13 @@ namespace Bess::SimEngine {
 
         assert(comp.type == ComponentType::INPUT);
 
-        auto logic = value ? LogicState::high : LogicState::low;
+        const auto logic = value ? LogicState::high : LogicState::low;
         if (comp.outputStates[0].state == logic)
             return;
         comp.outputStates[0].state = logic;
         comp.outputStates[0].lastChangeTime = m_currentSimTime;
-        for (auto &conn : comp.outputPins[0]) {
-            auto dest = getEntityWithUuid(conn.first);
+        for (auto &key : comp.outputPins[0] | std::views::keys) {
+            const auto dest = getEntityWithUuid(key);
             if (dest != entt::null) {
                 auto &dc = m_registry.get<DigitalComponent>(dest);
                 scheduleEvent(dest, ent, m_currentSimTime + dc.delay);
@@ -257,9 +253,9 @@ namespace Bess::SimEngine {
         }
     }
 
-    bool SimulationEngine::updateClock(const UUID &uuid, bool enable, float freq, FrequencyUnit unit) {
-        auto ent = getEntityWithUuid(uuid);
-        bool hadClock = m_registry.all_of<ClockComponent>(ent);
+    bool SimulationEngine::updateClock(const UUID &uuid, const bool enable, const float freq, const FrequencyUnit unit) {
+        const auto ent = getEntityWithUuid(uuid);
+        const bool hadClock = m_registry.all_of<ClockComponent>(ent);
         if (enable) {
             m_registry.get_or_emplace<ClockComponent>(ent).setup(freq, unit);
         } else if (hadClock) {
@@ -271,11 +267,11 @@ namespace Bess::SimEngine {
     }
 
     ComponentState SimulationEngine::getComponentState(const UUID &uuid) {
-        auto ent = getEntityWithUuid(uuid);
+        const auto ent = getEntityWithUuid(uuid);
         assert(m_registry.all_of<DigitalComponent>(ent));
         const auto &connectedStatus = getIOPinsConnectedState(ent);
         const auto &comp = m_registry.get<DigitalComponent>(ent);
-        ComponentState st{
+        const ComponentState st{
             .inputStates = comp.inputStates,
             .inputConnected = connectedStatus.first,
             .outputStates = comp.outputStates,
@@ -285,17 +281,17 @@ namespace Bess::SimEngine {
     }
 
     ComponentType SimulationEngine::getComponentType(const UUID &uuid) {
-        auto ent = getEntityWithUuid(uuid);
-        if (auto *comp = m_registry.try_get<DigitalComponent>(ent)) {
+        const auto ent = getEntityWithUuid(uuid);
+        if (const auto *comp = m_registry.try_get<DigitalComponent>(ent)) {
             return comp->type;
         }
         throw std::runtime_error("Digital Component was not found for entity with uuid " + std::to_string(uuid));
     }
 
-    void SimulationEngine::deleteConnection(const UUID &compA, PinType pinAType, int idxA,
-                                            const UUID &compB, PinType pinBType, int idxB) {
-        auto entA = getEntityWithUuid(compA);
-        auto entB = getEntityWithUuid(compB);
+    void SimulationEngine::deleteConnection(const UUID &compA, const PinType pinAType, int idxA,
+                                            const UUID &compB, const PinType pinBType, int idxB) {
+        const auto entA = getEntityWithUuid(compA);
+        const auto entB = getEntityWithUuid(compB);
         if (!m_registry.valid(entA) || !m_registry.valid(entB))
             return;
 
@@ -307,19 +303,15 @@ namespace Bess::SimEngine {
         auto &pinsB = (pinBType == PinType::input ? compBRef.inputPins : compBRef.outputPins);
 
         // Erase connection from A -> B
-        pinsA[idxA].erase(
-            std::remove_if(pinsA[idxA].begin(), pinsA[idxA].end(),
-                           [&](auto &c) { return c.first == compB && c.second == idxB; }),
-            pinsA[idxA].end());
+        std::erase_if(pinsA[idxA],
+                      [&](auto &c) { return c.first == compB && c.second == idxB; });
         // Erase connection from B -> A
-        pinsB[idxB].erase(
-            std::remove_if(pinsB[idxB].begin(), pinsB[idxB].end(),
-                           [&](auto &c) { return c.first == compA && c.second == idxA; }),
-            pinsB[idxB].end());
+        std::erase_if(pinsB[idxB],
+                      [&](auto &c) { return c.first == compA && c.second == idxA; });
 
         // Schedule next simulation on the appropriate side
-        entt::entity toSchedule = (pinAType == PinType::output ? entB : entA);
-        auto &dc = m_registry.get<DigitalComponent>(toSchedule);
+        const entt::entity toSchedule = (pinAType == PinType::output ? entB : entA);
+        const auto &dc = m_registry.get<DigitalComponent>(toSchedule);
         scheduleEvent(toSchedule, entt::null, m_currentSimTime + dc.delay);
 
         m_connectionsCache.erase(entA);
@@ -328,11 +320,11 @@ namespace Bess::SimEngine {
         BESS_SE_INFO("Deleted connection");
     }
 
-    const std::pair<std::vector<bool>, std::vector<bool>> &SimulationEngine::getIOPinsConnectedState(entt::entity e) {
+    const std::pair<std::vector<bool>, std::vector<bool>> &SimulationEngine::getIOPinsConnectedState(const entt::entity e) {
         if (m_connectionsCache.contains(e))
             return m_connectionsCache.at(e);
 
-        auto &comp = m_registry.get<DigitalComponent>(e);
+        const auto &comp = m_registry.get<DigitalComponent>(e);
         auto &[iPinsState, oPinsState] = m_connectionsCache[e];
 
         for (auto &pin : comp.inputPins) {
@@ -345,7 +337,7 @@ namespace Bess::SimEngine {
         return m_connectionsCache.at(e);
     }
 
-    std::vector<PinState> SimulationEngine::getInputPinsState(entt::entity ent) const {
+    std::vector<PinState> SimulationEngine::getInputPinsState(const entt::entity ent) const {
         std::vector<PinState> states;
 
         const auto &comp = m_registry.get<DigitalComponent>(ent);
@@ -360,7 +352,7 @@ namespace Bess::SimEngine {
 
             // Iterate over all the output pins connected to this single input pin
             for (const auto &conn : pinConnections) {
-                auto sourceEntity = getEntityWithUuid(conn.first);
+                const auto sourceEntity = getEntityWithUuid(conn.first);
                 if (sourceEntity == entt::null)
                     continue;
 
@@ -397,14 +389,14 @@ namespace Bess::SimEngine {
         }
         BESS_SE_LOG_EVENT("");
         if (def && def->simulationFunction) {
-            return def->simulationFunction(
-                m_registry, e, inputs, m_currentSimTime,
-                std::bind(&SimulationEngine::getEntityWithUuid, this, std::placeholders::_1));
+            const std::function<entt::entity(const UUID &)> fn =
+                [&](const UUID &id) { return getEntityWithUuid(id); };
+            return def->simulationFunction( m_registry, e, inputs, m_currentSimTime, fn );
         }
         return false;
     }
 
-    SimulationState SimulationEngine::getSimulationState() {
+    SimulationState SimulationEngine::getSimulationState() const {
         return m_simState.load();
     }
 
@@ -426,17 +418,17 @@ namespace Bess::SimEngine {
         return m_simState.load();
     }
 
-    void SimulationEngine::setSimulationState(SimulationState state) {
+    void SimulationEngine::setSimulationState(const SimulationState state) {
         std::unique_lock stateLock(m_stateMutex);
         m_simState.store(state);
         m_stateCV.notify_all();
     }
 
-    std::chrono::milliseconds SimulationEngine::getSimulationTimeMS() {
+    std::chrono::milliseconds SimulationEngine::getSimulationTimeMS() const {
         return std::chrono::time_point_cast<std::chrono::milliseconds>(m_realWorldClock.now()).time_since_epoch();
     }
 
-    std::chrono::seconds SimulationEngine::getSimulationTimeS() {
+    std::chrono::seconds SimulationEngine::getSimulationTimeS() const {
         return std::chrono::time_point_cast<std::chrono::seconds>(m_realWorldClock.now()).time_since_epoch();
     }
 
@@ -465,7 +457,6 @@ namespace Bess::SimEngine {
             if (m_eventSet.empty())
                 continue;
 
-            auto deltaTime = m_eventSet.begin()->simTime - m_currentSimTime;
             m_currentSimTime = m_eventSet.begin()->simTime;
 
             std::set<SimulationEvent> eventsToSim = {};
@@ -496,8 +487,8 @@ namespace Bess::SimEngine {
                     if (!m_registry.valid(entity))
                         continue;
 
-                    bool hasClk = m_registry.all_of<ClockComponent>(entity);
-                    bool changed = simulateComponent(entity, inputs);
+                    const bool hasClk = m_registry.all_of<ClockComponent>(entity);
+                    const bool changed = simulateComponent(entity, inputs);
 
                     if (changed || hasClk) {
                         auto &dc = m_registry.get<DigitalComponent>(entity);
@@ -507,7 +498,7 @@ namespace Bess::SimEngine {
                             std::unordered_map<entt::entity, std::vector<PinState>> inps = {};
                             for (auto &c : pin) {
                                 auto d = getEntityWithUuid(c.first);
-                                if (d == entt::null || uniqueEntites.find(d) != uniqueEntites.end())
+                                if (d == entt::null || uniqueEntites.contains(d))
                                     continue;
 
                                 uniqueEntites.insert(d);
@@ -517,7 +508,6 @@ namespace Bess::SimEngine {
                             }
 
                             for (auto &ent : uniqueEntites) {
-                                auto &destDc = m_registry.get<DigitalComponent>(ent);
                                 scheduleEvent(ent, entity, m_currentSimTime + dc.delay);
                             }
                         }
@@ -526,7 +516,7 @@ namespace Bess::SimEngine {
                     if (hasClk) {
                         auto &clk = m_registry.get<ClockComponent>(entity);
                         auto &dc = m_registry.get<DigitalComponent>(entity);
-                        bool isHigh = (bool)dc.outputStates[0];
+                        const bool isHigh = (bool)dc.outputStates[0];
                         dc.outputStates[0] = isHigh ? PinState(LogicState::low, m_currentSimTime) : PinState(LogicState::high, m_currentSimTime);
                         clk.high = (bool)dc.outputStates[0];
                         scheduleEvent(entity, entt::null, m_currentSimTime + clk.getNextDelay());
@@ -551,8 +541,8 @@ namespace Bess::SimEngine {
         return m_cmdManager;
     }
 
-    bool SimulationEngine::updateInputCount(const UUID &uuid, int n) {
-        auto ent = getEntityWithUuid(uuid);
+    bool SimulationEngine::updateInputCount(const UUID &uuid, const int n) {
+        const auto ent = getEntityWithUuid(uuid);
         if (!m_registry.all_of<DigitalComponent>(ent))
             return false;
 
@@ -561,8 +551,8 @@ namespace Bess::SimEngine {
         return true;
     }
 
-    std::vector<std::pair<float, bool>> SimulationEngine::getStateMonitorData(UUID uuid) {
-        auto ent = getEntityWithUuid(uuid);
+    std::vector<std::pair<float, bool>> SimulationEngine::getStateMonitorData(const UUID uuid) {
+        const auto ent = getEntityWithUuid(uuid);
         if (!m_registry.try_get<StateMonitorComponent>(ent)) {
             BESS_SE_WARN("[SimulationEngine] getStateMonitorData was called on entity with no StateMonitorComponent: {}", (uint64_t)uuid);
             return {};

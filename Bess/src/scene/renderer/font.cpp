@@ -45,7 +45,7 @@ namespace Bess::Renderer2D {
                 continue;
             }
 
-            auto texture = std::make_shared<Gl::Texture>(
+            const auto texture = std::make_shared<Gl::Texture>(
                 GL_RGB,
                 GL_RED,
                 m_face->glyph->bitmap.width,
@@ -71,11 +71,11 @@ namespace Bess::Renderer2D {
         }
     }
 
-    const Font::Character &Font::getCharacter(char ch) {
+    const Font::Character &Font::getCharacter(const char ch) {
         return Characters[ch];
     }
 
-    float Font::getScale(float size) {
+    float Font::getScale(const float size) {
         return size / (float)m_defaultSize;
     }
 } // namespace Bess::Renderer2D

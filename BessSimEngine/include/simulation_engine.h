@@ -37,13 +37,13 @@ namespace Bess::SimEngine {
 
         void setDigitalInput(const UUID &uuid, bool value);
 
-        bool updateClock(const UUID &uuid, bool enable, float frequency, FrequencyUnit unit);
+        bool updateClock(const UUID &uuid, bool enable, float freq, FrequencyUnit unit);
 
-        std::chrono::milliseconds getSimulationTimeMS();
-        std::chrono::seconds getSimulationTimeS();
+        std::chrono::milliseconds getSimulationTimeMS() const;
+        std::chrono::seconds getSimulationTimeS() const;
 
         SimulationState toggleSimState();
-        SimulationState getSimulationState();
+        SimulationState getSimulationState() const;
         void setSimulationState(SimulationState state);
 
         // only steps if sim state is paused
@@ -58,7 +58,7 @@ namespace Bess::SimEngine {
 
         template <typename EnttComponentType>
         EnttComponentType &getEnttComp(const UUID &uuid) {
-            auto ent = getEntityWithUuid(uuid);
+            const auto ent = getEntityWithUuid(uuid);
             return m_registry.get<EnttComponentType>(ent);
         }
         bool updateInputCount(const UUID &uuid, int n);
@@ -70,7 +70,7 @@ namespace Bess::SimEngine {
       private:
         void scheduleEvent(entt::entity e, entt::entity schedulerEntity, SimDelayNanoSeconds t);
         void clearEventsForEntity(entt::entity e);
-        std::vector<PinState> getInputPinsState(entt::entity e) const;
+        std::vector<PinState> getInputPinsState(entt::entity ent) const;
         const std::pair<std::vector<bool>, std::vector<bool>> &getIOPinsConnectedState(entt::entity e);
         bool simulateComponent(entt::entity e, const std::vector<PinState> &inputs);
         void run();

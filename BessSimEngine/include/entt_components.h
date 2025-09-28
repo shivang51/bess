@@ -12,7 +12,7 @@ namespace Bess::SimEngine {
 
     struct BESS_API FlipFlopComponent {
         FlipFlopComponent() = default;
-        FlipFlopComponent(ComponentType type, int clockPinIndex) {
+        FlipFlopComponent(const ComponentType type, const int clockPinIndex) {
             this->type = type;
             this->clockPinIdx = clockPinIndex;
         }
@@ -24,7 +24,7 @@ namespace Bess::SimEngine {
 
     struct BESS_API IdComponent {
         IdComponent() = default;
-        IdComponent(UUID uuid) { this->uuid = uuid; }
+        IdComponent(const UUID uuid) { this->uuid = uuid; }
         IdComponent(const IdComponent &) = default;
         UUID uuid;
     };
@@ -33,7 +33,7 @@ namespace Bess::SimEngine {
         ClockComponent() = default;
         ClockComponent(const ClockComponent &) = default;
 
-        void setup(float freq, FrequencyUnit unit) {
+        void setup(const float freq, const FrequencyUnit unit) {
             frequency = freq;
             frequencyUnit = unit;
             high = false;
@@ -62,8 +62,8 @@ namespace Bess::SimEngine {
                 throw std::runtime_error("Invalid clock frequency");
             }
 
-            double period = 1 / f;
-            double phase = high ? period * dutyCycle : period * (1.0 - dutyCycle);
+            const double period = 1 / f;
+            const double phase = high ? period * dutyCycle : period * (1.0 - dutyCycle);
             return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(phase));
         }
 
@@ -77,7 +77,7 @@ namespace Bess::SimEngine {
     struct BESS_API DigitalComponent {
         DigitalComponent() = default;
         DigitalComponent(const DigitalComponent &) = default;
-        DigitalComponent(ComponentType type, int inputPinsCount, int outputPinsCount, SimDelayNanoSeconds delay,
+        DigitalComponent(const ComponentType type, const int inputPinsCount, const int outputPinsCount, const SimDelayNanoSeconds delay,
                          const std::vector<std::string> &expr) {
             this->type = type;
             this->delay = delay;
@@ -88,7 +88,7 @@ namespace Bess::SimEngine {
             this->expressions = expr;
         }
 
-        void updateInputCount(int n) {
+        void updateInputCount(const int n) {
             this->inputPins.resize(n);
             this->inputStates.resize(n);
         }
@@ -106,7 +106,7 @@ namespace Bess::SimEngine {
     struct BESS_API StateMonitorComponent {
         StateMonitorComponent() = default;
         StateMonitorComponent(const StateMonitorComponent &) = default;
-        StateMonitorComponent(ComponentPin pin, PinType type) {
+        StateMonitorComponent(const ComponentPin &pin, const PinType type) {
             attachedTo = pin;
             attachedToType = type;
         }
@@ -116,18 +116,18 @@ namespace Bess::SimEngine {
             timestepedBoolData.clear();
         }
 
-        void appendState(SimTime time, const LogicState &state) {
+        void appendState(const SimTime time, const LogicState &state) {
             values.emplace_back(time.count(), state);
 
             bool isHigh = state == LogicState::high;
-            auto clockTime = clock.now();
+            const auto clockTime = clock.now();
             if (timestepedBoolData.empty()) {
                 timestepedBoolData.emplace_back(0.f, isHigh);
                 lastUpdateTime = clockTime;
                 return;
             }
 
-            float diff = std::chrono::duration<float>(clockTime - lastUpdateTime).count();
+            const float diff = std::chrono::duration<float>(clockTime - lastUpdateTime).count();
             float value = timestepedBoolData.back().first + diff;
             timestepedBoolData.emplace_back(value, isHigh);
             lastUpdateTime = clockTime;
@@ -135,7 +135,7 @@ namespace Bess::SimEngine {
 
         static constexpr std::chrono::steady_clock clock{};
 
-        void attacthTo(ComponentPin pin, PinType type) {
+        void attacthTo(const ComponentPin &pin, const PinType type) {
             clear();
             attachedTo = pin;
             attachedToType = type;

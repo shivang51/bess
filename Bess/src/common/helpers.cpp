@@ -8,12 +8,12 @@
 namespace Bess::Common {
     std::string Helpers::toLowerCase(const std::string &str) {
         std::string data = str;
-        std::transform(data.begin(), data.end(), data.begin(),
-                       [](unsigned char c) { return std::tolower(c); });
+        std::ranges::transform(data, data.begin(),
+                               [](const unsigned char c) { return std::tolower(c); });
         return data;
     }
 
-    std::string Helpers::getComponentIcon(SimEngine::ComponentType type) {
+    std::string Helpers::getComponentIcon(const SimEngine::ComponentType type) {
         using namespace UI::Icons;
         switch (type) {
         case SimEngine::ComponentType::AND:
@@ -35,7 +35,7 @@ namespace Bess::Common {
         return std::string(" ") + FontAwesomeIcons::FA_CUBE + " ";
     }
 
-    std::string Helpers::getComponentIcon(Canvas::Components::NSComponentType type) {
+    std::string Helpers::getComponentIcon(const Canvas::Components::NSComponentType type) {
         using namespace UI::Icons;
         switch (type) {
         case Canvas::Components::NSComponentType::text:

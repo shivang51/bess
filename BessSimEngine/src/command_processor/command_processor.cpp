@@ -11,7 +11,7 @@ namespace Bess::SimEngine {
 
     void CommandProcessor::registerCommand(const std::string &name, CommandCreationFunc func) {
         std::string lowerName = name;
-        std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
+        std::ranges::transform(lowerName, lowerName.begin(), ::tolower);
         m_commandFactory[lowerName] = std::move(func);
     }
 
@@ -27,13 +27,13 @@ namespace Bess::SimEngine {
         std::string commandName = tokens[0];
         std::transform(commandName.begin(), commandName.end(), commandName.begin(), ::tolower);
 
-        auto it = m_commandFactory.find(commandName);
+        const auto it = m_commandFactory.find(commandName);
         if (it == m_commandFactory.end()) {
             BESS_SE_ERROR("[CommandProcessor] Unknown Command: {}", commandString);
             return std::unexpected("Unknown command: " + commandName);
         }
 
-        std::vector<std::string> args(tokens.begin() + 1, tokens.end());
+        const std::vector<std::string> args(tokens.begin() + 1, tokens.end());
         auto command = it->second(args);
 
         if (!command) {

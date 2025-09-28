@@ -5,7 +5,7 @@
 #include <logger.h>
 
 namespace Bess::SimEngine::ExprEval {
-    inline bool applyBinaryOperator(bool a, bool b, char op) {
+    inline bool applyBinaryOperator(const bool a, const bool b, const char op) {
         switch (op) {
         case '+':
             return a || b;
@@ -18,7 +18,7 @@ namespace Bess::SimEngine::ExprEval {
         }
     }
 
-    inline bool applyUnaryOperator(bool a, char op) {
+    inline bool applyUnaryOperator(const bool a, const char op) {
         if (op == '!')
             return !a;
         throw std::runtime_error("Unsupported unary operator");
@@ -28,7 +28,7 @@ namespace Bess::SimEngine::ExprEval {
         std::stack<bool> operands;
         std::stack<char> operators;
 
-        auto precedence = [](char op) {
+        auto precedence = [](const char op) {
             switch (op) {
             case '!':
                 return 3;
@@ -44,16 +44,16 @@ namespace Bess::SimEngine::ExprEval {
         };
 
         auto applyTopOperator = [&]() {
-            char op = operators.top();
+            const char op = operators.top();
             operators.pop();
             if (op == '!') {
-                int a = operands.top();
+                const int a = operands.top();
                 operands.pop();
                 operands.push(applyUnaryOperator(a, op));
             } else {
-                int b = operands.top();
+                const int b = operands.top();
                 operands.pop();
-                int a = operands.top();
+                const int a = operands.top();
                 operands.pop();
                 operands.push(applyBinaryOperator(a, b, op));
             }

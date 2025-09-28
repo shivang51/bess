@@ -6,7 +6,7 @@
 
 
 namespace Bess {
-    class SceneSerializer : public EnttRegistrySerializer {
+    class SceneSerializer final : public EnttRegistrySerializer {
       public:
         SceneSerializer();
 

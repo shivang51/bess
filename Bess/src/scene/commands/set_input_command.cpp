@@ -6,7 +6,7 @@
 #include "simulation_engine.h"
 
 namespace Bess::Canvas::Commands {
-    SetInputCommand::SetInputCommand(const UUID &compId, bool state)
+    SetInputCommand::SetInputCommand(const UUID &compId, const bool state)
         : m_compId(compId), m_state(state) {}
 
     bool SetInputCommand::execute() {
@@ -17,7 +17,7 @@ namespace Bess::Canvas::Commands {
 
         bool status = true;
         if (!m_redo) {
-            auto res = simCmdManager.execute<SimEngine::Commands::SetInputCommand, bool>(simComp.simEngineEntity, m_state);
+            const auto res = simCmdManager.execute<SimEngine::Commands::SetInputCommand, bool>(simComp.simEngineEntity, m_state);
 
             status = res.has_value();
         } else {

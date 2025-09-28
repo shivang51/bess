@@ -7,9 +7,9 @@ namespace Bess::UI {
     void ProjectSettingsWindow::draw() {
         if (!m_shown)
             return;
-        float buttonHeight = ImGui::GetFrameHeight();
-        float textHeight = ImGui::CalcTextSize("ajP").y;
-        float verticalOffset = (buttonHeight - textHeight) / 2.0f;
+        const float buttonHeight = ImGui::GetFrameHeight();
+        const float textHeight = ImGui::CalcTextSize("ajP").y;
+        const float verticalOffset = (buttonHeight - textHeight) / 2.0f;
 
         ImGui::SetNextWindowSize(ImVec2(400, 200), ImGuiCond_FirstUseEver);
         ImGui::Begin("Project Settings", &m_shown);

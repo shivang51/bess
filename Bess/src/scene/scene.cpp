@@ -6,9 +6,6 @@
 #include "entt/entity/fwd.hpp"
 #include "events/application_event.h"
 #include "ext/matrix_transform.hpp"
-#include "ext/vector_float2.hpp"
-#include "ext/vector_float3.hpp"
-#include "ext/vector_float4.hpp"
 #include "fwd.hpp"
 #include "gtc/type_ptr.hpp"
 #include "pages/main_page/main_page_state.h"
@@ -82,7 +79,7 @@ namespace Bess::Canvas {
         m_drawMode = SceneDrawMode::none;
     }
 
-    void Scene::update(TFrameTime ts, const std::vector<ApplicationEvent> &events) {
+    void Scene::update(const TFrameTime ts, const std::vector<ApplicationEvent> &events) {
         // doing it here so selection box does not interfere with selection
         if (m_selectInSelectionBox) {
             selectEntitesInArea(m_selectionBoxStart, m_selectionBoxEnd);
@@ -133,16 +130,16 @@ namespace Bess::Canvas {
     }
 
     void Scene::selectAllEntities() {
-        auto view = m_registry.view<Canvas::Components::SimulationComponent>();
+        const auto view = m_registry.view<Canvas::Components::SimulationComponent>();
         for (auto &entt : view)
             m_registry.emplace_or_replace<Components::SelectedComponent>(entt);
-        auto connectionView = m_registry.view<Canvas::Components::ConnectionComponent>();
+        const auto connectionView = m_registry.view<Canvas::Components::ConnectionComponent>();
         for (auto &entt : connectionView)
             m_registry.emplace_or_replace<Components::SelectedComponent>(entt);
     }
 
     void Scene::handleKeyboardShortcuts() {
-        auto mainPageState = Pages::MainPageState::getInstance();
+        const auto mainPageState = Pages::MainPageState::getInstance();
         if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
             if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
                 if (mainPageState->isKeyPressed(GLFW_KEY_Z)) {
@@ -158,7 +155,7 @@ namespace Bess::Canvas {
                 m_cmdManager.undo();
             }
         } else if (mainPageState->isKeyPressed(GLFW_KEY_DELETE)) {
-            auto view = m_registry.view<Components::IdComponent, Components::SelectedComponent>();
+            const auto view = m_registry.view<Components::IdComponent, Components::SelectedComponent>();
 
             std::vector<UUID> entitesToDel = {};
             std::vector<entt::entity> connEntitesToDel = {};
@@ -176,7 +173,7 @@ namespace Bess::Canvas {
             auto _ = m_cmdManager.execute<Commands::DeleteCompCommand, std::string>(entitesToDel);
 
             std::vector<UUID> connToDel = {};
-            for (auto ent : connEntitesToDel) {
+            for (const auto ent : connEntitesToDel) {
                 if (!m_registry.valid(ent))
                     continue;
 
@@ -185,7 +182,7 @@ namespace Bess::Canvas {
 
             auto __ = m_cmdManager.execute<Commands::DelConnectionCommand, std::string>(connToDel);
         } else if (mainPageState->isKeyPressed(GLFW_KEY_F)) {
-            auto view = m_registry.view<Components::IdComponent,
+            const auto view = m_registry.view<Components::IdComponent,
                                         Components::SelectedComponent,
                                         Components::TransformComponent>();
 
@@ -200,8 +197,8 @@ namespace Bess::Canvas {
         }
     }
 
-    void Scene::renderWithCamera(std::shared_ptr<Camera> camera) {
-        auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
+    void Scene::renderWithCamera(const std::shared_ptr<Camera> &camera) {
+        const auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
 
         switch (m_sceneMode) {
         case SceneMode::general: {
@@ -224,11 +221,11 @@ namespace Bess::Canvas {
         renderWithCamera(m_camera);
     }
 
-    void Scene::drawScene(std::shared_ptr<Camera> camera) {
+    void Scene::drawScene(const std::shared_ptr<Camera> &camera) {
 
         // Set the appropriate artist mode
         m_artistManager->setSchematicMode(m_isSchematicView);
-        auto artist = m_artistManager->getCurrentArtist();
+        const auto artist = m_artistManager->getCurrentArtist();
 
         // Grid
         Renderer2D::Renderer::begin(camera);
@@ -243,8 +240,8 @@ namespace Bess::Canvas {
 
         // Connections
         Renderer2D::Renderer::begin(camera);
-        auto connectionsView = m_registry.view<Components::ConnectionComponent>();
-        for (auto entity : connectionsView) {
+        const auto connectionsView = m_registry.view<Components::ConnectionComponent>();
+        for (const auto entity : connectionsView) {
             artist->drawConnectionEntity(entity);
         }
 
@@ -255,12 +252,12 @@ namespace Bess::Canvas {
 
         // Components
         Renderer2D::Renderer::begin(camera);
-        auto simCompView = m_registry.view<
+        const auto simCompView = m_registry.view<
             Components::SimulationComponent,
             Components::TagComponent,
             Components::SpriteComponent,
             Components::TransformComponent>();
-        for (auto entity : simCompView) {
+        for (const auto entity : simCompView) {
             artist->drawSimEntity(
                 entity,
                 simCompView.get<Components::TagComponent>(entity),
@@ -269,8 +266,8 @@ namespace Bess::Canvas {
                 simCompView.get<Components::SimulationComponent>(entity));
         }
 
-        auto nonSimCompView = m_registry.view<Components::NSComponent>();
-        for (auto entity : nonSimCompView) {
+        const auto nonSimCompView = m_registry.view<Components::NSComponent>();
+        for (const auto entity : nonSimCompView) {
             artist->drawNonSimEntity(entity);
         }
 
@@ -284,11 +281,11 @@ namespace Bess::Canvas {
     }
 
     void Scene::drawSelectionBox() {
-        auto start = toScenePos(m_selectionBoxStart);
-        auto end = toScenePos(m_mousePos);
+        const auto start = toScenePos(m_selectionBoxStart);
+        const auto end = toScenePos(m_mousePos);
 
         auto size = end - start;
-        auto pos = start + size / 2.f;
+        const auto pos = start + size / 2.f;
         size = glm::abs(size);
 
         Renderer2D::QuadRenderProperties props;
@@ -298,28 +295,28 @@ namespace Bess::Canvas {
     }
 
     void Scene::drawConnection() {
-        auto connStartEntity = getEntityWithUuid(m_connectionStartEntity);
+        const auto connStartEntity = getEntityWithUuid(m_connectionStartEntity);
         if (!m_registry.valid(connStartEntity)) {
             m_drawMode = SceneDrawMode::none;
             return;
         }
 
-        auto artist = m_artistManager->getCurrentArtist();
+        const auto artist = m_artistManager->getCurrentArtist();
         artist->drawGhostConnection(connStartEntity, toScenePos(m_mousePos));
     }
 
     UUID Scene::createSimEntity(const UUID &simEngineEntt,
-                                std::shared_ptr<const SimEngine::ComponentDefinition> comp, const glm::vec2 &pos) {
-        auto state = SimEngine::SimulationEngine::instance().getComponentState(simEngineEntt);
+                                const std::shared_ptr<const SimEngine::ComponentDefinition> &comp, const glm::vec2 &pos) {
+        const auto state = SimEngine::SimulationEngine::instance().getComponentState(simEngineEntt);
         const std::vector<UUID> inputSlotIds(state.inputStates.size()), outputSlotIds(state.outputStates.size());
         const UUID uuid;
         return createSimEntity(simEngineEntt, comp, pos, uuid, inputSlotIds, outputSlotIds);
     }
 
-    UUID Scene::createSimEntity(const UUID &simEngineEntt, std::shared_ptr<const SimEngine::ComponentDefinition> comp, const glm::vec2 &pos,
+    UUID Scene::createSimEntity(const UUID &simEngineEntt, const std::shared_ptr<const SimEngine::ComponentDefinition> &comp, const glm::vec2 &pos,
                                 UUID uuid, const std::vector<UUID> &inputSlotIds, const std::vector<UUID> &outputSlotIds) {
         auto entity = m_registry.create();
-        auto &idComp = m_registry.emplace<Components::IdComponent>(entity, uuid);
+        const auto &idComp = m_registry.emplace<Components::IdComponent>(entity, uuid);
         auto &transformComp = m_registry.emplace<Components::TransformComponent>(entity);
         auto &sprite = m_registry.emplace<Components::SpriteComponent>(entity);
         auto &tag = m_registry.emplace<Components::TagComponent>(entity);
@@ -340,7 +337,7 @@ namespace Bess::Canvas {
         transformComp.position = glm::vec3(pos, getNextZCoord());
 
         if (comp->type == SimEngine::ComponentType::INPUT || comp->type == SimEngine::ComponentType::OUTPUT) {
-            glm::vec4 ioCompColor = glm::vec4(0.2f, 0.2f, 0.4f, 0.6f);
+            const glm::vec4 ioCompColor = glm::vec4(0.2f, 0.2f, 0.4f, 0.6f);
             sprite.color = ioCompColor;
             sprite.borderRadius = glm::vec4(8.f);
         } else {
@@ -354,7 +351,7 @@ namespace Bess::Canvas {
 
         simComp.simEngineEntity = simEngineEntt;
 
-        auto state = SimEngine::SimulationEngine::instance().getComponentState(simEngineEntt);
+        const auto state = SimEngine::SimulationEngine::instance().getComponentState(simEngineEntt);
 
         for (int i = 0; i < state.inputStates.size(); i++) {
             simComp.inputSlots.emplace_back(createSlotEntity(inputSlotIds[i], Components::SlotType::digitalInput, idComp.uuid, i));
@@ -375,7 +372,7 @@ namespace Bess::Canvas {
     UUID Scene::createNonSimEntity(const Canvas::Components::NSComponent &comp, const glm::vec2 &pos) {
         using namespace Canvas::Components;
         auto entity = m_registry.create();
-        auto &idComp = m_registry.emplace<Components::IdComponent>(entity);
+        const auto &idComp = m_registry.emplace<Components::IdComponent>(entity);
         auto &nonSimComp = m_registry.emplace<Components::NSComponent>(entity);
         auto &tag = m_registry.emplace<Components::TagComponent>(entity);
         auto &transformComp = m_registry.emplace<Components::TransformComponent>(entity);
@@ -410,7 +407,7 @@ namespace Bess::Canvas {
             hoveredEntity = entt::null;
 
         if (m_registry.all_of<Components::SimulationComponent>(ent)) {
-            auto &simComp = m_registry.get<Components::SimulationComponent>(ent);
+            const auto &simComp = m_registry.get<Components::SimulationComponent>(ent);
 
             // take care of slots
             for (auto slot : simComp.inputSlots) {
@@ -451,12 +448,12 @@ namespace Bess::Canvas {
     //     deleteSceneEntity(entUuid);
     // }
 
-    UUID Scene::createSlotEntity(Components::SlotType type, const UUID &parent, unsigned int idx) {
+    UUID Scene::createSlotEntity(const Components::SlotType type, const UUID &parent, const unsigned int idx) {
         return createSlotEntity(UUID{}, type, parent, idx);
     }
 
-    UUID Scene::createSlotEntity(UUID uuid, Components::SlotType type, const UUID &parent, unsigned int idx) {
-        auto entity = m_registry.create();
+    UUID Scene::createSlotEntity(UUID uuid, const Components::SlotType type, const UUID &parent, const unsigned int idx) {
+        const auto entity = m_registry.create();
         const auto &idComp = m_registry.emplace<Components::IdComponent>(entity, uuid);
         auto &transform = m_registry.emplace<Components::TransformComponent>(entity);
         auto &sprite = m_registry.emplace<Components::SpriteComponent>(entity);
@@ -474,7 +471,7 @@ namespace Bess::Canvas {
         return idComp.uuid;
     }
 
-    const glm::vec2 &Scene::getSize() {
+    const glm::vec2 &Scene::getSize() const {
         return m_size;
     }
 
@@ -482,7 +479,7 @@ namespace Bess::Canvas {
         if (m_uuidToEntt.contains(uuid)) {
             return m_uuidToEntt.at(uuid);
         }
-        auto view = m_registry.view<Components::IdComponent>();
+        const auto view = m_registry.view<Components::IdComponent>();
         for (const auto &ent : view) {
             const auto &idComp = view.get<Components::IdComponent>(ent);
             if (idComp.uuid == uuid) {
@@ -493,13 +490,13 @@ namespace Bess::Canvas {
         return entt::null;
     }
 
-    const UUID &Scene::getUuidOfEntity(entt::entity ent) {
-        auto &idComp = m_registry.get<Components::IdComponent>(ent);
+    const UUID &Scene::getUuidOfEntity(const entt::entity ent) {
+        const auto &idComp = m_registry.get<Components::IdComponent>(ent);
         return idComp.uuid;
     }
 
     entt::entity Scene::getSceneEntityFromSimUuid(const UUID &uuid) const {
-        for (auto ent : m_registry.view<Components::SimulationComponent>()) {
+        for (const auto ent : m_registry.view<Components::SimulationComponent>()) {
             auto &comp = m_registry.get<Components::SimulationComponent>(ent);
             if (comp.simEngineEntity == uuid)
                 return ent;
@@ -525,12 +522,12 @@ namespace Bess::Canvas {
         return {x, y};
     }
 
-    glm::vec2 Scene::toScenePos(const glm::vec2 &mousePos) {
+    glm::vec2 Scene::toScenePos(const glm::vec2 &mousePos) const {
         glm::vec2 pos = mousePos;
 
         const auto cameraPos = m_camera->getPos();
         glm::mat4 tansform = glm::translate(glm::mat4(1.f), glm::vec3(cameraPos.x, cameraPos.y, 0.f));
-        auto zoom = m_camera->getZoom();
+        const auto zoom = m_camera->getZoom();
         tansform = glm::scale(tansform, glm::vec3(1.f / zoom, 1.f / zoom, 1.f));
 
         pos = glm::vec2(tansform * glm::vec4(pos.x, pos.y, 0.f, 1.f));
@@ -539,20 +536,20 @@ namespace Bess::Canvas {
         return pos;
     }
 
-    void Scene::dragConnectionSegment(entt::entity ent) {
-        auto view = m_registry.view<Components::TransformComponent,
+    void Scene::dragConnectionSegment(const entt::entity ent) {
+        const auto view = m_registry.view<Components::TransformComponent,
                                     Components::ConnectionSegmentComponent,
                                     Components::SlotComponent,
                                     Components::ConnectionComponent>();
 
-        glm::vec2 newPos = toScenePos(m_mousePos);
+        const glm::vec2 newPos = toScenePos(m_mousePos);
 
         auto &comp = view.get<Components::ConnectionSegmentComponent>(ent);
-        auto artist = m_artistManager->getCurrentArtist();
+        const auto artist = m_artistManager->getCurrentArtist();
 
         if (comp.isHead() || comp.isTail()) {
-            auto newEntt = m_registry.create();
-            auto &idComp = m_registry.emplace<Components::IdComponent>(newEntt);
+            const auto newEntt = m_registry.create();
+            const auto &idComp = m_registry.emplace<Components::IdComponent>(newEntt);
             auto &compNew = m_registry.emplace<Components::ConnectionSegmentComponent>(newEntt);
             compNew.parent = comp.parent;
 
@@ -562,16 +559,16 @@ namespace Bess::Canvas {
                 comp.prev = idComp.uuid;
                 compNew.next = getUuidOfEntity(ent);
                 auto &connComponent = view.get<Components::ConnectionComponent>(getEntityWithUuid(comp.parent));
-                auto &slotComponent = view.get<Components::SlotComponent>(getEntityWithUuid(connComponent.inputSlot));
-                auto &parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(slotComponent.parentId));
+                const auto &slotComponent = view.get<Components::SlotComponent>(getEntityWithUuid(connComponent.inputSlot));
+                const auto &parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(slotComponent.parentId));
                 connComponent.segmentHead = idComp.uuid;
                 slotPos = artist->getSlotPos(slotComponent, parentTransform);
             } else {
                 comp.next = idComp.uuid;
                 compNew.prev = getUuidOfEntity(ent);
-                auto &connComponent = m_registry.get<Components::ConnectionComponent>(getEntityWithUuid(comp.parent));
-                auto &slotComponent = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComponent.outputSlot));
-                auto &parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(slotComponent.parentId));
+                const auto &connComponent = m_registry.get<Components::ConnectionComponent>(getEntityWithUuid(comp.parent));
+                const auto &slotComponent = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComponent.outputSlot));
+                const auto &parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(slotComponent.parentId));
                 slotPos = artist->getSlotPos(slotComponent, parentTransform);
             }
 
@@ -588,13 +585,13 @@ namespace Bess::Canvas {
         }
     }
 
-    void Scene::moveConnection(entt::entity ent, glm::vec2 &dPos) {
+    void Scene::moveConnection(const entt::entity ent, glm::vec2 &dPos) {
 
-        auto &connComp = m_registry.get<Components::ConnectionComponent>(ent);
+        const auto &connComp = m_registry.get<Components::ConnectionComponent>(ent);
         auto seg = connComp.segmentHead;
 
         while (seg != UUID::null) {
-            auto segEnt = getEntityWithUuid(seg);
+            const auto segEnt = getEntityWithUuid(seg);
             auto &segComp = m_registry.get<Components::ConnectionSegmentComponent>(segEnt);
 
             if (!m_dragStartConnSeg.contains(getUuidOfEntity(segEnt))) {
@@ -619,11 +616,11 @@ namespace Bess::Canvas {
     void Scene::updateHoveredId() {
         auto mousePos_ = m_mousePos;
         mousePos_.y = UI::UIMain::state.viewportSize.y - mousePos_.y;
-        int x = static_cast<int>(mousePos_.x);
-        int y = static_cast<int>(mousePos_.y);
+        const int x = static_cast<int>(mousePos_.x);
+        const int y = static_cast<int>(mousePos_.y);
         int32_t hoverId = m_normalFramebuffer->readIntFromColAttachment(1, x, y);
         m_registry.clear<Components::HoveredEntityComponent>();
-        auto e = (entt::entity)hoverId;
+        const auto e = (entt::entity)hoverId;
         if (m_registry.valid(e)) {
             m_registry.emplace<Components::HoveredEntityComponent>(e);
             m_hoveredEntity = getUuidOfEntity(e);
@@ -642,8 +639,8 @@ namespace Bess::Canvas {
         }
 
         if (m_isLeftMousePressed && m_drawMode == SceneDrawMode::none) {
-            auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
-            auto selectedComponentsSize = m_registry.view<Components::SelectedComponent>()->size();
+            const auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
+            const auto selectedComponentsSize = m_registry.view<Components::SelectedComponent>()->size();
             if (!m_registry.valid(hoveredEntity) && selectedComponentsSize == 0) {
                 m_drawMode = SceneDrawMode::selectionBox;
                 m_selectionBoxStart = m_mousePos;
@@ -651,7 +648,7 @@ namespace Bess::Canvas {
                 dragConnectionSegment(hoveredEntity);
                 m_isDragging = true;
             } else {
-                auto view = m_registry.view<Components::SelectedComponent, Components::TransformComponent>();
+                const auto view = m_registry.view<Components::SelectedComponent, Components::TransformComponent>();
                 for (auto &ent : view) {
                     auto &transformComp = view.get<Components::TransformComponent>(ent);
                     if (!m_dragStartTransforms.contains(getUuidOfEntity(ent))) {
@@ -659,7 +656,7 @@ namespace Bess::Canvas {
                     }
                     glm::vec2 newPos = toScenePos(m_mousePos);
                     if (!m_dragOffsets.contains(ent)) {
-                        auto offset = newPos - glm::vec2(transformComp.position);
+                        const auto offset = newPos - glm::vec2(transformComp.position);
                         m_dragOffsets[ent] = offset;
                     }
                     newPos -= m_dragOffsets[ent];
@@ -668,7 +665,7 @@ namespace Bess::Canvas {
                     transformComp.position = {newPos, transformComp.position.z};
                 }
 
-                auto connectionView = m_registry.view<Components::SelectedComponent, Components::ConnectionComponent>();
+                const auto connectionView = m_registry.view<Components::SelectedComponent, Components::ConnectionComponent>();
                 for (auto &ent : connectionView) {
                     moveConnection(ent, m_dMousePos);
                 }
@@ -691,11 +688,11 @@ namespace Bess::Canvas {
 
     void Scene::removeConnectionEntt(const entt::entity ent) {
         m_hoveredEntity = UUID::null;
-        auto &connComp = m_registry.get<Components::ConnectionComponent>(ent);
+        const auto &connComp = m_registry.get<Components::ConnectionComponent>(ent);
 
         auto segEntt = connComp.segmentHead;
         while (segEntt != UUID::null) {
-            auto connSegComp = m_registry.get<
+            const auto connSegComp = m_registry.get<
                 Components::ConnectionSegmentComponent>(getEntityWithUuid(segEntt));
             m_registry.destroy(getEntityWithUuid(segEntt));
             m_uuidToEntt.erase(segEntt);
@@ -711,8 +708,8 @@ namespace Bess::Canvas {
         if (m_hoveredEntity == uuid)
             m_hoveredEntity = UUID::null;
 
-        auto entity = getEntityWithUuid(uuid);
-        auto &connComp = m_registry.get<Components::ConnectionComponent>(entity);
+        const auto entity = getEntityWithUuid(uuid);
+        const auto &connComp = m_registry.get<Components::ConnectionComponent>(entity);
 
         auto &slotCompA = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.inputSlot));
         auto &slotCompB = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.outputSlot));
@@ -726,38 +723,38 @@ namespace Bess::Canvas {
     }
 
     void Scene::deleteConnection(const UUID &entityUuid) {
-        auto entity = getEntityWithUuid(entityUuid);
-        auto &connComp = m_registry.get<Components::ConnectionComponent>(entity);
+        const auto entity = getEntityWithUuid(entityUuid);
+        const auto &connComp = m_registry.get<Components::ConnectionComponent>(entity);
 
-        auto &slotCompA = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.inputSlot));
-        auto &slotCompB = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.outputSlot));
+        const auto &slotCompA = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.inputSlot));
+        const auto &slotCompB = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.outputSlot));
 
-        auto &simCompA = m_registry.get<Components::SimulationComponent>(getEntityWithUuid(slotCompA.parentId));
-        auto &simCompB = m_registry.get<Components::SimulationComponent>(getEntityWithUuid(slotCompB.parentId));
+        const auto &simCompA = m_registry.get<Components::SimulationComponent>(getEntityWithUuid(slotCompA.parentId));
+        const auto &simCompB = m_registry.get<Components::SimulationComponent>(getEntityWithUuid(slotCompB.parentId));
 
-        auto pinTypeA = slotCompA.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
-        auto pinTypeB = slotCompB.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
+        const auto pinTypeA = slotCompA.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
+        const auto pinTypeB = slotCompB.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
 
         SimEngine::SimulationEngine::instance().deleteConnection(simCompA.simEngineEntity, pinTypeA, slotCompA.idx, simCompB.simEngineEntity, pinTypeB, slotCompB.idx);
 
         deleteConnectionFromScene(entityUuid);
     }
 
-    UUID Scene::generateBasicConnection(entt::entity inputSlot, entt::entity outputSlot) {
-        auto connEntt = m_registry.create();
+    UUID Scene::generateBasicConnection(const entt::entity inputSlot, const entt::entity outputSlot) {
+        const auto connEntt = m_registry.create();
         auto &idComp = m_registry.emplace<Components::IdComponent>(connEntt);
         auto &connComp = m_registry.emplace<Components::ConnectionComponent>(connEntt);
         m_registry.emplace<Components::SpriteComponent>(connEntt);
         connComp.inputSlot = getUuidOfEntity(inputSlot);
         connComp.outputSlot = getUuidOfEntity(outputSlot);
 
-        auto connSeg1 = m_registry.create();
-        auto connSeg2 = m_registry.create();
-        auto connSeg3 = m_registry.create();
+        const auto connSeg1 = m_registry.create();
+        const auto connSeg2 = m_registry.create();
+        const auto connSeg3 = m_registry.create();
 
-        auto &idComp1 = m_registry.emplace<Components::IdComponent>(connSeg1);
-        auto &idComp2 = m_registry.emplace<Components::IdComponent>(connSeg2);
-        auto &idComp3 = m_registry.emplace<Components::IdComponent>(connSeg3);
+        const auto &idComp1 = m_registry.emplace<Components::IdComponent>(connSeg1);
+        const auto &idComp2 = m_registry.emplace<Components::IdComponent>(connSeg2);
+        const auto &idComp3 = m_registry.emplace<Components::IdComponent>(connSeg3);
 
         connComp.segmentHead = idComp1.uuid;
 
@@ -774,17 +771,17 @@ namespace Bess::Canvas {
         connSegComp2.prev = idComp1.uuid;
         connSegComp3.prev = idComp2.uuid;
 
-        auto view = m_registry.view<Components::SlotComponent, Components::TransformComponent>();
+        const auto view = m_registry.view<Components::SlotComponent, Components::TransformComponent>();
         auto &inpSlotComp = view.get<Components::SlotComponent>(inputSlot);
         auto &outSlotComp = view.get<Components::SlotComponent>(outputSlot);
         const auto &inpParentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(inpSlotComp.parentId));
-        auto artist = m_artistManager->getCurrentArtist();
-        auto inputSlotPos = artist->getSlotPos(inpSlotComp, inpParentTransform);
+        const auto artist = m_artistManager->getCurrentArtist();
+        const auto inputSlotPos = artist->getSlotPos(inpSlotComp, inpParentTransform);
         const auto &slotComp = view.get<Components::SlotComponent>(outputSlot);
         const auto &parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(slotComp.parentId));
-        auto outputSlotPos = artist->getSlotPos(slotComp, parentTransform);
+        const auto outputSlotPos = artist->getSlotPos(slotComp, parentTransform);
 
-        auto dX = outputSlotPos.x - inputSlotPos.x;
+        const auto dX = outputSlotPos.x - inputSlotPos.x;
 
         connSegComp1.pos = glm::vec2(0, inputSlotPos.y);
         connSegComp2.pos = glm::vec2(inputSlotPos.x + (dX * 0.8f), 0);
@@ -796,20 +793,20 @@ namespace Bess::Canvas {
         return idComp.uuid;
     }
 
-    UUID Scene::connectSlots(UUID startSlot, UUID endSlot) {
+    UUID Scene::connectSlots(const UUID startSlot, const UUID endSlot) {
         return generateBasicConnection(getEntityWithUuid(startSlot),
                                        getEntityWithUuid(endSlot));
     }
 
-    UUID Scene::connectComponents(UUID compIdA, int slotIdxA, bool isAInput, UUID compIdB, int slotIdxB) {
-        auto entA = getEntityWithUuid(compIdA);
+    UUID Scene::connectComponents(const UUID compIdA, const int slotIdxA, const bool isAInput, const UUID compIdB, const int slotIdxB) {
+        const auto entA = getEntityWithUuid(compIdA);
         const auto &simComp = m_registry.get<Components::SimulationComponent>(entA);
         UUID slotA = isAInput ? simComp.inputSlots[slotIdxA] : simComp.outputSlots[slotIdxA];
-        auto entB = getEntityWithUuid(compIdB);
+        const auto entB = getEntityWithUuid(compIdB);
         const auto &simCompB = m_registry.get<Components::SimulationComponent>(entB);
         UUID slotB = !isAInput ? simCompB.inputSlots[slotIdxB] : simCompB.outputSlots[slotIdxB];
 
-        auto _ = m_cmdManager.execute<Commands::ConnectCommand, UUID>(
+        const auto _ = m_cmdManager.execute<Commands::ConnectCommand, UUID>(
             slotA, slotB);
         return _.value();
     }
@@ -818,14 +815,14 @@ namespace Bess::Canvas {
         return uuid != UUID::null && m_registry.valid(getEntityWithUuid(uuid));
     }
 
-    void Scene::onRightMouse(bool isPressed) {
+    void Scene::onRightMouse(const bool isPressed) {
         if (!isPressed) {
             return;
         }
 
         if (!isEntityValid(m_hoveredEntity) && m_lastCreatedComp.componentDefinition != nullptr) {
             const auto def = m_lastCreatedComp.componentDefinition;
-            Commands::AddCommandData cmdData = {
+            const Commands::AddCommandData cmdData = {
                 .def = def,
                 .inputCount = m_lastCreatedComp.inputCount,
                 .outputCount = m_lastCreatedComp.outputCount,
@@ -839,21 +836,21 @@ namespace Bess::Canvas {
         }
 
         if (isEntityValid(m_hoveredEntity)) {
-            auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
+            const auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
             if (m_registry.all_of<Components::SimulationInputComponent>(hoveredEntity)) {
-                auto &simComp = m_registry.get<Components::SimulationComponent>(hoveredEntity);
-                bool currentState = SimEngine::SimulationEngine::instance().getDigitalPinState(simComp.simEngineEntity, SimEngine::PinType::output, 0);
+                const auto &simComp = m_registry.get<Components::SimulationComponent>(hoveredEntity);
+                const bool currentState = SimEngine::SimulationEngine::instance().getDigitalPinState(simComp.simEngineEntity, SimEngine::PinType::output, 0);
 
                 auto _ = m_cmdManager.execute<Commands::SetInputCommand, std::string>(m_hoveredEntity, !currentState);
             }
         }
     }
 
-    void Scene::onMiddleMouse(bool isPressed) {
+    void Scene::onMiddleMouse(const bool isPressed) {
         m_isMiddleMousePressed = isPressed;
     }
 
-    void Scene::onLeftMouse(bool isPressed) {
+    void Scene::onLeftMouse(const bool isPressed) {
         m_isLeftMousePressed = isPressed;
         if (!isPressed) {
             if (m_drawMode == SceneDrawMode::selectionBox) {
@@ -880,7 +877,7 @@ namespace Bess::Canvas {
             }
             return;
         }
-        auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
+        const auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
 
         // toggeling selection of hovered entity on click
         if (m_registry.valid(hoveredEntity)) {
@@ -901,7 +898,7 @@ namespace Bess::Canvas {
                 }
 
                 if (m_registry.all_of<Components::ConnectionSegmentComponent>(hoveredEntity)) {
-                    auto &segComp = m_registry.get<Components::ConnectionSegmentComponent>(hoveredEntity);
+                    const auto &segComp = m_registry.get<Components::ConnectionSegmentComponent>(hoveredEntity);
                     toggleSelectComponent(segComp.parent);
                 } else {
                     toggleSelectComponent(hoveredEntity);
@@ -914,12 +911,12 @@ namespace Bess::Canvas {
     }
 
     void Scene::toggleSelectComponent(const UUID &uuid) {
-        auto ent = getEntityWithUuid(uuid);
+        const auto ent = getEntityWithUuid(uuid);
         toggleSelectComponent(ent);
     }
 
-    void Scene::toggleSelectComponent(entt::entity ent) {
-        bool isSelected = m_registry.all_of<Canvas::Components::SelectedComponent>(ent);
+    void Scene::toggleSelectComponent(const entt::entity ent) {
+        const bool isSelected = m_registry.all_of<Canvas::Components::SelectedComponent>(ent);
         if (isSelected)
             m_registry.remove<Canvas::Components::SelectedComponent>(ent);
         else
@@ -930,22 +927,22 @@ namespace Bess::Canvas {
         m_copiedComponents.clear();
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
-        auto &catalogInstance = SimEngine::ComponentCatalog::instance();
+        const auto &catalogInstance = SimEngine::ComponentCatalog::instance();
 
-        auto view = m_registry.view<Components::SelectedComponent, Components::SimulationComponent>();
-        for (auto entt : view) {
+        const auto view = m_registry.view<Components::SelectedComponent, Components::SimulationComponent>();
+        for (const auto entt : view) {
             auto &comp = view.get<Components::SimulationComponent>(entt);
             CopiedComponent compData{};
-            auto type = simEngine.getComponentType(comp.simEngineEntity);
+            const auto type = simEngine.getComponentType(comp.simEngineEntity);
             compData.def = catalogInstance.getComponentDefinition(type);
             compData.inputCount = comp.inputSlots.size();
             compData.outputCount = comp.outputSlots.size();
             m_copiedComponents.emplace_back(compData);
         }
 
-        auto nsCompView = m_registry.view<Components::SelectedComponent, Components::NSComponent>();
-        for (auto entt : nsCompView) {
-            auto &comp = nsCompView.get<Components::NSComponent>(entt);
+        const auto nsCompView = m_registry.view<Components::SelectedComponent, Components::NSComponent>();
+        for (const auto entt : nsCompView) {
+            const auto &comp = nsCompView.get<Components::NSComponent>(entt);
             CopiedComponent compData{};
             compData.nsComp = comp;
             m_copiedComponents.emplace_back(compData);
@@ -987,10 +984,10 @@ namespace Bess::Canvas {
     void Scene::selectEntitesInArea(const glm::vec2 &start, const glm::vec2 &end) {
         m_registry.clear<Components::SelectedComponent>();
         auto size = end - start;
-        glm::vec2 pos = {std::min(start.x, end.x), std::max(start.y, end.y)};
+        const glm::vec2 pos = {std::min(start.x, end.x), std::max(start.y, end.y)};
         size = glm::abs(size);
-        int w = (int)size.x;
-        int h = (int)size.y;
+        const int w = (int)size.x;
+        const int h = (int)size.y;
         int x = pos.x, y = UI::UIMain::state.viewportSize.y - pos.y;
 
         auto ids = m_normalFramebuffer->readIntsFromColAttachment(1, x, y, w, h);
@@ -1007,12 +1004,12 @@ namespace Bess::Canvas {
                 continue;
 
             bool isConnection = false;
-            if (auto *segComp = m_registry.try_get<Components::ConnectionSegmentComponent>(entt)) {
+            if (const auto *segComp = m_registry.try_get<Components::ConnectionSegmentComponent>(entt)) {
                 entt = getEntityWithUuid(segComp->parent);
                 isConnection = true;
             }
 
-            if (selected.find(id) != selected.end())
+            if (selected.contains(id))
                 continue;
 
             if (isConnection || m_registry.any_of<Components::SimulationComponent, Components::NSComponent>(entt)) {
@@ -1023,11 +1020,11 @@ namespace Bess::Canvas {
         }
     }
 
-    void Scene::onMouseWheel(double x, double y) {
+    void Scene::onMouseWheel(const double x, const double y) {
         if (!isCursorInViewport(m_mousePos))
             return;
 
-        auto mainPageState = Pages::MainPageState::getInstance();
+        const auto mainPageState = Pages::MainPageState::getInstance();
         if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
             const float delta = static_cast<float>(y) * 0.1f;
             m_camera->incrementZoomToPoint(toScenePos(m_mousePos), delta);
@@ -1038,7 +1035,7 @@ namespace Bess::Canvas {
         }
     }
 
-    void Scene::beginScene() {
+    void Scene::beginScene() const {
         static constexpr int value = -1;
         m_msaaFramebuffer->bind();
         m_msaaFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::colors.background));
@@ -1048,7 +1045,7 @@ namespace Bess::Canvas {
         Gl::FrameBuffer::clearDepthStencilBuf();
     }
 
-    void Scene::endScene() {
+    void Scene::endScene() const {
         Gl::FrameBuffer::unbindAll();
 
         for (int i = 0; i < 2; i++) {
@@ -1060,15 +1057,15 @@ namespace Bess::Canvas {
         Gl::FrameBuffer::unbindAll();
     }
 
-    void Scene::saveScenePNG(const std::string &path) {
+    void Scene::saveScenePNG(const std::string &path) const {
         m_normalFramebuffer->saveColorAttachment(0, path);
     }
 
-    const glm::vec2 &Scene::getCameraPos() {
+    const glm::vec2 &Scene::getCameraPos() const {
         return m_camera->getPos();
     }
 
-    const glm::vec2 &Scene::getMousePos() {
+    const glm::vec2 &Scene::getMousePos() const {
         return m_mousePos;
     }
 
@@ -1076,11 +1073,11 @@ namespace Bess::Canvas {
         return toScenePos(m_mousePos);
     }
 
-    float Scene::getCameraZoom() {
+    float Scene::getCameraZoom() const {
         return m_camera->getZoom();
     }
 
-    void Scene::setZoom(float value) {
+    void Scene::setZoom(const float value) const {
         m_camera->setZoom(value);
     }
 
@@ -1089,12 +1086,12 @@ namespace Bess::Canvas {
     }
 
     float Scene::getNextZCoord() {
-        float z = m_compZCoord;
+        const float z = m_compZCoord;
         m_compZCoord += m_zIncrement;
         return z;
     }
 
-    void Scene::setZCoord(float value) {
+    void Scene::setZCoord(const float value) {
         m_compZCoord = value + m_zIncrement;
     }
 
@@ -1102,7 +1099,7 @@ namespace Bess::Canvas {
         return m_cmdManager;
     }
 
-    unsigned int Scene::getTextureId() {
+    unsigned int Scene::getTextureId() const {
         return m_normalFramebuffer->getColorBufferTexId(0);
     }
 
@@ -1114,11 +1111,11 @@ namespace Bess::Canvas {
         m_lastCreatedComp = std::move(comp);
     }
 
-    void Scene::setSceneMode(SceneMode mode) {
+    void Scene::setSceneMode(const SceneMode mode) {
         m_sceneMode = mode;
     }
 
-    SceneMode Scene::getSceneMode() {
+    SceneMode Scene::getSceneMode() const {
         return m_sceneMode;
     }
 

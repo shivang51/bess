@@ -19,7 +19,7 @@ namespace Bess {
 
     class ApplicationEvent {
       public:
-        ApplicationEvent(ApplicationEventType type, std::any data);
+        ApplicationEvent(ApplicationEventType type, const std::any &data);
         ApplicationEventType getType() const;
         template <typename T>
         T getData() const {

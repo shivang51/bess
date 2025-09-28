@@ -13,7 +13,7 @@ namespace Bess {
         m_UUID = s_UniformDistribution(s_Engine);
     }
 
-    UUID::UUID(uint64_t uuid) {
+    UUID::UUID(const uint64_t uuid) {
         m_UUID = uuid;
     }
 } // namespace Bess

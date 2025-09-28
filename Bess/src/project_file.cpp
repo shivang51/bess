@@ -119,7 +119,7 @@ namespace Bess {
     }
 
     void ProjectFile::browsePath() {
-        auto path = UI::Dialogs::showSaveFileDialog("Save To", "");
+        const auto path = UI::Dialogs::showSaveFileDialog("Save To", "");
         if (path.size() == 0) {
             BESS_WARN("No path selected");
             return;
