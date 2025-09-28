@@ -5,6 +5,7 @@
 #include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
 #include "scene/scene.h"
+#include "scene/artist/base_artist.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/m_widgets.h"
 #include <imgui.h>
@@ -14,14 +15,14 @@ using namespace Bess::Canvas::Components;
 namespace Bess::UI {
     bool PropertiesPanel::isShown = true;
 
-    void drawTagComponent(TagComponent &comp) {
+    bool drawTagComponent(TagComponent &comp) {
         std::string icon;
         if (comp.isSimComponent) {
             icon = Common::Helpers::getComponentIcon(comp.type.simCompType);
         } else {
             icon = Common::Helpers::getComponentIcon(comp.type.nsCompType);
         }
-        MWidgets::TextBox("Name", comp.name);
+        return MWidgets::TextBox("Name", comp.name);
     }
 
     bool MyCollapsingHeader(const char *label) {
@@ -124,7 +125,12 @@ namespace Bess::UI {
         }
 
         if (registry.all_of<TagComponent>(entt)) {
-            drawTagComponent(registry.get<TagComponent>(entt));
+            if(drawTagComponent(registry.get<TagComponent>(entt)) && registry.all_of<SimulationComponent>(entt)) {
+                auto& transform = registry.get<TransformComponent>(entt);
+                transform.scale = Canvas::BaseArtist::calcCompSize(entt,
+                    registry.get<SimulationComponent>(entt),
+                    registry.get<TagComponent>(entt).name);
+            }
         }
 
         if (registry.all_of<SimulationOutputComponent>(entt)) {
