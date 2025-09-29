@@ -4,6 +4,7 @@
 #include "scene/renderer/vulkan/command_buffer.h"
 #include "scene/renderer/vulkan/device.h"
 #include "scene/renderer/vulkan/pipeline.h"
+#include "scene/renderer/vulkan/imgui_pipeline.h"
 #include "scene/renderer/vulkan/swapchain.h"
 #include "scene/renderer/vulkan/vulkan_framebuffer.h"
 #include "scene/renderer/vulkan/vulkan_render_pass.h"
@@ -112,6 +113,7 @@ namespace Bess::Renderer2D {
         std::shared_ptr<Vulkan::VulkanSwapchain> getSwapchain() const { return m_swapchain; }
         std::shared_ptr<Vulkan::VulkanCommandBuffer> getCommandBuffer() const { return m_commandBuffer; }
         std::shared_ptr<Vulkan::VulkanPipeline> getPipeline() const { return m_pipeline; }
+        std::shared_ptr<Vulkan::ImGuiPipeline> getImGuiPipeline() const { return m_imguiPipeline; }
 
       private:
         VkResult initVkInstance(const std::vector<const char *> &winExtensions);
@@ -127,6 +129,7 @@ namespace Bess::Renderer2D {
         std::shared_ptr<Vulkan::VulkanDevice> m_device;
         std::shared_ptr<Vulkan::VulkanSwapchain> m_swapchain;
         std::shared_ptr<Vulkan::VulkanPipeline> m_pipeline;
+        std::shared_ptr<Vulkan::ImGuiPipeline> m_imguiPipeline;
         std::shared_ptr<Vulkan::VulkanCommandBuffer> m_commandBuffer;
         std::shared_ptr<Vulkan::VulkanRenderPass> m_renderPass;
         std::shared_ptr<Vulkan::VulkanFramebuffer> m_sceneFramebuffer;

@@ -21,7 +21,7 @@ namespace Bess::Renderer2D::Vulkan {
 
         void createCommandPool();
         void createCommandBuffers();
-        void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, VkRenderPass renderPass, VkFramebuffer framebuffer, VkExtent2D extent);
+        void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, VkRenderPass renderPass, VkFramebuffer framebuffer, VkExtent2D extent, VkPipelineLayout pipelineLayout);
 
         VkCommandPool commandPool() const { return m_commandPool; }
         const std::vector<VkCommandBuffer>& commandBuffers() const { return m_commandBuffers; }

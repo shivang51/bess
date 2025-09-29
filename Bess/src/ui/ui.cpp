@@ -109,13 +109,13 @@ namespace Bess::UI {
         initInfo.ImageCount = 2;
         initInfo.UseDynamicRendering = false;
 
-        // Setup pipeline info for main viewport
+        // Setup pipeline info for main viewport using main pipeline
         auto pipeline = vulkanRenderer.getPipeline();
         initInfo.PipelineInfoMain.RenderPass = pipeline->renderPass();
         initInfo.PipelineInfoMain.Subpass = 0;
         initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
-        // Setup pipeline info for secondary viewports
+        // Setup pipeline info for secondary viewports using main pipeline
         initInfo.PipelineInfoForViewports.RenderPass = pipeline->renderPass();
         initInfo.PipelineInfoForViewports.Subpass = 0;
         initInfo.PipelineInfoForViewports.MSAASamples = VK_SAMPLE_COUNT_1_BIT;

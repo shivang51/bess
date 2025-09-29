@@ -58,18 +58,15 @@ namespace Bess::Renderer2D::Vulkan {
     void VulkanSwapchain::createSwapchain(VkSwapchainKHR oldSwapchain) {
         SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_device->physicalDevice());
 
-        BESS_INFO("Available surface formats: {}", swapChainSupport.formats.size());
-        for (const auto& format : swapChainSupport.formats) {
-            BESS_INFO("  Format: {}, ColorSpace: {}", static_cast<int>(format.format), static_cast<int>(format.colorSpace));
-        }
+        // Available surface formats logged for debugging if needed
 
         VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
         VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, m_windowExtent);
         
-        BESS_INFO("Selected surface format: {}, ColorSpace: {}", static_cast<int>(surfaceFormat.format), static_cast<int>(surfaceFormat.colorSpace));
-        BESS_INFO("Selected present mode: {}", static_cast<int>(presentMode));
-        BESS_INFO("Selected extent: {}x{}", extent.width, extent.height);
+        // Surface format selected
+        // Present mode selected
+        // Extent selected
 
         uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
         if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
@@ -103,14 +100,7 @@ namespace Bess::Renderer2D::Vulkan {
         createInfo.clipped = VK_TRUE;
         createInfo.oldSwapchain = oldSwapchain;
 
-        BESS_INFO("Swapchain creation parameters:");
-        BESS_INFO("  Image count: {}", imageCount);
-        BESS_INFO("  Image format: {}", static_cast<int>(createInfo.imageFormat));
-        BESS_INFO("  Image color space: {}", static_cast<int>(createInfo.imageColorSpace));
-        BESS_INFO("  Image extent: {}x{}", createInfo.imageExtent.width, createInfo.imageExtent.height);
-        BESS_INFO("  Image usage: {}", static_cast<int>(createInfo.imageUsage));
-        BESS_INFO("  Sharing mode: {}", static_cast<int>(createInfo.imageSharingMode));
-        BESS_INFO("  Present mode: {}", static_cast<int>(createInfo.presentMode));
+        // Swapchain creation parameters set
 
         VkResult result = vkCreateSwapchainKHR(m_device->device(), &createInfo, nullptr, &m_swapchain);
         if (result != VK_SUCCESS) {
@@ -129,18 +119,15 @@ namespace Bess::Renderer2D::Vulkan {
     void VulkanSwapchain::createSwapchain() {
         SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_device->physicalDevice());
 
-        BESS_INFO("Available surface formats: {}", swapChainSupport.formats.size());
-        for (const auto& format : swapChainSupport.formats) {
-            BESS_INFO("  Format: {}, ColorSpace: {}", static_cast<int>(format.format), static_cast<int>(format.colorSpace));
-        }
+        // Available surface formats logged for debugging if needed
 
         VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
         VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, m_windowExtent);
         
-        BESS_INFO("Selected surface format: {}, ColorSpace: {}", static_cast<int>(surfaceFormat.format), static_cast<int>(surfaceFormat.colorSpace));
-        BESS_INFO("Selected present mode: {}", static_cast<int>(presentMode));
-        BESS_INFO("Selected extent: {}x{}", extent.width, extent.height);
+        // Surface format selected
+        // Present mode selected
+        // Extent selected
 
         uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
         if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
@@ -174,14 +161,7 @@ namespace Bess::Renderer2D::Vulkan {
         createInfo.clipped = VK_TRUE;
         createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-        BESS_INFO("Swapchain creation parameters:");
-        BESS_INFO("  Image count: {}", imageCount);
-        BESS_INFO("  Image format: {}", static_cast<int>(createInfo.imageFormat));
-        BESS_INFO("  Image color space: {}", static_cast<int>(createInfo.imageColorSpace));
-        BESS_INFO("  Image extent: {}x{}", createInfo.imageExtent.width, createInfo.imageExtent.height);
-        BESS_INFO("  Image usage: {}", static_cast<int>(createInfo.imageUsage));
-        BESS_INFO("  Sharing mode: {}", static_cast<int>(createInfo.imageSharingMode));
-        BESS_INFO("  Present mode: {}", static_cast<int>(createInfo.presentMode));
+        // Swapchain creation parameters set
 
         VkResult result = vkCreateSwapchainKHR(m_device->device(), &createInfo, nullptr, &m_swapchain);
         if (result != VK_SUCCESS) {

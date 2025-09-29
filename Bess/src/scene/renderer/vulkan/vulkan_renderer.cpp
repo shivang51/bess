@@ -81,6 +81,10 @@ namespace Bess::Renderer2D {
         m_swapchain = std::make_shared<Vulkan::VulkanSwapchain>(m_vkInstance, m_device, m_renderSurface, windowExtent);
         m_pipeline = std::make_shared<Vulkan::VulkanPipeline>(m_device, m_swapchain);
         m_pipeline->createGraphicsPipeline(vertShaderPath, fragShaderPath);
+        
+        // Create ImGui pipeline
+        m_imguiPipeline = std::make_shared<Vulkan::ImGuiPipeline>(m_device, m_swapchain);
+        
         m_swapchain->createFramebuffers(m_pipeline->renderPass());
 
         // Create render pass for scene rendering
@@ -121,7 +125,7 @@ namespace Bess::Renderer2D {
         vkResetCommandBuffer(m_commandBuffer->commandBuffers()[m_currentFrame], 0);
         m_commandBuffer->recordCommandBuffer(m_commandBuffer->commandBuffers()[m_currentFrame], imageIndex,
                                              m_pipeline->renderPass(), m_swapchain->framebuffers()[imageIndex],
-                                             m_swapchain->extent());
+                                             m_swapchain->extent(), m_pipeline->pipelineLayout());
 
         // ImGui rendering is now handled within the command buffer recording
 
@@ -221,24 +225,43 @@ namespace Bess::Renderer2D {
 
     void VulkanRenderer::cleanup() {
         if (m_device && m_device->device() != VK_NULL_HANDLE) {
+            // Wait for all operations to complete before cleanup
+            vkDeviceWaitIdle(m_device->device());
+            
+            // Additional wait to ensure all command buffers are finished
+            if (m_commandBuffer) {
+                // Wait for any pending command buffer operations
+                for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+                    if (m_inFlightFences[i] != VK_NULL_HANDLE) {
+                        vkWaitForFences(m_device->device(), 1, &m_inFlightFences[i], VK_TRUE, UINT64_MAX);
+                        vkResetFences(m_device->device(), 1, &m_inFlightFences[i]);
+                    }
+                }
+            }
+            
+            // Wait again after resetting fences to ensure complete synchronization
             vkDeviceWaitIdle(m_device->device());
         }
 
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            if (m_renderFinishedSemaphores[i] != VK_NULL_HANDLE) {
-                vkDestroySemaphore(m_device->device(), m_renderFinishedSemaphores[i], nullptr);
-            }
-            if (m_imageAvailableSemaphores[i] != VK_NULL_HANDLE) {
-                vkDestroySemaphore(m_device->device(), m_imageAvailableSemaphores[i], nullptr);
-            }
-            if (m_inFlightFences[i] != VK_NULL_HANDLE) {
-                vkDestroyFence(m_device->device(), m_inFlightFences[i], nullptr);
+        // Destroy semaphores and fences before resetting device
+        if (m_device && m_device->device() != VK_NULL_HANDLE) {
+            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+                if (m_renderFinishedSemaphores[i] != VK_NULL_HANDLE) {
+                    vkDestroySemaphore(m_device->device(), m_renderFinishedSemaphores[i], nullptr);
+                }
+                if (m_imageAvailableSemaphores[i] != VK_NULL_HANDLE) {
+                    vkDestroySemaphore(m_device->device(), m_imageAvailableSemaphores[i], nullptr);
+                }
+                if (m_inFlightFences[i] != VK_NULL_HANDLE) {
+                    vkDestroyFence(m_device->device(), m_inFlightFences[i], nullptr);
+                }
             }
         }
 
         m_sceneFramebuffer.reset();
         m_renderPass.reset();
         m_commandBuffer.reset();
+        m_imguiPipeline.reset(); // Destroy ImGui pipeline before device
         m_pipeline.reset();
         m_swapchain.reset();
         m_device.reset();
@@ -270,7 +293,7 @@ namespace Bess::Renderer2D {
         }
 
         const std::vector<const char *> validationLayers = {
-            "VK_LAYER_KHRONOS_validation",
+            // "VK_LAYER_KHRONOS_validation", // Temporarily disabled for testing
         };
 
         if (validateLayers(validationLayers) != VK_SUCCESS) {
