@@ -1,36 +1,37 @@
 #pragma once
 
 #include "device.h"
+#include <memory>
 #include <vector>
 #include <vulkan/vulkan.h>
 
 namespace Bess::Renderer2D::Vulkan {
 
     class VulkanSwapchain {
-    public:
-        VulkanSwapchain(VkInstance instance, VulkanDevice& device, VkSurfaceKHR surface, VkExtent2D windowExtent);
+      public:
+        VulkanSwapchain(VkInstance instance, std::shared_ptr<VulkanDevice> device, VkSurfaceKHR surface, VkExtent2D windowExtent);
         ~VulkanSwapchain();
 
         // Delete copy constructor and assignment operator
-        VulkanSwapchain(const VulkanSwapchain&) = delete;
-        VulkanSwapchain& operator=(const VulkanSwapchain&) = delete;
+        VulkanSwapchain(const VulkanSwapchain &) = delete;
+        VulkanSwapchain &operator=(const VulkanSwapchain &) = delete;
 
         // Move constructor and assignment operator
-        VulkanSwapchain(VulkanSwapchain&& other) noexcept;
-        VulkanSwapchain& operator=(VulkanSwapchain&& other) noexcept;
+        VulkanSwapchain(VulkanSwapchain &&other) noexcept;
+        VulkanSwapchain &operator=(VulkanSwapchain &&other) noexcept;
 
         void createFramebuffers(VkRenderPass renderPass);
         void cleanup();
 
         VkSwapchainKHR swapchain() const { return m_swapchain; }
-        const std::vector<VkImage>& images() const { return m_images; }
+        const std::vector<VkImage> &images() const { return m_images; }
         VkFormat imageFormat() const { return m_imageFormat; }
         VkExtent2D extent() const { return m_extent; }
-        const std::vector<VkImageView>& imageViews() const { return m_imageViews; }
-        const std::vector<VkFramebuffer>& framebuffers() const { return m_framebuffers; }
+        const std::vector<VkImageView> &imageViews() const { return m_imageViews; }
+        const std::vector<VkFramebuffer> &framebuffers() const { return m_framebuffers; }
         uint32_t imageCount() const { return static_cast<uint32_t>(m_images.size()); }
 
-    private:
+      private:
         void createSwapchain();
         void createImageViews();
 
@@ -41,12 +42,12 @@ namespace Bess::Renderer2D::Vulkan {
         };
 
         SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
-        VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-        VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-        VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, VkExtent2D windowExtent);
+        VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
+        VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
+        VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities, VkExtent2D windowExtent);
 
         VkInstance m_instance;
-        VulkanDevice& m_device;
+        std::shared_ptr<VulkanDevice> m_device;
         VkSurfaceKHR m_surface;
         VkExtent2D m_windowExtent;
 

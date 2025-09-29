@@ -4,7 +4,7 @@
 
 namespace Bess::Renderer2D::Vulkan {
 
-    VulkanCommandBuffer::VulkanCommandBuffer(VulkanDevice& device) : m_device(device) {
+    VulkanCommandBuffer::VulkanCommandBuffer(VulkanDevice &device) : m_device(device) {
         createCommandPool();
         createCommandBuffers();
     }
@@ -15,19 +15,19 @@ namespace Bess::Renderer2D::Vulkan {
         }
     }
 
-    VulkanCommandBuffer::VulkanCommandBuffer(VulkanCommandBuffer&& other) noexcept
+    VulkanCommandBuffer::VulkanCommandBuffer(VulkanCommandBuffer &&other) noexcept
         : m_device(other.m_device),
           m_commandPool(other.m_commandPool),
           m_commandBuffers(std::move(other.m_commandBuffers)) {
         other.m_commandPool = VK_NULL_HANDLE;
     }
 
-    VulkanCommandBuffer& VulkanCommandBuffer::operator=(VulkanCommandBuffer&& other) noexcept {
+    VulkanCommandBuffer &VulkanCommandBuffer::operator=(VulkanCommandBuffer &&other) noexcept {
         if (this != &other) {
             if (m_commandPool != VK_NULL_HANDLE) {
                 vkDestroyCommandPool(m_device.device(), m_commandPool, nullptr);
             }
-            
+
             m_commandPool = other.m_commandPool;
             m_commandBuffers = std::move(other.m_commandBuffers);
 

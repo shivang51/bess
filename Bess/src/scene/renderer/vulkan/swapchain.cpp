@@ -5,7 +5,7 @@
 
 namespace Bess::Renderer2D::Vulkan {
 
-    VulkanSwapchain::VulkanSwapchain(VkInstance instance, VulkanDevice& device, VkSurfaceKHR surface, VkExtent2D windowExtent)
+    VulkanSwapchain::VulkanSwapchain(VkInstance instance, std::shared_ptr<VulkanDevice> device, VkSurfaceKHR surface, VkExtent2D windowExtent)
         : m_instance(instance), m_device(device), m_surface(surface), m_windowExtent(windowExtent) {
         createSwapchain();
         createImageViews();
@@ -15,7 +15,7 @@ namespace Bess::Renderer2D::Vulkan {
         cleanup();
     }
 
-    VulkanSwapchain::VulkanSwapchain(VulkanSwapchain&& other) noexcept
+    VulkanSwapchain::VulkanSwapchain(VulkanSwapchain &&other) noexcept
         : m_instance(other.m_instance),
           m_device(other.m_device),
           m_surface(other.m_surface),
@@ -29,10 +29,10 @@ namespace Bess::Renderer2D::Vulkan {
         other.m_swapchain = VK_NULL_HANDLE;
     }
 
-    VulkanSwapchain& VulkanSwapchain::operator=(VulkanSwapchain&& other) noexcept {
+    VulkanSwapchain &VulkanSwapchain::operator=(VulkanSwapchain &&other) noexcept {
         if (this != &other) {
             cleanup();
-            
+
             m_instance = other.m_instance;
             // m_device is a reference and cannot be reassigned
             m_surface = other.m_surface;
@@ -50,7 +50,7 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void VulkanSwapchain::createSwapchain() {
-        SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_device.physicalDevice());
+        SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_device->physicalDevice());
 
         VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -71,7 +71,7 @@ namespace Bess::Renderer2D::Vulkan {
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-        QueueFamilyIndices indices = m_device.queueFamilyIndices();
+        QueueFamilyIndices indices = m_device->queueFamilyIndices();
         uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
         if (indices.graphicsFamily != indices.presentFamily) {
@@ -88,13 +88,13 @@ namespace Bess::Renderer2D::Vulkan {
         createInfo.clipped = VK_TRUE;
         createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-        if (vkCreateSwapchainKHR(m_device.device(), &createInfo, nullptr, &m_swapchain) != VK_SUCCESS) {
+        if (vkCreateSwapchainKHR(m_device->device(), &createInfo, nullptr, &m_swapchain) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create swap chain!");
         }
 
-        vkGetSwapchainImagesKHR(m_device.device(), m_swapchain, &imageCount, nullptr);
+        vkGetSwapchainImagesKHR(m_device->device(), m_swapchain, &imageCount, nullptr);
         m_images.resize(imageCount);
-        vkGetSwapchainImagesKHR(m_device.device(), m_swapchain, &imageCount, m_images.data());
+        vkGetSwapchainImagesKHR(m_device->device(), m_swapchain, &imageCount, m_images.data());
 
         m_imageFormat = surfaceFormat.format;
         m_extent = extent;
@@ -119,7 +119,7 @@ namespace Bess::Renderer2D::Vulkan {
             createInfo.subresourceRange.baseArrayLayer = 0;
             createInfo.subresourceRange.layerCount = 1;
 
-            if (vkCreateImageView(m_device.device(), &createInfo, nullptr, &m_imageViews[i]) != VK_SUCCESS) {
+            if (vkCreateImageView(m_device->device(), &createInfo, nullptr, &m_imageViews[i]) != VK_SUCCESS) {
                 throw std::runtime_error("Failed to create texture image view!");
             }
         }
@@ -130,8 +130,7 @@ namespace Bess::Renderer2D::Vulkan {
 
         for (size_t i = 0; i < m_imageViews.size(); i++) {
             VkImageView attachments[] = {
-                m_imageViews[i]
-            };
+                m_imageViews[i]};
 
             VkFramebufferCreateInfo framebufferInfo{};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -142,7 +141,7 @@ namespace Bess::Renderer2D::Vulkan {
             framebufferInfo.height = m_extent.height;
             framebufferInfo.layers = 1;
 
-            if (vkCreateFramebuffer(m_device.device(), &framebufferInfo, nullptr, &m_framebuffers[i]) != VK_SUCCESS) {
+            if (vkCreateFramebuffer(m_device->device(), &framebufferInfo, nullptr, &m_framebuffers[i]) != VK_SUCCESS) {
                 throw std::runtime_error("Failed to create framebuffer!");
             }
         }
@@ -150,17 +149,17 @@ namespace Bess::Renderer2D::Vulkan {
 
     void VulkanSwapchain::cleanup() {
         for (auto framebuffer : m_framebuffers) {
-            vkDestroyFramebuffer(m_device.device(), framebuffer, nullptr);
+            vkDestroyFramebuffer(m_device->device(), framebuffer, nullptr);
         }
         m_framebuffers.clear();
 
         for (auto imageView : m_imageViews) {
-            vkDestroyImageView(m_device.device(), imageView, nullptr);
+            vkDestroyImageView(m_device->device(), imageView, nullptr);
         }
         m_imageViews.clear();
 
         if (m_swapchain != VK_NULL_HANDLE) {
-            vkDestroySwapchainKHR(m_device.device(), m_swapchain, nullptr);
+            vkDestroySwapchainKHR(m_device->device(), m_swapchain, nullptr);
             m_swapchain = VK_NULL_HANDLE;
         }
     }
@@ -189,8 +188,8 @@ namespace Bess::Renderer2D::Vulkan {
         return details;
     }
 
-    VkSurfaceFormatKHR VulkanSwapchain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
-        for (const auto& availableFormat : availableFormats) {
+    VkSurfaceFormatKHR VulkanSwapchain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) {
+        for (const auto &availableFormat : availableFormats) {
             if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
                 return availableFormat;
             }
@@ -199,8 +198,8 @@ namespace Bess::Renderer2D::Vulkan {
         return availableFormats[0];
     }
 
-    VkPresentModeKHR VulkanSwapchain::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
-        for (const auto& availablePresentMode : availablePresentModes) {
+    VkPresentModeKHR VulkanSwapchain::chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) {
+        for (const auto &availablePresentMode : availablePresentModes) {
             if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
                 return availablePresentMode;
             }
@@ -209,7 +208,7 @@ namespace Bess::Renderer2D::Vulkan {
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
-    VkExtent2D VulkanSwapchain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, VkExtent2D windowExtent) {
+    VkExtent2D VulkanSwapchain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities, VkExtent2D windowExtent) {
         if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
             return capabilities.currentExtent;
         } else {

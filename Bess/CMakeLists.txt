@@ -159,19 +159,14 @@ set(ALL_FILES
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine)
 add_dependencies(${PROJECT_NAME} BessSimEngine)
-# Find Vulkan
-find_package(Vulkan REQUIRED)
 
 if("${BUILD_ARCH}" STREQUAL "x64" AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "glfw3;"
-        "vulkan-1;"
         "gdi32;"
         "freetype;"
     )
 
     target_link_directories(${PROJECT_NAME} PRIVATE
-        "${CMAKE_SOURCE_DIR}/external/glfw/lib-vc2022"
         "${CMAKE_SOURCE_DIR}/external/freetype/libs/windows"
     )
 
@@ -183,14 +178,11 @@ else()
     endif()
 
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "glfw;"
-        "vulkan;"
         "freetype;"
     )
 endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
-target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(ASSETS_DST_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets")
@@ -215,7 +207,6 @@ if("${BUILD_ARCH}" STREQUAL "x64")
 			"${CMAKE_SOURCE_DIR}/external/imgui/backends"
 			"${CMAKE_SOURCE_DIR}/external/glm"
 			"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
-			"${CMAKE_SOURCE_DIR}/external/glfw/include"
 			"${CMAKE_SOURCE_DIR}/external/stb_image/include"
 			"${CMAKE_SOURCE_DIR}/external/tinyfiledialogs"
 			"${CMAKE_SOURCE_DIR}/external/entt/include"
@@ -223,10 +214,25 @@ if("${BUILD_ARCH}" STREQUAL "x64")
 	)
 endif()
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GLFW REQUIRED glfw3)
+pkg_check_modules(VULKAN REQUIRED vulkan)
+find_package(X11 REQUIRED)
+
+
 find_package(PNG REQUIRED)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC ${PNG_LIBRARIES})
-target_include_directories(${PROJECT_NAME} PUBLIC ${PNG_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PUBLIC 
+	${PNG_LIBRARIES}
+	${GLFW_LIBRARIES}
+	  ${X11_LIBRARIES}
+	${VULKAN_LIBRARIES}
+)
+target_include_directories(${PROJECT_NAME} PUBLIC 
+	${PNG_INCLUDE_DIRS}
+			${VULKAN_INCLUDE_DIRS}
+${GLFW_INCLUDE_DIRS}
+)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)

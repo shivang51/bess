@@ -6,6 +6,7 @@
 
 namespace Bess::UI {
     void init(GLFWwindow *window);
+    void initVulkanImGui();
     void begin();
     void end();
 

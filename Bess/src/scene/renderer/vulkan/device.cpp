@@ -5,7 +5,7 @@
 
 namespace Bess::Renderer2D::Vulkan {
 
-    VulkanDevice::VulkanDevice(VkInstance instance, VkSurfaceKHR surface) 
+    VulkanDevice::VulkanDevice(VkInstance instance, VkSurfaceKHR surface)
         : m_instance(instance), m_surface(surface) {
         pickPhysicalDevice();
         createLogicalDevice();
@@ -20,7 +20,7 @@ namespace Bess::Renderer2D::Vulkan {
         }
     }
 
-    VulkanDevice::VulkanDevice(VulkanDevice&& other) noexcept
+    VulkanDevice::VulkanDevice(VulkanDevice &&other) noexcept
         : m_instance(other.m_instance),
           m_surface(other.m_surface),
           m_vkPhysicalDevice(other.m_vkPhysicalDevice),
@@ -36,12 +36,12 @@ namespace Bess::Renderer2D::Vulkan {
         other.m_commandPool = VK_NULL_HANDLE;
     }
 
-    VulkanDevice& VulkanDevice::operator=(VulkanDevice&& other) noexcept {
+    VulkanDevice &VulkanDevice::operator=(VulkanDevice &&other) noexcept {
         if (this != &other) {
             if (m_vkDevice != VK_NULL_HANDLE) {
                 vkDestroyDevice(m_vkDevice, nullptr);
             }
-            
+
             m_instance = other.m_instance;
             m_surface = other.m_surface;
             m_vkPhysicalDevice = other.m_vkPhysicalDevice;
@@ -71,7 +71,7 @@ namespace Bess::Renderer2D::Vulkan {
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
 
-        for (const auto& device : devices) {
+        for (const auto &device : devices) {
             if (isDeviceSuitable(device)) {
                 m_vkPhysicalDevice = device;
                 break;
@@ -81,13 +81,17 @@ namespace Bess::Renderer2D::Vulkan {
         if (m_vkPhysicalDevice == VK_NULL_HANDLE) {
             throw std::runtime_error("Failed to find a suitable GPU!");
         }
+
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(m_vkPhysicalDevice, &deviceProperties);
+        BESS_INFO("[Renderer] Selected GPU: {}", deviceProperties.deviceName);
     }
 
     void VulkanDevice::createLogicalDevice() {
-        QueueFamilyIndices indices = findQueueFamilies(m_vkPhysicalDevice);
+        m_queueFamilyIndices = findQueueFamilies(m_vkPhysicalDevice);
 
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-        std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+        std::set<uint32_t> uniqueQueueFamilies = {m_queueFamilyIndices.graphicsFamily.value(), m_queueFamilyIndices.presentFamily.value()};
 
         float queuePriority = 1.0f;
         for (uint32_t queueFamily : uniqueQueueFamilies) {
@@ -108,35 +112,28 @@ namespace Bess::Renderer2D::Vulkan {
         createInfo.pEnabledFeatures = &deviceFeatures;
 
         // Enable required extensions
-        const std::vector<const char*> deviceExtensions = {
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME
-        };
+        const std::vector<const char *> deviceExtensions = {
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME};
         createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
         createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-        // Enable validation layers in debug mode
-        #ifdef NDEBUG
-        createInfo.enabledLayerCount = 0;
-        #else
-        const std::vector<const char*> validationLayers = {
-            "VK_LAYER_KHRONOS_validation"
-        };
+        const std::vector<const char *> validationLayers = {
+            "VK_LAYER_KHRONOS_validation"};
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
-        #endif
 
         if (vkCreateDevice(m_vkPhysicalDevice, &createInfo, nullptr, &m_vkDevice) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create logical device!");
         }
 
-        vkGetDeviceQueue(m_vkDevice, indices.graphicsFamily.value(), 0, &m_graphicsQueue);
-        vkGetDeviceQueue(m_vkDevice, indices.presentFamily.value(), 0, &m_presentQueue);
+        vkGetDeviceQueue(m_vkDevice, m_queueFamilyIndices.graphicsFamily.value(), 0, &m_graphicsQueue);
+        vkGetDeviceQueue(m_vkDevice, m_queueFamilyIndices.presentFamily.value(), 0, &m_presentQueue);
 
         // Create command pool
         VkCommandPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        poolInfo.queueFamilyIndex = indices.graphicsFamily.value();
+        poolInfo.queueFamilyIndex = m_queueFamilyIndices.graphicsFamily.value();
 
         if (vkCreateCommandPool(m_vkDevice, &poolInfo, nullptr, &m_commandPool) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create command pool!");
@@ -145,7 +142,7 @@ namespace Bess::Renderer2D::Vulkan {
 
     bool VulkanDevice::isDeviceSuitable(VkPhysicalDevice device) {
         QueueFamilyIndices indices = findQueueFamilies(device);
-        
+
         bool extensionsSupported = false;
         uint32_t extensionCount;
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
@@ -153,10 +150,9 @@ namespace Bess::Renderer2D::Vulkan {
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
         std::set<std::string> requiredExtensions = {
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME
-        };
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
-        for (const auto& extension : availableExtensions) {
+        for (const auto &extension : availableExtensions) {
             requiredExtensions.erase(extension.extensionName);
         }
 
@@ -174,7 +170,7 @@ namespace Bess::Renderer2D::Vulkan {
         vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
 
         int i = 0;
-        for (const auto& queueFamily : queueFamilies) {
+        for (const auto &queueFamily : queueFamilies) {
             if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
                 indices.graphicsFamily = i;
             }

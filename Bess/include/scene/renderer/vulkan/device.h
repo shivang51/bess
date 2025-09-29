@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
 #include <optional>
 #include <vector>
+#include <vulkan/vulkan.h>
 
 namespace Bess::Renderer2D::Vulkan {
 
@@ -16,17 +16,17 @@ namespace Bess::Renderer2D::Vulkan {
     };
 
     class VulkanDevice {
-    public:
+      public:
         VulkanDevice(VkInstance instance, VkSurfaceKHR surface);
         ~VulkanDevice();
 
         // Delete copy constructor and assignment operator
-        VulkanDevice(const VulkanDevice&) = delete;
-        VulkanDevice& operator=(const VulkanDevice&) = delete;
+        VulkanDevice(const VulkanDevice &) = delete;
+        VulkanDevice &operator=(const VulkanDevice &) = delete;
 
         // Move constructor and assignment operator
-        VulkanDevice(VulkanDevice&& other) noexcept;
-        VulkanDevice& operator=(VulkanDevice&& other) noexcept;
+        VulkanDevice(VulkanDevice &&other) noexcept;
+        VulkanDevice &operator=(VulkanDevice &&other) noexcept;
 
         VkDevice device() const { return m_vkDevice; }
         VkPhysicalDevice physicalDevice() const { return m_vkPhysicalDevice; }
@@ -39,7 +39,7 @@ namespace Bess::Renderer2D::Vulkan {
         VkCommandBuffer beginSingleTimeCommands();
         void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
-    private:
+      private:
         void pickPhysicalDevice();
         void createLogicalDevice();
         bool isDeviceSuitable(VkPhysicalDevice device);

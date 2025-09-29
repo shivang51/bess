@@ -1,4 +1,5 @@
 #include "ui/ui.h"
+#include "common/log.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/icons/ComponentIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
@@ -11,10 +12,9 @@
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-// #include "imgui_impl_vulkan.h" // Not available in current ImGui version
-#include "imgui_internal.h"
+#include "imgui_impl_vulkan.h"
 #include "implot.h"
+#include "scene/renderer/vulkan/vulkan_renderer.h"
 
 namespace Bess::UI {
     void init(GLFWwindow *window) {
@@ -25,29 +25,103 @@ namespace Bess::UI {
 
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
-        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable
+        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-viewport
 
         io.IniFilename = "bess.ini";
 
         ImGui::StyleColorsDark();
         ImGuiStyle &style = ImGui::GetStyle();
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-            style.WindowRounding = 0.0f;
-            style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+        if ((io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0) {
+            style.WindowRounding = 0.0F;
+            style.Colors[ImGuiCol_WindowBg].w = 1.0F;
         }
 
         loadFontAndSetScale(Config::Settings::getFontSize(), Config::Settings::getScale());
         Config::Settings::loadCurrentTheme();
 
-        ImGui_ImplGlfw_InitForOpenGL(window, true);
-        
-        // TODO: Implement Vulkan ImGui backend
-        // For now, using OpenGL backend as placeholder
+        ImGui_ImplGlfw_InitForVulkan(window, true);
+
+        initVulkanImGui();
+    }
+
+    void initVulkanImGui() {
+        if (!Renderer2D::VulkanRenderer::isInitialized) {
+            BESS_ERROR("VulkanRenderer not initialized! Call VulkanRenderer::init() first.");
+            return;
+        }
+
+        auto &vulkanRenderer = Bess::Renderer2D::VulkanRenderer::instance();
+
+        auto device = vulkanRenderer.getDevice();
+        if (!device) {
+            BESS_ERROR("Vulkan device not available!");
+            return;
+        }
+
+        // Create descriptor pool for ImGui
+        std::array<VkDescriptorPoolSize, 11> poolSizes = {{{VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
+                                                           {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
+                                                           {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000},
+                                                           {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000},
+                                                           {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000},
+                                                           {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000},
+                                                           {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
+                                                           {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
+                                                           {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
+                                                           {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
+                                                           {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}}};
+
+        VkDescriptorPoolCreateInfo poolInfo = {};
+        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+        poolInfo.maxSets = 1000 * static_cast<uint32_t>(poolSizes.size());
+        poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+        poolInfo.pPoolSizes = poolSizes.data();
+
+        VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+        if (vkCreateDescriptorPool(device->device(), &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
+            BESS_ERROR("Failed to create descriptor pool for ImGui!");
+            return;
+        }
+
+        // Setup ImGui Vulkan backend
+        ImGui_ImplVulkan_InitInfo initInfo = {};
+        initInfo.ApiVersion = VK_API_VERSION_1_0;
+        initInfo.Instance = vulkanRenderer.getVkInstance();
+        initInfo.PhysicalDevice = device->physicalDevice();
+        initInfo.Device = device->device();
+        initInfo.QueueFamily = device->queueFamilyIndices().graphicsFamily.value();
+        initInfo.Queue = device->graphicsQueue();
+        initInfo.DescriptorPool = descriptorPool;
+        initInfo.MinImageCount = 2;
+        initInfo.ImageCount = 2;
+        initInfo.UseDynamicRendering = false;
+
+        // Setup pipeline info for main viewport
+        auto pipeline = vulkanRenderer.getPipeline();
+        initInfo.PipelineInfoMain.RenderPass = pipeline->renderPass();
+        initInfo.PipelineInfoMain.Subpass = 0;
+        initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+
+        // Setup pipeline info for secondary viewports
+        initInfo.PipelineInfoForViewports.RenderPass = pipeline->renderPass();
+        initInfo.PipelineInfoForViewports.Subpass = 0;
+        initInfo.PipelineInfoForViewports.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+
+        if (!ImGui_ImplVulkan_Init(&initInfo)) {
+            BESS_ERROR("Failed to initialize ImGui Vulkan backend!");
+            vkDestroyDescriptorPool(device->device(), descriptorPool, nullptr);
+            return;
+        }
+
+        // Upload fonts - this will be handled automatically by ImGui_ImplVulkan_Init
+        // No additional font upload needed
+
+        BESS_INFO("ImGui Vulkan backend initialized successfully!");
     }
 
     void shutdown() {
-        // ImGui_ImplVulkan_Shutdown(); // TODO: Implement Vulkan ImGui
-        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplVulkan_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImPlot::DestroyContext();
         ImGui::DestroyContext();
@@ -60,25 +134,24 @@ namespace Bess::UI {
             Config::Settings::setFontRebuild(true);
         }
 
-        ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking;
+        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDocking;
         const ImGuiViewport *viewport = ImGui::GetMainViewport();
 
         ImGui::SetNextWindowPos(viewport->WorkPos);
         ImGui::SetNextWindowSize(viewport->WorkSize);
         ImGui::SetNextWindowViewport(viewport->ID);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-        window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
-                        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-        window_flags |=
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0F);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0F);
+        windowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+                       ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+        windowFlags |=
             ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
-        static bool p_open = true;
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-        ImGui::Begin("DockSpace", nullptr, window_flags);
+        static bool pOpen = true;
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0F, 0.0F));
+        ImGui::Begin("DockSpace", nullptr, windowFlags);
         ImGui::PopStyleVar(3);
 
         auto mainDockspaceId = ImGui::GetID("MainDockspace");
@@ -89,9 +162,20 @@ namespace Bess::UI {
         ImGui::End();
         ImGuiIO &io = ImGui::GetIO();
         ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        // Render ImGui with Vulkan
+        auto &vulkanRenderer = Bess::Renderer2D::VulkanRenderer::instance();
+        if (vulkanRenderer.getCommandBuffer()) {
+            // Get the current command buffer from VulkanRenderer
+            auto commandBuffers = vulkanRenderer.getCommandBuffer()->commandBuffers();
+            if (!commandBuffers.empty()) {
+                // Use the first command buffer for ImGui rendering
+                VkCommandBuffer commandBuffer = commandBuffers[0];
+                ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
+            }
+        }
+
+        if ((io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0) {
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
         }
@@ -107,12 +191,12 @@ namespace Bess::UI {
 
         io.Fonts->Clear();
         io.Fonts->AddFontFromFileTTF(robotoPath, fontSize);
-        Fonts::largeFont = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize * 2.f);
-        Fonts::mediumFont = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize * 1.5f);
+        Fonts::largeFont = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize * 2.0F);
+        Fonts::mediumFont = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize * 1.5F);
         io.FontDefault = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize);
 
         ImFontConfig config;
-        float r = 2.2f / 3.f;
+        float r = 2.2F / 3.0F;
         config.MergeMode = true;
         config.PixelSnapH = true;
 
@@ -121,23 +205,23 @@ namespace Bess::UI {
         constexpr auto materialIconsPath = Assets::Fonts::Paths::materialIcons.paths[0].data();
         constexpr auto fontAwesomeIconsPath = Assets::Fonts::Paths::fontAwesomeIcons.paths[0].data();
 
-        static const ImWchar comp_icon_ranges[] = {Icons::ComponentIcons::SIZE_MIN_CI, Icons::ComponentIcons::SIZE_MAX_CI, 0};
-        io.Fonts->AddFontFromFileTTF(compIconsPath, fontSize * r, &config, comp_icon_ranges);
+        static const std::array<ImWchar, 3> compIconRanges = {Icons::ComponentIcons::SIZE_MIN_CI, Icons::ComponentIcons::SIZE_MAX_CI, 0};
+        io.Fonts->AddFontFromFileTTF(compIconsPath, fontSize * r, &config, compIconRanges.data());
 
-        static const ImWchar codicon_icon_ranges[] = {Icons::CodIcons::ICON_MIN_CI, Icons::CodIcons::ICON_MAX_CI, 0};
-        config.GlyphOffset.y = fontSize / 5.f;
-        io.Fonts->AddFontFromFileTTF(codeIconsPath, fontSize, &config, codicon_icon_ranges);
+        static const std::array<ImWchar, 3> codiconIconRanges = {Icons::CodIcons::ICON_MIN_CI, Icons::CodIcons::ICON_MAX_CI, 0};
+        config.GlyphOffset.y = fontSize / 5.0F;
+        io.Fonts->AddFontFromFileTTF(codeIconsPath, fontSize, &config, codiconIconRanges.data());
 
         config.GlyphOffset.y = r;
-        static const ImWchar mat_icon_ranges[] = {Icons::MaterialIcons::ICON_MIN_MD, Icons::MaterialIcons::ICON_MAX_MD, 0};
-        io.Fonts->AddFontFromFileTTF(materialIconsPath, fontSize * r, &config, mat_icon_ranges);
+        static const std::array<ImWchar, 3> matIconRanges = {Icons::MaterialIcons::ICON_MIN_MD, Icons::MaterialIcons::ICON_MAX_MD, 0};
+        io.Fonts->AddFontFromFileTTF(materialIconsPath, fontSize * r, &config, matIconRanges.data());
 
-        static const ImWchar fa_icon_ranges_r[] = {Icons::FontAwesomeIcons::SIZE_MIN_FA, Icons::FontAwesomeIcons::SIZE_MAX_FA, 0};
+        static const std::array<ImWchar, 3> faIconRangesR = {Icons::FontAwesomeIcons::SIZE_MIN_FA, Icons::FontAwesomeIcons::SIZE_MAX_FA, 0};
         config.GlyphOffset.y = -r;
-        io.Fonts->AddFontFromFileTTF(fontAwesomeIconsPath, fontSize * r, &config, fa_icon_ranges_r);
+        io.Fonts->AddFontFromFileTTF(fontAwesomeIconsPath, fontSize * r, &config, faIconRangesR.data());
 
         io.FontGlobalScale = scale;
-        io.Fonts->Build();
+        // io.Fonts->Build();
 
         if (Config::Settings::shouldFontRebuild()) {
             // Vulkan font rebuilding will be handled by VulkanRenderer

@@ -1,6 +1,7 @@
 #include "pages/main_page/main_page.h"
 #include "events/application_event.h"
 #include "pages/page_identifier.h"
+#include "scene/renderer/vulkan/vulkan_renderer.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
 #include "types.h"
@@ -14,7 +15,7 @@ namespace Bess::Pages {
     }
 
     std::shared_ptr<MainPage> MainPage::getTypedInstance(std::shared_ptr<Window> parentWindow) {
-        const auto instance = getInstance(parentWindow);
+        static auto instance = getInstance(parentWindow);
         return std::dynamic_pointer_cast<MainPage>(instance);
     }
 
@@ -26,7 +27,18 @@ namespace Bess::Pages {
 
         SimEngine::SimulationEngine::instance();
 
-        UI::UIMain::state.viewportTexture = m_scene.getTextureId();
+        auto extensions = m_parentWindow->getVulkanExtensions();
+        VkExtent2D extent = m_parentWindow->getExtent();
+
+        auto createSurface = [parentWindow](VkInstance &instance, VkSurfaceKHR &surface) {
+            parentWindow->createWindowSurface(instance, surface);
+        };
+
+        // Initialize VulkanRenderer with proper parameters
+        auto &instance = Renderer2D::VulkanRenderer::instance();
+        instance.init(extensions, createSurface, extent,
+                      "assets/shaders/vert.spv", "assets/shaders/frag.spv");
+
         m_state = MainPageState::getInstance();
     }
 

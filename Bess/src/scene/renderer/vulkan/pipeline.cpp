@@ -1,26 +1,26 @@
 #include "scene/renderer/vulkan/pipeline.h"
 #include "common/log.h"
 #include <fstream>
-#include <stdexcept>
 #include <iostream>
+#include <stdexcept>
 
 namespace Bess::Renderer2D::Vulkan {
 
-    VulkanPipeline::VulkanPipeline(VulkanDevice& device, VulkanSwapchain& swapchain)
+    VulkanPipeline::VulkanPipeline(std::shared_ptr<VulkanDevice> device, std::shared_ptr<VulkanSwapchain> swapchain)
         : m_device(device), m_swapchain(swapchain) {
         createRenderPass();
     }
 
     VulkanPipeline::~VulkanPipeline() {
         if (m_graphicsPipeline != VK_NULL_HANDLE) {
-            vkDestroyPipeline(m_device.device(), m_graphicsPipeline, nullptr);
+            vkDestroyPipeline(m_device->device(), m_graphicsPipeline, nullptr);
         }
         if (m_renderPass != VK_NULL_HANDLE) {
-            vkDestroyRenderPass(m_device.device(), m_renderPass, nullptr);
+            vkDestroyRenderPass(m_device->device(), m_renderPass, nullptr);
         }
     }
 
-    VulkanPipeline::VulkanPipeline(VulkanPipeline&& other) noexcept
+    VulkanPipeline::VulkanPipeline(VulkanPipeline &&other) noexcept
         : m_device(other.m_device),
           m_swapchain(other.m_swapchain),
           m_renderPass(other.m_renderPass),
@@ -29,15 +29,15 @@ namespace Bess::Renderer2D::Vulkan {
         other.m_graphicsPipeline = VK_NULL_HANDLE;
     }
 
-    VulkanPipeline& VulkanPipeline::operator=(VulkanPipeline&& other) noexcept {
+    VulkanPipeline &VulkanPipeline::operator=(VulkanPipeline &&other) noexcept {
         if (this != &other) {
             if (m_graphicsPipeline != VK_NULL_HANDLE) {
-                vkDestroyPipeline(m_device.device(), m_graphicsPipeline, nullptr);
+                vkDestroyPipeline(m_device->device(), m_graphicsPipeline, nullptr);
             }
             if (m_renderPass != VK_NULL_HANDLE) {
-                vkDestroyRenderPass(m_device.device(), m_renderPass, nullptr);
+                vkDestroyRenderPass(m_device->device(), m_renderPass, nullptr);
             }
-            
+
             m_renderPass = other.m_renderPass;
             m_graphicsPipeline = other.m_graphicsPipeline;
 
@@ -49,7 +49,7 @@ namespace Bess::Renderer2D::Vulkan {
 
     void VulkanPipeline::createRenderPass() {
         VkAttachmentDescription colorAttachment{};
-        colorAttachment.format = m_swapchain.imageFormat();
+        colorAttachment.format = m_swapchain->imageFormat();
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -84,12 +84,12 @@ namespace Bess::Renderer2D::Vulkan {
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;
 
-        if (vkCreateRenderPass(m_device.device(), &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
+        if (vkCreateRenderPass(m_device->device(), &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create render pass!");
         }
     }
 
-    void VulkanPipeline::createGraphicsPipeline(const std::string& vertShaderPath, const std::string& fragShaderPath) {
+    void VulkanPipeline::createGraphicsPipeline(const std::string &vertShaderPath, const std::string &fragShaderPath) {
         auto vertShaderCode = readFile(vertShaderPath);
         auto fragShaderCode = readFile(fragShaderPath);
 
@@ -108,7 +108,7 @@ namespace Bess::Renderer2D::Vulkan {
         fragShaderStageInfo.module = fragShaderModule;
         fragShaderStageInfo.pName = "main";
 
-        const std::array<VkPipelineShaderStageCreateInfo,2> shaderStages{vertShaderStageInfo, fragShaderStageInfo};
+        const std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{vertShaderStageInfo, fragShaderStageInfo};
 
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -123,14 +123,14 @@ namespace Bess::Renderer2D::Vulkan {
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
-        viewport.width = (float) m_swapchain.extent().width;
-        viewport.height = (float) m_swapchain.extent().height;
+        viewport.width = (float)m_swapchain->extent().width;
+        viewport.height = (float)m_swapchain->extent().height;
         viewport.minDepth = 0.0F;
         viewport.maxDepth = 1.0F;
 
         VkRect2D scissor{};
         scissor.offset = {0, 0};
-        scissor.extent = m_swapchain.extent();
+        scissor.extent = m_swapchain->extent();
 
         VkPipelineViewportStateCreateInfo viewportState{};
         viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -171,7 +171,7 @@ namespace Bess::Renderer2D::Vulkan {
         pipelineLayoutInfo.pushConstantRangeCount = 0;
 
         VkPipelineLayout pipelineLayout{};
-        if (vkCreatePipelineLayout(m_device.device(), &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+        if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create pipeline layout!");
         }
 
@@ -190,37 +190,37 @@ namespace Bess::Renderer2D::Vulkan {
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-        if (vkCreateGraphicsPipelines(m_device.device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline) != VK_SUCCESS) {
+        if (vkCreateGraphicsPipelines(m_device->device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create graphics pipeline!");
         }
 
-        vkDestroyShaderModule(m_device.device(), fragShaderModule, nullptr);
-        vkDestroyShaderModule(m_device.device(), vertShaderModule, nullptr);
-        vkDestroyPipelineLayout(m_device.device(), pipelineLayout, nullptr);
+        vkDestroyShaderModule(m_device->device(), fragShaderModule, nullptr);
+        vkDestroyShaderModule(m_device->device(), vertShaderModule, nullptr);
+        vkDestroyPipelineLayout(m_device->device(), pipelineLayout, nullptr);
     }
 
-    VkShaderModule VulkanPipeline::createShaderModule(const std::vector<char>& code) {
+    VkShaderModule VulkanPipeline::createShaderModule(const std::vector<char> &code) {
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = code.size();
-        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+        createInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());
 
         VkShaderModule shaderModule;
-        if (vkCreateShaderModule(m_device.device(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+        if (vkCreateShaderModule(m_device->device(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create shader module!");
         }
 
         return shaderModule;
     }
 
-    std::vector<char> VulkanPipeline::readFile(const std::string& filename) {
+    std::vector<char> VulkanPipeline::readFile(const std::string &filename) {
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
         if (!file.is_open()) {
             throw std::runtime_error("Failed to open file: " + filename);
         }
 
-        size_t fileSize = (size_t) file.tellg();
+        size_t fileSize = (size_t)file.tellg();
         std::vector<char> buffer(fileSize);
 
         file.seekg(0);

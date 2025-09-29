@@ -25,7 +25,8 @@ namespace Bess::UI {
         ImGuiID id = window->GetID(label);
         ImVec2 pos = window->DC.CursorPos;
         ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x, pos.y + g.FontSize + g.Style.FramePadding.y * 2));
-        bool opened = ImGui::TreeNodeBehaviorIsOpen(id, flags);
+        // bool opened = ImGui::TreeNodeBehaviorIsOpen(id, flags);
+        bool opened = false;
         bool hovered, held;
 
         auto style = ImGui::GetStyle();

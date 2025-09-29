@@ -115,7 +115,6 @@ namespace Bess {
         ApplicationState::setParentWindow(m_mainWindow);
 
         Config::Settings::init();
-        UI::init(m_mainWindow->getGLFWHandle());
 
         m_mainWindow->onWindowResize(BIND_FN_2(Application::onWindowResize));
         m_mainWindow->onMouseWheel(BIND_FN_2(Application::onMouseWheel));
@@ -126,7 +125,10 @@ namespace Bess {
         m_mainWindow->onMiddleMouse(BIND_FN_1(Application::onMiddleMouse));
         m_mainWindow->onMouseMove(BIND_FN_2(Application::onMouseMove));
 
-        Pages::MainPage::getInstance(ApplicationState::getParentWindow())->show();
+        auto page = Pages::MainPage::getInstance(ApplicationState::getParentWindow());
+        UI::init(m_mainWindow->getGLFWHandle());
+
+        page->show();
 
         if (!path.empty())
             loadProject(path);

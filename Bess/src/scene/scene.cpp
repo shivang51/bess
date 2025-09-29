@@ -1,4 +1,5 @@
 #include "scene/scene.h"
+#include "application_state.h"
 #include "bess_uuid.h"
 #include "common/log.h"
 #include "component_catalog.h"
@@ -11,6 +12,7 @@
 #include "ext/vector_float4.hpp"
 #include "fwd.hpp"
 #include "gtc/type_ptr.hpp"
+#include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
 #include "scene/artist/artist_manager.h"
 #include "scene/artist/base_artist.h"
@@ -31,10 +33,8 @@
 #include <cstdint>
 #include <memory>
 
-
 namespace Bess::Canvas {
     Scene::Scene() {
-        Renderer2D::VulkanRenderer::init();
         reset();
     }
 
@@ -54,7 +54,7 @@ namespace Bess::Canvas {
         // TODO: Implement Vulkan framebuffers
         // Vulkan framebuffers will be managed differently
         // For now, using placeholder values
-        
+
         // TODO: Implement Vulkan textures
         // m_placeHolderTexture = std::make_shared<Vulkan::VulkanTexture>("assets/images/crosshairs_tilesheet_white.png");
         // m_placeHolderSubTexture = std::make_shared<Vulkan::VulkanSubTexture>(m_placeHolderTexture, glm::vec2(5.f, 5.f), glm::vec2(64.f, 64.f));
@@ -221,12 +221,12 @@ namespace Bess::Canvas {
         // Grid
         Renderer2D::VulkanRenderer::begin(camera);
         Renderer2D::VulkanRenderer::grid({0.f, 0.f, -2.f}, camera->getSpan(), -1,
-                       {
-                           .minorColor = ViewportTheme::colors.gridMinorColor,
-                           .majorColor = ViewportTheme::colors.gridMajorColor,
-                           .axisXColor = ViewportTheme::colors.gridAxisXColor,
-                           .axisYColor = ViewportTheme::colors.gridAxisYColor,
-                       });
+                                         {
+                                             .minorColor = ViewportTheme::colors.gridMinorColor,
+                                             .majorColor = ViewportTheme::colors.gridMajorColor,
+                                             .axisXColor = ViewportTheme::colors.gridAxisXColor,
+                                             .axisYColor = ViewportTheme::colors.gridAxisYColor,
+                                         });
         Renderer2D::VulkanRenderer::end();
 
         // Connections

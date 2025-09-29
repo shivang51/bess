@@ -213,14 +213,10 @@ namespace Bess {
 
     std::vector<const char *> Window::getVulkanExtensions() {
         uint32_t glfwExtensionCount = 0;
-        const char **glfwExtensions;
+        const char **glfwExtensions = nullptr;
         glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-        std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-#ifndef NDEBUG
-        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif
+        std::vector<const char *> extensions(glfwExtensions, glfwExtensionCount + glfwExtensions);
 
         return extensions;
     }
