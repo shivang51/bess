@@ -145,9 +145,9 @@ namespace Bess::UI {
             return;
         }
 
-        png_set_write_fn(pngPtr, &imgFile, [](png_structp png_ptr, png_bytep data, png_size_t length) {
+        png_set_write_fn(pngPtr, &imgFile, [](const png_structp png_ptr, const png_bytep data, const png_size_t length) {
 							auto& stream = *static_cast<std::ostream*>(png_get_io_ptr(png_ptr));
-							stream.write(reinterpret_cast<const char*>(data), length); }, [](png_structp png_ptr) {
+							stream.write(reinterpret_cast<const char*>(data), length); }, [](const png_structp png_ptr) {
 							auto& stream = *static_cast<std::ostream*>(png_get_io_ptr(png_ptr));
             stream.flush(); });
 

@@ -118,8 +118,8 @@ namespace Bess::Renderer2D {
 
         vkResetCommandBuffer(m_commandBuffer->commandBuffers()[m_currentFrame], 0);
         m_commandBuffer->recordCommandBuffer(m_commandBuffer->commandBuffers()[m_currentFrame], imageIndex,
-                                             m_pipeline->renderPass(), m_swapchain->framebuffers()[imageIndex],
-                                             m_swapchain->extent(), m_pipeline->pipelineLayout());
+                                             m_imguiPipeline->renderPass(), m_swapchain->framebuffers()[imageIndex],
+                                             m_swapchain->extent(), m_imguiPipeline->pipelineLayout());
 
         // ImGui rendering is now handled within the command buffer recording
 
@@ -175,7 +175,8 @@ namespace Bess::Renderer2D {
         
         // Recreate framebuffers
         m_swapchain->createFramebuffers(m_pipeline->renderPass());
-        
+        m_swapchain->createFramebuffers(m_imguiPipeline->renderPass());
+
         BESS_INFO("Swapchain recreated with new extent: {}x{}", newExtent.width, newExtent.height);
     }
 
@@ -207,7 +208,7 @@ namespace Bess::Renderer2D {
         m_swapchain = std::make_shared<Vulkan::VulkanSwapchain>(m_vkInstance, m_device, m_renderSurface, newExtent, oldSwapchain);
         
         // Recreate framebuffers
-        m_swapchain->createFramebuffers(m_pipeline->renderPass());
+        m_swapchain->createFramebuffers(m_imguiPipeline->renderPass());
         
         BESS_INFO("Swapchain recreated with new extent: {}x{}", newExtent.width, newExtent.height);
     }
@@ -513,22 +514,4 @@ namespace Bess::Renderer2D {
         // }
         return 0;
     }
-
-    void VulkanRenderer::renderImGui(VkCommandBuffer commandBuffer) {
-        ImDrawData* drawData = ImGui::GetDrawData();
-        if (drawData && drawData->CmdListsCount > 0) {
-            BESS_INFO("Rendering ImGui with {} command lists", drawData->CmdListsCount);
-            ImGui_ImplVulkan_RenderDrawData(drawData, commandBuffer);
-        } else {
-            BESS_WARN("ImGui has no draw data to render");
-        }
-    }
-
-    void VulkanRenderer::renderImGuiAfterUI() {
-        // This function should be called after UI drawing is complete
-        // It will render ImGui on top of the already recorded command buffer
-        BESS_INFO("Rendering ImGui after UI for frame {}", m_currentFrame);
-        renderImGui(m_commandBuffer->commandBuffers()[m_currentFrame]);
-    }
-
 } // namespace Bess::Renderer2D

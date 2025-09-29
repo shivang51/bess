@@ -3,8 +3,8 @@
 #include "glm.hpp"
 #include "scene/renderer/vulkan/command_buffer.h"
 #include "scene/renderer/vulkan/device.h"
-#include "scene/renderer/vulkan/pipeline.h"
 #include "scene/renderer/vulkan/imgui_pipeline.h"
+#include "scene/renderer/vulkan/pipeline.h"
 #include "scene/renderer/vulkan/swapchain.h"
 #include "scene/renderer/vulkan/vulkan_render_pass.h"
 #include <functional>
@@ -141,8 +141,6 @@ namespace Bess::Renderer2D {
         uint32_t m_currentFrame = 0;
 
         public:
-        void renderImGui(VkCommandBuffer commandBuffer);
-        void renderImGuiAfterUI();
         void recreateSwapchain();
         void recreateSwapchain(VkExtent2D newExtent);
     };

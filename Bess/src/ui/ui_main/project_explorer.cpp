@@ -9,7 +9,7 @@ namespace Bess::UI {
 
     bool ProjectExplorer::isShown = true;
 
-    std::pair<bool, bool> ProjectExplorerNode(uint64_t id_, const char *label, bool selected, bool multiSelectMode) {
+    std::pair<bool, bool> ProjectExplorerNode(const uint64_t id_, const char *label, bool selected, const bool multiSelectMode) {
         const ImGuiContext &g = *ImGui::GetCurrentContext();
         const float rounding = g.Style.FrameRounding;
         const float checkboxWidth = ImGui::CalcTextSize("W").x + g.Style.FramePadding.x + 2.f;

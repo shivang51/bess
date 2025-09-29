@@ -272,14 +272,7 @@ namespace Bess::Renderer2D::Vulkan {
                 return availableFormat;
             }
         }
-        
-        // Fallback to any UNORM format with SRGB color space
-        for (const auto &availableFormat : availableFormats) {
-            if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
-                return availableFormat;
-            }
-        }
-        
+
         // Fallback to any format with SRGB color space
         for (const auto &availableFormat : availableFormats) {
             if (availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {

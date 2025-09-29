@@ -55,11 +55,11 @@ namespace Bess::UI {
         ImGui::Text("Vulkan Check Calls: %d", 0);
     }
 
-    void UIMain::setViewportTexture(uint64_t texture) {
+    void UIMain::setViewportTexture(const uint64_t texture) {
         state.viewportTexture = texture;
     }
 
-    ImVec2 getTextSize(const std::string &text, bool includePadding = true) {
+    ImVec2 getTextSize(const std::string &text, const bool includePadding = true) {
         auto size = ImGui::CalcTextSize(text.c_str());
         if (!includePadding)
             return size;

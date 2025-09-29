@@ -31,12 +31,13 @@ namespace Bess::UI {
 
         ImGui::StyleColorsDark();
 
-        loadFontAndSetScale(Config::Settings::getFontSize(), Config::Settings::getScale());
         Config::Settings::loadCurrentTheme();
 
         ImGui_ImplGlfw_InitForVulkan(window, true);
 
         initVulkanImGui();
+
+        loadFontAndSetScale(Config::Settings::getFontSize(), Config::Settings::getScale());
     }
 
     void initVulkanImGui() {
@@ -83,7 +84,7 @@ namespace Bess::UI {
         initInfo.ImageCount = 2;
         initInfo.UseDynamicRendering = false;
 
-        const auto pipeline = vulkanRenderer.getPipeline();
+        const auto pipeline = vulkanRenderer.getImGuiPipeline();
         initInfo.PipelineInfoMain.RenderPass = pipeline->renderPass();
         initInfo.PipelineInfoMain.Subpass = 0;
         initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
@@ -141,27 +142,23 @@ namespace Bess::UI {
 
     void end() {
         ImGui::End();
-        const ImGuiIO &io = ImGui::GetIO();
         ImGui::Render();
 
-        if ((io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0) {
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
-        }
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
     }
 
     ImFont *Fonts::largeFont = nullptr;
     ImFont *Fonts::mediumFont = nullptr;
-    void loadFontAndSetScale(float fontSize, float scale) {
+    void loadFontAndSetScale(const float fontSize, const float scale) {
         ImGuiIO &io = ImGui::GetIO();
-        ImGuiStyle &style = ImGui::GetStyle();
 
         constexpr auto robotoPath = Assets::Fonts::Paths::roboto.paths[0].data();
 
         io.Fonts->Clear();
         io.Fonts->AddFontFromFileTTF(robotoPath, fontSize);
-        Fonts::largeFont = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize * 2.0F);
-        Fonts::mediumFont = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize * 1.5F);
+        // Fonts::largeFont = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize * 2.0F);
+        // Fonts::mediumFont = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize * 1.5F);
         io.FontDefault = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize);
 
         ImFontConfig config;
@@ -181,22 +178,15 @@ namespace Bess::UI {
         config.GlyphOffset.y = fontSize / 5.0F;
         io.Fonts->AddFontFromFileTTF(codeIconsPath, fontSize, &config, codiconIconRanges.data());
 
-        config.GlyphOffset.y = r;
-        static const std::array<ImWchar, 3> matIconRanges = {Icons::MaterialIcons::ICON_MIN_MD, Icons::MaterialIcons::ICON_MAX_MD, 0};
-        io.Fonts->AddFontFromFileTTF(materialIconsPath, fontSize * r, &config, matIconRanges.data());
-
         static const std::array<ImWchar, 3> faIconRangesR = {Icons::FontAwesomeIcons::SIZE_MIN_FA, Icons::FontAwesomeIcons::SIZE_MAX_FA, 0};
         config.GlyphOffset.y = -r;
         io.Fonts->AddFontFromFileTTF(fontAwesomeIconsPath, fontSize * r, &config, faIconRangesR.data());
 
-        io.FontGlobalScale = scale;
-        // io.Fonts->Build(); // Vulkan backend handles font atlas building
+        config.GlyphOffset.y = r;
+        static const std::array<ImWchar, 3> matIconRanges = {Icons::MaterialIcons::ICON_MIN_MD, Icons::MaterialIcons::ICON_MAX_MD, 0};
+        io.Fonts->AddFontFromFileTTF(materialIconsPath, fontSize * r, &config, matIconRanges.data());
 
-        if (Config::Settings::shouldFontRebuild()) {
-            // Vulkan font rebuilding will be handled by VulkanRenderer
-            // ImGui_ImplVulkan_DestroyFontUploadObjects();
-            // ImGui_ImplVulkan_CreateFontsTexture();
-        }
+        io.FontGlobalScale = scale;
     }
 
     void setCursorPointer() {
@@ -209,7 +199,7 @@ namespace Bess::UI {
 
     void setCursorNormal() { ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow); }
 
-    void drawStats(int fps) {
+    void drawStats(const int fps) {
         ImGui::Begin("Stats");
         ImGui::Text("FPS: %d", fps);
         switch (ApplicationState::getCurrentPage()->getIdentifier()) {

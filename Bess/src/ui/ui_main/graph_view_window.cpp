@@ -74,7 +74,7 @@ namespace Bess::UI {
         return s_data;
     }
 
-    void GraphViewWindow::plotDigitalSignals(const std::string &plotName, const std::unordered_map<std::string, LabeledDigitalSignal> &signals, float plotHeight) {
+    void GraphViewWindow::plotDigitalSignals(const std::string &plotName, const std::unordered_map<std::string, LabeledDigitalSignal> &signals, const float plotHeight) {
         if (signals.empty()) {
             return;
         }

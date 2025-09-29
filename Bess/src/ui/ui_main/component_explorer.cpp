@@ -52,7 +52,7 @@ namespace Bess::UI {
         return opened;
     }
 
-    bool ButtonWithPopup(const std::string &label, const std::string &popupName, bool showMenuButton = true) {
+    bool ButtonWithPopup(const std::string &label, const std::string &popupName, const bool showMenuButton = true) {
         const ImGuiContext &g = *ImGui::GetCurrentContext();
         ImGuiWindow *window = g.CurrentWindow;
         const ImVec2 pos = window->DC.CursorPos;
@@ -97,7 +97,7 @@ namespace Bess::UI {
         return clicked;
     }
 
-    void ComponentExplorer::createComponent(std::shared_ptr<const SimEngine::ComponentDefinition> def, int inputCount, int outputCount) {
+    void ComponentExplorer::createComponent(std::shared_ptr<const SimEngine::ComponentDefinition> def, const int inputCount, const int outputCount) {
         auto &scene = Canvas::Scene::instance();
         Canvas::Commands::AddCommandData data;
         data.def = def;
