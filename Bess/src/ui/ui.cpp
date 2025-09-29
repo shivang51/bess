@@ -30,7 +30,19 @@ namespace Bess::UI {
         io.IniFilename = "bess.ini";
 
         ImGui::StyleColorsDark();
+
+        // Fix color space issues with SRGB swapchain
         ImGuiStyle &style = ImGui::GetStyle();
+        style.Alpha = 1.0f; // Ensure full opacity
+
+        // Adjust colors for better visibility with SRGB color space
+        style.Colors[ImGuiCol_WindowBg] = ImVec4(0.06f, 0.06f, 0.06f, 0.94f);
+        style.Colors[ImGuiCol_Header] = ImVec4(0.20f, 0.20f, 0.20f, 0.31f);
+        style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.29f, 0.29f, 0.29f, 0.80f);
+        style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.26f, 0.26f, 0.26f, 1.00f);
+        style.Colors[ImGuiCol_Button] = ImVec4(0.20f, 0.20f, 0.20f, 0.31f);
+        style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.29f, 0.29f, 0.29f, 0.80f);
+        style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.26f, 0.26f, 0.26f, 1.00f);
         if ((io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0) {
             style.WindowRounding = 0.0F;
             style.Colors[ImGuiCol_WindowBg].w = 1.0F;
@@ -114,9 +126,6 @@ namespace Bess::UI {
             return;
         }
 
-        // Upload fonts - this will be handled automatically by ImGui_ImplVulkan_Init
-        // No additional font upload needed
-
         BESS_INFO("ImGui Vulkan backend initialized successfully!");
     }
 
@@ -156,20 +165,12 @@ namespace Bess::UI {
 
         auto mainDockspaceId = ImGui::GetID("MainDockspace");
         ImGui::DockSpace(mainDockspaceId);
-        
-        BESS_INFO("UI::begin() - ImGui context active: {}", ImGui::GetCurrentContext() != nullptr);
     }
 
     void end() {
         ImGui::End();
         ImGuiIO &io = ImGui::GetIO();
         ImGui::Render();
-
-        // Debug: Check if ImGui has draw data
-        ImDrawData* drawData = ImGui::GetDrawData();
-        BESS_INFO("UI::end() - ImGui draw data: {} command lists", drawData ? drawData->CmdListsCount : 0);
-
-        // ImGui rendering is now handled in the VulkanRenderer after UI drawing is complete
 
         if ((io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0) {
             ImGui::UpdatePlatformWindows();
