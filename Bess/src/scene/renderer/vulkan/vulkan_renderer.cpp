@@ -20,8 +20,6 @@ namespace Bess::Renderer2D {
           m_pipeline(std::move(other.m_pipeline)),
           m_commandBuffer(std::move(other.m_commandBuffer)),
           m_renderPass(std::move(other.m_renderPass)),
-          m_sceneFramebuffer(std::move(other.m_sceneFramebuffer)),
-          m_renderSurface(other.m_renderSurface),
           m_imageAvailableSemaphores(std::move(other.m_imageAvailableSemaphores)),
           m_renderFinishedSemaphores(std::move(other.m_renderFinishedSemaphores)),
           m_inFlightFences(std::move(other.m_inFlightFences)),
@@ -42,7 +40,6 @@ namespace Bess::Renderer2D {
             m_pipeline = std::move(other.m_pipeline);
             m_commandBuffer = std::move(other.m_commandBuffer);
             m_renderPass = std::move(other.m_renderPass);
-            m_sceneFramebuffer = std::move(other.m_sceneFramebuffer);
             m_renderSurface = other.m_renderSurface;
             m_imageAvailableSemaphores = std::move(other.m_imageAvailableSemaphores);
             m_renderFinishedSemaphores = std::move(other.m_renderFinishedSemaphores);
@@ -89,9 +86,6 @@ namespace Bess::Renderer2D {
 
         // Create render pass for scene rendering
         m_renderPass = std::make_shared<Vulkan::VulkanRenderPass>(*m_device, VK_FORMAT_B8G8R8A8_SRGB, VK_FORMAT_D32_SFLOAT);
-
-        // Create scene framebuffer for off-screen rendering
-        m_sceneFramebuffer = std::make_shared<Vulkan::VulkanFramebuffer>(*m_device, windowExtent, m_renderPass->renderPass());
 
         m_commandBuffer = std::make_shared<Vulkan::VulkanCommandBuffer>(*m_device);
         createSyncObjects();
@@ -199,14 +193,9 @@ namespace Bess::Renderer2D {
             return;
         }
         
-        // Check if the difference is too small (likely just window decorations)
-        int widthDiff = std::abs(static_cast<int>(newExtent.width) - static_cast<int>(currentExtent.width));
-        int heightDiff = std::abs(static_cast<int>(newExtent.height) - static_cast<int>(currentExtent.height));
-        if (widthDiff < 10 && heightDiff < 10) {
-            BESS_INFO("Swapchain extent change too small ({}x{} -> {}x{}), skipping recreation", 
-                     currentExtent.width, currentExtent.height, newExtent.width, newExtent.height);
-            return;
-        }
+        // Always recreate swapchain when extent changes
+        BESS_INFO("Recreating swapchain due to extent change ({}x{} -> {}x{})", 
+                 currentExtent.width, currentExtent.height, newExtent.width, newExtent.height);
         
         // Wait for device to be idle before recreating swapchain
         vkDeviceWaitIdle(m_device->device());
@@ -258,7 +247,6 @@ namespace Bess::Renderer2D {
             }
         }
 
-        m_sceneFramebuffer.reset();
         m_renderPass.reset();
         m_commandBuffer.reset();
         m_imguiPipeline.reset(); // Destroy ImGui pipeline before device

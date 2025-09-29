@@ -19,18 +19,18 @@ namespace Bess::UI {
     std::string ComponentExplorer::m_searchQuery = "";
 
     bool MyTreeNode(const char *label, ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None) {
-        ImGuiContext &g = *ImGui::GetCurrentContext();
+        const ImGuiContext &g = *ImGui::GetCurrentContext();
         ImGuiWindow *window = g.CurrentWindow;
 
-        ImGuiID id = window->GetID(label);
+        const ImGuiID id = window->GetID(label);
         ImVec2 pos = window->DC.CursorPos;
-        ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x, pos.y + g.FontSize + g.Style.FramePadding.y * 2));
+        const ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x, pos.y + g.FontSize + g.Style.FramePadding.y * 2));
         // bool opened = ImGui::TreeNodeBehaviorIsOpen(id, flags);
-        bool opened = false;
+        const bool opened = true;
         bool hovered, held;
 
-        auto style = ImGui::GetStyle();
-        auto rounding = style.FrameRounding;
+        const auto style = ImGui::GetStyle();
+        const auto rounding = style.FrameRounding;
 
         if (ImGui::ButtonBehavior(bb, id, &hovered, &held, ImGuiButtonFlags_PressedOnClick))
             window->DC.StateStorage->SetInt(id, opened ? 0 : 1);
@@ -38,9 +38,9 @@ namespace Bess::UI {
             window->DrawList->AddRectFilled(bb.Min, bb.Max, ImGui::GetColorU32(held ? ImGuiCol_HeaderActive : ImGuiCol_HeaderHovered), rounding);
 
         // Icon, text
-        float button_sz = g.FontSize;
+        const float button_sz = g.FontSize;
         pos.x += rounding / 2.f;
-        auto icon = opened ? Icons::FontAwesomeIcons::FA_CHEVRON_DOWN : Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT;
+        const auto icon = opened ? Icons::FontAwesomeIcons::FA_CHEVRON_DOWN : Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT;
         ImGui::RenderText(ImVec2(pos.x + g.Style.ItemInnerSpacing.x, pos.y + g.Style.FramePadding.y), icon);
         ImGui::RenderText(ImVec2(pos.x + button_sz + g.Style.ItemInnerSpacing.x, pos.y + g.Style.FramePadding.y), label);
 
@@ -53,26 +53,26 @@ namespace Bess::UI {
     }
 
     bool ButtonWithPopup(const std::string &label, const std::string &popupName, bool showMenuButton = true) {
-        ImGuiContext &g = *ImGui::GetCurrentContext();
+        const ImGuiContext &g = *ImGui::GetCurrentContext();
         ImGuiWindow *window = g.CurrentWindow;
-        ImVec2 pos = window->DC.CursorPos;
-        auto style = ImGui::GetStyle();
-        ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x, pos.y + g.FontSize + g.Style.FramePadding.y * 2));
-        ImRect bbButton(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x - style.FramePadding.x * 3 - g.Style.ItemInnerSpacing.x, pos.y + g.FontSize + g.Style.FramePadding.y * 2));
-        float menuBtnX = bbButton.Max.x;
-        float menuBtnSizeX = bb.Max.x - bbButton.Max.x;
-        ImRect bbMenuButton(ImVec2(menuBtnX, pos.y + g.Style.FramePadding.y * 0.5f), ImVec2(menuBtnX + menuBtnSizeX, pos.y + g.FontSize + g.Style.FramePadding.y * 1.5));
+        const ImVec2 pos = window->DC.CursorPos;
+        const auto style = ImGui::GetStyle();
+        const ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x, pos.y + g.FontSize + g.Style.FramePadding.y * 2));
+        const ImRect bbButton(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x - style.FramePadding.x * 3 - g.Style.ItemInnerSpacing.x, pos.y + g.FontSize + g.Style.FramePadding.y * 2));
+        const float menuBtnX = bbButton.Max.x;
+        const float menuBtnSizeX = bb.Max.x - bbButton.Max.x;
+        const ImRect bbMenuButton(ImVec2(menuBtnX, pos.y + g.Style.FramePadding.y * 0.5f), ImVec2(menuBtnX + menuBtnSizeX, pos.y + g.FontSize + g.Style.FramePadding.y * 1.5));
 
-        ImGuiID id = window->GetID(label.c_str());
+        const ImGuiID id = window->GetID(label.c_str());
 
         bool hovered, held;
-        bool clicked = ImGui::ButtonBehavior(bbButton, id, &hovered, &held, ImGuiButtonFlags_PressedOnClick);
+        const bool clicked = ImGui::ButtonBehavior(bbButton, id, &hovered, &held, ImGuiButtonFlags_PressedOnClick);
 
         bool menuHovered = false, menuHeld = false;
-        ImGuiID menuID = window->GetID((label + "##menu").c_str());
-        bool menuClicked = ImGui::ButtonBehavior(bbMenuButton, menuID, &menuHovered, &menuHeld, ImGuiButtonFlags_PressedOnClick);
+        const ImGuiID menuID = window->GetID((label + "##menu").c_str());
+        const bool menuClicked = ImGui::ButtonBehavior(bbMenuButton, menuID, &menuHovered, &menuHeld, ImGuiButtonFlags_PressedOnClick);
 
-        auto rounding = style.FrameRounding;
+        const auto rounding = style.FrameRounding;
 
         auto bgColor = ImGui::GetColorU32(ImGuiCol_Button);
         if (menuHovered || hovered || held || ImGui::IsPopupOpen(popupName.c_str()))
@@ -88,7 +88,7 @@ namespace Bess::UI {
             if (menuHovered)
                 bgColor = ImGui::GetColorU32(ImGuiCol_TabActive);
             window->DrawList->AddRectFilled(bbMenuButton.Min, bbMenuButton.Max, bgColor, rounding);
-            float x = bbMenuButton.Min.x + (bbMenuButton.Max.x - bbMenuButton.Min.x) / 2.f - 3.f;
+            const float x = bbMenuButton.Min.x + (bbMenuButton.Max.x - bbMenuButton.Min.x) / 2.f - 3.f;
             ImGui::RenderText(ImVec2(x, pos.y + g.Style.FramePadding.y), Icons::FontAwesomeIcons::FA_ELLIPSIS_V);
             if (menuClicked)
                 ImGui::OpenPopup(popupName.c_str());
@@ -105,7 +105,7 @@ namespace Bess::UI {
         data.inputCount = inputCount;
         data.outputCount = outputCount;
         auto &cmdManager = scene.getCmdManager();
-        auto res = cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{data});
+        const auto res = cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{data});
         if (!res.has_value()) {
             BESS_ERROR("[ComponentExplorer] Failed to execute AddCommand");
         }
@@ -117,7 +117,7 @@ namespace Bess::UI {
         data.nsComp = comp;
         data.pos = scene.getCameraPos();
         auto &cmdManager = scene.getCmdManager();
-        auto res = cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{data});
+        const auto res = cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{data});
         if (!res.has_value()) {
             BESS_ERROR("[ComponentExplorer] Failed to execute AddCommand");
         }
@@ -184,14 +184,14 @@ namespace Bess::UI {
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
         ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0, 0, 0, 0)); // for tree node to have no bg normally
 
-        auto componentTree = SimEngine::ComponentCatalog::instance().getComponentsTree();
+        const auto componentTree = SimEngine::ComponentCatalog::instance().getComponentsTree();
         // simulation components
         {
             static auto modifiableProperties = generateModifiablePropertiesStr();
 
             for (auto &ent : *componentTree) {
                 if (MyTreeNode(ent.first.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
-                    for (auto &comp : ent.second) {
+                    for (const auto &comp : ent.second) {
                         auto name = comp->name;
                         if (m_searchQuery != "" && Common::Helpers::toLowerCase(name).find(m_searchQuery) == std::string::npos)
                             continue;

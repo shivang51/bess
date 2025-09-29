@@ -229,7 +229,7 @@ namespace Bess::UI {
             if (!std::filesystem::exists(exportPath))
                 std::filesystem::create_directories(exportPath);
 
-            auto mainPage = Pages::MainPageState::getInstance();
+            const auto mainPage = Pages::MainPageState::getInstance();
 
             const auto now = std::chrono::system_clock::now();
             const std::chrono::zoned_time localTime{std::chrono::current_zone(), now};
@@ -244,9 +244,9 @@ namespace Bess::UI {
         ImGui::Begin("Export scene as PNG", &m_shown);
 
         {
-            float buttonHeight = ImGui::GetFrameHeight();
-            float textHeight = ImGui::CalcTextSize("ajP").y;
-            float verticalOffset = (buttonHeight - textHeight) / 2.0f;
+            const float buttonHeight = ImGui::GetFrameHeight();
+            const float textHeight = ImGui::CalcTextSize("ajP").y;
+            const float verticalOffset = (buttonHeight - textHeight) / 2.0f;
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + verticalOffset);
             ImGui::Text("File Name");
             ImGui::SameLine();
@@ -261,7 +261,7 @@ namespace Bess::UI {
             MWidgets::TextBox("##Export Path", exportPath);
             ImGui::SameLine();
             if (ImGui::SmallButton(UI::Icons::FontAwesomeIcons::FA_FOLDER_OPEN)) {
-                auto sel = Dialogs::showSelectPathDialog("Path to save");
+                const auto sel = Dialogs::showSelectPathDialog("Path to save");
                 if (sel.size() > 0)
                     exportPath = sel;
             }

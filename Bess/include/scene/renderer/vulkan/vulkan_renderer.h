@@ -6,7 +6,6 @@
 #include "scene/renderer/vulkan/pipeline.h"
 #include "scene/renderer/vulkan/imgui_pipeline.h"
 #include "scene/renderer/vulkan/swapchain.h"
-#include "scene/renderer/vulkan/vulkan_framebuffer.h"
 #include "scene/renderer/vulkan/vulkan_render_pass.h"
 #include <functional>
 #include <memory>
@@ -132,7 +131,6 @@ namespace Bess::Renderer2D {
         std::shared_ptr<Vulkan::ImGuiPipeline> m_imguiPipeline;
         std::shared_ptr<Vulkan::VulkanCommandBuffer> m_commandBuffer;
         std::shared_ptr<Vulkan::VulkanRenderPass> m_renderPass;
-        std::shared_ptr<Vulkan::VulkanFramebuffer> m_sceneFramebuffer;
         VkSurfaceKHR m_renderSurface = VK_NULL_HANDLE;
 
         static constexpr int MAX_FRAMES_IN_FLIGHT = 2;

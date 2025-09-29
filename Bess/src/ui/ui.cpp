@@ -31,23 +31,6 @@ namespace Bess::UI {
 
         ImGui::StyleColorsDark();
 
-        // Fix color space issues with SRGB swapchain
-        ImGuiStyle &style = ImGui::GetStyle();
-        style.Alpha = 1.0f; // Ensure full opacity
-
-        // Adjust colors for better visibility with SRGB color space
-        style.Colors[ImGuiCol_WindowBg] = ImVec4(0.06f, 0.06f, 0.06f, 0.94f);
-        style.Colors[ImGuiCol_Header] = ImVec4(0.20f, 0.20f, 0.20f, 0.31f);
-        style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.29f, 0.29f, 0.29f, 0.80f);
-        style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.26f, 0.26f, 0.26f, 1.00f);
-        style.Colors[ImGuiCol_Button] = ImVec4(0.20f, 0.20f, 0.20f, 0.31f);
-        style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.29f, 0.29f, 0.29f, 0.80f);
-        style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.26f, 0.26f, 0.26f, 1.00f);
-        if ((io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0) {
-            style.WindowRounding = 0.0F;
-            style.Colors[ImGuiCol_WindowBg].w = 1.0F;
-        }
-
         loadFontAndSetScale(Config::Settings::getFontSize(), Config::Settings::getScale());
         Config::Settings::loadCurrentTheme();
 
@@ -62,31 +45,22 @@ namespace Bess::UI {
             return;
         }
 
-        auto &vulkanRenderer = Bess::Renderer2D::VulkanRenderer::instance();
+        const auto &vulkanRenderer = Bess::Renderer2D::VulkanRenderer::instance();
 
-        auto device = vulkanRenderer.getDevice();
+        const auto device = vulkanRenderer.getDevice();
         if (!device) {
-            BESS_ERROR("Vulkan device not available!");
+            BESS_ERROR("[UI] Vulkan device not available!");
             return;
         }
 
-        // Create descriptor pool for ImGui
-        std::array<VkDescriptorPoolSize, 11> poolSizes = {{{VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
-                                                           {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
-                                                           {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000},
-                                                           {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000},
-                                                           {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000},
-                                                           {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000},
-                                                           {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
-                                                           {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
-                                                           {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
-                                                           {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
-                                                           {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}}};
+        constexpr std::array<VkDescriptorPoolSize, 1> poolSizes = {{
+                                                           {.type=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount=1000}
+                                                           }};
 
         VkDescriptorPoolCreateInfo poolInfo = {};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-        poolInfo.maxSets = 1000 * static_cast<uint32_t>(poolSizes.size());
+        poolInfo.maxSets = 1000;
         poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
 
@@ -109,13 +83,11 @@ namespace Bess::UI {
         initInfo.ImageCount = 2;
         initInfo.UseDynamicRendering = false;
 
-        // Setup pipeline info for main viewport using main pipeline
-        auto pipeline = vulkanRenderer.getPipeline();
+        const auto pipeline = vulkanRenderer.getPipeline();
         initInfo.PipelineInfoMain.RenderPass = pipeline->renderPass();
         initInfo.PipelineInfoMain.Subpass = 0;
         initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
-        // Setup pipeline info for secondary viewports using main pipeline
         initInfo.PipelineInfoForViewports.RenderPass = pipeline->renderPass();
         initInfo.PipelineInfoForViewports.Subpass = 0;
         initInfo.PipelineInfoForViewports.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
@@ -163,13 +135,13 @@ namespace Bess::UI {
         ImGui::Begin("DockSpace", nullptr, windowFlags);
         ImGui::PopStyleVar(3);
 
-        auto mainDockspaceId = ImGui::GetID("MainDockspace");
+        const auto mainDockspaceId = ImGui::GetID("MainDockspace");
         ImGui::DockSpace(mainDockspaceId);
     }
 
     void end() {
         ImGui::End();
-        ImGuiIO &io = ImGui::GetIO();
+        const ImGuiIO &io = ImGui::GetIO();
         ImGui::Render();
 
         if ((io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0) {
@@ -218,7 +190,7 @@ namespace Bess::UI {
         io.Fonts->AddFontFromFileTTF(fontAwesomeIconsPath, fontSize * r, &config, faIconRangesR.data());
 
         io.FontGlobalScale = scale;
-        // io.Fonts->Build();
+        // io.Fonts->Build(); // Vulkan backend handles font atlas building
 
         if (Config::Settings::shouldFontRebuild()) {
             // Vulkan font rebuilding will be handled by VulkanRenderer

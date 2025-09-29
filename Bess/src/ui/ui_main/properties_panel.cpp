@@ -25,18 +25,18 @@ namespace Bess::UI {
     }
 
     bool MyCollapsingHeader(const char *label) {
-        ImGuiContext &g = *ImGui::GetCurrentContext();
+        const ImGuiContext &g = *ImGui::GetCurrentContext();
         ImGuiWindow *window = g.CurrentWindow;
 
-        ImGuiID id = window->GetID(label);
+        const ImGuiID id = window->GetID(label);
         ImVec2 pos = window->DC.CursorPos;
-        ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x, pos.y + g.FontSize + g.Style.FramePadding.y * 2));
+        const ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x, pos.y + g.FontSize + g.Style.FramePadding.y * 2));
         // bool opened = ImGui::TreeNodeBehaviorIsOpen(id, ImGuiTreeNodeFlags_DefaultOpen);
-        bool opened = true;
+        const bool opened = true;
         bool hovered, held;
 
-        auto style = ImGui::GetStyle();
-        auto rounding = style.FrameRounding;
+        const auto style = ImGui::GetStyle();
+        const auto rounding = style.FrameRounding;
 
         if (ImGui::ButtonBehavior(bb, id, &hovered, &held, ImGuiButtonFlags_PressedOnClick))
             window->DC.StateStorage->SetInt(id, opened ? 0 : 1);
@@ -44,9 +44,9 @@ namespace Bess::UI {
             window->DrawList->AddRectFilled(bb.Min, bb.Max, ImGui::GetColorU32(held ? ImGuiCol_HeaderActive : ImGuiCol_HeaderHovered), rounding);
 
         // Icon, text
-        float button_sz = g.FontSize;
+        const float button_sz = g.FontSize;
         pos.x += rounding / 2.f;
-        auto icon = opened ? Icons::FontAwesomeIcons::FA_CARET_DOWN : Icons::FontAwesomeIcons::FA_CARET_RIGHT;
+        const auto icon = opened ? Icons::FontAwesomeIcons::FA_CARET_DOWN : Icons::FontAwesomeIcons::FA_CARET_RIGHT;
         ImGui::RenderText(ImVec2(pos.x + g.Style.ItemInnerSpacing.x, pos.y + g.Style.FramePadding.y), icon);
         ImGui::RenderText(ImVec2(pos.x + button_sz + g.Style.ItemInnerSpacing.x, pos.y + g.Style.FramePadding.y), label);
 
@@ -72,7 +72,7 @@ namespace Bess::UI {
             if (comp.clockBhaviour) {
 
                 if (ImGui::SliderFloat("Frequency", &comp.frequency, 0.1f, 3.0f, "%.1f Hz", ImGuiSliderFlags_AlwaysClamp)) {
-                    float stepSize = 0.1f;
+                    const float stepSize = 0.1f;
                     comp.frequency = roundf(comp.frequency / stepSize) * stepSize; // Force step increments
                     comp.updateClock(uuid);
                 }
@@ -110,7 +110,7 @@ namespace Bess::UI {
         ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
         auto &registry = Canvas::Scene::instance().getEnttRegistry();
-        auto view = registry.view<SelectedComponent>();
+        const auto view = registry.view<SelectedComponent>();
 
         if (view.size() == 0) {
             ImGui::Text("No Component Selected");
@@ -118,7 +118,7 @@ namespace Bess::UI {
             return;
         }
 
-        auto entt = view.front();
+        const auto entt = view.front();
         if (!registry.valid(entt)) {
             ImGui::End();
             return;
@@ -133,7 +133,7 @@ namespace Bess::UI {
         }
 
         if (registry.all_of<SimulationInputComponent>(entt)) {
-            auto simulationComp = registry.get<SimulationComponent>(entt);
+            const auto simulationComp = registry.get<SimulationComponent>(entt);
             drawSimulationInputComponent(registry.get<SimulationInputComponent>(entt), simulationComp.simEngineEntity);
         }
 

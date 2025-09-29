@@ -24,7 +24,7 @@ namespace Bess::UI {
             return;
 
         auto &reg = Canvas::Scene::instance().getEnttRegistry();
-        auto view = reg.view<Bess::Canvas::Components::TagComponent,
+        const auto view = reg.view<Bess::Canvas::Components::TagComponent,
                              Bess::Canvas::Components::SimulationStateMonitor,
                              Bess::Canvas::Components::SimulationComponent>();
 
@@ -88,11 +88,11 @@ namespace Bess::UI {
 
         ImGui::BeginChild(plotName.c_str(), ImVec2(0, 0), false, ImGuiWindowFlags_None);
 
-        int numSignals = signals.size();
+        const int numSignals = signals.size();
 
         int i = 0;
         for (auto &[name, signal] : signals) {
-            float height = plotHeight + (i == numSignals - 1 ? 20 : 0);
+            const float height = plotHeight + (i == numSignals - 1 ? 20 : 0);
 
             if (ImPlot::BeginPlot(signal.name.c_str(), ImVec2(-1, height), ImPlotFlags_NoLegend | ImPlotFlags_NoTitle)) {
                 ImPlot::SetupAxis(ImAxis_Y1, signal.name.c_str(), ImPlotAxisFlags_NoTickLabels);
@@ -108,7 +108,7 @@ namespace Bess::UI {
 
                 std::vector<double> plotX;
                 std::vector<double> plotY;
-                int dataCount = signal.values.size();
+                const int dataCount = signal.values.size();
 
                 const auto &data = signal.values;
                 if (dataCount > 0) {
