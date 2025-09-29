@@ -156,6 +156,8 @@ namespace Bess::UI {
 
         auto mainDockspaceId = ImGui::GetID("MainDockspace");
         ImGui::DockSpace(mainDockspaceId);
+        
+        BESS_INFO("UI::begin() - ImGui context active: {}", ImGui::GetCurrentContext() != nullptr);
     }
 
     void end() {
@@ -163,17 +165,11 @@ namespace Bess::UI {
         ImGuiIO &io = ImGui::GetIO();
         ImGui::Render();
 
-        // Render ImGui with Vulkan
-        auto &vulkanRenderer = Bess::Renderer2D::VulkanRenderer::instance();
-        if (vulkanRenderer.getCommandBuffer()) {
-            // Get the current command buffer from VulkanRenderer
-            auto commandBuffers = vulkanRenderer.getCommandBuffer()->commandBuffers();
-            if (!commandBuffers.empty()) {
-                // Use the first command buffer for ImGui rendering
-                VkCommandBuffer commandBuffer = commandBuffers[0];
-                ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
-            }
-        }
+        // Debug: Check if ImGui has draw data
+        ImDrawData* drawData = ImGui::GetDrawData();
+        BESS_INFO("UI::end() - ImGui draw data: {} command lists", drawData ? drawData->CmdListsCount : 0);
+
+        // ImGui rendering is now handled in the VulkanRenderer after UI drawing is complete
 
         if ((io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0) {
             ImGui::UpdatePlatformWindows();

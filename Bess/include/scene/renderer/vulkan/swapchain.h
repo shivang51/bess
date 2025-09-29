@@ -10,6 +10,7 @@ namespace Bess::Renderer2D::Vulkan {
     class VulkanSwapchain {
       public:
         VulkanSwapchain(VkInstance instance, std::shared_ptr<VulkanDevice> device, VkSurfaceKHR surface, VkExtent2D windowExtent);
+        VulkanSwapchain(VkInstance instance, std::shared_ptr<VulkanDevice> device, VkSurfaceKHR surface, VkExtent2D windowExtent, VkSwapchainKHR oldSwapchain);
         ~VulkanSwapchain();
 
         // Delete copy constructor and assignment operator
@@ -33,6 +34,7 @@ namespace Bess::Renderer2D::Vulkan {
 
       private:
         void createSwapchain();
+        void createSwapchain(VkSwapchainKHR oldSwapchain);
         void createImageViews();
 
         struct SwapChainSupportDetails {

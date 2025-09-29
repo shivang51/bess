@@ -28,6 +28,7 @@ namespace Bess {
         glfwSetFramebufferSizeCallback(
             window, [](GLFWwindow *window, int w, int h) {
                 auto this_ = (Window *)glfwGetWindowUserPointer(window);
+                this_->m_framebufferResized = true;
                 if (this_->m_callbacks.find(Callback::WindowResize) ==
                     this_->m_callbacks.end())
                     return;

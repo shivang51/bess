@@ -1,6 +1,8 @@
 #include "scene/renderer/vulkan/vulkan_renderer.h"
 #include "camera.h"
 #include "common/log.h"
+#include "imgui.h"
+#include "imgui_impl_vulkan.h"
 #include <memory>
 #include <set>
 #include <stdexcept>
@@ -23,8 +25,7 @@ namespace Bess::Renderer2D {
           m_imageAvailableSemaphores(std::move(other.m_imageAvailableSemaphores)),
           m_renderFinishedSemaphores(std::move(other.m_renderFinishedSemaphores)),
           m_inFlightFences(std::move(other.m_inFlightFences)),
-          m_currentFrame(other.m_currentFrame),
-          m_semaphoreIndex(other.m_semaphoreIndex) {
+          m_currentFrame(other.m_currentFrame){
         other.m_vkInstance = VK_NULL_HANDLE;
         other.m_vkDebugMessenger = VK_NULL_HANDLE;
         other.m_renderSurface = VK_NULL_HANDLE;
@@ -47,7 +48,6 @@ namespace Bess::Renderer2D {
             m_renderFinishedSemaphores = std::move(other.m_renderFinishedSemaphores);
             m_inFlightFences = std::move(other.m_inFlightFences);
             m_currentFrame = other.m_currentFrame;
-            m_semaphoreIndex = other.m_semaphoreIndex;
 
             other.m_vkInstance = VK_NULL_HANDLE;
             other.m_vkDebugMessenger = VK_NULL_HANDLE;
@@ -97,16 +97,22 @@ namespace Bess::Renderer2D {
     }
 
     void VulkanRenderer::draw() {
+        // Skip rendering if window is minimized
+        if (m_swapchain->extent().width == 0 || m_swapchain->extent().height == 0) {
+            return;
+        }
+        
         vkWaitForFences(m_device->device(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
         uint32_t imageIndex = 0;
         VkResult result = vkAcquireNextImageKHR(m_device->device(), m_swapchain->swapchain(), UINT64_MAX,
-                                                m_imageAvailableSemaphores[m_semaphoreIndex], VK_NULL_HANDLE, &imageIndex);
+                                                m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
 
-        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-            // Handle swapchain recreation
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+            // Handle swapchain recreation - for now, just return and let the next frame handle it
+            BESS_WARN("Swapchain out of date, skipping frame");
             return;
-        } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+        } else if (result != VK_SUCCESS) {
             throw std::runtime_error("Failed to acquire swap chain image!");
         }
 
@@ -117,10 +123,12 @@ namespace Bess::Renderer2D {
                                              m_pipeline->renderPass(), m_swapchain->framebuffers()[imageIndex],
                                              m_swapchain->extent());
 
+        // ImGui rendering is now handled within the command buffer recording
+
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        const std::array<VkSemaphore, 1> waitSemaphores{m_imageAvailableSemaphores[m_semaphoreIndex]};
+        const std::array<VkSemaphore, 1> waitSemaphores{m_imageAvailableSemaphores[m_currentFrame]};
         const std::array<VkPipelineStageFlags, 1> waitStages{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = waitSemaphores.data();
@@ -128,9 +136,8 @@ namespace Bess::Renderer2D {
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &m_commandBuffer->commandBuffers()[m_currentFrame];
 
-        const std::array<VkSemaphore, 1> signalSemaphores{m_renderFinishedSemaphores[m_currentFrame]};
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = signalSemaphores.data();
+        submitInfo.signalSemaphoreCount = 0;
+        submitInfo.pSignalSemaphores = nullptr;
 
         if (vkQueueSubmit(m_device->graphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]) != VK_SUCCESS) {
             throw std::runtime_error("Failed to submit draw command buffer!");
@@ -138,8 +145,8 @@ namespace Bess::Renderer2D {
 
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-        presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = signalSemaphores.data();
+        presentInfo.waitSemaphoreCount = 0;
+        presentInfo.pWaitSemaphores = nullptr;
 
         const std::array<VkSwapchainKHR, 1> swapChains{m_swapchain->swapchain()};
         presentInfo.swapchainCount = 1;
@@ -149,13 +156,67 @@ namespace Bess::Renderer2D {
         result = vkQueuePresentKHR(m_device->presentQueue(), &presentInfo);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-            // Handle swapchain recreation
+            // Handle swapchain recreation - for now, just log and continue
+            BESS_WARN("Swapchain out of date during present, will handle next frame");
         } else if (result != VK_SUCCESS) {
             throw std::runtime_error("Failed to present swap chain image!");
         }
 
         m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-        m_semaphoreIndex = (m_semaphoreIndex + 1) % MAX_SEMAPHORES;
+    }
+
+    void VulkanRenderer::recreateSwapchain() {
+        // Wait for device to be idle before recreating swapchain
+        vkDeviceWaitIdle(m_device->device());
+        
+        // Get new window extent from the current swapchain
+        VkExtent2D newExtent = m_swapchain->extent();
+        
+        // Recreate swapchain
+        m_swapchain = std::make_shared<Vulkan::VulkanSwapchain>(m_vkInstance, m_device, m_renderSurface, newExtent);
+        
+        // Recreate framebuffers
+        m_swapchain->createFramebuffers(m_pipeline->renderPass());
+        
+        BESS_INFO("Swapchain recreated with new extent: {}x{}", newExtent.width, newExtent.height);
+    }
+
+    void VulkanRenderer::recreateSwapchain(VkExtent2D newExtent) {
+        // Don't recreate swapchain if window is minimized (extent = 0)
+        if (newExtent.width == 0 || newExtent.height == 0) {
+            BESS_WARN("Window minimized, skipping swapchain recreation");
+            return;
+        }
+        
+        // Check if the extent is actually different from current swapchain
+        VkExtent2D currentExtent = m_swapchain->extent();
+        if (newExtent.width == currentExtent.width && newExtent.height == currentExtent.height) {
+            BESS_INFO("Swapchain extent unchanged, skipping recreation");
+            return;
+        }
+        
+        // Check if the difference is too small (likely just window decorations)
+        int widthDiff = std::abs(static_cast<int>(newExtent.width) - static_cast<int>(currentExtent.width));
+        int heightDiff = std::abs(static_cast<int>(newExtent.height) - static_cast<int>(currentExtent.height));
+        if (widthDiff < 10 && heightDiff < 10) {
+            BESS_INFO("Swapchain extent change too small ({}x{} -> {}x{}), skipping recreation", 
+                     currentExtent.width, currentExtent.height, newExtent.width, newExtent.height);
+            return;
+        }
+        
+        // Wait for device to be idle before recreating swapchain
+        vkDeviceWaitIdle(m_device->device());
+        
+        // Store old swapchain for proper recreation
+        VkSwapchainKHR oldSwapchain = m_swapchain->swapchain();
+        
+        // Recreate swapchain with new extent
+        m_swapchain = std::make_shared<Vulkan::VulkanSwapchain>(m_vkInstance, m_device, m_renderSurface, newExtent, oldSwapchain);
+        
+        // Recreate framebuffers
+        m_swapchain->createFramebuffers(m_pipeline->renderPass());
+        
+        BESS_INFO("Swapchain recreated with new extent: {}x{}", newExtent.width, newExtent.height);
     }
 
     void VulkanRenderer::cleanup() {
@@ -331,7 +392,8 @@ namespace Bess::Renderer2D {
     }
 
     void VulkanRenderer::createSyncObjects() {
-        m_imageAvailableSemaphores.resize(MAX_SEMAPHORES);
+        // Create semaphores for each frame in flight
+        m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
         m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
         m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
 
@@ -342,7 +404,7 @@ namespace Bess::Renderer2D {
         fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-        for (size_t i = 0; i < MAX_SEMAPHORES; i++) {
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             if (vkCreateSemaphore(m_device->device(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS) {
                 throw std::runtime_error("Failed to create image available semaphore!");
             }
@@ -364,9 +426,8 @@ namespace Bess::Renderer2D {
     }
 
     void VulkanRenderer::end() {
-        // if (s_instance) {
-        //     s_instance->draw();
-        // }
+        // Don't automatically draw - this will be called explicitly from the application loop
+        // instance().draw();
     }
 
     void VulkanRenderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
@@ -440,6 +501,23 @@ namespace Bess::Renderer2D {
         //     return reinterpret_cast<uint64_t>(s_instance->m_sceneFramebuffer->colorImageView());
         // }
         return 0;
+    }
+
+    void VulkanRenderer::renderImGui(VkCommandBuffer commandBuffer) {
+        ImDrawData* drawData = ImGui::GetDrawData();
+        if (drawData && drawData->CmdListsCount > 0) {
+            BESS_INFO("Rendering ImGui with {} command lists", drawData->CmdListsCount);
+            ImGui_ImplVulkan_RenderDrawData(drawData, commandBuffer);
+        } else {
+            BESS_WARN("ImGui has no draw data to render");
+        }
+    }
+
+    void VulkanRenderer::renderImGuiAfterUI() {
+        // This function should be called after UI drawing is complete
+        // It will render ImGui on top of the already recorded command buffer
+        BESS_INFO("Rendering ImGui after UI for frame {}", m_currentFrame);
+        renderImGui(m_commandBuffer->commandBuffers()[m_currentFrame]);
     }
 
 } // namespace Bess::Renderer2D

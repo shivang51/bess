@@ -1,5 +1,7 @@
 #include "scene/renderer/vulkan/command_buffer.h"
 #include "common/log.h"
+#include "imgui_impl_vulkan.h"
+#include "imgui.h"
 #include <stdexcept>
 
 namespace Bess::Renderer2D::Vulkan {
@@ -85,7 +87,12 @@ namespace Bess::Renderer2D::Vulkan {
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         // TODO: Add actual rendering commands here
-        // This will be implemented when we create the pipeline
+        
+        // Render ImGui within the active render pass
+        ImDrawData* drawData = ImGui::GetDrawData();
+        if (drawData && drawData->CmdListsCount > 0) {
+            ImGui_ImplVulkan_RenderDrawData(drawData, commandBuffer);
+        }
 
         vkCmdEndRenderPass(commandBuffer);
 

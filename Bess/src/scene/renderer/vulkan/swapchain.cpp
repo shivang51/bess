@@ -11,6 +11,12 @@ namespace Bess::Renderer2D::Vulkan {
         createImageViews();
     }
 
+    VulkanSwapchain::VulkanSwapchain(VkInstance instance, std::shared_ptr<VulkanDevice> device, VkSurfaceKHR surface, VkExtent2D windowExtent, VkSwapchainKHR oldSwapchain)
+        : m_instance(instance), m_device(device), m_surface(surface), m_windowExtent(windowExtent) {
+        createSwapchain(oldSwapchain);
+        createImageViews();
+    }
+
     VulkanSwapchain::~VulkanSwapchain() {
         cleanup();
     }
@@ -49,12 +55,92 @@ namespace Bess::Renderer2D::Vulkan {
         return *this;
     }
 
-    void VulkanSwapchain::createSwapchain() {
+    void VulkanSwapchain::createSwapchain(VkSwapchainKHR oldSwapchain) {
         SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_device->physicalDevice());
+
+        BESS_INFO("Available surface formats: {}", swapChainSupport.formats.size());
+        for (const auto& format : swapChainSupport.formats) {
+            BESS_INFO("  Format: {}, ColorSpace: {}", static_cast<int>(format.format), static_cast<int>(format.colorSpace));
+        }
 
         VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
         VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, m_windowExtent);
+        
+        BESS_INFO("Selected surface format: {}, ColorSpace: {}", static_cast<int>(surfaceFormat.format), static_cast<int>(surfaceFormat.colorSpace));
+        BESS_INFO("Selected present mode: {}", static_cast<int>(presentMode));
+        BESS_INFO("Selected extent: {}x{}", extent.width, extent.height);
+
+        uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+        if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
+            imageCount = swapChainSupport.capabilities.maxImageCount;
+        }
+
+        VkSwapchainCreateInfoKHR createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        createInfo.surface = m_surface;
+        createInfo.minImageCount = imageCount;
+        createInfo.imageFormat = surfaceFormat.format;
+        createInfo.imageColorSpace = surfaceFormat.colorSpace;
+        createInfo.imageExtent = extent;
+        createInfo.imageArrayLayers = 1;
+        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+        QueueFamilyIndices indices = m_device->queueFamilyIndices();
+        uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+
+        if (indices.graphicsFamily != indices.presentFamily) {
+            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+            createInfo.queueFamilyIndexCount = 2;
+            createInfo.pQueueFamilyIndices = queueFamilyIndices;
+        } else {
+            createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        }
+
+        createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        createInfo.presentMode = presentMode;
+        createInfo.clipped = VK_TRUE;
+        createInfo.oldSwapchain = oldSwapchain;
+
+        BESS_INFO("Swapchain creation parameters:");
+        BESS_INFO("  Image count: {}", imageCount);
+        BESS_INFO("  Image format: {}", static_cast<int>(createInfo.imageFormat));
+        BESS_INFO("  Image color space: {}", static_cast<int>(createInfo.imageColorSpace));
+        BESS_INFO("  Image extent: {}x{}", createInfo.imageExtent.width, createInfo.imageExtent.height);
+        BESS_INFO("  Image usage: {}", static_cast<int>(createInfo.imageUsage));
+        BESS_INFO("  Sharing mode: {}", static_cast<int>(createInfo.imageSharingMode));
+        BESS_INFO("  Present mode: {}", static_cast<int>(createInfo.presentMode));
+
+        VkResult result = vkCreateSwapchainKHR(m_device->device(), &createInfo, nullptr, &m_swapchain);
+        if (result != VK_SUCCESS) {
+            BESS_ERROR("Failed to create swap chain! Error code: {}", static_cast<int>(result));
+            throw std::runtime_error("Failed to create swap chain!");
+        }
+
+        vkGetSwapchainImagesKHR(m_device->device(), m_swapchain, &imageCount, nullptr);
+        m_images.resize(imageCount);
+        vkGetSwapchainImagesKHR(m_device->device(), m_swapchain, &imageCount, m_images.data());
+
+        m_imageFormat = surfaceFormat.format;
+        m_extent = extent;
+    }
+
+    void VulkanSwapchain::createSwapchain() {
+        SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_device->physicalDevice());
+
+        BESS_INFO("Available surface formats: {}", swapChainSupport.formats.size());
+        for (const auto& format : swapChainSupport.formats) {
+            BESS_INFO("  Format: {}, ColorSpace: {}", static_cast<int>(format.format), static_cast<int>(format.colorSpace));
+        }
+
+        VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+        VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+        VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, m_windowExtent);
+        
+        BESS_INFO("Selected surface format: {}, ColorSpace: {}", static_cast<int>(surfaceFormat.format), static_cast<int>(surfaceFormat.colorSpace));
+        BESS_INFO("Selected present mode: {}", static_cast<int>(presentMode));
+        BESS_INFO("Selected extent: {}x{}", extent.width, extent.height);
 
         uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
         if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
@@ -88,7 +174,18 @@ namespace Bess::Renderer2D::Vulkan {
         createInfo.clipped = VK_TRUE;
         createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-        if (vkCreateSwapchainKHR(m_device->device(), &createInfo, nullptr, &m_swapchain) != VK_SUCCESS) {
+        BESS_INFO("Swapchain creation parameters:");
+        BESS_INFO("  Image count: {}", imageCount);
+        BESS_INFO("  Image format: {}", static_cast<int>(createInfo.imageFormat));
+        BESS_INFO("  Image color space: {}", static_cast<int>(createInfo.imageColorSpace));
+        BESS_INFO("  Image extent: {}x{}", createInfo.imageExtent.width, createInfo.imageExtent.height);
+        BESS_INFO("  Image usage: {}", static_cast<int>(createInfo.imageUsage));
+        BESS_INFO("  Sharing mode: {}", static_cast<int>(createInfo.imageSharingMode));
+        BESS_INFO("  Present mode: {}", static_cast<int>(createInfo.presentMode));
+
+        VkResult result = vkCreateSwapchainKHR(m_device->device(), &createInfo, nullptr, &m_swapchain);
+        if (result != VK_SUCCESS) {
+            BESS_ERROR("Failed to create swap chain! Error code: {}", static_cast<int>(result));
             throw std::runtime_error("Failed to create swap chain!");
         }
 
@@ -189,13 +286,30 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     VkSurfaceFormatKHR VulkanSwapchain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) {
+        // Prefer SRGB format if available
         for (const auto &availableFormat : availableFormats) {
             if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
                 return availableFormat;
             }
         }
+        
+        // Fallback to any SRGB format
+        for (const auto &availableFormat : availableFormats) {
+            if (availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+                return availableFormat;
+            }
+        }
 
-        return availableFormats[0];
+        // If no SRGB format available, use the first available format
+        if (!availableFormats.empty()) {
+            return availableFormats[0];
+        }
+        
+        // This should never happen, but just in case
+        VkSurfaceFormatKHR fallback{};
+        fallback.format = VK_FORMAT_B8G8R8A8_UNORM;
+        fallback.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+        return fallback;
     }
 
     VkPresentModeKHR VulkanSwapchain::chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) {

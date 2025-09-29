@@ -133,13 +133,17 @@ namespace Bess::Renderer2D {
         VkSurfaceKHR m_renderSurface = VK_NULL_HANDLE;
 
         static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-        static constexpr int MAX_SEMAPHORES = 10;
 
         std::vector<VkSemaphore> m_imageAvailableSemaphores;
         std::vector<VkSemaphore> m_renderFinishedSemaphores;
         std::vector<VkFence> m_inFlightFences;
         uint32_t m_currentFrame = 0;
-        uint32_t m_semaphoreIndex = 0;
+
+        public:
+        void renderImGui(VkCommandBuffer commandBuffer);
+        void renderImGuiAfterUI();
+        void recreateSwapchain();
+        void recreateSwapchain(VkExtent2D newExtent);
     };
 
 } // namespace Bess::Renderer2D
