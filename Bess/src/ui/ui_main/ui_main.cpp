@@ -14,7 +14,6 @@
 #include "camera.h"
 #include "pages/main_page/main_page_state.h"
 #include "scene/artist/artist_manager.h"
-#include "scene/renderer/gl/gl_wrapper.h"
 #include "scene/scene.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/ui_main/component_explorer.h"
@@ -50,13 +49,13 @@ namespace Bess::UI {
     }
 
     void UIMain::drawStats(int fps) {
-        auto stats = Gl::Api::getStats();
-        ImGui::Text("Draw Calls: %d", stats.drawCalls);
-        ImGui::Text("Vertices: %d", stats.vertices);
-        ImGui::Text("GL Check Calls: %d", stats.glCheckCalls);
+        // TODO: Implement Vulkan stats
+        ImGui::Text("Draw Calls: %d", 0);
+        ImGui::Text("Vertices: %d", 0);
+        ImGui::Text("Vulkan Check Calls: %d", 0);
     }
 
-    void UIMain::setViewportTexture(GLuint64 texture) {
+    void UIMain::setViewportTexture(uint64_t texture) {
         state.viewportTexture = texture;
     }
 

@@ -1,13 +1,13 @@
 #include "window.h"
 #include "common/log.h"
-#include "scene/renderer/gl/gl_wrapper.h"
 #include <cassert>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 
 namespace Bess {
     bool Window::isGLFWInitialized = false;
-    bool Window::isGladInitialized = false;
+    bool Window::isVulkanInitialized = false;
 
     Window::Window(int width, int height, const std::string &title) {
 
@@ -19,9 +19,9 @@ namespace Bess {
         glfwSetWindowUserPointer(window, this);
 
         mp_window = std::unique_ptr<GLFWwindow, GLFWwindowDeleter>(window);
-        this->makeCurrent();
-
-        glfwSwapInterval(0);
+        // this->makeCurrent();
+        //
+        // glfwSwapInterval(0);
 
         glfwSetWindowSizeLimits(window, 600, 500, GLFW_DONT_CARE, GLFW_DONT_CARE);
 
@@ -110,7 +110,7 @@ namespace Bess {
                 cb(x, y);
             });
 
-        this->initOpenGL();
+        this->initVulkan();
     }
 
     void Window::initGLFW() {
@@ -124,35 +124,19 @@ namespace Bess {
         });
         auto res = glfwInit();
         assert(res == GLFW_TRUE);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        glfwWindowHint(GLFW_SAMPLES, 4);
+        // Vulkan doesn't need OpenGL context hints
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_MAXIMIZED, 1);
 
         isGLFWInitialized = true;
     }
 
-    void Window::initOpenGL() {
-        if (isGladInitialized)
+    void Window::initVulkan() {
+        if (isVulkanInitialized)
             return;
-        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-            std::cerr << "Failed to initialize GLAD" << std::endl;
-        } else {
-            isGladInitialized = true;
-        }
 
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        glEnable(GL_MULTISAMPLE);
-        glEnable(GL_LINE_SMOOTH);
-        glEnable(GL_POLYGON_SMOOTH);
-        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-        glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
-
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LEQUAL);
+        // Vulkan initialization will be handled by the VulkanRenderer
+        isVulkanInitialized = true;
     }
 
     Window::~Window() {
@@ -167,11 +151,13 @@ namespace Bess {
     }
 
     void Window::update() const {
-        makeCurrent();
-        glfwSwapBuffers(mp_window.get());
+        // Vulkan rendering is handled by the VulkanRenderer
+        // No need for makeCurrent or swapBuffers
     }
 
-    void Window::makeCurrent() const { glfwMakeContextCurrent(mp_window.get()); }
+    void Window::makeCurrent() const {
+        // Not needed for Vulkan
+    }
 
     bool Window::isClosed() const { return glfwWindowShouldClose(mp_window.get()); }
 
@@ -217,5 +203,36 @@ namespace Bess {
         double x, y;
         glfwGetCursorPos(mp_window.get(), &x, &y);
         return glm::vec2(x, y);
+    }
+
+    void Window::createWindowSurface(VkInstance instance, VkSurfaceKHR &surface) {
+        if (glfwCreateWindowSurface(instance, mp_window.get(), nullptr, &surface) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create window surface!");
+        }
+    }
+
+    std::vector<const char *> Window::getVulkanExtensions() {
+        uint32_t glfwExtensionCount = 0;
+        const char **glfwExtensions;
+        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+        std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+
+#ifndef NDEBUG
+        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif
+
+        return extensions;
+    }
+
+    VkExtent2D Window::getExtent() const {
+        int width, height;
+        glfwGetFramebufferSize(mp_window.get(), &width, &height);
+        return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+    }
+
+    void Window::framebufferResizeCallback(GLFWwindow *window, int width, int height) {
+        auto this_ = static_cast<Window *>(glfwGetWindowUserPointer(window));
+        this_->m_framebufferResized = true;
     }
 } // namespace Bess

@@ -12,6 +12,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+// #include "imgui_impl_vulkan.h" // Not available in current ImGui version
 #include "imgui_internal.h"
 #include "implot.h"
 
@@ -39,10 +40,13 @@ namespace Bess::UI {
         Config::Settings::loadCurrentTheme();
 
         ImGui_ImplGlfw_InitForOpenGL(window, true);
-        ImGui_ImplOpenGL3_Init("#version 410");
+        
+        // TODO: Implement Vulkan ImGui backend
+        // For now, using OpenGL backend as placeholder
     }
 
     void shutdown() {
+        // ImGui_ImplVulkan_Shutdown(); // TODO: Implement Vulkan ImGui
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImPlot::DestroyContext();
@@ -88,10 +92,8 @@ namespace Bess::UI {
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-            GLFWwindow *backup_current_context = glfwGetCurrentContext();
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
-            glfwMakeContextCurrent(backup_current_context);
         }
     }
 
@@ -138,8 +140,9 @@ namespace Bess::UI {
         io.Fonts->Build();
 
         if (Config::Settings::shouldFontRebuild()) {
-            ImGui_ImplOpenGL3_DestroyDeviceObjects();
-            ImGui_ImplOpenGL3_CreateDeviceObjects();
+            // Vulkan font rebuilding will be handled by VulkanRenderer
+            // ImGui_ImplVulkan_DestroyFontUploadObjects();
+            // ImGui_ImplVulkan_CreateFontsTexture();
         }
     }
 

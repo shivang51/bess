@@ -10,8 +10,6 @@
 #include "modules/schematic_gen/schematic_view.h"
 #include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
-#include "scene/renderer/gl/framebuffer.h"
-#include "scene/renderer/gl/subtexture.h"
 #include "types.h"
 #include <chrono>
 #include <memory>
@@ -54,7 +52,7 @@ namespace Bess::Canvas {
         void renderWithCamera(std::shared_ptr<Camera> camera);
         void update(TFrameTime ts, const std::vector<ApplicationEvent> &events);
 
-        unsigned int getTextureId();
+        uint64_t getTextureId();
         std::shared_ptr<Camera> getCamera();
 
         void drawScene(std::shared_ptr<Camera> camera);
@@ -143,10 +141,7 @@ namespace Bess::Canvas {
         float getNextZCoord();
 
       private:
-        std::unique_ptr<Gl::FrameBuffer> m_msaaFramebuffer;
-        std::unique_ptr<Gl::FrameBuffer> m_shadowFramebuffer;
-        std::unique_ptr<Gl::FrameBuffer> m_placeHolderFramebuffer;
-        std::unique_ptr<Gl::FrameBuffer> m_normalFramebuffer;
+        // Vulkan framebuffers for scene rendering
         glm::vec2 m_size, m_mousePos, m_dMousePos;
         std::shared_ptr<Camera> m_camera;
 
@@ -189,8 +184,8 @@ namespace Bess::Canvas {
         };
         std::vector<CopiedComponent> m_copiedComponents = {};
 
-        std::shared_ptr<Gl::Texture> m_placeHolderTexture;
-        std::shared_ptr<Gl::SubTexture> m_placeHolderSubTexture;
+        // OpenGL textures removed for Vulkan migration
+        // TODO: Implement Vulkan textures
 
         SimEngine::Commands::CommandsManager m_cmdManager;
 

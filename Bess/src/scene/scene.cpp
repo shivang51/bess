@@ -22,7 +22,7 @@
 #include "scene/commands/update_entt_comp_command.h"
 #include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
-#include "scene/renderer/renderer.h"
+#include "scene/renderer/vulkan/vulkan_renderer.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "types.h"
@@ -31,11 +31,10 @@
 #include <cstdint>
 #include <memory>
 
-using Renderer = Bess::Renderer2D::Renderer;
 
 namespace Bess::Canvas {
     Scene::Scene() {
-        Renderer2D::Renderer::init();
+        Renderer2D::VulkanRenderer::init();
         reset();
     }
 
@@ -52,24 +51,13 @@ namespace Bess::Canvas {
         m_size = glm::vec2(800.f / 600.f, 1.f);
         m_camera = std::make_shared<Camera>(m_size.x, m_size.y);
 
-        std::vector<Gl::FBAttachmentType> attachments = {Gl::FBAttachmentType::RGBA_RGBA,
-                                                         Gl::FBAttachmentType::R32I_REDI,
-                                                         Gl::FBAttachmentType::RGBA_RGBA,
-                                                         Gl::FBAttachmentType::DEPTH32F_STENCIL8};
-        m_msaaFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments, true);
-
-        attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::DEPTH32F_STENCIL8};
-        m_shadowFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments);
-
-        attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::RGBA_RGBA};
-        m_placeHolderFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments);
-
-        attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::R32I_REDI};
-        m_normalFramebuffer = std::make_unique<Gl::FrameBuffer>(m_size.x, m_size.y, attachments);
-
-        m_placeHolderTexture = std::make_shared<Gl::Texture>("assets/images/crosshairs_tilesheet_white.png");
-        m_placeHolderSubTexture = std::make_shared<Gl::SubTexture>(m_placeHolderTexture, glm::vec2(5.f, 5.f),
-                                                                   glm::vec2(64.f, 64.f), 5, glm::vec2(1.f, 1.f));
+        // TODO: Implement Vulkan framebuffers
+        // Vulkan framebuffers will be managed differently
+        // For now, using placeholder values
+        
+        // TODO: Implement Vulkan textures
+        // m_placeHolderTexture = std::make_shared<Vulkan::VulkanTexture>("assets/images/crosshairs_tilesheet_white.png");
+        // m_placeHolderSubTexture = std::make_shared<Vulkan::VulkanSubTexture>(m_placeHolderTexture, glm::vec2(5.f, 5.f), glm::vec2(64.f, 64.f));
 
         m_artistManager = std::make_shared<ArtistManager>(this);
     }
@@ -231,18 +219,18 @@ namespace Bess::Canvas {
         auto artist = m_artistManager->getCurrentArtist();
 
         // Grid
-        Renderer2D::Renderer::begin(camera);
-        Renderer::grid({0.f, 0.f, -2.f}, camera->getSpan(), -1,
+        Renderer2D::VulkanRenderer::begin(camera);
+        Renderer2D::VulkanRenderer::grid({0.f, 0.f, -2.f}, camera->getSpan(), -1,
                        {
                            .minorColor = ViewportTheme::colors.gridMinorColor,
                            .majorColor = ViewportTheme::colors.gridMajorColor,
                            .axisXColor = ViewportTheme::colors.gridAxisXColor,
                            .axisYColor = ViewportTheme::colors.gridAxisYColor,
                        });
-        Renderer2D::Renderer::end();
+        Renderer2D::VulkanRenderer::end();
 
         // Connections
-        Renderer2D::Renderer::begin(camera);
+        Renderer2D::VulkanRenderer::begin(camera);
         auto connectionsView = m_registry.view<Components::ConnectionComponent>();
         for (auto entity : connectionsView) {
             artist->drawConnectionEntity(entity);
@@ -251,10 +239,10 @@ namespace Bess::Canvas {
         if (m_drawMode == SceneDrawMode::connection) {
             drawConnection();
         }
-        Renderer2D::Renderer::end();
+        Renderer2D::VulkanRenderer::end();
 
         // Components
-        Renderer2D::Renderer::begin(camera);
+        Renderer2D::VulkanRenderer::begin(camera);
         auto simCompView = m_registry.view<
             Components::SimulationComponent,
             Components::TagComponent,
@@ -274,12 +262,12 @@ namespace Bess::Canvas {
             artist->drawNonSimEntity(entity);
         }
 
-        Renderer2D::Renderer::end();
+        Renderer2D::VulkanRenderer::end();
 
         if (m_drawMode == SceneDrawMode::selectionBox) {
-            Renderer2D::Renderer::begin(camera);
+            Renderer2D::VulkanRenderer::begin(camera);
             drawSelectionBox();
-            Renderer2D::Renderer::end();
+            Renderer2D::VulkanRenderer::end();
         }
     }
 
@@ -294,7 +282,7 @@ namespace Bess::Canvas {
         Renderer2D::QuadRenderProperties props;
         props.borderColor = ViewportTheme::colors.selectionBoxBorder;
         props.borderSize = glm::vec4(1.f);
-        Renderer2D::Renderer::quad(glm::vec3(pos, 9.f), size, ViewportTheme::colors.selectionBoxFill, 0, props);
+        Renderer2D::VulkanRenderer::quad(glm::vec3(pos, 9.f), size, ViewportTheme::colors.selectionBoxFill, 0, props);
     }
 
     void Scene::drawConnection() {
@@ -511,10 +499,8 @@ namespace Bess::Canvas {
 
     void Scene::resize(const glm::vec2 &size) {
         m_size = UI::UIMain::state.viewportSize;
-        m_msaaFramebuffer->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
-        m_normalFramebuffer->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
-        m_shadowFramebuffer->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
-        m_placeHolderFramebuffer->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
+        // Vulkan framebuffers are managed by the VulkanRenderer
+        // The renderer will handle framebuffer resizing automatically
         m_camera->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
     }
 
@@ -621,7 +607,9 @@ namespace Bess::Canvas {
         mousePos_.y = UI::UIMain::state.viewportSize.y - mousePos_.y;
         int x = static_cast<int>(mousePos_.x);
         int y = static_cast<int>(mousePos_.y);
-        int32_t hoverId = m_normalFramebuffer->readIntFromColAttachment(1, x, y);
+        // TODO: Implement Vulkan framebuffer read for hover detection
+        // This would require reading from a separate ID attachment in the framebuffer
+        int32_t hoverId = -1; // Placeholder for Vulkan implementation
         m_registry.clear<Components::HoveredEntityComponent>();
         auto e = (entt::entity)hoverId;
         if (m_registry.valid(e)) {
@@ -993,7 +981,9 @@ namespace Bess::Canvas {
         int h = (int)size.y;
         int x = pos.x, y = UI::UIMain::state.viewportSize.y - pos.y;
 
-        auto ids = m_normalFramebuffer->readIntsFromColAttachment(1, x, y, w, h);
+        // TODO: Implement Vulkan framebuffer read for selection box
+        // This would require reading from a separate ID attachment in the framebuffer
+        std::vector<int> ids = {}; // Placeholder for Vulkan implementation
 
         if (ids.size() == 0)
             return;
@@ -1039,29 +1029,21 @@ namespace Bess::Canvas {
     }
 
     void Scene::beginScene() {
-        static constexpr int value = -1;
-        m_msaaFramebuffer->bind();
-        m_msaaFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::colors.background));
-        m_msaaFramebuffer->clearColorAttachment<GL_INT>(1, &value);
-        m_msaaFramebuffer->clearColorAttachment<GL_FLOAT>(2, glm::value_ptr(ViewportTheme::colors.background));
-
-        Gl::FrameBuffer::clearDepthStencilBuf();
+        // Vulkan scene management is handled by VulkanRenderer
+        // The renderer manages the scene framebuffer and render pass
+        // This method is called before drawing, so we can prepare Vulkan resources here
     }
 
     void Scene::endScene() {
-        Gl::FrameBuffer::unbindAll();
-
-        for (int i = 0; i < 2; i++) {
-            m_msaaFramebuffer->bindColorAttachmentForRead(i);
-            m_normalFramebuffer->bindColorAttachmentForDraw(i);
-            Gl::FrameBuffer::blitColorBuffer(m_size.x, m_size.y);
-        }
-
-        Gl::FrameBuffer::unbindAll();
+        // Vulkan scene management is handled by VulkanRenderer
+        // The renderer manages the scene framebuffer and render pass
+        // This method is called after drawing, so we can finalize Vulkan resources here
     }
 
     void Scene::saveScenePNG(const std::string &path) {
-        m_normalFramebuffer->saveColorAttachment(0, path);
+        // TODO: Implement Vulkan scene save to PNG
+        // This will require reading from Vulkan framebuffer and saving to file
+        BESS_WARN("Scene save to PNG not yet implemented for Vulkan");
     }
 
     const glm::vec2 &Scene::getCameraPos() {
@@ -1102,8 +1084,9 @@ namespace Bess::Canvas {
         return m_cmdManager;
     }
 
-    unsigned int Scene::getTextureId() {
-        return m_normalFramebuffer->getColorBufferTexId(0);
+    uint64_t Scene::getTextureId() {
+        // Return the scene texture ID from VulkanRenderer for ImGui display
+        return Renderer2D::VulkanRenderer::getSceneTextureId();
     }
 
     std::shared_ptr<Camera> Scene::getCamera() {

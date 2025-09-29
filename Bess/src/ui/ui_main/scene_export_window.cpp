@@ -159,14 +159,15 @@ namespace Bess::UI {
         std::vector<unsigned char> imgRowBuffer(finalWidth * 4);
         const size_t snapRowSize = size.x * 4;
 
-        std::vector<Gl::FBAttachmentType> attachments = {Gl::FBAttachmentType::RGBA_RGBA,
-                                                         Gl::FBAttachmentType::R32I_REDI,
-                                                         Gl::FBAttachmentType::RGBA_RGBA,
-                                                         Gl::FBAttachmentType::DEPTH32F_STENCIL8};
-        auto msaaFramebuffer = std::make_unique<Gl::FrameBuffer>(size.x, size.y, attachments, true);
+        // TODO: Implement Vulkan framebuffer creation for scene export
+        // std::vector<Gl::FBAttachmentType> attachments = {Gl::FBAttachmentType::RGBA_RGBA,
+        //                                                  Gl::FBAttachmentType::R32I_REDI,
+        //                                                  Gl::FBAttachmentType::RGBA_RGBA,
+        //                                                  Gl::FBAttachmentType::DEPTH32F_STENCIL8};
+        // auto msaaFramebuffer = std::make_unique<Gl::FrameBuffer>(size.x, size.y, attachments, true);
 
-        attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::R32I_REDI};
-        auto normalFramebuffer = std::make_unique<Gl::FrameBuffer>(size.x, size.y, attachments);
+        // attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::R32I_REDI};
+        // auto normalFramebuffer = std::make_unique<Gl::FrameBuffer>(size.x, size.y, attachments);
 
         auto pos = min + snapSpan / 2.f;
         std::shared_ptr<Camera> camera = std::make_shared<Camera>(size.x, size.y);
@@ -180,17 +181,21 @@ namespace Bess::UI {
             for (int j = 0; j < snaps.x; j++) {
                 camera->setPos(pos);
 
-                msaaFramebuffer->bind();
-                msaaFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::colors.background));
-                Gl::FrameBuffer::clearDepthStencilBuf();
-                Canvas::Scene::instance().drawScene(camera);
-                Gl::FrameBuffer::unbindAll();
-                msaaFramebuffer->bindColorAttachmentForRead(0);
-                normalFramebuffer->bindColorAttachmentForDraw(0);
-                Gl::FrameBuffer::blitColorBuffer(size.x, size.y);
-                Gl::FrameBuffer::unbindAll();
+                // TODO: Implement Vulkan framebuffer operations for scene export
+                // msaaFramebuffer->bind();
+                // msaaFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::colors.background));
+                // Gl::FrameBuffer::clearDepthStencilBuf();
+                // Canvas::Scene::instance().drawScene(camera);
+                // Gl::FrameBuffer::unbindAll();
+                // msaaFramebuffer->bindColorAttachmentForRead(0);
+                // normalFramebuffer->bindColorAttachmentForDraw(0);
+                // Gl::FrameBuffer::blitColorBuffer(size.x, size.y);
+                // Gl::FrameBuffer::unbindAll();
 
-                snapsData.emplace_back(normalFramebuffer->getPixelsFromColorAttachment(0));
+                // snapsData.emplace_back(normalFramebuffer->getPixelsFromColorAttachment(0));
+                
+                // Placeholder: create empty data for now
+                snapsData.emplace_back(std::vector<unsigned char>(size.x * size.y * 4, 0));
 
                 pos.x += snapSpan.x;
             }

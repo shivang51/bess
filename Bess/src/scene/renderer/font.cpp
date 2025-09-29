@@ -1,8 +1,14 @@
 #include "scene/renderer/font.h"
 #include "common/log.h"
+#include "scene/renderer/vulkan/vulkan_texture.h"
 
 namespace Bess::Renderer2D {
     Font::Font(const std::string &path) {
+        // This constructor is deprecated - use the one with device parameter
+        BESS_WARN("Font constructor without device is deprecated. Use Font(path, device) instead.");
+    }
+
+    Font::Font(const std::string &path, Vulkan::VulkanDevice& device) : m_device(&device) {
         if (FT_Init_FreeType(&m_ft)) {
             BESS_ERROR("ERROR::FREETYPE: Could not init FreeType Library");
             assert(false);
@@ -30,7 +36,11 @@ namespace Bess::Renderer2D {
     }
 
     void Font::loadCharacters() {
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        if (!m_device) {
+            BESS_ERROR("ERROR::FONT: Vulkan device not available for texture creation");
+            return;
+        }
+
         FT_UInt glyphIdx;
         FT_ULong charCode = FT_Get_First_Char(m_face, &glyphIdx);
 
@@ -45,17 +55,10 @@ namespace Bess::Renderer2D {
                 continue;
             }
 
-            auto texture = std::make_shared<Gl::Texture>(
-                GL_RGB,
-                GL_RED,
-                m_face->glyph->bitmap.width,
-                m_face->glyph->bitmap.rows,
-                m_face->glyph->bitmap.buffer);
-
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
+            // Create Vulkan texture from bitmap data
+            // For now, we'll create a placeholder texture since we need to implement
+            // texture creation from raw bitmap data in VulkanTexture class
+            auto texture = std::make_shared<Vulkan::VulkanTexture>(*m_device, "");
 
             Character character = {
                 texture,
@@ -64,10 +67,6 @@ namespace Bess::Renderer2D {
                 (int)m_face->glyph->advance.x};
             Characters.insert(std::pair<char, Character>(charCode, character));
             charCode = FT_Get_Next_Char(m_face, charCode, &glyphIdx);
-
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            glGenerateMipmap(GL_TEXTURE_2D);
         }
     }
 

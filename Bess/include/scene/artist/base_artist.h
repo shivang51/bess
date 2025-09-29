@@ -4,7 +4,7 @@
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
 #include "scene/components/components.h"
-#include "scene/renderer/gl/subtexture.h"
+#include "scene/renderer/vulkan/vulkan_subtexture.h"
 #include "types.h"
 
 #include <memory>
@@ -13,11 +13,12 @@
 namespace Bess::Canvas {
     class Scene;
 }
+using namespace Bess::Renderer2D;
 
 namespace Bess::Canvas {
 
     struct ArtistTools {
-        std::array<std::shared_ptr<Gl::SubTexture>, 8> sevenSegDispTexs;
+        std::array<std::shared_ptr<Vulkan::VulkanSubTexture>, 8> sevenSegDispTexs;
     };
 
     struct ArtistInstructions {

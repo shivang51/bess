@@ -4,7 +4,9 @@
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
 #include "scene/components/components.h"
-#include "scene/renderer/renderer.h"
+#include "scene/renderer/vulkan/vulkan_renderer.h"
+#include "scene/renderer/vulkan/vulkan_texture.h"
+#include "scene/renderer/vulkan/vulkan_subtexture.h"
 #include "scene/scene.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
@@ -12,7 +14,7 @@
 #include <cstdint>
 #include <string>
 
-using Renderer = Bess::Renderer2D::Renderer;
+using Renderer = Bess::Renderer2D::VulkanRenderer;
 
 namespace Bess::Canvas {
 
@@ -262,13 +264,13 @@ namespace Bess::Canvas {
             glm::vec3 texPos = {posX,
                                 transform.position.y + (headerHeight / 2.f),
                                 transform.position.z + 0.0001};
-            Renderer::quad(texPos, {texWidth, texHeight}, tex, glm::vec4(1.f), (uint64_t)entity);
+            Renderer::quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity);
 
             for (int i = 0; i < (int)compState.inputStates.size(); i++) {
                 if (!compState.inputStates[i])
                     continue;
                 tex = m_artistTools.sevenSegDispTexs[i + 1];
-                Renderer::quad(texPos, {texWidth, texHeight}, tex, glm::vec4(1.f), (uint64_t)entity);
+                Renderer::quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity);
             }
         }
 

@@ -1,5 +1,5 @@
 #pragma once
-#define GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 #include "glm.hpp"
 
@@ -8,6 +8,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <vector>
 #include <unordered_map>
 
 namespace Bess {
@@ -57,7 +58,7 @@ namespace Bess {
         }
 
         static bool isGLFWInitialized;
-        static bool isGladInitialized;
+        static bool isVulkanInitialized;
 
         void onWindowResize(WindowResizeCallback callback);
         void onMouseWheel(MouseWheelCallback callback);
@@ -72,11 +73,20 @@ namespace Bess {
 
         GLFWwindow *getGLFWHandle() const { return mp_window.get(); }
 
+        // Vulkan-specific methods
+        void createWindowSurface(VkInstance instance, VkSurfaceKHR& surface);
+        std::vector<const char*> getVulkanExtensions();
+        VkExtent2D getExtent() const;
+        bool wasWindowResized() const { return m_framebufferResized; }
+        void resetWindowResizedFlag() { m_framebufferResized = false; }
+
       private:
         std::unique_ptr<GLFWwindow, GLFWwindowDeleter> mp_window;
         std::unordered_map<Callback, std::any> m_callbacks;
+        bool m_framebufferResized = false;
 
-        void initOpenGL();
+        void initVulkan();
         void initGLFW();
+        static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
     };
 } // namespace Bess

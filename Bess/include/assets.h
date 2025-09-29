@@ -1,8 +1,9 @@
 #pragma once
 #include "asset_manager/asset_id.h"
 #include "scene/renderer/font.h"
-#include "scene/renderer/gl/shader.h"
 #include "scene/renderer/msdf_font.h"
+#include "scene/renderer/vulkan/vulkan_shader.h"
+#include "scene/renderer/vulkan/vulkan_texture.h"
 
 namespace Bess::Assets {
     namespace Fonts {
@@ -18,21 +19,24 @@ namespace Bess::Assets {
     } // namespace Fonts
 
     namespace Shaders {
-        constexpr auto quad = AssetID<Gl::Shader, 2>("assets/shaders/quad_vert.glsl", "assets/shaders/quad_frag.glsl");
-        constexpr auto path = AssetID<Gl::Shader, 2>("assets/shaders/vert.glsl", "assets/shaders/curve_frag.glsl");
-        constexpr auto circle = AssetID<Gl::Shader, 2>("assets/shaders/circle_vert.glsl", "assets/shaders/circle_frag.glsl");
-        constexpr auto triangle = AssetID<Gl::Shader, 2>("assets/shaders/vert.glsl", "assets/shaders/triangle_frag.glsl");
-        constexpr auto line = AssetID<Gl::Shader, 2>("assets/shaders/instance_vert.glsl", "assets/shaders/line_frag.glsl");
-        constexpr auto text = AssetID<Gl::Shader, 2>("assets/shaders/instance_vert.glsl", "assets/shaders/text_frag.glsl");
-        constexpr auto dottedGrid = AssetID<Gl::Shader, 2>("assets/shaders/grid_vert.glsl", "assets/shaders/grid_frag.glsl");
-        constexpr auto lineGrid = AssetID<Gl::Shader, 2>("assets/shaders/grid_vert.glsl", "assets/shaders/grid_line_frag.glsl");
-    } // namespace Shaders
+        // Vulkan shader paths
+        constexpr const char* quadVert = "assets/shaders/quad_vert.spv";
+        constexpr const char* quadFrag = "assets/shaders/quad_frag.spv";
+        constexpr const char* circleVert = "assets/shaders/circle_vert.spv";
+        constexpr const char* circleFrag = "assets/shaders/circle_frag.spv";
+        constexpr const char* textVert = "assets/shaders/text_vert.spv";
+        constexpr const char* textFrag = "assets/shaders/text_frag.spv";
+        constexpr const char* lineVert = "assets/shaders/line_vert.spv";
+        constexpr const char* lineFrag = "assets/shaders/line_frag.spv";
+        constexpr const char* gridVert = "assets/shaders/grid_vert.spv";
+        constexpr const char* gridFrag = "assets/shaders/grid_frag.spv";
+    }
 
     namespace TileMaps {
-        constexpr auto sevenSegDisplay = AssetID<Gl::Texture, 1>("assets/images/7-seg-display-tilemap.png");
+        constexpr auto sevenSegDisplay = AssetID<Bess::Renderer2D::Vulkan::VulkanTexture, 1>("assets/images/7-seg-display-tilemap.png");
     }
 
     namespace Textures {
-        constexpr auto shadowTexture = AssetID<Gl::Texture, 1>("assets/images/shadow_texture.png");
+        constexpr auto shadowTexture = AssetID<Bess::Renderer2D::Vulkan::VulkanTexture, 1>("assets/images/shadow_texture.png");
     }
 } // namespace Bess::Assets

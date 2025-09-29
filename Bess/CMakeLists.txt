@@ -11,7 +11,6 @@ file(GLOB EXT_IMGUI_SRC
 source_group("external/imgui" FILES ${EXT_IMGUI_SRC})
 
 set(EXT_OTHERS_SRC
-    "../external/glad/src/glad.c"
     "../external/stb_image/src/stb_image.cpp"
     "../external/tinyfiledialogs/tinyfiledialogs.c"
 )
@@ -73,19 +72,16 @@ set(Header_Files
 "include/scene/components/non_sim_comp.h"
 "include/scene/renderer/font.h"
 "include/scene/renderer/msdf_font.h"
-"include/scene/renderer/gl/texture.h"
-"include/scene/renderer/gl/subtexture.h"
-"include/scene/renderer/gl/vertex.h"
-"include/scene/renderer/gl/shader.h"
-"include/scene/renderer/gl/fb_attachment.h"
-"include/scene/renderer/gl/framebuffer.h"
-"include/scene/renderer/gl/primitive_type.h"
-"include/scene/renderer/gl/vao.h"
-"include/scene/renderer/gl/gl_wrapper.h"
-"include/scene/renderer/gl/utils.h"
-"include/scene/renderer/gl/instanced_vao.h"
-"include/scene/renderer/gl/batch_vao.h"
-"include/scene/renderer/gl/vaos.h"
+        "include/scene/renderer/vulkan/vulkan_renderer.h"
+        "include/scene/renderer/vulkan/device.h"
+        "include/scene/renderer/vulkan/swapchain.h"
+        "include/scene/renderer/vulkan/pipeline.h"
+        "include/scene/renderer/vulkan/command_buffer.h"
+        "include/scene/renderer/vulkan/vulkan_shader.h"
+        "include/scene/renderer/vulkan/vulkan_texture.h"
+        "include/scene/renderer/vulkan/vulkan_subtexture.h"
+        "include/scene/renderer/vulkan/vulkan_framebuffer.h"
+        "include/scene/renderer/vulkan/vulkan_render_pass.h"
 "include/scene/commands/add_command.h"
 "include/scene/commands/connect_command.h"
 "include/scene/commands/delete_comp_command.h"
@@ -135,15 +131,16 @@ set(Source_Files
 "src/scene/artist/artist_manager.cpp"
 "src/scene/renderer/font.cpp"
 "src/scene/renderer/msdf_font.cpp"
-"src/scene/renderer/gl/gl_wrapper.cpp"
-"src/scene/renderer/gl/shader.cpp"
-"src/scene/renderer/gl/texture.cpp"
-"src/scene/renderer/gl/subtexture.cpp"
-"src/scene/renderer/gl/fb_attachment.cpp"
-"src/scene/renderer/gl/framebuffer.cpp"
-"src/scene/renderer/gl/vao.cpp"
-"src/scene/renderer/renderer.cpp"
-"src/scene/renderer/gl/vaos.cpp"
+        "src/scene/renderer/vulkan/vulkan_renderer.cpp"
+        "src/scene/renderer/vulkan/device.cpp"
+        "src/scene/renderer/vulkan/swapchain.cpp"
+        "src/scene/renderer/vulkan/pipeline.cpp"
+        "src/scene/renderer/vulkan/command_buffer.cpp"
+        "src/scene/renderer/vulkan/vulkan_shader.cpp"
+        "src/scene/renderer/vulkan/vulkan_texture.cpp"
+        "src/scene/renderer/vulkan/vulkan_subtexture.cpp"
+        "src/scene/renderer/vulkan/vulkan_framebuffer.cpp"
+        "src/scene/renderer/vulkan/vulkan_render_pass.cpp"
 "src/scene/commands/add_command.cpp"
 "src/scene/commands/connect_command.cpp"
 "src/scene/commands/delete_comp_command.cpp"
@@ -162,10 +159,13 @@ set(ALL_FILES
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine)
 add_dependencies(${PROJECT_NAME} BessSimEngine)
+# Find Vulkan
+find_package(Vulkan REQUIRED)
+
 if("${BUILD_ARCH}" STREQUAL "x64" AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
         "glfw3;"
-        "opengl32;"
+        "vulkan-1;"
         "gdi32;"
         "freetype;"
     )
@@ -184,12 +184,13 @@ else()
 
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
         "glfw;"
-        "GL;"
+        "vulkan;"
         "freetype;"
     )
 endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
+target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(ASSETS_DST_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets")
@@ -215,7 +216,6 @@ if("${BUILD_ARCH}" STREQUAL "x64")
 			"${CMAKE_SOURCE_DIR}/external/glm"
 			"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
 			"${CMAKE_SOURCE_DIR}/external/glfw/include"
-			"${CMAKE_SOURCE_DIR}/external/glad/include"
 			"${CMAKE_SOURCE_DIR}/external/stb_image/include"
 			"${CMAKE_SOURCE_DIR}/external/tinyfiledialogs"
 			"${CMAKE_SOURCE_DIR}/external/entt/include"
