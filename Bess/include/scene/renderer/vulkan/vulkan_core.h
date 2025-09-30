@@ -122,6 +122,9 @@ namespace Bess::Renderer2D {
         
         std::shared_ptr<Vulkan::PrimitiveRenderer> getPrimitiveRenderer() const { return m_primitiveRenderer; }
         void resizeOffscreen(VkExtent2D extent);
+        VkExtent2D getOffscreenExtent() const {
+            return m_offscreenImageView ? m_offscreenImageView->getExtent() : VkExtent2D{0, 0};
+        }
 
         // Getters for ImGui integration
         VkInstance getVkInstance() const { return m_vkInstance; }

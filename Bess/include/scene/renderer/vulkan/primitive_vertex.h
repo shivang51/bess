@@ -62,14 +62,17 @@ namespace Bess::Renderer2D::Vulkan {
         glm::mat4 mvp;
     };
 
+    // std140-compatible layout for the fragment UBO
     struct GridUniforms {
-        float zoom;
-        glm::vec2 cameraOffset;
-        glm::vec4 gridMinorColor;
-        glm::vec4 gridMajorColor;
-        glm::vec4 axisXColor;
-        glm::vec4 axisYColor;
-        glm::vec2 resolution;
+        float zoom;              // offset 0
+        float _pad0;             // pad to 8 for next vec2
+        glm::vec2 cameraOffset;  // offset 8
+        glm::vec4 gridMinorColor;// offset 16
+        glm::vec4 gridMajorColor;// offset 32
+        glm::vec4 axisXColor;    // offset 48
+        glm::vec4 axisYColor;    // offset 64
+        glm::vec2 resolution;    // offset 80
+        glm::vec2 _pad1;         // pad to 96 (multiple of 16)
     };
 
 } // namespace Bess::Renderer2D::Vulkan
