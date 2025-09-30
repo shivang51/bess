@@ -15,7 +15,7 @@ namespace Bess::Renderer2D::Vulkan {
         }
     }
 
-    VulkanRenderPass::VulkanRenderPass(VulkanRenderPass&& other) noexcept
+    VulkanRenderPass::VulkanRenderPass(VulkanRenderPass &&other) noexcept
         : m_device(other.m_device),
           m_colorFormat(other.m_colorFormat),
           m_depthFormat(other.m_depthFormat),
@@ -38,7 +38,7 @@ namespace Bess::Renderer2D::Vulkan {
         return *this;
     }
 
-    void VulkanRenderPass::begin(VkCommandBuffer cmdBuffer, const VkFramebuffer framebuffer, const VkExtent2D extent, VkPipelineLayout pipelineLayout) {
+    void VulkanRenderPass::begin(VkCommandBuffer cmdBuffer, const VkFramebuffer framebuffer, const VkExtent2D extent) {
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = m_renderPass;
@@ -117,7 +117,5 @@ namespace Bess::Renderer2D::Vulkan {
             throw std::runtime_error("Failed to create render pass!");
         }
     }
-
-
 
 } // namespace Bess::Renderer2D::Vulkan

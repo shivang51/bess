@@ -40,10 +40,10 @@ namespace Bess::Renderer2D {
         // m_pipeline = std::make_shared<Vulkan::VulkanPipeline>(m_device, m_swapchain);
         // m_pipeline->createGraphicsPipeline(vertShaderPath, fragShaderPath, m_renderPass);
 
-        m_imguiPipeline = std::make_shared<Vulkan::ImGuiPipeline>(m_device, m_swapchain);
-        m_imguiPipeline->createGraphicsPipeline(m_renderPass);
+        // m_imguiPipeline = std::make_shared<Vulkan::ImGuiPipeline>(m_device, m_swapchain);
+        // m_imguiPipeline->createGraphicsPipeline(m_renderPass);
 
-        m_swapchain->createFramebuffers(m_imguiPipeline->renderPass()->getVkHandle());
+        m_swapchain->createFramebuffers(m_renderPass->getVkHandle());
 
         m_commandBuffers = Vulkan::VulkanCommandBuffer::createCommandBuffers(m_device, 2);
         createSyncObjects();
@@ -82,14 +82,12 @@ namespace Bess::Renderer2D {
         }
 
         const auto cmdBuffer = m_currentFrameContext.cmdBuffer;
-        m_imguiPipeline->renderPass()->begin(cmdBuffer->getVkHandle(),
-                                             m_swapchain->framebuffers()[m_currentFrameContext.swapchainImgIdx], m_swapchain->extent(),
-                                             m_imguiPipeline->pipelineLayout());
 
+        m_renderPass->begin(cmdBuffer->getVkHandle(), m_swapchain->framebuffers()[m_currentFrameContext.swapchainImgIdx], m_swapchain->extent());
         ImDrawData *drawData = ImGui::GetDrawData();
         ImGui_ImplVulkan_RenderDrawData(drawData, cmdBuffer->getVkHandle());
 
-        m_imguiPipeline->renderPass()->end();
+        m_renderPass->end();
     }
 
     void VulkanCore::endFrame() {
@@ -203,7 +201,6 @@ namespace Bess::Renderer2D {
             }
         }
 
-        m_imguiPipeline.reset();
         m_pipeline.reset();
         m_renderPass.reset();
         m_swapchain.reset();

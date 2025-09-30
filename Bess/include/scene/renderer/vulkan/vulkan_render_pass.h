@@ -10,25 +10,24 @@ namespace Bess::Renderer2D::Vulkan {
     class VulkanCommandBuffer;
 
     class VulkanRenderPass {
-    public:
+      public:
         VulkanRenderPass(const std::shared_ptr<VulkanDevice> &device, VkFormat colorFormat, VkFormat depthFormat);
         ~VulkanRenderPass();
 
-        VulkanRenderPass(const VulkanRenderPass&) = delete;
-        VulkanRenderPass& operator=(const VulkanRenderPass&) = delete;
-        VulkanRenderPass(VulkanRenderPass&& other) noexcept;
-        VulkanRenderPass& operator=(VulkanRenderPass&& other) noexcept;
+        VulkanRenderPass(const VulkanRenderPass &) = delete;
+        VulkanRenderPass &operator=(const VulkanRenderPass &) = delete;
+        VulkanRenderPass(VulkanRenderPass &&other) noexcept;
+        VulkanRenderPass &operator=(VulkanRenderPass &&other) noexcept;
 
         VkRenderPass getVkHandle() const { return m_renderPass; }
 
         void begin(VkCommandBuffer cmdBuffer,
-            VkFramebuffer framebuffer,
-            VkExtent2D extent,
-            VkPipelineLayout pipelineLayout);
+                   VkFramebuffer framebuffer,
+                   VkExtent2D extent);
 
         void end();
 
-    private:
+      private:
         void createRenderPass();
 
         VkCommandBuffer m_recordingCmdBuffer = VK_NULL_HANDLE;

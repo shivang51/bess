@@ -40,7 +40,6 @@ namespace Bess::Renderer2D {
 
     typedef std::function<void(VkInstance &, VkSurfaceKHR &)> SurfaceCreationCB;
 
-
     struct FrameContext {
         std::shared_ptr<Vulkan::VulkanCommandBuffer> cmdBuffer = nullptr;
         uint32_t swapchainImgIdx;
@@ -62,7 +61,6 @@ namespace Bess::Renderer2D {
         VulkanCore(const VulkanCore &) = delete;
         VulkanCore &operator=(const VulkanCore &) = delete;
 
-
         void init(const std::vector<const char *> &winExt,
                   const SurfaceCreationCB &createSurface,
                   VkExtent2D windowExtent,
@@ -75,6 +73,10 @@ namespace Bess::Renderer2D {
         void endFrame();
 
         void cleanup();
+
+        std::shared_ptr<Vulkan::VulkanRenderPass> getRenderPass() const {
+            return m_renderPass;
+        }
 
         static void begin(const std::shared_ptr<Bess::Camera> &camera);
         static void end();
@@ -117,9 +119,8 @@ namespace Bess::Renderer2D {
         VkInstance getVkInstance() const { return m_vkInstance; }
         std::shared_ptr<Vulkan::VulkanDevice> getDevice() const { return m_device; }
         std::shared_ptr<Vulkan::VulkanSwapchain> getSwapchain() const { return m_swapchain; }
-        const std::vector<std::shared_ptr<Vulkan::VulkanCommandBuffer>>& getCommandBuffer() const { return m_commandBuffers; }
+        const std::vector<std::shared_ptr<Vulkan::VulkanCommandBuffer>> &getCommandBuffer() const { return m_commandBuffers; }
         std::shared_ptr<Vulkan::VulkanPipeline> getPipeline() const { return m_pipeline; }
-        std::shared_ptr<Vulkan::ImGuiPipeline> getImGuiPipeline() const { return m_imguiPipeline; }
 
       private:
         VkResult initVkInstance(const std::vector<const char *> &winExtensions);
@@ -137,7 +138,6 @@ namespace Bess::Renderer2D {
         std::shared_ptr<Vulkan::VulkanDevice> m_device;
         std::shared_ptr<Vulkan::VulkanSwapchain> m_swapchain;
         std::shared_ptr<Vulkan::VulkanPipeline> m_pipeline;
-        std::shared_ptr<Vulkan::ImGuiPipeline> m_imguiPipeline;
         std::vector<std::shared_ptr<Vulkan::VulkanCommandBuffer>> m_commandBuffers;
         std::shared_ptr<Vulkan::VulkanRenderPass> m_renderPass;
         VkSurfaceKHR m_renderSurface = VK_NULL_HANDLE;
@@ -149,7 +149,7 @@ namespace Bess::Renderer2D {
         std::vector<VkFence> m_inFlightFences;
         uint32_t m_currentFrameIdx = 0;
 
-        public:
+      public:
         void recreateSwapchain();
         void recreateSwapchain(VkExtent2D newExtent);
     };

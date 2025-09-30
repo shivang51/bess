@@ -83,12 +83,10 @@ namespace Bess::UI {
         initInfo.ImageCount = 2;
         initInfo.UseDynamicRendering = false;
 
-        const auto pipeline = vulkanCore.getImGuiPipeline();
-        initInfo.PipelineInfoMain.RenderPass = pipeline->renderPass()->getVkHandle();
+        initInfo.PipelineInfoMain.RenderPass = vulkanCore.getRenderPass()->getVkHandle();
         initInfo.PipelineInfoMain.Subpass = 0;
         initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-
-        initInfo.PipelineInfoForViewports.RenderPass = pipeline->renderPass()->getVkHandle();
+        initInfo.PipelineInfoForViewports.RenderPass = vulkanCore.getRenderPass()->getVkHandle();
         initInfo.PipelineInfoForViewports.Subpass = 0;
         initInfo.PipelineInfoForViewports.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
@@ -119,6 +117,7 @@ namespace Bess::UI {
             Config::Settings::setFontRebuild(true);
         }
 
+        ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDocking;

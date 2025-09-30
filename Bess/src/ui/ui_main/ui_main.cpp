@@ -278,9 +278,9 @@ namespace Bess::UI {
 
         const auto offset = ImGui::GetCursorPos();
 
-        ImGui::Image((void *)state.viewportTexture,
-                     ImVec2(viewportPanelSize.x, viewportPanelSize.y), ImVec2(0, 1),
-                     ImVec2(1, 0));
+        // ImGui::Image((void *)state.viewportTexture,
+        //              ImVec2(viewportPanelSize.x, viewportPanelSize.y), ImVec2(0, 1),
+        //              ImVec2(1, 0));
 
         const auto pos = ImGui::GetWindowPos();
         const auto gPos = ImGui::GetMainViewport()->Pos;
