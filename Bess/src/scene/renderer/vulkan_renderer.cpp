@@ -43,11 +43,9 @@ namespace Bess::Renderer2D {
 
         const auto &camPos = m_camera->getPos();
 
-        // Calculate MVP matrix using camera's complete transformation
         Vulkan::UniformBufferObject ubo{};
         ubo.mvp = m_camera->getOrtho();
 
-        // Convert GridColors to GridUniforms
         Vulkan::GridUniforms gridUniforms{};
         gridUniforms.zoom = m_camera->getZoom();
         gridUniforms.cameraOffset = glm::vec2({-camPos.x, camPos.y});
@@ -57,14 +55,9 @@ namespace Bess::Renderer2D {
         gridUniforms.axisYColor = colors.axisYColor;
         gridUniforms.resolution = glm::vec2(m_camera->getSize());
 
-        // Update the uniform buffer with the proper MVP matrix and colors
         m_primitiveRenderer->updateUniformBuffer(ubo, gridUniforms);
 
-        // Draw the grid
         m_primitiveRenderer->drawGrid(pos, size, id, gridUniforms);
-        
-        BESS_TRACE("[VulkanRenderer] Grid rendered - pos: ({}, {}, {}), size: ({}, {}), id: {}", 
-                   pos.x, pos.y, pos.z, size.x, size.y, id);
     }
 
 } // namespace Bess::Renderer2D

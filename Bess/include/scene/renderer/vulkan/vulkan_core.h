@@ -102,7 +102,6 @@ namespace Bess::Renderer2D {
         static void line(const glm::vec3 &start, const glm::vec3 &end, float size,
                          const glm::vec4 &color, int id);
 
-        static void grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const GridColors &colors);
 
         // Path API
         static void beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, uint64_t id);

@@ -4,6 +4,7 @@
 #include "imgui.h"
 #include "imgui_impl_vulkan.h"
 #include "ui/ui.h"
+#include "scene/renderer/vulkan_renderer.h"
 #include <memory>
 #include <set>
 #include <stdexcept>
@@ -145,14 +146,19 @@ namespace Bess::Renderer2D {
         if (!m_device || !m_offscreenImageView || !m_offscreenRenderPass) {
             return;
         }
+        // Ensure GPU is idle so resources aren't in use by command buffers
+        vkDeviceWaitIdle(m_device->device());
+
         // Recreate offscreen image view and framebuffer to new size
         m_offscreenImageView->recreate(extent, m_offscreenRenderPass->getVkHandle());
 
-        // Update primitive renderer viewport-dependent extent
+        // Recreate primitive renderer so its viewport/scissor and pipeline use new extent
         if (m_primitiveRenderer) {
-            // PrimitiveRenderer currently stores extent; recreate pipeline that depends on viewport
-            m_primitiveRenderer = std::make_shared<Vulkan::PrimitiveRenderer>(m_device, m_offscreenRenderPass, extent);
+            m_primitiveRenderer.reset();
         }
+        m_primitiveRenderer = std::make_shared<Vulkan::PrimitiveRenderer>(m_device, m_offscreenRenderPass, extent);
+        // Inform high-level renderer to refresh its reference
+        VulkanRenderer::init();
     }
 
     void VulkanCore::beginFrame() {
@@ -271,6 +277,9 @@ namespace Bess::Renderer2D {
             return;
         vkDeviceWaitIdle(m_device->device());
 
+        // Ensure external holders release references before destroying device
+        VulkanRenderer::shutdown();
+
         if (m_device && m_device->device() != VK_NULL_HANDLE) {
 
             for (size_t i = 0; i < m_swapchain->imageCount(); i++) {
@@ -296,11 +305,14 @@ namespace Bess::Renderer2D {
         }
 
         m_pipeline.reset();
+        // Release any high-level references to primitive renderer first
         m_primitiveRenderer.reset();
+        // Destroy offscreen resources in order: framebuffer/image view before render pass
         m_offscreenImageView.reset();
         m_offscreenRenderPass.reset();
-        m_renderPass.reset();
+        // Destroy onscreen resources in correct order: framebuffers (owned by swapchain) before render pass
         m_swapchain.reset();
+        m_renderPass.reset();
         UI::vulkanCleanup(m_device);
         Vulkan::VulkanCommandBuffer::cleanCommandBuffers(m_device);
         m_device.reset();
@@ -526,9 +538,6 @@ namespace Bess::Renderer2D {
         // TODO: Implement MSDF text rendering
     }
 
-    void VulkanCore::grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const GridColors &colors) {
-        // TODO: Implement grid rendering
-    }
 
     void VulkanCore::beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, uint64_t id) {
         // TODO: Implement path mode

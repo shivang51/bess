@@ -43,14 +43,11 @@ namespace Bess::Pages {
 
         m_state = MainPageState::getInstance();
 
-        UI::UIMain::setViewportTexture(instance.getSceneTextureId());
+        UI::UIMain::setViewportTexture(m_scene.getTextureId());
     }
 
     void MainPage::draw() {
         m_scene.render();
-        
-        // Update viewport texture after scene rendering
-        UI::UIMain::setViewportTexture(m_scene.getTextureId());
         
         UI::UIMain::draw();
     }
