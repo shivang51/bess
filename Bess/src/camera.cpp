@@ -56,8 +56,8 @@ namespace Bess {
     }
 
     void Camera::incrementZoomToPoint(const glm::vec2 &point, float value) {
-        auto newZoom = m_zoom + value;
-        auto oldZoom = m_zoom;
+        const auto newZoom = m_zoom + value;
+        const auto oldZoom = m_zoom;
         setZoom(newZoom);
         if (m_zoom == oldZoom)
             return;
@@ -98,10 +98,10 @@ namespace Bess {
     }
 
     void Camera::recalculateOrtho() {
-        float xSpan = m_width / m_zoom;
-        float ySpan = m_height / m_zoom;
-        auto x = xSpan / 2.f;
-        auto y = ySpan / 2.f;
+        const float xSpan = m_width / m_zoom;
+        const float ySpan = m_height / m_zoom;
+        const auto x = xSpan / 2.f;
+        const auto y = ySpan / 2.f;
         m_ortho = glm::ortho(-x, x, y, -y, -10.0f, 10.0f);
 
         updateTransform();

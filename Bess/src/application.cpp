@@ -4,8 +4,8 @@
 #include "events/application_event.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
-#include "ui/ui.h"
 #include "scene/renderer/vulkan/vulkan_renderer.h"
+#include "ui/ui.h"
 
 #include "types.h"
 #include <vulkan/vulkan.h>
@@ -16,27 +16,30 @@
 
 namespace Bess {
     Application::~Application() {
+        Renderer2D::VulkanCore::instance().cleanup();
         UI::shutdown();
         shutdown();
     }
 
     static int fps = 0;
 
-    void Application::draw() {
+    void Application::draw() const {
+        auto &vkCore = Renderer2D::VulkanCore::instance();
         // Check if window was resized and recreate swapchain if needed
         if (m_mainWindow->wasWindowResized()) {
             m_mainWindow->resetWindowResizedFlag();
-            VkExtent2D newExtent = m_mainWindow->getExtent();
-            Renderer2D::VulkanRenderer::instance().recreateSwapchain(newExtent);
+            const VkExtent2D newExtent = m_mainWindow->getExtent();
+            vkCore.recreateSwapchain(newExtent);
         }
-        
+
+        vkCore.beginFrame();
+
         UI::begin();
         ApplicationState::getCurrentPage()->draw();
         UI::drawStats(fps);
         UI::end();
-        
-        // Trigger Vulkan rendering after UI is complete
-        Renderer2D::VulkanRenderer::instance().draw();
+
+        vkCore.endFrame();
     }
 
     void Application::run() {
@@ -49,7 +52,7 @@ namespace Bess {
 
         while (!m_mainWindow->isClosed()) {
             auto currentTime = m_clock.now();
-            TFrameTime deltaTime = currentTime - previousTime;
+            const TFrameTime deltaTime = currentTime - previousTime;
             previousTime = currentTime;
 
             accumulatedTime += deltaTime;
@@ -70,16 +73,16 @@ namespace Bess {
         m_events.clear();
     }
 
-    void Application::quit() { m_mainWindow->close(); }
+    void Application::quit() const { m_mainWindow->close(); }
 
     // callbacks
     void Application::onWindowResize(int w, int h) {
         // Only handle resize if window is not minimized and size is reasonable
         if (w > 0 && h > 0) {
-            VkExtent2D newExtent = {static_cast<uint32_t>(w), static_cast<uint32_t>(h)};
-            Renderer2D::VulkanRenderer::instance().recreateSwapchain(newExtent);
+            const VkExtent2D newExtent = {static_cast<uint32_t>(w), static_cast<uint32_t>(h)};
+            Renderer2D::VulkanCore::instance().recreateSwapchain(newExtent);
         }
-        
+
         ApplicationEvent::WindowResizeData data(w, h);
         ApplicationEvent event(ApplicationEventType::WindowResize, data);
         m_events.emplace_back(event);
@@ -143,7 +146,7 @@ namespace Bess {
         m_mainWindow->onMiddleMouse(BIND_FN_1(Application::onMiddleMouse));
         m_mainWindow->onMouseMove(BIND_FN_2(Application::onMouseMove));
 
-        auto page = Pages::MainPage::getInstance(ApplicationState::getParentWindow());
+        const auto page = Pages::MainPage::getInstance(ApplicationState::getParentWindow());
         UI::init(m_mainWindow->getGLFWHandle());
 
         page->show();
@@ -152,12 +155,12 @@ namespace Bess {
             loadProject(path);
     }
 
-    void Application::shutdown() { m_mainWindow->close(); }
+    void Application::shutdown() const { m_mainWindow->close(); }
 
-    void Application::loadProject(const std::string &path) {
+    void Application::loadProject(const std::string &path) const {
         Pages::MainPageState::getInstance()->loadProject(path);
     }
 
-    void Application::saveProject() { Pages::MainPageState::getInstance()->saveCurrentProject(); }
+    void Application::saveProject() const { Pages::MainPageState::getInstance()->saveCurrentProject(); }
 
 } // namespace Bess

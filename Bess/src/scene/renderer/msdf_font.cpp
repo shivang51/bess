@@ -18,7 +18,7 @@ namespace Bess::Renderer2D {
 
     MsdfFont::~MsdfFont() = default;
 
-    void MsdfFont::loadFont(const std::string &path, const std::string &fileName) {
+    void MsdfFont::loadFont(const std::string &path, const std::string &fileName) const {
         // This method is deprecated - use the one with device parameter
         BESS_WARN("MsdfFont::loadFont without device is deprecated. Use loadFont(path, fileName, device) instead.");
     }
@@ -109,11 +109,11 @@ namespace Bess::Renderer2D {
         return m_fontTextureAtlas;
     }
 
-    bool MsdfFont::isValidJson(const Json::Value &json) {
+    bool MsdfFont::isValidJson(const Json::Value &json) const {
         return json.isMember("atlas") && json.isMember("metrics") && json.isMember("glyphs");
     }
 
-    MsdfFont::Bounds MsdfFont::getBounds(const Json::Value &val) {
+    MsdfFont::Bounds MsdfFont::getBounds(const Json::Value &val) const {
         Bounds bounds;
         bounds.left = val["left"].as<float>();
         bounds.right = val["right"].as<float>();

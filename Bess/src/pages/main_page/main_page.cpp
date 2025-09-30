@@ -27,15 +27,15 @@ namespace Bess::Pages {
 
         SimEngine::SimulationEngine::instance();
 
-        auto extensions = m_parentWindow->getVulkanExtensions();
-        VkExtent2D extent = m_parentWindow->getExtent();
+        const auto extensions = m_parentWindow->getVulkanExtensions();
+        const VkExtent2D extent = m_parentWindow->getExtent();
 
         auto createSurface = [parentWindow](VkInstance &instance, VkSurfaceKHR &surface) {
             parentWindow->createWindowSurface(instance, surface);
         };
 
         // Initialize VulkanRenderer with proper parameters
-        auto &instance = Renderer2D::VulkanRenderer::instance();
+        auto &instance = Renderer2D::VulkanCore::instance();
         instance.init(extensions, createSurface, extent,
                       "assets/shaders/vert.spv", "assets/shaders/frag.spv");
 
@@ -75,7 +75,7 @@ namespace Bess::Pages {
         return m_parentWindow;
     }
 
-    Canvas::Scene &MainPage::getScene() {
+    Canvas::Scene &MainPage::getScene() const {
         return m_scene;
     }
 

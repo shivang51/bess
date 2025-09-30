@@ -26,7 +26,7 @@ namespace Bess::Canvas::Commands {
 
             auto &data = m_delData[i++];
 
-            if (auto *simComp = registry.try_get<Components::SimulationComponent>(ent)) {
+            if (const auto *simComp = registry.try_get<Components::SimulationComponent>(ent)) {
                 data.simCompId = simComp->simEngineEntity;
                 m_simEngineComps.emplace_back(data.simCompId);
             }

@@ -61,7 +61,7 @@ namespace Bess {
         m_path = path;
     }
 
-    bool ProjectFile::isSaved() {
+    bool ProjectFile::isSaved() const {
         return m_saved;
     }
 
@@ -119,7 +119,7 @@ namespace Bess {
     }
 
     void ProjectFile::browsePath() {
-        auto path = UI::Dialogs::showSaveFileDialog("Save To", "");
+        const auto path = UI::Dialogs::showSaveFileDialog("Save To", "");
         if (path.size() == 0) {
             BESS_WARN("No path selected");
             return;
@@ -129,7 +129,7 @@ namespace Bess {
         BESS_INFO("Project path {} selected with name {}", m_path, m_name);
     }
 
-    void ProjectFile::patchFile() {
+    void ProjectFile::patchFile() const {
         using namespace Bess::Canvas;
         auto &scene = Canvas::Scene::instance();
         auto &reg = scene.getEnttRegistry();

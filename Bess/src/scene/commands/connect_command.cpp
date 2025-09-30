@@ -28,7 +28,7 @@ namespace Bess::Canvas::Commands {
 
             auto startPinType = startSlotComp.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
             auto dstPinType = endSlotComp.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
-            auto res = cmdMngr.execute<Bess::SimEngine::Commands::ConnectCommand, std::string>(startSimParent, startSlotComp.idx, startPinType, endSimParent, endSlotComp.idx, dstPinType);
+            const auto res = cmdMngr.execute<Bess::SimEngine::Commands::ConnectCommand, std::string>(startSimParent, startSlotComp.idx, startPinType, endSimParent, endSlotComp.idx, dstPinType);
 
             if (!res.has_value())
                 return false;
@@ -45,8 +45,8 @@ namespace Bess::Canvas::Commands {
             auto &scene = Scene::instance();
             auto &reg = scene.getEnttRegistry();
 
-            auto startSlotEntt = scene.getEntityWithUuid(m_startSlot);
-            auto endSlotEntt = scene.getEntityWithUuid(m_endSlot);
+            const auto startSlotEntt = scene.getEntityWithUuid(m_startSlot);
+            const auto endSlotEntt = scene.getEntityWithUuid(m_endSlot);
 
             if (!reg.valid(startSlotEntt) || !reg.valid(endSlotEntt)) {
                 return false;

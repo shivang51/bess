@@ -44,7 +44,7 @@ namespace Bess::Canvas::Commands {
         if (m_redo)
             return true;
 
-        auto simEngineUuids = cmdMngr.execute<SimEngine::Commands::AddCommand, std::vector<UUID>>(simAddCmdData);
+        const auto simEngineUuids = cmdMngr.execute<SimEngine::Commands::AddCommand, std::vector<UUID>>(simAddCmdData);
 
         if (!simEngineUuids.has_value())
             return false;

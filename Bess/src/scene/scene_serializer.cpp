@@ -26,11 +26,11 @@ namespace Bess {
     }
 
     void SceneSerializer::serializeEntity(UUID uid, Json::Value &j) {
-        auto ent = Canvas::Scene::instance().getEntityWithUuid(uid);
+        const auto ent = Canvas::Scene::instance().getEntityWithUuid(uid);
         auto &reg = Canvas::Scene::instance().getEnttRegistry();
         EnttRegistrySerializer::serializeEntity(reg, ent, j["components"]);
 
-        if (auto *simComp = reg.try_get<SimulationComponent>(ent)) {
+        if (const auto *simComp = reg.try_get<SimulationComponent>(ent)) {
             for (const auto &slot : simComp->inputSlots)
                 serializeEntity(slot, j["slots"].append(Json::objectValue));
 
@@ -38,13 +38,13 @@ namespace Bess {
                 serializeEntity(slot, j["slots"].append(Json::objectValue));
         }
 
-        if (auto *slotComp = reg.try_get<SlotComponent>(ent)) {
-            for (auto &conn : slotComp->connections) {
+        if (const auto *slotComp = reg.try_get<SlotComponent>(ent)) {
+            for (const auto &conn : slotComp->connections) {
                 serializeEntity(conn, j["connections"].append(Json::objectValue));
             }
         }
 
-        if (auto *connComp = reg.try_get<ConnectionComponent>(ent)) {
+        if (const auto *connComp = reg.try_get<ConnectionComponent>(ent)) {
             UUID segId = connComp->segmentHead;
             while (segId != UUID::null) {
                 const auto &seg = reg.get<ConnectionSegmentComponent>(

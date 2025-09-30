@@ -1,14 +1,14 @@
 #include "scene/renderer/vulkan/imgui_pipeline.h"
 #include "common/log.h"
-#include <stdexcept>
+#include "scene/renderer/vulkan/vulkan_renderer.h"
+
 #include <fstream>
+#include <stdexcept>
 
 namespace Bess::Renderer2D::Vulkan {
 
     ImGuiPipeline::ImGuiPipeline(std::shared_ptr<VulkanDevice> device, std::shared_ptr<VulkanSwapchain> swapchain)
         : m_device(device), m_swapchain(swapchain) {
-        createRenderPass();
-        createGraphicsPipeline();
     }
 
     ImGuiPipeline::~ImGuiPipeline() {
@@ -21,19 +21,14 @@ namespace Bess::Renderer2D::Vulkan {
         if (m_descriptorSetLayout != VK_NULL_HANDLE) {
             vkDestroyDescriptorSetLayout(m_device->device(), m_descriptorSetLayout, nullptr);
         }
-        if (m_renderPass != VK_NULL_HANDLE) {
-            vkDestroyRenderPass(m_device->device(), m_renderPass, nullptr);
-        }
     }
 
     ImGuiPipeline::ImGuiPipeline(ImGuiPipeline &&other) noexcept
         : m_device(other.m_device),
           m_swapchain(other.m_swapchain),
-          m_renderPass(other.m_renderPass),
           m_graphicsPipeline(other.m_graphicsPipeline),
           m_pipelineLayout(other.m_pipelineLayout),
           m_descriptorSetLayout(other.m_descriptorSetLayout) {
-        other.m_renderPass = VK_NULL_HANDLE;
         other.m_graphicsPipeline = VK_NULL_HANDLE;
         other.m_pipelineLayout = VK_NULL_HANDLE;
         other.m_descriptorSetLayout = VK_NULL_HANDLE;
@@ -50,16 +45,10 @@ namespace Bess::Renderer2D::Vulkan {
             if (m_descriptorSetLayout != VK_NULL_HANDLE) {
                 vkDestroyDescriptorSetLayout(m_device->device(), m_descriptorSetLayout, nullptr);
             }
-            if (m_renderPass != VK_NULL_HANDLE) {
-                vkDestroyRenderPass(m_device->device(), m_renderPass, nullptr);
-            }
-
-            m_renderPass = other.m_renderPass;
             m_graphicsPipeline = other.m_graphicsPipeline;
             m_pipelineLayout = other.m_pipelineLayout;
             m_descriptorSetLayout = other.m_descriptorSetLayout;
 
-            other.m_renderPass = VK_NULL_HANDLE;
             other.m_graphicsPipeline = VK_NULL_HANDLE;
             other.m_pipelineLayout = VK_NULL_HANDLE;
             other.m_descriptorSetLayout = VK_NULL_HANDLE;
@@ -67,49 +56,8 @@ namespace Bess::Renderer2D::Vulkan {
         return *this;
     }
 
-    void ImGuiPipeline::createRenderPass() {
-        VkAttachmentDescription colorAttachment{};
-        colorAttachment.format = m_swapchain->imageFormat();
-        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD; // Load existing content for ImGui
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-        VkAttachmentReference colorAttachmentRef{};
-        colorAttachmentRef.attachment = 0;
-        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        VkSubpassDescription subpass{};
-        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.colorAttachmentCount = 1;
-        subpass.pColorAttachments = &colorAttachmentRef;
-
-        VkSubpassDependency dependency{};
-        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependency.dstSubpass = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.srcAccessMask = 0;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-        VkRenderPassCreateInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        renderPassInfo.attachmentCount = 1;
-        renderPassInfo.pAttachments = &colorAttachment;
-        renderPassInfo.subpassCount = 1;
-        renderPassInfo.pSubpasses = &subpass;
-        renderPassInfo.dependencyCount = 1;
-        renderPassInfo.pDependencies = &dependency;
-
-        if (vkCreateRenderPass(m_device->device(), &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create ImGui render pass!");
-        }
-    }
-
-    void ImGuiPipeline::createGraphicsPipeline() {
+    void ImGuiPipeline::createGraphicsPipeline(std::shared_ptr<VulkanRenderPass> renderPass) {
+        m_renderPass = renderPass;
         // Create descriptor set layout for ImGui's combined image sampler
         VkDescriptorSetLayoutBinding samplerLayoutBinding{};
         samplerLayoutBinding.binding = 0;
@@ -261,7 +209,7 @@ namespace Bess::Renderer2D::Vulkan {
         pipelineInfo.pMultisampleState = &multisampling;
         pipelineInfo.pColorBlendState = &colorBlending;
         pipelineInfo.layout = m_pipelineLayout;
-        pipelineInfo.renderPass = m_renderPass;
+        pipelineInfo.renderPass = renderPass->getVkHandle();
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 

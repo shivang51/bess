@@ -35,7 +35,7 @@ namespace Bess::Renderer2D {
 
         // Loads the font from texture atlas
         // path is the path of the json file with character data
-        void loadFont(const std::string &path, const std::string &jsonFileName);
+        void loadFont(const std::string &path, const std::string &jsonFileName) const;
         void loadFont(const std::string &path, const std::string &jsonFileName, Vulkan::VulkanDevice& device);
 
         float getScale(float size) const;
@@ -47,7 +47,7 @@ namespace Bess::Renderer2D {
         std::shared_ptr<Vulkan::VulkanTexture> getTextureAtlas() const;
 
       private:
-        bool isValidJson(const Json::Value &json);
+        bool isValidJson(const Json::Value &json) const;
 
         struct Bounds {
             float left;
@@ -56,7 +56,7 @@ namespace Bess::Renderer2D {
             float top;
         };
 
-        Bounds getBounds(const Json::Value &val);
+        Bounds getBounds(const Json::Value &val) const;
 
         std::shared_ptr<Vulkan::VulkanTexture> m_fontTextureAtlas;
         std::vector<MsdfCharacter> m_charTable;

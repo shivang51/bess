@@ -13,7 +13,7 @@ namespace Bess::Pages {
         createNewProject(false);
     }
 
-    void MainPageState::resetProjectState() {
+    void MainPageState::resetProjectState() const {
         Canvas::Scene::instance().clear();
         SimEngine::SimulationEngine::instance().clear();
     }
@@ -23,17 +23,17 @@ namespace Bess::Pages {
         m_currentProjectFile = std::make_shared<ProjectFile>();
         if (!updateWindowName)
             return;
-        auto win = MainPage::getTypedInstance()->getParentWindow();
+        const auto win = MainPage::getTypedInstance()->getParentWindow();
         win->setName(m_currentProjectFile->getName());
     }
 
     void MainPageState::loadProject(const std::string &path) {
         resetProjectState();
-        auto project = std::make_shared<ProjectFile>(path);
+        const auto project = std::make_shared<ProjectFile>(path);
         updateCurrentProject(project);
     }
 
-    void MainPageState::saveCurrentProject() {
+    void MainPageState::saveCurrentProject() const {
         m_currentProjectFile->save();
     }
 
@@ -41,7 +41,7 @@ namespace Bess::Pages {
         if (project == nullptr)
             return;
         m_currentProjectFile = project;
-        auto win = MainPage::getTypedInstance()->getParentWindow();
+        const auto win = MainPage::getTypedInstance()->getParentWindow();
         win->setName(m_currentProjectFile->getName() + " - BESS");
     }
 

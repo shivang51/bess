@@ -17,7 +17,7 @@ namespace Bess::Canvas::Commands {
 
         bool status = true;
         if (!m_redo) {
-            auto res = simCmdManager.execute<SimEngine::Commands::SetInputCommand, bool>(simComp.simEngineEntity, m_state);
+            const auto res = simCmdManager.execute<SimEngine::Commands::SetInputCommand, bool>(simComp.simEngineEntity, m_state);
 
             status = res.has_value();
         } else {

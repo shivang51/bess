@@ -72,7 +72,8 @@ namespace Bess::Renderer2D::Vulkan {
         vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
 
         for (const auto &device : devices) {
-            if (!isDeviceSuitable(device)) continue;
+            if (!isDeviceSuitable(device))
+                continue;
 
             m_vkPhysicalDevice = device;
             break;
@@ -147,7 +148,7 @@ namespace Bess::Renderer2D::Vulkan {
         std::vector<VkExtensionProperties> availableExtensions(extensionCount);
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
-        std::set<std::string> requiredExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+        std::set<std::string> requiredExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
         for (const auto &extension : availableExtensions) {
             requiredExtensions.erase(extension.extensionName);

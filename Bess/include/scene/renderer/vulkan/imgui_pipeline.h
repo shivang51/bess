@@ -2,10 +2,13 @@
 
 #include "device.h"
 #include "swapchain.h"
+
 #include <string>
 #include <vulkan/vulkan.h>
 
 namespace Bess::Renderer2D::Vulkan {
+
+    class VulkanRenderPass;
 
     class ImGuiPipeline {
       public:
@@ -20,13 +23,12 @@ namespace Bess::Renderer2D::Vulkan {
         ImGuiPipeline(ImGuiPipeline &&other) noexcept;
         ImGuiPipeline &operator=(ImGuiPipeline &&other) noexcept;
 
-        void createRenderPass();
-        void createGraphicsPipeline();
+        void createGraphicsPipeline(std::shared_ptr<VulkanRenderPass> renderPass);
 
-        VkRenderPass renderPass() const { return m_renderPass; }
         VkPipeline graphicsPipeline() const { return m_graphicsPipeline; }
         VkPipelineLayout pipelineLayout() const { return m_pipelineLayout; }
         VkDescriptorSetLayout descriptorSetLayout() const { return m_descriptorSetLayout; }
+        std::shared_ptr<VulkanRenderPass> renderPass() const { return m_renderPass; }
 
       private:
         VkShaderModule createShaderModule(const std::vector<char> &code) const;
@@ -34,10 +36,11 @@ namespace Bess::Renderer2D::Vulkan {
 
         std::shared_ptr<VulkanDevice> m_device;
         std::shared_ptr<VulkanSwapchain> m_swapchain;
-        VkRenderPass m_renderPass = VK_NULL_HANDLE;
         VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
         VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
+
+        std::shared_ptr<VulkanRenderPass> m_renderPass;
     };
 
 } // namespace Bess::Renderer2D::Vulkan

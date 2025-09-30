@@ -49,7 +49,7 @@ namespace Bess {
         bool isClosed() const;
         void close() const;
 
-        void setName(const std::string &name);
+        void setName(const std::string &name) const;
 
         static void pollEvents() { glfwPollEvents(); }
         static void waitEvents() { glfwWaitEvents(); }
@@ -74,8 +74,8 @@ namespace Bess {
         GLFWwindow *getGLFWHandle() const { return mp_window.get(); }
 
         // Vulkan-specific methods
-        void createWindowSurface(VkInstance instance, VkSurfaceKHR& surface);
-        std::vector<const char*> getVulkanExtensions();
+        void createWindowSurface(VkInstance instance, VkSurfaceKHR& surface) const;
+        std::vector<const char*> getVulkanExtensions() const;
         VkExtent2D getExtent() const;
         bool wasWindowResized() const { return m_framebufferResized; }
         void resetWindowResizedFlag() { m_framebufferResized = false; }
@@ -85,8 +85,8 @@ namespace Bess {
         std::unordered_map<Callback, std::any> m_callbacks;
         bool m_framebufferResized = false;
 
-        void initVulkan();
-        void initGLFW();
+        void initVulkan() const;
+        void initGLFW() const;
         static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
     };
 } // namespace Bess

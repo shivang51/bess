@@ -10,7 +10,7 @@
 
 void signalHandler(int sig) {
     std::cerr << "Error: signal " << sig << std::endl;
-    std::stacktrace st = std::stacktrace::current();
+    const std::stacktrace st = std::stacktrace::current();
     std::cout << st << std::endl;
     exit(1);
 }
@@ -23,8 +23,8 @@ static bool isValidStartDir() {
 
 int main(int argc, char **argv) {
     if (!isValidStartDir()) {
-        std::filesystem::path exePath = std::filesystem::absolute(argv[0]);
-        std::filesystem::path exeDir = exePath.parent_path();
+        const std::filesystem::path exePath = std::filesystem::absolute(argv[0]);
+        const std::filesystem::path exeDir = exePath.parent_path();
         std::filesystem::current_path(exeDir);
 
         if (!isValidStartDir()) {

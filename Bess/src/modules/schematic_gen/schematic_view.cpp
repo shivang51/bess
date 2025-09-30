@@ -19,15 +19,15 @@ namespace Bess::Modules::SchematicGen {
     void SchematicView::generateTransform() {
         BESS_TRACE("[SchemeticGen] Generating transform");
         m_transforms = {};
-        size_t levelsCount = m_levels.size();
+        const size_t levelsCount = m_levels.size();
 
         size_t x = 0, y = 0;
         size_t W = 600, H = 600;
-        float dx = (float)W / (levelsCount + 1);
+        const float dx = (float)W / (levelsCount + 1);
 
         for (size_t i = 0; i < m_levels.size(); i++) {
             x = dx * (i + 1);
-            float dh = (float)H / (m_levels[i].size() + 1);
+            const float dh = (float)H / (m_levels[i].size() + 1);
             for (size_t j = 0; j < m_levels[i].size(); j++) {
                 GraphNode *node = m_levels[i][j];
                 y = dh * (j + 1);
@@ -81,7 +81,7 @@ namespace Bess::Modules::SchematicGen {
             std::vector<GraphNode *> level = {};
             auto simComponentView = m_registry.view<SceneComponent::SimulationComponent>();
             while (n--) {
-                auto node = nodes.front();
+                const auto node = nodes.front();
                 nodes.pop();
 
                 for (auto& conn : node->outputs) {
@@ -92,17 +92,17 @@ namespace Bess::Modules::SchematicGen {
 
                     processedNodes.emplace_back(conn.gateEnt);
 
-                    entt::entity entity = (entt::entity)conn.gateEnt;
+                    const entt::entity entity = (entt::entity)conn.gateEnt;
                     auto connections = getConnectionsForEntity(entity);
 
                     if (connections.second.empty() && connections.first == 0) {
                         BESS_WARN("[SchematicGen] Ignoring component {}, due to zero connections", conn.gateEnt);
                     }
 
-                    auto& simComp = simComponentView.get<SceneComponent::SimulationComponent>(entity);
-                    auto compType = simEngine.getComponentType(simComp.simEngineEntity);
+                    auto &simComp = simComponentView.get<SceneComponent::SimulationComponent>(entity);
+                    const auto compType = simEngine.getComponentType(simComp.simEngineEntity);
 
-                    auto type = compType == SimEngine::ComponentType::OUTPUT ? GraphNodeType::output : GraphNodeType::other;
+                    const auto type = compType == SimEngine::ComponentType::OUTPUT ? GraphNodeType::output : GraphNodeType::other;
 
                     auto newNode = new GraphNode({conn.gateEnt,
                                                   type,
@@ -125,15 +125,15 @@ namespace Bess::Modules::SchematicGen {
         BESS_TRACE("[SchematicGen] Found {} nodes accross {} levels", m_graph.size(), m_levels.size());
     }
 
-    std::pair<size_t, std::vector<Connection>> SchematicView::getConnectionsForEntity(entt::entity ent) {
+    std::pair<size_t, std::vector<Connection>> SchematicView::getConnectionsForEntity(entt::entity ent) const {
         BESS_ASSERT(m_registry.all_of<SceneComponent::SimulationComponent>(ent), "Entity should have a SimulationComponent to find connections");
         static auto &simEngine = SimEngine::SimulationEngine::instance();
-        auto& simComp = m_registry.get<SceneComponent::SimulationComponent>(ent);
-        Bess::SimEngine::ConnectionBundle connPair = simEngine.getConnections(simComp.simEngineEntity);
+        auto &simComp = m_registry.get<SceneComponent::SimulationComponent>(ent);
+        const Bess::SimEngine::ConnectionBundle connPair = simEngine.getConnections(simComp.simEngineEntity);
         std::vector<Connection> connections = {};
         for (const auto& conn : connPair.outputs) {
             for (auto &[gateUUID, pinIdx] : conn) {
-                auto ent_ = (uint64_t)m_sceneRef.getSceneEntityFromSimUuid(gateUUID);
+                const auto ent_ = (uint64_t)m_sceneRef.getSceneEntityFromSimUuid(gateUUID);
                 connections.push_back(Connection{ent_, pinIdx});
             }
         }

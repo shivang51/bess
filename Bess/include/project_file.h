@@ -21,14 +21,14 @@ namespace Bess {
         const std::string &getPath() const;
         void setPath(const std::string &path);
 
-        bool isSaved();
+        bool isSaved() const;
 
       private:
         void encodeAndSave();
         void decode();
         void browsePath();
 
-        void patchFile();
+        void patchFile() const;
 
       private:
         std::string m_name = "";

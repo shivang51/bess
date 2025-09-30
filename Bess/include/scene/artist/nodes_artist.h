@@ -54,7 +54,7 @@ namespace Bess::Canvas {
 
         void paintSlot(uint64_t id, uint64_t parentId, const glm::vec3 &pos,
                        float angle, const std::string &label, float labelDx,
-                       SimEngine::LogicState state, bool isConnected, SimEngine::ExtendedPinType extendedType);
+                       SimEngine::LogicState state, bool isConnected, SimEngine::ExtendedPinType extendedType) const;
 
         void drawHeaderLessComp(entt::entity entity,
                                 const Components::TagComponent &tagComp,

@@ -40,25 +40,28 @@ namespace Bess::Renderer2D {
 
     typedef std::function<void(VkInstance &, VkSurfaceKHR &)> SurfaceCreationCB;
 
-    class VulkanRenderer {
+
+    struct FrameContext {
+        std::shared_ptr<Vulkan::VulkanCommandBuffer> cmdBuffer = nullptr;
+        uint32_t swapchainImgIdx;
+    };
+
+    class VulkanCore {
+
       public:
-        static VulkanRenderer &instance() {
-            static VulkanRenderer render;
+        static VulkanCore &instance() {
+            static VulkanCore render;
             return render;
         }
 
         static bool isInitialized;
 
-        VulkanRenderer() = default;
-        ~VulkanRenderer();
+        VulkanCore() = default;
+        ~VulkanCore();
 
-        // Delete copy constructor and assignment operator
-        VulkanRenderer(const VulkanRenderer &) = delete;
-        VulkanRenderer &operator=(const VulkanRenderer &) = delete;
+        VulkanCore(const VulkanCore &) = delete;
+        VulkanCore &operator=(const VulkanCore &) = delete;
 
-        // Move constructor and assignment operator
-        VulkanRenderer(VulkanRenderer &&other) noexcept;
-        VulkanRenderer &operator=(VulkanRenderer &&other) noexcept;
 
         void init(const std::vector<const char *> &winExt,
                   const SurfaceCreationCB &createSurface,
@@ -66,7 +69,11 @@ namespace Bess::Renderer2D {
                   const std::string &vertShaderPath,
                   const std::string &fragShaderPath);
 
-        void draw();
+        void beginFrame();
+        // void draw();
+        void renderUi();
+        void endFrame();
+
         void cleanup();
 
         static void begin(const std::shared_ptr<Bess::Camera> &camera);
@@ -110,7 +117,7 @@ namespace Bess::Renderer2D {
         VkInstance getVkInstance() const { return m_vkInstance; }
         std::shared_ptr<Vulkan::VulkanDevice> getDevice() const { return m_device; }
         std::shared_ptr<Vulkan::VulkanSwapchain> getSwapchain() const { return m_swapchain; }
-        std::shared_ptr<Vulkan::VulkanCommandBuffer> getCommandBuffer() const { return m_commandBuffer; }
+        const std::vector<std::shared_ptr<Vulkan::VulkanCommandBuffer>>& getCommandBuffer() const { return m_commandBuffers; }
         std::shared_ptr<Vulkan::VulkanPipeline> getPipeline() const { return m_pipeline; }
         std::shared_ptr<Vulkan::ImGuiPipeline> getImGuiPipeline() const { return m_imguiPipeline; }
 
@@ -123,13 +130,15 @@ namespace Bess::Renderer2D {
         VkResult destroyDebugMessenger() const;
         void createSyncObjects();
 
+        FrameContext m_currentFrameContext = {};
+
         VkInstance m_vkInstance = VK_NULL_HANDLE;
         VkDebugUtilsMessengerEXT m_vkDebugMessenger = VK_NULL_HANDLE;
         std::shared_ptr<Vulkan::VulkanDevice> m_device;
         std::shared_ptr<Vulkan::VulkanSwapchain> m_swapchain;
         std::shared_ptr<Vulkan::VulkanPipeline> m_pipeline;
         std::shared_ptr<Vulkan::ImGuiPipeline> m_imguiPipeline;
-        std::shared_ptr<Vulkan::VulkanCommandBuffer> m_commandBuffer;
+        std::vector<std::shared_ptr<Vulkan::VulkanCommandBuffer>> m_commandBuffers;
         std::shared_ptr<Vulkan::VulkanRenderPass> m_renderPass;
         VkSurfaceKHR m_renderSurface = VK_NULL_HANDLE;
 
@@ -138,7 +147,7 @@ namespace Bess::Renderer2D {
         std::vector<VkSemaphore> m_imageAvailableSemaphores;
         std::vector<VkSemaphore> m_renderFinishedSemaphores;
         std::vector<VkFence> m_inFlightFences;
-        uint32_t m_currentFrame = 0;
+        uint32_t m_currentFrameIdx = 0;
 
         public:
         void recreateSwapchain();

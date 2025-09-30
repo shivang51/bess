@@ -1,5 +1,6 @@
 #include "ui/ui.h"
 #include "common/log.h"
+#include "scene/renderer/vulkan/device.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/icons/ComponentIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
@@ -15,6 +16,8 @@
 #include "imgui_impl_vulkan.h"
 #include "implot.h"
 #include "scene/renderer/vulkan/vulkan_renderer.h"
+#include <memory>
+#include <vulkan/vulkan_core.h>
 
 namespace Bess::UI {
     void init(GLFWwindow *window) {
@@ -41,22 +44,20 @@ namespace Bess::UI {
     }
 
     void initVulkanImGui() {
-        if (!Renderer2D::VulkanRenderer::isInitialized) {
+        if (!Renderer2D::VulkanCore::isInitialized) {
             BESS_ERROR("VulkanRenderer not initialized! Call VulkanRenderer::init() first.");
             return;
         }
 
-        const auto &vulkanRenderer = Bess::Renderer2D::VulkanRenderer::instance();
+        const auto &vulkanCore = Bess::Renderer2D::VulkanCore::instance();
 
-        const auto device = vulkanRenderer.getDevice();
+        const auto device = vulkanCore.getDevice();
         if (!device) {
             BESS_ERROR("[UI] Vulkan device not available!");
             return;
         }
 
-        constexpr std::array<VkDescriptorPoolSize, 1> poolSizes = {{
-                                                           {.type=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount=1000}
-                                                           }};
+        constexpr std::array<VkDescriptorPoolSize, 1> poolSizes = {{{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 1000}}};
 
         VkDescriptorPoolCreateInfo poolInfo = {};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -65,37 +66,35 @@ namespace Bess::UI {
         poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
 
-        VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-        if (vkCreateDescriptorPool(device->device(), &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
+        if (vkCreateDescriptorPool(device->device(), &poolInfo, nullptr, &s_uiDescriptorPool) != VK_SUCCESS) {
             BESS_ERROR("Failed to create descriptor pool for ImGui!");
             return;
         }
 
-        // Setup ImGui Vulkan backend
         ImGui_ImplVulkan_InitInfo initInfo = {};
         initInfo.ApiVersion = VK_API_VERSION_1_0;
-        initInfo.Instance = vulkanRenderer.getVkInstance();
+        initInfo.Instance = vulkanCore.getVkInstance();
         initInfo.PhysicalDevice = device->physicalDevice();
         initInfo.Device = device->device();
         initInfo.QueueFamily = device->queueFamilyIndices().graphicsFamily.value();
         initInfo.Queue = device->graphicsQueue();
-        initInfo.DescriptorPool = descriptorPool;
+        initInfo.DescriptorPool = s_uiDescriptorPool;
         initInfo.MinImageCount = 2;
         initInfo.ImageCount = 2;
         initInfo.UseDynamicRendering = false;
 
-        const auto pipeline = vulkanRenderer.getImGuiPipeline();
-        initInfo.PipelineInfoMain.RenderPass = pipeline->renderPass();
+        const auto pipeline = vulkanCore.getImGuiPipeline();
+        initInfo.PipelineInfoMain.RenderPass = pipeline->renderPass()->getVkHandle();
         initInfo.PipelineInfoMain.Subpass = 0;
         initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
-        initInfo.PipelineInfoForViewports.RenderPass = pipeline->renderPass();
+        initInfo.PipelineInfoForViewports.RenderPass = pipeline->renderPass()->getVkHandle();
         initInfo.PipelineInfoForViewports.Subpass = 0;
         initInfo.PipelineInfoForViewports.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
         if (!ImGui_ImplVulkan_Init(&initInfo)) {
             BESS_ERROR("Failed to initialize ImGui Vulkan backend!");
-            vkDestroyDescriptorPool(device->device(), descriptorPool, nullptr);
+            vkDestroyDescriptorPool(device->device(), s_uiDescriptorPool, nullptr);
             return;
         }
 
@@ -103,10 +102,14 @@ namespace Bess::UI {
     }
 
     void shutdown() {
-        ImGui_ImplVulkan_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImPlot::DestroyContext();
         ImGui::DestroyContext();
+    }
+
+    void vulkanCleanup(std::shared_ptr<Renderer2D::Vulkan::VulkanDevice> device) {
+        ImGui_ImplVulkan_Shutdown();
+        vkDestroyDescriptorPool(device->device(), s_uiDescriptorPool, nullptr);
     }
 
     void begin() {
@@ -146,6 +149,7 @@ namespace Bess::UI {
 
         ImGui::UpdatePlatformWindows();
         ImGui::RenderPlatformWindowsDefault();
+        Renderer2D::VulkanCore::instance().renderUi();
     }
 
     ImFont *Fonts::largeFont = nullptr;
@@ -162,7 +166,7 @@ namespace Bess::UI {
         io.FontDefault = io.Fonts->AddFontFromFileTTF(robotoPath, fontSize);
 
         ImFontConfig config;
-        float r = 2.2F / 3.0F;
+        const float r = 2.2F / 3.0F;
         config.MergeMode = true;
         config.PixelSnapH = true;
 

@@ -26,18 +26,18 @@ namespace Bess::Canvas::Commands {
                 if (!scene.isEntityValid(uuid))
                     return false;
 
-                auto entity = scene.getEntityWithUuid(uuid);
+                const auto entity = scene.getEntityWithUuid(uuid);
 
                 auto &connComp = sceneReg.get<Components::ConnectionComponent>(entity);
 
                 auto &slotCompA = sceneReg.get<Components::SlotComponent>(scene.getEntityWithUuid(connComp.inputSlot));
                 auto &slotCompB = sceneReg.get<Components::SlotComponent>(scene.getEntityWithUuid(connComp.outputSlot));
 
-                auto &simCompA = sceneReg.get<Components::SimulationComponent>(scene.getEntityWithUuid(slotCompA.parentId));
-                auto &simCompB = sceneReg.get<Components::SimulationComponent>(scene.getEntityWithUuid(slotCompB.parentId));
+                const auto &simCompA = sceneReg.get<Components::SimulationComponent>(scene.getEntityWithUuid(slotCompA.parentId));
+                const auto &simCompB = sceneReg.get<Components::SimulationComponent>(scene.getEntityWithUuid(slotCompB.parentId));
 
-                auto pinTypeA = slotCompA.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
-                auto pinTypeB = slotCompB.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
+                const auto pinTypeA = slotCompA.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
+                const auto pinTypeB = slotCompB.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
 
                 SimEngine::Commands::DelConnectionCommandData data = {simCompA.simEngineEntity, slotCompA.idx, pinTypeA,
                                                                       simCompB.simEngineEntity, slotCompB.idx, pinTypeB};

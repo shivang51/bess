@@ -52,32 +52,32 @@ namespace Bess::Canvas {
         void renderWithCamera(std::shared_ptr<Camera> camera);
         void update(TFrameTime ts, const std::vector<ApplicationEvent> &events);
 
-        uint64_t getTextureId();
+        uint64_t getTextureId() const;
         std::shared_ptr<Camera> getCamera();
 
         void drawScene(std::shared_ptr<Camera> camera);
-        void beginScene();
-        void endScene();
+        void beginScene() const;
+        void endScene() const;
 
         void setLastCreatedComp(LastCreatedComponent comp);
 
-        void saveScenePNG(const std::string &path);
+        void saveScenePNG(const std::string &path) const;
 
         friend class Modules::SchematicGen::SchematicView;
 
       public:
-        const glm::vec2 &getMousePos();
+        const glm::vec2 &getMousePos() const;
         glm::vec2 getSceneMousePos();
-        const glm::vec2 &getCameraPos();
-        float getCameraZoom();
-        void setZoom(float value);
+        const glm::vec2 &getCameraPos() const;
+        float getCameraZoom() const;
+        void setZoom(float value) const;
 
         void setSceneMode(SceneMode mode);
-        SceneMode getSceneMode();
+        SceneMode getSceneMode() const;
 
         void resize(const glm::vec2 &size);
         entt::registry &getEnttRegistry();
-        const glm::vec2 &getSize();
+        const glm::vec2 &getSize() const;
 
         UUID createSlotEntity(Components::SlotType type, const UUID &parent, unsigned int idx);
         UUID createSlotEntity(UUID uuid, Components::SlotType type, const UUID &parent, unsigned int idx);
@@ -122,9 +122,9 @@ namespace Bess::Canvas {
         void onRightMouse(bool isPressed);
         void onMouseWheel(double x, double y);
 
-        glm::vec2 toScenePos(const glm::vec2 &mousePos);
-        glm::vec2 getViewportMousePos(const glm::vec2 &mousePos);
-        bool isCursorInViewport(const glm::vec2 &pos);
+        glm::vec2 toScenePos(const glm::vec2 &mousePos) const;
+        glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
+        bool isCursorInViewport(const glm::vec2 &pos) const;
         void drawConnection();
         void drawSelectionBox();
         void handleKeyboardShortcuts();

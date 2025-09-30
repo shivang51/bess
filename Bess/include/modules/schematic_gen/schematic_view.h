@@ -36,7 +36,7 @@ namespace Bess::Modules::SchematicGen {
       private:
         void generateCompGraphAndLevels();
         void generateTransform();
-        std::pair<size_t, std::vector<Connection>> getConnectionsForEntity(entt::entity ent);
+        std::pair<size_t, std::vector<Connection>> getConnectionsForEntity(entt::entity ent) const;
 
         std::vector<GraphNode *> m_graph;
         std::vector<std::vector<GraphNode *>> m_levels;
