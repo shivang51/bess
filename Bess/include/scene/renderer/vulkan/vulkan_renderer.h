@@ -63,9 +63,7 @@ namespace Bess::Renderer2D {
 
         void init(const std::vector<const char *> &winExt,
                   const SurfaceCreationCB &createSurface,
-                  VkExtent2D windowExtent,
-                  const std::string &vertShaderPath,
-                  const std::string &fragShaderPath);
+                  VkExtent2D windowExtent);
 
         void beginFrame();
         // void draw();

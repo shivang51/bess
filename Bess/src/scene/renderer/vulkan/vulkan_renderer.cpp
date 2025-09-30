@@ -17,9 +17,7 @@ namespace Bess::Renderer2D {
 
     void VulkanCore::init(const std::vector<const char *> &winExt,
                           const SurfaceCreationCB &createSurface,
-                          VkExtent2D windowExtent,
-                          const std::string &vertShaderPath,
-                          const std::string &fragShaderPath) {
+                          VkExtent2D windowExtent) {
         if (isInitialized) {
             BESS_WARN("Reinitialization of renderer was called...skipping");
             return;
@@ -39,9 +37,6 @@ namespace Bess::Renderer2D {
 
         // m_pipeline = std::make_shared<Vulkan::VulkanPipeline>(m_device, m_swapchain);
         // m_pipeline->createGraphicsPipeline(vertShaderPath, fragShaderPath, m_renderPass);
-
-        // m_imguiPipeline = std::make_shared<Vulkan::ImGuiPipeline>(m_device, m_swapchain);
-        // m_imguiPipeline->createGraphicsPipeline(m_renderPass);
 
         m_swapchain->createFramebuffers(m_renderPass->getVkHandle());
 

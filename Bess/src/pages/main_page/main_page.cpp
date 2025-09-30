@@ -36,8 +36,7 @@ namespace Bess::Pages {
 
         // Initialize VulkanRenderer with proper parameters
         auto &instance = Renderer2D::VulkanCore::instance();
-        instance.init(extensions, createSurface, extent,
-                      "assets/shaders/vert.spv", "assets/shaders/frag.spv");
+        instance.init(extensions, createSurface, extent);
 
         m_state = MainPageState::getInstance();
     }
