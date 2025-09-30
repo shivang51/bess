@@ -72,7 +72,7 @@ set(Header_Files
 "include/scene/components/non_sim_comp.h"
 "include/scene/renderer/font.h"
 "include/scene/renderer/msdf_font.h"
-        "include/scene/renderer/vulkan/vulkan_renderer.h"
+        "include/scene/renderer/vulkan/vulkan_core.h"
         "include/scene/renderer/vulkan/device.h"
         "include/scene/renderer/vulkan/swapchain.h"
         "include/scene/renderer/vulkan/pipeline.h"

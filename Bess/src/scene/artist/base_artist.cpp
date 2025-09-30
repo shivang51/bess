@@ -7,7 +7,7 @@
 #include "scene/artist/nodes_artist.h"
 #include "scene/components/components.h"
 #include "common/log.h"
-#include "scene/renderer/vulkan/vulkan_renderer.h"
+#include "scene/renderer/vulkan/vulkan_core.h"
 #include "scene/renderer/vulkan/vulkan_texture.h"
 #include "scene/renderer/vulkan/vulkan_subtexture.h"
 #include "scene/scene.h"

@@ -24,7 +24,7 @@
 #include "scene/commands/update_entt_comp_command.h"
 #include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
-#include "scene/renderer/vulkan/vulkan_renderer.h"
+#include "scene/renderer/vulkan/vulkan_core.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "types.h"

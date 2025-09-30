@@ -4,7 +4,7 @@
 #include "events/application_event.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
-#include "scene/renderer/vulkan/vulkan_renderer.h"
+#include "scene/renderer/vulkan/vulkan_core.h"
 #include "ui/ui.h"
 
 #include "types.h"

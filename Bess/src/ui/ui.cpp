@@ -15,7 +15,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 #include "implot.h"
-#include "scene/renderer/vulkan/vulkan_renderer.h"
+#include "scene/renderer/vulkan/vulkan_core.h"
 #include <memory>
 #include <vulkan/vulkan_core.h>
 

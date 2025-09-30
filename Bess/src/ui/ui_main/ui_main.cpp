@@ -284,7 +284,7 @@ namespace Bess::UI {
         } else {
             ImGui::SetCursorPos({100, 100});
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));
-            ImGui::Text("No valid scene texture attched.");
+            ImGui::Text("No valid scene texture attached.");
             ImGui::PopStyleColor();
         }
 

@@ -1,7 +1,7 @@
 #include "pages/main_page/main_page.h"
 #include "events/application_event.h"
 #include "pages/page_identifier.h"
-#include "scene/renderer/vulkan/vulkan_renderer.h"
+#include "scene/renderer/vulkan/vulkan_core.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
 #include "types.h"

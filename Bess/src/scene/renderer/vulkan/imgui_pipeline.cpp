@@ -1,6 +1,6 @@
 #include "scene/renderer/vulkan/imgui_pipeline.h"
 #include "common/log.h"
-#include "scene/renderer/vulkan/vulkan_renderer.h"
+#include "scene/renderer/vulkan/vulkan_core.h"
 
 #include <fstream>
 #include <stdexcept>
