@@ -9,6 +9,8 @@
 #include "scene/renderer/vulkan/vulkan_render_pass.h"
 #include "scene/renderer/vulkan/vulkan_image_view.h"
 #include "scene/renderer/vulkan/vulkan_offscreen_render_pass.h"
+#include "scene/renderer/vulkan/primitive_renderer.h"
+#include "scene/renderer/vulkan/primitive_vertex.h"
 #include <functional>
 #include <memory>
 #include <optional>
@@ -69,6 +71,9 @@ namespace Bess::Renderer2D {
 
         void beginFrame();
         void draw();
+        void draw(const std::shared_ptr<Camera> &camera, const GridColors &gridColors);
+        void beginOffscreenRender();
+        void endOffscreenRender();
         void renderUi();
         void endFrame();
 
@@ -114,6 +119,9 @@ namespace Bess::Renderer2D {
 
         // Scene texture access for ImGui
         uint64_t getSceneTextureId();
+        
+        std::shared_ptr<Vulkan::PrimitiveRenderer> getPrimitiveRenderer() const { return m_primitiveRenderer; }
+        void resizeOffscreen(VkExtent2D extent);
 
         // Getters for ImGui integration
         VkInstance getVkInstance() const { return m_vkInstance; }
@@ -142,6 +150,7 @@ namespace Bess::Renderer2D {
         std::shared_ptr<Vulkan::VulkanRenderPass> m_renderPass;
         std::shared_ptr<Vulkan::VulkanOffscreenRenderPass> m_offscreenRenderPass;
         std::shared_ptr<Vulkan::VulkanImageView> m_offscreenImageView;
+        std::shared_ptr<Vulkan::PrimitiveRenderer> m_primitiveRenderer;
         VkSurfaceKHR m_renderSurface = VK_NULL_HANDLE;
 
         static constexpr int MAX_FRAMES_IN_FLIGHT = 2;

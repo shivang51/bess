@@ -1,19 +1,20 @@
-#version 460 core
+#version 460
 
 layout(location = 0) out vec4 fragColor;
-layout(location = 1) out int fragColor1;
 
-in vec2 v_TexCoord;
-in flat int v_FragId;
-in vec4 v_FragColor;
+layout(location = 1) in vec2 v_TexCoord;
+layout(location = 2) in flat int v_FragId;
+layout(location = 4) in vec4 v_FragColor;
 
-uniform float u_zoom;
-uniform vec2 u_cameraOffset;
-uniform vec4 u_gridMinorColor;
-uniform vec4 u_gridMajorColor;
-uniform vec4 u_axisXColor;
-uniform vec4 u_axisYColor;
-uniform vec2 u_resolution;
+layout(binding = 1) uniform GridUniforms {
+    float u_zoom;
+    vec2 u_cameraOffset;
+    vec4 u_gridMinorColor;
+    vec4 u_gridMajorColor;
+    vec4 u_axisXColor;
+    vec4 u_axisYColor;
+    vec2 u_resolution;
+};
 
 const float smallSpacing = 10.0;
 const float bigSpacing = 100.0;
@@ -57,5 +58,4 @@ void main() {
         gridColor = u_axisXColor;
 
     fragColor = vec4(gridColor.rgb, min(intensity, gridColor.a));
-    fragColor1 = v_FragId;
 }

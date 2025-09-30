@@ -30,6 +30,8 @@ namespace Bess::Renderer2D::Vulkan {
         void createFramebuffer(VkRenderPass renderPass);
         void createSampler();
         void createDescriptorSet();
+        // Recreate image, image view, and framebuffer for a new extent
+        void recreate(VkExtent2D extent, VkRenderPass renderPass);
 
       private:
         void createImage();

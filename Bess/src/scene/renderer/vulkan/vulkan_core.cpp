@@ -42,6 +42,9 @@ namespace Bess::Renderer2D {
             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
         m_offscreenRenderPass = std::make_shared<Vulkan::VulkanOffscreenRenderPass>(m_device, m_swapchain->imageFormat());
         m_offscreenImageView->createFramebuffer(m_offscreenRenderPass->getVkHandle());
+        
+        // Create primitive renderer for offscreen rendering
+        m_primitiveRenderer = std::make_shared<Vulkan::PrimitiveRenderer>(m_device, m_offscreenRenderPass, windowExtent);
 
         // m_pipeline = std::make_shared<Vulkan::VulkanPipeline>(m_device, m_swapchain);
         // m_pipeline->createGraphicsPipeline(vertShaderPath, fragShaderPath, m_renderPass);
@@ -66,10 +69,90 @@ namespace Bess::Renderer2D {
             cmdBuffer->getVkHandle(),
             m_offscreenImageView->getFramebuffer(),
             m_offscreenImageView->getExtent(),
+            glm::vec4(0.0F, 0.0F, 0.0F, 1.0F)
+        );
+
+        // The actual rendering is now handled by VulkanRenderer
+        // This method just sets up the offscreen rendering context
+
+        m_offscreenRenderPass->end();
+    }
+
+    void VulkanCore::beginOffscreenRender() {
+        if (!m_offscreenImageView || !m_offscreenRenderPass || !m_primitiveRenderer) {
+            return;
+        }
+
+        const auto cmdBuffer = m_currentFrameContext.cmdBuffer;
+
+        m_offscreenRenderPass->begin(
+            cmdBuffer->getVkHandle(),
+            m_offscreenImageView->getFramebuffer(),
+            m_offscreenImageView->getExtent(),
+            glm::vec4(0.0F, 0.0F, 0.0F, 1.0F)
+        );
+
+        // Set up uniform data for primitive rendering
+        Vulkan::UniformBufferObject ubo{};
+        ubo.mvp = glm::mat4(1.0F); // Will be updated by VulkanRenderer
+
+        Vulkan::GridUniforms gridUniforms{};
+        gridUniforms.zoom = 1.0F;
+        gridUniforms.cameraOffset = glm::vec2(0.0F, 0.0F);
+        gridUniforms.gridMinorColor = glm::vec4(0.5F, 0.5F, 0.5F, 0.3F);
+        gridUniforms.gridMajorColor = glm::vec4(0.7F, 0.7F, 0.7F, 0.5F);
+        gridUniforms.axisXColor = glm::vec4(1.0F, 0.0F, 0.0F, 1.0F);
+        gridUniforms.axisYColor = glm::vec4(0.0F, 1.0F, 0.0F, 1.0F);
+        gridUniforms.resolution = glm::vec2(m_offscreenImageView->getExtent().width, m_offscreenImageView->getExtent().height);
+
+        // Begin primitive rendering within the offscreen render pass
+        m_primitiveRenderer->beginFrame(cmdBuffer->getVkHandle(), ubo, gridUniforms);
+    }
+
+    void VulkanCore::endOffscreenRender() {
+        if (!m_offscreenRenderPass || !m_primitiveRenderer) {
+            return;
+        }
+
+        // End primitive rendering
+        m_primitiveRenderer->endFrame();
+
+        // End the offscreen render pass
+        m_offscreenRenderPass->end();
+    }
+
+    void VulkanCore::draw(const std::shared_ptr<Camera> &camera, const GridColors &gridColors) {
+        if (!m_offscreenImageView || !m_offscreenRenderPass) {
+            return;
+        }
+
+        const auto cmdBuffer = m_currentFrameContext.cmdBuffer;
+
+        m_offscreenRenderPass->begin(
+            cmdBuffer->getVkHandle(),
+            m_offscreenImageView->getFramebuffer(),
+            m_offscreenImageView->getExtent(),
             glm::vec4(1.0F, 0.0F, 1.0F, 1.0F) // Pink clear color
         );
 
+        // The actual rendering is now handled by VulkanRenderer
+        // This method just sets up the offscreen rendering context
+
         m_offscreenRenderPass->end();
+    }
+
+    void VulkanCore::resizeOffscreen(VkExtent2D extent) {
+        if (!m_device || !m_offscreenImageView || !m_offscreenRenderPass) {
+            return;
+        }
+        // Recreate offscreen image view and framebuffer to new size
+        m_offscreenImageView->recreate(extent, m_offscreenRenderPass->getVkHandle());
+
+        // Update primitive renderer viewport-dependent extent
+        if (m_primitiveRenderer) {
+            // PrimitiveRenderer currently stores extent; recreate pipeline that depends on viewport
+            m_primitiveRenderer = std::make_shared<Vulkan::PrimitiveRenderer>(m_device, m_offscreenRenderPass, extent);
+        }
     }
 
     void VulkanCore::beginFrame() {
@@ -171,12 +254,8 @@ namespace Bess::Renderer2D {
 
         VkExtent2D currentExtent = m_swapchain->extent();
         if (newExtent.width == currentExtent.width && newExtent.height == currentExtent.height) {
-            BESS_INFO("Swapchain extent unchanged, skipping recreation");
             return;
         }
-
-        BESS_INFO("Recreating swapchain due to extent change ({}x{} -> {}x{})",
-                  currentExtent.width, currentExtent.height, newExtent.width, newExtent.height);
 
         vkDeviceWaitIdle(m_device->device());
 
@@ -185,8 +264,6 @@ namespace Bess::Renderer2D {
         m_swapchain = std::make_shared<Vulkan::VulkanSwapchain>(m_vkInstance, m_device, m_renderSurface, newExtent, oldSwapchain);
 
         m_swapchain->createFramebuffers(m_renderPass->getVkHandle());
-
-        BESS_INFO("Swapchain recreated with new extent: {}x{}", newExtent.width, newExtent.height);
     }
 
     void VulkanCore::cleanup() {
@@ -219,6 +296,7 @@ namespace Bess::Renderer2D {
         }
 
         m_pipeline.reset();
+        m_primitiveRenderer.reset();
         m_offscreenImageView.reset();
         m_offscreenRenderPass.reset();
         m_renderPass.reset();

@@ -25,6 +25,7 @@
 #include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
 #include "scene/renderer/vulkan/vulkan_core.h"
+#include "scene/renderer/vulkan_renderer.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "types.h"
@@ -213,21 +214,34 @@ namespace Bess::Canvas {
     }
 
     void Scene::drawScene(std::shared_ptr<Camera> camera) {
-        Renderer2D::VulkanCore::instance().draw();
         // Set the appropriate artist mode
         m_artistManager->setSchematicMode(m_isSchematicView);
         const auto artist = m_artistManager->getCurrentArtist();
 
-        // Grid
-        Renderer2D::VulkanCore::begin(camera);
-        Renderer2D::VulkanCore::grid({0.f, 0.f, -2.f}, camera->getSpan(), -1,
-                                     {
-                                         .minorColor = ViewportTheme::colors.gridMinorColor,
-                                         .majorColor = ViewportTheme::colors.gridMajorColor,
-                                         .axisXColor = ViewportTheme::colors.gridAxisXColor,
-                                         .axisYColor = ViewportTheme::colors.gridAxisYColor,
-                                     });
-        Renderer2D::VulkanCore::end();
+        // Begin offscreen rendering
+        Renderer2D::VulkanCore::instance().beginOffscreenRender();
+
+        // Begin VulkanRenderer frame
+        Renderer2D::VulkanRenderer::begin(camera);
+
+        // Draw the grid using VulkanRenderer
+        Renderer2D::VulkanRenderer::grid(
+            glm::vec3(0.f, 0.f, 0.f),
+            m_camera->getSpan(),
+            -1,
+            {
+                .minorColor = ViewportTheme::colors.gridMinorColor,
+                .majorColor = ViewportTheme::colors.gridMajorColor,
+                .axisXColor = ViewportTheme::colors.gridAxisXColor,
+                .axisYColor = ViewportTheme::colors.gridAxisYColor,
+            }
+        );
+
+        // End VulkanRenderer frame
+        Renderer2D::VulkanRenderer::end();
+
+        // End offscreen rendering
+        Renderer2D::VulkanCore::instance().endOffscreenRender();
 
         // Connections
         Renderer2D::VulkanCore::begin(camera);
@@ -499,8 +513,11 @@ namespace Bess::Canvas {
 
     void Scene::resize(const glm::vec2 &size) {
         m_size = UI::UIMain::state.viewportSize;
-        // Vulkan framebuffers are managed by the VulkanRenderer
-        // The renderer will handle framebuffer resizing automatically
+        // Resize offscreen render targets to match viewport
+        Renderer2D::VulkanCore::instance().resizeOffscreen({
+            static_cast<uint32_t>(UI::UIMain::state.viewportSize.x),
+            static_cast<uint32_t>(UI::UIMain::state.viewportSize.y)
+        });
         m_camera->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
     }
 

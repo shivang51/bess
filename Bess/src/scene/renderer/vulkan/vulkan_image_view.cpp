@@ -268,4 +268,48 @@ namespace Bess::Renderer2D::Vulkan {
 
         vkUpdateDescriptorSets(m_device->device(), 1, &descriptorWrite, 0, nullptr);
     }
+
+    void VulkanImageView::recreate(VkExtent2D extent, VkRenderPass renderPass) {
+        // Destroy old framebuffer and image view and image
+        if (m_framebuffer != VK_NULL_HANDLE) {
+            vkDestroyFramebuffer(m_device->device(), m_framebuffer, nullptr);
+            m_framebuffer = VK_NULL_HANDLE;
+        }
+        if (m_imageView != VK_NULL_HANDLE) {
+            vkDestroyImageView(m_device->device(), m_imageView, nullptr);
+            m_imageView = VK_NULL_HANDLE;
+        }
+        if (m_image != VK_NULL_HANDLE) {
+            vkDestroyImage(m_device->device(), m_image, nullptr);
+            m_image = VK_NULL_HANDLE;
+        }
+        if (m_imageMemory != VK_NULL_HANDLE) {
+            vkFreeMemory(m_device->device(), m_imageMemory, nullptr);
+            m_imageMemory = VK_NULL_HANDLE;
+        }
+
+        m_extent = extent;
+
+        // Recreate resources
+        createImage();
+        createImageView();
+        // Sampler and descriptor set remain valid; update descriptor to new imageView
+        // Update descriptor set image info
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = m_imageView;
+        imageInfo.sampler = m_sampler;
+
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = m_descriptorSet;
+        descriptorWrite.dstBinding = 0;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pImageInfo = &imageInfo;
+        vkUpdateDescriptorSets(m_device->device(), 1, &descriptorWrite, 0, nullptr);
+
+        createFramebuffer(renderPass);
+    }
 } // namespace Bess::Renderer2D::Vulkan
