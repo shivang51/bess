@@ -34,6 +34,7 @@ namespace Bess::Renderer2D::Vulkan {
 
         VkCommandBuffer beginSingleTimeCommands() const;
         void endSingleTimeCommands(VkCommandBuffer commandBuffer) const;
+        uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
 
       private:
         void pickPhysicalDevice();

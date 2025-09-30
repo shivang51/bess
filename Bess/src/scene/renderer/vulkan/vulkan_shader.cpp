@@ -5,11 +5,11 @@
 
 namespace Bess::Renderer2D::Vulkan {
 
-    VulkanShader::VulkanShader(VulkanDevice& device, const std::string& vertPath, const std::string& fragPath)
+    VulkanShader::VulkanShader(VulkanDevice &device, const std::string &vertPath, const std::string &fragPath)
         : m_device(device) {
         const auto vertCode = readFile(vertPath);
         const auto fragCode = readFile(fragPath);
-        
+
         m_vertexModule = createShaderModule(vertCode);
         m_fragmentModule = createShaderModule(fragCode);
     }
@@ -23,7 +23,7 @@ namespace Bess::Renderer2D::Vulkan {
         }
     }
 
-    VulkanShader::VulkanShader(VulkanShader&& other) noexcept
+    VulkanShader::VulkanShader(VulkanShader &&other) noexcept
         : m_device(other.m_device),
           m_vertexModule(other.m_vertexModule),
           m_fragmentModule(other.m_fragmentModule) {
@@ -31,7 +31,7 @@ namespace Bess::Renderer2D::Vulkan {
         other.m_fragmentModule = VK_NULL_HANDLE;
     }
 
-    VulkanShader& VulkanShader::operator=(VulkanShader&& other) noexcept {
+    VulkanShader &VulkanShader::operator=(VulkanShader &&other) noexcept {
         if (this != &other) {
             if (m_vertexModule != VK_NULL_HANDLE) {
                 vkDestroyShaderModule(m_device.device(), m_vertexModule, nullptr);
@@ -39,7 +39,7 @@ namespace Bess::Renderer2D::Vulkan {
             if (m_fragmentModule != VK_NULL_HANDLE) {
                 vkDestroyShaderModule(m_device.device(), m_fragmentModule, nullptr);
             }
-            
+
             m_vertexModule = other.m_vertexModule;
             m_fragmentModule = other.m_fragmentModule;
 
@@ -49,11 +49,11 @@ namespace Bess::Renderer2D::Vulkan {
         return *this;
     }
 
-    VkShaderModule VulkanShader::createShaderModule(const std::vector<char>& code) const {
+    VkShaderModule VulkanShader::createShaderModule(const std::vector<char> &code) const {
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = code.size();
-        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+        createInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());
 
         VkShaderModule shaderModule;
         if (vkCreateShaderModule(m_device.device(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
@@ -63,7 +63,7 @@ namespace Bess::Renderer2D::Vulkan {
         return shaderModule;
     }
 
-    std::vector<char> VulkanShader::readFile(const std::string& filename) const {
+    std::vector<char> VulkanShader::readFile(const std::string &filename) const {
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
         if (!file.is_open()) {

@@ -34,11 +34,12 @@ namespace Bess::Pages {
             parentWindow->createWindowSurface(instance, surface);
         };
 
-        // Initialize VulkanRenderer with proper parameters
         auto &instance = Renderer2D::VulkanCore::instance();
         instance.init(extensions, createSurface, extent);
 
         m_state = MainPageState::getInstance();
+
+        UI::UIMain::setViewportTexture(instance.getSceneTextureId());
     }
 
     void MainPage::draw() {

@@ -35,6 +35,14 @@ namespace Bess::Renderer2D {
 
         m_renderPass = std::make_shared<Vulkan::VulkanRenderPass>(m_device, m_swapchain->imageFormat(), VK_FORMAT_D32_SFLOAT);
 
+        m_offscreenImageView = std::make_shared<Vulkan::VulkanImageView>(
+            m_device,
+            m_swapchain->imageFormat(),
+            windowExtent,
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+        m_offscreenRenderPass = std::make_shared<Vulkan::VulkanOffscreenRenderPass>(m_device, m_swapchain->imageFormat());
+        m_offscreenImageView->createFramebuffer(m_offscreenRenderPass->getVkHandle());
+
         // m_pipeline = std::make_shared<Vulkan::VulkanPipeline>(m_device, m_swapchain);
         // m_pipeline->createGraphicsPipeline(vertShaderPath, fragShaderPath, m_renderPass);
 
@@ -48,6 +56,20 @@ namespace Bess::Renderer2D {
     }
 
     void VulkanCore::draw() {
+        if (!m_offscreenImageView || !m_offscreenRenderPass) {
+            return;
+        }
+
+        const auto cmdBuffer = m_currentFrameContext.cmdBuffer;
+
+        m_offscreenRenderPass->begin(
+            cmdBuffer->getVkHandle(),
+            m_offscreenImageView->getFramebuffer(),
+            m_offscreenImageView->getExtent(),
+            glm::vec4(1.0F, 0.0F, 1.0F, 1.0F) // Pink clear color
+        );
+
+        m_offscreenRenderPass->end();
     }
 
     void VulkanCore::beginFrame() {
@@ -197,6 +219,8 @@ namespace Bess::Renderer2D {
         }
 
         m_pipeline.reset();
+        m_offscreenImageView.reset();
+        m_offscreenRenderPass.reset();
         m_renderPass.reset();
         m_swapchain.reset();
         UI::vulkanCleanup(m_device);
@@ -381,6 +405,15 @@ namespace Bess::Renderer2D {
         }
     }
 
+    uint64_t VulkanCore::getSceneTextureId() {
+        if (m_offscreenImageView && m_offscreenImageView->getDescriptorSet() != VK_NULL_HANDLE) {
+            BESS_TRACE("[VulkanCore] Offscreen image view handle was valid");
+            return (uint64_t)m_offscreenImageView->getDescriptorSet();
+        }
+        BESS_WARN("[VulkanCore] Offscreen image view handle was not valid");
+        return 0;
+    }
+
     void VulkanCore::begin(const std::shared_ptr<Bess::Camera> &camera) {
         // TODO: Implement camera setup
     }
@@ -455,11 +488,4 @@ namespace Bess::Renderer2D {
         return glm::vec2(0.0f);
     }
 
-    uint64_t VulkanCore::getSceneTextureId() {
-        // if (s_instance && s_instance->m_sceneFramebuffer) {
-        //     // Return the color image view as a texture ID for ImGui
-        //     return reinterpret_cast<uint64_t>(s_instance->m_sceneFramebuffer->colorImageView());
-        // }
-        return 0;
-    }
 } // namespace Bess::Renderer2D

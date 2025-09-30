@@ -174,8 +174,8 @@ namespace Bess::Canvas {
             auto __ = m_cmdManager.execute<Commands::DelConnectionCommand, std::string>(connToDel);
         } else if (mainPageState->isKeyPressed(GLFW_KEY_F)) {
             const auto view = m_registry.view<Components::IdComponent,
-                                        Components::SelectedComponent,
-                                        Components::TransformComponent>();
+                                              Components::SelectedComponent,
+                                              Components::TransformComponent>();
 
             // pick the first one to focus. if many are selected
             for (auto &ent : view) {
@@ -213,7 +213,7 @@ namespace Bess::Canvas {
     }
 
     void Scene::drawScene(std::shared_ptr<Camera> camera) {
-
+        Renderer2D::VulkanCore::instance().draw();
         // Set the appropriate artist mode
         m_artistManager->setSchematicMode(m_isSchematicView);
         const auto artist = m_artistManager->getCurrentArtist();
@@ -221,12 +221,12 @@ namespace Bess::Canvas {
         // Grid
         Renderer2D::VulkanCore::begin(camera);
         Renderer2D::VulkanCore::grid({0.f, 0.f, -2.f}, camera->getSpan(), -1,
-                                         {
-                                             .minorColor = ViewportTheme::colors.gridMinorColor,
-                                             .majorColor = ViewportTheme::colors.gridMajorColor,
-                                             .axisXColor = ViewportTheme::colors.gridAxisXColor,
-                                             .axisYColor = ViewportTheme::colors.gridAxisYColor,
-                                         });
+                                     {
+                                         .minorColor = ViewportTheme::colors.gridMinorColor,
+                                         .majorColor = ViewportTheme::colors.gridMajorColor,
+                                         .axisXColor = ViewportTheme::colors.gridAxisXColor,
+                                         .axisYColor = ViewportTheme::colors.gridAxisYColor,
+                                     });
         Renderer2D::VulkanCore::end();
 
         // Connections
@@ -1085,8 +1085,7 @@ namespace Bess::Canvas {
     }
 
     uint64_t Scene::getTextureId() const {
-        // Return the scene texture ID from VulkanRenderer for ImGui display
-        return Renderer2D::VulkanCore::getSceneTextureId();
+        return Renderer2D::VulkanCore::instance().getSceneTextureId();
     }
 
     std::shared_ptr<Camera> Scene::getCamera() {

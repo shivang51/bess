@@ -7,6 +7,8 @@
 #include "scene/renderer/vulkan/pipeline.h"
 #include "scene/renderer/vulkan/swapchain.h"
 #include "scene/renderer/vulkan/vulkan_render_pass.h"
+#include "scene/renderer/vulkan/vulkan_image_view.h"
+#include "scene/renderer/vulkan/vulkan_offscreen_render_pass.h"
 #include <functional>
 #include <memory>
 #include <optional>
@@ -111,7 +113,7 @@ namespace Bess::Renderer2D {
         static glm::vec2 getMSDFTextRenderSize(const std::string &str, float renderSize);
 
         // Scene texture access for ImGui
-        static uint64_t getSceneTextureId();
+        uint64_t getSceneTextureId();
 
         // Getters for ImGui integration
         VkInstance getVkInstance() const { return m_vkInstance; }
@@ -138,6 +140,8 @@ namespace Bess::Renderer2D {
         std::shared_ptr<Vulkan::VulkanPipeline> m_pipeline;
         std::vector<std::shared_ptr<Vulkan::VulkanCommandBuffer>> m_commandBuffers;
         std::shared_ptr<Vulkan::VulkanRenderPass> m_renderPass;
+        std::shared_ptr<Vulkan::VulkanOffscreenRenderPass> m_offscreenRenderPass;
+        std::shared_ptr<Vulkan::VulkanImageView> m_offscreenImageView;
         VkSurfaceKHR m_renderSurface = VK_NULL_HANDLE;
 
         static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
