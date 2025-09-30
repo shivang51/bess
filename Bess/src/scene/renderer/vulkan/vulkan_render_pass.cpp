@@ -3,15 +3,14 @@
 #include <array>
 
 namespace Bess::Renderer2D::Vulkan {
-
-    VulkanRenderPass::VulkanRenderPass(VulkanDevice& device, VkFormat colorFormat, VkFormat depthFormat)
+    VulkanRenderPass::VulkanRenderPass(const std::shared_ptr<VulkanDevice> &device, const VkFormat colorFormat, const VkFormat depthFormat)
         : m_device(device), m_colorFormat(colorFormat), m_depthFormat(depthFormat) {
         createRenderPass();
     }
 
     VulkanRenderPass::~VulkanRenderPass() {
         if (m_renderPass != VK_NULL_HANDLE) {
-            vkDestroyRenderPass(m_device.device(), m_renderPass, nullptr);
+            vkDestroyRenderPass(m_device->device(), m_renderPass, nullptr);
         }
     }
 
@@ -26,7 +25,7 @@ namespace Bess::Renderer2D::Vulkan {
     VulkanRenderPass& VulkanRenderPass::operator=(VulkanRenderPass&& other) noexcept {
         if (this != &other) {
             if (m_renderPass != VK_NULL_HANDLE) {
-                vkDestroyRenderPass(m_device.device(), m_renderPass, nullptr);
+                vkDestroyRenderPass(m_device->device(), m_renderPass, nullptr);
             }
             
             m_colorFormat = other.m_colorFormat;
@@ -81,7 +80,7 @@ namespace Bess::Renderer2D::Vulkan {
         dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-        std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
+        const std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
         VkRenderPassCreateInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
         renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
@@ -91,7 +90,7 @@ namespace Bess::Renderer2D::Vulkan {
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;
 
-        if (vkCreateRenderPass(m_device.device(), &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
+        if (vkCreateRenderPass(m_device->device(), &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create render pass!");
         }
     }

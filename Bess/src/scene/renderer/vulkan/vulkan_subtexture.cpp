@@ -10,8 +10,8 @@ namespace Bess::Renderer2D::Vulkan {
 
     VulkanSubTexture::VulkanSubTexture(std::shared_ptr<VulkanTexture> texture, const glm::vec2& coords, const glm::vec2& cellSize, const glm::vec2& spriteSize)
         : m_texture(texture) {
-        glm::vec2 min = {coords.x * cellSize.x, coords.y * cellSize.y};
-        glm::vec2 max = {(coords.x + spriteSize.x) * cellSize.x, (coords.y + spriteSize.y) * cellSize.y};
+        const glm::vec2 min = {coords.x * cellSize.x, coords.y * cellSize.y};
+        const glm::vec2 max = {(coords.x + spriteSize.x) * cellSize.x, (coords.y + spriteSize.y) * cellSize.y};
         calculateTexCoords(min, max);
     }
 

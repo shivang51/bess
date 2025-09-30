@@ -30,8 +30,8 @@ namespace Bess::Renderer2D::Vulkan {
         VkShaderModule m_vertexModule = VK_NULL_HANDLE;
         VkShaderModule m_fragmentModule = VK_NULL_HANDLE;
 
-        VkShaderModule createShaderModule(const std::vector<char>& code);
-        std::vector<char> readFile(const std::string& filename);
+        VkShaderModule createShaderModule(const std::vector<char>& code) const;
+        std::vector<char> readFile(const std::string& filename) const;
     };
 
 } // namespace Bess::Renderer2D::Vulkan

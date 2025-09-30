@@ -6,14 +6,14 @@
 
 namespace Bess::Renderer2D::Vulkan {
 
-    VulkanCommandBuffer::VulkanCommandBuffer(VulkanDevice &device) : m_device(device) {
+    VulkanCommandBuffer::VulkanCommandBuffer(const std::shared_ptr<VulkanDevice> &device) : m_device(device) {
         createCommandPool();
         createCommandBuffers();
     }
 
     VulkanCommandBuffer::~VulkanCommandBuffer() {
         if (m_commandPool != VK_NULL_HANDLE) {
-            vkDestroyCommandPool(m_device.device(), m_commandPool, nullptr);
+            vkDestroyCommandPool(m_device->device(), m_commandPool, nullptr);
         }
     }
 
@@ -27,7 +27,7 @@ namespace Bess::Renderer2D::Vulkan {
     VulkanCommandBuffer &VulkanCommandBuffer::operator=(VulkanCommandBuffer &&other) noexcept {
         if (this != &other) {
             if (m_commandPool != VK_NULL_HANDLE) {
-                vkDestroyCommandPool(m_device.device(), m_commandPool, nullptr);
+                vkDestroyCommandPool(m_device->device(), m_commandPool, nullptr);
             }
 
             m_commandPool = other.m_commandPool;
@@ -39,14 +39,14 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void VulkanCommandBuffer::createCommandPool() {
-        QueueFamilyIndices queueFamilyIndices = m_device.queueFamilyIndices();
+        const QueueFamilyIndices queueFamilyIndices = m_device->queueFamilyIndices();
 
         VkCommandPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 
-        if (vkCreateCommandPool(m_device.device(), &poolInfo, nullptr, &m_commandPool) != VK_SUCCESS) {
+        if (vkCreateCommandPool(m_device->device(), &poolInfo, nullptr, &m_commandPool) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create command pool!");
         }
     }
@@ -60,12 +60,12 @@ namespace Bess::Renderer2D::Vulkan {
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
 
-        if (vkAllocateCommandBuffers(m_device.device(), &allocInfo, m_commandBuffers.data()) != VK_SUCCESS) {
+        if (vkAllocateCommandBuffers(m_device->device(), &allocInfo, m_commandBuffers.data()) != VK_SUCCESS) {
             throw std::runtime_error("Failed to allocate command buffers!");
         }
     }
 
-    void VulkanCommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, VkRenderPass renderPass, VkFramebuffer framebuffer, VkExtent2D extent, VkPipelineLayout pipelineLayout) {
+    void VulkanCommandBuffer::recordCommandBuffer(const VkCommandBuffer commandBuffer, uint32_t imageIndex, const VkRenderPass renderPass, const VkFramebuffer framebuffer, const VkExtent2D extent, VkPipelineLayout pipelineLayout) const {
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -80,15 +80,12 @@ namespace Bess::Renderer2D::Vulkan {
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = extent;
 
-        VkClearValue clearColor = {{{0.0F, 0.0F, 0.0F, 1.0F}}};
+        constexpr VkClearValue clearColor = {{{0.0F, 0.0F, 0.0F, 1.0F}}};
         renderPassInfo.clearValueCount = 1;
         renderPassInfo.pClearValues = &clearColor;
 
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        // TODO: Add actual rendering commands here
-        
-        // Render ImGui within the active render pass
         ImDrawData* drawData = ImGui::GetDrawData();
         if (drawData && drawData->CmdListsCount > 0) {
             ImGui_ImplVulkan_RenderDrawData(drawData, commandBuffer);

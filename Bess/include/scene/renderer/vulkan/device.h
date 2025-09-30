@@ -20,11 +20,9 @@ namespace Bess::Renderer2D::Vulkan {
         VulkanDevice(VkInstance instance, VkSurfaceKHR surface);
         ~VulkanDevice();
 
-        // Delete copy constructor and assignment operator
         VulkanDevice(const VulkanDevice &) = delete;
         VulkanDevice &operator=(const VulkanDevice &) = delete;
 
-        // Move constructor and assignment operator
         VulkanDevice(VulkanDevice &&other) noexcept;
         VulkanDevice &operator=(VulkanDevice &&other) noexcept;
 
@@ -34,16 +32,14 @@ namespace Bess::Renderer2D::Vulkan {
         VkQueue graphicsQueue() const { return m_graphicsQueue; }
         VkQueue presentQueue() const { return m_presentQueue; }
 
-        // Utility methods for memory management and command buffers
-        uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-        VkCommandBuffer beginSingleTimeCommands();
-        void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+        VkCommandBuffer beginSingleTimeCommands() const;
+        void endSingleTimeCommands(VkCommandBuffer commandBuffer) const;
 
       private:
         void pickPhysicalDevice();
         void createLogicalDevice();
-        bool isDeviceSuitable(VkPhysicalDevice device);
-        QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+        bool isDeviceSuitable(VkPhysicalDevice device) const;
+        QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) const;
 
         VkInstance m_instance;
         VkSurfaceKHR m_surface;

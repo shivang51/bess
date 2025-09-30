@@ -76,18 +76,18 @@ namespace Bess::Renderer2D {
 
         m_device = std::make_shared<Vulkan::VulkanDevice>(m_vkInstance, m_renderSurface);
         m_swapchain = std::make_shared<Vulkan::VulkanSwapchain>(m_vkInstance, m_device, m_renderSurface, windowExtent);
+
+
         m_pipeline = std::make_shared<Vulkan::VulkanPipeline>(m_device, m_swapchain);
         m_pipeline->createGraphicsPipeline(vertShaderPath, fragShaderPath);
-        
-        // Create ImGui pipeline
+
         m_imguiPipeline = std::make_shared<Vulkan::ImGuiPipeline>(m_device, m_swapchain);
         
         m_swapchain->createFramebuffers(m_pipeline->renderPass());
 
-        // Create render pass for scene rendering
-        m_renderPass = std::make_shared<Vulkan::VulkanRenderPass>(*m_device, VK_FORMAT_B8G8R8A8_SRGB, VK_FORMAT_D32_SFLOAT);
+        m_renderPass = std::make_shared<Vulkan::VulkanRenderPass>(m_device, VK_FORMAT_B8G8R8A8_SRGB, VK_FORMAT_D32_SFLOAT);
 
-        m_commandBuffer = std::make_shared<Vulkan::VulkanCommandBuffer>(*m_device);
+        m_commandBuffer = std::make_shared<Vulkan::VulkanCommandBuffer>(m_device);
         createSyncObjects();
 
         isInitialized = true;
@@ -300,7 +300,7 @@ namespace Bess::Renderer2D {
 
         auto debugMessengerCreateInfo = getDebugMessengerCreateInfo();
 
-        VkInstanceCreateInfo instanceInfo{
+        const VkInstanceCreateInfo instanceInfo{
             .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
             .pNext = (VkDebugUtilsMessengerCreateInfoEXT *)&debugMessengerCreateInfo,
             .pApplicationInfo = &appInfo,
@@ -317,7 +317,7 @@ namespace Bess::Renderer2D {
         return VK_SUCCESS;
     }
 
-    VkResult VulkanRenderer::validateExtensions(const std::vector<const char *> &extensions) {
+    VkResult VulkanRenderer::validateExtensions(const std::vector<const char *> &extensions) const {
         uint32_t extensionCount = 0;
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
         std::vector<VkExtensionProperties> availableExtensions(extensionCount);
@@ -332,7 +332,7 @@ namespace Bess::Renderer2D {
         return requiredExtensions.empty() ? VK_SUCCESS : VK_ERROR_EXTENSION_NOT_PRESENT;
     }
 
-    VkResult VulkanRenderer::validateLayers(const std::vector<const char *> &layers) {
+    VkResult VulkanRenderer::validateLayers(const std::vector<const char *> &layers) const {
         uint32_t layerCount;
         vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
         std::vector<VkLayerProperties> availableLayers(layerCount);
@@ -365,8 +365,8 @@ namespace Bess::Renderer2D {
         return VK_FALSE;
     }
 
-    VkDebugUtilsMessengerCreateInfoEXT VulkanRenderer::getDebugMessengerCreateInfo() {
-        VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo{
+    VkDebugUtilsMessengerCreateInfoEXT VulkanRenderer::getDebugMessengerCreateInfo() const {
+        const VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo{
             .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
             .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
             .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
@@ -378,9 +378,9 @@ namespace Bess::Renderer2D {
 
     VkResult VulkanRenderer::createDebugMessenger() {
 #ifndef NDEBUG
-        auto createInfo = getDebugMessengerCreateInfo();
+        const auto createInfo = getDebugMessengerCreateInfo();
 
-        auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_vkInstance, "vkCreateDebugUtilsMessengerEXT");
+        const auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_vkInstance, "vkCreateDebugUtilsMessengerEXT");
         if (func != nullptr) {
             return func(m_vkInstance, &createInfo, nullptr, &m_vkDebugMessenger);
         } else {
@@ -391,10 +391,10 @@ namespace Bess::Renderer2D {
 #endif
     }
 
-    VkResult VulkanRenderer::destroyDebugMessenger() {
+    VkResult VulkanRenderer::destroyDebugMessenger() const {
 #ifndef NDEBUG
         if (m_vkDebugMessenger != VK_NULL_HANDLE) {
-            auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_vkInstance, "vkDestroyDebugUtilsMessengerEXT");
+            const auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_vkInstance, "vkDestroyDebugUtilsMessengerEXT");
             if (func != nullptr) {
                 func(m_vkInstance, m_vkDebugMessenger, nullptr);
             }

@@ -116,11 +116,11 @@ namespace Bess::Renderer2D {
 
       private:
         VkResult initVkInstance(const std::vector<const char *> &winExtensions);
-        VkResult validateExtensions(const std::vector<const char *> &extensions);
-        VkResult validateLayers(const std::vector<const char *> &layers);
-        VkDebugUtilsMessengerCreateInfoEXT getDebugMessengerCreateInfo();
+        VkResult validateExtensions(const std::vector<const char *> &extensions) const;
+        VkResult validateLayers(const std::vector<const char *> &layers) const;
+        VkDebugUtilsMessengerCreateInfoEXT getDebugMessengerCreateInfo() const;
         VkResult createDebugMessenger();
-        VkResult destroyDebugMessenger();
+        VkResult destroyDebugMessenger() const;
         void createSyncObjects();
 
         VkInstance m_vkInstance = VK_NULL_HANDLE;

@@ -5,13 +5,13 @@
 
 namespace Bess::Renderer2D::Vulkan {
 
-    VulkanSwapchain::VulkanSwapchain(VkInstance instance, std::shared_ptr<VulkanDevice> device, VkSurfaceKHR surface, VkExtent2D windowExtent)
+    VulkanSwapchain::VulkanSwapchain(const VkInstance instance, std::shared_ptr<VulkanDevice> device, const VkSurfaceKHR surface, const VkExtent2D windowExtent)
         : m_instance(instance), m_device(device), m_surface(surface), m_windowExtent(windowExtent) {
         createSwapchain();
         createImageViews();
     }
 
-    VulkanSwapchain::VulkanSwapchain(VkInstance instance, std::shared_ptr<VulkanDevice> device, VkSurfaceKHR surface, VkExtent2D windowExtent, VkSwapchainKHR oldSwapchain)
+    VulkanSwapchain::VulkanSwapchain(const VkInstance instance, std::shared_ptr<VulkanDevice> device, const VkSurfaceKHR surface, const VkExtent2D windowExtent, const VkSwapchainKHR oldSwapchain)
         : m_instance(instance), m_device(device), m_surface(surface), m_windowExtent(windowExtent) {
         createSwapchain(oldSwapchain);
         createImageViews();
@@ -38,9 +38,7 @@ namespace Bess::Renderer2D::Vulkan {
     VulkanSwapchain &VulkanSwapchain::operator=(VulkanSwapchain &&other) noexcept {
         if (this != &other) {
             cleanup();
-
             m_instance = other.m_instance;
-            // m_device is a reference and cannot be reassigned
             m_surface = other.m_surface;
             m_windowExtent = other.m_windowExtent;
             m_swapchain = other.m_swapchain;
@@ -55,18 +53,12 @@ namespace Bess::Renderer2D::Vulkan {
         return *this;
     }
 
-    void VulkanSwapchain::createSwapchain(VkSwapchainKHR oldSwapchain) {
-        SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_device->physicalDevice());
+    void VulkanSwapchain::createSwapchain(const VkSwapchainKHR oldSwapchain) {
+        const SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_device->physicalDevice());
 
-        // Available surface formats logged for debugging if needed
-
-        VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-        VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-        VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, m_windowExtent);
-        
-        // Surface format selected
-        // Present mode selected
-        // Extent selected
+        const VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+        const VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+        const VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, m_windowExtent);
 
         uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
         if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
@@ -83,8 +75,8 @@ namespace Bess::Renderer2D::Vulkan {
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-        QueueFamilyIndices indices = m_device->queueFamilyIndices();
-        uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+        const QueueFamilyIndices indices = m_device->queueFamilyIndices();
+        const uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
         if (indices.graphicsFamily != indices.presentFamily) {
             createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -100,9 +92,7 @@ namespace Bess::Renderer2D::Vulkan {
         createInfo.clipped = VK_TRUE;
         createInfo.oldSwapchain = oldSwapchain;
 
-        // Swapchain creation parameters set
-
-        VkResult result = vkCreateSwapchainKHR(m_device->device(), &createInfo, nullptr, &m_swapchain);
+        const VkResult result = vkCreateSwapchainKHR(m_device->device(), &createInfo, nullptr, &m_swapchain);
         if (result != VK_SUCCESS) {
             BESS_ERROR("Failed to create swap chain! Error code: {}", static_cast<int>(result));
             throw std::runtime_error("Failed to create swap chain!");
@@ -117,17 +107,11 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void VulkanSwapchain::createSwapchain() {
-        SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_device->physicalDevice());
+        const SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_device->physicalDevice());
 
-        // Available surface formats logged for debugging if needed
-
-        VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-        VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-        VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, m_windowExtent);
-        
-        // Surface format selected
-        // Present mode selected
-        // Extent selected
+        const VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+        const VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+        const VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, m_windowExtent);
 
         uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
         if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
@@ -144,8 +128,8 @@ namespace Bess::Renderer2D::Vulkan {
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-        QueueFamilyIndices indices = m_device->queueFamilyIndices();
-        uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+        const QueueFamilyIndices indices = m_device->queueFamilyIndices();
+        const uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
         if (indices.graphicsFamily != indices.presentFamily) {
             createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -161,9 +145,7 @@ namespace Bess::Renderer2D::Vulkan {
         createInfo.clipped = VK_TRUE;
         createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-        // Swapchain creation parameters set
-
-        VkResult result = vkCreateSwapchainKHR(m_device->device(), &createInfo, nullptr, &m_swapchain);
+        const VkResult result = vkCreateSwapchainKHR(m_device->device(), &createInfo, nullptr, &m_swapchain);
         if (result != VK_SUCCESS) {
             BESS_ERROR("Failed to create swap chain! Error code: {}", static_cast<int>(result));
             throw std::runtime_error("Failed to create swap chain!");
@@ -202,11 +184,11 @@ namespace Bess::Renderer2D::Vulkan {
         }
     }
 
-    void VulkanSwapchain::createFramebuffers(VkRenderPass renderPass) {
+    void VulkanSwapchain::createFramebuffers(const VkRenderPass renderPass) {
         m_framebuffers.resize(m_imageViews.size());
 
         for (size_t i = 0; i < m_imageViews.size(); i++) {
-            VkImageView attachments[] = {
+            const VkImageView attachments[] = {
                 m_imageViews[i]};
 
             VkFramebufferCreateInfo framebufferInfo{};
@@ -225,12 +207,12 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void VulkanSwapchain::cleanup() {
-        for (auto framebuffer : m_framebuffers) {
+        for (const auto framebuffer : m_framebuffers) {
             vkDestroyFramebuffer(m_device->device(), framebuffer, nullptr);
         }
         m_framebuffers.clear();
 
-        for (auto imageView : m_imageViews) {
+        for (const auto imageView : m_imageViews) {
             vkDestroyImageView(m_device->device(), imageView, nullptr);
         }
         m_imageViews.clear();
@@ -241,8 +223,8 @@ namespace Bess::Renderer2D::Vulkan {
         }
     }
 
-    VulkanSwapchain::SwapChainSupportDetails VulkanSwapchain::querySwapChainSupport(VkPhysicalDevice device) {
-        VulkanSwapchain::SwapChainSupportDetails details{};
+    VulkanSwapchain::SwapChainSupportDetails VulkanSwapchain::querySwapChainSupport(const VkPhysicalDevice device) const {
+        SwapChainSupportDetails details{};
 
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_surface, &details.capabilities);
 
@@ -265,34 +247,33 @@ namespace Bess::Renderer2D::Vulkan {
         return details;
     }
 
-    VkSurfaceFormatKHR VulkanSwapchain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) {
-        // Prefer UNORM format with SRGB color space for proper gamma correction
+    VkSurfaceFormatKHR VulkanSwapchain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) const {
         for (const auto &availableFormat : availableFormats) {
             if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
                 return availableFormat;
             }
         }
 
-        // Fallback to any format with SRGB color space
         for (const auto &availableFormat : availableFormats) {
             if (availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
                 return availableFormat;
             }
         }
 
-        // If no SRGB format available, use the first available format
         if (!availableFormats.empty()) {
             return availableFormats[0];
         }
-        
-        // This should never happen, but just in case
+
+
+        BESS_WARN("[Swapchain] Using the fallback format");
+
         VkSurfaceFormatKHR fallback{};
         fallback.format = VK_FORMAT_B8G8R8A8_UNORM;
         fallback.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
         return fallback;
     }
 
-    VkPresentModeKHR VulkanSwapchain::chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) {
+    VkPresentModeKHR VulkanSwapchain::chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) const {
         for (const auto &availablePresentMode : availablePresentModes) {
             if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
                 return availablePresentMode;
@@ -302,16 +283,16 @@ namespace Bess::Renderer2D::Vulkan {
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
-    VkExtent2D VulkanSwapchain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities, VkExtent2D windowExtent) {
+    VkExtent2D VulkanSwapchain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities, const VkExtent2D windowExtent) const {
         if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
             return capabilities.currentExtent;
-        } else {
-            VkExtent2D actualExtent = windowExtent;
-            actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-            actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
-
-            return actualExtent;
         }
+
+        VkExtent2D actualExtent = windowExtent;
+        actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+        actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+
+        return actualExtent;
     }
 
 } // namespace Bess::Renderer2D::Vulkan

@@ -5,7 +5,7 @@
 
 namespace Bess::Renderer2D::Vulkan {
 
-    VulkanDevice::VulkanDevice(VkInstance instance, VkSurfaceKHR surface)
+    VulkanDevice::VulkanDevice(const VkInstance instance, const VkSurfaceKHR surface)
         : m_instance(instance), m_surface(surface) {
         pickPhysicalDevice();
         createLogicalDevice();
@@ -72,10 +72,10 @@ namespace Bess::Renderer2D::Vulkan {
         vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
 
         for (const auto &device : devices) {
-            if (isDeviceSuitable(device)) {
-                m_vkPhysicalDevice = device;
-                break;
-            }
+            if (!isDeviceSuitable(device)) continue;
+
+            m_vkPhysicalDevice = device;
+            break;
         }
 
         if (m_vkPhysicalDevice == VK_NULL_HANDLE) {
@@ -111,7 +111,6 @@ namespace Bess::Renderer2D::Vulkan {
         createInfo.pQueueCreateInfos = queueCreateInfos.data();
         createInfo.pEnabledFeatures = &deviceFeatures;
 
-        // Enable required extensions
         const std::vector<const char *> deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME};
         createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
@@ -129,7 +128,6 @@ namespace Bess::Renderer2D::Vulkan {
         vkGetDeviceQueue(m_vkDevice, m_queueFamilyIndices.graphicsFamily.value(), 0, &m_graphicsQueue);
         vkGetDeviceQueue(m_vkDevice, m_queueFamilyIndices.presentFamily.value(), 0, &m_presentQueue);
 
-        // Create command pool
         VkCommandPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -140,8 +138,8 @@ namespace Bess::Renderer2D::Vulkan {
         }
     }
 
-    bool VulkanDevice::isDeviceSuitable(VkPhysicalDevice device) {
-        QueueFamilyIndices indices = findQueueFamilies(device);
+    bool VulkanDevice::isDeviceSuitable(const VkPhysicalDevice device) const {
+        const QueueFamilyIndices indices = findQueueFamilies(device);
 
         bool extensionsSupported = false;
         uint32_t extensionCount;
@@ -149,8 +147,7 @@ namespace Bess::Renderer2D::Vulkan {
         std::vector<VkExtensionProperties> availableExtensions(extensionCount);
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
-        std::set<std::string> requiredExtensions = {
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+        std::set<std::string> requiredExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
         for (const auto &extension : availableExtensions) {
             requiredExtensions.erase(extension.extensionName);
@@ -161,7 +158,7 @@ namespace Bess::Renderer2D::Vulkan {
         return indices.isComplete() && extensionsSupported;
     }
 
-    QueueFamilyIndices VulkanDevice::findQueueFamilies(VkPhysicalDevice device) {
+    QueueFamilyIndices VulkanDevice::findQueueFamilies(const VkPhysicalDevice device) const {
         QueueFamilyIndices indices;
 
         uint32_t queueFamilyCount = 0;
@@ -192,20 +189,7 @@ namespace Bess::Renderer2D::Vulkan {
         return indices;
     }
 
-    uint32_t VulkanDevice::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
-        VkPhysicalDeviceMemoryProperties memProperties;
-        vkGetPhysicalDeviceMemoryProperties(m_vkPhysicalDevice, &memProperties);
-
-        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-                return i;
-            }
-        }
-
-        throw std::runtime_error("Failed to find suitable memory type!");
-    }
-
-    VkCommandBuffer VulkanDevice::beginSingleTimeCommands() {
+    VkCommandBuffer VulkanDevice::beginSingleTimeCommands() const {
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -224,7 +208,7 @@ namespace Bess::Renderer2D::Vulkan {
         return commandBuffer;
     }
 
-    void VulkanDevice::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
+    void VulkanDevice::endSingleTimeCommands(const VkCommandBuffer commandBuffer) const {
         vkEndCommandBuffer(commandBuffer);
 
         VkSubmitInfo submitInfo{};

@@ -21,7 +21,7 @@ namespace Bess::Renderer2D::Vulkan {
         m_height = 1;
     }
 
-    VulkanTexture::VulkanTexture(VulkanDevice& device, uint32_t width, uint32_t height, VkFormat format, const void* data)
+    VulkanTexture::VulkanTexture(VulkanDevice& device, const uint32_t width, const uint32_t height, const VkFormat format, const void* data)
         : m_device(device), m_width(width), m_height(height), m_format(format) {
         createImage(width, height, format, VK_IMAGE_TILING_OPTIMAL,
                    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -92,9 +92,9 @@ namespace Bess::Renderer2D::Vulkan {
         return *this;
     }
 
-    void VulkanTexture::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
-                                   VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
-                                   VkImage& image, VkDeviceMemory& imageMemory) {
+    void VulkanTexture::createImage(const uint32_t width, const uint32_t height, const VkFormat format, const VkImageTiling tiling,
+                                    const VkImageUsageFlags usage, const VkMemoryPropertyFlags properties,
+                                   VkImage& image, VkDeviceMemory& imageMemory) const {
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -129,7 +129,7 @@ namespace Bess::Renderer2D::Vulkan {
         vkBindImageMemory(m_device.device(), image, imageMemory, 0);
     }
 
-    void VulkanTexture::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
+    void VulkanTexture::createImageView(const VkImage image, const VkFormat format, const VkImageAspectFlags aspectFlags) {
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image = image;
@@ -167,15 +167,15 @@ namespace Bess::Renderer2D::Vulkan {
         }
     }
 
-    void VulkanTexture::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
+    void VulkanTexture::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const {
         // TODO: Implement image layout transition
     }
 
-    void VulkanTexture::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
+    void VulkanTexture::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const {
         // TODO: Implement buffer to image copy
     }
 
-    uint32_t VulkanTexture::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+    uint32_t VulkanTexture::findMemoryType(const uint32_t typeFilter, const VkMemoryPropertyFlags properties) const {
         VkPhysicalDeviceMemoryProperties memProperties;
         vkGetPhysicalDeviceMemoryProperties(m_device.physicalDevice(), &memProperties);
 

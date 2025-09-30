@@ -273,7 +273,7 @@ namespace Bess::Renderer2D::Vulkan {
         vkDestroyShaderModule(m_device->device(), vertShaderModule, nullptr);
     }
 
-    VkShaderModule ImGuiPipeline::createShaderModule(const std::vector<char> &code) {
+    VkShaderModule ImGuiPipeline::createShaderModule(const std::vector<char> &code) const {
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = code.size();
@@ -287,14 +287,14 @@ namespace Bess::Renderer2D::Vulkan {
         return shaderModule;
     }
 
-    std::vector<char> ImGuiPipeline::readFile(const std::string &filename) {
+    std::vector<char> ImGuiPipeline::readFile(const std::string &filename) const {
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
         if (!file.is_open()) {
             throw std::runtime_error("Failed to open file: " + filename);
         }
 
-        size_t fileSize = static_cast<size_t>(file.tellg());
+        const size_t fileSize = static_cast<size_t>(file.tellg());
         std::vector<char> buffer(fileSize);
 
         file.seekg(0);

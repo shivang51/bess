@@ -28,8 +28,8 @@ namespace Bess::Renderer2D::Vulkan {
         VkPipelineLayout pipelineLayout() const { return m_pipelineLayout; }
 
       private:
-        VkShaderModule createShaderModule(const std::vector<char> &code);
-        std::vector<char> readFile(const std::string &filename);
+        VkShaderModule createShaderModule(const std::vector<char> &code) const;
+        std::vector<char> readFile(const std::string &filename) const;
 
         std::shared_ptr<VulkanDevice> m_device;
         std::shared_ptr<VulkanSwapchain> m_swapchain;
