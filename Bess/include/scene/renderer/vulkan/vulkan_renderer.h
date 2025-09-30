@@ -66,7 +66,7 @@ namespace Bess::Renderer2D {
                   VkExtent2D windowExtent);
 
         void beginFrame();
-        // void draw();
+        void draw();
         void renderUi();
         void endFrame();
 

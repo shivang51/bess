@@ -277,10 +277,16 @@ namespace Bess::UI {
         state.viewportSize = {viewportPanelSize.x, viewportPanelSize.y};
 
         const auto offset = ImGui::GetCursorPos();
-
-        // ImGui::Image((void *)state.viewportTexture,
-        //              ImVec2(viewportPanelSize.x, viewportPanelSize.y), ImVec2(0, 1),
-        //              ImVec2(1, 0));
+        if (state.viewportTexture) {
+            ImGui::Image((void *)state.viewportTexture,
+                         ImVec2(viewportPanelSize.x, viewportPanelSize.y), ImVec2(0, 1),
+                         ImVec2(1, 0));
+        } else {
+            ImGui::SetCursorPos({100, 100});
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));
+            ImGui::Text("No valid scene texture attched.");
+            ImGui::PopStyleColor();
+        }
 
         const auto pos = ImGui::GetWindowPos();
         const auto gPos = ImGui::GetMainViewport()->Pos;

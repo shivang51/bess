@@ -47,8 +47,8 @@ namespace Bess::Renderer2D {
         BESS_INFO("Renderer Initialized");
     }
 
-    // void VulkanCore::draw() {
-    // }
+    void VulkanCore::draw() {
+    }
 
     void VulkanCore::beginFrame() {
         vkWaitForFences(m_device->device(), 1, &m_inFlightFences[m_currentFrameIdx], VK_TRUE, UINT64_MAX);
