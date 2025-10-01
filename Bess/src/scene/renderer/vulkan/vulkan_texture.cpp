@@ -8,8 +8,8 @@
 
 namespace Bess::Renderer2D::Vulkan {
 
-    VulkanTexture::VulkanTexture(VulkanDevice& device, const std::string& path)
-        : m_device(device) {
+    VulkanTexture::VulkanTexture(std::shared_ptr<VulkanDevice> device, const std::string& path)
+        : m_device(std::move(device)) {
         int w = 0, h = 0, bpp = 0;
         stbi_uc* pixels = stbi_load(path.c_str(), &w, &h, &bpp, STBI_rgb_alpha);
         if (pixels == nullptr) {
@@ -22,28 +22,26 @@ namespace Bess::Renderer2D::Vulkan {
         createImage(m_width, m_height, m_format, VK_IMAGE_TILING_OPTIMAL,
                    VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_imageMemory);
-        
+
         createImageView(m_image, m_format, VK_IMAGE_ASPECT_COLOR_BIT);
         createTextureSampler();
-        
-        // upload
+
         setData(pixels, static_cast<size_t>(m_width) * m_height * 4);
         stbi_image_free(pixels);
     }
 
-    VulkanTexture::VulkanTexture(VulkanDevice& device, const uint32_t width, const uint32_t height, const VkFormat format, const void* data)
-        : m_device(device), m_width(width), m_height(height), m_format(format) {
+    VulkanTexture::VulkanTexture(std::shared_ptr<VulkanDevice> device, const uint32_t width, const uint32_t height, const VkFormat format, const void* data)
+        : m_device(std::move(device)), m_width(width), m_height(height), m_format(format) {
         createImage(width, height, format, VK_IMAGE_TILING_OPTIMAL,
                    VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_imageMemory);
-        
+
         createImageView(m_image, format, VK_IMAGE_ASPECT_COLOR_BIT);
         createTextureSampler();
 
         if (data != nullptr) {
             setData(data, static_cast<size_t>(m_width) * m_height * 4);
         } else {
-            // initialize to opaque black
             std::vector<uint32_t> zeros(m_width * m_height, 0x000000FF);
             setData(zeros.data(), zeros.size() * sizeof(uint32_t));
         }
@@ -51,21 +49,21 @@ namespace Bess::Renderer2D::Vulkan {
 
     VulkanTexture::~VulkanTexture() {
         if (m_sampler != VK_NULL_HANDLE) {
-            vkDestroySampler(m_device.device(), m_sampler, nullptr);
+            vkDestroySampler(m_device->device(), m_sampler, nullptr);
         }
         if (m_imageView != VK_NULL_HANDLE) {
-            vkDestroyImageView(m_device.device(), m_imageView, nullptr);
+            vkDestroyImageView(m_device->device(), m_imageView, nullptr);
         }
         if (m_image != VK_NULL_HANDLE) {
-            vkDestroyImage(m_device.device(), m_image, nullptr);
+            vkDestroyImage(m_device->device(), m_image, nullptr);
         }
         if (m_imageMemory != VK_NULL_HANDLE) {
-            vkFreeMemory(m_device.device(), m_imageMemory, nullptr);
+            vkFreeMemory(m_device->device(), m_imageMemory, nullptr);
         }
     }
 
     VulkanTexture::VulkanTexture(VulkanTexture&& other) noexcept
-        : m_device(other.m_device),
+        : m_device(std::move(other.m_device)),
           m_image(other.m_image),
           m_imageMemory(other.m_imageMemory),
           m_imageView(other.m_imageView),
@@ -82,17 +80,18 @@ namespace Bess::Renderer2D::Vulkan {
     VulkanTexture& VulkanTexture::operator=(VulkanTexture&& other) noexcept {
         if (this != &other) {
             if (m_sampler != VK_NULL_HANDLE) {
-                vkDestroySampler(m_device.device(), m_sampler, nullptr);
+                vkDestroySampler(m_device->device(), m_sampler, nullptr);
             }
             if (m_imageView != VK_NULL_HANDLE) {
-                vkDestroyImageView(m_device.device(), m_imageView, nullptr);
+                vkDestroyImageView(m_device->device(), m_imageView, nullptr);
             }
             if (m_image != VK_NULL_HANDLE) {
-                vkDestroyImage(m_device.device(), m_image, nullptr);
+                vkDestroyImage(m_device->device(), m_image, nullptr);
             }
             if (m_imageMemory != VK_NULL_HANDLE) {
-                vkFreeMemory(m_device.device(), m_imageMemory, nullptr);
+                vkFreeMemory(m_device->device(), m_imageMemory, nullptr);
             }
+            m_device = std::move(other.m_device);
             m_image = other.m_image;
             m_imageMemory = other.m_imageMemory;
             m_imageView = other.m_imageView;
@@ -126,23 +125,23 @@ namespace Bess::Renderer2D::Vulkan {
         imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        if (vkCreateImage(m_device.device(), &imageInfo, nullptr, &image) != VK_SUCCESS) {
+        if (vkCreateImage(m_device->device(), &imageInfo, nullptr, &image) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create image!");
         }
 
         VkMemoryRequirements memRequirements;
-        vkGetImageMemoryRequirements(m_device.device(), image, &memRequirements);
+        vkGetImageMemoryRequirements(m_device->device(), image, &memRequirements);
 
         VkMemoryAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirements.size;
         allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
-        if (vkAllocateMemory(m_device.device(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
+        if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
             throw std::runtime_error("Failed to allocate image memory!");
         }
 
-        vkBindImageMemory(m_device.device(), image, imageMemory, 0);
+        vkBindImageMemory(m_device->device(), image, imageMemory, 0);
     }
 
     void VulkanTexture::createImageView(const VkImage image, const VkFormat format, const VkImageAspectFlags aspectFlags) {
@@ -157,7 +156,7 @@ namespace Bess::Renderer2D::Vulkan {
         viewInfo.subresourceRange.baseArrayLayer = 0;
         viewInfo.subresourceRange.layerCount = 1;
 
-        if (vkCreateImageView(m_device.device(), &viewInfo, nullptr, &m_imageView) != VK_SUCCESS) {
+        if (vkCreateImageView(m_device->device(), &viewInfo, nullptr, &m_imageView) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create texture image view!");
         }
     }
@@ -178,13 +177,13 @@ namespace Bess::Renderer2D::Vulkan {
         samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
         samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-        if (vkCreateSampler(m_device.device(), &samplerInfo, nullptr, &m_sampler) != VK_SUCCESS) {
+        if (vkCreateSampler(m_device->device(), &samplerInfo, nullptr, &m_sampler) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create texture sampler!");
         }
     }
 
     void VulkanTexture::transitionImageLayout(VkImage image, VkFormat /*format*/, VkImageLayout oldLayout, VkImageLayout newLayout) const {
-        VkCommandBuffer cmd = m_device.beginSingleTimeCommands();
+        VkCommandBuffer cmd = m_device->beginSingleTimeCommands();
 
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -231,11 +230,11 @@ namespace Bess::Renderer2D::Vulkan {
 
         vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
-        m_device.endSingleTimeCommands(cmd);
+        m_device->endSingleTimeCommands(cmd);
     }
 
     void VulkanTexture::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const {
-        VkCommandBuffer cmd = m_device.beginSingleTimeCommands();
+        VkCommandBuffer cmd = m_device->beginSingleTimeCommands();
 
         VkBufferImageCopy region{};
         region.bufferOffset = 0;
@@ -250,7 +249,7 @@ namespace Bess::Renderer2D::Vulkan {
 
         vkCmdCopyBufferToImage(cmd, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-        m_device.endSingleTimeCommands(cmd);
+        m_device->endSingleTimeCommands(cmd);
     }
 
     void VulkanTexture::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
@@ -260,25 +259,25 @@ namespace Bess::Renderer2D::Vulkan {
         bufferInfo.size = size;
         bufferInfo.usage = usage;
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        if (vkCreateBuffer(m_device.device(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
+        if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create buffer");
         }
         VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(m_device.device(), buffer, &memRequirements);
+        vkGetBufferMemoryRequirements(m_device->device(), buffer, &memRequirements);
         VkMemoryAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = m_device.findMemoryType(memRequirements.memoryTypeBits, properties);
-        if (vkAllocateMemory(m_device.device(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+        allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, properties);
+        if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
             throw std::runtime_error("Failed to allocate buffer memory");
         }
-        vkBindBufferMemory(m_device.device(), buffer, bufferMemory, 0);
+        vkBindBufferMemory(m_device->device(), buffer, bufferMemory, 0);
     }
 
     void VulkanTexture::setData(const void* data, size_t byteSize) {
         if (m_image == VK_NULL_HANDLE) return;
         if (byteSize == 0) {
-            byteSize = static_cast<size_t>(m_width) * m_height * 4; // assume RGBA8
+            byteSize = static_cast<size_t>(m_width) * m_height * 4;
         }
 
         VkBuffer stagingBuffer = VK_NULL_HANDLE;
@@ -287,23 +286,22 @@ namespace Bess::Renderer2D::Vulkan {
                      stagingBuffer, stagingMemory);
 
         void* mapped = nullptr;
-        vkMapMemory(m_device.device(), stagingMemory, 0, byteSize, 0, &mapped);
+        vkMapMemory(m_device->device(), stagingMemory, 0, byteSize, 0, &mapped);
         std::memcpy(mapped, data, byteSize);
-        vkUnmapMemory(m_device.device(), stagingMemory);
+        vkUnmapMemory(m_device->device(), stagingMemory);
 
         transitionImageLayout(m_image, m_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
         copyBufferToImage(stagingBuffer, m_image, m_width, m_height);
         transitionImageLayout(m_image, m_format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-        vkDestroyBuffer(m_device.device(), stagingBuffer, nullptr);
-        vkFreeMemory(m_device.device(), stagingMemory, nullptr);
+        vkDestroyBuffer(m_device->device(), stagingBuffer, nullptr);
+        vkFreeMemory(m_device->device(), stagingMemory, nullptr);
     }
 
     void VulkanTexture::resize(uint32_t width, uint32_t height, const void* data) {
-        // destroy old
-        if (m_imageView != VK_NULL_HANDLE) vkDestroyImageView(m_device.device(), m_imageView, nullptr);
-        if (m_image != VK_NULL_HANDLE) vkDestroyImage(m_device.device(), m_image, nullptr);
-        if (m_imageMemory != VK_NULL_HANDLE) vkFreeMemory(m_device.device(), m_imageMemory, nullptr);
+        if (m_imageView != VK_NULL_HANDLE) vkDestroyImageView(m_device->device(), m_imageView, nullptr);
+        if (m_image != VK_NULL_HANDLE) vkDestroyImage(m_device->device(), m_image, nullptr);
+        if (m_imageMemory != VK_NULL_HANDLE) vkFreeMemory(m_device->device(), m_imageMemory, nullptr);
 
         m_width = width;
         m_height = height;
@@ -322,7 +320,6 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void VulkanTexture::saveToPath(const std::string& path) const {
-        // Read back image to CPU and write PNG
         std::vector<unsigned char> rgba = getData();
         if (rgba.empty()) {
             BESS_ERROR("[VulkanTexture] saveToPath: empty buffer");
@@ -336,18 +333,15 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     std::vector<unsigned char> VulkanTexture::getData() const {
-        // Transition image to TRANSFER_SRC, copy to staging, map
         VkDeviceSize byteSize = static_cast<VkDeviceSize>(m_width) * m_height * 4;
         VkBuffer stagingBuffer = VK_NULL_HANDLE;
         VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
-        // Host-visible DST for copy
         createBuffer(byteSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                      stagingBuffer, stagingMemory);
 
         transitionImageLayout(m_image, m_format, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
-        // copy image to buffer
-        VkCommandBuffer cmd = m_device.beginSingleTimeCommands();
+        VkCommandBuffer cmd = m_device->beginSingleTimeCommands();
         VkBufferImageCopy region{};
         region.bufferOffset = 0;
         region.bufferRowLength = 0;
@@ -359,24 +353,24 @@ namespace Bess::Renderer2D::Vulkan {
         region.imageOffset = {0, 0, 0};
         region.imageExtent = {m_width, m_height, 1};
         vkCmdCopyImageToBuffer(cmd, m_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, stagingBuffer, 1, &region);
-        m_device.endSingleTimeCommands(cmd);
+        m_device->endSingleTimeCommands(cmd);
 
         transitionImageLayout(m_image, m_format, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         std::vector<unsigned char> out(byteSize);
         void* mapped = nullptr;
-        vkMapMemory(m_device.device(), stagingMemory, 0, byteSize, 0, &mapped);
+        vkMapMemory(m_device->device(), stagingMemory, 0, byteSize, 0, &mapped);
         std::memcpy(out.data(), mapped, static_cast<size_t>(byteSize));
-        vkUnmapMemory(m_device.device(), stagingMemory);
+        vkUnmapMemory(m_device->device(), stagingMemory);
 
-        vkDestroyBuffer(m_device.device(), stagingBuffer, nullptr);
-        vkFreeMemory(m_device.device(), stagingMemory, nullptr);
+        vkDestroyBuffer(m_device->device(), stagingBuffer, nullptr);
+        vkFreeMemory(m_device->device(), stagingMemory, nullptr);
         return out;
     }
 
     uint32_t VulkanTexture::findMemoryType(const uint32_t typeFilter, const VkMemoryPropertyFlags properties) const {
         VkPhysicalDeviceMemoryProperties memProperties;
-        vkGetPhysicalDeviceMemoryProperties(m_device.physicalDevice(), &memProperties);
+        vkGetPhysicalDeviceMemoryProperties(m_device->physicalDevice(), &memProperties);
 
         for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
             if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {

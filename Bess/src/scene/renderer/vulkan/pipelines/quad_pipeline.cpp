@@ -1,4 +1,5 @@
 #include "scene/renderer/vulkan/pipelines/quad_pipeline.h"
+#include "scene/renderer/vulkan/vulkan_texture.h"
 #include "common/log.h"
 #include <cstring>
 
@@ -9,7 +10,44 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
                                const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
                                VkExtent2D extent)
         : Pipeline(device, renderPass, extent) {
-        createDescriptorSets(); // Create descriptor sets after uniform buffers are ready
+        createDescriptorSets(); // frame set (UBOs)
+        // Create sampler-only descriptor set layout for set=1
+        VkDescriptorSetLayoutBinding samplerBinding{};
+        samplerBinding.binding = 2;
+        samplerBinding.descriptorCount = 1;
+        samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = 1;
+        layoutInfo.pBindings = &samplerBinding;
+        if (vkCreateDescriptorSetLayout(m_device->device(), &layoutInfo, nullptr, &m_samplerSetLayout) != VK_SUCCESS) {
+            BESS_ERROR("[QuadPipeline] Failed to create sampler set layout");
+        }
+        // Create texture pool and fallback set
+        ensureTextureDescriptorPool();
+        // Allocate fallback set with a 1x1 white texture
+        if (!m_fallbackTexture) {
+            uint32_t white = 0xFFFFFFFF;
+            m_fallbackTexture = std::make_shared<VulkanTexture>(m_device, 1, 1, VK_FORMAT_R8G8B8A8_UNORM, &white);
+        }
+        VkDescriptorSetAllocateInfo alloc{};
+        alloc.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        alloc.descriptorPool = m_textureDescriptorPool;
+        alloc.descriptorSetCount = 1;
+        VkDescriptorSetLayout sl[] = {m_samplerSetLayout};
+        alloc.pSetLayouts = sl;
+        if (vkAllocateDescriptorSets(m_device->device(), &alloc, &m_fallbackSamplerSet) == VK_SUCCESS) {
+            VkDescriptorImageInfo img = m_fallbackTexture->getDescriptorInfo();
+            VkWriteDescriptorSet w{};
+            w.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            w.dstSet = m_fallbackSamplerSet;
+            w.dstBinding = 2;
+            w.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            w.descriptorCount = 1;
+            w.pImageInfo = &img;
+            vkUpdateDescriptorSets(m_device->device(), 1, &w, 0, nullptr);
+        }
         ensureQuadBuffers();
     }
 
@@ -36,6 +74,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     void QuadPipeline::beginPipeline(VkCommandBuffer commandBuffer) {
         m_currentCommandBuffer = commandBuffer;
         m_pendingQuadInstances.clear();
+        m_textureToInstances.clear();
     }
 
     void QuadPipeline::endPipeline() {
@@ -61,12 +100,80 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 2, vbs, offs);
             vkCmdBindIndexBuffer(m_currentCommandBuffer, m_buffers.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-            vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[m_currentFrameIndex], 0, nullptr);
+            // Bind frame UBO set (set=0) and fallback sampler set (set=1)
+            VkDescriptorSet sets[] = {m_descriptorSets[m_currentFrameIndex], m_fallbackSamplerSet};
+            vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 2, sets, 0, nullptr);
 
-            // Draw all instances in one call
+            // Draw all non-textured instances in one call
             vkCmdDrawIndexed(m_currentCommandBuffer, 6, static_cast<uint32_t>(m_pendingQuadInstances.size()), 0, 0, 0);
             m_pendingQuadInstances.clear();
         }
+
+        // Flush textured batches per texture
+        for (auto &entry : m_textureToInstances) {
+            auto &texture = entry.first;
+            auto &instances = entry.second;
+            if (instances.empty()) continue;
+
+            ensureQuadInstanceCapacity(instances.size());
+
+            void *data = nullptr;
+            vkMapMemory(m_device->device(), m_buffers.instanceBufferMemory, 0, sizeof(QuadInstance) * instances.size(), 0, &data);
+            memcpy(data, instances.data(), sizeof(QuadInstance) * instances.size());
+            vkUnmapMemory(m_device->device(), m_buffers.instanceBufferMemory);
+
+            if (m_pipeline == VK_NULL_HANDLE) {
+                createQuadPipeline();
+            }
+
+            vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+
+            VkBuffer vbs[] = {m_buffers.vertexBuffer, m_buffers.instanceBuffer};
+            VkDeviceSize offs[] = {0, 0};
+            vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 2, vbs, offs);
+            vkCmdBindIndexBuffer(m_currentCommandBuffer, m_buffers.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+            // Ensure a persistent per-texture descriptor set (layout: sampler only at binding 2)
+            if (m_textureDescriptorPool == VK_NULL_HANDLE) {
+                ensureTextureDescriptorPool();
+            }
+            VkDescriptorSet textureSet = VK_NULL_HANDLE;
+            auto it = m_textureSetCache.find(texture);
+            if (it != m_textureSetCache.end()) {
+                textureSet = it->second;
+            } else {
+                VkDescriptorSetAllocateInfo alloc{};
+                alloc.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+                alloc.descriptorPool = m_textureDescriptorPool;
+                alloc.descriptorSetCount = 1;
+                VkDescriptorSetLayout layouts[] = {m_samplerSetLayout};
+                alloc.pSetLayouts = layouts;
+                if (vkAllocateDescriptorSets(m_device->device(), &alloc, &textureSet) != VK_SUCCESS) {
+                    BESS_ERROR("[QuadPipeline] Failed to allocate texture descriptor set");
+                    continue;
+                }
+                // write sampler into binding 2; binding 0/1 (UBOs) can be left as is if not used by this pipeline draw
+                VkDescriptorImageInfo imgInfo = texture->getDescriptorInfo();
+                VkWriteDescriptorSet write{};
+                write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                write.dstSet = textureSet;
+                write.dstBinding = 2;
+                write.dstArrayElement = 0;
+                write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                write.descriptorCount = 1;
+                write.pImageInfo = &imgInfo;
+                vkUpdateDescriptorSets(m_device->device(), 1, &write, 0, nullptr);
+                m_textureSetCache[texture] = textureSet;
+            }
+
+            // Bind both: frame descriptor (UBOs) at set=0 and per-texture sampler at set=1
+            VkDescriptorSet sets2[] = {m_descriptorSets[m_currentFrameIndex], textureSet};
+            vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 2, sets2, 0, nullptr);
+
+            vkCmdDrawIndexed(m_currentCommandBuffer, 6, static_cast<uint32_t>(instances.size()), 0, 0, 0);
+        }
+
+        m_textureToInstances.clear();
 
         m_currentCommandBuffer = VK_NULL_HANDLE;
     }
@@ -144,6 +251,32 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f); // Full local UV [0,1] by default
 
         m_pendingQuadInstances.push_back(instance);
+    }
+
+    void QuadPipeline::drawTexturedQuad(const glm::vec3 &pos,
+                                const glm::vec2 &size,
+                                const glm::vec4 &tint,
+                                int id,
+                                const glm::vec4 &borderRadius,
+                                const glm::vec4 &borderSize,
+                                const glm::vec4 &borderColor,
+                                int isMica,
+                                const std::shared_ptr<VulkanTexture> &texture) {
+        ensureQuadBuffers();
+
+        QuadInstance instance{};
+        instance.position = pos;
+        instance.color = tint;
+        instance.borderRadius = borderRadius;
+        instance.borderColor = borderColor;
+        instance.borderSize = borderSize;
+        instance.size = size;
+        instance.id = id;
+        instance.isMica = isMica;
+        instance.texSlotIdx = 1; // indicate textured
+        instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f);
+
+        m_textureToInstances[texture].push_back(instance);
     }
 
     void QuadPipeline::createQuadPipeline() {
@@ -319,8 +452,10 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = 1;
-        pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout;
+        // We will bind two descriptor sets: set 0 => frame UBO layout; set 1 => sampler-only layout
+        std::array<VkDescriptorSetLayout, 2> setLayouts = {m_descriptorSetLayout, m_samplerSetLayout};
+        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
+        pipelineLayoutInfo.pSetLayouts = setLayouts.data();
 
         if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create quad pipeline layout!");
@@ -447,6 +582,22 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         vkBindBufferMemory(m_device->device(), m_buffers.instanceBuffer, m_buffers.instanceBufferMemory, 0);
 
         m_buffers.instanceCapacity = instanceCount;
+    }
+
+    void QuadPipeline::ensureTextureDescriptorPool(uint32_t capacity) {
+        if (m_textureDescriptorPool != VK_NULL_HANDLE) return;
+        VkDescriptorPoolSize poolSizes[1] = {};
+        poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[0].descriptorCount = capacity;
+
+        VkDescriptorPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolInfo.poolSizeCount = 1;
+        poolInfo.pPoolSizes = poolSizes;
+        poolInfo.maxSets = capacity;
+        if (vkCreateDescriptorPool(m_device->device(), &poolInfo, nullptr, &m_textureDescriptorPool) != VK_SUCCESS) {
+            BESS_ERROR("[QuadPipeline] Failed to create texture descriptor pool");
+        }
     }
 
 } // namespace Bess::Renderer2D::Vulkan::Pipelines

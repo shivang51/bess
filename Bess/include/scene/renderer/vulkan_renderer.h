@@ -39,6 +39,9 @@ namespace Bess::Renderer2D {
         static void grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const GridColors &colors);
         static void quad(const glm::vec3 &pos, const glm::vec2 &size,
                          const glm::vec4 &color, int id, QuadRenderProperties properties = {});
+        static void texturedQuad(const glm::vec3 &pos, const glm::vec2 &size,
+                         const std::shared_ptr<Vulkan::VulkanTexture> &texture,
+                         const glm::vec4 &tintColor, int id, QuadRenderProperties properties = {});
 
       private:
         static std::shared_ptr<Vulkan::PrimitiveRenderer> m_primitiveRenderer;

@@ -25,6 +25,7 @@
 #include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
 #include "scene/renderer/vulkan/vulkan_core.h"
+#include "scene/renderer/vulkan/vulkan_texture.h"
 #include "scene/renderer/vulkan_renderer.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
@@ -207,6 +208,10 @@ namespace Bess::Canvas {
     }
 
     void Scene::drawScene(std::shared_ptr<Camera> camera) {
+
+
+        static std::shared_ptr<Vulkan::VulkanTexture> texture = std::make_shared<Vulkan::VulkanTexture>(Renderer2D::VulkanCore::instance().getDevice(), "assets/images/7-seg-display-tilemap.png");
+
         auto mousePos_ = m_mousePos;
         mousePos_.y = UI::UIMain::state.viewportSize.y - mousePos_.y;
         int x = static_cast<int>(mousePos_.x);
@@ -245,6 +250,12 @@ namespace Bess::Canvas {
         props.borderSize = glm::vec4(2.f);
         props.borderRadius = glm::vec4(16.f);
         Renderer2D::VulkanRenderer::quad({210.f, 0.f, -1.f}, {100.f, 100.f}, glm::vec4(1.f, 0.f, 0.f, 0.5f), 8, props);
+
+        props.borderSize = glm::vec4(2.f);
+        props.borderRadius = glm::vec4(16.f);
+        Renderer2D::VulkanRenderer::texturedQuad({410.f, 200.f, -1.f}, {100.f, 100.f}, texture, glm::vec4(1.f, 1.f, 1.f, 1.f), 9, props);
+
+
         Renderer2D::VulkanRenderer::end();
 
 

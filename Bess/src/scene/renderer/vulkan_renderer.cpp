@@ -76,4 +76,29 @@ namespace Bess::Renderer2D {
             properties.borderColor,
             properties.isMica ? 1 : 0);
     }
+
+    void VulkanRenderer::texturedQuad(const glm::vec3 &pos, const glm::vec2 &size,
+                                      const std::shared_ptr<Vulkan::VulkanTexture> &texture,
+                                      const glm::vec4 &tintColor, int id, QuadRenderProperties properties) {
+        if (!m_primitiveRenderer || !m_camera) {
+            BESS_WARN("[VulkanRenderer] Cannot render textured quad - primitive renderer or camera not available");
+            return;
+        }
+
+        Vulkan::UniformBufferObject ubo{};
+        ubo.mvp = m_camera->getTransform();
+        ubo.ortho = m_camera->getOrtho();
+        m_primitiveRenderer->updateMvp(ubo);
+
+        m_primitiveRenderer->drawTexturedQuad(
+            pos,
+            size,
+            tintColor,
+            id,
+            properties.borderRadius,
+            properties.borderSize,
+            properties.borderColor,
+            properties.isMica ? 1 : 0,
+            texture);
+    }
 } // namespace Bess::Renderer2D

@@ -12,8 +12,8 @@ namespace Bess::Renderer2D::Vulkan {
 
     class VulkanTexture {
     public:
-        VulkanTexture(VulkanDevice& device, const std::string& path);
-        VulkanTexture(VulkanDevice& device, uint32_t width, uint32_t height, VkFormat format, const void* data = nullptr);
+        VulkanTexture(std::shared_ptr<VulkanDevice> device, const std::string& path);
+        VulkanTexture(std::shared_ptr<VulkanDevice> device, uint32_t width, uint32_t height, VkFormat format, const void* data = nullptr);
         ~VulkanTexture();
 
         // Delete copy constructor and assignment operator
@@ -47,7 +47,7 @@ namespace Bess::Renderer2D::Vulkan {
         }
 
     private:
-        VulkanDevice& m_device;
+        std::shared_ptr<VulkanDevice> m_device;
         VkImage m_image = VK_NULL_HANDLE;
         VkDeviceMemory m_imageMemory = VK_NULL_HANDLE;
         VkImageView m_imageView = VK_NULL_HANDLE;

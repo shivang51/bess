@@ -44,7 +44,7 @@ namespace Bess::Renderer2D {
         }
 
         // Create Vulkan texture from PNG file
-        m_fontTextureAtlas = std::make_shared<Vulkan::VulkanTexture>(device, pngFilePath);
+        // m_fontTextureAtlas = std::make_shared<Vulkan::VulkanTexture>(device, pngFilePath);
         BESS_INFO("Loaded MSDF font texture atlas from: {}", pngFilePath);
 
         m_fontSize = charData["atlas"]["size"].asFloat();

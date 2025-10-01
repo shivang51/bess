@@ -100,6 +100,23 @@ namespace Bess::Renderer2D::Vulkan {
         m_quadPipeline->drawQuad(pos, size, color, id, borderRadius, borderSize, borderColor, isMica);
     }
 
+    void PrimitiveRenderer::drawTexturedQuad(const glm::vec3 &pos,
+                                     const glm::vec2 &size,
+                                     const glm::vec4 &tint,
+                                     int id,
+                                     const glm::vec4 &borderRadius,
+                                     const glm::vec4 &borderSize,
+                                     const glm::vec4 &borderColor,
+                                     int isMica,
+                                     const std::shared_ptr<VulkanTexture> &texture) {
+        if (!m_quadPipeline) {
+            BESS_WARN("[PrimitiveRenderer] Quad pipeline not available");
+            return;
+        }
+
+        m_quadPipeline->drawTexturedQuad(pos, size, tint, id, borderRadius, borderSize, borderColor, isMica, texture);
+    }
+
     void PrimitiveRenderer::drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, int id, float innerRadius) {
         // Implementation for circle rendering
         // This is a placeholder - you can implement actual circle rendering here

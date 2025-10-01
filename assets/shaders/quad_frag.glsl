@@ -13,6 +13,9 @@ layout(location = 6) in flat int v_FragId;
 layout(location = 7) in flat int v_IsMica;
 layout(location = 8) in flat int v_TexSlotIdx;
 
+// Per-texture sampler bound in set 1, binding 2
+layout(set = 1, binding = 2) uniform sampler2D uTexture;
+
 float sdRR(vec2 p, vec2 b, vec4 r) {
     float rc = p.x >= 0.0 && p.y >= 0.0 ? r.y :
         p.x < 0.0 && p.y >= 0.0 ? r.x :
@@ -51,7 +54,13 @@ void main() {
     float mI = smoothstep(aa, -aa, dI);
     if (mO < 0.01) discard;
 
-    vec4 color = mix(v_BorderColor, v_FragColor, mI);
+    vec4 baseColor = v_FragColor;
+    if (v_TexSlotIdx != 0) {
+        vec4 texColor = texture(uTexture, v_TexCoord);
+        baseColor *= texColor;
+    }
+
+    vec4 color = mix(v_BorderColor, baseColor, mI);
     color.a *= mO;
     fragColor = color;
     pickingId = v_FragId;

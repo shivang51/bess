@@ -58,15 +58,15 @@ namespace Bess::Renderer2D {
             // Create Vulkan texture from bitmap data
             // For now, we'll create a placeholder texture since we need to implement
             // texture creation from raw bitmap data in VulkanTexture class
-            const auto texture = std::make_shared<Vulkan::VulkanTexture>(*m_device, "");
+            // const auto texture = std::make_shared<Vulkan::VulkanTexture>(*m_device, "");
 
-            Character character = {
-                texture,
-                glm::ivec2(m_face->glyph->bitmap.width, m_face->glyph->bitmap.rows),
-                glm::ivec2(m_face->glyph->bitmap_left, m_face->glyph->bitmap_top),
-                (int)m_face->glyph->advance.x};
-            Characters.insert(std::pair<char, Character>(charCode, character));
-            charCode = FT_Get_Next_Char(m_face, charCode, &glyphIdx);
+            // Character character = {
+            //     texture,
+            //     glm::ivec2(m_face->glyph->bitmap.width, m_face->glyph->bitmap.rows),
+            //     glm::ivec2(m_face->glyph->bitmap_left, m_face->glyph->bitmap_top),
+            //     (int)m_face->glyph->advance.x};
+            // Characters.insert(std::pair<char, Character>(charCode, character));
+            // charCode = FT_Get_Next_Char(m_face, charCode, &glyphIdx);
         }
     }
 

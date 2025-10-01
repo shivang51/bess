@@ -37,6 +37,15 @@ namespace Bess::Renderer2D::Vulkan {
                       const glm::vec4 &borderSize,
                       const glm::vec4 &borderColor,
                       int isMica);
+        void drawTexturedQuad(const glm::vec3 &pos,
+                      const glm::vec2 &size,
+                      const glm::vec4 &tint,
+                      int id,
+                      const glm::vec4 &borderRadius,
+                      const glm::vec4 &borderSize,
+                      const glm::vec4 &borderColor,
+                      int isMica,
+                      const std::shared_ptr<class VulkanTexture> &texture);
         void drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, int id, float innerRadius = 0.0F);
         void drawLine(const glm::vec3 &start, const glm::vec3 &end, float width, const glm::vec4 &color, int id);
 
