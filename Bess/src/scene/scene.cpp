@@ -244,12 +244,12 @@ namespace Bess::Canvas {
         props.borderColor = ViewportTheme::colors.selectedComp;
         props.borderSize = glm::vec4(3.f);
         props.borderRadius = glm::vec4(16.f);
-        Renderer2D::VulkanRenderer::quad({0.f, 0.f, -1.f}, {100.f, 100.f}, glm::vec4(1.f, 0.f, 0.f, 1.f), 0, props);
+        Renderer2D::VulkanRenderer::quad({0.f, 0.f, 1.f}, {100.f, 100.f}, glm::vec4(1.f, 0.f, 0.f, 1.f), 0, props);
 
         props.borderColor = ViewportTheme::colors.selectedComp;
         props.borderSize = glm::vec4(2.f);
         props.borderRadius = glm::vec4(16.f);
-        Renderer2D::VulkanRenderer::quad({210.f, 0.f, -1.f}, {100.f, 100.f}, glm::vec4(1.f, 0.f, 0.f, 0.5f), 8, props);
+        Renderer2D::VulkanRenderer::quad({210.f, 0.f, -3.f}, {100.f, 100.f}, glm::vec4(1.f, 0.f, 0.f, 0.5f), 8, props);
 
         props.borderSize = glm::vec4(2.f);
         props.borderRadius = glm::vec4(16.f);

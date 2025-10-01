@@ -92,6 +92,17 @@ namespace Bess::Renderer2D::Vulkan {
             if (m_imageMemory != VK_NULL_HANDLE) {
                 vkFreeMemory(m_device->device(), m_imageMemory, nullptr);
             }
+
+            // Destroy depth resources if present
+            if (m_depthImageView != VK_NULL_HANDLE) {
+                vkDestroyImageView(m_device->device(), m_depthImageView, nullptr);
+            }
+            if (m_depthImage != VK_NULL_HANDLE) {
+                vkDestroyImage(m_device->device(), m_depthImage, nullptr);
+            }
+            if (m_depthImageMemory != VK_NULL_HANDLE) {
+                vkFreeMemory(m_device->device(), m_depthImageMemory, nullptr);
+            }
         }
     }
 
@@ -295,8 +306,31 @@ namespace Bess::Renderer2D::Vulkan {
 
     void VulkanImageView::createFramebuffer(VkRenderPass renderPass) {
         if (m_hasPickingAttachments) {
-            // Offscreen framebuffer has four attachments: [0] MSAA color, [1] resolve color, [2] MSAA picking, [3] resolve picking
-            std::array<VkImageView, 4> attachments{m_msaaImageView, m_imageView, m_msaaPickingImageView, m_pickingImageView};
+            // Ensure depth resources
+            if (m_depthImageView == VK_NULL_HANDLE) {
+                // simple depth image
+                VkImageCreateInfo img{};
+                img.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+                img.imageType = VK_IMAGE_TYPE_2D;
+                img.extent = {m_extent.width, m_extent.height, 1};
+                img.mipLevels = 1;
+                img.arrayLayers = 1;
+                img.format = VK_FORMAT_D32_SFLOAT;
+                img.tiling = VK_IMAGE_TILING_OPTIMAL;
+                img.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                img.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+                img.samples = VK_SAMPLE_COUNT_4_BIT;
+                img.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+                vkCreateImage(m_device->device(), &img, nullptr, &m_depthImage);
+                VkMemoryRequirements mr{}; vkGetImageMemoryRequirements(m_device->device(), m_depthImage, &mr);
+                VkMemoryAllocateInfo ai{}; ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO; ai.allocationSize = mr.size; ai.memoryTypeIndex = m_device->findMemoryType(mr.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                vkAllocateMemory(m_device->device(), &ai, nullptr, &m_depthImageMemory);
+                vkBindImageMemory(m_device->device(), m_depthImage, m_depthImageMemory, 0);
+                VkImageViewCreateInfo v{}; v.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO; v.image = m_depthImage; v.viewType = VK_IMAGE_VIEW_TYPE_2D; v.format = VK_FORMAT_D32_SFLOAT; v.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT; v.subresourceRange.levelCount = 1; v.subresourceRange.layerCount = 1;
+                vkCreateImageView(m_device->device(), &v, nullptr, &m_depthImageView);
+            }
+            // Offscreen framebuffer has five attachments: [0] MSAA color, [1] resolve color, [2] MSAA picking, [3] resolve picking, [4] depth
+            std::array<VkImageView, 5> attachments{m_msaaImageView, m_imageView, m_msaaPickingImageView, m_pickingImageView, m_depthImageView};
 
             VkFramebufferCreateInfo framebufferInfo{};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -311,8 +345,30 @@ namespace Bess::Renderer2D::Vulkan {
                 throw std::runtime_error("Failed to create offscreen framebuffer with picking!");
             }
         } else {
-            // Offscreen framebuffer has two attachments: [0] MSAA color, [1] resolve (single-sample)
-            std::array<VkImageView, 2> attachments{m_msaaImageView, m_imageView};
+            // Ensure depth resources
+            if (m_depthImageView == VK_NULL_HANDLE) {
+                VkImageCreateInfo img{};
+                img.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+                img.imageType = VK_IMAGE_TYPE_2D;
+                img.extent = {m_extent.width, m_extent.height, 1};
+                img.mipLevels = 1;
+                img.arrayLayers = 1;
+                img.format = VK_FORMAT_D32_SFLOAT;
+                img.tiling = VK_IMAGE_TILING_OPTIMAL;
+                img.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                img.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+                img.samples = VK_SAMPLE_COUNT_4_BIT;
+                img.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+                vkCreateImage(m_device->device(), &img, nullptr, &m_depthImage);
+                VkMemoryRequirements mr{}; vkGetImageMemoryRequirements(m_device->device(), m_depthImage, &mr);
+                VkMemoryAllocateInfo ai{}; ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO; ai.allocationSize = mr.size; ai.memoryTypeIndex = m_device->findMemoryType(mr.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                vkAllocateMemory(m_device->device(), &ai, nullptr, &m_depthImageMemory);
+                vkBindImageMemory(m_device->device(), m_depthImage, m_depthImageMemory, 0);
+                VkImageViewCreateInfo v{}; v.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO; v.image = m_depthImage; v.viewType = VK_IMAGE_VIEW_TYPE_2D; v.format = VK_FORMAT_D32_SFLOAT; v.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT; v.subresourceRange.levelCount = 1; v.subresourceRange.layerCount = 1;
+                vkCreateImageView(m_device->device(), &v, nullptr, &m_depthImageView);
+            }
+            // Offscreen framebuffer has three attachments: [0] MSAA color, [1] resolve (single-sample), [2] depth
+            std::array<VkImageView, 3> attachments{m_msaaImageView, m_imageView, m_depthImageView};
 
             VkFramebufferCreateInfo framebufferInfo{};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -473,6 +529,20 @@ namespace Bess::Renderer2D::Vulkan {
         if (m_imageMemory != VK_NULL_HANDLE) {
             vkFreeMemory(m_device->device(), m_imageMemory, nullptr);
             m_imageMemory = VK_NULL_HANDLE;
+        }
+
+        // Destroy depth resources so they are recreated for the new extent
+        if (m_depthImageView != VK_NULL_HANDLE) {
+            vkDestroyImageView(m_device->device(), m_depthImageView, nullptr);
+            m_depthImageView = VK_NULL_HANDLE;
+        }
+        if (m_depthImage != VK_NULL_HANDLE) {
+            vkDestroyImage(m_device->device(), m_depthImage, nullptr);
+            m_depthImage = VK_NULL_HANDLE;
+        }
+        if (m_depthImageMemory != VK_NULL_HANDLE) {
+            vkFreeMemory(m_device->device(), m_depthImageMemory, nullptr);
+            m_depthImageMemory = VK_NULL_HANDLE;
         }
 
         m_extent = extent;

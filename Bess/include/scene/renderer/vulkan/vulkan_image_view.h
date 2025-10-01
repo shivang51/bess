@@ -60,6 +60,8 @@ namespace Bess::Renderer2D::Vulkan {
         void createMsaaPickingImage();
         void createPickingImageView();
         void createMsaaPickingImageView();
+        void createDepthImage();
+        void createDepthImageView();
 
         std::shared_ptr<VulkanDevice> m_device;
         VkFormat m_format;
@@ -82,6 +84,10 @@ namespace Bess::Renderer2D::Vulkan {
         VkImage m_msaaPickingImage = VK_NULL_HANDLE;
         VkDeviceMemory m_msaaPickingImageMemory = VK_NULL_HANDLE;
         VkImageView m_msaaPickingImageView = VK_NULL_HANDLE;
+        // Depth attachment
+        VkImage m_depthImage = VK_NULL_HANDLE;
+        VkDeviceMemory m_depthImageMemory = VK_NULL_HANDLE;
+        VkImageView m_depthImageView = VK_NULL_HANDLE;
         
         VkFramebuffer m_framebuffer = VK_NULL_HANDLE;
         VkSampler m_sampler = VK_NULL_HANDLE;
