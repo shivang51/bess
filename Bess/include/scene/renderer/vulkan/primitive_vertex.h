@@ -75,4 +75,18 @@ namespace Bess::Renderer2D::Vulkan {
         glm::vec2 _pad1;         // pad to 96 (multiple of 16)
     };
 
+    struct QuadInstance {
+        glm::vec3 position;     // location 2
+        glm::vec4 color;        // location 3
+        glm::vec4 borderRadius; // location 4
+        glm::vec4 borderColor;  // location 5
+        glm::vec4 borderSize;   // location 6
+        glm::vec2 size;         // location 7
+        int id;                 // location 8
+        int isMica;             // location 9
+        int texSlotIdx;         // location 10
+        int _pad;               // padding to align next vec4
+        glm::vec4 texData;      // location 11
+    };
+
 } // namespace Bess::Renderer2D::Vulkan

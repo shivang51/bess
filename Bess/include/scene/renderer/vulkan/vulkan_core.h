@@ -22,23 +22,7 @@
 namespace Bess {
     class Camera;
 }
-namespace Bess::Renderer2D {
-    struct QuadRenderProperties {
-        float angle = 0.0f;
-        glm::vec4 borderColor = {0.0f, 0.0f, 0.0f, 0.0f};
-        glm::vec4 borderRadius = {0.0f, 0.0f, 0.0f, 0.0f};
-        glm::vec4 borderSize = {0.0f, 0.0f, 0.0f, 0.0f};
-        bool hasShadow = false;
-        bool isMica = false;
-    };
-
-    struct GridColors {
-        glm::vec4 minorColor;
-        glm::vec4 majorColor;
-        glm::vec4 axisXColor;
-        glm::vec4 axisYColor;
-    };
-} // namespace Bess::Renderer2D
+// moved to vulkan_renderer.h
 
 namespace Bess::Renderer2D {
 
@@ -86,8 +70,6 @@ namespace Bess::Renderer2D {
         static void end();
 
         // Rendering functions (to be implemented to match OpenGL renderer API)
-        static void quad(const glm::vec3 &pos, const glm::vec2 &size,
-                         const glm::vec4 &color, int id, QuadRenderProperties properties = {});
 
         static void circle(const glm::vec3 &center, float radius,
                            const glm::vec4 &color, int id, float innerRadius = 0.0f);

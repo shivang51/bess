@@ -51,4 +51,31 @@ namespace Bess::Renderer2D {
 
         m_primitiveRenderer->drawGrid(pos, size, id, gridUniforms);
     }
+
+    void VulkanRenderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
+                              const glm::vec4 &color, int id, QuadRenderProperties properties) {
+        if (!m_primitiveRenderer || !m_camera) {
+            BESS_WARN("[VulkanRenderer] Cannot render quad - primitive renderer or camera not available");
+            return;
+        }
+
+        Vulkan::UniformBufferObject ubo{};
+        ubo.mvp = m_camera->getOrtho();
+
+        // Reuse grid uniforms for now for UBO binding 1 (won't be read by quad shader placeholder)
+        Vulkan::GridUniforms dummy{};
+        dummy.zoom = m_camera->getZoom();
+        dummy.cameraOffset = glm::vec2(0.0f);
+        dummy.gridMinorColor = color;
+        dummy.gridMajorColor = color;
+        dummy.axisXColor = color;
+        dummy.axisYColor = color;
+        const auto off = VulkanCore::instance().getOffscreenExtent();
+        dummy.resolution = glm::vec2(off.width, off.height);
+
+        m_primitiveRenderer->updateUniformBuffer(ubo, dummy);
+
+        // Temporary: render quad via dedicated quad draw (instanced)
+        m_primitiveRenderer->drawQuad(pos, size, color, id);
+    }
 } // namespace Bess::Renderer2D

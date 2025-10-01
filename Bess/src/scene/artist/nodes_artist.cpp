@@ -5,6 +5,7 @@
 #include "ext/vector_float3.hpp"
 #include "scene/components/components.h"
 #include "scene/renderer/vulkan/vulkan_core.h"
+#include "scene/renderer/vulkan_renderer.h"
 #include "scene/renderer/vulkan/vulkan_texture.h"
 #include "scene/renderer/vulkan/vulkan_subtexture.h"
 #include "scene/scene.h"
@@ -64,7 +65,7 @@ namespace Bess::Canvas {
         props.isMica = true;
         props.hasShadow = true;
 
-        Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
+        VulkanRenderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
 
         props = {};
         props.angle = rotation;
@@ -72,7 +73,7 @@ namespace Bess::Canvas {
         props.borderRadius = glm::vec4(0, 0, spriteComp.borderRadius.x - spriteComp.borderSize.x, spriteComp.borderRadius.y - spriteComp.borderSize.y);
         props.isMica = true;
 
-        Renderer::quad(headerPos,
+        VulkanRenderer::quad(headerPos,
                        glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
                        spriteComp.headerColor,
                        id,
@@ -117,7 +118,7 @@ namespace Bess::Canvas {
         props.borderColor = border;
         props.borderSize = spriteComp.borderSize;
         props.isMica = true;
-        Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
+        VulkanRenderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
 
         glm::vec3 textPos = glm::vec3(
             pos.x - (scale.x / 2.f) + labelLOffset,
@@ -193,10 +194,10 @@ namespace Bess::Canvas {
             props.borderColor = border;
             props.borderRadius = glm::vec4(2.5f);
             props.borderSize = glm::vec4(componentStyles.slotBorderSize + 0.5);
-            Renderer::quad(pos, glm::vec2(r * 2.f), glm::vec4(0.f), id, props);
+            VulkanRenderer::quad(pos, glm::vec2(r * 2.f), glm::vec4(0.f), id, props);
             props.borderSize = {};
             props.borderRadius = glm::vec4(1.5f);
-            Renderer::quad(pos, glm::vec2((ir - 1) * 2.f), glm::vec4(bg), id, props);
+            VulkanRenderer::quad(pos, glm::vec2((ir - 1) * 2.f), glm::vec4(bg), id, props);
         } else {
             Renderer::circle(pos, r, border, id, ir);
             Renderer::circle(pos, ir - 1.f, bg, id);
@@ -237,7 +238,7 @@ namespace Bess::Canvas {
         props.borderColor = border;
         props.isMica = true;
 
-        Renderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
+        VulkanRenderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
 
         props = {};
         props.angle = rotation;
@@ -245,7 +246,7 @@ namespace Bess::Canvas {
         props.borderRadius = glm::vec4(0, 0, spriteComp.borderRadius.x - spriteComp.borderSize.x, spriteComp.borderRadius.y - spriteComp.borderSize.y);
         props.isMica = true;
 
-        Renderer::quad(headerPos,
+        VulkanRenderer::quad(headerPos,
                        glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
                        spriteComp.headerColor,
                        id,
@@ -264,13 +265,13 @@ namespace Bess::Canvas {
             glm::vec3 texPos = {posX,
                                 transform.position.y + (headerHeight / 2.f),
                                 transform.position.z + 0.0001};
-            Renderer::quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity);
+            VulkanRenderer::quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity);
 
             for (int i = 0; i < (int)compState.inputStates.size(); i++) {
                 if (!compState.inputStates[i])
                     continue;
                 tex = m_artistTools.sevenSegDispTexs[i + 1];
-                Renderer::quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity);
+                VulkanRenderer::quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity);
             }
         }
 

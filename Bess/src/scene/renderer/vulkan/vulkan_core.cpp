@@ -448,11 +448,6 @@ namespace Bess::Renderer2D {
         // instance().draw();
     }
 
-    void VulkanCore::quad(const glm::vec3 &pos, const glm::vec2 &size,
-                          const glm::vec4 &color, int id, QuadRenderProperties properties) {
-        // TODO: Implement quad rendering
-    }
-
     void VulkanCore::circle(const glm::vec3 &center, float radius,
                             const glm::vec4 &color, int id, float innerRadius) {
         // TODO: Implement circle rendering

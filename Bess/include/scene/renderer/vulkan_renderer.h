@@ -8,6 +8,22 @@
 
 namespace Bess::Renderer2D {
 
+    struct QuadRenderProperties {
+        float angle = 0.0f;
+        glm::vec4 borderColor = {0.0f, 0.0f, 0.0f, 0.0f};
+        glm::vec4 borderRadius = {0.0f, 0.0f, 0.0f, 0.0f};
+        glm::vec4 borderSize = {0.0f, 0.0f, 0.0f, 0.0f};
+        bool hasShadow = false;
+        bool isMica = false;
+    };
+
+    struct GridColors {
+        glm::vec4 minorColor;
+        glm::vec4 majorColor;
+        glm::vec4 axisXColor;
+        glm::vec4 axisYColor;
+    };
+
     class VulkanRenderer {
       public:
         VulkanRenderer() = default;
@@ -21,6 +37,8 @@ namespace Bess::Renderer2D {
 
         static void clearColor();
         static void grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const GridColors &colors);
+        static void quad(const glm::vec3 &pos, const glm::vec2 &size,
+                         const glm::vec4 &color, int id, QuadRenderProperties properties = {});
 
       private:
         static std::shared_ptr<Vulkan::PrimitiveRenderer> m_primitiveRenderer;

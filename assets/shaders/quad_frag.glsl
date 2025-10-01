@@ -1,21 +1,22 @@
-#version 460 core
+#version 460
 
 layout(location = 0) out vec4 fragColor;
-layout(location = 1) out int fragColor1;
 
-in vec2 v_Size;
-in vec2 v_TexCoord;
-in vec4 v_FragColor;
-in vec4 v_BorderRadius; // ordering: top-left, top-right, bottom-right, bottom-left
-in vec4 v_BorderSize;   // ordering: top, right, bottom, left
-in vec4 v_BorderColor;
-in flat int v_FragId;
-in flat int v_IsMica;
-in flat int v_TexSlotIdx;
+layout (location = 5) in vec2 v_Size;
+layout (location = 1) in vec2 v_TexCoord;
+layout (location = 0) in vec4 v_FragColor;
+layout (location = 2) in vec4 v_BorderRadius;
+layout (location = 3) in vec4 v_BorderSize;
+layout (location = 4) in vec4 v_BorderColor;
+layout (location = 6) in flat int v_FragId;
+layout (location = 7) in flat int v_IsMica;
+layout (location = 8) in flat int v_TexSlotIdx;
 
-uniform sampler2D u_Textures[32];
-uniform int u_SelectedObjId;
-uniform float u_zoom;
+layout(binding = 2) uniform sampler2D u_Textures[32];
+layout(binding = 1) uniform QuadParams {
+    int u_SelectedObjId;
+    float u_zoom;
+};
 
 float rand(vec2 uv) {
     return fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453);
@@ -90,6 +91,5 @@ void main(){
     bgColor *= texColor;
 
     fragColor = bgColor;
-    fragColor1 = v_FragId;
 }
 

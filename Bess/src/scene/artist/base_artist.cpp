@@ -8,6 +8,7 @@
 #include "scene/components/components.h"
 #include "common/log.h"
 #include "scene/renderer/vulkan/vulkan_core.h"
+#include "scene/renderer/vulkan_renderer.h"
 #include "scene/renderer/vulkan/vulkan_texture.h"
 #include "scene/renderer/vulkan/vulkan_subtexture.h"
 #include "scene/scene.h"
@@ -176,7 +177,7 @@ namespace Bess::Canvas {
                 pos.y -= size.y * 0.25f;
                 size.x += componentStyles.paddingX * 2.f;
                 size.y += componentStyles.paddingY * 2.f;
-                Renderer::quad(pos, size, ViewportTheme::colors.componentBG, id, props);
+            VulkanRenderer::quad(pos, size, ViewportTheme::colors.componentBG, id, props);
             }
         } break;
         default:

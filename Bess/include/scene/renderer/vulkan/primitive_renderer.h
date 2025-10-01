@@ -47,6 +47,8 @@ namespace Bess::Renderer2D::Vulkan {
         void createVertexBuffer();
         void createIndexBuffer();
         void createGraphicsPipeline();
+        void createQuadPipeline();
+        void ensureQuadBuffers();
 
         std::shared_ptr<VulkanDevice> m_device;
         std::shared_ptr<VulkanOffscreenRenderPass> m_renderPass;
@@ -55,6 +57,8 @@ namespace Bess::Renderer2D::Vulkan {
         // Pipeline
         VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
         VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
+        VkPipeline m_quadPipeline = VK_NULL_HANDLE;
+        VkPipelineLayout m_quadPipelineLayout = VK_NULL_HANDLE;
 
         // Descriptor sets
         VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
@@ -73,6 +77,8 @@ namespace Bess::Renderer2D::Vulkan {
         VkDeviceMemory m_vertexBufferMemory = VK_NULL_HANDLE;
         VkBuffer m_indexBuffer = VK_NULL_HANDLE;
         VkDeviceMemory m_indexBufferMemory = VK_NULL_HANDLE;
+        VkBuffer m_quadInstanceBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory m_quadInstanceBufferMemory = VK_NULL_HANDLE;
 
         // Current frame data
         VkCommandBuffer m_currentCommandBuffer = VK_NULL_HANDLE;

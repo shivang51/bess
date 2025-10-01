@@ -280,7 +280,7 @@ namespace Bess::Canvas {
         Renderer2D::QuadRenderProperties props;
         props.borderColor = ViewportTheme::colors.selectionBoxBorder;
         props.borderSize = glm::vec4(1.f);
-        Renderer2D::VulkanCore::quad(glm::vec3(pos, 9.f), size, ViewportTheme::colors.selectionBoxFill, 0, props);
+        Renderer2D::VulkanRenderer::quad(glm::vec3(pos, 9.f), size, ViewportTheme::colors.selectionBoxFill, 0, props);
     }
 
     void Scene::drawConnection() {

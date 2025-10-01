@@ -254,8 +254,56 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void PrimitiveRenderer::drawQuad(const glm::vec3 &pos, const glm::vec2 &size, const glm::vec4 &color, int id) {
-        // Implementation for quad rendering
-        // This is a placeholder - you can implement actual quad rendering here
+        ensureQuadBuffers();
+
+        // Local quad verts (unit quad centered at origin)
+        std::array<glm::vec2, 4> local = {{{-0.5f, -0.5f}, {0.5f, -0.5f}, {0.5f, 0.5f}, {-0.5f, 0.5f}}};
+        std::array<uint32_t, 6> idx = {{0, 1, 2, 2, 3, 0}};
+
+        // Upload instance data
+        QuadInstance instance{};
+        instance.position = pos;
+        instance.color = color;
+        instance.borderRadius = glm::vec4(0.0f);
+        instance.borderColor = glm::vec4(0.0f);
+        instance.borderSize = glm::vec4(0.0f);
+        instance.size = size;
+        instance.id = id;
+        instance.isMica = 0;
+        instance.texSlotIdx = 0;
+        instance.texData = glm::vec4(0.0f);
+
+        void *data = nullptr;
+        vkMapMemory(m_device->device(), m_quadInstanceBufferMemory, 0, sizeof(QuadInstance), 0, &data);
+        memcpy(data, &instance, sizeof(QuadInstance));
+        vkUnmapMemory(m_device->device(), m_quadInstanceBufferMemory);
+
+        // Create a small vertex/index buffer on the fly using existing buffers for simplicity
+        std::vector<GridVertex> vertices(4);
+        for (int i = 0; i < 4; i++) {
+            vertices[i].position = glm::vec4(local[i], 0.0f, 1.0f);
+            vertices[i].texCoord = glm::vec2((i == 1 || i == 2) ? 1.f : 0.f, (i >= 2) ? 1.f : 0.f);
+            vertices[i].fragId = id;
+            vertices[i].fragColor = color;
+            vertices[i].ar = 0;
+        }
+        updateVertexBuffer(vertices);
+        updateIndexBuffer({0, 1, 2, 2, 3, 0});
+
+        // Bind quad pipeline
+        vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_quadPipeline);
+
+        // Bind vertex/index (binding 0) and instance buffer (binding 1)
+        VkBuffer vbs[] = {m_vertexBuffer, m_quadInstanceBuffer};
+        VkDeviceSize offs[] = {0, 0};
+        vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 2, vbs, offs);
+        vkCmdBindIndexBuffer(m_currentCommandBuffer, m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+        // Bind descriptor sets
+        vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_quadPipelineLayout, 0, 1, &m_descriptorSet, 0, nullptr);
+
+        // Draw one instance
+        vkCmdDrawIndexed(m_currentCommandBuffer, 6, 1, 0, 0, 0);
     }
 
     void PrimitiveRenderer::drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, int id, float innerRadius) {
@@ -603,6 +651,161 @@ namespace Bess::Renderer2D::Vulkan {
 
         vkDestroyShaderModule(m_device->device(), fragShaderModule, nullptr);
         vkDestroyShaderModule(m_device->device(), vertShaderModule, nullptr);
+    }
+
+    void PrimitiveRenderer::createQuadPipeline() {
+        auto vertShaderCode = readFile("assets/shaders/quad_vert.spv");
+        auto fragShaderCode = readFile("assets/shaders/quad_frag.spv");
+
+        VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
+        VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+
+        VkPipelineShaderStageCreateInfo vert{};
+        vert.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vert.stage = VK_SHADER_STAGE_VERTEX_BIT;
+        vert.module = vertShaderModule;
+        vert.pName = "main";
+        VkPipelineShaderStageCreateInfo frag{};
+        frag.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        frag.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        frag.module = fragShaderModule;
+        frag.pName = "main";
+        std::array<VkPipelineShaderStageCreateInfo, 2> stages{vert, frag};
+
+        // Binding 0: local quad verts (position/texcoord via GridVertex subset)
+        auto binding0 = GridVertex::getBindingDescription();
+        auto attrs0 = GridVertex::getAttributeDescriptions();
+        // We'll use only loc 0,1 from GridVertex and ignore others
+        // Binding 1: instance data
+        VkVertexInputBindingDescription binding1{};
+        binding1.binding = 1;
+        binding1.stride = sizeof(QuadInstance);
+        binding1.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+
+        std::array<VkVertexInputBindingDescription, 2> bindings{binding0, binding1};
+
+        // Attribute descriptions: reuse 0,1 from GridVertex then add instance attrs 2..11
+        std::vector<VkVertexInputAttributeDescription> attrs;
+        attrs.reserve(2 + 10);
+        attrs.push_back({0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(GridVertex, position)});
+        attrs.push_back({1, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(GridVertex, texCoord)});
+        attrs.push_back({2, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(QuadInstance, position)});
+        attrs.push_back({3, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(QuadInstance, color)});
+        attrs.push_back({4, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(QuadInstance, borderRadius)});
+        attrs.push_back({5, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(QuadInstance, borderColor)});
+        attrs.push_back({6, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(QuadInstance, borderSize)});
+        attrs.push_back({7, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(QuadInstance, size)});
+        attrs.push_back({8, 1, VK_FORMAT_R32_SINT, offsetof(QuadInstance, id)});
+        attrs.push_back({9, 1, VK_FORMAT_R32_SINT, offsetof(QuadInstance, isMica)});
+        attrs.push_back({10, 1, VK_FORMAT_R32_SINT, offsetof(QuadInstance, texSlotIdx)});
+        attrs.push_back({11, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(QuadInstance, texData)});
+
+        VkPipelineVertexInputStateCreateInfo vi{};
+        vi.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        vi.vertexBindingDescriptionCount = static_cast<uint32_t>(bindings.size());
+        vi.pVertexBindingDescriptions = bindings.data();
+        vi.vertexAttributeDescriptionCount = static_cast<uint32_t>(attrs.size());
+        vi.pVertexAttributeDescriptions = attrs.data();
+
+        VkPipelineInputAssemblyStateCreateInfo ia{};
+        ia.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+        VkViewport viewport{};
+        viewport.width = static_cast<float>(m_extent.width);
+        viewport.height = static_cast<float>(m_extent.height);
+        viewport.minDepth = 0.0F;
+        viewport.maxDepth = 1.0F;
+        VkRect2D scissor{};
+        scissor.extent = m_extent;
+
+        VkPipelineViewportStateCreateInfo vp{};
+        vp.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        vp.viewportCount = 1;
+        vp.pViewports = &viewport;
+        vp.scissorCount = 1;
+        vp.pScissors = &scissor;
+
+        VkPipelineRasterizationStateCreateInfo rs{};
+        rs.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        rs.polygonMode = VK_POLYGON_MODE_FILL;
+        rs.cullMode = VK_CULL_MODE_NONE;
+        rs.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        rs.lineWidth = 1.0f;
+
+        VkPipelineMultisampleStateCreateInfo ms{};
+        ms.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        ms.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
+
+        VkPipelineColorBlendAttachmentState att{};
+        att.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        att.blendEnable = VK_TRUE;
+        att.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        att.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        att.colorBlendOp = VK_BLEND_OP_ADD;
+        att.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        att.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        att.alphaBlendOp = VK_BLEND_OP_ADD;
+
+        VkPipelineColorBlendStateCreateInfo cb{};
+        cb.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        cb.attachmentCount = 1;
+        cb.pAttachments = &att;
+
+        VkPipelineLayoutCreateInfo pl{};
+        pl.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pl.setLayoutCount = 1;
+        pl.pSetLayouts = &m_descriptorSetLayout;
+        if (vkCreatePipelineLayout(m_device->device(), &pl, nullptr, &m_quadPipelineLayout) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create quad pipeline layout!");
+        }
+
+        VkGraphicsPipelineCreateInfo gp{};
+        gp.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        gp.stageCount = static_cast<uint32_t>(stages.size());
+        gp.pStages = stages.data();
+        gp.pVertexInputState = &vi;
+        gp.pInputAssemblyState = &ia;
+        gp.pViewportState = &vp;
+        gp.pRasterizationState = &rs;
+        gp.pMultisampleState = &ms;
+        gp.pColorBlendState = &cb;
+        gp.layout = m_quadPipelineLayout;
+        gp.renderPass = m_renderPass->getVkHandle();
+        gp.subpass = 0;
+
+        if (vkCreateGraphicsPipelines(m_device->device(), VK_NULL_HANDLE, 1, &gp, nullptr, &m_quadPipeline) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create quad graphics pipeline!");
+        }
+
+        vkDestroyShaderModule(m_device->device(), fragShaderModule, nullptr);
+        vkDestroyShaderModule(m_device->device(), vertShaderModule, nullptr);
+    }
+
+    void PrimitiveRenderer::ensureQuadBuffers() {
+        if (m_quadInstanceBuffer != VK_NULL_HANDLE) return;
+        VkDeviceSize size = sizeof(QuadInstance);
+        VkBufferCreateInfo bi{};
+        bi.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bi.size = size;
+        bi.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        bi.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        if (vkCreateBuffer(m_device->device(), &bi, nullptr, &m_quadInstanceBuffer) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create quad instance buffer!");
+        }
+        VkMemoryRequirements req{};
+        vkGetBufferMemoryRequirements(m_device->device(), m_quadInstanceBuffer, &req);
+        VkMemoryAllocateInfo ai{};
+        ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        ai.allocationSize = req.size;
+        ai.memoryTypeIndex = m_device->findMemoryType(req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        if (vkAllocateMemory(m_device->device(), &ai, nullptr, &m_quadInstanceBufferMemory) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate quad instance buffer memory!");
+        }
+        vkBindBufferMemory(m_device->device(), m_quadInstanceBuffer, m_quadInstanceBufferMemory, 0);
+
+        // Create quad pipeline on first use
+        createQuadPipeline();
     }
 
     void PrimitiveRenderer::updateUniformBuffer(const UniformBufferObject &ubo, const GridUniforms &gridUniforms) {

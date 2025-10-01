@@ -5,7 +5,7 @@
 #include "ext/vector_float3.hpp"
 #include "scene/artist/nodes_artist.h"
 #include "scene/components/components.h"
-#include "scene/renderer/vulkan/vulkan_core.h"
+#include "scene/renderer/vulkan_renderer.h"
 #include "scene/renderer/vulkan/vulkan_texture.h"
 #include "scene/renderer/vulkan/vulkan_subtexture.h"
 #include "scene/scene.h"
@@ -94,13 +94,13 @@ namespace Bess::Canvas {
                                 pos.y,
                                 transform.position.z + 0.0001};
 
-            Renderer::quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), static_cast<int>(entity));
+            VulkanRenderer::quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), static_cast<int>(entity));
 
             for (int i = 0; i < static_cast<int>(compState.inputStates.size()); i++) {
                 if (!compState.inputStates[i])
                     continue;
                 tex = m_artistTools.sevenSegDispTexs[i + 1];
-                Renderer::quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), static_cast<int>(entity));
+                VulkanRenderer::quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), static_cast<int>(entity));
             }
         }
     }
