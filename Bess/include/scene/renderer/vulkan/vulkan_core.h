@@ -5,12 +5,12 @@
 #include "scene/renderer/vulkan/device.h"
 #include "scene/renderer/vulkan/imgui_pipeline.h"
 #include "scene/renderer/vulkan/pipeline.h"
-#include "scene/renderer/vulkan/swapchain.h"
-#include "scene/renderer/vulkan/vulkan_render_pass.h"
-#include "scene/renderer/vulkan/vulkan_image_view.h"
-#include "scene/renderer/vulkan/vulkan_offscreen_render_pass.h"
 #include "scene/renderer/vulkan/primitive_renderer.h"
 #include "scene/renderer/vulkan/primitive_vertex.h"
+#include "scene/renderer/vulkan/swapchain.h"
+#include "scene/renderer/vulkan/vulkan_image_view.h"
+#include "scene/renderer/vulkan/vulkan_offscreen_render_pass.h"
+#include "scene/renderer/vulkan/vulkan_render_pass.h"
 #include <functional>
 #include <memory>
 #include <optional>
@@ -69,10 +69,9 @@ namespace Bess::Renderer2D {
                   const SurfaceCreationCB &createSurface,
                   VkExtent2D windowExtent);
 
+        /// typical flow
         void beginFrame();
-        void draw();
-        void draw(const std::shared_ptr<Camera> &camera, const GridColors &gridColors);
-        void beginOffscreenRender();
+        void beginOffscreenRender(const glm::vec4 &clearColor);
         void endOffscreenRender();
         void renderUi();
         void endFrame();
@@ -102,7 +101,6 @@ namespace Bess::Renderer2D {
         static void line(const glm::vec3 &start, const glm::vec3 &end, float size,
                          const glm::vec4 &color, int id);
 
-
         // Path API
         static void beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, uint64_t id);
         static void endPathMode(bool closePath = false, bool genFill = false, const glm::vec4 &fillColor = glm::vec4(1.f), bool genStroke = true);
@@ -118,7 +116,7 @@ namespace Bess::Renderer2D {
 
         // Scene texture access for ImGui
         uint64_t getSceneTextureId();
-        
+
         std::shared_ptr<Vulkan::PrimitiveRenderer> getPrimitiveRenderer() const { return m_primitiveRenderer; }
         void resizeOffscreen(VkExtent2D extent);
         VkExtent2D getOffscreenExtent() const {

@@ -7,9 +7,9 @@
 
 namespace Bess::Renderer2D::Vulkan {
 
-    PrimitiveRenderer::PrimitiveRenderer(const std::shared_ptr<VulkanDevice> &device, 
-                                        const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
-                                        VkExtent2D extent)
+    PrimitiveRenderer::PrimitiveRenderer(const std::shared_ptr<VulkanDevice> &device,
+                                         const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
+                                         VkExtent2D extent)
         : m_device(device), m_renderPass(renderPass), m_extent(extent) {
         createDescriptorSetLayout();
         createDescriptorPool();
@@ -191,20 +191,18 @@ namespace Bess::Renderer2D::Vulkan {
         return *this;
     }
 
-    void PrimitiveRenderer::beginFrame(VkCommandBuffer commandBuffer, const UniformBufferObject &ubo, const GridUniforms &gridUniforms) {
+    void PrimitiveRenderer::beginFrame(VkCommandBuffer commandBuffer) {
         m_currentCommandBuffer = commandBuffer;
         m_currentVertices.clear();
         m_currentIndices.clear();
         m_currentVertexCount = 0;
         m_currentIndexCount = 0;
 
-        updateUniformBuffer(ubo, gridUniforms);
-
         vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
         vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSet, 0, nullptr);
 
         VkBuffer vertexBuffers[] = {m_vertexBuffer};
-        VkDeviceSize offsets[] = {0};
+        constexpr VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 1, vertexBuffers, offsets);
         vkCmdBindIndexBuffer(m_currentCommandBuffer, m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
     }
@@ -245,14 +243,12 @@ namespace Bess::Renderer2D::Vulkan {
             vertex.texCoord = QuadTemplateVertices[i].texCoord;
         }
 
-
         std::vector<uint32_t> indices = {
-            0, 1, 2, 2, 3, 0
-        };
+            0, 1, 2, 2, 3, 0};
 
         updateVertexBuffer(vertices);
         updateIndexBuffer(indices);
-        
+
         // Actually draw the grid immediately
         vkCmdDrawIndexed(m_currentCommandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
     }
@@ -413,7 +409,7 @@ namespace Bess::Renderer2D::Vulkan {
         // Create grid uniform buffer
         m_gridUniformBuffers.resize(1);
         m_gridUniformBufferMemory.resize(1);
-        
+
         bufferInfo.size = gridBufferSize;
         if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr, &m_gridUniformBuffers[0]) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create grid uniform buffer!");
@@ -642,14 +638,14 @@ namespace Bess::Renderer2D::Vulkan {
         }
 
         size_t fileSize = static_cast<size_t>(file.tellg());
-        
+
         // Ensure file size is a multiple of 4 for SPIR-V
         size_t alignedSize = (fileSize + 3) & ~3;
         std::vector<char> buffer(alignedSize);
 
         file.seekg(0);
         file.read(buffer.data(), static_cast<std::streamsize>(fileSize));
-        
+
         // Zero out any padding bytes
         if (alignedSize > fileSize) {
             std::memset(buffer.data() + fileSize, 0, alignedSize - fileSize);

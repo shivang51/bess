@@ -3,11 +3,12 @@
 #include "common/log.h"
 #include "imgui.h"
 #include "imgui_impl_vulkan.h"
-#include "ui/ui.h"
 #include "scene/renderer/vulkan_renderer.h"
+#include "ui/ui.h"
 #include <memory>
 #include <set>
 #include <stdexcept>
+#include <vulkan/vulkan_core.h>
 
 namespace Bess::Renderer2D {
     VulkanCore::~VulkanCore() {
@@ -43,12 +44,8 @@ namespace Bess::Renderer2D {
             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
         m_offscreenRenderPass = std::make_shared<Vulkan::VulkanOffscreenRenderPass>(m_device, m_swapchain->imageFormat());
         m_offscreenImageView->createFramebuffer(m_offscreenRenderPass->getVkHandle());
-        
-        // Create primitive renderer for offscreen rendering
-        m_primitiveRenderer = std::make_shared<Vulkan::PrimitiveRenderer>(m_device, m_offscreenRenderPass, windowExtent);
 
-        // m_pipeline = std::make_shared<Vulkan::VulkanPipeline>(m_device, m_swapchain);
-        // m_pipeline->createGraphicsPipeline(vertShaderPath, fragShaderPath, m_renderPass);
+        m_primitiveRenderer = std::make_shared<Vulkan::PrimitiveRenderer>(m_device, m_offscreenRenderPass, windowExtent);
 
         m_swapchain->createFramebuffers(m_renderPass->getVkHandle());
 
@@ -59,27 +56,7 @@ namespace Bess::Renderer2D {
         BESS_INFO("Renderer Initialized");
     }
 
-    void VulkanCore::draw() {
-        if (!m_offscreenImageView || !m_offscreenRenderPass) {
-            return;
-        }
-
-        const auto cmdBuffer = m_currentFrameContext.cmdBuffer;
-
-        m_offscreenRenderPass->begin(
-            cmdBuffer->getVkHandle(),
-            m_offscreenImageView->getFramebuffer(),
-            m_offscreenImageView->getExtent(),
-            glm::vec4(0.0F, 0.0F, 0.0F, 1.0F)
-        );
-
-        // The actual rendering is now handled by VulkanRenderer
-        // This method just sets up the offscreen rendering context
-
-        m_offscreenRenderPass->end();
-    }
-
-    void VulkanCore::beginOffscreenRender() {
+    void VulkanCore::beginOffscreenRender(const glm::vec4 &clearColor) {
         if (!m_offscreenImageView || !m_offscreenRenderPass || !m_primitiveRenderer) {
             return;
         }
@@ -90,24 +67,9 @@ namespace Bess::Renderer2D {
             cmdBuffer->getVkHandle(),
             m_offscreenImageView->getFramebuffer(),
             m_offscreenImageView->getExtent(),
-            glm::vec4(0.0F, 0.0F, 0.0F, 1.0F)
-        );
+            clearColor);
 
-        // Set up uniform data for primitive rendering
-        Vulkan::UniformBufferObject ubo{};
-        ubo.mvp = glm::mat4(1.0F); // Will be updated by VulkanRenderer
-
-        Vulkan::GridUniforms gridUniforms{};
-        gridUniforms.zoom = 1.0F;
-        gridUniforms.cameraOffset = glm::vec2(0.0F, 0.0F);
-        gridUniforms.gridMinorColor = glm::vec4(0.5F, 0.5F, 0.5F, 0.3F);
-        gridUniforms.gridMajorColor = glm::vec4(0.7F, 0.7F, 0.7F, 0.5F);
-        gridUniforms.axisXColor = glm::vec4(1.0F, 0.0F, 0.0F, 1.0F);
-        gridUniforms.axisYColor = glm::vec4(0.0F, 1.0F, 0.0F, 1.0F);
-        gridUniforms.resolution = glm::vec2(m_offscreenImageView->getExtent().width, m_offscreenImageView->getExtent().height);
-
-        // Begin primitive rendering within the offscreen render pass
-        m_primitiveRenderer->beginFrame(cmdBuffer->getVkHandle(), ubo, gridUniforms);
+        m_primitiveRenderer->beginFrame(cmdBuffer->getVkHandle());
     }
 
     void VulkanCore::endOffscreenRender() {
@@ -115,30 +77,7 @@ namespace Bess::Renderer2D {
             return;
         }
 
-        // End primitive rendering
         m_primitiveRenderer->endFrame();
-
-        // End the offscreen render pass
-        m_offscreenRenderPass->end();
-    }
-
-    void VulkanCore::draw(const std::shared_ptr<Camera> &camera, const GridColors &gridColors) {
-        if (!m_offscreenImageView || !m_offscreenRenderPass) {
-            return;
-        }
-
-        const auto cmdBuffer = m_currentFrameContext.cmdBuffer;
-
-        m_offscreenRenderPass->begin(
-            cmdBuffer->getVkHandle(),
-            m_offscreenImageView->getFramebuffer(),
-            m_offscreenImageView->getExtent(),
-            glm::vec4(1.0F, 0.0F, 1.0F, 1.0F) // Pink clear color
-        );
-
-        // The actual rendering is now handled by VulkanRenderer
-        // This method just sets up the offscreen rendering context
-
         m_offscreenRenderPass->end();
     }
 
@@ -146,19 +85,15 @@ namespace Bess::Renderer2D {
         if (!m_device || !m_offscreenImageView || !m_offscreenRenderPass) {
             return;
         }
-        // Ensure GPU is idle so resources aren't in use by command buffers
         vkDeviceWaitIdle(m_device->device());
 
-        // Recreate offscreen image view and framebuffer to new size
         m_offscreenImageView->recreate(extent, m_offscreenRenderPass->getVkHandle());
 
-        // Recreate primitive renderer so its viewport/scissor and pipeline use new extent
         if (m_primitiveRenderer) {
             m_primitiveRenderer.reset();
         }
+
         m_primitiveRenderer = std::make_shared<Vulkan::PrimitiveRenderer>(m_device, m_offscreenRenderPass, extent);
-        // Inform high-level renderer to refresh its reference
-        VulkanRenderer::init();
     }
 
     void VulkanCore::beginFrame() {
@@ -537,7 +472,6 @@ namespace Bess::Renderer2D {
                               const glm::vec4 &color, int id, float angle) {
         // TODO: Implement MSDF text rendering
     }
-
 
     void VulkanCore::beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, uint64_t id) {
         // TODO: Implement path mode

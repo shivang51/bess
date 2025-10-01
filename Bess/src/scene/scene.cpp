@@ -33,6 +33,7 @@
 #include "ui/ui_main/ui_main.h"
 #include <cstdint>
 #include <memory>
+#include <utility>
 
 namespace Bess::Canvas {
     Scene::Scene() {
@@ -51,14 +52,6 @@ namespace Bess::Canvas {
 
         m_size = glm::vec2(800.f / 600.f, 1.f);
         m_camera = std::make_shared<Camera>(m_size.x, m_size.y);
-
-        // TODO: Implement Vulkan framebuffers
-        // Vulkan framebuffers will be managed differently
-        // For now, using placeholder values
-
-        // TODO: Implement Vulkan textures
-        // m_placeHolderTexture = std::make_shared<Vulkan::VulkanTexture>("assets/images/crosshairs_tilesheet_white.png");
-        // m_placeHolderSubTexture = std::make_shared<Vulkan::VulkanSubTexture>(m_placeHolderTexture, glm::vec2(5.f, 5.f), glm::vec2(64.f, 64.f));
 
         m_artistManager = std::make_shared<ArtistManager>(this);
     }
@@ -80,7 +73,7 @@ namespace Bess::Canvas {
 
         m_camera->update(ts);
 
-        for (auto &event : events) {
+        for (const auto &event : events) {
             switch (event.getType()) {
             case ApplicationEventType::MouseMove: {
                 const auto data = event.getData<ApplicationEvent::MouseMoveData>();
@@ -123,10 +116,10 @@ namespace Bess::Canvas {
 
     void Scene::selectAllEntities() {
         const auto view = m_registry.view<Canvas::Components::SimulationComponent>();
-        for (auto &entt : view)
+        for (const auto &entt : view)
             m_registry.emplace_or_replace<Components::SelectedComponent>(entt);
         const auto connectionView = m_registry.view<Canvas::Components::ConnectionComponent>();
-        for (auto &entt : connectionView)
+        for (const auto &entt : connectionView)
             m_registry.emplace_or_replace<Components::SelectedComponent>(entt);
     }
 
@@ -151,7 +144,7 @@ namespace Bess::Canvas {
 
             std::vector<UUID> entitesToDel = {};
             std::vector<entt::entity> connEntitesToDel = {};
-            for (auto &entt : view) {
+            for (const auto &entt : view) {
                 if (!m_registry.valid(entt))
                     continue;
 
@@ -172,14 +165,14 @@ namespace Bess::Canvas {
                 connToDel.emplace_back(getUuidOfEntity(ent));
             }
 
-            auto __ = m_cmdManager.execute<Commands::DelConnectionCommand, std::string>(connToDel);
+            _ = m_cmdManager.execute<Commands::DelConnectionCommand, std::string>(connToDel);
         } else if (mainPageState->isKeyPressed(GLFW_KEY_F)) {
             const auto view = m_registry.view<Components::IdComponent,
                                               Components::SelectedComponent,
                                               Components::TransformComponent>();
 
             // pick the first one to focus. if many are selected
-            for (auto &ent : view) {
+            for (const auto &ent : view) {
                 const auto &transform = view.get<Components::TransformComponent>(ent);
                 m_camera->focusAtPoint(glm::vec2(transform.position), true);
                 break;
@@ -214,19 +207,13 @@ namespace Bess::Canvas {
     }
 
     void Scene::drawScene(std::shared_ptr<Camera> camera) {
-        // Set the appropriate artist mode
         m_artistManager->setSchematicMode(m_isSchematicView);
         const auto artist = m_artistManager->getCurrentArtist();
 
-        // Begin offscreen rendering
-        Renderer2D::VulkanCore::instance().beginOffscreenRender();
+        Renderer2D::VulkanRenderer::beginScene(camera);
 
-        // Begin VulkanRenderer frame
-        Renderer2D::VulkanRenderer::begin(camera);
-
-        // Draw the grid using VulkanRenderer
         Renderer2D::VulkanRenderer::grid(
-            glm::vec3(0.f, 0.f, 0.f),
+            glm::vec3(0.f, 0.f, -2.f),
             m_camera->getSpan(),
             -1,
             {
@@ -234,14 +221,11 @@ namespace Bess::Canvas {
                 .majorColor = ViewportTheme::colors.gridMajorColor,
                 .axisXColor = ViewportTheme::colors.gridAxisXColor,
                 .axisYColor = ViewportTheme::colors.gridAxisYColor,
-            }
-        );
+            });
 
-        // End VulkanRenderer frame
         Renderer2D::VulkanRenderer::end();
 
-        // End offscreen rendering
-        Renderer2D::VulkanCore::instance().endOffscreenRender();
+        return;
 
         // Connections
         Renderer2D::VulkanCore::begin(camera);
@@ -313,9 +297,10 @@ namespace Bess::Canvas {
     UUID Scene::createSimEntity(const UUID &simEngineEntt,
                                 std::shared_ptr<const SimEngine::ComponentDefinition> comp, const glm::vec2 &pos) {
         const auto state = SimEngine::SimulationEngine::instance().getComponentState(simEngineEntt);
-        const std::vector<UUID> inputSlotIds(state.inputStates.size()), outputSlotIds(state.outputStates.size());
+        const std::vector<UUID> inputSlotIds(state.inputStates.size());
+        const std::vector<UUID> outputSlotIds(state.outputStates.size());
         const UUID uuid;
-        return createSimEntity(simEngineEntt, comp, pos, uuid, inputSlotIds, outputSlotIds);
+        return createSimEntity(simEngineEntt, std::move(comp), pos, uuid, inputSlotIds, outputSlotIds);
     }
 
     UUID Scene::createSimEntity(const UUID &simEngineEntt, std::shared_ptr<const SimEngine::ComponentDefinition> comp, const glm::vec2 &pos,
@@ -502,7 +487,7 @@ namespace Bess::Canvas {
 
     entt::entity Scene::getSceneEntityFromSimUuid(const UUID &uuid) const {
         for (const auto ent : m_registry.view<Components::SimulationComponent>()) {
-            auto &comp = m_registry.get<Components::SimulationComponent>(ent);
+            const auto &comp = m_registry.get<Components::SimulationComponent>(ent);
             if (comp.simEngineEntity == uuid)
                 return ent;
         }
@@ -513,12 +498,9 @@ namespace Bess::Canvas {
 
     void Scene::resize(const glm::vec2 &size) {
         m_size = UI::UIMain::state.viewportSize;
-        // Resize offscreen render targets to match viewport
-        Renderer2D::VulkanCore::instance().resizeOffscreen({
-            static_cast<uint32_t>(UI::UIMain::state.viewportSize.x),
-            static_cast<uint32_t>(UI::UIMain::state.viewportSize.y)
-        });
-        m_camera->resize(UI::UIMain::state.viewportSize.x, UI::UIMain::state.viewportSize.y);
+        Renderer2D::VulkanCore::instance().resizeOffscreen({static_cast<uint32_t>(m_size.x),
+                                                            static_cast<uint32_t>(m_size.y)});
+        m_camera->resize(m_size.x, m_size.y);
     }
 
     glm::vec2 Scene::getViewportMousePos(const glm::vec2 &mousePos) const {
@@ -657,7 +639,7 @@ namespace Bess::Canvas {
                 m_isDragging = true;
             } else {
                 const auto view = m_registry.view<Components::SelectedComponent, Components::TransformComponent>();
-                for (auto &ent : view) {
+                for (const auto &ent : view) {
                     auto &transformComp = view.get<Components::TransformComponent>(ent);
                     if (!m_dragStartTransforms.contains(getUuidOfEntity(ent))) {
                         m_dragStartTransforms[getUuidOfEntity(ent)] = transformComp;
@@ -674,7 +656,7 @@ namespace Bess::Canvas {
                 }
 
                 const auto connectionView = m_registry.view<Components::SelectedComponent, Components::ConnectionComponent>();
-                for (auto &ent : connectionView) {
+                for (const auto &ent : connectionView) {
                     moveConnection(ent, m_dMousePos);
                 }
 
@@ -730,8 +712,8 @@ namespace Bess::Canvas {
         BESS_INFO("[Scene] Removed connection from scene");
     }
 
-    void Scene::deleteConnection(const UUID &entityUuid) {
-        const auto entity = getEntityWithUuid(entityUuid);
+    void Scene::deleteConnection(const UUID &entUuid) {
+        const auto entity = getEntityWithUuid(entUuid);
         const auto &connComp = m_registry.get<Components::ConnectionComponent>(entity);
 
         const auto &slotCompA = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.inputSlot));
@@ -745,7 +727,7 @@ namespace Bess::Canvas {
 
         SimEngine::SimulationEngine::instance().deleteConnection(simCompA.simEngineEntity, pinTypeA, slotCompA.idx, simCompB.simEngineEntity, pinTypeB, slotCompB.idx);
 
-        deleteConnectionFromScene(entityUuid);
+        deleteConnectionFromScene(entUuid);
     }
 
     UUID Scene::generateBasicConnection(entt::entity inputSlot, entt::entity outputSlot) {
@@ -996,7 +978,8 @@ namespace Bess::Canvas {
         size = glm::abs(size);
         int w = (int)size.x;
         int h = (int)size.y;
-        int x = pos.x, y = UI::UIMain::state.viewportSize.y - pos.y;
+        int x = pos.x;
+        int y = UI::UIMain::state.viewportSize.y - pos.y;
 
         // TODO: Implement Vulkan framebuffer read for selection box
         // This would require reading from a separate ID attachment in the framebuffer
@@ -1008,7 +991,7 @@ namespace Bess::Canvas {
         std::set<int> uniqueIds(ids.begin(), ids.end());
         std::unordered_map<int, bool> selected = {};
 
-        for (auto &id : uniqueIds) {
+        for (const auto &id : uniqueIds) {
             auto entt = (entt::entity)id;
             if (!m_registry.valid(entt))
                 continue;
@@ -1019,7 +1002,7 @@ namespace Bess::Canvas {
                 isConnection = true;
             }
 
-            if (selected.find(id) != selected.end())
+            if (selected.contains(id))
                 continue;
 
             if (isConnection || m_registry.any_of<Components::SimulationComponent, Components::NSComponent>(entt)) {
@@ -1046,15 +1029,11 @@ namespace Bess::Canvas {
     }
 
     void Scene::beginScene() const {
-        // Vulkan scene management is handled by VulkanRenderer
-        // The renderer manages the scene framebuffer and render pass
-        // This method is called before drawing, so we can prepare Vulkan resources here
+        Renderer2D::VulkanCore::instance().beginOffscreenRender(ViewportTheme::colors.background);
     }
 
     void Scene::endScene() const {
-        // Vulkan scene management is handled by VulkanRenderer
-        // The renderer manages the scene framebuffer and render pass
-        // This method is called after drawing, so we can finalize Vulkan resources here
+        Renderer2D::VulkanCore::instance().endOffscreenRender();
     }
 
     void Scene::saveScenePNG(const std::string &path) const {

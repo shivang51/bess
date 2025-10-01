@@ -11,9 +11,9 @@ namespace Bess::Renderer2D::Vulkan {
 
     class PrimitiveRenderer {
       public:
-        PrimitiveRenderer(const std::shared_ptr<VulkanDevice> &device, 
-                         const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
-                         VkExtent2D extent);
+        PrimitiveRenderer(const std::shared_ptr<VulkanDevice> &device,
+                          const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
+                          VkExtent2D extent);
         ~PrimitiveRenderer();
 
         PrimitiveRenderer(const PrimitiveRenderer &) = delete;
@@ -21,7 +21,7 @@ namespace Bess::Renderer2D::Vulkan {
         PrimitiveRenderer(PrimitiveRenderer &&other) noexcept;
         PrimitiveRenderer &operator=(PrimitiveRenderer &&other) noexcept;
 
-        void beginFrame(VkCommandBuffer commandBuffer, const UniformBufferObject &ubo, const GridUniforms &gridUniforms);
+        void beginFrame(VkCommandBuffer commandBuffer);
         void endFrame();
 
         // Primitive rendering functions

@@ -13,8 +13,14 @@ Checks: >
   -cppcoreguidelines-pro-type-member-init,
   -performance-avoid-endl,
   -readability-braces-around-statements,
-  -cppcoreguidelines-pro-bounds-pointer-arithmetic
-  -readability-identifier-naming
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -readability-identifier-naming,
+  -cppcoreguidelines-pro-type-union-access,
+  -readability-uppercase-literal-suffix,
+  -readability-function-cognitive-complexity,
+  -bugprone-easily-swappable-parameters,
+  -cppcoreguidelines-avoid-do-while,
+  -readability-convert-member-functions-to-static
 
 WarningsAsErrors: ''
 

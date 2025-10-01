@@ -51,7 +51,7 @@ void main() {
         gridColor = u_gridMinorColor;
     }
 
-    float axisThicknessWorld = 1.0 / u_zoom;
+    float axisThicknessWorld = 2.0 / u_zoom;
     if (abs(fragCoord.x) < axisThicknessWorld)
         gridColor = u_axisYColor;
     if (abs(fragCoord.y) < axisThicknessWorld)
