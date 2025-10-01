@@ -210,6 +210,7 @@ namespace Bess::Renderer2D::Vulkan {
         m_currentIndices.clear();
         m_currentVertexCount = 0;
         m_currentIndexCount = 0;
+        m_pendingQuadInstances.clear(); // Clear pending quad instances for new frame
 
         vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
         vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSet, 0, nullptr);
@@ -224,6 +225,37 @@ namespace Bess::Renderer2D::Vulkan {
         if (m_currentVertexCount > 0) {
             vkCmdDrawIndexed(m_currentCommandBuffer, m_currentIndexCount, 1, 0, 0, 0);
         }
+
+        // Flush all pending quad instances
+        if (!m_pendingQuadInstances.empty()) {
+            ensureQuadInstanceCapacity(m_pendingQuadInstances.size());
+
+            // Upload all instances to GPU
+            void *data = nullptr;
+            vkMapMemory(m_device->device(), m_quadInstanceBufferMemory, 0, sizeof(QuadInstance) * m_pendingQuadInstances.size(), 0, &data);
+            memcpy(data, m_pendingQuadInstances.data(), sizeof(QuadInstance) * m_pendingQuadInstances.size());
+            vkUnmapMemory(m_device->device(), m_quadInstanceBufferMemory);
+
+            // Create quad pipeline if not exists
+            if (m_quadPipeline == VK_NULL_HANDLE) {
+                createQuadPipeline();
+            }
+
+            // Bind quad pipeline and buffers
+            vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_quadPipeline);
+
+            VkBuffer vbs[] = {m_quadVertexBuffer, m_quadInstanceBuffer};
+            VkDeviceSize offs[] = {0, 0};
+            vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 2, vbs, offs);
+            vkCmdBindIndexBuffer(m_currentCommandBuffer, m_quadIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+            vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_quadPipelineLayout, 0, 1, &m_descriptorSet, 0, nullptr);
+
+            // Draw all instances in one call
+            vkCmdDrawIndexed(m_currentCommandBuffer, 6, static_cast<uint32_t>(m_pendingQuadInstances.size()), 0, 0, 0);
+            m_pendingQuadInstances.clear();
+        }
+
         m_currentCommandBuffer = VK_NULL_HANDLE;
     }
     struct TemplateVertex {
@@ -281,109 +313,20 @@ namespace Bess::Renderer2D::Vulkan {
 
         ensureQuadBuffers();
 
-        struct LocalVertex {
-            glm::vec3 pos;
-            glm::vec2 uv;
-        };
-        std::array<LocalVertex, 4> local = {{
-            {{-0.5f, -0.5f, 0.f}, {0.f, 0.f}},
-            {{0.5f, -0.5f, 0.f}, {1.f, 0.f}},
-            {{0.5f, 0.5f, 0.f}, {1.f, 1.f}},
-            {{-0.5f, 0.5f, 0.f}, {0.f, 1.f}},
-        }};
-        std::array<uint32_t, 6> idx = {{0, 1, 2, 2, 3, 0}};
-
+        // Create quad instance and queue it for batching
         QuadInstance instance{};
         instance.position = pos;
         instance.color = color;
         instance.borderRadius = borderRadius;
         instance.borderColor = borderColor;
         instance.borderSize = borderSize;
-        // size in pixels for shader's AA and rounding
-        instance.size = pixelSize;
+        instance.size = pixelSize; // size in pixels for shader's AA and rounding
         instance.id = id;
         instance.isMica = isMica;
-        // instance.texSlotIdx = 0;
-        // Use full local UV [0,1] by default: start=(0,0), size=(1,1)
-        instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f);
+        instance.texSlotIdx = 0;
+        instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f); // Full local UV [0,1] by default
 
-        void *data = nullptr;
-        vkMapMemory(m_device->device(), m_quadInstanceBufferMemory, 0, sizeof(QuadInstance), 0, &data);
-        memcpy(data, &instance, sizeof(QuadInstance));
-        vkUnmapMemory(m_device->device(), m_quadInstanceBufferMemory);
-
-        // Create a small vertex/index buffer on the fly using dedicated quad buffers
-        if (m_quadVertexBuffer == VK_NULL_HANDLE) {
-            // Allocate and upload quad vertex buffer
-            VkDeviceSize vsize = sizeof(LocalVertex) * local.size();
-            VkBufferCreateInfo bi{};
-            bi.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            bi.size = vsize;
-            bi.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-            bi.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-            if (vkCreateBuffer(m_device->device(), &bi, nullptr, &m_quadVertexBuffer) != VK_SUCCESS) {
-                throw std::runtime_error("Failed to create quad vertex buffer!");
-            }
-            VkMemoryRequirements req{};
-            vkGetBufferMemoryRequirements(m_device->device(), m_quadVertexBuffer, &req);
-            VkMemoryAllocateInfo ai{};
-            ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-            ai.allocationSize = req.size;
-            ai.memoryTypeIndex = m_device->findMemoryType(req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-            if (vkAllocateMemory(m_device->device(), &ai, nullptr, &m_quadVertexBufferMemory) != VK_SUCCESS) {
-                throw std::runtime_error("Failed to allocate quad vertex buffer memory!");
-            }
-            vkBindBufferMemory(m_device->device(), m_quadVertexBuffer, m_quadVertexBufferMemory, 0);
-            void *vdata = nullptr;
-            vkMapMemory(m_device->device(), m_quadVertexBufferMemory, 0, vsize, 0, &vdata);
-            memcpy(vdata, local.data(), vsize);
-            vkUnmapMemory(m_device->device(), m_quadVertexBufferMemory);
-
-            // Allocate and upload quad index buffer
-            VkDeviceSize isize = sizeof(uint32_t) * idx.size();
-            bi.size = isize;
-            bi.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-            if (vkCreateBuffer(m_device->device(), &bi, nullptr, &m_quadIndexBuffer) != VK_SUCCESS) {
-                throw std::runtime_error("Failed to create quad index buffer!");
-            }
-            vkGetBufferMemoryRequirements(m_device->device(), m_quadIndexBuffer, &req);
-            ai.allocationSize = req.size;
-            ai.memoryTypeIndex = m_device->findMemoryType(req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-            if (vkAllocateMemory(m_device->device(), &ai, nullptr, &m_quadIndexBufferMemory) != VK_SUCCESS) {
-                throw std::runtime_error("Failed to allocate quad index buffer memory!");
-            }
-            vkBindBufferMemory(m_device->device(), m_quadIndexBuffer, m_quadIndexBufferMemory, 0);
-            void *idata = nullptr;
-            vkMapMemory(m_device->device(), m_quadIndexBufferMemory, 0, isize, 0, &idata);
-            memcpy(idata, idx.data(), isize);
-            vkUnmapMemory(m_device->device(), m_quadIndexBufferMemory);
-        }
-
-        // Bind quad pipeline; if not created yet, create now
-        if (m_quadPipeline == VK_NULL_HANDLE) {
-
-            createQuadPipeline();
-        }
-        vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_quadPipeline);
-
-        // Bind vertex/index (binding 0) and instance buffer (binding 1)
-        // Binding 0: local quad positions (vec3) — match shader location 0
-        // Binding 1: instance data — match shader locations 2..11
-        VkBuffer vbs[] = {m_quadVertexBuffer, m_quadInstanceBuffer};
-        VkDeviceSize offs[] = {0, 0};
-
-        vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 2, vbs, offs);
-        vkCmdBindIndexBuffer(m_currentCommandBuffer, m_quadIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-        // Bind descriptor sets
-        vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_quadPipelineLayout, 0, 1, &m_descriptorSet, 0, nullptr);
-
-        // Draw one instance
-
-        vkCmdDrawIndexed(m_currentCommandBuffer, 6, 1, 0, 0, 0);
-        // Prevent endFrame from issuing a second draw with stale buffers
-        m_currentVertexCount = 0;
-        m_currentIndexCount = 0;
+        m_pendingQuadInstances.push_back(instance);
     }
 
     void PrimitiveRenderer::drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, int id, float innerRadius) {
@@ -865,9 +808,83 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void PrimitiveRenderer::ensureQuadBuffers() {
-        if (m_quadInstanceBuffer != VK_NULL_HANDLE)
+        if (m_quadVertexBuffer != VK_NULL_HANDLE)
             return;
-        VkDeviceSize size = sizeof(QuadInstance);
+
+        // Create static quad vertex buffer
+        struct LocalVertex {
+            glm::vec3 pos;
+            glm::vec2 uv;
+        };
+        std::array<LocalVertex, 4> local = {{
+            {{-0.5f, -0.5f, 0.f}, {0.f, 0.f}},
+            {{0.5f, -0.5f, 0.f}, {1.f, 0.f}},
+            {{0.5f, 0.5f, 0.f}, {1.f, 1.f}},
+            {{-0.5f, 0.5f, 0.f}, {0.f, 1.f}},
+        }};
+        std::array<uint32_t, 6> idx = {{0, 1, 2, 2, 3, 0}};
+
+        // Allocate and upload quad vertex buffer
+        VkDeviceSize vsize = sizeof(LocalVertex) * local.size();
+        VkBufferCreateInfo bi{};
+        bi.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bi.size = vsize;
+        bi.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        bi.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        if (vkCreateBuffer(m_device->device(), &bi, nullptr, &m_quadVertexBuffer) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create quad vertex buffer!");
+        }
+        VkMemoryRequirements req{};
+        vkGetBufferMemoryRequirements(m_device->device(), m_quadVertexBuffer, &req);
+        VkMemoryAllocateInfo ai{};
+        ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        ai.allocationSize = req.size;
+        ai.memoryTypeIndex = m_device->findMemoryType(req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        if (vkAllocateMemory(m_device->device(), &ai, nullptr, &m_quadVertexBufferMemory) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate quad vertex buffer memory!");
+        }
+        vkBindBufferMemory(m_device->device(), m_quadVertexBuffer, m_quadVertexBufferMemory, 0);
+        void *vdata = nullptr;
+        vkMapMemory(m_device->device(), m_quadVertexBufferMemory, 0, vsize, 0, &vdata);
+        memcpy(vdata, local.data(), vsize);
+        vkUnmapMemory(m_device->device(), m_quadVertexBufferMemory);
+
+        // Allocate and upload quad index buffer
+        VkDeviceSize isize = sizeof(uint32_t) * idx.size();
+        bi.size = isize;
+        bi.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        if (vkCreateBuffer(m_device->device(), &bi, nullptr, &m_quadIndexBuffer) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create quad index buffer!");
+        }
+        vkGetBufferMemoryRequirements(m_device->device(), m_quadIndexBuffer, &req);
+        ai.allocationSize = req.size;
+        ai.memoryTypeIndex = m_device->findMemoryType(req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        if (vkAllocateMemory(m_device->device(), &ai, nullptr, &m_quadIndexBufferMemory) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate quad index buffer memory!");
+        }
+        vkBindBufferMemory(m_device->device(), m_quadIndexBuffer, m_quadIndexBufferMemory, 0);
+        void *idata = nullptr;
+        vkMapMemory(m_device->device(), m_quadIndexBufferMemory, 0, isize, 0, &idata);
+        memcpy(idata, idx.data(), isize);
+        vkUnmapMemory(m_device->device(), m_quadIndexBufferMemory);
+
+        // Create initial instance buffer with capacity for 1 instance
+        ensureQuadInstanceCapacity(1);
+    }
+
+    void PrimitiveRenderer::ensureQuadInstanceCapacity(size_t instanceCount) {
+        if (instanceCount <= m_quadInstanceCapacity) {
+            return; // Already have enough capacity
+        }
+
+        // Destroy old instance buffer if it exists
+        if (m_quadInstanceBuffer != VK_NULL_HANDLE) {
+            vkDestroyBuffer(m_device->device(), m_quadInstanceBuffer, nullptr);
+            vkFreeMemory(m_device->device(), m_quadInstanceBufferMemory, nullptr);
+        }
+
+        // Create new instance buffer with required capacity
+        VkDeviceSize size = sizeof(QuadInstance) * instanceCount;
         VkBufferCreateInfo bi{};
         bi.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         bi.size = size;
@@ -887,8 +904,7 @@ namespace Bess::Renderer2D::Vulkan {
         }
         vkBindBufferMemory(m_device->device(), m_quadInstanceBuffer, m_quadInstanceBufferMemory, 0);
 
-        // Create quad pipeline on first use
-        createQuadPipeline();
+        m_quadInstanceCapacity = instanceCount;
     }
 
     void PrimitiveRenderer::updateUniformBuffer(const UniformBufferObject &ubo, const GridUniforms &gridUniforms) {

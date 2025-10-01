@@ -58,6 +58,7 @@ namespace Bess::Renderer2D::Vulkan {
         void createGraphicsPipeline();
         void createQuadPipeline();
         void ensureQuadBuffers();
+        void ensureQuadInstanceCapacity(size_t instanceCount);
 
         std::shared_ptr<VulkanDevice> m_device;
         std::shared_ptr<VulkanOffscreenRenderPass> m_renderPass;
@@ -93,6 +94,10 @@ namespace Bess::Renderer2D::Vulkan {
         VkDeviceMemory m_quadIndexBufferMemory = VK_NULL_HANDLE;
         VkBuffer m_quadInstanceBuffer = VK_NULL_HANDLE;
         VkDeviceMemory m_quadInstanceBufferMemory = VK_NULL_HANDLE;
+        size_t m_quadInstanceCapacity = 0; // number of instances buffer can hold
+
+        // Batched quad instances to be flushed in endFrame
+        std::vector<QuadInstance> m_pendingQuadInstances;
 
         // Current frame data
         VkCommandBuffer m_currentCommandBuffer = VK_NULL_HANDLE;
