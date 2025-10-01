@@ -43,19 +43,20 @@ void main() {
     if (intensity <= 0.0)
         discard;
 
-    vec4 gridColor = vec4(0.0);
+    vec4 gridColor = vec4(1.0);
 
     if (smallGrid >= bigGrid) {
-        gridColor = u_gridMajorColor;
+        gridColor *= u_gridMajorColor;
     } else {
-        gridColor = u_gridMinorColor;
+        gridColor *= u_gridMinorColor;
     }
 
     float axisThicknessWorld = 2.0 / u_zoom;
-    if (abs(fragCoord.x) < axisThicknessWorld)
-        gridColor = u_axisYColor;
-    if (abs(fragCoord.y) < axisThicknessWorld)
-        gridColor = u_axisXColor;
 
-    fragColor = vec4(gridColor.rgb, min(intensity, gridColor.a));
+    if (abs(fragCoord.x) < axisThicknessWorld)
+        gridColor *= u_axisYColor;
+    if (abs(fragCoord.y) < axisThicknessWorld)
+        gridColor *= u_axisXColor;
+
+    fragColor = vec4(gridColor.rgb, intensity);
 }
