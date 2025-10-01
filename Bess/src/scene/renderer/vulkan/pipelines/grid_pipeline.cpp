@@ -299,10 +299,10 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         multisampling.sampleShadingEnable = VK_FALSE;
         multisampling.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
 
-        // Color attachment 0 (main color) - disable blending to match picking attachment
+        // Color attachment 0 (main color) - enable alpha blending
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        colorBlendAttachment.blendEnable = VK_FALSE; // Disabled to match picking attachment (independentBlend not available)
+        colorBlendAttachment.blendEnable = VK_TRUE;
         colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
         colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
@@ -310,8 +310,9 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
         colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
-        // Color attachment 1 (picking ID - identical to color attachment)
+        // Color attachment 1 (picking ID) - no blending (integer format)
         VkPipelineColorBlendAttachmentState pickingBlendAttachment = colorBlendAttachment;
+        pickingBlendAttachment.blendEnable = VK_FALSE;
 
         std::array<VkPipelineColorBlendAttachmentState, 2> colorBlendAttachments = {colorBlendAttachment, pickingBlendAttachment};
 

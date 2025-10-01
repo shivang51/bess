@@ -104,7 +104,11 @@ namespace Bess::Renderer2D::Vulkan {
             queueCreateInfos.push_back(queueCreateInfo);
         }
 
+        VkPhysicalDeviceFeatures supportedFeatures{};
+        vkGetPhysicalDeviceFeatures(m_vkPhysicalDevice, &supportedFeatures);
+
         VkPhysicalDeviceFeatures deviceFeatures{};
+        deviceFeatures.independentBlend = supportedFeatures.independentBlend; // needed to blend color but not picking
 
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
