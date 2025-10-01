@@ -66,7 +66,6 @@ namespace Bess::Renderer2D {
         ubo.ortho = m_camera->getOrtho();
         m_primitiveRenderer->updateMvp(ubo);
 
-        const glm::vec2 pixelSize = size * m_camera->getZoom();
         m_primitiveRenderer->drawQuad(
             pos,
             size,
@@ -75,7 +74,6 @@ namespace Bess::Renderer2D {
             properties.borderRadius,
             properties.borderSize,
             properties.borderColor,
-            properties.isMica ? 1 : 0,
-            pixelSize);
+            properties.isMica ? 1 : 0);
     }
 } // namespace Bess::Renderer2D

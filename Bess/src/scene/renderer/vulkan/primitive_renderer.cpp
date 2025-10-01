@@ -308,19 +308,18 @@ namespace Bess::Renderer2D::Vulkan {
                                      const glm::vec4 &borderRadius,
                                      const glm::vec4 &borderSize,
                                      const glm::vec4 &borderColor,
-                                     int isMica,
-                                     const glm::vec2 &pixelSize) {
+                                     int isMica) {
 
         ensureQuadBuffers();
 
         // Create quad instance and queue it for batching
         QuadInstance instance{};
         instance.position = pos;
+        instance.size = size;
         instance.color = color;
         instance.borderRadius = borderRadius;
         instance.borderColor = borderColor;
         instance.borderSize = borderSize;
-        instance.size = pixelSize; // size in pixels for shader's AA and rounding
         instance.id = id;
         instance.isMica = isMica;
         instance.texSlotIdx = 0;

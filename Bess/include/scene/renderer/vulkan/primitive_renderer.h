@@ -33,8 +33,7 @@ namespace Bess::Renderer2D::Vulkan {
                       const glm::vec4 &borderRadius,
                       const glm::vec4 &borderSize,
                       const glm::vec4 &borderColor,
-                      int isMica,
-                      const glm::vec2 &pixelSize);
+                      int isMica);
         void drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, int id, float innerRadius = 0.0F);
         void drawLine(const glm::vec3 &start, const glm::vec3 &end, float width, const glm::vec4 &color, int id);
 

@@ -34,9 +34,10 @@ void main() {
     vec3 worldPos = a_InstancePosition + vec3(transformedPos, 0.0);
 
     gl_Position = u_mvp * vec4(worldPos, 1.0);
-
+    vec2 start = a_InstanceTexData.xy;
+    vec2 size = a_InstanceTexData.zw;
     v_FragColor = a_InstanceColor;
-    v_TexCoord = a_LocalTexCoord;
+    v_TexCoord = start + (size * a_LocalTexCoord);
     v_BorderRadius = a_InstanceBorderRadius;
     v_BorderColor = a_InstanceBorderColor;
     v_BorderSize = a_InstanceBorderSize;
