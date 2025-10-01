@@ -3,6 +3,8 @@
 #include "device.h"
 #include "primitive_vertex.h"
 #include "vulkan_offscreen_render_pass.h"
+#include "pipelines/grid_pipeline.h"
+#include "pipelines/quad_pipeline.h"
 #include <memory>
 #include <vector>
 #include <vulkan/vulkan.h>
@@ -38,72 +40,20 @@ namespace Bess::Renderer2D::Vulkan {
         void drawLine(const glm::vec3 &start, const glm::vec3 &end, float width, const glm::vec4 &color, int id);
 
         // Buffer management
-        void updateVertexBuffer(const std::vector<GridVertex> &vertices);
-        void updateIndexBuffer(const std::vector<uint32_t> &indices);
         void updateUniformBuffer(const UniformBufferObject &ubo, const GridUniforms &gridUniforms);
         void updateMvp(const UniformBufferObject &ubo);
 
       private:
-        VkShaderModule createShaderModule(const std::vector<char> &code) const;
-        std::vector<char> readFile(const std::string &filename) const;
-
-      private:
-        void createDescriptorSetLayout();
-        void createDescriptorPool();
-        void createDescriptorSets();
-        void createUniformBuffers();
-        void createVertexBuffer();
-        void createIndexBuffer();
-        void createGraphicsPipeline();
-        void createQuadPipeline();
-        void ensureQuadBuffers();
-        void ensureQuadInstanceCapacity(size_t instanceCount);
-
         std::shared_ptr<VulkanDevice> m_device;
         std::shared_ptr<VulkanOffscreenRenderPass> m_renderPass;
         VkExtent2D m_extent;
 
-        // Pipeline
-        VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
-        VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
-        VkPipeline m_quadPipeline = VK_NULL_HANDLE;
-        VkPipelineLayout m_quadPipelineLayout = VK_NULL_HANDLE;
-
-        // Descriptor sets
-        VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
-        VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
-        VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
-
-        // Uniform buffers
-        std::vector<VkBuffer> m_uniformBuffers;
-        std::vector<VkDeviceMemory> m_uniformBufferMemory;
-
-        std::vector<VkBuffer> m_gridUniformBuffers;
-        std::vector<VkDeviceMemory> m_gridUniformBufferMemory;
-
-        // Vertex/Index buffers
-        VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory m_vertexBufferMemory = VK_NULL_HANDLE;
-        VkBuffer m_indexBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory m_indexBufferMemory = VK_NULL_HANDLE;
-        // Dedicated quad geometry buffers to avoid clobbering grid buffers
-        VkBuffer m_quadVertexBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory m_quadVertexBufferMemory = VK_NULL_HANDLE;
-        VkBuffer m_quadIndexBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory m_quadIndexBufferMemory = VK_NULL_HANDLE;
-        VkBuffer m_quadInstanceBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory m_quadInstanceBufferMemory = VK_NULL_HANDLE;
-        size_t m_quadInstanceCapacity = 0; // number of instances buffer can hold
-
-        // Batched quad instances to be flushed in endFrame
-        std::vector<QuadInstance> m_pendingQuadInstances;
+        // Pipeline instances
+        std::unique_ptr<Pipelines::GridPipeline> m_gridPipeline;
+        std::unique_ptr<Pipelines::QuadPipeline> m_quadPipeline;
 
         // Current frame data
         VkCommandBuffer m_currentCommandBuffer = VK_NULL_HANDLE;
-        std::vector<GridVertex> m_currentVertices;
-        std::vector<uint32_t> m_currentIndices;
-        uint32_t m_currentVertexCount = 0;
-        uint32_t m_currentIndexCount = 0;
     };
 
 } // namespace Bess::Renderer2D::Vulkan
