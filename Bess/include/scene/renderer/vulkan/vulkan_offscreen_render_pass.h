@@ -9,7 +9,7 @@ namespace Bess::Renderer2D::Vulkan {
 
     class VulkanOffscreenRenderPass {
       public:
-        VulkanOffscreenRenderPass(const std::shared_ptr<VulkanDevice> &device, VkFormat colorFormat);
+        VulkanOffscreenRenderPass(const std::shared_ptr<VulkanDevice> &device, VkFormat colorFormat, VkFormat pickingFormat = VK_FORMAT_R32_SINT);
         ~VulkanOffscreenRenderPass();
 
         VulkanOffscreenRenderPass(const VulkanOffscreenRenderPass &) = delete;
@@ -22,7 +22,8 @@ namespace Bess::Renderer2D::Vulkan {
         void begin(VkCommandBuffer cmdBuffer,
                    VkFramebuffer framebuffer,
                    VkExtent2D extent,
-                   const glm::vec4 &clearColor = glm::vec4(1.0F, 0.0F, 1.0F, 1.0F)); // Pink clear color
+                   const glm::vec4 &clearColor = glm::vec4(1.0F, 0.0F, 1.0F, 1.0F), // Pink clear color
+                   int clearPickingId = -1); // Clear picking ID (-1 = no object)
 
         void end();
 
@@ -33,6 +34,7 @@ namespace Bess::Renderer2D::Vulkan {
 
         std::shared_ptr<VulkanDevice> m_device;
         VkFormat m_colorFormat;
+        VkFormat m_pickingFormat;
         VkRenderPass m_renderPass = VK_NULL_HANDLE;
     };
 

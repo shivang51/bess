@@ -55,7 +55,7 @@ namespace Bess::Renderer2D {
 
         /// typical flow
         void beginFrame();
-        void beginOffscreenRender(const glm::vec4 &clearColor);
+        void beginOffscreenRender(const glm::vec4 &clearColor, int clearPickingId = -1);
         void endOffscreenRender();
         void renderUi();
         void endFrame();

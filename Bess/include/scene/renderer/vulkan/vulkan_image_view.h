@@ -12,6 +12,12 @@ namespace Bess::Renderer2D::Vulkan {
                         VkFormat format,
                         VkExtent2D extent,
                         VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+        
+        // Constructor for dual attachments (color + picking)
+        VulkanImageView(const std::shared_ptr<VulkanDevice> &device,
+                        VkFormat colorFormat,
+                        VkFormat pickingFormat,
+                        VkExtent2D extent);
         ~VulkanImageView();
 
         VulkanImageView(const VulkanImageView &) = delete;
@@ -28,23 +34,39 @@ namespace Bess::Renderer2D::Vulkan {
         VkFramebuffer getFramebuffer() const { return m_framebuffer; }
         VkDescriptorSet getDescriptorSet() const { return m_descriptorSet; }
         VkSampler getSampler() const { return m_sampler; }
+        
+        // Picking attachment accessors
+        VkImage getPickingImage() const { return m_pickingImage; }
+        VkImage getMsaaPickingImage() const { return m_msaaPickingImage; }
+        VkImageView getPickingImageView() const { return m_pickingImageView; }
+        VkImageView getMsaaPickingImageView() const { return m_msaaPickingImageView; }
+        VkFormat getPickingFormat() const { return m_pickingFormat; }
 
         void createFramebuffer(VkRenderPass renderPass);
         void createSampler();
         void createDescriptorSet();
         // Recreate image, image view, and framebuffer for a new extent
         void recreate(VkExtent2D extent, VkRenderPass renderPass);
+        
+        // Check if this image view has picking attachments
+        bool hasPickingAttachments() const { return m_hasPickingAttachments; }
 
       private:
         void createImage();
         void createMsaaImage();
         void createImageView();
         void createMsaaImageView();
+        void createPickingImage();
+        void createMsaaPickingImage();
+        void createPickingImageView();
+        void createMsaaPickingImageView();
 
         std::shared_ptr<VulkanDevice> m_device;
         VkFormat m_format;
+        VkFormat m_pickingFormat = VK_FORMAT_UNDEFINED;
         VkExtent2D m_extent;
         VkImageUsageFlags m_usage;
+        bool m_hasPickingAttachments = false;
 
         VkImage m_image = VK_NULL_HANDLE;
         VkDeviceMemory m_imageMemory = VK_NULL_HANDLE;
@@ -52,6 +74,15 @@ namespace Bess::Renderer2D::Vulkan {
         VkImage m_msaaImage = VK_NULL_HANDLE;
         VkDeviceMemory m_msaaImageMemory = VK_NULL_HANDLE;
         VkImageView m_msaaImageView = VK_NULL_HANDLE;
+        
+        // Picking attachments
+        VkImage m_pickingImage = VK_NULL_HANDLE;
+        VkDeviceMemory m_pickingImageMemory = VK_NULL_HANDLE;
+        VkImageView m_pickingImageView = VK_NULL_HANDLE;
+        VkImage m_msaaPickingImage = VK_NULL_HANDLE;
+        VkDeviceMemory m_msaaPickingImageMemory = VK_NULL_HANDLE;
+        VkImageView m_msaaPickingImageView = VK_NULL_HANDLE;
+        
         VkFramebuffer m_framebuffer = VK_NULL_HANDLE;
         VkSampler m_sampler = VK_NULL_HANDLE;
         VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;

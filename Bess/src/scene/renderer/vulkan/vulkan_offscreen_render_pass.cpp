@@ -5,8 +5,8 @@
 #include <stdexcept>
 
 namespace Bess::Renderer2D::Vulkan {
-    VulkanOffscreenRenderPass::VulkanOffscreenRenderPass(const std::shared_ptr<VulkanDevice> &device, VkFormat colorFormat)
-        : m_device(device), m_colorFormat(colorFormat) {
+    VulkanOffscreenRenderPass::VulkanOffscreenRenderPass(const std::shared_ptr<VulkanDevice> &device, VkFormat colorFormat, VkFormat pickingFormat)
+        : m_device(device), m_colorFormat(colorFormat), m_pickingFormat(pickingFormat) {
         createRenderPass();
     }
 
@@ -19,6 +19,7 @@ namespace Bess::Renderer2D::Vulkan {
     VulkanOffscreenRenderPass::VulkanOffscreenRenderPass(VulkanOffscreenRenderPass &&other) noexcept
         : m_device(other.m_device),
           m_colorFormat(other.m_colorFormat),
+          m_pickingFormat(other.m_pickingFormat),
           m_renderPass(other.m_renderPass) {
         other.m_renderPass = VK_NULL_HANDLE;
     }
@@ -30,6 +31,7 @@ namespace Bess::Renderer2D::Vulkan {
             }
 
             m_colorFormat = other.m_colorFormat;
+            m_pickingFormat = other.m_pickingFormat;
             m_renderPass = other.m_renderPass;
 
             other.m_renderPass = VK_NULL_HANDLE;
@@ -40,7 +42,8 @@ namespace Bess::Renderer2D::Vulkan {
     void VulkanOffscreenRenderPass::begin(VkCommandBuffer cmdBuffer,
                                           VkFramebuffer framebuffer,
                                           VkExtent2D extent,
-                                          const glm::vec4 &clearColor) {
+                                          const glm::vec4 &clearColor,
+                                          int clearPickingId) {
         m_recordingCmdBuffer = cmdBuffer;
 
         VkRenderPassBeginInfo renderPassInfo{};
@@ -50,10 +53,12 @@ namespace Bess::Renderer2D::Vulkan {
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = extent;
 
-        // We have two attachments in the render pass: [0] MSAA color, [1] resolve color
-        std::array<VkClearValue, 2> clearValues{};
+        // We have four attachments in the render pass: [0] MSAA color, [1] resolve color, [2] MSAA picking, [3] resolve picking
+        std::array<VkClearValue, 4> clearValues{};
         clearValues[0].color = {{clearColor.r, clearColor.g, clearColor.b, clearColor.a}}; // Clear MSAA color
         clearValues[1].color = {{0.f, 0.f, 0.f, 0.f}}; // Resolve attachment ignored for clear
+        clearValues[2].color = {{static_cast<float>(clearPickingId), 0.f, 0.f, 0.f}}; // Clear MSAA picking
+        clearValues[3].color = {{0.f, 0.f, 0.f, 0.f}}; // Resolve picking ignored for clear
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassInfo.pClearValues = clearValues.data();
 
@@ -89,19 +94,52 @@ namespace Bess::Renderer2D::Vulkan {
         resolveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         resolveAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
+        // Attachment 2: Multisampled picking (4x), will be resolved into attachment 3
+        VkAttachmentDescription msaaPickingAttachment{};
+        msaaPickingAttachment.format = m_pickingFormat;
+        msaaPickingAttachment.samples = VK_SAMPLE_COUNT_4_BIT;
+        msaaPickingAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        msaaPickingAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; // Not needed after resolve
+        msaaPickingAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        msaaPickingAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        msaaPickingAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        msaaPickingAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        // Attachment 3: Resolve picking (single-sample), used for mouse picking
+        VkAttachmentDescription resolvePickingAttachment{};
+        resolvePickingAttachment.format = m_pickingFormat;
+        resolvePickingAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        resolvePickingAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        resolvePickingAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        resolvePickingAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        resolvePickingAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        resolvePickingAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        resolvePickingAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
         VkAttachmentReference colorAttachmentRef{};
-        colorAttachmentRef.attachment = 0; // MSAA attachment index
+        colorAttachmentRef.attachment = 0; // MSAA color attachment index
         colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkAttachmentReference resolveAttachmentRef{};
-        resolveAttachmentRef.attachment = 1; // Resolve attachment index
+        resolveAttachmentRef.attachment = 1; // Resolve color attachment index
         resolveAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference pickingAttachmentRef{};
+        pickingAttachmentRef.attachment = 2; // MSAA picking attachment index
+        pickingAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference resolvePickingAttachmentRef{};
+        resolvePickingAttachmentRef.attachment = 3; // Resolve picking attachment index
+        resolvePickingAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        std::array<VkAttachmentReference, 2> colorAttachments = {colorAttachmentRef, pickingAttachmentRef};
+        std::array<VkAttachmentReference, 2> resolveAttachments = {resolveAttachmentRef, resolvePickingAttachmentRef};
 
         VkSubpassDescription subpass{};
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.colorAttachmentCount = 1;
-        subpass.pColorAttachments = &colorAttachmentRef;
-        subpass.pResolveAttachments = &resolveAttachmentRef;
+        subpass.colorAttachmentCount = static_cast<uint32_t>(colorAttachments.size());
+        subpass.pColorAttachments = colorAttachments.data();
+        subpass.pResolveAttachments = resolveAttachments.data();
 
         VkSubpassDependency dependency{};
         dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -111,7 +149,7 @@ namespace Bess::Renderer2D::Vulkan {
         dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-        std::array<VkAttachmentDescription, 2> attachments{msaaColorAttachment, resolveAttachment};
+        std::array<VkAttachmentDescription, 4> attachments{msaaColorAttachment, resolveAttachment, msaaPickingAttachment, resolvePickingAttachment};
 
         VkRenderPassCreateInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;

@@ -40,9 +40,9 @@ namespace Bess::Renderer2D {
         m_offscreenImageView = std::make_shared<Vulkan::VulkanImageView>(
             m_device,
             m_swapchain->imageFormat(),
-            windowExtent,
-            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-        m_offscreenRenderPass = std::make_shared<Vulkan::VulkanOffscreenRenderPass>(m_device, m_swapchain->imageFormat());
+            VK_FORMAT_R32_SINT, // Picking format
+            windowExtent);
+        m_offscreenRenderPass = std::make_shared<Vulkan::VulkanOffscreenRenderPass>(m_device, m_swapchain->imageFormat(), VK_FORMAT_R32_SINT);
         m_offscreenImageView->createFramebuffer(m_offscreenRenderPass->getVkHandle());
 
         m_primitiveRenderer = std::make_shared<Vulkan::PrimitiveRenderer>(m_device, m_offscreenRenderPass, windowExtent);
@@ -56,7 +56,7 @@ namespace Bess::Renderer2D {
         BESS_INFO("Renderer Initialized");
     }
 
-    void VulkanCore::beginOffscreenRender(const glm::vec4 &clearColor) {
+    void VulkanCore::beginOffscreenRender(const glm::vec4 &clearColor, int clearPickingId) {
         if (!m_offscreenImageView || !m_offscreenRenderPass || !m_primitiveRenderer) {
             return;
         }
@@ -67,7 +67,8 @@ namespace Bess::Renderer2D {
             cmdBuffer->getVkHandle(),
             m_offscreenImageView->getFramebuffer(),
             m_offscreenImageView->getExtent(),
-            clearColor);
+            clearColor,
+            clearPickingId);
 
         m_primitiveRenderer->beginFrame(cmdBuffer->getVkHandle());
     }

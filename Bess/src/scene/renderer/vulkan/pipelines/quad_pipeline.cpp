@@ -1,4 +1,5 @@
 #include "scene/renderer/vulkan/pipelines/quad_pipeline.h"
+#include "common/log.h"
 #include <cstring>
 
 
@@ -37,7 +38,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     }
 
     void QuadPipeline::endPipeline() {
-        // Flush all pending quad instances
         if (!m_pendingQuadInstances.empty()) {
             ensureQuadInstanceCapacity(m_pendingQuadInstances.size());
 
@@ -292,6 +292,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         multisampling.sampleShadingEnable = VK_FALSE;
         multisampling.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
 
+        // Color attachment 0 (main color)
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         colorBlendAttachment.blendEnable = VK_TRUE;
@@ -302,12 +303,25 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
         colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
+        // Color attachment 1 (picking ID - identical to color attachment but no blending)
+        VkPipelineColorBlendAttachmentState pickingBlendAttachment{};
+        pickingBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        pickingBlendAttachment.blendEnable = VK_FALSE;
+        pickingBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        pickingBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        pickingBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+        pickingBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        pickingBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        pickingBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+        std::array<VkPipelineColorBlendAttachmentState, 2> colorBlendAttachments = {colorBlendAttachment, pickingBlendAttachment};
+
         VkPipelineColorBlendStateCreateInfo colorBlending{};
         colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
         colorBlending.logicOpEnable = VK_FALSE;
         colorBlending.logicOp = VK_LOGIC_OP_COPY;
-        colorBlending.attachmentCount = 1;
-        colorBlending.pAttachments = &colorBlendAttachment;
+        colorBlending.attachmentCount = static_cast<uint32_t>(colorBlendAttachments.size());
+        colorBlending.pAttachments = colorBlendAttachments.data();
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

@@ -1,6 +1,7 @@
 #version 460
 
 layout(location = 0) out vec4 fragColor;
+layout(location = 1) out int pickingId;
 
 layout(location = 5) in vec2 v_Size;
 layout(location = 1) in vec2 v_TexCoord;
@@ -53,4 +54,5 @@ void main() {
     vec4 color = mix(v_BorderColor, v_FragColor, mI);
     color.a *= mO;
     fragColor = color;
+    pickingId = v_FragId;
 }

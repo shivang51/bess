@@ -1,6 +1,7 @@
 #version 460
 
 layout(location = 0) out vec4 fragColor;
+layout(location = 1) out int pickingId;
 
 layout(location = 1) in vec2 v_TexCoord;
 layout(location = 2) in flat int v_FragId;
@@ -59,4 +60,5 @@ void main() {
         gridColor *= u_axisXColor;
 
     fragColor = vec4(gridColor.rgb, intensity);
+    pickingId = v_FragId;
 }
