@@ -70,6 +70,8 @@ namespace Bess::Renderer2D {
             clearColor);
 
         m_primitiveRenderer->beginFrame(cmdBuffer->getVkHandle());
+        BESS_INFO("[VulkanCore] Offscreen render begun. FB={}, extent=({}, {})",
+                  (void*)m_offscreenImageView->getFramebuffer(), m_offscreenImageView->getExtent().width, m_offscreenImageView->getExtent().height);
     }
 
     void VulkanCore::endOffscreenRender() {
@@ -77,6 +79,7 @@ namespace Bess::Renderer2D {
             return;
         }
 
+        BESS_INFO("[VulkanCore] Ending offscreen render frame");
         m_primitiveRenderer->endFrame();
         m_offscreenRenderPass->end();
     }

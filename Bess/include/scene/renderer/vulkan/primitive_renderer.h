@@ -26,7 +26,15 @@ namespace Bess::Renderer2D::Vulkan {
 
         // Primitive rendering functions
         void drawGrid(const glm::vec3 &pos, const glm::vec2 &size, int id, const GridUniforms &gridUniforms);
-        void drawQuad(const glm::vec3 &pos, const glm::vec2 &size, const glm::vec4 &color, int id);
+        void drawQuad(const glm::vec3 &pos,
+                      const glm::vec2 &size,
+                      const glm::vec4 &color,
+                      int id,
+                      const glm::vec4 &borderRadius,
+                      const glm::vec4 &borderSize,
+                      const glm::vec4 &borderColor,
+                      int isMica,
+                      const glm::vec2 &pixelSize);
         void drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, int id, float innerRadius = 0.0F);
         void drawLine(const glm::vec3 &start, const glm::vec3 &end, float width, const glm::vec4 &color, int id);
 
@@ -34,6 +42,7 @@ namespace Bess::Renderer2D::Vulkan {
         void updateVertexBuffer(const std::vector<GridVertex> &vertices);
         void updateIndexBuffer(const std::vector<uint32_t> &indices);
         void updateUniformBuffer(const UniformBufferObject &ubo, const GridUniforms &gridUniforms);
+        void updateMvp(const UniformBufferObject &ubo);
 
       private:
         VkShaderModule createShaderModule(const std::vector<char> &code) const;
@@ -77,6 +86,11 @@ namespace Bess::Renderer2D::Vulkan {
         VkDeviceMemory m_vertexBufferMemory = VK_NULL_HANDLE;
         VkBuffer m_indexBuffer = VK_NULL_HANDLE;
         VkDeviceMemory m_indexBufferMemory = VK_NULL_HANDLE;
+        // Dedicated quad geometry buffers to avoid clobbering grid buffers
+        VkBuffer m_quadVertexBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory m_quadVertexBufferMemory = VK_NULL_HANDLE;
+        VkBuffer m_quadIndexBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory m_quadIndexBufferMemory = VK_NULL_HANDLE;
         VkBuffer m_quadInstanceBuffer = VK_NULL_HANDLE;
         VkDeviceMemory m_quadInstanceBufferMemory = VK_NULL_HANDLE;
 

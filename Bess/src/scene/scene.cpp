@@ -223,6 +223,12 @@ namespace Bess::Canvas {
                 .axisYColor = ViewportTheme::colors.gridAxisYColor,
             });
 
+        Renderer2D::QuadRenderProperties props = {};
+        props.borderColor = ViewportTheme::colors.selectedComp;
+        props.borderSize = glm::vec4(3.f);
+        props.borderRadius = glm::vec4(16.f);
+        Renderer2D::VulkanRenderer::quad({0.f, 0.f, -1.f}, {100.f, 100.f}, glm::vec4(1.f, 0.f, 0.f, 1.f), -1, props);
+
         Renderer2D::VulkanRenderer::end();
 
         return;

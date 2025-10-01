@@ -36,7 +36,8 @@ namespace Bess::Renderer2D {
         const auto &camPos = m_camera->getPos();
 
         Vulkan::UniformBufferObject ubo{};
-        ubo.mvp = m_camera->getOrtho();
+        ubo.mvp = m_camera->getTransform();
+        m_primitiveRenderer->updateMvp(ubo);
 
         Vulkan::GridUniforms gridUniforms{};
         gridUniforms.zoom = m_camera->getZoom();
@@ -60,22 +61,19 @@ namespace Bess::Renderer2D {
         }
 
         Vulkan::UniformBufferObject ubo{};
-        ubo.mvp = m_camera->getOrtho();
+        ubo.mvp = m_camera->getTransform();
+        m_primitiveRenderer->updateMvp(ubo);
 
-        // Reuse grid uniforms for now for UBO binding 1 (won't be read by quad shader placeholder)
-        Vulkan::GridUniforms dummy{};
-        dummy.zoom = m_camera->getZoom();
-        dummy.cameraOffset = glm::vec2(0.0f);
-        dummy.gridMinorColor = color;
-        dummy.gridMajorColor = color;
-        dummy.axisXColor = color;
-        dummy.axisYColor = color;
-        const auto off = VulkanCore::instance().getOffscreenExtent();
-        dummy.resolution = glm::vec2(off.width, off.height);
-
-        m_primitiveRenderer->updateUniformBuffer(ubo, dummy);
-
-        // Temporary: render quad via dedicated quad draw (instanced)
-        m_primitiveRenderer->drawQuad(pos, size, color, id);
+        const glm::vec2 pixelSize = size * m_camera->getZoom();
+        m_primitiveRenderer->drawQuad(
+            pos,
+            size,
+            color,
+            id,
+            properties.borderRadius,
+            properties.borderSize,
+            properties.borderColor,
+            properties.isMica ? 1 : 0,
+            pixelSize);
     }
 } // namespace Bess::Renderer2D
