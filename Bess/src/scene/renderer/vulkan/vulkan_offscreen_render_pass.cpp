@@ -57,7 +57,11 @@ namespace Bess::Renderer2D::Vulkan {
         std::array<VkClearValue, 4> clearValues{};
         clearValues[0].color = {{clearColor.r, clearColor.g, clearColor.b, clearColor.a}}; // Clear MSAA color
         clearValues[1].color = {{0.f, 0.f, 0.f, 0.f}}; // Resolve attachment ignored for clear
-        clearValues[2].color = {{static_cast<float>(clearPickingId), 0.f, 0.f, 0.f}}; // Clear MSAA picking
+        // Clear MSAA picking with integer value (VK_FORMAT_R32_SINT)
+        clearValues[2].color.int32[0] = clearPickingId;
+        clearValues[2].color.int32[1] = 0;
+        clearValues[2].color.int32[2] = 0;
+        clearValues[2].color.int32[3] = 0;
         clearValues[3].color = {{0.f, 0.f, 0.f, 0.f}}; // Resolve picking ignored for clear
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassInfo.pClearValues = clearValues.data();
@@ -114,7 +118,7 @@ namespace Bess::Renderer2D::Vulkan {
         resolvePickingAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         resolvePickingAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         resolvePickingAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        resolvePickingAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        resolvePickingAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkAttachmentReference colorAttachmentRef{};
         colorAttachmentRef.attachment = 0; // MSAA color attachment index

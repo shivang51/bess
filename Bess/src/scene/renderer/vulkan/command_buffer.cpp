@@ -62,6 +62,10 @@ namespace Bess::Renderer2D::Vulkan {
         return m_vkCmdBufferHandel;
     }
 
+    VkCommandPool VulkanCommandBuffer::getCommandPool() {
+        return s_commandPool;
+    }
+
     VkCommandBuffer* VulkanCommandBuffer::getVkHandlePtr() {
         return &m_vkCmdBufferHandel;
     }

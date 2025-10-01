@@ -23,6 +23,7 @@ namespace Bess::Renderer2D::Vulkan {
 
         VkCommandBuffer getVkHandle() const;
         VkCommandBuffer *getVkHandlePtr();
+        static VkCommandPool getCommandPool();
 
         VkCommandBuffer beginRecording() const;
         void endRecording() const;

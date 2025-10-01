@@ -207,6 +207,12 @@ namespace Bess::Canvas {
     }
 
     void Scene::drawScene(std::shared_ptr<Camera> camera) {
+        auto mousePos_ = m_mousePos;
+        mousePos_.y = UI::UIMain::state.viewportSize.y - mousePos_.y;
+        int x = static_cast<int>(mousePos_.x);
+        int y = static_cast<int>(mousePos_.y);
+        Renderer2D::VulkanCore::instance().readPickingId(x, y);
+
         m_artistManager->setSchematicMode(m_isSchematicView);
         const auto artist = m_artistManager->getCurrentArtist();
 
@@ -215,7 +221,7 @@ namespace Bess::Canvas {
         Renderer2D::VulkanRenderer::grid(
             glm::vec3(0.f, 0.f, -2.f),
             m_camera->getSpan(),
-            -1,
+            -2,
             {
                 .minorColor = ViewportTheme::colors.gridMinorColor,
                 .majorColor = ViewportTheme::colors.gridMajorColor,
@@ -227,12 +233,12 @@ namespace Bess::Canvas {
         props.borderColor = ViewportTheme::colors.selectedComp;
         props.borderSize = glm::vec4(3.f);
         props.borderRadius = glm::vec4(16.f);
-        Renderer2D::VulkanRenderer::quad({0.f, 0.f, -1.f}, {100.f, 100.f}, glm::vec4(1.f, 0.f, 0.f, 1.f), -1, props);
+        Renderer2D::VulkanRenderer::quad({0.f, 0.f, -1.f}, {100.f, 100.f}, glm::vec4(1.f, 0.f, 0.f, 1.f), 0, props);
 
         props.borderColor = ViewportTheme::colors.selectedComp;
         props.borderSize = glm::vec4(2.f);
         props.borderRadius = glm::vec4(16.f);
-        Renderer2D::VulkanRenderer::quad({210.f, 0.f, -1.f}, {100.f, 100.f}, glm::vec4(1.f, 0.f, 0.f, 0.5f), -1, props);
+        Renderer2D::VulkanRenderer::quad({210.f, 0.f, -1.f}, {100.f, 100.f}, glm::vec4(1.f, 0.f, 0.f, 0.5f), 8, props);
 
         Renderer2D::VulkanRenderer::end();
 
@@ -613,13 +619,11 @@ namespace Bess::Canvas {
     }
 
     void Scene::updateHoveredId() {
-        auto mousePos_ = m_mousePos;
-        mousePos_.y = UI::UIMain::state.viewportSize.y - mousePos_.y;
-        int x = static_cast<int>(mousePos_.x);
-        int y = static_cast<int>(mousePos_.y);
-        // TODO: Implement Vulkan framebuffer read for hover detection
-        // This would require reading from a separate ID attachment in the framebuffer
         int32_t hoverId = -1; // Placeholder for Vulkan implementation
+        
+        hoverId =  Renderer2D::VulkanCore::instance().getPickingIdResult();
+        BESS_TRACE("Hover ID: {}", hoverId);
+        
         m_registry.clear<Components::HoveredEntityComponent>();
         const auto e = (entt::entity)hoverId;
         if (m_registry.valid(e)) {

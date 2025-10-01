@@ -106,9 +106,8 @@ namespace Bess::Renderer2D {
         }
         
         // Mouse picking functionality
-        int readPickingId(int x, int y) const;
-        void requestPickingId(int x, int y); // Non-blocking request
-        int getPickingIdResult(); // Get result from previous frame
+        int32_t readPickingId(int x, int y);
+        int32_t getPickingIdResult(); // Get result from previous frame
 
         // Getters for ImGui integration
         VkInstance getVkInstance() const { return m_vkInstance; }
@@ -152,11 +151,12 @@ namespace Bess::Renderer2D {
         // Mouse picking resources
         VkBuffer m_pickingStagingBuffer = VK_NULL_HANDLE;
         VkDeviceMemory m_pickingStagingBufferMemory = VK_NULL_HANDLE;
-        VkFence m_pickingFence = VK_NULL_HANDLE;
         int m_pendingPickingX = -1;
         int m_pendingPickingY = -1;
-        int m_pickingResult = -1;
+        int32_t m_pickingResult = -1;
         bool m_pickingRequestPending = false;
+        bool m_pickingCopyInFlight = false;
+        uint32_t m_pickingCopyRecordedFrameIdx = 0;
 
       public:
         void recreateSwapchain();
