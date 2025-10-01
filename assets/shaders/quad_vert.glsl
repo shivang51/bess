@@ -26,6 +26,7 @@ layout(location = 8) out flat int v_TexSlotIdx;
 
 layout(binding = 0) uniform UniformBufferObject {
     mat4 u_mvp;
+    mat4 u_ortho;
 };
 
 void main() {

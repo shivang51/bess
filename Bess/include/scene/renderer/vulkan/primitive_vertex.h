@@ -60,6 +60,7 @@ namespace Bess::Renderer2D::Vulkan {
 
     struct UniformBufferObject {
         glm::mat4 mvp;
+        glm::mat4 ortho;
     };
 
     // std140-compatible layout for the fragment UBO

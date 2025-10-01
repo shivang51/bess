@@ -37,6 +37,7 @@ namespace Bess::Renderer2D {
 
         Vulkan::UniformBufferObject ubo{};
         ubo.mvp = m_camera->getTransform();
+        ubo.ortho = m_camera->getOrtho();
         m_primitiveRenderer->updateMvp(ubo);
 
         Vulkan::GridUniforms gridUniforms{};
@@ -62,6 +63,7 @@ namespace Bess::Renderer2D {
 
         Vulkan::UniformBufferObject ubo{};
         ubo.mvp = m_camera->getTransform();
+        ubo.ortho = m_camera->getOrtho();
         m_primitiveRenderer->updateMvp(ubo);
 
         const glm::vec2 pixelSize = size * m_camera->getZoom();
