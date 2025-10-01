@@ -20,7 +20,9 @@ namespace Bess::Renderer2D::Vulkan {
         VulkanImageView &operator=(VulkanImageView &&other) noexcept;
 
         VkImage getImage() const { return m_image; }
+        VkImage getMsaaImage() const { return m_msaaImage; }
         VkImageView getImageView() const { return m_imageView; }
+        VkImageView getMsaaImageView() const { return m_msaaImageView; }
         VkFormat getFormat() const { return m_format; }
         VkExtent2D getExtent() const { return m_extent; }
         VkFramebuffer getFramebuffer() const { return m_framebuffer; }
@@ -35,7 +37,9 @@ namespace Bess::Renderer2D::Vulkan {
 
       private:
         void createImage();
+        void createMsaaImage();
         void createImageView();
+        void createMsaaImageView();
 
         std::shared_ptr<VulkanDevice> m_device;
         VkFormat m_format;
@@ -45,6 +49,9 @@ namespace Bess::Renderer2D::Vulkan {
         VkImage m_image = VK_NULL_HANDLE;
         VkDeviceMemory m_imageMemory = VK_NULL_HANDLE;
         VkImageView m_imageView = VK_NULL_HANDLE;
+        VkImage m_msaaImage = VK_NULL_HANDLE;
+        VkDeviceMemory m_msaaImageMemory = VK_NULL_HANDLE;
+        VkImageView m_msaaImageView = VK_NULL_HANDLE;
         VkFramebuffer m_framebuffer = VK_NULL_HANDLE;
         VkSampler m_sampler = VK_NULL_HANDLE;
         VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;

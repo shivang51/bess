@@ -50,8 +50,10 @@ namespace Bess::Renderer2D::Vulkan {
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = extent;
 
-        std::array<VkClearValue, 1> clearValues{};
-        clearValues[0].color = {{clearColor.r, clearColor.g, clearColor.b, clearColor.a}};
+        // We have two attachments in the render pass: [0] MSAA color, [1] resolve color
+        std::array<VkClearValue, 2> clearValues{};
+        clearValues[0].color = {{clearColor.r, clearColor.g, clearColor.b, clearColor.a}}; // Clear MSAA color
+        clearValues[1].color = {{0.f, 0.f, 0.f, 0.f}}; // Resolve attachment ignored for clear
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassInfo.pClearValues = clearValues.data();
 
@@ -65,24 +67,41 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void VulkanOffscreenRenderPass::createRenderPass() {
-        VkAttachmentDescription colorAttachment{};
-        colorAttachment.format = m_colorFormat;
-        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        // Attachment 0: Multisampled color (4x), will be resolved into attachment 1
+        VkAttachmentDescription msaaColorAttachment{};
+        msaaColorAttachment.format = m_colorFormat;
+        msaaColorAttachment.samples = VK_SAMPLE_COUNT_4_BIT;
+        msaaColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        msaaColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; // Not needed after resolve
+        msaaColorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        msaaColorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        msaaColorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        msaaColorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        // Attachment 1: Resolve color (single-sample), sampled by ImGui
+        VkAttachmentDescription resolveAttachment{};
+        resolveAttachment.format = m_colorFormat;
+        resolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        resolveAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        resolveAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        resolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        resolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        resolveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        resolveAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         VkAttachmentReference colorAttachmentRef{};
-        colorAttachmentRef.attachment = 0;
+        colorAttachmentRef.attachment = 0; // MSAA attachment index
         colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference resolveAttachmentRef{};
+        resolveAttachmentRef.attachment = 1; // Resolve attachment index
+        resolveAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkSubpassDescription subpass{};
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpass.colorAttachmentCount = 1;
         subpass.pColorAttachments = &colorAttachmentRef;
+        subpass.pResolveAttachments = &resolveAttachmentRef;
 
         VkSubpassDependency dependency{};
         dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -92,10 +111,12 @@ namespace Bess::Renderer2D::Vulkan {
         dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
+        std::array<VkAttachmentDescription, 2> attachments{msaaColorAttachment, resolveAttachment};
+
         VkRenderPassCreateInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        renderPassInfo.attachmentCount = 1;
-        renderPassInfo.pAttachments = &colorAttachment;
+        renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        renderPassInfo.pAttachments = attachments.data();
         renderPassInfo.subpassCount = 1;
         renderPassInfo.pSubpasses = &subpass;
         renderPassInfo.dependencyCount = 1;

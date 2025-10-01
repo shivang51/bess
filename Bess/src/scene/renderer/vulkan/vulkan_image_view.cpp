@@ -1,5 +1,6 @@
 #include "scene/renderer/vulkan/vulkan_image_view.h"
 #include "imgui_impl_vulkan.h"
+#include <array>
 #include <stdexcept>
 #include <vulkan/vulkan_core.h>
 
@@ -11,7 +12,9 @@ namespace Bess::Renderer2D::Vulkan {
                                      VkImageUsageFlags usage)
         : m_device(device), m_format(format), m_extent(extent), m_usage(usage) {
         createImage();
+        createMsaaImage();
         createImageView();
+        createMsaaImageView();
         createSampler();
         createDescriptorSet();
     }
@@ -30,11 +33,20 @@ namespace Bess::Renderer2D::Vulkan {
             if (m_framebuffer != VK_NULL_HANDLE) {
                 vkDestroyFramebuffer(m_device->device(), m_framebuffer, nullptr);
             }
+            if (m_msaaImageView != VK_NULL_HANDLE) {
+                vkDestroyImageView(m_device->device(), m_msaaImageView, nullptr);
+            }
             if (m_imageView != VK_NULL_HANDLE) {
                 vkDestroyImageView(m_device->device(), m_imageView, nullptr);
             }
+            if (m_msaaImage != VK_NULL_HANDLE) {
+                vkDestroyImage(m_device->device(), m_msaaImage, nullptr);
+            }
             if (m_image != VK_NULL_HANDLE) {
                 vkDestroyImage(m_device->device(), m_image, nullptr);
+            }
+            if (m_msaaImageMemory != VK_NULL_HANDLE) {
+                vkFreeMemory(m_device->device(), m_msaaImageMemory, nullptr);
             }
             if (m_imageMemory != VK_NULL_HANDLE) {
                 vkFreeMemory(m_device->device(), m_imageMemory, nullptr);
@@ -151,6 +163,41 @@ namespace Bess::Renderer2D::Vulkan {
         vkBindImageMemory(m_device->device(), m_image, m_imageMemory, 0);
     }
 
+    void VulkanImageView::createMsaaImage() {
+        VkImageCreateInfo imageInfo{};
+        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageInfo.extent.width = m_extent.width;
+        imageInfo.extent.height = m_extent.height;
+        imageInfo.extent.depth = 1;
+        imageInfo.mipLevels = 1;
+        imageInfo.arrayLayers = 1;
+        imageInfo.format = m_format;
+        imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; // MSAA render target only
+        imageInfo.samples = VK_SAMPLE_COUNT_4_BIT;
+        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        if (vkCreateImage(m_device->device(), &imageInfo, nullptr, &m_msaaImage) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create MSAA image!");
+        }
+
+        VkMemoryRequirements memRequirements;
+        vkGetImageMemoryRequirements(m_device->device(), m_msaaImage, &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+        if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr, &m_msaaImageMemory) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate MSAA image memory!");
+        }
+
+        vkBindImageMemory(m_device->device(), m_msaaImage, m_msaaImageMemory, 0);
+    }
+
     void VulkanImageView::createImageView() {
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -168,12 +215,32 @@ namespace Bess::Renderer2D::Vulkan {
         }
     }
 
+    void VulkanImageView::createMsaaImageView() {
+        VkImageViewCreateInfo viewInfo{};
+        viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewInfo.image = m_msaaImage;
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.format = m_format;
+        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        viewInfo.subresourceRange.baseMipLevel = 0;
+        viewInfo.subresourceRange.levelCount = 1;
+        viewInfo.subresourceRange.baseArrayLayer = 0;
+        viewInfo.subresourceRange.layerCount = 1;
+
+        if (vkCreateImageView(m_device->device(), &viewInfo, nullptr, &m_msaaImageView) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create MSAA image view!");
+        }
+    }
+
     void VulkanImageView::createFramebuffer(VkRenderPass renderPass) {
+        // Offscreen framebuffer now has two attachments: [0] MSAA color, [1] resolve (single-sample)
+        std::array<VkImageView, 2> attachments{m_msaaImageView, m_imageView};
+
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferInfo.renderPass = renderPass;
-        framebufferInfo.attachmentCount = 1;
-        framebufferInfo.pAttachments = &m_imageView;
+        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        framebufferInfo.pAttachments = attachments.data();
         framebufferInfo.width = m_extent.width;
         framebufferInfo.height = m_extent.height;
         framebufferInfo.layers = 1;
@@ -270,18 +337,30 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void VulkanImageView::recreate(VkExtent2D extent, VkRenderPass renderPass) {
-        // Destroy old framebuffer and image view and image
+        // Destroy old framebuffer and image views and images
         if (m_framebuffer != VK_NULL_HANDLE) {
             vkDestroyFramebuffer(m_device->device(), m_framebuffer, nullptr);
             m_framebuffer = VK_NULL_HANDLE;
+        }
+        if (m_msaaImageView != VK_NULL_HANDLE) {
+            vkDestroyImageView(m_device->device(), m_msaaImageView, nullptr);
+            m_msaaImageView = VK_NULL_HANDLE;
         }
         if (m_imageView != VK_NULL_HANDLE) {
             vkDestroyImageView(m_device->device(), m_imageView, nullptr);
             m_imageView = VK_NULL_HANDLE;
         }
+        if (m_msaaImage != VK_NULL_HANDLE) {
+            vkDestroyImage(m_device->device(), m_msaaImage, nullptr);
+            m_msaaImage = VK_NULL_HANDLE;
+        }
         if (m_image != VK_NULL_HANDLE) {
             vkDestroyImage(m_device->device(), m_image, nullptr);
             m_image = VK_NULL_HANDLE;
+        }
+        if (m_msaaImageMemory != VK_NULL_HANDLE) {
+            vkFreeMemory(m_device->device(), m_msaaImageMemory, nullptr);
+            m_msaaImageMemory = VK_NULL_HANDLE;
         }
         if (m_imageMemory != VK_NULL_HANDLE) {
             vkFreeMemory(m_device->device(), m_imageMemory, nullptr);
@@ -291,8 +370,10 @@ namespace Bess::Renderer2D::Vulkan {
         m_extent = extent;
 
         // Recreate resources
-        createImage();
+        createImage();           // resolve image (1x)
+        createMsaaImage();       // msaa image (4x)
         createImageView();
+        createMsaaImageView();
         // Sampler and descriptor set remain valid; update descriptor to new imageView
         // Update descriptor set image info
         VkDescriptorImageInfo imageInfo{};
