@@ -27,6 +27,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     private:
         void createGraphicsPipeline();
         void createGridUniformBuffers();
+        void createDescriptorSets() override;
         void createVertexBuffer();
         void createIndexBuffer();
         void updateVertexBuffer(const std::vector<GridVertex> &vertices);

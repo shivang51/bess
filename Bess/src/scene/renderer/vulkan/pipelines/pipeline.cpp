@@ -12,7 +12,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         createDescriptorSetLayout();
         createDescriptorPool();
         createUniformBuffers();
-        createDescriptorSets();
+        // createDescriptorSets() will be called by derived classes after they create their specific uniform buffers
     }
 
     Pipeline::Pipeline(Pipeline &&other) noexcept
@@ -23,7 +23,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
           m_pipelineLayout(other.m_pipelineLayout),
           m_descriptorSetLayout(other.m_descriptorSetLayout),
           m_descriptorPool(other.m_descriptorPool),
-          m_descriptorSet(other.m_descriptorSet),
           m_uniformBuffers(std::move(other.m_uniformBuffers)),
           m_uniformBufferMemory(std::move(other.m_uniformBufferMemory)),
           m_currentCommandBuffer(other.m_currentCommandBuffer) {
@@ -31,7 +30,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         other.m_pipelineLayout = VK_NULL_HANDLE;
         other.m_descriptorSetLayout = VK_NULL_HANDLE;
         other.m_descriptorPool = VK_NULL_HANDLE;
-        other.m_descriptorSet = VK_NULL_HANDLE;
         other.m_currentCommandBuffer = VK_NULL_HANDLE;
     }
 
@@ -45,7 +43,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             m_pipelineLayout = other.m_pipelineLayout;
             m_descriptorSetLayout = other.m_descriptorSetLayout;
             m_descriptorPool = other.m_descriptorPool;
-            m_descriptorSet = other.m_descriptorSet;
             m_uniformBuffers = std::move(other.m_uniformBuffers);
             m_uniformBufferMemory = std::move(other.m_uniformBufferMemory);
             m_currentCommandBuffer = other.m_currentCommandBuffer;
@@ -54,7 +51,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             other.m_pipelineLayout = VK_NULL_HANDLE;
             other.m_descriptorSetLayout = VK_NULL_HANDLE;
             other.m_descriptorPool = VK_NULL_HANDLE;
-            other.m_descriptorSet = VK_NULL_HANDLE;
             other.m_currentCommandBuffer = VK_NULL_HANDLE;
         }
         return *this;
@@ -137,14 +133,14 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     void Pipeline::createDescriptorPool() {
         std::array<VkDescriptorPoolSize, 1> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        // Reserve for two bindings in a single set (binding 0: UBO, binding 1: Grid uniforms)
-        poolSizes[0].descriptorCount = 2;
+        // Reserve for two bindings per frame (binding 0: UBO, binding 1: Grid uniforms) * 2 frames
+        poolSizes[0].descriptorCount = 4; // 2 bindings * 2 frames
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = 1;
+        poolInfo.maxSets = 2; // 2 frames in flight
 
         if (vkCreateDescriptorPool(m_device->device(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create descriptor pool!");
@@ -152,25 +148,36 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     }
 
     void Pipeline::createDescriptorSets() {
-        VkDescriptorSetLayout layouts[] = {m_descriptorSetLayout};
+        if (m_uniformBuffers.empty()) {
+            return; // No uniform buffers to create descriptor sets for
+        }
+
+        // Create descriptor sets for each frame in flight
+        constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+        m_descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+
+        std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_descriptorSetLayout);
+        
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         allocInfo.descriptorPool = m_descriptorPool;
-        allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = layouts;
+        allocInfo.descriptorSetCount = MAX_FRAMES_IN_FLIGHT;
+        allocInfo.pSetLayouts = layouts.data();
 
-        if (vkAllocateDescriptorSets(m_device->device(), &allocInfo, &m_descriptorSet) != VK_SUCCESS) {
+        if (vkAllocateDescriptorSets(m_device->device(), &allocInfo, m_descriptorSets.data()) != VK_SUCCESS) {
             throw std::runtime_error("Failed to allocate descriptor sets!");
         }
 
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = m_uniformBuffers[0];
-        bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(UniformBufferObject);
+        // Update all descriptor sets with uniform buffers
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+            VkDescriptorBufferInfo bufferInfo{};
+            bufferInfo.buffer = m_uniformBuffers[0];
+            bufferInfo.offset = 0;
+            bufferInfo.range = sizeof(UniformBufferObject);
 
             VkWriteDescriptorSet descriptorWrite{};
             descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrite.dstSet = m_descriptorSet;
+            descriptorWrite.dstSet = m_descriptorSets[i];
             descriptorWrite.dstBinding = 0;
             descriptorWrite.dstArrayElement = 0;
             descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -179,6 +186,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
             vkUpdateDescriptorSets(m_device->device(), 1, &descriptorWrite, 0, nullptr);
         }
+    }
 
     void Pipeline::createUniformBuffers() {
         VkDeviceSize bufferSize = sizeof(UniformBufferObject);

@@ -51,6 +51,7 @@ namespace Bess::Renderer2D {
 
         m_commandBuffers = Vulkan::VulkanCommandBuffer::createCommandBuffers(m_device, 2);
         createSyncObjects();
+        createPickingResources();
 
         isInitialized = true;
         BESS_INFO("Renderer Initialized");
@@ -70,6 +71,7 @@ namespace Bess::Renderer2D {
             clearColor,
             clearPickingId);
 
+        m_primitiveRenderer->setCurrentFrameIndex(m_currentFrameIdx);
         m_primitiveRenderer->beginFrame(cmdBuffer->getVkHandle());
     }
 
@@ -258,6 +260,7 @@ namespace Bess::Renderer2D {
         }
 
         destroyDebugMessenger();
+        cleanupPickingResources();
 
         if (m_vkInstance != VK_NULL_HANDLE) {
             vkDestroyInstance(m_vkInstance, nullptr);
@@ -503,6 +506,115 @@ namespace Bess::Renderer2D {
     glm::vec2 VulkanCore::getMSDFTextRenderSize(const std::string &str, float renderSize) {
         // TODO: Implement MSDF text size calculation
         return glm::vec2(0.0f);
+    }
+
+    int VulkanCore::readPickingId(int x, int y) const {
+        // This is the blocking version - use requestPickingId/getPickingIdResult for better performance
+        if (!m_offscreenImageView || !m_offscreenImageView->hasPickingAttachments()) {
+            return -1;
+        }
+
+        VkExtent2D extent = m_offscreenImageView->getExtent();
+        x = std::max(0, std::min(x, static_cast<int>(extent.width) - 1));
+        y = std::max(0, std::min(y, static_cast<int>(extent.height) - 1));
+
+        // For now, return a simple hash-based ID for testing
+        // In a real implementation, you'd want to use the async version
+        return (x + y * extent.width) % 1000;
+    }
+
+    void VulkanCore::requestPickingId(int x, int y) {
+        if (!m_offscreenImageView || !m_offscreenImageView->hasPickingAttachments()) {
+            return;
+        }
+
+        VkExtent2D extent = m_offscreenImageView->getExtent();
+        m_pendingPickingX = std::max(0, std::min(x, static_cast<int>(extent.width) - 1));
+        m_pendingPickingY = std::max(0, std::min(y, static_cast<int>(extent.height) - 1));
+        m_pickingRequestPending = true;
+    }
+
+    int VulkanCore::getPickingIdResult() {
+        if (!m_pickingRequestPending) {
+            return m_pickingResult;
+        }
+
+        // Check if previous request completed
+        if (m_pickingFence != VK_NULL_HANDLE) {
+            VkResult result = vkGetFenceStatus(m_device->device(), m_pickingFence);
+            if (result == VK_SUCCESS) {
+                // Read the result
+                void* data;
+                vkMapMemory(m_device->device(), m_pickingStagingBufferMemory, 0, sizeof(int), 0, &data);
+                m_pickingResult = *static_cast<int*>(data);
+                vkUnmapMemory(m_device->device(), m_pickingStagingBufferMemory);
+                
+                // Reset fence for next use
+                vkResetFences(m_device->device(), 1, &m_pickingFence);
+                m_pickingRequestPending = false;
+            }
+        }
+
+        return m_pickingResult;
+    }
+
+    void VulkanCore::createPickingResources() {
+        // Create staging buffer for picking reads
+        VkBufferCreateInfo bufferInfo{};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.size = sizeof(int);
+        bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr, &m_pickingStagingBuffer) != VK_SUCCESS) {
+            BESS_ERROR("Failed to create picking staging buffer");
+            return;
+        }
+
+        VkMemoryRequirements memRequirements;
+        vkGetBufferMemoryRequirements(m_device->device(), m_pickingStagingBuffer, &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr, &m_pickingStagingBufferMemory) != VK_SUCCESS) {
+            BESS_ERROR("Failed to allocate picking staging buffer memory");
+            vkDestroyBuffer(m_device->device(), m_pickingStagingBuffer, nullptr);
+            return;
+        }
+
+        vkBindBufferMemory(m_device->device(), m_pickingStagingBuffer, m_pickingStagingBufferMemory, 0);
+
+        // Create fence for async operations
+        VkFenceCreateInfo fenceInfo{};
+        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT; // Start in signaled state
+
+        if (vkCreateFence(m_device->device(), &fenceInfo, nullptr, &m_pickingFence) != VK_SUCCESS) {
+            BESS_ERROR("Failed to create picking fence");
+            vkDestroyBuffer(m_device->device(), m_pickingStagingBuffer, nullptr);
+            vkFreeMemory(m_device->device(), m_pickingStagingBufferMemory, nullptr);
+            return;
+        }
+    }
+
+    void VulkanCore::cleanupPickingResources() {
+        if (m_pickingFence != VK_NULL_HANDLE) {
+            vkDestroyFence(m_device->device(), m_pickingFence, nullptr);
+            m_pickingFence = VK_NULL_HANDLE;
+        }
+
+        if (m_pickingStagingBuffer != VK_NULL_HANDLE) {
+            vkDestroyBuffer(m_device->device(), m_pickingStagingBuffer, nullptr);
+            m_pickingStagingBuffer = VK_NULL_HANDLE;
+        }
+
+        if (m_pickingStagingBufferMemory != VK_NULL_HANDLE) {
+            vkFreeMemory(m_device->device(), m_pickingStagingBufferMemory, nullptr);
+            m_pickingStagingBufferMemory = VK_NULL_HANDLE;
+        }
     }
 
 } // namespace Bess::Renderer2D

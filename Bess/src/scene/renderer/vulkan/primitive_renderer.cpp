@@ -65,6 +65,15 @@ namespace Bess::Renderer2D::Vulkan {
         m_currentCommandBuffer = VK_NULL_HANDLE;
     }
 
+    void PrimitiveRenderer::setCurrentFrameIndex(uint32_t frameIndex) {
+        if (m_gridPipeline) {
+            m_gridPipeline->setCurrentFrameIndex(frameIndex);
+        }
+        if (m_quadPipeline) {
+            m_quadPipeline->setCurrentFrameIndex(frameIndex);
+        }
+    }
+
     void PrimitiveRenderer::drawGrid(const glm::vec3 &pos, const glm::vec2 &size, int id, const GridUniforms &gridUniforms) {
         if (!m_gridPipeline) {
             BESS_WARN("[PrimitiveRenderer] Grid pipeline not available");

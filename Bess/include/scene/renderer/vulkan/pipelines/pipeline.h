@@ -37,6 +37,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
         // Common functions
         void updateUniformBuffer(const UniformBufferObject &ubo);
+        void setCurrentFrameIndex(uint32_t frameIndex) { m_currentFrameIndex = frameIndex; }
         VkPipeline getPipeline() const { return m_pipeline; }
         VkPipelineLayout getPipelineLayout() const { return m_pipelineLayout; }
 
@@ -49,7 +50,8 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
         VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
-        VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
+        std::vector<VkDescriptorSet> m_descriptorSets;
+        uint32_t m_currentFrameIndex = 0;
 
         // Uniform buffers
         std::vector<VkBuffer> m_uniformBuffers;
@@ -62,7 +64,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         std::vector<char> readFile(const std::string &filename) const;
         void createDescriptorSetLayout();
         void createDescriptorPool();
-        void createDescriptorSets();
+        virtual void createDescriptorSets();
         void createUniformBuffers();
     };
 

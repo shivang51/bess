@@ -104,6 +104,11 @@ namespace Bess::Renderer2D {
         VkExtent2D getOffscreenExtent() const {
             return m_offscreenImageView ? m_offscreenImageView->getExtent() : VkExtent2D{0, 0};
         }
+        
+        // Mouse picking functionality
+        int readPickingId(int x, int y) const;
+        void requestPickingId(int x, int y); // Non-blocking request
+        int getPickingIdResult(); // Get result from previous frame
 
         // Getters for ImGui integration
         VkInstance getVkInstance() const { return m_vkInstance; }
@@ -120,6 +125,8 @@ namespace Bess::Renderer2D {
         VkResult createDebugMessenger();
         VkResult destroyDebugMessenger() const;
         void createSyncObjects();
+        void createPickingResources();
+        void cleanupPickingResources();
 
         FrameContext m_currentFrameContext = {};
 
@@ -141,6 +148,15 @@ namespace Bess::Renderer2D {
         std::vector<VkSemaphore> m_renderFinishedSemaphores;
         std::vector<VkFence> m_inFlightFences;
         uint32_t m_currentFrameIdx = 0;
+
+        // Mouse picking resources
+        VkBuffer m_pickingStagingBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory m_pickingStagingBufferMemory = VK_NULL_HANDLE;
+        VkFence m_pickingFence = VK_NULL_HANDLE;
+        int m_pendingPickingX = -1;
+        int m_pendingPickingY = -1;
+        int m_pickingResult = -1;
+        bool m_pickingRequestPending = false;
 
       public:
         void recreateSwapchain();

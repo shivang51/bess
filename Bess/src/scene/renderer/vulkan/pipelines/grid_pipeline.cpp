@@ -10,6 +10,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
                                VkExtent2D extent)
         : Pipeline(device, renderPass, extent) {
         createGridUniformBuffers();
+        createDescriptorSets(); // Create descriptor sets after uniform buffers are ready
         createVertexBuffer();
         createIndexBuffer();
         createGraphicsPipeline();
@@ -58,29 +59,73 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         m_currentIndexCount = 0;
 
         vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
-        // Update descriptor binding 1 with latest GridUniforms buffer before binding
-        VkDescriptorBufferInfo gridInfo{};
-        gridInfo.buffer = m_gridUniformBuffers[0];
-        gridInfo.offset = 0;
-        gridInfo.range = sizeof(GridUniforms);
-
-        VkWriteDescriptorSet gridWrite{};
-        gridWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        gridWrite.dstSet = m_descriptorSet;
-        gridWrite.dstBinding = 1;
-        gridWrite.dstArrayElement = 0;
-        gridWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        gridWrite.descriptorCount = 1;
-        gridWrite.pBufferInfo = &gridInfo;
-
-        vkUpdateDescriptorSets(m_device->device(), 1, &gridWrite, 0, nullptr);
-
-        vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSet, 0, nullptr);
+        
+        // Use the current frame's descriptor set (no need to update every frame)
+        vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[m_currentFrameIndex], 0, nullptr);
 
         VkBuffer vertexBuffers[] = {m_buffers.vertexBuffer};
         constexpr VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 1, vertexBuffers, offsets);
         vkCmdBindIndexBuffer(m_currentCommandBuffer, m_buffers.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    }
+
+    void GridPipeline::createDescriptorSets() {
+        if (m_uniformBuffers.empty()) {
+            return; // No uniform buffers to create descriptor sets for
+        }
+
+        // Create descriptor sets for each frame in flight
+        constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+        m_descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+
+        std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_descriptorSetLayout);
+        
+        VkDescriptorSetAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = m_descriptorPool;
+        allocInfo.descriptorSetCount = MAX_FRAMES_IN_FLIGHT;
+        allocInfo.pSetLayouts = layouts.data();
+
+        if (vkAllocateDescriptorSets(m_device->device(), &allocInfo, m_descriptorSets.data()) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate descriptor sets!");
+        }
+
+        // Update all descriptor sets with both UBO and GridUniforms
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+            // UBO binding (0)
+            VkDescriptorBufferInfo bufferInfo{};
+            bufferInfo.buffer = m_uniformBuffers[0];
+            bufferInfo.offset = 0;
+            bufferInfo.range = sizeof(UniformBufferObject);
+
+            VkWriteDescriptorSet descriptorWrite{};
+            descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrite.dstSet = m_descriptorSets[i];
+            descriptorWrite.dstBinding = 0;
+            descriptorWrite.dstArrayElement = 0;
+            descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrite.descriptorCount = 1;
+            descriptorWrite.pBufferInfo = &bufferInfo;
+
+            // GridUniforms binding (1)
+            VkDescriptorBufferInfo gridInfo{};
+            gridInfo.buffer = m_gridUniformBuffers[0];
+            gridInfo.offset = 0;
+            gridInfo.range = sizeof(GridUniforms);
+
+            VkWriteDescriptorSet gridWrite{};
+            gridWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            gridWrite.dstSet = m_descriptorSets[i];
+            gridWrite.dstBinding = 1;
+            gridWrite.dstArrayElement = 0;
+            gridWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            gridWrite.descriptorCount = 1;
+            gridWrite.pBufferInfo = &gridInfo;
+
+            // Update both bindings at once
+            std::array<VkWriteDescriptorSet, 2> descriptorWrites = {descriptorWrite, gridWrite};
+            vkUpdateDescriptorSets(m_device->device(), 2, descriptorWrites.data(), 0, nullptr);
+        }
     }
 
     void GridPipeline::endPipeline() {
@@ -254,10 +299,10 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         multisampling.sampleShadingEnable = VK_FALSE;
         multisampling.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
 
-        // Color attachment 0 (main color)
+        // Color attachment 0 (main color) - disable blending to match picking attachment
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        colorBlendAttachment.blendEnable = VK_TRUE;
+        colorBlendAttachment.blendEnable = VK_FALSE; // Disabled to match picking attachment (independentBlend not available)
         colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
         colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
@@ -265,16 +310,8 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
         colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
-        // Color attachment 1 (picking ID - identical to color attachment but no blending)
-        VkPipelineColorBlendAttachmentState pickingBlendAttachment{};
-        pickingBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        pickingBlendAttachment.blendEnable = VK_FALSE;
-        pickingBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        pickingBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        pickingBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-        pickingBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        pickingBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-        pickingBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+        // Color attachment 1 (picking ID - identical to color attachment)
+        VkPipelineColorBlendAttachmentState pickingBlendAttachment = colorBlendAttachment;
 
         std::array<VkPipelineColorBlendAttachmentState, 2> colorBlendAttachments = {colorBlendAttachment, pickingBlendAttachment};
 
@@ -346,6 +383,23 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         }
 
         vkBindBufferMemory(m_device->device(), m_gridUniformBuffers[0], m_gridUniformBufferMemory[0], 0);
+        
+        // Initialize with default values
+        GridUniforms defaultUniforms{};
+        defaultUniforms.zoom = 1.0f;
+        defaultUniforms._pad0 = 0.0f;
+        defaultUniforms.cameraOffset = glm::vec2(0.0f);
+        defaultUniforms.gridMinorColor = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f); // Gray
+        defaultUniforms.gridMajorColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f); // Red
+        defaultUniforms.axisXColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f); // Red
+        defaultUniforms.axisYColor = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f); // Green
+        defaultUniforms.resolution = glm::vec2(800.0f, 600.0f);
+        defaultUniforms._pad1 = glm::vec2(0.0f);
+        
+        void *data = nullptr;
+        vkMapMemory(m_device->device(), m_gridUniformBufferMemory[0], 0, sizeof(defaultUniforms), 0, &data);
+        memcpy(data, &defaultUniforms, sizeof(defaultUniforms));
+        vkUnmapMemory(m_device->device(), m_gridUniformBufferMemory[0]);
     }
 
     void GridPipeline::createVertexBuffer() {
