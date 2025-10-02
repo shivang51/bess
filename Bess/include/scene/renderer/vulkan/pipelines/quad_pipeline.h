@@ -50,7 +50,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         std::vector<VkDescriptorSet> m_textureArraySets;
         VkDescriptorPool m_textureArrayDescriptorPool = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_textureArrayLayout = VK_NULL_HANDLE;
-        std::shared_ptr<VulkanTexture> m_fallbackTexture;
+        std::unique_ptr<VulkanTexture> m_fallbackTexture;
         std::array<VkDescriptorImageInfo, 32> m_textureInfos;
     };
 

@@ -426,7 +426,11 @@ namespace Bess::Renderer2D {
         VkDebugUtilsMessageTypeFlagsEXT messageType,
         const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
         void *pUserData) {
-        BESS_ERROR("[VulkanCore][ValidationLayer] {}", pCallbackData->pMessage);
+        if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+            BESS_WARN("[VulkanCore][ValidationLayer] {}", pCallbackData->pMessage);
+        } else {
+            BESS_ERROR("[VulkanCore][ValidationLayer] {}", pCallbackData->pMessage);
+        }
         return VK_FALSE;
     }
 

@@ -19,7 +19,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
         if (!m_fallbackTexture) {
             uint32_t white = 0xFFFFFFFF;
-            m_fallbackTexture = std::make_shared<VulkanTexture>(m_device, 1, 1, VK_FORMAT_R8G8B8A8_UNORM, &white);
+            m_fallbackTexture = std::make_unique<VulkanTexture>(m_device, 1, 1, VK_FORMAT_R8G8B8A8_UNORM, &white);
         }
 
         ensureQuadBuffers();

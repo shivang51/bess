@@ -21,6 +21,7 @@ Checks: >
   -bugprone-easily-swappable-parameters,
   -cppcoreguidelines-avoid-do-while,
   -modernize-use-designated-initializers,
+  -readability-implicit-bool-conversion,
   -readability-convert-member-functions-to-static
 
 WarningsAsErrors: ''
