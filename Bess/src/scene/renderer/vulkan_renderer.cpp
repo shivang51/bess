@@ -17,11 +17,14 @@ namespace Bess::Renderer2D {
     void VulkanRenderer::beginScene(std::shared_ptr<Camera> camera) {
         m_camera = camera;
         m_primitiveRenderer = VulkanCore::instance().getPrimitiveRenderer();
+
+        Vulkan::UniformBufferObject ubo{};
+        ubo.mvp = m_camera->getTransform();
+        ubo.ortho = m_camera->getOrtho();
+        m_primitiveRenderer->updateUBO(ubo);
     }
 
     void VulkanRenderer::end() {
-        // The actual frame end is handled by VulkanCore
-        // This method is a placeholder
     }
 
     void VulkanRenderer::clearColor() {
@@ -35,11 +38,6 @@ namespace Bess::Renderer2D {
 
         const auto &camPos = m_camera->getPos();
 
-        Vulkan::UniformBufferObject ubo{};
-        ubo.mvp = m_camera->getTransform();
-        ubo.ortho = m_camera->getOrtho();
-        m_primitiveRenderer->updateMvp(ubo);
-
         Vulkan::GridUniforms gridUniforms{};
         gridUniforms.zoom = m_camera->getZoom();
         gridUniforms.cameraOffset = glm::vec2({-camPos.x, camPos.y});
@@ -49,7 +47,7 @@ namespace Bess::Renderer2D {
         gridUniforms.axisYColor = colors.axisYColor;
         gridUniforms.resolution = glm::vec2(m_camera->getSize());
 
-        m_primitiveRenderer->updateUniformBuffer(ubo, gridUniforms);
+        m_primitiveRenderer->updateUniformBuffer(gridUniforms);
 
         m_primitiveRenderer->drawGrid(pos, size, id, gridUniforms);
     }
@@ -60,11 +58,6 @@ namespace Bess::Renderer2D {
             BESS_WARN("[VulkanRenderer] Cannot render quad - primitive renderer or camera not available");
             return;
         }
-
-        Vulkan::UniformBufferObject ubo{};
-        ubo.mvp = m_camera->getTransform();
-        ubo.ortho = m_camera->getOrtho();
-        m_primitiveRenderer->updateMvp(ubo);
 
         m_primitiveRenderer->drawQuad(
             pos,
@@ -84,11 +77,6 @@ namespace Bess::Renderer2D {
             BESS_WARN("[VulkanRenderer] Cannot render textured quad - primitive renderer or camera not available");
             return;
         }
-
-        Vulkan::UniformBufferObject ubo{};
-        ubo.mvp = m_camera->getTransform();
-        ubo.ortho = m_camera->getOrtho();
-        m_primitiveRenderer->updateMvp(ubo);
 
         m_primitiveRenderer->drawTexturedQuad(
             pos,
