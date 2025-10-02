@@ -4,8 +4,10 @@
 #include "pipelines/grid_pipeline.h"
 #include "pipelines/quad_pipeline.h"
 #include "primitive_vertex.h"
+#include "scene/renderer/vulkan/vulkan_texture.h"
 #include "vulkan_offscreen_render_pass.h"
 #include <memory>
+#include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan.h>
 
@@ -62,8 +64,12 @@ namespace Bess::Renderer2D::Vulkan {
         std::unique_ptr<Pipelines::GridPipeline> m_gridPipeline;
         std::unique_ptr<Pipelines::QuadPipeline> m_quadPipeline;
 
-        // Current frame data
         VkCommandBuffer m_currentCommandBuffer = VK_NULL_HANDLE;
+
+        std::vector<QuadInstance> m_quadInstances;
+        std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> m_texturedQuadInstances;
+
+        GridVertex m_gridVertex;
     };
 
 } // namespace Bess::Renderer2D::Vulkan

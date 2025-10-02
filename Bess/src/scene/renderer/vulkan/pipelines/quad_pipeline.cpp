@@ -1,8 +1,11 @@
 #include "scene/renderer/vulkan/pipelines/quad_pipeline.h"
-#include "scene/renderer/vulkan/vulkan_texture.h"
 #include "common/log.h"
+#include "scene/renderer/vulkan/pipelines/pipeline.h"
+#include "scene/renderer/vulkan/vulkan_texture.h"
+#include <array>
 #include <cstring>
-
+#include <vector>
+#include <vulkan/vulkan_core.h>
 
 namespace Bess::Renderer2D::Vulkan::Pipelines {
 
@@ -10,45 +13,17 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
                                const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
                                VkExtent2D extent)
         : Pipeline(device, renderPass, extent) {
-        createDescriptorSets(); // frame set (UBOs)
-        // Create sampler-only descriptor set layout for set=1
-        VkDescriptorSetLayoutBinding samplerBinding{};
-        samplerBinding.binding = 2;
-        samplerBinding.descriptorCount = 1;
-        samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = 1;
-        layoutInfo.pBindings = &samplerBinding;
-        if (vkCreateDescriptorSetLayout(m_device->device(), &layoutInfo, nullptr, &m_samplerSetLayout) != VK_SUCCESS) {
-            BESS_ERROR("[QuadPipeline] Failed to create sampler set layout");
-        }
-        // Create texture pool and fallback set
-        ensureTextureDescriptorPool();
-        // Allocate fallback set with a 1x1 white texture
+
+        createDescriptorPool();
+        createDescriptorSets();
+
         if (!m_fallbackTexture) {
             uint32_t white = 0xFFFFFFFF;
             m_fallbackTexture = std::make_shared<VulkanTexture>(m_device, 1, 1, VK_FORMAT_R8G8B8A8_UNORM, &white);
         }
-        VkDescriptorSetAllocateInfo alloc{};
-        alloc.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        alloc.descriptorPool = m_textureDescriptorPool;
-        alloc.descriptorSetCount = 1;
-        VkDescriptorSetLayout sl[] = {m_samplerSetLayout};
-        alloc.pSetLayouts = sl;
-        if (vkAllocateDescriptorSets(m_device->device(), &alloc, &m_fallbackSamplerSet) == VK_SUCCESS) {
-            VkDescriptorImageInfo img = m_fallbackTexture->getDescriptorInfo();
-            VkWriteDescriptorSet w{};
-            w.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            w.dstSet = m_fallbackSamplerSet;
-            w.dstBinding = 2;
-            w.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            w.descriptorCount = 1;
-            w.pImageInfo = &img;
-            vkUpdateDescriptorSets(m_device->device(), 1, &w, 0, nullptr);
-        }
+
         ensureQuadBuffers();
+        createGraphicsPipeline();
     }
 
     QuadPipeline::~QuadPipeline() {
@@ -74,108 +49,64 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     void QuadPipeline::beginPipeline(VkCommandBuffer commandBuffer) {
         m_currentCommandBuffer = commandBuffer;
         m_pendingQuadInstances.clear();
-        m_textureToInstances.clear();
+
+        vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+        VkDescriptorSet sets[] = {m_descriptorSets[m_currentFrameIndex], m_textureArraySets[m_currentFrameIndex]};
+        vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 2, sets, 0, nullptr);
     }
 
     void QuadPipeline::endPipeline() {
         if (!m_pendingQuadInstances.empty()) {
             ensureQuadInstanceCapacity(m_pendingQuadInstances.size());
 
-            // Upload all instances to GPU
             void *data = nullptr;
             vkMapMemory(m_device->device(), m_buffers.instanceBufferMemory, 0, sizeof(QuadInstance) * m_pendingQuadInstances.size(), 0, &data);
             memcpy(data, m_pendingQuadInstances.data(), sizeof(QuadInstance) * m_pendingQuadInstances.size());
             vkUnmapMemory(m_device->device(), m_buffers.instanceBufferMemory);
 
-            // Create quad pipeline if not exists
-            if (m_pipeline == VK_NULL_HANDLE) {
-                createQuadPipeline();
-            }
-
-            // Bind quad pipeline and buffers
-            vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
-
             VkBuffer vbs[] = {m_buffers.vertexBuffer, m_buffers.instanceBuffer};
             VkDeviceSize offs[] = {0, 0};
             vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 2, vbs, offs);
             vkCmdBindIndexBuffer(m_currentCommandBuffer, m_buffers.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-            // Bind frame UBO set (set=0) and fallback sampler set (set=1)
-            VkDescriptorSet sets[] = {m_descriptorSets[m_currentFrameIndex], m_fallbackSamplerSet};
-            vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 2, sets, 0, nullptr);
-
-            // Draw all non-textured instances in one call
             vkCmdDrawIndexed(m_currentCommandBuffer, 6, static_cast<uint32_t>(m_pendingQuadInstances.size()), 0, 0, 0);
-            m_pendingQuadInstances.clear();
         }
-
-        // Flush textured batches per texture
-        for (auto &entry : m_textureToInstances) {
-            auto &texture = entry.first;
-            auto &instances = entry.second;
-            if (instances.empty()) continue;
-
-            ensureQuadInstanceCapacity(instances.size());
-
-            void *data = nullptr;
-            vkMapMemory(m_device->device(), m_buffers.instanceBufferMemory, 0, sizeof(QuadInstance) * instances.size(), 0, &data);
-            memcpy(data, instances.data(), sizeof(QuadInstance) * instances.size());
-            vkUnmapMemory(m_device->device(), m_buffers.instanceBufferMemory);
-
-            if (m_pipeline == VK_NULL_HANDLE) {
-                createQuadPipeline();
-            }
-
-            vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
-
-            VkBuffer vbs[] = {m_buffers.vertexBuffer, m_buffers.instanceBuffer};
-            VkDeviceSize offs[] = {0, 0};
-            vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 2, vbs, offs);
-            vkCmdBindIndexBuffer(m_currentCommandBuffer, m_buffers.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-            // Ensure a persistent per-texture descriptor set (layout: sampler only at binding 2)
-            if (m_textureDescriptorPool == VK_NULL_HANDLE) {
-                ensureTextureDescriptorPool();
-            }
-            VkDescriptorSet textureSet = VK_NULL_HANDLE;
-            auto it = m_textureSetCache.find(texture);
-            if (it != m_textureSetCache.end()) {
-                textureSet = it->second;
-            } else {
-                VkDescriptorSetAllocateInfo alloc{};
-                alloc.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-                alloc.descriptorPool = m_textureDescriptorPool;
-                alloc.descriptorSetCount = 1;
-                VkDescriptorSetLayout layouts[] = {m_samplerSetLayout};
-                alloc.pSetLayouts = layouts;
-                if (vkAllocateDescriptorSets(m_device->device(), &alloc, &textureSet) != VK_SUCCESS) {
-                    BESS_ERROR("[QuadPipeline] Failed to allocate texture descriptor set");
-                    continue;
-                }
-                // write sampler into binding 2; binding 0/1 (UBOs) can be left as is if not used by this pipeline draw
-                VkDescriptorImageInfo imgInfo = texture->getDescriptorInfo();
-                VkWriteDescriptorSet write{};
-                write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                write.dstSet = textureSet;
-                write.dstBinding = 2;
-                write.dstArrayElement = 0;
-                write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                write.descriptorCount = 1;
-                write.pImageInfo = &imgInfo;
-                vkUpdateDescriptorSets(m_device->device(), 1, &write, 0, nullptr);
-                m_textureSetCache[texture] = textureSet;
-            }
-
-            // Bind both: frame descriptor (UBOs) at set=0 and per-texture sampler at set=1
-            VkDescriptorSet sets2[] = {m_descriptorSets[m_currentFrameIndex], textureSet};
-            vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 2, sets2, 0, nullptr);
-
-            vkCmdDrawIndexed(m_currentCommandBuffer, 6, static_cast<uint32_t>(instances.size()), 0, 0, 0);
-        }
-
-        m_textureToInstances.clear();
 
         m_currentCommandBuffer = VK_NULL_HANDLE;
+    }
+
+    void QuadPipeline::setQuadsData(
+        const std::vector<QuadInstance> &data,
+        std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> &texutredData) {
+
+        m_pendingQuadInstances = data;
+
+        m_textureInfos.fill(m_fallbackTexture->getDescriptorInfo());
+        int i = 1;
+        for (auto &entry : texutredData) {
+            m_textureInfos[i] = entry.first->getDescriptorInfo();
+            for (auto &vertex : entry.second)
+                vertex.texSlotIdx = i;
+
+            m_pendingQuadInstances.insert(m_pendingQuadInstances.end(),
+                                          entry.second.begin(), entry.second.end());
+
+            i++;
+        }
+
+        std::vector<VkWriteDescriptorSet> writes;
+        for (uint32_t i = 0; i < m_textureInfos.size(); i++) {
+            VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+            write.dstSet = m_textureArraySets[m_currentFrameIndex];
+            write.dstBinding = 2;
+            write.dstArrayElement = i;
+            write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            write.descriptorCount = 1;
+            write.pImageInfo = &m_textureInfos.at(i); // pointer is stable now
+            writes.push_back(write);
+        }
+
+        vkUpdateDescriptorSets(m_device->device(), (uint32_t)writes.size(), writes.data(), 0, nullptr);
     }
 
     void QuadPipeline::cleanup() {
@@ -198,6 +129,14 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             vkFreeMemory(m_device->device(), m_buffers.instanceBufferMemory, nullptr);
             m_buffers.instanceBuffer = VK_NULL_HANDLE;
             m_buffers.instanceBufferMemory = VK_NULL_HANDLE;
+        }
+
+        if (m_textureArrayDescriptorPool != VK_NULL_HANDLE) {
+            vkDestroyDescriptorPool(m_device->device(), m_textureArrayDescriptorPool, nullptr);
+        }
+
+        if (m_textureArrayLayout != VK_NULL_HANDLE) {
+            vkDestroyDescriptorSetLayout(m_device->device(), m_textureArrayLayout, nullptr);
         }
 
         if (m_pipeline != VK_NULL_HANDLE) {
@@ -226,60 +165,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         }
     }
 
-    void QuadPipeline::drawQuad(const glm::vec3 &pos,
-                                const glm::vec2 &size,
-                                const glm::vec4 &color,
-                                int id,
-                                const glm::vec4 &borderRadius,
-                                const glm::vec4 &borderSize,
-                                const glm::vec4 &borderColor,
-                                int isMica) {
-
-        ensureQuadBuffers();
-
-        // Create quad instance and queue it for batching
-        QuadInstance instance{};
-        instance.position = pos;
-        instance.color = color;
-        instance.borderRadius = borderRadius;
-        instance.borderColor = borderColor;
-        instance.borderSize = borderSize;
-        instance.size = size;
-        instance.id = id;
-        instance.isMica = isMica;
-        instance.texSlotIdx = 0;
-        instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f); // Full local UV [0,1] by default
-
-        m_pendingQuadInstances.push_back(instance);
-    }
-
-    void QuadPipeline::drawTexturedQuad(const glm::vec3 &pos,
-                                const glm::vec2 &size,
-                                const glm::vec4 &tint,
-                                int id,
-                                const glm::vec4 &borderRadius,
-                                const glm::vec4 &borderSize,
-                                const glm::vec4 &borderColor,
-                                int isMica,
-                                const std::shared_ptr<VulkanTexture> &texture) {
-        ensureQuadBuffers();
-
-        QuadInstance instance{};
-        instance.position = pos;
-        instance.color = tint;
-        instance.borderRadius = borderRadius;
-        instance.borderColor = borderColor;
-        instance.borderSize = borderSize;
-        instance.size = size;
-        instance.id = id;
-        instance.isMica = isMica;
-        instance.texSlotIdx = 1; // indicate textured
-        instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f);
-
-        m_textureToInstances[texture].push_back(instance);
-    }
-
-    void QuadPipeline::createQuadPipeline() {
+    void QuadPipeline::createGraphicsPipeline() {
         auto vertShaderCode = readFile("assets/shaders/quad_vert.spv");
         auto fragShaderCode = readFile("assets/shaders/quad_frag.spv");
 
@@ -434,7 +320,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.stencilTestEnable = VK_FALSE;
 
-        // Color attachment 0 (main color) - enable alpha blending
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         colorBlendAttachment.blendEnable = VK_TRUE;
@@ -445,7 +330,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
         colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
-        // Color attachment 1 (picking ID) - no blending (integer format)
         VkPipelineColorBlendAttachmentState pickingBlendAttachment = colorBlendAttachment;
         pickingBlendAttachment.blendEnable = VK_FALSE;
 
@@ -458,10 +342,10 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         colorBlending.attachmentCount = static_cast<uint32_t>(colorBlendAttachments.size());
         colorBlending.pAttachments = colorBlendAttachments.data();
 
+        std::array<VkDescriptorSetLayout, 2> setLayouts = {m_descriptorSetLayout, m_textureArrayLayout};
+
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        // We will bind two descriptor sets: set 0 => frame UBO layout; set 1 => sampler-only layout
-        std::array<VkDescriptorSetLayout, 2> setLayouts = {m_descriptorSetLayout, m_samplerSetLayout};
         pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
         pipelineLayoutInfo.pSetLayouts = setLayouts.data();
 
@@ -497,7 +381,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         if (m_buffers.vertexBuffer != VK_NULL_HANDLE)
             return;
 
-        // Create static quad vertex buffer
         struct LocalVertex {
             glm::vec3 pos;
             glm::vec2 uv;
@@ -510,11 +393,10 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         }};
         std::array<uint32_t, 6> idx = {{0, 1, 2, 2, 3, 0}};
 
-        // Allocate and upload quad vertex buffer
-        VkDeviceSize vsize = sizeof(LocalVertex) * local.size();
+        VkDeviceSize vSize = sizeof(LocalVertex) * local.size();
         VkBufferCreateInfo bi{};
         bi.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bi.size = vsize;
+        bi.size = vSize;
         bi.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
         bi.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         if (vkCreateBuffer(m_device->device(), &bi, nullptr, &m_buffers.vertexBuffer) != VK_SUCCESS) {
@@ -531,13 +413,13 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         }
         vkBindBufferMemory(m_device->device(), m_buffers.vertexBuffer, m_buffers.vertexBufferMemory, 0);
         void *vdata = nullptr;
-        vkMapMemory(m_device->device(), m_buffers.vertexBufferMemory, 0, vsize, 0, &vdata);
-        memcpy(vdata, local.data(), vsize);
+        vkMapMemory(m_device->device(), m_buffers.vertexBufferMemory, 0, vSize, 0, &vdata);
+        memcpy(vdata, local.data(), vSize);
         vkUnmapMemory(m_device->device(), m_buffers.vertexBufferMemory);
 
         // Allocate and upload quad index buffer
-        VkDeviceSize isize = sizeof(uint32_t) * idx.size();
-        bi.size = isize;
+        VkDeviceSize iSize = sizeof(uint32_t) * idx.size();
+        bi.size = iSize;
         bi.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
         if (vkCreateBuffer(m_device->device(), &bi, nullptr, &m_buffers.indexBuffer) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create quad index buffer!");
@@ -550,11 +432,10 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         }
         vkBindBufferMemory(m_device->device(), m_buffers.indexBuffer, m_buffers.indexBufferMemory, 0);
         void *idata = nullptr;
-        vkMapMemory(m_device->device(), m_buffers.indexBufferMemory, 0, isize, 0, &idata);
-        memcpy(idata, idx.data(), isize);
+        vkMapMemory(m_device->device(), m_buffers.indexBufferMemory, 0, iSize, 0, &idata);
+        memcpy(idata, idx.data(), iSize);
         vkUnmapMemory(m_device->device(), m_buffers.indexBufferMemory);
 
-        // Create initial instance buffer with capacity for 1 instance
         ensureQuadInstanceCapacity(1);
     }
 
@@ -593,20 +474,53 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         m_buffers.instanceCapacity = instanceCount;
     }
 
-    void QuadPipeline::ensureTextureDescriptorPool(uint32_t capacity) {
-        if (m_textureDescriptorPool != VK_NULL_HANDLE) return;
-        VkDescriptorPoolSize poolSizes[1] = {};
-        poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[0].descriptorCount = capacity;
+    constexpr size_t maxFrames = 2;
+    void QuadPipeline::createDescriptorPool() {
+        Pipeline::createDescriptorPool();
+
+        if (m_textureArrayDescriptorPool != VK_NULL_HANDLE)
+            return;
+        VkDescriptorPoolSize poolSize = {};
+        poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSize.descriptorCount = m_texArraySize * maxFrames;
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = 1;
-        poolInfo.pPoolSizes = poolSizes;
-        poolInfo.maxSets = capacity;
-        if (vkCreateDescriptorPool(m_device->device(), &poolInfo, nullptr, &m_textureDescriptorPool) != VK_SUCCESS) {
+        poolInfo.pPoolSizes = &poolSize;
+        poolInfo.maxSets = maxFrames;
+        if (vkCreateDescriptorPool(m_device->device(), &poolInfo, nullptr, &m_textureArrayDescriptorPool) != VK_SUCCESS) {
             BESS_ERROR("[QuadPipeline] Failed to create texture descriptor pool");
         }
     }
 
+    void QuadPipeline::createDescriptorSets() {
+        Pipeline::createDescriptorSets();
+        m_textureArraySets.resize(maxFrames);
+
+        VkDescriptorSetLayoutBinding texArrayBinding{};
+        texArrayBinding.binding = 2;
+        texArrayBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        texArrayBinding.descriptorCount = 32; // e.g. 128
+        texArrayBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+        layoutInfo.bindingCount = 1;
+        layoutInfo.pBindings = &texArrayBinding;
+
+        vkCreateDescriptorSetLayout(m_device->device(), &layoutInfo, nullptr, &m_textureArrayLayout);
+
+        std::vector<VkDescriptorSetLayoutCreateInfo> layoutInfos(maxFrames, layoutInfo);
+        auto layouts = std::vector(2, m_textureArrayLayout);
+
+        VkDescriptorSetAllocateInfo allocInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+
+        allocInfo.descriptorPool = m_textureArrayDescriptorPool;
+        allocInfo.descriptorSetCount = maxFrames;
+        allocInfo.pSetLayouts = layouts.data();
+
+        if (vkAllocateDescriptorSets(m_device->device(), &allocInfo, m_textureArraySets.data()) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create texture array descriptor set");
+        }
+    }
 } // namespace Bess::Renderer2D::Vulkan::Pipelines

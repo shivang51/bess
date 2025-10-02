@@ -1,8 +1,12 @@
 #pragma once
 
 #include "pipeline.h"
-#include <vector>
+#include "scene/renderer/vulkan/primitive_vertex.h"
+#include <array>
+#include <memory>
 #include <unordered_map>
+#include <vector>
+#include <vulkan/vulkan_core.h>
 
 namespace Bess::Renderer2D::Vulkan {
     class VulkanTexture;
@@ -11,7 +15,7 @@ namespace Bess::Renderer2D::Vulkan {
 namespace Bess::Renderer2D::Vulkan::Pipelines {
 
     class QuadPipeline : public Pipeline {
-    public:
+      public:
         QuadPipeline(const std::shared_ptr<VulkanDevice> &device,
                      const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
                      VkExtent2D extent);
@@ -24,43 +28,30 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
         void beginPipeline(VkCommandBuffer commandBuffer) override;
         void endPipeline() override;
+
+        void setQuadsData(
+            const std::vector<QuadInstance> &data,
+            std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> &texutredData);
+
         void cleanup() override;
 
-        void drawQuad(const glm::vec3 &pos,
-                      const glm::vec2 &size,
-                      const glm::vec4 &color,
-                      int id,
-                      const glm::vec4 &borderRadius,
-                      const glm::vec4 &borderSize,
-                      const glm::vec4 &borderColor,
-                      int isMica);
-
-        void drawTexturedQuad(const glm::vec3 &pos,
-                      const glm::vec2 &size,
-                      const glm::vec4 &tint,
-                      int id,
-                      const glm::vec4 &borderRadius,
-                      const glm::vec4 &borderSize,
-                      const glm::vec4 &borderColor,
-                      int isMica,
-                      const std::shared_ptr<VulkanTexture> &texture);
-
-    private:
-        void createQuadPipeline();
+      private:
+        void createGraphicsPipeline();
         void ensureQuadBuffers();
         void ensureQuadInstanceCapacity(size_t instanceCount);
-        void ensureTextureDescriptorPool(uint32_t capacity = 128);
+
+        void createDescriptorPool() override;
+        void createDescriptorSets() override;
+
+        static constexpr size_t m_texArraySize = 32;
 
         BufferSet m_buffers;
         std::vector<QuadInstance> m_pendingQuadInstances;
-        std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> m_textureToInstances;
-        std::unordered_map<std::shared_ptr<VulkanTexture>, VkDescriptorSet> m_textureSetCache;
-        std::vector<VkDescriptorSet> m_frameAllocatedSets;
-        VkDescriptorPool m_textureDescriptorPool = VK_NULL_HANDLE;
-        VkDescriptorSetLayout m_samplerSetLayout = VK_NULL_HANDLE;
-        VkDescriptorSet m_fallbackSamplerSet = VK_NULL_HANDLE;
+        std::vector<VkDescriptorSet> m_textureArraySets;
+        VkDescriptorPool m_textureArrayDescriptorPool = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_textureArrayLayout = VK_NULL_HANDLE;
         std::shared_ptr<VulkanTexture> m_fallbackTexture;
+        std::array<VkDescriptorImageInfo, 32> m_textureInfos;
     };
 
 } // namespace Bess::Renderer2D::Vulkan::Pipelines
-

@@ -19,7 +19,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     };
 
     class Pipeline {
-    public:
+      public:
         Pipeline(const std::shared_ptr<VulkanDevice> &device,
                  const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
                  VkExtent2D extent);
@@ -41,7 +41,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         VkPipeline getPipeline() const { return m_pipeline; }
         VkPipelineLayout getPipelineLayout() const { return m_pipelineLayout; }
 
-    protected:
+      protected:
         std::shared_ptr<VulkanDevice> m_device;
         std::shared_ptr<VulkanOffscreenRenderPass> m_renderPass;
         VkExtent2D m_extent;
@@ -63,7 +63,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         VkShaderModule createShaderModule(const std::vector<char> &code) const;
         std::vector<char> readFile(const std::string &filename) const;
         void createDescriptorSetLayout();
-        void createDescriptorPool();
+        virtual void createDescriptorPool();
         virtual void createDescriptorSets();
         void createUniformBuffers();
     };

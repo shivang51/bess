@@ -1,7 +1,7 @@
 #include "scene/renderer/vulkan/pipelines/grid_pipeline.h"
 #include "common/log.h"
-#include <glm.hpp>
 #include <ext/matrix_transform.hpp>
+#include <glm.hpp>
 
 namespace Bess::Renderer2D::Vulkan::Pipelines {
 
@@ -59,14 +59,22 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         m_currentIndexCount = 0;
 
         vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
-        
-        // Use the current frame's descriptor set (no need to update every frame)
+
         vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[m_currentFrameIndex], 0, nullptr);
 
         VkBuffer vertexBuffers[] = {m_buffers.vertexBuffer};
         constexpr VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 1, vertexBuffers, offsets);
         vkCmdBindIndexBuffer(m_currentCommandBuffer, m_buffers.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    }
+
+    void GridPipeline::endPipeline() {
+        if (m_currentIndexCount > 0) {
+            vkCmdDrawIndexed(m_currentCommandBuffer, m_currentIndexCount, 1, 0, 0, 0);
+        }
+
+        m_currentIndexCount = 0;
+        m_currentCommandBuffer = VK_NULL_HANDLE;
     }
 
     void GridPipeline::createDescriptorSets() {
@@ -79,7 +87,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         m_descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 
         std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_descriptorSetLayout);
-        
+
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         allocInfo.descriptorPool = m_descriptorPool;
@@ -128,13 +136,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         }
     }
 
-    void GridPipeline::endPipeline() {
-        if (m_currentVertexCount > 0) {
-            vkCmdDrawIndexed(m_currentCommandBuffer, m_currentIndexCount, 1, 0, 0, 0);
-        }
-        m_currentCommandBuffer = VK_NULL_HANDLE;
-    }
-
     void GridPipeline::cleanup() {
         if (m_buffers.vertexBuffer != VK_NULL_HANDLE) {
             vkDestroyBuffer(m_device->device(), m_buffers.vertexBuffer, nullptr);
@@ -181,10 +182,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         }
     }
 
-    void GridPipeline::drawGrid(const glm::vec3 &pos, const glm::vec2 &size, int id, const GridUniforms &gridUniforms) {
-        // Build a quad centered at pos that covers the viewport span
-        const float halfW = size.x * 0.5F;
-        const float halfH = size.y * 0.5F;
+    void GridPipeline::drawGrid(const glm::vec3 &pos, const glm::vec2 &size, int id) {
         std::vector<GridVertex> vertices(4);
 
         auto transform = glm::translate(glm::mat4(1.0f), pos);
@@ -207,7 +205,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             vertex.position = transform * glm::vec4(QuadTemplateVertices[i].position, 0.f, 1.f);
             vertex.fragId = id;
             vertex.ar = size.x / size.y;
-            vertex.fragColor = gridUniforms.gridMajorColor;
+            vertex.fragColor = glm::vec4(1.f);
             vertex.texCoord = QuadTemplateVertices[i].texCoord;
         }
 
@@ -216,12 +214,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
         updateVertexBuffer(vertices);
         updateIndexBuffer(indices);
-
-        // Actually draw the grid immediately
-        vkCmdDrawIndexed(m_currentCommandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-        // Prevent endPipeline from issuing a second draw with stale buffers
-        m_currentVertexCount = 0;
-        m_currentIndexCount = 0;
     }
 
     void GridPipeline::updateGridUniforms(const GridUniforms &gridUniforms) {
@@ -393,7 +385,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         }
 
         vkBindBufferMemory(m_device->device(), m_gridUniformBuffers[0], m_gridUniformBufferMemory[0], 0);
-        
+
         // Initialize with default values
         GridUniforms defaultUniforms{};
         defaultUniforms.zoom = 1.0f;
@@ -401,11 +393,11 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         defaultUniforms.cameraOffset = glm::vec2(0.0f);
         defaultUniforms.gridMinorColor = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f); // Gray
         defaultUniforms.gridMajorColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f); // Red
-        defaultUniforms.axisXColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f); // Red
-        defaultUniforms.axisYColor = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f); // Green
+        defaultUniforms.axisXColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);     // Red
+        defaultUniforms.axisYColor = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);     // Green
         defaultUniforms.resolution = glm::vec2(800.0f, 600.0f);
         defaultUniforms._pad1 = glm::vec2(0.0f);
-        
+
         void *data = nullptr;
         vkMapMemory(m_device->device(), m_gridUniformBufferMemory[0], 0, sizeof(defaultUniforms), 0, &data);
         memcpy(data, &defaultUniforms, sizeof(defaultUniforms));

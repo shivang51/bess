@@ -45,7 +45,7 @@ namespace Bess::Renderer2D {
         m_offscreenRenderPass = std::make_shared<Vulkan::VulkanOffscreenRenderPass>(m_device, m_swapchain->imageFormat(), VK_FORMAT_R32_SINT);
         m_offscreenImageView->createFramebuffer(m_offscreenRenderPass->getVkHandle());
 
-        m_primitiveRenderer = std::make_shared<Vulkan::PrimitiveRenderer>(m_device, m_offscreenRenderPass, windowExtent);
+        m_primitiveRenderer = std::move(std::make_shared<Vulkan::PrimitiveRenderer>(m_device, m_offscreenRenderPass, windowExtent));
 
         m_swapchain->createFramebuffers(m_renderPass->getVkHandle());
 
@@ -312,12 +312,9 @@ namespace Bess::Renderer2D {
         }
 
         m_pipeline.reset();
-        // Release any high-level references to primitive renderer first
         m_primitiveRenderer.reset();
-        // Destroy offscreen resources in order: framebuffer/image view before render pass
         m_offscreenImageView.reset();
         m_offscreenRenderPass.reset();
-        // Destroy onscreen resources in correct order: framebuffers (owned by swapchain) before render pass
         m_swapchain.reset();
         m_renderPass.reset();
         UI::vulkanCleanup(m_device);
@@ -592,9 +589,9 @@ namespace Bess::Renderer2D {
         if (m_pickingCopyInFlight) {
             VkFence fence = m_inFlightFences[m_pickingCopyRecordedFrameIdx];
             if (vkGetFenceStatus(m_device->device(), fence) == VK_SUCCESS) {
-                void* data = nullptr;
+                void *data = nullptr;
                 vkMapMemory(m_device->device(), m_pickingStagingBufferMemory, 0, sizeof(int32_t), 0, &data);
-                m_pickingResult = *static_cast<int32_t*>(data);
+                m_pickingResult = *static_cast<int32_t *>(data);
                 vkUnmapMemory(m_device->device(), m_pickingStagingBufferMemory);
                 m_pickingCopyInFlight = false;
                 m_pickingRequestPending = false;

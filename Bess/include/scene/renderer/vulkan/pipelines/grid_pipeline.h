@@ -6,7 +6,7 @@
 namespace Bess::Renderer2D::Vulkan::Pipelines {
 
     class GridPipeline : public Pipeline {
-    public:
+      public:
         GridPipeline(const std::shared_ptr<VulkanDevice> &device,
                      const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
                      VkExtent2D extent);
@@ -21,10 +21,11 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         void endPipeline() override;
         void cleanup() override;
 
-        void drawGrid(const glm::vec3 &pos, const glm::vec2 &size, int id, const GridUniforms &gridUniforms);
+        // for now only one grid
+        void drawGrid(const glm::vec3 &pos, const glm::vec2 &size, int id);
         void updateGridUniforms(const GridUniforms &gridUniforms);
 
-    private:
+      private:
         void createGraphicsPipeline();
         void createGridUniformBuffers();
         void createDescriptorSets() override;

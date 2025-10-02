@@ -2,7 +2,6 @@
 #include "common/log.h"
 
 namespace Bess::Renderer2D {
-    std::shared_ptr<Vulkan::PrimitiveRenderer> VulkanRenderer::m_primitiveRenderer = nullptr;
     std::shared_ptr<Camera> VulkanRenderer::m_camera = nullptr;
 
     void VulkanRenderer::init() {
@@ -10,18 +9,17 @@ namespace Bess::Renderer2D {
 
     void VulkanRenderer::shutdown() {
         BESS_INFO("[VulkanRenderer] Shutting down Vulkan renderer");
-        m_primitiveRenderer = nullptr;
         m_camera = nullptr;
     }
 
     void VulkanRenderer::beginScene(std::shared_ptr<Camera> camera) {
         m_camera = camera;
-        m_primitiveRenderer = VulkanCore::instance().getPrimitiveRenderer();
+        auto primitiveRenderer = VulkanCore::instance().getPrimitiveRenderer().lock();
 
         Vulkan::UniformBufferObject ubo{};
         ubo.mvp = m_camera->getTransform();
         ubo.ortho = m_camera->getOrtho();
-        m_primitiveRenderer->updateUBO(ubo);
+        primitiveRenderer->updateUBO(ubo);
     }
 
     void VulkanRenderer::end() {
@@ -31,11 +29,6 @@ namespace Bess::Renderer2D {
     }
 
     void VulkanRenderer::grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const GridColors &colors) {
-        if (!m_primitiveRenderer || !m_camera) {
-            BESS_WARN("[VulkanRenderer] Cannot render grid - primitive renderer or camera not available");
-            return;
-        }
-
         const auto &camPos = m_camera->getPos();
 
         Vulkan::GridUniforms gridUniforms{};
@@ -47,19 +40,15 @@ namespace Bess::Renderer2D {
         gridUniforms.axisYColor = colors.axisYColor;
         gridUniforms.resolution = glm::vec2(m_camera->getSize());
 
-        m_primitiveRenderer->updateUniformBuffer(gridUniforms);
-
-        m_primitiveRenderer->drawGrid(pos, size, id, gridUniforms);
+        auto primitiveRenderer = VulkanCore::instance().getPrimitiveRenderer().lock();
+        primitiveRenderer->updateUniformBuffer(gridUniforms);
+        primitiveRenderer->drawGrid(pos, size, id, gridUniforms);
     }
 
     void VulkanRenderer::quad(const glm::vec3 &pos, const glm::vec2 &size,
                               const glm::vec4 &color, int id, QuadRenderProperties properties) {
-        if (!m_primitiveRenderer || !m_camera) {
-            BESS_WARN("[VulkanRenderer] Cannot render quad - primitive renderer or camera not available");
-            return;
-        }
-
-        m_primitiveRenderer->drawQuad(
+        auto primitiveRenderer = VulkanCore::instance().getPrimitiveRenderer().lock();
+        primitiveRenderer->drawQuad(
             pos,
             size,
             color,
@@ -73,12 +62,8 @@ namespace Bess::Renderer2D {
     void VulkanRenderer::texturedQuad(const glm::vec3 &pos, const glm::vec2 &size,
                                       const std::shared_ptr<Vulkan::VulkanTexture> &texture,
                                       const glm::vec4 &tintColor, int id, QuadRenderProperties properties) {
-        if (!m_primitiveRenderer || !m_camera) {
-            BESS_WARN("[VulkanRenderer] Cannot render textured quad - primitive renderer or camera not available");
-            return;
-        }
-
-        m_primitiveRenderer->drawTexturedQuad(
+        auto primitiveRenderer = VulkanCore::instance().getPrimitiveRenderer().lock();
+        primitiveRenderer->drawTexturedQuad(
             pos,
             size,
             tintColor,

@@ -99,12 +99,12 @@ namespace Bess::Renderer2D {
         // Scene texture access for ImGui
         uint64_t getSceneTextureId();
 
-        std::shared_ptr<Vulkan::PrimitiveRenderer> getPrimitiveRenderer() const { return m_primitiveRenderer; }
+        std::weak_ptr<Vulkan::PrimitiveRenderer> getPrimitiveRenderer() const { return m_primitiveRenderer; }
         void resizeOffscreen(VkExtent2D extent);
         VkExtent2D getOffscreenExtent() const {
             return m_offscreenImageView ? m_offscreenImageView->getExtent() : VkExtent2D{0, 0};
         }
-        
+
         // Mouse picking functionality
         int32_t readPickingId(int x, int y);
         int32_t getPickingIdResult(); // Get result from previous frame

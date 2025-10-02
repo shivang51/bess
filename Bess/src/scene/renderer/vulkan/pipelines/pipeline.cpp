@@ -1,7 +1,7 @@
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
 #include "common/log.h"
-#include <fstream>
 #include <cstring>
+#include <fstream>
 
 namespace Bess::Renderer2D::Vulkan::Pipelines {
 
@@ -12,7 +12,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         createDescriptorSetLayout();
         createDescriptorPool();
         createUniformBuffers();
-        // createDescriptorSets() will be called by derived classes after they create their specific uniform buffers
     }
 
     Pipeline::Pipeline(Pipeline &&other) noexcept
@@ -111,7 +110,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         uboLayoutBinding.pImmutableSamplers = nullptr;
         uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-        // Optional second binding for Grid uniforms used by fragment shader
         VkDescriptorSetLayoutBinding gridLayoutBinding{};
         gridLayoutBinding.binding = 1;
         gridLayoutBinding.descriptorCount = 1;
@@ -119,15 +117,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         gridLayoutBinding.pImmutableSamplers = nullptr;
         gridLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        // Binding 2: optional combined image sampler for textured quads
-        VkDescriptorSetLayoutBinding samplerBinding{};
-        samplerBinding.binding = 2;
-        samplerBinding.descriptorCount = 1;
-        samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        samplerBinding.pImmutableSamplers = nullptr;
-        samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-        std::array<VkDescriptorSetLayoutBinding, 3> bindings = {uboLayoutBinding, gridLayoutBinding, samplerBinding};
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, gridLayoutBinding};
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -139,19 +129,15 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     }
 
     void Pipeline::createDescriptorPool() {
-        std::array<VkDescriptorPoolSize, 2> poolSizes{};
-        // UBOs (binding 0, and grid UBO at binding 1) across 2 frames
+        std::array<VkDescriptorPoolSize, 1> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         poolSizes[0].descriptorCount = 4;
-        // Combined image sampler (binding 2) across 2 frames
-        poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[1].descriptorCount = 2;
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = 2; // 2 frames in flight
+        poolInfo.maxSets = 2;
 
         if (vkCreateDescriptorPool(m_device->device(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create descriptor pool!");
@@ -168,7 +154,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         m_descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 
         std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_descriptorSetLayout);
-        
+
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         allocInfo.descriptorPool = m_descriptorPool;

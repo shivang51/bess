@@ -14,7 +14,7 @@ layout(location = 7) in flat int v_IsMica;
 layout(location = 8) in flat int v_TexSlotIdx;
 
 // Per-texture sampler bound in set 1, binding 2
-layout(set = 1, binding = 2) uniform sampler2D uTexture;
+layout(set = 1, binding = 2) uniform sampler2D uTextures[32];
 
 float sdRR(vec2 p, vec2 b, vec4 r) {
     float rc = p.x >= 0.0 && p.y >= 0.0 ? r.y :
@@ -56,7 +56,7 @@ void main() {
 
     vec4 baseColor = v_FragColor;
     if (v_TexSlotIdx != 0) {
-        vec4 texColor = texture(uTexture, v_TexCoord);
+        vec4 texColor = texture(uTextures[v_TexSlotIdx], v_TexCoord);
         baseColor *= texColor;
     }
 

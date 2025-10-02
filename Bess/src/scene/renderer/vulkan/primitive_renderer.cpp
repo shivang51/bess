@@ -43,22 +43,23 @@ namespace Bess::Renderer2D::Vulkan {
 
     void PrimitiveRenderer::beginFrame(VkCommandBuffer commandBuffer) {
         m_currentCommandBuffer = commandBuffer;
-
-        if (m_gridPipeline) {
-            m_gridPipeline->beginPipeline(commandBuffer);
-        }
-        if (m_quadPipeline) {
-            m_quadPipeline->beginPipeline(commandBuffer);
-        }
     }
 
     void PrimitiveRenderer::endFrame() {
-        // End both pipelines
         if (m_gridPipeline) {
+            m_gridPipeline->beginPipeline(m_currentCommandBuffer);
+            m_gridPipeline->drawGrid(m_gridVertex.position,
+                                     m_gridVertex.texCoord, // storing size in this for now
+                                     m_gridVertex.fragId);
             m_gridPipeline->endPipeline();
         }
+
         if (m_quadPipeline) {
+            m_quadPipeline->beginPipeline(m_currentCommandBuffer);
+            m_quadPipeline->setQuadsData(m_quadInstances, m_texturedQuadInstances);
             m_quadPipeline->endPipeline();
+            m_quadInstances.clear();
+            m_texturedQuadInstances.clear();
         }
 
         m_currentCommandBuffer = VK_NULL_HANDLE;
@@ -80,7 +81,7 @@ namespace Bess::Renderer2D::Vulkan {
         }
 
         m_gridPipeline->updateGridUniforms(gridUniforms);
-        m_gridPipeline->drawGrid(pos, size, id, gridUniforms);
+        m_gridVertex = {pos, size, id};
     }
 
     void PrimitiveRenderer::drawQuad(const glm::vec3 &pos,
@@ -96,7 +97,19 @@ namespace Bess::Renderer2D::Vulkan {
             return;
         }
 
-        m_quadPipeline->drawQuad(pos, size, color, id, borderRadius, borderSize, borderColor, isMica);
+        QuadInstance instance{};
+        instance.position = pos;
+        instance.color = color;
+        instance.borderRadius = borderRadius;
+        instance.borderColor = borderColor;
+        instance.borderSize = borderSize;
+        instance.size = size;
+        instance.id = id;
+        instance.isMica = isMica;
+        instance.texSlotIdx = 0;
+        instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f); // Full local UV [0,1] by default
+
+        m_quadInstances.emplace_back(instance);
     }
 
     void PrimitiveRenderer::drawTexturedQuad(const glm::vec3 &pos,
@@ -113,7 +126,19 @@ namespace Bess::Renderer2D::Vulkan {
             return;
         }
 
-        m_quadPipeline->drawTexturedQuad(pos, size, tint, id, borderRadius, borderSize, borderColor, isMica, texture);
+        QuadInstance instance{};
+        instance.position = pos;
+        instance.color = tint;
+        instance.borderRadius = borderRadius;
+        instance.borderColor = borderColor;
+        instance.borderSize = borderSize;
+        instance.size = size;
+        instance.id = id;
+        instance.isMica = isMica;
+        instance.texSlotIdx = 1; // indicate textured
+        instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f);
+
+        m_texturedQuadInstances[texture].emplace_back(instance);
     }
 
     void PrimitiveRenderer::drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, int id, float innerRadius) {
