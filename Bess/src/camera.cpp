@@ -5,7 +5,7 @@
 namespace Bess {
     float Camera::zoomMin = 0.5f, Camera::zoomMax = 4.f, Camera::defaultZoom = 1.517f;
 
-    Camera::Camera(float width, float height) : m_zoom(defaultZoom), m_width(width), m_height(height) {
+    Camera::Camera(float width, float height) : m_zoom(defaultZoom), m_zPos(8.f), m_width(width), m_height(height) {
         setZoom(defaultZoom);
         setPos({0.f, 0.f});
     }
@@ -102,7 +102,7 @@ namespace Bess {
         const float ySpan = m_height / m_zoom;
         const auto x = xSpan / 2.f;
         const auto y = ySpan / 2.f;
-        m_ortho = glm::ortho(-x, x, y, -y, -10.0f, 10.0f);
+        m_ortho = glm::ortho(-x, x, y, -y, -m_zPos, m_zPos);
 
         updateTransform();
     }
@@ -114,7 +114,16 @@ namespace Bess {
     }
 
     void Camera::updateTransform() {
-        transform = glm::translate(glm::mat4(1.f), glm::vec3(-m_pos, 0.0f));
+        transform = glm::translate(glm::mat4(1.f), glm::vec3(-m_pos, -m_zPos));
         transform = m_ortho * transform;
+    }
+
+    void Camera::setZPos(float zPos) {
+        m_zPos = zPos;
+        updateTransform();
+    }
+
+    float Camera::getZPos() const {
+        return m_zPos;
     }
 } // namespace Bess

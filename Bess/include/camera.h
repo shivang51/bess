@@ -81,10 +81,14 @@ namespace Bess {
 
         void incrementPos(const glm::vec2 &pos);
 
+        void setZPos(float zPos);
+        float getZPos() const;
+
         static float zoomMin, zoomMax, defaultZoom;
 
       private:
         glm::vec2 m_pos;
+        float m_zPos;
         float m_zoom;
         float m_width, m_height;
         glm::mat4 m_ortho;

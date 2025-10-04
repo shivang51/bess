@@ -185,7 +185,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     void GridPipeline::drawGrid(const glm::vec3 &pos, const glm::vec2 &size, int id) {
         std::vector<GridVertex> vertices(4);
 
-        auto transform = glm::translate(glm::mat4(1.0f), pos);
+        auto transform = glm::translate(glm::mat4(1.0f), glm::vec3(pos.x, pos.y, 0.0f));
         transform = glm::scale(transform, {size.x, size.y, 1.f});
 
         struct TemplateVertex {
@@ -203,6 +203,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         for (int i = 0; i < 4; i++) {
             auto &vertex = vertices[i];
             vertex.position = transform * glm::vec4(QuadTemplateVertices[i].position, 0.f, 1.f);
+            vertex.position.z = pos.z;
             vertex.fragId = id;
             vertex.ar = size.x / size.y;
             vertex.fragColor = glm::vec4(1.f);

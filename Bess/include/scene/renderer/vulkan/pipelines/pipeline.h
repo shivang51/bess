@@ -62,7 +62,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         // Helper functions
         VkShaderModule createShaderModule(const std::vector<char> &code) const;
         std::vector<char> readFile(const std::string &filename) const;
-        void createDescriptorSetLayout();
+        virtual void createDescriptorSetLayout();
         virtual void createDescriptorPool();
         virtual void createDescriptorSets();
         void createUniformBuffers();

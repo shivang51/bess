@@ -20,5 +20,5 @@ void main() {
     v_FragId = a_FragId;
     v_FragColor = a_FragColor;
 
-    gl_Position = u_ortho    * vec4(a_Vertex, 1.0);
+    gl_Position = u_mvp * vec4(a_Vertex, 1.0);
 }
