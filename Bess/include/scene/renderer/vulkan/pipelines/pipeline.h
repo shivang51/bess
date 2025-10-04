@@ -66,6 +66,15 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         virtual void createDescriptorPool();
         virtual void createDescriptorSets();
         void createUniformBuffers();
+
+        // Common graphics pipeline creation helpers
+        VkPipelineInputAssemblyStateCreateInfo createInputAssemblyState() const;
+        VkPipelineViewportStateCreateInfo createViewportState() const;
+        VkPipelineRasterizationStateCreateInfo createRasterizationState() const;
+        VkPipelineMultisampleStateCreateInfo createMultisampleState() const;
+        VkPipelineDepthStencilStateCreateInfo createDepthStencilState() const;
+        VkPipelineColorBlendStateCreateInfo createColorBlendState(const std::vector<VkPipelineColorBlendAttachmentState> &colorBlendAttachments) const;
+        VkPipelineDynamicStateCreateInfo createDynamicState() const;
     };
 
 } // namespace Bess::Renderer2D::Vulkan::Pipelines
