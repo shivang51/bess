@@ -105,7 +105,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             for (auto &vertex : entry.second)
                 vertex.texSlotIdx = i;
 
-            m_translucentInstances.insert(m_opaqueInstances.end(),
+            m_translucentInstances.insert(m_translucentInstances.end(),
                                           entry.second.begin(), entry.second.end());
 
             i++;
