@@ -66,8 +66,11 @@ namespace Bess::Renderer2D::Vulkan {
 
         VkCommandBuffer m_currentCommandBuffer = VK_NULL_HANDLE;
 
-        std::vector<QuadInstance> m_quadInstances;
+        std::vector<QuadInstance> m_opaqueQuadInstances;
+        std::vector<QuadInstance> m_translucentQuadInstances;
         std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> m_texturedQuadInstances;
+
+        std::vector<VkDescriptorSet> m_textureArraySets;
 
         GridVertex m_gridVertex;
     };

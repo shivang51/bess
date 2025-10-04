@@ -22,6 +22,7 @@ Checks: >
   -cppcoreguidelines-avoid-do-while,
   -modernize-use-designated-initializers,
   -readability-implicit-bool-conversion,
+  -cppcoreguidelines-avoid-c-arrays,
   -readability-convert-member-functions-to-static
 
 WarningsAsErrors: ''

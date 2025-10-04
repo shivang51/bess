@@ -56,9 +56,10 @@ namespace Bess::Renderer2D::Vulkan {
 
         if (m_quadPipeline) {
             m_quadPipeline->beginPipeline(m_currentCommandBuffer);
-            m_quadPipeline->setQuadsData(m_quadInstances, m_texturedQuadInstances);
+            m_quadPipeline->setQuadsData(m_opaqueQuadInstances, m_translucentQuadInstances, m_texturedQuadInstances);
             m_quadPipeline->endPipeline();
-            m_quadInstances.clear();
+            m_opaqueQuadInstances.clear();
+            m_translucentQuadInstances.clear();
             m_texturedQuadInstances.clear();
         }
 
@@ -109,7 +110,11 @@ namespace Bess::Renderer2D::Vulkan {
         instance.texSlotIdx = 0;
         instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f); // Full local UV [0,1] by default
 
-        m_quadInstances.emplace_back(instance);
+        if (color.a == 1.f) {
+            m_opaqueQuadInstances.emplace_back(instance);
+        } else {
+            m_translucentQuadInstances.emplace_back(instance);
+        }
     }
 
     void PrimitiveRenderer::drawTexturedQuad(const glm::vec3 &pos,

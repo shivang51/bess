@@ -1,7 +1,9 @@
 #include "scene/renderer/vulkan/pipelines/quad_pipeline.h"
 #include "common/log.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
+#include "scene/renderer/vulkan/primitive_vertex.h"
 #include "scene/renderer/vulkan/vulkan_texture.h"
+#include <algorithm>
 #include <array>
 #include <cstring>
 #include <vector>
@@ -33,7 +35,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     QuadPipeline::QuadPipeline(QuadPipeline &&other) noexcept
         : Pipeline(std::move(other)),
           m_buffers(std::move(other.m_buffers)),
-          m_pendingQuadInstances(std::move(other.m_pendingQuadInstances)) {
+          m_opaqueInstances(std::move(other.m_opaqueInstances)) {
     }
 
     QuadPipeline &QuadPipeline::operator=(QuadPipeline &&other) noexcept {
@@ -41,14 +43,15 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             cleanup();
             Pipeline::operator=(std::move(other));
             m_buffers = std::move(other.m_buffers);
-            m_pendingQuadInstances = std::move(other.m_pendingQuadInstances);
+            m_opaqueInstances = std::move(other.m_opaqueInstances);
         }
         return *this;
     }
 
     void QuadPipeline::beginPipeline(VkCommandBuffer commandBuffer) {
         m_currentCommandBuffer = commandBuffer;
-        m_pendingQuadInstances.clear();
+        m_opaqueInstances.clear();
+        m_translucentInstances.clear();
 
         vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
         VkDescriptorSet sets[] = {m_descriptorSets[m_currentFrameIndex], m_textureArraySets[m_currentFrameIndex]};
@@ -56,30 +59,44 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     }
 
     void QuadPipeline::endPipeline() {
-        if (!m_pendingQuadInstances.empty()) {
-            ensureQuadInstanceCapacity(m_pendingQuadInstances.size());
-
+        auto draw = [&](const std::vector<QuadInstance> &instances, VkDeviceSize offset) {
+            if (instances.empty())
+                return;
             void *data = nullptr;
-            vkMapMemory(m_device->device(), m_buffers.instanceBufferMemory, 0, sizeof(QuadInstance) * m_pendingQuadInstances.size(), 0, &data);
-            memcpy(data, m_pendingQuadInstances.data(), sizeof(QuadInstance) * m_pendingQuadInstances.size());
+            vkMapMemory(m_device->device(), m_buffers.instanceBufferMemory, offset, sizeof(QuadInstance) * instances.size(), 0, &data);
+            memcpy(data, instances.data(), sizeof(QuadInstance) * instances.size());
             vkUnmapMemory(m_device->device(), m_buffers.instanceBufferMemory);
 
             VkBuffer vbs[] = {m_buffers.vertexBuffer, m_buffers.instanceBuffer};
-            VkDeviceSize offs[] = {0, 0};
+            VkDeviceSize offs[] = {0, offset};
             vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 2, vbs, offs);
             vkCmdBindIndexBuffer(m_currentCommandBuffer, m_buffers.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-            vkCmdDrawIndexed(m_currentCommandBuffer, 6, static_cast<uint32_t>(m_pendingQuadInstances.size()), 0, 0, 0);
-        }
+            vkCmdDrawIndexed(m_currentCommandBuffer, 6, static_cast<uint32_t>(instances.size()), 0, 0, 0);
+        };
+
+        ensureQuadInstanceCapacity(m_opaqueInstances.size() + m_translucentInstances.size());
+        VkDeviceSize translucentOffset = m_opaqueInstances.size() * sizeof(QuadInstance);
+
+        draw(m_opaqueInstances, 0);
+        m_opaqueInstances.clear();
+
+        std::ranges::sort(m_translucentInstances, [](QuadInstance &a, QuadInstance &b) -> bool {
+            return a.position.z < b.position.z;
+        });
+        draw(m_translucentInstances, translucentOffset);
+        m_translucentInstances.clear();
 
         m_currentCommandBuffer = VK_NULL_HANDLE;
     }
 
     void QuadPipeline::setQuadsData(
-        const std::vector<QuadInstance> &data,
+        const std::vector<QuadInstance> &opaque,
+        const std::vector<QuadInstance> &translucent,
         std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> &texutredData) {
 
-        m_pendingQuadInstances = data;
+        m_opaqueInstances = opaque;
+        m_translucentInstances = translucent;
 
         m_textureInfos.fill(m_fallbackTexture->getDescriptorInfo());
         int i = 1;
@@ -88,7 +105,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             for (auto &vertex : entry.second)
                 vertex.texSlotIdx = i;
 
-            m_pendingQuadInstances.insert(m_pendingQuadInstances.end(),
+            m_translucentInstances.insert(m_opaqueInstances.end(),
                                           entry.second.begin(), entry.second.end());
 
             i++;

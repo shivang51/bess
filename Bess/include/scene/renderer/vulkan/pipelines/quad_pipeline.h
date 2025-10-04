@@ -30,7 +30,8 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         void endPipeline() override;
 
         void setQuadsData(
-            const std::vector<QuadInstance> &data,
+            const std::vector<QuadInstance> &opaque,
+            const std::vector<QuadInstance> &translucent,
             std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> &texutredData);
 
         void cleanup() override;
@@ -46,7 +47,8 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         static constexpr size_t m_texArraySize = 32;
 
         BufferSet m_buffers;
-        std::vector<QuadInstance> m_pendingQuadInstances;
+        std::vector<QuadInstance> m_opaqueInstances;
+        std::vector<QuadInstance> m_translucentInstances;
         std::vector<VkDescriptorSet> m_textureArraySets;
         VkDescriptorPool m_textureArrayDescriptorPool = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_textureArrayLayout = VK_NULL_HANDLE;
