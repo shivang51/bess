@@ -17,11 +17,17 @@ namespace Bess::Renderer2D {
     void VulkanRenderer::beginScene(const std::shared_ptr<Camera> &camera) {
         m_camera = camera;
         auto primitiveRenderer = VulkanCore::instance().getPrimitiveRenderer().lock();
+        auto pathRenderer = VulkanCore::instance().getPathRenderer().lock();
 
         Vulkan::UniformBufferObject ubo{};
         ubo.mvp = m_camera->getTransform();
         ubo.ortho = m_camera->getOrtho();
         primitiveRenderer->updateUBO(ubo);
+        
+        // Update path renderer uniform buffer as well
+        if (pathRenderer) {
+            pathRenderer->updateUniformBuffer(ubo);
+        }
     }
 
     void VulkanRenderer::end() {
