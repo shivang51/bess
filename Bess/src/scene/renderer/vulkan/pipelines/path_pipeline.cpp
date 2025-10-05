@@ -1,0 +1,563 @@
+#include "scene/renderer/vulkan/pipelines/path_pipeline.h"
+#include "scene/renderer/vulkan/device.h"
+#include "scene/renderer/vulkan/vulkan_offscreen_render_pass.h"
+#include "common/log.h"
+#include <array>
+#include <cstring>
+
+namespace Bess::Renderer2D::Vulkan::Pipelines {
+
+    constexpr size_t maxFrames = 2;
+
+    PathPipeline::PathPipeline(const std::shared_ptr<VulkanDevice> &device,
+                               const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
+                               VkExtent2D extent)
+        : Pipeline(device, renderPass, extent) {
+        createZoomUniformBuffers();
+        createVertexBuffer();
+        createIndexBuffer();
+        createUniformBuffers();
+        createDescriptorSetLayout();
+        createDescriptorPool();
+        createDescriptorSets();
+        createGraphicsPipeline();
+    }
+
+    PathPipeline::~PathPipeline() {
+        cleanup();
+    }
+
+    PathPipeline::PathPipeline(PathPipeline &&other) noexcept
+        : Pipeline(std::move(other)),
+          m_strokeVertices(std::move(other.m_strokeVertices)),
+          m_fillVertices(std::move(other.m_fillVertices)),
+          m_strokeIndices(std::move(other.m_strokeIndices)),
+          m_fillIndices(std::move(other.m_fillIndices)),
+          m_vertexBuffers(std::move(other.m_vertexBuffers)),
+          m_vertexBufferMemory(std::move(other.m_vertexBufferMemory)),
+          m_indexBuffers(std::move(other.m_indexBuffers)),
+          m_indexBufferMemory(std::move(other.m_indexBufferMemory)),
+          m_currentVertexCapacity(other.m_currentVertexCapacity),
+          m_currentIndexCapacity(other.m_currentIndexCapacity),
+          m_zoomUniformBuffers(std::move(other.m_zoomUniformBuffers)),
+          m_zoomUniformBufferMemory(std::move(other.m_zoomUniformBufferMemory)) {
+        other.m_vertexBuffers.clear();
+        other.m_vertexBufferMemory.clear();
+        other.m_indexBuffers.clear();
+        other.m_indexBufferMemory.clear();
+        other.m_zoomUniformBuffers.clear();
+        other.m_zoomUniformBufferMemory.clear();
+        other.m_currentVertexCapacity = 0;
+        other.m_currentIndexCapacity = 0;
+    }
+
+    PathPipeline &PathPipeline::operator=(PathPipeline &&other) noexcept {
+        if (this != &other) {
+            cleanup();
+            Pipeline::operator=(std::move(other));
+            m_strokeVertices = std::move(other.m_strokeVertices);
+            m_fillVertices = std::move(other.m_fillVertices);
+            m_strokeIndices = std::move(other.m_strokeIndices);
+            m_fillIndices = std::move(other.m_fillIndices);
+            m_vertexBuffers = std::move(other.m_vertexBuffers);
+            m_vertexBufferMemory = std::move(other.m_vertexBufferMemory);
+            m_indexBuffers = std::move(other.m_indexBuffers);
+            m_indexBufferMemory = std::move(other.m_indexBufferMemory);
+            m_currentVertexCapacity = other.m_currentVertexCapacity;
+            m_currentIndexCapacity = other.m_currentIndexCapacity;
+            m_zoomUniformBuffers = std::move(other.m_zoomUniformBuffers);
+            m_zoomUniformBufferMemory = std::move(other.m_zoomUniformBufferMemory);
+
+            other.m_vertexBuffers.clear();
+            other.m_vertexBufferMemory.clear();
+            other.m_indexBuffers.clear();
+            other.m_indexBufferMemory.clear();
+            other.m_zoomUniformBuffers.clear();
+            other.m_zoomUniformBufferMemory.clear();
+            other.m_currentVertexCapacity = 0;
+            other.m_currentIndexCapacity = 0;
+        }
+        return *this;
+    }
+
+    void PathPipeline::beginPipeline(VkCommandBuffer commandBuffer) {
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1,
+                                &m_descriptorSets[m_currentFrameIndex], 0, nullptr);
+    }
+
+    void PathPipeline::endPipeline() {
+        // Render stroke vertices if any
+        if (!m_strokeVertices.empty() && !m_strokeIndices.empty()) {
+            std::array<VkBuffer, 1> vertexBuffers = {m_vertexBuffers[m_currentFrameIndex]};
+            std::array<VkDeviceSize, 1> offsets = {0};
+            vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 1, vertexBuffers.data(), offsets.data());
+            vkCmdBindIndexBuffer(m_currentCommandBuffer, m_indexBuffers[m_currentFrameIndex], 0, VK_INDEX_TYPE_UINT32);
+            vkCmdDrawIndexed(m_currentCommandBuffer, static_cast<uint32_t>(m_strokeIndices.size()), 1, 0, 0, 0);
+        }
+
+        // Render fill vertices if any
+        if (!m_fillVertices.empty() && !m_fillIndices.empty()) {
+            // For fill, we need to update the vertex buffer with fill data
+            // This is a simplified approach - in a real implementation, you might want separate buffers
+            std::array<VkBuffer, 1> vertexBuffers = {m_vertexBuffers[m_currentFrameIndex]};
+            std::array<VkDeviceSize, 1> offsets = {0};
+            vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 1, vertexBuffers.data(), offsets.data());
+            vkCmdBindIndexBuffer(m_currentCommandBuffer, m_indexBuffers[m_currentFrameIndex], 0, VK_INDEX_TYPE_UINT32);
+            vkCmdDrawIndexed(m_currentCommandBuffer, static_cast<uint32_t>(m_fillIndices.size()), 1, 0, 0, 0);
+        }
+    }
+
+    void PathPipeline::setPathData(const std::vector<CommonVertex> &strokeVertices, const std::vector<uint32_t> &strokeIndices,
+                                   const std::vector<CommonVertex> &fillVertices, const std::vector<uint32_t> &fillIndices) {
+        m_strokeVertices = strokeVertices;
+        m_strokeIndices = strokeIndices;
+        m_fillVertices = fillVertices;
+        m_fillIndices = fillIndices;
+
+        // Ensure buffers are large enough
+        size_t maxVertexCount = std::max(strokeVertices.size(), fillVertices.size());
+        size_t maxIndexCount = std::max(strokeIndices.size(), fillIndices.size());
+        ensurePathCapacity(maxVertexCount, maxIndexCount);
+
+        // Update vertex buffer with current data (prioritize stroke for now)
+        if (!m_strokeVertices.empty()) {
+            void *data = nullptr;
+            vkMapMemory(m_device->device(), m_vertexBufferMemory[m_currentFrameIndex], 0,
+                        m_strokeVertices.size() * sizeof(CommonVertex), 0, &data);
+            memcpy(data, m_strokeVertices.data(), m_strokeVertices.size() * sizeof(CommonVertex));
+            vkUnmapMemory(m_device->device(), m_vertexBufferMemory[m_currentFrameIndex]);
+        }
+
+        // Update index buffer with current data
+        if (!m_strokeIndices.empty()) {
+            void *data = nullptr;
+            vkMapMemory(m_device->device(), m_indexBufferMemory[m_currentFrameIndex], 0,
+                        m_strokeIndices.size() * sizeof(uint32_t), 0, &data);
+            memcpy(data, m_strokeIndices.data(), m_strokeIndices.size() * sizeof(uint32_t));
+            vkUnmapMemory(m_device->device(), m_indexBufferMemory[m_currentFrameIndex]);
+        }
+    }
+
+    void PathPipeline::updateUniformBuffer(const UniformBufferObject &ubo) {
+        Pipeline::updateUniformBuffer(ubo);
+    }
+
+    void PathPipeline::cleanup() {
+        // Clean up zoom uniform buffers
+        for (size_t i = 0; i < m_zoomUniformBuffers.size(); i++) {
+            if (m_zoomUniformBuffers[i] != VK_NULL_HANDLE) {
+                vkDestroyBuffer(m_device->device(), m_zoomUniformBuffers[i], nullptr);
+            }
+            if (m_zoomUniformBufferMemory[i] != VK_NULL_HANDLE) {
+                vkFreeMemory(m_device->device(), m_zoomUniformBufferMemory[i], nullptr);
+            }
+        }
+
+        // Clean up vertex buffers
+        for (size_t i = 0; i < m_vertexBuffers.size(); i++) {
+            if (m_vertexBuffers[i] != VK_NULL_HANDLE) {
+                vkDestroyBuffer(m_device->device(), m_vertexBuffers[i], nullptr);
+            }
+            if (m_vertexBufferMemory[i] != VK_NULL_HANDLE) {
+                vkFreeMemory(m_device->device(), m_vertexBufferMemory[i], nullptr);
+            }
+        }
+
+        // Clean up index buffers
+        for (size_t i = 0; i < m_indexBuffers.size(); i++) {
+            if (m_indexBuffers[i] != VK_NULL_HANDLE) {
+                vkDestroyBuffer(m_device->device(), m_indexBuffers[i], nullptr);
+            }
+            if (m_indexBufferMemory[i] != VK_NULL_HANDLE) {
+                vkFreeMemory(m_device->device(), m_indexBufferMemory[i], nullptr);
+            }
+        }
+
+        // Clean up base pipeline resources
+        if (m_pipeline != VK_NULL_HANDLE) {
+            vkDestroyPipeline(m_device->device(), m_pipeline, nullptr);
+            m_pipeline = VK_NULL_HANDLE;
+        }
+        if (m_pipelineLayout != VK_NULL_HANDLE) {
+            vkDestroyPipelineLayout(m_device->device(), m_pipelineLayout, nullptr);
+            m_pipelineLayout = VK_NULL_HANDLE;
+        }
+        if (m_descriptorSetLayout != VK_NULL_HANDLE) {
+            vkDestroyDescriptorSetLayout(m_device->device(), m_descriptorSetLayout, nullptr);
+            m_descriptorSetLayout = VK_NULL_HANDLE;
+        }
+        if (m_descriptorPool != VK_NULL_HANDLE) {
+            vkDestroyDescriptorPool(m_device->device(), m_descriptorPool, nullptr);
+            m_descriptorPool = VK_NULL_HANDLE;
+        }
+        for (size_t i = 0; i < m_uniformBuffers.size(); i++) {
+            if (m_uniformBuffers[i] != VK_NULL_HANDLE) {
+                vkDestroyBuffer(m_device->device(), m_uniformBuffers[i], nullptr);
+            }
+            if (m_uniformBufferMemory[i] != VK_NULL_HANDLE) {
+                vkFreeMemory(m_device->device(), m_uniformBufferMemory[i], nullptr);
+            }
+        }
+    }
+
+    void PathPipeline::createGraphicsPipeline() {
+        auto vertShaderCode = readFile("assets/shaders/common.vert.spv");
+        auto fragShaderCode = readFile("assets/shaders/path.frag.spv");
+
+        VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
+        VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+
+        VkPipelineShaderStageCreateInfo vert{};
+        vert.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vert.stage = VK_SHADER_STAGE_VERTEX_BIT;
+        vert.module = vertShaderModule;
+        vert.pName = "main";
+
+        VkPipelineShaderStageCreateInfo frag{};
+        frag.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        frag.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        frag.module = fragShaderModule;
+        frag.pName = "main";
+
+        m_shaderStages = {vert, frag};
+
+        auto bindingDescription = CommonVertex::getBindingDescription();
+        auto attributeDescriptions = CommonVertex::getAttributeDescriptions();
+
+        VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+        vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        vertexInputInfo.vertexBindingDescriptionCount = 1;
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+        vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+        vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+
+        VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+        inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+        inputAssembly.primitiveRestartEnable = VK_TRUE;
+
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = (float)m_extent.width;
+        viewport.height = (float)m_extent.height;
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+
+        VkRect2D scissor{};
+        scissor.offset = {0, 0};
+        scissor.extent = m_extent;
+
+        VkPipelineViewportStateCreateInfo viewportState{};
+        viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        viewportState.viewportCount = 1;
+        viewportState.pViewports = &viewport;
+        viewportState.scissorCount = 1;
+        viewportState.pScissors = &scissor;
+
+        VkPipelineRasterizationStateCreateInfo rasterizer{};
+        rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        rasterizer.depthClampEnable = VK_FALSE;
+        rasterizer.rasterizerDiscardEnable = VK_FALSE;
+        rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+        rasterizer.lineWidth = 1.0f;
+        rasterizer.cullMode = VK_CULL_MODE_NONE;
+        rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        rasterizer.depthBiasEnable = VK_FALSE;
+
+        VkPipelineMultisampleStateCreateInfo multisampling{};
+        multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        multisampling.sampleShadingEnable = VK_FALSE;
+        multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+        VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                                              VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        colorBlendAttachment.blendEnable = VK_TRUE;
+        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+        colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+        VkPipelineColorBlendAttachmentState pickingBlendAttachment{};
+        pickingBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                                                VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        pickingBlendAttachment.blendEnable = VK_FALSE;
+
+        std::array<VkPipelineColorBlendAttachmentState, 2> colorBlendAttachments = {colorBlendAttachment, pickingBlendAttachment};
+
+        VkPipelineColorBlendStateCreateInfo colorBlending{};
+        colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        colorBlending.logicOpEnable = VK_FALSE;
+        colorBlending.logicOp = VK_LOGIC_OP_COPY;
+        colorBlending.attachmentCount = static_cast<uint32_t>(colorBlendAttachments.size());
+        colorBlending.pAttachments = colorBlendAttachments.data();
+        colorBlending.blendConstants[0] = 0.0f;
+        colorBlending.blendConstants[1] = 0.0f;
+        colorBlending.blendConstants[2] = 0.0f;
+        colorBlending.blendConstants[3] = 0.0f;
+
+        VkPipelineDepthStencilStateCreateInfo depthStencil{};
+        depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+        depthStencil.depthTestEnable = VK_TRUE;
+        depthStencil.depthWriteEnable = VK_TRUE;
+        depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+        depthStencil.depthBoundsTestEnable = VK_FALSE;
+        depthStencil.stencilTestEnable = VK_FALSE;
+
+        VkGraphicsPipelineCreateInfo pipelineInfo{};
+        pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipelineInfo.stageCount = 2;
+        pipelineInfo.pStages = m_shaderStages.data();
+        pipelineInfo.pVertexInputState = &vertexInputInfo;
+        pipelineInfo.pInputAssemblyState = &inputAssembly;
+        pipelineInfo.pViewportState = &viewportState;
+        pipelineInfo.pRasterizationState = &rasterizer;
+        pipelineInfo.pMultisampleState = &multisampling;
+        pipelineInfo.pColorBlendState = &colorBlending;
+        pipelineInfo.pDepthStencilState = &depthStencil;
+        pipelineInfo.layout = m_pipelineLayout;
+        pipelineInfo.renderPass = m_renderPass->getVkHandle();
+        pipelineInfo.subpass = 0;
+        pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+        if (vkCreateGraphicsPipelines(m_device->device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create path graphics pipeline!");
+        }
+
+        vkDestroyShaderModule(m_device->device(), fragShaderModule, nullptr);
+        vkDestroyShaderModule(m_device->device(), vertShaderModule, nullptr);
+    }
+
+    void PathPipeline::createVertexBuffer() {
+        m_vertexBuffers.resize(maxFrames);
+        m_vertexBufferMemory.resize(maxFrames);
+
+        for (size_t i = 0; i < maxFrames; i++) {
+            VkBufferCreateInfo bufferInfo{};
+            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            bufferInfo.size = sizeof(CommonVertex) * 1000; // Initial capacity
+            bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+            bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+            if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr, &m_vertexBuffers[i]) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create path vertex buffer!");
+            }
+
+            VkMemoryRequirements memRequirements;
+            vkGetBufferMemoryRequirements(m_device->device(), m_vertexBuffers[i], &memRequirements);
+
+            VkMemoryAllocateInfo allocInfo{};
+            allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+            allocInfo.allocationSize = memRequirements.size;
+            allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+            if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr, &m_vertexBufferMemory[i]) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to allocate path vertex buffer memory!");
+            }
+
+            vkBindBufferMemory(m_device->device(), m_vertexBuffers[i], m_vertexBufferMemory[i], 0);
+        }
+
+        m_currentVertexCapacity = 1000;
+    }
+
+    void PathPipeline::createIndexBuffer() {
+        m_indexBuffers.resize(maxFrames);
+        m_indexBufferMemory.resize(maxFrames);
+
+        for (size_t i = 0; i < maxFrames; i++) {
+            VkBufferCreateInfo bufferInfo{};
+            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            bufferInfo.size = sizeof(uint32_t) * 2000; // Initial capacity
+            bufferInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+            bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+            if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr, &m_indexBuffers[i]) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create path index buffer!");
+            }
+
+            VkMemoryRequirements memRequirements;
+            vkGetBufferMemoryRequirements(m_device->device(), m_indexBuffers[i], &memRequirements);
+
+            VkMemoryAllocateInfo allocInfo{};
+            allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+            allocInfo.allocationSize = memRequirements.size;
+            allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+            if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr, &m_indexBufferMemory[i]) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to allocate path index buffer memory!");
+            }
+
+            vkBindBufferMemory(m_device->device(), m_indexBuffers[i], m_indexBufferMemory[i], 0);
+        }
+
+        m_currentIndexCapacity = 2000;
+    }
+
+    void PathPipeline::createUniformBuffers() {
+        Pipeline::createUniformBuffers();
+    }
+
+    void PathPipeline::createDescriptorSetLayout() {
+        VkDescriptorSetLayoutBinding uboLayoutBinding{};
+        uboLayoutBinding.binding = 0;
+        uboLayoutBinding.descriptorCount = 1;
+        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        uboLayoutBinding.pImmutableSamplers = nullptr;
+        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+        VkDescriptorSetLayoutBinding zoomLayoutBinding{};
+        zoomLayoutBinding.binding = 1;
+        zoomLayoutBinding.descriptorCount = 1;
+        zoomLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        zoomLayoutBinding.pImmutableSamplers = nullptr;
+        zoomLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, zoomLayoutBinding};
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+        layoutInfo.pBindings = bindings.data();
+
+        if (vkCreateDescriptorSetLayout(m_device->device(), &layoutInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create path descriptor set layout!");
+        }
+    }
+
+    void PathPipeline::createDescriptorPool() {
+        std::array<VkDescriptorPoolSize, 1> poolSizes{};
+        poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSizes[0].descriptorCount = 4; // 2 for UBO + 2 for zoom
+
+        VkDescriptorPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+        poolInfo.pPoolSizes = poolSizes.data();
+        poolInfo.maxSets = maxFrames;
+
+        if (vkCreateDescriptorPool(m_device->device(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create path descriptor pool!");
+        }
+    }
+
+    void PathPipeline::createDescriptorSets() {
+        if (m_uniformBuffers.empty()) {
+            return;
+        }
+
+        m_descriptorSets.resize(maxFrames);
+
+        std::vector<VkDescriptorSetLayout> layouts(maxFrames, m_descriptorSetLayout);
+
+        VkDescriptorSetAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = m_descriptorPool;
+        allocInfo.descriptorSetCount = maxFrames;
+        allocInfo.pSetLayouts = layouts.data();
+
+        if (vkAllocateDescriptorSets(m_device->device(), &allocInfo, m_descriptorSets.data()) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate path descriptor sets!");
+        }
+
+        for (size_t i = 0; i < maxFrames; i++) {
+            // UBO binding (0)
+            VkDescriptorBufferInfo uboBufferInfo{};
+            uboBufferInfo.buffer = m_uniformBuffers[0];
+            uboBufferInfo.offset = 0;
+            uboBufferInfo.range = sizeof(UniformBufferObject);
+
+            VkWriteDescriptorSet uboDescriptorWrite{};
+            uboDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            uboDescriptorWrite.dstSet = m_descriptorSets[i];
+            uboDescriptorWrite.dstBinding = 0;
+            uboDescriptorWrite.dstArrayElement = 0;
+            uboDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            uboDescriptorWrite.descriptorCount = 1;
+            uboDescriptorWrite.pBufferInfo = &uboBufferInfo;
+
+            // Zoom uniform binding (1)
+            VkDescriptorBufferInfo zoomBufferInfo{};
+            zoomBufferInfo.buffer = m_zoomUniformBuffers[i];
+            zoomBufferInfo.offset = 0;
+            zoomBufferInfo.range = sizeof(float);
+
+            VkWriteDescriptorSet zoomDescriptorWrite{};
+            zoomDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            zoomDescriptorWrite.dstSet = m_descriptorSets[i];
+            zoomDescriptorWrite.dstBinding = 1;
+            zoomDescriptorWrite.dstArrayElement = 0;
+            zoomDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            zoomDescriptorWrite.descriptorCount = 1;
+            zoomDescriptorWrite.pBufferInfo = &zoomBufferInfo;
+
+        std::array<VkWriteDescriptorSet, 2> descriptorWrites = {uboDescriptorWrite, zoomDescriptorWrite};
+        vkUpdateDescriptorSets(m_device->device(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+        }
+    }
+
+    void PathPipeline::ensurePathBuffers() {
+        // This method can be used to ensure buffers are ready
+    }
+
+    void PathPipeline::ensurePathCapacity(size_t vertexCount, size_t indexCount) {
+        // Resize buffers if needed
+        if (vertexCount > m_currentVertexCapacity) {
+            // In a real implementation, you would recreate the buffers here
+            // For now, we'll just log a warning
+            BESS_WARN("Path vertex capacity exceeded: {} > {}", vertexCount, m_currentVertexCapacity);
+        }
+
+        if (indexCount > m_currentIndexCapacity) {
+            // In a real implementation, you would recreate the buffers here
+            // For now, we'll just log a warning
+            BESS_WARN("Path index capacity exceeded: {} > {}", indexCount, m_currentIndexCapacity);
+        }
+    }
+
+    void PathPipeline::createZoomUniformBuffers() {
+        m_zoomUniformBuffers.resize(maxFrames);
+        m_zoomUniformBufferMemory.resize(maxFrames);
+
+        for (size_t i = 0; i < maxFrames; i++) {
+            VkBufferCreateInfo bufferInfo{};
+            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            bufferInfo.size = sizeof(float);
+            bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+            bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+            if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr, &m_zoomUniformBuffers[i]) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create zoom uniform buffer!");
+            }
+
+            VkMemoryRequirements memRequirements;
+            vkGetBufferMemoryRequirements(m_device->device(), m_zoomUniformBuffers[i], &memRequirements);
+
+            VkMemoryAllocateInfo allocInfo{};
+            allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+            allocInfo.allocationSize = memRequirements.size;
+            allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+            if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr, &m_zoomUniformBufferMemory[i]) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to allocate zoom uniform buffer memory!");
+            }
+
+            vkBindBufferMemory(m_device->device(), m_zoomUniformBuffers[i], m_zoomUniformBufferMemory[i], 0);
+        }
+    }
+
+    void PathPipeline::updateZoomUniformBuffer(float zoom) {
+        if (m_zoomUniformBufferMemory.empty() || m_currentFrameIndex >= m_zoomUniformBufferMemory.size()) {
+            return;
+        }
+
+        void *data = nullptr;
+        vkMapMemory(m_device->device(), m_zoomUniformBufferMemory[m_currentFrameIndex], 0, sizeof(float), 0, &data);
+        memcpy(data, &zoom, sizeof(float));
+        vkUnmapMemory(m_device->device(), m_zoomUniformBufferMemory[m_currentFrameIndex]);
+    }
+
+} // namespace Bess::Renderer2D::Vulkan::Pipelines

@@ -116,4 +116,57 @@ namespace Bess::Renderer2D::Vulkan {
         float _pad2;            // pad to 16 (multiple of 16)
     };
 
+    // Common vertex structure for path rendering
+    struct CommonVertex {
+        glm::vec3 position;     // location 0
+        glm::vec4 color;        // location 1
+        glm::vec2 texCoord;     // location 2
+        int id;                 // location 3
+        int texSlotIdx;         // location 4
+
+        static VkVertexInputBindingDescription getBindingDescription() {
+            VkVertexInputBindingDescription bindingDescription{};
+            bindingDescription.binding = 0;
+            bindingDescription.stride = sizeof(CommonVertex);
+            bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+            return bindingDescription;
+        }
+
+        static std::array<VkVertexInputAttributeDescription, 5> getAttributeDescriptions() {
+            std::array<VkVertexInputAttributeDescription, 5> attributeDescriptions{};
+
+            // Position
+            attributeDescriptions[0].binding = 0;
+            attributeDescriptions[0].location = 0;
+            attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+            attributeDescriptions[0].offset = offsetof(CommonVertex, position);
+
+            // Color
+            attributeDescriptions[1].binding = 0;
+            attributeDescriptions[1].location = 1;
+            attributeDescriptions[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+            attributeDescriptions[1].offset = offsetof(CommonVertex, color);
+
+            // TexCoord
+            attributeDescriptions[2].binding = 0;
+            attributeDescriptions[2].location = 2;
+            attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+            attributeDescriptions[2].offset = offsetof(CommonVertex, texCoord);
+
+            // ID
+            attributeDescriptions[3].binding = 0;
+            attributeDescriptions[3].location = 3;
+            attributeDescriptions[3].format = VK_FORMAT_R32_SINT;
+            attributeDescriptions[3].offset = offsetof(CommonVertex, id);
+
+            // TexSlotIdx
+            attributeDescriptions[4].binding = 0;
+            attributeDescriptions[4].location = 4;
+            attributeDescriptions[4].format = VK_FORMAT_R32_SINT;
+            attributeDescriptions[4].offset = offsetof(CommonVertex, texSlotIdx);
+
+            return attributeDescriptions;
+        }
+    };
+
 } // namespace Bess::Renderer2D::Vulkan
