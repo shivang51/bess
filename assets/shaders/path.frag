@@ -19,21 +19,10 @@ void main() {
 
     float smoothBlur = fwidth(length(uv.y));
 
-    // float dashAlpha =  1.f;
-    // if(false){
-    // 	float dashPattern = fract(v_TexCoord.x * 10.0);
-    // 	dashAlpha = smoothstep(0.5, 0.5 - fwidth(dashPattern), dashPattern);
-    // }
-
     float alpha = smoothstep(0.5 + smoothBlur, 0.5 - smoothBlur, abs(uv.y));
-    // alpha = min(alpha, dashAlpha);
 
     if (alpha == 0) discard;
-
-    col.w = min(col.w, alpha);
-
-    // Premultiply RGB by alpha for proper blending
-    col.rgb *= col.a;
+    col *= alpha;
 
     fragColor = col;
     fragColor1 = v_FragId;

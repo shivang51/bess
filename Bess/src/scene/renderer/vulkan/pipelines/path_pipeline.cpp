@@ -1,7 +1,7 @@
 #include "scene/renderer/vulkan/pipelines/path_pipeline.h"
+#include "common/log.h"
 #include "scene/renderer/vulkan/device.h"
 #include "scene/renderer/vulkan/vulkan_offscreen_render_pass.h"
-#include "common/log.h"
 #include <array>
 #include <cstring>
 
@@ -502,8 +502,8 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             zoomDescriptorWrite.descriptorCount = 1;
             zoomDescriptorWrite.pBufferInfo = &zoomBufferInfo;
 
-        std::array<VkWriteDescriptorSet, 2> descriptorWrites = {uboDescriptorWrite, zoomDescriptorWrite};
-        vkUpdateDescriptorSets(m_device->device(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+            std::array<VkWriteDescriptorSet, 2> descriptorWrites = {uboDescriptorWrite, zoomDescriptorWrite};
+            vkUpdateDescriptorSets(m_device->device(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }
     }
 

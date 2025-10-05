@@ -57,9 +57,7 @@ namespace Bess::Renderer2D::Vulkan {
                                float weight, const glm::vec4 &color, int id);
         void pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, int id);
 
-        // Buffer management
         void updateUniformBuffer(const UniformBufferObject &ubo);
-        void updateZoomUniformBuffer(float zoom);
 
       private:
         std::shared_ptr<VulkanDevice> m_device;
@@ -76,7 +74,7 @@ namespace Bess::Renderer2D::Vulkan {
 
         // Path generation functions (from old GL renderer)
         std::vector<CommonVertex> generateStrokeGeometry(const std::vector<PathPoint> &points,
-                                                         const glm::vec4 &color, float miterLimit, bool isClosed);
+                                                         const glm::vec4 &color, bool isClosed);
         std::vector<CommonVertex> generateFillGeometry(const std::vector<PathPoint> &points, const glm::vec4 &color);
         QuadBezierCurvePoints generateSmoothBendPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius);
         int calculateQuadBezierSegments(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2);
