@@ -60,7 +60,7 @@ namespace Bess::Renderer2D {
         void renderUi();
         void endFrame();
 
-        void cleanup();
+        void cleanup(const std::function<void()> &preCmdBufferCleanup = []() {});
 
         std::shared_ptr<Vulkan::VulkanRenderPass> getRenderPass() const {
             return m_renderPass;

@@ -276,13 +276,11 @@ namespace Bess::Renderer2D {
         m_swapchain->createFramebuffers(m_renderPass->getVkHandle());
     }
 
-    void VulkanCore::cleanup() {
+    void VulkanCore::cleanup(const std::function<void()> &preCmdBufferCleanup) {
+        BESS_INFO("[VulkanCore] Shutting down");
         if (!m_device || m_device->device() == VK_NULL_HANDLE)
             return;
         vkDeviceWaitIdle(m_device->device());
-
-        // Ensure external holders release references before destroying device
-        VulkanRenderer::shutdown();
 
         if (m_device && m_device->device() != VK_NULL_HANDLE) {
 
@@ -317,7 +315,7 @@ namespace Bess::Renderer2D {
         m_offscreenRenderPass.reset();
         m_swapchain.reset();
         m_renderPass.reset();
-        UI::vulkanCleanup(m_device);
+        preCmdBufferCleanup();
         Vulkan::VulkanCommandBuffer::cleanCommandBuffers(m_device);
         m_device.reset();
 

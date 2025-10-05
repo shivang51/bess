@@ -1,4 +1,5 @@
 #include "pages/main_page/main_page.h"
+#include "asset_manager/asset_manager.h"
 #include "events/application_event.h"
 #include "pages/page_identifier.h"
 #include "scene/renderer/vulkan/vulkan_core.h"
@@ -6,6 +7,7 @@
 #include "scene/scene.h"
 #include "simulation_engine.h"
 #include "types.h"
+#include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
 #include <memory>
 
@@ -46,6 +48,21 @@ namespace Bess::Pages {
         UI::UIMain::setViewportTexture(m_scene->getTextureId());
     }
 
+    MainPage::~MainPage() {
+        destory();
+    }
+
+    void MainPage::destory() {
+        BESS_INFO("[MainPage] Destroying");
+        Assets::AssetManager::instance().clear();
+        auto &instance = Renderer2D::VulkanCore::instance();
+        instance.cleanup([&]() {
+            m_scene->destroy();
+            UI::vulkanCleanup(instance.getDevice());
+        });
+        BESS_INFO("[MainPage] Destroyed");
+    }
+
     void MainPage::draw() {
         m_scene->render();
 
@@ -83,5 +100,4 @@ namespace Bess::Pages {
     std::shared_ptr<Canvas::Scene> MainPage::getScene() const {
         return m_scene;
     }
-
 } // namespace Bess::Pages

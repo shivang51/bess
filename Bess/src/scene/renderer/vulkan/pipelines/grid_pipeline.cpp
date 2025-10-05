@@ -225,8 +225,8 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     }
 
     void GridPipeline::createGraphicsPipeline() {
-        auto vertShaderCode = readFile("assets/shaders/grid_vert.spv");
-        auto fragShaderCode = readFile("assets/shaders/grid_line_frag.spv");
+        auto vertShaderCode = readFile("assets/shaders/grid.vert.spv");
+        auto fragShaderCode = readFile("assets/shaders/grid_line.frag.spv");
 
         VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
         VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);

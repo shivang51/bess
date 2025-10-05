@@ -46,6 +46,8 @@ namespace Bess::Canvas {
       public:
         static std::shared_ptr<Scene> instance();
 
+        void destroy();
+
         void reset();
         void clear();
         void render();
@@ -183,9 +185,6 @@ namespace Bess::Canvas {
             }
         };
         std::vector<CopiedComponent> m_copiedComponents = {};
-
-        // OpenGL textures removed for Vulkan migration
-        // TODO: Implement Vulkan textures
 
         SimEngine::Commands::CommandsManager m_cmdManager;
 

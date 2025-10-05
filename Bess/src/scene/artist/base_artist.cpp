@@ -233,4 +233,8 @@ namespace Bess::Canvas {
         const int n = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
         return n == 1;
     }
+
+    void BaseArtist::destroyTools() {
+        m_artistTools = {};
+    }
 } // namespace Bess::Canvas

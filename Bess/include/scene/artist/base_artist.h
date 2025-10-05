@@ -30,6 +30,7 @@ namespace Bess::Canvas {
         explicit BaseArtist(std::shared_ptr<Scene> scene);
         virtual ~BaseArtist() = default;
 
+        static void destroyTools();
         static void init();
 
         static glm::vec2 calcCompSize(entt::entity ent,

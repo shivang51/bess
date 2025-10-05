@@ -43,7 +43,14 @@ namespace Bess::Canvas {
         reset();
     }
 
-    Scene::~Scene() {}
+    Scene::~Scene() {
+        destroy();
+    }
+
+    void Scene::destroy() {
+        BESS_INFO("[Scene] Destroying");
+        m_artistManager->destroy();
+    }
 
     std::shared_ptr<Scene> Scene::instance() {
         static std::shared_ptr<Scene> m_instance = std::make_shared<Scene>();

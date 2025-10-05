@@ -15,6 +15,7 @@ namespace Bess::Pages {
     class MainPage : public Page {
       public:
         MainPage(std::shared_ptr<Window> parentWindow);
+        ~MainPage() override;
 
         static std::shared_ptr<Page> getInstance(const std::shared_ptr<Window> &parentWindow = nullptr);
 
@@ -26,6 +27,8 @@ namespace Bess::Pages {
 
         std::shared_ptr<Window> getParentWindow();
         std::shared_ptr<Canvas::Scene> getScene() const;
+
+        void destory();
 
       private:
         std::shared_ptr<Window> m_parentWindow;

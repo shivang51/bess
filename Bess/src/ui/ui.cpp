@@ -100,12 +100,14 @@ namespace Bess::UI {
     }
 
     void shutdown() {
+        BESS_INFO("[UI] Destroying");
         ImGui_ImplGlfw_Shutdown();
         ImPlot::DestroyContext();
         ImGui::DestroyContext();
     }
 
     void vulkanCleanup(std::shared_ptr<Renderer2D::Vulkan::VulkanDevice> device) {
+        BESS_INFO("[UI] Destroying VK Context");
         ImGui_ImplVulkan_Shutdown();
         vkDestroyDescriptorPool(device->device(), s_uiDescriptorPool, nullptr);
     }

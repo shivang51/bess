@@ -183,8 +183,8 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     }
 
     void QuadPipeline::createGraphicsPipeline() {
-        auto vertShaderCode = readFile("assets/shaders/quad_vert.spv");
-        auto fragShaderCode = readFile("assets/shaders/quad_frag.spv");
+        auto vertShaderCode = readFile("assets/shaders/quad.vert.spv");
+        auto fragShaderCode = readFile("assets/shaders/quad.frag.spv");
 
         VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
         VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);

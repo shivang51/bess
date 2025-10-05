@@ -24,4 +24,7 @@ namespace Bess {
         m_parentWindow->close();
     }
 
+    void ApplicationState::clear() {
+        m_currentPage.reset();
+    }
 } // namespace Bess
