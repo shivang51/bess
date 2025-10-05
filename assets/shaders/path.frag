@@ -32,6 +32,9 @@ void main() {
 
     col.w = min(col.w, alpha);
 
+    // Premultiply RGB by alpha for proper blending
+    col.rgb *= col.a;
+
     fragColor = col;
     fragColor1 = v_FragId;
 }

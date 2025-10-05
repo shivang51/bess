@@ -65,6 +65,9 @@ void main() {
 
     if (color.a < 0.001) discard;
 
+    // Premultiply RGB by alpha for proper blending
+    color.rgb *= color.a;
+
     fragColor = color;
     pickingId = v_FragId;
 }

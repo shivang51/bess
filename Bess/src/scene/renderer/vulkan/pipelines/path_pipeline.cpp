@@ -81,6 +81,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     }
 
     void PathPipeline::beginPipeline(VkCommandBuffer commandBuffer) {
+        m_currentCommandBuffer = commandBuffer;
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1,
                                 &m_descriptorSets[m_currentFrameIndex], 0, nullptr);
@@ -96,16 +97,11 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             vkCmdDrawIndexed(m_currentCommandBuffer, static_cast<uint32_t>(m_strokeIndices.size()), 1, 0, 0, 0);
         }
 
-        // Render fill vertices if any
-        if (!m_fillVertices.empty() && !m_fillIndices.empty()) {
-            // For fill, we need to update the vertex buffer with fill data
-            // This is a simplified approach - in a real implementation, you might want separate buffers
-            std::array<VkBuffer, 1> vertexBuffers = {m_vertexBuffers[m_currentFrameIndex]};
-            std::array<VkDeviceSize, 1> offsets = {0};
-            vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 1, vertexBuffers.data(), offsets.data());
-            vkCmdBindIndexBuffer(m_currentCommandBuffer, m_indexBuffers[m_currentFrameIndex], 0, VK_INDEX_TYPE_UINT32);
-            vkCmdDrawIndexed(m_currentCommandBuffer, static_cast<uint32_t>(m_fillIndices.size()), 1, 0, 0, 0);
-        }
+        // Note: Fill rendering would require separate buffers or a more complex approach
+        // For now, we only render stroke data
+
+        // Clear the command buffer reference
+        m_currentCommandBuffer = VK_NULL_HANDLE;
     }
 
     void PathPipeline::setPathData(const std::vector<CommonVertex> &strokeVertices, const std::vector<uint32_t> &strokeIndices,
@@ -123,18 +119,18 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         // Update vertex buffer with current data (prioritize stroke for now)
         if (!m_strokeVertices.empty()) {
             void *data = nullptr;
-            vkMapMemory(m_device->device(), m_vertexBufferMemory[m_currentFrameIndex], 0,
-                        m_strokeVertices.size() * sizeof(CommonVertex), 0, &data);
-            memcpy(data, m_strokeVertices.data(), m_strokeVertices.size() * sizeof(CommonVertex));
+            VkDeviceSize bufferSize = m_strokeVertices.size() * sizeof(CommonVertex);
+            vkMapMemory(m_device->device(), m_vertexBufferMemory[m_currentFrameIndex], 0, bufferSize, 0, &data);
+            memcpy(data, m_strokeVertices.data(), bufferSize);
             vkUnmapMemory(m_device->device(), m_vertexBufferMemory[m_currentFrameIndex]);
         }
 
         // Update index buffer with current data
         if (!m_strokeIndices.empty()) {
             void *data = nullptr;
-            vkMapMemory(m_device->device(), m_indexBufferMemory[m_currentFrameIndex], 0,
-                        m_strokeIndices.size() * sizeof(uint32_t), 0, &data);
-            memcpy(data, m_strokeIndices.data(), m_strokeIndices.size() * sizeof(uint32_t));
+            VkDeviceSize bufferSize = m_strokeIndices.size() * sizeof(uint32_t);
+            vkMapMemory(m_device->device(), m_indexBufferMemory[m_currentFrameIndex], 0, bufferSize, 0, &data);
+            memcpy(data, m_strokeIndices.data(), bufferSize);
             vkUnmapMemory(m_device->device(), m_indexBufferMemory[m_currentFrameIndex]);
         }
     }
@@ -269,17 +265,17 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         VkPipelineMultisampleStateCreateInfo multisampling{};
         multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         multisampling.sampleShadingEnable = VK_FALSE;
-        multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+        multisampling.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
 
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                                               VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         colorBlendAttachment.blendEnable = VK_TRUE;
-        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
         colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
         colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
         VkPipelineColorBlendAttachmentState pickingBlendAttachment{};
@@ -307,6 +303,18 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.stencilTestEnable = VK_FALSE;
+
+        // Create pipeline layout
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.setLayoutCount = 1;
+        pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout;
+        pipelineLayoutInfo.pushConstantRangeCount = 0;
+        pipelineLayoutInfo.pPushConstantRanges = nullptr;
+
+        if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create path pipeline layout!");
+        }
 
         VkGraphicsPipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;

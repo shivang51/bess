@@ -59,6 +59,6 @@ void main() {
     if (abs(fragCoord.y) < axisThicknessWorld)
         gridColor *= u_axisXColor;
 
-    fragColor = vec4(gridColor.rgb, intensity);
+    fragColor = vec4(gridColor.rgb * intensity, intensity);
     pickingId = v_FragId;
 }

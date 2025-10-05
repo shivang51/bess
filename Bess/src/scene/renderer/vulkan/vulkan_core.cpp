@@ -4,7 +4,6 @@
 #include "imgui.h"
 #include "imgui_impl_vulkan.h"
 #include "scene/renderer/vulkan_renderer.h"
-#include "ui/ui.h"
 #include <memory>
 #include <set>
 #include <stdexcept>
@@ -46,6 +45,7 @@ namespace Bess::Renderer2D {
         m_offscreenImageView->createFramebuffer(m_offscreenRenderPass->getVkHandle());
 
         m_primitiveRenderer = std::move(std::make_shared<Vulkan::PrimitiveRenderer>(m_device, m_offscreenRenderPass, windowExtent));
+        m_pathRenderer = std::move(std::make_shared<Vulkan::PathRenderer>(m_device, m_offscreenRenderPass, windowExtent));
 
         m_swapchain->createFramebuffers(m_renderPass->getVkHandle());
 
@@ -73,6 +73,11 @@ namespace Bess::Renderer2D {
 
         m_primitiveRenderer->setCurrentFrameIndex(m_currentFrameIdx);
         m_primitiveRenderer->beginFrame(cmdBuffer->getVkHandle());
+        
+        if (m_pathRenderer) {
+            m_pathRenderer->setCurrentFrameIndex(m_currentFrameIdx);
+            m_pathRenderer->beginFrame(cmdBuffer->getVkHandle());
+        }
     }
 
     void VulkanCore::endOffscreenRender() {
@@ -81,6 +86,11 @@ namespace Bess::Renderer2D {
         }
 
         m_primitiveRenderer->endFrame();
+        
+        if (m_pathRenderer) {
+            m_pathRenderer->endFrame();
+        }
+        
         m_offscreenRenderPass->end();
 
         // If a picking request is pending, record the copy now in this frame's command buffer
@@ -161,8 +171,12 @@ namespace Bess::Renderer2D {
         if (m_primitiveRenderer) {
             m_primitiveRenderer.reset();
         }
+        if (m_pathRenderer) {
+            m_pathRenderer.reset();
+        }
 
         m_primitiveRenderer = std::make_shared<Vulkan::PrimitiveRenderer>(m_device, m_offscreenRenderPass, extent);
+        m_pathRenderer = std::make_shared<Vulkan::PathRenderer>(m_device, m_offscreenRenderPass, extent);
     }
 
     void VulkanCore::beginFrame() {
@@ -311,6 +325,7 @@ namespace Bess::Renderer2D {
 
         m_pipeline.reset();
         m_primitiveRenderer.reset();
+        m_pathRenderer.reset();
         m_offscreenImageView.reset();
         m_offscreenRenderPass.reset();
         m_swapchain.reset();
@@ -540,24 +555,24 @@ namespace Bess::Renderer2D {
     }
 
     void VulkanCore::beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, uint64_t id) {
-        // TODO: Implement path mode
+        VulkanRenderer::beginPathMode(startPos, weight, color, id);
     }
 
     void VulkanCore::endPathMode(bool closePath, bool genFill, const glm::vec4 &fillColor, bool genStroke) {
-        // TODO: Implement path mode
+        VulkanRenderer::endPathMode(closePath, genFill, fillColor, genStroke);
     }
 
     void VulkanCore::pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, int id) {
-        // TODO: Implement path line
+        VulkanRenderer::pathLineTo(pos, size, color, id);
     }
 
     void VulkanCore::pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
                                        float weight, const glm::vec4 &color, int id) {
-        // TODO: Implement cubic bezier path
+        VulkanRenderer::pathCubicBeizerTo(end, controlPoint1, controlPoint2, weight, color, id);
     }
 
     void VulkanCore::pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, int id) {
-        // TODO: Implement quadratic bezier path
+        VulkanRenderer::pathQuadBeizerTo(end, controlPoint, weight, color, id);
     }
 
     glm::vec2 VulkanCore::getCharRenderSize(char ch, float renderSize) {

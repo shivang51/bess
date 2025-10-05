@@ -145,7 +145,6 @@ namespace Bess::Renderer2D {
             vertex.id = id;
             vertex.texSlotIdx = 1;
             vertex.texData = subTexture->getStartWH();
-            
 
             if (color.a == 1.f) {
                 opaqueInstances.emplace_back(vertex);
@@ -163,5 +162,41 @@ namespace Bess::Renderer2D {
         auto primitiveRenderer = VulkanCore::instance().getPrimitiveRenderer().lock();
         primitiveRenderer->updateTextUniforms(textUniforms);
         primitiveRenderer->drawText(opaqueInstances, translucentInstances);
+    }
+
+    void VulkanRenderer::beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, uint64_t id) {
+        auto pathRenderer = VulkanCore::instance().getPathRenderer().lock();
+        if (pathRenderer) {
+            pathRenderer->beginPathMode(startPos, weight, color, static_cast<int>(id));
+        }
+    }
+
+    void VulkanRenderer::endPathMode(bool closePath, bool genFill, const glm::vec4 &fillColor, bool genStroke) {
+        auto pathRenderer = VulkanCore::instance().getPathRenderer().lock();
+        if (pathRenderer) {
+            pathRenderer->endPathMode(closePath, genFill, fillColor, genStroke);
+        }
+    }
+
+    void VulkanRenderer::pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, int id) {
+        auto pathRenderer = VulkanCore::instance().getPathRenderer().lock();
+        if (pathRenderer) {
+            pathRenderer->pathLineTo(pos, size, color, id);
+        }
+    }
+
+    void VulkanRenderer::pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
+                                           float weight, const glm::vec4 &color, int id) {
+        auto pathRenderer = VulkanCore::instance().getPathRenderer().lock();
+        if (pathRenderer) {
+            pathRenderer->pathCubicBeizerTo(end, controlPoint1, controlPoint2, weight, color, id);
+        }
+    }
+
+    void VulkanRenderer::pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, int id) {
+        auto pathRenderer = VulkanCore::instance().getPathRenderer().lock();
+        if (pathRenderer) {
+            pathRenderer->pathQuadBeizerTo(end, controlPoint, weight, color, id);
+        }
     }
 } // namespace Bess::Renderer2D

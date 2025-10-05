@@ -23,6 +23,12 @@ void main() {
 
     if(alpha < 0.001) discard;
 
-    fragColor = vec4(col.rgb, min(alpha, col.a));
+    float finalAlpha = min(alpha, col.a);
+    vec4 finalColor = vec4(col.rgb, finalAlpha);
+    
+    // Premultiply RGB by alpha for proper blending
+    finalColor.rgb *= finalColor.a;
+    
+    fragColor = finalColor;
     fragColor1 = v_FragId;
 }

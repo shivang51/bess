@@ -53,6 +53,14 @@ namespace Bess::Renderer2D {
         static void msdfText(const std::string &text, const glm::vec3 &pos, const size_t size,
                             const glm::vec4 &color, const int id, float angle = 0.0f);
 
+        // Path API
+        static void beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, uint64_t id);
+        static void endPathMode(bool closePath = false, bool genFill = false, const glm::vec4 &fillColor = glm::vec4(1.f), bool genStroke = true);
+        static void pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, int id);
+        static void pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
+                                      float weight, const glm::vec4 &color, int id);
+        static void pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, int id);
+
       private:
         static std::shared_ptr<Camera> m_camera;
     };

@@ -10,6 +10,8 @@ compile ()
 	fi
 }
 
+echo "Compiling Shaders"
+
 cd "assets/shaders"
 rm *.spv
 compile "quad";
@@ -19,3 +21,5 @@ compile "common.vert" "path.frag";
 compile "grid.vert" "grid_line.frag";
 cd ..
 cd ..
+
+echo "Done Compiling Shaders"

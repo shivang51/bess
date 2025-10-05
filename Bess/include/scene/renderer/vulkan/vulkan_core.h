@@ -1,19 +1,17 @@
 #pragma once
 
-#include "glm.hpp"
 #include "scene/renderer/vulkan/command_buffer.h"
 #include "scene/renderer/vulkan/device.h"
 #include "scene/renderer/vulkan/imgui_pipeline.h"
 #include "scene/renderer/vulkan/pipeline.h"
 #include "scene/renderer/vulkan/primitive_renderer.h"
-#include "scene/renderer/vulkan/primitive_vertex.h"
+#include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/renderer/vulkan/swapchain.h"
 #include "scene/renderer/vulkan/vulkan_image_view.h"
 #include "scene/renderer/vulkan/vulkan_offscreen_render_pass.h"
 #include "scene/renderer/vulkan/vulkan_render_pass.h"
 #include <functional>
 #include <memory>
-#include <optional>
 #include <string>
 #include <vector>
 #include <vulkan/vulkan.h>
@@ -48,6 +46,8 @@ namespace Bess::Renderer2D {
 
         VulkanCore(const VulkanCore &) = delete;
         VulkanCore &operator=(const VulkanCore &) = delete;
+        VulkanCore(VulkanCore &&) = delete;
+        VulkanCore &operator=(VulkanCore &&) = delete;
 
         void init(const std::vector<const char *> &winExt,
                   const SurfaceCreationCB &createSurface,
@@ -100,6 +100,7 @@ namespace Bess::Renderer2D {
         uint64_t getSceneTextureId();
 
         std::weak_ptr<Vulkan::PrimitiveRenderer> getPrimitiveRenderer() const { return m_primitiveRenderer; }
+        std::weak_ptr<Vulkan::PathRenderer> getPathRenderer() const { return m_pathRenderer; }
         void resizeOffscreen(VkExtent2D extent);
         VkExtent2D getOffscreenExtent() const {
             return m_offscreenImageView ? m_offscreenImageView->getExtent() : VkExtent2D{0, 0};
@@ -139,6 +140,7 @@ namespace Bess::Renderer2D {
         std::shared_ptr<Vulkan::VulkanOffscreenRenderPass> m_offscreenRenderPass;
         std::shared_ptr<Vulkan::VulkanImageView> m_offscreenImageView;
         std::shared_ptr<Vulkan::PrimitiveRenderer> m_primitiveRenderer;
+        std::shared_ptr<Vulkan::PathRenderer> m_pathRenderer;
         VkSurfaceKHR m_renderSurface = VK_NULL_HANDLE;
 
         static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
