@@ -11,15 +11,6 @@
 #include <stdexcept>
 
 namespace Bess::Assets {
-    // Vulkan shader loader
-    template <>
-    struct AssetLoader<Bess::Renderer2D::Vulkan::VulkanShader> {
-        static std::shared_ptr<Bess::Renderer2D::Vulkan::VulkanShader> load(const std::string &vertPath, const std::string &fragPath) {
-            throw std::runtime_error("VkShader Not Implmented");
-            return nullptr;
-        }
-    };
-
     template <>
     struct AssetLoader<Bess::Renderer2D::Vulkan::VulkanTexture> {
         static std::shared_ptr<Bess::Renderer2D::Vulkan::VulkanTexture> load(const std::string &path) {
