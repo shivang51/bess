@@ -44,31 +44,9 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void PathRenderer::endFrame() {
-        // End any active path
+        // End any active path - this will render and clear the path data
         if (!m_pathData.ended) {
             endPathMode();
-        }
-
-        // Render any pending path data
-        if (!m_pathData.points.empty()) {
-            std::vector<CommonVertex> strokeVertices;
-            std::vector<CommonVertex> fillVertices;
-            std::vector<uint32_t> strokeIndices;
-            std::vector<uint32_t> fillIndices;
-
-            // Generate stroke geometry
-            strokeVertices = generateStrokeGeometry(m_pathData.points, m_pathData.color, 4.f, false);
-            strokeIndices.reserve(strokeVertices.size());
-            for (uint32_t i = 0; i < strokeVertices.size(); ++i) {
-                strokeIndices.push_back(i);
-            }
-
-            m_pathPipeline->beginPipeline(m_currentCommandBuffer);
-            m_pathPipeline->setPathData(strokeVertices, strokeIndices, fillVertices, fillIndices);
-            m_pathPipeline->endPipeline();
-
-            // Clear path data
-            m_pathData.points.clear();
         }
     }
 
@@ -113,7 +91,11 @@ namespace Bess::Renderer2D::Vulkan {
         m_pathPipeline->setPathData(strokeVertices, strokeIndices, fillVertices, fillIndices);
         m_pathPipeline->endPipeline();
 
-        m_pathData = {};
+        // Reset path data for next path
+        m_pathData.ended = true;
+        m_pathData.points.clear();
+        m_pathData.color = glm::vec4(1.f);
+        m_pathData.currentPos = glm::vec3(0.f);
     }
 
     void PathRenderer::pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, int id) {
@@ -194,26 +176,40 @@ namespace Bess::Renderer2D::Vulkan {
             }
 
             const auto &pCurr = points[i];
-            const auto &pPrev = isClosed ? points[(i + pointCount - 1) % pointCount] : points[std::max<size_t>(0, i - 1)];
-            const auto &pNext = isClosed ? points[ni % pointCount] : points[std::min(pointCount - 1, ni)];
+            
+            // Handle previous point access safely
+            const PathPoint *pPrev = nullptr;
+            if (isClosed) {
+                pPrev = &points[(i + pointCount - 1) % pointCount];
+            } else if (i > 0) {
+                pPrev = &points[i - 1];
+            }
+            
+            // Handle next point access safely
+            const PathPoint *pNext = nullptr;
+            if (isClosed) {
+                pNext = &points[ni % pointCount];
+            } else if (ni < pointCount) {
+                pNext = &points[ni];
+            }
 
             // Update cumulative length for UVs
-            if (i > 0) {
-                cumulativeLength += glm::distance(glm::vec2(pCurr.pos), glm::vec2(pPrev.pos));
+            if (i > 0 && pPrev) {
+                cumulativeLength += glm::distance(glm::vec2(pCurr.pos), glm::vec2(pPrev->pos));
             }
             float u = (totalLength > 0) ? (cumulativeLength / totalLength) : 0;
 
             // Handle Caps for Open Paths
-            if (!isClosed && i == 0) { // Start Cap
-                glm::vec2 dir = glm::normalize(glm::vec2(pNext.pos) - glm::vec2(pCurr.pos));
+            if (!isClosed && i == 0 && pNext) { // Start Cap
+                glm::vec2 dir = glm::normalize(glm::vec2(pNext->pos) - glm::vec2(pCurr.pos));
                 glm::vec2 normalVec = glm::vec2(-dir.y, dir.x) * pCurr.weight / 2.f;
                 stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normalVec, pCurr.pos.z, pCurr.id, {u, 1.f}));
                 stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normalVec, pCurr.pos.z, pCurr.id, {u, 0.f}));
                 continue;
             }
 
-            if (!isClosed && i == n - 1) { // End Cap
-                glm::vec2 dir = glm::normalize(glm::vec2(pCurr.pos) - glm::vec2(pPrev.pos));
+            if (!isClosed && i == n - 1 && pPrev) { // End Cap
+                glm::vec2 dir = glm::normalize(glm::vec2(pCurr.pos) - glm::vec2(pPrev->pos));
                 glm::vec2 normalVec = glm::vec2(-dir.y, dir.x) * pCurr.weight / 2.f;
                 stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normalVec, pCurr.pos.z, pCurr.id, {u, 1.f}));
                 stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normalVec, pCurr.pos.z, pCurr.id, {u, 0.f}));
@@ -221,9 +217,13 @@ namespace Bess::Renderer2D::Vulkan {
             }
 
             // Handle Interior and Closed Path Joins
-            glm::vec2 dirIn = glm::normalize(glm::vec2(pCurr.pos) - glm::vec2(pPrev.pos));
-            glm::vec2 dirOut = glm::normalize(glm::vec2(pNext.pos) - glm::vec2(pCurr.pos));
-            glm::vec2 dirOutToPrev = glm::normalize(glm::vec2(pPrev.pos - pCurr.pos));
+            if (!pPrev || !pNext) {
+                continue; // Skip if we don't have both previous and next points
+            }
+            
+            glm::vec2 dirIn = glm::normalize(glm::vec2(pCurr.pos) - glm::vec2(pPrev->pos));
+            glm::vec2 dirOut = glm::normalize(glm::vec2(pNext->pos) - glm::vec2(pCurr.pos));
+            glm::vec2 dirOutToPrev = glm::normalize(glm::vec2(pPrev->pos - pCurr.pos));
             glm::vec2 normalIn(-dirIn.y, dirIn.x);
             glm::vec2 normalOut(-dirOut.y, dirOut.x);
             float dotProduct = glm::dot(dirIn, dirOut);
@@ -242,7 +242,7 @@ namespace Bess::Renderer2D::Vulkan {
                 auto vVec = dirOut;
                 float angle = std::acos(glm::dot(uVec, vVec));
 
-                float uMag = pNext.weight / (2.0f * glm::sin(angle));
+                float uMag = pNext->weight / (2.0f * glm::sin(angle));
                 float vMag = pCurr.weight / (2.0f * glm::sin(angle));
 
                 uVec *= uMag;
