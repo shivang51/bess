@@ -14,15 +14,15 @@ namespace Bess::Canvas::Commands {
     }
 
     bool DeleteCompCommand::execute() {
-        auto &registry = Scene::instance().getEnttRegistry();
-        auto &scene = Scene::instance();
+        auto scene = Scene::instance();
+        auto &registry = scene->getEnttRegistry();
         auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
 
         int i = 0;
         m_simEngineComps = {};
         SceneSerializer ser;
         for (const auto compId : m_compIds) {
-            const auto ent = Scene::instance().getEntityWithUuid(compId);
+            const auto ent = Scene::instance()->getEntityWithUuid(compId);
 
             auto &data = m_delData[i++];
 
@@ -33,7 +33,7 @@ namespace Bess::Canvas::Commands {
 
             data.compJson.clear();
             ser.serializeEntity(compId, data.compJson);
-            scene.deleteSceneEntity(compId);
+            scene->deleteSceneEntity(compId);
         }
 
         if (!m_simEngineComps.empty()) {

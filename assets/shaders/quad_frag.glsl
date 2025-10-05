@@ -52,7 +52,7 @@ void main() {
 
     float mO = smoothstep(aa, -aa, dO);
     float mI = smoothstep(aa, -aa, dI);
-    if (mO < 0.01) discard;
+    if (mO < 0.001) discard;
 
     vec4 baseColor = v_FragColor;
     if (v_TexSlotIdx != 0) {
@@ -62,6 +62,9 @@ void main() {
 
     vec4 color = mix(v_BorderColor, baseColor, mI);
     color.a *= mO;
+
+    if (color.a < 0.001) discard;
+
     fragColor = color;
     pickingId = v_FragId;
 }

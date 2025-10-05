@@ -109,7 +109,7 @@ namespace Bess::UI {
 
         ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
-        auto &registry = Canvas::Scene::instance().getEnttRegistry();
+        auto &registry = Canvas::Scene::instance()->getEnttRegistry();
         const auto view = registry.view<SelectedComponent>();
 
         if (view.size() == 0) {

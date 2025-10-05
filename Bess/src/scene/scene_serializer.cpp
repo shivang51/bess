@@ -12,22 +12,22 @@ namespace Bess {
     }
 
     void SceneSerializer::serializeToPath(const std::string &path, int indent) {
-        EnttRegistrySerializer::serializeToPath(Canvas::Scene::instance().getEnttRegistry(), path, indent);
+        EnttRegistrySerializer::serializeToPath(Canvas::Scene::instance()->getEnttRegistry(), path, indent);
     }
 
     void SceneSerializer::deserializeFromPath(const std::string &path) {
-        auto &reg = Canvas::Scene::instance().getEnttRegistry();
+        auto &reg = Canvas::Scene::instance()->getEnttRegistry();
         reg.clear();
         EnttRegistrySerializer::deserializeFromPath(reg, path);
     }
 
     void SceneSerializer::serialize(Json::Value &j) {
-        EnttRegistrySerializer::serialize(Canvas::Scene::instance().getEnttRegistry(), j);
+        EnttRegistrySerializer::serialize(Canvas::Scene::instance()->getEnttRegistry(), j);
     }
 
     void SceneSerializer::serializeEntity(UUID uid, Json::Value &j) {
-        const auto ent = Canvas::Scene::instance().getEntityWithUuid(uid);
-        auto &reg = Canvas::Scene::instance().getEnttRegistry();
+        const auto ent = Canvas::Scene::instance()->getEntityWithUuid(uid);
+        auto &reg = Canvas::Scene::instance()->getEnttRegistry();
         EnttRegistrySerializer::serializeEntity(reg, ent, j["components"]);
 
         if (const auto *simComp = reg.try_get<SimulationComponent>(ent)) {
@@ -48,7 +48,7 @@ namespace Bess {
             UUID segId = connComp->segmentHead;
             while (segId != UUID::null) {
                 const auto &seg = reg.get<ConnectionSegmentComponent>(
-                    Canvas::Scene::instance().getEntityWithUuid(segId));
+                    Canvas::Scene::instance()->getEntityWithUuid(segId));
 
                 serializeEntity(segId, j["segments"].append(Json::objectValue));
 
@@ -60,17 +60,17 @@ namespace Bess {
     void SceneSerializer::deserialize(const Json::Value &json) {
         m_maxZ = 0;
 
-        auto &scene = Canvas::Scene::instance();
-        scene.clear();
+        auto scene = Canvas::Scene::instance();
+        scene->clear();
 
-        auto &reg = scene.getEnttRegistry();
+        auto &reg = scene->getEnttRegistry();
         EnttRegistrySerializer::deserialize(reg, json);
 
-        scene.setZCoord(m_maxZ);
+        scene->setZCoord(m_maxZ);
     }
 
     void SceneSerializer::deserializeEntity(const Json::Value &json) {
-        auto &registry = Canvas::Scene::instance().getEnttRegistry();
+        auto &registry = Canvas::Scene::instance()->getEnttRegistry();
         EnttRegistrySerializer::deserializeEntity(registry, json["components"]);
 
         if (json.isMember("slots")) {

@@ -116,7 +116,6 @@ namespace Bess::Renderer2D::Vulkan {
             m_translucentQuadInstances.emplace_back(instance);
         }
     }
-
     void PrimitiveRenderer::drawTexturedQuad(const glm::vec3 &pos,
                                              const glm::vec2 &size,
                                              const glm::vec4 &tint,
@@ -144,6 +143,35 @@ namespace Bess::Renderer2D::Vulkan {
         instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f);
 
         m_texturedQuadInstances[texture].emplace_back(instance);
+    }
+
+    void PrimitiveRenderer::drawTexturedQuad(const glm::vec3 &pos,
+                                             const glm::vec2 &size,
+                                             const glm::vec4 &tint,
+                                             int id,
+                                             const glm::vec4 &borderRadius,
+                                             const glm::vec4 &borderSize,
+                                             const glm::vec4 &borderColor,
+                                             int isMica,
+                                             const std::shared_ptr<SubTexture> &subTexture) {
+        if (!m_quadPipeline) {
+            BESS_WARN("[PrimitiveRenderer] Quad pipeline not available");
+            return;
+        }
+
+        QuadInstance instance{};
+        instance.position = pos;
+        instance.color = tint;
+        instance.borderRadius = borderRadius;
+        instance.borderColor = borderColor;
+        instance.borderSize = borderSize;
+        instance.size = size;
+        instance.id = id;
+        instance.isMica = isMica;
+        instance.texSlotIdx = 1; // indicate textured
+        instance.texData = subTexture->getStartWH();
+
+        m_texturedQuadInstances[subTexture->getTexture()].emplace_back(instance);
     }
 
     void PrimitiveRenderer::drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, int id, float innerRadius) {

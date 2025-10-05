@@ -23,7 +23,11 @@ Checks: >
   -modernize-use-designated-initializers,
   -readability-implicit-bool-conversion,
   -cppcoreguidelines-avoid-c-arrays,
-  -readability-convert-member-functions-to-static
+  -readability-convert-member-functions-to-static,
+  -cppcoreguidelines-pro-type-vararg,
+  -readability-qualified-auto,
+  -readability-redundant-access-specifiers
+
 
 WarningsAsErrors: ''
 

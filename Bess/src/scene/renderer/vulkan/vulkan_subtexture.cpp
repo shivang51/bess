@@ -2,50 +2,63 @@
 #include "scene/renderer/vulkan/vulkan_texture.h"
 
 namespace Bess::Renderer2D::Vulkan {
-
-    VulkanSubTexture::VulkanSubTexture(std::shared_ptr<VulkanTexture> texture, const glm::vec2& min, const glm::vec2& max)
-        : m_texture(texture) {
-        calculateTexCoords(min, max);
+    SubTexture::SubTexture(std::shared_ptr<VulkanTexture> texture, const glm::vec2 &coord, const glm::vec2 &spriteSize)
+        : m_texture(std::move(texture)), m_coord(coord), m_spriteSize(spriteSize), m_margin(0.f), m_cellSize({1.f, 1.f}) {
+        calculateCoords();
     }
 
-    VulkanSubTexture::VulkanSubTexture(std::shared_ptr<VulkanTexture> texture, const glm::vec2& coords, const glm::vec2& cellSize, const glm::vec2& spriteSize)
-        : m_texture(texture) {
-        const glm::vec2 min = {coords.x * cellSize.x, coords.y * cellSize.y};
-        const glm::vec2 max = {(coords.x + spriteSize.x) * cellSize.x, (coords.y + spriteSize.y) * cellSize.y};
-        calculateTexCoords(min, max);
+    SubTexture::SubTexture(std::shared_ptr<VulkanTexture> texture, const glm::vec2 &coord, const glm::vec2 &spriteSize,
+                           float margin, const glm::vec2 &cellSize)
+        : m_texture(std::move(texture)), m_coord(coord), m_spriteSize(spriteSize), m_margin(margin), m_cellSize(cellSize) {
+        calculateCoords();
     }
 
-    VulkanSubTexture::VulkanSubTexture(VulkanSubTexture&& other) noexcept
-        : m_texture(std::move(other.m_texture)) {
-        for (int i = 0; i < 4; i++) {
-            m_texCoords[i] = other.m_texCoords[i];
-        }
+    const std::vector<glm::vec2> &SubTexture::getTexCoords() const {
+        return m_texCoords;
     }
 
-    VulkanSubTexture& VulkanSubTexture::operator=(VulkanSubTexture&& other) noexcept {
-        if (this != &other) {
-            m_texture = std::move(other.m_texture);
-            for (int i = 0; i < 4; i++) {
-                m_texCoords[i] = other.m_texCoords[i];
-            }
-        }
-        return *this;
+    const glm::vec4 &SubTexture::getStartWH() const {
+        return m_startWH;
     }
 
-    void VulkanSubTexture::calculateTexCoords(const glm::vec2& min, const glm::vec2& max) {
-        m_texCoords[0] = {min.x, min.y};
-        m_texCoords[1] = {max.x, min.y};
-        m_texCoords[2] = {max.x, max.y};
-        m_texCoords[3] = {min.x, max.y};
+    glm::vec2 SubTexture::getScale() const {
+        return m_spriteSize;
     }
 
-    glm::vec2 VulkanSubTexture::getScale() const {
-        const float width = static_cast<float>(m_texture->getWidth());
-        const float height = static_cast<float>(m_texture->getHeight());
-        if (width == 0.0f || height == 0.0f) {
-            return {1.0f, 1.0f};
-        }
-        return {width, height};
+    std::shared_ptr<VulkanTexture> SubTexture::getTexture() {
+        return m_texture;
     }
 
+    void SubTexture::calculateCoords() {
+        float startX = m_coord.x * (m_spriteSize.x + m_margin);
+        float startY = m_coord.y * (m_spriteSize.y + m_margin);
+        float texSizeX = m_spriteSize.x * m_cellSize.x;
+        float texSizeY = m_spriteSize.y * m_cellSize.y;
+        glm::vec2 texOffset = {startX / m_texture->getWidth(), startY / m_texture->getHeight()};
+        glm::vec2 texSize = {texSizeX / m_texture->getWidth(), texSizeY / m_texture->getHeight()};
+
+        m_startWH = {texOffset.x, texOffset.y, texSize.x, texSize.y};
+
+        m_texCoords = {
+            {texOffset.x, texOffset.y + texSize.y},
+            {texOffset.x, texOffset.y},
+            {texOffset.x + texSize.x, texOffset.y},
+            {texOffset.x + texSize.x, texOffset.y + texSize.y}};
+    }
+
+    void SubTexture::calcCoordsFrom(std::shared_ptr<VulkanTexture> tex, const glm::vec2 &pos, const glm::vec2 &size) {
+        float startX = pos.x;
+        float startY = pos.y;
+        float texSizeX = size.x;
+        float texSizeY = size.y;
+        m_texture = tex;
+        glm::vec2 texOffset = {startX / m_texture->getWidth(), startY / m_texture->getHeight()};
+        glm::vec2 texSize = {texSizeX / m_texture->getWidth(), texSizeY / m_texture->getHeight()};
+        m_startWH = {texOffset.x, texOffset.y, texSize.x, texSize.y};
+        m_texCoords = {
+            {texOffset.x, texOffset.y + texSize.y},
+            {texOffset.x, texOffset.y},
+            {texOffset.x + texSize.x, texOffset.y},
+            {texOffset.x + texSize.x, texOffset.y + texSize.y}};
+    }
 } // namespace Bess::Renderer2D::Vulkan

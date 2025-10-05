@@ -44,7 +44,7 @@ namespace Bess::Canvas {
         ~Scene();
 
       public:
-        static Scene &instance();
+        static std::shared_ptr<Scene> instance();
 
         void reset();
         void clear();

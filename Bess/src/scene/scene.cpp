@@ -1,5 +1,7 @@
 #include "scene/scene.h"
 #include "application_state.h"
+#include "asset_manager/asset_manager.h"
+#include "assets.h"
 #include "bess_uuid.h"
 #include "common/log.h"
 #include "component_catalog.h"
@@ -43,8 +45,8 @@ namespace Bess::Canvas {
 
     Scene::~Scene() {}
 
-    Scene &Scene::instance() {
-        static Scene m_instance;
+    std::shared_ptr<Scene> Scene::instance() {
+        static std::shared_ptr<Scene> m_instance = std::make_shared<Scene>();
         return m_instance;
     }
 
@@ -54,7 +56,7 @@ namespace Bess::Canvas {
         m_size = glm::vec2(800.f / 600.f, 1.f);
         m_camera = std::make_shared<Camera>(m_size.x, m_size.y);
 
-        m_artistManager = std::make_shared<ArtistManager>(this);
+        m_artistManager = std::make_shared<ArtistManager>(std::move(std::shared_ptr<Scene>(this, [](Scene *) {})));
     }
 
     void Scene::clear() {
@@ -208,9 +210,10 @@ namespace Bess::Canvas {
     }
 
     void Scene::drawScene(std::shared_ptr<Camera> camera) {
-
-
-        static std::shared_ptr<Vulkan::VulkanTexture> texture = std::make_shared<Vulkan::VulkanTexture>(Renderer2D::VulkanCore::instance().getDevice(), "assets/images/7-seg-display-tilemap.png");
+        auto texture = Assets::AssetManager::instance().get(Assets::TileMaps::sevenSegDisplay);
+        float margin = 4.F;
+        glm::vec2 size(128.F, 234.F);
+        auto subTex = std::make_shared<Vulkan::SubTexture>(texture, glm::vec2({0.F, 0.F}), size);
 
         auto mousePos_ = m_mousePos;
         mousePos_.y = UI::UIMain::state.viewportSize.y - mousePos_.y;
@@ -218,51 +221,118 @@ namespace Bess::Canvas {
         int y = static_cast<int>(mousePos_.y);
         Renderer2D::VulkanCore::instance().readPickingId(x, y);
 
+        // check if start frame does not happen again within same frame
+        // fix the z ordering (mind blown)
+        //
         m_artistManager->setSchematicMode(m_isSchematicView);
         const auto artist = m_artistManager->getCurrentArtist();
 
         Renderer2D::VulkanRenderer::beginScene(camera);
 
         Renderer2D::VulkanRenderer::grid(
-            glm::vec3(0.f, 0.f, -2.f),
+            glm::vec3(0.f, 0.f, 0.1f),
             m_camera->getSpan(),
-            -2,
+            0,
             {
                 .minorColor = ViewportTheme::colors.gridMinorColor,
                 .majorColor = ViewportTheme::colors.gridMajorColor,
                 .axisXColor = ViewportTheme::colors.gridAxisXColor,
                 .axisYColor = ViewportTheme::colors.gridAxisYColor,
-            }
-        );
+            });
 
-        
         Renderer2D::VulkanRenderer::end();
-        
+
         Renderer2D::VulkanRenderer::beginScene(camera);
-    
+
+        if (m_drawMode == SceneDrawMode::selectionBox) {
+            Renderer2D::VulkanRenderer::beginScene(camera);
+            drawSelectionBox();
+            Renderer2D::VulkanRenderer::end();
+        }
+
         Renderer2D::QuadRenderProperties props = {};
         props.borderColor = ViewportTheme::colors.selectedComp;
         props.borderSize = glm::vec4(3.f);
         props.borderRadius = glm::vec4(16.f);
-        Renderer2D::VulkanRenderer::quad({0.f, 0.f, -1.f}, {100.f, 100.f}, glm::vec4(1.f, 0.f, 0.f, 1.f), 0, props);
-        Renderer2D::VulkanRenderer::quad({10.f, 10.f, -1.f}, {100.f, 100.f}, glm::vec4(1.f, 0.f, 1.f, 1.f), 0, props);
+        Renderer2D::VulkanRenderer::quad({0.f, 0.f, 2.f}, {100.f, 100.f}, glm::vec4(1.f, 0.f, 0.f, 1.f), 0, props);
+        Renderer2D::VulkanRenderer::quad({10.f, 10.f, 4.1f}, {100.f, 100.f}, glm::vec4(1.f, 0.f, 1.f, 0.7f), 0, props);
 
         props.borderColor = ViewportTheme::colors.selectedComp;
         props.borderSize = glm::vec4(2.f);
         props.borderRadius = glm::vec4(16.f);
-        Renderer2D::VulkanRenderer::quad({200.f, 0.f, -3.f}, {100.f, 100.f}, glm::vec4(1.f, 0.f, 0.f, 1.f), 8, props);
+        Renderer2D::VulkanRenderer::quad({200.f, 0.f, 1.f}, {100.f, 100.f}, glm::vec4(1.f, 0.f, 0.f, 1.f), 8, props);
 
-        Renderer2D::VulkanRenderer::quad({0.f, 200.f, -3.f}, {100.f, 100.f}, glm::vec4(1.f, 0.f, 0.f, 1.f), 8, props);
+        Renderer2D::VulkanRenderer::quad({0.f, 200.f, 1.f}, {100.f, 100.f}, glm::vec4(1.f, 0.f, 0.f, 1.f), 8, props);
 
-        Renderer2D::VulkanRenderer::quad({-200.f, 0.f, -1.f}, {100.f, 100.f}, glm::vec4(1.f, 0.f, 0.f, 1.f), 8, props);
-         props.borderSize = glm::vec4(2.f);
-         props.borderRadius = glm::vec4(16.f);
-          Renderer2D::VulkanRenderer::texturedQuad({200.f, 200.f, -1.f}, {100.f, 100.f}, texture, glm::vec4(1.f, 1.f, 1.f, 1.f), 9, props);
+        Renderer2D::VulkanRenderer::quad({-200.f, 0.f, 1.f}, {100.f, 100.f}, glm::vec4(1.f, 0.f, 0.f, 1.f), 8, props);
+        props.borderSize = glm::vec4(2.f);
+        props.borderRadius = glm::vec4(16.f);
 
-         Renderer2D::VulkanRenderer::texturedQuad({-200.f, 200.f, -1.f}, {100.f, 100.f}, texture, glm::vec4(1.f, 1.f, 1.f, 1.f), 9, props);
+        int b = 0;
+
+        glm::vec4 borderLeftBottom = glm::vec4(2.f, 0.f, 0.f, 2.f);
+        glm::vec4 borderRightBottom = glm::vec4(2.f, 2.f, 0.f, 0.f);
+
+        glm::vec4 borderLeft = glm::vec4(0.f, 0.f, 0.f, 2.f);
+        glm::vec4 borderRight = glm::vec4(0.f, 2.f, 0.f, 0.f);
+        glm::vec4 borderTop = glm::vec4(0.f, 0.f, 2.f, 0.f);
+        glm::vec4 borderBottom = glm::vec4(2.f, 0.f, 0.f, 0.f);
+
+        glm::vec4 borderLeftTop = glm::vec4(0.f, 0.f, 2.f, 2.f);
+        glm::vec4 borderRightTop = glm::vec4(0.f, 2.f, 2.f, 0.f);
+
+        QuadRenderProperties bw;
+        bw.borderColor = ViewportTheme::colors.selectedComp;
+
+        float initX = -400;
+        float posX = initX, posY = 400;
+        for (int i = 1, j = 0; i <= 64 && j < 4; i++) {
+            bw.borderSize = glm::vec4(0.f);
+            auto c = glm::vec4(glm::vec3(i % 2 == b), 0.8f);
+            if (i <= 8) {
+                if (i == 1)
+                    bw.borderSize = borderLeftTop;
+                else if (i == 8)
+                    bw.borderSize = borderRightTop;
+                else
+                    bw.borderSize = borderTop;
+            } else if (i > 56) {
+                if (i == 57)
+                    bw.borderSize = borderLeftBottom;
+                else if (i == 64)
+                    bw.borderSize = borderRightBottom;
+                else
+                    bw.borderSize = borderBottom;
+            } else {
+                if ((i - 1) % 8 == 0)
+                    bw.borderSize = borderLeft;
+                else if (i % 8 == 0)
+                    bw.borderSize = borderRight;
+            }
+            Renderer2D::VulkanRenderer::quad({posX, posY, 4.9f}, {100.f, 100.f}, c, i, bw);
+            posX += 100;
+
+            if (i != 0 && i % 8 == 0) {
+                posX = initX;
+                posY += 100;
+                b = (b + 1) % 2;
+            }
+
+            if (i == 64) {
+                initX += 1000;
+                posX = initX;
+                posY = 400;
+                i = 0, j++;
+            }
+        }
+
+        Renderer2D::VulkanRenderer::texturedQuad({200.f, 200.f, 1.f}, {100.f, 100.f}, texture, glm::vec4(1.f, 1.f, 1.f, 1.f), 9, props);
+
+        Renderer2D::VulkanRenderer::texturedQuad({-200.f, 200.f, 1.f}, {100.f, 100.f}, subTex, glm::vec4(1.f, 1.f, 1.f, 1.f), 9);
+        Renderer2D::VulkanRenderer::quad({-400.f, 200.f, 1.f}, {100.f, 100.f}, glm::vec4(1.f, 1.f, 1.f, 0.0f), 9);
+        Renderer2D::VulkanRenderer::quad({-400.f, 350.f, 1.f}, {100.f, 100.f}, glm::vec4(0.5f), 9);
 
         Renderer2D::VulkanRenderer::end();
-
 
         return;
 
@@ -300,12 +370,6 @@ namespace Bess::Canvas {
         }
 
         Renderer2D::VulkanCore::end();
-
-        if (m_drawMode == SceneDrawMode::selectionBox) {
-            Renderer2D::VulkanCore::begin(camera);
-            drawSelectionBox();
-            Renderer2D::VulkanCore::end();
-        }
     }
 
     void Scene::drawSelectionBox() {
@@ -319,7 +383,7 @@ namespace Bess::Canvas {
         Renderer2D::QuadRenderProperties props;
         props.borderColor = ViewportTheme::colors.selectionBoxBorder;
         props.borderSize = glm::vec4(1.f);
-        Renderer2D::VulkanRenderer::quad(glm::vec3(pos, 9.f), size, ViewportTheme::colors.selectionBoxFill, 0, props);
+        Renderer2D::VulkanRenderer::quad(glm::vec3(pos, 7.f), size, ViewportTheme::colors.selectionBoxFill, 0, props);
     }
 
     void Scene::drawConnection() {
@@ -642,9 +706,9 @@ namespace Bess::Canvas {
 
     void Scene::updateHoveredId() {
         int32_t hoverId = -1; // Placeholder for Vulkan implementation
-        
-        hoverId =  Renderer2D::VulkanCore::instance().getPickingIdResult();
-        
+
+        hoverId = Renderer2D::VulkanCore::instance().getPickingIdResult();
+
         m_registry.clear<Components::HoveredEntityComponent>();
         const auto e = (entt::entity)hoverId;
         if (m_registry.valid(e)) {

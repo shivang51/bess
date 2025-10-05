@@ -18,7 +18,7 @@ namespace Bess::Canvas::Commands {
         auto &cmdMngr = simEngine.getCmdManager();
 
         SceneSerializer ser;
-        auto &scene = Scene::instance();
+        auto scene = Scene::instance();
 
         std::vector<SimEngine::Commands::AddCommandData> simAddCmdData{};
         if (m_redo) {
@@ -37,7 +37,7 @@ namespace Bess::Canvas::Commands {
             if (data.isSimComp()) {
                 simAddCmdData.emplace_back(data.def->type, data.inputCount, data.outputCount);
             } else {
-                m_compIds.emplace_back(scene.createNonSimEntity(data.nsComp, data.pos));
+                m_compIds.emplace_back(scene->createNonSimEntity(data.nsComp, data.pos));
             }
         }
 
@@ -52,9 +52,9 @@ namespace Bess::Canvas::Commands {
         int i = 0;
         for (auto &simEngineId : simEngineUuids.value()) {
             const auto &data = m_data[i];
-            m_compIds.emplace_back(scene.createSimEntity(simEngineId, data.def, data.pos));
+            m_compIds.emplace_back(scene->createSimEntity(simEngineId, data.def, data.pos));
             if (i == m_data.size() - 1)
-                scene.setLastCreatedComp({data.def, data.inputCount, data.outputCount});
+                scene->setLastCreatedComp({data.def, data.inputCount, data.outputCount});
             i++;
         }
 
@@ -65,14 +65,14 @@ namespace Bess::Canvas::Commands {
         auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
         cmdMngr.undo();
 
-        auto &scene = Scene::instance();
+        auto scene = Scene::instance();
         for (size_t i = 0; i < m_data.size(); i++) {
             const auto &data = m_data[i];
             auto &compJson = m_compJsons[i];
             compJson.clear();
             SceneSerializer ser;
             ser.serializeEntity(m_compIds[i], compJson);
-            scene.deleteSceneEntity(m_compIds[i]);
+            scene->deleteSceneEntity(m_compIds[i]);
         }
 
         m_redo = true;

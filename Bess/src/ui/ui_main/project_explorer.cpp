@@ -67,8 +67,8 @@ namespace Bess::UI {
 
         ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
-        auto &scene = Bess::Canvas::Scene::instance();
-        auto &registry = scene.getEnttRegistry();
+        auto scene = Bess::Canvas::Scene::instance();
+        auto &registry = scene->getEnttRegistry();
 
         // Modules::SchematicGen::SchematicView(Canvas::Scene::instance(), registry).generateDiagram();
 

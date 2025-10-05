@@ -14,7 +14,7 @@ namespace Bess::Pages {
     }
 
     void MainPageState::resetProjectState() const {
-        Canvas::Scene::instance().clear();
+        Canvas::Scene::instance()->clear();
         SimEngine::SimulationEngine::instance().clear();
     }
 

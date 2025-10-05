@@ -163,8 +163,8 @@ namespace Bess::UI {
         }
 
         if (ImGui::BeginMenu("Edit")) {
-            static auto &scene = Canvas::Scene::instance();
-            static auto &cmdManager = scene.getCmdManager();
+            static auto scene = Canvas::Scene::instance();
+            static auto &cmdManager = scene->getCmdManager();
 
             std::string icon = Icons::FontAwesomeIcons::FA_UNDO;
             if (ImGui::MenuItem((icon + "  Undo").c_str(), "Ctrl+Z", false, cmdManager.canUndo())) {
@@ -319,7 +319,7 @@ namespace Bess::UI {
             ImGui::Text("Schematic Mode");
             ImGui::SameLine();
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-            ImGui::Checkbox("##CheckBoxSchematicMode", Canvas::Scene::instance().getIsSchematicViewPtr());
+            ImGui::Checkbox("##CheckBoxSchematicMode", Canvas::Scene::instance()->getIsSchematicViewPtr());
             ImGui::PopStyleVar();
             state.isViewportFocused &= !ImGui::IsWindowHovered();
             ImGui::End();
@@ -347,12 +347,12 @@ namespace Bess::UI {
             ImGui::PushStyleColor(ImGuiCol_WindowBg, col);
             ImGui::Begin("TopRightViewportActions", nullptr, flags);
 
-            auto &scene = Canvas::Scene::instance();
+            auto scene = Canvas::Scene::instance();
 
             // scene modes
             {
 
-                const bool isGeneral = scene.getSceneMode() == Canvas::SceneMode::general;
+                const bool isGeneral = scene->getSceneMode() == Canvas::SceneMode::general;
 
                 // general mode
                 if (isGeneral) {
@@ -361,15 +361,13 @@ namespace Bess::UI {
 
                 auto icon = Icons::FontAwesomeIcons::FA_MOUSE_POINTER;
                 if (ImGui::Button(icon)) {
-                    scene.setSceneMode(Canvas::SceneMode::general);
+                    scene->setSceneMode(Canvas::SceneMode::general);
                 }
                 if (isGeneral) {
                     ImGui::PopStyleColor();
                 }
 
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                    const auto msg = "General Mode";
-                    ImGui::SetTooltip("%s", msg);
                 }
 
                 // move mode
@@ -379,7 +377,7 @@ namespace Bess::UI {
                 ImGui::SameLine();
                 icon = Icons::FontAwesomeIcons::FA_ARROWS_ALT;
                 if (ImGui::Button(icon)) {
-                    scene.setSceneMode(Canvas::SceneMode::move);
+                    scene->setSceneMode(Canvas::SceneMode::move);
                 }
 
                 if (!isGeneral) {
@@ -442,7 +440,7 @@ namespace Bess::UI {
 
         // Camera controls (on bottom right)
         {
-            const auto &mousePos = Canvas::Scene::instance().getSceneMousePos();
+            const auto &mousePos = Canvas::Scene::instance()->getSceneMousePos();
             const auto posLabel = std::format("X:{:.2f}, Y:{:.2f}", mousePos.x, mousePos.y);
             const auto posLabelCStr = posLabel.c_str();
             const auto posLabelSize = ImGui::CalcTextSize(posLabelCStr);
@@ -464,7 +462,7 @@ namespace Bess::UI {
 
             // Zoom Slider
             {
-                const auto &camera = Canvas::Scene::instance().getCamera();
+                const auto &camera = Canvas::Scene::instance()->getCamera();
                 ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8);
                 ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 8);
                 ImGui::SetNextItemWidth(150.0f);
@@ -547,7 +545,7 @@ namespace Bess::UI {
         if (path == "")
             return;
         BESS_TRACE("[ExportSceneView] Saving to {}", path);
-        Canvas::Scene::instance().saveScenePNG(path);
+        Canvas::Scene::instance()->saveScenePNG(path);
     }
 
 } // namespace Bess::UI

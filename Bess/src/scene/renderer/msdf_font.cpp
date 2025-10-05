@@ -6,25 +6,14 @@
 #include <fstream>
 
 namespace Bess::Renderer2D {
-
-    MsdfFont::MsdfFont(const std::string &path, const std::string &jsonFileName) {
-        // This constructor is deprecated - use the one with device parameter
-        BESS_WARN("MsdfFont constructor without device is deprecated. Use MsdfFont(path, jsonFileName, device) instead.");
-    }
-
-    MsdfFont::MsdfFont(const std::string &path, const std::string &jsonFileName, Vulkan::VulkanDevice& device) : m_device(&device) {
-        loadFont(path, jsonFileName, device);
+    MsdfFont::MsdfFont(const std::string &path, const std::string &fileName, std::shared_ptr<Vulkan::VulkanDevice> device) : m_device(device) {
+        loadFont(path, fileName, device);
     }
 
     MsdfFont::~MsdfFont() = default;
 
-    void MsdfFont::loadFont(const std::string &path, const std::string &fileName) const {
-        // This method is deprecated - use the one with device parameter
-        BESS_WARN("MsdfFont::loadFont without device is deprecated. Use loadFont(path, fileName, device) instead.");
-    }
-
-    void MsdfFont::loadFont(const std::string &path, const std::string &fileName, Vulkan::VulkanDevice& device) {
-        m_device = &device;
+    void MsdfFont::loadFont(const std::string &path, const std::string &fileName, std::shared_ptr<Vulkan::VulkanDevice> device) {
+        m_device = device;
         std::filesystem::path path_ = path;
         const std::string jsonFileName = fileName + ".json";
         std::ifstream inFile(path_ / jsonFileName);
@@ -43,8 +32,7 @@ namespace Bess::Renderer2D {
             return;
         }
 
-        // Create Vulkan texture from PNG file
-        // m_fontTextureAtlas = std::make_shared<Vulkan::VulkanTexture>(device, pngFilePath);
+        m_fontTextureAtlas = std::make_shared<Vulkan::VulkanTexture>(device, pngFilePath);
         BESS_INFO("Loaded MSDF font texture atlas from: {}", pngFilePath);
 
         m_fontSize = charData["atlas"]["size"].asFloat();
@@ -68,7 +56,7 @@ namespace Bess::Renderer2D {
                 auto atlasPos = glm::vec2(atlasBounds.left, m_fontTextureAtlas->getHeight() - atlasBounds.top);
                 auto atlasSize = glm::vec2(atlasBounds.right - atlasBounds.left, atlasBounds.top - atlasBounds.bottom);
                 auto atlasMax = atlasPos + atlasSize;
-                auto subTex = std::make_shared<Vulkan::VulkanSubTexture>(m_fontTextureAtlas, atlasPos, atlasMax);
+                auto subTex = std::make_shared<Vulkan::SubTexture>(m_fontTextureAtlas, atlasPos, atlasMax);
                 character.subTexture = subTex;
             }
 

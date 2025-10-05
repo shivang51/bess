@@ -5,9 +5,9 @@
 #include "ext/vector_float3.hpp"
 #include "scene/components/components.h"
 #include "scene/renderer/vulkan/vulkan_core.h"
-#include "scene/renderer/vulkan_renderer.h"
-#include "scene/renderer/vulkan/vulkan_texture.h"
 #include "scene/renderer/vulkan/vulkan_subtexture.h"
+#include "scene/renderer/vulkan/vulkan_texture.h"
+#include "scene/renderer/vulkan_renderer.h"
 #include "scene/scene.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
@@ -19,7 +19,7 @@ using Renderer = Bess::Renderer2D::VulkanCore;
 
 namespace Bess::Canvas {
 
-    NodesArtist::NodesArtist(Scene *scene) : BaseArtist(scene) {
+    NodesArtist::NodesArtist(std::shared_ptr<Scene> scene) : BaseArtist(scene) {
     }
 
     void NodesArtist::drawSimEntity(
@@ -74,10 +74,10 @@ namespace Bess::Canvas {
         props.isMica = true;
 
         VulkanRenderer::quad(headerPos,
-                       glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
-                       spriteComp.headerColor,
-                       id,
-                       props);
+                             glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
+                             spriteComp.headerColor,
+                             id,
+                             props);
 
         Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, id, rotation);
 
@@ -247,10 +247,10 @@ namespace Bess::Canvas {
         props.isMica = true;
 
         VulkanRenderer::quad(headerPos,
-                       glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
-                       spriteComp.headerColor,
-                       id,
-                       props);
+                             glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
+                             spriteComp.headerColor,
+                             id,
+                             props);
 
         Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, id, rotation);
 

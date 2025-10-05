@@ -17,14 +17,14 @@ namespace Bess::Canvas::Commands {
         auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
 
         if (!m_redo) {
-            auto &registry = Scene::instance().getEnttRegistry();
+            auto &registry = Scene::instance()->getEnttRegistry();
             auto &startSlotComp = registry.get<Components::SlotComponent>(
-                Scene::instance().getEntityWithUuid(m_startSlot));
+                Scene::instance()->getEntityWithUuid(m_startSlot));
             auto &endSlotComp = registry.get<Components::SlotComponent>(
-                Scene::instance().getEntityWithUuid(m_endSlot));
+                Scene::instance()->getEntityWithUuid(m_endSlot));
 
-            auto startSimParent = registry.get<Components::SimulationComponent>(Scene::instance().getEntityWithUuid(startSlotComp.parentId)).simEngineEntity;
-            auto endSimParent = registry.get<Components::SimulationComponent>(Scene::instance().getEntityWithUuid(endSlotComp.parentId)).simEngineEntity;
+            auto startSimParent = registry.get<Components::SimulationComponent>(Scene::instance()->getEntityWithUuid(startSlotComp.parentId)).simEngineEntity;
+            auto endSimParent = registry.get<Components::SimulationComponent>(Scene::instance()->getEntityWithUuid(endSlotComp.parentId)).simEngineEntity;
 
             auto startPinType = startSlotComp.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
             auto dstPinType = endSlotComp.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
@@ -34,19 +34,19 @@ namespace Bess::Canvas::Commands {
                 return false;
 
             if (startSlotComp.slotType == Components::SlotType::digitalInput) {
-                m_connection = Scene::instance().connectSlots(m_startSlot, m_endSlot);
+                m_connection = Scene::instance()->connectSlots(m_startSlot, m_endSlot);
             } else {
-                m_connection = Scene::instance().connectSlots(m_endSlot, m_startSlot);
+                m_connection = Scene::instance()->connectSlots(m_endSlot, m_startSlot);
             }
         } else {
             cmdMngr.redo();
             SceneSerializer ser;
             ser.deserializeEntity(m_json);
-            auto &scene = Scene::instance();
-            auto &reg = scene.getEnttRegistry();
+            auto scene = Scene::instance();
+            auto &reg = scene->getEnttRegistry();
 
-            const auto startSlotEntt = scene.getEntityWithUuid(m_startSlot);
-            const auto endSlotEntt = scene.getEntityWithUuid(m_endSlot);
+            const auto startSlotEntt = scene->getEntityWithUuid(m_startSlot);
+            const auto endSlotEntt = scene->getEntityWithUuid(m_endSlot);
 
             if (!reg.valid(startSlotEntt) || !reg.valid(endSlotEntt)) {
                 return false;
@@ -69,7 +69,7 @@ namespace Bess::Canvas::Commands {
         SceneSerializer ser;
         ser.serializeEntity(m_connection, m_json);
 
-        Scene::instance().deleteConnectionFromScene(m_connection);
+        Scene::instance()->deleteConnectionFromScene(m_connection);
 
         m_redo = true;
         return {};

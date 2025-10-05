@@ -27,7 +27,7 @@ namespace Bess::Canvas::Commands {
             : m_uuid(uuid), m_newData(data), m_skipApply(skip) {}
 
         void apply(entt::registry &reg) override {
-            auto ent = Scene::instance().getEntityWithUuid(m_uuid);
+            auto ent = Scene::instance()->getEntityWithUuid(m_uuid);
             if (m_skipApply) {
                 m_oldData = m_newData;
                 m_newData = reg.get<T>(ent);
@@ -41,12 +41,12 @@ namespace Bess::Canvas::Commands {
         }
 
         void undo(entt::registry &reg) override {
-            auto ent = Scene::instance().getEntityWithUuid(m_uuid);
+            auto ent = Scene::instance()->getEntityWithUuid(m_uuid);
             reg.emplace_or_replace<T>(ent, m_oldData);
         }
 
         void redo(entt::registry &reg) override {
-            auto ent = Scene::instance().getEntityWithUuid(m_uuid);
+            auto ent = Scene::instance()->getEntityWithUuid(m_uuid);
             reg.emplace_or_replace<T>(ent, m_newData);
         }
     };

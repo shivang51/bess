@@ -2,40 +2,30 @@
 #include "asset_manager/asset_loader.h"
 #include "font.h"
 #include "msdf_font.h"
+#include "scene/renderer/vulkan/vulkan_core.h"
 #include "vulkan/vulkan_shader.h"
-#include "vulkan/vulkan_texture.h"
 #include "vulkan/vulkan_subtexture.h"
+#include "vulkan/vulkan_texture.h"
 
 #include <memory>
+#include <stdexcept>
 
 namespace Bess::Assets {
     // Vulkan shader loader
     template <>
     struct AssetLoader<Bess::Renderer2D::Vulkan::VulkanShader> {
-        static std::shared_ptr<Bess::Renderer2D::Vulkan::VulkanShader> load(const std::string& vertPath, const std::string& fragPath) {
-            // TODO: Get device from renderer context
-            // For now, return nullptr as placeholder
+        static std::shared_ptr<Bess::Renderer2D::Vulkan::VulkanShader> load(const std::string &vertPath, const std::string &fragPath) {
+            throw std::runtime_error("VkShader Not Implmented");
             return nullptr;
         }
     };
 
-    // Vulkan texture loader
     template <>
     struct AssetLoader<Bess::Renderer2D::Vulkan::VulkanTexture> {
-        static std::shared_ptr<Bess::Renderer2D::Vulkan::VulkanTexture> load(const std::string& path) {
-            // TODO: Get device from renderer context
-            // For now, return nullptr as placeholder
-            return nullptr;
+        static std::shared_ptr<Bess::Renderer2D::Vulkan::VulkanTexture> load(const std::string &path) {
+            return std::make_shared<Renderer2D::Vulkan::VulkanTexture>(Renderer2D::VulkanCore::instance().getDevice(), path);
         }
     };
-
-    // Vulkan subtexture loader - temporarily disabled due to constructor issues
-    // template <>
-    // struct AssetLoader<Bess::Renderer2D::Vulkan::VulkanSubTexture> {
-    //     static std::shared_ptr<Bess::Renderer2D::Vulkan::VulkanSubTexture> load(std::shared_ptr<Bess::Renderer2D::Vulkan::VulkanTexture> texture, const glm::vec2& min, const glm::vec2& max) {
-    //         return std::make_shared<Bess::Renderer2D::Vulkan::VulkanSubTexture>(std::move(texture), min, max);
-    //     }
-    // };
 
     template <>
     struct AssetLoader<Bess::Renderer2D::Font> {
@@ -47,7 +37,7 @@ namespace Bess::Assets {
     template <>
     struct AssetLoader<Bess::Renderer2D::MsdfFont> {
         static std::shared_ptr<Bess::Renderer2D::MsdfFont> load(const std::string &path, const std::string &json) {
-            return std::make_shared<Bess::Renderer2D::MsdfFont>(path, json);
+            return std::make_shared<Bess::Renderer2D::MsdfFont>(path, json, Renderer2D::VulkanCore::instance().getDevice());
         }
     };
 

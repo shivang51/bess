@@ -5,7 +5,7 @@
 
 namespace Bess::Canvas {
 
-    ArtistManager::ArtistManager(Scene *scene)
+    ArtistManager::ArtistManager(std::shared_ptr<Scene> scene)
         : m_scene(scene),
           m_schematicArtist(std::make_shared<SchematicArtist>(scene)),
           m_nodesArtist(std::make_shared<NodesArtist>(scene)), m_isSchematicMode(false) {

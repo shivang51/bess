@@ -6,11 +6,10 @@
 #include "ext/vector_float3.hpp"
 #include "scene/artist/nodes_artist.h"
 #include "scene/components/components.h"
-#include "common/log.h"
 #include "scene/renderer/vulkan/vulkan_core.h"
-#include "scene/renderer/vulkan_renderer.h"
-#include "scene/renderer/vulkan/vulkan_texture.h"
 #include "scene/renderer/vulkan/vulkan_subtexture.h"
+#include "scene/renderer/vulkan/vulkan_texture.h"
+#include "scene/renderer/vulkan_renderer.h"
 #include "scene/scene.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
@@ -22,7 +21,7 @@ using namespace Bess::Renderer2D;
 namespace Bess::Canvas {
     ArtistTools BaseArtist::m_artistTools;
 
-    BaseArtist::BaseArtist(Scene *scene) : m_sceneRef(scene) {
+    BaseArtist::BaseArtist(std::shared_ptr<Scene> scene) : m_sceneRef(scene) {
         static bool initialized = false;
         if (!initialized) {
             init();
@@ -34,15 +33,15 @@ namespace Bess::Canvas {
         auto tex = Assets::AssetManager::instance().get(Assets::TileMaps::sevenSegDisplay);
         float margin = 4.F;
         glm::vec2 size(128.F, 234.F);
-        m_artistTools.sevenSegDispTexs = std::array<std::shared_ptr<Vulkan::VulkanSubTexture>, 8>{
-            std::make_shared<Vulkan::VulkanSubTexture>(tex, glm::vec2({0.F, 0.F}), size),
-            std::make_shared<Vulkan::VulkanSubTexture>(tex, glm::vec2({1.F, 0.F}), size),
-            std::make_shared<Vulkan::VulkanSubTexture>(tex, glm::vec2({2.F, 0.F}), size),
-            std::make_shared<Vulkan::VulkanSubTexture>(tex, glm::vec2({3.F, 0.F}), size),
-            std::make_shared<Vulkan::VulkanSubTexture>(tex, glm::vec2({4.F, 0.F}), size),
-            std::make_shared<Vulkan::VulkanSubTexture>(tex, glm::vec2({0.F, 1.F}), size),
-            std::make_shared<Vulkan::VulkanSubTexture>(tex, glm::vec2({1.F, 1.F}), size),
-            std::make_shared<Vulkan::VulkanSubTexture>(tex, glm::vec2({2.F, 1.F}), size),
+        m_artistTools.sevenSegDispTexs = std::array<std::shared_ptr<Vulkan::SubTexture>, 8>{
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({0.F, 0.F}), size),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({1.F, 0.F}), size),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({2.F, 0.F}), size),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({3.F, 0.F}), size),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({4.F, 0.F}), size),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({0.F, 1.F}), size),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({1.F, 1.F}), size),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({2.F, 1.F}), size),
         };
     }
 
@@ -177,7 +176,7 @@ namespace Bess::Canvas {
                 pos.y -= size.y * 0.25f;
                 size.x += componentStyles.paddingX * 2.f;
                 size.y += componentStyles.paddingY * 2.f;
-            VulkanRenderer::quad(pos, size, ViewportTheme::colors.componentBG, id, props);
+                VulkanRenderer::quad(pos, size, ViewportTheme::colors.componentBG, id, props);
             }
         } break;
         default:

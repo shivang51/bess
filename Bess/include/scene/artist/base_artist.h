@@ -18,7 +18,7 @@ using namespace Bess::Renderer2D;
 namespace Bess::Canvas {
 
     struct ArtistTools {
-        std::array<std::shared_ptr<Vulkan::VulkanSubTexture>, 8> sevenSegDispTexs;
+        std::array<std::shared_ptr<Vulkan::SubTexture>, 8> sevenSegDispTexs;
     };
 
     struct ArtistInstructions {
@@ -27,7 +27,7 @@ namespace Bess::Canvas {
 
     class BaseArtist {
       public:
-        explicit BaseArtist(Scene *scene);
+        explicit BaseArtist(std::shared_ptr<Scene> scene);
         virtual ~BaseArtist() = default;
 
         static void init();
@@ -63,8 +63,8 @@ namespace Bess::Canvas {
 
         virtual void drawConnection(const UUID &id, entt::entity inputEntity, entt::entity outputEntity, bool isSelected);
 
-        Scene* m_sceneRef;
-        ArtistInstructions m_instructions;
+        std::shared_ptr<Scene> m_sceneRef = nullptr;
+        ArtistInstructions m_instructions = {};
 
         static ArtistTools m_artistTools;
     };

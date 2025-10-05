@@ -37,8 +37,8 @@ namespace Bess::Renderer2D {
 
       public:
         static VulkanCore &instance() {
-            static VulkanCore render;
-            return render;
+            static VulkanCore inst;
+            return inst;
         }
 
         static bool isInitialized;

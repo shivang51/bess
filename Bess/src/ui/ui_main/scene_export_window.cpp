@@ -47,7 +47,7 @@ namespace Bess::UI {
     };
 
     SceneBounds computeSceneBounds() {
-        const auto &reg = Canvas::Scene::instance().getEnttRegistry();
+        const auto &reg = Canvas::Scene::instance()->getEnttRegistry();
         const auto view = reg.view<Canvas::Components::TransformComponent>();
 
         glm::vec2 min, max;
@@ -75,7 +75,7 @@ namespace Bess::UI {
     }
 
     SceneExportInfo getSceneExportInfo(const SceneBounds &bounds, float zoom) {
-        auto size = Canvas::Scene::instance().getSize();
+        auto size = Canvas::Scene::instance()->getSize();
         std::shared_ptr<Camera> camera = std::make_shared<Camera>(size.x, size.y);
         camera->setPos(bounds.min);
         camera->setZoom(zoom);
@@ -193,7 +193,7 @@ namespace Bess::UI {
                 // Gl::FrameBuffer::unbindAll();
 
                 // snapsData.emplace_back(normalFramebuffer->getPixelsFromColorAttachment(0));
-                
+
                 // Placeholder: create empty data for now
                 snapsData.emplace_back(std::vector<unsigned char>(size.x * size.y * 4, 0));
 

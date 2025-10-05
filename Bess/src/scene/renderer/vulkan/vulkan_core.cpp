@@ -21,11 +21,11 @@ namespace Bess::Renderer2D {
                           const SurfaceCreationCB &createSurface,
                           VkExtent2D windowExtent) {
         if (isInitialized) {
-            BESS_WARN("Reinitialization of renderer was called...skipping");
+            BESS_WARN("Reinitialization of VulkaCore was called...skipping");
             return;
         }
 
-        BESS_INFO("Initializing Renderer");
+        BESS_INFO("Initializing VulkanCore");
 
         initVkInstance(winExt);
         createDebugMessenger();

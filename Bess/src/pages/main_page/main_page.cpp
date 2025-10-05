@@ -38,26 +38,26 @@ namespace Bess::Pages {
         auto &instance = Renderer2D::VulkanCore::instance();
         instance.init(extensions, createSurface, extent);
 
-        // Initialize VulkanRenderer after VulkanCore
         Renderer2D::VulkanRenderer::init();
 
         m_state = MainPageState::getInstance();
 
-        UI::UIMain::setViewportTexture(m_scene.getTextureId());
+        m_scene = Canvas::Scene::instance();
+        UI::UIMain::setViewportTexture(m_scene->getTextureId());
     }
 
     void MainPage::draw() {
-        m_scene.render();
-        
+        m_scene->render();
+
         UI::UIMain::draw();
     }
 
     void MainPage::update(TFrameTime ts, const std::vector<ApplicationEvent> &events) {
-        if (m_scene.getSize() != UI::UIMain::state.viewportSize) {
-            m_scene.resize(UI::UIMain::state.viewportSize);
+        if (m_scene->getSize() != UI::UIMain::state.viewportSize) {
+            m_scene->resize(UI::UIMain::state.viewportSize);
         }
 
-        for (auto &event : events) {
+        for (const auto &event : events) {
             switch (event.getType()) {
             case ApplicationEventType::KeyPress: {
                 const auto data = event.getData<ApplicationEvent::KeyPressData>();
@@ -73,14 +73,14 @@ namespace Bess::Pages {
         }
 
         if (UI::UIMain::state.isViewportFocused)
-            m_scene.update(ts, events);
+            m_scene->update(ts, events);
     }
 
     std::shared_ptr<Window> MainPage::getParentWindow() {
         return m_parentWindow;
     }
 
-    Canvas::Scene &MainPage::getScene() const {
+    std::shared_ptr<Canvas::Scene> MainPage::getScene() const {
         return m_scene;
     }
 

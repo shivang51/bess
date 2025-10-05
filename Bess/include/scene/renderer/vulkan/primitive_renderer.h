@@ -4,6 +4,7 @@
 #include "pipelines/grid_pipeline.h"
 #include "pipelines/quad_pipeline.h"
 #include "primitive_vertex.h"
+#include "scene/renderer/vulkan/vulkan_subtexture.h"
 #include "scene/renderer/vulkan/vulkan_texture.h"
 #include "vulkan_offscreen_render_pass.h"
 #include <memory>
@@ -39,6 +40,7 @@ namespace Bess::Renderer2D::Vulkan {
                       const glm::vec4 &borderSize,
                       const glm::vec4 &borderColor,
                       int isMica);
+
         void drawTexturedQuad(const glm::vec3 &pos,
                               const glm::vec2 &size,
                               const glm::vec4 &tint,
@@ -47,7 +49,18 @@ namespace Bess::Renderer2D::Vulkan {
                               const glm::vec4 &borderSize,
                               const glm::vec4 &borderColor,
                               int isMica,
-                              const std::shared_ptr<class VulkanTexture> &texture);
+                              const std::shared_ptr<VulkanTexture> &texture);
+
+        void drawTexturedQuad(const glm::vec3 &pos,
+                              const glm::vec2 &size,
+                              const glm::vec4 &tint,
+                              int id,
+                              const glm::vec4 &borderRadius,
+                              const glm::vec4 &borderSize,
+                              const glm::vec4 &borderColor,
+                              int isMica,
+                              const std::shared_ptr<SubTexture> &subTexture);
+
         void drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, int id, float innerRadius = 0.0F);
         void drawLine(const glm::vec3 &start, const glm::vec3 &end, float width, const glm::vec4 &color, int id);
 

@@ -131,8 +131,8 @@ namespace Bess {
 
     void ProjectFile::patchFile() const {
         using namespace Bess::Canvas;
-        auto &scene = Canvas::Scene::instance();
-        auto &reg = scene.getEnttRegistry();
+        auto scene = Canvas::Scene::instance();
+        auto &reg = scene->getEnttRegistry();
 
         for (auto &ent : reg.view<entt::entity>()) {
             auto *comp = reg.try_get<Components::TagComponent>(ent);
@@ -158,19 +158,19 @@ namespace Bess {
                         BESS_WARN("Patching flip flop input count...");
 
                         simEngine.updateInputCount(simComp->simEngineEntity, 4);
-                        simComp->inputSlots.emplace_back(scene.createSlotEntity(Components::SlotType::digitalInput, idComp.uuid, 3));
+                        simComp->inputSlots.emplace_back(scene->createSlotEntity(Components::SlotType::digitalInput, idComp.uuid, 3));
                     } else if ((comp->type.simCompType == SimEngine::ComponentType::FLIP_FLOP_D ||
                                 comp->type.simCompType == SimEngine::ComponentType::FLIP_FLOP_T) &&
                                simComp->inputSlots.size() != 3) {
                         BESS_WARN("Patching flip flop input count...");
                         simEngine.updateInputCount(simComp->simEngineEntity, 3);
-                        simComp->inputSlots.emplace_back(scene.createSlotEntity(Components::SlotType::digitalInput, idComp.uuid, 2));
+                        simComp->inputSlots.emplace_back(scene->createSlotEntity(Components::SlotType::digitalInput, idComp.uuid, 2));
                     }
 
                     auto connView = reg.view<Components::IdComponent, Components::ConnectionComponent>();
 
                     for (const auto slotUuid : simComp->inputSlots) {
-                        auto &slotComp = reg.get<Components::SlotComponent>(scene.getEntityWithUuid(slotUuid));
+                        auto &slotComp = reg.get<Components::SlotComponent>(scene->getEntityWithUuid(slotUuid));
                         if (!slotComp.connections.empty())
                             continue;
                         std::set<UUID> connections = {};
@@ -188,7 +188,7 @@ namespace Bess {
                     }
 
                     for (const auto slotUuid : simComp->outputSlots) {
-                        auto &slotComp = reg.get<Components::SlotComponent>(scene.getEntityWithUuid(slotUuid));
+                        auto &slotComp = reg.get<Components::SlotComponent>(scene->getEntityWithUuid(slotUuid));
                         if (!slotComp.connections.empty())
                             continue;
                         std::set<UUID> connections = {};

@@ -23,10 +23,10 @@ namespace Bess::UI {
         if (!isShown)
             return;
 
-        auto &reg = Canvas::Scene::instance().getEnttRegistry();
+        auto &reg = Canvas::Scene::instance()->getEnttRegistry();
         const auto view = reg.view<Bess::Canvas::Components::TagComponent,
-                             Bess::Canvas::Components::SimulationStateMonitor,
-                             Bess::Canvas::Components::SimulationComponent>();
+                                   Bess::Canvas::Components::SimulationStateMonitor,
+                                   Bess::Canvas::Components::SimulationComponent>();
 
         ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 

@@ -5,11 +5,12 @@
 #include "ext/vector_float3.hpp"
 #include "scene/artist/nodes_artist.h"
 #include "scene/components/components.h"
-#include "scene/renderer/vulkan_renderer.h"
-#include "scene/renderer/vulkan/vulkan_texture.h"
 #include "scene/renderer/vulkan/vulkan_subtexture.h"
+#include "scene/renderer/vulkan/vulkan_texture.h"
+#include "scene/renderer/vulkan_renderer.h"
 #include "scene/scene.h"
 #include "settings/viewport_theme.h"
+#include <memory>
 #include <string>
 
 using Renderer = Bess::Renderer2D::VulkanCore;
@@ -33,7 +34,7 @@ namespace Bess::Canvas {
 
     constexpr float SCHEMATIC_VIEW_PIN_ROW_SIZE = schematicCompStyles.nameFontSize + schematicCompStyles.strokeSize + schematicCompStyles.pinRowGap;
 
-    SchematicArtist::SchematicArtist(Scene *scene) : BaseArtist(scene) {
+    SchematicArtist::SchematicArtist(std::shared_ptr<Scene> scene) : BaseArtist(scene) {
     }
 
     void SchematicArtist::drawSimEntity(
@@ -91,8 +92,8 @@ namespace Bess::Canvas {
             float texWidth = 60;
             float texHeight = (texSize.y / texSize.x) * texWidth;
             const glm::vec3 texPos = {pos.x,
-                                pos.y,
-                                transform.position.z + 0.0001};
+                                      pos.y,
+                                      transform.position.z + 0.0001};
 
             VulkanRenderer::quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), static_cast<int>(entity));
 

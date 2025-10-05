@@ -3,6 +3,7 @@
 #include "camera.h"
 #include "scene/renderer/vulkan/primitive_renderer.h"
 #include "scene/renderer/vulkan/vulkan_core.h"
+#include "scene/renderer/vulkan/vulkan_subtexture.h"
 #include <glm.hpp>
 #include <memory>
 
@@ -41,6 +42,10 @@ namespace Bess::Renderer2D {
                          const glm::vec4 &color, int id, QuadRenderProperties properties = {});
         static void texturedQuad(const glm::vec3 &pos, const glm::vec2 &size,
                                  const std::shared_ptr<Vulkan::VulkanTexture> &texture,
+                                 const glm::vec4 &tintColor, int id, QuadRenderProperties properties = {});
+
+        static void texturedQuad(const glm::vec3 &pos, const glm::vec2 &size,
+                                 const std::shared_ptr<Vulkan::SubTexture> &texture,
                                  const glm::vec4 &tintColor, int id, QuadRenderProperties properties = {});
 
       private:

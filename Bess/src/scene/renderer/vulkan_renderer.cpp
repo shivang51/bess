@@ -74,4 +74,20 @@ namespace Bess::Renderer2D {
             properties.isMica ? 1 : 0,
             texture);
     }
+
+    void VulkanRenderer::texturedQuad(const glm::vec3 &pos, const glm::vec2 &size,
+                                      const std::shared_ptr<Vulkan::SubTexture> &texture,
+                                      const glm::vec4 &tintColor, int id, QuadRenderProperties properties) {
+        auto primitiveRenderer = VulkanCore::instance().getPrimitiveRenderer().lock();
+        primitiveRenderer->drawTexturedQuad(
+            pos,
+            size,
+            tintColor,
+            id,
+            properties.borderRadius,
+            properties.borderSize,
+            properties.borderColor,
+            properties.isMica ? 1 : 0,
+            texture);
+    }
 } // namespace Bess::Renderer2D

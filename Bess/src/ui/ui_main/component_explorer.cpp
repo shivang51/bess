@@ -97,13 +97,13 @@ namespace Bess::UI {
     }
 
     void ComponentExplorer::createComponent(std::shared_ptr<const SimEngine::ComponentDefinition> def, const int inputCount, const int outputCount) {
-        auto &scene = Canvas::Scene::instance();
+        auto scene = Canvas::Scene::instance();
         Canvas::Commands::AddCommandData data;
         data.def = def;
-        data.pos = scene.getCameraPos();
+        data.pos = scene->getCameraPos();
         data.inputCount = inputCount;
         data.outputCount = outputCount;
-        auto &cmdManager = scene.getCmdManager();
+        auto &cmdManager = scene->getCmdManager();
         const auto res = cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{data});
         if (!res.has_value()) {
             BESS_ERROR("[ComponentExplorer] Failed to execute AddCommand");
@@ -111,11 +111,11 @@ namespace Bess::UI {
     }
 
     void ComponentExplorer::createComponent(const Canvas::Components::NSComponent &comp) {
-        auto &scene = Canvas::Scene::instance();
+        auto scene = Canvas::Scene::instance();
         Canvas::Commands::AddCommandData data;
         data.nsComp = comp;
-        data.pos = scene.getCameraPos();
-        auto &cmdManager = scene.getCmdManager();
+        data.pos = scene->getCameraPos();
+        auto &cmdManager = scene->getCmdManager();
         const auto res = cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{data});
         if (!res.has_value()) {
             BESS_ERROR("[ComponentExplorer] Failed to execute AddCommand");

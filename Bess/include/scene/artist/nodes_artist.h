@@ -31,7 +31,7 @@ namespace Bess::Canvas {
 
     class NodesArtist : public BaseArtist {
       public:
-        NodesArtist(Scene *scene);
+        NodesArtist(std::shared_ptr<Scene> scene);
         virtual ~NodesArtist() = default;
 
         void drawSimEntity(

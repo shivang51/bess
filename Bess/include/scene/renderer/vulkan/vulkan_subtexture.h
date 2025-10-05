@@ -1,36 +1,42 @@
 #pragma once
 
-#include <memory>
 #include "glm.hpp"
+#include <memory>
+#include <vector>
 
 namespace Bess::Renderer2D::Vulkan {
 
     class VulkanTexture;
 
-    class VulkanSubTexture {
-    public:
-        VulkanSubTexture(std::shared_ptr<VulkanTexture> texture, const glm::vec2& min, const glm::vec2& max);
-        VulkanSubTexture(std::shared_ptr<VulkanTexture> texture, const glm::vec2& coords, const glm::vec2& cellSize, const glm::vec2& spriteSize);
+    class SubTexture {
+      public:
+        SubTexture() = default;
+        SubTexture(std::shared_ptr<VulkanTexture> texture, const glm::vec2 &coord, const glm::vec2 &spriteSize);
 
-        // Delete copy constructor and assignment operator
-        VulkanSubTexture(const VulkanSubTexture&) = delete;
-        VulkanSubTexture& operator=(const VulkanSubTexture&) = delete;
+        SubTexture(std::shared_ptr<VulkanTexture> texture, const glm::vec2 &coord, const glm::vec2 &spriteSize,
+                   float margin, const glm::vec2 &cellSize);
 
-        // Move constructor and assignment operator
-        VulkanSubTexture(VulkanSubTexture&& other) noexcept;
-        VulkanSubTexture& operator=(VulkanSubTexture&& other) noexcept;
+        const glm::vec4 &getStartWH() const;
 
-        std::shared_ptr<VulkanTexture> getTexture() const { return m_texture; }
-        const glm::vec2* getTexCoords() const { return m_texCoords; }
         glm::vec2 getScale() const;
-        const glm::vec2& getMin() const { return m_texCoords[0]; }
-        const glm::vec2& getMax() const { return m_texCoords[2]; }
 
-    private:
+        const std::vector<glm::vec2> &getTexCoords() const;
+
+        std::shared_ptr<VulkanTexture> getTexture();
+
+        void calcCoordsFrom(std::shared_ptr<VulkanTexture> tex, const glm::vec2 &pos, const glm::vec2 &size);
+
+      private:
+        void calculateCoords();
+
+      private:
         std::shared_ptr<VulkanTexture> m_texture;
-        glm::vec2 m_texCoords[4];
-
-        void calculateTexCoords(const glm::vec2& min, const glm::vec2& max);
+        glm::vec2 m_coord;
+        glm::vec2 m_spriteSize;
+        float m_margin;
+        glm::vec2 m_cellSize;
+        std::vector<glm::vec2> m_texCoords;
+        glm::vec4 m_startWH;
     };
 
 } // namespace Bess::Renderer2D::Vulkan

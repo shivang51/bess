@@ -1,5 +1,6 @@
 #include "application.h"
 #include "application_state.h"
+#include "asset_manager/asset_manager.h"
 #include "common/log.h"
 #include "events/application_event.h"
 #include "pages/main_page/main_page.h"
@@ -16,6 +17,7 @@
 
 namespace Bess {
     Application::~Application() {
+        Assets::AssetManager::instance().clear();
         Renderer2D::VulkanCore::instance().cleanup();
         UI::shutdown();
         shutdown();
