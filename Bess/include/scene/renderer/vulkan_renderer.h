@@ -50,6 +50,9 @@ namespace Bess::Renderer2D {
         static void circle(const glm::vec3 &center, float radius,
                           const glm::vec4 &color, int id, float innerRadius = 0.0f);
 
+        static void msdfText(const std::string &text, const glm::vec3 &pos, const size_t size,
+                            const glm::vec4 &color, const int id, float angle = 0.0f);
+
       private:
         static std::shared_ptr<Camera> m_camera;
     };

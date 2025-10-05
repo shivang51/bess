@@ -11,6 +11,7 @@ namespace Bess::Renderer2D::Vulkan {
         m_circlePipeline = std::make_unique<Pipelines::CirclePipeline>(device, renderPass, extent);
         m_gridPipeline = std::make_unique<Pipelines::GridPipeline>(device, renderPass, extent);
         m_quadPipeline = std::make_unique<Pipelines::QuadPipeline>(device, renderPass, extent);
+        m_textPipeline = std::make_unique<Pipelines::TextPipeline>(device, renderPass, extent);
     }
 
     PrimitiveRenderer::~PrimitiveRenderer() {
@@ -27,6 +28,7 @@ namespace Bess::Renderer2D::Vulkan {
           m_circlePipeline(std::move(other.m_circlePipeline)),
           m_gridPipeline(std::move(other.m_gridPipeline)),
           m_quadPipeline(std::move(other.m_quadPipeline)),
+          m_textPipeline(std::move(other.m_textPipeline)),
           m_currentCommandBuffer(other.m_currentCommandBuffer) {
         other.m_currentCommandBuffer = VK_NULL_HANDLE;
     }
@@ -39,6 +41,7 @@ namespace Bess::Renderer2D::Vulkan {
             m_circlePipeline = std::move(other.m_circlePipeline);
             m_gridPipeline = std::move(other.m_gridPipeline);
             m_quadPipeline = std::move(other.m_quadPipeline);
+            m_textPipeline = std::move(other.m_textPipeline);
             m_currentCommandBuffer = other.m_currentCommandBuffer;
 
             other.m_currentCommandBuffer = VK_NULL_HANDLE;
@@ -57,6 +60,14 @@ namespace Bess::Renderer2D::Vulkan {
             m_circlePipeline->endPipeline();
             m_opaqueCircleInstances.clear();
             m_translucentCircleInstances.clear();
+        }
+
+        if (m_textPipeline) {
+            m_textPipeline->beginPipeline(m_currentCommandBuffer);
+            m_textPipeline->setTextData(m_opaqueTextInstances, m_translucentTextInstances);
+            m_textPipeline->endPipeline();
+            m_opaqueTextInstances.clear();
+            m_translucentTextInstances.clear();
         }
 
         if (m_gridPipeline) {
@@ -82,6 +93,9 @@ namespace Bess::Renderer2D::Vulkan {
     void PrimitiveRenderer::setCurrentFrameIndex(uint32_t frameIndex) {
         if (m_circlePipeline) {
             m_circlePipeline->setCurrentFrameIndex(frameIndex);
+        }
+        if (m_textPipeline) {
+            m_textPipeline->setCurrentFrameIndex(frameIndex);
         }
         if (m_gridPipeline) {
             m_gridPipeline->setCurrentFrameIndex(frameIndex);
@@ -213,6 +227,16 @@ namespace Bess::Renderer2D::Vulkan {
     void PrimitiveRenderer::drawLine(const glm::vec3 &start, const glm::vec3 &end, float width, const glm::vec4 &color, int id) {
     }
 
+    void PrimitiveRenderer::drawText(const std::vector<InstanceVertex> &opaque, const std::vector<InstanceVertex> &translucent) {
+        if (!m_textPipeline) {
+            BESS_WARN("[PrimitiveRenderer] Text pipeline not available");
+            return;
+        }
+
+        m_opaqueTextInstances.insert(m_opaqueTextInstances.end(), opaque.begin(), opaque.end());
+        m_translucentTextInstances.insert(m_translucentTextInstances.end(), translucent.begin(), translucent.end());
+    }
+
     void PrimitiveRenderer::updateUniformBuffer(const GridUniforms &gridUniforms) {
         if (m_gridPipeline) {
             m_gridPipeline->updateGridUniforms(gridUniforms);
@@ -223,11 +247,20 @@ namespace Bess::Renderer2D::Vulkan {
         if (m_circlePipeline) {
             m_circlePipeline->updateUniformBuffer(ubo);
         }
+        if (m_textPipeline) {
+            m_textPipeline->updateUniformBuffer(ubo);
+        }
         if (m_gridPipeline) {
             m_gridPipeline->updateUniformBuffer(ubo);
         }
         if (m_quadPipeline) {
             m_quadPipeline->updateUniformBuffer(ubo);
+        }
+    }
+
+    void PrimitiveRenderer::updateTextUniforms(const TextUniforms &textUniforms) {
+        if (m_textPipeline) {
+            m_textPipeline->updateTextUniforms(textUniforms);
         }
     }
 

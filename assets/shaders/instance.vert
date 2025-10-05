@@ -1,4 +1,4 @@
-#version 460 core
+#version 460
 
 layout (location = 0) in vec2 a_LocalPosition; 
 layout (location = 1) in vec2 a_LocalTexCoord;
@@ -11,12 +11,15 @@ layout(location = 6) in int a_FragId;
 layout(location = 7) in int a_TexSlotIdx;
 layout(location = 8) in vec4 a_TexData;
 
-out vec4 v_FragColor;
-out vec2 v_TexCoord;
-out flat int v_FragId;
-out flat int v_TexSlotIdx;
+layout(location = 0) out vec4 v_FragColor;
+layout(location = 1) out vec2 v_TexCoord;
+layout(location = 2) out flat int v_FragId;
+layout(location = 3) out flat int v_TexSlotIdx;
 
-uniform mat4 u_mvp;
+layout(binding = 0) uniform UniformBufferObject {
+    mat4 u_mvp;
+    mat4 u_ortho;
+};
 
 void main() {
     vec2 transformedPos;

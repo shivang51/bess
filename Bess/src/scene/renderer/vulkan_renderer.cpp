@@ -1,4 +1,6 @@
 #include "scene/renderer/vulkan_renderer.h"
+#include "asset_manager/asset_manager.h"
+#include "assets.h"
 #include "common/log.h"
 
 namespace Bess::Renderer2D {
@@ -92,8 +94,74 @@ namespace Bess::Renderer2D {
     }
 
     void VulkanRenderer::circle(const glm::vec3 &center, const float radius,
-                               const glm::vec4 &color, const int id, float innerRadius) {
+                                const glm::vec4 &color, const int id, float innerRadius) {
         auto primitiveRenderer = VulkanCore::instance().getPrimitiveRenderer().lock();
         primitiveRenderer->drawCircle(center, radius, color, id, innerRadius);
+    }
+
+    void VulkanRenderer::msdfText(const std::string &text, const glm::vec3 &pos, const size_t size,
+                                  const glm::vec4 &color, const int id, float angle) {
+        // Command to use to generate MSDF font texture atlas
+        // https://github.com/Chlumsky/msdf-atlas-gen
+        // msdf-atlas-gen -font Roboto-Regular.ttf -type mtsdf -size 64 -imageout roboto_mtsdf.png -json roboto.json -pxrange 4
+
+        if (text.empty())
+            return;
+
+        auto msdfFont = Assets::AssetManager::instance().get(Assets::Fonts::robotoMsdf);
+        if (!msdfFont) {
+            BESS_WARN("[VulkanRenderer] MSDF font not available");
+            return;
+        }
+
+        float scale = size;
+        float lineHeight = msdfFont->getLineHeight() * scale;
+
+        MsdfCharacter yCharInfo = msdfFont->getCharacterData('y');
+        MsdfCharacter wCharInfo = msdfFont->getCharacterData('W');
+
+        float baseLineOff = yCharInfo.offset.y - wCharInfo.offset.y;
+
+        glm::vec2 charPos = pos;
+        std::vector<Vulkan::InstanceVertex> opaqueInstances;
+        std::vector<Vulkan::InstanceVertex> translucentInstances;
+
+        for (auto &ch : text) {
+            const MsdfCharacter &charInfo = msdfFont->getCharacterData(ch);
+            if (ch == ' ') {
+                charPos.x += charInfo.advance * scale;
+                continue;
+            }
+            const auto &subTexture = charInfo.subTexture;
+            glm::vec2 size_ = charInfo.size * scale;
+            float xOff = (charInfo.offset.x + charInfo.size.x / 2.f) * scale;
+            float yOff = (charInfo.offset.y + charInfo.size.y / 2.f) * scale;
+
+            Vulkan::InstanceVertex vertex{};
+            vertex.position = {charPos.x + xOff, charPos.y - yOff, pos.z};
+            vertex.size = size_;
+            vertex.angle = angle;
+            vertex.color = color;
+            vertex.id = id;
+            vertex.texSlotIdx = 1;
+            vertex.texData = subTexture->getStartWH();
+            
+
+            if (color.a == 1.f) {
+                opaqueInstances.emplace_back(vertex);
+            } else {
+                translucentInstances.emplace_back(vertex);
+            }
+
+            charPos.x += charInfo.advance * scale;
+        }
+
+        // Set up text uniforms (pxRange for MSDF rendering)
+        Vulkan::TextUniforms textUniforms{};
+        textUniforms.pxRange = 4.0f; // Standard MSDF pxRange value
+
+        auto primitiveRenderer = VulkanCore::instance().getPrimitiveRenderer().lock();
+        primitiveRenderer->updateTextUniforms(textUniforms);
+        primitiveRenderer->drawText(opaqueInstances, translucentInstances);
     }
 } // namespace Bess::Renderer2D

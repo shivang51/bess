@@ -55,8 +55,8 @@ namespace Bess::Renderer2D {
 
                 auto atlasPos = glm::vec2(atlasBounds.left, m_fontTextureAtlas->getHeight() - atlasBounds.top);
                 auto atlasSize = glm::vec2(atlasBounds.right - atlasBounds.left, atlasBounds.top - atlasBounds.bottom);
-                auto atlasMax = atlasPos + atlasSize;
-                auto subTex = std::make_shared<Vulkan::SubTexture>(m_fontTextureAtlas, atlasPos, atlasMax);
+                auto subTex = std::make_shared<Vulkan::SubTexture>();
+                subTex->calcCoordsFrom(m_fontTextureAtlas, atlasPos, atlasSize);
                 character.subTexture = subTex;
             }
 

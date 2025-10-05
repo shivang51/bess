@@ -276,6 +276,7 @@ namespace Bess::Canvas {
         props.borderRadius = glm::vec4(16.f);
 
         Renderer2D::VulkanRenderer::circle({0.f, 0.f, 4.5f}, 50, glm::vec4(1.f), 0, 25);
+        Renderer2D::VulkanRenderer::msdfText("This is vulkan", {0.f, 0.f, 5.f}, 20.f, glm::vec4(1.f), 0);
 
         int b = 0;
 

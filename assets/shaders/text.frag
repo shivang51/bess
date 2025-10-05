@@ -1,15 +1,17 @@
-#version 460 core
+#version 460
 
 layout(location = 0) out vec4 fragColor;
 layout(location = 1) out int fragColor1;
 
-in vec2 v_TexCoord;
-in vec4 v_FragColor;
-in flat int v_FragId;
-in flat int v_TexSlotIdx;
+layout(location = 0) in vec4 v_FragColor;
+layout(location = 1) in vec2 v_TexCoord;
+layout(location = 2) in flat int v_FragId;
+layout(location = 3) in flat int v_TexSlotIdx;
 
-uniform sampler2D u_Textures[32];
-uniform float u_pxRange;
+layout(set = 1, binding = 2) uniform sampler2D u_Textures[32];
+layout(binding = 1) uniform TextUniforms {
+    float u_pxRange;
+};
 
 float median(float r, float g, float b) {
     return max(min(r, g), min(max(r, g), b));

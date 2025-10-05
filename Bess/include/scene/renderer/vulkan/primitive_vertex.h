@@ -98,4 +98,22 @@ namespace Bess::Renderer2D::Vulkan {
         int id;                 // location 6
     };
 
+    struct InstanceVertex {
+        glm::vec3 position;     // location 2
+        glm::vec2 size;         // location 3
+        float angle;            // location 4
+        glm::vec4 color;        // location 5
+        int id;                 // location 6
+        int texSlotIdx;         // location 7
+        glm::vec4 texData;      // location 8
+    };
+
+    // Text uniforms for MSDF rendering
+    struct TextUniforms {
+        float pxRange;          // offset 0
+        float _pad0;            // pad to 8 for next vec2
+        float _pad1;            // pad to 12
+        float _pad2;            // pad to 16 (multiple of 16)
+    };
+
 } // namespace Bess::Renderer2D::Vulkan
