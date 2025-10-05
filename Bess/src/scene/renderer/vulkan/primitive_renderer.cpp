@@ -8,19 +8,23 @@ namespace Bess::Renderer2D::Vulkan {
                                          VkExtent2D extent)
         : m_device(device), m_renderPass(renderPass), m_extent(extent) {
 
-        // Create pipeline instances
+        m_circlePipeline = std::make_unique<Pipelines::CirclePipeline>(device, renderPass, extent);
         m_gridPipeline = std::make_unique<Pipelines::GridPipeline>(device, renderPass, extent);
         m_quadPipeline = std::make_unique<Pipelines::QuadPipeline>(device, renderPass, extent);
     }
 
     PrimitiveRenderer::~PrimitiveRenderer() {
-        // Pipeline destructors will handle cleanup
+        BESS_INFO("[PrimitiveRenderer] Destroying");
+        // m_circlePipeline->cleanup();
+        // m_quadPipeline->cleanup();
+        // m_gridPipeline->cleanup();
     }
 
     PrimitiveRenderer::PrimitiveRenderer(PrimitiveRenderer &&other) noexcept
         : m_device(std::move(other.m_device)),
           m_renderPass(std::move(other.m_renderPass)),
           m_extent(other.m_extent),
+          m_circlePipeline(std::move(other.m_circlePipeline)),
           m_gridPipeline(std::move(other.m_gridPipeline)),
           m_quadPipeline(std::move(other.m_quadPipeline)),
           m_currentCommandBuffer(other.m_currentCommandBuffer) {
@@ -32,6 +36,7 @@ namespace Bess::Renderer2D::Vulkan {
             m_device = std::move(other.m_device);
             m_renderPass = std::move(other.m_renderPass);
             m_extent = other.m_extent;
+            m_circlePipeline = std::move(other.m_circlePipeline);
             m_gridPipeline = std::move(other.m_gridPipeline);
             m_quadPipeline = std::move(other.m_quadPipeline);
             m_currentCommandBuffer = other.m_currentCommandBuffer;
@@ -46,6 +51,14 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void PrimitiveRenderer::endFrame() {
+        if (m_circlePipeline) {
+            m_circlePipeline->beginPipeline(m_currentCommandBuffer);
+            m_circlePipeline->setCirclesData(m_opaqueCircleInstances, m_translucentCircleInstances);
+            m_circlePipeline->endPipeline();
+            m_opaqueCircleInstances.clear();
+            m_translucentCircleInstances.clear();
+        }
+
         if (m_gridPipeline) {
             m_gridPipeline->beginPipeline(m_currentCommandBuffer);
             m_gridPipeline->drawGrid(m_gridVertex.position,
@@ -67,6 +80,9 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void PrimitiveRenderer::setCurrentFrameIndex(uint32_t frameIndex) {
+        if (m_circlePipeline) {
+            m_circlePipeline->setCurrentFrameIndex(frameIndex);
+        }
         if (m_gridPipeline) {
             m_gridPipeline->setCurrentFrameIndex(frameIndex);
         }
@@ -175,6 +191,23 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void PrimitiveRenderer::drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, int id, float innerRadius) {
+        if (!m_circlePipeline) {
+            BESS_WARN("[PrimitiveRenderer] Circle pipeline not available");
+            return;
+        }
+
+        CircleInstance instance{};
+        instance.position = center;
+        instance.color = color;
+        instance.radius = radius;
+        instance.innerRadius = innerRadius;
+        instance.id = id;
+
+        if (color.a == 1.f) {
+            m_opaqueCircleInstances.emplace_back(instance);
+        } else {
+            m_translucentCircleInstances.emplace_back(instance);
+        }
     }
 
     void PrimitiveRenderer::drawLine(const glm::vec3 &start, const glm::vec3 &end, float width, const glm::vec4 &color, int id) {
@@ -187,6 +220,9 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void PrimitiveRenderer::updateUBO(const UniformBufferObject &ubo) {
+        if (m_circlePipeline) {
+            m_circlePipeline->updateUniformBuffer(ubo);
+        }
         if (m_gridPipeline) {
             m_gridPipeline->updateUniformBuffer(ubo);
         }

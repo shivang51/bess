@@ -1,6 +1,7 @@
 #pragma once
 
 #include "device.h"
+#include "pipelines/circle_pipeline.h"
 #include "pipelines/grid_pipeline.h"
 #include "pipelines/quad_pipeline.h"
 #include "primitive_vertex.h"
@@ -74,11 +75,14 @@ namespace Bess::Renderer2D::Vulkan {
         VkExtent2D m_extent;
 
         // Pipeline instances
+        std::unique_ptr<Pipelines::CirclePipeline> m_circlePipeline;
         std::unique_ptr<Pipelines::GridPipeline> m_gridPipeline;
         std::unique_ptr<Pipelines::QuadPipeline> m_quadPipeline;
 
         VkCommandBuffer m_currentCommandBuffer = VK_NULL_HANDLE;
 
+        std::vector<CircleInstance> m_opaqueCircleInstances;
+        std::vector<CircleInstance> m_translucentCircleInstances;
         std::vector<QuadInstance> m_opaqueQuadInstances;
         std::vector<QuadInstance> m_translucentQuadInstances;
         std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> m_texturedQuadInstances;

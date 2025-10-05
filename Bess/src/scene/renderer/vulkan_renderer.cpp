@@ -12,7 +12,7 @@ namespace Bess::Renderer2D {
         m_camera = nullptr;
     }
 
-    void VulkanRenderer::beginScene(std::shared_ptr<Camera> camera) {
+    void VulkanRenderer::beginScene(const std::shared_ptr<Camera> &camera) {
         m_camera = camera;
         auto primitiveRenderer = VulkanCore::instance().getPrimitiveRenderer().lock();
 
@@ -89,5 +89,11 @@ namespace Bess::Renderer2D {
             properties.borderColor,
             properties.isMica ? 1 : 0,
             texture);
+    }
+
+    void VulkanRenderer::circle(const glm::vec3 &center, const float radius,
+                               const glm::vec4 &color, const int id, float innerRadius) {
+        auto primitiveRenderer = VulkanCore::instance().getPrimitiveRenderer().lock();
+        primitiveRenderer->drawCircle(center, radius, color, id, innerRadius);
     }
 } // namespace Bess::Renderer2D

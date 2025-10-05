@@ -275,6 +275,8 @@ namespace Bess::Canvas {
         props.borderSize = glm::vec4(2.f);
         props.borderRadius = glm::vec4(16.f);
 
+        Renderer2D::VulkanRenderer::circle({0.f, 0.f, 4.5f}, 50, glm::vec4(1.f), 0, 25);
+
         int b = 0;
 
         glm::vec4 borderLeftBottom = glm::vec4(2.f, 0.f, 0.f, 2.f);

@@ -1,14 +1,12 @@
-#version 460 core
+#version 460
 
 layout(location = 0) out vec4 fragColor;
 layout(location = 1) out int fragColor1;
 
-in vec2 v_TexCoord;
-in vec4 v_FragColor;
-in float v_InnerRadius;
-in flat int v_TextureIndex;
-
-uniform int u_SelectedObjId;
+layout(location = 0) in vec4 v_FragColor;
+layout(location = 1) in vec2 v_TexCoord;
+layout(location = 2) in float v_InnerRadius;
+layout(location = 3) in flat int v_FragId;
 
 void main() {
     vec2 uv = (v_TexCoord - 0.5);
@@ -26,5 +24,5 @@ void main() {
     if(alpha < 0.001) discard;
 
     fragColor = vec4(col.rgb, min(alpha, col.a));
-    fragColor1 = v_TextureIndex;
+    fragColor1 = v_FragId;
 }

@@ -13,6 +13,7 @@ compile ()
 cd "assets/shaders"
 rm *.spv
 compile "quad";
+compile "circle";
 compile "grid.vert" "grid_line.frag";
 cd ..
 cd ..

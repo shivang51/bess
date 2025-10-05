@@ -1,7 +1,6 @@
 #pragma once
 
 #include "camera.h"
-#include "scene/renderer/vulkan/primitive_renderer.h"
 #include "scene/renderer/vulkan/vulkan_core.h"
 #include "scene/renderer/vulkan/vulkan_subtexture.h"
 #include <glm.hpp>
@@ -33,7 +32,7 @@ namespace Bess::Renderer2D {
         static void init();
         static void shutdown();
 
-        static void beginScene(std::shared_ptr<Camera> camera);
+        static void beginScene(const std::shared_ptr<Camera> &camera);
         static void end();
 
         static void clearColor();
@@ -47,6 +46,9 @@ namespace Bess::Renderer2D {
         static void texturedQuad(const glm::vec3 &pos, const glm::vec2 &size,
                                  const std::shared_ptr<Vulkan::SubTexture> &texture,
                                  const glm::vec4 &tintColor, int id, QuadRenderProperties properties = {});
+
+        static void circle(const glm::vec3 &center, float radius,
+                          const glm::vec4 &color, int id, float innerRadius = 0.0f);
 
       private:
         static std::shared_ptr<Camera> m_camera;

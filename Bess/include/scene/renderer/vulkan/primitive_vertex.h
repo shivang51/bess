@@ -90,4 +90,12 @@ namespace Bess::Renderer2D::Vulkan {
         glm::vec4 texData;      // location 11
     };
 
+    struct CircleInstance {
+        glm::vec3 position;     // location 2
+        glm::vec4 color;        // location 3
+        float radius;           // location 4
+        float innerRadius;      // location 5
+        int id;                 // location 6
+    };
+
 } // namespace Bess::Renderer2D::Vulkan
