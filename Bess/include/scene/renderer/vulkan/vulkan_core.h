@@ -3,9 +3,9 @@
 #include "scene/renderer/vulkan/command_buffer.h"
 #include "scene/renderer/vulkan/device.h"
 #include "scene/renderer/vulkan/imgui_pipeline.h"
+#include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/renderer/vulkan/pipeline.h"
 #include "scene/renderer/vulkan/primitive_renderer.h"
-#include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/renderer/vulkan/swapchain.h"
 #include "scene/renderer/vulkan/vulkan_image_view.h"
 #include "scene/renderer/vulkan/vulkan_offscreen_render_pass.h"
@@ -65,36 +65,6 @@ namespace Bess::Renderer2D {
         std::shared_ptr<Vulkan::VulkanRenderPass> getRenderPass() const {
             return m_renderPass;
         }
-
-        static void begin(const std::shared_ptr<Bess::Camera> &camera);
-        static void end();
-
-        // Rendering functions (to be implemented to match OpenGL renderer API)
-
-        static void circle(const glm::vec3 &center, float radius,
-                           const glm::vec4 &color, int id, float innerRadius = 0.0f);
-
-        static void text(const std::string &data, const glm::vec3 &pos, size_t size,
-                         const glm::vec4 &color, int id, float angle = 0.f);
-
-        static void msdfText(const std::string &data, const glm::vec3 &pos, size_t size,
-                             const glm::vec4 &color, int id, float angle = 0.f);
-
-        static void line(const glm::vec3 &start, const glm::vec3 &end, float size,
-                         const glm::vec4 &color, int id);
-
-        // Path API
-        static void beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, uint64_t id);
-        static void endPathMode(bool closePath = false, bool genFill = false, const glm::vec4 &fillColor = glm::vec4(1.f), bool genStroke = true);
-        static void pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, int id);
-        static void pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
-                                      float weight, const glm::vec4 &color, int id);
-        static void pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, int id);
-
-        // Text utilities
-        static glm::vec2 getCharRenderSize(char ch, float renderSize);
-        static glm::vec2 getTextRenderSize(const std::string &str, float renderSize);
-        static glm::vec2 getMSDFTextRenderSize(const std::string &str, float renderSize);
 
         // Scene texture access for ImGui
         uint64_t getSceneTextureId();

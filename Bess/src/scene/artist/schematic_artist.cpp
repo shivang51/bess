@@ -13,7 +13,7 @@
 #include <memory>
 #include <string>
 
-using Renderer = Bess::Renderer2D::VulkanCore;
+using Renderer = Bess::Renderer2D::VulkanRenderer;
 
 namespace Bess::Canvas {
 
@@ -77,7 +77,7 @@ namespace Bess::Canvas {
         Renderer::pathLineTo({x, y1, pos.z}, strokeSize, ViewportTheme::colors.wire, id);
         Renderer::endPathMode(true, true, fillColor);
 
-        const auto textSize = Bess::Renderer2D::VulkanCore::getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
+        const auto textSize = Renderer::getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
         glm::vec3 textPos = {pos.x,
                              y + componentStyles.paddingY + strokeSize,
                              pos.z + 0.0005f};
@@ -228,7 +228,7 @@ namespace Bess::Canvas {
         }
 
         if (showName) {
-            const auto textSize = Bess::Renderer2D::VulkanCore::getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
+            const auto textSize = VulkanRenderer::getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
             glm::vec3 textPos = {pos.x, y + (y1 - y) / 2.f, pos.z + 0.0005f};
             textPos.x -= textSize.x / 2.f;
             textPos.y += componentStyles.headerFontSize / 2.f;
@@ -279,7 +279,7 @@ namespace Bess::Canvas {
                 Renderer::pathLineTo({schematicInfo.outConnStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
                 Renderer::endPathMode(false);
                 label = outDetails.size() > i ? outDetails[i].name : "Y" + std::to_string(i);
-                const float size = Bess::Renderer2D::VulkanCore::getMSDFTextRenderSize(label, componentStyles.slotLabelSize).x;
+                const float size = VulkanRenderer::getMSDFTextRenderSize(label, componentStyles.slotLabelSize).x;
                 Renderer::msdfText(label,
                                    {schematicInfo.outConnStart - size, pinY - nodeWeight, pos.z - 0.0005f},
                                    componentStyles.slotLabelSize, ViewportTheme::colors.text, static_cast<int>(parentEntt), 0.f);

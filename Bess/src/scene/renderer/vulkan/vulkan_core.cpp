@@ -73,7 +73,7 @@ namespace Bess::Renderer2D {
 
         m_primitiveRenderer->setCurrentFrameIndex(m_currentFrameIdx);
         m_primitiveRenderer->beginFrame(cmdBuffer->getVkHandle());
-        
+
         if (m_pathRenderer) {
             m_pathRenderer->setCurrentFrameIndex(m_currentFrameIdx);
             m_pathRenderer->beginFrame(cmdBuffer->getVkHandle());
@@ -86,11 +86,11 @@ namespace Bess::Renderer2D {
         }
 
         m_primitiveRenderer->endFrame();
-        
+
         if (m_pathRenderer) {
             m_pathRenderer->endFrame();
         }
-        
+
         m_offscreenRenderPass->end();
 
         // If a picking request is pending, record the copy now in this frame's command buffer
@@ -525,76 +525,10 @@ namespace Bess::Renderer2D {
         return 0;
     }
 
-    void VulkanCore::begin(const std::shared_ptr<Bess::Camera> &camera) {
-        // TODO: Implement camera setup
-    }
-
-    void VulkanCore::end() {
-        // Don't automatically draw - this will be called explicitly from the application loop
-        // instance().draw();
-    }
-
-    void VulkanCore::circle(const glm::vec3 &center, float radius,
-                            const glm::vec4 &color, int id, float innerRadius) {
-        // TODO: Implement circle rendering
-    }
-
-    void VulkanCore::text(const std::string &data, const glm::vec3 &pos, size_t size,
-                          const glm::vec4 &color, int id, float angle) {
-        // TODO: Implement text rendering
-    }
-
-    void VulkanCore::line(const glm::vec3 &start, const glm::vec3 &end, float size,
-                          const glm::vec4 &color, int id) {
-        // TODO: Implement line rendering
-    }
-
-    void VulkanCore::msdfText(const std::string &data, const glm::vec3 &pos, size_t size,
-                              const glm::vec4 &color, int id, float angle) {
-        // TODO: Implement MSDF text rendering
-    }
-
-    void VulkanCore::beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, uint64_t id) {
-        VulkanRenderer::beginPathMode(startPos, weight, color, id);
-    }
-
-    void VulkanCore::endPathMode(bool closePath, bool genFill, const glm::vec4 &fillColor, bool genStroke) {
-        VulkanRenderer::endPathMode(closePath, genFill, fillColor, genStroke);
-    }
-
-    void VulkanCore::pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, int id) {
-        VulkanRenderer::pathLineTo(pos, size, color, id);
-    }
-
-    void VulkanCore::pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
-                                       float weight, const glm::vec4 &color, int id) {
-        VulkanRenderer::pathCubicBeizerTo(end, controlPoint1, controlPoint2, weight, color, id);
-    }
-
-    void VulkanCore::pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, int id) {
-        VulkanRenderer::pathQuadBeizerTo(end, controlPoint, weight, color, id);
-    }
-
-    glm::vec2 VulkanCore::getCharRenderSize(char ch, float renderSize) {
-        // TODO: Implement character size calculation
-        return glm::vec2(0.0f);
-    }
-
-    glm::vec2 VulkanCore::getTextRenderSize(const std::string &str, float renderSize) {
-        // TODO: Implement text size calculation
-        return glm::vec2(0.0f);
-    }
-
-    glm::vec2 VulkanCore::getMSDFTextRenderSize(const std::string &str, float renderSize) {
-        // TODO: Implement MSDF text size calculation
-        return glm::vec2(0.0f);
-    }
-
     int32_t VulkanCore::readPickingId(int x, int y) {
         if (!m_offscreenImageView || !m_offscreenImageView->hasPickingAttachments()) {
             return -1;
         }
-        // Just schedule coordinates; the copy will be recorded in endOffscreenRender() this frame
         m_pendingPickingX = x;
         m_pendingPickingY = y;
         m_pickingRequestPending = true;
@@ -602,7 +536,6 @@ namespace Bess::Renderer2D {
     }
 
     int32_t VulkanCore::getPickingIdResult() {
-        // If a copy was recorded in a prior frame, wait for that frame fence and read
         if (m_pickingCopyInFlight) {
             VkFence fence = m_inFlightFences[m_pickingCopyRecordedFrameIdx];
             if (vkGetFenceStatus(m_device->device(), fence) == VK_SUCCESS) {
@@ -618,7 +551,6 @@ namespace Bess::Renderer2D {
     }
 
     void VulkanCore::createPickingResources() {
-        // Create staging buffer for picking reads
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         bufferInfo.size = sizeof(int);

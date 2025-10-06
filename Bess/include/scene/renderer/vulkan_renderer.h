@@ -48,10 +48,10 @@ namespace Bess::Renderer2D {
                                  const glm::vec4 &tintColor, int id, QuadRenderProperties properties = {});
 
         static void circle(const glm::vec3 &center, float radius,
-                          const glm::vec4 &color, int id, float innerRadius = 0.0f);
+                           const glm::vec4 &color, int id, float innerRadius = 0.0f);
 
         static void msdfText(const std::string &text, const glm::vec3 &pos, const size_t size,
-                            const glm::vec4 &color, const int id, float angle = 0.0f);
+                             const glm::vec4 &color, const int id, float angle = 0.0f);
 
         // Path API
         static void beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, uint64_t id);
@@ -60,6 +60,8 @@ namespace Bess::Renderer2D {
         static void pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
                                       float weight, const glm::vec4 &color, int id);
         static void pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, int id);
+
+        static glm::vec2 getMSDFTextRenderSize(const std::string &str, float renderSize);
 
       private:
         static std::shared_ptr<Camera> m_camera;

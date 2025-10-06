@@ -23,7 +23,7 @@ namespace Bess::Renderer2D {
         ubo.mvp = m_camera->getTransform();
         ubo.ortho = m_camera->getOrtho();
         primitiveRenderer->updateUBO(ubo);
-        
+
         // Update path renderer uniform buffer as well
         if (pathRenderer) {
             pathRenderer->updateUniformBuffer(ubo);
@@ -204,5 +204,17 @@ namespace Bess::Renderer2D {
         if (pathRenderer) {
             pathRenderer->pathQuadBeizerTo(end, controlPoint, weight, color, id);
         }
+    }
+
+    glm::vec2 VulkanRenderer::getMSDFTextRenderSize(const std::string &str, float renderSize) {
+        float xSize = 0;
+        auto msdfFont = Assets::AssetManager::instance().get(Assets::Fonts::robotoMsdf);
+        float ySize = msdfFont->getLineHeight();
+
+        for (auto &ch : str) {
+            auto chInfo = msdfFont->getCharacterData(ch);
+            xSize += chInfo.advance;
+        }
+        return glm::vec2({xSize, ySize}) * renderSize;
     }
 } // namespace Bess::Renderer2D

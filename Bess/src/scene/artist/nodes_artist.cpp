@@ -4,9 +4,6 @@
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
 #include "scene/components/components.h"
-#include "scene/renderer/vulkan/vulkan_core.h"
-#include "scene/renderer/vulkan/vulkan_subtexture.h"
-#include "scene/renderer/vulkan/vulkan_texture.h"
 #include "scene/renderer/vulkan_renderer.h"
 #include "scene/scene.h"
 #include "settings/viewport_theme.h"
@@ -15,7 +12,7 @@
 #include <cstdint>
 #include <string>
 
-using Renderer = Bess::Renderer2D::VulkanCore;
+using Renderer = Bess::Renderer2D::VulkanRenderer;
 
 namespace Bess::Canvas {
 

@@ -16,8 +16,7 @@
 #include <cstdint>
 #include <vector>
 
-using Renderer = Bess::Renderer2D::VulkanCore;
-using namespace Bess::Renderer2D;
+using Renderer = Bess::Renderer2D::VulkanRenderer;
 namespace Bess::Canvas {
     ArtistTools BaseArtist::m_artistTools;
 

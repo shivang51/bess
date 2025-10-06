@@ -15,7 +15,6 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     PrimitiveRenderer::~PrimitiveRenderer() {
-        BESS_INFO("[PrimitiveRenderer] Destroying");
         // m_circlePipeline->cleanup();
         // m_quadPipeline->cleanup();
         // m_gridPipeline->cleanup();
