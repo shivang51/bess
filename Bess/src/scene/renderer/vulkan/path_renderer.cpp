@@ -7,6 +7,7 @@
 #include <cstring>
 
 namespace Bess::Renderer2D::Vulkan {
+    constexpr size_t primitiveResetIndex = 0xFFFFFFFF;
 
     PathRenderer::PathRenderer(const std::shared_ptr<VulkanDevice> &device,
                                const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
@@ -49,6 +50,15 @@ namespace Bess::Renderer2D::Vulkan {
         if (!m_pathData.ended) {
             endPathMode();
         }
+
+        m_pathPipeline->beginPipeline(m_currentCommandBuffer);
+        m_pathPipeline->setPathData(m_strokeVertices, m_strokeIndices, m_fillVertices, m_fillIndices);
+        m_pathPipeline->endPipeline();
+
+        m_fillVertices.clear();
+        m_fillIndices.clear();
+        m_strokeVertices.clear();
+        m_strokeIndices.clear();
     }
 
     void PathRenderer::setCurrentFrameIndex(uint32_t frameIndex) {
@@ -66,34 +76,31 @@ namespace Bess::Renderer2D::Vulkan {
         if (m_pathData.ended)
             return;
 
-        std::vector<CommonVertex> strokeVertices;
-        std::vector<CommonVertex> fillVertices;
-        std::vector<uint32_t> strokeIndices;
-        std::vector<uint32_t> fillIndices;
-
         if (genStroke) {
-            strokeVertices = generateStrokeGeometry(m_pathData.points, m_pathData.color, closePath);
-            for (uint32_t i = 0; i < strokeVertices.size(); ++i) {
-                strokeIndices.push_back(i);
+            auto vertices = generateStrokeGeometry(m_pathData.points, m_pathData.color, closePath);
+            auto s = m_strokeVertices.size();
+
+            m_strokeVertices.insert(m_strokeVertices.end(), vertices.begin(), vertices.end());
+
+            for (uint32_t i = s; i < m_strokeVertices.size(); i++) {
+                m_strokeIndices.push_back(i);
             }
+            m_strokeIndices.emplace_back(primitiveResetIndex);
         }
 
         if (genFill) {
-            fillVertices = generateFillGeometry(m_pathData.points, fillColor);
-            for (uint32_t i = 0; i < fillVertices.size(); ++i) {
-                fillIndices.push_back(i);
+            auto vertices = generateFillGeometry(m_pathData.points, fillColor);
+            auto s = m_fillVertices.size();
+
+            m_fillVertices.insert(m_fillVertices.end(), vertices.begin(), vertices.end());
+
+            for (uint32_t i = s; i < m_fillVertices.size(); i++) {
+                m_fillIndices.push_back(i);
             }
+            m_fillIndices.emplace_back(primitiveResetIndex);
         }
 
-        // Render the path
-        m_pathPipeline->beginPipeline(m_currentCommandBuffer);
-        m_pathPipeline->setPathData(strokeVertices, strokeIndices, fillVertices, fillIndices);
-        m_pathPipeline->endPipeline();
-
-        m_pathData.ended = true;
-        m_pathData.points.clear();
-        m_pathData.color = glm::vec4(1.f);
-        m_pathData.currentPos = glm::vec3(0.f);
+        m_pathData = {};
     }
 
     void PathRenderer::pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, int id) {

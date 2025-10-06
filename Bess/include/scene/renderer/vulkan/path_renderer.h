@@ -60,6 +60,11 @@ namespace Bess::Renderer2D::Vulkan {
         void updateUniformBuffer(const UniformBufferObject &ubo);
 
       private:
+        std::vector<CommonVertex> m_strokeVertices;
+        std::vector<CommonVertex> m_fillVertices;
+        std::vector<uint32_t> m_strokeIndices;
+        std::vector<uint32_t> m_fillIndices;
+
         std::shared_ptr<VulkanDevice> m_device;
         std::shared_ptr<VulkanOffscreenRenderPass> m_renderPass;
         VkExtent2D m_extent;

@@ -242,6 +242,14 @@ namespace Bess::Canvas {
                 .axisYColor = ViewportTheme::colors.gridAxisYColor,
             });
 
+        Renderer2D::VulkanRenderer::beginPathMode(glm::vec3(1.f), 4.f, glm::vec4(1.f), 0.f);
+        Renderer2D::VulkanRenderer::pathLineTo(glm::vec3(100.f, 0.f, 1.f), 4.f, glm::vec4(1.f), 0.f);
+        Renderer2D::VulkanRenderer::endPathMode();
+
+        Renderer2D::VulkanRenderer::beginPathMode(glm::vec3(1.f), 4.f, glm::vec4(1.f), 0.f);
+        Renderer2D::VulkanRenderer::pathLineTo(glm::vec3(0.f, 100.f, 1.f), 4.f, glm::vec4(1.f), 0.f);
+        Renderer2D::VulkanRenderer::endPathMode();
+
         Renderer2D::VulkanRenderer::end();
 
         Renderer2D::VulkanRenderer::beginScene(camera);

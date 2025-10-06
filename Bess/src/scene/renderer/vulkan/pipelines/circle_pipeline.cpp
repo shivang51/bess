@@ -18,6 +18,8 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         createDescriptorSets();
         ensureCircleBuffers();
         createGraphicsPipeline();
+
+        ensureCircleInstanceCapacity(10000);
     }
 
     CirclePipeline::~CirclePipeline() {
@@ -286,14 +288,13 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         // Create local circle vertex data (quad for circle rendering)
         std::vector<float> local = {
             -0.5f, -0.5f, 0.0f, 0.0f, // bottom-left
-             0.5f, -0.5f, 1.0f, 0.0f, // bottom-right
-             0.5f,  0.5f, 1.0f, 1.0f, // top-right
-            -0.5f,  0.5f, 0.0f, 1.0f  // top-left
+            0.5f, -0.5f, 1.0f, 0.0f,  // bottom-right
+            0.5f, 0.5f, 1.0f, 1.0f,   // top-right
+            -0.5f, 0.5f, 0.0f, 1.0f   // top-left
         };
 
         std::vector<uint32_t> idx = {
-            0, 1, 2, 2, 3, 0
-        };
+            0, 1, 2, 2, 3, 0};
 
         VkBufferCreateInfo bi{};
         bi.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;

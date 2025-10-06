@@ -24,7 +24,6 @@ namespace Bess::Renderer2D {
         ubo.ortho = m_camera->getOrtho();
         primitiveRenderer->updateUBO(ubo);
 
-        // Update path renderer uniform buffer as well
         if (pathRenderer) {
             pathRenderer->updateUniformBuffer(ubo);
         }
