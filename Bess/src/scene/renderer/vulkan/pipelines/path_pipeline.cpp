@@ -1,8 +1,10 @@
 #include "scene/renderer/vulkan/pipelines/path_pipeline.h"
 #include "common/log.h"
 #include "scene/renderer/vulkan/device.h"
+#include "scene/renderer/vulkan/primitive_vertex.h"
 #include "scene/renderer/vulkan/vulkan_offscreen_render_pass.h"
 #include <array>
+#include <cstdint>
 #include <cstring>
 
 namespace Bess::Renderer2D::Vulkan::Pipelines {
@@ -88,19 +90,47 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     }
 
     void PathPipeline::endPipeline() {
-        // Render stroke vertices if any
-        if (!m_strokeVertices.empty() && !m_strokeIndices.empty()) {
-            std::array<VkBuffer, 1> vertexBuffers = {m_vertexBuffers[m_currentFrameIndex]};
-            std::array<VkDeviceSize, 1> offsets = {0};
-            vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 1, vertexBuffers.data(), offsets.data());
+        auto &vertexBuffer = m_vertexBuffers[m_currentFrameIndex];
+        if (!m_fillVertices.empty() && !m_fillIndices.empty()) {
+            void *data = nullptr;
+            VkDeviceSize bufferSize = m_fillVertices.size() * sizeof(CommonVertex);
+            vkMapMemory(m_device->device(), m_vertexBufferMemory[m_currentFrameIndex], 0, bufferSize, 0, &data);
+            memcpy(data, m_fillVertices.data(), bufferSize);
+            vkUnmapMemory(m_device->device(), m_vertexBufferMemory[m_currentFrameIndex]);
+
+            data = nullptr;
+            bufferSize = m_fillIndices.size() * sizeof(uint32_t);
+            vkMapMemory(m_device->device(), m_indexBufferMemory[m_currentFrameIndex], 0, bufferSize, 0, &data);
+            memcpy(data, m_fillIndices.data(), bufferSize);
+            vkUnmapMemory(m_device->device(), m_indexBufferMemory[m_currentFrameIndex]);
+
+            VkDeviceSize offset = 0;
+            vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 1, &vertexBuffer, &offset);
             vkCmdBindIndexBuffer(m_currentCommandBuffer, m_indexBuffers[m_currentFrameIndex], 0, VK_INDEX_TYPE_UINT32);
+            vkCmdDrawIndexed(m_currentCommandBuffer, static_cast<uint32_t>(m_fillIndices.size()), 1, 0, 0, 0);
+        }
+
+        if (!m_strokeVertices.empty() && !m_strokeIndices.empty()) {
+            VkDeviceSize vertexOffset = m_fillVertices.size() * sizeof(CommonVertex);
+            VkDeviceSize indexOffset = m_fillIndices.size() * sizeof(uint32_t);
+            void *data = nullptr;
+
+            VkDeviceSize bufferSize = m_strokeVertices.size() * sizeof(CommonVertex);
+            vkMapMemory(m_device->device(), m_vertexBufferMemory[m_currentFrameIndex], vertexOffset, bufferSize, 0, &data);
+            memcpy(data, m_strokeVertices.data(), bufferSize);
+            vkUnmapMemory(m_device->device(), m_vertexBufferMemory[m_currentFrameIndex]);
+
+            data = nullptr;
+            bufferSize = m_strokeIndices.size() * sizeof(uint32_t);
+            vkMapMemory(m_device->device(), m_indexBufferMemory[m_currentFrameIndex], indexOffset, bufferSize, 0, &data);
+            memcpy(data, m_strokeIndices.data(), bufferSize);
+            vkUnmapMemory(m_device->device(), m_indexBufferMemory[m_currentFrameIndex]);
+
+            vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 1, &vertexBuffer, &vertexOffset);
+            vkCmdBindIndexBuffer(m_currentCommandBuffer, m_indexBuffers[m_currentFrameIndex], indexOffset, VK_INDEX_TYPE_UINT32);
             vkCmdDrawIndexed(m_currentCommandBuffer, static_cast<uint32_t>(m_strokeIndices.size()), 1, 0, 0, 0);
         }
 
-        // Note: Fill rendering would require separate buffers or a more complex approach
-        // For now, we only render stroke data
-
-        // Clear the command buffer reference
         m_currentCommandBuffer = VK_NULL_HANDLE;
     }
 
@@ -111,28 +141,8 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         m_fillVertices = fillVertices;
         m_fillIndices = fillIndices;
 
-        // Ensure buffers are large enough
-        size_t maxVertexCount = std::max(strokeVertices.size(), fillVertices.size());
-        size_t maxIndexCount = std::max(strokeIndices.size(), fillIndices.size());
-        ensurePathCapacity(maxVertexCount, maxIndexCount);
-
-        // Update vertex buffer with current data (prioritize stroke for now)
-        if (!m_strokeVertices.empty()) {
-            void *data = nullptr;
-            VkDeviceSize bufferSize = m_strokeVertices.size() * sizeof(CommonVertex);
-            vkMapMemory(m_device->device(), m_vertexBufferMemory[m_currentFrameIndex], 0, bufferSize, 0, &data);
-            memcpy(data, m_strokeVertices.data(), bufferSize);
-            vkUnmapMemory(m_device->device(), m_vertexBufferMemory[m_currentFrameIndex]);
-        }
-
-        // Update index buffer with current data
-        if (!m_strokeIndices.empty()) {
-            void *data = nullptr;
-            VkDeviceSize bufferSize = m_strokeIndices.size() * sizeof(uint32_t);
-            vkMapMemory(m_device->device(), m_indexBufferMemory[m_currentFrameIndex], 0, bufferSize, 0, &data);
-            memcpy(data, m_strokeIndices.data(), bufferSize);
-            vkUnmapMemory(m_device->device(), m_indexBufferMemory[m_currentFrameIndex]);
-        }
+        ensurePathCapacity(m_strokeVertices.size() + m_fillVertices.size(),
+                           m_strokeIndices.size() + m_fillIndices.size());
     }
 
     void PathPipeline::updateUniformBuffer(const UniformBufferObject &ubo) {
@@ -140,7 +150,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     }
 
     void PathPipeline::cleanup() {
-        // Clean up zoom uniform buffers
         for (size_t i = 0; i < m_zoomUniformBuffers.size(); i++) {
             if (m_zoomUniformBuffers[i] != VK_NULL_HANDLE) {
                 vkDestroyBuffer(m_device->device(), m_zoomUniformBuffers[i], nullptr);
@@ -347,7 +356,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         for (size_t i = 0; i < maxFrames; i++) {
             VkBufferCreateInfo bufferInfo{};
             bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            bufferInfo.size = sizeof(CommonVertex) * 1000; // Initial capacity
+            bufferInfo.size = sizeof(CommonVertex) * 1000;
             bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
             bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -380,7 +389,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         for (size_t i = 0; i < maxFrames; i++) {
             VkBufferCreateInfo bufferInfo{};
             bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            bufferInfo.size = sizeof(uint32_t) * 2000; // Initial capacity
+            bufferInfo.size = sizeof(uint32_t) * 2000;
             bufferInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
             bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -512,17 +521,99 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     }
 
     void PathPipeline::ensurePathCapacity(size_t vertexCount, size_t indexCount) {
-        // Resize buffers if needed
-        if (vertexCount > m_currentVertexCapacity) {
-            // In a real implementation, you would recreate the buffers here
-            // For now, we'll just log a warning
-            BESS_WARN("Path vertex capacity exceeded: {} > {}", vertexCount, m_currentVertexCapacity);
+        bool needVertexResize = vertexCount > m_currentVertexCapacity;
+        bool needIndexResize = indexCount > m_currentIndexCapacity;
+
+        if (!needVertexResize && !needIndexResize) {
+            return; // Already have enough capacity
         }
 
-        if (indexCount > m_currentIndexCapacity) {
-            // In a real implementation, you would recreate the buffers here
-            // For now, we'll just log a warning
-            BESS_WARN("Path index capacity exceeded: {} > {}", indexCount, m_currentIndexCapacity);
+        // Calculate new capacities with some headroom
+        size_t newVertexCapacity = needVertexResize ? std::max(vertexCount * 2, m_currentVertexCapacity * 2) : m_currentVertexCapacity;
+        size_t newIndexCapacity = needIndexResize ? std::max(indexCount * 2, m_currentIndexCapacity * 2) : m_currentIndexCapacity;
+
+        // Destroy old vertex buffers if we need to resize
+        if (needVertexResize) {
+            for (size_t i = 0; i < m_vertexBuffers.size(); i++) {
+                if (m_vertexBuffers[i] != VK_NULL_HANDLE) {
+                    vkDestroyBuffer(m_device->device(), m_vertexBuffers[i], nullptr);
+                }
+                if (m_vertexBufferMemory[i] != VK_NULL_HANDLE) {
+                    vkFreeMemory(m_device->device(), m_vertexBufferMemory[i], nullptr);
+                }
+            }
+        }
+
+        // Destroy old index buffers if we need to resize
+        if (needIndexResize) {
+            for (size_t i = 0; i < m_indexBuffers.size(); i++) {
+                if (m_indexBuffers[i] != VK_NULL_HANDLE) {
+                    vkDestroyBuffer(m_device->device(), m_indexBuffers[i], nullptr);
+                }
+                if (m_indexBufferMemory[i] != VK_NULL_HANDLE) {
+                    vkFreeMemory(m_device->device(), m_indexBufferMemory[i], nullptr);
+                }
+            }
+        }
+
+        // Create new vertex buffers with required capacity
+        if (needVertexResize) {
+            for (size_t i = 0; i < maxFrames; i++) {
+                VkBufferCreateInfo bufferInfo{};
+                bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+                bufferInfo.size = sizeof(CommonVertex) * newVertexCapacity;
+                bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+                bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+                if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr, &m_vertexBuffers[i]) != VK_SUCCESS) {
+                    throw std::runtime_error("Failed to create resized path vertex buffer!");
+                }
+
+                VkMemoryRequirements memRequirements;
+                vkGetBufferMemoryRequirements(m_device->device(), m_vertexBuffers[i], &memRequirements);
+
+                VkMemoryAllocateInfo allocInfo{};
+                allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+                allocInfo.allocationSize = memRequirements.size;
+                allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+                if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr, &m_vertexBufferMemory[i]) != VK_SUCCESS) {
+                    throw std::runtime_error("Failed to allocate resized path vertex buffer memory!");
+                }
+
+                vkBindBufferMemory(m_device->device(), m_vertexBuffers[i], m_vertexBufferMemory[i], 0);
+            }
+            m_currentVertexCapacity = newVertexCapacity;
+        }
+
+        // Create new index buffers with required capacity
+        if (needIndexResize) {
+            for (size_t i = 0; i < maxFrames; i++) {
+                VkBufferCreateInfo bufferInfo{};
+                bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+                bufferInfo.size = sizeof(uint32_t) * newIndexCapacity;
+                bufferInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+                bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+                if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr, &m_indexBuffers[i]) != VK_SUCCESS) {
+                    throw std::runtime_error("Failed to create resized path index buffer!");
+                }
+
+                VkMemoryRequirements memRequirements;
+                vkGetBufferMemoryRequirements(m_device->device(), m_indexBuffers[i], &memRequirements);
+
+                VkMemoryAllocateInfo allocInfo{};
+                allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+                allocInfo.allocationSize = memRequirements.size;
+                allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+                if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr, &m_indexBufferMemory[i]) != VK_SUCCESS) {
+                    throw std::runtime_error("Failed to allocate resized path index buffer memory!");
+                }
+
+                vkBindBufferMemory(m_device->device(), m_indexBuffers[i], m_indexBufferMemory[i], 0);
+            }
+            m_currentIndexCapacity = newIndexCapacity;
         }
     }
 

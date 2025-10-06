@@ -43,11 +43,9 @@ namespace Bess::Renderer2D::Vulkan {
 
     void PathRenderer::beginFrame(VkCommandBuffer commandBuffer) {
         m_currentCommandBuffer = commandBuffer;
-        // Frame index is set by the parent system
     }
 
     void PathRenderer::endFrame() {
-        // End any active path - this will render and clear the path data
         if (!m_pathData.ended) {
             endPathMode();
         }
@@ -81,9 +79,6 @@ namespace Bess::Renderer2D::Vulkan {
         }
 
         if (genFill) {
-            if (closePath) {
-                m_pathData.points.push_back(m_pathData.points.front());
-            }
             fillVertices = generateFillGeometry(m_pathData.points, fillColor);
             for (uint32_t i = 0; i < fillVertices.size(); ++i) {
                 fillIndices.push_back(i);
@@ -95,7 +90,6 @@ namespace Bess::Renderer2D::Vulkan {
         m_pathPipeline->setPathData(strokeVertices, strokeIndices, fillVertices, fillIndices);
         m_pathPipeline->endPipeline();
 
-        // Reset path data for next path
         m_pathData.ended = true;
         m_pathData.points.clear();
         m_pathData.color = glm::vec4(1.f);
@@ -151,23 +145,6 @@ namespace Bess::Renderer2D::Vulkan {
             return v;
         };
 
-        auto lineIntersection = [](glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, glm::vec2 p4) -> glm::vec2 {
-            float A1 = p2.y - p1.y;
-            float B1 = p1.x - p2.x;
-            float C1 = A1 * p1.x + B1 * p1.y;
-
-            float A2 = p4.y - p3.y;
-            float B2 = p3.x - p4.x;
-            float C2 = A2 * p3.x + B2 * p3.y;
-
-            float det = A1 * B2 - A2 * B1;
-            if (std::abs(det) < 1e-6f) {
-                return p2; // parallel or degenerate case
-            }
-
-            return {(B2 * C1 - B1 * C2) / det, (A1 * C2 - A2 * C1) / det};
-        };
-
         // --- 1. Pre-calculate total path length for correct UV mapping ---
         float totalLength = 0.0f;
         float maxWeight = 0.f;
@@ -176,7 +153,7 @@ namespace Bess::Renderer2D::Vulkan {
             maxWeight = std::max(maxWeight, points[i].weight);
         }
 
-        float miterLimit = maxWeight;
+        float miterLimit = maxWeight * 1.5;
 
         if (isClosed) {
             totalLength += glm::distance(glm::vec2(points.back().pos), glm::vec2(points.front().pos));

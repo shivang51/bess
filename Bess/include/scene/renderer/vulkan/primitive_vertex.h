@@ -1,17 +1,17 @@
 #pragma once
 
 #include <array>
-#include <vulkan/vulkan.h>
 #include <glm.hpp>
+#include <vulkan/vulkan.h>
 
 namespace Bess::Renderer2D::Vulkan {
 
     struct GridVertex {
-        glm::vec3 position;    // location 0
-        glm::vec2 texCoord;    // location 1
-        int fragId;           // location 2
-        glm::vec4 fragColor;   // location 3
-        int ar;               // location 4
+        glm::vec3 position;  // location 0
+        glm::vec2 texCoord;  // location 1
+        int fragId;          // location 2
+        glm::vec4 fragColor; // location 3
+        int ar;              // location 4
 
         static VkVertexInputBindingDescription getBindingDescription() {
             VkVertexInputBindingDescription bindingDescription{};
@@ -65,15 +65,15 @@ namespace Bess::Renderer2D::Vulkan {
 
     // std140-compatible layout for the fragment UBO
     struct GridUniforms {
-        float zoom;              // offset 0
-        float _pad0;             // pad to 8 for next vec2
-        glm::vec2 cameraOffset;  // offset 8
-        glm::vec4 gridMinorColor;// offset 16
-        glm::vec4 gridMajorColor;// offset 32
-        glm::vec4 axisXColor;    // offset 48
-        glm::vec4 axisYColor;    // offset 64
-        glm::vec2 resolution;    // offset 80
-        glm::vec2 _pad1;         // pad to 96 (multiple of 16)
+        float zoom;               // offset 0
+        float _pad0;              // pad to 8 for next vec2
+        glm::vec2 cameraOffset;   // offset 8
+        glm::vec4 gridMinorColor; // offset 16
+        glm::vec4 gridMajorColor; // offset 32
+        glm::vec4 axisXColor;     // offset 48
+        glm::vec4 axisYColor;     // offset 64
+        glm::vec2 resolution;     // offset 80
+        glm::vec2 _pad1;          // pad to 96 (multiple of 16)
     };
 
     struct QuadInstance {
@@ -91,38 +91,38 @@ namespace Bess::Renderer2D::Vulkan {
     };
 
     struct CircleInstance {
-        glm::vec3 position;     // location 2
-        glm::vec4 color;        // location 3
-        float radius;           // location 4
-        float innerRadius;      // location 5
-        int id;                 // location 6
+        glm::vec3 position; // location 2
+        glm::vec4 color;    // location 3
+        float radius;       // location 4
+        float innerRadius;  // location 5
+        int id;             // location 6
     };
 
     struct InstanceVertex {
-        glm::vec3 position;     // location 2
-        glm::vec2 size;         // location 3
-        float angle;            // location 4
-        glm::vec4 color;        // location 5
-        int id;                 // location 6
-        int texSlotIdx;         // location 7
-        glm::vec4 texData;      // location 8
+        glm::vec3 position; // location 2
+        glm::vec2 size;     // location 3
+        float angle;        // location 4
+        glm::vec4 color;    // location 5
+        int id;             // location 6
+        int texSlotIdx;     // location 7
+        glm::vec4 texData;  // location 8
     };
 
     // Text uniforms for MSDF rendering
     struct TextUniforms {
-        float pxRange;          // offset 0
-        float _pad0;            // pad to 8 for next vec2
-        float _pad1;            // pad to 12
-        float _pad2;            // pad to 16 (multiple of 16)
+        float pxRange; // offset 0
+        float _pad0;   // pad to 8 for next vec2
+        float _pad1;   // pad to 12
+        float _pad2;   // pad to 16 (multiple of 16)
     };
 
     // Common vertex structure for path rendering
     struct CommonVertex {
-        glm::vec3 position;     // location 0
-        glm::vec4 color;        // location 1
-        glm::vec2 texCoord;     // location 2
-        int id;                 // location 3
-        int texSlotIdx;         // location 4
+        glm::vec3 position; // location 0
+        glm::vec4 color;    // location 1
+        glm::vec2 texCoord; // location 2
+        int id;             // location 3
+        int texSlotIdx;     // location 4
 
         static VkVertexInputBindingDescription getBindingDescription() {
             VkVertexInputBindingDescription bindingDescription{};
