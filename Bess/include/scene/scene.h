@@ -48,6 +48,10 @@ namespace Bess::Canvas {
       public:
         static std::shared_ptr<Scene> instance();
 
+        std::shared_ptr<Viewport> getViewport() {
+            return m_viewport;
+        }
+
         void destroy();
 
         void reset();

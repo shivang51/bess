@@ -3,7 +3,6 @@
 #include "events/application_event.h"
 #include "pages/page_identifier.h"
 #include "scene/renderer/vulkan/vulkan_core.h"
-#include "scene/renderer/vulkan_renderer.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
 #include "types.h"
@@ -39,8 +38,6 @@ namespace Bess::Pages {
 
         auto &instance = Renderer2D::VulkanCore::instance();
         instance.init(extensions, createSurface, extent);
-
-        Renderer2D::VulkanRenderer::init();
 
         m_state = MainPageState::getInstance();
 

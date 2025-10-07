@@ -3,7 +3,6 @@
 #include "common/log.h"
 #include "imgui.h"
 #include "imgui_impl_vulkan.h"
-#include "scene/renderer/vulkan_renderer.h"
 #include <memory>
 #include <set>
 #include <stdexcept>
@@ -48,82 +47,77 @@ namespace Bess::Renderer2D {
 
         m_commandBuffers = std::make_unique<Vulkan::VulkanCommandBuffers>(m_device, 2);
         createSyncObjects();
-        createPickingResources();
 
         isInitialized = true;
         BESS_INFO("Renderer Initialized");
     }
 
     void VulkanCore::endOffscreenRender() {
-        return;
         // If a picking request is pending, record the copy now in this frame's command buffer
-        if (m_pickingRequestPending && m_offscreenImageView && m_offscreenImageView->hasPickingAttachments()) {
-            const VkCommandBuffer cmd = m_currentFrameContext.cmdBuffer->getVkHandle();
-
-            const VkImage idImage = m_offscreenImageView->getPickingImage(); // resolve single-sample image
-            if (idImage != VK_NULL_HANDLE) {
-                // Ensure staging buffer exists
-                if (m_pickingStagingBuffer == VK_NULL_HANDLE) {
-                    createPickingResources();
-                }
-
-                // Barrier: COLOR_ATTACHMENT_OPTIMAL -> TRANSFER_SRC_OPTIMAL
-                VkImageMemoryBarrier barrier{};
-                barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.image = idImage;
-                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                barrier.subresourceRange.baseMipLevel = 0;
-                barrier.subresourceRange.levelCount = 1;
-                barrier.subresourceRange.baseArrayLayer = 0;
-                barrier.subresourceRange.layerCount = 1;
-                barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-                barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-
-                vkCmdPipelineBarrier(cmd,
-                                     VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                     VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                     0, 0, nullptr, 0, nullptr, 1, &barrier);
-
-                // Clamp coordinates
-                VkExtent2D extent = m_offscreenImageView->getExtent();
-                const int px = std::max(0, std::min(m_pendingPickingX, static_cast<int>(extent.width) - 1));
-                const int py = std::max(0, std::min(m_pendingPickingY, static_cast<int>(extent.height) - 1));
-
-                // Copy 1 pixel to staging buffer
-                VkBufferImageCopy copy{};
-                copy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                copy.imageSubresource.mipLevel = 0;
-                copy.imageSubresource.baseArrayLayer = 0;
-                copy.imageSubresource.layerCount = 1;
-                copy.imageOffset = {px, py, 0};
-                copy.imageExtent = {1, 1, 1};
-
-                vkCmdCopyImageToBuffer(cmd, idImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                                       m_pickingStagingBuffer, 1, &copy);
-
-                // Transition image back for next frame
-                barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-                barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-                barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-                vkCmdPipelineBarrier(cmd,
-                                     VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                     VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                     0, 0, nullptr, 0, nullptr, 1, &barrier);
-
-                // Mark in-flight; we will read after this frame fence signals
-                m_pickingCopyInFlight = true;
-                m_pickingCopyRecordedFrameIdx = m_currentFrameIdx;
-            }
-        }
-    }
-
-    void VulkanCore::resizeOffscreen(VkExtent2D extent) {
+        // if (m_pickingRequestPending && m_offscreenImageView && m_offscreenImageView->hasPickingAttachments()) {
+        //     const VkCommandBuffer cmd = m_currentFrameContext.cmdBuffer->getVkHandle();
+        //
+        //     const VkImage idImage = m_offscreenImageView->getPickingImage(); // resolve single-sample image
+        //     if (idImage != VK_NULL_HANDLE) {
+        //         // Ensure staging buffer exists
+        //         if (m_pickingStagingBuffer == VK_NULL_HANDLE) {
+        //             createPickingResources();
+        //         }
+        //
+        //         // Barrier: COLOR_ATTACHMENT_OPTIMAL -> TRANSFER_SRC_OPTIMAL
+        //         VkImageMemoryBarrier barrier{};
+        //         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        //         barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        //         barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        //         barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        //         barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        //         barrier.image = idImage;
+        //         barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        //         barrier.subresourceRange.baseMipLevel = 0;
+        //         barrier.subresourceRange.levelCount = 1;
+        //         barrier.subresourceRange.baseArrayLayer = 0;
+        //         barrier.subresourceRange.layerCount = 1;
+        //         barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        //         barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        //
+        //         vkCmdPipelineBarrier(cmd,
+        //                              VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        //                              VK_PIPELINE_STAGE_TRANSFER_BIT,
+        //                              0, 0, nullptr, 0, nullptr, 1, &barrier);
+        //
+        //         // Clamp coordinates
+        //         VkExtent2D extent = m_offscreenImageView->getExtent();
+        //         const int px = std::max(0, std::min(m_pendingPickingX, static_cast<int>(extent.width) - 1));
+        //         const int py = std::max(0, std::min(m_pendingPickingY, static_cast<int>(extent.height) - 1));
+        //
+        //         // Copy 1 pixel to staging buffer
+        //         VkBufferImageCopy copy{};
+        //         copy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        //         copy.imageSubresource.mipLevel = 0;
+        //         copy.imageSubresource.baseArrayLayer = 0;
+        //         copy.imageSubresource.layerCount = 1;
+        //         copy.imageOffset = {px, py, 0};
+        //         copy.imageExtent = {1, 1, 1};
+        //
+        //         vkCmdCopyImageToBuffer(cmd, idImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        //                                m_pickingStagingBuffer, 1, &copy);
+        //
+        //         // Transition image back for next frame
+        //         barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        //         barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        //         barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        //         barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        //
+        //         vkCmdPipelineBarrier(cmd,
+        //                              VK_PIPELINE_STAGE_TRANSFER_BIT,
+        //                              VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        //                              0, 0, nullptr, 0, nullptr, 1, &barrier);
+        //
+        //         // Mark in-flight; we will read after this frame fence signals
+        //         m_pickingCopyInFlight = true;
+        //         m_pickingCopyRecordedFrameIdx = m_currentFrameIdx;
+        //     }
+        // }
     }
 
     void VulkanCore::beginFrame() {
@@ -265,9 +259,6 @@ namespace Bess::Renderer2D {
                     vkDestroyFence(m_device->device(), m_inFlightFences[i], nullptr);
                 }
             }
-
-            // Clean up picking resources while device is still valid
-            cleanupPickingResources();
         }
 
         m_pipeline.reset();
@@ -460,80 +451,4 @@ namespace Bess::Renderer2D {
             }
         }
     }
-
-    uint64_t VulkanCore::getSceneTextureId() {
-        if (m_offscreenImageView && m_offscreenImageView->getDescriptorSet() != VK_NULL_HANDLE) {
-            BESS_TRACE("[VulkanCore] Offscreen image view handle was valid");
-            return (uint64_t)m_offscreenImageView->getDescriptorSet();
-        }
-        BESS_WARN("[VulkanCore] Offscreen image view handle was not valid");
-        return 0;
-    }
-
-    int32_t VulkanCore::readPickingId(int x, int y) {
-        if (!m_offscreenImageView || !m_offscreenImageView->hasPickingAttachments()) {
-            return -1;
-        }
-        m_pendingPickingX = x;
-        m_pendingPickingY = y;
-        m_pickingRequestPending = true;
-        return -1; // result will be available next getPickingIdResult()
-    }
-
-    int32_t VulkanCore::getPickingIdResult() {
-        if (m_pickingCopyInFlight) {
-            VkFence fence = m_inFlightFences[m_pickingCopyRecordedFrameIdx];
-            if (vkGetFenceStatus(m_device->device(), fence) == VK_SUCCESS) {
-                void *data = nullptr;
-                vkMapMemory(m_device->device(), m_pickingStagingBufferMemory, 0, sizeof(int32_t), 0, &data);
-                m_pickingResult = *static_cast<int32_t *>(data);
-                vkUnmapMemory(m_device->device(), m_pickingStagingBufferMemory);
-                m_pickingCopyInFlight = false;
-                m_pickingRequestPending = false;
-            }
-        }
-        return m_pickingResult;
-    }
-
-    void VulkanCore::createPickingResources() {
-        VkBufferCreateInfo bufferInfo{};
-        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size = sizeof(int);
-        bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-        if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr, &m_pickingStagingBuffer) != VK_SUCCESS) {
-            BESS_ERROR("Failed to create picking staging buffer");
-            return;
-        }
-
-        VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(m_device->device(), m_pickingStagingBuffer, &memRequirements);
-
-        VkMemoryAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-        if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr, &m_pickingStagingBufferMemory) != VK_SUCCESS) {
-            BESS_ERROR("Failed to allocate picking staging buffer memory");
-            vkDestroyBuffer(m_device->device(), m_pickingStagingBuffer, nullptr);
-            return;
-        }
-
-        vkBindBufferMemory(m_device->device(), m_pickingStagingBuffer, m_pickingStagingBufferMemory, 0);
-    }
-
-    void VulkanCore::cleanupPickingResources() {
-        if (m_pickingStagingBuffer != VK_NULL_HANDLE) {
-            vkDestroyBuffer(m_device->device(), m_pickingStagingBuffer, nullptr);
-            m_pickingStagingBuffer = VK_NULL_HANDLE;
-        }
-
-        if (m_pickingStagingBufferMemory != VK_NULL_HANDLE) {
-            vkFreeMemory(m_device->device(), m_pickingStagingBufferMemory, nullptr);
-            m_pickingStagingBufferMemory = VK_NULL_HANDLE;
-        }
-    }
-
 } // namespace Bess::Renderer2D

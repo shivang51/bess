@@ -4,15 +4,12 @@
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
 #include "scene/components/components.h"
-#include "scene/renderer/vulkan_renderer.h"
 #include "scene/scene.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "types.h"
 #include <cstdint>
 #include <string>
-
-using Renderer = Bess::Renderer2D::VulkanRenderer;
 
 namespace Bess::Canvas {
 
@@ -54,7 +51,7 @@ namespace Bess::Canvas {
                                       headerPos.y + componentStyles.paddingY,
                                       pos.z + 0.0005f);
 
-        Renderer2D::QuadRenderProperties props;
+        QuadRenderProperties props;
         props.angle = rotation;
         props.borderRadius = spriteComp.borderRadius;
         props.borderSize = spriteComp.borderSize;
@@ -62,7 +59,7 @@ namespace Bess::Canvas {
         props.isMica = true;
         props.hasShadow = true;
 
-        VulkanRenderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
+        m_sceneRef->getViewport()->quad(pos, glm::vec2(scale), spriteComp.color, id, props);
 
         props = {};
         props.angle = rotation;
@@ -70,13 +67,13 @@ namespace Bess::Canvas {
         props.borderRadius = glm::vec4(0, 0, spriteComp.borderRadius.x - spriteComp.borderSize.x, spriteComp.borderRadius.y - spriteComp.borderSize.y);
         props.isMica = true;
 
-        VulkanRenderer::quad(headerPos,
-                             glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
-                             spriteComp.headerColor,
-                             id,
-                             props);
+        m_sceneRef->getViewport()->quad(headerPos,
+                                        glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
+                                        spriteComp.headerColor,
+                                        id,
+                                        props);
 
-        Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, id, rotation);
+        m_sceneRef->getViewport()->msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, id, rotation);
 
         drawSlots(entity, simComponent, transform);
     }
@@ -88,7 +85,7 @@ namespace Bess::Canvas {
                                          const Components::SimulationComponent &simComp) {
         auto &registry = m_sceneRef->getEnttRegistry();
 
-        auto labelSize = Renderer::getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
+        auto labelSize = m_sceneRef->getViewport()->getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
 
         uint64_t id = (uint64_t)entity;
         const auto &pos = transform.position;
@@ -110,20 +107,20 @@ namespace Bess::Canvas {
         bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
         auto border = isSelected ? ViewportTheme::colors.selectedComp : spriteComp.borderColor;
 
-        Renderer2D::QuadRenderProperties props;
+        QuadRenderProperties props;
         props.borderRadius = spriteComp.borderRadius;
         props.borderColor = border;
         props.borderSize = spriteComp.borderSize;
         props.isMica = true;
-        VulkanRenderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
+        m_sceneRef->getViewport()->quad(pos, glm::vec2(scale), spriteComp.color, id, props);
 
         glm::vec3 textPos = glm::vec3(
             pos.x - (scale.x / 2.f) + labelLOffset,
             pos.y + (componentStyles.headerFontSize / 2.f) - 1.f, pos.z + 0.0005f);
 
         auto name = tagComp.name;
-        Renderer::msdfText(name, textPos, componentStyles.headerFontSize,
-                           ViewportTheme::colors.text, id);
+        m_sceneRef->getViewport()->msdfText(name, textPos, componentStyles.headerFontSize,
+                                            ViewportTheme::colors.text, id);
 
         drawSlots(entity, simComp, transform);
     }
@@ -187,22 +184,22 @@ namespace Bess::Canvas {
         float r = componentStyles.slotRadius;
 
         if (extendedType == SimEngine::ExtendedPinType::inputClear) {
-            Renderer2D::QuadRenderProperties props;
+            QuadRenderProperties props;
             props.borderColor = border;
             props.borderRadius = glm::vec4(2.5f);
             props.borderSize = glm::vec4(componentStyles.slotBorderSize + 0.5);
-            VulkanRenderer::quad(pos, glm::vec2(r * 2.f), glm::vec4(0.f), id, props);
+            m_sceneRef->getViewport()->quad(pos, glm::vec2(r * 2.f), glm::vec4(0.f), id, props);
             props.borderSize = {};
             props.borderRadius = glm::vec4(1.5f);
-            VulkanRenderer::quad(pos, glm::vec2((ir - 1) * 2.f), glm::vec4(bg), id, props);
+            m_sceneRef->getViewport()->quad(pos, glm::vec2((ir - 1) * 2.f), glm::vec4(bg), id, props);
         } else {
-            Renderer::circle(pos, r, border, id, ir);
-            Renderer::circle(pos, ir - 1.f, bg, id);
+            m_sceneRef->getViewport()->circle(pos, r, border, id, ir);
+            m_sceneRef->getViewport()->circle(pos, ir - 1.f, bg, id);
         }
 
         float labelX = pos.x + labelDx;
         float dY = componentStyles.slotRadius - std::abs(componentStyles.slotRadius * 2.f - componentStyles.slotLabelSize) / 2.f;
-        Renderer::msdfText(label, {labelX, pos.y + dY, pos.z}, componentStyles.slotLabelSize, ViewportTheme::colors.text, parentId, angle);
+        m_sceneRef->getViewport()->msdfText(label, {labelX, pos.y + dY, pos.z}, componentStyles.slotLabelSize, ViewportTheme::colors.text, parentId, angle);
     }
 
     void NodesArtist::drawSevenSegDisplay(
@@ -227,7 +224,7 @@ namespace Bess::Canvas {
 
         glm::vec3 textPos = glm::vec3(pos.x - scale.x / 2.f + componentStyles.paddingX, headerPos.y + componentStyles.paddingY, pos.z + 0.0005f);
 
-        Renderer2D::QuadRenderProperties props;
+        QuadRenderProperties props;
         props = {};
         props.angle = rotation;
         props.borderRadius = spriteComp.borderRadius;
@@ -235,7 +232,7 @@ namespace Bess::Canvas {
         props.borderColor = border;
         props.isMica = true;
 
-        VulkanRenderer::quad(pos, glm::vec2(scale), spriteComp.color, id, props);
+        m_sceneRef->getViewport()->quad(pos, glm::vec2(scale), spriteComp.color, id, props);
 
         props = {};
         props.angle = rotation;
@@ -243,13 +240,13 @@ namespace Bess::Canvas {
         props.borderRadius = glm::vec4(0, 0, spriteComp.borderRadius.x - spriteComp.borderSize.x, spriteComp.borderRadius.y - spriteComp.borderSize.y);
         props.isMica = true;
 
-        VulkanRenderer::quad(headerPos,
-                             glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
-                             spriteComp.headerColor,
-                             id,
-                             props);
+        m_sceneRef->getViewport()->quad(headerPos,
+                                        glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
+                                        spriteComp.headerColor,
+                                        id,
+                                        props);
 
-        Renderer::msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, id, rotation);
+        m_sceneRef->getViewport()->msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, id, rotation);
 
         {
             auto compState = SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity);
@@ -262,13 +259,13 @@ namespace Bess::Canvas {
             glm::vec3 texPos = {posX,
                                 transform.position.y + (headerHeight / 2.f),
                                 transform.position.z + 0.0001};
-            VulkanRenderer::quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity);
+            m_sceneRef->getViewport()->quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity);
 
             for (int i = 0; i < (int)compState.inputStates.size(); i++) {
                 if (!compState.inputStates[i])
                     continue;
                 tex = m_artistTools.sevenSegDispTexs[i + 1];
-                VulkanRenderer::quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity);
+                m_sceneRef->getViewport()->quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity);
             }
         }
 
@@ -308,7 +305,7 @@ namespace Bess::Canvas {
             auto slotPos = getSlotPos(slotComp, transformComp);
             const uint64_t parentId = (uint64_t)m_sceneRef->getEntityWithUuid(slotComp.parentId);
             label = outDetails.size() > i ? outDetails[i].name : "Y" + std::to_string(i);
-            const float labelWidth = Renderer::getMSDFTextRenderSize(label, componentStyles.slotLabelSize).x;
+            const float labelWidth = m_sceneRef->getViewport()->getMSDFTextRenderSize(label, componentStyles.slotLabelSize).x;
             paintSlot((uint64_t)slot, parentId, slotPos, angle, label, -labeldx - labelWidth, state.state, isConnected,
                       outDetails.size() > i ? outDetails[i].extendedType : SimEngine::ExtendedPinType::none);
         }

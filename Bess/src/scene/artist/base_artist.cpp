@@ -9,14 +9,12 @@
 #include "scene/renderer/vulkan/vulkan_core.h"
 #include "scene/renderer/vulkan/vulkan_subtexture.h"
 #include "scene/renderer/vulkan/vulkan_texture.h"
-#include "scene/renderer/vulkan_renderer.h"
 #include "scene/scene.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include <cstdint>
 #include <vector>
 
-using Renderer = Bess::Renderer2D::VulkanRenderer;
 namespace Bess::Canvas {
     ArtistTools BaseArtist::m_artistTools;
 
@@ -56,11 +54,11 @@ namespace Bess::Canvas {
         const float ratio = slotComp.slotType == Components::SlotType::digitalInput ? 0.8f : 0.2f;
         const auto midX = startPos.x + ((pos.x - startPos.x) * ratio);
 
-        Renderer::beginPathMode(startPos, 2.f, ViewportTheme::colors.ghostWire, -1);
-        Renderer::pathLineTo(glm::vec3(midX, startPos.y, 0.8f), 2.f, ViewportTheme::colors.ghostWire, -1);
-        Renderer::pathLineTo(glm::vec3(midX, pos.y, 0.8f), 2.f, ViewportTheme::colors.ghostWire, -1);
-        Renderer::pathLineTo(glm::vec3(pos, 0.8f), 2.f, ViewportTheme::colors.ghostWire, -1);
-        Renderer::endPathMode();
+        m_sceneRef->getViewport()->beginPathMode(startPos, 2.f, ViewportTheme::colors.ghostWire, -1);
+        m_sceneRef->getViewport()->pathLineTo(glm::vec3(midX, startPos.y, 0.8f), 2.f, ViewportTheme::colors.ghostWire, -1);
+        m_sceneRef->getViewport()->pathLineTo(glm::vec3(midX, pos.y, 0.8f), 2.f, ViewportTheme::colors.ghostWire, -1);
+        m_sceneRef->getViewport()->pathLineTo(glm::vec3(pos, 0.8f), 2.f, ViewportTheme::colors.ghostWire, -1);
+        m_sceneRef->getViewport()->endPathMode();
     }
 
     void BaseArtist::drawConnection(const UUID &id, entt::entity inputEntity, entt::entity outputEntity, bool isSelected) {
@@ -105,7 +103,7 @@ namespace Bess::Canvas {
 
         bool isHovered = registry.all_of<Components::HoveredEntityComponent>(connSegEntt);
 
-        Renderer::beginPathMode(startPos, isHovered ? hoveredSize : wireSize, color, static_cast<uint64_t>(connSegEntt));
+        m_sceneRef->getViewport()->beginPathMode(startPos, isHovered ? hoveredSize : wireSize, color, static_cast<uint64_t>(connSegEntt));
         while (segId != UUID::null) {
             glm::vec3 pos = endPos;
             auto newSegId = connSegComp.next;
@@ -129,13 +127,13 @@ namespace Bess::Canvas {
             isHovered = registry.all_of<Components::HoveredEntityComponent>(segEntt);
             auto size = isHovered ? hoveredSize : wireSize;
             auto offPos = pos;
-            Renderer::pathLineTo(offPos, size, color, static_cast<uint64_t>(segEntt));
+            m_sceneRef->getViewport()->pathLineTo(offPos, size, color, static_cast<uint64_t>(segEntt));
             offPos.z += 0.0001f;
 
             segId = newSegId;
             prevPos = pos;
         }
-        Renderer::endPathMode();
+        m_sceneRef->getViewport()->endPathMode();
     }
 
     void BaseArtist::drawConnectionEntity(const entt::entity entity) {
@@ -160,22 +158,22 @@ namespace Bess::Canvas {
             const auto &transformComp = registry.get<Components::TransformComponent>(entity);
             auto pos = transformComp.position;
             const auto rotation = transformComp.angle;
-            Renderer::msdfText(textComp.text, pos, textComp.fontSize, textComp.color, id, rotation);
+            m_sceneRef->getViewport()->msdfText(textComp.text, pos, textComp.fontSize, textComp.color, id, rotation);
 
             if (isSelected) {
-                const Renderer2D::QuadRenderProperties props{
+                const QuadRenderProperties props{
                     .angle = rotation,
                     .borderColor = ViewportTheme::colors.selectedComp,
                     .borderRadius = glm::vec4(4.f),
                     .borderSize = glm::vec4(1.f),
                     .isMica = true,
                 };
-                auto size = Renderer::getMSDFTextRenderSize(textComp.text, textComp.fontSize);
+                auto size = m_sceneRef->getViewport()->getMSDFTextRenderSize(textComp.text, textComp.fontSize);
                 pos.x += size.x * 0.5f;
                 pos.y -= size.y * 0.25f;
                 size.x += componentStyles.paddingX * 2.f;
                 size.y += componentStyles.paddingY * 2.f;
-                VulkanRenderer::quad(pos, size, ViewportTheme::colors.componentBG, id, props);
+                m_sceneRef->getViewport()->quad(pos, size, ViewportTheme::colors.componentBG, id, props);
             }
         } break;
         default:
@@ -191,7 +189,7 @@ namespace Bess::Canvas {
         const int maxRows = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
         float height = (maxRows * SLOT_ROW_SIZE);
 
-        const auto labelSize = Renderer::getMSDFTextRenderSize(name, componentStyles.headerFontSize);
+        const auto labelSize = Viewport::getMSDFTextRenderSize(name, componentStyles.headerFontSize);
 
         float width = labelSize.x + componentStyles.paddingX * 2.f;
 

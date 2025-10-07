@@ -28,7 +28,6 @@
 #include "scene/components/non_sim_comp.h"
 #include "scene/renderer/vulkan/vulkan_core.h"
 #include "scene/renderer/vulkan/vulkan_texture.h"
-#include "scene/renderer/vulkan_renderer.h"
 #include "scene/viewport.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
@@ -223,7 +222,6 @@ namespace Bess::Canvas {
     }
 
     void Scene::drawScene(std::shared_ptr<Camera> camera) {
-
         m_viewport->grid(glm::vec3(0.f, 0.f, 0.1f),
                          m_camera->getSpan(),
                          -1,
@@ -234,7 +232,6 @@ namespace Bess::Canvas {
                              .axisYColor = ViewportTheme::colors.gridAxisYColor,
                          });
 
-        return;
         // check if start frame does not happen again within same frame
         //
         {
@@ -242,15 +239,13 @@ namespace Bess::Canvas {
             mousePos_.y = UI::UIMain::state.viewportSize.y - mousePos_.y;
             int x = static_cast<int>(mousePos_.x);
             int y = static_cast<int>(mousePos_.y);
-            Renderer2D::VulkanCore::instance().readPickingId(x, y);
+            m_viewport->setPickingCoord(x, y);
         }
         m_artistManager->setSchematicMode(m_isSchematicView);
         const auto artist = m_artistManager->getCurrentArtist();
 
         // Grid
-        Renderer2D::VulkanRenderer::beginScene(m_viewport);
-
-        Renderer2D::VulkanRenderer::grid(
+        m_viewport->grid(
             glm::vec3(0.f, 0.f, 0.1f),
             m_camera->getSpan(),
             -1,
@@ -261,10 +256,7 @@ namespace Bess::Canvas {
                 .axisYColor = ViewportTheme::colors.gridAxisYColor,
             });
 
-        Renderer2D::VulkanRenderer::end();
-
         // Connections
-        Renderer2D::VulkanRenderer::beginScene(m_viewport);
         const auto connectionsView = m_registry.view<Components::ConnectionComponent>();
         for (const auto entity : connectionsView) {
             artist->drawConnectionEntity(entity);
@@ -273,10 +265,8 @@ namespace Bess::Canvas {
         if (m_drawMode == SceneDrawMode::connection) {
             drawConnection();
         }
-        Renderer2D::VulkanRenderer::end();
 
         // Components
-        Renderer2D::VulkanRenderer::beginScene(m_viewport);
         const auto simCompView = m_registry.view<
             Components::SimulationComponent,
             Components::TagComponent,
@@ -296,12 +286,8 @@ namespace Bess::Canvas {
             artist->drawNonSimEntity(entity);
         }
 
-        Renderer2D::VulkanRenderer::end();
-
         if (m_drawMode == SceneDrawMode::selectionBox) {
-            Renderer2D::VulkanRenderer::beginScene(m_viewport);
             drawSelectionBox();
-            Renderer2D::VulkanRenderer::end();
         }
     }
 
@@ -313,10 +299,10 @@ namespace Bess::Canvas {
         const auto pos = start + size / 2.f;
         size = glm::abs(size);
 
-        Renderer2D::QuadRenderProperties props;
+        QuadRenderProperties props;
         props.borderColor = ViewportTheme::colors.selectionBoxBorder;
         props.borderSize = glm::vec4(1.f);
-        Renderer2D::VulkanRenderer::quad(glm::vec3(pos, 7.f), size, ViewportTheme::colors.selectionBoxFill, 0, props);
+        m_viewport->quad(glm::vec3(pos, 7.f), size, ViewportTheme::colors.selectionBoxFill, 0, props);
     }
 
     void Scene::drawConnection() {
@@ -534,9 +520,6 @@ namespace Bess::Canvas {
 
     void Scene::resize(const glm::vec2 &size) {
         m_size = UI::UIMain::state.viewportSize;
-        Renderer2D::VulkanCore::instance().resizeOffscreen({static_cast<uint32_t>(m_size.x),
-                                                            static_cast<uint32_t>(m_size.y)});
-
         m_viewport->resize(vec2Extent2D(m_size));
         m_camera->resize(m_size.x, m_size.y);
     }
@@ -642,7 +625,7 @@ namespace Bess::Canvas {
     void Scene::updateHoveredId() {
         int32_t hoverId = -1; // Placeholder for Vulkan implementation
 
-        hoverId = Renderer2D::VulkanCore::instance().getPickingIdResult();
+        hoverId = m_viewport->getPickingIdResult();
 
         m_registry.clear<Components::HoveredEntityComponent>();
         const auto e = (entt::entity)hoverId;

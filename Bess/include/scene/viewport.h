@@ -6,6 +6,7 @@
 #include "scene/renderer/vulkan/primitive_renderer.h"
 #include "scene/renderer/vulkan/vulkan_image_view.h"
 #include "scene/renderer/vulkan/vulkan_offscreen_render_pass.h"
+#include "scene/renderer/vulkan/vulkan_subtexture.h"
 #include <memory>
 #include <vulkan/vulkan_core.h>
 
@@ -47,26 +48,32 @@ namespace Bess::Canvas {
         std::shared_ptr<Camera> getCamera();
 
         uint64_t getViewportTexture();
+        void setPickingCoord(int x, int y);
+        int32_t getPickingIdResult(); // Get result from previous frame
 
       public: // drawing api
         void grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const GridColors &colors);
 
         void quad(const glm::vec3 &pos, const glm::vec2 &size,
-                  const glm::vec4 &color, int id, QuadRenderProperties properties);
+                  const glm::vec4 &color, int id, QuadRenderProperties properties = {});
 
         void texturedQuad(const glm::vec3 &pos, const glm::vec2 &size,
                           const std::shared_ptr<Vulkan::VulkanTexture> &texture,
-                          const glm::vec4 &tintColor, int id, QuadRenderProperties properties);
+                          const glm::vec4 &tintColor, int id, QuadRenderProperties properties = {});
+
+        void texturedQuad(const glm::vec3 &pos, const glm::vec2 &size,
+                          const std::shared_ptr<Vulkan::SubTexture> &texture,
+                          const glm::vec4 &tintColor, int id, QuadRenderProperties properties = {});
 
         void circle(const glm::vec3 &center, float radius,
-                    const glm::vec4 &color, int id, float innerRadius);
+                    const glm::vec4 &color, int id, float innerRadius = 0);
 
         void msdfText(const std::string &text, const glm::vec3 &pos, size_t size,
-                      const glm::vec4 &color, int id, float angle);
+                      const glm::vec4 &color, int id, float angle = 0);
 
         void beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, uint64_t id);
 
-        void endPathMode(bool closePath, bool genFill, const glm::vec4 &fillColor, bool genStroke);
+        void endPathMode(bool closePath = false, bool genFill = false, const glm::vec4 &fillColor = {}, bool genStroke = true);
 
         void pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, int id);
 
@@ -80,6 +87,11 @@ namespace Bess::Canvas {
       private:
         void createFences(size_t count);
         void deleteFences();
+
+        void createPickingResources();
+        void cleanupPickingResources();
+
+        void copyIdForPicking();
 
       private:
         int m_currentFrameIdx = 0;
@@ -100,5 +112,15 @@ namespace Bess::Canvas {
         VkExtent2D m_size;
 
         VkCommandBuffer m_currentCmdBuffer;
+
+        // mouse picking resources
+        VkBuffer m_pickingStagingBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory m_pickingStagingBufferMemory = VK_NULL_HANDLE;
+        int m_pendingPickingX = -1;
+        int m_pendingPickingY = -1;
+        int32_t m_pickingResult = -1;
+        bool m_pickingRequestPending = false;
+        bool m_pickingCopyInFlight = false;
+        uint32_t m_pickingCopyRecordedFrameIdx = 0;
     };
 } // namespace Bess::Canvas

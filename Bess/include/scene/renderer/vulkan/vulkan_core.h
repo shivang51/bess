@@ -67,18 +67,6 @@ namespace Bess::Renderer2D {
             return m_renderPass;
         }
 
-        // Scene texture access for ImGui
-        uint64_t getSceneTextureId();
-
-        void resizeOffscreen(VkExtent2D extent);
-        VkExtent2D getOffscreenExtent() const {
-            return m_offscreenImageView ? m_offscreenImageView->getExtent() : VkExtent2D{0, 0};
-        }
-
-        // Mouse picking functionality
-        int32_t readPickingId(int x, int y);
-        int32_t getPickingIdResult(); // Get result from previous frame
-
         // Getters for ImGui integration
         VkInstance getVkInstance() const { return m_vkInstance; }
         std::shared_ptr<Vulkan::VulkanDevice> getDevice() const { return m_device; }
@@ -98,8 +86,6 @@ namespace Bess::Renderer2D {
         VkResult createDebugMessenger();
         VkResult destroyDebugMessenger() const;
         void createSyncObjects();
-        void createPickingResources();
-        void cleanupPickingResources();
 
         FrameContext m_currentFrameContext = {};
 
@@ -120,16 +106,6 @@ namespace Bess::Renderer2D {
         std::vector<VkSemaphore> m_renderFinishedSemaphores;
         std::vector<VkFence> m_inFlightFences;
         uint32_t m_currentFrameIdx = 0;
-
-        // Mouse picking resources
-        VkBuffer m_pickingStagingBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory m_pickingStagingBufferMemory = VK_NULL_HANDLE;
-        int m_pendingPickingX = -1;
-        int m_pendingPickingY = -1;
-        int32_t m_pickingResult = -1;
-        bool m_pickingRequestPending = false;
-        bool m_pickingCopyInFlight = false;
-        uint32_t m_pickingCopyRecordedFrameIdx = 0;
 
       public:
         void recreateSwapchain();
