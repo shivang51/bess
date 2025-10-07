@@ -51,15 +51,15 @@ namespace Bess::Canvas {
         const auto parentEntt = m_sceneRef->getEntityWithUuid(slotComp.parentId);
         const auto &parentTransform = slotsView.get<Components::TransformComponent>(parentEntt);
         auto startPos = getSlotPos(slotComp, parentTransform);
-        startPos.z = 0.f;
+        startPos.z = 0.8f;
 
         const float ratio = slotComp.slotType == Components::SlotType::digitalInput ? 0.8f : 0.2f;
         const auto midX = startPos.x + ((pos.x - startPos.x) * ratio);
 
         Renderer::beginPathMode(startPos, 2.f, ViewportTheme::colors.ghostWire, -1);
-        Renderer::pathLineTo(glm::vec3(midX, startPos.y, 0.f), 2.f, ViewportTheme::colors.ghostWire, -1);
-        Renderer::pathLineTo(glm::vec3(midX, pos.y, 0.f), 2.f, ViewportTheme::colors.ghostWire, -1);
-        Renderer::pathLineTo(glm::vec3(pos, 0.f), 2.f, ViewportTheme::colors.ghostWire, -1);
+        Renderer::pathLineTo(glm::vec3(midX, startPos.y, 0.8f), 2.f, ViewportTheme::colors.ghostWire, -1);
+        Renderer::pathLineTo(glm::vec3(midX, pos.y, 0.8f), 2.f, ViewportTheme::colors.ghostWire, -1);
+        Renderer::pathLineTo(glm::vec3(pos, 0.8f), 2.f, ViewportTheme::colors.ghostWire, -1);
         Renderer::endPathMode();
     }
 
@@ -79,8 +79,8 @@ namespace Bess::Canvas {
         const auto &endParentTransform = registry.get<Components::TransformComponent>(m_sceneRef->getEntityWithUuid(outputSlotComp.parentId));
         endPos = getSlotPos(outputSlotComp, endParentTransform);
 
-        startPos.z = 0.f;
-        endPos.z = 0.f;
+        startPos.z = 0.5f;
+        endPos.z = 0.5f;
 
         glm::vec4 color;
         if (connectionComponent.useCustomColor) {

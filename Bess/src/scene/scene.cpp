@@ -229,12 +229,13 @@ namespace Bess::Canvas {
         m_artistManager->setSchematicMode(m_isSchematicView);
         const auto artist = m_artistManager->getCurrentArtist();
 
+        // Grid
         Renderer2D::VulkanRenderer::beginScene(camera);
 
         Renderer2D::VulkanRenderer::grid(
             glm::vec3(0.f, 0.f, 0.1f),
             m_camera->getSpan(),
-            0,
+            -1,
             {
                 .minorColor = ViewportTheme::colors.gridMinorColor,
                 .majorColor = ViewportTheme::colors.gridMajorColor,
@@ -242,16 +243,9 @@ namespace Bess::Canvas {
                 .axisYColor = ViewportTheme::colors.gridAxisYColor,
             });
 
-        Renderer2D::VulkanRenderer::beginPathMode(glm::vec3(1.f), 4.f, glm::vec4(1.f), 0.f);
-        Renderer2D::VulkanRenderer::pathLineTo(glm::vec3(100.f, 0.f, 1.f), 4.f, glm::vec4(1.f), 0.f);
-        Renderer2D::VulkanRenderer::endPathMode();
-
-        Renderer2D::VulkanRenderer::beginPathMode(glm::vec3(1.f), 4.f, glm::vec4(1.f), 0.f);
-        Renderer2D::VulkanRenderer::pathLineTo(glm::vec3(0.f, 100.f, 1.f), 4.f, glm::vec4(1.f), 0.f);
-        Renderer2D::VulkanRenderer::endPathMode();
-
         Renderer2D::VulkanRenderer::end();
 
+        // Connections
         Renderer2D::VulkanRenderer::beginScene(camera);
         const auto connectionsView = m_registry.view<Components::ConnectionComponent>();
         for (const auto entity : connectionsView) {

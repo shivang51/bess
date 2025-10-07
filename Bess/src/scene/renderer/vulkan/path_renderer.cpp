@@ -160,7 +160,7 @@ namespace Bess::Renderer2D::Vulkan {
             maxWeight = std::max(maxWeight, points[i].weight);
         }
 
-        float miterLimit = maxWeight * 1.5;
+        float miterLimit = maxWeight * 1.5f;
 
         if (isClosed) {
             totalLength += glm::distance(glm::vec2(points.back().pos), glm::vec2(points.front().pos));
@@ -194,8 +194,8 @@ namespace Bess::Renderer2D::Vulkan {
             if (!isClosed && i == 0) { // Start Cap
                 glm::vec2 dir = glm::normalize(glm::vec2(pNext.pos) - glm::vec2(pCurr.pos));
                 glm::vec2 normalVec = glm::vec2(-dir.y, dir.x) * pCurr.weight / 2.f;
-                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normalVec, pCurr.pos.z, pCurr.id, {u, 1.f}));
-                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normalVec, pCurr.pos.z, pCurr.id, {u, 0.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normalVec, pCurr.pos.z, pNext.id, {u, 1.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normalVec, pCurr.pos.z, pNext.id, {u, 0.f}));
                 continue;
             }
 
@@ -218,8 +218,8 @@ namespace Bess::Renderer2D::Vulkan {
             // Handle straight lines
             if (std::abs(dotProduct) == 1.f) {
                 glm::vec2 normal = normalIn * pCurr.weight / 2.f;
-                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normal, pCurr.pos.z, pCurr.id, {u, 1.f}));
-                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normal, pCurr.pos.z, pCurr.id, {u, 0.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normal, pCurr.pos.z, pNext.id, {u, 1.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normal, pCurr.pos.z, pNext.id, {u, 0.f}));
                 continue;
             }
 
@@ -260,11 +260,11 @@ namespace Bess::Renderer2D::Vulkan {
                     auto E = glm::vec2(pCurr.pos) - disp;
 
                     if (crossProductZ > 0) { // Left turn
-                        stripVertices.push_back(makeVertex(E, pCurr.pos.z, pCurr.id, {u, 1.f}));
-                        stripVertices.push_back(makeVertex(D, pCurr.pos.z, pCurr.id, {u, 0.f}));
+                        stripVertices.push_back(makeVertex(E, pCurr.pos.z, pNext.id, {u, 1.f}));
+                        stripVertices.push_back(makeVertex(D, pCurr.pos.z, pNext.id, {u, 0.f}));
                     } else { // Right turn
-                        stripVertices.push_back(makeVertex(D, pCurr.pos.z, pCurr.id, {u, 1.f}));
-                        stripVertices.push_back(makeVertex(E, pCurr.pos.z, pCurr.id, {u, 0.f}));
+                        stripVertices.push_back(makeVertex(D, pCurr.pos.z, pNext.id, {u, 1.f}));
+                        stripVertices.push_back(makeVertex(E, pCurr.pos.z, pNext.id, {u, 0.f}));
                     }
                 }
             }

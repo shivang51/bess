@@ -122,7 +122,7 @@ namespace Bess::Renderer2D::Vulkan {
         glm::vec4 color;    // location 1
         glm::vec2 texCoord; // location 2
         int id;             // location 3
-        int texSlotIdx;     // location 4
+        int texSlotIdx = 0;     // location 4
 
         static VkVertexInputBindingDescription getBindingDescription() {
             VkVertexInputBindingDescription bindingDescription{};
