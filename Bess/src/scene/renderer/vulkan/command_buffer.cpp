@@ -34,7 +34,7 @@ namespace Bess::Renderer2D::Vulkan {
         }
     }
 
-    VulkanCommandBuffers::VulkanCommandBuffers(const std::shared_ptr<VulkanDevice> &device, size_t count) {
+    VulkanCommandBuffers::VulkanCommandBuffers(const std::shared_ptr<VulkanDevice> &device, size_t count) : m_device(device) {
         const QueueFamilyIndices queueFamilyIndices = device->queueFamilyIndices();
 
         VkCommandPoolCreateInfo poolInfo{};

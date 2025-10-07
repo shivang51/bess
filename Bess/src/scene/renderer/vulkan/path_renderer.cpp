@@ -478,4 +478,7 @@ namespace Bess::Renderer2D::Vulkan {
         return points;
     }
 
+    void PathRenderer::resize(VkExtent2D extent) {
+        m_pathPipeline->resize(extent);
+    }
 } // namespace Bess::Renderer2D::Vulkan

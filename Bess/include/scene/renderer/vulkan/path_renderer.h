@@ -6,6 +6,7 @@
 #include "vulkan_offscreen_render_pass.h"
 #include <memory>
 #include <vector>
+#include <vulkan/vulkan_core.h>
 
 namespace Bess::Renderer2D::Vulkan {
 
@@ -58,6 +59,8 @@ namespace Bess::Renderer2D::Vulkan {
         void pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, int id);
 
         void updateUniformBuffer(const UniformBufferObject &ubo);
+
+        void resize(VkExtent2D extent);
 
       private:
         std::vector<CommonVertex> m_strokeVertices;

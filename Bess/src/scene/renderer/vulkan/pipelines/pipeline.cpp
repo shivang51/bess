@@ -238,9 +238,9 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
         VkPipelineViewportStateCreateInfo viewportState{};
         viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        viewportState.viewportCount = 0; // we will be using dynamlic viewport
+        viewportState.viewportCount = 1; // we will be using dynamlic viewport
+        viewportState.scissorCount = 1;
         viewportState.pViewports = nullptr;
-        viewportState.scissorCount = 0;
         viewportState.pScissors = nullptr;
         return viewportState;
     }

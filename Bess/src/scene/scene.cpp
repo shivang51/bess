@@ -50,6 +50,7 @@ namespace Bess::Canvas {
 
     void Scene::destroy() {
         BESS_INFO("[Scene] Destroying");
+        m_viewport.reset();
         m_artistManager->destroy();
     }
 

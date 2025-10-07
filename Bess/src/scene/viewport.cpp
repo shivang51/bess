@@ -78,6 +78,7 @@ namespace Bess::Canvas {
         m_imgView->recreate(m_size, m_renderPass->getVkHandle());
         m_camera->resize((float)size.width, (float)size.height);
         m_primitiveRenderer->resize(size);
+        m_pathRenderer->resize(size);
     }
 
     VkCommandBuffer Viewport::getVkCmdBuffer(int idx) {
