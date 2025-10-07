@@ -29,6 +29,13 @@ namespace Bess::Canvas {
         glm::vec4 axisYColor;
     };
 
+    struct MousePickingData {
+        VkExtent2D startPos;
+        VkExtent2D extent;
+        bool pending = false;
+        std::vector<int32_t> ids;
+    };
+
     class Viewport {
       public:
         Viewport(const std::shared_ptr<Vulkan::VulkanDevice> &device, VkFormat imgFormat, VkExtent2D size);
@@ -44,12 +51,13 @@ namespace Bess::Canvas {
         VkCommandBuffer getVkCmdBuffer(int idx = -1);
 
         void submit();
+        void resizePickingBuffer(VkDeviceSize newSize);
 
         std::shared_ptr<Camera> getCamera();
 
         uint64_t getViewportTexture();
-        void setPickingCoord(int x, int y);
-        int32_t getPickingIdResult(); // Get result from previous frame
+        void setPickingCoord(uint32_t x, uint32_t y, uint32_t w = 1, uint32_t h = 1);
+        std::vector<int32_t> getPickingIdsResult();
 
       public: // drawing api
         void grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const GridColors &colors);
@@ -116,11 +124,10 @@ namespace Bess::Canvas {
         // mouse picking resources
         VkBuffer m_pickingStagingBuffer = VK_NULL_HANDLE;
         VkDeviceMemory m_pickingStagingBufferMemory = VK_NULL_HANDLE;
-        int m_pendingPickingX = -1;
-        int m_pendingPickingY = -1;
-        int32_t m_pickingResult = -1;
-        bool m_pickingRequestPending = false;
+
+        MousePickingData m_mousePickingData = {};
         bool m_pickingCopyInFlight = false;
         uint32_t m_pickingCopyRecordedFrameIdx = 0;
+        uint64_t m_pickingStagingBufferSize = 1;
     };
 } // namespace Bess::Canvas

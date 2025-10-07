@@ -1,7 +1,4 @@
 #include "scene/scene.h"
-#include "application_state.h"
-#include "asset_manager/asset_manager.h"
-#include "assets.h"
 #include "bess_uuid.h"
 #include "common/log.h"
 #include "component_catalog.h"
@@ -13,8 +10,6 @@
 #include "ext/vector_float3.hpp"
 #include "ext/vector_float4.hpp"
 #include "fwd.hpp"
-#include "gtc/type_ptr.hpp"
-#include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
 #include "scene/artist/artist_manager.h"
 #include "scene/artist/base_artist.h"
@@ -27,7 +22,6 @@
 #include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
 #include "scene/renderer/vulkan/vulkan_core.h"
-#include "scene/renderer/vulkan/vulkan_texture.h"
 #include "scene/viewport.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
@@ -80,10 +74,9 @@ namespace Bess::Canvas {
     }
 
     void Scene::update(TFrameTime ts, const std::vector<ApplicationEvent> &events) {
-        // doing it here so selection box does not interfere with selection
-        if (m_selectInSelectionBox) {
-            selectEntitesInArea(m_selectionBoxStart, m_selectionBoxEnd);
-            m_selectInSelectionBox = false;
+        if (m_getIdsInSelBox) {
+            selectEntitesInArea();
+            m_getIdsInSelBox = false;
         }
 
         m_camera->update(ts);
@@ -239,7 +232,22 @@ namespace Bess::Canvas {
             mousePos_.y = UI::UIMain::state.viewportSize.y - mousePos_.y;
             int x = static_cast<int>(mousePos_.x);
             int y = static_cast<int>(mousePos_.y);
-            m_viewport->setPickingCoord(x, y);
+            if (m_selectInSelectionBox) {
+                auto start = m_selectionBoxStart;
+                auto end = m_selectionBoxEnd;
+                auto size = end - start;
+                const glm::vec2 pos = {std::min(start.x, end.x), std::max(start.y, end.y)};
+                size = glm::abs(size);
+                int w = (int)size.x;
+                int h = (int)size.y;
+                int x = pos.x;
+                int y = UI::UIMain::state.viewportSize.y - pos.y;
+                m_viewport->setPickingCoord(x, y, w, h);
+                m_selectInSelectionBox = false;
+                m_getIdsInSelBox = true;
+            } else {
+                m_viewport->setPickingCoord(x, y);
+            }
         }
         m_artistManager->setSchematicMode(m_isSchematicView);
         const auto artist = m_artistManager->getCurrentArtist();
@@ -625,7 +633,7 @@ namespace Bess::Canvas {
     void Scene::updateHoveredId() {
         int32_t hoverId = -1; // Placeholder for Vulkan implementation
 
-        hoverId = m_viewport->getPickingIdResult();
+        hoverId = m_viewport->getPickingIdsResult()[0];
 
         m_registry.clear<Components::HoveredEntityComponent>();
         const auto e = (entt::entity)hoverId;
@@ -989,19 +997,10 @@ namespace Bess::Canvas {
         m_copiedComponents.clear();
     }
 
-    void Scene::selectEntitesInArea(const glm::vec2 &start, const glm::vec2 &end) {
+    void Scene::selectEntitesInArea() {
         m_registry.clear<Components::SelectedComponent>();
-        auto size = end - start;
-        const glm::vec2 pos = {std::min(start.x, end.x), std::max(start.y, end.y)};
-        size = glm::abs(size);
-        int w = (int)size.x;
-        int h = (int)size.y;
-        int x = pos.x;
-        int y = UI::UIMain::state.viewportSize.y - pos.y;
 
-        // TODO: Implement Vulkan framebuffer read for selection box
-        // This would require reading from a separate ID attachment in the framebuffer
-        std::vector<int> ids = {}; // Placeholder for Vulkan implementation
+        std::vector<int> ids = m_viewport->getPickingIdsResult(); // Placeholder for Vulkan implementation
 
         if (ids.size() == 0)
             return;

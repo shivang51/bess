@@ -140,7 +140,7 @@ namespace Bess::Canvas {
         void handleKeyboardShortcuts();
         void copySelectedComponents();
         void generateCopiedComponents();
-        void selectEntitesInArea(const glm::vec2 &start, const glm::vec2 &end);
+        void selectEntitesInArea();
         void toggleSelectComponent(const UUID &uuid);
         void toggleSelectComponent(entt::entity ent);
         void selectAllEntities();
@@ -165,6 +165,7 @@ namespace Bess::Canvas {
         glm::vec2 m_selectionBoxStart;
         glm::vec2 m_selectionBoxEnd;
         bool m_selectInSelectionBox = false;
+        bool m_getIdsInSelBox = false;
 
         bool m_isSchematicView = false;
 
