@@ -3,6 +3,7 @@
 #include <array>
 #include <cassert>
 #include <stdexcept>
+#include <vulkan/vulkan_core.h>
 
 namespace Bess::Renderer2D::Vulkan {
     VulkanOffscreenRenderPass::VulkanOffscreenRenderPass(const std::shared_ptr<VulkanDevice> &device, VkFormat colorFormat, VkFormat pickingFormat, VkFormat depthFormat)
@@ -56,7 +57,7 @@ namespace Bess::Renderer2D::Vulkan {
         // We have five attachments in the render pass: [0] MSAA color, [1] resolve color, [2] MSAA picking, [3] resolve picking, [4] depth
         std::array<VkClearValue, 5> clearValues{};
         clearValues[0].color = {{clearColor.r, clearColor.g, clearColor.b, clearColor.a}}; // Clear MSAA color
-        clearValues[1].color = {{0.f, 0.f, 0.f, 0.f}}; // Resolve attachment ignored for clear
+        clearValues[1].color = {{0.f, 0.f, 0.f, 0.f}};                                     // Resolve attachment ignored for clear
         // Clear MSAA picking with integer value (VK_FORMAT_R32_SINT)
         clearValues[2].color.int32[0] = clearPickingId;
         clearValues[2].color.int32[1] = 0;

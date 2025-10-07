@@ -10,9 +10,11 @@
 #include "modules/schematic_gen/schematic_view.h"
 #include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
+#include "scene/viewport.h"
 #include "types.h"
 #include <chrono>
 #include <memory>
+#include <vulkan/vulkan_core.h>
 
 // Forward declaration
 namespace Bess::Canvas {
@@ -124,6 +126,8 @@ namespace Bess::Canvas {
         void onRightMouse(bool isPressed);
         void onMouseWheel(double x, double y);
 
+        std::shared_ptr<Viewport> m_viewport;
+
         glm::vec2 toScenePos(const glm::vec2 &mousePos) const;
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
         bool isCursorInViewport(const glm::vec2 &pos) const;
@@ -189,5 +193,7 @@ namespace Bess::Canvas {
         SimEngine::Commands::CommandsManager m_cmdManager;
 
         std::shared_ptr<ArtistManager> m_artistManager;
+
+        VkExtent2D vec2Extent2D(const glm::vec2 &vec);
     };
 } // namespace Bess::Canvas

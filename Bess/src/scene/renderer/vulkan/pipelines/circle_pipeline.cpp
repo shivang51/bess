@@ -51,6 +51,9 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
         vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
         vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[m_currentFrameIndex], 0, nullptr);
+
+        vkCmdSetViewport(m_currentCommandBuffer, 0, 1, &m_viewport);
+        vkCmdSetScissor(m_currentCommandBuffer, 0, 1, &m_scissor);
     }
 
     void CirclePipeline::endPipeline() {
@@ -258,6 +261,8 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             throw std::runtime_error("Failed to create circle pipeline layout!");
         }
 
+        auto dynamicState = createDynamicState();
+
         VkGraphicsPipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
         pipelineInfo.stageCount = 2;
@@ -269,7 +274,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         pipelineInfo.pMultisampleState = &multisampling;
         pipelineInfo.pDepthStencilState = &depthStencil;
         pipelineInfo.pColorBlendState = &colorBlending;
-        pipelineInfo.pDynamicState = nullptr;
+        pipelineInfo.pDynamicState = &dynamicState;
         pipelineInfo.layout = m_pipelineLayout;
         pipelineInfo.renderPass = m_renderPass->getVkHandle();
         pipelineInfo.subpass = 0;

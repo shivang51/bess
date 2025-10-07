@@ -1,72 +1,18 @@
 #include "scene/renderer/vulkan/command_buffer.h"
 #include "common/log.h"
-#include "imgui_impl_vulkan.h"
 #include "imgui.h"
+#include "imgui_impl_vulkan.h"
 #include <stdexcept>
 
 namespace Bess::Renderer2D::Vulkan {
-    VulkanCommandBuffer::~VulkanCommandBuffer() {
-    }
-
-
-    VkCommandPool VulkanCommandBuffer::s_commandPool;
-    std::vector<VkCommandBuffer> VulkanCommandBuffer::s_commandBuffers;
-
-
-    std::vector<std::shared_ptr<VulkanCommandBuffer>> VulkanCommandBuffer::createCommandBuffers(const std::shared_ptr<VulkanDevice> &device, const size_t count) {
-        const QueueFamilyIndices queueFamilyIndices = device->queueFamilyIndices();
-
-        VkCommandPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-
-        if (vkCreateCommandPool(device->device(), &poolInfo, nullptr, &s_commandPool) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create command pool!");
-        }
-
-        s_commandBuffers.resize(count);
-
-        VkCommandBufferAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = s_commandPool;
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = static_cast<uint32_t>(s_commandBuffers.size());
-
-        if (vkAllocateCommandBuffers(device->device(), &allocInfo, s_commandBuffers.data()) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate command buffers!");
-        }
-
-        std::vector<std::shared_ptr<VulkanCommandBuffer>> commandBuffers;
-        commandBuffers.reserve(count);
-        for (size_t i = 0; i < count; i++) {
-            auto cmdBufferObj = std::make_shared<VulkanCommandBuffer>();
-            cmdBufferObj->m_vkCmdBufferHandel = s_commandBuffers[i];
-            commandBuffers.emplace_back(std::move(cmdBufferObj));
-        }
-
-        return commandBuffers;
-    }
-
-    void VulkanCommandBuffer::cleanCommandBuffers(const std::shared_ptr<VulkanDevice> &device) {
-        vkFreeCommandBuffers(device->device(), s_commandPool, s_commandBuffers.size(), s_commandBuffers.data());
-        if (s_commandPool != VK_NULL_HANDLE) {
-            vkDestroyCommandPool(device->device(), s_commandPool, nullptr);
-        }
-    }
-
-    void VulkanCommandBuffer::recordCommandBuffer(const VkCommandBuffer commandBuffer, uint32_t imageIndex, const VkRenderPass renderPass, const VkFramebuffer framebuffer, const VkExtent2D extent, VkPipelineLayout pipelineLayout) const {
+    VulkanCommandBuffer::VulkanCommandBuffer(VkCommandBuffer vkHandle) : m_vkCmdBufferHandel(vkHandle) {
     }
 
     VkCommandBuffer VulkanCommandBuffer::getVkHandle() const {
         return m_vkCmdBufferHandel;
     }
 
-    VkCommandPool VulkanCommandBuffer::getCommandPool() {
-        return s_commandPool;
-    }
-
-    VkCommandBuffer* VulkanCommandBuffer::getVkHandlePtr() {
+    VkCommandBuffer *VulkanCommandBuffer::getVkHandlePtr() {
         return &m_vkCmdBufferHandel;
     }
 
@@ -86,5 +32,47 @@ namespace Bess::Renderer2D::Vulkan {
         if (vkEndCommandBuffer(m_vkCmdBufferHandel) != VK_SUCCESS) {
             throw std::runtime_error("Failed to record command buffer!");
         }
+    }
+
+    VulkanCommandBuffers::VulkanCommandBuffers(const std::shared_ptr<VulkanDevice> &device, size_t count) {
+        const QueueFamilyIndices queueFamilyIndices = device->queueFamilyIndices();
+
+        VkCommandPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+
+        if (vkCreateCommandPool(device->device(), &poolInfo, nullptr, &m_commandPool) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create command pool!");
+        }
+
+        m_commandBuffersVkHnd.resize(count);
+
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = m_commandPool;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = static_cast<uint32_t>(count);
+
+        if (vkAllocateCommandBuffers(device->device(), &allocInfo, m_commandBuffersVkHnd.data()) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate command buffers!");
+        }
+
+        for (size_t i = 0; i < count; i++) {
+            m_commandBuffers.emplace_back(std::move(std::make_shared<VulkanCommandBuffer>(m_commandBuffersVkHnd[i])));
+        }
+    }
+
+    VulkanCommandBuffers::~VulkanCommandBuffers() {
+        vkFreeCommandBuffers(m_device->device(), m_commandPool, m_commandBuffers.size(), m_commandBuffersVkHnd.data());
+        vkDestroyCommandPool(m_device->device(), m_commandPool, nullptr);
+    }
+
+    const std::vector<std::shared_ptr<VulkanCommandBuffer>> &VulkanCommandBuffers::getCmdBuffers() const {
+        return m_commandBuffers;
+    }
+
+    std::shared_ptr<VulkanCommandBuffer> VulkanCommandBuffers::at(u_int32_t idx) {
+        return m_commandBuffers[idx];
     }
 } // namespace Bess::Renderer2D::Vulkan

@@ -32,6 +32,8 @@ namespace Bess::Renderer2D::Vulkan {
         void endFrame();
         void setCurrentFrameIndex(uint32_t frameIndex);
 
+        void resize(VkExtent2D extent);
+
         // Primitive rendering functions
         void drawGrid(const glm::vec3 &pos, const glm::vec2 &size, int id, const GridUniforms &gridUniforms);
         void drawQuad(const glm::vec3 &pos,

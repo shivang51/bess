@@ -57,6 +57,9 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
         VkDescriptorSet sets[] = {m_descriptorSets[m_currentFrameIndex], m_textureArraySets[m_currentFrameIndex]};
         vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 2, sets, 0, nullptr);
+
+        vkCmdSetViewport(m_currentCommandBuffer, 0, 1, &m_viewport);
+        vkCmdSetScissor(m_currentCommandBuffer, 0, 1, &m_scissor);
     }
 
     void QuadPipeline::endPipeline() {
@@ -327,6 +330,8 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             throw std::runtime_error("Failed to create quad pipeline layout!");
         }
 
+        auto dynamicState = createDynamicState();
+
         VkGraphicsPipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
         pipelineInfo.stageCount = static_cast<uint32_t>(stages.size());
@@ -338,6 +343,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         pipelineInfo.pMultisampleState = &multisampling;
         pipelineInfo.pColorBlendState = &colorBlending;
         pipelineInfo.pDepthStencilState = &depthStencil;
+        pipelineInfo.pDynamicState = &dynamicState;
         pipelineInfo.layout = m_pipelineLayout;
         pipelineInfo.renderPass = m_renderPass->getVkHandle();
         pipelineInfo.subpass = 0;

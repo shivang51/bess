@@ -1,5 +1,6 @@
 #include "scene/renderer/vulkan/primitive_renderer.h"
 #include "common/log.h"
+#include <vulkan/vulkan_core.h>
 
 namespace Bess::Renderer2D::Vulkan {
 
@@ -263,4 +264,10 @@ namespace Bess::Renderer2D::Vulkan {
         }
     }
 
+    void PrimitiveRenderer::resize(VkExtent2D extent) {
+        m_circlePipeline->resize(extent);
+        m_textPipeline->resize(extent);
+        m_gridPipeline->resize(extent);
+        m_quadPipeline->resize(extent);
+    }
 } // namespace Bess::Renderer2D::Vulkan

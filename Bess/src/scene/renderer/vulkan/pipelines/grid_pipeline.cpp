@@ -66,6 +66,9 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         constexpr VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 1, vertexBuffers, offsets);
         vkCmdBindIndexBuffer(m_currentCommandBuffer, m_buffers.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+        vkCmdSetViewport(m_currentCommandBuffer, 0, 1, &m_viewport);
+        vkCmdSetScissor(m_currentCommandBuffer, 0, 1, &m_scissor);
     }
 
     void GridPipeline::endPipeline() {
@@ -289,6 +292,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             throw std::runtime_error("Failed to create pipeline layout!");
         }
 
+        auto dynamicState = createDynamicState();
         VkGraphicsPipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
         pipelineInfo.stageCount = static_cast<uint32_t>(stages.size());
@@ -300,6 +304,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         pipelineInfo.pMultisampleState = &multisampling;
         pipelineInfo.pColorBlendState = &colorBlending;
         pipelineInfo.pDepthStencilState = &depthStencil;
+        pipelineInfo.pDynamicState = &dynamicState;
         pipelineInfo.layout = m_pipelineLayout;
         pipelineInfo.renderPass = m_renderPass->getVkHandle();
         pipelineInfo.subpass = 0;

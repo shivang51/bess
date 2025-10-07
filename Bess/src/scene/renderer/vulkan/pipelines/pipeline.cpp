@@ -225,25 +225,23 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         return inputAssembly;
     }
 
-    VkPipelineViewportStateCreateInfo Pipeline::createViewportState() const {
-        static VkViewport viewport{};
-        viewport.x = 0.0F;
-        viewport.y = 0.0F;
-        viewport.width = static_cast<float>(m_extent.width);
-        viewport.height = static_cast<float>(m_extent.height);
-        viewport.minDepth = 0.0F;
-        viewport.maxDepth = 1.0F;
+    VkPipelineViewportStateCreateInfo Pipeline::createViewportState() {
+        m_viewport.x = 0.0F;
+        m_viewport.y = 0.0F;
+        m_viewport.width = static_cast<float>(m_extent.width);
+        m_viewport.height = static_cast<float>(m_extent.height);
+        m_viewport.minDepth = 0.0F;
+        m_viewport.maxDepth = 1.0F;
 
-        static VkRect2D scissor{};
-        scissor.offset = {0, 0};
-        scissor.extent = m_extent;
+        m_scissor.offset = {0, 0};
+        m_scissor.extent = m_extent;
 
         VkPipelineViewportStateCreateInfo viewportState{};
         viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        viewportState.viewportCount = 1;
-        viewportState.pViewports = &viewport;
-        viewportState.scissorCount = 1;
-        viewportState.pScissors = &scissor;
+        viewportState.viewportCount = 0; // we will be using dynamlic viewport
+        viewportState.pViewports = nullptr;
+        viewportState.scissorCount = 0;
+        viewportState.pScissors = nullptr;
         return viewportState;
     }
 
@@ -305,4 +303,19 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         return dynamicState;
     }
 
+    void Pipeline::resize(VkExtent2D extent) {
+        m_extent = extent;
+
+        m_viewport.x = 0.0F;
+        m_viewport.y = 0.0F;
+        m_viewport.width = static_cast<float>(m_extent.width);
+        m_viewport.height = static_cast<float>(m_extent.height);
+        m_viewport.minDepth = 0.0F;
+        m_viewport.maxDepth = 1.0F;
+
+        m_scissor.offset = {0, 0};
+        m_scissor.extent = m_extent;
+
+        m_resized = true;
+    }
 } // namespace Bess::Renderer2D::Vulkan::Pipelines

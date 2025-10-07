@@ -194,6 +194,16 @@ namespace Bess::Renderer2D::Vulkan {
         return indices;
     }
 
+    void VulkanDevice::submitCmdBuffers(const std::vector<VkCommandBuffer> &cmdBuffer, VkFence fence) {
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = cmdBuffer.size();
+        submitInfo.pCommandBuffers = cmdBuffer.data();
+        if (vkQueueSubmit(m_graphicsQueue, cmdBuffer.size(), &submitInfo, fence) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to submit draw command buffer!");
+        }
+    }
+
     VkCommandBuffer VulkanDevice::beginSingleTimeCommands() const {
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -240,4 +250,7 @@ namespace Bess::Renderer2D::Vulkan {
         throw std::runtime_error("Failed to find suitable memory type!");
     }
 
+    void VulkanDevice::waitForIdle() {
+        vkDeviceWaitIdle(m_vkDevice);
+    }
 } // namespace Bess::Renderer2D::Vulkan

@@ -36,6 +36,10 @@ namespace Bess::Renderer2D::Vulkan {
         void endSingleTimeCommands(VkCommandBuffer commandBuffer) const;
         uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
 
+        void waitForIdle();
+
+        void submitCmdBuffers(const std::vector<VkCommandBuffer> &cmdBuffer, VkFence fence);
+
       private:
         void pickPhysicalDevice();
         void createLogicalDevice();

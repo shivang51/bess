@@ -44,12 +44,9 @@ namespace Bess::Renderer2D {
         m_offscreenRenderPass = std::make_shared<Vulkan::VulkanOffscreenRenderPass>(m_device, m_swapchain->imageFormat(), VK_FORMAT_R32_SINT);
         m_offscreenImageView->createFramebuffer(m_offscreenRenderPass->getVkHandle());
 
-        m_primitiveRenderer = std::move(std::make_shared<Vulkan::PrimitiveRenderer>(m_device, m_offscreenRenderPass, windowExtent));
-        m_pathRenderer = std::move(std::make_shared<Vulkan::PathRenderer>(m_device, m_offscreenRenderPass, windowExtent));
-
         m_swapchain->createFramebuffers(m_renderPass->getVkHandle());
 
-        m_commandBuffers = Vulkan::VulkanCommandBuffer::createCommandBuffers(m_device, 2);
+        m_commandBuffers = std::make_unique<Vulkan::VulkanCommandBuffers>(m_device, 2);
         createSyncObjects();
         createPickingResources();
 
@@ -57,42 +54,8 @@ namespace Bess::Renderer2D {
         BESS_INFO("Renderer Initialized");
     }
 
-    void VulkanCore::beginOffscreenRender(const glm::vec4 &clearColor, int clearPickingId) {
-        if (!m_offscreenImageView || !m_offscreenRenderPass || !m_primitiveRenderer) {
-            return;
-        }
-
-        const auto cmdBuffer = m_currentFrameContext.cmdBuffer;
-
-        m_offscreenRenderPass->begin(
-            cmdBuffer->getVkHandle(),
-            m_offscreenImageView->getFramebuffer(),
-            m_offscreenImageView->getExtent(),
-            clearColor,
-            clearPickingId);
-
-        m_primitiveRenderer->setCurrentFrameIndex(m_currentFrameIdx);
-        m_primitiveRenderer->beginFrame(cmdBuffer->getVkHandle());
-
-        if (m_pathRenderer) {
-            m_pathRenderer->setCurrentFrameIndex(m_currentFrameIdx);
-            m_pathRenderer->beginFrame(cmdBuffer->getVkHandle());
-        }
-    }
-
     void VulkanCore::endOffscreenRender() {
-        if (!m_offscreenRenderPass || !m_primitiveRenderer) {
-            return;
-        }
-
-        m_primitiveRenderer->endFrame();
-
-        if (m_pathRenderer) {
-            m_pathRenderer->endFrame();
-        }
-
-        m_offscreenRenderPass->end();
-
+        return;
         // If a picking request is pending, record the copy now in this frame's command buffer
         if (m_pickingRequestPending && m_offscreenImageView && m_offscreenImageView->hasPickingAttachments()) {
             const VkCommandBuffer cmd = m_currentFrameContext.cmdBuffer->getVkHandle();
@@ -161,27 +124,11 @@ namespace Bess::Renderer2D {
     }
 
     void VulkanCore::resizeOffscreen(VkExtent2D extent) {
-        if (!m_device || !m_offscreenImageView || !m_offscreenRenderPass) {
-            return;
-        }
-        vkDeviceWaitIdle(m_device->device());
-
-        m_offscreenImageView->recreate(extent, m_offscreenRenderPass->getVkHandle());
-
-        if (m_primitiveRenderer) {
-            m_primitiveRenderer.reset();
-        }
-        if (m_pathRenderer) {
-            m_pathRenderer.reset();
-        }
-
-        m_primitiveRenderer = std::make_shared<Vulkan::PrimitiveRenderer>(m_device, m_offscreenRenderPass, extent);
-        m_pathRenderer = std::make_shared<Vulkan::PathRenderer>(m_device, m_offscreenRenderPass, extent);
     }
 
     void VulkanCore::beginFrame() {
         vkWaitForFences(m_device->device(), 1, &m_inFlightFences[m_currentFrameIdx], VK_TRUE, UINT64_MAX);
-        const auto cmdBuffer = m_commandBuffers[m_currentFrameIdx];
+        const auto cmdBuffer = m_commandBuffers->at(m_currentFrameIdx);
         m_currentFrameContext = {cmdBuffer, m_currentFrameIdx};
         cmdBuffer->beginRecording();
         vkResetFences(m_device->device(), 1, &m_inFlightFences[m_currentFrameIdx]);
@@ -324,14 +271,12 @@ namespace Bess::Renderer2D {
         }
 
         m_pipeline.reset();
-        m_primitiveRenderer.reset();
-        m_pathRenderer.reset();
         m_offscreenImageView.reset();
         m_offscreenRenderPass.reset();
         m_swapchain.reset();
         m_renderPass.reset();
         preCmdBufferCleanup();
-        Vulkan::VulkanCommandBuffer::cleanCommandBuffers(m_device);
+        m_commandBuffers.reset();
         m_device.reset();
 
         if (m_renderSurface != VK_NULL_HANDLE) {

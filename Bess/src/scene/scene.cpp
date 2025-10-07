@@ -29,6 +29,7 @@
 #include "scene/renderer/vulkan/vulkan_core.h"
 #include "scene/renderer/vulkan/vulkan_texture.h"
 #include "scene/renderer/vulkan_renderer.h"
+#include "scene/viewport.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "types.h"
@@ -60,8 +61,12 @@ namespace Bess::Canvas {
     void Scene::reset() {
         clear();
 
-        m_size = glm::vec2(800.f / 600.f, 1.f);
-        m_camera = std::make_shared<Camera>(m_size.x, m_size.y);
+        m_size = glm::vec2(800.f, 600.f);
+
+        auto &vkCore = VulkanCore::instance();
+        m_viewport = std::make_shared<Viewport>(vkCore.getDevice(), vkCore.getSwapchain()->imageFormat(), vec2Extent2D(m_size));
+
+        m_camera = m_viewport->getCamera();
 
         m_artistManager = std::make_shared<ArtistManager>(std::move(std::shared_ptr<Scene>(this, [](Scene *) {})));
     }
@@ -217,6 +222,18 @@ namespace Bess::Canvas {
     }
 
     void Scene::drawScene(std::shared_ptr<Camera> camera) {
+
+        m_viewport->grid(glm::vec3(0.f, 0.f, 0.1f),
+                         m_camera->getSpan(),
+                         -1,
+                         {
+                             .minorColor = ViewportTheme::colors.gridMinorColor,
+                             .majorColor = ViewportTheme::colors.gridMajorColor,
+                             .axisXColor = ViewportTheme::colors.gridAxisXColor,
+                             .axisYColor = ViewportTheme::colors.gridAxisYColor,
+                         });
+
+        return;
         // check if start frame does not happen again within same frame
         //
         {
@@ -230,7 +247,7 @@ namespace Bess::Canvas {
         const auto artist = m_artistManager->getCurrentArtist();
 
         // Grid
-        Renderer2D::VulkanRenderer::beginScene(camera);
+        Renderer2D::VulkanRenderer::beginScene(m_viewport);
 
         Renderer2D::VulkanRenderer::grid(
             glm::vec3(0.f, 0.f, 0.1f),
@@ -246,7 +263,7 @@ namespace Bess::Canvas {
         Renderer2D::VulkanRenderer::end();
 
         // Connections
-        Renderer2D::VulkanRenderer::beginScene(camera);
+        Renderer2D::VulkanRenderer::beginScene(m_viewport);
         const auto connectionsView = m_registry.view<Components::ConnectionComponent>();
         for (const auto entity : connectionsView) {
             artist->drawConnectionEntity(entity);
@@ -258,7 +275,7 @@ namespace Bess::Canvas {
         Renderer2D::VulkanRenderer::end();
 
         // Components
-        Renderer2D::VulkanRenderer::beginScene(camera);
+        Renderer2D::VulkanRenderer::beginScene(m_viewport);
         const auto simCompView = m_registry.view<
             Components::SimulationComponent,
             Components::TagComponent,
@@ -281,7 +298,7 @@ namespace Bess::Canvas {
         Renderer2D::VulkanRenderer::end();
 
         if (m_drawMode == SceneDrawMode::selectionBox) {
-            Renderer2D::VulkanRenderer::beginScene(camera);
+            Renderer2D::VulkanRenderer::beginScene(m_viewport);
             drawSelectionBox();
             Renderer2D::VulkanRenderer::end();
         }
@@ -518,6 +535,8 @@ namespace Bess::Canvas {
         m_size = UI::UIMain::state.viewportSize;
         Renderer2D::VulkanCore::instance().resizeOffscreen({static_cast<uint32_t>(m_size.x),
                                                             static_cast<uint32_t>(m_size.y)});
+
+        m_viewport->resize(vec2Extent2D(m_size));
         m_camera->resize(m_size.x, m_size.y);
     }
 
@@ -1044,11 +1063,15 @@ namespace Bess::Canvas {
     }
 
     void Scene::beginScene() const {
-        Renderer2D::VulkanCore::instance().beginOffscreenRender(ViewportTheme::colors.background);
+        auto &inst = Renderer2D::VulkanCore::instance();
+        m_viewport->begin(inst.getCurrentFrameIdx(), ViewportTheme::colors.background, -1);
     }
 
     void Scene::endScene() const {
-        Renderer2D::VulkanCore::instance().endOffscreenRender();
+        m_viewport->end();
+        auto &inst = Renderer2D::VulkanCore::instance();
+        inst.endOffscreenRender();
+        m_viewport->submit();
     }
 
     void Scene::saveScenePNG(const std::string &path) const {
@@ -1096,7 +1119,7 @@ namespace Bess::Canvas {
     }
 
     uint64_t Scene::getTextureId() const {
-        return Renderer2D::VulkanCore::instance().getSceneTextureId();
+        return m_viewport->getViewportTexture();
     }
 
     std::shared_ptr<Camera> Scene::getCamera() {
@@ -1125,5 +1148,9 @@ namespace Bess::Canvas {
 
     std::shared_ptr<ArtistManager> Scene::getArtistManager() {
         return m_artistManager;
+    }
+
+    VkExtent2D Scene::vec2Extent2D(const glm::vec2 &vec) {
+        return {(uint32_t)vec.x, (uint32_t)vec.y};
     }
 } // namespace Bess::Canvas

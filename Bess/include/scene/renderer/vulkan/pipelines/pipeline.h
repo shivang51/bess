@@ -5,6 +5,7 @@
 #include "../vulkan_offscreen_render_pass.h"
 #include <memory>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace Bess::Renderer2D::Vulkan::Pipelines {
 
@@ -34,6 +35,9 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         virtual void beginPipeline(VkCommandBuffer commandBuffer) = 0;
         virtual void endPipeline() = 0;
         virtual void cleanup() = 0;
+        virtual void createGraphicsPipeline() = 0;
+
+        void resize(VkExtent2D extent);
 
         // Common functions
         void updateUniformBuffer(const UniformBufferObject &ubo);
@@ -45,6 +49,9 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         std::shared_ptr<VulkanDevice> m_device;
         std::shared_ptr<VulkanOffscreenRenderPass> m_renderPass;
         VkExtent2D m_extent;
+        VkViewport m_viewport;
+        VkRect2D m_scissor{};
+        bool m_resized = false;
 
         VkPipeline m_pipeline = VK_NULL_HANDLE;
         VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
@@ -69,7 +76,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
         // Common graphics pipeline creation helpers
         VkPipelineInputAssemblyStateCreateInfo createInputAssemblyState() const;
-        VkPipelineViewportStateCreateInfo createViewportState() const;
+        VkPipelineViewportStateCreateInfo createViewportState();
         VkPipelineRasterizationStateCreateInfo createRasterizationState() const;
         VkPipelineMultisampleStateCreateInfo createMultisampleState() const;
         VkPipelineDepthStencilStateCreateInfo createDepthStencilState() const;

@@ -65,8 +65,6 @@ namespace Bess::Pages {
 
     void MainPage::draw() {
         m_scene->render();
-
-        UI::UIMain::draw();
     }
 
     void MainPage::update(TFrameTime ts, const std::vector<ApplicationEvent> &events) {

@@ -6,6 +6,7 @@
 #include "pages/main_page/main_page_state.h"
 #include "scene/renderer/vulkan/vulkan_core.h"
 #include "ui/ui.h"
+#include "ui/ui_main/ui_main.h"
 
 #include "types.h"
 #include <vulkan/vulkan.h>
@@ -22,8 +23,9 @@ namespace Bess {
     static int fps = 0;
 
     void Application::draw() const {
+        ApplicationState::getCurrentPage()->draw();
+
         auto &vkCore = Renderer2D::VulkanCore::instance();
-        // Check if window was resized and recreate swapchain if needed
         if (m_mainWindow->wasWindowResized()) {
             m_mainWindow->resetWindowResizedFlag();
             const VkExtent2D newExtent = m_mainWindow->getExtent();
@@ -31,10 +33,11 @@ namespace Bess {
         }
 
         vkCore.beginFrame();
-
         UI::begin();
-        ApplicationState::getCurrentPage()->draw();
+
+        UI::UIMain::draw();
         // UI::drawStats(fps);
+
         UI::end();
 
         vkCore.endFrame();

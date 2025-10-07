@@ -1,10 +1,10 @@
 #include "scene/renderer/vulkan/pipelines/text_pipeline.h"
+#include "asset_manager/asset_manager.h"
+#include "assets.h"
 #include "common/log.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
 #include "scene/renderer/vulkan/primitive_vertex.h"
 #include "scene/renderer/vulkan/vulkan_texture.h"
-#include "asset_manager/asset_manager.h"
-#include "assets.h"
 #include <algorithm>
 #include <array>
 #include <cstring>
@@ -76,6 +76,9 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
         VkDescriptorSet sets[] = {m_descriptorSets[m_currentFrameIndex], m_textureArraySets[m_currentFrameIndex]};
         vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 2, sets, 0, nullptr);
+
+        vkCmdSetViewport(m_currentCommandBuffer, 0, 1, &m_viewport);
+        vkCmdSetScissor(m_currentCommandBuffer, 0, 1, &m_scissor);
     }
 
     void TextPipeline::endPipeline() {
@@ -114,11 +117,10 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
                                    const std::vector<InstanceVertex> &translucent) {
         m_opaqueInstances = opaque;
         m_translucentInstances = translucent;
-        
 
         // Fill with fallback texture first
         m_textureInfos.fill(m_fallbackTexture->getDescriptorInfo());
-        
+
         // Get the MSDF font texture and set it at slot 1 (where text instances expect it)
         auto msdfFont = Assets::AssetManager::instance().get(Assets::Fonts::robotoMsdf);
         if (msdfFont && msdfFont->getTextureAtlas()) {
@@ -151,7 +153,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
                       m_currentFrameIndex, m_textUniformBufferMemory.size());
             return;
         }
-
 
         void *data = nullptr;
         vkMapMemory(m_device->device(), m_textUniformBufferMemory[m_currentFrameIndex], 0, sizeof(TextUniforms), 0, &data);
@@ -412,6 +413,8 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             throw std::runtime_error("Failed to create text pipeline layout!");
         }
 
+        auto dynamicState = createDynamicState();
+
         VkGraphicsPipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
         pipelineInfo.stageCount = static_cast<uint32_t>(stages.size());
@@ -423,7 +426,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         pipelineInfo.pMultisampleState = &multisampling;
         pipelineInfo.pDepthStencilState = &depthStencil;
         pipelineInfo.pColorBlendState = &colorBlending;
-        pipelineInfo.pDynamicState = nullptr;
+        pipelineInfo.pDynamicState = &dynamicState;
         pipelineInfo.layout = m_pipelineLayout;
         pipelineInfo.renderPass = m_renderPass->getVkHandle();
         pipelineInfo.subpass = 0;

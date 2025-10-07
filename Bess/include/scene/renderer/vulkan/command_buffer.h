@@ -5,33 +5,40 @@
 #include <memory>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace Bess::Renderer2D::Vulkan {
 
     class VulkanCommandBuffer {
-    public:
-        VulkanCommandBuffer() = default;
-        ~VulkanCommandBuffer();
+      public:
+        VulkanCommandBuffer(VkCommandBuffer vkHandle);
 
-        VulkanCommandBuffer(const VulkanCommandBuffer&) = delete;
-        VulkanCommandBuffer& operator=(const VulkanCommandBuffer&) = delete;
-
-        static std::vector<std::shared_ptr<VulkanCommandBuffer>> createCommandBuffers(const std::shared_ptr<VulkanDevice> &device, size_t count);
-        static void cleanCommandBuffers(const std::shared_ptr<VulkanDevice> &device);
-
-        void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, VkRenderPass renderPass, VkFramebuffer framebuffer, VkExtent2D extent, VkPipelineLayout pipelineLayout) const;
+        VulkanCommandBuffer(const VulkanCommandBuffer &) = delete;
+        VulkanCommandBuffer &operator=(const VulkanCommandBuffer &) = delete;
 
         VkCommandBuffer getVkHandle() const;
         VkCommandBuffer *getVkHandlePtr();
-        static VkCommandPool getCommandPool();
 
         VkCommandBuffer beginRecording() const;
         void endRecording() const;
 
-    private:
-        static VkCommandPool s_commandPool;
-        static std::vector<VkCommandBuffer> s_commandBuffers;
+      private:
         VkCommandBuffer m_vkCmdBufferHandel = VK_NULL_HANDLE;
     };
 
+    class VulkanCommandBuffers {
+      public:
+        VulkanCommandBuffers(const std::shared_ptr<VulkanDevice> &device, size_t count);
+        ~VulkanCommandBuffers();
+
+        const std::vector<std::shared_ptr<VulkanCommandBuffer>> &getCmdBuffers() const;
+
+        std::shared_ptr<VulkanCommandBuffer> at(u_int32_t idx);
+
+      private:
+        std::shared_ptr<VulkanDevice> m_device;
+        VkCommandPool m_commandPool;
+        std::vector<std::shared_ptr<VulkanCommandBuffer>> m_commandBuffers;
+        std::vector<VkCommandBuffer> m_commandBuffersVkHnd;
+    };
 } // namespace Bess::Renderer2D::Vulkan
