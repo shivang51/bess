@@ -61,13 +61,13 @@ namespace Bess::Canvas {
         Vulkan::UniformBufferObject ubo{};
         ubo.mvp = m_camera->getTransform();
         ubo.ortho = m_camera->getOrtho();
-        m_primitiveRenderer->updateUBO(ubo);
         m_pathRenderer->updateUniformBuffer(ubo);
+        m_primitiveRenderer->updateUBO(ubo);
     }
 
     VkCommandBuffer Viewport::end() {
+        m_pathRenderer->endFrame(); // important to end path renderer first for now (temp fix for alpha blending)
         m_primitiveRenderer->endFrame();
-        m_pathRenderer->endFrame();
         m_renderPass->end();
 
         if (m_mousePickingData.pending)
