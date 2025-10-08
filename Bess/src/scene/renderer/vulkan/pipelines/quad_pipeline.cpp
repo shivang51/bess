@@ -112,7 +112,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             m_translucentInstances.insert(m_translucentInstances.end(),
                                           entry.second.begin(), entry.second.end());
 
-            BESS_INFO("{}", i);
             i++;
         }
 
