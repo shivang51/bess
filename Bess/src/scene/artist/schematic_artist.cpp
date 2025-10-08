@@ -98,7 +98,7 @@ namespace Bess::Canvas {
                 if (!compState.inputStates[i])
                     continue;
                 tex = m_artistTools.sevenSegDispTexs[i + 1];
-                m_viewportRef->quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), static_cast<int>(entity));
+                m_viewportRef->texturedQuad(texPos, {texWidth, texHeight}, tex, glm::vec4(1.f), (int)entity);
             }
         }
     }

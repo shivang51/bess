@@ -259,13 +259,13 @@ namespace Bess::Canvas {
             glm::vec3 texPos = {posX,
                                 transform.position.y + (headerHeight / 2.f),
                                 transform.position.z + 0.0001};
-            m_viewportRef->quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity);
+            m_viewportRef->texturedQuad(texPos, {texWidth, texHeight}, m_artistTools.sevenSegDispTexs[0], glm::vec4(1.f), (int)entity);
 
             for (int i = 0; i < (int)compState.inputStates.size(); i++) {
                 if (!compState.inputStates[i])
                     continue;
                 tex = m_artistTools.sevenSegDispTexs[i + 1];
-                m_viewportRef->quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity);
+                m_viewportRef->texturedQuad(texPos, {texWidth, texHeight}, tex, glm::vec4(1.f), (int)entity);
             }
         }
 

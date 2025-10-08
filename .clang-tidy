@@ -26,6 +26,7 @@ Checks: >
   -readability-convert-member-functions-to-static,
   -cppcoreguidelines-pro-type-vararg,
   -readability-qualified-auto,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
   -cppcoreguidelines-special-member-functions,
   -readability-redundant-access-specifiers
 

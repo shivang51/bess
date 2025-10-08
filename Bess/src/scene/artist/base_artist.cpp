@@ -8,8 +8,7 @@
 #include "scene/components/components.h"
 #include "scene/renderer/vulkan/vulkan_core.h"
 #include "scene/renderer/vulkan/vulkan_subtexture.h"
-#include "scene/renderer/vulkan/vulkan_texture.h"
-#include "scene/scene.h"
+#include "scene/viewport.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include <cstdint>
@@ -24,6 +23,8 @@ namespace Bess::Canvas {
             init();
             initialized = true;
         }
+
+        BESS_INFO("[Base Aritist] Initialized");
     }
 
     void BaseArtist::init() {

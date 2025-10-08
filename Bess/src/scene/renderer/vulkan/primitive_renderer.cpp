@@ -169,7 +169,6 @@ namespace Bess::Renderer2D::Vulkan {
         instance.size = size;
         instance.id = id;
         instance.isMica = isMica;
-        instance.texSlotIdx = 1; // indicate textured
         instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f);
 
         m_texturedQuadInstances[texture].emplace_back(instance);
@@ -198,7 +197,6 @@ namespace Bess::Renderer2D::Vulkan {
         instance.size = size;
         instance.id = id;
         instance.isMica = isMica;
-        instance.texSlotIdx = 1; // indicate textured
         instance.texData = subTexture->getStartWH();
 
         m_texturedQuadInstances[subTexture->getTexture()].emplace_back(instance);
