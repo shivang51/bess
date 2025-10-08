@@ -13,7 +13,6 @@
 
 #include "camera.h"
 #include "pages/main_page/main_page_state.h"
-#include "scene/artist/artist_manager.h"
 #include "scene/scene.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/ui_main/component_explorer.h"

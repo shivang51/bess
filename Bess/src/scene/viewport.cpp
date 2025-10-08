@@ -1,8 +1,10 @@
 #include "scene/viewport.h"
 #include "asset_manager/asset_manager.h"
 #include "assets.h"
+#include "scene/scene.h"
 #include <cstdint>
 #include <memory>
+#include <vulkan/vulkan_core.h>
 
 namespace Bess::Canvas {
 
@@ -28,10 +30,19 @@ namespace Bess::Canvas {
 
         m_mousePickingData = {};
         m_mousePickingData.ids = {-1};
+
+        m_artistManager = std::make_shared<ArtistManager>(std::shared_ptr<Viewport>(this, [](Viewport *) {}));
+
+        auto cmd = m_device->beginSingleTimeCommands();
+        transitionImageLayout(cmd, m_imgView->getImage(), m_imgView->getFormat(), VK_IMAGE_LAYOUT_UNDEFINED,
+                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        m_device->endSingleTimeCommands(cmd);
     }
 
     Viewport::~Viewport() {
         m_device->waitForIdle();
+
+        m_artistManager->destroy();
 
         deleteFences();
 
@@ -472,6 +483,122 @@ namespace Bess::Canvas {
         vkBindBufferMemory(m_device->device(), m_pickingStagingBuffer, m_pickingStagingBufferMemory, 0);
 
         m_pickingStagingBufferSize = newSize;
+    }
+
+    entt::registry &Viewport::getEnttRegistry() {
+        return Scene::instance()->getEnttRegistry();
+    }
+
+    entt::entity Viewport::getEntityWithUuid(const UUID &uuid) {
+        return Scene::instance()->getEntityWithUuid(uuid);
+    }
+
+    std::shared_ptr<ArtistManager> Viewport::getArtistManager() {
+        return m_artistManager;
+    }
+
+    std::vector<unsigned char> Viewport::getPixelData() {
+        VkDeviceSize byteSize = m_size.width * m_size.height * 4;
+        VkBuffer stagingBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
+        createBuffer(byteSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                     stagingBuffer, stagingMemory);
+
+        VkCommandBuffer cmd = m_device->beginSingleTimeCommands();
+        transitionImageLayout(cmd, m_imgView->getImage(), m_imgView->getFormat(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+
+        VkBufferImageCopy region{};
+        region.bufferOffset = 0;
+        region.bufferRowLength = 0;
+        region.bufferImageHeight = 0;
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.layerCount = 1;
+        region.imageOffset = {0, 0, 0};
+        region.imageExtent = {m_size.width, m_size.height, 1};
+        vkCmdCopyImageToBuffer(cmd, m_imgView->getImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, stagingBuffer, 1, &region);
+
+        transitionImageLayout(cmd, m_imgView->getImage(), m_imgFormat, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        m_device->endSingleTimeCommands(cmd);
+
+        std::vector<unsigned char> out(byteSize);
+        void *mapped = nullptr;
+        vkMapMemory(m_device->device(), stagingMemory, 0, byteSize, 0, &mapped);
+        std::memcpy(out.data(), mapped, static_cast<size_t>(byteSize));
+        vkUnmapMemory(m_device->device(), stagingMemory);
+
+        vkDestroyBuffer(m_device->device(), stagingBuffer, nullptr);
+        vkFreeMemory(m_device->device(), stagingMemory, nullptr);
+        return out;
+    }
+
+    void Viewport::transitionImageLayout(VkCommandBuffer cmd, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const {
+        VkImageMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = oldLayout;
+        barrier.newLayout = newLayout;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = image;
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.baseMipLevel = 0;
+        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount = 1;
+
+        VkPipelineStageFlags srcStage{};
+        VkPipelineStageFlags dstStage{};
+
+        if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+            barrier.srcAccessMask = 0;
+            barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        } else if (oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) {
+            barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+            srcStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        } else {
+            barrier.srcAccessMask = 0;
+            barrier.dstAccessMask = 0;
+            srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+        }
+
+        vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    }
+
+    void Viewport::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer &buffer, VkDeviceMemory &bufferMemory) const {
+        VkBufferCreateInfo bufferInfo{};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.size = size;
+        bufferInfo.usage = usage;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create buffer");
+        }
+        VkMemoryRequirements memRequirements;
+        vkGetBufferMemoryRequirements(m_device->device(), buffer, &memRequirements);
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, properties);
+        if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate buffer memory");
+        }
+        vkBindBufferMemory(m_device->device(), buffer, bufferMemory, 0);
     }
 
 }; // namespace Bess::Canvas

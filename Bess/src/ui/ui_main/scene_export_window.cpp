@@ -2,7 +2,9 @@
 #include "common/log.h"
 #include "imgui.h"
 #include "pages/main_page/main_page_state.h"
+#include "scene/renderer/vulkan/vulkan_core.h"
 #include "scene/scene.h"
+#include "scene/viewport.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/m_widgets.h"
 #include "ui/ui_main/dialogs.h"
@@ -12,6 +14,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <vulkan/vulkan_core.h>
 
 namespace Bess::UI {
     bool SceneExportWindow::m_shown = false;
@@ -158,22 +161,16 @@ namespace Bess::UI {
 
         std::vector<unsigned char> imgRowBuffer(finalWidth * 4);
         const size_t snapRowSize = size.x * 4;
+        VkExtent2D extent = {(uint32_t)size.x, (uint32_t)size.y};
 
-        // TODO: Implement Vulkan framebuffer creation for scene export
-        // std::vector<Gl::FBAttachmentType> attachments = {Gl::FBAttachmentType::RGBA_RGBA,
-        //                                                  Gl::FBAttachmentType::R32I_REDI,
-        //                                                  Gl::FBAttachmentType::RGBA_RGBA,
-        //                                                  Gl::FBAttachmentType::DEPTH32F_STENCIL8};
-        // auto msaaFramebuffer = std::make_unique<Gl::FrameBuffer>(size.x, size.y, attachments, true);
-
-        // attachments = {Gl::FBAttachmentType::RGBA_RGBA, Gl::FBAttachmentType::R32I_REDI};
-        // auto normalFramebuffer = std::make_unique<Gl::FrameBuffer>(size.x, size.y, attachments);
-
+        auto &vkCore = VulkanCore::instance();
+        auto viewport = std::make_shared<Canvas::Viewport>(vkCore.getDevice(), vkCore.getSwapchain()->imageFormat(), extent);
         auto pos = min + snapSpan / 2.f;
-        std::shared_ptr<Camera> camera = std::make_shared<Camera>(size.x, size.y);
+        std::shared_ptr<Camera> camera = viewport->getCamera();
         camera->setPos(pos);
         camera->setZoom(info.scale);
 
+        int frameIdx = 0;
         for (int i = 0; i < snaps.y; i++) {
             pos.x = min.x + (snapSpan.x / 2.f);
             std::vector<std::vector<unsigned char>> snapsData;
@@ -181,21 +178,13 @@ namespace Bess::UI {
             for (int j = 0; j < snaps.x; j++) {
                 camera->setPos(pos);
 
-                // TODO: Implement Vulkan framebuffer operations for scene export
-                // msaaFramebuffer->bind();
-                // msaaFramebuffer->clearColorAttachment<GL_FLOAT>(0, glm::value_ptr(ViewportTheme::colors.background));
-                // Gl::FrameBuffer::clearDepthStencilBuf();
-                // Canvas::Scene::instance().drawScene(camera);
-                // Gl::FrameBuffer::unbindAll();
-                // msaaFramebuffer->bindColorAttachmentForRead(0);
-                // normalFramebuffer->bindColorAttachmentForDraw(0);
-                // Gl::FrameBuffer::blitColorBuffer(size.x, size.y);
-                // Gl::FrameBuffer::unbindAll();
+                viewport->begin(frameIdx, ViewportTheme::colors.background, -1);
+                Canvas::Scene::instance()->drawSceneToViewport(viewport);
+                viewport->end();
+                viewport->submit();
+                frameIdx = (frameIdx + 1) % 2;
 
-                // snapsData.emplace_back(normalFramebuffer->getPixelsFromColorAttachment(0));
-
-                // Placeholder: create empty data for now
-                snapsData.emplace_back(std::vector<unsigned char>(size.x * size.y * 4, 0));
+                snapsData.emplace_back(viewport->getPixelData());
 
                 pos.x += snapSpan.x;
             }

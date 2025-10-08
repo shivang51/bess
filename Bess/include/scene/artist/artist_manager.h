@@ -1,20 +1,20 @@
 #pragma once
 
 #include "base_artist.h"
-#include "scene/scene.h"
 #include <memory>
 
 // Forward declarations
 namespace Bess::Canvas {
     class SchematicArtist;
     class NodesArtist;
+    class Viewport;
 } // namespace Bess::Canvas
 
 namespace Bess::Canvas {
 
     class ArtistManager {
       public:
-        ArtistManager(std::shared_ptr<Scene> scene);
+        ArtistManager(std::shared_ptr<Viewport> viewport);
         ~ArtistManager();
 
         void destroy();
@@ -26,7 +26,7 @@ namespace Bess::Canvas {
         void setSchematicMode(bool isSchematic);
 
       private:
-        std::shared_ptr<Scene> m_scene;
+        std::shared_ptr<Viewport> m_viewport;
         std::shared_ptr<SchematicArtist> m_schematicArtist;
         std::shared_ptr<NodesArtist> m_nodesArtist;
         bool m_isSchematicMode;

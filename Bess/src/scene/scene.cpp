@@ -44,7 +44,6 @@ namespace Bess::Canvas {
     void Scene::destroy() {
         BESS_INFO("[Scene] Destroying");
         m_viewport.reset();
-        m_artistManager->destroy();
     }
 
     std::shared_ptr<Scene> Scene::instance() {
@@ -61,8 +60,6 @@ namespace Bess::Canvas {
         m_viewport = std::make_shared<Viewport>(vkCore.getDevice(), vkCore.getSwapchain()->imageFormat(), vec2Extent2D(m_size));
 
         m_camera = m_viewport->getCamera();
-
-        m_artistManager = std::make_shared<ArtistManager>(std::move(std::shared_ptr<Scene>(this, [](Scene *) {})));
     }
 
     void Scene::clear() {
@@ -190,7 +187,7 @@ namespace Bess::Canvas {
         }
     }
 
-    void Scene::renderWithCamera(std::shared_ptr<Camera> camera) {
+    void Scene::renderWithViewport(const std::shared_ptr<Viewport> &viewport) {
         const auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
 
         switch (m_sceneMode) {
@@ -206,25 +203,15 @@ namespace Bess::Canvas {
         }
 
         beginScene();
-        drawScene(camera);
+        drawSceneToViewport(viewport);
         endScene();
     }
 
     void Scene::render() {
-        renderWithCamera(m_camera);
+        renderWithViewport(m_viewport);
     }
 
-    void Scene::drawScene(std::shared_ptr<Camera> camera) {
-        m_viewport->grid(glm::vec3(0.f, 0.f, 0.1f),
-                         m_camera->getSpan(),
-                         -1,
-                         {
-                             .minorColor = ViewportTheme::colors.gridMinorColor,
-                             .majorColor = ViewportTheme::colors.gridMajorColor,
-                             .axisXColor = ViewportTheme::colors.gridAxisXColor,
-                             .axisYColor = ViewportTheme::colors.gridAxisYColor,
-                         });
-
+    void Scene::drawSceneToViewport(const std::shared_ptr<Viewport> &viewport) {
         // check if start frame does not happen again within same frame
         //
         {
@@ -240,8 +227,8 @@ namespace Bess::Canvas {
                 size = glm::abs(size);
                 int w = (int)size.x;
                 int h = (int)size.y;
-                int x = pos.x;
-                int y = UI::UIMain::state.viewportSize.y - pos.y;
+                int x = (int)pos.x;
+                int y = (int)(UI::UIMain::state.viewportSize.y - pos.y);
                 m_viewport->setPickingCoord(x, y, w, h);
                 m_selectInSelectionBox = false;
                 m_getIdsInSelBox = true;
@@ -249,11 +236,13 @@ namespace Bess::Canvas {
                 m_viewport->setPickingCoord(x, y);
             }
         }
-        m_artistManager->setSchematicMode(m_isSchematicView);
-        const auto artist = m_artistManager->getCurrentArtist();
+
+        auto artistManager = viewport->getArtistManager();
+        artistManager->setSchematicMode(m_isSchematicView);
+        const auto artist = artistManager->getCurrentArtist();
 
         // Grid
-        m_viewport->grid(
+        viewport->grid(
             glm::vec3(0.f, 0.f, 0.1f),
             m_camera->getSpan(),
             -1,
@@ -320,7 +309,7 @@ namespace Bess::Canvas {
             return;
         }
 
-        const auto artist = m_artistManager->getCurrentArtist();
+        const auto artist = m_viewport->getArtistManager()->getCurrentArtist();
         artist->drawGhostConnection(connStartEntity, toScenePos(m_mousePos));
     }
 
@@ -562,7 +551,7 @@ namespace Bess::Canvas {
         const glm::vec2 newPos = toScenePos(m_mousePos);
 
         auto &comp = view.get<Components::ConnectionSegmentComponent>(ent);
-        const auto artist = m_artistManager->getCurrentArtist();
+        const auto artist = m_viewport->getArtistManager()->getCurrentArtist();
 
         if (comp.isHead() || comp.isTail()) {
             const auto newEntt = m_registry.create();
@@ -791,7 +780,7 @@ namespace Bess::Canvas {
         auto &inpSlotComp = view.get<Components::SlotComponent>(inputSlot);
         auto &outSlotComp = view.get<Components::SlotComponent>(outputSlot);
         const auto &inpParentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(inpSlotComp.parentId));
-        const auto artist = m_artistManager->getCurrentArtist();
+        const auto artist = m_viewport->getArtistManager()->getCurrentArtist();
         const auto inputSlotPos = artist->getSlotPos(inpSlotComp, inpParentTransform);
         const auto &slotComp = view.get<Components::SlotComponent>(outputSlot);
         const auto &parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(slotComp.parentId));
@@ -1130,7 +1119,7 @@ namespace Bess::Canvas {
     }
 
     std::shared_ptr<ArtistManager> Scene::getArtistManager() {
-        return m_artistManager;
+        return m_viewport->getArtistManager();
     }
 
     VkExtent2D Scene::vec2Extent2D(const glm::vec2 &vec) {

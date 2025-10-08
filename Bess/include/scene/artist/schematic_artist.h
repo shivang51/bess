@@ -21,7 +21,7 @@ namespace Bess::Canvas {
 
     class SchematicArtist : public BaseArtist {
       public:
-        SchematicArtist(std::shared_ptr<Scene> scene);
+        SchematicArtist(std::shared_ptr<Viewport> scene);
         virtual ~SchematicArtist() = default;
 
         void drawSimEntity(

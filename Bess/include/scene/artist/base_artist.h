@@ -9,9 +9,8 @@
 
 #include <memory>
 
-// Forward declaration
 namespace Bess::Canvas {
-    class Scene;
+    class Viewport;
 }
 using namespace Bess::Renderer2D;
 
@@ -27,7 +26,7 @@ namespace Bess::Canvas {
 
     class BaseArtist {
       public:
-        explicit BaseArtist(std::shared_ptr<Scene> scene);
+        explicit BaseArtist(std::shared_ptr<Viewport> viewport);
         virtual ~BaseArtist() = default;
 
         static void destroyTools();
@@ -64,7 +63,7 @@ namespace Bess::Canvas {
 
         virtual void drawConnection(const UUID &id, entt::entity inputEntity, entt::entity outputEntity, bool isSelected);
 
-        std::shared_ptr<Scene> m_sceneRef = nullptr;
+        std::shared_ptr<Viewport> m_viewportRef = nullptr;
         ArtistInstructions m_instructions = {};
 
         static ArtistTools m_artistTools;

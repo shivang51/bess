@@ -57,13 +57,13 @@ namespace Bess::Canvas {
         void reset();
         void clear();
         void render();
-        void renderWithCamera(std::shared_ptr<Camera> camera);
+        void renderWithViewport(const std::shared_ptr<Viewport> &viewport);
         void update(TFrameTime ts, const std::vector<ApplicationEvent> &events);
 
         uint64_t getTextureId() const;
         std::shared_ptr<Camera> getCamera();
 
-        void drawScene(std::shared_ptr<Camera> camera);
+        void drawSceneToViewport(const std::shared_ptr<Viewport> &viewport);
         void beginScene() const;
         void endScene() const;
 
@@ -196,8 +196,6 @@ namespace Bess::Canvas {
         std::vector<CopiedComponent> m_copiedComponents = {};
 
         SimEngine::Commands::CommandsManager m_cmdManager;
-
-        std::shared_ptr<ArtistManager> m_artistManager;
 
         VkExtent2D vec2Extent2D(const glm::vec2 &vec);
     };

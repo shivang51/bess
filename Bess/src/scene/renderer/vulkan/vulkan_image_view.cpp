@@ -18,13 +18,13 @@ namespace Bess::Renderer2D::Vulkan {
         createSampler();
         createDescriptorSet();
     }
-    
+
     VulkanImageView::VulkanImageView(const std::shared_ptr<VulkanDevice> &device,
                                      VkFormat colorFormat,
                                      VkFormat pickingFormat,
                                      VkExtent2D extent)
-        : m_device(device), m_format(colorFormat), m_pickingFormat(pickingFormat), m_extent(extent), 
-          m_usage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT), m_hasPickingAttachments(true) {
+        : m_device(device), m_format(colorFormat), m_pickingFormat(pickingFormat), m_extent(extent),
+          m_usage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT), m_hasPickingAttachments(true) {
         createImage();
         createMsaaImage();
         createImageView();
@@ -51,7 +51,7 @@ namespace Bess::Renderer2D::Vulkan {
             if (m_framebuffer != VK_NULL_HANDLE) {
                 vkDestroyFramebuffer(m_device->device(), m_framebuffer, nullptr);
             }
-            
+
             // Clean up picking attachments if they exist
             if (m_hasPickingAttachments) {
                 if (m_msaaPickingImageView != VK_NULL_HANDLE) {
@@ -73,7 +73,7 @@ namespace Bess::Renderer2D::Vulkan {
                     vkFreeMemory(m_device->device(), m_pickingImageMemory, nullptr);
                 }
             }
-            
+
             if (m_msaaImageView != VK_NULL_HANDLE) {
                 vkDestroyImageView(m_device->device(), m_msaaImageView, nullptr);
             }
@@ -322,11 +322,22 @@ namespace Bess::Renderer2D::Vulkan {
                 img.samples = VK_SAMPLE_COUNT_4_BIT;
                 img.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
                 vkCreateImage(m_device->device(), &img, nullptr, &m_depthImage);
-                VkMemoryRequirements mr{}; vkGetImageMemoryRequirements(m_device->device(), m_depthImage, &mr);
-                VkMemoryAllocateInfo ai{}; ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO; ai.allocationSize = mr.size; ai.memoryTypeIndex = m_device->findMemoryType(mr.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                VkMemoryRequirements mr{};
+                vkGetImageMemoryRequirements(m_device->device(), m_depthImage, &mr);
+                VkMemoryAllocateInfo ai{};
+                ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+                ai.allocationSize = mr.size;
+                ai.memoryTypeIndex = m_device->findMemoryType(mr.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
                 vkAllocateMemory(m_device->device(), &ai, nullptr, &m_depthImageMemory);
                 vkBindImageMemory(m_device->device(), m_depthImage, m_depthImageMemory, 0);
-                VkImageViewCreateInfo v{}; v.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO; v.image = m_depthImage; v.viewType = VK_IMAGE_VIEW_TYPE_2D; v.format = VK_FORMAT_D32_SFLOAT; v.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT; v.subresourceRange.levelCount = 1; v.subresourceRange.layerCount = 1;
+                VkImageViewCreateInfo v{};
+                v.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+                v.image = m_depthImage;
+                v.viewType = VK_IMAGE_VIEW_TYPE_2D;
+                v.format = VK_FORMAT_D32_SFLOAT;
+                v.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+                v.subresourceRange.levelCount = 1;
+                v.subresourceRange.layerCount = 1;
                 vkCreateImageView(m_device->device(), &v, nullptr, &m_depthImageView);
             }
             // Offscreen framebuffer has five attachments: [0] MSAA color, [1] resolve color, [2] MSAA picking, [3] resolve picking, [4] depth
@@ -360,11 +371,22 @@ namespace Bess::Renderer2D::Vulkan {
                 img.samples = VK_SAMPLE_COUNT_4_BIT;
                 img.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
                 vkCreateImage(m_device->device(), &img, nullptr, &m_depthImage);
-                VkMemoryRequirements mr{}; vkGetImageMemoryRequirements(m_device->device(), m_depthImage, &mr);
-                VkMemoryAllocateInfo ai{}; ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO; ai.allocationSize = mr.size; ai.memoryTypeIndex = m_device->findMemoryType(mr.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                VkMemoryRequirements mr{};
+                vkGetImageMemoryRequirements(m_device->device(), m_depthImage, &mr);
+                VkMemoryAllocateInfo ai{};
+                ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+                ai.allocationSize = mr.size;
+                ai.memoryTypeIndex = m_device->findMemoryType(mr.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
                 vkAllocateMemory(m_device->device(), &ai, nullptr, &m_depthImageMemory);
                 vkBindImageMemory(m_device->device(), m_depthImage, m_depthImageMemory, 0);
-                VkImageViewCreateInfo v{}; v.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO; v.image = m_depthImage; v.viewType = VK_IMAGE_VIEW_TYPE_2D; v.format = VK_FORMAT_D32_SFLOAT; v.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT; v.subresourceRange.levelCount = 1; v.subresourceRange.layerCount = 1;
+                VkImageViewCreateInfo v{};
+                v.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+                v.image = m_depthImage;
+                v.viewType = VK_IMAGE_VIEW_TYPE_2D;
+                v.format = VK_FORMAT_D32_SFLOAT;
+                v.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+                v.subresourceRange.levelCount = 1;
+                v.subresourceRange.layerCount = 1;
                 vkCreateImageView(m_device->device(), &v, nullptr, &m_depthImageView);
             }
             // Offscreen framebuffer has three attachments: [0] MSAA color, [1] resolve (single-sample), [2] depth
@@ -477,7 +499,7 @@ namespace Bess::Renderer2D::Vulkan {
             vkDestroyFramebuffer(m_device->device(), m_framebuffer, nullptr);
             m_framebuffer = VK_NULL_HANDLE;
         }
-        
+
         // Destroy picking attachments if they exist
         if (m_hasPickingAttachments) {
             if (m_msaaPickingImageView != VK_NULL_HANDLE) {
@@ -505,7 +527,7 @@ namespace Bess::Renderer2D::Vulkan {
                 m_pickingImageMemory = VK_NULL_HANDLE;
             }
         }
-        
+
         if (m_msaaImageView != VK_NULL_HANDLE) {
             vkDestroyImageView(m_device->device(), m_msaaImageView, nullptr);
             m_msaaImageView = VK_NULL_HANDLE;
@@ -548,11 +570,11 @@ namespace Bess::Renderer2D::Vulkan {
         m_extent = extent;
 
         // Recreate resources
-        createImage();           // resolve image (1x)
-        createMsaaImage();       // msaa image (4x)
+        createImage();     // resolve image (1x)
+        createMsaaImage(); // msaa image (4x)
         createImageView();
         createMsaaImageView();
-        
+
         // Recreate picking attachments if they exist
         if (m_hasPickingAttachments) {
             createPickingImage();

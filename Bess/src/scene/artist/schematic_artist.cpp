@@ -31,7 +31,7 @@ namespace Bess::Canvas {
 
     constexpr float SCHEMATIC_VIEW_PIN_ROW_SIZE = schematicCompStyles.nameFontSize + schematicCompStyles.strokeSize + schematicCompStyles.pinRowGap;
 
-    SchematicArtist::SchematicArtist(std::shared_ptr<Scene> scene) : BaseArtist(scene) {
+    SchematicArtist::SchematicArtist(std::shared_ptr<Viewport> scene) : BaseArtist(scene) {
     }
 
     void SchematicArtist::drawSimEntity(
@@ -68,19 +68,19 @@ namespace Bess::Canvas {
         const float x = pos.x - w / 2, x1 = pos.x + w / 2;
         const float y = pos.y - h / 2, y1 = pos.y + h / 2;
 
-        m_sceneRef->getViewport()->beginPathMode({x, y, pos.z}, strokeSize, strokeColor, id);
-        m_sceneRef->getViewport()->pathLineTo({x1, y, pos.z}, strokeSize, strokeColor, id);
-        m_sceneRef->getViewport()->pathLineTo({x1, y1, pos.z}, strokeSize, strokeColor, id);
-        m_sceneRef->getViewport()->pathLineTo({x, y1, pos.z}, strokeSize, ViewportTheme::colors.wire, id);
-        m_sceneRef->getViewport()->endPathMode(true, true, fillColor);
+        m_viewportRef->beginPathMode({x, y, pos.z}, strokeSize, strokeColor, id);
+        m_viewportRef->pathLineTo({x1, y, pos.z}, strokeSize, strokeColor, id);
+        m_viewportRef->pathLineTo({x1, y1, pos.z}, strokeSize, strokeColor, id);
+        m_viewportRef->pathLineTo({x, y1, pos.z}, strokeSize, ViewportTheme::colors.wire, id);
+        m_viewportRef->endPathMode(true, true, fillColor);
 
-        const auto textSize = m_sceneRef->getViewport()->getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
+        const auto textSize = m_viewportRef->getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
         glm::vec3 textPos = {pos.x,
                              y + componentStyles.paddingY + strokeSize,
                              pos.z + 0.0005f};
         textPos.x -= textSize.x / 2.f;
         textPos.y += componentStyles.headerFontSize / 2.f;
-        m_sceneRef->getViewport()->msdfText(tagComp.name, textPos, schematicCompStyles.nameFontSize, textColor, id, 0.f);
+        m_viewportRef->msdfText(tagComp.name, textPos, schematicCompStyles.nameFontSize, textColor, id, 0.f);
 
         {
             const auto compState = SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity);
@@ -92,13 +92,13 @@ namespace Bess::Canvas {
                                       pos.y,
                                       transform.position.z + 0.0001};
 
-            m_sceneRef->getViewport()->quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), static_cast<int>(entity));
+            m_viewportRef->quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), static_cast<int>(entity));
 
             for (int i = 0; i < static_cast<int>(compState.inputStates.size()); i++) {
                 if (!compState.inputStates[i])
                     continue;
                 tex = m_artistTools.sevenSegDispTexs[i + 1];
-                m_sceneRef->getViewport()->quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), static_cast<int>(entity));
+                m_viewportRef->quad(texPos, {texWidth, texHeight}, glm::vec4(1.f), static_cast<int>(entity));
             }
         }
     }
@@ -125,7 +125,7 @@ namespace Bess::Canvas {
         constexpr float negCircleR = schematicCompStyles.negCircleR;
 
         auto negateCircleAt = [&](const glm::vec3 pos) {
-            m_sceneRef->getViewport()->circle(pos, negCircleR, strokeColor, -1, negCircleR - nodeWeight);
+            m_viewportRef->circle(pos, negCircleR, strokeColor, -1, negCircleR - nodeWeight);
         };
 
         const int id = static_cast<uint64_t>(entity);
@@ -139,11 +139,11 @@ namespace Bess::Canvas {
 #if DEBUG & 0 // drawing bounding box
         {
             static const glm::vec4 col = glm::vec4(1.f, 0.f, 0.f, 1.f);
-            m_sceneRef->getViewport()->beginPathMode({x, y, 2.f}, nodeWeight, col, id);
-            m_sceneRef->getViewport()->pathLineTo({x1, y, 2.f}, nodeWeight, col, id);
-            m_sceneRef->getViewport()->pathLineTo({x1, y1, 2.f}, nodeWeight, col, id);
-            m_sceneRef->getViewport()->pathLineTo({x, y1, 2.f}, nodeWeight, col, id);
-            m_sceneRef->getViewport()->endPathMode(true);
+            m_viewportRef->beginPathMode({x, y, 2.f}, nodeWeight, col, id);
+            m_viewportRef->pathLineTo({x1, y, 2.f}, nodeWeight, col, id);
+            m_viewportRef->pathLineTo({x1, y1, 2.f}, nodeWeight, col, id);
+            m_viewportRef->pathLineTo({x, y1, 2.f}, nodeWeight, col, id);
+            m_viewportRef->endPathMode(true);
         }
 #endif
 
@@ -157,28 +157,28 @@ namespace Bess::Canvas {
             const auto cp1 = glm::vec2{cpX, y + (h * 0.25)};
             const auto cp2 = glm::vec2{cpX, y1 - (h * 0.25)};
             // diagram
-            m_sceneRef->getViewport()->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->pathLineTo({curveStartX, y, pos.z}, nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->pathCubicBeizerTo({curveStartX, y1, pos.z}, cp1, cp2, nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->pathLineTo({x, y1, pos.z}, nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->endPathMode(true, true, fillColor);
+            m_viewportRef->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
+            m_viewportRef->pathLineTo({curveStartX, y, pos.z}, nodeWeight, strokeColor, id);
+            m_viewportRef->pathCubicBeizerTo({curveStartX, y1, pos.z}, cp1, cp2, nodeWeight, strokeColor, id);
+            m_viewportRef->pathLineTo({x, y1, pos.z}, nodeWeight, strokeColor, id);
+            m_viewportRef->endPathMode(true, true, fillColor);
         } break;
         case SimEngine::ComponentType::OR:
         case SimEngine::ComponentType::NOR: {
             const float curveStartX = x1 - (w * 0.3f);
             const float cpX = curveStartX + (w * 0.20);
             // diagram
-            m_sceneRef->getViewport()->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->pathQuadBeizerTo({x, y1, pos.z}, {cpXL, y + (y1 - y) / 2},
-                                                        nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->pathLineTo({curveStartX, y1, pos.z}, nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->pathQuadBeizerTo({x1, y + (h * 0.5f), pos.z},
-                                                        {cpX, y + (h * 0.85)},
-                                                        nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->pathQuadBeizerTo({curveStartX, y, pos.z},
-                                                        {cpX, y + (h * 0.15)},
-                                                        nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->endPathMode(true, true, fillColor);
+            m_viewportRef->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
+            m_viewportRef->pathQuadBeizerTo({x, y1, pos.z}, {cpXL, y + (y1 - y) / 2},
+                                            nodeWeight, strokeColor, id);
+            m_viewportRef->pathLineTo({curveStartX, y1, pos.z}, nodeWeight, strokeColor, id);
+            m_viewportRef->pathQuadBeizerTo({x1, y + (h * 0.5f), pos.z},
+                                            {cpX, y + (h * 0.85)},
+                                            nodeWeight, strokeColor, id);
+            m_viewportRef->pathQuadBeizerTo({curveStartX, y, pos.z},
+                                            {cpX, y + (h * 0.15)},
+                                            nodeWeight, strokeColor, id);
+            m_viewportRef->endPathMode(true, true, fillColor);
 
         } break;
         case SimEngine::ComponentType::XNOR:
@@ -187,35 +187,35 @@ namespace Bess::Canvas {
             const float cpX = curveStartX + (w * 0.20);
 
             // diagram
-            m_sceneRef->getViewport()->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->pathQuadBeizerTo({x, y1, pos.z}, {cpXL, y + (y1 - y) / 2}, nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->endPathMode(false);
+            m_viewportRef->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
+            m_viewportRef->pathQuadBeizerTo({x, y1, pos.z}, {cpXL, y + (y1 - y) / 2}, nodeWeight, strokeColor, id);
+            m_viewportRef->endPathMode(false);
             constexpr float gapX = 8.f;
-            m_sceneRef->getViewport()->beginPathMode({x + gapX, y, pos.z}, nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->pathQuadBeizerTo({x + gapX, y1, pos.z}, {cpXL + gapX, y + (y1 - y) / 2}, nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->pathLineTo({curveStartX, y1, pos.z}, nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->pathQuadBeizerTo({x1, y + (h * 0.5f), pos.z},
-                                                        {cpX, y + (h * 0.85)},
-                                                        nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->pathQuadBeizerTo({curveStartX, y, pos.z},
-                                                        {cpX, y + (h * 0.15)},
-                                                        nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->endPathMode(true, true, fillColor);
+            m_viewportRef->beginPathMode({x + gapX, y, pos.z}, nodeWeight, strokeColor, id);
+            m_viewportRef->pathQuadBeizerTo({x + gapX, y1, pos.z}, {cpXL + gapX, y + (y1 - y) / 2}, nodeWeight, strokeColor, id);
+            m_viewportRef->pathLineTo({curveStartX, y1, pos.z}, nodeWeight, strokeColor, id);
+            m_viewportRef->pathQuadBeizerTo({x1, y + (h * 0.5f), pos.z},
+                                            {cpX, y + (h * 0.85)},
+                                            nodeWeight, strokeColor, id);
+            m_viewportRef->pathQuadBeizerTo({curveStartX, y, pos.z},
+                                            {cpX, y + (h * 0.15)},
+                                            nodeWeight, strokeColor, id);
+            m_viewportRef->endPathMode(true, true, fillColor);
         } break;
         case SimEngine::ComponentType::NOT: {
-            m_sceneRef->getViewport()->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->pathLineTo({x1, y + (y1 - y) / 2.f, pos.z}, nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->pathLineTo({x, y1, pos.z}, nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->endPathMode(true, true, fillColor);
+            m_viewportRef->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
+            m_viewportRef->pathLineTo({x1, y + (y1 - y) / 2.f, pos.z}, nodeWeight, strokeColor, id);
+            m_viewportRef->pathLineTo({x, y1, pos.z}, nodeWeight, strokeColor, id);
+            m_viewportRef->endPathMode(true, true, fillColor);
         } break;
         default:
             // a square with name in center
             showName = true;
-            m_sceneRef->getViewport()->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->pathLineTo({x1, y1, pos.z}, nodeWeight, strokeColor, id);
-            m_sceneRef->getViewport()->pathLineTo({x, y1, pos.z}, nodeWeight, ViewportTheme::colors.wire, id);
-            m_sceneRef->getViewport()->endPathMode(true, true, fillColor);
+            m_viewportRef->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
+            m_viewportRef->pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);
+            m_viewportRef->pathLineTo({x1, y1, pos.z}, nodeWeight, strokeColor, id);
+            m_viewportRef->pathLineTo({x, y1, pos.z}, nodeWeight, ViewportTheme::colors.wire, id);
+            m_viewportRef->endPathMode(true, true, fillColor);
             break;
         }
 
@@ -225,11 +225,11 @@ namespace Bess::Canvas {
         }
 
         if (showName) {
-            const auto textSize = m_sceneRef->getViewport()->getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
+            const auto textSize = m_viewportRef->getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
             glm::vec3 textPos = {pos.x, y + (y1 - y) / 2.f, pos.z + 0.0005f};
             textPos.x -= textSize.x / 2.f;
             textPos.y += componentStyles.headerFontSize / 2.f;
-            m_sceneRef->getViewport()->msdfText(tagComp.name, textPos, schematicCompStyles.nameFontSize, textColor, id, 0.f);
+            m_viewportRef->msdfText(tagComp.name, textPos, schematicCompStyles.nameFontSize, textColor, id, 0.f);
         }
     }
 
@@ -254,14 +254,14 @@ namespace Bess::Canvas {
             const float yIncr = h / (inpCount + 1);
             for (int i = 0; i < inpCount; i++) {
                 float pinY = y + yIncr * (i + 1);
-                const int pinId = static_cast<uint64_t>(m_sceneRef->getEntityWithUuid(simComp.inputSlots[i]));
-                m_sceneRef->getViewport()->beginPathMode({inPinStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
-                m_sceneRef->getViewport()->pathLineTo({schematicInfo.inpConnStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
-                m_sceneRef->getViewport()->endPathMode(false);
+                const int pinId = static_cast<uint64_t>(m_viewportRef->getEntityWithUuid(simComp.inputSlots[i]));
+                m_viewportRef->beginPathMode({inPinStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
+                m_viewportRef->pathLineTo({schematicInfo.inpConnStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
+                m_viewportRef->endPathMode(false);
                 label = inpDetails.size() > i ? inpDetails[i].name : "X" + std::to_string(i);
-                m_sceneRef->getViewport()->msdfText(label,
-                                                    {schematicInfo.inpConnStart, pinY - nodeWeight, pos.z - 0.0005f},
-                                                    componentStyles.slotLabelSize, ViewportTheme::colors.text, static_cast<int>(parentEntt), 0.f);
+                m_viewportRef->msdfText(label,
+                                        {schematicInfo.inpConnStart, pinY - nodeWeight, pos.z - 0.0005f},
+                                        componentStyles.slotLabelSize, ViewportTheme::colors.text, static_cast<int>(parentEntt), 0.f);
             }
         }
 
@@ -271,21 +271,21 @@ namespace Bess::Canvas {
             const float yIncr = h / (outCount + 1);
             for (int i = 0; i < outCount; i++) {
                 float pinY = y + yIncr * (i + 1);
-                const int pinId = static_cast<uint64_t>(m_sceneRef->getEntityWithUuid(simComp.outputSlots[i]));
-                m_sceneRef->getViewport()->beginPathMode({schematicInfo.outPinStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
-                m_sceneRef->getViewport()->pathLineTo({schematicInfo.outConnStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
-                m_sceneRef->getViewport()->endPathMode(false);
+                const int pinId = static_cast<uint64_t>(m_viewportRef->getEntityWithUuid(simComp.outputSlots[i]));
+                m_viewportRef->beginPathMode({schematicInfo.outPinStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
+                m_viewportRef->pathLineTo({schematicInfo.outConnStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
+                m_viewportRef->endPathMode(false);
                 label = outDetails.size() > i ? outDetails[i].name : "Y" + std::to_string(i);
-                const float size = m_sceneRef->getViewport()->getMSDFTextRenderSize(label, componentStyles.slotLabelSize).x;
-                m_sceneRef->getViewport()->msdfText(label,
-                                                    {schematicInfo.outConnStart - size, pinY - nodeWeight, pos.z - 0.0005f},
-                                                    componentStyles.slotLabelSize, ViewportTheme::colors.text, static_cast<int>(parentEntt), 0.f);
+                const float size = m_viewportRef->getMSDFTextRenderSize(label, componentStyles.slotLabelSize).x;
+                m_viewportRef->msdfText(label,
+                                        {schematicInfo.outConnStart - size, pinY - nodeWeight, pos.z - 0.0005f},
+                                        componentStyles.slotLabelSize, ViewportTheme::colors.text, static_cast<int>(parentEntt), 0.f);
             }
         }
     }
 
     ArtistCompSchematicInfo SchematicArtist::getCompSchematicInfo(const entt::entity ent) const {
-        const auto &reg = m_sceneRef->getEnttRegistry();
+        const auto &reg = m_viewportRef->getEnttRegistry();
         const auto &tagComp = reg.get<Components::TagComponent>(ent);
         const auto &simComp = reg.get<Components::SimulationComponent>(ent);
         const auto &transform = reg.get<Components::TransformComponent>(ent);
@@ -338,7 +338,7 @@ namespace Bess::Canvas {
         //     info.shouldDraw = false;
         // } break;
         default:
-            w = m_sceneRef->getViewport()->getMSDFTextRenderSize(tagComp.name, schematicCompStyles.nameFontSize).x + componentStyles.paddingX * 2.f;
+            w = m_viewportRef->getMSDFTextRenderSize(tagComp.name, schematicCompStyles.nameFontSize).x + componentStyles.paddingX * 2.f;
             x = pos.x - w / 2, x1 = pos.x + w / 2;
 
             info.inpPinStart = x;
@@ -353,13 +353,13 @@ namespace Bess::Canvas {
     }
 
     ArtistCompSchematicInfo SchematicArtist::getCompSchematicInfo(const UUID uuid) const {
-        return getCompSchematicInfo(m_sceneRef->getEntityWithUuid(uuid));
+        return getCompSchematicInfo(m_viewportRef->getEntityWithUuid(uuid));
     }
 
     glm::vec3 SchematicArtist::getSlotPos(const Components::SlotComponent &comp,
                                           const Components::TransformComponent &parentTransform) {
-        auto &registry = m_sceneRef->getEnttRegistry();
-        const auto parentEntt = m_sceneRef->getEntityWithUuid(comp.parentId);
+        auto &registry = m_viewportRef->getEnttRegistry();
+        const auto parentEntt = m_viewportRef->getEntityWithUuid(comp.parentId);
         const auto &simComp = registry.get<Components::SimulationComponent>(parentEntt);
 
         const auto info = getCompSchematicInfo(parentEntt);

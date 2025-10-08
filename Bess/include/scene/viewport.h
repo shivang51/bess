@@ -1,5 +1,8 @@
 #pragma once
+#include "bess_uuid.h"
 #include "camera.h"
+#include "entt/entity/fwd.hpp"
+#include "scene/artist/artist_manager.h"
 #include "scene/renderer/vulkan/command_buffer.h"
 #include "scene/renderer/vulkan/device.h"
 #include "scene/renderer/vulkan/path_renderer.h"
@@ -59,6 +62,13 @@ namespace Bess::Canvas {
         void setPickingCoord(uint32_t x, uint32_t y, uint32_t w = 1, uint32_t h = 1);
         std::vector<int32_t> getPickingIdsResult();
 
+        entt::registry &getEnttRegistry();
+        entt::entity getEntityWithUuid(const UUID &uuid);
+
+        std::shared_ptr<ArtistManager> getArtistManager();
+
+        std::vector<unsigned char> getPixelData();
+
       public: // drawing api
         void grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const GridColors &colors);
 
@@ -101,6 +111,11 @@ namespace Bess::Canvas {
 
         void copyIdForPicking();
 
+        void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
+                          VkBuffer &buffer, VkDeviceMemory &bufferMemory) const;
+
+        void transitionImageLayout(VkCommandBuffer cmd, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const;
+
       private:
         int m_currentFrameIdx = 0;
 
@@ -129,5 +144,7 @@ namespace Bess::Canvas {
         bool m_pickingCopyInFlight = false;
         uint32_t m_pickingCopyRecordedFrameIdx = 0;
         uint64_t m_pickingStagingBufferSize = 1;
+
+        std::shared_ptr<ArtistManager> m_artistManager;
     };
 } // namespace Bess::Canvas
