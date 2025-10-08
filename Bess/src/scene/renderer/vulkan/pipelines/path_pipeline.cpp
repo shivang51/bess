@@ -139,6 +139,10 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
     void PathPipeline::setPathData(const std::vector<CommonVertex> &strokeVertices, const std::vector<uint32_t> &strokeIndices,
                                    const std::vector<CommonVertex> &fillVertices, const std::vector<uint32_t> &fillIndices) {
+
+        if (strokeVertices.empty() && fillVertices.empty())
+            return;
+
         m_strokeVertices = strokeVertices;
         m_strokeIndices = strokeIndices;
         m_fillVertices = fillVertices;
