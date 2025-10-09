@@ -13,6 +13,7 @@
 
 namespace Bess::Renderer2D::Vulkan::Pipelines {
 
+    constexpr uint32_t instanceLimit = 10000;
     TextPipeline::TextPipeline(const std::shared_ptr<VulkanDevice> &device,
                                const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
                                VkExtent2D extent)
@@ -33,7 +34,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
         createGraphicsPipeline();
 
-        ensureTextInstanceCapacity(10000);
+        ensureTextInstanceCapacity(instanceLimit);
     }
 
     TextPipeline::~TextPipeline() {
@@ -84,7 +85,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     }
 
     void TextPipeline::endPipeline() {
-        auto draw = [&](const std::vector<InstanceVertex> &instances, VkDeviceSize offset) {
+        auto draw = [&](const std::span<InstanceVertex> &instances, VkDeviceSize offset) {
             if (instances.empty())
                 return;
             void *data = nullptr;
@@ -100,7 +101,23 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             vkCmdDrawIndexed(m_currentCommandBuffer, 6, static_cast<uint32_t>(instances.size()), 0, 0, 0);
         };
 
-        draw(m_textInstances, 0);
+        auto flush = [&](std::vector<InstanceVertex> &instances, size_t initialOffset = 0) {
+            long offsetIdx = (long)initialOffset;
+            uint64_t size = instances.size();
+            while (size > instanceLimit) {
+                auto span = std::span(instances.begin() + offsetIdx, instances.begin() + offsetIdx + instanceLimit);
+                draw(span, offsetIdx * sizeof(InstanceVertex));
+                offsetIdx += instanceLimit;
+                size -= instanceLimit;
+            }
+
+            if (size != 0) {
+                auto span = std::span(instances.begin() + offsetIdx, instances.end());
+                draw(span, offsetIdx * sizeof(InstanceVertex));
+            }
+        };
+
+        flush(m_textInstances);
         m_textInstances.clear();
 
         m_currentCommandBuffer = VK_NULL_HANDLE;

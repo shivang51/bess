@@ -12,6 +12,7 @@
 namespace Bess::Renderer2D::Vulkan::Pipelines {
 
     constexpr size_t maxFrames = VulkanCore::MAX_FRAMES_IN_FLIGHT;
+    constexpr size_t instanceLimit = 10000;
 
     PathPipeline::PathPipeline(const std::shared_ptr<VulkanDevice> &device,
                                const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
@@ -27,6 +28,8 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         createDescriptorSets();
 
         createGraphicsPipeline();
+
+        ensurePathCapacity(instanceLimit * 4, instanceLimit * 6);
     }
 
     PathPipeline::~PathPipeline() {

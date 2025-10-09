@@ -4,11 +4,15 @@
 #include "scene/renderer/vulkan/vulkan_core.h"
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <cstring>
+#include <span>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
 namespace Bess::Renderer2D::Vulkan::Pipelines {
+
+    constexpr uint32_t instanceLimit = 10000;
 
     CirclePipeline::CirclePipeline(const std::shared_ptr<VulkanDevice> &device,
                                    const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
@@ -24,7 +28,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
         createGraphicsPipeline();
 
-        ensureCircleInstanceCapacity(10000);
+        ensureCircleInstanceCapacity(instanceLimit);
     }
 
     CirclePipeline::~CirclePipeline() {
@@ -62,7 +66,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     }
 
     void CirclePipeline::endPipeline() {
-        auto draw = [&](const std::vector<CircleInstance> &instances, VkDeviceSize offset) {
+        auto draw = [&](const std::span<CircleInstance> &instances, VkDeviceSize offset) {
             if (instances.empty())
                 return;
             void *data = nullptr;
@@ -78,16 +82,25 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             vkCmdDrawIndexed(m_currentCommandBuffer, 6, static_cast<uint32_t>(instances.size()), 0, 0, 0);
         };
 
-        ensureCircleInstanceCapacity(m_opaqueInstances.size() + m_translucentInstances.size());
-        VkDeviceSize translucentOffset = m_opaqueInstances.size() * sizeof(CircleInstance);
+        auto flush = [&](std::vector<CircleInstance> &instances, size_t initialOffset = 0) {
+            long offsetIdx = (long)initialOffset;
+            uint64_t size = instances.size();
+            while (size > instanceLimit) {
+                auto span = std::span(instances.begin() + offsetIdx, instances.begin() + offsetIdx + instanceLimit);
+                draw(span, offsetIdx * sizeof(CircleInstance));
+                offsetIdx += instanceLimit;
+                size -= instanceLimit;
+            }
 
-        draw(m_opaqueInstances, 0);
+            if (size != 0) {
+                auto span = std::span(instances.begin() + offsetIdx, instances.end());
+                draw(span, offsetIdx * sizeof(CircleInstance));
+            }
+        };
+
+        flush(m_opaqueInstances);
+        flush(m_translucentInstances, m_opaqueInstances.size());
         m_opaqueInstances.clear();
-
-        std::ranges::sort(m_translucentInstances, [](CircleInstance &a, CircleInstance &b) -> bool {
-            return a.position.z < b.position.z;
-        });
-        draw(m_translucentInstances, translucentOffset);
         m_translucentInstances.clear();
 
         m_currentCommandBuffer = VK_NULL_HANDLE;
@@ -95,6 +108,10 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
     void CirclePipeline::setCirclesData(const std::vector<CircleInstance> &opaque,
                                         const std::vector<CircleInstance> &translucent) {
+        auto size = opaque.size() + translucent.size();
+        if (size == 0)
+            return;
+        ensureCircleInstanceCapacity(size);
         m_opaqueInstances = opaque;
         m_translucentInstances = translucent;
     }
@@ -180,7 +197,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
         std::array<VkVertexInputBindingDescription, 2> bindings = {binding0, binding1};
 
-        // Local vertex attributes (binding 0)
         std::array<VkVertexInputAttributeDescription, 2> localAttribs{};
         localAttribs[0].binding = 0;
         localAttribs[0].location = 0;
@@ -192,7 +208,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         localAttribs[1].format = VK_FORMAT_R32G32_SFLOAT;
         localAttribs[1].offset = sizeof(float) * 2;
 
-        // Instance attributes (binding 1)
         std::array<VkVertexInputAttributeDescription, 5> instanceAttribs{};
         instanceAttribs[0].binding = 1;
         instanceAttribs[0].location = 2;
@@ -230,7 +245,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(allAttribs.size());
         vertexInputInfo.pVertexAttributeDescriptions = allAttribs.data();
 
-        // Use common pipeline state creation methods
         auto inputAssembly = createInputAssemblyState();
         auto viewportState = createViewportState();
         auto rasterizer = createRasterizationState();
@@ -252,7 +266,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
         static const std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments = {colorBlendAttachment, pickingBlendAttachment};
 
-        // Use common color blend state creation
         auto colorBlending = createColorBlendState(colorBlendAttachments);
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -295,7 +308,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     }
 
     void CirclePipeline::createCircleBuffers() {
-        // Create local circle vertex data (quad for circle rendering)
         std::vector<float> local = {
             -0.5f, -0.5f, 0.0f, 0.0f, // bottom-left
             0.5f, -0.5f, 1.0f, 0.0f,  // bottom-right
@@ -315,7 +327,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
         VkMemoryRequirements req{};
 
-        // Allocate and upload circle vertex buffer
         VkDeviceSize vSize = sizeof(float) * local.size();
         bi.size = vSize;
         bi.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
@@ -334,7 +345,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         memcpy(vdata, local.data(), vSize);
         vkUnmapMemory(m_device->device(), m_buffers.vertexBufferMemory);
 
-        // Allocate and upload circle index buffer
         VkDeviceSize iSize = sizeof(uint32_t) * idx.size();
         bi.size = iSize;
         bi.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
@@ -358,16 +368,14 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
     void CirclePipeline::ensureCircleInstanceCapacity(size_t instanceCount) {
         if (instanceCount <= m_buffers.instanceCapacity) {
-            return; // Already have enough capacity
+            return;
         }
 
-        // Destroy old instance buffer if it exists
         if (m_buffers.instanceBuffer != VK_NULL_HANDLE) {
             vkDestroyBuffer(m_device->device(), m_buffers.instanceBuffer, nullptr);
             vkFreeMemory(m_device->device(), m_buffers.instanceBufferMemory, nullptr);
         }
 
-        // Create new instance buffer with required capacity
         VkDeviceSize size = sizeof(CircleInstance) * instanceCount;
         VkBufferCreateInfo bi{};
         bi.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;

@@ -6,11 +6,15 @@
 #include "scene/renderer/vulkan/vulkan_texture.h"
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <cstring>
+#include <ranges>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
 namespace Bess::Renderer2D::Vulkan::Pipelines {
+
+    constexpr uint32_t instanceLimit = 10000;
 
     QuadPipeline::QuadPipeline(const std::shared_ptr<VulkanDevice> &device,
                                const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
@@ -31,7 +35,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
         createGraphicsPipeline();
 
-        ensureQuadInstanceCapacity(10000);
+        ensureQuadInstanceCapacity(instanceLimit);
     }
 
     QuadPipeline::~QuadPipeline() {
@@ -68,7 +72,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     }
 
     void QuadPipeline::endPipeline() {
-        auto draw = [&](const std::vector<QuadInstance> &instances, VkDeviceSize offset) {
+        auto draw = [&](const std::span<QuadInstance> &instances, VkDeviceSize offset) {
             if (instances.empty())
                 return;
             void *data = nullptr;
@@ -84,16 +88,25 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             vkCmdDrawIndexed(m_currentCommandBuffer, 6, static_cast<uint32_t>(instances.size()), 0, 0, 0);
         };
 
-        ensureQuadInstanceCapacity(m_opaqueInstances.size() + m_translucentInstances.size());
-        VkDeviceSize translucentOffset = m_opaqueInstances.size() * sizeof(QuadInstance);
+        auto flush = [&](std::vector<QuadInstance> &instances, size_t initialOffset = 0) {
+            long offsetIdx = (long)initialOffset;
+            uint64_t size = instances.size();
+            while (size > instanceLimit) {
+                auto span = std::span(instances.begin() + offsetIdx, instances.begin() + offsetIdx + instanceLimit);
+                draw(span, offsetIdx * sizeof(QuadInstance));
+                offsetIdx += instanceLimit;
+                size -= instanceLimit;
+            }
 
-        draw(m_opaqueInstances, 0);
+            if (size != 0) {
+                auto span = std::span(instances.begin() + offsetIdx, instances.end());
+                draw(span, offsetIdx * sizeof(QuadInstance));
+            }
+        };
+
+        flush(m_opaqueInstances);
+        flush(m_translucentInstances, m_opaqueInstances.size());
         m_opaqueInstances.clear();
-
-        std::ranges::sort(m_translucentInstances, [](QuadInstance &a, QuadInstance &b) -> bool {
-            return a.position.z < b.position.z;
-        });
-        draw(m_translucentInstances, translucentOffset);
         m_translucentInstances.clear();
 
         m_currentCommandBuffer = VK_NULL_HANDLE;
@@ -103,7 +116,10 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         const std::vector<QuadInstance> &opaque,
         const std::vector<QuadInstance> &translucent,
         std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> &texutredData) {
-
+        auto size = opaque.size() + translucent.size();
+        if (size == 0)
+            return;
+        ensureQuadInstanceCapacity(size);
         m_opaqueInstances = opaque;
         m_translucentInstances = translucent;
 
