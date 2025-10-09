@@ -31,7 +31,9 @@ namespace Bess::Canvas {
 
     class NodesArtist : public BaseArtist {
       public:
-        NodesArtist(std::shared_ptr<Viewport> viewport);
+        NodesArtist(const std::shared_ptr<Renderer2D::Vulkan::VulkanDevice> &device,
+                    const std::shared_ptr<Renderer2D::Vulkan::VulkanOffscreenRenderPass> &renderPass,
+                    VkExtent2D extent);
         virtual ~NodesArtist() = default;
 
         void drawSimEntity(

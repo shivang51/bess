@@ -28,6 +28,9 @@ Checks: >
   -readability-qualified-auto,
   -cppcoreguidelines-pro-bounds-constant-array-index,
   -cppcoreguidelines-special-member-functions,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -readability-isolate-declaration,
+  -cppcoreguidelines-pro-type-cstyle-cast,
   -readability-redundant-access-specifiers
 
 

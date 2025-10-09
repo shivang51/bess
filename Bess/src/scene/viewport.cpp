@@ -1,6 +1,7 @@
 #include "scene/viewport.h"
-#include "asset_manager/asset_manager.h"
-#include "assets.h"
+#include "common/log.h"
+#include "scene/artist/nodes_artist.h"
+#include "scene/artist/schematic_artist.h"
 #include "scene/scene.h"
 #include <cstdint>
 #include <memory>
@@ -22,16 +23,13 @@ namespace Bess::Canvas {
         m_imgView = std::make_unique<Vulkan::VulkanImageView>(m_device, m_imgFormat, m_pickingIdFormat, size);
         m_imgView->createFramebuffer(m_renderPass->getVkHandle());
 
-        m_primitiveRenderer = std::make_unique<Vulkan::PrimitiveRenderer>(m_device, m_renderPass, size);
-        m_pathRenderer = std::make_unique<Vulkan::PathRenderer>(m_device, m_renderPass, size);
-
         createPickingResources();
         createFences(framesInFlight);
 
         m_mousePickingData = {};
         m_mousePickingData.ids = {-1};
 
-        m_artistManager = std::make_shared<ArtistManager>(std::shared_ptr<Viewport>(this, [](Viewport *) {}));
+        m_artistManager = std::make_shared<ArtistManager>(m_device, m_renderPass, size);
 
         auto cmd = m_device->beginSingleTimeCommands();
         transitionImageLayout(cmd, m_imgView->getImage(), m_imgView->getFormat(), VK_IMAGE_LAYOUT_UNDEFINED,
@@ -63,22 +61,11 @@ namespace Bess::Canvas {
 
         m_renderPass->begin(cmdBuffer, m_imgView->getFramebuffer(), m_size, clearColor, clearPickingId);
 
-        m_primitiveRenderer->setCurrentFrameIndex(m_currentFrameIdx);
-        m_pathRenderer->setCurrentFrameIndex(m_currentFrameIdx);
-
-        m_primitiveRenderer->beginFrame(cmdBuffer);
-        m_pathRenderer->beginFrame(cmdBuffer);
-
-        Vulkan::UniformBufferObject ubo{};
-        ubo.mvp = m_camera->getTransform();
-        ubo.ortho = m_camera->getOrtho();
-        m_pathRenderer->updateUniformBuffer(ubo);
-        m_primitiveRenderer->updateUBO(ubo);
+        m_artistManager->getCurrentArtist()->begin(cmdBuffer, m_camera, frameIdx);
     }
 
     VkCommandBuffer Viewport::end() {
-        m_pathRenderer->endFrame(); // important to end path renderer first for now (temp fix for alpha blending)
-        m_primitiveRenderer->endFrame();
+        m_artistManager->getCurrentArtist()->end();
         m_renderPass->end();
 
         if (m_mousePickingData.pending)
@@ -98,8 +85,8 @@ namespace Bess::Canvas {
         m_device->waitForIdle();
         m_imgView->recreate(m_size, m_renderPass->getVkHandle());
         m_camera->resize((float)size.width, (float)size.height);
-        m_primitiveRenderer->resize(size);
-        m_pathRenderer->resize(size);
+        m_artistManager->getSchematicArtist()->resize(size);
+        m_artistManager->getNodesArtist()->resize(size);
     }
 
     VkCommandBuffer Viewport::getVkCmdBuffer(int idx) {
@@ -132,167 +119,6 @@ namespace Bess::Canvas {
 
     std::shared_ptr<Camera> Viewport::getCamera() {
         return m_camera;
-    }
-
-    void Viewport::grid(const glm::vec3 &pos, const glm::vec2 &size, int id, const GridColors &colors) {
-        const auto &camPos = m_camera->getPos();
-
-        Vulkan::GridUniforms gridUniforms{};
-        gridUniforms.zoom = m_camera->getZoom();
-        gridUniforms.cameraOffset = glm::vec2({-camPos.x, camPos.y});
-        gridUniforms.gridMinorColor = colors.minorColor;
-        gridUniforms.gridMajorColor = colors.majorColor;
-        gridUniforms.axisXColor = colors.axisXColor;
-        gridUniforms.axisYColor = colors.axisYColor;
-        gridUniforms.resolution = glm::vec2(m_camera->getSize());
-
-        m_primitiveRenderer->updateUniformBuffer(gridUniforms);
-        m_primitiveRenderer->drawGrid(pos, size, id, gridUniforms);
-    }
-
-    void Viewport::quad(const glm::vec3 &pos, const glm::vec2 &size,
-                        const glm::vec4 &color, int id, QuadRenderProperties properties) {
-        m_primitiveRenderer->drawQuad(
-            pos,
-            size,
-            color,
-            id,
-            properties.borderRadius,
-            properties.borderSize,
-            properties.borderColor,
-            properties.isMica ? 1 : 0);
-    }
-
-    void Viewport::texturedQuad(const glm::vec3 &pos, const glm::vec2 &size,
-                                const std::shared_ptr<Vulkan::VulkanTexture> &texture,
-                                const glm::vec4 &tintColor, int id, QuadRenderProperties properties) {
-        m_primitiveRenderer->drawTexturedQuad(
-            pos,
-            size,
-            tintColor,
-            id,
-            properties.borderRadius,
-            properties.borderSize,
-            properties.borderColor,
-            properties.isMica ? 1 : 0,
-            texture);
-    }
-
-    void Viewport::texturedQuad(const glm::vec3 &pos, const glm::vec2 &size,
-                                const std::shared_ptr<Vulkan::SubTexture> &texture,
-                                const glm::vec4 &tintColor, int id, QuadRenderProperties properties) {
-        m_primitiveRenderer->drawTexturedQuad(
-            pos,
-            size,
-            tintColor,
-            id,
-            properties.borderRadius,
-            properties.borderSize,
-            properties.borderColor,
-            properties.isMica ? 1 : 0,
-            texture);
-    }
-
-    void Viewport::circle(const glm::vec3 &center, const float radius,
-                          const glm::vec4 &color, const int id, float innerRadius) {
-        m_primitiveRenderer->drawCircle(center, radius, color, id, innerRadius);
-    }
-
-    void Viewport::msdfText(const std::string &text, const glm::vec3 &pos, const size_t size,
-                            const glm::vec4 &color, const int id, float angle) {
-        // Command to use to generate MSDF font texture atlas
-        // https://github.com/Chlumsky/msdf-atlas-gen
-        // msdf-atlas-gen -font Roboto-Regular.ttf -type mtsdf -size 64 -imageout roboto_mtsdf.png -json roboto.json -pxrange 4
-
-        if (text.empty())
-            return;
-
-        auto msdfFont = Assets::AssetManager::instance().get(Assets::Fonts::robotoMsdf);
-        if (!msdfFont) {
-            BESS_WARN("[VulkanRenderer] MSDF font not available");
-            return;
-        }
-
-        float scale = size;
-        float lineHeight = msdfFont->getLineHeight() * scale;
-
-        MsdfCharacter yCharInfo = msdfFont->getCharacterData('y');
-        MsdfCharacter wCharInfo = msdfFont->getCharacterData('W');
-
-        float baseLineOff = yCharInfo.offset.y - wCharInfo.offset.y;
-
-        glm::vec2 charPos = pos;
-        std::vector<Vulkan::InstanceVertex> opaqueInstances;
-        std::vector<Vulkan::InstanceVertex> translucentInstances;
-
-        for (auto &ch : text) {
-            const MsdfCharacter &charInfo = msdfFont->getCharacterData(ch);
-            if (ch == ' ') {
-                charPos.x += charInfo.advance * scale;
-                continue;
-            }
-            const auto &subTexture = charInfo.subTexture;
-            glm::vec2 size_ = charInfo.size * scale;
-            float xOff = (charInfo.offset.x + charInfo.size.x / 2.f) * scale;
-            float yOff = (charInfo.offset.y + charInfo.size.y / 2.f) * scale;
-
-            Vulkan::InstanceVertex vertex{};
-            vertex.position = {charPos.x + xOff, charPos.y - yOff, pos.z};
-            vertex.size = size_;
-            vertex.angle = angle;
-            vertex.color = color;
-            vertex.id = id;
-            vertex.texSlotIdx = 1;
-            vertex.texData = subTexture->getStartWH();
-
-            if (color.a == 1.f) {
-                opaqueInstances.emplace_back(vertex);
-            } else {
-                translucentInstances.emplace_back(vertex);
-            }
-
-            charPos.x += charInfo.advance * scale;
-        }
-
-        // Set up text uniforms (pxRange for MSDF rendering)
-        Vulkan::TextUniforms textUniforms{};
-        textUniforms.pxRange = 4.0f; // Standard MSDF pxRange value
-
-        m_primitiveRenderer->updateTextUniforms(textUniforms);
-        m_primitiveRenderer->drawText(opaqueInstances, translucentInstances);
-    }
-
-    void Viewport::beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, uint64_t id) {
-        m_pathRenderer->beginPathMode(startPos, weight, color, static_cast<int>(id));
-    }
-
-    void Viewport::endPathMode(bool closePath, bool genFill, const glm::vec4 &fillColor, bool genStroke) {
-        m_pathRenderer->endPathMode(closePath, genFill, fillColor, genStroke);
-    }
-
-    void Viewport::pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, int id) {
-        m_pathRenderer->pathLineTo(pos, size, color, id);
-    }
-
-    void Viewport::pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
-                                     float weight, const glm::vec4 &color, int id) {
-        m_pathRenderer->pathCubicBeizerTo(end, controlPoint1, controlPoint2, weight, color, id);
-    }
-
-    void Viewport::pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, int id) {
-        m_pathRenderer->pathQuadBeizerTo(end, controlPoint, weight, color, id);
-    }
-
-    glm::vec2 Viewport::getMSDFTextRenderSize(const std::string &str, float renderSize) {
-        float xSize = 0;
-        auto msdfFont = Assets::AssetManager::instance().get(Assets::Fonts::robotoMsdf);
-        float ySize = msdfFont->getLineHeight();
-
-        for (auto &ch : str) {
-            auto chInfo = msdfFont->getCharacterData(ch);
-            xSize += chInfo.advance;
-        }
-        return glm::vec2({xSize, ySize}) * renderSize;
     }
 
     uint64_t Viewport::getViewportTexture() {

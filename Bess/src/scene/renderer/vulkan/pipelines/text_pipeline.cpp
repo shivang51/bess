@@ -38,8 +38,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
     TextPipeline::TextPipeline(TextPipeline &&other) noexcept
         : Pipeline(std::move(other)),
           m_buffers(other.m_buffers),
-          m_opaqueInstances(std::move(other.m_opaqueInstances)),
-          m_translucentInstances(std::move(other.m_translucentInstances)),
+          m_textInstances(std::move(other.m_textInstances)),
           m_textureArraySets(std::move(other.m_textureArraySets)),
           m_textureArrayDescriptorPool(other.m_textureArrayDescriptorPool),
           m_textureArrayLayout(other.m_textureArrayLayout),
@@ -54,8 +53,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             cleanup();
             Pipeline::operator=(std::move(other));
             m_buffers = other.m_buffers;
-            m_opaqueInstances = std::move(other.m_opaqueInstances);
-            m_translucentInstances = std::move(other.m_translucentInstances);
+            m_textInstances = std::move(other.m_textInstances);
             m_textureArraySets = std::move(other.m_textureArraySets);
             m_textureArrayDescriptorPool = other.m_textureArrayDescriptorPool;
             m_textureArrayLayout = other.m_textureArrayLayout;
@@ -70,8 +68,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
     void TextPipeline::beginPipeline(VkCommandBuffer commandBuffer) {
         m_currentCommandBuffer = commandBuffer;
-        m_opaqueInstances.clear();
-        m_translucentInstances.clear();
+        m_textInstances.clear();
 
         vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
         VkDescriptorSet sets[] = {m_descriptorSets[m_currentFrameIndex], m_textureArraySets[m_currentFrameIndex]};
@@ -98,30 +95,20 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             vkCmdDrawIndexed(m_currentCommandBuffer, 6, static_cast<uint32_t>(instances.size()), 0, 0, 0);
         };
 
-        ensureTextInstanceCapacity(m_opaqueInstances.size() + m_translucentInstances.size());
-        VkDeviceSize translucentOffset = m_opaqueInstances.size() * sizeof(InstanceVertex);
-
-        draw(m_opaqueInstances, 0);
-        m_opaqueInstances.clear();
-
-        std::ranges::sort(m_translucentInstances, [](InstanceVertex &a, InstanceVertex &b) -> bool {
-            return a.position.z < b.position.z;
-        });
-        draw(m_translucentInstances, translucentOffset);
-        m_translucentInstances.clear();
+        draw(m_textInstances, 0);
+        m_textInstances.clear();
 
         m_currentCommandBuffer = VK_NULL_HANDLE;
     }
 
-    void TextPipeline::setTextData(const std::vector<InstanceVertex> &opaque,
-                                   const std::vector<InstanceVertex> &translucent) {
-        m_opaqueInstances = opaque;
-        m_translucentInstances = translucent;
+    void TextPipeline::setTextData(const std::vector<InstanceVertex> &instances) {
+        if (instances.empty())
+            return;
+        ensureTextInstanceCapacity(instances.size());
+        m_textInstances = instances;
 
-        // Fill with fallback texture first
         m_textureInfos.fill(m_fallbackTexture->getDescriptorInfo());
 
-        // Get the MSDF font texture and set it at slot 1 (where text instances expect it)
         auto msdfFont = Assets::AssetManager::instance().get(Assets::Fonts::robotoMsdf);
         if (msdfFont && msdfFont->getTextureAtlas()) {
             m_textureInfos[1] = msdfFont->getTextureAtlas()->getDescriptorInfo();
@@ -500,7 +487,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         memcpy(idata, idx.data(), iSize);
         vkUnmapMemory(m_device->device(), m_buffers.indexBufferMemory);
 
-        ensureTextInstanceCapacity(1);
+        ensureTextInstanceCapacity(10000);
     }
 
     void TextPipeline::ensureTextInstanceCapacity(size_t instanceCount) {

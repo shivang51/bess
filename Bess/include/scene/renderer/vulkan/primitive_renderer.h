@@ -1,5 +1,6 @@
 #pragma once
 
+#include "camera.h"
 #include "device.h"
 #include "pipelines/circle_pipeline.h"
 #include "pipelines/grid_pipeline.h"
@@ -15,6 +16,22 @@
 #include <vulkan/vulkan.h>
 
 namespace Bess::Renderer2D::Vulkan {
+
+    struct QuadRenderProperties {
+        float angle = 0.0f;
+        glm::vec4 borderColor = {0.0f, 0.0f, 0.0f, 0.0f};
+        glm::vec4 borderRadius = {0.0f, 0.0f, 0.0f, 0.0f};
+        glm::vec4 borderSize = {0.0f, 0.0f, 0.0f, 0.0f};
+        bool hasShadow = false;
+        bool isMica = false;
+    };
+
+    struct GridColors {
+        glm::vec4 minorColor;
+        glm::vec4 majorColor;
+        glm::vec4 axisXColor;
+        glm::vec4 axisYColor;
+    };
 
     class PrimitiveRenderer {
       public:
@@ -35,44 +52,40 @@ namespace Bess::Renderer2D::Vulkan {
         void resize(VkExtent2D extent);
 
         // Primitive rendering functions
-        void drawGrid(const glm::vec3 &pos, const glm::vec2 &size, int id, const GridUniforms &gridUniforms);
+        void drawGrid(const glm::vec3 &pos, const glm::vec2 &size, int id,
+                      const GridColors &gridColors, const std::shared_ptr<Camera> &camera);
+
         void drawQuad(const glm::vec3 &pos,
                       const glm::vec2 &size,
                       const glm::vec4 &color,
                       int id,
-                      const glm::vec4 &borderRadius,
-                      const glm::vec4 &borderSize,
-                      const glm::vec4 &borderColor,
-                      int isMica);
+                      QuadRenderProperties props = {});
 
         void drawTexturedQuad(const glm::vec3 &pos,
                               const glm::vec2 &size,
                               const glm::vec4 &tint,
                               int id,
-                              const glm::vec4 &borderRadius,
-                              const glm::vec4 &borderSize,
-                              const glm::vec4 &borderColor,
-                              int isMica,
-                              const std::shared_ptr<VulkanTexture> &texture);
+                              const std::shared_ptr<VulkanTexture> &texture,
+                              QuadRenderProperties props = {});
 
         void drawTexturedQuad(const glm::vec3 &pos,
                               const glm::vec2 &size,
                               const glm::vec4 &tint,
                               int id,
-                              const glm::vec4 &borderRadius,
-                              const glm::vec4 &borderSize,
-                              const glm::vec4 &borderColor,
-                              int isMica,
-                              const std::shared_ptr<SubTexture> &subTexture);
+                              const std::shared_ptr<SubTexture> &subTexture,
+                              QuadRenderProperties props = {});
 
         void drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, int id, float innerRadius = 0.0F);
         void drawLine(const glm::vec3 &start, const glm::vec3 &end, float width, const glm::vec4 &color, int id);
-        void drawText(const std::vector<InstanceVertex> &opaque, const std::vector<InstanceVertex> &translucent);
+        void drawText(const std::string &text, const glm::vec3 &pos, const size_t size,
+                      const glm::vec4 &color, const int id, float angle = 0);
 
         // Buffer management
         void updateUniformBuffer(const GridUniforms &gridUniforms);
         void updateUBO(const UniformBufferObject &ubo);
         void updateTextUniforms(const TextUniforms &textUniforms);
+
+        static glm::vec2 getMSDFTextRenderSize(const std::string &str, float renderSize);
 
       private:
         std::shared_ptr<VulkanDevice> m_device;
@@ -89,8 +102,7 @@ namespace Bess::Renderer2D::Vulkan {
 
         std::vector<CircleInstance> m_opaqueCircleInstances;
         std::vector<CircleInstance> m_translucentCircleInstances;
-        std::vector<InstanceVertex> m_opaqueTextInstances;
-        std::vector<InstanceVertex> m_translucentTextInstances;
+        std::vector<InstanceVertex> m_textInstances;
         std::vector<QuadInstance> m_opaqueQuadInstances;
         std::vector<QuadInstance> m_translucentQuadInstances;
         std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> m_texturedQuadInstances;
@@ -98,6 +110,7 @@ namespace Bess::Renderer2D::Vulkan {
         std::vector<VkDescriptorSet> m_textureArraySets;
 
         GridVertex m_gridVertex;
+        UniformBufferObject m_ubo;
     };
 
 } // namespace Bess::Renderer2D::Vulkan

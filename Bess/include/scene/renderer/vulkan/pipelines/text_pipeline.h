@@ -27,15 +27,14 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         void beginPipeline(VkCommandBuffer commandBuffer) override;
         void endPipeline() override;
 
-        void setTextData(const std::vector<InstanceVertex> &opaque,
-                        const std::vector<InstanceVertex> &translucent);
+        void setTextData(const std::vector<InstanceVertex> &instances);
 
         void updateTextUniforms(const TextUniforms &textUniforms);
 
         void cleanup() override;
 
       private:
-        void createGraphicsPipeline();
+        void createGraphicsPipeline() override;
         void ensureTextBuffers();
         void ensureTextInstanceCapacity(size_t instanceCount);
         void createTextUniformBuffers();
@@ -47,14 +46,13 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         static constexpr size_t m_texArraySize = 32;
 
         BufferSet m_buffers;
-        std::vector<InstanceVertex> m_opaqueInstances;
-        std::vector<InstanceVertex> m_translucentInstances;
+        std::vector<InstanceVertex> m_textInstances;
         std::vector<VkDescriptorSet> m_textureArraySets;
         VkDescriptorPool m_textureArrayDescriptorPool = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_textureArrayLayout = VK_NULL_HANDLE;
         std::unique_ptr<VulkanTexture> m_fallbackTexture;
         std::array<VkDescriptorImageInfo, 32> m_textureInfos;
-        
+
         // Text uniforms
         std::vector<VkBuffer> m_textUniformBuffers;
         std::vector<VkDeviceMemory> m_textUniformBufferMemory;

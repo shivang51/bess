@@ -1,13 +1,17 @@
 #pragma once
 
 #include "bess_uuid.h"
+#include "camera.h"
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
 #include "scene/components/components.h"
+#include "scene/renderer/vulkan/path_renderer.h"
+#include "scene/renderer/vulkan/primitive_renderer.h"
 #include "scene/renderer/vulkan/vulkan_subtexture.h"
 #include "types.h"
 
 #include <memory>
+#include <vulkan/vulkan_core.h>
 
 namespace Bess::Canvas {
     class Viewport;
@@ -26,11 +30,16 @@ namespace Bess::Canvas {
 
     class BaseArtist {
       public:
-        explicit BaseArtist(std::shared_ptr<Viewport> viewport);
+        explicit BaseArtist(const std::shared_ptr<Renderer2D::Vulkan::VulkanDevice> &device,
+                            const std::shared_ptr<Renderer2D::Vulkan::VulkanOffscreenRenderPass> &renderPass,
+                            VkExtent2D extent);
         virtual ~BaseArtist() = default;
 
         static void destroyTools();
         static void init();
+
+        void begin(VkCommandBuffer cmd, const std::shared_ptr<Camera> &camera, uint32_t frameIdx);
+        void end();
 
         static glm::vec2 calcCompSize(entt::entity ent,
                                       const Components::SimulationComponent &simComp,
@@ -58,15 +67,21 @@ namespace Bess::Canvas {
 
         void setInstructions(const ArtistInstructions &value);
 
+        void resize(VkExtent2D size);
+
+        std::shared_ptr<Vulkan::PrimitiveRenderer> getPrimitiveRenderer();
+        std::shared_ptr<Vulkan::PathRenderer> getPathRenderer();
+
       protected:
         virtual void drawSlots(const entt::entity parentEntt, const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp) = 0;
 
         virtual void drawConnection(const UUID &id, entt::entity inputEntity, entt::entity outputEntity, bool isSelected);
 
-        std::shared_ptr<Viewport> m_viewportRef = nullptr;
-        ArtistInstructions m_instructions = {};
-
         static ArtistTools m_artistTools;
+
+        ArtistInstructions m_instructions = {};
+        std::shared_ptr<Vulkan::PrimitiveRenderer> m_primitiveRenderer;
+        std::shared_ptr<Vulkan::PathRenderer> m_pathRenderer;
     };
 
 } // namespace Bess::Canvas

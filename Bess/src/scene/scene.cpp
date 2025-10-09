@@ -242,7 +242,7 @@ namespace Bess::Canvas {
         const auto artist = artistManager->getCurrentArtist();
 
         // Grid
-        viewport->grid(
+        artist->getPrimitiveRenderer()->drawGrid(
             glm::vec3(0.f, 0.f, 0.1f),
             m_camera->getSpan(),
             -1,
@@ -251,7 +251,8 @@ namespace Bess::Canvas {
                 .majorColor = ViewportTheme::colors.gridMajorColor,
                 .axisXColor = ViewportTheme::colors.gridAxisXColor,
                 .axisYColor = ViewportTheme::colors.gridAxisYColor,
-            });
+            },
+            viewport->getCamera());
 
         // Connections
         const auto connectionsView = m_registry.view<Components::ConnectionComponent>();
@@ -296,10 +297,12 @@ namespace Bess::Canvas {
         const auto pos = start + size / 2.f;
         size = glm::abs(size);
 
-        QuadRenderProperties props;
+        Renderer2D::Vulkan::QuadRenderProperties props;
         props.borderColor = ViewportTheme::colors.selectionBoxBorder;
         props.borderSize = glm::vec4(1.f);
-        m_viewport->quad(glm::vec3(pos, 7.f), size, ViewportTheme::colors.selectionBoxFill, 0, props);
+
+        auto primRenderer = m_viewport->getArtistManager()->getCurrentArtist()->getPrimitiveRenderer();
+        primRenderer->drawQuad(glm::vec3(pos, 7.f), size, ViewportTheme::colors.selectionBoxFill, 0, props);
     }
 
     void Scene::drawConnection() {

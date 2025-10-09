@@ -13,7 +13,9 @@
 
 namespace Bess::Canvas {
 
-    NodesArtist::NodesArtist(std::shared_ptr<Viewport> viewport) : BaseArtist(viewport) {
+    NodesArtist::NodesArtist(const std::shared_ptr<Renderer2D::Vulkan::VulkanDevice> &device,
+                             const std::shared_ptr<Renderer2D::Vulkan::VulkanOffscreenRenderPass> &renderPass,
+                             VkExtent2D extent) : BaseArtist(device, renderPass, extent) {
     }
 
     void NodesArtist::drawSimEntity(
@@ -23,7 +25,7 @@ namespace Bess::Canvas {
         const Components::SpriteComponent &spriteComp,
         const Components::SimulationComponent &simComponent) {
 
-        auto &registry = m_viewportRef->getEnttRegistry();
+        auto &registry = Scene::instance()->getEnttRegistry();
 
         if (tagComp.type.simCompType == SimEngine::ComponentType::SEVEN_SEG_DISPLAY) {
             drawSevenSegDisplay(entity, tagComp, transform, spriteComp, simComponent);
@@ -51,7 +53,7 @@ namespace Bess::Canvas {
                                       headerPos.y + componentStyles.paddingY,
                                       pos.z + 0.0005f);
 
-        QuadRenderProperties props;
+        Renderer2D::Vulkan::QuadRenderProperties props;
         props.angle = rotation;
         props.borderRadius = spriteComp.borderRadius;
         props.borderSize = spriteComp.borderSize;
@@ -59,7 +61,7 @@ namespace Bess::Canvas {
         props.isMica = true;
         props.hasShadow = true;
 
-        m_viewportRef->quad(pos, glm::vec2(scale), spriteComp.color, id, props);
+        m_primitiveRenderer->drawQuad(pos, glm::vec2(scale), spriteComp.color, id, props);
 
         props = {};
         props.angle = rotation;
@@ -67,13 +69,13 @@ namespace Bess::Canvas {
         props.borderRadius = glm::vec4(0, 0, spriteComp.borderRadius.x - spriteComp.borderSize.x, spriteComp.borderRadius.y - spriteComp.borderSize.y);
         props.isMica = true;
 
-        m_viewportRef->quad(headerPos,
-                            glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
-                            spriteComp.headerColor,
-                            id,
-                            props);
+        m_primitiveRenderer->drawQuad(headerPos,
+                                      glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
+                                      spriteComp.headerColor,
+                                      id,
+                                      props);
 
-        m_viewportRef->msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, id, rotation);
+        m_primitiveRenderer->drawText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, id, rotation);
 
         drawSlots(entity, simComponent, transform);
     }
@@ -83,9 +85,9 @@ namespace Bess::Canvas {
                                          const Components::TransformComponent &transform,
                                          const Components::SpriteComponent &spriteComp,
                                          const Components::SimulationComponent &simComp) {
-        auto &registry = m_viewportRef->getEnttRegistry();
+        auto &registry = Scene::instance()->getEnttRegistry();
 
-        auto labelSize = m_viewportRef->getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
+        auto labelSize = Vulkan::PrimitiveRenderer::getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
 
         uint64_t id = (uint64_t)entity;
         const auto &pos = transform.position;
@@ -107,20 +109,20 @@ namespace Bess::Canvas {
         bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
         auto border = isSelected ? ViewportTheme::colors.selectedComp : spriteComp.borderColor;
 
-        QuadRenderProperties props;
+        Renderer2D::Vulkan::QuadRenderProperties props;
         props.borderRadius = spriteComp.borderRadius;
         props.borderColor = border;
         props.borderSize = spriteComp.borderSize;
         props.isMica = true;
-        m_viewportRef->quad(pos, glm::vec2(scale), spriteComp.color, id, props);
+        m_primitiveRenderer->drawQuad(pos, glm::vec2(scale), spriteComp.color, id, props);
 
         glm::vec3 textPos = glm::vec3(
             pos.x - (scale.x / 2.f) + labelLOffset,
             pos.y + (componentStyles.headerFontSize / 2.f) - 1.f, pos.z + 0.0005f);
 
         auto name = tagComp.name;
-        m_viewportRef->msdfText(name, textPos, componentStyles.headerFontSize,
-                                ViewportTheme::colors.text, id);
+        m_primitiveRenderer->drawText(name, textPos, componentStyles.headerFontSize,
+                                      ViewportTheme::colors.text, id);
 
         drawSlots(entity, simComp, transform);
     }
@@ -142,8 +144,8 @@ namespace Bess::Canvas {
         posX += slotdx;
         float posY = pPos.y - pScale.y / 2.f + (SLOT_ROW_SIZE * comp.idx) + SLOT_ROW_SIZE / 2.f;
 
-        const auto parentEntt = m_viewportRef->getEntityWithUuid(comp.parentId);
-        if (!isHeaderLessComp(m_viewportRef->getEnttRegistry().get<Components::SimulationComponent>(parentEntt)))
+        const auto parentEntt = Scene::instance()->getEntityWithUuid(comp.parentId);
+        if (!isHeaderLessComp(Scene::instance()->getEnttRegistry().get<Components::SimulationComponent>(parentEntt)))
             posY += SLOT_START_Y;
 
         return glm::vec3(posX, posY, pPos.z + 0.0005);
@@ -184,22 +186,22 @@ namespace Bess::Canvas {
         float r = componentStyles.slotRadius;
 
         if (extendedType == SimEngine::ExtendedPinType::inputClear) {
-            QuadRenderProperties props;
+            Renderer2D::Vulkan::QuadRenderProperties props;
             props.borderColor = border;
             props.borderRadius = glm::vec4(2.5f);
             props.borderSize = glm::vec4(componentStyles.slotBorderSize + 0.5);
-            m_viewportRef->quad(pos, glm::vec2(r * 2.f), glm::vec4(0.f), id, props);
+            m_primitiveRenderer->drawQuad(pos, glm::vec2(r * 2.f), glm::vec4(0.f), id, props);
             props.borderSize = {};
             props.borderRadius = glm::vec4(1.5f);
-            m_viewportRef->quad(pos, glm::vec2((ir - 1) * 2.f), glm::vec4(bg), id, props);
+            m_primitiveRenderer->drawQuad(pos, glm::vec2((ir - 1) * 2.f), glm::vec4(bg), id, props);
         } else {
-            m_viewportRef->circle(pos, r, border, id, ir);
-            m_viewportRef->circle(pos, ir - 1.f, bg, id);
+            m_primitiveRenderer->drawCircle(pos, r, border, id, ir);
+            m_primitiveRenderer->drawCircle(pos, ir - 1.f, bg, id);
         }
 
         float labelX = pos.x + labelDx;
         float dY = componentStyles.slotRadius - std::abs(componentStyles.slotRadius * 2.f - componentStyles.slotLabelSize) / 2.f;
-        m_viewportRef->msdfText(label, {labelX, pos.y + dY, pos.z}, componentStyles.slotLabelSize, ViewportTheme::colors.text, parentId, angle);
+        m_primitiveRenderer->drawText(label, {labelX, pos.y + dY, pos.z}, componentStyles.slotLabelSize, ViewportTheme::colors.text, parentId, angle);
     }
 
     void NodesArtist::drawSevenSegDisplay(
@@ -216,7 +218,7 @@ namespace Bess::Canvas {
         const float headerHeight = componentStyles.headerHeight;
         auto headerPos = glm::vec3(pos.x, pos.y - scale.y / 2.f + headerHeight / 2.f, pos.z);
 
-        const auto &registry = m_viewportRef->getEnttRegistry();
+        const auto &registry = Scene::instance()->getEnttRegistry();
         bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
         auto border = isSelected ? ViewportTheme::colors.selectedComp : spriteComp.borderColor;
 
@@ -224,7 +226,7 @@ namespace Bess::Canvas {
 
         glm::vec3 textPos = glm::vec3(pos.x - scale.x / 2.f + componentStyles.paddingX, headerPos.y + componentStyles.paddingY, pos.z + 0.0005f);
 
-        QuadRenderProperties props;
+        Renderer2D::Vulkan::QuadRenderProperties props;
         props = {};
         props.angle = rotation;
         props.borderRadius = spriteComp.borderRadius;
@@ -232,7 +234,7 @@ namespace Bess::Canvas {
         props.borderColor = border;
         props.isMica = true;
 
-        m_viewportRef->quad(pos, glm::vec2(scale), spriteComp.color, id, props);
+        m_primitiveRenderer->drawQuad(pos, glm::vec2(scale), spriteComp.color, id, props);
 
         props = {};
         props.angle = rotation;
@@ -240,13 +242,13 @@ namespace Bess::Canvas {
         props.borderRadius = glm::vec4(0, 0, spriteComp.borderRadius.x - spriteComp.borderSize.x, spriteComp.borderRadius.y - spriteComp.borderSize.y);
         props.isMica = true;
 
-        m_viewportRef->quad(headerPos,
-                            glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
-                            spriteComp.headerColor,
-                            id,
-                            props);
+        m_primitiveRenderer->drawQuad(headerPos,
+                                      glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
+                                      spriteComp.headerColor,
+                                      id,
+                                      props);
 
-        m_viewportRef->msdfText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, id, rotation);
+        m_primitiveRenderer->drawText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, id, rotation);
 
         {
             auto compState = SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity);
@@ -259,13 +261,13 @@ namespace Bess::Canvas {
             glm::vec3 texPos = {posX,
                                 transform.position.y + (headerHeight / 2.f),
                                 transform.position.z + 0.0001};
-            m_viewportRef->texturedQuad(texPos, {texWidth, texHeight}, m_artistTools.sevenSegDispTexs[0], glm::vec4(1.f), (int)entity);
+            m_primitiveRenderer->drawTexturedQuad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity, m_artistTools.sevenSegDispTexs[0]);
 
             for (int i = 0; i < (int)compState.inputStates.size(); i++) {
                 if (!compState.inputStates[i])
                     continue;
                 tex = m_artistTools.sevenSegDispTexs[i + 1];
-                m_viewportRef->texturedQuad(texPos, {texWidth, texHeight}, tex, glm::vec4(1.f), (int)entity);
+                m_primitiveRenderer->drawTexturedQuad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity, tex);
             }
         }
 
@@ -274,7 +276,7 @@ namespace Bess::Canvas {
 
     void NodesArtist::drawSlots(const entt::entity parentEntt, const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp) {
         const auto def = SimEngine::ComponentCatalog::instance().getComponentDefinition(comp.type);
-        auto &registry = m_viewportRef->getEnttRegistry();
+        auto &registry = Scene::instance()->getEnttRegistry();
         const auto slotsView = registry.view<Components::SlotComponent>();
 
         const float labeldx = componentStyles.slotMargin + (componentStyles.slotRadius * 2.f);
@@ -286,26 +288,26 @@ namespace Bess::Canvas {
 
         std::string label;
         for (size_t i = 0; i < comp.inputSlots.size(); i++) {
-            auto slot = m_viewportRef->getEntityWithUuid(comp.inputSlots[i]);
+            auto slot = Scene::instance()->getEntityWithUuid(comp.inputSlots[i]);
             const auto state = compState.inputStates[i];
             const auto isConnected = compState.inputConnected[i];
             auto &slotComp = slotsView.get<Components::SlotComponent>(slot);
             auto slotPos = getSlotPos(slotComp, transformComp);
-            const uint64_t parentId = (uint64_t)m_viewportRef->getEntityWithUuid(slotComp.parentId);
+            const uint64_t parentId = (uint64_t)Scene::instance()->getEntityWithUuid(slotComp.parentId);
             label = inpDetails.size() > i ? inpDetails[i].name : "X" + std::to_string(i);
             paintSlot((uint64_t)slot, parentId, slotPos, angle, label, labeldx, state.state, isConnected,
                       inpDetails.size() > i ? inpDetails[i].extendedType : SimEngine::ExtendedPinType::none);
         }
 
         for (size_t i = 0; i < comp.outputSlots.size(); i++) {
-            auto slot = m_viewportRef->getEntityWithUuid(comp.outputSlots[i]);
+            auto slot = Scene::instance()->getEntityWithUuid(comp.outputSlots[i]);
             const auto state = compState.outputStates[i];
             const auto isConnected = compState.outputConnected[i];
             auto &slotComp = slotsView.get<Components::SlotComponent>(slot);
             auto slotPos = getSlotPos(slotComp, transformComp);
-            const uint64_t parentId = (uint64_t)m_viewportRef->getEntityWithUuid(slotComp.parentId);
+            const uint64_t parentId = (uint64_t)Scene::instance()->getEntityWithUuid(slotComp.parentId);
             label = outDetails.size() > i ? outDetails[i].name : "Y" + std::to_string(i);
-            const float labelWidth = m_viewportRef->getMSDFTextRenderSize(label, componentStyles.slotLabelSize).x;
+            const float labelWidth = Vulkan::PrimitiveRenderer::getMSDFTextRenderSize(label, componentStyles.slotLabelSize).x;
             paintSlot((uint64_t)slot, parentId, slotPos, angle, label, -labeldx - labelWidth, state.state, isConnected,
                       outDetails.size() > i ? outDetails[i].extendedType : SimEngine::ExtendedPinType::none);
         }

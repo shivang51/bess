@@ -1,5 +1,9 @@
 #include "scene/renderer/vulkan/primitive_renderer.h"
+#include "asset_manager/asset_manager.h"
+#include "assets.h"
+#include "camera.h"
 #include "common/log.h"
+#include "scene/renderer/vulkan/primitive_vertex.h"
 #include <vulkan/vulkan_core.h>
 
 namespace Bess::Renderer2D::Vulkan {
@@ -15,11 +19,7 @@ namespace Bess::Renderer2D::Vulkan {
         m_textPipeline = std::make_unique<Pipelines::TextPipeline>(device, renderPass, extent);
     }
 
-    PrimitiveRenderer::~PrimitiveRenderer() {
-        // m_circlePipeline->cleanup();
-        // m_quadPipeline->cleanup();
-        // m_gridPipeline->cleanup();
-    }
+    PrimitiveRenderer::~PrimitiveRenderer() = default;
 
     PrimitiveRenderer::PrimitiveRenderer(PrimitiveRenderer &&other) noexcept
         : m_device(std::move(other.m_device)),
@@ -51,6 +51,8 @@ namespace Bess::Renderer2D::Vulkan {
 
     void PrimitiveRenderer::beginFrame(VkCommandBuffer commandBuffer) {
         m_currentCommandBuffer = commandBuffer;
+
+        updateTextUniforms({.pxRange = 4.f});
     }
 
     void PrimitiveRenderer::endFrame() {
@@ -64,10 +66,9 @@ namespace Bess::Renderer2D::Vulkan {
 
         if (m_textPipeline) {
             m_textPipeline->beginPipeline(m_currentCommandBuffer);
-            m_textPipeline->setTextData(m_opaqueTextInstances, m_translucentTextInstances);
+            m_textPipeline->setTextData(m_textInstances);
             m_textPipeline->endPipeline();
-            m_opaqueTextInstances.clear();
-            m_translucentTextInstances.clear();
+            m_textInstances.clear();
         }
 
         if (m_gridPipeline) {
@@ -105,13 +106,25 @@ namespace Bess::Renderer2D::Vulkan {
         }
     }
 
-    void PrimitiveRenderer::drawGrid(const glm::vec3 &pos, const glm::vec2 &size, int id, const GridUniforms &gridUniforms) {
+    void PrimitiveRenderer::drawGrid(const glm::vec3 &pos, const glm::vec2 &size, int id,
+                                     const GridColors &gridColors, const std::shared_ptr<Camera> &camera) {
         if (!m_gridPipeline) {
             BESS_WARN("[PrimitiveRenderer] Grid pipeline not available");
             return;
         }
 
-        m_gridPipeline->updateGridUniforms(gridUniforms);
+        Vulkan::GridUniforms uniforms;
+        uniforms.gridMajorColor = gridColors.majorColor;
+        uniforms.gridMinorColor = gridColors.minorColor;
+        uniforms.axisXColor = gridColors.axisXColor;
+        uniforms.axisYColor = gridColors.axisYColor;
+
+        const auto &camPos = camera->getPos();
+        uniforms.cameraOffset = {-camPos.x, camPos.y};
+        uniforms.resolution = camera->getSize();
+        uniforms.zoom = camera->getZoom();
+
+        m_gridPipeline->updateGridUniforms(uniforms);
         m_gridVertex = {pos, size, id};
     }
 
@@ -119,10 +132,7 @@ namespace Bess::Renderer2D::Vulkan {
                                      const glm::vec2 &size,
                                      const glm::vec4 &color,
                                      int id,
-                                     const glm::vec4 &borderRadius,
-                                     const glm::vec4 &borderSize,
-                                     const glm::vec4 &borderColor,
-                                     int isMica) {
+                                     QuadRenderProperties props) {
         if (!m_quadPipeline) {
             BESS_WARN("[PrimitiveRenderer] Quad pipeline not available");
             return;
@@ -131,12 +141,12 @@ namespace Bess::Renderer2D::Vulkan {
         QuadInstance instance{};
         instance.position = pos;
         instance.color = color;
-        instance.borderRadius = borderRadius;
-        instance.borderColor = borderColor;
-        instance.borderSize = borderSize;
+        instance.borderRadius = props.borderRadius;
+        instance.borderColor = props.borderColor;
+        instance.borderSize = props.borderSize;
         instance.size = size;
         instance.id = id;
-        instance.isMica = isMica;
+        instance.isMica = (int)props.isMica;
         instance.texSlotIdx = 0;
         instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f); // Full local UV [0,1] by default
 
@@ -150,11 +160,8 @@ namespace Bess::Renderer2D::Vulkan {
                                              const glm::vec2 &size,
                                              const glm::vec4 &tint,
                                              int id,
-                                             const glm::vec4 &borderRadius,
-                                             const glm::vec4 &borderSize,
-                                             const glm::vec4 &borderColor,
-                                             int isMica,
-                                             const std::shared_ptr<VulkanTexture> &texture) {
+                                             const std::shared_ptr<VulkanTexture> &texture,
+                                             QuadRenderProperties props) {
         if (!m_quadPipeline) {
             BESS_WARN("[PrimitiveRenderer] Quad pipeline not available");
             return;
@@ -163,12 +170,12 @@ namespace Bess::Renderer2D::Vulkan {
         QuadInstance instance{};
         instance.position = pos;
         instance.color = tint;
-        instance.borderRadius = borderRadius;
-        instance.borderColor = borderColor;
-        instance.borderSize = borderSize;
+        instance.borderRadius = props.borderRadius;
+        instance.borderColor = props.borderColor;
+        instance.borderSize = props.borderSize;
         instance.size = size;
         instance.id = id;
-        instance.isMica = isMica;
+        instance.isMica = (int)props.isMica;
         instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f);
 
         m_texturedQuadInstances[texture].emplace_back(instance);
@@ -178,11 +185,8 @@ namespace Bess::Renderer2D::Vulkan {
                                              const glm::vec2 &size,
                                              const glm::vec4 &tint,
                                              int id,
-                                             const glm::vec4 &borderRadius,
-                                             const glm::vec4 &borderSize,
-                                             const glm::vec4 &borderColor,
-                                             int isMica,
-                                             const std::shared_ptr<SubTexture> &subTexture) {
+                                             const std::shared_ptr<SubTexture> &subTexture,
+                                             QuadRenderProperties props) {
         if (!m_quadPipeline) {
             BESS_WARN("[PrimitiveRenderer] Quad pipeline not available");
             return;
@@ -191,12 +195,12 @@ namespace Bess::Renderer2D::Vulkan {
         QuadInstance instance{};
         instance.position = pos;
         instance.color = tint;
-        instance.borderRadius = borderRadius;
-        instance.borderColor = borderColor;
-        instance.borderSize = borderSize;
+        instance.borderRadius = props.borderRadius;
+        instance.borderColor = props.borderColor;
+        instance.borderSize = props.borderSize;
         instance.size = size;
         instance.id = id;
-        instance.isMica = isMica;
+        instance.isMica = (int)props.isMica;
         instance.texData = subTexture->getStartWH();
 
         m_texturedQuadInstances[subTexture->getTexture()].emplace_back(instance);
@@ -225,23 +229,68 @@ namespace Bess::Renderer2D::Vulkan {
     void PrimitiveRenderer::drawLine(const glm::vec3 &start, const glm::vec3 &end, float width, const glm::vec4 &color, int id) {
     }
 
-    void PrimitiveRenderer::drawText(const std::vector<InstanceVertex> &opaque, const std::vector<InstanceVertex> &translucent) {
-        if (!m_textPipeline) {
-            BESS_WARN("[PrimitiveRenderer] Text pipeline not available");
+    void PrimitiveRenderer::drawText(const std::string &text, const glm::vec3 &pos, const size_t size,
+                                     const glm::vec4 &color, const int id, float angle) {
+        // Command to use to generate MSDF font texture atlas
+        // https://github.com/Chlumsky/msdf-atlas-gen
+        // msdf-atlas-gen -font Roboto-Regular.ttf -type mtsdf -size 64 -imageout roboto_mtsdf.png -json roboto.json -pxrange 4
+
+        if (text.empty())
+            return;
+
+        auto msdfFont = Assets::AssetManager::instance().get(Assets::Fonts::robotoMsdf);
+        if (!msdfFont) {
+            BESS_WARN("[VulkanRenderer] MSDF font not available");
             return;
         }
 
-        m_opaqueTextInstances.insert(m_opaqueTextInstances.end(), opaque.begin(), opaque.end());
-        m_translucentTextInstances.insert(m_translucentTextInstances.end(), translucent.begin(), translucent.end());
-    }
+        float scale = (float)size;
+        float lineHeight = msdfFont->getLineHeight() * scale;
 
-    void PrimitiveRenderer::updateUniformBuffer(const GridUniforms &gridUniforms) {
-        if (m_gridPipeline) {
-            m_gridPipeline->updateGridUniforms(gridUniforms);
+        MsdfCharacter yCharInfo = msdfFont->getCharacterData('y');
+        MsdfCharacter wCharInfo = msdfFont->getCharacterData('W');
+
+        float baseLineOff = yCharInfo.offset.y - wCharInfo.offset.y;
+
+        glm::vec2 charPos = pos;
+        std::vector<Vulkan::InstanceVertex> opaqueInstances;
+        std::vector<Vulkan::InstanceVertex> translucentInstances;
+
+        for (auto &ch : text) {
+            const MsdfCharacter &charInfo = msdfFont->getCharacterData(ch);
+            if (ch == ' ') {
+                charPos.x += charInfo.advance * scale;
+                continue;
+            }
+            const auto &subTexture = charInfo.subTexture;
+            glm::vec2 size_ = charInfo.size * scale;
+            float xOff = (charInfo.offset.x + charInfo.size.x / 2.f) * scale;
+            float yOff = (charInfo.offset.y + charInfo.size.y / 2.f) * scale;
+
+            Vulkan::InstanceVertex vertex{};
+            vertex.position = {charPos.x + xOff, charPos.y - yOff, pos.z};
+            vertex.size = size_;
+            vertex.angle = angle;
+            vertex.color = color;
+            vertex.id = id;
+            vertex.texSlotIdx = 1;
+            vertex.texData = subTexture->getStartWH();
+
+            m_textInstances.emplace_back(vertex);
+
+            charPos.x += charInfo.advance * scale;
         }
     }
 
+    void PrimitiveRenderer::updateUniformBuffer(const GridUniforms &gridUniforms) {
+        m_gridPipeline->updateGridUniforms(gridUniforms);
+        Vulkan::TextUniforms textUniforms{};
+        textUniforms.pxRange = 4.0f;
+        updateTextUniforms(textUniforms);
+    }
+
     void PrimitiveRenderer::updateUBO(const UniformBufferObject &ubo) {
+        m_ubo = ubo;
         if (m_circlePipeline) {
             m_circlePipeline->updateUniformBuffer(ubo);
         }
@@ -267,5 +316,17 @@ namespace Bess::Renderer2D::Vulkan {
         m_textPipeline->resize(extent);
         m_gridPipeline->resize(extent);
         m_quadPipeline->resize(extent);
+    }
+
+    glm::vec2 PrimitiveRenderer::getMSDFTextRenderSize(const std::string &str, float renderSize) {
+        float xSize = 0;
+        auto msdfFont = Assets::AssetManager::instance().get(Assets::Fonts::robotoMsdf);
+        float ySize = msdfFont->getLineHeight();
+
+        for (auto &ch : str) {
+            auto chInfo = msdfFont->getCharacterData(ch);
+            xSize += chInfo.advance;
+        }
+        return glm::vec2({xSize, ySize}) * renderSize;
     }
 } // namespace Bess::Renderer2D::Vulkan

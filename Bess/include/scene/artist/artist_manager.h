@@ -14,7 +14,9 @@ namespace Bess::Canvas {
 
     class ArtistManager {
       public:
-        ArtistManager(std::shared_ptr<Viewport> viewport);
+        ArtistManager(const std::shared_ptr<Renderer2D::Vulkan::VulkanDevice> &device,
+                      const std::shared_ptr<Renderer2D::Vulkan::VulkanOffscreenRenderPass> &renderPass,
+                      VkExtent2D extent);
         ~ArtistManager();
 
         void destroy();
@@ -26,7 +28,6 @@ namespace Bess::Canvas {
         void setSchematicMode(bool isSchematic);
 
       private:
-        std::shared_ptr<Viewport> m_viewport;
         std::shared_ptr<SchematicArtist> m_schematicArtist;
         std::shared_ptr<NodesArtist> m_nodesArtist;
         bool m_isSchematicMode;
