@@ -991,8 +991,6 @@ namespace Bess::Canvas {
         if (!res.has_value()) {
             BESS_ERROR("Failed to execute AddCommand");
         }
-
-        m_copiedComponents.clear();
     }
 
     void Scene::selectEntitesInArea() {
