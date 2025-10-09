@@ -150,7 +150,6 @@ namespace Bess::UI {
 
         ImGui::UpdatePlatformWindows();
         ImGui::RenderPlatformWindowsDefault();
-        Renderer2D::VulkanCore::instance().renderUi();
     }
 
     ImFont *Fonts::largeFont = nullptr;

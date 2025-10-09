@@ -29,7 +29,7 @@ namespace Bess {
         std::chrono::steady_clock m_clock;
 
       private:
-        void draw() const;
+        void draw();
         void shutdown() const;
 
       private: // callbacks

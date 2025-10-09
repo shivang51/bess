@@ -30,7 +30,10 @@ Checks: >
   -cppcoreguidelines-special-member-functions,
   -cppcoreguidelines-non-private-member-variables-in-classes,
   -readability-isolate-declaration,
+  -modernize-use-nodiscard,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
   -cppcoreguidelines-pro-type-cstyle-cast,
+  -readability-else-after-return,
   -readability-redundant-access-specifiers
 
 

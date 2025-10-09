@@ -2,6 +2,7 @@
 #include "application_state.h"
 #include "common/log.h"
 #include "events/application_event.h"
+#include "imgui_impl_vulkan.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
 #include "scene/renderer/vulkan/vulkan_core.h"
@@ -10,6 +11,7 @@
 
 #include "types.h"
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 #include "common/bind_helpers.h"
 #include "settings/settings.h"
@@ -22,7 +24,7 @@ namespace Bess {
 
     static int fps = 0;
 
-    void Application::draw() const {
+    void Application::draw() {
         ApplicationState::getCurrentPage()->draw();
 
         auto &vkCore = Renderer2D::VulkanCore::instance();
@@ -40,6 +42,11 @@ namespace Bess {
 
         UI::end();
 
+        vkCore.renderToSwapchain(
+            [](VkCommandBuffer cmdBuffer) {
+                ImDrawData *drawData = ImGui::GetDrawData();
+                ImGui_ImplVulkan_RenderDrawData(drawData, cmdBuffer);
+            });
         vkCore.endFrame();
     }
 

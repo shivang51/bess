@@ -211,8 +211,6 @@ namespace Bess::Canvas {
 
         viewport->end();
         viewport->submit();
-
-        inst.endOffscreenRender();
     }
 
     void Scene::render() {

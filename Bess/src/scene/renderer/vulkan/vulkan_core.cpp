@@ -1,8 +1,5 @@
 #include "scene/renderer/vulkan/vulkan_core.h"
-#include "camera.h"
 #include "common/log.h"
-#include "imgui.h"
-#include "imgui_impl_vulkan.h"
 #include <memory>
 #include <set>
 #include <stdexcept>
@@ -35,14 +32,6 @@ namespace Bess::Renderer2D {
 
         m_renderPass = std::make_shared<Vulkan::VulkanRenderPass>(m_device, m_swapchain->imageFormat(), VK_FORMAT_D32_SFLOAT);
 
-        m_offscreenImageView = std::make_shared<Vulkan::VulkanImageView>(
-            m_device,
-            m_swapchain->imageFormat(),
-            VK_FORMAT_R32_SINT, // Picking format
-            windowExtent);
-        m_offscreenRenderPass = std::make_shared<Vulkan::VulkanOffscreenRenderPass>(m_device, m_swapchain->imageFormat(), VK_FORMAT_R32_SINT);
-        m_offscreenImageView->createFramebuffer(m_offscreenRenderPass->getVkHandle());
-
         m_swapchain->createFramebuffers(m_renderPass->getVkHandle());
 
         m_commandBuffers = std::make_unique<Vulkan::VulkanCommandBuffers>(m_device, 2);
@@ -52,83 +41,19 @@ namespace Bess::Renderer2D {
         BESS_INFO("Renderer Initialized");
     }
 
-    void VulkanCore::endOffscreenRender() {
-        // If a picking request is pending, record the copy now in this frame's command buffer
-        // if (m_pickingRequestPending && m_offscreenImageView && m_offscreenImageView->hasPickingAttachments()) {
-        //     const VkCommandBuffer cmd = m_currentFrameContext.cmdBuffer->getVkHandle();
-        //
-        //     const VkImage idImage = m_offscreenImageView->getPickingImage(); // resolve single-sample image
-        //     if (idImage != VK_NULL_HANDLE) {
-        //         // Ensure staging buffer exists
-        //         if (m_pickingStagingBuffer == VK_NULL_HANDLE) {
-        //             createPickingResources();
-        //         }
-        //
-        //         // Barrier: COLOR_ATTACHMENT_OPTIMAL -> TRANSFER_SRC_OPTIMAL
-        //         VkImageMemoryBarrier barrier{};
-        //         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        //         barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        //         barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        //         barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        //         barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        //         barrier.image = idImage;
-        //         barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        //         barrier.subresourceRange.baseMipLevel = 0;
-        //         barrier.subresourceRange.levelCount = 1;
-        //         barrier.subresourceRange.baseArrayLayer = 0;
-        //         barrier.subresourceRange.layerCount = 1;
-        //         barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        //         barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-        //
-        //         vkCmdPipelineBarrier(cmd,
-        //                              VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        //                              VK_PIPELINE_STAGE_TRANSFER_BIT,
-        //                              0, 0, nullptr, 0, nullptr, 1, &barrier);
-        //
-        //         // Clamp coordinates
-        //         VkExtent2D extent = m_offscreenImageView->getExtent();
-        //         const int px = std::max(0, std::min(m_pendingPickingX, static_cast<int>(extent.width) - 1));
-        //         const int py = std::max(0, std::min(m_pendingPickingY, static_cast<int>(extent.height) - 1));
-        //
-        //         // Copy 1 pixel to staging buffer
-        //         VkBufferImageCopy copy{};
-        //         copy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        //         copy.imageSubresource.mipLevel = 0;
-        //         copy.imageSubresource.baseArrayLayer = 0;
-        //         copy.imageSubresource.layerCount = 1;
-        //         copy.imageOffset = {px, py, 0};
-        //         copy.imageExtent = {1, 1, 1};
-        //
-        //         vkCmdCopyImageToBuffer(cmd, idImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-        //                                m_pickingStagingBuffer, 1, &copy);
-        //
-        //         // Transition image back for next frame
-        //         barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        //         barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        //         barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-        //         barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        //
-        //         vkCmdPipelineBarrier(cmd,
-        //                              VK_PIPELINE_STAGE_TRANSFER_BIT,
-        //                              VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        //                              0, 0, nullptr, 0, nullptr, 1, &barrier);
-        //
-        //         // Mark in-flight; we will read after this frame fence signals
-        //         m_pickingCopyInFlight = true;
-        //         m_pickingCopyRecordedFrameIdx = m_currentFrameIdx;
-        //     }
-        // }
-    }
-
     void VulkanCore::beginFrame() {
+        if (m_currentFrameContext.isStarted) {
+            BESS_WARN("[VulkanCore] Frame is already started, skipping");
+            return;
+        }
         vkWaitForFences(m_device->device(), 1, &m_inFlightFences[m_currentFrameIdx], VK_TRUE, UINT64_MAX);
         const auto cmdBuffer = m_commandBuffers->at(m_currentFrameIdx);
-        m_currentFrameContext = {cmdBuffer, m_currentFrameIdx};
+        m_currentFrameContext = {cmdBuffer, m_currentFrameIdx, true};
         cmdBuffer->beginRecording();
         vkResetFences(m_device->device(), 1, &m_inFlightFences[m_currentFrameIdx]);
     }
 
-    void VulkanCore::renderUi() {
+    void VulkanCore::renderToSwapchain(const SwapchainRenderFn &fn) {
         if (m_swapchain->extent().width == 0 || m_swapchain->extent().height == 0) {
             return;
         }
@@ -149,9 +74,7 @@ namespace Bess::Renderer2D {
         const auto cmdBuffer = m_currentFrameContext.cmdBuffer;
 
         m_renderPass->begin(cmdBuffer->getVkHandle(), m_swapchain->framebuffers()[m_currentFrameContext.swapchainImgIdx], m_swapchain->extent());
-        ImDrawData *drawData = ImGui::GetDrawData();
-        ImGui_ImplVulkan_RenderDrawData(drawData, cmdBuffer->getVkHandle());
-
+        fn(cmdBuffer->getVkHandle());
         m_renderPass->end();
     }
 
@@ -196,19 +119,7 @@ namespace Bess::Renderer2D {
         }
 
         m_currentFrameIdx = (m_currentFrameIdx + 1) % MAX_FRAMES_IN_FLIGHT;
-    }
-
-    void VulkanCore::recreateSwapchain() {
-        vkDeviceWaitIdle(m_device->device());
-
-        VkExtent2D newExtent = m_swapchain->extent();
-
-        m_swapchain = std::make_shared<Vulkan::VulkanSwapchain>(m_vkInstance, m_device, m_renderSurface, newExtent);
-
-        m_swapchain->createFramebuffers(m_renderPass->getVkHandle());
-        m_swapchain->createFramebuffers(m_renderPass->getVkHandle());
-
-        BESS_INFO("Swapchain recreated with new extent: {}x{}", newExtent.width, newExtent.height);
+        m_currentFrameContext.isStarted = false;
     }
 
     void VulkanCore::recreateSwapchain(VkExtent2D newExtent) {
@@ -261,9 +172,6 @@ namespace Bess::Renderer2D {
             }
         }
 
-        m_pipeline.reset();
-        m_offscreenImageView.reset();
-        m_offscreenRenderPass.reset();
         m_swapchain.reset();
         m_renderPass.reset();
         preCmdBufferCleanup();
@@ -284,7 +192,7 @@ namespace Bess::Renderer2D {
     VkResult VulkanCore::initVkInstance(const std::vector<const char *> &winExtensions) {
         std::vector<const char *> extensions = winExtensions;
         extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        std::string extStr = "";
+        std::string extStr;
         for (const auto *const ext : extensions) {
             extStr += ext;
             extStr += " | ";
@@ -316,7 +224,7 @@ namespace Bess::Renderer2D {
 
         const VkInstanceCreateInfo instanceInfo{
             .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-            .pNext = (VkDebugUtilsMessengerCreateInfoEXT *)&debugMessengerCreateInfo,
+            .pNext = &debugMessengerCreateInfo,
             .pApplicationInfo = &appInfo,
             .enabledLayerCount = (uint32_t)validationLayers.size(),
             .ppEnabledLayerNames = validationLayers.data(),
@@ -347,7 +255,7 @@ namespace Bess::Renderer2D {
     }
 
     VkResult VulkanCore::validateLayers(const std::vector<const char *> &layers) const {
-        uint32_t layerCount;
+        uint32_t layerCount = 0;
         vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
         std::vector<VkLayerProperties> availableLayers(layerCount);
         vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
@@ -422,7 +330,6 @@ namespace Bess::Renderer2D {
     }
 
     void VulkanCore::createSyncObjects() {
-        // Create semaphores for each frame in fli
         const auto n = m_swapchain->imageCount();
         m_imageAvailableSemaphores.resize(n);
         m_renderFinishedSemaphores.resize(n);
@@ -450,5 +357,10 @@ namespace Bess::Renderer2D {
                 throw std::runtime_error("Failed to create in flight fence!");
             }
         }
+    }
+
+    VulkanCore &VulkanCore::instance() {
+        static VulkanCore inst;
+        return inst;
     }
 } // namespace Bess::Renderer2D

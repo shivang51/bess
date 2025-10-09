@@ -2,43 +2,30 @@
 
 #include "scene/renderer/vulkan/command_buffer.h"
 #include "scene/renderer/vulkan/device.h"
-#include "scene/renderer/vulkan/imgui_pipeline.h"
-#include "scene/renderer/vulkan/path_renderer.h"
-#include "scene/renderer/vulkan/pipeline.h"
-#include "scene/renderer/vulkan/primitive_renderer.h"
 #include "scene/renderer/vulkan/swapchain.h"
-#include "scene/renderer/vulkan/vulkan_image_view.h"
-#include "scene/renderer/vulkan/vulkan_offscreen_render_pass.h"
 #include "scene/renderer/vulkan/vulkan_render_pass.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
-#include <string>
 #include <vector>
 #include <vulkan/vulkan.h>
 
-// Forward declarations for types that were in the original renderer
-namespace Bess {
-    class Camera;
-}
-// moved to vulkan_renderer.h
-
 namespace Bess::Renderer2D {
 
-    typedef std::function<void(VkInstance &, VkSurfaceKHR &)> SurfaceCreationCB;
+    using SurfaceCreationCB = std::function<void(VkInstance &, VkSurfaceKHR &)>;
+
+    using SwapchainRenderFn = std::function<void(VkCommandBuffer)>;
 
     struct FrameContext {
         std::shared_ptr<Vulkan::VulkanCommandBuffer> cmdBuffer = nullptr;
         uint32_t swapchainImgIdx;
+        bool isStarted = false;
     };
 
     class VulkanCore {
-
       public:
-        static VulkanCore &instance() {
-            static VulkanCore inst;
-            return inst;
-        }
+        static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+        static VulkanCore &instance();
 
         static bool isInitialized;
 
@@ -54,11 +41,8 @@ namespace Bess::Renderer2D {
                   const SurfaceCreationCB &createSurface,
                   VkExtent2D windowExtent);
 
-        /// typical flow
         void beginFrame();
-        void beginOffscreenRender();
-        void endOffscreenRender();
-        void renderUi();
+        void renderToSwapchain(const SwapchainRenderFn &fn);
         void endFrame();
 
         void cleanup(const std::function<void()> &preCmdBufferCleanup = []() {});
@@ -67,12 +51,10 @@ namespace Bess::Renderer2D {
             return m_renderPass;
         }
 
-        // Getters for ImGui integration
         VkInstance getVkInstance() const { return m_vkInstance; }
         std::shared_ptr<Vulkan::VulkanDevice> getDevice() const { return m_device; }
         std::shared_ptr<Vulkan::VulkanSwapchain> getSwapchain() const { return m_swapchain; }
         const std::vector<std::shared_ptr<Vulkan::VulkanCommandBuffer>> &getCommandBuffer() const { return m_commandBuffers->getCmdBuffers(); }
-        std::shared_ptr<Vulkan::VulkanPipeline> getPipeline() const { return m_pipeline; }
 
         uint32_t getCurrentFrameIdx() const {
             return m_currentFrameIdx;
@@ -93,14 +75,9 @@ namespace Bess::Renderer2D {
         VkDebugUtilsMessengerEXT m_vkDebugMessenger = VK_NULL_HANDLE;
         std::shared_ptr<Vulkan::VulkanDevice> m_device;
         std::shared_ptr<Vulkan::VulkanSwapchain> m_swapchain;
-        std::shared_ptr<Vulkan::VulkanPipeline> m_pipeline;
         std::unique_ptr<Vulkan::VulkanCommandBuffers> m_commandBuffers;
         std::shared_ptr<Vulkan::VulkanRenderPass> m_renderPass;
-        std::shared_ptr<Vulkan::VulkanOffscreenRenderPass> m_offscreenRenderPass;
-        std::shared_ptr<Vulkan::VulkanImageView> m_offscreenImageView;
         VkSurfaceKHR m_renderSurface = VK_NULL_HANDLE;
-
-        static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
         std::vector<VkSemaphore> m_imageAvailableSemaphores;
         std::vector<VkSemaphore> m_renderFinishedSemaphores;
@@ -108,7 +85,6 @@ namespace Bess::Renderer2D {
         uint32_t m_currentFrameIdx = 0;
 
       public:
-        void recreateSwapchain();
         void recreateSwapchain(VkExtent2D newExtent);
     };
 
