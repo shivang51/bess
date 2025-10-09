@@ -265,7 +265,7 @@ namespace Bess::Canvas {
 
     void BaseArtist::resize(VkExtent2D size) {
         m_primitiveRenderer->resize(size);
-        m_primitiveRenderer->resize(size);
+        m_pathRenderer->resize(size);
     }
 
     std::shared_ptr<Vulkan::PrimitiveRenderer> BaseArtist::getPrimitiveRenderer() {
