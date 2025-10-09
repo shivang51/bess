@@ -37,17 +37,17 @@ namespace Bess::Canvas {
 
     void BaseArtist::init() {
         auto tex = Assets::AssetManager::instance().get(Assets::TileMaps::sevenSegDisplay);
-        float margin = 4.F;
-        glm::vec2 size(128.F, 234.F);
+        float margin = 4.f;
+        glm::vec2 size(128.f, 234.f);
         m_artistTools.sevenSegDispTexs = std::array<std::shared_ptr<Vulkan::SubTexture>, 8>{
-            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({0.F, 0.F}), size),
-            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({1.F, 0.F}), size),
-            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({2.F, 0.F}), size),
-            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({3.F, 0.F}), size),
-            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({4.F, 0.F}), size),
-            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({0.F, 1.F}), size),
-            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({1.F, 1.F}), size),
-            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({2.F, 1.F}), size),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({0.f, 0.f}), size, margin, glm::vec2(1.f)),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({1.f, 0.f}), size, margin, glm::vec2(1.f)),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({2.f, 0.f}), size, margin, glm::vec2(1.f)),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({3.f, 0.f}), size, margin, glm::vec2(1.f)),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({4.f, 0.f}), size, margin, glm::vec2(1.f)),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({0.f, 1.f}), size, margin, glm::vec2(1.f)),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({1.f, 1.f}), size, margin, glm::vec2(1.f)),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({2.f, 1.f}), size, margin, glm::vec2(1.f)),
         };
     }
 
