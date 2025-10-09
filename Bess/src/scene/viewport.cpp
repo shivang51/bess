@@ -138,6 +138,7 @@ namespace Bess::Canvas {
             VkFence fence = m_fences[m_pickingCopyRecordedFrameIdx];
             if (vkGetFenceStatus(m_device->device(), fence) == VK_SUCCESS) {
                 auto count = m_mousePickingData.extent.width * m_mousePickingData.extent.height;
+                count = std::max(count, (uint32_t)1);
                 void *data = nullptr;
                 vkMapMemory(m_device->device(), m_pickingStagingBufferMemory, 0,
                             sizeof(int32_t) * count, 0, &data);
