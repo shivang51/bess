@@ -1,17 +1,17 @@
 #include "scene/renderer/vulkan/pipelines/path_pipeline.h"
 #include "common/log.h"
-#include "scene/renderer/vulkan/device.h"
+#include "device.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
-#include "scene/renderer/vulkan/primitive_vertex.h"
-#include "scene/renderer/vulkan/vulkan_core.h"
-#include "scene/renderer/vulkan/vulkan_offscreen_render_pass.h"
+#include "primitive_vertex.h"
+#include "vulkan_core.h"
+#include "vulkan_offscreen_render_pass.h"
 #include <array>
 #include <cstdint>
 #include <cstring>
 
-namespace Bess::Renderer2D::Vulkan::Pipelines {
+namespace Bess::Vulkan::Pipelines {
 
-    constexpr size_t maxFrames = VulkanCore::MAX_FRAMES_IN_FLIGHT;
+    constexpr size_t maxFrames = Bess::Vulkan::VulkanCore::MAX_FRAMES_IN_FLIGHT;
     constexpr size_t instanceLimit = 10000;
 
     PathPipeline::PathPipeline(const std::shared_ptr<VulkanDevice> &device,
@@ -607,4 +607,4 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         vkUnmapMemory(m_device->device(), m_zoomUniformBufferMemory[m_currentFrameIndex]);
     }
 
-} // namespace Bess::Renderer2D::Vulkan::Pipelines
+} // namespace Bess::Vulkan::Pipelines

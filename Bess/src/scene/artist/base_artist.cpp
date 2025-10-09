@@ -8,20 +8,21 @@
 #include "scene/components/components.h"
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/renderer/vulkan/primitive_renderer.h"
-#include "scene/renderer/vulkan/vulkan_core.h"
-#include "scene/renderer/vulkan/vulkan_subtexture.h"
 #include "scene/scene.h"
 #include "scene/viewport.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
+#include "vulkan_core.h"
+#include "vulkan_subtexture.h"
 #include <cstdint>
 #include <vector>
 
+using namespace Bess::Renderer2D;
 namespace Bess::Canvas {
     ArtistTools BaseArtist::m_artistTools;
 
-    BaseArtist::BaseArtist(const std::shared_ptr<Renderer2D::Vulkan::VulkanDevice> &device,
-                           const std::shared_ptr<Renderer2D::Vulkan::VulkanOffscreenRenderPass> &renderPass,
+    BaseArtist::BaseArtist(const std::shared_ptr<Vulkan::VulkanDevice> &device,
+                           const std::shared_ptr<Vulkan::VulkanOffscreenRenderPass> &renderPass,
                            VkExtent2D extent) {
         static bool initialized = false;
         if (!initialized) {
@@ -29,8 +30,8 @@ namespace Bess::Canvas {
             initialized = true;
         }
 
-        m_primitiveRenderer = std::make_shared<Vulkan::PrimitiveRenderer>(device, renderPass, extent);
-        m_pathRenderer = std::make_shared<Vulkan::PathRenderer>(device, renderPass, extent);
+        m_primitiveRenderer = std::make_shared<Renderer2D::Vulkan::PrimitiveRenderer>(device, renderPass, extent);
+        m_pathRenderer = std::make_shared<Renderer2D::Vulkan::PathRenderer>(device, renderPass, extent);
 
         BESS_INFO("[Base Aritist] Initialized");
     }
@@ -196,7 +197,7 @@ namespace Bess::Canvas {
                     .borderSize = glm::vec4(1.f),
                     .isMica = true,
                 };
-                auto size = Vulkan::PrimitiveRenderer::getMSDFTextRenderSize(textComp.text, textComp.fontSize);
+                auto size = Renderer2D::Vulkan::PrimitiveRenderer::getMSDFTextRenderSize(textComp.text, textComp.fontSize);
                 pos.x += size.x * 0.5f;
                 pos.y -= size.y * 0.25f;
                 size.x += componentStyles.paddingX * 2.f;
@@ -217,7 +218,7 @@ namespace Bess::Canvas {
         const int maxRows = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
         float height = (maxRows * SLOT_ROW_SIZE);
 
-        const auto labelSize = Vulkan::PrimitiveRenderer::getMSDFTextRenderSize(name, componentStyles.headerFontSize);
+        const auto labelSize = Renderer2D::Vulkan::PrimitiveRenderer::getMSDFTextRenderSize(name, componentStyles.headerFontSize);
 
         float width = labelSize.x + componentStyles.paddingX * 2.f;
 
@@ -268,11 +269,11 @@ namespace Bess::Canvas {
         m_pathRenderer->resize(size);
     }
 
-    std::shared_ptr<Vulkan::PrimitiveRenderer> BaseArtist::getPrimitiveRenderer() {
+    std::shared_ptr<Renderer2D::Vulkan::PrimitiveRenderer> BaseArtist::getPrimitiveRenderer() {
         return m_primitiveRenderer;
     }
 
-    std::shared_ptr<Vulkan::PathRenderer> BaseArtist::getPathRenderer() {
+    std::shared_ptr<Renderer2D::Vulkan::PathRenderer> BaseArtist::getPathRenderer() {
         return m_pathRenderer;
     }
 } // namespace Bess::Canvas

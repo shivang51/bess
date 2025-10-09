@@ -4,7 +4,7 @@
 #include <memory>
 #include <vulkan/vulkan.h>
 
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Vulkan {
 
     class VulkanImageView {
       public:
@@ -96,4 +96,4 @@ namespace Bess::Renderer2D::Vulkan {
         VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
     };
 
-} // namespace Bess::Renderer2D::Vulkan
+} // namespace Bess::Vulkan

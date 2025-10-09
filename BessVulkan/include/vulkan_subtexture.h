@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Vulkan {
 
     class VulkanTexture;
 
@@ -39,4 +39,4 @@ namespace Bess::Renderer2D::Vulkan {
         glm::vec4 m_startWH;
     };
 
-} // namespace Bess::Renderer2D::Vulkan
+} // namespace Bess::Vulkan

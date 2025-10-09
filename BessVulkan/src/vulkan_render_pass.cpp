@@ -1,9 +1,9 @@
-#include "scene/renderer/vulkan/vulkan_render_pass.h"
+#include "vulkan_render_pass.h"
 #include <array>
 #include <cassert>
 #include <stdexcept>
 
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Vulkan {
     VulkanRenderPass::VulkanRenderPass(const std::shared_ptr<VulkanDevice> &device, const VkFormat colorFormat, const VkFormat depthFormat)
         : m_device(device), m_colorFormat(colorFormat), m_depthFormat(depthFormat) {
         createRenderPass();
@@ -101,4 +101,4 @@ namespace Bess::Renderer2D::Vulkan {
             throw std::runtime_error("Failed to create render pass!");
         }
     }
-} // namespace Bess::Renderer2D::Vulkan
+} // namespace Bess::Vulkan

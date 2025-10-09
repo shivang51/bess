@@ -7,7 +7,7 @@
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
 
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Vulkan {
 
     class VulkanCommandBuffer {
       public:
@@ -41,4 +41,4 @@ namespace Bess::Renderer2D::Vulkan {
         std::vector<std::shared_ptr<VulkanCommandBuffer>> m_commandBuffers;
         std::vector<VkCommandBuffer> m_commandBuffersVkHnd;
     };
-} // namespace Bess::Renderer2D::Vulkan
+} // namespace Bess::Vulkan

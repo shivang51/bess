@@ -7,14 +7,15 @@
 #include "pipelines/quad_pipeline.h"
 #include "pipelines/text_pipeline.h"
 #include "primitive_vertex.h"
-#include "scene/renderer/vulkan/vulkan_subtexture.h"
-#include "scene/renderer/vulkan/vulkan_texture.h"
 #include "vulkan_offscreen_render_pass.h"
+#include "vulkan_subtexture.h"
+#include "vulkan_texture.h"
 #include <memory>
 #include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan.h>
 
+using namespace Bess::Vulkan;
 namespace Bess::Renderer2D::Vulkan {
 
     struct QuadRenderProperties {

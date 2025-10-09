@@ -1,6 +1,6 @@
 #include "scene/renderer/font.h"
 #include "common/log.h"
-#include "scene/renderer/vulkan/vulkan_texture.h"
+#include "vulkan_texture.h"
 
 namespace Bess::Renderer2D {
     Font::Font(const std::string &path) {

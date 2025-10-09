@@ -4,7 +4,7 @@
 #include <fstream>
 #include <vulkan/vulkan_core.h>
 
-namespace Bess::Renderer2D::Vulkan::Pipelines {
+namespace Bess::Vulkan::Pipelines {
 
     Pipeline::Pipeline(const std::shared_ptr<VulkanDevice> &device,
                        const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
@@ -346,4 +346,4 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
         m_resized = true;
     }
-} // namespace Bess::Renderer2D::Vulkan::Pipelines
+} // namespace Bess::Vulkan::Pipelines

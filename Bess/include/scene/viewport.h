@@ -3,10 +3,10 @@
 #include "camera.h"
 #include "entt/entity/fwd.hpp"
 #include "scene/artist/artist_manager.h"
-#include "scene/renderer/vulkan/command_buffer.h"
-#include "scene/renderer/vulkan/device.h"
-#include "scene/renderer/vulkan/vulkan_image_view.h"
-#include "scene/renderer/vulkan/vulkan_offscreen_render_pass.h"
+#include "command_buffer.h"
+#include "device.h"
+#include "vulkan_image_view.h"
+#include "vulkan_offscreen_render_pass.h"
 #include <memory>
 #include <vulkan/vulkan_core.h>
 

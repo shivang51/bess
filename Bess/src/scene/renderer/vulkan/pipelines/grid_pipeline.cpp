@@ -3,7 +3,7 @@
 #include <ext/matrix_transform.hpp>
 #include <glm.hpp>
 
-namespace Bess::Renderer2D::Vulkan::Pipelines {
+namespace Bess::Vulkan::Pipelines {
 
     GridPipeline::GridPipeline(const std::shared_ptr<VulkanDevice> &device,
                                const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
@@ -447,4 +447,4 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         vkUnmapMemory(m_device->device(), m_buffers.indexBufferMemory);
     }
 
-} // namespace Bess::Renderer2D::Vulkan::Pipelines
+} // namespace Bess::Vulkan::Pipelines

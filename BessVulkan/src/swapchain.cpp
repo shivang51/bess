@@ -1,9 +1,9 @@
-#include "scene/renderer/vulkan/swapchain.h"
-#include "common/log.h"
+#include "swapchain.h"
 #include <algorithm>
+#include <limits>
 #include <stdexcept>
 
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Vulkan {
 
     VulkanSwapchain::VulkanSwapchain(const VkInstance instance, std::shared_ptr<VulkanDevice> device, const VkSurfaceKHR surface, const VkExtent2D windowExtent)
         : m_instance(instance), m_device(device), m_surface(surface), m_windowExtent(windowExtent) {
@@ -94,7 +94,7 @@ namespace Bess::Renderer2D::Vulkan {
 
         const VkResult result = vkCreateSwapchainKHR(m_device->device(), &createInfo, nullptr, &m_swapchain);
         if (result != VK_SUCCESS) {
-            BESS_ERROR("Failed to create swap chain! Error code: {}", static_cast<int>(result));
+            // BESS_ERROR("Failed to create swap chain! Error code: {}", static_cast<int>(result));
             throw std::runtime_error("Failed to create swap chain!");
         }
 
@@ -147,7 +147,7 @@ namespace Bess::Renderer2D::Vulkan {
 
         const VkResult result = vkCreateSwapchainKHR(m_device->device(), &createInfo, nullptr, &m_swapchain);
         if (result != VK_SUCCESS) {
-            BESS_ERROR("Failed to create swap chain! Error code: {}", static_cast<int>(result));
+            // BESS_ERROR("Failed to create swap chain! Error code: {}", static_cast<int>(result));
             throw std::runtime_error("Failed to create swap chain!");
         }
 
@@ -264,7 +264,7 @@ namespace Bess::Renderer2D::Vulkan {
             return availableFormats[0];
         }
 
-        BESS_WARN("[Swapchain] Using the fallback format");
+        // BESS_WARN("[Swapchain] Using the fallback format");
 
         VkSurfaceFormatKHR fallback{};
         fallback.format = VK_FORMAT_B8G8R8A8_UNORM;
@@ -294,4 +294,4 @@ namespace Bess::Renderer2D::Vulkan {
         return actualExtent;
     }
 
-} // namespace Bess::Renderer2D::Vulkan
+} // namespace Bess::Vulkan

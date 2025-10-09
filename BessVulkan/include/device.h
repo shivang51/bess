@@ -4,7 +4,7 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Vulkan {
 
     struct QueueFamilyIndices {
         std::optional<uint32_t> graphicsFamily;
@@ -56,4 +56,4 @@ namespace Bess::Renderer2D::Vulkan {
         VkCommandPool m_commandPool = VK_NULL_HANDLE;
     };
 
-} // namespace Bess::Renderer2D::Vulkan
+} // namespace Bess::Vulkan

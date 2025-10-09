@@ -1,7 +1,7 @@
 #include "scene/renderer/vulkan/pipelines/circle_pipeline.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
-#include "scene/renderer/vulkan/primitive_vertex.h"
-#include "scene/renderer/vulkan/vulkan_core.h"
+#include "primitive_vertex.h"
+#include "vulkan_core.h"
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -10,7 +10,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-namespace Bess::Renderer2D::Vulkan::Pipelines {
+namespace Bess::Vulkan::Pipelines {
 
     constexpr uint32_t instanceLimit = 10000;
 
@@ -399,7 +399,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         m_buffers.instanceCapacity = instanceCount;
     }
 
-    constexpr size_t maxFrames = VulkanCore::MAX_FRAMES_IN_FLIGHT;
+    constexpr size_t maxFrames = Bess::Vulkan::VulkanCore::MAX_FRAMES_IN_FLIGHT;
     void CirclePipeline::createDescriptorPool() {
         Pipeline::createDescriptorPool();
     }
@@ -408,4 +408,4 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         Pipeline::createDescriptorSets();
     }
 
-} // namespace Bess::Renderer2D::Vulkan::Pipelines
+} // namespace Bess::Vulkan::Pipelines

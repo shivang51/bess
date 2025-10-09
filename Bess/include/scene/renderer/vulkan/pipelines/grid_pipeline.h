@@ -3,7 +3,7 @@
 #include "pipeline.h"
 #include <vector>
 
-namespace Bess::Renderer2D::Vulkan::Pipelines {
+namespace Bess::Vulkan::Pipelines {
 
     class GridPipeline : public Pipeline {
       public:
@@ -45,4 +45,4 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         std::vector<VkDeviceMemory> m_gridUniformBufferMemory;
     };
 
-} // namespace Bess::Renderer2D::Vulkan::Pipelines
+} // namespace Bess::Vulkan::Pipelines

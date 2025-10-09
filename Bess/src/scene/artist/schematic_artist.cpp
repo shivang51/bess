@@ -5,10 +5,10 @@
 #include "ext/vector_float3.hpp"
 #include "scene/artist/nodes_artist.h"
 #include "scene/components/components.h"
-#include "scene/renderer/vulkan/vulkan_subtexture.h"
-#include "scene/renderer/vulkan/vulkan_texture.h"
 #include "scene/scene.h"
 #include "settings/viewport_theme.h"
+#include "vulkan_subtexture.h"
+#include "vulkan_texture.h"
 #include <memory>
 #include <string>
 
@@ -31,8 +31,8 @@ namespace Bess::Canvas {
 
     constexpr float SCHEMATIC_VIEW_PIN_ROW_SIZE = schematicCompStyles.nameFontSize + schematicCompStyles.strokeSize + schematicCompStyles.pinRowGap;
 
-    SchematicArtist::SchematicArtist(const std::shared_ptr<Renderer2D::Vulkan::VulkanDevice> &device,
-                                     const std::shared_ptr<Renderer2D::Vulkan::VulkanOffscreenRenderPass> &renderPass,
+    SchematicArtist::SchematicArtist(const std::shared_ptr<Vulkan::VulkanDevice> &device,
+                                     const std::shared_ptr<Vulkan::VulkanOffscreenRenderPass> &renderPass,
                                      VkExtent2D extent) : BaseArtist(device, renderPass, extent) {
     }
 
@@ -76,7 +76,7 @@ namespace Bess::Canvas {
         m_pathRenderer->pathLineTo({x, y1, pos.z}, strokeSize, ViewportTheme::colors.wire, id);
         m_pathRenderer->endPathMode(true, true, fillColor);
 
-        const auto textSize = Vulkan::PrimitiveRenderer::getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
+        const auto textSize = Renderer2D::Vulkan::PrimitiveRenderer::getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
         glm::vec3 textPos = {pos.x,
                              y + componentStyles.paddingY + strokeSize,
                              pos.z + 0.0005f};
@@ -227,7 +227,7 @@ namespace Bess::Canvas {
         }
 
         if (showName) {
-            const auto textSize = Vulkan::PrimitiveRenderer::getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
+            const auto textSize = Renderer2D::Vulkan::PrimitiveRenderer::getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
             glm::vec3 textPos = {pos.x, y + (y1 - y) / 2.f, pos.z + 0.0005f};
             textPos.x -= textSize.x / 2.f;
             textPos.y += componentStyles.headerFontSize / 2.f;
@@ -278,7 +278,7 @@ namespace Bess::Canvas {
                 m_pathRenderer->pathLineTo({schematicInfo.outConnStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
                 m_pathRenderer->endPathMode(false);
                 label = outDetails.size() > i ? outDetails[i].name : "Y" + std::to_string(i);
-                const float size = Vulkan::PrimitiveRenderer::getMSDFTextRenderSize(label, componentStyles.slotLabelSize).x;
+                const float size = Renderer2D::Vulkan::PrimitiveRenderer::getMSDFTextRenderSize(label, componentStyles.slotLabelSize).x;
                 m_primitiveRenderer->drawText(label,
                                               {schematicInfo.outConnStart - size, pinY - nodeWeight, pos.z - 0.0005f},
                                               componentStyles.slotLabelSize, ViewportTheme::colors.text, static_cast<int>(parentEntt), 0.f);
@@ -340,7 +340,7 @@ namespace Bess::Canvas {
         //     info.shouldDraw = false;
         // } break;
         default:
-            w = Vulkan::PrimitiveRenderer::getMSDFTextRenderSize(tagComp.name, schematicCompStyles.nameFontSize).x + componentStyles.paddingX * 2.f;
+            w = Renderer2D::Vulkan::PrimitiveRenderer::getMSDFTextRenderSize(tagComp.name, schematicCompStyles.nameFontSize).x + componentStyles.paddingX * 2.f;
             x = pos.x - w / 2, x1 = pos.x + w / 2;
 
             info.inpPinStart = x;

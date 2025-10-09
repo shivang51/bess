@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../device.h"
-#include "../primitive_vertex.h"
-#include "../vulkan_offscreen_render_pass.h"
+#include "device.h"
+#include "primitive_vertex.h"
+#include "vulkan_offscreen_render_pass.h"
 #include <memory>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
 
-namespace Bess::Renderer2D::Vulkan::Pipelines {
+namespace Bess::Vulkan::Pipelines {
 
     struct BufferSet {
         VkBuffer vertexBuffer = VK_NULL_HANDLE;
@@ -84,4 +84,4 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         VkPipelineDynamicStateCreateInfo createDynamicState() const;
     };
 
-} // namespace Bess::Renderer2D::Vulkan::Pipelines
+} // namespace Bess::Vulkan::Pipelines

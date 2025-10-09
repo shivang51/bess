@@ -7,8 +7,8 @@
 #include "scene/components/components.h"
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/renderer/vulkan/primitive_renderer.h"
-#include "scene/renderer/vulkan/vulkan_subtexture.h"
 #include "types.h"
+#include "vulkan_subtexture.h"
 
 #include <memory>
 #include <vulkan/vulkan_core.h>
@@ -30,8 +30,8 @@ namespace Bess::Canvas {
 
     class BaseArtist {
       public:
-        explicit BaseArtist(const std::shared_ptr<Renderer2D::Vulkan::VulkanDevice> &device,
-                            const std::shared_ptr<Renderer2D::Vulkan::VulkanOffscreenRenderPass> &renderPass,
+        explicit BaseArtist(const std::shared_ptr<Vulkan::VulkanDevice> &device,
+                            const std::shared_ptr<Vulkan::VulkanOffscreenRenderPass> &renderPass,
                             VkExtent2D extent);
         virtual ~BaseArtist() = default;
 
@@ -69,8 +69,8 @@ namespace Bess::Canvas {
 
         void resize(VkExtent2D size);
 
-        std::shared_ptr<Vulkan::PrimitiveRenderer> getPrimitiveRenderer();
-        std::shared_ptr<Vulkan::PathRenderer> getPathRenderer();
+        std::shared_ptr<Renderer2D::Vulkan::PrimitiveRenderer> getPrimitiveRenderer();
+        std::shared_ptr<Renderer2D::Vulkan::PathRenderer> getPathRenderer();
 
       protected:
         virtual void drawSlots(const entt::entity parentEntt, const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp) = 0;
@@ -80,8 +80,8 @@ namespace Bess::Canvas {
         static ArtistTools m_artistTools;
 
         ArtistInstructions m_instructions = {};
-        std::shared_ptr<Vulkan::PrimitiveRenderer> m_primitiveRenderer;
-        std::shared_ptr<Vulkan::PathRenderer> m_pathRenderer;
+        std::shared_ptr<Renderer2D::Vulkan::PrimitiveRenderer> m_primitiveRenderer;
+        std::shared_ptr<Renderer2D::Vulkan::PathRenderer> m_pathRenderer;
     };
 
 } // namespace Bess::Canvas

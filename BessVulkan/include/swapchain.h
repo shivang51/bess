@@ -5,7 +5,7 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Vulkan {
 
     class VulkanSwapchain {
       public:
@@ -61,4 +61,4 @@ namespace Bess::Renderer2D::Vulkan {
         std::vector<VkImageView> m_imageViews;
     };
 
-} // namespace Bess::Renderer2D::Vulkan
+} // namespace Bess::Vulkan

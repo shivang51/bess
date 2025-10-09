@@ -5,7 +5,7 @@
 #include <vector>
 #include <memory>
 
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Vulkan {
 
     class VulkanDevice;
 
@@ -34,4 +34,4 @@ namespace Bess::Renderer2D::Vulkan {
         std::vector<char> readFile(const std::string& filename) const;
     };
 
-} // namespace Bess::Renderer2D::Vulkan
+} // namespace Bess::Vulkan

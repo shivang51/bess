@@ -1,11 +1,11 @@
 #pragma once
 
 #include "pipeline.h"
-#include "scene/renderer/vulkan/primitive_vertex.h"
+#include "primitive_vertex.h"
 #include <memory>
 #include <vector>
 
-namespace Bess::Renderer2D::Vulkan::Pipelines {
+namespace Bess::Vulkan::Pipelines {
 
     class PathPipeline : public Pipeline {
       public:
@@ -67,4 +67,4 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         void updateZoomUniformBuffer(float zoom);
     };
 
-} // namespace Bess::Renderer2D::Vulkan::Pipelines
+} // namespace Bess::Vulkan::Pipelines

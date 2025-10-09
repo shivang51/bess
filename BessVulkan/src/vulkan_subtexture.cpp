@@ -1,7 +1,7 @@
-#include "scene/renderer/vulkan/vulkan_subtexture.h"
-#include "scene/renderer/vulkan/vulkan_texture.h"
+#include "vulkan_subtexture.h"
+#include "vulkan_texture.h"
 
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Vulkan {
     SubTexture::SubTexture(std::shared_ptr<VulkanTexture> texture, const glm::vec2 &coord, const glm::vec2 &spriteSize)
         : m_texture(std::move(texture)), m_coord(coord), m_spriteSize(spriteSize), m_margin(0.f), m_cellSize({1.f, 1.f}) {
         calculateCoords();
@@ -61,4 +61,4 @@ namespace Bess::Renderer2D::Vulkan {
             {texOffset.x + texSize.x, texOffset.y},
             {texOffset.x + texSize.x, texOffset.y + texSize.y}};
     }
-} // namespace Bess::Renderer2D::Vulkan
+} // namespace Bess::Vulkan

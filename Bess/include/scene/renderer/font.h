@@ -1,26 +1,24 @@
 #pragma once
 
+#include "device.h"
 #include "ft2build.h"
 #include "glm.hpp"
-#include "scene/renderer/vulkan/vulkan_texture.h"
+#include "vulkan_texture.h"
 #include <map>
-#include <string>
 #include <memory>
+#include <string>
 
 #include FT_FREETYPE_H
 
-namespace Bess::Renderer2D::Vulkan {
-    class VulkanDevice;
-}
-
+using namespace Bess::Vulkan;
 namespace Bess::Renderer2D {
     class Font {
       public:
         struct Character {
-            std::shared_ptr<Vulkan::VulkanTexture> Texture; 
-            glm::ivec2 Size;     
-            glm::ivec2 Bearing;  
-            int Advance;         
+            std::shared_ptr<VulkanTexture> Texture;
+            glm::ivec2 Size;
+            glm::ivec2 Bearing;
+            int Advance;
         };
 
         Font() = default;
@@ -28,7 +26,7 @@ namespace Bess::Renderer2D {
         ~Font();
 
         Font(const std::string &path);
-        Font(const std::string &path, Vulkan::VulkanDevice& device);
+        Font(const std::string &path, VulkanDevice &device);
 
         const Character &getCharacter(char ch);
 
@@ -38,7 +36,7 @@ namespace Bess::Renderer2D {
         FT_Library m_ft;
         FT_Face m_face;
         std::map<char, Character> Characters;
-        Vulkan::VulkanDevice* m_device = nullptr;
+        VulkanDevice *m_device = nullptr;
         void loadCharacters();
 
         static const int m_defaultSize = 48;

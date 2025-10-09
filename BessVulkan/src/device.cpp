@@ -1,9 +1,8 @@
-#include "scene/renderer/vulkan/device.h"
-#include "common/log.h"
+#include "device.h"
 #include <set>
 #include <stdexcept>
 
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Vulkan {
 
     VulkanDevice::VulkanDevice(const VkInstance instance, const VkSurfaceKHR surface)
         : m_instance(instance), m_surface(surface) {
@@ -85,7 +84,7 @@ namespace Bess::Renderer2D::Vulkan {
 
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(m_vkPhysicalDevice, &deviceProperties);
-        BESS_INFO("[Renderer] Selected GPU: {}", deviceProperties.deviceName);
+        // BESS_INFO("[Renderer] Selected GPU: {}", deviceProperties.deviceName);
     }
 
     void VulkanDevice::createLogicalDevice() {
@@ -253,4 +252,4 @@ namespace Bess::Renderer2D::Vulkan {
     void VulkanDevice::waitForIdle() {
         vkDeviceWaitIdle(m_vkDevice);
     }
-} // namespace Bess::Renderer2D::Vulkan
+} // namespace Bess::Vulkan

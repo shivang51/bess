@@ -1,11 +1,11 @@
-#include "scene/renderer/vulkan/vulkan_offscreen_render_pass.h"
+#include "vulkan_offscreen_render_pass.h"
 #include "glm.hpp"
 #include <array>
 #include <cassert>
 #include <stdexcept>
 #include <vulkan/vulkan_core.h>
 
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Vulkan {
     VulkanOffscreenRenderPass::VulkanOffscreenRenderPass(const std::shared_ptr<VulkanDevice> &device, VkFormat colorFormat, VkFormat pickingFormat, VkFormat depthFormat)
         : m_device(device), m_colorFormat(colorFormat), m_pickingFormat(pickingFormat), m_depthFormat(depthFormat) {
         createRenderPass();
@@ -187,4 +187,4 @@ namespace Bess::Renderer2D::Vulkan {
         }
     }
 
-} // namespace Bess::Renderer2D::Vulkan
+} // namespace Bess::Vulkan

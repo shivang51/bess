@@ -1,6 +1,6 @@
 #include "scene/renderer/msdf_font.h"
 #include "common/log.h"
-#include "scene/renderer/vulkan/vulkan_texture.h"
+#include "vulkan_texture.h"
 
 #include <filesystem>
 #include <fstream>

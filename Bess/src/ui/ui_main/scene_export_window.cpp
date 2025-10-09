@@ -2,7 +2,7 @@
 #include "common/log.h"
 #include "imgui.h"
 #include "pages/main_page/main_page_state.h"
-#include "scene/renderer/vulkan/vulkan_core.h"
+#include "vulkan_core.h"
 #include "scene/scene.h"
 #include "scene/viewport.h"
 #include "ui/icons/FontAwesomeIcons.h"
@@ -163,7 +163,7 @@ namespace Bess::UI {
         const size_t snapRowSize = size.x * 4;
         VkExtent2D extent = {(uint32_t)size.x, (uint32_t)size.y};
 
-        auto &vkCore = VulkanCore::instance();
+        auto &vkCore = Bess::Vulkan::VulkanCore::instance();
         auto viewport = std::make_shared<Canvas::Viewport>(vkCore.getDevice(), vkCore.getSwapchain()->imageFormat(), extent);
         auto pos = min + snapSpan / 2.f;
         std::shared_ptr<Camera> camera = viewport->getCamera();

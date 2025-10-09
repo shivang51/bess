@@ -4,7 +4,7 @@
 #include <glm.hpp>
 #include <vulkan/vulkan.h>
 
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Vulkan {
 
     struct GridVertex {
         glm::vec3 position;  // location 0
@@ -169,4 +169,4 @@ namespace Bess::Renderer2D::Vulkan {
         }
     };
 
-} // namespace Bess::Renderer2D::Vulkan
+} // namespace Bess::Vulkan

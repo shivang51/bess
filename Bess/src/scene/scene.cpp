@@ -21,13 +21,13 @@
 #include "scene/commands/update_entt_comp_command.h"
 #include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
-#include "scene/renderer/vulkan/vulkan_core.h"
 #include "scene/viewport.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "types.h"
 #include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
+#include "vulkan_core.h"
 #include <cstdint>
 #include <memory>
 #include <utility>
@@ -56,7 +56,7 @@ namespace Bess::Canvas {
 
         m_size = glm::vec2(800.f, 600.f);
 
-        auto &vkCore = VulkanCore::instance();
+        auto &vkCore = Vulkan::VulkanCore::instance();
         m_viewport = std::make_shared<Viewport>(vkCore.getDevice(), vkCore.getSwapchain()->imageFormat(), vec2Extent2D(m_size));
 
         m_camera = m_viewport->getCamera();
@@ -202,7 +202,7 @@ namespace Bess::Canvas {
         } break;
         }
 
-        auto &inst = Renderer2D::VulkanCore::instance();
+        auto &inst = Bess::Vulkan::VulkanCore::instance();
 
         auto artistManager = viewport->getArtistManager();
         artistManager->setSchematicMode(m_isSchematicView);

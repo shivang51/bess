@@ -1,6 +1,6 @@
 #include "ui/ui.h"
 #include "common/log.h"
-#include "scene/renderer/vulkan/device.h"
+#include "device.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/icons/ComponentIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
@@ -15,7 +15,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 #include "implot.h"
-#include "scene/renderer/vulkan/vulkan_core.h"
+#include "vulkan_core.h"
 #include <memory>
 #include <vulkan/vulkan_core.h>
 
@@ -44,12 +44,12 @@ namespace Bess::UI {
     }
 
     void initVulkanImGui() {
-        if (!Renderer2D::VulkanCore::isInitialized) {
+        if (!Bess::Vulkan::VulkanCore::isInitialized) {
             BESS_ERROR("VulkanRenderer not initialized! Call VulkanRenderer::init() first.");
             return;
         }
 
-        const auto &vulkanCore = Bess::Renderer2D::VulkanCore::instance();
+        const auto &vulkanCore = Bess::Vulkan::VulkanCore::instance();
 
         const auto device = vulkanCore.getDevice();
         if (!device) {
@@ -106,7 +106,7 @@ namespace Bess::UI {
         ImGui::DestroyContext();
     }
 
-    void vulkanCleanup(std::shared_ptr<Renderer2D::Vulkan::VulkanDevice> device) {
+    void vulkanCleanup(std::shared_ptr<Vulkan::VulkanDevice> device) {
         BESS_INFO("[UI] Destroying VK Context");
         ImGui_ImplVulkan_Shutdown();
         vkDestroyDescriptorPool(device->device(), s_uiDescriptorPool, nullptr);

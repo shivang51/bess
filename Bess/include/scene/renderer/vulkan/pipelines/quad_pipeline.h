@@ -1,18 +1,18 @@
 #pragma once
 
 #include "pipeline.h"
-#include "scene/renderer/vulkan/primitive_vertex.h"
+#include "primitive_vertex.h"
 #include <array>
 #include <memory>
 #include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Vulkan {
     class VulkanTexture;
 }
 
-namespace Bess::Renderer2D::Vulkan::Pipelines {
+namespace Bess::Vulkan::Pipelines {
 
     class QuadPipeline : public Pipeline {
       public:
@@ -56,4 +56,4 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         std::array<VkDescriptorImageInfo, 32> m_textureInfos;
     };
 
-} // namespace Bess::Renderer2D::Vulkan::Pipelines
+} // namespace Bess::Vulkan::Pipelines

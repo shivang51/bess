@@ -73,18 +73,7 @@ set(Header_Files
 "include/scene/components/non_sim_comp.h"
 "include/scene/renderer/font.h"
 "include/scene/renderer/msdf_font.h"
-        "include/scene/renderer/vulkan/vulkan_core.h"
-        "include/scene/renderer/vulkan/device.h"
-        "include/scene/renderer/vulkan/swapchain.h"
-        "include/scene/renderer/vulkan/command_buffer.h"
-        "include/scene/renderer/vulkan/vulkan_shader.h"
-        "include/scene/renderer/vulkan/vulkan_texture.h"
-        "include/scene/renderer/vulkan/vulkan_subtexture.h"
-        "include/scene/renderer/vulkan/vulkan_render_pass.h"
-        "include/scene/renderer/vulkan/vulkan_image_view.h"
-        "include/scene/renderer/vulkan/vulkan_offscreen_render_pass.h"
         "include/scene/renderer/vulkan/primitive_renderer.h"
-        "include/scene/renderer/vulkan/primitive_vertex.h"
         "include/scene/renderer/vulkan/pipelines/pipeline.h"
         "include/scene/renderer/vulkan/pipelines/circle_pipeline.h"
         "include/scene/renderer/vulkan/pipelines/grid_pipeline.h"
@@ -142,16 +131,6 @@ set(Source_Files
 "src/scene/artist/artist_manager.cpp"
 "src/scene/renderer/font.cpp"
 "src/scene/renderer/msdf_font.cpp"
-        "src/scene/renderer/vulkan/vulkan_core.cpp"
-        "src/scene/renderer/vulkan/device.cpp"
-        "src/scene/renderer/vulkan/swapchain.cpp"
-        "src/scene/renderer/vulkan/command_buffer.cpp"
-        "src/scene/renderer/vulkan/vulkan_shader.cpp"
-        "src/scene/renderer/vulkan/vulkan_texture.cpp"
-        "src/scene/renderer/vulkan/vulkan_subtexture.cpp"
-		"src/scene/renderer/vulkan/vulkan_render_pass.cpp"
-		"src/scene/renderer/vulkan/vulkan_image_view.cpp"
-		"src/scene/renderer/vulkan/vulkan_offscreen_render_pass.cpp"
 		"src/scene/renderer/vulkan/primitive_renderer.cpp"
 		"src/scene/renderer/vulkan/pipelines/pipeline.cpp"
 		"src/scene/renderer/vulkan/pipelines/circle_pipeline.cpp"
@@ -176,8 +155,8 @@ set(ALL_FILES
 )
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
-target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine)
-add_dependencies(${PROJECT_NAME} BessSimEngine)
+target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine BessVulkan)
+add_dependencies(${PROJECT_NAME} BessSimEngine BessVulkan)
 
 if("${BUILD_ARCH}" STREQUAL "x64" AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
@@ -220,6 +199,7 @@ if("${BUILD_ARCH}" STREQUAL "x64")
 	target_include_directories(${PROJECT_NAME} PRIVATE
 			"${CMAKE_CURRENT_SOURCE_DIR}/include"
 			"${CMAKE_SOURCE_DIR}/BessSimEngine/include"
+			"${CMAKE_SOURCE_DIR}/BessVulkan/include"
 			"${CMAKE_SOURCE_DIR}/external/imgui"
 			"${CMAKE_SOURCE_DIR}/external/implot"
 			"${CMAKE_SOURCE_DIR}/external/freetype/include"

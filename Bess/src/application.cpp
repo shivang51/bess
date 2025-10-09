@@ -5,7 +5,7 @@
 #include "imgui_impl_vulkan.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
-#include "scene/renderer/vulkan/vulkan_core.h"
+#include "vulkan_core.h"
 #include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
 
@@ -27,7 +27,7 @@ namespace Bess {
     void Application::draw() {
         ApplicationState::getCurrentPage()->draw();
 
-        auto &vkCore = Renderer2D::VulkanCore::instance();
+        auto &vkCore = Bess::Vulkan::VulkanCore::instance();
         if (m_mainWindow->wasWindowResized()) {
             m_mainWindow->resetWindowResizedFlag();
             const VkExtent2D newExtent = m_mainWindow->getExtent();
@@ -38,8 +38,7 @@ namespace Bess {
         UI::begin();
 
         UI::UIMain::draw();
-        // UI::drawStats(fps);
-
+        UI::drawStats(fps);
         UI::end();
 
         vkCore.renderToSwapchain(
@@ -88,7 +87,7 @@ namespace Bess {
         // Only handle resize if window is not minimized and size is reasonable
         if (w > 0 && h > 0) {
             const VkExtent2D newExtent = {static_cast<uint32_t>(w), static_cast<uint32_t>(h)};
-            Renderer2D::VulkanCore::instance().recreateSwapchain(newExtent);
+            Bess::Vulkan::VulkanCore::instance().recreateSwapchain(newExtent);
         }
 
         ApplicationEvent::WindowResizeData data(w, h);

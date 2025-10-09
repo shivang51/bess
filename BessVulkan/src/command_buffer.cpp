@@ -1,10 +1,9 @@
-#include "scene/renderer/vulkan/command_buffer.h"
-#include "common/log.h"
+#include "command_buffer.h"
 #include "imgui.h"
 #include "imgui_impl_vulkan.h"
 #include <stdexcept>
 
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Vulkan {
     VulkanCommandBuffer::VulkanCommandBuffer(VkCommandBuffer vkHandle) : m_vkCmdBufferHandel(vkHandle) {
     }
 
@@ -75,4 +74,4 @@ namespace Bess::Renderer2D::Vulkan {
     std::shared_ptr<VulkanCommandBuffer> VulkanCommandBuffers::at(u_int32_t idx) {
         return m_commandBuffers[idx];
     }
-} // namespace Bess::Renderer2D::Vulkan
+} // namespace Bess::Vulkan

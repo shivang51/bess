@@ -2,7 +2,7 @@
 #include "common/log.h"
 #include "scene/artist/nodes_artist.h"
 #include "scene/artist/schematic_artist.h"
-#include "scene/renderer/vulkan/vulkan_core.h"
+#include "vulkan_core.h"
 #include "scene/scene.h"
 #include <cstdint>
 #include <memory>
@@ -10,7 +10,7 @@
 
 namespace Bess::Canvas {
 
-    constexpr size_t maxFrames = Renderer2D::VulkanCore::MAX_FRAMES_IN_FLIGHT;
+    constexpr size_t maxFrames = Bess::Vulkan::VulkanCore::MAX_FRAMES_IN_FLIGHT;
 
     Viewport::Viewport(const std::shared_ptr<Vulkan::VulkanDevice> &device, VkFormat imgFormat, VkExtent2D size)
         : m_device(device), m_imgFormat(imgFormat), m_size(size) {

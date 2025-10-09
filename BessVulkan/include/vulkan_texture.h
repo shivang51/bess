@@ -6,7 +6,7 @@
 #include <vector>
 #include "glm.hpp"
 
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Vulkan {
 
     class VulkanDevice;
 
@@ -70,4 +70,4 @@ namespace Bess::Renderer2D::Vulkan {
                           VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
     };
 
-} // namespace Bess::Renderer2D::Vulkan
+} // namespace Bess::Vulkan

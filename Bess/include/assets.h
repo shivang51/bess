@@ -2,8 +2,8 @@
 #include "asset_manager/asset_id.h"
 #include "scene/renderer/font.h"
 #include "scene/renderer/msdf_font.h"
-#include "scene/renderer/vulkan/vulkan_shader.h"
-#include "scene/renderer/vulkan/vulkan_texture.h"
+#include "vulkan_shader.h"
+#include "vulkan_texture.h"
 
 namespace Bess::Assets {
     namespace Fonts {
@@ -19,10 +19,10 @@ namespace Bess::Assets {
     } // namespace Fonts
 
     namespace TileMaps {
-        constexpr auto sevenSegDisplay = AssetID<Bess::Renderer2D::Vulkan::VulkanTexture, 1>("assets/images/7-seg-display-tilemap.png");
+        constexpr auto sevenSegDisplay = AssetID<Bess::Vulkan::VulkanTexture, 1>("assets/images/7-seg-display-tilemap.png");
     }
 
     namespace Textures {
-        constexpr auto shadowTexture = AssetID<Bess::Renderer2D::Vulkan::VulkanTexture, 1>("assets/images/shadow_texture.png");
+        constexpr auto shadowTexture = AssetID<Bess::Vulkan::VulkanTexture, 1>("assets/images/shadow_texture.png");
     }
 } // namespace Bess::Assets

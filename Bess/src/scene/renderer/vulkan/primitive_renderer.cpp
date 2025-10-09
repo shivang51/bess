@@ -3,7 +3,7 @@
 #include "assets.h"
 #include "camera.h"
 #include "common/log.h"
-#include "scene/renderer/vulkan/primitive_vertex.h"
+#include "primitive_vertex.h"
 #include <vulkan/vulkan_core.h>
 
 namespace Bess::Renderer2D::Vulkan {
@@ -113,7 +113,7 @@ namespace Bess::Renderer2D::Vulkan {
             return;
         }
 
-        Vulkan::GridUniforms uniforms;
+        GridUniforms uniforms;
         uniforms.gridMajorColor = gridColors.majorColor;
         uniforms.gridMinorColor = gridColors.minorColor;
         uniforms.axisXColor = gridColors.axisXColor;
@@ -253,8 +253,8 @@ namespace Bess::Renderer2D::Vulkan {
         float baseLineOff = yCharInfo.offset.y - wCharInfo.offset.y;
 
         glm::vec2 charPos = pos;
-        std::vector<Vulkan::InstanceVertex> opaqueInstances;
-        std::vector<Vulkan::InstanceVertex> translucentInstances;
+        std::vector<Bess::Vulkan::InstanceVertex> opaqueInstances;
+        std::vector<Bess::Vulkan::InstanceVertex> translucentInstances;
 
         for (auto &ch : text) {
             const MsdfCharacter &charInfo = msdfFont->getCharacterData(ch);
@@ -267,7 +267,7 @@ namespace Bess::Renderer2D::Vulkan {
             float xOff = (charInfo.offset.x + charInfo.size.x / 2.f) * scale;
             float yOff = (charInfo.offset.y + charInfo.size.y / 2.f) * scale;
 
-            Vulkan::InstanceVertex vertex{};
+            Bess::Vulkan::InstanceVertex vertex{};
             vertex.position = {charPos.x + xOff, charPos.y - yOff, pos.z};
             vertex.size = size_;
             vertex.angle = angle;
@@ -284,7 +284,7 @@ namespace Bess::Renderer2D::Vulkan {
 
     void PrimitiveRenderer::updateUniformBuffer(const GridUniforms &gridUniforms) {
         m_gridPipeline->updateGridUniforms(gridUniforms);
-        Vulkan::TextUniforms textUniforms{};
+        TextUniforms textUniforms{};
         textUniforms.pxRange = 4.0f;
         updateTextUniforms(textUniforms);
     }

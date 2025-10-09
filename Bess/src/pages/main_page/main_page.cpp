@@ -2,7 +2,7 @@
 #include "asset_manager/asset_manager.h"
 #include "events/application_event.h"
 #include "pages/page_identifier.h"
-#include "scene/renderer/vulkan/vulkan_core.h"
+#include "vulkan_core.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
 #include "types.h"
@@ -36,7 +36,7 @@ namespace Bess::Pages {
             parentWindow->createWindowSurface(instance, surface);
         };
 
-        auto &instance = Renderer2D::VulkanCore::instance();
+        auto &instance = Bess::Vulkan::VulkanCore::instance();
         instance.init(extensions, createSurface, extent);
 
         m_state = MainPageState::getInstance();
@@ -51,7 +51,7 @@ namespace Bess::Pages {
 
     void MainPage::destory() {
         BESS_INFO("[MainPage] Destroying");
-        auto &instance = Renderer2D::VulkanCore::instance();
+        auto &instance = Bess::Vulkan::VulkanCore::instance();
         instance.cleanup([&]() {
             m_scene->destroy();
             Assets::AssetManager::instance().clear();

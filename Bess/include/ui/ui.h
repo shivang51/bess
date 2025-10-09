@@ -1,5 +1,5 @@
 #pragma once
-#include "scene/renderer/vulkan/device.h"
+#include "device.h"
 #include <memory>
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
@@ -15,7 +15,7 @@ namespace Bess::UI {
 
     void drawStats(int fps);
 
-    void vulkanCleanup(std::shared_ptr<Renderer2D::Vulkan::VulkanDevice> device);
+    void vulkanCleanup(std::shared_ptr<Vulkan::VulkanDevice> device);
     void shutdown();
     void loadFontAndSetScale(float fontSize, float scale);
     void setCursorPointer();

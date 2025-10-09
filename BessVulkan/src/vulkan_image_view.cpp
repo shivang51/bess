@@ -1,10 +1,10 @@
-#include "scene/renderer/vulkan/vulkan_image_view.h"
+#include "vulkan_image_view.h"
 #include "imgui_impl_vulkan.h"
 #include <array>
 #include <stdexcept>
 #include <vulkan/vulkan_core.h>
 
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Vulkan {
 
     VulkanImageView::VulkanImageView(const std::shared_ptr<VulkanDevice> &device,
                                      VkFormat format,
@@ -705,4 +705,4 @@ namespace Bess::Renderer2D::Vulkan {
             throw std::runtime_error("Failed to create MSAA picking image view!");
         }
     }
-} // namespace Bess::Renderer2D::Vulkan
+} // namespace Bess::Vulkan

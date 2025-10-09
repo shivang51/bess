@@ -3,15 +3,15 @@
 #include "assets.h"
 #include "common/log.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
-#include "scene/renderer/vulkan/primitive_vertex.h"
-#include "scene/renderer/vulkan/vulkan_texture.h"
+#include "primitive_vertex.h"
+#include "vulkan_texture.h"
 #include <algorithm>
 #include <array>
 #include <cstring>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-namespace Bess::Renderer2D::Vulkan::Pipelines {
+namespace Bess::Vulkan::Pipelines {
 
     constexpr uint32_t instanceLimit = 10000;
     TextPipeline::TextPipeline(const std::shared_ptr<VulkanDevice> &device,
@@ -230,7 +230,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         }
     }
 
-    constexpr size_t maxFrames = VulkanCore::MAX_FRAMES_IN_FLIGHT;
+    constexpr size_t maxFrames = Bess::Vulkan::VulkanCore::MAX_FRAMES_IN_FLIGHT;
 
     void TextPipeline::createDescriptorSetLayout() {
         VkDescriptorSetLayoutBinding uboLayoutBinding{};
@@ -667,4 +667,4 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         }
     }
 
-} // namespace Bess::Renderer2D::Vulkan::Pipelines
+} // namespace Bess::Vulkan::Pipelines

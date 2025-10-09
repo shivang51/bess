@@ -8,6 +8,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
+using namespace Bess::Vulkan;
 namespace Bess::Renderer2D::Vulkan {
 
     // Path-related structures from the old GL renderer

@@ -1,9 +1,9 @@
 #include "scene/renderer/vulkan/pipelines/quad_pipeline.h"
 #include "common/log.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
-#include "scene/renderer/vulkan/primitive_vertex.h"
-#include "scene/renderer/vulkan/vulkan_core.h"
-#include "scene/renderer/vulkan/vulkan_texture.h"
+#include "primitive_vertex.h"
+#include "vulkan_core.h"
+#include "vulkan_texture.h"
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -12,7 +12,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-namespace Bess::Renderer2D::Vulkan::Pipelines {
+namespace Bess::Vulkan::Pipelines {
 
     constexpr uint32_t instanceLimit = 10000;
 
@@ -91,10 +91,10 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         auto flush = [&](std::vector<QuadInstance> &instances, VkDeviceSize bufferOffset = 0) {
             if (instances.empty())
                 return;
-
+            
             size_t remaining = instances.size();
             size_t offset = 0;
-
+            
             while (remaining > 0) {
                 size_t batchSize = std::min(remaining, (size_t)instanceLimit);
                 auto span = std::span(instances.begin() + offset, instances.begin() + offset + batchSize);
@@ -475,7 +475,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         m_buffers.instanceCapacity = instanceCount;
     }
 
-    constexpr size_t maxFrames = VulkanCore::MAX_FRAMES_IN_FLIGHT;
+    constexpr size_t maxFrames = Bess::Vulkan::VulkanCore::MAX_FRAMES_IN_FLIGHT;
     void QuadPipeline::createDescriptorPool() {
         Pipeline::createDescriptorPool();
 
@@ -524,4 +524,4 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             throw std::runtime_error("Failed to create texture array descriptor set");
         }
     }
-} // namespace Bess::Renderer2D::Vulkan::Pipelines
+} // namespace Bess::Vulkan::Pipelines

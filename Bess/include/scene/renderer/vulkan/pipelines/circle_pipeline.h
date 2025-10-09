@@ -1,12 +1,12 @@
 #pragma once
 
 #include "pipeline.h"
-#include "scene/renderer/vulkan/primitive_vertex.h"
+#include "primitive_vertex.h"
 #include <memory>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-namespace Bess::Renderer2D::Vulkan::Pipelines {
+namespace Bess::Vulkan::Pipelines {
 
     class CirclePipeline : public Pipeline {
       public:
@@ -41,4 +41,4 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         std::vector<CircleInstance> m_translucentInstances;
     };
 
-} // namespace Bess::Renderer2D::Vulkan::Pipelines
+} // namespace Bess::Vulkan::Pipelines

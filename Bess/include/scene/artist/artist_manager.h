@@ -14,8 +14,8 @@ namespace Bess::Canvas {
 
     class ArtistManager {
       public:
-        ArtistManager(const std::shared_ptr<Renderer2D::Vulkan::VulkanDevice> &device,
-                      const std::shared_ptr<Renderer2D::Vulkan::VulkanOffscreenRenderPass> &renderPass,
+        ArtistManager(const std::shared_ptr<Vulkan::VulkanDevice> &device,
+                      const std::shared_ptr<Vulkan::VulkanOffscreenRenderPass> &renderPass,
                       VkExtent2D extent);
         ~ArtistManager();
 

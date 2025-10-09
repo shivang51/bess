@@ -5,7 +5,7 @@
 #include <memory>
 #include <vulkan/vulkan.h>
 
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Vulkan {
     class VulkanSwapchain;
     class VulkanCommandBuffer;
 
@@ -38,4 +38,4 @@ namespace Bess::Renderer2D::Vulkan {
         VkRenderPass m_renderPass = VK_NULL_HANDLE;
     };
 
-} // namespace Bess::Renderer2D::Vulkan
+} // namespace Bess::Vulkan

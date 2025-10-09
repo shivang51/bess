@@ -1,9 +1,9 @@
-#include "scene/renderer/vulkan/vulkan_shader.h"
-#include "scene/renderer/vulkan/device.h"
+#include "vulkan_shader.h"
+#include "device.h"
 #include <fstream>
 #include <stdexcept>
 
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Vulkan {
 
     VulkanShader::VulkanShader(VulkanDevice &device, const std::string &vertPath, const std::string &fragPath)
         : m_device(device) {
@@ -81,4 +81,4 @@ namespace Bess::Renderer2D::Vulkan {
         return buffer;
     }
 
-} // namespace Bess::Renderer2D::Vulkan
+} // namespace Bess::Vulkan
