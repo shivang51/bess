@@ -35,7 +35,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
       private:
         void createGraphicsPipeline() override;
-        void ensureTextBuffers();
+        void createTextBuffers();
         void ensureTextInstanceCapacity(size_t instanceCount);
         void createTextUniformBuffers();
 

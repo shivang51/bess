@@ -1,6 +1,7 @@
 #include "scene/renderer/vulkan/pipelines/path_pipeline.h"
 #include "common/log.h"
 #include "scene/renderer/vulkan/device.h"
+#include "scene/renderer/vulkan/pipelines/pipeline.h"
 #include "scene/renderer/vulkan/primitive_vertex.h"
 #include "scene/renderer/vulkan/vulkan_offscreen_render_pass.h"
 #include <array>
@@ -19,9 +20,11 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         createVertexBuffer();
         createIndexBuffer();
         createUniformBuffers();
+
         createDescriptorSetLayout();
         createDescriptorPool();
         createDescriptorSets();
+
         createGraphicsPipeline();
     }
 
@@ -166,7 +169,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             }
         }
 
-        // Clean up vertex buffers
         for (size_t i = 0; i < m_vertexBuffers.size(); i++) {
             if (m_vertexBuffers[i] != VK_NULL_HANDLE) {
                 vkDestroyBuffer(m_device->device(), m_vertexBuffers[i], nullptr);
@@ -176,7 +178,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             }
         }
 
-        // Clean up index buffers
         for (size_t i = 0; i < m_indexBuffers.size(); i++) {
             if (m_indexBuffers[i] != VK_NULL_HANDLE) {
                 vkDestroyBuffer(m_device->device(), m_indexBuffers[i], nullptr);
@@ -186,31 +187,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             }
         }
 
-        // Clean up base pipeline resources
-        if (m_pipeline != VK_NULL_HANDLE) {
-            vkDestroyPipeline(m_device->device(), m_pipeline, nullptr);
-            m_pipeline = VK_NULL_HANDLE;
-        }
-        if (m_pipelineLayout != VK_NULL_HANDLE) {
-            vkDestroyPipelineLayout(m_device->device(), m_pipelineLayout, nullptr);
-            m_pipelineLayout = VK_NULL_HANDLE;
-        }
-        if (m_descriptorSetLayout != VK_NULL_HANDLE) {
-            vkDestroyDescriptorSetLayout(m_device->device(), m_descriptorSetLayout, nullptr);
-            m_descriptorSetLayout = VK_NULL_HANDLE;
-        }
-        if (m_descriptorPool != VK_NULL_HANDLE) {
-            vkDestroyDescriptorPool(m_device->device(), m_descriptorPool, nullptr);
-            m_descriptorPool = VK_NULL_HANDLE;
-        }
-        for (size_t i = 0; i < m_uniformBuffers.size(); i++) {
-            if (m_uniformBuffers[i] != VK_NULL_HANDLE) {
-                vkDestroyBuffer(m_device->device(), m_uniformBuffers[i], nullptr);
-            }
-            if (m_uniformBufferMemory[i] != VK_NULL_HANDLE) {
-                vkFreeMemory(m_device->device(), m_uniformBufferMemory[i], nullptr);
-            }
-        }
+        Pipeline::cleanup();
     }
 
     void PathPipeline::createGraphicsPipeline() {
@@ -380,10 +357,6 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         }
 
         m_currentIndexCapacity = 2000;
-    }
-
-    void PathPipeline::createUniformBuffers() {
-        Pipeline::createUniformBuffers();
     }
 
     void PathPipeline::createDescriptorSetLayout() {

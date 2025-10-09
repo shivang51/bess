@@ -16,16 +16,20 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
                                VkExtent2D extent)
         : Pipeline(device, renderPass, extent) {
 
-        createDescriptorPool();
-        createDescriptorSets();
-
         if (!m_fallbackTexture) {
             uint32_t white = 0xFFFFFFFF;
             m_fallbackTexture = std::make_unique<VulkanTexture>(m_device, 1, 1, VK_FORMAT_R8G8B8A8_UNORM, &white);
         }
 
-        ensureQuadBuffers();
+        createQuadBuffers();
+        createUniformBuffers();
+
+        createDescriptorSetLayout();
+        createDescriptorPool();
+        createDescriptorSets();
+
         createGraphicsPipeline();
+
         ensureQuadInstanceCapacity(10000);
     }
 
@@ -357,7 +361,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         vkDestroyShaderModule(m_device->device(), vertShaderModule, nullptr);
     }
 
-    void QuadPipeline::ensureQuadBuffers() {
+    void QuadPipeline::createQuadBuffers() {
         if (m_buffers.vertexBuffer != VK_NULL_HANDLE)
             return;
 

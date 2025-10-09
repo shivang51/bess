@@ -24,13 +24,13 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         void endPipeline() override;
 
         void setCirclesData(const std::vector<CircleInstance> &opaque,
-                           const std::vector<CircleInstance> &translucent);
+                            const std::vector<CircleInstance> &translucent);
 
         void cleanup() override;
 
       private:
-        void createGraphicsPipeline();
-        void ensureCircleBuffers();
+        void createGraphicsPipeline() override;
+        void createCircleBuffers();
         void ensureCircleInstanceCapacity(size_t instanceCount);
 
         void createDescriptorPool() override;

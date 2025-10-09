@@ -30,10 +30,9 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         void cleanup() override;
 
       private:
-        void createGraphicsPipeline();
+        void createGraphicsPipeline() override;
         void createVertexBuffer();
         void createIndexBuffer();
-        void createUniformBuffers();
         void createDescriptorSetLayout() override;
         void createDescriptorPool() override;
         void createDescriptorSets() override;

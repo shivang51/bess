@@ -14,9 +14,13 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
                                    VkExtent2D extent)
         : Pipeline(device, renderPass, extent) {
 
+        createCircleBuffers();
+        createUniformBuffers();
+
+        createDescriptorSetLayout();
         createDescriptorPool();
         createDescriptorSets();
-        ensureCircleBuffers();
+
         createGraphicsPipeline();
 
         ensureCircleInstanceCapacity(10000);
@@ -289,7 +293,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         vkDestroyShaderModule(m_device->device(), vertShaderModule, nullptr);
     }
 
-    void CirclePipeline::ensureCircleBuffers() {
+    void CirclePipeline::createCircleBuffers() {
         // Create local circle vertex data (quad for circle rendering)
         std::vector<float> local = {
             -0.5f, -0.5f, 0.0f, 0.0f, // bottom-left

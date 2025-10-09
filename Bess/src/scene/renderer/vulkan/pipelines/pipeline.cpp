@@ -10,9 +10,37 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
                        const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
                        VkExtent2D extent)
         : m_device(device), m_renderPass(renderPass), m_extent(extent) {
-        createDescriptorSetLayout();
-        createDescriptorPool();
-        createUniformBuffers();
+    }
+
+    void Pipeline::cleanup() {
+        for (size_t i = 0; i < m_uniformBuffers.size(); i++) {
+            if (m_uniformBuffers[i] != VK_NULL_HANDLE) {
+                vkDestroyBuffer(m_device->device(), m_uniformBuffers[i], nullptr);
+            }
+            if (m_uniformBufferMemory[i] != VK_NULL_HANDLE) {
+                vkFreeMemory(m_device->device(), m_uniformBufferMemory[i], nullptr);
+            }
+        }
+
+        if (m_descriptorSetLayout != VK_NULL_HANDLE) {
+            vkDestroyDescriptorSetLayout(m_device->device(), m_descriptorSetLayout, nullptr);
+            m_descriptorSetLayout = VK_NULL_HANDLE;
+        }
+
+        if (m_descriptorPool != VK_NULL_HANDLE) {
+            vkDestroyDescriptorPool(m_device->device(), m_descriptorPool, nullptr);
+            m_descriptorPool = VK_NULL_HANDLE;
+        }
+
+        if (m_pipeline != VK_NULL_HANDLE) {
+            vkDestroyPipeline(m_device->device(), m_pipeline, nullptr);
+            m_pipeline = VK_NULL_HANDLE;
+        }
+
+        if (m_pipelineLayout != VK_NULL_HANDLE) {
+            vkDestroyPipelineLayout(m_device->device(), m_pipelineLayout, nullptr);
+            m_pipelineLayout = VK_NULL_HANDLE;
+        }
     }
 
     Pipeline::Pipeline(Pipeline &&other) noexcept

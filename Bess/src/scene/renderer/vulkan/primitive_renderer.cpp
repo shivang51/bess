@@ -312,10 +312,14 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void PrimitiveRenderer::resize(VkExtent2D extent) {
-        m_circlePipeline->resize(extent);
-        m_textPipeline->resize(extent);
-        m_gridPipeline->resize(extent);
-        m_quadPipeline->resize(extent);
+        if (m_circlePipeline)
+            m_circlePipeline->resize(extent);
+        if (m_textPipeline)
+            m_textPipeline->resize(extent);
+        if (m_gridPipeline)
+            m_gridPipeline->resize(extent);
+        if (m_quadPipeline)
+            m_quadPipeline->resize(extent);
     }
 
     glm::vec2 PrimitiveRenderer::getMSDFTextRenderSize(const std::string &str, float renderSize) {

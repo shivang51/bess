@@ -38,7 +38,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
 
       private:
         void createGraphicsPipeline();
-        void ensureQuadBuffers();
+        void createQuadBuffers();
         void ensureQuadInstanceCapacity(size_t instanceCount);
 
         void createDescriptorPool() override;

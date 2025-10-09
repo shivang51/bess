@@ -34,7 +34,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         // Pure virtual functions that each pipeline must implement
         virtual void beginPipeline(VkCommandBuffer commandBuffer) = 0;
         virtual void endPipeline() = 0;
-        virtual void cleanup() = 0;
+        virtual void cleanup();
         virtual void createGraphicsPipeline() = 0;
 
         void resize(VkExtent2D extent);

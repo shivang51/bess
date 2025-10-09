@@ -18,8 +18,12 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
                                VkExtent2D extent)
         : Pipeline(device, renderPass, extent) {
 
-        createDescriptorPool();
+        createTextBuffers();
         createTextUniformBuffers();
+        createUniformBuffers();
+
+        createDescriptorSetLayout();
+        createDescriptorPool();
         createDescriptorSets();
 
         if (!m_fallbackTexture) {
@@ -27,8 +31,9 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             m_fallbackTexture = std::make_unique<VulkanTexture>(m_device, 1, 1, VK_FORMAT_R8G8B8A8_UNORM, &white);
         }
 
-        ensureTextBuffers();
         createGraphicsPipeline();
+
+        ensureTextInstanceCapacity(10000);
     }
 
     TextPipeline::~TextPipeline() {
@@ -428,7 +433,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         vkDestroyShaderModule(m_device->device(), vertShaderModule, nullptr);
     }
 
-    void TextPipeline::ensureTextBuffers() {
+    void TextPipeline::createTextBuffers() {
         // Create local quad vertex data
         std::vector<float> local = {
             -0.5f, -0.5f, 0.0f, 0.0f, // bottom-left

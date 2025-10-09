@@ -10,9 +10,14 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
                                VkExtent2D extent)
         : Pipeline(device, renderPass, extent) {
         createGridUniformBuffers();
-        createDescriptorSets(); // Create descriptor sets after uniform buffers are ready
+        createUniformBuffers();
         createVertexBuffer();
         createIndexBuffer();
+
+        createDescriptorSetLayout();
+        createDescriptorPool();
+        createDescriptorSets();
+
         createGraphicsPipeline();
     }
 
