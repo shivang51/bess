@@ -51,10 +51,10 @@ namespace Bess::Pages {
 
     void MainPage::destory() {
         BESS_INFO("[MainPage] Destroying");
-        Assets::AssetManager::instance().clear();
         auto &instance = Renderer2D::VulkanCore::instance();
         instance.cleanup([&]() {
             m_scene->destroy();
+            Assets::AssetManager::instance().clear();
             UI::vulkanCleanup(instance.getDevice());
         });
         BESS_INFO("[MainPage] Destroyed");
