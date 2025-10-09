@@ -114,6 +114,7 @@ namespace Bess::Canvas {
         for (auto &fence : m_fences) {
             vkWaitForFences(m_device->device(), 1, &fence, VK_TRUE, UINT64_MAX);
             vkResetFences(m_device->device(), 1, &fence);
+            vkDestroyFence(m_device->device(), fence, nullptr);
         }
     }
 
