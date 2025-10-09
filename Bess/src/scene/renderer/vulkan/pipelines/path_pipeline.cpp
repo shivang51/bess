@@ -137,6 +137,10 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             vkCmdDrawIndexed(m_currentCommandBuffer, static_cast<uint32_t>(m_strokeIndices.size()), 1, 0, 0, 0);
         }
 
+        m_fillVertices.clear();
+        m_fillIndices.clear();
+        m_strokeVertices.clear();
+        m_strokeIndices.clear();
         m_currentCommandBuffer = VK_NULL_HANDLE;
     }
 

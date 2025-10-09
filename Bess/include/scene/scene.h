@@ -64,8 +64,6 @@ namespace Bess::Canvas {
         std::shared_ptr<Camera> getCamera();
 
         void drawSceneToViewport(const std::shared_ptr<Viewport> &viewport);
-        void beginScene() const;
-        void endScene() const;
 
         void setLastCreatedComp(LastCreatedComponent comp);
 

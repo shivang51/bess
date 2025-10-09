@@ -202,9 +202,17 @@ namespace Bess::Canvas {
         } break;
         }
 
-        beginScene();
+        auto &inst = Renderer2D::VulkanCore::instance();
+
+        auto artistManager = viewport->getArtistManager();
+        artistManager->setSchematicMode(m_isSchematicView);
+        viewport->begin(inst.getCurrentFrameIdx(), ViewportTheme::colors.background, -1);
         drawSceneToViewport(viewport);
-        endScene();
+
+        viewport->end();
+        viewport->submit();
+
+        inst.endOffscreenRender();
     }
 
     void Scene::render() {
@@ -1035,18 +1043,6 @@ namespace Bess::Canvas {
             dPos *= 10 / m_camera->getZoom() * -1;
             m_camera->incrementPos(dPos);
         }
-    }
-
-    void Scene::beginScene() const {
-        auto &inst = Renderer2D::VulkanCore::instance();
-        m_viewport->begin(inst.getCurrentFrameIdx(), ViewportTheme::colors.background, -1);
-    }
-
-    void Scene::endScene() const {
-        m_viewport->end();
-        auto &inst = Renderer2D::VulkanCore::instance();
-        inst.endOffscreenRender();
-        m_viewport->submit();
     }
 
     void Scene::saveScenePNG(const std::string &path) const {
