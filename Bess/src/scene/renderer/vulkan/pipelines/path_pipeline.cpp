@@ -3,6 +3,7 @@
 #include "scene/renderer/vulkan/device.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
 #include "scene/renderer/vulkan/primitive_vertex.h"
+#include "scene/renderer/vulkan/vulkan_core.h"
 #include "scene/renderer/vulkan/vulkan_offscreen_render_pass.h"
 #include <array>
 #include <cstdint>
@@ -10,7 +11,7 @@
 
 namespace Bess::Renderer2D::Vulkan::Pipelines {
 
-    constexpr size_t maxFrames = 2;
+    constexpr size_t maxFrames = VulkanCore::MAX_FRAMES_IN_FLIGHT;
 
     PathPipeline::PathPipeline(const std::shared_ptr<VulkanDevice> &device,
                                const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,

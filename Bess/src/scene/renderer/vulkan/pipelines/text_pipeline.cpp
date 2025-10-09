@@ -213,7 +213,7 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
         }
     }
 
-    constexpr size_t maxFrames = 2;
+    constexpr size_t maxFrames = VulkanCore::MAX_FRAMES_IN_FLIGHT;
 
     void TextPipeline::createDescriptorSetLayout() {
         VkDescriptorSetLayoutBinding uboLayoutBinding{};

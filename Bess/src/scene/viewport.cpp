@@ -2,6 +2,7 @@
 #include "common/log.h"
 #include "scene/artist/nodes_artist.h"
 #include "scene/artist/schematic_artist.h"
+#include "scene/renderer/vulkan/vulkan_core.h"
 #include "scene/scene.h"
 #include <cstdint>
 #include <memory>
@@ -9,12 +10,12 @@
 
 namespace Bess::Canvas {
 
-    constexpr int framesInFlight = 2;
+    constexpr size_t maxFrames = Renderer2D::VulkanCore::MAX_FRAMES_IN_FLIGHT;
 
     Viewport::Viewport(const std::shared_ptr<Vulkan::VulkanDevice> &device, VkFormat imgFormat, VkExtent2D size)
         : m_device(device), m_imgFormat(imgFormat), m_size(size) {
 
-        m_cmdBuffers = std::make_unique<Vulkan::VulkanCommandBuffers>(m_device, framesInFlight);
+        m_cmdBuffers = std::make_unique<Vulkan::VulkanCommandBuffers>(m_device, maxFrames);
 
         m_camera = std::make_shared<Camera>(size.width, size.height);
 
@@ -24,7 +25,7 @@ namespace Bess::Canvas {
         m_imgView->createFramebuffer(m_renderPass->getVkHandle());
 
         createPickingResources();
-        createFences(framesInFlight);
+        createFences(maxFrames);
 
         m_mousePickingData = {};
         m_mousePickingData.ids = {-1};
