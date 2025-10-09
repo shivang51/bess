@@ -88,24 +88,24 @@ namespace Bess::Renderer2D::Vulkan::Pipelines {
             vkCmdDrawIndexed(m_currentCommandBuffer, 6, static_cast<uint32_t>(instances.size()), 0, 0, 0);
         };
 
-        auto flush = [&](std::vector<QuadInstance> &instances, size_t initialOffset = 0) {
-            long offsetIdx = (long)initialOffset;
-            uint64_t size = instances.size();
-            while (size > instanceLimit) {
-                auto span = std::span(instances.begin() + offsetIdx, instances.begin() + offsetIdx + instanceLimit);
-                draw(span, offsetIdx * sizeof(QuadInstance));
-                offsetIdx += instanceLimit;
-                size -= instanceLimit;
-            }
+        auto flush = [&](std::vector<QuadInstance> &instances, VkDeviceSize bufferOffset = 0) {
+            if (instances.empty())
+                return;
 
-            if (size != 0) {
-                auto span = std::span(instances.begin() + offsetIdx, instances.end());
-                draw(span, offsetIdx * sizeof(QuadInstance));
+            size_t remaining = instances.size();
+            size_t offset = 0;
+
+            while (remaining > 0) {
+                size_t batchSize = std::min(remaining, (size_t)instanceLimit);
+                auto span = std::span(instances.begin() + offset, instances.begin() + offset + batchSize);
+                draw(span, bufferOffset + (offset * sizeof(QuadInstance)));
+                offset += batchSize;
+                remaining -= batchSize;
             }
         };
 
-        flush(m_opaqueInstances);
-        flush(m_translucentInstances, m_opaqueInstances.size());
+        flush(m_opaqueInstances, 0);
+        flush(m_translucentInstances, m_opaqueInstances.size() * sizeof(QuadInstance));
         m_opaqueInstances.clear();
         m_translucentInstances.clear();
 
