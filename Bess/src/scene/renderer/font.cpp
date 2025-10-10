@@ -34,6 +34,7 @@ namespace Bess::Renderer::Font {
         m_max = glyphMax;
 
         m_glyphsTable.resize(glyphMax - glyphMin + 1);
+        m_glyphExtractor.setPixelSize((int)fontSize);
 
         BESS_INFO("[FontFile] Reserved lookup table for {} glyphs", m_glyphsTable.size());
     }

@@ -1,4 +1,5 @@
 #include "scene/renderer/vulkan/path_renderer.h"
+#include "common/log.h"
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm.hpp"
 #include "gtx/vector_angle.hpp"
@@ -50,6 +51,7 @@ namespace Bess::Renderer2D::Vulkan {
 
     void PathRenderer::beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, uint64_t id) {
         m_pathData.ended = false;
+        m_pathData.startPos = startPos;
         m_pathData.currentPos = startPos;
         m_pathData.points.emplace_back(PathPoint{startPos, weight, id});
         m_pathData.color = color;
@@ -62,6 +64,15 @@ namespace Bess::Renderer2D::Vulkan {
         if (!m_pathData.points.empty()) {
             m_pathData.contours.emplace_back(std::move(m_pathData.points));
             m_pathData.points.clear();
+        }
+
+        // auto transform = glm::translate(glm::mat4(1.f), {m_pathData.startPos.x, m_pathData.startPos.y, m_pathData.startPos.y});
+        // transform = glm::scale(transform, {20.f / 48.f, 20.f / 48.f, 1.f});
+        //
+        for (auto &points : m_pathData.contours) {
+            for (auto &p : points) {
+                p.pos += m_pathData.startPos;
+            }
         }
 
         if (genStroke) {

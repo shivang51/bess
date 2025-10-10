@@ -52,7 +52,8 @@ namespace Bess::Renderer::Font {
 
     class GlyphExtractor {
       public:
-        explicit GlyphExtractor(const std::string &fontPath);
+        GlyphExtractor() = default;
+        GlyphExtractor(const std::string &fontPath);
         ~GlyphExtractor();
 
         size_t getGlyphsCount();

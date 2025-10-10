@@ -24,6 +24,7 @@ namespace Bess::Renderer2D::Vulkan {
         bool ended = true;
         glm::vec4 color = glm::vec4(1.f);
         glm::vec3 currentPos;
+        glm::vec3 startPos;
         std::vector<PathPoint> points;
         std::vector<std::vector<PathPoint>> contours;
 
