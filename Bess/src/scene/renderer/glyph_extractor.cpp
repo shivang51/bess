@@ -1,9 +1,12 @@
 #include "scene/renderer/glyph_extractor.h"
+#include "common/log.h"
+#include "freetype/freetype.h"
+#include <cassert>
 #include <iostream>
 
 namespace Bess::Renderer::Font {
     struct GlyphExtractor::OutlineCollector {
-        GlyphPath *out;
+        CharacterPath *out;
         float yFlip;
 
         Vec2 toPx(const FT_Vector &v) const {
@@ -59,15 +62,39 @@ namespace Bess::Renderer::Font {
 
     GlyphExtractor::GlyphExtractor(const std::string &fontPath) {
         if (FT_Init_FreeType(&m_ft)) {
-            std::cerr << "Failed to init FreeType\n";
+            BESS_ERROR("[GlyphExtractor] Failed to init FreeType");
             return;
         }
 
         if (FT_New_Face(m_ft, fontPath.c_str(), 0, &m_face)) {
-            std::cerr << "Failed to load font: " << fontPath << "\n";
+            BESS_ERROR("[GlyphExtractor] Failed to load font: {}", fontPath);
             FT_Done_FreeType(m_ft);
+            assert(false);
             m_ft = nullptr;
             return;
+        }
+
+        bool setCharmapOk = false;
+        if (FT_Select_Charmap(m_face, FT_ENCODING_UNICODE) == 0) {
+            setCharmapOk = true;
+        } else {
+            for (int i = 0; i < m_face->num_charmaps; ++i) {
+                FT_CharMap cmap = m_face->charmaps[i];
+                if (cmap->platform_id == 3 && cmap->encoding_id == 0) { // Symbol
+                    FT_Set_Charmap(m_face, cmap);
+                    setCharmapOk = true;
+                    break;
+                }
+            }
+        }
+
+        printf("Selected charmap: platform_id=%d, encoding_id=%d, encoding=0x%x\n",
+               m_face->charmap->platform_id,
+               m_face->charmap->encoding_id,
+               m_face->charmap->encoding);
+
+        if (setCharmapOk) {
+            BESS_INFO("[GlyphExtractor] Found unicodes in font file {}", fontPath);
         }
     }
 
@@ -78,21 +105,49 @@ namespace Bess::Renderer::Font {
             FT_Done_FreeType(m_ft);
     }
 
-    bool GlyphExtractor::setPixelSize(int pixelHeight, unsigned dpi) {
+    bool GlyphExtractor::setPixelSize(int pixelHeight) {
         if (!m_face)
             return false;
-        return FT_Set_Char_Size(m_face, 0, pixelHeight * 64, dpi, dpi) == 0;
+        return FT_Set_Pixel_Sizes(m_face, 0, pixelHeight) == 0;
     }
 
-    bool GlyphExtractor::extractGlyph(char32_t codepoint, GlyphPath &out, bool yDown) {
+    static constexpr char32_t decodeSingleUTF8(std::string_view utf8) {
+        const unsigned char *s = reinterpret_cast<const unsigned char *>(utf8.data());
+        if (utf8.empty())
+            return U'\0';
+
+        if (s[0] < 0x80) // 1-byte ASCII
+            return s[0];
+        else if ((s[0] & 0xE0) == 0xC0) // 2-byte
+            return ((s[0] & 0x1F) << 6) | (s[1] & 0x3F);
+        else if ((s[0] & 0xF0) == 0xE0) // 3-byte
+            return ((s[0] & 0x0F) << 12) |
+                   ((s[1] & 0x3F) << 6) |
+                   (s[2] & 0x3F);
+        else if ((s[0] & 0xF8) == 0xF0) // 4-byte
+            return ((s[0] & 0x07) << 18) |
+                   ((s[1] & 0x3F) << 12) |
+                   ((s[2] & 0x3F) << 6) |
+                   (s[3] & 0x3F);
+
+        return U'\0'; // invalid input
+    }
+
+    bool GlyphExtractor::extractGlyph(const char *codepoint, CharacterPath &out, bool yDown) {
+        return extractGlyph(decodeSingleUTF8(codepoint), out, yDown);
+    }
+
+    bool GlyphExtractor::extractGlyph(char32_t codepoint, CharacterPath &out, bool yDown) {
         if (!m_face)
             return false;
 
         unsigned glyphIndex = FT_Get_Char_Index(m_face, codepoint);
-        if (!glyphIndex)
+        if (!glyphIndex) {
+            BESS_WARN("[GlyphExtractor] Glyph index was not found for {}", (size_t)codepoint);
             return false;
+        }
 
-        FT_Int32 flags = FT_LOAD_NO_BITMAP | FT_LOAD_NO_HINTING;
+        constexpr FT_Int32 flags = FT_LOAD_NO_BITMAP | FT_LOAD_NO_HINTING;
         if (FT_Load_Glyph(m_face, glyphIndex, flags))
             return false;
         if (m_face->glyph->format != FT_GLYPH_FORMAT_OUTLINE)

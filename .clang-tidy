@@ -34,6 +34,7 @@ Checks: >
   -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
   -cppcoreguidelines-pro-type-cstyle-cast,
   -readability-else-after-return,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
   -readability-redundant-access-specifiers
 
 

@@ -286,7 +286,6 @@ namespace Bess::Renderer2D::Vulkan {
         if (contours.empty())
             return out;
 
-        // ---- Build bbox for UVs across all contours ----
         glm::vec2 minPt(std::numeric_limits<float>::max());
         glm::vec2 maxPt(-std::numeric_limits<float>::max());
         for (const auto &c : contours) {
@@ -302,13 +301,10 @@ namespace Bess::Renderer2D::Vulkan {
             return (p - minPt) / size;
         };
 
-        // ---- Create tessellator ----
         TESStesselator *tess = tessNewTess(nullptr);
         if (!tess)
             return out;
 
-        // ---- Feed contours ----
-        // libtess2 default TESSreal is float; use float coordinates.
         for (const auto &c : contours) {
             if (c.size() < 3)
                 continue;
@@ -318,14 +314,12 @@ namespace Bess::Renderer2D::Vulkan {
                 coords.push_back((TESSreal)pt.pos.x);
                 coords.push_back((TESSreal)pt.pos.y);
             }
-            // stride: 2 * sizeof(TESSreal)
             tessAddContour(tess, 2, coords.data(), sizeof(TESSreal) * 2, (int)c.size());
         }
 
-        // ---- Tesselate (Even–Odd winding, triangles) ----
-        const int polySize = 3; // triangles
+        constexpr int polySize = 3;
         if (!tessTesselate(tess,
-                           TESS_WINDING_ODD, // or TESS_WINDING_NONZERO if you prefer
+                           TESS_WINDING_NONZERO,
                            TESS_POLYGONS,
                            polySize, // number of indices per element
                            2,        // vertex size (x,y)
@@ -335,15 +329,12 @@ namespace Bess::Renderer2D::Vulkan {
             return out;
         }
 
-        // ---- Get results ----
         const TESSreal *verts = tessGetVertices(tess);
         const int *vindex = tessGetVertexIndices(tess); // maps tess vertex -> original point index (or -1)
         const int nverts = tessGetVertexCount(tess);
         const int *elems = tessGetElements(tess);
         const int nelems = tessGetElementCount(tess);
 
-        // To recover z/id from original inputs, we need a flattened index map
-        // per contour to global point order. Build a lookup vector 'flatPoints'.
         std::vector<const PathPoint *> flatPoints;
         flatPoints.reserve(1024);
         for (const auto &c : contours)
@@ -351,11 +342,9 @@ namespace Bess::Renderer2D::Vulkan {
                 flatPoints.push_back(&p);
 
         auto makeVertex = [&](int vi) -> CommonVertex {
-            // vi is tess vertex index
             glm::vec3 pos((float)verts[vi * 2 + 0], (float)verts[vi * 2 + 1], 0.0f);
 
-            int mapped = vindex ? vindex[vi] : -1; // original vertex index in concatenated contours
-            // Fallbacks if tess created a new vertex (mapped == -1)
+            int mapped = vindex ? vindex[vi] : -1;
             float z = 0.0f;
             int id = 0;
             if (mapped >= 0 && mapped < (int)flatPoints.size()) {
@@ -375,12 +364,10 @@ namespace Bess::Renderer2D::Vulkan {
             return v;
         };
 
-        // ---- Emit triangles ----
         out.reserve(nelems * 3);
         for (int i = 0; i < nelems; ++i) {
             const int *poly = elems + i * polySize;
 
-            // libtess2 may pad with -1 if not enough verts; we only emit full triangles
             int i0 = poly[0], i1 = poly[1], i2 = poly[2];
             if (i0 < 0 || i1 < 0 || i2 < 0)
                 continue;
@@ -415,7 +402,6 @@ namespace Bess::Renderer2D::Vulkan {
                                                    const glm::vec2 &p1,
                                                    const glm::vec2 &p2,
                                                    const glm::vec2 &p3) {
-        // Simplified calculation - in a real implementation, you'd use viewport size
         glm::vec2 d1 = p0 - 2.0f * p1 + p2;
         glm::vec2 d2 = p1 - 2.0f * p2 + p3;
 

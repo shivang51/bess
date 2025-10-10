@@ -40,7 +40,7 @@ namespace Bess::Renderer::Font {
         };
     };
 
-    struct GlyphPath {
+    struct CharacterPath {
         std::vector<PathCommand> cmds;
         float advanceX = 0.0f;
         float advanceY = 0.0f;
@@ -53,9 +53,10 @@ namespace Bess::Renderer::Font {
 
         bool isValid() const { return m_face != nullptr; }
 
-        bool setPixelSize(int pixelHeight, unsigned dpi = 96);
+        bool setPixelSize(int pixelHeight);
 
-        bool extractGlyph(char32_t codepoint, GlyphPath &out, bool yDown = true);
+        bool extractGlyph(char32_t codepoint, CharacterPath &out, bool yDown = true);
+        bool extractGlyph(const char *codepoint, CharacterPath &out, bool yDown = true);
 
         float ascent() const;
         float descent() const;
