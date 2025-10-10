@@ -1,3 +1,5 @@
+#!/bin/sh
+
 compile ()
 {
 	if [ "$#" -eq 1 ]; then
