@@ -21,6 +21,7 @@
 #include "scene/commands/update_entt_comp_command.h"
 #include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
+#include "scene/renderer/glyph_extractor.h"
 #include "scene/viewport.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
@@ -259,6 +260,43 @@ namespace Bess::Canvas {
                 .axisYColor = ViewportTheme::colors.gridAxisYColor,
             },
             viewport->getCamera());
+
+        {
+            static Renderer::Font::GlyphExtractor font("assets/fonts/Roboto/Roboto-Regular.ttf");
+            static Renderer::Font::GlyphPath glyph;
+            static bool isFirst = true;
+
+            if (isFirst) {
+                font.setPixelSize(48);
+                font.extractGlyph('N', glyph);
+                isFirst = false;
+            }
+
+            auto pathRenderer = viewport->getArtistManager()->getCurrentArtist()->getPathRenderer();
+
+            pathRenderer->beginPathMode(glm::vec3(0.f, 0.f, 1.f), 1.f, glm::vec4(1.f), -1);
+
+            for (auto &c : glyph.cmds) {
+                using Kind = Renderer::Font::PathCommand::Kind;
+                switch (c.kind) {
+                case Kind::Move:
+                    pathRenderer->pathMoveTo(glm::vec3(c.move.p, 1.f));
+                    break;
+                case Kind::Line:
+                    pathRenderer->pathLineTo(glm::vec3(c.line.p, 1.f), 1.f, glm::vec4(1.f), -1);
+                    break;
+                case Kind::Quad:
+                    pathRenderer->pathQuadBeizerTo(glm::vec3(c.quad.p, 1.f), c.quad.c, 1.f, glm::vec4(1.f), -1.f);
+                    break;
+                case Kind::Cubic:
+                    pathRenderer->pathCubicBeizerTo(glm::vec3(c.cubic.p, 1.f), c.cubic.c1, c.cubic.c2, 1.f, glm::vec4(1.f), -1.f);
+                    break;
+                }
+            }
+
+            pathRenderer->endPathMode();
+            // pathRenderer->endPathMode(false, true, glm::vec4(0.5f), true);
+        }
 
         // Connections
         const auto connectionsView = m_registry.view<Components::ConnectionComponent>();

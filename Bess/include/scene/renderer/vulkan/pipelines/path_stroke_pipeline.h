@@ -7,23 +7,22 @@
 
 namespace Bess::Vulkan::Pipelines {
 
-    class PathPipeline : public Pipeline {
+    class PathStrokePipeline : public Pipeline {
       public:
-        PathPipeline(const std::shared_ptr<VulkanDevice> &device,
-                     const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
-                     VkExtent2D extent);
-        ~PathPipeline();
+        PathStrokePipeline(const std::shared_ptr<VulkanDevice> &device,
+                           const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
+                           VkExtent2D extent);
+        ~PathStrokePipeline();
 
-        PathPipeline(const PathPipeline &) = delete;
-        PathPipeline &operator=(const PathPipeline &) = delete;
-        PathPipeline(PathPipeline &&other) noexcept;
-        PathPipeline &operator=(PathPipeline &&other) noexcept;
+        PathStrokePipeline(const PathStrokePipeline &) = delete;
+        PathStrokePipeline &operator=(const PathStrokePipeline &) = delete;
+        PathStrokePipeline(PathStrokePipeline &&other) noexcept;
+        PathStrokePipeline &operator=(PathStrokePipeline &&other) noexcept;
 
         void beginPipeline(VkCommandBuffer commandBuffer) override;
         void endPipeline() override;
 
-        void setPathData(const std::vector<CommonVertex> &strokeVertices, const std::vector<uint32_t> &strokeIndices,
-                         const std::vector<CommonVertex> &fillVertices, const std::vector<uint32_t> &fillIndices);
+        void setPathData(const std::vector<CommonVertex> &strokeVertices, const std::vector<uint32_t> &strokeIndices);
 
         void updateUniformBuffer(const UniformBufferObject &ubo);
 
@@ -42,9 +41,7 @@ namespace Bess::Vulkan::Pipelines {
 
         // Path-specific data
         std::vector<CommonVertex> m_strokeVertices;
-        std::vector<CommonVertex> m_fillVertices;
         std::vector<uint32_t> m_strokeIndices;
-        std::vector<uint32_t> m_fillIndices;
 
         // Buffers for path data
         std::vector<VkBuffer> m_vertexBuffers;

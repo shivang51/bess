@@ -73,11 +73,13 @@ set(Header_Files
 "include/scene/components/non_sim_comp.h"
 "include/scene/renderer/font.h"
 "include/scene/renderer/msdf_font.h"
+"include/scene/renderer/glyph_extractor.h"
         "include/scene/renderer/vulkan/primitive_renderer.h"
         "include/scene/renderer/vulkan/pipelines/pipeline.h"
         "include/scene/renderer/vulkan/pipelines/circle_pipeline.h"
         "include/scene/renderer/vulkan/pipelines/grid_pipeline.h"
-        "include/scene/renderer/vulkan/pipelines/path_pipeline.h"
+        "include/scene/renderer/vulkan/pipelines/path_stroke_pipeline.h"
+        "include/scene/renderer/vulkan/pipelines/path_fill_pipeline.h"
         "include/scene/renderer/vulkan/pipelines/quad_pipeline.h"
         "include/scene/renderer/vulkan/pipelines/text_pipeline.h"
         "include/scene/renderer/vulkan/path_renderer.h"
@@ -131,11 +133,13 @@ set(Source_Files
 "src/scene/artist/artist_manager.cpp"
 "src/scene/renderer/font.cpp"
 "src/scene/renderer/msdf_font.cpp"
+"src/scene/renderer/glyph_extractor.cpp"
 		"src/scene/renderer/vulkan/primitive_renderer.cpp"
 		"src/scene/renderer/vulkan/pipelines/pipeline.cpp"
 		"src/scene/renderer/vulkan/pipelines/circle_pipeline.cpp"
 		"src/scene/renderer/vulkan/pipelines/grid_pipeline.cpp"
-		"src/scene/renderer/vulkan/pipelines/path_pipeline.cpp"
+		"src/scene/renderer/vulkan/pipelines/path_fill_pipeline.cpp"
+		"src/scene/renderer/vulkan/pipelines/path_stroke_pipeline.cpp"
 		"src/scene/renderer/vulkan/pipelines/quad_pipeline.cpp"
 		"src/scene/renderer/vulkan/pipelines/text_pipeline.cpp"
 		"src/scene/renderer/vulkan/path_renderer.cpp"
@@ -209,7 +213,8 @@ if("${BUILD_ARCH}" STREQUAL "x64")
 			"${CMAKE_SOURCE_DIR}/external/stb_image/include"
 			"${CMAKE_SOURCE_DIR}/external/tinyfiledialogs"
 			"${CMAKE_SOURCE_DIR}/external/entt/include"
-			"${CMAKE_SOURCE_DIR}/external/spdlog/include;"
+			"${CMAKE_SOURCE_DIR}/external/spdlog/include"
+			"${CMAKE_SOURCE_DIR}/external/libtess2/Include"
 	)
 endif()
 
@@ -217,8 +222,6 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(GLFW REQUIRED glfw3)
 pkg_check_modules(VULKAN REQUIRED vulkan)
 find_package(X11 REQUIRED)
-
-
 find_package(PNG REQUIRED)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC 
@@ -232,6 +235,17 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 			${VULKAN_INCLUDE_DIRS}
 ${GLFW_INCLUDE_DIRS}
 )
+
+
+file(GLOB libtess2_src
+	"${CMAKE_SOURCE_DIR}/external/libtess2/Source/*.c"
+)
+add_library(libtess2_obj OBJECT ${libtess2_src})
+target_include_directories(libtess2_obj PUBLIC 
+			"${CMAKE_SOURCE_DIR}/external/libtess2/Include"
+)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE $<TARGET_OBJECTS:libtess2_obj>)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)

@@ -2,6 +2,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm.hpp"
 #include "gtx/vector_angle.hpp"
+#include "tesselator.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -13,34 +14,11 @@ namespace Bess::Renderer2D::Vulkan {
                                const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
                                VkExtent2D extent)
         : m_device(device), m_renderPass(renderPass), m_extent(extent) {
-        m_pathPipeline = std::make_unique<Pipelines::PathPipeline>(device, renderPass, extent);
+        m_pathStrokePipeline = std::make_unique<Pipelines::PathStrokePipeline>(device, renderPass, extent);
+        m_pathFillPipeline = std::make_unique<Pipelines::PathFillPipeline>(device, renderPass, extent);
     }
 
     PathRenderer::~PathRenderer() = default;
-
-    PathRenderer::PathRenderer(PathRenderer &&other) noexcept
-        : m_device(std::move(other.m_device)),
-          m_renderPass(std::move(other.m_renderPass)),
-          m_extent(other.m_extent),
-          m_pathPipeline(std::move(other.m_pathPipeline)),
-          m_currentCommandBuffer(other.m_currentCommandBuffer),
-          m_pathData(std::move(other.m_pathData)) {
-        other.m_currentCommandBuffer = VK_NULL_HANDLE;
-    }
-
-    PathRenderer &PathRenderer::operator=(PathRenderer &&other) noexcept {
-        if (this != &other) {
-            m_device = std::move(other.m_device);
-            m_renderPass = std::move(other.m_renderPass);
-            m_extent = other.m_extent;
-            m_pathPipeline = std::move(other.m_pathPipeline);
-            m_currentCommandBuffer = other.m_currentCommandBuffer;
-            m_pathData = std::move(other.m_pathData);
-
-            other.m_currentCommandBuffer = VK_NULL_HANDLE;
-        }
-        return *this;
-    }
 
     void PathRenderer::beginFrame(VkCommandBuffer commandBuffer) {
         m_currentCommandBuffer = commandBuffer;
@@ -51,9 +29,13 @@ namespace Bess::Renderer2D::Vulkan {
             endPathMode();
         }
 
-        m_pathPipeline->beginPipeline(m_currentCommandBuffer);
-        m_pathPipeline->setPathData(m_strokeVertices, m_strokeIndices, m_fillVertices, m_fillIndices);
-        m_pathPipeline->endPipeline();
+        m_pathStrokePipeline->beginPipeline(m_currentCommandBuffer);
+        m_pathStrokePipeline->setPathData(m_strokeVertices, m_strokeIndices);
+        m_pathStrokePipeline->endPipeline();
+
+        m_pathFillPipeline->beginPipeline(m_currentCommandBuffer);
+        m_pathFillPipeline->setPathData(m_fillVertices, m_fillIndices);
+        m_pathFillPipeline->endPipeline();
 
         m_fillVertices.clear();
         m_fillIndices.clear();
@@ -62,7 +44,8 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void PathRenderer::setCurrentFrameIndex(uint32_t frameIndex) {
-        m_pathPipeline->setCurrentFrameIndex(frameIndex);
+        m_pathStrokePipeline->setCurrentFrameIndex(frameIndex);
+        m_pathFillPipeline->setCurrentFrameIndex(frameIndex);
     }
 
     void PathRenderer::beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, uint64_t id) {
@@ -76,20 +59,27 @@ namespace Bess::Renderer2D::Vulkan {
         if (m_pathData.ended)
             return;
 
+        if (!m_pathData.points.empty()) {
+            m_pathData.contours.emplace_back(std::move(m_pathData.points));
+            m_pathData.points.clear();
+        }
+
         if (genStroke) {
-            auto vertices = generateStrokeGeometry(m_pathData.points, m_pathData.color, closePath);
-            auto s = m_strokeVertices.size();
+            for (const auto &points : m_pathData.contours) {
+                auto vertices = generateStrokeGeometry(points, m_pathData.color, closePath);
+                auto s = m_strokeVertices.size();
 
-            m_strokeVertices.insert(m_strokeVertices.end(), vertices.begin(), vertices.end());
+                m_strokeVertices.insert(m_strokeVertices.end(), vertices.begin(), vertices.end());
 
-            for (uint32_t i = s; i < m_strokeVertices.size(); i++) {
-                m_strokeIndices.push_back(i);
+                for (uint32_t i = s; i < m_strokeVertices.size(); i++) {
+                    m_strokeIndices.emplace_back(i);
+                }
+                m_strokeIndices.emplace_back(primitiveResetIndex);
             }
-            m_strokeIndices.emplace_back(primitiveResetIndex);
         }
 
         if (genFill) {
-            auto vertices = generateFillGeometry(m_pathData.points, fillColor);
+            auto vertices = generateFillGeometry(m_pathData.contours, fillColor);
             auto s = m_fillVertices.size();
 
             m_fillVertices.insert(m_fillVertices.end(), vertices.begin(), vertices.end());
@@ -97,7 +87,6 @@ namespace Bess::Renderer2D::Vulkan {
             for (uint32_t i = s; i < m_fillVertices.size(); i++) {
                 m_fillIndices.push_back(i);
             }
-            m_fillIndices.emplace_back(primitiveResetIndex);
         }
 
         m_pathData = {};
@@ -134,7 +123,8 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void PathRenderer::updateUniformBuffer(const UniformBufferObject &ubo) {
-        m_pathPipeline->updateUniformBuffer(ubo);
+        m_pathStrokePipeline->updateUniformBuffer(ubo);
+        m_pathFillPipeline->updateUniformBuffer(ubo);
     }
 
     std::vector<CommonVertex> PathRenderer::generateStrokeGeometry(const std::vector<PathPoint> &points,
@@ -284,108 +274,126 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     std::vector<CommonVertex> PathRenderer::generateFillGeometry(const std::vector<PathPoint> &points, const glm::vec4 &color) {
-        if (points.size() < 3) {
-            return {};
+        std::vector<std::vector<PathPoint>> contours;
+        contours.push_back(points);
+        return generateFillGeometry(contours, color);
+    }
+
+    std::vector<CommonVertex> PathRenderer::generateFillGeometry(
+        const std::vector<std::vector<PathPoint>> &contours,
+        const glm::vec4 &color) {
+        std::vector<CommonVertex> out;
+        if (contours.empty())
+            return out;
+
+        // ---- Build bbox for UVs across all contours ----
+        glm::vec2 minPt(std::numeric_limits<float>::max());
+        glm::vec2 maxPt(-std::numeric_limits<float>::max());
+        for (const auto &c : contours) {
+            for (const auto &p : c) {
+                glm::vec2 v(p.pos.x, p.pos.y);
+                minPt = glm::min(minPt, v);
+                maxPt = glm::max(maxPt, v);
+            }
         }
+        glm::vec2 size = glm::max(maxPt - minPt, glm::vec2(0.001f));
+        auto uvOf = [&](const glm::vec3 &pos) -> glm::vec2 {
+            glm::vec2 p(pos.x, pos.y);
+            return (p - minPt) / size;
+        };
 
-        std::vector<CommonVertex> fillVertices;
+        // ---- Create tessellator ----
+        TESStesselator *tess = tessNewTess(nullptr);
+        if (!tess)
+            return out;
 
-        std::vector<glm::vec2> polygonVertices;
-        for (const auto &p : points) {
-            if (!polygonVertices.empty() && glm::vec2(p.pos) == polygonVertices.back())
+        // ---- Feed contours ----
+        // libtess2 default TESSreal is float; use float coordinates.
+        for (const auto &c : contours) {
+            if (c.size() < 3)
                 continue;
-            polygonVertices.push_back(glm::vec2(p.pos));
+            std::vector<TESSreal> coords;
+            coords.reserve(c.size() * 2);
+            for (const auto &pt : c) {
+                coords.push_back((TESSreal)pt.pos.x);
+                coords.push_back((TESSreal)pt.pos.y);
+            }
+            // stride: 2 * sizeof(TESSreal)
+            tessAddContour(tess, 2, coords.data(), sizeof(TESSreal) * 2, (int)c.size());
         }
 
-        float area = 0.0f;
-        for (size_t i = 0; i < polygonVertices.size(); ++i) {
-            const auto &p1 = polygonVertices[i];
-            const auto &p2 = polygonVertices[(i + 1) % polygonVertices.size()];
-            area += (p1.x * p2.y - p2.x * p1.y);
+        // ---- Tesselate (Even–Odd winding, triangles) ----
+        const int polySize = 3; // triangles
+        if (!tessTesselate(tess,
+                           TESS_WINDING_ODD, // or TESS_WINDING_NONZERO if you prefer
+                           TESS_POLYGONS,
+                           polySize, // number of indices per element
+                           2,        // vertex size (x,y)
+                           nullptr)) // normal
+        {
+            tessDeleteTess(tess);
+            return out;
         }
 
-        if (area < 0) { // Ensure Counter-Clockwise winding for Y-up systems
-            std::reverse(polygonVertices.begin(), polygonVertices.end());
-        }
+        // ---- Get results ----
+        const TESSreal *verts = tessGetVertices(tess);
+        const int *vindex = tessGetVertexIndices(tess); // maps tess vertex -> original point index (or -1)
+        const int nverts = tessGetVertexCount(tess);
+        const int *elems = tessGetElements(tess);
+        const int nelems = tessGetElementCount(tess);
 
-        glm::vec2 minBounds = polygonVertices[0];
-        glm::vec2 maxBounds = polygonVertices[0];
-        for (const auto &v : polygonVertices) {
-            minBounds = glm::min(minBounds, v);
-            maxBounds = glm::max(maxBounds, v);
-        }
-        glm::vec2 extent = maxBounds - minBounds;
-        if (extent.x == 0)
-            extent.x = 1;
-        if (extent.y == 0)
-            extent.y = 1;
+        // To recover z/id from original inputs, we need a flattened index map
+        // per contour to global point order. Build a lookup vector 'flatPoints'.
+        std::vector<const PathPoint *> flatPoints;
+        flatPoints.reserve(1024);
+        for (const auto &c : contours)
+            for (const auto &p : c)
+                flatPoints.push_back(&p);
 
-        auto makeVertex = [&](const glm::vec2 &pos) {
+        auto makeVertex = [&](int vi) -> CommonVertex {
+            // vi is tess vertex index
+            glm::vec3 pos((float)verts[vi * 2 + 0], (float)verts[vi * 2 + 1], 0.0f);
+
+            int mapped = vindex ? vindex[vi] : -1; // original vertex index in concatenated contours
+            // Fallbacks if tess created a new vertex (mapped == -1)
+            float z = 0.0f;
+            int id = 0;
+            if (mapped >= 0 && mapped < (int)flatPoints.size()) {
+                z = flatPoints[mapped]->pos.z;
+                id = (int)flatPoints[mapped]->id;
+            } else if (!flatPoints.empty()) {
+                z = flatPoints.front()->pos.z;
+                id = (int)flatPoints.front()->id;
+            }
+            pos.z = z;
+
             CommonVertex v;
-            v.position = glm::vec3(pos, points[0].pos.z);
+            v.position = pos;
             v.color = color;
-            v.id = static_cast<int>(points[0].id);
-            v.texSlotIdx = 0;
-            v.texCoord = (pos - minBounds) / extent;
+            v.id = id;
+            v.texCoord = uvOf(pos);
             return v;
         };
 
-        std::vector<int> indices;
-        indices.reserve(polygonVertices.size());
-        for (size_t i = 0; i < polygonVertices.size(); ++i) {
-            indices.push_back(static_cast<int>(i));
+        // ---- Emit triangles ----
+        out.reserve(nelems * 3);
+        for (int i = 0; i < nelems; ++i) {
+            const int *poly = elems + i * polySize;
+
+            // libtess2 may pad with -1 if not enough verts; we only emit full triangles
+            int i0 = poly[0], i1 = poly[1], i2 = poly[2];
+            if (i0 < 0 || i1 < 0 || i2 < 0)
+                continue;
+            if (i0 >= nverts || i1 >= nverts || i2 >= nverts)
+                continue;
+
+            out.push_back(makeVertex(i0));
+            out.push_back(makeVertex(i1));
+            out.push_back(makeVertex(i2));
         }
 
-        int iterations = 0;
-        const int maxIterations = static_cast<int>(indices.size()) + 5; // Failsafe for invalid polygons
-
-        while (indices.size() > 2 && iterations++ < maxIterations) {
-            bool earFound = false;
-            for (size_t i = 0; i < indices.size(); ++i) {
-                int prev_idx = indices[(i + indices.size() - 1) % indices.size()];
-                int curr_idx = indices[i];
-                int next_idx = indices[(i + 1) % indices.size()];
-
-                const auto &a = polygonVertices[prev_idx];
-                const auto &b = polygonVertices[curr_idx];
-                const auto &c = polygonVertices[next_idx];
-
-                if (cross_product(a, b, c) < 0) {
-                    continue;
-                }
-
-                bool isEar = true;
-
-                for (int p_idx : indices) {
-                    if (p_idx == prev_idx || p_idx == curr_idx || p_idx == next_idx) {
-                        continue;
-                    }
-                    const auto &p = polygonVertices[p_idx];
-
-                    float d1 = cross_product(a, b, p);
-                    float d2 = cross_product(b, c, p);
-                    float d3 = cross_product(c, a, p);
-                    if (d1 >= 0 && d2 >= 0 && d3 >= 0) {
-                        isEar = false;
-                        break;
-                    }
-                }
-
-                if (isEar) {
-                    fillVertices.push_back(makeVertex(a));
-                    fillVertices.push_back(makeVertex(b));
-                    fillVertices.push_back(makeVertex(c));
-                    indices.erase(indices.begin() + static_cast<long>(i));
-                    earFound = true;
-                    break;
-                }
-            }
-            if (!earFound) {
-                break;
-            }
-        }
-
-        return fillVertices;
+        tessDeleteTess(tess);
+        return out;
     }
 
     QuadBezierCurvePoints PathRenderer::generateSmoothBendPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius) {
@@ -479,6 +487,22 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void PathRenderer::resize(VkExtent2D extent) {
-        m_pathPipeline->resize(extent);
+        m_pathStrokePipeline->resize(extent);
+        m_pathFillPipeline->resize(extent);
+    }
+
+    void PathRenderer::pathMoveTo(const glm::vec3 &pos) {
+        m_pathData.currentPos = pos;
+
+        auto prevPoint = m_pathData.points.back();
+
+        if (m_pathData.points.size() == 1) {
+            m_pathData.points[0] = PathPoint{pos, prevPoint.weight, prevPoint.id};
+            return;
+        }
+
+        m_pathData.contours.emplace_back(std::move(m_pathData.points));
+        m_pathData.points.clear();
+        m_pathData.points.emplace_back(PathPoint{pos, prevPoint.weight, prevPoint.id});
     }
 } // namespace Bess::Renderer2D::Vulkan

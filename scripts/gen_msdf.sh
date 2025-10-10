@@ -22,7 +22,8 @@ gen(){
 		-size $3 \
 		-imageout "./$_DIR/$2.png" \
 		-json "./$_DIR/$2.json" \
-		-pxrange 8 \
+		-pxrange 4 \
+		-outerpxpadding 8
 
 		echo "[MsdfGenerator] Generated at $(realpath .)/$_DIR"
 

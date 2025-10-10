@@ -1,7 +1,8 @@
 #pragma once
 
 #include "device.h"
-#include "pipelines/path_pipeline.h"
+#include "pipelines/path_fill_pipeline.h"
+#include "pipelines/path_stroke_pipeline.h"
 #include "primitive_vertex.h"
 #include "vulkan_offscreen_render_pass.h"
 #include <memory>
@@ -16,6 +17,7 @@ namespace Bess::Renderer2D::Vulkan {
         glm::vec3 pos;
         float weight = 1.f;
         uint64_t id = 0.f;
+        bool isBreak = false;
     };
 
     struct PathContext {
@@ -23,6 +25,7 @@ namespace Bess::Renderer2D::Vulkan {
         glm::vec4 color = glm::vec4(1.f);
         glm::vec3 currentPos;
         std::vector<PathPoint> points;
+        std::vector<std::vector<PathPoint>> contours;
 
         void setCurrentPos(const glm::vec3 &pos) {
             currentPos = pos;
@@ -44,8 +47,6 @@ namespace Bess::Renderer2D::Vulkan {
 
         PathRenderer(const PathRenderer &) = delete;
         PathRenderer &operator=(const PathRenderer &) = delete;
-        PathRenderer(PathRenderer &&other) noexcept;
-        PathRenderer &operator=(PathRenderer &&other) noexcept;
 
         void beginFrame(VkCommandBuffer commandBuffer);
         void endFrame();
@@ -54,6 +55,7 @@ namespace Bess::Renderer2D::Vulkan {
         // Path API functions
         void beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, uint64_t id);
         void endPathMode(bool closePath = false, bool genFill = false, const glm::vec4 &fillColor = glm::vec4(1.f), bool genStroke = true);
+        void pathMoveTo(const glm::vec3 &pos);
         void pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, int id);
         void pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
                                float weight, const glm::vec4 &color, int id);
@@ -74,17 +76,19 @@ namespace Bess::Renderer2D::Vulkan {
         VkExtent2D m_extent;
 
         // Pipeline instance
-        std::unique_ptr<Pipelines::PathPipeline> m_pathPipeline;
+        std::unique_ptr<Pipelines::PathStrokePipeline> m_pathStrokePipeline;
+        std::unique_ptr<Pipelines::PathFillPipeline> m_pathFillPipeline;
 
         VkCommandBuffer m_currentCommandBuffer = VK_NULL_HANDLE;
 
         // Path context
         PathContext m_pathData;
 
-        // Path generation functions (from old GL renderer)
         std::vector<CommonVertex> generateStrokeGeometry(const std::vector<PathPoint> &points,
                                                          const glm::vec4 &color, bool isClosed);
         std::vector<CommonVertex> generateFillGeometry(const std::vector<PathPoint> &points, const glm::vec4 &color);
+        std::vector<CommonVertex> generateFillGeometry(const std::vector<std::vector<PathPoint>> &contours, const glm::vec4 &color);
+
         QuadBezierCurvePoints generateSmoothBendPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius);
         int calculateQuadBezierSegments(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2);
         int calculateCubicBezierSegments(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2, const glm::vec2 &p3);

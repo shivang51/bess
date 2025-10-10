@@ -1,22 +1,23 @@
-#include "scene/renderer/vulkan/pipelines/path_pipeline.h"
+#include "scene/renderer/vulkan/pipelines/path_stroke_pipeline.h"
 #include "common/log.h"
 #include "device.h"
-#include "scene/renderer/vulkan/pipelines/pipeline.h"
 #include "primitive_vertex.h"
+#include "scene/renderer/vulkan/pipelines/pipeline.h"
 #include "vulkan_core.h"
 #include "vulkan_offscreen_render_pass.h"
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <vulkan/vulkan_core.h>
 
 namespace Bess::Vulkan::Pipelines {
 
     constexpr size_t maxFrames = Bess::Vulkan::VulkanCore::MAX_FRAMES_IN_FLIGHT;
     constexpr size_t instanceLimit = 10000;
 
-    PathPipeline::PathPipeline(const std::shared_ptr<VulkanDevice> &device,
-                               const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
-                               VkExtent2D extent)
+    PathStrokePipeline::PathStrokePipeline(const std::shared_ptr<VulkanDevice> &device,
+                                           const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
+                                           VkExtent2D extent)
         : Pipeline(device, renderPass, extent) {
         createZoomUniformBuffers();
         createVertexBuffer();
@@ -32,16 +33,14 @@ namespace Bess::Vulkan::Pipelines {
         ensurePathCapacity(instanceLimit * 4, instanceLimit * 6);
     }
 
-    PathPipeline::~PathPipeline() {
+    PathStrokePipeline::~PathStrokePipeline() {
         cleanup();
     }
 
-    PathPipeline::PathPipeline(PathPipeline &&other) noexcept
+    PathStrokePipeline::PathStrokePipeline(PathStrokePipeline &&other) noexcept
         : Pipeline(std::move(other)),
           m_strokeVertices(std::move(other.m_strokeVertices)),
-          m_fillVertices(std::move(other.m_fillVertices)),
           m_strokeIndices(std::move(other.m_strokeIndices)),
-          m_fillIndices(std::move(other.m_fillIndices)),
           m_vertexBuffers(std::move(other.m_vertexBuffers)),
           m_vertexBufferMemory(std::move(other.m_vertexBufferMemory)),
           m_indexBuffers(std::move(other.m_indexBuffers)),
@@ -60,14 +59,12 @@ namespace Bess::Vulkan::Pipelines {
         other.m_currentIndexCapacity = 0;
     }
 
-    PathPipeline &PathPipeline::operator=(PathPipeline &&other) noexcept {
+    PathStrokePipeline &PathStrokePipeline::operator=(PathStrokePipeline &&other) noexcept {
         if (this != &other) {
             cleanup();
             Pipeline::operator=(std::move(other));
             m_strokeVertices = std::move(other.m_strokeVertices);
-            m_fillVertices = std::move(other.m_fillVertices);
             m_strokeIndices = std::move(other.m_strokeIndices);
-            m_fillIndices = std::move(other.m_fillIndices);
             m_vertexBuffers = std::move(other.m_vertexBuffers);
             m_vertexBufferMemory = std::move(other.m_vertexBufferMemory);
             m_indexBuffers = std::move(other.m_indexBuffers);
@@ -89,7 +86,7 @@ namespace Bess::Vulkan::Pipelines {
         return *this;
     }
 
-    void PathPipeline::beginPipeline(VkCommandBuffer commandBuffer) {
+    void PathStrokePipeline::beginPipeline(VkCommandBuffer commandBuffer) {
         m_currentCommandBuffer = commandBuffer;
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1,
@@ -99,75 +96,51 @@ namespace Bess::Vulkan::Pipelines {
         vkCmdSetScissor(m_currentCommandBuffer, 0, 1, &m_scissor);
     }
 
-    void PathPipeline::endPipeline() {
+    void PathStrokePipeline::endPipeline() {
+        if (m_strokeVertices.empty())
+            return;
+
         auto &vertexBuffer = m_vertexBuffers[m_currentFrameIndex];
-        if (!m_fillVertices.empty() && !m_fillIndices.empty()) {
-            void *data = nullptr;
-            VkDeviceSize bufferSize = m_fillVertices.size() * sizeof(CommonVertex);
-            vkMapMemory(m_device->device(), m_vertexBufferMemory[m_currentFrameIndex], 0, bufferSize, 0, &data);
-            memcpy(data, m_fillVertices.data(), bufferSize);
-            vkUnmapMemory(m_device->device(), m_vertexBufferMemory[m_currentFrameIndex]);
+        constexpr VkDeviceSize vertexOffset = 0;
+        constexpr VkDeviceSize indexOffset = 0;
+        void *data = nullptr;
 
-            data = nullptr;
-            bufferSize = m_fillIndices.size() * sizeof(uint32_t);
-            vkMapMemory(m_device->device(), m_indexBufferMemory[m_currentFrameIndex], 0, bufferSize, 0, &data);
-            memcpy(data, m_fillIndices.data(), bufferSize);
-            vkUnmapMemory(m_device->device(), m_indexBufferMemory[m_currentFrameIndex]);
+        VkDeviceSize bufferSize = m_strokeVertices.size() * sizeof(CommonVertex);
+        vkMapMemory(m_device->device(), m_vertexBufferMemory[m_currentFrameIndex], vertexOffset, bufferSize, 0, &data);
+        memcpy(data, m_strokeVertices.data(), bufferSize);
+        vkUnmapMemory(m_device->device(), m_vertexBufferMemory[m_currentFrameIndex]);
 
-            VkDeviceSize offset = 0;
-            vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 1, &vertexBuffer, &offset);
-            vkCmdBindIndexBuffer(m_currentCommandBuffer, m_indexBuffers[m_currentFrameIndex], 0, VK_INDEX_TYPE_UINT32);
-            vkCmdDrawIndexed(m_currentCommandBuffer, static_cast<uint32_t>(m_fillIndices.size()), 1, 0, 0, 0);
-        }
+        data = nullptr;
+        bufferSize = m_strokeIndices.size() * sizeof(uint32_t);
+        vkMapMemory(m_device->device(), m_indexBufferMemory[m_currentFrameIndex], indexOffset, bufferSize, 0, &data);
+        memcpy(data, m_strokeIndices.data(), bufferSize);
+        vkUnmapMemory(m_device->device(), m_indexBufferMemory[m_currentFrameIndex]);
 
-        if (!m_strokeVertices.empty() && !m_strokeIndices.empty()) {
-            VkDeviceSize vertexOffset = m_fillVertices.size() * sizeof(CommonVertex);
-            VkDeviceSize indexOffset = m_fillIndices.size() * sizeof(uint32_t);
-            void *data = nullptr;
+        vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 1, &vertexBuffer, &vertexOffset);
+        vkCmdBindIndexBuffer(m_currentCommandBuffer, m_indexBuffers[m_currentFrameIndex], indexOffset, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(m_currentCommandBuffer, static_cast<uint32_t>(m_strokeIndices.size()), 1, 0, 0, 0);
 
-            VkDeviceSize bufferSize = m_strokeVertices.size() * sizeof(CommonVertex);
-            vkMapMemory(m_device->device(), m_vertexBufferMemory[m_currentFrameIndex], vertexOffset, bufferSize, 0, &data);
-            memcpy(data, m_strokeVertices.data(), bufferSize);
-            vkUnmapMemory(m_device->device(), m_vertexBufferMemory[m_currentFrameIndex]);
-
-            data = nullptr;
-            bufferSize = m_strokeIndices.size() * sizeof(uint32_t);
-            vkMapMemory(m_device->device(), m_indexBufferMemory[m_currentFrameIndex], indexOffset, bufferSize, 0, &data);
-            memcpy(data, m_strokeIndices.data(), bufferSize);
-            vkUnmapMemory(m_device->device(), m_indexBufferMemory[m_currentFrameIndex]);
-
-            vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 1, &vertexBuffer, &vertexOffset);
-            vkCmdBindIndexBuffer(m_currentCommandBuffer, m_indexBuffers[m_currentFrameIndex], indexOffset, VK_INDEX_TYPE_UINT32);
-            vkCmdDrawIndexed(m_currentCommandBuffer, static_cast<uint32_t>(m_strokeIndices.size()), 1, 0, 0, 0);
-        }
-
-        m_fillVertices.clear();
-        m_fillIndices.clear();
         m_strokeVertices.clear();
         m_strokeIndices.clear();
         m_currentCommandBuffer = VK_NULL_HANDLE;
     }
 
-    void PathPipeline::setPathData(const std::vector<CommonVertex> &strokeVertices, const std::vector<uint32_t> &strokeIndices,
-                                   const std::vector<CommonVertex> &fillVertices, const std::vector<uint32_t> &fillIndices) {
+    void PathStrokePipeline::setPathData(const std::vector<CommonVertex> &strokeVertices, const std::vector<uint32_t> &strokeIndices) {
 
-        if (strokeVertices.empty() && fillVertices.empty())
+        if (strokeVertices.empty())
             return;
 
         m_strokeVertices = strokeVertices;
         m_strokeIndices = strokeIndices;
-        m_fillVertices = fillVertices;
-        m_fillIndices = fillIndices;
 
-        ensurePathCapacity(m_strokeVertices.size() + m_fillVertices.size(),
-                           m_strokeIndices.size() + m_fillIndices.size());
+        ensurePathCapacity(m_strokeVertices.size(), m_strokeIndices.size());
     }
 
-    void PathPipeline::updateUniformBuffer(const UniformBufferObject &ubo) {
+    void PathStrokePipeline::updateUniformBuffer(const UniformBufferObject &ubo) {
         Pipeline::updateUniformBuffer(ubo);
     }
 
-    void PathPipeline::cleanup() {
+    void PathStrokePipeline::cleanup() {
         for (size_t i = 0; i < m_zoomUniformBuffers.size(); i++) {
             if (m_zoomUniformBuffers[i] != VK_NULL_HANDLE) {
                 vkDestroyBuffer(m_device->device(), m_zoomUniformBuffers[i], nullptr);
@@ -198,7 +171,7 @@ namespace Bess::Vulkan::Pipelines {
         Pipeline::cleanup();
     }
 
-    void PathPipeline::createGraphicsPipeline() {
+    void PathStrokePipeline::createGraphicsPipeline() {
         auto vertShaderCode = readFile("assets/shaders/common.vert.spv");
         auto fragShaderCode = readFile("assets/shaders/path.frag.spv");
 
@@ -231,7 +204,7 @@ namespace Bess::Vulkan::Pipelines {
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
         inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
         inputAssembly.primitiveRestartEnable = VK_TRUE;
 
         auto viewportState = createViewportState();
@@ -301,7 +274,7 @@ namespace Bess::Vulkan::Pipelines {
         vkDestroyShaderModule(m_device->device(), vertShaderModule, nullptr);
     }
 
-    void PathPipeline::createVertexBuffer() {
+    void PathStrokePipeline::createVertexBuffer() {
         m_vertexBuffers.resize(maxFrames);
         m_vertexBufferMemory.resize(maxFrames);
 
@@ -334,7 +307,7 @@ namespace Bess::Vulkan::Pipelines {
         m_currentVertexCapacity = 1000;
     }
 
-    void PathPipeline::createIndexBuffer() {
+    void PathStrokePipeline::createIndexBuffer() {
         m_indexBuffers.resize(maxFrames);
         m_indexBufferMemory.resize(maxFrames);
 
@@ -367,7 +340,7 @@ namespace Bess::Vulkan::Pipelines {
         m_currentIndexCapacity = 2000;
     }
 
-    void PathPipeline::createDescriptorSetLayout() {
+    void PathStrokePipeline::createDescriptorSetLayout() {
         VkDescriptorSetLayoutBinding uboLayoutBinding{};
         uboLayoutBinding.binding = 0;
         uboLayoutBinding.descriptorCount = 1;
@@ -393,7 +366,7 @@ namespace Bess::Vulkan::Pipelines {
         }
     }
 
-    void PathPipeline::createDescriptorPool() {
+    void PathStrokePipeline::createDescriptorPool() {
         std::array<VkDescriptorPoolSize, 1> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         poolSizes[0].descriptorCount = 4; // 2 for UBO + 2 for zoom
@@ -409,7 +382,7 @@ namespace Bess::Vulkan::Pipelines {
         }
     }
 
-    void PathPipeline::createDescriptorSets() {
+    void PathStrokePipeline::createDescriptorSets() {
         if (m_uniformBuffers.empty()) {
             return;
         }
@@ -464,11 +437,11 @@ namespace Bess::Vulkan::Pipelines {
         }
     }
 
-    void PathPipeline::ensurePathBuffers() {
+    void PathStrokePipeline::ensurePathBuffers() {
         // This method can be used to ensure buffers are ready
     }
 
-    void PathPipeline::ensurePathCapacity(size_t vertexCount, size_t indexCount) {
+    void PathStrokePipeline::ensurePathCapacity(size_t vertexCount, size_t indexCount) {
         bool needVertexResize = vertexCount > m_currentVertexCapacity;
         bool needIndexResize = indexCount > m_currentIndexCapacity;
 
@@ -565,7 +538,7 @@ namespace Bess::Vulkan::Pipelines {
         }
     }
 
-    void PathPipeline::createZoomUniformBuffers() {
+    void PathStrokePipeline::createZoomUniformBuffers() {
         m_zoomUniformBuffers.resize(maxFrames);
         m_zoomUniformBufferMemory.resize(maxFrames);
 
@@ -596,7 +569,7 @@ namespace Bess::Vulkan::Pipelines {
         }
     }
 
-    void PathPipeline::updateZoomUniformBuffer(float zoom) {
+    void PathStrokePipeline::updateZoomUniformBuffer(float zoom) {
         if (m_zoomUniformBufferMemory.empty() || m_currentFrameIndex >= m_zoomUniformBufferMemory.size()) {
             return;
         }
