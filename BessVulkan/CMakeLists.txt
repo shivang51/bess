@@ -12,6 +12,7 @@ set(Header_Files
     "include/vulkan_render_pass.h"
     "include/vulkan_image_view.h"
     "include/vulkan_offscreen_render_pass.h"
+    "include/vulkan_postprocess_pipeline.h"
     "include/primitive_vertex.h"
 )
 
@@ -29,6 +30,7 @@ set(Source_Files
     "src/vulkan_render_pass.cpp"
     "src/vulkan_image_view.cpp"
     "src/vulkan_offscreen_render_pass.cpp"
+    "src/vulkan_postprocess_pipeline.cpp"
 )
 
 source_group("src" FILES ${Source_Files})

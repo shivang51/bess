@@ -19,6 +19,7 @@ compile "circle";
 compile "instance.vert" "text.frag";
 compile "common.vert" "path.frag";
 compile "grid.vert" "grid_line.frag";
+compile "postprocess.vert" "unpremultiply.frag";
 cd ..
 cd ..
 
