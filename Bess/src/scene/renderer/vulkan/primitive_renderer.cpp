@@ -51,8 +51,6 @@ namespace Bess::Renderer2D::Vulkan {
 
     void PrimitiveRenderer::beginFrame(VkCommandBuffer commandBuffer) {
         m_currentCommandBuffer = commandBuffer;
-
-        updateTextUniforms({.pxRange = 4.f});
     }
 
     void PrimitiveRenderer::endFrame() {
@@ -285,7 +283,7 @@ namespace Bess::Renderer2D::Vulkan {
     void PrimitiveRenderer::updateUniformBuffer(const GridUniforms &gridUniforms) {
         m_gridPipeline->updateGridUniforms(gridUniforms);
         TextUniforms textUniforms{};
-        textUniforms.pxRange = 4.0f;
+        textUniforms.pxRange = 8.0f;
         updateTextUniforms(textUniforms);
     }
 

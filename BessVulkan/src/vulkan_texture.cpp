@@ -4,6 +4,7 @@
 #include "stb_image_write.h"
 #include <cstring>
 #include <stdexcept>
+#include <vulkan/vulkan_core.h>
 
 namespace Bess::Vulkan {
 
@@ -172,11 +173,13 @@ namespace Bess::Vulkan {
         samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
         samplerInfo.anisotropyEnable = VK_FALSE;
         samplerInfo.maxAnisotropy = 1.0F;
-        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+        samplerInfo.borderColor = VK_BORDER_COLOR_INT_TRANSPARENT_BLACK;
         samplerInfo.unnormalizedCoordinates = VK_FALSE;
         samplerInfo.compareEnable = VK_FALSE;
         samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+        samplerInfo.minLod = 0.f;
+        samplerInfo.maxLod = 0.f;
 
         if (vkCreateSampler(m_device->device(), &samplerInfo, nullptr, &m_sampler) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create texture sampler!");

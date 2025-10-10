@@ -32,8 +32,7 @@ gen(){
 TTF_FILE_DIR="assets/fonts/Roboto"
 TTF_FILE_NAME="Roboto-Regular" # without extension
 
-gen $TTF_FILE_DIR $TTF_FILE_NAME 12
-gen $TTF_FILE_DIR $TTF_FILE_NAME 24
+gen $TTF_FILE_DIR $TTF_FILE_NAME 32
 
 
 
