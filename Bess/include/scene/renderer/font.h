@@ -1,44 +1,25 @@
 #pragma once
 
-#include "device.h"
-#include "ft2build.h"
-#include "glm.hpp"
-#include "vulkan_texture.h"
-#include <map>
-#include <memory>
+#include "glyph_extractor.h"
+#include <cstddef>
 #include <string>
 
-#include FT_FREETYPE_H
-
-using namespace Bess::Vulkan;
-namespace Bess::Renderer2D {
-    class Font {
+namespace Bess::Renderer::Font {
+    class FontFile {
       public:
-        struct Character {
-            std::shared_ptr<VulkanTexture> Texture;
-            glm::ivec2 Size;
-            glm::ivec2 Bearing;
-            int Advance;
-        };
+        FontFile(const std::string &path);
+        void init(float fontSize, size_t glyphMin = 0, size_t glyphMax = 128);
 
-        Font() = default;
-
-        ~Font();
-
-        Font(const std::string &path);
-        Font(const std::string &path, VulkanDevice &device);
-
-        const Character &getCharacter(char ch);
-
-        static float getScale(float size);
+        const Glyph &getGlyph(char32_t ch);
+        const Glyph &getGlyph(const char *data);
 
       private:
-        FT_Library m_ft;
-        FT_Face m_face;
-        std::map<char, Character> Characters;
-        VulkanDevice *m_device = nullptr;
-        void loadCharacters();
+        const Glyph &indexChar(char32_t ch);
 
-        static const int m_defaultSize = 48;
+        std::vector<Glyph> m_glyphsTable;
+        float m_size;
+        size_t m_min, m_max;
+        GlyphExtractor m_glyphExtractor;
+        size_t m_glyphCount = 0;
     };
-} // namespace Bess::Renderer2D
+} // namespace Bess::Renderer::Font

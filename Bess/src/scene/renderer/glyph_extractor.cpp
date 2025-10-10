@@ -88,14 +88,11 @@ namespace Bess::Renderer::Font {
             }
         }
 
-        printf("Selected charmap: platform_id=%d, encoding_id=%d, encoding=0x%x\n",
-               m_face->charmap->platform_id,
-               m_face->charmap->encoding_id,
-               m_face->charmap->encoding);
-
         if (setCharmapOk) {
             BESS_INFO("[GlyphExtractor] Found unicodes in font file {}", fontPath);
         }
+
+        BESS_INFO("[GlyphExtractor] Found {} glyphs", getGlyphsCount());
     }
 
     GlyphExtractor::~GlyphExtractor() {
@@ -111,7 +108,66 @@ namespace Bess::Renderer::Font {
         return FT_Set_Pixel_Sizes(m_face, 0, pixelHeight) == 0;
     }
 
-    static constexpr char32_t decodeSingleUTF8(std::string_view utf8) {
+    bool GlyphExtractor::extractGlyph(const char *codepoint, Glyph &out, bool yDown) {
+        return extractGlyph(decodeSingleUTF8(codepoint), out, yDown);
+    }
+
+    bool GlyphExtractor::extractGlyph(char32_t codepoint, Glyph &out, bool yDown) {
+        if (!m_face)
+            return false;
+
+        unsigned glyphIndex = FT_Get_Char_Index(m_face, codepoint);
+        if (!glyphIndex) {
+            BESS_WARN("[GlyphExtractor] Glyph index was not found for {}", (size_t)codepoint);
+            return false;
+        }
+
+        constexpr FT_Int32 flags = FT_LOAD_NO_BITMAP | FT_LOAD_NO_HINTING;
+        if (FT_Load_Glyph(m_face, glyphIndex, flags))
+            return false;
+        if (m_face->glyph->format != FT_GLYPH_FORMAT_OUTLINE)
+            return false;
+
+        OutlineCollector oc;
+        oc.out = &out.path;
+        oc.yFlip = yDown ? -1.0f : 1.0f;
+
+        if (FT_Outline_Decompose(&m_face->glyph->outline, &gOutlineFuncs, &oc))
+            return false;
+
+        out.path.advanceX = float(m_face->glyph->advance.x) / 64.0f;
+        out.path.advanceY = float(m_face->glyph->advance.y) / 64.0f;
+        out.charCode = codepoint;
+        return true;
+    }
+
+    float GlyphExtractor::ascent() const {
+        return m_face ? float(m_face->size->metrics.ascender) / 64.0f : 0.0f;
+    }
+
+    float GlyphExtractor::descent() const {
+        return m_face ? float(m_face->size->metrics.descender) / 64.0f : 0.0f;
+    }
+
+    float GlyphExtractor::lineHeight() const {
+        return m_face ? float(m_face->size->metrics.height) / 64.0f : 0.0f;
+    }
+
+    size_t GlyphExtractor::getGlyphsCount() {
+        size_t count = 0;
+        FT_ULong charcode = 0;
+        FT_UInt gindex = 0;
+
+        charcode = FT_Get_First_Char(m_face, &gindex);
+        while (gindex != 0) {
+            count++;
+            charcode = FT_Get_Next_Char(m_face, charcode, &gindex);
+        }
+
+        return count;
+    }
+
+    char32_t GlyphExtractor::decodeSingleUTF8(std::string_view utf8) {
         const unsigned char *s = reinterpret_cast<const unsigned char *>(utf8.data());
         if (utf8.empty())
             return U'\0';
@@ -131,49 +187,5 @@ namespace Bess::Renderer::Font {
                    (s[3] & 0x3F);
 
         return U'\0'; // invalid input
-    }
-
-    bool GlyphExtractor::extractGlyph(const char *codepoint, CharacterPath &out, bool yDown) {
-        return extractGlyph(decodeSingleUTF8(codepoint), out, yDown);
-    }
-
-    bool GlyphExtractor::extractGlyph(char32_t codepoint, CharacterPath &out, bool yDown) {
-        if (!m_face)
-            return false;
-
-        unsigned glyphIndex = FT_Get_Char_Index(m_face, codepoint);
-        if (!glyphIndex) {
-            BESS_WARN("[GlyphExtractor] Glyph index was not found for {}", (size_t)codepoint);
-            return false;
-        }
-
-        constexpr FT_Int32 flags = FT_LOAD_NO_BITMAP | FT_LOAD_NO_HINTING;
-        if (FT_Load_Glyph(m_face, glyphIndex, flags))
-            return false;
-        if (m_face->glyph->format != FT_GLYPH_FORMAT_OUTLINE)
-            return false;
-
-        OutlineCollector oc;
-        oc.out = &out;
-        oc.yFlip = yDown ? -1.0f : 1.0f;
-
-        if (FT_Outline_Decompose(&m_face->glyph->outline, &gOutlineFuncs, &oc))
-            return false;
-
-        out.advanceX = float(m_face->glyph->advance.x) / 64.0f;
-        out.advanceY = float(m_face->glyph->advance.y) / 64.0f;
-        return true;
-    }
-
-    float GlyphExtractor::ascent() const {
-        return m_face ? float(m_face->size->metrics.ascender) / 64.0f : 0.0f;
-    }
-
-    float GlyphExtractor::descent() const {
-        return m_face ? float(m_face->size->metrics.descender) / 64.0f : 0.0f;
-    }
-
-    float GlyphExtractor::lineHeight() const {
-        return m_face ? float(m_face->size->metrics.height) / 64.0f : 0.0f;
     }
 } // namespace Bess::Renderer::Font

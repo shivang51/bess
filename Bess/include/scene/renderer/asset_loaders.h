@@ -19,9 +19,9 @@ namespace Bess::Assets {
     };
 
     template <>
-    struct AssetLoader<Bess::Renderer2D::Font> {
-        static std::shared_ptr<Bess::Renderer2D::Font> load(const std::string &path) {
-            return std::make_shared<Bess::Renderer2D::Font>(path);
+    struct AssetLoader<Bess::Renderer::Font::FontFile> {
+        static std::shared_ptr<Bess::Renderer::Font::FontFile> load(const std::string &path) {
+            return std::make_shared<Bess::Renderer::Font::FontFile>(path);
         }
     };
 
