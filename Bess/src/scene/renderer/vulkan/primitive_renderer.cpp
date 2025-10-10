@@ -51,6 +51,8 @@ namespace Bess::Renderer2D::Vulkan {
 
     void PrimitiveRenderer::beginFrame(VkCommandBuffer commandBuffer) {
         m_currentCommandBuffer = commandBuffer;
+        const auto msdfFont = Assets::AssetManager::instance().get(Assets::Fonts::robotoMsdf);
+        updateTextUniforms({.pxRange = msdfFont->getPxRange()});
     }
 
     void PrimitiveRenderer::endFrame() {
@@ -278,13 +280,6 @@ namespace Bess::Renderer2D::Vulkan {
 
             charPos.x += charInfo.advance * scale;
         }
-    }
-
-    void PrimitiveRenderer::updateUniformBuffer(const GridUniforms &gridUniforms) {
-        m_gridPipeline->updateGridUniforms(gridUniforms);
-        TextUniforms textUniforms{};
-        textUniforms.pxRange = 8.0f;
-        updateTextUniforms(textUniforms);
     }
 
     void PrimitiveRenderer::updateUBO(const UniformBufferObject &ubo) {

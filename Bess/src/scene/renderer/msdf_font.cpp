@@ -36,6 +36,7 @@ namespace Bess::Renderer2D {
         BESS_INFO("Loaded MSDF font texture atlas from: {}", pngFilePath);
 
         m_fontSize = charData["atlas"]["size"].asFloat();
+        m_pxRange = charData["atlas"]["distanceRange"].asFloat();
         m_lineHeight = charData["metrics"]["lineHeight"].asFloat();
 
         const Json::Value &chars = charData["glyphs"];
@@ -108,5 +109,9 @@ namespace Bess::Renderer2D {
         bounds.top = val["top"].as<float>();
         bounds.bottom = val["bottom"].as<float>();
         return bounds;
+    }
+
+    float MsdfFont::getPxRange() const {
+        return m_pxRange;
     }
 } // namespace Bess::Renderer2D

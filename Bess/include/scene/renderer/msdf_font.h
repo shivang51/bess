@@ -41,6 +41,8 @@ namespace Bess::Renderer2D {
 
         std::shared_ptr<Bess::Vulkan::VulkanTexture> getTextureAtlas() const;
 
+        float getPxRange() const;
+
       private:
         bool isValidJson(const Json::Value &json) const;
 
@@ -56,6 +58,7 @@ namespace Bess::Renderer2D {
         std::shared_ptr<Bess::Vulkan::VulkanTexture> m_fontTextureAtlas;
         std::vector<MsdfCharacter> m_charTable;
         float m_fontSize = 0.f, m_lineHeight = 0.f;
+        float m_pxRange = 0.f;
         std::shared_ptr<Bess::Vulkan::VulkanDevice> m_device = nullptr;
     };
 } // namespace Bess::Renderer2D

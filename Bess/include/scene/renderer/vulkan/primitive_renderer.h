@@ -82,7 +82,6 @@ namespace Bess::Renderer2D::Vulkan {
                       const glm::vec4 &color, const int id, float angle = 0);
 
         // Buffer management
-        void updateUniformBuffer(const GridUniforms &gridUniforms);
         void updateUBO(const UniformBufferObject &ubo);
         void updateTextUniforms(const TextUniforms &textUniforms);
 
