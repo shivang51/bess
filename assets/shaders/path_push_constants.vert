@@ -20,16 +20,16 @@ layout(binding = 0) uniform UniformBufferObject {
     mat4 u_ortho;
 };
 
-// Push constants for per-draw translation
+// Push constants (two vec4s for alignment)
 layout(push_constant) uniform PushConstants {
-    vec3 translation;
-    float _pad; // padding for alignment
+    vec4 translation; // xyz used
+    vec4 scale;       // xy used (uniform scale if both equal)
 } pc;
 
 void main() {
-    // Apply translation on GPU
-    vec3 worldPos = a_Vertex + pc.translation;
-    
+    vec2 scaledXY = a_Vertex.xy * pc.scale.xy;
+    vec3 worldPos = vec3(scaledXY, a_Vertex.z) + pc.translation.xyz;
+
     v_FragPos = worldPos;
     v_FragColor = a_Color;
     v_TexCoord = a_TexCoord;

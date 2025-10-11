@@ -83,6 +83,7 @@ namespace Bess::Renderer2D::Vulkan {
             dc.firstIndex = firstIndex;
             dc.indexCount = localCount;
             dc.translation = info.translate;
+            dc.scale = info.scale;
             m_fillDrawCalls.emplace_back(dc);
         }
 
@@ -189,6 +190,7 @@ namespace Bess::Renderer2D::Vulkan {
         info.genStroke = genStroke;
         info.fillColor = fillColor;
         info.translate = m_pathData.startPos;
+        info.scale = glm::vec2(1.0f);
 
         drawContours(m_pathData.contours, info);
 

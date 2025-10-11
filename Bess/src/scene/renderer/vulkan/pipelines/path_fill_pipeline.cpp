@@ -130,16 +130,20 @@ namespace Bess::Vulkan::Pipelines {
             
             if (!m_drawCalls.empty()) {
                 for (const auto &dc : m_drawCalls) {
-                    glm::vec4 translationData(dc.translation, 0.0f);
+                    struct { glm::vec4 t; glm::vec4 s; } pc;
+                    pc.t = glm::vec4(dc.translation, 0.0f);
+                    pc.s = glm::vec4(dc.scale, 0.0f, 0.0f);
                     vkCmdPushConstants(m_currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,
-                                       0, sizeof(glm::vec4), &translationData);
+                                       0, sizeof(pc), &pc);
                     vkCmdDrawIndexed(m_currentCommandBuffer, dc.indexCount, 1, dc.firstIndex, 0, 0);
                 }
             } else {
-                // Push translation to GPU
-                glm::vec4 translationData(m_translation, 0.0f); // vec3 + padding
-                vkCmdPushConstants(m_currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 
-                                  0, sizeof(glm::vec4), &translationData);
+                // Push translation + scale to GPU
+                struct { glm::vec4 t; glm::vec4 s; } pc;
+                pc.t = glm::vec4(m_translation, 0.0f);
+                pc.s = glm::vec4(m_scale, 0.0f, 0.0f);
+                vkCmdPushConstants(m_currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,
+                                  0, sizeof(pc), &pc);
                 
                 // Draw
                 vkCmdDrawIndexed(m_currentCommandBuffer, static_cast<uint32_t>(m_fillIndices.size()), 1, 0, 0, 0);
@@ -151,6 +155,7 @@ namespace Bess::Vulkan::Pipelines {
         m_instances.clear();
         m_drawCalls.clear();
         m_translation = glm::vec3(0.0f);
+        m_scale = glm::vec2(1.0f);
         m_currentCommandBuffer = VK_NULL_HANDLE;
     }
 
@@ -187,6 +192,7 @@ namespace Bess::Vulkan::Pipelines {
         m_fillVertices = fillVertices;
         m_fillIndices = fillIndices;
         m_translation = translation;
+        m_scale = glm::vec2(1.0f); // default scale
 
         ensurePathCapacity(m_fillVertices.size(), m_fillIndices.size());
     }
@@ -316,7 +322,7 @@ namespace Bess::Vulkan::Pipelines {
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
         pushConstantRange.offset = 0;
-        pushConstantRange.size = sizeof(glm::vec4); // vec3 + padding
+        pushConstantRange.size = sizeof(glm::vec4) * 2; // translation + scale
 
         // Create pipeline layout
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};

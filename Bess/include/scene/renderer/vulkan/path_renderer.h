@@ -37,7 +37,7 @@ namespace Bess::Renderer2D::Vulkan {
         bool genFill = false;
         bool closePath = false;
         glm::vec3 translate{0.f};
-        float scale = 0.f;
+        glm::vec2 scale = glm::vec2(1.0f);
         glm::vec4 fillColor;
         glm::vec4 strokeColor;
     };

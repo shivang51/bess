@@ -38,6 +38,7 @@ namespace Bess::Vulkan::Pipelines {
             uint32_t firstIndex;
             uint32_t indexCount;
             glm::vec3 translation;
+            glm::vec2 scale = glm::vec2(1.0f);
         };
 
         void setBatchedPathData(const std::vector<CommonVertex> &fillVertices,
@@ -67,6 +68,7 @@ namespace Bess::Vulkan::Pipelines {
         std::vector<PathInstance> m_instances;
         glm::vec3 m_translation = glm::vec3(0.0f);
         std::vector<FillDrawCall> m_drawCalls;
+        glm::vec2 m_scale = glm::vec2(1.0f);
 
         // Buffers for path data
         std::vector<VkBuffer> m_vertexBuffers;

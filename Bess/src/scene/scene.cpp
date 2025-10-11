@@ -277,6 +277,7 @@ namespace Bess::Canvas {
 
             float posX = 0.f, posY = 0.f;
             constexpr size_t wrapLimit = 100;
+            constexpr float scale = 0.5f;
             int i = 0;
             for (const char ch : data) {
                 if (ch == '\n') {
@@ -294,7 +295,8 @@ namespace Bess::Canvas {
                 auto pathRenderer = viewport->getArtistManager()->getCurrentArtist()->getPathRenderer();
                 pathRenderer->drawPath(glyph.path, {.genStroke = false,
                                                     .genFill = true,
-                                                    .translate = {posX, posY, 0.f},
+                                                    .translate = {posX * scale, posY * scale, 0.f},
+                                                    .scale = glm::vec2(scale),
                                                     .fillColor = glm::vec4(1.f)});
                 posX += glyph.advanceX;
                 i++;
