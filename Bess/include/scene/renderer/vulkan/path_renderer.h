@@ -8,9 +8,9 @@
 #include "scene/renderer/path.h"
 #include "vulkan_offscreen_render_pass.h"
 #include <memory>
+#include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan_core.h>
-#include <unordered_map>
 
 using namespace Bess::Vulkan;
 namespace Bess::Renderer2D::Vulkan {
@@ -120,7 +120,7 @@ namespace Bess::Renderer2D::Vulkan {
         static std::vector<glm::vec3> generateQuadBezierPoints(const glm::vec3 &start, const glm::vec2 &controlPoint, const glm::vec3 &end);
 
       private:
-        void addPathGeometries(const std::vector<std::vector<CommonVertex>> &strokeGeometry, const std::vector<CommonVertex> &fillGeometry);
+        void addPathGeometries(const std::vector<std::vector<CommonVertex>> &strokeGeometry);
 
       private:
         PathGeometryCache m_cache;
@@ -133,7 +133,10 @@ namespace Bess::Renderer2D::Vulkan {
         glm::vec3 m_fillTranslation = glm::vec3(0.0f);
         std::vector<Pipelines::PathFillPipeline::FillDrawCall> m_fillDrawCalls;
         std::vector<FillInstance> m_tempInstances;
-        struct MeshRange { uint32_t firstIndex; uint32_t indexCount; };
+        struct MeshRange {
+            uint32_t firstIndex;
+            uint32_t indexCount;
+        };
         std::unordered_map<UUID, MeshRange> m_glyphIdToMesh;
         std::unordered_map<UUID, std::vector<FillInstance>> m_glyphIdToInstances;
 

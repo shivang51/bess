@@ -55,7 +55,8 @@ namespace Bess::Renderer2D::Vulkan {
         if (strokeVerticesRef) {
             for (const auto &vertices : *strokeVerticesRef) {
                 auto translated = vertices; // copy once into frame heap, not cache
-                for (auto &p : translated) p.position += info.translate;
+                for (auto &p : translated)
+                    p.position += info.translate;
                 m_strokeVertices.insert(m_strokeVertices.end(), translated.begin(), translated.end());
                 auto s = m_strokeVertices.size() - translated.size();
                 auto indices = std::views::iota(s, m_strokeVertices.size());
@@ -74,17 +75,16 @@ namespace Bess::Renderer2D::Vulkan {
                 uint32_t baseVertex = static_cast<uint32_t>(m_fillVertices.size());
                 m_fillVertices.insert(m_fillVertices.end(), fillVerticesRef->begin(), fillVerticesRef->end());
                 auto localCount = static_cast<uint32_t>(fillVerticesRef->size());
-                for (uint32_t i = 0; i < localCount; ++i) m_fillIndices.emplace_back(baseVertex + i);
+                for (uint32_t i = 0; i < localCount; ++i)
+                    m_fillIndices.emplace_back(baseVertex + i);
                 m_glyphIdToMesh[glyphId] = {firstIndex, localCount};
             }
             m_glyphIdToInstances[glyphId].emplace_back(FillInstance{glm::vec2(info.translate.x, info.translate.y), info.scale});
             m_glyphIdToInstances[glyphId].back().pickId = (int)glyphId;
         }
-
-        // We already appended translated stroke above; nothing else to do here for stroke
     }
 
-    void PathRenderer::addPathGeometries(const std::vector<std::vector<CommonVertex>> &strokeGeometry, const std::vector<CommonVertex> &fillGeometry) {
+    void PathRenderer::addPathGeometries(const std::vector<std::vector<CommonVertex>> &strokeGeometry) {
         if (!strokeGeometry.empty()) {
             for (const auto &vertices : strokeGeometry) {
                 auto s = m_strokeVertices.size();
@@ -93,13 +93,6 @@ namespace Bess::Renderer2D::Vulkan {
                 m_strokeIndices.insert(m_strokeIndices.end(), indices.begin(), indices.end());
                 m_strokeIndices.emplace_back(primitiveResetIndex);
             }
-        }
-
-        if (!fillGeometry.empty()) {
-            auto s = m_fillVertices.size();
-            m_fillVertices.insert(m_fillVertices.end(), fillGeometry.begin(), fillGeometry.end());
-            auto indices = std::views::iota(s, m_fillVertices.size());
-            m_fillIndices.insert(m_fillIndices.end(), indices.begin(), indices.end());
         }
     }
 
@@ -121,12 +114,10 @@ namespace Bess::Renderer2D::Vulkan {
 
         if (info.genFill) {
             fillVertices = generateFillGeometry(contours, info.fillColor);
-            // Instanced path fill: append geometry once per glyphId and add an instance for this draw
             if (!fillVertices.empty()) {
                 uint64_t glyphId = info.glyphId;
                 if (glyphId == 0) {
-                    // Fallback: hash bounds as glyph id if path API did not supply
-                    glyphId = reinterpret_cast<uint64_t>(this); // simple stable fallback per renderer
+                    glyphId = reinterpret_cast<uint64_t>(this);
                 }
                 auto found = m_glyphIdToMesh.find(glyphId);
                 if (found == m_glyphIdToMesh.end()) {
@@ -134,16 +125,15 @@ namespace Bess::Renderer2D::Vulkan {
                     uint32_t baseVertex = static_cast<uint32_t>(m_fillVertices.size());
                     m_fillVertices.insert(m_fillVertices.end(), fillVertices.begin(), fillVertices.end());
                     auto localCount = static_cast<uint32_t>(fillVertices.size());
-                    for (uint32_t i = 0; i < localCount; ++i) m_fillIndices.emplace_back(baseVertex + i);
+                    for (uint32_t i = 0; i < localCount; ++i)
+                        m_fillIndices.emplace_back(baseVertex + i);
                     m_glyphIdToMesh[glyphId] = {firstIndex, localCount};
                 }
-                m_glyphIdToInstances[glyphId].emplace_back(FillInstance{glm::vec2(info.translate.x, info.translate.y), info.scale});
-                m_glyphIdToInstances[glyphId].back().pickId = (int)glyphId;
+                m_glyphIdToInstances[glyphId].emplace_back(FillInstance{glm::vec2(info.translate.x, info.translate.y), info.scale, (int)m_pathData.id});
             }
         }
 
-        // Only stroke goes via immediate path; fill is handled by instancing batch above
-        addPathGeometries(strokeVertices, {});
+        addPathGeometries(strokeVertices);
     }
 
     void PathRenderer::beginFrame(VkCommandBuffer commandBuffer) {
@@ -155,9 +145,7 @@ namespace Bess::Renderer2D::Vulkan {
             endPathMode();
         }
 
-        // Batched fill using GPU instancing
         if (!m_fillVertices.empty() && !m_fillIndices.empty() && !m_glyphIdToMesh.empty()) {
-            // Build packed instance array and draw calls per unique glyph
             m_tempInstances.clear();
             m_fillDrawCalls.clear();
             uint32_t firstInstance = 0;
@@ -180,7 +168,6 @@ namespace Bess::Renderer2D::Vulkan {
             m_pathFillPipeline->setInstanceData(m_tempInstances);
             m_pathFillPipeline->endPipeline();
         } else if (!m_fillVertices.empty() && !m_fillIndices.empty()) {
-            // Fallback: draw as a single non-instanced mesh with a default instance (translation=0, scale=1)
             m_tempInstances.clear();
             m_fillDrawCalls.clear();
             m_tempInstances.emplace_back(FillInstance{glm::vec2(0.0f), glm::vec2(1.0f), (int)m_pathData.id});
@@ -197,7 +184,6 @@ namespace Bess::Renderer2D::Vulkan {
             m_pathFillPipeline->endPipeline();
         }
 
-        // Draw stroke after fill so it appears on top
         m_pathStrokePipeline->beginPipeline(m_currentCommandBuffer);
         m_pathStrokePipeline->setPathData(m_strokeVertices, m_strokeIndices);
         m_pathStrokePipeline->endPipeline();
@@ -241,7 +227,7 @@ namespace Bess::Renderer2D::Vulkan {
         info.genStroke = genStroke;
         info.fillColor = fillColor;
         info.strokeColor = m_pathData.color;
-        info.translate = glm::vec3(0.0f); // path API positions are absolute, avoid double-translation
+        info.translate = glm::vec3(0.0f);
         info.scale = glm::vec2(1.0f);
         info.glyphId = static_cast<uint64_t>(m_pathData.id);
 
