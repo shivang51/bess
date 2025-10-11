@@ -68,25 +68,18 @@ namespace Bess::Renderer2D::Vulkan {
 
         // For fill rendering, store vertices without translation and batch draw call
         if (fillVerticesRef && !fillVerticesRef->empty()) {
-            // Append vertices for this glyph once per frame (atlas-like per UUID)
-            uint32_t firstIndex = static_cast<uint32_t>(m_fillIndices.size());
-            uint32_t baseVertex = static_cast<uint32_t>(m_fillVertices.size());
-            m_fillVertices.insert(m_fillVertices.end(), fillVerticesRef->begin(), fillVerticesRef->end());
-
-            auto localCount = static_cast<uint32_t>(fillVerticesRef->size());
-            for (uint32_t i = 0; i < localCount; ++i) {
-                m_fillIndices.emplace_back(baseVertex + i);
+            // Cache geometry in per-frame atlas (once per unique UUID)
+            auto glyphId = path.uuid;
+            auto found = m_glyphIdToMesh.find(glyphId);
+            if (found == m_glyphIdToMesh.end()) {
+                uint32_t firstIndex = static_cast<uint32_t>(m_fillIndices.size());
+                uint32_t baseVertex = static_cast<uint32_t>(m_fillVertices.size());
+                m_fillVertices.insert(m_fillVertices.end(), fillVerticesRef->begin(), fillVerticesRef->end());
+                auto localCount = static_cast<uint32_t>(fillVerticesRef->size());
+                for (uint32_t i = 0; i < localCount; ++i) m_fillIndices.emplace_back(baseVertex + i);
+                m_glyphIdToMesh[glyphId] = {firstIndex, localCount};
             }
-
-            Pipelines::PathFillPipeline::FillDrawCall dc{};
-            dc.firstIndex = firstIndex;
-            dc.indexCount = localCount;
-            // firstInstance/instanceCount will be set in endFrame when we pack instances
-            dc.firstInstance = 0;
-            dc.instanceCount = 0;
-            m_fillDrawCalls.emplace_back(dc);
-            // Record instance payload in a temporary side array on the fly
-            m_tempInstances.emplace_back(FillInstance{glm::vec2(info.translate.x, info.translate.y), info.scale});
+            m_glyphIdToInstances[glyphId].emplace_back(FillInstance{glm::vec2(info.translate.x, info.translate.y), info.scale});
         }
 
         // We already appended translated stroke above; nothing else to do here for stroke
@@ -151,14 +144,23 @@ namespace Bess::Renderer2D::Vulkan {
         m_pathStrokePipeline->endPipeline();
 
         // Batched fill using GPU instancing
-        if (!m_fillVertices.empty() && !m_fillIndices.empty() && !m_fillDrawCalls.empty()) {
-            // All instances in the same order as drawCalls (1:1 currently)
-            // Assign firstInstance/instanceCount by linear packing
-            uint32_t cursor = 0;
-            for (auto &dc : m_fillDrawCalls) {
-                dc.firstInstance = cursor;
-                dc.instanceCount = 1; // one instance per path in this simple pass
-                cursor += dc.instanceCount;
+        if (!m_fillVertices.empty() && !m_fillIndices.empty() && !m_glyphIdToMesh.empty()) {
+            // Build packed instance array and draw calls per unique glyph
+            m_tempInstances.clear();
+            m_fillDrawCalls.clear();
+            uint32_t firstInstance = 0;
+            for (auto &kv : m_glyphIdToInstances) {
+                auto glyphId = kv.first;
+                auto &instances = kv.second;
+                auto mesh = m_glyphIdToMesh[glyphId];
+                Pipelines::PathFillPipeline::FillDrawCall dc{};
+                dc.firstIndex = mesh.firstIndex;
+                dc.indexCount = mesh.indexCount;
+                dc.firstInstance = firstInstance;
+                dc.instanceCount = (uint32_t)instances.size();
+                m_fillDrawCalls.emplace_back(dc);
+                m_tempInstances.insert(m_tempInstances.end(), instances.begin(), instances.end());
+                firstInstance += dc.instanceCount;
             }
 
             m_pathFillPipeline->beginPipeline(m_currentCommandBuffer);
@@ -171,6 +173,8 @@ namespace Bess::Renderer2D::Vulkan {
         m_fillIndices.clear();
         m_fillDrawCalls.clear();
         m_tempInstances.clear();
+        m_glyphIdToMesh.clear();
+        m_glyphIdToInstances.clear();
         m_strokeVertices.clear();
         m_strokeIndices.clear();
     }

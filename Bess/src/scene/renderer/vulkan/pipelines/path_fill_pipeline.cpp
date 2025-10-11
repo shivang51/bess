@@ -107,6 +107,24 @@ namespace Bess::Vulkan::Pipelines {
 
         vkCmdSetViewport(m_currentCommandBuffer, 0, 1, &m_viewport);
         vkCmdSetScissor(m_currentCommandBuffer, 0, 1, &m_scissor);
+
+        // Upload atlas geometry lazily if dirty
+        if (m_atlasDirty) {
+            if (!m_atlasVertices.empty() && !m_atlasIndices.empty()) {
+                void *data = nullptr;
+                VkDeviceSize vsize = m_atlasVertices.size() * sizeof(CommonVertex);
+                vkMapMemory(m_device->device(), m_vertexBufferMemory[m_currentFrameIndex], 0, vsize, 0, &data);
+                memcpy(data, m_atlasVertices.data(), vsize);
+                vkUnmapMemory(m_device->device(), m_vertexBufferMemory[m_currentFrameIndex]);
+
+                void *idata = nullptr;
+                VkDeviceSize isize = m_atlasIndices.size() * sizeof(uint32_t);
+                vkMapMemory(m_device->device(), m_indexBufferMemory[m_currentFrameIndex], 0, isize, 0, &idata);
+                memcpy(idata, m_atlasIndices.data(), isize);
+                vkUnmapMemory(m_device->device(), m_indexBufferMemory[m_currentFrameIndex]);
+            }
+            m_atlasDirty = false;
+        }
     }
 
     void PathFillPipeline::endPipeline() {
@@ -200,6 +218,27 @@ namespace Bess::Vulkan::Pipelines {
         m_drawCalls = drawCalls;
 
         ensurePathCapacity(m_fillVertices.size(), m_fillIndices.size());
+    }
+
+    void PathFillPipeline::setBatchedPathData(const std::vector<FillDrawCall> &drawCalls) {
+        m_drawCalls = drawCalls;
+    }
+
+    PathFillPipeline::MeshInfo PathFillPipeline::ensureGlyphMesh(UUID id, const std::vector<CommonVertex> &vertices) {
+        auto it = m_meshMap.find(id);
+        if (it != m_meshMap.end()) return it->second;
+
+        MeshInfo out{};
+        out.baseVertex = (uint32_t)m_atlasVertices.size();
+        out.firstIndex = (uint32_t)m_atlasIndices.size();
+        out.indexCount = (uint32_t)vertices.size();
+
+        m_atlasVertices.insert(m_atlasVertices.end(), vertices.begin(), vertices.end());
+        for (uint32_t i = 0; i < out.indexCount; ++i) m_atlasIndices.emplace_back(out.baseVertex + i);
+        m_meshMap.emplace(id, out);
+        m_atlasDirty = true;
+        ensurePathCapacity(m_atlasVertices.size(), m_atlasIndices.size());
+        return out;
     }
 
     void PathFillPipeline::setInstanceData(const std::vector<FillInstance> &instances) {

@@ -10,6 +10,7 @@
 #include <memory>
 #include <vector>
 #include <vulkan/vulkan_core.h>
+#include <unordered_map>
 
 using namespace Bess::Vulkan;
 namespace Bess::Renderer2D::Vulkan {
@@ -130,6 +131,9 @@ namespace Bess::Renderer2D::Vulkan {
         glm::vec3 m_fillTranslation = glm::vec3(0.0f);
         std::vector<Pipelines::PathFillPipeline::FillDrawCall> m_fillDrawCalls;
         std::vector<FillInstance> m_tempInstances;
+        struct MeshRange { uint32_t firstIndex; uint32_t indexCount; };
+        std::unordered_map<UUID, MeshRange> m_glyphIdToMesh;
+        std::unordered_map<UUID, std::vector<FillInstance>> m_glyphIdToInstances;
 
         std::shared_ptr<VulkanDevice> m_device;
         std::shared_ptr<VulkanOffscreenRenderPass> m_renderPass;

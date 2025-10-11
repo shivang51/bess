@@ -4,6 +4,7 @@
 #include "primitive_vertex.h"
 #include <memory>
 #include <vector>
+#include "bess_uuid.h"
 
 namespace Bess::Vulkan::Pipelines {
 
@@ -45,7 +46,14 @@ namespace Bess::Vulkan::Pipelines {
                                 const std::vector<uint32_t> &fillIndices,
                                 const std::vector<FillDrawCall> &drawCalls);
 
+        // Overload for atlas mode (geometry managed internally)
+        void setBatchedPathData(const std::vector<FillDrawCall> &drawCalls);
+
         void setInstanceData(const std::vector<FillInstance> &instances);
+
+        // Register glyph geometry into atlas once; returns mesh location
+        struct MeshInfo { uint32_t baseVertex; uint32_t firstIndex; uint32_t indexCount; };
+        MeshInfo ensureGlyphMesh(UUID id, const std::vector<CommonVertex> &vertices);
 
         void updateUniformBuffer(const UniformBufferObject &ubo);
 
@@ -71,6 +79,12 @@ namespace Bess::Vulkan::Pipelines {
         glm::vec3 m_translation = glm::vec3(0.0f);
         std::vector<FillDrawCall> m_drawCalls;
         std::vector<FillInstance> m_instancesCpu;
+
+        // Glyph atlas (device-local geometry updated lazily)
+        std::unordered_map<UUID, MeshInfo> m_meshMap;
+        std::vector<CommonVertex> m_atlasVertices;
+        std::vector<uint32_t> m_atlasIndices;
+        bool m_atlasDirty = false;
 
         // Buffers for path data
         std::vector<VkBuffer> m_vertexBuffers;
