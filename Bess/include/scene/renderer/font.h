@@ -11,11 +11,11 @@ namespace Bess::Renderer::Font {
         FontFile(const std::string &path);
         void init(float fontSize, size_t glyphMin = 0, size_t glyphMax = 128);
 
-        const Glyph &getGlyph(char32_t ch);
-        const Glyph &getGlyph(const char *data);
+        Glyph &getGlyph(char32_t ch);
+        Glyph &getGlyph(const char *data);
 
       private:
-        const Glyph &indexChar(char32_t ch);
+        Glyph &indexChar(char32_t ch);
 
         std::vector<Glyph> m_glyphsTable;
         float m_size = 0;

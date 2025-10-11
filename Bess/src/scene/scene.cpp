@@ -1,4 +1,6 @@
 #include "scene/scene.h"
+#include "asset_manager/asset_manager.h"
+#include "assets.h"
 #include "bess_uuid.h"
 #include "common/log.h"
 #include "component_catalog.h"
@@ -22,6 +24,7 @@
 #include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
 #include "scene/renderer/glyph_extractor.h"
+#include "scene/renderer/path.h"
 #include "scene/viewport.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
@@ -262,40 +265,40 @@ namespace Bess::Canvas {
             viewport->getCamera());
 
         {
-            static Renderer::Font::GlyphExtractor font("assets/fonts/Roboto/Roboto-Regular.ttf");
-            static Renderer::Font::GlyphPath glyph;
+            static auto font = Assets::AssetManager::instance().get(Assets::Fonts::roboto);
             static bool isFirst = true;
 
             if (isFirst) {
-                font.setPixelSize(48);
-                font.extractGlyph('N', glyph);
+                font->init(48);
                 isFirst = false;
             }
 
-            auto pathRenderer = viewport->getArtistManager()->getCurrentArtist()->getPathRenderer();
+            static const std::string data = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam sapien nisl, varius nec aliquam sed, hendrerit a est. Quisque laoreet nisi quis nibh tempus, sit amet finibus mauris bibendum. Morbi eros tortor, auctor quis tellus sit amet, eleifend gravida ex. Maecenas ullamcorper in nisi non sodales. Cras semper vestibulum urna, ut interdum sapien auctor eget. Etiam pellentesque elementum maximus. Phasellus eu placerat quam. Aliquam et neque vel orci laoreet condimentum at sed enim. Donec sed lacinia risus. Praesent elementum vestibulum lacus, vitae condimentum lorem commodo sit amet.\n\nPellentesque eget arcu est.Vestibulum leo sapien, elementum et tincidunt a, dictum eget felis.Donec feugiat tempor dui ut dictum.Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.Lorem ipsum dolor sit amet, consectetur adipiscing elit.Lorem ipsum dolor sit amet, consectetur adipiscing elit.Aenean vitae dapibus ligula.Nulla sit amet venenatis risus.";
 
-            pathRenderer->beginPathMode(glm::vec3(0.f, 0.f, 1.f), 1.f, glm::vec4(1.f), -1);
-
-            for (auto &c : glyph.cmds) {
-                using Kind = Renderer::Font::PathCommand::Kind;
-                switch (c.kind) {
-                case Kind::Move:
-                    pathRenderer->pathMoveTo(glm::vec3(c.move.p, 1.f));
-                    break;
-                case Kind::Line:
-                    pathRenderer->pathLineTo(glm::vec3(c.line.p, 1.f), 1.f, glm::vec4(1.f), -1);
-                    break;
-                case Kind::Quad:
-                    pathRenderer->pathQuadBeizerTo(glm::vec3(c.quad.p, 1.f), c.quad.c, 1.f, glm::vec4(1.f), -1.f);
-                    break;
-                case Kind::Cubic:
-                    pathRenderer->pathCubicBeizerTo(glm::vec3(c.cubic.p, 1.f), c.cubic.c1, c.cubic.c2, 1.f, glm::vec4(1.f), -1.f);
-                    break;
+            float posX = 0.f, posY = 0.f;
+            constexpr size_t wrapLimit = 100;
+            int i = 0;
+            for (const char ch : data) {
+                if (ch == '\n') {
+                    posY += 48.f, posX = 0.f;
+                    i = 0;
+                    continue;
                 }
-            }
 
-            pathRenderer->endPathMode();
-            // pathRenderer->endPathMode(false, true, glm::vec4(0.5f), true);
+                if (ch == ' ' && i > wrapLimit) {
+                    posY += 48.f, posX = 0.f;
+                    i = 0;
+                }
+
+                auto &glyph = font->getGlyph(ch);
+                auto pathRenderer = viewport->getArtistManager()->getCurrentArtist()->getPathRenderer();
+                pathRenderer->drawPath(glyph.path, {.genStroke = false,
+                                                    .genFill = true,
+                                                    .translate = {posX, posY, 0.f},
+                                                    .fillColor = glm::vec4(1.f)});
+                posX += glyph.advanceX;
+                i++;
+            }
         }
 
         // Connections

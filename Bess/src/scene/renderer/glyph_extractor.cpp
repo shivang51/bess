@@ -2,53 +2,52 @@
 #include "common/log.h"
 #include "freetype/freetype.h"
 #include <cassert>
-#include <iostream>
 
 namespace Bess::Renderer::Font {
     struct GlyphExtractor::OutlineCollector {
-        CharacterPath *out;
+        Path *out = new Path();
         float yFlip;
 
-        Vec2 toPx(const FT_Vector &v) const {
+        glm::vec2 toPx(const FT_Vector &v) const {
             return {float(v.x) / 64.0f, yFlip * (float(v.y) / 64.0f)};
         }
 
         static int MoveCb(const FT_Vector *to, void *user) {
             auto *self = static_cast<OutlineCollector *>(user);
-            PathCommand cmd;
-            cmd.kind = PathCommand::Kind::Move;
+            Path::PathCommand cmd;
+            cmd.kind = Path::PathCommand::Kind::Move;
             cmd.move.p = self->toPx(*to);
-            self->out->cmds.push_back(cmd);
+            self->out->addCommand(cmd);
             return 0;
         }
 
         static int LineCb(const FT_Vector *to, void *user) {
             auto *self = static_cast<OutlineCollector *>(user);
-            PathCommand cmd;
-            cmd.kind = PathCommand::Kind::Line;
+            Path::PathCommand cmd;
+            cmd.kind = Path::PathCommand::Kind::Line;
             cmd.line.p = self->toPx(*to);
-            self->out->cmds.push_back(cmd);
+            self->out->addCommand(cmd);
             return 0;
         }
 
         static int ConicCb(const FT_Vector *control, const FT_Vector *to, void *user) {
             auto *self = static_cast<OutlineCollector *>(user);
-            PathCommand cmd;
-            cmd.kind = PathCommand::Kind::Quad;
+            Path::PathCommand cmd;
+            cmd.kind = Path::PathCommand::Kind::Quad;
             cmd.quad.c = self->toPx(*control);
             cmd.quad.p = self->toPx(*to);
-            self->out->cmds.push_back(cmd);
+            self->out->addCommand(cmd);
             return 0;
         }
 
         static int CubicCb(const FT_Vector *c1, const FT_Vector *c2, const FT_Vector *to, void *user) {
             auto *self = static_cast<OutlineCollector *>(user);
-            PathCommand cmd;
-            cmd.kind = PathCommand::Kind::Cubic;
+            Path::PathCommand cmd;
+            cmd.kind = Path::PathCommand::Kind::Cubic;
             cmd.cubic.c1 = self->toPx(*c1);
             cmd.cubic.c2 = self->toPx(*c2);
             cmd.cubic.p = self->toPx(*to);
-            self->out->cmds.push_back(cmd);
+            self->out->addCommand(cmd);
             return 0;
         }
     };
@@ -135,8 +134,9 @@ namespace Bess::Renderer::Font {
         if (FT_Outline_Decompose(&m_face->glyph->outline, &gOutlineFuncs, &oc))
             return false;
 
-        out.path.advanceX = float(m_face->glyph->advance.x) / 64.0f;
-        out.path.advanceY = float(m_face->glyph->advance.y) / 64.0f;
+        out.advanceX = float(m_face->glyph->advance.x) / 64.0f;
+        out.advanceY = float(m_face->glyph->advance.y) / 64.0f;
+        out.path = *oc.out;
         out.charCode = codepoint;
         return true;
     }

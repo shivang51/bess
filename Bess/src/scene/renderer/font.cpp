@@ -6,16 +6,16 @@ namespace Bess::Renderer::Font {
         : m_glyphExtractor(path), m_glyphCount(m_glyphExtractor.getGlyphsCount()) {
     }
 
-    const Glyph &FontFile::getGlyph(char32_t ch) {
+    Glyph &FontFile::getGlyph(char32_t ch) {
         return indexChar(ch);
     }
 
-    const Glyph &FontFile::getGlyph(const char *data) {
+    Glyph &FontFile::getGlyph(const char *data) {
         auto ch = GlyphExtractor::decodeSingleUTF8(data);
         return indexChar(ch);
     }
 
-    const Glyph &FontFile::indexChar(char32_t ch) {
+    Glyph &FontFile::indexChar(char32_t ch) {
         auto idx = (size_t)ch - m_min;
 
         if (m_glyphsTable[idx].charCode == ch)
@@ -24,6 +24,8 @@ namespace Bess::Renderer::Font {
         if (!m_glyphExtractor.extractGlyph(ch, m_glyphsTable[idx])) {
             BESS_WARN("[FontFile] Failed to find glyph for char {}", (size_t)ch);
         }
+
+        BESS_INFO("[FonFile] Indexed char {}", (char)(size_t)ch);
 
         return m_glyphsTable[idx];
     }

@@ -4,6 +4,7 @@
 #include "camera.h"
 #include "common/log.h"
 #include "primitive_vertex.h"
+#include "scene/renderer/font.h"
 #include <vulkan/vulkan_core.h>
 
 namespace Bess::Renderer2D::Vulkan {
@@ -17,6 +18,10 @@ namespace Bess::Renderer2D::Vulkan {
         m_gridPipeline = std::make_unique<Pipelines::GridPipeline>(device, renderPass, extent);
         m_quadPipeline = std::make_unique<Pipelines::QuadPipeline>(device, renderPass, extent);
         m_textPipeline = std::make_unique<Pipelines::TextPipeline>(device, renderPass, extent);
+
+        constexpr auto path = Assets::Fonts::Paths::roboto.paths[0].data();
+        m_font = std::make_unique<Renderer::Font::FontFile>(path);
+        m_font->init(24);
     }
 
     PrimitiveRenderer::~PrimitiveRenderer() = default;
@@ -231,10 +236,6 @@ namespace Bess::Renderer2D::Vulkan {
 
     void PrimitiveRenderer::drawText(const std::string &text, const glm::vec3 &pos, const size_t size,
                                      const glm::vec4 &color, const int id, float angle) {
-        // Command to use to generate MSDF font texture atlas
-        // https://github.com/Chlumsky/msdf-atlas-gen
-        // msdf-atlas-gen -font Roboto-Regular.ttf -type mtsdf -size 64 -imageout roboto_mtsdf.png -json roboto.json -pxrange 4
-
         if (text.empty())
             return;
 
@@ -253,8 +254,6 @@ namespace Bess::Renderer2D::Vulkan {
         float baseLineOff = yCharInfo.offset.y - wCharInfo.offset.y;
 
         glm::vec2 charPos = pos;
-        std::vector<Bess::Vulkan::InstanceVertex> opaqueInstances;
-        std::vector<Bess::Vulkan::InstanceVertex> translucentInstances;
 
         for (auto &ch : text) {
             const MsdfCharacter &charInfo = msdfFont->getCharacterData(ch);

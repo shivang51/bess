@@ -7,6 +7,7 @@
 #include "pipelines/quad_pipeline.h"
 #include "pipelines/text_pipeline.h"
 #include "primitive_vertex.h"
+#include "scene/renderer/font.h"
 #include "vulkan_offscreen_render_pass.h"
 #include "vulkan_subtexture.h"
 #include "vulkan_texture.h"
@@ -97,6 +98,8 @@ namespace Bess::Renderer2D::Vulkan {
         std::unique_ptr<Pipelines::GridPipeline> m_gridPipeline;
         std::unique_ptr<Pipelines::QuadPipeline> m_quadPipeline;
         std::unique_ptr<Pipelines::TextPipeline> m_textPipeline;
+
+        std::unique_ptr<Renderer::Font::FontFile> m_font;
 
         VkCommandBuffer m_currentCommandBuffer = VK_NULL_HANDLE;
 

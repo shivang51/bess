@@ -21,6 +21,91 @@ namespace Bess::Renderer2D::Vulkan {
 
     PathRenderer::~PathRenderer() = default;
 
+    void PathRenderer::drawPath(Renderer::Path &path, ContoursDrawInfo info) {
+        std::vector<std::vector<CommonVertex>> strokeVertices;
+        std::vector<CommonVertex> fillVertices;
+        if (PathGeometryCacheEntry cacheEntry; m_cache.getEntry(path.uuid, cacheEntry)) {
+            strokeVertices = cacheEntry.strokeVertices;
+            fillVertices = cacheEntry.fillVertices;
+        } else {
+            auto &contours = path.getContours();
+            if (info.genStroke) {
+                for (const auto &points : contours) {
+                    auto vertices = generateStrokeGeometry(points, info.strokeColor, info.closePath);
+                    strokeVertices.emplace_back(vertices);
+                }
+            }
+
+            if (info.genFill) {
+                fillVertices = generateFillGeometry(contours, info.fillColor);
+            }
+            m_cache.cacheEntry({
+                .pathId = path.uuid,
+                .strokeVertices = strokeVertices,
+                .fillVertices = fillVertices,
+            });
+        }
+
+        for (auto &vertices : strokeVertices) {
+            for (auto &p : vertices) {
+                p.position += info.translate;
+            }
+        }
+
+        for (auto &p : fillVertices) {
+            p.position += info.translate;
+        }
+
+        addPathGeometries(strokeVertices, fillVertices);
+    }
+
+    void PathRenderer::addPathGeometries(const std::vector<std::vector<CommonVertex>> &strokeGeometry, const std::vector<CommonVertex> &fillGeometry) {
+        if (!strokeGeometry.empty()) {
+            for (const auto &vertices : strokeGeometry) {
+                m_strokeVertices.insert(m_strokeVertices.end(), vertices.begin(), vertices.end());
+                auto s = m_strokeVertices.size();
+                for (uint32_t i = s; i < m_strokeVertices.size(); i++) {
+                    m_strokeIndices.emplace_back(i);
+                }
+                m_strokeIndices.emplace_back(primitiveResetIndex);
+            }
+        }
+
+        if (!fillGeometry.empty()) {
+            auto s = m_fillVertices.size();
+            m_fillVertices.insert(m_fillVertices.end(), fillGeometry.begin(), fillGeometry.end());
+            for (uint32_t i = s; i < m_fillVertices.size(); i++) {
+                m_fillIndices.push_back(i);
+            }
+        }
+    }
+
+    void PathRenderer::drawContours(const std::vector<std::vector<PathPoint>> &contours, ContoursDrawInfo info) {
+        // auto transform = glm::translate(glm::mat4(1.f), {m_pathData.startPos.x, m_pathData.startPos.y, m_pathData.startPos.y});
+        // transform = glm::scale(transform, {20.f / 48.f, 20.f / 48.f, 1.f});
+        std::vector<std::vector<CommonVertex>> strokeVertices;
+        std::vector<CommonVertex> fillVertices;
+        if (info.genStroke) {
+            for (const auto &points : contours) {
+                auto vertices = generateStrokeGeometry(points, info.strokeColor, info.closePath);
+
+                for (auto &p : vertices) {
+                    p.position += info.translate;
+                }
+                strokeVertices.emplace_back(vertices);
+            }
+        }
+
+        if (info.genFill) {
+            fillVertices = generateFillGeometry(contours, info.fillColor);
+            for (auto &p : fillVertices) {
+                p.position += info.translate;
+            }
+        }
+
+        addPathGeometries(strokeVertices, fillVertices);
+    }
+
     void PathRenderer::beginFrame(VkCommandBuffer commandBuffer) {
         m_currentCommandBuffer = commandBuffer;
     }
@@ -53,7 +138,7 @@ namespace Bess::Renderer2D::Vulkan {
         m_pathData.ended = false;
         m_pathData.startPos = startPos;
         m_pathData.currentPos = startPos;
-        m_pathData.points.emplace_back(PathPoint{startPos, weight, id});
+        m_pathData.points.emplace_back(PathPoint{startPos, weight, (int64_t)id});
         m_pathData.color = color;
     }
 
@@ -66,39 +151,14 @@ namespace Bess::Renderer2D::Vulkan {
             m_pathData.points.clear();
         }
 
-        // auto transform = glm::translate(glm::mat4(1.f), {m_pathData.startPos.x, m_pathData.startPos.y, m_pathData.startPos.y});
-        // transform = glm::scale(transform, {20.f / 48.f, 20.f / 48.f, 1.f});
-        //
-        for (auto &points : m_pathData.contours) {
-            for (auto &p : points) {
-                p.pos += m_pathData.startPos;
-            }
-        }
+        ContoursDrawInfo info{};
+        info.closePath = closePath;
+        info.genFill = genFill;
+        info.genStroke = genStroke;
+        info.fillColor = fillColor;
+        info.translate = m_pathData.startPos;
 
-        if (genStroke) {
-            for (const auto &points : m_pathData.contours) {
-                auto vertices = generateStrokeGeometry(points, m_pathData.color, closePath);
-                auto s = m_strokeVertices.size();
-
-                m_strokeVertices.insert(m_strokeVertices.end(), vertices.begin(), vertices.end());
-
-                for (uint32_t i = s; i < m_strokeVertices.size(); i++) {
-                    m_strokeIndices.emplace_back(i);
-                }
-                m_strokeIndices.emplace_back(primitiveResetIndex);
-            }
-        }
-
-        if (genFill) {
-            auto vertices = generateFillGeometry(m_pathData.contours, fillColor);
-            auto s = m_fillVertices.size();
-
-            m_fillVertices.insert(m_fillVertices.end(), vertices.begin(), vertices.end());
-
-            for (uint32_t i = s; i < m_fillVertices.size(); i++) {
-                m_fillIndices.push_back(i);
-            }
-        }
+        drawContours(m_pathData.contours, info);
 
         m_pathData = {};
     }
@@ -106,7 +166,7 @@ namespace Bess::Renderer2D::Vulkan {
     void PathRenderer::pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, int id) {
         if (m_pathData.ended)
             return;
-        m_pathData.points.emplace_back(PathPoint{pos, size, static_cast<uint64_t>(id)});
+        m_pathData.points.emplace_back(PathPoint{pos, size, id});
         m_pathData.setCurrentPos(pos);
     }
 
@@ -117,7 +177,7 @@ namespace Bess::Renderer2D::Vulkan {
         auto positions = generateCubicBezierPoints(m_pathData.currentPos, controlPoint1, controlPoint2, end);
         m_pathData.points.reserve(m_pathData.points.size() + positions.size());
         for (auto pos : positions) {
-            m_pathData.points.emplace_back(PathPoint{pos, weight, static_cast<uint64_t>(id)});
+            m_pathData.points.emplace_back(PathPoint{pos, weight, id});
         }
         m_pathData.setCurrentPos(end);
     }
@@ -128,7 +188,7 @@ namespace Bess::Renderer2D::Vulkan {
         auto positions = generateQuadBezierPoints(m_pathData.currentPos, controlPoint, end);
         m_pathData.points.reserve(m_pathData.points.size() + positions.size());
         for (auto pos : positions) {
-            m_pathData.points.emplace_back(PathPoint{pos, weight, static_cast<uint64_t>(id)});
+            m_pathData.points.emplace_back(PathPoint{pos, weight, id});
         }
         m_pathData.setCurrentPos(end);
     }
@@ -403,10 +463,6 @@ namespace Bess::Renderer2D::Vulkan {
         glm::vec2 startPoint = joinPoint - dir1 * curveRadius;
         glm::vec2 endPoint = joinPoint + dir2 * curveRadius;
         return {startPoint, controlPoint, endPoint};
-    }
-
-    float PathRenderer::cross_product(const glm::vec2 &O, const glm::vec2 &A, const glm::vec2 &B) {
-        return ((A.x - O.x) * (B.y - O.y)) - ((A.y - O.y) * (B.x - O.x));
     }
 
     int PathRenderer::calculateCubicBezierSegments(const glm::vec2 &p0,
