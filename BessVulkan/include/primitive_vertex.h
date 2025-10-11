@@ -169,4 +169,50 @@ namespace Bess::Vulkan {
         }
     };
 
+    // Instance data for path rendering
+    struct PathInstance {
+        glm::vec3 position; // location 5 - instance position
+        glm::vec3 scale;    // location 6 - instance scale
+        glm::vec4 color;    // location 7 - instance color
+        int id;             // location 8 - instance id
+
+        static VkVertexInputBindingDescription getBindingDescription() {
+            VkVertexInputBindingDescription bindingDescription{};
+            bindingDescription.binding = 1;
+            bindingDescription.stride = sizeof(PathInstance);
+            bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+            return bindingDescription;
+        }
+
+        static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
+            std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions{};
+
+            // Position
+            attributeDescriptions[0].binding = 1;
+            attributeDescriptions[0].location = 5;
+            attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+            attributeDescriptions[0].offset = offsetof(PathInstance, position);
+
+            // Scale
+            attributeDescriptions[1].binding = 1;
+            attributeDescriptions[1].location = 6;
+            attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+            attributeDescriptions[1].offset = offsetof(PathInstance, scale);
+
+            // Color
+            attributeDescriptions[2].binding = 1;
+            attributeDescriptions[2].location = 7;
+            attributeDescriptions[2].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+            attributeDescriptions[2].offset = offsetof(PathInstance, color);
+
+            // ID
+            attributeDescriptions[3].binding = 1;
+            attributeDescriptions[3].location = 8;
+            attributeDescriptions[3].format = VK_FORMAT_R32_SINT;
+            attributeDescriptions[3].offset = offsetof(PathInstance, id);
+
+            return attributeDescriptions;
+        }
+    };
+
 } // namespace Bess::Vulkan

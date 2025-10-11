@@ -20,6 +20,7 @@ namespace Bess::Vulkan::Pipelines {
         createZoomUniformBuffers();
         createVertexBuffer();
         createIndexBuffer();
+        createInstanceBuffer();
         createUniformBuffers();
 
         createDescriptorSetLayout();
@@ -39,22 +40,29 @@ namespace Bess::Vulkan::Pipelines {
         : Pipeline(std::move(other)),
           m_fillVertices(std::move(other.m_fillVertices)),
           m_fillIndices(std::move(other.m_fillIndices)),
+          m_instances(std::move(other.m_instances)),
           m_vertexBuffers(std::move(other.m_vertexBuffers)),
           m_vertexBufferMemory(std::move(other.m_vertexBufferMemory)),
           m_indexBuffers(std::move(other.m_indexBuffers)),
           m_indexBufferMemory(std::move(other.m_indexBufferMemory)),
+          m_instanceBuffers(std::move(other.m_instanceBuffers)),
+          m_instanceBufferMemory(std::move(other.m_instanceBufferMemory)),
           m_currentVertexCapacity(other.m_currentVertexCapacity),
           m_currentIndexCapacity(other.m_currentIndexCapacity),
+          m_currentInstanceCapacity(other.m_currentInstanceCapacity),
           m_zoomUniformBuffers(std::move(other.m_zoomUniformBuffers)),
           m_zoomUniformBufferMemory(std::move(other.m_zoomUniformBufferMemory)) {
         other.m_vertexBuffers.clear();
         other.m_vertexBufferMemory.clear();
         other.m_indexBuffers.clear();
         other.m_indexBufferMemory.clear();
+        other.m_instanceBuffers.clear();
+        other.m_instanceBufferMemory.clear();
         other.m_zoomUniformBuffers.clear();
         other.m_zoomUniformBufferMemory.clear();
         other.m_currentVertexCapacity = 0;
         other.m_currentIndexCapacity = 0;
+        other.m_currentInstanceCapacity = 0;
     }
 
     PathFillPipeline &PathFillPipeline::operator=(PathFillPipeline &&other) noexcept {
@@ -63,12 +71,16 @@ namespace Bess::Vulkan::Pipelines {
             Pipeline::operator=(std::move(other));
             m_fillVertices = std::move(other.m_fillVertices);
             m_fillIndices = std::move(other.m_fillIndices);
+            m_instances = std::move(other.m_instances);
             m_vertexBuffers = std::move(other.m_vertexBuffers);
             m_vertexBufferMemory = std::move(other.m_vertexBufferMemory);
             m_indexBuffers = std::move(other.m_indexBuffers);
             m_indexBufferMemory = std::move(other.m_indexBufferMemory);
+            m_instanceBuffers = std::move(other.m_instanceBuffers);
+            m_instanceBufferMemory = std::move(other.m_instanceBufferMemory);
             m_currentVertexCapacity = other.m_currentVertexCapacity;
             m_currentIndexCapacity = other.m_currentIndexCapacity;
+            m_currentInstanceCapacity = other.m_currentInstanceCapacity;
             m_zoomUniformBuffers = std::move(other.m_zoomUniformBuffers);
             m_zoomUniformBufferMemory = std::move(other.m_zoomUniformBufferMemory);
 
@@ -76,10 +88,13 @@ namespace Bess::Vulkan::Pipelines {
             other.m_vertexBufferMemory.clear();
             other.m_indexBuffers.clear();
             other.m_indexBufferMemory.clear();
+            other.m_instanceBuffers.clear();
+            other.m_instanceBufferMemory.clear();
             other.m_zoomUniformBuffers.clear();
             other.m_zoomUniformBufferMemory.clear();
             other.m_currentVertexCapacity = 0;
             other.m_currentIndexCapacity = 0;
+            other.m_currentInstanceCapacity = 0;
         }
         return *this;
     }
@@ -112,11 +127,30 @@ namespace Bess::Vulkan::Pipelines {
             VkDeviceSize offset = 0;
             vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 1, &vertexBuffer, &offset);
             vkCmdBindIndexBuffer(m_currentCommandBuffer, m_indexBuffers[m_currentFrameIndex], 0, VK_INDEX_TYPE_UINT32);
-            vkCmdDrawIndexed(m_currentCommandBuffer, static_cast<uint32_t>(m_fillIndices.size()), 1, 0, 0, 0);
+            
+            if (!m_drawCalls.empty()) {
+                for (const auto &dc : m_drawCalls) {
+                    glm::vec4 translationData(dc.translation, 0.0f);
+                    vkCmdPushConstants(m_currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,
+                                       0, sizeof(glm::vec4), &translationData);
+                    vkCmdDrawIndexed(m_currentCommandBuffer, dc.indexCount, 1, dc.firstIndex, 0, 0);
+                }
+            } else {
+                // Push translation to GPU
+                glm::vec4 translationData(m_translation, 0.0f); // vec3 + padding
+                vkCmdPushConstants(m_currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 
+                                  0, sizeof(glm::vec4), &translationData);
+                
+                // Draw
+                vkCmdDrawIndexed(m_currentCommandBuffer, static_cast<uint32_t>(m_fillIndices.size()), 1, 0, 0, 0);
+            }
         }
 
         m_fillVertices.clear();
         m_fillIndices.clear();
+        m_instances.clear();
+        m_drawCalls.clear();
+        m_translation = glm::vec3(0.0f);
         m_currentCommandBuffer = VK_NULL_HANDLE;
     }
 
@@ -126,6 +160,46 @@ namespace Bess::Vulkan::Pipelines {
 
         m_fillVertices = fillVertices;
         m_fillIndices = fillIndices;
+
+        ensurePathCapacity(m_fillVertices.size(), m_fillIndices.size());
+    }
+
+    void PathFillPipeline::setInstancedPathData(const std::vector<CommonVertex> &fillVertices,
+                                               const std::vector<uint32_t> &fillIndices,
+                                               const std::vector<PathInstance> &instances) {
+        if (fillVertices.empty() || instances.empty())
+            return;
+
+        m_fillVertices = fillVertices;
+        m_fillIndices = fillIndices;
+        m_instances = instances;
+
+        ensurePathCapacity(m_fillVertices.size(), m_fillIndices.size());
+        ensureInstanceCapacity(m_instances.size());
+    }
+
+    void PathFillPipeline::setPathDataWithTranslation(const std::vector<CommonVertex> &fillVertices,
+                                                     const std::vector<uint32_t> &fillIndices,
+                                                     const glm::vec3 &translation) {
+        if (fillVertices.empty())
+            return;
+
+        m_fillVertices = fillVertices;
+        m_fillIndices = fillIndices;
+        m_translation = translation;
+
+        ensurePathCapacity(m_fillVertices.size(), m_fillIndices.size());
+    }
+
+    void PathFillPipeline::setBatchedPathData(const std::vector<CommonVertex> &fillVertices,
+                                              const std::vector<uint32_t> &fillIndices,
+                                              const std::vector<FillDrawCall> &drawCalls) {
+        if (fillVertices.empty() || fillIndices.empty() || drawCalls.empty())
+            return;
+
+        m_fillVertices = fillVertices;
+        m_fillIndices = fillIndices;
+        m_drawCalls = drawCalls;
 
         ensurePathCapacity(m_fillVertices.size(), m_fillIndices.size());
     }
@@ -162,11 +236,20 @@ namespace Bess::Vulkan::Pipelines {
             }
         }
 
+        for (size_t i = 0; i < m_instanceBuffers.size(); i++) {
+            if (m_instanceBuffers[i] != VK_NULL_HANDLE) {
+                vkDestroyBuffer(m_device->device(), m_instanceBuffers[i], nullptr);
+            }
+            if (m_instanceBufferMemory[i] != VK_NULL_HANDLE) {
+                vkFreeMemory(m_device->device(), m_instanceBufferMemory[i], nullptr);
+            }
+        }
+
         Pipeline::cleanup();
     }
 
     void PathFillPipeline::createGraphicsPipeline() {
-        auto vertShaderCode = readFile("assets/shaders/common.vert.spv");
+        auto vertShaderCode = readFile("assets/shaders/path_push_constants.vert.spv");
         auto fragShaderCode = readFile("assets/shaders/path.frag.spv");
 
         VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
@@ -229,13 +312,19 @@ namespace Bess::Vulkan::Pipelines {
         colorBlending.blendConstants[2] = 0.0f;
         colorBlending.blendConstants[3] = 0.0f;
 
+        // Define push constant range for translation
+        VkPushConstantRange pushConstantRange{};
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        pushConstantRange.offset = 0;
+        pushConstantRange.size = sizeof(glm::vec4); // vec3 + padding
+
         // Create pipeline layout
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = 1;
         pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout;
-        pipelineLayoutInfo.pushConstantRangeCount = 0;
-        pipelineLayoutInfo.pPushConstantRanges = nullptr;
+        pipelineLayoutInfo.pushConstantRangeCount = 1;
+        pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
         if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create path pipeline layout!");
@@ -332,6 +421,86 @@ namespace Bess::Vulkan::Pipelines {
         }
 
         m_currentIndexCapacity = 2000;
+    }
+
+    void PathFillPipeline::createInstanceBuffer() {
+        m_instanceBuffers.resize(maxFrames);
+        m_instanceBufferMemory.resize(maxFrames);
+
+        for (size_t i = 0; i < maxFrames; i++) {
+            VkBufferCreateInfo bufferInfo{};
+            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            bufferInfo.size = sizeof(PathInstance) * instanceLimit;
+            bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+            bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+            if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr, &m_instanceBuffers[i]) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create path instance buffer!");
+            }
+
+            VkMemoryRequirements memRequirements;
+            vkGetBufferMemoryRequirements(m_device->device(), m_instanceBuffers[i], &memRequirements);
+
+            VkMemoryAllocateInfo allocInfo{};
+            allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+            allocInfo.allocationSize = memRequirements.size;
+            allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+            if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr, &m_instanceBufferMemory[i]) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to allocate path instance buffer memory!");
+            }
+
+            vkBindBufferMemory(m_device->device(), m_instanceBuffers[i], m_instanceBufferMemory[i], 0);
+        }
+
+        m_currentInstanceCapacity = instanceLimit;
+    }
+
+    void PathFillPipeline::ensureInstanceCapacity(size_t instanceCount) {
+        if (instanceCount <= m_currentInstanceCapacity) {
+            return; // Already have enough capacity
+        }
+
+        // Calculate new capacity with some headroom
+        size_t newInstanceCapacity = std::max(instanceCount * 2, m_currentInstanceCapacity * 2);
+
+        // Destroy old instance buffers
+        for (size_t i = 0; i < m_instanceBuffers.size(); i++) {
+            if (m_instanceBuffers[i] != VK_NULL_HANDLE) {
+                vkDestroyBuffer(m_device->device(), m_instanceBuffers[i], nullptr);
+            }
+            if (m_instanceBufferMemory[i] != VK_NULL_HANDLE) {
+                vkFreeMemory(m_device->device(), m_instanceBufferMemory[i], nullptr);
+            }
+        }
+
+        // Create new instance buffers with required capacity
+        for (size_t i = 0; i < maxFrames; i++) {
+            VkBufferCreateInfo bufferInfo{};
+            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            bufferInfo.size = sizeof(PathInstance) * newInstanceCapacity;
+            bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+            bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+            if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr, &m_instanceBuffers[i]) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create resized path instance buffer!");
+            }
+
+            VkMemoryRequirements memRequirements;
+            vkGetBufferMemoryRequirements(m_device->device(), m_instanceBuffers[i], &memRequirements);
+
+            VkMemoryAllocateInfo allocInfo{};
+            allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+            allocInfo.allocationSize = memRequirements.size;
+            allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+            if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr, &m_instanceBufferMemory[i]) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to allocate resized path instance buffer memory!");
+            }
+
+            vkBindBufferMemory(m_device->device(), m_instanceBuffers[i], m_instanceBufferMemory[i], 0);
+        }
+        m_currentInstanceCapacity = newInstanceCapacity;
     }
 
     void PathFillPipeline::createDescriptorSetLayout() {

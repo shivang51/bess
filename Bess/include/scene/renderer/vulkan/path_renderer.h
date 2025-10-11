@@ -57,6 +57,14 @@ namespace Bess::Renderer2D::Vulkan {
             return true;
         }
 
+        bool getEntryPtr(UUID id, const PathGeometryCacheEntry *&entryPtr) const {
+            auto it = m_cache.find(id);
+            if (it == m_cache.end())
+                return false;
+            entryPtr = &it->second;
+            return true;
+        }
+
         void cacheEntry(const PathGeometryCacheEntry &entry) {
             m_cache[entry.pathId] = entry;
         }
@@ -118,6 +126,9 @@ namespace Bess::Renderer2D::Vulkan {
         std::vector<CommonVertex> m_fillVertices;
         std::vector<uint32_t> m_strokeIndices;
         std::vector<uint32_t> m_fillIndices;
+        std::vector<PathInstance> m_fillInstances;
+        glm::vec3 m_fillTranslation = glm::vec3(0.0f);
+        std::vector<Pipelines::PathFillPipeline::FillDrawCall> m_fillDrawCalls;
 
         std::shared_ptr<VulkanDevice> m_device;
         std::shared_ptr<VulkanOffscreenRenderPass> m_renderPass;
@@ -136,6 +147,7 @@ namespace Bess::Renderer2D::Vulkan {
                                                          const glm::vec4 &color, bool isClosed);
         std::vector<CommonVertex> generateFillGeometry(const std::vector<PathPoint> &points, const glm::vec4 &color);
         std::vector<CommonVertex> generateFillGeometry(const std::vector<std::vector<PathPoint>> &contours, const glm::vec4 &color);
+        std::vector<uint32_t> generateFillIndices(size_t vertexCount);
 
         QuadBezierCurvePoints generateSmoothBendPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius);
     };

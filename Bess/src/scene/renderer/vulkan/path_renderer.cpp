@@ -1,5 +1,6 @@
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "common/log.h"
+#include <ranges>
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm.hpp"
 #include "gtx/vector_angle.hpp"
@@ -22,51 +23,79 @@ namespace Bess::Renderer2D::Vulkan {
     PathRenderer::~PathRenderer() = default;
 
     void PathRenderer::drawPath(Renderer::Path &path, ContoursDrawInfo info) {
-        std::vector<std::vector<CommonVertex>> strokeVertices;
-        std::vector<CommonVertex> fillVertices;
-        if (PathGeometryCacheEntry cacheEntry; m_cache.getEntry(path.uuid, cacheEntry)) {
-            strokeVertices = cacheEntry.strokeVertices;
-            fillVertices = cacheEntry.fillVertices;
+        // Try to use cached geometry without copying
+        const PathGeometryCacheEntry *cachedPtr = nullptr;
+        const std::vector<std::vector<CommonVertex>> *strokeVerticesRef = nullptr;
+        const std::vector<CommonVertex> *fillVerticesRef = nullptr;
+        std::vector<std::vector<CommonVertex>> generatedStrokeVertices;
+        std::vector<CommonVertex> generatedFillVertices;
+        if (m_cache.getEntryPtr(path.uuid, cachedPtr)) {
+            strokeVerticesRef = &cachedPtr->strokeVertices;
+            fillVerticesRef = &cachedPtr->fillVertices;
         } else {
             auto &contours = path.getContours();
             if (info.genStroke) {
                 for (const auto &points : contours) {
                     auto vertices = generateStrokeGeometry(points, info.strokeColor, info.closePath);
-                    strokeVertices.emplace_back(vertices);
+                    generatedStrokeVertices.emplace_back(std::move(vertices));
                 }
+                strokeVerticesRef = &generatedStrokeVertices;
             }
 
             if (info.genFill) {
-                fillVertices = generateFillGeometry(contours, info.fillColor);
+                generatedFillVertices = generateFillGeometry(contours, info.fillColor);
+                fillVerticesRef = &generatedFillVertices;
             }
             m_cache.cacheEntry({
                 .pathId = path.uuid,
-                .strokeVertices = strokeVertices,
-                .fillVertices = fillVertices,
+                .strokeVertices = generatedStrokeVertices,
+                .fillVertices = generatedFillVertices,
             });
         }
 
-        for (auto &vertices : strokeVertices) {
-            for (auto &p : vertices) {
-                p.position += info.translate;
+        // For stroke rendering, still use the old approach for now
+        if (strokeVerticesRef) {
+            for (const auto &vertices : *strokeVerticesRef) {
+                auto translated = vertices; // copy once into frame heap, not cache
+                for (auto &p : translated) p.position += info.translate;
+                m_strokeVertices.insert(m_strokeVertices.end(), translated.begin(), translated.end());
+                auto s = m_strokeVertices.size() - translated.size();
+                auto indices = std::views::iota(s, m_strokeVertices.size());
+                m_strokeIndices.insert(m_strokeIndices.end(), indices.begin(), indices.end());
+                m_strokeIndices.emplace_back(primitiveResetIndex);
             }
         }
 
-        for (auto &p : fillVertices) {
-            p.position += info.translate;
+        // For fill rendering, store vertices without translation and batch draw call
+        if (fillVerticesRef && !fillVerticesRef->empty()) {
+            // Append vertices
+            uint32_t firstIndex = static_cast<uint32_t>(m_fillIndices.size());
+            uint32_t baseVertex = static_cast<uint32_t>(m_fillVertices.size());
+            m_fillVertices.insert(m_fillVertices.end(), fillVerticesRef->begin(), fillVerticesRef->end());
+
+            // Append indices (sequential triangles) shifted by baseVertex
+            auto localCount = static_cast<uint32_t>(fillVerticesRef->size());
+            for (uint32_t i = 0; i < localCount; ++i) {
+                m_fillIndices.emplace_back(baseVertex + i);
+            }
+
+            Pipelines::PathFillPipeline::FillDrawCall dc{};
+            dc.firstIndex = firstIndex;
+            dc.indexCount = localCount;
+            dc.translation = info.translate;
+            m_fillDrawCalls.emplace_back(dc);
         }
 
-        addPathGeometries(strokeVertices, fillVertices);
+        // We already appended translated stroke above; nothing else to do here for stroke
     }
 
     void PathRenderer::addPathGeometries(const std::vector<std::vector<CommonVertex>> &strokeGeometry, const std::vector<CommonVertex> &fillGeometry) {
         if (!strokeGeometry.empty()) {
             for (const auto &vertices : strokeGeometry) {
-                m_strokeVertices.insert(m_strokeVertices.end(), vertices.begin(), vertices.end());
                 auto s = m_strokeVertices.size();
-                for (uint32_t i = s; i < m_strokeVertices.size(); i++) {
-                    m_strokeIndices.emplace_back(i);
-                }
+                m_strokeVertices.insert(m_strokeVertices.end(), vertices.begin(), vertices.end());
+                auto indices = std::views::iota(s, m_strokeVertices.size());
+                m_strokeIndices.insert(m_strokeIndices.end(), indices.begin(), indices.end());
                 m_strokeIndices.emplace_back(primitiveResetIndex);
             }
         }
@@ -74,9 +103,8 @@ namespace Bess::Renderer2D::Vulkan {
         if (!fillGeometry.empty()) {
             auto s = m_fillVertices.size();
             m_fillVertices.insert(m_fillVertices.end(), fillGeometry.begin(), fillGeometry.end());
-            for (uint32_t i = s; i < m_fillVertices.size(); i++) {
-                m_fillIndices.push_back(i);
-            }
+            auto indices = std::views::iota(s, m_fillVertices.size());
+            m_fillIndices.insert(m_fillIndices.end(), indices.begin(), indices.end());
         }
     }
 
@@ -119,12 +147,16 @@ namespace Bess::Renderer2D::Vulkan {
         m_pathStrokePipeline->setPathData(m_strokeVertices, m_strokeIndices);
         m_pathStrokePipeline->endPipeline();
 
-        m_pathFillPipeline->beginPipeline(m_currentCommandBuffer);
-        m_pathFillPipeline->setPathData(m_fillVertices, m_fillIndices);
-        m_pathFillPipeline->endPipeline();
+        // Batched fill using GPU translation
+        if (!m_fillVertices.empty() && !m_fillIndices.empty() && !m_fillDrawCalls.empty()) {
+            m_pathFillPipeline->beginPipeline(m_currentCommandBuffer);
+            m_pathFillPipeline->setBatchedPathData(m_fillVertices, m_fillIndices, m_fillDrawCalls);
+            m_pathFillPipeline->endPipeline();
+        }
 
         m_fillVertices.clear();
         m_fillIndices.clear();
+        m_fillDrawCalls.clear();
         m_strokeVertices.clear();
         m_strokeIndices.clear();
     }
@@ -537,6 +569,17 @@ namespace Bess::Renderer2D::Vulkan {
         }
 
         return points;
+    }
+
+    std::vector<uint32_t> PathRenderer::generateFillIndices(size_t vertexCount) {
+        std::vector<uint32_t> indices;
+        // The tessellated geometry already generates vertices in triangle format
+        // So we need sequential indices for the vertices
+        indices.reserve(vertexCount);
+        for (size_t i = 0; i < vertexCount; ++i) {
+            indices.push_back(static_cast<uint32_t>(i));
+        }
+        return indices;
     }
 
     void PathRenderer::resize(VkExtent2D extent) {

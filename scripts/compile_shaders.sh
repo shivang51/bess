@@ -19,7 +19,7 @@ rm *.spv
 compile "quad";
 compile "circle";
 compile "instance.vert" "text.frag";
-compile "common.vert" "path.frag";
+compile "common.vert" "path.frag" "path_instanced.vert" "path_push_constants.vert";
 compile "grid.vert" "grid_line.frag";
 compile "postprocess.vert" "unpremultiply.frag";
 cd ..
