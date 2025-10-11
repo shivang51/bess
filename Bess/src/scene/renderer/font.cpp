@@ -25,8 +25,6 @@ namespace Bess::Renderer::Font {
             BESS_WARN("[FontFile] Failed to find glyph for char {}", (size_t)ch);
         }
 
-        BESS_INFO("[FonFile] Indexed char {}", (char)(size_t)ch);
-
         return m_glyphsTable[idx];
     }
 

@@ -1,8 +1,6 @@
 #include "scene/renderer/vulkan/path_renderer.h"
-#include "common/log.h"
 #include <ranges>
 #define GLM_ENABLE_EXPERIMENTAL
-#include "glm.hpp"
 #include "gtx/vector_angle.hpp"
 #include "tesselator.h"
 #include <algorithm>
@@ -260,9 +258,9 @@ namespace Bess::Renderer2D::Vulkan {
             CommonVertex v;
             v.position = glm::vec3(pos, z);
             v.color = color;
-            v.id = id;
+            v.id = static_cast<int>(id & 0x7FFFFFFF);
             v.texCoord = uv;
-            v.texSlotIdx = -1; // mark as stroke for shader AA path
+            v.texSlotIdx = -1;
             return v;
         };
 
@@ -283,7 +281,7 @@ namespace Bess::Renderer2D::Vulkan {
         std::vector<CommonVertex> stripVertices;
         float cumulativeLength = 0.0f;
         const size_t pointCount = points.size();
-        const size_t n = isClosed ? pointCount : pointCount;
+        const size_t n = pointCount;
 
         size_t ni = 0;
         // --- 2. Generate Joins and Caps ---
@@ -295,7 +293,7 @@ namespace Bess::Renderer2D::Vulkan {
             }
 
             const auto &pCurr = points[i];
-            const auto &pPrev = isClosed ? points[(i + pointCount - 1) % pointCount] : points[std::max<long int>(0, i - 1)];
+            const auto &pPrev = isClosed ? points[(i + pointCount - 1) % pointCount] : points[std::max<size_t>(0, i - 1)];
             const auto &pNext = isClosed ? points[ni % pointCount] : points[std::min(pointCount - 1, ni)];
 
             // Update cumulative length for UVs. For the first point, it's 0.
@@ -466,7 +464,7 @@ namespace Bess::Renderer2D::Vulkan {
                 flatPoints.push_back(&p);
 
         auto makeVertex = [&](int vi) -> CommonVertex {
-            glm::vec3 pos((float)verts[vi * 2 + 0], (float)verts[vi * 2 + 1], 0.0f);
+            glm::vec3 pos((float)verts[(vi * 2) + 0], (float)verts[(vi * 2) + 1], 0.0f);
 
             int mapped = vindex ? vindex[vi] : -1;
             float z = 0.0f;
@@ -488,9 +486,9 @@ namespace Bess::Renderer2D::Vulkan {
             return v;
         };
 
-        out.reserve(nelems * 3);
+        out.reserve(static_cast<size_t>(nelems) * 3);
         for (int i = 0; i < nelems; ++i) {
-            const int *poly = elems + i * polySize;
+            const int *poly = elems + (static_cast<ptrdiff_t>(i) * polySize);
 
             int i0 = poly[0], i1 = poly[1], i2 = poly[2];
             if (i0 < 0 || i1 < 0 || i2 < 0)
@@ -522,8 +520,8 @@ namespace Bess::Renderer2D::Vulkan {
                                                    const glm::vec2 &p1,
                                                    const glm::vec2 &p2,
                                                    const glm::vec2 &p3) {
-        glm::vec2 d1 = p0 - 2.0f * p1 + p2;
-        glm::vec2 d2 = p1 - 2.0f * p2 + p3;
+        glm::vec2 d1 = p0 - (2.0f * p1) + p2;
+        glm::vec2 d2 = p1 - (2.0f * p2) + p3;
 
         float m1 = glm::length(d1);
         float m2 = glm::length(d2);
@@ -537,7 +535,7 @@ namespace Bess::Renderer2D::Vulkan {
     int PathRenderer::calculateQuadBezierSegments(const glm::vec2 &p0,
                                                   const glm::vec2 &p1,
                                                   const glm::vec2 &p2) {
-        glm::vec2 d = p0 - 2.0f * p1 + p2;
+        glm::vec2 d = p0 - (2.0f * p1) + p2;
 
         float M = 2.0f * glm::length(d);
 
@@ -560,7 +558,7 @@ namespace Bess::Renderer2D::Vulkan {
 
     glm::vec2 PathRenderer::nextBernstinePointQuadBezier(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2, const float t) {
         float t_ = 1.0f - t;
-        glm::vec2 point = (t_ * t_) * p0 + 2.0f * (t_ * t) * p1 + (t * t) * p2;
+        glm::vec2 point = ((t_ * t_) * p0) + (2.0f * (t_ * t) * p1) + ((t * t) * p2);
         return point;
     }
 

@@ -1,5 +1,4 @@
 #include "scene/renderer/vulkan/pipelines/path_stroke_pipeline.h"
-#include "common/log.h"
 #include "device.h"
 #include "primitive_vertex.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
@@ -8,7 +7,6 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
-#include <vulkan/vulkan_core.h>
 
 namespace Bess::Vulkan::Pipelines {
 

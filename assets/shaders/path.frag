@@ -17,7 +17,6 @@ void main() {
     vec4 col = v_FragColor;
 
     if (v_TexSlotIdx < 0) {
-        // Stroke triangle strip: v_TexCoord.y runs 0..1 across the stroke width
         float edgeDist = min(v_TexCoord.y, 1.0 - v_TexCoord.y);
         float aa = fwidth(v_TexCoord.y);
         float alpha = smoothstep(0.0, aa, edgeDist);
