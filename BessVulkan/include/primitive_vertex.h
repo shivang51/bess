@@ -218,6 +218,7 @@ namespace Bess::Vulkan {
     struct FillInstance {
         glm::vec2 translation; // location 5
         glm::vec2 scale;       // location 6
+        int pickId;            // location 7
 
         static VkVertexInputBindingDescription getBindingDescription() {
             VkVertexInputBindingDescription bd{};
@@ -227,8 +228,8 @@ namespace Bess::Vulkan {
             return bd;
         }
 
-        static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
-            std::array<VkVertexInputAttributeDescription, 2> a{};
+        static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
+            std::array<VkVertexInputAttributeDescription, 3> a{};
             // translation
             a[0].binding = 1;
             a[0].location = 5;
@@ -239,6 +240,11 @@ namespace Bess::Vulkan {
             a[1].location = 6;
             a[1].format = VK_FORMAT_R32G32_SFLOAT;
             a[1].offset = offsetof(FillInstance, scale);
+            // pick id
+            a[2].binding = 1;
+            a[2].location = 7;
+            a[2].format = VK_FORMAT_R32_SINT;
+            a[2].offset = offsetof(FillInstance, pickId);
             return a;
         }
     };

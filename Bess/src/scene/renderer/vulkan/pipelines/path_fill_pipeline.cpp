@@ -317,7 +317,7 @@ namespace Bess::Vulkan::Pipelines {
         auto instAttrs = FillInstance::getAttributeDescriptions();
 
         std::array<VkVertexInputBindingDescription, 2> bindings{bindingDescription, instBinding};
-        std::array<VkVertexInputAttributeDescription, 7> attrs{};
+        std::array<VkVertexInputAttributeDescription, 8> attrs{};
         // copy vertex attrs
         for (size_t i = 0; i < attributeDescriptions.size(); ++i) attrs[i] = attributeDescriptions[i];
         // append instance attrs

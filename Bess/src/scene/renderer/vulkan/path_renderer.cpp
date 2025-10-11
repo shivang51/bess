@@ -80,6 +80,7 @@ namespace Bess::Renderer2D::Vulkan {
                 m_glyphIdToMesh[glyphId] = {firstIndex, localCount};
             }
             m_glyphIdToInstances[glyphId].emplace_back(FillInstance{glm::vec2(info.translate.x, info.translate.y), info.scale});
+            m_glyphIdToInstances[glyphId].back().pickId = (int)glyphId;
         }
 
         // We already appended translated stroke above; nothing else to do here for stroke
