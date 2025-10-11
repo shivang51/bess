@@ -14,15 +14,16 @@ layout(binding = 1) uniform ZoomUniforms {
 };
 
 void main() {
-    vec2 uv = v_TexCoord - 0.5;
     vec4 col = v_FragColor;
 
-    float smoothBlur = fwidth(length(uv.y));
-
-    float alpha = smoothstep(0.5 + smoothBlur, 0.5 - smoothBlur, abs(uv.y));
-
-    if (alpha == 0) discard;
-    col *= alpha;
+    if (v_TexSlotIdx < 0) {
+        // Stroke triangle strip: v_TexCoord.y runs 0..1 across the stroke width
+        float edgeDist = min(v_TexCoord.y, 1.0 - v_TexCoord.y);
+        float aa = fwidth(v_TexCoord.y);
+        float alpha = smoothstep(0.0, aa, edgeDist);
+        if (alpha <= 0.0) discard;
+        col *= alpha;
+    }
 
     fragColor = col;
     fragColor1 = v_FragId;

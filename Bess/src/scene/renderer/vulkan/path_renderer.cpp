@@ -262,6 +262,7 @@ namespace Bess::Renderer2D::Vulkan {
             v.color = color;
             v.id = id;
             v.texCoord = uv;
+            v.texSlotIdx = -1; // mark as stroke for shader AA path
             return v;
         };
 
