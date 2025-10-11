@@ -129,6 +129,7 @@ namespace Bess::Renderer2D::Vulkan {
         std::vector<PathInstance> m_fillInstances;
         glm::vec3 m_fillTranslation = glm::vec3(0.0f);
         std::vector<Pipelines::PathFillPipeline::FillDrawCall> m_fillDrawCalls;
+        std::vector<FillInstance> m_tempInstances;
 
         std::shared_ptr<VulkanDevice> m_device;
         std::shared_ptr<VulkanOffscreenRenderPass> m_renderPass;

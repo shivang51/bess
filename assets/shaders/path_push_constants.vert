@@ -6,6 +6,9 @@ layout(location = 1) in vec4 a_Color;
 layout(location = 2) in vec2 a_TexCoord;
 layout(location = 3) in int a_FragId;
 layout(location = 4) in int a_TexSlotIdx;
+// Instance attributes
+layout(location = 5) in vec2 a_InstanceTranslation;
+layout(location = 6) in vec2 a_InstanceScale;
 
 // Output to fragment shader
 layout(location = 0) out vec3 v_FragPos;
@@ -20,15 +23,9 @@ layout(binding = 0) uniform UniformBufferObject {
     mat4 u_ortho;
 };
 
-// Push constants (two vec4s for alignment)
-layout(push_constant) uniform PushConstants {
-    vec4 translation; // xyz used
-    vec4 scale;       // xy used (uniform scale if both equal)
-} pc;
-
 void main() {
-    vec2 scaledXY = a_Vertex.xy * pc.scale.xy;
-    vec3 worldPos = vec3(scaledXY, a_Vertex.z) + pc.translation.xyz;
+    vec2 scaledXY = a_Vertex.xy * a_InstanceScale;
+    vec3 worldPos = vec3(scaledXY + a_InstanceTranslation, a_Vertex.z);
 
     v_FragPos = worldPos;
     v_FragColor = a_Color;

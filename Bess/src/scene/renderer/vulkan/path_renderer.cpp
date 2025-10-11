@@ -68,12 +68,11 @@ namespace Bess::Renderer2D::Vulkan {
 
         // For fill rendering, store vertices without translation and batch draw call
         if (fillVerticesRef && !fillVerticesRef->empty()) {
-            // Append vertices
+            // Append vertices for this glyph once per frame (atlas-like per UUID)
             uint32_t firstIndex = static_cast<uint32_t>(m_fillIndices.size());
             uint32_t baseVertex = static_cast<uint32_t>(m_fillVertices.size());
             m_fillVertices.insert(m_fillVertices.end(), fillVerticesRef->begin(), fillVerticesRef->end());
 
-            // Append indices (sequential triangles) shifted by baseVertex
             auto localCount = static_cast<uint32_t>(fillVerticesRef->size());
             for (uint32_t i = 0; i < localCount; ++i) {
                 m_fillIndices.emplace_back(baseVertex + i);
@@ -82,9 +81,12 @@ namespace Bess::Renderer2D::Vulkan {
             Pipelines::PathFillPipeline::FillDrawCall dc{};
             dc.firstIndex = firstIndex;
             dc.indexCount = localCount;
-            dc.translation = info.translate;
-            dc.scale = info.scale;
+            // firstInstance/instanceCount will be set in endFrame when we pack instances
+            dc.firstInstance = 0;
+            dc.instanceCount = 0;
             m_fillDrawCalls.emplace_back(dc);
+            // Record instance payload in a temporary side array on the fly
+            m_tempInstances.emplace_back(FillInstance{glm::vec2(info.translate.x, info.translate.y), info.scale});
         }
 
         // We already appended translated stroke above; nothing else to do here for stroke
@@ -148,16 +150,27 @@ namespace Bess::Renderer2D::Vulkan {
         m_pathStrokePipeline->setPathData(m_strokeVertices, m_strokeIndices);
         m_pathStrokePipeline->endPipeline();
 
-        // Batched fill using GPU translation
+        // Batched fill using GPU instancing
         if (!m_fillVertices.empty() && !m_fillIndices.empty() && !m_fillDrawCalls.empty()) {
+            // All instances in the same order as drawCalls (1:1 currently)
+            // Assign firstInstance/instanceCount by linear packing
+            uint32_t cursor = 0;
+            for (auto &dc : m_fillDrawCalls) {
+                dc.firstInstance = cursor;
+                dc.instanceCount = 1; // one instance per path in this simple pass
+                cursor += dc.instanceCount;
+            }
+
             m_pathFillPipeline->beginPipeline(m_currentCommandBuffer);
             m_pathFillPipeline->setBatchedPathData(m_fillVertices, m_fillIndices, m_fillDrawCalls);
+            m_pathFillPipeline->setInstanceData(m_tempInstances);
             m_pathFillPipeline->endPipeline();
         }
 
         m_fillVertices.clear();
         m_fillIndices.clear();
         m_fillDrawCalls.clear();
+        m_tempInstances.clear();
         m_strokeVertices.clear();
         m_strokeIndices.clear();
     }

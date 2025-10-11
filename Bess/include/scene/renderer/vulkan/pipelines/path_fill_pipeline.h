@@ -37,13 +37,15 @@ namespace Bess::Vulkan::Pipelines {
         struct FillDrawCall {
             uint32_t firstIndex;
             uint32_t indexCount;
-            glm::vec3 translation;
-            glm::vec2 scale = glm::vec2(1.0f);
+            uint32_t firstInstance;
+            uint32_t instanceCount;
         };
 
         void setBatchedPathData(const std::vector<CommonVertex> &fillVertices,
                                 const std::vector<uint32_t> &fillIndices,
                                 const std::vector<FillDrawCall> &drawCalls);
+
+        void setInstanceData(const std::vector<FillInstance> &instances);
 
         void updateUniformBuffer(const UniformBufferObject &ubo);
 
@@ -68,7 +70,7 @@ namespace Bess::Vulkan::Pipelines {
         std::vector<PathInstance> m_instances;
         glm::vec3 m_translation = glm::vec3(0.0f);
         std::vector<FillDrawCall> m_drawCalls;
-        glm::vec2 m_scale = glm::vec2(1.0f);
+        std::vector<FillInstance> m_instancesCpu;
 
         // Buffers for path data
         std::vector<VkBuffer> m_vertexBuffers;

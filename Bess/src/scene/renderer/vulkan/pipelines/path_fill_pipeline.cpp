@@ -124,38 +124,30 @@ namespace Bess::Vulkan::Pipelines {
             memcpy(data, m_fillIndices.data(), bufferSize);
             vkUnmapMemory(m_device->device(), m_indexBufferMemory[m_currentFrameIndex]);
 
-            VkDeviceSize offset = 0;
-            vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 1, &vertexBuffer, &offset);
+            VkDeviceSize offsets[2] = {0, 0};
+            VkBuffer vbs[2] = {vertexBuffer, m_instanceBuffers[m_currentFrameIndex]};
+            vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 2, vbs, offsets);
             vkCmdBindIndexBuffer(m_currentCommandBuffer, m_indexBuffers[m_currentFrameIndex], 0, VK_INDEX_TYPE_UINT32);
-            
-            if (!m_drawCalls.empty()) {
-                for (const auto &dc : m_drawCalls) {
-                    struct { glm::vec4 t; glm::vec4 s; } pc;
-                    pc.t = glm::vec4(dc.translation, 0.0f);
-                    pc.s = glm::vec4(dc.scale, 0.0f, 0.0f);
-                    vkCmdPushConstants(m_currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,
-                                       0, sizeof(pc), &pc);
-                    vkCmdDrawIndexed(m_currentCommandBuffer, dc.indexCount, 1, dc.firstIndex, 0, 0);
-                }
-            } else {
-                // Push translation + scale to GPU
-                struct { glm::vec4 t; glm::vec4 s; } pc;
-                pc.t = glm::vec4(m_translation, 0.0f);
-                pc.s = glm::vec4(m_scale, 0.0f, 0.0f);
-                vkCmdPushConstants(m_currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,
-                                  0, sizeof(pc), &pc);
-                
-                // Draw
-                vkCmdDrawIndexed(m_currentCommandBuffer, static_cast<uint32_t>(m_fillIndices.size()), 1, 0, 0, 0);
+            // Upload instance data for this frame
+            if (!m_instancesCpu.empty()) {
+                void *idata = nullptr;
+                VkDeviceSize isz = m_instancesCpu.size() * sizeof(FillInstance);
+                vkMapMemory(m_device->device(), m_instanceBufferMemory[m_currentFrameIndex], 0, isz, 0, &idata);
+                memcpy(idata, m_instancesCpu.data(), isz);
+                vkUnmapMemory(m_device->device(), m_instanceBufferMemory[m_currentFrameIndex]);
+            }
+
+            for (const auto &dc : m_drawCalls) {
+                vkCmdDrawIndexed(m_currentCommandBuffer, dc.indexCount, dc.instanceCount, dc.firstIndex, 0, dc.firstInstance);
             }
         }
 
         m_fillVertices.clear();
         m_fillIndices.clear();
         m_instances.clear();
+        m_instancesCpu.clear();
         m_drawCalls.clear();
         m_translation = glm::vec3(0.0f);
-        m_scale = glm::vec2(1.0f);
         m_currentCommandBuffer = VK_NULL_HANDLE;
     }
 
@@ -192,7 +184,7 @@ namespace Bess::Vulkan::Pipelines {
         m_fillVertices = fillVertices;
         m_fillIndices = fillIndices;
         m_translation = translation;
-        m_scale = glm::vec2(1.0f); // default scale
+        // m_scale = glm::vec2(1.0f); // default scale
 
         ensurePathCapacity(m_fillVertices.size(), m_fillIndices.size());
     }
@@ -208,6 +200,11 @@ namespace Bess::Vulkan::Pipelines {
         m_drawCalls = drawCalls;
 
         ensurePathCapacity(m_fillVertices.size(), m_fillIndices.size());
+    }
+
+    void PathFillPipeline::setInstanceData(const std::vector<FillInstance> &instances) {
+        m_instancesCpu = instances;
+        ensureInstanceCapacity(m_instancesCpu.size());
     }
 
     void PathFillPipeline::updateUniformBuffer(const UniformBufferObject &ubo) {
@@ -277,13 +274,22 @@ namespace Bess::Vulkan::Pipelines {
 
         auto bindingDescription = CommonVertex::getBindingDescription();
         auto attributeDescriptions = CommonVertex::getAttributeDescriptions();
+        auto instBinding = FillInstance::getBindingDescription();
+        auto instAttrs = FillInstance::getAttributeDescriptions();
+
+        std::array<VkVertexInputBindingDescription, 2> bindings{bindingDescription, instBinding};
+        std::array<VkVertexInputAttributeDescription, 7> attrs{};
+        // copy vertex attrs
+        for (size_t i = 0; i < attributeDescriptions.size(); ++i) attrs[i] = attributeDescriptions[i];
+        // append instance attrs
+        for (size_t i = 0; i < instAttrs.size(); ++i) attrs[attributeDescriptions.size() + i] = instAttrs[i];
 
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputInfo.vertexBindingDescriptionCount = 1;
-        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-        vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-        vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+        vertexInputInfo.vertexBindingDescriptionCount = (uint32_t)bindings.size();
+        vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)attrs.size();
+        vertexInputInfo.pVertexBindingDescriptions = bindings.data();
+        vertexInputInfo.pVertexAttributeDescriptions = attrs.data();
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
         inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -318,19 +324,13 @@ namespace Bess::Vulkan::Pipelines {
         colorBlending.blendConstants[2] = 0.0f;
         colorBlending.blendConstants[3] = 0.0f;
 
-        // Define push constant range for translation
-        VkPushConstantRange pushConstantRange{};
-        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-        pushConstantRange.offset = 0;
-        pushConstantRange.size = sizeof(glm::vec4) * 2; // translation + scale
-
-        // Create pipeline layout
+        // No push constants needed for instancing
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = 1;
         pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout;
-        pipelineLayoutInfo.pushConstantRangeCount = 1;
-        pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+        pipelineLayoutInfo.pushConstantRangeCount = 0;
+        pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
         if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create path pipeline layout!");

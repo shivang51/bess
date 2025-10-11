@@ -215,4 +215,32 @@ namespace Bess::Vulkan {
         }
     };
 
+    struct FillInstance {
+        glm::vec2 translation; // location 5
+        glm::vec2 scale;       // location 6
+
+        static VkVertexInputBindingDescription getBindingDescription() {
+            VkVertexInputBindingDescription bd{};
+            bd.binding = 1;
+            bd.stride = sizeof(FillInstance);
+            bd.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+            return bd;
+        }
+
+        static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
+            std::array<VkVertexInputAttributeDescription, 2> a{};
+            // translation
+            a[0].binding = 1;
+            a[0].location = 5;
+            a[0].format = VK_FORMAT_R32G32_SFLOAT;
+            a[0].offset = offsetof(FillInstance, translation);
+            // scale
+            a[1].binding = 1;
+            a[1].location = 6;
+            a[1].format = VK_FORMAT_R32G32_SFLOAT;
+            a[1].offset = offsetof(FillInstance, scale);
+            return a;
+        }
+    };
+
 } // namespace Bess::Vulkan
