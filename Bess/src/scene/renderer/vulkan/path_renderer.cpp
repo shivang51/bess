@@ -121,12 +121,29 @@ namespace Bess::Renderer2D::Vulkan {
 
         if (info.genFill) {
             fillVertices = generateFillGeometry(contours, info.fillColor);
-            for (auto &p : fillVertices) {
-                p.position += info.translate;
+            // Instanced path fill: append geometry once per glyphId and add an instance for this draw
+            if (!fillVertices.empty()) {
+                uint64_t glyphId = info.glyphId;
+                if (glyphId == 0) {
+                    // Fallback: hash bounds as glyph id if path API did not supply
+                    glyphId = reinterpret_cast<uint64_t>(this); // simple stable fallback per renderer
+                }
+                auto found = m_glyphIdToMesh.find(glyphId);
+                if (found == m_glyphIdToMesh.end()) {
+                    uint32_t firstIndex = static_cast<uint32_t>(m_fillIndices.size());
+                    uint32_t baseVertex = static_cast<uint32_t>(m_fillVertices.size());
+                    m_fillVertices.insert(m_fillVertices.end(), fillVertices.begin(), fillVertices.end());
+                    auto localCount = static_cast<uint32_t>(fillVertices.size());
+                    for (uint32_t i = 0; i < localCount; ++i) m_fillIndices.emplace_back(baseVertex + i);
+                    m_glyphIdToMesh[glyphId] = {firstIndex, localCount};
+                }
+                m_glyphIdToInstances[glyphId].emplace_back(FillInstance{glm::vec2(info.translate.x, info.translate.y), info.scale});
+                m_glyphIdToInstances[glyphId].back().pickId = (int)glyphId;
             }
         }
 
-        addPathGeometries(strokeVertices, fillVertices);
+        // Only stroke goes via immediate path; fill is handled by instancing batch above
+        addPathGeometries(strokeVertices, {});
     }
 
     void PathRenderer::beginFrame(VkCommandBuffer commandBuffer) {
@@ -137,10 +154,6 @@ namespace Bess::Renderer2D::Vulkan {
         if (!m_pathData.ended) {
             endPathMode();
         }
-
-        m_pathStrokePipeline->beginPipeline(m_currentCommandBuffer);
-        m_pathStrokePipeline->setPathData(m_strokeVertices, m_strokeIndices);
-        m_pathStrokePipeline->endPipeline();
 
         // Batched fill using GPU instancing
         if (!m_fillVertices.empty() && !m_fillIndices.empty() && !m_glyphIdToMesh.empty()) {
@@ -166,7 +179,28 @@ namespace Bess::Renderer2D::Vulkan {
             m_pathFillPipeline->setBatchedPathData(m_fillVertices, m_fillIndices, m_fillDrawCalls);
             m_pathFillPipeline->setInstanceData(m_tempInstances);
             m_pathFillPipeline->endPipeline();
+        } else if (!m_fillVertices.empty() && !m_fillIndices.empty()) {
+            // Fallback: draw as a single non-instanced mesh with a default instance (translation=0, scale=1)
+            m_tempInstances.clear();
+            m_fillDrawCalls.clear();
+            m_tempInstances.emplace_back(FillInstance{glm::vec2(0.0f), glm::vec2(1.0f), (int)m_pathData.id});
+            Pipelines::PathFillPipeline::FillDrawCall dc{};
+            dc.firstIndex = 0;
+            dc.indexCount = static_cast<uint32_t>(m_fillIndices.size());
+            dc.firstInstance = 0;
+            dc.instanceCount = 1;
+            m_fillDrawCalls.emplace_back(dc);
+
+            m_pathFillPipeline->beginPipeline(m_currentCommandBuffer);
+            m_pathFillPipeline->setBatchedPathData(m_fillVertices, m_fillIndices, m_fillDrawCalls);
+            m_pathFillPipeline->setInstanceData(m_tempInstances);
+            m_pathFillPipeline->endPipeline();
         }
+
+        // Draw stroke after fill so it appears on top
+        m_pathStrokePipeline->beginPipeline(m_currentCommandBuffer);
+        m_pathStrokePipeline->setPathData(m_strokeVertices, m_strokeIndices);
+        m_pathStrokePipeline->endPipeline();
 
         m_fillVertices.clear();
         m_fillIndices.clear();
@@ -189,6 +223,7 @@ namespace Bess::Renderer2D::Vulkan {
         m_pathData.currentPos = startPos;
         m_pathData.points.emplace_back(PathPoint{startPos, weight, (int64_t)id});
         m_pathData.color = color;
+        m_pathData.id = (int64_t)id;
     }
 
     void PathRenderer::endPathMode(bool closePath, bool genFill, const glm::vec4 &fillColor, bool genStroke) {
@@ -205,8 +240,10 @@ namespace Bess::Renderer2D::Vulkan {
         info.genFill = genFill;
         info.genStroke = genStroke;
         info.fillColor = fillColor;
-        info.translate = m_pathData.startPos;
+        info.strokeColor = m_pathData.color;
+        info.translate = glm::vec3(0.0f); // path API positions are absolute, avoid double-translation
         info.scale = glm::vec2(1.0f);
+        info.glyphId = static_cast<uint64_t>(m_pathData.id);
 
         drawContours(m_pathData.contours, info);
 
@@ -293,7 +330,7 @@ namespace Bess::Renderer2D::Vulkan {
             }
 
             const auto &pCurr = points[i];
-            const auto &pPrev = isClosed ? points[(i + pointCount - 1) % pointCount] : points[std::max<size_t>(0, i - 1)];
+            const auto &pPrev = isClosed ? points[(i + pointCount - 1) % pointCount] : points[(i == 0) ? 0 : (i - 1)];
             const auto &pNext = isClosed ? points[ni % pointCount] : points[std::min(pointCount - 1, ni)];
 
             // Update cumulative length for UVs. For the first point, it's 0.
@@ -481,7 +518,7 @@ namespace Bess::Renderer2D::Vulkan {
             CommonVertex v;
             v.position = pos;
             v.color = color;
-            v.id = id;
+            v.id = (id & 0x7FFFFFFF);
             v.texCoord = uvOf(pos);
             return v;
         };
@@ -608,6 +645,24 @@ namespace Bess::Renderer2D::Vulkan {
 
     void PathRenderer::pathMoveTo(const glm::vec3 &pos) {
         m_pathData.currentPos = pos;
+
+        if (m_pathData.ended) {
+            return;
+        }
+
+        const bool hasAnyPoints = !m_pathData.points.empty();
+        if (!hasAnyPoints) {
+            // Start a new subpath with previous weight/id fallback to defaults
+            float weight = 1.0f;
+            int64_t pid = 0;
+            if (!m_pathData.contours.empty() && !m_pathData.contours.back().empty()) {
+                const auto &pp = m_pathData.contours.back().back();
+                weight = pp.weight;
+                pid = pp.id;
+            }
+            m_pathData.points.emplace_back(PathPoint{pos, weight, pid});
+            return;
+        }
 
         auto prevPoint = m_pathData.points.back();
 

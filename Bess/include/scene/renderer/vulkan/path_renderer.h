@@ -21,6 +21,7 @@ namespace Bess::Renderer2D::Vulkan {
         glm::vec3 startPos;
         std::vector<PathPoint> points;
         std::vector<std::vector<PathPoint>> contours;
+        int64_t id = 0;
 
         void setCurrentPos(const glm::vec3 &pos) {
             currentPos = pos;
@@ -41,6 +42,7 @@ namespace Bess::Renderer2D::Vulkan {
         glm::vec2 scale = glm::vec2(1.0f);
         glm::vec4 fillColor;
         glm::vec4 strokeColor;
+        uint64_t glyphId = 0; // for instanced fill path
     };
 
     struct PathGeometryCacheEntry {
