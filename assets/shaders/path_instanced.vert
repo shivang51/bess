@@ -16,6 +16,7 @@ layout(location = 1) out vec4 v_FragColor;
 layout(location = 2) out vec2 v_TexCoord;
 layout(location = 3) out flat int v_FragId;
 layout(location = 4) out flat int v_TexSlotIdx;
+layout(location = 5) noperspective out vec3 v_Barycentric;
 
 layout(binding = 0) uniform UniformBufferObject {
     mat4 u_mvp;
@@ -25,15 +26,20 @@ layout(binding = 0) uniform UniformBufferObject {
 void main() {
     vec3 worldPos = a_Vertex * vec3(a_InstanceScale, 1.f) + a_InstancePosition;
 
-    vec4 finalColor = a_InstanceColor.w > 0.0 ? a_InstanceColor : a_Color;
-
-    int finalId = a_InstanceId != 0 ? a_InstanceId : a_FragId;
+    int finalId = a_InstanceId;
 
     v_FragPos = worldPos;
-    v_FragColor = finalColor;
+    v_FragColor = a_InstanceColor;
     v_TexCoord = a_TexCoord;
     v_FragId = finalId;
     v_TexSlotIdx = a_TexSlotIdx;
+    int vidx = gl_VertexIndex % 3;
+    if (vidx == 0)
+        v_Barycentric = vec3(1.0, 0.0, 0.0);
+    else if (vidx == 1)
+        v_Barycentric = vec3(0.0, 1.0, 0.0);
+    else
+        v_Barycentric = vec3(0.0, 0.0, 1.0);
 
     gl_Position = u_mvp * vec4(worldPos, 1.0);
 }

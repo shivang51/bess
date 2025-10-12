@@ -76,8 +76,7 @@ namespace Bess::Renderer2D::Vulkan {
                     m_fillIndices.emplace_back(baseVertex + i);
                 m_glyphIdToMesh[glyphId] = {firstIndex, localCount};
             }
-            m_glyphIdToInstances[glyphId].emplace_back(FillInstance{info.translate, info.scale});
-            m_glyphIdToInstances[glyphId].back().pickId = (int)glyphId;
+            m_glyphIdToInstances[glyphId].emplace_back(FillInstance{info.translate, info.scale, info.fillColor, (int)info.glyphId});
         }
     }
 
@@ -126,7 +125,7 @@ namespace Bess::Renderer2D::Vulkan {
                         m_fillIndices.emplace_back(baseVertex + i);
                     m_glyphIdToMesh[glyphId] = {firstIndex, localCount};
                 }
-                m_glyphIdToInstances[glyphId].emplace_back(FillInstance{info.translate, info.scale, (int)m_pathData.id});
+                m_glyphIdToInstances[glyphId].emplace_back(FillInstance{.translation = info.translate, .scale = info.scale, .pickId = (int)m_pathData.id});
             }
         }
 
@@ -167,7 +166,7 @@ namespace Bess::Renderer2D::Vulkan {
         } else if (!m_fillVertices.empty() && !m_fillIndices.empty()) {
             m_tempInstances.clear();
             m_fillDrawCalls.clear();
-            m_tempInstances.emplace_back(FillInstance{glm::vec3(0.0f), glm::vec2(1.0f), (int)m_pathData.id});
+            m_tempInstances.emplace_back(FillInstance{glm::vec3(0.0f), glm::vec2(1.0f), glm::vec4(1.f), (int)m_pathData.id});
             Pipelines::PathFillPipeline::FillDrawCall dc{};
             dc.firstIndex = 0;
             dc.indexCount = static_cast<uint32_t>(m_fillIndices.size());

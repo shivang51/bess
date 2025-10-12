@@ -43,7 +43,7 @@ namespace Bess::Renderer {
     glm::vec2 TextRenderer::getRenderSize(const std::string &text, size_t size) {
         float scale = (float)size / m_font.getSize();
 
-        glm::vec2 renderSize;
+        glm::vec2 renderSize = {0.f, 0.f};
         for (const char ch : text) {
             const auto &glyph = m_font.getGlyph(ch);
             renderSize.x += glyph.advanceX;

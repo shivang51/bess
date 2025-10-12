@@ -3,6 +3,7 @@
 #include <array>
 #include <glm.hpp>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace Bess::Vulkan {
 
@@ -218,7 +219,8 @@ namespace Bess::Vulkan {
     struct FillInstance {
         glm::vec3 translation; // location 5
         glm::vec2 scale;       // location 6
-        int pickId;            // location 7
+        glm::vec4 color;       // location 7
+        int pickId;            // location 8
 
         static VkVertexInputBindingDescription getBindingDescription() {
             VkVertexInputBindingDescription bd{};
@@ -228,8 +230,8 @@ namespace Bess::Vulkan {
             return bd;
         }
 
-        static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
-            std::array<VkVertexInputAttributeDescription, 3> a{};
+        static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
+            std::array<VkVertexInputAttributeDescription, 4> a{};
             // translation
             a[0].binding = 1;
             a[0].location = 5;
@@ -240,11 +242,16 @@ namespace Bess::Vulkan {
             a[1].location = 6;
             a[1].format = VK_FORMAT_R32G32_SFLOAT;
             a[1].offset = offsetof(FillInstance, scale);
-            // pick id
+            // scale
             a[2].binding = 1;
             a[2].location = 7;
-            a[2].format = VK_FORMAT_R32_SINT;
-            a[2].offset = offsetof(FillInstance, pickId);
+            a[2].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+            a[2].offset = offsetof(FillInstance, color);
+            // pick id
+            a[3].binding = 1;
+            a[3].location = 8;
+            a[3].format = VK_FORMAT_R32_SINT;
+            a[3].offset = offsetof(FillInstance, pickId);
             return a;
         }
     };
