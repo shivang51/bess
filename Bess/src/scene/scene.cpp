@@ -264,45 +264,6 @@ namespace Bess::Canvas {
             },
             viewport->getCamera());
 
-        {
-            static auto font = Assets::AssetManager::instance().get(Assets::Fonts::roboto);
-            static bool isFirst = true;
-
-            if (isFirst) {
-                font->init(48);
-                isFirst = false;
-            }
-
-            static const std::string data = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam sapien nisl, varius nec aliquam sed, hendrerit a est. Quisque laoreet nisi quis nibh tempus, sit amet finibus mauris bibendum. Morbi eros tortor, auctor quis tellus sit amet, eleifend gravida ex. Maecenas ullamcorper in nisi non sodales. Cras semper vestibulum urna, ut interdum sapien auctor eget. Etiam pellentesque elementum maximus. Phasellus eu placerat quam. Aliquam et neque vel orci laoreet condimentum at sed enim. Donec sed lacinia risus. Praesent elementum vestibulum lacus, vitae condimentum lorem commodo sit amet.\n\nPellentesque eget arcu est.Vestibulum leo sapien, elementum et tincidunt a, dictum eget felis.Donec feugiat tempor dui ut dictum.Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.Lorem ipsum dolor sit amet, consectetur adipiscing elit.Lorem ipsum dolor sit amet, consectetur adipiscing elit.Aenean vitae dapibus ligula.Nulla sit amet venenatis risus.";
-
-            float posX = 0.f, posY = 0.f;
-            constexpr size_t wrapLimit = 100;
-            constexpr float scale = 0.5f;
-            int i = 0;
-            for (const char ch : data) {
-                if (ch == '\n') {
-                    posY += 48.f, posX = 0.f;
-                    i = 0;
-                    continue;
-                }
-
-                if (ch == ' ' && i > wrapLimit) {
-                    posY += 48.f, posX = 0.f;
-                    i = 0;
-                }
-
-                auto &glyph = font->getGlyph(ch);
-                auto pathRenderer = viewport->getArtistManager()->getCurrentArtist()->getPathRenderer();
-                pathRenderer->drawPath(glyph.path, {.genStroke = false,
-                                                    .genFill = true,
-                                                    .translate = {posX * scale, posY * scale, 0.f},
-                                                    .scale = glm::vec2(scale),
-                                                    .fillColor = glm::vec4(1.f)});
-                posX += glyph.advanceX;
-                i++;
-            }
-        }
-
         // Connections
         const auto connectionsView = m_registry.view<Components::ConnectionComponent>();
         for (const auto entity : connectionsView) {
@@ -313,21 +274,35 @@ namespace Bess::Canvas {
             drawConnection();
         }
 
-        // Components
-        const auto simCompView = m_registry.view<
-            Components::SimulationComponent,
-            Components::TagComponent,
-            Components::SpriteComponent,
-            Components::TransformComponent>();
-        for (const auto entity : simCompView) {
-            artist->drawSimEntity(
-                entity,
-                simCompView.get<Components::TagComponent>(entity),
-                simCompView.get<Components::TransformComponent>(entity),
-                simCompView.get<Components::SpriteComponent>(entity),
-                simCompView.get<Components::SimulationComponent>(entity));
-        }
+        { // Components
+            const auto simCompView = m_registry.view<
+                Components::SimulationComponent,
+                Components::TagComponent,
+                Components::SpriteComponent,
+                Components::TransformComponent>();
+            const auto &cam = viewport->getCamera();
+            const auto &span = (cam->getSpan() / 2.f) + 100.f;
+            const auto &camPos = cam->getPos();
 
+            float x = 0.f, y = 0.f;
+            for (const auto entity : simCompView) {
+                const auto &transform = simCompView.get<Components::TransformComponent>(entity);
+
+                x = transform.position.x - camPos.x;
+                y = transform.position.y - camPos.y;
+
+                // skipping if outside camera
+                if (x < -span.x || x > span.x || y < -span.y || y > span.y)
+                    continue;
+
+                artist->drawSimEntity(
+                    entity,
+                    simCompView.get<Components::TagComponent>(entity),
+                    transform,
+                    simCompView.get<Components::SpriteComponent>(entity),
+                    simCompView.get<Components::SimulationComponent>(entity));
+            }
+        }
         const auto nonSimCompView = m_registry.view<Components::NSComponent>();
         for (const auto entity : nonSimCompView) {
             artist->drawNonSimEntity(entity);
@@ -424,7 +399,7 @@ namespace Bess::Canvas {
 
         simComp.type = comp->type;
 
-        transformComp.scale = BaseArtist::calcCompSize(entity, simComp, comp->name);
+        transformComp.scale = m_viewport->getArtistManager()->getCurrentArtist()->calcCompSize(entity, simComp, comp->name);
 
         BESS_INFO("[Scene] Created entity {}", (uint64_t)entity);
         return idComp.uuid;
