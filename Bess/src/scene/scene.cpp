@@ -281,7 +281,7 @@ namespace Bess::Canvas {
                 Components::SpriteComponent,
                 Components::TransformComponent>();
             const auto &cam = viewport->getCamera();
-            const auto &span = (cam->getSpan() / 2.f) + 100.f;
+            const auto &span = (cam->getSpan() / 2.f) + 200.f;
             const auto &camPos = cam->getPos();
 
             float x = 0.f, y = 0.f;
