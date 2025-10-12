@@ -59,17 +59,32 @@ namespace Bess::Renderer::Font {
         &GlyphExtractor::OutlineCollector::CubicCb,
         0, 0};
 
-    GlyphExtractor::GlyphExtractor(const std::string &fontPath) {
-        if (FT_Init_FreeType(&m_ft)) {
-            BESS_ERROR("[GlyphExtractor] Failed to init FreeType");
-            return;
-        }
+    int GlyphExtractor::s_instCount = 0;
+    FT_Library GlyphExtractor::s_ftLibrary = nullptr;
 
-        if (FT_New_Face(m_ft, fontPath.c_str(), 0, &m_face)) {
+    GlyphExtractor::GlyphExtractor(GlyphExtractor &&other) noexcept
+        : m_face(other.m_face) {
+        s_instCount++;
+        other.m_face = nullptr;
+    }
+
+    GlyphExtractor &GlyphExtractor::operator=(GlyphExtractor &&other) noexcept {
+        s_instCount++;
+        if (this != &other) {
+            m_face = nullptr;
+            m_face = other.m_face;
+            other.m_face = nullptr;
+        }
+        return *this;
+    }
+
+    GlyphExtractor::GlyphExtractor(const std::string &fontPath) {
+        if (!s_ftLibrary && FT_Init_FreeType(&s_ftLibrary))
+            throw std::runtime_error("Failed to init FreeType");
+
+        if (FT_New_Face(s_ftLibrary, fontPath.c_str(), 0, &m_face)) {
             BESS_ERROR("[GlyphExtractor] Failed to load font: {}", fontPath);
-            FT_Done_FreeType(m_ft);
             assert(false);
-            m_ft = nullptr;
             return;
         }
 
@@ -92,13 +107,19 @@ namespace Bess::Renderer::Font {
         }
 
         BESS_INFO("[GlyphExtractor] Found {} glyphs", getGlyphsCount());
+
+        s_instCount++;
     }
 
     GlyphExtractor::~GlyphExtractor() {
+        s_instCount--;
         if (m_face)
             FT_Done_Face(m_face);
-        if (m_ft)
-            FT_Done_FreeType(m_ft);
+        if (s_instCount == 0 && s_ftLibrary) {
+            BESS_WARN("Freetype is destroyed");
+            FT_Done_FreeType(s_ftLibrary);
+            s_ftLibrary = nullptr;
+        }
     }
 
     bool GlyphExtractor::setPixelSize(int pixelHeight) {

@@ -41,9 +41,9 @@ namespace Bess::Canvas {
         void begin(VkCommandBuffer cmd, const std::shared_ptr<Camera> &camera, uint32_t frameIdx);
         void end();
 
-        static glm::vec2 calcCompSize(entt::entity ent,
-                                      const Components::SimulationComponent &simComp,
-                                      const std::string &name);
+        glm::vec2 calcCompSize(entt::entity ent,
+                               const Components::SimulationComponent &simComp,
+                               const std::string &name);
 
         static bool isHeaderLessComp(const Components::SimulationComponent &simComp);
 

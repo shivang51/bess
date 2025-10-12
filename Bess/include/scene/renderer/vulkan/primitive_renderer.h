@@ -8,6 +8,7 @@
 #include "pipelines/text_pipeline.h"
 #include "primitive_vertex.h"
 #include "scene/renderer/font.h"
+#include "scene/renderer/vulkan/text_renderer.h"
 #include "vulkan_offscreen_render_pass.h"
 #include "vulkan_subtexture.h"
 #include "vulkan_texture.h"
@@ -86,20 +87,20 @@ namespace Bess::Renderer2D::Vulkan {
         void updateUBO(const UniformBufferObject &ubo);
         void updateTextUniforms(const TextUniforms &textUniforms);
 
-        static glm::vec2 getMSDFTextRenderSize(const std::string &str, float renderSize);
+        glm::vec2 getMSDFTextRenderSize(const std::string &str, float renderSize);
 
       private:
         std::shared_ptr<VulkanDevice> m_device;
         std::shared_ptr<VulkanOffscreenRenderPass> m_renderPass;
         VkExtent2D m_extent;
 
+        std::unique_ptr<Renderer::TextRenderer> m_textRenderer;
+
         // Pipeline instances
         std::unique_ptr<Pipelines::CirclePipeline> m_circlePipeline;
         std::unique_ptr<Pipelines::GridPipeline> m_gridPipeline;
         std::unique_ptr<Pipelines::QuadPipeline> m_quadPipeline;
         std::unique_ptr<Pipelines::TextPipeline> m_textPipeline;
-
-        std::unique_ptr<Renderer::Font::FontFile> m_font;
 
         VkCommandBuffer m_currentCommandBuffer = VK_NULL_HANDLE;
 

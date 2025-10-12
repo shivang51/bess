@@ -21,7 +21,6 @@ namespace Bess::Renderer2D::Vulkan {
     PathRenderer::~PathRenderer() = default;
 
     void PathRenderer::drawPath(Renderer::Path &path, ContoursDrawInfo info) {
-        // Try to use cached geometry without copying
         const PathGeometryCacheEntry *cachedPtr = nullptr;
         const std::vector<std::vector<CommonVertex>> *strokeVerticesRef = nullptr;
         const std::vector<CommonVertex> *fillVerticesRef = nullptr;
@@ -51,10 +50,9 @@ namespace Bess::Renderer2D::Vulkan {
             });
         }
 
-        // For stroke rendering, still use the old approach for now
         if (strokeVerticesRef) {
             for (const auto &vertices : *strokeVerticesRef) {
-                auto translated = vertices; // copy once into frame heap, not cache
+                auto translated = vertices; // !copy once into frame heap, not cache
                 for (auto &p : translated)
                     p.position += info.translate;
                 m_strokeVertices.insert(m_strokeVertices.end(), translated.begin(), translated.end());
@@ -65,7 +63,6 @@ namespace Bess::Renderer2D::Vulkan {
             }
         }
 
-        // For fill rendering, store vertices without translation and batch draw call
         if (fillVerticesRef && !fillVerticesRef->empty()) {
             // Cache geometry in per-frame atlas (once per unique UUID)
             auto glyphId = path.uuid;
@@ -79,7 +76,7 @@ namespace Bess::Renderer2D::Vulkan {
                     m_fillIndices.emplace_back(baseVertex + i);
                 m_glyphIdToMesh[glyphId] = {firstIndex, localCount};
             }
-            m_glyphIdToInstances[glyphId].emplace_back(FillInstance{glm::vec2(info.translate.x, info.translate.y), info.scale});
+            m_glyphIdToInstances[glyphId].emplace_back(FillInstance{info.translate, info.scale});
             m_glyphIdToInstances[glyphId].back().pickId = (int)glyphId;
         }
     }
@@ -129,7 +126,7 @@ namespace Bess::Renderer2D::Vulkan {
                         m_fillIndices.emplace_back(baseVertex + i);
                     m_glyphIdToMesh[glyphId] = {firstIndex, localCount};
                 }
-                m_glyphIdToInstances[glyphId].emplace_back(FillInstance{glm::vec2(info.translate.x, info.translate.y), info.scale, (int)m_pathData.id});
+                m_glyphIdToInstances[glyphId].emplace_back(FillInstance{info.translate, info.scale, (int)m_pathData.id});
             }
         }
 
@@ -170,7 +167,7 @@ namespace Bess::Renderer2D::Vulkan {
         } else if (!m_fillVertices.empty() && !m_fillIndices.empty()) {
             m_tempInstances.clear();
             m_fillDrawCalls.clear();
-            m_tempInstances.emplace_back(FillInstance{glm::vec2(0.0f), glm::vec2(1.0f), (int)m_pathData.id});
+            m_tempInstances.emplace_back(FillInstance{glm::vec3(0.0f), glm::vec2(1.0f), (int)m_pathData.id});
             Pipelines::PathFillPipeline::FillDrawCall dc{};
             dc.firstIndex = 0;
             dc.indexCount = static_cast<uint32_t>(m_fillIndices.size());

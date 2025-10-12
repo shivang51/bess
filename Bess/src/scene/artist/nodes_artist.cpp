@@ -87,7 +87,7 @@ namespace Bess::Canvas {
                                          const Components::SimulationComponent &simComp) {
         auto &registry = Scene::instance()->getEnttRegistry();
 
-        auto labelSize = Renderer2D::Vulkan::PrimitiveRenderer::getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
+        auto labelSize = m_primitiveRenderer->getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
 
         uint64_t id = (uint64_t)entity;
         const auto &pos = transform.position;
@@ -307,7 +307,7 @@ namespace Bess::Canvas {
             auto slotPos = getSlotPos(slotComp, transformComp);
             const uint64_t parentId = (uint64_t)Scene::instance()->getEntityWithUuid(slotComp.parentId);
             label = outDetails.size() > i ? outDetails[i].name : "Y" + std::to_string(i);
-            const float labelWidth = Renderer2D::Vulkan::PrimitiveRenderer::getMSDFTextRenderSize(label, componentStyles.slotLabelSize).x;
+            const float labelWidth = m_primitiveRenderer->getMSDFTextRenderSize(label, componentStyles.slotLabelSize).x;
             paintSlot((uint64_t)slot, parentId, slotPos, angle, label, -labeldx - labelWidth, state.state, isConnected,
                       outDetails.size() > i ? outDetails[i].extendedType : SimEngine::ExtendedPinType::none);
         }

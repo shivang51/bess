@@ -9,10 +9,19 @@ namespace Bess::Renderer::Font {
       public:
         FontFile() = default;
         FontFile(const std::string &path);
+
+        FontFile(FontFile &&other) noexcept;
+        FontFile &operator=(FontFile &&other) noexcept;
+
+        FontFile(const FontFile &) = delete;
+        FontFile &operator=(const FontFile &) = delete;
+
         void init(float fontSize, size_t glyphMin = 0, size_t glyphMax = 128);
 
         Glyph &getGlyph(char32_t ch);
         Glyph &getGlyph(const char *data);
+
+        float getSize() const;
 
       private:
         Glyph &indexChar(char32_t ch);

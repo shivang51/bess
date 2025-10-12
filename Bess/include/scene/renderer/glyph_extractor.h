@@ -21,6 +21,13 @@ namespace Bess::Renderer::Font {
         GlyphExtractor(const std::string &fontPath);
         ~GlyphExtractor();
 
+        GlyphExtractor(GlyphExtractor &&other) noexcept;
+
+        GlyphExtractor &operator=(GlyphExtractor &&other) noexcept;
+
+        GlyphExtractor(const GlyphExtractor &) = delete;
+        GlyphExtractor &operator=(const GlyphExtractor &) = delete;
+
         size_t getGlyphsCount();
 
         bool isValid() const { return m_face != nullptr; }
@@ -39,7 +46,8 @@ namespace Bess::Renderer::Font {
         static char32_t decodeSingleUTF8(std::string_view utf8);
 
       private:
-        FT_Library m_ft = nullptr;
         FT_Face m_face = nullptr;
+        static FT_Library s_ftLibrary;
+        static int s_instCount;
     };
 } // namespace Bess::Renderer::Font

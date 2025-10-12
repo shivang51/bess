@@ -45,7 +45,7 @@ namespace Bess::Renderer {
                 CubicTo cubic;
             };
 
-            float z = 1.f;
+            float z = 0.f;
             float weight = 1.f;
             int64_t id = -1;
         };

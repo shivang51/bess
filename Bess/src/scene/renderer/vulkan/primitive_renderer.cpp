@@ -5,6 +5,8 @@
 #include "common/log.h"
 #include "primitive_vertex.h"
 #include "scene/renderer/font.h"
+#include "scene/renderer/vulkan/text_renderer.h"
+#include <memory>
 #include <vulkan/vulkan_core.h>
 
 namespace Bess::Renderer2D::Vulkan {
@@ -17,11 +19,9 @@ namespace Bess::Renderer2D::Vulkan {
         m_circlePipeline = std::make_unique<Pipelines::CirclePipeline>(device, renderPass, extent);
         m_gridPipeline = std::make_unique<Pipelines::GridPipeline>(device, renderPass, extent);
         m_quadPipeline = std::make_unique<Pipelines::QuadPipeline>(device, renderPass, extent);
-        m_textPipeline = std::make_unique<Pipelines::TextPipeline>(device, renderPass, extent);
+        // m_textPipeline = std::make_unique<Pipelines::TextPipeline>(device, renderPass, extent);
 
-        constexpr auto path = Assets::Fonts::Paths::roboto.paths[0].data();
-        m_font = std::make_unique<Renderer::Font::FontFile>(path);
-        m_font->init(24);
+        m_textRenderer = std::make_unique<Renderer::TextRenderer>(device, renderPass, extent);
     }
 
     PrimitiveRenderer::~PrimitiveRenderer() = default;
@@ -56,11 +56,13 @@ namespace Bess::Renderer2D::Vulkan {
 
     void PrimitiveRenderer::beginFrame(VkCommandBuffer commandBuffer) {
         m_currentCommandBuffer = commandBuffer;
+        m_textRenderer->beginFrame(commandBuffer);
         const auto msdfFont = Assets::AssetManager::instance().get(Assets::Fonts::robotoMsdf);
         updateTextUniforms({.pxRange = msdfFont->getPxRange()});
     }
 
     void PrimitiveRenderer::endFrame() {
+        m_textRenderer->endFrame();
         if (m_circlePipeline) {
             m_circlePipeline->beginPipeline(m_currentCommandBuffer);
             m_circlePipeline->setCirclesData(m_opaqueCircleInstances, m_translucentCircleInstances);
@@ -92,11 +94,11 @@ namespace Bess::Renderer2D::Vulkan {
             m_translucentQuadInstances.clear();
             m_texturedQuadInstances.clear();
         }
-
         m_currentCommandBuffer = VK_NULL_HANDLE;
     }
 
     void PrimitiveRenderer::setCurrentFrameIndex(uint32_t frameIndex) {
+        m_textRenderer->setCurrentFrameIndex(frameIndex);
         if (m_circlePipeline) {
             m_circlePipeline->setCurrentFrameIndex(frameIndex);
         }
@@ -236,49 +238,7 @@ namespace Bess::Renderer2D::Vulkan {
 
     void PrimitiveRenderer::drawText(const std::string &text, const glm::vec3 &pos, const size_t size,
                                      const glm::vec4 &color, const int id, float angle) {
-        if (text.empty())
-            return;
-
-        auto msdfFont = Assets::AssetManager::instance().get(Assets::Fonts::robotoMsdf);
-        if (!msdfFont) {
-            BESS_WARN("[VulkanRenderer] MSDF font not available");
-            return;
-        }
-
-        float scale = (float)size;
-        float lineHeight = msdfFont->getLineHeight() * scale;
-
-        MsdfCharacter yCharInfo = msdfFont->getCharacterData('y');
-        MsdfCharacter wCharInfo = msdfFont->getCharacterData('W');
-
-        float baseLineOff = yCharInfo.offset.y - wCharInfo.offset.y;
-
-        glm::vec2 charPos = pos;
-
-        for (auto &ch : text) {
-            const MsdfCharacter &charInfo = msdfFont->getCharacterData(ch);
-            if (ch == ' ') {
-                charPos.x += charInfo.advance * scale;
-                continue;
-            }
-            const auto &subTexture = charInfo.subTexture;
-            glm::vec2 size_ = charInfo.size * scale;
-            float xOff = (charInfo.offset.x + charInfo.size.x / 2.f) * scale;
-            float yOff = (charInfo.offset.y + charInfo.size.y / 2.f) * scale;
-
-            Bess::Vulkan::InstanceVertex vertex{};
-            vertex.position = {charPos.x + xOff, charPos.y - yOff, pos.z};
-            vertex.size = size_;
-            vertex.angle = angle;
-            vertex.color = color;
-            vertex.id = id;
-            vertex.texSlotIdx = 1;
-            vertex.texData = subTexture->getStartWH();
-
-            m_textInstances.emplace_back(vertex);
-
-            charPos.x += charInfo.advance * scale;
-        }
+        m_textRenderer->drawText(text, pos, size, color, id);
     }
 
     void PrimitiveRenderer::updateUBO(const UniformBufferObject &ubo) {
@@ -295,6 +255,8 @@ namespace Bess::Renderer2D::Vulkan {
         if (m_quadPipeline) {
             m_quadPipeline->updateUniformBuffer(ubo);
         }
+
+        m_textRenderer->updateUBO(ubo);
     }
 
     void PrimitiveRenderer::updateTextUniforms(const TextUniforms &textUniforms) {
@@ -312,17 +274,10 @@ namespace Bess::Renderer2D::Vulkan {
             m_gridPipeline->resize(extent);
         if (m_quadPipeline)
             m_quadPipeline->resize(extent);
+        m_textRenderer->resize(extent);
     }
 
     glm::vec2 PrimitiveRenderer::getMSDFTextRenderSize(const std::string &str, float renderSize) {
-        float xSize = 0;
-        auto msdfFont = Assets::AssetManager::instance().get(Assets::Fonts::robotoMsdf);
-        float ySize = msdfFont->getLineHeight();
-
-        for (auto &ch : str) {
-            auto chInfo = msdfFont->getCharacterData(ch);
-            xSize += chInfo.advance;
-        }
-        return glm::vec2({xSize, ySize}) * renderSize;
+        return m_textRenderer->getRenderSize(str, (size_t)renderSize);
     }
 } // namespace Bess::Renderer2D::Vulkan

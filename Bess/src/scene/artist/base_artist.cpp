@@ -197,7 +197,7 @@ namespace Bess::Canvas {
                     .borderSize = glm::vec4(1.f),
                     .isMica = true,
                 };
-                auto size = Renderer2D::Vulkan::PrimitiveRenderer::getMSDFTextRenderSize(textComp.text, textComp.fontSize);
+                auto size = m_primitiveRenderer->getMSDFTextRenderSize(textComp.text, textComp.fontSize);
                 pos.x += size.x * 0.5f;
                 pos.y -= size.y * 0.25f;
                 size.x += componentStyles.paddingX * 2.f;
@@ -218,7 +218,7 @@ namespace Bess::Canvas {
         const int maxRows = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
         float height = (maxRows * SLOT_ROW_SIZE);
 
-        const auto labelSize = Renderer2D::Vulkan::PrimitiveRenderer::getMSDFTextRenderSize(name, componentStyles.headerFontSize);
+        const auto labelSize = m_primitiveRenderer->getMSDFTextRenderSize(name, componentStyles.headerFontSize);
 
         float width = labelSize.x + componentStyles.paddingX * 2.f;
 

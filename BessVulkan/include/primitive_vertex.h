@@ -122,7 +122,7 @@ namespace Bess::Vulkan {
         glm::vec4 color;    // location 1
         glm::vec2 texCoord; // location 2
         int id;             // location 3
-        int texSlotIdx = 0;     // location 4
+        int texSlotIdx = 0; // location 4
 
         static VkVertexInputBindingDescription getBindingDescription() {
             VkVertexInputBindingDescription bindingDescription{};
@@ -216,7 +216,7 @@ namespace Bess::Vulkan {
     };
 
     struct FillInstance {
-        glm::vec2 translation; // location 5
+        glm::vec3 translation; // location 5
         glm::vec2 scale;       // location 6
         int pickId;            // location 7
 
@@ -233,7 +233,7 @@ namespace Bess::Vulkan {
             // translation
             a[0].binding = 1;
             a[0].location = 5;
-            a[0].format = VK_FORMAT_R32G32_SFLOAT;
+            a[0].format = VK_FORMAT_R32G32B32_SFLOAT;
             a[0].offset = offsetof(FillInstance, translation);
             // scale
             a[1].binding = 1;

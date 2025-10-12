@@ -42,7 +42,7 @@ namespace Bess::Renderer2D::Vulkan {
         glm::vec2 scale = glm::vec2(1.0f);
         glm::vec4 fillColor;
         glm::vec4 strokeColor;
-        uint64_t glyphId = 0; // for instanced fill path
+        int64_t glyphId = 0; // for instanced fill path
     };
 
     struct PathGeometryCacheEntry {

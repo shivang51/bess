@@ -180,8 +180,8 @@ namespace Bess::Vulkan::Pipelines {
     }
 
     void PathFillPipeline::setInstancedPathData(const std::vector<CommonVertex> &fillVertices,
-                                               const std::vector<uint32_t> &fillIndices,
-                                               const std::vector<PathInstance> &instances) {
+                                                const std::vector<uint32_t> &fillIndices,
+                                                const std::vector<PathInstance> &instances) {
         if (fillVertices.empty() || instances.empty())
             return;
 
@@ -194,8 +194,8 @@ namespace Bess::Vulkan::Pipelines {
     }
 
     void PathFillPipeline::setPathDataWithTranslation(const std::vector<CommonVertex> &fillVertices,
-                                                     const std::vector<uint32_t> &fillIndices,
-                                                     const glm::vec3 &translation) {
+                                                      const std::vector<uint32_t> &fillIndices,
+                                                      const glm::vec3 &translation) {
         if (fillVertices.empty())
             return;
 
@@ -226,7 +226,8 @@ namespace Bess::Vulkan::Pipelines {
 
     PathFillPipeline::MeshInfo PathFillPipeline::ensureGlyphMesh(UUID id, const std::vector<CommonVertex> &vertices) {
         auto it = m_meshMap.find(id);
-        if (it != m_meshMap.end()) return it->second;
+        if (it != m_meshMap.end())
+            return it->second;
 
         MeshInfo out{};
         out.baseVertex = (uint32_t)m_atlasVertices.size();
@@ -234,7 +235,8 @@ namespace Bess::Vulkan::Pipelines {
         out.indexCount = (uint32_t)vertices.size();
 
         m_atlasVertices.insert(m_atlasVertices.end(), vertices.begin(), vertices.end());
-        for (uint32_t i = 0; i < out.indexCount; ++i) m_atlasIndices.emplace_back(out.baseVertex + i);
+        for (uint32_t i = 0; i < out.indexCount; ++i)
+            m_atlasIndices.emplace_back(out.baseVertex + i);
         m_meshMap.emplace(id, out);
         m_atlasDirty = true;
         ensurePathCapacity(m_atlasVertices.size(), m_atlasIndices.size());
@@ -291,7 +293,7 @@ namespace Bess::Vulkan::Pipelines {
     }
 
     void PathFillPipeline::createGraphicsPipeline() {
-        auto vertShaderCode = readFile("assets/shaders/path_push_constants.vert.spv");
+        auto vertShaderCode = readFile("assets/shaders/path_instanced.vert.spv");
         auto fragShaderCode = readFile("assets/shaders/path.frag.spv");
 
         VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
@@ -319,9 +321,11 @@ namespace Bess::Vulkan::Pipelines {
         std::array<VkVertexInputBindingDescription, 2> bindings{bindingDescription, instBinding};
         std::array<VkVertexInputAttributeDescription, 8> attrs{};
         // copy vertex attrs
-        for (size_t i = 0; i < attributeDescriptions.size(); ++i) attrs[i] = attributeDescriptions[i];
+        for (size_t i = 0; i < attributeDescriptions.size(); ++i)
+            attrs[i] = attributeDescriptions[i];
         // append instance attrs
-        for (size_t i = 0; i < instAttrs.size(); ++i) attrs[attributeDescriptions.size() + i] = instAttrs[i];
+        for (size_t i = 0; i < instAttrs.size(); ++i)
+            attrs[attributeDescriptions.size() + i] = instAttrs[i];
 
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
