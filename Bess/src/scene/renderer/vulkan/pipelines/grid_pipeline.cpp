@@ -18,7 +18,8 @@ namespace Bess::Vulkan::Pipelines {
         createDescriptorPool();
         createDescriptorSets();
 
-        createGraphicsPipeline();
+        createGraphicsPipeline(false);
+        createGraphicsPipeline(true);
     }
 
     GridPipeline::~GridPipeline() {
@@ -56,16 +57,19 @@ namespace Bess::Vulkan::Pipelines {
         return *this;
     }
 
-    void GridPipeline::beginPipeline(VkCommandBuffer commandBuffer) {
+    void GridPipeline::beginPipeline(VkCommandBuffer commandBuffer, bool isTranslucent) {
         m_currentCommandBuffer = commandBuffer;
         m_currentVertices.clear();
         m_currentIndices.clear();
         m_currentVertexCount = 0;
         m_currentIndexCount = 0;
 
-        vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+        vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          isTranslucent ? m_translucentPipeline : m_opaquePipeline);
 
-        vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[m_currentFrameIndex], 0, nullptr);
+        vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                isTranslucent ? m_transPipelineLayout : m_opaquePipelineLayout,
+                                0, 1, &m_descriptorSets[m_currentFrameIndex], 0, nullptr);
 
         VkBuffer vertexBuffers[] = {m_buffers.vertexBuffer};
         constexpr VkDeviceSize offsets[] = {0};
@@ -159,14 +163,14 @@ namespace Bess::Vulkan::Pipelines {
             m_buffers.indexBufferMemory = VK_NULL_HANDLE;
         }
 
-        if (m_pipeline != VK_NULL_HANDLE) {
-            vkDestroyPipeline(m_device->device(), m_pipeline, nullptr);
-            m_pipeline = VK_NULL_HANDLE;
+        if (m_opaquePipeline != VK_NULL_HANDLE) {
+            vkDestroyPipeline(m_device->device(), m_opaquePipeline, nullptr);
+            m_opaquePipeline = VK_NULL_HANDLE;
         }
 
-        if (m_pipelineLayout != VK_NULL_HANDLE) {
-            vkDestroyPipelineLayout(m_device->device(), m_pipelineLayout, nullptr);
-            m_pipelineLayout = VK_NULL_HANDLE;
+        if (m_opaquePipelineLayout != VK_NULL_HANDLE) {
+            vkDestroyPipelineLayout(m_device->device(), m_opaquePipelineLayout, nullptr);
+            m_opaquePipelineLayout = VK_NULL_HANDLE;
         }
 
         if (m_descriptorSetLayout != VK_NULL_HANDLE) {
@@ -232,7 +236,7 @@ namespace Bess::Vulkan::Pipelines {
         vkUnmapMemory(m_device->device(), m_gridUniformBufferMemory[0]);
     }
 
-    void GridPipeline::createGraphicsPipeline() {
+    void GridPipeline::createGraphicsPipeline(bool isTranslucent) {
         auto vertShaderCode = readFile("assets/shaders/grid.vert.spv");
         auto fragShaderCode = readFile("assets/shaders/grid_line.frag.spv");
 
@@ -266,7 +270,7 @@ namespace Bess::Vulkan::Pipelines {
         auto viewportState = createViewportState();
         auto rasterizer = createRasterizationState();
         auto multisampling = createMultisampleState();
-        auto depthStencil = createDepthStencilState();
+        auto depthStencil = createDepthStencilState(isTranslucent);
 
         // Color attachment 0 (main color) - enable alpha blending
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
@@ -293,8 +297,14 @@ namespace Bess::Vulkan::Pipelines {
         pipelineLayoutInfo.setLayoutCount = 1;
         pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout;
 
-        if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create pipeline layout!");
+        if (isTranslucent) {
+            if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &m_transPipelineLayout) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create quad pipeline layout!");
+            }
+        } else {
+            if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &m_opaquePipelineLayout) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create quad pipeline layout!");
+            }
         }
 
         auto dynamicState = createDynamicState();
@@ -310,13 +320,19 @@ namespace Bess::Vulkan::Pipelines {
         pipelineInfo.pColorBlendState = &colorBlending;
         pipelineInfo.pDepthStencilState = &depthStencil;
         pipelineInfo.pDynamicState = &dynamicState;
-        pipelineInfo.layout = m_pipelineLayout;
+        pipelineInfo.layout = isTranslucent ? m_transPipelineLayout : m_opaquePipelineLayout;
         pipelineInfo.renderPass = m_renderPass->getVkHandle();
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-        if (vkCreateGraphicsPipelines(m_device->device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create graphics pipeline!");
+        if (isTranslucent) {
+            if (vkCreateGraphicsPipelines(m_device->device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_translucentPipeline) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create path graphics pipeline!");
+            }
+        } else {
+            if (vkCreateGraphicsPipelines(m_device->device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_opaquePipeline) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create path graphics pipeline!");
+            }
         }
 
         vkDestroyShaderModule(m_device->device(), fragShaderModule, nullptr);

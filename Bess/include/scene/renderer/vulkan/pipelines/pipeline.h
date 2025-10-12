@@ -32,18 +32,20 @@ namespace Bess::Vulkan::Pipelines {
         Pipeline &operator=(Pipeline &&other) noexcept;
 
         // Pure virtual functions that each pipeline must implement
-        virtual void beginPipeline(VkCommandBuffer commandBuffer) = 0;
+        virtual void beginPipeline(VkCommandBuffer commandBuffer, bool isTranslucent) = 0;
         virtual void endPipeline() = 0;
         virtual void cleanup();
-        virtual void createGraphicsPipeline() = 0;
+        virtual void createGraphicsPipeline(bool isTranslucent) = 0;
 
         void resize(VkExtent2D extent);
+
+        void cleanPrevStateCounter();
 
         // Common functions
         void updateUniformBuffer(const UniformBufferObject &ubo);
         void setCurrentFrameIndex(uint32_t frameIndex) { m_currentFrameIndex = frameIndex; }
-        VkPipeline getPipeline() const { return m_pipeline; }
-        VkPipelineLayout getPipelineLayout() const { return m_pipelineLayout; }
+        VkPipeline getPipeline() const { return m_opaquePipeline; }
+        VkPipelineLayout getPipelineLayout() const { return m_opaquePipelineLayout; }
 
       protected:
         std::shared_ptr<VulkanDevice> m_device;
@@ -53,8 +55,11 @@ namespace Bess::Vulkan::Pipelines {
         VkRect2D m_scissor{};
         bool m_resized = false;
 
-        VkPipeline m_pipeline = VK_NULL_HANDLE;
-        VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
+        VkPipeline m_opaquePipeline = VK_NULL_HANDLE;
+        VkPipeline m_translucentPipeline = VK_NULL_HANDLE;
+        VkPipelineLayout m_opaquePipelineLayout = VK_NULL_HANDLE;
+        VkPipelineLayout m_transPipelineLayout = VK_NULL_HANDLE;
+
         VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
         VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
         std::vector<VkDescriptorSet> m_descriptorSets;
@@ -65,6 +70,8 @@ namespace Bess::Vulkan::Pipelines {
         std::vector<VkDeviceMemory> m_uniformBufferMemory;
 
         VkCommandBuffer m_currentCommandBuffer = VK_NULL_HANDLE;
+
+        size_t m_instanceCounter = 0;
 
         // Helper functions
         VkShaderModule createShaderModule(const std::vector<char> &code) const;
@@ -79,7 +86,7 @@ namespace Bess::Vulkan::Pipelines {
         VkPipelineViewportStateCreateInfo createViewportState();
         VkPipelineRasterizationStateCreateInfo createRasterizationState() const;
         VkPipelineMultisampleStateCreateInfo createMultisampleState() const;
-        VkPipelineDepthStencilStateCreateInfo createDepthStencilState() const;
+        VkPipelineDepthStencilStateCreateInfo createDepthStencilState(bool isTranslucent) const;
         VkPipelineColorBlendStateCreateInfo createColorBlendState(const std::vector<VkPipelineColorBlendAttachmentState> &colorBlendAttachments) const;
         VkPipelineDynamicStateCreateInfo createDynamicState() const;
     };

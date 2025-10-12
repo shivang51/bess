@@ -26,7 +26,8 @@ namespace Bess::Vulkan::Pipelines {
         createDescriptorPool();
         createDescriptorSets();
 
-        createGraphicsPipeline();
+        createGraphicsPipeline(false);
+        createGraphicsPipeline(true);
 
         ensurePathCapacity(instanceLimit * 4, instanceLimit * 6);
     }
@@ -84,10 +85,13 @@ namespace Bess::Vulkan::Pipelines {
         return *this;
     }
 
-    void PathStrokePipeline::beginPipeline(VkCommandBuffer commandBuffer) {
+    void PathStrokePipeline::beginPipeline(VkCommandBuffer commandBuffer, bool isTranslucent) {
         m_currentCommandBuffer = commandBuffer;
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1,
+        vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          isTranslucent ? m_translucentPipeline : m_opaquePipeline);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                isTranslucent ? m_transPipelineLayout : m_opaquePipelineLayout,
+                                0, 1,
                                 &m_descriptorSets[m_currentFrameIndex], 0, nullptr);
 
         vkCmdSetViewport(m_currentCommandBuffer, 0, 1, &m_viewport);
@@ -169,7 +173,7 @@ namespace Bess::Vulkan::Pipelines {
         Pipeline::cleanup();
     }
 
-    void PathStrokePipeline::createGraphicsPipeline() {
+    void PathStrokePipeline::createGraphicsPipeline(bool isTranslucent) {
         auto vertShaderCode = readFile("assets/shaders/common.vert.spv");
         auto fragShaderCode = readFile("assets/shaders/path.frag.spv");
 
@@ -208,7 +212,7 @@ namespace Bess::Vulkan::Pipelines {
         auto viewportState = createViewportState();
         auto rasterizer = createRasterizationState();
         auto multisampling = createMultisampleState();
-        auto depthStencil = createDepthStencilState();
+        auto depthStencil = createDepthStencilState(isTranslucent);
 
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
@@ -241,8 +245,14 @@ namespace Bess::Vulkan::Pipelines {
         pipelineLayoutInfo.pushConstantRangeCount = 0;
         pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
-        if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create path pipeline layout!");
+        if (isTranslucent) {
+            if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &m_transPipelineLayout) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create quad pipeline layout!");
+            }
+        } else {
+            if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &m_opaquePipelineLayout) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create quad pipeline layout!");
+            }
         }
 
         auto dynamicState = createDynamicState();
@@ -259,13 +269,19 @@ namespace Bess::Vulkan::Pipelines {
         pipelineInfo.pColorBlendState = &colorBlending;
         pipelineInfo.pDepthStencilState = &depthStencil;
         pipelineInfo.pDynamicState = &dynamicState;
-        pipelineInfo.layout = m_pipelineLayout;
+        pipelineInfo.layout = isTranslucent ? m_transPipelineLayout : m_opaquePipelineLayout;
         pipelineInfo.renderPass = m_renderPass->getVkHandle();
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-        if (vkCreateGraphicsPipelines(m_device->device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create path graphics pipeline!");
+        if (isTranslucent) {
+            if (vkCreateGraphicsPipelines(m_device->device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_translucentPipeline) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create path graphics pipeline!");
+            }
+        } else {
+            if (vkCreateGraphicsPipelines(m_device->device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_opaquePipeline) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create path graphics pipeline!");
+            }
         }
 
         vkDestroyShaderModule(m_device->device(), fragShaderModule, nullptr);

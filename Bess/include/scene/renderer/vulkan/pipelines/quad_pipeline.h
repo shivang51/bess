@@ -26,18 +26,17 @@ namespace Bess::Vulkan::Pipelines {
         QuadPipeline(QuadPipeline &&other) noexcept;
         QuadPipeline &operator=(QuadPipeline &&other) noexcept;
 
-        void beginPipeline(VkCommandBuffer commandBuffer) override;
+        void beginPipeline(VkCommandBuffer commandBuffer, bool isTranslucent) override;
         void endPipeline() override;
 
-        void setQuadsData(
-            const std::vector<QuadInstance> &opaque,
-            const std::vector<QuadInstance> &translucent,
-            std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> &texutredData);
+        void setQuadsData(const std::vector<QuadInstance> &instances,
+                          std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> &texutredData);
 
+        void setQuadsData(const std::vector<QuadInstance> &instances);
         void cleanup() override;
 
       private:
-        void createGraphicsPipeline();
+        void createGraphicsPipeline(bool isTranslucent) override;
         void createQuadBuffers();
         void ensureQuadInstanceCapacity(size_t instanceCount);
 
@@ -47,8 +46,7 @@ namespace Bess::Vulkan::Pipelines {
         static constexpr size_t m_texArraySize = 32;
 
         BufferSet m_buffers;
-        std::vector<QuadInstance> m_opaqueInstances;
-        std::vector<QuadInstance> m_translucentInstances;
+        std::vector<QuadInstance> m_instances;
         std::vector<VkDescriptorSet> m_textureArraySets;
         VkDescriptorPool m_textureArrayDescriptorPool = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_textureArrayLayout = VK_NULL_HANDLE;

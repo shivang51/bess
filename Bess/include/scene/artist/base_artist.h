@@ -5,6 +5,7 @@
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
 #include "scene/components/components.h"
+#include "scene/renderer/material_renderer.h"
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/renderer/vulkan/primitive_renderer.h"
 #include "types.h"
@@ -71,6 +72,7 @@ namespace Bess::Canvas {
 
         std::shared_ptr<Renderer2D::Vulkan::PrimitiveRenderer> getPrimitiveRenderer();
         std::shared_ptr<Renderer2D::Vulkan::PathRenderer> getPathRenderer();
+        std::shared_ptr<Renderer::MaterialRenderer> getMaterialRenderer();
 
       protected:
         virtual void drawSlots(const entt::entity parentEntt, const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp) = 0;
@@ -82,6 +84,7 @@ namespace Bess::Canvas {
         ArtistInstructions m_instructions = {};
         std::shared_ptr<Renderer2D::Vulkan::PrimitiveRenderer> m_primitiveRenderer;
         std::shared_ptr<Renderer2D::Vulkan::PathRenderer> m_pathRenderer;
+        std::shared_ptr<Renderer::MaterialRenderer> m_materialRenderer;
     };
 
 } // namespace Bess::Canvas

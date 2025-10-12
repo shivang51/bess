@@ -1,7 +1,7 @@
 #include "scene/renderer/vulkan/pipelines/quad_pipeline.h"
 #include "common/log.h"
-#include "scene/renderer/vulkan/pipelines/pipeline.h"
 #include "primitive_vertex.h"
+#include "scene/renderer/vulkan/pipelines/pipeline.h"
 #include "vulkan_core.h"
 #include "vulkan_texture.h"
 #include <algorithm>
@@ -33,7 +33,8 @@ namespace Bess::Vulkan::Pipelines {
         createDescriptorPool();
         createDescriptorSets();
 
-        createGraphicsPipeline();
+        createGraphicsPipeline(true);
+        createGraphicsPipeline(false);
 
         ensureQuadInstanceCapacity(instanceLimit);
     }
@@ -45,7 +46,7 @@ namespace Bess::Vulkan::Pipelines {
     QuadPipeline::QuadPipeline(QuadPipeline &&other) noexcept
         : Pipeline(std::move(other)),
           m_buffers(std::move(other.m_buffers)),
-          m_opaqueInstances(std::move(other.m_opaqueInstances)) {
+          m_instances(std::move(other.m_instances)) {
     }
 
     QuadPipeline &QuadPipeline::operator=(QuadPipeline &&other) noexcept {
@@ -53,25 +54,30 @@ namespace Bess::Vulkan::Pipelines {
             cleanup();
             Pipeline::operator=(std::move(other));
             m_buffers = std::move(other.m_buffers);
-            m_opaqueInstances = std::move(other.m_opaqueInstances);
+            m_instances = std::move(other.m_instances);
         }
         return *this;
     }
 
-    void QuadPipeline::beginPipeline(VkCommandBuffer commandBuffer) {
+    void QuadPipeline::beginPipeline(VkCommandBuffer commandBuffer, bool isTranslucent) {
         m_currentCommandBuffer = commandBuffer;
-        m_opaqueInstances.clear();
-        m_translucentInstances.clear();
+        m_instances.clear();
 
-        vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+        vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          isTranslucent ? m_translucentPipeline : m_opaquePipeline);
         VkDescriptorSet sets[] = {m_descriptorSets[m_currentFrameIndex], m_textureArraySets[m_currentFrameIndex]};
-        vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 2, sets, 0, nullptr);
+        vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                isTranslucent ? m_transPipelineLayout : m_opaquePipelineLayout,
+                                0, 2, sets, 0, nullptr);
 
         vkCmdSetViewport(m_currentCommandBuffer, 0, 1, &m_viewport);
         vkCmdSetScissor(m_currentCommandBuffer, 0, 1, &m_scissor);
     }
 
     void QuadPipeline::endPipeline() {
+        if (m_instances.empty())
+            return;
+
         auto draw = [&](const std::span<QuadInstance> &instances, VkDeviceSize offset) {
             if (instances.empty())
                 return;
@@ -91,10 +97,10 @@ namespace Bess::Vulkan::Pipelines {
         auto flush = [&](std::vector<QuadInstance> &instances, VkDeviceSize bufferOffset = 0) {
             if (instances.empty())
                 return;
-            
+
             size_t remaining = instances.size();
             size_t offset = 0;
-            
+
             while (remaining > 0) {
                 size_t batchSize = std::min(remaining, (size_t)instanceLimit);
                 auto span = std::span(instances.begin() + offset, instances.begin() + offset + batchSize);
@@ -104,24 +110,29 @@ namespace Bess::Vulkan::Pipelines {
             }
         };
 
-        flush(m_opaqueInstances, 0);
-        flush(m_translucentInstances, m_opaqueInstances.size() * sizeof(QuadInstance));
-        m_opaqueInstances.clear();
-        m_translucentInstances.clear();
+        flush(m_instances, m_instanceCounter * sizeof(QuadInstance));
+        m_instanceCounter += m_instances.size();
+
+        m_instances.clear();
 
         m_currentCommandBuffer = VK_NULL_HANDLE;
     }
 
-    void QuadPipeline::setQuadsData(
-        const std::vector<QuadInstance> &opaque,
-        const std::vector<QuadInstance> &translucent,
-        std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> &texutredData) {
-        auto size = opaque.size() + translucent.size();
+    void QuadPipeline::setQuadsData(const std::vector<QuadInstance> &instances) {
+        auto size = instances.size();
         if (size == 0)
             return;
         ensureQuadInstanceCapacity(size);
-        m_opaqueInstances = opaque;
-        m_translucentInstances = translucent;
+        m_instances = instances;
+    }
+
+    void QuadPipeline::setQuadsData(const std::vector<QuadInstance> &instances,
+                                    std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> &texutredData) {
+        auto size = instances.size();
+        if (size == 0)
+            return;
+        ensureQuadInstanceCapacity(size);
+        m_instances = instances;
 
         m_textureInfos.fill(m_fallbackTexture->getDescriptorInfo());
         int i = 1;
@@ -130,8 +141,8 @@ namespace Bess::Vulkan::Pipelines {
             for (auto &vertex : entry.second)
                 vertex.texSlotIdx = i;
 
-            m_translucentInstances.insert(m_translucentInstances.end(),
-                                          entry.second.begin(), entry.second.end());
+            m_instances.insert(m_instances.end(),
+                               entry.second.begin(), entry.second.end());
 
             i++;
         }
@@ -181,14 +192,14 @@ namespace Bess::Vulkan::Pipelines {
             vkDestroyDescriptorSetLayout(m_device->device(), m_textureArrayLayout, nullptr);
         }
 
-        if (m_pipeline != VK_NULL_HANDLE) {
-            vkDestroyPipeline(m_device->device(), m_pipeline, nullptr);
-            m_pipeline = VK_NULL_HANDLE;
+        if (m_opaquePipeline != VK_NULL_HANDLE) {
+            vkDestroyPipeline(m_device->device(), m_opaquePipeline, nullptr);
+            m_opaquePipeline = VK_NULL_HANDLE;
         }
 
-        if (m_pipelineLayout != VK_NULL_HANDLE) {
-            vkDestroyPipelineLayout(m_device->device(), m_pipelineLayout, nullptr);
-            m_pipelineLayout = VK_NULL_HANDLE;
+        if (m_opaquePipelineLayout != VK_NULL_HANDLE) {
+            vkDestroyPipelineLayout(m_device->device(), m_opaquePipelineLayout, nullptr);
+            m_opaquePipelineLayout = VK_NULL_HANDLE;
         }
 
         if (m_descriptorSetLayout != VK_NULL_HANDLE) {
@@ -207,7 +218,7 @@ namespace Bess::Vulkan::Pipelines {
         }
     }
 
-    void QuadPipeline::createGraphicsPipeline() {
+    void QuadPipeline::createGraphicsPipeline(bool isTranslucent) {
         auto vertShaderCode = readFile("assets/shaders/quad.vert.spv");
         auto fragShaderCode = readFile("assets/shaders/quad.frag.spv");
 
@@ -320,7 +331,7 @@ namespace Bess::Vulkan::Pipelines {
         auto viewportState = createViewportState();
         auto rasterizer = createRasterizationState();
         auto multisampling = createMultisampleState();
-        auto depthStencil = createDepthStencilState();
+        auto depthStencil = createDepthStencilState(isTranslucent);
 
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -347,10 +358,15 @@ namespace Bess::Vulkan::Pipelines {
         pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
         pipelineLayoutInfo.pSetLayouts = setLayouts.data();
 
-        if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create quad pipeline layout!");
+        if (isTranslucent) {
+            if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &m_transPipelineLayout) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create quad pipeline layout!");
+            }
+        } else {
+            if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &m_opaquePipelineLayout) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create quad pipeline layout!");
+            }
         }
-
         auto dynamicState = createDynamicState();
 
         VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -365,12 +381,13 @@ namespace Bess::Vulkan::Pipelines {
         pipelineInfo.pColorBlendState = &colorBlending;
         pipelineInfo.pDepthStencilState = &depthStencil;
         pipelineInfo.pDynamicState = &dynamicState;
-        pipelineInfo.layout = m_pipelineLayout;
+        pipelineInfo.layout = isTranslucent ? m_transPipelineLayout : m_opaquePipelineLayout;
         pipelineInfo.renderPass = m_renderPass->getVkHandle();
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-        if (vkCreateGraphicsPipelines(m_device->device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
+        if (vkCreateGraphicsPipelines(m_device->device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
+                                      isTranslucent ? &m_translucentPipeline : &m_opaquePipeline) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create quad graphics pipeline!");
         }
 

@@ -111,8 +111,6 @@ namespace Bess::Renderer2D::Vulkan {
         std::vector<QuadInstance> m_translucentQuadInstances;
         std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> m_texturedQuadInstances;
 
-        std::vector<VkDescriptorSet> m_textureArraySets;
-
         GridVertex m_gridVertex;
         UniformBufferObject m_ubo;
     };

@@ -2,8 +2,8 @@
 #include "asset_manager/asset_manager.h"
 #include "assets.h"
 #include "common/log.h"
-#include "scene/renderer/vulkan/pipelines/pipeline.h"
 #include "primitive_vertex.h"
+#include "scene/renderer/vulkan/pipelines/pipeline.h"
 #include "vulkan_texture.h"
 #include <algorithm>
 #include <array>
@@ -32,7 +32,8 @@ namespace Bess::Vulkan::Pipelines {
             m_fallbackTexture = std::make_unique<VulkanTexture>(m_device, 1, 1, VK_FORMAT_R8G8B8A8_UNORM, &white);
         }
 
-        createGraphicsPipeline();
+        createGraphicsPipeline(false);
+        createGraphicsPipeline(true);
 
         ensureTextInstanceCapacity(instanceLimit);
     }
@@ -72,13 +73,13 @@ namespace Bess::Vulkan::Pipelines {
         return *this;
     }
 
-    void TextPipeline::beginPipeline(VkCommandBuffer commandBuffer) {
+    void TextPipeline::beginPipeline(VkCommandBuffer commandBuffer, bool isTranslucent) {
         m_currentCommandBuffer = commandBuffer;
         m_textInstances.clear();
 
-        vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+        vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_opaquePipeline);
         VkDescriptorSet sets[] = {m_descriptorSets[m_currentFrameIndex], m_textureArraySets[m_currentFrameIndex]};
-        vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 2, sets, 0, nullptr);
+        vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_opaquePipelineLayout, 0, 2, sets, 0, nullptr);
 
         vkCmdSetViewport(m_currentCommandBuffer, 0, 1, &m_viewport);
         vkCmdSetScissor(m_currentCommandBuffer, 0, 1, &m_scissor);
@@ -199,14 +200,14 @@ namespace Bess::Vulkan::Pipelines {
             vkDestroyDescriptorSetLayout(m_device->device(), m_textureArrayLayout, nullptr);
         }
 
-        if (m_pipeline != VK_NULL_HANDLE) {
-            vkDestroyPipeline(m_device->device(), m_pipeline, nullptr);
-            m_pipeline = VK_NULL_HANDLE;
+        if (m_opaquePipeline != VK_NULL_HANDLE) {
+            vkDestroyPipeline(m_device->device(), m_opaquePipeline, nullptr);
+            m_opaquePipeline = VK_NULL_HANDLE;
         }
 
-        if (m_pipelineLayout != VK_NULL_HANDLE) {
-            vkDestroyPipelineLayout(m_device->device(), m_pipelineLayout, nullptr);
-            m_pipelineLayout = VK_NULL_HANDLE;
+        if (m_opaquePipelineLayout != VK_NULL_HANDLE) {
+            vkDestroyPipelineLayout(m_device->device(), m_opaquePipelineLayout, nullptr);
+            m_opaquePipelineLayout = VK_NULL_HANDLE;
         }
 
         if (m_descriptorSetLayout != VK_NULL_HANDLE) {
@@ -291,7 +292,7 @@ namespace Bess::Vulkan::Pipelines {
         }
     }
 
-    void TextPipeline::createGraphicsPipeline() {
+    void TextPipeline::createGraphicsPipeline(bool isTranslucent) {
         auto vertShaderCode = readFile("assets/shaders/instance.vert.spv");
         auto fragShaderCode = readFile("assets/shaders/text.frag.spv");
 
@@ -389,7 +390,7 @@ namespace Bess::Vulkan::Pipelines {
         auto viewportState = createViewportState();
         auto rasterizer = createRasterizationState();
         auto multisampling = createMultisampleState();
-        auto depthStencil = createDepthStencilState();
+        auto depthStencil = createDepthStencilState(isTranslucent);
 
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -418,7 +419,7 @@ namespace Bess::Vulkan::Pipelines {
         pipelineLayoutInfo.pushConstantRangeCount = 0;
         pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
-        if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
+        if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &m_opaquePipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create text pipeline layout!");
         }
 
@@ -436,13 +437,13 @@ namespace Bess::Vulkan::Pipelines {
         pipelineInfo.pDepthStencilState = &depthStencil;
         pipelineInfo.pColorBlendState = &colorBlending;
         pipelineInfo.pDynamicState = &dynamicState;
-        pipelineInfo.layout = m_pipelineLayout;
+        pipelineInfo.layout = isTranslucent ? m_transPipelineLayout : m_opaquePipelineLayout;
         pipelineInfo.renderPass = m_renderPass->getVkHandle();
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
         pipelineInfo.basePipelineIndex = -1;
 
-        if (vkCreateGraphicsPipelines(m_device->device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
+        if (vkCreateGraphicsPipelines(m_device->device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_opaquePipeline) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create text graphics pipeline!");
         }
 

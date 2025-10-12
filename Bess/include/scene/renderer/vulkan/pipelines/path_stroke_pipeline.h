@@ -19,7 +19,7 @@ namespace Bess::Vulkan::Pipelines {
         PathStrokePipeline(PathStrokePipeline &&other) noexcept;
         PathStrokePipeline &operator=(PathStrokePipeline &&other) noexcept;
 
-        void beginPipeline(VkCommandBuffer commandBuffer) override;
+        void beginPipeline(VkCommandBuffer commandBuffer, bool isTranslucent) override;
         void endPipeline() override;
 
         void setPathData(const std::vector<CommonVertex> &strokeVertices, const std::vector<uint32_t> &strokeIndices);
@@ -29,7 +29,7 @@ namespace Bess::Vulkan::Pipelines {
         void cleanup() override;
 
       private:
-        void createGraphicsPipeline() override;
+        void createGraphicsPipeline(bool isTranslucent) override;
         void createVertexBuffer();
         void createIndexBuffer();
         void createDescriptorSetLayout() override;

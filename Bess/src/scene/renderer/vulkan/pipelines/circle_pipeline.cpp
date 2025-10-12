@@ -1,6 +1,6 @@
 #include "scene/renderer/vulkan/pipelines/circle_pipeline.h"
-#include "scene/renderer/vulkan/pipelines/pipeline.h"
 #include "primitive_vertex.h"
+#include "scene/renderer/vulkan/pipelines/pipeline.h"
 #include "vulkan_core.h"
 #include <algorithm>
 #include <array>
@@ -26,7 +26,8 @@ namespace Bess::Vulkan::Pipelines {
         createDescriptorPool();
         createDescriptorSets();
 
-        createGraphicsPipeline();
+        createGraphicsPipeline(false);
+        createGraphicsPipeline(true);
 
         ensureCircleInstanceCapacity(instanceLimit);
     }
@@ -38,8 +39,7 @@ namespace Bess::Vulkan::Pipelines {
     CirclePipeline::CirclePipeline(CirclePipeline &&other) noexcept
         : Pipeline(std::move(other)),
           m_buffers(other.m_buffers),
-          m_opaqueInstances(std::move(other.m_opaqueInstances)),
-          m_translucentInstances(std::move(other.m_translucentInstances)) {
+          m_instances(std::move(other.m_instances)) {
     }
 
     CirclePipeline &CirclePipeline::operator=(CirclePipeline &&other) noexcept {
@@ -47,25 +47,29 @@ namespace Bess::Vulkan::Pipelines {
             cleanup();
             Pipeline::operator=(std::move(other));
             m_buffers = other.m_buffers;
-            m_opaqueInstances = std::move(other.m_opaqueInstances);
-            m_translucentInstances = std::move(other.m_translucentInstances);
+            m_instances = std::move(other.m_instances);
         }
         return *this;
     }
 
-    void CirclePipeline::beginPipeline(VkCommandBuffer commandBuffer) {
+    void CirclePipeline::beginPipeline(VkCommandBuffer commandBuffer, bool isTranslucent) {
         m_currentCommandBuffer = commandBuffer;
-        m_opaqueInstances.clear();
-        m_translucentInstances.clear();
+        m_instances.clear();
 
-        vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
-        vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[m_currentFrameIndex], 0, nullptr);
+        vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          isTranslucent ? m_translucentPipeline : m_opaquePipeline);
+        vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                isTranslucent ? m_transPipelineLayout : m_opaquePipelineLayout,
+                                0, 1, &m_descriptorSets[m_currentFrameIndex], 0, nullptr);
 
         vkCmdSetViewport(m_currentCommandBuffer, 0, 1, &m_viewport);
         vkCmdSetScissor(m_currentCommandBuffer, 0, 1, &m_scissor);
     }
 
     void CirclePipeline::endPipeline() {
+        if (m_instances.empty())
+            return;
+
         auto draw = [&](const std::span<CircleInstance> &instances, VkDeviceSize offset) {
             if (instances.empty())
                 return;
@@ -98,22 +102,19 @@ namespace Bess::Vulkan::Pipelines {
             }
         };
 
-        flush(m_opaqueInstances, 0);
-        flush(m_translucentInstances, m_opaqueInstances.size() * sizeof(CircleInstance));
-        m_opaqueInstances.clear();
-        m_translucentInstances.clear();
+        flush(m_instances, m_instanceCounter * sizeof(CircleInstance));
+        m_instanceCounter += m_instances.size();
+        m_instances.clear();
 
         m_currentCommandBuffer = VK_NULL_HANDLE;
     }
 
-    void CirclePipeline::setCirclesData(const std::vector<CircleInstance> &opaque,
-                                        const std::vector<CircleInstance> &translucent) {
-        auto size = opaque.size() + translucent.size();
+    void CirclePipeline::setCirclesData(const std::vector<CircleInstance> &opaque) {
+        auto size = opaque.size();
         if (size == 0)
             return;
         ensureCircleInstanceCapacity(size);
-        m_opaqueInstances = opaque;
-        m_translucentInstances = translucent;
+        m_instances = opaque;
     }
 
     void CirclePipeline::cleanup() {
@@ -138,14 +139,14 @@ namespace Bess::Vulkan::Pipelines {
             m_buffers.instanceBufferMemory = VK_NULL_HANDLE;
         }
 
-        if (m_pipeline != VK_NULL_HANDLE) {
-            vkDestroyPipeline(m_device->device(), m_pipeline, nullptr);
-            m_pipeline = VK_NULL_HANDLE;
+        if (m_opaquePipeline != VK_NULL_HANDLE) {
+            vkDestroyPipeline(m_device->device(), m_opaquePipeline, nullptr);
+            m_opaquePipeline = VK_NULL_HANDLE;
         }
 
-        if (m_pipelineLayout != VK_NULL_HANDLE) {
-            vkDestroyPipelineLayout(m_device->device(), m_pipelineLayout, nullptr);
-            m_pipelineLayout = VK_NULL_HANDLE;
+        if (m_opaquePipelineLayout != VK_NULL_HANDLE) {
+            vkDestroyPipelineLayout(m_device->device(), m_opaquePipelineLayout, nullptr);
+            m_opaquePipelineLayout = VK_NULL_HANDLE;
         }
 
         if (m_descriptorSetLayout != VK_NULL_HANDLE) {
@@ -164,7 +165,7 @@ namespace Bess::Vulkan::Pipelines {
         }
     }
 
-    void CirclePipeline::createGraphicsPipeline() {
+    void CirclePipeline::createGraphicsPipeline(bool isTranslucent) {
         auto vertShaderCode = readFile("assets/shaders/circle.vert.spv");
         auto fragShaderCode = readFile("assets/shaders/circle.frag.spv");
 
@@ -249,7 +250,7 @@ namespace Bess::Vulkan::Pipelines {
         auto viewportState = createViewportState();
         auto rasterizer = createRasterizationState();
         auto multisampling = createMultisampleState();
-        auto depthStencil = createDepthStencilState();
+        auto depthStencil = createDepthStencilState(isTranslucent);
 
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -275,8 +276,14 @@ namespace Bess::Vulkan::Pipelines {
         pipelineLayoutInfo.pushConstantRangeCount = 0;
         pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
-        if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create circle pipeline layout!");
+        if (isTranslucent) {
+            if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &m_transPipelineLayout) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create quad pipeline layout!");
+            }
+        } else {
+            if (vkCreatePipelineLayout(m_device->device(), &pipelineLayoutInfo, nullptr, &m_opaquePipelineLayout) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create quad pipeline layout!");
+            }
         }
 
         auto dynamicState = createDynamicState();
@@ -293,14 +300,20 @@ namespace Bess::Vulkan::Pipelines {
         pipelineInfo.pDepthStencilState = &depthStencil;
         pipelineInfo.pColorBlendState = &colorBlending;
         pipelineInfo.pDynamicState = &dynamicState;
-        pipelineInfo.layout = m_pipelineLayout;
+        pipelineInfo.layout = isTranslucent ? m_transPipelineLayout : m_opaquePipelineLayout;
         pipelineInfo.renderPass = m_renderPass->getVkHandle();
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
         pipelineInfo.basePipelineIndex = -1;
 
-        if (vkCreateGraphicsPipelines(m_device->device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create circle graphics pipeline!");
+        if (isTranslucent) {
+            if (vkCreateGraphicsPipelines(m_device->device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_translucentPipeline) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create path graphics pipeline!");
+            }
+        } else {
+            if (vkCreateGraphicsPipelines(m_device->device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_opaquePipeline) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create path graphics pipeline!");
+            }
         }
 
         vkDestroyShaderModule(m_device->device(), fragShaderModule, nullptr);

@@ -57,29 +57,27 @@ namespace Bess::Renderer2D::Vulkan {
     void PrimitiveRenderer::beginFrame(VkCommandBuffer commandBuffer) {
         m_currentCommandBuffer = commandBuffer;
         m_textRenderer->beginFrame(commandBuffer);
-        const auto msdfFont = Assets::AssetManager::instance().get(Assets::Fonts::robotoMsdf);
-        updateTextUniforms({.pxRange = msdfFont->getPxRange()});
     }
 
     void PrimitiveRenderer::endFrame() {
         m_textRenderer->endFrame();
         if (m_circlePipeline) {
-            m_circlePipeline->beginPipeline(m_currentCommandBuffer);
-            m_circlePipeline->setCirclesData(m_opaqueCircleInstances, m_translucentCircleInstances);
+            m_circlePipeline->beginPipeline(m_currentCommandBuffer, false);
+            m_circlePipeline->setCirclesData(m_opaqueCircleInstances);
             m_circlePipeline->endPipeline();
             m_opaqueCircleInstances.clear();
             m_translucentCircleInstances.clear();
         }
 
         if (m_textPipeline) {
-            m_textPipeline->beginPipeline(m_currentCommandBuffer);
+            m_textPipeline->beginPipeline(m_currentCommandBuffer, false);
             m_textPipeline->setTextData(m_textInstances);
             m_textPipeline->endPipeline();
             m_textInstances.clear();
         }
 
         if (m_gridPipeline) {
-            m_gridPipeline->beginPipeline(m_currentCommandBuffer);
+            m_gridPipeline->beginPipeline(m_currentCommandBuffer, false);
             m_gridPipeline->drawGrid(m_gridVertex.position,
                                      m_gridVertex.texCoord, // storing size in this for now
                                      m_gridVertex.fragId);
@@ -87,8 +85,8 @@ namespace Bess::Renderer2D::Vulkan {
         }
 
         if (m_quadPipeline) {
-            m_quadPipeline->beginPipeline(m_currentCommandBuffer);
-            m_quadPipeline->setQuadsData(m_opaqueQuadInstances, m_translucentQuadInstances, m_texturedQuadInstances);
+            m_quadPipeline->beginPipeline(m_currentCommandBuffer, false);
+            m_quadPipeline->setQuadsData(m_opaqueQuadInstances);
             m_quadPipeline->endPipeline();
             m_opaqueQuadInstances.clear();
             m_translucentQuadInstances.clear();

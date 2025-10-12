@@ -32,14 +32,14 @@ namespace Bess::Vulkan::Pipelines {
             m_descriptorPool = VK_NULL_HANDLE;
         }
 
-        if (m_pipeline != VK_NULL_HANDLE) {
-            vkDestroyPipeline(m_device->device(), m_pipeline, nullptr);
-            m_pipeline = VK_NULL_HANDLE;
+        if (m_opaquePipeline != VK_NULL_HANDLE) {
+            vkDestroyPipeline(m_device->device(), m_opaquePipeline, nullptr);
+            m_opaquePipeline = VK_NULL_HANDLE;
         }
 
-        if (m_pipelineLayout != VK_NULL_HANDLE) {
-            vkDestroyPipelineLayout(m_device->device(), m_pipelineLayout, nullptr);
-            m_pipelineLayout = VK_NULL_HANDLE;
+        if (m_opaquePipelineLayout != VK_NULL_HANDLE) {
+            vkDestroyPipelineLayout(m_device->device(), m_opaquePipelineLayout, nullptr);
+            m_opaquePipelineLayout = VK_NULL_HANDLE;
         }
     }
 
@@ -47,15 +47,15 @@ namespace Bess::Vulkan::Pipelines {
         : m_device(std::move(other.m_device)),
           m_renderPass(std::move(other.m_renderPass)),
           m_extent(other.m_extent),
-          m_pipeline(other.m_pipeline),
-          m_pipelineLayout(other.m_pipelineLayout),
+          m_opaquePipeline(other.m_opaquePipeline),
+          m_opaquePipelineLayout(other.m_opaquePipelineLayout),
           m_descriptorSetLayout(other.m_descriptorSetLayout),
           m_descriptorPool(other.m_descriptorPool),
           m_uniformBuffers(std::move(other.m_uniformBuffers)),
           m_uniformBufferMemory(std::move(other.m_uniformBufferMemory)),
           m_currentCommandBuffer(other.m_currentCommandBuffer) {
-        other.m_pipeline = VK_NULL_HANDLE;
-        other.m_pipelineLayout = VK_NULL_HANDLE;
+        other.m_opaquePipeline = VK_NULL_HANDLE;
+        other.m_opaquePipelineLayout = VK_NULL_HANDLE;
         other.m_descriptorSetLayout = VK_NULL_HANDLE;
         other.m_descriptorPool = VK_NULL_HANDLE;
         other.m_currentCommandBuffer = VK_NULL_HANDLE;
@@ -67,16 +67,16 @@ namespace Bess::Vulkan::Pipelines {
             m_device = std::move(other.m_device);
             m_renderPass = std::move(other.m_renderPass);
             m_extent = other.m_extent;
-            m_pipeline = other.m_pipeline;
-            m_pipelineLayout = other.m_pipelineLayout;
+            m_opaquePipeline = other.m_opaquePipeline;
+            m_opaquePipelineLayout = other.m_opaquePipelineLayout;
             m_descriptorSetLayout = other.m_descriptorSetLayout;
             m_descriptorPool = other.m_descriptorPool;
             m_uniformBuffers = std::move(other.m_uniformBuffers);
             m_uniformBufferMemory = std::move(other.m_uniformBufferMemory);
             m_currentCommandBuffer = other.m_currentCommandBuffer;
 
-            other.m_pipeline = VK_NULL_HANDLE;
-            other.m_pipelineLayout = VK_NULL_HANDLE;
+            other.m_opaquePipeline = VK_NULL_HANDLE;
+            other.m_opaquePipelineLayout = VK_NULL_HANDLE;
             other.m_descriptorSetLayout = VK_NULL_HANDLE;
             other.m_descriptorPool = VK_NULL_HANDLE;
             other.m_currentCommandBuffer = VK_NULL_HANDLE;
@@ -294,11 +294,11 @@ namespace Bess::Vulkan::Pipelines {
         return multisampling;
     }
 
-    VkPipelineDepthStencilStateCreateInfo Pipeline::createDepthStencilState() const {
+    VkPipelineDepthStencilStateCreateInfo Pipeline::createDepthStencilState(bool isTranslucent) const {
         VkPipelineDepthStencilStateCreateInfo depthStencil{};
         depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        depthStencil.depthTestEnable = VK_TRUE;
-        depthStencil.depthWriteEnable = VK_TRUE;
+        depthStencil.depthTestEnable = isTranslucent ? VK_FALSE : VK_TRUE;
+        depthStencil.depthWriteEnable = isTranslucent ? VK_TRUE : VK_FALSE;
         depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.stencilTestEnable = VK_FALSE;
@@ -345,5 +345,9 @@ namespace Bess::Vulkan::Pipelines {
         m_scissor.extent = m_extent;
 
         m_resized = true;
+    }
+
+    void Pipeline::cleanPrevStateCounter() {
+        m_instanceCounter = 0;
     }
 } // namespace Bess::Vulkan::Pipelines

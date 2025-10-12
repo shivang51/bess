@@ -159,7 +159,7 @@ namespace Bess::Renderer2D::Vulkan {
                 firstInstance += dc.instanceCount;
             }
 
-            m_pathFillPipeline->beginPipeline(m_currentCommandBuffer);
+            m_pathFillPipeline->beginPipeline(m_currentCommandBuffer, false);
             m_pathFillPipeline->setBatchedPathData(m_fillVertices, m_fillIndices, m_fillDrawCalls);
             m_pathFillPipeline->setInstanceData(m_tempInstances);
             m_pathFillPipeline->endPipeline();
@@ -174,13 +174,13 @@ namespace Bess::Renderer2D::Vulkan {
             dc.instanceCount = 1;
             m_fillDrawCalls.emplace_back(dc);
 
-            m_pathFillPipeline->beginPipeline(m_currentCommandBuffer);
+            m_pathFillPipeline->beginPipeline(m_currentCommandBuffer, false);
             m_pathFillPipeline->setBatchedPathData(m_fillVertices, m_fillIndices, m_fillDrawCalls);
             m_pathFillPipeline->setInstanceData(m_tempInstances);
             m_pathFillPipeline->endPipeline();
         }
 
-        m_pathStrokePipeline->beginPipeline(m_currentCommandBuffer);
+        m_pathStrokePipeline->beginPipeline(m_currentCommandBuffer, false);
         m_pathStrokePipeline->setPathData(m_strokeVertices, m_strokeIndices);
         m_pathStrokePipeline->endPipeline();
 

@@ -32,6 +32,7 @@ namespace Bess::Canvas {
 
         m_primitiveRenderer = std::make_shared<Renderer2D::Vulkan::PrimitiveRenderer>(device, renderPass, extent);
         m_pathRenderer = std::make_shared<Renderer2D::Vulkan::PathRenderer>(device, renderPass, extent);
+        m_materialRenderer = std::make_shared<Renderer::MaterialRenderer>(device, renderPass, extent);
 
         BESS_INFO("[Base Aritist] Initialized");
     }
@@ -55,20 +56,24 @@ namespace Bess::Canvas {
     void BaseArtist::begin(VkCommandBuffer cmd, const std::shared_ptr<Camera> &camera, uint32_t frameIdx) {
         m_primitiveRenderer->setCurrentFrameIndex(frameIdx);
         m_pathRenderer->setCurrentFrameIndex(frameIdx);
+        m_materialRenderer->setCurrentFrameIndex(frameIdx);
 
         m_primitiveRenderer->beginFrame(cmd);
         m_pathRenderer->beginFrame(cmd);
+        m_materialRenderer->beginFrame(cmd);
 
         Vulkan::UniformBufferObject ubo{};
         ubo.mvp = camera->getTransform();
         ubo.ortho = camera->getOrtho();
         m_pathRenderer->updateUniformBuffer(ubo);
+        m_materialRenderer->updateUBO(ubo);
         m_primitiveRenderer->updateUBO(ubo);
     }
 
     void BaseArtist::end() {
         m_pathRenderer->endFrame(); // important to end path renderer first for now (temp fix for alpha blending)
         m_primitiveRenderer->endFrame();
+        m_materialRenderer->endFrame();
     }
 
     void BaseArtist::drawGhostConnection(const entt::entity &startEntity, const glm::vec2 pos) {
@@ -267,6 +272,7 @@ namespace Bess::Canvas {
     void BaseArtist::resize(VkExtent2D size) {
         m_primitiveRenderer->resize(size);
         m_pathRenderer->resize(size);
+        m_materialRenderer->resize(size);
     }
 
     std::shared_ptr<Renderer2D::Vulkan::PrimitiveRenderer> BaseArtist::getPrimitiveRenderer() {
@@ -275,5 +281,8 @@ namespace Bess::Canvas {
 
     std::shared_ptr<Renderer2D::Vulkan::PathRenderer> BaseArtist::getPathRenderer() {
         return m_pathRenderer;
+    }
+    std::shared_ptr<Renderer::MaterialRenderer> BaseArtist::getMaterialRenderer() {
+        return m_materialRenderer;
     }
 } // namespace Bess::Canvas

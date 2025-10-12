@@ -17,7 +17,7 @@ namespace Bess::Vulkan::Pipelines {
         GridPipeline(GridPipeline &&other) noexcept;
         GridPipeline &operator=(GridPipeline &&other) noexcept;
 
-        void beginPipeline(VkCommandBuffer commandBuffer) override;
+        void beginPipeline(VkCommandBuffer commandBuffer, bool isTranslucent) override;
         void endPipeline() override;
         void cleanup() override;
 
@@ -26,7 +26,7 @@ namespace Bess::Vulkan::Pipelines {
         void updateGridUniforms(const GridUniforms &gridUniforms);
 
       private:
-        void createGraphicsPipeline();
+        void createGraphicsPipeline(bool isTranslucent) override;
         void createGridUniformBuffers();
         void createDescriptorSets() override;
         void createVertexBuffer();

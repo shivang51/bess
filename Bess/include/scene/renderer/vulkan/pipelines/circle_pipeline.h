@@ -20,16 +20,15 @@ namespace Bess::Vulkan::Pipelines {
         CirclePipeline(CirclePipeline &&other) noexcept;
         CirclePipeline &operator=(CirclePipeline &&other) noexcept;
 
-        void beginPipeline(VkCommandBuffer commandBuffer) override;
+        void beginPipeline(VkCommandBuffer commandBuffer, bool isTranslucent) override;
         void endPipeline() override;
 
-        void setCirclesData(const std::vector<CircleInstance> &opaque,
-                            const std::vector<CircleInstance> &translucent);
+        void setCirclesData(const std::vector<CircleInstance> &opaque);
 
         void cleanup() override;
 
       private:
-        void createGraphicsPipeline() override;
+        void createGraphicsPipeline(bool isTranslucent) override;
         void createCircleBuffers();
         void ensureCircleInstanceCapacity(size_t instanceCount);
 
@@ -37,8 +36,7 @@ namespace Bess::Vulkan::Pipelines {
         void createDescriptorSets() override;
 
         BufferSet m_buffers;
-        std::vector<CircleInstance> m_opaqueInstances;
-        std::vector<CircleInstance> m_translucentInstances;
+        std::vector<CircleInstance> m_instances;
     };
 
 } // namespace Bess::Vulkan::Pipelines
