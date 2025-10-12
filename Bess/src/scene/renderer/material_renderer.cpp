@@ -1,5 +1,6 @@
 #include "scene/renderer/material_renderer.h"
 #include "common/log.h"
+#include "primitive_vertex.h"
 #include "scene/renderer/material.h"
 #include <queue>
 #include <unordered_map>
@@ -57,6 +58,16 @@ namespace Bess::Renderer {
         m.type = Material2D::MaterialType::quad;
         new (&m.quad) QuadMaterial();
         m.quad.instance = instance;
+        m.z = instance.position.z;
+        m.alpha = instance.color.a;
+        return m;
+    }
+
+    static Material2D makeCircle(const Vulkan::CircleInstance &instance) {
+        Material2D m;
+        m.type = Material2D::MaterialType::circle;
+        new (&m.circle) CircleMaterial();
+        m.circle.instance = instance;
         m.z = instance.position.z;
         m.alpha = instance.color.a;
         return m;
@@ -169,11 +180,7 @@ namespace Bess::Renderer {
         if (color.a == 1.f) {
             m_circleInstances.emplace_back(instance);
         } else {
-            Material2D m{
-                Material2D::MaterialType::circle,
-                instance.position.z,
-                instance.color.a};
-            m.circle.instance = instance;
+            auto m = makeCircle(instance);
             m_translucentMaterials.push(m);
         }
     }
@@ -220,6 +227,7 @@ namespace Bess::Renderer {
         m_circleInstances.clear();
         m_quadInstances.clear();
         m_quadPipeline->cleanPrevStateCounter();
+        m_circlePipeline->cleanPrevStateCounter();
     }
 
     void MaterialRenderer::endFrame() {

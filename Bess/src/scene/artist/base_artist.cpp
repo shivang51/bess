@@ -207,7 +207,7 @@ namespace Bess::Canvas {
                 pos.y -= size.y * 0.25f;
                 size.x += componentStyles.paddingX * 2.f;
                 size.y += componentStyles.paddingY * 2.f;
-                m_primitiveRenderer->drawQuad(pos, size, ViewportTheme::colors.componentBG, id, props);
+                m_materialRenderer->drawQuad(pos, size, ViewportTheme::colors.componentBG, id, props);
             }
         } break;
         default:

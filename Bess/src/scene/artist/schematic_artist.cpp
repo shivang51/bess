@@ -127,7 +127,7 @@ namespace Bess::Canvas {
         constexpr float negCircleR = schematicCompStyles.negCircleR;
 
         auto negateCircleAt = [&](const glm::vec3 pos) {
-            m_primitiveRenderer->drawCircle(pos, negCircleR, strokeColor, -1, negCircleR - nodeWeight);
+            m_materialRenderer->drawCircle(pos, negCircleR, strokeColor, -1, negCircleR - nodeWeight);
         };
 
         const int id = (int)entity;

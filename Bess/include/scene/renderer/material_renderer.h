@@ -76,7 +76,7 @@ namespace Bess::Renderer {
         VkCommandBuffer m_currentCommandBuffer = VK_NULL_HANDLE;
 
         struct MaterialComp {
-            bool operator()(const Material2D &l, const Material2D &r) const { return l.z < r.z; }
+            bool operator()(const Material2D &l, const Material2D &r) const { return l.z > r.z; }
         };
 
         std::priority_queue<Material2D, std::vector<Material2D>, MaterialComp> m_translucentMaterials;

@@ -298,7 +298,7 @@ namespace Bess::Vulkan::Pipelines {
         VkPipelineDepthStencilStateCreateInfo depthStencil{};
         depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
         depthStencil.depthTestEnable = isTranslucent ? VK_FALSE : VK_TRUE;
-        depthStencil.depthWriteEnable = isTranslucent ? VK_TRUE : VK_FALSE;
+        depthStencil.depthWriteEnable = isTranslucent ? VK_TRUE : VK_TRUE;
         depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.stencilTestEnable = VK_FALSE;

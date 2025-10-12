@@ -61,7 +61,7 @@ namespace Bess::Canvas {
         props.isMica = true;
         props.hasShadow = true;
 
-        m_primitiveRenderer->drawQuad(pos, glm::vec2(scale), spriteComp.color, id, props);
+        m_materialRenderer->drawQuad(pos, glm::vec2(scale), spriteComp.color, id, props);
 
         props = {};
         props.angle = rotation;
@@ -69,11 +69,11 @@ namespace Bess::Canvas {
         props.borderRadius = glm::vec4(0, 0, spriteComp.borderRadius.x - spriteComp.borderSize.x, spriteComp.borderRadius.y - spriteComp.borderSize.y);
         props.isMica = true;
 
-        m_primitiveRenderer->drawQuad(headerPos,
-                                      glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
-                                      spriteComp.headerColor,
-                                      id,
-                                      props);
+        m_materialRenderer->drawQuad(headerPos,
+                                     glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
+                                     spriteComp.headerColor,
+                                     id,
+                                     props);
 
         m_primitiveRenderer->drawText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, id, rotation);
 
@@ -114,7 +114,7 @@ namespace Bess::Canvas {
         props.borderColor = border;
         props.borderSize = spriteComp.borderSize;
         props.isMica = true;
-        m_primitiveRenderer->drawQuad(pos, glm::vec2(scale), spriteComp.color, id, props);
+        m_materialRenderer->drawQuad(pos, glm::vec2(scale), spriteComp.color, id, props);
 
         glm::vec3 textPos = glm::vec3(
             pos.x - (scale.x / 2.f) + labelLOffset,
@@ -190,13 +190,13 @@ namespace Bess::Canvas {
             props.borderColor = border;
             props.borderRadius = glm::vec4(2.5f);
             props.borderSize = glm::vec4(componentStyles.slotBorderSize + 0.5);
-            m_primitiveRenderer->drawQuad(pos, glm::vec2(r * 2.f), glm::vec4(0.f), id, props);
+            m_materialRenderer->drawQuad(pos, glm::vec2(r * 2.f), glm::vec4(0.f), id, props);
             props.borderSize = {};
             props.borderRadius = glm::vec4(1.5f);
-            m_primitiveRenderer->drawQuad(pos, glm::vec2((ir - 1) * 2.f), glm::vec4(bg), id, props);
+            m_materialRenderer->drawQuad(pos, glm::vec2((ir - 1) * 2.f), glm::vec4(bg), id, props);
         } else {
-            m_primitiveRenderer->drawCircle(pos, r, border, id, ir);
-            m_primitiveRenderer->drawCircle(pos, ir - 1.f, bg, id);
+            m_materialRenderer->drawCircle(pos, r, border, id, ir);
+            m_materialRenderer->drawCircle(pos, ir - 1.f, bg, id);
         }
 
         float labelX = pos.x + labelDx;
@@ -234,7 +234,7 @@ namespace Bess::Canvas {
         props.borderColor = border;
         props.isMica = true;
 
-        m_primitiveRenderer->drawQuad(pos, glm::vec2(scale), spriteComp.color, id, props);
+        m_materialRenderer->drawQuad(pos, glm::vec2(scale), spriteComp.color, id, props);
 
         props = {};
         props.angle = rotation;
@@ -242,11 +242,11 @@ namespace Bess::Canvas {
         props.borderRadius = glm::vec4(0, 0, spriteComp.borderRadius.x - spriteComp.borderSize.x, spriteComp.borderRadius.y - spriteComp.borderSize.y);
         props.isMica = true;
 
-        m_primitiveRenderer->drawQuad(headerPos,
-                                      glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
-                                      spriteComp.headerColor,
-                                      id,
-                                      props);
+        m_materialRenderer->drawQuad(headerPos,
+                                     glm::vec2(scale.x - spriteComp.borderSize.w - spriteComp.borderSize.y, headerHeight - spriteComp.borderSize.x - spriteComp.borderSize.z),
+                                     spriteComp.headerColor,
+                                     id,
+                                     props);
 
         m_primitiveRenderer->drawText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, id, rotation);
 
