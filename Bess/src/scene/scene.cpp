@@ -325,8 +325,8 @@ namespace Bess::Canvas {
         props.borderColor = ViewportTheme::colors.selectionBoxBorder;
         props.borderSize = glm::vec4(1.f);
 
-        auto primRenderer = m_viewport->getArtistManager()->getCurrentArtist()->getPrimitiveRenderer();
-        primRenderer->drawQuad(glm::vec3(pos, 7.f), size, ViewportTheme::colors.selectionBoxFill, 0, props);
+        auto renderer = m_viewport->getArtistManager()->getCurrentArtist()->getMaterialRenderer();
+        renderer->drawQuad(glm::vec3(pos, 7.f), size, ViewportTheme::colors.selectionBoxFill, 0, props);
     }
 
     void Scene::drawConnection() {
