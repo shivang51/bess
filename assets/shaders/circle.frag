@@ -14,10 +14,8 @@ void main() {
 
     float outerR = 0.5;
     float innerR = v_InnerRadius * 0.5;
-    vec2 dpdx = dFdx(uv);
-    vec2 dpdy = dFdy(uv);
-    float pixelSize = sqrt(dot(dpdx, dpdx) + dot(dpdy, dpdy));
-    float aa = max(pixelSize, 0.002);
+
+    float aa = fwidth(length(uv)) * 0.5;
 
     float outerMask = 1.0 - smoothstep(outerR - aa, outerR + aa, dist);
     float innerMask = smoothstep(innerR - aa, innerR + aa, dist);
