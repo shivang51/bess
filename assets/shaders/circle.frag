@@ -30,6 +30,7 @@ void main() {
     vec4 col = v_FragColor;
 
     col.a *= mask;
+    col.rgb *= col.a;
 
     fragColor = col;
     fragColor1 = v_FragId;
