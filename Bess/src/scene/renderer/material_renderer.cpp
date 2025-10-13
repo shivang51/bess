@@ -99,7 +99,6 @@ namespace Bess::Renderer {
         } else {
             auto m = makeQuad(instance);
             m_translucentMaterials.push(m);
-            auto m_ = m_translucentMaterials.top();
         }
     }
     void MaterialRenderer::drawTexturedQuad(const glm::vec3 &pos,
@@ -231,14 +230,16 @@ namespace Bess::Renderer {
     }
 
     void MaterialRenderer::endFrame() {
+        /// opaque entities
         if (m_textRenderer) {
             m_textRenderer->endFrame();
         }
 
         flushVertices(false);
 
+        /// translucent entities
 
-        float prevZ = m_translucentMaterials.top().z;
+        float prevZ = m_translucentMaterials.empty() ? 0 : m_translucentMaterials.top().z;
 
         while (!m_translucentMaterials.empty()) {
             auto m = m_translucentMaterials.top();
@@ -278,6 +279,11 @@ namespace Bess::Renderer {
             m_circleInstances.clear();
         }
 
+        // if (m_gridPipeline) {
+        //     m_gridPipeline->beginPipeline(m_cmdBuffer, isTranslucent);
+        //     // m_gridPipeline->drawGrid(m_opaqueCircleInstances);
+        //     m_gridPipeline->endPipeline();
+        // }
     }
 
     void MaterialRenderer::setCurrentFrameIndex(uint32_t frameIndex) {
