@@ -311,13 +311,11 @@ namespace Bess::Vulkan::Pipelines {
         frag.pName = "main";
         std::array<VkPipelineShaderStageCreateInfo, 2> stages{vert, frag};
 
-        // Binding 0: local quad verts (position vec2 + texcoord vec2)
         VkVertexInputBindingDescription binding0{};
         binding0.binding = 0;
-        binding0.stride = sizeof(float) * 4; // vec2 + vec2
+        binding0.stride = sizeof(float) * 4;
         binding0.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-        // Binding 1: instance data
         VkVertexInputBindingDescription binding1{};
         binding1.binding = 1;
         binding1.stride = sizeof(InstanceVertex);
@@ -325,7 +323,6 @@ namespace Bess::Vulkan::Pipelines {
 
         std::array<VkVertexInputBindingDescription, 2> bindings = {binding0, binding1};
 
-        // Local vertex attributes (binding 0)
         std::array<VkVertexInputAttributeDescription, 2> localAttribs{};
         localAttribs[0].binding = 0;
         localAttribs[0].location = 0;
@@ -337,7 +334,6 @@ namespace Bess::Vulkan::Pipelines {
         localAttribs[1].format = VK_FORMAT_R32G32_SFLOAT;
         localAttribs[1].offset = sizeof(float) * 2;
 
-        // Instance attributes (binding 1)
         std::array<VkVertexInputAttributeDescription, 7> instanceAttribs{};
         instanceAttribs[0].binding = 1;
         instanceAttribs[0].location = 2;
@@ -385,7 +381,6 @@ namespace Bess::Vulkan::Pipelines {
         vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(allAttribs.size());
         vertexInputInfo.pVertexAttributeDescriptions = allAttribs.data();
 
-        // Use common pipeline state creation methods
         auto inputAssembly = createInputAssemblyState();
         auto viewportState = createViewportState();
         auto rasterizer = createRasterizationState();
@@ -395,11 +390,11 @@ namespace Bess::Vulkan::Pipelines {
         VkPipelineColorBlendAttachmentState colorBlendAttachment{};
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         colorBlendAttachment.blendEnable = VK_TRUE;
-        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
         colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
         colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
         VkPipelineColorBlendAttachmentState pickingBlendAttachment = colorBlendAttachment;
@@ -407,7 +402,6 @@ namespace Bess::Vulkan::Pipelines {
 
         static const std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments = {colorBlendAttachment, pickingBlendAttachment};
 
-        // Use common color blend state creation
         auto colorBlending = createColorBlendState(colorBlendAttachments);
 
         std::array<VkDescriptorSetLayout, 2> setLayouts = {m_descriptorSetLayout, m_textureArrayLayout};
@@ -452,12 +446,11 @@ namespace Bess::Vulkan::Pipelines {
     }
 
     void TextPipeline::createTextBuffers() {
-        // Create local quad vertex data
         std::vector<float> local = {
-            -0.5f, -0.5f, 0.0f, 0.0f, // bottom-left
-            0.5f, -0.5f, 1.0f, 0.0f,  // bottom-right
-            0.5f, 0.5f, 1.0f, 1.0f,   // top-right
-            -0.5f, 0.5f, 0.0f, 1.0f   // top-left
+            -0.5f, -0.5f, 0.0f, 0.0f,
+            0.5f, -0.5f, 1.0f, 0.0f,
+            0.5f, 0.5f, 1.0f, 1.0f,
+            -0.5f, 0.5f, 0.0f, 1.0f
         };
 
         std::vector<uint32_t> idx = {
@@ -472,7 +465,6 @@ namespace Bess::Vulkan::Pipelines {
 
         VkMemoryRequirements req{};
 
-        // Allocate and upload text vertex buffer
         VkDeviceSize vSize = sizeof(float) * local.size();
         bi.size = vSize;
         bi.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
@@ -491,7 +483,6 @@ namespace Bess::Vulkan::Pipelines {
         memcpy(vdata, local.data(), vSize);
         vkUnmapMemory(m_device->device(), m_buffers.vertexBufferMemory);
 
-        // Allocate and upload text index buffer
         VkDeviceSize iSize = sizeof(uint32_t) * idx.size();
         bi.size = iSize;
         bi.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
@@ -515,16 +506,14 @@ namespace Bess::Vulkan::Pipelines {
 
     void TextPipeline::ensureTextInstanceCapacity(size_t instanceCount) {
         if (instanceCount <= m_buffers.instanceCapacity) {
-            return; // Already have enough capacity
+            return;
         }
 
-        // Destroy old instance buffer if it exists
         if (m_buffers.instanceBuffer != VK_NULL_HANDLE) {
             vkDestroyBuffer(m_device->device(), m_buffers.instanceBuffer, nullptr);
             vkFreeMemory(m_device->device(), m_buffers.instanceBufferMemory, nullptr);
         }
 
-        // Create new instance buffer with required capacity
         VkDeviceSize size = sizeof(InstanceVertex) * instanceCount;
         VkBufferCreateInfo bi{};
         bi.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -549,10 +538,9 @@ namespace Bess::Vulkan::Pipelines {
     }
 
     void TextPipeline::createDescriptorPool() {
-        // Override base class to include TextUniforms in the main descriptor pool
         std::array<VkDescriptorPoolSize, 1> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSizes[0].descriptorCount = 4; // 2 for UBO + 2 for TextUniforms
+        poolSizes[0].descriptorCount = 4;
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -564,7 +552,6 @@ namespace Bess::Vulkan::Pipelines {
             throw std::runtime_error("Failed to create text descriptor pool!");
         }
 
-        // Create texture array descriptor pool
         if (m_textureArrayDescriptorPool != VK_NULL_HANDLE)
             return;
 
@@ -584,10 +571,9 @@ namespace Bess::Vulkan::Pipelines {
 
     void TextPipeline::createDescriptorSets() {
         if (m_uniformBuffers.empty()) {
-            return; // No uniform buffers to create descriptor sets for
+            return;
         }
 
-        // Create descriptor sets for each frame in flight
         m_descriptorSets.resize(maxFrames);
 
         std::vector<VkDescriptorSetLayout> layouts(maxFrames, m_descriptorSetLayout);
@@ -602,9 +588,7 @@ namespace Bess::Vulkan::Pipelines {
             throw std::runtime_error("Failed to allocate descriptor sets!");
         }
 
-        // Update all descriptor sets with both UBO and TextUniforms
         for (size_t i = 0; i < maxFrames; ++i) {
-            // UBO binding (0)
             VkDescriptorBufferInfo uboBufferInfo{};
             uboBufferInfo.buffer = m_uniformBuffers[0];
             uboBufferInfo.offset = 0;
@@ -619,7 +603,6 @@ namespace Bess::Vulkan::Pipelines {
             uboDescriptorWrite.descriptorCount = 1;
             uboDescriptorWrite.pBufferInfo = &uboBufferInfo;
 
-            // TextUniforms binding (1)
             VkDescriptorBufferInfo textBufferInfo{};
             textBufferInfo.buffer = m_textUniformBuffers[i];
             textBufferInfo.offset = 0;
@@ -634,17 +617,14 @@ namespace Bess::Vulkan::Pipelines {
             textDescriptorWrite.descriptorCount = 1;
             textDescriptorWrite.pBufferInfo = &textBufferInfo;
 
-            // Update both bindings at once
             std::array<VkWriteDescriptorSet, 2> descriptorWrites = {uboDescriptorWrite, textDescriptorWrite};
             vkUpdateDescriptorSets(m_device->device(), 2, descriptorWrites.data(), 0, nullptr);
         }
 
-        // Create texture array descriptor sets
         m_textureArraySets.resize(maxFrames);
 
         std::array<VkDescriptorSetLayoutBinding, 1> texBindings{};
 
-        // Texture array binding
         texBindings[0].binding = 2;
         texBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         texBindings[0].descriptorCount = 32;
@@ -668,4 +648,4 @@ namespace Bess::Vulkan::Pipelines {
         }
     }
 
-} // namespace Bess::Vulkan::Pipelines
+}

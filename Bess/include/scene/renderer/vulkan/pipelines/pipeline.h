@@ -16,7 +16,11 @@ namespace Bess::Vulkan::Pipelines {
         VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
         VkBuffer instanceBuffer = VK_NULL_HANDLE;
         VkDeviceMemory instanceBufferMemory = VK_NULL_HANDLE;
+        void *instanceBufferMapped = nullptr;
         size_t instanceCapacity = 0;
+        size_t instanceStride = 0;
+        std::vector<VkBuffer> retiredInstanceBuffers;
+        std::vector<VkDeviceMemory> retiredInstanceMemories;
     };
 
     class Pipeline {
@@ -89,6 +93,8 @@ namespace Bess::Vulkan::Pipelines {
         VkPipelineDepthStencilStateCreateInfo createDepthStencilState(bool isTranslucent) const;
         VkPipelineColorBlendStateCreateInfo createColorBlendState(const std::vector<VkPipelineColorBlendAttachmentState> &colorBlendAttachments) const;
         VkPipelineDynamicStateCreateInfo createDynamicState() const;
+
+        void ensureInstanceCapacity(BufferSet &buffers, size_t requiredInstances, VkDeviceSize instanceSize);
     };
 
 } // namespace Bess::Vulkan::Pipelines

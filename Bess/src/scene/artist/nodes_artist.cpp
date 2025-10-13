@@ -42,7 +42,7 @@ namespace Bess::Canvas {
         const auto &scale = transform.scale;
 
         float headerHeight = componentStyles.headerHeight;
-        auto headerPos = glm::vec3(pos.x, pos.y - scale.y / 2.f + headerHeight / 2.f, pos.z);
+        auto headerPos = glm::vec3(pos.x, pos.y - scale.y / 2.f + headerHeight / 2.f, pos.z + 0.0004f);
 
         bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
         auto border = isSelected ? ViewportTheme::colors.selectedComp : spriteComp.borderColor;
@@ -216,7 +216,7 @@ namespace Bess::Canvas {
         const auto &scale = transform.scale;
 
         const float headerHeight = componentStyles.headerHeight;
-        auto headerPos = glm::vec3(pos.x, pos.y - scale.y / 2.f + headerHeight / 2.f, pos.z);
+        auto headerPos = glm::vec3(pos.x, pos.y - scale.y / 2.f + headerHeight / 2.f, pos.z + 0.0004f);
 
         const auto &registry = Scene::instance()->getEnttRegistry();
         bool isSelected = registry.any_of<Components::SelectedComponent>(entity);

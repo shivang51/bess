@@ -21,7 +21,7 @@ layout(location = 3) out vec4 v_BorderSize;
 layout(location = 4) out vec4 v_BorderColor;
 layout(location = 5) out vec2 v_Size;
 layout(location = 6) out flat int v_FragId;
-layout(location = 7) out int v_IsMica;
+layout(location = 7) out flat int v_IsMica;
 layout(location = 8) out flat int v_TexSlotIdx;
 
 layout(binding = 0) uniform UniformBufferObject {

@@ -291,14 +291,16 @@ namespace Bess::Vulkan::Pipelines {
         multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         multisampling.sampleShadingEnable = VK_FALSE;
         multisampling.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
+        multisampling.alphaToCoverageEnable = VK_FALSE;
         return multisampling;
     }
 
     VkPipelineDepthStencilStateCreateInfo Pipeline::createDepthStencilState(bool isTranslucent) const {
         VkPipelineDepthStencilStateCreateInfo depthStencil{};
         depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        depthStencil.depthTestEnable = isTranslucent ? VK_FALSE : VK_TRUE;
-        depthStencil.depthWriteEnable = isTranslucent ? VK_TRUE : VK_TRUE;
+
+        depthStencil.depthTestEnable = VK_TRUE;
+        depthStencil.depthWriteEnable = isTranslucent ? VK_FALSE : VK_TRUE;
         depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.stencilTestEnable = VK_FALSE;
@@ -349,5 +351,54 @@ namespace Bess::Vulkan::Pipelines {
 
     void Pipeline::cleanPrevStateCounter() {
         m_instanceCounter = 0;
+    }
+
+    void Pipeline::ensureInstanceCapacity(BufferSet &buffers, size_t requiredInstances, VkDeviceSize instanceSize) {
+        if (requiredInstances <= buffers.instanceCapacity && buffers.instanceBuffer != VK_NULL_HANDLE && buffers.instanceBufferMapped != nullptr)
+            return;
+
+        // Retire old buffer (if any) to avoid freeing memory still in use by GPU this frame
+        if (buffers.instanceBuffer != VK_NULL_HANDLE) {
+            buffers.retiredInstanceBuffers.push_back(buffers.instanceBuffer);
+            buffers.instanceBuffer = VK_NULL_HANDLE;
+        }
+        if (buffers.instanceBufferMemory != VK_NULL_HANDLE) {
+            if (buffers.instanceBufferMapped != nullptr) {
+                vkUnmapMemory(m_device->device(), buffers.instanceBufferMemory);
+                buffers.instanceBufferMapped = nullptr;
+            }
+            buffers.retiredInstanceMemories.push_back(buffers.instanceBufferMemory);
+            buffers.instanceBufferMemory = VK_NULL_HANDLE;
+        }
+        buffers.instanceBufferMapped = nullptr;
+
+        size_t newCapacity = std::max(requiredInstances * 2, std::max<size_t>(buffers.instanceCapacity * 2, 1024));
+        VkDeviceSize size = instanceSize * newCapacity;
+
+        VkBufferCreateInfo bi{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+        bi.size = size;
+        bi.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        bi.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        if (vkCreateBuffer(m_device->device(), &bi, nullptr, &buffers.instanceBuffer) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create instance buffer!");
+        }
+
+        VkMemoryRequirements req{};
+        vkGetBufferMemoryRequirements(m_device->device(), buffers.instanceBuffer, &req);
+        VkMemoryAllocateInfo ai{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+        ai.allocationSize = req.size;
+        // Host visible + coherent to allow persistent mapping; device-local staging path can be added later
+        ai.memoryTypeIndex = m_device->findMemoryType(req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        if (vkAllocateMemory(m_device->device(), &ai, nullptr, &buffers.instanceBufferMemory) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate instance buffer memory!");
+        }
+        vkBindBufferMemory(m_device->device(), buffers.instanceBuffer, buffers.instanceBufferMemory, 0);
+
+        // Persistently map
+        void *ptr = nullptr;
+        vkMapMemory(m_device->device(), buffers.instanceBufferMemory, 0, size, 0, &ptr);
+        buffers.instanceBufferMapped = ptr;
+        buffers.instanceCapacity = newCapacity;
+        buffers.instanceStride = static_cast<size_t>(instanceSize);
     }
 } // namespace Bess::Vulkan::Pipelines

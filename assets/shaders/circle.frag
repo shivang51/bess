@@ -9,26 +9,28 @@ layout(location = 2) in float v_InnerRadius;
 layout(location = 3) in flat int v_FragId;
 
 void main() {
-    vec2 uv = (v_TexCoord - 0.5);
-    float r = 0.5f;
-    float ir = v_InnerRadius * 0.5;
-    float blur = fwidth(length(uv));
+    vec2 uv = v_TexCoord - 0.5;
+    float dist = length(uv);
+
+    float outerR = 0.5;
+    float innerR = v_InnerRadius * 0.5;
+    vec2 dpdx = dFdx(uv);
+    vec2 dpdy = dFdy(uv);
+    float pixelSize = sqrt(dot(dpdx, dpdx) + dot(dpdy, dpdy));
+    float aa = max(pixelSize, 0.002);
+
+    float outerMask = 1.0 - smoothstep(outerR - aa, outerR + aa, dist);
+    float innerMask = smoothstep(innerR - aa, innerR + aa, dist);
+
+    float mask = outerMask * innerMask;
+
+    if (mask < 0.001)
+        discard;
 
     vec4 col = v_FragColor;
 
-    float alphaR = smoothstep(r, r - blur, length(uv));
-    float alphaIR = smoothstep(ir - blur, ir, length(uv));
-    float alpha = alphaR * alphaIR;
-    alpha = clamp(alpha, 0.0, 1.0);
+    col.a *= mask;
 
-    if(alpha < 0.001) discard;
-
-    float finalAlpha = min(alpha, col.a);
-    vec4 finalColor = vec4(col.rgb, finalAlpha);
-    
-    // Premultiply RGB by alpha for proper blending
-    finalColor.rgb *= finalColor.a;
-    
-    fragColor = finalColor;
+    fragColor = col;
     fragColor1 = v_FragId;
 }

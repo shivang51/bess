@@ -92,7 +92,7 @@ namespace Bess::Renderer {
         instance.id = id;
         instance.isMica = (int)props.isMica;
         instance.texSlotIdx = 0;
-        instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f); // Full local UV [0,1] by default
+        instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f);
 
         if (color.a == 1.f) {
             m_quadInstances.emplace_back(instance);
@@ -231,14 +231,12 @@ namespace Bess::Renderer {
     }
 
     void MaterialRenderer::endFrame() {
-        /// opaque entities
         if (m_textRenderer) {
             m_textRenderer->endFrame();
         }
 
         flushVertices(false);
 
-        /// translucent entities
 
         float prevZ = m_translucentMaterials.top().z;
 
@@ -247,6 +245,7 @@ namespace Bess::Renderer {
             m_translucentMaterials.pop();
             if (m.z != prevZ) {
                 flushVertices(true);
+                prevZ = m.z;
             }
 
             switch (m.type) {
@@ -261,7 +260,7 @@ namespace Bess::Renderer {
                 break;
             }
         }
-        flushVertices(false);
+        flushVertices(true);
     }
 
     void MaterialRenderer::flushVertices(bool isTranslucent) {
@@ -279,11 +278,6 @@ namespace Bess::Renderer {
             m_circleInstances.clear();
         }
 
-        // if (m_gridPipeline) {
-        //     m_gridPipeline->beginPipeline(m_cmdBuffer, isTranslucent);
-        //     // m_gridPipeline->drawGrid(m_opaqueCircleInstances);
-        //     m_gridPipeline->endPipeline();
-        // }
     }
 
     void MaterialRenderer::setCurrentFrameIndex(uint32_t frameIndex) {
@@ -299,4 +293,4 @@ namespace Bess::Renderer {
         if (m_textRenderer)
             m_textRenderer->setCurrentFrameIndex(frameIndex);
     }
-} // namespace Bess::Renderer
+}
