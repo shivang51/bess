@@ -27,3 +27,5 @@ compile_commands.json
 /CMakeSettings.json
 tests_output/
 Testing/
+
+perf.data
