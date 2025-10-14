@@ -1,4 +1,5 @@
 #include "device.h"
+#include "log.h"
 #include <set>
 #include <stdexcept>
 
@@ -84,7 +85,7 @@ namespace Bess::Vulkan {
 
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(m_vkPhysicalDevice, &deviceProperties);
-        // BESS_INFO("[Renderer] Selected GPU: {}", deviceProperties.deviceName);
+        BESS_VK_INFO("[Renderer] Selected GPU: {}", deviceProperties.deviceName);
     }
 
     void VulkanDevice::createLogicalDevice() {

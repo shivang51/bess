@@ -1,10 +1,8 @@
-#include "logger.h"
+#include "log.h"
+#include "spdlog/sinks/basic_file_sink.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
 
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-
-namespace Bess::SimEngine {
-
+namespace Bess::Vulkan {
     Logger &Logger::getInstance() {
         static Logger instance;
         return instance;
@@ -31,4 +29,4 @@ namespace Bess::SimEngine {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_loggers[name];
     }
-} // namespace Bess::SimEngine
+} // namespace Bess::Vulkan

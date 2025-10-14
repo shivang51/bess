@@ -1,5 +1,4 @@
 #include "vulkan_image_view.h"
-#include "imgui_impl_vulkan.h"
 #include <array>
 #include <stdexcept>
 #include <vulkan/vulkan_core.h>

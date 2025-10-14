@@ -5,9 +5,9 @@
 #include "imgui_impl_vulkan.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
-#include "vulkan_core.h"
 #include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
+#include "vulkan_core.h"
 
 #include "types.h"
 #include <vulkan/vulkan.h>

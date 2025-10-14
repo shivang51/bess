@@ -1,4 +1,5 @@
 #include "vulkan_core.h"
+#include "log.h"
 #include <cstring>
 #include <memory>
 #include <set>
@@ -15,17 +16,18 @@ namespace Bess::Vulkan {
     void VulkanCore::init(const std::vector<const char *> &winExt,
                           const SurfaceCreationCB &createSurface,
                           VkExtent2D windowExtent) {
+        Logger::getInstance().initLogger("BessVulkan");
         if (isInitialized) {
-            // BESS_WARN("Reinitialization of VulkaCore was called...skipping");
+            BESS_VK_WARN("Reinitialization of VulkaCore was called...skipping");
             return;
         }
 
-        // BESS_INFO("Initializing VulkanCore");
+        BESS_VK_INFO("Initializing VulkanCore");
 
         initVkInstance(winExt);
         createDebugMessenger();
         createSurface(m_vkInstance, m_renderSurface);
-        // BESS_INFO("Created VkInstance and draw surface");
+        BESS_VK_INFO("Created VkInstance and draw surface");
 
         m_device = std::make_shared<VulkanDevice>(m_vkInstance, m_renderSurface);
         m_swapchain = std::make_shared<VulkanSwapchain>(m_vkInstance, m_device, m_renderSurface, windowExtent);
@@ -38,12 +40,12 @@ namespace Bess::Vulkan {
         createSyncObjects();
 
         isInitialized = true;
-        // BESS_INFO("Renderer Initialized");
+        BESS_VK_INFO("Renderer Initialized");
     }
 
     void VulkanCore::beginFrame() {
         if (m_currentFrameContext.isStarted) {
-            // BESS_WARN("[VulkanCore] Frame is already started, skipping");
+            BESS_VK_WARN("[VulkanCore] Frame is already started, skipping");
             return;
         }
         vkWaitForFences(m_device->device(), 1, &m_inFlightFences[m_currentFrameIdx], VK_TRUE, UINT64_MAX);
@@ -63,7 +65,7 @@ namespace Bess::Vulkan {
                                                       VK_NULL_HANDLE, &m_currentFrameContext.swapchainImgIdx);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-            // BESS_WARN("Swapchain out of date, skipping frame");
+            BESS_VK_WARN("Swapchain out of date, skipping frame");
             return;
         }
 
@@ -113,7 +115,7 @@ namespace Bess::Vulkan {
         const auto result = vkQueuePresentKHR(m_device->presentQueue(), &presentInfo);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-            // BESS_WARN("Swapchain out of date during present, will handle next frame");
+            BESS_VK_WARN("Swapchain out of date during present, will handle next frame");
         } else if (result != VK_SUCCESS) {
             throw std::runtime_error("Failed to present swap chain image!");
         }
@@ -124,7 +126,7 @@ namespace Bess::Vulkan {
 
     void VulkanCore::recreateSwapchain(VkExtent2D newExtent) {
         if (newExtent.width == 0 || newExtent.height == 0) {
-            // BESS_WARN("Window minimized, skipping swapchain recreation");
+            BESS_VK_WARN("Window minimized, skipping swapchain recreation");
             return;
         }
 
@@ -143,7 +145,7 @@ namespace Bess::Vulkan {
     }
 
     void VulkanCore::cleanup(const std::function<void()> &preCmdBufferCleanup) {
-        // BESS_INFO("[VulkanCore] Shutting down");
+        BESS_VK_INFO("[VulkanCore] Shutting down");
         if (!m_device || m_device->device() == VK_NULL_HANDLE)
             return;
         vkDeviceWaitIdle(m_device->device());
@@ -198,7 +200,7 @@ namespace Bess::Vulkan {
             extStr += " | ";
         }
 
-        // BESS_INFO("[Renderer] Initializing with extensions: {}", extStr);
+        BESS_VK_INFO("[Renderer] Initializing with extensions: {}", extStr);
 
         if (validateExtensions(extensions) != VK_SUCCESS) {
             throw std::runtime_error("[Renderer] Extension validation failed");
@@ -213,7 +215,7 @@ namespace Bess::Vulkan {
 
         VkApplicationInfo appInfo = {
             .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-            .pApplicationName = "Some Application",
+            .pApplicationName = "Bess",
             .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
             .pEngineName = "BessRenderingEngine",
             .engineVersion = VK_MAKE_VERSION(1, 0, 0),
@@ -284,9 +286,9 @@ namespace Bess::Vulkan {
         const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
         void *pUserData) {
         if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-            // BESS_WARN("[VulkanCore][ValidationLayer] {}", pCallbackData->pMessage);
+            BESS_VK_WARN("[VulkanCore][ValidationLayer] {}", pCallbackData->pMessage);
         } else {
-            // BESS_ERROR("[VulkanCore][ValidationLayer] {}", pCallbackData->pMessage);
+            BESS_VK_ERROR("[VulkanCore][ValidationLayer] {}", pCallbackData->pMessage);
         }
         return VK_FALSE;
     }

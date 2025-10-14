@@ -1,5 +1,6 @@
 #include "vulkan_texture.h"
 #include "device.h"
+#include "log.h"
 #include "stb_image.h"
 #include "stb_image_write.h"
 #include <cstring>
@@ -330,13 +331,13 @@ namespace Bess::Vulkan {
     void VulkanTexture::saveToPath(const std::string &path) const {
         std::vector<unsigned char> rgba = getData();
         if (rgba.empty()) {
-            // BESS_ERROR("[VulkanTexture] saveToPath: empty buffer");
+            BESS_VK_ERROR("[VulkanTexture] saveToPath: empty buffer");
             return;
         }
         stbi_flip_vertically_on_write(1);
         int result = stbi_write_png(path.c_str(), static_cast<int>(m_width), static_cast<int>(m_height), 4, rgba.data(), static_cast<int>(m_width * 4));
         if (result == 0) {
-            // BESS_ERROR("[VulkanTexture] Failed to write file %s", path.c_str());
+            BESS_VK_ERROR("[VulkanTexture] Failed to write file %s", path.c_str());
         }
     }
 

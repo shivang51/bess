@@ -1,6 +1,4 @@
 #include "command_buffer.h"
-#include "imgui.h"
-#include "imgui_impl_vulkan.h"
 #include <stdexcept>
 
 namespace Bess::Vulkan {

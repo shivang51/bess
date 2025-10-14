@@ -1,4 +1,5 @@
 #include "swapchain.h"
+#include "log.h"
 #include <algorithm>
 #include <limits>
 #include <stdexcept>
@@ -94,7 +95,7 @@ namespace Bess::Vulkan {
 
         const VkResult result = vkCreateSwapchainKHR(m_device->device(), &createInfo, nullptr, &m_swapchain);
         if (result != VK_SUCCESS) {
-            // BESS_ERROR("Failed to create swap chain! Error code: {}", static_cast<int>(result));
+            BESS_VK_ERROR("Failed to create swap chain! Error code: {}", static_cast<int>(result));
             throw std::runtime_error("Failed to create swap chain!");
         }
 
@@ -147,7 +148,7 @@ namespace Bess::Vulkan {
 
         const VkResult result = vkCreateSwapchainKHR(m_device->device(), &createInfo, nullptr, &m_swapchain);
         if (result != VK_SUCCESS) {
-            // BESS_ERROR("Failed to create swap chain! Error code: {}", static_cast<int>(result));
+            BESS_VK_ERROR("Failed to create swap chain! Error code: {}", static_cast<int>(result));
             throw std::runtime_error("Failed to create swap chain!");
         }
 
@@ -264,7 +265,7 @@ namespace Bess::Vulkan {
             return availableFormats[0];
         }
 
-        // BESS_WARN("[Swapchain] Using the fallback format");
+        BESS_VK_WARN("[Swapchain] Using the fallback format");
 
         VkSurfaceFormatKHR fallback{};
         fallback.format = VK_FORMAT_B8G8R8A8_UNORM;
