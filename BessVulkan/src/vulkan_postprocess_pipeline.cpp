@@ -1,9 +1,9 @@
 #include "vulkan_postprocess_pipeline.h"
 #include "vulkan_shader.h"
 #include <array>
-#include <stdexcept>
-#include <fstream>
 #include <cstring>
+#include <fstream>
+#include <stdexcept>
 #include <vulkan/vulkan_core.h>
 
 namespace Bess::Vulkan {
@@ -240,6 +240,15 @@ namespace Bess::Vulkan {
             throw std::runtime_error("Failed to create postprocess pipeline layout!");
         }
 
+        static std::vector<VkDynamicState> dynamicStates = {
+            VK_DYNAMIC_STATE_VIEWPORT,
+            VK_DYNAMIC_STATE_SCISSOR};
+
+        VkPipelineDynamicStateCreateInfo dynamicState{};
+        dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+        dynamicState.pDynamicStates = dynamicStates.data();
+
         VkGraphicsPipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
         pipelineInfo.stageCount = 2;
@@ -250,6 +259,7 @@ namespace Bess::Vulkan {
         pipelineInfo.pRasterizationState = &rasterizer;
         pipelineInfo.pMultisampleState = &multisampling;
         pipelineInfo.pColorBlendState = &colorBlending;
+        pipelineInfo.pDynamicState = &dynamicState;
         pipelineInfo.layout = m_pipelineLayout;
         pipelineInfo.renderPass = m_renderPass;
         pipelineInfo.subpass = 0;
@@ -292,6 +302,24 @@ namespace Bess::Vulkan {
         }
 
         // Update descriptor set
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = inputImageView;
+        imageInfo.sampler = inputSampler;
+
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = m_descriptorSet;
+        descriptorWrite.dstBinding = 0;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pImageInfo = &imageInfo;
+
+        vkUpdateDescriptorSets(m_device->device(), 1, &descriptorWrite, 0, nullptr);
+    }
+
+    void VulkanPostprocessPipeline::updateDescriptorSet(VkImageView inputImageView, VkSampler inputSampler) {
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfo.imageView = inputImageView;

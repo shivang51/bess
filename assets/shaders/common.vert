@@ -11,6 +11,7 @@ layout(location = 1) out vec4 v_FragColor;
 layout(location = 2) out vec2 v_TexCoord;
 layout(location = 3) out flat int v_FragId;
 layout(location = 4) out flat int v_TexSlotIdx;
+layout(location = 5) noperspective out vec3 v_Barycentric;
 
 layout(binding = 0) uniform UniformBufferObject {
     mat4 u_mvp;
@@ -25,4 +26,12 @@ void main() {
     v_TexSlotIdx = a_TexSlotIdx;
 
     gl_Position = u_mvp * vec4(a_Vertex, 1.0);
+
+    int vidx = gl_VertexIndex % 3;
+    if (vidx == 0)
+        v_Barycentric = vec3(1.0, 0.0, 0.0);
+    else if (vidx == 1)
+        v_Barycentric = vec3(0.0, 1.0, 0.0);
+    else
+        v_Barycentric = vec3(0.0, 0.0, 1.0);
 }

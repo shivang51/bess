@@ -31,6 +31,7 @@ namespace Bess::Canvas {
         // Create post-processing pipeline
         m_postprocessPipeline = std::make_unique<Vulkan::VulkanPostprocessPipeline>(m_device, m_imgFormat);
         m_postprocessPipeline->createDescriptorSet(m_imgView->getImageView(), m_imgView->getSampler());
+        initPostprocessResources();
 
         createPickingResources();
         createFences(maxFrames);
@@ -82,8 +83,7 @@ namespace Bess::Canvas {
         if (m_mousePickingData.pending)
             copyIdForPicking();
 
-        // Perform post-processing to un-premultiply alpha
-        performPostProcessing();
+        performPostProcessing(m_cmdBuffers->at(m_currentFrameIdx)->getVkHandle());
 
         m_cmdBuffers->at(m_currentFrameIdx)->endRecording();
 
@@ -99,6 +99,13 @@ namespace Bess::Canvas {
         m_device->waitForIdle();
         m_imgView->recreate(m_size, m_renderPass->getVkHandle());
         m_straightColorImageView->recreate(m_size, VK_NULL_HANDLE);
+        // Update descriptor for new image view (safe, not in-flight here)
+        m_postprocessPipeline->updateDescriptorSet(m_imgView->getImageView(), m_imgView->getSampler());
+        // Recreate postprocess framebuffer since it references straightColor image view
+        if (m_postprocessFramebuffer != VK_NULL_HANDLE) {
+            cleanupPostprocessResources();
+        }
+        initPostprocessResources();
         m_camera->resize((float)size.width, (float)size.height);
         m_artistManager->getSchematicArtist()->resize(size);
         m_artistManager->getNodesArtist()->resize(size);
@@ -398,6 +405,11 @@ namespace Bess::Canvas {
             barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
             srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        } else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+            barrier.srcAccessMask = 0;
+            barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            dstStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
             barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
             barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -444,57 +456,22 @@ namespace Bess::Canvas {
         vkBindBufferMemory(m_device->device(), buffer, bufferMemory, 0);
     }
 
-    void Viewport::performPostProcessing() {
-        const VkCommandBuffer cmd = m_cmdBuffers->at(m_currentFrameIdx)->getVkHandle();
+    void Viewport::performPostProcessing(VkCommandBuffer cmd) {
 
-        // Transition offscreen image to shader read layout
-        transitionImageLayout(cmd, m_imgView->getImage(), m_imgFormat,
-                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        // Descriptor set is persistent; updated on resize only
 
-        // Update descriptor set to use the correct image layout
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = m_imgView->getImageView();
-        imageInfo.sampler = m_imgView->getSampler();
-
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = m_postprocessPipeline->getDescriptorSet();
-        descriptorWrite.dstBinding = 0;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pImageInfo = &imageInfo;
-
-        vkUpdateDescriptorSets(m_device->device(), 1, &descriptorWrite, 0, nullptr);
-
-        // Transition straight color image to color attachment layout
-        transitionImageLayout(cmd, m_straightColorImageView->getImage(), m_imgFormat,
-                              VK_IMAGE_LAYOUT_UNDEFINED,
-                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
-        // Create framebuffer for post-processing
-        VkImageView straightColorImageView = m_straightColorImageView->getImageView();
-        VkFramebufferCreateInfo framebufferInfo{};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = m_postprocessPipeline->getRenderPass();
-        framebufferInfo.attachmentCount = 1;
-        framebufferInfo.pAttachments = &straightColorImageView;
-        framebufferInfo.width = m_size.width;
-        framebufferInfo.height = m_size.height;
-        framebufferInfo.layers = 1;
-
-        VkFramebuffer postprocessFramebuffer;
-        if (vkCreateFramebuffer(m_device->device(), &framebufferInfo, nullptr, &postprocessFramebuffer) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create postprocess framebuffer!");
-        }
+        // No explicit transition needed; render pass handles layout transition
 
         // Begin post-processing render pass
+        // Ensure framebuffer is valid
+        if (m_postprocessFramebuffer == VK_NULL_HANDLE) {
+            initPostprocessResources();
+        }
+
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = m_postprocessPipeline->getRenderPass();
-        renderPassInfo.framebuffer = postprocessFramebuffer;
+        renderPassInfo.framebuffer = m_postprocessFramebuffer;
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = m_size;
 
@@ -525,18 +502,31 @@ namespace Bess::Canvas {
         scissor.extent = m_size;
         vkCmdSetScissor(cmd, 0, 1, &scissor);
 
-        // Draw fullscreen quad
         vkCmdDraw(cmd, 4, 1, 0, 0);
 
         vkCmdEndRenderPass(cmd);
-
-        // Transition straight color image to shader read layout
-        transitionImageLayout(cmd, m_straightColorImageView->getImage(), m_imgFormat,
-                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-        // Clean up temporary framebuffer
-        vkDestroyFramebuffer(m_device->device(), postprocessFramebuffer, nullptr);
     }
 
+    void Viewport::initPostprocessResources() {
+        VkImageView straightColorImageView = m_straightColorImageView->getImageView();
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = m_postprocessPipeline->getRenderPass();
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments = &straightColorImageView;
+        framebufferInfo.width = m_size.width;
+        framebufferInfo.height = m_size.height;
+        framebufferInfo.layers = 1;
+
+        if (vkCreateFramebuffer(m_device->device(), &framebufferInfo, nullptr, &m_postprocessFramebuffer) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create postprocess framebuffer!");
+        }
+    }
+
+    void Viewport::cleanupPostprocessResources() {
+        if (m_postprocessFramebuffer != VK_NULL_HANDLE) {
+            vkDestroyFramebuffer(m_device->device(), m_postprocessFramebuffer, nullptr);
+            m_postprocessFramebuffer = VK_NULL_HANDLE;
+        }
+    }
 }; // namespace Bess::Canvas

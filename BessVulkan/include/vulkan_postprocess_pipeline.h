@@ -23,6 +23,7 @@ namespace Bess::Vulkan {
         VkDescriptorSetLayout getDescriptorSetLayout() const { return m_descriptorSetLayout; }
 
         void createDescriptorSet(VkImageView inputImageView, VkSampler inputSampler);
+        void updateDescriptorSet(VkImageView inputImageView, VkSampler inputSampler);
         VkDescriptorSet getDescriptorSet() const { return m_descriptorSet; }
 
       private:

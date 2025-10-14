@@ -1,10 +1,10 @@
 #pragma once
 #include "bess_uuid.h"
 #include "camera.h"
-#include "entt/entity/fwd.hpp"
-#include "scene/artist/artist_manager.h"
 #include "command_buffer.h"
 #include "device.h"
+#include "entt/entity/fwd.hpp"
+#include "scene/artist/artist_manager.h"
 #include "vulkan_image_view.h"
 #include "vulkan_offscreen_render_pass.h"
 #include "vulkan_postprocess_pipeline.h"
@@ -65,7 +65,10 @@ namespace Bess::Canvas {
 
         void transitionImageLayout(VkCommandBuffer cmd, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const;
 
-        void performPostProcessing();
+        void performPostProcessing(VkCommandBuffer cmd);
+
+        void initPostprocessResources();
+        void cleanupPostprocessResources();
 
       private:
         int m_currentFrameIdx = 0;
@@ -86,6 +89,7 @@ namespace Bess::Canvas {
         VkExtent2D m_size;
 
         VkCommandBuffer m_currentCmdBuffer;
+        VkFramebuffer m_postprocessFramebuffer = VK_NULL_HANDLE;
 
         // mouse picking resources
         VkBuffer m_pickingStagingBuffer = VK_NULL_HANDLE;
