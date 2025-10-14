@@ -261,6 +261,7 @@ namespace Bess::UI {
         }
     }
 
+    /// will change when moving to multiple viewports
     void UIMain::drawViewport() {
         const ImGuiWindowFlags flags =
             ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
@@ -291,11 +292,13 @@ namespace Bess::UI {
         const auto gPos = ImGui::GetMainViewport()->Pos;
         state.viewportPos = {pos.x - gPos.x + offset.x, pos.y - gPos.y + offset.y};
 
-        if (!state._internalData.isTbFocused && ImGui::IsWindowHovered()) {
-            ImGui::SetWindowFocus();
+        ImGuiIO &io = ImGui::GetIO();
+        state.viewportEventFlag = ImGui::IsWindowHovered();
+
+        if (state.viewportEventFlag) {
+            BESS_TRACE("Viewport Event");
         }
 
-        state.isViewportFocused = ImGui::IsWindowFocused();
         ImGui::End();
         ImGui::PopStyleVar();
 
@@ -320,7 +323,6 @@ namespace Bess::UI {
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
             ImGui::Checkbox("##CheckBoxSchematicMode", Canvas::Scene::instance()->getIsSchematicViewPtr());
             ImGui::PopStyleVar();
-            state.isViewportFocused &= !ImGui::IsWindowHovered();
             ImGui::End();
             ImGui::PopStyleVar(2);
             ImGui::PopStyleColor(1);
@@ -431,7 +433,6 @@ namespace Bess::UI {
                 ImGui::EndDisabled();
             }
 
-            state.isViewportFocused &= !ImGui::IsWindowHovered();
             ImGui::End();
             ImGui::PopStyleVar(2);
             ImGui::PopStyleColor(1);
@@ -474,7 +475,6 @@ namespace Bess::UI {
                 }
                 ImGui::PopStyleVar(2);
             }
-            state.isViewportFocused &= !ImGui::IsWindowHovered();
             ImGui::End();
             ImGui::PopStyleVar(2);
         }

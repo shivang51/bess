@@ -122,7 +122,7 @@ namespace Bess::Vulkan::Pipelines {
         auto size = instances.size();
         if (size == 0)
             return;
-        ensureQuadInstanceCapacity(size);
+        ensureQuadInstanceCapacity(size + m_instanceCounter);
         m_instances = instances;
     }
 
@@ -131,7 +131,7 @@ namespace Bess::Vulkan::Pipelines {
         auto size = instances.size();
         if (size == 0)
             return;
-        ensureQuadInstanceCapacity(size);
+        ensureQuadInstanceCapacity(size + m_instanceCounter);
         m_instances = instances;
 
         m_textureInfos.fill(m_fallbackTexture->getDescriptorInfo());

@@ -113,7 +113,7 @@ namespace Bess::Vulkan::Pipelines {
         auto size = opaque.size();
         if (size == 0)
             return;
-        ensureCircleInstanceCapacity(size);
+        ensureCircleInstanceCapacity(size + m_instanceCounter);
         m_instances = opaque;
     }
 

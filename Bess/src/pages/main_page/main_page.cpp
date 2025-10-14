@@ -2,12 +2,12 @@
 #include "asset_manager/asset_manager.h"
 #include "events/application_event.h"
 #include "pages/page_identifier.h"
-#include "vulkan_core.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
 #include "types.h"
 #include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
+#include "vulkan_core.h"
 #include <memory>
 
 namespace Bess::Pages {
@@ -84,7 +84,7 @@ namespace Bess::Pages {
             }
         }
 
-        if (UI::UIMain::state.isViewportFocused)
+        if (UI::UIMain::state.viewportEventFlag)
             m_scene->update(ts, events);
     }
 
