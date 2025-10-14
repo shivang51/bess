@@ -251,7 +251,67 @@ namespace Bess::SimEngine {
         ComponentDefinition notGate = {ComponentType::NOT, "NOT Gate", "Digital Gates", 1, 1, &exprEvalSimFunc,
                                        SimDelayNanoSeconds(2), '!'};
         notGate.addModifiableProperty(Properties::ComponentProperty::inputCount, {2, 3, 4, 5, 6});
+
         ComponentCatalog::instance().registerComponent(notGate);
+
+        auto registerTriBufferN = [&](int N, ComponentType type, const std::string &humanName, const std::string &shortName) {
+            auto simFuncN = [N](entt::registry &reg, entt::entity e, const std::vector<PinState> &inputs, SimTime currentTime, auto fn) -> bool {
+                // inputs expected: D0..D(N-1), OE  => inputs.size() == N+1
+                if ((int)inputs.size() < N + 1)
+                    return false;
+                auto &comp = reg.get<DigitalComponent>(e);
+
+                const PinState &oe = inputs[N];
+                bool enabled = (oe.state == LogicState::high);
+
+                if (comp.outputStates.size() < (size_t)N)
+                    comp.outputStates.resize(N, {LogicState::high_z, SimTime(0)});
+
+                bool anyChanged = false;
+                for (int i = 0; i < N; ++i) {
+                    PinState newOut;
+                    if (enabled) {
+                        newOut.state = inputs[i].state;
+                        newOut.lastChangeTime = currentTime;
+                    } else {
+                        newOut.state = LogicState::high_z;
+                        newOut.lastChangeTime = currentTime;
+                    }
+
+                    if (comp.outputStates[i].state != newOut.state) {
+                        comp.outputStates[i] = newOut;
+                        anyChanged = true;
+                    } else {
+                        comp.outputStates[i].lastChangeTime = newOut.lastChangeTime;
+                    }
+                }
+                return anyChanged;
+            };
+
+            ComponentDefinition inst(
+                type,
+                humanName,
+                shortName,
+                N + 1,
+                N,
+                simFuncN,
+                SimDelayNanoSeconds(1));
+
+            inst.inputPinDetails.clear();
+            for (int i = 0; i < N; ++i)
+                inst.inputPinDetails.emplace_back(PinType::input, std::format("D{}", i));
+            inst.inputPinDetails.emplace_back(PinType::input, "OE");
+            inst.outputPinDetails.clear();
+            for (int i = 0; i < N; ++i)
+                inst.outputPinDetails.emplace_back(PinType::output, std::format("Q{}", i));
+
+            ComponentCatalog::instance().registerComponent(inst);
+        };
+
+        registerTriBufferN(8, ComponentType::TRISTATE_BUFFER_8BIT, "8-Bit Tri-State Buffer", "Digital Gates");
+        registerTriBufferN(4, ComponentType::TRISTATE_BUFFER_4BIT, "4-Bit Tri-State Buffer", "Digital Gates");
+        registerTriBufferN(2, ComponentType::TRISTATE_BUFFER_2BIT, "2-Bit Tri-State Buffer", "Digital Gates");
+        registerTriBufferN(1, ComponentType::TRISTATE_BUFFER, "Tri-State Buffer", "Digital Gates");
     }
 
     inline void initCombCircuits() {
@@ -315,64 +375,6 @@ namespace Bess::SimEngine {
         comp.inputPinDetails = {{PinType::input, "A0"}, {PinType::input, "A1"}, {PinType::input, "B0"}, {PinType::input, "B1"}};
         comp.outputPinDetails = {{PinType::output, "A>B"}, {PinType::output, "A<B"}, {PinType::output, "A=B"}};
         ComponentCatalog::instance().registerComponent(comp);
-
-        auto registerTriBufferN = [&](int N, ComponentType type, const std::string &humanName, const std::string &shortName) {
-            auto simFuncN = [N](entt::registry &reg, entt::entity e, const std::vector<PinState> &inputs, SimTime currentTime, auto fn) -> bool {
-                // inputs expected: D0..D(N-1), OE  => inputs.size() == N+1
-                if ((int)inputs.size() < N + 1)
-                    return false;
-                auto &comp = reg.get<DigitalComponent>(e);
-
-                const PinState &oe = inputs[N];
-                bool enabled = (oe.state == LogicState::high);
-
-                if (comp.outputStates.size() < (size_t)N)
-                    comp.outputStates.resize(N, {LogicState::high_z, SimTime(0)});
-
-                bool anyChanged = false;
-                for (int i = 0; i < N; ++i) {
-                    PinState newOut;
-                    if (enabled) {
-                        newOut.state = inputs[i].state;
-                        newOut.lastChangeTime = currentTime;
-                    } else {
-                        newOut.state = LogicState::high_z;
-                        newOut.lastChangeTime = currentTime;
-                    }
-
-                    if (comp.outputStates[i].state != newOut.state) {
-                        comp.outputStates[i] = newOut;
-                        anyChanged = true;
-                    } else {
-                        comp.outputStates[i].lastChangeTime = newOut.lastChangeTime;
-                    }
-                }
-                return anyChanged;
-            };
-
-            ComponentDefinition inst(
-                type,
-                humanName,
-                shortName,
-                N + 1,
-                N,
-                simFuncN,
-                SimDelayNanoSeconds(1));
-
-            inst.inputPinDetails.clear();
-            for (int i = 0; i < N; ++i)
-                inst.inputPinDetails.emplace_back(PinType::input, std::format("D{}", i));
-            inst.inputPinDetails.emplace_back(PinType::input, "OE");
-            inst.outputPinDetails.clear();
-            for (int i = 0; i < N; ++i)
-                inst.outputPinDetails.emplace_back(PinType::output, std::format("Q{}", i));
-
-            ComponentCatalog::instance().registerComponent(inst);
-        };
-
-        registerTriBufferN(8, ComponentType::TRISTATE_BUFFER_8BIT, "8-Bit Tri-State Buffer", groupName);
-        registerTriBufferN(4, ComponentType::TRISTATE_BUFFER_4BIT, "4-Bit Tri-State Buffer", groupName);
-        registerTriBufferN(1, ComponentType::TRISTATE_BUFFER, "Tri-State Buffer", groupName);
     }
 
     inline void initComponentCatalog() {
