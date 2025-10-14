@@ -7,7 +7,6 @@
 #include "scene/components/components.h"
 #include "scene/renderer/material_renderer.h"
 #include "scene/renderer/vulkan/path_renderer.h"
-#include "scene/renderer/vulkan/primitive_renderer.h"
 #include "types.h"
 #include "vulkan_subtexture.h"
 
@@ -70,7 +69,6 @@ namespace Bess::Canvas {
 
         void resize(VkExtent2D size);
 
-        std::shared_ptr<Renderer2D::Vulkan::PrimitiveRenderer> getPrimitiveRenderer();
         std::shared_ptr<Renderer2D::Vulkan::PathRenderer> getPathRenderer();
         std::shared_ptr<Renderer::MaterialRenderer> getMaterialRenderer();
 
@@ -82,7 +80,6 @@ namespace Bess::Canvas {
         static ArtistTools m_artistTools;
 
         ArtistInstructions m_instructions = {};
-        std::shared_ptr<Renderer2D::Vulkan::PrimitiveRenderer> m_primitiveRenderer;
         std::shared_ptr<Renderer2D::Vulkan::PathRenderer> m_pathRenderer;
         std::shared_ptr<Renderer::MaterialRenderer> m_materialRenderer;
     };

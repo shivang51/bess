@@ -5,6 +5,18 @@
 #include <queue>
 
 namespace Bess::Renderer {
+    static Material2D makeGrid(const glm::vec3 &pos, const glm::vec2 &size, int id) {
+        Material2D m;
+        m.type = Material2D::MaterialType::grid;
+        new (&m.grid) QuadMaterial();
+        m.grid.position = pos;
+        m.grid.size = size;
+        m.grid.id = id;
+        m.alpha = 0.9f;
+        m.z = pos.z;
+        return m;
+    }
+
     MaterialRenderer::MaterialRenderer(const std::shared_ptr<VulkanDevice> &device,
                                        const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
                                        VkExtent2D extent) {
@@ -15,6 +27,8 @@ namespace Bess::Renderer {
         m_textRenderer = std::make_unique<Renderer::TextRenderer>(device, renderPass, extent);
 
         m_translucentMaterials = {};
+
+        m_gridMaterial = makeGrid({0.f, 0.f, 0.f}, {1.f, 1.f}, -2);
     }
 
     MaterialRenderer::~MaterialRenderer() = default;
@@ -44,12 +58,10 @@ namespace Bess::Renderer {
         uniforms.resolution = camera->getSize();
         uniforms.zoom = camera->getZoom();
 
-        Material2D m{
-            Material2D::MaterialType::quad,
-            pos.z,
-            0.f};
+        auto m = makeGrid(pos, size, id);
         m.grid.uniforms = uniforms;
-        m.grid.vertex = {pos, size, id};
+
+        m_translucentMaterials.push(m);
     }
 
     static Material2D makeQuad(const Vulkan::QuadInstance &instance) {
@@ -196,15 +208,19 @@ namespace Bess::Renderer {
             m_textRenderer->resize(extent);
     }
 
-    void MaterialRenderer::updateUBO(const UniformBufferObject &ubo) {
+    void MaterialRenderer::updateUBO(const std::shared_ptr<Camera> &camera) {
+        Vulkan::UniformBufferObject ubo{};
+        ubo.mvp = camera->getTransform();
+        ubo.ortho = camera->getOrtho();
         if (m_quadPipeline)
             m_quadPipeline->updateUniformBuffer(ubo);
 
         if (m_circlePipeline)
             m_circlePipeline->updateUniformBuffer(ubo);
 
-        if (m_gridPipeline)
+        if (m_gridPipeline) {
             m_gridPipeline->updateUniformBuffer(ubo);
+        }
 
         if (m_textRenderer)
             m_textRenderer->updateUBO(ubo);
@@ -254,8 +270,10 @@ namespace Bess::Renderer {
             case Material2D::MaterialType::circle:
                 m_circleInstances.emplace_back(m.circle.instance);
                 break;
-            case Material2D::MaterialType::path:
             case Material2D::MaterialType::grid:
+                m_gridMaterial = m;
+                break;
+            case Material2D::MaterialType::path:
                 break;
             }
         }
@@ -278,11 +296,14 @@ namespace Bess::Renderer {
             m_circleInstances.clear();
         }
 
-        // if (m_gridPipeline) {
-        //     m_gridPipeline->beginPipeline(m_cmdBuffer, isTranslucent);
-        //     // m_gridPipeline->drawGrid(m_opaqueCircleInstances);
-        //     m_gridPipeline->endPipeline();
-        // }
+        if (m_gridPipeline && m_gridMaterial.grid.id != -2) {
+            const auto &grid = m_gridMaterial.grid;
+            m_gridPipeline->updateGridUniforms(m_gridMaterial.grid.uniforms);
+            m_gridPipeline->beginPipeline(m_cmdBuffer, isTranslucent);
+            m_gridPipeline->drawGrid(grid.position, grid.size, grid.id);
+            m_gridPipeline->endPipeline();
+            m_gridMaterial.grid.id = -2;
+        }
     }
 
     void MaterialRenderer::setCurrentFrameIndex(uint32_t frameIndex) {
@@ -297,5 +318,9 @@ namespace Bess::Renderer {
 
         if (m_textRenderer)
             m_textRenderer->setCurrentFrameIndex(frameIndex);
+    }
+
+    glm::vec2 MaterialRenderer::getTextRenderSize(const std::string &str, float renderSize) {
+        return m_textRenderer->getRenderSize(str, (size_t)renderSize);
     }
 } // namespace Bess::Renderer

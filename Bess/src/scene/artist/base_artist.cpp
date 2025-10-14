@@ -7,7 +7,6 @@
 #include "scene/artist/nodes_artist.h"
 #include "scene/components/components.h"
 #include "scene/renderer/vulkan/path_renderer.h"
-#include "scene/renderer/vulkan/primitive_renderer.h"
 #include "scene/scene.h"
 #include "scene/viewport.h"
 #include "settings/viewport_theme.h"
@@ -30,7 +29,6 @@ namespace Bess::Canvas {
             initialized = true;
         }
 
-        m_primitiveRenderer = std::make_shared<Renderer2D::Vulkan::PrimitiveRenderer>(device, renderPass, extent);
         m_pathRenderer = std::make_shared<Renderer2D::Vulkan::PathRenderer>(device, renderPass, extent);
         m_materialRenderer = std::make_shared<Renderer::MaterialRenderer>(device, renderPass, extent);
 
@@ -54,11 +52,9 @@ namespace Bess::Canvas {
     }
 
     void BaseArtist::begin(VkCommandBuffer cmd, const std::shared_ptr<Camera> &camera, uint32_t frameIdx) {
-        m_primitiveRenderer->setCurrentFrameIndex(frameIdx);
         m_pathRenderer->setCurrentFrameIndex(frameIdx);
         m_materialRenderer->setCurrentFrameIndex(frameIdx);
 
-        m_primitiveRenderer->beginFrame(cmd);
         m_pathRenderer->beginFrame(cmd);
         m_materialRenderer->beginFrame(cmd);
 
@@ -66,13 +62,11 @@ namespace Bess::Canvas {
         ubo.mvp = camera->getTransform();
         ubo.ortho = camera->getOrtho();
         m_pathRenderer->updateUniformBuffer(ubo);
-        m_materialRenderer->updateUBO(ubo);
-        m_primitiveRenderer->updateUBO(ubo);
+        m_materialRenderer->updateUBO(camera);
     }
 
     void BaseArtist::end() {
         m_pathRenderer->endFrame(); // important to end path renderer first for now (temp fix for alpha blending)
-        m_primitiveRenderer->endFrame();
         m_materialRenderer->endFrame();
     }
 
@@ -192,17 +186,17 @@ namespace Bess::Canvas {
             const auto &transformComp = registry.get<Components::TransformComponent>(entity);
             auto pos = transformComp.position;
             const auto rotation = transformComp.angle;
-            m_primitiveRenderer->drawText(textComp.text, pos, textComp.fontSize, textComp.color, id, rotation);
+            m_materialRenderer->drawText(textComp.text, pos, textComp.fontSize, textComp.color, id, rotation);
 
             if (isSelected) {
-                const Renderer2D::Vulkan::QuadRenderProperties props{
+                const Renderer::QuadRenderProperties props{
                     .angle = rotation,
                     .borderColor = ViewportTheme::colors.selectedComp,
                     .borderRadius = glm::vec4(4.f),
                     .borderSize = glm::vec4(1.f),
                     .isMica = true,
                 };
-                auto size = m_primitiveRenderer->getMSDFTextRenderSize(textComp.text, textComp.fontSize);
+                auto size = m_materialRenderer->getTextRenderSize(textComp.text, textComp.fontSize);
                 pos.x += size.x * 0.5f;
                 pos.y -= size.y * 0.25f;
                 pos.z -= 0.0005f;
@@ -224,7 +218,7 @@ namespace Bess::Canvas {
         const int maxRows = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
         float height = (maxRows * SLOT_ROW_SIZE);
 
-        const auto labelSize = m_primitiveRenderer->getMSDFTextRenderSize(name, componentStyles.headerFontSize);
+        const auto labelSize = m_materialRenderer->getTextRenderSize(name, componentStyles.headerFontSize);
 
         float width = labelSize.x + componentStyles.paddingX * 2.f;
 
@@ -271,13 +265,8 @@ namespace Bess::Canvas {
     }
 
     void BaseArtist::resize(VkExtent2D size) {
-        m_primitiveRenderer->resize(size);
         m_pathRenderer->resize(size);
         m_materialRenderer->resize(size);
-    }
-
-    std::shared_ptr<Renderer2D::Vulkan::PrimitiveRenderer> BaseArtist::getPrimitiveRenderer() {
-        return m_primitiveRenderer;
     }
 
     std::shared_ptr<Renderer2D::Vulkan::PathRenderer> BaseArtist::getPathRenderer() {

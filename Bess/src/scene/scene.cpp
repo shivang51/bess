@@ -252,7 +252,7 @@ namespace Bess::Canvas {
         const auto artist = artistManager->getCurrentArtist();
 
         // Grid
-        artist->getPrimitiveRenderer()->drawGrid(
+        artist->getMaterialRenderer()->drawGrid(
             glm::vec3(0.f, 0.f, 0.1f),
             m_camera->getSpan(),
             -1,
@@ -321,7 +321,7 @@ namespace Bess::Canvas {
         const auto pos = start + size / 2.f;
         size = glm::abs(size);
 
-        Renderer2D::Vulkan::QuadRenderProperties props;
+        Renderer::QuadRenderProperties props;
         props.borderColor = ViewportTheme::colors.selectionBoxBorder;
         props.borderSize = glm::vec4(1.f);
 

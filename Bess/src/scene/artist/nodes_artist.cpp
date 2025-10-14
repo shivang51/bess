@@ -53,7 +53,7 @@ namespace Bess::Canvas {
                                       headerPos.y + componentStyles.paddingY,
                                       pos.z + 0.0005f);
 
-        Renderer2D::Vulkan::QuadRenderProperties props;
+        Renderer::QuadRenderProperties props;
         props.angle = rotation;
         props.borderRadius = spriteComp.borderRadius;
         props.borderSize = spriteComp.borderSize;
@@ -75,7 +75,7 @@ namespace Bess::Canvas {
                                      id,
                                      props);
 
-        m_primitiveRenderer->drawText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, id, rotation);
+        m_materialRenderer->drawText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, id, rotation);
 
         drawSlots(entity, simComponent, transform);
     }
@@ -87,7 +87,7 @@ namespace Bess::Canvas {
                                          const Components::SimulationComponent &simComp) {
         auto &registry = Scene::instance()->getEnttRegistry();
 
-        auto labelSize = m_primitiveRenderer->getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
+        auto labelSize = m_materialRenderer->getTextRenderSize(tagComp.name, componentStyles.headerFontSize);
 
         uint64_t id = (uint64_t)entity;
         const auto &pos = transform.position;
@@ -109,7 +109,7 @@ namespace Bess::Canvas {
         bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
         auto border = isSelected ? ViewportTheme::colors.selectedComp : spriteComp.borderColor;
 
-        Renderer2D::Vulkan::QuadRenderProperties props;
+        Renderer::QuadRenderProperties props;
         props.borderRadius = spriteComp.borderRadius;
         props.borderColor = border;
         props.borderSize = spriteComp.borderSize;
@@ -121,8 +121,8 @@ namespace Bess::Canvas {
             pos.y + (componentStyles.headerFontSize / 2.f) - 1.f, pos.z + 0.0005f);
 
         auto name = tagComp.name;
-        m_primitiveRenderer->drawText(name, textPos, componentStyles.headerFontSize,
-                                      ViewportTheme::colors.text, id);
+        m_materialRenderer->drawText(name, textPos, componentStyles.headerFontSize,
+                                     ViewportTheme::colors.text, id);
 
         drawSlots(entity, simComp, transform);
     }
@@ -186,7 +186,7 @@ namespace Bess::Canvas {
         float r = componentStyles.slotRadius;
 
         if (extendedType == SimEngine::ExtendedPinType::inputClear) {
-            Renderer2D::Vulkan::QuadRenderProperties props;
+            Renderer::QuadRenderProperties props;
             props.borderColor = border;
             props.borderRadius = glm::vec4(2.5f);
             props.borderSize = glm::vec4(componentStyles.slotBorderSize + 0.5);
@@ -201,7 +201,7 @@ namespace Bess::Canvas {
 
         float labelX = pos.x + labelDx;
         float dY = componentStyles.slotRadius - std::abs(componentStyles.slotRadius * 2.f - componentStyles.slotLabelSize) / 2.f;
-        m_primitiveRenderer->drawText(label, {labelX, pos.y + dY, pos.z}, componentStyles.slotLabelSize, ViewportTheme::colors.text, parentId, angle);
+        m_materialRenderer->drawText(label, {labelX, pos.y + dY, pos.z}, componentStyles.slotLabelSize, ViewportTheme::colors.text, parentId, angle);
     }
 
     void NodesArtist::drawSevenSegDisplay(
@@ -226,7 +226,7 @@ namespace Bess::Canvas {
 
         glm::vec3 textPos = glm::vec3(pos.x - scale.x / 2.f + componentStyles.paddingX, headerPos.y + componentStyles.paddingY, pos.z + 0.0005f);
 
-        Renderer2D::Vulkan::QuadRenderProperties props;
+        Renderer::QuadRenderProperties props;
         props = {};
         props.angle = rotation;
         props.borderRadius = spriteComp.borderRadius;
@@ -248,7 +248,7 @@ namespace Bess::Canvas {
                                      id,
                                      props);
 
-        m_primitiveRenderer->drawText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, id, rotation);
+        m_materialRenderer->drawText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, id, rotation);
 
         {
             auto compState = SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity);
@@ -260,7 +260,6 @@ namespace Bess::Canvas {
             posX -= texWidth / 2.f + componentStyles.paddingX;
             glm::vec3 texPos = {posX,
                                 transform.position.y + (headerHeight / 2.f),
-                                // Ensure textured quad renders above header and body
                                 transform.position.z + 0.0006};
             m_materialRenderer->drawTexturedQuad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity, m_artistTools.sevenSegDispTexs[0]);
 
@@ -308,7 +307,7 @@ namespace Bess::Canvas {
             auto slotPos = getSlotPos(slotComp, transformComp);
             const uint64_t parentId = (uint64_t)Scene::instance()->getEntityWithUuid(slotComp.parentId);
             label = outDetails.size() > i ? outDetails[i].name : "Y" + std::to_string(i);
-            const float labelWidth = m_primitiveRenderer->getMSDFTextRenderSize(label, componentStyles.slotLabelSize).x;
+            const float labelWidth = m_materialRenderer->getTextRenderSize(label, componentStyles.slotLabelSize).x;
             paintSlot((uint64_t)slot, parentId, slotPos, angle, label, -labeldx - labelWidth, state.state, isConnected,
                       outDetails.size() > i ? outDetails[i].extendedType : SimEngine::ExtendedPinType::none);
         }

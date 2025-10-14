@@ -76,13 +76,13 @@ namespace Bess::Canvas {
         m_pathRenderer->pathLineTo({x, y1, pos.z}, strokeSize, ViewportTheme::colors.wire, id);
         m_pathRenderer->endPathMode(true, true, fillColor);
 
-        const auto textSize = m_primitiveRenderer->getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
+        const auto textSize = m_materialRenderer->getTextRenderSize(tagComp.name, componentStyles.headerFontSize);
         glm::vec3 textPos = {pos.x,
                              y + componentStyles.paddingY + strokeSize,
                              pos.z + 0.0005f};
         textPos.x -= textSize.x / 2.f;
         textPos.y += componentStyles.headerFontSize / 2.f;
-        m_primitiveRenderer->drawText(tagComp.name, textPos, schematicCompStyles.nameFontSize, textColor, id, 0.f);
+        m_materialRenderer->drawText(tagComp.name, textPos, schematicCompStyles.nameFontSize, textColor, id, 0.f);
 
         {
             const auto compState = SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity);
@@ -227,11 +227,11 @@ namespace Bess::Canvas {
         }
 
         if (showName) {
-            const auto textSize = m_primitiveRenderer->getMSDFTextRenderSize(tagComp.name, componentStyles.headerFontSize);
+            const auto textSize = m_materialRenderer->getTextRenderSize(tagComp.name, componentStyles.headerFontSize);
             glm::vec3 textPos = {pos.x, y + (y1 - y) / 2.f, pos.z + 0.0005f};
             textPos.x -= textSize.x / 2.f;
             textPos.y += componentStyles.headerFontSize / 2.f;
-            m_primitiveRenderer->drawText(tagComp.name, textPos, schematicCompStyles.nameFontSize, textColor, id, 0.f);
+            m_materialRenderer->drawText(tagComp.name, textPos, schematicCompStyles.nameFontSize, textColor, id, 0.f);
         }
     }
 
@@ -261,9 +261,9 @@ namespace Bess::Canvas {
                 m_pathRenderer->pathLineTo({schematicInfo.inpConnStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
                 m_pathRenderer->endPathMode(false);
                 label = inpDetails.size() > i ? inpDetails[i].name : "X" + std::to_string(i);
-                m_primitiveRenderer->drawText(label,
-                                              {schematicInfo.inpConnStart, pinY - nodeWeight, pos.z - 0.0005f},
-                                              componentStyles.slotLabelSize, ViewportTheme::colors.text, static_cast<int>(parentEntt), 0.f);
+                m_materialRenderer->drawText(label,
+                                             {schematicInfo.inpConnStart, pinY - nodeWeight, pos.z - 0.0005f},
+                                             componentStyles.slotLabelSize, ViewportTheme::colors.text, static_cast<int>(parentEntt), 0.f);
             }
         }
 
@@ -278,10 +278,10 @@ namespace Bess::Canvas {
                 m_pathRenderer->pathLineTo({schematicInfo.outConnStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
                 m_pathRenderer->endPathMode(false);
                 label = outDetails.size() > i ? outDetails[i].name : "Y" + std::to_string(i);
-                const float size = m_primitiveRenderer->getMSDFTextRenderSize(label, componentStyles.slotLabelSize).x;
-                m_primitiveRenderer->drawText(label,
-                                              {schematicInfo.outConnStart - size, pinY - nodeWeight, pos.z - 0.0005f},
-                                              componentStyles.slotLabelSize, ViewportTheme::colors.text, static_cast<int>(parentEntt), 0.f);
+                const float size = m_materialRenderer->getTextRenderSize(label, componentStyles.slotLabelSize).x;
+                m_materialRenderer->drawText(label,
+                                             {schematicInfo.outConnStart - size, pinY - nodeWeight, pos.z - 0.0005f},
+                                             componentStyles.slotLabelSize, ViewportTheme::colors.text, static_cast<int>(parentEntt), 0.f);
             }
         }
     }
@@ -340,7 +340,7 @@ namespace Bess::Canvas {
         //     info.shouldDraw = false;
         // } break;
         default:
-            w = m_primitiveRenderer->getMSDFTextRenderSize(tagComp.name, schematicCompStyles.nameFontSize).x + componentStyles.paddingX * 2.f;
+            w = m_materialRenderer->getTextRenderSize(tagComp.name, schematicCompStyles.nameFontSize).x + componentStyles.paddingX * 2.f;
             x = pos.x - w / 2, x1 = pos.x + w / 2;
 
             info.inpPinStart = x;

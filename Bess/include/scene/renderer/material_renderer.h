@@ -7,9 +7,9 @@
 #include "scene/renderer/vulkan/pipelines/circle_pipeline.h"
 #include "scene/renderer/vulkan/pipelines/grid_pipeline.h"
 #include "scene/renderer/vulkan/pipelines/quad_pipeline.h"
-#include "scene/renderer/vulkan/primitive_renderer.h"
 #include "scene/renderer/vulkan/text_renderer.h"
 #include "vulkan_offscreen_render_pass.h"
+#include "vulkan_subtexture.h"
 #include "vulkan_texture.h"
 #include <memory>
 #include <queue>
@@ -20,6 +20,23 @@
 using namespace Bess::Vulkan;
 using namespace Bess::Renderer2D::Vulkan;
 namespace Bess::Renderer {
+
+    struct QuadRenderProperties {
+        float angle = 0.0f;
+        glm::vec4 borderColor = {0.0f, 0.0f, 0.0f, 0.0f};
+        glm::vec4 borderRadius = {0.0f, 0.0f, 0.0f, 0.0f};
+        glm::vec4 borderSize = {0.0f, 0.0f, 0.0f, 0.0f};
+        bool hasShadow = false;
+        bool isMica = false;
+    };
+
+    struct GridColors {
+        glm::vec4 minorColor;
+        glm::vec4 majorColor;
+        glm::vec4 axisXColor;
+        glm::vec4 axisYColor;
+    };
+
     class MaterialRenderer {
       public:
         MaterialRenderer(const std::shared_ptr<VulkanDevice> &device,
@@ -61,9 +78,9 @@ namespace Bess::Renderer {
                       const glm::vec4 &color, const int id, float angle = 0);
 
         void resize(VkExtent2D extent);
-        void updateUBO(const UniformBufferObject &ubo);
+        void updateUBO(const std::shared_ptr<Camera> &camera);
 
-        glm::vec2 getMSDFTextRenderSize(const std::string &str, float renderSize);
+        glm::vec2 getTextRenderSize(const std::string &str, float renderSize);
 
       private:
         void flushVertices(bool isTranslucent);
@@ -85,6 +102,8 @@ namespace Bess::Renderer {
         std::vector<QuadInstance> m_quadInstances;
         std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> m_texturedQuadInstances;
         std::vector<CircleInstance> m_circleInstances;
+
+        Material2D m_gridMaterial = {};
 
         VkCommandBuffer m_cmdBuffer;
     };
