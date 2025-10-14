@@ -1,5 +1,8 @@
 #include "vulkan_image_view.h"
+#include "log.h"
 #include <array>
+#include <iostream>
+#include <stacktrace>
 #include <stdexcept>
 #include <vulkan/vulkan_core.h>
 
@@ -304,6 +307,12 @@ namespace Bess::Vulkan {
     }
 
     void VulkanImageView::createFramebuffer(VkRenderPass renderPass) {
+        if (renderPass == VK_NULL_HANDLE) {
+            const std::stacktrace st = std::stacktrace::current();
+            BESS_VK_ERROR("[VulkanImageView] Got null handle to renderpass:\nStack trace");
+            std::cerr << st << std::endl;
+            assert(false);
+        }
         if (m_hasPickingAttachments) {
             // Ensure depth resources
             if (m_depthImageView == VK_NULL_HANDLE) {
@@ -598,7 +607,10 @@ namespace Bess::Vulkan {
         descriptorWrite.pImageInfo = &imageInfo;
         vkUpdateDescriptorSets(m_device->device(), 1, &descriptorWrite, 0, nullptr);
 
-        createFramebuffer(renderPass);
+        // Only create a framebuffer if a valid render pass is provided
+        if (renderPass != VK_NULL_HANDLE) {
+            createFramebuffer(renderPass);
+        }
     }
 
     void VulkanImageView::createPickingImage() {

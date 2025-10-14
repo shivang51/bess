@@ -2,8 +2,8 @@
 #include "common/log.h"
 #include "scene/artist/nodes_artist.h"
 #include "scene/artist/schematic_artist.h"
-#include "vulkan_core.h"
 #include "scene/scene.h"
+#include "vulkan_core.h"
 #include <cstdint>
 #include <memory>
 #include <vulkan/vulkan_core.h>
@@ -25,9 +25,8 @@ namespace Bess::Canvas {
         m_imgView->createFramebuffer(m_renderPass->getVkHandle());
 
         // Create straight color image for post-processing
-        m_straightColorImageView = std::make_unique<Vulkan::VulkanImageView>(m_device, m_imgFormat, size, 
-            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-        m_straightColorImageView->createFramebuffer(VK_NULL_HANDLE); // No render pass needed for this
+        m_straightColorImageView = std::make_unique<Vulkan::VulkanImageView>(m_device, m_imgFormat, size,
+                                                                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 
         // Create post-processing pipeline
         m_postprocessPipeline = std::make_unique<Vulkan::VulkanPostprocessPipeline>(m_device, m_imgFormat);
@@ -449,9 +448,9 @@ namespace Bess::Canvas {
         const VkCommandBuffer cmd = m_cmdBuffers->at(m_currentFrameIdx)->getVkHandle();
 
         // Transition offscreen image to shader read layout
-        transitionImageLayout(cmd, m_imgView->getImage(), m_imgFormat, 
-                            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 
-                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        transitionImageLayout(cmd, m_imgView->getImage(), m_imgFormat,
+                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         // Update descriptor set to use the correct image layout
         VkDescriptorImageInfo imageInfo{};
@@ -472,8 +471,8 @@ namespace Bess::Canvas {
 
         // Transition straight color image to color attachment layout
         transitionImageLayout(cmd, m_straightColorImageView->getImage(), m_imgFormat,
-                            VK_IMAGE_LAYOUT_UNDEFINED,
-                            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+                              VK_IMAGE_LAYOUT_UNDEFINED,
+                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
         // Create framebuffer for post-processing
         VkImageView straightColorImageView = m_straightColorImageView->getImageView();
@@ -509,7 +508,7 @@ namespace Bess::Canvas {
         VkDescriptorSet descriptorSet = m_postprocessPipeline->getDescriptorSet();
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_postprocessPipeline->getPipeline());
         vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_postprocessPipeline->getPipelineLayout(),
-                               0, 1, &descriptorSet, 0, nullptr);
+                                0, 1, &descriptorSet, 0, nullptr);
 
         // Set viewport and scissor
         VkViewport viewport{};
@@ -533,8 +532,8 @@ namespace Bess::Canvas {
 
         // Transition straight color image to shader read layout
         transitionImageLayout(cmd, m_straightColorImageView->getImage(), m_imgFormat,
-                            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         // Clean up temporary framebuffer
         vkDestroyFramebuffer(m_device->device(), postprocessFramebuffer, nullptr);
