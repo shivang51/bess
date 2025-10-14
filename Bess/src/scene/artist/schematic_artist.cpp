@@ -94,13 +94,13 @@ namespace Bess::Canvas {
                                       pos.y,
                                       transform.position.z + 0.0001};
 
-            m_primitiveRenderer->drawTexturedQuad(texPos, {texWidth, texHeight}, glm::vec4(1.f), static_cast<int>(entity), m_artistTools.sevenSegDispTexs[0]);
+            m_materialRenderer->drawTexturedQuad(texPos, {texWidth, texHeight}, glm::vec4(1.f), static_cast<int>(entity), m_artistTools.sevenSegDispTexs[0]);
 
             for (int i = 0; i < static_cast<int>(compState.inputStates.size()); i++) {
                 if (!compState.inputStates[i])
                     continue;
                 tex = m_artistTools.sevenSegDispTexs[i + 1];
-                m_primitiveRenderer->drawTexturedQuad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity, tex);
+                m_materialRenderer->drawTexturedQuad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity, tex);
             }
         }
     }

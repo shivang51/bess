@@ -3,7 +3,6 @@
 #include "primitive_vertex.h"
 #include "scene/renderer/material.h"
 #include <queue>
-#include <unordered_map>
 
 namespace Bess::Renderer {
     MaterialRenderer::MaterialRenderer(const std::shared_ptr<VulkanDevice> &device,
@@ -123,10 +122,7 @@ namespace Bess::Renderer {
         instance.isMica = (int)props.isMica;
         instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f);
 
-        Material2D m{
-            Material2D::MaterialType::quad,
-            instance.position.z,
-            instance.color.a};
+        auto m = makeQuad(instance);
         m.quad.instance = instance;
         m.quad.texture = texture;
         m_translucentMaterials.push(m);
@@ -154,10 +150,7 @@ namespace Bess::Renderer {
         instance.isMica = (int)props.isMica;
         instance.texData = subTexture->getStartWH();
 
-        Material2D m{
-            Material2D::MaterialType::quad,
-            instance.position.z,
-            instance.color.a};
+        auto m = makeQuad(instance);
         m.quad.instance = instance;
         m.quad.texture = subTexture->getTexture();
         m_translucentMaterials.push(m);
@@ -225,6 +218,7 @@ namespace Bess::Renderer {
 
         m_circleInstances.clear();
         m_quadInstances.clear();
+        m_texturedQuadInstances.clear();
         m_quadPipeline->cleanPrevStateCounter();
         m_circlePipeline->cleanPrevStateCounter();
     }
@@ -250,9 +244,13 @@ namespace Bess::Renderer {
             }
 
             switch (m.type) {
-            case Material2D::MaterialType::quad:
-                m_quadInstances.emplace_back(m.quad.instance);
-                break;
+            case Material2D::MaterialType::quad: {
+                if (m.quad.texture) {
+                    m_texturedQuadInstances[m.quad.texture].emplace_back(m.quad.instance);
+                } else {
+                    m_quadInstances.emplace_back(m.quad.instance);
+                }
+            } break;
             case Material2D::MaterialType::circle:
                 m_circleInstances.emplace_back(m.circle.instance);
                 break;
@@ -265,11 +263,12 @@ namespace Bess::Renderer {
     }
 
     void MaterialRenderer::flushVertices(bool isTranslucent) {
-        if (m_quadPipeline && !m_quadInstances.empty()) {
+        if (m_quadPipeline && (!m_quadInstances.empty() || !m_texturedQuadInstances.empty())) {
             m_quadPipeline->beginPipeline(m_cmdBuffer, isTranslucent);
-            m_quadPipeline->setQuadsData(m_quadInstances);
+            m_quadPipeline->setQuadsData(m_quadInstances, m_texturedQuadInstances);
             m_quadPipeline->endPipeline();
             m_quadInstances.clear();
+            m_texturedQuadInstances.clear();
         }
 
         if (m_circlePipeline && !m_circleInstances.empty()) {
@@ -299,4 +298,4 @@ namespace Bess::Renderer {
         if (m_textRenderer)
             m_textRenderer->setCurrentFrameIndex(frameIndex);
     }
-}
+} // namespace Bess::Renderer

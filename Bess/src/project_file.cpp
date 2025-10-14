@@ -218,6 +218,13 @@ namespace Bess {
                     BESS_WARN("Fixed Header Color");
                 }
             }
+            if (auto *comp = reg.try_get<Components::TransformComponent>(ent)) {
+                BESS_WARN("Running patch for TransformComponent");
+                if (comp->position.z < 1.f) {
+                    comp->position.z += 1.f;
+                    BESS_WARN("Fixed Z Pos");
+                }
+            }
         }
     }
 } // namespace Bess

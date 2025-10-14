@@ -205,6 +205,7 @@ namespace Bess::Canvas {
                 auto size = m_primitiveRenderer->getMSDFTextRenderSize(textComp.text, textComp.fontSize);
                 pos.x += size.x * 0.5f;
                 pos.y -= size.y * 0.25f;
+                pos.z -= 0.0005f;
                 size.x += componentStyles.paddingX * 2.f;
                 size.y += componentStyles.paddingY * 2.f;
                 m_materialRenderer->drawQuad(pos, size, ViewportTheme::colors.componentBG, id, props);

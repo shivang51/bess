@@ -292,12 +292,7 @@ namespace Bess::UI {
         const auto gPos = ImGui::GetMainViewport()->Pos;
         state.viewportPos = {pos.x - gPos.x + offset.x, pos.y - gPos.y + offset.y};
 
-        ImGuiIO &io = ImGui::GetIO();
         state.viewportEventFlag = ImGui::IsWindowHovered();
-
-        if (state.viewportEventFlag) {
-            BESS_TRACE("Viewport Event");
-        }
 
         ImGui::End();
         ImGui::PopStyleVar();

@@ -125,7 +125,7 @@ namespace Bess::Renderer2D::Vulkan {
                         m_fillIndices.emplace_back(baseVertex + i);
                     m_glyphIdToMesh[glyphId] = {firstIndex, localCount};
                 }
-                m_glyphIdToInstances[glyphId].emplace_back(FillInstance{.translation = info.translate, .scale = info.scale, .pickId = (int)m_pathData.id});
+                m_glyphIdToInstances[glyphId].emplace_back(FillInstance{.translation = info.translate, .scale = info.scale, .color = info.fillColor, .pickId = (int)m_pathData.id});
             }
         }
 

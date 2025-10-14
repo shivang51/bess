@@ -8,7 +8,6 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
-#include <ranges>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
@@ -103,7 +102,7 @@ namespace Bess::Vulkan::Pipelines {
 
             while (remaining > 0) {
                 size_t batchSize = std::min(remaining, (size_t)instanceLimit);
-                auto span = std::span(instances.begin() + offset, instances.begin() + offset + batchSize);
+                auto span = std::span<QuadInstance>(instances.data() + static_cast<ptrdiff_t>(offset), batchSize);
                 draw(span, bufferOffset + (offset * sizeof(QuadInstance)));
                 offset += batchSize;
                 remaining -= batchSize;
@@ -128,11 +127,14 @@ namespace Bess::Vulkan::Pipelines {
 
     void QuadPipeline::setQuadsData(const std::vector<QuadInstance> &instances,
                                     std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> &texutredData) {
-        auto size = instances.size();
-        if (size == 0)
+        size_t texturedCount = 0;
+        for (auto &entry : texutredData)
+            texturedCount += entry.second.size();
+        auto totalCount = instances.size() + texturedCount;
+        if (totalCount == 0)
             return;
-        ensureQuadInstanceCapacity(size + m_instanceCounter);
         m_instances = instances;
+        ensureQuadInstanceCapacity(totalCount + m_instanceCounter);
 
         m_textureInfos.fill(m_fallbackTexture->getDescriptorInfo());
         int i = 1;
@@ -155,7 +157,7 @@ namespace Bess::Vulkan::Pipelines {
             write.dstArrayElement = i;
             write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             write.descriptorCount = 1;
-            write.pImageInfo = &m_textureInfos.at(i); // pointer is stable now
+            write.pImageInfo = &m_textureInfos.at(i);
             writes.push_back(write);
         }
 
@@ -529,7 +531,7 @@ namespace Bess::Vulkan::Pipelines {
         vkCreateDescriptorSetLayout(m_device->device(), &layoutInfo, nullptr, &m_textureArrayLayout);
 
         std::vector<VkDescriptorSetLayoutCreateInfo> layoutInfos(maxFrames, layoutInfo);
-        auto layouts = std::vector(2, m_textureArrayLayout);
+        std::vector<VkDescriptorSetLayout> layouts(maxFrames, m_textureArrayLayout);
 
         VkDescriptorSetAllocateInfo allocInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
 

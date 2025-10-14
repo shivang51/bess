@@ -13,6 +13,7 @@
 #include "vulkan_texture.h"
 #include <memory>
 #include <queue>
+#include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan.h>
 
@@ -82,6 +83,7 @@ namespace Bess::Renderer {
         std::priority_queue<Material2D, std::vector<Material2D>, MaterialComp> m_translucentMaterials;
 
         std::vector<QuadInstance> m_quadInstances;
+        std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> m_texturedQuadInstances;
         std::vector<CircleInstance> m_circleInstances;
 
         VkCommandBuffer m_cmdBuffer;

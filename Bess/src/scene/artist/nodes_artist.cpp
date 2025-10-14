@@ -260,14 +260,15 @@ namespace Bess::Canvas {
             posX -= texWidth / 2.f + componentStyles.paddingX;
             glm::vec3 texPos = {posX,
                                 transform.position.y + (headerHeight / 2.f),
-                                transform.position.z + 0.0001};
-            m_primitiveRenderer->drawTexturedQuad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity, m_artistTools.sevenSegDispTexs[0]);
+                                // Ensure textured quad renders above header and body
+                                transform.position.z + 0.0006};
+            m_materialRenderer->drawTexturedQuad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity, m_artistTools.sevenSegDispTexs[0]);
 
             for (int i = 0; i < (int)compState.inputStates.size(); i++) {
                 if (!compState.inputStates[i])
                     continue;
                 tex = m_artistTools.sevenSegDispTexs[i + 1];
-                m_primitiveRenderer->drawTexturedQuad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity, tex);
+                m_materialRenderer->drawTexturedQuad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity, tex);
             }
         }
 
