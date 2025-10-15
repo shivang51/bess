@@ -1,7 +1,6 @@
 #pragma once
 
 #include "device.h"
-#include "vulkan_shader.h"
 #include <memory>
 #include <vulkan/vulkan_core.h>
 
@@ -36,12 +35,12 @@ namespace Bess::Vulkan {
 
         std::shared_ptr<VulkanDevice> m_device;
         VkFormat m_colorFormat;
-        
+
         VkRenderPass m_renderPass = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
         VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
         VkPipeline m_pipeline = VK_NULL_HANDLE;
-        
+
         VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
         VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
     };

@@ -1,5 +1,4 @@
 #include "vulkan_postprocess_pipeline.h"
-#include "vulkan_shader.h"
 #include <array>
 #include <cstring>
 #include <fstream>

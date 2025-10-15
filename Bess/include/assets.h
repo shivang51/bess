@@ -2,7 +2,6 @@
 #include "asset_manager/asset_id.h"
 #include "scene/renderer/font.h"
 #include "scene/renderer/msdf_font.h"
-#include "vulkan_shader.h"
 #include "vulkan_texture.h"
 
 namespace Bess::Assets {

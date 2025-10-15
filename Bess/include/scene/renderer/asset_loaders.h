@@ -7,7 +7,6 @@
 #include "vulkan_texture.h"
 
 #include <memory>
-#include <stdexcept>
 
 using namespace Bess::Vulkan;
 namespace Bess::Assets {
