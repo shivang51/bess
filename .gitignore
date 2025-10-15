@@ -29,3 +29,5 @@ tests_output/
 Testing/
 
 perf.data
+doxygen_warnings.txt
+docs/

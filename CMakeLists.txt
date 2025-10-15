@@ -35,6 +35,30 @@ add_subdirectory(BessVulkan)
 add_subdirectory(Bess)
 add_subdirectory(BessTests)
 
+
+find_package(Doxygen REQUIRED)
+set(DOXYGEN_INPUT_DIRS
+    ${CMAKE_SOURCE_DIR}/Bess/include
+    ${CMAKE_SOURCE_DIR}/Bess/src
+		${CMAKE_SOURCE_DIR}/BessVulkan/include
+		${CMAKE_SOURCE_DIR}/BessVulkan/src
+		${CMAKE_SOURCE_DIR}/BessSimEngine/include
+		${CMAKE_SOURCE_DIR}/BessSimEngine/src
+)
+
+list(JOIN DOXYGEN_INPUT_DIRS " " DOXYGEN_INPUT_LIST)
+
+set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)
+set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+
+configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
+
+add_custom_target(docs
+    COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Generating API documentation for all modules"
+)
+
 if(MSVC)
 	# startup projects needs to be set here
 	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Bess)
