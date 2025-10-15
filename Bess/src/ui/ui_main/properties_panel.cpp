@@ -1,3 +1,4 @@
+#include "scene/scene_pch.h"
 #include "ui/ui_main/properties_panel.h"
 #include "common/helpers.h"
 #include "gtc/type_ptr.hpp"

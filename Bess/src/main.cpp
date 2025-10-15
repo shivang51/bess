@@ -1,12 +1,10 @@
 #define FMT_UNICODE 0
 #include "application.h"
-#include "scene/renderer/glyph_extractor.h"
 #include <csignal>
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
 
-using namespace Bess::Renderer::Font;
 
 #ifdef __linux__
     #include <stacktrace>

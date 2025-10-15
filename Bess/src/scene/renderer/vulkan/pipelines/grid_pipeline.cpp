@@ -1,7 +1,5 @@
+#include "scene/scene_pch.h"
 #include "scene/renderer/vulkan/pipelines/grid_pipeline.h"
-#include "common/log.h"
-#include <ext/matrix_transform.hpp>
-#include <glm.hpp>
 
 namespace Bess::Vulkan::Pipelines {
 

@@ -1,16 +1,7 @@
+#include "scene/scene_pch.h"
 #include "scene/renderer/vulkan/pipelines/quad_pipeline.h"
-#include "common/log.h"
-#include "primitive_vertex.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
 #include "vulkan_core.h"
-#include "vulkan_texture.h"
-#include <algorithm>
-#include <array>
-#include <cassert>
-#include <cstdint>
-#include <cstring>
-#include <vector>
-#include <vulkan/vulkan_core.h>
 
 namespace Bess::Vulkan::Pipelines {
 

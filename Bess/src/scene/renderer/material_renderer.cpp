@@ -1,8 +1,5 @@
+#include "scene/scene_pch.h"
 #include "scene/renderer/material_renderer.h"
-#include "common/log.h"
-#include "primitive_vertex.h"
-#include "scene/renderer/material.h"
-#include <queue>
 
 namespace Bess::Renderer {
     static Material2D makeGrid(const glm::vec3 &pos, const glm::vec2 &size, int id) {

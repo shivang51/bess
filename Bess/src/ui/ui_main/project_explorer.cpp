@@ -1,3 +1,4 @@
+#include "scene/scene_pch.h"
 #include "ui/ui_main/project_explorer.h"
 #include "common/helpers.h"
 #include "imgui.h"

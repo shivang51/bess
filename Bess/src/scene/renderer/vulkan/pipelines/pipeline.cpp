@@ -1,8 +1,6 @@
-#include "scene/renderer/vulkan/pipelines/pipeline.h"
-#include "common/log.h"
-#include <cstring>
+#include "scene/scene_pch.h"
 #include <fstream>
-#include <vulkan/vulkan_core.h>
+#include "scene/renderer/vulkan/pipelines/pipeline.h"
 
 namespace Bess::Vulkan::Pipelines {
 

@@ -1,3 +1,4 @@
+#include "scene/scene_pch.h"
 #include "scene/renderer/vulkan/path_renderer.h"
 #include <ranges>
 #define GLM_ENABLE_EXPERIMENTAL

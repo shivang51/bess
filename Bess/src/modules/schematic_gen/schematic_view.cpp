@@ -1,3 +1,4 @@
+#include "scene/scene_pch.h"
 #include "modules/schematic_gen/schematic_view.h"
 #include "common/log.h"
 #include "scene/components/components.h"

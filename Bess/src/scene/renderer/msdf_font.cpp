@@ -1,18 +1,18 @@
+#include "scene/scene_pch.h"
 #include "scene/renderer/msdf_font.h"
 #include "common/log.h"
-#include "vulkan_texture.h"
 
 #include <filesystem>
 #include <fstream>
 
 namespace Bess::Renderer2D {
-    MsdfFont::MsdfFont(const std::string &path, const std::string &fileName, std::shared_ptr<Vulkan::VulkanDevice> device) : m_device(device) {
+    MsdfFont::MsdfFont(const std::string &path, const std::string &fileName, std::shared_ptr<Bess::Vulkan::VulkanDevice> device) : m_device(device) {
         loadFont(path, fileName, device);
     }
 
     MsdfFont::~MsdfFont() = default;
 
-    void MsdfFont::loadFont(const std::string &path, const std::string &fileName, std::shared_ptr<Vulkan::VulkanDevice> device) {
+    void MsdfFont::loadFont(const std::string &path, const std::string &fileName, std::shared_ptr<Bess::Vulkan::VulkanDevice> device) {
         m_device = device;
         std::filesystem::path path_ = path;
         const std::string jsonFileName = fileName + ".json";
@@ -32,7 +32,7 @@ namespace Bess::Renderer2D {
             return;
         }
 
-        m_fontTextureAtlas = std::make_shared<Vulkan::VulkanTexture>(device, pngFilePath);
+        m_fontTextureAtlas = std::make_shared<Bess::Vulkan::VulkanTexture>(device, pngFilePath);
         BESS_INFO("Loaded MSDF font texture atlas from: {}", pngFilePath);
 
         m_fontSize = charData["atlas"]["size"].asFloat();
@@ -56,7 +56,7 @@ namespace Bess::Renderer2D {
 
                 auto atlasPos = glm::vec2(atlasBounds.left, m_fontTextureAtlas->getHeight() - atlasBounds.top);
                 auto atlasSize = glm::vec2(atlasBounds.right - atlasBounds.left, atlasBounds.top - atlasBounds.bottom);
-                auto subTex = std::make_shared<Vulkan::SubTexture>();
+                auto subTex = std::make_shared<Bess::Vulkan::SubTexture>();
                 subTex->calcCoordsFrom(m_fontTextureAtlas, atlasPos, atlasSize);
                 character.subTexture = subTex;
             }
@@ -94,7 +94,7 @@ namespace Bess::Renderer2D {
         return m_charTable[(size_t)c];
     }
 
-    std::shared_ptr<Vulkan::VulkanTexture> MsdfFont::getTextureAtlas() const {
+    std::shared_ptr<Bess::Vulkan::VulkanTexture> MsdfFont::getTextureAtlas() const {
         return m_fontTextureAtlas;
     }
 

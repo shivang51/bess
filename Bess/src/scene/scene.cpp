@@ -1,3 +1,4 @@
+#include "scene/scene_pch.h"
 #include "scene/scene.h"
 #include "asset_manager/asset_manager.h"
 #include "assets.h"
@@ -7,11 +8,6 @@
 #include "entt/entity/entity.hpp"
 #include "entt/entity/fwd.hpp"
 #include "events/application_event.h"
-#include "ext/matrix_transform.hpp"
-#include "ext/vector_float2.hpp"
-#include "ext/vector_float3.hpp"
-#include "ext/vector_float4.hpp"
-#include "fwd.hpp"
 #include "pages/main_page/main_page_state.h"
 #include "scene/artist/artist_manager.h"
 #include "scene/artist/base_artist.h"
@@ -32,8 +28,6 @@
 #include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
 #include "vulkan_core.h"
-#include <cstdint>
-#include <memory>
 #include <utility>
 
 namespace Bess::Canvas {

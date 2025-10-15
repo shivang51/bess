@@ -1,19 +1,14 @@
+#include "scene/scene_pch.h"
 #include "scene/artist/base_artist.h"
 #include "asset_manager/asset_manager.h"
 #include "assets.h"
-#include "common/log.h"
-#include "entt/entity/fwd.hpp"
-#include "ext/vector_float3.hpp"
 #include "scene/artist/nodes_artist.h"
-#include "scene/components/components.h"
-#include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene.h"
 #include "scene/viewport.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "vulkan_core.h"
 #include "vulkan_subtexture.h"
-#include <cstdint>
 #include <vector>
 
 using namespace Bess::Renderer2D;

@@ -1,3 +1,4 @@
+#include "scene/scene_pch.h"
 #include "pages/main_page/main_page.h"
 #include "asset_manager/asset_manager.h"
 #include "events/application_event.h"

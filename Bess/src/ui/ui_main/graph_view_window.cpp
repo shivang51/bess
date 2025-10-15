@@ -1,3 +1,4 @@
+#include "scene/scene_pch.h"
 #include "ui/ui_main/graph_view_window.h"
 
 #include "implot.h"

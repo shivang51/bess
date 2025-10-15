@@ -1,15 +1,8 @@
+#include "scene/scene_pch.h"
 #include "scene/renderer/vulkan/pipelines/text_pipeline.h"
 #include "asset_manager/asset_manager.h"
 #include "assets.h"
-#include "common/log.h"
-#include "primitive_vertex.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
-#include "vulkan_texture.h"
-#include <algorithm>
-#include <array>
-#include <cstring>
-#include <vector>
-#include <vulkan/vulkan_core.h>
 
 namespace Bess::Vulkan::Pipelines {
 

@@ -1,3 +1,4 @@
+#include "scene/scene_pch.h"
 #include "scene/renderer/glyph_extractor.h"
 #include "common/log.h"
 #include "freetype/freetype.h"

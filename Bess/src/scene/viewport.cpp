@@ -1,12 +1,6 @@
+#include "scene/scene_pch.h"
 #include "scene/viewport.h"
-#include "common/log.h"
-#include "scene/artist/nodes_artist.h"
-#include "scene/artist/schematic_artist.h"
-#include "scene/scene.h"
 #include "vulkan_core.h"
-#include <cstdint>
-#include <memory>
-#include <vulkan/vulkan_core.h>
 
 namespace Bess::Canvas {
 

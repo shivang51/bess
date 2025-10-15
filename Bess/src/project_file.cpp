@@ -1,3 +1,4 @@
+#include "scene/scene_pch.h"
 #include "project_file.h"
 #include "bess_uuid.h"
 #include "common/log.h"

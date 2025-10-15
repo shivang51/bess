@@ -1,3 +1,4 @@
+#include "scene/scene_pch.h"
 #include "scene/artist/nodes_artist.h"
 #include "component_catalog.h"
 #include "component_types/component_types.h"

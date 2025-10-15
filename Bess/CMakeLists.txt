@@ -85,6 +85,7 @@ set(Header_Files
         "include/scene/renderer/vulkan/pipelines/text_pipeline.h"
         "include/scene/renderer/vulkan/path_renderer.h"
         "include/scene/renderer/vulkan/text_renderer.h"
+"include/scene/scene_pch.h"
 "include/scene/commands/add_command.h"
 "include/scene/commands/connect_command.h"
 "include/scene/commands/delete_comp_command.h"
@@ -165,6 +166,19 @@ set(ALL_FILES
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine BessVulkan)
 add_dependencies(${PROJECT_NAME} BessSimEngine BessVulkan)
+
+file(GLOB_RECURSE SCENE_PCH_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/scene/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/scene/*/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/scene/*/*/*.cpp"
+)
+set_source_files_properties(${Source_Files} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+set_source_files_properties(${External} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+set_source_files_properties(${SCENE_PCH_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS OFF)
+
+set_source_files_properties(${SCENE_PCH_SOURCES} PROPERTIES
+    COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:-include${CMAKE_CURRENT_SOURCE_DIR}/include/scene/scene_pch.h>
+)
 
 if("${BUILD_ARCH}" STREQUAL "x64" AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
@@ -256,5 +270,10 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)
 
 if(MSVC)
 	target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8" "/Zc:__cplusplus")
+endif()
+
+# Precompiled header for scene (C++ only)
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
+    target_precompile_headers(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:"${CMAKE_CURRENT_SOURCE_DIR}/include/scene/scene_pch.h">)
 endif()
 
