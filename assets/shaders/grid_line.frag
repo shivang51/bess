@@ -47,9 +47,9 @@ void main() {
     vec4 gridColor = vec4(1.0);
 
     if (smallGrid >= bigGrid) {
-        gridColor *= u_gridMajorColor;
-    } else {
         gridColor *= u_gridMinorColor;
+    } else {
+        gridColor *= u_gridMajorColor;
     }
 
     float axisThicknessWorld = 2.0 / u_zoom;
