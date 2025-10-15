@@ -60,24 +60,22 @@ namespace Bess {
 
             const float avgLum = (base.r + base.g + base.b) / 3.0f;
 
-            const float minorDelta = (avgLum < 0.5f ? 0.08f : -0.08f);
+            const float minorDelta = (avgLum < 0.5f ? 0.07f : -0.07f);
             colors.gridMinorColor = glm::vec4(
-                glm::clamp(base.r + minorDelta, 0.0f, 1.0f),
-                glm::clamp(base.g + minorDelta, 0.0f, 1.0f),
-                glm::clamp(base.b + minorDelta, 0.0f, 1.0f),
-                0.2f // subtle alpha
-            );
+                glm::clamp(base.r + minorDelta, 0.0f, 0.3f),
+                glm::clamp(base.g + minorDelta, 0.0f, 0.3f),
+                glm::clamp(base.b + minorDelta, 0.0f, 0.3f),
+                0.2f);
 
-            const float majorDelta = (avgLum < 0.5f ? 0.15f : -0.15f);
+            const float majorDelta = (avgLum < 0.5f ? 0.1f : -0.1f);
             colors.gridMajorColor = glm::vec4(
-                glm::clamp(base.r + majorDelta, 0.0f, 1.0f),
-                glm::clamp(base.g + majorDelta, 0.0f, 1.0f),
-                glm::clamp(base.b + majorDelta, 0.0f, 1.0f),
-                0.35f);
+                glm::clamp(base.r + majorDelta, 0.0f, 0.15f),
+                glm::clamp(base.g + majorDelta, 0.0f, 0.15f),
+                glm::clamp(base.b + majorDelta, 0.0f, 0.15f),
+                0.2f);
 
-            colors.gridAxisXColor = glm::vec4(0.6f, 0.2f, 0.2f, 0.3f);
-            // since wires are green colors so keeping it red as well
-            colors.gridAxisYColor = glm::vec4(0.6f, 0.2f, 0.2f, 0.3f);
+            colors.gridAxisXColor = glm::vec4(0.6f, 0.2f, 0.2f, 0.1f);
+            colors.gridAxisYColor = glm::vec4(0.6f, 0.2f, 0.2f, 0.1f);
         }
 
         initCompColorMap();

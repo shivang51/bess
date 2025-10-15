@@ -33,15 +33,15 @@ float gridLine(vec2 worldPos, float spacing, float thicknessPx) {
 void main() {
     vec2 fragCoord = ((gl_FragCoord.xy - u_resolution * 0.5) / u_zoom) - u_cameraOffset;
 
-    float smallGrid = gridLine(fragCoord, smallSpacing, 1.0);
-    float bigGrid = gridLine(fragCoord, bigSpacing, 2.0);
+    float smallGrid = gridLine(fragCoord, smallSpacing, 1.f);
+    float bigGrid = gridLine(fragCoord, bigSpacing, 1.5f);
 
     float smallFade = clamp((u_zoom - 0.5) * 2.0, 0.0, 1.0);
     smallGrid *= smallFade;
 
-    float intensity = max(smallGrid * 0.3, bigGrid * 0.8);
+    float intensity = max(smallGrid * 0.3, bigGrid * 0.6);
 
-    if (intensity <= 0.0)
+    if (intensity <= 0.0001)
         discard;
 
     vec4 gridColor = vec4(1.0);
@@ -52,13 +52,15 @@ void main() {
         gridColor *= u_gridMajorColor;
     }
 
-    float axisThicknessWorld = 2.0 / u_zoom;
+    float axisThicknessWorld = 1.5 / u_zoom;
 
     if (abs(fragCoord.x) < axisThicknessWorld)
-        gridColor *= u_axisYColor;
+        gridColor = u_axisYColor;
     if (abs(fragCoord.y) < axisThicknessWorld)
-        gridColor *= u_axisXColor;
+        gridColor = u_axisXColor;
 
-    fragColor = vec4(gridColor.rgb * intensity, intensity);
+    gridColor.rgb *= gridColor.a;
+
+    fragColor = gridColor;
     pickingId = v_FragId;
 }
