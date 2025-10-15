@@ -1,4 +1,3 @@
-#include "scene/scene_pch.h"
 #include "scene/scene.h"
 #include "asset_manager/asset_manager.h"
 #include "assets.h"
@@ -21,6 +20,7 @@
 #include "scene/components/non_sim_comp.h"
 #include "scene/renderer/glyph_extractor.h"
 #include "scene/renderer/path.h"
+#include "scene/scene_pch.h"
 #include "scene/viewport.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
@@ -28,6 +28,7 @@
 #include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
 #include "vulkan_core.h"
+#include <cstdint>
 #include <utility>
 
 namespace Bess::Canvas {
@@ -70,8 +71,8 @@ namespace Bess::Canvas {
 
     void Scene::update(TFrameTime ts, const std::vector<ApplicationEvent> &events) {
         if (m_getIdsInSelBox) {
-            selectEntitesInArea();
-            m_getIdsInSelBox = false;
+            if (selectEntitesInArea())
+                m_getIdsInSelBox = false;
         }
 
         m_camera->update(ts);
@@ -90,10 +91,16 @@ namespace Bess::Canvas {
             } break;
             case ApplicationEventType::MouseButton: {
                 if (!isCursorInViewport(m_mousePos)) {
-                    if (!m_isLeftMousePressed)
+                    if (!m_isLeftMousePressed) {
+                        m_registry.clear<Components::HoveredEntityComponent>();
+                        m_hoveredEntity = UUID::null;
                         break;
+                    }
                     m_isLeftMousePressed = false;
+                    m_registry.clear<Components::HoveredEntityComponent>();
+                    m_hoveredEntity = UUID::null;
                 }
+                m_viewport->waitForPickingResults(5'000'000);
                 updateHoveredId();
                 const auto data = event.getData<ApplicationEvent::MouseButtonData>();
                 if (data.button == MouseButton::left) {
@@ -187,7 +194,6 @@ namespace Bess::Canvas {
 
     void Scene::renderWithViewport(const std::shared_ptr<Viewport> &viewport) {
         const auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
-
         switch (m_sceneMode) {
         case SceneMode::general: {
             if (m_registry.valid(hoveredEntity) && m_registry.any_of<Components::SlotComponent, Components::ConnectionSegmentComponent>(hoveredEntity)) {
@@ -641,12 +647,13 @@ namespace Bess::Canvas {
     }
 
     void Scene::updateHoveredId() {
-        int32_t hoverId = -1; // Placeholder for Vulkan implementation
+        m_viewport->tryUpdatePickingResults();
 
-        hoverId = m_viewport->getPickingIdsResult()[0];
+        const auto &ids = m_viewport->getPickingIdsResult();
+        const int32_t hoverId = (ids.empty()) ? -1 : ids[0];
+        const entt::entity e = (entt::entity)hoverId;
 
         m_registry.clear<Components::HoveredEntityComponent>();
-        const auto e = (entt::entity)hoverId;
         if (m_registry.valid(e)) {
             m_registry.emplace<Components::HoveredEntityComponent>(e);
             m_hoveredEntity = getUuidOfEntity(e);
@@ -659,8 +666,16 @@ namespace Bess::Canvas {
         m_dMousePos = toScenePos(pos) - toScenePos(m_mousePos);
         m_mousePos = pos;
 
-        // reading the hoverid
+        {
+            auto mousePos_ = m_mousePos;
+            mousePos_.y = UI::UIMain::state.viewportSize.y - mousePos_.y;
+            int x = static_cast<int>(mousePos_.x);
+            int y = static_cast<int>(mousePos_.y);
+            m_viewport->setPickingCoord(x, y);
+        }
+
         if (!m_isDragging || m_drawMode == SceneDrawMode::connection) {
+            m_viewport->waitForPickingResults(1'000'000);
             updateHoveredId();
         }
 
@@ -1005,13 +1020,16 @@ namespace Bess::Canvas {
         }
     }
 
-    void Scene::selectEntitesInArea() {
+    bool Scene::selectEntitesInArea() {
         m_registry.clear<Components::SelectedComponent>();
 
-        std::vector<int> ids = m_viewport->getPickingIdsResult(); // Placeholder for Vulkan implementation
+        if (!m_viewport->tryUpdatePickingResults())
+            return false;
+
+        std::vector<int> ids = m_viewport->getPickingIdsResult();
 
         if (ids.size() == 0)
-            return;
+            return false;
 
         std::set<int> uniqueIds(ids.begin(), ids.end());
         std::unordered_map<int, bool> selected = {};
@@ -1036,6 +1054,7 @@ namespace Bess::Canvas {
 
             selected[id] = true;
         }
+        return true;
     }
 
     void Scene::onMouseWheel(double x, double y) {

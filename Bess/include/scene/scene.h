@@ -138,7 +138,7 @@ namespace Bess::Canvas {
         void handleKeyboardShortcuts();
         void copySelectedComponents();
         void generateCopiedComponents();
-        void selectEntitesInArea();
+        bool selectEntitesInArea();
         void toggleSelectComponent(const UUID &uuid);
         void toggleSelectComponent(entt::entity ent);
         void selectAllEntities();

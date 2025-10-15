@@ -43,6 +43,8 @@ namespace Bess::Canvas {
         uint64_t getViewportTexture();
         void setPickingCoord(uint32_t x, uint32_t y, uint32_t w = 1, uint32_t h = 1);
         std::vector<int32_t> getPickingIdsResult();
+        bool tryUpdatePickingResults();
+        bool waitForPickingResults(uint64_t timeoutNs);
 
         entt::registry &getEnttRegistry();
         entt::entity getEntityWithUuid(const UUID &uuid);

@@ -150,27 +150,59 @@ namespace Bess::Canvas {
     }
 
     std::vector<int32_t> Viewport::getPickingIdsResult() {
-        if (m_pickingCopyInFlight) {
-            VkFence fence = m_fences[m_pickingCopyRecordedFrameIdx];
-            if (vkGetFenceStatus(m_device->device(), fence) == VK_SUCCESS) {
-                auto count = m_mousePickingData.extent.width * m_mousePickingData.extent.height;
-                count = std::max(count, (uint32_t)1);
-                void *data = nullptr;
-                vkMapMemory(m_device->device(), m_pickingStagingBufferMemory, 0,
-                            sizeof(int32_t) * count, 0, &data);
-
-                auto &ids = m_mousePickingData.ids;
-                ids.clear();
-                ids.resize(count);
-                std::memcpy(ids.data(), data, sizeof(int32_t) * count);
-
-                vkUnmapMemory(m_device->device(), m_pickingStagingBufferMemory);
-                m_pickingCopyInFlight = false;
-                m_mousePickingData.pending = false;
-            }
-        }
-
+        tryUpdatePickingResults();
         return m_mousePickingData.ids;
+    }
+
+    bool Viewport::tryUpdatePickingResults() {
+        if (!m_pickingCopyInFlight)
+            return false;
+
+        VkFence fence = m_fences[m_pickingCopyRecordedFrameIdx];
+        if (vkGetFenceStatus(m_device->device(), fence) != VK_SUCCESS)
+            return false;
+
+        auto count = m_mousePickingData.extent.width * m_mousePickingData.extent.height;
+        count = std::max(count, (uint32_t)1);
+        void *data = nullptr;
+        vkMapMemory(m_device->device(), m_pickingStagingBufferMemory, 0,
+                    sizeof(int32_t) * count, 0, &data);
+
+        auto &ids = m_mousePickingData.ids;
+        ids.clear();
+        ids.resize(count);
+        std::memcpy(ids.data(), data, sizeof(int32_t) * count);
+
+        vkUnmapMemory(m_device->device(), m_pickingStagingBufferMemory);
+        m_pickingCopyInFlight = false;
+        m_mousePickingData.pending = false;
+        return true;
+    }
+
+    bool Viewport::waitForPickingResults(uint64_t timeoutNs) {
+        if (!m_pickingCopyInFlight)
+            return true;
+
+        VkFence fence = m_fences[m_pickingCopyRecordedFrameIdx];
+        const VkResult res = vkWaitForFences(m_device->device(), 1, &fence, VK_TRUE, timeoutNs);
+        if (res != VK_SUCCESS)
+            return false;
+
+        auto count = m_mousePickingData.extent.width * m_mousePickingData.extent.height;
+        count = std::max(count, (uint32_t)1);
+        void *data = nullptr;
+        vkMapMemory(m_device->device(), m_pickingStagingBufferMemory, 0,
+                    sizeof(int32_t) * count, 0, &data);
+
+        auto &ids = m_mousePickingData.ids;
+        ids.clear();
+        ids.resize(count);
+        std::memcpy(ids.data(), data, sizeof(int32_t) * count);
+
+        vkUnmapMemory(m_device->device(), m_pickingStagingBufferMemory);
+        m_pickingCopyInFlight = false;
+        m_mousePickingData.pending = false;
+        return true;
     }
 
     void Viewport::createPickingResources() {
@@ -242,13 +274,19 @@ namespace Bess::Canvas {
                                  VK_PIPELINE_STAGE_TRANSFER_BIT,
                                  0, 0, nullptr, 0, nullptr, 1, &barrier);
 
-            // Clamp coordinates
             VkExtent2D extent = m_imgView->getExtent();
-            const auto px = std::max((int32_t)0, (int32_t)std::min(m_mousePickingData.startPos.width, extent.width - 1));
-            const auto py = std::max((int32_t)0, (int32_t)std::min(m_mousePickingData.startPos.height, extent.height - 1));
+            const int32_t px = std::max(0, std::min<int32_t>((int32_t)m_mousePickingData.startPos.width, (int32_t)extent.width - 1));
+            const int32_t py = std::max(0, std::min<int32_t>((int32_t)m_mousePickingData.startPos.height, (int32_t)extent.height - 1));
 
-            const auto ex = std::max((uint32_t)1, std::min(m_mousePickingData.extent.width, extent.width));
-            const auto ey = std::max((uint32_t)1, std::min(m_mousePickingData.extent.height, extent.height));
+            const uint32_t maxWidth = extent.width - (uint32_t)px;
+            const uint32_t maxHeight = extent.height - (uint32_t)py;
+            const uint32_t ex = std::max<uint32_t>(1, std::min(m_mousePickingData.extent.width, maxWidth));
+            const uint32_t ey = std::max<uint32_t>(1, std::min(m_mousePickingData.extent.height, maxHeight));
+
+            m_mousePickingData.startPos.width = (uint32_t)px;
+            m_mousePickingData.startPos.height = (uint32_t)py;
+            m_mousePickingData.extent.width = ex;
+            m_mousePickingData.extent.height = ey;
 
             VkDeviceSize requiredSize = (uint64_t)ex * ey * sizeof(int32_t);
             resizePickingBuffer(requiredSize);
