@@ -43,7 +43,7 @@ namespace Bess::Vulkan::Pipelines {
 
         void resize(VkExtent2D extent);
 
-        void cleanPrevStateCounter();
+        virtual void cleanPrevStateCounter();
 
         // Common functions
         void updateUniformBuffer(const UniformBufferObject &ubo);

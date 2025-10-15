@@ -32,6 +32,16 @@ namespace Bess::Vulkan::Pipelines {
             m_descriptorPool = VK_NULL_HANDLE;
         }
 
+        if (m_translucentPipeline != VK_NULL_HANDLE) {
+            vkDestroyPipeline(m_device->device(), m_translucentPipeline, nullptr);
+            m_translucentPipeline = VK_NULL_HANDLE;
+        }
+
+        if (m_transPipelineLayout != VK_NULL_HANDLE) {
+            vkDestroyPipelineLayout(m_device->device(), m_transPipelineLayout, nullptr);
+            m_translucentPipeline = VK_NULL_HANDLE;
+        }
+
         if (m_opaquePipeline != VK_NULL_HANDLE) {
             vkDestroyPipeline(m_device->device(), m_opaquePipeline, nullptr);
             m_opaquePipeline = VK_NULL_HANDLE;
@@ -175,19 +185,18 @@ namespace Bess::Vulkan::Pipelines {
 
     void Pipeline::createDescriptorSets() {
         if (m_uniformBuffers.empty()) {
-            return; // No uniform buffers to create descriptor sets for
+            return;
         }
 
-        // Create descriptor sets for each frame in flight
         constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
         m_descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
 
-        std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_descriptorSetLayout);
+        std::vector<VkDescriptorSetLayout> layouts(m_descriptorSets.size(), m_descriptorSetLayout);
 
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         allocInfo.descriptorPool = m_descriptorPool;
-        allocInfo.descriptorSetCount = MAX_FRAMES_IN_FLIGHT;
+        allocInfo.descriptorSetCount = m_descriptorSets.size();
         allocInfo.pSetLayouts = layouts.data();
 
         if (vkAllocateDescriptorSets(m_device->device(), &allocInfo, m_descriptorSets.data()) != VK_SUCCESS) {
@@ -195,7 +204,7 @@ namespace Bess::Vulkan::Pipelines {
         }
 
         // Update all descriptor sets with uniform buffers
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+        for (size_t i = 0; i < m_descriptorSets.size(); ++i) {
             VkDescriptorBufferInfo bufferInfo{};
             bufferInfo.buffer = m_uniformBuffers[0];
             bufferInfo.offset = 0;

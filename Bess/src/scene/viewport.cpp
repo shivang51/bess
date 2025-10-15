@@ -55,6 +55,7 @@ namespace Bess::Canvas {
         deleteFences();
 
         cleanupPickingResources();
+        cleanupPostprocessResources();
         m_postprocessPipeline.reset();
         m_straightColorImageView.reset();
         m_imgView.reset();
@@ -457,13 +458,6 @@ namespace Bess::Canvas {
     }
 
     void Viewport::performPostProcessing(VkCommandBuffer cmd) {
-
-        // Descriptor set is persistent; updated on resize only
-
-        // No explicit transition needed; render pass handles layout transition
-
-        // Begin post-processing render pass
-        // Ensure framebuffer is valid
         if (m_postprocessFramebuffer == VK_NULL_HANDLE) {
             initPostprocessResources();
         }

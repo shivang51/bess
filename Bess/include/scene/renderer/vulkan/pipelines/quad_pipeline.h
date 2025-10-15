@@ -1,8 +1,11 @@
 #pragma once
 
+#include "common/log.h"
 #include "pipeline.h"
 #include "primitive_vertex.h"
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -35,6 +38,8 @@ namespace Bess::Vulkan::Pipelines {
         void setQuadsData(const std::vector<QuadInstance> &instances);
         void cleanup() override;
 
+        void cleanPrevStateCounter() override;
+
       private:
         void createGraphicsPipeline(bool isTranslucent) override;
         void createQuadBuffers();
@@ -42,6 +47,55 @@ namespace Bess::Vulkan::Pipelines {
 
         void createDescriptorPool() override;
         void createDescriptorSets() override;
+
+        bool isTexArraySetAvailable(size_t idx) const;
+
+        VkDescriptorSet getTextureArraySet(uint8_t idx);
+
+        void resizeTexArrayDescriptorPool(uint64_t size);
+
+        VkDescriptorPool createDescriptorPool(uint32_t maxSets, uint32_t descriptorCount);
+        void createDescriptorSets(uint32_t descCount, uint32_t setsCount,
+                                  VkDescriptorPool pool, VkDescriptorSetLayout &layout, std::vector<VkDescriptorSet> &sets);
+
+        struct TempDescSets {
+            std::vector<VkDescriptorPool> pools;
+            std::vector<std::vector<VkDescriptorSet>> sets;
+            static constexpr size_t DESC_SET_COUNT_PER_POOL = 100;
+            size_t maxExhaustedSize = 0;
+
+            bool isDescSetAvailable(uint64_t idx) const {
+                return idx < (pools.size() * DESC_SET_COUNT_PER_POOL);
+            }
+
+            VkDescriptorSet getSetAtIdx(uint64_t idx) {
+                if (!isDescSetAvailable(idx)) {
+                    BESS_WARN("[TempDescSets] Descriptor set was not found at idx {} for poolSize = {}, setsCount = {}",
+                              idx, pools.size(), pools.size() * DESC_SET_COUNT_PER_POOL);
+                    return VK_NULL_HANDLE;
+                }
+                auto poolIdx = idx / DESC_SET_COUNT_PER_POOL;
+                auto setIdx = idx % DESC_SET_COUNT_PER_POOL;
+                maxExhaustedSize = std::max(idx + 1, maxExhaustedSize);
+                return sets[poolIdx][setIdx];
+            }
+
+            std::pair<VkDescriptorPool &, std::vector<VkDescriptorSet> &> reserveNextPool() {
+                pools.emplace_back(VK_NULL_HANDLE);
+                sets.emplace_back(DESC_SET_COUNT_PER_POOL, VK_NULL_HANDLE);
+                return {pools.back(), sets.back()};
+            }
+
+            void reset(VkDevice device) {
+                for (auto &pool : pools) {
+                    vkDestroyDescriptorPool(device, pool, nullptr);
+                }
+
+                pools.clear();
+                sets.clear();
+                maxExhaustedSize = 0;
+            }
+        } m_tempDescSets;
 
         static constexpr size_t m_texArraySize = 32;
 
@@ -51,7 +105,12 @@ namespace Bess::Vulkan::Pipelines {
         VkDescriptorPool m_textureArrayDescriptorPool = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_textureArrayLayout = VK_NULL_HANDLE;
         std::unique_ptr<VulkanTexture> m_fallbackTexture;
-        std::array<VkDescriptorImageInfo, 32> m_textureInfos;
+        std::array<VkDescriptorImageInfo, m_texArraySize> m_textureInfos;
+
+        bool m_isTranslucentFlow = false;
+        uint8_t m_texDescSetIdx = 0;
+
+        size_t m_texArraySetsCount = 2; // One for opaque flow, one for translucent flow
     };
 
 } // namespace Bess::Vulkan::Pipelines

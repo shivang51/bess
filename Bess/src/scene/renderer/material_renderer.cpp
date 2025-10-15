@@ -43,7 +43,6 @@ namespace Bess::Renderer {
     void MaterialRenderer::drawGrid(const glm::vec3 &pos, const glm::vec2 &size, int id,
                                     const GridColors &gridColors, const std::shared_ptr<Camera> &camera) {
         if (!m_gridPipeline) {
-            BESS_WARN("[MaterialRenderer] Grid pipeline not available");
             return;
         }
 
@@ -89,7 +88,6 @@ namespace Bess::Renderer {
                                     int id,
                                     QuadRenderProperties props) {
         if (!m_quadPipeline) {
-            BESS_WARN("[MaterialRenderer] Quad pipeline not available");
             return;
         }
 
@@ -119,7 +117,6 @@ namespace Bess::Renderer {
                                             const std::shared_ptr<VulkanTexture> &texture,
                                             QuadRenderProperties props) {
         if (!m_quadPipeline) {
-            BESS_WARN("[MaterialRenderer] Quad pipeline not available");
             return;
         }
 
@@ -147,7 +144,6 @@ namespace Bess::Renderer {
                                             const std::shared_ptr<SubTexture> &subTexture,
                                             QuadRenderProperties props) {
         if (!m_quadPipeline) {
-            BESS_WARN("[MaterialRenderer] Quad pipeline not available");
             return;
         }
 
@@ -170,7 +166,6 @@ namespace Bess::Renderer {
 
     void MaterialRenderer::drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, int id, float innerRadius) {
         if (!m_circlePipeline) {
-            BESS_WARN("[MaterialRenderer] Circle pipeline not available");
             return;
         }
 
@@ -232,11 +227,16 @@ namespace Bess::Renderer {
             m_textRenderer->beginFrame(m_cmdBuffer);
         }
 
-        m_circleInstances.clear();
-        m_quadInstances.clear();
-        m_texturedQuadInstances.clear();
-        m_quadPipeline->cleanPrevStateCounter();
-        m_circlePipeline->cleanPrevStateCounter();
+        if (m_circlePipeline) {
+            m_circlePipeline->cleanPrevStateCounter();
+            m_circleInstances.clear();
+        }
+
+        if (m_quadPipeline) {
+            m_quadPipeline->cleanPrevStateCounter();
+            m_quadInstances.clear();
+            m_texturedQuadInstances.clear();
+        }
     }
 
     void MaterialRenderer::endFrame() {

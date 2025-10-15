@@ -6,6 +6,7 @@
 #include "vulkan_texture.h"
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <vector>
@@ -13,6 +14,7 @@
 
 namespace Bess::Vulkan::Pipelines {
 
+    constexpr size_t maxFrames = Bess::Vulkan::VulkanCore::MAX_FRAMES_IN_FLIGHT;
     constexpr uint32_t instanceLimit = 10000;
 
     QuadPipeline::QuadPipeline(const std::shared_ptr<VulkanDevice> &device,
@@ -27,6 +29,8 @@ namespace Bess::Vulkan::Pipelines {
 
         createQuadBuffers();
         createUniformBuffers();
+
+        m_texArraySetsCount = instanceLimit * maxFrames;
 
         createDescriptorSetLayout();
         createDescriptorPool();
@@ -61,10 +65,11 @@ namespace Bess::Vulkan::Pipelines {
     void QuadPipeline::beginPipeline(VkCommandBuffer commandBuffer, bool isTranslucent) {
         m_currentCommandBuffer = commandBuffer;
         m_instances.clear();
+        m_isTranslucentFlow = isTranslucent;
 
         vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                           isTranslucent ? m_translucentPipeline : m_opaquePipeline);
-        VkDescriptorSet sets[] = {m_descriptorSets[m_currentFrameIndex], m_textureArraySets[m_currentFrameIndex]};
+        VkDescriptorSet sets[] = {m_descriptorSets[m_currentFrameIndex], getTextureArraySet(m_texDescSetIdx)};
         vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 isTranslucent ? m_transPipelineLayout : m_opaquePipelineLayout,
                                 0, 2, sets, 0, nullptr);
@@ -115,6 +120,7 @@ namespace Bess::Vulkan::Pipelines {
         m_instances.clear();
 
         m_currentCommandBuffer = VK_NULL_HANDLE;
+        m_texDescSetIdx++;
     }
 
     void QuadPipeline::setQuadsData(const std::vector<QuadInstance> &instances) {
@@ -150,9 +156,10 @@ namespace Bess::Vulkan::Pipelines {
         }
 
         std::vector<VkWriteDescriptorSet> writes;
+        writes.reserve(m_textureInfos.size());
         for (uint32_t i = 0; i < m_textureInfos.size(); i++) {
             VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-            write.dstSet = m_textureArraySets[m_currentFrameIndex];
+            write.dstSet = getTextureArraySet(m_texDescSetIdx);
             write.dstBinding = 2;
             write.dstArrayElement = i;
             write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -353,6 +360,8 @@ namespace Bess::Vulkan::Pipelines {
         // Use common color blend state creation
         auto colorBlending = createColorBlendState(colorBlendAttachments);
 
+        assert(m_descriptorSetLayout != VK_NULL_HANDLE);
+        assert(m_textureArrayLayout != VK_NULL_HANDLE);
         std::array<VkDescriptorSetLayout, 2> setLayouts = {m_descriptorSetLayout, m_textureArrayLayout};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -494,53 +503,116 @@ namespace Bess::Vulkan::Pipelines {
         m_buffers.instanceCapacity = instanceCount;
     }
 
-    constexpr size_t maxFrames = Bess::Vulkan::VulkanCore::MAX_FRAMES_IN_FLIGHT;
-    void QuadPipeline::createDescriptorPool() {
-        Pipeline::createDescriptorPool();
-
-        if (m_textureArrayDescriptorPool != VK_NULL_HANDLE)
-            return;
+    VkDescriptorPool QuadPipeline::createDescriptorPool(uint32_t maxSets, uint32_t descriptorCount) {
         VkDescriptorPoolSize poolSize = {};
         poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSize.descriptorCount = m_texArraySize * maxFrames;
+        poolSize.descriptorCount = descriptorCount;
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = 1;
         poolInfo.pPoolSizes = &poolSize;
-        poolInfo.maxSets = maxFrames;
-        if (vkCreateDescriptorPool(m_device->device(), &poolInfo, nullptr, &m_textureArrayDescriptorPool) != VK_SUCCESS) {
+        poolInfo.maxSets = maxSets;
+        VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+        if (vkCreateDescriptorPool(m_device->device(), &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
             BESS_ERROR("[QuadPipeline] Failed to create texture descriptor pool");
+        }
+        return descriptorPool;
+    }
+
+    void QuadPipeline::createDescriptorPool() {
+        Pipeline::createDescriptorPool();
+
+        if (m_textureArrayDescriptorPool != VK_NULL_HANDLE)
+            return;
+        m_textureArrayDescriptorPool = createDescriptorPool(m_texArraySetsCount, m_texArraySize * m_texArraySetsCount);
+    }
+
+    void QuadPipeline::createDescriptorSets(uint32_t descCount, uint32_t setsCount,
+                                            VkDescriptorPool pool, VkDescriptorSetLayout &layout, std::vector<VkDescriptorSet> &sets) {
+        VkDescriptorSetLayoutBinding layoutBinding{};
+        layoutBinding.binding = 2;
+        layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        layoutBinding.descriptorCount = descCount;
+        layoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+        layoutInfo.bindingCount = 1;
+        layoutInfo.pBindings = &layoutBinding;
+
+        if (layout == VK_NULL_HANDLE) {
+            if (vkCreateDescriptorSetLayout(m_device->device(), &layoutInfo, nullptr, &layout)) {
+                throw std::runtime_error("Failed to create texture array descriptor set layout");
+            }
+        }
+
+        std::vector<VkDescriptorSetLayoutCreateInfo> layoutInfos(setsCount, layoutInfo);
+        std::vector<VkDescriptorSetLayout> layouts(setsCount, layout);
+
+        VkDescriptorSetAllocateInfo allocInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+
+        allocInfo.descriptorPool = pool;
+        allocInfo.descriptorSetCount = setsCount;
+        allocInfo.pSetLayouts = layouts.data();
+
+        if (sets.size() != setsCount)
+            sets.resize(setsCount);
+
+        if (vkAllocateDescriptorSets(m_device->device(), &allocInfo, sets.data()) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create texture array descriptor set");
         }
     }
 
     void QuadPipeline::createDescriptorSets() {
         Pipeline::createDescriptorSets();
-        m_textureArraySets.resize(maxFrames);
-
-        VkDescriptorSetLayoutBinding texArrayBinding{};
-        texArrayBinding.binding = 2;
-        texArrayBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        texArrayBinding.descriptorCount = 32; // e.g. 128
-        texArrayBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-        VkDescriptorSetLayoutCreateInfo layoutInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-        layoutInfo.bindingCount = 1;
-        layoutInfo.pBindings = &texArrayBinding;
-
-        vkCreateDescriptorSetLayout(m_device->device(), &layoutInfo, nullptr, &m_textureArrayLayout);
-
-        std::vector<VkDescriptorSetLayoutCreateInfo> layoutInfos(maxFrames, layoutInfo);
-        std::vector<VkDescriptorSetLayout> layouts(maxFrames, m_textureArrayLayout);
-
-        VkDescriptorSetAllocateInfo allocInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-
-        allocInfo.descriptorPool = m_textureArrayDescriptorPool;
-        allocInfo.descriptorSetCount = maxFrames;
-        allocInfo.pSetLayouts = layouts.data();
-
-        if (vkAllocateDescriptorSets(m_device->device(), &allocInfo, m_textureArraySets.data()) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create texture array descriptor set");
-        }
+        assert(m_textureArrayDescriptorPool != VK_NULL_HANDLE);
+        createDescriptorSets(m_texArraySize, m_texArraySetsCount, m_textureArrayDescriptorPool, m_textureArrayLayout, m_textureArraySets);
     }
+
+    VkDescriptorSet QuadPipeline::getTextureArraySet(uint8_t idx) {
+        if (isTexArraySetAvailable(idx))
+            return m_textureArraySets[idx];
+
+        if (m_tempDescSets.isDescSetAvailable(idx)) {
+            return m_tempDescSets.getSetAtIdx(idx);
+        }
+
+        BESS_INFO("[QuadPipeline] Created a temp descriptor pool for idx {} ", idx);
+
+        auto [pool, sets] = m_tempDescSets.reserveNextPool();
+        pool = createDescriptorPool(sets.size(), m_texArraySize * sets.size());
+        createDescriptorSets(m_texArraySize, sets.size(), pool, m_textureArrayLayout, sets);
+        auto set = m_tempDescSets.getSetAtIdx(idx);
+        assert(set != VK_NULL_HANDLE);
+        return m_tempDescSets.getSetAtIdx(idx);
+    }
+
+    void QuadPipeline::resizeTexArrayDescriptorPool(uint64_t size) {
+        m_device->waitForIdle();
+        if (m_textureArrayDescriptorPool != VK_NULL_HANDLE) {
+            vkDestroyDescriptorPool(m_device->device(), m_textureArrayDescriptorPool, nullptr);
+        }
+        m_texArraySetsCount = size;
+        m_textureArraySets.clear();
+        m_textureArrayDescriptorPool = createDescriptorPool(m_texArraySetsCount * maxFrames, m_texArraySize * m_texArraySetsCount * maxFrames);
+        createDescriptorSets(m_texArraySize, m_texArraySetsCount * maxFrames, m_textureArrayDescriptorPool, m_textureArrayLayout, m_textureArraySets);
+
+        BESS_INFO("[QuadPipeline] Resized texture array descriptor sets to size {}", m_texArraySetsCount);
+    }
+
+    void QuadPipeline::cleanPrevStateCounter() {
+        Pipeline::cleanPrevStateCounter();
+        const auto texSetsCount = m_texArraySetsCount; // VIL, do not remove
+        if (m_tempDescSets.maxExhaustedSize != 0) {
+            resizeTexArrayDescriptorPool((m_texArraySetsCount + m_tempDescSets.maxExhaustedSize) * 2 * maxFrames);
+            m_tempDescSets.reset(m_device->device());
+        }
+        m_texDescSetIdx = m_currentFrameIndex * (texSetsCount / maxFrames);
+        m_device->waitForIdle();
+    }
+
+    bool QuadPipeline::isTexArraySetAvailable(size_t idx) const {
+        return m_textureArraySets.size() > idx && m_textureArraySets[idx] != VK_NULL_HANDLE;
+    }
+
 } // namespace Bess::Vulkan::Pipelines
