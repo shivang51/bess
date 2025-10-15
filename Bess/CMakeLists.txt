@@ -1,4 +1,8 @@
 set(PROJECT_NAME Bess)
+set(CMAKE_SKIP_BUILD_RPATH FALSE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+set(CMAKE_BUILD_RPATH "\$ORIGIN")
+set(CMAKE_INSTALL_RPATH "\$ORIGIN")
 
 file(GLOB EXT_JSON_SRC "${CMAKE_SOURCE_DIR}/external/jsoncpp/src/lib_json/*.cpp")
 source_group("external/jsoncpp" FILES ${EXT_JSON_SRC})
