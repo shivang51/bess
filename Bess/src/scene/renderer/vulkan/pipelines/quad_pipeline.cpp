@@ -85,10 +85,9 @@ namespace Bess::Vulkan::Pipelines {
         auto draw = [&](const std::span<QuadInstance> &instances, VkDeviceSize offset) {
             if (instances.empty())
                 return;
-            void *data = nullptr;
-            vkMapMemory(m_device->device(), m_buffers.instanceBufferMemory, offset, sizeof(QuadInstance) * instances.size(), 0, &data);
-            memcpy(data, instances.data(), sizeof(QuadInstance) * instances.size());
-            vkUnmapMemory(m_device->device(), m_buffers.instanceBufferMemory);
+            BESS_ASSERT(m_buffers.instanceBufferMapped != nullptr, "Instance buffer must be mapped");
+            std::memcpy(static_cast<char *>(m_buffers.instanceBufferMapped) + offset,
+                        instances.data(), sizeof(QuadInstance) * instances.size());
 
             VkBuffer vbs[] = {m_buffers.vertexBuffer, m_buffers.instanceBuffer};
             VkDeviceSize offs[] = {0, offset};
@@ -155,23 +154,35 @@ namespace Bess::Vulkan::Pipelines {
             i++;
         }
 
-        std::vector<VkWriteDescriptorSet> writes;
-        writes.reserve(m_textureInfos.size());
-        for (uint32_t i = 0; i < m_textureInfos.size(); i++) {
-            VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-            write.dstSet = getTextureArraySet(m_texDescSetIdx);
-            write.dstBinding = 2;
-            write.dstArrayElement = i;
-            write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            write.descriptorCount = 1;
-            write.pImageInfo = &m_textureInfos.at(i);
-            writes.push_back(write);
+        // Descriptor caching: only update if changed compared to cached infos for this descriptor set index
+        auto setIdx = static_cast<uint32_t>(m_texDescSetIdx);
+        bool needsUpdate = true;
+        if (m_cachedTextureInfos.contains(setIdx)) {
+            needsUpdate = std::memcmp(m_cachedTextureInfos[setIdx].data(), m_textureInfos.data(), sizeof(VkDescriptorImageInfo) * m_textureInfos.size()) != 0;
         }
-
-        vkUpdateDescriptorSets(m_device->device(), (uint32_t)writes.size(), writes.data(), 0, nullptr);
+        if (needsUpdate) {
+            std::vector<VkWriteDescriptorSet> writes;
+            writes.reserve(m_textureInfos.size());
+            for (uint32_t i = 0; i < m_textureInfos.size(); i++) {
+                VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+                write.dstSet = getTextureArraySet(m_texDescSetIdx);
+                write.dstBinding = 2;
+                write.dstArrayElement = i;
+                write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                write.descriptorCount = 1;
+                write.pImageInfo = &m_textureInfos.at(i);
+                writes.push_back(write);
+            }
+            vkUpdateDescriptorSets(m_device->device(), (uint32_t)writes.size(), writes.data(), 0, nullptr);
+            m_cachedTextureInfos[setIdx] = m_textureInfos;
+        }
     }
 
     void QuadPipeline::cleanup() {
+        if (m_buffers.instanceBufferMemory != VK_NULL_HANDLE && m_buffers.instanceBufferMapped != nullptr) {
+            vkUnmapMemory(m_device->device(), m_buffers.instanceBufferMemory);
+            m_buffers.instanceBufferMapped = nullptr;
+        }
         if (m_buffers.vertexBuffer != VK_NULL_HANDLE) {
             vkDestroyBuffer(m_device->device(), m_buffers.vertexBuffer, nullptr);
             vkFreeMemory(m_device->device(), m_buffers.vertexBufferMemory, nullptr);
@@ -500,6 +511,10 @@ namespace Bess::Vulkan::Pipelines {
         }
         vkBindBufferMemory(m_device->device(), m_buffers.instanceBuffer, m_buffers.instanceBufferMemory, 0);
 
+        void *mappedPtr = nullptr;
+        vkMapMemory(m_device->device(), m_buffers.instanceBufferMemory, 0, size, 0, &mappedPtr);
+        m_buffers.instanceBufferMapped = mappedPtr;
+
         m_buffers.instanceCapacity = instanceCount;
     }
 
@@ -604,11 +619,77 @@ namespace Bess::Vulkan::Pipelines {
         Pipeline::cleanPrevStateCounter();
         const auto texSetsCount = m_texArraySetsCount; // VIL, do not remove
         if (m_tempDescSets.maxExhaustedSize != 0) {
-            resizeTexArrayDescriptorPool((m_texArraySetsCount + m_tempDescSets.maxExhaustedSize) * 2 * maxFrames);
+            const size_t required = m_texArraySetsCount + m_tempDescSets.maxExhaustedSize;
+            size_t headroom = std::max<size_t>(m_texSetsMinHeadroom, required / 2);
+            // Compute target without narrowing: cast growthFactor to double for precision
+            const double scaled = static_cast<double>(required) * static_cast<double>(m_texSetsGrowthFactor);
+            size_t target = std::min<size_t>(static_cast<size_t>(scaled) + headroom, static_cast<size_t>(m_texSetsMaxCap));
+            resizeTexArrayDescriptorPool(target * maxFrames);
             m_tempDescSets.reset(m_device->device());
         }
         m_texDescSetIdx = m_currentFrameIndex * (texSetsCount / maxFrames);
-        m_device->waitForIdle();
+    }
+
+    void QuadPipeline::setTextureSetGrowthPolicy(float growthFactor, uint32_t minHeadroom, uint32_t maxSetsCap) {
+        if (growthFactor >= 1.0f)
+            m_texSetsGrowthFactor = growthFactor;
+        m_texSetsMinHeadroom = minHeadroom;
+        m_texSetsMaxCap = std::max<uint32_t>(maxSetsCap, (uint32_t)m_texArraySetsCount);
+    }
+
+    void QuadPipeline::drawQuadInstances(VkCommandBuffer cmd,
+                                         bool isTranslucent,
+                                         const std::vector<QuadInstance> &instances,
+                                         std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> &texturedData) {
+        m_currentCommandBuffer = cmd;
+        m_isTranslucentFlow = isTranslucent;
+        m_instances.clear();
+
+        // Prepare data and descriptor sets via the existing API
+        setQuadsData(instances, texturedData);
+
+        if (m_instances.empty())
+            return;
+
+        vkCmdBindPipeline(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          isTranslucent ? m_translucentPipeline : m_opaquePipeline);
+
+        VkDescriptorSet sets[] = {m_descriptorSets[m_currentFrameIndex], getTextureArraySet(m_texDescSetIdx)};
+        vkCmdBindDescriptorSets(m_currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                isTranslucent ? m_transPipelineLayout : m_opaquePipelineLayout,
+                                0, 2, sets, 0, nullptr);
+
+        vkCmdSetViewport(m_currentCommandBuffer, 0, 1, &m_viewport);
+        vkCmdSetScissor(m_currentCommandBuffer, 0, 1, &m_scissor);
+
+        // Ensure capacity and copy instance data using persistent mapping
+        ensureQuadInstanceCapacity(m_instanceCounter + m_instances.size());
+
+        size_t remaining = m_instances.size();
+        size_t offset = 0;
+        while (remaining > 0) {
+            size_t batchSize = std::min(remaining, (size_t)instanceLimit);
+            VkDeviceSize byteOffset = (m_instanceCounter + offset) * sizeof(QuadInstance);
+
+            BESS_ASSERT(m_buffers.instanceBufferMapped != nullptr, "Instance buffer must be mapped");
+            std::memcpy(static_cast<char *>(m_buffers.instanceBufferMapped) + byteOffset,
+                        m_instances.data() + static_cast<ptrdiff_t>(offset),
+                        sizeof(QuadInstance) * batchSize);
+
+            VkBuffer vbs[] = {m_buffers.vertexBuffer, m_buffers.instanceBuffer};
+            VkDeviceSize offs[] = {0, byteOffset};
+            vkCmdBindVertexBuffers(m_currentCommandBuffer, 0, 2, vbs, offs);
+            vkCmdBindIndexBuffer(m_currentCommandBuffer, m_buffers.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+            vkCmdDrawIndexed(m_currentCommandBuffer, 6, static_cast<uint32_t>(batchSize), 0, 0, 0);
+
+            offset += batchSize;
+            remaining -= batchSize;
+        }
+
+        m_instanceCounter += m_instances.size();
+        m_instances.clear();
+        m_currentCommandBuffer = VK_NULL_HANDLE;
+        m_texDescSetIdx++;
     }
 
     bool QuadPipeline::isTexArraySetAvailable(size_t idx) const {

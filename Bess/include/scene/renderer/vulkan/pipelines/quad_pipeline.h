@@ -36,6 +36,10 @@ namespace Bess::Vulkan::Pipelines {
                           std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> &texutredData);
 
         void setQuadsData(const std::vector<QuadInstance> &instances);
+        void drawQuadInstances(VkCommandBuffer cmd,
+                               bool isTranslucent,
+                               const std::vector<QuadInstance> &instances,
+                               std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> &texturedData);
         void cleanup() override;
 
         void cleanPrevStateCounter() override;
@@ -53,6 +57,7 @@ namespace Bess::Vulkan::Pipelines {
         VkDescriptorSet getTextureArraySet(uint8_t idx);
 
         void resizeTexArrayDescriptorPool(uint64_t size);
+        void setTextureSetGrowthPolicy(float growthFactor, uint32_t minHeadroom, uint32_t maxSetsCap);
 
         VkDescriptorPool createDescriptorPool(uint32_t maxSets, uint32_t descriptorCount);
         void createDescriptorSets(uint32_t descCount, uint32_t setsCount,
@@ -106,11 +111,16 @@ namespace Bess::Vulkan::Pipelines {
         VkDescriptorSetLayout m_textureArrayLayout = VK_NULL_HANDLE;
         std::unique_ptr<VulkanTexture> m_fallbackTexture;
         std::array<VkDescriptorImageInfo, m_texArraySize> m_textureInfos;
+        std::unordered_map<uint32_t, std::array<VkDescriptorImageInfo, m_texArraySize>> m_cachedTextureInfos;
 
         bool m_isTranslucentFlow = false;
         uint8_t m_texDescSetIdx = 0;
 
         size_t m_texArraySetsCount = 2; // One for opaque flow, one for translucent flow
+       
+        float m_texSetsGrowthFactor = 2.0f;
+        uint32_t m_texSetsMinHeadroom = 64;
+        uint32_t m_texSetsMaxCap = 4096;
     };
 
 } // namespace Bess::Vulkan::Pipelines

@@ -282,9 +282,7 @@ namespace Bess::Renderer {
 
     void MaterialRenderer::flushVertices(bool isTranslucent) {
         if (m_quadPipeline && (!m_quadInstances.empty() || !m_texturedQuadInstances.empty())) {
-            m_quadPipeline->beginPipeline(m_cmdBuffer, isTranslucent);
-            m_quadPipeline->setQuadsData(m_quadInstances, m_texturedQuadInstances);
-            m_quadPipeline->endPipeline();
+            m_quadPipeline->drawQuadInstances(m_cmdBuffer, isTranslucent, m_quadInstances, m_texturedQuadInstances);
             m_quadInstances.clear();
             m_texturedQuadInstances.clear();
         }
