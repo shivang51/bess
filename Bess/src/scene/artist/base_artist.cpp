@@ -81,7 +81,7 @@ namespace Bess::Canvas {
         m_pathRenderer->pathLineTo(glm::vec3(midX, startPos.y, 0.8f), 2.f, ViewportTheme::colors.ghostWire, -1);
         m_pathRenderer->pathLineTo(glm::vec3(midX, pos.y, 0.8f), 2.f, ViewportTheme::colors.ghostWire, -1);
         m_pathRenderer->pathLineTo(glm::vec3(pos, 0.8f), 2.f, ViewportTheme::colors.ghostWire, -1);
-        m_pathRenderer->endPathMode();
+        m_pathRenderer->endPathMode(false, false, glm::vec4(1.f), true, true);
     }
 
     void BaseArtist::drawConnection(const UUID &id, entt::entity inputEntity, entt::entity outputEntity, bool isSelected) {
@@ -156,7 +156,7 @@ namespace Bess::Canvas {
             segId = newSegId;
             prevPos = pos;
         }
-        m_pathRenderer->endPathMode();
+        m_pathRenderer->endPathMode(false, false, glm::vec4(1.f), true, true);
     }
 
     void BaseArtist::drawConnectionEntity(const entt::entity entity) {

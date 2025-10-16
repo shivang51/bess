@@ -7,10 +7,10 @@
 #include "primitive_vertex.h"
 #include "scene/renderer/path.h"
 #include "vulkan_offscreen_render_pass.h"
+#include <deque>
 #include <memory>
 #include <unordered_map>
 #include <vector>
-#include <deque>
 #include <vulkan/vulkan_core.h>
 
 using namespace Bess::Vulkan;
@@ -102,7 +102,9 @@ namespace Bess::Renderer2D::Vulkan {
 
         // Path API functions
         void beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, uint64_t id);
-        void endPathMode(bool closePath = false, bool genFill = false, const glm::vec4 &fillColor = glm::vec4(1.f), bool genStroke = true);
+        void endPathMode(bool closePath = false, bool genFill = false,
+                         const glm::vec4 &fillColor = glm::vec4(1.f), bool genStroke = true,
+                         bool genRoundedJoints = false);
         void pathMoveTo(const glm::vec3 &pos);
         void pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, int id);
         void pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
@@ -164,8 +166,8 @@ namespace Bess::Renderer2D::Vulkan {
         std::vector<CommonVertex> generateStrokeGeometry(const std::vector<PathPoint> &points,
                                                          const glm::vec4 &color, bool isClosed,
                                                          bool rounedJoint);
-        std::vector<CommonVertex> generateFillGeometry(const std::vector<PathPoint> &points, const glm::vec4 &color);
-        std::vector<CommonVertex> generateFillGeometry(const std::vector<std::vector<PathPoint>> &contours, const glm::vec4 &color);
+        std::vector<CommonVertex> generateFillGeometry(const std::vector<PathPoint> &points, const glm::vec4 &color, bool rounedJoint = false);
+        std::vector<CommonVertex> generateFillGeometry(const std::vector<std::vector<PathPoint>> &contours, const glm::vec4 &color, bool rounedJoint = false);
         std::vector<uint32_t> generateFillIndices(size_t vertexCount);
 
         QuadBezierCurvePoints generateSmoothBendPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius);

@@ -40,6 +40,7 @@ namespace Bess::Renderer2D::Vulkan {
     }
     constexpr size_t primitiveResetIndex = 0xFFFFFFFF;
     constexpr float kRoundedJoinRadius = 8.0f;
+    constexpr int kMaxRoundedSegments = 24;
 
     PathRenderer::PathRenderer(const std::shared_ptr<VulkanDevice> &device,
                                const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
@@ -74,7 +75,7 @@ namespace Bess::Renderer2D::Vulkan {
             }
 
             if (info.genFill) {
-                generatedFillVertices = generateFillGeometry(contours, info.fillColor);
+                generatedFillVertices = generateFillGeometry(contours, info.fillColor, info.rounedJoint);
                 fillVerticesRef = &generatedFillVertices;
             }
 
@@ -171,8 +172,33 @@ namespace Bess::Renderer2D::Vulkan {
         }
 
         if (info.genFill) {
-            fillVertices = generateFillGeometry(contours, info.fillColor);
-            if (!fillVertices.empty()) {
+            uint64_t keyFill = hashContours(contours, info.fillColor, info.closePath, info.rounedJoint);
+            const std::vector<CommonVertex> *fillGeomRef = nullptr;
+            auto dynItF = m_dynamicStrokeCache.find(keyFill);
+            if (dynItF != m_dynamicStrokeCache.end() && !dynItF->second.fillVertices.empty()) {
+                fillGeomRef = &dynItF->second.fillVertices;
+            } else {
+                fillVertices = generateFillGeometry(contours, info.fillColor, info.rounedJoint);
+                if (!fillVertices.empty()) {
+                    // Cache it for reuse
+                    constexpr size_t kMaxDynEntries = 1024;
+                    PathGeometryCacheEntry entry{};
+                    entry.pathId = UUID{};
+                    entry.strokeVertices = {};
+                    entry.fillVertices = fillVertices;
+                    entry.rounded = false;
+                    m_dynamicStrokeCache[keyFill] = entry;
+                    m_dynamicStrokeCacheOrder.push_back(keyFill);
+                    if (m_dynamicStrokeCacheOrder.size() > kMaxDynEntries) {
+                        uint64_t old = m_dynamicStrokeCacheOrder.front();
+                        m_dynamicStrokeCacheOrder.pop_front();
+                        m_dynamicStrokeCache.erase(old);
+                    }
+                    fillGeomRef = &m_dynamicStrokeCache[keyFill].fillVertices;
+                }
+            }
+
+            if (fillGeomRef && !fillGeomRef->empty()) {
                 uint64_t glyphId = info.glyphId;
                 if (glyphId == 0) {
                     glyphId = reinterpret_cast<uint64_t>(this);
@@ -181,8 +207,8 @@ namespace Bess::Renderer2D::Vulkan {
                 if (found == m_glyphIdToMesh.end()) {
                     uint32_t firstIndex = static_cast<uint32_t>(m_fillIndices.size());
                     uint32_t baseVertex = static_cast<uint32_t>(m_fillVertices.size());
-                    m_fillVertices.insert(m_fillVertices.end(), fillVertices.begin(), fillVertices.end());
-                    auto localCount = static_cast<uint32_t>(fillVertices.size());
+                    m_fillVertices.insert(m_fillVertices.end(), fillGeomRef->begin(), fillGeomRef->end());
+                    auto localCount = static_cast<uint32_t>(fillGeomRef->size());
                     for (uint32_t i = 0; i < localCount; ++i)
                         m_fillIndices.emplace_back(baseVertex + i);
                     m_glyphIdToMesh[glyphId] = {firstIndex, localCount};
@@ -270,7 +296,8 @@ namespace Bess::Renderer2D::Vulkan {
         m_pathData.id = (int64_t)id;
     }
 
-    void PathRenderer::endPathMode(bool closePath, bool genFill, const glm::vec4 &fillColor, bool genStroke) {
+    void PathRenderer::endPathMode(bool closePath, bool genFill,
+                                   const glm::vec4 &fillColor, bool genStroke, bool genRoundedJoints) {
         if (m_pathData.ended)
             return;
 
@@ -284,7 +311,7 @@ namespace Bess::Renderer2D::Vulkan {
         info.genFill = genFill;
         info.genStroke = genStroke;
         info.fillColor = fillColor;
-        info.rounedJoint = true;
+        info.rounedJoint = genRoundedJoints;
         info.strokeColor = m_pathData.color;
         info.translate = glm::vec3(0.0f);
         info.scale = glm::vec2(1.0f);
@@ -628,22 +655,187 @@ namespace Bess::Renderer2D::Vulkan {
         return stripVertices;
     }
 
-    std::vector<CommonVertex> PathRenderer::generateFillGeometry(const std::vector<PathPoint> &points, const glm::vec4 &color) {
+    std::vector<CommonVertex> PathRenderer::generateFillGeometry(const std::vector<PathPoint> &points, const glm::vec4 &color, bool rounedJoint) {
         std::vector<std::vector<PathPoint>> contours;
         contours.push_back(points);
-        return generateFillGeometry(contours, color);
+        return generateFillGeometry(contours, color, rounedJoint);
     }
 
     std::vector<CommonVertex> PathRenderer::generateFillGeometry(
         const std::vector<std::vector<PathPoint>> &contours,
-        const glm::vec4 &color) {
+        const glm::vec4 &color,
+        bool rounedJoint) {
         std::vector<CommonVertex> out;
         if (contours.empty())
             return out;
 
+        // 1) Optional contour smoothing with quadratic Bezier fillets
+        std::vector<std::vector<PathPoint>> roundedContours;
+        const auto &useContours = [&]() -> const std::vector<std::vector<PathPoint>> & {
+            if (!rounedJoint)
+                return contours;
+
+            auto nearlyEqual = [](const glm::vec2 &a, const glm::vec2 &b) {
+                return glm::length(a - b) < 1e-4f;
+            };
+            roundedContours.clear();
+            roundedContours.reserve(contours.size());
+
+            for (const auto &c : contours) {
+                if (c.size() < 3) {
+                    roundedContours.push_back(c);
+                    continue;
+                }
+
+                std::vector<PathPoint> smoothed;
+                smoothed.reserve(c.size() * 3);
+
+                auto pushPoint = [&](const glm::vec2 &p, float z, float w, int64_t id) {
+                    smoothed.emplace_back(PathPoint{glm::vec3(p, z), w, id});
+                };
+
+                bool isClosed = nearlyEqual(glm::vec2(c.front().pos), glm::vec2(c.back().pos));
+
+                if (!isClosed) {
+                    smoothed.push_back(c.front());
+                    for (size_t i = 1; i + 1 < c.size(); ++i) {
+                        const auto &prev = c[i - 1];
+                        const auto &curr = c[i];
+                        const auto &next = c[i + 1];
+
+                        glm::vec2 v1 = glm::normalize(glm::vec2(curr.pos) - glm::vec2(prev.pos));
+                        glm::vec2 v2 = glm::normalize(glm::vec2(next.pos) - glm::vec2(curr.pos));
+                        float len1 = glm::distance(glm::vec2(prev.pos), glm::vec2(curr.pos));
+                        float len2 = glm::distance(glm::vec2(curr.pos), glm::vec2(next.pos));
+                        float cosTheta = glm::clamp(glm::dot(-v1, v2), -1.0f, 1.0f);
+                        float theta = std::acos(cosTheta);
+                        if (theta < 1e-3f || std::abs(theta - glm::pi<float>()) < 1e-3f) {
+                            smoothed.push_back(curr);
+                            continue;
+                        }
+
+                        float r = std::min(kRoundedJoinRadius, std::min(len1, len2) * 0.45f);
+                        float t = r / std::tan(theta * 0.5f);
+                        t = std::min(t, std::min(len1, len2) - 1e-4f);
+                        if (!(t > 0.0f)) {
+                            smoothed.push_back(curr);
+                            continue;
+                        }
+
+                        glm::vec2 start = glm::vec2(curr.pos) - v1 * t;
+                        glm::vec2 end = glm::vec2(curr.pos) + v2 * t;
+
+                        glm::vec2 bi = glm::normalize((-v1) + v2);
+                        float sinHalf = std::sin(theta * 0.5f);
+                        if (sinHalf < 1e-5f) {
+                            smoothed.push_back(curr);
+                            continue;
+                        }
+                        glm::vec2 center = glm::vec2(curr.pos) + bi * (r / sinHalf);
+
+                        glm::vec2 from = glm::normalize(start - center);
+                        glm::vec2 to = glm::normalize(end - center);
+                        float a0 = std::atan2(from.y, from.x);
+                        float a1 = std::atan2(to.y, to.x);
+                        float da = a1 - a0;
+                        auto wrap = [](float a) { while (a <= -glm::pi<float>()) a += 2*glm::pi<float>(); while (a > glm::pi<float>()) a -= 2*glm::pi<float>(); return a; };
+                        da = wrap(da);
+                        float crossZ = v1.x * v2.y - v1.y * v2.x;
+                        if (crossZ > 0 && da < 0)
+                            da += 2 * glm::pi<float>();
+                        if (crossZ < 0 && da > 0)
+                            da -= 2 * glm::pi<float>();
+
+                        // Insert trimmed start
+                        pushPoint(start, curr.pos.z, curr.weight, curr.id);
+                        // Sample arc from start to end along interior
+                        float arcLen = std::abs(da) * r;
+                        int segs = std::min(kMaxRoundedSegments, std::max(3, (int)std::ceil(arcLen / kRoundedJoinRadius)));
+                        for (int s = 1; s <= segs; ++s) {
+                            float tseg = (float)s / (float)segs;
+                            float ang = a0 + da * tseg;
+                            glm::vec2 p = center + glm::vec2(std::cos(ang), std::sin(ang)) * r;
+                            smoothed.emplace_back(PathPoint{glm::vec3(p, curr.pos.z), curr.weight, curr.id});
+                        }
+                    }
+                    smoothed.push_back(c.back());
+                } else {
+                    const size_t n = c.size();
+                    for (size_t i = 0; i < n; ++i) {
+                        const auto &prev = c[(i + n - 1) % n];
+                        const auto &curr = c[i];
+                        const auto &next = c[(i + 1) % n];
+
+                        glm::vec2 v1 = glm::normalize(glm::vec2(curr.pos) - glm::vec2(prev.pos));
+                        glm::vec2 v2 = glm::normalize(glm::vec2(next.pos) - glm::vec2(curr.pos));
+                        float len1 = glm::distance(glm::vec2(prev.pos), glm::vec2(curr.pos));
+                        float len2 = glm::distance(glm::vec2(curr.pos), glm::vec2(next.pos));
+                        float cosTheta = glm::clamp(glm::dot(-v1, v2), -1.0f, 1.0f);
+                        float theta = std::acos(cosTheta);
+                        if (theta < 1e-3f || std::abs(theta - glm::pi<float>()) < 1e-3f) {
+                            smoothed.push_back(curr);
+                            continue;
+                        }
+
+                        float r = std::min(kRoundedJoinRadius, std::min(len1, len2) * 0.45f);
+                        float t = r / std::tan(theta * 0.5f);
+                        t = std::min(t, std::min(len1, len2) - 1e-4f);
+                        if (!(t > 0.0f)) {
+                            smoothed.push_back(curr);
+                            continue;
+                        }
+
+                        glm::vec2 start = glm::vec2(curr.pos) - v1 * t;
+                        glm::vec2 end = glm::vec2(curr.pos) + v2 * t;
+
+                        glm::vec2 bi = glm::normalize((-v1) + v2);
+                        float sinHalf = std::sin(theta * 0.5f);
+                        if (sinHalf < 1e-5f) {
+                            smoothed.push_back(curr);
+                            continue;
+                        }
+                        glm::vec2 center = glm::vec2(curr.pos) + bi * (r / sinHalf);
+
+                        glm::vec2 from = glm::normalize(start - center);
+                        glm::vec2 to = glm::normalize(end - center);
+                        float a0 = std::atan2(from.y, from.x);
+                        float a1 = std::atan2(to.y, to.x);
+                        float da = a1 - a0;
+                        auto wrap = [](float a) { while (a <= -glm::pi<float>()) a += 2*glm::pi<float>(); while (a > glm::pi<float>()) a -= 2*glm::pi<float>(); return a; };
+                        da = wrap(da);
+                        float crossZ = v1.x * v2.y - v1.y * v2.x;
+                        if (crossZ > 0 && da < 0)
+                            da += 2 * glm::pi<float>();
+                        if (crossZ < 0 && da > 0)
+                            da -= 2 * glm::pi<float>();
+
+                        pushPoint(start, curr.pos.z, curr.weight, curr.id);
+                        float arcLen = std::abs(da) * r;
+                        int segs = std::min(kMaxRoundedSegments, std::max(3, (int)std::ceil(arcLen / kRoundedJoinRadius)));
+                        for (int s = 1; s <= segs; ++s) {
+                            float tseg = (float)s / (float)segs;
+                            float ang = a0 + da * tseg;
+                            glm::vec2 p = center + glm::vec2(std::cos(ang), std::sin(ang)) * r;
+                            smoothed.emplace_back(PathPoint{glm::vec3(p, curr.pos.z), curr.weight, curr.id});
+                        }
+                    }
+                }
+
+                // Ensure closedness if original contour was closed
+                if (isClosed && (smoothed.empty() || !nearlyEqual(glm::vec2(smoothed.front().pos), glm::vec2(smoothed.back().pos)))) {
+                    smoothed.push_back(smoothed.front());
+                }
+
+                roundedContours.emplace_back(std::move(smoothed));
+            }
+
+            return roundedContours;
+        }();
+
+        // 2) Compute bounds from the chosen contours
         glm::vec2 minPt(std::numeric_limits<float>::max());
         glm::vec2 maxPt(-std::numeric_limits<float>::max());
-        for (const auto &c : contours) {
+        for (const auto &c : useContours) {
             for (const auto &p : c) {
                 glm::vec2 v(p.pos.x, p.pos.y);
                 minPt = glm::min(minPt, v);
@@ -660,7 +852,7 @@ namespace Bess::Renderer2D::Vulkan {
         if (!tess)
             return out;
 
-        for (const auto &c : contours) {
+        for (const auto &c : useContours) {
             if (c.size() < 3)
                 continue;
             std::vector<TESSreal> coords;
