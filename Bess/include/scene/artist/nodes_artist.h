@@ -31,7 +31,9 @@ namespace Bess::Canvas {
 
     class NodesArtist : public BaseArtist {
       public:
-        NodesArtist(Scene *scene);
+        NodesArtist(const std::shared_ptr<Vulkan::VulkanDevice> &device,
+                    const std::shared_ptr<Vulkan::VulkanOffscreenRenderPass> &renderPass,
+                    VkExtent2D extent);
         virtual ~NodesArtist() = default;
 
         void drawSimEntity(
@@ -54,7 +56,7 @@ namespace Bess::Canvas {
 
         void paintSlot(uint64_t id, uint64_t parentId, const glm::vec3 &pos,
                        float angle, const std::string &label, float labelDx,
-                       SimEngine::LogicState state, bool isConnected, SimEngine::ExtendedPinType extendedType);
+                       SimEngine::LogicState state, bool isConnected, SimEngine::ExtendedPinType extendedType) const;
 
         void drawHeaderLessComp(entt::entity entity,
                                 const Components::TagComponent &tagComp,

@@ -1,84 +1,107 @@
 #include "scene/artist/base_artist.h"
 #include "asset_manager/asset_manager.h"
 #include "assets.h"
-#include "common/log.h"
-#include "entt/entity/fwd.hpp"
-#include "ext/vector_float3.hpp"
 #include "scene/artist/nodes_artist.h"
-#include "scene/components/components.h"
-#include "scene/renderer/renderer.h"
 #include "scene/scene.h"
+#include "scene/scene_pch.h"
+#include "scene/viewport.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
-#include <cstdint>
+#include "vulkan_core.h"
+#include "vulkan_subtexture.h"
 #include <vector>
 
-using Renderer = Bess::Renderer2D::Renderer;
-
+using namespace Bess::Renderer2D;
 namespace Bess::Canvas {
     ArtistTools BaseArtist::m_artistTools;
 
-    BaseArtist::BaseArtist(Scene *scene) : m_sceneRef(scene) {
+    BaseArtist::BaseArtist(const std::shared_ptr<Vulkan::VulkanDevice> &device,
+                           const std::shared_ptr<Vulkan::VulkanOffscreenRenderPass> &renderPass,
+                           VkExtent2D extent) {
         static bool initialized = false;
         if (!initialized) {
             init();
             initialized = true;
         }
+
+        m_pathRenderer = std::make_shared<Renderer2D::Vulkan::PathRenderer>(device, renderPass, extent);
+        m_materialRenderer = std::make_shared<Renderer::MaterialRenderer>(device, renderPass, extent);
+
+        BESS_INFO("[Base Aritist] Initialized");
     }
 
     void BaseArtist::init() {
         auto tex = Assets::AssetManager::instance().get(Assets::TileMaps::sevenSegDisplay);
         float margin = 4.f;
         glm::vec2 size(128.f, 234.f);
-        m_artistTools.sevenSegDispTexs = std::array<std::shared_ptr<Gl::SubTexture>, 8>{
-            std::make_shared<Gl::SubTexture>(tex, glm::vec2({0.f, 0.f}), size, margin, glm::vec2(1.f)),
-            std::make_shared<Gl::SubTexture>(tex, glm::vec2({1.f, 0.f}), size, margin, glm::vec2(1.f)),
-            std::make_shared<Gl::SubTexture>(tex, glm::vec2({2.f, 0.f}), size, margin, glm::vec2(1.f)),
-            std::make_shared<Gl::SubTexture>(tex, glm::vec2({3.f, 0.f}), size, margin, glm::vec2(1.f)),
-            std::make_shared<Gl::SubTexture>(tex, glm::vec2({4.f, 0.f}), size, margin, glm::vec2(1.f)),
-            std::make_shared<Gl::SubTexture>(tex, glm::vec2({0.f, 1.f}), size, margin, glm::vec2(1.f)),
-            std::make_shared<Gl::SubTexture>(tex, glm::vec2({1.f, 1.f}), size, margin, glm::vec2(1.f)),
-            std::make_shared<Gl::SubTexture>(tex, glm::vec2({2.f, 1.f}), size, margin, glm::vec2(1.f)),
+        m_artistTools.sevenSegDispTexs = std::array<std::shared_ptr<Vulkan::SubTexture>, 8>{
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({0.f, 0.f}), size, margin, glm::vec2(1.f)),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({1.f, 0.f}), size, margin, glm::vec2(1.f)),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({2.f, 0.f}), size, margin, glm::vec2(1.f)),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({3.f, 0.f}), size, margin, glm::vec2(1.f)),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({4.f, 0.f}), size, margin, glm::vec2(1.f)),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({0.f, 1.f}), size, margin, glm::vec2(1.f)),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({1.f, 1.f}), size, margin, glm::vec2(1.f)),
+            std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({2.f, 1.f}), size, margin, glm::vec2(1.f)),
         };
     }
 
+    void BaseArtist::begin(VkCommandBuffer cmd, const std::shared_ptr<Camera> &camera, uint32_t frameIdx) {
+        m_pathRenderer->setCurrentFrameIndex(frameIdx);
+        m_materialRenderer->setCurrentFrameIndex(frameIdx);
+
+        m_pathRenderer->beginFrame(cmd);
+        m_materialRenderer->beginFrame(cmd);
+
+        Vulkan::UniformBufferObject ubo{};
+        ubo.mvp = camera->getTransform();
+        ubo.ortho = camera->getOrtho();
+        m_pathRenderer->updateUniformBuffer(ubo);
+        m_materialRenderer->updateUBO(camera);
+    }
+
+    void BaseArtist::end() {
+        m_pathRenderer->endFrame();
+        m_materialRenderer->endFrame();
+    }
+
     void BaseArtist::drawGhostConnection(const entt::entity &startEntity, const glm::vec2 pos) {
-        auto &registry = m_sceneRef->getEnttRegistry();
+        auto &registry = Scene::instance()->getEnttRegistry();
         const auto slotsView = registry.view<Components::SlotComponent, Components::TransformComponent, Components::SimulationComponent>();
         const auto &slotComp = slotsView.get<Components::SlotComponent>(startEntity);
-        const auto parentEntt = m_sceneRef->getEntityWithUuid(slotComp.parentId);
+        const auto parentEntt = Scene::instance()->getEntityWithUuid(slotComp.parentId);
         const auto &parentTransform = slotsView.get<Components::TransformComponent>(parentEntt);
         auto startPos = getSlotPos(slotComp, parentTransform);
-        startPos.z = 0.f;
+        startPos.z = 0.8f;
 
-        const float ratio = slotComp.slotType == Components::SlotType::digitalInput ? 0.8f : 0.2f;
+        const float ratio = slotComp.slotType == Components::SlotType::digitalInput ? 0.75f : 0.25f;
         const auto midX = startPos.x + ((pos.x - startPos.x) * ratio);
 
-        Renderer::beginPathMode(startPos, 2.f, ViewportTheme::colors.ghostWire, -1);
-        Renderer::pathLineTo(glm::vec3(midX, startPos.y, 0.f), 2.f, ViewportTheme::colors.ghostWire, -1);
-        Renderer::pathLineTo(glm::vec3(midX, pos.y, 0.f), 2.f, ViewportTheme::colors.ghostWire, -1);
-        Renderer::pathLineTo(glm::vec3(pos, 0.f), 2.f, ViewportTheme::colors.ghostWire, -1);
-        Renderer::endPathMode();
+        m_pathRenderer->beginPathMode(startPos, 2.f, ViewportTheme::colors.ghostWire, -1);
+        m_pathRenderer->pathLineTo(glm::vec3(midX, startPos.y, 0.8f), 2.f, ViewportTheme::colors.ghostWire, -1);
+        m_pathRenderer->pathLineTo(glm::vec3(midX, pos.y, 0.8f), 2.f, ViewportTheme::colors.ghostWire, -1);
+        m_pathRenderer->pathLineTo(glm::vec3(pos, 0.8f), 2.f, ViewportTheme::colors.ghostWire, -1);
+        m_pathRenderer->endPathMode(false, false, glm::vec4(1.f), true, true);
     }
 
     void BaseArtist::drawConnection(const UUID &id, entt::entity inputEntity, entt::entity outputEntity, bool isSelected) {
-        auto &registry = m_sceneRef->getEnttRegistry();
-        auto connEntity = m_sceneRef->getEntityWithUuid(id);
+        auto &registry = Scene::instance()->getEnttRegistry();
+        auto connEntity = Scene::instance()->getEntityWithUuid(id);
         auto &connectionComponent = registry.get<Components::ConnectionComponent>(connEntity);
 
         const auto &inpSlotComp = registry.get<Components::SlotComponent>(inputEntity);
         const auto &outputSlotComp = registry.get<Components::SlotComponent>(outputEntity);
-        const auto outParentEntt = m_sceneRef->getEntityWithUuid(outputSlotComp.parentId);
+        const auto outParentEntt = Scene::instance()->getEntityWithUuid(outputSlotComp.parentId);
         const auto &outParentSimComp = registry.get<Components::SimulationComponent>(outParentEntt);
 
         glm::vec3 startPos, endPos;
-        const auto &parentTransform = registry.get<Components::TransformComponent>(m_sceneRef->getEntityWithUuid(inpSlotComp.parentId));
+        const auto &parentTransform = registry.get<Components::TransformComponent>(Scene::instance()->getEntityWithUuid(inpSlotComp.parentId));
         startPos = getSlotPos(inpSlotComp, parentTransform);
-        const auto &endParentTransform = registry.get<Components::TransformComponent>(m_sceneRef->getEntityWithUuid(outputSlotComp.parentId));
+        const auto &endParentTransform = registry.get<Components::TransformComponent>(Scene::instance()->getEntityWithUuid(outputSlotComp.parentId));
         endPos = getSlotPos(outputSlotComp, endParentTransform);
 
-        startPos.z = 0.f;
-        endPos.z = 0.f;
+        startPos.z = 0.5f;
+        endPos.z = 0.5f;
 
         glm::vec4 color;
         if (connectionComponent.useCustomColor) {
@@ -93,7 +116,7 @@ namespace Bess::Canvas {
 
         color = isSelected ? ViewportTheme::colors.selectedWire : color;
 
-        auto connSegEntt = m_sceneRef->getEntityWithUuid(connectionComponent.segmentHead);
+        auto connSegEntt = Scene::instance()->getEntityWithUuid(connectionComponent.segmentHead);
         auto connSegComp = registry.get<Components::ConnectionSegmentComponent>(connSegEntt);
         auto segId = connectionComponent.segmentHead;
         auto prevPos = startPos;
@@ -103,13 +126,13 @@ namespace Bess::Canvas {
 
         bool isHovered = registry.all_of<Components::HoveredEntityComponent>(connSegEntt);
 
-        Renderer::beginPathMode(startPos, isHovered ? hoveredSize : wireSize, color, static_cast<uint64_t>(connSegEntt));
+        m_pathRenderer->beginPathMode(startPos, isHovered ? hoveredSize : wireSize, color, static_cast<uint64_t>(connSegEntt));
         while (segId != UUID::null) {
             glm::vec3 pos = endPos;
             auto newSegId = connSegComp.next;
 
             if (newSegId != UUID::null) {
-                auto newSegEntt = m_sceneRef->getEntityWithUuid(newSegId);
+                auto newSegEntt = Scene::instance()->getEntityWithUuid(newSegId);
                 connSegComp = registry.get<Components::ConnectionSegmentComponent>(newSegEntt);
                 pos = glm::vec3(connSegComp.pos, prevPos.z);
                 if (pos.x == 0.f) {
@@ -123,30 +146,30 @@ namespace Bess::Canvas {
                 }
             }
 
-            auto segEntt = m_sceneRef->getEntityWithUuid(segId);
+            auto segEntt = Scene::instance()->getEntityWithUuid(segId);
             isHovered = registry.all_of<Components::HoveredEntityComponent>(segEntt);
             auto size = isHovered ? hoveredSize : wireSize;
             auto offPos = pos;
-            Renderer::pathLineTo(offPos, size, color, static_cast<uint64_t>(segEntt));
+            m_pathRenderer->pathLineTo(offPos, size, color, static_cast<uint64_t>(segEntt));
             offPos.z += 0.0001f;
 
             segId = newSegId;
             prevPos = pos;
         }
-        Renderer::endPathMode();
+        m_pathRenderer->endPathMode(false, false, glm::vec4(1.f), true, true);
     }
 
     void BaseArtist::drawConnectionEntity(const entt::entity entity) {
-        auto &registry = m_sceneRef->getEnttRegistry();
+        auto &registry = Scene::instance()->getEnttRegistry();
 
         const auto &connComp = registry.get<Components::ConnectionComponent>(entity);
         const auto &idComp = registry.get<Components::IdComponent>(entity);
         const bool isSelected = registry.all_of<Components::SelectedComponent>(entity);
-        drawConnection(idComp.uuid, m_sceneRef->getEntityWithUuid(connComp.inputSlot), m_sceneRef->getEntityWithUuid(connComp.outputSlot), isSelected);
+        drawConnection(idComp.uuid, Scene::instance()->getEntityWithUuid(connComp.inputSlot), Scene::instance()->getEntityWithUuid(connComp.outputSlot), isSelected);
     }
 
     void BaseArtist::drawNonSimEntity(entt::entity entity) {
-        auto &registry = m_sceneRef->getEnttRegistry();
+        auto &registry = Scene::instance()->getEnttRegistry();
         const auto &tagComp = registry.get<Components::TagComponent>(entity);
         const bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
 
@@ -158,22 +181,23 @@ namespace Bess::Canvas {
             const auto &transformComp = registry.get<Components::TransformComponent>(entity);
             auto pos = transformComp.position;
             const auto rotation = transformComp.angle;
-            Renderer::msdfText(textComp.text, pos, textComp.fontSize, textComp.color, id, rotation);
+            m_materialRenderer->drawText(textComp.text, pos, textComp.fontSize, textComp.color, id, rotation);
 
             if (isSelected) {
-                const Renderer2D::QuadRenderProperties props{
+                const Renderer::QuadRenderProperties props{
                     .angle = rotation,
                     .borderColor = ViewportTheme::colors.selectedComp,
                     .borderRadius = glm::vec4(4.f),
                     .borderSize = glm::vec4(1.f),
                     .isMica = true,
                 };
-                auto size = Renderer::getMSDFTextRenderSize(textComp.text, textComp.fontSize);
+                auto size = m_materialRenderer->getTextRenderSize(textComp.text, textComp.fontSize);
                 pos.x += size.x * 0.5f;
                 pos.y -= size.y * 0.25f;
+                pos.z -= 0.0005f;
                 size.x += componentStyles.paddingX * 2.f;
                 size.y += componentStyles.paddingY * 2.f;
-                Renderer::quad(pos, size, ViewportTheme::colors.componentBG, id, props);
+                m_materialRenderer->drawQuad(pos, size, ViewportTheme::colors.componentBG, id, props);
             }
         } break;
         default:
@@ -189,7 +213,7 @@ namespace Bess::Canvas {
         const int maxRows = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
         float height = (maxRows * SLOT_ROW_SIZE);
 
-        const auto labelSize = Renderer::getMSDFTextRenderSize(name, componentStyles.headerFontSize);
+        const auto labelSize = m_materialRenderer->getTextRenderSize(name, componentStyles.headerFontSize);
 
         float width = labelSize.x + componentStyles.paddingX * 2.f;
 
@@ -217,7 +241,7 @@ namespace Bess::Canvas {
     }
 
     void BaseArtist::drawSimEntity(const entt::entity entity) {
-        auto &registry = m_sceneRef->getEnttRegistry();
+        auto &registry = Scene::instance()->getEnttRegistry();
         const auto &tagComp = registry.get<Components::TagComponent>(entity);
         const auto &transform = registry.get<Components::TransformComponent>(entity);
         const auto &spriteComp = registry.get<Components::SpriteComponent>(entity);
@@ -229,5 +253,21 @@ namespace Bess::Canvas {
     bool BaseArtist::isHeaderLessComp(const Components::SimulationComponent &simComp) {
         const int n = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
         return n == 1;
+    }
+
+    void BaseArtist::destroyTools() {
+        m_artistTools = {};
+    }
+
+    void BaseArtist::resize(VkExtent2D size) {
+        m_pathRenderer->resize(size);
+        m_materialRenderer->resize(size);
+    }
+
+    std::shared_ptr<Renderer2D::Vulkan::PathRenderer> BaseArtist::getPathRenderer() {
+        return m_pathRenderer;
+    }
+    std::shared_ptr<Renderer::MaterialRenderer> BaseArtist::getMaterialRenderer() {
+        return m_materialRenderer;
     }
 } // namespace Bess::Canvas

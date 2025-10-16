@@ -1,5 +1,5 @@
 #include "common/helpers.h"
-#include "scene/renderer/renderer.h"
+#include "vulkan_core.h"
 #include "ui/icons/ComponentIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/icons/MaterialIcons.h"

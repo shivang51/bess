@@ -7,14 +7,37 @@ Checks: >
   cppcoreguidelines-*,
   -modernize-use-trailing-return-type,
   -readability-magic-numbers,
+  -modernize-avoid-c-arrays,
   -cppcoreguidelines-avoid-magic-numbers,
   -modernize-use-auto,
   -readability-identifier-length,
   -cppcoreguidelines-pro-type-member-init,
   -performance-avoid-endl,
   -readability-braces-around-statements,
-  -cppcoreguidelines-pro-bounds-pointer-arithmetic
-  -readability-identifier-naming
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -readability-identifier-naming,
+  -cppcoreguidelines-pro-type-union-access,
+  -readability-uppercase-literal-suffix,
+  -readability-function-cognitive-complexity,
+  -bugprone-easily-swappable-parameters,
+  -cppcoreguidelines-avoid-do-while,
+  -modernize-use-designated-initializers,
+  -readability-implicit-bool-conversion,
+  -cppcoreguidelines-avoid-c-arrays,
+  -readability-convert-member-functions-to-static,
+  -cppcoreguidelines-pro-type-vararg,
+  -readability-qualified-auto,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-special-member-functions,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -readability-isolate-declaration,
+  -modernize-use-nodiscard,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-type-cstyle-cast,
+  -readability-else-after-return,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -readability-redundant-access-specifiers
+
 
 WarningsAsErrors: ''
 

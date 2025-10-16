@@ -1,40 +1,35 @@
 #pragma once
 
-#include "ft2build.h"
-#include "gl/texture.h"
-#include "glm.hpp"
-#include <map>
+#include "glyph_extractor.h"
+#include <cstddef>
 #include <string>
-#include <memory>
 
-#include FT_FREETYPE_H
-
-namespace Bess::Renderer2D {
-    class Font {
+namespace Bess::Renderer::Font {
+    class FontFile {
       public:
-        struct Character {
-            std::shared_ptr<Gl::Texture> Texture; 
-            glm::ivec2 Size;     
-            glm::ivec2 Bearing;  
-            int Advance;         
-        };
+        FontFile() = default;
+        FontFile(const std::string &path);
 
-        Font() = default;
+        FontFile(FontFile &&other) noexcept;
+        FontFile &operator=(FontFile &&other) noexcept;
 
-        ~Font();
+        FontFile(const FontFile &) = delete;
+        FontFile &operator=(const FontFile &) = delete;
 
-        Font(const std::string &path);
+        void init(float fontSize, size_t glyphMin = 0, size_t glyphMax = 128);
 
-        const Character &getCharacter(char ch);
+        Glyph &getGlyph(char32_t ch);
+        Glyph &getGlyph(const char *data);
 
-        static float getScale(float size);
+        float getSize() const;
 
       private:
-        FT_Library m_ft;
-        FT_Face m_face;
-        std::map<char, Character> Characters;
-        void loadCharacters();
+        Glyph &indexChar(char32_t ch);
 
-        static const int m_defaultSize = 48;
+        std::vector<Glyph> m_glyphsTable;
+        float m_size = 0;
+        size_t m_min = 0, m_max = 0;
+        GlyphExtractor m_glyphExtractor;
+        size_t m_glyphCount = 0;
     };
-} // namespace Bess::Renderer2D
+} // namespace Bess::Renderer::Font

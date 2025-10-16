@@ -15,6 +15,7 @@ namespace Bess::Pages {
     class MainPage : public Page {
       public:
         MainPage(std::shared_ptr<Window> parentWindow);
+        ~MainPage() override;
 
         static std::shared_ptr<Page> getInstance(const std::shared_ptr<Window> &parentWindow = nullptr);
 
@@ -25,11 +26,13 @@ namespace Bess::Pages {
         void update(TFrameTime ts, const std::vector<ApplicationEvent> &events) override;
 
         std::shared_ptr<Window> getParentWindow();
-        Canvas::Scene &getScene();
+        std::shared_ptr<Canvas::Scene> getScene() const;
+
+        void destory();
 
       private:
         std::shared_ptr<Window> m_parentWindow;
-        Bess::Canvas::Scene &m_scene = Bess::Canvas::Scene::instance();
+        std::shared_ptr<Bess::Canvas::Scene> m_scene;
 
         // event handlers
       private:

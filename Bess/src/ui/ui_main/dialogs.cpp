@@ -6,7 +6,7 @@ namespace Bess::UI {
 
     std::string Dialogs::showSaveFileDialog(const std::string &title, const std::string &filters) {
 
-        auto filepath = tinyfd_saveFileDialog("Open Bess Project", "", 1, filterList, "Bess Project");
+        const auto filepath = tinyfd_saveFileDialog("Open Bess Project", "", 1, filterList, "Bess Project");
 
         if (filepath == NULL)
             return "";
@@ -15,7 +15,7 @@ namespace Bess::UI {
     }
 
     std::string Dialogs::showSelectPathDialog(const std::string &title) {
-        auto filepath = tinyfd_selectFolderDialog("Select Location", "");
+        const auto filepath = tinyfd_selectFolderDialog("Select Location", "");
 
         if (filepath == NULL)
             return "";
@@ -24,7 +24,7 @@ namespace Bess::UI {
     }
 
     std::string Dialogs::showOpenFileDialog(const std::string &title, const std::string &filters) {
-        auto filepath = tinyfd_openFileDialog("Open Bess Project", "", 1, filterList, "Bess Project", false);
+        const auto filepath = tinyfd_openFileDialog("Open Bess Project", "", 1, filterList, "Bess Project", false);
 
         if (filepath == NULL)
             return "";

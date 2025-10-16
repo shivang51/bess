@@ -1,14 +1,26 @@
 #include "scene/artist/artist_manager.h"
+#include "common/log.h"
+#include "scene/artist/base_artist.h"
 #include "scene/artist/nodes_artist.h"
 #include "scene/artist/schematic_artist.h"
 #include "scene/scene.h"
 
 namespace Bess::Canvas {
 
-    ArtistManager::ArtistManager(Scene *scene)
-        : m_scene(scene),
-          m_schematicArtist(std::make_shared<SchematicArtist>(scene)),
-          m_nodesArtist(std::make_shared<NodesArtist>(scene)), m_isSchematicMode(false) {
+    ArtistManager::ArtistManager(const std::shared_ptr<Vulkan::VulkanDevice> &device,
+                                 const std::shared_ptr<Vulkan::VulkanOffscreenRenderPass> &renderPass,
+                                 VkExtent2D extent) : m_isSchematicMode(false) {
+        m_schematicArtist = std::make_shared<SchematicArtist>(device, renderPass, extent);
+        m_nodesArtist = std::make_shared<NodesArtist>(device, renderPass, extent);
+    }
+
+    ArtistManager::~ArtistManager() {
+        destroy();
+    }
+
+    void ArtistManager::destroy() {
+        BESS_INFO("[ArtistManager] Destroying");
+        BaseArtist::destroyTools();
     }
 
     std::shared_ptr<BaseArtist> ArtistManager::getCurrentArtist() const {

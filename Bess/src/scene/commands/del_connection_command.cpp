@@ -14,8 +14,8 @@ namespace Bess::Canvas::Commands {
 
     bool DelConnectionCommand::execute() {
         auto &simCmdManager = SimEngine::SimulationEngine::instance().getCmdManager();
-        auto &scene = Scene::instance();
-        auto &sceneReg = scene.getEnttRegistry();
+        auto scene = Scene::instance();
+        auto &sceneReg = scene->getEnttRegistry();
         SceneSerializer ser;
 
         if (!m_redo) {
@@ -23,21 +23,21 @@ namespace Bess::Canvas::Commands {
 
             int i = 0;
             for (const auto uuid : m_uuids) {
-                if (!scene.isEntityValid(uuid))
+                if (!scene->isEntityValid(uuid))
                     return false;
 
-                auto entity = scene.getEntityWithUuid(uuid);
+                const auto entity = scene->getEntityWithUuid(uuid);
 
                 auto &connComp = sceneReg.get<Components::ConnectionComponent>(entity);
 
-                auto &slotCompA = sceneReg.get<Components::SlotComponent>(scene.getEntityWithUuid(connComp.inputSlot));
-                auto &slotCompB = sceneReg.get<Components::SlotComponent>(scene.getEntityWithUuid(connComp.outputSlot));
+                auto &slotCompA = sceneReg.get<Components::SlotComponent>(scene->getEntityWithUuid(connComp.inputSlot));
+                auto &slotCompB = sceneReg.get<Components::SlotComponent>(scene->getEntityWithUuid(connComp.outputSlot));
 
-                auto &simCompA = sceneReg.get<Components::SimulationComponent>(scene.getEntityWithUuid(slotCompA.parentId));
-                auto &simCompB = sceneReg.get<Components::SimulationComponent>(scene.getEntityWithUuid(slotCompB.parentId));
+                const auto &simCompA = sceneReg.get<Components::SimulationComponent>(scene->getEntityWithUuid(slotCompA.parentId));
+                const auto &simCompB = sceneReg.get<Components::SimulationComponent>(scene->getEntityWithUuid(slotCompB.parentId));
 
-                auto pinTypeA = slotCompA.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
-                auto pinTypeB = slotCompB.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
+                const auto pinTypeA = slotCompA.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
+                const auto pinTypeB = slotCompB.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
 
                 SimEngine::Commands::DelConnectionCommandData data = {simCompA.simEngineEntity, slotCompA.idx, pinTypeA,
                                                                       simCompB.simEngineEntity, slotCompB.idx, pinTypeB};
@@ -46,7 +46,7 @@ namespace Bess::Canvas::Commands {
                 auto &json = m_jsons[i++];
                 json.clear();
                 ser.serializeEntity(uuid, json);
-                scene.deleteConnectionFromScene(uuid);
+                scene->deleteConnectionFromScene(uuid);
             }
 
             auto _ = simCmdManager.execute<SimEngine::Commands::DelConnectionCommand, std::string>(simCmdData);
@@ -57,7 +57,7 @@ namespace Bess::Canvas::Commands {
                 auto &json = m_jsons[i++];
                 json.clear();
                 ser.serializeEntity(uuid, json);
-                scene.deleteConnectionFromScene(uuid);
+                scene->deleteConnectionFromScene(uuid);
             }
         }
 

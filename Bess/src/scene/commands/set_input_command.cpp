@@ -10,14 +10,14 @@ namespace Bess::Canvas::Commands {
         : m_compId(compId), m_state(state) {}
 
     bool SetInputCommand::execute() {
-        auto &scene = Scene::instance();
-        auto &simComp = scene.getEnttRegistry().get<Components::SimulationComponent>(scene.getEntityWithUuid(m_compId));
+        auto scene = Scene::instance();
+        auto &simComp = scene->getEnttRegistry().get<Components::SimulationComponent>(scene->getEntityWithUuid(m_compId));
 
         auto &simCmdManager = SimEngine::SimulationEngine::instance().getCmdManager();
 
         bool status = true;
         if (!m_redo) {
-            auto res = simCmdManager.execute<SimEngine::Commands::SetInputCommand, bool>(simComp.simEngineEntity, m_state);
+            const auto res = simCmdManager.execute<SimEngine::Commands::SetInputCommand, bool>(simComp.simEngineEntity, m_state);
 
             status = res.has_value();
         } else {

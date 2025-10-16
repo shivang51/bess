@@ -1,11 +1,12 @@
 #include "camera.h"
+#include "common/log.h"
 #include "ext/matrix_clip_space.hpp"
 #include "ext/matrix_transform.hpp"
 
 namespace Bess {
     float Camera::zoomMin = 0.5f, Camera::zoomMax = 4.f, Camera::defaultZoom = 1.517f;
 
-    Camera::Camera(float width, float height) : m_zoom(defaultZoom), m_width(width), m_height(height) {
+    Camera::Camera(float width, float height) : m_zoom(defaultZoom), m_zPos(8.f), m_width(width), m_height(height) {
         setZoom(defaultZoom);
         setPos({0.f, 0.f});
     }
@@ -56,8 +57,8 @@ namespace Bess {
     }
 
     void Camera::incrementZoomToPoint(const glm::vec2 &point, float value) {
-        auto newZoom = m_zoom + value;
-        auto oldZoom = m_zoom;
+        const auto newZoom = m_zoom + value;
+        const auto oldZoom = m_zoom;
         setZoom(newZoom);
         if (m_zoom == oldZoom)
             return;
@@ -98,11 +99,11 @@ namespace Bess {
     }
 
     void Camera::recalculateOrtho() {
-        float xSpan = m_width / m_zoom;
-        float ySpan = m_height / m_zoom;
-        auto x = xSpan / 2.f;
-        auto y = ySpan / 2.f;
-        m_ortho = glm::ortho(-x, x, y, -y, -10.0f, 10.0f);
+        const float xSpan = m_width / m_zoom;
+        const float ySpan = m_height / m_zoom;
+        const auto x = xSpan / 2.f;
+        const auto y = ySpan / 2.f;
+        m_ortho = glm::ortho(-x, x, y, -y, -m_zPos, m_zPos);
 
         updateTransform();
     }
@@ -114,7 +115,16 @@ namespace Bess {
     }
 
     void Camera::updateTransform() {
-        transform = glm::translate(glm::mat4(1.f), glm::vec3(-m_pos, 0.0f));
+        transform = glm::translate(glm::mat4(1.f), glm::vec3(-m_pos, -m_zPos));
         transform = m_ortho * transform;
+    }
+
+    void Camera::setZPos(float zPos) {
+        m_zPos = zPos;
+        updateTransform();
+    }
+
+    float Camera::getZPos() const {
+        return m_zPos;
     }
 } // namespace Bess

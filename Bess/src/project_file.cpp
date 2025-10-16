@@ -1,3 +1,4 @@
+#include "scene/scene_pch.h"
 #include "project_file.h"
 #include "bess_uuid.h"
 #include "common/log.h"
@@ -61,7 +62,7 @@ namespace Bess {
         m_path = path;
     }
 
-    bool ProjectFile::isSaved() {
+    bool ProjectFile::isSaved() const {
         return m_saved;
     }
 
@@ -119,7 +120,7 @@ namespace Bess {
     }
 
     void ProjectFile::browsePath() {
-        auto path = UI::Dialogs::showSaveFileDialog("Save To", "");
+        const auto path = UI::Dialogs::showSaveFileDialog("Save To", "");
         if (path.size() == 0) {
             BESS_WARN("No path selected");
             return;
@@ -129,10 +130,10 @@ namespace Bess {
         BESS_INFO("Project path {} selected with name {}", m_path, m_name);
     }
 
-    void ProjectFile::patchFile() {
+    void ProjectFile::patchFile() const {
         using namespace Bess::Canvas;
-        auto &scene = Canvas::Scene::instance();
-        auto &reg = scene.getEnttRegistry();
+        auto scene = Canvas::Scene::instance();
+        auto &reg = scene->getEnttRegistry();
 
         for (auto &ent : reg.view<entt::entity>()) {
             auto *comp = reg.try_get<Components::TagComponent>(ent);
@@ -158,19 +159,19 @@ namespace Bess {
                         BESS_WARN("Patching flip flop input count...");
 
                         simEngine.updateInputCount(simComp->simEngineEntity, 4);
-                        simComp->inputSlots.emplace_back(scene.createSlotEntity(Components::SlotType::digitalInput, idComp.uuid, 3));
+                        simComp->inputSlots.emplace_back(scene->createSlotEntity(Components::SlotType::digitalInput, idComp.uuid, 3));
                     } else if ((comp->type.simCompType == SimEngine::ComponentType::FLIP_FLOP_D ||
                                 comp->type.simCompType == SimEngine::ComponentType::FLIP_FLOP_T) &&
                                simComp->inputSlots.size() != 3) {
                         BESS_WARN("Patching flip flop input count...");
                         simEngine.updateInputCount(simComp->simEngineEntity, 3);
-                        simComp->inputSlots.emplace_back(scene.createSlotEntity(Components::SlotType::digitalInput, idComp.uuid, 2));
+                        simComp->inputSlots.emplace_back(scene->createSlotEntity(Components::SlotType::digitalInput, idComp.uuid, 2));
                     }
 
                     auto connView = reg.view<Components::IdComponent, Components::ConnectionComponent>();
 
                     for (const auto slotUuid : simComp->inputSlots) {
-                        auto &slotComp = reg.get<Components::SlotComponent>(scene.getEntityWithUuid(slotUuid));
+                        auto &slotComp = reg.get<Components::SlotComponent>(scene->getEntityWithUuid(slotUuid));
                         if (!slotComp.connections.empty())
                             continue;
                         std::set<UUID> connections = {};
@@ -188,7 +189,7 @@ namespace Bess {
                     }
 
                     for (const auto slotUuid : simComp->outputSlots) {
-                        auto &slotComp = reg.get<Components::SlotComponent>(scene.getEntityWithUuid(slotUuid));
+                        auto &slotComp = reg.get<Components::SlotComponent>(scene->getEntityWithUuid(slotUuid));
                         if (!slotComp.connections.empty())
                             continue;
                         std::set<UUID> connections = {};
@@ -216,6 +217,13 @@ namespace Bess {
                 if (spriteComp->headerColor != expectedColor) {
                     spriteComp->headerColor = expectedColor;
                     BESS_WARN("Fixed Header Color");
+                }
+            }
+            if (auto *comp = reg.try_get<Components::TransformComponent>(ent)) {
+                BESS_WARN("Running patch for TransformComponent");
+                if (comp->position.z < 1.f) {
+                    comp->position.z += 1.f;
+                    BESS_WARN("Fixed Z Pos");
                 }
             }
         }

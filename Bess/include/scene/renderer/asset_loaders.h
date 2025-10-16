@@ -1,31 +1,33 @@
 #pragma once
 #include "asset_manager/asset_loader.h"
 #include "font.h"
-#include "gl/shader.h"
-#include "gl/texture.h"
 #include "msdf_font.h"
+#include "vulkan_core.h"
+#include "vulkan_subtexture.h"
+#include "vulkan_texture.h"
 
 #include <memory>
 
+using namespace Bess::Vulkan;
 namespace Bess::Assets {
     template <>
-    struct AssetLoader<Bess::Gl::Shader> {
-        static std::shared_ptr<Bess::Gl::Shader> load(const std::string &vertex, const std::string &fragment) {
-            return std::make_shared<Bess::Gl::Shader>(vertex, fragment);
+    struct AssetLoader<VulkanTexture> {
+        static std::shared_ptr<VulkanTexture> load(const std::string &path) {
+            return std::make_shared<VulkanTexture>(Bess::Vulkan::VulkanCore::instance().getDevice(), path);
         }
     };
 
     template <>
-    struct AssetLoader<Bess::Renderer2D::Font> {
-        static std::shared_ptr<Bess::Renderer2D::Font> load(const std::string &path) {
-            return std::make_shared<Bess::Renderer2D::Font>(path);
+    struct AssetLoader<Bess::Renderer::Font::FontFile> {
+        static std::shared_ptr<Bess::Renderer::Font::FontFile> load(const std::string &path) {
+            return std::make_shared<Bess::Renderer::Font::FontFile>(path);
         }
     };
 
     template <>
     struct AssetLoader<Bess::Renderer2D::MsdfFont> {
         static std::shared_ptr<Bess::Renderer2D::MsdfFont> load(const std::string &path, const std::string &json) {
-            return std::make_shared<Bess::Renderer2D::MsdfFont>(path, json);
+            return std::make_shared<Bess::Renderer2D::MsdfFont>(path, json, Bess::Vulkan::VulkanCore::instance().getDevice());
         }
     };
 
@@ -36,10 +38,4 @@ namespace Bess::Assets {
         }
     };
 
-    template <>
-    struct AssetLoader<Bess::Gl::Texture> {
-        static std::shared_ptr<Bess::Gl::Texture> load(const std::string &path) {
-            return std::make_shared<Bess::Gl::Texture>(path);
-        }
-    };
 } // namespace Bess::Assets

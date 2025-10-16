@@ -1,3 +1,4 @@
+#include "scene/scene_pch.h"
 #include "scene/renderer/msdf_font.h"
 #include "common/log.h"
 
@@ -5,14 +6,14 @@
 #include <fstream>
 
 namespace Bess::Renderer2D {
-
-    MsdfFont::MsdfFont(const std::string &path, const std::string &jsonFileName) {
-        loadFont(path, jsonFileName);
+    MsdfFont::MsdfFont(const std::string &path, const std::string &fileName, std::shared_ptr<Bess::Vulkan::VulkanDevice> device) : m_device(device) {
+        loadFont(path, fileName, device);
     }
 
     MsdfFont::~MsdfFont() = default;
 
-    void MsdfFont::loadFont(const std::string &path, const std::string &fileName) {
+    void MsdfFont::loadFont(const std::string &path, const std::string &fileName, std::shared_ptr<Bess::Vulkan::VulkanDevice> device) {
+        m_device = device;
         std::filesystem::path path_ = path;
         const std::string jsonFileName = fileName + ".json";
         std::ifstream inFile(path_ / jsonFileName);
@@ -31,10 +32,11 @@ namespace Bess::Renderer2D {
             return;
         }
 
-        m_fontTextureAtlas = std::make_shared<Gl::Texture>(pngFilePath);
+        m_fontTextureAtlas = std::make_shared<Bess::Vulkan::VulkanTexture>(device, pngFilePath);
         BESS_INFO("Loaded MSDF font texture atlas from: {}", pngFilePath);
 
         m_fontSize = charData["atlas"]["size"].asFloat();
+        m_pxRange = charData["atlas"]["distanceRange"].asFloat();
         m_lineHeight = charData["metrics"]["lineHeight"].asFloat();
 
         const Json::Value &chars = charData["glyphs"];
@@ -54,10 +56,9 @@ namespace Bess::Renderer2D {
 
                 auto atlasPos = glm::vec2(atlasBounds.left, m_fontTextureAtlas->getHeight() - atlasBounds.top);
                 auto atlasSize = glm::vec2(atlasBounds.right - atlasBounds.left, atlasBounds.top - atlasBounds.bottom);
-                auto subTex = std::make_shared<Gl::SubTexture>();
-                character.subTexture = subTex;
-
+                auto subTex = std::make_shared<Bess::Vulkan::SubTexture>();
                 subTex->calcCoordsFrom(m_fontTextureAtlas, atlasPos, atlasSize);
+                character.subTexture = subTex;
             }
 
             if (c.isMember("planeBounds")) {
@@ -93,20 +94,24 @@ namespace Bess::Renderer2D {
         return m_charTable[(size_t)c];
     }
 
-    std::shared_ptr<Gl::Texture> MsdfFont::getTextureAtlas() const {
+    std::shared_ptr<Bess::Vulkan::VulkanTexture> MsdfFont::getTextureAtlas() const {
         return m_fontTextureAtlas;
     }
 
-    bool MsdfFont::isValidJson(const Json::Value &json) {
+    bool MsdfFont::isValidJson(const Json::Value &json) const {
         return json.isMember("atlas") && json.isMember("metrics") && json.isMember("glyphs");
     }
 
-    MsdfFont::Bounds MsdfFont::getBounds(const Json::Value &val) {
+    MsdfFont::Bounds MsdfFont::getBounds(const Json::Value &val) const {
         Bounds bounds;
         bounds.left = val["left"].as<float>();
         bounds.right = val["right"].as<float>();
         bounds.top = val["top"].as<float>();
         bounds.bottom = val["bottom"].as<float>();
         return bounds;
+    }
+
+    float MsdfFont::getPxRange() const {
+        return m_pxRange;
     }
 } // namespace Bess::Renderer2D

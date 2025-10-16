@@ -9,12 +9,12 @@ namespace Bess {
 
     void ViewportTheme::updateColorsFromImGuiStyle() {
         ImGuiStyle &style = ImGui::GetStyle();
-        ImVec4 *imguiColors = style.Colors;
+        const ImVec4 *imguiColors = style.Colors;
 
-        ImVec4 windowBg = imguiColors[ImGuiCol_WindowBg];
+        const ImVec4 windowBg = imguiColors[ImGuiCol_WindowBg];
         colors.background = glm::vec4(windowBg.x, windowBg.y, windowBg.z, windowBg.w);
 
-        auto compBg = imguiColors[ImGuiCol_WindowBg];
+        const auto compBg = imguiColors[ImGuiCol_WindowBg];
         colors.componentBG = glm::vec4(
             compBg.x + 0.05f,
             compBg.y + 0.05f,
@@ -22,8 +22,8 @@ namespace Bess {
             0.8f);
         colors.componentBG = glm::clamp(colors.componentBG, 0.0f, 1.0f);
 
-        auto color_ = 1.f - colors.componentBG;
-        float darkenFactor = 0.5f;
+        const auto color_ = 1.f - colors.componentBG;
+        const float darkenFactor = 0.5f;
         colors.componentBorder = glm::vec4(
             color_.x * darkenFactor,
             color_.y * darkenFactor,
@@ -34,7 +34,7 @@ namespace Bess {
 
         colors.compHeader = glm::vec4(0.8f, 0.1f, 0.1f, 0.8f);
 
-        auto textCol = imguiColors[ImGuiCol_Text];
+        const auto textCol = imguiColors[ImGuiCol_Text];
         colors.text = glm::vec4(
             textCol.x,
             textCol.y,
@@ -56,28 +56,26 @@ namespace Bess {
         colors.selectedComp = colors.selectedWire; // Orange
 
         {
-            glm::vec4 base = colors.background;
+            const glm::vec4 base = colors.background;
 
-            float avgLum = (base.r + base.g + base.b) / 3.0f;
+            const float avgLum = (base.r + base.g + base.b) / 3.0f;
 
-            float minorDelta = (avgLum < 0.5f ? 0.08f : -0.08f);
+            const float minorDelta = (avgLum < 0.5f ? 0.07f : -0.07f);
             colors.gridMinorColor = glm::vec4(
-                glm::clamp(base.r + minorDelta, 0.0f, 1.0f),
-                glm::clamp(base.g + minorDelta, 0.0f, 1.0f),
-                glm::clamp(base.b + minorDelta, 0.0f, 1.0f),
-                0.2f // subtle alpha
-            );
+                glm::clamp(base.r + minorDelta, 0.0f, 0.3f),
+                glm::clamp(base.g + minorDelta, 0.0f, 0.3f),
+                glm::clamp(base.b + minorDelta, 0.0f, 0.3f),
+                0.2f);
 
-            float majorDelta = (avgLum < 0.5f ? 0.15f : -0.15f);
+            const float majorDelta = (avgLum < 0.5f ? 0.1f : -0.1f);
             colors.gridMajorColor = glm::vec4(
-                glm::clamp(base.r + majorDelta, 0.0f, 1.0f),
-                glm::clamp(base.g + majorDelta, 0.0f, 1.0f),
-                glm::clamp(base.b + majorDelta, 0.0f, 1.0f),
-                0.35f);
+                glm::clamp(base.r + majorDelta, 0.0f, 0.15f),
+                glm::clamp(base.g + majorDelta, 0.0f, 0.15f),
+                glm::clamp(base.b + majorDelta, 0.0f, 0.15f),
+                0.2f);
 
-            colors.gridAxisXColor = glm::vec4(0.6f, 0.2f, 0.2f, 0.3f);
-            // since wires are green colors so keeping it red as well
-            colors.gridAxisYColor = glm::vec4(0.6f, 0.2f, 0.2f, 0.3f);
+            colors.gridAxisXColor = glm::vec4(0.6f, 0.2f, 0.2f, 0.1f);
+            colors.gridAxisYColor = glm::vec4(0.6f, 0.2f, 0.2f, 0.1f);
         }
 
         initCompColorMap();

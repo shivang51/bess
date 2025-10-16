@@ -1,3 +1,4 @@
+#include "scene/scene_pch.h"
 #include "ui/ui_main/project_explorer.h"
 #include "common/helpers.h"
 #include "imgui.h"
@@ -9,36 +10,36 @@ namespace Bess::UI {
 
     bool ProjectExplorer::isShown = true;
 
-    std::pair<bool, bool> ProjectExplorerNode(uint64_t id_, const char *label, bool selected, bool multiSelectMode) {
-        ImGuiContext &g = *ImGui::GetCurrentContext();
-        float rounding = g.Style.FrameRounding;
-        float checkboxWidth = ImGui::CalcTextSize("W").x + g.Style.FramePadding.x + 2.f;
+    std::pair<bool, bool> ProjectExplorerNode(const uint64_t id_, const char *label, bool selected, const bool multiSelectMode) {
+        const ImGuiContext &g = *ImGui::GetCurrentContext();
+        const float rounding = g.Style.FrameRounding;
+        const float checkboxWidth = ImGui::CalcTextSize("W").x + g.Style.FramePadding.x + 2.f;
         ImGuiWindow *window = g.CurrentWindow;
-        ImGuiID id = window->GetID(id_);
-        ImGuiID idcb = window->GetID((std::to_string(id_) + "cb").c_str());
-        ImVec2 pos = window->DC.CursorPos;
-        ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x - checkboxWidth, pos.y + g.FontSize + g.Style.FramePadding.y * 2));
+        const ImGuiID id = window->GetID(id_);
+        const ImGuiID idcb = window->GetID((std::to_string(id_) + "cb").c_str());
+        const ImVec2 pos = window->DC.CursorPos;
+        const ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x - checkboxWidth, pos.y + g.FontSize + g.Style.FramePadding.y * 2));
         auto checkBoxPos = bb.Max;
         checkBoxPos.y = pos.y;
-        ImRect bbCheckbox(checkBoxPos, ImVec2(checkBoxPos.x + checkboxWidth, checkBoxPos.y + g.FontSize + g.Style.FramePadding.y * 2));
+        const ImRect bbCheckbox(checkBoxPos, ImVec2(checkBoxPos.x + checkboxWidth, checkBoxPos.y + g.FontSize + g.Style.FramePadding.y * 2));
 
         bool hovered, held;
         auto pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held, ImGuiButtonFlags_PressedOnClick);
         bool cbHovered, cbHeld;
         auto cbPressed = ImGui::ButtonBehavior(bbCheckbox, idcb, &cbHovered, &cbHeld, ImGuiButtonFlags_PressedOnClick);
 
-        auto colors = ImGui::GetStyle().Colors;
+        const auto colors = ImGui::GetStyle().Colors;
 
         ImVec4 bgColor = selected ? colors[ImGuiCol_Header] : ImVec4(0, 0, 0, 0);
         if (hovered || held)
             bgColor = colors[ImGuiCol_HeaderHovered];
 
-        auto drawList = ImGui::GetWindowDrawList();
+        const auto drawList = ImGui::GetWindowDrawList();
         auto size = bb.Max;
         size.x += checkboxWidth;
         drawList->AddRectFilled(bb.Min, size, IM_COL32(bgColor.x * 255, bgColor.y * 255, bgColor.z * 255, bgColor.w * 255), rounding);
 
-        auto fgColor = colors[ImGuiCol_Text];
+        const auto fgColor = colors[ImGuiCol_Text];
 
         auto textStart = bb.Min;
         textStart.y += g.Style.FramePadding.y;
@@ -47,7 +48,7 @@ namespace Bess::UI {
 
         if (hovered || cbHovered || multiSelectMode) {
             ImGui::SetCursorPosX(bbCheckbox.Min.x - bb.Min.x + checkboxWidth / 2.f);
-            float yPadding = ImGui::GetCursorPosY();
+            const float yPadding = ImGui::GetCursorPosY();
             ImGui::SetCursorPosY(yPadding + g.Style.FramePadding.y);
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
             ImGui::Checkbox(("##CheckBox" + std::to_string(id_)).c_str(), &selected);
@@ -67,18 +68,18 @@ namespace Bess::UI {
 
         ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
-        auto &scene = Bess::Canvas::Scene::instance();
-        auto &registry = scene.getEnttRegistry();
+        auto scene = Bess::Canvas::Scene::instance();
+        auto &registry = scene->getEnttRegistry();
 
         // Modules::SchematicGen::SchematicView(Canvas::Scene::instance(), registry).generateDiagram();
 
-        auto view = registry.view<Canvas::Components::TagComponent>();
-        auto size = view.size();
+        const auto view = registry.view<Canvas::Components::TagComponent>();
+        const auto size = view.size();
 
         auto sel = registry.view<Canvas::Components::SelectedComponent>().size();
         sel = std::min(sel, size); // because selecting wire make the sel count more than the visible components in the tree
 
-        bool isMultiSelected = sel > 1;
+        const bool isMultiSelected = sel > 1;
 
         if (size == 0) {
             ImGui::Text("No Components Added");
@@ -94,7 +95,7 @@ namespace Bess::UI {
         }
 
         for (auto &entity : view) {
-            bool isSelected = registry.all_of<Canvas::Components::SelectedComponent>(entity);
+            const bool isSelected = registry.all_of<Canvas::Components::SelectedComponent>(entity);
             auto &tagComp = view.get<Canvas::Components::TagComponent>(entity);
             std::string icon;
             if (tagComp.isSimComponent) {

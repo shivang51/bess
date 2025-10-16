@@ -12,9 +12,9 @@ namespace Bess::Pages {
         void setKeyPressed(int key, bool pressed);
         bool isKeyPressed(int key);
 
-        void resetProjectState();
+        void resetProjectState() const;
         void createNewProject(bool updateWindowName = true);
-        void saveCurrentProject();
+        void saveCurrentProject() const;
         void loadProject(const std::string &path);
         void updateCurrentProject(std::shared_ptr<ProjectFile> project);
         std::shared_ptr<ProjectFile> getCurrentProjectFile();

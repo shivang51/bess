@@ -1,7 +1,7 @@
 #pragma once
+#include "glm.hpp"
 #include "pages/page.h"
 #include "window.h"
-#include "glm.hpp"
 #include <memory>
 
 namespace Bess {
@@ -15,6 +15,8 @@ namespace Bess {
         static std::shared_ptr<Window> getParentWindow();
 
         static void quit();
+
+        static void clear();
 
       private:
         static std::shared_ptr<Pages::Page> m_currentPage;

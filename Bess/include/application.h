@@ -16,12 +16,12 @@ namespace Bess {
 
         void init(const std::string &path);
         void run();
-        void quit();
+        void quit() const;
 
         void update(TFrameTime ts);
 
-        void loadProject(const std::string &path);
-        void saveProject();
+        void loadProject(const std::string &path) const;
+        void saveProject() const;
 
       private:
         std::shared_ptr<Window> m_mainWindow;
@@ -30,7 +30,7 @@ namespace Bess {
 
       private:
         void draw();
-        void shutdown();
+        void shutdown() const;
 
       private: // callbacks
         void onWindowResize(int w, int h);

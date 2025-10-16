@@ -21,7 +21,9 @@ namespace Bess::Canvas {
 
     class SchematicArtist : public BaseArtist {
       public:
-        SchematicArtist(Scene *scene);
+        SchematicArtist(const std::shared_ptr<Vulkan::VulkanDevice> &device,
+                        const std::shared_ptr<Vulkan::VulkanOffscreenRenderPass> &renderPass,
+                        VkExtent2D extent);
         virtual ~SchematicArtist() = default;
 
         void drawSimEntity(

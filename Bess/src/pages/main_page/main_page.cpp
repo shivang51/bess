@@ -1,10 +1,14 @@
+#include "scene/scene_pch.h"
 #include "pages/main_page/main_page.h"
+#include "asset_manager/asset_manager.h"
 #include "events/application_event.h"
 #include "pages/page_identifier.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
 #include "types.h"
+#include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
+#include "vulkan_core.h"
 #include <memory>
 
 namespace Bess::Pages {
@@ -14,7 +18,7 @@ namespace Bess::Pages {
     }
 
     std::shared_ptr<MainPage> MainPage::getTypedInstance(std::shared_ptr<Window> parentWindow) {
-        const auto instance = getInstance(parentWindow);
+        static auto instance = getInstance(parentWindow);
         return std::dynamic_pointer_cast<MainPage>(instance);
     }
 
@@ -26,21 +30,47 @@ namespace Bess::Pages {
 
         SimEngine::SimulationEngine::instance();
 
-        UI::UIMain::state.viewportTexture = m_scene.getTextureId();
+        const auto extensions = m_parentWindow->getVulkanExtensions();
+        const VkExtent2D extent = m_parentWindow->getExtent();
+
+        auto createSurface = [parentWindow](VkInstance &instance, VkSurfaceKHR &surface) {
+            parentWindow->createWindowSurface(instance, surface);
+        };
+
+        auto &instance = Bess::Vulkan::VulkanCore::instance();
+        instance.init(extensions, createSurface, extent);
+
         m_state = MainPageState::getInstance();
+
+        m_scene = Canvas::Scene::instance();
+        UI::UIMain::setViewportTexture(m_scene->getTextureId());
+    }
+
+    MainPage::~MainPage() {
+        destory();
+    }
+
+    void MainPage::destory() {
+        BESS_INFO("[MainPage] Destroying");
+        auto &instance = Bess::Vulkan::VulkanCore::instance();
+        instance.cleanup([&]() {
+            m_scene->destroy();
+            Assets::AssetManager::instance().clear();
+            UI::vulkanCleanup(instance.getDevice());
+        });
+        BESS_INFO("[MainPage] Destroyed");
     }
 
     void MainPage::draw() {
-        m_scene.render();
-        UI::UIMain::draw();
+        m_scene->render();
     }
 
     void MainPage::update(TFrameTime ts, const std::vector<ApplicationEvent> &events) {
-        if (m_scene.getSize() != UI::UIMain::state.viewportSize) {
-            m_scene.resize(UI::UIMain::state.viewportSize);
+        if (m_scene->getSize() != UI::UIMain::state.viewportSize) {
+            m_scene->resize(UI::UIMain::state.viewportSize);
         }
 
-        for (auto &event : events) {
+        for (const auto &event : events) {
             switch (event.getType()) {
             case ApplicationEventType::KeyPress: {
                 const auto data = event.getData<ApplicationEvent::KeyPressData>();
@@ -55,16 +85,15 @@ namespace Bess::Pages {
             }
         }
 
-        if (UI::UIMain::state.isViewportFocused)
-            m_scene.update(ts, events);
+        if (UI::UIMain::state.viewportEventFlag)
+            m_scene->update(ts, events);
     }
 
     std::shared_ptr<Window> MainPage::getParentWindow() {
         return m_parentWindow;
     }
 
-    Canvas::Scene &MainPage::getScene() {
+    std::shared_ptr<Canvas::Scene> MainPage::getScene() const {
         return m_scene;
     }
-
 } // namespace Bess::Pages

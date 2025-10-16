@@ -40,7 +40,7 @@ namespace Bess::Assets {
                 return std::static_pointer_cast<T>(assetIt->second);
             }
 
-            BESS_INFO("[AssetManager] Loading {} with ID {}", typeid(T).name(), id.id);
+            BESS_INFO("[AssetManager] Loading {} from 1st path {} with ID {}", typeid(T).name(), id.paths[0], id.id);
 
             std::shared_ptr<T> asset = std::apply(
                 [](auto &&...paths) {
@@ -50,6 +50,8 @@ namespace Bess::Assets {
 
             if (asset) {
                 cache[id.id] = asset;
+            } else {
+                BESS_WARN("[AssetManager] Asset was returned as nullptr");
             }
 
             return asset;

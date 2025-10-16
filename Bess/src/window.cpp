@@ -1,13 +1,13 @@
 #include "window.h"
 #include "common/log.h"
-#include "scene/renderer/gl/gl_wrapper.h"
 #include <cassert>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 
 namespace Bess {
     bool Window::isGLFWInitialized = false;
-    bool Window::isGladInitialized = false;
+    bool Window::isVulkanInitialized = false;
 
     Window::Window(int width, int height, const std::string &title) {
 
@@ -19,42 +19,43 @@ namespace Bess {
         glfwSetWindowUserPointer(window, this);
 
         mp_window = std::unique_ptr<GLFWwindow, GLFWwindowDeleter>(window);
-        this->makeCurrent();
-
-        glfwSwapInterval(0);
+        // this->makeCurrent();
+        //
+        // glfwSwapInterval(0);
 
         glfwSetWindowSizeLimits(window, 600, 500, GLFW_DONT_CARE, GLFW_DONT_CARE);
 
         glfwSetFramebufferSizeCallback(
             window, [](GLFWwindow *window, int w, int h) {
-                auto this_ = (Window *)glfwGetWindowUserPointer(window);
+                const auto this_ = (Window *)glfwGetWindowUserPointer(window);
+                this_->m_framebufferResized = true;
                 if (this_->m_callbacks.find(Callback::WindowResize) ==
                     this_->m_callbacks.end())
                     return;
-                auto cb = std::any_cast<WindowResizeCallback>(
+                const auto cb = std::any_cast<WindowResizeCallback>(
                     this_->m_callbacks[Callback::WindowResize]);
                 cb(w, h);
             });
 
         glfwSetScrollCallback(window, [](GLFWwindow *window, double x, double y) {
-            auto this_ = (Window *)glfwGetWindowUserPointer(window);
+            const auto this_ = (Window *)glfwGetWindowUserPointer(window);
             if (this_->m_callbacks.find(Callback::WindowResize) ==
                 this_->m_callbacks.end())
                 return;
-            auto cb = std::any_cast<MouseWheelCallback>(
+            const auto cb = std::any_cast<MouseWheelCallback>(
                 this_->m_callbacks[Callback::MouseWheel]);
             cb(x, y);
         });
 
         glfwSetKeyCallback(window, [](GLFWwindow *window, int key, int scancode,
                                       int action, int mods) {
-            auto this_ = (Window *)glfwGetWindowUserPointer(window);
+            const auto this_ = (Window *)glfwGetWindowUserPointer(window);
             switch (action) {
             case GLFW_PRESS: {
                 if (this_->m_callbacks.find(Callback::KeyPress) ==
                     this_->m_callbacks.end())
                     return;
-                auto cb = std::any_cast<KeyPressCallback>(
+                const auto cb = std::any_cast<KeyPressCallback>(
                     this_->m_callbacks[Callback::KeyPress]);
                 cb(key);
             } break;
@@ -62,7 +63,7 @@ namespace Bess {
                 if (this_->m_callbacks.find(Callback::KeyRelease) ==
                     this_->m_callbacks.end())
                     return;
-                auto cb = std::any_cast<KeyReleaseCallback>(
+                const auto cb = std::any_cast<KeyReleaseCallback>(
                     this_->m_callbacks[Callback::KeyRelease]);
                 cb(key);
             } break;
@@ -71,13 +72,13 @@ namespace Bess {
 
         glfwSetMouseButtonCallback(
             window, [](GLFWwindow *window, int button, int action, int mods) {
-                auto this_ = (Window *)glfwGetWindowUserPointer(window);
+                const auto this_ = (Window *)glfwGetWindowUserPointer(window);
                 switch (button) {
                 case GLFW_MOUSE_BUTTON_LEFT: {
                     if (this_->m_callbacks.find(Callback::LeftMouse) ==
                         this_->m_callbacks.end())
                         return;
-                    auto cb = std::any_cast<LeftMouseCallback>(
+                    const auto cb = std::any_cast<LeftMouseCallback>(
                         this_->m_callbacks[Callback::LeftMouse]);
                     cb(action == GLFW_PRESS);
                 } break;
@@ -85,7 +86,7 @@ namespace Bess {
                     if (this_->m_callbacks.find(Callback::RightMouse) ==
                         this_->m_callbacks.end())
                         return;
-                    auto cb = std::any_cast<RightMouseCallback>(
+                    const auto cb = std::any_cast<RightMouseCallback>(
                         this_->m_callbacks[Callback::RightMouse]);
                     cb(action == GLFW_PRESS);
                 } break;
@@ -93,7 +94,7 @@ namespace Bess {
                     if (this_->m_callbacks.find(Callback::MiddleMouse) ==
                         this_->m_callbacks.end())
                         return;
-                    auto cb = std::any_cast<MiddleMouseCallback>(
+                    const auto cb = std::any_cast<MiddleMouseCallback>(
                         this_->m_callbacks[Callback::MiddleMouse]);
                     cb(action == GLFW_PRESS);
                 } break;
@@ -102,18 +103,18 @@ namespace Bess {
 
         glfwSetCursorPosCallback(
             window, [](GLFWwindow *window, double x, double y) {
-                auto this_ = (Window *)glfwGetWindowUserPointer(window);
+                const auto this_ = (Window *)glfwGetWindowUserPointer(window);
                 if (this_->m_callbacks.find(Callback::MouseMove) ==
                     this_->m_callbacks.end())
                     return;
-                auto cb = std::any_cast<MouseMoveCallback>(this_->m_callbacks[Callback::MouseMove]);
+                const auto cb = std::any_cast<MouseMoveCallback>(this_->m_callbacks[Callback::MouseMove]);
                 cb(x, y);
             });
 
-        this->initOpenGL();
+        this->initVulkan();
     }
 
-    void Window::initGLFW() {
+    void Window::initGLFW() const {
         if (isGLFWInitialized)
             return;
 
@@ -122,37 +123,21 @@ namespace Bess {
                 return;
             BESS_ERROR("[-] GLFW ERROR {} -> {}", code, msg);
         });
-        auto res = glfwInit();
+        const auto res = glfwInit();
         assert(res == GLFW_TRUE);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        glfwWindowHint(GLFW_SAMPLES, 4);
+        // Vulkan doesn't need OpenGL context hints
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_MAXIMIZED, 1);
 
         isGLFWInitialized = true;
     }
 
-    void Window::initOpenGL() {
-        if (isGladInitialized)
+    void Window::initVulkan() const {
+        if (isVulkanInitialized)
             return;
-        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-            std::cerr << "Failed to initialize GLAD" << std::endl;
-        } else {
-            isGladInitialized = true;
-        }
 
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        glEnable(GL_MULTISAMPLE);
-        glEnable(GL_LINE_SMOOTH);
-        glEnable(GL_POLYGON_SMOOTH);
-        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-        glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
-
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LEQUAL);
+        // Vulkan initialization will be handled by the VulkanRenderer
+        isVulkanInitialized = true;
     }
 
     Window::~Window() {
@@ -167,11 +152,13 @@ namespace Bess {
     }
 
     void Window::update() const {
-        makeCurrent();
-        glfwSwapBuffers(mp_window.get());
+        // Vulkan rendering is handled by the VulkanRenderer
+        // No need for makeCurrent or swapBuffers
     }
 
-    void Window::makeCurrent() const { glfwMakeContextCurrent(mp_window.get()); }
+    void Window::makeCurrent() const {
+        // Not needed for Vulkan
+    }
 
     bool Window::isClosed() const { return glfwWindowShouldClose(mp_window.get()); }
 
@@ -209,7 +196,7 @@ namespace Bess {
 
     void Window::close() const { glfwSetWindowShouldClose(mp_window.get(), true); }
 
-    void Window::setName(const std::string &name) {
+    void Window::setName(const std::string &name) const {
         glfwSetWindowTitle(mp_window.get(), name.c_str());
     }
 
@@ -217,5 +204,32 @@ namespace Bess {
         double x, y;
         glfwGetCursorPos(mp_window.get(), &x, &y);
         return glm::vec2(x, y);
+    }
+
+    void Window::createWindowSurface(VkInstance instance, VkSurfaceKHR &surface) const {
+        if (glfwCreateWindowSurface(instance, mp_window.get(), nullptr, &surface) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create window surface!");
+        }
+    }
+
+    std::vector<const char *> Window::getVulkanExtensions() const {
+        uint32_t glfwExtensionCount = 0;
+        const char **glfwExtensions = nullptr;
+        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+        std::vector<const char *> extensions(glfwExtensions, glfwExtensionCount + glfwExtensions);
+
+        return extensions;
+    }
+
+    VkExtent2D Window::getExtent() const {
+        int width, height;
+        glfwGetFramebufferSize(mp_window.get(), &width, &height);
+        return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+    }
+
+    void Window::framebufferResizeCallback(GLFWwindow *window, int width, int height) {
+        const auto this_ = static_cast<Window *>(glfwGetWindowUserPointer(window));
+        this_->m_framebufferResized = true;
     }
 } // namespace Bess

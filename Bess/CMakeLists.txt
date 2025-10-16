@@ -1,4 +1,8 @@
 set(PROJECT_NAME Bess)
+set(CMAKE_SKIP_BUILD_RPATH FALSE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+set(CMAKE_BUILD_RPATH "\$ORIGIN")
+set(CMAKE_INSTALL_RPATH "\$ORIGIN")
 
 file(GLOB EXT_JSON_SRC "${CMAKE_SOURCE_DIR}/external/jsoncpp/src/lib_json/*.cpp")
 source_group("external/jsoncpp" FILES ${EXT_JSON_SRC})
@@ -11,7 +15,6 @@ file(GLOB EXT_IMGUI_SRC
 source_group("external/imgui" FILES ${EXT_IMGUI_SRC})
 
 set(EXT_OTHERS_SRC
-    "../external/glad/src/glad.c"
     "../external/stb_image/src/stb_image.cpp"
     "../external/tinyfiledialogs/tinyfiledialogs.c"
 )
@@ -61,8 +64,8 @@ set(Header_Files
 "include/window.h"
 "include/modules/schematic_gen/schematic_view.h"
 "include/application_state.h"
-"include/scene/renderer/renderer.h"
 "include/scene/scene.h"
+"include/scene/viewport.h"
 "include/scene/scene_serializer.h"
 "include/scene/artist/base_artist.h"
 "include/scene/artist/schematic_artist.h"
@@ -72,20 +75,21 @@ set(Header_Files
 "include/scene/components/json_converters.h"
 "include/scene/components/non_sim_comp.h"
 "include/scene/renderer/font.h"
+"include/scene/renderer/material_renderer.h"
+"include/scene/renderer/material.h"
+"include/scene/renderer/path.h"
 "include/scene/renderer/msdf_font.h"
-"include/scene/renderer/gl/texture.h"
-"include/scene/renderer/gl/subtexture.h"
-"include/scene/renderer/gl/vertex.h"
-"include/scene/renderer/gl/shader.h"
-"include/scene/renderer/gl/fb_attachment.h"
-"include/scene/renderer/gl/framebuffer.h"
-"include/scene/renderer/gl/primitive_type.h"
-"include/scene/renderer/gl/vao.h"
-"include/scene/renderer/gl/gl_wrapper.h"
-"include/scene/renderer/gl/utils.h"
-"include/scene/renderer/gl/instanced_vao.h"
-"include/scene/renderer/gl/batch_vao.h"
-"include/scene/renderer/gl/vaos.h"
+"include/scene/renderer/glyph_extractor.h"
+        "include/scene/renderer/vulkan/pipelines/pipeline.h"
+        "include/scene/renderer/vulkan/pipelines/circle_pipeline.h"
+        "include/scene/renderer/vulkan/pipelines/grid_pipeline.h"
+        "include/scene/renderer/vulkan/pipelines/path_stroke_pipeline.h"
+        "include/scene/renderer/vulkan/pipelines/path_fill_pipeline.h"
+        "include/scene/renderer/vulkan/pipelines/quad_pipeline.h"
+        "include/scene/renderer/vulkan/pipelines/text_pipeline.h"
+        "include/scene/renderer/vulkan/path_renderer.h"
+        "include/scene/renderer/vulkan/text_renderer.h"
+"include/scene/scene_pch.h"
 "include/scene/commands/add_command.h"
 "include/scene/commands/connect_command.h"
 "include/scene/commands/delete_comp_command.h"
@@ -128,22 +132,26 @@ set(Source_Files
 "src/camera.cpp"
 "src/scene/components/non_sim_comp.cpp"
 "src/scene/scene.cpp"
+"src/scene/viewport.cpp"
 "src/scene/scene_serializer.cpp"
 "src/scene/artist/base_artist.cpp"
 "src/scene/artist/schematic_artist.cpp"
 "src/scene/artist/nodes_artist.cpp"
 "src/scene/artist/artist_manager.cpp"
 "src/scene/renderer/font.cpp"
+"src/scene/renderer/material_renderer.cpp"
+"src/scene/renderer/path.cpp"
 "src/scene/renderer/msdf_font.cpp"
-"src/scene/renderer/gl/gl_wrapper.cpp"
-"src/scene/renderer/gl/shader.cpp"
-"src/scene/renderer/gl/texture.cpp"
-"src/scene/renderer/gl/subtexture.cpp"
-"src/scene/renderer/gl/fb_attachment.cpp"
-"src/scene/renderer/gl/framebuffer.cpp"
-"src/scene/renderer/gl/vao.cpp"
-"src/scene/renderer/renderer.cpp"
-"src/scene/renderer/gl/vaos.cpp"
+"src/scene/renderer/glyph_extractor.cpp"
+		"src/scene/renderer/vulkan/pipelines/pipeline.cpp"
+		"src/scene/renderer/vulkan/pipelines/circle_pipeline.cpp"
+		"src/scene/renderer/vulkan/pipelines/grid_pipeline.cpp"
+		"src/scene/renderer/vulkan/pipelines/path_fill_pipeline.cpp"
+		"src/scene/renderer/vulkan/pipelines/path_stroke_pipeline.cpp"
+		"src/scene/renderer/vulkan/pipelines/quad_pipeline.cpp"
+		"src/scene/renderer/vulkan/pipelines/text_pipeline.cpp"
+		"src/scene/renderer/vulkan/path_renderer.cpp"
+		"src/scene/renderer/vulkan/text_renderer.cpp"
 "src/scene/commands/add_command.cpp"
 "src/scene/commands/connect_command.cpp"
 "src/scene/commands/delete_comp_command.cpp"
@@ -160,18 +168,29 @@ set(ALL_FILES
 )
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
-target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine)
-add_dependencies(${PROJECT_NAME} BessSimEngine)
+target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine BessVulkan)
+add_dependencies(${PROJECT_NAME} BessSimEngine BessVulkan)
+
+file(GLOB_RECURSE SCENE_PCH_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/scene/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/scene/*/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/scene/*/*/*.cpp"
+)
+set_source_files_properties(${Source_Files} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+set_source_files_properties(${External} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+set_source_files_properties(${SCENE_PCH_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS OFF)
+
+set_source_files_properties(${SCENE_PCH_SOURCES} PROPERTIES
+    COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:-include${CMAKE_CURRENT_SOURCE_DIR}/include/scene/scene_pch.h>
+)
+
 if("${BUILD_ARCH}" STREQUAL "x64" AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "glfw3;"
-        "opengl32;"
         "gdi32;"
         "freetype;"
     )
 
     target_link_directories(${PROJECT_NAME} PRIVATE
-        "${CMAKE_SOURCE_DIR}/external/glfw/lib-vc2022"
         "${CMAKE_SOURCE_DIR}/external/freetype/libs/windows"
     )
 
@@ -183,8 +202,6 @@ else()
     endif()
 
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "glfw;"
-        "GL;"
         "freetype;"
     )
 endif()
@@ -208,30 +225,59 @@ if("${BUILD_ARCH}" STREQUAL "x64")
 	target_include_directories(${PROJECT_NAME} PRIVATE
 			"${CMAKE_CURRENT_SOURCE_DIR}/include"
 			"${CMAKE_SOURCE_DIR}/BessSimEngine/include"
+			"${CMAKE_SOURCE_DIR}/BessVulkan/include"
 			"${CMAKE_SOURCE_DIR}/external/imgui"
 			"${CMAKE_SOURCE_DIR}/external/implot"
 			"${CMAKE_SOURCE_DIR}/external/freetype/include"
 			"${CMAKE_SOURCE_DIR}/external/imgui/backends"
 			"${CMAKE_SOURCE_DIR}/external/glm"
 			"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
-			"${CMAKE_SOURCE_DIR}/external/glfw/include"
-			"${CMAKE_SOURCE_DIR}/external/glad/include"
 			"${CMAKE_SOURCE_DIR}/external/stb_image/include"
 			"${CMAKE_SOURCE_DIR}/external/tinyfiledialogs"
 			"${CMAKE_SOURCE_DIR}/external/entt/include"
-			"${CMAKE_SOURCE_DIR}/external/spdlog/include;"
+			"${CMAKE_SOURCE_DIR}/external/spdlog/include"
+			"${CMAKE_SOURCE_DIR}/external/libtess2/Include"
 	)
 endif()
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GLFW REQUIRED glfw3)
+pkg_check_modules(VULKAN REQUIRED vulkan)
+find_package(X11 REQUIRED)
 find_package(PNG REQUIRED)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC ${PNG_LIBRARIES})
-target_include_directories(${PROJECT_NAME} PUBLIC ${PNG_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PUBLIC 
+	${PNG_LIBRARIES}
+	${GLFW_LIBRARIES}
+	  ${X11_LIBRARIES}
+	${VULKAN_LIBRARIES}
+)
+target_include_directories(${PROJECT_NAME} PUBLIC 
+	${PNG_INCLUDE_DIRS}
+			${VULKAN_INCLUDE_DIRS}
+${GLFW_INCLUDE_DIRS}
+)
+
+
+file(GLOB libtess2_src
+	"${CMAKE_SOURCE_DIR}/external/libtess2/Source/*.c"
+)
+add_library(libtess2_obj OBJECT ${libtess2_src})
+target_include_directories(libtess2_obj PUBLIC 
+			"${CMAKE_SOURCE_DIR}/external/libtess2/Include"
+)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE $<TARGET_OBJECTS:libtess2_obj>)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)
 
 if(MSVC)
 	target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8" "/Zc:__cplusplus")
+endif()
+
+# Precompiled header for scene (C++ only)
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
+    target_precompile_headers(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:"${CMAKE_CURRENT_SOURCE_DIR}/include/scene/scene_pch.h">)
 endif()
 

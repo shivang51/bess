@@ -1,81 +1,76 @@
+#include "scene/scene_pch.h"
 #include "scene/renderer/font.h"
 #include "common/log.h"
 
-namespace Bess::Renderer2D {
-    Font::Font(const std::string &path) {
-        if (FT_Init_FreeType(&m_ft)) {
-            BESS_ERROR("ERROR::FREETYPE: Could not init FreeType Library");
-            assert(false);
-        }
-
-        if (FT_New_Face(m_ft, path.c_str(), 0, &m_face)) {
-            BESS_ERROR("ERROR::FREETYPE: Failed to load font");
-            assert(false);
-        }
-
-        FT_Set_Pixel_Sizes(m_face, 0, m_defaultSize);
-
-        if (FT_Load_Char(m_face, 'X', FT_LOAD_RENDER)) {
-            BESS_ERROR("ERROR::FREETYTPE: Failed to load Glyph");
-            assert(false);
-        }
-
-        loadCharacters();
-        FT_Done_Face(m_face);
-        FT_Done_FreeType(m_ft);
+namespace Bess::Renderer::Font {
+    FontFile::FontFile(const std::string &path)
+        : m_glyphExtractor(path), m_glyphCount(m_glyphExtractor.getGlyphsCount()) {
     }
 
-    Font::~Font() {
-        Characters.clear();
+    FontFile &FontFile::operator=(FontFile &&other) noexcept {
+        if (this != &other) {
+            m_glyphsTable = std::move(other.m_glyphsTable);
+            m_size = other.m_size;
+            m_min = other.m_min;
+            m_max = other.m_max;
+            m_glyphExtractor = std::move(other.m_glyphExtractor);
+            m_glyphCount = other.m_glyphCount;
+
+            other.m_size = 0.0f;
+            other.m_min = 0;
+            other.m_max = 0;
+            other.m_glyphCount = 0;
+        }
+        return *this;
     }
 
-    void Font::loadCharacters() {
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        FT_UInt glyphIdx;
-        FT_ULong charCode = FT_Get_First_Char(m_face, &glyphIdx);
+    FontFile::FontFile(FontFile &&other) noexcept
+        : m_glyphsTable(std::move(other.m_glyphsTable)),
+          m_size(other.m_size),
+          m_min(other.m_min),
+          m_max(other.m_max),
+          m_glyphExtractor(std::move(other.m_glyphExtractor)),
+          m_glyphCount(other.m_glyphCount) {
+        other.m_size = 0.0f;
+        other.m_min = 0;
+        other.m_max = 0;
+        other.m_glyphCount = 0;
+    }
 
-        if (glyphIdx == 0) {
-            BESS_ERROR("ERROR::FREETYPE: No characters found in font");
-            return;
+    Glyph &FontFile::getGlyph(char32_t ch) {
+        return indexChar(ch);
+    }
+
+    Glyph &FontFile::getGlyph(const char *data) {
+        auto ch = GlyphExtractor::decodeSingleUTF8(data);
+        return indexChar(ch);
+    }
+
+    Glyph &FontFile::indexChar(char32_t ch) {
+        auto idx = (size_t)ch - m_min;
+
+        if (m_glyphsTable[idx].charCode == ch)
+            return m_glyphsTable[idx];
+
+        if (!m_glyphExtractor.extractGlyph(ch, m_glyphsTable[idx])) {
+            BESS_WARN("[FontFile] Failed to find glyph for char {}", (char)ch);
         }
 
-        while (glyphIdx != 0) {
-            if (FT_Load_Char(m_face, charCode, FT_LOAD_RENDER)) {
-                BESS_ERROR("ERROR::FREETYTPE: Failed to load Glyph");
-                continue;
-            }
-
-            auto texture = std::make_shared<Gl::Texture>(
-                GL_RGB,
-                GL_RED,
-                m_face->glyph->bitmap.width,
-                m_face->glyph->bitmap.rows,
-                m_face->glyph->bitmap.buffer);
-
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
-
-            Character character = {
-                texture,
-                glm::ivec2(m_face->glyph->bitmap.width, m_face->glyph->bitmap.rows),
-                glm::ivec2(m_face->glyph->bitmap_left, m_face->glyph->bitmap_top),
-                (int)m_face->glyph->advance.x};
-            Characters.insert(std::pair<char, Character>(charCode, character));
-            charCode = FT_Get_Next_Char(m_face, charCode, &glyphIdx);
-
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            glGenerateMipmap(GL_TEXTURE_2D);
-        }
+        return m_glyphsTable[idx];
     }
 
-    const Font::Character &Font::getCharacter(char ch) {
-        return Characters[ch];
+    void FontFile::init(float fontSize, size_t glyphMin, size_t glyphMax) {
+        m_size = fontSize;
+        m_min = glyphMin;
+        m_max = glyphMax;
+
+        m_glyphsTable.resize(glyphMax - glyphMin + 1);
+        m_glyphExtractor.setPixelSize((int)fontSize);
+
+        BESS_INFO("[FontFile] Reserved lookup table for {} glyphs", m_glyphsTable.size());
     }
 
-    float Font::getScale(float size) {
-        return size / (float)m_defaultSize;
+    float FontFile::getSize() const {
+        return m_size;
     }
-} // namespace Bess::Renderer2D
+} // namespace Bess::Renderer::Font

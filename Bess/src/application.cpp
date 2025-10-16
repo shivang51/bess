@@ -2,11 +2,16 @@
 #include "application_state.h"
 #include "common/log.h"
 #include "events/application_event.h"
+#include "imgui_impl_vulkan.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
 #include "ui/ui.h"
+#include "ui/ui_main/ui_main.h"
+#include "vulkan_core.h"
 
 #include "types.h"
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 #include "common/bind_helpers.h"
 #include "settings/settings.h"
@@ -14,17 +19,34 @@
 
 namespace Bess {
     Application::~Application() {
-        UI::shutdown();
         shutdown();
     }
 
     static int fps = 0;
 
     void Application::draw() {
-        UI::begin();
         ApplicationState::getCurrentPage()->draw();
-        // UI::drawStats(fps);
+
+        auto &vkCore = Bess::Vulkan::VulkanCore::instance();
+        if (m_mainWindow->wasWindowResized()) {
+            m_mainWindow->resetWindowResizedFlag();
+            const VkExtent2D newExtent = m_mainWindow->getExtent();
+            vkCore.recreateSwapchain(newExtent);
+        }
+
+        vkCore.beginFrame();
+        UI::begin();
+
+        UI::UIMain::draw();
+        UI::drawStats(fps);
         UI::end();
+
+        vkCore.renderToSwapchain(
+            [](VkCommandBuffer cmdBuffer) {
+                ImDrawData *drawData = ImGui::GetDrawData();
+                ImGui_ImplVulkan_RenderDrawData(drawData, cmdBuffer);
+            });
+        vkCore.endFrame();
     }
 
     void Application::run() {
@@ -37,7 +59,7 @@ namespace Bess {
 
         while (!m_mainWindow->isClosed()) {
             auto currentTime = m_clock.now();
-            TFrameTime deltaTime = currentTime - previousTime;
+            const TFrameTime deltaTime = currentTime - previousTime;
             previousTime = currentTime;
 
             accumulatedTime += deltaTime;
@@ -58,10 +80,16 @@ namespace Bess {
         m_events.clear();
     }
 
-    void Application::quit() { m_mainWindow->close(); }
+    void Application::quit() const { m_mainWindow->close(); }
 
     // callbacks
     void Application::onWindowResize(int w, int h) {
+        // Only handle resize if window is not minimized and size is reasonable
+        if (w > 0 && h > 0) {
+            const VkExtent2D newExtent = {static_cast<uint32_t>(w), static_cast<uint32_t>(h)};
+            Bess::Vulkan::VulkanCore::instance().recreateSwapchain(newExtent);
+        }
+
         ApplicationEvent::WindowResizeData data(w, h);
         ApplicationEvent event(ApplicationEventType::WindowResize, data);
         m_events.emplace_back(event);
@@ -115,7 +143,6 @@ namespace Bess {
         ApplicationState::setParentWindow(m_mainWindow);
 
         Config::Settings::init();
-        UI::init(m_mainWindow->getGLFWHandle());
 
         m_mainWindow->onWindowResize(BIND_FN_2(Application::onWindowResize));
         m_mainWindow->onMouseWheel(BIND_FN_2(Application::onMouseWheel));
@@ -126,18 +153,26 @@ namespace Bess {
         m_mainWindow->onMiddleMouse(BIND_FN_1(Application::onMiddleMouse));
         m_mainWindow->onMouseMove(BIND_FN_2(Application::onMouseMove));
 
-        Pages::MainPage::getInstance(ApplicationState::getParentWindow())->show();
+        const auto page = Pages::MainPage::getInstance(ApplicationState::getParentWindow());
+        UI::init(m_mainWindow->getGLFWHandle());
+
+        page->show();
 
         if (!path.empty())
             loadProject(path);
     }
 
-    void Application::shutdown() { m_mainWindow->close(); }
+    void Application::shutdown() const {
+        Pages::MainPage::getTypedInstance()->destory();
+        UI::shutdown();
+        ApplicationState::clear();
+        m_mainWindow->close();
+    }
 
-    void Application::loadProject(const std::string &path) {
+    void Application::loadProject(const std::string &path) const {
         Pages::MainPageState::getInstance()->loadProject(path);
     }
 
-    void Application::saveProject() { Pages::MainPageState::getInstance()->saveCurrentProject(); }
+    void Application::saveProject() const { Pages::MainPageState::getInstance()->saveCurrentProject(); }
 
 } // namespace Bess

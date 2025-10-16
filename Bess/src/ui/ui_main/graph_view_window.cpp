@@ -1,3 +1,4 @@
+#include "scene/scene_pch.h"
 #include "ui/ui_main/graph_view_window.h"
 
 #include "implot.h"
@@ -23,10 +24,10 @@ namespace Bess::UI {
         if (!isShown)
             return;
 
-        auto &reg = Canvas::Scene::instance().getEnttRegistry();
-        auto view = reg.view<Bess::Canvas::Components::TagComponent,
-                             Bess::Canvas::Components::SimulationStateMonitor,
-                             Bess::Canvas::Components::SimulationComponent>();
+        auto &reg = Canvas::Scene::instance()->getEnttRegistry();
+        const auto view = reg.view<Bess::Canvas::Components::TagComponent,
+                                   Bess::Canvas::Components::SimulationStateMonitor,
+                                   Bess::Canvas::Components::SimulationComponent>();
 
         ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
@@ -74,7 +75,7 @@ namespace Bess::UI {
         return s_data;
     }
 
-    void GraphViewWindow::plotDigitalSignals(const std::string &plotName, const std::unordered_map<std::string, LabeledDigitalSignal> &signals, float plotHeight) {
+    void GraphViewWindow::plotDigitalSignals(const std::string &plotName, const std::unordered_map<std::string, LabeledDigitalSignal> &signals, const float plotHeight) {
         if (signals.empty()) {
             return;
         }
@@ -88,11 +89,11 @@ namespace Bess::UI {
 
         ImGui::BeginChild(plotName.c_str(), ImVec2(0, 0), false, ImGuiWindowFlags_None);
 
-        int numSignals = signals.size();
+        const int numSignals = signals.size();
 
         int i = 0;
         for (auto &[name, signal] : signals) {
-            float height = plotHeight + (i == numSignals - 1 ? 20 : 0);
+            const float height = plotHeight + (i == numSignals - 1 ? 20 : 0);
 
             if (ImPlot::BeginPlot(signal.name.c_str(), ImVec2(-1, height), ImPlotFlags_NoLegend | ImPlotFlags_NoTitle)) {
                 ImPlot::SetupAxis(ImAxis_Y1, signal.name.c_str(), ImPlotAxisFlags_NoTickLabels);
@@ -108,7 +109,7 @@ namespace Bess::UI {
 
                 std::vector<double> plotX;
                 std::vector<double> plotY;
-                int dataCount = signal.values.size();
+                const int dataCount = signal.values.size();
 
                 const auto &data = signal.values;
                 if (dataCount > 0) {

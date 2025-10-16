@@ -10,11 +10,11 @@
 #include "modules/schematic_gen/schematic_view.h"
 #include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
-#include "scene/renderer/gl/framebuffer.h"
-#include "scene/renderer/gl/subtexture.h"
+#include "scene/viewport.h"
 #include "types.h"
 #include <chrono>
 #include <memory>
+#include <vulkan/vulkan_core.h>
 
 // Forward declaration
 namespace Bess::Canvas {
@@ -46,40 +46,44 @@ namespace Bess::Canvas {
         ~Scene();
 
       public:
-        static Scene &instance();
+        static std::shared_ptr<Scene> instance();
+
+        std::shared_ptr<Viewport> getViewport() {
+            return m_viewport;
+        }
+
+        void destroy();
 
         void reset();
         void clear();
         void render();
-        void renderWithCamera(std::shared_ptr<Camera> camera);
+        void renderWithViewport(const std::shared_ptr<Viewport> &viewport);
         void update(TFrameTime ts, const std::vector<ApplicationEvent> &events);
 
-        unsigned int getTextureId();
+        uint64_t getTextureId() const;
         std::shared_ptr<Camera> getCamera();
 
-        void drawScene(std::shared_ptr<Camera> camera);
-        void beginScene();
-        void endScene();
+        void drawSceneToViewport(const std::shared_ptr<Viewport> &viewport);
 
         void setLastCreatedComp(LastCreatedComponent comp);
 
-        void saveScenePNG(const std::string &path);
+        void saveScenePNG(const std::string &path) const;
 
         friend class Modules::SchematicGen::SchematicView;
 
       public:
-        const glm::vec2 &getMousePos();
+        const glm::vec2 &getMousePos() const;
         glm::vec2 getSceneMousePos();
-        const glm::vec2 &getCameraPos();
-        float getCameraZoom();
-        void setZoom(float value);
+        const glm::vec2 &getCameraPos() const;
+        float getCameraZoom() const;
+        void setZoom(float value) const;
 
         void setSceneMode(SceneMode mode);
-        SceneMode getSceneMode();
+        SceneMode getSceneMode() const;
 
         void resize(const glm::vec2 &size);
         entt::registry &getEnttRegistry();
-        const glm::vec2 &getSize();
+        const glm::vec2 &getSize() const;
 
         UUID createSlotEntity(Components::SlotType type, const UUID &parent, unsigned int idx);
         UUID createSlotEntity(UUID uuid, Components::SlotType type, const UUID &parent, unsigned int idx);
@@ -100,7 +104,7 @@ namespace Bess::Canvas {
         void setZCoord(float val);
 
         SimEngine::Commands::CommandsManager &getCmdManager();
-        UUID generateBasicConnection(entt::entity startSlot, entt::entity endSlot);
+        UUID generateBasicConnection(entt::entity inputSlot, entt::entity outputSlot);
         UUID connectSlots(UUID startSlot, UUID endSlot);
         UUID connectComponents(UUID compIdA, int slotIdxA, bool isAInput, UUID compIdB, int slotIdxB);
 
@@ -124,15 +128,17 @@ namespace Bess::Canvas {
         void onRightMouse(bool isPressed);
         void onMouseWheel(double x, double y);
 
-        glm::vec2 toScenePos(const glm::vec2 &mousePos);
-        glm::vec2 getViewportMousePos(const glm::vec2 &mousePos);
-        bool isCursorInViewport(const glm::vec2 &pos);
+        std::shared_ptr<Viewport> m_viewport;
+
+        glm::vec2 toScenePos(const glm::vec2 &mousePos) const;
+        glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
+        bool isCursorInViewport(const glm::vec2 &pos) const;
         void drawConnection();
         void drawSelectionBox();
         void handleKeyboardShortcuts();
         void copySelectedComponents();
         void generateCopiedComponents();
-        void selectEntitesInArea(const glm::vec2 &start, const glm::vec2 &end);
+        bool selectEntitesInArea();
         void toggleSelectComponent(const UUID &uuid);
         void toggleSelectComponent(entt::entity ent);
         void selectAllEntities();
@@ -142,11 +148,10 @@ namespace Bess::Canvas {
 
         float getNextZCoord();
 
+        glm::vec2 getSnappedPos(const glm::vec2 &pos) const;
+
       private:
-        std::unique_ptr<Gl::FrameBuffer> m_msaaFramebuffer;
-        std::unique_ptr<Gl::FrameBuffer> m_shadowFramebuffer;
-        std::unique_ptr<Gl::FrameBuffer> m_placeHolderFramebuffer;
-        std::unique_ptr<Gl::FrameBuffer> m_normalFramebuffer;
+        // Vulkan framebuffers for scene rendering
         glm::vec2 m_size, m_mousePos, m_dMousePos;
         std::shared_ptr<Camera> m_camera;
 
@@ -160,6 +165,7 @@ namespace Bess::Canvas {
         glm::vec2 m_selectionBoxStart;
         glm::vec2 m_selectionBoxEnd;
         bool m_selectInSelectionBox = false;
+        bool m_getIdsInSelBox = false;
 
         bool m_isSchematicView = false;
 
@@ -189,11 +195,8 @@ namespace Bess::Canvas {
         };
         std::vector<CopiedComponent> m_copiedComponents = {};
 
-        std::shared_ptr<Gl::Texture> m_placeHolderTexture;
-        std::shared_ptr<Gl::SubTexture> m_placeHolderSubTexture;
-
         SimEngine::Commands::CommandsManager m_cmdManager;
 
-        std::shared_ptr<ArtistManager> m_artistManager;
+        VkExtent2D vec2Extent2D(const glm::vec2 &vec);
     };
 } // namespace Bess::Canvas
