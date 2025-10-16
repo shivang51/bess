@@ -1,4 +1,3 @@
-#include "scene/scene_pch.h"
 #include "scene/renderer/vulkan/path_renderer.h"
 #include <ranges>
 #define GLM_ENABLE_EXPERIMENTAL
@@ -10,6 +9,7 @@
 
 namespace Bess::Renderer2D::Vulkan {
     constexpr size_t primitiveResetIndex = 0xFFFFFFFF;
+    constexpr float kRoundedJoinRadius = 8.0f;
 
     PathRenderer::PathRenderer(const std::shared_ptr<VulkanDevice> &device,
                                const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
@@ -27,14 +27,17 @@ namespace Bess::Renderer2D::Vulkan {
         const std::vector<CommonVertex> *fillVerticesRef = nullptr;
         std::vector<std::vector<CommonVertex>> generatedStrokeVertices;
         std::vector<CommonVertex> generatedFillVertices;
-        if (m_cache.getEntryPtr(path.uuid, cachedPtr)) {
+        bool cacheHit = m_cache.getEntryPtr(path.uuid, cachedPtr);
+        auto &contours = path.getContours();
+
+        // Use cached stroke geometry only when rounded joints are not requested
+        if (cacheHit && !info.rounedJoint) {
             strokeVerticesRef = &cachedPtr->strokeVertices;
             fillVerticesRef = &cachedPtr->fillVertices;
         } else {
-            auto &contours = path.getContours();
             if (info.genStroke) {
                 for (const auto &points : contours) {
-                    auto vertices = generateStrokeGeometry(points, info.strokeColor, info.closePath);
+                    auto vertices = generateStrokeGeometry(points, info.strokeColor, info.closePath, info.rounedJoint);
                     generatedStrokeVertices.emplace_back(std::move(vertices));
                 }
                 strokeVerticesRef = &generatedStrokeVertices;
@@ -44,11 +47,15 @@ namespace Bess::Renderer2D::Vulkan {
                 generatedFillVertices = generateFillGeometry(contours, info.fillColor);
                 fillVerticesRef = &generatedFillVertices;
             }
-            m_cache.cacheEntry({
-                .pathId = path.uuid,
-                .strokeVertices = generatedStrokeVertices,
-                .fillVertices = generatedFillVertices,
-            });
+
+            // Populate cache only for non-rounded joint geometry to prevent parameter-mismatch reuse
+            if (!info.rounedJoint) {
+                m_cache.cacheEntry({
+                    .pathId = path.uuid,
+                    .strokeVertices = generatedStrokeVertices,
+                    .fillVertices = generatedFillVertices,
+                });
+            }
         }
 
         if (strokeVerticesRef) {
@@ -100,7 +107,7 @@ namespace Bess::Renderer2D::Vulkan {
         std::vector<CommonVertex> fillVertices;
         if (info.genStroke) {
             for (const auto &points : contours) {
-                auto vertices = generateStrokeGeometry(points, info.strokeColor, info.closePath);
+                auto vertices = generateStrokeGeometry(points, info.strokeColor, info.closePath, info.rounedJoint);
 
                 for (auto &p : vertices) {
                     p.position += info.translate;
@@ -223,6 +230,7 @@ namespace Bess::Renderer2D::Vulkan {
         info.genFill = genFill;
         info.genStroke = genStroke;
         info.fillColor = fillColor;
+        info.rounedJoint = true;
         info.strokeColor = m_pathData.color;
         info.translate = glm::vec3(0.0f);
         info.scale = glm::vec2(1.0f);
@@ -269,9 +277,84 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     std::vector<CommonVertex> PathRenderer::generateStrokeGeometry(const std::vector<PathPoint> &points,
-                                                                   const glm::vec4 &color, bool isClosed) {
+                                                                   const glm::vec4 &color, bool isClosed,
+                                                                   bool rounedJoint) {
         if (points.size() < (isClosed ? 3 : 2)) {
             return {};
+        }
+
+        // If rounded joints are requested, first smooth the polyline by inserting
+        // quadratic Bezier fillets at each join, then reuse the standard stroke logic.
+        if (rounedJoint) {
+            std::vector<PathPoint> smoothed;
+            smoothed.reserve(points.size() * 3);
+
+            auto pushPoint = [&](const glm::vec2 &p, float z, float w, int64_t id) {
+                smoothed.emplace_back(PathPoint{glm::vec3(p, z), w, id});
+            };
+
+            auto effectiveRadius = [&](const glm::vec2 &prevP, const glm::vec2 &currP, const glm::vec2 &nextP) -> float {
+                float d1 = glm::distance(prevP, currP);
+                float d2 = glm::distance(currP, nextP);
+                float r = std::min(kRoundedJoinRadius, std::min(d1, d2) * 0.45f);
+                return std::max(0.0f, r);
+            };
+
+            if (!isClosed) {
+                // Start point stays as-is
+                smoothed.push_back(points.front());
+                for (size_t i = 1; i + 1 < points.size(); ++i) {
+                    const auto &prev = points[i - 1];
+                    const auto &curr = points[i];
+                    const auto &next = points[i + 1];
+
+                    float r = effectiveRadius(glm::vec2(prev.pos), glm::vec2(curr.pos), glm::vec2(next.pos));
+                    if (r <= 0.0f) {
+                        smoothed.push_back(curr);
+                        continue;
+                    }
+
+                    auto bend = generateSmoothBendPoints(glm::vec2(prev.pos), glm::vec2(curr.pos), glm::vec2(next.pos), r);
+                    glm::vec3 start3(bend.startPoint.x, bend.startPoint.y, curr.pos.z);
+                    glm::vec3 end3(bend.endPoint.x, bend.endPoint.y, curr.pos.z);
+
+                    // Insert straight until start, then Bezier samples to end
+                    pushPoint(bend.startPoint, curr.pos.z, curr.weight, curr.id);
+                    auto samples = generateQuadBezierPoints(start3, bend.controlPoint, end3);
+                    for (const auto &p : samples) {
+                        smoothed.emplace_back(PathPoint{p, curr.weight, curr.id});
+                    }
+                }
+                // End point stays as-is
+                smoothed.push_back(points.back());
+            } else {
+                const size_t n = points.size();
+                smoothed.reserve(n * 4);
+                for (size_t i = 0; i < n; ++i) {
+                    const auto &prev = points[(i + n - 1) % n];
+                    const auto &curr = points[i];
+                    const auto &next = points[(i + 1) % n];
+
+                    float r = effectiveRadius(glm::vec2(prev.pos), glm::vec2(curr.pos), glm::vec2(next.pos));
+                    if (r <= 0.0f) {
+                        smoothed.push_back(curr);
+                        continue;
+                    }
+
+                    auto bend = generateSmoothBendPoints(glm::vec2(prev.pos), glm::vec2(curr.pos), glm::vec2(next.pos), r);
+                    glm::vec3 start3(bend.startPoint.x, bend.startPoint.y, curr.pos.z);
+                    glm::vec3 end3(bend.endPoint.x, bend.endPoint.y, curr.pos.z);
+
+                    pushPoint(bend.startPoint, curr.pos.z, curr.weight, curr.id);
+                    auto samples = generateQuadBezierPoints(start3, bend.controlPoint, end3);
+                    for (const auto &p : samples) {
+                        smoothed.emplace_back(PathPoint{p, curr.weight, curr.id});
+                    }
+                }
+            }
+
+            // Now stroke the smoothed polyline without special join handling
+            return generateStrokeGeometry(smoothed, color, isClosed, false);
         }
 
         auto makeVertex = [&](const glm::vec2 &pos, float z, uint64_t id, const glm::vec2 &uv) {
@@ -371,7 +454,84 @@ namespace Bess::Renderer2D::Vulkan {
 
                 float crossProductZ = (dirIn.x * dirOut.y) - (dirIn.y * dirOut.x);
 
-                if (glm::length(disp) > miterLimit) {
+                if (rounedJoint) {
+                    // Round join as an arc at the corner: fan outer arc against a fixed inner corner pivot
+                    glm::vec2 pos = glm::vec2(pCurr.pos);
+                    float halfWidth = pCurr.weight / 2.f;
+
+                    const bool isLeftTurn = crossProductZ >= 0.f;
+
+                    // Offset points for previous and next segments
+                    glm::vec2 outerPrev = pos + (isLeftTurn ? normalIn : -normalIn) * halfWidth;
+                    glm::vec2 outerNext = pos + (isLeftTurn ? normalOut : -normalOut) * halfWidth;
+                    glm::vec2 innerPrev = pos - (isLeftTurn ? normalIn : -normalIn) * halfWidth;
+                    glm::vec2 innerNext = pos - (isLeftTurn ? normalOut : -normalOut) * halfWidth;
+
+                    // Compute intersection of inner offset lines for a robust inner pivot
+                    auto cross2 = [](const glm::vec2 &a, const glm::vec2 &b) { return a.x * b.y - a.y * b.x; };
+                    glm::vec2 p1 = innerPrev; // along prev segment direction
+                    glm::vec2 d1 = dirIn;
+                    glm::vec2 p2 = innerNext; // along next segment direction
+                    glm::vec2 d2 = dirOut;
+                    float denom = cross2(d1, d2);
+                    glm::vec2 innerCorner = innerPrev;
+                    if (std::abs(denom) > 1e-6f) {
+                        float t = cross2(p2 - p1, d2) / denom;
+                        innerCorner = p1 + d1 * t;
+                    }
+
+                    glm::vec2 v0 = outerPrev - pos;
+                    glm::vec2 v1 = outerNext - pos;
+                    if (glm::length(v0) < 1e-5f || glm::length(v1) < 1e-5f) {
+                        glm::vec2 normal = normalIn * halfWidth;
+                        stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normal, pCurr.pos.z, pNext.id, {u, 1.f}));
+                        stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normal, pCurr.pos.z, pNext.id, {u, 0.f}));
+                        continue;
+                    }
+
+                    float a0 = std::atan2(v0.y, v0.x);
+                    float a1 = std::atan2(v1.y, v1.x);
+
+                    auto normalizeAngle = [](float a) {
+                        while (a <= -glm::pi<float>())
+                            a += 2.0f * glm::pi<float>();
+                        while (a > glm::pi<float>())
+                            a -= 2.0f * glm::pi<float>();
+                        return a;
+                    };
+                    a0 = normalizeAngle(a0);
+                    a1 = normalizeAngle(a1);
+
+                    float delta = a1 - a0;
+                    if (isLeftTurn) {
+                        if (delta < 0)
+                            delta += 2.0f * glm::pi<float>();
+                    } else {
+                        if (delta > 0)
+                            delta -= 2.0f * glm::pi<float>();
+                    }
+
+                    float radius = halfWidth;
+                    float arcLen = std::abs(delta) * radius;
+                    int segs = std::max(2, (int)std::ceil(arcLen / (std::max(0.25f, kRoundedJoinRadius))));
+
+                    for (int s = 0; s <= segs; ++s) {
+                        float t = (float)s / (float)segs;
+                        float ang = a0 + (t * delta);
+                        glm::vec2 dir = {std::cos(ang), std::sin(ang)};
+                        glm::vec2 outer = pos + dir * radius;
+
+                        if (isLeftTurn) {
+                            // keep ordering consistent: inner first (y=1), outer second (y=0)
+                            stripVertices.push_back(makeVertex(innerCorner, pCurr.pos.z, pNext.id, {u, 1.f}));
+                            stripVertices.push_back(makeVertex(outer, pCurr.pos.z, pNext.id, {u, 0.f}));
+                        } else {
+                            // right turn: outer first (y=1), inner second (y=0)
+                            stripVertices.push_back(makeVertex(outer, pCurr.pos.z, pNext.id, {u, 1.f}));
+                            stripVertices.push_back(makeVertex(innerCorner, pCurr.pos.z, pNext.id, {u, 0.f}));
+                        }
+                    }
+                } else if (glm::length(disp) > miterLimit) {
                     glm::vec2 normalIn = glm::normalize(glm::vec2(-dirIn.y, dirIn.x));
 
                     glm::vec2 pos = pCurr.pos;

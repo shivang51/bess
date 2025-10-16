@@ -38,6 +38,7 @@ namespace Bess::Renderer2D::Vulkan {
         bool genStroke = true;
         bool genFill = false;
         bool closePath = false;
+        bool rounedJoint = false; // generate rounded joints at path corners when true
         glm::vec3 translate{0.f};
         glm::vec2 scale = glm::vec2(1.0f);
         glm::vec4 fillColor = glm::vec4(1.f, 0.f, 0.f, 1.f);
@@ -154,7 +155,8 @@ namespace Bess::Renderer2D::Vulkan {
         PathContext m_pathData;
 
         std::vector<CommonVertex> generateStrokeGeometry(const std::vector<PathPoint> &points,
-                                                         const glm::vec4 &color, bool isClosed);
+                                                         const glm::vec4 &color, bool isClosed,
+                                                         bool rounedJoint);
         std::vector<CommonVertex> generateFillGeometry(const std::vector<PathPoint> &points, const glm::vec4 &color);
         std::vector<CommonVertex> generateFillGeometry(const std::vector<std::vector<PathPoint>> &contours, const glm::vec4 &color);
         std::vector<uint32_t> generateFillIndices(size_t vertexCount);
