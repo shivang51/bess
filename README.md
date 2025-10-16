@@ -4,8 +4,6 @@
 [![GitHub issues](https://img.shields.io/github/issues/shivang51/bess)](https://github.com/shivang51/bess/issues)
 [![GitHub license](https://img.shields.io/github/license/shivang51/bess)](https://github.com/shivang51/bess/blob/main/LICENSE)
 
-> Soon to be updated with [vulkan-renderer](https://github.com/shivang51/bess/tree/vulkan-renderer) branch
-
 BESS (Basic Electrical Simulation Software) is an open-source circuit simulator designed to be accessible, modern, and cross-platform.
 
 The project began as an attempt to remove the barriers students often face when working with existing tools. Many popular circuit simulators are proprietary, restricted to a single operating system, or rely on outdated interfaces. BESS was created to provide a free, user-friendly, and modern alternative that works consistently across platforms. Its goal is to make learning and experimenting with circuits simpler and more approachable for everyone.
@@ -55,4 +53,5 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
 - [x] Undo, Redo functionality (for most interactions done)
 - [x] Test Cases for simulation engine
 - [x] UI Improvements
-- [ ] Moving to vulkan renderer
+- [X] Moving to vulkan renderer
+New TODO's coming
