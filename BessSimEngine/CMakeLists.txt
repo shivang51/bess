@@ -56,6 +56,10 @@ else()
     target_link_libraries(${PROJECT_NAME} PRIVATE stdc++_libbacktrace)
 endif()
 endif()
+
+target_link_libraries(${PROJECT_NAME} PRIVATE BessPluginManager)
+add_dependencies(${PROJECT_NAME} BessPluginManager)
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE BESS_EXPORTS)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -63,6 +67,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
     "${CMAKE_SOURCE_DIR}/external/entt/include;"
     "${CMAKE_SOURCE_DIR}/external/spdlog/include;"
+    "${CMAKE_SOURCE_DIR}/BessPluginManager/include;"
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)

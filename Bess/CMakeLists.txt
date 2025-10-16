@@ -168,8 +168,8 @@ set(ALL_FILES
 )
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
-target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine BessVulkan)
-add_dependencies(${PROJECT_NAME} BessSimEngine BessVulkan)
+target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine BessVulkan BessPluginManager)
+add_dependencies(${PROJECT_NAME} BessSimEngine BessVulkan BessPluginManager)
 
 file(GLOB_RECURSE SCENE_PCH_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/scene/*.cpp"
@@ -226,6 +226,7 @@ if("${BUILD_ARCH}" STREQUAL "x64")
 			"${CMAKE_CURRENT_SOURCE_DIR}/include"
 			"${CMAKE_SOURCE_DIR}/BessSimEngine/include"
 			"${CMAKE_SOURCE_DIR}/BessVulkan/include"
+			"${CMAKE_SOURCE_DIR}/BessPluginManager/include"
 			"${CMAKE_SOURCE_DIR}/external/imgui"
 			"${CMAKE_SOURCE_DIR}/external/implot"
 			"${CMAKE_SOURCE_DIR}/external/freetype/include"

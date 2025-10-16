@@ -30,6 +30,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}/
 
 message(STATUS "Output location: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 
+add_subdirectory(BessPluginManager)
 add_subdirectory(BessSimEngine)
 add_subdirectory(BessVulkan)
 add_subdirectory(Bess)
@@ -44,6 +45,8 @@ set(DOXYGEN_INPUT_DIRS
 		${CMAKE_SOURCE_DIR}/BessVulkan/src
 		${CMAKE_SOURCE_DIR}/BessSimEngine/include
 		${CMAKE_SOURCE_DIR}/BessSimEngine/src
+		${CMAKE_SOURCE_DIR}/BessPluginManager/include
+		${CMAKE_SOURCE_DIR}/BessPluginManager/src
 )
 
 list(JOIN DOXYGEN_INPUT_DIRS " " DOXYGEN_INPUT_LIST)
