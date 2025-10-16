@@ -1,4 +1,6 @@
 #include "scene/renderer/vulkan/path_renderer.h"
+#include "detail/qualifier.hpp"
+#include "geometric.hpp"
 #include <ranges>
 #define GLM_ENABLE_EXPERIMENTAL
 #include "gtx/vector_angle.hpp"
@@ -382,15 +384,21 @@ namespace Bess::Renderer2D::Vulkan {
             if (!isClosed) {
                 smoothed.push_back(points.front());
                 for (size_t i = 1; i + 1 < points.size(); i++) {
-                    while (i < points.size() && points[i - 1].pos == points[i].pos) {
+                    while (i + 1 < points.size() && glm::distance(glm::vec2(points[i - 1].pos), glm::vec2(points[i].pos)) < smoothed.back().weight) {
                         i++;
                     }
-                    if (i == points.size())
+                    if (i + 1 >= points.size())
                         break;
 
                     const auto &prev = points[i - 1];
                     const auto &curr = points[i];
                     const auto &next = points[i + 1];
+
+                    if ((prev.pos.y == curr.pos.y && curr.pos.y == next.pos.y) ||
+                        (prev.pos.x == curr.pos.x && curr.pos.x == next.pos.x)) {
+                        smoothed.push_back(curr);
+                        continue;
+                    }
 
                     float r = effectiveRadius(glm::vec2(prev.pos), glm::vec2(curr.pos), glm::vec2(next.pos));
                     if (r <= 0.0f) {
@@ -407,7 +415,8 @@ namespace Bess::Renderer2D::Vulkan {
                     for (int i = 0; i < samples.size(); i++) {
                         auto &p = samples[i];
                         auto id = i < (samples.size() / 2) ? curr.id : next.id;
-                        smoothed.emplace_back(PathPoint{p, curr.weight, id});
+                        auto weight = i < (samples.size() / 2) ? curr.weight : next.weight;
+                        smoothed.emplace_back(PathPoint{p, weight, id});
                     }
                 }
 
@@ -441,43 +450,40 @@ namespace Bess::Renderer2D::Vulkan {
             return generateStrokeGeometry(smoothed, color, isClosed, false);
         }
 
-        auto makeVertex = [&](const glm::vec2 &pos, float z, uint64_t id, const glm::vec2 &uv) {
+        float t = 0;
+        auto makeVertex = [&](const glm::vec2 &pos, float z, uint64_t id) {
             CommonVertex v;
             v.position = glm::vec3(pos, z);
             v.color = color;
             v.id = static_cast<int>(id & 0x7FFFFFFF);
-            v.texCoord = uv;
+            v.texCoord = glm::mix(glm::vec2(0.f), glm::vec2(1.), t);
             v.texSlotIdx = -1;
             return v;
         };
 
-        // --- 1. Pre-calculate total path length for correct UV mapping ---
-        float totalLength = 0.0f;
         float maxWeight = 0.f;
         for (size_t i = 0; i < points.size() - 1; ++i) {
-            totalLength += glm::distance(glm::vec2(points[i].pos), glm::vec2(points[i + 1].pos));
             maxWeight = std::max(maxWeight, points[i].weight);
         }
 
         float miterLimit = maxWeight * 1.5f;
 
-        if (isClosed) {
-            totalLength += glm::distance(glm::vec2(points.back().pos), glm::vec2(points.front().pos));
-        }
-
         std::vector<CommonVertex> stripVertices;
-        float cumulativeLength = 0.0f;
         const size_t pointCount = points.size();
         const size_t n = pointCount;
 
         size_t ni = 0;
+        size_t skipped = 0;
         // --- 2. Generate Joins and Caps ---
         for (size_t i = 0; i < n; i = ni) {
-            // skipping continuous same points
+            // skipping continuous small steps
             ni = i + 1;
-            while (ni < n && points[ni].pos == points[i].pos) {
+            while (ni < n && std::abs(glm::distance(points[ni].pos, points[i].pos)) < points[i].weight / 2.f) {
                 ni++;
             }
+
+            skipped += (ni - i - 1);
+            t = (float)i / (float)(n - skipped - 1);
 
             const auto &pCurr = points[i];
             const auto &pPrev = isClosed ? points[(i + pointCount - 1) % pointCount] : points[(i == 0) ? 0 : (i - 1)];
@@ -485,26 +491,20 @@ namespace Bess::Renderer2D::Vulkan {
 
             int segmentId = (int)((!isClosed && i == n - 1) ? pCurr.id : pNext.id);
 
-            // Update cumulative length for UVs. For the first point, it's 0.
-            if (i > 0) {
-                cumulativeLength += glm::distance(glm::vec2(pCurr.pos), glm::vec2(pPrev.pos));
-            }
-            float u = (totalLength > 0) ? (cumulativeLength / totalLength) : 0;
-
             // --- Handle Caps for Open Paths ---
             if (!isClosed && i == 0) { // Start Cap
                 glm::vec2 dir = glm::normalize(glm::vec2(pNext.pos) - glm::vec2(pCurr.pos));
                 glm::vec2 normalVec = glm::vec2(-dir.y, dir.x) * pCurr.weight / 2.f;
-                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normalVec, pCurr.pos.z, segmentId, {u, 1.f}));
-                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normalVec, pCurr.pos.z, segmentId, {u, 0.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normalVec, pCurr.pos.z, segmentId));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normalVec, pCurr.pos.z, segmentId));
                 continue;
             }
 
             if (!isClosed && i == n - 1) { // End Cap
                 glm::vec2 dir = glm::normalize(glm::vec2(pCurr.pos) - glm::vec2(pPrev.pos));
                 glm::vec2 normalVec = glm::vec2(-dir.y, dir.x) * pCurr.weight / 2.f;
-                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normalVec, pCurr.pos.z, segmentId, {u, 1.f}));
-                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normalVec, pCurr.pos.z, segmentId, {u, 0.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normalVec, pCurr.pos.z, segmentId));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normalVec, pCurr.pos.z, segmentId));
                 continue;
             }
 
@@ -516,11 +516,13 @@ namespace Bess::Renderer2D::Vulkan {
             glm::vec2 normalOut(-dirOut.y, dirOut.x);
             float dotProduct = glm::dot(dirIn, dirOut);
 
-            // Handle straight lines
-            if (std::abs(dotProduct) == 1.f) {
+            // straight lines (Just hacking it right now)
+            if (std::abs(dotProduct) == 1.f ||
+                (pPrev.pos.y == pCurr.pos.y && pCurr.pos.y == pNext.pos.y) ||
+                (pPrev.pos.x == pCurr.pos.x && pCurr.pos.x == pNext.pos.x)) {
                 glm::vec2 normal = normalIn * pCurr.weight / 2.f;
-                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normal, pCurr.pos.z, segmentId, {u, 1.f}));
-                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normal, pCurr.pos.z, segmentId, {u, 0.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normal, pCurr.pos.z, segmentId));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normal, pCurr.pos.z, segmentId));
                 continue;
             }
 
@@ -551,21 +553,21 @@ namespace Bess::Renderer2D::Vulkan {
 
                     glm::vec2 outerNext = pos + normalOut * halfWidth;
                     glm::vec2 innerNext = pos - normalOut * halfWidth;
-                    stripVertices.push_back(makeVertex(innerPrev, pCurr.pos.z, segmentId, {u, 1.f}));
-                    stripVertices.push_back(makeVertex(outerPrev, pCurr.pos.z, segmentId, {u, 0.f}));
+                    stripVertices.push_back(makeVertex(innerPrev, pCurr.pos.z, segmentId));
+                    stripVertices.push_back(makeVertex(outerPrev, pCurr.pos.z, segmentId));
 
-                    stripVertices.push_back(makeVertex(innerNext, pCurr.pos.z, segmentId, {u, 1.f}));
-                    stripVertices.push_back(makeVertex(outerNext, pCurr.pos.z, segmentId, {u, 0.f}));
+                    stripVertices.push_back(makeVertex(innerNext, pCurr.pos.z, segmentId));
+                    stripVertices.push_back(makeVertex(outerNext, pCurr.pos.z, segmentId));
                 } else {
                     auto D = glm::vec2(pCurr.pos) + disp;
                     auto E = glm::vec2(pCurr.pos) - disp;
 
                     if (crossProductZ > 0) { // Left turn
-                        stripVertices.push_back(makeVertex(E, pCurr.pos.z, segmentId, {u, 1.f}));
-                        stripVertices.push_back(makeVertex(D, pCurr.pos.z, segmentId, {u, 0.f}));
+                        stripVertices.push_back(makeVertex(E, pCurr.pos.z, segmentId));
+                        stripVertices.push_back(makeVertex(D, pCurr.pos.z, segmentId));
                     } else { // Right turn
-                        stripVertices.push_back(makeVertex(D, pCurr.pos.z, segmentId, {u, 1.f}));
-                        stripVertices.push_back(makeVertex(E, pCurr.pos.z, segmentId, {u, 0.f}));
+                        stripVertices.push_back(makeVertex(D, pCurr.pos.z, segmentId));
+                        stripVertices.push_back(makeVertex(E, pCurr.pos.z, segmentId));
                     }
                 }
             }
