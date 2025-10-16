@@ -47,12 +47,8 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
        ./Bess
        ```
 ## TODO
-- [x] Add seven segment display (Added CLR for flip flops as well)
-- [x] Add some graph visulization for clock cycles
-- [x] Command System
-- [x] Undo, Redo functionality (for most interactions done)
-- [x] Test Cases for simulation engine
-- [x] UI Improvements
-- [X] Moving to vulkan renderer
-
-New TODO's coming
+- [ ] Basic Plugin Suppport
+- [ ] Scriptable rendering
+- [ ] Usability enhancements
+- [ ] Add More components
+- [ ] Web hosting
