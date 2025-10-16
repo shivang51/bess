@@ -8,6 +8,36 @@
 #include <cstring>
 
 namespace Bess::Renderer2D::Vulkan {
+    static inline void hash_combine(uint64_t &seed, uint64_t v) {
+        // 64-bit boost::hash_combine-like
+        seed ^= v + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+    }
+
+    uint64_t PathRenderer::hashContours(const std::vector<std::vector<PathPoint>> &contours, const glm::vec4 &color, bool isClosed, bool rounded) {
+        uint64_t seed = 1469598103934665603ULL; // FNV-ish base
+        auto h = [&seed](uint64_t v) { hash_combine(seed, v); };
+        h(static_cast<uint64_t>(contours.size()));
+        for (const auto &c : contours) {
+            h(static_cast<uint64_t>(c.size()));
+            for (const auto &p : c) {
+                // quantize to reduce churn from float noise
+                auto qf = [](float f) -> int32_t { return (int32_t)std::llround(f * 1000.0f); };
+                h(static_cast<uint64_t>(qf(p.pos.x)));
+                h(static_cast<uint64_t>(qf(p.pos.y)));
+                h(static_cast<uint64_t>(qf(p.pos.z)));
+                h(static_cast<uint64_t>(qf(p.weight)));
+                h(static_cast<uint64_t>(p.id & 0xFFFFFFFFULL));
+            }
+        }
+        auto qf = [](float f) -> int32_t { return (int32_t)std::llround(f * 1000.0f); };
+        h(static_cast<uint64_t>(qf(color.r)));
+        h(static_cast<uint64_t>(qf(color.g)));
+        h(static_cast<uint64_t>(qf(color.b)));
+        h(static_cast<uint64_t>(qf(color.a)));
+        h(isClosed ? 1ULL : 0ULL);
+        h(rounded ? 1ULL : 0ULL);
+        return seed;
+    }
     constexpr size_t primitiveResetIndex = 0xFFFFFFFF;
     constexpr float kRoundedJoinRadius = 8.0f;
 
@@ -31,7 +61,7 @@ namespace Bess::Renderer2D::Vulkan {
         auto &contours = path.getContours();
 
         // Use cached stroke geometry only when rounded joints are not requested
-        if (cacheHit && !info.rounedJoint) {
+        if (cacheHit && (!info.rounedJoint || (cachedPtr && cachedPtr->rounded))) {
             strokeVerticesRef = &cachedPtr->strokeVertices;
             fillVerticesRef = &cachedPtr->fillVertices;
         } else {
@@ -48,12 +78,13 @@ namespace Bess::Renderer2D::Vulkan {
                 fillVerticesRef = &generatedFillVertices;
             }
 
-            // Populate cache only for non-rounded joint geometry to prevent parameter-mismatch reuse
-            if (!info.rounedJoint) {
+            // Populate cache; mark whether rounded was used to avoid mismatch reuse
+            if (!generatedStrokeVertices.empty() || !generatedFillVertices.empty()) {
                 m_cache.cacheEntry({
                     .pathId = path.uuid,
                     .strokeVertices = generatedStrokeVertices,
                     .fillVertices = generatedFillVertices,
+                    .rounded = info.rounedJoint,
                 });
             }
         }
@@ -101,18 +132,41 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void PathRenderer::drawContours(const std::vector<std::vector<PathPoint>> &contours, ContoursDrawInfo info) {
-        // auto transform = glm::translate(glm::mat4(1.f), {m_pathData.startPos.x, m_pathData.startPos.y, m_pathData.startPos.y});
-        // transform = glm::scale(transform, {20.f / 48.f, 20.f / 48.f, 1.f});
         std::vector<std::vector<CommonVertex>> strokeVertices;
         std::vector<CommonVertex> fillVertices;
         if (info.genStroke) {
-            for (const auto &points : contours) {
-                auto vertices = generateStrokeGeometry(points, info.strokeColor, info.closePath, info.rounedJoint);
-
-                for (auto &p : vertices) {
-                    p.position += info.translate;
+            uint64_t key = hashContours(contours, info.strokeColor, info.closePath, info.rounedJoint);
+            auto dynIt = m_dynamicStrokeCache.find(key);
+            if (dynIt != m_dynamicStrokeCache.end()) {
+                for (auto vertices : dynIt->second.strokeVertices) {
+                    for (auto &p : vertices)
+                        p.position += info.translate;
+                    strokeVertices.emplace_back(std::move(vertices));
                 }
-                strokeVertices.emplace_back(vertices);
+            } else {
+                std::vector<std::vector<CommonVertex>> built;
+                built.reserve(contours.size());
+                for (const auto &points : contours) {
+                    auto vertices = generateStrokeGeometry(points, info.strokeColor, info.closePath, info.rounedJoint);
+                    for (auto &p : vertices)
+                        p.position += info.translate;
+                    built.emplace_back(vertices);
+                    strokeVertices.emplace_back(vertices);
+                }
+
+                constexpr size_t kMaxDynEntries = 1024;
+                PathGeometryCacheEntry entry{};
+                entry.pathId = UUID{};
+                entry.strokeVertices = built;
+                entry.fillVertices = {};
+                entry.rounded = info.rounedJoint;
+                m_dynamicStrokeCache[key] = std::move(entry);
+                m_dynamicStrokeCacheOrder.push_back(key);
+                if (m_dynamicStrokeCacheOrder.size() > kMaxDynEntries) {
+                    uint64_t old = m_dynamicStrokeCacheOrder.front();
+                    m_dynamicStrokeCacheOrder.pop_front();
+                    m_dynamicStrokeCache.erase(old);
+                }
             }
         }
 
@@ -301,7 +355,6 @@ namespace Bess::Renderer2D::Vulkan {
             };
 
             if (!isClosed) {
-                // Start point stays as-is
                 smoothed.push_back(points.front());
                 for (size_t i = 1; i + 1 < points.size(); ++i) {
                     const auto &prev = points[i - 1];
@@ -318,14 +371,15 @@ namespace Bess::Renderer2D::Vulkan {
                     glm::vec3 start3(bend.startPoint.x, bend.startPoint.y, curr.pos.z);
                     glm::vec3 end3(bend.endPoint.x, bend.endPoint.y, curr.pos.z);
 
-                    // Insert straight until start, then Bezier samples to end
                     pushPoint(bend.startPoint, curr.pos.z, curr.weight, curr.id);
+                    float chord = glm::distance(bend.startPoint, bend.endPoint);
+                    int segs = std::max(3, (int)std::ceil(chord / kRoundedJoinRadius));
                     auto samples = generateQuadBezierPoints(start3, bend.controlPoint, end3);
                     for (const auto &p : samples) {
                         smoothed.emplace_back(PathPoint{p, curr.weight, curr.id});
                     }
                 }
-                // End point stays as-is
+
                 smoothed.push_back(points.back());
             } else {
                 const size_t n = points.size();
@@ -353,7 +407,6 @@ namespace Bess::Renderer2D::Vulkan {
                 }
             }
 
-            // Now stroke the smoothed polyline without special join handling
             return generateStrokeGeometry(smoothed, color, isClosed, false);
         }
 
@@ -767,6 +820,19 @@ namespace Bess::Renderer2D::Vulkan {
             points.emplace_back(p);
         }
 
+        return points;
+    }
+
+    std::vector<glm::vec3> PathRenderer::generateQuadBezierPointsSegments(const glm::vec3 &start, const glm::vec2 &controlPoint, const glm::vec3 &end, int segments) {
+        std::vector<glm::vec3> points;
+        segments = std::max(1, segments);
+        points.reserve((size_t)segments);
+        for (int i = 1; i <= segments; i++) {
+            float t = (float)i / (float)segments;
+            glm::vec2 bP = nextBernstinePointQuadBezier(start, controlPoint, end, t);
+            glm::vec3 p = {bP.x, bP.y, glm::mix(start.z, end.z, t)};
+            points.emplace_back(p);
+        }
         return points;
     }
 

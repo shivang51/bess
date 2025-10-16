@@ -10,6 +10,7 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
+#include <deque>
 #include <vulkan/vulkan_core.h>
 
 using namespace Bess::Vulkan;
@@ -50,6 +51,7 @@ namespace Bess::Renderer2D::Vulkan {
         UUID pathId;
         std::vector<std::vector<CommonVertex>> strokeVertices;
         std::vector<CommonVertex> fillVertices;
+        bool rounded = false;
     };
 
     class PathGeometryCache {
@@ -119,6 +121,7 @@ namespace Bess::Renderer2D::Vulkan {
         static glm::vec2 nextBernstinePointQuadBezier(const glm::vec2 &p0, const glm::vec2 &p1, const glm::vec2 &p2, float t);
         static std::vector<glm::vec3> generateCubicBezierPoints(const glm::vec3 &start, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2, const glm::vec3 &end);
         static std::vector<glm::vec3> generateQuadBezierPoints(const glm::vec3 &start, const glm::vec2 &controlPoint, const glm::vec3 &end);
+        static std::vector<glm::vec3> generateQuadBezierPointsSegments(const glm::vec3 &start, const glm::vec2 &controlPoint, const glm::vec3 &end, int segments);
 
       private:
         void addPathGeometries(const std::vector<std::vector<CommonVertex>> &strokeGeometry);
@@ -154,6 +157,10 @@ namespace Bess::Renderer2D::Vulkan {
         // Path context
         PathContext m_pathData;
 
+        // Dynamic cache for native path API (beginPathMode/endPathMode) stroke geometries
+        std::unordered_map<uint64_t, PathGeometryCacheEntry> m_dynamicStrokeCache;
+        std::deque<uint64_t> m_dynamicStrokeCacheOrder;
+
         std::vector<CommonVertex> generateStrokeGeometry(const std::vector<PathPoint> &points,
                                                          const glm::vec4 &color, bool isClosed,
                                                          bool rounedJoint);
@@ -162,6 +169,9 @@ namespace Bess::Renderer2D::Vulkan {
         std::vector<uint32_t> generateFillIndices(size_t vertexCount);
 
         QuadBezierCurvePoints generateSmoothBendPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius);
+
+        // Hash helpers for dynamic cache
+        static uint64_t hashContours(const std::vector<std::vector<PathPoint>> &contours, const glm::vec4 &color, bool isClosed, bool rounded);
     };
 
 } // namespace Bess::Renderer2D::Vulkan
