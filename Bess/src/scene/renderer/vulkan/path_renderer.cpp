@@ -364,8 +364,6 @@ namespace Bess::Renderer2D::Vulkan {
             return {};
         }
 
-        // If rounded joints are requested, first smooth the polyline by inserting
-        // quadratic Bezier fillets at each join, then reuse the standard stroke logic.
         if (rounedJoint) {
             std::vector<PathPoint> smoothed;
             smoothed.reserve(points.size() * 3);
@@ -513,8 +511,8 @@ namespace Bess::Renderer2D::Vulkan {
             // Handle straight lines
             if (std::abs(dotProduct) == 1.f) {
                 glm::vec2 normal = normalIn * pCurr.weight / 2.f;
-                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normal, pCurr.pos.z, pNext.id, {u, 1.f}));
-                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normal, pCurr.pos.z, pNext.id, {u, 0.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normal, pCurr.pos.z, pCurr.id, {u, 1.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normal, pCurr.pos.z, pCurr.id, {u, 0.f}));
                 continue;
             }
 
@@ -564,8 +562,8 @@ namespace Bess::Renderer2D::Vulkan {
                     glm::vec2 v1 = outerNext - pos;
                     if (glm::length(v0) < 1e-5f || glm::length(v1) < 1e-5f) {
                         glm::vec2 normal = normalIn * halfWidth;
-                        stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normal, pCurr.pos.z, pNext.id, {u, 1.f}));
-                        stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normal, pCurr.pos.z, pNext.id, {u, 0.f}));
+                        stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normal, pCurr.pos.z, pCurr.id, {u, 1.f}));
+                        stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normal, pCurr.pos.z, pCurr.id, {u, 0.f}));
                         continue;
                     }
 
@@ -603,12 +601,12 @@ namespace Bess::Renderer2D::Vulkan {
 
                         if (isLeftTurn) {
                             // keep ordering consistent: inner first (y=1), outer second (y=0)
-                            stripVertices.push_back(makeVertex(innerCorner, pCurr.pos.z, pNext.id, {u, 1.f}));
-                            stripVertices.push_back(makeVertex(outer, pCurr.pos.z, pNext.id, {u, 0.f}));
+                            stripVertices.push_back(makeVertex(innerCorner, pCurr.pos.z, pCurr.id, {u, 1.f}));
+                            stripVertices.push_back(makeVertex(outer, pCurr.pos.z, pCurr.id, {u, 0.f}));
                         } else {
                             // right turn: outer first (y=1), inner second (y=0)
-                            stripVertices.push_back(makeVertex(outer, pCurr.pos.z, pNext.id, {u, 1.f}));
-                            stripVertices.push_back(makeVertex(innerCorner, pCurr.pos.z, pNext.id, {u, 0.f}));
+                            stripVertices.push_back(makeVertex(outer, pCurr.pos.z, pCurr.id, {u, 1.f}));
+                            stripVertices.push_back(makeVertex(innerCorner, pCurr.pos.z, pCurr.id, {u, 0.f}));
                         }
                     }
                 } else if (glm::length(disp) > miterLimit) {
