@@ -8,7 +8,7 @@ class Plugin:
         self.version = version
 
     @abstractmethod
-    def on_components_load(self) -> list[Component]:
+    def on_components_reg_load(self) -> list[Component]:
         '''
         Method is called when components are getting loaded into the simulation engine.
         @return: List[Component] 

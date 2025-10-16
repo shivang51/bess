@@ -30,11 +30,11 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}/
 
 message(STATUS "Output location: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 
+add_subdirectory(BessTests)
 add_subdirectory(BessPluginManager)
 add_subdirectory(BessSimEngine)
 add_subdirectory(BessVulkan)
 add_subdirectory(Bess)
-add_subdirectory(BessTests)
 
 
 find_package(Doxygen REQUIRED)

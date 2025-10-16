@@ -1,10 +1,10 @@
 #define FMT_UNICODE 0
 #include "application.h"
+#include "plugin_manager.h"
 #include <csignal>
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
-
 
 #ifdef __linux__
     #include <stacktrace>
@@ -43,6 +43,25 @@ int main(int argc, char **argv) {
     sigaction(SIGSEGV, &sa, nullptr);
     #endif
 #endif // _LINUX
+
+    {
+        auto &pluginMangaer = Bess::Plugins::PluginManager::getInstance();
+        pluginMangaer.loadPluginsFromDirectory("plugins");
+
+        std::cout << pluginMangaer.getLoadedPlugins().size() << " plugins loaded." << std::endl;
+
+        if (pluginMangaer.isPluginLoaded("BessPlugin")) {
+            auto plugin = pluginMangaer.getPlugin("BessPlugin");
+            auto comps = plugin->onComponentsRegLoad();
+
+            comps.front().onUpdateFn(1.5f);
+            std::cout << plugin->onComponentsRegLoad().size() << " components loaded from plugin." << std::endl;
+        }
+
+        pluginMangaer.destroy();
+    }
+
+    return 0;
 
     Bess::Application app;
     try {

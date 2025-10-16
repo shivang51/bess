@@ -1,13 +1,11 @@
 from bessplug import Plugin, Component
-import bessplug
 
 class BessPlugin(Plugin):
     def __init__(self):
         super().__init__("BessPlugin", "0.0")
 
-    def on_components_load(self) -> list[Component]:
-        return []
+    def on_components_reg_load(self) -> list[Component]:
+        return [Component("Gobo")]
 
 
-print(bessplug.__version__)
-print(BessPlugin().name)
+plugin_hwd = BessPlugin()
