@@ -148,6 +148,8 @@ namespace Bess::Canvas {
 
         float getNextZCoord();
 
+        glm::vec2 getSnappedPos(const glm::vec2 &pos) const;
+
       private:
         // Vulkan framebuffers for scene rendering
         glm::vec2 m_size, m_mousePos, m_dMousePos;

@@ -685,8 +685,7 @@ namespace Bess::Canvas {
                         m_dragOffsets[ent] = offset;
                     }
                     newPos -= m_dragOffsets[ent];
-                    const float snapSize = 5.f;
-                    newPos = glm::vec2(glm::round(newPos / snapSize)) * snapSize;
+                    newPos = getSnappedPos(newPos);
                     transformComp.position = {newPos, transformComp.position.z};
                 }
 
@@ -851,7 +850,7 @@ namespace Bess::Canvas {
                 .def = def,
                 .inputCount = m_lastCreatedComp.inputCount,
                 .outputCount = m_lastCreatedComp.outputCount,
-                .pos = toScenePos(m_mousePos),
+                .pos = getSnappedPos(toScenePos(m_mousePos)),
             };
 
             const auto res = m_cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{cmdData});
@@ -1134,5 +1133,10 @@ namespace Bess::Canvas {
 
     VkExtent2D Scene::vec2Extent2D(const glm::vec2 &vec) {
         return {(uint32_t)vec.x, (uint32_t)vec.y};
+    }
+
+    glm::vec2 Scene::getSnappedPos(const glm::vec2 &pos) const {
+        constexpr float snapSize = 5.f;
+        return glm::vec2(glm::round(pos / snapSize)) * snapSize;
     }
 } // namespace Bess::Canvas
