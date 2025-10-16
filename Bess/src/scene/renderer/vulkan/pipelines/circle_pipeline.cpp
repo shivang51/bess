@@ -1,6 +1,6 @@
-#include "scene/scene_pch.h"
 #include "scene/renderer/vulkan/pipelines/circle_pipeline.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
+#include "scene/scene_pch.h"
 #include "vulkan_core.h"
 
 namespace Bess::Vulkan::Pipelines {
@@ -132,30 +132,7 @@ namespace Bess::Vulkan::Pipelines {
             m_buffers.instanceBufferMemory = VK_NULL_HANDLE;
         }
 
-        if (m_opaquePipeline != VK_NULL_HANDLE) {
-            vkDestroyPipeline(m_device->device(), m_opaquePipeline, nullptr);
-            m_opaquePipeline = VK_NULL_HANDLE;
-        }
-
-        if (m_opaquePipelineLayout != VK_NULL_HANDLE) {
-            vkDestroyPipelineLayout(m_device->device(), m_opaquePipelineLayout, nullptr);
-            m_opaquePipelineLayout = VK_NULL_HANDLE;
-        }
-
-        if (m_descriptorSetLayout != VK_NULL_HANDLE) {
-            vkDestroyDescriptorSetLayout(m_device->device(), m_descriptorSetLayout, nullptr);
-            m_descriptorSetLayout = VK_NULL_HANDLE;
-        }
-
-        if (m_descriptorPool != VK_NULL_HANDLE) {
-            vkDestroyDescriptorPool(m_device->device(), m_descriptorPool, nullptr);
-            m_descriptorPool = VK_NULL_HANDLE;
-        }
-
-        for (size_t i = 0; i < m_uniformBuffers.size(); i++) {
-            vkDestroyBuffer(m_device->device(), m_uniformBuffers[i], nullptr);
-            vkFreeMemory(m_device->device(), m_uniformBufferMemory[i], nullptr);
-        }
+        Pipeline::cleanup();
     }
 
     void CirclePipeline::createGraphicsPipeline(bool isTranslucent) {

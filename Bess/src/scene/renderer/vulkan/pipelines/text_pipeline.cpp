@@ -1,8 +1,8 @@
-#include "scene/scene_pch.h"
 #include "scene/renderer/vulkan/pipelines/text_pipeline.h"
 #include "asset_manager/asset_manager.h"
 #include "assets.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
+#include "scene/scene_pch.h"
 
 namespace Bess::Vulkan::Pipelines {
 
@@ -193,35 +193,12 @@ namespace Bess::Vulkan::Pipelines {
             vkDestroyDescriptorSetLayout(m_device->device(), m_textureArrayLayout, nullptr);
         }
 
-        if (m_opaquePipeline != VK_NULL_HANDLE) {
-            vkDestroyPipeline(m_device->device(), m_opaquePipeline, nullptr);
-            m_opaquePipeline = VK_NULL_HANDLE;
-        }
-
-        if (m_opaquePipelineLayout != VK_NULL_HANDLE) {
-            vkDestroyPipelineLayout(m_device->device(), m_opaquePipelineLayout, nullptr);
-            m_opaquePipelineLayout = VK_NULL_HANDLE;
-        }
-
-        if (m_descriptorSetLayout != VK_NULL_HANDLE) {
-            vkDestroyDescriptorSetLayout(m_device->device(), m_descriptorSetLayout, nullptr);
-            m_descriptorSetLayout = VK_NULL_HANDLE;
-        }
-
-        if (m_descriptorPool != VK_NULL_HANDLE) {
-            vkDestroyDescriptorPool(m_device->device(), m_descriptorPool, nullptr);
-            m_descriptorPool = VK_NULL_HANDLE;
-        }
-
-        for (size_t i = 0; i < m_uniformBuffers.size(); i++) {
-            vkDestroyBuffer(m_device->device(), m_uniformBuffers[i], nullptr);
-            vkFreeMemory(m_device->device(), m_uniformBufferMemory[i], nullptr);
-        }
-
         for (size_t i = 0; i < m_textUniformBuffers.size(); i++) {
             vkDestroyBuffer(m_device->device(), m_textUniformBuffers[i], nullptr);
             vkFreeMemory(m_device->device(), m_textUniformBufferMemory[i], nullptr);
         }
+
+        Pipeline::cleanup();
     }
 
     constexpr size_t maxFrames = Bess::Vulkan::VulkanCore::MAX_FRAMES_IN_FLIGHT;
@@ -443,8 +420,7 @@ namespace Bess::Vulkan::Pipelines {
             -0.5f, -0.5f, 0.0f, 0.0f,
             0.5f, -0.5f, 1.0f, 0.0f,
             0.5f, 0.5f, 1.0f, 1.0f,
-            -0.5f, 0.5f, 0.0f, 1.0f
-        };
+            -0.5f, 0.5f, 0.0f, 1.0f};
 
         std::vector<uint32_t> idx = {
             0, 1, 2, 2, 3, 0};
@@ -641,4 +617,4 @@ namespace Bess::Vulkan::Pipelines {
         }
     }
 
-}
+} // namespace Bess::Vulkan::Pipelines
