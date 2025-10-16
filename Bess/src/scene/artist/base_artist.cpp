@@ -61,7 +61,7 @@ namespace Bess::Canvas {
     }
 
     void BaseArtist::end() {
-        m_pathRenderer->endFrame(); // important to end path renderer first for now (temp fix for alpha blending)
+        m_pathRenderer->endFrame();
         m_materialRenderer->endFrame();
     }
 

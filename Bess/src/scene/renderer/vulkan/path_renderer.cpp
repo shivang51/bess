@@ -477,6 +477,8 @@ namespace Bess::Renderer2D::Vulkan {
             const auto &pPrev = isClosed ? points[(i + pointCount - 1) % pointCount] : points[(i == 0) ? 0 : (i - 1)];
             const auto &pNext = isClosed ? points[ni % pointCount] : points[std::min(pointCount - 1, ni)];
 
+            int segmentId = (int)((!isClosed && i == n - 1) ? pCurr.id : pNext.id);
+
             // Update cumulative length for UVs. For the first point, it's 0.
             if (i > 0) {
                 cumulativeLength += glm::distance(glm::vec2(pCurr.pos), glm::vec2(pPrev.pos));
@@ -487,16 +489,16 @@ namespace Bess::Renderer2D::Vulkan {
             if (!isClosed && i == 0) { // Start Cap
                 glm::vec2 dir = glm::normalize(glm::vec2(pNext.pos) - glm::vec2(pCurr.pos));
                 glm::vec2 normalVec = glm::vec2(-dir.y, dir.x) * pCurr.weight / 2.f;
-                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normalVec, pCurr.pos.z, pNext.id, {u, 1.f}));
-                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normalVec, pCurr.pos.z, pNext.id, {u, 0.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normalVec, pCurr.pos.z, segmentId, {u, 1.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normalVec, pCurr.pos.z, segmentId, {u, 0.f}));
                 continue;
             }
 
             if (!isClosed && i == n - 1) { // End Cap
                 glm::vec2 dir = glm::normalize(glm::vec2(pCurr.pos) - glm::vec2(pPrev.pos));
                 glm::vec2 normalVec = glm::vec2(-dir.y, dir.x) * pCurr.weight / 2.f;
-                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normalVec, pCurr.pos.z, pCurr.id, {u, 1.f}));
-                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normalVec, pCurr.pos.z, pCurr.id, {u, 0.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normalVec, pCurr.pos.z, segmentId, {u, 1.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normalVec, pCurr.pos.z, segmentId, {u, 0.f}));
                 continue;
             }
 
@@ -511,8 +513,8 @@ namespace Bess::Renderer2D::Vulkan {
             // Handle straight lines
             if (std::abs(dotProduct) == 1.f) {
                 glm::vec2 normal = normalIn * pCurr.weight / 2.f;
-                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normal, pCurr.pos.z, pCurr.id, {u, 1.f}));
-                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normal, pCurr.pos.z, pCurr.id, {u, 0.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normal, pCurr.pos.z, segmentId, {u, 1.f}));
+                stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normal, pCurr.pos.z, segmentId, {u, 0.f}));
                 continue;
             }
 
@@ -562,8 +564,8 @@ namespace Bess::Renderer2D::Vulkan {
                     glm::vec2 v1 = outerNext - pos;
                     if (glm::length(v0) < 1e-5f || glm::length(v1) < 1e-5f) {
                         glm::vec2 normal = normalIn * halfWidth;
-                        stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normal, pCurr.pos.z, pCurr.id, {u, 1.f}));
-                        stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normal, pCurr.pos.z, pCurr.id, {u, 0.f}));
+                        stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normal, pCurr.pos.z, segmentId, {u, 1.f}));
+                        stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normal, pCurr.pos.z, segmentId, {u, 0.f}));
                         continue;
                     }
 
@@ -601,12 +603,12 @@ namespace Bess::Renderer2D::Vulkan {
 
                         if (isLeftTurn) {
                             // keep ordering consistent: inner first (y=1), outer second (y=0)
-                            stripVertices.push_back(makeVertex(innerCorner, pCurr.pos.z, pCurr.id, {u, 1.f}));
-                            stripVertices.push_back(makeVertex(outer, pCurr.pos.z, pCurr.id, {u, 0.f}));
+                            stripVertices.push_back(makeVertex(innerCorner, pCurr.pos.z, segmentId, {u, 1.f}));
+                            stripVertices.push_back(makeVertex(outer, pCurr.pos.z, segmentId, {u, 0.f}));
                         } else {
                             // right turn: outer first (y=1), inner second (y=0)
-                            stripVertices.push_back(makeVertex(outer, pCurr.pos.z, pCurr.id, {u, 1.f}));
-                            stripVertices.push_back(makeVertex(innerCorner, pCurr.pos.z, pCurr.id, {u, 0.f}));
+                            stripVertices.push_back(makeVertex(outer, pCurr.pos.z, segmentId, {u, 1.f}));
+                            stripVertices.push_back(makeVertex(innerCorner, pCurr.pos.z, segmentId, {u, 0.f}));
                         }
                     }
                 } else if (glm::length(disp) > miterLimit) {
@@ -620,21 +622,21 @@ namespace Bess::Renderer2D::Vulkan {
 
                     glm::vec2 outerNext = pos + normalOut * halfWidth;
                     glm::vec2 innerNext = pos - normalOut * halfWidth;
-                    stripVertices.push_back(makeVertex(innerPrev, pCurr.pos.z, pCurr.id, {u, 1.f}));
-                    stripVertices.push_back(makeVertex(outerPrev, pCurr.pos.z, pCurr.id, {u, 0.f}));
+                    stripVertices.push_back(makeVertex(innerPrev, pCurr.pos.z, segmentId, {u, 1.f}));
+                    stripVertices.push_back(makeVertex(outerPrev, pCurr.pos.z, segmentId, {u, 0.f}));
 
-                    stripVertices.push_back(makeVertex(innerNext, pCurr.pos.z, pCurr.id, {u, 1.f}));
-                    stripVertices.push_back(makeVertex(outerNext, pCurr.pos.z, pCurr.id, {u, 0.f}));
+                    stripVertices.push_back(makeVertex(innerNext, pCurr.pos.z, segmentId, {u, 1.f}));
+                    stripVertices.push_back(makeVertex(outerNext, pCurr.pos.z, segmentId, {u, 0.f}));
                 } else {
                     auto D = glm::vec2(pCurr.pos) + disp;
                     auto E = glm::vec2(pCurr.pos) - disp;
 
                     if (crossProductZ > 0) { // Left turn
-                        stripVertices.push_back(makeVertex(E, pCurr.pos.z, pNext.id, {u, 1.f}));
-                        stripVertices.push_back(makeVertex(D, pCurr.pos.z, pNext.id, {u, 0.f}));
+                        stripVertices.push_back(makeVertex(E, pCurr.pos.z, segmentId, {u, 1.f}));
+                        stripVertices.push_back(makeVertex(D, pCurr.pos.z, segmentId, {u, 0.f}));
                     } else { // Right turn
-                        stripVertices.push_back(makeVertex(D, pCurr.pos.z, pNext.id, {u, 1.f}));
-                        stripVertices.push_back(makeVertex(E, pCurr.pos.z, pNext.id, {u, 0.f}));
+                        stripVertices.push_back(makeVertex(D, pCurr.pos.z, segmentId, {u, 1.f}));
+                        stripVertices.push_back(makeVertex(E, pCurr.pos.z, segmentId, {u, 0.f}));
                     }
                 }
             }
