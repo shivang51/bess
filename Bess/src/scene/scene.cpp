@@ -43,6 +43,7 @@ namespace Bess::Canvas {
         m_viewport = std::make_shared<Viewport>(vkCore.getDevice(), vkCore.getSwapchain()->imageFormat(), vec2Extent2D(m_size));
 
         m_camera = m_viewport->getCamera();
+        m_mousePos = {0.f, 0.f};
     }
 
     void Scene::clear() {

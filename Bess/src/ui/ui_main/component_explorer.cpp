@@ -1,5 +1,5 @@
-#include "scene/scene_pch.h"
 #include "ui/ui_main/component_explorer.h"
+#include "scene/scene_pch.h"
 
 #include "common/helpers.h"
 #include "common/log.h"
@@ -234,9 +234,9 @@ namespace Bess::UI {
                 if (ButtonWithPopup(name, "", false)) {
                     createComponent(comp);
                 }
-
-                ImGui::TreePop();
             }
+
+            ImGui::TreePop();
         }
 
         ImGui::PopStyleColor(2);
