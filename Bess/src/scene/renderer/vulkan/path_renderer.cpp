@@ -359,7 +359,7 @@ namespace Bess::Renderer2D::Vulkan {
 
     std::vector<CommonVertex> PathRenderer::generateStrokeGeometry(const std::vector<PathPoint> &points,
                                                                    const glm::vec4 &color, bool isClosed,
-                                                                   bool rounedJoint) {
+                                                                   const bool rounedJoint) {
         if (points.size() < (isClosed ? 3 : 2)) {
             return {};
         }
@@ -381,7 +381,13 @@ namespace Bess::Renderer2D::Vulkan {
 
             if (!isClosed) {
                 smoothed.push_back(points.front());
-                for (size_t i = 1; i + 1 < points.size(); ++i) {
+                for (size_t i = 1; i + 1 < points.size(); i++) {
+                    while (i < points.size() && points[i - 1].pos == points[i].pos) {
+                        i++;
+                    }
+                    if (i == points.size())
+                        break;
+
                     const auto &prev = points[i - 1];
                     const auto &curr = points[i];
                     const auto &next = points[i + 1];
@@ -397,11 +403,11 @@ namespace Bess::Renderer2D::Vulkan {
                     glm::vec3 end3(bend.endPoint.x, bend.endPoint.y, curr.pos.z);
 
                     pushPoint(bend.startPoint, curr.pos.z, curr.weight, curr.id);
-                    float chord = glm::distance(bend.startPoint, bend.endPoint);
-                    int segs = std::max(3, (int)std::ceil(chord / kRoundedJoinRadius));
                     auto samples = generateQuadBezierPoints(start3, bend.controlPoint, end3);
-                    for (const auto &p : samples) {
-                        smoothed.emplace_back(PathPoint{p, curr.weight, curr.id});
+                    for (int i = 0; i < samples.size(); i++) {
+                        auto &p = samples[i];
+                        auto id = i < (samples.size() / 2) ? curr.id : next.id;
+                        smoothed.emplace_back(PathPoint{p, curr.weight, id});
                     }
                 }
 
@@ -534,84 +540,7 @@ namespace Bess::Renderer2D::Vulkan {
 
                 float crossProductZ = (dirIn.x * dirOut.y) - (dirIn.y * dirOut.x);
 
-                if (rounedJoint) {
-                    // Round join as an arc at the corner: fan outer arc against a fixed inner corner pivot
-                    glm::vec2 pos = glm::vec2(pCurr.pos);
-                    float halfWidth = pCurr.weight / 2.f;
-
-                    const bool isLeftTurn = crossProductZ >= 0.f;
-
-                    // Offset points for previous and next segments
-                    glm::vec2 outerPrev = pos + (isLeftTurn ? normalIn : -normalIn) * halfWidth;
-                    glm::vec2 outerNext = pos + (isLeftTurn ? normalOut : -normalOut) * halfWidth;
-                    glm::vec2 innerPrev = pos - (isLeftTurn ? normalIn : -normalIn) * halfWidth;
-                    glm::vec2 innerNext = pos - (isLeftTurn ? normalOut : -normalOut) * halfWidth;
-
-                    // Compute intersection of inner offset lines for a robust inner pivot
-                    auto cross2 = [](const glm::vec2 &a, const glm::vec2 &b) { return a.x * b.y - a.y * b.x; };
-                    glm::vec2 p1 = innerPrev; // along prev segment direction
-                    glm::vec2 d1 = dirIn;
-                    glm::vec2 p2 = innerNext; // along next segment direction
-                    glm::vec2 d2 = dirOut;
-                    float denom = cross2(d1, d2);
-                    glm::vec2 innerCorner = innerPrev;
-                    if (std::abs(denom) > 1e-6f) {
-                        float t = cross2(p2 - p1, d2) / denom;
-                        innerCorner = p1 + d1 * t;
-                    }
-
-                    glm::vec2 v0 = outerPrev - pos;
-                    glm::vec2 v1 = outerNext - pos;
-                    if (glm::length(v0) < 1e-5f || glm::length(v1) < 1e-5f) {
-                        glm::vec2 normal = normalIn * halfWidth;
-                        stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normal, pCurr.pos.z, segmentId, {u, 1.f}));
-                        stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) + normal, pCurr.pos.z, segmentId, {u, 0.f}));
-                        continue;
-                    }
-
-                    float a0 = std::atan2(v0.y, v0.x);
-                    float a1 = std::atan2(v1.y, v1.x);
-
-                    auto normalizeAngle = [](float a) {
-                        while (a <= -glm::pi<float>())
-                            a += 2.0f * glm::pi<float>();
-                        while (a > glm::pi<float>())
-                            a -= 2.0f * glm::pi<float>();
-                        return a;
-                    };
-                    a0 = normalizeAngle(a0);
-                    a1 = normalizeAngle(a1);
-
-                    float delta = a1 - a0;
-                    if (isLeftTurn) {
-                        if (delta < 0)
-                            delta += 2.0f * glm::pi<float>();
-                    } else {
-                        if (delta > 0)
-                            delta -= 2.0f * glm::pi<float>();
-                    }
-
-                    float radius = halfWidth;
-                    float arcLen = std::abs(delta) * radius;
-                    int segs = std::max(2, (int)std::ceil(arcLen / (std::max(0.25f, kRoundedJoinRadius))));
-
-                    for (int s = 0; s <= segs; ++s) {
-                        float t = (float)s / (float)segs;
-                        float ang = a0 + (t * delta);
-                        glm::vec2 dir = {std::cos(ang), std::sin(ang)};
-                        glm::vec2 outer = pos + dir * radius;
-
-                        if (isLeftTurn) {
-                            // keep ordering consistent: inner first (y=1), outer second (y=0)
-                            stripVertices.push_back(makeVertex(innerCorner, pCurr.pos.z, segmentId, {u, 1.f}));
-                            stripVertices.push_back(makeVertex(outer, pCurr.pos.z, segmentId, {u, 0.f}));
-                        } else {
-                            // right turn: outer first (y=1), inner second (y=0)
-                            stripVertices.push_back(makeVertex(outer, pCurr.pos.z, segmentId, {u, 1.f}));
-                            stripVertices.push_back(makeVertex(innerCorner, pCurr.pos.z, segmentId, {u, 0.f}));
-                        }
-                    }
-                } else if (glm::length(disp) > miterLimit) {
+                if (glm::length(disp) > miterLimit) {
                     glm::vec2 normalIn = glm::normalize(glm::vec2(-dirIn.y, dirIn.x));
 
                     glm::vec2 pos = pCurr.pos;
