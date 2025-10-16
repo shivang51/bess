@@ -34,7 +34,7 @@ void main() {
     vec2 fragCoord = ((gl_FragCoord.xy - u_resolution * 0.5) / u_zoom) - u_cameraOffset;
 
     float smallGrid = gridLine(fragCoord, smallSpacing, 1.f);
-    float bigGrid = gridLine(fragCoord, bigSpacing, 1.5f);
+    float bigGrid = gridLine(fragCoord, bigSpacing, 2.f);
 
     float smallFade = clamp((u_zoom - 0.5) * 2.0, 0.0, 1.0);
     smallGrid *= smallFade;
@@ -52,7 +52,7 @@ void main() {
         gridColor *= u_gridMajorColor;
     }
 
-    float axisThicknessWorld = 1.5 / u_zoom;
+    float axisThicknessWorld = 2.f / u_zoom;
 
     if (abs(fragCoord.x) < axisThicknessWorld)
         gridColor = u_axisYColor;

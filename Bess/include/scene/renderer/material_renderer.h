@@ -104,6 +104,7 @@ namespace Bess::Renderer {
         std::vector<CircleInstance> m_circleInstances;
 
         Material2D m_gridMaterial = {};
+        std::shared_ptr<VulkanTexture> m_shadowTexture = nullptr;
 
         VkCommandBuffer m_cmdBuffer;
     };

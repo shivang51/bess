@@ -1,5 +1,7 @@
-#include "scene/scene_pch.h"
 #include "scene/renderer/material_renderer.h"
+#include "asset_manager/asset_manager.h"
+#include "assets.h"
+#include "scene/scene_pch.h"
 
 namespace Bess::Renderer {
     static Material2D makeGrid(const glm::vec3 &pos, const glm::vec2 &size, int id) {
@@ -26,6 +28,8 @@ namespace Bess::Renderer {
         m_translucentMaterials = {};
 
         m_gridMaterial = makeGrid({0.f, 0.f, 0.f}, {1.f, 1.f}, -2);
+
+        m_shadowTexture = Assets::AssetManager::instance().get(Assets::Textures::shadowTexture);
     }
 
     MaterialRenderer::~MaterialRenderer() = default;
@@ -79,6 +83,7 @@ namespace Bess::Renderer {
         m.alpha = instance.color.a;
         return m;
     }
+
     void MaterialRenderer::drawQuad(const glm::vec3 &pos,
                                     const glm::vec2 &size,
                                     const glm::vec4 &color,
@@ -106,7 +111,17 @@ namespace Bess::Renderer {
             auto m = makeQuad(instance);
             m_translucentMaterials.push(m);
         }
+
+        if (props.hasShadow) {
+            QuadRenderProperties shadowProps;
+            shadowProps.borderRadius = props.borderRadius;
+            drawTexturedQuad({pos.x, pos.y + 2.f, pos.z - 0.0001},
+                             {size.x + 2.5f, size.y + 0.5f},
+                             glm::vec4(glm::vec3(0.15), 0.4f), id,
+                             m_shadowTexture, shadowProps);
+        }
     }
+
     void MaterialRenderer::drawTexturedQuad(const glm::vec3 &pos,
                                             const glm::vec2 &size,
                                             const glm::vec4 &tint,

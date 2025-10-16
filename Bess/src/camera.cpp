@@ -1,4 +1,5 @@
 #include "camera.h"
+#include "common/log.h"
 #include "ext/matrix_clip_space.hpp"
 #include "ext/matrix_transform.hpp"
 
