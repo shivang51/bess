@@ -104,7 +104,7 @@ namespace Bess::Canvas {
         void setZCoord(float val);
 
         SimEngine::Commands::CommandsManager &getCmdManager();
-        UUID generateBasicConnection(entt::entity startSlot, entt::entity endSlot);
+        UUID generateBasicConnection(entt::entity inputSlot, entt::entity outputSlot);
         UUID connectSlots(UUID startSlot, UUID endSlot);
         UUID connectComponents(UUID compIdA, int slotIdxA, bool isAInput, UUID compIdB, int slotIdxB);
 

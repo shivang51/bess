@@ -1,9 +1,9 @@
-#include "scene/scene_pch.h"
 #include "scene/artist/base_artist.h"
 #include "asset_manager/asset_manager.h"
 #include "assets.h"
 #include "scene/artist/nodes_artist.h"
 #include "scene/scene.h"
+#include "scene/scene_pch.h"
 #include "scene/viewport.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
@@ -74,7 +74,7 @@ namespace Bess::Canvas {
         auto startPos = getSlotPos(slotComp, parentTransform);
         startPos.z = 0.8f;
 
-        const float ratio = slotComp.slotType == Components::SlotType::digitalInput ? 0.8f : 0.2f;
+        const float ratio = slotComp.slotType == Components::SlotType::digitalInput ? 0.75f : 0.25f;
         const auto midX = startPos.x + ((pos.x - startPos.x) * ratio);
 
         m_pathRenderer->beginPathMode(startPos, 2.f, ViewportTheme::colors.ghostWire, -1);

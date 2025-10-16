@@ -354,7 +354,7 @@ namespace Bess::Canvas {
         tag.type.simCompType = comp->type;
         tag.isSimComponent = true;
 
-        transformComp.position = glm::vec3(pos, getNextZCoord());
+        transformComp.position = glm::vec3(getSnappedPos(pos), getNextZCoord());
 
         if (comp->type == SimEngine::ComponentType::INPUT || comp->type == SimEngine::ComponentType::OUTPUT) {
             const glm::vec4 ioCompColor = glm::vec4(0.2f, 0.2f, 0.4f, 0.6f);
@@ -772,6 +772,23 @@ namespace Bess::Canvas {
         connComp.inputSlot = getUuidOfEntity(inputSlot);
         connComp.outputSlot = getUuidOfEntity(outputSlot);
 
+        const auto view = m_registry.view<Components::SlotComponent, Components::TransformComponent>();
+        auto &inpSlotComp = view.get<Components::SlotComponent>(inputSlot);
+        auto &outSlotComp = view.get<Components::SlotComponent>(outputSlot);
+
+        inpSlotComp.connections.emplace_back(idComp.uuid);
+        outSlotComp.connections.emplace_back(idComp.uuid);
+
+        const auto &inpParentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(inpSlotComp.parentId));
+        const auto artist = m_viewport->getArtistManager()->getCurrentArtist();
+        const auto inputSlotPos = artist->getSlotPos(inpSlotComp, inpParentTransform);
+        const auto &slotComp = view.get<Components::SlotComponent>(outputSlot);
+        const auto &parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(slotComp.parentId));
+        const auto outputSlotPos = artist->getSlotPos(slotComp, parentTransform);
+
+        const auto dX = inputSlotPos.x - outputSlotPos.x;
+        auto offset = dX * 0.25f;
+
         const auto connSeg1 = m_registry.create();
         const auto connSeg2 = m_registry.create();
         const auto connSeg3 = m_registry.create();
@@ -795,24 +812,40 @@ namespace Bess::Canvas {
         connSegComp2.prev = idComp1.uuid;
         connSegComp3.prev = idComp2.uuid;
 
-        const auto view = m_registry.view<Components::SlotComponent, Components::TransformComponent>();
-        auto &inpSlotComp = view.get<Components::SlotComponent>(inputSlot);
-        auto &outSlotComp = view.get<Components::SlotComponent>(outputSlot);
-        const auto &inpParentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(inpSlotComp.parentId));
-        const auto artist = m_viewport->getArtistManager()->getCurrentArtist();
-        const auto inputSlotPos = artist->getSlotPos(inpSlotComp, inpParentTransform);
-        const auto &slotComp = view.get<Components::SlotComponent>(outputSlot);
-        const auto &parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(slotComp.parentId));
-        const auto outputSlotPos = artist->getSlotPos(slotComp, parentTransform);
+        /// flow goes from input slot to output slot
 
-        const auto dX = outputSlotPos.x - inputSlotPos.x;
+        if (dX < 0.f) {
+            const auto connSeg4 = m_registry.create();
+            const auto &idComp4 = m_registry.emplace<Components::IdComponent>(connSeg4);
+            auto &connSegComp4 = m_registry.emplace<Components::ConnectionSegmentComponent>(connSeg4);
+            connSegComp4.parent = idComp.uuid;
 
-        connSegComp1.pos = glm::vec2(0, inputSlotPos.y);
-        connSegComp2.pos = glm::vec2(inputSlotPos.x + (dX * 0.8f), 0);
-        connSegComp3.pos = glm::vec2(0, outputSlotPos.y);
+            const auto connSeg5 = m_registry.create();
+            const auto &idComp5 = m_registry.emplace<Components::IdComponent>(connSeg5);
+            auto &connSegComp5 = m_registry.emplace<Components::ConnectionSegmentComponent>(connSeg5);
+            connSegComp5.parent = idComp.uuid;
 
-        inpSlotComp.connections.emplace_back(idComp.uuid);
-        outSlotComp.connections.emplace_back(idComp.uuid);
+            connSegComp3.next = idComp4.uuid;
+            connSegComp4.prev = idComp3.uuid;
+
+            connSegComp4.next = idComp5.uuid;
+            connSegComp5.prev = idComp4.uuid;
+
+            const float offsetY = (inputSlotPos.y - outputSlotPos.y) * 0.25f;
+            offset = 24.f;
+            connSegComp1.pos = glm::vec2(0, inputSlotPos.y);
+            connSegComp2.pos = glm::vec2(inputSlotPos.x - offset, 0);
+            connSegComp3.pos = glm::vec2(0, outputSlotPos.y + offsetY);
+            connSegComp4.pos = glm::vec2(outputSlotPos.x + offset, 0);
+            connSegComp5.pos = glm::vec2(0, outputSlotPos.y);
+        } else {
+            if (std::abs(offset) < 24.f) {
+                offset = dX * 0.5f;
+            }
+            connSegComp1.pos = glm::vec2(0, inputSlotPos.y + 20.f);
+            connSegComp2.pos = glm::vec2(outputSlotPos.x + offset, 0);
+            connSegComp3.pos = glm::vec2(0, outputSlotPos.y + 20.f);
+        }
 
         return idComp.uuid;
     }
