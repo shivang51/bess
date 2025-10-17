@@ -1,7 +1,6 @@
 #pragma once
 #include "bess_api.h"
 #include "bess_uuid.h"
-#include "component_catalog.h"
 #include "entt_components.h"
 #include "types.h"
 #include "json/json.h"
@@ -75,12 +74,12 @@ namespace Bess::JsonConvert {
 
     inline void toJsonValue(const DigitalComponent &comp, Json::Value &j) {
         j = Json::Value(Json::objectValue);
-        j["type"] = static_cast<int>(comp.type);
-        j["delay"] = comp.delay.count();
+        // j["type"] = static_cast<int>(comp.type);
+        // j["delay"] = comp.delay.count();
 
         // Serialize inputPins
         Json::Value &inputPinsArray = j["inputPins"] = Json::Value(Json::arrayValue);
-        for (const auto &inputPinConnections : comp.inputPins) {
+        for (const auto &inputPinConnections : comp.inputConnections) {
             Json::Value innerArray(Json::arrayValue);
             for (const auto &[id, idx] : inputPinConnections) {
                 Json::Value connectionObj(Json::objectValue);
@@ -93,7 +92,7 @@ namespace Bess::JsonConvert {
 
         // Serialize outputPins
         Json::Value &outputPinsArray = j["outputPins"] = Json::Value(Json::arrayValue);
-        for (const auto &outputPinConnections : comp.outputPins) {
+        for (const auto &outputPinConnections : comp.outputConnections) {
             Json::Value innerArray(Json::arrayValue);
             for (const auto &[id, idx] : outputPinConnections) {
                 Json::Value connectionObj(Json::objectValue);
@@ -104,21 +103,21 @@ namespace Bess::JsonConvert {
             outputPinsArray.append(innerArray);
         }
 
-        // Serialize boolean vectors
-        Json::Value &outputStatesArray = j["outputStates"] = Json::Value(Json::arrayValue);
-        for (auto state : comp.outputStates) {
-            outputStatesArray.append((bool)state);
-        }
-
-        Json::Value &inputStatesArray = j["inputStates"] = Json::Value(Json::arrayValue);
-        for (auto state : comp.inputStates) {
-            inputStatesArray.append((bool)state);
-        }
-
-        Json::Value &expressionsArray = j["expressions"] = Json::Value(Json::arrayValue);
-        for (const auto &expr : comp.expressions) {
-            expressionsArray.append(expr);
-        }
+        // // Serialize boolean vectors
+        // Json::Value &outputStatesArray = j["outputStates"] = Json::Value(Json::arrayValue);
+        // for (auto state : comp.outputStates) {
+        //     outputStatesArray.append((bool)state);
+        // }
+        //
+        // Json::Value &inputStatesArray = j["inputStates"] = Json::Value(Json::arrayValue);
+        // for (auto state : comp.inputStates) {
+        //     inputStatesArray.append((bool)state);
+        // }
+        //
+        // Json::Value &expressionsArray = j["expressions"] = Json::Value(Json::arrayValue);
+        // for (const auto &expr : comp.expressions) {
+        //     expressionsArray.append(expr);
+        // }
     }
 
     inline void fromJsonValue(const Json::Value &j, DigitalComponent &comp) {
@@ -126,13 +125,13 @@ namespace Bess::JsonConvert {
             return;
         }
 
-        comp.type = static_cast<ComponentType>(j.get("type", 0).asInt());
-        comp.delay = SimDelayNanoSeconds(j.get("delay", 0).asInt64());
+        // comp.type = static_cast<ComponentType>(j.get("type", 0).asInt());
+        // comp.delay = SimDelayNanoSeconds(j.get("delay", 0).asInt64());
 
         // Deserialize inputPins
         if (j.isMember("inputPins")) {
             const Json::Value &inputPinsArray = j["inputPins"];
-            comp.inputPins.clear();
+            comp.inputConnections.clear();
             for (const auto &innerArray : inputPinsArray) {
                 std::vector<std::pair<UUID, int>> inputVec;
                 for (const auto &connectionObj : innerArray) {
@@ -140,14 +139,14 @@ namespace Bess::JsonConvert {
                     int index = connectionObj.get("index", 0).asInt();
                     inputVec.emplace_back(id, index);
                 }
-                comp.inputPins.push_back(inputVec);
+                comp.inputConnections.push_back(inputVec);
             }
         }
 
         // Deserialize outputPins
         if (j.isMember("outputPins")) {
             const Json::Value &outputPinsArray = j["outputPins"];
-            comp.outputPins.clear();
+            comp.outputConnections.clear();
             for (const auto &innerArray : outputPinsArray) {
                 std::vector<std::pair<UUID, int>> outputVec;
                 for (const auto &connectionObj : innerArray) {
@@ -155,35 +154,35 @@ namespace Bess::JsonConvert {
                     int index = connectionObj.get("index", 0).asInt();
                     outputVec.emplace_back(id, index);
                 }
-                comp.outputPins.push_back(outputVec);
+                comp.outputConnections.push_back(outputVec);
             }
         }
 
         // Deserialize boolean vectors
-        if (j.isMember("outputStates")) {
-            const Json::Value &outputStatesArray = j["outputStates"];
-            comp.outputStates.clear();
-            for (const auto &state : outputStatesArray) {
-                comp.outputStates.push_back(state.asBool());
-            }
-        }
+        // if (j.isMember("outputStates")) {
+        //     const Json::Value &outputStatesArray = j["outputStates"];
+        //     comp.outputStates.clear();
+        //     for (const auto &state : outputStatesArray) {
+        //         comp.outputStates.push_back(state.asBool());
+        //     }
+        // }
+        //
+        // if (j.isMember("inputStates")) {
+        //     const Json::Value &inputStatesArray = j["inputStates"];
+        //     comp.inputStates.clear();
+        //     for (const auto &state : inputStatesArray) {
+        //         comp.inputStates.push_back(state.asBool());
+        //     }
+        // }
 
-        if (j.isMember("inputStates")) {
-            const Json::Value &inputStatesArray = j["inputStates"];
-            comp.inputStates.clear();
-            for (const auto &state : inputStatesArray) {
-                comp.inputStates.push_back(state.asBool());
-            }
-        }
-
-        if (j.isMember("expressions")) {
-            const Json::Value &expressionsArr = j["expressions"];
-            comp.expressions.clear();
-            for (const auto &expr : expressionsArr) {
-                comp.expressions.push_back(expr.asString());
-            }
-        } else {
-            comp.expressions = ComponentCatalog::instance().getComponentDefinition(comp.type)->getExpressions(comp.inputPins.size());
-        }
+        // if (j.isMember("expressions")) {
+        //     const Json::Value &expressionsArr = j["expressions"];
+        //     comp.expressions.clear();
+        //     for (const auto &expr : expressionsArr) {
+        //         comp.expressions.push_back(expr.asString());
+        //     }
+        // } else {
+        //     comp.expressions = ComponentCatalog::instance().getComponentDefinition(comp.type)->getExpressions(comp.inputConnections.size());
+        // }
     }
 } // namespace Bess::JsonConvert

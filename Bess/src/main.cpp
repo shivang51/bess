@@ -52,16 +52,16 @@ int main(int argc, char **argv) {
 
         if (pluginMangaer.isPluginLoaded("BessPlugin")) {
             auto plugin = pluginMangaer.getPlugin("BessPlugin");
-            auto comps = plugin->onComponentsRegLoad();
+            // auto comps = plugin->onComponentsRegLoad();
 
-            comps.front().onUpdateFn(1.5f);
-            std::cout << plugin->onComponentsRegLoad().size() << " components loaded from plugin." << std::endl;
+            // comps.front().onUpdateFn(1.5f);
+            // std::cout << plugin->onComponentsRegLoad().size() << " components loaded from plugin." << std::endl;
         }
 
         pluginMangaer.destroy();
     }
 
-    return 0;
+    // return 0;
 
     Bess::Application app;
     try {

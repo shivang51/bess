@@ -4,7 +4,6 @@
 #include "commands/commands_manager.h"
 #include "component_types/component_types.h"
 #include "entt/entity/fwd.hpp"
-#include "entt_components.h"
 #include "types.h"
 #include <chrono>
 #include <condition_variable>
@@ -49,7 +48,7 @@ namespace Bess::SimEngine {
         // only steps if sim state is paused
         void stepSimulation();
 
-        ComponentState getComponentState(const UUID &uuid);
+        const ComponentState &getComponentState(const UUID &uuid);
         ComponentType getComponentType(const UUID &uuid);
 
         void clear();

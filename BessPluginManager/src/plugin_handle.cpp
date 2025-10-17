@@ -12,7 +12,7 @@ namespace Bess::Plugins {
             for (auto item : compList) {
                 Component comp;
                 comp.name = item.attr("name").cast<std::string>();
-                comp.type = item.attr("type").cast<std::string>();
+                comp.type = item.attr("type").cast<int>();
 
                 comp.onUpdateFn = item.attr("update");
                 components.push_back(comp);

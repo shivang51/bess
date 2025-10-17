@@ -5,7 +5,7 @@
 namespace Bess::Plugins {
     struct Component {
         std::string name;
-        std::string type;
+        int type;
 
         pybind11::object onUpdateFn;
     };

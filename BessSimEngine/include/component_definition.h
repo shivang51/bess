@@ -3,15 +3,11 @@
 #include "bess_api.h"
 #include "component_types/component_types.h"
 #include "properties.h"
-#include "spdlog/fmt/bundled/base.h"
 #include "types.h"
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 namespace Bess::SimEngine {
-
-    typedef std::unordered_map<Properties::ComponentProperty, std::vector<std::any>> ModifiableProperties;
 
     class BESS_API ComponentDefinition {
       public:
@@ -44,7 +40,7 @@ namespace Bess::SimEngine {
         char op = '0';
         bool negate = false;
 
-        const ModifiableProperties &getModifiableProperties() const;
+        const Properties::ModifiableProperties &getModifiableProperties() const;
 
         ComponentDefinition &addModifiableProperty(Properties::ComponentProperty property, std::any value);
 
@@ -54,8 +50,17 @@ namespace Bess::SimEngine {
 
         std::pair<std::span<const PinDetails>, std::span<const PinDetails>> getPinDetails() const;
 
+        uint64_t getHash() const noexcept;
+
+        friend bool operator==(const ComponentDefinition &a, const ComponentDefinition &b) noexcept {
+            return a.getHash() == b.getHash();
+        }
+
       private:
-        ModifiableProperties m_modifiableProperties = {};
+        Properties::ModifiableProperties m_modifiableProperties = {};
+
+        mutable uint64_t m_cachedHash = 0;
+        mutable bool m_hashComputed = false;
     };
 
 } // namespace Bess::SimEngine

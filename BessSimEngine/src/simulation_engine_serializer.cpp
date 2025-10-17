@@ -5,7 +5,7 @@
 
 namespace Bess::SimEngine {
     SimEngineSerializer::SimEngineSerializer() {
-       SimEngineSerializer::registerAll();
+        SimEngineSerializer::registerAll();
     }
 
     void SimEngineSerializer::serializeToPath(const std::string &path, int indent) {
@@ -28,7 +28,7 @@ namespace Bess::SimEngine {
         simulateClockedComponents();
     }
 
-    void SimEngineSerializer::serialize(Json::Value& j) {
+    void SimEngineSerializer::serialize(Json::Value &j) {
         EnttRegistrySerializer::serialize(SimEngine::SimulationEngine::instance().m_registry, j);
     }
 
@@ -51,7 +51,7 @@ namespace Bess::SimEngine {
 
     void SimEngineSerializer::registerAll() {
         registerComponent<IdComponent>("IdComponent");
-        registerComponent<DigitalComponent>("DigitalComponent");
+        // registerComponent<DigitalComponent>("DigitalComponent");
         registerComponent<ClockComponent>("ClockComponent");
         registerComponent<FlipFlopComponent>("FlipFlopComponent");
     }

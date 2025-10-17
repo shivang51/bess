@@ -2,9 +2,11 @@
 
 #include "bess_api.h"
 #include "bess_uuid.h"
+#include <any>
 #include <chrono>
 #include <entt/entt.hpp>
 #include <functional>
+#include <string>
 
 namespace Bess::SimEngine {
     typedef std::chrono::nanoseconds SimTime;
@@ -54,6 +56,10 @@ namespace Bess::SimEngine {
         ExtendedPinType extendedType = ExtendedPinType::none;
     };
 
+    inline bool operator==(const Bess::SimEngine::PinDetails &a, const Bess::SimEngine::PinDetails &b) noexcept {
+        return a.type == b.type && a.name == b.name && a.extendedType == b.extendedType;
+    }
+
     struct BESS_API PinState {
         LogicState state = LogicState::low;
         SimTime lastChangeTime{0};
@@ -94,11 +100,13 @@ namespace Bess::SimEngine {
     };
 
     struct BESS_API ComponentState {
-        const std::vector<PinState> &inputStates;
-        const std::vector<bool> &inputConnected;
-        const std::vector<PinState> &outputStates;
-        const std::vector<bool> &outputConnected;
-        const void *auxData;
+        std::vector<PinState> inputStates;
+        std::vector<bool> inputConnected;
+        std::vector<PinState> outputStates;
+        std::vector<bool> outputConnected;
+        bool isChanged = false;
+        std::any auxData;
     };
 
+    typedef std::function<ComponentState(const std::vector<PinState> &, SimTime, const ComponentState &)> SimulationFunctionNew;
 } // namespace Bess::SimEngine

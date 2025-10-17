@@ -1,4 +1,6 @@
 from abc import abstractmethod
+
+from .api.log import Logger
 from .api.sim_engine.component import Component
 
 
@@ -6,6 +8,7 @@ class Plugin:
     def __init__(self, name, version):
         self.name = name
         self.version = version
+        self.logger = Logger(name)
 
     @abstractmethod
     def on_components_reg_load(self) -> list[Component]:
@@ -17,7 +20,7 @@ class Plugin:
 
 
     def activate(self):
-        print(f"Activating plugin: {self.name}")
+        self.logger.log(f"Activating plugin: {self.name} v{self.version}")
 
     def deactivate(self):
-        print(f"Deactivating plugin: {self.name}")
+        self.logger.log(f"Deactivating plugin: {self.name} v{self.version}")

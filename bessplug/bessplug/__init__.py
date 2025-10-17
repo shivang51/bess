@@ -3,8 +3,8 @@
 __version__ = "0.0.1"
 
 from .plugin import Plugin
-from .api.sim_engine.component import Component
-from . import api
+from .api.sim_engine import component
+from .api.sim_engine import sim_engine
 
-__all__ = ["Plugin", "Component", "api"]
+__all__ = ["Plugin", "component", "sim_engine"]
 

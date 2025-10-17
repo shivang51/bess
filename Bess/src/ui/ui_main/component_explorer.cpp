@@ -1,13 +1,13 @@
 #include "ui/ui_main/component_explorer.h"
-#include "scene/scene_pch.h"
-
 #include "common/helpers.h"
 #include "common/log.h"
+#include "component_catalog.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "properties.h"
 #include "scene/commands/add_command.h"
 #include "scene/scene.h"
+#include "scene/scene_pch.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/m_widgets.h"
 #include <any>

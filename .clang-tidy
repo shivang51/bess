@@ -5,6 +5,7 @@ Checks: >
   readability-*,
   modernize-*,
   cppcoreguidelines-*,
+  -modernize-use-using,
   -modernize-use-trailing-return-type,
   -readability-magic-numbers,
   -modernize-avoid-c-arrays,

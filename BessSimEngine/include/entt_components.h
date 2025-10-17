@@ -2,10 +2,12 @@
 
 #include "bess_api.h"
 #include "bess_uuid.h"
+#include "component_definition.h"
 #include "component_types/component_types.h"
 #include "types.h"
 #include <entt/entt.hpp>
 #include <iostream>
+#include <utility>
 #include <vector>
 
 namespace Bess::SimEngine {
@@ -75,32 +77,23 @@ namespace Bess::SimEngine {
     };
 
     struct BESS_API DigitalComponent {
-        DigitalComponent() = default;
+        DigitalComponent() = delete;
         DigitalComponent(const DigitalComponent &) = default;
-        DigitalComponent(ComponentType type, int inputPinsCount, int outputPinsCount, SimDelayNanoSeconds delay,
-                         const std::vector<std::string> &expr) {
-            this->type = type;
-            this->delay = delay;
-            this->inputPins = Connections(inputPinsCount, decltype(Connections())::value_type());
-            this->outputPins = Connections(outputPinsCount, decltype(Connections())::value_type());
-            this->outputStates = std::vector<PinState>(outputPinsCount, {LogicState::low, SimTime(0)});
-            this->inputStates = std::vector<PinState>(inputPinsCount, {LogicState::low, SimTime(0)});
-            this->expressions = expr;
+        DigitalComponent(ComponentDefinition def) : definition(std::move(def)) {
+            state.inputStates.resize(definition.inputCount, {LogicState::low, SimTime(0)});
+            state.outputStates.resize(definition.outputCount, {LogicState::low, SimTime(0)});
+            state.inputConnected.resize(definition.inputCount, false);
+            state.outputConnected.resize(definition.outputCount, false);
+            inputConnections.resize(definition.inputCount);
+            outputConnections.resize(definition.outputCount);
         }
 
-        void updateInputCount(int n) {
-            this->inputPins.resize(n);
-            this->inputStates.resize(n);
-        }
+        DigitalComponent(ComponentDefinition def, ComponentState state) : definition(std::move(def)), state(std::move(state)) {}
 
-        ComponentType type;
-        SimDelayNanoSeconds delay;
-        Connections inputPins;
-        Connections outputPins;
-        std::vector<PinState> outputStates;
-        std::vector<PinState> inputStates;
-        std::vector<std::string> expressions;
-        void *auxData = nullptr;
+        ComponentState state;
+        ComponentDefinition definition;
+        Connections inputConnections;
+        Connections outputConnections;
     };
 
     struct BESS_API StateMonitorComponent {
