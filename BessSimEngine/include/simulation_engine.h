@@ -2,11 +2,13 @@
 #include "bess_api.h"
 #include "bess_uuid.h"
 #include "commands/commands_manager.h"
+#include "component_definition.h"
 #include "component_types/component_types.h"
 #include "entt/entity/fwd.hpp"
 #include "types.h"
 #include <chrono>
 #include <condition_variable>
+#include <cstdint>
 #include <entt/entt.hpp>
 #include <mutex>
 #include <thread>
@@ -20,7 +22,7 @@ namespace Bess::SimEngine {
         SimulationEngine();
         ~SimulationEngine();
 
-        const UUID &addComponent(ComponentType type, int inputCount = -1, int outputCount = -1);
+        const UUID &addComponent(uint64_t defHash, int inputCount = -1, int outputCount = -1);
 
         bool connectComponent(const UUID &src, int srcPin, PinType srcType,
                               const UUID &dst, int dstPin, PinType dstType, bool overrideConn = false);
@@ -49,7 +51,6 @@ namespace Bess::SimEngine {
         void stepSimulation();
 
         const ComponentState &getComponentState(const UUID &uuid);
-        ComponentType getComponentType(const UUID &uuid);
 
         void clear();
 

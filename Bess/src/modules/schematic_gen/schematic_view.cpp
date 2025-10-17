@@ -1,8 +1,8 @@
-#include "scene/scene_pch.h"
 #include "modules/schematic_gen/schematic_view.h"
 #include "common/log.h"
 #include "scene/components/components.h"
 #include "scene/scene.h"
+#include "scene/scene_pch.h"
 #include <queue>
 
 namespace SceneComponent = Bess::Canvas::Components;
@@ -56,12 +56,11 @@ namespace Bess::Modules::SchematicGen {
                                        0, // input should have any input pins
                                        connections.second});
             m_graph.emplace_back(node);
-            
+
             nodes.emplace(node);
         }
 
         BESS_TRACE("[SchemeticGen] Found {} input nodes", m_graph.size());
-
 
         if (m_graph.empty()) {
             BESS_INFO("[SchemeticGen] Exiting due to no input nodes");
@@ -85,7 +84,7 @@ namespace Bess::Modules::SchematicGen {
                 const auto node = nodes.front();
                 nodes.pop();
 
-                for (auto& conn : node->outputs) {
+                for (auto &conn : node->outputs) {
 
                     if (std::find(processedNodes.begin(), processedNodes.end(), conn.gateEnt) != processedNodes.end()) {
                         continue;
@@ -101,24 +100,24 @@ namespace Bess::Modules::SchematicGen {
                     }
 
                     auto &simComp = simComponentView.get<SceneComponent::SimulationComponent>(entity);
-                    const auto compType = simEngine.getComponentType(simComp.simEngineEntity);
-
-                    const auto type = compType == SimEngine::ComponentType::OUTPUT ? GraphNodeType::output : GraphNodeType::other;
-
-                    auto newNode = new GraphNode({conn.gateEnt,
-                                                  type,
-                                                  connections.first, // input should have any input pins
-                                                  connections.second});
-
-                    nodes.emplace(newNode);
-                    m_graph.emplace_back(newNode);
-                    level.emplace_back(newNode);
+                    // const auto compType = simEngine.getComponentType(simComp.simEngineEntity);
+                    //
+                    // const auto type = compType == SimEngine::ComponentType::OUTPUT ? GraphNodeType::output : GraphNodeType::other;
+                    //
+                    // auto newNode = new GraphNode({conn.gateEnt,
+                    //                               type,
+                    //                               connections.first, // input should have any input pins
+                    //                               connections.second});
+                    //
+                    // nodes.emplace(newNode);
+                    // m_graph.emplace_back(newNode);
+                    // level.emplace_back(newNode);
                 }
             }
 
             if (level.empty())
                 continue;
-			
+
             BESS_TRACE("[SchematicGen] Level {} has {} nodes", m_levels.size(), level.size());
             m_levels.emplace_back(level);
         }
@@ -132,7 +131,7 @@ namespace Bess::Modules::SchematicGen {
         auto &simComp = m_registry.get<SceneComponent::SimulationComponent>(ent);
         const Bess::SimEngine::ConnectionBundle connPair = simEngine.getConnections(simComp.simEngineEntity);
         std::vector<Connection> connections = {};
-        for (const auto& conn : connPair.outputs) {
+        for (const auto &conn : connPair.outputs) {
             for (auto &[gateUUID, pinIdx] : conn) {
                 const auto ent_ = (uint64_t)m_sceneRef.getSceneEntityFromSimUuid(gateUUID);
                 connections.push_back(Connection{ent_, pinIdx});

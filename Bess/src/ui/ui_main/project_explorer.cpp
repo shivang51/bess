@@ -1,10 +1,10 @@
-#include "scene/scene_pch.h"
 #include "ui/ui_main/project_explorer.h"
 #include "common/helpers.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "modules/schematic_gen/schematic_view.h"
 #include "scene/scene.h"
+#include "scene/scene_pch.h"
 
 namespace Bess::UI {
 
@@ -99,7 +99,7 @@ namespace Bess::UI {
             auto &tagComp = view.get<Canvas::Components::TagComponent>(entity);
             std::string icon;
             if (tagComp.isSimComponent) {
-                icon = Common::Helpers::getComponentIcon(tagComp.type.simCompType);
+                icon = Common::Helpers::getComponentIcon(tagComp.type.simCompHash);
             } else {
                 icon = Common::Helpers::getComponentIcon(tagComp.type.nsCompType);
             }

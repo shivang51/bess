@@ -34,7 +34,7 @@ namespace Bess::SimEngine::Commands {
                 }
             } else {
                 const auto &data = m_data[i];
-                compId = engine.addComponent(data.type, data.inputCount, data.outputCount);
+                compId = engine.addComponent(data.defHash, data.inputCount, data.outputCount);
             }
         }
 

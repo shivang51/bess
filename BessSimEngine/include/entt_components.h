@@ -14,12 +14,9 @@ namespace Bess::SimEngine {
 
     struct BESS_API FlipFlopComponent {
         FlipFlopComponent() = default;
-        FlipFlopComponent(ComponentType type, int clockPinIndex) {
-            this->type = type;
-            this->clockPinIdx = clockPinIndex;
+        FlipFlopComponent(int clockPinIndex) : clockPinIdx(clockPinIndex) {
         }
         FlipFlopComponent(const FlipFlopComponent &) = default;
-        ComponentType type;
         int clockPinIdx = 1;
         LogicState prevClockState = LogicState::low;
     };

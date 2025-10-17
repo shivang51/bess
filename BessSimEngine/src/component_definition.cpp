@@ -2,42 +2,25 @@
 #include "../include/types.h"
 #include <logger.h>
 #include <type_traits>
+#include <utility>
 
 namespace Bess::SimEngine {
     ComponentDefinition::ComponentDefinition(
-        ComponentType type,
         const std::string &name,
         const std::string &category,
         int inputCount, int outputCount,
         SimulationFunction simFunction,
-        SimDelayNanoSeconds delay, char op) {
-        this->type = type;
-        this->name = name;
-        this->category = category;
-        this->simulationFunction = simFunction;
-        this->inputCount = inputCount;
-        this->outputCount = outputCount;
-        this->delay = delay;
-        this->op = op;
+        SimDelayNanoSeconds delay, char op) : name(name), category(category), delay(delay),
+                                              simulationFunction(std::move(simFunction)), inputCount(inputCount), outputCount(outputCount), op(op) {
         this->auxData = getExpressions(inputCount);
     }
 
     ComponentDefinition::ComponentDefinition(
-        ComponentType type,
         const std::string &name,
         const std::string &category,
         int inputCount, int outputCount,
         SimulationFunction simFunction,
-        SimDelayNanoSeconds delay, const std::vector<std::string> &expr) {
-        this->type = type;
-        this->name = name;
-        this->category = category;
-        this->simulationFunction = simFunction;
-        this->inputCount = inputCount;
-        this->outputCount = outputCount;
-        this->delay = delay;
-        this->expressions = expr;
-        this->auxData = expressions;
+        SimDelayNanoSeconds delay, const std::vector<std::string> &expr) : name(name), category(category), delay(delay), simulationFunction(simFunction), expressions(expr), inputCount(inputCount), outputCount(outputCount), auxData(expressions) {
     }
 
     const Properties::ModifiableProperties &ComponentDefinition::getModifiableProperties() const {
@@ -155,7 +138,6 @@ namespace Bess::SimEngine {
 
         uint64_t hash = FNV_OFFSET_BASIS_64;
 
-        hash = fnv1aEnum(hash, type);
         hash = fnv1aString(hash, name);
         hash = fnv1aString(hash, category);
 

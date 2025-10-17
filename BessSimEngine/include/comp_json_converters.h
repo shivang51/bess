@@ -34,12 +34,12 @@ namespace Bess::JsonConvert {
 
     inline void toJsonValue(const FlipFlopComponent &comp, Json::Value &j) {
         j = Json::Value(Json::objectValue);
-        j["type"] = (int)comp.type;
+        // j["type"] = (int)comp.type;
     }
 
     inline void fromJsonValue(const Json::Value &j, FlipFlopComponent &comp) {
         if (j.isMember("type")) {
-            comp.type = (ComponentType)j["type"].asInt();
+            // comp.type = (ComponentType)j["type"].asInt();
         }
     }
 

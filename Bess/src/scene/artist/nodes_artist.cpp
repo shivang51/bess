@@ -1,4 +1,3 @@
-#include "scene/scene_pch.h"
 #include "scene/artist/nodes_artist.h"
 #include "component_catalog.h"
 #include "component_types/component_types.h"
@@ -6,6 +5,7 @@
 #include "ext/vector_float3.hpp"
 #include "scene/components/components.h"
 #include "scene/scene.h"
+#include "scene/scene_pch.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "types.h"
@@ -28,7 +28,8 @@ namespace Bess::Canvas {
 
         auto &registry = Scene::instance()->getEnttRegistry();
 
-        if (tagComp.type.simCompType == SimEngine::ComponentType::SEVEN_SEG_DISPLAY) {
+        // if (tagComp.type.simCompType == SimEngine::ComponentType::SEVEN_SEG_DISPLAY) {
+        if (false) {
             drawSevenSegDisplay(entity, tagComp, transform, spriteComp, simComponent);
             return;
         }
@@ -276,7 +277,7 @@ namespace Bess::Canvas {
     }
 
     void NodesArtist::drawSlots(const entt::entity parentEntt, const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp) {
-        const auto def = SimEngine::ComponentCatalog::instance().getComponentDefinition(comp.type);
+        const auto def = SimEngine::ComponentCatalog::instance().getComponentDefinition(comp.defHash);
         auto &registry = Scene::instance()->getEnttRegistry();
         const auto slotsView = registry.view<Components::SlotComponent>();
 

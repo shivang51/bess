@@ -78,23 +78,21 @@ namespace Bess::SimEngine {
         return entt::null;
     }
 
-    const UUID &SimulationEngine::addComponent(ComponentType type, int inputCount, int outputCount) {
+    const UUID &SimulationEngine::addComponent(uint64_t defHash, int inputCount, int outputCount) {
         auto ent = m_registry.create();
         auto &idComp = m_registry.emplace<IdComponent>(ent);
         m_uuidMap.emplace(idComp.uuid, ent);
-        const auto def = ComponentCatalog::instance().getComponentDefinition(type);
+        const auto &def = ComponentCatalog::instance().getComponentDefinition(defHash);
         inputCount = (inputCount < 0 ? def->inputCount : inputCount);
         outputCount = (outputCount < 0 ? def->outputCount : outputCount);
-        if (type == ComponentType::NOT) {
-            outputCount = inputCount;
+        const auto &digi = m_registry.emplace<DigitalComponent>(ent, *(def.get()));
+        if (def->auxData.type() == typeid(FlipFlopAuxData)) {
+            const auto &ffData = std::any_cast<const FlipFlopAuxData &>(def->auxData);
+            m_registry.emplace<FlipFlopComponent>(ent, 1);
         }
-        auto &digi = m_registry.emplace<DigitalComponent>(ent, *def.get());
-        if (type == ComponentType::FLIP_FLOP_JK || type == ComponentType::FLIP_FLOP_SR ||
-            type == ComponentType::FLIP_FLOP_D || type == ComponentType::FLIP_FLOP_T) {
-            m_registry.emplace<FlipFlopComponent>(ent, ComponentType(type), 1);
-        } else if (type == ComponentType::STATE_MONITOR) {
-            m_registry.emplace<StateMonitorComponent>(ent);
-        }
+        // else if (type == ComponentType::STATE_MONITOR) {
+        //         m_registry.emplace<StateMonitorComponent>(ent);
+        //     }
         scheduleEvent(ent, entt::null, m_currentSimTime + def->delay);
 
         BESS_SE_INFO("Added component {}", def->name);
@@ -111,9 +109,7 @@ namespace Bess::SimEngine {
         auto &srcComp = m_registry.get<DigitalComponent>(srcEnt);
         auto &dstComp = m_registry.get<DigitalComponent>(dstEnt);
 
-        if (srcType == dstType &&
-            srcComp.definition.type != ComponentType::STATE_MONITOR &&
-            dstComp.definition.type != ComponentType::STATE_MONITOR) {
+        if (srcType == dstType) {
             BESS_SE_WARN("Cannot connect pins of the same type i.e. input -> input or output -> output");
             return false;
         }
@@ -146,23 +142,23 @@ namespace Bess::SimEngine {
         }
 
         {
-            StateMonitorComponent *stateMonitorComp = nullptr;
-            PinType type = srcType;
-            ComponentPin pin;
-            if (srcComp.definition.type == ComponentType::STATE_MONITOR) {
-                stateMonitorComp = m_registry.try_get<StateMonitorComponent>(srcEnt);
-                type = srcType;
-                pin = {dst, dstPin};
-            } else if (dstComp.definition.type == ComponentType::STATE_MONITOR) {
-                stateMonitorComp = m_registry.try_get<StateMonitorComponent>(dstEnt);
-                type = dstType;
-                pin = {src, srcPin};
-            }
-
-            if (stateMonitorComp) {
-                stateMonitorComp->attacthTo(pin, type);
-                BESS_SE_INFO("Attached state monitor");
-            }
+            // StateMonitorComponent *stateMonitorComp = nullptr;
+            // PinType type = srcType;
+            // ComponentPin pin;
+            // if (srcComp.definition.type == ComponentType::STATE_MONITOR) {
+            //     stateMonitorComp = m_registry.try_get<StateMonitorComponent>(srcEnt);
+            //     type = srcType;
+            //     pin = {dst, dstPin};
+            // } else if (dstComp.definition.type == ComponentType::STATE_MONITOR) {
+            //     stateMonitorComp = m_registry.try_get<StateMonitorComponent>(dstEnt);
+            //     type = dstType;
+            //     pin = {src, srcPin};
+            // }
+            //
+            // if (stateMonitorComp) {
+            //     stateMonitorComp->attacthTo(pin, type);
+            //     BESS_SE_INFO("Attached state monitor");
+            // }
         }
 
         outPins[srcPin].emplace_back(dst, dstPin);
@@ -242,7 +238,7 @@ namespace Bess::SimEngine {
 
         auto &comp = m_registry.get<DigitalComponent>(ent);
 
-        assert(comp.definition.type == ComponentType::INPUT);
+        // assert(comp.definition.type == ComponentType::INPUT);
 
         auto logic = value ? LogicState::high : LogicState::low;
         if (comp.state.outputStates[0].state == logic)
@@ -277,14 +273,6 @@ namespace Bess::SimEngine {
         const auto &connectedStatus = getIOPinsConnectedState(ent);
         const auto &comp = m_registry.get<DigitalComponent>(ent);
         return comp.state;
-    }
-
-    ComponentType SimulationEngine::getComponentType(const UUID &uuid) {
-        auto ent = getEntityWithUuid(uuid);
-        if (auto *comp = m_registry.try_get<DigitalComponent>(ent)) {
-            return comp->definition.type;
-        }
-        throw std::runtime_error("Digital Component was not found for entity with uuid " + std::to_string(uuid));
     }
 
     void SimulationEngine::deleteConnection(const UUID &compA, PinType pinAType, int idxA,
@@ -384,15 +372,15 @@ namespace Bess::SimEngine {
 
     bool SimulationEngine::simulateComponent(entt::entity e, const std::vector<PinState> &inputs) {
         auto &comp = m_registry.get<DigitalComponent>(e);
-        const auto def = ComponentCatalog::instance().getComponentDefinition(comp.definition.type);
+        const auto &def = comp.definition;
         BESS_SE_LOG_EVENT("Simulating {}", def->name);
         BESS_SE_LOG_EVENT("\tInputs:");
         for (auto &inp : inputs) {
             BESS_SE_LOG_EVENT("\t\t{}", (int)inp.state);
         }
         BESS_SE_LOG_EVENT("");
-        if (def && def->simulationFunction) {
-            const auto newState = def->simulationFunction(inputs, m_currentSimTime, comp.state);
+        if (def.simulationFunction) {
+            const auto newState = def.simulationFunction(inputs, m_currentSimTime, comp.state);
             if (newState.isChanged) {
                 comp.state = newState;
             }

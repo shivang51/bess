@@ -10,14 +10,16 @@ namespace Bess::SimEngine::Commands {
             if (args.size() != 3)
                 return nullptr;
             try {
-                auto type = Bess::SimEngine::StringUtils::toComponentType(args[0]);
-                if (type == Bess::SimEngine::ComponentType::EMPTY)
-                    return nullptr;
+                // auto type = Bess::SimEngine::StringUtils::toComponentType(args[0]);
+                // if (type == Bess::SimEngine::ComponentType::EMPTY)
+                //     return nullptr;
+                //
+                return nullptr;
 
                 int inputCount = std::stoi(args[1]);
                 int outputCount = std::stoi(args[2]);
-                SimEngine::Commands::AddCommandData data = {type, inputCount, outputCount};
-                return std::make_unique<Bess::SimEngine::Commands::AddCommand>(std::vector{data});
+                // SimEngine::Commands::AddCommandData data = {type, inputCount, outputCount};
+                // return std::make_unique<Bess::SimEngine::Commands::AddCommand>(std::vector{data});
             } catch (const std::exception &e) {
                 return nullptr;
             }

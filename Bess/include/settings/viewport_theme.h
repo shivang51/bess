@@ -49,10 +49,10 @@ namespace Bess {
         static SchematicViewColors schematicViewColors;
         static void updateColorsFromImGuiStyle();
 
-        static glm::vec4 getCompHeaderColor(Bess::SimEngine::ComponentType type);
+        static glm::vec4 getCompHeaderColor(uint64_t hash);
 
       private:
         static void initCompColorMap();
-        static std::unordered_map<Bess::SimEngine::ComponentType, glm::vec4> s_compHeaderColorMap;
+        static std::unordered_map<uint64_t, glm::vec4> s_compHeaderColorMap;
     };
 } // namespace Bess

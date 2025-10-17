@@ -12,6 +12,7 @@
 #include "ui/m_widgets.h"
 #include <any>
 #include <unordered_map>
+#include <utility>
 
 namespace Bess::UI {
 
@@ -100,7 +101,7 @@ namespace Bess::UI {
     void ComponentExplorer::createComponent(std::shared_ptr<const SimEngine::ComponentDefinition> def, const int inputCount, const int outputCount) {
         auto scene = Canvas::Scene::instance();
         Canvas::Commands::AddCommandData data;
-        data.def = def;
+        data.def = std::move(def);
         data.pos = scene->getCameraPos();
         data.inputCount = inputCount;
         data.outputCount = outputCount;
@@ -133,7 +134,8 @@ namespace Bess::UI {
             if (p.empty())
                 continue;
 
-            propertiesStr[comp->type] = {};
+            const auto hash = comp->getHash();
+            propertiesStr[hash] = {};
 
             for (auto &mp : p) {
                 std::string name;
@@ -154,7 +156,7 @@ namespace Bess::UI {
                 for (auto &val : mp.second) {
                     v.first = std::to_string(std::any_cast<int>(val)) + " " + name;
                     v.second = {mp.first, val};
-                    propertiesStr[comp->type].emplace_back(v);
+                    propertiesStr[hash].emplace_back(v);
                 }
             }
         }
@@ -196,8 +198,8 @@ namespace Bess::UI {
                         if (m_searchQuery != "" && Common::Helpers::toLowerCase(name).find(m_searchQuery) == std::string::npos)
                             continue;
 
-                        name = Common::Helpers::getComponentIcon(comp->type) + "  " + name;
-                        auto &properties = modifiableProperties[comp->type];
+                        name = Common::Helpers::getComponentIcon(comp->getHash()) + "  " + name;
+                        auto &properties = modifiableProperties[comp->getHash()];
 
                         if (ButtonWithPopup(name, name + "OptionsMenu", !properties.empty())) {
                             createComponent(comp, -1, -1);

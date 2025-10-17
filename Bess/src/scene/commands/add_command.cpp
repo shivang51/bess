@@ -35,7 +35,7 @@ namespace Bess::Canvas::Commands {
             }
 
             if (data.isSimComp()) {
-                simAddCmdData.emplace_back(data.def->type, data.inputCount, data.outputCount);
+                simAddCmdData.emplace_back(data.def->getHash(), data.inputCount, data.outputCount);
             } else {
                 m_compIds.emplace_back(scene->createNonSimEntity(data.nsComp, data.pos));
             }

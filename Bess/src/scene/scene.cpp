@@ -343,29 +343,29 @@ namespace Bess::Canvas {
         auto &tag = m_registry.emplace<Components::TagComponent>(entity);
         auto &simComp = m_registry.emplace<Components::SimulationComponent>(entity);
 
-        if (comp->type == SimEngine::ComponentType::INPUT) {
-            m_registry.emplace<Components::SimulationInputComponent>(entity);
-        } else if (comp->type == SimEngine::ComponentType::OUTPUT) {
-            m_registry.emplace<Components::SimulationOutputComponent>(entity);
-        } else if (comp->type == SimEngine::ComponentType::STATE_MONITOR) {
-            m_registry.emplace<Components::SimulationStateMonitor>(entity);
-        }
+        // if (comp->type == SimEngine::ComponentType::INPUT) {
+        //     m_registry.emplace<Components::SimulationInputComponent>(entity);
+        // } else if (comp->type == SimEngine::ComponentType::OUTPUT) {
+        //     m_registry.emplace<Components::SimulationOutputComponent>(entity);
+        // } else if (comp->type == SimEngine::ComponentType::STATE_MONITOR) {
+        //     m_registry.emplace<Components::SimulationStateMonitor>(entity);
+        // }
 
         tag.name = comp->name;
-        tag.type.simCompType = comp->type;
+        tag.type.simCompHash = comp->getHash();
         tag.isSimComponent = true;
 
         transformComp.position = glm::vec3(getSnappedPos(pos), getNextZCoord());
 
-        if (comp->type == SimEngine::ComponentType::INPUT || comp->type == SimEngine::ComponentType::OUTPUT) {
-            const glm::vec4 ioCompColor = glm::vec4(0.2f, 0.2f, 0.4f, 0.6f);
-            sprite.color = ioCompColor;
-            sprite.borderRadius = glm::vec4(8.f);
-        } else {
-            sprite.color = ViewportTheme::colors.componentBG;
-            sprite.borderRadius = glm::vec4(6.f);
-            sprite.headerColor = ViewportTheme::getCompHeaderColor(comp->type);
-        }
+        // if (comp->type == SimEngine::ComponentType::INPUT || comp->type == SimEngine::ComponentType::OUTPUT) {
+        //     const glm::vec4 ioCompColor = glm::vec4(0.2f, 0.2f, 0.4f, 0.6f);
+        //     sprite.color = ioCompColor;
+        //     sprite.borderRadius = glm::vec4(8.f);
+        // } else {
+        sprite.color = ViewportTheme::colors.componentBG;
+        sprite.borderRadius = glm::vec4(8.f);
+        sprite.headerColor = ViewportTheme::getCompHeaderColor(comp->getHash());
+        // }
 
         sprite.borderSize = glm::vec4(1.f);
         sprite.borderColor = ViewportTheme::colors.componentBorder;
@@ -382,7 +382,7 @@ namespace Bess::Canvas {
             simComp.outputSlots.emplace_back(createSlotEntity(outputSlotIds[i], Components::SlotType::digitalOutput, idComp.uuid, i));
         }
 
-        simComp.type = comp->type;
+        simComp.defHash = comp->getHash();
 
         transformComp.scale = m_viewport->getArtistManager()->getCurrentArtist()->calcCompSize(entity, simComp, comp->name);
 
@@ -991,8 +991,7 @@ namespace Bess::Canvas {
         for (const auto entt : view) {
             auto &comp = view.get<Components::SimulationComponent>(entt);
             CopiedComponent compData{};
-            const auto type = simEngine.getComponentType(comp.simEngineEntity);
-            compData.def = catalogInstance.getComponentDefinition(type);
+            compData.def = catalogInstance.getComponentDefinition(comp.defHash);
             compData.inputCount = comp.inputSlots.size();
             compData.outputCount = comp.outputSlots.size();
             m_copiedComponents.emplace_back(compData);

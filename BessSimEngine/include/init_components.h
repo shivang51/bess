@@ -102,7 +102,7 @@ namespace Bess::SimEngine {
         };
 
         auto &catalog = ComponentCatalog::instance();
-        auto flipFlop = ComponentDefinition(ComponentType::FLIP_FLOP_JK, "JK Flip Flop", "Flip Flop", 4, 2, simFunc, SimDelayNanoSeconds(5));
+        auto flipFlop = ComponentDefinition("JK Flip Flop", "Flip Flop", 4, 2, simFunc, SimDelayNanoSeconds(5));
         flipFlop.inputPinDetails = {};
         flipFlop.inputPinDetails.emplace_back(PinType::input, "J", ExtendedPinType::none);
         flipFlop.inputPinDetails.emplace_back(PinType::input, "CLK", ExtendedPinType::inputClock);
@@ -112,7 +112,7 @@ namespace Bess::SimEngine {
         catalog.registerComponent(flipFlop);
 
         flipFlop.name = "SR Flip Flop";
-        flipFlop.type = ComponentType::FLIP_FLOP_SR;
+
         flipFlop.inputPinDetails = {};
         flipFlop.inputPinDetails.emplace_back(PinType::input, "S", ExtendedPinType::none);
         flipFlop.inputPinDetails.emplace_back(PinType::input, "CLK", ExtendedPinType::inputClock);
@@ -123,7 +123,7 @@ namespace Bess::SimEngine {
 
         flipFlop.name = "T Flip Flop";
         flipFlop.inputCount = 3;
-        flipFlop.type = ComponentType::FLIP_FLOP_T;
+
         flipFlop.inputPinDetails = {};
         flipFlop.inputPinDetails.emplace_back(PinType::input, "T", ExtendedPinType::none);
         flipFlop.inputPinDetails.emplace_back(PinType::input, "CLK", ExtendedPinType::inputClock);
@@ -132,7 +132,7 @@ namespace Bess::SimEngine {
         catalog.registerComponent(flipFlop);
 
         flipFlop.name = "D Flip Flop";
-        flipFlop.type = ComponentType::FLIP_FLOP_D;
+
         flipFlop.inputPinDetails = {};
         flipFlop.inputPinDetails.emplace_back(PinType::input, "D", ExtendedPinType::none);
         flipFlop.inputPinDetails.emplace_back(PinType::input, "CLK", ExtendedPinType::inputClock);
@@ -142,11 +142,11 @@ namespace Bess::SimEngine {
     }
 
     inline void initIO() {
-        auto inpDef = ComponentDefinition(ComponentType::INPUT, "Input", "IO", 0, 1, [](auto &, auto, auto &) -> ComponentState { return {}; }, SimDelayNanoSeconds(0));
+        auto inpDef = ComponentDefinition("Input", "IO", 0, 1, [](auto &, auto, auto &) -> ComponentState { return {}; }, SimDelayNanoSeconds(0));
         inpDef.outputPinDetails = {{PinType::output, ""}};
         ComponentCatalog::instance().registerComponent(inpDef);
 
-        ComponentDefinition outDef = {ComponentType::OUTPUT, "Output", "IO", 1, 0,
+        ComponentDefinition outDef = {"Output", "IO", 1, 0,
                                       [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
                                           auto newState = prevState;
                                           newState.inputStates = inputs;
@@ -156,7 +156,7 @@ namespace Bess::SimEngine {
         outDef.inputPinDetails = {{PinType::input, ""}};
         ComponentCatalog::instance().registerComponent(outDef);
 
-        ComponentDefinition stateMonDef = {ComponentType::STATE_MONITOR, "State Monitor", "IO", 1, 0,
+        ComponentDefinition stateMonDef = {"State Monitor", "IO", 1, 0,
                                            [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
                                                auto newState = prevState;
                                                newState.isChanged = false;
@@ -173,7 +173,7 @@ namespace Bess::SimEngine {
         outDef.inputPinDetails = {{PinType::input, ""}};
         ComponentCatalog::instance().registerComponent(stateMonDef);
 
-        ComponentCatalog::instance().registerComponent({ComponentType::SEVEN_SEG_DISPLAY_DRIVER, "7-Seg Display Driver", "IO", 4, 7,
+        ComponentCatalog::instance().registerComponent({"7-Seg Display Driver", "IO", 4, 7,
                                                         [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
                                                             auto newState = prevState;
                                                             newState.inputStates = inputs;
@@ -229,7 +229,7 @@ namespace Bess::SimEngine {
                                                         },
                                                         SimDelayNanoSeconds(0)});
 
-        ComponentCatalog::instance().registerComponent({ComponentType::SEVEN_SEG_DISPLAY, "Seven Segment Display", "IO", 7, 0,
+        ComponentCatalog::instance().registerComponent({"Seven Segment Display", "IO", 7, 0,
                                                         [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
                                                             auto newState = prevState;
                                                             newState.inputStates = inputs;
@@ -259,44 +259,39 @@ namespace Bess::SimEngine {
     }
 
     inline void initDigitalGates() {
-        ComponentDefinition digitalGate = {ComponentType::AND, "AND Gate", "Digital Gates", 2, 1, &exprEvalSimFunc,
+        ComponentDefinition digitalGate = {"AND Gate", "Digital Gates", 2, 1, &exprEvalSimFunc,
                                            SimDelayNanoSeconds(1), '*'};
         digitalGate.addModifiableProperty(Properties::ComponentProperty::inputCount, {3, 4, 5});
         ComponentCatalog::instance().registerComponent(digitalGate);
 
-        digitalGate.type = ComponentType::OR;
         digitalGate.name = "OR Gate";
         digitalGate.op = '+';
         ComponentCatalog::instance().registerComponent(digitalGate);
 
-        digitalGate.type = ComponentType::XOR;
         digitalGate.name = "XOR Gate";
         digitalGate.op = '^';
         ComponentCatalog::instance().registerComponent(digitalGate);
 
-        digitalGate.type = ComponentType::XNOR;
         digitalGate.name = "XNOR Gate";
         digitalGate.op = '^';
         digitalGate.negate = true;
         ComponentCatalog::instance().registerComponent(digitalGate);
 
-        digitalGate.type = ComponentType::NAND;
         digitalGate.name = "NAND Gate";
         digitalGate.op = '*';
         ComponentCatalog::instance().registerComponent(digitalGate);
 
-        digitalGate.type = ComponentType::NOR;
         digitalGate.name = "NOR Gate";
         digitalGate.op = '+';
         ComponentCatalog::instance().registerComponent(digitalGate);
 
-        ComponentDefinition notGate = {ComponentType::NOT, "NOT Gate", "Digital Gates", 1, 1, &exprEvalSimFunc,
+        ComponentDefinition notGate = {"NOT Gate", "Digital Gates", 1, 1, &exprEvalSimFunc,
                                        SimDelayNanoSeconds(2), '!'};
         notGate.addModifiableProperty(Properties::ComponentProperty::inputCount, {2, 3, 4, 5, 6});
 
         ComponentCatalog::instance().registerComponent(notGate);
 
-        auto registerTriBufferN = [&](int N, ComponentType type, const std::string &humanName, const std::string &shortName) {
+        auto registerTriBufferN = [&](int N, const std::string &humanName, const std::string &shortName) {
             auto simFuncN = [N](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
                 auto newState = prevState;
                 newState.inputStates = inputs;
@@ -331,7 +326,6 @@ namespace Bess::SimEngine {
             };
 
             ComponentDefinition inst(
-                type,
                 humanName,
                 shortName,
                 N + 1,
@@ -350,70 +344,70 @@ namespace Bess::SimEngine {
             ComponentCatalog::instance().registerComponent(inst);
         };
 
-        registerTriBufferN(8, ComponentType::TRISTATE_BUFFER_8BIT, "8-Bit Tri-State Buffer", "Digital Gates");
-        registerTriBufferN(4, ComponentType::TRISTATE_BUFFER_4BIT, "4-Bit Tri-State Buffer", "Digital Gates");
-        registerTriBufferN(2, ComponentType::TRISTATE_BUFFER_2BIT, "2-Bit Tri-State Buffer", "Digital Gates");
-        registerTriBufferN(1, ComponentType::TRISTATE_BUFFER, "Tri-State Buffer", "Digital Gates");
+        registerTriBufferN(8, "8-Bit Tri-State Buffer", "Digital Gates");
+        registerTriBufferN(4, "4-Bit Tri-State Buffer", "Digital Gates");
+        registerTriBufferN(2, "2-Bit Tri-State Buffer", "Digital Gates");
+        registerTriBufferN(1, "Tri-State Buffer", "Digital Gates");
     }
 
     inline void initCombCircuits() {
         const std::string groupName = "Combinational Circuits";
-        ComponentDefinition comp = {ComponentType::FULL_ADDER, "Full Adder", "Combinational Circuits", 3, 2, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"0^1^2", "(0*1) + 2*(0^1)"}};
+        ComponentDefinition comp = {"Full Adder", "Combinational Circuits", 3, 2, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"0^1^2", "(0*1) + 2*(0^1)"}};
         comp.inputPinDetails = {{PinType::input, "A"}, {PinType::input, "B"}, {PinType::input, "C"}};
         comp.outputPinDetails = {{PinType::output, "S"}, {PinType::output, "C"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::HALF_ADDER, "Half Adder", groupName, 2, 2, &exprEvalSimFunc, SimDelayNanoSeconds(2), {"0^1", "0*1"}};
+        comp = {"Half Adder", groupName, 2, 2, &exprEvalSimFunc, SimDelayNanoSeconds(2), {"0^1", "0*1"}};
         comp.inputPinDetails = {{PinType::input, "A"}, {PinType::input, "B"}};
         comp.outputPinDetails = {{PinType::output, "S"}, {PinType::output, "C"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::MULTIPLEXER_4_1, "4-to-1 Mux", groupName, 6, 1, &exprEvalSimFunc, SimDelayNanoSeconds(2), {"(0*!5*!4) + (1*!5*4) + (2*5*!4) + (3*5*4)"}};
+        comp = {"4-to-1 Mux", groupName, 6, 1, &exprEvalSimFunc, SimDelayNanoSeconds(2), {"(0*!5*!4) + (1*!5*4) + (2*5*!4) + (3*5*4)"}};
         comp.inputPinDetails = {{PinType::input, "D0"}, {PinType::input, "D1"}, {PinType::input, "D2"}, {PinType::input, "D3"}, {PinType::input, "S0"}, {PinType::input, "S1"}};
         comp.outputPinDetails = {{PinType::output, "Y"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::DECODER_2_4, "2-to-4 Decoder", groupName, 2, 4, &exprEvalSimFunc, SimDelayNanoSeconds(2), {"!1*!0", "!1*0", "1*!0", "1*0"}};
+        comp = {"2-to-4 Decoder", groupName, 2, 4, &exprEvalSimFunc, SimDelayNanoSeconds(2), {"!1*!0", "!1*0", "1*!0", "1*0"}};
         comp.inputPinDetails = {{PinType::input, "A"}, {PinType::input, "B"}};
         comp.outputPinDetails = {{PinType::output, "D0"}, {PinType::output, "D1"}, {PinType::output, "D2"}, {PinType::output, "D3"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::DEMUX_1_4, "1-to-4 Demux", groupName, 3, 4, &exprEvalSimFunc, SimDelayNanoSeconds(2), {"0*!2*!1", "0*!2*1", "0*2*!1", "0*2*1"}};
+        comp = {"1-to-4 Demux", groupName, 3, 4, &exprEvalSimFunc, SimDelayNanoSeconds(2), {"0*!2*!1", "0*!2*1", "0*2*!1", "0*2*1"}};
         comp.inputPinDetails = {{PinType::input, "D"}, {PinType::input, "S0"}, {PinType::input, "S1"}};
         comp.outputPinDetails = {{PinType::output, "Y0"}, {PinType::output, "Y1"}, {PinType::output, "Y2"}, {PinType::output, "Y3"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::COMPARATOR_1_BIT, "1-Bit Comparator", groupName, 2, 3, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"0*!1", "!(0^1)", "!0*1"}};
+        comp = {"1-Bit Comparator", groupName, 2, 3, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"0*!1", "!(0^1)", "!0*1"}};
         comp.inputPinDetails = {{PinType::input, "A"}, {PinType::input, "B"}};
         comp.outputPinDetails = {{PinType::output, "A>B"}, {PinType::output, "A=B"}, {PinType::output, "A<B"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::ENCODER_4_2, "4-to-2 Encoder", groupName, 4, 2, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"1+3", "2+3"}};
+        comp = {"4-to-2 Encoder", groupName, 4, 2, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"1+3", "2+3"}};
         comp.inputPinDetails = {{PinType::input, "D0"}, {PinType::input, "D1"}, {PinType::input, "D2"}, {PinType::input, "D3"}};
         comp.outputPinDetails = {{PinType::output, "Y0"}, {PinType::output, "Y1"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::HALF_SUBTRACTOR, "Half Subtractor", groupName, 2, 2, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"0^1", "!0*1"}};
+        comp = {"Half Subtractor", groupName, 2, 2, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"0^1", "!0*1"}};
         comp.inputPinDetails = {{PinType::input, "A"}, {PinType::input, "B"}};
         comp.outputPinDetails = {{PinType::output, "D"}, {PinType::output, "B"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::MULTIPLEXER_2_1, "2-to-1 Mux", groupName, 3, 1, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"(0*!2) + (1*2)"}};
+        comp = {"2-to-1 Mux", groupName, 3, 1, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"(0*!2) + (1*2)"}};
         comp.inputPinDetails = {{PinType::input, "D0"}, {PinType::input, "D1"}, {PinType::input, "S"}};
         comp.outputPinDetails = {{PinType::output, "Y"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::PRIORITY_ENCODER_4_2, "4-to-2 Priority Encoder", groupName, 4, 3, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"3 + (!2*1)", "3 + (2*!3)", "0+1+2+3"}};
+        comp = {"4-to-2 Priority Encoder", groupName, 4, 3, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"3 + (!2*1)", "3 + (2*!3)", "0+1+2+3"}};
         comp.inputPinDetails = {{PinType::input, "D0"}, {PinType::input, "D1"}, {PinType::input, "D2"}, {PinType::input, "D3"}};
         comp.outputPinDetails = {{PinType::output, "Y0"}, {PinType::output, "Y1"}, {PinType::output, "V"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::FULL_SUBTRACTOR, "Full Subtractor", groupName, 3, 2, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"0^1^2", "(!0*1) + (!(0^1)*2)"}};
+        comp = {"Full Subtractor", groupName, 3, 2, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"0^1^2", "(!0*1) + (!(0^1)*2)"}};
         comp.inputPinDetails = {{PinType::input, "A"}, {PinType::input, "B"}, {PinType::input, "Bin"}};
         comp.outputPinDetails = {{PinType::output, "D"}, {PinType::output, "Bout"}};
         ComponentCatalog::instance().registerComponent(comp);
 
-        comp = {ComponentType::COMPARATOR_2_BIT, "2-Bit Comparator", groupName, 4, 3, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"(1*!3)+(!(1^3)*(0*!2))", "(!1*3)+(!(1^3)*(!0*2))", "(!(1^3))*(!(0^2))"}};
+        comp = {"2-Bit Comparator", groupName, 4, 3, &exprEvalSimFunc, SimDelayNanoSeconds(3), {"(1*!3)+(!(1^3)*(0*!2))", "(!1*3)+(!(1^3)*(!0*2))", "(!(1^3))*(!(0^2))"}};
         comp.inputPinDetails = {{PinType::input, "A0"}, {PinType::input, "A1"}, {PinType::input, "B0"}, {PinType::input, "B1"}};
         comp.outputPinDetails = {{PinType::output, "A>B"}, {PinType::output, "A<B"}, {PinType::output, "A=B"}};
         ComponentCatalog::instance().registerComponent(comp);

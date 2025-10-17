@@ -6,7 +6,7 @@
 namespace Bess::Common {
     class Helpers {
       public:
-        static std::string getComponentIcon(SimEngine::ComponentType type);
+        static std::string getComponentIcon(uint64_t type);
 
         static std::string getComponentIcon(Canvas::Components::NSComponentType type);
 

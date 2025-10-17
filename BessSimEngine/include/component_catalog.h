@@ -23,7 +23,7 @@ namespace Bess::SimEngine {
         std::shared_ptr<ComponentTree> getComponentsTree();
 
         // Look up a component definition by its enum type.
-        std::shared_ptr<const ComponentDefinition> getComponentDefinition(ComponentType type) const;
+        std::shared_ptr<const ComponentDefinition> getComponentDefinition(uint64_t hash) const;
 
       private:
         ComponentCatalog() = default;

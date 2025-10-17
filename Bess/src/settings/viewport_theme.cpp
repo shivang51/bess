@@ -1,11 +1,12 @@
 #include "settings/viewport_theme.h"
 #include "imgui.h"
+#include <cstdint>
 
 namespace Bess {
     SceneColors ViewportTheme::colors;
     SchematicViewColors ViewportTheme::schematicViewColors;
 
-    std::unordered_map<Bess::SimEngine::ComponentType, glm::vec4> ViewportTheme::s_compHeaderColorMap;
+    std::unordered_map<uint64_t, glm::vec4> ViewportTheme::s_compHeaderColorMap;
 
     void ViewportTheme::updateColorsFromImGuiStyle() {
         ImGuiStyle &style = ImGui::GetStyle();
@@ -81,10 +82,10 @@ namespace Bess {
         initCompColorMap();
     }
 
-    glm::vec4 ViewportTheme::getCompHeaderColor(Bess::SimEngine::ComponentType type) {
-        if (!s_compHeaderColorMap.contains(type))
+    glm::vec4 ViewportTheme::getCompHeaderColor(uint64_t hash) {
+        if (!s_compHeaderColorMap.contains(hash))
             return colors.compHeader;
-        return s_compHeaderColorMap.at(type);
+        return s_compHeaderColorMap.at(hash);
     }
 
     void ViewportTheme::initCompColorMap() {
@@ -98,39 +99,39 @@ namespace Bess {
 
         s_compHeaderColorMap.clear();
 
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::EMPTY] = specialColor;
-
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::INPUT] = logicColor;
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::OUTPUT] = logicColor;
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::AND] = logicColor;
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::OR] = logicColor;
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::NOT] = logicColor;
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::NOR] = logicColor;
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::NAND] = logicColor;
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::XOR] = logicColor;
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::XNOR] = logicColor;
-
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::FLIP_FLOP_JK] = memoryColor;
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::FLIP_FLOP_SR] = memoryColor;
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::FLIP_FLOP_D] = memoryColor;
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::FLIP_FLOP_T] = memoryColor;
-
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::FULL_ADDER] = arithmeticColor;
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::HALF_ADDER] = arithmeticColor;
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::FULL_SUBTRACTOR] = arithmeticColor;
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::HALF_SUBTRACTOR] = arithmeticColor;
-
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::MULTIPLEXER_4_1] = routingColor;
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::MULTIPLEXER_2_1] = routingColor;
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::DEMUX_1_4] = routingColor;
-
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::DECODER_2_4] = encoderDecoderColor;
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::ENCODER_4_2] = encoderDecoderColor;
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::PRIORITY_ENCODER_4_2] = encoderDecoderColor;
-
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::COMPARATOR_1_BIT] = comparatorColor;
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::COMPARATOR_2_BIT] = comparatorColor;
-
-        s_compHeaderColorMap[Bess::SimEngine::ComponentType::TRISTATE_BUFFER] = comparatorColor;
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::EMPTY] = specialColor;
+        //
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::INPUT] = logicColor;
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::OUTPUT] = logicColor;
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::AND] = logicColor;
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::OR] = logicColor;
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::NOT] = logicColor;
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::NOR] = logicColor;
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::NAND] = logicColor;
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::XOR] = logicColor;
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::XNOR] = logicColor;
+        //
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::FLIP_FLOP_JK] = memoryColor;
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::FLIP_FLOP_SR] = memoryColor;
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::FLIP_FLOP_D] = memoryColor;
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::FLIP_FLOP_T] = memoryColor;
+        //
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::FULL_ADDER] = arithmeticColor;
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::HALF_ADDER] = arithmeticColor;
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::FULL_SUBTRACTOR] = arithmeticColor;
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::HALF_SUBTRACTOR] = arithmeticColor;
+        //
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::MULTIPLEXER_4_1] = routingColor;
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::MULTIPLEXER_2_1] = routingColor;
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::DEMUX_1_4] = routingColor;
+        //
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::DECODER_2_4] = encoderDecoderColor;
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::ENCODER_4_2] = encoderDecoderColor;
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::PRIORITY_ENCODER_4_2] = encoderDecoderColor;
+        //
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::COMPARATOR_1_BIT] = comparatorColor;
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::COMPARATOR_2_BIT] = comparatorColor;
+        //
+        // s_compHeaderColorMap[Bess::SimEngine::ComponentType::TRISTATE_BUFFER] = comparatorColor;
     }
 } // namespace Bess

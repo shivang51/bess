@@ -1,4 +1,3 @@
-#include "scene/scene_pch.h"
 #include "ui/ui_main/properties_panel.h"
 #include "common/helpers.h"
 #include "gtc/type_ptr.hpp"
@@ -6,6 +5,7 @@
 #include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
 #include "scene/scene.h"
+#include "scene/scene_pch.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/m_widgets.h"
 #include <imgui.h>
@@ -18,7 +18,7 @@ namespace Bess::UI {
     void drawTagComponent(TagComponent &comp) {
         std::string icon;
         if (comp.isSimComponent) {
-            icon = Common::Helpers::getComponentIcon(comp.type.simCompType);
+            icon = Common::Helpers::getComponentIcon(comp.type.simCompHash);
         } else {
             icon = Common::Helpers::getComponentIcon(comp.type.nsCompType);
         }

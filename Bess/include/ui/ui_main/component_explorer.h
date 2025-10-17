@@ -1,11 +1,10 @@
 #pragma once
 
-#include "scene/components/non_sim_comp.h"
-#include "simulation_engine.h"
-#include "ui/icons/MaterialIcons.h"
 #include "component_definition.h"
 #include "scene/components/non_sim_comp.h"
+#include "simulation_engine.h"
 #include "ui/icons/CodIcons.h"
+#include "ui/icons/MaterialIcons.h"
 
 #include "common/helpers.h"
 
@@ -22,7 +21,7 @@ namespace Bess::UI {
         static bool isShown;
 
       private:
-        typedef std::unordered_map<SimEngine::ComponentType, std::vector<std::pair<std::string, std::pair<SimEngine::Properties::ComponentProperty, std::any>>>> ModifiablePropertiesStr;
+        typedef std::unordered_map<uint64_t, std::vector<std::pair<std::string, std::pair<SimEngine::Properties::ComponentProperty, std::any>>>> ModifiablePropertiesStr;
 
       private:
         static void createComponent(std::shared_ptr<const SimEngine::ComponentDefinition> def, int inputCount, int outputCount);

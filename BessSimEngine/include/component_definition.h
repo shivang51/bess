@@ -11,23 +11,20 @@ namespace Bess::SimEngine {
 
     class BESS_API ComponentDefinition {
       public:
-        ComponentDefinition(ComponentType type,
-                            const std::string &name,
+        ComponentDefinition(const std::string &name,
                             const std::string &category,
                             int inputCount,
                             int outputCount,
                             SimulationFunction simFunction,
                             SimDelayNanoSeconds delay, char op);
 
-        ComponentDefinition(ComponentType type,
-                            const std::string &name,
+        ComponentDefinition(const std::string &name,
                             const std::string &category,
                             int inputCount,
                             int outputCount,
                             SimulationFunction simFunction,
                             SimDelayNanoSeconds delay, const std::vector<std::string> &expr = {});
 
-        ComponentType type;
         std::string name;
         std::string category;
         SimDelayNanoSeconds delay, setupTime, holdTime;

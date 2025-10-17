@@ -54,8 +54,8 @@ namespace Bess::Canvas::Components {
         std::string name = "";
 
         union CompType {
+            uint64_t simCompHash;
             int typeId = -1;
-            SimEngine::ComponentType simCompType;
             Components::NSComponentType nsCompType;
         } type;
 
@@ -109,9 +109,9 @@ namespace Bess::Canvas::Components {
         SimulationComponent() = default;
         SimulationComponent(const SimulationComponent &other) = default;
         UUID simEngineEntity = UUID::null; // mapped to entity in simulator
-        SimEngine::ComponentType type = SimEngine::ComponentType::EMPTY;
-        std::vector<UUID> inputSlots = {};
-        std::vector<UUID> outputSlots = {};
+        uint64_t defHash = 0;
+        std::vector<UUID> inputSlots;
+        std::vector<UUID> outputSlots;
     };
 
     class ConnectionSegmentComponent {
