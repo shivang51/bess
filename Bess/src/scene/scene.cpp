@@ -364,7 +364,7 @@ namespace Bess::Canvas {
         // } else {
         sprite.color = ViewportTheme::colors.componentBG;
         sprite.borderRadius = glm::vec4(8.f);
-        sprite.headerColor = ViewportTheme::getCompHeaderColor(comp->getHash());
+        sprite.headerColor = ViewportTheme::getCompHeaderColor(comp->category);
         // }
 
         sprite.borderSize = glm::vec4(1.f);

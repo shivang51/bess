@@ -1,6 +1,7 @@
 #pragma once
 #include "component_types/component_types.h"
 #include "glm.hpp"
+#include <string>
 #include <unordered_map>
 
 namespace Bess {
@@ -49,10 +50,10 @@ namespace Bess {
         static SchematicViewColors schematicViewColors;
         static void updateColorsFromImGuiStyle();
 
-        static glm::vec4 getCompHeaderColor(uint64_t hash);
+        static glm::vec4 getCompHeaderColor(const std::string &group);
 
       private:
         static void initCompColorMap();
-        static std::unordered_map<uint64_t, glm::vec4> s_compHeaderColorMap;
+        static std::unordered_map<std::string, glm::vec4> s_compHeaderColorMap;
     };
 } // namespace Bess
