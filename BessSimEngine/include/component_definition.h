@@ -39,6 +39,7 @@ namespace Bess::SimEngine {
         int outputCount;
         char op = '0';
         bool negate = false;
+        std::any auxData;
 
         const Properties::ModifiableProperties &getModifiableProperties() const;
 

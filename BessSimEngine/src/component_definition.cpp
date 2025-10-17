@@ -19,6 +19,7 @@ namespace Bess::SimEngine {
         this->outputCount = outputCount;
         this->delay = delay;
         this->op = op;
+        this->auxData = getExpressions(inputCount);
     }
 
     ComponentDefinition::ComponentDefinition(
@@ -36,21 +37,26 @@ namespace Bess::SimEngine {
         this->outputCount = outputCount;
         this->delay = delay;
         this->expressions = expr;
+        this->auxData = expressions;
     }
 
     const Properties::ModifiableProperties &ComponentDefinition::getModifiableProperties() const {
         return m_modifiableProperties;
     }
 
-    std::vector<std::string> ComponentDefinition::getExpressions(int n) const {
+    std::vector<std::string> ComponentDefinition::getExpressions(int inputCount) const {
         if (op == '0') {
             return expressions;
         }
 
-        // non unirary expressions where inputs are greater than 1 and output is just single value
+        if (inputCount == -1) {
+            BESS_SE_WARN("[SimulationEngine][ComponentDefinition] Input count not provided for expression generation");
+            return {};
+        }
+
         if (inputCount != 1 && outputCount == 1) {
             std::string expr = negate ? "!(0" : "0";
-            for (size_t i = 1; i < n; i++) {
+            for (size_t i = 1; i < inputCount; i++) {
                 expr += op + std::to_string(i);
             }
             if (negate)
@@ -58,7 +64,8 @@ namespace Bess::SimEngine {
             return {expr};
         } else if (inputCount == outputCount) {
             std::vector<std::string> expr;
-            for (int i = 0; i < n; i++) {
+            expr.reserve(inputCount);
+            for (int i = 0; i < inputCount; i++) {
                 expr.emplace_back(std::format("{}{}", op, i));
             }
             return expr;

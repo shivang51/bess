@@ -4,6 +4,7 @@
 #include "entt_components.h"
 #include "expression_evalutator/expr_evaluator.h"
 #include "types.h"
+#include <memory>
 
 namespace Bess::SimEngine {
 
@@ -25,8 +26,8 @@ namespace Bess::SimEngine {
             const auto &clrPinState = inputs.back();
             auto flipFlopData = std::any_cast<FlipFlopAuxData>(prevState.auxData);
 
-            int clockPinIdx = flipFlopData.clockPinIdx;
-            int clearPinIdx = flipFlopData.clearPinIdx;
+            int clockPinIdx = flipFlopData->clockPinIdx;
+            int clearPinIdx = flipFlopData->clearPinIdx;
 
             auto prevClockState = prevState.inputStates[clockPinIdx].state;
             if (clrPinState.state == LogicState::high) {
@@ -37,7 +38,7 @@ namespace Bess::SimEngine {
                 return newState;
             }
 
-            const auto &clockPinState = inputs[flipFlopData.clockPinIdx];
+            const auto &clockPinState = inputs[flipFlopData->clockPinIdx];
             bool isRisingEdge = (clockPinState.state == LogicState::high &&
                                  prevState.inputStates[clockPinIdx].state == LogicState::low);
 
@@ -51,7 +52,7 @@ namespace Bess::SimEngine {
             const auto &j_input = inputs[0];
             const auto &k_input = inputs[2];
 
-            auto type = flipFlopData.type;
+            auto type = flipFlopData->type;
 
             switch (type) {
             case FlipFlopAuxData::FlipFlopType::JK: {
@@ -107,6 +108,7 @@ namespace Bess::SimEngine {
         flipFlop.inputPinDetails.emplace_back(PinType::input, "CLK", ExtendedPinType::inputClock);
         flipFlop.inputPinDetails.emplace_back(PinType::input, "K", ExtendedPinType::none);
         flipFlop.inputPinDetails.emplace_back(PinType::input, "CLR", ExtendedPinType::inputClear);
+        flipFlop.auxData = FlipFlopAuxData{1, 3, FlipFlopAuxData::FlipFlopType::JK};
         catalog.registerComponent(flipFlop);
 
         flipFlop.name = "SR Flip Flop";
@@ -116,6 +118,7 @@ namespace Bess::SimEngine {
         flipFlop.inputPinDetails.emplace_back(PinType::input, "CLK", ExtendedPinType::inputClock);
         flipFlop.inputPinDetails.emplace_back(PinType::input, "R", ExtendedPinType::none);
         flipFlop.inputPinDetails.emplace_back(PinType::input, "CLR", ExtendedPinType::inputClear);
+        flipFlop.auxData = FlipFlopAuxData{1, 3, FlipFlopAuxData::FlipFlopType::SR};
         catalog.registerComponent(flipFlop);
 
         flipFlop.name = "T Flip Flop";
@@ -125,6 +128,7 @@ namespace Bess::SimEngine {
         flipFlop.inputPinDetails.emplace_back(PinType::input, "T", ExtendedPinType::none);
         flipFlop.inputPinDetails.emplace_back(PinType::input, "CLK", ExtendedPinType::inputClock);
         flipFlop.inputPinDetails.emplace_back(PinType::input, "CLR", ExtendedPinType::inputClear);
+        flipFlop.auxData = FlipFlopAuxData{1, 2, FlipFlopAuxData::FlipFlopType::T};
         catalog.registerComponent(flipFlop);
 
         flipFlop.name = "D Flip Flop";
@@ -133,6 +137,7 @@ namespace Bess::SimEngine {
         flipFlop.inputPinDetails.emplace_back(PinType::input, "D", ExtendedPinType::none);
         flipFlop.inputPinDetails.emplace_back(PinType::input, "CLK", ExtendedPinType::inputClock);
         flipFlop.inputPinDetails.emplace_back(PinType::input, "CLR", ExtendedPinType::inputClear);
+        flipFlop.auxData = FlipFlopAuxData{1, 2, FlipFlopAuxData::FlipFlopType::D};
         catalog.registerComponent(flipFlop);
     }
 
@@ -240,11 +245,12 @@ namespace Bess::SimEngine {
         newState.inputStates = inputs;
         bool changed = false;
         auto expressions = std::any_cast<std::vector<std::string>>(prevState.auxData);
-        for (int i = 0; i < (int)expressions.size(); i++) {
+        for (int i = 0; i < (int)expressions->size(); i++) {
             std::vector<bool> states;
+            states.reserve(inputs.size());
             for (auto &state : inputs)
                 states.emplace_back((bool)state);
-            bool newStateBool = ExprEval::evaluateExpression(expressions[i], states);
+            bool newStateBool = ExprEval::evaluateExpression(expressions->at(i), states);
             changed = changed || (bool)prevState.outputStates[i] != newStateBool;
             newState.outputStates[i] = {newStateBool ? LogicState::high : LogicState::low, currentTime};
         }

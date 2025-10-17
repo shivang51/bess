@@ -84,6 +84,7 @@ namespace Bess::SimEngine {
             state.outputStates.resize(definition.outputCount, {LogicState::low, SimTime(0)});
             state.inputConnected.resize(definition.inputCount, false);
             state.outputConnected.resize(definition.outputCount, false);
+            state.auxData = &definition.auxData;
             inputConnections.resize(definition.inputCount);
             outputConnections.resize(definition.outputCount);
         }
