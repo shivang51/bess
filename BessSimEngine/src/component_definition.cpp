@@ -12,6 +12,8 @@ namespace Bess::SimEngine {
         SimulationFunction simFunction,
         SimDelayNanoSeconds delay, char op) : name(name), category(category), delay(delay),
                                               simulationFunction(std::move(simFunction)), inputCount(inputCount), outputCount(outputCount), op(op) {
+        this->setupTime = SimDelayNanoSeconds(0);
+        this->holdTime = SimDelayNanoSeconds(0);
         this->auxData = getExpressions(inputCount);
     }
 
@@ -21,6 +23,8 @@ namespace Bess::SimEngine {
         int inputCount, int outputCount,
         SimulationFunction simFunction,
         SimDelayNanoSeconds delay, const std::vector<std::string> &expr) : name(name), category(category), delay(delay), simulationFunction(simFunction), expressions(expr), inputCount(inputCount), outputCount(outputCount), auxData(expressions) {
+        this->setupTime = SimDelayNanoSeconds(0);
+        this->holdTime = SimDelayNanoSeconds(0);
     }
 
     const Properties::ModifiableProperties &ComponentDefinition::getModifiableProperties() const {
@@ -153,9 +157,19 @@ namespace Bess::SimEngine {
         hash = fnv1aPod(hash, op);
         hash = fnv1aPod(hash, negate);
 
-        hash = hashVector(hash, expressions, [](uint64_t h, const std::string &s) noexcept {
-            return fnv1aString(h, s);
-        });
+        {
+            const std::vector<std::string> &explicitExpr = expressions;
+            if (!explicitExpr.empty()) {
+                hash = hashVector(hash, explicitExpr, [](uint64_t h, const std::string &s) noexcept {
+                    return fnv1aString(h, s);
+                });
+            } else {
+                const std::vector<std::string> generatedExpr = getExpressions(inputCount);
+                hash = hashVector(hash, generatedExpr, [](uint64_t h, const std::string &s) noexcept {
+                    return fnv1aString(h, s);
+                });
+            }
+        }
 
         hash = hashVector(hash, inputPinDetails, [](uint64_t h, const PinDetails &p) noexcept {
             return hashPinDetails(h, p);
