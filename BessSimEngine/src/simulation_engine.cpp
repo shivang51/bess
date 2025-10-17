@@ -383,7 +383,7 @@ namespace Bess::SimEngine {
     }
 
     bool SimulationEngine::simulateComponent(entt::entity e, const std::vector<PinState> &inputs) {
-        const auto &comp = m_registry.get<DigitalComponent>(e);
+        auto &comp = m_registry.get<DigitalComponent>(e);
         const auto def = ComponentCatalog::instance().getComponentDefinition(comp.definition.type);
         BESS_SE_LOG_EVENT("Simulating {}", def->name);
         BESS_SE_LOG_EVENT("\tInputs:");
@@ -392,9 +392,12 @@ namespace Bess::SimEngine {
         }
         BESS_SE_LOG_EVENT("");
         if (def && def->simulationFunction) {
-            return def->simulationFunction(
-                m_registry, e, inputs, m_currentSimTime,
-                std::bind(&SimulationEngine::getEntityWithUuid, this, std::placeholders::_1));
+            const auto newState = def->simulationFunction(inputs, m_currentSimTime, comp.state);
+            if (newState.isChanged) {
+                comp.state = newState;
+            }
+            comp.state.inputStates = inputs;
+            return newState.isChanged;
         }
         return false;
     }

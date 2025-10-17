@@ -85,8 +85,6 @@ namespace Bess::SimEngine {
         }
     };
 
-    typedef std::function<bool(entt::registry &, entt::entity, const std::vector<PinState> &, SimTime, std::function<entt::entity(const UUID &)>)> SimulationFunction;
-
     struct BESS_API SimulationEvent {
         SimTime simTime;
         entt::entity entity;
@@ -108,5 +106,5 @@ namespace Bess::SimEngine {
         std::any auxData;
     };
 
-    typedef std::function<ComponentState(const std::vector<PinState> &, SimTime, const ComponentState &)> SimulationFunctionNew;
+    typedef std::function<ComponentState(const std::vector<PinState> &, SimTime, const ComponentState &)> SimulationFunction;
 } // namespace Bess::SimEngine

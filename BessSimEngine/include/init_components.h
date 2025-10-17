@@ -10,98 +10,94 @@ namespace Bess::SimEngine {
     struct FlipFlopAuxData {
         int clockPinIdx = 1;
         int clearPinIdx = 3;
+        enum class FlipFlopType : uint8_t {
+            JK,
+            SR,
+            D,
+            T
+        } type;
     };
 
     inline void initFlipFlops() {
-        auto newSimFunc = [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
-            // ComponentState newState = prevState;
-            // newState.inputStates = inputs;
-            // const auto &clrPinState = inputs.back();
-            // auto flipFlopData = std::any_cast<FlipFlopAuxData>(prevState.auxData);
-            //
-            // int clockPinIdx = flipFlopData.clockPinIdx;
-            // int clearPinIdx = flipFlopData.clearPinIdx;
-            //
-            // auto prevClockState = prevState.inputStates[clockPinIdx].state;
-            // if (clrPinState.state == LogicState::high) {
-            //     newState.isChanged = (prevState.outputStates[0].state != LogicState::low);
-            //     newState.inputStates[clockPinIdx].state = LogicState::high;
-            //     newState.outputStates[0] = {LogicState::low, currentTime};
-            //     newState.outputStates[1] = {LogicState::high, currentTime}; // Q' is HIGH
-            //     return newState;
-            // }
-            //
-            // const auto &clockPinState = inputs[flipFlopData.clockPinIdx];
-            // bool isRisingEdge = (clockPinState.state == LogicState::high && prevState.inputStates[flipFlopData.clockPinIdx] == LogicState::low);
-            // flipFlopComp.prevClockState = clockPinState.state;
-            //
-            // if (!isRisingEdge) {
-            //     return false;
-            // }
-            // return newState;
-        };
+        auto simFunc = [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
+            ComponentState newState = prevState;
+            newState.inputStates = inputs;
+            const auto &clrPinState = inputs.back();
+            auto flipFlopData = std::any_cast<FlipFlopAuxData>(prevState.auxData);
 
-        auto simFunc = [&](entt::registry &reg, entt::entity e, const std::vector<PinState> &inputs, SimTime currentTime, auto fn) -> bool {
-            // auto &flipFlopComp = reg.get<FlipFlopComponent>(e);
-            // auto &comp = reg.get<DigitalComponent>(e);
-            //
-            // comp.state.inputStates = inputs;
-            //
-            // const auto &clrPinState = inputs.back();
-            // if (clrPinState.state == LogicState::high) {
-            //     bool changed = (comp.state.outputStates[0].state != LogicState::low);
-            //     comp.state.inputStates[flipFlopComp.clockPinIdx].state = LogicState::high;
-            //     flipFlopComp.prevClockState = LogicState::high;
-            //     comp.state.outputStates[0] = {LogicState::low, currentTime};
-            //     comp.state.outputStates[1] = {LogicState::high, currentTime}; // Q' is HIGH
-            //     return changed;
-            // }
-            //
-            // const auto &clockPinState = inputs[flipFlopComp.clockPinIdx];
-            // bool isRisingEdge = (clockPinState.state == LogicState::high && flipFlopComp.prevClockState == LogicState::low);
-            // flipFlopComp.prevClockState = clockPinState.state;
-            //
-            // if (!isRisingEdge) {
-            //     return false;
-            // }
-            //
-            // LogicState currentQ = comp.state.outputStates[0].state;
-            // LogicState newQ = currentQ;
-            //
-            // const auto &j_input = inputs[0];
-            // const auto &k_input = inputs[2];
-            //
-            // if (flipFlopComp.type == ComponentType::FLIP_FLOP_JK) {
-            //     if (j_input.state == LogicState::high && k_input.state == LogicState::high) {
-            //         newQ = (currentQ == LogicState::low) ? LogicState::high : LogicState::low; // Toggle
-            //     } else if (j_input.state == LogicState::high) {
-            //         newQ = LogicState::high;
-            //     } else if (k_input.state == LogicState::high) {
-            //         newQ = LogicState::low;
-            //     }
-            // } else if (flipFlopComp.type == ComponentType::FLIP_FLOP_D) {
-            //     newQ = j_input.state;
-            // } else if (flipFlopComp.type == ComponentType::FLIP_FLOP_T) {
-            //     if (j_input.state == LogicState::high) {
-            //         newQ = (currentQ == LogicState::low) ? LogicState::high : LogicState::low; // Toggle
-            //     }
-            // } else if (flipFlopComp.type == ComponentType::FLIP_FLOP_SR) {
-            //     if (j_input.state == LogicState::high) {
-            //         newQ = LogicState::high;
-            //     } else if (k_input.state == LogicState::high) {
-            //         newQ = LogicState::low;
-            //     }
-            // }
-            //
-            // bool changed = (comp.state.outputStates[0].state != newQ);
-            //
-            // comp.state.outputStates[0] = {newQ, currentTime};
-            //
-            // LogicState newQ_bar = (newQ == LogicState::low) ? LogicState::high : (newQ == LogicState::high) ? LogicState::low
-            //                                                                                                 : LogicState::unknown;
-            // comp.state.outputStates[1] = {newQ_bar, currentTime};
-            //
-            // return changed;
+            int clockPinIdx = flipFlopData.clockPinIdx;
+            int clearPinIdx = flipFlopData.clearPinIdx;
+
+            auto prevClockState = prevState.inputStates[clockPinIdx].state;
+            if (clrPinState.state == LogicState::high) {
+                newState.isChanged = (prevState.outputStates[0].state != LogicState::low);
+                newState.inputStates[clockPinIdx].state = LogicState::high;
+                newState.outputStates[0] = {LogicState::low, currentTime};
+                newState.outputStates[1] = {LogicState::high, currentTime}; // Q' is HIGH
+                return newState;
+            }
+
+            const auto &clockPinState = inputs[flipFlopData.clockPinIdx];
+            bool isRisingEdge = (clockPinState.state == LogicState::high &&
+                                 prevState.inputStates[clockPinIdx].state == LogicState::low);
+
+            if (!isRisingEdge) {
+                return newState;
+            }
+
+            LogicState currentQ = prevState.outputStates[0].state;
+            LogicState newQ = currentQ;
+
+            const auto &j_input = inputs[0];
+            const auto &k_input = inputs[2];
+
+            auto type = flipFlopData.type;
+
+            switch (type) {
+            case FlipFlopAuxData::FlipFlopType::JK: {
+                if (j_input.state == LogicState::high && k_input.state == LogicState::high) {
+                    newQ = (currentQ == LogicState::low) ? LogicState::high : LogicState::low; // Toggle
+                } else if (j_input.state == LogicState::high) {
+                    newQ = LogicState::high;
+                } else if (k_input.state == LogicState::high) {
+                    newQ = LogicState::low;
+                }
+            } break;
+            case FlipFlopAuxData::FlipFlopType::SR: {
+                if (j_input.state == LogicState::high) {
+                    newQ = LogicState::high;
+                } else if (k_input.state == LogicState::high) {
+                    newQ = LogicState::low;
+                }
+            } break;
+            case FlipFlopAuxData::FlipFlopType::D: {
+                newQ = j_input.state;
+            } break;
+            case FlipFlopAuxData::FlipFlopType::T: {
+                if (j_input.state == LogicState::high) {
+                    newQ = (currentQ == LogicState::low)
+                               ? LogicState::high
+                               : LogicState::low;
+                }
+            } break;
+            }
+
+            bool changed = (prevState.outputStates[0].state != newQ);
+
+            if (!changed)
+                return newState;
+
+            newState.outputStates[0] = {newQ, currentTime};
+
+            LogicState newQ_bar = (newQ == LogicState::low)
+                                      ? LogicState::high
+                                  : (newQ == LogicState::high) ? LogicState::low
+                                                               : LogicState::unknown;
+            newState.outputStates[1] = {newQ_bar, currentTime};
+
+            newState.isChanged = changed;
+
+            return newState;
         };
 
         auto &catalog = ComponentCatalog::instance();
@@ -141,39 +137,41 @@ namespace Bess::SimEngine {
     }
 
     inline void initIO() {
-        auto inpDef = ComponentDefinition(ComponentType::INPUT, "Input", "IO", 0, 1, [](auto &, auto, auto, auto, auto) -> bool { return false; }, SimDelayNanoSeconds(0));
+        auto inpDef = ComponentDefinition(ComponentType::INPUT, "Input", "IO", 0, 1, [](auto &, auto, auto &) -> ComponentState { return {}; }, SimDelayNanoSeconds(0));
         inpDef.outputPinDetails = {{PinType::output, ""}};
         ComponentCatalog::instance().registerComponent(inpDef);
 
         ComponentDefinition outDef = {ComponentType::OUTPUT, "Output", "IO", 1, 0,
-                                      [&](entt::registry &registry, entt::entity e, const std::vector<PinState> &inputs, SimTime _, auto fn) -> bool {
-                                          auto &gate = registry.get<DigitalComponent>(e);
-                                          gate.state.inputStates = inputs;
-                                          return false;
+                                      [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
+                                          auto newState = prevState;
+                                          newState.inputStates = inputs;
+                                          return newState;
                                       },
                                       SimDelayNanoSeconds(0)};
         outDef.inputPinDetails = {{PinType::input, ""}};
         ComponentCatalog::instance().registerComponent(outDef);
 
         ComponentDefinition stateMonDef = {ComponentType::STATE_MONITOR, "State Monitor", "IO", 1, 0,
-                                           [&](entt::registry &registry, entt::entity e, const std::vector<PinState> &inputs, SimTime simTime, auto fn) -> bool {
-                                               if (inputs.size() == 0)
-                                                   return false;
-                                               auto &comp = registry.get<StateMonitorComponent>(e);
-                                               comp.appendState(inputs[0].lastChangeTime, inputs[0].state);
+                                           [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
+                                               auto newState = prevState;
+                                               newState.isChanged = false;
+                                               if (inputs.size() == 0) {
+                                                   return newState;
+                                               }
+                                               // comp.appendState(inputs[0].lastChangeTime, inputs[0].state);
 
-                                               auto &digiComp = registry.get<DigitalComponent>(e);
-                                               digiComp.state.inputStates = inputs;
-                                               return false;
+                                               // auto &digiComp = registry.get<DigitalComponent>(e);
+                                               newState.inputStates = inputs;
+                                               return newState;
                                            },
                                            SimDelayNanoSeconds(0)};
         outDef.inputPinDetails = {{PinType::input, ""}};
         ComponentCatalog::instance().registerComponent(stateMonDef);
 
         ComponentCatalog::instance().registerComponent({ComponentType::SEVEN_SEG_DISPLAY_DRIVER, "7-Seg Display Driver", "IO", 4, 7,
-                                                        [&](entt::registry &registry, entt::entity e, const std::vector<PinState> &inputs, SimTime _, auto fn) -> bool {
-                                                            auto &gate = registry.get<DigitalComponent>(e);
-                                                            gate.state.inputStates = inputs;
+                                                        [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
+                                                            auto newState = prevState;
+                                                            newState.inputStates = inputs;
                                                             int dec = 0;
                                                             for (int i = 0; i < (int)inputs.size(); i++) {
                                                                 if (inputs[i])
@@ -215,39 +213,43 @@ namespace Bess::SimEngine {
                                                             }
 
                                                             bool changed = false;
-                                                            for (int i = 0; i < (int)gate.state.outputStates.size(); i++) {
+                                                            for (int i = 0; i < (int)prevState.outputStates.size(); i++) {
                                                                 bool out = val & (1 << i);
-                                                                changed = changed || out != (bool)gate.state.outputStates[i];
-                                                                gate.state.outputStates[i] = out;
+                                                                changed = changed || out != (bool)prevState.outputStates[i];
+                                                                newState.outputStates[i] = out;
                                                             }
+                                                            newState.isChanged = changed;
 
-                                                            return changed;
+                                                            return newState;
                                                         },
                                                         SimDelayNanoSeconds(0)});
 
         ComponentCatalog::instance().registerComponent({ComponentType::SEVEN_SEG_DISPLAY, "Seven Segment Display", "IO", 7, 0,
-                                                        [&](entt::registry &registry, entt::entity e, const std::vector<PinState> &inputs, SimTime _, auto fn) -> bool {
-                                                            auto &gate = registry.get<DigitalComponent>(e);
-                                                            gate.state.inputStates = inputs;
-                                                            return false;
+                                                        [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
+                                                            auto newState = prevState;
+                                                            newState.inputStates = inputs;
+                                                            newState.isChanged = false;
+                                                            return newState;
                                                         },
                                                         SimDelayNanoSeconds(0)});
     }
 
     /// expression evaluator simulation function
-    inline bool exprEvalSimFunc(entt::registry &registry, entt::entity e, const std::vector<PinState> &inputs, SimTime currentTime, std::function<entt::entity(const UUID &)> fn) {
-        auto &comp = registry.get<DigitalComponent>(e);
-        comp.state.inputStates = inputs;
+    inline ComponentState exprEvalSimFunc(const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) {
+        auto newState = prevState;
+        newState.inputStates = inputs;
         bool changed = false;
-        for (int i = 0; i < (int)comp.definition.expressions.size(); i++) {
+        auto expressions = std::any_cast<std::vector<std::string>>(prevState.auxData);
+        for (int i = 0; i < (int)expressions.size(); i++) {
             std::vector<bool> states;
-            for (auto &state : comp.state.inputStates)
+            for (auto &state : inputs)
                 states.emplace_back((bool)state);
-            bool newState = ExprEval::evaluateExpression(comp.definition.expressions[i], states);
-            changed = changed || (bool)comp.state.outputStates[i] != newState;
-            comp.state.outputStates[i] = {newState ? LogicState::high : LogicState::low, currentTime};
+            bool newStateBool = ExprEval::evaluateExpression(expressions[i], states);
+            changed = changed || (bool)prevState.outputStates[i] != newStateBool;
+            newState.outputStates[i] = {newStateBool ? LogicState::high : LogicState::low, currentTime};
         }
-        return changed;
+        newState.isChanged = changed;
+        return newState;
     }
 
     inline void initDigitalGates() {
@@ -289,17 +291,15 @@ namespace Bess::SimEngine {
         ComponentCatalog::instance().registerComponent(notGate);
 
         auto registerTriBufferN = [&](int N, ComponentType type, const std::string &humanName, const std::string &shortName) {
-            auto simFuncN = [N](entt::registry &reg, entt::entity e, const std::vector<PinState> &inputs, SimTime currentTime, auto fn) -> bool {
-                // inputs expected: D0..D(N-1), OE  => inputs.size() == N+1
-                if ((int)inputs.size() < N + 1)
-                    return false;
-                auto &comp = reg.get<DigitalComponent>(e);
+            auto simFuncN = [N](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
+                auto newState = prevState;
+                newState.inputStates = inputs;
 
                 const PinState &oe = inputs[N];
                 bool enabled = (oe.state == LogicState::high);
 
-                if (comp.state.outputStates.size() < (size_t)N)
-                    comp.state.outputStates.resize(N, {LogicState::high_z, SimTime(0)});
+                if (prevState.outputStates.size() < (size_t)N)
+                    newState.outputStates.resize(N, {LogicState::high_z, SimTime(0)});
 
                 bool anyChanged = false;
                 for (int i = 0; i < N; ++i) {
@@ -312,14 +312,16 @@ namespace Bess::SimEngine {
                         newOut.lastChangeTime = currentTime;
                     }
 
-                    if (comp.state.outputStates[i].state != newOut.state) {
-                        comp.state.outputStates[i] = newOut;
+                    if (prevState.outputStates[i].state != newOut.state) {
+                        newState.outputStates[i] = newOut;
                         anyChanged = true;
                     } else {
-                        comp.state.outputStates[i].lastChangeTime = newOut.lastChangeTime;
+                        newState.outputStates[i].lastChangeTime = newOut.lastChangeTime;
                     }
                 }
-                return anyChanged;
+
+                newState.isChanged = anyChanged;
+                return newState;
             };
 
             ComponentDefinition inst(
