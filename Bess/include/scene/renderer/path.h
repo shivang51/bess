@@ -9,6 +9,7 @@ namespace Bess::Renderer2D::Vulkan {
         glm::vec3 pos;
         float weight = 1.f;
         int64_t id = 0.f;
+        glm::vec4 color = glm::vec4(-1.f);
     };
 }; // namespace Bess::Renderer2D::Vulkan
 

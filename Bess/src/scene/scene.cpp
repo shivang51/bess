@@ -12,7 +12,9 @@
 #include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
 #include "vulkan_core.h"
+#include <cmath>
 #include <cstdint>
+#include <numbers>
 #include <utility>
 
 namespace Bess::Canvas {
@@ -55,6 +57,7 @@ namespace Bess::Canvas {
     }
 
     void Scene::update(TFrameTime ts, const std::vector<ApplicationEvent> &events) {
+        m_frameTimeStep = ts;
         if (m_getIdsInSelBox) {
             if (selectEntitesInArea())
                 m_getIdsInSelBox = false;
@@ -296,6 +299,8 @@ namespace Bess::Canvas {
         if (m_drawMode == SceneDrawMode::selectionBox) {
             drawSelectionBox();
         }
+
+        drawScratchContent(m_frameTimeStep, viewport);
     }
 
     void Scene::drawSelectionBox() {
@@ -1171,5 +1176,68 @@ namespace Bess::Canvas {
     glm::vec2 Scene::getSnappedPos(const glm::vec2 &pos) const {
         constexpr float snapSize = 5.f;
         return glm::vec2(glm::round(pos / snapSize)) * snapSize;
+    }
+
+    void Scene::drawScratchContent(TFrameTime ts, const std::shared_ptr<Viewport> &viewport) {
+
+        static float elapsed = 0.f;
+        auto renderer = viewport->getArtistManager()->getCurrentArtist()->getPathRenderer();
+
+        std::vector<glm::vec3> curveAPoints;
+        std::vector<glm::vec3> curveBPoints;
+
+        constexpr float curve2Offset = std::numbers::pi_v<float>;
+        constexpr float step = 0.1f;
+        constexpr float amplitude = 50.f;
+        constexpr float rungSpacing = std::numbers::pi_v<float> / 8.f;
+        constexpr float lengthRad = std::numbers::pi_v<float> * 6.f;
+        constexpr float wavelength = 50.f;
+        constexpr float lengthPx = wavelength * lengthRad;
+
+        static const glm::mat4 transform = glm::rotate(glm::mat4(1.f), glm::radians(-45.f), {0.f, 0.f, 1.f});
+
+        renderer->beginPathMode({0.f, 0.f, 1.f}, 2.f, glm::vec4(1.f), -1);
+
+        std::vector<glm::vec3> curveA, curveB;
+        for (float i = 0; i <= lengthRad; i += step) {
+            float x = wavelength * i;
+            float phase = i - elapsed;
+            float yA = std::sin(phase) * amplitude;
+            float yB = std::sin(phase + curve2Offset) * amplitude;
+            curveA.emplace_back(x, -yA, 1.f);
+            curveB.emplace_back(x, -yB, 1.f);
+        }
+
+        for (float phi = 0; phi <= lengthRad; phi += rungSpacing) {
+            float phase = phi + elapsed;
+            float yA = std::sin(phi) * amplitude;
+            float yB = std::sin(phi + curve2Offset) * amplitude;
+
+            float x = std::fmod((phi + elapsed), lengthRad);
+            x *= 50.f;
+
+            glm::vec3 aPos = {x, -yA, 0.9f};
+            glm::vec3 bPos = {x, -yB, 0.9f};
+
+            renderer->pathMoveTo(glm::vec3(transform * glm::vec4({aPos, 1.f})));
+            renderer->pathLineTo(glm::vec3(transform * glm::vec4({bPos, 1.f})), 2.f, glm::vec4(1.f), -1);
+        }
+
+        for (int i = 0; i < curveA.size(); i++) {
+            if (i == 0)
+                renderer->pathMoveTo(glm::vec3(transform * glm::vec4({curveA[i], 1.f})));
+            else
+                renderer->pathLineTo(glm::vec3(transform * glm::vec4({curveA[i], 1.f})), 2.f, {1.f, 1.f, 1.f, 1.f}, -1);
+        }
+        for (int i = 0; i < curveB.size(); i++) {
+            if (i == 0)
+                renderer->pathMoveTo(glm::vec3(transform * glm::vec4({curveB[i], 1.f})));
+            else
+                renderer->pathLineTo(glm::vec3(transform * glm::vec4({curveB[i], 1.f})), 2.f, {1.f, 1.f, 1.f, 1.f}, -1);
+        }
+
+        renderer->endPathMode();
+
+        elapsed += (float)ts.count() * 0.001f;
     }
 } // namespace Bess::Canvas

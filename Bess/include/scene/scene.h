@@ -114,6 +114,9 @@ namespace Bess::Canvas {
         std::shared_ptr<ArtistManager> getArtistManager();
 
       private:
+        /// to draw testing stuff
+        void drawScratchContent(TFrameTime ts, const std::shared_ptr<Viewport> &viewport);
+
         const UUID &getUuidOfEntity(entt::entity ent);
 
         // gets entity from scene that has reference to passed simulation engine uuid
@@ -182,6 +185,8 @@ namespace Bess::Canvas {
         std::unordered_map<UUID, Components::ConnectionSegmentComponent> m_dragStartConnSeg = {};
 
         std::unordered_map<UUID, entt::entity> m_uuidToEntt = {};
+
+        TFrameTime m_frameTimeStep = {};
 
         LastCreatedComponent m_lastCreatedComp = {};
         struct CopiedComponent {
