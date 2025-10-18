@@ -19,5 +19,9 @@ void bind_component_state(py::module_ &m) {
 }
 
 PYBIND11_MODULE(_bindings, m) {
-    bind_component_state(m);
+    m.doc() = "BESS Python bindings";
+
+    // Create submodules
+    auto sim_engine = m.def_submodule("sim_engine", "Simulation engine bindings");
+    bind_component_state(sim_engine);
 }

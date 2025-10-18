@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from enum import Enum
-from bessplug.bindings._bindings import ComponentState
+from bessplug.bindings import _bindings as _b
 
 class LogicState(Enum):
     LOW = 0
@@ -36,6 +36,32 @@ class PinState:
 
         self.lastChangeTimeNs: float = 0.0
         '''Last time (in ns) when the pin state was changed'''
+
+
+
+class ComponentState:
+    """Python-friendly wrapper for a component's runtime state."""
+    def __init__(self, native=None):
+        self._native = native or _b.sim_engine.ComponentState()
+
+    @property
+    def inputs(self):
+        return self._native.input_states
+
+    @property
+    def outputs(self):
+        return self._native.output_states
+
+    @property
+    def changed(self):
+        return self._native.is_changed
+
+    def mark_changed(self, value=True):
+        self._native.is_changed = value
+
+    def __repr__(self):
+        return f"<ComponentState changed={self.changed}>"
+
 
 
 class PinDetails:
