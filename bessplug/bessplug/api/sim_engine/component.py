@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from enum import Enum
+from bessplug.bindings._bindings import ComponentState
 
 class LogicState(Enum):
     LOW = 0
@@ -23,20 +24,6 @@ class ExtendedPinType(Enum):
     INPUT_CLOCK = 0,
     INPUT_CLEAR = 1
 
-
-class ComponentState:
-    '''This class defines component state'''
-    def __init__(self):
-        self.inputs: list[PinState] = []
-        '''List of input pin states'''
-
-        self.outputs: list[PinState] = []
-        '''List of output pin states'''
-
-        self.lastSimTimeNs: float = 0.0
-        '''Last simulation time in nanoseconds'''
-
-        self.compDefination: Component = Component("Undefined")
 
 class PinState:
     '''This class defines pin state'''

@@ -1,5 +1,6 @@
 from abc import abstractmethod
 
+from .bindings import _bindings as b
 from .api.log import Logger
 from .api.sim_engine.component import Component
 
