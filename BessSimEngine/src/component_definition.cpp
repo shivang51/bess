@@ -182,4 +182,9 @@ namespace Bess::SimEngine {
         m_hashComputed = true;
         return m_cachedHash;
     }
+
+    void ComponentDefinition::invalidateHash() const {
+        m_hashComputed = false;
+        m_cachedHash = 0;
+    }
 } // namespace Bess::SimEngine

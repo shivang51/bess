@@ -1,7 +1,7 @@
 from abc import abstractmethod
 
 from .api.log import Logger
-from .api.sim_engine.component import Component, ComponentState
+from .api.sim_engine import ComponentDefinition, ComponentState
 
 
 class Plugin:
@@ -12,7 +12,7 @@ class Plugin:
         print(ComponentState())
 
     @abstractmethod
-    def on_components_reg_load(self) -> list[Component]:
+    def on_components_reg_load(self) -> list[ComponentDefinition]:
         '''
         Method is called when components are getting loaded into the simulation engine.
         @return: List[Component] 

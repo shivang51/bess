@@ -9,7 +9,13 @@ set(PYBIND11_FINDPYTHON ON)
 find_package(Python3 COMPONENTS Interpreter Development Development.Module Development.Embed REQUIRED)
 find_package(pybind11 REQUIRED)
 
-pybind11_add_module(${PROJECT_NAME} bindings.cpp)
+set(BESS_PYBIND_SOURCES
+    bindings.cpp
+    sim_engine/types.cpp
+    sim_engine/component_definition.cpp
+)
+
+pybind11_add_module(${PROJECT_NAME} ${BESS_PYBIND_SOURCES})
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
@@ -29,3 +35,12 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 )
 
 add_dependencies(${PROJECT_NAME} BessSimEngine)
+
+# Link against the simulation engine to resolve symbols at import time
+target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine)
+
+# Ensure the loader can find dependent shared libs from the build tree
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    BUILD_RPATH "${CMAKE_SOURCE_DIR}/build/lib"
+    INSTALL_RPATH "${CMAKE_SOURCE_DIR}/build/lib"
+)

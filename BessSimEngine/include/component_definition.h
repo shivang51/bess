@@ -50,6 +50,8 @@ namespace Bess::SimEngine {
 
         uint64_t getHash() const noexcept;
 
+        void invalidateHash() const;
+
         friend bool operator==(const ComponentDefinition &a, const ComponentDefinition &b) noexcept {
             return a.getHash() == b.getHash();
         }

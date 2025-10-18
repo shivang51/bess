@@ -1,18 +1,17 @@
 from typing import override
 from bessplug import Plugin 
-from bessplug.api.sim_engine.component import Component, ComponentType
+from bessplug.api.sim_engine import ComponentDefinition
 
-class TestComponent(Component):
+class TestComponent(ComponentDefinition):
     def __init__(self):
-        super().__init__("TestComponent")
-        self.type = ComponentType.DIGITAL_COMPONENT
+        super().__init__()
 
 class BessPlugin(Plugin):
     def __init__(self):
         super().__init__("BessPlugin", "0.0")
 
     @override
-    def on_components_reg_load(self) -> list[Component]:
+    def on_components_reg_load(self) -> list[ComponentDefinition]:
         return [TestComponent()]
 
 
