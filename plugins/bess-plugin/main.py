@@ -5,6 +5,7 @@ from bessplug.api.sim_engine import ComponentDefinition
 class TestComponent(ComponentDefinition):
     def __init__(self):
         super().__init__()
+        self.name = "TestComponent XYZOP"
 
 class BessPlugin(Plugin):
     def __init__(self):

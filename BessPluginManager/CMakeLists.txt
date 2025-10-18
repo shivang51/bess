@@ -38,7 +38,10 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    "${CMAKE_SOURCE_DIR}/external/spdlog/include"
+    "${CMAKE_SOURCE_DIR}/BessSimEngine/include"
+		"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
+    "${CMAKE_SOURCE_DIR}/external/entt/include;"
+    "${CMAKE_SOURCE_DIR}/external/spdlog/include;"
 )
 
 target_include_directories(BessPluginManager

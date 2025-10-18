@@ -2,14 +2,11 @@
 
 #include <pybind11/pybind11.h>
 
+namespace Bess::SimEngine {
+    class ComponentDefinition;
+}
+
 namespace Bess::Plugins {
-    struct Component {
-        std::string name;
-        int type;
-
-        pybind11::object onUpdateFn;
-    };
-
     class PluginHandle {
       public:
         PluginHandle() = default;
@@ -18,7 +15,7 @@ namespace Bess::Plugins {
 
         const pybind11::object &getPluginObject() const;
 
-        std::vector<Component> onComponentsRegLoad() const;
+        std::vector<SimEngine::ComponentDefinition> onComponentsRegLoad() const;
 
       private:
         pybind11::object m_pluginObj;

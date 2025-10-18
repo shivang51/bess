@@ -1,5 +1,6 @@
 #define FMT_UNICODE 0
 #include "application.h"
+#include "component_definition.h"
 #include "plugin_manager.h"
 #include <csignal>
 #include <cstdlib>
@@ -51,17 +52,18 @@ int main(int argc, char **argv) {
         std::cout << pluginMangaer.getLoadedPlugins().size() << " plugins loaded." << std::endl;
 
         if (pluginMangaer.isPluginLoaded("BessPlugin")) {
-            auto plugin = pluginMangaer.getPlugin("BessPlugin");
-            // auto comps = plugin->onComponentsRegLoad();
+            const auto plugin = pluginMangaer.getPlugin("BessPlugin");
+            auto comps = plugin->onComponentsRegLoad();
 
-            // comps.front().onUpdateFn(1.5f);
-            // std::cout << plugin->onComponentsRegLoad().size() << " components loaded from plugin." << std::endl;
+            std::cout << plugin->onComponentsRegLoad().size() << " components loaded from plugin." << std::endl;
+
+            std::cout << comps[0].name << std::endl;
         }
 
         pluginMangaer.destroy();
     }
 
-    // return 0;
+    return 0;
 
     Bess::Application app;
     try {

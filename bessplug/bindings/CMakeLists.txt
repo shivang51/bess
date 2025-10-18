@@ -23,7 +23,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 		"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
     "${CMAKE_SOURCE_DIR}/external/entt/include;"
     "${CMAKE_SOURCE_DIR}/external/spdlog/include;"
-    "${CMAKE_SOURCE_DIR}/BessPluginManager/include;"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
