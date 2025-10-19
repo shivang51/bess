@@ -32,11 +32,13 @@ namespace Bess::SimEngine {
         void deleteConnection(const UUID &compA, PinType pinAType, int idxA,
                               const UUID &compB, PinType pinBType, int idxB);
 
-        bool getDigitalPinState(const UUID &uuid, PinType type, int idx);
+        PinState getDigitalPinState(const UUID &uuid, PinType type, int idx);
 
         ConnectionBundle getConnections(const UUID &uuid);
 
-        void setDigitalInput(const UUID &uuid, bool value);
+        void setInputPinState(const UUID &uuid, int pinIdx, LogicState state);
+        void setOutputPinState(const UUID &uuid, int pinIdx, LogicState state);
+        void invertInputPinState(const UUID &uuid, int pinIdx);
 
         bool updateClock(const UUID &uuid, bool enable, float frequency, FrequencyUnit unit);
 

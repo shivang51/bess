@@ -342,19 +342,24 @@ namespace Bess::Canvas {
     UUID Scene::createSimEntity(const UUID &simEngineEntt, std::shared_ptr<const SimEngine::ComponentDefinition> comp, const glm::vec2 &pos,
                                 UUID uuid, const std::vector<UUID> &inputSlotIds, const std::vector<UUID> &outputSlotIds) {
         auto entity = m_registry.create();
+        const auto &catalog = SimEngine::ComponentCatalog::instance();
+
         const auto &idComp = m_registry.emplace<Components::IdComponent>(entity, uuid);
         auto &transformComp = m_registry.emplace<Components::TransformComponent>(entity);
         auto &sprite = m_registry.emplace<Components::SpriteComponent>(entity);
         auto &tag = m_registry.emplace<Components::TagComponent>(entity);
         auto &simComp = m_registry.emplace<Components::SimulationComponent>(entity);
 
-        // if (comp->type == SimEngine::ComponentType::INPUT) {
-        //     m_registry.emplace<Components::SimulationInputComponent>(entity);
-        // } else if (comp->type == SimEngine::ComponentType::OUTPUT) {
-        //     m_registry.emplace<Components::SimulationOutputComponent>(entity);
-        // } else if (comp->type == SimEngine::ComponentType::STATE_MONITOR) {
-        //     m_registry.emplace<Components::SimulationStateMonitor>(entity);
-        // }
+        bool isInput = catalog.isSpecialCompDef(comp->getHash(), SimEngine::ComponentCatalog::SpecialType::input);
+        bool isOutput = catalog.isSpecialCompDef(comp->getHash(), SimEngine::ComponentCatalog::SpecialType::output);
+
+        if (isInput) {
+            m_registry.emplace<Components::SimulationInputComponent>(entity);
+        } else if (isOutput) {
+            m_registry.emplace<Components::SimulationOutputComponent>(entity);
+        } else if (catalog.isSpecialCompDef(comp->getHash(), SimEngine::ComponentCatalog::SpecialType::stateMonitor)) {
+            m_registry.emplace<Components::SimulationStateMonitor>(entity);
+        }
 
         tag.name = comp->name;
         tag.type.simCompHash = comp->getHash();
@@ -362,15 +367,15 @@ namespace Bess::Canvas {
 
         transformComp.position = glm::vec3(getSnappedPos(pos), getNextZCoord());
 
-        // if (comp->type == SimEngine::ComponentType::INPUT || comp->type == SimEngine::ComponentType::OUTPUT) {
-        //     const glm::vec4 ioCompColor = glm::vec4(0.2f, 0.2f, 0.4f, 0.6f);
-        //     sprite.color = ioCompColor;
-        //     sprite.borderRadius = glm::vec4(8.f);
-        // } else {
-        sprite.color = ViewportTheme::colors.componentBG;
-        sprite.borderRadius = glm::vec4(8.f);
-        sprite.headerColor = ViewportTheme::getCompHeaderColor(comp->category);
-        // }
+        if (isInput || isOutput) {
+            const glm::vec4 ioCompColor = glm::vec4(0.2f, 0.2f, 0.4f, 0.6f);
+            sprite.color = ioCompColor;
+            sprite.borderRadius = glm::vec4(8.f);
+        } else {
+            sprite.color = ViewportTheme::colors.componentBG;
+            sprite.borderRadius = glm::vec4(6.f);
+            sprite.headerColor = ViewportTheme::getCompHeaderColor(comp->category);
+        }
 
         sprite.borderSize = glm::vec4(1.f);
         sprite.borderColor = ViewportTheme::colors.componentBorder;
@@ -902,9 +907,11 @@ namespace Bess::Canvas {
             const auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
             if (m_registry.all_of<Components::SimulationInputComponent>(hoveredEntity)) {
                 const auto &simComp = m_registry.get<Components::SimulationComponent>(hoveredEntity);
-                const bool currentState = SimEngine::SimulationEngine::instance().getDigitalPinState(simComp.simEngineEntity, SimEngine::PinType::output, 0);
+                const auto currentState = SimEngine::SimulationEngine::instance().getDigitalPinState(simComp.simEngineEntity, SimEngine::PinType::output, 0);
 
-                auto _ = m_cmdManager.execute<Commands::SetInputCommand, std::string>(m_hoveredEntity, !currentState);
+                const auto newState = currentState.state == SimEngine::LogicState::high ? SimEngine::LogicState::low : SimEngine::LogicState::high;
+
+                auto _ = m_cmdManager.execute<Commands::SetInputCommand, std::string>(m_hoveredEntity, newState);
             }
         }
     }

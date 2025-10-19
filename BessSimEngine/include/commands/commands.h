@@ -91,14 +91,14 @@ namespace Bess::SimEngine::Commands {
 
     class BESS_API SetInputCommand : public Command {
       public:
-        SetInputCommand(const UUID &compId, bool state);
+        SetInputCommand(const UUID &compId, LogicState state);
         bool execute() override;
         std::any undo() override;
         COMMAND_RESULT_OVERRIDE;
 
       private:
         UUID m_compId;
-        bool m_newState;
-        bool m_oldState;
+        LogicState m_newState;
+        LogicState m_oldState;
     };
 } // namespace Bess::SimEngine::Commands

@@ -4,9 +4,10 @@
 #include "scene/components/components.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
+#include "types.h"
 
 namespace Bess::Canvas::Commands {
-    SetInputCommand::SetInputCommand(const UUID &compId, bool state)
+    SetInputCommand::SetInputCommand(const UUID &compId, SimEngine::LogicState state)
         : m_compId(compId), m_state(state) {}
 
     bool SetInputCommand::execute() {
@@ -18,7 +19,6 @@ namespace Bess::Canvas::Commands {
         bool status = true;
         if (!m_redo) {
             const auto res = simCmdManager.execute<SimEngine::Commands::SetInputCommand, bool>(simComp.simEngineEntity, m_state);
-
             status = res.has_value();
         } else {
             simCmdManager.redo();

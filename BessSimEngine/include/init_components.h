@@ -23,11 +23,12 @@ namespace Bess::SimEngine {
         auto simFunc = [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
             ComponentState newState = prevState;
             newState.inputStates = inputs;
-            const auto &clrPinState = inputs.back();
-            auto flipFlopData = std::any_cast<FlipFlopAuxData>(prevState.auxData);
+            const auto flipFlopData = std::any_cast<FlipFlopAuxData>(prevState.auxData);
 
-            int clockPinIdx = flipFlopData->clockPinIdx;
-            int clearPinIdx = flipFlopData->clearPinIdx;
+            const int clockPinIdx = flipFlopData->clockPinIdx;
+            const int clearPinIdx = flipFlopData->clearPinIdx;
+
+            const auto &clrPinState = inputs[clearPinIdx];
 
             auto prevClockState = prevState.inputStates[clockPinIdx].state;
             if (clrPinState.state == LogicState::high) {
@@ -39,7 +40,7 @@ namespace Bess::SimEngine {
             }
 
             const auto &clockPinState = inputs[flipFlopData->clockPinIdx];
-            bool isRisingEdge = (clockPinState.state == LogicState::high &&
+            const bool isRisingEdge = (clockPinState.state == LogicState::high &&
                                  prevState.inputStates[clockPinIdx].state == LogicState::low);
 
             if (!isRisingEdge) {
@@ -142,19 +143,25 @@ namespace Bess::SimEngine {
     }
 
     inline void initIO() {
-        auto inpDef = ComponentDefinition("Input", "IO", 0, 1, [](auto &, auto, auto &) -> ComponentState { return {}; }, SimDelayNanoSeconds(0));
+        auto inpDef = ComponentDefinition("Input", "IO", 0, 1,
+            [](auto &, auto ts, const auto &oldState) -> ComponentState {
+                auto newState = oldState;
+                newState.isChanged = true;
+                newState.outputStates[0].lastChangeTime = ts;
+                return newState;
+        }, SimDelayNanoSeconds(0));
         inpDef.outputPinDetails = {{PinType::output, ""}};
-        ComponentCatalog::instance().registerComponent(inpDef);
+        ComponentCatalog::instance().registerComponent(inpDef, ComponentCatalog::SpecialType::input);
 
         ComponentDefinition outDef = {"Output", "IO", 1, 0,
                                       [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
                                           auto newState = prevState;
                                           newState.inputStates = inputs;
                                           return newState;
-                                      },
-                                      SimDelayNanoSeconds(0)};
+        },
+        SimDelayNanoSeconds(0)};
         outDef.inputPinDetails = {{PinType::input, ""}};
-        ComponentCatalog::instance().registerComponent(outDef);
+        ComponentCatalog::instance().registerComponent(outDef, ComponentCatalog::SpecialType::output);
 
         ComponentDefinition stateMonDef = {"State Monitor", "IO", 1, 0,
                                            [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
@@ -168,10 +175,10 @@ namespace Bess::SimEngine {
                                                // auto &digiComp = registry.get<DigitalComponent>(e);
                                                newState.inputStates = inputs;
                                                return newState;
-                                           },
-                                           SimDelayNanoSeconds(0)};
+        },
+        SimDelayNanoSeconds(0)};
         outDef.inputPinDetails = {{PinType::input, ""}};
-        ComponentCatalog::instance().registerComponent(stateMonDef);
+        ComponentCatalog::instance().registerComponent(stateMonDef, ComponentCatalog::SpecialType::stateMonitor);
 
         ComponentCatalog::instance().registerComponent({"7-Seg Display Driver", "IO", 4, 7,
                                                         [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {

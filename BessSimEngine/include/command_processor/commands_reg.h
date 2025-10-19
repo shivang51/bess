@@ -44,7 +44,8 @@ namespace Bess::SimEngine::Commands {
             try {
                 UUID id(std::stoull(args[0]));
                 bool state = std::stoi(args[1]);
-                return std::make_unique<SetInputCommand>(id, state);
+                auto logicState = state ? LogicState::high : LogicState::low;
+                return std::make_unique<SetInputCommand>(id, logicState);
             } catch (const std::exception &) {
                 return nullptr;
             }

@@ -8,14 +8,20 @@ namespace Bess::SimEngine {
         return instance;
     }
 
-    void ComponentCatalog::registerComponent(ComponentDefinition def) {
-        auto it = std::ranges::find_if(m_components,
-                                       [&def](const std::shared_ptr<const ComponentDefinition> &existing) {
-                                           return existing->getHash() == def.getHash();
-                                       });
-        if (it == m_components.end()) {
-            m_components.emplace_back(std::make_shared<const ComponentDefinition>(def));
+    void ComponentCatalog::registerComponent(ComponentDefinition def, const SpecialType specialType) {
+        if (m_componentHashMap.contains(def.getHash())) {
+            return;
         }
+
+        auto compPtr = std::make_shared<const ComponentDefinition>(std::move(def));
+        m_components.emplace_back(compPtr);
+        m_componentHashMap[compPtr->getHash()] = compPtr;
+
+        if (specialType != SpecialType::none) {
+            m_specialTypeMap[specialType] = compPtr->getHash();
+        }
+
+        m_componentTree = nullptr;
     }
 
     const std::vector<std::shared_ptr<const ComponentDefinition>> &ComponentCatalog::getComponents() const {
@@ -35,12 +41,29 @@ namespace Bess::SimEngine {
     }
 
     std::shared_ptr<const ComponentDefinition> ComponentCatalog::getComponentDefinition(uint64_t hash) const {
-        auto it = std::ranges::find_if(m_components,
-                                       [&hash](const std::shared_ptr<const ComponentDefinition> &existing) {
-                                           return existing->getHash() == hash;
-                                       });
-        assert(it != m_components.end());
-        return *it;
+        if (m_componentHashMap.contains(hash)) {
+            return m_componentHashMap.at(hash);
+        }
+
+        return nullptr;
     }
 
+    std::shared_ptr<const ComponentDefinition> ComponentCatalog::getSpecialCompDef(SpecialType specialType) const {
+        if (m_specialTypeMap.contains(specialType)) {
+            uint64_t hash = m_specialTypeMap.at(specialType);
+            return getComponentDefinition(hash);
+        }
+        return nullptr;
+    }
+
+    bool ComponentCatalog::isSpecialCompDef(uint64_t hash, SpecialType type) const {
+        if (!m_specialTypeMap.contains(type))
+            return false;
+
+        return m_specialTypeMap.at(type) == hash;
+    }
+
+    bool ComponentCatalog::isRegistered(uint64_t hash) const {
+        return m_componentHashMap.contains(hash);
+    }
 } // namespace Bess::SimEngine

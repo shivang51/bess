@@ -2,6 +2,7 @@
 #include "bess_uuid.h"
 #include "simulation_engine.h"
 #include "simulation_engine_serializer.h"
+#include "types.h"
 #include "json/value.h"
 
 namespace Bess::SimEngine::Commands {
@@ -167,28 +168,31 @@ namespace Bess::SimEngine::Commands {
     }
 
     // --- SetInputCommand ---
-    SetInputCommand::SetInputCommand(const UUID &compId, bool state)
-        : m_compId(compId), m_newState(state), m_oldState(false) {}
+    SetInputCommand::SetInputCommand(const UUID &compId, LogicState state)
+        : m_compId(compId), m_newState(state) {
+    }
 
     bool SetInputCommand::execute() {
         auto &engine = SimulationEngine::instance();
-        m_oldState = engine.getDigitalPinState(m_compId, PinType::output, 0);
+        m_oldState = engine.getDigitalPinState(m_compId, PinType::output, 0).state;
 
         if (m_oldState == m_newState) {
             return false;
         }
 
-        engine.setDigitalInput(m_compId, m_newState);
+        engine.setOutputPinState(m_compId, 0,
+                                 m_newState == LogicState::low ? LogicState::low : LogicState::high);
         return true;
     }
 
     std::any SetInputCommand::undo() {
-        SimulationEngine::instance().setDigitalInput(m_compId, m_oldState);
+        SimulationEngine::instance().setOutputPinState(m_compId, 0,
+        m_oldState == LogicState::low ? LogicState::low : LogicState::high);
 
         return {};
     }
 
     std::any SetInputCommand::getResult() {
-        return m_newState;
+        return m_newState == LogicState::high;
     }
 } // namespace Bess::SimEngine::Commands
