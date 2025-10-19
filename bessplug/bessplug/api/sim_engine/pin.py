@@ -79,6 +79,10 @@ class PinState:
         """Debug representation."""
         return f"<PinState state={self.state.name}, t_ns={self.last_change_time_ns}>"
 
+    def copy(self) -> "PinState":
+        """Return a new PinState wrapper copying the native state."""
+        return PinState(_n.PinState(self._native))
+
 
 __all__ = [
     "PinDetails",

@@ -92,6 +92,7 @@ void bind_sim_engine_types(py::module_ &m) {
 
     py::class_<ComponentState>(m, "ComponentState")
         .def(py::init<>())
+        .def(py::init<const ComponentState &>())
         .def_property(
             "input_states",
             [](ComponentState &self) -> std::vector<PinState> & { return self.inputStates; },
@@ -113,6 +114,10 @@ void bind_sim_engine_types(py::module_ &m) {
                 self.outputStates[idx] = value;
             }, py::arg("idx"), py::arg("value"))
         .def_readwrite("is_changed", &ComponentState::isChanged)
+        .def("copy", [](const ComponentState &self) {
+                ComponentState cpy = self;
+                return cpy;
+            })
         .def_property(
             "input_connected",
             [](const ComponentState &self) { return self.inputConnected; },

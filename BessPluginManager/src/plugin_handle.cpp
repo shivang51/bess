@@ -73,20 +73,38 @@ namespace Bess::Plugins {
                 }
 
                 std::shared_ptr<py::object> callablePtr;
+                std::shared_ptr<py::object> initialAuxPtr;
                 if (py::hasattr(pyComp, "simulation_function")) {
                     callablePtr = makeGilSafe(pyComp.attr("simulation_function"));
                 } else if (py::hasattr(pyComp, "simulate")) {
                     callablePtr = makeGilSafe(pyComp.attr("simulate"));
                 }
 
+                if (py::hasattr(pyComp, "state_aux")) {
+                    py::object auxObj = pyComp.attr("state_aux");
+                    if (!auxObj.is_none()) initialAuxPtr = makeGilSafe(auxObj);
+                } else if (py::hasattr(pyComp, "aux")) {
+                    py::object auxObj = pyComp.attr("aux");
+                    if (!auxObj.is_none()) initialAuxPtr = makeGilSafe(auxObj);
+                }
+
                 SimEngine::SimulationFunction simFn;
                 if (callablePtr) {
-                    simFn = [callablePtr, convertResultToComponentState](const std::vector<SimEngine::PinState> &inputs, SimEngine::SimTime t, const SimEngine::ComponentState &prev) -> SimEngine::ComponentState {
+                    simFn = [callablePtr, initialAuxPtr, convertResultToComponentState](const std::vector<SimEngine::PinState> &inputs, SimEngine::SimTime t, const SimEngine::ComponentState &prev) -> SimEngine::ComponentState {
                         py::gil_scoped_acquire gilInner;
+                        py::module_ sim_api = py::module_::import("bessplug.api.sim_engine");
+                        py::object PyPinState = sim_api.attr("PinState");
+                        py::object PyComponentState = sim_api.attr("ComponentState");
+
                         py::list py_inputs;
-                        for (const auto &p : inputs)
-                            py_inputs.append(py::cast(p));
-                        py::object py_prev = py::cast(prev);
+                        for (const auto &p : inputs) {
+                            py_inputs.append(PyPinState(py::cast(p)));
+                        }
+                        py::object py_prev = PyComponentState(py::cast(prev));
+                        if (initialAuxPtr && py_prev.attr("aux").is_none()) {
+                            // Initialize aux on the engine's native state the first time
+                            py::setattr(py_prev, "aux", *initialAuxPtr);
+                        }
                         py::object result = (*callablePtr)(py_inputs, static_cast<long long>(t.count()), py_prev);
                         return convertResultToComponentState(result, prev);
                     };

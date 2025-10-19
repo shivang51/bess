@@ -135,6 +135,12 @@ class ComponentState:
         """Debug representation."""
         return f"<ComponentState changed={self.changed} inputs={self.input_states} outputs={self.output_states}>"
 
+    def copy(self) -> "ComponentState":
+        """Return a deep copy of this ComponentState."""
+        # Use native copy ctor and re-wrap
+        native_copy = _n.ComponentState(self._native)
+        return ComponentState(native_copy)
+
 
 __all__ = [
     "ComponentState",
