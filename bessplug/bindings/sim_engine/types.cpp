@@ -91,7 +91,15 @@ void bind_sim_engine_types(py::module_ &m) {
     py::class_<ComponentState>(m, "ComponentState")
         .def(py::init<>())
         .def_readwrite("input_states", &ComponentState::inputStates)
-        .def_readwrite("output_states", &ComponentState::outputStates)
+        .def_property(
+            "output_states",
+            [](ComponentState &self) -> std::vector<PinState> & {
+                return self.outputStates;
+            },
+            [](ComponentState &self, const std::vector<PinState> &v) {
+                self.outputStates = v;
+            },
+            py::return_value_policy::reference_internal)
         .def_readwrite("is_changed", &ComponentState::isChanged)
         .def_property(
             "input_connected",
@@ -101,9 +109,6 @@ void bind_sim_engine_types(py::module_ &m) {
             "output_connected",
             [](const ComponentState &self) { return self.outputConnected; },
             [](ComponentState &self, const std::vector<bool> &v) { self.outputConnected = v; })
-        .def("__repr__", [](const ComponentState &self) {
-            return std::string("<ComponentState is_changed=") + (self.isChanged ? "True" : "False") + ">";
-        })
         .def_property("aux_data_ptr", [](const ComponentState &self) { return static_cast<std::uintptr_t>(reinterpret_cast<std::uintptr_t>(self.auxData)); }, [](ComponentState &self, std::uintptr_t ptr_value) { self.auxData = reinterpret_cast<std::any *>(ptr_value); })
         .def("set_aux_pyobject", [](ComponentState &self, py::object obj) {
                 if (self.auxData && self.auxData->type() == typeid(OwnedPyObject)) {

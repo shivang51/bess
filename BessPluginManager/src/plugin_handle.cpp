@@ -82,14 +82,12 @@ namespace Bess::Plugins {
                 SimEngine::SimulationFunction simFn;
                 if (callablePtr) {
                     simFn = [callablePtr, convertResultToComponentState](const std::vector<SimEngine::PinState> &inputs, SimEngine::SimTime t, const SimEngine::ComponentState &prev) -> SimEngine::ComponentState {
-                        std::fprintf(stderr, "[Plugin][%p] simulate: entering\n", callablePtr.get());
                         py::gil_scoped_acquire gilInner;
                         py::list py_inputs;
                         for (const auto &p : inputs)
                             py_inputs.append(py::cast(p));
                         py::object py_prev = py::cast(prev);
                         py::object result = (*callablePtr)(py_inputs, static_cast<long long>(t.count()), py_prev);
-                        std::fprintf(stderr, "[Plugin][%p] simulate: python returned, converting\n", callablePtr.get());
                         return convertResultToComponentState(result, prev);
                     };
                 }

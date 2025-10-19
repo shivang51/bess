@@ -1,6 +1,6 @@
 from typing import override
 from bessplug import Plugin 
-from bessplug.api.sim_engine import ComponentDefinition, ComponentState, PinState
+from bessplug.api.sim_engine import ComponentDefinition, ComponentState, LogicState, PinState
 
 class TestComponent(ComponentDefinition):
     def __init__(self):
@@ -15,9 +15,25 @@ class TestComponent(ComponentDefinition):
 
     @staticmethod
     def simulate(inputs: list[PinState], simTime: float, oldState: ComponentState) -> ComponentState:
-        newState = oldState
-        print("Simulating TestComponent XYZOP")
-        return newState
+        oldState = ComponentState(oldState)
+        newState = ComponentState(oldState)
+        newState.input_states = inputs.copy() 
+        for idx, input in enumerate(inputs):
+            input = PinState(input);
+            newOutput = input
+            newOutput.invert()
+
+            if newOutput.state == oldState.output_states[idx].state:
+                continue
+
+            newOutput.last_change_time_ns = simTime
+            newState.output_states[idx] = newOutput
+            print(newState.output_states, newOutput)
+            newState.changed = True
+
+        print("New State", newState)
+            
+        return newState._native
 
 class BessPlugin(Plugin):
     def __init__(self):

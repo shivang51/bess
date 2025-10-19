@@ -13,7 +13,7 @@
 #include <condition_variable>
 #include <cstdint>
 
-#define BESS_SE_ENABLE_LOG_EVENTS
+// #define BESS_SE_ENABLE_LOG_EVENTS
 
 #ifdef BESS_SE_ENABLE_LOG_EVENTS
     #define BESS_SE_LOG_EVENT(...) BESS_SE_TRACE(__VA_ARGS__);
@@ -442,9 +442,7 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::run() {
-        BESS_SE_INFO("[SimulationEngine] Acquiring Python GIL for simulation thread");
         auto state = Plugins::createPyThreadState();
-        BESS_SE_INFO("[SimulationEngine] Python GIL acquired, starting simulation loop");
         Plugins::releasePyThreadState(state);
         BESS_SE_INFO("[SimulationEngine] Simulation loop started");
         m_currentSimTime = SimTime(0);

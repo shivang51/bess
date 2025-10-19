@@ -7,8 +7,8 @@
 from __future__ import annotations
 
 from bessplug.bindings import _bindings as _b
-from bessplug.bindings._bindings.sim_engine import PinDetails, PinState
-from .enums import LogicState, PinType, ExtendedPinType
+from bessplug.bindings._bindings.sim_engine import PinState as NativePinState, PinDetails
+from .enums import LogicState
 
 _n = _b.sim_engine
 
@@ -20,14 +20,35 @@ class PinState:
     - last_change_time_ns: int nanoseconds since last transition
     """
 
-    def __init__(self, state: LogicState = LogicState.LOW, last_change_time_ns: int = 0, native: PinDetails = None):
+    def __init__(self, 
+                 native: NativePinState = None):
         """Create a PinState.
 
         - state: Initial logic level
         - last_change_time_ns: Transition timestamp in nanoseconds
         - native: Optional native instance to wrap
         """
-        self._native: PinState = native or _n.PinState(state, int(last_change_time_ns))
+        self._native: NativePinState = native or _n.PinState()
+
+
+    def is_high(self) -> bool:
+        """Check if the pin state is HIGH."""
+        return self.state == LogicState.HIGH
+
+    def is_low(self) -> bool:
+        """Check if the pin state is LOW."""
+        return self.state == LogicState.LOW
+
+    def is_high_z(self) -> bool:
+        """Check if the pin state is HIGH_Z."""
+        return self.state == LogicState.HIGH_Z
+
+    def invert(self) -> None:
+        """Invert the pin state."""
+        if self.is_high():
+            self.state = LogicState.LOW
+        elif self.is_low():
+            self.state = LogicState.HIGH
 
     @property
     def state(self) -> LogicState:
@@ -45,7 +66,7 @@ class PinState:
         return self._native.last_change_time_ns
 
     @last_change_time_ns.setter
-    def last_change_time_ns(self, ns: int) -> None:
+    def last_change_time_ns(self, ns: float) -> None:
         """Set last-change timestamp in nanoseconds."""
         self._native.last_change_time_ns = int(ns)
 

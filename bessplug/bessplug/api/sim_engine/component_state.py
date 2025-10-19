@@ -30,16 +30,15 @@ class ComponentState:
         """List of output `PinState` (native objects)."""
         return self._native.output_states
 
-    # Convenience synonyms
-    @property
-    def inputs(self):
-        """Alias for `input_states`."""
-        return self._native.input_states
+    @input_states.setter
+    def input_states(self, v) -> None:
+        """Set input pin states."""
+        self._native.input_states = v
 
-    @property
-    def outputs(self):
-        """Alias for `output_states`."""
-        return self._native.output_states
+    @output_states.setter
+    def output_states(self, v) -> None:
+        """Set output pin states."""
+        self._native.output_states = v
 
     # Connectivity
     @property
@@ -67,6 +66,11 @@ class ComponentState:
     def changed(self) -> bool:
         """True if the component's state changed in the last step."""
         return self._native.is_changed
+
+    @changed.setter
+    def changed(self, value: bool) -> None:
+        """Set the changed flag."""
+        self._native.is_changed = bool(value)
 
     def mark_changed(self, value: bool = True) -> None:
         """Mark the state as changed (or not)."""
@@ -104,7 +108,7 @@ class ComponentState:
 
     def __repr__(self) -> str:
         """Debug representation."""
-        return f"<ComponentState changed={self.changed}>"
+        return f"<ComponentState changed={self.changed} inputs={self.input_states} outputs={self.output_states}>"
 
 
 __all__ = [
