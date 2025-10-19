@@ -17,7 +17,6 @@ class TestComponent(ComponentDefinition):
     def simulate(inputs: list[PinState], simTime: float, oldState: ComponentState) -> ComponentState:
         newState = oldState.copy()
         newState.input_states = inputs.copy() 
-        print(oldState.aux)
         for idx, input in enumerate(inputs):
             newOutput = input.copy()
             newOutput.invert()
@@ -45,5 +44,4 @@ class BessPlugin(Plugin):
 plugin_hwd = BessPlugin()
 
 if __name__ == "__main__":
-    print(TestComponent())
     print("This is a plugin module and cannot be run directly.")

@@ -175,6 +175,15 @@ namespace Bess::SimEngine {
 
         outPins[srcPin].emplace_back(dst, dstPin);
         inPins[dstPin].emplace_back(src, srcPin);
+
+        if (srcType == PinType::output) {
+            srcComp.state.outputConnected[srcPin] = true;
+            dstComp.state.inputConnected[dstPin] = true;
+        } else {
+            srcComp.state.inputConnected[dstPin] = true;
+            dstComp.state.outputConnected[srcPin] = true;
+        }
+
         scheduleEvent(dstEnt, srcEnt, m_currentSimTime + dstComp.definition.delay);
         m_connectionsCache.erase(dstEnt);
         m_connectionsCache.erase(srcEnt);
@@ -312,6 +321,22 @@ namespace Bess::SimEngine {
                            [&](auto &c) { return c.first == compA && c.second == idxA; }),
             pinsB[idxB].end());
 
+        if (pinsA[idxA].empty()) {
+            if (pinAType == PinType::output) {
+                compARef.state.outputConnected[idxA] = false;
+            } else {
+                compARef.state.inputConnected[idxA] = false;
+            }
+        }
+
+        if (pinsB[idxB].empty()) {
+            if (pinBType == PinType::output) {
+                compBRef.state.outputConnected[idxB] = false;
+            } else {
+                compBRef.state.inputConnected[idxB] = false;
+            }
+        }
+
         // Schedule next simulation on the appropriate side
         entt::entity toSchedule = (pinAType == PinType::output ? entB : entA);
         auto &dc = m_registry.get<DigitalComponent>(toSchedule);
@@ -391,7 +416,6 @@ namespace Bess::SimEngine {
             BESS_SE_LOG_EVENT("\t\t{}", (int)inp.state);
         }
         BESS_SE_LOG_EVENT("");
-        assert(def.simulationFunction);
         if (def.simulationFunction) {
             const auto newState = def.simulationFunction(inputs, m_currentSimTime, comp.state);
 

@@ -163,11 +163,11 @@ class ComponentDefinition:
         return int(self._native.get_hash())
 
     @property
-    def aux(self):
+    def aux_data(self):
         return self._native.aux_data
 
-    @aux.setter
-    def aux(self, obj) -> None:
+    @aux_data.setter
+    def aux_data(self, obj) -> None:
         self._native.aux_data = obj
 
     def __str__(self) -> str:
@@ -184,6 +184,7 @@ class ComponentDefinition:
             "output_count": self.output_count,
             "op": self.op,
             "negate": self.negate,
+            "aux_data": self.aux_data,
         }
         return json.dumps(data)
 
