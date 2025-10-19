@@ -16,9 +16,14 @@ class ComponentState:
     and helpers to attach/retrieve arbitrary Python aux data.
     """
 
-    def __init__(self, native: NativeComponentState = None):
-        """Create a ComponentState, optionally wrapping a native instance."""
-        self._native: NativeComponentState = native or _n.ComponentState()
+    def __init__(self, native: NativeComponentState | "ComponentState" | None = None):
+        """Create a ComponentState, optionally wrapping a native instance or another wrapper."""
+        if native is None:
+            self._native: NativeComponentState = _n.ComponentState()
+        elif isinstance(native, ComponentState):
+            self._native = native._native
+        else:
+            self._native = native
 
     # IO state lists (native objects)
     @property

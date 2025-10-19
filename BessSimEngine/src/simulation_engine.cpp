@@ -396,10 +396,17 @@ namespace Bess::SimEngine {
             const auto newState = def.simulationFunction(inputs, m_currentSimTime, comp.state);
 
             BESS_SE_LOG_EVENT("Called simulation function");
+            BESS_SE_LOG_EVENT("\tState changed: {}", newState.isChanged ? "YES" : "NO");
             if (newState.isChanged) {
                 comp.state = newState;
             }
+            // print outputs of the new state
+            BESS_SE_LOG_EVENT("\tOutputs changed to:");
+            for (auto &outp : newState.outputStates) {
+                BESS_SE_LOG_EVENT("\t\t{}", (bool)outp.state);
+            }
             comp.state.inputStates = inputs;
+
             return newState.isChanged;
         }
         return false;
