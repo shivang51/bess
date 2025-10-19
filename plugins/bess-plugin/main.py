@@ -27,7 +27,8 @@ class TestComponent(ComponentDefinition):
                 continue
 
             newOutput.last_change_time_ns = simTime
-            newState.output_states[idx] = newOutput
+
+            newState.set_output_state(idx, newOutput)
             print(newState.output_states, newOutput)
             newState.changed = True
 

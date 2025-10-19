@@ -56,6 +56,7 @@ void bind_sim_engine_types(py::module_ &m) {
 
     py::class_<PinState>(m, "PinState")
         .def(py::init<>())
+        .def(py::init<const PinState &>())
         .def(py::init<bool>(), py::arg("value"))
         .def(py::init([](LogicState state, long long last_change_time_ns) {
                  PinState p;
@@ -69,6 +70,7 @@ void bind_sim_engine_types(py::module_ &m) {
             "last_change_time_ns",
             [](const PinState &self) { return static_cast<long long>(self.lastChangeTime.count()); },
             [](PinState &self, long long ns) { self.lastChangeTime = SimTime(ns); })
+        .def("copy", [](const PinState &self) { return PinState(self); })
         .def("__repr__", [](const PinState &self) {
             const char *s = "UNKNOWN";
             switch (self.state) {
@@ -90,7 +92,11 @@ void bind_sim_engine_types(py::module_ &m) {
 
     py::class_<ComponentState>(m, "ComponentState")
         .def(py::init<>())
-        .def_readwrite("input_states", &ComponentState::inputStates)
+        .def_property(
+            "input_states",
+            [](ComponentState &self) -> std::vector<PinState> & { return self.inputStates; },
+            [](ComponentState &self, const std::vector<PinState> &v) { self.inputStates = v; },
+            py::return_value_policy::reference_internal)
         .def_property(
             "output_states",
             [](ComponentState &self) -> std::vector<PinState> & {
@@ -100,6 +106,12 @@ void bind_sim_engine_types(py::module_ &m) {
                 self.outputStates = v;
             },
             py::return_value_policy::reference_internal)
+        .def("set_output_state", [](ComponentState &self, std::size_t idx, const PinState &value) {
+                if (idx >= self.outputStates.size()) {
+                    throw py::index_error("output index out of range");
+                }
+                self.outputStates[idx] = value;
+            }, py::arg("idx"), py::arg("value"))
         .def_readwrite("is_changed", &ComponentState::isChanged)
         .def_property(
             "input_connected",

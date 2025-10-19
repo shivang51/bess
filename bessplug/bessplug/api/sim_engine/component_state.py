@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from bessplug.bindings import _bindings as _b
 from bessplug.bindings._bindings.sim_engine import ComponentState as NativeComponentState
+from bessplug.bindings._bindings.sim_engine import PinState
 
 _n = _b.sim_engine
 
@@ -33,12 +34,31 @@ class ComponentState:
     @input_states.setter
     def input_states(self, v) -> None:
         """Set input pin states."""
-        self._native.input_states = v
+        # Normalize to native list to avoid wrapper copies
+        if isinstance(v, list):
+            nv = [ps._native if hasattr(ps, "_native") else ps for ps in v]
+            self._native.input_states = nv
+        else:
+            self._native.input_states = v
 
     @output_states.setter
     def output_states(self, v) -> None:
         """Set output pin states."""
-        self._native.output_states = v
+        # Normalize to native list to avoid wrapper copies
+        if isinstance(v, list):
+            nv = [ps._native if hasattr(ps, "_native") else ps for ps in v]
+            self._native.output_states = nv
+        else:
+            self._native.output_states = v
+
+    def set_output_state(self, idx: int, pin_state: PinState) -> None:
+        """Set a specific output pin state by index."""
+        ps = pin_state._native if hasattr(pin_state, '_native') else pin_state
+        # Prefer native method if present (ensures reference semantics)
+        try:
+            self._native.set_output_state(idx, ps)
+        except Exception:
+            self._native.output_states[idx] = ps
 
     # Connectivity
     @property

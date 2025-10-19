@@ -20,15 +20,20 @@ class PinState:
     - last_change_time_ns: int nanoseconds since last transition
     """
 
-    def __init__(self, 
-                 native: NativePinState = None):
+    def __init__(self,
+                 native: NativePinState | "PinState" | None = None):
         """Create a PinState.
 
         - state: Initial logic level
         - last_change_time_ns: Transition timestamp in nanoseconds
         - native: Optional native instance to wrap
         """
-        self._native: NativePinState = native or _n.PinState()
+        if native is None:
+            self._native: NativePinState = _n.PinState()
+        elif isinstance(native, PinState):
+            self._native = native._native
+        else:
+            self._native = native
 
 
     def is_high(self) -> bool:
