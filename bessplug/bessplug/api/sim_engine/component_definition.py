@@ -19,6 +19,38 @@ class ComponentDefinition:
     def __init__(self, native: NativeComponentDefinition = None):
         """Wrap an existing native ComponentDefinition."""
         self._native: NativeComponentDefinition = native or NativeComponentDefinition()
+        self._simulate_py: Optional[Callable] = None
+
+    def init(self):
+        sim_callable = self._simulate_py or self._native.simulation_function
+        if self.op != "0":
+            self._native = NativeComponentDefinition(
+                self.name,
+                self.category,
+                int(self.input_count),
+                int(self.output_count),
+                sim_callable,
+                int(self.delay_ns),
+                self.op,
+            )
+        else:
+            self._native = NativeComponentDefinition(
+                self.name,
+                self.category,
+                int(self.input_count),
+                int(self.output_count),
+                sim_callable,
+                int(self.delay_ns),
+                self.expressions,
+            )
+
+    @property
+    def simulation_function(self):
+        return self._simulate_py or self._native.simulation_function
+
+    @simulation_function.setter
+    def simulation_function(self, simulate: Union[NativeSimulationFunction, Callable]) -> None:
+        self.set_simulation_function(simulate)
 
     @property
     def name(self) -> str:
@@ -116,6 +148,11 @@ class ComponentDefinition:
     def negate(self, v: bool) -> None:
         self._native.negate = bool(v)
 
+    def set_simulation_function(self, simulate: Union[NativeSimulationFunction, Callable]) -> None:
+        self._simulate_py = simulate if callable(simulate) and not isinstance(simulate, NativeSimulationFunction) else None
+        sim = simulate if isinstance(simulate, NativeSimulationFunction) else NativeSimulationFunction(simulate)
+        self._native.set_simulation_function(sim)
+
     def get_expressions(self, input_count: int = -1) -> list[str]:
         return list(self._native.get_expressions(input_count))
 
@@ -150,9 +187,8 @@ class ComponentDefinition:
         }
         return json.dumps(data)
 
-    @classmethod
+    @staticmethod
     def from_operator(
-        cls,
         name: str,
         category: str,
         input_count: int,
@@ -163,11 +199,10 @@ class ComponentDefinition:
     ) -> "ComponentDefinition":
         sim = simFn if isinstance(simFn, NativeSimulationFunction) else NativeSimulationFunction(simFn)
         native = NativeComponentDefinition(name, category, input_count, output_count, sim, int(delay_ns), op)
-        return cls(native)
+        return ComponentDefinition(native)
 
-    @classmethod
+    @staticmethod
     def from_expressions(
-        cls,
         name: str,
         category: str,
         input_count: int,
@@ -178,7 +213,7 @@ class ComponentDefinition:
     ) -> "ComponentDefinition":
         sim = simFn if isinstance(simFn, NativeSimulationFunction) else NativeSimulationFunction(simFn)
         native = NativeComponentDefinition(name, category, input_count, output_count, sim, int(delay_ns), expressions or [])
-        return cls(native)
+        return ComponentDefinition(native)
 
 
 __all__ = [

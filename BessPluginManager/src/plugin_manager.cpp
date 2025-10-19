@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
+#include <pystate.h>
 #include <spdlog/spdlog.h>
 
 namespace Bess::Plugins {
@@ -19,6 +20,7 @@ namespace Bess::Plugins {
         if (isIntialized)
             return;
         pybind11::initialize_interpreter();
+        pybind11::gil_scoped_release gil;
         spdlog::info("PluginManager initialized with Python interpreter");
         isIntialized = true;
     }
@@ -26,7 +28,9 @@ namespace Bess::Plugins {
     void PluginManager::destroy() {
         if (!isIntialized)
             return;
-        unloadAllPlugins();
+        {
+            unloadAllPlugins();
+        }
         pybind11::finalize_interpreter();
         spdlog::info("PluginManager destroyed");
 
@@ -38,6 +42,7 @@ namespace Bess::Plugins {
     }
 
     bool PluginManager::loadPlugin(const std::string &pluginPath) {
+        pybind11::gil_scoped_acquire gil;
         try {
             namespace py = pybind11;
 
@@ -54,7 +59,6 @@ namespace Bess::Plugins {
                 return true;
             }
 
-            py::gil_scoped_acquire gil;
             py::module_ sys = py::module_::import("sys");
 
             py::list path_list = sys.attr("path");
@@ -70,6 +74,7 @@ namespace Bess::Plugins {
                 m_plugins[name] = std::make_shared<PluginHandle>(pluginHwd);
 
                 spdlog::info("Successfully loaded plugin: {} from {}", name, path.parent_path().string());
+
                 return true;
             } else {
                 spdlog::error("Plugin {} does not have required 'plug_hwd' variable", pluginName);
@@ -119,16 +124,21 @@ namespace Bess::Plugins {
     }
 
     void PluginManager::unloadAllPlugins() {
+        pybind11::gil_scoped_acquire gil;
         m_plugins.clear();
     }
 
-    std::vector<std::string> PluginManager::getLoadedPlugins() const {
+    std::vector<std::string> PluginManager::getLoadedPluginsNames() const {
         std::vector<std::string> pluginNames;
         pluginNames.reserve(m_plugins.size());
         for (const auto &[name, plugin] : m_plugins) {
             pluginNames.push_back(name);
         }
         return pluginNames;
+    }
+
+    const std::unordered_map<std::string, std::shared_ptr<PluginHandle>> &PluginManager::getLoadedPlugins() const {
+        return m_plugins;
     }
 
     bool PluginManager::isPluginLoaded(const std::string &pluginName) const {
@@ -141,5 +151,17 @@ namespace Bess::Plugins {
             return it->second;
         }
         return nullptr;
+    }
+
+    PyGILState_STATE createPyThreadState() {
+        return PyGILState_Ensure();
+    }
+
+    void releasePyThreadState(PyGILState_STATE state) {
+        PyGILState_Release(state);
+    }
+
+    PyThreadState *savePyThreadState() {
+        return PyEval_SaveThread();
     }
 } // namespace Bess::Plugins

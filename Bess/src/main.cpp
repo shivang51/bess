@@ -45,26 +45,6 @@ int main(int argc, char **argv) {
     #endif
 #endif // _LINUX
 
-    {
-        auto &pluginMangaer = Bess::Plugins::PluginManager::getInstance();
-        pluginMangaer.loadPluginsFromDirectory("plugins");
-
-        std::cout << pluginMangaer.getLoadedPlugins().size() << " plugins loaded." << std::endl;
-
-        if (pluginMangaer.isPluginLoaded("BessPlugin")) {
-            const auto plugin = pluginMangaer.getPlugin("BessPlugin");
-            auto comps = plugin->onComponentsRegLoad();
-
-            std::cout << plugin->onComponentsRegLoad().size() << " components loaded from plugin." << std::endl;
-
-            std::cout << comps[0].name << std::endl;
-        }
-
-        pluginMangaer.destroy();
-    }
-
-    return 0;
-
     Bess::Application app;
     try {
         const char *projectFile = (argc == 2) ? argv[1] : "";

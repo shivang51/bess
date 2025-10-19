@@ -1,23 +1,132 @@
 #include "plugin_handle.h"
 
 #include "component_definition.h"
+#include "spdlog/spdlog.h"
 #include "types.h"
+#include <exception>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+
+namespace py = pybind11;
 
 namespace Bess::Plugins {
+    namespace {
+        inline std::shared_ptr<py::object> makeGilSafe(py::object obj) {
+            return std::shared_ptr<py::object>(new py::object(std::move(obj)), [](py::object *p) {
+                py::gil_scoped_acquire gil;
+                delete p;
+            });
+        }
+    } // namespace
+
     PluginHandle::PluginHandle(const pybind11::object &pluginObj)
         : m_pluginObj(pluginObj) {}
 
     std::vector<SimEngine::ComponentDefinition> PluginHandle::onComponentsRegLoad() const {
         std::vector<SimEngine::ComponentDefinition> components;
 
-        if (pybind11::hasattr(m_pluginObj, "on_components_reg_load")) {
-            pybind11::object compList = m_pluginObj.attr("on_components_reg_load")();
-            for (auto item : compList) {
-                auto comp = item.attr("_native").cast<SimEngine::ComponentDefinition>();
-                components.push_back(comp);
+        py::gil_scoped_acquire gil;
+        if (py::hasattr(m_pluginObj, "on_components_reg_load")) {
+            py::object compList = m_pluginObj.attr("on_components_reg_load")();
+
+            auto convertResultToComponentState = [](const py::object &result, const SimEngine::ComponentState &prev) -> SimEngine::ComponentState {
+                if (result.is_none()) {
+                    return prev;
+                }
+                if (py::isinstance<SimEngine::ComponentState>(result)) {
+                    return result.cast<SimEngine::ComponentState>();
+                }
+                if (py::hasattr(result, "_native")) {
+                    py::object n = result.attr("_native");
+                    if (py::isinstance<SimEngine::ComponentState>(n)) {
+                        return n.cast<SimEngine::ComponentState>();
+                    }
+                }
+                throw py::type_error("Simulation function must return ComponentState (native), a wrapper with _native, or None");
+            };
+
+            for (py::handle item : compList) {
+                py::object pyComp = py::reinterpret_borrow<py::object>(item);
+                std::string name = pyComp.attr("name").cast<std::string>();
+                std::string category = pyComp.attr("category").cast<std::string>();
+                int inputCount = pyComp.attr("input_count").cast<int>();
+                int outputCount = pyComp.attr("output_count").cast<int>();
+                long long delayNs = pyComp.attr("delay_ns").cast<long long>();
+
+                std::vector<std::string> expressions;
+                if (py::hasattr(pyComp, "expressions")) {
+                    try {
+                        expressions = pyComp.attr("expressions").cast<std::vector<std::string>>();
+                    } catch (std::exception &e) {
+                        spdlog::error("Plugin [{}] component [{}]: failed to cast expressions\n{}", name, category, e.what());
+                    }
+                }
+
+                std::string opStr;
+                if (py::hasattr(pyComp, "op")) {
+                    opStr = pyComp.attr("op").cast<std::string>();
+                }
+
+                bool negate = false;
+                if (py::hasattr(pyComp, "negate")) {
+                    negate = pyComp.attr("negate").cast<bool>();
+                }
+
+                std::shared_ptr<py::object> callablePtr;
+                if (py::hasattr(pyComp, "simulation_function")) {
+                    callablePtr = makeGilSafe(pyComp.attr("simulation_function"));
+                } else if (py::hasattr(pyComp, "simulate")) {
+                    callablePtr = makeGilSafe(pyComp.attr("simulate"));
+                }
+
+                SimEngine::SimulationFunction simFn;
+                if (callablePtr) {
+                    simFn = [callablePtr, convertResultToComponentState](const std::vector<SimEngine::PinState> &inputs, SimEngine::SimTime t, const SimEngine::ComponentState &prev) -> SimEngine::ComponentState {
+                        std::fprintf(stderr, "[Plugin][%p] simulate: entering\n", callablePtr.get());
+                        py::gil_scoped_acquire gilInner;
+                        py::list py_inputs;
+                        for (const auto &p : inputs)
+                            py_inputs.append(py::cast(p));
+                        py::object py_prev = py::cast(prev);
+                        py::object result = (*callablePtr)(py_inputs, static_cast<long long>(t.count()), py_prev);
+                        std::fprintf(stderr, "[Plugin][%p] simulate: python returned, converting\n", callablePtr.get());
+                        return convertResultToComponentState(result, prev);
+                    };
+                }
+
+                SimEngine::ComponentDefinition def = [&]() {
+                    if (!expressions.empty()) {
+                        return SimEngine::ComponentDefinition(name, category, inputCount, outputCount, simFn, SimEngine::SimDelayNanoSeconds(delayNs), expressions);
+                    } else {
+                        char op = opStr.empty() ? '0' : opStr[0];
+                        SimEngine::ComponentDefinition d(name, category, inputCount, outputCount, simFn, SimEngine::SimDelayNanoSeconds(delayNs), op);
+                        d.negate = negate;
+                        return d;
+                    }
+                }();
+
+                if (py::hasattr(pyComp, "input_pin_details")) {
+                    try {
+                        auto pins = pyComp.attr("input_pin_details").cast<std::vector<SimEngine::PinDetails>>();
+                        def.inputPinDetails = pins;
+                    } catch (std::exception &e) {
+                        spdlog::error("Plugin [{}] component [{}]: failed to cast input_pin_details\n{}", name, category, e.what());
+                    }
+                }
+                if (py::hasattr(pyComp, "output_pin_details")) {
+                    try {
+                        auto pins = pyComp.attr("output_pin_details").cast<std::vector<SimEngine::PinDetails>>();
+                        def.outputPinDetails = pins;
+                    } catch (std::exception &e) {
+                        spdlog::error("Plugin [{}] component [{}]: failed to cast output_pin_details\n{}", name, category, e.what());
+                    }
+                }
+
+                components.push_back(std::move(def));
             }
         }
 
+        py::gil_scoped_release release;
         return components;
     }
 

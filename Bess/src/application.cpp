@@ -5,11 +5,11 @@
 #include "imgui_impl_vulkan.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
+#include "plugin_manager.h"
+#include "types.h"
 #include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
 #include "vulkan_core.h"
-
-#include "types.h"
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
 
@@ -138,6 +138,9 @@ namespace Bess {
     }
 
     void Application::init(const std::string &path) {
+        auto &pluginMangaer = Plugins::PluginManager::getInstance();
+        pluginMangaer.loadPluginsFromDirectory("plugins");
+
         SimEngine::Logger::getInstance().initLogger(BESS_LOGGER_NAME);
         m_mainWindow = std::make_shared<Window>(800, 600, "Bess");
         ApplicationState::setParentWindow(m_mainWindow);
@@ -167,6 +170,8 @@ namespace Bess {
         UI::shutdown();
         ApplicationState::clear();
         m_mainWindow->close();
+        auto &pluginMangaer = Plugins::PluginManager::getInstance();
+        pluginMangaer.destroy();
     }
 
     void Application::loadProject(const std::string &path) const {

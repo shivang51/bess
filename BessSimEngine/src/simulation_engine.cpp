@@ -5,12 +5,15 @@
 #include "init_components.h"
 #include "logger.h"
 #include "types.h"
+
+#include "plugin_manager.h"
+
 #include <cassert>
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
 
-// #define BESS_SE_ENABLE_LOG_EVENTS
+#define BESS_SE_ENABLE_LOG_EVENTS
 
 #ifdef BESS_SE_ENABLE_LOG_EVENTS
     #define BESS_SE_LOG_EVENT(...) BESS_SE_TRACE(__VA_ARGS__);
@@ -27,6 +30,15 @@ namespace Bess::SimEngine {
     SimulationEngine::SimulationEngine() {
         Logger::getInstance().initLogger("BessSimEngine");
         initComponentCatalog();
+        const auto &pluginMangaer = Plugins::PluginManager::getInstance();
+        for (const auto &plugin : pluginMangaer.getLoadedPlugins()) {
+            const auto comps = plugin.second->onComponentsRegLoad();
+            for (const auto &comp : comps) {
+                ComponentCatalog::instance().registerComponent(comp);
+            }
+            BESS_SE_INFO("Registered {} components from plugin {}", comps.size(), plugin.first);
+        }
+        Plugins::savePyThreadState();
         m_simThread = std::thread(&SimulationEngine::run, this);
     }
 
@@ -373,14 +385,17 @@ namespace Bess::SimEngine {
     bool SimulationEngine::simulateComponent(entt::entity e, const std::vector<PinState> &inputs) {
         auto &comp = m_registry.get<DigitalComponent>(e);
         const auto &def = comp.definition;
-        BESS_SE_LOG_EVENT("Simulating {}", def->name);
+        BESS_SE_LOG_EVENT("Simulating {}, with delay {}ns", def.name, def.delay.count());
         BESS_SE_LOG_EVENT("\tInputs:");
         for (auto &inp : inputs) {
             BESS_SE_LOG_EVENT("\t\t{}", (int)inp.state);
         }
         BESS_SE_LOG_EVENT("");
+        assert(def.simulationFunction);
         if (def.simulationFunction) {
             const auto newState = def.simulationFunction(inputs, m_currentSimTime, comp.state);
+
+            BESS_SE_LOG_EVENT("Called simulation function");
             if (newState.isChanged) {
                 comp.state = newState;
             }
@@ -427,9 +442,14 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::run() {
+        BESS_SE_INFO("[SimulationEngine] Acquiring Python GIL for simulation thread");
+        auto state = Plugins::createPyThreadState();
+        BESS_SE_INFO("[SimulationEngine] Python GIL acquired, starting simulation loop");
+        Plugins::releasePyThreadState(state);
         BESS_SE_INFO("[SimulationEngine] Simulation loop started");
         m_currentSimTime = SimTime(0);
         m_realWorldClock = std::chrono::steady_clock();
+
         while (!m_stopFlag.load()) {
             std::unique_lock queueLock(m_queueMutex);
 

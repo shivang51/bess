@@ -1179,7 +1179,7 @@ namespace Bess::Canvas {
     }
 
     void Scene::drawScratchContent(TFrameTime ts, const std::shared_ptr<Viewport> &viewport) {
-
+        return;
         static float elapsed = 0.f;
         auto renderer = viewport->getArtistManager()->getCurrentArtist()->getPathRenderer();
 

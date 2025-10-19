@@ -1,7 +1,7 @@
 from abc import abstractmethod
 
 from .api.log import Logger
-from .api.sim_engine import ComponentDefinition, ComponentState
+from .api.sim_engine import ComponentDefinition
 
 
 class Plugin:
@@ -9,7 +9,6 @@ class Plugin:
         self.name = name
         self.version = version
         self.logger = Logger(name)
-        print(ComponentState())
 
     @abstractmethod
     def on_components_reg_load(self) -> list[ComponentDefinition]:

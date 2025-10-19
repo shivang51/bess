@@ -7,6 +7,9 @@
 #include <vector>
 
 namespace Bess::Plugins {
+    PyGILState_STATE createPyThreadState();
+    void releasePyThreadState(PyGILState_STATE state);
+    PyThreadState *savePyThreadState();
 
     class PluginManager {
       public:
@@ -22,7 +25,8 @@ namespace Bess::Plugins {
         void unloadAllPlugins();
         bool loadPluginsFromDirectory(const std::string &pluginsDir = "plugins");
 
-        std::vector<std::string> getLoadedPlugins() const;
+        std::vector<std::string> getLoadedPluginsNames() const;
+        const std::unordered_map<std::string, std::shared_ptr<PluginHandle>> &getLoadedPlugins() const;
         bool isPluginLoaded(const std::string &pluginName) const;
         std::shared_ptr<PluginHandle> getPlugin(const std::string &pluginName) const;
 
