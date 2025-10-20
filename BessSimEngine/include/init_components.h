@@ -168,14 +168,10 @@ namespace Bess::SimEngine {
                                                if (inputs.size() == 0) {
                                                    return newState;
                                                }
-                                               // comp.appendState(inputs[0].lastChangeTime, inputs[0].state);
-
-                                               // auto &digiComp = registry.get<DigitalComponent>(e);
                                                newState.inputStates = inputs;
                                                return newState;
                                            },
                                            SimDelayNanoSeconds(0)};
-        outDef.inputPinDetails = {{PinType::input, ""}};
         ComponentCatalog::instance().registerComponent(stateMonDef, ComponentCatalog::SpecialType::stateMonitor);
 
         ComponentCatalog::instance().registerComponent({"7-Seg Display Driver", "IO", 4, 7,

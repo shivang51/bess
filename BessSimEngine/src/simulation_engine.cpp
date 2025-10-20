@@ -111,10 +111,9 @@ namespace Bess::SimEngine {
         if (def->auxData.type() == typeid(FlipFlopAuxData)) {
             const auto &ffData = std::any_cast<const FlipFlopAuxData &>(def->auxData);
             m_registry.emplace<FlipFlopComponent>(ent, 1);
+        } else if (ComponentCatalog::instance().isSpecialCompDef(defHash, ComponentCatalog::SpecialType::stateMonitor)) {
+            m_registry.emplace<StateMonitorComponent>(ent);
         }
-        // else if (type == ComponentType::STATE_MONITOR) {
-        //         m_registry.emplace<StateMonitorComponent>(ent);
-        //     }
         scheduleEvent(ent, entt::null, m_currentSimTime + def->delay);
 
         BESS_SE_INFO("Added component {}", def->name);
@@ -447,7 +446,13 @@ namespace Bess::SimEngine {
             if (newState.isChanged) {
                 comp.state = newState;
             }
-            // print outputs of the new state
+
+            if (auto *stateMonitor = m_registry.try_get<StateMonitorComponent>(e)) {
+                // append state of first input pin
+                stateMonitor->appendState(newState.inputStates[0].lastChangeTime,
+                                          newState.inputStates[0].state);
+            }
+
             BESS_SE_LOG_EVENT("\tOutputs changed to:");
             for (auto &outp : newState.outputStates) {
                 BESS_SE_LOG_EVENT("\t\t{}", (bool)outp.state);
