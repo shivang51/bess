@@ -8,15 +8,15 @@ file(GLOB EXT_JSON_SRC "${CMAKE_SOURCE_DIR}/external/jsoncpp/src/lib_json/*.cpp"
 source_group("external/jsoncpp" FILES ${EXT_JSON_SRC})
 
 file(GLOB EXT_IMGUI_SRC
-    "../external/imgui/backends/*.cpp"
-    "../external/imgui/*.cpp"
-    "../external/implot/*.cpp"
+	"${CMAKE_SOURCE_DIR}/external/imgui/backends/*.cpp"
+    "${CMAKE_SOURCE_DIR}/external/imgui/*.cpp"
+    "${CMAKE_SOURCE_DIR}/external/implot/*.cpp"
 )
 source_group("external/imgui" FILES ${EXT_IMGUI_SRC})
 
 set(EXT_OTHERS_SRC
-    "../external/stb_image/src/stb_image.cpp"
-    "../external/tinyfiledialogs/tinyfiledialogs.c"
+	"${CMAKE_SOURCE_DIR}/external/stb_image/src/stb_image.cpp"
+    "${CMAKE_SOURCE_DIR}/external/tinyfiledialogs/tinyfiledialogs.c"
 )
 source_group("external/others" FILES ${EXT_OTHERS_SRC})
 
@@ -225,9 +225,9 @@ endif()
 if("${BUILD_ARCH}" STREQUAL "x64")
 	target_include_directories(${PROJECT_NAME} PRIVATE
 			"${CMAKE_CURRENT_SOURCE_DIR}/include"
-			"${CMAKE_SOURCE_DIR}/BessSimEngine/include"
-			"${CMAKE_SOURCE_DIR}/BessVulkan/include"
-			"${CMAKE_SOURCE_DIR}/BessPluginManager/include"
+			"${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"
+			"${CMAKE_SOURCE_DIR}/src/BessVulkan/include"
+			"${CMAKE_SOURCE_DIR}/src/BessPluginManager/include"
 			"${CMAKE_SOURCE_DIR}/external/imgui"
 			"${CMAKE_SOURCE_DIR}/external/implot"
 			"${CMAKE_SOURCE_DIR}/external/freetype/include"

@@ -26,7 +26,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bessplug/bessplug/bindings"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/src/bessplug/bessplug/bindings"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

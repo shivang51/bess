@@ -63,7 +63,7 @@ namespace Bess::Plugins {
             py::module_ sys = py::module_::import("sys");
 
             py::list path_list = sys.attr("path");
-            path_list.append("bessplug");
+            path_list.append("src/bessplug");
             path_list.append(path.parent_path().string());
 
             py::module_ pluginModule = py::module::import(pluginName.c_str());

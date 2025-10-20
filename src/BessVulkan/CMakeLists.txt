@@ -1,8 +1,8 @@
 set(PROJECT_NAME BessVulkan)
 
 set(EXT_OTHERS_SRC
-    "../external/stb_image/src/stb_image.cpp"
-    "../external/tinyfiledialogs/tinyfiledialogs.c"
+	"${CMAKE_SOURCE_DIR}/external/stb_image/src/stb_image.cpp"
+	"${CMAKE_SOURCE_DIR}/external/tinyfiledialogs/tinyfiledialogs.c"
 )
 source_group("external/others" FILES ${EXT_OTHERS_SRC})
 

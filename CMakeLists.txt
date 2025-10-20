@@ -30,24 +30,19 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}/
 
 message(STATUS "Output location: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 
-add_subdirectory(BessTests)
-add_subdirectory(bessplug/bindings)
-add_subdirectory(BessPluginManager)
-add_subdirectory(BessSimEngine)
-add_subdirectory(BessVulkan)
-add_subdirectory(Bess)
-
+# add_subdirectory(tests)
+add_subdirectory(src)
 
 find_package(Doxygen REQUIRED)
 set(DOXYGEN_INPUT_DIRS
-    ${CMAKE_SOURCE_DIR}/Bess/include
-    ${CMAKE_SOURCE_DIR}/Bess/src
-		${CMAKE_SOURCE_DIR}/BessVulkan/include
-		${CMAKE_SOURCE_DIR}/BessVulkan/src
-		${CMAKE_SOURCE_DIR}/BessSimEngine/include
-		${CMAKE_SOURCE_DIR}/BessSimEngine/src
-		${CMAKE_SOURCE_DIR}/BessPluginManager/include
-		${CMAKE_SOURCE_DIR}/BessPluginManager/src
+    ${CMAKE_SOURCE_DIR}/src/Bess/include
+    ${CMAKE_SOURCE_DIR}/src/Bess/src
+		${CMAKE_SOURCE_DIR}/src/BessVulkan/include
+		${CMAKE_SOURCE_DIR}/src/BessVulkan/src
+		${CMAKE_SOURCE_DIR}/src/BessSimEngine/include
+		${CMAKE_SOURCE_DIR}/src/BessSimEngine/src
+		${CMAKE_SOURCE_DIR}/src/BessPluginManager/include
+		${CMAKE_SOURCE_DIR}/src/BessPluginManager/src
 )
 
 list(JOIN DOXYGEN_INPUT_DIRS " " DOXYGEN_INPUT_LIST)
@@ -64,6 +59,5 @@ add_custom_target(docs
 )
 
 if(MSVC)
-	# startup projects needs to be set here
 	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Bess)
 endif()
