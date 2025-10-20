@@ -59,17 +59,20 @@ namespace Bess {
 
         while (!m_mainWindow->isClosed()) {
             auto currentTime = m_clock.now();
-            const TFrameTime deltaTime = currentTime - previousTime;
+            TFrameTime deltaTime = currentTime - previousTime;
             previousTime = currentTime;
 
             accumulatedTime += deltaTime;
 
-            if (accumulatedTime >= logicTimestep) {
-                update(accumulatedTime);
-                draw();
-                fps = static_cast<int>(std::round(1000.0 / accumulatedTime.count()));
-                accumulatedTime = std::chrono::duration<double>(0.0);
+            if (accumulatedTime < logicTimestep) {
+                std::this_thread::sleep_for(logicTimestep - accumulatedTime);
+                accumulatedTime += logicTimestep - accumulatedTime;
             }
+
+            update(accumulatedTime);
+            draw();
+            fps = static_cast<int>(std::round(1000.0 / accumulatedTime.count()));
+            accumulatedTime = std::chrono::duration<double>(0.0);
             Window::pollEvents();
         }
     }
