@@ -46,9 +46,17 @@ int main(int argc, char **argv) {
 #endif // _LINUX
 
     Bess::Application app;
+    Bess::AppStartupFlags flags = Bess::AppStartupFlag::none;
+
+    for (int i = 1; i < argc; ++i) {
+        if (std::string(argv[i]) == "--disable-plugins") {
+            flags |= Bess::AppStartupFlag::disablePlugins;
+        }
+    }
+
     try {
         const char *projectFile = (argc == 2) ? argv[1] : "";
-        app.init(projectFile);
+        app.init(projectFile, flags);
         app.run();
     } catch (const std::exception &e) {
         std::cerr << e.what() << std::endl;

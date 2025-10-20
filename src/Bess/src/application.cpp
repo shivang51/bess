@@ -145,14 +145,21 @@ namespace Bess {
         m_events.emplace_back(event);
     }
 
-    void Application::init(const std::string &path) {
+    void Application::init(const std::string &path, AppStartupFlags flags) {
+#ifdef DISABLE_PLUGINS
+        flags |= AppStartupFlag::disablePlugins;
+#endif
+
+        BESS_INFO("[Application] Initializing application, with project path: {}", path.empty() ? "None" : path);
+        BESS_INFO("");
+
         auto &pluginMangaer = Plugins::PluginManager::getInstance();
 
-#ifndef DISABLE_PLUGINS
-        pluginMangaer.loadPluginsFromDirectory("plugins");
-#else
-        BESS_WARN("[Application] Plugin support is disabled.");
-#endif
+        if (flags & AppStartupFlag::disablePlugins) {
+            BESS_WARN("[Application] Plugin support is disabled");
+        } else {
+            pluginMangaer.loadPluginsFromDirectory("plugins");
+        }
 
         m_mainWindow = std::make_shared<Window>(800, 600, "Bess");
         ApplicationState::setParentWindow(m_mainWindow);
@@ -175,6 +182,10 @@ namespace Bess {
 
         if (!path.empty())
             loadProject(path);
+
+        BESS_INFO("");
+        BESS_INFO("[Application] Application initialized successfully");
+        BESS_INFO("");
     }
 
     void Application::shutdown() const {
@@ -193,5 +204,4 @@ namespace Bess {
     }
 
     void Application::saveProject() const { Pages::MainPageState::getInstance()->saveCurrentProject(); }
-
 } // namespace Bess
