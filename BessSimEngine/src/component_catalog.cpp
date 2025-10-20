@@ -66,4 +66,11 @@ namespace Bess::SimEngine {
     bool ComponentCatalog::isRegistered(uint64_t hash) const {
         return m_componentHashMap.contains(hash);
     }
+
+    void ComponentCatalog::destroy() {
+        m_specialTypeMap.clear();
+        m_componentHashMap.clear();
+        m_componentTree = nullptr;
+        m_components.clear();
+    }
 } // namespace Bess::SimEngine

@@ -22,6 +22,8 @@ namespace Bess::SimEngine {
         SimulationEngine();
         ~SimulationEngine();
 
+        void destroy();
+
         const UUID &addComponent(uint64_t defHash, int inputCount = -1, int outputCount = -1);
 
         bool connectComponent(const UUID &src, int srcPin, PinType srcType,
@@ -70,7 +72,7 @@ namespace Bess::SimEngine {
         friend class SimEngineSerializer;
 
       private:
-        void scheduleEvent(entt::entity e, entt::entity schedulerEntity, SimDelayNanoSeconds t);
+        void scheduleEvent(entt::entity e, entt::entity schedulerEntity, SimDelayNanoSeconds simTime);
         void clearEventsForEntity(entt::entity e);
         std::vector<PinState> getInputPinsState(entt::entity e) const;
         const std::pair<std::vector<bool>, std::vector<bool>> &getIOPinsConnectedState(entt::entity e);
@@ -102,5 +104,7 @@ namespace Bess::SimEngine {
         std::unordered_map<entt::entity, std::pair<std::vector<bool>, std::vector<bool>>> m_connectionsCache;
 
         Commands::CommandsManager m_cmdManager;
+
+        bool m_destroyed{false};
     };
 } // namespace Bess::SimEngine

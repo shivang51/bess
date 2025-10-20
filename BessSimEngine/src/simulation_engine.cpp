@@ -54,11 +54,21 @@ namespace Bess::SimEngine {
     }
 
     SimulationEngine::~SimulationEngine() {
+        destroy();
+    }
+
+    void SimulationEngine::destroy() {
+        if (m_destroyed)
+            return;
         m_stopFlag.store(true);
         m_queueCV.notify_all();
         m_stateCV.notify_all();
         if (m_simThread.joinable())
             m_simThread.join();
+        Plugins::restorePyThreadState();
+        ComponentCatalog::instance().destroy();
+
+        m_destroyed = true;
     }
 
     void SimulationEngine::scheduleEvent(entt::entity e, entt::entity schedulerEntity, SimDelayNanoSeconds simTime) {

@@ -19,6 +19,8 @@ namespace Bess::SimEngine {
             sevenSegmentDisplay
         };
 
+        void destroy();
+
         static ComponentCatalog &instance();
 
         // Register a new component definition.

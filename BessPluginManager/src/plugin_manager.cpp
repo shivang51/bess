@@ -5,6 +5,7 @@
 #include <pybind11/pybind11.h>
 #include <pystate.h>
 #include <spdlog/spdlog.h>
+#include <thread>
 
 namespace Bess::Plugins {
     PluginManager &PluginManager::getInstance() {
@@ -161,7 +162,28 @@ namespace Bess::Plugins {
         PyGILState_Release(state);
     }
 
-    PyThreadState *savePyThreadState() {
-        return PyEval_SaveThread();
+    std::unordered_map<std::thread::id, PyThreadState *> savedThreadStates = {};
+
+    void savePyThreadState() {
+        auto idHash = std::hash<std::thread::id>{}(std::this_thread::get_id());
+        if (savedThreadStates.contains(std::this_thread::get_id()) &&
+            savedThreadStates.at(std::this_thread::get_id()) == nullptr) {
+            spdlog::warn("[PyThreadState] Thread state for thread {} is already saved and never restored", idHash);
+            return;
+        }
+        savedThreadStates[std::this_thread::get_id()] = PyEval_SaveThread();
+    }
+
+    void restorePyThreadState() {
+        auto idHash = std::hash<std::thread::id>{}(std::this_thread::get_id());
+        if (!savedThreadStates.contains(std::this_thread::get_id())) {
+            spdlog::warn("[PyThreadState] Thread state for thread {}  was not saved before restore.", idHash);
+            return;
+        } else if (savedThreadStates.at(std::this_thread::get_id()) == nullptr) {
+            spdlog::warn("[PyThreadState] Thread state for thread {} was alreay restored.", idHash);
+            return;
+        }
+        PyEval_RestoreThread(savedThreadStates[std::this_thread::get_id()]);
+        savedThreadStates[std::this_thread::get_id()] = nullptr;
     }
 } // namespace Bess::Plugins

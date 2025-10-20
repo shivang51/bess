@@ -3,13 +3,15 @@
 #include "plugin_handle.h"
 #include <memory>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
 namespace Bess::Plugins {
     PyGILState_STATE createPyThreadState();
     void releasePyThreadState(PyGILState_STATE state);
-    PyThreadState *savePyThreadState();
+    void savePyThreadState();
+    void restorePyThreadState();
 
     class PluginManager {
       public:

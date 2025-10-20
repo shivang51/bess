@@ -2,9 +2,7 @@
 
 #include "component_definition.h"
 #include "scene/components/non_sim_comp.h"
-#include "simulation_engine.h"
 #include "ui/icons/CodIcons.h"
-#include "ui/icons/MaterialIcons.h"
 
 #include "common/helpers.h"
 

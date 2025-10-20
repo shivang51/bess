@@ -169,10 +169,12 @@ namespace Bess {
     }
 
     void Application::shutdown() const {
+        BESS_INFO("[Application] Shutting down application");
         Pages::MainPage::getTypedInstance()->destory();
         UI::shutdown();
         ApplicationState::clear();
         m_mainWindow->close();
+        SimEngine::SimulationEngine::instance().destroy();
         auto &pluginMangaer = Plugins::PluginManager::getInstance();
         pluginMangaer.destroy();
     }
