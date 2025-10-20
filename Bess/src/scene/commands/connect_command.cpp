@@ -1,5 +1,6 @@
 #include "scene/commands/connect_command.h"
 #include "scene/scene.h"
+#include "simulation_engine.h"
 
 // sim engine commands
 #include "commands/commands.h"

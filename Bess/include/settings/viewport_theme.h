@@ -1,5 +1,4 @@
 #pragma once
-#include "component_types/component_types.h"
 #include "glm.hpp"
 #include <string>
 #include <unordered_map>

@@ -1,6 +1,6 @@
 #include "pages/main_page/main_page_state.h"
-
 #include "pages/main_page/main_page.h"
+#include "simulation_engine.h"
 
 namespace Bess::Pages {
 

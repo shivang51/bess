@@ -1,6 +1,7 @@
 #include "scene/commands/delete_comp_command.h"
 #include "bess_uuid.h"
 #include "scene/scene.h"
+#include "simulation_engine.h"
 
 // sim engine commands
 #include "commands/commands.h"

@@ -1,8 +1,8 @@
-#include "scene/scene_pch.h"
 #include "ui/ui_main/graph_view_window.h"
 
 #include "implot.h"
 #include "scene/scene.h"
+#include "simulation_engine.h"
 #include "ui/m_widgets.h"
 
 namespace Bess::UI {

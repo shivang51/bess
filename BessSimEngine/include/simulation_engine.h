@@ -2,8 +2,6 @@
 #include "bess_api.h"
 #include "bess_uuid.h"
 #include "commands/commands_manager.h"
-#include "component_definition.h"
-#include "component_types/component_types.h"
 #include "entt/entity/fwd.hpp"
 #include "types.h"
 #include <chrono>

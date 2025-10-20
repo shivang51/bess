@@ -131,6 +131,7 @@ set(Source_Files
 "src/events/application_event.cpp"
 "src/camera.cpp"
 "src/scene/components/non_sim_comp.cpp"
+"src/scene/components/components.cpp"
 "src/scene/scene.cpp"
 "src/scene/viewport.cpp"
 "src/scene/scene_serializer.cpp"

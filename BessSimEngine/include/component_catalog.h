@@ -2,7 +2,6 @@
 
 #include "bess_api.h"
 #include "component_definition.h"
-#include "component_types/component_types.h"
 #include <cstdint>
 #include <entt/entt.hpp>
 #include <memory>

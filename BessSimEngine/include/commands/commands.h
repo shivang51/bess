@@ -3,7 +3,6 @@
 #include "bess_api.h"
 #include "bess_uuid.h"
 #include "command.h"
-#include "component_types/component_types.h"
 #include "entt_components.h"
 #include "types.h"
 

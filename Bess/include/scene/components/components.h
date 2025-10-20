@@ -1,7 +1,6 @@
 #pragma once
 
 #include "bess_uuid.h"
-#include "component_types/component_types.h"
 #include "non_sim_comp.h"
 #include "scene/components/json_converters.h"
 #include "settings/viewport_theme.h"
@@ -9,7 +8,6 @@
 #include <vector>
 #define GLM_ENABLE_EXPERIMENTAL
 #include "gtx/matrix_decompose.hpp"
-#include "simulation_engine.h"
 #include <glm.hpp>
 #include <string>
 
@@ -22,12 +20,7 @@ namespace Bess::Canvas::Components {
         TransformComponent() = default;
         TransformComponent(const TransformComponent &other) = default;
 
-        glm::mat4 getTransform() {
-            auto transform = glm::translate(glm::mat4(1), position);
-            transform = glm::rotate(transform, angle, {0.f, 0.f, 1.f});
-            transform = glm::scale(transform, glm::vec3(scale, 1.f));
-            return transform;
-        }
+        glm::mat4 getTransform() const;
 
         operator glm::mat4() { return getTransform(); }
 
@@ -155,9 +148,7 @@ namespace Bess::Canvas::Components {
         SimulationInputComponent() = default;
         SimulationInputComponent(const SimulationInputComponent &other) = default;
 
-        bool updateClock(const UUID &uuid) const {
-            return SimEngine::SimulationEngine::instance().updateClock(uuid, clockBhaviour, frequency, frequencyUnit);
-        }
+        bool updateClock(const UUID &uuid) const;
 
         bool clockBhaviour = false;
         float frequency = 1.f;

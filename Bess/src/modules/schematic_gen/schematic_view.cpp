@@ -3,6 +3,7 @@
 #include "scene/components/components.h"
 #include "scene/scene.h"
 #include "scene/scene_pch.h"
+#include "simulation_engine.h"
 #include <queue>
 
 namespace SceneComponent = Bess::Canvas::Components;

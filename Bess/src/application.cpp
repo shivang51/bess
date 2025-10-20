@@ -6,6 +6,7 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
 #include "plugin_manager.h"
+#include "simulation_engine.h"
 #include "types.h"
 #include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"

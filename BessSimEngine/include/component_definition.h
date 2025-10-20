@@ -1,7 +1,6 @@
 #pragma once
 
 #include "bess_api.h"
-#include "component_types/component_types.h"
 #include "properties.h"
 #include "types.h"
 #include <string>

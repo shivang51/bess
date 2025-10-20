@@ -13,8 +13,6 @@ set(External
 
 
 set(Header_Files
-    "include/component_types/component_types.h"
-    "include/component_types/component_types.def"
     "include/entt_components.h"
     "include/types.h"
     "include/bess_uuid.h"
@@ -35,7 +33,7 @@ set(Source_Files
     "src/simulation_engine_serializer.cpp"
     "src/bess_uuid.cpp"
     "src/logger.cpp"
-	"src/entt_registry_serializer.cpp"
+		"src/entt_registry_serializer.cpp"
     "src/component_catalog.cpp"
     "src/component_definition.cpp"
 )
