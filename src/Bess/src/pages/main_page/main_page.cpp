@@ -1,9 +1,9 @@
-#include "scene/scene_pch.h"
 #include "pages/main_page/main_page.h"
 #include "asset_manager/asset_manager.h"
 #include "events/application_event.h"
 #include "pages/page_identifier.h"
 #include "scene/scene.h"
+#include "scene/scene_pch.h"
 #include "simulation_engine.h"
 #include "types.h"
 #include "ui/ui.h"
@@ -51,6 +51,8 @@ namespace Bess::Pages {
     }
 
     void MainPage::destory() {
+        if (m_isDestroyed)
+            return;
         BESS_INFO("[MainPage] Destroying");
         auto &instance = Bess::Vulkan::VulkanCore::instance();
         instance.cleanup([&]() {
@@ -59,6 +61,7 @@ namespace Bess::Pages {
             UI::vulkanCleanup(instance.getDevice());
         });
         BESS_INFO("[MainPage] Destroyed");
+        m_isDestroyed = true;
     }
 
     void MainPage::draw() {

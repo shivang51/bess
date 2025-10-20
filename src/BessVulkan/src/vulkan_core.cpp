@@ -145,6 +145,9 @@ namespace Bess::Vulkan {
     }
 
     void VulkanCore::cleanup(const std::function<void()> &preCmdBufferCleanup) {
+        if (m_isDestroyed)
+            return;
+
         BESS_VK_INFO("[VulkanCore] Shutting down");
         if (!m_device || m_device->device() == VK_NULL_HANDLE)
             return;
@@ -189,6 +192,8 @@ namespace Bess::Vulkan {
         if (m_vkInstance != VK_NULL_HANDLE) {
             vkDestroyInstance(m_vkInstance, nullptr);
         }
+
+        m_isDestroyed = true;
     }
 
     VkResult VulkanCore::initVkInstance(const std::vector<const char *> &winExtensions) {
@@ -365,4 +370,19 @@ namespace Bess::Vulkan {
         static VulkanCore inst;
         return inst;
     }
+
+    uint32_t VulkanCore::getCurrentFrameIdx() const {
+        return m_currentFrameIdx;
+    }
+
+    std::shared_ptr<VulkanRenderPass> VulkanCore::getRenderPass() const {
+        return m_renderPass;
+    }
+    const std::vector<std::shared_ptr<VulkanCommandBuffer>> &VulkanCore::getCommandBuffer() const { return m_commandBuffers->getCmdBuffers(); }
+
+    VkInstance VulkanCore::getVkInstance() const { return m_vkInstance; }
+
+    std::shared_ptr<VulkanDevice> VulkanCore::getDevice() const { return m_device; }
+
+    std::shared_ptr<VulkanSwapchain> VulkanCore::getSwapchain() const { return m_swapchain; }
 } // namespace Bess::Vulkan

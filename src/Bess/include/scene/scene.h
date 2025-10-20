@@ -203,5 +203,7 @@ namespace Bess::Canvas {
         SimEngine::Commands::CommandsManager m_cmdManager;
 
         VkExtent2D vec2Extent2D(const glm::vec2 &vec);
+
+        bool m_isDestroyed = false;
     };
 } // namespace Bess::Canvas

@@ -50,5 +50,7 @@ namespace Bess::Pages {
         std::chrono::time_point<std::chrono::steady_clock> m_lastUpdateTime;
 
         std::shared_ptr<MainPageState> m_state;
+
+        bool m_isDestroyed = false;
     };
 } // namespace Bess::Pages

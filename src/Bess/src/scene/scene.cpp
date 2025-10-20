@@ -27,8 +27,13 @@ namespace Bess::Canvas {
     }
 
     void Scene::destroy() {
+        if (m_isDestroyed)
+            return;
+
         BESS_INFO("[Scene] Destroying");
         m_viewport.reset();
+
+        m_isDestroyed = true;
     }
 
     std::shared_ptr<Scene> Scene::instance() {

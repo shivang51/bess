@@ -47,18 +47,16 @@ namespace Bess::Vulkan {
 
         void cleanup(const std::function<void()> &preCmdBufferCleanup = []() {});
 
-        std::shared_ptr<VulkanRenderPass> getRenderPass() const {
-            return m_renderPass;
-        }
+        std::shared_ptr<VulkanRenderPass> getRenderPass() const;
 
-        VkInstance getVkInstance() const { return m_vkInstance; }
-        std::shared_ptr<VulkanDevice> getDevice() const { return m_device; }
-        std::shared_ptr<VulkanSwapchain> getSwapchain() const { return m_swapchain; }
-        const std::vector<std::shared_ptr<VulkanCommandBuffer>> &getCommandBuffer() const { return m_commandBuffers->getCmdBuffers(); }
+        VkInstance getVkInstance() const;
+        std::shared_ptr<VulkanDevice> getDevice() const;
+        std::shared_ptr<VulkanSwapchain> getSwapchain() const;
+        const std::vector<std::shared_ptr<VulkanCommandBuffer>> &getCommandBuffer() const;
 
-        uint32_t getCurrentFrameIdx() const {
-            return m_currentFrameIdx;
-        }
+        uint32_t getCurrentFrameIdx() const;
+
+        void recreateSwapchain(VkExtent2D newExtent);
 
       private:
         VkResult initVkInstance(const std::vector<const char *> &winExtensions);
@@ -84,8 +82,7 @@ namespace Bess::Vulkan {
         std::vector<VkFence> m_inFlightFences;
         uint32_t m_currentFrameIdx = 0;
 
-      public:
-        void recreateSwapchain(VkExtent2D newExtent);
+        bool m_isDestroyed = false;
     };
 
 } // namespace Bess::Vulkan
