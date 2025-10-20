@@ -28,8 +28,9 @@ namespace Bess::Canvas {
 
         auto &registry = Scene::instance()->getEnttRegistry();
 
-        // if (tagComp.type.simCompType == SimEngine::ComponentType::SEVEN_SEG_DISPLAY) {
-        if (false) {
+        const auto &catalog = SimEngine::ComponentCatalog::instance();
+
+        if (catalog.isSpecialCompDef(simComponent.defHash, SimEngine::ComponentCatalog::SpecialType::sevenSegmentDisplay)) {
             drawSevenSegDisplay(entity, tagComp, transform, spriteComp, simComponent);
             return;
         }
@@ -264,6 +265,8 @@ namespace Bess::Canvas {
                                 transform.position.y + (headerHeight / 2.f),
                                 transform.position.z + 0.0006};
             m_materialRenderer->drawTexturedQuad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity, m_artistTools.sevenSegDispTexs[0]);
+
+            texPos.z += 0.0001f;
 
             for (int i = 0; i < (int)compState.inputStates.size(); i++) {
                 if (!compState.inputStates[i])

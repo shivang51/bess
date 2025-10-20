@@ -41,7 +41,7 @@ namespace Bess::SimEngine {
 
             const auto &clockPinState = inputs[flipFlopData->clockPinIdx];
             const bool isRisingEdge = (clockPinState.state == LogicState::high &&
-                                 prevState.inputStates[clockPinIdx].state == LogicState::low);
+                                       prevState.inputStates[clockPinIdx].state == LogicState::low);
 
             if (!isRisingEdge) {
                 return newState;
@@ -143,13 +143,11 @@ namespace Bess::SimEngine {
     }
 
     inline void initIO() {
-        auto inpDef = ComponentDefinition("Input", "IO", 0, 1,
-            [](auto &, auto ts, const auto &oldState) -> ComponentState {
+        auto inpDef = ComponentDefinition("Input", "IO", 0, 1, [](auto &, auto ts, const auto &oldState) -> ComponentState {
                 auto newState = oldState;
                 newState.isChanged = true;
                 newState.outputStates[0].lastChangeTime = ts;
-                return newState;
-        }, SimDelayNanoSeconds(0));
+                return newState; }, SimDelayNanoSeconds(0));
         inpDef.outputPinDetails = {{PinType::output, ""}};
         ComponentCatalog::instance().registerComponent(inpDef, ComponentCatalog::SpecialType::input);
 
@@ -158,8 +156,8 @@ namespace Bess::SimEngine {
                                           auto newState = prevState;
                                           newState.inputStates = inputs;
                                           return newState;
-        },
-        SimDelayNanoSeconds(0)};
+                                      },
+                                      SimDelayNanoSeconds(0)};
         outDef.inputPinDetails = {{PinType::input, ""}};
         ComponentCatalog::instance().registerComponent(outDef, ComponentCatalog::SpecialType::output);
 
@@ -175,8 +173,8 @@ namespace Bess::SimEngine {
                                                // auto &digiComp = registry.get<DigitalComponent>(e);
                                                newState.inputStates = inputs;
                                                return newState;
-        },
-        SimDelayNanoSeconds(0)};
+                                           },
+                                           SimDelayNanoSeconds(0)};
         outDef.inputPinDetails = {{PinType::input, ""}};
         ComponentCatalog::instance().registerComponent(stateMonDef, ComponentCatalog::SpecialType::stateMonitor);
 
@@ -236,14 +234,15 @@ namespace Bess::SimEngine {
                                                         },
                                                         SimDelayNanoSeconds(0)});
 
-        ComponentCatalog::instance().registerComponent({"Seven Segment Display", "IO", 7, 0,
-                                                        [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
-                                                            auto newState = prevState;
-                                                            newState.inputStates = inputs;
-                                                            newState.isChanged = false;
-                                                            return newState;
-                                                        },
-                                                        SimDelayNanoSeconds(0)});
+        ComponentDefinition def = {"Seven Segment Display", "IO", 7, 0,
+                                   [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
+                                       auto newState = prevState;
+                                       newState.inputStates = inputs;
+                                       newState.isChanged = false;
+                                       return newState;
+                                   },
+                                   SimDelayNanoSeconds(0)};
+        ComponentCatalog::instance().registerComponent(def, ComponentCatalog::SpecialType::sevenSegmentDisplay);
     }
 
     /// expression evaluator simulation function
