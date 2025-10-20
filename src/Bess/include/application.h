@@ -11,7 +11,7 @@ namespace Bess {
 
     class Application {
       public:
-        Application() = default;
+        Application();
         ~Application();
 
         void init(const std::string &path);

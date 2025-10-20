@@ -19,6 +19,10 @@
 #include "window.h"
 
 namespace Bess {
+    Application::Application() {
+        SimEngine::Logger::getInstance().initLogger(BESS_LOGGER_NAME);
+    }
+
     Application::~Application() {
         shutdown();
     }
@@ -143,9 +147,13 @@ namespace Bess {
 
     void Application::init(const std::string &path) {
         auto &pluginMangaer = Plugins::PluginManager::getInstance();
-        pluginMangaer.loadPluginsFromDirectory("plugins");
 
-        SimEngine::Logger::getInstance().initLogger(BESS_LOGGER_NAME);
+#ifndef DISABLE_PLUGINS
+        pluginMangaer.loadPluginsFromDirectory("plugins");
+#else
+        BESS_WARN("[Application] Plugin support is disabled.");
+#endif
+
         m_mainWindow = std::make_shared<Window>(800, 600, "Bess");
         ApplicationState::setParentWindow(m_mainWindow);
 
