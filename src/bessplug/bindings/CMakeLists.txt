@@ -11,6 +11,7 @@ find_package(pybind11 REQUIRED)
 
 set(BESS_PYBIND_SOURCES
     bindings.cpp
+		internal_types.h
     sim_engine/types.cpp
     sim_engine/component_definition.cpp
 )
@@ -18,7 +19,7 @@ set(BESS_PYBIND_SOURCES
 pybind11_add_module(${PROJECT_NAME} ${BESS_PYBIND_SOURCES})
 
 target_include_directories(${PROJECT_NAME} PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/"
     "${CMAKE_SOURCE_DIR}/BessSimEngine/include"
 		"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
     "${CMAKE_SOURCE_DIR}/external/entt/include;"

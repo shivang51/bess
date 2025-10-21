@@ -74,20 +74,16 @@ namespace Bess::Plugins {
 
                 std::shared_ptr<py::object> callablePtr;
                 std::shared_ptr<py::object> initialAuxPtr;
+                py::object auxObj;
                 if (py::hasattr(pyComp, "simulation_function")) {
                     callablePtr = makeGilSafe(pyComp.attr("simulation_function"));
                 } else if (py::hasattr(pyComp, "simulate")) {
                     callablePtr = makeGilSafe(pyComp.attr("simulate"));
                 }
 
-                if (py::hasattr(pyComp, "state_aux")) {
-                    py::object auxObj = pyComp.attr("state_aux");
-                    if (!auxObj.is_none())
-                        initialAuxPtr = makeGilSafe(auxObj);
-                } else if (py::hasattr(pyComp, "aux")) {
-                    py::object auxObj = pyComp.attr("aux");
-                    if (!auxObj.is_none())
-                        initialAuxPtr = makeGilSafe(auxObj);
+                if (py::hasattr(pyComp, "aux_data")) {
+                    auxObj = pyComp.attr("aux_data");
+                    initialAuxPtr = makeGilSafe(auxObj);
                 }
 
                 SimEngine::SimulationFunction simFn;
@@ -103,9 +99,8 @@ namespace Bess::Plugins {
                             py_inputs.append(PyPinState(py::cast(p)));
                         }
                         py::object py_prev = PyComponentState(py::cast(prev));
-                        if (initialAuxPtr && py_prev.attr("aux").is_none()) {
-                            // Initialize aux on the engine's native state the first time
-                            py::setattr(py_prev, "aux", *initialAuxPtr);
+                        if (initialAuxPtr && py_prev.attr("aux_data").is_none()) {
+                            py::setattr(py_prev, "aux_data", *initialAuxPtr);
                         }
                         py::object result = (*callablePtr)(py_inputs, static_cast<long long>(t.count()), py_prev);
                         return convertResultToComponentState(result, prev);

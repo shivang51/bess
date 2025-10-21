@@ -4,6 +4,7 @@
 #include <pybind11/stl.h>
 
 #include "component_definition.h"
+#include "internal_types.h"
 #include "types.h"
 
 namespace py = pybind11;
@@ -155,11 +156,15 @@ void bind_sim_engine_component_definition(py::module_ &m) {
 
         .def_property("negate", [](const ComponentDefinition &self) { return self.negate; }, [](ComponentDefinition &self, bool v) { self.negate = v; self.invalidateHash(); })
 
-        .def_property("aux_data", [](ComponentDefinition &self) -> py::object {
-                if (self.auxData.has_value() && self.auxData.type() == typeid(py::object)) {
-                    return std::any_cast<py::object>(self.auxData);
+        .def("set_aux_pyobject", [](ComponentDefinition &self, const py::object &obj) { self.auxData = std::any(Bess::Py::OwnedPyObject{obj}); }, py::arg("obj"), "Attach a Python object as aux data. Returns the aux_data pointer value.")
+
+        .def("get_aux_pyobject", [](const ComponentDefinition &self) -> py::object {
+                if (self.auxData.has_value() && self.auxData.type() == typeid(Bess::Py::OwnedPyObject)) {
+                    const auto &owned = std::any_cast<const Bess::Py::OwnedPyObject &>(self.auxData);
+                    return owned.object;
                 }
-                return py::none(); }, [](ComponentDefinition &self, py::object obj) { self.auxData = obj; })
+                return py::none(); }, "Return the attached Python object if owned by Python, else None.")
+
         .def_property("simulation_function", [](const ComponentDefinition &self) {
                 SimulationFunction fn = self.simulationFunction;
                 py::cpp_function wrapper([fn](const std::vector<PinState> &inputs, long long t_ns, const ComponentState &prev) {

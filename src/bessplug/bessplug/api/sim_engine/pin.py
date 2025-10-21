@@ -51,14 +51,14 @@ class PinState:
     def invert(self) -> None:
         """Invert the pin state."""
         if self.is_high():
-            self.state = LogicState.LOW
+            self.state = LogicState.LOW.value
         elif self.is_low():
-            self.state = LogicState.HIGH
+            self.state = LogicState.HIGH.value
 
     @property
     def state(self) -> LogicState:
         """Current logic level for the pin."""
-        return self._native.state
+        return LogicState(self._native.state)
 
     @state.setter
     def state(self, value: LogicState) -> None:

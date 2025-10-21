@@ -101,31 +101,15 @@ class ComponentState:
         """Mark the state as changed (or not)."""
         self._native.is_changed = bool(value)
 
-    # Aux data helpers
     @property
-    def aux(self):
+    def aux_data(self):
         """Get Python aux object attached to this state, or None."""
         return self._native.get_aux_pyobject()
 
-    @aux.setter
-    def aux(self, obj) -> None:
-        """Attach a Python object as aux data (owned by Python)."""
+    @aux_data.setter
+    def aux_data(self, obj) -> None:
+        """Attach a Python aux object to this state."""
         self._native.set_aux_pyobject(obj)
-
-    @aux.deleter
-    def aux(self) -> None:  # type: ignore[no-redef]
-        """Clear Python-owned aux data if present."""
-        self._native.clear_aux_data()
-
-    @property
-    def aux_ptr(self) -> int:
-        """Raw aux_data pointer value (uintptr) for native interop."""
-        return int(self._native.aux_data_ptr)
-
-    @aux_ptr.setter
-    def aux_ptr(self, value: int) -> None:
-        """Set raw aux_data pointer (advanced/native interop)."""
-        self._native.aux_data_ptr = int(value)
 
     def __str__(self) -> str:
         """JSON representation of the component state."""

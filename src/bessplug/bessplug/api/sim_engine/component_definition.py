@@ -174,11 +174,11 @@ class ComponentDefinition:
 
     @property
     def aux_data(self):
-        return self._native.aux_data
+        return self._native.get_aux_pyobject()
 
     @aux_data.setter
     def aux_data(self, obj) -> None:
-        self._native.aux_data = obj
+        self._native.set_aux_pyobject(obj)
 
     def __str__(self) -> str:
         data = {

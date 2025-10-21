@@ -1,3 +1,6 @@
+#include "types.h"
+#include "internal_types.h"
+
 #include <cstdint>
 #include <iostream>
 #include <pybind11/functional.h>
@@ -6,17 +9,11 @@
 #include <pybind11/stl_bind.h>
 #include <typeinfo>
 
-#include "types.h"
-
 namespace py = pybind11;
 
 using namespace Bess::SimEngine;
 
 namespace {
-    struct OwnedPyObject {
-        py::object object;
-    };
-
     struct PySimulationFunctionWrapper {
         SimulationFunction fn;
 
@@ -120,21 +117,22 @@ void bind_sim_engine_types(py::module_ &m) {
         .def_property("input_connected", [](const ComponentState &self) { return self.inputConnected; }, [](ComponentState &self, const std::vector<bool> &v) { self.inputConnected = v; })
         .def_property("output_connected", [](const ComponentState &self) { return self.outputConnected; }, [](ComponentState &self, const std::vector<bool> &v) { self.outputConnected = v; })
         .def_property("aux_data_ptr", [](const ComponentState &self) { return static_cast<std::uintptr_t>(reinterpret_cast<std::uintptr_t>(self.auxData)); }, [](ComponentState &self, std::uintptr_t ptr_value) { self.auxData = reinterpret_cast<std::any *>(ptr_value); })
+
         .def("set_aux_pyobject", [](ComponentState &self, py::object obj) {
-                if (self.auxData && self.auxData->type() == typeid(OwnedPyObject)) {
+                if (self.auxData && self.auxData->type() == typeid(Bess::Py::OwnedPyObject)) {
                     delete self.auxData;
                     self.auxData = nullptr;
                 }
-                self.auxData = new std::any(OwnedPyObject{obj});
+                self.auxData = new std::any(Bess::Py::OwnedPyObject{obj});
                 return static_cast<std::uintptr_t>(reinterpret_cast<std::uintptr_t>(self.auxData)); }, py::arg("obj"), "Attach a Python object as aux data. Returns the aux_data pointer value.")
         .def("get_aux_pyobject", [](const ComponentState &self) -> py::object {
-                if (self.auxData && self.auxData->type() == typeid(OwnedPyObject)) {
-                    const auto &owned = std::any_cast<const OwnedPyObject &>(*self.auxData);
+                if (self.auxData && self.auxData->type() == typeid(Bess::Py::OwnedPyObject)) {
+                    const auto &owned = std::any_cast<const Bess::Py::OwnedPyObject &>(*self.auxData);
                     return owned.object;
                 }
                 return py::none(); }, "Return the attached Python object if owned by Python, else None.")
         .def("clear_aux_data", [](ComponentState &self) {
-                if (self.auxData && self.auxData->type() == typeid(OwnedPyObject)) {
+                if (self.auxData && self.auxData->type() == typeid(Bess::Py::OwnedPyObject)) {
                     delete self.auxData;
                     self.auxData = nullptr;
                 } }, "Clear aux_data if it was set via set_aux_pyobject.");
