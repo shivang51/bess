@@ -1,35 +1,7 @@
 from typing import override
 from bessplug import Plugin 
-from bessplug.api.sim_engine import ComponentDefinition, ComponentState, PinState
-
-class TestComponent(ComponentDefinition):
-    def __init__(self):
-        super().__init__()
-        self.name = "TestComponent XYZOP"
-        self.category = "Plugin Components"
-        self.input_count = 2
-        self.output_count = 2
-        self.delay_ns = 2
-        self.set_simulation_function(self.simulate)
-        self.aux = {1: "aux data"}
-
-    @staticmethod
-    def simulate(inputs: list[PinState], simTime: float, oldState: ComponentState) -> ComponentState:
-        newState = oldState.copy()
-        newState.input_states = inputs.copy() 
-        for idx, input in enumerate(inputs):
-            newOutput = input.copy()
-            newOutput.invert()
-
-            if newOutput.state == oldState.output_states[idx].state:
-                continue
-
-            newOutput.last_change_time_ns = simTime
-
-            newState.set_output_state(idx, newOutput)
-            newState.changed = True
-
-        return newState._native
+from bessplug.api.sim_engine import ComponentDefinition
+from components.latches import latches
 
 
 class BessPlugin(Plugin):
@@ -38,7 +10,7 @@ class BessPlugin(Plugin):
 
     @override
     def on_components_reg_load(self) -> list[ComponentDefinition]:
-        return [TestComponent()]
+        return [*latches]
 
 
 plugin_hwd = BessPlugin()
