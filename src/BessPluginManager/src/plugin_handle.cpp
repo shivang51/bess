@@ -82,10 +82,12 @@ namespace Bess::Plugins {
 
                 if (py::hasattr(pyComp, "state_aux")) {
                     py::object auxObj = pyComp.attr("state_aux");
-                    if (!auxObj.is_none()) initialAuxPtr = makeGilSafe(auxObj);
+                    if (!auxObj.is_none())
+                        initialAuxPtr = makeGilSafe(auxObj);
                 } else if (py::hasattr(pyComp, "aux")) {
                     py::object auxObj = pyComp.attr("aux");
-                    if (!auxObj.is_none()) initialAuxPtr = makeGilSafe(auxObj);
+                    if (!auxObj.is_none())
+                        initialAuxPtr = makeGilSafe(auxObj);
                 }
 
                 SimEngine::SimulationFunction simFn;
@@ -121,17 +123,18 @@ namespace Bess::Plugins {
                     }
                 }();
 
-                if (py::hasattr(pyComp, "input_pin_details")) {
+                if (py::hasattr(pyComp, "native_input_pin_details")) {
                     try {
-                        auto pins = pyComp.attr("input_pin_details").cast<std::vector<SimEngine::PinDetails>>();
+                        auto pins = pyComp.attr("native_input_pin_details").cast<std::vector<SimEngine::PinDetail>>();
                         def.inputPinDetails = pins;
                     } catch (std::exception &e) {
                         spdlog::error("Plugin [{}] component [{}]: failed to cast input_pin_details\n{}", name, category, e.what());
                     }
                 }
-                if (py::hasattr(pyComp, "output_pin_details")) {
+
+                if (py::hasattr(pyComp, "native_output_pin_details")) {
                     try {
-                        auto pins = pyComp.attr("output_pin_details").cast<std::vector<SimEngine::PinDetails>>();
+                        auto pins = pyComp.attr("native_output_pin_details").cast<std::vector<SimEngine::PinDetail>>();
                         def.outputPinDetails = pins;
                     } catch (std::exception &e) {
                         spdlog::error("Plugin [{}] component [{}]: failed to cast output_pin_details\n{}", name, category, e.what());

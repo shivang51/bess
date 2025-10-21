@@ -62,8 +62,8 @@ namespace Bess::SimEngine {
         assert(false);
     }
 
-    std::pair<std::span<const PinDetails>, std::span<const PinDetails>> ComponentDefinition::getPinDetails() const {
-        std::span<const PinDetails> in, out;
+    std::pair<std::span<const PinDetail>, std::span<const PinDetail>> ComponentDefinition::getPinDetails() const {
+        std::span<const PinDetail> in, out;
 
         if (inputPinDetails.size() == inputCount) {
             in = inputPinDetails;
@@ -115,7 +115,7 @@ namespace Bess::SimEngine {
             return fnv1aPod(hash, v);
         }
 
-        inline uint64_t hashPinDetails(uint64_t hash, const PinDetails &pin) noexcept {
+        inline uint64_t hashPinDetails(uint64_t hash, const PinDetail &pin) noexcept {
             hash = fnv1aEnum(hash, pin.type);
             hash = fnv1aString(hash, pin.name);
             hash = fnv1aEnum(hash, pin.extendedType);
@@ -171,10 +171,10 @@ namespace Bess::SimEngine {
             }
         }
 
-        hash = hashVector(hash, inputPinDetails, [](uint64_t h, const PinDetails &p) noexcept {
+        hash = hashVector(hash, inputPinDetails, [](uint64_t h, const PinDetail &p) noexcept {
             return hashPinDetails(h, p);
         });
-        hash = hashVector(hash, outputPinDetails, [](uint64_t h, const PinDetails &p) noexcept {
+        hash = hashVector(hash, outputPinDetails, [](uint64_t h, const PinDetail &p) noexcept {
             return hashPinDetails(h, p);
         });
 

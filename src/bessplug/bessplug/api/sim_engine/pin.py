@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 from bessplug.bindings import _bindings as _b
-from bessplug.bindings._bindings.sim_engine import PinState as NativePinState, PinDetails
+from bessplug.bindings._bindings.sim_engine import PinState as NativePinState
 from .enums import LogicState
 
 _n = _b.sim_engine
@@ -85,7 +85,6 @@ class PinState:
 
 
 __all__ = [
-    "PinDetails",
     "PinState",
 ]
 

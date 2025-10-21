@@ -50,13 +50,13 @@ namespace Bess::SimEngine {
                             high_z
     };
 
-    struct BESS_API PinDetails {
+    struct BESS_API PinDetail {
         PinType type;
         std::string name = "";
         ExtendedPinType extendedType = ExtendedPinType::none;
     };
 
-    inline bool operator==(const Bess::SimEngine::PinDetails &a, const Bess::SimEngine::PinDetails &b) noexcept {
+    inline bool operator==(const Bess::SimEngine::PinDetail &a, const Bess::SimEngine::PinDetail &b) noexcept {
         return a.type == b.type && a.name == b.name && a.extendedType == b.extendedType;
     }
 

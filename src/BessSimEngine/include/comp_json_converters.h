@@ -188,111 +188,111 @@ namespace Bess::JsonConvert {
         //     for (const auto &expr : expressionsArr) {
         //         comp.expressions.push_back(expr.asString());
         //     }
-         // } else {
-         //     comp.expressions = ComponentCatalog::instance().getComponentDefinition(comp.type)->getExpressions(comp.inputConnections.size());
-         // }
-     }
+        // } else {
+        //     comp.expressions = ComponentCatalog::instance().getComponentDefinition(comp.type)->getExpressions(comp.inputConnections.size());
+        // }
+    }
 
-     // --- PinDetails ---
+    // --- PinDetails ---
 
-     inline void toJsonValue(const Bess::SimEngine::PinDetails &pin, Json::Value &j) {
-         j = Json::Value(Json::objectValue);
-         j["type"] = static_cast<int>(pin.type);
-         j["name"] = pin.name;
-         j["extendedType"] = static_cast<int>(pin.extendedType);
-     }
+    inline void toJsonValue(const Bess::SimEngine::PinDetail &pin, Json::Value &j) {
+        j = Json::Value(Json::objectValue);
+        j["type"] = static_cast<int>(pin.type);
+        j["name"] = pin.name;
+        j["extendedType"] = static_cast<int>(pin.extendedType);
+    }
 
-     inline void fromJsonValue(const Json::Value &j, Bess::SimEngine::PinDetails &pin) {
-         if (!j.isObject()) {
-             return;
-         }
-         pin.type = static_cast<Bess::SimEngine::PinType>(j.get("type", 0).asInt());
-         pin.name = j.get("name", pin.name).asString();
-         pin.extendedType = static_cast<Bess::SimEngine::ExtendedPinType>(j.get("extendedType", -1).asInt());
-     }
+    inline void fromJsonValue(const Json::Value &j, Bess::SimEngine::PinDetail &pin) {
+        if (!j.isObject()) {
+            return;
+        }
+        pin.type = static_cast<Bess::SimEngine::PinType>(j.get("type", 0).asInt());
+        pin.name = j.get("name", pin.name).asString();
+        pin.extendedType = static_cast<Bess::SimEngine::ExtendedPinType>(j.get("extendedType", -1).asInt());
+    }
 
-     // --- ComponentDefinition ---
+    // --- ComponentDefinition ---
 
-     inline void toJsonValue(const ComponentDefinition &def, Json::Value &j) {
-         j = Json::Value(Json::objectValue);
-         j["name"] = def.name;
-         j["category"] = def.category;
-         j["delay"] = static_cast<Json::Int64>(def.delay.count());
-         j["setupTime"] = static_cast<Json::Int64>(def.setupTime.count());
-         j["holdTime"] = static_cast<Json::Int64>(def.holdTime.count());
-         j["inputCount"] = def.inputCount;
-         j["outputCount"] = def.outputCount;
-         j["op"] = static_cast<int>(def.op);
-         j["negate"] = def.negate;
+    inline void toJsonValue(const ComponentDefinition &def, Json::Value &j) {
+        j = Json::Value(Json::objectValue);
+        j["name"] = def.name;
+        j["category"] = def.category;
+        j["delay"] = static_cast<Json::Int64>(def.delay.count());
+        j["setupTime"] = static_cast<Json::Int64>(def.setupTime.count());
+        j["holdTime"] = static_cast<Json::Int64>(def.holdTime.count());
+        j["inputCount"] = def.inputCount;
+        j["outputCount"] = def.outputCount;
+        j["op"] = static_cast<int>(def.op);
+        j["negate"] = def.negate;
 
-         // expressions
-         Json::Value &exprArr = j["expressions"] = Json::Value(Json::arrayValue);
-         for (const auto &expr : def.expressions) {
-             exprArr.append(expr);
-         }
+        // expressions
+        Json::Value &exprArr = j["expressions"] = Json::Value(Json::arrayValue);
+        for (const auto &expr : def.expressions) {
+            exprArr.append(expr);
+        }
 
-         // pin details
-         Json::Value &inPins = j["inputPinDetails"] = Json::Value(Json::arrayValue);
-         for (const auto &p : def.inputPinDetails) {
-             Json::Value pj;
-             toJsonValue(p, pj);
-             inPins.append(pj);
-         }
+        // pin details
+        Json::Value &inPins = j["inputPinDetails"] = Json::Value(Json::arrayValue);
+        for (const auto &p : def.inputPinDetails) {
+            Json::Value pj;
+            toJsonValue(p, pj);
+            inPins.append(pj);
+        }
 
-         Json::Value &outPins = j["outputPinDetails"] = Json::Value(Json::arrayValue);
-         for (const auto &p : def.outputPinDetails) {
-             Json::Value pj;
-             toJsonValue(p, pj);
-             outPins.append(pj);
-         }
+        Json::Value &outPins = j["outputPinDetails"] = Json::Value(Json::arrayValue);
+        for (const auto &p : def.outputPinDetails) {
+            Json::Value pj;
+            toJsonValue(p, pj);
+            outPins.append(pj);
+        }
 
         // auxData is runtime-only; skip serializing to avoid non-determinism
 
-         // stable identifier
-         j["hash"] = static_cast<Json::UInt64>(def.getHash());
-     }
+        // stable identifier
+        j["hash"] = static_cast<Json::UInt64>(def.getHash());
+    }
 
-     inline void fromJsonValue(const Json::Value &j, ComponentDefinition &def) {
-         if (!j.isObject()) {
-             return;
-         }
-         def.name = j.get("name", def.name).asString();
-         def.category = j.get("category", def.category).asString();
-         def.delay = SimDelayNanoSeconds(j.get("delay", 0).asInt64());
-         def.setupTime = SimDelayNanoSeconds(j.get("setupTime", 0).asInt64());
-         def.holdTime = SimDelayNanoSeconds(j.get("holdTime", 0).asInt64());
-         def.inputCount = j.get("inputCount", def.inputCount).asInt();
-         def.outputCount = j.get("outputCount", def.outputCount).asInt();
-         def.op = static_cast<char>(j.get("op", static_cast<int>(def.op)).asInt());
-         def.negate = j.get("negate", def.negate).asBool();
+    inline void fromJsonValue(const Json::Value &j, ComponentDefinition &def) {
+        if (!j.isObject()) {
+            return;
+        }
+        def.name = j.get("name", def.name).asString();
+        def.category = j.get("category", def.category).asString();
+        def.delay = SimDelayNanoSeconds(j.get("delay", 0).asInt64());
+        def.setupTime = SimDelayNanoSeconds(j.get("setupTime", 0).asInt64());
+        def.holdTime = SimDelayNanoSeconds(j.get("holdTime", 0).asInt64());
+        def.inputCount = j.get("inputCount", def.inputCount).asInt();
+        def.outputCount = j.get("outputCount", def.outputCount).asInt();
+        def.op = static_cast<char>(j.get("op", static_cast<int>(def.op)).asInt());
+        def.negate = j.get("negate", def.negate).asBool();
 
-         def.expressions.clear();
-         if (j.isMember("expressions")) {
-             for (const auto &e : j["expressions"]) {
-                 def.expressions.push_back(e.asString());
-             }
-         }
+        def.expressions.clear();
+        if (j.isMember("expressions")) {
+            for (const auto &e : j["expressions"]) {
+                def.expressions.push_back(e.asString());
+            }
+        }
 
-         def.inputPinDetails.clear();
-         if (j.isMember("inputPinDetails")) {
-             for (const auto &pj : j["inputPinDetails"]) {
-                 PinDetails p{};
-                 fromJsonValue(pj, p);
-                 def.inputPinDetails.push_back(p);
-             }
-         }
+        def.inputPinDetails.clear();
+        if (j.isMember("inputPinDetails")) {
+            for (const auto &pj : j["inputPinDetails"]) {
+                PinDetail p{};
+                fromJsonValue(pj, p);
+                def.inputPinDetails.push_back(p);
+            }
+        }
 
-         def.outputPinDetails.clear();
-         if (j.isMember("outputPinDetails")) {
-             for (const auto &pj : j["outputPinDetails"]) {
-                 PinDetails p{};
-                 fromJsonValue(pj, p);
-                 def.outputPinDetails.push_back(p);
-             }
-         }
+        def.outputPinDetails.clear();
+        if (j.isMember("outputPinDetails")) {
+            for (const auto &pj : j["outputPinDetails"]) {
+                PinDetail p{};
+                fromJsonValue(pj, p);
+                def.outputPinDetails.push_back(p);
+            }
+        }
 
         // auxData is runtime-only; do not deserialize
 
-         // Note: simulationFunction and modifiable properties are not deserialized here due to runtime-only nature
-     }
- } // namespace Bess::JsonConvert
+        // Note: simulationFunction and modifiable properties are not deserialized here due to runtime-only nature
+    }
+} // namespace Bess::JsonConvert

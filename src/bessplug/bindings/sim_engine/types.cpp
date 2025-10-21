@@ -3,6 +3,7 @@
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
 #include <typeinfo>
 
 #include "types.h"
@@ -111,21 +112,13 @@ void bind_sim_engine_types(py::module_ &m) {
                 if (idx >= self.outputStates.size()) {
                     throw py::index_error("output index out of range");
                 }
-                self.outputStates[idx] = value;
-            }, py::arg("idx"), py::arg("value"))
+                self.outputStates[idx] = value; }, py::arg("idx"), py::arg("value"))
         .def_readwrite("is_changed", &ComponentState::isChanged)
         .def("copy", [](const ComponentState &self) {
                 ComponentState cpy = self;
-                return cpy;
-            })
-        .def_property(
-            "input_connected",
-            [](const ComponentState &self) { return self.inputConnected; },
-            [](ComponentState &self, const std::vector<bool> &v) { self.inputConnected = v; })
-        .def_property(
-            "output_connected",
-            [](const ComponentState &self) { return self.outputConnected; },
-            [](ComponentState &self, const std::vector<bool> &v) { self.outputConnected = v; })
+                return cpy; })
+        .def_property("input_connected", [](const ComponentState &self) { return self.inputConnected; }, [](ComponentState &self, const std::vector<bool> &v) { self.inputConnected = v; })
+        .def_property("output_connected", [](const ComponentState &self) { return self.outputConnected; }, [](ComponentState &self, const std::vector<bool> &v) { self.outputConnected = v; })
         .def_property("aux_data_ptr", [](const ComponentState &self) { return static_cast<std::uintptr_t>(reinterpret_cast<std::uintptr_t>(self.auxData)); }, [](ComponentState &self, std::uintptr_t ptr_value) { self.auxData = reinterpret_cast<std::any *>(ptr_value); })
         .def("set_aux_pyobject", [](ComponentState &self, py::object obj) {
                 if (self.auxData && self.auxData->type() == typeid(OwnedPyObject)) {
@@ -165,9 +158,9 @@ void bind_sim_engine_types(py::module_ &m) {
         .value("INPUT_CLEAR", ExtendedPinType::inputClear)
         .export_values();
 
-    py::class_<PinDetails>(m, "PinDetails")
+    py::class_<PinDetail>(m, "PinDetail")
         .def(py::init<>())
-        .def_readwrite("type", &PinDetails::type)
-        .def_readwrite("name", &PinDetails::name)
-        .def_readwrite("extended_type", &PinDetails::extendedType);
+        .def_readwrite("type", &PinDetail::type)
+        .def_readwrite("name", &PinDetail::name)
+        .def_readwrite("extended_type", &PinDetail::extendedType);
 }

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Callable, Optional, Union, Any
 import json
-from .pin import PinDetails
+from .pin_detail import PinDetail
 from bessplug.bindings._bindings.sim_engine import ComponentDefinition as NativeComponentDefinition
 from bessplug.bindings._bindings.sim_engine import SimulationFunction as NativeSimulationFunction
 
@@ -101,20 +101,30 @@ class ComponentDefinition:
         self._native.expressions = list(expr)
 
     @property
-    def input_pin_details(self) -> list[PinDetails]:
-        return list(self._native.input_pin_details)
-
-    @input_pin_details.setter
-    def input_pin_details(self, pins: list[PinDetails]) -> None:
-        self._native.input_pin_details = list(pins)
+    def input_pin_details(self) -> list[PinDetail]:
+        return [PinDetail(p) for p in self._native.input_pin_details]
 
     @property
-    def output_pin_details(self) -> list[PinDetails]:
-        return list(self._native.output_pin_details)
+    def native_input_pin_details(self):
+        return self._native.input_pin_details
+
+    @input_pin_details.setter
+    def input_pin_details(self, pins: list[PinDetail]) -> None:
+        pins = [p._native if isinstance(p, PinDetail) else p for p in pins]
+        self._native.input_pin_details = pins
+
+    @property
+    def native_output_pin_details(self):
+        return self._native.output_pin_details
+
+    @property
+    def output_pin_details(self) -> list[PinDetail]:
+        return [PinDetail(p) for p in self._native.output_pin_details]
 
     @output_pin_details.setter
-    def output_pin_details(self, pins: list[PinDetails]) -> None:
-        self._native.output_pin_details = list(pins)
+    def output_pin_details(self, pins: list[PinDetail]) -> None:
+        pins = [p._native if isinstance(p, PinDetail) else p for p in pins]
+        self._native.output_pin_details = pins
 
     @property
     def input_count(self) -> int:
@@ -156,7 +166,7 @@ class ComponentDefinition:
     def get_expressions(self, input_count: int = -1) -> list[str]:
         return list(self._native.get_expressions(input_count))
 
-    def get_pin_details(self) -> tuple[list[PinDetails], list[PinDetails]]:
+    def get_pin_details(self) -> tuple[list[PinDetail], list[PinDetail]]:
         return self._native.get_pin_details()
 
     def get_hash(self) -> int:
@@ -200,7 +210,9 @@ class ComponentDefinition:
     ) -> "ComponentDefinition":
         sim = simFn if isinstance(simFn, NativeSimulationFunction) else NativeSimulationFunction(simFn)
         native = NativeComponentDefinition(name, category, input_count, output_count, sim, int(delay_ns), op)
-        return ComponentDefinition(native)
+        defi = ComponentDefinition(native)
+        defi.set_simulation_function(simFn)
+        return defi
 
     @staticmethod
     def from_expressions(
@@ -214,7 +226,9 @@ class ComponentDefinition:
     ) -> "ComponentDefinition":
         sim = simFn if isinstance(simFn, NativeSimulationFunction) else NativeSimulationFunction(simFn)
         native = NativeComponentDefinition(name, category, input_count, output_count, sim, int(delay_ns), expressions or [])
-        return ComponentDefinition(native)
+        defi = ComponentDefinition(native)
+        defi.set_simulation_function(simFn)
+        return defi
 
 
 __all__ = [

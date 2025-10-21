@@ -1,5 +1,6 @@
 from .enums import LogicState, PinType, ExtendedPinType
-from .pin import PinDetails, PinState
+from .pin import PinState
+from .pin_detail import PinDetail
 from .component_state import ComponentState
 from .component_definition import ComponentDefinition
 
@@ -7,7 +8,7 @@ __all__ = [
     "LogicState",
     "PinType",
     "ExtendedPinType",
-    "PinDetails",
+    "PinDetail",
     "PinState",
     "ComponentState",
     "ComponentDefinition",

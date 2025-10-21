@@ -28,9 +28,9 @@ namespace Bess::SimEngine {
         std::string category;
         SimDelayNanoSeconds delay, setupTime, holdTime;
         SimulationFunction simulationFunction;
-        std::vector<std::string> expressions = {};
-        std::vector<PinDetails> inputPinDetails = {};
-        std::vector<PinDetails> outputPinDetails = {};
+        std::vector<std::string> expressions;
+        std::vector<PinDetail> inputPinDetails;
+        std::vector<PinDetail> outputPinDetails;
         int inputCount;
         int outputCount;
         char op = '0';
@@ -45,7 +45,7 @@ namespace Bess::SimEngine {
 
         std::vector<std::string> getExpressions(int inputCount = -1) const;
 
-        std::pair<std::span<const PinDetails>, std::span<const PinDetails>> getPinDetails() const;
+        std::pair<std::span<const PinDetail>, std::span<const PinDetail>> getPinDetails() const;
 
         uint64_t getHash() const noexcept;
 
