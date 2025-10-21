@@ -1,4 +1,5 @@
 set(PROJECT_NAME BessVulkan)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(EXT_OTHERS_SRC
 	"${CMAKE_SOURCE_DIR}/external/stb_image/src/stb_image.cpp"
