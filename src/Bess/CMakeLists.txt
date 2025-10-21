@@ -40,6 +40,8 @@ set(Header_Files
 "include/pages/start_page/start_page.h"
 "include/pages/page_identifier.h"
 "include/application.h"
+"include/args_parser.h"
+"include/crash_detail_helper.h"
 "include/camera.h"
 "include/common/helpers.h"
 "include/common/bind_helpers.h"
@@ -251,13 +253,13 @@ find_package(PNG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PUBLIC 
 	${PNG_LIBRARIES}
 	${GLFW_LIBRARIES}
-	  ${X11_LIBRARIES}
+	${X11_LIBRARIES}
 	${VULKAN_LIBRARIES}
 )
 target_include_directories(${PROJECT_NAME} PUBLIC 
 	${PNG_INCLUDE_DIRS}
-			${VULKAN_INCLUDE_DIRS}
-${GLFW_INCLUDE_DIRS}
+	${VULKAN_INCLUDE_DIRS}
+	${GLFW_INCLUDE_DIRS}
 )
 
 

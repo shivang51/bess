@@ -151,7 +151,6 @@ namespace Bess {
 #endif
 
         BESS_INFO("[Application] Initializing application, with project path: {}", path.empty() ? "None" : path);
-        BESS_INFO("");
 
         auto &pluginMangaer = Plugins::PluginManager::getInstance();
 
@@ -183,9 +182,7 @@ namespace Bess {
         if (!path.empty())
             loadProject(path);
 
-        BESS_INFO("");
-        BESS_INFO("[Application] Application initialized successfully");
-        BESS_INFO("");
+        BESS_INFO("[Application] Application initialized successfully\n");
     }
 
     void Application::shutdown() const {
