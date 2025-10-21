@@ -22,6 +22,7 @@ namespace Bess::Canvas {
 
     struct ArtistTools {
         std::array<std::shared_ptr<Vulkan::SubTexture>, 8> sevenSegDispTexs;
+        std::unordered_map<uint64_t, Renderer::Path> schematicSymbolPaths;
     };
 
     struct ArtistInstructions {

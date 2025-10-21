@@ -38,10 +38,20 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    "${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"
-		"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
-    "${CMAKE_SOURCE_DIR}/external/entt/include;"
-    "${CMAKE_SOURCE_DIR}/external/spdlog/include;"
+			"${CMAKE_SOURCE_DIR}/external/imgui"
+			"${CMAKE_SOURCE_DIR}/external/implot"
+			"${CMAKE_SOURCE_DIR}/external/freetype/include"
+			"${CMAKE_SOURCE_DIR}/external/imgui/backends"
+			"${CMAKE_SOURCE_DIR}/external/glm"
+			"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
+			"${CMAKE_SOURCE_DIR}/external/stb_image/include"
+			"${CMAKE_SOURCE_DIR}/external/tinyfiledialogs"
+			"${CMAKE_SOURCE_DIR}/external/entt/include"
+			"${CMAKE_SOURCE_DIR}/external/spdlog/include"
+			"${CMAKE_SOURCE_DIR}/external/libtess2/Include"
+			"${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"
+			"${CMAKE_SOURCE_DIR}/src/Bess/include"
+			"${CMAKE_SOURCE_DIR}/src/BessVulkan/include"
 )
 
 target_include_directories(BessPluginManager

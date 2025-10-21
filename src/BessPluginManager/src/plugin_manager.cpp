@@ -101,12 +101,9 @@ namespace Bess::Plugins {
             for (const auto &entry : fs::directory_iterator(pluginsDir)) {
                 if (!entry.is_directory())
                     continue;
-                for (const auto &file : fs::directory_iterator(entry)) {
-                    if (file.is_regular_file() && file.path().extension() == ".py") {
-                        if (loadPlugin(file.path().string())) {
-                            loadedCount++;
-                        }
-                    }
+                const auto file = entry.path() / "main.py";
+                if (std::filesystem::exists(file) && loadPlugin(file.string())) {
+                    loadedCount++;
                 }
             }
 

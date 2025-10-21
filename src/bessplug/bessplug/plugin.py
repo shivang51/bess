@@ -1,5 +1,7 @@
 from abc import abstractmethod
 
+from .api.renderer.path import Path
+
 from .api.log import Logger
 from .api.sim_engine import ComponentDefinition
 
@@ -18,9 +20,12 @@ class Plugin:
         '''
         pass
 
+    @abstractmethod
+    def on_schematic_symbols_load(self) -> dict[int, Path]:
+        '''
+        Method is called when schematic symbols are getting loaded for rendered inside scene in schematic view.
+        @return: Dict[int, Path] mapping of component definition hash to their schematic symbol paths.
+        '''
+        pass
 
-    def activate(self):
-        self.logger.log(f"Activating plugin: {self.name} v{self.version}")
 
-    def deactivate(self):
-        self.logger.log(f"Deactivating plugin: {self.name} v{self.version}")

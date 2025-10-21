@@ -1,5 +1,6 @@
 from typing import override
 from bessplug import Plugin 
+from bessplug.api.renderer.path import Path
 from bessplug.api.sim_engine import ComponentDefinition
 from components.latches import latches
 
@@ -11,6 +12,17 @@ class BessPlugin(Plugin):
     @override
     def on_components_reg_load(self) -> list[ComponentDefinition]:
         return [*latches]
+
+    @override
+    def on_schematic_symbols_load(self) -> dict[int, Path]:
+        latch: ComponentDefinition = latches[0]
+        hash = latch.get_hash()
+        path = Path()
+        path.move_to((0, 0    ))
+        path.line_to((1, 0  ))
+        path.line_to((1, 1))
+        path.line_to((0, 0))
+        return {hash: path}
 
 
 plugin_hwd = BessPlugin()

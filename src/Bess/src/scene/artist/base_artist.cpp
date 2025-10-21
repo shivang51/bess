@@ -1,6 +1,8 @@
 #include "scene/artist/base_artist.h"
 #include "asset_manager/asset_manager.h"
 #include "assets.h"
+#include "common/log.h"
+#include "plugin_manager.h"
 #include "scene/artist/nodes_artist.h"
 #include "scene/scene.h"
 #include "scene/scene_pch.h"
@@ -44,6 +46,17 @@ namespace Bess::Canvas {
             std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({1.f, 1.f}), size, margin, glm::vec2(1.f)),
             std::make_shared<Vulkan::SubTexture>(tex, glm::vec2({2.f, 1.f}), size, margin, glm::vec2(1.f)),
         };
+
+        Plugins::PluginManager &pluginMgr = Plugins::PluginManager::getInstance();
+        const auto &loadedPlugins = pluginMgr.getLoadedPlugins();
+
+        for (const auto &[name, plugin] : loadedPlugins) {
+            auto schematicSymbols = plugin->onSchematicSymbolsLoad();
+            m_artistTools.schematicSymbolPaths.insert(schematicSymbols.begin(), schematicSymbols.end());
+            BESS_TRACE("[Base Artist] Loaded {} schematic symbols from plugin: {}", schematicSymbols.size(), name);
+        }
+
+        BESS_INFO("[Base Artist] Artist tools initialized");
     }
 
     void BaseArtist::begin(VkCommandBuffer cmd, const std::shared_ptr<Camera> &camera, uint32_t frameIdx) {

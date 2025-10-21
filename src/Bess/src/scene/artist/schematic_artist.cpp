@@ -2,6 +2,7 @@
 #include "component_catalog.h"
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
+#include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_pch.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
@@ -140,11 +141,26 @@ namespace Bess::Canvas {
 
         bool showName = true;
 
-        m_pathRenderer->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
-        m_pathRenderer->pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);
-        m_pathRenderer->pathLineTo({x1, y1, pos.z}, nodeWeight, strokeColor, id);
-        m_pathRenderer->pathLineTo({x, y1, pos.z}, nodeWeight, ViewportTheme::colors.wire, id);
-        m_pathRenderer->endPathMode(true, true, fillColor);
+        auto itr = m_artistTools.schematicSymbolPaths.find(simComponent.defHash);
+        if (itr != m_artistTools.schematicSymbolPaths.end()) {
+            auto &path = itr->second;
+            ContoursDrawInfo info;
+            info.fillColor = fillColor;
+            info.strokeColor = strokeColor;
+            info.genFill = true;
+            info.genStroke = true;
+            info.scale = {w, h};
+            info.translate = {pos.x - (w / 2.f), pos.y - (h / 2.f), pos.z};
+            info.glyphId = id;
+            m_pathRenderer->drawPath(path, info);
+            showName = false;
+        } else {
+            m_pathRenderer->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
+            m_pathRenderer->pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);
+            m_pathRenderer->pathLineTo({x1, y1, pos.z}, nodeWeight, strokeColor, id);
+            m_pathRenderer->pathLineTo({x, y1, pos.z}, nodeWeight, ViewportTheme::colors.wire, id);
+            m_pathRenderer->endPathMode(true, true, fillColor);
+        }
 
         if (showName) {
             const auto textSize = m_materialRenderer->getTextRenderSize(tagComp.name, componentStyles.headerFontSize);
