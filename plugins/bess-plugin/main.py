@@ -22,6 +22,8 @@ class BessPlugin(Plugin):
         path.line_to((1, 0  ))
         path.line_to((1, 1))
         path.line_to((0, 0))
+        props = path.get_path_properties()
+        props.render_fill = True
         return {hash: path}
 
 

@@ -1,13 +1,37 @@
 from bessplug.bindings._bindings.renderer import Path as NativePath
 from typing import List, Tuple, Union
-from bessplug.bindings._bindings.renderer import Path, PathCommand, PathCommandKind, MoveTo, LineTo, QuadTo, CubicTo
+from bessplug.bindings._bindings.renderer import Path, PathCommand, PathCommandKind, PathProperties as NativePathProperties
 from bessplug.bindings._bindings import UUID
 
 Vec2 = Tuple[float, float]
 
+class PathProperties:
+    """
+    Wrapper for path rendering properties.
+    Attributes:
+        - render_stroke (bool): Whether to render the stroke.
+        - render_fill (bool): Whether to render the fill.
+        - is_closed (bool): Whether the path is closed.
+        - rounded_joints (bool): Whether to use rounded joints.
+    """
+    def __init__(self, native: NativePathProperties | None = None):
+        self._native = native or NativePathProperties()
+        self.render_stroke: bool = self._native.render_stroke
+        self.render_fill: bool = self._native.render_fill
+        self.is_closed: bool = self._native.is_closed
+        self.rounded_joints: bool = self._native.rounded_joints
+
+
 class Path:
     """
     Pythonic wrapper for the native C++ Path class.
+    Available Commands:
+        - move_to(pos: Vec2)
+        - line_to(pos: Vec2)
+        - quad_to(c: Vec2, pos: Vec2)
+        - cubic_to(c1: Vec2, c2: Vec2, pos: Vec2)
+    Path Commands can also be added directly using add_command().
+    Path properties can be accessed and modified via get_path_properties() and set_path_properties().
     """
 
     def __init__(self, native: NativePath | None = None):
@@ -61,6 +85,15 @@ class Path:
             for c in cmds
         ]
         self._native.set_commands(native_cmds)
+
+    def set_path_properties(self, properties: PathProperties) -> "Path":
+        """Set path rendering properties."""
+        self._native.set_props(properties._native)
+        return self
+
+    def get_path_properties(self) -> PathProperties:
+        """Get path rendering properties."""
+        return self._native.get_props_ref()
 
     # ---------------------------------------------------------------------
     # --- Contours and UUID access
@@ -180,4 +213,4 @@ def _vec2(v: Vec2):
     return vec2(float(v[0]), float(v[1]))
 
 
-__all__ = ["Path", "Vec2"]
+__all__ = ["Path", "Vec2", "PathProperties"]

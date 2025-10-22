@@ -145,6 +145,7 @@ namespace Bess::Renderer2D::Vulkan {
         };
         std::unordered_map<UUID, MeshRange> m_glyphIdToMesh;
         std::unordered_map<UUID, std::vector<FillInstance>> m_glyphIdToInstances;
+        std::unordered_map<std::string, std::vector<std::vector<CommonVertex>>> m_posScaleToStrokeGeometryCache;
 
         std::shared_ptr<VulkanDevice> m_device;
         std::shared_ptr<VulkanOffscreenRenderPass> m_renderPass;

@@ -105,6 +105,19 @@ void bind_renderer_path(py::module_ &m) {
             }
         });
 
+    py::class_<Bess::Renderer::PathProperties>(m, "PathProperties")
+        .def(py::init<>())
+        .def_readwrite("is_closed", &Bess::Renderer::PathProperties::isClosed)
+        .def_readwrite("rounded_joints", &Bess::Renderer::PathProperties::roundedJoints)
+        .def_readwrite("render_stroke", &Bess::Renderer::PathProperties::renderStroke)
+        .def_readwrite("render_fill", &Bess::Renderer::PathProperties::renderFill)
+        .def("__repr__", [](const Bess::Renderer::PathProperties &props) {
+            return "<PathProperties is_closed=" + std::to_string(props.isClosed) +
+                   " rounded_joints=" + std::to_string(props.roundedJoints) +
+                   " render_stroke=" + std::to_string(props.renderStroke) +
+                   " render_fill=" + std::to_string(props.renderFill) + ">";
+        });
+
     py::class_<Path>(m, "Path")
         .def(py::init<>())
         .def("move_to", &Path::moveTo, py::return_value_policy::reference_internal)
@@ -115,6 +128,9 @@ void bind_renderer_path(py::module_ &m) {
         .def("get_commands", &Path::getCmds, py::return_value_policy::reference_internal)
         .def("set_commands", &Path::setCommands)
         .def("get_contours", &Path::getContours, py::return_value_policy::reference_internal)
+        .def("get_props_ref", &Path::getPropsRef, py::return_value_policy::reference_internal)
+        .def("get_props", &Path::getProps)
+        .def("set_props", &Path::setProps)
         .def_readwrite("uuid", &Path::uuid)
         .def("__repr__", [](const Path &) { return "<Path>"; });
 }

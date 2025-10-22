@@ -1,7 +1,7 @@
-#include "scene/scene_pch.h"
 #include "scene/renderer/glyph_extractor.h"
 #include "common/log.h"
 #include "freetype/freetype.h"
+#include "scene/scene_pch.h"
 #include <cassert>
 
 namespace Bess::Renderer::Font {
@@ -160,6 +160,9 @@ namespace Bess::Renderer::Font {
         out.advanceY = float(m_face->glyph->advance.y) / 64.0f;
         out.path = *oc.out;
         out.charCode = codepoint;
+        out.path.getPropsRef().renderFill = true;
+        out.path.getPropsRef().renderStroke = false;
+        out.path.getPropsRef().isClosed = false;
         return true;
     }
 

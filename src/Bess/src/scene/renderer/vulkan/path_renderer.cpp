@@ -1,4 +1,5 @@
 #include "scene/renderer/vulkan/path_renderer.h"
+#include "common/log.h"
 #include "detail/qualifier.hpp"
 #include "geometric.hpp"
 #include <ranges>
@@ -40,6 +41,15 @@ namespace Bess::Renderer2D::Vulkan {
         h(rounded ? 1ULL : 0ULL);
         return seed;
     }
+
+    std::string generatePosScaleKey(const glm::vec3 &pos, const glm::vec2 &scale) {
+        return std::to_string(static_cast<int>(pos.x * 1000)) + "_" +
+               std::to_string(static_cast<int>(pos.y * 1000)) + "_" +
+               std::to_string(static_cast<int>(pos.z * 1000)) + "_" +
+               std::to_string(static_cast<int>(scale.x * 1000)) + "_" +
+               std::to_string(static_cast<int>(scale.y * 1000));
+    }
+
     constexpr size_t primitiveResetIndex = 0xFFFFFFFF;
     constexpr float kRoundedJoinRadius = 8.0f;
     constexpr int kMaxRoundedSegments = 24;
@@ -61,23 +71,31 @@ namespace Bess::Renderer2D::Vulkan {
         std::vector<std::vector<CommonVertex>> generatedStrokeVertices;
         std::vector<CommonVertex> generatedFillVertices;
         bool cacheHit = m_cache.getEntryPtr(path.uuid, cachedPtr);
-        auto &contours = path.getContours();
+
+        const auto &posScaleKey = generatePosScaleKey(info.translate, info.scale);
+
+        const auto &pathProps = path.getProps();
+
+        if (pathProps.renderStroke && path.scale(info.scale)) {
+            m_posScaleToStrokeGeometryCache.erase(posScaleKey);
+        }
 
         // Use cached stroke geometry only when rounded joints are not requested
-        if (cacheHit && (!info.rounedJoint || (cachedPtr && cachedPtr->rounded))) {
+        if (cacheHit && (!pathProps.renderStroke || (cachedPtr && cachedPtr->rounded))) {
             strokeVerticesRef = &cachedPtr->strokeVertices;
             fillVerticesRef = &cachedPtr->fillVertices;
         } else {
-            if (info.genStroke) {
+            auto &contours = path.getContours();
+            if (pathProps.renderStroke) {
                 for (const auto &points : contours) {
-                    auto vertices = generateStrokeGeometry(points, info.strokeColor, info.closePath, info.rounedJoint);
+                    auto vertices = generateStrokeGeometry(points, info.strokeColor, pathProps.isClosed, pathProps.roundedJoints);
                     generatedStrokeVertices.emplace_back(std::move(vertices));
                 }
                 strokeVerticesRef = &generatedStrokeVertices;
             }
 
-            if (info.genFill) {
-                generatedFillVertices = generateFillGeometry(contours, info.fillColor, info.rounedJoint);
+            if (pathProps.renderFill) {
+                generatedFillVertices = generateFillGeometry(contours, info.fillColor, pathProps.roundedJoints);
                 fillVerticesRef = &generatedFillVertices;
             }
 
@@ -87,21 +105,36 @@ namespace Bess::Renderer2D::Vulkan {
                     .pathId = path.uuid,
                     .strokeVertices = generatedStrokeVertices,
                     .fillVertices = generatedFillVertices,
-                    .rounded = info.rounedJoint,
+                    .rounded = pathProps.roundedJoints,
                 });
             }
         }
 
-        if (strokeVerticesRef) {
-            for (const auto &vertices : *strokeVerticesRef) {
-                auto translated = vertices; // !copy once into frame heap, not cache
-                for (auto &p : translated)
-                    p.position += info.translate;
-                m_strokeVertices.insert(m_strokeVertices.end(), translated.begin(), translated.end());
-                auto s = m_strokeVertices.size() - translated.size();
-                auto indices = std::views::iota(s, m_strokeVertices.size());
-                m_strokeIndices.insert(m_strokeIndices.end(), indices.begin(), indices.end());
-                m_strokeIndices.emplace_back(primitiveResetIndex);
+        if (strokeVerticesRef && !strokeVerticesRef->empty()) {
+            auto itr = m_posScaleToStrokeGeometryCache.find(posScaleKey);
+            if (itr != m_posScaleToStrokeGeometryCache.end()) {
+                for (const auto &vertices : itr->second) {
+                    auto translated = vertices;
+                    m_strokeVertices.insert(m_strokeVertices.end(), translated.begin(), translated.end());
+                    auto s = m_strokeVertices.size() - translated.size();
+                    auto indices = std::views::iota(s, m_strokeVertices.size());
+                    m_strokeIndices.insert(m_strokeIndices.end(), indices.begin(), indices.end());
+                    m_strokeIndices.emplace_back(primitiveResetIndex);
+                }
+            } else {
+                for (const auto &vertices : *strokeVerticesRef) {
+                    auto translated = vertices;
+                    for (auto &p : translated) {
+                        p.position += info.translate;
+                        p.id = static_cast<int>(info.glyphId);
+                    }
+                    m_strokeVertices.insert(m_strokeVertices.end(), translated.begin(), translated.end());
+                    auto s = m_strokeVertices.size() - translated.size();
+                    auto indices = std::views::iota(s, m_strokeVertices.size());
+                    m_strokeIndices.insert(m_strokeIndices.end(), indices.begin(), indices.end());
+                    m_strokeIndices.emplace_back(primitiveResetIndex);
+                    m_posScaleToStrokeGeometryCache[posScaleKey].emplace_back(translated);
+                }
             }
         }
 
@@ -118,7 +151,7 @@ namespace Bess::Renderer2D::Vulkan {
                     m_fillIndices.emplace_back(baseVertex + i);
                 m_glyphIdToMesh[glyphId] = {firstIndex, localCount};
             }
-            m_glyphIdToInstances[glyphId].emplace_back(FillInstance{info.translate, info.scale, info.fillColor, (int)info.glyphId});
+            m_glyphIdToInstances[glyphId].emplace_back(FillInstance{info.translate, info.genStroke ? glm::vec2(1.f) : info.scale, info.fillColor, (int)info.glyphId});
         }
     }
 

@@ -111,4 +111,42 @@ namespace Bess::Renderer {
             points.clear();
         }
     }
+
+    bool Path::scale(const glm::vec2 &factor) {
+        if (factor == m_currentScale) {
+            return false;
+        }
+
+        m_currentScale = factor;
+
+        m_contours.clear();
+        for (auto &cmd : m_cmds) {
+            using Kind = Renderer::Path::PathCommand::Kind;
+            switch (cmd.kind) {
+            case Kind::Move: {
+                cmd.move.p *= factor;
+            } break;
+            case Kind::Line: {
+                cmd.line.p *= factor;
+            } break;
+            case Kind::Quad: {
+                cmd.quad.p *= factor;
+                cmd.quad.c *= factor;
+            } break;
+            case Kind::Cubic: {
+                cmd.cubic.p *= factor;
+                cmd.cubic.c1 *= factor;
+                cmd.cubic.c2 *= factor;
+            } break;
+            }
+        }
+
+        return true;
+    }
+
+    PathProperties &Path::getPropsRef() { return m_props; }
+
+    const PathProperties &Path::getProps() const { return m_props; }
+
+    void Path::setProps(const PathProperties &props) { m_props = props; }
 } // namespace Bess::Renderer

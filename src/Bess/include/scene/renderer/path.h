@@ -14,6 +14,13 @@ namespace Bess::Renderer2D::Vulkan {
 }; // namespace Bess::Renderer2D::Vulkan
 
 namespace Bess::Renderer {
+    struct PathProperties {
+        bool isClosed = false;
+        bool roundedJoints = false;
+        bool renderStroke = true;
+        bool renderFill = false;
+    };
+
     class Path {
       public:
         Path() = default;
@@ -63,7 +70,15 @@ namespace Bess::Renderer {
 
         const std::vector<PathCommand> &getCmds() const;
 
+        bool scale(const glm::vec2 &factor);
+
         void setCommands(const std::vector<PathCommand> &cmds);
+
+        void setProps(const PathProperties &props);
+
+        const PathProperties &getProps() const;
+
+        PathProperties &getPropsRef();
 
         const std::vector<std::vector<Renderer2D::Vulkan::PathPoint>> &getContours();
 
@@ -73,6 +88,8 @@ namespace Bess::Renderer {
         void formContours();
 
       private:
+        PathProperties m_props{};
+        glm::vec2 m_currentScale = glm::vec2(1.f);
         std::vector<PathCommand> m_cmds;
         std::vector<std::vector<Renderer2D::Vulkan::PathPoint>> m_contours;
     };
