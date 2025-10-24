@@ -1,4 +1,5 @@
 #include "scene/commands/connect_command.h"
+#include "common/log.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
 
@@ -29,7 +30,8 @@ namespace Bess::Canvas::Commands {
 
             auto startPinType = startSlotComp.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
             auto dstPinType = endSlotComp.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
-            const auto res = cmdMngr.execute<Bess::SimEngine::Commands::ConnectCommand, std::string>(startSimParent, startSlotComp.idx, startPinType, endSimParent, endSlotComp.idx, dstPinType);
+            const auto res = cmdMngr.execute<Bess::SimEngine::Commands::ConnectCommand, std::string>(startSimParent, startSlotComp.idx, startPinType,
+                                                                                                     endSimParent, endSlotComp.idx, dstPinType);
 
             if (!res.has_value())
                 return false;

@@ -176,23 +176,21 @@ namespace Bess::SimEngine {
         }
 
         {
-            // StateMonitorComponent *stateMonitorComp = nullptr;
-            // PinType type = srcType;
-            // ComponentPin pin;
-            // if (srcComp.definition.type == ComponentType::STATE_MONITOR) {
-            //     stateMonitorComp = m_registry.try_get<StateMonitorComponent>(srcEnt);
-            //     type = srcType;
-            //     pin = {dst, dstPin};
-            // } else if (dstComp.definition.type == ComponentType::STATE_MONITOR) {
-            //     stateMonitorComp = m_registry.try_get<StateMonitorComponent>(dstEnt);
-            //     type = dstType;
-            //     pin = {src, srcPin};
-            // }
-            //
-            // if (stateMonitorComp) {
-            //     stateMonitorComp->attacthTo(pin, type);
-            //     BESS_SE_INFO("Attached state monitor");
-            // }
+            StateMonitorComponent *stateMonitorComp = nullptr;
+            PinType type = srcType;
+            ComponentPin pin;
+            if (m_registry.try_get<StateMonitorComponent>(srcEnt)) {
+                type = srcType;
+                pin = {dst, dstPin};
+            } else if (m_registry.try_get<StateMonitorComponent>(dstEnt)) {
+                type = dstType;
+                pin = {src, srcPin};
+            }
+
+            if (stateMonitorComp) {
+                stateMonitorComp->attacthTo(pin, type);
+                BESS_SE_INFO("Attached state monitor");
+            }
         }
 
         outPins[srcPin].emplace_back(dst, dstPin);
@@ -202,8 +200,8 @@ namespace Bess::SimEngine {
             srcComp.state.outputConnected[srcPin] = true;
             dstComp.state.inputConnected[dstPin] = true;
         } else {
-            srcComp.state.inputConnected[dstPin] = true;
-            dstComp.state.outputConnected[srcPin] = true;
+            srcComp.state.inputConnected[srcPin] = true;
+            dstComp.state.outputConnected[dstPin] = true;
         }
 
         scheduleEvent(dstEnt, srcEnt, m_currentSimTime + dstComp.definition.delay);
