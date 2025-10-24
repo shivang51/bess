@@ -172,51 +172,36 @@ namespace Bess::SimEngine {
                                                return newState;
                                            },
                                            SimDelayNanoSeconds(0)};
+        stateMonDef.inputPinDetails = {{PinType::input, ""}};
         ComponentCatalog::instance().registerComponent(stateMonDef, ComponentCatalog::SpecialType::stateMonitor);
 
         ComponentCatalog::instance().registerComponent({"7-Seg Display Driver", "IO", 4, 7,
                                                         [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
                                                             auto newState = prevState;
                                                             newState.inputStates = inputs;
-                                                            int dec = 0;
-                                                            for (int i = 0; i < (int)inputs.size(); i++) {
+                                                            const bool connected = std::ranges::any_of(prevState.inputConnected, [](bool b) { return b; });
+                                                            int dec = connected ? 0 : -1;
+                                                            for (int i = 0; i < (int)inputs.size() && connected; i++) {
                                                                 if (inputs[i])
                                                                     dec |= 1 << i;
                                                             }
 
-                                                            int val = 0;
-                                                            switch (dec) {
-                                                            case 1:
-                                                                val = 0b00000110;
-                                                                break;
-                                                            case 2:
-                                                                val = 0b01011011;
-                                                                break;
-                                                            case 3:
-                                                                val = 0b01001111;
-                                                                break;
-                                                            case 4:
-                                                                val = 0b01100110;
-                                                                break;
-                                                            case 5:
-                                                                val = 0b01101101;
-                                                                break;
-                                                            case 6:
-                                                                val = 0b01111101;
-                                                                break;
-                                                            case 7:
-                                                                val = 0b00000111;
-                                                                break;
-                                                            case 8:
-                                                                val = 0b01111111;
-                                                                break;
-                                                            case 9:
-                                                                val = 0b01101111;
-                                                                break;
-                                                            default:
-                                                                val = 0;
-                                                                break;
-                                                            }
+                                                            if (dec > 9)
+                                                                dec = -1;
+
+                                                            constexpr std::array<int, 10> digitToSegment = {
+                                                                0b0111111,
+                                                                0b00000110,
+                                                                0b01011011,
+                                                                0b01001111,
+                                                                0b01100110,
+                                                                0b01101101,
+                                                                0b01111101,
+                                                                0b00000111,
+                                                                0b01111111,
+                                                                0b01101111};
+
+                                                            const auto val = dec != -1 ? digitToSegment[dec] : 0;
 
                                                             bool changed = false;
                                                             for (int i = 0; i < (int)prevState.outputStates.size(); i++) {
