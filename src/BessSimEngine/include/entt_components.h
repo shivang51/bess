@@ -76,6 +76,7 @@ namespace Bess::SimEngine {
         DigitalComponent() = delete;
         DigitalComponent(const DigitalComponent &) = default;
         DigitalComponent(ComponentDefinition def) : definition(std::move(def)) {
+            definition.reinit();
             state.inputStates.resize(definition.inputCount, {LogicState::low, SimTime(0)});
             state.outputStates.resize(definition.outputCount, {LogicState::low, SimTime(0)});
             state.inputConnected.resize(definition.inputCount, false);

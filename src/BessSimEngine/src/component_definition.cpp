@@ -12,9 +12,7 @@ namespace Bess::SimEngine {
         SimulationFunction simFunction,
         SimDelayNanoSeconds delay, char op) : name(name), category(category), delay(delay),
                                               simulationFunction(std::move(simFunction)), inputCount(inputCount), outputCount(outputCount), op(op) {
-        this->setupTime = SimDelayNanoSeconds(0);
-        this->holdTime = SimDelayNanoSeconds(0);
-        this->auxData = getExpressions(inputCount);
+        reinit();
     }
 
     ComponentDefinition::ComponentDefinition(
@@ -23,8 +21,17 @@ namespace Bess::SimEngine {
         int inputCount, int outputCount,
         SimulationFunction simFunction,
         SimDelayNanoSeconds delay, const std::vector<std::string> &expr) : name(name), category(category), delay(delay), simulationFunction(simFunction), expressions(expr), inputCount(inputCount), outputCount(outputCount), auxData(expressions) {
+        reinit();
+    }
+
+    void ComponentDefinition::reinit() {
         this->setupTime = SimDelayNanoSeconds(0);
         this->holdTime = SimDelayNanoSeconds(0);
+        expressions = getExpressions(inputCount);
+        if (!expressions.empty()) {
+            auxData = expressions;
+        }
+        invalidateHash();
     }
 
     const Properties::ModifiableProperties &ComponentDefinition::getModifiableProperties() const {
@@ -76,7 +83,7 @@ namespace Bess::SimEngine {
     }
 
     ComponentDefinition &ComponentDefinition::addModifiableProperty(Properties::ComponentProperty property, std::any value) {
-        m_modifiableProperties[property].emplace_back(value);
+        m_modifiableProperties[property].emplace_back(std::move(value));
         return *this;
     }
 

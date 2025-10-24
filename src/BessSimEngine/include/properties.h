@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 namespace Bess::SimEngine::Properties {
-    enum class ComponentProperty {
+    enum class ComponentProperty : uint8_t {
         inputCount,
         outputCount,
     };

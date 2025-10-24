@@ -39,6 +39,8 @@ namespace Bess::SimEngine {
         bool negate = false;
         std::any auxData;
 
+        void reinit();
+
         const Properties::ModifiableProperties &getModifiableProperties() const;
 
         ComponentDefinition &addModifiableProperty(Properties::ComponentProperty property, std::any value);
