@@ -74,8 +74,12 @@ namespace Bess::Renderer {
                               QuadRenderProperties props = {});
 
         void drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, int id, float innerRadius = 0.0F);
+
         void drawText(const std::string &text, const glm::vec3 &pos, const size_t size,
                       const glm::vec4 &color, const int id, float angle = 0);
+
+        glm::vec2 drawTextWrapped(const std::string &text, const glm::vec3 &pos, const size_t size,
+                                  const glm::vec4 &color, const int id, float wrapWidthPx, float angle = 0);
 
         void resize(VkExtent2D extent);
         void updateUBO(const std::shared_ptr<Camera> &camera);

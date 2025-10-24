@@ -198,7 +198,19 @@ namespace Bess::Renderer {
 
     void MaterialRenderer::drawText(const std::string &text, const glm::vec3 &pos, const size_t size,
                                     const glm::vec4 &color, const int id, float angle) {
-        m_textRenderer->drawText(text, pos, size, color, id);
+
+        if (m_textRenderer) {
+            m_textRenderer->drawText(text, pos, size, color, id);
+        }
+    }
+
+    glm::vec2 MaterialRenderer::drawTextWrapped(const std::string &text, const glm::vec3 &pos, const size_t size,
+                                                const glm::vec4 &color, const int id, float wrapWidthPx, float angle) {
+        if (m_textRenderer) {
+            return m_textRenderer->drawTextWrapped(text, pos, size, color, id, wrapWidthPx, angle);
+        }
+
+        return {0.f, 0.f};
     }
 
     void MaterialRenderer::resize(VkExtent2D extent) {

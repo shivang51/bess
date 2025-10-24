@@ -35,6 +35,7 @@ namespace Bess::SimEngine {
 
         // Look up a component definition by its hash.
         std::shared_ptr<const ComponentDefinition> getComponentDefinition(uint64_t hash) const;
+        ComponentDefinition getComponentDefinitionCopy(uint64_t hash);
 
         std::shared_ptr<const ComponentDefinition> getSpecialCompDef(SpecialType specialType) const;
 

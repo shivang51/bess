@@ -1,4 +1,5 @@
 #include "simulation_engine.h"
+#include "bess_uuid.h"
 #include "component_catalog.h"
 #include "entt/entity/fwd.hpp"
 #include "entt_components.h"
@@ -12,6 +13,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
+#include <exception>
 
 // #define BESS_SE_ENABLE_LOG_EVENTS
 
@@ -104,19 +106,30 @@ namespace Bess::SimEngine {
         auto ent = m_registry.create();
         auto &idComp = m_registry.emplace<IdComponent>(ent);
         m_uuidMap.emplace(idComp.uuid, ent);
-        const auto &def = ComponentCatalog::instance().getComponentDefinition(defHash);
-        inputCount = (inputCount < 0 ? def->inputCount : inputCount);
-        outputCount = (outputCount < 0 ? def->outputCount : outputCount);
-        const auto &digi = m_registry.emplace<DigitalComponent>(ent, *(def.get()));
-        if (def->auxData.type() == typeid(FlipFlopAuxData)) {
-            const auto &ffData = std::any_cast<const FlipFlopAuxData &>(def->auxData);
+        ComponentDefinition def;
+
+        try {
+            def = ComponentCatalog::instance().getComponentDefinitionCopy(defHash);
+        } catch (std::exception &e) {
+            m_registry.destroy(ent);
+            return UUID::null;
+        }
+
+        if (inputCount >= 0)
+            def.inputCount = inputCount;
+        if (outputCount >= 0)
+            def.outputCount = outputCount;
+        if (def.auxData.type() == typeid(FlipFlopAuxData)) {
+            const auto &ffData = std::any_cast<const FlipFlopAuxData &>(def.auxData);
             m_registry.emplace<FlipFlopComponent>(ent, 1);
         } else if (ComponentCatalog::instance().isSpecialCompDef(defHash, ComponentCatalog::SpecialType::stateMonitor)) {
             m_registry.emplace<StateMonitorComponent>(ent);
         }
-        scheduleEvent(ent, entt::null, m_currentSimTime + def->delay);
 
-        BESS_SE_INFO("Added component {}", def->name);
+        const auto &digi = m_registry.emplace<DigitalComponent>(ent, def);
+        scheduleEvent(ent, entt::null, m_currentSimTime + def.delay);
+
+        BESS_SE_INFO("Added component {}", def.name);
         return idComp.uuid;
     }
 
@@ -433,31 +446,42 @@ namespace Bess::SimEngine {
     bool SimulationEngine::simulateComponent(entt::entity e, const std::vector<PinState> &inputs) {
         auto &comp = m_registry.get<DigitalComponent>(e);
         const auto &def = comp.definition;
+#ifdef BESS_SE_ENABLE_LOG_EVENTS
         BESS_SE_LOG_EVENT("Simulating {}, with delay {}ns", def.name, def.delay.count());
         BESS_SE_LOG_EVENT("\tInputs:");
         for (auto &inp : inputs) {
             BESS_SE_LOG_EVENT("\t\t{}", (int)inp.state);
         }
         BESS_SE_LOG_EVENT("");
+#endif // BESS_SE_ENABLE_LOG_EVENTS
         if (def.simulationFunction) {
-            const auto newState = def.simulationFunction(inputs, m_currentSimTime, comp.state);
+            comp.state.simError = false;
+            ComponentState newState;
+            try {
+                newState = def.simulationFunction(inputs, m_currentSimTime, comp.state);
+            } catch (std::exception &ex) {
+                BESS_SE_ERROR("Exception during simulation of component {}. Output won't be updated: {}", def.name, ex.what());
+                comp.state.simError = true;
+                comp.state.errorMessage = ex.what();
+                comp.state.isChanged = false;
+            }
+
+            comp.state.inputStates = inputs;
 
             BESS_SE_LOG_EVENT("\tState changed: {}", newState.isChanged ? "YES" : "NO");
-            if (newState.isChanged) {
+
+            if (newState.isChanged && !comp.state.simError) {
                 comp.state = newState;
+                BESS_SE_LOG_EVENT("\tOutputs changed to:");
+                for (auto &outp : newState.outputStates) {
+                    BESS_SE_LOG_EVENT("\t\t{}", (bool)outp.state);
+                }
             }
 
             if (auto *stateMonitor = m_registry.try_get<StateMonitorComponent>(e)) {
-                // append state of first input pin
                 stateMonitor->appendState(newState.inputStates[0].lastChangeTime,
                                           newState.inputStates[0].state);
             }
-
-            BESS_SE_LOG_EVENT("\tOutputs changed to:");
-            for (auto &outp : newState.outputStates) {
-                BESS_SE_LOG_EVENT("\t\t{}", (bool)outp.state);
-            }
-            comp.state.inputStates = inputs;
 
             return newState.isChanged;
         }

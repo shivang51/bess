@@ -104,6 +104,8 @@ namespace Bess::SimEngine {
         std::vector<bool> outputConnected;
         bool isChanged = false;
         std::any *auxData = nullptr;
+        bool simError = false;
+        std::string errorMessage;
     };
 
     typedef std::function<ComponentState(const std::vector<PinState> &, SimTime, const ComponentState &)> SimulationFunction;

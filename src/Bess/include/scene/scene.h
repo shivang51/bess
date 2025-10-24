@@ -72,6 +72,8 @@ namespace Bess::Canvas {
         friend class Modules::SchematicGen::SchematicView;
 
       public:
+        bool isEntityHovered(const entt::entity &ent) const;
+
         const glm::vec2 &getMousePos() const;
         glm::vec2 getSceneMousePos();
         const glm::vec2 &getCameraPos() const;
@@ -117,7 +119,7 @@ namespace Bess::Canvas {
         /// to draw testing stuff
         void drawScratchContent(TFrameTime ts, const std::shared_ptr<Viewport> &viewport);
 
-        const UUID &getUuidOfEntity(entt::entity ent);
+        const UUID &getUuidOfEntity(entt::entity ent) const;
 
         // gets entity from scene that has reference to passed simulation engine uuid
         entt::entity getSceneEntityFromSimUuid(const UUID &uuid) const;

@@ -33,6 +33,8 @@ namespace Bess {
         glm::vec4 gridMajorColor;
         glm::vec4 gridAxisXColor;
         glm::vec4 gridAxisYColor;
+
+        glm::vec4 error = glm::vec4(0.95f, 0.25f, 0.25f, 1.0f);
     };
 
     struct SchematicViewColors {

@@ -1,4 +1,5 @@
 #include "component_catalog.h"
+#include "logger.h"
 #include <algorithm>
 
 namespace Bess::SimEngine {
@@ -46,6 +47,15 @@ namespace Bess::SimEngine {
         }
 
         return nullptr;
+    }
+
+    ComponentDefinition ComponentCatalog::getComponentDefinitionCopy(uint64_t hash) {
+        if (m_componentHashMap.contains(hash)) {
+            return *(m_componentHashMap.at(hash));
+        }
+
+        BESS_SE_ERROR("Component definition with hash {} not found", hash);
+        throw std::runtime_error("Component definition not found");
     }
 
     std::shared_ptr<const ComponentDefinition> ComponentCatalog::getSpecialCompDef(SpecialType specialType) const {

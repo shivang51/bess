@@ -10,6 +10,8 @@ namespace Bess::SimEngine {
 
     class BESS_API ComponentDefinition {
       public:
+        ComponentDefinition() = default;
+
         ComponentDefinition(const std::string &name,
                             const std::string &category,
                             int inputCount,

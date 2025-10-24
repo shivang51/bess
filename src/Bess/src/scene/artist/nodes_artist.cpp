@@ -2,11 +2,10 @@
 #include "component_catalog.h"
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
-#include "scene/scene_pch.h"
+#include "scene/scene.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "types.h"
-#include <cstdint>
 #include <string>
 
 namespace Bess::Canvas {
@@ -42,22 +41,50 @@ namespace Bess::Canvas {
         const auto &scale = transform.scale;
 
         float headerHeight = componentStyles.headerHeight;
-        auto headerPos = glm::vec3(pos.x, pos.y - scale.y / 2.f + headerHeight / 2.f, pos.z + 0.0004f);
+        auto headerPos = glm::vec3(pos.x, pos.y - (scale.y / 2.f) + (headerHeight / 2.f), pos.z + 0.0004f);
 
-        bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
-        auto border = isSelected ? ViewportTheme::colors.selectedComp : spriteComp.borderColor;
+        int id = (int)entity;
+        glm::vec4 borderColor;
+        const auto &compState = SimEngine::SimulationEngine::instance().getComponentState(simComponent.simEngineEntity);
 
-        uint64_t id = (uint64_t)entity;
+        if (compState.simError) {
+            borderColor = ViewportTheme::colors.error;
+            auto pos = transform.position;
+            pos.z += 0.01f;
 
-        glm::vec3 textPos = glm::vec3(pos.x - scale.x / 2.f + componentStyles.paddingX,
-                                      headerPos.y + componentStyles.paddingY,
-                                      pos.z + 0.0005f);
+            pos.x -= scale.x / 2.f;
+            pos.y -= (scale.y / 2.f) - 20.f;
+
+            const auto bb = m_materialRenderer->drawTextWrapped(std::format("Error: {}", compState.errorMessage),
+                                                                pos,
+                                                                componentStyles.headerFontSize,
+                                                                ViewportTheme::colors.error,
+                                                                id, scale.x);
+
+            pos.z -= 0.0001;
+            auto size = bb + glm::vec2(8.f, 8.f);
+
+            pos.x += bb.x / 2.f;
+            pos.y += (bb.y / 2.f) - 8.f;
+            m_materialRenderer->drawQuad(
+                pos,
+                size,
+                spriteComp.color,
+                id,
+                {.borderColor = glm::vec4(1.f),
+                 .borderRadius = glm::vec4(4.f),
+                 .borderSize = glm::vec4(1.f),
+                 .isMica = true});
+        } else {
+            bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
+            borderColor = isSelected ? ViewportTheme::colors.selectedComp : spriteComp.borderColor;
+        }
 
         Renderer::QuadRenderProperties props;
         props.angle = rotation;
         props.borderRadius = spriteComp.borderRadius;
         props.borderSize = spriteComp.borderSize;
-        props.borderColor = border;
+        props.borderColor = borderColor;
         props.isMica = true;
         props.hasShadow = true;
 
@@ -75,6 +102,10 @@ namespace Bess::Canvas {
                                      id,
                                      props);
 
+        glm::vec3 textPos = glm::vec3(pos.x - (scale.x / 2.f) + componentStyles.paddingX,
+                                      headerPos.y + componentStyles.paddingY,
+                                      pos.z + 0.0005f);
+
         m_materialRenderer->drawText(tagComp.name, textPos, componentStyles.headerFontSize, ViewportTheme::colors.text, id, rotation);
 
         drawSlots(entity, simComponent, transform);
@@ -89,7 +120,7 @@ namespace Bess::Canvas {
 
         auto labelSize = m_materialRenderer->getTextRenderSize(tagComp.name, componentStyles.headerFontSize);
 
-        uint64_t id = (uint64_t)entity;
+        int id = (int)entity;
         const auto &pos = transform.position;
         const auto &rotation = transform.angle;
         const auto &scale = transform.scale;
@@ -133,7 +164,7 @@ namespace Bess::Canvas {
 
         auto slotdx = SLOT_DX;
 
-        auto posX = pPos.x - pScale.x / 2.f;
+        auto posX = pPos.x - (pScale.x / 2.f);
 
         const bool isOutputSlot = comp.slotType == Components::SlotType::digitalOutput;
         if (isOutputSlot) {
@@ -142,16 +173,16 @@ namespace Bess::Canvas {
         }
 
         posX += slotdx;
-        float posY = pPos.y - pScale.y / 2.f + (SLOT_ROW_SIZE * comp.idx) + SLOT_ROW_SIZE / 2.f;
+        float posY = pPos.y - (pScale.y / 2.f) + (SLOT_ROW_SIZE * (float)comp.idx) + (SLOT_ROW_SIZE / 2.f);
 
         const auto parentEntt = Scene::instance()->getEntityWithUuid(comp.parentId);
         if (!isHeaderLessComp(Scene::instance()->getEnttRegistry().get<Components::SimulationComponent>(parentEntt)))
             posY += SLOT_START_Y;
 
-        return glm::vec3(posX, posY, pPos.z + 0.0005);
+        return {posX, posY, pPos.z + 0.0005};
     }
 
-    void NodesArtist::paintSlot(uint64_t id, uint64_t parentId, const glm::vec3 &pos,
+    void NodesArtist::paintSlot(int id, int parentId, const glm::vec3 &pos,
                                 float angle, const std::string &label, float labelDx,
                                 SimEngine::LogicState state, bool isConnected, SimEngine::ExtendedPinType extendedType) const {
         auto bg = ViewportTheme::colors.stateLow;
@@ -200,7 +231,7 @@ namespace Bess::Canvas {
         }
 
         float labelX = pos.x + labelDx;
-        float dY = componentStyles.slotRadius - std::abs(componentStyles.slotRadius * 2.f - componentStyles.slotLabelSize) / 2.f;
+        float dY = componentStyles.slotRadius - (std::abs((componentStyles.slotRadius * 2.f) - componentStyles.slotLabelSize) / 2.f);
         m_materialRenderer->drawText(label, {labelX, pos.y + dY, pos.z}, componentStyles.slotLabelSize, ViewportTheme::colors.text, parentId, angle);
     }
 
@@ -216,15 +247,15 @@ namespace Bess::Canvas {
         const auto &scale = transform.scale;
 
         const float headerHeight = componentStyles.headerHeight;
-        auto headerPos = glm::vec3(pos.x, pos.y - scale.y / 2.f + headerHeight / 2.f, pos.z + 0.0004f);
+        auto headerPos = glm::vec3(pos.x, pos.y - (scale.y / 2.f) + (headerHeight / 2.f), pos.z + 0.0004f);
 
         const auto &registry = Scene::instance()->getEnttRegistry();
         bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
         auto border = isSelected ? ViewportTheme::colors.selectedComp : spriteComp.borderColor;
 
-        uint64_t id = (uint64_t)entity;
+        int id = (int)entity;
 
-        glm::vec3 textPos = glm::vec3(pos.x - scale.x / 2.f + componentStyles.paddingX, headerPos.y + componentStyles.paddingY, pos.z + 0.0005f);
+        glm::vec3 textPos = glm::vec3(pos.x - (scale.x / 2.f) + componentStyles.paddingX, headerPos.y + componentStyles.paddingY, pos.z + 0.0005f);
 
         Renderer::QuadRenderProperties props;
         props = {};
@@ -257,7 +288,7 @@ namespace Bess::Canvas {
             float texWidth = 60;
             float texHeight = (texSize.y / texSize.x) * texWidth;
             float posX = transform.position.x + (transform.scale.x / 2.f);
-            posX -= texWidth / 2.f + componentStyles.paddingX;
+            posX -= (texWidth / 2.f) + componentStyles.paddingX;
             glm::vec3 texPos = {posX,
                                 transform.position.y + (headerHeight / 2.f),
                                 transform.position.z + 0.0006};
@@ -283,7 +314,7 @@ namespace Bess::Canvas {
 
         const float labeldx = componentStyles.slotMargin + (componentStyles.slotRadius * 2.f);
 
-        const auto compState = SimEngine::SimulationEngine::instance().getComponentState(comp.simEngineEntity);
+        const auto &compState = SimEngine::SimulationEngine::instance().getComponentState(comp.simEngineEntity);
 
         const float angle = transformComp.angle;
         auto [inpDetails, outDetails] = def->getPinDetails();
@@ -295,9 +326,8 @@ namespace Bess::Canvas {
             const auto isConnected = compState.inputConnected[i];
             auto &slotComp = slotsView.get<Components::SlotComponent>(slot);
             auto slotPos = getSlotPos(slotComp, transformComp);
-            const uint64_t parentId = (uint64_t)Scene::instance()->getEntityWithUuid(slotComp.parentId);
             label = inpDetails.size() > i ? inpDetails[i].name : "X" + std::to_string(i);
-            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, labeldx, state.state, isConnected,
+            paintSlot((int)slot, (int)parentEntt, slotPos, angle, label, labeldx, state.state, isConnected,
                       inpDetails.size() > i ? inpDetails[i].extendedType : SimEngine::ExtendedPinType::none);
         }
 
@@ -307,10 +337,9 @@ namespace Bess::Canvas {
             const auto isConnected = compState.outputConnected[i];
             auto &slotComp = slotsView.get<Components::SlotComponent>(slot);
             auto slotPos = getSlotPos(slotComp, transformComp);
-            const uint64_t parentId = (uint64_t)Scene::instance()->getEntityWithUuid(slotComp.parentId);
             label = outDetails.size() > i ? outDetails[i].name : "Y" + std::to_string(i);
             const float labelWidth = m_materialRenderer->getTextRenderSize(label, componentStyles.slotLabelSize).x;
-            paintSlot((uint64_t)slot, parentId, slotPos, angle, label, -labeldx - labelWidth, state.state, isConnected,
+            paintSlot((int)slot, (int)parentEntt, slotPos, angle, label, -labeldx - labelWidth, state.state, isConnected,
                       outDetails.size() > i ? outDetails[i].extendedType : SimEngine::ExtendedPinType::none);
         }
     }

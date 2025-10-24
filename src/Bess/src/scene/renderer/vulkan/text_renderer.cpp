@@ -40,6 +40,36 @@ namespace Bess::Renderer {
         }
     }
 
+    glm::vec2 TextRenderer::drawTextWrapped(const std::string &text, const glm::vec3 &pos, size_t size,
+                                            const glm::vec4 &color, int id, float wrapWidthPx, float angle) {
+        float scale = (float)size / m_font.getSize();
+        float posX = pos.x, posY = pos.y;
+        float widthUsed = 0.f, heightUsed = 0;
+        float maxWidth = 0.f;
+        for (const char ch : text) {
+            if (ch == '\n' || (widthUsed >= wrapWidthPx && ch == ' ')) {
+                posY += m_font.getSize() * scale, posX = pos.x;
+                maxWidth = std::max(maxWidth, widthUsed);
+                heightUsed += m_font.getSize() * scale;
+                widthUsed = 0.f;
+                continue;
+            }
+
+            auto &glyph = m_font.getGlyph(ch);
+            m_pathRenderer->drawPath(glyph.path, {.genStroke = false,
+                                                  .genFill = true,
+                                                  .translate = {posX, posY, pos.z},
+                                                  .scale = glm::vec2(scale),
+                                                  .fillColor = color,
+                                                  .glyphId = id});
+            posX += glyph.advanceX * scale;
+            widthUsed += glyph.advanceX * scale;
+        }
+        widthUsed = std::max(maxWidth, widthUsed);
+        heightUsed += m_font.getSize() * scale;
+        return {widthUsed, heightUsed};
+    }
+
     glm::vec2 TextRenderer::getRenderSize(const std::string &text, size_t size) {
         float scale = (float)size / m_font.getSize();
 

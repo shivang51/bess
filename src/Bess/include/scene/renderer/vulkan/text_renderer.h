@@ -26,6 +26,9 @@ namespace Bess::Renderer {
         void drawText(const std::string &text, const glm::vec3 &pos, size_t size,
                       const glm::vec4 &color, int id, float angle = 0);
 
+        glm::vec2 drawTextWrapped(const std::string &text, const glm::vec3 &pos, size_t size,
+                                  const glm::vec4 &color, int id, float wrapWidthPx, float angle = 0);
+
         glm::vec2 getRenderSize(const std::string &text, size_t size);
 
       private:

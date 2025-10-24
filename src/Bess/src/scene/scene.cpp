@@ -526,7 +526,7 @@ namespace Bess::Canvas {
         return entt::null;
     }
 
-    const UUID &Scene::getUuidOfEntity(entt::entity ent) {
+    const UUID &Scene::getUuidOfEntity(entt::entity ent) const {
         const auto &idComp = m_registry.get<Components::IdComponent>(ent);
         return idComp.uuid;
     }
@@ -1251,5 +1251,9 @@ namespace Bess::Canvas {
         renderer->endPathMode();
 
         elapsed += (float)ts.count() * 0.001f;
+    }
+
+    bool Scene::isEntityHovered(const entt::entity &ent) const {
+        return getUuidOfEntity(ent) == m_hoveredEntity;
     }
 } // namespace Bess::Canvas
