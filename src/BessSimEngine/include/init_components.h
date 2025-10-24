@@ -186,10 +186,7 @@ namespace Bess::SimEngine {
                                                                     dec |= 1 << i;
                                                             }
 
-                                                            if (dec > 9)
-                                                                dec = -1;
-
-                                                            constexpr std::array<int, 10> digitToSegment = {
+                                                            constexpr std::array<int, 16> digitToSegment = {
                                                                 0b0111111,
                                                                 0b00000110,
                                                                 0b01011011,
@@ -199,9 +196,15 @@ namespace Bess::SimEngine {
                                                                 0b01111101,
                                                                 0b00000111,
                                                                 0b01111111,
-                                                                0b01101111};
+                                                                0b01101111,
+                                                                0b01110111,
+                                                                0b01111100,
+                                                                0b00111001,
+                                                                0b01011110,
+                                                                0b01111001,
+                                                                0b01110001};
 
-                                                            const auto val = dec != -1 ? digitToSegment[dec] : 0;
+                                                            const auto val = dec == -1 ? 0 : digitToSegment[dec];
 
                                                             bool changed = false;
                                                             for (int i = 0; i < (int)prevState.outputStates.size(); i++) {
