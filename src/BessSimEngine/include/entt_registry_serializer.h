@@ -34,9 +34,8 @@ namespace Bess {
 
             m_ComponentDeserializers[name] = [name](entt::registry &registry, entt::entity entity, const Json::Value &j) {
                 if (j.isMember(name)) {
-                    T component{};
+                    auto &component = registry.emplace<T>(entity);
                     Bess::JsonConvert::fromJsonValue(j[name], component);
-                    registry.emplace<T>(entity, component);
                 }
             };
         }

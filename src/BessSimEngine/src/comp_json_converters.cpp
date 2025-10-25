@@ -204,8 +204,12 @@ namespace Bess::JsonConvert {
 
         auto hash = j.get("hash", 0).asUInt64();
 
-        def.simulationFunction = SimEngine::ComponentCatalog::instance().getComponentDefinition(hash)->simulationFunction;
-        def.auxData = SimEngine::ComponentCatalog::instance().getComponentDefinition(hash)->auxData;
+        const auto &catalogDef = SimEngine::ComponentCatalog::instance().getComponentDefinition(hash);
+
+        assert(catalogDef && "ComponentDefinition not found in catalog during deserialization");
+
+        def.simulationFunction = catalogDef->simulationFunction;
+        def.auxData = catalogDef->auxData;
 
         def.reinit();
 
@@ -365,6 +369,8 @@ namespace Bess::JsonConvert {
 
         fromJsonValue(j["definition"], comp.definition);
         fromJsonValue(j["state"], comp.state);
+        comp.state.auxData = &comp.definition.auxData;
+
         if (j.isMember("inputConnections")) {
             for (const auto &connArr : j["inputConnections"]) {
                 std::vector<ComponentPin> connList;
