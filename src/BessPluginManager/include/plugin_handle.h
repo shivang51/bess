@@ -11,7 +11,7 @@ namespace Bess::Renderer {
 }
 
 namespace Bess::Plugins {
-    class PluginHandle {
+    class __attribute__((visibility("default"))) PluginHandle {
       public:
         PluginHandle() = default;
         PluginHandle(const pybind11::object &pluginObj);
