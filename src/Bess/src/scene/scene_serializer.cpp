@@ -1,5 +1,7 @@
 #include "scene/scene_serializer.h"
 
+#include <algorithm>
+
 #include "bess_uuid.h"
 #include "scene/scene.h"
 
@@ -66,6 +68,11 @@ namespace Bess {
         auto &reg = scene->getEnttRegistry();
         EnttRegistrySerializer::deserialize(reg, json);
 
+        for (auto entity : reg.view<TransformComponent>()) {
+            const auto &transform = reg.get<TransformComponent>(entity);
+            m_maxZ = std::max(transform.position.z, m_maxZ);
+        }
+
         scene->setZCoord(m_maxZ);
     }
 
@@ -106,11 +113,4 @@ namespace Bess {
         registerComponent<TextNodeComponent>("TextNodeComponent");
         registerComponent<NSComponent>("NSComponent");
     }
-    // // TransformComponent
-    // if (j.contains("TransformComponent")) {
-    //     auto transformComp = j.at("TransformComponent").get<TransformComponent>();
-    //     registry.emplace_or_replace<TransformComponent>(entity, transformComp);
-    //     if (m_maxZ < transformComp.position.z)
-    //         m_maxZ = transformComp.position.z;
-    // }
 } // namespace Bess

@@ -308,16 +308,17 @@ namespace Bess::Canvas {
     }
 
     void NodesArtist::drawSlots(const entt::entity parentEntt, const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp) {
-        const auto def = SimEngine::ComponentCatalog::instance().getComponentDefinition(comp.defHash);
         auto &registry = Scene::instance()->getEnttRegistry();
         const auto slotsView = registry.view<Components::SlotComponent>();
 
         const float labeldx = componentStyles.slotMargin + (componentStyles.slotRadius * 2.f);
 
         const auto &compState = SimEngine::SimulationEngine::instance().getComponentState(comp.simEngineEntity);
+        const auto &def = SimEngine::SimulationEngine::instance().getComponentDefinition(comp.simEngineEntity);
 
         const float angle = transformComp.angle;
-        auto [inpDetails, outDetails] = def->getPinDetails();
+
+        auto [inpDetails, outDetails] = def.getPinDetails();
 
         std::string label;
         for (size_t i = 0; i < comp.inputSlots.size(); i++) {

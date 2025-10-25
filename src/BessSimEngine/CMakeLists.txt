@@ -30,6 +30,7 @@ source_group("include" FILES ${Header_Files})
 
 set(Source_Files
     "src/simulation_engine.cpp"
+    "src/comp_json_converters.cpp"
     "src/simulation_engine_serializer.cpp"
     "src/bess_uuid.cpp"
     "src/logger.cpp"

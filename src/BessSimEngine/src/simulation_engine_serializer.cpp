@@ -1,7 +1,5 @@
 #include "simulation_engine_serializer.h"
-#include "entt_components.h"
 #include "simulation_engine.h"
-#include <iostream>
 
 namespace Bess::SimEngine {
     SimEngineSerializer::SimEngineSerializer() {
@@ -51,7 +49,7 @@ namespace Bess::SimEngine {
 
     void SimEngineSerializer::registerAll() {
         registerComponent<IdComponent>("IdComponent");
-        // registerComponent<DigitalComponent>("DigitalComponent");
+        registerComponent<DigitalComponent>("DigitalComponent");
         registerComponent<ClockComponent>("ClockComponent");
         registerComponent<FlipFlopComponent>("FlipFlopComponent");
     }

@@ -12,6 +12,7 @@
 #include <thread>
 
 namespace Bess::SimEngine {
+    class ComponentDefinition;
 
     class BESS_API SimulationEngine {
       public:
@@ -53,6 +54,7 @@ namespace Bess::SimEngine {
         void stepSimulation();
 
         const ComponentState &getComponentState(const UUID &uuid);
+        const ComponentDefinition &getComponentDefinition(const UUID &uuid);
 
         void clear();
 

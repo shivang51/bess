@@ -1,9 +1,9 @@
 #pragma once
 
-#include "scene/components/components.h"
-#include "scene/components/non_sim_comp.h"
 #include "entt_registry_serializer.h"
-
+#include "scene/components/components.h"
+#include "scene/components/json_converters.h"
+#include "scene/components/non_sim_comp.h"
 
 namespace Bess {
     class SceneSerializer : public EnttRegistrySerializer {

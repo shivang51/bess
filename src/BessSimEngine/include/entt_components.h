@@ -73,7 +73,7 @@ namespace Bess::SimEngine {
     };
 
     struct BESS_API DigitalComponent {
-        DigitalComponent() = delete;
+        DigitalComponent() = default;
         DigitalComponent(const DigitalComponent &) = default;
         DigitalComponent(ComponentDefinition def) : definition(std::move(def)) {
             definition.reinit();
