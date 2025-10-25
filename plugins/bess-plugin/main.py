@@ -15,16 +15,17 @@ class BessPlugin(Plugin):
 
     @override
     def on_schematic_symbols_load(self) -> dict[int, Path]:
-        latch: ComponentDefinition = latches[0]
-        hash = latch.get_hash()
-        path = Path()
-        path.move_to((0, 0    ))
-        path.line_to((1, 0  ))
-        path.line_to((1, 1))
-        path.line_to((0, 0))
-        props = path.get_path_properties()
-        props.render_fill = True
-        return {hash: path}
+        # latch: ComponentDefinition = latches[0]
+        # hash = latch.get_hash()
+        # path = Path()
+        # path.move_to((0, 0    ))
+        # path.line_to((1, 0  ))
+        # path.line_to((1, 1))
+        # path.line_to((0, 0))
+        # props = path.get_path_properties()
+        # props.render_fill = True
+        # return {hash: path}
+        return {}
 
 
 plugin_hwd = BessPlugin()
