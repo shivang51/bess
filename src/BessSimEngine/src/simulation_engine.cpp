@@ -71,6 +71,7 @@ namespace Bess::SimEngine {
         ComponentCatalog::instance().destroy();
 
         m_destroyed = true;
+        m_registry.clear();
     }
 
     void SimulationEngine::scheduleEvent(entt::entity e, entt::entity schedulerEntity, SimDelayNanoSeconds simTime) {
@@ -329,12 +330,11 @@ namespace Bess::SimEngine {
         return comp.state;
     }
 
-    const ComponentDefinition & SimulationEngine::getComponentDefinition(const UUID &uuid) {
+    const ComponentDefinition &SimulationEngine::getComponentDefinition(const UUID &uuid) {
         auto ent = getEntityWithUuid(uuid);
         assert(m_registry.all_of<DigitalComponent>(ent));
         const auto &comp = m_registry.get<DigitalComponent>(ent);
         return comp.definition;
-
     }
 
     void SimulationEngine::deleteConnection(const UUID &compA, PinType pinAType, int idxA,
