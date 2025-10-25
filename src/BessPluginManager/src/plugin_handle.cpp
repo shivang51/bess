@@ -77,8 +77,6 @@ namespace Bess::Plugins {
                 py::object auxObj;
                 if (py::hasattr(pyComp, "simulation_function")) {
                     callablePtr = makeGilSafe(pyComp.attr("simulation_function"));
-                } else if (py::hasattr(pyComp, "simulate")) {
-                    callablePtr = makeGilSafe(pyComp.attr("simulate"));
                 }
 
                 if (py::hasattr(pyComp, "aux_data")) {
@@ -98,10 +96,7 @@ namespace Bess::Plugins {
                         for (const auto &p : inputs) {
                             py_inputs.append(PyPinState(py::cast(p)));
                         }
-                        py::object py_prev = PyComponentState(py::cast(prev));
-                        if (initialAuxPtr && py_prev.attr("aux_data").is_none()) {
-                            py::setattr(py_prev, "aux_data", *initialAuxPtr);
-                        }
+                        py::object py_prev = py::cast(prev);
                         py::object result = (*callablePtr)(py_inputs, static_cast<long long>(t.count()), py_prev);
                         return convertResultToComponentState(result, prev);
                     };

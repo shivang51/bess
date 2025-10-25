@@ -1,10 +1,12 @@
 #pragma once
-#include <stdexcept>
-#include <stack>
-#include <vector>
+#include "types.h"
 #include <logger.h>
+#include <stack>
+#include <stdexcept>
+#include <vector>
 
 namespace Bess::SimEngine::ExprEval {
+
     inline bool applyBinaryOperator(bool a, bool b, char op) {
         switch (op) {
         case '+':
@@ -97,4 +99,24 @@ namespace Bess::SimEngine::ExprEval {
 
         return operands.top();
     }
+
+    /// expression evaluator simulation function
+    const SimulationFunction exprEvalSimFunc = [](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) {
+        auto newState = prevState;
+        newState.inputStates = inputs;
+        bool changed = false;
+        assert(prevState.auxData && "ExprEvalSimFunc requires auxData to be set with expressions");
+        auto expressions = std::any_cast<std::vector<std::string>>(prevState.auxData);
+        for (int i = 0; i < (int)expressions->size(); i++) {
+            std::vector<bool> states;
+            states.reserve(inputs.size());
+            for (auto &state : inputs)
+                states.emplace_back((bool)state);
+            bool newStateBool = ExprEval::evaluateExpression(expressions->at(i), states);
+            changed = changed || (bool)prevState.outputStates[i] != newStateBool;
+            newState.outputStates[i] = {newStateBool ? LogicState::high : LogicState::low, currentTime};
+        }
+        newState.isChanged = changed;
+        return newState;
+    };
 } // namespace Bess::SimEngine::ExprEval

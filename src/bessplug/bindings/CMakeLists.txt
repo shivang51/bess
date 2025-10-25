@@ -51,8 +51,10 @@ set(BESS_PYBIND_SOURCES
 
     bindings.cpp
     common_bindings.cpp
-    sim_engine/types.cpp
     renderer/path.cpp
+
+    sim_engine/types.cpp
+    sim_engine/sim_functions.cpp
     sim_engine/component_definition.cpp
 )
 

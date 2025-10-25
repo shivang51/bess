@@ -27,7 +27,6 @@ namespace {
             py::function f = std::move(callable);
             fn = [f](const std::vector<PinState> &inputs, SimTime t, const ComponentState &prev) -> ComponentState {
                 py::gil_scoped_acquire gil;
-                std::cout << "[Bindings][PySimulationFunctionWrapper][set] simulate: GIL acquired, calling python (wrapper set)\n";
                 py::object result = f(inputs, static_cast<long long>(t.count()), prev);
                 return result.cast<ComponentState>();
             };

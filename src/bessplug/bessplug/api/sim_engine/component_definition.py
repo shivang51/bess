@@ -1,9 +1,12 @@
 from __future__ import annotations
 from typing import Callable, Optional, Union, Any
 import json
+
 from .pin_detail import PinDetail
 from bessplug.bindings._bindings.sim_engine import ComponentDefinition as NativeComponentDefinition
 from bessplug.bindings._bindings.sim_engine import SimulationFunction as NativeSimulationFunction
+
+from .sim_engine import expr_sim_function
 
 class ComponentDefinition:
     """Read-only convenience view over native ComponentDefinition.
@@ -204,10 +207,10 @@ class ComponentDefinition:
         category: str,
         input_count: int,
         output_count: int,
-        simFn: NativeSimulationFunction | Callable,
         delay_ns: int,
         op: str = "",
     ) -> "ComponentDefinition":
+        simFn = expr_sim_function
         sim = simFn if isinstance(simFn, NativeSimulationFunction) else NativeSimulationFunction(simFn)
         native = NativeComponentDefinition(name, category, input_count, output_count, sim, int(delay_ns), op)
         defi = ComponentDefinition(native)

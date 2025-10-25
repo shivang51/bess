@@ -3,6 +3,7 @@
 #include "bess_uuid.h"
 #include "commands/commands_manager.h"
 #include "entt/entity/fwd.hpp"
+#include "expression_evalutator/expr_evaluator.h"
 #include "types.h"
 #include <chrono>
 #include <condition_variable>

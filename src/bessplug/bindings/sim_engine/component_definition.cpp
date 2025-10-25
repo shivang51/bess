@@ -1,4 +1,6 @@
 #include <cstdio>
+#include <iostream>
+#include <pybind11/chrono.h>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -70,9 +72,9 @@ void bind_sim_engine_component_definition(py::module_ &m) {
                      try {
                          py::list py_inputs = to_py_list(inputs);
                          py::object py_prev = py::cast(prev);
-                         py::object result = sim_func(py_inputs, static_cast<long long>(t.count()), py_prev);
                          std::fprintf(stderr, "[Bindings] simulate: python returned, converting\n");
                          std::fflush(stderr);
+                         py::object result = sim_func(py_inputs, t.count(), py_prev);
                          auto out = convertResultToComponentState(result, prev);
                          std::fprintf(stderr, "[Bindings] simulate: converted, leaving\n");
                          std::fflush(stderr);
@@ -97,24 +99,17 @@ void bind_sim_engine_component_definition(py::module_ &m) {
                          long long delay_ns,
                          const std::vector<std::string> &expressions) {
                  SimulationFunction fn = [sim_func](const std::vector<PinState> &inputs, SimTime t, const ComponentState &prev) -> ComponentState {
-                     std::fprintf(stderr, "[Bindings] simulate: entering (expr ctor)\n");
                      std::fflush(stderr);
                      py::gil_scoped_acquire gil;
-                     std::fprintf(stderr, "[Bindings] simulate: GIL acquired, calling python (expr ctor)\n");
-                     std::fflush(stderr);
                      try {
                          py::list py_inputs = to_py_list(inputs);
                          py::object py_prev = py::cast(prev);
                          py::object result = sim_func(py_inputs, static_cast<long long>(t.count()), py_prev);
-                         std::fprintf(stderr, "[Bindings] simulate: python returned, converting\n");
-                         std::fflush(stderr);
                          auto out = convertResultToComponentState(result, prev);
-                         std::fprintf(stderr, "[Bindings] simulate: converted, leaving\n");
-                         std::fflush(stderr);
                          return out;
                      } catch (const std::exception &e) {
-                         std::fprintf(stderr, "[Bindings] simulate: exception: %s\n", e.what());
-                         std::fflush(stderr);
+                         std::cerr << "[Bindings] simulate: exception: \n"
+                                   << e.what() << std::endl;
                          throw;
                      }
                  };
