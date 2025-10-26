@@ -96,8 +96,16 @@ namespace Bess::Plugins {
                         for (const auto &p : inputs) {
                             py_inputs.append(PyPinState(py::cast(p)));
                         }
-                        py::object py_prev = py::cast(prev);
-                        py::object result = (*callablePtr)(py_inputs, static_cast<long long>(t.count()), py_prev);
+                        py::object py_prev = PyComponentState(py::cast(prev));
+                        if (initialAuxPtr && py_prev.attr("aux_data").is_none()) {
+                            py::setattr(py_prev, "aux_data", *initialAuxPtr);
+                        }
+                        py::object result;
+                        try {
+                            result = (*callablePtr)(py_inputs, static_cast<long long>(t.count()), py_prev);
+                        } catch (const std::exception &e) {
+                            result = (*callablePtr)(py_inputs, static_cast<long long>(t.count()), py::cast(prev));
+                        }
                         return convertResultToComponentState(result, prev);
                     };
                 }

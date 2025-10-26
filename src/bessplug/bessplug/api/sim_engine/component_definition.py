@@ -208,11 +208,11 @@ class ComponentDefinition:
         input_count: int,
         output_count: int,
         delay_ns: int,
-        op: str = "",
+        op: str,
     ) -> "ComponentDefinition":
         simFn = expr_sim_function
         sim = simFn if isinstance(simFn, NativeSimulationFunction) else NativeSimulationFunction(simFn)
-        native = NativeComponentDefinition(name, category, input_count, output_count, sim, int(delay_ns), op)
+        native = NativeComponentDefinition(name, category, input_count, output_count, sim, int(delay_ns), op[0])
         defi = ComponentDefinition(native)
         defi.set_simulation_function(simFn)
         return defi
@@ -223,12 +223,27 @@ class ComponentDefinition:
         category: str,
         input_count: int,
         output_count: int,
-        simFn: NativeSimulationFunction | Callable,
         delay_ns: int,
-        expressions: list[str] | None = None,
+        expressions: list[str],
+    ) -> "ComponentDefinition":
+        simFn = expr_sim_function
+        sim = simFn if isinstance(simFn, NativeSimulationFunction) else NativeSimulationFunction(simFn)
+        native = NativeComponentDefinition(name, category, input_count, output_count, sim, int(delay_ns), expressions)
+        defi = ComponentDefinition(native)
+        defi.set_simulation_function(simFn)
+        return defi
+
+    @staticmethod
+    def from_sim_fn(
+        name: str,
+        category: str,
+        input_count: int,
+        output_count: int,
+        delay_ns: int,
+        simFn: NativeSimulationFunction | Callable
     ) -> "ComponentDefinition":
         sim = simFn if isinstance(simFn, NativeSimulationFunction) else NativeSimulationFunction(simFn)
-        native = NativeComponentDefinition(name, category, input_count, output_count, sim, int(delay_ns), expressions or [])
+        native = NativeComponentDefinition(name, category, input_count, output_count, sim, int(delay_ns), [])
         defi = ComponentDefinition(native)
         defi.set_simulation_function(simFn)
         return defi

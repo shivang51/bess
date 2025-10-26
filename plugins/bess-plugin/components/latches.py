@@ -19,7 +19,7 @@ class LatchAuxData:
 
 def _simulate_latch(inputs: list[PinState], simTime: float, oldState: ComponentState) -> ComponentState:
     newState = oldState.copy()
-    oldState = ComponentState(oldState)
+    oldState = oldState
     newState.input_states = inputs.copy() 
 
     aux_data: LatchAuxData = oldState.aux_data
@@ -117,13 +117,13 @@ for latch_type, details in latchDetails.items():
     input_pin_details = [PinDetail.for_input_pin(name) for name in details["input_pins"]]
     output_pins_details = [PinDetail.for_output_pin(name) for name in details["output_pins"]]
 
-    latch = ComponentDefinition.from_expressions(
+    latch = ComponentDefinition.from_sim_fn(
         name=details["name"],
         category="Latches",
         input_count=len(input_pin_details),
         output_count=len(output_pins_details),
-        simFn=_simulate_latch,
-        delay_ns=2
+        delay_ns=2,
+        simFn=_simulate_latch
     )
     latch.input_pin_details = input_pin_details
     latch.output_pin_details = output_pins_details
