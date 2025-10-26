@@ -111,14 +111,16 @@ namespace Bess::Plugins {
                 }
 
                 SimEngine::ComponentDefinition def = [&]() {
-                    if (!expressions.empty()) {
-                        return SimEngine::ComponentDefinition(name, category, inputCount, outputCount, simFn, SimEngine::SimDelayNanoSeconds(delayNs), expressions);
+                    SimEngine::ComponentDefinition d;
+                    if (!expressions.empty() && (opStr.empty() || opStr == "0")) {
+                        d = SimEngine::ComponentDefinition(name, category, inputCount, outputCount, simFn, SimEngine::SimDelayNanoSeconds(delayNs), expressions);
                     } else {
                         char op = opStr.empty() ? '0' : opStr[0];
-                        SimEngine::ComponentDefinition d(name, category, inputCount, outputCount, simFn, SimEngine::SimDelayNanoSeconds(delayNs), op);
-                        d.negate = negate;
-                        return d;
+                        d = SimEngine::ComponentDefinition(name, category, inputCount, outputCount, simFn, SimEngine::SimDelayNanoSeconds(delayNs), op);
                     }
+
+                    d.negate = negate;
+                    return d;
                 }();
 
                 if (py::hasattr(pyComp, "native_input_pin_details")) {

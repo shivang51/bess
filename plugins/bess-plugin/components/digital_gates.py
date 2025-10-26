@@ -61,7 +61,7 @@ for gate_key, gate_data in _gates.items():
         delay_ns=1,
         op=gate_data["op"],
     )
-
+    def_gate.negate = gate_data.get("negate_output", False)
     digital_gates.append(def_gate)
 
 __all__ = ["digital_gates"]
