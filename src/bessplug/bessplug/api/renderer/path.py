@@ -236,6 +236,548 @@ class Path:
         path._native.set_commands(cmds)
         return path
 
+    @staticmethod
+    def from_svg_str(svg_data: str) -> "Path":
+        """
+        Parse an SVG path 'd' string and return a Path instance.
+        Supports: M/m, Z/z, L/l, H/h, V/v, C/c, S/s, Q/q, T/t, A/a
+        Converts arcs to cubic beziers and collapses degenerate cubics to straight lines.
+        """
+        import re
+        import math
+
+        # --- Helpers -------------------------------------------------------
+        def _tok_regex():
+            # match commands or numbers (supports scientific notation)
+            return re.compile(
+                r"[MmZzLlHhVvCcSsQqTtAa]|[-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?"
+            )
+
+        def _read_number():
+            nonlocal i
+            if i >= len(tokens):
+                raise ValueError("Unexpected end of path data (expected number).")
+            tok = tokens[i]
+            if re.fullmatch(r"[MmZzLlHhVvCcSsQqTtAa]", tok):
+                raise ValueError(f"Unexpected command '{tok}' where number expected.")
+            i += 1
+            return float(tok)
+
+        def _make_point(x, y, relative):
+            if relative:
+                return (cur_x + x, cur_y + y)
+            else:
+                return (x, y)
+
+        def _dist(ax, ay, bx, by):
+            return math.hypot(bx - ax, by - ay)
+
+        def _distance_point_to_line(px, py, ax, ay, bx, by):
+            # distance from P to line AB
+            vx = bx - ax
+            vy = by - ay
+            wx = px - ax
+            wy = py - ay
+            denom = vx * vx + vy * vy
+            if denom == 0.0:
+                return math.hypot(px - ax, py - ay)
+            t_proj = (vx * wx + vy * wy) / denom
+            projx = ax + t_proj * vx
+            projy = ay + t_proj * vy
+            return math.hypot(px - projx, py - projy)
+
+        def _is_degenerate_cubic(
+            sx, sy, c1x, c1y, c2x, c2y, ex, ey, rel_tol=1e-6, abs_tol=1e-3
+        ):
+            """
+            True if cubic (S, C1, C2, E) is effectively a straight line.
+            Uses:
+              - distance of control pts to S->E line
+              - handle lengths relative to segment length
+              - absolute clamp
+            Tweak abs_tol based on your coordinate scale (1e-3 is typical for pixel-ish coords).
+            """
+            d1 = _distance_point_to_line(c1x, c1y, sx, sy, ex, ey)
+            d2 = _distance_point_to_line(c2x, c2y, sx, sy, ex, ey)
+            h1 = _dist(c1x, c1y, sx, sy)
+            h2 = _dist(c2x, c2y, ex, ey)
+            seg_len = _dist(sx, sy, ex, ey)
+            rel = rel_tol * (seg_len if seg_len > 0 else 1.0)
+            if (
+                d1 <= max(abs_tol, rel)
+                and d2 <= max(abs_tol, rel)
+                and h1 <= max(abs_tol, rel)
+                and h2 <= max(abs_tol, rel)
+            ):
+                return True
+            if (
+                abs(c1x - sx) <= abs_tol
+                and abs(c1y - sy) <= abs_tol
+                and abs(c2x - ex) <= abs_tol
+                and abs(c2y - ey) <= abs_tol
+            ):
+                return True
+            return False
+
+        def _arc_to_cubics(x1, y1, rx, ry, phi_deg, large_arc, sweep, x2, y2):
+            """
+            Converts an SVG elliptical arc to a list of cubic bezier segments.
+            Returns list of (c1x,c1y,c2x,c2y, ex,ey).
+            Based on the SVG spec algorithm (center parameterization) and splitting
+            into segments <= 90 degrees. Handles radii correction.
+            """
+            # degenerate straight-line fallback
+            if rx == 0 or ry == 0:
+                return [(x1, y1, x2, y2, x2, y2)]
+
+            phi = math.radians(phi_deg % 360.0)
+            cos_phi = math.cos(phi)
+            sin_phi = math.sin(phi)
+
+            # Step 1: transform to prime coords
+            dx2 = (x1 - x2) / 2.0
+            dy2 = (y1 - y2) / 2.0
+            x1p = cos_phi * dx2 + sin_phi * dy2
+            y1p = -sin_phi * dx2 + cos_phi * dy2
+
+            rx_abs = abs(rx)
+            ry_abs = abs(ry)
+            if rx_abs == 0 or ry_abs == 0:
+                return [(x1, y1, x2, y2, x2, y2)]
+
+            # Step 2: correct radii if too small
+            lam = (x1p * x1p) / (rx_abs * rx_abs) + (y1p * y1p) / (ry_abs * ry_abs)
+            if lam > 1.0:
+                scale = math.sqrt(lam)
+                rx_abs *= scale
+                ry_abs *= scale
+
+            # Step 3: compute center prime (cx', cy')
+            rx2 = rx_abs * rx_abs
+            ry2 = ry_abs * ry_abs
+            x1p2 = x1p * x1p
+            y1p2 = y1p * y1p
+
+            # safe factor for sqrt argument
+            num = max(0.0, rx2 * ry2 - rx2 * y1p2 - ry2 * x1p2)
+            denom = rx2 * y1p2 + ry2 * x1p2
+            if denom == 0:
+                cc = 0.0
+            else:
+                cc = math.sqrt(num / denom) if num > 0 else 0.0
+                cc = -cc if large_arc == sweep else cc
+
+            cxp = cc * (rx_abs * y1p / ry_abs)
+            cyp = cc * (-ry_abs * x1p / rx_abs)
+
+            # Step 4: center (cx, cy)
+            cx = cos_phi * cxp - sin_phi * cyp + (x1 + x2) / 2.0
+            cy = sin_phi * cxp + cos_phi * cyp + (y1 + y2) / 2.0
+
+            # Step 5: angles
+            def _angle(u_x, u_y, v_x, v_y):
+                dot = u_x * v_x + u_y * v_y
+                det = u_x * v_y - u_y * v_x
+                return math.atan2(det, dot)
+
+            ux = (x1p - cxp) / rx_abs
+            uy = (y1p - cyp) / ry_abs
+            vx = (-x1p - cxp) / rx_abs
+            vy = (-y1p - cyp) / ry_abs
+
+            theta1 = math.atan2(uy, ux)
+            delta = _angle(ux, uy, vx, vy)
+
+            # adjust by sweep flag
+            if not sweep and delta > 0:
+                delta -= 2 * math.pi
+            elif sweep and delta < 0:
+                delta += 2 * math.pi
+
+            # split into segments with angle <= pi/2
+            segs = max(1, int(math.ceil(abs(delta) / (math.pi / 2.0))))
+            delta_per = delta / segs
+
+            out = []
+            for i_seg in range(segs):
+                t1 = theta1 + i_seg * delta_per
+                t2 = t1 + delta_per
+
+                def _point(t):
+                    ct = math.cos(t)
+                    st = math.sin(t)
+                    x = cx + rx_abs * cos_phi * ct - ry_abs * sin_phi * st
+                    y = cy + rx_abs * sin_phi * ct + ry_abs * cos_phi * st
+                    return x, y
+
+                def _deriv(t):
+                    ct = math.cos(t)
+                    st = math.sin(t)
+                    dxdt = -rx_abs * cos_phi * st - ry_abs * sin_phi * ct
+                    dydt = -rx_abs * sin_phi * st + ry_abs * cos_phi * ct
+                    return dxdt, dydt
+
+                p1x, p1y = _point(t1)
+                p2x, p2y = _point(t2)
+                d1x, d1y = _deriv(t1)
+                d2x, d2y = _deriv(t2)
+
+                dt = t2 - t1
+                if abs(dt) < 1e-12:
+                    # tiny segment -> straight
+                    out.append((p1x, p1y, p2x, p2y, p2x, p2y))
+                    continue
+
+                k = (4.0 / 3.0) * math.tan(dt / 4.0)
+                c1x = p1x + k * d1x
+                c1y = p1y + k * d1y
+                c2x = p2x - k * d2x
+                c2y = p2y - k * d2y
+
+                out.append((c1x, c1y, c2x, c2y, p2x, p2y))
+
+            return out
+
+        # --- Tokenize -----------------------------------------------------
+        tokens = _tok_regex().findall(svg_data.replace(",", " "))
+        if not tokens:
+            return Path()  # empty Path
+
+        # param counts per command
+        param_count = {
+            "M": 2,
+            "L": 2,
+            "H": 1,
+            "V": 1,
+            "C": 6,
+            "S": 4,
+            "Q": 4,
+            "T": 2,
+            "A": 7,
+            "Z": 0,
+        }
+
+        i = 0
+        cur_x = 0.0
+        cur_y = 0.0
+        sub_x = None
+        sub_y = None
+        prev_cmd = None
+        prev_cubic_ctrl = None
+        prev_quad_ctrl = None
+
+        # We'll build an intermediate list of commands to allow post-processing.
+        # Each entry: ("M", x,y) | ("L", x,y) | ("C", c1x,c1y,c2x,c2y, ex,ey) |
+        # ("Q", cx,cy, ex,ey) | ("Z",)
+        cmds = []
+
+        # --- Parse loop ---------------------------------------------------
+        while i < len(tokens):
+            tok = tokens[i]
+            if re.fullmatch(r"[MmZzLlHhVvCcSsQqTtAa]", tok):
+                i += 1
+                cmd = tok
+            else:
+                # implicit repetition of previous command
+                if prev_cmd is None:
+                    raise ValueError("Path data must begin with a command")
+                cmd = prev_cmd
+
+            absolute = cmd.isupper()
+            C = cmd.upper()
+
+            if C == "Z":
+                # close path
+                cmds.append(("Z",))
+                # set current point to subpath start (we'll resolve when emitting)
+                prev_cubic_ctrl = None
+                prev_quad_ctrl = None
+                prev_cmd = cmd
+                continue
+
+            # process one or more parameter groups for this command
+            need = param_count[C]
+            first_moveto = True if C == "M" else False
+
+            while True:
+                # if not enough tokens left for a full parameter group, break
+                if need > 0:
+                    # peek next token: if it's a command letter, break
+                    if i >= len(tokens):
+                        break
+                    if re.fullmatch(r"[MmZzLlHhVvCcSsQqTtAa]", tokens[i]):
+                        break
+
+                if C == "M":
+                    # MoveTo consumes one pair and subsequent pairs are treated as implicit L
+                    x = _read_number()
+                    y = _read_number()
+                    px, py = _make_point(x, y, not absolute)
+                    cmds.append(("M", px, py))
+                    cur_x, cur_y = px, py
+                    sub_x, sub_y = px, py
+                    prev_cubic_ctrl = None
+                    prev_quad_ctrl = None
+                    # subsequent pairs become L/l
+                    prev_cmd = "L" if absolute else "l"
+                    cmd = prev_cmd
+                    absolute = cmd.isupper()
+                    C = "L"
+                    continue
+
+                if C == "L":
+                    x = _read_number()
+                    y = _read_number()
+                    px, py = _make_point(x, y, not absolute)
+                    cmds.append(("L", px, py))
+                    cur_x, cur_y = px, py
+                    prev_cubic_ctrl = None
+                    prev_quad_ctrl = None
+                    prev_cmd = cmd
+                    continue
+
+                if C == "H":
+                    x = _read_number()
+                    px = x if absolute else (cur_x + x)
+                    py = cur_y
+                    cmds.append(("L", px, py))
+                    cur_x, cur_y = px, py
+                    prev_cubic_ctrl = None
+                    prev_quad_ctrl = None
+                    prev_cmd = cmd
+                    continue
+
+                if C == "V":
+                    y = _read_number()
+                    py = y if absolute else (cur_y + y)
+                    px = cur_x
+                    cmds.append(("L", px, py))
+                    cur_x, cur_y = px, py
+                    prev_cubic_ctrl = None
+                    prev_quad_ctrl = None
+                    prev_cmd = cmd
+                    continue
+
+                if C == "C":
+                    x1 = _read_number()
+                    y1 = _read_number()
+                    x2 = _read_number()
+                    y2 = _read_number()
+                    x = _read_number()
+                    y = _read_number()
+                    p1 = _make_point(x1, y1, not absolute)
+                    p2 = _make_point(x2, y2, not absolute)
+                    p = _make_point(x, y, not absolute)
+                    cmds.append(("C", p1[0], p1[1], p2[0], p2[1], p[0], p[1]))
+                    prev_cubic_ctrl = (p2[0], p2[1])
+                    prev_quad_ctrl = None
+                    cur_x, cur_y = p
+                    prev_cmd = cmd
+                    continue
+
+                if C == "S":
+                    x2 = _read_number()
+                    y2 = _read_number()
+                    x = _read_number()
+                    y = _read_number()
+                    if (
+                        prev_cmd is not None
+                        and prev_cmd.upper() in ("C", "S")
+                        and prev_cubic_ctrl is not None
+                    ):
+                        refl_x = 2 * cur_x - prev_cubic_ctrl[0]
+                        refl_y = 2 * cur_y - prev_cubic_ctrl[1]
+                        c1x, c1y = refl_x, refl_y
+                    else:
+                        c1x, c1y = cur_x, cur_y
+                    p2 = _make_point(x2, y2, not absolute)
+                    p = _make_point(x, y, not absolute)
+                    cmds.append(("C", c1x, c1y, p2[0], p2[1], p[0], p[1]))
+                    prev_cubic_ctrl = (p2[0], p2[1])
+                    prev_quad_ctrl = None
+                    cur_x, cur_y = p
+                    prev_cmd = cmd
+                    continue
+
+                if C == "Q":
+                    cx = _read_number()
+                    cy = _read_number()
+                    x = _read_number()
+                    y = _read_number()
+                    cpt = _make_point(cx, cy, not absolute)
+                    p = _make_point(x, y, not absolute)
+                    cmds.append(("Q", cpt[0], cpt[1], p[0], p[1]))
+                    prev_quad_ctrl = (cpt[0], cpt[1])
+                    prev_cubic_ctrl = None
+                    cur_x, cur_y = p
+                    prev_cmd = cmd
+                    continue
+
+                if C == "T":
+                    x = _read_number()
+                    y = _read_number()
+                    if (
+                        prev_cmd is not None
+                        and prev_cmd.upper() in ("Q", "T")
+                        and prev_quad_ctrl is not None
+                    ):
+                        refl_x = 2 * cur_x - prev_quad_ctrl[0]
+                        refl_y = 2 * cur_y - prev_quad_ctrl[1]
+                        cpt = (refl_x, refl_y)
+                    else:
+                        cpt = (cur_x, cur_y)
+                    p = _make_point(x, y, not absolute)
+                    cmds.append(("Q", cpt[0], cpt[1], p[0], p[1]))
+                    prev_quad_ctrl = cpt
+                    prev_cubic_ctrl = None
+                    cur_x, cur_y = p
+                    prev_cmd = cmd
+                    continue
+
+                if C == "A":
+                    rx = _read_number()
+                    ry = _read_number()
+                    xrot = _read_number()
+                    laf = int(_read_number())
+                    sf = int(_read_number())
+                    x = _read_number()
+                    y = _read_number()
+                    p = _make_point(x, y, not absolute)
+                    # Convert arc to cubic segments
+                    segs = _arc_to_cubics(
+                        cur_x, cur_y, rx, ry, xrot, laf != 0, sf != 0, p[0], p[1]
+                    )
+                    # append as cubic entries; degenerate handling will be done later
+                    for c1x, c1y, c2x, c2y, ex, ey in segs:
+                        cmds.append(("C", c1x, c1y, c2x, c2y, ex, ey))
+                        cur_x, cur_y = ex, ey
+                    prev_cubic_ctrl = (segs[-1][2], segs[-1][3]) if segs else None
+                    prev_quad_ctrl = None
+                    prev_cmd = cmd
+                    continue
+
+                # Unknown/unsupported should not happen
+                raise ValueError(f"Unsupported command {C}")
+
+            # done repetitions for this explicit command
+            prev_cmd = cmd
+
+        # --- Post-process intermediate cmds --------------------------------
+        # Convert degenerate cubics to straight lines, drop zero-length lines, remove duplicate consecutive points.
+        simplified = []
+        last_pt = None
+        subpath_start = None
+
+        for entry in cmds:
+            if entry[0] == "M":
+                _, x, y = entry
+                # Emit move only if different from last
+                if last_pt is None or (
+                    abs(x - last_pt[0]) > 1e-12 or abs(y - last_pt[1]) > 1e-12
+                ):
+                    simplified.append(("M", x, y))
+                    last_pt = (x, y)
+                    subpath_start = (x, y)
+                else:
+                    # duplicate move: ignore
+                    subpath_start = (x, y)
+                    # last_pt stays same
+                continue
+
+            if entry[0] == "L":
+                _, x, y = entry
+                if (
+                    last_pt is not None
+                    and abs(x - last_pt[0]) < 1e-12
+                    and abs(y - last_pt[1]) < 1e-12
+                ):
+                    # zero-length line -> skip
+                    continue
+                simplified.append(("L", x, y))
+                last_pt = (x, y)
+                continue
+
+            if entry[0] == "C":
+                _, c1x, c1y, c2x, c2y, ex, ey = entry
+                sx, sy = last_pt if last_pt is not None else (0.0, 0.0)
+                # If cubic is degenerate -> replace with L
+                if _is_degenerate_cubic(
+                    sx, sy, c1x, c1y, c2x, c2y, ex, ey, rel_tol=1e-6, abs_tol=1e-3
+                ):
+                    # skip if zero-length
+                    if abs(ex - sx) < 1e-12 and abs(ey - sy) < 1e-12:
+                        # skip degenerate
+                        last_pt = (ex, ey)
+                        continue
+                    simplified.append(("L", ex, ey))
+                    last_pt = (ex, ey)
+                else:
+                    simplified.append(("C", c1x, c1y, c2x, c2y, ex, ey))
+                    last_pt = (ex, ey)
+                continue
+
+            if entry[0] == "Q":
+                _, cx, cy, ex, ey = entry
+                sx, sy = last_pt if last_pt is not None else (0.0, 0.0)
+                # Convert small quadratics (control nearly on line) to L
+                dctrl = _distance_point_to_line(cx, cy, sx, sy, ex, ey)
+                if dctrl <= max(1e-3, 1e-6 * _dist(sx, sy, ex, ey)):
+                    # small quad -> line
+                    if abs(ex - sx) < 1e-12 and abs(ey - sy) < 1e-12:
+                        last_pt = (ex, ey)
+                        continue
+                    simplified.append(("L", ex, ey))
+                    last_pt = (ex, ey)
+                else:
+                    simplified.append(("Q", cx, cy, ex, ey))
+                    last_pt = (ex, ey)
+                continue
+
+            if entry[0] == "Z":
+                simplified.append(("Z",))
+                # after close, last_pt will become subpath_start
+                last_pt = subpath_start
+                continue
+
+        # --- Emit to real Path API ------------------------------------------
+        path = Path()
+        cur_x = cur_y = 0.0
+        sub_x = sub_y = None
+
+        for e in simplified:
+            if e[0] == "M":
+                _, x, y = e
+                # use move_to_vec
+                path.move_to_vec((x, y))
+                cur_x, cur_y = x, y
+                sub_x, sub_y = x, y
+            elif e[0] == "L":
+                _, x, y = e
+                path.line_to_vec((x, y))
+                cur_x, cur_y = x, y
+            elif e[0] == "C":
+                _, c1x, c1y, c2x, c2y, ex, ey = e
+                path.cubic_to_vec((c1x, c1y), (c2x, c2y), (ex, ey))
+                cur_x, cur_y = ex, ey
+            elif e[0] == "Q":
+                _, cx, cy, ex, ey = e
+                path.quad_to_vec((cx, cy), (ex, ey))
+                cur_x, cur_y = ex, ey
+            elif e[0] == "Z":
+                if hasattr(path, "close"):
+                    path.get_path_properties().is_closed = True
+                else:
+                    # fallback: line to subpath start
+                    if sub_x is not None and sub_y is not None:
+                        path.line_to_vec((sub_x, sub_y))
+                # current point becomes subpath start
+                cur_x, cur_y = sub_x, sub_y
+            else:
+                # should not reach here
+                raise RuntimeError(f"Unhandled simplified command {e[0]}")
+
+        return path
+
     # ---------------------------------------------------------------------
     # --- Internal helpers
     # ---------------------------------------------------------------------
