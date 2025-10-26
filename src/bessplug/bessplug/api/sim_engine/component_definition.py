@@ -3,14 +3,18 @@ from typing import Callable, Optional, Union, Any
 import json
 
 from .pin_detail import PinDetail
-from bessplug.bindings._bindings.sim_engine import ComponentDefinition as NativeComponentDefinition
-from bessplug.bindings._bindings.sim_engine import SimulationFunction as NativeSimulationFunction
+from bessplug.bindings._bindings.sim_engine import (
+    ComponentDefinition as NativeComponentDefinition,
+)
+from bessplug.bindings._bindings.sim_engine import (
+    SimulationFunction as NativeSimulationFunction,
+)
 
 from .sim_engine import expr_sim_function
 
-class ComponentDefinition:
-    """Read-only convenience view over native ComponentDefinition.
 
+class ComponentDefinition:
+    """
     Provides Pythonic accessors for metadata used by the simulation engine
     and authoring tools:
     - Name, category, timing (delay/setup/hold)
@@ -52,7 +56,9 @@ class ComponentDefinition:
         return self._simulate_py or self._native.simulation_function
 
     @simulation_function.setter
-    def simulation_function(self, simulate: Union[NativeSimulationFunction, Callable]) -> None:
+    def simulation_function(
+        self, simulate: Union[NativeSimulationFunction, Callable]
+    ) -> None:
         self.set_simulation_function(simulate)
 
     @property
@@ -161,9 +167,19 @@ class ComponentDefinition:
     def negate(self, v: bool) -> None:
         self._native.negate = bool(v)
 
-    def set_simulation_function(self, simulate: Union[NativeSimulationFunction, Callable]) -> None:
-        self._simulate_py = simulate if callable(simulate) and not isinstance(simulate, NativeSimulationFunction) else None
-        sim = simulate if isinstance(simulate, NativeSimulationFunction) else NativeSimulationFunction(simulate)
+    def set_simulation_function(
+        self, simulate: Union[NativeSimulationFunction, Callable]
+    ) -> None:
+        self._simulate_py = (
+            simulate
+            if callable(simulate) and not isinstance(simulate, NativeSimulationFunction)
+            else None
+        )
+        sim = (
+            simulate
+            if isinstance(simulate, NativeSimulationFunction)
+            else NativeSimulationFunction(simulate)
+        )
         self._native.set_simulation_function(sim)
 
     def get_expressions(self, input_count: int = -1) -> list[str]:
@@ -211,8 +227,9 @@ class ComponentDefinition:
         op: str,
     ) -> "ComponentDefinition":
         simFn = expr_sim_function
-        sim = simFn if isinstance(simFn, NativeSimulationFunction) else NativeSimulationFunction(simFn)
-        native = NativeComponentDefinition(name, category, input_count, output_count, sim, int(delay_ns), op[0])
+        native = NativeComponentDefinition(
+            name, category, input_count, output_count, simFn, int(delay_ns), op[0]
+        )
         defi = ComponentDefinition(native)
         defi.set_simulation_function(simFn)
         return defi
@@ -227,8 +244,9 @@ class ComponentDefinition:
         expressions: list[str],
     ) -> "ComponentDefinition":
         simFn = expr_sim_function
-        sim = simFn if isinstance(simFn, NativeSimulationFunction) else NativeSimulationFunction(simFn)
-        native = NativeComponentDefinition(name, category, input_count, output_count, sim, int(delay_ns), expressions)
+        native = NativeComponentDefinition(
+            name, category, input_count, output_count, simFn, int(delay_ns), expressions
+        )
         defi = ComponentDefinition(native)
         defi.set_simulation_function(simFn)
         return defi
@@ -240,10 +258,11 @@ class ComponentDefinition:
         input_count: int,
         output_count: int,
         delay_ns: int,
-        simFn: NativeSimulationFunction | Callable
+        simFn: NativeSimulationFunction | Callable,
     ) -> "ComponentDefinition":
-        sim = simFn if isinstance(simFn, NativeSimulationFunction) else NativeSimulationFunction(simFn)
-        native = NativeComponentDefinition(name, category, input_count, output_count, sim, int(delay_ns), [])
+        native = NativeComponentDefinition(
+            name, category, input_count, output_count, simFn, int(delay_ns), []
+        )
         defi = ComponentDefinition(native)
         defi.set_simulation_function(simFn)
         return defi
@@ -252,5 +271,3 @@ class ComponentDefinition:
 __all__ = [
     "ComponentDefinition",
 ]
-
-
