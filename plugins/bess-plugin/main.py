@@ -1,5 +1,5 @@
 from typing import override
-from bessplug import Plugin 
+from bessplug import Plugin
 from bessplug.api.renderer.path import Path
 from bessplug.api.sim_engine import ComponentDefinition
 from components.latches import latches

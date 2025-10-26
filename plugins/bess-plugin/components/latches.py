@@ -1,5 +1,12 @@
 from enum import Enum
-from bessplug.api.sim_engine import ComponentDefinition, ComponentState, PinState, LogicState, PinDetail
+from bessplug.api.sim_engine import (
+    ComponentDefinition,
+    ComponentState,
+    PinState,
+    LogicState,
+    PinDetail,
+)
+
 
 class LatchType(Enum):
     D_LATCH = "D Latch"
@@ -17,18 +24,19 @@ class LatchAuxData:
         return f"LatchAuxData(type={self.type}, enable_pin_idx={self.enable_pin_idx})"
 
 
-def _simulate_latch(inputs: list[PinState], simTime: float, oldState: ComponentState) -> ComponentState:
+def _simulate_latch(
+    inputs: list[PinState], simTime: float, oldState: ComponentState
+) -> ComponentState:
     newState = oldState.copy()
     oldState = oldState
-    newState.input_states = inputs.copy() 
+    newState.input_states = inputs.copy()
 
     aux_data: LatchAuxData = oldState.aux_data
 
     enable_input = inputs[aux_data.enable_pin_idx]
-    
+
     if not enable_input.state == LogicState.HIGH:
         return newState
-
 
     latch_type = aux_data.type
 
@@ -51,7 +59,9 @@ def _simulate_latch(inputs: list[PinState], simTime: float, oldState: ComponentS
         T = inputs[0]
         if T.state == LogicState.HIGH:
             oldQ = oldState.output_states[0]
-            newQ.state = LogicState.LOW if oldQ.state == LogicState.HIGH else LogicState.HIGH
+            newQ.state = (
+                LogicState.LOW if oldQ.state == LogicState.HIGH else LogicState.HIGH
+            )
         else:
             newQ = oldState.output_states[0].copy()
     elif latch_type == LatchType.JK_LATCH:
@@ -63,12 +73,13 @@ def _simulate_latch(inputs: list[PinState], simTime: float, oldState: ComponentS
         elif J.state == LogicState.LOW and K.state == LogicState.HIGH:
             newQ.state = LogicState.LOW
         elif J.state == LogicState.HIGH and K.state == LogicState.HIGH:
-            newQ.state = LogicState.LOW if oldQ.state == LogicState.HIGH else LogicState.HIGH
+            newQ.state = (
+                LogicState.LOW if oldQ.state == LogicState.HIGH else LogicState.HIGH
+            )
         else:
             newQ = oldQ.copy()
     else:
         raise ValueError(f"Unsupported latch type: {latch_type}")
-
 
     if oldState.output_states[0].state == newQ.state:
         return newState
@@ -82,6 +93,7 @@ def _simulate_latch(inputs: list[PinState], simTime: float, oldState: ComponentS
     newState.set_output_state(0, newQ)
     newState.set_output_state(1, newQI)
     return newState
+
 
 latchDetails = {
     LatchType.D_LATCH: {
@@ -114,8 +126,12 @@ latchDetails = {
 latches = []
 
 for latch_type, details in latchDetails.items():
-    input_pin_details = [PinDetail.for_input_pin(name) for name in details["input_pins"]]
-    output_pins_details = [PinDetail.for_output_pin(name) for name in details["output_pins"]]
+    input_pin_details = [
+        PinDetail.for_input_pin(name) for name in details["input_pins"]
+    ]
+    output_pins_details = [
+        PinDetail.for_output_pin(name) for name in details["output_pins"]
+    ]
 
     latch = ComponentDefinition.from_sim_fn(
         name=details["name"],
@@ -123,7 +139,7 @@ for latch_type, details in latchDetails.items():
         input_count=len(input_pin_details),
         output_count=len(output_pins_details),
         delay_ns=2,
-        simFn=_simulate_latch
+        simFn=_simulate_latch,
     )
     latch.input_pin_details = input_pin_details
     latch.output_pin_details = output_pins_details
