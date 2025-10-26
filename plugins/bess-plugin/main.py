@@ -3,7 +3,7 @@ from bessplug import Plugin
 from bessplug.api.renderer.path import Path
 from bessplug.api.sim_engine import ComponentDefinition
 from components.latches import latches
-from components.digital_gates import digital_gates
+from components.digital_gates import digital_gates, schematic_symbols
 
 
 class BessPlugin(Plugin):
@@ -16,17 +16,7 @@ class BessPlugin(Plugin):
 
     @override
     def on_schematic_symbols_load(self) -> dict[int, Path]:
-        # latch: ComponentDefinition = latches[0]
-        # hash = latch.get_hash()
-        # path = Path()
-        # path.move_to((0, 0    ))
-        # path.line_to((1, 0  ))
-        # path.line_to((1, 1))
-        # path.line_to((0, 0))
-        # props = path.get_path_properties()
-        # props.render_fill = True
-        # return {hash: path}
-        return {}
+        return {**schematic_symbols}
 
 
 plugin_hwd = BessPlugin()
