@@ -2,6 +2,7 @@ from typing import override
 from bessplug import Plugin
 from bessplug.api.renderer.path import Path
 from bessplug.api.sim_engine import ComponentDefinition
+from bessplug.plugin import SchematicDiagram
 from components.latches import latches
 from components.digital_gates import digital_gates, schematic_symbols
 
@@ -15,7 +16,7 @@ class BessPlugin(Plugin):
         return [*latches, *digital_gates]
 
     @override
-    def on_schematic_symbols_load(self) -> dict[int, Path]:
+    def on_schematic_symbols_load(self) -> dict[int, SchematicDiagram]:
         return {**schematic_symbols}
 
 

@@ -7,6 +7,7 @@
 #include "scene/components/components.h"
 #include "scene/renderer/material_renderer.h"
 #include "scene/renderer/vulkan/path_renderer.h"
+#include "scene/schematic_diagram.h"
 #include "types.h"
 #include "vulkan_subtexture.h"
 
@@ -22,7 +23,7 @@ namespace Bess::Canvas {
 
     struct ArtistTools {
         std::array<std::shared_ptr<Vulkan::SubTexture>, 8> sevenSegDispTexs;
-        std::unordered_map<uint64_t, Renderer::Path> schematicSymbolPaths;
+        std::unordered_map<uint64_t, SchematicDiagram> schematicSymbolPaths;
     };
 
     struct ArtistInstructions {

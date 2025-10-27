@@ -1,4 +1,5 @@
 #include "scene/artist/schematic_artist.h"
+#include "common/log.h"
 #include "component_catalog.h"
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
@@ -143,16 +144,22 @@ namespace Bess::Canvas {
 
         auto itr = m_artistTools.schematicSymbolPaths.find(simComponent.defHash);
         if (itr != m_artistTools.schematicSymbolPaths.end()) {
-            auto &path = itr->second;
+            auto &diagram = itr->second;
+            const auto &size = diagram.getSize();
+            float sx = w / size.x;
+            float sy = h / size.y;
             ContoursDrawInfo info;
             info.fillColor = fillColor;
             info.strokeColor = strokeColor;
             info.genFill = true;
             info.genStroke = true;
-            info.scale = {w, h};
+            info.scale = {sx, sy};
             info.translate = {pos.x - (w / 2.f), pos.y - (h / 2.f), pos.z};
             info.glyphId = id;
-            m_pathRenderer->drawPath(path, info);
+            auto &paths = itr->second.getPathsMut();
+            for (auto &p : paths) {
+                m_pathRenderer->drawPath(p, info);
+            }
             showName = false;
         } else {
             m_pathRenderer->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);

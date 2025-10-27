@@ -1,6 +1,7 @@
 #include "plugin_handle.h"
 #include "component_definition.h"
 #include "scene/renderer/path.h"
+#include "scene/schematic_diagram.h"
 #include "spdlog/spdlog.h"
 #include "types.h"
 #include <exception>
@@ -149,8 +150,8 @@ namespace Bess::Plugins {
         return components;
     }
 
-    std::unordered_map<uint64_t, Renderer::Path> PluginHandle::onSchematicSymbolsLoad() const {
-        std::unordered_map<uint64_t, Renderer::Path> symbols;
+    std::unordered_map<uint64_t, Canvas::SchematicDiagram> PluginHandle::onSchematicSymbolsLoad() const {
+        std::unordered_map<uint64_t, Canvas::SchematicDiagram> symbols;
 
         py::gil_scoped_acquire gil;
         if (py::hasattr(m_pluginObj, "on_schematic_symbols_load")) {
@@ -158,8 +159,8 @@ namespace Bess::Plugins {
 
             for (auto item : symDict.cast<py::dict>()) {
                 uint64_t key = item.first.cast<uint64_t>();
-                Renderer::Path path = item.second.attr("_native").cast<Renderer::Path>();
-                symbols.emplace(key, std::move(path));
+                auto symbol = item.second.attr("_native").cast<Canvas::SchematicDiagram>();
+                symbols.emplace(key, std::move(symbol));
             }
         }
 

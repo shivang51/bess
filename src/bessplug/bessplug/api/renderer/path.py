@@ -1,5 +1,5 @@
 from bessplug.bindings._bindings.renderer import Path as NativePath
-from typing import List, Tuple, Union
+from typing import List, Union
 from bessplug.bindings._bindings.renderer import (
     Path,
     PathCommand,
@@ -7,8 +7,7 @@ from bessplug.bindings._bindings.renderer import (
     PathProperties as NativePathProperties,
 )
 from bessplug.bindings._bindings import UUID
-
-Vec2 = Tuple[float, float]
+from bessplug.api.common.math import Vec2
 
 
 class PathProperties:
@@ -77,42 +76,42 @@ class Path:
     # ---------------------------------------------------------------------
 
     def move_to_vec(self, pos: Vec2) -> "Path":
-        """Move current position to Vec2(x, y)."""
-        self._native.move_to(_vec2(pos))
+        """Move current position to Vec2Vec2(x, y)."""
+        self._native.move_to(pos.native)
         return self
 
     def move_to(self, x: float, y: float) -> "Path":
-        """Move current position to (x, y)."""
-        return self.move_to_vec((x, y))
+        """Move current position to Vec2(x, y)."""
+        return self.move_to_vec(Vec2(x, y))
 
     def line_to_vec(self, pos: Vec2) -> "Path":
-        """Draw a line from current position to Vec2(x, y)."""
-        self._native.line_to(_vec2(pos))
+        """Draw a line from current position to Vec2Vec2(x, y)."""
+        self._native.line_to(pos.native)
         return self
 
     def line_to(self, x: float, y: float) -> "Path":
-        """Draw a line from current position to (x, y)."""
-        return self.line_to_vec((x, y))
+        """Draw a line from current position to Vec2(x, y)."""
+        return self.line_to_vec(Vec2(x, y))
 
     def quad_to_vec(self, c: Vec2, pos: Vec2) -> "Path":
         """Draw a quadratic curve using control point c."""
-        self._native.quad_to(_vec2(c), _vec2(pos))
+        self._native.quad_to(c.native, pos.native)
         return self
 
     def quad_to(self, cx: float, cy: float, x: float, y: float) -> "Path":
-        """Draw a quadratic curve using control point (cx, cy)."""
-        return self.quad_to_vec((cx, cy), (x, y))
+        """Draw a quadratic curve using control point Vec2(cx, cy)."""
+        return self.quad_to_vec(Vec2(cx, cy), Vec2(x, y))
 
     def cubic_to_vec(self, c1: Vec2, c2: Vec2, pos: Vec2) -> "Path":
         """Draw a cubic Bezier curve."""
-        self._native.cubic_to(_vec2(c1), _vec2(c2), _vec2(pos))
+        self._native.cubic_to(c1.native, c2.native, pos.native)
         return self
 
     def cubic_to(
         self, c1x: float, c1y: float, c2x: float, c2y: float, x: float, y: float
     ) -> "Path":
         """Draw a cubic Bezier curve."""
-        return self.cubic_to_vec((c1x, c1y), (c2x, c2y), (x, y))
+        return self.cubic_to_vec(Vec2(c1x, c1y), Vec2(c2x, c2y), Vec2(x, y))
 
     # ---------------------------------------------------------------------
     # --- Command management
@@ -126,6 +125,16 @@ class Path:
             raise TypeError("cmd must be PathCommand or dict")
         self._native.add_command(cmd)
         return self
+
+    def add_commands(self, cmds):
+        """Return the list of underlying path commands."""
+        cmds_ = self.get_commands()
+        native_cmds = [
+            self._dict_to_command(c) if isinstance(c, dict) else c for c in cmds
+        ]
+
+        cmds_.extend(native_cmds)
+        self._native.set_commands(cmds_)
 
     def get_commands(self) -> List[PathCommand]:
         """Return the list of underlying path commands."""
@@ -147,6 +156,39 @@ class Path:
         """Get path rendering properties."""
         return self._native.get_props_ref()
 
+    def scale(self, sx: float, sy: float):
+        """Scale path by (sx, sy)."""
+        cmds = self.get_commands()
+        for cmd in cmds:
+            match cmd.kind:
+                case PathCommandKind.Move:
+                    p = cmd.move.p
+                    p.x *= sx
+                    p.y *= sy
+                case PathCommandKind.Line:
+                    p = cmd.line.p
+                    p.x *= sx
+                    p.y *= sy
+                case PathCommandKind.Quad:
+                    c = cmd.quad.c
+                    p = cmd.quad.p
+                    c.x *= sx
+                    c.y *= sy
+                    p.x *= sx
+                    p.y *= sy
+                case PathCommandKind.Cubic:
+                    c1 = cmd.cubic.c1
+                    c2 = cmd.cubic.c2
+                    p = cmd.cubic.p
+                    c1.x *= sx
+                    c1.y *= sy
+                    c2.x *= sx
+                    c2.y *= sy
+                    p.x *= sx
+                    p.y *= sy
+
+        self.set_commands(cmds)
+
     def normalize(self):
         """Normalize path commands."""
         cmds = self.get_commands()
@@ -163,46 +205,15 @@ class Path:
                     max_w = max(max_w, abs(p.x))
                     max_h = max(max_h, abs(p.y))
                 case PathCommandKind.Quad:
-                    c = cmd.quad.c
                     p = cmd.quad.p
-                    max_w = max(max_w, abs(c.x), abs(p.x))
-                    max_h = max(max_h, abs(c.y), abs(p.y))
+                    max_w = max(max_w, abs(p.x))
+                    max_h = max(max_h, abs(p.y))
                 case PathCommandKind.Cubic:
-                    c1 = cmd.cubic.c1
-                    c2 = cmd.cubic.c2
                     p = cmd.cubic.p
-                    max_w = max(max_w, abs(c1.x), abs(c2.x), abs(p.x))
-                    max_h = max(max_h, abs(c1.y), abs(c2.y), abs(p.y))
+                    max_w = max(max_w, abs(p.x))
+                    max_h = max(max_h, abs(p.y))
 
-        for cmd in cmds:
-            match cmd.kind:
-                case PathCommandKind.Move:
-                    p = cmd.move.p
-                    p.x /= max_w
-                    p.y /= max_h
-                case PathCommandKind.Line:
-                    p = cmd.line.p
-                    p.x /= max_w
-                    p.y /= max_h
-                case PathCommandKind.Quad:
-                    c = cmd.quad.c
-                    p = cmd.quad.p
-                    c.x /= max_w
-                    c.y /= max_h
-                    p.x /= max_w
-                    p.y /= max_h
-                case PathCommandKind.Cubic:
-                    c1 = cmd.cubic.c1
-                    c2 = cmd.cubic.c2
-                    p = cmd.cubic.p
-                    c1.x /= max_w
-                    c1.y /= max_h
-                    c2.x /= max_w
-                    c2.y /= max_h
-                    p.x /= max_w
-                    p.y /= max_h
-
-        self.set_commands(cmds)
+        self.scale(1.0 / max_w if max_w > 0 else 1.0, 1.0 / max_h if max_h > 0 else 1.0)
 
     # ---------------------------------------------------------------------
     # --- Contours and UUID access
@@ -267,7 +278,7 @@ class Path:
             if relative:
                 return (cur_x + x, cur_y + y)
             else:
-                return (x, y)
+                return Vec2(x, y)
 
         def _dist(ax, ay, bx, by):
             return math.hypot(bx - ax, by - ay)
@@ -370,7 +381,7 @@ class Path:
             cxp = cc * (rx_abs * y1p / ry_abs)
             cyp = cc * (-ry_abs * x1p / rx_abs)
 
-            # Step 4: center (cx, cy)
+            # Step 4: center Vec2(cx, cy)
             cx = cos_phi * cxp - sin_phi * cyp + (x1 + x2) / 2.0
             cy = sin_phi * cxp + cos_phi * cyp + (y1 + y2) / 2.0
 
@@ -497,7 +508,6 @@ class Path:
 
             # process one or more parameter groups for this command
             need = param_count[C]
-            first_moveto = True if C == "M" else False
 
             while True:
                 # if not enough tokens left for a full parameter group, break
@@ -673,14 +683,14 @@ class Path:
                 _, x, y = entry
                 # Emit move only if different from last
                 if last_pt is None or (
-                    abs(x - last_pt[0]) > 1e-12 or abs(y - last_pt[1]) > 1e-12
+                    abs(x - last_pt.x) > 1e-12 or abs(y - last_pt.y) > 1e-12
                 ):
                     simplified.append(("M", x, y))
-                    last_pt = (x, y)
-                    subpath_start = (x, y)
+                    last_pt = Vec2(x, y)
+                    subpath_start = Vec2(x, y)
                 else:
                     # duplicate move: ignore
-                    subpath_start = (x, y)
+                    subpath_start = Vec2(x, y)
                     # last_pt stays same
                 continue
 
@@ -688,18 +698,20 @@ class Path:
                 _, x, y = entry
                 if (
                     last_pt is not None
-                    and abs(x - last_pt[0]) < 1e-12
-                    and abs(y - last_pt[1]) < 1e-12
+                    and abs(x - last_pt.x) < 1e-12
+                    and abs(y - last_pt.y) < 1e-12
                 ):
                     # zero-length line -> skip
                     continue
                 simplified.append(("L", x, y))
-                last_pt = (x, y)
+                last_pt = Vec2(x, y)
                 continue
 
             if entry[0] == "C":
                 _, c1x, c1y, c2x, c2y, ex, ey = entry
-                sx, sy = last_pt if last_pt is not None else (0.0, 0.0)
+                s = last_pt if last_pt is not None else Vec2(0.0, 0.0)
+                sx = s.x
+                sy = s.y
                 # If cubic is degenerate -> replace with L
                 if _is_degenerate_cubic(
                     sx, sy, c1x, c1y, c2x, c2y, ex, ey, rel_tol=1e-6, abs_tol=1e-3
@@ -707,30 +719,32 @@ class Path:
                     # skip if zero-length
                     if abs(ex - sx) < 1e-12 and abs(ey - sy) < 1e-12:
                         # skip degenerate
-                        last_pt = (ex, ey)
+                        last_pt = Vec2(ex, ey)
                         continue
                     simplified.append(("L", ex, ey))
-                    last_pt = (ex, ey)
+                    last_pt = Vec2(ex, ey)
                 else:
                     simplified.append(("C", c1x, c1y, c2x, c2y, ex, ey))
-                    last_pt = (ex, ey)
+                    last_pt = Vec2(ex, ey)
                 continue
 
             if entry[0] == "Q":
                 _, cx, cy, ex, ey = entry
-                sx, sy = last_pt if last_pt is not None else (0.0, 0.0)
+                s = last_pt if last_pt is not None else Vec2(0.0, 0.0)
+                sx = s.x
+                sy = s.y
                 # Convert small quadratics (control nearly on line) to L
                 dctrl = _distance_point_to_line(cx, cy, sx, sy, ex, ey)
                 if dctrl <= max(1e-3, 1e-6 * _dist(sx, sy, ex, ey)):
                     # small quad -> line
                     if abs(ex - sx) < 1e-12 and abs(ey - sy) < 1e-12:
-                        last_pt = (ex, ey)
+                        last_pt = Vec2(ex, ey)
                         continue
                     simplified.append(("L", ex, ey))
-                    last_pt = (ex, ey)
+                    last_pt = Vec2(ex, ey)
                 else:
                     simplified.append(("Q", cx, cy, ex, ey))
-                    last_pt = (ex, ey)
+                    last_pt = Vec2(ex, ey)
                 continue
 
             if entry[0] == "Z":
@@ -748,20 +762,20 @@ class Path:
             if e[0] == "M":
                 _, x, y = e
                 # use move_to_vec
-                path.move_to_vec((x, y))
+                path.move_to_vec(Vec2(x, y))
                 cur_x, cur_y = x, y
                 sub_x, sub_y = x, y
             elif e[0] == "L":
                 _, x, y = e
-                path.line_to_vec((x, y))
+                path.line_to_vec(Vec2(x, y))
                 cur_x, cur_y = x, y
             elif e[0] == "C":
                 _, c1x, c1y, c2x, c2y, ex, ey = e
-                path.cubic_to_vec((c1x, c1y), (c2x, c2y), (ex, ey))
+                path.cubic_to_vec(Vec2(c1x, c1y), Vec2(c2x, c2y), Vec2(ex, ey))
                 cur_x, cur_y = ex, ey
             elif e[0] == "Q":
                 _, cx, cy, ex, ey = e
-                path.quad_to_vec((cx, cy), (ex, ey))
+                path.quad_to_vec(Vec2(cx, cy), Vec2(ex, ey))
                 cur_x, cur_y = ex, ey
             elif e[0] == "Z":
                 if hasattr(path, "close"):
@@ -769,7 +783,7 @@ class Path:
                 else:
                     # fallback: line to subpath start
                     if sub_x is not None and sub_y is not None:
-                        path.line_to_vec((sub_x, sub_y))
+                        path.line_to_vec(Vec2(sub_x, sub_y))
                 # current point becomes subpath start
                 cur_x, cur_y = sub_x, sub_y
             else:
@@ -798,16 +812,16 @@ class Path:
 
         match kind:
             case PathCommandKind.Move:
-                cmd.move.p = _vec2(data["p"])
+                cmd.move.p = data["p"].native
             case PathCommandKind.Line:
-                cmd.line.p = _vec2(data["p"])
+                cmd.line.p = data["p"].native
             case PathCommandKind.Quad:
-                cmd.quad.c = _vec2(data["c"])
-                cmd.quad.p = _vec2(data["p"])
+                cmd.quad.c = data["c"].native
+                cmd.quad.p = data["p"].native
             case PathCommandKind.Cubic:
-                cmd.cubic.c1 = _vec2(data["c1"])
-                cmd.cubic.c2 = _vec2(data["c2"])
-                cmd.cubic.p = _vec2(data["p"])
+                cmd.cubic.c1 = data["c1"].native
+                cmd.cubic.c2 = data["c2"].native
+                cmd.cubic.p = data["p"].native
         return cmd
 
     @staticmethod
@@ -865,10 +879,4 @@ class Path:
 # ---------------------------------------------------------------------
 
 
-def _vec2(v: Vec2):
-    from bessplug.bindings._bindings import vec2
-
-    return vec2(float(v[0]), float(v[1]))
-
-
-__all__ = ["Path", "Vec2", "PathProperties"]
+__all__ = ["Path", "PathProperties"]

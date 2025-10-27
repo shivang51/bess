@@ -18,6 +18,7 @@ file(GLOB_RECURSE BESS_SCENE_SOURCES
 		# "${CMAKE_SOURCE_DIR}/src/Bess/src/scene/renderer/vulkan/path_renderer.cpp"
 		# "${CMAKE_SOURCE_DIR}/src/Bess/src/scene/renderer/vulkan/pipelines/*.cpp"
 		"${CMAKE_SOURCE_DIR}/src/Bess/src/scene/renderer/*.cpp"
+		"${CMAKE_SOURCE_DIR}/src/Bess/src/scene/schematic_diagram.cpp"
 		"${CMAKE_SOURCE_DIR}/src/Bess/src/camera.cpp"
 		"${CMAKE_SOURCE_DIR}/src/Bess/src/asset_manager/*.cpp"
 )
@@ -52,6 +53,8 @@ set(BESS_PYBIND_SOURCES
     bindings.cpp
     common_bindings.cpp
     renderer/path.cpp
+
+		scene/schematic_diagram.cpp
 
     sim_engine/types.cpp
     sim_engine/sim_functions.cpp

@@ -10,6 +10,10 @@ namespace Bess::Renderer {
     class Path;
 }
 
+namespace Bess::Canvas {
+    class SchematicDiagram;
+}
+
 namespace Bess::Plugins {
     class __attribute__((visibility("default"))) PluginHandle {
       public:
@@ -20,7 +24,7 @@ namespace Bess::Plugins {
         const pybind11::object &getPluginObject() const;
 
         std::vector<SimEngine::ComponentDefinition> onComponentsRegLoad() const;
-        std::unordered_map<uint64_t, Renderer::Path> onSchematicSymbolsLoad() const;
+        std::unordered_map<uint64_t, Canvas::SchematicDiagram> onSchematicSymbolsLoad() const;
 
       private:
         pybind11::object m_pluginObj;
