@@ -18,8 +18,16 @@ namespace Bess::Canvas {
 
         std::vector<Renderer::Path> &getPathsMut();
 
+        bool showName() const;
+        void setShowName(bool show);
+
+        float getStrokeSize() const;
+        void setStrokeSize(float size);
+
       private:
         std::vector<Renderer::Path> m_paths;
         glm::vec2 m_size; // bounding box size
+        bool m_showName = true;
+        float m_strokeSize = 0.f;
     };
 }; // namespace Bess::Canvas

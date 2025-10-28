@@ -152,9 +152,19 @@ class Path:
         self._native.set_props(properties._native)
         return self
 
-    def get_path_properties(self) -> PathProperties:
+    @property
+    def properties(self) -> PathProperties:
         """Get path rendering properties."""
         return self._native.get_props_ref()
+
+    @properties.setter
+    def properties(self, properties: PathProperties):
+        """Set path rendering properties."""
+        self._native.set_props(properties._native)
+
+    def get_path_props_copy(self) -> PathProperties:
+        """Get copy of path rendering properties wrapped in PathProperties."""
+        return PathProperties(self._native.get_props())
 
     def scale(self, sx: float, sy: float):
         """Scale path by (sx, sy)."""
@@ -189,11 +199,12 @@ class Path:
 
         self.set_commands(cmds)
 
-    def normalize(self):
-        """Normalize path commands."""
+    def calc_bounds(self) -> tuple[float, float]:
         cmds = self.get_commands()
         max_w = 0.0
         max_h = 0.0
+        pos_x = 0.0
+        pos_y = 0.0
         for cmd in cmds:
             match cmd.kind:
                 case PathCommandKind.Move:
@@ -213,11 +224,30 @@ class Path:
                     max_w = max(max_w, abs(p.x))
                     max_h = max(max_h, abs(p.y))
 
+        return max_w, max_h
+
+    def normalize(self):
+        """Normalize path commands."""
+        [max_w, max_h] = self.calc_bounds()
         self.scale(1.0 / max_w if max_w > 0 else 1.0, 1.0 / max_h if max_h > 0 else 1.0)
 
-    # ---------------------------------------------------------------------
-    # --- Contours and UUID access
-    # ---------------------------------------------------------------------
+    def get_bounds(self) -> Vec2:
+        """Return (min_x, min_y, max_x, max_y) bounds of the path."""
+        return Vec2.from_native(self._native.get_bounds())
+
+    def set_bounds(self, bounds: Vec2):
+        """Set (min_x, min_y, max_x, max_y) bounds of the path."""
+        self._native.set_bounds(bounds._native)
+
+    def calc_set_bounds(self):
+        """Calculate and set bounds of the path."""
+        self._native.set_bounds(Vec2(*self.calc_bounds())._native)
+
+    def set_lowest_pos(self, pos: Vec2):
+        self._native.set_lowest_pos(pos._native)
+
+    def get_lowest_pos(self) -> Vec2:
+        return Vec2.from_native(self._native.get_lowest_pos())
 
     @property
     def contours(self):
@@ -779,7 +809,7 @@ class Path:
                 cur_x, cur_y = ex, ey
             elif e[0] == "Z":
                 if hasattr(path, "close"):
-                    path.get_path_properties().is_closed = True
+                    path.properties.is_closed = True
                 else:
                     # fallback: line to subpath start
                     if sub_x is not None and sub_y is not None:
@@ -791,6 +821,15 @@ class Path:
                 raise RuntimeError(f"Unhandled simplified command {e[0]}")
 
         return path
+
+    def copy(self):
+        """Return a deep copy of this Path."""
+        new_path = Path()
+        new_path.set_commands(self.get_commands())
+        new_path.set_path_properties(self.get_path_props_copy())
+        new_path.set_bounds(self.get_bounds())
+        new_path.set_lowest_pos(self.get_lowest_pos())
+        return new_path
 
     # ---------------------------------------------------------------------
     # --- Internal helpers

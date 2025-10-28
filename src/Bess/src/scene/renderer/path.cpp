@@ -1,7 +1,5 @@
 #include "scene/renderer/path.h"
-#include "common/log.h"
 #include "scene/renderer/vulkan/path_renderer.h"
-#include "spdlog/fmt/bundled/base.h"
 
 namespace Bess::Renderer {
     Path *Path::moveTo(const glm::vec2 &pos) {
@@ -67,29 +65,32 @@ namespace Bess::Renderer {
         std::vector<PathPoint> points = {PathPoint{currentPos, 1.f, -1}};
         for (auto &c : m_cmds) {
             using Kind = Renderer::Path::PathCommand::Kind;
+
+            const float weight = c.weight > 0.f ? c.weight : m_strokeWidth;
+
             switch (c.kind) {
             case Kind::Move: {
                 const auto &pos = c.move.p;
                 currentPos = {c.move.p, c.z};
                 auto prevPoint = points.back();
                 if (points.size() == 1) {
-                    points[0] = PathPoint{{pos, c.z}, c.weight, c.id};
+                    points[0] = PathPoint{{pos, c.z}, weight, c.id};
                     continue;
                 }
 
                 m_contours.emplace_back(std::move(points));
                 points.clear();
-                points.emplace_back(PathPoint{{pos, c.z}, c.weight, c.id});
+                points.emplace_back(PathPoint{{pos, c.z}, weight, c.id});
             } break;
             case Kind::Line: {
-                points.emplace_back(PathPoint{{c.line.p, c.z}, c.weight, c.id});
+                points.emplace_back(PathPoint{{c.line.p, c.z}, weight, c.id});
                 currentPos = {c.line.p, c.z};
             } break;
             case Kind::Quad: {
                 auto positions = Renderer2D::Vulkan::PathRenderer::generateQuadBezierPoints(currentPos, c.quad.c, {c.quad.p, c.z});
                 points.reserve(points.size() + positions.size());
                 for (const auto &pos : positions) {
-                    points.emplace_back(PathPoint{pos, c.weight, c.id});
+                    points.emplace_back(PathPoint{pos, weight, c.id});
                 }
                 currentPos = {c.quad.p, c.z};
             } break;
@@ -99,7 +100,7 @@ namespace Bess::Renderer {
                                                                                              {c.cubic.p, c.z});
                 points.reserve(points.size() + positions.size());
                 for (const auto &pos : positions) {
-                    points.emplace_back(PathPoint{pos, c.weight, c.id});
+                    points.emplace_back(PathPoint{pos, weight, c.id});
                 }
                 currentPos = {c.cubic.p, c.z};
             } break;
@@ -144,9 +145,42 @@ namespace Bess::Renderer {
         return true;
     }
 
-    PathProperties &Path::getPropsRef() { return m_props; }
+    PathProperties &Path::getPropsRef() {
+        return m_props;
+    }
 
-    const PathProperties &Path::getProps() const { return m_props; }
+    const PathProperties &Path::getProps() const {
+        return m_props;
+    }
 
-    void Path::setProps(const PathProperties &props) { m_props = props; }
+    void Path::setProps(const PathProperties &props) {
+        m_props = props;
+    }
+
+    float Path::getStrokeWidth() const {
+        return m_strokeWidth;
+    }
+
+    void Path::setStrokeWidth(float width) {
+        if (m_strokeWidth == width)
+            return;
+        m_strokeWidth = width;
+        m_contours.clear();
+    }
+
+    void Path::setBounds(const glm::vec2 &bounds) {
+        m_bounds = bounds;
+    }
+
+    const glm::vec2 &Path::getBounds() const {
+        return m_bounds;
+    }
+
+    void Path::setLowestPos(const glm::vec2 &pos) {
+        m_lowestPos = pos;
+    }
+
+    const glm::vec2 &Path::getLowestPos() const {
+        return m_lowestPos;
+    }
 } // namespace Bess::Renderer

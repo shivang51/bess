@@ -17,5 +17,9 @@ void bind_scene_schematic_diagram(py::module_ &m) {
         .def("set_size", &Bess::Canvas::SchematicDiagram::setSize)
         .def("add_path", [](Bess::Canvas::SchematicDiagram &self, const Bess::Renderer::Path &p) {
             self.getPathsMut().emplace_back(p);
-        });
+        })
+        .def("show_name", &Bess::Canvas::SchematicDiagram::showName)
+        .def("set_show_name", &Bess::Canvas::SchematicDiagram::setShowName)
+        .def("get_stroke_size", &Bess::Canvas::SchematicDiagram::getStrokeSize)
+        .def("set_stroke_size", &Bess::Canvas::SchematicDiagram::setStrokeSize);
 }

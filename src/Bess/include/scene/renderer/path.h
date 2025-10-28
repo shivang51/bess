@@ -7,7 +7,7 @@
 namespace Bess::Renderer2D::Vulkan {
     struct PathPoint {
         glm::vec3 pos;
-        float weight = 1.f;
+        float weight = -1.f;
         int64_t id = 0.f;
         glm::vec4 color = glm::vec4(-1.f);
     };
@@ -54,7 +54,7 @@ namespace Bess::Renderer {
             };
 
             float z = 0.f;
-            float weight = 1.f;
+            float weight = 0.f;
             int64_t id = -1;
         };
 
@@ -84,12 +84,26 @@ namespace Bess::Renderer {
 
         UUID uuid;
 
+        float getStrokeWidth() const;
+
+        void setStrokeWidth(float width);
+
+        const glm::vec2 &getBounds() const;
+        void setBounds(const glm::vec2 &bounds);
+
+        const glm::vec2 &getLowestPos() const;
+
+        void setLowestPos(const glm::vec2 &pos);
+
       private:
         void formContours();
 
       private:
         PathProperties m_props{};
+        float m_strokeWidth = 2.f;
         glm::vec2 m_currentScale = glm::vec2(1.f);
+        glm::vec2 m_bounds = glm::vec2(0.f);
+        glm::vec2 m_lowestPos = glm::vec2(0.f);
         std::vector<PathCommand> m_cmds;
         std::vector<std::vector<Renderer2D::Vulkan::PathPoint>> m_contours;
     };

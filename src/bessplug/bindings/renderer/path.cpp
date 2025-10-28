@@ -131,6 +131,12 @@ void bind_renderer_path(py::module_ &m) {
         .def("get_props_ref", &Path::getPropsRef, py::return_value_policy::reference_internal)
         .def("get_props", &Path::getProps)
         .def("set_props", &Path::setProps)
+        .def("get_stroke_width", &Path::getStrokeWidth)
+        .def("set_stroke_width", &Path::setStrokeWidth)
+        .def("set_bounds", &Path::setBounds)
+        .def("get_bounds", &Path::getBounds)
+        .def("get_lowest_pos", &Path::getLowestPos)
+        .def("set_lowest_pos", &Path::setLowestPos)
         .def_readwrite("uuid", &Path::uuid)
         .def("__repr__", [](const Path &) { return "<Path>"; });
 }

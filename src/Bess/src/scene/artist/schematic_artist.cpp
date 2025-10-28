@@ -145,22 +145,41 @@ namespace Bess::Canvas {
         auto itr = m_artistTools.schematicSymbolPaths.find(simComponent.defHash);
         if (itr != m_artistTools.schematicSymbolPaths.end()) {
             auto &diagram = itr->second;
-            const auto &size = diagram.getSize();
-            float sx = w / size.x;
-            float sy = h / size.y;
+            showName = diagram.showName();
+            const auto strokeWeight = diagram.getStrokeSize() > 0.f
+                                          ? diagram.getStrokeSize()
+                                          : nodeWeight;
+
             ContoursDrawInfo info;
             info.fillColor = fillColor;
             info.strokeColor = strokeColor;
-            info.genFill = true;
-            info.genStroke = true;
-            info.scale = {sx, sy};
-            info.translate = {pos.x - (w / 2.f), pos.y - (h / 2.f), pos.z};
             info.glyphId = id;
+
+            const auto &diagramBounds = diagram.getSize();
+            glm::vec2 diagramScale = glm::vec2(w, h) / diagramBounds;
+            const glm::vec2 startPos = glm::vec2(pos) - glm::vec2(w / 2, h / 2);
+
             auto &paths = itr->second.getPathsMut();
+            BESS_TRACE("\n Drawing schematic symbol with {} paths, with scaling factor of {},{}", paths.size(), diagramScale.x, diagramScale.y);
             for (auto &p : paths) {
+                const auto &pathBounds = p.getBounds();
+                /// just wrote this, to make scaling work for paths, don't know if its correct thing to do
+                /// keeping it because it works well enough
+                const float widhtFac = pathBounds.x / diagramBounds.x;
+                const float heightFac = pathBounds.y / diagramBounds.y;
+                const float sx = widhtFac * diagramScale.x;
+                const float sy = heightFac * diagramScale.y;
+                BESS_TRACE("Box width: {}, height: {}; Path Bounds: ({}, {})", w, h, pathBounds.x, pathBounds.y);
+                BESS_TRACE("Calculated scales sx: {}, sy: {}", sx, sy);
+                const auto scaledSize = glm::vec2(w * widhtFac, (pathBounds.y / pathBounds.x) * (w * widhtFac));
+                const auto offset = (p.getLowestPos() * glm::vec2(sx, sy)) + glm::vec2(scaledSize.x / 2.f, -scaledSize.y / 2.f);
+                BESS_TRACE("Offset calculated as ({}, {}) and size as ({}, {})", offset.x, offset.y, scaledSize.x, scaledSize.y);
+                BESS_TRACE("Box Scale ({}, {}), new scale = ({}, {})", scaledSize.x / w, scaledSize.y / h, pathBounds.x * sx, pathBounds.y * sy);
+                info.translate = {startPos.x + offset.x, startPos.y + offset.y, pos.z};
+                info.scale = {sx, sy};
+                p.setStrokeWidth(strokeWeight);
                 m_pathRenderer->drawPath(p, info);
             }
-            showName = false;
         } else {
             m_pathRenderer->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
             m_pathRenderer->pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);

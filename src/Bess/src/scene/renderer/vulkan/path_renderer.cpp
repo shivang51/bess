@@ -1,4 +1,5 @@
 #include "scene/renderer/vulkan/path_renderer.h"
+#include "bess_uuid.h"
 #include "common/log.h"
 #include "detail/qualifier.hpp"
 #include "geometric.hpp"
@@ -42,8 +43,9 @@ namespace Bess::Renderer2D::Vulkan {
         return seed;
     }
 
-    std::string generatePosScaleKey(const glm::vec3 &pos, const glm::vec2 &scale) {
-        return std::to_string(static_cast<int>(pos.x * 1000)) + "_" +
+    std::string generatePosScaleKey(const UUID &uuid, const glm::vec3 &pos, const glm::vec2 &scale) {
+        return std::to_string(static_cast<uint64_t>(uuid)) + "_" +
+               std::to_string(static_cast<int>(pos.x * 1000)) + "_" +
                std::to_string(static_cast<int>(pos.y * 1000)) + "_" +
                std::to_string(static_cast<int>(pos.z * 1000)) + "_" +
                std::to_string(static_cast<int>(scale.x * 1000)) + "_" +
@@ -72,7 +74,7 @@ namespace Bess::Renderer2D::Vulkan {
         std::vector<CommonVertex> generatedFillVertices;
         bool cacheHit = m_cache.getEntryPtr(path.uuid, cachedPtr);
 
-        const auto &posScaleKey = generatePosScaleKey(info.translate, info.scale);
+        const auto &posScaleKey = generatePosScaleKey(path.uuid, info.translate, info.scale);
 
         const auto &pathProps = path.getProps();
 

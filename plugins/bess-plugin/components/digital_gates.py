@@ -1,3 +1,4 @@
+from bessplug.api.common.math import Vec2
 from bessplug.api.sim_engine import ComponentDefinition
 from bessplug.api.renderer.path import Path, PathProperties
 import math
@@ -68,28 +69,44 @@ Q {cx - r},{cy - r*s} {cx - r*m},{cy - r*m}
 Q {cx - r*s},{cy - r} {cx},{cy - r}
 Q {cx + r*s},{cy - r} {cx + r*m},{cy - r*m}
 Q {cx + r},{cy - r*s} {cx + r},{cy}
-Z
 """.strip()
 
 
 def _init_paths():
-    circle = Path.from_svg_str(quadratic_circle_path(cx=104, cy=100, r=4))
+    circle = Path.from_svg_str(quadratic_circle_path(cx=96, cy=50, r=4))
+    circle.set_bounds(Vec2(8, 8))
+    circle.set_lowest_pos(Vec2(92, 46))
+    circle.properties.render_fill = True
+
     andPath = Path()
     andPath.move_to(0, 0)
     andPath.line_to(70, 0)
     andPath.quad_to(130, 50, 70, 100)
     andPath.line_to(0, 100)
-    props = andPath.get_path_properties()
-    props.is_closed = True
-    props.render_fill = True
+    andPath.properties.is_closed = True
+    andPath.properties.render_fill = True
+    andPath.calc_set_bounds()
+    andPath.set_bounds(Vec2(100, 100))
 
     andDiagram = SchematicDiagram()
     andDiagram.add_path(andPath)
+    andDiagram.show_name = False
     andDiagram.size = (100, 100)
 
     nandDiagram = SchematicDiagram()
-    nandDiagram.add_path(andPath)
-    nandDiagram.add_path(circle)
+    nandDiagram.show_name = False
+    nandPath = Path()
+    nandPath.move_to(0, 0)
+    nandPath.line_to(62, 0)
+    nandPath.quad_to(122, 50, 62, 100)
+    nandPath.line_to(0, 100)
+    nandPath.calc_set_bounds()
+    nandPath.set_bounds(Vec2(92, 100))
+    nandPath.set_lowest_pos(Vec2(0, 0))
+    nandPath.properties.is_closed = True
+    nandPath.properties.render_fill = True
+    nandDiagram.add_path(nandPath)
+    nandDiagram.add_path(circle.copy())
     nandDiagram.size = (100, 100)
 
     return {
@@ -117,6 +134,9 @@ for gate_key, gate_data in _gates.items():
 
     if gate_key in _paths:
         schematic_symbols[def_gate.get_hash()] = _paths[gate_key]
+        print(
+            f"Assigned schematic symbol for {gate_key} gate with hash {def_gate.get_hash()}."
+        )
 
 
 __all__ = ["digital_gates", "schematic_symbols"]
