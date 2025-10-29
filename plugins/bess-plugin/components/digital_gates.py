@@ -73,7 +73,7 @@ Q {cx + r},{cy - r*s} {cx + r},{cy}
 
 
 def _init_paths():
-    circle = Path.from_svg_str(quadratic_circle_path(cx=96, cy=50, r=4))
+    circle = Path.from_svg_str(quadratic_circle_path(cx=4, cy=4, r=4))
     circle.set_bounds(Vec2(8, 8))
     circle.set_lowest_pos(Vec2(92, 46))
     circle.properties.render_fill = True

@@ -134,7 +134,8 @@ namespace Bess::Canvas {
 
         const int id = (int)entity;
 
-        const float w = schematicInfo.width, h = schematicInfo.height;
+        const float w = schematicInfo.width;
+        float h = schematicInfo.height;
         const float x = pos.x - w / 2, x1 = pos.x + w / 2;
         const float y = pos.y - h / 2, y1 = pos.y + h / 2;
         const float cpXL = x + (w * 0.25);
@@ -155,28 +156,38 @@ namespace Bess::Canvas {
             info.strokeColor = strokeColor;
             info.glyphId = id;
 
-            const auto &diagramBounds = diagram.getSize();
-            glm::vec2 diagramScale = glm::vec2(w, h) / diagramBounds;
-            const glm::vec2 startPos = glm::vec2(pos) - glm::vec2(w / 2, h / 2);
+            const glm::vec2 boxSize = glm::vec2(w, h);
+            const glm::vec2 diagramSize = glm::vec2(diagram.getSize().x, diagram.getSize().y);
+
+            if (diagramSize.x <= 0.0f || diagramSize.y <= 0.0f) {
+                BESS_ERROR("Diagram has zero size");
+                return;
+            }
+
+            const glm::vec2 scaleNonUniform = boxSize / diagramSize;
+            glm::vec2 baseScale;
+            glm::vec2 inset(0.0f);
+
+            const float s = std::max(scaleNonUniform.x, scaleNonUniform.y);
+            baseScale = glm::vec2(s, s);
+            const glm::vec2 used = diagramSize * s;
+            inset = (boxSize - used) * 0.5f;
+
+            glm::vec2 boxTopLeft = glm::vec2(pos.x, pos.y) - boxSize * 0.5f;
 
             auto &paths = itr->second.getPathsMut();
-            BESS_TRACE("\n Drawing schematic symbol with {} paths, with scaling factor of {},{}", paths.size(), diagramScale.x, diagramScale.y);
             for (auto &p : paths) {
-                const auto &pathBounds = p.getBounds();
-                /// just wrote this, to make scaling work for paths, don't know if its correct thing to do
-                /// keeping it because it works well enough
-                const float widhtFac = pathBounds.x / diagramBounds.x;
-                const float heightFac = pathBounds.y / diagramBounds.y;
-                const float sx = widhtFac * diagramScale.x;
-                const float sy = heightFac * diagramScale.y;
-                BESS_TRACE("Box width: {}, height: {}; Path Bounds: ({}, {})", w, h, pathBounds.x, pathBounds.y);
-                BESS_TRACE("Calculated scales sx: {}, sy: {}", sx, sy);
-                const auto scaledSize = glm::vec2(w * widhtFac, (pathBounds.y / pathBounds.x) * (w * widhtFac));
-                const auto offset = (p.getLowestPos() * glm::vec2(sx, sy)) + glm::vec2(scaledSize.x / 2.f, -scaledSize.y / 2.f);
-                BESS_TRACE("Offset calculated as ({}, {}) and size as ({}, {})", offset.x, offset.y, scaledSize.x, scaledSize.y);
-                BESS_TRACE("Box Scale ({}, {}), new scale = ({}, {})", scaledSize.x / w, scaledSize.y / h, pathBounds.x * sx, pathBounds.y * sy);
-                info.translate = {startPos.x + offset.x, startPos.y + offset.y, pos.z};
-                info.scale = {sx, sy};
+                const glm::vec2 pathBounds = glm::vec2(p.getBounds().x, p.getBounds().y);
+                const glm::vec2 pathLowest = glm::vec2(p.getLowestPos().x, p.getLowestPos().y);
+
+                glm::vec2 finalScale = baseScale;
+                glm::vec2 finalPosPx = boxTopLeft + inset + pathLowest * finalScale;
+
+                info.translate = {finalPosPx.x, finalPosPx.y, pos.z};
+                info.scale = {finalScale.x, finalScale.y};
+
+                h = std::max(h, pathBounds.y * finalScale.y);
+
                 p.setStrokeWidth(strokeWeight);
                 m_pathRenderer->drawPath(p, info);
             }
@@ -198,10 +209,10 @@ namespace Bess::Canvas {
     }
 
     void SchematicArtist::drawSlots(const entt::entity parentEntt, const Components::SimulationComponent &simComp, const Components::TransformComponent &transformComp) {
-        const auto def = SimEngine::ComponentCatalog::instance().getComponentDefinition(simComp.defHash);
-        auto [inpDetails, outDetails] = def->getPinDetails();
+        const auto &def = SimEngine::SimulationEngine::instance().getComponentDefinition(simComp.simEngineEntity);
+        const auto &[inpDetails, outDetails] = def.getPinDetails();
 
-        auto schematicInfo = getCompSchematicInfo(parentEntt);
+        const auto &schematicInfo = getCompSchematicInfo(parentEntt);
 
         float inPinStart = schematicInfo.inpPinStart;
         const float h = schematicInfo.height;

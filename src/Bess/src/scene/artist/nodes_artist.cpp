@@ -315,10 +315,9 @@ namespace Bess::Canvas {
 
         const auto &compState = SimEngine::SimulationEngine::instance().getComponentState(comp.simEngineEntity);
         const auto &def = SimEngine::SimulationEngine::instance().getComponentDefinition(comp.simEngineEntity);
+        const auto &[inpDetails, outDetails] = def.getPinDetails();
 
         const float angle = transformComp.angle;
-
-        auto [inpDetails, outDetails] = def.getPinDetails();
 
         std::string label;
         for (size_t i = 0; i < comp.inputSlots.size(); i++) {
