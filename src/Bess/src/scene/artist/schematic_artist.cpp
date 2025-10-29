@@ -201,7 +201,7 @@ namespace Bess::Canvas {
 
         if (showName) {
             const auto textSize = m_materialRenderer->getTextRenderSize(tagComp.name, componentStyles.headerFontSize);
-            glm::vec3 textPos = {pos.x, y + (y1 - y) / 2.f, pos.z + 0.0005f};
+            glm::vec3 textPos = {pos.x, y + ((y1 - y) / 2.f), pos.z + 0.0005f};
             textPos.x -= textSize.x / 2.f;
             textPos.y += componentStyles.headerFontSize / 2.f;
             m_materialRenderer->drawText(tagComp.name, textPos, schematicCompStyles.nameFontSize, textColor, id, 0.f);
@@ -217,19 +217,19 @@ namespace Bess::Canvas {
         float inPinStart = schematicInfo.inpPinStart;
         const float h = schematicInfo.height;
         const auto &pos = transformComp.position;
-        const float y = pos.y - h / 2;
+        const float y = pos.y - (h / 2);
 
         const auto &pinColor = ViewportTheme::schematicViewColors.pin;
         constexpr float nodeWeight = schematicCompStyles.strokeSize;
 
-        std::string label = "";
+        std::string label;
         // inputs
         {
             const size_t inpCount = simComp.inputSlots.size();
             const float yIncr = h / (inpCount + 1);
             for (int i = 0; i < inpCount; i++) {
-                float pinY = y + yIncr * (i + 1);
-                const int pinId = static_cast<uint64_t>(Scene::instance()->getEntityWithUuid(simComp.inputSlots[i]));
+                float pinY = y + (yIncr * (float)(i + 1));
+                const int pinId = static_cast<int>(Scene::instance()->getEntityWithUuid(simComp.inputSlots[i]));
                 m_pathRenderer->beginPathMode({inPinStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
                 m_pathRenderer->pathLineTo({schematicInfo.inpConnStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
                 m_pathRenderer->endPathMode(false);
