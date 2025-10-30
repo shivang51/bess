@@ -192,14 +192,11 @@ namespace Bess::Canvas {
 
         LastCreatedComponent m_lastCreatedComp = {};
         struct CopiedComponent {
-            std::shared_ptr<const SimEngine::ComponentDefinition> def = nullptr;
+            SimEngine::ComponentDefinition def;
             Components::NSComponent nsComp;
             int inputCount, outputCount;
-
-            bool isSimComp() {
-                return def != nullptr;
-            }
         };
+
         std::vector<CopiedComponent> m_copiedComponents = {};
 
         SimEngine::Commands::CommandsManager m_cmdManager;

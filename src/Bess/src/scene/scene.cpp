@@ -203,7 +203,7 @@ namespace Bess::Canvas {
 
         auto artistManager = viewport->getArtistManager();
         artistManager->setSchematicMode(m_isSchematicView);
-        viewport->begin(inst.getCurrentFrameIdx(), ViewportTheme::colors.background, -1);
+        viewport->begin((int)inst.getCurrentFrameIdx(), ViewportTheme::colors.background, -1);
         drawSceneToViewport(viewport);
 
         viewport->end();
@@ -1008,7 +1008,7 @@ namespace Bess::Canvas {
         for (const auto entt : view) {
             auto &comp = view.get<Components::SimulationComponent>(entt);
             CopiedComponent compData{};
-            compData.def = catalogInstance.getComponentDefinition(comp.defHash);
+            compData.def = simEngine.getComponentDefinition(comp.simEngineEntity);
             compData.inputCount = comp.inputSlots.size();
             compData.outputCount = comp.outputSlots.size();
             m_copiedComponents.emplace_back(compData);
@@ -1032,8 +1032,8 @@ namespace Bess::Canvas {
         for (auto &comp : m_copiedComponents) {
             data = {};
 
-            if (comp.isSimComp()) {
-                data.def = comp.def;
+            if (comp.nsComp.type == Canvas::Components::NSComponentType::EMPTY) {
+                data.def = std::make_shared<SimEngine::ComponentDefinition>(comp.def);
                 data.inputCount = comp.inputCount;
                 data.outputCount = comp.outputCount;
             } else {

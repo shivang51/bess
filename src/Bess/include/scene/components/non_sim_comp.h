@@ -1,6 +1,6 @@
 #pragma once
-#include "json/json.h"
 #include "scene/components/json_converters.h"
+#include "json/json.h"
 #include <string>
 #include <unordered_map>
 
@@ -25,12 +25,10 @@ namespace Bess::Canvas::Components {
     /// Non Simulation Component
     struct NSComponent {
         NSComponent() = default;
-        NSComponent(NSComponentType type, const std::string& name){
-            this->type = type;
-            this->name = name;
+        NSComponent(NSComponentType type, const std::string &name) : type(type), name(name) {
         }
         NSComponent(const NSComponent &other) = default;
-        NSComponentType type;
+        NSComponentType type = NSComponentType::EMPTY;
         std::string name;
     };
 
@@ -39,8 +37,8 @@ namespace Bess::Canvas::Components {
 
 namespace Bess::JsonConvert {
     using namespace Bess::Canvas::Components;
-    
-    // --- TextNodeComponent --- 
+
+    // --- TextNodeComponent ---
     inline void toJsonValue(const TextNodeComponent &comp, Json::Value &j) {
         j = Json::Value(Json::objectValue);
 
@@ -80,4 +78,4 @@ namespace Bess::JsonConvert {
         comp.name = j.get("name", "").asString();
     }
 
-}
+} // namespace Bess::JsonConvert
