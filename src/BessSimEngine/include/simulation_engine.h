@@ -24,7 +24,7 @@ namespace Bess::SimEngine {
 
         void destroy();
 
-        const UUID &addComponent(uint64_t defHash, int inputCount = -1, int outputCount = -1);
+        const UUID &addComponent(const ComponentDefinition &definition, int inputCount = -1, int outputCount = -1);
 
         bool connectComponent(const UUID &src, int srcPin, PinType srcType,
                               const UUID &dst, int dstPin, PinType dstType, bool overrideConn = false);

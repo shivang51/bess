@@ -101,7 +101,7 @@ namespace Bess::UI {
     void ComponentExplorer::createComponent(std::shared_ptr<const SimEngine::ComponentDefinition> def, const int inputCount, const int outputCount) {
         auto scene = Canvas::Scene::instance();
         Canvas::Commands::AddCommandData data;
-        data.def = std::move(def);
+        data.def = *def.get();
         data.pos = scene->getCameraPos();
         data.inputCount = inputCount;
         data.outputCount = outputCount;

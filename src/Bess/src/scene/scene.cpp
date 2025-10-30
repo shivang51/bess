@@ -336,15 +336,15 @@ namespace Bess::Canvas {
     }
 
     UUID Scene::createSimEntity(const UUID &simEngineEntt,
-                                std::shared_ptr<const SimEngine::ComponentDefinition> comp, const glm::vec2 &pos) {
+                                const SimEngine::ComponentDefinition &comp, const glm::vec2 &pos) {
         const auto state = SimEngine::SimulationEngine::instance().getComponentState(simEngineEntt);
         const std::vector<UUID> inputSlotIds(state.inputStates.size());
         const std::vector<UUID> outputSlotIds(state.outputStates.size());
         const UUID uuid;
-        return createSimEntity(simEngineEntt, std::move(comp), pos, uuid, inputSlotIds, outputSlotIds);
+        return createSimEntity(simEngineEntt, comp, pos, uuid, inputSlotIds, outputSlotIds);
     }
 
-    UUID Scene::createSimEntity(const UUID &simEngineEntt, std::shared_ptr<const SimEngine::ComponentDefinition> comp, const glm::vec2 &pos,
+    UUID Scene::createSimEntity(const UUID &simEngineEntt, const SimEngine::ComponentDefinition &comp, const glm::vec2 &pos,
                                 UUID uuid, const std::vector<UUID> &inputSlotIds, const std::vector<UUID> &outputSlotIds) {
         auto entity = m_registry.create();
         const auto &catalog = SimEngine::ComponentCatalog::instance();
@@ -355,19 +355,19 @@ namespace Bess::Canvas {
         auto &tag = m_registry.emplace<Components::TagComponent>(entity);
         auto &simComp = m_registry.emplace<Components::SimulationComponent>(entity);
 
-        bool isInput = catalog.isSpecialCompDef(comp->getHash(), SimEngine::ComponentCatalog::SpecialType::input);
-        bool isOutput = catalog.isSpecialCompDef(comp->getHash(), SimEngine::ComponentCatalog::SpecialType::output);
+        bool isInput = catalog.isSpecialCompDef(comp.getHash(), SimEngine::ComponentCatalog::SpecialType::input);
+        bool isOutput = catalog.isSpecialCompDef(comp.getHash(), SimEngine::ComponentCatalog::SpecialType::output);
 
         if (isInput) {
             m_registry.emplace<Components::SimulationInputComponent>(entity);
         } else if (isOutput) {
             m_registry.emplace<Components::SimulationOutputComponent>(entity);
-        } else if (catalog.isSpecialCompDef(comp->getHash(), SimEngine::ComponentCatalog::SpecialType::stateMonitor)) {
+        } else if (catalog.isSpecialCompDef(comp.getHash(), SimEngine::ComponentCatalog::SpecialType::stateMonitor)) {
             m_registry.emplace<Components::SimulationStateMonitor>(entity);
         }
 
-        tag.name = comp->name;
-        tag.type.simCompHash = comp->getHash();
+        tag.name = comp.name;
+        tag.type.simCompHash = comp.getHash();
         tag.isSimComponent = true;
 
         transformComp.position = glm::vec3(getSnappedPos(pos), getNextZCoord());
@@ -379,7 +379,7 @@ namespace Bess::Canvas {
         } else {
             sprite.color = ViewportTheme::colors.componentBG;
             sprite.borderRadius = glm::vec4(6.f);
-            sprite.headerColor = ViewportTheme::getCompHeaderColor(comp->category);
+            sprite.headerColor = ViewportTheme::getCompHeaderColor(comp.category);
         }
 
         sprite.borderSize = glm::vec4(1.f);
@@ -397,11 +397,13 @@ namespace Bess::Canvas {
             simComp.outputSlots.emplace_back(createSlotEntity(outputSlotIds[i], Components::SlotType::digitalOutput, idComp.uuid, i));
         }
 
-        simComp.defHash = comp->getHash();
+        simComp.defHash = comp.getHash();
 
-        transformComp.scale = m_viewport->getArtistManager()->getCurrentArtist()->calcCompSize(entity, simComp, comp->name);
+        transformComp.scale = m_viewport->getArtistManager()->getCurrentArtist()->calcCompSize(entity, simComp, comp.name);
 
         BESS_INFO("[Scene] Created entity {}", (uint64_t)entity);
+
+        setLastCreatedComp({.componentDefinition = comp});
         return idComp.uuid;
     }
 
@@ -433,6 +435,7 @@ namespace Bess::Canvas {
             }
         }
         BESS_INFO("[Scene] Created Non simulation entity {}", (uint64_t)entity);
+        setLastCreatedComp({.nsComponent = comp});
         return idComp.uuid;
     }
 
@@ -772,10 +775,16 @@ namespace Bess::Canvas {
         const auto &simCompA = m_registry.get<Components::SimulationComponent>(getEntityWithUuid(slotCompA.parentId));
         const auto &simCompB = m_registry.get<Components::SimulationComponent>(getEntityWithUuid(slotCompB.parentId));
 
-        const auto pinTypeA = slotCompA.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
-        const auto pinTypeB = slotCompB.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
+        const auto pinTypeA = slotCompA.slotType == Components::SlotType::digitalInput
+                                  ? SimEngine::PinType::input
+                                  : SimEngine::PinType::output;
+        const auto pinTypeB = slotCompB.slotType == Components::SlotType::digitalInput
+                                  ? SimEngine::PinType::input
+                                  : SimEngine::PinType::output;
 
-        SimEngine::SimulationEngine::instance().deleteConnection(simCompA.simEngineEntity, pinTypeA, slotCompA.idx, simCompB.simEngineEntity, pinTypeB, slotCompB.idx);
+        SimEngine::SimulationEngine::instance().deleteConnection(simCompA.simEngineEntity, pinTypeA,
+                                                                 (int)slotCompA.idx, simCompB.simEngineEntity,
+                                                                 pinTypeB, (int)slotCompB.idx);
 
         deleteConnectionFromScene(entUuid);
     }
@@ -893,12 +902,13 @@ namespace Bess::Canvas {
             return;
         }
 
-        if (!isEntityValid(m_hoveredEntity) && m_lastCreatedComp.componentDefinition != nullptr) {
+        if (!isEntityValid(m_hoveredEntity) && m_lastCreatedComp.set) {
             const auto def = m_lastCreatedComp.componentDefinition;
             const Commands::AddCommandData cmdData = {
                 .def = def,
-                .inputCount = m_lastCreatedComp.inputCount,
-                .outputCount = m_lastCreatedComp.outputCount,
+                .nsComp = m_lastCreatedComp.nsComponent,
+                .inputCount = def.inputCount,
+                .outputCount = def.outputCount,
                 .pos = getSnappedPos(toScenePos(m_mousePos)),
             };
 
@@ -1009,8 +1019,8 @@ namespace Bess::Canvas {
             auto &comp = view.get<Components::SimulationComponent>(entt);
             CopiedComponent compData{};
             compData.def = simEngine.getComponentDefinition(comp.simEngineEntity);
-            compData.inputCount = comp.inputSlots.size();
-            compData.outputCount = comp.outputSlots.size();
+            compData.inputCount = (int)comp.inputSlots.size();
+            compData.outputCount = (int)comp.outputSlots.size();
             m_copiedComponents.emplace_back(compData);
         }
 
@@ -1033,7 +1043,7 @@ namespace Bess::Canvas {
             data = {};
 
             if (comp.nsComp.type == Canvas::Components::NSComponentType::EMPTY) {
-                data.def = std::make_shared<SimEngine::ComponentDefinition>(comp.def);
+                data.def = comp.def;
                 data.inputCount = comp.inputCount;
                 data.outputCount = comp.outputCount;
             } else {
@@ -1159,6 +1169,7 @@ namespace Bess::Canvas {
 
     void Scene::setLastCreatedComp(LastCreatedComponent comp) {
         m_lastCreatedComp = std::move(comp);
+        m_lastCreatedComp.set = true;
     }
 
     void Scene::setSceneMode(SceneMode mode) {

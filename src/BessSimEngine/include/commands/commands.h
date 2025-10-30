@@ -12,7 +12,7 @@
 
 namespace Bess::SimEngine::Commands {
     struct BESS_API AddCommandData {
-        uint64_t defHash;
+        ComponentDefinition def;
         int inputCount;
         int outputCount;
     };

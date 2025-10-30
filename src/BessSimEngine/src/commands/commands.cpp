@@ -35,7 +35,7 @@ namespace Bess::SimEngine::Commands {
                 }
             } else {
                 const auto &data = m_data[i];
-                compId = engine.addComponent(data.defHash, data.inputCount, data.outputCount);
+                compId = engine.addComponent(data.def, data.inputCount, data.outputCount);
             }
         }
 
@@ -187,7 +187,7 @@ namespace Bess::SimEngine::Commands {
 
     std::any SetInputCommand::undo() {
         SimulationEngine::instance().setOutputPinState(m_compId, 0,
-        m_oldState == LogicState::low ? LogicState::low : LogicState::high);
+                                                       m_oldState == LogicState::low ? LogicState::low : LogicState::high);
 
         return {};
     }

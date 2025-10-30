@@ -33,8 +33,8 @@ namespace Bess::SimEngine {
         std::vector<std::string> expressions;
         std::vector<PinDetail> inputPinDetails;
         std::vector<PinDetail> outputPinDetails;
-        int inputCount;
-        int outputCount;
+        int inputCount = 0;
+        int outputCount = 0;
         char op = '0';
         bool negate = false;
         std::any auxData;

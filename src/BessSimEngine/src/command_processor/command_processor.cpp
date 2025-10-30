@@ -1,7 +1,7 @@
 #include "command_processor/command_processor.h"
 #include "command_processor/commands_reg.h"
-#include <logger.h>
 #include <algorithm>
+#include <logger.h>
 #include <sstream>
 
 namespace Bess::SimEngine {
@@ -23,7 +23,6 @@ namespace Bess::SimEngine {
         if (tokens.empty())
             return std::unexpected("Invalid Command: " + commandString);
 
-
         std::string commandName = tokens[0];
         std::transform(commandName.begin(), commandName.end(), commandName.begin(), ::tolower);
 
@@ -37,11 +36,11 @@ namespace Bess::SimEngine {
         auto command = it->second(args);
 
         if (!command) {
-			return std::unexpected("Command construction failed");
+            return std::unexpected("Command construction failed");
         }
 
         auto *cmd = command.get();
-		m_cmdManager.execute(std::move(command));
+        m_cmdManager.execute(std::move(command));
         return cmd->getResult();
     }
 

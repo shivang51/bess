@@ -34,14 +34,14 @@ namespace Bess::Canvas::Commands {
                 continue;
             }
 
-            if (data.isSimComp()) {
-                simAddCmdData.emplace_back(data.def->getHash(), data.inputCount, data.outputCount);
+            if (data.nsComp.type == Components::NSComponentType::EMPTY) {
+                simAddCmdData.emplace_back(data.def, data.inputCount, data.outputCount);
             } else {
                 m_compIds.emplace_back(scene->createNonSimEntity(data.nsComp, data.pos));
             }
         }
 
-        if (m_redo)
+        if (m_redo || simAddCmdData.empty())
             return true;
 
         const auto simEngineUuids = cmdMngr.execute<SimEngine::Commands::AddCommand, std::vector<UUID>>(simAddCmdData);
@@ -53,8 +53,6 @@ namespace Bess::Canvas::Commands {
         for (auto &simEngineId : simEngineUuids.value()) {
             const auto &data = m_data[i];
             m_compIds.emplace_back(scene->createSimEntity(simEngineId, data.def, data.pos));
-            if (i == m_data.size() - 1)
-                scene->setLastCreatedComp({data.def, data.inputCount, data.outputCount});
             i++;
         }
 

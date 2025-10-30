@@ -1,6 +1,7 @@
 #include "simulation_engine.h"
 #include "bess_uuid.h"
 #include "component_catalog.h"
+#include "component_definition.h"
 #include "entt/entity/fwd.hpp"
 #include "entt_components.h"
 #include "init_components.h"
@@ -103,18 +104,11 @@ namespace Bess::SimEngine {
         return entt::null;
     }
 
-    const UUID &SimulationEngine::addComponent(uint64_t defHash, int inputCount, int outputCount) {
+    const UUID &SimulationEngine::addComponent(const ComponentDefinition &definition, int inputCount, int outputCount) {
         auto ent = m_registry.create();
         auto &idComp = m_registry.emplace<IdComponent>(ent);
         m_uuidMap.emplace(idComp.uuid, ent);
-        ComponentDefinition def;
-
-        try {
-            def = ComponentCatalog::instance().getComponentDefinitionCopy(defHash);
-        } catch (std::exception &e) {
-            m_registry.destroy(ent);
-            return UUID::null;
-        }
+        ComponentDefinition def = definition;
 
         if (inputCount >= 0)
             def.inputCount = inputCount;
@@ -123,7 +117,7 @@ namespace Bess::SimEngine {
         if (def.auxData.type() == typeid(FlipFlopAuxData)) {
             const auto &ffData = std::any_cast<const FlipFlopAuxData &>(def.auxData);
             m_registry.emplace<FlipFlopComponent>(ent, 1);
-        } else if (ComponentCatalog::instance().isSpecialCompDef(defHash, ComponentCatalog::SpecialType::stateMonitor)) {
+        } else if (ComponentCatalog::instance().isSpecialCompDef(definition.getHash(), ComponentCatalog::SpecialType::stateMonitor)) {
             m_registry.emplace<StateMonitorComponent>(ent);
         }
 

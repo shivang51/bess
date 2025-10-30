@@ -35,9 +35,9 @@ namespace Bess::Canvas {
     };
 
     struct LastCreatedComponent {
-        std::shared_ptr<const SimEngine::ComponentDefinition> componentDefinition = nullptr;
-        int inputCount = -1;
-        int outputCount = -1;
+        SimEngine::ComponentDefinition componentDefinition;
+        Components::NSComponent nsComponent;
+        bool set = false;
     };
 
     class Scene {
@@ -65,8 +65,6 @@ namespace Bess::Canvas {
 
         void drawSceneToViewport(const std::shared_ptr<Viewport> &viewport);
 
-        void setLastCreatedComp(LastCreatedComponent comp);
-
         void saveScenePNG(const std::string &path) const;
 
         friend class Modules::SchematicGen::SchematicView;
@@ -90,8 +88,8 @@ namespace Bess::Canvas {
         UUID createSlotEntity(Components::SlotType type, const UUID &parent, unsigned int idx);
         UUID createSlotEntity(UUID uuid, Components::SlotType type, const UUID &parent, unsigned int idx);
 
-        UUID createSimEntity(const UUID &simEngineEntt, std::shared_ptr<const SimEngine::ComponentDefinition> comp, const glm::vec2 &pos);
-        UUID createSimEntity(const UUID &simEngineEntt, std::shared_ptr<const SimEngine::ComponentDefinition> comp,
+        UUID createSimEntity(const UUID &simEngineEntt, const SimEngine::ComponentDefinition &comp, const glm::vec2 &pos);
+        UUID createSimEntity(const UUID &simEngineEntt, const SimEngine::ComponentDefinition &comp,
                              const glm::vec2 &pos, UUID uuid, const std::vector<UUID> &inputSlotIds, const std::vector<UUID> &outputSlotIds);
         UUID createNonSimEntity(const Canvas::Components::NSComponent &comp, const glm::vec2 &pos);
 
@@ -123,6 +121,8 @@ namespace Bess::Canvas {
 
         // gets entity from scene that has reference to passed simulation engine uuid
         entt::entity getSceneEntityFromSimUuid(const UUID &uuid) const;
+
+        void setLastCreatedComp(LastCreatedComponent comp);
 
         void removeConnectionEntt(const entt::entity ent);
         void updateHoveredId();

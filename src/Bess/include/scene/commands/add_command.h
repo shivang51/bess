@@ -11,13 +11,10 @@ namespace Bess::Canvas::Commands {
     using Command = SimEngine::Commands::Command;
 
     struct AddCommandData {
-        std::shared_ptr<const SimEngine::ComponentDefinition> def = nullptr;
+        SimEngine::ComponentDefinition def;
         Components::NSComponent nsComp;
         int inputCount = -1, outputCount = -1;
         glm::vec2 pos;
-        bool isSimComp() const {
-            return def != nullptr;
-        }
     };
 
     class AddCommand : public Command {
