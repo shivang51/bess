@@ -43,9 +43,9 @@ namespace Bess::SimEngine {
 
         const Properties::ModifiableProperties &getModifiableProperties() const;
 
-        ComponentDefinition &addModifiableProperty(Properties::ComponentProperty property, std::any value);
+        void addModifiableProperty(Properties::ComponentProperty property, std::any value);
 
-        ComponentDefinition &addModifiableProperty(Properties::ComponentProperty property, const std::vector<std::any> &value);
+        void addModifiableProperty(Properties::ComponentProperty property, const std::vector<std::any> &value);
 
         std::vector<std::string> getExpressions(int inputCount = -1) const;
 

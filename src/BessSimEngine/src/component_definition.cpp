@@ -82,14 +82,12 @@ namespace Bess::SimEngine {
         return {in, out};
     }
 
-    ComponentDefinition &ComponentDefinition::addModifiableProperty(Properties::ComponentProperty property, std::any value) {
+    void ComponentDefinition::addModifiableProperty(Properties::ComponentProperty property, std::any value) {
         m_modifiableProperties[property].emplace_back(std::move(value));
-        return *this;
     }
 
-    ComponentDefinition &ComponentDefinition::addModifiableProperty(Properties::ComponentProperty property, const std::vector<std::any> &value) {
+    void ComponentDefinition::addModifiableProperty(Properties::ComponentProperty property, const std::vector<std::any> &value) {
         m_modifiableProperties[property] = value;
-        return *this;
     }
 
     // --- hashing helpers (FNV-1a 64-bit) ---
