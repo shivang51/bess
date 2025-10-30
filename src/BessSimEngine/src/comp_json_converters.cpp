@@ -1,7 +1,6 @@
 #include "comp_json_converters.h"
 
 #include "component_catalog.h"
-#include "properties.h"
 
 namespace Bess::JsonConvert {
     BESS_API void toJsonValue(const Bess::UUID &uuid, Json::Value &j) {
@@ -96,26 +95,6 @@ namespace Bess::JsonConvert {
         j["op"] = static_cast<int>(def.op);
         j["negate"] = def.negate;
 
-        // typedef std::unordered_map<Properties::ComponentProperty, std::vector<std::any>> ModifiableProperties;
-        Json::Value &modProps = j["modifiableProperties"] = Json::Value(Json::objectValue);
-        for (const auto &[propKey, values] : def.getModifiableProperties()) {
-            Json::Value &valArr = modProps[std::to_string(static_cast<int>(propKey))] = Json::Value(Json::arrayValue);
-            for (const auto &val : values) {
-                // Currently only int and float are supported
-                if (val.type() == typeid(int)) {
-                    valArr.append(std::any_cast<int>(val));
-                } else if (val.type() == typeid(float)) {
-                    valArr.append(std::any_cast<float>(val));
-                } else if (val.type() == typeid(double)) {
-                    valArr.append(std::any_cast<double>(val));
-                } else if (val.type() == typeid(bool)) {
-                    valArr.append(std::any_cast<bool>(val));
-                } else {
-                    // Unsupported type; skip
-                }
-            }
-        }
-
         // expressions
         Json::Value &exprArr = j["expressions"] = Json::Value(Json::arrayValue);
         for (const auto &expr : def.expressions) {
@@ -176,29 +155,6 @@ namespace Bess::JsonConvert {
                 PinDetail p{};
                 fromJsonValue(pj, p);
                 def.outputPinDetails.push_back(p);
-            }
-        }
-
-        // Deserialize modifiable properties
-        if (j.isMember("modifiableProperties")) {
-            const Json::Value &modProps = j["modifiableProperties"];
-            for (const auto &key : modProps.getMemberNames()) {
-                Properties::ComponentProperty propKey = static_cast<Properties::ComponentProperty>(std::stoi(key));
-                const Json::Value &valArr = modProps[key];
-                std::vector<std::any> values;
-                for (const auto &val : valArr) {
-                    // Currently only int and float are supported
-                    if (val.isInt()) {
-                        values.emplace_back(val.asInt());
-                    } else if (val.isDouble()) {
-                        values.emplace_back(static_cast<float>(val.asDouble()));
-                    } else if (val.isBool()) {
-                        values.emplace_back(val.asBool());
-                    } else {
-                        // Unsupported type; skip
-                    }
-                }
-                def.addModifiableProperty(propKey, values);
             }
         }
 

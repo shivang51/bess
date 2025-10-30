@@ -4,7 +4,6 @@
 #include "component_catalog.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "properties.h"
 #include "scene/commands/add_command.h"
 #include "scene/scene.h"
 #include "scene/scene_pch.h"
@@ -58,27 +57,51 @@ namespace Bess::UI {
         ImGuiWindow *window = g.CurrentWindow;
         const ImVec2 pos = window->DC.CursorPos;
         const auto style = ImGui::GetStyle();
-        const ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x, pos.y + g.FontSize + g.Style.FramePadding.y * 2));
-        const ImRect bbButton(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x - style.FramePadding.x * 3 - g.Style.ItemInnerSpacing.x, pos.y + g.FontSize + g.Style.FramePadding.y * 2));
-        const float menuBtnX = bbButton.Max.x;
-        const float menuBtnSizeX = bb.Max.x - bbButton.Max.x;
-        const ImRect bbMenuButton(ImVec2(menuBtnX, pos.y + g.Style.FramePadding.y * 0.5f), ImVec2(menuBtnX + menuBtnSizeX, pos.y + g.FontSize + g.Style.FramePadding.y * 1.5));
+
+        const float btnContainerWidth = ImGui::GetContentRegionAvail().x;
+
+        const ImRect bb(pos, ImVec2(pos.x + btnContainerWidth,
+                                    pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
+        // const ImRect bbButton(pos,
+        //                       ImVec2(pos.x + ImGui::GetContentRegionAvail().x - (style.FramePadding.x * 3) - g.Style.ItemInnerSpacing.x,
+        //                              pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
+        const float menuBtnSizeY = showMenuButton
+                                       ? g.FontSize + (g.Style.FramePadding.y * 1.5f)
+                                       : 0;
+        const float menuBtnSizeX = showMenuButton
+                                       ? menuBtnSizeY
+                                       : 0;
+        const float menuBtnX = showMenuButton
+                                   ? btnContainerWidth - menuBtnSizeX - g.Style.ItemInnerSpacing.x
+                                   : btnContainerWidth; // extend to the end if no menu button
+
+        const ImRect bbButton(pos,
+                              ImVec2(pos.x + menuBtnX,
+                                     pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
+
+        const ImRect bbMenuButton(ImVec2(pos.x + menuBtnX,
+                                         pos.y + (g.Style.FramePadding.y * 0.5f)),
+                                  ImVec2(pos.x + menuBtnX + menuBtnSizeX,
+                                         pos.y + menuBtnSizeY));
 
         const ImGuiID id = window->GetID(label.c_str());
 
-        bool hovered, held;
+        bool hovered = false, held = false;
         const bool clicked = ImGui::ButtonBehavior(bbButton, id, &hovered, &held, ImGuiButtonFlags_PressedOnClick);
 
         bool menuHovered = false, menuHeld = false;
-        const ImGuiID menuID = window->GetID((label + "##menu").c_str());
-        const bool menuClicked = ImGui::ButtonBehavior(bbMenuButton, menuID, &menuHovered, &menuHeld, ImGuiButtonFlags_PressedOnClick);
+        bool menuClicked = false;
 
-        const auto rounding = style.FrameRounding;
+        if (showMenuButton) {
+            const ImGuiID menuID = window->GetID((label + "##menu").c_str());
+            ImGui::ButtonBehavior(bbMenuButton, menuID, &menuHovered, &menuHeld, ImGuiButtonFlags_PressedOnClick);
+        }
 
         auto bgColor = ImGui::GetColorU32(ImGuiCol_Button);
         if (menuHovered || hovered || held || ImGui::IsPopupOpen(popupName.c_str()))
             bgColor = ImGui::GetColorU32(held ? ImGuiCol_ButtonActive : ImGuiCol_ButtonHovered);
 
+        const auto rounding = style.FrameRounding;
         window->DrawList->AddRectFilled(bb.Min, bb.Max, bgColor, rounding);
         ImGui::RenderText(ImVec2(pos.x + style.FramePadding.x + g.Style.ItemInnerSpacing.x, pos.y + g.Style.FramePadding.y), label.c_str());
 
@@ -89,7 +112,7 @@ namespace Bess::UI {
             if (menuHovered)
                 bgColor = ImGui::GetColorU32(ImGuiCol_TabActive);
             window->DrawList->AddRectFilled(bbMenuButton.Min, bbMenuButton.Max, bgColor, rounding);
-            const float x = bbMenuButton.Min.x + (bbMenuButton.Max.x - bbMenuButton.Min.x) / 2.f - 3.f;
+            const float x = bbMenuButton.Min.x + ((bbMenuButton.Max.x - bbMenuButton.Min.x) / 2.f) - 3.f;
             ImGui::RenderText(ImVec2(x, pos.y + g.Style.FramePadding.y), Icons::FontAwesomeIcons::FA_ELLIPSIS_V);
             if (menuClicked)
                 ImGui::OpenPopup(popupName.c_str());
@@ -130,35 +153,6 @@ namespace Bess::UI {
         ModifiablePropertiesStr propertiesStr = {};
 
         for (auto &comp : components) {
-            auto &p = comp->getModifiableProperties();
-            if (p.empty())
-                continue;
-
-            const auto hash = comp->getHash();
-            propertiesStr[hash] = {};
-
-            for (auto &mp : p) {
-                std::string name;
-                switch (mp.first) {
-                case Bess::SimEngine::Properties::ComponentProperty::inputCount:
-                    name = "Input Pins";
-                    break;
-                case Bess::SimEngine::Properties::ComponentProperty::outputCount:
-                    name = "Output Pins";
-                    break;
-                default:
-                    name = "Unknown Property";
-                    break;
-                }
-
-                std::pair<std::string, std::pair<SimEngine::Properties::ComponentProperty, std::any>> v = {};
-
-                for (auto &val : mp.second) {
-                    v.first = std::to_string(std::any_cast<int>(val)) + " " + name;
-                    v.second = {mp.first, val};
-                    propertiesStr[hash].emplace_back(v);
-                }
-            }
         }
 
         return propertiesStr;
@@ -206,15 +200,15 @@ namespace Bess::UI {
                         }
 
                         if (ImGui::BeginPopup((name + "OptionsMenu").c_str())) {
-                            for (auto &p : properties) {
-                                if (ImGui::MenuItem(p.first.c_str())) {
-                                    if (p.second.first == SimEngine::Properties::ComponentProperty::inputCount) {
-                                        createComponent(comp, std::any_cast<int>(p.second.second), -1);
-                                    } else if (p.second.first == SimEngine::Properties::ComponentProperty::outputCount) {
-                                        createComponent(comp, -1, std::any_cast<int>(p.second.second));
-                                    }
-                                }
-                            }
+                            // for (auto &p : properties) {
+                            // if (ImGui::MenuItem(p.first.c_str())) {
+                            //     if (p.second.first == SimEngine::Properties::ComponentProperty::inputCount) {
+                            //         createComponent(comp, std::any_cast<int>(p.second.second), -1);
+                            //     } else if (p.second.first == SimEngine::Properties::ComponentProperty::outputCount) {
+                            //         createComponent(comp, -1, std::any_cast<int>(p.second.second));
+                            // }
+                            // }
+                            // }
                             ImGui::EndPopup();
                         }
                     }

@@ -1,10 +1,8 @@
 #pragma once
 
 #include "component_catalog.h"
-#include "entt_components.h"
 #include "expression_evalutator/expr_evaluator.h"
 #include "types.h"
-#include <memory>
 
 namespace Bess::SimEngine {
 
@@ -93,8 +91,7 @@ namespace Bess::SimEngine {
 
             LogicState newQ_bar = (newQ == LogicState::low)
                                       ? LogicState::high
-                                  : (newQ == LogicState::high) ? LogicState::low
-                                                               : LogicState::unknown;
+                                      : LogicState::low;
             newState.outputStates[1] = {newQ_bar, currentTime};
 
             newState.isChanged = changed;
@@ -232,7 +229,6 @@ namespace Bess::SimEngine {
     inline void initDigitalGates() {
         ComponentDefinition digitalGate = {"AND Gate", "Digital Gates", 2, 1, ExprEval::exprEvalSimFunc,
                                            SimDelayNanoSeconds(1), '*'};
-        digitalGate.addModifiableProperty(Properties::ComponentProperty::inputCount, {3, 4, 5});
         ComponentCatalog::instance().registerComponent(digitalGate);
 
         digitalGate.name = "OR Gate";
@@ -258,7 +254,6 @@ namespace Bess::SimEngine {
 
         ComponentDefinition notGate = {"NOT Gate", "Digital Gates", 1, 1, ExprEval::exprEvalSimFunc,
                                        SimDelayNanoSeconds(2), '!'};
-        notGate.addModifiableProperty(Properties::ComponentProperty::inputCount, {2, 3, 4, 5, 6});
 
         ComponentCatalog::instance().registerComponent(notGate);
 

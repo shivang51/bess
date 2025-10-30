@@ -1,7 +1,6 @@
 #pragma once
 
 #include "bess_api.h"
-#include "properties.h"
 #include "types.h"
 #include <string>
 #include <vector>
@@ -41,12 +40,6 @@ namespace Bess::SimEngine {
 
         void reinit();
 
-        const Properties::ModifiableProperties &getModifiableProperties() const;
-
-        void addModifiableProperty(Properties::ComponentProperty property, std::any value);
-
-        void addModifiableProperty(Properties::ComponentProperty property, const std::vector<std::any> &value);
-
         std::vector<std::string> getExpressions(int inputCount = -1) const;
 
         std::pair<std::span<const PinDetail>, std::span<const PinDetail>> getPinDetails() const;
@@ -60,8 +53,6 @@ namespace Bess::SimEngine {
         }
 
       private:
-        Properties::ModifiableProperties m_modifiableProperties = {};
-
         mutable uint64_t m_cachedHash = 0;
         mutable bool m_hashComputed = false;
     };

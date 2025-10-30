@@ -17,7 +17,6 @@ set(Header_Files
     "include/types.h"
     "include/bess_uuid.h"
     "include/logger.h"
-    "include/properties.h"
     "include/entt_registry_serializer.h"
     "include/simulation_engine.h"
     "include/simulation_engine_serializer.h"

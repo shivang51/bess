@@ -1,5 +1,5 @@
-#include "../include/component_definition.h"
-#include "../include/types.h"
+#include "component_definition.h"
+#include "types.h"
 #include <logger.h>
 #include <type_traits>
 #include <utility>
@@ -20,7 +20,7 @@ namespace Bess::SimEngine {
         const std::string &category,
         int inputCount, int outputCount,
         SimulationFunction simFunction,
-        SimDelayNanoSeconds delay, const std::vector<std::string> &expr) : name(name), category(category), delay(delay), simulationFunction(simFunction), expressions(expr), inputCount(inputCount), outputCount(outputCount), auxData(expressions) {
+        SimDelayNanoSeconds delay, const std::vector<std::string> &expr) : name(name), category(category), delay(delay), simulationFunction(std::move(simFunction)), expressions(expr), inputCount(inputCount), outputCount(outputCount), auxData(expressions) {
         reinit();
     }
 
@@ -32,10 +32,6 @@ namespace Bess::SimEngine {
             auxData = expressions;
         }
         invalidateHash();
-    }
-
-    const Properties::ModifiableProperties &ComponentDefinition::getModifiableProperties() const {
-        return m_modifiableProperties;
     }
 
     std::vector<std::string> ComponentDefinition::getExpressions(int inputCount) const {
@@ -80,14 +76,6 @@ namespace Bess::SimEngine {
         }
 
         return {in, out};
-    }
-
-    void ComponentDefinition::addModifiableProperty(Properties::ComponentProperty property, std::any value) {
-        m_modifiableProperties[property].emplace_back(std::move(value));
-    }
-
-    void ComponentDefinition::addModifiableProperty(Properties::ComponentProperty property, const std::vector<std::any> &value) {
-        m_modifiableProperties[property] = value;
     }
 
     // --- hashing helpers (FNV-1a 64-bit) ---
