@@ -8,8 +8,8 @@
 #include <iostream>
 #include <memory>
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 namespace Bess {
 
@@ -45,7 +45,6 @@ namespace Bess {
         ~Window();
 
         void update() const;
-        void makeCurrent() const;
         bool isClosed() const;
         void close() const;
 
@@ -58,7 +57,6 @@ namespace Bess {
         }
 
         static bool isGLFWInitialized;
-        static bool isVulkanInitialized;
 
         void onWindowResize(WindowResizeCallback callback);
         void onMouseWheel(MouseWheelCallback callback);
@@ -74,8 +72,8 @@ namespace Bess {
         GLFWwindow *getGLFWHandle() const { return mp_window.get(); }
 
         // Vulkan-specific methods
-        void createWindowSurface(VkInstance instance, VkSurfaceKHR& surface) const;
-        std::vector<const char*> getVulkanExtensions() const;
+        void createWindowSurface(VkInstance instance, VkSurfaceKHR &surface) const;
+        std::vector<const char *> getVulkanExtensions() const;
         VkExtent2D getExtent() const;
         bool wasWindowResized() const { return m_framebufferResized; }
         void resetWindowResizedFlag() { m_framebufferResized = false; }
@@ -85,8 +83,7 @@ namespace Bess {
         std::unordered_map<Callback, std::any> m_callbacks;
         bool m_framebufferResized = false;
 
-        void initVulkan() const;
         void initGLFW() const;
-        static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+        static void framebufferResizeCallback(GLFWwindow *window, int width, int height);
     };
 } // namespace Bess

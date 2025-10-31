@@ -1,13 +1,14 @@
 #include "window.h"
+
 #include "common/log.h"
 #include <cassert>
-#include <iostream>
+#include <cstdint>
+#include <math.h>
 #include <memory>
 #include <stdexcept>
 
 namespace Bess {
     bool Window::isGLFWInitialized = false;
-    bool Window::isVulkanInitialized = false;
 
     Window::Window(int width, int height, const std::string &title) {
 
@@ -19,11 +20,8 @@ namespace Bess {
         glfwSetWindowUserPointer(window, this);
 
         mp_window = std::unique_ptr<GLFWwindow, GLFWwindowDeleter>(window);
-        // this->makeCurrent();
-        //
-        // glfwSwapInterval(0);
 
-        glfwSetWindowSizeLimits(window, 600, 500, GLFW_DONT_CARE, GLFW_DONT_CARE);
+        // glfwSetWindowSizeLimits(window, 600, 500, GLFW_DONT_CARE, GLFW_DONT_CARE);
 
         glfwSetFramebufferSizeCallback(
             window, [](GLFWwindow *window, int w, int h) {
@@ -110,8 +108,6 @@ namespace Bess {
                 const auto cb = std::any_cast<MouseMoveCallback>(this_->m_callbacks[Callback::MouseMove]);
                 cb(x, y);
             });
-
-        this->initVulkan();
     }
 
     void Window::initGLFW() const {
@@ -123,21 +119,15 @@ namespace Bess {
                 return;
             BESS_ERROR("[-] GLFW ERROR {} -> {}", code, msg);
         });
+
+        BESS_INFO("[Window] GLFW {}.{}", GLFW_VERSION_MAJOR, GLFW_VERSION_MINOR);
+
         const auto res = glfwInit();
         assert(res == GLFW_TRUE);
-        // Vulkan doesn't need OpenGL context hints
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_MAXIMIZED, 1);
 
         isGLFWInitialized = true;
-    }
-
-    void Window::initVulkan() const {
-        if (isVulkanInitialized)
-            return;
-
-        // Vulkan initialization will be handled by the VulkanRenderer
-        isVulkanInitialized = true;
     }
 
     Window::~Window() {
@@ -152,12 +142,6 @@ namespace Bess {
     }
 
     void Window::update() const {
-        // Vulkan rendering is handled by the VulkanRenderer
-        // No need for makeCurrent or swapBuffers
-    }
-
-    void Window::makeCurrent() const {
-        // Not needed for Vulkan
     }
 
     bool Window::isClosed() const { return glfwWindowShouldClose(mp_window.get()); }
@@ -201,9 +185,9 @@ namespace Bess {
     }
 
     glm::vec2 Window::getMousePos() const {
-        double x, y;
+        double x = 0.0, y = 0.0;
         glfwGetCursorPos(mp_window.get(), &x, &y);
-        return glm::vec2(x, y);
+        return {x, y};
     }
 
     void Window::createWindowSurface(VkInstance instance, VkSurfaceKHR &surface) const {
@@ -223,7 +207,7 @@ namespace Bess {
     }
 
     VkExtent2D Window::getExtent() const {
-        int width, height;
+        int width = 0, height = 0;
         glfwGetFramebufferSize(mp_window.get(), &width, &height);
         return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
     }
