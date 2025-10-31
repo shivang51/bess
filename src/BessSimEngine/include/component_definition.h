@@ -48,11 +48,16 @@ namespace Bess::SimEngine {
 
         void invalidateHash() const;
 
+        void setAltInputCounts(const std::vector<int> &altCounts);
+
+        const std::vector<int> &getAltInputCounts() const;
+
         friend bool operator==(const ComponentDefinition &a, const ComponentDefinition &b) noexcept {
             return a.getHash() == b.getHash();
         }
 
       private:
+        std::vector<int> m_altInputCounts;
         mutable uint64_t m_cachedHash = 0;
         mutable bool m_hashComputed = false;
     };

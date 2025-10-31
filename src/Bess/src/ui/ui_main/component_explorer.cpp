@@ -94,7 +94,7 @@ namespace Bess::UI {
 
         if (showMenuButton) {
             const ImGuiID menuID = window->GetID((label + "##menu").c_str());
-            ImGui::ButtonBehavior(bbMenuButton, menuID, &menuHovered, &menuHeld, ImGuiButtonFlags_PressedOnClick);
+            menuClicked = ImGui::ButtonBehavior(bbMenuButton, menuID, &menuHovered, &menuHeld, ImGuiButtonFlags_PressedOnClick);
         }
 
         auto bgColor = ImGui::GetColorU32(ImGuiCol_Button);
@@ -147,17 +147,6 @@ namespace Bess::UI {
         }
     }
 
-    ComponentExplorer::ModifiablePropertiesStr ComponentExplorer::generateModifiablePropertiesStr() {
-        auto &components = SimEngine::ComponentCatalog::instance().getComponents();
-
-        ModifiablePropertiesStr propertiesStr = {};
-
-        for (auto &comp : components) {
-        }
-
-        return propertiesStr;
-    }
-
     void ComponentExplorer::draw() {
         if (!isShown)
             return;
@@ -183,8 +172,6 @@ namespace Bess::UI {
         const auto componentTree = SimEngine::ComponentCatalog::instance().getComponentsTree();
         // simulation components
         {
-            static auto modifiableProperties = generateModifiablePropertiesStr();
-
             for (auto &ent : *componentTree) {
                 if (MyTreeNode(ent.first.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
                     for (const auto &comp : ent.second) {
@@ -193,22 +180,17 @@ namespace Bess::UI {
                             continue;
 
                         name = Common::Helpers::getComponentIcon(comp->getHash()) + "  " + name;
-                        auto &properties = modifiableProperties[comp->getHash()];
 
-                        if (ButtonWithPopup(name, name + "OptionsMenu", !properties.empty())) {
+                        if (ButtonWithPopup(name, name + "OptionsMenu", !comp->getAltInputCounts().empty())) {
                             createComponent(comp, -1, -1);
                         }
 
                         if (ImGui::BeginPopup((name + "OptionsMenu").c_str())) {
-                            // for (auto &p : properties) {
-                            // if (ImGui::MenuItem(p.first.c_str())) {
-                            //     if (p.second.first == SimEngine::Properties::ComponentProperty::inputCount) {
-                            //         createComponent(comp, std::any_cast<int>(p.second.second), -1);
-                            //     } else if (p.second.first == SimEngine::Properties::ComponentProperty::outputCount) {
-                            //         createComponent(comp, -1, std::any_cast<int>(p.second.second));
-                            // }
-                            // }
-                            // }
+                            for (auto &inpCount : comp->getAltInputCounts()) {
+                                if (ImGui::MenuItem(std::format("{} Inputs", inpCount).c_str())) {
+                                    createComponent(comp, inpCount, -1);
+                                }
+                            }
                             ImGui::EndPopup();
                         }
                     }

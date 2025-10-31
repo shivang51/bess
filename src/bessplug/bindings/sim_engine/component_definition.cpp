@@ -184,6 +184,8 @@ void bind_sim_engine_component_definition(py::module_ &m) {
                     return convertResultToComponentState(result, prev);
                 };
                 self.invalidateHash(); })
+        .def("set_alt_input_counts", &ComponentDefinition::setAltInputCounts)
+        .def("get_alt_input_counts", &ComponentDefinition::getAltInputCounts)
         .def("set_simulation_function", [](ComponentDefinition &self, py::object callable) {
             if (!PyCallable_Check(callable.ptr())) {
                 throw py::type_error("set_simulation_function expects a callable");

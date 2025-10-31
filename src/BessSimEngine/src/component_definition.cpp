@@ -180,4 +180,12 @@ namespace Bess::SimEngine {
         m_hashComputed = false;
         m_cachedHash = 0;
     }
+
+    void ComponentDefinition::setAltInputCounts(const std::vector<int> &altCounts) {
+        m_altInputCounts = altCounts;
+    }
+
+    const std::vector<int> &ComponentDefinition::getAltInputCounts() const {
+        return m_altInputCounts;
+    }
 } // namespace Bess::SimEngine

@@ -19,12 +19,8 @@ namespace Bess::UI {
         static bool isShown;
 
       private:
-        typedef std::unordered_map<uint64_t, std::vector<std::string>> ModifiablePropertiesStr;
-
-      private:
         static void createComponent(std::shared_ptr<const SimEngine::ComponentDefinition> def, int inputCount, int outputCount);
         static void createComponent(const Canvas::Components::NSComponent &comp);
-        static ModifiablePropertiesStr generateModifiablePropertiesStr();
 
       private:
         static std::string m_searchQuery;

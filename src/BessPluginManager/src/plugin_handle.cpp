@@ -124,22 +124,25 @@ namespace Bess::Plugins {
                     return d;
                 }();
 
-                if (py::hasattr(pyComp, "native_input_pin_details")) {
-                    try {
-                        auto pins = pyComp.attr("native_input_pin_details").cast<std::vector<SimEngine::PinDetail>>();
-                        def.inputPinDetails = pins;
-                    } catch (std::exception &e) {
-                        spdlog::error("Plugin [{}] component [{}]: failed to cast input_pin_details\n{}", name, category, e.what());
-                    }
+                try {
+                    auto pins = pyComp.attr("native_input_pin_details").cast<std::vector<SimEngine::PinDetail>>();
+                    def.inputPinDetails = pins;
+                } catch (std::exception &e) {
+                    spdlog::error("Plugin [{}] component [{}]: failed to cast input_pin_details\n{}", name, category, e.what());
                 }
 
-                if (py::hasattr(pyComp, "native_output_pin_details")) {
-                    try {
-                        auto pins = pyComp.attr("native_output_pin_details").cast<std::vector<SimEngine::PinDetail>>();
-                        def.outputPinDetails = pins;
-                    } catch (std::exception &e) {
-                        spdlog::error("Plugin [{}] component [{}]: failed to cast output_pin_details\n{}", name, category, e.what());
-                    }
+                try {
+                    auto pins = pyComp.attr("native_output_pin_details").cast<std::vector<SimEngine::PinDetail>>();
+                    def.outputPinDetails = pins;
+                } catch (std::exception &e) {
+                    spdlog::error("Plugin [{}] component [{}]: failed to cast output_pin_details\n{}", name, category, e.what());
+                }
+
+                try {
+                    auto fn = pyComp.attr("get_alt_input_counts");
+                    def.setAltInputCounts(fn().cast<std::vector<int>>());
+                } catch (std::exception &e) {
+                    spdlog::error("Plugin [{}] component [{}]: failed to get get_alt_input_counts\n{}", name, category, e.what());
                 }
 
                 components.push_back(std::move(def));

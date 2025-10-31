@@ -132,6 +132,9 @@ for gate_key, gate_data in _gates.items():
     def_gate.negate = gate_data.get("negate_output", False)
     digital_gates.append(def_gate)
 
+    if gate_key == "AND":
+        def_gate.set_alt_input_counts([2, 3, 4])
+
     if gate_key in _paths:
         schematic_symbols[def_gate.get_hash()] = _paths[gate_key]
         print(

@@ -217,6 +217,12 @@ class ComponentDefinition:
         }
         return json.dumps(data)
 
+    def set_alt_input_counts(self, count: list[int]) -> None:
+        self._native.set_alt_input_counts(count)
+
+    def get_alt_input_counts(self) -> list[int]:
+        return list(self._native.get_alt_input_counts())
+
     @staticmethod
     def from_operator(
         name: str,
