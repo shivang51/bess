@@ -145,7 +145,6 @@ namespace Bess::Vulkan::Pipelines {
             i++;
         }
 
-        // Descriptor caching: only update if changed compared to cached infos for this descriptor set index
         bool needsUpdate = true;
         if (m_cachedTextureInfos.contains(m_texDescSetIdx)) {
             needsUpdate = std::memcmp(m_cachedTextureInfos[m_texDescSetIdx].data(), m_textureInfos.data(), sizeof(VkDescriptorImageInfo) * m_textureInfos.size()) != 0;

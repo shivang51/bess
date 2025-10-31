@@ -1,7 +1,6 @@
 #include "scene/renderer/material_renderer.h"
 #include "asset_manager/asset_manager.h"
 #include "assets.h"
-#include "scene/scene_pch.h"
 
 namespace Bess::Renderer {
     static Material2D makeGrid(const glm::vec3 &pos, const glm::vec2 &size, int id) {
@@ -343,6 +342,9 @@ namespace Bess::Renderer {
     }
 
     glm::vec2 MaterialRenderer::getTextRenderSize(const std::string &str, float renderSize) {
+        if (!m_textRenderer) {
+            return {0.f, 0.f};
+        }
         return m_textRenderer->getRenderSize(str, (size_t)renderSize);
     }
 } // namespace Bess::Renderer

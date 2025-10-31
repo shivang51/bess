@@ -83,7 +83,7 @@ namespace Bess::Renderer2D::Vulkan {
         }
 
         // Use cached stroke geometry only when rounded joints are not requested
-        if (cacheHit && (!pathProps.renderStroke || (cachedPtr && cachedPtr->rounded))) {
+        if (cacheHit) {
             strokeVerticesRef = &cachedPtr->strokeVertices;
             fillVerticesRef = &cachedPtr->fillVertices;
         } else {
