@@ -1,4 +1,5 @@
 #include "scene/renderer/vulkan/pipelines/quad_pipeline.h"
+#include "common/log.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
 #include "scene/scene_pch.h"
 #include "vulkan_core.h"
@@ -21,7 +22,7 @@ namespace Bess::Vulkan::Pipelines {
         createQuadBuffers();
         createUniformBuffers();
 
-        m_texArraySetsCount = instanceLimit * maxFrames;
+        m_texArraySetsCount = (instanceLimit * maxFrames) / 2.f;
 
         createDescriptorSetLayout();
         createDescriptorPool();
@@ -110,7 +111,6 @@ namespace Bess::Vulkan::Pipelines {
         m_instances.clear();
 
         m_currentCommandBuffer = VK_NULL_HANDLE;
-        m_texDescSetIdx++;
     }
 
     void QuadPipeline::setQuadsData(const std::vector<QuadInstance> &instances) {
@@ -146,10 +146,9 @@ namespace Bess::Vulkan::Pipelines {
         }
 
         // Descriptor caching: only update if changed compared to cached infos for this descriptor set index
-        auto setIdx = static_cast<uint32_t>(m_texDescSetIdx);
         bool needsUpdate = true;
-        if (m_cachedTextureInfos.contains(setIdx)) {
-            needsUpdate = std::memcmp(m_cachedTextureInfos[setIdx].data(), m_textureInfos.data(), sizeof(VkDescriptorImageInfo) * m_textureInfos.size()) != 0;
+        if (m_cachedTextureInfos.contains(m_texDescSetIdx)) {
+            needsUpdate = std::memcmp(m_cachedTextureInfos[m_texDescSetIdx].data(), m_textureInfos.data(), sizeof(VkDescriptorImageInfo) * m_textureInfos.size()) != 0;
         }
         if (needsUpdate) {
             std::vector<VkWriteDescriptorSet> writes;
@@ -165,7 +164,7 @@ namespace Bess::Vulkan::Pipelines {
                 writes.push_back(write);
             }
             vkUpdateDescriptorSets(m_device->device(), (uint32_t)writes.size(), writes.data(), 0, nullptr);
-            m_cachedTextureInfos[setIdx] = m_textureInfos;
+            m_cachedTextureInfos[m_texDescSetIdx] = m_textureInfos;
         }
     }
 
@@ -557,6 +556,7 @@ namespace Bess::Vulkan::Pipelines {
             return m_textureArraySets[idx];
 
         if (m_tempDescSets.isDescSetAvailable(idx)) {
+            BESS_WARN("[QuadPipeline] Reusing temp descriptor set for idx {} ", idx);
             return m_tempDescSets.getSetAtIdx(idx);
         }
 
@@ -613,7 +613,6 @@ namespace Bess::Vulkan::Pipelines {
         m_isTranslucentFlow = isTranslucent;
         m_instances.clear();
 
-        // Prepare data and descriptor sets via the existing API
         setQuadsData(instances, texturedData);
 
         if (m_instances.empty())
@@ -661,7 +660,8 @@ namespace Bess::Vulkan::Pipelines {
     }
 
     bool QuadPipeline::isTexArraySetAvailable(size_t idx) const {
-        return m_textureArraySets.size() > idx && m_textureArraySets[idx] != VK_NULL_HANDLE;
+        size_t limit = (m_currentFrameIndex + 1) * (m_texArraySetsCount / maxFrames);
+        return idx < limit && m_textureArraySets.size() > idx && m_textureArraySets[idx] != VK_NULL_HANDLE;
     }
 
 } // namespace Bess::Vulkan::Pipelines

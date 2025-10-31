@@ -114,10 +114,10 @@ namespace Bess::Vulkan::Pipelines {
         std::unordered_map<uint32_t, std::array<VkDescriptorImageInfo, m_texArraySize>> m_cachedTextureInfos;
 
         bool m_isTranslucentFlow = false;
-        uint8_t m_texDescSetIdx = 0;
+        uint32_t m_texDescSetIdx = 0;
 
         size_t m_texArraySetsCount = 2; // One for opaque flow, one for translucent flow
-       
+
         float m_texSetsGrowthFactor = 2.0f;
         uint32_t m_texSetsMinHeadroom = 64;
         uint32_t m_texSetsMaxCap = 4096;
