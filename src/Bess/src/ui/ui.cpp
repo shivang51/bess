@@ -29,6 +29,7 @@ namespace Bess::UI {
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-viewport
+        io.ConfigFlags &= ~ImGuiConfigFlags_DpiEnableScaleViewports;
 
         io.IniFilename = "bess.ini";
 
@@ -206,15 +207,9 @@ namespace Bess::UI {
     void drawStats(const int fps) {
         ImGui::Begin("Stats");
         ImGui::Text("FPS: %d", fps);
-        switch (ApplicationState::getCurrentPage()->getIdentifier()) {
-        case Pages::PageIdentifier::MainPage:
-            UI::UIMain::drawStats(fps);
-            break;
-        case Pages::PageIdentifier::StartPage:
-        default:
-            break;
-        }
-
+        ImGuiIO &io = ImGui::GetIO();
+        ImGui::Text("DisplaySize: %.1f x %.1f", io.DisplaySize.x, io.DisplaySize.y);
+        ImGui::Text("FramebufferScale: %.2f x %.2f", io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
         ImGui::End();
     }
 

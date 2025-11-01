@@ -1,9 +1,9 @@
-#include "scene/scene_pch.h"
 #include "ui/ui_main/ui_main.h"
 #include "application_state.h"
 #include "common/log.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "scene/scene_pch.h"
 #include "simulation_engine.h"
 #include "stb_image_write.h"
 #include "ui/icons/MaterialIcons.h"
@@ -50,9 +50,6 @@ namespace Bess::UI {
 
     void UIMain::drawStats(int fps) {
         // TODO: Implement Vulkan stats
-        ImGui::Text("Draw Calls: %d", 0);
-        ImGui::Text("Vertices: %d", 0);
-        ImGui::Text("Vulkan Check Calls: %d", 0);
     }
 
     void UIMain::setViewportTexture(const uint64_t texture) {
