@@ -227,36 +227,6 @@ namespace Bess::SimEngine {
     }
 
     inline void initDigitalGates() {
-        ComponentDefinition digitalGate = {"AND Gate", "Digital Gates", 2, 1, ExprEval::exprEvalSimFunc,
-                                           SimDelayNanoSeconds(1), '*'};
-        ComponentCatalog::instance().registerComponent(digitalGate);
-
-        digitalGate.name = "OR Gate";
-        digitalGate.op = '+';
-        ComponentCatalog::instance().registerComponent(digitalGate);
-
-        digitalGate.name = "XOR Gate";
-        digitalGate.op = '^';
-        ComponentCatalog::instance().registerComponent(digitalGate);
-
-        digitalGate.name = "XNOR Gate";
-        digitalGate.op = '^';
-        digitalGate.negate = true;
-        ComponentCatalog::instance().registerComponent(digitalGate);
-
-        digitalGate.name = "NAND Gate";
-        digitalGate.op = '*';
-        ComponentCatalog::instance().registerComponent(digitalGate);
-
-        digitalGate.name = "NOR Gate";
-        digitalGate.op = '+';
-        ComponentCatalog::instance().registerComponent(digitalGate);
-
-        ComponentDefinition notGate = {"NOT Gate", "Digital Gates", 1, 1, ExprEval::exprEvalSimFunc,
-                                       SimDelayNanoSeconds(2), '!'};
-
-        ComponentCatalog::instance().registerComponent(notGate);
-
         auto registerTriBufferN = [&](int N, const std::string &humanName, const std::string &shortName) {
             auto simFuncN = [N](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
                 auto newState = prevState;

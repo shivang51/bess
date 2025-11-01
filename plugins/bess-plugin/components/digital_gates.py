@@ -1,6 +1,6 @@
 from bessplug.api.common.math import Vec2
 from bessplug.api.sim_engine import ComponentDefinition
-from bessplug.api.renderer.path import Path, PathProperties
+from bessplug.api.renderer.path import Path
 import math
 
 from bessplug.plugin import SchematicDiagram
@@ -123,7 +123,7 @@ schematic_symbols: dict[int, SchematicDiagram] = {}
 for gate_key, gate_data in _gates.items():
     def_gate = ComponentDefinition.from_operator(
         name=gate_data["name"],
-        category="Py Digital Gates",
+        category="Digital Gates",
         input_count=len(gate_data["input_pins"]),
         output_count=len(gate_data["output_pins"]),
         delay_ns=1,
