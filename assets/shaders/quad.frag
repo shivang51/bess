@@ -60,14 +60,15 @@ void main() {
         baseColor *= texColor;
     }
 
+    if (v_IsMica == 1) {
+        vec3 dark = baseColor.rgb * smoothstep(0.9f, 1.f, length(1.f - v_TexCoord.y));
+        baseColor.rgb *= mix(baseColor.rgb, dark, v_TexCoord.y + 0.05);
+    }
+
     vec4 color = mix(v_BorderColor, baseColor, mI);
     color.a *= mO;
 
     if (color.a < 0.001) discard;
-
-    if (v_IsMica == 1) {
-        color.rgb *= length((v_TexCoord + vec2(-0.35f, -0.5f)));
-    }
 
     // Premultiply RGB by alpha for proper blending
     color.rgb *= color.a;
