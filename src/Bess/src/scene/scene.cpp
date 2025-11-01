@@ -941,6 +941,9 @@ namespace Bess::Canvas {
         const auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
 
         if (!isPressed) {
+            // Only for multi selection:
+            // select only the hovered entity if multiple are selected and ctrl is not pressed
+            // basically deselect others on mouse release if not dragging
             const auto selSize = m_registry.view<Components::SelectedComponent>().size();
             if (m_sceneMode != SceneMode::move &&
                 !m_isDragging &&
@@ -956,6 +959,7 @@ namespace Bess::Canvas {
                 m_selectInSelectionBox = true;
                 m_selectionBoxEnd = m_mousePos;
             }
+
             if (m_isDragging) {
                 m_isDragging = false;
                 m_dragOffsets.clear();
@@ -976,8 +980,8 @@ namespace Bess::Canvas {
             return;
         }
 
-        // toggeling selection of hovered entity on click
         if (m_registry.valid(hoveredEntity)) {
+            // if its a slot then do the connection logic
             if (m_registry.all_of<Components::SlotComponent>(hoveredEntity)) {
                 m_registry.clear<Components::SelectedComponent>();
                 if (m_drawMode == SceneDrawMode::none) {
@@ -990,7 +994,6 @@ namespace Bess::Canvas {
                 }
             } else {
                 const bool isCtrlPressed = Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
-
                 if (!isCtrlPressed) {
                     const bool isSelected = m_registry.all_of<Components::SelectedComponent>(hoveredEntity);
                     // if left ctrl is not pressed and multiple entities are selected,
