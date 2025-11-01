@@ -6,6 +6,7 @@
 #include "entt/entity/fwd.hpp"
 #include "events/application_event.h"
 #include "pages/main_page/main_page_state.h"
+#include "scene/components/components.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "types.h"
@@ -937,7 +938,19 @@ namespace Bess::Canvas {
 
     void Scene::onLeftMouse(bool isPressed) {
         m_isLeftMousePressed = isPressed;
+        const auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
+
         if (!isPressed) {
+            const auto selSize = m_registry.view<Components::SelectedComponent>().size();
+            if (m_sceneMode != SceneMode::move &&
+                !m_isDragging &&
+                !Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL) &&
+                selSize > 1) {
+                bool isSelected = m_registry.all_of<Components::SelectedComponent>(hoveredEntity);
+                m_registry.clear<Components::SelectedComponent>();
+                toggleSelectComponent(m_hoveredEntity);
+            }
+
             if (m_drawMode == SceneDrawMode::selectionBox) {
                 m_drawMode = SceneDrawMode::none;
                 m_selectInSelectionBox = true;
@@ -962,7 +975,6 @@ namespace Bess::Canvas {
             }
             return;
         }
-        const auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
 
         // toggeling selection of hovered entity on click
         if (m_registry.valid(hoveredEntity)) {
@@ -977,16 +989,35 @@ namespace Bess::Canvas {
                         m_connectionStartEntity, m_hoveredEntity);
                 }
             } else {
-                if (m_sceneMode != SceneMode::move &&
-                    !Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
-                    m_registry.clear<Components::SelectedComponent>();
+                const bool isCtrlPressed = Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
+
+                if (!isCtrlPressed) {
+                    const bool isSelected = m_registry.all_of<Components::SelectedComponent>(hoveredEntity);
+                    // if left ctrl is not pressed and multiple entities are selected,
+                    // and the hovered entity is not selected
+                    // then only select the hovered entitiy and unselect others (inpired from blender nodes)
+                    const auto selSize = m_registry.view<Components::SelectedComponent>().size();
+                    if (selSize > 1 && !isSelected) {
+                        if (!isSelected && m_sceneMode != SceneMode::move) {
+                            m_registry.clear<Components::SelectedComponent>();
+                        }
+                    } else if (selSize <= 1 && m_sceneMode != SceneMode::move) { // do not deselect others if in move mode
+                        m_registry.clear<Components::SelectedComponent>();
+                    }
                 }
 
-                if (m_registry.all_of<Components::ConnectionSegmentComponent>(hoveredEntity)) {
-                    const auto &segComp = m_registry.get<Components::ConnectionSegmentComponent>(hoveredEntity);
-                    toggleSelectComponent(segComp.parent);
-                } else {
-                    toggleSelectComponent(hoveredEntity);
+                const auto selSize = m_registry.view<Components::SelectedComponent>().size();
+                const bool isSelected = m_registry.all_of<Components::SelectedComponent>(hoveredEntity);
+                // if not multiselect and is not selected then toggle select (basically select if not selected)
+                // other wise wait for mouse release to deselect the
+                // hovered component (basically deselect if selected on mouse release so that drag can work)
+                if (!isSelected) {
+                    if (m_registry.all_of<Components::ConnectionSegmentComponent>(hoveredEntity)) {
+                        const auto &segComp = m_registry.get<Components::ConnectionSegmentComponent>(hoveredEntity);
+                        toggleSelectComponent(segComp.parent);
+                    } else {
+                        toggleSelectComponent(hoveredEntity);
+                    }
                 }
             }
         } else if (m_sceneMode != SceneMode::move) { // deselecting all when clicking outside
