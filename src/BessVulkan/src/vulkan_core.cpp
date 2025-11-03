@@ -66,12 +66,16 @@ namespace Bess::Vulkan {
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
             BESS_VK_WARN("Swapchain out of date, skipping frame");
+            m_hasSwapchainImg = false;
             return;
         }
 
         if (result != VK_SUCCESS) {
+            m_hasSwapchainImg = false;
             throw std::runtime_error("Failed to acquire swap chain image!");
         }
+
+        m_hasSwapchainImg = true;
 
         const auto cmdBuffer = m_currentFrameContext.cmdBuffer;
 
@@ -82,6 +86,14 @@ namespace Bess::Vulkan {
 
     void VulkanCore::endFrame() {
         m_currentFrameContext.cmdBuffer->endRecording();
+
+        if (!m_hasSwapchainImg) {
+            m_currentFrameIdx = (m_currentFrameIdx + 1) % MAX_FRAMES_IN_FLIGHT;
+            m_currentFrameContext.isStarted = false;
+            recreateSwapchain(m_swapchain->extent());
+            return;
+        }
+
         VkSubmitInfo submitInfo{};
 
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

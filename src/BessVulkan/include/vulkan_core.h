@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <type_traits>
 #include <vector>
 #include <vulkan/vulkan.h>
 
@@ -83,6 +84,8 @@ namespace Bess::Vulkan {
         uint32_t m_currentFrameIdx = 0;
 
         bool m_isDestroyed = false;
+
+        bool m_hasSwapchainImg = false;
     };
 
 } // namespace Bess::Vulkan
