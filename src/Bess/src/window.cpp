@@ -26,6 +26,25 @@ namespace Bess {
         SetCurrentProcessExplicitAppUserModelID(L"com.shivang.bess");
 #endif
 
+        auto platform = glfwGetPlatform();
+        switch (platform) {
+        case GLFW_PLATFORM_WIN32:
+            BESS_INFO("[Window] Platform: Win32");
+            break;
+        case GLFW_PLATFORM_X11:
+            BESS_INFO("[Window] Platform: X11");
+            break;
+        case GLFW_PLATFORM_WAYLAND:
+            BESS_INFO("[Window] Platform: Wayland");
+            break;
+        case GLFW_PLATFORM_COCOA:
+            BESS_INFO("[Window] Platform: Cocoa");
+            break;
+        default:
+            BESS_INFO("[Window] Platform: Unknown");
+            break;
+        }
+
         assert(window != nullptr);
         glfwSetWindowUserPointer(window, this);
 
