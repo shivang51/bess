@@ -3,18 +3,28 @@
 #include "common/log.h"
 #include <cassert>
 #include <cstdint>
-#include <math.h>
 #include <memory>
 #include <stdexcept>
 
 namespace Bess {
     bool Window::isGLFWInitialized = false;
 
+    constexpr char const *instanceClass = "com.shivang.bess";
+
     Window::Window(int width, int height, const std::string &title) {
 
         this->initGLFW();
+#ifdef __linux__
+        glfwWindowHintString(GLFW_WAYLAND_APP_ID, instanceClass);
+        glfwWindowHintString(GLFW_X11_CLASS_NAME, "Bess");
+        glfwWindowHintString(GLFW_X11_INSTANCE_NAME, instanceClass);
+#endif
 
         GLFWwindow *window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
+
+#ifdef _WIN32
+        SetCurrentProcessExplicitAppUserModelID(L"com.shivang.bess");
+#endif
 
         assert(window != nullptr);
         glfwSetWindowUserPointer(window, this);
@@ -126,7 +136,6 @@ namespace Bess {
         assert(res == GLFW_TRUE);
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_MAXIMIZED, 1);
-
         isGLFWInitialized = true;
     }
 
