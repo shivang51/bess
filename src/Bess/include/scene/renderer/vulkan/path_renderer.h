@@ -56,31 +56,47 @@ namespace Bess::Renderer2D::Vulkan {
 
     class PathGeometryCache {
       public:
-        bool getEntry(UUID id, PathGeometryCacheEntry &entry) {
-            if (!m_cache.contains(id))
+        static std::string generateCacheKey(UUID uuid,
+                                            const glm::vec3 &pos, const glm::vec2 &scale,
+                                            bool rounded) {
+            return std::to_string(static_cast<uint64_t>(uuid)) + "_|" +
+                   std::to_string(pos.x) + "_" +
+                   std::to_string(pos.y * 1000) + "_" +
+                   std::to_string(pos.z * 1000) + "_|" +
+                   std::to_string(scale.x * 1000) + "_" +
+                   std::to_string(scale.y * 1000) + "_|" +
+                   std::to_string(static_cast<int>(rounded));
+        }
+
+        bool getEntry(const std::string &key, PathGeometryCacheEntry &entry) {
+            if (!m_cache.contains(key))
                 return false;
-            entry = m_cache[id];
+            entry = m_cache.at(key);
             return true;
         }
 
-        bool getEntryPtr(UUID id, const PathGeometryCacheEntry *&entryPtr) const {
-            auto it = m_cache.find(id);
+        bool getEntryPtr(const std::string &key, const PathGeometryCacheEntry *&entryPtr) const {
+            auto it = m_cache.find(key);
             if (it == m_cache.end())
                 return false;
             entryPtr = &it->second;
             return true;
         }
 
-        void cacheEntry(const PathGeometryCacheEntry &entry) {
-            m_cache[entry.pathId] = entry;
+        void cacheEntry(const std::string &key, const PathGeometryCacheEntry &entry) {
+            m_cache[key] = entry;
         }
 
         void clearCache() {
             m_cache.clear();
         }
 
+        void invalidateCacheEntry(const std::string &key) {
+            m_cache.erase(key);
+        }
+
       private:
-        std::unordered_map<UUID, PathGeometryCacheEntry> m_cache;
+        std::unordered_map<std::string, PathGeometryCacheEntry> m_cache;
     };
 
     class PathRenderer {
@@ -143,9 +159,8 @@ namespace Bess::Renderer2D::Vulkan {
             uint32_t firstIndex;
             uint32_t indexCount;
         };
-        std::unordered_map<UUID, MeshRange> m_glyphIdToMesh;
-        std::unordered_map<UUID, std::vector<FillInstance>> m_glyphIdToInstances;
-        std::unordered_map<std::string, std::vector<std::vector<CommonVertex>>> m_posScaleToStrokeGeometryCache;
+        std::unordered_map<std::string, MeshRange> m_glyphIdToMesh;
+        std::unordered_map<std::string, std::vector<FillInstance>> m_glyphIdToInstances;
 
         std::shared_ptr<VulkanDevice> m_device;
         std::shared_ptr<VulkanOffscreenRenderPass> m_renderPass;

@@ -1,4 +1,5 @@
 #include "scene/renderer/path.h"
+#include "common/log.h"
 #include "scene/renderer/vulkan/path_renderer.h"
 
 namespace Bess::Renderer {
@@ -54,8 +55,16 @@ namespace Bess::Renderer {
         if (!m_contours.empty())
             return m_contours;
 
+        const auto cacheKey = std::format("{}_{}", m_currentScale.x, m_currentScale.y);
+
+        const auto &itr = m_scaledContoursCache.find(cacheKey);
+        if (itr != m_scaledContoursCache.end()) {
+            return itr->second;
+        }
+
         formContours();
         assert(!m_contours.empty());
+        m_scaledContoursCache[cacheKey] = m_contours;
 
         return m_contours;
     }
@@ -120,6 +129,23 @@ namespace Bess::Renderer {
 
         m_currentScale = factor;
 
+        const auto cacheKey = std::format("{}_{}", m_currentScale.x, m_currentScale.y);
+
+        if (m_scaledCmdsCache.contains(cacheKey)) {
+            m_cmds = m_scaledCmdsCache.at(cacheKey);
+            m_currentScale = factor;
+            m_contours.clear();
+            if (m_scaledContoursCache.contains(cacheKey)) {
+                m_contours = m_scaledContoursCache.at(cacheKey);
+            }
+            return m_contours.empty();
+        }
+
+        if (m_ogCmds.empty())
+            m_ogCmds = m_cmds;
+        else
+            m_cmds = m_ogCmds;
+
         m_contours.clear();
         for (auto &cmd : m_cmds) {
             using Kind = Renderer::Path::PathCommand::Kind;
@@ -141,6 +167,8 @@ namespace Bess::Renderer {
             } break;
             }
         }
+
+        m_scaledCmdsCache[cacheKey] = m_cmds;
 
         return true;
     }
@@ -166,6 +194,7 @@ namespace Bess::Renderer {
             return;
         m_strokeWidth = width;
         m_contours.clear();
+        m_scaledContoursCache.clear();
     }
 
     void Path::setBounds(const glm::vec2 &bounds) {

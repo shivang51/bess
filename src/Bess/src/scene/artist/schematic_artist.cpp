@@ -135,7 +135,6 @@ namespace Bess::Canvas {
         const int id = (int)entity;
 
         float w = schematicInfo.width;
-        BESS_TRACE("OG Width = {}", w);
         float h = schematicInfo.height;
         const float x = pos.x - w / 2, x1 = pos.x + w / 2;
         const float y = pos.y - h / 2, y1 = pos.y + h / 2;
@@ -219,8 +218,6 @@ namespace Bess::Canvas {
         const auto &size = m_diagramSize.at((int)parentEntt);
         const auto &schematicInfo = getCompSchematicInfo(parentEntt, size.x, size.y);
         const auto &schematicInfo_ = getCompSchematicInfo(parentEntt);
-
-        BESS_TRACE("OG pinStart: {}, new pinStart: {}", schematicInfo_.inpPinStart, schematicInfo.inpPinStart);
 
         float inPinStart = schematicInfo.inpPinStart;
         const float h = size.y;

@@ -2,6 +2,8 @@
 
 #include "bess_uuid.h"
 #include "glm.hpp"
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace Bess::Renderer2D::Vulkan {
@@ -24,6 +26,7 @@ namespace Bess::Renderer {
     class Path {
       public:
         Path() = default;
+        ~Path() = default;
 
         struct MoveTo {
             glm::vec2 p;
@@ -105,6 +108,10 @@ namespace Bess::Renderer {
         glm::vec2 m_bounds = glm::vec2(0.f);
         glm::vec2 m_lowestPos = glm::vec2(0.f);
         std::vector<PathCommand> m_cmds;
+        std::vector<PathCommand> m_ogCmds;
         std::vector<std::vector<Renderer2D::Vulkan::PathPoint>> m_contours;
+
+        std::unordered_map<std::string, std::vector<PathCommand>> m_scaledCmdsCache;
+        std::unordered_map<std::string, std::vector<std::vector<Renderer2D::Vulkan::PathPoint>>> m_scaledContoursCache;
     };
 } // namespace Bess::Renderer
