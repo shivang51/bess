@@ -113,7 +113,7 @@ namespace Bess::Canvas {
                                              const Components::TagComponent &tagComp,
                                              const Components::TransformComponent &transform,
                                              const Components::SpriteComponent &spriteComp,
-                                             const Components::SimulationComponent &simComponent) const {
+                                             const Components::SimulationComponent &simComponent) {
         const auto &pos = transform.position;
 
         const auto schematicInfo = getCompSchematicInfo(entity);
@@ -134,7 +134,8 @@ namespace Bess::Canvas {
 
         const int id = (int)entity;
 
-        const float w = schematicInfo.width;
+        float w = schematicInfo.width;
+        BESS_TRACE("OG Width = {}", w);
         float h = schematicInfo.height;
         const float x = pos.x - w / 2, x1 = pos.x + w / 2;
         const float y = pos.y - h / 2, y1 = pos.y + h / 2;
@@ -187,6 +188,7 @@ namespace Bess::Canvas {
                 info.scale = {finalScale.x, finalScale.y};
 
                 h = std::max(h, pathBounds.y * finalScale.y);
+                w = std::max(w, pathBounds.x * finalScale.x);
 
                 p.setStrokeWidth(strokeWeight);
                 m_pathRenderer->drawPath(p, info);
@@ -206,16 +208,22 @@ namespace Bess::Canvas {
             textPos.y += componentStyles.headerFontSize / 2.f;
             m_materialRenderer->drawText(tagComp.name, textPos, schematicCompStyles.nameFontSize, textColor, id, 0.f);
         }
+
+        m_diagramSize[id] = glm::vec2(w, h);
     }
 
     void SchematicArtist::drawSlots(const entt::entity parentEntt, const Components::SimulationComponent &simComp, const Components::TransformComponent &transformComp) {
         const auto &def = SimEngine::SimulationEngine::instance().getComponentDefinition(simComp.simEngineEntity);
         const auto &[inpDetails, outDetails] = def.getPinDetails();
 
-        const auto &schematicInfo = getCompSchematicInfo(parentEntt);
+        const auto &size = m_diagramSize.at((int)parentEntt);
+        const auto &schematicInfo = getCompSchematicInfo(parentEntt, size.x, size.y);
+        const auto &schematicInfo_ = getCompSchematicInfo(parentEntt);
+
+        BESS_TRACE("OG pinStart: {}, new pinStart: {}", schematicInfo_.inpPinStart, schematicInfo.inpPinStart);
 
         float inPinStart = schematicInfo.inpPinStart;
-        const float h = schematicInfo.height;
+        const float h = size.y;
         const auto &pos = transformComp.position;
         const float y = pos.y - (h / 2);
 
@@ -259,7 +267,7 @@ namespace Bess::Canvas {
         }
     }
 
-    ArtistCompSchematicInfo SchematicArtist::getCompSchematicInfo(const entt::entity ent) const {
+    ArtistCompSchematicInfo SchematicArtist::getCompSchematicInfo(entt::entity ent, float width, float height) const {
         const auto &reg = Scene::instance()->getEnttRegistry();
         const auto &tagComp = reg.get<Components::TagComponent>(ent);
         const auto &simComp = reg.get<Components::SimulationComponent>(ent);
@@ -267,9 +275,11 @@ namespace Bess::Canvas {
         const auto &pos = transform.position;
 
         const float n = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
-        const float h = (SCHEMATIC_VIEW_PIN_ROW_SIZE * n) + (schematicCompStyles.paddingY * 2.f);
+        const float h = height == -1.f
+                            ? (SCHEMATIC_VIEW_PIN_ROW_SIZE * n) + (schematicCompStyles.paddingY * 2.f)
+                            : height;
 
-        float w = h * 1.2f;
+        float w = width == -1.f ? h * 1.2f : width;
         float x = pos.x - w / 2, x1 = pos.x + w / 2;
         constexpr float negCircleOff = schematicCompStyles.negCircleOff;
 
@@ -277,7 +287,13 @@ namespace Bess::Canvas {
 
         info.outPinStart = x1;
 
-        w = m_materialRenderer->getTextRenderSize(tagComp.name, schematicCompStyles.nameFontSize).x + componentStyles.paddingX * 2.f;
+        auto labelW = m_materialRenderer->getTextRenderSize(tagComp.name,
+                                                            schematicCompStyles.nameFontSize)
+                          .x +
+                      componentStyles.paddingX * 2.f;
+
+        w = std::max(w, labelW);
+
         x = pos.x - w / 2, x1 = pos.x + w / 2;
 
         info.inpPinStart = x;
@@ -300,6 +316,7 @@ namespace Bess::Canvas {
         const auto parentEntt = Scene::instance()->getEntityWithUuid(comp.parentId);
         const auto &simComp = registry.get<Components::SimulationComponent>(parentEntt);
 
+        const auto &size = m_diagramSize.at((int)parentEntt);
         const auto info = getCompSchematicInfo(parentEntt);
 
         float x = 0, y = parentTransform.position.y - info.height / 2.f;

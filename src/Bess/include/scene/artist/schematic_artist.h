@@ -6,6 +6,7 @@
 #include "ext/vector_float3.hpp"
 #include "scene/components/components.h"
 #include "types.h"
+#include <unordered_map>
 
 namespace Bess::Canvas {
 
@@ -43,7 +44,7 @@ namespace Bess::Canvas {
                                 const Components::TagComponent &tagComp,
                                 const Components::TransformComponent &transform,
                                 const Components::SpriteComponent &spriteComp,
-                                const Components::SimulationComponent &simComponent) const;
+                                const Components::SimulationComponent &simComponent);
 
         void drawSevenSegDisplay(entt::entity entity,
                                  const Components::TagComponent &tagComp,
@@ -51,8 +52,10 @@ namespace Bess::Canvas {
                                  const Components::SpriteComponent &spriteComp,
                                  const Components::SimulationComponent &simComponent) const;
 
-        ArtistCompSchematicInfo getCompSchematicInfo(entt::entity ent) const;
+        ArtistCompSchematicInfo getCompSchematicInfo(entt::entity ent, float width = -1, float height = -1) const;
         ArtistCompSchematicInfo getCompSchematicInfo(UUID uuid) const;
+
+        std::unordered_map<int, glm::vec2> m_diagramSize;
     };
 
 } // namespace Bess::Canvas
