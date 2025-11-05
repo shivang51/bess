@@ -311,7 +311,12 @@ namespace Bess::Canvas {
         const auto parentEntt = Scene::instance()->getEntityWithUuid(comp.parentId);
         const auto &simComp = registry.get<Components::SimulationComponent>(parentEntt);
 
-        const auto &size = m_diagramSize.at((int)parentEntt);
+        glm::vec2 size = {-1.f, -1.f};
+        const auto it = m_diagramSize.find((int)parentEntt);
+        if (it != m_diagramSize.end()) {
+            size = it->second;
+        }
+
         const auto info = getCompSchematicInfo(parentEntt, size.x, size.y);
 
         float x = 0, y = parentTransform.position.y - (info.height / 2.f);
