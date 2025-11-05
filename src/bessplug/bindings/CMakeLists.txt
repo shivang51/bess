@@ -15,12 +15,10 @@ file(GLOB libtess2_src
 )
 
 file(GLOB_RECURSE BESS_SCENE_SOURCES
-		# "${CMAKE_SOURCE_DIR}/src/Bess/src/scene/renderer/vulkan/path_renderer.cpp"
-		# "${CMAKE_SOURCE_DIR}/src/Bess/src/scene/renderer/vulkan/pipelines/*.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/src/scene/renderer/*.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/src/scene/schematic_diagram.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/src/camera.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/src/asset_manager/*.cpp"
+		"${CMAKE_SOURCE_DIR}/src/Bess/scene/renderer/*.cpp"
+		"${CMAKE_SOURCE_DIR}/src/Bess/scene/schematic_diagram.cpp"
+		"${CMAKE_SOURCE_DIR}/src/Bess/camera.cpp"
+		"${CMAKE_SOURCE_DIR}/src/Bess/asset_manager/*.cpp"
 )
 
 add_library(bess_scene_obj OBJECT
@@ -41,7 +39,7 @@ set(EXTERNAL_INCLUDE_DIRS
 			"${CMAKE_SOURCE_DIR}/external/spdlog/include"
 			"${CMAKE_SOURCE_DIR}/external/libtess2/Include"
 			"${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"
-			"${CMAKE_SOURCE_DIR}/src/Bess/include"
+			"${CMAKE_SOURCE_DIR}/src/Bess/"
 			"${CMAKE_SOURCE_DIR}/src/BessVulkan/include"
 )
 

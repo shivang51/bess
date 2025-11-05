@@ -50,7 +50,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 			"${CMAKE_SOURCE_DIR}/external/spdlog/include"
 			"${CMAKE_SOURCE_DIR}/external/libtess2/Include"
 			"${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"
-			"${CMAKE_SOURCE_DIR}/src/Bess/include"
+			"${CMAKE_SOURCE_DIR}/src/Bess/"
 			"${CMAKE_SOURCE_DIR}/src/BessVulkan/include"
 )
 

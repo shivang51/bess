@@ -37,8 +37,8 @@ add_subdirectory(src)
 
 find_package(Doxygen REQUIRED)
 set(DOXYGEN_INPUT_DIRS
-    ${CMAKE_SOURCE_DIR}/src/Bess/include
-    ${CMAKE_SOURCE_DIR}/src/Bess/src
+    ${CMAKE_SOURCE_DIR}/src/Bess/
+    ${CMAKE_SOURCE_DIR}/src/Bess/
 		${CMAKE_SOURCE_DIR}/src/BessVulkan/include
 		${CMAKE_SOURCE_DIR}/src/BessVulkan/src
 		${CMAKE_SOURCE_DIR}/src/BessSimEngine/include
