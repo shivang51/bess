@@ -1,7 +1,5 @@
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "bess_uuid.h"
-#include "common/log.h"
-#include "detail/qualifier.hpp"
 #include "geometric.hpp"
 #include <ranges>
 #define GLM_ENABLE_EXPERIMENTAL
@@ -329,7 +327,7 @@ namespace Bess::Renderer2D::Vulkan {
         info.strokeColor = m_pathData.color;
         info.translate = glm::vec3(0.0f);
         info.scale = glm::vec2(1.0f);
-        info.glyphId = static_cast<uint64_t>(m_pathData.id);
+        info.glyphId = static_cast<int>(m_pathData.id);
 
         drawContours(m_pathData.contours, info);
 
@@ -685,7 +683,7 @@ namespace Bess::Renderer2D::Vulkan {
                         float da = a1 - a0;
                         auto wrap = [](float a) { while (a <= -glm::pi<float>()) a += 2*glm::pi<float>(); while (a > glm::pi<float>()) a -= 2*glm::pi<float>(); return a; };
                         da = wrap(da);
-                        float crossZ = v1.x * v2.y - v1.y * v2.x;
+                        float crossZ = (v1.x * v2.y) - (v1.y * v2.x);
                         if (crossZ > 0 && da < 0)
                             da += 2 * glm::pi<float>();
                         if (crossZ < 0 && da > 0)
@@ -698,7 +696,7 @@ namespace Bess::Renderer2D::Vulkan {
                         int segs = std::min(kMaxRoundedSegments, std::max(3, (int)std::ceil(arcLen / kRoundedJoinRadius)));
                         for (int s = 1; s <= segs; ++s) {
                             float tseg = (float)s / (float)segs;
-                            float ang = a0 + da * tseg;
+                            float ang = a0 + (da * tseg);
                             glm::vec2 p = center + glm::vec2(std::cos(ang), std::sin(ang)) * r;
                             smoothed.emplace_back(PathPoint{glm::vec3(p, curr.pos.z), curr.weight, curr.id});
                         }
@@ -748,7 +746,7 @@ namespace Bess::Renderer2D::Vulkan {
                         float da = a1 - a0;
                         auto wrap = [](float a) { while (a <= -glm::pi<float>()) a += 2*glm::pi<float>(); while (a > glm::pi<float>()) a -= 2*glm::pi<float>(); return a; };
                         da = wrap(da);
-                        float crossZ = v1.x * v2.y - v1.y * v2.x;
+                        float crossZ = (v1.x * v2.y) - (v1.y * v2.x);
                         if (crossZ > 0 && da < 0)
                             da += 2 * glm::pi<float>();
                         if (crossZ < 0 && da > 0)
@@ -759,7 +757,7 @@ namespace Bess::Renderer2D::Vulkan {
                         int segs = std::min(kMaxRoundedSegments, std::max(3, (int)std::ceil(arcLen / kRoundedJoinRadius)));
                         for (int s = 1; s <= segs; ++s) {
                             float tseg = (float)s / (float)segs;
-                            float ang = a0 + da * tseg;
+                            float ang = a0 + (da * tseg);
                             glm::vec2 p = center + glm::vec2(std::cos(ang), std::sin(ang)) * r;
                             smoothed.emplace_back(PathPoint{glm::vec3(p, curr.pos.z), curr.weight, curr.id});
                         }
