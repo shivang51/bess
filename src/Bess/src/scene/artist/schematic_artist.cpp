@@ -314,22 +314,22 @@ namespace Bess::Canvas {
         const auto &simComp = registry.get<Components::SimulationComponent>(parentEntt);
 
         const auto &size = m_diagramSize.at((int)parentEntt);
-        const auto info = getCompSchematicInfo(parentEntt);
+        const auto info = getCompSchematicInfo(parentEntt, size.x, size.y);
 
-        float x = 0, y = parentTransform.position.y - info.height / 2.f;
+        float x = 0, y = parentTransform.position.y - (info.height / 2.f);
 
         const bool isOutputSlot = comp.slotType == Components::SlotType::digitalOutput;
 
         float yIncr = 0;
         if (isOutputSlot) {
             x = info.outConnStart;
-            yIncr = info.height / (simComp.outputSlots.size() + 1);
+            yIncr = info.height / (float)(simComp.outputSlots.size() + 1);
         } else {
             x = info.inpConnStart;
-            yIncr = info.height / (simComp.inputSlots.size() + 1);
+            yIncr = info.height / (float)(simComp.inputSlots.size() + 1);
         }
 
-        y += yIncr * (comp.idx + 1);
+        y += yIncr * (float)(comp.idx + 1);
 
         return {x, y, parentTransform.position.z + 0.0005};
     }
