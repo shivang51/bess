@@ -4,10 +4,8 @@
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
 #include "scene/renderer/vulkan/path_renderer.h"
-#include "scene/scene_pch.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
-#include "vulkan_subtexture.h"
 #include "vulkan_texture.h"
 #include <memory>
 #include <string>
@@ -65,12 +63,12 @@ namespace Bess::Canvas {
         const auto &strokeColor = ViewportTheme::schematicViewColors.componentStroke;
         constexpr float strokeSize = schematicCompStyles.strokeSize;
 
-        const int id = static_cast<uint64_t>(entity);
+        const int id = static_cast<int>(entity);
         const auto &pos = transform.position;
 
         const float w = schematicInfo.width, h = schematicInfo.height;
-        const float x = pos.x - w / 2, x1 = pos.x + w / 2;
-        const float y = pos.y - h / 2, y1 = pos.y + h / 2;
+        const float x = pos.x - (w / 2), x1 = pos.x + (w / 2);
+        const float y = pos.y - (h / 2), y1 = pos.y + (h / 2);
 
         m_pathRenderer->beginPathMode({x, y, pos.z}, strokeSize, strokeColor, id);
         m_pathRenderer->pathLineTo({x1, y, pos.z}, strokeSize, strokeColor, id);
@@ -136,9 +134,9 @@ namespace Bess::Canvas {
 
         float w = schematicInfo.width;
         float h = schematicInfo.height;
-        const float x = pos.x - w / 2, x1 = pos.x + w / 2;
-        const float y = pos.y - h / 2, y1 = pos.y + h / 2;
-        const float cpXL = x + (w * 0.25);
+        const float x = pos.x - (w / 2), x1 = pos.x + (w / 2);
+        const float y = pos.y - (h / 2), y1 = pos.y + (h / 2);
+        const float cpXL = x + (w * 0.25f);
         const float rb = schematicInfo.outPinStart;
 
         bool showName = true;
@@ -231,7 +229,7 @@ namespace Bess::Canvas {
         // inputs
         {
             const size_t inpCount = simComp.inputSlots.size();
-            const float yIncr = h / (inpCount + 1);
+            const float yIncr = h / ((float)inpCount + 1);
             for (int i = 0; i < inpCount; i++) {
                 float pinY = y + (yIncr * (float)(i + 1));
                 const int pinId = static_cast<int>(Scene::instance()->getEntityWithUuid(simComp.inputSlots[i]));
@@ -248,10 +246,10 @@ namespace Bess::Canvas {
         // outputs
         {
             const size_t outCount = simComp.outputSlots.size();
-            const float yIncr = h / (outCount + 1);
+            const float yIncr = h / (float)(outCount + 1);
             for (int i = 0; i < outCount; i++) {
-                float pinY = y + yIncr * (i + 1);
-                const int pinId = static_cast<uint64_t>(Scene::instance()->getEntityWithUuid(simComp.outputSlots[i]));
+                float pinY = y + (yIncr * (float)(i + 1));
+                const int pinId = static_cast<int>(Scene::instance()->getEntityWithUuid(simComp.outputSlots[i]));
                 m_pathRenderer->beginPathMode({schematicInfo.outPinStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
                 m_pathRenderer->pathLineTo({schematicInfo.outConnStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
                 m_pathRenderer->endPathMode(false);
@@ -271,13 +269,13 @@ namespace Bess::Canvas {
         const auto &transform = reg.get<Components::TransformComponent>(ent);
         const auto &pos = transform.position;
 
-        const float n = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
+        const size_t n = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
         const float h = height == -1.f
-                            ? (SCHEMATIC_VIEW_PIN_ROW_SIZE * n) + (schematicCompStyles.paddingY * 2.f)
+                            ? (SCHEMATIC_VIEW_PIN_ROW_SIZE * (float)n) + (schematicCompStyles.paddingY * 2.f)
                             : height;
 
         float w = width == -1.f ? h * 1.2f : width;
-        float x = pos.x - w / 2, x1 = pos.x + w / 2;
+        float x = pos.x - (w / 2), x1 = pos.x + (w / 2);
         constexpr float negCircleOff = schematicCompStyles.negCircleOff;
 
         ArtistCompSchematicInfo info;
@@ -287,11 +285,11 @@ namespace Bess::Canvas {
         auto labelW = m_materialRenderer->getTextRenderSize(tagComp.name,
                                                             schematicCompStyles.nameFontSize)
                           .x +
-                      componentStyles.paddingX * 2.f;
+                      (componentStyles.paddingX * 2.f);
 
         w = std::max(w, labelW);
 
-        x = pos.x - w / 2, x1 = pos.x + w / 2;
+        x = pos.x - (w / 2), x1 = pos.x + (w / 2);
 
         info.inpPinStart = x;
         info.outPinStart = x1;
