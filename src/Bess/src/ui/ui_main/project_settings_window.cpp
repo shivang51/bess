@@ -1,7 +1,7 @@
 #include "ui/ui_main/project_settings_window.h"
 #include "imgui.h"
 #include "pages/main_page/main_page_state.h"
-#include "ui/m_widgets.h"
+#include "ui/widgets/m_widgets.h"
 
 namespace Bess::UI {
     void ProjectSettingsWindow::draw() {
@@ -18,7 +18,7 @@ namespace Bess::UI {
         ImGui::Text("Project Name");
         ImGui::SameLine();
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() - verticalOffset);
-        MWidgets::TextBox("##Project Name", m_projectName);
+        Widgets::TextBox("##Project Name", m_projectName);
 
         ImGui::Spacing();
 

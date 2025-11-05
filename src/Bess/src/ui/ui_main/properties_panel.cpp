@@ -7,7 +7,7 @@
 #include "scene/scene.h"
 #include "scene/scene_pch.h"
 #include "ui/icons/FontAwesomeIcons.h"
-#include "ui/m_widgets.h"
+#include "ui/widgets/m_widgets.h"
 #include <imgui.h>
 
 using namespace Bess::Canvas::Components;
@@ -22,7 +22,7 @@ namespace Bess::UI {
         } else {
             icon = Common::Helpers::getComponentIcon(comp.type.nsCompType);
         }
-        MWidgets::TextBox("Name", comp.name);
+        Widgets::TextBox("Name", comp.name);
     }
 
     bool MyCollapsingHeader(const char *label) {
@@ -62,12 +62,12 @@ namespace Bess::UI {
 
     void drawSimulationOutputComponent(SimulationOutputComponent &comp) {
         ImGui::Spacing();
-        MWidgets::CheckboxWithLabel("Record Output", &comp.recordOutput);
+        Widgets::CheckboxWithLabel("Record Output", &comp.recordOutput);
     }
 
     void drawSimulationInputComponent(SimulationInputComponent &comp, const UUID &uuid) {
         if (MyCollapsingHeader("Input Behaviour")) {
-            if (MWidgets::CheckboxWithLabel("Clocked", &comp.clockBhaviour)) {
+            if (Widgets::CheckboxWithLabel("Clocked", &comp.clockBhaviour)) {
                 comp.updateClock(uuid);
             }
             if (comp.clockBhaviour) {
@@ -80,7 +80,7 @@ namespace Bess::UI {
 
                 static std::vector<std::string> frequencies = {"Hz", "kHz", "MHz"};
                 std::string currFreq = frequencies[(int)comp.frequencyUnit];
-                if (UI::MWidgets::ComboBox("Unit", currFreq, frequencies)) {
+                if (UI::Widgets::ComboBox("Unit", currFreq, frequencies)) {
                     auto idx = std::distance(frequencies.begin(), std::find(frequencies.begin(), frequencies.end(), currFreq));
                     comp.frequencyUnit = static_cast<SimEngine::FrequencyUnit>(idx);
                     comp.updateClock(uuid);
@@ -98,7 +98,7 @@ namespace Bess::UI {
 
     void drawTextNodeComponent(TextNodeComponent &comp) {
         ImGui::Indent();
-        MWidgets::TextBox("Text", comp.text);
+        Widgets::TextBox("Text", comp.text);
         ImGui::SliderFloat("Font Size", &comp.fontSize, 1.0f, 100.0f, "%.1f");
         ImGui::ColorEdit4("Color", glm::value_ptr(comp.color));
         ImGui::Unindent();
@@ -140,7 +140,7 @@ namespace Bess::UI {
 
         if (registry.all_of<ConnectionComponent>(entt)) {
             auto &connectionComponent = registry.get<ConnectionComponent>(entt);
-            MWidgets::CheckboxWithLabel("Use Custom Color", &connectionComponent.useCustomColor);
+            Widgets::CheckboxWithLabel("Use Custom Color", &connectionComponent.useCustomColor);
             if (connectionComponent.useCustomColor) {
                 drawSpriteComponent(registry.get<SpriteComponent>(entt));
             }

@@ -1,14 +1,14 @@
-#include "scene/scene_pch.h"
 #include "ui/ui_main/scene_export_window.h"
 #include "common/log.h"
 #include "imgui.h"
 #include "pages/main_page/main_page_state.h"
-#include "vulkan_core.h"
 #include "scene/scene.h"
+#include "scene/scene_pch.h"
 #include "scene/viewport.h"
 #include "ui/icons/FontAwesomeIcons.h"
-#include "ui/m_widgets.h"
 #include "ui/ui_main/dialogs.h"
+#include "ui/widgets/m_widgets.h"
+#include "vulkan_core.h"
 
 #include "png.h"
 #include "stb_image_write.h"
@@ -241,14 +241,14 @@ namespace Bess::UI {
             ImGui::Text("File Name");
             ImGui::SameLine();
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() - verticalOffset);
-            MWidgets::TextBox("##File Name", fileName);
+            Widgets::TextBox("##File Name", fileName);
             ImGui::SameLine();
             ImGui::TextDisabled(".png");
         }
 
         ImGui::Spacing();
         {
-            MWidgets::TextBox("##Export Path", exportPath);
+            Widgets::TextBox("##Export Path", exportPath);
             ImGui::SameLine();
             if (ImGui::SmallButton(UI::Icons::FontAwesomeIcons::FA_FOLDER_OPEN)) {
                 const auto sel = Dialogs::showSelectPathDialog("Path to save");

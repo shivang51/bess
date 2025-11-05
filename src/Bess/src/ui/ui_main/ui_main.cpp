@@ -7,8 +7,8 @@
 #include "simulation_engine.h"
 #include "stb_image_write.h"
 #include "ui/icons/MaterialIcons.h"
-#include "ui/m_widgets.h"
 #include "ui/ui_main/scene_export_window.h"
+#include "ui/widgets/m_widgets.h"
 #include <ranges>
 #include <string>
 
@@ -188,13 +188,13 @@ namespace Bess::UI {
         ImGui::SetNextWindowSize(ImVec2(300, 0));
         if (ImGui::BeginMenu("View")) {
 
-            MWidgets::CheckboxWithLabel(ProjectExplorer::windowName.data(), &ProjectExplorer::isShown);
+            Widgets::CheckboxWithLabel(ProjectExplorer::windowName.data(), &ProjectExplorer::isShown);
 
-            MWidgets::CheckboxWithLabel(ComponentExplorer::windowName.data(), &ComponentExplorer::isShown);
+            Widgets::CheckboxWithLabel(ComponentExplorer::windowName.data(), &ComponentExplorer::isShown);
 
-            MWidgets::CheckboxWithLabel(PropertiesPanel::windowName.data(), &PropertiesPanel::isShown);
+            Widgets::CheckboxWithLabel(PropertiesPanel::windowName.data(), &PropertiesPanel::isShown);
 
-            MWidgets::CheckboxWithLabel(GraphViewWindow::windowName.data(), &GraphViewWindow::isShown);
+            Widgets::CheckboxWithLabel(GraphViewWindow::windowName.data(), &GraphViewWindow::isShown);
 
             ImGui::EndMenu();
         }
@@ -213,11 +213,11 @@ namespace Bess::UI {
             width = 200;
 
         ImGui::PushItemWidth(width);
-        ImGui::SameLine(menubar_size.x / 2.f - width / 2.f); // Align to the right side
-        ImGui::SetCursorPosY((menubar_size.y - ImGui::GetFontSize()) / 2.f - 2.f);
+        ImGui::SameLine((menubar_size.x / 2.f) - (width / 2.f)); // Align to the right side
+        ImGui::SetCursorPosY(((menubar_size.y - ImGui::GetFontSize()) / 2.f) - 2.f);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.f, 2.f));
         ImGui::PushStyleColor(ImGuiCol_FrameBg, style.Colors[ImGuiCol_WindowBg]);
-        MWidgets::TextBox("", name, "Project Name");
+        Widgets::TextBox("", name, "Project Name");
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
         ImGui::PopItemWidth();
@@ -235,7 +235,7 @@ namespace Bess::UI {
             onOpenProject();
         }
 
-        Popups::PopupRes res;
+        Popups::PopupRes res{};
         if ((res = Popups::handleUnsavedProjectWarning()) != Popups::PopupRes::none) {
             if (res == Popups::PopupRes::yes) {
                 m_pageState->saveCurrentProject();

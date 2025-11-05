@@ -3,7 +3,7 @@
 #include "implot.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
-#include "ui/m_widgets.h"
+#include "ui/widgets/m_widgets.h"
 
 namespace Bess::UI {
 
@@ -47,7 +47,7 @@ namespace Bess::UI {
         int eraseIdx = -1;
         for (auto &[idx, name] : s_data.graphs) {
             std::string prevName = name;
-            if (MWidgets::ComboBox(std::format("Select node for graph {}", idx), name, comps)) {
+            if (Widgets::ComboBox(std::format("Select node for graph {}", idx), name, comps)) {
                 s_data.allSignals.erase(prevName);
             }
 

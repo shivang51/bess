@@ -8,16 +8,14 @@
 #include "scene/scene.h"
 #include "scene/scene_pch.h"
 #include "ui/icons/FontAwesomeIcons.h"
-#include "ui/m_widgets.h"
-#include <any>
-#include <unordered_map>
+#include "ui/widgets/m_widgets.h"
 #include <utility>
 
 namespace Bess::UI {
 
     bool ComponentExplorer::isShown = true;
     bool ComponentExplorer::m_isfirstTimeDraw = true;
-    std::string ComponentExplorer::m_searchQuery = "";
+    std::string ComponentExplorer::m_searchQuery;
 
     bool MyTreeNode(const char *label, ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None) {
         const ImGuiContext &g = *ImGui::GetCurrentContext();
@@ -25,9 +23,9 @@ namespace Bess::UI {
 
         const ImGuiID id = window->GetID(label);
         ImVec2 pos = window->DC.CursorPos;
-        const ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x, pos.y + g.FontSize + g.Style.FramePadding.y * 2));
+        const ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x, pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
         const bool opened = window->DC.StateStorage->GetInt(id, (flags & ImGuiTreeNodeFlags_DefaultOpen) ? 1 : 0) != 0;
-        bool hovered, held;
+        bool hovered = false, held = false;
 
         const auto style = ImGui::GetStyle();
         const auto rounding = style.FrameRounding;
@@ -159,7 +157,7 @@ namespace Bess::UI {
 
         {
             ImGui::PushItemWidth(-1);
-            if (UI::MWidgets::TextBox("##Search", m_searchQuery, "Search")) {
+            if (UI::Widgets::TextBox("##Search", m_searchQuery, "Search")) {
                 m_searchQuery = Common::Helpers::toLowerCase(m_searchQuery);
             }
             ImGui::PopItemWidth();
