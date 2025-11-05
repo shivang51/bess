@@ -2,7 +2,7 @@
 #include <memory>
 #include <string>
 
-#include "project_file.h"
+#include "application/project_file.h"
 
 namespace Bess::UI {
     class ProjectSettingsWindow {

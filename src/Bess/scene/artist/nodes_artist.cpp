@@ -5,7 +5,7 @@
 #include "scene/scene.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
-#include "types.h"
+#include "application/types.h"
 #include <string>
 
 namespace Bess::Canvas {

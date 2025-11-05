@@ -6,8 +6,8 @@
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/icons/MaterialIcons.h"
 
-#include "application_state.h"
-#include "assets.h"
+#include "application/application_state.h"
+#include "application/assets.h"
 #include "settings/settings.h"
 #include "ui/ui_main/ui_main.h"
 

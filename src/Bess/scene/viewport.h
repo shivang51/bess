@@ -1,10 +1,10 @@
 #pragma once
 #include "bess_uuid.h"
-#include "camera.h"
 #include "command_buffer.h"
 #include "device.h"
 #include "entt/entity/fwd.hpp"
 #include "scene/artist/artist_manager.h"
+#include "scene/camera.h"
 #include "vulkan_image_view.h"
 #include "vulkan_offscreen_render_pass.h"
 #include "vulkan_postprocess_pipeline.h"

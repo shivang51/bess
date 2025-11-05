@@ -1,5 +1,5 @@
 #include "ui/ui_main/ui_main.h"
-#include "application_state.h"
+#include "application/application_state.h"
 #include "common/log.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -12,8 +12,8 @@
 #include <ranges>
 #include <string>
 
-#include "camera.h"
 #include "pages/main_page/main_page_state.h"
+#include "scene/camera.h"
 #include "scene/scene.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/ui_main/component_explorer.h"

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "camera.h"
 #include "fwd.hpp"
 #include "pages/main_page/main_page_state.h"
+#include "scene/camera.h"
 
 namespace Bess::UI {
 

@@ -1,6 +1,6 @@
 #include "scene/artist/base_artist.h"
 #include "asset_manager/asset_manager.h"
-#include "assets.h"
+#include "application/assets.h"
 #include "common/log.h"
 #include "plugin_manager.h"
 #include "scene/artist/nodes_artist.h"

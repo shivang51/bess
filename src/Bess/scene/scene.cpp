@@ -9,7 +9,7 @@
 #include "scene/components/components.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
-#include "types.h"
+#include "application/types.h"
 #include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
 #include "vulkan_core.h"

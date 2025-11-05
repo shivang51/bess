@@ -1,8 +1,8 @@
 #pragma once
 
 #include "events/application_event.h"
-#include "types.h"
-#include "window.h"
+#include "application/types.h"
+#include "application/window.h"
 #include <chrono>
 #include <memory>
 #include <vector>

@@ -5,7 +5,7 @@
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
 #include "scene/components/components.h"
-#include "types.h"
+#include "application/types.h"
 #include <unordered_map>
 
 namespace Bess::Canvas {

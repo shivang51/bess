@@ -1,8 +1,8 @@
 #pragma once
 
-#include "camera.h"
 #include "device.h"
 #include "primitive_vertex.h"
+#include "scene/camera.h"
 #include "scene/renderer/material.h"
 #include "scene/renderer/vulkan/pipelines/circle_pipeline.h"
 #include "scene/renderer/vulkan/pipelines/grid_pipeline.h"

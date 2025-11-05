@@ -1,14 +1,14 @@
 #pragma once
 
 #include "bess_uuid.h"
-#include "camera.h"
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
+#include "scene/camera.h"
 #include "scene/components/components.h"
 #include "scene/renderer/material_renderer.h"
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/schematic_diagram.h"
-#include "types.h"
+#include "application/types.h"
 #include "vulkan_subtexture.h"
 
 #include <memory>

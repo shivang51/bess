@@ -1,7 +1,7 @@
 #pragma once
 
 #include "pages/page.h"
-#include "types.h"
+#include "application/types.h"
 #include <memory>
 #include <string>
 #include <vector>

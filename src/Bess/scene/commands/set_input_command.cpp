@@ -4,7 +4,7 @@
 #include "scene/components/components.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
-#include "types.h"
+#include "application/types.h"
 
 namespace Bess::Canvas::Commands {
     SetInputCommand::SetInputCommand(const UUID &compId, SimEngine::LogicState state)

@@ -1,7 +1,7 @@
 #pragma once
 #include "glm.hpp"
 #include "pages/page.h"
-#include "window.h"
+#include "application/window.h"
 #include <memory>
 
 namespace Bess {

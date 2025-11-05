@@ -1,6 +1,6 @@
 #pragma once
 #include "commands/commands.h"
-#include "types.h"
+#include "application/types.h"
 
 namespace Bess::Canvas::Commands {
     class SetInputCommand : public SimEngine::Commands::Command {

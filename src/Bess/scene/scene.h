@@ -1,17 +1,17 @@
 #pragma once
 
 #include "bess_uuid.h"
-#include "camera.h"
 #include "commands/commands_manager.h"
 #include "component_definition.h"
 #include "entt/entity/fwd.hpp"
 #include "entt/entt.hpp"
 #include "events/application_event.h"
 #include "modules/schematic_gen/schematic_view.h"
+#include "scene/camera.h"
 #include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
 #include "scene/viewport.h"
-#include "types.h"
+#include "application/types.h"
 #include <chrono>
 #include <memory>
 #include <vulkan/vulkan_core.h>

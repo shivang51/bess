@@ -1,6 +1,6 @@
 #include "scene/renderer/vulkan/pipelines/text_pipeline.h"
 #include "asset_manager/asset_manager.h"
-#include "assets.h"
+#include "application/assets.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
 #include "scene/scene_pch.h"
 

@@ -1,6 +1,6 @@
 #include "scene/renderer/material_renderer.h"
 #include "asset_manager/asset_manager.h"
-#include "assets.h"
+#include "application/assets.h"
 
 namespace Bess::Renderer {
     static Material2D makeGrid(const glm::vec3 &pos, const glm::vec2 &size, int id) {

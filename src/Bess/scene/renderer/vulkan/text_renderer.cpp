@@ -1,6 +1,6 @@
 #include "scene/renderer/vulkan/text_renderer.h"
 #include "asset_manager/asset_manager.h"
-#include "assets.h"
+#include "application/assets.h"
 #include "scene/renderer/font.h"
 #include "scene/renderer/vulkan/path_renderer.h"
 #include <cstdint>

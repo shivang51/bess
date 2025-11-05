@@ -1,7 +1,7 @@
 #pragma once
 
+#include "application/types.h"
 #include "glm.hpp"
-#include "types.h"
 
 namespace Bess {
     struct CameraPositionAnimation {

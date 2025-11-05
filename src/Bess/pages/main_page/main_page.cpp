@@ -5,7 +5,7 @@
 #include "scene/scene.h"
 #include "scene/scene_pch.h"
 #include "simulation_engine.h"
-#include "types.h"
+#include "application/types.h"
 #include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
 #include "vulkan_core.h"

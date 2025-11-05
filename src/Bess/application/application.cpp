@@ -1,5 +1,5 @@
 #include "application.h"
-#include "application_state.h"
+#include "application/application_state.h"
 #include "common/log.h"
 #include "events/application_event.h"
 #include "imgui_impl_vulkan.h"
@@ -7,7 +7,7 @@
 #include "pages/main_page/main_page_state.h"
 #include "plugin_manager.h"
 #include "simulation_engine.h"
-#include "types.h"
+#include "application/types.h"
 #include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
 #include "vulkan_core.h"
@@ -16,7 +16,7 @@
 
 #include "common/bind_helpers.h"
 #include "settings/settings.h"
-#include "window.h"
+#include "application/window.h"
 
 namespace Bess {
     Application::Application() {
