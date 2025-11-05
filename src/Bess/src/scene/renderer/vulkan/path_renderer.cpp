@@ -374,7 +374,7 @@ namespace Bess::Renderer2D::Vulkan {
     std::vector<CommonVertex> PathRenderer::generateStrokeGeometry(const std::vector<PathPoint> &points,
                                                                    const glm::vec4 &color, bool isClosed,
                                                                    const bool rounedJoint) {
-        if (points.size() < (isClosed ? 3 : 2)) {
+        if (points.size() < 2) {
             return {};
         }
 
@@ -482,29 +482,29 @@ namespace Bess::Renderer2D::Vulkan {
 
         std::vector<CommonVertex> stripVertices;
         const size_t pointCount = points.size();
-        const size_t n = pointCount;
+        const size_t n = isClosed ? pointCount + 1 : pointCount;
 
         size_t ni = 0;
         size_t skipped = 0;
         // --- 2. Generate Joins and Caps ---
         for (size_t i = 0; i < n; i = ni) {
             // skipping continuous small steps
+            size_t idx = i % pointCount;
             ni = i + 1;
-            while (ni < n && std::abs(glm::distance(points[ni].pos, points[i].pos)) < points[i].weight / 2.f) {
+            while (ni < n && std::abs(glm::distance(points[ni % pointCount].pos, points[idx].pos)) < points[idx].weight / 2.f) {
                 ni++;
             }
 
             skipped += (ni - i - 1);
             t = (float)i / (float)(n - skipped - 1);
 
-            const auto &pCurr = points[i];
-            const auto &pPrev = isClosed ? points[(i + pointCount - 1) % pointCount] : points[(i == 0) ? 0 : (i - 1)];
-            const auto &pNext = isClosed ? points[ni % pointCount] : points[std::min(pointCount - 1, ni)];
+            const auto &pCurr = points[idx];
+            const auto &pNext = points[ni % pointCount];
 
             int segmentId = (int)((!isClosed && i == n - 1) ? pCurr.id : pNext.id);
 
             // --- Handle Caps for Open Paths ---
-            if (!isClosed && i == 0) { // Start Cap
+            if (i == 0) { // Start Cap
                 glm::vec2 dir = glm::normalize(glm::vec2(pNext.pos) - glm::vec2(pCurr.pos));
                 glm::vec2 normalVec = glm::vec2(-dir.y, dir.x) * pCurr.weight / 2.f;
                 stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normalVec, pCurr.pos.z, segmentId));
@@ -512,7 +512,9 @@ namespace Bess::Renderer2D::Vulkan {
                 continue;
             }
 
-            if (!isClosed && i == n - 1) { // End Cap
+            const auto &pPrev = points[i - 1];
+
+            if (i == n - 1) { // End Cap
                 glm::vec2 dir = glm::normalize(glm::vec2(pCurr.pos) - glm::vec2(pPrev.pos));
                 glm::vec2 normalVec = glm::vec2(-dir.y, dir.x) * pCurr.weight / 2.f;
                 stripVertices.push_back(makeVertex(glm::vec2(pCurr.pos) - normalVec, pCurr.pos.z, segmentId));
