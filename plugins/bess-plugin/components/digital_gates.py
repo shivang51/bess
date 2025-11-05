@@ -77,7 +77,9 @@ def _init_paths():
     circle.set_bounds(Vec2(8, 8))
     circle.set_lowest_pos(Vec2(92, 46))
     circle.properties.render_fill = True
+    circle.properties.is_closed = True
 
+    # AND Gate
     andPath = Path()
     andPath.move_to(0, 0)
     andPath.line_to(70, 0)
@@ -93,6 +95,7 @@ def _init_paths():
     andDiagram.show_name = False
     andDiagram.size = (100, 100)
 
+    # NAND Gate
     nandDiagram = SchematicDiagram()
     nandDiagram.show_name = False
     nandPath = Path()
@@ -109,9 +112,109 @@ def _init_paths():
     nandDiagram.add_path(circle.copy())
     nandDiagram.size = (100, 100)
 
+    # OR Gate
+    orDiagram = SchematicDiagram()
+    orDiagram.show_name = False
+    orPath = Path()
+    orPath.move_to(0, 0)
+    orPath.line_to(70, 0)
+    orPath.quad_to(130, 50, 70, 100)
+    orPath.line_to(0, 100)
+    orPath.quad_to(30, 50, 0, 0)
+    orPath.set_bounds(Vec2(100, 100))
+    orPath.set_lowest_pos(Vec2(0, 0))
+    orPath.properties.is_closed = True
+    orPath.properties.render_fill = True
+    orDiagram.add_path(orPath)
+    orDiagram.size = (100, 100)
+
+    # NOR Gate
+    norDiagram = SchematicDiagram()
+    norDiagram.show_name = False
+    norPath = Path()
+    norPath.move_to(0, 0)
+    norPath.line_to(62, 0)
+    norPath.quad_to(122, 50, 62, 100)
+    norPath.line_to(0, 100)
+    norPath.quad_to(30, 50, 0, 0)
+    norPath.set_bounds(Vec2(92, 100))
+    norPath.set_lowest_pos(Vec2(0, 0))
+    norPath.properties.is_closed = True
+    norPath.properties.render_fill = True
+    norDiagram.add_path(norPath)
+    norDiagram.add_path(circle.copy())
+    norDiagram.size = (100, 100)
+
+    # XOR
+    xorDiagram = SchematicDiagram()
+    xorDiagram.show_name = False
+
+    # arc
+    xorArcPath = Path()
+    xorArcPath.move_to(0, 0)
+    xorArcPath.quad_to(30, 50, 0, 100)
+    xorArcPath.set_bounds(Vec2(20, 100))
+    xorArcPath.set_lowest_pos(Vec2(0, 0))
+
+    # similar to or gate path. just shifted
+    xorPath = Path()
+    xorPath.move_to(0, 0)
+    xorPath.line_to(60, 0)
+    xorPath.quad_to(120, 50, 60, 100)
+    xorPath.line_to(0, 100)
+    xorPath.quad_to(30, 50, 0, 0)
+    xorPath.set_bounds(Vec2(90, 100))
+    xorPath.set_lowest_pos(Vec2(10, 0))
+    xorPath.properties.is_closed = True
+    xorPath.properties.render_fill = True
+
+    xorDiagram.add_path(xorArcPath.copy())
+    xorDiagram.add_path(xorPath)
+    xorDiagram.size = (100, 100)
+
+    # XNOR
+    xnorDiagram = SchematicDiagram()
+    xnorDiagram.show_name = False
+
+    # similar to or gate path. just shifted
+    xnorPath = Path()
+    xnorPath.move_to(0, 0)
+    xnorPath.line_to(52, 0)
+    xnorPath.quad_to(112, 50, 52, 100)
+    xnorPath.line_to(0, 100)
+    xnorPath.quad_to(30, 50, 0, 0)
+    xnorPath.set_bounds(Vec2(82, 100))
+    xnorPath.set_lowest_pos(Vec2(10, 0))
+    xnorPath.properties.is_closed = True
+    xnorPath.properties.render_fill = True
+
+    xnorDiagram.add_path(xorArcPath.copy())
+    xnorDiagram.add_path(xnorPath)
+    xnorDiagram.add_path(circle.copy())
+    xnorDiagram.size = (100, 100)
+
+    # NOT
+    notDiagram = SchematicDiagram()
+    notDiagram.show_name = False
+    notPath = Path()
+    notPath.move_to(0, 0)
+    notPath.line_to(100, 50)
+    notPath.line_to(0, 100)
+    notPath.set_bounds(Vec2(100, 100))
+    notPath.set_lowest_pos(Vec2(0, 0))
+    notPath.properties.is_closed = True
+    notPath.properties.render_fill = True
+    notDiagram.add_path(notPath)
+    notDiagram.size = (100, 100)
+
     return {
         "AND": andDiagram,
         "NAND": nandDiagram,
+        "OR": orDiagram,
+        "NOR": norDiagram,
+        "XOR": xorDiagram,
+        "XNOR": xnorDiagram,
+        "NOT": notDiagram,
     }
 
 
@@ -137,9 +240,6 @@ for gate_key, gate_data in _gates.items():
 
     if gate_key in _paths:
         schematic_symbols[def_gate.get_hash()] = _paths[gate_key]
-        print(
-            f"Assigned schematic symbol for {gate_key} gate with hash {def_gate.get_hash()}."
-        )
 
 
 __all__ = ["digital_gates", "schematic_symbols"]
