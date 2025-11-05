@@ -287,7 +287,7 @@ namespace Bess::Canvas {
                           .x +
                       (componentStyles.paddingX * 2.f);
 
-        w = std::max(w, labelW);
+        w = width == -1.f ? labelW : std::max(w, labelW);
 
         x = pos.x - (w / 2), x1 = pos.x + (w / 2);
 
