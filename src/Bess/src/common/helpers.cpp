@@ -1,0 +1,51 @@
+#include "common/helpers.h"
+#include "ui/icons/ComponentIcons.h"
+#include "ui/icons/FontAwesomeIcons.h"
+#include "ui/icons/MaterialIcons.h"
+#include "vulkan_core.h"
+#include <algorithm>
+#include <cstdint>
+
+namespace Bess::Common {
+    std::string Helpers::toLowerCase(const std::string &str) {
+        std::string data = str;
+        std::transform(data.begin(), data.end(), data.begin(),
+                       [](unsigned char c) { return std::tolower(c); });
+        return data;
+    }
+
+    std::string Helpers::getComponentIcon(uint64_t type) {
+        using namespace UI::Icons;
+        // switch (type) {
+        // case SimEngine::ComponentType::AND:
+        //     return ComponentIcons::AND_GATE;
+        // case SimEngine::ComponentType::NAND:
+        //     return ComponentIcons::NAND_GATE;
+        // case SimEngine::ComponentType::OR:
+        //     return ComponentIcons::OR_GATE;
+        // case SimEngine::ComponentType::NOR:
+        //     return ComponentIcons::NOR_GATE;
+        // case SimEngine::ComponentType::XOR:
+        //     return ComponentIcons::XOR_GATE;
+        // case SimEngine::ComponentType::XNOR:
+        //     return ComponentIcons::XNOR_GATE;
+        // default:
+        //     break;
+        // }
+
+        return std::string(" ") + FontAwesomeIcons::FA_CUBE + " ";
+    }
+
+    std::string Helpers::getComponentIcon(Canvas::Components::NSComponentType type) {
+        using namespace UI::Icons;
+        switch (type) {
+        case Canvas::Components::NSComponentType::text:
+            return MaterialIcons::TEXT_FIELDS;
+            break;
+        default:
+            break;
+        }
+        return std::string(" ") + FontAwesomeIcons::FA_CUBE + " ";
+    }
+
+} // namespace Bess::Common

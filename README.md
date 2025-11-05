@@ -20,8 +20,8 @@ Check out [Bess Wiki](https://github.com/shivang51/bess/wiki) to see available c
 
 ## Build & Run
 Tested Build On:
-- [x] Linux (Arch)
-- [x] Windows
+- [x] Linux (Arch Linux: Wayland)
+- [x] Windows (Untested after plugin support is added)
 - [ ] MacOS
 
 Following commands are only valid for Linux, as build scripts for windows have not been written yet.
@@ -47,8 +47,8 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
        ./Bess
        ```
 ## TODO
-- [ ] Basic Plugin Suppport
+- [x] Basic Plugin Suppport
 - [ ] Scriptable rendering
 - [ ] Usability enhancements
+- [ ] Basic Verilog Support
 - [ ] Add More components
-- [ ] Web hosting
