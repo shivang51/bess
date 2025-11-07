@@ -1,11 +1,11 @@
 #include "pages/main_page/main_page.h"
+#include "application/types.h"
 #include "asset_manager/asset_manager.h"
 #include "events/application_event.h"
 #include "pages/page_identifier.h"
 #include "scene/scene.h"
 #include "scene/scene_pch.h"
 #include "simulation_engine.h"
-#include "application/types.h"
 #include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
 #include "vulkan_core.h"
@@ -43,6 +43,8 @@ namespace Bess::Pages {
         m_state = MainPageState::getInstance();
 
         m_scene = Canvas::Scene::instance();
+        m_sceneDriver.setActiveScene(m_scene);
+
         UI::UIMain::setViewportTexture(m_scene->getTextureId());
     }
 
@@ -65,7 +67,7 @@ namespace Bess::Pages {
     }
 
     void MainPage::draw() {
-        m_scene->render();
+        m_sceneDriver.render();
     }
 
     void MainPage::update(TFrameTime ts, const std::vector<ApplicationEvent> &events) {
@@ -89,14 +91,10 @@ namespace Bess::Pages {
         }
 
         if (UI::UIMain::state.viewportEventFlag)
-            m_scene->update(ts, events);
+            m_sceneDriver.update(ts, events);
     }
 
     std::shared_ptr<Window> MainPage::getParentWindow() {
         return m_parentWindow;
-    }
-
-    std::shared_ptr<Canvas::Scene> MainPage::getScene() const {
-        return m_scene;
     }
 } // namespace Bess::Pages

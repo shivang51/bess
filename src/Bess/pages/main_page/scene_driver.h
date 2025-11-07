@@ -7,8 +7,8 @@
 namespace Bess {
     class SceneDriver {
       public:
-        SceneDriver();
-        ~SceneDriver();
+        SceneDriver() = default;
+        ~SceneDriver() = default;
 
         void update(TFrameTime deltaTime, const std::vector<class ApplicationEvent> &events);
         void render();

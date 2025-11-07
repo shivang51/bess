@@ -1,11 +1,12 @@
 #pragma once
 
-#include "events/application_event.h"
-#include "pages/main_page/main_page_state.h"
-#include "pages/page.h"
-#include "scene/scene.h"
 #include "application/types.h"
 #include "application/window.h"
+#include "events/application_event.h"
+#include "pages/main_page/main_page_state.h"
+#include "pages/main_page/scene_driver.h"
+#include "pages/page.h"
+#include "scene/scene.h"
 
 #include <chrono>
 #include <memory>
@@ -26,13 +27,13 @@ namespace Bess::Pages {
         void update(TFrameTime ts, const std::vector<ApplicationEvent> &events) override;
 
         std::shared_ptr<Window> getParentWindow();
-        std::shared_ptr<Canvas::Scene> getScene() const;
 
         void destory();
 
       private:
         std::shared_ptr<Window> m_parentWindow;
         std::shared_ptr<Bess::Canvas::Scene> m_scene;
+        Bess::SceneDriver m_sceneDriver;
 
         // event handlers
       private:
