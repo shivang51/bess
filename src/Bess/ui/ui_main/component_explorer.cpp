@@ -154,7 +154,7 @@ namespace Bess::UI {
         if (m_isfirstTimeDraw)
             firstTime();
 
-        const ImVec2 windowSize = ImVec2(300, 400);
+        const ImVec2 windowSize = ImVec2(400, 400);
         ImGui::SetNextWindowSize(windowSize);
 
         const auto *viewport = ImGui::GetMainViewport();
@@ -196,6 +196,20 @@ namespace Bess::UI {
         // simulation components
         {
             for (auto &ent : *componentTree) {
+                bool shouldCollectionShow = m_searchQuery.empty();
+
+                if (!shouldCollectionShow) {
+                    for (const auto &comp : ent.second) {
+                        if (Common::Helpers::toLowerCase(comp->name).find(m_searchQuery) != std::string::npos) {
+                            shouldCollectionShow = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!shouldCollectionShow)
+                    continue;
+
                 if (MyTreeNode(ent.first.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
                     for (const auto &comp : ent.second) {
                         auto name = comp->name;
