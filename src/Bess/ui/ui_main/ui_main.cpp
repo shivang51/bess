@@ -485,10 +485,10 @@ namespace Bess::UI {
 
         const auto dock_id_right_bot = ImGui::DockBuilderSplitNode(dock_id_right, ImGuiDir_Down, 0.5f, nullptr, &dock_id_right);
 
-        ImGui::DockBuilderDockWindow(ComponentExplorer::windowName.data(), dock_id_left);
+        // ImGui::DockBuilderDockWindow(ComponentExplorer::windowName.data(), dock_id_left);
         ImGui::DockBuilderDockWindow("Viewport", mainDockspaceId);
-        ImGui::DockBuilderDockWindow(ProjectExplorer::windowName.data(), dock_id_right);
-        ImGui::DockBuilderDockWindow(PropertiesPanel::windowName.data(), dock_id_right_bot);
+        ImGui::DockBuilderDockWindow(ProjectExplorer::windowName.data(), dock_id_left);
+        ImGui::DockBuilderDockWindow(PropertiesPanel::windowName.data(), dock_id_right);
         ImGui::DockBuilderDockWindow(GraphViewWindow::windowName.data(), dock_id_bot);
 
         ImGui::DockBuilderFinish(mainDockspaceId);

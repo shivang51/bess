@@ -13,7 +13,7 @@
 
 namespace Bess::UI {
 
-    bool ComponentExplorer::isShown = true;
+    bool ComponentExplorer::isShown = false;
     bool ComponentExplorer::m_isfirstTimeDraw = true;
     std::string ComponentExplorer::m_searchQuery;
 
@@ -129,8 +129,9 @@ namespace Bess::UI {
         auto &cmdManager = scene->getCmdManager();
         const auto res = cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{data});
         if (!res.has_value()) {
-            BESS_ERROR("[ComponentExplorer] Failed to execute AddCommand");
+            BESS_ERROR("[ComponentExplorer][SimComp] Failed to execute AddCommand");
         }
+        isShown = false;
     }
 
     void ComponentExplorer::createComponent(const Canvas::Components::NSComponent &comp) {
@@ -141,8 +142,9 @@ namespace Bess::UI {
         auto &cmdManager = scene->getCmdManager();
         const auto res = cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{data});
         if (!res.has_value()) {
-            BESS_ERROR("[ComponentExplorer] Failed to execute AddCommand");
+            BESS_ERROR("[ComponentExplorer][NonSimComp] Failed to execute AddCommand");
         }
+        isShown = false;
     }
 
     void ComponentExplorer::draw() {
@@ -152,10 +154,33 @@ namespace Bess::UI {
         if (m_isfirstTimeDraw)
             firstTime();
 
-        ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
+        const ImVec2 windowSize = ImVec2(300, 400);
+        ImGui::SetNextWindowSize(windowSize);
+
+        const auto *viewport = ImGui::GetMainViewport();
+        const ImGuiContext &g = *ImGui::GetCurrentContext();
+        const auto style = g.Style;
+        ImGui::SetNextWindowPos(
+            ImVec2(viewport->Pos.x + (viewport->Size.x / 2) - (windowSize.x / 2),
+                   viewport->Pos.y + (viewport->Size.y / 2) - (windowSize.y / 2)));
+
+        constexpr auto flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
+                               ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize |
+                               ImGuiWindowFlags_Modal;
+        ImGui::Begin(windowName.data(), &isShown, flags);
+
+        isShown = ImGui::IsWindowFocused();
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4);
 
+        static bool focusRequested = false;
         {
+            focusRequested = ImGui::IsWindowAppearing();
+
+            if (focusRequested) {
+                ImGui::SetKeyboardFocusHere();
+                focusRequested = false;
+            }
+
             ImGui::PushItemWidth(-1);
             if (UI::Widgets::TextBox("##Search", m_searchQuery, "Search")) {
                 m_searchQuery = Common::Helpers::toLowerCase(m_searchQuery);

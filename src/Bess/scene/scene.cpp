@@ -11,6 +11,7 @@
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
+#include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/ui_main.h"
 #include "vulkan_core.h"
 #include <cmath>
@@ -142,6 +143,10 @@ namespace Bess::Canvas {
                 generateCopiedComponents();
             } else if (mainPageState->isKeyPressed(GLFW_KEY_Z)) {
                 m_cmdManager.undo();
+            }
+        } else if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
+            if (mainPageState->isKeyPressed(GLFW_KEY_A)) {
+                UI::ComponentExplorer::isShown = !UI::ComponentExplorer::isShown;
             }
         } else if (mainPageState->isKeyPressed(GLFW_KEY_DELETE)) {
             const auto view = m_registry.view<Components::IdComponent, Components::SelectedComponent>();
