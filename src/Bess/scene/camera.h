@@ -51,7 +51,7 @@ namespace Bess {
     class Camera {
       public:
         Camera(float width, float height);
-        ~Camera();
+        ~Camera() = default;
 
         void update(TFrameTime ts);
 

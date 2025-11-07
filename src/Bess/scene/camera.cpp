@@ -11,8 +11,6 @@ namespace Bess {
         setPos({0.f, 0.f});
     }
 
-    Camera::~Camera() {}
-
     void Camera::update(TFrameTime ts) {
         if (!m_posAnimation.finised) {
             setPos(m_posAnimation.getNextPos(ts));
