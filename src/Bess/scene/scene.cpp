@@ -1,4 +1,5 @@
 #include "scene/scene.h"
+#include "application/types.h"
 #include "bess_uuid.h"
 #include "common/log.h"
 #include "component_catalog.h"
@@ -9,7 +10,6 @@
 #include "scene/components/components.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
-#include "application/types.h"
 #include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
 #include "vulkan_core.h"
@@ -913,7 +913,7 @@ namespace Bess::Canvas {
                 .pos = getSnappedPos(toScenePos(m_mousePos)),
             };
 
-            const auto res = m_cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{cmdData});
+            const auto res = m_cmdManager.execute<Commands::AddCommand, std::vector<UUID>>(std::vector{cmdData});
             if (!res.has_value()) {
                 BESS_ERROR("Failed to execute AddCommand");
             }
