@@ -4,7 +4,7 @@
 #include "ext/matrix_transform.hpp"
 
 namespace Bess {
-    float Camera::zoomMin = 0.5f, Camera::zoomMax = 16.f, Camera::defaultZoom = 1.517f;
+    float Camera::zoomMin = 0.1f, Camera::zoomMax = 16.f, Camera::defaultZoom = 1.517f;
 
     Camera::Camera(float width, float height) : m_zoom(defaultZoom), m_zPos(8.f), m_width(width), m_height(height) {
         setZoom(defaultZoom);
