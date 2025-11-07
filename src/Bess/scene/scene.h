@@ -1,17 +1,16 @@
 #pragma once
 
+#include "application/types.h"
 #include "bess_uuid.h"
 #include "commands/commands_manager.h"
 #include "component_definition.h"
 #include "entt/entity/fwd.hpp"
 #include "entt/entt.hpp"
 #include "events/application_event.h"
-#include "modules/schematic_gen/schematic_view.h"
 #include "scene/camera.h"
 #include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
 #include "scene/viewport.h"
-#include "application/types.h"
 #include <chrono>
 #include <memory>
 #include <vulkan/vulkan_core.h>
@@ -66,8 +65,6 @@ namespace Bess::Canvas {
         void drawSceneToViewport(const std::shared_ptr<Viewport> &viewport);
 
         void saveScenePNG(const std::string &path) const;
-
-        friend class Modules::SchematicGen::SchematicView;
 
       public:
         bool isEntityHovered(const entt::entity &ent) const;

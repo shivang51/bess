@@ -2,9 +2,7 @@
 #include "common/helpers.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "modules/schematic_gen/schematic_view.h"
 #include "scene/scene.h"
-#include "scene/scene_pch.h"
 
 namespace Bess::UI {
 
