@@ -410,6 +410,10 @@ namespace Bess::Canvas {
         BESS_INFO("[Scene] Created entity {}", (uint64_t)entity);
 
         setLastCreatedComp({.componentDefinition = comp});
+        NetInfo netInfo{};
+        netInfo.componentCount += 1;
+        m_netInfos[netInfo.netId] = netInfo;
+        tag.netId = netInfo.netId;
         return idComp.uuid;
     }
 
@@ -442,6 +446,10 @@ namespace Bess::Canvas {
         }
         BESS_INFO("[Scene] Created Non simulation entity {}", (uint64_t)entity);
         setLastCreatedComp({.nsComponent = comp});
+        NetInfo netInfo{};
+        netInfo.componentCount += 1;
+        m_netInfos[netInfo.netId] = netInfo;
+        tag.netId = netInfo.netId;
         return idComp.uuid;
     }
 
@@ -479,6 +487,14 @@ namespace Bess::Canvas {
         // remove from registry
         m_registry.destroy(ent);
         m_uuidToEntt.erase(entUuid);
+
+        const auto netId = m_registry.get<Components::TagComponent>(ent).netId;
+        m_netInfos[netId].componentCount -= 1;
+
+        if (m_netInfos[netId].componentCount == 0) {
+            m_netInfos.erase(netId);
+        }
+
         BESS_INFO("[Scene] Deleted entity {}", (uint64_t)ent);
     }
 
@@ -803,7 +819,7 @@ namespace Bess::Canvas {
         connComp.inputSlot = getUuidOfEntity(inputSlot);
         connComp.outputSlot = getUuidOfEntity(outputSlot);
 
-        const auto view = m_registry.view<Components::SlotComponent, Components::TransformComponent>();
+        const auto view = m_registry.view<Components::SlotComponent, Components::TransformComponent, Components::TagComponent>();
         auto &inpSlotComp = view.get<Components::SlotComponent>(inputSlot);
         auto &outSlotComp = view.get<Components::SlotComponent>(outputSlot);
 
@@ -811,11 +827,36 @@ namespace Bess::Canvas {
         outSlotComp.connections.emplace_back(idComp.uuid);
 
         const auto &inpParentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(inpSlotComp.parentId));
+        const auto &inpParentTag = view.get<Components::TagComponent>(getEntityWithUuid(inpSlotComp.parentId));
         const auto artist = m_viewport->getArtistManager()->getCurrentArtist();
         const auto inputSlotPos = artist->getSlotPos(inpSlotComp, inpParentTransform);
-        const auto &slotComp = view.get<Components::SlotComponent>(outputSlot);
-        const auto &parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(slotComp.parentId));
-        const auto outputSlotPos = artist->getSlotPos(slotComp, parentTransform);
+        const auto &parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(outSlotComp.parentId));
+        const auto &outParentTag = view.get<Components::TagComponent>(getEntityWithUuid(outSlotComp.parentId));
+        const auto outputSlotPos = artist->getSlotPos(outSlotComp, parentTransform);
+
+        const auto &netInfoInp = m_netInfos[inpParentTag.netId];
+        const auto &netInfoOut = m_netInfos[outParentTag.netId];
+
+        if (netInfoInp.netId != netInfoOut.netId) {
+            UUID changedNetId = UUID::null;
+            UUID newNetId = UUID::null;
+            if (netInfoInp.componentCount > netInfoOut.componentCount) {
+                changedNetId = outParentTag.netId;
+                newNetId = inpParentTag.netId;
+            } else {
+                changedNetId = inpParentTag.netId;
+                newNetId = outParentTag.netId;
+            }
+
+            for (const auto ent : m_registry.view<Components::TagComponent>()) {
+                auto &tagComp = m_registry.get<Components::TagComponent>(ent);
+                if (tagComp.netId == changedNetId) {
+                    tagComp.netId = newNetId;
+                    m_netInfos[newNetId].componentCount += 1;
+                }
+            }
+            m_netInfos.erase(changedNetId);
+        }
 
         const auto dX = inputSlotPos.x - outputSlotPos.x;
         auto offset = dX * 0.25f;

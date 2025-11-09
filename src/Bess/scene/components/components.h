@@ -53,6 +53,7 @@ namespace Bess::Canvas::Components {
         } type;
 
         bool isSimComponent = false;
+        UUID netId = UUID::null;
     };
 
     class SelectedComponent {

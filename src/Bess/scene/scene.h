@@ -39,6 +39,12 @@ namespace Bess::Canvas {
         bool set = false;
     };
 
+    struct NetInfo {
+        std::string name = "New Network";
+        UUID netId = UUID::null;
+        size_t componentCount = 0;
+    };
+
     class Scene {
       public:
         Scene();
@@ -201,5 +207,7 @@ namespace Bess::Canvas {
         VkExtent2D vec2Extent2D(const glm::vec2 &vec);
 
         bool m_isDestroyed = false;
+
+        std::unordered_map<UUID, NetInfo> m_netInfos;
     };
 } // namespace Bess::Canvas
