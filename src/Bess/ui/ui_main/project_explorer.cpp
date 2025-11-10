@@ -4,6 +4,7 @@
 #include "imgui_internal.h"
 #include "scene/components/components.h"
 #include "scene/scene.h"
+#include <cstdint>
 
 namespace Bess::UI {
 
@@ -66,6 +67,8 @@ namespace Bess::UI {
         if (!isShown)
             return;
 
+        bool groupByNet = true;
+
         ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
         auto scene = Bess::Canvas::Scene::instance();
@@ -93,29 +96,70 @@ namespace Bess::UI {
             ImGui::Text("(%lu / %lu Selected)", selSize, size);
         }
 
-        std::string icon;
-        for (const auto &entity : view) {
-            const bool isSelected = selTagGroup.contains(entity);
-
-            const auto &tagComp = view.get<Canvas::Components::TagComponent>(entity);
-            if (tagComp.isSimComponent) {
-                icon = Common::Helpers::getComponentIcon(tagComp.type.simCompHash);
-            } else {
-                icon = Common::Helpers::getComponentIcon(tagComp.type.nsCompType);
+        if (groupByNet) {
+            std::unordered_map<UUID, std::vector<entt::entity>> netGroups;
+            for (const auto &entity : view) {
+                const bool isSelected = selTagGroup.contains(entity);
+                const auto &tagComp = view.get<Canvas::Components::TagComponent>(entity);
+                netGroups[tagComp.netId].emplace_back(entity);
             }
 
-            const auto [pressed, cbPressed] = ProjectExplorerNode((uint64_t)entity,
-                                                                  (icon + "  " + tagComp.name).c_str(),
-                                                                  isSelected, isMultiSelected);
+            std::string icon;
+            for (const auto &[netId, entities] : netGroups) {
+                ImGui::Text("%s", std::to_string((uint64_t)netId).c_str());
+                ImGui::Indent();
+                for (const auto &entity : entities) {
+                    const bool isSelected = selTagGroup.contains(entity);
 
-            if (pressed) {
-                registry.clear<Canvas::Components::SelectedComponent>();
-                registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
-            } else if (cbPressed) {
-                if (isSelected) {
-                    registry.remove<Canvas::Components::SelectedComponent>(entity);
+                    const auto &tagComp = view.get<Canvas::Components::TagComponent>(entity);
+                    if (tagComp.isSimComponent) {
+                        icon = Common::Helpers::getComponentIcon(tagComp.type.simCompHash);
+                    } else {
+                        icon = Common::Helpers::getComponentIcon(tagComp.type.nsCompType);
+                    }
+
+                    const auto [pressed, cbPressed] = ProjectExplorerNode((uint64_t)entity,
+                                                                          (icon + "  " + tagComp.name).c_str(),
+                                                                          isSelected, isMultiSelected);
+
+                    if (pressed) {
+                        registry.clear<Canvas::Components::SelectedComponent>();
+                        registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
+                    } else if (cbPressed) {
+                        if (isSelected) {
+                            registry.remove<Canvas::Components::SelectedComponent>(entity);
+                        } else {
+                            registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
+                        }
+                    }
+                }
+                ImGui::Unindent();
+            }
+        } else {
+            std::string icon;
+            for (const auto &entity : view) {
+                const bool isSelected = selTagGroup.contains(entity);
+
+                const auto &tagComp = view.get<Canvas::Components::TagComponent>(entity);
+                if (tagComp.isSimComponent) {
+                    icon = Common::Helpers::getComponentIcon(tagComp.type.simCompHash);
                 } else {
+                    icon = Common::Helpers::getComponentIcon(tagComp.type.nsCompType);
+                }
+
+                const auto [pressed, cbPressed] = ProjectExplorerNode((uint64_t)entity,
+                                                                      (icon + "  " + tagComp.name).c_str(),
+                                                                      isSelected, isMultiSelected);
+
+                if (pressed) {
+                    registry.clear<Canvas::Components::SelectedComponent>();
                     registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
+                } else if (cbPressed) {
+                    if (isSelected) {
+                        registry.remove<Canvas::Components::SelectedComponent>(entity);
+                    } else {
+                        registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
+                    }
                 }
             }
         }
