@@ -41,7 +41,7 @@ namespace Bess::Canvas {
 
     struct NetInfo {
         std::string name = "New Network";
-        UUID netId = UUID::null;
+        UUID netId;
         size_t componentCount = 0;
     };
 
