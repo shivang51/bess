@@ -4,6 +4,7 @@
 #include "commands/commands_manager.h"
 #include "entt/entity/fwd.hpp"
 #include "expression_evalutator/expr_evaluator.h"
+#include "net/net.h"
 #include "types.h"
 #include <chrono>
 #include <condition_variable>
@@ -70,13 +71,20 @@ namespace Bess::SimEngine {
 
         std::vector<std::pair<float, bool>> getStateMonitorData(UUID uuid);
 
+        bool updateNets(const std::vector<entt::entity> &startEntities);
+
         friend class SimEngineSerializer;
 
+        bool isNetUpdated() const;
+
+        const std::unordered_map<UUID, Net> &getNetsMap();
+
       private:
+        std::vector<entt::entity> getConnGraph(entt::entity start);
+
         void scheduleEvent(entt::entity e, entt::entity schedulerEntity, SimDelayNanoSeconds simTime);
         void clearEventsForEntity(entt::entity e);
         std::vector<PinState> getInputPinsState(entt::entity e) const;
-        const std::pair<std::vector<bool>, std::vector<bool>> &getIOPinsConnectedState(entt::entity e);
         bool simulateComponent(entt::entity e, const std::vector<PinState> &inputs);
         void run();
 
@@ -102,10 +110,13 @@ namespace Bess::SimEngine {
 
         entt::registry m_registry;
         std::unordered_map<UUID, entt::entity> m_uuidMap;
-        std::unordered_map<entt::entity, std::pair<std::vector<bool>, std::vector<bool>>> m_connectionsCache;
 
         Commands::CommandsManager m_cmdManager;
 
+        std::unordered_map<UUID, Net> m_nets;
+
         bool m_destroyed{false};
+
+        bool m_isNetUpdated{false};
     };
 } // namespace Bess::SimEngine

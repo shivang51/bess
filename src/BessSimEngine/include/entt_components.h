@@ -3,10 +3,8 @@
 #include "bess_api.h"
 #include "bess_uuid.h"
 #include "component_definition.h"
-#include "logger.h"
 #include "types.h"
 #include <entt/entt.hpp>
-#include <iostream>
 #include <utility>
 #include <vector>
 
@@ -23,7 +21,7 @@ namespace Bess::SimEngine {
 
     struct BESS_API IdComponent {
         IdComponent() = default;
-        IdComponent(UUID uuid) { this->uuid = uuid; }
+        IdComponent(UUID uuid) : uuid(uuid) {}
         IdComponent(const IdComponent &) = default;
         UUID uuid;
     };
@@ -89,6 +87,7 @@ namespace Bess::SimEngine {
 
         DigitalComponent(ComponentDefinition def, ComponentState state) : definition(std::move(def)), state(std::move(state)) {}
 
+        UUID netUuid = UUID::null;
         ComponentState state;
         ComponentDefinition definition;
         Connections inputConnections;

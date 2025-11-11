@@ -10,6 +10,7 @@
 
 #include "plugin_manager.h"
 
+#include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <condition_variable>
@@ -121,7 +122,15 @@ namespace Bess::SimEngine {
             m_registry.emplace<StateMonitorComponent>(ent);
         }
 
-        const auto &digi = m_registry.emplace<DigitalComponent>(ent, def);
+        auto &digi = m_registry.emplace<DigitalComponent>(ent, def);
+
+        // create a new net for new component
+        Net newNet{};
+        digi.netUuid = newNet.getUUID();
+        newNet.addComponent(idComp.uuid);
+        m_nets[digi.netUuid] = newNet;
+        m_isNetUpdated = true;
+
         scheduleEvent(ent, entt::null, m_currentSimTime + def.delay);
 
         BESS_SE_INFO("Added component {}", def.name);
@@ -199,60 +208,159 @@ namespace Bess::SimEngine {
             dstComp.state.outputConnected[dstPin] = true;
         }
 
+        // Mix two nets
+        // Final net will have id of net with most components initially
+        if (srcComp.netUuid != dstComp.netUuid) {
+            UUID finalNetId = UUID::null;
+            UUID changedNetId = UUID::null;
+            auto &srcNet = m_nets[srcComp.netUuid];
+            auto &dstNet = m_nets[dstComp.netUuid];
+
+            if (srcNet.size() > dstNet.size()) {
+                finalNetId = srcComp.netUuid;
+                changedNetId = dstComp.netUuid;
+            } else {
+                finalNetId = dstComp.netUuid;
+                changedNetId = srcComp.netUuid;
+            }
+
+            auto &finalNet = m_nets[finalNetId];
+            auto &changedNet = m_nets[changedNetId];
+
+            for (const auto &compUuid : changedNet.getComponents()) {
+                auto ent = getEntityWithUuid(compUuid);
+                if (ent != entt::null) {
+                    auto &comp = m_registry.get<DigitalComponent>(ent);
+                    comp.netUuid = finalNetId;
+                }
+                finalNet.addComponent(compUuid);
+            }
+            m_nets.erase(changedNetId);
+            m_isNetUpdated = true;
+        }
+
         scheduleEvent(dstEnt, srcEnt, m_currentSimTime + dstComp.definition.delay);
-        m_connectionsCache.erase(dstEnt);
-        m_connectionsCache.erase(srcEnt);
         BESS_SE_INFO("Connected components");
         return true;
     }
 
     void SimulationEngine::deleteComponent(const UUID &uuid) {
-        auto ent = getEntityWithUuid(uuid);
+        const auto ent = getEntityWithUuid(uuid);
         if (ent == entt::null)
             return;
 
         clearEventsForEntity(ent);
-        std::vector<entt::entity> affected;
+        std::set<entt::entity> affected;
+        std::lock_guard lk(m_registryMutex);
 
+        // Remove all connections to and from this component
         {
-            std::lock_guard lk(m_registryMutex);
             auto view = m_registry.view<DigitalComponent>();
-            for (auto other : view) {
-                if (other == ent)
-                    continue;
-                m_connectionsCache.erase(other);
-                auto &comp = view.get<DigitalComponent>(other);
-                bool lost = false;
-                for (auto &pin : comp.inputConnections) {
-                    size_t before = pin.size();
-                    pin.erase(std::remove_if(pin.begin(), pin.end(),
-                                             [&](auto &c) { return c.first == uuid; }),
-                              pin.end());
-                    if (pin.size() < before)
-                        lost = true;
-                }
-                if (lost)
-                    affected.push_back(other);
-                for (auto &pin : comp.outputConnections) {
-                    pin.erase(std::remove_if(pin.begin(), pin.end(),
-                                             [&](auto &c) { return c.first == uuid; }),
-                              pin.end());
+            const auto &digiComp = view.get<DigitalComponent>(ent);
+
+            for (const auto &pin : digiComp.outputConnections) {
+                for (const auto &otherPin : pin) {
+                    const auto &other = getEntityWithUuid(otherPin.first);
+                    const auto otherPinIdx = otherPin.second;
+
+                    auto &comp = view.get<DigitalComponent>(other);
+                    auto &connections = comp.inputConnections[otherPinIdx];
+
+                    auto removeIt = std::ranges::remove_if(connections, [&](auto &c) { return c.first == uuid; });
+                    connections.erase(removeIt.begin(), removeIt.end());
+
+                    comp.state.inputConnected[otherPinIdx] = !connections.empty();
+                    affected.insert(other);
                 }
             }
-            m_uuidMap.erase(uuid);
-            auto &comp = view.get<DigitalComponent>(ent);
-            m_registry.destroy(ent);
-            m_connectionsCache.erase(ent);
+
+            for (const auto &pin : digiComp.inputConnections) {
+                for (const auto &otherPin : pin) {
+                    const auto &other = getEntityWithUuid(otherPin.first);
+                    const auto otherPinIdx = otherPin.second;
+
+                    auto &comp = view.get<DigitalComponent>(other);
+                    auto &connections = comp.outputConnections[otherPinIdx];
+
+                    auto removeIt = std::ranges::remove_if(connections, [&](auto &c) { return c.first == uuid; });
+                    connections.erase(removeIt.begin(), removeIt.end());
+
+                    comp.state.outputConnected[otherPinIdx] = !connections.empty();
+                    affected.insert(other);
+                }
+            }
         }
 
-        for (auto e : affected) {
-            if (m_registry.valid(e)) {
-                auto &dc = m_registry.get<DigitalComponent>(e);
-                scheduleEvent(e, entt::null, m_currentSimTime + dc.definition.delay);
+        // update the nets
+        {
+            auto view = m_registry.view<DigitalComponent>();
+            auto &comp = view.get<DigitalComponent>(ent);
+            auto &ogNet = m_nets[comp.netUuid];
+            ogNet.removeComponent(uuid);
+            if (ogNet.size() == 0) {
+                m_nets.erase(comp.netUuid);
             }
+
+            updateNets(std::vector<entt::entity>(affected.begin(), affected.end()));
+        }
+
+        m_uuidMap.erase(uuid);
+        m_registry.destroy(ent);
+
+        auto view = m_registry.view<DigitalComponent>();
+        for (const auto e : affected) {
+            if (!m_registry.valid(e))
+                continue;
+
+            auto &dc = view.get<DigitalComponent>(e);
+            scheduleEvent(e, entt::null, m_currentSimTime + dc.definition.delay);
         }
 
         BESS_SE_INFO("Deleted component");
+    }
+
+    bool SimulationEngine::updateNets(const std::vector<entt::entity> &startEntities) {
+        std::unordered_map<entt::entity, std::vector<entt::entity>> connGraphs;
+        std::unordered_map<entt::entity, bool> visited;
+
+        const auto view = m_registry.view<IdComponent, DigitalComponent>();
+        for (const auto &e : startEntities) {
+            if (visited[e])
+                continue;
+            connGraphs[e] = getConnGraph(e);
+
+            for (const auto &entInGraph : connGraphs[e]) {
+                visited[entInGraph] = true;
+            }
+        }
+
+        if (connGraphs.size() <= 1) {
+            return false;
+        }
+
+        for (const auto &graphPair : connGraphs) {
+            Net newNet{};
+            for (const auto &entInGraph : graphPair.second) {
+                auto &compInGraph = view.get<DigitalComponent>(entInGraph);
+
+                if (m_nets.contains(compInGraph.netUuid)) {
+                    auto &prevNet = m_nets[compInGraph.netUuid];
+                    prevNet.removeComponent(view.get<IdComponent>(entInGraph).uuid);
+                    if (prevNet.size() == 0) {
+                        m_nets.erase(prevNet.getUUID());
+                    }
+                }
+
+                compInGraph.netUuid = newNet.getUUID();
+                auto &idComp = view.get<IdComponent>(entInGraph);
+                newNet.addComponent(idComp.uuid);
+            }
+            m_nets[newNet.getUUID()] = newNet;
+        }
+
+        m_isNetUpdated = connGraphs.size() > 1;
+
+        return true;
     }
 
     PinState SimulationEngine::getDigitalPinState(const UUID &uuid, PinType type, int idx) {
@@ -374,30 +482,13 @@ namespace Bess::SimEngine {
 
         // Schedule next simulation on the appropriate side
         entt::entity toSchedule = (pinAType == PinType::output ? entB : entA);
+
+        updateNets({entA, entB});
+
         auto &dc = m_registry.get<DigitalComponent>(toSchedule);
         scheduleEvent(toSchedule, entt::null, m_currentSimTime + dc.definition.delay);
 
-        m_connectionsCache.erase(entA);
-        m_connectionsCache.erase(entB);
-
         BESS_SE_INFO("Deleted connection");
-    }
-
-    const std::pair<std::vector<bool>, std::vector<bool>> &SimulationEngine::getIOPinsConnectedState(entt::entity e) {
-        if (m_connectionsCache.contains(e))
-            return m_connectionsCache.at(e);
-
-        auto &comp = m_registry.get<DigitalComponent>(e);
-        auto &[iPinsState, oPinsState] = m_connectionsCache[e];
-
-        for (auto &pin : comp.inputConnections) {
-            iPinsState.push_back(!pin.empty());
-        }
-
-        for (auto &pin : comp.outputConnections) {
-            oPinsState.push_back(!pin.empty());
-        }
-        return m_connectionsCache.at(e);
     }
 
     std::vector<PinState> SimulationEngine::getInputPinsState(entt::entity ent) const {
@@ -652,4 +743,54 @@ namespace Bess::SimEngine {
         return comp.timestepedBoolData;
     }
 
+    std::vector<entt::entity> SimulationEngine::getConnGraph(entt::entity start) {
+        std::vector<entt::entity> graph;
+        std::set<entt::entity> visited;
+        std::vector<entt::entity> toVisit;
+        toVisit.push_back(start);
+
+        auto view = m_registry.view<DigitalComponent>();
+
+        while (!toVisit.empty()) {
+            auto current = toVisit.back();
+            toVisit.pop_back();
+
+            if (visited.contains(current))
+                continue;
+
+            visited.insert(current);
+            graph.push_back(current);
+
+            const auto &comp = view.get<DigitalComponent>(current);
+
+            for (const auto &pinConnections : comp.inputConnections) {
+                for (const auto &conn : pinConnections) {
+                    auto otherEnt = getEntityWithUuid(conn.first);
+                    if (otherEnt != entt::null && !visited.contains(otherEnt)) {
+                        toVisit.push_back(otherEnt);
+                    }
+                }
+            }
+
+            for (const auto &pinConnections : comp.outputConnections) {
+                for (const auto &conn : pinConnections) {
+                    auto otherEnt = getEntityWithUuid(conn.first);
+                    if (otherEnt != entt::null && !visited.contains(otherEnt)) {
+                        toVisit.push_back(otherEnt);
+                    }
+                }
+            }
+        }
+
+        return graph;
+    }
+
+    bool SimulationEngine::isNetUpdated() const {
+        return m_isNetUpdated;
+    }
+
+    const std::unordered_map<UUID, Net> &SimulationEngine::getNetsMap() {
+        m_isNetUpdated = false;
+        return m_nets;
+    }
 } // namespace Bess::SimEngine

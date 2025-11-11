@@ -11,7 +11,7 @@ namespace Bess {
 
         UUID();
         UUID(uint64_t id);
-        UUID(const UUID &) = default;
+        UUID(const UUID &other) = default;
 
         operator uint64_t() const { return m_UUID; }
 

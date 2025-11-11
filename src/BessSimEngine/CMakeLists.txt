@@ -23,6 +23,7 @@ set(Header_Files
     "include/component_catalog.h"
     "include/component_definition.h"
     "include/init_components.h" 
+    "include/net/net.h" 
     "include/comp_json_converters.h"
 )
 source_group("include" FILES ${Header_Files})
@@ -33,6 +34,7 @@ set(Source_Files
     "src/simulation_engine_serializer.cpp"
     "src/bess_uuid.cpp"
     "src/logger.cpp"
+    "src/net/net.cpp" 
 		"src/entt_registry_serializer.cpp"
     "src/component_catalog.cpp"
     "src/component_definition.cpp"

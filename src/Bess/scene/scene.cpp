@@ -117,6 +117,42 @@ namespace Bess::Canvas {
                 break;
             }
         }
+
+        updateNetsFromSimEngine();
+    }
+
+    void Scene::updateNetsFromSimEngine() {
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+        if (!simEngine.isNetUpdated()) {
+            return;
+        }
+
+        const auto &nets = simEngine.getNetsMap();
+
+        std::unordered_map<UUID, entt::entity> cache;
+        auto view = m_registry.view<Components::TagComponent,
+                                    Components::SimulationComponent>();
+
+        for (const auto &ent : view) {
+            const auto &simComp = view.get<Components::SimulationComponent>(ent);
+            cache[simComp.simEngineEntity] = ent;
+        }
+
+        for (const auto &netInfo : nets) {
+            const auto &netId = netInfo.first;
+            const auto &componentsInNet = netInfo.second.getComponents();
+
+            for (const auto &simEngineUuid : componentsInNet) {
+                if (!cache.contains(simEngineUuid)) {
+                    return;
+                }
+
+                auto &tagComp = view.get<Components::TagComponent>(cache[simEngineUuid]);
+                tagComp.netId = netId;
+            }
+        }
+
+        BESS_INFO("[Scene] Updated nets from Simulation Engine, total nets = {}", nets.size());
     }
 
     void Scene::selectAllEntities() {
@@ -410,10 +446,6 @@ namespace Bess::Canvas {
         BESS_INFO("[Scene] Created entity {}", (uint64_t)entity);
 
         setLastCreatedComp({.componentDefinition = comp});
-        NetInfo netInfo{};
-        netInfo.componentCount += 1;
-        m_netInfos[netInfo.netId] = netInfo;
-        tag.netId = netInfo.netId;
         return idComp.uuid;
     }
 
@@ -446,15 +478,11 @@ namespace Bess::Canvas {
         }
         BESS_INFO("[Scene] Created Non simulation entity {}", (uint64_t)entity);
         setLastCreatedComp({.nsComponent = comp});
-        NetInfo netInfo{};
-        netInfo.componentCount += 1;
-        m_netInfos[netInfo.netId] = netInfo;
-        tag.netId = netInfo.netId;
         return idComp.uuid;
     }
 
     void Scene::deleteSceneEntity(const UUID &entUuid) {
-        auto ent = getEntityWithUuid(entUuid);
+        const auto ent = getEntityWithUuid(entUuid);
         auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
         if (ent == hoveredEntity)
             hoveredEntity = entt::null;
@@ -487,13 +515,6 @@ namespace Bess::Canvas {
         // remove from registry
         m_registry.destroy(ent);
         m_uuidToEntt.erase(entUuid);
-
-        const auto netId = m_registry.get<Components::TagComponent>(ent).netId;
-        m_netInfos[netId].componentCount -= 1;
-
-        if (m_netInfos[netId].componentCount == 0) {
-            m_netInfos.erase(netId);
-        }
 
         BESS_INFO("[Scene] Deleted entity {}", (uint64_t)ent);
     }
@@ -833,30 +854,6 @@ namespace Bess::Canvas {
         const auto &parentTransform = view.get<Components::TransformComponent>(getEntityWithUuid(outSlotComp.parentId));
         const auto &outParentTag = view.get<Components::TagComponent>(getEntityWithUuid(outSlotComp.parentId));
         const auto outputSlotPos = artist->getSlotPos(outSlotComp, parentTransform);
-
-        const auto &netInfoInp = m_netInfos[inpParentTag.netId];
-        const auto &netInfoOut = m_netInfos[outParentTag.netId];
-
-        if (netInfoInp.netId != netInfoOut.netId) {
-            UUID changedNetId = UUID::null;
-            UUID newNetId = UUID::null;
-            if (netInfoInp.componentCount > netInfoOut.componentCount) {
-                changedNetId = outParentTag.netId;
-                newNetId = inpParentTag.netId;
-            } else {
-                changedNetId = inpParentTag.netId;
-                newNetId = outParentTag.netId;
-            }
-
-            for (const auto ent : m_registry.view<Components::TagComponent>()) {
-                auto &tagComp = m_registry.get<Components::TagComponent>(ent);
-                if (tagComp.netId == changedNetId) {
-                    tagComp.netId = newNetId;
-                    m_netInfos[newNetId].componentCount += 1;
-                }
-            }
-            m_netInfos.erase(changedNetId);
-        }
 
         const auto dX = inputSlotPos.x - outputSlotPos.x;
         auto offset = dX * 0.25f;
