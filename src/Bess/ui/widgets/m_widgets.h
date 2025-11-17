@@ -1,6 +1,9 @@
 #pragma once
 
+#include "glm.hpp"
 #include "imgui.h"
+#include "imgui_internal.h"
+#include "ui/icons/FontAwesomeIcons.h"
 #include <format>
 #include <string>
 #include <vector>
@@ -29,4 +32,13 @@ namespace Bess::UI::Widgets {
     }
 
     bool CheckboxWithLabel(const char *label, bool *value);
+
+    bool TreeNode(
+        int key, // unique key to id the tree node uniquely in the UI
+        const std::string &name,
+        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None,
+        const std::string &icon = "",
+        glm::vec4 iconColor = glm::vec4(-1.0f));
+
+    bool ButtonWithPopup(const std::string &label, const std::string &popupName, bool showMenuButton = true);
 } // namespace Bess::UI::Widgets

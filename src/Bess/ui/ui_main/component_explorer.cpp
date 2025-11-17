@@ -17,108 +17,6 @@ namespace Bess::UI {
     bool ComponentExplorer::m_isfirstTimeDraw = true;
     std::string ComponentExplorer::m_searchQuery;
 
-    bool MyTreeNode(const char *label, ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None) {
-        const ImGuiContext &g = *ImGui::GetCurrentContext();
-        ImGuiWindow *window = g.CurrentWindow;
-
-        const ImGuiID id = window->GetID(label);
-        ImVec2 pos = window->DC.CursorPos;
-        const ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x, pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
-        const bool opened = window->DC.StateStorage->GetInt(id, (flags & ImGuiTreeNodeFlags_DefaultOpen) ? 1 : 0) != 0;
-        bool hovered = false, held = false;
-
-        const auto style = ImGui::GetStyle();
-        const auto rounding = style.FrameRounding;
-
-        if (ImGui::ButtonBehavior(bb, id, &hovered, &held, ImGuiButtonFlags_PressedOnClick))
-            window->DC.StateStorage->SetInt(id, opened ? 0 : 1);
-        if (hovered || held)
-            window->DrawList->AddRectFilled(bb.Min, bb.Max, ImGui::GetColorU32(held ? ImGuiCol_HeaderActive : ImGuiCol_HeaderHovered), rounding);
-
-        // Icon, text
-        const float button_sz = g.FontSize;
-        pos.x += rounding / 2.f;
-        const auto icon = opened ? Icons::FontAwesomeIcons::FA_CHEVRON_DOWN : Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT;
-        ImGui::RenderText(ImVec2(pos.x + g.Style.ItemInnerSpacing.x, pos.y + g.Style.FramePadding.y), icon);
-        ImGui::RenderText(ImVec2(pos.x + button_sz + g.Style.ItemInnerSpacing.x, pos.y + g.Style.FramePadding.y), label);
-
-        ImGui::ItemSize(bb, g.Style.FramePadding.y);
-        ImGui::ItemAdd(bb, id);
-
-        if (opened)
-            ImGui::TreePush(label);
-        return opened;
-    }
-
-    bool ButtonWithPopup(const std::string &label, const std::string &popupName, const bool showMenuButton = true) {
-        const ImGuiContext &g = *ImGui::GetCurrentContext();
-        ImGuiWindow *window = g.CurrentWindow;
-        const ImVec2 pos = window->DC.CursorPos;
-        const auto style = ImGui::GetStyle();
-
-        const float btnContainerWidth = ImGui::GetContentRegionAvail().x;
-
-        const ImRect bb(pos, ImVec2(pos.x + btnContainerWidth,
-                                    pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
-        // const ImRect bbButton(pos,
-        //                       ImVec2(pos.x + ImGui::GetContentRegionAvail().x - (style.FramePadding.x * 3) - g.Style.ItemInnerSpacing.x,
-        //                              pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
-        const float menuBtnSizeY = showMenuButton
-                                       ? g.FontSize + (g.Style.FramePadding.y * 1.5f)
-                                       : 0;
-        const float menuBtnSizeX = showMenuButton
-                                       ? menuBtnSizeY
-                                       : 0;
-        const float menuBtnX = showMenuButton
-                                   ? btnContainerWidth - menuBtnSizeX - g.Style.ItemInnerSpacing.x
-                                   : btnContainerWidth; // extend to the end if no menu button
-
-        const ImRect bbButton(pos,
-                              ImVec2(pos.x + menuBtnX,
-                                     pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
-
-        const ImRect bbMenuButton(ImVec2(pos.x + menuBtnX,
-                                         pos.y + (g.Style.FramePadding.y * 0.5f)),
-                                  ImVec2(pos.x + menuBtnX + menuBtnSizeX,
-                                         pos.y + menuBtnSizeY));
-
-        const ImGuiID id = window->GetID(label.c_str());
-
-        bool hovered = false, held = false;
-        const bool clicked = ImGui::ButtonBehavior(bbButton, id, &hovered, &held, ImGuiButtonFlags_PressedOnClick);
-
-        bool menuHovered = false, menuHeld = false;
-        bool menuClicked = false;
-
-        if (showMenuButton) {
-            const ImGuiID menuID = window->GetID((label + "##menu").c_str());
-            menuClicked = ImGui::ButtonBehavior(bbMenuButton, menuID, &menuHovered, &menuHeld, ImGuiButtonFlags_PressedOnClick);
-        }
-
-        auto bgColor = ImGui::GetColorU32(ImGuiCol_Button);
-        if (menuHovered || hovered || held || ImGui::IsPopupOpen(popupName.c_str()))
-            bgColor = ImGui::GetColorU32(held ? ImGuiCol_ButtonActive : ImGuiCol_ButtonHovered);
-
-        const auto rounding = style.FrameRounding;
-        window->DrawList->AddRectFilled(bb.Min, bb.Max, bgColor, rounding);
-        ImGui::RenderText(ImVec2(pos.x + style.FramePadding.x + g.Style.ItemInnerSpacing.x, pos.y + g.Style.FramePadding.y), label.c_str());
-
-        ImGui::ItemSize(bb, g.Style.FramePadding.y);
-        ImGui::ItemAdd(bb, id);
-
-        if (showMenuButton && (hovered || menuHovered)) {
-            if (menuHovered)
-                bgColor = ImGui::GetColorU32(ImGuiCol_TabActive);
-            window->DrawList->AddRectFilled(bbMenuButton.Min, bbMenuButton.Max, bgColor, rounding);
-            const float x = bbMenuButton.Min.x + ((bbMenuButton.Max.x - bbMenuButton.Min.x) / 2.f) - 3.f;
-            ImGui::RenderText(ImVec2(x, pos.y + g.Style.FramePadding.y), Icons::FontAwesomeIcons::FA_ELLIPSIS_V);
-            if (menuClicked)
-                ImGui::OpenPopup(popupName.c_str());
-        }
-
-        return clicked;
-    }
-
     void ComponentExplorer::createComponent(std::shared_ptr<const SimEngine::ComponentDefinition> def, const int inputCount, const int outputCount) {
         auto scene = Canvas::Scene::instance();
         Canvas::Commands::AddCommandData data;
@@ -193,6 +91,7 @@ namespace Bess::UI {
         ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0, 0, 0, 0)); // for tree node to have no bg normally
 
         const auto componentTree = SimEngine::ComponentCatalog::instance().getComponentsTree();
+        int key = 0;
         // simulation components
         {
             for (auto &ent : *componentTree) {
@@ -210,15 +109,20 @@ namespace Bess::UI {
                 if (!shouldCollectionShow)
                     continue;
 
-                if (MyTreeNode(ent.first.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+                if (Widgets::TreeNode(key, ent.first, ImGuiTreeNodeFlags_DefaultOpen)) {
                     for (const auto &comp : ent.second) {
-                        auto name = comp->name;
-                        if (m_searchQuery != "" && Common::Helpers::toLowerCase(name).find(m_searchQuery) == std::string::npos)
+                        if (m_searchQuery != "" &&
+                            Common::Helpers::toLowerCase(comp->name)
+                                    .find(m_searchQuery) == std::string::npos)
                             continue;
 
-                        name = Common::Helpers::getComponentIcon(comp->getHash()) + "  " + name;
+                        const std::string name = Common::Helpers::getComponentIcon(
+                                                     comp->getHash()) +
+                                                 "  " + comp->name;
 
-                        if (ButtonWithPopup(name, name + "OptionsMenu", !comp->getAltInputCounts().empty())) {
+                        if (Widgets::ButtonWithPopup(name,
+                                                     name + "OptionsMenu",
+                                                     !comp->getAltInputCounts().empty())) {
                             createComponent(comp, -1, -1);
                         }
 
@@ -237,16 +141,16 @@ namespace Bess::UI {
         }
 
         // non simulation components
-        if (MyTreeNode("Miscellaneous", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (Widgets::TreeNode(++key, "Miscellaneous", ImGuiTreeNodeFlags_DefaultOpen)) {
             static auto nonSimComponents = Canvas::Components::getNSComponents();
             for (auto &comp : nonSimComponents) {
                 if (m_searchQuery != "" && Common::Helpers::toLowerCase(comp.name).find(m_searchQuery) == std::string::npos)
                     continue;
 
-                std::string name = comp.name;
-                name = Common::Helpers::getComponentIcon(comp.type) + "  " + name;
+                const std::string name = Common::Helpers::getComponentIcon(comp.type) +
+                                         "  " + comp.name;
 
-                if (ButtonWithPopup(name, "", false)) {
+                if (Widgets::ButtonWithPopup(name, "", false)) {
                     createComponent(comp);
                 }
             }

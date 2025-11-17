@@ -1,4 +1,5 @@
 #include "ui/widgets/m_widgets.h"
+#include "common/log.h"
 #include "imgui.h"
 
 namespace Bess::UI::Widgets {
@@ -37,5 +38,149 @@ namespace Bess::UI::Widgets {
         bool changed = ImGui::Checkbox(("##" + std::string(label)).c_str(), value);
         ImGui::PopStyleVar();
         return changed;
+    }
+
+    bool TreeNode(int key,
+                  const std::string &name,
+                  ImGuiTreeNodeFlags flags,
+                  const std::string &icon,
+                  glm::vec4 iconColor) {
+        const ImGuiContext &g = *ImGui::GetCurrentContext();
+        ImGuiWindow *window = g.CurrentWindow;
+
+        const ImGuiID id = window->GetID(std::format("@{}@_{}", key, name).c_str());
+        ImGui::PushID(id);
+        ImVec2 pos = window->DC.CursorPos;
+        const ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x, pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
+        const bool opened = window->DC.StateStorage->GetInt(id, (flags & ImGuiTreeNodeFlags_DefaultOpen) ? 1 : 0) != 0;
+        bool hovered = false, held = false;
+
+        const auto style = ImGui::GetStyle();
+        const auto rounding = style.FrameRounding;
+
+        if (ImGui::ButtonBehavior(bb, id, &hovered, &held, ImGuiButtonFlags_PressedOnClick))
+            window->DC.StateStorage->SetInt(id, opened ? 0 : 1);
+        if (hovered || held)
+            window->DrawList->AddRectFilled(bb.Min, bb.Max,
+                                            ImGui::GetColorU32(held
+                                                                   ? ImGuiCol_HeaderActive
+                                                                   : ImGuiCol_HeaderHovered),
+                                            rounding);
+
+        // Icon, text
+        const float buttonSize = g.FontSize;
+        pos.x += rounding / 2.f;
+        const auto stateIcon = opened
+                                   ? Icons::FontAwesomeIcons::FA_CHEVRON_DOWN
+                                   : Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT;
+
+        ImGui::PushStyleColor(ImGuiCol_Text, g.Style.Colors[ImGuiCol_TextDisabled]);
+        ImGui::RenderText(ImVec2(pos.x + g.Style.ItemInnerSpacing.x,
+                                 pos.y + g.Style.FramePadding.y),
+                          stateIcon);
+        ImGui::PopStyleColor();
+
+        float posIconOffsetX = 0.f;
+
+        if (!icon.empty()) {
+            if (iconColor.x >= 0.0f) {
+                ImU32 col = ImGui::GetColorU32(ImVec4(iconColor.x,
+                                                      iconColor.y,
+                                                      iconColor.z,
+                                                      iconColor.w));
+                ImGui::PushStyleColor(ImGuiCol_Text, col);
+            }
+
+            ImGui::RenderText(ImVec2(pos.x + buttonSize +
+                                         (g.Style.ItemInnerSpacing.x * 2),
+                                     pos.y + g.Style.FramePadding.y),
+                              icon.c_str());
+
+            posIconOffsetX = ImGui::CalcTextSize(icon.c_str()).x + g.Style.ItemInnerSpacing.x;
+
+            if (iconColor.x >= 0.0f) {
+                ImGui::PopStyleColor();
+            }
+        }
+
+        const float posX = pos.x + buttonSize + posIconOffsetX + g.Style.ItemInnerSpacing.x;
+        ImGui::RenderText(ImVec2(posX, pos.y + g.Style.FramePadding.y),
+                          name.c_str());
+
+        ImGui::ItemSize(bb, g.Style.FramePadding.y);
+        ImGui::ItemAdd(bb, id);
+
+        if (opened)
+            ImGui::TreePush(name.c_str());
+
+        ImGui::PopID();
+        return opened;
+    }
+
+    bool ButtonWithPopup(const std::string &label, const std::string &popupName, const bool showMenuButton) {
+        const ImGuiContext &g = *ImGui::GetCurrentContext();
+        ImGuiWindow *window = g.CurrentWindow;
+        const ImVec2 pos = window->DC.CursorPos;
+        const auto style = ImGui::GetStyle();
+
+        const float btnContainerWidth = ImGui::GetContentRegionAvail().x;
+
+        const ImRect bb(pos, ImVec2(pos.x + btnContainerWidth,
+                                    pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
+
+        const float menuBtnSizeY = showMenuButton
+                                       ? g.FontSize + (g.Style.FramePadding.y * 1.5f)
+                                       : 0;
+        const float menuBtnSizeX = showMenuButton
+                                       ? menuBtnSizeY
+                                       : 0;
+        const float menuBtnX = showMenuButton
+                                   ? btnContainerWidth - menuBtnSizeX - g.Style.ItemInnerSpacing.x
+                                   : btnContainerWidth; // extend to the end if no menu button
+
+        const ImRect bbButton(pos,
+                              ImVec2(pos.x + menuBtnX,
+                                     pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
+
+        const ImRect bbMenuButton(ImVec2(pos.x + menuBtnX,
+                                         pos.y + (g.Style.FramePadding.y * 0.5f)),
+                                  ImVec2(pos.x + menuBtnX + menuBtnSizeX,
+                                         pos.y + menuBtnSizeY));
+
+        const ImGuiID id = window->GetID(label.c_str());
+
+        bool hovered = false, held = false;
+        const bool clicked = ImGui::ButtonBehavior(bbButton, id, &hovered, &held, ImGuiButtonFlags_PressedOnClick);
+
+        bool menuHovered = false, menuHeld = false;
+        bool menuClicked = false;
+
+        if (showMenuButton) {
+            const ImGuiID menuID = window->GetID((label + "##menu").c_str());
+            menuClicked = ImGui::ButtonBehavior(bbMenuButton, menuID, &menuHovered, &menuHeld, ImGuiButtonFlags_PressedOnClick);
+        }
+
+        auto bgColor = ImGui::GetColorU32(ImGuiCol_Button);
+        if (menuHovered || hovered || held || ImGui::IsPopupOpen(popupName.c_str()))
+            bgColor = ImGui::GetColorU32(held ? ImGuiCol_ButtonActive : ImGuiCol_ButtonHovered);
+
+        const auto rounding = style.FrameRounding;
+        window->DrawList->AddRectFilled(bb.Min, bb.Max, bgColor, rounding);
+        ImGui::RenderText(ImVec2(pos.x + style.FramePadding.x + g.Style.ItemInnerSpacing.x, pos.y + g.Style.FramePadding.y), label.c_str());
+
+        ImGui::ItemSize(bb, g.Style.FramePadding.y);
+        ImGui::ItemAdd(bb, id);
+
+        if (showMenuButton && (hovered || menuHovered)) {
+            if (menuHovered)
+                bgColor = ImGui::GetColorU32(ImGuiCol_TabActive);
+            window->DrawList->AddRectFilled(bbMenuButton.Min, bbMenuButton.Max, bgColor, rounding);
+            const float x = bbMenuButton.Min.x + ((bbMenuButton.Max.x - bbMenuButton.Min.x) / 2.f) - 3.f;
+            ImGui::RenderText(ImVec2(x, pos.y + g.Style.FramePadding.y), Icons::FontAwesomeIcons::FA_ELLIPSIS_V);
+            if (menuClicked)
+                ImGui::OpenPopup(popupName.c_str());
+        }
+
+        return clicked;
     }
 } // namespace Bess::UI::Widgets
