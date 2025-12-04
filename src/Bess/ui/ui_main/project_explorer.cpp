@@ -1,26 +1,111 @@
 #include "ui/ui_main/project_explorer.h"
-#include "common/helpers.h"
+#include "bess_uuid.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "scene/components/components.h"
 #include "scene/scene.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include <cstdint>
+#include <memory>
 
 namespace Bess::UI {
     bool ProjectExplorer::isShown = true;
     bool ProjectExplorer::isfirstTimeDraw = true;
+    ProjectExplorerState ProjectExplorer::state{};
     ImColor ProjectExplorer::itemAltBg = ImColor(0, 0, 0);
 
     static int ImGuiStringCallback(ImGuiInputTextCallbackData *data) {
         if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
             std::string *str = (std::string *)data->UserData;
             IM_ASSERT(str != nullptr);
-            // Resize string to match new buffer length and update data->Buf pointer.
             str->resize(data->BufTextLen);
             data->Buf = (char *)str->c_str();
         }
         return 0;
+    }
+
+    size_t ProjectExplorer::drawNodes(std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &nodes, bool isRoot) {
+        static int i = 0;
+        constexpr auto treeIcon = Icons::CodIcons::FOLDER;
+
+        size_t count = 0;
+        if (isRoot) {
+            i = 0;
+        }
+
+        std::string icon;
+        for (auto &node : nodes) {
+            count++;
+            if (node->isGroup) {
+                if (EditableTreeNode(i++,
+                                     node->label,
+                                     node->selected,
+                                     ImGuiTreeNodeFlags_DefaultOpen |
+                                         ImGuiTreeNodeFlags_DrawLinesFull,
+                                     treeIcon, ViewportTheme::colors.selectedWire)) {
+                    if (ImGui::BeginDragDropSource()) {
+                        ImGui::SetDragDropPayload("TREE_NODE_PAYLOAD", (void *)(&node->nodeId), sizeof(node->nodeId));
+                        ImGui::Text("Dragging %s with id %lu", node->label.c_str(), (uint64_t)node->nodeId);
+                        ImGui::EndDragDropSource();
+                    }
+
+                    if (ImGui::BeginDragDropTarget()) {
+                        if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("TREE_NODE_PAYLOAD")) {
+                            UUID draggedNodeID = *(const UUID *)payload->Data;
+                            BESS_TRACE("[ProjectExplorer] Dropped node {} into node {}", (uint64_t)draggedNodeID, (uint64_t)node->nodeId);
+                            state.moveNode(draggedNodeID, node->nodeId);
+                        }
+                        ImGui::EndDragDropTarget();
+                    }
+
+                    if (!node->children.empty()) {
+                        count += drawNodes(node->children);
+                    }
+
+                    ImGui::TreePop();
+                }
+            } else {
+                // if (tagComp.isSimComponent) {
+                //     icon = Common::Helpers::getComponentIcon(tagComp.type.simCompHash);
+                // } else {
+                //     icon = Common::Helpers::getComponentIcon(tagComp.type.nsCompType);
+                // }
+                const auto [pressed, cbPressed] = ProjectExplorerNode(
+                    i++,
+                    node->nodeId,
+                    node->label.c_str(),
+                    node->selected,
+                    node->multiSelectMode);
+
+                if (ImGui::BeginDragDropSource()) {
+                    ImGui::SetDragDropPayload("TREE_NODE_PAYLOAD", &node->nodeId, sizeof(uint64_t));
+                    ImGui::Text("Dragging %s", node->label.c_str());
+                    ImGui::EndDragDropSource();
+                }
+
+                //
+                // const bool isSelected = selTagGroup.contains(entity);
+                //
+                // const auto &tagComp = view.get<Canvas::Components::TagComponent>(entity);
+                //
+                // const auto [pressed, cbPressed] = ProjectExplorerNode(i++, (uint64_t)entity,
+                //                                                       (icon + "  " + tagComp.name).c_str(),
+                //                                                       isSelected, isMultiSelected);
+                //
+                // if (pressed) {
+                //     registry.clear<Canvas::Components::SelectedComponent>();
+                //     registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
+                // } else if (cbPressed) {
+                //     if (isSelected) {
+                //         registry.remove<Canvas::Components::SelectedComponent>(entity);
+                //     } else {
+                //         registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
+                //     }
+                // }
+            }
+        }
+
+        return count;
     }
 
     void ProjectExplorer::draw() {
@@ -67,49 +152,12 @@ namespace Bess::UI {
         }
 
         std::string icon;
-        constexpr auto treeIcon = Icons::CodIcons::FOLDER;
         static bool isSelected = false;
         static std::string name = " New Group";
-        int i = 0;
 
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
-        for (const auto &[netId, entities] : netGroups) {
-            if (EditableTreeNode(i++,
-                                 name,
-                                 isSelected,
-                                 ImGuiTreeNodeFlags_DefaultOpen |
-                                     ImGuiTreeNodeFlags_DrawLinesFull,
-                                 treeIcon,
-                                 ViewportTheme::colors.selectedWire)) {
-                for (const auto &entity : entities) {
-                    const bool isSelected = selTagGroup.contains(entity);
-
-                    const auto &tagComp = view.get<Canvas::Components::TagComponent>(entity);
-                    if (tagComp.isSimComponent) {
-                        icon = Common::Helpers::getComponentIcon(tagComp.type.simCompHash);
-                    } else {
-                        icon = Common::Helpers::getComponentIcon(tagComp.type.nsCompType);
-                    }
-
-                    const auto [pressed, cbPressed] = ProjectExplorerNode(i++, (uint64_t)entity,
-                                                                          (icon + "  " + tagComp.name).c_str(),
-                                                                          isSelected, isMultiSelected);
-
-                    if (pressed) {
-                        registry.clear<Canvas::Components::SelectedComponent>();
-                        registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
-                    } else if (cbPressed) {
-                        if (isSelected) {
-                            registry.remove<Canvas::Components::SelectedComponent>(entity);
-                        } else {
-                            registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
-                        }
-                    }
-                }
-                ImGui::TreePop();
-            }
-        }
+        const auto nodesCount = drawNodes(state.nodes, true);
 
         const ImGuiContext &g = *ImGui::GetCurrentContext();
         const ImGuiWindow *window = g.CurrentWindow;
@@ -118,9 +166,10 @@ namespace Bess::UI {
         const float height = g.FontSize + (g.Style.FramePadding.y * 2);
         const float x = window->Pos.x;
         float y = window->DC.CursorPos.y;
+        float startY = y;
         ImVec2 bgStart, bgEnd;
 
-        if (i & 1) { // skipping if its not alternating color row
+        if (nodesCount & 1) { // skipping if its not alternating color row
             y += height;
         }
 
@@ -133,6 +182,17 @@ namespace Bess::UI {
 
         ImGui::PopStyleVar(2);
 
+        if (ImGui::InvisibleButton("project_exploerer_root_drop_target", ImVec2(window->Size.x, window->Size.y - startY))) {
+        }
+
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("TREE_NODE_PAYLOAD")) {
+                UUID draggedNodeID = *(const UUID *)payload->Data;
+                BESS_TRACE("[ProjectExplorer] Dropped node {} into root", (uint64_t)draggedNodeID);
+                state.moveNode(draggedNodeID, UUID::null);
+            }
+            ImGui::EndDragDropTarget();
+        }
         ImGui::End();
     }
 
@@ -212,7 +272,7 @@ namespace Bess::UI {
     }
 
     bool ProjectExplorer::EditableTreeNode(
-        int key,
+        uint64_t key,
         std::string &name,
         bool &selected,
         ImGuiTreeNodeFlags treeFlags,
@@ -425,5 +485,22 @@ namespace Bess::UI {
 
     void ProjectExplorer::firstTime() {
         isfirstTimeDraw = false;
+        state.reset();
+        auto groupNode = std::make_shared<UI::ProjectExplorerNode>();
+        groupNode->isGroup = true;
+        groupNode->label = "Default Group";
+        state.addNode(groupNode);
+
+        auto compNode = std::make_shared<UI::ProjectExplorerNode>();
+        compNode->isGroup = false;
+        compNode->label = "Component 1";
+        compNode->parentId = groupNode->nodeId;
+        groupNode->children.emplace_back(compNode);
+        state.addNode(compNode);
+
+        compNode = std::make_shared<UI::ProjectExplorerNode>();
+        compNode->isGroup = false;
+        compNode->label = "Component 2";
+        state.addNode(compNode);
     }
 } // namespace Bess::UI
