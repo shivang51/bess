@@ -358,6 +358,64 @@ namespace Bess::UI {
 
             ImGui::EndPopup();
         }
+
+        // Global shortcuts for Project Explorer window
+        if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
+            const bool ctrl = ImGui::GetIO().KeyCtrl;
+            if (ctrl && ImGui::IsKeyPressed(ImGuiKey_G)) {
+                if (isMultiSelected) {
+                    auto groupNode = std::make_shared<UI::ProjectExplorerNode>();
+                    groupNode->isGroup = true;
+                    groupNode->label = "New Group Node";
+                    state.addNode(groupNode);
+
+                    for (const auto &entity : selTagGroup) {
+                        const auto node = state.getNodeFromSceneEntity(entity);
+                        if (node != nullptr) {
+                            state.moveNode(node, groupNode);
+                        }
+                    }
+                } else {
+                    auto groupNode = std::make_shared<UI::ProjectExplorerNode>();
+                    groupNode->isGroup = true;
+                    groupNode->label = "New Group Node";
+                    state.addNode(groupNode);
+                }
+            }
+
+            if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
+                std::vector<std::shared_ptr<UI::ProjectExplorerNode>> nodesToDelete;
+                
+                // Add selected entities from registry
+                selTagGroup.each([&](const entt::entity entity,
+                                     const Canvas::Components::SelectedComponent &,
+                                     const Canvas::Components::TagComponent &) {
+                    const auto node = state.getNodeFromSceneEntity(entity);
+                    if (node != nullptr) {
+                        nodesToDelete.emplace_back(node);
+                    }
+                });
+
+                // Add selected group nodes (requires traversal since they aren't in registry)
+                std::function<void(const std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &)> collectGroups =
+                    [&](const std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &nodes) {
+                        for (const auto &node : nodes) {
+                            if (node->isGroup && node->selected) {
+                                nodesToDelete.emplace_back(node);
+                            }
+                            if (!node->children.empty()) {
+                                collectGroups(node->children);
+                            }
+                        }
+                    };
+                collectGroups(state.nodes);
+
+                for (const auto &node : nodesToDelete) {
+                    deleteNode(node);
+                }
+            }
+        }
+
         ImGui::End();
     }
 
