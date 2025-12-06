@@ -30,8 +30,9 @@ namespace Bess::UI {
                                      bool &selected,
                                      ImGuiTreeNodeFlags treeFlags,
                                      const std::string &icon,
-                                     glm::vec4 iconColor = glm::vec4(-1.0f),
-                                     const std::string &popupName = "");
+                                     glm::vec4 iconColor,
+                                     const std::string &popupName,
+                                     uint64_t payloadId);
         static void firstTime();
         static size_t drawNodes(std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &nodes,
                                 bool isRoot = false);
