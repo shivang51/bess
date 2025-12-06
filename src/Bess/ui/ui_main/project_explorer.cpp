@@ -1,5 +1,6 @@
 #include "ui/ui_main/project_explorer.h"
 #include "bess_uuid.h"
+#include "common/log.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "scene/components/components.h"
@@ -15,6 +16,18 @@ namespace Bess::UI {
     ProjectExplorerState ProjectExplorer::state{};
     ImColor ProjectExplorer::itemAltBg = ImColor(0, 0, 0);
 
+#define DEF_NODE_DROP_TARGET(op)                                                                                                \
+    if (ImGui::BeginDragDropTarget()) {                                                                                         \
+        if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("TREE_NODE_PAYLOAD")) {                                  \
+            auto draggedNodeIDs = std::vector<uint64_t>((uint64_t *)payload->Data, ((uint64_t *)payload->Data) +                \
+                                                                                       (payload->DataSize / sizeof(uint64_t))); \
+            for (const auto &id : draggedNodeIDs) {                                                                             \
+                op;                                                                                                             \
+            }                                                                                                                   \
+        }                                                                                                                       \
+        ImGui::EndDragDropTarget();                                                                                             \
+    }
+
     static int ImGuiStringCallback(ImGuiInputTextCallbackData *data) {
         if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
             std::string *str = (std::string *)data->UserData;
@@ -28,6 +41,7 @@ namespace Bess::UI {
     size_t ProjectExplorer::drawNodes(std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &nodes, bool isRoot) {
         static int i = 0;
         constexpr auto treeIcon = Icons::CodIcons::FOLDER;
+        constexpr auto nodePopupName = "node_popup";
 
         auto scene = Bess::Canvas::Scene::instance();
         auto &registry = scene->getEnttRegistry();
@@ -54,26 +68,20 @@ namespace Bess::UI {
                                      node->selected,
                                      ImGuiTreeNodeFlags_DefaultOpen |
                                          ImGuiTreeNodeFlags_DrawLinesFull,
-                                     treeIcon, ViewportTheme::colors.selectedWire, "node_popup")) {
+                                     treeIcon, ViewportTheme::colors.selectedWire, nodePopupName)) {
                     if (ImGui::BeginDragDropSource()) {
                         ImGui::SetDragDropPayload("TREE_NODE_PAYLOAD", (void *)(&node->nodeId), sizeof(node->nodeId));
                         ImGui::Text("Dragging %s with id %lu", node->label.c_str(), (uint64_t)node->nodeId);
                         ImGui::EndDragDropSource();
                     }
 
-                    if (ImGui::BeginDragDropTarget()) {
-                        if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("TREE_NODE_PAYLOAD")) {
-                            UUID draggedNodeID = *(const UUID *)payload->Data;
-                            pendingMoves.emplace_back(draggedNodeID, node->nodeId);
-                        }
-                        ImGui::EndDragDropTarget();
-                    }
+                    DEF_NODE_DROP_TARGET(pendingMoves.emplace_back(id, node->nodeId));
 
                     if (!node->children.empty()) {
                         count += drawNodes(node->children);
                     }
 
-                    if (ImGui::BeginPopup("node_popup")) {
+                    if (ImGui::BeginPopup(nodePopupName)) {
                         if (ImGui::MenuItemEx("Select All", "", "", false, true)) {
                             for (const auto &childNode : node->children) {
                                 registry.emplace_or_replace<Canvas::Components::SelectedComponent>(
@@ -101,8 +109,18 @@ namespace Bess::UI {
                     isMultiSelected);
 
                 if (ImGui::BeginDragDropSource()) {
-                    ImGui::SetDragDropPayload("TREE_NODE_PAYLOAD", &node->nodeId, sizeof(uint64_t));
-                    ImGui::Text("Dragging %s", node->label.c_str());
+                    std::vector<uint64_t> payloadData;
+                    selTagGroup.each([&](const entt::entity entity,
+                                         const Canvas::Components::SelectedComponent &,
+                                         const Canvas::Components::TagComponent &) {
+                        const auto selectedNode = state.getNodeFromSceneEntity(entity);
+                        if (selectedNode != nullptr) {
+                            payloadData.emplace_back((uint64_t)selectedNode->nodeId);
+                        }
+                    });
+                    ImGui::SetDragDropPayload("TREE_NODE_PAYLOAD", payloadData.data(),
+                                              payloadData.size() * sizeof(uint64_t));
+                    ImGui::Text("Dragging %lu nodes", payloadData.size());
                     ImGui::EndDragDropSource();
                 }
 
@@ -110,8 +128,10 @@ namespace Bess::UI {
                 node->selected = selTagGroup.contains(entity);
 
                 if (pressed) {
-                    registry.clear<Canvas::Components::SelectedComponent>();
-                    registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
+                    if (selSize == 0) {
+                        registry.clear<Canvas::Components::SelectedComponent>();
+                        registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
+                    }
                 } else if (cbPressed) {
                     if (node->selected) {
                         registry.remove<Canvas::Components::SelectedComponent>(entity);
@@ -202,14 +222,7 @@ namespace Bess::UI {
         if (ImGui::InvisibleButton("project_explorer_root_drop_target", ImVec2(window->Size.x, window->Size.y - startY))) {
         }
 
-        if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("TREE_NODE_PAYLOAD")) {
-                UUID draggedNodeID = *(const UUID *)payload->Data;
-                BESS_TRACE("[ProjectExplorer] Dropped node {} into root", (uint64_t)draggedNodeID);
-                state.moveNode(draggedNodeID, UUID::null);
-            }
-            ImGui::EndDragDropTarget();
-        }
+        DEF_NODE_DROP_TARGET(state.moveNode(id, UUID::null));
 
         if (ImGui::BeginPopupContextWindow()) {
             if (isMultiSelected) {
@@ -346,16 +359,16 @@ namespace Bess::UI {
             drawList->AddRectFilled(bgStart, bgEnd, itemAltBg, 0);
         }
 
-        ImRect rowBB(pos, ImVec2(pos.x + avail.x, pos.y + rowHeight));
+        const ImRect rowBB(pos, ImVec2(pos.x + avail.x, pos.y + rowHeight));
         ImGui::ItemSize(rowBB, g.Style.FramePadding.y);
 
-        ImGuiID nodeId = window->GetID("node");
-        ImGuiID toggleId = window->GetID("toggle");
-        ImGuiID labelId = window->GetID("label");
-        ImGuiID openId = window->GetID("open");
-        ImGuiID editingId = window->GetID("editing");
-        ImGuiID editBufId = window->GetID("edit_buf");
-        ImGuiID prevNameId = window->GetID("prev_name");
+        const ImGuiID nodeId = window->GetID("node");
+        const ImGuiID toggleId = window->GetID("toggle");
+        const ImGuiID labelId = window->GetID("label");
+        const ImGuiID openId = window->GetID("open");
+        const ImGuiID editingId = window->GetID("editing");
+        const ImGuiID editBufId = window->GetID("edit_buf");
+        const ImGuiID prevNameId = window->GetID("prev_name");
 
         // read persistent states from window storage
         ImGuiStorage *st = window->DC.StateStorage;
@@ -532,11 +545,11 @@ namespace Bess::UI {
             }
         }
 
-        ImGui::ItemAdd(rowBB, nodeId);
-
         if (opened) {
             ImGui::TreePush(std::to_string(key).c_str());
         }
+
+        ImGui::ItemAdd(rowBB, nodeId);
 
         ImGui::PopID();
         return opened;
