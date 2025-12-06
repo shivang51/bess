@@ -5,6 +5,7 @@
 #include "scene/components/components.h"
 #include "scene/scene.h"
 #include "ui/icons/FontAwesomeIcons.h"
+#include "ui/ui_main/project_explorer_state.h"
 #include <cstdint>
 #include <memory>
 
@@ -28,12 +29,23 @@ namespace Bess::UI {
         static int i = 0;
         constexpr auto treeIcon = Icons::CodIcons::FOLDER;
 
+        auto scene = Bess::Canvas::Scene::instance();
+        auto &registry = scene->getEnttRegistry();
+
+        const auto view = registry.view<Canvas::Components::TagComponent>();
+        const auto selTagGroup = registry.group<>(entt::get<Canvas::Components::SelectedComponent,
+                                                            Canvas::Components::TagComponent>);
+        const auto selSize = selTagGroup.size();
+
+        const bool isMultiSelected = selSize > 1;
+
         size_t count = 0;
         if (isRoot) {
             i = 0;
         }
 
         std::string icon;
+        std::vector<std::pair<UUID, UUID>> pendingMoves;
         for (auto &node : nodes) {
             count++;
             if (node->isGroup) {
@@ -52,8 +64,7 @@ namespace Bess::UI {
                     if (ImGui::BeginDragDropTarget()) {
                         if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("TREE_NODE_PAYLOAD")) {
                             UUID draggedNodeID = *(const UUID *)payload->Data;
-                            BESS_TRACE("[ProjectExplorer] Dropped node {} into node {}", (uint64_t)draggedNodeID, (uint64_t)node->nodeId);
-                            state.moveNode(draggedNodeID, node->nodeId);
+                            pendingMoves.emplace_back(draggedNodeID, node->nodeId);
                         }
                         ImGui::EndDragDropTarget();
                     }
@@ -65,17 +76,18 @@ namespace Bess::UI {
                     ImGui::TreePop();
                 }
             } else {
-                // if (tagComp.isSimComponent) {
-                //     icon = Common::Helpers::getComponentIcon(tagComp.type.simCompHash);
-                // } else {
-                //     icon = Common::Helpers::getComponentIcon(tagComp.type.nsCompType);
-                // }
+                const auto &tagComp = view.get<Canvas::Components::TagComponent>(node->sceneEntity);
+                if (tagComp.isSimComponent) {
+                    icon = Common::Helpers::getComponentIcon(tagComp.type.simCompHash);
+                } else {
+                    icon = Common::Helpers::getComponentIcon(tagComp.type.nsCompType);
+                }
                 const auto [pressed, cbPressed] = ProjectExplorerNode(
                     i++,
                     node->nodeId,
-                    node->label.c_str(),
+                    (icon + " " + node->label).c_str(),
                     node->selected,
-                    node->multiSelectMode);
+                    isMultiSelected);
 
                 if (ImGui::BeginDragDropSource()) {
                     ImGui::SetDragDropPayload("TREE_NODE_PAYLOAD", &node->nodeId, sizeof(uint64_t));
@@ -83,26 +95,24 @@ namespace Bess::UI {
                     ImGui::EndDragDropSource();
                 }
 
-                //
-                // const bool isSelected = selTagGroup.contains(entity);
-                //
-                // const auto &tagComp = view.get<Canvas::Components::TagComponent>(entity);
-                //
-                // const auto [pressed, cbPressed] = ProjectExplorerNode(i++, (uint64_t)entity,
-                //                                                       (icon + "  " + tagComp.name).c_str(),
-                //                                                       isSelected, isMultiSelected);
-                //
-                // if (pressed) {
-                //     registry.clear<Canvas::Components::SelectedComponent>();
-                //     registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
-                // } else if (cbPressed) {
-                //     if (isSelected) {
-                //         registry.remove<Canvas::Components::SelectedComponent>(entity);
-                //     } else {
-                //         registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
-                //     }
-                // }
+                const auto &entity = node->sceneEntity;
+                node->selected = selTagGroup.contains(entity);
+
+                if (pressed) {
+                    registry.clear<Canvas::Components::SelectedComponent>();
+                    registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
+                } else if (cbPressed) {
+                    if (node->selected) {
+                        registry.remove<Canvas::Components::SelectedComponent>(entity);
+                    } else {
+                        registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
+                    }
+                }
             }
+        }
+
+        for (const auto &[draggedNodeID, newParentID] : pendingMoves) {
+            state.moveNode(draggedNodeID, newParentID);
         }
 
         return count;
@@ -151,10 +161,6 @@ namespace Bess::UI {
             netGroups[tagComp.netId].emplace_back(entity);
         }
 
-        std::string icon;
-        static bool isSelected = false;
-        static std::string name = " New Group";
-
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
         const auto nodesCount = drawNodes(state.nodes, true);
@@ -182,7 +188,7 @@ namespace Bess::UI {
 
         ImGui::PopStyleVar(2);
 
-        if (ImGui::InvisibleButton("project_exploerer_root_drop_target", ImVec2(window->Size.x, window->Size.y - startY))) {
+        if (ImGui::InvisibleButton("project_explorer_root_drop_target", ImVec2(window->Size.x, window->Size.y - startY))) {
         }
 
         if (ImGui::BeginDragDropTarget()) {
@@ -192,6 +198,32 @@ namespace Bess::UI {
                 state.moveNode(draggedNodeID, UUID::null);
             }
             ImGui::EndDragDropTarget();
+        }
+
+        if (ImGui::BeginPopupContextWindow()) {
+            if (isMultiSelected) {
+                if (ImGui::MenuItem("Group Selected", "Ctrl-G")) {
+                    auto groupNode = std::make_shared<UI::ProjectExplorerNode>();
+                    groupNode->isGroup = true;
+                    groupNode->label = "New Group Node";
+                    state.addNode(groupNode);
+
+                    for (const auto &entity : selTagGroup) {
+                        const auto node = state.getNodeFromSceneEntity(entity);
+                        if (node != nullptr) {
+                            state.moveNode(node, groupNode);
+                        }
+                    }
+                }
+            } else {
+                if (ImGui::MenuItem("Create Empty Group", "Ctrl-G")) {
+                    auto groupNode = std::make_shared<UI::ProjectExplorerNode>();
+                    groupNode->isGroup = true;
+                    groupNode->label = "New Group Node";
+                    state.addNode(groupNode);
+                }
+            }
+            ImGui::EndPopup();
         }
         ImGui::End();
     }
@@ -235,17 +267,20 @@ namespace Bess::UI {
 
         ImVec4 bgColor = ImVec4(0, 0, 0, 0);
         if (selected) {
-            bgColor = colors[ImGuiCol_Header];
+            bgColor = colors[ImGuiCol_HeaderActive];
         } else if (hovered || held) {
             bgColor = colors[ImGuiCol_HeaderHovered];
         }
 
-        auto size = bb.Max;
-        size.x += checkboxWidth;
-        if (bgColor.w > 0.0f)
-            drawList->AddRectFilled(bb.Min, size,
-                                    IM_COL32(bgColor.x * 255, bgColor.y * 255, bgColor.z * 255, bgColor.w * 255),
-                                    rounding);
+        if (bgColor.w > 0.0f) {
+            float x = window->Pos.x;
+            float y = pos.y;
+            ImVec2 avail = ImGui::GetContentRegionAvail();
+            ImVec2 bgStart(x, y);
+            ImVec2 bgEnd(x + window->Size.x, y + g.FontSize + (g.Style.FramePadding.y * 2));
+            auto color = IM_COL32(bgColor.x * 255, bgColor.y * 255, bgColor.z * 255, 200);
+            drawList->AddRectFilled(bgStart, bgEnd, color, 0);
+        }
 
         const auto fgColor = colors[ImGuiCol_Text];
 
@@ -287,8 +322,8 @@ namespace Bess::UI {
         ImGui::PushID(key);
 
         const float rowHeight = g.FontSize + (g.Style.FramePadding.y * 2.0f);
-        ImVec2 pos = window->DC.CursorPos;
-        ImVec2 avail = ImGui::GetContentRegionAvail();
+        const ImVec2 pos = window->DC.CursorPos;
+        const ImVec2 avail = ImGui::GetContentRegionAvail();
 
         ImDrawList *drawList = ImGui::GetWindowDrawList();
 
@@ -475,6 +510,8 @@ namespace Bess::UI {
             ImGui::RenderText(labelPos, name.c_str());
         }
 
+        ImGui::ItemAdd(rowBB, nodeId);
+
         if (opened) {
             ImGui::TreePush(std::to_string(key).c_str());
         }
@@ -486,21 +523,5 @@ namespace Bess::UI {
     void ProjectExplorer::firstTime() {
         isfirstTimeDraw = false;
         state.reset();
-        auto groupNode = std::make_shared<UI::ProjectExplorerNode>();
-        groupNode->isGroup = true;
-        groupNode->label = "Default Group";
-        state.addNode(groupNode);
-
-        auto compNode = std::make_shared<UI::ProjectExplorerNode>();
-        compNode->isGroup = false;
-        compNode->label = "Component 1";
-        compNode->parentId = groupNode->nodeId;
-        groupNode->children.emplace_back(compNode);
-        state.addNode(compNode);
-
-        compNode = std::make_shared<UI::ProjectExplorerNode>();
-        compNode->isGroup = false;
-        compNode->label = "Component 2";
-        state.addNode(compNode);
     }
 } // namespace Bess::UI

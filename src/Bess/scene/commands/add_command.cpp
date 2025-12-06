@@ -6,6 +6,7 @@
 #include "commands/commands.h"
 #include "scene/scene_serializer.h"
 #include "simulation_engine.h"
+#include "ui/ui_main/project_explorer.h"
 #include "json/value.h"
 
 namespace Bess::Canvas::Commands {
@@ -56,6 +57,18 @@ namespace Bess::Canvas::Commands {
             i++;
         }
 
+        const auto &reg = scene->getEnttRegistry();
+        auto &state = UI::ProjectExplorer::state;
+        for (auto &id : m_compIds) {
+            auto entity = scene->getEntityWithUuid(id);
+            auto tagComp = reg.get<Components::TagComponent>(entity);
+            auto compNode = std::make_shared<UI::ProjectExplorerNode>();
+            compNode->isGroup = false;
+            compNode->label = tagComp.name;
+            compNode->sceneEntity = entity;
+            state.addNode(compNode);
+        }
+
         return true;
     }
 
@@ -64,6 +77,7 @@ namespace Bess::Canvas::Commands {
         cmdMngr.undo();
 
         auto scene = Scene::instance();
+        auto &state = UI::ProjectExplorer::state;
         for (size_t i = 0; i < m_data.size(); i++) {
             const auto &data = m_data[i];
             auto &compJson = m_compJsons[i];
@@ -71,6 +85,7 @@ namespace Bess::Canvas::Commands {
             SceneSerializer ser;
             ser.serializeEntity(m_compIds[i], compJson);
             scene->deleteSceneEntity(m_compIds[i]);
+            state.removeSceneEnttNode(scene->getEntityWithUuid(m_compIds[i]));
         }
 
         m_redo = true;

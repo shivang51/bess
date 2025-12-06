@@ -7,6 +7,7 @@
 #include "commands/commands.h"
 
 #include "scene/scene_serializer.h"
+#include "ui/ui_main/project_explorer.h"
 #include "json/value.h"
 
 namespace Bess::Canvas::Commands {
@@ -35,6 +36,7 @@ namespace Bess::Canvas::Commands {
             data.compJson.clear();
             ser.serializeEntity(compId, data.compJson);
             scene->deleteSceneEntity(compId);
+            UI::ProjectExplorer::state.removeSceneEnttNode(ent);
         }
 
         if (!m_simEngineComps.empty()) {

@@ -2,6 +2,8 @@
 
 #include "bess_uuid.h"
 #include "common/log.h"
+#include "entt/entity/fwd.hpp"
+#include "entt/entt.hpp"
 #include <algorithm>
 #include <memory>
 #include <string>
@@ -10,13 +12,14 @@
 namespace Bess::UI {
 
     struct ProjectExplorerNode {
-        UUID nodeId;
         bool selected;
         bool multiSelectMode;
         bool isGroup = false;
+        UUID nodeId;
+        UUID parentId = UUID::null;
+        entt::entity sceneEntity = entt::null;
         std::string label;
         std::vector<std::shared_ptr<ProjectExplorerNode>> children;
-        UUID parentId = UUID::null;
     };
 
     class ProjectExplorerState {
@@ -27,14 +30,51 @@ namespace Bess::UI {
         void reset() {
             nodes.clear();
             nodesLookup.clear();
+            enttNodesLookup.clear();
         }
 
         void addNode(const std::shared_ptr<ProjectExplorerNode> &node) {
             nodesLookup[node->nodeId] = node;
 
+            if (node->sceneEntity != entt::null) {
+                enttNodesLookup[node->sceneEntity] = node;
+            }
+
             if (node->parentId == UUID::null) {
                 nodes.emplace_back(node);
             }
+        }
+
+        void removeSceneEnttNode(entt::entity sceneEntity) {
+            auto it = enttNodesLookup.find(sceneEntity);
+            if (it != enttNodesLookup.end()) {
+                auto node = it->second;
+                nodesLookup.erase(node->nodeId);
+                enttNodesLookup.erase(it);
+
+                if (node->parentId != UUID::null) {
+                    auto parentIt = nodesLookup.find(node->parentId);
+                    if (parentIt != nodesLookup.end()) {
+                        auto &parentChildren = parentIt->second->children;
+                        const auto [first, last] = std::ranges::remove_if(
+                            parentChildren,
+                            [&](auto &f) { return f->nodeId == node->nodeId; });
+                        parentChildren.erase(first, last);
+                    }
+                } else {
+                    const auto [first, last] = std::ranges::remove_if(nodes,
+                                                                      [&](auto &f) { return f->nodeId == node->nodeId; });
+                    nodes.erase(first, last);
+                }
+            }
+        }
+
+        std::shared_ptr<ProjectExplorerNode> getNodeFromSceneEntity(entt::entity sceneEntity) {
+            auto it = enttNodesLookup.find(sceneEntity);
+            if (it != enttNodesLookup.end()) {
+                return it->second;
+            }
+            return nullptr;
         }
 
         void moveNode(UUID node, UUID newParent) {
@@ -72,6 +112,7 @@ namespace Bess::UI {
         }
 
         std::unordered_map<UUID, std::shared_ptr<ProjectExplorerNode>> nodesLookup;
+        std::unordered_map<entt::entity, std::shared_ptr<ProjectExplorerNode>> enttNodesLookup;
         std::vector<std::shared_ptr<ProjectExplorerNode>> nodes;
     };
 } // namespace Bess::UI
