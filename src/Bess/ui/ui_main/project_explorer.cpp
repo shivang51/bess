@@ -3,6 +3,7 @@
 #include "common/log.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "scene/commands/delete_comp_command.h"
 #include "scene/components/components.h"
 #include "scene/scene.h"
 #include "ui/icons/FontAwesomeIcons.h"
@@ -60,19 +61,19 @@ namespace Bess::UI {
     void ProjectExplorer::selectRange(int start, int end) {
         auto scene = Bess::Canvas::Scene::instance();
         auto &registry = scene->getEnttRegistry();
-        
+
         clearAllSelections();
 
-        std::function<void(std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &)> traverse = 
+        std::function<void(std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &)> traverse =
             [&](std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &nodes) {
                 for (auto &node : nodes) {
                     if (node->visibleIndex >= start && node->visibleIndex <= end) {
                         node->selected = true;
                         if (!node->isGroup) {
-                             registry.emplace_or_replace<Canvas::Components::SelectedComponent>(node->sceneEntity);
+                            registry.emplace_or_replace<Canvas::Components::SelectedComponent>(node->sceneEntity);
                         }
                     }
-                    if (node->isGroup && !node->children.empty()) { 
+                    if (node->isGroup && !node->children.empty()) {
                         traverse(node->children);
                     }
                 }
@@ -102,6 +103,7 @@ namespace Bess::UI {
 
         std::string icon;
         std::vector<std::pair<UUID, UUID>> pendingMoves;
+        std::vector<std::shared_ptr<UI::ProjectExplorerNode>> pendingDeletes;
         for (auto &node : nodes) {
             count++;
             node->visibleIndex = i; // Track visible index for shift-selection
@@ -124,11 +126,13 @@ namespace Bess::UI {
 
                 if (ImGui::BeginPopup(nodePopupName)) {
                     if (ImGui::MenuItemEx("Select All", "", "", false, true)) {
-                        for (const auto &childNode : node->children) {
-                            registry.emplace_or_replace<Canvas::Components::SelectedComponent>(
-                                childNode->sceneEntity);
-                        }
+                        selectNode(node);
                     }
+
+                    if (ImGui::MenuItemEx("Delete", "", "", false, true)) {
+                        pendingDeletes.emplace_back(node);
+                    }
+
                     ImGui::EndPopup();
                 }
 
@@ -220,22 +224,16 @@ namespace Bess::UI {
                     lastSelectedIndex = currentIndex;
                 }
             } else {
-                // Handle mouse release for exclusive selection on already selected items (if not dragged)
                 bool released = false;
-                // Since we can't easily check "Released on this specific item" here without storing ID or checking immediately after draw...
-                // Actually, we can check ImGui::IsMouseReleased(0) and ImGui::IsItemHovered() if we just drew it.
-                // BUT node drawing was inside the if/else block above.
-                // We need to check hovered state.
-                // ProjectExplorerNode and EditableTreeNode don't expose hovered state directly but they add the Item.
-                // So ImGui::IsItemHovered() should be valid here for the last item added (the node).
-                // Note: EditableTreeNode adds multiple items, but the rowBB is the last one added if not editing.
-                
-                if (ImGui::IsMouseReleased(0) && ImGui::IsItemHovered(ImGuiHoveredFlags_None) && !ImGui::IsMouseDragging(0)) {
+
+                if (ImGui::IsMouseReleased(0) &&
+                    ImGui::IsItemHovered(ImGuiHoveredFlags_None) &&
+                    !ImGui::IsMouseDragging(0)) {
                     released = true;
                 }
 
                 if (released && !ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyShift) {
-                     if (node->selected) {
+                    if (node->selected) {
                         clearAllSelections();
                         if (node->isGroup) {
                             node->selected = true;
@@ -243,13 +241,17 @@ namespace Bess::UI {
                             registry.emplace_or_replace<Canvas::Components::SelectedComponent>(node->sceneEntity);
                         }
                         lastSelectedIndex = i - 1;
-                     }
+                    }
                 }
             }
         }
 
         for (const auto &[draggedNodeID, newParentID] : pendingMoves) {
             state.moveNode(draggedNodeID, newParentID);
+        }
+
+        for (const auto &node : pendingDeletes) {
+            deleteNode(node);
         }
 
         return count;
@@ -353,6 +355,7 @@ namespace Bess::UI {
                     state.addNode(groupNode);
                 }
             }
+
             ImGui::EndPopup();
         }
         ImGui::End();
@@ -652,5 +655,48 @@ namespace Bess::UI {
     void ProjectExplorer::firstTime() {
         isfirstTimeDraw = false;
         state.reset();
+    }
+
+    void ProjectExplorer::selectNode(const std::shared_ptr<UI::ProjectExplorerNode> &node) {
+        auto scene = Bess::Canvas::Scene::instance();
+        auto &registry = scene->getEnttRegistry();
+
+        if (node->isGroup) {
+            for (const auto &childNode : node->children) {
+                selectNode(childNode);
+            }
+        } else {
+            registry.emplace_or_replace<Canvas::Components::SelectedComponent>(node->sceneEntity);
+        }
+    }
+
+    void ProjectExplorer::deleteNode(const std::shared_ptr<UI::ProjectExplorerNode> &node, bool firstCall) {
+        static std::vector<UUID> entitesToDel;
+
+        if (firstCall) {
+            entitesToDel.clear();
+        }
+
+        if (node->isGroup) {
+            for (const auto &childNode : node->children) {
+                if (!childNode)
+                    continue;
+                deleteNode(childNode, false);
+            }
+        } else {
+            auto scene = Bess::Canvas::Scene::instance();
+            auto &registry = scene->getEnttRegistry();
+            entitesToDel.emplace_back(scene->getUuidOfEntity(node->sceneEntity));
+        }
+
+        if (firstCall) {
+            auto scene = Bess::Canvas::Scene::instance();
+            auto &registry = scene->getEnttRegistry();
+            auto &cmdMgr = scene->getCmdManager();
+            auto _ = cmdMgr.execute<Canvas::Commands::DeleteCompCommand,
+                                    std::string>(entitesToDel);
+            entitesToDel.clear();
+            state.removeNode(node);
+        }
     }
 } // namespace Bess::UI

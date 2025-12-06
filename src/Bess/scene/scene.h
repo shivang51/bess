@@ -111,12 +111,11 @@ namespace Bess::Canvas {
         void toggleSchematicView();
 
         std::shared_ptr<ArtistManager> getArtistManager();
+        const UUID &getUuidOfEntity(entt::entity ent) const;
 
       private:
         /// to draw testing stuff
         void drawScratchContent(TFrameTime ts, const std::shared_ptr<Viewport> &viewport);
-
-        const UUID &getUuidOfEntity(entt::entity ent) const;
 
         // gets entity from scene that has reference to passed simulation engine uuid
         entt::entity getSceneEntityFromSimUuid(const UUID &uuid) const;

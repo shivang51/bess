@@ -50,23 +50,29 @@ namespace Bess::UI {
             auto it = enttNodesLookup.find(sceneEntity);
             if (it != enttNodesLookup.end()) {
                 auto node = it->second;
-                nodesLookup.erase(node->nodeId);
-                enttNodesLookup.erase(it);
+                removeNode(node);
+            }
+        }
 
-                if (node->parentId != UUID::null) {
-                    auto parentIt = nodesLookup.find(node->parentId);
-                    if (parentIt != nodesLookup.end()) {
-                        auto &parentChildren = parentIt->second->children;
-                        const auto [first, last] = std::ranges::remove_if(
-                            parentChildren,
-                            [&](auto &f) { return f->nodeId == node->nodeId; });
-                        parentChildren.erase(first, last);
-                    }
-                } else {
-                    const auto [first, last] = std::ranges::remove_if(nodes,
-                                                                      [&](auto &f) { return f->nodeId == node->nodeId; });
-                    nodes.erase(first, last);
+        void removeNode(const std::shared_ptr<ProjectExplorerNode> &node) {
+            nodesLookup.erase(node->nodeId);
+            if (node->sceneEntity != entt::null) {
+                enttNodesLookup.erase(node->sceneEntity);
+            }
+
+            if (node->parentId != UUID::null) {
+                auto parentIt = nodesLookup.find(node->parentId);
+                if (parentIt != nodesLookup.end()) {
+                    auto &parentChildren = parentIt->second->children;
+                    const auto [first, last] = std::ranges::remove_if(
+                        parentChildren,
+                        [&](auto &f) { return f->nodeId == node->nodeId; });
+                    parentChildren.erase(first, last);
                 }
+            } else {
+                const auto [first, last] = std::ranges::remove_if(nodes,
+                                                                  [&](auto &f) { return f->nodeId == node->nodeId; });
+                nodes.erase(first, last);
             }
         }
 
@@ -88,8 +94,22 @@ namespace Bess::UI {
         void moveNode(std::shared_ptr<ProjectExplorerNode> node, const std::shared_ptr<ProjectExplorerNode> &newParent) {
             BESS_ASSERT(node != nullptr, "node is null");
 
-            if (node->parentId != UUID::null) {
-                auto oldParentIt = nodesLookup.find(node->parentId);
+            if (node->parentId == (newParent ? newParent->nodeId : UUID::null)) {
+                return; // No change
+            }
+
+            auto prevParentId = node->parentId;
+
+            if (newParent != nullptr) {
+                newParent->children.emplace_back(node);
+                node->parentId = newParent->nodeId;
+            } else {
+                nodes.emplace_back(node);
+                node->parentId = UUID::null;
+            }
+
+            if (prevParentId != UUID::null) {
+                auto oldParentIt = nodesLookup.find(prevParentId);
                 if (oldParentIt != nodesLookup.end()) {
                     auto &oldParentChildren = oldParentIt->second->children;
                     const auto [first, last] = std::ranges::remove_if(
@@ -101,14 +121,6 @@ namespace Bess::UI {
                 const auto [first, last] = std::ranges::remove_if(nodes,
                                                                   [&](auto &f) { return f->nodeId == node->nodeId; });
                 nodes.erase(first, last);
-            }
-
-            if (newParent != nullptr) {
-                newParent->children.emplace_back(node);
-                node->parentId = newParent->nodeId;
-            } else {
-                nodes.emplace_back(node);
-                node->parentId = UUID::null;
             }
         }
 
