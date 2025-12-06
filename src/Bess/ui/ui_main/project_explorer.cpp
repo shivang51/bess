@@ -54,7 +54,7 @@ namespace Bess::UI {
                                      node->selected,
                                      ImGuiTreeNodeFlags_DefaultOpen |
                                          ImGuiTreeNodeFlags_DrawLinesFull,
-                                     treeIcon, ViewportTheme::colors.selectedWire)) {
+                                     treeIcon, ViewportTheme::colors.selectedWire, "node_popup")) {
                     if (ImGui::BeginDragDropSource()) {
                         ImGui::SetDragDropPayload("TREE_NODE_PAYLOAD", (void *)(&node->nodeId), sizeof(node->nodeId));
                         ImGui::Text("Dragging %s with id %lu", node->label.c_str(), (uint64_t)node->nodeId);
@@ -73,8 +73,19 @@ namespace Bess::UI {
                         count += drawNodes(node->children);
                     }
 
+                    if (ImGui::BeginPopup("node_popup")) {
+                        if (ImGui::MenuItemEx("Select All", "", "", false, true)) {
+                            for (const auto &childNode : node->children) {
+                                registry.emplace_or_replace<Canvas::Components::SelectedComponent>(
+                                    childNode->sceneEntity);
+                            }
+                        }
+                        ImGui::EndPopup();
+                    }
+
                     ImGui::TreePop();
                 }
+
             } else {
                 const auto &tagComp = view.get<Canvas::Components::TagComponent>(node->sceneEntity);
                 if (tagComp.isSimComponent) {
@@ -312,7 +323,8 @@ namespace Bess::UI {
         bool &selected,
         ImGuiTreeNodeFlags treeFlags,
         const std::string &icon,
-        glm::vec4 iconColor) {
+        glm::vec4 iconColor,
+        const std::string &popupName) {
 
         ImGuiContext &g = *ImGui::GetCurrentContext();
         ImGuiWindow *window = g.CurrentWindow;
@@ -355,7 +367,9 @@ namespace Bess::UI {
 
         // Draw selected / hovered background
         if (selected || rowHovered) {
-            ImU32 bg = selected ? ImGui::GetColorU32(ImGuiCol_HeaderActive) : ImGui::GetColorU32(ImGuiCol_HeaderHovered);
+            ImU32 bg = selected
+                           ? ImGui::GetColorU32(ImGuiCol_HeaderActive)
+                           : ImGui::GetColorU32(ImGuiCol_HeaderHovered);
             window->DrawList->AddRectFilled(rowBB.Min, rowBB.Max, bg, g.Style.FrameRounding);
         }
 
@@ -508,6 +522,14 @@ namespace Bess::UI {
             }
         } else { // Normal label rendering
             ImGui::RenderText(labelPos, name.c_str());
+        }
+
+        if (rowHovered) {
+            ImGui::SameLine();
+            ImGui::SetCursorPosX(rowBB.Max.x - g.FontSize - g.Style.FramePadding.x);
+            if (ImGui::SmallButton(Icons::FontAwesomeIcons::FA_ELLIPSIS_V)) {
+                ImGui::OpenPopup(popupName.c_str());
+            }
         }
 
         ImGui::ItemAdd(rowBB, nodeId);
