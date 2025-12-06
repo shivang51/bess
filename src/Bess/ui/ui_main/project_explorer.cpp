@@ -38,6 +38,48 @@ namespace Bess::UI {
         return 0;
     }
 
+    int ProjectExplorer::lastSelectedIndex = -1;
+
+    void ProjectExplorer::clearAllSelections() {
+        auto scene = Bess::Canvas::Scene::instance();
+        auto &registry = scene->getEnttRegistry();
+        registry.clear<Canvas::Components::SelectedComponent>();
+
+        std::function<void(std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &)> clearNodes =
+            [&](std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &nodes) {
+                for (auto &node : nodes) {
+                    node->selected = false;
+                    if (!node->children.empty()) {
+                        clearNodes(node->children);
+                    }
+                }
+            };
+        clearNodes(state.nodes);
+    }
+
+    void ProjectExplorer::selectRange(int start, int end) {
+        auto scene = Bess::Canvas::Scene::instance();
+        auto &registry = scene->getEnttRegistry();
+        
+        clearAllSelections();
+
+        std::function<void(std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &)> traverse = 
+            [&](std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &nodes) {
+                for (auto &node : nodes) {
+                    if (node->visibleIndex >= start && node->visibleIndex <= end) {
+                        node->selected = true;
+                        if (!node->isGroup) {
+                             registry.emplace_or_replace<Canvas::Components::SelectedComponent>(node->sceneEntity);
+                        }
+                    }
+                    if (node->isGroup && !node->children.empty()) { 
+                        traverse(node->children);
+                    }
+                }
+            };
+        traverse(state.nodes);
+    }
+
     size_t ProjectExplorer::drawNodes(std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &nodes, bool isRoot) {
         static int i = 0;
         constexpr auto treeIcon = Icons::CodIcons::FOLDER;
@@ -62,15 +104,21 @@ namespace Bess::UI {
         std::vector<std::pair<UUID, UUID>> pendingMoves;
         for (auto &node : nodes) {
             count++;
+            node->visibleIndex = i; // Track visible index for shift-selection
+            bool clicked = false;
+            bool opened = false;
+
             if (node->isGroup) {
-                const bool opened = EditableTreeNode(i++,
-                                                     node->label,
-                                                     node->selected,
-                                                     ImGuiTreeNodeFlags_DefaultOpen |
-                                                         ImGuiTreeNodeFlags_DrawLinesFull,
-                                                     treeIcon,
-                                                     ViewportTheme::colors.selectedWire,
-                                                     nodePopupName, node->nodeId);
+                const auto ret = EditableTreeNode(i++,
+                                                  node->label,
+                                                  node->selected,
+                                                  ImGuiTreeNodeFlags_DefaultOpen |
+                                                      ImGuiTreeNodeFlags_DrawLinesFull,
+                                                  treeIcon,
+                                                  ViewportTheme::colors.selectedWire,
+                                                  nodePopupName, node->nodeId);
+                opened = ret.first;
+                clicked = ret.second;
 
                 DEF_NODE_DROP_TARGET(pendingMoves.emplace_back(id, node->nodeId));
 
@@ -105,6 +153,7 @@ namespace Bess::UI {
                     (icon + " " + node->label).c_str(),
                     node->selected,
                     isMultiSelected);
+                clicked = pressed;
 
                 if (ImGui::BeginDragDropSource()) {
                     std::vector<uint64_t> payloadData;
@@ -125,17 +174,76 @@ namespace Bess::UI {
                 const auto &entity = node->sceneEntity;
                 node->selected = selTagGroup.contains(entity);
 
-                if (pressed) {
-                    if (selSize == 0) {
-                        registry.clear<Canvas::Components::SelectedComponent>();
-                        registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
-                    }
-                } else if (cbPressed) {
+                if (cbPressed) {
                     if (node->selected) {
                         registry.remove<Canvas::Components::SelectedComponent>(entity);
                     } else {
                         registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
                     }
+                    // Checkbox interaction counts as selecting
+                    lastSelectedIndex = i - 1;
+                }
+            }
+
+            if (clicked) {
+                int currentIndex = i - 1; // i was incremented
+                const bool ctrl = ImGui::GetIO().KeyCtrl;
+                const bool shift = ImGui::GetIO().KeyShift;
+
+                if (shift && lastSelectedIndex != -1) {
+                    int start = std::min(lastSelectedIndex, currentIndex);
+                    int end = std::max(lastSelectedIndex, currentIndex);
+                    selectRange(start, end);
+                } else if (ctrl) {
+                    // Toggle selection
+                    if (node->isGroup) {
+                        node->selected = !node->selected;
+                    } else {
+                        const auto &entity = node->sceneEntity;
+                        if (node->selected) {
+                            registry.remove<Canvas::Components::SelectedComponent>(entity);
+                        } else {
+                            registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
+                        }
+                    }
+                    lastSelectedIndex = currentIndex;
+                } else {
+                    // Exclusive selection - but handle multi-select drag
+                    if (!node->selected) {
+                        clearAllSelections();
+                        if (node->isGroup) {
+                            node->selected = true;
+                        } else {
+                            registry.emplace_or_replace<Canvas::Components::SelectedComponent>(node->sceneEntity);
+                        }
+                    }
+                    lastSelectedIndex = currentIndex;
+                }
+            } else {
+                // Handle mouse release for exclusive selection on already selected items (if not dragged)
+                bool released = false;
+                // Since we can't easily check "Released on this specific item" here without storing ID or checking immediately after draw...
+                // Actually, we can check ImGui::IsMouseReleased(0) and ImGui::IsItemHovered() if we just drew it.
+                // BUT node drawing was inside the if/else block above.
+                // We need to check hovered state.
+                // ProjectExplorerNode and EditableTreeNode don't expose hovered state directly but they add the Item.
+                // So ImGui::IsItemHovered() should be valid here for the last item added (the node).
+                // Note: EditableTreeNode adds multiple items, but the rowBB is the last one added if not editing.
+                
+                if (ImGui::IsMouseReleased(0) && ImGui::IsItemHovered(ImGuiHoveredFlags_None) && !ImGui::IsMouseDragging(0)) {
+                    released = true;
+                }
+
+                if (released && !ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyShift) {
+                     if (node->selected) {
+                        clearAllSelections();
+                        if (node->isGroup) {
+                            node->selected = true;
+                        } else {
+                            registry.emplace_or_replace<Canvas::Components::SelectedComponent>(node->sceneEntity);
+                        }
+                        lastSelectedIndex = i - 1;
+                     }
                 }
             }
         }
@@ -328,7 +436,7 @@ namespace Bess::UI {
         return {pressed, cbPressed};
     }
 
-    bool ProjectExplorer::EditableTreeNode(
+    std::pair<bool, bool> ProjectExplorer::EditableTreeNode(
         uint64_t key,
         std::string &name,
         bool &selected,
@@ -340,8 +448,6 @@ namespace Bess::UI {
 
         ImGuiContext &g = *ImGui::GetCurrentContext();
         ImGuiWindow *window = g.CurrentWindow;
-        if (!window)
-            return false;
 
         ImGui::PushID(key);
 
@@ -452,6 +558,8 @@ namespace Bess::UI {
             }
         }
 
+        bool clicked = false;
+
         if (editing) {
             std::string *editBuf = (std::string *)st->GetVoidPtr(editBufId);
             if (!editBuf) {
@@ -515,13 +623,8 @@ namespace Bess::UI {
                                                ImGuiButtonFlags_PressedOnClick | ImGuiButtonFlags_AllowOverlap);
 
             if (rowPressed) {
-                selected = true;
                 ImGui::SetItemDefaultFocus();
-            }
-
-            // Click elsewhere to deselect
-            if (ImGui::IsMouseClicked(0) && !rowHovered && !toggleHovered) {
-                selected = false;
+                clicked = true;
             }
         }
 
@@ -543,7 +646,7 @@ namespace Bess::UI {
         }
 
         ImGui::PopID();
-        return opened;
+        return {opened, clicked};
     }
 
     void ProjectExplorer::firstTime() {

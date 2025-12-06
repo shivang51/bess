@@ -25,7 +25,7 @@ namespace Bess::UI {
                                                          bool selected,
                                                          bool multiSelectMode);
 
-        static bool EditableTreeNode(uint64_t key,
+        static std::pair<bool, bool> EditableTreeNode(uint64_t key,
                                      std::string &name,
                                      bool &selected,
                                      ImGuiTreeNodeFlags treeFlags,
@@ -36,8 +36,11 @@ namespace Bess::UI {
         static void firstTime();
         static size_t drawNodes(std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &nodes,
                                 bool isRoot = false);
+        static void clearAllSelections();
+        static void selectRange(int start, int end);
 
         static bool isfirstTimeDraw;
         static ImColor itemAltBg;
+        static int lastSelectedIndex;
     };
 } // namespace Bess::UI

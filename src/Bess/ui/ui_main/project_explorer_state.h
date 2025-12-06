@@ -20,6 +20,7 @@ namespace Bess::UI {
         entt::entity sceneEntity = entt::null;
         std::string label;
         std::vector<std::shared_ptr<ProjectExplorerNode>> children;
+        int visibleIndex = -1;
     };
 
     class ProjectExplorerState {
