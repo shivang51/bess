@@ -1,11 +1,9 @@
 #pragma once
 
 #include "common/helpers.h"
-#include "imgui.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/ui_main/project_explorer_state.h"
 #include <cstdint>
-#include <string>
 #include <vector>
 
 namespace Bess::UI {

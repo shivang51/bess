@@ -3,17 +3,13 @@
 #include "common/log.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "scene/scene_pch.h"
 #include "simulation_engine.h"
 #include "stb_image_write.h"
-#include "ui/icons/MaterialIcons.h"
 #include "ui/ui_main/scene_export_window.h"
 #include "ui/widgets/m_widgets.h"
-#include <ranges>
 #include <string>
 
 #include "pages/main_page/main_page_state.h"
-#include "scene/camera.h"
 #include "scene/scene.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/ui_main/component_explorer.h"
@@ -53,7 +49,7 @@ namespace Bess::UI {
     }
 
     void UIMain::setViewportTexture(const uint64_t texture) {
-        state.viewportTexture = texture;
+        state.mainViewport.setViewportTexture(texture);
     }
 
     ImVec2 getTextSize(const std::string &text, const bool includePadding = true) {
@@ -260,217 +256,10 @@ namespace Bess::UI {
     }
 
     /// will change when moving to multiple viewports
+    /// need to think about scenes and viewports
+    /// what does each actually mean, own and represent
     void UIMain::drawViewport() {
-        const ImGuiWindowFlags flags =
-            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
-            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
-            ImGuiWindowFlags_NoDecoration;
-
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-        ImGui::SetNextWindowSizeConstraints({400.f, 400.f}, {-1.f, -1.f});
-
-        ImGui::Begin("Viewport", nullptr, flags);
-
-        auto viewportPanelSize = ImGui::GetContentRegionAvail();
-        state.viewportSize = {viewportPanelSize.x, viewportPanelSize.y};
-
-        const auto offset = ImGui::GetCursorPos();
-        if (state.viewportTexture) {
-            ImGui::Image((void *)state.viewportTexture,
-                         ImVec2(viewportPanelSize.x, viewportPanelSize.y), ImVec2(0, 1),
-                         ImVec2(1, 0));
-        } else {
-            ImGui::SetCursorPos({100, 100});
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));
-            ImGui::Text("No valid scene texture attached.");
-            ImGui::PopStyleColor();
-        }
-
-        const auto pos = ImGui::GetWindowPos();
-        const auto gPos = ImGui::GetMainViewport()->Pos;
-        state.viewportPos = {pos.x - gPos.x + offset.x, pos.y - gPos.y + offset.y};
-
-        state.viewportEventFlag = ImGui::IsWindowHovered();
-
-        ImGui::End();
-        ImGui::PopStyleVar();
-
-        // top left actions
-        {
-            const ImGuiContext &g = *ImGui::GetCurrentContext();
-            const auto colors = g.Style.Colors;
-            auto &simEngine = SimEngine::SimulationEngine::instance();
-            static float checkboxWidth = ImGui::CalcTextSize("W").x + g.Style.FramePadding.x + 2.f;
-            static float size = ImGui::CalcTextSize("Schematic Mode").x + checkboxWidth + 12.f;
-            ImGui::SetNextWindowPos({pos.x + g.Style.FramePadding.x, pos.y + g.Style.FramePadding.y});
-            ImGui::SetNextWindowSize({size, 0});
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
-
-            auto col = colors[ImGuiCol_Header];
-            col.w = 0.1f;
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, col);
-            ImGui::Begin("TopLeftViewportActions", nullptr, flags);
-            ImGui::Text("Schematic Mode");
-            ImGui::SameLine();
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-            ImGui::Checkbox("##CheckBoxSchematicMode", Canvas::Scene::instance()->getIsSchematicViewPtr());
-            ImGui::PopStyleVar();
-            ImGui::End();
-            ImGui::PopStyleVar(2);
-            ImGui::PopStyleColor(1);
-        }
-
-        // actions (on top right)
-        {
-
-            const ImGuiContext &g = *ImGui::GetCurrentContext();
-            const auto colors = g.Style.Colors;
-            auto &simEngine = SimEngine::SimulationEngine::instance();
-            static int n = 4; // number of action buttons
-            static float size = (32 * n) - (n - 1);
-            ImGui::SetNextWindowPos(
-                {pos.x + viewportPanelSize.x - size - g.Style.FramePadding.x,
-                 pos.y + g.Style.FramePadding.y});
-            ImGui::SetNextWindowSize({size, 0});
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
-
-            auto col = colors[ImGuiCol_Header];
-            col.w = 0.5;
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, col);
-            ImGui::Begin("TopRightViewportActions", nullptr, flags);
-
-            auto scene = Canvas::Scene::instance();
-
-            // scene modes
-            {
-
-                const bool isGeneral = scene->getSceneMode() == Canvas::SceneMode::general;
-
-                // general mode
-                if (isGeneral) {
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.f, 0.667f, 0.f, 1.f});
-                }
-
-                auto icon = Icons::FontAwesomeIcons::FA_MOUSE_POINTER;
-                if (ImGui::Button(icon)) {
-                    scene->setSceneMode(Canvas::SceneMode::general);
-                }
-                if (isGeneral) {
-                    ImGui::PopStyleColor();
-                }
-
-                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                }
-
-                // move mode
-                if (!isGeneral) {
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.f, 0.667f, 0.f, 1.f});
-                }
-                ImGui::SameLine();
-                icon = Icons::FontAwesomeIcons::FA_ARROWS_ALT;
-                if (ImGui::Button(icon)) {
-                    scene->setSceneMode(Canvas::SceneMode::move);
-                }
-
-                if (!isGeneral) {
-                    ImGui::PopStyleColor();
-                }
-
-                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                    const auto msg = "Move Mode";
-                    ImGui::SetTooltip("%s", msg);
-                }
-            }
-
-            const auto isSimPaused = simEngine.getSimulationState() == SimEngine::SimulationState::paused;
-
-            // Play / Pause
-            {
-
-                auto icon = Icons::FontAwesomeIcons::FA_PAUSE;
-                if (isSimPaused) {
-                    // #574735
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.f, 0.667f, 0.f, 1.f});
-                    icon = Icons::FontAwesomeIcons::FA_PLAY;
-                }
-
-                ImGui::SameLine();
-                if (ImGui::Button(icon)) {
-                    simEngine.toggleSimState();
-                }
-
-                if (isSimPaused)
-                    ImGui::PopStyleColor();
-
-                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                    const auto msg = isSimPaused ? "Resume Simulation" : "Pause Simulation";
-                    ImGui::SetTooltip("%s", msg);
-                }
-            }
-
-            ImGui::SameLine();
-
-            // Step when paused
-            {
-                ImGui::BeginDisabled(!isSimPaused);
-
-                if (ImGui::Button(Icons::MaterialIcons::REDO)) {
-                    simEngine.stepSimulation();
-                }
-
-                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                    ImGui::SetTooltip("%s", "Step");
-                }
-                ImGui::EndDisabled();
-            }
-
-            ImGui::End();
-            ImGui::PopStyleVar(2);
-            ImGui::PopStyleColor(1);
-        }
-
-        // Camera controls (on bottom right)
-        {
-            const auto &mousePos = Canvas::Scene::instance()->getSceneMousePos();
-            const auto posLabel = std::format("X:{:.2f}, Y:{:.2f}", mousePos.x, mousePos.y);
-            const auto posLabelCStr = posLabel.c_str();
-            const auto posLabelSize = ImGui::CalcTextSize(posLabelCStr);
-            ImGui::SetNextWindowPos(
-                {pos.x + viewportPanelSize.x - 208 - posLabelSize.x,
-                 pos.y + viewportPanelSize.y - 40});
-            ImGui::SetNextWindowBgAlpha(0.f);
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
-
-            ImGui::Begin("SceneBottomRightControls", nullptr, flags);
-            // Mouse Pos
-            {
-                ImGui::Text("%s", posLabelCStr);
-                ImGui::SameLine();
-            }
-
-            ImGui::SameLine();
-
-            // Zoom Slider
-            {
-                const auto &camera = Canvas::Scene::instance()->getCamera();
-                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8);
-                ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 8);
-                ImGui::SetNextItemWidth(150.0f);
-                if (ImGui::SliderFloat("Zoom", &camera->getZoomRef(), Camera::zoomMin,
-                                       Camera::zoomMax, nullptr,
-                                       ImGuiSliderFlags_AlwaysClamp)) {
-                    const float stepSize = 0.1f;
-                    const float val = roundf(camera->getZoom() / stepSize) * stepSize;
-                    camera->setZoom(val);
-                }
-                ImGui::PopStyleVar(2);
-            }
-            ImGui::End();
-            ImGui::PopStyleVar(2);
-        }
+        state.mainViewport.draw();
     }
 
     void UIMain::resetDockspace() {
@@ -486,7 +275,7 @@ namespace Bess::UI {
         const auto dock_id_right_bot = ImGui::DockBuilderSplitNode(dock_id_right, ImGuiDir_Down, 0.5f, nullptr, &dock_id_right);
 
         // ImGui::DockBuilderDockWindow(ComponentExplorer::windowName.data(), dock_id_left);
-        ImGui::DockBuilderDockWindow("Viewport", mainDockspaceId);
+        ImGui::DockBuilderDockWindow("MainViewport", mainDockspaceId);
         ImGui::DockBuilderDockWindow(ProjectExplorer::windowName.data(), dock_id_left);
         ImGui::DockBuilderDockWindow(PropertiesPanel::windowName.data(), dock_id_right);
         ImGui::DockBuilderDockWindow(GraphViewWindow::windowName.data(), dock_id_bot);

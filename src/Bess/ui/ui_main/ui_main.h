@@ -3,6 +3,7 @@
 #include "fwd.hpp"
 #include "pages/main_page/main_page_state.h"
 #include "scene/camera.h"
+#include "ui/ui_main/scene_viewport.h"
 
 namespace Bess::UI {
 
@@ -14,10 +15,7 @@ namespace Bess::UI {
     };
 
     struct UIState {
-        glm::vec2 viewportSize = {800, 500};
-        glm::vec2 viewportPos = {0, 0};
-        std::uint64_t viewportTexture = 0;
-        bool viewportEventFlag = false;
+        SceneViewport mainViewport{"MainViewport"};
         InternalData _internalData;
     };
 

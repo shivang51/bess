@@ -261,7 +261,8 @@ namespace Bess::Canvas {
         //
         {
             auto mousePos_ = m_mousePos;
-            mousePos_.y = UI::UIMain::state.viewportSize.y - mousePos_.y;
+            const auto &viewportSize = UI::UIMain::state.mainViewport.getViewportSize();
+            mousePos_.y = viewportSize.y - mousePos_.y;
             int x = static_cast<int>(mousePos_.x);
             int y = static_cast<int>(mousePos_.y);
             if (m_selectInSelectionBox) {
@@ -273,7 +274,7 @@ namespace Bess::Canvas {
                 int w = (int)size.x;
                 int h = (int)size.y;
                 int x = (int)pos.x;
-                int y = (int)(UI::UIMain::state.viewportSize.y - pos.y);
+                int y = (int)(viewportSize.y - pos.y);
                 m_viewport->setPickingCoord(x, y, w, h);
                 m_selectInSelectionBox = false;
                 m_getIdsInSelBox = true;
@@ -589,13 +590,13 @@ namespace Bess::Canvas {
     }
 
     void Scene::resize(const glm::vec2 &size) {
-        m_size = UI::UIMain::state.viewportSize;
+        m_size = UI::UIMain::state.mainViewport.getViewportSize();
         m_viewport->resize(vec2Extent2D(m_size));
         m_camera->resize(m_size.x, m_size.y);
     }
 
     glm::vec2 Scene::getViewportMousePos(const glm::vec2 &mousePos) const {
-        const auto &viewportPos = UI::UIMain::state.viewportPos;
+        const auto &viewportPos = UI::UIMain::state.mainViewport.getViewportPos();
         auto x = mousePos.x - viewportPos.x;
         auto y = mousePos.y - viewportPos.y;
         return {x, y};
@@ -714,7 +715,8 @@ namespace Bess::Canvas {
 
         {
             auto mousePos_ = m_mousePos;
-            mousePos_.y = UI::UIMain::state.viewportSize.y - mousePos_.y;
+            const auto &viewportSize = UI::UIMain::state.mainViewport.getViewportSize();
+            mousePos_.y = viewportSize.y - mousePos_.y;
             int x = static_cast<int>(mousePos_.x);
             int y = static_cast<int>(mousePos_.y);
             m_viewport->setPickingCoord(x, y);
@@ -764,8 +766,8 @@ namespace Bess::Canvas {
     }
 
     bool Scene::isCursorInViewport(const glm::vec2 &pos) const {
-        const auto &viewportPos = UI::UIMain::state.viewportPos;
-        const auto &viewportSize = UI::UIMain::state.viewportSize;
+        const auto &viewportSize = UI::UIMain::state.mainViewport.getViewportSize();
+        const auto viewportPos = UI::UIMain::state.mainViewport.getViewportPos();
         return pos.x >= 5.f &&
                pos.x < viewportSize.x - 5.f &&
                pos.y >= 5.f &&

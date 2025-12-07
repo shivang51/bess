@@ -4,7 +4,6 @@
 #include "events/application_event.h"
 #include "pages/page_identifier.h"
 #include "scene/scene.h"
-#include "scene/scene_pch.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
@@ -71,8 +70,9 @@ namespace Bess::Pages {
     }
 
     void MainPage::update(TFrameTime ts, const std::vector<ApplicationEvent> &events) {
-        if (m_scene->getSize() != UI::UIMain::state.viewportSize) {
-            m_scene->resize(UI::UIMain::state.viewportSize);
+        const auto &viewportSize = UI::UIMain::state.mainViewport.getViewportSize();
+        if (m_scene->getSize() != viewportSize) {
+            m_scene->resize(viewportSize);
         }
 
         for (const auto &event : events) {
@@ -90,7 +90,8 @@ namespace Bess::Pages {
             }
         }
 
-        if (UI::UIMain::state.viewportEventFlag)
+        const auto isViewportHovered = UI::UIMain::state.mainViewport.isHovered();
+        if (isViewportHovered)
             m_sceneDriver.update(ts, events);
     }
 
