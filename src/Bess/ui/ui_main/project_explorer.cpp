@@ -1,13 +1,12 @@
 #include "ui/ui_main/project_explorer.h"
 #include "bess_uuid.h"
-#include "common/log.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "scene/commands/delete_comp_command.h"
 #include "scene/components/components.h"
 #include "scene/scene.h"
-#include "ui/icons/FontAwesomeIcons.h"
 #include "ui/ui_main/project_explorer_state.h"
+#include "ui/widgets/m_widgets.h"
 #include <cstdint>
 #include <memory>
 
@@ -15,28 +14,18 @@ namespace Bess::UI {
     bool ProjectExplorer::isShown = true;
     bool ProjectExplorer::isfirstTimeDraw = true;
     ProjectExplorerState ProjectExplorer::state{};
-    ImColor ProjectExplorer::itemAltBg = ImColor(0, 0, 0);
 
-#define DEF_NODE_DROP_TARGET(op)                                                                                                \
-    if (ImGui::BeginDragDropTarget()) {                                                                                         \
-        if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("TREE_NODE_PAYLOAD")) {                                  \
-            auto draggedNodeIDs = std::vector<uint64_t>((uint64_t *)payload->Data, ((uint64_t *)payload->Data) +                \
-                                                                                       (payload->DataSize / sizeof(uint64_t))); \
-            for (const auto &id : draggedNodeIDs) {                                                                             \
-                op;                                                                                                             \
-            }                                                                                                                   \
-        }                                                                                                                       \
-        ImGui::EndDragDropTarget();                                                                                             \
-    }
-
-    static int ImGuiStringCallback(ImGuiInputTextCallbackData *data) {
-        if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
-            std::string *str = (std::string *)data->UserData;
-            IM_ASSERT(str != nullptr);
-            str->resize(data->BufTextLen);
-            data->Buf = (char *)str->c_str();
-        }
-        return 0;
+#define DEF_NODE_DROP_TARGET(op)                                                               \
+    if (ImGui::BeginDragDropTarget()) {                                                        \
+        if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("TREE_NODE_PAYLOAD")) { \
+            const auto dataPtr = (uint64_t *)payload->Data;                                    \
+            const auto size = (payload->DataSize / sizeof(uint64_t));                          \
+            const auto draggedNodeIDs = std::vector<uint64_t>(dataPtr, dataPtr + size);        \
+            for (const auto &id : draggedNodeIDs) {                                            \
+                op;                                                                            \
+            }                                                                                  \
+        }                                                                                      \
+        ImGui::EndDragDropTarget();                                                            \
     }
 
     int ProjectExplorer::lastSelectedIndex = -1;
@@ -46,6 +35,7 @@ namespace Bess::UI {
         auto &registry = scene->getEnttRegistry();
         registry.clear<Canvas::Components::SelectedComponent>();
 
+        // Note (Shivang): Can't use auto here because of recursive lambda
         std::function<void(std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &)> clearNodes =
             [&](std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &nodes) {
                 for (auto &node : nodes) {
@@ -64,6 +54,7 @@ namespace Bess::UI {
 
         clearAllSelections();
 
+        // Note (Shivang): Can't use auto here because of recursive lambda
         std::function<void(std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &)> traverse =
             [&](std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &nodes) {
                 for (auto &node : nodes) {
@@ -111,14 +102,14 @@ namespace Bess::UI {
             bool opened = false;
 
             if (node->isGroup) {
-                const auto ret = EditableTreeNode(i++,
-                                                  node->label,
-                                                  node->selected,
-                                                  ImGuiTreeNodeFlags_DefaultOpen |
-                                                      ImGuiTreeNodeFlags_DrawLinesFull,
-                                                  treeIcon,
-                                                  ViewportTheme::colors.selectedWire,
-                                                  nodePopupName, node->nodeId);
+                const auto ret = Widgets::EditableTreeNode(i++,
+                                                           node->label,
+                                                           node->selected,
+                                                           ImGuiTreeNodeFlags_DefaultOpen |
+                                                               ImGuiTreeNodeFlags_DrawLinesFull,
+                                                           treeIcon,
+                                                           ViewportTheme::colors.selectedWire,
+                                                           nodePopupName, node->nodeId);
                 opened = ret.first;
                 clicked = ret.second;
 
@@ -200,9 +191,11 @@ namespace Bess::UI {
                     selectRange(start, end);
                 } else if (ctrl) {
                     // Toggle selection
-                    if (node->isGroup) {
-                        node->selected = !node->selected;
-                    } else {
+                    // FIXME (Shivang): For now ignoring group nodes
+                    // if (node->isGroup) {
+                    //     node->selected = !node->selected;
+                    // } else {
+                    if (!node->isGroup) {
                         const auto &entity = node->sceneEntity;
                         if (node->selected) {
                             registry.remove<Canvas::Components::SelectedComponent>(entity);
@@ -265,7 +258,7 @@ namespace Bess::UI {
             firstTime();
         }
 
-        itemAltBg = ImGui::GetStyle().Colors[ImGuiCol_TableRowBgAlt];
+        const ImColor &itemAltBg = ImGui::GetStyle().Colors[ImGuiCol_TableRowBgAlt];
         ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
         auto scene = Bess::Canvas::Scene::instance();
@@ -327,7 +320,8 @@ namespace Bess::UI {
 
         ImGui::PopStyleVar(2);
 
-        if (ImGui::InvisibleButton("project_explorer_root_drop_target", ImVec2(window->Size.x, window->Size.y - startY))) {
+        if (ImGui::InvisibleButton("project_explorer_root_drop_target",
+                                   ImVec2(window->Size.x, window->Size.y - startY))) {
         }
 
         DEF_NODE_DROP_TARGET(state.moveNode(id, UUID::null));
@@ -439,7 +433,7 @@ namespace Bess::UI {
             ImVec2 avail = ImGui::GetContentRegionAvail();
             ImVec2 bgStart(x, y);
             ImVec2 bgEnd(x + window->Size.x, y + g.FontSize + (g.Style.FramePadding.y * 2));
-            drawList->AddRectFilled(bgStart, bgEnd, itemAltBg, 0);
+            drawList->AddRectFilled(bgStart, bgEnd, (ImColor)colors[ImGuiCol_TableRowBgAlt], 0);
         }
 
         const ImRect bb(pos, ImVec2(window->Pos.x + window->Size.x - checkboxWidth - g.Style.FramePadding.x,
@@ -478,7 +472,9 @@ namespace Bess::UI {
         auto textStart = bb.Min;
         textStart.y += g.Style.FramePadding.y;
         textStart.x += g.Style.FramePadding.x;
-        drawList->AddText(textStart, IM_COL32(fgColor.x * 255, fgColor.y * 255, fgColor.z * 255, fgColor.w * 255), label);
+        drawList->AddText(textStart,
+                          IM_COL32(fgColor.x * 255, fgColor.y * 255, fgColor.z * 255, fgColor.w * 255),
+                          label);
 
         if (hovered || cbHovered || multiSelectMode) {
             ImGui::SetCursorPosX(checkBoxPos.x);
@@ -495,219 +491,6 @@ namespace Bess::UI {
         ImGui::ItemAdd(bb, id);
 
         return {pressed, cbPressed};
-    }
-
-    std::pair<bool, bool> ProjectExplorer::EditableTreeNode(
-        uint64_t key,
-        std::string &name,
-        bool &selected,
-        ImGuiTreeNodeFlags treeFlags,
-        const std::string &icon,
-        glm::vec4 iconColor,
-        const std::string &popupName,
-        uint64_t payloadId) {
-
-        ImGuiContext &g = *ImGui::GetCurrentContext();
-        ImGuiWindow *window = g.CurrentWindow;
-
-        ImGui::PushID(key);
-
-        const float rowHeight = g.FontSize + (g.Style.FramePadding.y * 2.0f);
-        const ImVec2 pos = window->DC.CursorPos;
-        const ImVec2 avail = ImGui::GetContentRegionAvail();
-
-        ImDrawList *drawList = ImGui::GetWindowDrawList();
-
-        if ((key & 1) == 0) {
-            ImVec2 bgStart(window->Pos.x, pos.y);
-            ImVec2 bgEnd(window->Pos.x + window->Size.x, pos.y + rowHeight);
-            drawList->AddRectFilled(bgStart, bgEnd, itemAltBg, 0);
-        }
-
-        const ImRect rowBB(pos, ImVec2(pos.x + avail.x, pos.y + rowHeight));
-        ImGui::ItemSize(rowBB, g.Style.FramePadding.y);
-
-        const ImGuiID nodeId = window->GetID("node");
-        const ImGuiID toggleId = window->GetID("toggle");
-        const ImGuiID labelId = window->GetID("label");
-        const ImGuiID openId = window->GetID("open");
-        const ImGuiID editingId = window->GetID("editing");
-        const ImGuiID editBufId = window->GetID("edit_buf");
-        const ImGuiID prevNameId = window->GetID("prev_name");
-
-        ImGuiStorage *st = window->DC.StateStorage;
-        bool opened = st->GetInt(openId, (treeFlags & ImGuiTreeNodeFlags_DefaultOpen) ? 1 : 0) != 0;
-        bool editing = st->GetInt(editingId, 0) != 0;
-
-        bool rowHovered = ImGui::IsMouseHoveringRect(rowBB.Min, rowBB.Max);
-
-        if (selected || rowHovered) {
-            ImU32 bg = selected
-                           ? ImGui::GetColorU32(ImGuiCol_HeaderActive)
-                           : ImGui::GetColorU32(ImGuiCol_HeaderHovered);
-            window->DrawList->AddRectFilled(rowBB.Min, rowBB.Max, bg, g.Style.FrameRounding);
-        }
-
-        float toggleWidth = g.FontSize + (g.Style.ItemInnerSpacing.x * 2.0f);
-        ImRect toggleRect(rowBB.Min, ImVec2(rowBB.Min.x + toggleWidth, rowBB.Max.y));
-        bool toggleHovered = false, toggleHeld = false;
-
-        if (ImGui::ButtonBehavior(toggleRect, toggleId, &toggleHovered, &toggleHeld)) {
-            opened = !opened;
-            st->SetInt(openId, opened ? 1 : 0);
-        }
-
-        ImGui::ItemAdd(toggleRect, toggleId);
-
-        const auto stateIcon = opened
-                                   ? Icons::FontAwesomeIcons::FA_CHEVRON_DOWN
-                                   : Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT;
-        ImGui::PushStyleColor(ImGuiCol_Text, g.Style.Colors[ImGuiCol_TextDisabled]);
-        ImGui::RenderText(ImVec2(toggleRect.Min.x + g.Style.ItemInnerSpacing.x, toggleRect.Min.y + g.Style.FramePadding.y), stateIcon);
-        ImGui::PopStyleColor();
-
-        float iconOffsetX = 0.0f;
-        if (!icon.empty()) {
-            float iconW = ImGui::CalcTextSize(icon.c_str()).x;
-            iconOffsetX = iconW + g.Style.ItemInnerSpacing.x;
-            if (iconColor.x >= 0)
-                ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetColorU32(ImVec4(iconColor.x, iconColor.y, iconColor.z, iconColor.w)));
-            ImGui::RenderText(ImVec2(toggleRect.Max.x, rowBB.Min.y + g.Style.FramePadding.y), icon.c_str());
-            if (iconColor.x >= 0)
-                ImGui::PopStyleColor();
-        }
-
-        // 3-dot Menu Button
-        // Drawn before Label/Input but after background/toggle.
-        // Needs to be interactive, so drawn before row behavior runs.
-        // NOTE: Drawing button advances cursor, so we must restore it later to avoid layout glitches (shrinking height).
-        ImVec2 backupCursorPos = window->DC.CursorPos;
-        if (rowHovered) {
-            ImGui::SetCursorScreenPos(ImVec2(rowBB.Max.x - g.FontSize - g.Style.FramePadding.x, rowBB.Min.y + g.Style.FramePadding.y));
-            if (ImGui::SmallButton(Icons::FontAwesomeIcons::FA_ELLIPSIS_V)) {
-                ImGui::OpenPopup(popupName.c_str());
-            }
-        }
-        window->DC.CursorPos = backupCursorPos;
-
-        ImVec2 labelPos(toggleRect.Max.x + iconOffsetX + g.Style.ItemInnerSpacing.x, rowBB.Min.y + g.Style.FramePadding.y);
-        ImVec2 labelSize = ImGui::CalcTextSize(name.c_str());
-        ImRect labelRect(labelPos, ImVec2(labelPos.x + labelSize.x + 10.0f, rowBB.Max.y));
-
-        ImGui::ItemAdd(labelRect, labelId);
-
-        bool beginEdit = false;
-        if (!editing) {
-            if (rowHovered && ImGui::IsMouseDoubleClicked(0))
-                beginEdit = true;
-            if (selected && ImGui::IsKeyPressed(ImGuiKey_F2))
-                beginEdit = true;
-
-            if (beginEdit) {
-                st->SetInt(editingId, 1);
-                editing = true;
-
-                std::string *prevName = new std::string(name);
-                st->SetVoidPtr(prevNameId, (void *)prevName);
-
-                std::string *editBuf = new std::string(name);
-                if (editBuf->empty())
-                    editBuf->resize(1);
-                st->SetVoidPtr(editBufId, (void *)editBuf);
-
-                ImGui::SetKeyboardFocusHere();
-            }
-        }
-
-        bool clicked = false;
-
-        if (editing) {
-            std::string *editBuf = (std::string *)st->GetVoidPtr(editBufId);
-            if (!editBuf) {
-                editing = false;
-                st->SetInt(editingId, 0);
-                ImGui::RenderText(labelPos, name.c_str());
-            } else {
-                if (editBuf->empty())
-                    editBuf->resize(1);
-
-                ImGui::SetCursorScreenPos(labelPos);
-                ImGuiInputTextFlags flags = ImGuiInputTextFlags_AutoSelectAll |
-                                            ImGuiInputTextFlags_EnterReturnsTrue |
-                                            ImGuiInputTextFlags_CallbackResize;
-
-                char *buf = editBuf->data();
-                ImGui::SetCursorPosY(ImGui::GetCursorPosY() - g.Style.FramePadding.y);
-                bool accepted = ImGui::InputText("##edit", buf, (size_t)editBuf->capacity() + 1,
-                                                 flags, ImGuiStringCallback, (void *)editBuf);
-
-                bool commit = false;
-                bool cancel = false;
-                if (ImGui::IsKeyPressed(ImGuiKey_Escape))
-                    cancel = true;
-                if (ImGui::IsKeyPressed(ImGuiKey_Enter))
-                    commit = true;
-                // this is true when the item was active and then deactivated after edit (e.g., user clicked away)
-                if (ImGui::IsItemDeactivatedAfterEdit() || ImGui::IsItemDeactivated())
-                    commit = true;
-
-                if (commit || cancel) {
-                    if (cancel) {
-                        std::string *prevName = (std::string *)st->GetVoidPtr(prevNameId);
-                        if (prevName) {
-                            name = *prevName;
-                        }
-                        delete prevName;
-                    } else {
-                        name = *editBuf;
-                        std::string *prevName = (std::string *)st->GetVoidPtr(prevNameId);
-                        delete prevName;
-                    }
-
-                    std::string *editBufPtr = (std::string *)st->GetVoidPtr(editBufId);
-                    delete editBufPtr;
-                    st->SetVoidPtr(editBufId, nullptr);
-                    st->SetVoidPtr(prevNameId, nullptr);
-                    st->SetInt(editingId, 0);
-                    editing = false;
-
-                    ImGui::ClearActiveID();
-                }
-            }
-        } else {
-            ImGui::RenderText(labelPos, name.c_str());
-
-            bool rowHeld = false;
-            bool rowPressed = false;
-            rowPressed = ImGui::ButtonBehavior(rowBB, nodeId, &rowHovered,
-                                               &rowHeld,
-                                               ImGuiButtonFlags_PressedOnClick | ImGuiButtonFlags_AllowOverlap);
-
-            if (rowPressed) {
-                ImGui::SetItemDefaultFocus();
-                clicked = true;
-            }
-        }
-
-        // Restore cursor again just to be safe after InputText/RenderText which might move it
-        window->DC.CursorPos = backupCursorPos;
-
-        if (!editing) {
-            ImGui::ItemAdd(rowBB, nodeId);
-
-            if (ImGui::BeginDragDropSource()) {
-                ImGui::SetDragDropPayload("TREE_NODE_PAYLOAD", (void *)(&payloadId), sizeof(payloadId));
-                ImGui::Text("Dragging %s with id %lu", name.c_str(), payloadId);
-                ImGui::EndDragDropSource();
-            }
-        }
-
-        if (opened) {
-            ImGui::TreePush(std::to_string(key).c_str());
-        }
-
-        ImGui::PopID();
-        return {opened, clicked};
     }
 
     void ProjectExplorer::firstTime() {

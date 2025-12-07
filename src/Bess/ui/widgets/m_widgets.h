@@ -41,4 +41,15 @@ namespace Bess::UI::Widgets {
         glm::vec4 iconColor = glm::vec4(-1.0f));
 
     bool ButtonWithPopup(const std::string &label, const std::string &popupName, bool showMenuButton = true);
+
+    std::pair<bool, bool> EditableTreeNode(
+        uint64_t key,
+        std::string &name,
+        bool &selected,
+        ImGuiTreeNodeFlags treeFlags,
+        const std::string &icon,
+        glm::vec4 iconColor,
+        const std::string &popupName,
+        uint64_t payloadId);
+
 } // namespace Bess::UI::Widgets
