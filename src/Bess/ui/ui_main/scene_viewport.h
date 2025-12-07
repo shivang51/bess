@@ -1,5 +1,6 @@
 #pragma once
 #include "glm.hpp"
+#include "imgui.h"
 #include "string"
 #include <cstdint>
 namespace Bess::UI {
@@ -16,6 +17,16 @@ namespace Bess::UI {
 
       private:
         void firstTime();
+        void drawTopRightControls() const;
+        void drawTopLeftControls() const;
+        void drawBottomControls() const;
+
+        static constexpr ImGuiWindowFlags NO_MOVE_FLAGS =
+            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
+            ImGuiWindowFlags_NoDecoration;
+
+      private:
         bool m_isfirstTimeDraw;
         uint64_t m_viewportTexture;
         glm::vec2 m_viewportSize = {800.f, 600.f};

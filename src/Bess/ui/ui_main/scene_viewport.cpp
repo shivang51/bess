@@ -6,21 +6,17 @@
 #include "simulation_engine.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/icons/MaterialIcons.h"
+#include "ui/ui_main/component_explorer.h"
 
 namespace Bess::UI {
     SceneViewport::SceneViewport(const std::string &viewportName)
         : m_viewportName(viewportName) {}
 
     void SceneViewport::draw() {
-        const ImGuiWindowFlags flags =
-            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
-            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
-            ImGuiWindowFlags_NoDecoration;
-
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
         ImGui::SetNextWindowSizeConstraints({400.f, 400.f}, {-1.f, -1.f});
 
-        ImGui::Begin(m_viewportName.c_str(), nullptr, flags);
+        ImGui::Begin(m_viewportName.c_str(), nullptr, NO_MOVE_FLAGS);
 
         auto viewportPanelSize = ImGui::GetContentRegionAvail();
         m_viewportSize = {viewportPanelSize.x, viewportPanelSize.y};
@@ -41,186 +37,197 @@ namespace Bess::UI {
         const auto gPos = ImGui::GetMainViewport()->Pos;
         m_viewportPos = {pos.x - gPos.x + offset.x, pos.y - gPos.y + offset.y};
         m_isHovered = ImGui::IsWindowHovered();
-
-        ImGui::End();
         ImGui::PopStyleVar();
 
-        // top left actions
-        {
-            const ImGuiContext &g = *ImGui::GetCurrentContext();
-            const auto colors = g.Style.Colors;
-            auto &simEngine = SimEngine::SimulationEngine::instance();
-            static float checkboxWidth = ImGui::CalcTextSize("W").x + g.Style.FramePadding.x + 2.f;
-            static float size = ImGui::CalcTextSize("Schematic Mode").x + checkboxWidth + 12.f;
-            ImGui::SetNextWindowPos({pos.x + g.Style.FramePadding.x, pos.y + g.Style.FramePadding.y});
-            ImGui::SetNextWindowSize({size, 0});
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+        if (ImGui::BeginPopupContextWindow()) {
+            if (ImGui::MenuItem("Add Component", "Shift-A")) {
+                ComponentExplorer::isShown = true;
+            }
 
-            auto col = colors[ImGuiCol_Header];
-            col.w = 0.1f;
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, col);
-            ImGui::Begin("TopLeftViewportActions", nullptr, flags);
-            ImGui::Text("Schematic Mode");
-            ImGui::SameLine();
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-            ImGui::Checkbox("##CheckBoxSchematicMode", Canvas::Scene::instance()->getIsSchematicViewPtr());
-            ImGui::PopStyleVar();
-            ImGui::End();
-            ImGui::PopStyleVar(2);
-            ImGui::PopStyleColor(1);
+            ImGui::EndPopup();
         }
 
-        // actions (on top right)
+        ImGui::End();
+
+        drawTopLeftControls();
+        drawTopRightControls();
+        drawBottomControls();
+    }
+
+    void SceneViewport::drawTopLeftControls() const {
+        const ImGuiContext &g = *ImGui::GetCurrentContext();
+        const auto colors = g.Style.Colors;
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+        static float checkboxWidth = ImGui::CalcTextSize("W").x + g.Style.FramePadding.x + 2.f;
+        static float size = ImGui::CalcTextSize("Schematic Mode").x + checkboxWidth + 12.f;
+        ImGui::SetNextWindowPos({m_viewportPos.x + g.Style.FramePadding.x,
+                                 m_viewportPos.y + g.Style.FramePadding.y});
+        ImGui::SetNextWindowSize({size, 0});
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+
+        auto col = colors[ImGuiCol_Header];
+        col.w = 0.1f;
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, col);
+        ImGui::Begin("TopLeftViewportActions", nullptr, NO_MOVE_FLAGS);
+        ImGui::Text("Schematic Mode");
+        ImGui::SameLine();
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+        ImGui::Checkbox("##CheckBoxSchematicMode", Canvas::Scene::instance()->getIsSchematicViewPtr());
+        ImGui::PopStyleVar();
+        ImGui::End();
+        ImGui::PopStyleVar(2);
+        ImGui::PopStyleColor(1);
+    }
+
+    void SceneViewport::drawTopRightControls() const {
+        const ImGuiContext &g = *ImGui::GetCurrentContext();
+        const auto colors = g.Style.Colors;
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+        static int n = 4; // number of action buttons
+        static float size = (float)(32 * n) - (float)(n - 1);
+        ImGui::SetNextWindowPos(
+            {m_viewportPos.x + m_viewportSize.x - size - g.Style.FramePadding.x,
+             m_viewportPos.y + g.Style.FramePadding.y});
+        ImGui::SetNextWindowSize({size, 0});
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+
+        auto col = colors[ImGuiCol_Header];
+        col.w = 0.5;
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, col);
+        ImGui::Begin("TopRightViewportActions", nullptr, NO_MOVE_FLAGS);
+
+        auto scene = Canvas::Scene::instance();
+
+        // scene modes
         {
 
-            const ImGuiContext &g = *ImGui::GetCurrentContext();
-            const auto colors = g.Style.Colors;
-            auto &simEngine = SimEngine::SimulationEngine::instance();
-            static int n = 4; // number of action buttons
-            static float size = (float)(32 * n) - (float)(n - 1);
-            ImGui::SetNextWindowPos(
-                {pos.x + viewportPanelSize.x - size - g.Style.FramePadding.x,
-                 pos.y + g.Style.FramePadding.y});
-            ImGui::SetNextWindowSize({size, 0});
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+            const bool isGeneral = scene->getSceneMode() == Canvas::SceneMode::general;
 
-            auto col = colors[ImGuiCol_Header];
-            col.w = 0.5;
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, col);
-            ImGui::Begin("TopRightViewportActions", nullptr, flags);
-
-            auto scene = Canvas::Scene::instance();
-
-            // scene modes
-            {
-
-                const bool isGeneral = scene->getSceneMode() == Canvas::SceneMode::general;
-
-                // general mode
-                if (isGeneral) {
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.f, 0.667f, 0.f, 1.f});
-                }
-
-                auto icon = Icons::FontAwesomeIcons::FA_MOUSE_POINTER;
-                if (ImGui::Button(icon)) {
-                    scene->setSceneMode(Canvas::SceneMode::general);
-                }
-                if (isGeneral) {
-                    ImGui::PopStyleColor();
-                }
-
-                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                }
-
-                // move mode
-                if (!isGeneral) {
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.f, 0.667f, 0.f, 1.f});
-                }
-                ImGui::SameLine();
-                icon = Icons::FontAwesomeIcons::FA_ARROWS_ALT;
-                if (ImGui::Button(icon)) {
-                    scene->setSceneMode(Canvas::SceneMode::move);
-                }
-
-                if (!isGeneral) {
-                    ImGui::PopStyleColor();
-                }
-
-                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                    const auto msg = "Move Mode";
-                    ImGui::SetTooltip("%s", msg);
-                }
+            // general mode
+            if (isGeneral) {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.f, 0.667f, 0.f, 1.f});
             }
 
-            const auto isSimPaused = simEngine.getSimulationState() == SimEngine::SimulationState::paused;
+            auto icon = Icons::FontAwesomeIcons::FA_MOUSE_POINTER;
+            if (ImGui::Button(icon)) {
+                scene->setSceneMode(Canvas::SceneMode::general);
+            }
+            if (isGeneral) {
+                ImGui::PopStyleColor();
+            }
 
-            // Play / Pause
-            {
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+            }
 
-                auto icon = Icons::FontAwesomeIcons::FA_PAUSE;
-                if (isSimPaused) {
-                    // #574735
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.f, 0.667f, 0.f, 1.f});
-                    icon = Icons::FontAwesomeIcons::FA_PLAY;
-                }
+            // move mode
+            if (!isGeneral) {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.f, 0.667f, 0.f, 1.f});
+            }
+            ImGui::SameLine();
+            icon = Icons::FontAwesomeIcons::FA_ARROWS_ALT;
+            if (ImGui::Button(icon)) {
+                scene->setSceneMode(Canvas::SceneMode::move);
+            }
 
-                ImGui::SameLine();
-                if (ImGui::Button(icon)) {
-                    simEngine.toggleSimState();
-                }
+            if (!isGeneral) {
+                ImGui::PopStyleColor();
+            }
 
-                if (isSimPaused)
-                    ImGui::PopStyleColor();
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                const auto msg = "Move Mode";
+                ImGui::SetTooltip("%s", msg);
+            }
+        }
 
-                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                    const auto msg = isSimPaused ? "Resume Simulation" : "Pause Simulation";
-                    ImGui::SetTooltip("%s", msg);
-                }
+        const auto isSimPaused = simEngine.getSimulationState() == SimEngine::SimulationState::paused;
+
+        // Play / Pause
+        {
+
+            auto icon = Icons::FontAwesomeIcons::FA_PAUSE;
+            if (isSimPaused) {
+                // #574735
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.f, 0.667f, 0.f, 1.f});
+                icon = Icons::FontAwesomeIcons::FA_PLAY;
             }
 
             ImGui::SameLine();
-
-            // Step when paused
-            {
-                ImGui::BeginDisabled(!isSimPaused);
-
-                if (ImGui::Button(Icons::MaterialIcons::REDO)) {
-                    simEngine.stepSimulation();
-                }
-
-                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                    ImGui::SetTooltip("%s", "Step");
-                }
-                ImGui::EndDisabled();
+            if (ImGui::Button(icon)) {
+                simEngine.toggleSimState();
             }
 
-            ImGui::End();
-            ImGui::PopStyleVar(2);
-            ImGui::PopStyleColor(1);
+            if (isSimPaused)
+                ImGui::PopStyleColor();
+
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                const auto msg = isSimPaused ? "Resume Simulation" : "Pause Simulation";
+                ImGui::SetTooltip("%s", msg);
+            }
         }
 
+        ImGui::SameLine();
+
+        // Step when paused
+        {
+            ImGui::BeginDisabled(!isSimPaused);
+
+            if (ImGui::Button(Icons::MaterialIcons::REDO)) {
+                simEngine.stepSimulation();
+            }
+
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                ImGui::SetTooltip("%s", "Step");
+            }
+            ImGui::EndDisabled();
+        }
+
+        ImGui::End();
+        ImGui::PopStyleVar(2);
+        ImGui::PopStyleColor(1);
+    }
+
+    void SceneViewport::drawBottomControls() const {
         // Camera controls (on bottom right)
+        const auto &mousePos = Canvas::Scene::instance()->getSceneMousePos();
+        const auto posLabel = std::format("X:{:.2f}, Y:{:.2f}", mousePos.x, mousePos.y);
+        const auto posLabelCStr = posLabel.c_str();
+        const auto posLabelSize = ImGui::CalcTextSize(posLabelCStr);
+
+        ImGui::SetNextWindowPos(
+            {m_viewportPos.x + m_viewportSize.x - 208 - posLabelSize.x,
+             m_viewportPos.y + m_viewportSize.y - 40});
+        ImGui::SetNextWindowBgAlpha(0.f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+
+        ImGui::Begin("SceneBottomRightControls", nullptr, NO_MOVE_FLAGS);
+        // Mouse Pos
         {
-            const auto &mousePos = Canvas::Scene::instance()->getSceneMousePos();
-            const auto posLabel = std::format("X:{:.2f}, Y:{:.2f}", mousePos.x, mousePos.y);
-            const auto posLabelCStr = posLabel.c_str();
-            const auto posLabelSize = ImGui::CalcTextSize(posLabelCStr);
-            ImGui::SetNextWindowPos(
-                {pos.x + viewportPanelSize.x - 208 - posLabelSize.x,
-                 pos.y + viewportPanelSize.y - 40});
-            ImGui::SetNextWindowBgAlpha(0.f);
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
-
-            ImGui::Begin("SceneBottomRightControls", nullptr, flags);
-            // Mouse Pos
-            {
-                ImGui::Text("%s", posLabelCStr);
-                ImGui::SameLine();
-            }
-
+            ImGui::Text("%s", posLabelCStr);
             ImGui::SameLine();
+        }
 
-            // Zoom Slider
-            {
-                const auto &camera = Canvas::Scene::instance()->getCamera();
-                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8);
-                ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 8);
-                ImGui::SetNextItemWidth(150.0f);
-                if (ImGui::SliderFloat("Zoom", &camera->getZoomRef(), Camera::zoomMin,
-                                       Camera::zoomMax, nullptr,
-                                       ImGuiSliderFlags_AlwaysClamp)) {
-                    const float stepSize = 0.1f;
-                    const float val = roundf(camera->getZoom() / stepSize) * stepSize;
-                    camera->setZoom(val);
-                }
-                ImGui::PopStyleVar(2);
+        ImGui::SameLine();
+
+        // Zoom Slider
+        {
+            const auto &camera = Canvas::Scene::instance()->getCamera();
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8);
+            ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 8);
+            ImGui::SetNextItemWidth(150.0f);
+            if (ImGui::SliderFloat("Zoom", &camera->getZoomRef(), Camera::zoomMin,
+                                   Camera::zoomMax, nullptr,
+                                   ImGuiSliderFlags_AlwaysClamp)) {
+                const float stepSize = 0.1f;
+                const float val = roundf(camera->getZoom() / stepSize) * stepSize;
+                camera->setZoom(val);
             }
-            ImGui::End();
             ImGui::PopStyleVar(2);
         }
+        ImGui::End();
+        ImGui::PopStyleVar(2);
     }
 
     void SceneViewport::firstTime() {
