@@ -20,10 +20,10 @@ namespace Bess::UI {
         static ProjectExplorerState state;
 
       private:
-        static std::pair<bool, bool> ProjectExplorerNode(int key, uint64_t nodeId,
-                                                         const char *label,
-                                                         bool selected,
-                                                         bool multiSelectMode);
+        static std::pair<bool, bool> drawLeafNode(int key, uint64_t nodeId,
+                                                  const char *label,
+                                                  bool selected,
+                                                  bool multiSelectMode);
 
         static std::pair<bool, bool> EditableTreeNode(uint64_t key,
                                                       std::string &name,

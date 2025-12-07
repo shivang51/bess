@@ -151,7 +151,7 @@ namespace Bess::UI {
                 } else {
                     icon = Common::Helpers::getComponentIcon(tagComp.type.nsCompType);
                 }
-                const auto [pressed, cbPressed] = ProjectExplorerNode(
+                const auto [pressed, cbPressed] = drawLeafNode(
                     i++,
                     node->nodeId,
                     (icon + " " + node->label).c_str(),
@@ -385,7 +385,7 @@ namespace Bess::UI {
 
             if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
                 std::vector<std::shared_ptr<UI::ProjectExplorerNode>> nodesToDelete;
-                
+
                 // Add selected entities from registry
                 selTagGroup.each([&](const entt::entity entity,
                                      const Canvas::Components::SelectedComponent &,
@@ -419,9 +419,9 @@ namespace Bess::UI {
         ImGui::End();
     }
 
-    std::pair<bool, bool> ProjectExplorer::ProjectExplorerNode(const int key, const uint64_t nodeId,
-                                                               const char *label, bool selected,
-                                                               const bool multiSelectMode) {
+    std::pair<bool, bool> ProjectExplorer::drawLeafNode(const int key, const uint64_t nodeId,
+                                                        const char *label, bool selected,
+                                                        const bool multiSelectMode) {
         const ImGuiContext &g = *ImGui::GetCurrentContext();
         const float rounding = g.Style.FrameRounding;
         const float checkboxWidth = ImGui::CalcTextSize("W").x + g.Style.FramePadding.x + 2.f;
@@ -442,7 +442,7 @@ namespace Bess::UI {
             drawList->AddRectFilled(bgStart, bgEnd, itemAltBg, 0);
         }
 
-        const ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x - checkboxWidth,
+        const ImRect bb(pos, ImVec2(window->Pos.x + window->Size.x - checkboxWidth - g.Style.FramePadding.x,
                                     pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
         auto checkBoxPos = bb.Max;
         checkBoxPos.y = pos.y;
@@ -481,7 +481,7 @@ namespace Bess::UI {
         drawList->AddText(textStart, IM_COL32(fgColor.x * 255, fgColor.y * 255, fgColor.z * 255, fgColor.w * 255), label);
 
         if (hovered || cbHovered || multiSelectMode) {
-            ImGui::SetCursorPosX(bbCheckbox.Min.x - bb.Min.x + (checkboxWidth / 2.f));
+            ImGui::SetCursorPosX(checkBoxPos.x);
             const float yPadding = ImGui::GetCursorPosY();
             ImGui::SetCursorPosY(yPadding + g.Style.FramePadding.y);
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
