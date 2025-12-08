@@ -1,5 +1,6 @@
 #include "application.h"
 #include "application/application_state.h"
+#include "application/types.h"
 #include "common/log.h"
 #include "events/application_event.h"
 #include "imgui_impl_vulkan.h"
@@ -7,16 +8,14 @@
 #include "pages/main_page/main_page_state.h"
 #include "plugin_manager.h"
 #include "simulation_engine.h"
-#include "application/types.h"
 #include "ui/ui.h"
-#include "ui/ui_main/ui_main.h"
 #include "vulkan_core.h"
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
 
+#include "application/window.h"
 #include "common/bind_helpers.h"
 #include "settings/settings.h"
-#include "application/window.h"
 
 namespace Bess {
     Application::Application() {
@@ -30,8 +29,6 @@ namespace Bess {
     static int fps = 0;
 
     void Application::draw() {
-        ApplicationState::getCurrentPage()->draw();
-
         auto &vkCore = Bess::Vulkan::VulkanCore::instance();
         if (m_mainWindow->wasWindowResized()) {
             m_mainWindow->resetWindowResizedFlag();
@@ -42,7 +39,8 @@ namespace Bess {
         vkCore.beginFrame();
         UI::begin();
 
-        UI::UIMain::draw();
+        ApplicationState::getCurrentPage()->draw();
+
         UI::drawStats(fps);
         UI::end();
 

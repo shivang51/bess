@@ -67,12 +67,13 @@ namespace Bess::Pages {
 
     void MainPage::draw() {
         m_sceneDriver.render();
+        UI::UIMain::draw();
     }
 
     void MainPage::update(TFrameTime ts, const std::vector<ApplicationEvent> &events) {
         const auto &viewportSize = UI::UIMain::state.mainViewport.getViewportSize();
-        if (m_scene->getSize() != viewportSize) {
-            m_scene->resize(viewportSize);
+        if (m_sceneDriver.getActiveScene()->getSize() != viewportSize) {
+            m_sceneDriver.getActiveScene()->resize(viewportSize);
         }
 
         for (const auto &event : events) {

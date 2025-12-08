@@ -44,10 +44,6 @@ namespace Bess::UI {
         drawExternalWindows();
     }
 
-    void UIMain::drawStats(int fps) {
-        // TODO: Implement Vulkan stats
-    }
-
     void UIMain::setViewportTexture(const uint64_t texture) {
         state.mainViewport.setViewportTexture(texture);
     }

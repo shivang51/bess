@@ -25,8 +25,6 @@ namespace Bess::UI {
 
         static void setViewportTexture(std::uint64_t texture);
 
-        static void drawStats(int fps);
-
         static UIState state;
 
       private:

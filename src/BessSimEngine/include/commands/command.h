@@ -8,6 +8,8 @@ namespace Bess::SimEngine::Commands {
         Command() = default;
         Command(Command &other) = default;
 
+        virtual ~Command() = default;
+
         /// Return false if failed
         virtual bool execute() = 0;
 

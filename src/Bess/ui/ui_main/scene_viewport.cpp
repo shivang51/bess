@@ -13,12 +13,15 @@ namespace Bess::UI {
         : m_viewportName(viewportName) {}
 
     void SceneViewport::draw() {
+
+        const auto scene = Canvas::Scene::instance();
+
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
         ImGui::SetNextWindowSizeConstraints({400.f, 400.f}, {-1.f, -1.f});
 
         ImGui::Begin(m_viewportName.c_str(), nullptr, NO_MOVE_FLAGS);
 
-        auto viewportPanelSize = ImGui::GetContentRegionAvail();
+        const auto viewportPanelSize = ImGui::GetContentRegionAvail();
         m_viewportSize = {viewportPanelSize.x, viewportPanelSize.y};
 
         const auto offset = ImGui::GetCursorPos();
@@ -33,13 +36,16 @@ namespace Bess::UI {
             ImGui::PopStyleColor();
         }
 
-        const auto pos = ImGui::GetWindowPos();
         const auto gPos = ImGui::GetMainViewport()->Pos;
-        m_viewportPos = {pos.x - gPos.x + offset.x, pos.y - gPos.y + offset.y};
+
+        m_localPos = ImGui::GetWindowPos();
+        m_viewportPos = {m_localPos.x - gPos.x + offset.x,
+                         m_localPos.y - gPos.y + offset.y};
         m_isHovered = ImGui::IsWindowHovered();
+
         ImGui::PopStyleVar();
 
-        if (ImGui::BeginPopupContextWindow()) {
+        if (!scene->isHoveredEntityValid() && ImGui::BeginPopupContextWindow()) {
             if (ImGui::MenuItem("Add Component", "Shift-A")) {
                 ComponentExplorer::isShown = true;
             }
@@ -60,8 +66,8 @@ namespace Bess::UI {
         auto &simEngine = SimEngine::SimulationEngine::instance();
         static float checkboxWidth = ImGui::CalcTextSize("W").x + g.Style.FramePadding.x + 2.f;
         static float size = ImGui::CalcTextSize("Schematic Mode").x + checkboxWidth + 12.f;
-        ImGui::SetNextWindowPos({m_viewportPos.x + g.Style.FramePadding.x,
-                                 m_viewportPos.y + g.Style.FramePadding.y});
+        ImGui::SetNextWindowPos({m_localPos.x + g.Style.FramePadding.x,
+                                 m_localPos.y + g.Style.FramePadding.y});
         ImGui::SetNextWindowSize({size, 0});
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
@@ -87,8 +93,8 @@ namespace Bess::UI {
         static int n = 4; // number of action buttons
         static float size = (float)(32 * n) - (float)(n - 1);
         ImGui::SetNextWindowPos(
-            {m_viewportPos.x + m_viewportSize.x - size - g.Style.FramePadding.x,
-             m_viewportPos.y + g.Style.FramePadding.y});
+            {m_localPos.x + m_viewportSize.x - size - g.Style.FramePadding.x,
+             m_localPos.y + g.Style.FramePadding.y});
         ImGui::SetNextWindowSize({size, 0});
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
@@ -196,8 +202,8 @@ namespace Bess::UI {
         const auto posLabelSize = ImGui::CalcTextSize(posLabelCStr);
 
         ImGui::SetNextWindowPos(
-            {m_viewportPos.x + m_viewportSize.x - 208 - posLabelSize.x,
-             m_viewportPos.y + m_viewportSize.y - 40});
+            {m_localPos.x + m_viewportSize.x - 208 - posLabelSize.x,
+             m_localPos.y + m_viewportSize.y - 40});
         ImGui::SetNextWindowBgAlpha(0.f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);

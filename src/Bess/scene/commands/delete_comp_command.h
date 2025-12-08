@@ -14,6 +14,7 @@ namespace Bess::Canvas::Commands {
     class DeleteCompCommand : public Command {
       public:
         DeleteCompCommand(const std::vector<UUID> &compIds);
+
         bool execute() override;
         std::any undo() override;
         COMMAND_RESULT_OVERRIDE;

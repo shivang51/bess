@@ -14,6 +14,7 @@
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/ui_main.h"
 #include "vulkan_core.h"
+#include <GLFW/glfw3.h>
 #include <cmath>
 #include <cstdint>
 #include <numbers>
@@ -49,7 +50,9 @@ namespace Bess::Canvas {
         m_size = glm::vec2(800.f, 600.f);
 
         auto &vkCore = Vulkan::VulkanCore::instance();
-        m_viewport = std::make_shared<Viewport>(vkCore.getDevice(), vkCore.getSwapchain()->imageFormat(), vec2Extent2D(m_size));
+        m_viewport = std::make_shared<Viewport>(vkCore.getDevice(),
+                                                vkCore.getSwapchain()->imageFormat(),
+                                                vec2Extent2D(m_size));
 
         m_camera = m_viewport->getCamera();
         m_mousePos = {0.f, 0.f};
@@ -80,11 +83,13 @@ namespace Bess::Canvas {
                 if (!isCursorInViewport(pos)) {
                     m_isLeftMousePressed = false;
                     m_mousePos = pos;
+                    BESS_TRACE("Mouse Move outside viewport: {},{}", pos.x, pos.y);
                     break;
                 }
                 onMouseMove(pos);
             } break;
             case ApplicationEventType::MouseButton: {
+                break;
                 if (!isCursorInViewport(m_mousePos)) {
                     if (!m_isLeftMousePressed) {
                         m_registry.clear<Components::HoveredEntityComponent>();
@@ -768,10 +773,10 @@ namespace Bess::Canvas {
     bool Scene::isCursorInViewport(const glm::vec2 &pos) const {
         const auto &viewportSize = UI::UIMain::state.mainViewport.getViewportSize();
         const auto viewportPos = UI::UIMain::state.mainViewport.getViewportPos();
-        return pos.x >= 5.f &&
-               pos.x < viewportSize.x - 5.f &&
-               pos.y >= 5.f &&
-               pos.y < viewportSize.y - 5.f;
+        return pos.x >= 1.f &&
+               pos.x < viewportSize.x - 1.f &&
+               pos.y >= 1.f &&
+               pos.y < viewportSize.y - 1.f;
     }
 
     void Scene::removeConnectionEntt(const entt::entity ent) {
@@ -949,18 +954,23 @@ namespace Bess::Canvas {
         }
 
         if (!isEntityValid(m_hoveredEntity) && m_lastCreatedComp.set) {
-            const auto def = m_lastCreatedComp.componentDefinition;
-            const Commands::AddCommandData cmdData = {
-                .def = def,
-                .nsComp = m_lastCreatedComp.nsComponent,
-                .inputCount = def.inputCount,
-                .outputCount = def.outputCount,
-                .pos = getSnappedPos(toScenePos(m_mousePos)),
-            };
+            const bool isShiftPressed = Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_SHIFT) ||
+                                        Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_RIGHT_SHIFT);
 
-            const auto res = m_cmdManager.execute<Commands::AddCommand, std::vector<UUID>>(std::vector{cmdData});
-            if (!res.has_value()) {
-                BESS_ERROR("Failed to execute AddCommand");
+            if (isShiftPressed) {
+                const auto def = m_lastCreatedComp.componentDefinition;
+                const Commands::AddCommandData cmdData = {
+                    .def = def,
+                    .nsComp = m_lastCreatedComp.nsComponent,
+                    .inputCount = def.inputCount,
+                    .outputCount = def.outputCount,
+                    .pos = getSnappedPos(toScenePos(m_mousePos)),
+                };
+
+                const auto res = m_cmdManager.execute<Commands::AddCommand, std::vector<UUID>>(std::vector{cmdData});
+                if (!res.has_value()) {
+                    BESS_ERROR("[Scene][OnRightMouse] Failed to execute AddCommand");
+                }
             }
         }
 
@@ -968,9 +978,12 @@ namespace Bess::Canvas {
             const auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
             if (m_registry.all_of<Components::SimulationInputComponent>(hoveredEntity)) {
                 const auto &simComp = m_registry.get<Components::SimulationComponent>(hoveredEntity);
-                const auto currentState = SimEngine::SimulationEngine::instance().getDigitalPinState(simComp.simEngineEntity, SimEngine::PinType::output, 0);
+                const auto currentState = SimEngine::SimulationEngine::instance().getDigitalPinState(
+                    simComp.simEngineEntity, SimEngine::PinType::output, 0);
 
-                const auto newState = currentState.state == SimEngine::LogicState::high ? SimEngine::LogicState::low : SimEngine::LogicState::high;
+                const auto newState = currentState.state == SimEngine::LogicState::high
+                                          ? SimEngine::LogicState::low
+                                          : SimEngine::LogicState::high;
 
                 auto _ = m_cmdManager.execute<Commands::SetInputCommand, std::string>(m_hoveredEntity, newState);
             }
@@ -1345,5 +1358,9 @@ namespace Bess::Canvas {
 
     bool Scene::isEntityHovered(const entt::entity &ent) const {
         return getUuidOfEntity(ent) == m_hoveredEntity;
+    }
+
+    bool Scene::isHoveredEntityValid() {
+        return isEntityValid(m_hoveredEntity);
     }
 } // namespace Bess::Canvas

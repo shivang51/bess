@@ -31,6 +31,7 @@ namespace Bess::UI {
         uint64_t m_viewportTexture;
         glm::vec2 m_viewportSize = {800.f, 600.f};
         glm::vec2 m_viewportPos;
+        ImVec2 m_localPos;
         std::string m_viewportName;
         bool m_isHovered;
     };

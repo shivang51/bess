@@ -113,6 +113,8 @@ namespace Bess::Canvas {
         std::shared_ptr<ArtistManager> getArtistManager();
         const UUID &getUuidOfEntity(entt::entity ent) const;
 
+        bool isHoveredEntityValid();
+
       private:
         /// to draw testing stuff
         void drawScratchContent(TFrameTime ts, const std::shared_ptr<Viewport> &viewport);
