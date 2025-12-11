@@ -6,10 +6,6 @@
 #include "json/json.h"
 
 namespace Bess::JsonConvert {
-    // --- Bess::UUID ---
-    BESS_API void toJsonValue(const Bess::UUID &uuid, Json::Value &j);
-    BESS_API void fromJsonValue(const Json::Value &j, Bess::UUID &uuid);
-
     using namespace Bess::SimEngine;
 
     // --- IdComponent ---

@@ -1,4 +1,6 @@
 #include "project_explorer_state.h"
+#include "common/log.h"
+#include "json/value.h"
 
 namespace Bess::UI {
     void ProjectExplorerState::reset() {
@@ -95,5 +97,15 @@ namespace Bess::UI {
                                                               [&](auto &f) { return f->nodeId == node->nodeId; });
             nodes.erase(first, last);
         }
+    }
+
+    Json::Value ProjectExplorerState::toJson() const {
+        Json::Value j = Json::Value(Json::objectValue);
+        JsonConvert::toJsonValue(*this, j);
+        return j;
+    }
+
+    void ProjectExplorerState::fromJson(const Json::Value &j) {
+        JsonConvert::fromJsonValue(j, *this);
     }
 } // namespace Bess::UI

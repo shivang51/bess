@@ -3,14 +3,6 @@
 #include "component_catalog.h"
 
 namespace Bess::JsonConvert {
-    BESS_API void toJsonValue(const Bess::UUID &uuid, Json::Value &j) {
-        j = (Json::UInt64)uuid;
-    }
-
-    BESS_API void fromJsonValue(const Json::Value &j, Bess::UUID &uuid) {
-        uuid = j.asUInt64();
-    }
-
     using namespace Bess::SimEngine;
 
     void toJsonValue(const IdComponent &comp, Json::Value &j) {

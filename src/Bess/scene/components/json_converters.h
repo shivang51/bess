@@ -1,8 +1,8 @@
 #pragma once
+#include "comp_json_converters.h"
 #include "glm.hpp"
 #include "gtc/type_ptr.hpp"
 #include "json/json.h"
-#include "comp_json_converters.h"
 
 namespace Bess::JsonConvert {
     // --- glm::vec2 ---
@@ -99,4 +99,4 @@ namespace Bess::JsonConvert {
             }
         }
     }
-} // namespace Bess::Canvas::Components
+} // namespace Bess::JsonConvert

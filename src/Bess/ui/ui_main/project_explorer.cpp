@@ -286,13 +286,6 @@ namespace Bess::UI {
             ImGui::Text("(%lu / %lu Selected)", selSize, size);
         }
 
-        std::unordered_map<UUID, std::vector<entt::entity>> netGroups;
-        for (const auto &entity : view) {
-            const bool isSelected = selTagGroup.contains(entity);
-            const auto &tagComp = view.get<Canvas::Components::TagComponent>(entity);
-            netGroups[tagComp.netId].emplace_back(entity);
-        }
-
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
         const auto nodesCount = drawNodes(state.nodes, true);
