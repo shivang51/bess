@@ -89,7 +89,6 @@ namespace Bess::Canvas {
                 onMouseMove(pos);
             } break;
             case ApplicationEventType::MouseButton: {
-                break;
                 if (!isCursorInViewport(m_mousePos)) {
                     if (!m_isLeftMousePressed) {
                         m_registry.clear<Components::HoveredEntityComponent>();
