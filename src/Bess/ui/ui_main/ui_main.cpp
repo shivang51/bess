@@ -20,6 +20,7 @@
 #include "ui/ui_main/project_settings_window.h"
 #include "ui/ui_main/properties_panel.h"
 #include "ui/ui_main/settings_window.h"
+#include "ui/ui_main/truth_table_window.h"
 #include <filesystem>
 
 namespace Bess::UI {
@@ -39,6 +40,7 @@ namespace Bess::UI {
         ProjectExplorer::draw();
         PropertiesPanel::draw();
         GraphViewWindow::draw();
+        TruthTableWindow::draw();
 
         drawStatusbar();
         drawExternalWindows();
@@ -182,11 +184,11 @@ namespace Bess::UI {
 
             Widgets::CheckboxWithLabel(ProjectExplorer::windowName.data(), &ProjectExplorer::isShown);
 
-            Widgets::CheckboxWithLabel(ComponentExplorer::windowName.data(), &ComponentExplorer::isShown);
-
             Widgets::CheckboxWithLabel(PropertiesPanel::windowName.data(), &PropertiesPanel::isShown);
 
             Widgets::CheckboxWithLabel(GraphViewWindow::windowName.data(), &GraphViewWindow::isShown);
+
+            Widgets::CheckboxWithLabel(TruthTableWindow::windowName, &TruthTableWindow::isShown);
 
             ImGui::EndMenu();
         }
