@@ -565,12 +565,14 @@ namespace Bess::UI {
             }
         });
 
+        state.netIdToNameMap.clear();
         int i = 1;
         for (const auto &[netId, entities] : netGroups) {
             auto groupNode = std::make_shared<UI::ProjectExplorerNode>();
             groupNode->isGroup = true;
             groupNode->label = std::format("Net {}", i++);
             state.addNode(groupNode);
+            state.netIdToNameMap[netId] = groupNode->label;
 
             for (const auto &enttId : entities) {
                 const auto node = state.getNodeOfSceneEntt(enttId);

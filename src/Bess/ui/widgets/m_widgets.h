@@ -5,19 +5,22 @@
 #include "imgui_internal.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include <format>
+#include <ranges>
 #include <string>
 #include <vector>
 
 namespace Bess::UI::Widgets {
     bool TextBox(const std::string &label, std::string &value, const std::string &hintText = "");
 
-    template <class TValue>
-    bool ComboBox(const std::string &label, TValue &currentValue, const std::vector<TValue> &predefinedValues) {
+    template <std::ranges::input_range Range, class TValue = std::ranges::range_value_t<Range>>
+    bool ComboBox(const std::string &label, TValue &currentValue, Range &&predefinedValues) {
         bool valueChanged = false;
 
         if (ImGui::BeginCombo(label.c_str(), std::format("{}", currentValue).c_str())) {
-            for (auto &value : predefinedValues) {
+
+            for (auto &&value : predefinedValues) {
                 bool isSelected = (currentValue == value);
+
                 if (ImGui::Selectable(std::format("{}", value).c_str(), isSelected)) {
                     currentValue = value;
                     valueChanged = true;
@@ -26,8 +29,10 @@ namespace Bess::UI::Widgets {
                 if (isSelected)
                     ImGui::SetItemDefaultFocus();
             }
+
             ImGui::EndCombo();
         }
+
         return valueChanged;
     }
 

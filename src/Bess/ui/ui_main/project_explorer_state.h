@@ -45,6 +45,8 @@ namespace Bess::UI {
         std::unordered_map<UUID, std::shared_ptr<ProjectExplorerNode>> nodesLookup;
         std::unordered_map<UUID, std::shared_ptr<ProjectExplorerNode>> enttNodesLookup;
         std::vector<std::shared_ptr<ProjectExplorerNode>> nodes;
+
+        std::unordered_map<UUID, std::string> netIdToNameMap;
     };
 
     namespace JsonConvert {

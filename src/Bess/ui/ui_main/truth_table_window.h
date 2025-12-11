@@ -1,5 +1,7 @@
 #pragma once
 
+#include "bess_uuid.h"
+#include <string>
 namespace Bess::UI {
     class TruthTableWindow {
       public:
@@ -12,5 +14,7 @@ namespace Bess::UI {
       private:
         static void firstTime();
         static bool isfirstTimeDraw;
+        static std::string selectedNetName;
+        static UUID selectedNetId;
     };
 } // namespace Bess::UI
