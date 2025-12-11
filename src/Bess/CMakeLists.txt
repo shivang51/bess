@@ -130,6 +130,7 @@ set(Source_Files
 "scene/artist/nodes_artist.cpp"
 "scene/artist/artist_manager.cpp"
 "scene/scene.cpp"
+"scene/scene_key_maps.cpp"
 "scene/camera.cpp"
 "scene/commands/connect_command.cpp"
 "scene/commands/delete_comp_command.cpp"

@@ -168,69 +168,6 @@ namespace Bess::Canvas {
             m_registry.emplace_or_replace<Components::SelectedComponent>(entt);
     }
 
-    void Scene::handleKeyboardShortcuts() {
-        const auto mainPageState = Pages::MainPageState::getInstance();
-        if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
-            if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
-                if (mainPageState->isKeyPressed(GLFW_KEY_Z)) {
-                    m_cmdManager.redo();
-                }
-            } else if (mainPageState->isKeyPressed(GLFW_KEY_A)) { // ctrl-a select all components
-                selectAllEntities();
-            } else if (mainPageState->isKeyPressed(GLFW_KEY_C)) { // ctrl-c copy selected components
-                copySelectedComponents();
-            } else if (mainPageState->isKeyPressed(GLFW_KEY_V)) { // ctrl-v generate copied components
-                generateCopiedComponents();
-            } else if (mainPageState->isKeyPressed(GLFW_KEY_Z)) {
-                m_cmdManager.undo();
-            }
-        } else if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
-            if (mainPageState->isKeyPressed(GLFW_KEY_A)) {
-                UI::ComponentExplorer::isShown = !UI::ComponentExplorer::isShown;
-            }
-        } else if (mainPageState->isKeyPressed(GLFW_KEY_DELETE)) {
-            const auto view = m_registry.view<Components::IdComponent, Components::SelectedComponent>();
-
-            std::vector<UUID> entitesToDel = {};
-            std::vector<entt::entity> connEntitesToDel = {};
-            for (const auto &entt : view) {
-                if (!m_registry.valid(entt))
-                    continue;
-
-                if (m_registry.all_of<Components::ConnectionComponent>(entt)) {
-                    connEntitesToDel.emplace_back(entt);
-                } else {
-                    entitesToDel.emplace_back(getUuidOfEntity(entt));
-                }
-            }
-
-            auto _ = m_cmdManager.execute<Commands::DeleteCompCommand, std::string>(entitesToDel);
-
-            std::vector<UUID> connToDel = {};
-            for (const auto ent : connEntitesToDel) {
-                if (!m_registry.valid(ent))
-                    continue;
-
-                connToDel.emplace_back(getUuidOfEntity(ent));
-            }
-
-            _ = m_cmdManager.execute<Commands::DelConnectionCommand, std::string>(connToDel);
-        } else if (mainPageState->isKeyPressed(GLFW_KEY_F)) {
-            const auto view = m_registry.view<Components::IdComponent,
-                                              Components::SelectedComponent,
-                                              Components::TransformComponent>();
-
-            // pick the first one to focus. if many are selected
-            for (const auto &ent : view) {
-                const auto &transform = view.get<Components::TransformComponent>(ent);
-                m_camera->focusAtPoint(glm::vec2(transform.position), true);
-                break;
-            }
-        } else if (mainPageState->isKeyPressed(GLFW_KEY_TAB)) {
-            toggleSchematicView();
-        }
-    }
-
     void Scene::renderWithViewport(const std::shared_ptr<Viewport> &viewport) {
         const auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
         switch (m_sceneMode) {
