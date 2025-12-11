@@ -29,7 +29,7 @@ namespace Bess::UI {
 
         void reset();
 
-        void addNode(const std::shared_ptr<ProjectExplorerNode> &node);
+        void addNode(const std::shared_ptr<ProjectExplorerNode> &node, bool recursive = false);
 
         void removeNode(const std::shared_ptr<ProjectExplorerNode> &node);
 
@@ -132,7 +132,7 @@ namespace Bess::UI {
                     UI::ProjectExplorerNode node;
                     fromJsonValue(nodeJ, node);
                     auto nodePtr = std::make_shared<UI::ProjectExplorerNode>(node);
-                    state.addNode(nodePtr);
+                    state.addNode(nodePtr, true);
                 }
             }
         }

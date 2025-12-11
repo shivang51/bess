@@ -2,6 +2,7 @@
 #include "bess_uuid.h"
 #include "common/log.h"
 #include "json/value.h"
+#include <cstdint>
 
 namespace Bess::UI {
     void ProjectExplorerState::reset() {
@@ -10,8 +11,9 @@ namespace Bess::UI {
         enttNodesLookup.clear();
     }
 
-    void ProjectExplorerState::addNode(const std::shared_ptr<ProjectExplorerNode> &node) {
+    void ProjectExplorerState::addNode(const std::shared_ptr<ProjectExplorerNode> &node, bool recursive) {
         nodesLookup[node->nodeId] = node;
+        BESS_TRACE("[ProjectExplorerState] sceneId: {}", (uint64_t)node->sceneId);
 
         if (node->sceneId != UUID::null) {
             enttNodesLookup[node->sceneId] = node;
@@ -19,6 +21,13 @@ namespace Bess::UI {
 
         if (node->parentId == UUID::null) {
             nodes.emplace_back(node);
+        }
+
+        if (!recursive)
+            return;
+
+        for (const auto &child : node->children) {
+            addNode(child, true);
         }
     }
 
