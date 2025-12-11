@@ -355,24 +355,7 @@ namespace Bess::UI {
         if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
             const bool ctrl = ImGui::GetIO().KeyCtrl;
             if (ctrl && ImGui::IsKeyPressed(ImGuiKey_G)) {
-                if (isMultiSelected) {
-                    auto groupNode = std::make_shared<UI::ProjectExplorerNode>();
-                    groupNode->isGroup = true;
-                    groupNode->label = "New Group Node";
-                    state.addNode(groupNode);
-
-                    for (const auto &entity : selTagGroup) {
-                        const auto node = state.getNodeOfSceneEntt(scene->getUuidOfEntity(entity));
-                        if (node != nullptr) {
-                            state.moveNode(node, groupNode);
-                        }
-                    }
-                } else {
-                    auto groupNode = std::make_shared<UI::ProjectExplorerNode>();
-                    groupNode->isGroup = true;
-                    groupNode->label = "New Group Node";
-                    state.addNode(groupNode);
-                }
+                groupSelectedNodes();
             }
 
             if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
@@ -538,6 +521,30 @@ namespace Bess::UI {
                                     std::string>(entitesToDel);
             entitesToDel.clear();
             state.removeNode(node);
+        }
+    }
+
+    void ProjectExplorer::groupSelectedNodes() {
+        auto scene = Bess::Canvas::Scene::instance();
+        auto &registry = scene->getEnttRegistry();
+        const auto selTagGroup = registry.group<>(entt::get<Canvas::Components::SelectedComponent,
+                                                            Canvas::Components::TagComponent>);
+
+        if (selTagGroup.empty())
+            return;
+
+        auto groupNode = std::make_shared<UI::ProjectExplorerNode>();
+        groupNode->isGroup = true;
+        groupNode->label = "New Group Node";
+        state.addNode(groupNode);
+
+        for (const auto &entity : selTagGroup) {
+            const auto node = state.getNodeOfSceneEntt(scene->getUuidOfEntity(entity));
+            if (node != nullptr) {
+                state.moveNode(node, groupNode);
+            } else {
+                BESS_WARN("[ProjectExplorer] Could not find node for entity while grouping");
+            }
         }
     }
 } // namespace Bess::UI

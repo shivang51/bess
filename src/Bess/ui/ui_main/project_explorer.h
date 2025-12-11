@@ -17,6 +17,8 @@ namespace Bess::UI {
         static bool isShown;
         static ProjectExplorerState state;
 
+        static void groupSelectedNodes();
+
       private:
         static std::pair<bool, bool> drawLeafNode(int key, uint64_t nodeId,
                                                   const char *label,

@@ -1,6 +1,7 @@
 #include "pages/main_page/main_page_state.h"
 #include "scene.h"
 #include "ui/ui_main/component_explorer.h"
+#include "ui/ui_main/project_explorer.h"
 #include <GLFW/glfw3.h>
 
 namespace Bess::Canvas {
@@ -35,6 +36,10 @@ namespace Bess::Canvas {
             generateCopiedComponents();
             ELIF_KEY_PRESSED(KEY(Z)) // ctrl-z undo
             m_cmdManager.undo();
+            ELIF_KEY_PRESSED(KEY(G)) // ctrl-g group selected components
+            {
+                UI::ProjectExplorer::groupSelectedNodes();
+            }
         }
         else IF_LEFT_SHIFT_PRESSED {
             IF_KEY_PRESSED(KEY(A)) { // shift-a toggle component explorer
