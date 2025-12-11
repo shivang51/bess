@@ -8,17 +8,24 @@
 namespace Bess {
     class BESS_API UUID {
       public:
-        static UUID null;
+        constexpr UUID(uint64_t id) noexcept : m_UUID(id) {}
 
         UUID();
-        UUID(uint64_t id);
-        UUID(const UUID &other) = default;
+        ~UUID() = default;
 
-        operator uint64_t() const { return m_UUID; }
+        constexpr UUID(const UUID &other) noexcept = default;
 
-        bool operator==(const Bess::UUID &other) const {
-            return other.m_UUID == m_UUID;
+        constexpr operator uint64_t() const noexcept { return m_UUID; }
+
+        constexpr bool operator==(const UUID &other) const noexcept {
+            return m_UUID == other.m_UUID;
         }
+
+        constexpr bool operator!=(const UUID &other) const noexcept {
+            return m_UUID != other.m_UUID;
+        }
+
+        static const UUID null;
 
       private:
         uint64_t m_UUID;
