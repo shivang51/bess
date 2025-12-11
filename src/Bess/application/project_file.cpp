@@ -120,6 +120,8 @@ namespace Bess {
         if (data.isMember("scene_data")) {
             m_sceneSerializer.deserialize(data["scene_data"]);
         }
+
+        UI::ProjectExplorer::state.fromJson(data["project_explorere_state"]);
     }
 
     void ProjectFile::browsePath() {

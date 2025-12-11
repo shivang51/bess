@@ -20,6 +20,8 @@ bin/
 
 vgcore*
 
+sample_projects/test.bproj
+
 # this is generated through cmake (check build.sh)
 compile_commands.json
 .cache
