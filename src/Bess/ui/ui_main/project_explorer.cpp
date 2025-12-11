@@ -348,6 +348,10 @@ namespace Bess::UI {
                 }
             }
 
+            if (ImGui::MenuItemEx("Regroup on nets", "", "")) {
+                groupOnNets();
+            }
+
             ImGui::EndPopup();
         }
 
@@ -544,6 +548,35 @@ namespace Bess::UI {
                 state.moveNode(node, groupNode);
             } else {
                 BESS_WARN("[ProjectExplorer] Could not find node for entity while grouping");
+            }
+        }
+    }
+
+    void ProjectExplorer::groupOnNets() {
+        std::unordered_map<UUID, std::vector<UUID>> netGroups;
+        auto scene = Bess::Canvas::Scene::instance();
+        auto &registry = scene->getEnttRegistry();
+
+        auto view = registry.view<Canvas::Components::TagComponent>();
+        view.each([&](const entt::entity entity,
+                      const Canvas::Components::TagComponent &tagComp) {
+            if (tagComp.netId != UUID::null) {
+                netGroups[tagComp.netId].emplace_back(scene->getUuidOfEntity(entity));
+            }
+        });
+
+        int i = 1;
+        for (const auto &[netId, entities] : netGroups) {
+            auto groupNode = std::make_shared<UI::ProjectExplorerNode>();
+            groupNode->isGroup = true;
+            groupNode->label = std::format("Net {}", i++);
+            state.addNode(groupNode);
+
+            for (const auto &enttId : entities) {
+                const auto node = state.getNodeOfSceneEntt(enttId);
+                if (node != nullptr) {
+                    state.moveNode(node, groupNode);
+                }
             }
         }
     }

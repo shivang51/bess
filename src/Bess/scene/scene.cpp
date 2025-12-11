@@ -83,7 +83,6 @@ namespace Bess::Canvas {
                 if (!isCursorInViewport(pos)) {
                     m_isLeftMousePressed = false;
                     m_mousePos = pos;
-                    BESS_TRACE("Mouse Move outside viewport: {},{}", pos.x, pos.y);
                     break;
                 }
                 onMouseMove(pos);

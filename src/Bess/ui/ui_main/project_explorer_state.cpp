@@ -13,7 +13,6 @@ namespace Bess::UI {
 
     void ProjectExplorerState::addNode(const std::shared_ptr<ProjectExplorerNode> &node, bool recursive) {
         nodesLookup[node->nodeId] = node;
-        BESS_TRACE("[ProjectExplorerState] sceneId: {}", (uint64_t)node->sceneId);
 
         if (node->sceneId != UUID::null) {
             enttNodesLookup[node->sceneId] = node;
