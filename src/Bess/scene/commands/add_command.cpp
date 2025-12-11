@@ -65,7 +65,7 @@ namespace Bess::Canvas::Commands {
             auto compNode = std::make_shared<UI::ProjectExplorerNode>();
             compNode->isGroup = false;
             compNode->label = tagComp.name;
-            compNode->sceneEntity = entity;
+            compNode->sceneId = id;
             state.addNode(compNode);
         }
 
@@ -85,7 +85,7 @@ namespace Bess::Canvas::Commands {
             SceneSerializer ser;
             ser.serializeEntity(m_compIds[i], compJson);
             scene->deleteSceneEntity(m_compIds[i]);
-            state.removeSceneEnttNode(scene->getEntityWithUuid(m_compIds[i]));
+            state.removeNode(state.getNodeOfSceneEntt(m_compIds[i]));
         }
 
         m_redo = true;

@@ -7,6 +7,7 @@
 #include "scene/components/components.h"
 #include "scene/scene.h"
 #include "ui/ui_main/dialogs.h"
+#include "ui/ui_main/project_explorer.h"
 
 #include <cstdint>
 #include <fstream>
@@ -77,6 +78,8 @@ namespace Bess {
 
         m_sceneSerializer.serialize(data["scene_data"]);
         m_simEngineSerializer.serialize(data["sim_engine_data"]);
+
+        data["project_explorere_state"] = UI::ProjectExplorer::state.toJson();
 
         if (std::ofstream outFile(m_path, std::ios::out); outFile.is_open()) {
             Json::StreamWriterBuilder builder;

@@ -61,7 +61,9 @@ namespace Bess::UI {
                     if (node->visibleIndex >= start && node->visibleIndex <= end) {
                         node->selected = true;
                         if (!node->isGroup) {
-                            registry.emplace_or_replace<Canvas::Components::SelectedComponent>(node->sceneEntity);
+                            const auto &sceneEnt = scene->getEntityWithUuid(node->sceneId);
+                            registry.emplace_or_replace<
+                                Canvas::Components::SelectedComponent>(sceneEnt);
                         }
                     }
                     if (node->isGroup && !node->children.empty()) {
@@ -136,7 +138,8 @@ namespace Bess::UI {
                 }
 
             } else {
-                const auto &tagComp = view.get<Canvas::Components::TagComponent>(node->sceneEntity);
+                const auto &sceneEnt = scene->getEntityWithUuid(node->sceneId);
+                const auto &tagComp = view.get<Canvas::Components::TagComponent>(sceneEnt);
                 if (tagComp.isSimComponent) {
                     icon = Common::Helpers::getComponentIcon(tagComp.type.simCompHash);
                 } else {
@@ -155,7 +158,7 @@ namespace Bess::UI {
                     selTagGroup.each([&](const entt::entity entity,
                                          const Canvas::Components::SelectedComponent &,
                                          const Canvas::Components::TagComponent &) {
-                        const auto selectedNode = state.getNodeFromSceneEntity(entity);
+                        const auto selectedNode = state.getNodeOfSceneEntt(scene->getUuidOfEntity(entity));
                         if (selectedNode != nullptr) {
                             payloadData.emplace_back((uint64_t)selectedNode->nodeId);
                         }
@@ -166,7 +169,7 @@ namespace Bess::UI {
                     ImGui::EndDragDropSource();
                 }
 
-                const auto &entity = node->sceneEntity;
+                const auto &entity = scene->getEntityWithUuid(node->sceneId);
                 node->selected = selTagGroup.contains(entity);
 
                 if (cbPressed) {
@@ -196,7 +199,7 @@ namespace Bess::UI {
                     //     node->selected = !node->selected;
                     // } else {
                     if (!node->isGroup) {
-                        const auto &entity = node->sceneEntity;
+                        const auto &entity = scene->getEntityWithUuid(node->sceneId);
                         if (node->selected) {
                             registry.remove<Canvas::Components::SelectedComponent>(entity);
                         } else {
@@ -211,7 +214,8 @@ namespace Bess::UI {
                         if (node->isGroup) {
                             node->selected = true;
                         } else {
-                            registry.emplace_or_replace<Canvas::Components::SelectedComponent>(node->sceneEntity);
+                            const auto &entity = scene->getEntityWithUuid(node->sceneId);
+                            registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
                         }
                     }
                     lastSelectedIndex = currentIndex;
@@ -231,7 +235,8 @@ namespace Bess::UI {
                         if (node->isGroup) {
                             node->selected = true;
                         } else {
-                            registry.emplace_or_replace<Canvas::Components::SelectedComponent>(node->sceneEntity);
+                            const auto &entity = scene->getEntityWithUuid(node->sceneId);
+                            registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
                         }
                         lastSelectedIndex = i - 1;
                     }
@@ -328,7 +333,7 @@ namespace Bess::UI {
                     state.addNode(groupNode);
 
                     for (const auto &entity : selTagGroup) {
-                        const auto node = state.getNodeFromSceneEntity(entity);
+                        const auto node = state.getNodeOfSceneEntt(scene->getUuidOfEntity(entity));
                         if (node != nullptr) {
                             state.moveNode(node, groupNode);
                         }
@@ -357,7 +362,7 @@ namespace Bess::UI {
                     state.addNode(groupNode);
 
                     for (const auto &entity : selTagGroup) {
-                        const auto node = state.getNodeFromSceneEntity(entity);
+                        const auto node = state.getNodeOfSceneEntt(scene->getUuidOfEntity(entity));
                         if (node != nullptr) {
                             state.moveNode(node, groupNode);
                         }
@@ -377,7 +382,7 @@ namespace Bess::UI {
                 selTagGroup.each([&](const entt::entity entity,
                                      const Canvas::Components::SelectedComponent &,
                                      const Canvas::Components::TagComponent &) {
-                    const auto node = state.getNodeFromSceneEntity(entity);
+                    const auto node = state.getNodeOfSceneEntt(scene->getUuidOfEntity(entity));
                     if (node != nullptr) {
                         nodesToDelete.emplace_back(node);
                     }
@@ -500,7 +505,8 @@ namespace Bess::UI {
                 selectNode(childNode);
             }
         } else {
-            registry.emplace_or_replace<Canvas::Components::SelectedComponent>(node->sceneEntity);
+            const auto &sceneEnt = scene->getEntityWithUuid(node->sceneId);
+            registry.emplace_or_replace<Canvas::Components::SelectedComponent>(sceneEnt);
         }
     }
 
@@ -520,7 +526,8 @@ namespace Bess::UI {
         } else {
             auto scene = Bess::Canvas::Scene::instance();
             auto &registry = scene->getEnttRegistry();
-            entitesToDel.emplace_back(scene->getUuidOfEntity(node->sceneEntity));
+            const auto &sceneEnt = scene->getEntityWithUuid(node->sceneId);
+            entitesToDel.emplace_back(scene->getUuidOfEntity(sceneEnt));
         }
 
         if (firstCall) {

@@ -1,4 +1,5 @@
 #include "project_explorer_state.h"
+#include "bess_uuid.h"
 #include "common/log.h"
 #include "json/value.h"
 
@@ -12,8 +13,8 @@ namespace Bess::UI {
     void ProjectExplorerState::addNode(const std::shared_ptr<ProjectExplorerNode> &node) {
         nodesLookup[node->nodeId] = node;
 
-        if (node->sceneEntity != entt::null) {
-            enttNodesLookup[node->sceneEntity] = node;
+        if (node->sceneId != UUID::null) {
+            enttNodesLookup[node->sceneId] = node;
         }
 
         if (node->parentId == UUID::null) {
@@ -21,18 +22,19 @@ namespace Bess::UI {
         }
     }
 
-    void ProjectExplorerState::removeSceneEnttNode(entt::entity sceneEntity) {
-        auto it = enttNodesLookup.find(sceneEntity);
+    std::shared_ptr<ProjectExplorerNode> ProjectExplorerState::getNodeOfSceneEntt(const UUID &sceneId) {
+        auto it = enttNodesLookup.find(sceneId);
         if (it != enttNodesLookup.end()) {
-            auto node = it->second;
-            removeNode(node);
+            return it->second;
         }
+
+        return nullptr;
     }
 
     void ProjectExplorerState::removeNode(const std::shared_ptr<ProjectExplorerNode> &node) {
         nodesLookup.erase(node->nodeId);
-        if (node->sceneEntity != entt::null) {
-            enttNodesLookup.erase(node->sceneEntity);
+        if (node->sceneId != UUID::null) {
+            enttNodesLookup.erase(node->sceneId);
         }
 
         if (node->parentId != UUID::null) {
@@ -49,14 +51,6 @@ namespace Bess::UI {
                                                               [&](auto &f) { return f->nodeId == node->nodeId; });
             nodes.erase(first, last);
         }
-    }
-
-    std::shared_ptr<ProjectExplorerNode> ProjectExplorerState::getNodeFromSceneEntity(entt::entity sceneEntity) {
-        auto it = enttNodesLookup.find(sceneEntity);
-        if (it != enttNodesLookup.end()) {
-            return it->second;
-        }
-        return nullptr;
     }
 
     void ProjectExplorerState::moveNode(UUID node, UUID newParent) {

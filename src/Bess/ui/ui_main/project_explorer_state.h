@@ -16,7 +16,7 @@ namespace Bess::UI {
         bool isGroup = false;
         UUID nodeId;
         UUID parentId = UUID::null;
-        entt::entity sceneEntity = entt::null;
+        UUID sceneId = UUID::null;
         std::string label;
         std::vector<std::shared_ptr<ProjectExplorerNode>> children;
         int visibleIndex = -1;
@@ -31,11 +31,9 @@ namespace Bess::UI {
 
         void addNode(const std::shared_ptr<ProjectExplorerNode> &node);
 
-        void removeSceneEnttNode(entt::entity sceneEntity);
-
         void removeNode(const std::shared_ptr<ProjectExplorerNode> &node);
 
-        std::shared_ptr<ProjectExplorerNode> getNodeFromSceneEntity(entt::entity sceneEntity);
+        std::shared_ptr<ProjectExplorerNode> getNodeOfSceneEntt(const UUID &sceneId);
 
         void moveNode(UUID node, UUID newParent);
 
@@ -45,7 +43,7 @@ namespace Bess::UI {
         void fromJson(const Json::Value &j);
 
         std::unordered_map<UUID, std::shared_ptr<ProjectExplorerNode>> nodesLookup;
-        std::unordered_map<entt::entity, std::shared_ptr<ProjectExplorerNode>> enttNodesLookup;
+        std::unordered_map<UUID, std::shared_ptr<ProjectExplorerNode>> enttNodesLookup;
         std::vector<std::shared_ptr<ProjectExplorerNode>> nodes;
     };
 
@@ -57,7 +55,7 @@ namespace Bess::UI {
             j["isGroup"] = node->isGroup;
             Bess::JsonConvert::toJsonValue(node->nodeId, j["nodeId"]);
             Bess::JsonConvert::toJsonValue(node->parentId, j["parentId"]);
-            j["sceneEntity"] = static_cast<uint32_t>(node->sceneEntity);
+            Bess::JsonConvert::toJsonValue(node->sceneId, j["sceneId"]);
             j["label"] = node->label;
 
             j["children"] = Json::Value(Json::arrayValue);
@@ -76,7 +74,7 @@ namespace Bess::UI {
             j["isGroup"] = node.isGroup;
             Bess::JsonConvert::toJsonValue(node.nodeId, j["nodeId"]);
             Bess::JsonConvert::toJsonValue(node.parentId, j["parentId"]);
-            j["sceneEntity"] = static_cast<uint32_t>(node.sceneEntity);
+            Bess::JsonConvert::toJsonValue(node.sceneId, j["sceneId"]);
             j["label"] = node.label;
 
             j["children"] = Json::Value(Json::arrayValue);
@@ -97,7 +95,7 @@ namespace Bess::UI {
             node.isGroup = j.get("isGroup", false).asBool();
             Bess::JsonConvert::fromJsonValue(j["nodeId"], node.nodeId);
             Bess::JsonConvert::fromJsonValue(j["parentId"], node.parentId);
-            node.sceneEntity = static_cast<entt::entity>(j.get("sceneEntity", 0).asUInt());
+            Bess::JsonConvert::fromJsonValue(j["sceneId"], node.sceneId);
             node.label = j.get("label", "").asString();
 
             node.children.clear();

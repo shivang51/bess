@@ -36,7 +36,9 @@ namespace Bess::Canvas::Commands {
             data.compJson.clear();
             ser.serializeEntity(compId, data.compJson);
             scene->deleteSceneEntity(compId);
-            UI::ProjectExplorer::state.removeSceneEnttNode(ent);
+
+            auto &state = UI::ProjectExplorer::state;
+            state.removeNode(state.getNodeOfSceneEntt(compId));
         }
 
         if (!m_simEngineComps.empty()) {
