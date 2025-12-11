@@ -43,7 +43,6 @@ set(Header_Files
 "common/log.h"
 "scene/components/components.h"
 "scene/components/json_converters.h"
-"scene/components/json_convert_helpers.h"
 "scene/components/non_sim_comp.h"
 "scene/schematic_diagram.h"
 "scene/scene.h"
