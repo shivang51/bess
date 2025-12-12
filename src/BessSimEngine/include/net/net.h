@@ -2,6 +2,7 @@
 
 #include "bess_api.h"
 #include "bess_uuid.h"
+#include "types.h"
 
 namespace Bess::SimEngine {
     class BESS_API Net {

@@ -120,6 +120,13 @@ namespace Bess::UI {
                 toJsonValue(node, nodeJ);
                 j["nodes"].append(nodeJ);
             }
+
+            j["netIdToNameMap"] = Json::Value(Json::objectValue);
+            for (const auto &[netId, netName] : state.netIdToNameMap) {
+                Json::Value netIdJ;
+                Bess::JsonConvert::toJsonValue(netId, netIdJ);
+                j["netIdToNameMap"][netIdJ.asString()] = netName;
+            }
         }
 
         inline void fromJsonValue(const Json::Value &j, Bess::UI::ProjectExplorerState &state) {
@@ -135,6 +142,15 @@ namespace Bess::UI {
                     fromJsonValue(nodeJ, node);
                     auto nodePtr = std::make_shared<UI::ProjectExplorerNode>(node);
                     state.addNode(nodePtr, true);
+                }
+            }
+
+            if (j.isMember("netIdToNameMap")) {
+                for (const auto &netIdJ : j["netIdToNameMap"].getMemberNames()) {
+                    UUID netId;
+                    Bess::JsonConvert::fromJsonValue(Json::Value(netIdJ), netId);
+                    std::string netName = j["netIdToNameMap"][netIdJ].asString();
+                    state.netIdToNameMap[netId] = netName;
                 }
             }
         }

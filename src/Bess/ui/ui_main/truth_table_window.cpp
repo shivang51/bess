@@ -3,10 +3,14 @@
 #include "ui/ui_main/project_explorer.h"
 #include "ui/widgets/m_widgets.h"
 
+#include "simulation_engine.h"
+
 namespace Bess::UI {
 
     std::string TruthTableWindow::selectedNetName;
     UUID TruthTableWindow::selectedNetId = UUID::null;
+    bool TruthTableWindow::isDirty = true;
+    std::vector<std::vector<Bess::SimEngine::LogicState>> TruthTableWindow::currentTruthTable;
 
     void TruthTableWindow::draw() {
         if (!isShown)
@@ -27,24 +31,39 @@ namespace Bess::UI {
             for (const auto &[netId, netName] : state.netIdToNameMap) {
                 if (netName == selectedNetName) {
                     selectedNetId = netId;
+                    isDirty = true;
                     break;
                 }
             }
         }
 
         if (selectedNetId != UUID::null) {
-            if (ImGui::BeginTable("table1", 3, tableFlags)) {
-                ImGui::TableSetupColumn("Column 0");
-                ImGui::TableSetupColumn("Column 1");
-                ImGui::TableSetupColumn("Column 2");
-                ImGui::TableHeadersRow();
-                for (int row = 0; row < 4; row++) {
-                    for (int column = 0; column < 3; column++) {
-                        ImGui::TableNextColumn();
-                        ImGui::Text("Row %d Column %d", row, column);
+            if (isDirty) {
+                auto &simEngine = SimEngine::SimulationEngine::instance();
+                currentTruthTable = simEngine.getTruthTableOfNet(selectedNetId);
+                isDirty = false;
+            }
+
+            if (!currentTruthTable.empty()) {
+                if (ImGui::BeginTable("table1", currentTruthTable[0].size(), tableFlags)) {
+                    for (int i = 0; i < currentTruthTable[0].size(); i++) {
+                        ImGui::TableSetupColumn(("Col " + std::to_string(i)).c_str());
                     }
+                    ImGui::TableHeadersRow();
+                    for (int row = 0; row < currentTruthTable.size(); row++) {
+                        for (int column = 0; column < currentTruthTable[0].size(); column++) {
+                            ImGui::TableNextColumn();
+                            const auto &state = currentTruthTable[row][column];
+                            int value = state == SimEngine::LogicState::low
+                                            ? 0
+                                            : (state == SimEngine::LogicState::high
+                                                   ? 1
+                                                   : (state == SimEngine::LogicState::unknown ? 'X' : 'Z'));
+                            ImGui::Text("%d", value);
+                        }
+                    }
+                    ImGui::EndTable();
                 }
-                ImGui::EndTable();
             }
         } else {
             ImGui::Text("Please select a net to view its truth table.");

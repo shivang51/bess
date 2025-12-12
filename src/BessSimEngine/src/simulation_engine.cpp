@@ -16,6 +16,8 @@
 #include <condition_variable>
 #include <cstdint>
 #include <exception>
+#include <mutex>
+#include <thread>
 
 // #define BESS_SE_ENABLE_LOG_EVENTS
 
@@ -712,6 +714,9 @@ namespace Bess::SimEngine {
             if (!m_eventSet.empty()) {
                 m_queueCV.wait_until(queueLock, std::chrono::steady_clock::now() +
                                                     (m_eventSet.begin()->simTime - m_currentSimTime));
+            } else {
+                BESS_SE_TRACE("[BessSimEngine] Event queue empty, waiting for new events");
+                m_queueCV.notify_all();
             }
         }
     }
@@ -792,5 +797,117 @@ namespace Bess::SimEngine {
     const std::unordered_map<UUID, Net> &SimulationEngine::getNetsMap() {
         m_isNetUpdated = false;
         return m_nets;
+    }
+
+    const std::vector<std::vector<LogicState>> SimulationEngine::getTruthTableOfNet(const UUID &netUuid) {
+        if (!m_nets.contains(netUuid))
+            return {};
+
+        BESS_SE_INFO("\nGenerating truth table for net {}", (uint64_t)netUuid);
+        const auto &net = m_nets.at(netUuid);
+
+        std::vector<UUID> components;
+        std::vector<UUID> inputs, clockInputs;
+        std::vector<UUID> outputs;
+
+        for (const auto &compUuid : net.getComponents()) {
+            auto ent = getEntityWithUuid(compUuid);
+            if (ent == entt::null)
+                continue;
+
+            auto &comp = m_registry.get<DigitalComponent>(ent);
+            const auto &hash = comp.definition.getHash();
+            bool isInput = ComponentCatalog::instance().isSpecialCompDef(hash,
+                                                                         ComponentCatalog::SpecialType::input);
+
+            bool isOutput = ComponentCatalog::instance().isSpecialCompDef(hash,
+                                                                          ComponentCatalog::SpecialType::output);
+
+            if (isInput) {
+                if (m_registry.all_of<ClockComponent>(ent)) {
+                    clockInputs.emplace_back(compUuid);
+                } else {
+                    inputs.emplace_back(compUuid);
+                }
+            } else if (isOutput) {
+                outputs.emplace_back(compUuid);
+            } else {
+                components.emplace_back(compUuid);
+            }
+        }
+
+        if (inputs.size() == 0 || outputs.size() == 0) {
+            BESS_SE_WARN("Cannot generate truth table for net {} without input or output components", (uint64_t)netUuid);
+            return {};
+        }
+
+        BESS_SE_INFO("Truth table will have {} inputs ({} clock) and {} outputs",
+                     inputs.size(), clockInputs.size(), outputs.size());
+
+        const size_t numInputs = inputs.size();
+        const size_t numCombinations = 1 << numInputs;
+
+        std::vector<std::vector<LogicState>> truthTable(numCombinations,
+                                                        std::vector<LogicState>(
+                                                            numInputs + clockInputs.size() + outputs.size(),
+                                                            LogicState::low));
+
+        // log dimensions of the truth table
+
+        BESS_SE_INFO("Truth table dimensions: {} rows x {} columns",
+                     truthTable.size(),
+                     truthTable[0].size());
+
+        BESS_SE_INFO("Total combinations to simulate: {}", numCombinations);
+
+        for (size_t comb = 0; comb < numCombinations; comb++) {
+            BESS_SE_INFO("Simulating combination {}/{}: ", comb + 1, numCombinations);
+            for (size_t i = 0; i < numInputs; i++) {
+                std::lock_guard lk(m_registryMutex);
+                LogicState state = (comb & (1 << i)) ? LogicState::high : LogicState::low;
+                setOutputPinState(inputs[i], 0, state);
+                truthTable[comb][i] = state;
+            }
+
+            for (const auto &clkInput : clockInputs) {
+                auto &comp = m_registry.get<DigitalComponent>(getEntityWithUuid(clkInput));
+                truthTable[comb][numInputs] = comp.state.outputStates[0].state;
+            }
+
+            BESS_SE_INFO("Waiting for simulation to stabilize...");
+
+            while (!isSimStable()) {
+                BESS_SE_INFO("Current event queue size: {}", m_eventSet.size());
+
+                auto lock = std::unique_lock(m_queueMutex);
+                m_queueCV.wait(lock, [&] { return m_eventSet.empty(); });
+            }
+
+            BESS_SE_INFO("Simulation stabilized. Recording outputs.");
+
+            for (size_t i = 0; i < outputs.size(); i++) {
+                std::lock_guard lk(m_registryMutex);
+                const auto states = getInputPinsState(getEntityWithUuid(outputs[i]));
+                truthTable[comb][numInputs + clockInputs.size() + i] = states[0].state;
+            }
+        }
+
+        BESS_SE_INFO("Truth table generation completed for net {}\n", (uint64_t)netUuid);
+
+        return truthTable;
+    }
+
+    bool SimulationEngine::isSimStable() {
+        std::lock_guard lk(m_queueMutex);
+        if (m_eventSet.empty()) {
+            return true;
+        }
+
+        for (const auto &ev : m_eventSet) {
+            if (!m_registry.all_of<ClockComponent>(ev.entity)) {
+                return false;
+            }
+        }
+        return true;
     }
 } // namespace Bess::SimEngine
