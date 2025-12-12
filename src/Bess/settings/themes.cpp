@@ -44,9 +44,9 @@ namespace Bess::Config {
         const ImVec4 base2 = ImVec4(0.18f, 0.18f, 0.19f, 1.0f);
         const ImVec4 base3 = ImVec4(0.23f, 0.23f, 0.24f, 1.0f);
 
-        const ImVec4 accent = ImVec4(0.95f, 0.74f, 0.30f, 1.0f);
-        const ImVec4 accentMid = ImVec4(0.78f, 0.63f, 0.28f, 0.85f);
-        const ImVec4 accentSoft = ImVec4(0.65f, 0.52f, 0.22f, 0.60f);
+        const ImVec4 accent = ImVec4(0.70f, 0.55f, 0.20f, 1.0f);
+        const ImVec4 accentMid = ImVec4(0.60f, 0.45f, 0.18f, 0.85f);
+        const ImVec4 accentSoft = ImVec4(0.50f, 0.38f, 0.15f, 0.60f);
 
         const ImVec4 text0 = ImVec4(0.94f, 0.94f, 0.95f, 1.0f);
         const ImVec4 text1 = ImVec4(0.60f, 0.60f, 0.62f, 1.0f);
@@ -81,8 +81,8 @@ namespace Bess::Config {
 
         colors[ImGuiCol_ScrollbarBg] = base0;
         colors[ImGuiCol_ScrollbarGrab] = base3;
-        colors[ImGuiCol_ScrollbarGrabHovered] = base3;
-        colors[ImGuiCol_ScrollbarGrabActive] = base3;
+        colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
+        colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.4f, 0.4f, 0.4f, 1.0f);
 
         colors[ImGuiCol_CheckMark] = ImVec4(accent.x, accent.y, accent.z, 1.00f);
         colors[ImGuiCol_SliderGrab] = ImVec4(accent.x, accent.y, accent.z, 0.95f);
@@ -116,16 +116,21 @@ namespace Bess::Config {
 
         colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0, 0, 0, 0.55f);
 
-        style.WindowRounding = 4.0f;
+        style.WindowRounding = 6.0f;
+        style.ChildRounding = 6.0f;
         style.FrameRounding = 4.0f;
         style.GrabRounding = 4.0f;
         style.TabRounding = 4.0f;
-        style.ScrollbarRounding = 4.0f;
+        style.ScrollbarRounding = 9.0f;
+        style.PopupRounding = 6.0f;
 
-        style.WindowPadding = ImVec2(9, 8);
-        style.FramePadding = ImVec2(7, 5);
-        style.ItemSpacing = ImVec2(7, 6);
-        style.PopupBorderSize = 0.0f;
+        style.WindowPadding = ImVec2(10, 10);
+        style.FramePadding = ImVec2(8, 6);
+        style.ItemSpacing = ImVec2(8, 6);
+        style.PopupBorderSize = 1.0f;
+        style.WindowBorderSize = 1.0f;
+        style.ChildBorderSize = 1.0f;
+        style.FrameBorderSize = 0.0f;
     }
 
     void Themes::setCatpuccinMochaColors() {

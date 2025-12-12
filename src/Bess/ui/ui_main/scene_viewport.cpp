@@ -91,7 +91,7 @@ namespace Bess::UI {
         const auto colors = g.Style.Colors;
         auto &simEngine = SimEngine::SimulationEngine::instance();
         static int n = 4; // number of action buttons
-        static float size = (float)(32 * n) - (float)(n - 1);
+        static float size = (float)(32 * n) - (float)(n - 1) + (g.Style.FramePadding.x * 2);
         ImGui::SetNextWindowPos(
             {m_localPos.x + m_viewportSize.x - size - g.Style.FramePadding.x,
              m_localPos.y + g.Style.FramePadding.y});

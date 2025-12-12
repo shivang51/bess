@@ -205,7 +205,7 @@ namespace Bess::UI {
     void setCursorNormal() { ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow); }
 
     void drawStats(const int fps) {
-        ImGui::Begin("Stats");
+        ImGui::Begin(std::format("{}  Stats", Icons::FontAwesomeIcons::FA_CHART_PIE).c_str());
         ImGui::Text("FPS: %d", fps);
         ImGuiIO &io = ImGui::GetIO();
         ImGui::Text("DisplaySize: %.1f x %.1f", io.DisplaySize.x, io.DisplaySize.y);

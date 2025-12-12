@@ -68,6 +68,8 @@ namespace Bess::UI {
         const ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
         auto &simEngine = SimEngine::SimulationEngine::instance();
         const float height = ImGui::GetFrameHeight();
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down, height, window_flags)) {
             if (ImGui::BeginMenuBar()) {
                 if (simEngine.getSimulationState() == SimEngine::SimulationState::running) {
@@ -90,6 +92,7 @@ namespace Bess::UI {
             }
             ImGui::End();
         }
+        ImGui::PopStyleVar();
     }
 
     void UIMain::drawMenubar() {
@@ -272,11 +275,11 @@ namespace Bess::UI {
 
         const auto dock_id_right_bot = ImGui::DockBuilderSplitNode(dock_id_right, ImGuiDir_Down, 0.5f, nullptr, &dock_id_right);
 
-        // ImGui::DockBuilderDockWindow(ComponentExplorer::windowName.data(), dock_id_left);
         ImGui::DockBuilderDockWindow("MainViewport", mainDockspaceId);
         ImGui::DockBuilderDockWindow(ProjectExplorer::windowName.data(), dock_id_left);
         ImGui::DockBuilderDockWindow(PropertiesPanel::windowName.data(), dock_id_right);
         ImGui::DockBuilderDockWindow(GraphViewWindow::windowName.data(), dock_id_bot);
+        ImGui::DockBuilderDockWindow(TruthTableWindow::windowName.data(), dock_id_bot);
 
         ImGui::DockBuilderFinish(mainDockspaceId);
     }

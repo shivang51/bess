@@ -6,8 +6,8 @@
 namespace Bess::UI {
     class PropertiesPanel {
       public:
-        static constexpr auto windowName = Common::Helpers::concat(Icons::CodIcons::SYMBOL_PROPERTY,
-                                                                   "  Properties");
+        static constexpr auto windowName = Common::Helpers::concat(
+            Icons::CodIcons::SYMBOL_PROPERTY, "  Properties");
         static void draw();
 
         static bool isShown;
