@@ -802,7 +802,7 @@ namespace Bess::SimEngine {
         return m_nets;
     }
 
-    const std::vector<std::vector<LogicState>> SimulationEngine::getTruthTableOfNet(const UUID &netUuid) {
+    std::vector<std::vector<LogicState>> SimulationEngine::getTruthTableOfNet(const UUID &netUuid) {
         if (!m_nets.contains(netUuid))
             return {};
 
@@ -854,8 +854,6 @@ namespace Bess::SimEngine {
                                                         std::vector<LogicState>(
                                                             numInputs + clockInputs.size() + outputs.size(),
                                                             LogicState::low));
-
-        // log dimensions of the truth table
 
         BESS_SE_INFO("Truth table dimensions: {} rows x {} columns",
                      truthTable.size(),
