@@ -1,12 +1,17 @@
 #pragma once
 
 #include "bess_uuid.h"
+#include "common/helpers.h"
 #include "types.h"
+#include "ui/icons/CodIcons.h"
+#include "ui/icons/FontAwesomeIcons.h"
 #include <string>
+
 namespace Bess::UI {
     class TruthTableWindow {
       public:
-        static constexpr const char *windowName = "Truth Table Viewer";
+        static constexpr auto windowName = Common::Helpers::concat(Icons::FontAwesomeIcons::FA_TABLE,
+                                                                   "  Truth Table Viewer");
 
         static void draw();
 

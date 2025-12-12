@@ -27,7 +27,7 @@ namespace Bess::UI {
 
         const auto &state = ProjectExplorer::state;
 
-        ImGui::Begin(windowName, nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
+        ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
         if (Widgets::ComboBox("Select Net",
                               selectedNetName,

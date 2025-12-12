@@ -188,7 +188,7 @@ namespace Bess::UI {
 
             Widgets::CheckboxWithLabel(GraphViewWindow::windowName.data(), &GraphViewWindow::isShown);
 
-            Widgets::CheckboxWithLabel(TruthTableWindow::windowName, &TruthTableWindow::isShown);
+            Widgets::CheckboxWithLabel(TruthTableWindow::windowName.data(), &TruthTableWindow::isShown);
 
             ImGui::EndMenu();
         }
