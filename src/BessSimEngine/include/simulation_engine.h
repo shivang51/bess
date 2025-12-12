@@ -79,7 +79,7 @@ namespace Bess::SimEngine {
 
         const std::unordered_map<UUID, Net> &getNetsMap();
 
-        std::vector<std::vector<LogicState>> getTruthTableOfNet(const UUID &netUuid);
+        TruthTable getTruthTableOfNet(const UUID &netUuid);
 
         bool isSimStable();
 

@@ -1,16 +1,20 @@
 #include "truth_table_window.h"
+#include "entt_components.h"
 #include "imgui.h"
+#include "scene/components/components.h"
+#include "scene/scene.h"
+#include "simulation_engine.h"
+#include "types.h"
 #include "ui/ui_main/project_explorer.h"
 #include "ui/widgets/m_widgets.h"
-
-#include "simulation_engine.h"
 
 namespace Bess::UI {
 
     std::string TruthTableWindow::selectedNetName;
     UUID TruthTableWindow::selectedNetId = UUID::null;
     bool TruthTableWindow::isDirty = true;
-    std::vector<std::vector<Bess::SimEngine::LogicState>> TruthTableWindow::currentTruthTable;
+    SimEngine::TruthTable TruthTableWindow::currentTruthTable;
+    std::unordered_map<UUID, std::string> TruthTableWindow::compIdToNameMap;
 
     void TruthTableWindow::draw() {
         if (!isShown)
@@ -41,19 +45,47 @@ namespace Bess::UI {
             if (isDirty) {
                 auto &simEngine = SimEngine::SimulationEngine::instance();
                 currentTruthTable = simEngine.getTruthTableOfNet(selectedNetId);
+                const auto &scene = Bess::Canvas::Scene::instance();
+                const auto &reg = scene->getEnttRegistry();
+
+                auto viewInp = reg.view<Canvas::Components::TagComponent,
+                                        Canvas::Components::SimulationComponent,
+                                        Canvas::Components::SimulationInputComponent>();
+
+                viewInp.each([&](auto entity, const Canvas::Components::TagComponent &tagComp,
+                                 const Canvas::Components::SimulationComponent &simComp,
+                                 const Canvas::Components::SimulationInputComponent &simInputComp) {
+                    compIdToNameMap[simComp.simEngineEntity] = tagComp.name;
+                });
+
+                auto viewOut = reg.view<Canvas::Components::TagComponent,
+                                        Canvas::Components::SimulationComponent,
+                                        Canvas::Components::SimulationOutputComponent>();
+
+                viewOut.each([&](auto entity, const Canvas::Components::TagComponent &tagComp,
+                                 const Canvas::Components::SimulationComponent &simComp,
+                                 const Canvas::Components::SimulationOutputComponent &simOutputComp) {
+                    compIdToNameMap[simComp.simEngineEntity] = tagComp.name;
+                });
+
                 isDirty = false;
             }
 
-            if (!currentTruthTable.empty()) {
-                if (ImGui::BeginTable("table1", currentTruthTable[0].size(), tableFlags)) {
-                    for (int i = 0; i < currentTruthTable[0].size(); i++) {
-                        ImGui::TableSetupColumn(("Col " + std::to_string(i)).c_str());
+            if (!currentTruthTable.table.empty()) {
+                if (ImGui::BeginTable("TruthTable", currentTruthTable.table[0].size(), tableFlags)) {
+                    for (auto &compId : currentTruthTable.inputUuids) {
+                        ImGui::TableSetupColumn(std::format("{}", compIdToNameMap.at(compId)).c_str());
                     }
+
+                    for (auto &compId : currentTruthTable.outputUuids) {
+                        ImGui::TableSetupColumn(std::format("{}", compIdToNameMap.at(compId)).c_str());
+                    }
+
                     ImGui::TableHeadersRow();
-                    for (int row = 0; row < currentTruthTable.size(); row++) {
-                        for (int column = 0; column < currentTruthTable[0].size(); column++) {
+                    for (int row = 0; row < currentTruthTable.table.size(); row++) {
+                        for (int column = 0; column < currentTruthTable.table[0].size(); column++) {
                             ImGui::TableNextColumn();
-                            const auto &state = currentTruthTable[row][column];
+                            const auto &state = currentTruthTable.table[row][column];
                             int value = state == SimEngine::LogicState::low
                                             ? 0
                                             : (state == SimEngine::LogicState::high

@@ -109,4 +109,10 @@ namespace Bess::SimEngine {
     };
 
     typedef std::function<ComponentState(const std::vector<PinState> &, SimTime, const ComponentState &)> SimulationFunction;
+
+    struct BESS_API TruthTable {
+        std::vector<std::vector<LogicState>> table;
+        std::vector<UUID> inputUuids;
+        std::vector<UUID> outputUuids;
+    };
 } // namespace Bess::SimEngine

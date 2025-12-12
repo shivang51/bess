@@ -18,6 +18,7 @@ namespace Bess::UI {
         static std::string selectedNetName;
         static UUID selectedNetId;
         static bool isDirty;
-        static std::vector<std::vector<SimEngine::LogicState>> currentTruthTable;
+        static SimEngine::TruthTable currentTruthTable;
+        static std::unordered_map<UUID, std::string> compIdToNameMap;
     };
 } // namespace Bess::UI

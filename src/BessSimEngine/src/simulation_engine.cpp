@@ -802,7 +802,7 @@ namespace Bess::SimEngine {
         return m_nets;
     }
 
-    std::vector<std::vector<LogicState>> SimulationEngine::getTruthTableOfNet(const UUID &netUuid) {
+    TruthTable SimulationEngine::getTruthTableOfNet(const UUID &netUuid) {
         if (!m_nets.contains(netUuid))
             return {};
 
@@ -850,14 +850,14 @@ namespace Bess::SimEngine {
         const size_t numInputs = inputs.size();
         const size_t numCombinations = 1 << numInputs;
 
-        std::vector<std::vector<LogicState>> truthTable(numCombinations,
-                                                        std::vector<LogicState>(
-                                                            numInputs + clockInputs.size() + outputs.size(),
-                                                            LogicState::low));
+        std::vector<std::vector<LogicState>> tableData(numCombinations,
+                                                       std::vector<LogicState>(
+                                                           numInputs + clockInputs.size() + outputs.size(),
+                                                           LogicState::low));
 
         BESS_SE_INFO("Truth table dimensions: {} rows x {} columns",
-                     truthTable.size(),
-                     truthTable[0].size());
+                     tableData.size(),
+                     tableData[0].size());
 
         BESS_SE_INFO("Total combinations to simulate: {}", numCombinations);
 
@@ -866,13 +866,13 @@ namespace Bess::SimEngine {
             for (size_t i = 0; i < numInputs; i++) {
                 std::lock_guard lk(m_registryMutex);
                 LogicState state = (comb & (1 << i)) ? LogicState::high : LogicState::low;
-                setOutputPinState(inputs[i], 0, state);
-                truthTable[comb][i] = state;
+                setOutputPinState(inputs[numInputs - i - 1], 0, state);
+                tableData[comb][numInputs - i - 1] = state;
             }
 
             for (const auto &clkInput : clockInputs) {
                 auto &comp = m_registry.get<DigitalComponent>(getEntityWithUuid(clkInput));
-                truthTable[comb][numInputs] = comp.state.outputStates[0].state;
+                tableData[comb][numInputs] = comp.state.outputStates[0].state;
             }
 
             BESS_SE_INFO("Waiting for simulation to stabilize...");
@@ -890,11 +890,23 @@ namespace Bess::SimEngine {
             for (size_t i = 0; i < outputs.size(); i++) {
                 std::lock_guard lk(m_registryMutex);
                 const auto states = getInputPinsState(getEntityWithUuid(outputs[i]));
-                truthTable[comb][numInputs + clockInputs.size() + i] = states[0].state;
+                tableData[comb][numInputs + clockInputs.size() + i] = states[0].state;
             }
         }
 
         BESS_SE_INFO("Truth table generation completed for net {}\n", (uint64_t)netUuid);
+
+        TruthTable truthTable;
+        std::ranges::reverse(inputs);
+        truthTable.inputUuids = inputs;
+
+        for (const auto &clkInput : clockInputs) {
+            truthTable.inputUuids.emplace_back(clkInput);
+        }
+
+        truthTable.outputUuids = outputs;
+
+        truthTable.table = tableData;
 
         return truthTable;
     }
