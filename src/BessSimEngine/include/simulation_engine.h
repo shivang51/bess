@@ -84,6 +84,8 @@ namespace Bess::SimEngine {
         bool isSimStable();
 
       private:
+        bool isSimStableLocked() const;
+
         std::vector<entt::entity> getConnGraph(entt::entity start);
 
         void scheduleEvent(entt::entity e, entt::entity schedulerEntity, SimDelayNanoSeconds simTime);
@@ -122,5 +124,6 @@ namespace Bess::SimEngine {
         bool m_destroyed{false};
 
         bool m_isNetUpdated{false};
+        bool m_isSimulating{false};
     };
 } // namespace Bess::SimEngine

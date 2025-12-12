@@ -666,6 +666,7 @@ namespace Bess::SimEngine {
             }
             BESS_SE_LOG_EVENT("[SimulationEngine] Selected {} unique entites to simulate", inputsMap.size());
 
+            m_isSimulating = true;
             for (auto &[entity, inputs] : inputsMap) {
                 queueLock.unlock();
                 stateLock.unlock();
@@ -707,6 +708,8 @@ namespace Bess::SimEngine {
                 queueLock.lock();
                 stateLock.lock();
             }
+            m_isSimulating = false;
+            m_queueCV.notify_all();
 
             BESS_SE_LOG_EVENT("[BessSimEngine] Sim Cycle End");
             BESS_SE_LOG_EVENT("");
@@ -876,11 +879,12 @@ namespace Bess::SimEngine {
 
             BESS_SE_INFO("Waiting for simulation to stabilize...");
 
-            while (!isSimStable()) {
-                BESS_SE_INFO("Current event queue size: {}", m_eventSet.size());
-
-                auto lock = std::unique_lock(m_queueMutex);
-                m_queueCV.wait(lock, [&] { return m_eventSet.empty(); });
+            // Wait for simulation to stabilize
+            {
+                std::unique_lock<std::mutex> lock(m_queueMutex);
+                m_queueCV.wait(lock, [&] {
+                    return isSimStableLocked();
+                });
             }
 
             BESS_SE_INFO("Simulation stabilized. Recording outputs.");
@@ -899,10 +903,18 @@ namespace Bess::SimEngine {
 
     bool SimulationEngine::isSimStable() {
         std::lock_guard lk(m_queueMutex);
+        return isSimStableLocked();
+    }
+
+    bool SimulationEngine::isSimStableLocked() const {
+        if (m_isSimulating)
+            return false;
+
         if (m_eventSet.empty()) {
             return true;
         }
 
+        std::lock_guard regLk(m_registryMutex);
         for (const auto &ev : m_eventSet) {
             if (!m_registry.all_of<ClockComponent>(ev.entity)) {
                 return false;
