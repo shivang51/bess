@@ -1,24 +1,16 @@
 #include "plugin_handle.h"
 #include "component_definition.h"
-#include "scene/renderer/path.h"
 #include "scene/schematic_diagram.h"
 #include "spdlog/spdlog.h"
 #include "types.h"
 #include <exception>
+#include <memory>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
 namespace py = pybind11;
 
 namespace Bess::Plugins {
-    namespace {
-        inline std::shared_ptr<py::object> makeGilSafe(py::object obj) {
-            return std::shared_ptr<py::object>(new py::object(std::move(obj)), [](py::object *p) {
-                py::gil_scoped_acquire gil;
-                delete p;
-            });
-        }
-    } // namespace
 
     PluginHandle::PluginHandle(const pybind11::object &pluginObj)
         : m_pluginObj(pluginObj) {}
@@ -77,12 +69,12 @@ namespace Bess::Plugins {
                 std::shared_ptr<py::object> initialAuxPtr;
                 py::object auxObj;
                 if (py::hasattr(pyComp, "simulation_function")) {
-                    callablePtr = makeGilSafe(pyComp.attr("simulation_function"));
+                    callablePtr = std::make_shared<py::object>(pyComp.attr("simulation_function"));
                 }
 
                 if (py::hasattr(pyComp, "aux_data")) {
                     auxObj = pyComp.attr("aux_data");
-                    initialAuxPtr = makeGilSafe(auxObj);
+                    initialAuxPtr = std::make_shared<py::object>(auxObj);
                 }
 
                 SimEngine::SimulationFunction simFn;

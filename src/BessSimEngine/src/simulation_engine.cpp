@@ -71,6 +71,7 @@ namespace Bess::SimEngine {
         m_stateCV.notify_all();
         if (m_simThread.joinable())
             m_simThread.join();
+
         Plugins::restorePyThreadState();
         ComponentCatalog::instance().destroy();
 
