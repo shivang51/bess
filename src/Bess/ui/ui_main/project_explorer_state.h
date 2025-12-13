@@ -49,110 +49,16 @@ namespace Bess::UI {
         std::unordered_map<UUID, std::string> netIdToNameMap;
     };
 
-    namespace JsonConvert {
-        inline void toJsonValue(const std::shared_ptr<Bess::UI::ProjectExplorerNode> &node, Json::Value &j) {
-            j = Json::Value(Json::objectValue);
-            j["selected"] = node->selected;
-            j["multiSelectMode"] = node->multiSelectMode;
-            j["isGroup"] = node->isGroup;
-            Bess::JsonConvert::toJsonValue(node->nodeId, j["nodeId"]);
-            Bess::JsonConvert::toJsonValue(node->parentId, j["parentId"]);
-            Bess::JsonConvert::toJsonValue(node->sceneId, j["sceneId"]);
-            j["label"] = node->label;
-
-            j["children"] = Json::Value(Json::arrayValue);
-            for (const auto &child : node->children) {
-                Json::Value childJson;
-                toJsonValue(child, childJson);
-                j["children"].append(childJson);
-            }
-            j["visibleIndex"] = node->visibleIndex;
-        }
-
-        inline void toJsonValue(const Bess::UI::ProjectExplorerNode &node, Json::Value &j) {
-            j = Json::Value(Json::objectValue);
-            j["selected"] = node.selected;
-            j["multiSelectMode"] = node.multiSelectMode;
-            j["isGroup"] = node.isGroup;
-            Bess::JsonConvert::toJsonValue(node.nodeId, j["nodeId"]);
-            Bess::JsonConvert::toJsonValue(node.parentId, j["parentId"]);
-            Bess::JsonConvert::toJsonValue(node.sceneId, j["sceneId"]);
-            j["label"] = node.label;
-
-            j["children"] = Json::Value(Json::arrayValue);
-            for (const auto &child : node.children) {
-                Json::Value childJson;
-                toJsonValue(child, childJson);
-                j["children"].append(childJson);
-            }
-            j["visibleIndex"] = node.visibleIndex;
-        }
-
-        inline void fromJsonValue(const Json::Value &j, Bess::UI::ProjectExplorerNode &node) {
-            if (!j.isObject()) {
-                return;
-            }
-            node.selected = j.get("selected", false).asBool();
-            node.multiSelectMode = j.get("multiSelectMode", false).asBool();
-            node.isGroup = j.get("isGroup", false).asBool();
-            Bess::JsonConvert::fromJsonValue(j["nodeId"], node.nodeId);
-            Bess::JsonConvert::fromJsonValue(j["parentId"], node.parentId);
-            Bess::JsonConvert::fromJsonValue(j["sceneId"], node.sceneId);
-            node.label = j.get("label", "").asString();
-
-            node.children.clear();
-            if (j.isMember("children")) {
-                for (const auto &childJ : j["children"]) {
-                    UI::ProjectExplorerNode childNode;
-                    fromJsonValue(childJ, childNode);
-                    node.children.push_back(std::make_shared<UI::ProjectExplorerNode>(childNode));
-                }
-            }
-            node.visibleIndex = j.get("visibleIndex", -1).asInt();
-        }
-
-        inline void toJsonValue(const Bess::UI::ProjectExplorerState &state, Json::Value &j) {
-            j = Json::Value(Json::objectValue);
-
-            j["nodes"] = Json::Value(Json::arrayValue);
-            for (const auto &node : state.nodes) {
-                Json::Value nodeJ;
-                toJsonValue(node, nodeJ);
-                j["nodes"].append(nodeJ);
-            }
-
-            j["netIdToNameMap"] = Json::Value(Json::objectValue);
-            for (const auto &[netId, netName] : state.netIdToNameMap) {
-                Json::Value netIdJ;
-                Bess::JsonConvert::toJsonValue(netId, netIdJ);
-                j["netIdToNameMap"][netIdJ.asString()] = netName;
-            }
-        }
-
-        inline void fromJsonValue(const Json::Value &j, Bess::UI::ProjectExplorerState &state) {
-            if (!j.isObject()) {
-                return;
-            }
-
-            state.reset();
-
-            if (j.isMember("nodes")) {
-                for (const auto &nodeJ : j["nodes"]) {
-                    UI::ProjectExplorerNode node;
-                    fromJsonValue(nodeJ, node);
-                    auto nodePtr = std::make_shared<UI::ProjectExplorerNode>(node);
-                    state.addNode(nodePtr, true);
-                }
-            }
-
-            if (j.isMember("netIdToNameMap")) {
-                for (const auto &netIdJ : j["netIdToNameMap"].getMemberNames()) {
-                    UUID netId;
-                    Bess::JsonConvert::fromJsonValue(Json::Value(netIdJ), netId);
-                    std::string netName = j["netIdToNameMap"][netIdJ].asString();
-                    state.netIdToNameMap[netId] = netName;
-                }
-            }
-        }
-    } // namespace JsonConvert
 } // namespace Bess::UI
+
+namespace Bess::JsonConvert {
+    void toJsonValue(const std::shared_ptr<Bess::UI::ProjectExplorerNode> &node, Json::Value &j);
+
+    void toJsonValue(const Bess::UI::ProjectExplorerNode &node, Json::Value &j);
+
+    void fromJsonValue(const Json::Value &j, Bess::UI::ProjectExplorerNode &node);
+
+    void toJsonValue(const Bess::UI::ProjectExplorerState &state, Json::Value &j);
+
+    void fromJsonValue(const Json::Value &j, Bess::UI::ProjectExplorerState &state);
+} // namespace Bess::JsonConvert

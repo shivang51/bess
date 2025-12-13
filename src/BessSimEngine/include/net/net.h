@@ -2,7 +2,6 @@
 
 #include "bess_api.h"
 #include "bess_uuid.h"
-#include "types.h"
 
 namespace Bess::SimEngine {
     class BESS_API Net {
@@ -38,3 +37,8 @@ namespace Bess::SimEngine {
         std::vector<UUID> m_components;
     };
 } // namespace Bess::SimEngine
+
+namespace Bess::JsonConvert {
+    void toJsonValue(Json::Value &j, const Bess::SimEngine::Net &net);
+    void fromJsonValue(const Json::Value &j, Bess::SimEngine::Net &net);
+} // namespace Bess::JsonConvert

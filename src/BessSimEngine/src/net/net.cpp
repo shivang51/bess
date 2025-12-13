@@ -52,3 +52,35 @@ namespace Bess::SimEngine {
         m_components = componentUuids;
     }
 } // namespace Bess::SimEngine
+
+namespace Bess::JsonConvert {
+    void toJsonValue(Json::Value &j, const Bess::SimEngine::Net &net) {
+        j = Json::objectValue;
+        toJsonValue(net.getUUID(), j["uuid"]);
+        j["components"] = Json::arrayValue;
+        for (const auto &compUuid : net.getComponents()) {
+            Json::Value compJ;
+            toJsonValue(compUuid, compJ);
+            j["components"].append(compJ);
+        }
+    }
+
+    void fromJsonValue(const Json::Value &j, Bess::SimEngine::Net &net) {
+        if (j.isObject()) {
+            if (j.isMember("uuid")) {
+                UUID uuid;
+                fromJsonValue(j["uuid"], uuid);
+                net.setUUID(uuid);
+            }
+            if (j.isMember("components") && j["components"].isArray()) {
+                std::vector<UUID> components;
+                for (const auto &compJ : j["components"]) {
+                    UUID compUuid;
+                    fromJsonValue(compJ, compUuid);
+                    components.emplace_back(compUuid);
+                }
+                net.setComponents(components);
+            }
+        }
+    }
+} // namespace Bess::JsonConvert

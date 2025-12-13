@@ -27,7 +27,17 @@ namespace Bess::SimEngine {
     }
 
     void SimEngineSerializer::serialize(Json::Value &j) {
-        EnttRegistrySerializer::serialize(SimEngine::SimulationEngine::instance().m_registry, j);
+        Json::Value registryJson;
+        const auto &simEngine = SimEngine::SimulationEngine::instance();
+        EnttRegistrySerializer::serialize(simEngine.m_registry, registryJson);
+
+        j["registry"] = registryJson;
+        j["nets"] = Json::arrayValue;
+        for (const auto &[netUuid, net] : simEngine.m_nets) {
+            Json::Value netJson;
+            JsonConvert::toJsonValue(netJson, net);
+            j["nets"].append(netJson);
+        }
     }
 
     void SimEngineSerializer::serializeEntity(const UUID uid, Json::Value &j) {
@@ -36,9 +46,18 @@ namespace Bess::SimEngine {
     }
 
     void SimEngineSerializer::deserialize(const Json::Value &json) {
-        auto &registry = SimEngine::SimulationEngine::instance().m_registry;
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+        auto &registry = simEngine.m_registry;
         registry.clear();
-        EnttRegistrySerializer::deserialize(registry, json);
+        EnttRegistrySerializer::deserialize(registry, json["registry"]);
+
+        simEngine.m_nets.clear();
+        for (const auto &netJson : json["nets"]) {
+            Net net;
+            JsonConvert::fromJsonValue(netJson, net);
+            simEngine.m_nets[net.getUUID()] = net;
+        }
+
         simulateClockedComponents();
     }
 
