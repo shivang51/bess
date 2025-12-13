@@ -149,12 +149,12 @@ namespace Bess::JsonConvert {
             j["nodes"].append(nodeJ);
         }
 
-        j["netIdToNameMap"] = Json::Value(Json::objectValue);
+        j["netIdToNameMap"] = Json::Value(Json::arrayValue);
         for (const auto &[netId, netName] : state.netIdToNameMap) {
-            Json::Value netIdJ;
-            toJsonValue(netId, netIdJ);
-            j["netIdToNameMap"]["id"] = netIdJ;
-            j["netIdToNameMap"]["name"] = netName;
+            Json::Value entery;
+            toJsonValue(netId, entery["id"]);
+            entery["name"] = netName;
+            j["netIdToNameMap"].append(entery);
         }
     }
 

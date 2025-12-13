@@ -269,17 +269,17 @@ namespace Bess::UI {
         ImGui::DockBuilderRemoveNode(mainDockspaceId);
         ImGui::DockBuilderAddNode(mainDockspaceId, ImGuiDockNodeFlags_NoTabBar);
 
-        const auto dock_id_left = ImGui::DockBuilderSplitNode(mainDockspaceId, ImGuiDir_Left, 0.15f, nullptr, &mainDockspaceId);
-        auto dock_id_right = ImGui::DockBuilderSplitNode(mainDockspaceId, ImGuiDir_Right, 0.25f, nullptr, &mainDockspaceId);
-        const auto dock_id_bot = ImGui::DockBuilderSplitNode(mainDockspaceId, ImGuiDir_Down, 0.25f, nullptr, &mainDockspaceId);
+        const auto dockIdLeft = ImGui::DockBuilderSplitNode(mainDockspaceId, ImGuiDir_Left, 0.15f, nullptr, &mainDockspaceId);
+        auto dockIdRight = ImGui::DockBuilderSplitNode(mainDockspaceId, ImGuiDir_Right, 0.25f, nullptr, &mainDockspaceId);
+        const auto dockIdBot = ImGui::DockBuilderSplitNode(mainDockspaceId, ImGuiDir_Down, 0.25f, nullptr, &mainDockspaceId);
 
-        const auto dock_id_right_bot = ImGui::DockBuilderSplitNode(dock_id_right, ImGuiDir_Down, 0.5f, nullptr, &dock_id_right);
+        const auto dockIdRightBot = ImGui::DockBuilderSplitNode(dockIdRight, ImGuiDir_Down, 0.35f, nullptr, &dockIdRight);
 
         ImGui::DockBuilderDockWindow("MainViewport", mainDockspaceId);
-        ImGui::DockBuilderDockWindow(ProjectExplorer::windowName.data(), dock_id_left);
-        ImGui::DockBuilderDockWindow(PropertiesPanel::windowName.data(), dock_id_right);
-        ImGui::DockBuilderDockWindow(GraphViewWindow::windowName.data(), dock_id_bot);
-        ImGui::DockBuilderDockWindow(TruthTableWindow::windowName.data(), dock_id_bot);
+        ImGui::DockBuilderDockWindow(ProjectExplorer::windowName.data(), dockIdLeft);
+        ImGui::DockBuilderDockWindow(PropertiesPanel::windowName.data(), dockIdRight);
+        ImGui::DockBuilderDockWindow(GraphViewWindow::windowName.data(), dockIdBot);
+        ImGui::DockBuilderDockWindow(TruthTableWindow::windowName.data(), dockIdBot);
 
         ImGui::DockBuilderFinish(mainDockspaceId);
     }

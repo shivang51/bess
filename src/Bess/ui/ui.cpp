@@ -26,10 +26,9 @@ namespace Bess::UI {
         ImPlot::CreateContext();
         ImGuiIO &io = ImGui::GetIO();
 
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
-        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-viewport
-        io.ConfigFlags &= ~ImGuiConfigFlags_DpiEnableScaleViewports;
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
         io.IniFilename = "bess.ini";
 
