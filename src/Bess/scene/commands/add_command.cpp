@@ -14,6 +14,21 @@ namespace Bess::Canvas::Commands {
         m_compJsons = std::vector<Json::Value>(m_data.size(), Json::objectValue);
     }
 
+    void addProjectExplorerNodes(const std::vector<UUID> &compIds) {
+        auto scene = Scene::instance();
+        auto &projectExplorerState = UI::ProjectExplorer::state;
+
+        for (auto &id : compIds) {
+            auto entity = scene->getEntityWithUuid(id);
+            auto tagComp = scene->getEnttRegistry().get<Components::TagComponent>(entity);
+            auto compNode = std::make_shared<UI::ProjectExplorerNode>();
+            compNode->isGroup = false;
+            compNode->label = tagComp.name;
+            compNode->sceneId = id;
+            projectExplorerState.addNode(compNode);
+        }
+    }
+
     bool AddCommand::execute() {
         auto &simEngine = SimEngine::SimulationEngine::instance();
         auto &cmdMngr = simEngine.getCmdManager();
@@ -26,6 +41,7 @@ namespace Bess::Canvas::Commands {
             cmdMngr.redo();
         }
 
+        auto &projectExplorerState = UI::ProjectExplorer::state;
         for (size_t i = 0; i < m_data.size(); i++) {
             const auto &data = m_data[i];
             auto &compJson = m_compJsons[i];
@@ -42,8 +58,10 @@ namespace Bess::Canvas::Commands {
             }
         }
 
-        if (m_redo || simAddCmdData.empty())
+        if (m_redo || simAddCmdData.empty()) {
+            addProjectExplorerNodes(m_compIds);
             return true;
+        }
 
         const auto simEngineUuids = cmdMngr.execute<SimEngine::Commands::AddCommand, std::vector<UUID>>(simAddCmdData);
 
@@ -56,18 +74,7 @@ namespace Bess::Canvas::Commands {
             m_compIds.emplace_back(scene->createSimEntity(simEngineId, data.def, data.pos));
             i++;
         }
-
-        const auto &reg = scene->getEnttRegistry();
-        auto &state = UI::ProjectExplorer::state;
-        for (auto &id : m_compIds) {
-            auto entity = scene->getEntityWithUuid(id);
-            auto tagComp = reg.get<Components::TagComponent>(entity);
-            auto compNode = std::make_shared<UI::ProjectExplorerNode>();
-            compNode->isGroup = false;
-            compNode->label = tagComp.name;
-            compNode->sceneId = id;
-            state.addNode(compNode);
-        }
+        addProjectExplorerNodes(m_compIds);
 
         return true;
     }
