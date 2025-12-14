@@ -49,11 +49,12 @@ namespace Bess {
         }
     }
 
-    void EnttRegistrySerializer::deserializeEntity(entt::registry &registry, const Json::Value &j) {
+    entt::entity EnttRegistrySerializer::deserializeEntity(entt::registry &registry, const Json::Value &j) {
         const auto entity = registry.create();
         for (const auto &deserializeCB : m_ComponentDeserializers | std::views::values) {
             deserializeCB(registry, entity, j);
         }
+        return entity;
     }
 
     void EnttRegistrySerializer::deserializeFromPath(entt::registry &registry, const std::string &filename) {

@@ -41,7 +41,7 @@ namespace Bess {
         }
 
         void serializeEntity(const entt::registry &registry, entt::entity entity, Json::Value &j);
-        void deserializeEntity(entt::registry &registry, const Json::Value &j);
+        entt::entity deserializeEntity(entt::registry &registry, const Json::Value &j);
 
       private:
         using SerializeCB = std::function<void(const entt::registry &, entt::entity, Json::Value &)>;

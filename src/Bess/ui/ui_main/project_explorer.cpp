@@ -2,7 +2,9 @@
 #include "bess_uuid.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "scene/commands/add_command.h"
 #include "scene/commands/delete_comp_command.h"
+#include "scene/commands/reparent_node_command.h"
 #include "scene/components/components.h"
 #include "scene/scene.h"
 #include "ui/ui_main/project_explorer_state.h"
@@ -15,17 +17,57 @@ namespace Bess::UI {
     bool ProjectExplorer::isfirstTimeDraw = true;
     ProjectExplorerState ProjectExplorer::state{};
 
-#define DEF_NODE_DROP_TARGET(op)                                                               \
-    if (ImGui::BeginDragDropTarget()) {                                                        \
-        if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("TREE_NODE_PAYLOAD")) { \
-            const auto dataPtr = (uint64_t *)payload->Data;                                    \
-            const auto size = (payload->DataSize / sizeof(uint64_t));                          \
-            const auto draggedNodeIDs = std::vector<uint64_t>(dataPtr, dataPtr + size);        \
-            for (const auto &id : draggedNodeIDs) {                                            \
-                op;                                                                            \
-            }                                                                                  \
-        }                                                                                      \
-        ImGui::EndDragDropTarget();                                                            \
+    template <typename Func>
+    void HandleNodeDropTarget(Func op) {
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("TREE_NODE_PAYLOAD")) {
+                const auto dataPtr = (uint64_t *)payload->Data;
+                const auto size = (payload->DataSize / sizeof(uint64_t));
+                const auto draggedNodeIDs = std::vector<uint64_t>(dataPtr, dataPtr + size);
+                for (const auto &id : draggedNodeIDs) {
+                    op(id);
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+    }
+
+    void ProjectExplorer::init() {
+        auto scene = Bess::Canvas::Scene::instance();
+        scene->getEventDispatcher().sink<Bess::Canvas::Events::EntityCreatedEvent>().connect<&ProjectExplorer::onEntityCreated>();
+        scene->getEventDispatcher().sink<Bess::Canvas::Events::EntityDestroyedEvent>().connect<&ProjectExplorer::onEntityDestroyed>();
+        scene->getEventDispatcher().sink<Bess::Canvas::Events::EntityReparentedEvent>().connect<&ProjectExplorer::onEntityReparented>();
+    }
+
+    void ProjectExplorer::onEntityCreated(const Bess::Canvas::Events::EntityCreatedEvent &e) {
+        auto scene = Bess::Canvas::Scene::instance();
+        auto &reg = scene->getEnttRegistry();
+        auto &tag = reg.get<Canvas::Components::TagComponent>(e.entity);
+
+        auto node = std::make_shared<UI::ProjectExplorerNode>();
+        node->sceneId = e.uuid;
+        node->label = tag.name;
+        node->selected = false;
+        node->multiSelectMode = false;
+        
+        state.addNode(node);
+    }
+    
+    void ProjectExplorer::onEntityReparented(const Bess::Canvas::Events::EntityReparentedEvent &e) {
+        // This function might be obsolete if we move logic to commands completely, 
+        // but if ReparentNodeCommand triggers this event, we can update UI state here.
+        // Wait, ReparentNodeCommand is supposed to modify ProjectExplorerState directly? 
+        // Or trigger event?
+        // If we want decoupled, ReparentNodeCommand should trigger event or modify state via API.
+        // User wants: "use project explorer state to do this, mange it internally".
+        // So ReparentNodeCommand (UI Command) should modify State.
+    }
+
+    void ProjectExplorer::onEntityDestroyed(const Bess::Canvas::Events::EntityDestroyedEvent &e) {
+        auto node = state.getNodeOfSceneEntt(e.uuid);
+        if (node) {
+            state.removeNode(node);
+        }
     }
 
     int ProjectExplorer::lastSelectedIndex = -1;
@@ -115,7 +157,7 @@ namespace Bess::UI {
                 opened = ret.first;
                 clicked = ret.second;
 
-                DEF_NODE_DROP_TARGET(pendingMoves.emplace_back(id, node->nodeId));
+                HandleNodeDropTarget([&](uint64_t id) { pendingMoves.emplace_back(id, node->nodeId); });
 
                 if (ImGui::BeginPopup(nodePopupName)) {
                     if (ImGui::MenuItemEx("Select All", "", "", false, true)) {
@@ -322,22 +364,14 @@ namespace Bess::UI {
                                    ImVec2(window->Size.x, window->Size.y - startY))) {
         }
 
-        DEF_NODE_DROP_TARGET(state.moveNode(id, UUID::null));
+        HandleNodeDropTarget([&](uint64_t id) {
+             state.moveNode(id, UUID::null);
+        });
 
         if (ImGui::BeginPopupContextWindow()) {
             if (isMultiSelected) {
                 if (ImGui::MenuItem("Group Selected", "Ctrl-G")) {
-                    auto groupNode = std::make_shared<UI::ProjectExplorerNode>();
-                    groupNode->isGroup = true;
-                    groupNode->label = "New Group Node";
-                    state.addNode(groupNode);
-
-                    for (const auto &entity : selTagGroup) {
-                        const auto node = state.getNodeOfSceneEntt(scene->getUuidOfEntity(entity));
-                        if (node != nullptr) {
-                            state.moveNode(node, groupNode);
-                        }
-                    }
+                    groupSelectedNodes();
                 }
             } else {
                 if (ImGui::MenuItem("Create Empty Group", "Ctrl-G")) {
@@ -503,6 +537,13 @@ namespace Bess::UI {
         if (firstCall) {
             entitesToDel.clear();
         }
+        
+        // Collect entities recursively
+        auto scene = Bess::Canvas::Scene::instance();
+        const auto &sceneEnt = scene->getEntityWithUuid(node->sceneId);
+        if (scene->isEntityValid(node->sceneId)) {
+            entitesToDel.emplace_back(node->sceneId);
+        }
 
         if (node->isGroup) {
             for (const auto &childNode : node->children) {
@@ -510,21 +551,13 @@ namespace Bess::UI {
                     continue;
                 deleteNode(childNode, false);
             }
-        } else {
-            auto scene = Bess::Canvas::Scene::instance();
-            auto &registry = scene->getEnttRegistry();
-            const auto &sceneEnt = scene->getEntityWithUuid(node->sceneId);
-            entitesToDel.emplace_back(scene->getUuidOfEntity(sceneEnt));
         }
 
-        if (firstCall) {
-            auto scene = Bess::Canvas::Scene::instance();
-            auto &registry = scene->getEnttRegistry();
+        if (firstCall && !entitesToDel.empty()) {
             auto &cmdMgr = scene->getCmdManager();
             auto _ = cmdMgr.execute<Canvas::Commands::DeleteCompCommand,
                                     std::string>(entitesToDel);
             entitesToDel.clear();
-            state.removeNode(node);
         }
     }
 

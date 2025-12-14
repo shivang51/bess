@@ -9,6 +9,7 @@
 #include "application/application_state.h"
 #include "application/assets.h"
 #include "settings/settings.h"
+#include "ui/ui_main/project_explorer.h"
 #include "ui/ui_main/ui_main.h"
 
 #include "imgui.h"
@@ -41,6 +42,8 @@ namespace Bess::UI {
         initVulkanImGui();
 
         loadFontAndSetScale(Config::Settings::getFontSize(), Config::Settings::getScale());
+
+        ProjectExplorer::init();
     }
 
     void initVulkanImGui() {

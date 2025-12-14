@@ -7,6 +7,8 @@
 #include "entt/entity/fwd.hpp"
 #include "entt/entt.hpp"
 #include "events/application_event.h"
+#include "events/scene_events.h"
+#include "events/event_dispatcher.h"
 #include "scene/camera.h"
 #include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
@@ -103,6 +105,8 @@ namespace Bess::Canvas {
         void setZCoord(float val);
 
         SimEngine::Commands::CommandsManager &getCmdManager();
+        Bess::Events::EventDispatcher &getEventDispatcher() { return m_dispatcher; }
+
         UUID generateBasicConnection(entt::entity inputSlot, entt::entity outputSlot);
         UUID connectSlots(UUID startSlot, UUID endSlot);
         UUID connectComponents(UUID compIdA, int slotIdxA, bool isAInput, UUID compIdB, int slotIdxB);
@@ -204,5 +208,7 @@ namespace Bess::Canvas {
         VkExtent2D vec2Extent2D(const glm::vec2 &vec);
 
         bool m_isDestroyed = false;
+
+        Bess::Events::EventDispatcher m_dispatcher;
     };
 } // namespace Bess::Canvas

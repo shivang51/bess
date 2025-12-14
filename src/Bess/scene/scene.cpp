@@ -11,7 +11,6 @@
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
-#include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/ui_main.h"
 #include "vulkan_core.h"
 #include <GLFW/glfw3.h>
@@ -387,6 +386,7 @@ namespace Bess::Canvas {
         BESS_INFO("[Scene] Created entity {}", (uint64_t)entity);
 
         setLastCreatedComp({.componentDefinition = comp});
+        m_dispatcher.trigger(Events::EntityCreatedEvent{idComp.uuid, entity, true});
         return idComp.uuid;
     }
 
@@ -406,7 +406,6 @@ namespace Bess::Canvas {
         transformComp.scale = glm::vec2(0.f, 0.f);
 
         switch (comp.type) {
-            {
             case Components::NSComponentType::text: {
                 auto &textComp = m_registry.emplace<Components::TextNodeComponent>(entity);
                 textComp.text = "New Text";
@@ -415,10 +414,10 @@ namespace Bess::Canvas {
             } break;
             default:
                 break;
-            }
         }
         BESS_INFO("[Scene] Created Non simulation entity {}", (uint64_t)entity);
         setLastCreatedComp({.nsComponent = comp});
+        m_dispatcher.trigger(Events::EntityCreatedEvent{idComp.uuid, entity, false});
         return idComp.uuid;
     }
 
@@ -454,6 +453,7 @@ namespace Bess::Canvas {
         }
 
         // remove from registry
+        m_dispatcher.trigger(Events::EntityDestroyedEvent{entUuid, ent});
         m_registry.destroy(ent);
         m_uuidToEntt.erase(entUuid);
 

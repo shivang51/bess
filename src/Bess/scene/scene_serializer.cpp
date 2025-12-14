@@ -4,6 +4,7 @@
 
 #include "bess_uuid.h"
 #include "scene/scene.h"
+#include "events/scene_events.h"
 
 using namespace Bess::Canvas::Components;
 
@@ -78,7 +79,19 @@ namespace Bess {
 
     void SceneSerializer::deserializeEntity(const Json::Value &json) {
         auto &registry = Canvas::Scene::instance()->getEnttRegistry();
-        EnttRegistrySerializer::deserializeEntity(registry, json["components"]);
+        entt::entity entity = EnttRegistrySerializer::deserializeEntity(registry, json["components"]);
+
+        if (registry.valid(entity)) {
+            bool isSim = registry.any_of<SimulationComponent>(entity);
+            bool isNS = registry.any_of<NSComponent>(entity);
+
+            if (isSim || isNS) {
+                if (registry.any_of<IdComponent>(entity)) {
+                    UUID uuid = registry.get<IdComponent>(entity).uuid;
+                    Canvas::Scene::instance()->getEventDispatcher().trigger(Canvas::Events::EntityCreatedEvent{uuid, entity, isSim});
+                }
+            }
+        }
 
         if (json.isMember("slots")) {
             for (auto &slot : json["slots"]) {
