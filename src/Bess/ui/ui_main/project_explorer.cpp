@@ -3,7 +3,8 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "scene/commands/add_command.h"
-#include "scene/commands/delete_comp_command.h"
+#include "scene/commands/create_group_command.h"
+#include "scene/commands/delete_node_command.h"
 #include "scene/commands/reparent_node_command.h"
 #include "scene/components/components.h"
 #include "scene/scene.h"
@@ -36,7 +37,6 @@ namespace Bess::UI {
         auto scene = Bess::Canvas::Scene::instance();
         scene->getEventDispatcher().sink<Bess::Canvas::Events::EntityCreatedEvent>().connect<&ProjectExplorer::onEntityCreated>();
         scene->getEventDispatcher().sink<Bess::Canvas::Events::EntityDestroyedEvent>().connect<&ProjectExplorer::onEntityDestroyed>();
-        scene->getEventDispatcher().sink<Bess::Canvas::Events::EntityReparentedEvent>().connect<&ProjectExplorer::onEntityReparented>();
     }
 
     void ProjectExplorer::onEntityCreated(const Bess::Canvas::Events::EntityCreatedEvent &e) {
@@ -49,18 +49,8 @@ namespace Bess::UI {
         node->label = tag.name;
         node->selected = false;
         node->multiSelectMode = false;
-        
+
         state.addNode(node);
-    }
-    
-    void ProjectExplorer::onEntityReparented(const Bess::Canvas::Events::EntityReparentedEvent &e) {
-        // This function might be obsolete if we move logic to commands completely, 
-        // but if ReparentNodeCommand triggers this event, we can update UI state here.
-        // Wait, ReparentNodeCommand is supposed to modify ProjectExplorerState directly? 
-        // Or trigger event?
-        // If we want decoupled, ReparentNodeCommand should trigger event or modify state via API.
-        // User wants: "use project explorer state to do this, mange it internally".
-        // So ReparentNodeCommand (UI Command) should modify State.
     }
 
     void ProjectExplorer::onEntityDestroyed(const Bess::Canvas::Events::EntityDestroyedEvent &e) {
@@ -365,7 +355,7 @@ namespace Bess::UI {
         }
 
         HandleNodeDropTarget([&](uint64_t id) {
-             state.moveNode(id, UUID::null);
+            state.moveNode(id, UUID::null);
         });
 
         if (ImGui::BeginPopupContextWindow()) {
@@ -375,10 +365,8 @@ namespace Bess::UI {
                 }
             } else {
                 if (ImGui::MenuItem("Create Empty Group", "Ctrl-G")) {
-                    auto groupNode = std::make_shared<UI::ProjectExplorerNode>();
-                    groupNode->isGroup = true;
-                    groupNode->label = "New Group Node";
-                    state.addNode(groupNode);
+                    auto scene = Bess::Canvas::Scene::instance();
+                    auto _ = scene->getCmdManager().execute<Canvas::Commands::CreateGroupCommand, UUID>("New Group");
                 }
             }
 
@@ -537,13 +525,12 @@ namespace Bess::UI {
         if (firstCall) {
             entitesToDel.clear();
         }
-        
-        // Collect entities recursively
+
+        // Collect entities and nodes recursively
         auto scene = Bess::Canvas::Scene::instance();
-        const auto &sceneEnt = scene->getEntityWithUuid(node->sceneId);
-        if (scene->isEntityValid(node->sceneId)) {
-            entitesToDel.emplace_back(node->sceneId);
-        }
+
+        // Always add the current node ID to be deleted (whether it's a group or entity)
+        entitesToDel.emplace_back(node->nodeId);
 
         if (node->isGroup) {
             for (const auto &childNode : node->children) {
@@ -555,8 +542,9 @@ namespace Bess::UI {
 
         if (firstCall && !entitesToDel.empty()) {
             auto &cmdMgr = scene->getCmdManager();
-            auto _ = cmdMgr.execute<Canvas::Commands::DeleteCompCommand,
-                                    std::string>(entitesToDel);
+            // Use generic DeleteNodeCommand which handles both entities and groups
+            auto _ = cmdMgr.execute<Canvas::Commands::DeleteNodeCommand,
+                                    std::any>(entitesToDel);
             entitesToDel.clear();
         }
     }
@@ -570,17 +558,16 @@ namespace Bess::UI {
         if (selTagGroup.empty())
             return;
 
-        auto groupNode = std::make_shared<UI::ProjectExplorerNode>();
-        groupNode->isGroup = true;
-        groupNode->label = "New Group Node";
-        state.addNode(groupNode);
+        auto res = scene->getCmdManager().execute<Canvas::Commands::CreateGroupCommand, UUID>("New Group");
 
-        for (const auto &entity : selTagGroup) {
-            const auto node = state.getNodeOfSceneEntt(scene->getUuidOfEntity(entity));
-            if (node != nullptr) {
-                state.moveNode(node, groupNode);
-            } else {
-                BESS_WARN("[ProjectExplorer] Could not find node for entity while grouping");
+        if (res.has_value()) {
+            UUID groupUUID = res.value();
+            // Reparent selected nodes to this group
+            for (const auto &entity : selTagGroup) {
+                UUID entityUUID = scene->getUuidOfEntity(entity);
+                auto id = state.getNodeOfSceneEntt(entityUUID)->nodeId;
+                auto cmd = std::make_unique<Canvas::Commands::ReparentNodeCommand>(id, groupUUID);
+                scene->getCmdManager().execute(std::move(cmd));
             }
         }
     }
@@ -601,16 +588,15 @@ namespace Bess::UI {
         state.netIdToNameMap.clear();
         int i = 1;
         for (const auto &[netId, entities] : netGroups) {
-            auto groupNode = std::make_shared<UI::ProjectExplorerNode>();
-            groupNode->isGroup = true;
-            groupNode->label = std::format("Net {}", i++);
-            state.addNode(groupNode);
-            state.netIdToNameMap[netId] = groupNode->label;
+            auto res = scene->getCmdManager().execute<Canvas::Commands::CreateGroupCommand, UUID>(std::format("Net {}", i++));
 
-            for (const auto &enttId : entities) {
-                const auto node = state.getNodeOfSceneEntt(enttId);
-                if (node != nullptr) {
-                    state.moveNode(node, groupNode);
+            if (res.has_value()) {
+                UUID groupUUID = res.value();
+                state.netIdToNameMap[netId] = state.nodesLookup[groupUUID]->label;
+
+                for (const auto &enttId : entities) {
+                    auto cmd = std::make_unique<Canvas::Commands::ReparentNodeCommand>(enttId, groupUUID);
+                    scene->getCmdManager().execute(std::move(cmd));
                 }
             }
         }
