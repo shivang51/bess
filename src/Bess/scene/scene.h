@@ -7,11 +7,12 @@
 #include "entt/entity/fwd.hpp"
 #include "entt/entt.hpp"
 #include "events/application_event.h"
-#include "events/scene_events.h"
 #include "events/event_dispatcher.h"
+#include "events/scene_events.h"
 #include "scene/camera.h"
 #include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
+#include "scene/scene_state/scene_state.h"
 #include "scene/viewport.h"
 #include <chrono>
 #include <memory>
@@ -71,6 +72,10 @@ namespace Bess::Canvas {
       public:
         void updateNetsFromSimEngine();
 
+        UUID getHoveredEntity() const {
+            return m_hoveredEntity;
+        }
+
         bool isEntityHovered(const entt::entity &ent) const;
 
         const glm::vec2 &getMousePos() const;
@@ -90,8 +95,6 @@ namespace Bess::Canvas {
         UUID createSlotEntity(UUID uuid, Components::SlotType type, const UUID &parent, unsigned int idx);
 
         UUID createSimEntity(const UUID &simEngineEntt, const SimEngine::ComponentDefinition &comp, const glm::vec2 &pos);
-        UUID createSimEntity(const UUID &simEngineEntt, const SimEngine::ComponentDefinition &comp,
-                             const glm::vec2 &pos, UUID uuid, const std::vector<UUID> &inputSlotIds, const std::vector<UUID> &outputSlotIds);
         UUID createNonSimEntity(const Canvas::Components::NSComponent &comp, const glm::vec2 &pos);
 
         void deleteSceneEntity(const UUID &entUuid);
@@ -167,6 +170,8 @@ namespace Bess::Canvas {
         bool m_isLeftMousePressed = false, m_isMiddleMousePressed = false;
 
       private:
+        SceneState m_state;
+
         entt::registry m_registry;
         UUID m_hoveredEntity;
         UUID m_connectionStartEntity;

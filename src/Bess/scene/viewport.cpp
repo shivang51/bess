@@ -1,5 +1,6 @@
-#include "scene/scene_pch.h"
 #include "scene/viewport.h"
+#include "fwd.hpp"
+#include "scene/scene_pch.h"
 #include "vulkan_core.h"
 
 namespace Bess::Canvas {
@@ -31,7 +32,7 @@ namespace Bess::Canvas {
         createFences(maxFrames);
 
         m_mousePickingData = {};
-        m_mousePickingData.ids = {-1};
+        m_mousePickingData.ids = {glm::uvec2(0, 0)};
 
         m_artistManager = std::make_shared<ArtistManager>(m_device, m_renderPass, size);
 
@@ -57,7 +58,7 @@ namespace Bess::Canvas {
         m_cmdBuffers.reset();
     }
 
-    void Viewport::begin(int frameIdx, const glm::vec4 &clearColor, int clearPickingId) {
+    void Viewport::begin(int frameIdx, const glm::vec4 &clearColor, const glm::uvec2 &clearPickingId) {
         m_currentFrameIdx = frameIdx;
 
         vkWaitForFences(m_device->device(), 1, &m_fences[frameIdx], VK_TRUE, UINT64_MAX);
@@ -149,7 +150,7 @@ namespace Bess::Canvas {
         m_mousePickingData.pending = true;
     }
 
-    std::vector<int32_t> Viewport::getPickingIdsResult() {
+    std::vector<glm::uvec2> Viewport::getPickingIdsResult() {
         tryUpdatePickingResults();
         return m_mousePickingData.ids;
     }
@@ -166,12 +167,12 @@ namespace Bess::Canvas {
         count = std::max(count, (uint32_t)1);
         void *data = nullptr;
         vkMapMemory(m_device->device(), m_pickingStagingBufferMemory, 0,
-                    sizeof(int32_t) * count, 0, &data);
+                    sizeof(glm::uvec2) * count, 0, &data);
 
         auto &ids = m_mousePickingData.ids;
         ids.clear();
         ids.resize(count);
-        std::memcpy(ids.data(), data, sizeof(int32_t) * count);
+        std::memcpy(ids.data(), data, sizeof(glm::uvec2) * count);
 
         vkUnmapMemory(m_device->device(), m_pickingStagingBufferMemory);
         m_pickingCopyInFlight = false;
@@ -192,12 +193,12 @@ namespace Bess::Canvas {
         count = std::max(count, (uint32_t)1);
         void *data = nullptr;
         vkMapMemory(m_device->device(), m_pickingStagingBufferMemory, 0,
-                    sizeof(int32_t) * count, 0, &data);
+                    sizeof(glm::uvec2) * count, 0, &data);
 
         auto &ids = m_mousePickingData.ids;
         ids.clear();
         ids.resize(count);
-        std::memcpy(ids.data(), data, sizeof(int32_t) * count);
+        std::memcpy(ids.data(), data, sizeof(glm::uvec2) * count);
 
         vkUnmapMemory(m_device->device(), m_pickingStagingBufferMemory);
         m_pickingCopyInFlight = false;
@@ -208,7 +209,7 @@ namespace Bess::Canvas {
     void Viewport::createPickingResources() {
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size = sizeof(int);
+        bufferInfo.size = sizeof(glm::uvec2);
         bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -288,7 +289,7 @@ namespace Bess::Canvas {
             m_mousePickingData.extent.width = ex;
             m_mousePickingData.extent.height = ey;
 
-            VkDeviceSize requiredSize = (uint64_t)ex * ey * sizeof(int32_t);
+            VkDeviceSize requiredSize = (uint64_t)ex * ey * sizeof(glm::uvec2);
             resizePickingBuffer(requiredSize);
 
             VkBufferImageCopy copy{};

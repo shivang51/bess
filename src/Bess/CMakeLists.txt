@@ -54,6 +54,7 @@ set(Header_Files
 "scene/artist/schematic_artist.h"
 "scene/scene_serializer.h"
 "scene/scene_pch.h"
+"scene/scene_state/scene_state.h"
 "scene/commands/set_input_command.h"
 "scene/commands/del_connection_command.h"
 "scene/commands/delete_comp_command.h"

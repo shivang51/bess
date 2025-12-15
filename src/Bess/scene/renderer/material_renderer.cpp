@@ -1,6 +1,7 @@
 #include "scene/renderer/material_renderer.h"
-#include "asset_manager/asset_manager.h"
 #include "application/assets.h"
+#include "asset_manager/asset_manager.h"
+#include <cstdint>
 
 namespace Bess::Renderer {
     static Material2D makeGrid(const glm::vec3 &pos, const glm::vec2 &size, int id) {
@@ -83,10 +84,16 @@ namespace Bess::Renderer {
         return m;
     }
 
+    glm::uvec2 encodeId(uint64_t id) {
+        glm::uvec2 encodedId;
+        encodedId.x = static_cast<uint32_t>(id & 0xFFFFFFFF);
+        encodedId.y = static_cast<uint32_t>((id >> 32));
+        return encodedId;
+    }
     void MaterialRenderer::drawQuad(const glm::vec3 &pos,
                                     const glm::vec2 &size,
                                     const glm::vec4 &color,
-                                    int id,
+                                    uint64_t id,
                                     QuadRenderProperties props) {
         if (!m_quadPipeline) {
             return;
@@ -99,7 +106,7 @@ namespace Bess::Renderer {
         instance.borderColor = props.borderColor;
         instance.borderSize = props.borderSize;
         instance.size = size;
-        instance.id = id;
+        instance.id = encodeId(id);
         instance.isMica = (int)props.isMica;
         instance.texSlotIdx = 0;
         instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f);
@@ -138,7 +145,7 @@ namespace Bess::Renderer {
         instance.borderColor = props.borderColor;
         instance.borderSize = props.borderSize;
         instance.size = size;
-        instance.id = id;
+        instance.id = encodeId(id);
         instance.isMica = (int)props.isMica;
         instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f);
 
@@ -165,7 +172,7 @@ namespace Bess::Renderer {
         instance.borderColor = props.borderColor;
         instance.borderSize = props.borderSize;
         instance.size = size;
-        instance.id = id;
+        instance.id = encodeId(id);
         instance.isMica = (int)props.isMica;
         instance.texData = subTexture->getStartWH();
 

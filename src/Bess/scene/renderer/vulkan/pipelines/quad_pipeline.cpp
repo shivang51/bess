@@ -283,7 +283,7 @@ namespace Bess::Vulkan::Pipelines {
 
         instanceAttribs[6].binding = 1;
         instanceAttribs[6].location = 8;
-        instanceAttribs[6].format = VK_FORMAT_R32_SINT;
+        instanceAttribs[6].format = VK_FORMAT_R32G32_UINT;
         instanceAttribs[6].offset = offsetof(QuadInstance, id);
 
         instanceAttribs[7].binding = 1;

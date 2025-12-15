@@ -179,7 +179,7 @@ namespace Bess::UI {
             for (int j = 0; j < snaps.x; j++) {
                 camera->setPos(pos);
 
-                viewport->begin(frameIdx, ViewportTheme::colors.background, -1);
+                viewport->begin(frameIdx, ViewportTheme::colors.background, {0, 0});
                 Canvas::Scene::instance()->drawSceneToViewport(viewport);
                 viewport->end();
                 viewport->submit();

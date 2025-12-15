@@ -11,6 +11,7 @@
 #include "vulkan_offscreen_render_pass.h"
 #include "vulkan_subtexture.h"
 #include "vulkan_texture.h"
+#include <cstdint>
 #include <memory>
 #include <queue>
 #include <unordered_map>
@@ -56,7 +57,7 @@ namespace Bess::Renderer {
         void drawQuad(const glm::vec3 &pos,
                       const glm::vec2 &size,
                       const glm::vec4 &color,
-                      int id,
+                      uint64_t id,
                       QuadRenderProperties props = {});
 
         void drawTexturedQuad(const glm::vec3 &pos,

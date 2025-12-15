@@ -6,8 +6,10 @@
 #include "entt/entity/entity.hpp"
 #include "entt/entity/fwd.hpp"
 #include "events/application_event.h"
+#include "fwd.hpp"
 #include "pages/main_page/main_page_state.h"
 #include "scene/components/components.h"
+#include "scene/scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
@@ -59,6 +61,7 @@ namespace Bess::Canvas {
 
     void Scene::clear() {
         m_registry.clear();
+        m_state.clear();
         m_compZCoord = 1.f + m_zIncrement;
         m_lastCreatedComp = {};
         m_copiedComponents = {};
@@ -184,7 +187,7 @@ namespace Bess::Canvas {
 
         auto artistManager = viewport->getArtistManager();
         artistManager->setSchematicMode(m_isSchematicView);
-        viewport->begin((int)inst.getCurrentFrameIdx(), ViewportTheme::colors.background, -1);
+        viewport->begin((int)inst.getCurrentFrameIdx(), ViewportTheme::colors.background, {0, 0});
         drawSceneToViewport(viewport);
 
         viewport->end();
@@ -249,33 +252,9 @@ namespace Bess::Canvas {
             drawConnection();
         }
 
-        { // Components
-            const auto simCompView = m_registry.view<
-                Components::SimulationComponent,
-                Components::TagComponent,
-                Components::SpriteComponent,
-                Components::TransformComponent>();
-            const auto &cam = viewport->getCamera();
-            const auto &span = (cam->getSpan() / 2.f) + 200.f;
-            const auto &camPos = cam->getPos();
-
-            float x = 0.f, y = 0.f;
-            for (const auto entity : simCompView) {
-                const auto &transform = simCompView.get<Components::TransformComponent>(entity);
-
-                x = transform.position.x - camPos.x;
-                y = transform.position.y - camPos.y;
-
-                // skipping if outside camera
-                if (x < -span.x || x > span.x || y < -span.y || y > span.y)
-                    continue;
-
-                artist->drawSimEntity(
-                    entity,
-                    simCompView.get<Components::TagComponent>(entity),
-                    transform,
-                    simCompView.get<Components::SpriteComponent>(entity),
-                    simCompView.get<Components::SimulationComponent>(entity));
+        {
+            for (const auto &comp : m_state.getAllComponents() | std::ranges::views::values) {
+                comp->draw(artist->getMaterialRenderer());
             }
         }
         const auto nonSimCompView = m_registry.view<Components::NSComponent>();
@@ -323,71 +302,29 @@ namespace Bess::Canvas {
         const std::vector<UUID> inputSlotIds(state.inputStates.size());
         const std::vector<UUID> outputSlotIds(state.outputStates.size());
         const UUID uuid;
-        return createSimEntity(simEngineEntt, comp, pos, uuid, inputSlotIds, outputSlotIds);
-    }
+        SimulationSceneComponent sceneComp(uuid);
 
-    UUID Scene::createSimEntity(const UUID &simEngineEntt, const SimEngine::ComponentDefinition &comp, const glm::vec2 &pos,
-                                UUID uuid, const std::vector<UUID> &inputSlotIds, const std::vector<UUID> &outputSlotIds) {
-        auto entity = m_registry.create();
-        const auto &catalog = SimEngine::ComponentCatalog::instance();
+        // transform
+        sceneComp.setPosition(glm::vec3(getSnappedPos(pos), getNextZCoord()));
+        sceneComp.setName(comp.name);
+        sceneComp.setSimEngineId(simEngineEntt);
 
-        const auto &idComp = m_registry.emplace<Components::IdComponent>(entity, uuid);
-        auto &transformComp = m_registry.emplace<Components::TransformComponent>(entity);
-        auto &sprite = m_registry.emplace<Components::SpriteComponent>(entity);
-        auto &tag = m_registry.emplace<Components::TagComponent>(entity);
-        auto &simComp = m_registry.emplace<Components::SimulationComponent>(entity);
+        // style
+        auto &style = sceneComp.getStyle();
+        style.headerColor = ViewportTheme::getCompHeaderColor(comp.category);
+        style.borderColor = ViewportTheme::colors.componentBorder;
+        style.borderSize = glm::vec4(1.f);
+        style.color = ViewportTheme::colors.componentBG;
 
-        bool isInput = catalog.isSpecialCompDef(comp.getHash(), SimEngine::ComponentCatalog::SpecialType::input);
-        bool isOutput = catalog.isSpecialCompDef(comp.getHash(), SimEngine::ComponentCatalog::SpecialType::output);
+        // slots
+        sceneComp.createIOSlots(comp.inputCount, comp.outputCount);
 
-        if (isInput) {
-            m_registry.emplace<Components::SimulationInputComponent>(entity);
-        } else if (isOutput) {
-            m_registry.emplace<Components::SimulationOutputComponent>(entity);
-        } else if (catalog.isSpecialCompDef(comp.getHash(), SimEngine::ComponentCatalog::SpecialType::stateMonitor)) {
-            m_registry.emplace<Components::SimulationStateMonitor>(entity);
-        }
+        m_state.addComponent<SimulationSceneComponent>(
+            std::make_shared<SimulationSceneComponent>(sceneComp));
 
-        tag.name = comp.name;
-        tag.type.simCompHash = comp.getHash();
-        tag.isSimComponent = true;
-
-        transformComp.position = glm::vec3(getSnappedPos(pos), getNextZCoord());
-
-        if (isInput || isOutput) {
-            const glm::vec4 ioCompColor = glm::vec4(0.2f, 0.2f, 0.4f, 0.6f);
-            sprite.color = ioCompColor;
-            sprite.borderRadius = glm::vec4(8.f);
-        } else {
-            sprite.color = ViewportTheme::colors.componentBG;
-            sprite.borderRadius = glm::vec4(6.f);
-            sprite.headerColor = ViewportTheme::getCompHeaderColor(comp.category);
-        }
-
-        sprite.borderSize = glm::vec4(1.f);
-        sprite.borderColor = ViewportTheme::colors.componentBorder;
-
-        simComp.simEngineEntity = simEngineEntt;
-
-        const auto state = SimEngine::SimulationEngine::instance().getComponentState(simEngineEntt);
-
-        for (int i = 0; i < state.inputStates.size(); i++) {
-            simComp.inputSlots.emplace_back(createSlotEntity(inputSlotIds[i], Components::SlotType::digitalInput, idComp.uuid, i));
-        }
-
-        for (int i = 0; i < state.outputStates.size(); i++) {
-            simComp.outputSlots.emplace_back(createSlotEntity(outputSlotIds[i], Components::SlotType::digitalOutput, idComp.uuid, i));
-        }
-
-        simComp.defHash = comp.getHash();
-
-        transformComp.scale = m_viewport->getArtistManager()->getCurrentArtist()->calcCompSize(entity, simComp, comp.name);
-
-        BESS_INFO("[Scene] Created entity {}", (uint64_t)entity);
-
-        setLastCreatedComp({.componentDefinition = comp});
-        m_dispatcher.trigger(Events::EntityCreatedEvent{idComp.uuid, entity, true});
-        return idComp.uuid;
+        BESS_INFO("[Scene] Created Simulation entity {}", (uint64_t)uuid);
+        // m_dispatcher.trigger(Events::EntityCreatedEvent{uuid, m_registry.create(), true});
+        return uuid;
     }
 
     UUID Scene::createNonSimEntity(const Canvas::Components::NSComponent &comp, const glm::vec2 &pos) {
@@ -406,14 +343,14 @@ namespace Bess::Canvas {
         transformComp.scale = glm::vec2(0.f, 0.f);
 
         switch (comp.type) {
-            case Components::NSComponentType::text: {
-                auto &textComp = m_registry.emplace<Components::TextNodeComponent>(entity);
-                textComp.text = "New Text";
-                textComp.fontSize = 20.f;
-                textComp.color = ViewportTheme::colors.text;
-            } break;
-            default:
-                break;
+        case Components::NSComponentType::text: {
+            auto &textComp = m_registry.emplace<Components::TextNodeComponent>(entity);
+            textComp.text = "New Text";
+            textComp.fontSize = 20.f;
+            textComp.color = ViewportTheme::colors.text;
+        } break;
+        default:
+            break;
         }
         BESS_INFO("[Scene] Created Non simulation entity {}", (uint64_t)entity);
         setLastCreatedComp({.nsComponent = comp});
@@ -633,11 +570,19 @@ namespace Bess::Canvas {
         }
     }
 
+    uint64_t decodeId(const glm::uvec2 &encodedId) {
+        uint64_t id = static_cast<uint64_t>(encodedId.x);
+        id |= (static_cast<uint64_t>(encodedId.y) << 32);
+        return id;
+    }
+
     void Scene::updateHoveredId() {
         m_viewport->tryUpdatePickingResults();
 
         const auto &ids = m_viewport->getPickingIdsResult();
-        const int32_t hoverId = (ids.empty()) ? -1 : ids[0];
+        const uint64_t hoverId = (ids.empty()) ? 0 : decodeId(ids[0]);
+        m_hoveredEntity = UUID(hoverId);
+        return;
         const entt::entity e = (entt::entity)hoverId;
 
         m_registry.clear<Components::HoveredEntityComponent>();
@@ -1096,34 +1041,34 @@ namespace Bess::Canvas {
         if (!m_viewport->tryUpdatePickingResults())
             return false;
 
-        std::vector<int> ids = m_viewport->getPickingIdsResult();
+        std::vector<glm::uvec2> ids = m_viewport->getPickingIdsResult();
 
         if (ids.size() == 0)
             return false;
 
-        std::set<int> uniqueIds(ids.begin(), ids.end());
-        std::unordered_map<int, bool> selected = {};
-
-        for (const auto &id : uniqueIds) {
-            auto entt = (entt::entity)id;
-            if (!m_registry.valid(entt))
-                continue;
-
-            bool isConnection = false;
-            if (const auto *segComp = m_registry.try_get<Components::ConnectionSegmentComponent>(entt)) {
-                entt = getEntityWithUuid(segComp->parent);
-                isConnection = true;
-            }
-
-            if (selected.contains(id))
-                continue;
-
-            if (isConnection || m_registry.any_of<Components::SimulationComponent, Components::NSComponent>(entt)) {
-                m_registry.emplace_or_replace<Components::SelectedComponent>(entt);
-            }
-
-            selected[id] = true;
-        }
+        // std::set<int> uniqueIds(ids.begin(), ids.end());
+        // std::unordered_map<int, bool> selected = {};
+        //
+        // for (const auto &id : uniqueIds) {
+        //     auto entt = (entt::entity)id;
+        //     if (!m_registry.valid(entt))
+        //         continue;
+        //
+        //     bool isConnection = false;
+        //     if (const auto *segComp = m_registry.try_get<Components::ConnectionSegmentComponent>(entt)) {
+        //         entt = getEntityWithUuid(segComp->parent);
+        //         isConnection = true;
+        //     }
+        //
+        //     if (selected.contains(id))
+        //         continue;
+        //
+        //     if (isConnection || m_registry.any_of<Components::SimulationComponent, Components::NSComponent>(entt)) {
+        //         m_registry.emplace_or_replace<Components::SelectedComponent>(entt);
+        //     }
+        //
+        //     selected[id] = true;
+        // }
         return true;
     }
 

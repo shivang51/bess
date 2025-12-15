@@ -9,7 +9,7 @@ layout(location = 4) in vec4 a_InstanceBorderRadius;
 layout(location = 5) in vec4 a_InstanceBorderColor;
 layout(location = 6) in vec4 a_InstanceBorderSize;
 layout(location = 7) in vec2 a_InstanceSize;
-layout(location = 8) in int a_InstanceId;
+layout(location = 8) in uvec2 a_InstanceId;
 layout(location = 9) in int a_InstanceIsMica;
 layout(location = 10) in int a_InstanceTexSlotIdx;
 layout(location = 11) in vec4 a_InstanceTexData;
@@ -20,7 +20,7 @@ layout(location = 2) out vec4 v_BorderRadius;
 layout(location = 3) out vec4 v_BorderSize;
 layout(location = 4) out vec4 v_BorderColor;
 layout(location = 5) out vec2 v_Size;
-layout(location = 6) out flat int v_FragId;
+layout(location = 6) out flat uvec2 v_FragId;
 layout(location = 7) out flat int v_IsMica;
 layout(location = 8) out flat int v_TexSlotIdx;
 

@@ -7,6 +7,7 @@
 #include "stb_image_write.h"
 #include "ui/ui_main/scene_export_window.h"
 #include "ui/widgets/m_widgets.h"
+#include <cstdint>
 #include <string>
 
 #include "pages/main_page/main_page_state.h"
@@ -79,6 +80,11 @@ namespace Bess::UI {
                 } else {
                     ImGui::Text("Unknown State");
                 }
+
+                ImGui::SameLine();
+
+                UUID hoveredId = Canvas::Scene::instance()->getHoveredEntity();
+                ImGui::TextDisabled("%s", std::format(" | Hovered Entity ID: {}", (uint64_t)hoveredId).c_str());
 
                 // std::string rightContent[] = {};
                 // float offset = style.FramePadding.x;

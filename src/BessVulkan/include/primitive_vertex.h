@@ -1,5 +1,6 @@
 #pragma once
 
+#include "fwd.hpp"
 #include <array>
 #include <glm.hpp>
 #include <vulkan/vulkan.h>
@@ -84,7 +85,7 @@ namespace Bess::Vulkan {
         glm::vec4 borderColor;  // location 5
         glm::vec4 borderSize;   // location 6
         glm::vec2 size;         // location 7
-        int id;                 // location 8
+        glm::uvec2 id;          // location 8
         int isMica;             // location 9
         int texSlotIdx;         // location 10
         int _pad;               // padding to align next vec4
@@ -104,7 +105,7 @@ namespace Bess::Vulkan {
         glm::vec2 size;     // location 3
         float angle;        // location 4
         glm::vec4 color;    // location 5
-        int id;             // location 6
+        glm::uvec2 id;      // location 6
         int texSlotIdx;     // location 7
         glm::vec4 texData;  // location 8
     };

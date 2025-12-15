@@ -3,6 +3,7 @@
 #include "command_buffer.h"
 #include "device.h"
 #include "entt/entity/fwd.hpp"
+#include "fwd.hpp"
 #include "scene/artist/artist_manager.h"
 #include "scene/camera.h"
 #include "vulkan_image_view.h"
@@ -18,7 +19,7 @@ namespace Bess::Canvas {
         VkExtent2D startPos;
         VkExtent2D extent;
         bool pending = false;
-        std::vector<int32_t> ids;
+        std::vector<glm::uvec2> ids;
     };
 
     class Viewport {
@@ -27,7 +28,7 @@ namespace Bess::Canvas {
 
         ~Viewport();
 
-        void begin(int frameIdx, const glm::vec4 &clearColor, int clearPickingId);
+        void begin(int frameIdx, const glm::vec4 &clearColor, const glm::uvec2 &clearPickingId);
 
         VkCommandBuffer end();
 
@@ -42,7 +43,7 @@ namespace Bess::Canvas {
 
         uint64_t getViewportTexture();
         void setPickingCoord(uint32_t x, uint32_t y, uint32_t w = 1, uint32_t h = 1);
-        std::vector<int32_t> getPickingIdsResult();
+        std::vector<glm::uvec2> getPickingIdsResult();
         bool tryUpdatePickingResults();
         bool waitForPickingResults(uint64_t timeoutNs);
 
@@ -87,7 +88,7 @@ namespace Bess::Canvas {
         std::unique_ptr<Vulkan::VulkanCommandBuffers> m_cmdBuffers;
         std::shared_ptr<Vulkan::VulkanDevice> m_device;
         VkFormat m_imgFormat;
-        VkFormat m_pickingIdFormat = VK_FORMAT_R32_SINT;
+        VkFormat m_pickingIdFormat = VK_FORMAT_R32G32_UINT;
         VkExtent2D m_size;
 
         VkCommandBuffer m_currentCmdBuffer;

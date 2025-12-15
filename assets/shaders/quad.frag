@@ -1,7 +1,7 @@
 #version 460
 
 layout(location = 0) out vec4 fragColor;
-layout(location = 1) out int pickingId;
+layout(location = 1) out uvec2 pickingId;
 
 layout(location = 0) in vec4 v_FragColor;
 layout(location = 1) in vec2 v_TexCoord;
@@ -9,7 +9,7 @@ layout(location = 2) in vec4 v_BorderRadius;
 layout(location = 3) in vec4 v_BorderSize;
 layout(location = 4) in vec4 v_BorderColor;
 layout(location = 5) in vec2 v_Size;
-layout(location = 6) in flat int v_FragId;
+layout(location = 6) in flat uvec2 v_FragId;
 layout(location = 7) in flat int v_IsMica;
 layout(location = 8) in flat int v_TexSlotIdx;
 
