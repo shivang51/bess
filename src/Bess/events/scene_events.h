@@ -1,6 +1,7 @@
 #pragma once
 #include "bess_uuid.h"
 #include "entt/entity/entity.hpp"
+#include <glm.hpp>
 
 namespace Bess::Canvas::Events {
     struct EntityCreatedEvent {
@@ -18,5 +19,9 @@ namespace Bess::Canvas::Events {
         UUID entityUuid;
         UUID newParentUuid;
     };
-}
 
+    struct EntityHoveredEvent {
+        UUID entityUuid;
+        glm::vec2 mousePos;
+    };
+} // namespace Bess::Canvas::Events

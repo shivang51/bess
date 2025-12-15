@@ -190,11 +190,6 @@ namespace Bess::Canvas {
         const int snapSize = 2;
         float m_compZCoord = m_zIncrement;
 
-        bool m_isDragging = false;
-        std::unordered_map<entt::entity, glm::vec2> m_dragOffsets = {};
-        std::unordered_map<UUID, Components::TransformComponent> m_dragStartTransforms = {};
-        std::unordered_map<UUID, Components::ConnectionSegmentComponent> m_dragStartConnSeg = {};
-
         std::unordered_map<UUID, entt::entity> m_uuidToEntt = {};
 
         TFrameTime m_frameTimeStep = {};
