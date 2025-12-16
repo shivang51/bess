@@ -620,6 +620,7 @@ namespace Bess::Canvas {
     void Scene::onMouseMove(const glm::vec2 &pos) {
         m_dMousePos = toScenePos(pos) - toScenePos(m_mousePos);
         m_mousePos = pos;
+        UI::setCursorNormal();
 
         {
             auto mousePos_ = m_mousePos;

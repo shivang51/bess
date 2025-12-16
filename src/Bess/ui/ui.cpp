@@ -6,11 +6,9 @@
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/icons/MaterialIcons.h"
 
-#include "application/application_state.h"
 #include "application/assets.h"
 #include "settings/settings.h"
 #include "ui/ui_main/project_explorer.h"
-#include "ui/ui_main/ui_main.h"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -125,6 +123,19 @@ namespace Bess::UI {
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+
+        switch (currentCursorType) {
+        case CursorType::pointer:
+            ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+            break;
+        case CursorType::move:
+            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+            break;
+        case CursorType::normal:
+            ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
+            break;
+        }
+
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDocking;
         const ImGuiViewport *viewport = ImGui::GetMainViewport();
 
@@ -198,17 +209,14 @@ namespace Bess::UI {
 
     void setCursorPointer() {
         currentCursorType = CursorType::pointer;
-        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
     }
 
     void setCursorMove() {
         currentCursorType = CursorType::move;
-        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
     }
 
     void setCursorNormal() {
         currentCursorType = CursorType::normal;
-        ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
     }
 
     void drawStats(const int fps) {

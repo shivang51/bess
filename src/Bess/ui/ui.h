@@ -22,11 +22,11 @@ namespace Bess::UI {
     void setCursorMove();
     void setCursorNormal();
 
-    enum class CursorType : uint8_t {
+    static enum class CursorType : uint8_t {
         pointer,
         move,
         normal
-    } currentCursorType;
+    } currentCursorType = CursorType::normal;
 
     class Fonts {
       public:
