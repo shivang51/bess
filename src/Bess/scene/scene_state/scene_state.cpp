@@ -5,6 +5,7 @@ namespace Bess::Canvas {
         m_componentsMap.clear();
         m_typeToUuidsMap.clear();
         m_selectedComponents.clear();
+        m_rootComponents.clear();
         m_isDraggingComponents = false;
     }
     std::shared_ptr<SceneComponent> SceneState::getComponentByUuid(const UUID &uuid) const {
