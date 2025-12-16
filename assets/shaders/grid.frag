@@ -1,10 +1,10 @@
 #version 460 core
 
 layout(location = 0) out vec4 fragColor;
-layout(location = 1) out int fragColor1;
+layout(location = 1) out uvec2 fragColor1;
 
 in vec2 v_TexCoord;
-in flat int v_FragId;
+in flat uvec2 v_FragId;
 in vec4 v_FragColor;
 
 const float grid_intensity = 0.5f;

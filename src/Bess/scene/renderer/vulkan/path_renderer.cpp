@@ -1,6 +1,7 @@
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "bess_uuid.h"
 #include "geometric.hpp"
+#include <cstdint>
 #include <ranges>
 #define GLM_ENABLE_EXPERIMENTAL
 #include "gtx/vector_angle.hpp"
@@ -13,6 +14,19 @@ namespace Bess::Renderer2D::Vulkan {
     static inline void hash_combine(uint64_t &seed, uint64_t v) {
         // 64-bit boost::hash_combine-like
         seed ^= v + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+    }
+
+    glm::uvec2 encodeId(uint64_t id) {
+        glm::uvec2 encoded;
+        encoded.x = static_cast<uint32_t>(id & 0xFFFFFFFFULL);
+        encoded.y = static_cast<uint32_t>((id >> 32));
+        return encoded;
+    }
+
+    uint64_t decodeId(const glm::uvec2 &encoded) {
+        uint64_t id = static_cast<uint64_t>(encoded.y);
+        id = (id << 32) | static_cast<uint64_t>(encoded.x);
+        return id;
     }
 
     uint64_t PathRenderer::hashContours(const std::vector<std::vector<PathPoint>> &contours, const glm::vec4 &color, bool isClosed, bool rounded) {
@@ -105,7 +119,7 @@ namespace Bess::Renderer2D::Vulkan {
                 auto translated = vertices;
                 for (auto &p : translated) {
                     p.position += info.translate;
-                    p.id = static_cast<int>(info.glyphId);
+                    p.id = encodeId(info.glyphId);
                 }
                 m_strokeVertices.insert(m_strokeVertices.end(), translated.begin(), translated.end());
                 auto s = m_strokeVertices.size() - translated.size();
@@ -127,7 +141,9 @@ namespace Bess::Renderer2D::Vulkan {
                     m_fillIndices.emplace_back(baseVertex + i);
                 m_glyphIdToMesh[cacheKey] = {firstIndex, localCount};
             }
-            m_glyphIdToInstances[cacheKey].emplace_back(FillInstance{info.translate, glm::vec2(1.f), info.fillColor, (int)info.glyphId});
+            m_glyphIdToInstances[cacheKey].emplace_back(FillInstance{info.translate, glm::vec2(1.f),
+                                                                     info.fillColor,
+                                                                     encodeId(info.glyphId)});
         }
     }
 
@@ -225,7 +241,11 @@ namespace Bess::Renderer2D::Vulkan {
                         m_fillIndices.emplace_back(baseVertex + i);
                     m_glyphIdToMesh[key] = {firstIndex, localCount};
                 }
-                m_glyphIdToInstances[key].emplace_back(FillInstance{.translation = info.translate, .scale = info.scale, .color = info.fillColor, .pickId = (int)m_pathData.id});
+                m_glyphIdToInstances[key].emplace_back(
+                    FillInstance{.translation = info.translate,
+                                 .scale = info.scale,
+                                 .color = info.fillColor,
+                                 .pickId = encodeId(m_pathData.id)});
             }
         }
 
@@ -266,7 +286,7 @@ namespace Bess::Renderer2D::Vulkan {
         } else if (!m_fillVertices.empty() && !m_fillIndices.empty()) {
             m_tempInstances.clear();
             m_fillDrawCalls.clear();
-            m_tempInstances.emplace_back(FillInstance{glm::vec3(0.0f), glm::vec2(1.0f), glm::vec4(1.f), (int)m_pathData.id});
+            m_tempInstances.emplace_back(FillInstance{glm::vec3(0.0f), glm::vec2(1.0f), glm::vec4(1.f), encodeId(m_pathData.id)});
             Pipelines::PathFillPipeline::FillDrawCall dc{};
             dc.firstIndex = 0;
             dc.indexCount = static_cast<uint32_t>(m_fillIndices.size());
@@ -465,7 +485,7 @@ namespace Bess::Renderer2D::Vulkan {
             CommonVertex v;
             v.position = glm::vec3(pos, z);
             v.color = color;
-            v.id = static_cast<int>(id & 0x7FFFFFFF);
+            v.id = encodeId(id);
             v.texCoord = glm::mix(glm::vec2(0.f), glm::vec2(1.), t);
             v.texSlotIdx = -1;
             return v;
@@ -849,7 +869,7 @@ namespace Bess::Renderer2D::Vulkan {
             CommonVertex v;
             v.position = pos;
             v.color = color;
-            v.id = (id & 0x7FFFFFFF);
+            v.id = encodeId(id);
             v.texCoord = uvOf(pos);
             return v;
         };

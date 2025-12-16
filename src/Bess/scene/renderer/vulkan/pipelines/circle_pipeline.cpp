@@ -2,6 +2,7 @@
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
 #include "scene/scene_pch.h"
 #include "vulkan_core.h"
+#include <vulkan/vulkan_core.h>
 
 namespace Bess::Vulkan::Pipelines {
 
@@ -202,7 +203,7 @@ namespace Bess::Vulkan::Pipelines {
 
         instanceAttribs[4].binding = 1;
         instanceAttribs[4].location = 6;
-        instanceAttribs[4].format = VK_FORMAT_R32_SINT;
+        instanceAttribs[4].format = VK_FORMAT_R32G32_UINT;
         instanceAttribs[4].offset = offsetof(CircleInstance, id);
 
         std::array<VkVertexInputAttributeDescription, 7> allAttribs{};

@@ -170,7 +170,14 @@ namespace Bess::Vulkan::Pipelines {
         Pipeline::cleanup();
     }
 
-    void GridPipeline::drawGrid(const glm::vec3 &pos, const glm::vec2 &size, int id) {
+    glm::uvec2 encodeId(uint64_t id) {
+        glm::uvec2 encodedId;
+        encodedId.x = static_cast<uint32_t>(id & 0xFFFFFFFF);
+        encodedId.y = static_cast<uint32_t>((id >> 32));
+        return encodedId;
+    }
+
+    void GridPipeline::drawGrid(const glm::vec3 &pos, const glm::vec2 &size, uint64_t id) {
         std::vector<GridVertex> vertices(4);
 
         auto transform = glm::translate(glm::mat4(1.0f), glm::vec3(pos.x, pos.y, 0.0f));
@@ -192,7 +199,7 @@ namespace Bess::Vulkan::Pipelines {
             auto &vertex = vertices[i];
             vertex.position = transform * glm::vec4(QuadTemplateVertices[i].position, 0.f, 1.f);
             vertex.position.z = pos.z;
-            vertex.fragId = id;
+            vertex.fragId = encodeId(id);
             vertex.ar = size.x / size.y;
             vertex.fragColor = glm::vec4(1.f);
             vertex.texCoord = QuadTemplateVertices[i].texCoord;

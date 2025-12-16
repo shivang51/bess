@@ -51,7 +51,7 @@ namespace Bess::Renderer {
 
         void drawMaterial(const Material2D &material);
 
-        void drawGrid(const glm::vec3 &pos, const glm::vec2 &size, int id,
+        void drawGrid(const glm::vec3 &pos, const glm::vec2 &size, uint64_t id,
                       const GridColors &gridColors, const std::shared_ptr<Camera> &camera);
 
         void drawQuad(const glm::vec3 &pos,
@@ -63,7 +63,7 @@ namespace Bess::Renderer {
         void drawTexturedQuad(const glm::vec3 &pos,
                               const glm::vec2 &size,
                               const glm::vec4 &tint,
-                              int id,
+                              uint64_t id,
                               const std::shared_ptr<VulkanTexture> &texture,
                               QuadRenderProperties props = {});
 
@@ -74,13 +74,13 @@ namespace Bess::Renderer {
                               const std::shared_ptr<SubTexture> &subTexture,
                               QuadRenderProperties props = {});
 
-        void drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, int id, float innerRadius = 0.0F);
+        void drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, uint64_t id, float innerRadius = 0.0F);
 
         void drawText(const std::string &text, const glm::vec3 &pos, const size_t size,
-                      const glm::vec4 &color, const int id, float angle = 0);
+                      const glm::vec4 &color, const uint64_t &id, float angle = 0);
 
         glm::vec2 drawTextWrapped(const std::string &text, const glm::vec3 &pos, const size_t size,
-                                  const glm::vec4 &color, const int id, float wrapWidthPx, float angle = 0);
+                                  const glm::vec4 &color, const uint64_t &id, float wrapWidthPx, float angle = 0);
 
         void resize(VkExtent2D extent);
         void updateUBO(const std::shared_ptr<Camera> &camera);

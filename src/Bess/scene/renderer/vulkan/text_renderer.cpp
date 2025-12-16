@@ -1,5 +1,4 @@
 #include "scene/renderer/vulkan/text_renderer.h"
-#include "asset_manager/asset_manager.h"
 #include "application/assets.h"
 #include "scene/renderer/font.h"
 #include "scene/renderer/vulkan/path_renderer.h"
@@ -20,7 +19,7 @@ namespace Bess::Renderer {
     }
 
     void TextRenderer::drawText(const std::string &text, const glm::vec3 &pos, const size_t size,
-                                const glm::vec4 &color, const int id, float angle) {
+                                const glm::vec4 &color, const uint64_t &id, float angle) {
         float scale = (float)size / m_font.getSize();
         float posX = pos.x, posY = pos.y;
         for (const char ch : text) {
@@ -41,7 +40,7 @@ namespace Bess::Renderer {
     }
 
     glm::vec2 TextRenderer::drawTextWrapped(const std::string &text, const glm::vec3 &pos, size_t size,
-                                            const glm::vec4 &color, int id, float wrapWidthPx, float angle) {
+                                            const glm::vec4 &color, const uint64_t &id, float wrapWidthPx, float angle) {
         float scale = (float)size / m_font.getSize();
         float posX = pos.x, posY = pos.y;
         float widthUsed = 0.f, heightUsed = 0;

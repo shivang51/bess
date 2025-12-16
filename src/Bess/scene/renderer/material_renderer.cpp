@@ -4,7 +4,7 @@
 #include <cstdint>
 
 namespace Bess::Renderer {
-    static Material2D makeGrid(const glm::vec3 &pos, const glm::vec2 &size, int id) {
+    static Material2D makeGrid(const glm::vec3 &pos, const glm::vec2 &size, uint64_t id) {
         Material2D m;
         m.type = Material2D::MaterialType::grid;
         new (&m.grid) QuadMaterial();
@@ -41,7 +41,7 @@ namespace Bess::Renderer {
         }
     }
 
-    void MaterialRenderer::drawGrid(const glm::vec3 &pos, const glm::vec2 &size, int id,
+    void MaterialRenderer::drawGrid(const glm::vec3 &pos, const glm::vec2 &size, uint64_t id,
                                     const GridColors &gridColors, const std::shared_ptr<Camera> &camera) {
         if (!m_gridPipeline) {
             return;
@@ -90,6 +90,7 @@ namespace Bess::Renderer {
         encodedId.y = static_cast<uint32_t>((id >> 32));
         return encodedId;
     }
+
     void MaterialRenderer::drawQuad(const glm::vec3 &pos,
                                     const glm::vec2 &size,
                                     const glm::vec4 &color,
@@ -131,7 +132,7 @@ namespace Bess::Renderer {
     void MaterialRenderer::drawTexturedQuad(const glm::vec3 &pos,
                                             const glm::vec2 &size,
                                             const glm::vec4 &tint,
-                                            int id,
+                                            uint64_t id,
                                             const std::shared_ptr<VulkanTexture> &texture,
                                             QuadRenderProperties props) {
         if (!m_quadPipeline) {
@@ -182,7 +183,7 @@ namespace Bess::Renderer {
         m_translucentMaterials.push(m);
     }
 
-    void MaterialRenderer::drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, int id, float innerRadius) {
+    void MaterialRenderer::drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, uint64_t id, float innerRadius) {
         if (!m_circlePipeline) {
             return;
         }
@@ -192,7 +193,7 @@ namespace Bess::Renderer {
         instance.color = color;
         instance.radius = radius;
         instance.innerRadius = innerRadius;
-        instance.id = id;
+        instance.id = encodeId(id);
 
         if (color.a == 1.f) {
             m_circleInstances.emplace_back(instance);
@@ -203,7 +204,7 @@ namespace Bess::Renderer {
     }
 
     void MaterialRenderer::drawText(const std::string &text, const glm::vec3 &pos, const size_t size,
-                                    const glm::vec4 &color, const int id, float angle) {
+                                    const glm::vec4 &color, const uint64_t &id, float angle) {
 
         if (m_textRenderer) {
             m_textRenderer->drawText(text, pos, size, color, id);
@@ -211,7 +212,7 @@ namespace Bess::Renderer {
     }
 
     glm::vec2 MaterialRenderer::drawTextWrapped(const std::string &text, const glm::vec3 &pos, const size_t size,
-                                                const glm::vec4 &color, const int id, float wrapWidthPx, float angle) {
+                                                const glm::vec4 &color, const uint64_t &id, float wrapWidthPx, float angle) {
         if (m_textRenderer) {
             return m_textRenderer->drawTextWrapped(text, pos, size, color, id, wrapWidthPx, angle);
         }

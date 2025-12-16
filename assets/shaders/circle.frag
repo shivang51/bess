@@ -1,12 +1,12 @@
 #version 460
 
 layout(location = 0) out vec4 fragColor;
-layout(location = 1) out int fragColor1;
+layout(location = 1) out uvec2 fragColor1;
 
 layout(location = 0) in vec4 v_FragColor;
 layout(location = 1) in vec2 v_TexCoord;
 layout(location = 2) in float v_InnerRadius;
-layout(location = 3) in flat int v_FragId;
+layout(location = 3) in flat uvec2 v_FragId;
 
 void main() {
     vec2 uv = v_TexCoord - 0.5;

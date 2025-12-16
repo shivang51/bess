@@ -23,7 +23,7 @@ namespace Bess::Renderer {
     struct GridMaterial {
         glm::vec3 position;
         glm::vec2 size;
-        int id;
+        uint64_t id;
         Vulkan::GridUniforms uniforms;
     };
 

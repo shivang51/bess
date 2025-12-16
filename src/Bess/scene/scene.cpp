@@ -234,7 +234,7 @@ namespace Bess::Canvas {
         artist->getMaterialRenderer()->drawGrid(
             glm::vec3(0.f, 0.f, 0.1f),
             m_camera->getSpan(),
-            -1,
+            0,
             {
                 .minorColor = ViewportTheme::colors.gridMinorColor,
                 .majorColor = ViewportTheme::colors.gridMajorColor,
@@ -300,8 +300,6 @@ namespace Bess::Canvas {
     UUID Scene::createSimEntity(const UUID &simEngineEntt,
                                 const SimEngine::ComponentDefinition &comp, const glm::vec2 &pos) {
         const auto state = SimEngine::SimulationEngine::instance().getComponentState(simEngineEntt);
-        const std::vector<UUID> inputSlotIds(state.inputStates.size());
-        const std::vector<UUID> outputSlotIds(state.outputStates.size());
         const UUID uuid;
         SimulationSceneComponent sceneComp(uuid);
 
@@ -312,13 +310,29 @@ namespace Bess::Canvas {
 
         // style
         auto &style = sceneComp.getStyle();
-        style.headerColor = ViewportTheme::getCompHeaderColor(comp.category);
+
+        const auto &catalog = SimEngine::ComponentCatalog::instance();
+        const bool isInput = catalog.isSpecialCompDef(comp.getHash(),
+                                                      SimEngine::ComponentCatalog::SpecialType::input);
+        const bool isOutput = catalog.isSpecialCompDef(comp.getHash(),
+                                                       SimEngine::ComponentCatalog::SpecialType::output);
+
+        if (isInput || isOutput) {
+            constexpr glm::vec4 ioCompColor = glm::vec4(0.2f, 0.2f, 0.4f, 0.6f);
+            style.color = ioCompColor;
+            style.borderRadius = glm::vec4(8.f);
+        } else {
+            style.color = ViewportTheme::colors.componentBG;
+            style.borderRadius = glm::vec4(6.f);
+            style.headerColor = ViewportTheme::getCompHeaderColor(comp.category);
+        }
+
         style.borderColor = ViewportTheme::colors.componentBorder;
         style.borderSize = glm::vec4(1.f);
         style.color = ViewportTheme::colors.componentBG;
 
         // slots
-        sceneComp.createIOSlots(comp.inputCount, comp.outputCount);
+        sceneComp.createIOSlots(state.inputStates.size(), state.outputStates.size());
 
         m_state.addComponent<SimulationSceneComponent>(
             std::make_shared<SimulationSceneComponent>(sceneComp));

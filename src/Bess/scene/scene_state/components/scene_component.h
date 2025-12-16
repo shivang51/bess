@@ -64,7 +64,7 @@ namespace Bess::Canvas {
         SceneComponent(UUID uuid, const Transform &transform);
         virtual ~SceneComponent() = default;
 
-        virtual void draw(std::shared_ptr<Renderer::MaterialRenderer>) {}
+        virtual void draw(std::shared_ptr<Renderer::MaterialRenderer> /*unused*/);
 
         MAKE_GETTER_SETTER(UUID, Uuid, m_uuid)
         MAKE_GETTER_SETTER_WC(Transform, Transform, m_transform, onTransformChanged)
@@ -94,6 +94,9 @@ namespace Bess::Canvas {
         virtual void onStyleChanged() {}
         virtual void onNameChanged() {}
 
+        virtual glm::vec2 calculateScale(std::shared_ptr<Renderer::MaterialRenderer> materialRenderer);
+        virtual void onFirstDraw(const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer);
+
         UUID m_uuid = UUID::null;
         Transform m_transform;
         Style m_style;
@@ -102,5 +105,7 @@ namespace Bess::Canvas {
         bool m_isDraggable = false;
 
         bool m_isSelected = false;
+
+        bool m_isFirstDraw = true;
     };
 } // namespace Bess::Canvas

@@ -1,6 +1,6 @@
 #include "scene/renderer/vulkan/pipelines/text_pipeline.h"
-#include "asset_manager/asset_manager.h"
 #include "application/assets.h"
+#include "asset_manager/asset_manager.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
 #include "scene/scene_pch.h"
 
@@ -327,12 +327,13 @@ namespace Bess::Vulkan::Pipelines {
 
         instanceAttribs[4].binding = 1;
         instanceAttribs[4].location = 6;
-        instanceAttribs[4].format = VK_FORMAT_R32_SINT;
+        instanceAttribs[4].format = VK_FORMAT_R32G32_UINT;
         instanceAttribs[4].offset = offsetof(InstanceVertex, id);
 
         instanceAttribs[5].binding = 1;
         instanceAttribs[5].location = 7;
         instanceAttribs[5].format = VK_FORMAT_R32_SINT;
+
         instanceAttribs[5].offset = offsetof(InstanceVertex, texSlotIdx);
 
         instanceAttribs[6].binding = 1;

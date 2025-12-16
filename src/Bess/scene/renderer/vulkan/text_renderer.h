@@ -6,6 +6,7 @@
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "vulkan_offscreen_render_pass.h"
 
+#include <cstdint>
 #include <memory>
 namespace Bess::Renderer {
 
@@ -24,10 +25,10 @@ namespace Bess::Renderer {
         void updateUBO(const UniformBufferObject &ubo);
 
         void drawText(const std::string &text, const glm::vec3 &pos, size_t size,
-                      const glm::vec4 &color, int id, float angle = 0);
+                      const glm::vec4 &color, const uint64_t &id, float angle = 0);
 
         glm::vec2 drawTextWrapped(const std::string &text, const glm::vec3 &pos, size_t size,
-                                  const glm::vec4 &color, int id, float wrapWidthPx, float angle = 0);
+                                  const glm::vec4 &color, const uint64_t &id, float wrapWidthPx, float angle = 0);
 
         glm::vec2 getRenderSize(const std::string &text, size_t size);
 

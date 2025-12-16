@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pipeline.h"
+#include <cstdint>
 #include <vector>
 
 namespace Bess::Vulkan::Pipelines {
@@ -22,7 +23,7 @@ namespace Bess::Vulkan::Pipelines {
         void cleanup() override;
 
         // for now only one grid
-        void drawGrid(const glm::vec3 &pos, const glm::vec2 &size, int id);
+        void drawGrid(const glm::vec3 &pos, const glm::vec2 &size, uint64_t id);
         void updateGridUniforms(const GridUniforms &gridUniforms);
 
       private:

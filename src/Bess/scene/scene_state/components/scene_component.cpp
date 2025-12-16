@@ -1,4 +1,6 @@
 #include "scene/scene_state/components/scene_component.h"
+#include "scene/scene_state/components/styles/comp_style.h"
+#include "scene/scene_state/components/styles/sim_comp_style.h"
 
 namespace Bess::Canvas {
     SceneComponent::SceneComponent() : m_uuid{UUID()} {};
@@ -43,5 +45,22 @@ namespace Bess::Canvas {
         transform = glm::rotate(transform, angle, {0.f, 0.f, 1.f});
         transform = glm::scale(transform, glm::vec3(scale, 1.f));
         return transform;
+    }
+
+    glm::vec2 SceneComponent::calculateScale(std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) {
+        const auto labelSize = materialRenderer->getTextRenderSize(m_name, Styles::componentStyles.headerFontSize);
+        float width = labelSize.x + (componentStyles.paddingX * 2.f);
+        return {width, Styles::componentStyles.headerHeight};
+    }
+
+    void SceneComponent::onFirstDraw(const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer) {
+        setScale(calculateScale(materialRenderer));
+        m_isFirstDraw = false;
+    }
+
+    void SceneComponent::draw(std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) {
+        if (m_isFirstDraw) {
+            onFirstDraw(materialRenderer);
+        }
     }
 } // namespace Bess::Canvas
