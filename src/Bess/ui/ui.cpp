@@ -197,14 +197,19 @@ namespace Bess::UI {
     }
 
     void setCursorPointer() {
+        currentCursorType = CursorType::pointer;
         ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
     }
 
     void setCursorMove() {
+        currentCursorType = CursorType::move;
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
     }
 
-    void setCursorNormal() { ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow); }
+    void setCursorNormal() {
+        currentCursorType = CursorType::normal;
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
+    }
 
     void drawStats(const int fps) {
         ImGui::Begin(std::format("{}  Stats", Icons::FontAwesomeIcons::FA_CHART_PIE).c_str());

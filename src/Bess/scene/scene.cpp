@@ -18,6 +18,7 @@
 #include <GLFW/glfw3.h>
 #include <cmath>
 #include <cstdint>
+#include <memory>
 #include <numbers>
 #include <ranges>
 #include <utility>
@@ -253,11 +254,13 @@ namespace Bess::Canvas {
             drawConnection();
         }
 
-        {
-            for (const auto &comp : m_state.getAllComponents() | std::ranges::views::values) {
-                comp->draw(artist->getMaterialRenderer());
-            }
+        for (const auto &compId : m_state.getRootComponents()) {
+            const auto comp = m_state.getComponentByUuid(compId);
+            comp->draw(m_state,
+                       artist->getMaterialRenderer(),
+                       artist->getPathRenderer());
         }
+
         const auto nonSimCompView = m_registry.view<Components::NSComponent>();
         for (const auto entity : nonSimCompView) {
             artist->drawNonSimEntity(entity);
@@ -301,15 +304,15 @@ namespace Bess::Canvas {
                                 const SimEngine::ComponentDefinition &comp, const glm::vec2 &pos) {
         const auto state = SimEngine::SimulationEngine::instance().getComponentState(simEngineEntt);
         const UUID uuid;
-        SimulationSceneComponent sceneComp(uuid);
+        auto sceneComp = std::make_shared<SimulationSceneComponent>(uuid);
 
         // transform
-        sceneComp.setPosition(glm::vec3(getSnappedPos(pos), getNextZCoord()));
-        sceneComp.setName(comp.name);
-        sceneComp.setSimEngineId(simEngineEntt);
+        sceneComp->setPosition(glm::vec3(getSnappedPos(pos), getNextZCoord()));
+        sceneComp->setName(comp.name);
+        sceneComp->setSimEngineId(simEngineEntt);
 
         // style
-        auto &style = sceneComp.getStyle();
+        auto &style = sceneComp->getStyle();
 
         const auto &catalog = SimEngine::ComponentCatalog::instance();
         const bool isInput = catalog.isSpecialCompDef(comp.getHash(),
@@ -332,10 +335,15 @@ namespace Bess::Canvas {
         style.color = ViewportTheme::colors.componentBG;
 
         // slots
-        sceneComp.createIOSlots(state.inputStates.size(), state.outputStates.size());
+        const auto slots = sceneComp->createIOSlots(state.inputStates.size(),
+                                                    state.outputStates.size());
 
-        m_state.addComponent<SimulationSceneComponent>(
-            std::make_shared<SimulationSceneComponent>(sceneComp));
+        m_state.addComponent<SimulationSceneComponent>(sceneComp);
+
+        for (const auto &slot : slots) {
+            m_state.addComponent<SlotSceneComponent>(slot);
+            m_state.attachChild(sceneComp->getUuid(), slot->getUuid());
+        }
 
         BESS_INFO("[Scene] Created Simulation entity {}", (uint64_t)uuid);
         // m_dispatcher.trigger(Events::EntityCreatedEvent{uuid, m_registry.create(), true});
@@ -1112,39 +1120,27 @@ namespace Bess::Canvas {
     }
 
     bool Scene::selectEntitesInArea() {
-        m_registry.clear<Components::SelectedComponent>();
-
         if (!m_viewport->tryUpdatePickingResults())
             return false;
 
-        std::vector<glm::uvec2> ids = m_viewport->getPickingIdsResult();
+        const std::vector<glm::uvec2> rawIds = m_viewport->getPickingIdsResult();
 
-        if (ids.size() == 0)
+        if (rawIds.size() == 0)
             return false;
 
-        // std::set<int> uniqueIds(ids.begin(), ids.end());
-        // std::unordered_map<int, bool> selected = {};
-        //
-        // for (const auto &id : uniqueIds) {
-        //     auto entt = (entt::entity)id;
-        //     if (!m_registry.valid(entt))
-        //         continue;
-        //
-        //     bool isConnection = false;
-        //     if (const auto *segComp = m_registry.try_get<Components::ConnectionSegmentComponent>(entt)) {
-        //         entt = getEntityWithUuid(segComp->parent);
-        //         isConnection = true;
-        //     }
-        //
-        //     if (selected.contains(id))
-        //         continue;
-        //
-        //     if (isConnection || m_registry.any_of<Components::SimulationComponent, Components::NSComponent>(entt)) {
-        //         m_registry.emplace_or_replace<Components::SelectedComponent>(entt);
-        //     }
-        //
-        //     selected[id] = true;
-        // }
+        std::set<UUID> ids;
+        for (const auto &id : rawIds) {
+            ids.insert(decodeId(id));
+        }
+
+        m_state.clearSelectedComponents();
+        for (const auto &id : ids) {
+            auto comp = m_state.getComponentByUuid(id);
+            if (comp == nullptr)
+                continue;
+            m_state.addSelectedComponent(id);
+        }
+
         return true;
     }
 

@@ -1,6 +1,10 @@
 #include "scene/scene_state/components/scene_component.h"
+
+#include <utility>
+
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
+#include <utility>
 
 namespace Bess::Canvas {
     SceneComponent::SceneComponent() : m_uuid{UUID()} {};
@@ -53,14 +57,23 @@ namespace Bess::Canvas {
         return {width, Styles::componentStyles.headerHeight};
     }
 
-    void SceneComponent::onFirstDraw(const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer) {
+    void SceneComponent::onFirstDraw(SceneState &,
+                                     std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                                     std::shared_ptr<PathRenderer> /*unused*/) {
         setScale(calculateScale(materialRenderer));
         m_isFirstDraw = false;
     }
 
-    void SceneComponent::draw(std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) {
+    void SceneComponent::draw(SceneState &state,
+                              std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                              std::shared_ptr<PathRenderer> pathRenderer) {
         if (m_isFirstDraw) {
-            onFirstDraw(materialRenderer);
+            onFirstDraw(state, std::move(materialRenderer), std::move(pathRenderer));
         }
     }
+
+    void SceneComponent::addChildComponent(const UUID &uuid) {
+        m_childComponents.emplace_back(uuid);
+    }
+
 } // namespace Bess::Canvas

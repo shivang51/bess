@@ -1,17 +1,21 @@
 #include "scene/scene_state/components/sim_scene_component.h"
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
-#include <cstdint>
+#include "ui/ui.h"
 
 namespace Bess::Canvas {
-    SlotSceneComponent::SlotSceneComponent(UUID uuid, UUID parentId)
-        : SceneComponent(uuid), m_parentComponentId(parentId) {
+    SlotSceneComponent::SlotSceneComponent(UUID uuid)
+        : SceneComponent(uuid) {
         m_type = SceneComponentType::slot;
     }
 
     SlotSceneComponent::SlotSceneComponent(UUID uuid, const Transform &transform)
         : SceneComponent(uuid, transform) {
         m_type = SceneComponentType::slot;
+    }
+
+    void SlotSceneComponent::onMouseHovered(const glm::vec2 &mousePos) {
+        UI::setCursorPointer();
     }
 
     SimulationSceneComponent::SimulationSceneComponent(UUID uuid) : SceneComponent(uuid) {
@@ -25,31 +29,27 @@ namespace Bess::Canvas {
         initDragBehaviour();
     }
 
-    void SimulationSceneComponent::createIOSlots(size_t inputCount, size_t outputCount) {
-        auto inpSlots = std::vector<SlotSceneComponent>(inputCount);
-        auto outSlots = std::vector<SlotSceneComponent>(outputCount);
-
-        const auto [inpPositions, outPositions] = calculateSlotPositions(inputCount, outputCount);
-
-        const auto &pos = m_transform.position;
+    std::vector<std::shared_ptr<SlotSceneComponent>>
+    SimulationSceneComponent::createIOSlots(size_t inputCount, size_t outputCount) {
+        std::vector<std::shared_ptr<SlotSceneComponent>> slots;
 
         for (size_t i = 0; i < inputCount; i++) {
-            auto &slot = inpSlots[i];
-            slot.setParentComponentId(m_uuid);
-            slot.setPosition(inpPositions[i]);
-            slot.setParentTransform(m_transform);
-            slot.setSlotType(SlotType::digitalInput);
-            m_inputSlots.emplace_back(slot);
+            auto slot = std::make_shared<SlotSceneComponent>();
+            slot->setSlotType(SlotType::digitalInput);
+            slot->setIndex(static_cast<int>(i));
+            m_inputSlots.push_back(slot->getUuid());
+            slots.push_back(slot);
         }
 
         for (size_t i = 0; i < outputCount; i++) {
-            auto &slot = outSlots[i];
-            slot.setParentComponentId(m_uuid);
-            slot.setPosition(outPositions[i]);
-            slot.setParentTransform(m_transform);
-            slot.setSlotType(SlotType::digitalOutput);
-            m_outputSlots.emplace_back(slot);
+            auto slot = std::make_shared<SlotSceneComponent>();
+            slot->setSlotType(SlotType::digitalOutput);
+            slot->setIndex(static_cast<int>(i));
+            m_outputSlots.push_back(slot->getUuid());
+            slots.push_back(slot);
         }
+
+        return slots;
     }
 
     void SimulationSceneComponent::onMouseHovered(const glm::vec2 &mousePos) {
@@ -58,17 +58,14 @@ namespace Bess::Canvas {
     }
 
     void SimulationSceneComponent::onTransformChanged() {
-        for (auto &slot : m_inputSlots) {
-            slot.setParentTransform(m_transform);
-        }
-
-        for (auto &slot : m_outputSlots) {
-            slot.setParentTransform(m_transform);
-        }
     }
 
-    void SlotSceneComponent::draw(std::shared_ptr<Renderer::MaterialRenderer> renderer) {
-        const auto pos = m_parentTransform.position + m_transform.position;
+    void SlotSceneComponent::draw(SceneState &state,
+                                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                                  std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+        const auto parentComp = state.getComponentByUuid(m_parentComponent);
+        const auto &parentPos = parentComp->getTransform().position;
+        const auto pos = parentPos + m_transform.position;
         auto bg = ViewportTheme::colors.stateLow;
 
         auto border = bg;
@@ -76,8 +73,8 @@ namespace Bess::Canvas {
 
         const float ir = Styles::simCompStyles.slotRadius - Styles::simCompStyles.slotBorderSize;
         const float r = Styles::simCompStyles.slotRadius;
-        renderer->drawCircle(pos, r, border, m_uuid, ir);
-        renderer->drawCircle(pos, ir - 1.f, bg, m_uuid);
+        materialRenderer->drawCircle(pos, r, border, m_uuid, ir);
+        materialRenderer->drawCircle(pos, ir - 1.f, bg, m_uuid);
 
         const float labeldx = Styles::simCompStyles.slotMargin + (Styles::simCompStyles.slotRadius * 2.f);
         float labelX = pos.x;
@@ -87,17 +84,20 @@ namespace Bess::Canvas {
             labelX -= labeldx;
         }
         float dY = componentStyles.slotRadius - (std::abs((componentStyles.slotRadius * 2.f) - componentStyles.slotLabelSize) / 2.f);
-        renderer->drawText(m_name,
-                           {labelX, pos.y + dY, pos.z},
-                           componentStyles.slotLabelSize,
-                           ViewportTheme::colors.text,
-                           m_parentComponentId,
-                           m_parentTransform.angle);
+
+        materialRenderer->drawText(m_name,
+                                   {labelX, pos.y + dY, pos.z},
+                                   componentStyles.slotLabelSize,
+                                   ViewportTheme::colors.text,
+                                   m_parentComponent,
+                                   parentComp->getTransform().angle);
     }
 
-    void SimulationSceneComponent::draw(std::shared_ptr<Renderer::MaterialRenderer> renderer) {
+    void SimulationSceneComponent::draw(SceneState &state,
+                                        std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                                        std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
         if (m_isFirstDraw) {
-            onFirstDraw(renderer);
+            onFirstDraw(state, materialRenderer, pathRenderer);
         }
 
         // background
@@ -109,11 +109,11 @@ namespace Bess::Canvas {
         props.isMica = true;
         props.hasShadow = true;
 
-        renderer->drawQuad(m_transform.position,
-                           m_transform.scale,
-                           m_style.color,
-                           m_uuid,
-                           props);
+        materialRenderer->drawQuad(m_transform.position,
+                                   m_transform.scale,
+                                   m_style.color,
+                                   m_uuid,
+                                   props);
 
         props = {};
         props.angle = m_transform.angle;
@@ -133,18 +133,18 @@ namespace Bess::Canvas {
             const auto headerPos = glm::vec3(m_transform.position.x,
                                              m_transform.position.y - (m_transform.scale.y / 2.f) + (headerHeight / 2.f),
                                              m_transform.position.z + 0.0004f);
-            renderer->drawQuad(headerPos,
-                               glm::vec2(m_transform.scale.x - m_style.borderSize.w - m_style.borderSize.y,
-                                         headerHeight - m_style.borderSize.x - m_style.borderSize.z),
-                               m_style.headerColor,
-                               m_uuid,
-                               props);
+            materialRenderer->drawQuad(headerPos,
+                                       glm::vec2(m_transform.scale.x - m_style.borderSize.w - m_style.borderSize.y,
+                                                 headerHeight - m_style.borderSize.x - m_style.borderSize.z),
+                                       m_style.headerColor,
+                                       m_uuid,
+                                       props);
 
             textPos = glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) + componentStyles.paddingX,
                                 headerPos.y + Styles::simCompStyles.paddingY,
                                 m_transform.position.z + 0.0005f);
         } else {
-            float labelWidth = renderer->getTextRenderSize(m_name, Styles::simCompStyles.headerFontSize).x;
+            float labelWidth = materialRenderer->getTextRenderSize(m_name, Styles::simCompStyles.headerFontSize).x;
             textPos = glm::vec3(m_transform.position.x,
                                 m_transform.position.y + (Styles::simCompStyles.headerFontSize / 2.f) - 1.f,
                                 m_transform.position.z + 0.0005f);
@@ -159,18 +159,15 @@ namespace Bess::Canvas {
         }
 
         // component name
-        renderer->drawText(m_name,
-                           textPos,
-                           Styles::simCompStyles.headerFontSize,
-                           ViewportTheme::colors.text, m_uuid, m_transform.angle);
+        materialRenderer->drawText(m_name,
+                                   textPos,
+                                   Styles::simCompStyles.headerFontSize,
+                                   ViewportTheme::colors.text, m_uuid, m_transform.angle);
 
         // slots
-        for (auto &slot : m_inputSlots) {
-            slot.draw(renderer);
-        }
-
-        for (auto &slot : m_outputSlots) {
-            slot.draw(renderer);
+        for (const auto &childId : m_childComponents) {
+            auto child = state.getComponentByUuid(childId);
+            child->draw(state, materialRenderer, pathRenderer);
         }
     }
 
@@ -229,22 +226,26 @@ namespace Bess::Canvas {
         return {width, height};
     }
 
-    void SimulationSceneComponent::resetSlotPositions() {
+    void SimulationSceneComponent::resetSlotPositions(SceneState &state) {
         const auto [inpPositions, outPositions] =
             calculateSlotPositions(m_inputSlots.size(), m_outputSlots.size());
 
         for (size_t i = 0; i < inpPositions.size(); i++) {
-            m_inputSlots[i].setPosition(inpPositions[i]);
+            const auto slotComp = state.getComponentByUuid(m_inputSlots[i]);
+            slotComp->setPosition(inpPositions[i]);
         }
 
         for (size_t i = 0; i < outPositions.size(); i++) {
-            m_outputSlots[i].setPosition(outPositions[i]);
+            const auto slotComp = state.getComponentByUuid(m_outputSlots[i]);
+            slotComp->setPosition(outPositions[i]);
         }
     }
 
-    void SimulationSceneComponent::onFirstDraw(const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer) {
+    void SimulationSceneComponent::onFirstDraw(SceneState &sceneState,
+                                               std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                                               std::shared_ptr<PathRenderer> /*unused*/) {
         setScale(calculateScale(materialRenderer));
-        resetSlotPositions();
+        resetSlotPositions(sceneState);
         m_isFirstDraw = false;
     }
 

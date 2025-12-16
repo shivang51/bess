@@ -69,4 +69,18 @@ namespace Bess::Canvas {
     void SceneState::setIsDraggingComponents(bool dragging) {
         m_isDraggingComponents = dragging;
     }
+
+    const std::vector<UUID> &SceneState::getRootComponents() const {
+        return m_rootComponents;
+    }
+
+    void SceneState::attachChild(const UUID &parentId, const UUID &childId) const {
+        auto parent = getComponentByUuid(parentId);
+        auto child = getComponentByUuid(childId);
+
+        BESS_ASSERT(parent && child, "Parent or child was not found");
+
+        parent->addChildComponent(childId);
+        child->setParentComponent(parentId);
+    }
 } // namespace Bess::Canvas

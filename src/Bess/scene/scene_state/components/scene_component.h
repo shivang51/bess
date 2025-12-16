@@ -2,6 +2,7 @@
 
 #include "bess_uuid.h"
 #include "scene/renderer/material_renderer.h"
+#include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_state/components/behaviours/mouse_behaviour.h"
 
 namespace Bess::Canvas {
@@ -27,6 +28,7 @@ namespace Bess::Canvas {
         simulation,
         slot,
         nonSimulation,
+        connection,
     };
 
     class Transform {
@@ -55,6 +57,10 @@ namespace Bess::Canvas {
         glm::vec4 headerColor = glm::vec4(0.2f, 0.2f, 0.2f, 1.f);
     };
 
+    using PathRenderer = Renderer2D::Vulkan::PathRenderer;
+
+    class SceneState;
+
     class SceneComponent : public std::enable_shared_from_this<SceneComponent>,
                            public MouseBehaviour<SceneComponent> {
       public:
@@ -64,12 +70,16 @@ namespace Bess::Canvas {
         SceneComponent(UUID uuid, const Transform &transform);
         virtual ~SceneComponent() = default;
 
-        virtual void draw(std::shared_ptr<Renderer::MaterialRenderer> /*unused*/);
+        virtual void draw(SceneState &,
+                          std::shared_ptr<Renderer::MaterialRenderer> /*unused*/,
+                          std::shared_ptr<PathRenderer> /*unused*/);
 
         MAKE_GETTER_SETTER(UUID, Uuid, m_uuid)
         MAKE_GETTER_SETTER_WC(Transform, Transform, m_transform, onTransformChanged)
         MAKE_GETTER_SETTER_WC(Style, Style, m_style, onStyleChanged)
         MAKE_GETTER_SETTER_WC(std::string, Name, m_name, onNameChanged)
+        MAKE_GETTER_SETTER(UUID, ParentComponent, m_parentComponent)
+        MAKE_GETTER_SETTER(std::vector<UUID>, ChildComponents, m_childComponents)
 
         bool isDraggable() const;
 
@@ -83,6 +93,8 @@ namespace Bess::Canvas {
             return std::static_pointer_cast<T>(shared_from_this());
         }
 
+        void addChildComponent(const UUID &uuid);
+
         void setIsDraggable(bool draggable);
 
         bool isSelected() const;
@@ -94,18 +106,24 @@ namespace Bess::Canvas {
         virtual void onStyleChanged() {}
         virtual void onNameChanged() {}
 
-        virtual glm::vec2 calculateScale(std::shared_ptr<Renderer::MaterialRenderer> materialRenderer);
-        virtual void onFirstDraw(const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer);
+        virtual glm::vec2 calculateScale(
+            std::shared_ptr<Renderer::MaterialRenderer> materialRenderer);
+
+        virtual void onFirstDraw(SceneState &,
+                                 std::shared_ptr<Renderer::MaterialRenderer> /*unused*/,
+                                 std::shared_ptr<PathRenderer> /*unused*/);
 
         UUID m_uuid = UUID::null;
         Transform m_transform;
         Style m_style;
         SceneComponentType m_type = SceneComponentType::nonSimulation;
         std::string m_name;
+
         bool m_isDraggable = false;
-
         bool m_isSelected = false;
-
         bool m_isFirstDraw = true;
+
+        UUID m_parentComponent = UUID::null;
+        std::vector<UUID> m_childComponents;
     };
 } // namespace Bess::Canvas

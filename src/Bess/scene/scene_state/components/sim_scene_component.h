@@ -15,25 +15,27 @@ namespace Bess::Canvas {
       public:
         SlotSceneComponent() = default;
         SlotSceneComponent(const SlotSceneComponent &other) = default;
-        SlotSceneComponent(UUID uuid, UUID parentId);
+        SlotSceneComponent(UUID uuid);
 
         SlotSceneComponent(UUID uuid, const Transform &transform);
         ~SlotSceneComponent() override = default;
 
-        void draw(std::shared_ptr<Renderer::MaterialRenderer> renderer) override;
+        void draw(SceneState &state,
+                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                  std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
+
+        void onMouseHovered(const glm::vec2 &mousePos) override;
 
         REG_SCENE_COMP(SceneComponentType::slot)
 
         MAKE_GETTER_SETTER(SlotType, SlotType, m_slotType)
         MAKE_GETTER_SETTER(UUID, SimEngineId, m_simEngineId)
-        MAKE_GETTER_SETTER(UUID, ParentComponentId, m_parentComponentId)
-        MAKE_GETTER_SETTER(Transform, ParentTransform, m_parentTransform)
+        MAKE_GETTER_SETTER(int, Index, m_index)
 
       private:
         SlotType m_slotType = SlotType::none;
         UUID m_simEngineId = UUID::null;
-        UUID m_parentComponentId = UUID::null;
-        Transform m_parentTransform;
+        int m_index = -1;
     };
 
     class SimulationSceneComponent : public SceneComponent,
@@ -45,13 +47,18 @@ namespace Bess::Canvas {
         SimulationSceneComponent(UUID uuid, const Transform &transform);
         ~SimulationSceneComponent() override = default;
 
-        void createIOSlots(size_t inputCount, size_t outputCount);
+        // Creates the slots and also add there ids inside the components
+        // input slots array and output slots array
+        std::vector<std::shared_ptr<SlotSceneComponent>> createIOSlots(size_t inputCount,
+                                                                       size_t outputCount);
 
         void onMouseHovered(const glm::vec2 &mousePos) override;
 
         void onTransformChanged() override;
 
-        void draw(std::shared_ptr<Renderer::MaterialRenderer> renderer) override;
+        void draw(SceneState &state,
+                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                  std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
 
         REG_SCENE_COMP(SceneComponentType::simulation)
 
@@ -62,18 +69,20 @@ namespace Bess::Canvas {
         std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>>
         calculateSlotPositions(size_t inputCount, size_t outputCount) const;
 
-        void resetSlotPositions();
+        void resetSlotPositions(SceneState &state);
 
         glm::vec2 calculateScale(std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) override;
 
-        void onFirstDraw(const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer) override;
+        void onFirstDraw(SceneState &sceneState,
+                         std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                         std::shared_ptr<PathRenderer> /*unused*/) override;
 
         bool isCompHeaderLess() const;
 
       private:
         // Associated simulation engine ID
         UUID m_simEngineId = UUID::null;
-        std::vector<SlotSceneComponent> m_inputSlots;
-        std::vector<SlotSceneComponent> m_outputSlots;
+        std::vector<UUID> m_inputSlots;
+        std::vector<UUID> m_outputSlots;
     };
 } // namespace Bess::Canvas

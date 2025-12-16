@@ -22,6 +22,12 @@ namespace Bess::UI {
     void setCursorMove();
     void setCursorNormal();
 
+    enum class CursorType : uint8_t {
+        pointer,
+        move,
+        normal
+    } currentCursorType;
+
     class Fonts {
       public:
         static ImFont *largeFont;
