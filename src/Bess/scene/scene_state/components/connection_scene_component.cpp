@@ -27,9 +27,11 @@ namespace Bess::Canvas {
         if (!startSlotComp || !endSlotComp)
             return;
 
-        auto pos = startSlotComp->getAbsolutePosition(state);
+        const auto startPos = startSlotComp->getAbsolutePosition(state);
         const auto endPos = endSlotComp->getAbsolutePosition(state);
 
+        auto pos = startPos;
+        auto prevPos = startPos;
         pos.z = 1.001f;
         PickingId pickingId{m_runtimeId, 0};
         pathRenderer->beginPathMode(pos,
@@ -37,15 +39,17 @@ namespace Bess::Canvas {
                                     m_style.color, pickingId);
 
         int segmentIndex = 0;
-        for (const auto &segment : m_segments) {
+        for (auto &segment : m_segments) {
             pos += glm::vec3(segment.offset, 0);
 
             // Ensure the last segment ends exactly in straight line to the endPos
             if (segmentIndex == m_segments.size() - 1) {
                 if (segment.orientation == ConnSegOrientaion::horizontal) {
                     pos.x = endPos.x;
+                    segment.offset.x = pos.x - prevPos.x;
                 } else {
                     pos.y = endPos.y;
+                    segment.offset.y = pos.y - prevPos.y;
                 }
             }
 
@@ -55,6 +59,7 @@ namespace Bess::Canvas {
             pathRenderer->pathLineTo(pos,
                                      isHovered ? 3 : 2,
                                      m_style.color, pickingId);
+            prevPos = pos;
         }
 
         pickingId.info = segmentIndex;
@@ -69,9 +74,38 @@ namespace Bess::Canvas {
             onMouseDragBegin(e);
         }
 
-        const auto newOffset = e.delta + m_dragOffset;
+        if (m_draggedSegIdx == 0) {
+            ConnSegment newSeg{};
+            auto &firstSeg = m_segments[0];
+            newSeg.orientation = firstSeg.orientation == ConnSegOrientaion::horizontal
+                                     ? ConnSegOrientaion::vertical
+                                     : ConnSegOrientaion::horizontal;
+            if (newSeg.orientation == ConnSegOrientaion::horizontal) {
+                newSeg.offset.x = e.delta.x;
+            } else {
+                newSeg.offset.y = e.delta.y;
+            }
 
-        auto &seg = m_segments[m_draggedSegIdx];
+            m_segments.insert(m_segments.begin(), newSeg);
+
+            m_draggedSegIdx++;
+            m_hoveredSegIdx++;
+        } else if (m_draggedSegIdx == m_segments.size()) {
+            ConnSegment newSeg{};
+            auto &lastSeg = m_segments[m_segments.size() - 1];
+            newSeg.orientation = lastSeg.orientation == ConnSegOrientaion::horizontal
+                                     ? ConnSegOrientaion::vertical
+                                     : ConnSegOrientaion::horizontal;
+
+            // offset of last segment is set from end point
+
+            m_segments.emplace_back(newSeg);
+        }
+
+        const auto newOffset = e.delta;
+
+        auto &seg = m_segments[m_draggedSegIdx - 1];
+
         if (seg.orientation == ConnSegOrientaion::horizontal) {
             seg.offset.x += newOffset.x;
         } else {
@@ -81,8 +115,6 @@ namespace Bess::Canvas {
 
     void ConnectionSceneComponent::onMouseDragBegin(const Events::MouseDraggedEvent &e) {
         m_draggedSegIdx = (int)e.details;
-        const auto &seg = m_segments[m_draggedSegIdx];
-        m_dragOffset = seg.offset - e.mousePos;
         m_isDragging = true;
     }
 
