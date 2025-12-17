@@ -3,8 +3,8 @@
 #include <algorithm>
 
 #include "bess_uuid.h"
-#include "scene/scene.h"
 #include "events/scene_events.h"
+#include "scene/scene.h"
 
 using namespace Bess::Canvas::Components;
 
@@ -88,7 +88,7 @@ namespace Bess {
             if (isSim || isNS) {
                 if (registry.any_of<IdComponent>(entity)) {
                     UUID uuid = registry.get<IdComponent>(entity).uuid;
-                    Canvas::Scene::instance()->getEventDispatcher().trigger(Canvas::Events::EntityCreatedEvent{uuid, entity, isSim});
+                    Canvas::Scene::instance()->getEventDispatcher().trigger(Events::EntityCreatedEvent{uuid, entity, isSim});
                 }
             }
         }

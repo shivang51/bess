@@ -25,6 +25,14 @@ namespace Bess::Canvas {
         UI::setCursorNormal();
     }
 
+    void SlotSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
+        Events::EventDispatcher::instance().trigger(Events::SlotClickedEvent{
+            e.mousePos,
+            m_uuid,
+            e.button,
+            e.action});
+    }
+
     SimulationSceneComponent::SimulationSceneComponent(UUID uuid) : SceneComponent(uuid) {
         m_type = SceneComponentType::simulation;
         initDragBehaviour();

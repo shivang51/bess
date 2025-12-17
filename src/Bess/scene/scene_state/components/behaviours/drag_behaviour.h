@@ -1,15 +1,16 @@
 #pragma once
 
+#include "events/scene_events.h"
 namespace Bess::Canvas {
     template <typename Derived>
     class DragBehaviour {
       public:
-        void onMouseDragged(const glm::vec2 &mousePos) {
+        virtual void onMouseDragged(const Events::MouseDraggedEvent &e) {
             if (!m_isDragging) {
-                onDragBegin(mousePos);
+                onMouseDragBegin(e);
             }
             auto &self = static_cast<Derived &>(*this);
-            const auto newPos = mousePos + m_dragOffset;
+            const auto newPos = e.mousePos + m_dragOffset;
             self.setPosition(glm::vec3(newPos, self.getTransform().position.z));
         }
 
@@ -29,9 +30,9 @@ namespace Bess::Canvas {
             self.setIsDraggable(true);
         }
 
-        void onDragBegin(const glm::vec2 &mousePos) {
+        virtual void onMouseDragBegin(const Events::MouseDraggedEvent &e) {
             auto &self = static_cast<Derived &>(*this);
-            m_dragOffset = glm::vec2(self.getTransform().position) - mousePos;
+            m_dragOffset = glm::vec2(self.getTransform().position) - e.mousePos;
             m_isDragging = true;
         }
 

@@ -41,6 +41,11 @@ namespace Bess::Events {
             }
         };
 
+        static EventDispatcher &instance() {
+            static EventDispatcher dispatcher;
+            return dispatcher;
+        }
+
         template <typename Event>
         Sink<Event> sink() {
             return Sink<Event>(*this);
@@ -71,4 +76,3 @@ namespace Bess::Events {
         std::unordered_map<std::type_index, std::vector<std::any>> m_handlers;
     };
 } // namespace Bess::Events
-

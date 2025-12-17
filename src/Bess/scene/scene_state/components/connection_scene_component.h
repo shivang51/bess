@@ -1,15 +1,25 @@
 #pragma once
 
+#include "bess_uuid.h"
+#include "events/scene_events.h"
 #include "scene/renderer/vulkan/path_renderer.h"
+#include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
-#include "scene/scene_state/components/sim_scene_component.h"
 
 namespace Bess::Canvas {
 
-    class ConnSegSceneComponent : public SceneComponent {
+    enum class ConnSegOrientaion : uint8_t {
+        horizontal,
+        vertical
     };
 
-    class ConnectionSceneComponent : public SceneComponent {
+    struct ConnSegment {
+        glm::vec2 offset;
+        ConnSegOrientaion orientation = ConnSegOrientaion::horizontal;
+    };
+
+    class ConnectionSceneComponent : public SceneComponent,
+                                     public DragBehaviour<ConnectionSceneComponent> {
       public:
         ConnectionSceneComponent() = default;
         ConnectionSceneComponent(const ConnectionSceneComponent &other) = default;
@@ -22,15 +32,31 @@ namespace Bess::Canvas {
                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                   std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
 
+        void onMouseDragged(const Events::MouseDraggedEvent &e) override;
+
+        void onMouseDragBegin(const Events::MouseDraggedEvent &e) override;
+
+        void onMouseEnter(const Events::MouseEnterEvent &e) override;
+        void onMouseLeave(const Events::MouseLeaveEvent &e) override;
+
         REG_SCENE_COMP(SceneComponentType::connection)
 
-        MAKE_GETTER_SETTER(UUID, FromSlotId, m_fromSlotId)
-        MAKE_GETTER_SETTER(UUID, ToSlotId, m_toSlotId)
+        MAKE_GETTER_SETTER(UUID, StartSlot, m_startSlot)
+        MAKE_GETTER_SETTER(UUID, EndSlot, m_endSlot)
+
+        void setStartEndSlots(const UUID &startSlot, const UUID &endSlot);
+
+        void reconsturctSegments(const SceneState &state);
 
       private:
-        UUID m_fromSlotId = UUID::null;
-        UUID m_toSlotId = UUID::null;
-        std::shared_ptr<SlotSceneComponent> m_startSlot;
-        std::shared_ptr<SlotSceneComponent> m_endSlot;
+        void onFirstDraw(SceneState &sceneState,
+                         std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                         std::shared_ptr<PathRenderer> pathRenderer) override;
+
+        UUID m_startSlot = UUID::null;
+        UUID m_endSlot = UUID::null;
+        std::vector<ConnSegment> m_segments;
+        int m_draggedSegIdx = -1;
+        int m_hoveredSegIdx = -1;
     };
 } // namespace Bess::Canvas

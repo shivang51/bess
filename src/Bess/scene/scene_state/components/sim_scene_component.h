@@ -28,6 +28,8 @@ namespace Bess::Canvas {
         void onMouseEnter(const Events::MouseEnterEvent &e) override;
         void onMouseLeave(const Events::MouseLeaveEvent &e) override;
 
+        void onMouseButton(const Events::MouseButtonEvent &e) override;
+
         REG_SCENE_COMP(SceneComponentType::slot)
 
         MAKE_GETTER_SETTER(SlotType, SlotType, m_slotType)

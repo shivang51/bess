@@ -122,10 +122,10 @@ namespace Bess::Renderer2D::Vulkan {
                          const glm::vec4 &fillColor = glm::vec4(1.f), bool genStroke = true,
                          bool genRoundedJoints = false);
         void pathMoveTo(const glm::vec3 &pos);
-        void pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, int id);
+        void pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, uint64_t id);
         void pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
-                               float weight, const glm::vec4 &color, int id);
-        void pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, int id);
+                               float weight, const glm::vec4 &color, uint64_t id);
+        void pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, uint64_t id);
 
         void updateUniformBuffer(const UniformBufferObject &ubo);
 

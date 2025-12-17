@@ -138,6 +138,8 @@ namespace Bess::Canvas {
 
         void setIsSelected(bool selected);
 
+        glm::vec3 getAbsolutePosition(const SceneState &state) const;
+
       protected:
         virtual void onTransformChanged() {}
         virtual void onStyleChanged() {}

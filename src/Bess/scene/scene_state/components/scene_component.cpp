@@ -76,4 +76,16 @@ namespace Bess::Canvas {
         m_childComponents.emplace_back(uuid);
     }
 
+    glm::vec3 SceneComponent::getAbsolutePosition(const SceneState &state) const {
+        if (m_parentComponent == UUID::null) {
+            return m_transform.position;
+        }
+
+        auto parentComp = state.getComponentByUuid(m_parentComponent);
+        if (!parentComp) {
+            return m_transform.position;
+        }
+
+        return parentComp->getAbsolutePosition(state) + m_transform.position;
+    }
 } // namespace Bess::Canvas

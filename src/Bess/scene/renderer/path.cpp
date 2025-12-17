@@ -1,5 +1,4 @@
 #include "scene/renderer/path.h"
-#include "common/log.h"
 #include "scene/renderer/vulkan/path_renderer.h"
 
 namespace Bess::Renderer {
@@ -71,7 +70,7 @@ namespace Bess::Renderer {
 
     void Path::formContours() {
         glm::vec3 currentPos = glm::vec3(0.f);
-        std::vector<PathPoint> points = {PathPoint{currentPos, 1.f, -1}};
+        std::vector<PathPoint> points = {PathPoint{currentPos, 1.f, 0}};
         for (auto &c : m_cmds) {
             using Kind = Renderer::Path::PathCommand::Kind;
 

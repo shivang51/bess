@@ -3,7 +3,23 @@
 #include <cstdint>
 #include <glm.hpp>
 
-namespace Bess::Canvas::Events {
+namespace Bess::Events {
+    enum class MouseClickAction : uint8_t {
+        release = 0,
+        press = 1,
+        repeat = 2
+    };
+
+    enum class MouseButton : uint8_t {
+        left = 0,
+        right = 1,
+        middle = 2,
+        button4 = 3,
+        button5 = 4,
+        button6 = 5,
+        button7 = 6,
+        button8 = 7
+    };
     struct EntityCreatedEvent {
         UUID uuid;
         entt::entity entity;
@@ -25,6 +41,12 @@ namespace Bess::Canvas::Events {
         glm::vec2 mousePos;
     };
 
+    struct MouseDraggedEvent {
+        glm::vec2 mousePos;
+        glm::vec2 delta;
+        uint32_t details;
+    };
+
     struct MouseHoveredEvent {
         glm::vec2 mousePos;
         uint32_t details;
@@ -39,4 +61,18 @@ namespace Bess::Canvas::Events {
         glm::vec2 mousePos;
         uint32_t details;
     };
-} // namespace Bess::Canvas::Events
+
+    struct MouseButtonEvent {
+        glm::vec2 mousePos;
+        MouseButton button;
+        MouseClickAction action;
+        uint32_t details;
+    };
+
+    struct SlotClickedEvent {
+        glm::vec2 mousePos;
+        UUID slotUuid;
+        MouseButton button;
+        MouseClickAction action;
+    };
+} // namespace Bess::Events

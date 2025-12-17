@@ -35,11 +35,11 @@ namespace Bess::UI {
 
     void ProjectExplorer::init() {
         auto scene = Bess::Canvas::Scene::instance();
-        scene->getEventDispatcher().sink<Bess::Canvas::Events::EntityCreatedEvent>().connect<&ProjectExplorer::onEntityCreated>();
-        scene->getEventDispatcher().sink<Bess::Canvas::Events::EntityDestroyedEvent>().connect<&ProjectExplorer::onEntityDestroyed>();
+        scene->getEventDispatcher().sink<Bess::Events::EntityCreatedEvent>().connect<&ProjectExplorer::onEntityCreated>();
+        scene->getEventDispatcher().sink<Bess::Events::EntityDestroyedEvent>().connect<&ProjectExplorer::onEntityDestroyed>();
     }
 
-    void ProjectExplorer::onEntityCreated(const Bess::Canvas::Events::EntityCreatedEvent &e) {
+    void ProjectExplorer::onEntityCreated(const Bess::Events::EntityCreatedEvent &e) {
         auto scene = Bess::Canvas::Scene::instance();
         auto &reg = scene->getEnttRegistry();
         auto &tag = reg.get<Canvas::Components::TagComponent>(e.entity);
@@ -53,7 +53,7 @@ namespace Bess::UI {
         state.addNode(node);
     }
 
-    void ProjectExplorer::onEntityDestroyed(const Bess::Canvas::Events::EntityDestroyedEvent &e) {
+    void ProjectExplorer::onEntityDestroyed(const Bess::Events::EntityDestroyedEvent &e) {
         auto node = state.getNodeOfSceneEntt(e.uuid);
         if (node) {
             state.removeNode(node);

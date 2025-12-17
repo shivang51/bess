@@ -323,7 +323,7 @@ namespace Bess::Renderer2D::Vulkan {
         m_pathData.ended = false;
         m_pathData.startPos = startPos;
         m_pathData.currentPos = startPos;
-        m_pathData.points.emplace_back(PathPoint{startPos, weight, (int64_t)id});
+        m_pathData.points.emplace_back(PathPoint{startPos, weight, id});
         m_pathData.color = color;
         m_pathData.id = (int64_t)id;
     }
@@ -347,14 +347,14 @@ namespace Bess::Renderer2D::Vulkan {
         info.strokeColor = m_pathData.color;
         info.translate = glm::vec3(0.0f);
         info.scale = glm::vec2(1.0f);
-        info.glyphId = static_cast<int>(m_pathData.id);
+        info.glyphId = m_pathData.id;
 
         drawContours(m_pathData.contours, info);
 
         m_pathData = {};
     }
 
-    void PathRenderer::pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, int id) {
+    void PathRenderer::pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, uint64_t id) {
         if (m_pathData.ended)
             return;
         m_pathData.points.emplace_back(PathPoint{pos, size, id});
@@ -362,7 +362,7 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void PathRenderer::pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,
-                                         float weight, const glm::vec4 &color, int id) {
+                                         float weight, const glm::vec4 &color, uint64_t id) {
         if (m_pathData.ended)
             return;
         auto positions = generateCubicBezierPoints(m_pathData.currentPos, controlPoint1, controlPoint2, end);
@@ -373,7 +373,7 @@ namespace Bess::Renderer2D::Vulkan {
         m_pathData.setCurrentPos(end);
     }
 
-    void PathRenderer::pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, int id) {
+    void PathRenderer::pathQuadBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint, float weight, const glm::vec4 &color, uint64_t id) {
         if (m_pathData.ended)
             return;
         auto positions = generateQuadBezierPoints(m_pathData.currentPos, controlPoint, end);
@@ -400,7 +400,7 @@ namespace Bess::Renderer2D::Vulkan {
             std::vector<PathPoint> smoothed;
             smoothed.reserve(points.size() * 3);
 
-            auto pushPoint = [&](const glm::vec2 &p, float z, float w, int64_t id) {
+            auto pushPoint = [&](const glm::vec2 &p, float z, float w, uint64_t id) {
                 smoothed.emplace_back(PathPoint{glm::vec3(p, z), w, id});
             };
 
@@ -519,7 +519,7 @@ namespace Bess::Renderer2D::Vulkan {
             const auto &pCurr = points[idx];
             const auto &pNext = points[ni % pointCount];
 
-            int segmentId = (int)((!isClosed && i == n - 1) ? pCurr.id : pNext.id);
+            uint64_t segmentId = (!isClosed && i == n - 1) ? pCurr.id : pNext.id;
 
             // --- Handle Caps for Open Paths ---
             if (i == 0) { // Start Cap
@@ -653,7 +653,7 @@ namespace Bess::Renderer2D::Vulkan {
                 std::vector<PathPoint> smoothed;
                 smoothed.reserve(c.size() * 3);
 
-                auto pushPoint = [&](const glm::vec2 &p, float z, float w, int64_t id) {
+                auto pushPoint = [&](const glm::vec2 &p, float z, float w, uint64_t id) {
                     smoothed.emplace_back(PathPoint{glm::vec3(p, z), w, id});
                 };
 
@@ -856,13 +856,13 @@ namespace Bess::Renderer2D::Vulkan {
 
             int mapped = vindex ? vindex[vi] : -1;
             float z = 0.0f;
-            int id = 0;
+            uint64_t id = 0;
             if (mapped >= 0 && mapped < (int)flatPoints.size()) {
                 z = flatPoints[mapped]->pos.z;
-                id = (int)flatPoints[mapped]->id;
+                id = flatPoints[mapped]->id;
             } else if (!flatPoints.empty()) {
                 z = flatPoints.front()->pos.z;
-                id = (int)flatPoints.front()->id;
+                id = flatPoints.front()->id;
             }
             pos.z = z;
 
@@ -1018,7 +1018,7 @@ namespace Bess::Renderer2D::Vulkan {
         if (!hasAnyPoints) {
             // Start a new subpath with previous weight/id fallback to defaults
             float weight = 1.0f;
-            int64_t pid = 0;
+            uint64_t pid = 0;
             if (!m_pathData.contours.empty() && !m_pathData.contours.back().empty()) {
                 const auto &pp = m_pathData.contours.back().back();
                 weight = pp.weight;

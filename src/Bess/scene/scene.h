@@ -170,13 +170,15 @@ namespace Bess::Canvas {
 
         bool m_isLeftMousePressed = false, m_isMiddleMousePressed = false;
 
+        void onSlotClicked(const Events::SlotClickedEvent &e);
+
       private:
         SceneState m_state;
 
         entt::registry m_registry;
         PickingId m_pickingId = PickingId::invalid();
         PickingId m_prevPickingId = PickingId::invalid();
-        UUID m_connectionStartEntity;
+        UUID m_connectionStartSlot = UUID::null;
         // selection box
         glm::vec2 m_selectionBoxStart;
         glm::vec2 m_selectionBoxEnd;
@@ -192,7 +194,7 @@ namespace Bess::Canvas {
         const int snapSize = 2;
         float m_compZCoord = m_zIncrement;
 
-        std::unordered_map<UUID, entt::entity> m_uuidToEntt = {};
+        std::unordered_map<UUID, entt::entity> m_uuidToEntt;
 
         TFrameTime m_frameTimeStep = {};
 

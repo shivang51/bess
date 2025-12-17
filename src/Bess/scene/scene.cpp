@@ -6,9 +6,12 @@
 #include "entt/entity/entity.hpp"
 #include "entt/entity/fwd.hpp"
 #include "events/application_event.h"
+#include "events/event_dispatcher.h"
+#include "events/scene_events.h"
 #include "fwd.hpp"
 #include "pages/main_page/main_page_state.h"
 #include "scene/components/components.h"
+#include "scene/scene_state/components/connection_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/sim_scene_component.h"
 #include "settings/viewport_theme.h"
@@ -27,6 +30,7 @@
 namespace Bess::Canvas {
     Scene::Scene() {
         reset();
+        Events::EventDispatcher::instance().sink<Events::SlotClickedEvent>().connect<&Scene::onSlotClicked>(this);
     }
 
     Scene::~Scene() {
@@ -285,7 +289,7 @@ namespace Bess::Canvas {
     }
 
     void Scene::drawConnection() {
-        const auto connStartEntity = getEntityWithUuid(m_connectionStartEntity);
+        const auto connStartEntity = getEntityWithUuid(m_connectionStartSlot);
         if (!m_registry.valid(connStartEntity)) {
             m_drawMode = SceneDrawMode::none;
             return;
@@ -662,7 +666,9 @@ namespace Bess::Canvas {
             for (const auto &compId : m_state.getSelectedComponents() | std::ranges::views::keys) {
                 std::shared_ptr<SceneComponent> comp = m_state.getComponentByUuid(compId);
                 if (comp && comp->isDraggable()) {
-                    comp->cast<SimulationSceneComponent>()->onMouseDragged(toScenePos(m_mousePos));
+                    comp->cast<SimulationSceneComponent>()->onMouseDragged({toScenePos(m_mousePos),
+                                                                            m_dMousePos,
+                                                                            m_pickingId.info});
                     m_isDragging = true;
                 }
             }
@@ -950,6 +956,14 @@ namespace Bess::Canvas {
                         comp->cast<SimulationSceneComponent>()->onMouseDragEnd();
                     }
                 }
+            } else {
+                if (m_pickingId.isValid()) {
+                    auto comp = m_state.getComponentByPickingId(m_pickingId);
+                    comp->onMouseButton({toScenePos(m_mousePos),
+                                         Events::MouseButton::left,
+                                         Events::MouseClickAction::release,
+                                         m_pickingId.info});
+                }
             }
 
             // Only for multi selection:
@@ -993,7 +1007,10 @@ namespace Bess::Canvas {
 
         if (m_pickingId.isValid()) {
             auto comp = m_state.getComponentByPickingId(m_pickingId);
-            comp->onLeftMouseClicked(toScenePos(m_mousePos));
+            comp->onMouseButton({toScenePos(m_mousePos),
+                                 Events::MouseButton::left,
+                                 Events::MouseClickAction::press,
+                                 m_pickingId.info});
 
             const bool isCtrlPressed = Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
             if (isCtrlPressed) {
@@ -1327,4 +1344,19 @@ namespace Bess::Canvas {
         return m_pickingId.isValid();
     }
 
+    void Scene::onSlotClicked(const Events::SlotClickedEvent &e) {
+        if (e.action != Events::MouseClickAction::press)
+            return;
+
+        if (m_connectionStartSlot == UUID::null) {
+            m_connectionStartSlot = e.slotUuid;
+        } else {
+            auto conn = std::make_shared<ConnectionSceneComponent>();
+            m_state.addComponent<ConnectionSceneComponent>(conn);
+
+            conn->setStartSlot(m_connectionStartSlot);
+            conn->setEndSlot(e.slotUuid);
+            m_connectionStartSlot = UUID::null;
+        }
+    }
 } // namespace Bess::Canvas
