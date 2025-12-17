@@ -1,6 +1,9 @@
 #include "scene/scene_state/components/sim_scene_component.h"
+#include "events/scene_events.h"
+#include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
+#include "settings/viewport_theme.h"
 #include "ui/ui.h"
 
 namespace Bess::Canvas {
@@ -14,8 +17,12 @@ namespace Bess::Canvas {
         m_type = SceneComponentType::slot;
     }
 
-    void SlotSceneComponent::onMouseHovered(const glm::vec2 &mousePos) {
+    void SlotSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
         UI::setCursorPointer();
+    }
+
+    void SlotSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
+        UI::setCursorNormal();
     }
 
     SimulationSceneComponent::SimulationSceneComponent(UUID uuid) : SceneComponent(uuid) {
@@ -52,12 +59,7 @@ namespace Bess::Canvas {
         return slots;
     }
 
-    void SimulationSceneComponent::onMouseHovered(const glm::vec2 &mousePos) {
-        BESS_TRACE("[SimulationSceneComponent] {}: onMouseHovered at pos ({}, {})",
-                   m_name, mousePos.x, mousePos.y);
-    }
-
-    void SimulationSceneComponent::onTransformChanged() {
+    void SimulationSceneComponent::onMouseHovered(const Events::MouseHoveredEvent &e) {
     }
 
     void SlotSceneComponent::draw(SceneState &state,
@@ -66,6 +68,9 @@ namespace Bess::Canvas {
         const auto parentComp = state.getComponentByUuid(m_parentComponent);
         const auto &parentPos = parentComp->getTransform().position;
         const auto pos = parentPos + m_transform.position;
+
+        const auto pickingId = PickingId{m_runtimeId, 0};
+
         auto bg = ViewportTheme::colors.stateLow;
 
         auto border = bg;
@@ -73,8 +78,8 @@ namespace Bess::Canvas {
 
         const float ir = Styles::simCompStyles.slotRadius - Styles::simCompStyles.slotBorderSize;
         const float r = Styles::simCompStyles.slotRadius;
-        materialRenderer->drawCircle(pos, r, border, m_uuid, ir);
-        materialRenderer->drawCircle(pos, ir - 1.f, bg, m_uuid);
+        materialRenderer->drawCircle(pos, r, border, pickingId, ir);
+        materialRenderer->drawCircle(pos, ir - 1.f, bg, pickingId);
 
         const float labeldx = Styles::simCompStyles.slotMargin + (Styles::simCompStyles.slotRadius * 2.f);
         float labelX = pos.x;
@@ -89,7 +94,7 @@ namespace Bess::Canvas {
                                    {labelX, pos.y + dY, pos.z},
                                    componentStyles.slotLabelSize,
                                    ViewportTheme::colors.text,
-                                   m_parentComponent,
+                                   PickingId{parentComp->getRuntimeId(), 0},
                                    parentComp->getTransform().angle);
     }
 
@@ -100,19 +105,23 @@ namespace Bess::Canvas {
             onFirstDraw(state, materialRenderer, pathRenderer);
         }
 
+        const auto pickingId = PickingId{m_runtimeId, 0};
+
         // background
         Renderer::QuadRenderProperties props;
         props.angle = m_transform.angle;
         props.borderRadius = m_style.borderRadius;
         props.borderSize = m_style.borderSize;
-        props.borderColor = m_style.borderColor;
+        props.borderColor = m_isSelected
+                                ? ViewportTheme::colors.selectedComp
+                                : m_style.borderColor;
         props.isMica = true;
         props.hasShadow = true;
 
         materialRenderer->drawQuad(m_transform.position,
                                    m_transform.scale,
                                    m_style.color,
-                                   m_uuid,
+                                   pickingId,
                                    props);
 
         props = {};
@@ -137,7 +146,7 @@ namespace Bess::Canvas {
                                        glm::vec2(m_transform.scale.x - m_style.borderSize.w - m_style.borderSize.y,
                                                  headerHeight - m_style.borderSize.x - m_style.borderSize.z),
                                        m_style.headerColor,
-                                       m_uuid,
+                                       pickingId,
                                        props);
 
             textPos = glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) + componentStyles.paddingX,
@@ -162,7 +171,9 @@ namespace Bess::Canvas {
         materialRenderer->drawText(m_name,
                                    textPos,
                                    Styles::simCompStyles.headerFontSize,
-                                   ViewportTheme::colors.text, m_uuid, m_transform.angle);
+                                   ViewportTheme::colors.text,
+                                   pickingId,
+                                   m_transform.angle);
 
         // slots
         for (const auto &childId : m_childComponents) {

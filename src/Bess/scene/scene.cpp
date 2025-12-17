@@ -9,6 +9,7 @@
 #include "fwd.hpp"
 #include "pages/main_page/main_page_state.h"
 #include "scene/components/components.h"
+#include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/sim_scene_component.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
@@ -95,15 +96,15 @@ namespace Bess::Canvas {
                 if (!isCursorInViewport(m_mousePos)) {
                     if (!m_isLeftMousePressed) {
                         m_registry.clear<Components::HoveredEntityComponent>();
-                        m_hoveredEntity = UUID::null;
+                        m_pickingId = PickingId::invalid();
                         break;
                     }
                     m_isLeftMousePressed = false;
                     m_registry.clear<Components::HoveredEntityComponent>();
-                    m_hoveredEntity = UUID::null;
+                    m_pickingId = PickingId::invalid();
                 }
                 m_viewport->waitForPickingResults(5'000'000);
-                updateHoveredId();
+                updatePickingId();
                 const auto data = event.getData<ApplicationEvent::MouseButtonData>();
                 if (data.button == MouseButton::left) {
                     onLeftMouse(data.pressed);
@@ -172,24 +173,18 @@ namespace Bess::Canvas {
     }
 
     void Scene::renderWithViewport(const std::shared_ptr<Viewport> &viewport) {
-        const auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
-        switch (m_sceneMode) {
-        case SceneMode::general: {
-            if (m_registry.valid(hoveredEntity) && m_registry.any_of<Components::SlotComponent, Components::ConnectionSegmentComponent>(hoveredEntity)) {
-                UI::setCursorPointer();
-            }
-
-        } break;
-        case SceneMode::move: {
+        if (m_sceneMode == SceneMode::move) {
             UI::setCursorMove();
-        } break;
         }
 
         auto &inst = Bess::Vulkan::VulkanCore::instance();
 
         auto artistManager = viewport->getArtistManager();
         artistManager->setSchematicMode(m_isSchematicView);
-        viewport->begin((int)inst.getCurrentFrameIdx(), ViewportTheme::colors.background, {0, 0});
+        viewport->begin((int)inst.getCurrentFrameIdx(),
+                        ViewportTheme::colors.background,
+                        {0, PickingId::invalid().runtimeId});
+
         drawSceneToViewport(viewport);
 
         viewport->end();
@@ -235,7 +230,7 @@ namespace Bess::Canvas {
         artist->getMaterialRenderer()->drawGrid(
             glm::vec3(0.f, 0.f, 0.1f),
             m_camera->getSpan(),
-            0,
+            PickingId::invalid(),
             {
                 .minorColor = ViewportTheme::colors.gridMinorColor,
                 .majorColor = ViewportTheme::colors.gridMajorColor,
@@ -382,42 +377,42 @@ namespace Bess::Canvas {
     }
 
     void Scene::deleteSceneEntity(const UUID &entUuid) {
-        const auto ent = getEntityWithUuid(entUuid);
-        auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
-        if (ent == hoveredEntity)
-            hoveredEntity = entt::null;
-
-        if (m_registry.all_of<Components::SimulationComponent>(ent)) {
-            const auto &simComp = m_registry.get<Components::SimulationComponent>(ent);
-
-            // take care of slots
-            for (auto slot : simComp.inputSlots) {
-                auto &slotComp = m_registry.get<Components::SlotComponent>(getEntityWithUuid(slot));
-                for (auto &conn : slotComp.connections) {
-                    deleteConnectionFromScene(conn);
-                }
-
-                m_registry.destroy(getEntityWithUuid(slot));
-                m_uuidToEntt.erase(slot);
-            }
-
-            for (auto slot : simComp.outputSlots) {
-                auto &slotComp = m_registry.get<Components::SlotComponent>(getEntityWithUuid(slot));
-                for (auto &conn : slotComp.connections) {
-                    deleteConnectionFromScene(conn);
-                }
-
-                m_registry.destroy(getEntityWithUuid(slot));
-                m_uuidToEntt.erase(slot);
-            }
-        }
-
-        // remove from registry
-        m_dispatcher.trigger(Events::EntityDestroyedEvent{entUuid, ent});
-        m_registry.destroy(ent);
-        m_uuidToEntt.erase(entUuid);
-
-        BESS_INFO("[Scene] Deleted entity {}", (uint64_t)ent);
+        // const auto ent = getEntityWithUuid(entUuid);
+        // auto hoveredEntity = getEntityWithUuid(m_pickingId);
+        // if (ent == hoveredEntity)
+        //     hoveredEntity = entt::null;
+        //
+        // if (m_registry.all_of<Components::SimulationComponent>(ent)) {
+        //     const auto &simComp = m_registry.get<Components::SimulationComponent>(ent);
+        //
+        //     // take care of slots
+        //     for (auto slot : simComp.inputSlots) {
+        //         auto &slotComp = m_registry.get<Components::SlotComponent>(getEntityWithUuid(slot));
+        //         for (auto &conn : slotComp.connections) {
+        //             deleteConnectionFromScene(conn);
+        //         }
+        //
+        //         m_registry.destroy(getEntityWithUuid(slot));
+        //         m_uuidToEntt.erase(slot);
+        //     }
+        //
+        //     for (auto slot : simComp.outputSlots) {
+        //         auto &slotComp = m_registry.get<Components::SlotComponent>(getEntityWithUuid(slot));
+        //         for (auto &conn : slotComp.connections) {
+        //             deleteConnectionFromScene(conn);
+        //         }
+        //
+        //         m_registry.destroy(getEntityWithUuid(slot));
+        //         m_uuidToEntt.erase(slot);
+        //     }
+        // }
+        //
+        // // remove from registry
+        // m_dispatcher.trigger(Events::EntityDestroyedEvent{entUuid, ent});
+        // m_registry.destroy(ent);
+        // m_uuidToEntt.erase(entUuid);
+        //
+        // BESS_INFO("[Scene] Deleted entity {}", (uint64_t)ent);
     }
 
     // void Scene::deleteEntity(const UUID &entUuid) {
@@ -593,35 +588,50 @@ namespace Bess::Canvas {
         }
     }
 
-    uint64_t decodeId(const glm::uvec2 &encodedId) {
+    uint64_t decodeGpuHoverValue(const glm::uvec2 &encodedId) {
         uint64_t id = static_cast<uint64_t>(encodedId.x);
         id |= (static_cast<uint64_t>(encodedId.y) << 32);
         return id;
     }
 
-    void Scene::updateHoveredId() {
+    void Scene::updatePickingId() {
         m_viewport->tryUpdatePickingResults();
 
         const auto &ids = m_viewport->getPickingIdsResult();
-        const uint64_t hoverId = (ids.empty()) ? 0 : decodeId(ids[0]);
-        m_hoveredEntity = UUID(hoverId);
-        return;
-        const entt::entity e = (entt::entity)hoverId;
+        const uint64_t hoverValue = (ids.empty())
+                                        ? PickingId::invalid()
+                                        : decodeGpuHoverValue(ids[0]);
 
-        m_registry.clear<Components::HoveredEntityComponent>();
-        if (m_registry.valid(e)) {
-            m_registry.emplace<Components::HoveredEntityComponent>(e);
-            m_hoveredEntity = getUuidOfEntity(e);
-        } else {
-            m_hoveredEntity = UUID::null;
+        m_prevPickingId = m_pickingId;
+        m_pickingId = PickingId::fromUint64(hoverValue);
+
+        if (m_pickingId != m_prevPickingId) {
+            if (m_prevPickingId.isValid()) {
+                const auto prevComp = m_state.getComponentByPickingId(m_prevPickingId);
+                if (prevComp) {
+                    prevComp->onMouseLeave({toScenePos(m_mousePos), m_prevPickingId.info});
+                } else {
+                    BESS_WARN("[Scene] Previous PickingId is valid but no component found for id {}",
+                              (uint64_t)m_prevPickingId);
+                }
+            }
+
+            if (m_pickingId.isValid()) {
+                const auto currComp = m_state.getComponentByPickingId(m_pickingId);
+
+                if (currComp) {
+                    currComp->onMouseEnter({toScenePos(m_mousePos), m_pickingId.info});
+                } else {
+                    BESS_WARN("[Scene] PickingId is valid but no component found for id {}",
+                              (uint64_t)m_pickingId);
+                }
+            }
         }
     }
 
     void Scene::onMouseMove(const glm::vec2 &pos) {
         m_dMousePos = toScenePos(pos) - toScenePos(m_mousePos);
         m_mousePos = pos;
-        UI::setCursorNormal();
-
         {
             auto mousePos_ = m_mousePos;
             const auto &viewportSize = UI::UIMain::state.mainViewport.getViewportSize();
@@ -632,28 +642,31 @@ namespace Bess::Canvas {
         }
 
         if (!m_isLeftMousePressed) {
-            m_viewport->waitForPickingResults(1'000'000);
-            updateHoveredId();
-        }
+            if (m_viewport->waitForPickingResults(1000000)) {
+                updatePickingId();
+            }
 
-        if (m_hoveredEntity != UUID::null && m_state.isComponentValid(m_hoveredEntity)) {
-            auto comp = m_state.getComponentByUuid(m_hoveredEntity);
-            comp->onMouseHovered(toScenePos(m_mousePos));
-            m_dispatcher.trigger(Events::EntityHoveredEvent{m_hoveredEntity, toScenePos(m_mousePos)});
+            // dispatch hover event
+            if (m_pickingId.isValid() && m_pickingId == m_prevPickingId) {
+                auto comp = m_state.getComponentByPickingId(m_pickingId);
+                if (comp) {
+                    comp->onMouseHovered({toScenePos(m_mousePos), m_pickingId.info});
+                } else {
+                    BESS_WARN("Picking id was valid but comp not found, {}", m_pickingId.runtimeId);
+                }
+            }
         }
 
         if (m_isLeftMousePressed && m_drawMode == SceneDrawMode::none) {
 
-            bool anyDraggable = false;
             for (const auto &compId : m_state.getSelectedComponents() | std::ranges::views::keys) {
                 std::shared_ptr<SceneComponent> comp = m_state.getComponentByUuid(compId);
                 if (comp && comp->isDraggable()) {
                     comp->cast<SimulationSceneComponent>()->onMouseDragged(toScenePos(m_mousePos));
-                    anyDraggable = true;
+                    m_isDragging = true;
                 }
             }
 
-            m_state.setIsDraggingComponents(anyDraggable);
             // const auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
             // const auto selectedComponentsSize = m_registry.view<Components::SelectedComponent>()->size();
             // if (!m_registry.valid(hoveredEntity) && selectedComponentsSize == 0) {
@@ -701,39 +714,39 @@ namespace Bess::Canvas {
     }
 
     void Scene::removeConnectionEntt(const entt::entity ent) {
-        m_hoveredEntity = UUID::null;
-        const auto &connComp = m_registry.get<Components::ConnectionComponent>(ent);
-
-        auto segEntt = connComp.segmentHead;
-        while (segEntt != UUID::null) {
-            const auto connSegComp = m_registry.get<
-                Components::ConnectionSegmentComponent>(getEntityWithUuid(segEntt));
-            m_registry.destroy(getEntityWithUuid(segEntt));
-            m_uuidToEntt.erase(segEntt);
-            segEntt = connSegComp.next;
-        }
-
-        m_registry.destroy(ent);
-
-        BESS_INFO("[Scene] Deleted connection entity");
+        // m_pickingId = UUID::null;
+        // const auto &connComp = m_registry.get<Components::ConnectionComponent>(ent);
+        //
+        // auto segEntt = connComp.segmentHead;
+        // while (segEntt != UUID::null) {
+        //     const auto connSegComp = m_registry.get<
+        //         Components::ConnectionSegmentComponent>(getEntityWithUuid(segEntt));
+        //     m_registry.destroy(getEntityWithUuid(segEntt));
+        //     m_uuidToEntt.erase(segEntt);
+        //     segEntt = connSegComp.next;
+        // }
+        //
+        // m_registry.destroy(ent);
+        //
+        // BESS_INFO("[Scene] Deleted connection entity");
     }
 
     void Scene::deleteConnectionFromScene(const UUID &uuid) {
-        if (m_hoveredEntity == uuid)
-            m_hoveredEntity = UUID::null;
-
-        const auto entity = getEntityWithUuid(uuid);
-        const auto &connComp = m_registry.get<Components::ConnectionComponent>(entity);
-
-        auto &slotCompA = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.inputSlot));
-        auto &slotCompB = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.outputSlot));
-
-        removeConnectionEntt(entity);
-        m_uuidToEntt.erase(uuid);
-
-        slotCompA.connections.erase(std::ranges::remove(slotCompA.connections, uuid).begin(), slotCompA.connections.end());
-        slotCompB.connections.erase(std::ranges::remove(slotCompB.connections, uuid).begin(), slotCompB.connections.end());
-        BESS_INFO("[Scene] Removed connection from scene");
+        // if (m_pickingId == uuid)
+        //     m_pickingId = UUID::null;
+        //
+        // const auto entity = getEntityWithUuid(uuid);
+        // const auto &connComp = m_registry.get<Components::ConnectionComponent>(entity);
+        //
+        // auto &slotCompA = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.inputSlot));
+        // auto &slotCompB = m_registry.get<Components::SlotComponent>(getEntityWithUuid(connComp.outputSlot));
+        //
+        // removeConnectionEntt(entity);
+        // m_uuidToEntt.erase(uuid);
+        //
+        // slotCompA.connections.erase(std::ranges::remove(slotCompA.connections, uuid).begin(), slotCompA.connections.end());
+        // slotCompB.connections.erase(std::ranges::remove(slotCompB.connections, uuid).begin(), slotCompB.connections.end());
+        // BESS_INFO("[Scene] Removed connection from scene");
     }
 
     void Scene::deleteConnection(const UUID &entUuid) {
@@ -870,45 +883,45 @@ namespace Bess::Canvas {
     }
 
     void Scene::onRightMouse(bool isPressed) {
-        if (!isPressed) {
-            return;
-        }
-
-        if (!isEntityValid(m_hoveredEntity) && m_lastCreatedComp.set) {
-            const bool isShiftPressed = Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_SHIFT) ||
-                                        Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_RIGHT_SHIFT);
-
-            if (isShiftPressed) {
-                const auto def = m_lastCreatedComp.componentDefinition;
-                const Commands::AddCommandData cmdData = {
-                    .def = def,
-                    .nsComp = m_lastCreatedComp.nsComponent,
-                    .inputCount = def.inputCount,
-                    .outputCount = def.outputCount,
-                    .pos = getSnappedPos(toScenePos(m_mousePos)),
-                };
-
-                const auto res = m_cmdManager.execute<Commands::AddCommand, std::vector<UUID>>(std::vector{cmdData});
-                if (!res.has_value()) {
-                    BESS_ERROR("[Scene][OnRightMouse] Failed to execute AddCommand");
-                }
-            }
-        }
-
-        if (isEntityValid(m_hoveredEntity)) {
-            const auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
-            if (m_registry.all_of<Components::SimulationInputComponent>(hoveredEntity)) {
-                const auto &simComp = m_registry.get<Components::SimulationComponent>(hoveredEntity);
-                const auto currentState = SimEngine::SimulationEngine::instance().getDigitalPinState(
-                    simComp.simEngineEntity, SimEngine::PinType::output, 0);
-
-                const auto newState = currentState.state == SimEngine::LogicState::high
-                                          ? SimEngine::LogicState::low
-                                          : SimEngine::LogicState::high;
-
-                auto _ = m_cmdManager.execute<Commands::SetInputCommand, std::string>(m_hoveredEntity, newState);
-            }
-        }
+        // if (!isPressed) {
+        //     return;
+        // }
+        //
+        // if (!isEntityValid(m_pickingId) && m_lastCreatedComp.set) {
+        //     const bool isShiftPressed = Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_SHIFT) ||
+        //                                 Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_RIGHT_SHIFT);
+        //
+        //     if (isShiftPressed) {
+        //         const auto def = m_lastCreatedComp.componentDefinition;
+        //         const Commands::AddCommandData cmdData = {
+        //             .def = def,
+        //             .nsComp = m_lastCreatedComp.nsComponent,
+        //             .inputCount = def.inputCount,
+        //             .outputCount = def.outputCount,
+        //             .pos = getSnappedPos(toScenePos(m_mousePos)),
+        //         };
+        //
+        //         const auto res = m_cmdManager.execute<Commands::AddCommand, std::vector<UUID>>(std::vector{cmdData});
+        //         if (!res.has_value()) {
+        //             BESS_ERROR("[Scene][OnRightMouse] Failed to execute AddCommand");
+        //         }
+        //     }
+        // }
+        //
+        // if (isEntityValid(m_pickingId)) {
+        //     const auto hoveredEntity = getEntityWithUuid(m_pickingId);
+        //     if (m_registry.all_of<Components::SimulationInputComponent>(hoveredEntity)) {
+        //         const auto &simComp = m_registry.get<Components::SimulationComponent>(hoveredEntity);
+        //         const auto currentState = SimEngine::SimulationEngine::instance().getDigitalPinState(
+        //             simComp.simEngineEntity, SimEngine::PinType::output, 0);
+        //
+        //         const auto newState = currentState.state == SimEngine::LogicState::high
+        //                                   ? SimEngine::LogicState::low
+        //                                   : SimEngine::LogicState::high;
+        //
+        //         auto _ = m_cmdManager.execute<Commands::SetInputCommand, std::string>(m_pickingId, newState);
+        //     }
+        // }
     }
 
     void Scene::onMiddleMouse(bool isPressed) {
@@ -917,8 +930,6 @@ namespace Bess::Canvas {
 
     void Scene::onLeftMouse(bool isPressed) {
         m_isLeftMousePressed = isPressed;
-        const auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
-
         if (!isPressed) {
 
             // if left ctrl is not pressed and multiple entities are selected,
@@ -926,14 +937,13 @@ namespace Bess::Canvas {
             // so that drag can work properly
             size_t selSize = m_state.getSelectedComponents().size();
             bool isCtrlPressed = Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
-            if (selSize > 1 && !m_state.isDraggingComponents() &&
-                !isCtrlPressed && m_state.isComponentSelected(m_hoveredEntity)) {
+            if (selSize > 1 && !m_isDragging && !isCtrlPressed && m_state.isComponentSelected(m_pickingId)) {
                 m_state.clearSelectedComponents();
-                m_state.addSelectedComponent(m_hoveredEntity);
+                m_state.addSelectedComponent(m_pickingId);
             }
 
-            if (m_state.isDraggingComponents()) {
-                m_state.setIsDraggingComponents(false);
+            if (m_isDragging) {
+                m_isDragging = false;
                 for (const auto &compId : m_state.getSelectedComponents() | std::ranges::views::keys) {
                     std::shared_ptr<SceneComponent> comp = m_state.getComponentByUuid(compId);
                     if (comp && comp->isDraggable()) {
@@ -981,21 +991,21 @@ namespace Bess::Canvas {
             return;
         }
 
-        if (m_state.isComponentValid(m_hoveredEntity)) {
-            auto comp = m_state.getComponentByUuid(m_hoveredEntity);
+        if (m_pickingId.isValid()) {
+            auto comp = m_state.getComponentByPickingId(m_pickingId);
             comp->onLeftMouseClicked(toScenePos(m_mousePos));
 
             const bool isCtrlPressed = Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
             if (isCtrlPressed) {
-                if (m_state.isComponentSelected(m_hoveredEntity))
-                    m_state.removeSelectedComponent(m_hoveredEntity);
+                if (m_state.isComponentSelected(m_pickingId))
+                    m_state.removeSelectedComponent(m_pickingId);
                 else
-                    m_state.addSelectedComponent(m_hoveredEntity);
+                    m_state.addSelectedComponent(m_pickingId);
             } else {
                 size_t selSize = m_state.getSelectedComponents().size();
                 if (selSize < 2) {
                     m_state.clearSelectedComponents();
-                    m_state.addSelectedComponent(m_hoveredEntity);
+                    m_state.addSelectedComponent(m_pickingId);
                 }
             }
         } else {
@@ -1131,7 +1141,7 @@ namespace Bess::Canvas {
 
         std::set<UUID> ids;
         for (const auto &id : rawIds) {
-            ids.insert(decodeId(id));
+            ids.insert(decodeGpuHoverValue(id));
         }
 
         m_state.clearSelectedComponents();
@@ -1310,11 +1320,11 @@ namespace Bess::Canvas {
     }
 
     bool Scene::isEntityHovered(const entt::entity &ent) const {
-        return getUuidOfEntity(ent) == m_hoveredEntity;
+        return getUuidOfEntity(ent) == m_pickingId;
     }
 
     bool Scene::isHoveredEntityValid() {
-        return isEntityValid(m_hoveredEntity);
+        return m_pickingId.isValid();
     }
 
 } // namespace Bess::Canvas

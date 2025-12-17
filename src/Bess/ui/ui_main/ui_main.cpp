@@ -83,7 +83,7 @@ namespace Bess::UI {
 
                 ImGui::SameLine();
 
-                UUID hoveredId = Canvas::Scene::instance()->getHoveredEntity();
+                auto hoveredId = Canvas::Scene::instance()->getHoveredEntity();
                 ImGui::TextDisabled("%s", std::format(" | Hovered Entity ID: {}", (uint64_t)hoveredId).c_str());
 
                 // std::string rightContent[] = {};

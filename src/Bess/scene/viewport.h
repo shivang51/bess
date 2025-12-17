@@ -46,6 +46,7 @@ namespace Bess::Canvas {
         std::vector<glm::uvec2> getPickingIdsResult();
         bool tryUpdatePickingResults();
         bool waitForPickingResults(uint64_t timeoutNs);
+        bool isPickingPending() const;
 
         entt::registry &getEnttRegistry();
         entt::entity getEntityWithUuid(const UUID &uuid);

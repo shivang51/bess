@@ -1,4 +1,6 @@
 #include "scene/scene_state/scene_state.h"
+#include "scene/scene_state/components/scene_component.h"
+#include <cstdint>
 
 namespace Bess::Canvas {
     void SceneState::clear() {
@@ -6,8 +8,8 @@ namespace Bess::Canvas {
         m_typeToUuidsMap.clear();
         m_selectedComponents.clear();
         m_rootComponents.clear();
-        m_isDraggingComponents = false;
     }
+
     std::shared_ptr<SceneComponent> SceneState::getComponentByUuid(const UUID &uuid) const {
         if (m_componentsMap.contains(uuid)) {
             return m_componentsMap.at(uuid);
@@ -41,7 +43,11 @@ namespace Bess::Canvas {
             return;
 
         m_selectedComponents[uuid] = true;
-        m_componentsMap[uuid]->setIsSelected(true);
+        m_componentsMap.at(uuid)->setIsSelected(true);
+    }
+
+    void SceneState::addSelectedComponent(const PickingId &id) {
+        addSelectedComponent(m_runtimeIdMap.at(id.runtimeId));
     }
 
     void SceneState::removeSelectedComponent(const UUID &uuid) {
@@ -49,7 +55,11 @@ namespace Bess::Canvas {
             return;
 
         m_selectedComponents[uuid] = false;
-        m_componentsMap[uuid]->setIsSelected(false);
+        m_componentsMap.at(uuid)->setIsSelected(false);
+    }
+
+    void SceneState::removeSelectedComponent(const PickingId &id) {
+        removeSelectedComponent(m_runtimeIdMap.at(id.runtimeId));
     }
 
     bool SceneState::isComponentSelected(const UUID &uuid) const {
@@ -59,16 +69,12 @@ namespace Bess::Canvas {
         return m_selectedComponents.at(uuid);
     }
 
+    bool SceneState::isComponentSelected(const PickingId &pickingId) const {
+        return isComponentSelected(m_runtimeIdMap.at(pickingId.runtimeId));
+    }
+
     const std::unordered_map<UUID, bool> &SceneState::getSelectedComponents() const {
         return m_selectedComponents;
-    }
-
-    bool SceneState::isDraggingComponents() const {
-        return m_isDraggingComponents;
-    }
-
-    void SceneState::setIsDraggingComponents(bool dragging) {
-        m_isDraggingComponents = dragging;
     }
 
     const std::vector<UUID> &SceneState::getRootComponents() const {
@@ -83,5 +89,36 @@ namespace Bess::Canvas {
 
         parent->addChildComponent(childId);
         child->setParentComponent(parentId);
+    }
+
+    void SceneState::assignRuntimeId(const UUID &uuid) {
+        auto component = getComponentByUuid(uuid);
+        BESS_ASSERT(component, "Component was not found");
+
+        uint32_t runtimeId = component->getRuntimeId();
+
+        BESS_ASSERT(runtimeId == PickingId::invalidRuntimeId,
+                    "Component already has a runtimeId assigned");
+
+        if (!m_freeRuntimeIds.empty()) {
+            runtimeId = m_freeRuntimeIds.back();
+            m_freeRuntimeIds.pop_back();
+            BESS_ASSERT(m_runtimeIdMap.at(runtimeId) == UUID::null,
+                        "Reusing runtimeId that is still mapped");
+        } else {
+            runtimeId = static_cast<uint32_t>(m_runtimeIdMap.size());
+        }
+
+        component->setRuntimeId(runtimeId);
+        m_runtimeIdMap[runtimeId] = uuid;
+    }
+
+    std::shared_ptr<SceneComponent> SceneState::getComponentByPickingId(const PickingId &id) const {
+        if (!m_runtimeIdMap.contains(id.runtimeId)) {
+            return nullptr;
+        }
+
+        const auto &uuid = m_runtimeIdMap.at(id.runtimeId);
+        return getComponentByUuid(uuid);
     }
 } // namespace Bess::Canvas

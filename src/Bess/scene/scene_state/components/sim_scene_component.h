@@ -1,5 +1,6 @@
 #pragma once
 
+#include "events/scene_events.h"
 #include "scene/renderer/material_renderer.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -24,7 +25,8 @@ namespace Bess::Canvas {
                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                   std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
 
-        void onMouseHovered(const glm::vec2 &mousePos) override;
+        void onMouseEnter(const Events::MouseEnterEvent &e) override;
+        void onMouseLeave(const Events::MouseLeaveEvent &e) override;
 
         REG_SCENE_COMP(SceneComponentType::slot)
 
@@ -52,9 +54,7 @@ namespace Bess::Canvas {
         std::vector<std::shared_ptr<SlotSceneComponent>> createIOSlots(size_t inputCount,
                                                                        size_t outputCount);
 
-        void onMouseHovered(const glm::vec2 &mousePos) override;
-
-        void onTransformChanged() override;
+        void onMouseHovered(const Events::MouseHoveredEvent &e) override;
 
         void draw(SceneState &state,
                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,

@@ -556,4 +556,6 @@ namespace Bess::Canvas {
             m_postprocessFramebuffer = VK_NULL_HANDLE;
         }
     }
+
+    bool Viewport::isPickingPending() const { return m_mousePickingData.pending; }
 }; // namespace Bess::Canvas

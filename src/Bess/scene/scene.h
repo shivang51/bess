@@ -12,6 +12,7 @@
 #include "scene/camera.h"
 #include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
+#include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/scene_state.h"
 #include "scene/viewport.h"
 #include <chrono>
@@ -72,8 +73,8 @@ namespace Bess::Canvas {
       public:
         void updateNetsFromSimEngine();
 
-        UUID getHoveredEntity() const {
-            return m_hoveredEntity;
+        PickingId getHoveredEntity() const {
+            return m_pickingId;
         }
 
         bool isEntityHovered(const entt::entity &ent) const;
@@ -132,7 +133,7 @@ namespace Bess::Canvas {
         void setLastCreatedComp(LastCreatedComponent comp);
 
         void removeConnectionEntt(const entt::entity ent);
-        void updateHoveredId();
+        void updatePickingId();
 
         void onMouseMove(const glm::vec2 &pos);
         void onLeftMouse(bool isPressed);
@@ -173,7 +174,8 @@ namespace Bess::Canvas {
         SceneState m_state;
 
         entt::registry m_registry;
-        UUID m_hoveredEntity;
+        PickingId m_pickingId = PickingId::invalid();
+        PickingId m_prevPickingId = PickingId::invalid();
         UUID m_connectionStartEntity;
         // selection box
         glm::vec2 m_selectionBoxStart;
@@ -182,7 +184,7 @@ namespace Bess::Canvas {
         bool m_getIdsInSelBox = false;
 
         bool m_isSchematicView = false;
-
+        bool m_isDragging = false;
         SceneDrawMode m_drawMode = SceneDrawMode::none;
         SceneMode m_sceneMode = SceneMode::general;
 

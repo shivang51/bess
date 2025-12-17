@@ -61,6 +61,42 @@ namespace Bess::Canvas {
 
     class SceneState;
 
+    struct PickingId {
+        uint32_t runtimeId;
+        uint32_t info;
+
+        static constexpr uint32_t invalidRuntimeId = std::numeric_limits<uint32_t>::max();
+
+        static constexpr PickingId invalid() noexcept {
+            return {invalidRuntimeId, 0};
+        }
+
+        constexpr bool operator==(const PickingId &other) const noexcept {
+            return runtimeId == other.runtimeId && info == other.info;
+        }
+
+        constexpr bool isValid() const noexcept {
+            return runtimeId != invalidRuntimeId;
+        }
+
+        constexpr uint64_t toUint64() const noexcept {
+            return (static_cast<uint64_t>(runtimeId) << 32) | static_cast<uint64_t>(info);
+        }
+
+        constexpr operator uint64_t() const noexcept { return toUint64(); }
+
+        static constexpr PickingId fromUint64(uint64_t value) noexcept {
+            return {
+                static_cast<uint32_t>(value >> 32),
+                static_cast<uint32_t>(value & 0xFFFFFFFF)};
+        }
+
+        void set(uint64_t value) {
+            runtimeId = static_cast<uint32_t>(value >> 32);
+            info = static_cast<uint32_t>(value & 0xFFFFFFFF);
+        }
+    };
+
     class SceneComponent : public std::enable_shared_from_this<SceneComponent>,
                            public MouseBehaviour<SceneComponent> {
       public:
@@ -80,6 +116,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER_WC(std::string, Name, m_name, onNameChanged)
         MAKE_GETTER_SETTER(UUID, ParentComponent, m_parentComponent)
         MAKE_GETTER_SETTER(std::vector<UUID>, ChildComponents, m_childComponents)
+        MAKE_GETTER_SETTER(uint32_t, RuntimeId, m_runtimeId)
 
         bool isDraggable() const;
 
@@ -114,6 +151,7 @@ namespace Bess::Canvas {
                                  std::shared_ptr<PathRenderer> /*unused*/);
 
         UUID m_uuid = UUID::null;
+        uint32_t m_runtimeId = PickingId::invalidRuntimeId; // assigned during rendering for picking
         Transform m_transform;
         Style m_style;
         SceneComponentType m_type = SceneComponentType::nonSimulation;
