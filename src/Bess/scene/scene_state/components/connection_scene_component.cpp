@@ -102,14 +102,12 @@ namespace Bess::Canvas {
             m_segments.emplace_back(newSeg);
         }
 
-        const auto newOffset = e.delta;
-
         auto &seg = m_segments[m_draggedSegIdx - 1];
 
         if (seg.orientation == ConnSegOrientaion::horizontal) {
-            seg.offset.x += newOffset.x;
+            seg.offset.x += e.delta.x;
         } else {
-            seg.offset.y += newOffset.y;
+            seg.offset.y += e.delta.y;
         }
     }
 
