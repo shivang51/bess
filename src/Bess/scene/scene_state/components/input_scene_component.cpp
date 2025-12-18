@@ -34,13 +34,10 @@ namespace Bess::Canvas {
 
         const bool isHigh = slotComp->getSlotState(state).state == SimEngine::LogicState::high;
 
-        const float buttonHeight = Styles::SIM_COMP_SLOT_ROW_SIZE;
-
-        Renderer::QuadRenderProperties buttonProps;
-        buttonProps.borderRadius = glm::vec4(4.f);
-        buttonProps.hasShadow = false;
-
-        const glm::vec2 buttonSize = glm::vec2(40.f, buttonHeight - 8.f);
+        constexpr float buttonWidth = 30.f;
+        constexpr float buttonHeight = Styles::SIM_COMP_SLOT_ROW_SIZE - (Styles::simCompStyles.rowMargin * 2.f);
+        constexpr Renderer::QuadRenderProperties buttonProps{.borderRadius = glm::vec4(4.f)};
+        constexpr glm::vec2 buttonSize = glm::vec2(buttonWidth, buttonHeight);
 
         const float buttonPosX = m_transform.position.x - (m_transform.scale.x / 2.f) +
                                  Styles::simCompStyles.paddingX + (buttonSize.x / 2.f);
