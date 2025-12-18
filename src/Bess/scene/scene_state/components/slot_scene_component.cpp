@@ -74,7 +74,8 @@ namespace Bess::Canvas {
         if (m_slotType == SlotType::digitalInput) {
             labelX += labeldx;
         } else {
-            labelX -= labeldx;
+            const auto labelSize = materialRenderer->getTextRenderSize(m_name, Styles::simCompStyles.slotLabelSize);
+            labelX -= labeldx + labelSize.x;
         }
         float dY = componentStyles.slotRadius - (std::abs((componentStyles.slotRadius * 2.f) - componentStyles.slotLabelSize) / 2.f);
 

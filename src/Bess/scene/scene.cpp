@@ -312,7 +312,8 @@ namespace Bess::Canvas {
         const bool isOutput = catalog.isSpecialCompDef(comp.getHash(),
                                                        SimEngine::ComponentCatalog::SpecialType::output);
 
-        const auto state = SimEngine::SimulationEngine::instance().getComponentState(simEngineEntt);
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+        const auto state = simEngine.getComponentState(simEngineEntt);
         const UUID uuid;
 
         std::shared_ptr<SimulationSceneComponent> sceneComp;
@@ -349,9 +350,26 @@ namespace Bess::Canvas {
         const auto slots = sceneComp->createIOSlots(state.inputStates.size(),
                                                     state.outputStates.size());
 
+        const auto &def = simEngine.getComponentDefinition(sceneComp->getSimEngineId());
+        const auto &[inpDetails, outDetails] = def.getPinDetails();
+
         m_state.addComponent<SimulationSceneComponent>(sceneComp);
 
+        int inSlotIdx = 0, outSlotIdx = 0;
+        char inpCh = 'A', outCh = 'A';
+
         for (const auto &slot : slots) {
+            if (slot->getSlotType() == SlotType::digitalInput) {
+                if (inpDetails.size() > inSlotIdx)
+                    slot->setName(inpDetails[inSlotIdx++].name);
+                else
+                    slot->setName(std::string(1, inpCh++));
+            } else {
+                if (outDetails.size() > outSlotIdx)
+                    slot->setName(outDetails[outSlotIdx++].name);
+                else
+                    slot->setName(std::string(std::format("{}'", outCh++)));
+            }
             m_state.addComponent<SlotSceneComponent>(slot);
             m_state.attachChild(sceneComp->getUuid(), slot->getUuid());
         }

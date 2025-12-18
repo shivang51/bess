@@ -101,6 +101,11 @@ namespace Bess::SimEngine {
 
         auto &catalog = ComponentCatalog::instance();
         auto flipFlop = ComponentDefinition("JK Flip Flop", "Flip Flop", 4, 2, simFunc, SimDelayNanoSeconds(5));
+
+        flipFlop.outputPinDetails = {};
+        flipFlop.outputPinDetails.emplace_back(PinType::output, "Q");
+        flipFlop.outputPinDetails.emplace_back(PinType::output, "Q'");
+
         flipFlop.inputPinDetails = {};
         flipFlop.inputPinDetails.emplace_back(PinType::input, "J", ExtendedPinType::none);
         flipFlop.inputPinDetails.emplace_back(PinType::input, "CLK", ExtendedPinType::inputClock);
