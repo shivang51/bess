@@ -664,12 +664,14 @@ namespace Bess::Canvas {
         if (m_isLeftMousePressed && m_drawMode == SceneDrawMode::none) {
 
             if (m_pickingId.isValid()) {
-                for (const auto &compId : m_state.getSelectedComponents() | std::ranges::views::keys) {
+                const auto &selectedComps = m_state.getSelectedComponents();
+                for (const auto &compId : selectedComps | std::ranges::views::keys) {
                     std::shared_ptr<SceneComponent> comp = m_state.getComponentByUuid(compId);
                     if (comp && comp->isDraggable()) {
                         comp->cast<SimulationSceneComponent>()->onMouseDragged({toScenePos(m_mousePos),
                                                                                 m_dMousePos,
-                                                                                m_pickingId.info});
+                                                                                m_pickingId.info,
+                                                                                selectedComps.size() > 1});
                         m_isDragging = true;
                     }
                 }
@@ -960,7 +962,7 @@ namespace Bess::Canvas {
                     m_state.addSelectedComponent(m_pickingId);
             } else {
                 size_t selSize = m_state.getSelectedComponents().size();
-                if (selSize < 2) {
+                if (selSize < 2 || !comp->isSelected()) {
                     m_state.clearSelectedComponents();
                     m_state.addSelectedComponent(m_pickingId);
                 }

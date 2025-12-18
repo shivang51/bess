@@ -66,8 +66,8 @@ namespace Bess {
             colors.gridMajorColor = glm::vec4(base.r + 0.08f, base.g + 0.08f, base.b + 0.08f, gridAlpha * 2.0f);
 
             // Axis colors (standard RGB for XYZ, but muted for 2D)
-            colors.gridAxisXColor = glm::vec4(0.8f, 0.3f, 0.3f, 0.4f); // Muted Red
-            colors.gridAxisYColor = glm::vec4(0.3f, 0.8f, 0.3f, 0.4f); // Muted Green
+            colors.gridAxisXColor = glm::vec4(0.8f, 0.3f, 0.3f, 0.1f); // Muted Red
+            colors.gridAxisYColor = glm::vec4(0.3f, 0.8f, 0.3f, 0.1f); // Muted Green
         }
 
         initCompColorMap();

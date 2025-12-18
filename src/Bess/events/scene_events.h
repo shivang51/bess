@@ -45,6 +45,7 @@ namespace Bess::Events {
         glm::vec2 mousePos;
         glm::vec2 delta;
         uint32_t details;
+        bool isMultiDrag;
     };
 
     struct MouseHoveredEvent {

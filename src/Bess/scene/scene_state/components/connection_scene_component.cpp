@@ -1,6 +1,7 @@
 #include "scene/scene_state/components/connection_scene_component.h"
 #include "fwd.hpp"
 #include "scene/scene_state/components/scene_component.h"
+#include "settings/viewport_theme.h"
 
 namespace Bess::Canvas {
     ConnectionSceneComponent::ConnectionSceneComponent(UUID uuid)
@@ -24,6 +25,10 @@ namespace Bess::Canvas {
         auto startSlotComp = state.getComponentByUuid(m_startSlot);
         auto endSlotComp = state.getComponentByUuid(m_endSlot);
 
+        const auto color = m_isSelected
+                               ? ViewportTheme::colors.selectedWire
+                               : ViewportTheme::colors.wire;
+
         if (!startSlotComp || !endSlotComp)
             return;
 
@@ -32,11 +37,11 @@ namespace Bess::Canvas {
 
         auto pos = startPos;
         auto prevPos = startPos;
-        pos.z = 1.001f;
+        pos.z = 0.5f;
         PickingId pickingId{m_runtimeId, 0};
         pathRenderer->beginPathMode(pos,
                                     m_hoveredSegIdx == 0 ? 3 : 2,
-                                    m_style.color, pickingId);
+                                    color, pickingId);
 
         int segmentIndex = 0;
         for (auto &segment : m_segments) {
@@ -58,18 +63,23 @@ namespace Bess::Canvas {
 
             pathRenderer->pathLineTo(pos,
                                      isHovered ? 3 : 2,
-                                     m_style.color, pickingId);
+                                     color,
+                                     pickingId);
             prevPos = pos;
         }
 
         pickingId.info = segmentIndex;
-        pathRenderer->pathLineTo(endPos,
+        pathRenderer->pathLineTo({glm::vec2(endPos), pos.z},
                                  m_hoveredSegIdx == segmentIndex ? 3 : 2,
-                                 m_style.color, pickingId);
-        pathRenderer->endPathMode(false);
+                                 color,
+                                 pickingId);
+        pathRenderer->endPathMode(false, false, glm::vec4(0.f), true, true);
     }
 
     void ConnectionSceneComponent::onMouseDragged(const Events::MouseDraggedEvent &e) {
+        if (e.isMultiDrag)
+            return;
+
         if (!m_isDragging) {
             onMouseDragBegin(e);
         }
