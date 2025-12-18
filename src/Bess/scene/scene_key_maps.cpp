@@ -47,32 +47,33 @@ namespace Bess::Canvas {
             }
         }
         ELIF_KEY_PRESSED(KEY(DELETE)) { // delete selected component(s)
-            const auto view = m_registry.view<Components::IdComponent, Components::SelectedComponent>();
-
-            std::vector<UUID> entitesToDel = {};
-            std::vector<entt::entity> connEntitesToDel = {};
-            for (const auto &entt : view) {
-                if (!m_registry.valid(entt))
-                    continue;
-
-                if (m_registry.all_of<Components::ConnectionComponent>(entt)) {
-                    connEntitesToDel.emplace_back(entt);
-                } else {
-                    entitesToDel.emplace_back(getUuidOfEntity(entt));
-                }
-            }
-
-            auto _ = m_cmdManager.execute<Commands::DeleteCompCommand, std::string>(entitesToDel);
-
-            std::vector<UUID> connToDel = {};
-            for (const auto ent : connEntitesToDel) {
-                if (!m_registry.valid(ent))
-                    continue;
-
-                connToDel.emplace_back(getUuidOfEntity(ent));
-            }
-
-            _ = m_cmdManager.execute<Commands::DelConnectionCommand, std::string>(connToDel);
+            deleteSelectedSceneEntities();
+            // const auto view = m_registry.view<Components::IdComponent, Components::SelectedComponent>();
+            //
+            // std::vector<UUID> entitesToDel = {};
+            // std::vector<entt::entity> connEntitesToDel = {};
+            // for (const auto &entt : view) {
+            //     if (!m_registry.valid(entt))
+            //         continue;
+            //
+            //     if (m_registry.all_of<Components::ConnectionComponent>(entt)) {
+            //         connEntitesToDel.emplace_back(entt);
+            //     } else {
+            //         entitesToDel.emplace_back(getUuidOfEntity(entt));
+            //     }
+            // }
+            //
+            // auto _ = m_cmdManager.execute<Commands::DeleteCompCommand, std::string>(entitesToDel);
+            //
+            // std::vector<UUID> connToDel = {};
+            // for (const auto ent : connEntitesToDel) {
+            //     if (!m_registry.valid(ent))
+            //         continue;
+            //
+            //     connToDel.emplace_back(getUuidOfEntity(ent));
+            // }
+            //
+            // _ = m_cmdManager.execute<Commands::DelConnectionCommand, std::string>(connToDel);
         }
         ELIF_KEY_PRESSED(KEY(F)) { // `f` focus camera on selected component
             const auto view = m_registry.view<Components::IdComponent,

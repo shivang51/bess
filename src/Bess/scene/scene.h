@@ -99,6 +99,7 @@ namespace Bess::Canvas {
         UUID createNonSimEntity(const Canvas::Components::NSComponent &comp, const glm::vec2 &pos);
 
         void deleteSceneEntity(const UUID &entUuid);
+        void deleteSelectedSceneEntities();
 
         /// deletes entity from sim engine as well
         void deleteEntity(const UUID &entUuid);
@@ -171,6 +172,10 @@ namespace Bess::Canvas {
         bool m_isLeftMousePressed = false, m_isMiddleMousePressed = false;
 
         void onSlotClicked(const Events::SlotClickedEvent &e);
+
+        void drawGhostConnection(const std::shared_ptr<PathRenderer> &pathRenderer,
+                                 const glm::vec2 &startPos,
+                                 const glm::vec2 &endPos);
 
       private:
         SceneState m_state;

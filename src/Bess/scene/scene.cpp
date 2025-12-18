@@ -11,6 +11,7 @@
 #include "fwd.hpp"
 #include "pages/main_page/main_page_state.h"
 #include "scene/components/components.h"
+#include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_state/components/connection_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/sim_scene_component.h"
@@ -249,8 +250,12 @@ namespace Bess::Canvas {
             artist->drawConnectionEntity(entity);
         }
 
-        if (m_drawMode == SceneDrawMode::connection) {
-            drawConnection();
+        if (m_connectionStartSlot != UUID::null) {
+            const auto comp = m_state.getComponentByUuid(m_connectionStartSlot);
+            const auto &pos = comp->getAbsolutePosition(m_state);
+            const auto endPos = toScenePos(m_mousePos);
+
+            drawGhostConnection(artist->getPathRenderer(), glm::vec2(pos), endPos);
         }
 
         for (const auto &compId : m_state.getRootComponents()) {
@@ -344,7 +349,6 @@ namespace Bess::Canvas {
             m_state.attachChild(sceneComp->getUuid(), slot->getUuid());
         }
 
-        BESS_INFO("[Scene] Created Simulation entity {}", (uint64_t)uuid);
         // m_dispatcher.trigger(Events::EntityCreatedEvent{uuid, m_registry.create(), true});
         return uuid;
     }
@@ -381,42 +385,21 @@ namespace Bess::Canvas {
     }
 
     void Scene::deleteSceneEntity(const UUID &entUuid) {
-        // const auto ent = getEntityWithUuid(entUuid);
-        // auto hoveredEntity = getEntityWithUuid(m_pickingId);
-        // if (ent == hoveredEntity)
-        //     hoveredEntity = entt::null;
-        //
-        // if (m_registry.all_of<Components::SimulationComponent>(ent)) {
-        //     const auto &simComp = m_registry.get<Components::SimulationComponent>(ent);
-        //
-        //     // take care of slots
-        //     for (auto slot : simComp.inputSlots) {
-        //         auto &slotComp = m_registry.get<Components::SlotComponent>(getEntityWithUuid(slot));
-        //         for (auto &conn : slotComp.connections) {
-        //             deleteConnectionFromScene(conn);
-        //         }
-        //
-        //         m_registry.destroy(getEntityWithUuid(slot));
-        //         m_uuidToEntt.erase(slot);
-        //     }
-        //
-        //     for (auto slot : simComp.outputSlots) {
-        //         auto &slotComp = m_registry.get<Components::SlotComponent>(getEntityWithUuid(slot));
-        //         for (auto &conn : slotComp.connections) {
-        //             deleteConnectionFromScene(conn);
-        //         }
-        //
-        //         m_registry.destroy(getEntityWithUuid(slot));
-        //         m_uuidToEntt.erase(slot);
-        //     }
-        // }
-        //
-        // // remove from registry
-        // m_dispatcher.trigger(Events::EntityDestroyedEvent{entUuid, ent});
-        // m_registry.destroy(ent);
-        // m_uuidToEntt.erase(entUuid);
-        //
-        // BESS_INFO("[Scene] Deleted entity {}", (uint64_t)ent);
+        const auto ids = m_state.removeComponent(entUuid);
+        BESS_INFO("[Scene] Deleted entity {}", (uint64_t)entUuid);
+    }
+
+    void Scene::deleteSelectedSceneEntities() {
+        const auto selectedComps = m_state.getSelectedComponents();
+        std::vector<UUID> entsToDelete;
+        entsToDelete.reserve(selectedComps.size());
+        for (const auto &comp : selectedComps) {
+            entsToDelete.emplace_back(comp.first);
+        }
+
+        for (const auto &entUuid : entsToDelete) {
+            deleteSceneEntity(entUuid);
+        }
     }
 
     // void Scene::deleteEntity(const UUID &entUuid) {
@@ -969,6 +952,7 @@ namespace Bess::Canvas {
             }
         } else {
             m_state.clearSelectedComponents();
+            m_connectionStartSlot = UUID::null;
             m_drawMode = SceneDrawMode::none;
         }
     }
@@ -1252,5 +1236,33 @@ namespace Bess::Canvas {
             conn->setEndSlot(e.slotUuid);
             m_connectionStartSlot = UUID::null;
         }
+    }
+
+    void Scene::drawGhostConnection(const std::shared_ptr<PathRenderer> &pathRenderer,
+                                    const glm::vec2 &startPos,
+                                    const glm::vec2 &endPos) {
+        auto midX = (startPos.x + endPos.x) / 2.f;
+
+        pathRenderer->beginPathMode(glm::vec3(startPos.x, startPos.y, 0.8f),
+                                    2.f,
+                                    ViewportTheme::colors.ghostWire,
+                                    PickingId::invalid());
+
+        pathRenderer->pathLineTo(glm::vec3(midX, startPos.y, 0.8f),
+                                 2.f,
+                                 ViewportTheme::colors.ghostWire,
+                                 PickingId::invalid());
+
+        pathRenderer->pathLineTo(glm::vec3(midX, endPos.y, 0.8f),
+                                 2.f,
+                                 ViewportTheme::colors.ghostWire,
+                                 PickingId::invalid());
+
+        pathRenderer->pathLineTo(glm::vec3(endPos, 0.8f),
+                                 2.f,
+                                 ViewportTheme::colors.ghostWire,
+                                 PickingId::invalid());
+
+        pathRenderer->endPathMode(false, false, glm::vec4(1.f), true, true);
     }
 } // namespace Bess::Canvas

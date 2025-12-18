@@ -3,6 +3,7 @@
 #include "bess_uuid.h"
 #include "scene/scene_state/components/scene_component.h"
 #include <cstdint>
+#include <unordered_set>
 
 namespace Bess::Canvas {
     class SceneState {
@@ -24,7 +25,7 @@ namespace Bess::Canvas {
             m_typeToUuidsMap[casted->getType()].emplace_back(casted->getUuid());
 
             if (component->getParentComponent() == UUID::null) {
-                m_rootComponents.emplace_back(casted->getUuid());
+                m_rootComponents.insert(casted->getUuid());
             }
 
             assignRuntimeId(casted->getUuid());
@@ -38,7 +39,7 @@ namespace Bess::Canvas {
 
         const std::unordered_map<UUID, std::shared_ptr<SceneComponent>> &getAllComponents() const;
 
-        const std::vector<UUID> &getRootComponents() const;
+        const std::unordered_set<UUID> &getRootComponents() const;
 
         bool isComponentValid(const UUID &uuid) const;
 
@@ -55,17 +56,21 @@ namespace Bess::Canvas {
 
         const std::unordered_map<UUID, bool> &getSelectedComponents() const;
 
-        void attachChild(const UUID &parentId, const UUID &childId) const;
-
+        void attachChild(const UUID &parentId, const UUID &childId);
         void assignRuntimeId(const UUID &uuid);
+
+        // Removes a component by UUID from the scene state
+        // and all its child components recursively.
+        // returns the UUIDs of removed components
+        std::vector<UUID> removeComponent(const UUID &uuid, const UUID &callerId = UUID::null);
 
       private:
         std::unordered_map<UUID, std::shared_ptr<SceneComponent>> m_componentsMap;
-        std::vector<UUID> m_rootComponents;
+        std::unordered_set<UUID> m_rootComponents;
         std::unordered_map<SceneComponentType, std::vector<UUID>> m_typeToUuidsMap;
         std::unordered_map<UUID, bool> m_selectedComponents;
 
         std::unordered_map<uint32_t, UUID> m_runtimeIdMap;
-        std::vector<uint32_t> m_freeRuntimeIds;
+        std::set<uint32_t> m_freeRuntimeIds;
     };
 } // namespace Bess::Canvas

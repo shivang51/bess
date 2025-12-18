@@ -54,7 +54,7 @@ namespace Bess::Canvas {
         if (!isComponentValid(uuid))
             return;
 
-        m_selectedComponents[uuid] = false;
+        m_selectedComponents.erase(uuid);
         m_componentsMap.at(uuid)->setIsSelected(false);
     }
 
@@ -77,11 +77,11 @@ namespace Bess::Canvas {
         return m_selectedComponents;
     }
 
-    const std::vector<UUID> &SceneState::getRootComponents() const {
+    const std::unordered_set<UUID> &SceneState::getRootComponents() const {
         return m_rootComponents;
     }
 
-    void SceneState::attachChild(const UUID &parentId, const UUID &childId) const {
+    void SceneState::attachChild(const UUID &parentId, const UUID &childId) {
         auto parent = getComponentByUuid(parentId);
         auto child = getComponentByUuid(childId);
 
@@ -89,6 +89,8 @@ namespace Bess::Canvas {
 
         parent->addChildComponent(childId);
         child->setParentComponent(parentId);
+
+        m_rootComponents.erase(childId);
     }
 
     void SceneState::assignRuntimeId(const UUID &uuid) {
@@ -101,8 +103,8 @@ namespace Bess::Canvas {
                     "Component already has a runtimeId assigned");
 
         if (!m_freeRuntimeIds.empty()) {
-            runtimeId = m_freeRuntimeIds.back();
-            m_freeRuntimeIds.pop_back();
+            runtimeId = *m_freeRuntimeIds.rbegin();
+            m_freeRuntimeIds.erase(runtimeId);
             BESS_ASSERT(m_runtimeIdMap.at(runtimeId) == UUID::null,
                         "Reusing runtimeId that is still mapped");
         } else {
@@ -120,5 +122,44 @@ namespace Bess::Canvas {
 
         const auto &uuid = m_runtimeIdMap.at(id.runtimeId);
         return getComponentByUuid(uuid);
+    }
+
+    std::vector<UUID> SceneState::removeComponent(const UUID &uuid, const UUID &callerId) {
+        auto component = getComponentByUuid(uuid);
+        BESS_ASSERT(component, "Component was not found");
+
+        /// For now, Preventing removing child components directly
+        /// If parent is not the caller, then do not remove
+        /// TODO(Shivang): Add lifetime ownership management later
+        if (component->getParentComponent() != callerId) {
+            return {};
+        }
+
+        std::vector<UUID> removedUuids = {uuid};
+
+        for (const auto &childUuid : component->getChildComponents()) {
+            auto childComp = getComponentByUuid(childUuid);
+            auto ids = removeComponent(childUuid, uuid);
+            removedUuids.insert(removedUuids.end(), ids.begin(), ids.end());
+        }
+
+        const uint32_t runtimeId = component->getRuntimeId();
+        if (runtimeId != PickingId::invalidRuntimeId) {
+            m_runtimeIdMap[runtimeId] = UUID::null;
+            m_freeRuntimeIds.insert(runtimeId);
+        }
+
+        removeSelectedComponent(uuid);
+
+        auto &typeVec = m_typeToUuidsMap[component->getType()];
+        typeVec.erase(std::ranges::remove(typeVec, uuid).begin(), typeVec.end());
+
+        if (component->getParentComponent() == UUID::null) {
+            m_rootComponents.erase(uuid);
+        }
+
+        m_componentsMap.erase(uuid);
+
+        return removedUuids;
     }
 } // namespace Bess::Canvas
