@@ -1,6 +1,7 @@
 #include "scene/scene_state/components/connection_scene_component.h"
 #include "fwd.hpp"
 #include "scene/scene_state/components/scene_component.h"
+#include "scene/scene_state/components/sim_scene_component.h"
 #include "settings/viewport_theme.h"
 
 namespace Bess::Canvas {
@@ -22,12 +23,26 @@ namespace Bess::Canvas {
             onFirstDraw(state, materialRenderer, pathRenderer);
         }
 
-        auto startSlotComp = state.getComponentByUuid(m_startSlot);
-        auto endSlotComp = state.getComponentByUuid(m_endSlot);
+        auto startSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
+        auto endSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
 
-        const auto color = m_isSelected
-                               ? ViewportTheme::colors.selectedWire
-                               : ViewportTheme::colors.wire;
+        glm::vec4 color;
+
+        if (m_isSelected) {
+            color = ViewportTheme::colors.selectedComp;
+        } else {
+            const auto &startSlotState = startSlotComp->getSlotState(state);
+            const auto &endSlotState = endSlotComp->getSlotState(state);
+
+            bool isHigh = startSlotState.state == SimEngine::LogicState::high ||
+                          endSlotState.state == SimEngine::LogicState::high;
+
+            if (isHigh) {
+                color = ViewportTheme::colors.stateHigh;
+            } else {
+                color = ViewportTheme::colors.stateLow;
+            }
+        }
 
         if (!startSlotComp || !endSlotComp)
             return;

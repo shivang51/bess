@@ -31,6 +31,14 @@ namespace Bess::Canvas {
             assignRuntimeId(casted->getUuid());
         }
 
+        template <typename T>
+        std::shared_ptr<T> getComponentByUuid(const UUID &uuid) const {
+            if (m_componentsMap.contains(uuid)) {
+                return m_componentsMap.at(uuid)->cast<T>();
+            }
+            return nullptr;
+        }
+
         std::shared_ptr<SceneComponent> getComponentByUuid(const UUID &uuid) const;
 
         std::shared_ptr<SceneComponent> getComponentByPickingId(const PickingId &id) const;

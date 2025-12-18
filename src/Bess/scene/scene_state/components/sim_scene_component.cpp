@@ -4,6 +4,8 @@
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "settings/viewport_theme.h"
+#include "simulation_engine.h"
+#include "types.h"
 #include "ui/ui.h"
 
 namespace Bess::Canvas {
@@ -31,6 +33,26 @@ namespace Bess::Canvas {
             m_uuid,
             e.button,
             e.action});
+    }
+
+    SimEngine::PinState SlotSceneComponent::getSlotState(const SceneState &state) const {
+        const auto parentComp = state.getComponentByUuid<SimulationSceneComponent>(m_parentComponent);
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+        const auto &compState = simEngine.getComponentState(parentComp->getSimEngineId());
+
+        return (m_slotType == SlotType::digitalInput)
+                   ? compState.inputStates[m_index]
+                   : compState.outputStates[m_index];
+    }
+
+    SimEngine::PinState SlotSceneComponent::isSlotConnected(const SceneState &state) const {
+        const auto parentComp = state.getComponentByUuid<SimulationSceneComponent>(m_parentComponent);
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+        const auto &compState = simEngine.getComponentState(parentComp->getSimEngineId());
+
+        return (m_slotType == SlotType::digitalInput)
+                   ? compState.inputConnected[m_index]
+                   : compState.outputConnected[m_index];
     }
 
     SimulationSceneComponent::SimulationSceneComponent(UUID uuid) : SceneComponent(uuid) {
@@ -73,16 +95,35 @@ namespace Bess::Canvas {
     void SlotSceneComponent::draw(SceneState &state,
                                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                   std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
-        const auto parentComp = state.getComponentByUuid(m_parentComponent);
+        const auto parentComp = state.getComponentByUuid<SimulationSceneComponent>(m_parentComponent);
         const auto &parentPos = parentComp->getTransform().position;
         const auto pos = parentPos + m_transform.position;
 
+        const auto &slotState = getSlotState(state);
+
         const auto pickingId = PickingId{m_runtimeId, 0};
 
+        // state color
         auto bg = ViewportTheme::colors.stateLow;
+        switch (slotState.state) {
+        case SimEngine::LogicState::low:
+            bg = ViewportTheme::colors.stateLow;
+            break;
+        case SimEngine::LogicState::high:
+            bg = ViewportTheme::colors.stateHigh;
+            break;
+        case SimEngine::LogicState::unknown:
+            bg = ViewportTheme::colors.stateUnknow;
+            break;
+        case SimEngine::LogicState::high_z:
+            bg = ViewportTheme::colors.stateHighZ;
+            break;
+        }
 
         auto border = bg;
-        bg.a = 0.1f;
+
+        if (!isSlotConnected(state))
+            bg.a = 0.1f;
 
         const float ir = Styles::simCompStyles.slotRadius - Styles::simCompStyles.slotBorderSize;
         const float r = Styles::simCompStyles.slotRadius;

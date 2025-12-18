@@ -5,6 +5,8 @@
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
 
+#include "types.h"
+
 namespace Bess::Canvas {
     enum class SlotType : uint8_t {
         none,
@@ -35,6 +37,9 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(SlotType, SlotType, m_slotType)
         MAKE_GETTER_SETTER(UUID, SimEngineId, m_simEngineId)
         MAKE_GETTER_SETTER(int, Index, m_index)
+
+        SimEngine::PinState getSlotState(const SceneState &state) const;
+        SimEngine::PinState isSlotConnected(const SceneState &state) const;
 
       private:
         SlotType m_slotType = SlotType::none;

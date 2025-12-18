@@ -11,7 +11,6 @@
 #include "fwd.hpp"
 #include "pages/main_page/main_page_state.h"
 #include "scene/components/components.h"
-#include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_state/components/connection_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/sim_scene_component.h"
@@ -1229,6 +1228,32 @@ namespace Bess::Canvas {
         if (m_connectionStartSlot == UUID::null) {
             m_connectionStartSlot = e.slotUuid;
         } else {
+            auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
+
+            const auto startSlot = m_state.getComponentByUuid<SlotSceneComponent>(m_connectionStartSlot);
+            const auto endSlot = m_state.getComponentByUuid<SlotSceneComponent>(e.slotUuid);
+
+            const auto startParent = m_state.getComponentByUuid<SimulationSceneComponent>(startSlot->getParentComponent());
+            const auto endParent = m_state.getComponentByUuid<SimulationSceneComponent>(endSlot->getParentComponent());
+
+            const auto startPinType = startSlot->getSlotType() == SlotType::digitalInput
+                                          ? SimEngine::PinType::input
+                                          : SimEngine::PinType::output;
+
+            const auto endPinType = endSlot->getSlotType() == SlotType::digitalInput
+                                        ? SimEngine::PinType::input
+                                        : SimEngine::PinType::output;
+
+            const auto res = cmdMngr.execute<SimEngine::Commands::ConnectCommand,
+                                             std::string>(startParent->getSimEngineId(), startSlot->getIndex(), startPinType,
+                                                          endParent->getSimEngineId(), endSlot->getIndex(), endPinType);
+
+            if (!res.has_value()) {
+                BESS_WARN("[Scene] Failed to create connection between slots, {}", res.error());
+                m_connectionStartSlot = UUID::null;
+                return;
+            }
+
             auto conn = std::make_shared<ConnectionSceneComponent>();
             m_state.addComponent<ConnectionSceneComponent>(conn);
 
