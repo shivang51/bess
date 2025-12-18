@@ -11,7 +11,9 @@
 #include "fwd.hpp"
 #include "pages/main_page/main_page_state.h"
 #include "scene/components/components.h"
+#include "scene/renderer/material_renderer.h"
 #include "scene/scene_state/components/connection_scene_component.h"
+#include "scene/scene_state/components/input_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/sim_scene_component.h"
 #include "settings/viewport_theme.h"
@@ -23,7 +25,6 @@
 #include <cmath>
 #include <cstdint>
 #include <memory>
-#include <numbers>
 #include <ranges>
 #include <utility>
 
@@ -305,9 +306,22 @@ namespace Bess::Canvas {
 
     UUID Scene::createSimEntity(const UUID &simEngineEntt,
                                 const SimEngine::ComponentDefinition &comp, const glm::vec2 &pos) {
+        const auto &catalog = SimEngine::ComponentCatalog::instance();
+        const bool isInput = catalog.isSpecialCompDef(comp.getHash(),
+                                                      SimEngine::ComponentCatalog::SpecialType::input);
+        const bool isOutput = catalog.isSpecialCompDef(comp.getHash(),
+                                                       SimEngine::ComponentCatalog::SpecialType::output);
+
         const auto state = SimEngine::SimulationEngine::instance().getComponentState(simEngineEntt);
         const UUID uuid;
-        auto sceneComp = std::make_shared<SimulationSceneComponent>(uuid);
+
+        std::shared_ptr<SimulationSceneComponent> sceneComp;
+
+        if (isInput) {
+            sceneComp = std::make_shared<InputSceneComponent>(uuid);
+        } else {
+            sceneComp = std::make_shared<SimulationSceneComponent>(uuid);
+        }
 
         // transform
         sceneComp->setPosition(glm::vec3(getSnappedPos(pos), getNextZCoord()));
@@ -316,12 +330,6 @@ namespace Bess::Canvas {
 
         // style
         auto &style = sceneComp->getStyle();
-
-        const auto &catalog = SimEngine::ComponentCatalog::instance();
-        const bool isInput = catalog.isSpecialCompDef(comp.getHash(),
-                                                      SimEngine::ComponentCatalog::SpecialType::input);
-        const bool isOutput = catalog.isSpecialCompDef(comp.getHash(),
-                                                       SimEngine::ComponentCatalog::SpecialType::output);
 
         if (isInput || isOutput) {
             constexpr glm::vec4 ioCompColor = glm::vec4(0.2f, 0.2f, 0.4f, 0.6f);
@@ -922,7 +930,8 @@ namespace Bess::Canvas {
                     comp->onMouseButton({toScenePos(m_mousePos),
                                          Events::MouseButton::left,
                                          Events::MouseClickAction::release,
-                                         m_pickingId.info});
+                                         m_pickingId.info,
+                                         &m_state});
                 }
             }
 
@@ -934,7 +943,8 @@ namespace Bess::Canvas {
             comp->onMouseButton({toScenePos(m_mousePos),
                                  Events::MouseButton::left,
                                  Events::MouseClickAction::press,
-                                 m_pickingId.info});
+                                 m_pickingId.info,
+                                 &m_state});
 
             const bool isCtrlPressed = Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
             if (isCtrlPressed) {
@@ -1152,65 +1162,24 @@ namespace Bess::Canvas {
 
     void Scene::drawScratchContent(TFrameTime ts, const std::shared_ptr<Viewport> &viewport) {
         return;
-        static float elapsed = 0.f;
-        auto renderer = viewport->getArtistManager()->getCurrentArtist()->getPathRenderer();
+        auto renderer = viewport->getArtistManager()->getCurrentArtist()->getMaterialRenderer();
 
-        std::vector<glm::vec3> curveAPoints;
-        std::vector<glm::vec3> curveBPoints;
+        constexpr size_t w = 100;
+        constexpr size_t h = 30;
+        Renderer::QuadRenderProperties props;
+        props.borderRadius = glm::vec4(h / 2.f);
+        renderer->drawQuad(
+            glm::vec3(0.f, 0.f, 1.f),
+            glm::vec2(w, h),
+            glm::vec4(0.2f, 0.2f, 0.8f, 1.f),
+            PickingId::invalid(),
+            props);
 
-        constexpr float curve2Offset = std::numbers::pi_v<float>;
-        constexpr float step = 0.1f;
-        constexpr float amplitude = 50.f;
-        constexpr float rungSpacing = std::numbers::pi_v<float> / 8.f;
-        constexpr float lengthRad = std::numbers::pi_v<float> * 6.f;
-        constexpr float wavelength = 50.f;
-        constexpr float lengthPx = wavelength * lengthRad;
-
-        static const glm::mat4 transform = glm::rotate(glm::mat4(1.f), glm::radians(-45.f), {0.f, 0.f, 1.f});
-
-        renderer->beginPathMode({0.f, 0.f, 1.f}, 2.f, glm::vec4(1.f), -1);
-
-        std::vector<glm::vec3> curveA, curveB;
-        for (float i = 0; i <= lengthRad; i += step) {
-            float x = wavelength * i;
-            float phase = i - elapsed;
-            float yA = std::sin(phase) * amplitude;
-            float yB = std::sin(phase + curve2Offset) * amplitude;
-            curveA.emplace_back(x, -yA, 1.f);
-            curveB.emplace_back(x, -yB, 1.f);
-        }
-
-        for (float phi = 0; phi <= lengthRad; phi += rungSpacing) {
-            float phase = phi + elapsed;
-            float yA = std::sin(phi) * amplitude;
-            float yB = std::sin(phi + curve2Offset) * amplitude;
-
-            float x = std::fmod((phi + elapsed), lengthRad);
-            x *= 50.f;
-
-            glm::vec3 aPos = {x, -yA, 0.9f};
-            glm::vec3 bPos = {x, -yB, 0.9f};
-
-            renderer->pathMoveTo(glm::vec3(transform * glm::vec4({aPos, 1.f})));
-            renderer->pathLineTo(glm::vec3(transform * glm::vec4({bPos, 1.f})), 2.f, glm::vec4(1.f), -1);
-        }
-
-        for (int i = 0; i < curveA.size(); i++) {
-            if (i == 0)
-                renderer->pathMoveTo(glm::vec3(transform * glm::vec4({curveA[i], 1.f})));
-            else
-                renderer->pathLineTo(glm::vec3(transform * glm::vec4({curveA[i], 1.f})), 2.f, {1.f, 1.f, 1.f, 1.f}, -1);
-        }
-        for (int i = 0; i < curveB.size(); i++) {
-            if (i == 0)
-                renderer->pathMoveTo(glm::vec3(transform * glm::vec4({curveB[i], 1.f})));
-            else
-                renderer->pathLineTo(glm::vec3(transform * glm::vec4({curveB[i], 1.f})), 2.f, {1.f, 1.f, 1.f, 1.f}, -1);
-        }
-
-        renderer->endPathMode();
-
-        elapsed += (float)ts.count() * 0.001f;
+        renderer->drawCircle(
+            glm::vec3(-35.f, 0.f, 1.01f),
+            h / 2.f,
+            glm::vec4(0.3f),
+            PickingId::invalid());
     }
 
     bool Scene::isEntityHovered(const entt::entity &ent) const {

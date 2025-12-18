@@ -3,6 +3,10 @@
 #include <cstdint>
 #include <glm.hpp>
 
+namespace Bess::Canvas {
+    class SceneState;
+} // namespace Bess::Canvas
+
 namespace Bess::Events {
     enum class MouseClickAction : uint8_t {
         release = 0,
@@ -68,6 +72,7 @@ namespace Bess::Events {
         MouseButton button;
         MouseClickAction action;
         uint32_t details;
+        Canvas::SceneState *sceneState;
     };
 
     struct SlotClickedEvent {

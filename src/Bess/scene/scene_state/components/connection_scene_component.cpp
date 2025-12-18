@@ -34,8 +34,8 @@ namespace Bess::Canvas {
             const auto &startSlotState = startSlotComp->getSlotState(state);
             const auto &endSlotState = endSlotComp->getSlotState(state);
 
-            bool isHigh = startSlotState.state == SimEngine::LogicState::high ||
-                          endSlotState.state == SimEngine::LogicState::high;
+            const bool isHigh = startSlotState.state == SimEngine::LogicState::high ||
+                                endSlotState.state == SimEngine::LogicState::high;
 
             if (isHigh) {
                 color = ViewportTheme::colors.stateHigh;

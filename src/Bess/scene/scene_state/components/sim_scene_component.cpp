@@ -1,60 +1,10 @@
 #include "scene/scene_state/components/sim_scene_component.h"
-#include "events/scene_events.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "settings/viewport_theme.h"
-#include "simulation_engine.h"
-#include "types.h"
-#include "ui/ui.h"
 
 namespace Bess::Canvas {
-    SlotSceneComponent::SlotSceneComponent(UUID uuid)
-        : SceneComponent(uuid) {
-        m_type = SceneComponentType::slot;
-    }
-
-    SlotSceneComponent::SlotSceneComponent(UUID uuid, const Transform &transform)
-        : SceneComponent(uuid, transform) {
-        m_type = SceneComponentType::slot;
-    }
-
-    void SlotSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
-        UI::setCursorPointer();
-    }
-
-    void SlotSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
-        UI::setCursorNormal();
-    }
-
-    void SlotSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
-        Events::EventDispatcher::instance().trigger(Events::SlotClickedEvent{
-            e.mousePos,
-            m_uuid,
-            e.button,
-            e.action});
-    }
-
-    SimEngine::PinState SlotSceneComponent::getSlotState(const SceneState &state) const {
-        const auto parentComp = state.getComponentByUuid<SimulationSceneComponent>(m_parentComponent);
-        auto &simEngine = SimEngine::SimulationEngine::instance();
-        const auto &compState = simEngine.getComponentState(parentComp->getSimEngineId());
-
-        return (m_slotType == SlotType::digitalInput)
-                   ? compState.inputStates[m_index]
-                   : compState.outputStates[m_index];
-    }
-
-    SimEngine::PinState SlotSceneComponent::isSlotConnected(const SceneState &state) const {
-        const auto parentComp = state.getComponentByUuid<SimulationSceneComponent>(m_parentComponent);
-        auto &simEngine = SimEngine::SimulationEngine::instance();
-        const auto &compState = simEngine.getComponentState(parentComp->getSimEngineId());
-
-        return (m_slotType == SlotType::digitalInput)
-                   ? compState.inputConnected[m_index]
-                   : compState.outputConnected[m_index];
-    }
-
     SimulationSceneComponent::SimulationSceneComponent(UUID uuid) : SceneComponent(uuid) {
         m_type = SceneComponentType::simulation;
         initDragBehaviour();
@@ -87,64 +37,6 @@ namespace Bess::Canvas {
         }
 
         return slots;
-    }
-
-    void SimulationSceneComponent::onMouseHovered(const Events::MouseHoveredEvent &e) {
-    }
-
-    void SlotSceneComponent::draw(SceneState &state,
-                                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                  std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
-        const auto parentComp = state.getComponentByUuid<SimulationSceneComponent>(m_parentComponent);
-        const auto &parentPos = parentComp->getTransform().position;
-        const auto pos = parentPos + m_transform.position;
-
-        const auto &slotState = getSlotState(state);
-
-        const auto pickingId = PickingId{m_runtimeId, 0};
-
-        // state color
-        auto bg = ViewportTheme::colors.stateLow;
-        switch (slotState.state) {
-        case SimEngine::LogicState::low:
-            bg = ViewportTheme::colors.stateLow;
-            break;
-        case SimEngine::LogicState::high:
-            bg = ViewportTheme::colors.stateHigh;
-            break;
-        case SimEngine::LogicState::unknown:
-            bg = ViewportTheme::colors.stateUnknow;
-            break;
-        case SimEngine::LogicState::high_z:
-            bg = ViewportTheme::colors.stateHighZ;
-            break;
-        }
-
-        auto border = bg;
-
-        if (!isSlotConnected(state))
-            bg.a = 0.1f;
-
-        const float ir = Styles::simCompStyles.slotRadius - Styles::simCompStyles.slotBorderSize;
-        const float r = Styles::simCompStyles.slotRadius;
-        materialRenderer->drawCircle(pos, r, border, pickingId, ir);
-        materialRenderer->drawCircle(pos, ir - 1.f, bg, pickingId);
-
-        const float labeldx = Styles::simCompStyles.slotMargin + (Styles::simCompStyles.slotRadius * 2.f);
-        float labelX = pos.x;
-        if (m_slotType == SlotType::digitalInput) {
-            labelX += labeldx;
-        } else {
-            labelX -= labeldx;
-        }
-        float dY = componentStyles.slotRadius - (std::abs((componentStyles.slotRadius * 2.f) - componentStyles.slotLabelSize) / 2.f);
-
-        materialRenderer->drawText(m_name,
-                                   {labelX, pos.y + dY, pos.z},
-                                   componentStyles.slotLabelSize,
-                                   ViewportTheme::colors.text,
-                                   PickingId{parentComp->getRuntimeId(), 0},
-                                   parentComp->getTransform().angle);
     }
 
     void SimulationSceneComponent::draw(SceneState &state,
@@ -182,40 +74,21 @@ namespace Bess::Canvas {
                                        m_style.borderRadius.y - m_style.borderSize.y);
         props.isMica = true;
 
-        // given based on header presence
-        glm::vec3 textPos;
-
         // header
-        if (!isCompHeaderLess()) {
-            const float headerHeight = Styles::componentStyles.headerHeight;
-            const auto headerPos = glm::vec3(m_transform.position.x,
-                                             m_transform.position.y - (m_transform.scale.y / 2.f) + (headerHeight / 2.f),
-                                             m_transform.position.z + 0.0004f);
-            materialRenderer->drawQuad(headerPos,
-                                       glm::vec2(m_transform.scale.x - m_style.borderSize.w - m_style.borderSize.y,
-                                                 headerHeight - m_style.borderSize.x - m_style.borderSize.z),
-                                       m_style.headerColor,
-                                       pickingId,
-                                       props);
+        const float headerHeight = Styles::componentStyles.headerHeight;
+        const auto headerPos = glm::vec3(m_transform.position.x,
+                                         m_transform.position.y - (m_transform.scale.y / 2.f) + (headerHeight / 2.f),
+                                         m_transform.position.z + 0.0004f);
+        materialRenderer->drawQuad(headerPos,
+                                   glm::vec2(m_transform.scale.x - m_style.borderSize.w - m_style.borderSize.y,
+                                             headerHeight - m_style.borderSize.x - m_style.borderSize.z),
+                                   m_style.headerColor,
+                                   pickingId,
+                                   props);
 
-            textPos = glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) + componentStyles.paddingX,
-                                headerPos.y + Styles::simCompStyles.paddingY,
-                                m_transform.position.z + 0.0005f);
-        } else {
-            float labelWidth = materialRenderer->getTextRenderSize(m_name, Styles::simCompStyles.headerFontSize).x;
-            textPos = glm::vec3(m_transform.position.x,
-                                m_transform.position.y + (Styles::simCompStyles.headerFontSize / 2.f) - 1.f,
-                                m_transform.position.z + 0.0005f);
-
-            if (m_inputSlots.empty()) {
-                textPos.x -= (m_transform.scale.x / 2.f) - Styles::simCompStyles.paddingX;
-            } else if (m_outputSlots.empty()) {
-                textPos.x += (m_transform.scale.x / 2.f) - labelWidth - Styles::simCompStyles.paddingX;
-            } else {
-                textPos.x -= labelWidth / 2.f;
-            }
-        }
-
+        const auto textPos = glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) + componentStyles.paddingX,
+                                       headerPos.y + Styles::simCompStyles.paddingY,
+                                       m_transform.position.z + 0.0005f);
         // component name
         materialRenderer->drawText(m_name,
                                    textPos,
@@ -234,7 +107,6 @@ namespace Bess::Canvas {
     std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>>
     SimulationSceneComponent::calculateSlotPositions(size_t inputCount, size_t outputCount) const {
         const auto pScale = m_transform.scale;
-        const bool isHeaderLess = isCompHeaderLess();
 
         std::vector<glm::vec3> inputPositions;
         std::vector<glm::vec3> outputPositions;
@@ -244,16 +116,14 @@ namespace Bess::Canvas {
         for (size_t i = 0; i < inputCount; i++) {
             auto posX = -(pScale.x / 2.f) + Styles::SIM_COMP_SLOT_DX;
             float posY = -(pScale.y / 2.f) + (slotRowSize * (float)i) + (slotRowSize / 2.f);
-            if (!isHeaderLess)
-                posY += Styles::SIM_COMP_SLOT_START_Y;
+            posY += Styles::SIM_COMP_SLOT_START_Y;
             inputPositions.emplace_back(posX, posY, 0.0005f);
         }
 
         for (size_t i = 0; i < outputCount; i++) {
             auto posX = (pScale.x / 2.f) - Styles::SIM_COMP_SLOT_DX;
             float posY = -(pScale.y / 2.f) + (slotRowSize * (float)i) + (slotRowSize / 2.f);
-            if (!isHeaderLess)
-                posY += Styles::SIM_COMP_SLOT_START_Y;
+            posY += Styles::SIM_COMP_SLOT_START_Y;
             outputPositions.emplace_back(posX, posY, 0.0005f);
         }
 
@@ -266,22 +136,8 @@ namespace Bess::Canvas {
         size_t maxRows = std::max(m_inputSlots.size(), m_outputSlots.size());
         float height = ((float)maxRows * Styles::SIM_COMP_SLOT_ROW_SIZE);
 
-        const bool isHeaderLess = isCompHeaderLess();
-        if (!isHeaderLess) {
-            width = std::max(width, 100.f);
-            height += Styles::simCompStyles.headerHeight + Styles::simCompStyles.rowGap;
-        } else { // header less component
-
-            if (!m_inputSlots.empty()) {
-                constexpr float labelXGapL = 2.f;
-                width += Styles::SIM_COMP_SLOT_COLUMN_SIZE + labelXGapL;
-            }
-
-            if (!m_outputSlots.empty()) {
-                constexpr float labelXGapR = 2.f;
-                width += Styles::SIM_COMP_SLOT_COLUMN_SIZE + labelXGapR;
-            }
-        }
+        width = std::max(width, 100.f);
+        height += Styles::simCompStyles.headerHeight + Styles::simCompStyles.rowGap;
 
         return {width, height};
     }
@@ -307,10 +163,5 @@ namespace Bess::Canvas {
         setScale(calculateScale(materialRenderer));
         resetSlotPositions(sceneState);
         m_isFirstDraw = false;
-    }
-
-    bool SimulationSceneComponent::isCompHeaderLess() const {
-        size_t maxRows = std::max(m_inputSlots.size(), m_outputSlots.size());
-        return maxRows < 2;
     }
 } // namespace Bess::Canvas
