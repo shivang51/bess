@@ -663,48 +663,20 @@ namespace Bess::Canvas {
 
         if (m_isLeftMousePressed && m_drawMode == SceneDrawMode::none) {
 
-            for (const auto &compId : m_state.getSelectedComponents() | std::ranges::views::keys) {
-                std::shared_ptr<SceneComponent> comp = m_state.getComponentByUuid(compId);
-                if (comp && comp->isDraggable()) {
-                    comp->cast<SimulationSceneComponent>()->onMouseDragged({toScenePos(m_mousePos),
-                                                                            m_dMousePos,
-                                                                            m_pickingId.info});
-                    m_isDragging = true;
+            if (m_pickingId.isValid()) {
+                for (const auto &compId : m_state.getSelectedComponents() | std::ranges::views::keys) {
+                    std::shared_ptr<SceneComponent> comp = m_state.getComponentByUuid(compId);
+                    if (comp && comp->isDraggable()) {
+                        comp->cast<SimulationSceneComponent>()->onMouseDragged({toScenePos(m_mousePos),
+                                                                                m_dMousePos,
+                                                                                m_pickingId.info});
+                        m_isDragging = true;
+                    }
                 }
+            } else {
+                m_drawMode = SceneDrawMode::selectionBox;
+                m_selectionBoxStart = m_mousePos;
             }
-
-            // const auto hoveredEntity = getEntityWithUuid(m_hoveredEntity);
-            // const auto selectedComponentsSize = m_registry.view<Components::SelectedComponent>()->size();
-            // if (!m_registry.valid(hoveredEntity) && selectedComponentsSize == 0) {
-            //     m_drawMode = SceneDrawMode::selectionBox;
-            //     m_selectionBoxStart = m_mousePos;
-            // } else if (selectedComponentsSize == 1 && m_registry.valid(hoveredEntity) && m_registry.all_of<Components::ConnectionSegmentComponent>(hoveredEntity)) {
-            //     dragConnectionSegment(hoveredEntity);
-            //     m_isDragging = true;
-            // } else {
-            //     const auto view = m_registry.view<Components::SelectedComponent, Components::TransformComponent>();
-            //     for (const auto &ent : view) {
-            //         auto &transformComp = view.get<Components::TransformComponent>(ent);
-            //         if (!m_dragStartTransforms.contains(getUuidOfEntity(ent))) {
-            //             m_dragStartTransforms[getUuidOfEntity(ent)] = transformComp;
-            //         }
-            //         glm::vec2 newPos = toScenePos(m_mousePos);
-            //         if (!m_dragOffsets.contains(ent)) {
-            //             const auto offset = newPos - glm::vec2(transformComp.position);
-            //             m_dragOffsets[ent] = offset;
-            //         }
-            //         newPos -= m_dragOffsets[ent];
-            //         newPos = getSnappedPos(newPos);
-            //         transformComp.position = {newPos, transformComp.position.z};
-            //     }
-            //
-            //     const auto connectionView = m_registry.view<Components::SelectedComponent, Components::ConnectionComponent>();
-            //     for (const auto &ent : connectionView) {
-            //         moveConnection(ent, m_dMousePos);
-            //     }
-            //
-            //     m_isDragging = true;
-            // }
         } else if (m_isMiddleMousePressed) {
             m_camera->incrementPos(-m_dMousePos);
         }
@@ -948,7 +920,11 @@ namespace Bess::Canvas {
                 m_state.addSelectedComponent(m_pickingId);
             }
 
-            if (m_isDragging) {
+            if (m_drawMode == SceneDrawMode::selectionBox) {
+                m_drawMode = SceneDrawMode::none;
+                m_selectInSelectionBox = true;
+                m_selectionBoxEnd = m_mousePos;
+            } else if (m_isDragging) {
                 m_isDragging = false;
                 for (const auto &compId : m_state.getSelectedComponents() | std::ranges::views::keys) {
                     std::shared_ptr<SceneComponent> comp = m_state.getComponentByUuid(compId);
@@ -966,42 +942,6 @@ namespace Bess::Canvas {
                 }
             }
 
-            // Only for multi selection:
-            // select only the hovered entity if multiple are selected and ctrl is not pressed
-            // basically deselect others on mouse release if not dragging
-            // const auto selSize = m_registry.view<Components::SelectedComponent>().size();
-            // if (m_sceneMode != SceneMode::move &&
-            //     !m_isDragging &&
-            //     !Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL) &&
-            //     selSize > 1) {
-            //     bool isSelected = m_registry.all_of<Components::SelectedComponent>(hoveredEntity);
-            //     m_registry.clear<Components::SelectedComponent>();
-            //     toggleSelectComponent(m_hoveredEntity);
-            // }
-            //
-            // if (m_drawMode == SceneDrawMode::selectionBox) {
-            //     m_drawMode = SceneDrawMode::none;
-            //     m_selectInSelectionBox = true;
-            //     m_selectionBoxEnd = m_mousePos;
-            // }
-
-            // if (m_isDragging) {
-            //     m_isDragging = false;
-            //     m_dragOffsets.clear();
-            //     std::unique_ptr<Commands::UpdateEnttComponentsCommand> cmd =
-            //         std::make_unique<Commands::UpdateEnttComponentsCommand>(m_registry);
-            //     for (auto &[uuid, comp] : m_dragStartTransforms) {
-            //         cmd->addUpdate<Components::TransformComponent>(uuid, comp, true);
-            //     }
-            //
-            //     for (auto &[uuid, comp] : m_dragStartConnSeg) {
-            //         cmd->addUpdate<Components::ConnectionSegmentComponent>(uuid, comp, true);
-            //     }
-            //
-            //     m_cmdManager.execute(std::move(cmd));
-            //     m_dragStartTransforms.clear();
-            //     m_dragStartConnSeg.clear();
-            // }
             return;
         }
 
@@ -1029,54 +969,6 @@ namespace Bess::Canvas {
             m_state.clearSelectedComponents();
             m_drawMode = SceneDrawMode::none;
         }
-
-        // if (m_registry.valid(hoveredEntity)) {
-        //     // if its a slot then do the connection logic
-        //     if (m_registry.all_of<Components::SlotComponent>(hoveredEntity)) {
-        //         m_registry.clear<Components::SelectedComponent>();
-        //         if (m_drawMode == SceneDrawMode::none) {
-        //             m_connectionStartEntity = m_hoveredEntity;
-        //             m_drawMode = SceneDrawMode::connection;
-        //         } else if (m_drawMode == SceneDrawMode::connection) {
-        //             m_drawMode = SceneDrawMode::none;
-        //             auto _ = m_cmdManager.execute<Commands::ConnectCommand, UUID>(
-        //                 m_connectionStartEntity, m_hoveredEntity);
-        //         }
-        //     } else {
-        //         const bool isCtrlPressed = Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
-        //         if (!isCtrlPressed) {
-        //             const bool isSelected = m_registry.all_of<Components::SelectedComponent>(hoveredEntity);
-        //             // if left ctrl is not pressed and multiple entities are selected,
-        //             // and the hovered entity is not selected
-        //             // then only select the hovered entitiy and unselect others (inpired from blender nodes)
-        //             const auto selSize = m_registry.view<Components::SelectedComponent>().size();
-        //             if (selSize > 1 && !isSelected) {
-        //                 if (!isSelected && m_sceneMode != SceneMode::move) {
-        //                     m_registry.clear<Components::SelectedComponent>();
-        //                 }
-        //             } else if (selSize <= 1 && m_sceneMode != SceneMode::move) { // do not deselect others if in move mode
-        //                 m_registry.clear<Components::SelectedComponent>();
-        //             }
-        //         }
-        //
-        //         const auto selSize = m_registry.view<Components::SelectedComponent>().size();
-        //         const bool isSelected = m_registry.all_of<Components::SelectedComponent>(hoveredEntity);
-        //         // if not multiselect and is not selected then toggle select (basically select if not selected)
-        //         // other wise wait for mouse release to deselect the
-        //         // hovered component (basically deselect if selected on mouse release so that drag can work)
-        //         if (!isSelected) {
-        //             if (m_registry.all_of<Components::ConnectionSegmentComponent>(hoveredEntity)) {
-        //                 const auto &segComp = m_registry.get<Components::ConnectionSegmentComponent>(hoveredEntity);
-        //                 toggleSelectComponent(segComp.parent);
-        //             } else {
-        //                 toggleSelectComponent(hoveredEntity);
-        //             }
-        //         }
-        //     }
-        // } else if (m_sceneMode != SceneMode::move) { // deselecting all when clicking outside
-        //     m_registry.clear<Components::SelectedComponent>();
-        //     m_drawMode = SceneDrawMode::none;
-        // }
     }
 
     void Scene::toggleSelectComponent(const UUID &uuid) {
@@ -1156,14 +1048,14 @@ namespace Bess::Canvas {
         if (rawIds.size() == 0)
             return false;
 
-        std::set<UUID> ids;
+        std::set<PickingId> ids;
         for (const auto &id : rawIds) {
-            ids.insert(decodeGpuHoverValue(id));
+            ids.insert(PickingId::fromUint64(decodeGpuHoverValue(id)));
         }
 
         m_state.clearSelectedComponents();
         for (const auto &id : ids) {
-            auto comp = m_state.getComponentByUuid(id);
+            auto comp = m_state.getComponentByPickingId(id);
             if (comp == nullptr)
                 continue;
             m_state.addSelectedComponent(id);
