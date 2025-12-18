@@ -83,7 +83,7 @@ namespace Bess::Config {
         colors[ImGuiCol_Text] = ImVec4(0.88f, 0.88f, 0.88f, 1.00f);
         colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
 
-        // Headers (Blender-style Blue highlights)
+        // Headers (Blue highlights)
         colors[ImGuiCol_Header] = ImVec4(0.26f, 0.38f, 0.55f, 1.00f);
         colors[ImGuiCol_HeaderHovered] = ImVec4(0.32f, 0.45f, 0.65f, 1.00f);
         colors[ImGuiCol_HeaderActive] = ImVec4(0.38f, 0.53f, 0.75f, 1.00f);

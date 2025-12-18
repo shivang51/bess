@@ -27,7 +27,7 @@ namespace Bess {
         const ImVec4 borderCol = imguiColors[ImGuiCol_Border];
         colors.componentBorder = glm::vec4(borderCol.x, borderCol.y, borderCol.z, 0.8f);
 
-        // Blender-style "Header" (use the Header color from the UI theme)
+        // "Header" (use the Header color from the UI theme)
         const ImVec4 headerCol = imguiColors[ImGuiCol_Header];
         colors.compHeader = glm::vec4(headerCol.x, headerCol.y, headerCol.z, 1.0f);
 
@@ -44,7 +44,7 @@ namespace Bess {
         colors.wire = colors.componentBorder;
         colors.ghostWire = glm::vec4(textCol.x, textCol.y, textCol.z, 0.3f);
 
-        // The "Blender Orange" for selection
+        // Orange for selection
         colors.selectedWire = glm::vec4(1.0f, 0.60f, 0.0f, 1.0f);
         colors.selectedComp = colors.selectedWire;
 
@@ -59,7 +59,7 @@ namespace Bess {
         // 8. Grid System
         {
             const glm::vec4 base = colors.background;
-            // Subtle additive grid (Blender uses very faint lines)
+            // Subtle additive grid (uses very faint lines)
             float gridAlpha = 0.15f;
 
             colors.gridMinorColor = glm::vec4(base.r + 0.04f, base.g + 0.04f, base.b + 0.04f, gridAlpha);
@@ -83,7 +83,7 @@ namespace Bess {
         // We use slightly desaturated "Pastel-Pro" colors.
         // They are bright enough to categorize but muted enough to not be distracting.
 
-        const glm::vec4 logicColor = glm::vec4(0.26f, 0.39f, 0.55f, 0.90f);          // Blender Blue (Input/Logic)
+        const glm::vec4 logicColor = glm::vec4(0.26f, 0.39f, 0.55f, 0.90f);          // Blue (Input/Logic)
         const glm::vec4 memoryColor = glm::vec4(0.48f, 0.35f, 0.58f, 0.90f);         // Muted Amethyst (State/Memory)
         const glm::vec4 arithmeticColor = glm::vec4(0.32f, 0.56f, 0.32f, 0.90f);     // Sage Green (Math/Numbers)
         const glm::vec4 routingColor = glm::vec4(0.72f, 0.45f, 0.25f, 0.90f);        // Ochre/Orange (Routing/Data Flow)
