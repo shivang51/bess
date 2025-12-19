@@ -1,11 +1,11 @@
 #include "scene/artist/nodes_artist.h"
+#include "application/types.h"
 #include "component_catalog.h"
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
 #include "scene/scene.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
-#include "application/types.h"
 #include <string>
 
 namespace Bess::Canvas {
@@ -175,9 +175,9 @@ namespace Bess::Canvas {
         posX += slotdx;
         float posY = pPos.y - (pScale.y / 2.f) + (SLOT_ROW_SIZE * (float)comp.idx) + (SLOT_ROW_SIZE / 2.f);
 
-        const auto parentEntt = Scene::instance()->getEntityWithUuid(comp.parentId);
-        if (!isHeaderLessComp(Scene::instance()->getEnttRegistry().get<Components::SimulationComponent>(parentEntt)))
-            posY += SLOT_START_Y;
+        // const auto parentEntt = Scene::instance()->getEntityWithUuid(comp.parentId);
+        // if (!isHeaderLessComp(Scene::instance()->getEnttRegistry().get<Components::SimulationComponent>(parentEntt)))
+        //     posY += SLOT_START_Y;
 
         return {posX, posY, pPos.z + 0.0005};
     }
@@ -308,39 +308,39 @@ namespace Bess::Canvas {
     }
 
     void NodesArtist::drawSlots(const entt::entity parentEntt, const Components::SimulationComponent &comp, const Components::TransformComponent &transformComp) {
-        auto &registry = Scene::instance()->getEnttRegistry();
-        const auto slotsView = registry.view<Components::SlotComponent>();
-
-        const float labeldx = componentStyles.slotMargin + (componentStyles.slotRadius * 2.f);
-
-        const auto &compState = SimEngine::SimulationEngine::instance().getComponentState(comp.simEngineEntity);
-        const auto &def = SimEngine::SimulationEngine::instance().getComponentDefinition(comp.simEngineEntity);
-        const auto &[inpDetails, outDetails] = def.getPinDetails();
-
-        const float angle = transformComp.angle;
-
-        std::string label;
-        for (size_t i = 0; i < comp.inputSlots.size(); i++) {
-            auto slot = Scene::instance()->getEntityWithUuid(comp.inputSlots[i]);
-            const auto state = compState.inputStates[i];
-            const auto isConnected = compState.inputConnected[i];
-            auto &slotComp = slotsView.get<Components::SlotComponent>(slot);
-            auto slotPos = getSlotPos(slotComp, transformComp);
-            label = inpDetails.size() > i ? inpDetails[i].name : "X" + std::to_string(i);
-            paintSlot((int)slot, (int)parentEntt, slotPos, angle, label, labeldx, state.state, isConnected,
-                      inpDetails.size() > i ? inpDetails[i].extendedType : SimEngine::ExtendedPinType::none);
-        }
-
-        for (size_t i = 0; i < comp.outputSlots.size(); i++) {
-            auto slot = Scene::instance()->getEntityWithUuid(comp.outputSlots[i]);
-            const auto state = compState.outputStates[i];
-            const auto isConnected = compState.outputConnected[i];
-            auto &slotComp = slotsView.get<Components::SlotComponent>(slot);
-            auto slotPos = getSlotPos(slotComp, transformComp);
-            label = outDetails.size() > i ? outDetails[i].name : "Y" + std::to_string(i);
-            const float labelWidth = m_materialRenderer->getTextRenderSize(label, componentStyles.slotLabelSize).x;
-            paintSlot((int)slot, (int)parentEntt, slotPos, angle, label, -labeldx - labelWidth, state.state, isConnected,
-                      outDetails.size() > i ? outDetails[i].extendedType : SimEngine::ExtendedPinType::none);
-        }
+        // auto &registry = Scene::instance()->getEnttRegistry();
+        // const auto slotsView = registry.view<Components::SlotComponent>();
+        //
+        // const float labeldx = componentStyles.slotMargin + (componentStyles.slotRadius * 2.f);
+        //
+        // const auto &compState = SimEngine::SimulationEngine::instance().getComponentState(comp.simEngineEntity);
+        // const auto &def = SimEngine::SimulationEngine::instance().getComponentDefinition(comp.simEngineEntity);
+        // const auto &[inpDetails, outDetails] = def.getPinDetails();
+        //
+        // const float angle = transformComp.angle;
+        //
+        // std::string label;
+        // for (size_t i = 0; i < comp.inputSlots.size(); i++) {
+        //     // auto slot = Scene::instance()->getEntityWithUuid(comp.inputSlots[i]);
+        //     // const auto state = compState.inputStates[i];
+        //     // const auto isConnected = compState.inputConnected[i];
+        //     // auto &slotComp = slotsView.get<Components::SlotComponent>(slot);
+        //     // auto slotPos = getSlotPos(slotComp, transformComp);
+        //     // label = inpDetails.size() > i ? inpDetails[i].name : "X" + std::to_string(i);
+        //     // paintSlot((int)slot, (int)parentEntt, slotPos, angle, label, labeldx, state.state, isConnected,
+        //     //           inpDetails.size() > i ? inpDetails[i].extendedType : SimEngine::ExtendedPinType::none);
+        // }
+        //
+        // for (size_t i = 0; i < comp.outputSlots.size(); i++) {
+        //     auto slot = Scene::instance()->getEntityWithUuid(comp.outputSlots[i]);
+        //     const auto state = compState.outputStates[i];
+        //     const auto isConnected = compState.outputConnected[i];
+        //     auto &slotComp = slotsView.get<Components::SlotComponent>(slot);
+        //     auto slotPos = getSlotPos(slotComp, transformComp);
+        //     label = outDetails.size() > i ? outDetails[i].name : "Y" + std::to_string(i);
+        //     const float labelWidth = m_materialRenderer->getTextRenderSize(label, componentStyles.slotLabelSize).x;
+        //     paintSlot((int)slot, (int)parentEntt, slotPos, angle, label, -labeldx - labelWidth, state.state, isConnected,
+        //               outDetails.size() > i ? outDetails[i].extendedType : SimEngine::ExtendedPinType::none);
+        // }
     }
 } // namespace Bess::Canvas

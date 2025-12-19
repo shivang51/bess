@@ -3,6 +3,7 @@
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/project_explorer.h"
 #include <GLFW/glfw3.h>
+#include <ranges>
 
 namespace Bess::Canvas {
 
@@ -48,43 +49,13 @@ namespace Bess::Canvas {
         }
         ELIF_KEY_PRESSED(KEY(DELETE)) { // delete selected component(s)
             deleteSelectedSceneEntities();
-            // const auto view = m_registry.view<Components::IdComponent, Components::SelectedComponent>();
-            //
-            // std::vector<UUID> entitesToDel = {};
-            // std::vector<entt::entity> connEntitesToDel = {};
-            // for (const auto &entt : view) {
-            //     if (!m_registry.valid(entt))
-            //         continue;
-            //
-            //     if (m_registry.all_of<Components::ConnectionComponent>(entt)) {
-            //         connEntitesToDel.emplace_back(entt);
-            //     } else {
-            //         entitesToDel.emplace_back(getUuidOfEntity(entt));
-            //     }
-            // }
-            //
-            // auto _ = m_cmdManager.execute<Commands::DeleteCompCommand, std::string>(entitesToDel);
-            //
-            // std::vector<UUID> connToDel = {};
-            // for (const auto ent : connEntitesToDel) {
-            //     if (!m_registry.valid(ent))
-            //         continue;
-            //
-            //     connToDel.emplace_back(getUuidOfEntity(ent));
-            // }
-            //
-            // _ = m_cmdManager.execute<Commands::DelConnectionCommand, std::string>(connToDel);
         }
         ELIF_KEY_PRESSED(KEY(F)) { // `f` focus camera on selected component
-            const auto view = m_registry.view<Components::IdComponent,
-                                              Components::SelectedComponent,
-                                              Components::TransformComponent>();
+            const auto &selectedComps = m_state.getSelectedComponents() | std::views::keys;
 
-            // pick the first one to focus. if many are selected
-            for (const auto &ent : view) {
-                const auto &transform = view.get<Components::TransformComponent>(ent);
-                m_camera->focusAtPoint(glm::vec2(transform.position), true);
-                break;
+            if (!selectedComps.empty()) {
+                const auto &comp = m_state.getComponentByUuid(*selectedComps.begin());
+                m_camera->focusAtPoint(glm::vec2(comp->getAbsolutePosition(m_state)), true);
             }
         }
         ELIF_KEY_PRESSED(KEY(TAB)) {

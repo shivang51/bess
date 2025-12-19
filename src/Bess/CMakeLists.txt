@@ -65,7 +65,6 @@ set(Header_Files
 "scene/commands/set_input_command.h"
 "scene/commands/del_connection_command.h"
 "scene/commands/delete_comp_command.h"
-"scene/commands/update_entt_comp_command.h"
 "scene/commands/connect_command.h"
 "scene/commands/add_command.h"
 "scene/commands/create_group_command.h"

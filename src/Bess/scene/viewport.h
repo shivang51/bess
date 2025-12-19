@@ -49,7 +49,6 @@ namespace Bess::Canvas {
         bool isPickingPending() const;
 
         entt::registry &getEnttRegistry();
-        entt::entity getEntityWithUuid(const UUID &uuid);
 
         std::shared_ptr<ArtistManager> getArtistManager();
 

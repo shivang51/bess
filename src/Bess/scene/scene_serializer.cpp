@@ -29,35 +29,35 @@ namespace Bess {
     }
 
     void SceneSerializer::serializeEntity(UUID uid, Json::Value &j) {
-        const auto ent = Canvas::Scene::instance()->getEntityWithUuid(uid);
-        auto &reg = Canvas::Scene::instance()->getEnttRegistry();
-        EnttRegistrySerializer::serializeEntity(reg, ent, j["components"]);
-
-        if (const auto *simComp = reg.try_get<SimulationComponent>(ent)) {
-            for (const auto &slot : simComp->inputSlots)
-                serializeEntity(slot, j["slots"].append(Json::objectValue));
-
-            for (const auto &slot : simComp->outputSlots)
-                serializeEntity(slot, j["slots"].append(Json::objectValue));
-        }
-
-        if (const auto *slotComp = reg.try_get<SlotComponent>(ent)) {
-            for (const auto &conn : slotComp->connections) {
-                serializeEntity(conn, j["connections"].append(Json::objectValue));
-            }
-        }
-
-        if (const auto *connComp = reg.try_get<ConnectionComponent>(ent)) {
-            UUID segId = connComp->segmentHead;
-            while (segId != UUID::null) {
-                const auto &seg = reg.get<ConnectionSegmentComponent>(
-                    Canvas::Scene::instance()->getEntityWithUuid(segId));
-
-                serializeEntity(segId, j["segments"].append(Json::objectValue));
-
-                segId = seg.next;
-            }
-        }
+        // const auto ent = Canvas::Scene::instance()->getEntityWithUuid(uid);
+        // auto &reg = Canvas::Scene::instance()->getEnttRegistry();
+        // EnttRegistrySerializer::serializeEntity(reg, ent, j["components"]);
+        //
+        // if (const auto *simComp = reg.try_get<SimulationComponent>(ent)) {
+        //     for (const auto &slot : simComp->inputSlots)
+        //         serializeEntity(slot, j["slots"].append(Json::objectValue));
+        //
+        //     for (const auto &slot : simComp->outputSlots)
+        //         serializeEntity(slot, j["slots"].append(Json::objectValue));
+        // }
+        //
+        // if (const auto *slotComp = reg.try_get<SlotComponent>(ent)) {
+        //     for (const auto &conn : slotComp->connections) {
+        //         serializeEntity(conn, j["connections"].append(Json::objectValue));
+        //     }
+        // }
+        //
+        // if (const auto *connComp = reg.try_get<ConnectionComponent>(ent)) {
+        //     UUID segId = connComp->segmentHead;
+        //     while (segId != UUID::null) {
+        //         const auto &seg = reg.get<ConnectionSegmentComponent>(
+        //             Canvas::Scene::instance()->getEntityWithUuid(segId));
+        //
+        //         serializeEntity(segId, j["segments"].append(Json::objectValue));
+        //
+        //         segId = seg.next;
+        //     }
+        // }
     }
 
     void SceneSerializer::deserialize(const Json::Value &json) {

@@ -1,44 +1,44 @@
 #include "scene/commands/delete_node_command.h"
-#include "scene/commands/delete_comp_command.h"
 #include "commands/composite_command.h"
+#include "scene/commands/delete_comp_command.h"
 #include "scene/scene.h"
 #include "ui/ui_main/project_explorer.h"
 
 namespace Bess::Canvas::Commands {
-    DeleteNodeCommand::DeleteNodeCommand(const std::vector<UUID> &nodeIds) 
+    DeleteNodeCommand::DeleteNodeCommand(const std::vector<UUID> &nodeIds)
         : m_nodeIds(nodeIds) {}
 
     bool DeleteNodeCommand::execute() {
         // Build composite command
         auto composite = std::make_unique<SimEngine::Commands::CompositeCommand>();
-        
+
         std::vector<UUID> entityIds;
         auto scene = Scene::instance();
         auto &state = UI::ProjectExplorer::state;
 
         // Recursive helper to collect entities
-        std::function<void(UUID)> collectEntities = [&](UUID nodeId) {
-            if (state.nodesLookup.contains(nodeId)) {
-                auto node = state.nodesLookup[nodeId];
-                
-                // If it's an entity leaf
-                if (!node->isGroup && scene->isEntityValid(node->sceneId)) {
-                    entityIds.push_back(node->sceneId);
-                }
-                
-                // Recurse for children
-                for (auto &child : node->children) {
-                    collectEntities(child->nodeId);
-                }
-            } else if (scene->isEntityValid(nodeId)) {
-                // Fallback if ID is direct entity ID
-                entityIds.push_back(nodeId);
-            }
-        };
+        // std::function<void(UUID)> collectEntities = [&](UUID nodeId) {
+        //     if (state.nodesLookup.contains(nodeId)) {
+        //         auto node = state.nodesLookup[nodeId];
+        //
+        //         // If it's an entity leaf
+        //         if (!node->isGroup && scene->isEntityValid(node->sceneId)) {
+        //             entityIds.push_back(node->sceneId);
+        //         }
+        //
+        //         // Recurse for children
+        //         for (auto &child : node->children) {
+        //             collectEntities(child->nodeId);
+        //         }
+        //     } else if (scene->isEntityValid(nodeId)) {
+        //         // Fallback if ID is direct entity ID
+        //         entityIds.push_back(nodeId);
+        //     }
+        // };
 
-        for (auto id : m_nodeIds) {
-            collectEntities(id);
-        }
+        // for (auto id : m_nodeIds) {
+        //     collectEntities(id);
+        // }
 
         // 1. Create Command to delete entities
         if (!entityIds.empty()) {
@@ -66,10 +66,10 @@ namespace Bess::Canvas::Commands {
                 UUID parentId;
             };
             std::vector<GroupBackup> backups;
-            
-        public:
-            RemoveUIGroupsCommand(const std::vector<UUID>& groups) : groupsToRemove(groups) {}
-            
+
+          public:
+            RemoveUIGroupsCommand(const std::vector<UUID> &groups) : groupsToRemove(groups) {}
+
             bool execute() override {
                 auto &st = UI::ProjectExplorer::state;
                 backups.clear();
@@ -82,7 +82,7 @@ namespace Bess::Canvas::Commands {
                 }
                 return true;
             }
-            
+
             std::any undo() override {
                 auto &st = UI::ProjectExplorer::state;
                 // Restore in reverse order
@@ -94,10 +94,10 @@ namespace Bess::Canvas::Commands {
                 }
                 return {};
             }
-            
+
             std::any getResult() override { return {}; }
         };
-        
+
         if (!groupsToRemove.empty()) {
             composite->addCommand(std::make_unique<RemoveUIGroupsCommand>(groupsToRemove));
         }
@@ -116,4 +116,4 @@ namespace Bess::Canvas::Commands {
     std::any DeleteNodeCommand::getResult() {
         return {};
     }
-}
+} // namespace Bess::Canvas::Commands

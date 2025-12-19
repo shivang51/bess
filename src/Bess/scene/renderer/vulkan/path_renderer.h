@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bess_uuid.h"
+#include "common/log.h"
 #include "device.h"
 #include "pipelines/path_fill_pipeline.h"
 #include "pipelines/path_stroke_pipeline.h"
@@ -57,12 +58,9 @@ namespace Bess::Renderer2D::Vulkan {
     class PathGeometryCache {
       public:
         static std::string generateCacheKey(UUID uuid,
-                                            const glm::vec3 &pos, const glm::vec2 &scale,
+                                            const glm::vec2 &scale,
                                             bool rounded) {
             return std::to_string(static_cast<uint64_t>(uuid)) + "_|" +
-                   std::to_string(pos.x) + "_" +
-                   std::to_string(pos.y * 1000) + "_" +
-                   std::to_string(pos.z * 1000) + "_|" +
                    std::to_string(scale.x * 1000) + "_" +
                    std::to_string(scale.y * 1000) + "_|" +
                    std::to_string(static_cast<int>(rounded));
@@ -83,8 +81,9 @@ namespace Bess::Renderer2D::Vulkan {
             return true;
         }
 
-        void cacheEntry(const std::string &key, const PathGeometryCacheEntry &entry) {
+        PathGeometryCacheEntry *cacheEntry(const std::string &key, const PathGeometryCacheEntry &entry) {
             m_cache[key] = entry;
+            return &m_cache.at(key);
         }
 
         void clearCache() {

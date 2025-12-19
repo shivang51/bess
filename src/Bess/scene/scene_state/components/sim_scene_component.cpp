@@ -164,4 +164,12 @@ namespace Bess::Canvas {
         resetSlotPositions(sceneState);
         m_isFirstDraw = false;
     }
+
+    size_t SimulationSceneComponent::getInputSlotsCount() const {
+        return m_inputSlots.size();
+    }
+
+    size_t SimulationSceneComponent::getOutputSlotsCount() const {
+        return m_outputSlots.size();
+    }
 } // namespace Bess::Canvas

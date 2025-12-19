@@ -65,8 +65,9 @@ namespace Bess::UI {
 
     void ProjectExplorer::clearAllSelections() {
         auto scene = Bess::Canvas::Scene::instance();
-        auto &registry = scene->getEnttRegistry();
-        registry.clear<Canvas::Components::SelectedComponent>();
+        auto &sceneState = scene->getState();
+
+        sceneState.clearSelectedComponents();
 
         // Note (Shivang): Can't use auto here because of recursive lambda
         std::function<void(std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &)> clearNodes =
@@ -83,7 +84,7 @@ namespace Bess::UI {
 
     void ProjectExplorer::selectRange(int start, int end) {
         auto scene = Bess::Canvas::Scene::instance();
-        auto &registry = scene->getEnttRegistry();
+        auto &sceneState = scene->getState();
 
         clearAllSelections();
 
@@ -94,9 +95,7 @@ namespace Bess::UI {
                     if (node->visibleIndex >= start && node->visibleIndex <= end) {
                         node->selected = true;
                         if (!node->isGroup) {
-                            const auto &sceneEnt = scene->getEntityWithUuid(node->sceneId);
-                            registry.emplace_or_replace<
-                                Canvas::Components::SelectedComponent>(sceneEnt);
+                            sceneState.addSelectedComponent(node->sceneId);
                         }
                     }
                     if (node->isGroup && !node->children.empty()) {
@@ -225,7 +224,6 @@ namespace Bess::UI {
                     //     node->selected = !node->selected;
                     // } else {
                     if (!node->isGroup) {
-                        const auto &entity = scene->getEntityWithUuid(node->sceneId);
                         if (node->selected) {
                             sceneState.removeSelectedComponent(node->sceneId);
                         } else {

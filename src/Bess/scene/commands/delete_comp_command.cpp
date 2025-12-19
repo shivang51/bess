@@ -15,37 +15,38 @@ namespace Bess::Canvas::Commands {
     }
 
     bool DeleteCompCommand::execute() {
-        auto scene = Scene::instance();
-        auto &registry = scene->getEnttRegistry();
-        auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
-
-        int i = 0;
-        m_simEngineComps = {};
-        SceneSerializer ser;
-        for (const auto compId : m_compIds) {
-            const auto ent = Scene::instance()->getEntityWithUuid(compId);
-
-            auto &data = m_delData[i++];
-
-            if (const auto *simComp = registry.try_get<Components::SimulationComponent>(ent)) {
-                data.simCompId = simComp->simEngineEntity;
-                m_simEngineComps.emplace_back(data.simCompId);
-            }
-
-            data.compJson.clear();
-            ser.serializeEntity(compId, data.compJson);
-            scene->deleteSceneEntity(compId);
-        }
-
-        if (!m_simEngineComps.empty()) {
-            if (!m_redo) {
-                auto _ = cmdMngr.execute<SimEngine::Commands::DeleteCompCommand, std::string>(m_simEngineComps);
-            } else {
-                cmdMngr.redo();
-            }
-        }
-
-        return true;
+        return false;
+        // auto scene = Scene::instance();
+        // auto &registry = scene->getEnttRegistry();
+        // auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
+        //
+        // int i = 0;
+        // m_simEngineComps = {};
+        // SceneSerializer ser;
+        // for (const auto compId : m_compIds) {
+        //     const auto ent = Scene::instance()->getEntityWithUuid(compId);
+        //
+        //     auto &data = m_delData[i++];
+        //
+        //     if (const auto *simComp = registry.try_get<Components::SimulationComponent>(ent)) {
+        //         data.simCompId = simComp->simEngineEntity;
+        //         m_simEngineComps.emplace_back(data.simCompId);
+        //     }
+        //
+        //     data.compJson.clear();
+        //     ser.serializeEntity(compId, data.compJson);
+        //     scene->deleteSceneEntity(compId);
+        // }
+        //
+        // if (!m_simEngineComps.empty()) {
+        //     if (!m_redo) {
+        //         auto _ = cmdMngr.execute<SimEngine::Commands::DeleteCompCommand, std::string>(m_simEngineComps);
+        //     } else {
+        //         cmdMngr.redo();
+        //     }
+        // }
+        //
+        // return true;
     }
 
     std::any DeleteCompCommand::undo() {

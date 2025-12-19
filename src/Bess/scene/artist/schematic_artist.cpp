@@ -210,56 +210,56 @@ namespace Bess::Canvas {
     }
 
     void SchematicArtist::drawSlots(const entt::entity parentEntt, const Components::SimulationComponent &simComp, const Components::TransformComponent &transformComp) {
-        const auto &def = SimEngine::SimulationEngine::instance().getComponentDefinition(simComp.simEngineEntity);
-        const auto &[inpDetails, outDetails] = def.getPinDetails();
-
-        const auto &size = m_diagramSize.at((int)parentEntt);
-        const auto &schematicInfo = getCompSchematicInfo(parentEntt, size.x, size.y);
-        const auto &schematicInfo_ = getCompSchematicInfo(parentEntt);
-
-        float inPinStart = schematicInfo.inpPinStart;
-        const float h = size.y;
-        const auto &pos = transformComp.position;
-        const float y = pos.y - (h / 2);
-
-        const auto &pinColor = ViewportTheme::schematicViewColors.pin;
-        constexpr float nodeWeight = schematicCompStyles.strokeSize;
-
-        std::string label;
-        // inputs
-        {
-            const size_t inpCount = simComp.inputSlots.size();
-            const float yIncr = h / ((float)inpCount + 1);
-            for (int i = 0; i < inpCount; i++) {
-                float pinY = y + (yIncr * (float)(i + 1));
-                const int pinId = static_cast<int>(Scene::instance()->getEntityWithUuid(simComp.inputSlots[i]));
-                m_pathRenderer->beginPathMode({inPinStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
-                m_pathRenderer->pathLineTo({schematicInfo.inpConnStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
-                m_pathRenderer->endPathMode(false);
-                label = inpDetails.size() > i ? inpDetails[i].name : "X" + std::to_string(i);
-                m_materialRenderer->drawText(label,
-                                             {schematicInfo.inpConnStart, pinY - nodeWeight, pos.z - 0.0005f},
-                                             componentStyles.slotLabelSize, ViewportTheme::colors.text, static_cast<int>(parentEntt), 0.f);
-            }
-        }
-
-        // outputs
-        {
-            const size_t outCount = simComp.outputSlots.size();
-            const float yIncr = h / (float)(outCount + 1);
-            for (int i = 0; i < outCount; i++) {
-                float pinY = y + (yIncr * (float)(i + 1));
-                const int pinId = static_cast<int>(Scene::instance()->getEntityWithUuid(simComp.outputSlots[i]));
-                m_pathRenderer->beginPathMode({schematicInfo.outPinStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
-                m_pathRenderer->pathLineTo({schematicInfo.outConnStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
-                m_pathRenderer->endPathMode(false);
-                label = outDetails.size() > i ? outDetails[i].name : "Y" + std::to_string(i);
-                const float size = m_materialRenderer->getTextRenderSize(label, componentStyles.slotLabelSize).x;
-                m_materialRenderer->drawText(label,
-                                             {schematicInfo.outConnStart - size, pinY - nodeWeight, pos.z - 0.0005f},
-                                             componentStyles.slotLabelSize, ViewportTheme::colors.text, static_cast<int>(parentEntt), 0.f);
-            }
-        }
+        // const auto &def = SimEngine::SimulationEngine::instance().getComponentDefinition(simComp.simEngineEntity);
+        // const auto &[inpDetails, outDetails] = def.getPinDetails();
+        //
+        // const auto &size = m_diagramSize.at((int)parentEntt);
+        // const auto &schematicInfo = getCompSchematicInfo(parentEntt, size.x, size.y);
+        // const auto &schematicInfo_ = getCompSchematicInfo(parentEntt);
+        //
+        // float inPinStart = schematicInfo.inpPinStart;
+        // const float h = size.y;
+        // const auto &pos = transformComp.position;
+        // const float y = pos.y - (h / 2);
+        //
+        // const auto &pinColor = ViewportTheme::schematicViewColors.pin;
+        // constexpr float nodeWeight = schematicCompStyles.strokeSize;
+        //
+        // std::string label;
+        // // inputs
+        // {
+        //     const size_t inpCount = simComp.inputSlots.size();
+        //     const float yIncr = h / ((float)inpCount + 1);
+        //     for (int i = 0; i < inpCount; i++) {
+        //         float pinY = y + (yIncr * (float)(i + 1));
+        //         const int pinId = static_cast<int>(Scene::instance()->getEntityWithUuid(simComp.inputSlots[i]));
+        //         m_pathRenderer->beginPathMode({inPinStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
+        //         m_pathRenderer->pathLineTo({schematicInfo.inpConnStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
+        //         m_pathRenderer->endPathMode(false);
+        //         label = inpDetails.size() > i ? inpDetails[i].name : "X" + std::to_string(i);
+        //         m_materialRenderer->drawText(label,
+        //                                      {schematicInfo.inpConnStart, pinY - nodeWeight, pos.z - 0.0005f},
+        //                                      componentStyles.slotLabelSize, ViewportTheme::colors.text, static_cast<int>(parentEntt), 0.f);
+        //     }
+        // }
+        //
+        // // outputs
+        // {
+        //     const size_t outCount = simComp.outputSlots.size();
+        //     const float yIncr = h / (float)(outCount + 1);
+        //     for (int i = 0; i < outCount; i++) {
+        //         float pinY = y + (yIncr * (float)(i + 1));
+        //         const int pinId = static_cast<int>(Scene::instance()->getEntityWithUuid(simComp.outputSlots[i]));
+        //         m_pathRenderer->beginPathMode({schematicInfo.outPinStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
+        //         m_pathRenderer->pathLineTo({schematicInfo.outConnStart, pinY, pos.z - 0.0005f}, nodeWeight, pinColor, pinId);
+        //         m_pathRenderer->endPathMode(false);
+        //         label = outDetails.size() > i ? outDetails[i].name : "Y" + std::to_string(i);
+        //         const float size = m_materialRenderer->getTextRenderSize(label, componentStyles.slotLabelSize).x;
+        //         m_materialRenderer->drawText(label,
+        //                                      {schematicInfo.outConnStart - size, pinY - nodeWeight, pos.z - 0.0005f},
+        //                                      componentStyles.slotLabelSize, ViewportTheme::colors.text, static_cast<int>(parentEntt), 0.f);
+        //     }
+        // }
     }
 
     ArtistCompSchematicInfo SchematicArtist::getCompSchematicInfo(entt::entity ent, float width, float height) const {
@@ -302,38 +302,39 @@ namespace Bess::Canvas {
     }
 
     ArtistCompSchematicInfo SchematicArtist::getCompSchematicInfo(const UUID uuid) const {
-        return getCompSchematicInfo(Scene::instance()->getEntityWithUuid(uuid));
+        return {};
     }
 
     glm::vec3 SchematicArtist::getSlotPos(const Components::SlotComponent &comp,
                                           const Components::TransformComponent &parentTransform) {
-        auto &registry = Scene::instance()->getEnttRegistry();
-        const auto parentEntt = Scene::instance()->getEntityWithUuid(comp.parentId);
-        const auto &simComp = registry.get<Components::SimulationComponent>(parentEntt);
-
-        glm::vec2 size = {-1.f, -1.f};
-        const auto it = m_diagramSize.find((int)parentEntt);
-        if (it != m_diagramSize.end()) {
-            size = it->second;
-        }
-
-        const auto info = getCompSchematicInfo(parentEntt, size.x, size.y);
-
-        float x = 0, y = parentTransform.position.y - (info.height / 2.f);
-
-        const bool isOutputSlot = comp.slotType == Components::SlotType::digitalOutput;
-
-        float yIncr = 0;
-        if (isOutputSlot) {
-            x = info.outConnStart;
-            yIncr = info.height / (float)(simComp.outputSlots.size() + 1);
-        } else {
-            x = info.inpConnStart;
-            yIncr = info.height / (float)(simComp.inputSlots.size() + 1);
-        }
-
-        y += yIncr * (float)(comp.idx + 1);
-
-        return {x, y, parentTransform.position.z + 0.0005};
+        return {};
+        // auto &registry = Scene::instance()->getEnttRegistry();
+        // const auto parentEntt = Scene::instance()->getEntityWithUuid(comp.parentId);
+        // const auto &simComp = registry.get<Components::SimulationComponent>(parentEntt);
+        //
+        // glm::vec2 size = {-1.f, -1.f};
+        // const auto it = m_diagramSize.find((int)parentEntt);
+        // if (it != m_diagramSize.end()) {
+        //     size = it->second;
+        // }
+        //
+        // const auto info = getCompSchematicInfo(parentEntt, size.x, size.y);
+        //
+        // float x = 0, y = parentTransform.position.y - (info.height / 2.f);
+        //
+        // const bool isOutputSlot = comp.slotType == Components::SlotType::digitalOutput;
+        //
+        // float yIncr = 0;
+        // if (isOutputSlot) {
+        //     x = info.outConnStart;
+        //     yIncr = info.height / (float)(simComp.outputSlots.size() + 1);
+        // } else {
+        //     x = info.inpConnStart;
+        //     yIncr = info.height / (float)(simComp.inputSlots.size() + 1);
+        // }
+        //
+        // y += yIncr * (float)(comp.idx + 1);
+        //
+        // return {x, y, parentTransform.position.z + 0.0005};
     }
 } // namespace Bess::Canvas

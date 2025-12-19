@@ -373,10 +373,6 @@ namespace Bess::Canvas {
         return Scene::instance()->getEnttRegistry();
     }
 
-    entt::entity Viewport::getEntityWithUuid(const UUID &uuid) {
-        return Scene::instance()->getEntityWithUuid(uuid);
-    }
-
     std::shared_ptr<ArtistManager> Viewport::getArtistManager() {
         return m_artistManager;
     }

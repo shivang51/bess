@@ -30,6 +30,9 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(UUID, SimEngineId, m_simEngineId)
         MAKE_GETTER_SETTER(UUID, NetId, m_netId)
 
+        size_t getInputSlotsCount() const;
+        size_t getOutputSlotsCount() const;
+
       protected:
         // Generates the positions relative to the component position
         std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>>

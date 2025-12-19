@@ -9,7 +9,6 @@
 #include "events/application_event.h"
 #include "events/scene_events.h"
 #include "scene/camera.h"
-#include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/scene_state.h"
@@ -78,8 +77,6 @@ namespace Bess::Canvas {
             return m_pickingId;
         }
 
-        bool isEntityHovered(const entt::entity &ent) const;
-
         const glm::vec2 &getMousePos() const;
         glm::vec2 getSceneMousePos();
         const glm::vec2 &getCameraPos() const;
@@ -93,34 +90,26 @@ namespace Bess::Canvas {
         entt::registry &getEnttRegistry();
         const glm::vec2 &getSize() const;
 
-        UUID createSlotEntity(Components::SlotType type, const UUID &parent, unsigned int idx);
-        UUID createSlotEntity(UUID uuid, Components::SlotType type, const UUID &parent, unsigned int idx);
-
-        UUID createSimEntity(const UUID &simEngineEntt, const SimEngine::ComponentDefinition &comp, const glm::vec2 &pos);
-        UUID createNonSimEntity(const Canvas::Components::NSComponent &comp, const glm::vec2 &pos);
+        UUID createSimEntity(const UUID &simEngineEntt,
+                             const SimEngine::ComponentDefinition &comp,
+                             const glm::vec2 &pos);
+        UUID createNonSimEntity(const Canvas::Components::NSComponent &comp,
+                                const glm::vec2 &pos);
 
         void deleteSceneEntity(const UUID &entUuid);
         void deleteSelectedSceneEntities();
 
         /// deletes entity from sim engine as well
         void deleteEntity(const UUID &entUuid);
-        void deleteConnection(const UUID &entUuid);
-        void deleteConnectionFromScene(const UUID &entUuid);
-        entt::entity getEntityWithUuid(const UUID &uuid);
-        bool isEntityValid(const UUID &uuid);
+
         void setZCoord(float val);
 
         SimEngine::Commands::CommandsManager &getCmdManager();
-
-        UUID generateBasicConnection(entt::entity inputSlot, entt::entity outputSlot);
-        UUID connectSlots(UUID startSlot, UUID endSlot);
-        UUID connectComponents(UUID compIdA, int slotIdxA, bool isAInput, UUID compIdB, int slotIdxB);
 
         bool *getIsSchematicViewPtr();
         void toggleSchematicView();
 
         std::shared_ptr<ArtistManager> getArtistManager();
-        const UUID &getUuidOfEntity(entt::entity ent) const;
 
         bool isHoveredEntityValid();
 
@@ -128,13 +117,11 @@ namespace Bess::Canvas {
         /// to draw testing stuff
         void drawScratchContent(TFrameTime ts, const std::shared_ptr<Viewport> &viewport);
 
-        // gets entity from scene that has reference to passed simulation engine uuid
-        entt::entity getSceneEntityFromSimUuid(const UUID &uuid) const;
-
         void setLastCreatedComp(LastCreatedComponent comp);
 
-        void removeConnectionEntt(entt::entity ent);
         void updatePickingId();
+
+        void setPickingId(const PickingId &pickingId);
 
         void onMouseMove(const glm::vec2 &pos);
         void onLeftMouse(bool isPressed);
@@ -147,18 +134,12 @@ namespace Bess::Canvas {
         glm::vec2 toScenePos(const glm::vec2 &mousePos) const;
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
         bool isCursorInViewport(const glm::vec2 &pos) const;
-        void drawConnection();
         void drawSelectionBox();
         void handleKeyboardShortcuts();
         void copySelectedComponents();
         void generateCopiedComponents();
         bool selectEntitesInArea();
-        void toggleSelectComponent(const UUID &uuid);
-        void toggleSelectComponent(entt::entity ent);
         void selectAllEntities();
-
-        void moveConnection(entt::entity ent, glm::vec2 &dPos);
-        void dragConnectionSegment(entt::entity ent);
 
         float getNextZCoord();
 
@@ -180,7 +161,7 @@ namespace Bess::Canvas {
       private:
         SceneState m_state;
 
-        entt::registry m_registry;
+        // entt::registry m_registry;
         PickingId m_pickingId = PickingId::invalid();
         PickingId m_prevPickingId = PickingId::invalid();
         UUID m_connectionStartSlot = UUID::null;
