@@ -1,17 +1,19 @@
 #include "ui/ui_main/project_explorer.h"
 #include "bess_uuid.h"
+#include "events/event_dispatcher.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "scene/commands/add_command.h"
 #include "scene/commands/create_group_command.h"
 #include "scene/commands/delete_node_command.h"
 #include "scene/commands/reparent_node_command.h"
 #include "scene/components/components.h"
 #include "scene/scene.h"
+#include "scene/scene_state/components/sim_scene_component.h"
 #include "ui/ui_main/project_explorer_state.h"
 #include "ui/widgets/m_widgets.h"
 #include <cstdint>
 #include <memory>
+#include <ranges>
 
 namespace Bess::UI {
     bool ProjectExplorer::isShown = true;
@@ -34,19 +36,18 @@ namespace Bess::UI {
     }
 
     void ProjectExplorer::init() {
-        auto scene = Bess::Canvas::Scene::instance();
-        scene->getEventDispatcher().sink<Bess::Events::EntityCreatedEvent>().connect<&ProjectExplorer::onEntityCreated>();
-        scene->getEventDispatcher().sink<Bess::Events::EntityDestroyedEvent>().connect<&ProjectExplorer::onEntityDestroyed>();
+        Events::EventDispatcher::instance().sink<Bess::Events::ComponentCreatedEvent>().connect<&ProjectExplorer::onEntityCreated>();
+        Events::EventDispatcher::instance().sink<Bess::Events::EntityDestroyedEvent>().connect<&ProjectExplorer::onEntityDestroyed>();
     }
 
-    void ProjectExplorer::onEntityCreated(const Bess::Events::EntityCreatedEvent &e) {
+    void ProjectExplorer::onEntityCreated(const Bess::Events::ComponentCreatedEvent &e) {
         auto scene = Bess::Canvas::Scene::instance();
-        auto &reg = scene->getEnttRegistry();
-        auto &tag = reg.get<Canvas::Components::TagComponent>(e.entity);
+        const auto &sceneState = scene->getState();
+        const auto &comp = sceneState.getComponentByUuid(e.uuid);
 
         auto node = std::make_shared<UI::ProjectExplorerNode>();
         node->sceneId = e.uuid;
-        node->label = tag.name;
+        node->label = comp->getName();
         node->selected = false;
         node->multiSelectMode = false;
 
@@ -112,13 +113,10 @@ namespace Bess::UI {
         constexpr auto nodePopupName = "node_popup";
 
         auto scene = Bess::Canvas::Scene::instance();
-        auto &registry = scene->getEnttRegistry();
 
-        const auto view = registry.view<Canvas::Components::TagComponent>();
-        const auto selTagGroup = registry.group<>(entt::get<Canvas::Components::SelectedComponent,
-                                                            Canvas::Components::TagComponent>);
-        const auto selSize = selTagGroup.size();
+        auto &sceneState = scene->getState();
 
+        const auto selSize = sceneState.getSelectedComponents().size();
         const bool isMultiSelected = selSize > 1;
 
         size_t count = 0;
@@ -170,12 +168,11 @@ namespace Bess::UI {
                 }
 
             } else {
-                const auto &sceneEnt = scene->getEntityWithUuid(node->sceneId);
-                const auto &tagComp = view.get<Canvas::Components::TagComponent>(sceneEnt);
-                if (tagComp.isSimComponent) {
-                    icon = Common::Helpers::getComponentIcon(tagComp.type.simCompHash);
+                const auto &sceneComp = sceneState.getComponentByUuid(node->sceneId);
+                if (sceneComp->getType() == Canvas::SceneComponentType::simulation) {
+                    // icon = Common::Helpers::getComponentIcon(tagComp.type.simCompHash);
                 } else {
-                    icon = Common::Helpers::getComponentIcon(tagComp.type.nsCompType);
+                    // icon = Common::Helpers::getComponentIcon(tagComp.type.nsCompType);
                 }
                 const auto [pressed, cbPressed] = drawLeafNode(
                     i++,
@@ -187,28 +184,25 @@ namespace Bess::UI {
 
                 if (ImGui::BeginDragDropSource()) {
                     std::vector<uint64_t> payloadData;
-                    selTagGroup.each([&](const entt::entity entity,
-                                         const Canvas::Components::SelectedComponent &,
-                                         const Canvas::Components::TagComponent &) {
-                        const auto selectedNode = state.getNodeOfSceneEntt(scene->getUuidOfEntity(entity));
+                    for (auto &selId : sceneState.getSelectedComponents() | std::views::keys) {
+                        const auto selectedNode = state.getNodeOfSceneEntt(selId);
                         if (selectedNode != nullptr) {
                             payloadData.emplace_back((uint64_t)selectedNode->nodeId);
                         }
-                    });
+                    }
                     ImGui::SetDragDropPayload("TREE_NODE_PAYLOAD", payloadData.data(),
                                               payloadData.size() * sizeof(uint64_t));
                     ImGui::Text("Dragging %lu nodes", payloadData.size());
                     ImGui::EndDragDropSource();
                 }
 
-                const auto &entity = scene->getEntityWithUuid(node->sceneId);
-                node->selected = selTagGroup.contains(entity);
+                node->selected = sceneState.getSelectedComponents().contains(node->sceneId);
 
                 if (cbPressed) {
                     if (node->selected) {
-                        registry.remove<Canvas::Components::SelectedComponent>(entity);
+                        sceneState.removeSelectedComponent(node->sceneId);
                     } else {
-                        registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
+                        sceneState.addSelectedComponent(node->sceneId);
                     }
                     // Checkbox interaction counts as selecting
                     lastSelectedIndex = i - 1;
@@ -233,9 +227,9 @@ namespace Bess::UI {
                     if (!node->isGroup) {
                         const auto &entity = scene->getEntityWithUuid(node->sceneId);
                         if (node->selected) {
-                            registry.remove<Canvas::Components::SelectedComponent>(entity);
+                            sceneState.removeSelectedComponent(node->sceneId);
                         } else {
-                            registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
+                            sceneState.addSelectedComponent(node->sceneId);
                         }
                     }
                     lastSelectedIndex = currentIndex;
@@ -246,8 +240,7 @@ namespace Bess::UI {
                         if (node->isGroup) {
                             node->selected = true;
                         } else {
-                            const auto &entity = scene->getEntityWithUuid(node->sceneId);
-                            registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
+                            sceneState.addSelectedComponent(node->sceneId);
                         }
                     }
                     lastSelectedIndex = currentIndex;
@@ -267,8 +260,7 @@ namespace Bess::UI {
                         if (node->isGroup) {
                             node->selected = true;
                         } else {
-                            const auto &entity = scene->getEntityWithUuid(node->sceneId);
-                            registry.emplace_or_replace<Canvas::Components::SelectedComponent>(entity);
+                            sceneState.addSelectedComponent(node->sceneId);
                         }
                         lastSelectedIndex = i - 1;
                     }
@@ -299,23 +291,20 @@ namespace Bess::UI {
         ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
         auto scene = Bess::Canvas::Scene::instance();
-        auto &registry = scene->getEnttRegistry();
 
-        const auto view = registry.view<Canvas::Components::TagComponent>();
-        const auto size = view.size();
+        auto &sceneState = scene->getState();
 
-        const auto selTagGroup = registry.group<>(entt::get<Canvas::Components::SelectedComponent,
-                                                            Canvas::Components::TagComponent>);
-        const auto selSize = selTagGroup.size();
+        const auto size = sceneState.getRootComponents().size();
+        const auto selSize = sceneState.getSelectedComponents().size();
 
         const bool isMultiSelected = selSize > 1;
 
         if (size == 0) {
             ImGui::Text("No Components Added");
         } else if (size == 1) {
-            ImGui::Text("%lu Component Added", view.size());
+            ImGui::Text("%lu Component Added", size);
         } else {
-            ImGui::Text("%lu Components Added", view.size());
+            ImGui::Text("%lu Components Added", size);
         }
 
         if (selSize > 1) {
@@ -387,17 +376,13 @@ namespace Bess::UI {
             if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
                 std::vector<std::shared_ptr<UI::ProjectExplorerNode>> nodesToDelete;
 
-                // Add selected entities from registry
-                selTagGroup.each([&](const entt::entity entity,
-                                     const Canvas::Components::SelectedComponent &,
-                                     const Canvas::Components::TagComponent &) {
-                    const auto node = state.getNodeOfSceneEntt(scene->getUuidOfEntity(entity));
+                for (const auto &selId : sceneState.getSelectedComponents() | std::views::keys) {
+                    const auto node = state.getNodeOfSceneEntt(selId);
                     if (node != nullptr) {
                         nodesToDelete.emplace_back(node);
                     }
-                });
+                }
 
-                // Add selected group nodes (requires traversal since they aren't in registry)
                 std::function<void(const std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &)> collectGroups =
                     [&](const std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &nodes) {
                         for (const auto &node : nodes) {
@@ -507,15 +492,13 @@ namespace Bess::UI {
 
     void ProjectExplorer::selectNode(const std::shared_ptr<UI::ProjectExplorerNode> &node) {
         auto scene = Bess::Canvas::Scene::instance();
-        auto &registry = scene->getEnttRegistry();
 
         if (node->isGroup) {
             for (const auto &childNode : node->children) {
                 selectNode(childNode);
             }
         } else {
-            const auto &sceneEnt = scene->getEntityWithUuid(node->sceneId);
-            registry.emplace_or_replace<Canvas::Components::SelectedComponent>(sceneEnt);
+            scene->getState().addSelectedComponent(node->sceneId);
         }
     }
 
@@ -551,11 +534,10 @@ namespace Bess::UI {
 
     void ProjectExplorer::groupSelectedNodes() {
         auto scene = Bess::Canvas::Scene::instance();
-        auto &registry = scene->getEnttRegistry();
-        const auto selTagGroup = registry.group<>(entt::get<Canvas::Components::SelectedComponent,
-                                                            Canvas::Components::TagComponent>);
 
-        if (selTagGroup.empty())
+        const auto &selComponents = scene->getState().getSelectedComponents();
+
+        if (selComponents.empty())
             return;
 
         auto res = scene->getCmdManager().execute<Canvas::Commands::CreateGroupCommand, UUID>("New Group");
@@ -563,9 +545,8 @@ namespace Bess::UI {
         if (res.has_value()) {
             UUID groupUUID = res.value();
             // Reparent selected nodes to this group
-            for (const auto &entity : selTagGroup) {
-                UUID entityUUID = scene->getUuidOfEntity(entity);
-                auto id = state.getNodeOfSceneEntt(entityUUID)->nodeId;
+            for (const auto &selId : selComponents | std::views::keys) {
+                auto id = state.getNodeOfSceneEntt(selId)->nodeId;
                 auto cmd = std::make_unique<Canvas::Commands::ReparentNodeCommand>(id, groupUUID);
                 scene->getCmdManager().execute(std::move(cmd));
             }
@@ -575,15 +556,17 @@ namespace Bess::UI {
     void ProjectExplorer::groupOnNets() {
         std::unordered_map<UUID, std::vector<UUID>> netGroups;
         auto scene = Bess::Canvas::Scene::instance();
-        auto &registry = scene->getEnttRegistry();
 
-        auto view = registry.view<Canvas::Components::TagComponent>();
-        view.each([&](const entt::entity entity,
-                      const Canvas::Components::TagComponent &tagComp) {
-            if (tagComp.netId != UUID::null) {
-                netGroups[tagComp.netId].emplace_back(scene->getUuidOfEntity(entity));
+        auto &sceneState = scene->getState();
+        const auto &selComponents = sceneState.getSelectedComponents();
+
+        for (auto &selId : selComponents | std::views::keys) {
+            const auto &comp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(selId);
+            const auto &netId = comp->getNetId();
+            if (netId != UUID::null) {
+                netGroups[netId].emplace_back(netId);
             }
-        });
+        }
 
         state.netIdToNameMap.clear();
         int i = 1;

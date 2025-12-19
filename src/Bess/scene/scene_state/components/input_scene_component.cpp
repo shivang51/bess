@@ -64,7 +64,7 @@ namespace Bess::Canvas {
 
         // Toggle head
         materialRenderer->drawQuad(buttonHeadPos,
-                                   {buttonSize.y, buttonSize.y},
+                                   {buttonSize.y - 1.f, buttonSize.y - 1.f},
                                    ViewportTheme::colors.stateLow,
                                    pickingId,
                                    buttonProps);

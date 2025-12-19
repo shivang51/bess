@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_uuid.h"
 #include "scene/renderer/material_renderer.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -27,6 +28,7 @@ namespace Bess::Canvas {
         REG_SCENE_COMP(SceneComponentType::simulation)
 
         MAKE_GETTER_SETTER(UUID, SimEngineId, m_simEngineId)
+        MAKE_GETTER_SETTER(UUID, NetId, m_netId)
 
       protected:
         // Generates the positions relative to the component position
@@ -44,6 +46,7 @@ namespace Bess::Canvas {
       protected:
         // Associated simulation engine ID
         UUID m_simEngineId = UUID::null;
+        UUID m_netId = UUID::null;
         std::vector<UUID> m_inputSlots;
         std::vector<UUID> m_outputSlots;
     };

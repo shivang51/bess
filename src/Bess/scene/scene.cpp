@@ -374,7 +374,7 @@ namespace Bess::Canvas {
             m_state.attachChild(sceneComp->getUuid(), slot->getUuid());
         }
 
-        // m_dispatcher.trigger(Events::EntityCreatedEvent{uuid, m_registry.create(), true});
+        Events::EventDispatcher::instance().trigger(Events::ComponentCreatedEvent{uuid, true});
         return uuid;
     }
 
@@ -405,7 +405,7 @@ namespace Bess::Canvas {
         }
         BESS_INFO("[Scene] Created Non simulation entity {}", (uint64_t)entity);
         setLastCreatedComp({.nsComponent = comp});
-        m_dispatcher.trigger(Events::EntityCreatedEvent{idComp.uuid, entity, false});
+        Events::EventDispatcher::instance().trigger(Events::ComponentCreatedEvent{idComp.uuid, false});
         return idComp.uuid;
     }
 
@@ -1276,5 +1276,13 @@ namespace Bess::Canvas {
                                  PickingId::invalid());
 
         pathRenderer->endPathMode(false, false, glm::vec4(1.f), true, true);
+    }
+
+    const SceneState &Scene::getState() const {
+        return m_state;
+    }
+
+    SceneState &Scene::getState() {
+        return m_state;
     }
 } // namespace Bess::Canvas

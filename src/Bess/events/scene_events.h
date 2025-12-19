@@ -24,15 +24,14 @@ namespace Bess::Events {
         button7 = 6,
         button8 = 7
     };
-    struct EntityCreatedEvent {
+
+    struct ComponentCreatedEvent {
         UUID uuid;
-        entt::entity entity;
         bool isSimEntity;
     };
 
     struct EntityDestroyedEvent {
         UUID uuid;
-        entt::entity entity;
     };
 
     struct EntityReparentedEvent {

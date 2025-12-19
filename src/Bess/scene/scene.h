@@ -7,7 +7,6 @@
 #include "entt/entity/fwd.hpp"
 #include "entt/entt.hpp"
 #include "events/application_event.h"
-#include "events/event_dispatcher.h"
 #include "events/scene_events.h"
 #include "scene/camera.h"
 #include "scene/components/components.h"
@@ -15,7 +14,6 @@
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/scene_state.h"
 #include "scene/viewport.h"
-#include <chrono>
 #include <memory>
 #include <vulkan/vulkan_core.h>
 
@@ -26,12 +24,12 @@ namespace Bess::Canvas {
 
 namespace Bess::Canvas {
 
-    enum class SceneMode {
+    enum class SceneMode : uint8_t {
         general,
         move
     };
 
-    enum class SceneDrawMode {
+    enum class SceneDrawMode : uint8_t {
         none,
         connection,
         selectionBox
@@ -69,6 +67,9 @@ namespace Bess::Canvas {
         void drawSceneToViewport(const std::shared_ptr<Viewport> &viewport);
 
         void saveScenePNG(const std::string &path) const;
+
+        const SceneState &getState() const;
+        SceneState &getState();
 
       public:
         void updateNetsFromSimEngine();
@@ -110,7 +111,6 @@ namespace Bess::Canvas {
         void setZCoord(float val);
 
         SimEngine::Commands::CommandsManager &getCmdManager();
-        Bess::Events::EventDispatcher &getEventDispatcher() { return m_dispatcher; }
 
         UUID generateBasicConnection(entt::entity inputSlot, entt::entity outputSlot);
         UUID connectSlots(UUID startSlot, UUID endSlot);
@@ -133,7 +133,7 @@ namespace Bess::Canvas {
 
         void setLastCreatedComp(LastCreatedComponent comp);
 
-        void removeConnectionEntt(const entt::entity ent);
+        void removeConnectionEntt(entt::entity ent);
         void updatePickingId();
 
         void onMouseMove(const glm::vec2 &pos);
@@ -210,14 +210,12 @@ namespace Bess::Canvas {
             int inputCount, outputCount;
         };
 
-        std::vector<CopiedComponent> m_copiedComponents = {};
+        std::vector<CopiedComponent> m_copiedComponents;
 
         SimEngine::Commands::CommandsManager m_cmdManager;
 
         VkExtent2D vec2Extent2D(const glm::vec2 &vec);
 
         bool m_isDestroyed = false;
-
-        Bess::Events::EventDispatcher m_dispatcher;
     };
 } // namespace Bess::Canvas

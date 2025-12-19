@@ -18,7 +18,7 @@ namespace Bess::Canvas::Commands {
             m_firstRun = false;
         }
 
-        scene->getEventDispatcher().trigger(Events::EntityReparentedEvent{m_entityId, m_newParentId});
+        // scene->getEventDispatcher().trigger(Events::EntityReparentedEvent{m_entityId, m_newParentId});
 
         return true;
     }
@@ -27,7 +27,7 @@ namespace Bess::Canvas::Commands {
         auto scene = Scene::instance();
 
         UI::ProjectExplorer::state.moveNode(m_entityId, m_oldParentId);
-        scene->getEventDispatcher().trigger(Events::EntityReparentedEvent{m_entityId, m_oldParentId});
+        // scene->getEventDispatcher().trigger(Events::EntityReparentedEvent{m_entityId, m_oldParentId});
 
         return {};
     }

@@ -1,4 +1,5 @@
 #include "scene/scene_state/components/slot_scene_component.h"
+#include "events/event_dispatcher.h"
 #include "scene/scene_state/components/sim_scene_component.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "simulation_engine.h"

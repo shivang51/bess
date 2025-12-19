@@ -2,7 +2,6 @@
 #include "bess_uuid.h"
 #include "common/log.h"
 #include "json/value.h"
-#include <cstdint>
 
 namespace Bess::UI {
     void ProjectExplorerState::reset() {

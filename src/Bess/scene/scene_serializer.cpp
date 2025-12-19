@@ -88,7 +88,7 @@ namespace Bess {
             if (isSim || isNS) {
                 if (registry.any_of<IdComponent>(entity)) {
                     UUID uuid = registry.get<IdComponent>(entity).uuid;
-                    Canvas::Scene::instance()->getEventDispatcher().trigger(Events::EntityCreatedEvent{uuid, entity, isSim});
+                    // Canvas::Scene::instance()->getEventDispatcher().trigger(Events::ComponentCreatedEvent{uuid, entity, isSim});
                 }
             }
         }
