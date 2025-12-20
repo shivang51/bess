@@ -6,6 +6,7 @@
 namespace Bess::Canvas {
     class InputSceneComponent : public SimulationSceneComponent {
       public:
+        static constexpr const char *subType = "InputSceneComponent";
         InputSceneComponent() = default;
         ~InputSceneComponent() override = default;
 
@@ -30,3 +31,8 @@ namespace Bess::Canvas {
         void onMouseButton(const Events::MouseButtonEvent &e) override;
     };
 } // namespace Bess::Canvas
+
+namespace Bess::JsonConvert {
+    void toJsonValue(const Bess::Canvas::InputSceneComponent &component, Json::Value &j);
+    void fromJsonValue(const Json::Value &j, Bess::Canvas::InputSceneComponent &component);
+} // namespace Bess::JsonConvert

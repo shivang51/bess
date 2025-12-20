@@ -173,3 +173,59 @@ namespace Bess::Canvas {
         return m_outputSlots.size();
     }
 } // namespace Bess::Canvas
+
+namespace Bess::JsonConvert {
+    void toJsonValue(const Bess::Canvas::SimulationSceneComponent &component, Json::Value &j) {
+        toJsonValue(component.cast<Canvas::SceneComponent>(), j);
+        toJsonValue(component.getSimEngineId(), j["simEngineId"]);
+        toJsonValue(component.getNetId(), j["netId"]);
+
+        for (size_t i = 0; i < component.getInputSlotsCount(); i++) {
+            j["inputSlots"].append(Json::Value());
+            toJsonValue(component.getInputSlots()[i],
+                        j["inputSlots"][static_cast<int>(i)]);
+        }
+
+        for (size_t i = 0; i < component.getOutputSlotsCount(); i++) {
+            j["outputSlots"].append(Json::Value());
+            toJsonValue(component.getOutputSlots()[i],
+                        j["outputSlots"][static_cast<int>(i)]);
+        }
+    }
+
+    void fromJsonValue(const Json::Value &j, Bess::Canvas::SimulationSceneComponent &component) {
+
+        fromJsonValue(j, (Canvas::SceneComponent &)component);
+
+        if (j.isMember("simEngineId")) {
+            UUID simEngineId;
+            fromJsonValue(j["simEngineId"], simEngineId);
+            component.setSimEngineId(simEngineId);
+        }
+
+        if (j.isMember("netId")) {
+            UUID netId;
+            fromJsonValue(j["netId"], netId);
+            component.setNetId(netId);
+        }
+
+        if (j.isMember("inputSlots") && j["inputSlots"].isArray()) {
+            component.getInputSlots().clear();
+            for (const auto &slotJson : j["inputSlots"]) {
+                UUID slotId;
+                fromJsonValue(slotJson, slotId);
+                component.getInputSlots().push_back(slotId);
+            }
+        }
+
+        if (j.isMember("outputSlots") && j["outputSlots"].isArray()) {
+            component.getOutputSlots().clear();
+            for (const auto &slotJson : j["outputSlots"]) {
+                UUID slotId;
+                fromJsonValue(slotJson, slotId);
+                component.getOutputSlots().push_back(slotId);
+            }
+        }
+    }
+
+} // namespace Bess::JsonConvert

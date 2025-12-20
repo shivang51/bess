@@ -29,6 +29,8 @@ namespace Bess::Canvas {
 
         MAKE_GETTER_SETTER(UUID, SimEngineId, m_simEngineId)
         MAKE_GETTER_SETTER(UUID, NetId, m_netId)
+        MAKE_GETTER_SETTER(std::vector<UUID>, InputSlots, m_inputSlots)
+        MAKE_GETTER_SETTER(std::vector<UUID>, OutputSlots, m_outputSlots)
 
         size_t getInputSlotsCount() const;
         size_t getOutputSlotsCount() const;
@@ -54,3 +56,8 @@ namespace Bess::Canvas {
         std::vector<UUID> m_outputSlots;
     };
 } // namespace Bess::Canvas
+
+namespace Bess::JsonConvert {
+    void toJsonValue(const Bess::Canvas::SimulationSceneComponent &component, Json::Value &j);
+    void fromJsonValue(const Json::Value &j, Bess::Canvas::SimulationSceneComponent &component);
+} // namespace Bess::JsonConvert

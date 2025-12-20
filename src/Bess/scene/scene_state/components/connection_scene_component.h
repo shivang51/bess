@@ -5,18 +5,9 @@
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
+#include "scene/scene_state/components/types.h"
 
 namespace Bess::Canvas {
-
-    enum class ConnSegOrientaion : uint8_t {
-        horizontal,
-        vertical
-    };
-
-    struct ConnSegment {
-        glm::vec2 offset;
-        ConnSegOrientaion orientation = ConnSegOrientaion::horizontal;
-    };
 
     class ConnectionSceneComponent : public SceneComponent,
                                      public DragBehaviour<ConnectionSceneComponent> {
@@ -43,6 +34,7 @@ namespace Bess::Canvas {
 
         MAKE_GETTER_SETTER(UUID, StartSlot, m_startSlot)
         MAKE_GETTER_SETTER(UUID, EndSlot, m_endSlot)
+        MAKE_GETTER_SETTER(std::vector<ConnSegment>, Segments, m_segments)
 
         void setStartEndSlots(const UUID &startSlot, const UUID &endSlot);
 
@@ -60,3 +52,8 @@ namespace Bess::Canvas {
         int m_hoveredSegIdx = -1;
     };
 } // namespace Bess::Canvas
+
+namespace Bess::JsonConvert {
+    void toJsonValue(const Bess::Canvas::ConnectionSceneComponent &component, Json::Value &j);
+    void fromJsonValue(const Json::Value &j, Bess::Canvas::ConnectionSceneComponent &component);
+} // namespace Bess::JsonConvert

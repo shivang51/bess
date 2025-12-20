@@ -134,3 +134,14 @@ namespace Bess::Canvas {
                                         : SimEngine::LogicState::high);
     }
 } // namespace Bess::Canvas
+
+namespace Bess::JsonConvert {
+    void toJsonValue(const Bess::Canvas::InputSceneComponent &component, Json::Value &j) {
+        toJsonValue(component.cast<Canvas::SimulationSceneComponent>(), j);
+        j["subType"] = "InputSceneComponent";
+    }
+
+    void fromJsonValue(const Json::Value &j, Bess::Canvas::InputSceneComponent &component) {
+        fromJsonValue(j, (Canvas::SimulationSceneComponent &)component);
+    }
+} // namespace Bess::JsonConvert

@@ -57,10 +57,10 @@ namespace Bess::Canvas {
         return {width, Styles::componentStyles.headerHeight};
     }
 
-    void SceneComponent::onFirstDraw(SceneState &,
+    void SceneComponent::onFirstDraw(SceneState &_,
                                      std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                      std::shared_ptr<PathRenderer> /*unused*/) {
-        setScale(calculateScale(materialRenderer));
+        setScale(calculateScale(std::move(materialRenderer)));
         m_isFirstDraw = false;
     }
 
@@ -89,3 +89,56 @@ namespace Bess::Canvas {
         return parentComp->getAbsolutePosition(state) + m_transform.position;
     }
 } // namespace Bess::Canvas
+
+namespace Bess::JsonConvert {
+    void toJsonValue(const Bess::Canvas::SceneComponent &component, Json::Value &j) {
+        toJsonValue(component.getTransform(), j["transform"]);
+        toJsonValue(component.getStyle(), j["style"]);
+        toJsonValue(component.getUuid(), j["uuid"]);
+        toJsonValue(component.getParentComponent(), j["parentComponent"]);
+        j["name"] = component.getName();
+        j["childComponents"] = Json::Value(Json::arrayValue);
+        j["type"] = static_cast<int>(component.getType());
+        for (const auto &childUuid : component.getChildComponents()) {
+            Json::Value childJson;
+            toJsonValue(childUuid, childJson);
+            j["childComponents"].append(childJson);
+        }
+    }
+
+    void fromJsonValue(const Json::Value &j, Bess::Canvas::SceneComponent &component) {
+        if (j.isMember("transform")) {
+            fromJsonValue(j["transform"], component.getTransform());
+        }
+
+        if (j.isMember("style")) {
+            fromJsonValue(j["style"], component.getStyle());
+        }
+
+        if (j.isMember("uuid")) {
+            UUID uuid;
+            fromJsonValue(j["uuid"], uuid);
+            component.setUuid(uuid);
+        }
+
+        if (j.isMember("parentComponent")) {
+            UUID parentUuid;
+            fromJsonValue(j["parentComponent"], parentUuid);
+            component.setParentComponent(parentUuid);
+        }
+
+        if (j.isMember("name")) {
+            component.setName(j["name"].asString());
+        }
+
+        if (j.isMember("childComponents") && j["childComponents"].isArray()) {
+            std::vector<UUID> childUuids;
+            for (const auto &childJson : j["childComponents"]) {
+                UUID childUuid;
+                fromJsonValue(childJson, childUuid);
+                childUuids.push_back(childUuid);
+            }
+            component.setChildComponents(childUuids);
+        }
+    }
+} // namespace Bess::JsonConvert

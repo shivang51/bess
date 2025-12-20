@@ -1,6 +1,8 @@
 #include "application/window.h"
 
 #include "common/log.h"
+#include "stb_image.h"
+#include <GLFW/glfw3.h>
 #include <cassert>
 #include <cstdint>
 #include <memory>
@@ -21,6 +23,13 @@ namespace Bess {
 #endif
 
         GLFWwindow *window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
+
+        GLFWimage images[1];
+        images[0].pixels = stbi_load("assets/images/logo/BessLogo.png",
+                                     &images[0].width,
+                                     &images[0].height, 0, 4); // rgba channels
+        glfwSetWindowIcon(window, 1, images);
+        stbi_image_free(images[0].pixels);
 
 #ifdef _WIN32
         SetCurrentProcessExplicitAppUserModelID(L"com.shivang.bess");
@@ -149,6 +158,8 @@ namespace Bess {
         const auto res = glfwInit();
         assert(res == GLFW_TRUE);
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
+        glfwWindowHint(GLFW_SCALE_FRAMEBUFFER, GLFW_TRUE);
         glfwWindowHint(GLFW_MAXIMIZED, 1);
         isGLFWInitialized = true;
     }

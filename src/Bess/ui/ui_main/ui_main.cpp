@@ -45,6 +45,18 @@ namespace Bess::UI {
 
         drawStatusbar();
         drawExternalWindows();
+
+        return;
+        ImGui::Begin("Scene State JSON");
+        static std::string sceneJson;
+        if (ImGui::Button("Refresh")) {
+            Json::Value j;
+            JsonConvert::toJsonValue(Canvas::Scene::instance()->getState(), j);
+            sceneJson = j.toStyledString();
+        }
+        ImGui::InputTextMultiline("##scenejson", sceneJson.data(), sceneJson.size(),
+                                  ImVec2(-1, -1), ImGuiInputTextFlags_ReadOnly);
+        ImGui::End();
     }
 
     void UIMain::setViewportTexture(const uint64_t texture) {

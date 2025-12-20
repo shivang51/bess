@@ -192,3 +192,27 @@ namespace Bess::Canvas {
         m_hoveredSegIdx = -1;
     }
 } // namespace Bess::Canvas
+
+namespace Bess::JsonConvert {
+    void toJsonValue(const Bess::Canvas::ConnectionSceneComponent &component, Json::Value &j) {
+        toJsonValue(static_cast<const Bess::Canvas::SceneComponent &>(component), j);
+        toJsonValue(component.getStartSlot(), j["startSlot"]);
+        toJsonValue(component.getEndSlot(), j["endSlot"]);
+
+        j["segments"] = Json::Value(Json::arrayValue);
+        for (const auto &segment : component.getSegments()) {
+            Json::Value segJson;
+            toJsonValue(segment, segJson);
+            j["segments"].append(segJson);
+        }
+    }
+
+    void fromJsonValue(const Json::Value &j, Bess::Canvas::ConnectionSceneComponent &component) {
+        fromJsonValue(j, static_cast<Bess::Canvas::SceneComponent &>(component));
+        if (j.isMember("startSlot")) {
+            UUID startSlot;
+            fromJsonValue(j["startSlot"], startSlot);
+            component.setStartSlot(startSlot);
+        }
+    }
+} // namespace Bess::JsonConvert

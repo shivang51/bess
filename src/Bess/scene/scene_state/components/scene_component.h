@@ -4,6 +4,8 @@
 #include "scene/renderer/material_renderer.h"
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_state/components/behaviours/mouse_behaviour.h"
+#include "scene/scene_state/components/types.h"
+#include "json/value.h"
 
 namespace Bess::Canvas {
 #define REG_SCENE_COMP(type) \
@@ -24,78 +26,9 @@ namespace Bess::Canvas {
     }                                                 \
     type &get##name() { return varName; }
 
-    enum class SceneComponentType : uint8_t {
-        simulation,
-        slot,
-        nonSimulation,
-        connection,
-    };
-
-    class Transform {
-      public:
-        Transform() = default;
-        Transform(const Transform &other) = default;
-
-        glm::mat4 getTransform() const;
-
-        operator glm::mat4() const { return getTransform(); }
-
-        glm::vec3 position = {0.f, 0.f, 0.f};
-        glm::vec2 scale = {1.f, 1.f};
-        float angle = 0.f;
-    };
-
-    class Style {
-      public:
-        Style() = default;
-        Style(const Style &other) = default;
-
-        glm::vec4 color = glm::vec4(1.f);
-        glm::vec4 borderColor = glm::vec4(1.f);
-        glm::vec4 borderSize = glm::vec4(0.f);
-        glm::vec4 borderRadius = glm::vec4(0.f);
-        glm::vec4 headerColor = glm::vec4(0.2f, 0.2f, 0.2f, 1.f);
-    };
-
     using PathRenderer = Renderer2D::Vulkan::PathRenderer;
 
     class SceneState;
-
-    struct PickingId {
-        uint32_t runtimeId;
-        uint32_t info;
-
-        static constexpr uint32_t invalidRuntimeId = std::numeric_limits<uint32_t>::max();
-
-        static constexpr PickingId invalid() noexcept {
-            return {invalidRuntimeId, 0};
-        }
-
-        constexpr bool operator==(const PickingId &other) const noexcept {
-            return runtimeId == other.runtimeId && info == other.info;
-        }
-
-        constexpr bool isValid() const noexcept {
-            return runtimeId != invalidRuntimeId;
-        }
-
-        constexpr uint64_t toUint64() const noexcept {
-            return (static_cast<uint64_t>(runtimeId) << 32) | static_cast<uint64_t>(info);
-        }
-
-        constexpr operator uint64_t() const noexcept { return toUint64(); }
-
-        static constexpr PickingId fromUint64(uint64_t value) noexcept {
-            return {
-                static_cast<uint32_t>(value >> 32),
-                static_cast<uint32_t>(value & 0xFFFFFFFF)};
-        }
-
-        void set(uint64_t value) {
-            runtimeId = static_cast<uint32_t>(value >> 32);
-            info = static_cast<uint32_t>(value & 0xFFFFFFFF);
-        }
-    };
 
     class SceneComponent : public std::enable_shared_from_this<SceneComponent>,
                            public MouseBehaviour<SceneComponent> {
@@ -128,6 +61,11 @@ namespace Bess::Canvas {
         template <typename T>
         std::shared_ptr<T> cast() {
             return std::static_pointer_cast<T>(shared_from_this());
+        }
+
+        template <typename T>
+        const T &cast() const {
+            return static_cast<const T &>(*this);
         }
 
         void addChildComponent(const UUID &uuid);
@@ -167,3 +105,8 @@ namespace Bess::Canvas {
         std::vector<UUID> m_childComponents;
     };
 } // namespace Bess::Canvas
+
+namespace Bess::JsonConvert {
+    void toJsonValue(const Bess::Canvas::SceneComponent &component, Json::Value &j);
+    void fromJsonValue(const Json::Value &j, Bess::Canvas::SceneComponent &component);
+} // namespace Bess::JsonConvert

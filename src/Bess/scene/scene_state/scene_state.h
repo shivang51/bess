@@ -82,3 +82,8 @@ namespace Bess::Canvas {
         std::set<uint32_t> m_freeRuntimeIds;
     };
 } // namespace Bess::Canvas
+
+namespace Bess::JsonConvert {
+    void toJsonValue(const Bess::Canvas::SceneState &state, Json::Value &j);
+    void fromJsonValue(const Json::Value &j, Bess::Canvas::SceneState &state);
+} // namespace Bess::JsonConvert

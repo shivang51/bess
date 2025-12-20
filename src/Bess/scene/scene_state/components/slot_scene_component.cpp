@@ -119,3 +119,29 @@ namespace Bess::Canvas {
     }
 
 } // namespace Bess::Canvas
+
+namespace Bess::JsonConvert {
+    void toJsonValue(const Bess::Canvas::SlotSceneComponent &component, Json::Value &j) {
+        toJsonValue(static_cast<const Bess::Canvas::SceneComponent &>(component), j);
+
+        j["slotType"] = static_cast<uint8_t>(component.getSlotType());
+        j["simEngineId"] = static_cast<uint64_t>(component.getSimEngineId());
+        j["index"] = component.getIndex();
+    }
+
+    void fromJsonValue(const Json::Value &j, Bess::Canvas::SlotSceneComponent &component) {
+        fromJsonValue(j, static_cast<Bess::Canvas::SceneComponent &>(component));
+
+        if (j.isMember("slotType")) {
+            component.setSlotType(static_cast<Bess::Canvas::SlotType>(j["slotType"].asUInt()));
+        }
+
+        if (j.isMember("simEngineId")) {
+            component.setSimEngineId(UUID(j["simEngineId"].asUInt64()));
+        }
+
+        if (j.isMember("index")) {
+            component.setIndex(j["index"].asInt());
+        }
+    }
+} // namespace Bess::JsonConvert
