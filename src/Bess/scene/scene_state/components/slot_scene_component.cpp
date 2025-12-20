@@ -8,12 +8,10 @@
 namespace Bess::Canvas {
     SlotSceneComponent::SlotSceneComponent(UUID uuid)
         : SceneComponent(uuid) {
-        m_type = SceneComponentType::slot;
     }
 
     SlotSceneComponent::SlotSceneComponent(UUID uuid, const Transform &transform)
         : SceneComponent(uuid, transform) {
-        m_type = SceneComponentType::slot;
     }
 
     void SlotSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {

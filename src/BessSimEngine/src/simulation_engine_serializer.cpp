@@ -11,12 +11,12 @@ namespace Bess::SimEngine {
     }
 
     void SimEngineSerializer::simulateClockedComponents() {
-        const auto &registry = SimEngine::SimulationEngine::instance().m_registry;
-        auto view = registry.view<SimEngine::ClockComponent>();
-
-        for (auto entt : view) {
-            SimulationEngine::instance().scheduleEvent(entt, entt::null, SimulationEngine::instance().m_currentSimTime);
-        }
+        // const auto &registry = SimEngine::SimulationEngine::instance().m_registry;
+        // auto view = registry.view<SimEngine::ClockComponent>();
+        //
+        // for (auto entt : view) {
+        //     SimulationEngine::instance().scheduleEvent(entt, entt::null, SimulationEngine::instance().m_currentSimTime);
+        // }
     }
 
     void SimEngineSerializer::deserializeFromPath(const std::string &path) {

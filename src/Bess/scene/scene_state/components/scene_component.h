@@ -9,7 +9,7 @@
 
 namespace Bess::Canvas {
 #define REG_SCENE_COMP(type) \
-    const SceneComponentType getStaticType() const { return type; }
+    SceneComponentType getType() const override { return type; }
 
 #define MAKE_GETTER_SETTER_WC(type, name, varName, onChange) \
     const type &get##name() const { return varName; }        \
@@ -56,7 +56,9 @@ namespace Bess::Canvas {
         void setPosition(const glm::vec3 &pos);
         void setScale(const glm::vec2 &scale);
 
-        SceneComponentType getType() const;
+        virtual SceneComponentType getType() const {
+            return SceneComponentType::nonSimulation;
+        }
 
         template <typename T>
         std::shared_ptr<T> cast() {
@@ -94,7 +96,6 @@ namespace Bess::Canvas {
         uint32_t m_runtimeId = PickingId::invalidRuntimeId; // assigned during rendering for picking
         Transform m_transform;
         Style m_style;
-        SceneComponentType m_type = SceneComponentType::nonSimulation;
         std::string m_name;
 
         bool m_isDraggable = false;

@@ -105,51 +105,51 @@ namespace Bess::UI {
     }
 
     void PropertiesPanel::draw() {
-        if (!isShown)
-            return;
-
-        ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
-
-        auto &registry = Canvas::Scene::instance()->getEnttRegistry();
-        const auto view = registry.view<SelectedComponent>();
-
-        if (view.size() == 0) {
-            ImGui::Text("No Component Selected");
-            ImGui::End();
-            return;
-        }
-
-        const auto entt = view.front();
-        if (!registry.valid(entt)) {
-            ImGui::End();
-            return;
-        }
-
-        if (registry.all_of<TagComponent>(entt)) {
-            drawTagComponent(registry.get<TagComponent>(entt));
-        }
-
-        if (registry.all_of<SimulationOutputComponent>(entt)) {
-            drawSimulationOutputComponent(registry.get<SimulationOutputComponent>(entt));
-        }
-
-        if (registry.all_of<SimulationInputComponent>(entt)) {
-            const auto simulationComp = registry.get<SimulationComponent>(entt);
-            drawSimulationInputComponent(registry.get<SimulationInputComponent>(entt), simulationComp.simEngineEntity);
-        }
-
-        if (registry.all_of<ConnectionComponent>(entt)) {
-            auto &connectionComponent = registry.get<ConnectionComponent>(entt);
-            Widgets::CheckboxWithLabel("Use Custom Color", &connectionComponent.useCustomColor);
-            if (connectionComponent.useCustomColor) {
-                drawSpriteComponent(registry.get<SpriteComponent>(entt));
-            }
-        }
-
-        if (registry.all_of<TextNodeComponent>(entt)) {
-            drawTextNodeComponent(registry.get<TextNodeComponent>(entt));
-        }
-
-        ImGui::End();
+        // if (!isShown)
+        //     return;
+        //
+        // ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
+        //
+        // auto &registry = Canvas::Scene::instance()->getEnttRegistry();
+        // const auto view = registry.view<SelectedComponent>();
+        //
+        // if (view.size() == 0) {
+        //     ImGui::Text("No Component Selected");
+        //     ImGui::End();
+        //     return;
+        // }
+        //
+        // const auto entt = view.front();
+        // if (!registry.valid(entt)) {
+        //     ImGui::End();
+        //     return;
+        // }
+        //
+        // if (registry.all_of<TagComponent>(entt)) {
+        //     drawTagComponent(registry.get<TagComponent>(entt));
+        // }
+        //
+        // if (registry.all_of<SimulationOutputComponent>(entt)) {
+        //     drawSimulationOutputComponent(registry.get<SimulationOutputComponent>(entt));
+        // }
+        //
+        // if (registry.all_of<SimulationInputComponent>(entt)) {
+        //     const auto simulationComp = registry.get<SimulationComponent>(entt);
+        //     drawSimulationInputComponent(registry.get<SimulationInputComponent>(entt), simulationComp.simEngineEntity);
+        // }
+        //
+        // if (registry.all_of<ConnectionComponent>(entt)) {
+        //     auto &connectionComponent = registry.get<ConnectionComponent>(entt);
+        //     Widgets::CheckboxWithLabel("Use Custom Color", &connectionComponent.useCustomColor);
+        //     if (connectionComponent.useCustomColor) {
+        //         drawSpriteComponent(registry.get<SpriteComponent>(entt));
+        //     }
+        // }
+        //
+        // if (registry.all_of<TextNodeComponent>(entt)) {
+        //     drawTextNodeComponent(registry.get<TextNodeComponent>(entt));
+        // }
+        //
+        // ImGui::End();
     }
 } // namespace Bess::UI

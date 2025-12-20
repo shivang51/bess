@@ -761,11 +761,6 @@ namespace Bess::Canvas {
         m_camera->setZoom(value);
     }
 
-    entt::registry &Scene::getEnttRegistry() {
-        static auto reg = entt::registry();
-        return reg;
-    }
-
     float Scene::getNextZCoord() {
         const float z = m_compZCoord;
         m_compZCoord += m_zIncrement;

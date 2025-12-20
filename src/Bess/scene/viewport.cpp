@@ -369,10 +369,6 @@ namespace Bess::Canvas {
         m_pickingStagingBufferSize = newSize;
     }
 
-    entt::registry &Viewport::getEnttRegistry() {
-        return Scene::instance()->getEnttRegistry();
-    }
-
     std::shared_ptr<ArtistManager> Viewport::getArtistManager() {
         return m_artistManager;
     }

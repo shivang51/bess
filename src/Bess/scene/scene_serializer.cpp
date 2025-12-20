@@ -15,17 +15,14 @@ namespace Bess {
     }
 
     void SceneSerializer::serializeToPath(const std::string &path, int indent) {
-        EnttRegistrySerializer::serializeToPath(Canvas::Scene::instance()->getEnttRegistry(), path, indent);
     }
 
     void SceneSerializer::deserializeFromPath(const std::string &path) {
-        auto &reg = Canvas::Scene::instance()->getEnttRegistry();
-        reg.clear();
-        EnttRegistrySerializer::deserializeFromPath(reg, path);
     }
 
     void SceneSerializer::serialize(Json::Value &j) {
-        EnttRegistrySerializer::serialize(Canvas::Scene::instance()->getEnttRegistry(), j);
+        const auto &state = Canvas::Scene::instance()->getState();
+        JsonConvert::toJsonValue(state, j["scene_state"]);
     }
 
     void SceneSerializer::serializeEntity(UUID uid, Json::Value &j) {
@@ -65,51 +62,49 @@ namespace Bess {
 
         auto scene = Canvas::Scene::instance();
         scene->clear();
+        auto &state = scene->getState();
+        JsonConvert::fromJsonValue(json["scene_state"], state);
 
-        auto &reg = scene->getEnttRegistry();
-        EnttRegistrySerializer::deserialize(reg, json);
-
-        for (auto entity : reg.view<TransformComponent>()) {
-            const auto &transform = reg.get<TransformComponent>(entity);
-            m_maxZ = std::max(transform.position.z, m_maxZ);
+        for (const auto &[uuid, comp] : state.getAllComponents()) {
+            m_maxZ = std::max(comp->getTransform().position.z, m_maxZ);
         }
 
         scene->setZCoord(m_maxZ);
     }
 
     void SceneSerializer::deserializeEntity(const Json::Value &json) {
-        auto &registry = Canvas::Scene::instance()->getEnttRegistry();
-        entt::entity entity = EnttRegistrySerializer::deserializeEntity(registry, json["components"]);
-
-        if (registry.valid(entity)) {
-            bool isSim = registry.any_of<SimulationComponent>(entity);
-            bool isNS = registry.any_of<NSComponent>(entity);
-
-            if (isSim || isNS) {
-                if (registry.any_of<IdComponent>(entity)) {
-                    UUID uuid = registry.get<IdComponent>(entity).uuid;
-                    // Canvas::Scene::instance()->getEventDispatcher().trigger(Events::ComponentCreatedEvent{uuid, entity, isSim});
-                }
-            }
-        }
-
-        if (json.isMember("slots")) {
-            for (auto &slot : json["slots"]) {
-                deserializeEntity(slot);
-            }
-        }
-
-        if (json.isMember("connections")) {
-            for (auto &conn : json["connections"]) {
-                deserializeEntity(conn);
-            }
-        }
-
-        if (json.isMember("segments")) {
-            for (auto &seg : json["segments"]) {
-                deserializeEntity(seg);
-            }
-        }
+        // auto &registry = Canvas::Scene::instance()->getEnttRegistry();
+        // entt::entity entity = EnttRegistrySerializer::deserializeEntity(registry, json["components"]);
+        //
+        // if (registry.valid(entity)) {
+        //     bool isSim = registry.any_of<SimulationComponent>(entity);
+        //     bool isNS = registry.any_of<NSComponent>(entity);
+        //
+        //     if (isSim || isNS) {
+        //         if (registry.any_of<IdComponent>(entity)) {
+        //             UUID uuid = registry.get<IdComponent>(entity).uuid;
+        //             // Canvas::Scene::instance()->getEventDispatcher().trigger(Events::ComponentCreatedEvent{uuid, entity, isSim});
+        //         }
+        //     }
+        // }
+        //
+        // if (json.isMember("slots")) {
+        //     for (auto &slot : json["slots"]) {
+        //         deserializeEntity(slot);
+        //     }
+        // }
+        //
+        // if (json.isMember("connections")) {
+        //     for (auto &conn : json["connections"]) {
+        //         deserializeEntity(conn);
+        //     }
+        // }
+        //
+        // if (json.isMember("segments")) {
+        //     for (auto &seg : json["segments"]) {
+        //         deserializeEntity(seg);
+        //     }
+        // }
     }
 
     void SceneSerializer::registerAll() {

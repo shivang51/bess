@@ -28,10 +28,6 @@ namespace Bess::Canvas {
         m_transform.scale = scale;
     }
 
-    SceneComponentType SceneComponent::getType() const {
-        return m_type;
-    }
-
     void SceneComponent::setIsDraggable(bool draggable) {
         m_isDraggable = draggable;
     }

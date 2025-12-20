@@ -263,42 +263,43 @@ namespace Bess::Canvas {
     }
 
     ArtistCompSchematicInfo SchematicArtist::getCompSchematicInfo(entt::entity ent, float width, float height) const {
-        const auto &reg = Scene::instance()->getEnttRegistry();
-        const auto &tagComp = reg.get<Components::TagComponent>(ent);
-        const auto &simComp = reg.get<Components::SimulationComponent>(ent);
-        const auto &transform = reg.get<Components::TransformComponent>(ent);
-        const auto &pos = transform.position;
-
-        const size_t n = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
-        const float h = height == -1.f
-                            ? (SCHEMATIC_VIEW_PIN_ROW_SIZE * (float)n) + (schematicCompStyles.paddingY * 2.f)
-                            : height;
-
-        float w = width == -1.f ? h * 1.2f : width;
-        float x = pos.x - (w / 2), x1 = pos.x + (w / 2);
-        constexpr float negCircleOff = schematicCompStyles.negCircleOff;
-
-        ArtistCompSchematicInfo info;
-
-        info.outPinStart = x1;
-
-        auto labelW = m_materialRenderer->getTextRenderSize(tagComp.name,
-                                                            schematicCompStyles.nameFontSize)
-                          .x +
-                      (componentStyles.paddingX * 2.f);
-
-        w = width == -1.f ? labelW : std::max(w, labelW);
-
-        x = pos.x - (w / 2), x1 = pos.x + (w / 2);
-
-        info.inpPinStart = x;
-        info.outPinStart = x1;
-        info.inpConnStart = info.inpPinStart - schematicCompStyles.pinSize;
-        info.outConnStart = info.outPinStart + schematicCompStyles.pinSize;
-        info.width = w;
-        info.height = h;
-
-        return info;
+        return {};
+        // const auto &reg = Scene::instance()->getEnttRegistry();
+        // const auto &tagComp = reg.get<Components::TagComponent>(ent);
+        // const auto &simComp = reg.get<Components::SimulationComponent>(ent);
+        // const auto &transform = reg.get<Components::TransformComponent>(ent);
+        // const auto &pos = transform.position;
+        //
+        // const size_t n = std::max(simComp.inputSlots.size(), simComp.outputSlots.size());
+        // const float h = height == -1.f
+        //                     ? (SCHEMATIC_VIEW_PIN_ROW_SIZE * (float)n) + (schematicCompStyles.paddingY * 2.f)
+        //                     : height;
+        //
+        // float w = width == -1.f ? h * 1.2f : width;
+        // float x = pos.x - (w / 2), x1 = pos.x + (w / 2);
+        // constexpr float negCircleOff = schematicCompStyles.negCircleOff;
+        //
+        // ArtistCompSchematicInfo info;
+        //
+        // info.outPinStart = x1;
+        //
+        // auto labelW = m_materialRenderer->getTextRenderSize(tagComp.name,
+        //                                                     schematicCompStyles.nameFontSize)
+        //                   .x +
+        //               (componentStyles.paddingX * 2.f);
+        //
+        // w = width == -1.f ? labelW : std::max(w, labelW);
+        //
+        // x = pos.x - (w / 2), x1 = pos.x + (w / 2);
+        //
+        // info.inpPinStart = x;
+        // info.outPinStart = x1;
+        // info.inpConnStart = info.inpPinStart - schematicCompStyles.pinSize;
+        // info.outConnStart = info.outPinStart + schematicCompStyles.pinSize;
+        // info.width = w;
+        // info.height = h;
+        //
+        // return info;
     }
 
     ArtistCompSchematicInfo SchematicArtist::getCompSchematicInfo(const UUID uuid) const {

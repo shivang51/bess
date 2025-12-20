@@ -182,41 +182,41 @@ namespace Bess::Canvas {
     }
 
     void BaseArtist::drawNonSimEntity(entt::entity entity) {
-        auto &registry = Scene::instance()->getEnttRegistry();
-        const auto &tagComp = registry.get<Components::TagComponent>(entity);
-        const bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
-
-        const uint64_t id = static_cast<uint64_t>(entity);
-
-        switch (tagComp.type.nsCompType) {
-        case Components::NSComponentType::text: {
-            const auto &textComp = registry.get<Components::TextNodeComponent>(entity);
-            const auto &transformComp = registry.get<Components::TransformComponent>(entity);
-            auto pos = transformComp.position;
-            const auto rotation = transformComp.angle;
-            m_materialRenderer->drawText(textComp.text, pos, textComp.fontSize, textComp.color, id, rotation);
-
-            if (isSelected) {
-                const Renderer::QuadRenderProperties props{
-                    .angle = rotation,
-                    .borderColor = ViewportTheme::colors.selectedComp,
-                    .borderRadius = glm::vec4(4.f),
-                    .borderSize = glm::vec4(1.f),
-                    .isMica = true,
-                };
-                auto size = m_materialRenderer->getTextRenderSize(textComp.text, textComp.fontSize);
-                pos.x += size.x * 0.5f;
-                pos.y -= size.y * 0.25f;
-                pos.z -= 0.0005f;
-                size.x += componentStyles.paddingX * 2.f;
-                size.y += componentStyles.paddingY * 2.f;
-                m_materialRenderer->drawQuad(pos, size, ViewportTheme::colors.componentBG, id, props);
-            }
-        } break;
-        default:
-            BESS_ERROR("[BaseArtist] Tried to draw a non-simulation component with type: {}", tagComp.type.typeId);
-            break;
-        }
+        // auto &registry = Scene::instance()->getEnttRegistry();
+        // const auto &tagComp = registry.get<Components::TagComponent>(entity);
+        // const bool isSelected = registry.any_of<Components::SelectedComponent>(entity);
+        //
+        // const uint64_t id = static_cast<uint64_t>(entity);
+        //
+        // switch (tagComp.type.nsCompType) {
+        // case Components::NSComponentType::text: {
+        //     const auto &textComp = registry.get<Components::TextNodeComponent>(entity);
+        //     const auto &transformComp = registry.get<Components::TransformComponent>(entity);
+        //     auto pos = transformComp.position;
+        //     const auto rotation = transformComp.angle;
+        //     m_materialRenderer->drawText(textComp.text, pos, textComp.fontSize, textComp.color, id, rotation);
+        //
+        //     if (isSelected) {
+        //         const Renderer::QuadRenderProperties props{
+        //             .angle = rotation,
+        //             .borderColor = ViewportTheme::colors.selectedComp,
+        //             .borderRadius = glm::vec4(4.f),
+        //             .borderSize = glm::vec4(1.f),
+        //             .isMica = true,
+        //         };
+        //         auto size = m_materialRenderer->getTextRenderSize(textComp.text, textComp.fontSize);
+        //         pos.x += size.x * 0.5f;
+        //         pos.y -= size.y * 0.25f;
+        //         pos.z -= 0.0005f;
+        //         size.x += componentStyles.paddingX * 2.f;
+        //         size.y += componentStyles.paddingY * 2.f;
+        //         m_materialRenderer->drawQuad(pos, size, ViewportTheme::colors.componentBG, id, props);
+        //     }
+        // } break;
+        // default:
+        //     BESS_ERROR("[BaseArtist] Tried to draw a non-simulation component with type: {}", tagComp.type.typeId);
+        //     break;
+        // }
     }
 
     glm::vec2 BaseArtist::calcCompSize(entt::entity ent,
@@ -254,13 +254,13 @@ namespace Bess::Canvas {
     }
 
     void BaseArtist::drawSimEntity(const entt::entity entity) {
-        auto &registry = Scene::instance()->getEnttRegistry();
-        const auto &tagComp = registry.get<Components::TagComponent>(entity);
-        const auto &transform = registry.get<Components::TransformComponent>(entity);
-        const auto &spriteComp = registry.get<Components::SpriteComponent>(entity);
-        const auto &simComp = registry.get<Components::SimulationComponent>(entity);
-
-        drawSimEntity(entity, tagComp, transform, spriteComp, simComp);
+        // auto &registry = Scene::instance()->getEnttRegistry();
+        // const auto &tagComp = registry.get<Components::TagComponent>(entity);
+        // const auto &transform = registry.get<Components::TransformComponent>(entity);
+        // const auto &spriteComp = registry.get<Components::SpriteComponent>(entity);
+        // const auto &simComp = registry.get<Components::SimulationComponent>(entity);
+        //
+        // drawSimEntity(entity, tagComp, transform, spriteComp, simComp);
     }
 
     bool BaseArtist::isHeaderLessComp(const Components::SimulationComponent &simComp) {

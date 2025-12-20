@@ -24,10 +24,10 @@ namespace Bess::UI {
         if (!isShown)
             return;
 
-        auto &reg = Canvas::Scene::instance()->getEnttRegistry();
-        const auto view = reg.view<Bess::Canvas::Components::TagComponent,
-                                   Bess::Canvas::Components::SimulationStateMonitor,
-                                   Bess::Canvas::Components::SimulationComponent>();
+        // auto &reg = Canvas::Scene::instance()->getEnttRegistry();
+        // const auto view = reg.view<Bess::Canvas::Components::TagComponent,
+        //                            Bess::Canvas::Components::SimulationStateMonitor,
+        //                            Bess::Canvas::Components::SimulationComponent>();
 
         ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
@@ -38,11 +38,11 @@ namespace Bess::UI {
 
         std::vector<std::string> comps = {};
         std::unordered_map<std::string, entt::entity> entities = {};
-        for (auto &ent : view) {
-            const auto &tagComponent = view.get<Bess::Canvas::Components::TagComponent>(ent);
-            comps.emplace_back(tagComponent.name);
-            entities[tagComponent.name] = ent;
-        }
+        // for (auto &ent : view) {
+        //     const auto &tagComponent = view.get<Bess::Canvas::Components::TagComponent>(ent);
+        //     comps.emplace_back(tagComponent.name);
+        //     entities[tagComponent.name] = ent;
+        // }
 
         int eraseIdx = -1;
         for (auto &[idx, name] : s_data.graphs) {
@@ -52,7 +52,7 @@ namespace Bess::UI {
             }
 
             if (name != "") {
-                s_data.allSignals[name] = fetchSignal(name, view.get<Canvas::Components::SimulationComponent>(entities[name]));
+                // s_data.allSignals[name] = fetchSignal(name, view.get<Canvas::Components::SimulationComponent>(entities[name]));
             }
 
             ImGui::SameLine();

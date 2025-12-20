@@ -87,6 +87,7 @@ namespace Bess::SimEngine {
 
         DigitalComponent(ComponentDefinition def, ComponentState state) : definition(std::move(def)), state(std::move(state)) {}
 
+        UUID id;
         UUID netUuid = UUID::null;
         ComponentState state;
         ComponentDefinition definition;

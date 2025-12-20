@@ -6,13 +6,11 @@
 
 namespace Bess::Canvas {
     SimulationSceneComponent::SimulationSceneComponent(UUID uuid) : SceneComponent(uuid) {
-        m_type = SceneComponentType::simulation;
         initDragBehaviour();
     }
 
     SimulationSceneComponent::SimulationSceneComponent(UUID uuid, const Transform &transform)
         : SceneComponent(uuid, transform) {
-        m_type = SceneComponentType::simulation;
         initDragBehaviour();
     }
 

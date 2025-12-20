@@ -87,8 +87,8 @@ namespace Bess::SimEngine {
 
     struct BESS_API SimulationEvent {
         SimTime simTime;
-        entt::entity entity;
-        entt::entity schedulerEntity; // enitity that triggered the change
+        UUID compId;
+        UUID schedulerId; // enitity that triggered the change
         uint64_t id;
         bool operator<(const SimulationEvent &other) const noexcept {
             if (simTime != other.simTime)

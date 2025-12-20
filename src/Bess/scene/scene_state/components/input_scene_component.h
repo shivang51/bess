@@ -29,6 +29,9 @@ namespace Bess::Canvas {
         void onMouseLeave(const Events::MouseLeaveEvent &e) override;
 
         void onMouseButton(const Events::MouseButtonEvent &e) override;
+
+      private:
+        short m_redundantVar; // just so cast of normal SimulationSceneComponent fails
     };
 } // namespace Bess::Canvas
 

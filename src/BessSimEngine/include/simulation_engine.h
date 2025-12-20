@@ -3,8 +3,8 @@
 #include "bess_uuid.h"
 #include "commands/commands_manager.h"
 #include "entt/entity/fwd.hpp"
-#include "expression_evalutator/expr_evaluator.h"
 #include "net/net.h"
+#include "sim_engine_state.h"
 #include "types.h"
 #include <chrono>
 #include <condition_variable>
@@ -71,7 +71,7 @@ namespace Bess::SimEngine {
 
         std::vector<std::pair<float, bool>> getStateMonitorData(UUID uuid);
 
-        bool updateNets(const std::vector<entt::entity> &startEntities);
+        bool updateNets(const std::vector<UUID> &startCompIds);
 
         friend class SimEngineSerializer;
 
@@ -86,12 +86,12 @@ namespace Bess::SimEngine {
       private:
         bool isSimStableLocked() const;
 
-        std::vector<entt::entity> getConnGraph(entt::entity start);
+        std::vector<UUID> getConnGraph(UUID start);
 
-        void scheduleEvent(entt::entity e, entt::entity schedulerEntity, SimDelayNanoSeconds simTime);
-        void clearEventsForEntity(entt::entity e);
-        std::vector<PinState> getInputPinsState(entt::entity e) const;
-        bool simulateComponent(entt::entity e, const std::vector<PinState> &inputs);
+        void scheduleEvent(UUID id, UUID schedulerId, SimDelayNanoSeconds simTime);
+        void clearEventsForEntity(const UUID &id);
+        std::vector<PinState> getInputPinsState(UUID compId) const;
+        bool simulateComponent(const UUID &compId, const std::vector<PinState> &inputs);
         void run();
 
         entt::entity getEntityWithUuid(const UUID &uuid) const;
@@ -116,6 +116,8 @@ namespace Bess::SimEngine {
 
         entt::registry m_registry;
         std::unordered_map<UUID, entt::entity> m_uuidMap;
+
+        SimEngineState m_simEngineState;
 
         Commands::CommandsManager m_cmdManager;
 

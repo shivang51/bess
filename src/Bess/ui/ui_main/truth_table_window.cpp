@@ -46,27 +46,27 @@ namespace Bess::UI {
                 auto &simEngine = SimEngine::SimulationEngine::instance();
                 currentTruthTable = simEngine.getTruthTableOfNet(selectedNetId);
                 const auto &scene = Bess::Canvas::Scene::instance();
-                const auto &reg = scene->getEnttRegistry();
+                // const auto &reg = scene->getEnttRegistry();
 
-                auto viewInp = reg.view<Canvas::Components::TagComponent,
-                                        Canvas::Components::SimulationComponent,
-                                        Canvas::Components::SimulationInputComponent>();
-
-                viewInp.each([&](auto entity, const Canvas::Components::TagComponent &tagComp,
-                                 const Canvas::Components::SimulationComponent &simComp,
-                                 const Canvas::Components::SimulationInputComponent &simInputComp) {
-                    compIdToNameMap[simComp.simEngineEntity] = tagComp.name;
-                });
-
-                auto viewOut = reg.view<Canvas::Components::TagComponent,
-                                        Canvas::Components::SimulationComponent,
-                                        Canvas::Components::SimulationOutputComponent>();
-
-                viewOut.each([&](auto entity, const Canvas::Components::TagComponent &tagComp,
-                                 const Canvas::Components::SimulationComponent &simComp,
-                                 const Canvas::Components::SimulationOutputComponent &simOutputComp) {
-                    compIdToNameMap[simComp.simEngineEntity] = tagComp.name;
-                });
+                // auto viewInp = reg.view<Canvas::Components::TagComponent,
+                //                         Canvas::Components::SimulationComponent,
+                //                         Canvas::Components::SimulationInputComponent>();
+                //
+                // viewInp.each([&](auto entity, const Canvas::Components::TagComponent &tagComp,
+                //                  const Canvas::Components::SimulationComponent &simComp,
+                //                  const Canvas::Components::SimulationInputComponent &simInputComp) {
+                //     compIdToNameMap[simComp.simEngineEntity] = tagComp.name;
+                // });
+                //
+                // auto viewOut = reg.view<Canvas::Components::TagComponent,
+                //                         Canvas::Components::SimulationComponent,
+                //                         Canvas::Components::SimulationOutputComponent>();
+                //
+                // viewOut.each([&](auto entity, const Canvas::Components::TagComponent &tagComp,
+                //                  const Canvas::Components::SimulationComponent &simComp,
+                //                  const Canvas::Components::SimulationOutputComponent &simOutputComp) {
+                //     compIdToNameMap[simComp.simEngineEntity] = tagComp.name;
+                // });
 
                 isDirty = false;
             }

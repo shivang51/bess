@@ -87,7 +87,6 @@ namespace Bess::Canvas {
         SceneMode getSceneMode() const;
 
         void resize(const glm::vec2 &size);
-        entt::registry &getEnttRegistry();
         const glm::vec2 &getSize() const;
 
         UUID createSimEntity(const UUID &simEngineEntt,
@@ -161,10 +160,10 @@ namespace Bess::Canvas {
       private:
         SceneState m_state;
 
-        // entt::registry m_registry;
         PickingId m_pickingId = PickingId::invalid();
         PickingId m_prevPickingId = PickingId::invalid();
         UUID m_connectionStartSlot = UUID::null;
+
         // selection box
         glm::vec2 m_selectionBoxStart;
         glm::vec2 m_selectionBoxEnd;
@@ -176,7 +175,7 @@ namespace Bess::Canvas {
         SceneDrawMode m_drawMode = SceneDrawMode::none;
         SceneMode m_sceneMode = SceneMode::general;
 
-        const float m_zIncrement = 0.001;
+        const float m_zIncrement = 0.001f;
         const int snapSize = 2;
         float m_compZCoord = m_zIncrement;
 

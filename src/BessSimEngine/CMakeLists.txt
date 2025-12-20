@@ -19,6 +19,7 @@ set(Header_Files
     "include/logger.h"
     "include/entt_registry_serializer.h"
     "include/simulation_engine.h"
+    "include/sim_engine_state.h"
     "include/simulation_engine_serializer.h"
     "include/component_catalog.h"
     "include/component_definition.h"
@@ -30,6 +31,7 @@ source_group("include" FILES ${Header_Files})
 
 set(Source_Files
     "src/simulation_engine.cpp"
+		"src/sim_engine_state.cpp"
     "src/comp_json_converters.cpp"
     "src/simulation_engine_serializer.cpp"
     "src/bess_uuid.cpp"

@@ -21,6 +21,7 @@ namespace Bess::UI {
     bool SceneExportWindow::m_shown = false;
     bool SceneExportWindow::m_firstDraw = false;
 
+    // JUST TEMP CODE, WILL CHANGE LATER
     int zoom = 4;
 
 #ifdef _WIN32
@@ -51,31 +52,32 @@ namespace Bess::UI {
     };
 
     SceneBounds computeSceneBounds() {
-        const auto &reg = Canvas::Scene::instance()->getEnttRegistry();
-        const auto view = reg.view<Canvas::Components::TransformComponent>();
-
-        glm::vec2 min, max;
-        bool first = true;
-        for (const auto &ent : view) {
-            const auto &comp = view.get<Canvas::Components::TransformComponent>(ent);
-            if (first) {
-                min = glm::vec2(comp.position) - glm::vec2(comp.scale);
-                max = glm::vec2(comp.position) + glm::vec2(comp.scale);
-                first = false;
-                continue;
-            }
-            if (comp.position.x - comp.scale.x < min.x)
-                min.x = comp.position.x - comp.scale.x;
-            if (comp.position.x + comp.scale.x > max.x)
-                max.x = comp.position.x + comp.scale.x;
-
-            if (comp.position.y + comp.scale.y > max.y)
-                max.y = comp.position.y + comp.scale.y;
-            if (comp.position.y - comp.scale.y < min.y)
-                min.y = comp.position.y - comp.scale.y;
-        }
-
-        return {min, max};
+        return {};
+        // const auto &reg = Canvas::Scene::instance()->getEnttRegistry();
+        // const auto view = reg.view<Canvas::Components::TransformComponent>();
+        //
+        // glm::vec2 min, max;
+        // bool first = true;
+        // for (const auto &ent : view) {
+        //     const auto &comp = view.get<Canvas::Components::TransformComponent>(ent);
+        //     if (first) {
+        //         min = glm::vec2(comp.position) - glm::vec2(comp.scale);
+        //         max = glm::vec2(comp.position) + glm::vec2(comp.scale);
+        //         first = false;
+        //         continue;
+        //     }
+        //     if (comp.position.x - comp.scale.x < min.x)
+        //         min.x = comp.position.x - comp.scale.x;
+        //     if (comp.position.x + comp.scale.x > max.x)
+        //         max.x = comp.position.x + comp.scale.x;
+        //
+        //     if (comp.position.y + comp.scale.y > max.y)
+        //         max.y = comp.position.y + comp.scale.y;
+        //     if (comp.position.y - comp.scale.y < min.y)
+        //         min.y = comp.position.y - comp.scale.y;
+        // }
+        //
+        // return {min, max};
     }
 
     SceneExportInfo getSceneExportInfo(const SceneBounds &bounds, float zoom) {

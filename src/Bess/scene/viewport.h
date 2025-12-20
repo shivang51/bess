@@ -48,8 +48,6 @@ namespace Bess::Canvas {
         bool waitForPickingResults(uint64_t timeoutNs);
         bool isPickingPending() const;
 
-        entt::registry &getEnttRegistry();
-
         std::shared_ptr<ArtistManager> getArtistManager();
 
         std::vector<unsigned char> getPixelData();
