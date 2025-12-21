@@ -54,8 +54,6 @@ namespace Bess::SimEngine {
 
         std::lock_guard lkRegistry(m_registryMutex);
         m_simEngineState.reset();
-        m_registry.clear();
-        m_uuidMap.clear();
         m_nextEventId = 0;
         m_currentSimTime = {};
     }
@@ -77,7 +75,7 @@ namespace Bess::SimEngine {
         ComponentCatalog::instance().destroy();
 
         m_destroyed = true;
-        m_registry.clear();
+        m_simEngineState.reset();
     }
 
     void SimulationEngine::scheduleEvent(UUID id, UUID schedulerId, SimDelayNanoSeconds simTime) {
@@ -94,19 +92,6 @@ namespace Bess::SimEngine {
         std::erase_if(m_eventSet, [id](auto it) {
             return it.compId == id;
         });
-    }
-
-    entt::entity SimulationEngine::getEntityWithUuid(const UUID &uuid) const {
-        if (m_uuidMap.contains(uuid))
-            return m_uuidMap.at(uuid);
-
-        auto view = m_registry.view<IdComponent>();
-        for (const auto &ent : view) {
-            auto &idComp = view.get<IdComponent>(ent);
-            if (idComp.uuid == uuid)
-                return ent;
-        }
-        return entt::null;
     }
 
     const UUID &SimulationEngine::addComponent(const ComponentDefinition &definition, int inputCount, int outputCount) {
@@ -245,10 +230,9 @@ namespace Bess::SimEngine {
             auto &changedNet = m_nets[changedNetId];
 
             for (const auto &compUuid : changedNet.getComponents()) {
-                auto ent = getEntityWithUuid(compUuid);
-                if (ent != entt::null) {
-                    auto &comp = m_registry.get<DigitalComponent>(ent);
-                    comp.netUuid = finalNetId;
+                if (compUuid != UUID::null) {
+                    const auto &comp = m_simEngineState.getDigitalComponent(compUuid);
+                    comp->netUuid = finalNetId;
                 }
                 finalNet.addComponent(compUuid);
             }
@@ -318,7 +302,6 @@ namespace Bess::SimEngine {
 
         m_simEngineState.removeDigitalComponent(uuid);
 
-        auto view = m_registry.view<DigitalComponent>();
         for (const auto e : affected) {
             if (!m_simEngineState.isComponentValid(e))
                 continue;
@@ -373,15 +356,30 @@ namespace Bess::SimEngine {
     }
 
     PinState SimulationEngine::getDigitalPinState(const UUID &uuid, PinType type, int idx) {
-        auto ent = getEntityWithUuid(uuid);
-        auto &comp = m_registry.get<DigitalComponent>(ent);
-        return comp.state.outputStates[idx];
+        if (!m_simEngineState.isComponentValid(uuid)) {
+            BESS_SE_WARN("[getDigitalPinState] Component with UUID {} is invalid", (uint64_t)uuid);
+            return {LogicState::unknown, SimTime(0)};
+        }
+        const auto &comp = m_simEngineState.getDigitalComponent(uuid);
+
+        return type == PinType::output
+                   ? comp->state.outputStates[idx]
+                   : comp->state.inputStates[idx];
     }
 
     ConnectionBundle SimulationEngine::getConnections(const UUID &uuid) {
-        auto ent = getEntityWithUuid(uuid);
-        auto &comp = m_registry.get<DigitalComponent>(ent);
-        return {comp.inputConnections, comp.outputConnections};
+        ConnectionBundle bundle;
+        if (!m_simEngineState.isComponentValid(uuid)) {
+            BESS_SE_WARN("[getConnections] Component with UUID {} is invalid",
+                         (uint64_t)uuid);
+            return bundle;
+        }
+        const auto &comp = m_simEngineState.getDigitalComponent(uuid);
+
+        bundle.inputs = comp->inputConnections;
+        bundle.outputs = comp->outputConnections;
+
+        return bundle;
     }
 
     void SimulationEngine::setInputPinState(const UUID &uuid, int pinIdx, LogicState state) {
@@ -735,26 +733,27 @@ namespace Bess::SimEngine {
     }
 
     bool SimulationEngine::updateInputCount(const UUID &uuid, int n) {
+
         throw std::runtime_error("updateInputCount is not implemented yet");
-        return false;
-        auto ent = getEntityWithUuid(uuid);
-        if (!m_registry.all_of<DigitalComponent>(ent))
+
+        if (!m_simEngineState.isComponentValid(uuid))
             return false;
 
-        auto &digiComp = m_registry.get<DigitalComponent>(ent);
-        // digiComp.updateInputCount(n);
+        const auto digiComp = m_simEngineState.getDigitalComponent(uuid);
+        // digiComp->updateInputCount(n);
         return true;
     }
 
     std::vector<std::pair<float, bool>> SimulationEngine::getStateMonitorData(UUID uuid) {
-        auto ent = getEntityWithUuid(uuid);
-        if (!m_registry.try_get<StateMonitorComponent>(ent)) {
+        if (!m_simEngineState.isComponentValid(uuid)) {
             BESS_SE_WARN("[SimulationEngine] getStateMonitorData was called on entity with no StateMonitorComponent: {}", (uint64_t)uuid);
             return {};
         }
 
-        auto &comp = m_registry.get<StateMonitorComponent>(ent);
-        return comp.timestepedBoolData;
+        // FIXME: State monitor is not implemented yet
+        // auto comp = m_simEngineState.getDigitalComponent(uuid);
+        // return comp->timestepedBoolData;
+        return {};
     }
 
     std::vector<UUID> SimulationEngine::getConnGraph(UUID start) {
@@ -816,12 +815,11 @@ namespace Bess::SimEngine {
         std::vector<UUID> outputs;
 
         for (const auto &compUuid : net.getComponents()) {
-            auto ent = getEntityWithUuid(compUuid);
-            if (ent == entt::null)
+            if (compUuid == UUID::null)
                 continue;
 
-            auto &comp = m_registry.get<DigitalComponent>(ent);
-            const auto &hash = comp.definition.getHash();
+            const auto &comp = m_simEngineState.getDigitalComponent(compUuid);
+            const auto &hash = comp->definition.getHash();
             bool isInput = ComponentCatalog::instance().isSpecialCompDef(hash,
                                                                          ComponentCatalog::SpecialType::input);
 
@@ -829,11 +827,12 @@ namespace Bess::SimEngine {
                                                                           ComponentCatalog::SpecialType::output);
 
             if (isInput) {
-                if (m_registry.all_of<ClockComponent>(ent)) {
-                    clockInputs.emplace_back(compUuid);
-                } else {
-                    inputs.emplace_back(compUuid);
-                }
+                // FIXME: clocks are not implemented yet
+                // if (m_registry.all_of<ClockComponent>(ent)) {
+                //     clockInputs.emplace_back(compUuid);
+                // } else {
+                inputs.emplace_back(compUuid);
+                // }
             } else if (isOutput) {
                 outputs.emplace_back(compUuid);
             } else {
@@ -873,8 +872,8 @@ namespace Bess::SimEngine {
             }
 
             for (const auto &clkInput : clockInputs) {
-                auto &comp = m_registry.get<DigitalComponent>(getEntityWithUuid(clkInput));
-                tableData[comb][numInputs] = comp.state.outputStates[0].state;
+                const auto &comp = m_simEngineState.getDigitalComponent(clkInput);
+                tableData[comb][numInputs] = comp->state.outputStates[0].state;
             }
 
             BESS_SE_INFO("Waiting for simulation to stabilize...");

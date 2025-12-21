@@ -62,11 +62,6 @@ namespace Bess::SimEngine {
 
         Commands::CommandsManager &getCmdManager();
 
-        template <typename EnttComponentType>
-        EnttComponentType &getEnttComp(const UUID &uuid) {
-            auto ent = getEntityWithUuid(uuid);
-            return m_registry.get<EnttComponentType>(ent);
-        }
         bool updateInputCount(const UUID &uuid, int n);
 
         std::vector<std::pair<float, bool>> getStateMonitorData(UUID uuid);
@@ -94,8 +89,6 @@ namespace Bess::SimEngine {
         bool simulateComponent(const UUID &compId, const std::vector<PinState> &inputs);
         void run();
 
-        entt::entity getEntityWithUuid(const UUID &uuid) const;
-
         std::thread m_simThread;
 
         std::chrono::steady_clock m_realWorldClock;
@@ -113,9 +106,6 @@ namespace Bess::SimEngine {
         std::set<SimulationEvent> m_eventSet;
         uint64_t m_nextEventId{0};
         SimTime m_currentSimTime;
-
-        entt::registry m_registry;
-        std::unordered_map<UUID, entt::entity> m_uuidMap;
 
         SimEngineState m_simEngineState;
 
