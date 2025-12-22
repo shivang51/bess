@@ -8,6 +8,8 @@
 namespace Bess {
     class BESS_API UUID {
       public:
+        static UUID fromString(const std::string &str) noexcept;
+
         constexpr UUID(uint64_t id) noexcept : m_UUID(id) {}
 
         UUID();
@@ -24,6 +26,8 @@ namespace Bess {
         constexpr bool operator!=(const UUID &other) const noexcept {
             return m_UUID != other.m_UUID;
         }
+
+        std::string toString() const noexcept;
 
         static const UUID null;
 

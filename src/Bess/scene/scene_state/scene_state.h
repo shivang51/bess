@@ -64,6 +64,10 @@ namespace Bess::Canvas {
 
         const std::unordered_map<UUID, bool> &getSelectedComponents() const;
 
+        void removeSlotConnMapping(const std::string &slotKey);
+        void addSlotConnMapping(const std::string &slotKey, const UUID &connId);
+        UUID getConnBetweenSlots(const UUID &slotA, const UUID &slotB) const;
+
         void attachChild(const UUID &parentId, const UUID &childId);
         void assignRuntimeId(const UUID &uuid);
 
@@ -74,11 +78,12 @@ namespace Bess::Canvas {
 
       private:
         std::unordered_map<UUID, std::shared_ptr<SceneComponent>> m_componentsMap;
-        std::unordered_set<UUID> m_rootComponents;
         std::unordered_map<SceneComponentType, std::vector<UUID>> m_typeToUuidsMap;
         std::unordered_map<UUID, bool> m_selectedComponents;
-
+        std::unordered_map<std::string, UUID> m_slotsConnectionMap;
         std::unordered_map<uint32_t, UUID> m_runtimeIdMap;
+
+        std::unordered_set<UUID> m_rootComponents;
         std::set<uint32_t> m_freeRuntimeIds;
     };
 } // namespace Bess::Canvas

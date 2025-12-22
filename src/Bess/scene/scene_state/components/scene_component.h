@@ -26,6 +26,10 @@ namespace Bess::Canvas {
     }                                                 \
     type &get##name() { return varName; }
 
+#define MAKE_GETTER(type, name, varName)              \
+    const type &get##name() const { return varName; } \
+    type &get##name() { return varName; }
+
     using PathRenderer = Renderer2D::Vulkan::PathRenderer;
 
     class SceneState;

@@ -1,7 +1,7 @@
 #include "scene/scene_state/components/connection_scene_component.h"
 #include "fwd.hpp"
 #include "scene/scene_state/components/scene_component.h"
-#include "scene/scene_state/components/sim_scene_component.h"
+#include "scene/scene_state/components/slot_scene_component.h"
 #include "settings/viewport_theme.h"
 
 namespace Bess::Canvas {
@@ -21,6 +21,10 @@ namespace Bess::Canvas {
 
         if (m_isFirstDraw) {
             onFirstDraw(state, materialRenderer, pathRenderer);
+        }
+
+        if (m_isKeyDirty) {
+            calculateKey(state);
         }
 
         auto startSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
@@ -144,6 +148,7 @@ namespace Bess::Canvas {
     void ConnectionSceneComponent::setStartEndSlots(const UUID &startSlot, const UUID &endSlot) {
         m_startSlot = startSlot;
         m_endSlot = endSlot;
+        m_isKeyDirty = true;
     }
 
     void ConnectionSceneComponent::reconsturctSegments(const SceneState &state) {
@@ -191,6 +196,44 @@ namespace Bess::Canvas {
     void ConnectionSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
         m_hoveredSegIdx = -1;
     }
+
+    void ConnectionSceneComponent::calculateKey(SceneState &state) {
+        if (!m_slotsKey.empty()) {
+            state.removeSlotConnMapping(m_slotsKey);
+        }
+
+        m_slotsKey = genSlotsKey(state, m_startSlot, m_endSlot);
+
+        state.addSlotConnMapping(m_slotsKey, m_uuid);
+
+        m_isKeyDirty = false;
+    }
+
+    std::string ConnectionSceneComponent::genSlotsKey(const SceneState &state, const UUID &slotA, const UUID &slotB) {
+        const auto startSlot = state.getComponentByUuid<SlotSceneComponent>(slotA);
+
+        if (startSlot->getSlotType() == SlotType::digitalInput) {
+            return slotA.toString() + "-" + slotB.toString();
+        } else {
+            return slotB.toString() + "-" + slotA.toString();
+        }
+    }
+
+    std::pair<UUID, UUID> ConnectionSceneComponent::parseSlotsKey(const std::string &key) {
+        auto delimiterPos = key.find('-');
+        if (delimiterPos == std::string::npos) {
+            return {UUID::null, UUID::null};
+        }
+
+        auto slotAStr = key.substr(0, delimiterPos);
+        auto slotBStr = key.substr(delimiterPos + 1);
+
+        return {UUID::fromString(slotAStr), UUID::fromString(slotBStr)};
+    }
+
+    std::string ConnectionSceneComponent::getSlotsKey() const {
+        return m_slotsKey;
+    }
 } // namespace Bess::Canvas
 
 namespace Bess::JsonConvert {
@@ -209,10 +252,26 @@ namespace Bess::JsonConvert {
 
     void fromJsonValue(const Json::Value &j, Bess::Canvas::ConnectionSceneComponent &component) {
         fromJsonValue(j, static_cast<Bess::Canvas::SceneComponent &>(component));
+
+        UUID startSlot, endSlot;
         if (j.isMember("startSlot")) {
-            UUID startSlot;
             fromJsonValue(j["startSlot"], startSlot);
-            component.setStartSlot(startSlot);
+        }
+
+        if (j.isMember("endSlot")) {
+            fromJsonValue(j["endSlot"], endSlot);
+        }
+
+        component.setStartEndSlots(startSlot, endSlot);
+
+        if (j.isMember("segments") && j["segments"].isArray()) {
+            std::vector<Canvas::ConnSegment> segments;
+            for (const auto &segJson : j["segments"]) {
+                Canvas::ConnSegment segment;
+                fromJsonValue(segJson, segment);
+                segments.push_back(segment);
+            }
+            component.setSegments(segments);
         }
     }
 } // namespace Bess::JsonConvert

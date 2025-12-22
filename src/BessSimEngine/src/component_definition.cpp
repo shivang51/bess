@@ -188,4 +188,45 @@ namespace Bess::SimEngine {
     const std::vector<int> &ComponentDefinition::getAltInputCounts() const {
         return m_altInputCounts;
     }
+
+    // ########################################
+    // ComponentDefinitionV2
+    // ########################################
+
+    bool ComponentDefinitionV2::onInputsResizeReq(SlotsGroupType groupType, size_t newSize) {
+        if (groupType == SlotsGroupType::input)
+            return m_inputSlotsInfo.isResizeable;
+        else
+            return m_outputSlotsInfo.isResizeable;
+    }
+
+    uint64_t ComponentDefinitionV2::getHash() noexcept {
+        if (m_hash == 0) {
+            computeHash();
+        }
+        return m_hash;
+    }
+
+    void ComponentDefinitionV2::computeHash() {
+        uint64_t hash = FNV_OFFSET_BASIS_64;
+
+        hash = fnv1aString(hash, m_name);
+        hash = fnv1aString(hash, m_groupName);
+        if (!m_inputSlotsInfo.isResizeable) {
+            hash = fnv1aPod(hash, m_inputSlotsInfo.count);
+        }
+
+        if (!m_outputSlotsInfo.isResizeable) {
+            hash = fnv1aPod(hash, m_outputSlotsInfo.count);
+        }
+
+        if (m_opInfo.op != '0') {
+            hash = fnv1aPod(hash, m_opInfo.op);
+            hash = fnv1aPod(hash, m_opInfo.shouldNegateOutput);
+        }
+
+        hash = fnv1aPod(hash, m_simDelay.count());
+
+        m_hash = hash;
+    }
 } // namespace Bess::SimEngine

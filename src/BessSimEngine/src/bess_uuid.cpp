@@ -12,6 +12,10 @@ namespace Bess {
     UUID::UUID() : m_UUID(s_UniformDistribution(s_Engine)) {
     }
 
+    std::string UUID::toString() const noexcept {
+        return std::to_string(m_UUID);
+    }
+
     namespace JsonConvert {
         BESS_API void toJsonValue(const Bess::UUID &uuid, Json::Value &j) {
             j = (Json::UInt64)uuid;
@@ -21,4 +25,8 @@ namespace Bess {
             uuid = j.asUInt64();
         }
     } // namespace JsonConvert
+
+    UUID UUID::fromString(const std::string &str) noexcept {
+        return {static_cast<uint64_t>(std::stoull(str))};
+    }
 } // namespace Bess

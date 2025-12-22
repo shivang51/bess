@@ -12,6 +12,9 @@ namespace Bess::Canvas {
         m_typeToUuidsMap.clear();
         m_selectedComponents.clear();
         m_rootComponents.clear();
+        m_runtimeIdMap.clear();
+        m_freeRuntimeIds.clear();
+        m_slotsConnectionMap.clear();
     }
 
     std::shared_ptr<SceneComponent> SceneState::getComponentByUuid(const UUID &uuid) const {
@@ -165,6 +168,33 @@ namespace Bess::Canvas {
         m_componentsMap.erase(uuid);
 
         return removedUuids;
+    }
+
+    void SceneState::addSlotConnMapping(const std::string &slotKey, const UUID &connId) {
+        m_slotsConnectionMap[slotKey] = connId;
+    }
+
+    void SceneState::removeSlotConnMapping(const std::string &slotKey) {
+        m_slotsConnectionMap.erase(slotKey);
+    }
+
+    UUID SceneState::getConnBetweenSlots(const UUID &slotA, const UUID &slotB) const {
+        const auto slotAComp = getComponentByUuid<SlotSceneComponent>(slotA);
+        const auto slotBComp = getComponentByUuid<SlotSceneComponent>(slotB);
+
+        if (slotAComp->getSlotType() == SlotType::digitalInput) {
+            const std::string key1 = slotA.toString() + "-" + slotB.toString();
+            if (m_slotsConnectionMap.contains(key1)) {
+                return m_slotsConnectionMap.at(key1);
+            }
+        } else {
+            const std::string key2 = slotB.toString() + "-" + slotA.toString();
+            if (m_slotsConnectionMap.contains(key2)) {
+                return m_slotsConnectionMap.at(key2);
+            }
+        }
+
+        return UUID::null;
     }
 } // namespace Bess::Canvas
 

@@ -2,9 +2,12 @@
 #include "bess_uuid.h"
 #include "commands/commands.h"
 #include "scene/scene.h"
-#include "scene/scene_serializer.h"
+#include "scene/scene_state/components/connection_scene_component.h"
+#include "scene/scene_state/components/sim_scene_component.h"
+#include "scene/scene_state/components/slot_scene_component.h"
 #include "simulation_engine.h"
 #include "json/value.h"
+#include <cstdint>
 
 namespace Bess::Canvas::Commands {
     DelConnectionCommand::DelConnectionCommand(const std::vector<UUID> &uuids)
@@ -13,66 +16,70 @@ namespace Bess::Canvas::Commands {
     }
 
     bool DelConnectionCommand::execute() {
-        return false;
-        // auto &simCmdManager = SimEngine::SimulationEngine::instance().getCmdManager();
-        // auto scene = Scene::instance();
-        // auto &sceneReg = scene->getEnttRegistry();
-        // SceneSerializer ser;
-        //
-        // if (!m_redo) {
-        //     std::vector<SimEngine::Commands::DelConnectionCommandData> simCmdData = {};
-        //
-        //     int i = 0;
-        //     for (const auto uuid : m_uuids) {
-        //         if (!scene->isEntityValid(uuid))
-        //             return false;
-        //
-        //         const auto entity = scene->getEntityWithUuid(uuid);
-        //
-        //         auto &connComp = sceneReg.get<Components::ConnectionComponent>(entity);
-        //
-        //         auto &slotCompA = sceneReg.get<Components::SlotComponent>(scene->getEntityWithUuid(connComp.inputSlot));
-        //         auto &slotCompB = sceneReg.get<Components::SlotComponent>(scene->getEntityWithUuid(connComp.outputSlot));
-        //
-        //         const auto &simCompA = sceneReg.get<Components::SimulationComponent>(scene->getEntityWithUuid(slotCompA.parentId));
-        //         const auto &simCompB = sceneReg.get<Components::SimulationComponent>(scene->getEntityWithUuid(slotCompB.parentId));
-        //
-        //         const auto pinTypeA = slotCompA.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
-        //         const auto pinTypeB = slotCompB.slotType == Components::SlotType::digitalInput ? SimEngine::PinType::input : SimEngine::PinType::output;
-        //
-        //         SimEngine::Commands::DelConnectionCommandData data = {simCompA.simEngineEntity, slotCompA.idx, pinTypeA,
-        //                                                               simCompB.simEngineEntity, slotCompB.idx, pinTypeB};
-        //         simCmdData.emplace_back(data);
-        //
-        //         auto &json = m_jsons[i++];
-        //         json.clear();
-        //         ser.serializeEntity(uuid, json);
-        //         scene->deleteConnectionFromScene(uuid);
-        //     }
-        //
-        //     auto _ = simCmdManager.execute<SimEngine::Commands::DelConnectionCommand, std::string>(simCmdData);
-        // } else {
-        //     simCmdManager.redo();
-        //     int i = 0;
-        //     for (const auto uuid : m_uuids) {
-        //         auto &json = m_jsons[i++];
-        //         json.clear();
-        //         ser.serializeEntity(uuid, json);
-        //         scene->deleteConnectionFromScene(uuid);
-        //     }
-        // }
-        //
-        // return true;
+        auto &simCmdManager = SimEngine::SimulationEngine::instance().getCmdManager();
+        auto &sceneState = Scene::instance()->getState();
+
+        if (!m_redo) {
+            std::vector<SimEngine::Commands::DelConnectionCommandData> simCmdData = {};
+
+            int i = 0;
+            for (const auto uuid : m_uuids) {
+                const auto &connComp = sceneState.getComponentByUuid<ConnectionSceneComponent>(uuid);
+                const auto &slots = ConnectionSceneComponent::parseSlotsKey(connComp->getSlotsKey());
+
+                const auto &slotCompA = sceneState.getComponentByUuid<SlotSceneComponent>(slots.first);
+                const auto &slotCompB = sceneState.getComponentByUuid<SlotSceneComponent>(slots.second);
+
+                const auto &simCompA = sceneState.getComponentByUuid<SimulationSceneComponent>(
+                    slotCompA->getParentComponent());
+                const auto &simCompB = sceneState.getComponentByUuid<SimulationSceneComponent>(
+                    slotCompB->getParentComponent());
+
+                const auto pinTypeA = slotCompA->getSlotType() == SlotType::digitalInput
+                                          ? SimEngine::PinType::input
+                                          : SimEngine::PinType::output;
+                const auto pinTypeB = slotCompB->getSlotType() == SlotType::digitalInput
+                                          ? SimEngine::PinType::input
+                                          : SimEngine::PinType::output;
+
+                SimEngine::Commands::DelConnectionCommandData data = {simCompA->getSimEngineId(),
+                                                                      (uint32_t)slotCompA->getIndex(), pinTypeA,
+                                                                      simCompB->getSimEngineId(),
+                                                                      (uint32_t)slotCompB->getIndex(), pinTypeB};
+                simCmdData.emplace_back(data);
+
+                auto &json = m_jsons[i++];
+                json.clear();
+                JsonConvert::toJsonValue(*connComp, json);
+                sceneState.removeComponent(uuid);
+            }
+
+            auto _ = simCmdManager.execute<SimEngine::Commands::DelConnectionCommand, std::string>(simCmdData);
+        } else {
+            simCmdManager.redo();
+            int i = 0;
+            for (const auto uuid : m_uuids) {
+                auto &json = m_jsons[i++];
+                json.clear();
+                const auto &connComp = sceneState.getComponentByUuid<ConnectionSceneComponent>(uuid);
+                JsonConvert::toJsonValue(*connComp, json);
+                sceneState.removeComponent(uuid);
+            }
+        }
+
+        return true;
     }
 
     std::any DelConnectionCommand::undo() {
         auto &simCmdManager = SimEngine::SimulationEngine::instance().getCmdManager();
         simCmdManager.undo();
 
-        SceneSerializer ser;
-
         for (const auto &json : m_jsons) {
-            ser.deserializeEntity(json);
+            ConnectionSceneComponent comp;
+
+            JsonConvert::fromJsonValue(json, comp);
+            Scene::instance()->getState().addComponent<ConnectionSceneComponent>(
+                std::make_shared<ConnectionSceneComponent>(comp));
         }
 
         m_redo = true;
