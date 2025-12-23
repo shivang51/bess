@@ -152,7 +152,20 @@ namespace Bess::SimEngine {
         inpDef.setName("Input");
         inpDef.setGroupName("IO");
         inpDef.setBehaviorType(ComponentBehaviorType::input);
-        inpDef.setOutputSlotsInfo({SlotsGroupType::output, true, 2, {"", ""}, {}});
+        inpDef.setOutputSlotsInfo({SlotsGroupType::output, true, 1, {"", ""}, {}});
+        inpDef.setSimulationFunction([](auto &, auto ts, const auto &oldState) -> ComponentState {
+            auto newState = oldState;
+						newState.isChanged = true;
+						newState.outputStates[0].lastChangeTime = ts;
+						return newState; });
+        inpDef.setSimDelay(SimDelayNanoSeconds(0));
+        catalog.registerComponent(inpDef);
+
+        ComponentDefinition clockDef{};
+        inpDef.setName("Clock");
+        inpDef.setGroupName("IO");
+        inpDef.setBehaviorType(ComponentBehaviorType::input);
+        inpDef.setOutputSlotsInfo({SlotsGroupType::output, true, 1, {"", ""}, {}});
         inpDef.setSimulationFunction([](auto &, auto ts, const auto &oldState) -> ComponentState {
             auto newState = oldState;
 						newState.isChanged = true;
@@ -173,8 +186,6 @@ namespace Bess::SimEngine {
 						return newState; });
         outDef.setSimDelay(SimDelayNanoSeconds(0));
         catalog.registerComponent(outDef);
-
-        ComponentCatalog::instance().registerComponent(outDef);
 
         // ComponentDefinition stateMonDef = {"State Monitor", "IO", 1, 0,
         //                                    [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {

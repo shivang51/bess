@@ -35,12 +35,17 @@ namespace Bess::Canvas {
         size_t getInputSlotsCount() const;
         size_t getOutputSlotsCount() const;
 
+        void addInputSlot(UUID slotId, bool isLastResizeable = true);
+        void addOutputSlot(UUID slotId, bool isLastResizeable = true);
+
+        void setScaleDirty();
+
       protected:
+        void resetSlotPositions(SceneState &state);
+
         // Generates the positions relative to the component position
         std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>>
         calculateSlotPositions(size_t inputCount, size_t outputCount) const;
-
-        void resetSlotPositions(SceneState &state);
 
         glm::vec2 calculateScale(std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) override;
 
@@ -54,6 +59,7 @@ namespace Bess::Canvas {
         UUID m_netId = UUID::null;
         std::vector<UUID> m_inputSlots;
         std::vector<UUID> m_outputSlots;
+        bool m_isScaleDirty = true;
     };
 } // namespace Bess::Canvas
 

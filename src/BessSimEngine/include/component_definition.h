@@ -99,7 +99,7 @@ namespace Bess::SimEngine {
          * Note: if not overrriden and implemented,
          * by default it will return value of group.isResizeable
          **/
-        virtual bool onInputsResizeReq(SlotsGroupType groupType, size_t newSize);
+        virtual bool onSlotsResizeReq(SlotsGroupType groupType, size_t newSize);
 
         /**
          * This function returns the next simulation time, at which the comp should

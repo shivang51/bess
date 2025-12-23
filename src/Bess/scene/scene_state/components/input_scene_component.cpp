@@ -30,6 +30,14 @@ namespace Bess::Canvas {
                                                UUID slotUuid,
                                                int buttonIndex) {
         const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(slotUuid);
+
+        const auto slotType = slotComp->getSlotType();
+
+        if (slotType == SlotType::inputsResize ||
+            slotType == SlotType::outputsResize) {
+            return;
+        }
+
         const auto slotPos = slotComp->getAbsolutePosition(state);
 
         const bool isHigh = slotComp->getSlotState(state).state == SimEngine::LogicState::high;

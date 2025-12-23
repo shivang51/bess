@@ -88,6 +88,34 @@ namespace Bess::SimEngine {
 
         DigitalComponent(ComponentDefinition def, ComponentState state) : definition(std::move(def)), state(std::move(state)) {}
 
+        size_t incrementInputCount() {
+            if (!definition.onSlotsResizeReq(SlotsGroupType::input,
+                                             definition.getInputSlotsInfo().count + 1)) {
+                return definition.getInputSlotsInfo().count;
+            }
+
+            definition.getInputSlotsInfo().count += 1;
+            state.inputStates.emplace_back();
+            state.inputConnected.emplace_back(false);
+            inputConnections.emplace_back();
+            definition.computeHash();
+            return definition.getInputSlotsInfo().count;
+        }
+
+        size_t incrementOutputCount() {
+            if (!definition.onSlotsResizeReq(SlotsGroupType::output,
+                                             definition.getOutputSlotsInfo().count + 1)) {
+                return definition.getOutputSlotsInfo().count;
+            }
+
+            definition.getOutputSlotsInfo().count += 1;
+            state.outputStates.emplace_back();
+            state.outputConnected.emplace_back(false);
+            outputConnections.emplace_back();
+            definition.computeHash();
+            return definition.getOutputSlotsInfo().count;
+        }
+
         UUID id;
         UUID netUuid = UUID::null;
         ComponentState state;

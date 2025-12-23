@@ -42,6 +42,10 @@ namespace Bess::Canvas {
                                         std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
         if (m_isFirstDraw) {
             onFirstDraw(state, materialRenderer, pathRenderer);
+        } else if (m_isScaleDirty) {
+            setScale(calculateScale(materialRenderer));
+            resetSlotPositions(state);
+            m_isScaleDirty = false;
         }
 
         const auto pickingId = PickingId{m_runtimeId, 0};
@@ -169,6 +173,26 @@ namespace Bess::Canvas {
 
     size_t SimulationSceneComponent::getOutputSlotsCount() const {
         return m_outputSlots.size();
+    }
+
+    void SimulationSceneComponent::addOutputSlot(UUID slotId, bool isLastResizeable) {
+        if (isLastResizeable) {
+            m_outputSlots.insert(m_outputSlots.end() - 1, slotId);
+        } else {
+            m_outputSlots.emplace_back(slotId);
+        }
+    }
+
+    void SimulationSceneComponent::addInputSlot(UUID slotId, bool isLastResizeable) {
+        if (isLastResizeable) {
+            m_inputSlots.insert(m_inputSlots.end() - 1, slotId);
+        } else {
+            m_inputSlots.emplace_back(slotId);
+        }
+    }
+
+    void SimulationSceneComponent::setScaleDirty() {
+        m_isScaleDirty = true;
     }
 } // namespace Bess::Canvas
 

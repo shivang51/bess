@@ -58,7 +58,7 @@ namespace Bess::SimEngine {
     // ComponentDefinitionV2
     // ########################################
 
-    bool ComponentDefinition::onInputsResizeReq(SlotsGroupType groupType, size_t newSize) {
+    bool ComponentDefinition::onSlotsResizeReq(SlotsGroupType groupType, size_t newSize) {
         if (groupType == SlotsGroupType::input)
             return m_inputSlotsInfo.isResizeable;
         else

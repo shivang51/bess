@@ -9,6 +9,8 @@ namespace Bess::Canvas {
         none,
         digitalInput,
         digitalOutput,
+        inputsResize,
+        outputsResize,
     };
 
     class SlotSceneComponent : public SceneComponent {

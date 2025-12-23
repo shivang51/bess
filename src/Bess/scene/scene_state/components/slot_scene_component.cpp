@@ -36,32 +36,37 @@ namespace Bess::Canvas {
         const auto parentComp = state.getComponentByUuid<SimulationSceneComponent>(m_parentComponent);
         const auto &parentPos = parentComp->getTransform().position;
         const auto pos = parentPos + m_transform.position;
-
-        const auto &slotState = getSlotState(state);
-
         const auto pickingId = PickingId{m_runtimeId, 0};
 
-        // state color
         auto bg = ViewportTheme::colors.stateLow;
-        switch (slotState.state) {
-        case SimEngine::LogicState::low:
-            bg = ViewportTheme::colors.stateLow;
-            break;
-        case SimEngine::LogicState::high:
-            bg = ViewportTheme::colors.stateHigh;
-            break;
-        case SimEngine::LogicState::unknown:
-            bg = ViewportTheme::colors.stateUnknow;
-            break;
-        case SimEngine::LogicState::high_z:
-            bg = ViewportTheme::colors.stateHighZ;
-            break;
-        }
-
         auto border = bg;
 
-        if (!isSlotConnected(state))
+        if (m_slotType != SlotType::inputsResize && m_slotType != SlotType::outputsResize) {
+            const auto &slotState = getSlotState(state);
+
+            // state color
+            switch (slotState.state) {
+            case SimEngine::LogicState::low:
+                bg = ViewportTheme::colors.stateLow;
+                break;
+            case SimEngine::LogicState::high:
+                bg = ViewportTheme::colors.stateHigh;
+                break;
+            case SimEngine::LogicState::unknown:
+                bg = ViewportTheme::colors.stateUnknow;
+                break;
+            case SimEngine::LogicState::high_z:
+                bg = ViewportTheme::colors.stateHighZ;
+                break;
+            }
+
+            border = bg;
+
+            if (!isSlotConnected(state))
+                bg.a = 0.1f;
+        } else {
             bg.a = 0.1f;
+        }
 
         const float ir = Styles::simCompStyles.slotRadius - Styles::simCompStyles.slotBorderSize;
         const float r = Styles::simCompStyles.slotRadius;
@@ -87,6 +92,8 @@ namespace Bess::Canvas {
     }
 
     SimEngine::PinState SlotSceneComponent::getSlotState(const SceneState *state) const {
+        BESS_ASSERT(m_index >= 0, "Slot index is negative");
+
         const auto parentComp = state->getComponentByUuid<SimulationSceneComponent>(m_parentComponent);
         auto &simEngine = SimEngine::SimulationEngine::instance();
         const auto &compState = simEngine.getComponentState(parentComp->getSimEngineId());
@@ -97,6 +104,9 @@ namespace Bess::Canvas {
     }
 
     SimEngine::PinState SlotSceneComponent::getSlotState(const SceneState &state) const {
+        BESS_ASSERT(m_parentComponent != UUID::null, "Parent component UUID is null");
+        BESS_ASSERT(m_index >= 0, "Slot index is negative");
+
         const auto parentComp = state.getComponentByUuid<SimulationSceneComponent>(m_parentComponent);
         auto &simEngine = SimEngine::SimulationEngine::instance();
         const auto &compState = simEngine.getComponentState(parentComp->getSimEngineId());

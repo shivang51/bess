@@ -3,6 +3,7 @@
 #include "bess_uuid.h"
 #include "commands/commands_manager.h"
 #include "entt/entity/fwd.hpp"
+#include "entt_components.h"
 #include "net/net.h"
 #include "sim_engine_state.h"
 #include "types.h"
@@ -55,6 +56,7 @@ namespace Bess::SimEngine {
 
         const ComponentState &getComponentState(const UUID &uuid);
         const ComponentDefinition &getComponentDefinition(const UUID &uuid);
+        std::shared_ptr<DigitalComponent> getDigitalComponent(const UUID &uuid);
 
         void clear();
 
