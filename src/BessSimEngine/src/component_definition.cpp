@@ -2,82 +2,8 @@
 #include "types.h"
 #include <logger.h>
 #include <type_traits>
-#include <utility>
 
 namespace Bess::SimEngine {
-    ComponentDefinition::ComponentDefinition(
-        const std::string &name,
-        const std::string &category,
-        int inputCount, int outputCount,
-        SimulationFunction simFunction,
-        SimDelayNanoSeconds delay, char op) : name(name), category(category), delay(delay),
-                                              simulationFunction(std::move(simFunction)), inputCount(inputCount), outputCount(outputCount), op(op) {
-        reinit();
-    }
-
-    ComponentDefinition::ComponentDefinition(
-        const std::string &name,
-        const std::string &category,
-        int inputCount, int outputCount,
-        SimulationFunction simFunction,
-        SimDelayNanoSeconds delay, const std::vector<std::string> &expr) : name(name), category(category), delay(delay), simulationFunction(std::move(simFunction)), expressions(expr), inputCount(inputCount), outputCount(outputCount), auxData(expressions) {
-        reinit();
-    }
-
-    void ComponentDefinition::reinit() {
-        this->setupTime = SimDelayNanoSeconds(0);
-        this->holdTime = SimDelayNanoSeconds(0);
-        expressions = getExpressions(inputCount);
-        if (!expressions.empty()) {
-            auxData = expressions;
-        }
-        invalidateHash();
-    }
-
-    std::vector<std::string> ComponentDefinition::getExpressions(int inputCount) const {
-        if (op == '0') {
-            return expressions;
-        }
-
-        if (inputCount == -1) {
-            BESS_SE_WARN("[SimulationEngine][ComponentDefinition] Input count not provided for expression generation");
-            return {};
-        }
-
-        if (inputCount != 1 && outputCount == 1) {
-            std::string expr = negate ? "!(0" : "0";
-            for (size_t i = 1; i < inputCount; i++) {
-                expr += op + std::to_string(i);
-            }
-            if (negate)
-                expr += ")";
-            return {expr};
-        } else if (inputCount == outputCount) {
-            std::vector<std::string> expr;
-            expr.reserve(inputCount);
-            for (int i = 0; i < inputCount; i++) {
-                expr.emplace_back(std::format("{}{}", op, i));
-            }
-            return expr;
-        }
-
-        BESS_SE_ERROR("Invalid IO config for expression generation");
-        assert(false);
-    }
-
-    std::pair<std::span<const PinDetail>, std::span<const PinDetail>> ComponentDefinition::getPinDetails() const {
-        std::span<const PinDetail> in, out;
-
-        if (inputPinDetails.size() == inputCount) {
-            in = inputPinDetails;
-        }
-        if (outputPinDetails.size() == outputCount) {
-            out = outputPinDetails;
-        }
-
-        return {in, out};
-    }
-
     // --- hashing helpers (FNV-1a 64-bit) ---
     namespace {
         constexpr uint64_t FNV_OFFSET_BASIS_64 = 1469598103934665603ull;
@@ -128,86 +54,22 @@ namespace Bess::SimEngine {
         }
     } // namespace
 
-    uint64_t ComponentDefinition::getHash() const noexcept {
-        if (m_hashComputed) {
-            return m_cachedHash;
-        }
-
-        uint64_t hash = FNV_OFFSET_BASIS_64;
-
-        hash = fnv1aString(hash, name);
-        hash = fnv1aString(hash, category);
-
-        const auto delayCount = delay.count();
-        const auto setupCount = setupTime.count();
-        const auto holdCount = holdTime.count();
-        hash = fnv1aPod(hash, delayCount);
-        hash = fnv1aPod(hash, setupCount);
-        hash = fnv1aPod(hash, holdCount);
-
-        hash = fnv1aPod(hash, inputCount);
-        hash = fnv1aPod(hash, outputCount);
-        hash = fnv1aPod(hash, op);
-        hash = fnv1aPod(hash, negate);
-
-        {
-            const std::vector<std::string> &explicitExpr = expressions;
-            if (!explicitExpr.empty()) {
-                hash = hashVector(hash, explicitExpr, [](uint64_t h, const std::string &s) noexcept {
-                    return fnv1aString(h, s);
-                });
-            } else {
-                const std::vector<std::string> generatedExpr = getExpressions(inputCount);
-                hash = hashVector(hash, generatedExpr, [](uint64_t h, const std::string &s) noexcept {
-                    return fnv1aString(h, s);
-                });
-            }
-        }
-
-        hash = hashVector(hash, inputPinDetails, [](uint64_t h, const PinDetail &p) noexcept {
-            return hashPinDetails(h, p);
-        });
-        hash = hashVector(hash, outputPinDetails, [](uint64_t h, const PinDetail &p) noexcept {
-            return hashPinDetails(h, p);
-        });
-
-        m_cachedHash = hash;
-        m_hashComputed = true;
-        return m_cachedHash;
-    }
-
-    void ComponentDefinition::invalidateHash() const {
-        m_hashComputed = false;
-        m_cachedHash = 0;
-    }
-
-    void ComponentDefinition::setAltInputCounts(const std::vector<int> &altCounts) {
-        m_altInputCounts = altCounts;
-    }
-
-    const std::vector<int> &ComponentDefinition::getAltInputCounts() const {
-        return m_altInputCounts;
-    }
-
     // ########################################
     // ComponentDefinitionV2
     // ########################################
 
-    bool ComponentDefinitionV2::onInputsResizeReq(SlotsGroupType groupType, size_t newSize) {
+    bool ComponentDefinition::onInputsResizeReq(SlotsGroupType groupType, size_t newSize) {
         if (groupType == SlotsGroupType::input)
             return m_inputSlotsInfo.isResizeable;
         else
             return m_outputSlotsInfo.isResizeable;
     }
 
-    uint64_t ComponentDefinitionV2::getHash() noexcept {
-        if (m_hash == 0) {
-            computeHash();
-        }
+    uint64_t ComponentDefinition::getHash() const {
         return m_hash;
     }
 
-    void ComponentDefinitionV2::computeHash() {
+    void ComponentDefinition::computeHash() {
         uint64_t hash = FNV_OFFSET_BASIS_64;
 
         hash = fnv1aString(hash, m_name);
@@ -228,5 +90,9 @@ namespace Bess::SimEngine {
         hash = fnv1aPod(hash, m_simDelay.count());
 
         m_hash = hash;
+    }
+
+    SimTime ComponentDefinition::getNextSimTime() {
+        return m_simDelay;
     }
 } // namespace Bess::SimEngine

@@ -13,7 +13,7 @@ namespace Bess::Canvas::Commands {
     struct AddCommandData {
         SimEngine::ComponentDefinition def;
         Components::NSComponent nsComp;
-        int inputCount = -1, outputCount = -1;
+        size_t inputCount = -1, outputCount = -1;
         glm::vec2 pos;
     };
 

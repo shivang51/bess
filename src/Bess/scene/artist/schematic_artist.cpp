@@ -43,12 +43,12 @@ namespace Bess::Canvas {
 
         const auto &catalog = SimEngine::ComponentCatalog::instance();
 
-        if (catalog.isSpecialCompDef(simComponent.defHash, SimEngine::ComponentCatalog::SpecialType::sevenSegmentDisplay)) {
-            drawSevenSegDisplay(entity, tagComp, transform, spriteComp, simComponent);
-        } else {
-            paintSchematicView(entity, tagComp, transform, spriteComp, simComponent);
-        }
-
+        // if (catalog.isSpecialCompDef(simComponent.defHash, SimEngine::ComponentCatalog::SpecialType::sevenSegmentDisplay)) {
+        //     drawSevenSegDisplay(entity, tagComp, transform, spriteComp, simComponent);
+        // } else {
+        //     paintSchematicView(entity, tagComp, transform, spriteComp, simComponent);
+        // }
+        //
         drawSlots(entity, simComponent, transform);
     }
 

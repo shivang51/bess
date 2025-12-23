@@ -75,14 +75,15 @@ namespace Bess::SimEngine {
         DigitalComponent() = default;
         DigitalComponent(const DigitalComponent &) = default;
         DigitalComponent(ComponentDefinition def) : definition(std::move(def)) {
-            definition.reinit();
-            state.inputStates.resize(definition.inputCount, {LogicState::low, SimTime(0)});
-            state.outputStates.resize(definition.outputCount, {LogicState::low, SimTime(0)});
-            state.inputConnected.resize(definition.inputCount, false);
-            state.outputConnected.resize(definition.outputCount, false);
-            state.auxData = &definition.auxData;
-            inputConnections.resize(definition.inputCount);
-            outputConnections.resize(definition.outputCount);
+            state.inputStates.resize(definition.getInputSlotsInfo().count,
+                                     {LogicState::low, SimTime(0)});
+            state.outputStates.resize(definition.getOutputSlotsInfo().count,
+                                      {LogicState::low, SimTime(0)});
+            state.inputConnected.resize(state.inputStates.size(), false);
+            state.outputConnected.resize(state.outputStates.size(), false);
+            state.auxData = &definition.getAuxData();
+            inputConnections.resize(state.inputStates.size());
+            outputConnections.resize(state.outputStates.size());
         }
 
         DigitalComponent(ComponentDefinition def, ComponentState state) : definition(std::move(def)), state(std::move(state)) {}

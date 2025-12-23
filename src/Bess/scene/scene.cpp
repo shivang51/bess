@@ -3,7 +3,6 @@
 #include "bess_uuid.h"
 #include "common/log.h"
 #include "component_catalog.h"
-#include "entt/entity/fwd.hpp"
 #include "events/application_event.h"
 #include "events/event_dispatcher.h"
 #include "events/scene_events.h"
@@ -290,13 +289,11 @@ namespace Bess::Canvas {
     }
 
     UUID Scene::createSimEntity(const UUID &simEngineEntt,
-                                const SimEngine::ComponentDefinition &comp,
+                                SimEngine::ComponentDefinition &comp,
                                 const glm::vec2 &pos) {
         const auto &catalog = SimEngine::ComponentCatalog::instance();
-        const bool isInput = catalog.isSpecialCompDef(comp.getHash(),
-                                                      SimEngine::ComponentCatalog::SpecialType::input);
-        const bool isOutput = catalog.isSpecialCompDef(comp.getHash(),
-                                                       SimEngine::ComponentCatalog::SpecialType::output);
+        const bool isInput = comp.getBehaviorType() == SimEngine::ComponentBehaviorType::input;
+        const bool isOutput = comp.getBehaviorType() == SimEngine::ComponentBehaviorType::output;
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
         const auto state = simEngine.getComponentState(simEngineEntt);
@@ -312,7 +309,7 @@ namespace Bess::Canvas {
 
         // transform
         sceneComp->setPosition(glm::vec3(getSnappedPos(pos), getNextZCoord()));
-        sceneComp->setName(comp.name);
+        sceneComp->setName(comp.getName());
         sceneComp->setSimEngineId(simEngineEntt);
 
         // style
@@ -325,7 +322,7 @@ namespace Bess::Canvas {
         } else {
             style.color = ViewportTheme::colors.componentBG;
             style.borderRadius = glm::vec4(6.f);
-            style.headerColor = ViewportTheme::getCompHeaderColor(comp.category);
+            style.headerColor = ViewportTheme::getCompHeaderColor(comp.getGroupName());
         }
 
         style.borderColor = ViewportTheme::colors.componentBorder;
@@ -337,7 +334,8 @@ namespace Bess::Canvas {
                                                     state.outputStates.size());
 
         const auto &def = simEngine.getComponentDefinition(sceneComp->getSimEngineId());
-        const auto &[inpDetails, outDetails] = def.getPinDetails();
+        const auto &inpDetails = def.getInputSlotsInfo();
+        const auto &outDetails = def.getOutputSlotsInfo();
 
         m_state.addComponent<SimulationSceneComponent>(sceneComp);
 
@@ -346,13 +344,13 @@ namespace Bess::Canvas {
 
         for (const auto &slot : slots) {
             if (slot->getSlotType() == SlotType::digitalInput) {
-                if (inpDetails.size() > inSlotIdx)
-                    slot->setName(inpDetails[inSlotIdx++].name);
+                if (inpDetails.names.size() > inSlotIdx)
+                    slot->setName(inpDetails.names[inSlotIdx++]);
                 else
                     slot->setName(std::string(1, inpCh++));
             } else {
-                if (outDetails.size() > outSlotIdx)
-                    slot->setName(outDetails[outSlotIdx++].name);
+                if (outDetails.names.size() > outSlotIdx)
+                    slot->setName(outDetails.names[outSlotIdx++]);
                 else
                     slot->setName(std::string(std::format("{}'", outCh++)));
             }
@@ -549,8 +547,8 @@ namespace Bess::Canvas {
                 const Commands::AddCommandData cmdData = {
                     .def = def,
                     .nsComp = m_lastCreatedComp.nsComponent,
-                    .inputCount = def.inputCount,
-                    .outputCount = def.outputCount,
+                    .inputCount = def.getInputSlotsInfo().count,
+                    .outputCount = def.getOutputSlotsInfo().count,
                     .pos = getSnappedPos(toScenePos(m_mousePos)),
                 };
 

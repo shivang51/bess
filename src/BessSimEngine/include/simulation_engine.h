@@ -43,8 +43,6 @@ namespace Bess::SimEngine {
         void setOutputPinState(const UUID &uuid, int pinIdx, LogicState state);
         void invertInputPinState(const UUID &uuid, int pinIdx);
 
-        bool updateClock(const UUID &uuid, bool enable, float frequency, FrequencyUnit unit);
-
         std::chrono::milliseconds getSimulationTimeMS();
         std::chrono::seconds getSimulationTimeS();
 

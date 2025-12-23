@@ -10,6 +10,7 @@ namespace Bess::Canvas::Components {
     }
 
     bool SimulationInputComponent::updateClock(const UUID &uuid) const {
-        return SimEngine::SimulationEngine::instance().updateClock(uuid, clockBhaviour, frequency, frequencyUnit);
+        // return SimEngine::SimulationEngine::instance().updateClock(uuid, clockBhaviour, frequency, frequencyUnit);
+        return false;
     }
 } // namespace Bess::Canvas::Components

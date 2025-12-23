@@ -19,7 +19,7 @@ namespace Bess::UI {
         static bool isShown;
 
       private:
-        static void createComponent(std::shared_ptr<const SimEngine::ComponentDefinition> def, int inputCount, int outputCount);
+        static void createComponent(const std::shared_ptr<const SimEngine::ComponentDefinition> &def, int inputCount, int outputCount);
         static void createComponent(const Canvas::Components::NSComponent &comp);
 
       private:

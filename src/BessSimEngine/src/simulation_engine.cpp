@@ -2,7 +2,6 @@
 #include "bess_uuid.h"
 #include "component_catalog.h"
 #include "component_definition.h"
-#include "entt/entity/fwd.hpp"
 #include "entt_components.h"
 #include "init_components.h"
 #include "logger.h"
@@ -96,17 +95,13 @@ namespace Bess::SimEngine {
 
     const UUID &SimulationEngine::addComponent(const ComponentDefinition &definition, int inputCount, int outputCount) {
         ComponentDefinition def = definition;
+        auto &inpSlotsInfo = def.getInputSlotsInfo();
+        auto &outSlotsInfo = def.getOutputSlotsInfo();
 
         if (inputCount >= 0)
-            def.inputCount = inputCount;
+            inpSlotsInfo.count = inputCount;
         if (outputCount >= 0)
-            def.outputCount = outputCount;
-        if (def.auxData.type() == typeid(FlipFlopAuxData)) {
-            // const auto &ffData = std::any_cast<const FlipFlopAuxData &>(def.auxData);
-            // m_registry.emplace<FlipFlopComponent>(ent, 1);
-        } else if (ComponentCatalog::instance().isSpecialCompDef(definition.getHash(), ComponentCatalog::SpecialType::stateMonitor)) {
-            // m_registry.emplace<StateMonitorComponent>(ent);
-        }
+            outSlotsInfo.count = outputCount;
 
         auto digiComp = std::make_shared<DigitalComponent>(def);
         m_simEngineState.addDigitalComponent(digiComp);
@@ -118,9 +113,9 @@ namespace Bess::SimEngine {
         m_nets[digiComp->netUuid] = newNet;
         m_isNetUpdated = true;
 
-        scheduleEvent(digiComp->id, UUID::null, m_currentSimTime + def.delay);
+        scheduleEvent(digiComp->id, UUID::null, m_currentSimTime + def.getNextSimTime());
 
-        BESS_SE_INFO("Added component {}", def.name);
+        BESS_SE_INFO("Added component {}", def.getName());
         return digiComp->id;
     }
 
@@ -240,7 +235,7 @@ namespace Bess::SimEngine {
             m_isNetUpdated = true;
         }
 
-        scheduleEvent(dst, src, m_currentSimTime + dstComp->definition.delay);
+        scheduleEvent(dst, src, m_currentSimTime + dstComp->definition.getNextSimTime());
         BESS_SE_INFO("Connected components");
         return true;
     }
@@ -307,7 +302,7 @@ namespace Bess::SimEngine {
                 continue;
 
             const auto &dc = m_simEngineState.getDigitalComponent(e);
-            scheduleEvent(e, UUID::null, m_currentSimTime + dc->definition.delay);
+            scheduleEvent(e, UUID::null, m_currentSimTime + dc->definition.getNextSimTime());
         }
 
         BESS_SE_INFO("Deleted component");
@@ -383,16 +378,11 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::setInputPinState(const UUID &uuid, int pinIdx, LogicState state) {
-
-        // FIXME: clocks should not be toggled via setPinState
-        // if (m_registry.all_of<ClockComponent>(ent))
-        //     return;
-
         const auto comp = m_simEngineState.getDigitalComponent(uuid);
 
         comp->state.inputStates[pinIdx].state = state;
         comp->state.inputStates[pinIdx].lastChangeTime = m_currentSimTime;
-        scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition.delay);
+        scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition.getNextSimTime());
     }
 
     void SimulationEngine::setOutputPinState(const UUID &uuid, int pinIdx, LogicState state) {
@@ -400,7 +390,7 @@ namespace Bess::SimEngine {
 
         comp->state.outputStates[pinIdx].state = state;
         comp->state.outputStates[pinIdx].lastChangeTime = m_currentSimTime;
-        scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition.delay);
+        scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition.getNextSimTime());
     }
 
     void SimulationEngine::invertInputPinState(const UUID &uuid, int pinIdx) {
@@ -411,23 +401,7 @@ namespace Bess::SimEngine {
 
         comp->state.inputStates[pinIdx].state = state;
         comp->state.inputStates[pinIdx].lastChangeTime = m_currentSimTime;
-        scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition.delay);
-    }
-
-    bool SimulationEngine::updateClock(const UUID &uuid, bool enable, float freq, FrequencyUnit unit) {
-        // FIXME: clocks are not implemented yet
-        // auto ent = getEntityWithUuid(uuid);
-        // bool hadClock = m_registry.all_of<ClockComponent>(ent);
-        // if (enable) {
-        //     m_registry.get_or_emplace<ClockComponent>(ent).setup(freq, unit);
-        // } else if (hadClock) {
-        //     m_registry.remove<ClockComponent>(ent);
-        // }
-        clearEventsForEntity(uuid);
-        scheduleEvent(uuid, UUID::null, m_currentSimTime);
-
-        return false;
-        // return hadClock != enable;
+        scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition.getNextSimTime());
     }
 
     const ComponentState &SimulationEngine::getComponentState(const UUID &uuid) {
@@ -491,7 +465,7 @@ namespace Bess::SimEngine {
         updateNets({compA, compB});
 
         const auto &dc = m_simEngineState.getDigitalComponent(toSchedule);
-        scheduleEvent(toSchedule, UUID::null, m_currentSimTime + dc->definition.delay);
+        scheduleEvent(toSchedule, UUID::null, m_currentSimTime + dc->definition.getNextSimTime());
 
         BESS_SE_INFO("Deleted connection");
     }
@@ -553,13 +527,14 @@ namespace Bess::SimEngine {
         }
         BESS_SE_LOG_EVENT("");
 #endif // BESS_SE_ENABLE_LOG_EVENTS
-        if (def.simulationFunction) {
+        if (def.getSimulationFunction()) {
             comp->state.simError = false;
             ComponentState newState;
             try {
-                newState = def.simulationFunction(inputs, m_currentSimTime, comp->state);
+                newState = def.getSimulationFunction()(inputs, m_currentSimTime, comp->state);
             } catch (std::exception &ex) {
-                BESS_SE_ERROR("Exception during simulation of component {}. Output won't be updated: {}", def.name, ex.what());
+                BESS_SE_ERROR("Exception during simulation of component {}. Output won't be updated: {}",
+                              def.getName(), ex.what());
                 comp->state.simError = true;
                 comp->state.errorMessage = ex.what();
                 comp->state.isChanged = false;
@@ -682,31 +657,28 @@ namespace Bess::SimEngine {
                 {
                     std::lock_guard regLock(m_registryMutex);
 
-                    // FIXME: clocks are not implemented yet
-                    // bool hasClk = m_registry.all_of<ClockComponent>(entity);
                     bool changed = simulateComponent(compId, inputs);
+                    const auto &dc = m_simEngineState.getDigitalComponent(compId);
 
-                    if (changed /* || hasClk*/) {
-                        const auto &dc = m_simEngineState.getDigitalComponent(compId);
+                    if (changed) {
 
                         for (auto &pin : dc->outputConnections) {
                             const auto &keyView = pin | std::views::keys;
                             std::set<UUID> uniqueEntities = std::set<UUID>(keyView.begin(), keyView.end());
                             for (auto &ent : uniqueEntities) {
-                                scheduleEvent(ent, compId, m_currentSimTime + dc->definition.delay);
+                                scheduleEvent(ent, compId, m_currentSimTime + dc->definition.getNextSimTime());
                             }
                         }
                     }
 
-                    // FIXME: clocks are not implemented yet
-                    // if (hasClk) {
-                    //     auto &clk = m_registry.get<ClockComponent>(compId);
-                    //     auto &dc = m_registry.get<DigitalComponent>(compId);
-                    //     bool isHigh = (bool)dc.state.outputStates[0];
-                    //     dc.state.outputStates[0] = isHigh ? PinState(LogicState::low, m_currentSimTime) : PinState(LogicState::high, m_currentSimTime);
-                    //     clk.high = (bool)dc.state.outputStates[0];
-                    //     scheduleEvent(compId, entt::null, m_currentSimTime + clk.getNextDelay());
-                    // }
+                    if (dc->definition.getShouldAutoRechedule()) {
+                        bool isHigh = (bool)dc->state.outputStates[0];
+                        dc->state.outputStates[0] = isHigh
+                                                        ? PinState(LogicState::low, m_currentSimTime)
+                                                        : PinState(LogicState::high, m_currentSimTime);
+                        dc->state.isChanged = true;
+                        scheduleEvent(compId, UUID::null, m_currentSimTime + dc->definition.getNextSimTime());
+                    }
                 }
 
                 queueLock.lock();
@@ -811,7 +783,7 @@ namespace Bess::SimEngine {
         const auto &net = m_nets.at(netUuid);
 
         std::vector<UUID> components;
-        std::vector<UUID> inputs, clockInputs;
+        std::vector<UUID> inputs;
         std::vector<UUID> outputs;
 
         for (const auto &compUuid : net.getComponents()) {
@@ -820,19 +792,11 @@ namespace Bess::SimEngine {
 
             const auto &comp = m_simEngineState.getDigitalComponent(compUuid);
             const auto &hash = comp->definition.getHash();
-            bool isInput = ComponentCatalog::instance().isSpecialCompDef(hash,
-                                                                         ComponentCatalog::SpecialType::input);
-
-            bool isOutput = ComponentCatalog::instance().isSpecialCompDef(hash,
-                                                                          ComponentCatalog::SpecialType::output);
+            bool isInput = comp->definition.getBehaviorType() == ComponentBehaviorType::input;
+            bool isOutput = comp->definition.getBehaviorType() == ComponentBehaviorType::output;
 
             if (isInput) {
-                // FIXME: clocks are not implemented yet
-                // if (m_registry.all_of<ClockComponent>(ent)) {
-                //     clockInputs.emplace_back(compUuid);
-                // } else {
                 inputs.emplace_back(compUuid);
-                // }
             } else if (isOutput) {
                 outputs.emplace_back(compUuid);
             } else {
@@ -845,15 +809,14 @@ namespace Bess::SimEngine {
             return {};
         }
 
-        BESS_SE_INFO("Truth table will have {} inputs ({} clock) and {} outputs",
-                     inputs.size(), clockInputs.size(), outputs.size());
+        BESS_SE_INFO("Truth table will have {} inputs and {} outputs", inputs.size(), outputs.size());
 
         const size_t numInputs = inputs.size();
         const size_t numCombinations = 1 << numInputs;
 
         std::vector<std::vector<LogicState>> tableData(numCombinations,
                                                        std::vector<LogicState>(
-                                                           numInputs + clockInputs.size() + outputs.size(),
+                                                           numInputs + outputs.size(),
                                                            LogicState::low));
 
         BESS_SE_INFO("Truth table dimensions: {} rows x {} columns",
@@ -871,11 +834,6 @@ namespace Bess::SimEngine {
                 tableData[comb][numInputs - i - 1] = state;
             }
 
-            for (const auto &clkInput : clockInputs) {
-                const auto &comp = m_simEngineState.getDigitalComponent(clkInput);
-                tableData[comb][numInputs] = comp->state.outputStates[0].state;
-            }
-
             BESS_SE_INFO("Waiting for simulation to stabilize...");
 
             // Wait for simulation to stabilize
@@ -891,7 +849,7 @@ namespace Bess::SimEngine {
             for (size_t i = 0; i < outputs.size(); i++) {
                 std::lock_guard lk(m_registryMutex);
                 const auto states = getInputPinsState(outputs[i]);
-                tableData[comb][numInputs + clockInputs.size() + i] = states[0].state;
+                tableData[comb][numInputs + i] = states[0].state;
             }
         }
 
@@ -900,13 +858,7 @@ namespace Bess::SimEngine {
         TruthTable truthTable;
         std::ranges::reverse(inputs);
         truthTable.inputUuids = inputs;
-
-        for (const auto &clkInput : clockInputs) {
-            truthTable.inputUuids.emplace_back(clkInput);
-        }
-
         truthTable.outputUuids = outputs;
-
         truthTable.table = tableData;
 
         return truthTable;
@@ -925,13 +877,6 @@ namespace Bess::SimEngine {
             return true;
         }
 
-        // FIXME: clocks are not implemented yet
-        // std::lock_guard regLk(m_registryMutex);
-        // for (const auto &ev : m_eventSet) {
-        //     if (!m_registry.all_of<ClockComponent>(ev.compId)) {
-        //         return false;
-        //     }
-        // }
         return true;
     }
 } // namespace Bess::SimEngine

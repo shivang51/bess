@@ -17,7 +17,7 @@ namespace Bess::UI {
     bool ComponentExplorer::m_isfirstTimeDraw = true;
     std::string ComponentExplorer::m_searchQuery;
 
-    void ComponentExplorer::createComponent(std::shared_ptr<const SimEngine::ComponentDefinition> def, const int inputCount, const int outputCount) {
+    void ComponentExplorer::createComponent(const std::shared_ptr<const SimEngine::ComponentDefinition> &def, int inputCount, int outputCount) {
         auto scene = Canvas::Scene::instance();
         Canvas::Commands::AddCommandData data;
         data.def = *def.get();
@@ -99,7 +99,7 @@ namespace Bess::UI {
 
                 if (!shouldCollectionShow) {
                     for (const auto &comp : ent.second) {
-                        if (Common::Helpers::toLowerCase(comp->name).find(m_searchQuery) != std::string::npos) {
+                        if (Common::Helpers::toLowerCase(comp->getName()).find(m_searchQuery) != std::string::npos) {
                             shouldCollectionShow = true;
                             break;
                         }
@@ -112,26 +112,19 @@ namespace Bess::UI {
                 if (Widgets::TreeNode(key, ent.first, ImGuiTreeNodeFlags_DefaultOpen)) {
                     for (const auto &comp : ent.second) {
                         if (m_searchQuery != "" &&
-                            Common::Helpers::toLowerCase(comp->name)
+                            Common::Helpers::toLowerCase(comp->getName())
                                     .find(m_searchQuery) == std::string::npos)
                             continue;
 
                         const std::string name = Common::Helpers::getComponentIcon(
                                                      comp->getHash()) +
-                                                 "  " + comp->name;
+                                                 "  " + comp->getName();
 
-                        if (Widgets::ButtonWithPopup(name,
-                                                     name + "OptionsMenu",
-                                                     !comp->getAltInputCounts().empty())) {
+                        if (Widgets::ButtonWithPopup(name, name + "OptionsMenu", false)) {
                             createComponent(comp, -1, -1);
                         }
 
                         if (ImGui::BeginPopup((name + "OptionsMenu").c_str())) {
-                            for (auto &inpCount : comp->getAltInputCounts()) {
-                                if (ImGui::MenuItem(std::format("{} Inputs", inpCount).c_str())) {
-                                    createComponent(comp, inpCount, -1);
-                                }
-                            }
                             ImGui::EndPopup();
                         }
                     }

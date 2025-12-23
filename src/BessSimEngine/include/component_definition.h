@@ -57,18 +57,18 @@ namespace Bess::SimEngine {
         bool shouldNegateOutput = false;
     };
 
-    class BESS_API ComponentDefinitionV2 {
+    class BESS_API ComponentDefinition {
       public:
-        ComponentDefinitionV2() = default;
+        ComponentDefinition() = default;
 
-        ComponentDefinitionV2(const ComponentDefinitionV2 &) = default;
-        ComponentDefinitionV2(ComponentDefinitionV2 &&) = default;
-        ComponentDefinitionV2 &operator=(const ComponentDefinitionV2 &) = default;
-        ComponentDefinitionV2 &operator=(ComponentDefinitionV2 &&) = default;
+        ComponentDefinition(const ComponentDefinition &) = default;
+        ComponentDefinition(ComponentDefinition &&) = default;
+        ComponentDefinition &operator=(const ComponentDefinition &) = default;
+        ComponentDefinition &operator=(ComponentDefinition &&) = default;
 
-        virtual ~ComponentDefinitionV2() = default;
+        virtual ~ComponentDefinition() = default;
 
-        uint64_t getHash() noexcept;
+        uint64_t getHash() const;
 
         MAKE_GETTER_SETTER(bool, ShouldAutoRechedule, m_shouldAutoReschedule)
         MAKE_GETTER_SETTER(SlotsGroupInfo, InputSlotsInfo, m_inputSlotsInfo)
@@ -79,6 +79,14 @@ namespace Bess::SimEngine {
         MAKE_GETTER_SETTER(std::string, GroupName, m_groupName)
         MAKE_GETTER_SETTER(ComponentBehaviorType, BehaviorType, m_behaviorType)
         MAKE_GETTER_SETTER(SimulationFunction, SimulationFunction, m_simulationFunction)
+        MAKE_GETTER_SETTER(std::any, AuxData, m_auxData)
+
+        template <typename T>
+        T &getAuxDataAs() {
+            return std::any_cast<T &>(m_auxData);
+        }
+
+        void computeHash();
 
         // callbacks
       public:
@@ -102,13 +110,11 @@ namespace Bess::SimEngine {
          **/
         virtual SimTime getNextSimTime();
 
-        friend bool operator==(ComponentDefinitionV2 &a, ComponentDefinitionV2 &b) noexcept {
+        friend bool operator==(ComponentDefinition &a, ComponentDefinition &b) noexcept {
             return a.getHash() == b.getHash();
         }
 
       private:
-        void computeHash();
-
         bool m_shouldAutoReschedule = false;
         SlotsGroupInfo m_inputSlotsInfo{}, m_outputSlotsInfo{};
         OperatorInfo m_opInfo{};
@@ -116,63 +122,9 @@ namespace Bess::SimEngine {
         ComponentBehaviorType m_behaviorType = ComponentBehaviorType::none;
         std::string m_name;
         std::string m_groupName;
+        std::any m_auxData;
         uint64_t m_hash = 0;
         SimulationFunction m_simulationFunction = nullptr;
-    };
-
-    class BESS_API ComponentDefinition {
-      public:
-        ComponentDefinition() = default;
-
-        ComponentDefinition(const std::string &name,
-                            const std::string &category,
-                            int inputCount,
-                            int outputCount,
-                            SimulationFunction simFunction,
-                            SimDelayNanoSeconds delay, char op);
-
-        ComponentDefinition(const std::string &name,
-                            const std::string &category,
-                            int inputCount,
-                            int outputCount,
-                            SimulationFunction simFunction,
-                            SimDelayNanoSeconds delay, const std::vector<std::string> &expr = {});
-
-        std::string name;
-        std::string category;
-        SimDelayNanoSeconds delay, setupTime, holdTime;
-        SimulationFunction simulationFunction;
-        std::vector<std::string> expressions;
-        std::vector<PinDetail> inputPinDetails;
-        std::vector<PinDetail> outputPinDetails;
-        int inputCount = 0;
-        int outputCount = 0;
-        char op = '0';
-        bool negate = false;
-        std::any auxData;
-
-        void reinit();
-
-        std::vector<std::string> getExpressions(int inputCount = -1) const;
-
-        std::pair<std::span<const PinDetail>, std::span<const PinDetail>> getPinDetails() const;
-
-        uint64_t getHash() const noexcept;
-
-        void invalidateHash() const;
-
-        void setAltInputCounts(const std::vector<int> &altCounts);
-
-        const std::vector<int> &getAltInputCounts() const;
-
-        friend bool operator==(const ComponentDefinition &a, const ComponentDefinition &b) noexcept {
-            return a.getHash() == b.getHash();
-        }
-
-      private:
-        std::vector<int> m_altInputCounts;
-        mutable uint64_t m_cachedHash = 0;
-        mutable bool m_hashComputed = false;
     };
 
 } // namespace Bess::SimEngine

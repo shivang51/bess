@@ -52,7 +52,7 @@ namespace Bess::Canvas::Commands {
 
         int i = 0;
         for (auto &simEngineId : simEngineUuids.value()) {
-            const auto &data = m_data[i];
+            auto &data = m_data[i];
             m_compIds.emplace_back(scene->createSimEntity(simEngineId, data.def, data.pos));
             i++;
         }

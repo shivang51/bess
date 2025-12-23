@@ -16,6 +16,7 @@ namespace Bess::Plugins {
         : m_pluginObj(pluginObj) {}
 
     std::vector<SimEngine::ComponentDefinition> PluginHandle::onComponentsRegLoad() const {
+        return {};
         std::vector<SimEngine::ComponentDefinition> components;
 
         py::gil_scoped_acquire gil;
@@ -106,33 +107,33 @@ namespace Bess::Plugins {
                 SimEngine::ComponentDefinition def = [&]() {
                     SimEngine::ComponentDefinition d;
                     if (!expressions.empty() && (opStr.empty() || opStr == "0")) {
-                        d = SimEngine::ComponentDefinition(name, category, inputCount, outputCount, simFn, SimEngine::SimDelayNanoSeconds(delayNs), expressions);
+                        // d = SimEngine::ComponentDefinition(name, category, inputCount, outputCount, simFn, SimEngine::SimDelayNanoSeconds(delayNs), expressions);
                     } else {
                         char op = opStr.empty() ? '0' : opStr[0];
-                        d = SimEngine::ComponentDefinition(name, category, inputCount, outputCount, simFn, SimEngine::SimDelayNanoSeconds(delayNs), op);
+                        // d = SimEngine::ComponentDefinition(name, category, inputCount, outputCount, simFn, SimEngine::SimDelayNanoSeconds(delayNs), op);
                     }
 
-                    d.negate = negate;
+                    // d.negate = negate;
                     return d;
                 }();
 
                 try {
                     auto pins = pyComp.attr("native_input_pin_details").cast<std::vector<SimEngine::PinDetail>>();
-                    def.inputPinDetails = pins;
+                    // def.inputPinDetails = pins;
                 } catch (std::exception &e) {
                     spdlog::error("Plugin [{}] component [{}]: failed to cast input_pin_details\n{}", name, category, e.what());
                 }
 
                 try {
                     auto pins = pyComp.attr("native_output_pin_details").cast<std::vector<SimEngine::PinDetail>>();
-                    def.outputPinDetails = pins;
+                    // def.outputPinDetails = pins;
                 } catch (std::exception &e) {
                     spdlog::error("Plugin [{}] component [{}]: failed to cast output_pin_details\n{}", name, category, e.what());
                 }
 
                 try {
                     auto fn = pyComp.attr("get_alt_input_counts");
-                    def.setAltInputCounts(fn().cast<std::vector<int>>());
+                    // def.setAltInputCounts(fn().cast<std::vector<int>>());
                 } catch (std::exception &e) {
                     spdlog::error("Plugin [{}] component [{}]: failed to get get_alt_input_counts\n{}", name, category, e.what());
                 }

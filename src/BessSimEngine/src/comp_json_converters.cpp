@@ -76,92 +76,92 @@ namespace Bess::JsonConvert {
     }
 
     void toJsonValue(const ComponentDefinition &def, Json::Value &j) {
-        j = Json::Value(Json::objectValue);
-        j["name"] = def.name;
-        j["category"] = def.category;
-        j["delay"] = static_cast<Json::Int64>(def.delay.count());
-        j["setupTime"] = static_cast<Json::Int64>(def.setupTime.count());
-        j["holdTime"] = static_cast<Json::Int64>(def.holdTime.count());
-        j["inputCount"] = def.inputCount;
-        j["outputCount"] = def.outputCount;
-        j["op"] = static_cast<int>(def.op);
-        j["negate"] = def.negate;
-
-        // expressions
-        Json::Value &exprArr = j["expressions"] = Json::Value(Json::arrayValue);
-        for (const auto &expr : def.expressions) {
-            exprArr.append(expr);
-        }
-
-        // pin details
-        Json::Value &inPins = j["inputPinDetails"] = Json::Value(Json::arrayValue);
-        for (const auto &p : def.inputPinDetails) {
-            Json::Value pj;
-            toJsonValue(p, pj);
-            inPins.append(pj);
-        }
-
-        Json::Value &outPins = j["outputPinDetails"] = Json::Value(Json::arrayValue);
-        for (const auto &p : def.outputPinDetails) {
-            Json::Value pj;
-            toJsonValue(p, pj);
-            outPins.append(pj);
-        }
-
-        // stable identifier
-        j["hash"] = static_cast<Json::UInt64>(def.getHash());
+        // j = Json::Value(Json::objectValue);
+        // j["name"] = def.name;
+        // j["category"] = def.category;
+        // j["delay"] = static_cast<Json::Int64>(def.delay.count());
+        // j["setupTime"] = static_cast<Json::Int64>(def.setupTime.count());
+        // j["holdTime"] = static_cast<Json::Int64>(def.holdTime.count());
+        // j["inputCount"] = def.inputCount;
+        // j["outputCount"] = def.outputCount;
+        // j["op"] = static_cast<int>(def.op);
+        // j["negate"] = def.negate;
+        //
+        // // expressions
+        // Json::Value &exprArr = j["expressions"] = Json::Value(Json::arrayValue);
+        // for (const auto &expr : def.expressions) {
+        //     exprArr.append(expr);
+        // }
+        //
+        // // pin details
+        // Json::Value &inPins = j["inputPinDetails"] = Json::Value(Json::arrayValue);
+        // for (const auto &p : def.inputPinDetails) {
+        //     Json::Value pj;
+        //     toJsonValue(p, pj);
+        //     inPins.append(pj);
+        // }
+        //
+        // Json::Value &outPins = j["outputPinDetails"] = Json::Value(Json::arrayValue);
+        // for (const auto &p : def.outputPinDetails) {
+        //     Json::Value pj;
+        //     toJsonValue(p, pj);
+        //     outPins.append(pj);
+        // }
+        //
+        // // stable identifier
+        // j["hash"] = static_cast<Json::UInt64>(def.getHash());
     }
 
     void fromJsonValue(const Json::Value &j, ComponentDefinition &def) {
-        if (!j.isObject()) {
-            return;
-        }
-        def.name = j.get("name", def.name).asString();
-        def.category = j.get("category", def.category).asString();
-        def.delay = SimDelayNanoSeconds(j.get("delay", 0).asInt64());
-        def.setupTime = SimDelayNanoSeconds(j.get("setupTime", 0).asInt64());
-        def.holdTime = SimDelayNanoSeconds(j.get("holdTime", 0).asInt64());
-        def.inputCount = j.get("inputCount", def.inputCount).asInt();
-        def.outputCount = j.get("outputCount", def.outputCount).asInt();
-        def.op = static_cast<char>(j.get("op", static_cast<int>(def.op)).asInt());
-        def.negate = j.get("negate", def.negate).asBool();
-        def.expressions.clear();
-        if (j.isMember("expressions")) {
-            for (const auto &e : j["expressions"]) {
-                def.expressions.push_back(e.asString());
-            }
-        }
-
-        def.inputPinDetails.clear();
-        if (j.isMember("inputPinDetails")) {
-            for (const auto &pj : j["inputPinDetails"]) {
-                PinDetail p{};
-                fromJsonValue(pj, p);
-                def.inputPinDetails.push_back(p);
-            }
-        }
-
-        def.outputPinDetails.clear();
-        if (j.isMember("outputPinDetails")) {
-            for (const auto &pj : j["outputPinDetails"]) {
-                PinDetail p{};
-                fromJsonValue(pj, p);
-                def.outputPinDetails.push_back(p);
-            }
-        }
-
-        auto hash = j.get("hash", 0).asUInt64();
-
-        const auto &catalogDef = SimEngine::ComponentCatalog::instance().getComponentDefinition(hash);
-
-        assert(catalogDef && "ComponentDefinition not found in catalog during deserialization");
-
-        def.simulationFunction = catalogDef->simulationFunction;
-        def.auxData = catalogDef->auxData;
-
-        def.reinit();
-
-        assert(hash == def.getHash() && "Deserialized ComponentDefinition hash mismatch");
+        // if (!j.isObject()) {
+        //     return;
+        // }
+        // def.name = j.get("name", def.name).asString();
+        // def.category = j.get("category", def.category).asString();
+        // def.delay = SimDelayNanoSeconds(j.get("delay", 0).asInt64());
+        // def.setupTime = SimDelayNanoSeconds(j.get("setupTime", 0).asInt64());
+        // def.holdTime = SimDelayNanoSeconds(j.get("holdTime", 0).asInt64());
+        // def.inputCount = j.get("inputCount", def.inputCount).asInt();
+        // def.outputCount = j.get("outputCount", def.outputCount).asInt();
+        // def.op = static_cast<char>(j.get("op", static_cast<int>(def.op)).asInt());
+        // def.negate = j.get("negate", def.negate).asBool();
+        // def.expressions.clear();
+        // if (j.isMember("expressions")) {
+        //     for (const auto &e : j["expressions"]) {
+        //         def.expressions.push_back(e.asString());
+        //     }
+        // }
+        //
+        // def.inputPinDetails.clear();
+        // if (j.isMember("inputPinDetails")) {
+        //     for (const auto &pj : j["inputPinDetails"]) {
+        //         PinDetail p{};
+        //         fromJsonValue(pj, p);
+        //         def.inputPinDetails.push_back(p);
+        //     }
+        // }
+        //
+        // def.outputPinDetails.clear();
+        // if (j.isMember("outputPinDetails")) {
+        //     for (const auto &pj : j["outputPinDetails"]) {
+        //         PinDetail p{};
+        //         fromJsonValue(pj, p);
+        //         def.outputPinDetails.push_back(p);
+        //     }
+        // }
+        //
+        // auto hash = j.get("hash", 0).asUInt64();
+        //
+        // const auto &catalogDef = SimEngine::ComponentCatalog::instance().getComponentDefinition(hash);
+        //
+        // assert(catalogDef && "ComponentDefinition not found in catalog during deserialization");
+        //
+        // def.simulationFunction = catalogDef->simulationFunction;
+        // def.auxData = catalogDef->auxData;
+        //
+        // def.reinit();
+        //
+        // assert(hash == def.getHash() && "Deserialized ComponentDefinition hash mismatch");
     }
 
     // struct BESS_API ComponentState {
@@ -317,7 +317,7 @@ namespace Bess::JsonConvert {
 
         fromJsonValue(j["definition"], comp.definition);
         fromJsonValue(j["state"], comp.state);
-        comp.state.auxData = &comp.definition.auxData;
+        // comp.state.auxData = &comp.definition.auxData;
 
         if (j.isMember("inputConnections")) {
             for (const auto &connArr : j["inputConnections"]) {
