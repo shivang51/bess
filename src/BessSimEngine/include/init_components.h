@@ -168,6 +168,16 @@ namespace Bess::SimEngine {
         // catalog.registerComponent(flipFlop);
     }
 
+    class ClockTrait : public Trait {
+      public:
+        ClockTrait() = default;
+
+        FrequencyUnit frequencyUnit = FrequencyUnit::hz;
+        double frequency = 1.0;
+        bool high = false; // current output phase
+        float dutyCycle = 0.5f;
+    };
+
     class ClockDefinition : public ComponentDefinition {
       public:
         ClockDefinition(const std::string &groupName) {
@@ -176,15 +186,47 @@ namespace Bess::SimEngine {
             m_outputSlotsInfo = {SlotsGroupType::output, false, 1, {"", ""}, {}};
             setSimulationFunction([](auto &, auto ts, const auto &oldState) -> ComponentState {
             auto newState = oldState;
-						newState.isChanged = true;
+						newState.outputStates[0].state = oldState.outputStates[0].state == LogicState::low 
+						? LogicState::high 
+						: LogicState::low;
 						newState.outputStates[0].lastChangeTime = ts;
+						newState.isChanged = true;
 						return newState; });
+
+            m_shouldAutoReschedule = true;
             m_simDelay = SimDelayNanoSeconds(0);
+            addTrait<ClockTrait>();
         }
 
-        SimTime getNextSimTime() override {
-            BESS_SE_TRACE("[++++] override");
-            return m_simDelay;
+        SimTime getRescheduleDelay() override {
+            const auto &clockTrait = getTrait<ClockTrait>();
+            double f = clockTrait->frequency;
+            if (clockTrait->frequencyUnit == FrequencyUnit::kHz) {
+                f *= 1e3;
+            } else if (clockTrait->frequencyUnit == FrequencyUnit::MHz) {
+                f *= 1e6;
+            }
+
+            if (f <= 0.0) {
+                throw std::runtime_error("Invalid clock frequency");
+            }
+
+            const double period = 1 / f;
+            const double phase = clockTrait->high
+                                     ? period * clockTrait->dutyCycle
+                                     : period * (1.0 - clockTrait->dutyCycle);
+
+            return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(phase));
+        }
+
+        void onStateChange(const ComponentState &oldState,
+                           const ComponentState &newState) override {
+            const auto &clockTrait = getTrait<ClockTrait>();
+            clockTrait->high = newState.outputStates[0].state == LogicState::high;
+        }
+
+        std::shared_ptr<ComponentDefinition> clone() const override {
+            return std::make_shared<ClockDefinition>(*this);
         }
     };
 
@@ -217,7 +259,6 @@ namespace Bess::SimEngine {
                                         SimTime currentTime,
                                         const ComponentState &prevState) -> ComponentState {
 						auto newState = prevState;
-						newState.inputStates = inputs;
 						return newState; });
         outDef.setSimDelay(SimDelayNanoSeconds(0));
         catalog.registerComponent(outDef);

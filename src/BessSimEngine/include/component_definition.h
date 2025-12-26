@@ -1,7 +1,9 @@
 #pragma once
 
 #include "bess_api.h"
+#include "type_map.h"
 #include "types.h"
+#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
@@ -25,6 +27,11 @@ namespace Bess::SimEngine {
 #define MAKE_GETTER(type, name, varName)              \
     const type &get##name() const { return varName; } \
     type &get##name() { return varName; }
+
+#define MAKE_SETTER(type, name, varName) \
+    void set##name(const type &value) {  \
+        varName = value;                 \
+    }
 
     enum class SlotsGroupType : uint8_t {
         none,
@@ -58,6 +65,9 @@ namespace Bess::SimEngine {
         bool shouldNegateOutput = false;
     };
 
+    class BESS_API Trait {
+    };
+
     class BESS_API ComponentDefinition {
       public:
         ComponentDefinition() = default;
@@ -71,11 +81,11 @@ namespace Bess::SimEngine {
 
         uint64_t getHash() const;
 
-        MAKE_GETTER_SETTER(bool, ShouldAutoRechedule, m_shouldAutoReschedule)
+        MAKE_GETTER_SETTER(bool, ShouldAutoReschedule, m_shouldAutoReschedule)
         MAKE_GETTER_SETTER(SlotsGroupInfo, InputSlotsInfo, m_inputSlotsInfo)
         MAKE_GETTER_SETTER(SlotsGroupInfo, OutputSlotsInfo, m_outputSlotsInfo)
         MAKE_GETTER_SETTER(OperatorInfo, OpInfo, m_opInfo)
-        MAKE_GETTER_SETTER(SimDelayNanoSeconds, SimDelay, m_simDelay)
+        MAKE_SETTER(SimDelayNanoSeconds, SimDelay, m_simDelay)
         MAKE_GETTER_SETTER(std::string, Name, m_name)
         MAKE_GETTER_SETTER(std::string, GroupName, m_groupName)
         MAKE_GETTER_SETTER(ComponentBehaviorType, BehaviorType, m_behaviorType)
@@ -85,6 +95,35 @@ namespace Bess::SimEngine {
         template <typename T>
         T &getAuxDataAs() {
             return std::any_cast<T &>(m_auxData);
+        }
+
+        template <typename T>
+        std::shared_ptr<T> getTrait() {
+            auto itr = m_traits.find<T>();
+            if (itr != m_traits.end()) {
+                return std::static_pointer_cast<T>(itr->second);
+            }
+            return nullptr;
+        }
+
+        template <typename T>
+        void addTrait(const std::shared_ptr<T> &trait) {
+            m_traits.put<T>(trait);
+        }
+
+        template <typename T>
+        void addTrait(T &&trait) {
+            m_traits.put<T>(std::make_shared<T>(std::forward<T>(trait)));
+        }
+
+        template <typename T>
+        void addTrait() {
+            m_traits.put<T>(std::make_shared<T>(std::forward<T>(T())));
+        }
+
+        bool hasTrait(const std::shared_ptr<Trait> &trait) const {
+            auto itr = m_traits.find<Trait>();
+            return itr != m_traits.end();
         }
 
         void computeHash();
@@ -109,7 +148,24 @@ namespace Bess::SimEngine {
          * e.g.: if 10ns is returned the component will be scheduled to be simulated after
          * 10ns in the simulation engine
          **/
-        virtual SimTime getNextSimTime();
+        virtual SimTime getSimDelay();
+
+        /**
+         * This function returns the delay after which the component should be auto-rescheduled.
+         * Will only be called if shouldAutoReschedule is true.
+         * returns: the offset or time after which it should be rescheduled;
+         * e.g.: if 10ns is returned the component will be rescheduled to be simulated after
+         * 10ns in the simulation engine
+         **/
+        virtual SimTime getRescheduleDelay();
+
+        /**
+         * This function will be called when the component state changes;
+         * oldState: previous state of the component;
+         * newState: new state of the component;
+         **/
+        virtual void onStateChange(const ComponentState &oldState,
+                                   const ComponentState &newState) {}
 
         virtual std::shared_ptr<ComponentDefinition> clone() const {
             return std::make_shared<ComponentDefinition>(*this);
@@ -135,6 +191,7 @@ namespace Bess::SimEngine {
         std::any m_auxData;
         uint64_t m_hash = 0;
         SimulationFunction m_simulationFunction = nullptr;
+        TypeMap<std::shared_ptr<Trait>> m_traits;
     };
 
 } // namespace Bess::SimEngine

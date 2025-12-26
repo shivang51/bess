@@ -105,7 +105,7 @@ namespace Bess::SimEngine {
         m_nets[digiComp->netUuid] = newNet;
         m_isNetUpdated = true;
 
-        scheduleEvent(digiComp->id, UUID::null, m_currentSimTime + definition->getNextSimTime());
+        scheduleEvent(digiComp->id, UUID::null, m_currentSimTime + definition->getSimDelay());
 
         BESS_SE_INFO("Added component {}", definition->getName());
         return digiComp->id;
@@ -227,7 +227,7 @@ namespace Bess::SimEngine {
             m_isNetUpdated = true;
         }
 
-        scheduleEvent(dst, src, m_currentSimTime + dstComp->definition->getNextSimTime());
+        scheduleEvent(dst, src, m_currentSimTime + dstComp->definition->getSimDelay());
         BESS_SE_INFO("Connected components");
         return true;
     }
@@ -294,7 +294,7 @@ namespace Bess::SimEngine {
                 continue;
 
             const auto &dc = m_simEngineState.getDigitalComponent(e);
-            scheduleEvent(e, UUID::null, m_currentSimTime + dc->definition->getNextSimTime());
+            scheduleEvent(e, UUID::null, m_currentSimTime + dc->definition->getSimDelay());
         }
 
         BESS_SE_INFO("Deleted component");
@@ -374,7 +374,7 @@ namespace Bess::SimEngine {
 
         comp->state.inputStates[pinIdx].state = state;
         comp->state.inputStates[pinIdx].lastChangeTime = m_currentSimTime;
-        scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition->getNextSimTime());
+        scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition->getSimDelay());
     }
 
     void SimulationEngine::setOutputPinState(const UUID &uuid, int pinIdx, LogicState state) {
@@ -382,7 +382,7 @@ namespace Bess::SimEngine {
 
         comp->state.outputStates[pinIdx].state = state;
         comp->state.outputStates[pinIdx].lastChangeTime = m_currentSimTime;
-        scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition->getNextSimTime());
+        scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition->getSimDelay());
     }
 
     void SimulationEngine::invertInputPinState(const UUID &uuid, int pinIdx) {
@@ -393,7 +393,7 @@ namespace Bess::SimEngine {
 
         comp->state.inputStates[pinIdx].state = state;
         comp->state.inputStates[pinIdx].lastChangeTime = m_currentSimTime;
-        scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition->getNextSimTime());
+        scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition->getSimDelay());
     }
 
     const ComponentState &SimulationEngine::getComponentState(const UUID &uuid) {
@@ -457,7 +457,7 @@ namespace Bess::SimEngine {
         updateNets({compA, compB});
 
         const auto &dc = m_simEngineState.getDigitalComponent(toSchedule);
-        scheduleEvent(toSchedule, UUID::null, m_currentSimTime + dc->definition->getNextSimTime());
+        scheduleEvent(toSchedule, UUID::null, m_currentSimTime + dc->definition->getSimDelay());
 
         BESS_SE_INFO("Deleted connection");
     }
@@ -521,6 +521,7 @@ namespace Bess::SimEngine {
 #endif // BESS_SE_ENABLE_LOG_EVENTS
         if (def->getSimulationFunction()) {
             comp->state.simError = false;
+            auto oldState = comp->state;
             ComponentState newState;
             try {
                 newState = def->getSimulationFunction()(inputs, m_currentSimTime, comp->state);
@@ -538,6 +539,7 @@ namespace Bess::SimEngine {
 
             if (newState.isChanged && !comp->state.simError) {
                 comp->state = newState;
+                comp->definition->onStateChange(oldState, comp->state);
                 BESS_SE_LOG_EVENT("\tOutputs changed to:");
                 for (auto &outp : newState.outputStates) {
                     BESS_SE_LOG_EVENT("\t\t{}", (bool)outp.state);
@@ -549,6 +551,7 @@ namespace Bess::SimEngine {
             //     stateMonitor->appendState(newState.inputStates[0].lastChangeTime,
             //                               newState.inputStates[0].state);
             // }
+            //
 
             return newState.isChanged;
         }
@@ -648,27 +651,25 @@ namespace Bess::SimEngine {
                 {
                     std::lock_guard regLock(m_registryMutex);
 
-                    bool changed = simulateComponent(compId, inputs);
+                    const bool changed = simulateComponent(compId, inputs);
                     const auto &dc = m_simEngineState.getDigitalComponent(compId);
 
                     if (changed) {
-
                         for (auto &pin : dc->outputConnections) {
                             const auto &keyView = pin | std::views::keys;
-                            std::set<UUID> uniqueEntities = std::set<UUID>(keyView.begin(), keyView.end());
+                            const std::set<UUID> uniqueEntities = std::set<UUID>(keyView.begin(), keyView.end());
                             for (auto &ent : uniqueEntities) {
-                                scheduleEvent(ent, compId, m_currentSimTime + dc->definition->getNextSimTime());
+                                scheduleEvent(ent,
+                                              compId,
+                                              m_currentSimTime + dc->definition->getSimDelay());
                             }
                         }
                     }
 
-                    if (dc->definition->getShouldAutoRechedule()) {
-                        bool isHigh = (bool)dc->state.outputStates[0];
-                        dc->state.outputStates[0] = isHigh
-                                                        ? PinState(LogicState::low, m_currentSimTime)
-                                                        : PinState(LogicState::high, m_currentSimTime);
-                        dc->state.isChanged = true;
-                        scheduleEvent(compId, UUID::null, m_currentSimTime + dc->definition->getNextSimTime());
+                    if (dc->definition->getShouldAutoReschedule()) {
+                        scheduleEvent(compId,
+                                      UUID::null,
+                                      m_currentSimTime + dc->definition->getRescheduleDelay());
                     }
                 }
 

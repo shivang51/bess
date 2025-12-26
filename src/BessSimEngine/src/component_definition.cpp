@@ -1,7 +1,11 @@
 #include "component_definition.h"
 #include "types.h"
 #include <logger.h>
+#include <memory>
 #include <type_traits>
+
+template <>
+std::atomic_int Bess::TypeMap<std::shared_ptr<Bess::SimEngine::Trait>>::LastTypeId(0);
 
 namespace Bess::SimEngine {
     // --- hashing helpers (FNV-1a 64-bit) ---
@@ -54,10 +58,6 @@ namespace Bess::SimEngine {
         }
     } // namespace
 
-    // ########################################
-    // ComponentDefinitionV2
-    // ########################################
-
     bool ComponentDefinition::onSlotsResizeReq(SlotsGroupType groupType, size_t newSize) {
         if (groupType == SlotsGroupType::input)
             return m_inputSlotsInfo.isResizeable;
@@ -92,7 +92,14 @@ namespace Bess::SimEngine {
         m_hash = hash;
     }
 
-    SimTime ComponentDefinition::getNextSimTime() {
+    SimTime ComponentDefinition::getSimDelay() {
         return m_simDelay;
+    }
+
+    SimTime ComponentDefinition::getRescheduleDelay() {
+        if (!m_shouldAutoReschedule) {
+            BESS_SE_ERROR("[ComponentDefinition] For comp {}, getRescheduleDelay called on component that should not auto-reschedule", m_name);
+        }
+        return getSimDelay();
     }
 } // namespace Bess::SimEngine
