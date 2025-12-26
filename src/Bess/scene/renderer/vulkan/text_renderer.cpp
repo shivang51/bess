@@ -14,6 +14,7 @@ namespace Bess::Renderer {
         m_pathRenderer = std::make_unique<Renderer2D::Vulkan::PathRenderer>(device, renderPass, extent);
 
         constexpr auto robotoPath = Assets::Fonts::Paths::roboto.paths[0].data();
+        constexpr auto alexBrushPath = Assets::Fonts::Paths::alexBrush.paths[0].data();
         m_font = std::move(Font::FontFile(robotoPath));
         m_font.init(48);
     }
