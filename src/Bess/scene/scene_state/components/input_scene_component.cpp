@@ -61,7 +61,7 @@ namespace Bess::Canvas {
 
         const float textPosX = buttonPos.x + (buttonSize.x / 2.f) + 8.f;
         const glm::vec3 textPos = glm::vec3(textPosX,
-                                            slotPosY + (textSize.y / 2.f) - 2.f, // FIXME: why -2.f, maybe the baseline?
+                                            slotPosY + (textSize.y / 2.f) - 1.f, // FIXME: why -2.f, maybe the baseline?
                                             m_transform.position.z + 0.001f);
 
         materialRenderer->drawText(label,

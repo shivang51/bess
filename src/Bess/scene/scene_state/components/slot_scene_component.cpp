@@ -82,22 +82,27 @@ namespace Bess::Canvas {
         materialRenderer->drawCircle(pos, r, border, pickingId, ir);
         materialRenderer->drawCircle(pos, ir - radiusGap, bg, pickingId);
 
-        const float labeldx = Styles::simCompStyles.slotMargin + (Styles::simCompStyles.slotRadius * 2.f);
-        float labelX = pos.x;
-        if (m_slotType == SlotType::digitalInput) {
-            labelX += labeldx;
-        } else {
-            const auto labelSize = materialRenderer->getTextRenderSize(m_name, Styles::simCompStyles.slotLabelSize);
-            labelX -= labeldx + labelSize.x;
-        }
-        float dY = componentStyles.slotRadius - (std::abs((componentStyles.slotRadius * 2.f) - componentStyles.slotLabelSize) / 2.f);
+        if (!m_name.empty()) {
+            const float labeldx = Styles::simCompStyles.slotMargin +
+                                  (Styles::simCompStyles.slotRadius * 2.f);
+            float labelX = pos.x;
+            if (m_slotType == SlotType::digitalInput) {
+                labelX += labeldx;
+            } else {
+                const auto labelSize = materialRenderer->getTextRenderSize(m_name,
+                                                                           Styles::simCompStyles.slotLabelSize);
+                labelX -= labeldx + labelSize.x;
+            }
+            float dY = componentStyles.slotRadius -
+                       (std::abs((componentStyles.slotRadius * 2.f) - componentStyles.slotLabelSize) / 2.f);
 
-        materialRenderer->drawText(m_name,
-                                   {labelX, pos.y + dY, pos.z},
-                                   componentStyles.slotLabelSize,
-                                   ViewportTheme::colors.text,
-                                   PickingId{parentComp->getRuntimeId(), 0},
-                                   parentComp->getTransform().angle);
+            materialRenderer->drawText(m_name,
+                                       {labelX, pos.y + dY, pos.z},
+                                       componentStyles.slotLabelSize,
+                                       ViewportTheme::colors.text,
+                                       PickingId{parentComp->getRuntimeId(), 0},
+                                       parentComp->getTransform().angle);
+        }
     }
 
     SimEngine::PinState SlotSceneComponent::getSlotState(const SceneState *state) const {

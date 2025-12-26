@@ -237,7 +237,7 @@ namespace Bess::SimEngine {
         inpDef.setName("Input");
         inpDef.setGroupName("IO");
         inpDef.setBehaviorType(ComponentBehaviorType::input);
-        inpDef.setOutputSlotsInfo({SlotsGroupType::output, true, 1, {"", ""}, {}});
+        inpDef.setOutputSlotsInfo({SlotsGroupType::output, true, 1, {}, {}});
         inpDef.setSimulationFunction([](auto &, auto ts, const auto &oldState) -> ComponentState {
             auto newState = oldState;
 						newState.isChanged = true;
@@ -252,11 +252,9 @@ namespace Bess::SimEngine {
         ComponentDefinition outDef{};
         outDef.setName("Output");
         outDef.setGroupName("IO");
-        inpDef.setBehaviorType(ComponentBehaviorType::output);
-        outDef.setInputSlotsInfo({SlotsGroupType::output, true, 1, {""}, {}});
-        outDef.setOutputSlotsInfo({SlotsGroupType::input, false, 0, {}, {}});
-        outDef.setSimulationFunction([](const std::vector<PinState> &inputs,
-                                        SimTime currentTime,
+        outDef.setBehaviorType(ComponentBehaviorType::output);
+        outDef.setInputSlotsInfo({SlotsGroupType::output, true, 1, {"LSB"}, {}});
+        outDef.setSimulationFunction([](const std::vector<PinState> &, SimTime,
                                         const ComponentState &prevState) -> ComponentState {
 						auto newState = prevState;
 						return newState; });
