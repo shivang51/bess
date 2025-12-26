@@ -39,7 +39,7 @@ namespace Bess::Canvas {
 
         SimEngine::PinState getSlotState(const SceneState &state) const;
         SimEngine::PinState getSlotState(const SceneState *state) const;
-        SimEngine::PinState isSlotConnected(const SceneState &state) const;
+        bool isSlotConnected(const SceneState &state) const;
 
       private:
         SlotType m_slotType = SlotType::none;

@@ -41,7 +41,15 @@ namespace Bess::Canvas {
         auto bg = ViewportTheme::colors.stateLow;
         auto border = bg;
 
-        if (m_slotType != SlotType::inputsResize && m_slotType != SlotType::outputsResize) {
+        const bool isResizeSlot = m_slotType == SlotType::inputsResize ||
+                                  m_slotType == SlotType::outputsResize;
+        const bool isConnected = !isResizeSlot && isSlotConnected(state);
+        float radiusGap = 1.f;
+
+        if (isResizeSlot) {
+            bg.a = 0.1f;
+            radiusGap = 0.25f;
+        } else {
             const auto &slotState = getSlotState(state);
 
             // state color
@@ -62,16 +70,17 @@ namespace Bess::Canvas {
 
             border = bg;
 
-            if (!isSlotConnected(state))
+            if (!isConnected) {
                 bg.a = 0.1f;
-        } else {
-            bg.a = 0.1f;
+                radiusGap = 0.25f;
+            }
         }
 
-        const float ir = Styles::simCompStyles.slotRadius - Styles::simCompStyles.slotBorderSize;
+        const float ir = Styles::simCompStyles.slotRadius -
+                         Styles::simCompStyles.slotBorderSize;
         const float r = Styles::simCompStyles.slotRadius;
         materialRenderer->drawCircle(pos, r, border, pickingId, ir);
-        materialRenderer->drawCircle(pos, ir - 1.f, bg, pickingId);
+        materialRenderer->drawCircle(pos, ir - radiusGap, bg, pickingId);
 
         const float labeldx = Styles::simCompStyles.slotMargin + (Styles::simCompStyles.slotRadius * 2.f);
         float labelX = pos.x;
@@ -116,7 +125,7 @@ namespace Bess::Canvas {
                    : compState.outputStates[m_index];
     }
 
-    SimEngine::PinState SlotSceneComponent::isSlotConnected(const SceneState &state) const {
+    bool SlotSceneComponent::isSlotConnected(const SceneState &state) const {
         const auto parentComp = state.getComponentByUuid<SimulationSceneComponent>(m_parentComponent);
         auto &simEngine = SimEngine::SimulationEngine::instance();
         const auto &compState = simEngine.getComponentState(parentComp->getSimEngineId());

@@ -1,5 +1,6 @@
 #include "scene/scene_state/components/input_scene_component.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
+#include "scene/scene_ui/scene_ui.h"
 #include "types.h"
 #include "ui/ui.h"
 
@@ -29,8 +30,11 @@ namespace Bess::Canvas {
                                                std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer,
                                                UUID slotUuid,
                                                int buttonIndex) {
-        const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(slotUuid);
+        constexpr float buttonWidth = 30.f;
+        constexpr float buttonHeight = Styles::SIM_COMP_SLOT_ROW_SIZE - (Styles::simCompStyles.rowMargin * 2.f);
+        constexpr glm::vec2 buttonSize = glm::vec2(buttonWidth, buttonHeight);
 
+        const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(slotUuid);
         const auto slotType = slotComp->getSlotType();
 
         if (slotType == SlotType::inputsResize ||
@@ -38,52 +42,26 @@ namespace Bess::Canvas {
             return;
         }
 
-        const auto slotPos = slotComp->getAbsolutePosition(state);
-
+        const auto slotPosY = slotComp->getAbsolutePosition(state).y;
         const bool isHigh = slotComp->getSlotState(state).state == SimEngine::LogicState::high;
-
-        constexpr float buttonWidth = 30.f;
-        constexpr float buttonHeight = Styles::SIM_COMP_SLOT_ROW_SIZE - (Styles::simCompStyles.rowMargin * 2.f);
-        constexpr Renderer::QuadRenderProperties buttonProps{.borderRadius = glm::vec4(4.f)};
-        constexpr glm::vec2 buttonSize = glm::vec2(buttonWidth, buttonHeight);
 
         const float buttonPosX = m_transform.position.x - (m_transform.scale.x / 2.f) +
                                  Styles::simCompStyles.paddingX + (buttonSize.x / 2.f);
         const glm::vec3 buttonPos = glm::vec3(buttonPosX,
-                                              slotPos.y,
+                                              slotPosY,
                                               m_transform.position.z + 0.001f);
-
-        const float buttonHeadPosX = isHigh
-                                         ? buttonPosX + (buttonSize.x / 2.f) - (buttonSize.y / 2.f)
-                                         : buttonPosX - (buttonSize.x / 2.f) + (buttonSize.y / 2.f);
-
-        const glm::vec3 buttonHeadPos = glm::vec3(buttonHeadPosX,
-                                                  slotPos.y,
-                                                  m_transform.position.z + 0.001f);
 
         const auto pickingId = PickingId{m_runtimeId, static_cast<uint32_t>(buttonIndex + 1)};
 
-        // Button background / track
-        materialRenderer->drawQuad(buttonPos,
-                                   buttonSize,
-                                   isHigh ? ViewportTheme::colors.stateHigh : ViewportTheme::colors.background,
-                                   pickingId,
-                                   buttonProps);
-
-        // Toggle head
-        materialRenderer->drawQuad(buttonHeadPos,
-                                   {buttonSize.y - 1.f, buttonSize.y - 1.f},
-                                   ViewportTheme::colors.stateLow,
-                                   pickingId,
-                                   buttonProps);
+        SceneUI::drawToggleButton(pickingId, isHigh, buttonPos, buttonSize, materialRenderer, pathRenderer);
 
         // Button label
-        const std::string label = isHigh ? "ON" : "OFF";
+        const std::string label = isHigh ? "1" : "0";
         const auto textSize = materialRenderer->getTextRenderSize(label, Styles::simCompStyles.slotLabelSize);
 
         const float textPosX = buttonPos.x + (buttonSize.x / 2.f) + 8.f;
         const glm::vec3 textPos = glm::vec3(textPosX,
-                                            slotPos.y + (textSize.y / 2.f) - 2.f, // FIXME: why -2.f, maybe the baseline?
+                                            slotPosY + (textSize.y / 2.f) - 2.f, // FIXME: why -2.f, maybe the baseline?
                                             m_transform.position.z + 0.001f);
 
         materialRenderer->drawText(label,
