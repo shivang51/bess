@@ -41,7 +41,7 @@ namespace Bess {
 
         ApplicationState::getCurrentPage()->draw();
 
-        UI::drawStats(fps);
+        // UI::drawStats(fps);
         UI::end();
 
         vkCore.renderToSwapchain(

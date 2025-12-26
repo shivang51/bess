@@ -19,90 +19,113 @@ namespace Bess::SimEngine {
     };
 
     inline void initFlipFlops() {
-        // auto simFunc = [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
-        //     ComponentState newState = prevState;
-        //     newState.inputStates = inputs;
-        //     const auto flipFlopData = std::any_cast<FlipFlopAuxData>(prevState.auxData);
-        //
-        //     const int clockPinIdx = flipFlopData->clockPinIdx;
-        //     const int clearPinIdx = flipFlopData->clearPinIdx;
-        //
-        //     const auto &clrPinState = inputs[clearPinIdx];
-        //
-        //     auto prevClockState = prevState.inputStates[clockPinIdx].state;
-        //     if (clrPinState.state == LogicState::high) {
-        //         newState.isChanged = (prevState.outputStates[0].state != LogicState::low);
-        //         newState.inputStates[clockPinIdx].state = LogicState::high;
-        //         newState.outputStates[0] = {LogicState::low, currentTime};
-        //         newState.outputStates[1] = {LogicState::high, currentTime}; // Q' is HIGH
-        //         return newState;
-        //     }
-        //
-        //     const auto &clockPinState = inputs[flipFlopData->clockPinIdx];
-        //     const bool isRisingEdge = (clockPinState.state == LogicState::high &&
-        //                                prevState.inputStates[clockPinIdx].state == LogicState::low);
-        //
-        //     if (!isRisingEdge) {
-        //         return newState;
-        //     }
-        //
-        //     LogicState currentQ = prevState.outputStates[0].state;
-        //     LogicState newQ = currentQ;
-        //
-        //     const auto &j_input = inputs[0];
-        //     const auto &k_input = inputs[2];
-        //
-        //     auto type = flipFlopData->type;
-        //
-        //     switch (type) {
-        //     case FlipFlopAuxData::FlipFlopType::JK: {
-        //         if (j_input.state == LogicState::high && k_input.state == LogicState::high) {
-        //             newQ = (currentQ == LogicState::low) ? LogicState::high : LogicState::low; // Toggle
-        //         } else if (j_input.state == LogicState::high) {
-        //             newQ = LogicState::high;
-        //         } else if (k_input.state == LogicState::high) {
-        //             newQ = LogicState::low;
-        //         }
-        //     } break;
-        //     case FlipFlopAuxData::FlipFlopType::SR: {
-        //         if (j_input.state == LogicState::high) {
-        //             newQ = LogicState::high;
-        //         } else if (k_input.state == LogicState::high) {
-        //             newQ = LogicState::low;
-        //         }
-        //     } break;
-        //     case FlipFlopAuxData::FlipFlopType::D: {
-        //         newQ = j_input.state;
-        //     } break;
-        //     case FlipFlopAuxData::FlipFlopType::T: {
-        //         if (j_input.state == LogicState::high) {
-        //             newQ = (currentQ == LogicState::low)
-        //                        ? LogicState::high
-        //                        : LogicState::low;
-        //         }
-        //     } break;
-        //     }
-        //
-        //     bool changed = (prevState.outputStates[0].state != newQ);
-        //
-        //     if (!changed)
-        //         return newState;
-        //
-        //     newState.outputStates[0] = {newQ, currentTime};
-        //
-        //     LogicState newQ_bar = (newQ == LogicState::low)
-        //                               ? LogicState::high
-        //                               : LogicState::low;
-        //     newState.outputStates[1] = {newQ_bar, currentTime};
-        //
-        //     newState.isChanged = changed;
-        //
-        //     return newState;
-        // };
-        //
-        // auto &catalog = ComponentCatalog::instance();
+        auto simFunc = [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
+            ComponentState newState = prevState;
+            newState.inputStates = inputs;
+            const auto flipFlopData = std::any_cast<FlipFlopAuxData>(prevState.auxData);
+
+            const int clockPinIdx = flipFlopData->clockPinIdx;
+            const int clearPinIdx = flipFlopData->clearPinIdx;
+
+            const auto &clrPinState = inputs[clearPinIdx];
+
+            auto prevClockState = prevState.inputStates[clockPinIdx].state;
+            if (clrPinState.state == LogicState::high) {
+                newState.isChanged = (prevState.outputStates[0].state != LogicState::low);
+                newState.inputStates[clockPinIdx].state = LogicState::high;
+                newState.outputStates[0] = {LogicState::low, currentTime};
+                newState.outputStates[1] = {LogicState::high, currentTime}; // Q' is HIGH
+                return newState;
+            }
+
+            const auto &clockPinState = inputs[flipFlopData->clockPinIdx];
+            const bool isRisingEdge = (clockPinState.state == LogicState::high &&
+                                       prevState.inputStates[clockPinIdx].state == LogicState::low);
+
+            if (!isRisingEdge) {
+                return newState;
+            }
+
+            LogicState currentQ = prevState.outputStates[0].state;
+            LogicState newQ = currentQ;
+
+            const auto &j_input = inputs[0];
+            const auto &k_input = inputs[2];
+
+            auto type = flipFlopData->type;
+
+            switch (type) {
+            case FlipFlopAuxData::FlipFlopType::JK: {
+                if (j_input.state == LogicState::high && k_input.state == LogicState::high) {
+                    newQ = (currentQ == LogicState::low) ? LogicState::high : LogicState::low; // Toggle
+                } else if (j_input.state == LogicState::high) {
+                    newQ = LogicState::high;
+                } else if (k_input.state == LogicState::high) {
+                    newQ = LogicState::low;
+                }
+            } break;
+            case FlipFlopAuxData::FlipFlopType::SR: {
+                if (j_input.state == LogicState::high) {
+                    newQ = LogicState::high;
+                } else if (k_input.state == LogicState::high) {
+                    newQ = LogicState::low;
+                }
+            } break;
+            case FlipFlopAuxData::FlipFlopType::D: {
+                newQ = j_input.state;
+            } break;
+            case FlipFlopAuxData::FlipFlopType::T: {
+                if (j_input.state == LogicState::high) {
+                    newQ = (currentQ == LogicState::low)
+                               ? LogicState::high
+                               : LogicState::low;
+                }
+            } break;
+            }
+
+            bool changed = (prevState.outputStates[0].state != newQ);
+
+            if (!changed)
+                return newState;
+
+            newState.outputStates[0] = {newQ, currentTime};
+
+            LogicState newQ_bar = (newQ == LogicState::low)
+                                      ? LogicState::high
+                                      : LogicState::low;
+            newState.outputStates[1] = {newQ_bar, currentTime};
+
+            newState.isChanged = changed;
+
+            return newState;
+        };
+
+        auto &catalog = ComponentCatalog::instance();
+
+        ComponentDefinition flipFlop{};
+        flipFlop.setName("JK Flip Flop");
+        flipFlop.setGroupName("Flip Flop");
+        flipFlop.setOutputSlotsInfo({SlotsGroupType::input,
+                                     false,
+                                     2,
+                                     {"Q", "Q'"},
+                                     {}});
+        flipFlop.setInputSlotsInfo({SlotsGroupType::output,
+                                    false,
+                                    4,
+                                    {"J", "CLK", "K", "CLR"},
+                                    {SlotCatergory::none,
+                                     SlotCatergory::clock,
+                                     SlotCatergory::none,
+                                     SlotCatergory::clear}});
+        flipFlop.setSimulationFunction(simFunc);
+        flipFlop.setSimDelay(SimDelayNanoSeconds(5));
+        auto auxData = FlipFlopAuxData{1, 3, FlipFlopAuxData::FlipFlopType::JK};
+        flipFlop.setAuxData(auxData);
+        catalog.registerComponent(flipFlop);
+
         // auto flipFlop = ComponentDefinition("JK Flip Flop", "Flip Flop", 4, 2, simFunc, SimDelayNanoSeconds(5));
-        //
+
         // flipFlop.outputPinDetails = {};
         // flipFlop.outputPinDetails.emplace_back(PinType::output, "Q");
         // flipFlop.outputPinDetails.emplace_back(PinType::output, "Q'");
@@ -161,18 +184,18 @@ namespace Bess::SimEngine {
         inpDef.setSimDelay(SimDelayNanoSeconds(0));
         catalog.registerComponent(inpDef);
 
-        ComponentDefinition clockDef{};
-        inpDef.setName("Clock");
-        inpDef.setGroupName("IO");
-        inpDef.setBehaviorType(ComponentBehaviorType::input);
-        inpDef.setOutputSlotsInfo({SlotsGroupType::output, true, 1, {"", ""}, {}});
-        inpDef.setSimulationFunction([](auto &, auto ts, const auto &oldState) -> ComponentState {
-            auto newState = oldState;
-						newState.isChanged = true;
-						newState.outputStates[0].lastChangeTime = ts;
-						return newState; });
-        inpDef.setSimDelay(SimDelayNanoSeconds(0));
-        catalog.registerComponent(inpDef);
+        //   ComponentDefinition clockDef{};
+        //   inpDef.setName("Clock");
+        //   inpDef.setGroupName("IO");
+        //   inpDef.setBehaviorType(ComponentBehaviorType::input);
+        //   inpDef.setOutputSlotsInfo({SlotsGroupType::output, true, 1, {"", ""}, {}});
+        //   inpDef.setSimulationFunction([](auto &, auto ts, const auto &oldState) -> ComponentState {
+        //       auto newState = oldState;
+        // newState.isChanged = true;
+        // newState.outputStates[0].lastChangeTime = ts;
+        // return newState; });
+        //   inpDef.setSimDelay(SimDelayNanoSeconds(0));
+        //   catalog.registerComponent(inpDef);
 
         ComponentDefinition outDef{};
         outDef.setName("Output");
@@ -180,7 +203,9 @@ namespace Bess::SimEngine {
         inpDef.setBehaviorType(ComponentBehaviorType::output);
         outDef.setInputSlotsInfo({SlotsGroupType::output, true, 1, {""}, {}});
         outDef.setOutputSlotsInfo({SlotsGroupType::input, false, 0, {}, {}});
-        outDef.setSimulationFunction([](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
+        outDef.setSimulationFunction([](const std::vector<PinState> &inputs,
+                                        SimTime currentTime,
+                                        const ComponentState &prevState) -> ComponentState {
 						auto newState = prevState;
 						newState.inputStates = inputs;
 						return newState; });
