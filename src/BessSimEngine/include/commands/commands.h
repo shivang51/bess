@@ -12,7 +12,7 @@
 
 namespace Bess::SimEngine::Commands {
     struct BESS_API AddCommandData {
-        ComponentDefinition def;
+        std::shared_ptr<ComponentDefinition> def;
         int inputCount;
         int outputCount;
     };

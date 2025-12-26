@@ -15,6 +15,7 @@
 #include <condition_variable>
 #include <cstdint>
 #include <exception>
+#include <memory>
 #include <mutex>
 #include <thread>
 
@@ -93,17 +94,8 @@ namespace Bess::SimEngine {
         });
     }
 
-    const UUID &SimulationEngine::addComponent(const ComponentDefinition &definition, int inputCount, int outputCount) {
-        ComponentDefinition def = definition;
-        auto &inpSlotsInfo = def.getInputSlotsInfo();
-        auto &outSlotsInfo = def.getOutputSlotsInfo();
-
-        if (inputCount >= 0)
-            inpSlotsInfo.count = inputCount;
-        if (outputCount >= 0)
-            outSlotsInfo.count = outputCount;
-
-        auto digiComp = std::make_shared<DigitalComponent>(def);
+    const UUID &SimulationEngine::addComponent(const std::shared_ptr<ComponentDefinition> &definition) {
+        auto digiComp = std::make_shared<DigitalComponent>(definition);
         m_simEngineState.addDigitalComponent(digiComp);
 
         // create a new net for new component
@@ -113,9 +105,9 @@ namespace Bess::SimEngine {
         m_nets[digiComp->netUuid] = newNet;
         m_isNetUpdated = true;
 
-        scheduleEvent(digiComp->id, UUID::null, m_currentSimTime + def.getNextSimTime());
+        scheduleEvent(digiComp->id, UUID::null, m_currentSimTime + definition->getNextSimTime());
 
-        BESS_SE_INFO("Added component {}", def.getName());
+        BESS_SE_INFO("Added component {}", definition->getName());
         return digiComp->id;
     }
 
@@ -235,7 +227,7 @@ namespace Bess::SimEngine {
             m_isNetUpdated = true;
         }
 
-        scheduleEvent(dst, src, m_currentSimTime + dstComp->definition.getNextSimTime());
+        scheduleEvent(dst, src, m_currentSimTime + dstComp->definition->getNextSimTime());
         BESS_SE_INFO("Connected components");
         return true;
     }
@@ -302,7 +294,7 @@ namespace Bess::SimEngine {
                 continue;
 
             const auto &dc = m_simEngineState.getDigitalComponent(e);
-            scheduleEvent(e, UUID::null, m_currentSimTime + dc->definition.getNextSimTime());
+            scheduleEvent(e, UUID::null, m_currentSimTime + dc->definition->getNextSimTime());
         }
 
         BESS_SE_INFO("Deleted component");
@@ -382,7 +374,7 @@ namespace Bess::SimEngine {
 
         comp->state.inputStates[pinIdx].state = state;
         comp->state.inputStates[pinIdx].lastChangeTime = m_currentSimTime;
-        scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition.getNextSimTime());
+        scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition->getNextSimTime());
     }
 
     void SimulationEngine::setOutputPinState(const UUID &uuid, int pinIdx, LogicState state) {
@@ -390,7 +382,7 @@ namespace Bess::SimEngine {
 
         comp->state.outputStates[pinIdx].state = state;
         comp->state.outputStates[pinIdx].lastChangeTime = m_currentSimTime;
-        scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition.getNextSimTime());
+        scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition->getNextSimTime());
     }
 
     void SimulationEngine::invertInputPinState(const UUID &uuid, int pinIdx) {
@@ -401,7 +393,7 @@ namespace Bess::SimEngine {
 
         comp->state.inputStates[pinIdx].state = state;
         comp->state.inputStates[pinIdx].lastChangeTime = m_currentSimTime;
-        scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition.getNextSimTime());
+        scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition->getNextSimTime());
     }
 
     const ComponentState &SimulationEngine::getComponentState(const UUID &uuid) {
@@ -409,7 +401,7 @@ namespace Bess::SimEngine {
         return comp->state;
     }
 
-    const ComponentDefinition &SimulationEngine::getComponentDefinition(const UUID &uuid) {
+    const std::shared_ptr<ComponentDefinition> &SimulationEngine::getComponentDefinition(const UUID &uuid) {
         const auto &comp = m_simEngineState.getDigitalComponent(uuid);
         return comp->definition;
     }
@@ -465,7 +457,7 @@ namespace Bess::SimEngine {
         updateNets({compA, compB});
 
         const auto &dc = m_simEngineState.getDigitalComponent(toSchedule);
-        scheduleEvent(toSchedule, UUID::null, m_currentSimTime + dc->definition.getNextSimTime());
+        scheduleEvent(toSchedule, UUID::null, m_currentSimTime + dc->definition->getNextSimTime());
 
         BESS_SE_INFO("Deleted connection");
     }
@@ -527,14 +519,14 @@ namespace Bess::SimEngine {
         }
         BESS_SE_LOG_EVENT("");
 #endif // BESS_SE_ENABLE_LOG_EVENTS
-        if (def.getSimulationFunction()) {
+        if (def->getSimulationFunction()) {
             comp->state.simError = false;
             ComponentState newState;
             try {
-                newState = def.getSimulationFunction()(inputs, m_currentSimTime, comp->state);
+                newState = def->getSimulationFunction()(inputs, m_currentSimTime, comp->state);
             } catch (std::exception &ex) {
                 BESS_SE_ERROR("Exception during simulation of component {}. Output won't be updated: {}",
-                              def.getName(), ex.what());
+                              def->getName(), ex.what());
                 comp->state.simError = true;
                 comp->state.errorMessage = ex.what();
                 comp->state.isChanged = false;
@@ -592,11 +584,11 @@ namespace Bess::SimEngine {
     }
 
     std::chrono::milliseconds SimulationEngine::getSimulationTimeMS() {
-        return std::chrono::time_point_cast<std::chrono::milliseconds>(m_realWorldClock.now()).time_since_epoch();
+        return std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()).time_since_epoch();
     }
 
     std::chrono::seconds SimulationEngine::getSimulationTimeS() {
-        return std::chrono::time_point_cast<std::chrono::seconds>(m_realWorldClock.now()).time_since_epoch();
+        return std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::steady_clock::now()).time_since_epoch();
     }
 
     void SimulationEngine::run() {
@@ -604,7 +596,6 @@ namespace Bess::SimEngine {
         Plugins::releasePyThreadState(state);
         BESS_SE_INFO("[SimulationEngine] Simulation loop started");
         m_currentSimTime = SimTime(0);
-        m_realWorldClock = std::chrono::steady_clock();
 
         while (!m_stopFlag.load()) {
             std::unique_lock queueLock(m_queueMutex);
@@ -666,18 +657,18 @@ namespace Bess::SimEngine {
                             const auto &keyView = pin | std::views::keys;
                             std::set<UUID> uniqueEntities = std::set<UUID>(keyView.begin(), keyView.end());
                             for (auto &ent : uniqueEntities) {
-                                scheduleEvent(ent, compId, m_currentSimTime + dc->definition.getNextSimTime());
+                                scheduleEvent(ent, compId, m_currentSimTime + dc->definition->getNextSimTime());
                             }
                         }
                     }
 
-                    if (dc->definition.getShouldAutoRechedule()) {
+                    if (dc->definition->getShouldAutoRechedule()) {
                         bool isHigh = (bool)dc->state.outputStates[0];
                         dc->state.outputStates[0] = isHigh
                                                         ? PinState(LogicState::low, m_currentSimTime)
                                                         : PinState(LogicState::high, m_currentSimTime);
                         dc->state.isChanged = true;
-                        scheduleEvent(compId, UUID::null, m_currentSimTime + dc->definition.getNextSimTime());
+                        scheduleEvent(compId, UUID::null, m_currentSimTime + dc->definition->getNextSimTime());
                     }
                 }
 
@@ -791,9 +782,9 @@ namespace Bess::SimEngine {
                 continue;
 
             const auto &comp = m_simEngineState.getDigitalComponent(compUuid);
-            const auto &hash = comp->definition.getHash();
-            bool isInput = comp->definition.getBehaviorType() == ComponentBehaviorType::input;
-            bool isOutput = comp->definition.getBehaviorType() == ComponentBehaviorType::output;
+            const auto &hash = comp->definition->getHash();
+            bool isInput = comp->definition->getBehaviorType() == ComponentBehaviorType::input;
+            bool isOutput = comp->definition->getBehaviorType() == ComponentBehaviorType::output;
 
             if (isInput) {
                 inputs.emplace_back(compUuid);

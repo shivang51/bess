@@ -283,65 +283,65 @@ namespace Bess::JsonConvert {
     }
 
     void toJsonValue(const DigitalComponent &comp, Json::Value &j) {
-        j = Json::Value(Json::objectValue);
-
-        toJsonValue(comp.definition, j["definition"]);
-        toJsonValue(comp.state, j["state"]);
-        j["inputConnections"] = Json::Value(Json::arrayValue);
-        for (const auto &connList : comp.inputConnections) {
-            Json::Value connArr = Json::Value(Json::arrayValue);
-            for (const auto &conn : connList) {
-                Json::Value connJ;
-                toJsonValue(conn, connJ);
-                connArr.append(connJ);
-            }
-            j["inputConnections"].append(connArr);
-        }
-
-        j["outputConnections"] = Json::Value(Json::arrayValue);
-        for (const auto &connList : comp.outputConnections) {
-            Json::Value connArr = Json::Value(Json::arrayValue);
-            for (const auto &conn : connList) {
-                Json::Value connJ;
-                toJsonValue(conn, connJ);
-                connArr.append(connJ);
-            }
-            j["outputConnections"].append(connArr);
-        }
+        // j = Json::Value(Json::objectValue);
+        //
+        // toJsonValue(comp.definition, j["definition"]);
+        // toJsonValue(comp.state, j["state"]);
+        // j["inputConnections"] = Json::Value(Json::arrayValue);
+        // for (const auto &connList : comp.inputConnections) {
+        //     Json::Value connArr = Json::Value(Json::arrayValue);
+        //     for (const auto &conn : connList) {
+        //         Json::Value connJ;
+        //         toJsonValue(conn, connJ);
+        //         connArr.append(connJ);
+        //     }
+        //     j["inputConnections"].append(connArr);
+        // }
+        //
+        // j["outputConnections"] = Json::Value(Json::arrayValue);
+        // for (const auto &connList : comp.outputConnections) {
+        //     Json::Value connArr = Json::Value(Json::arrayValue);
+        //     for (const auto &conn : connList) {
+        //         Json::Value connJ;
+        //         toJsonValue(conn, connJ);
+        //         connArr.append(connJ);
+        //     }
+        //     j["outputConnections"].append(connArr);
+        // }
     }
 
     void fromJsonValue(const Json::Value &j, DigitalComponent &comp) {
-        if (!j.isObject()) {
-            return;
-        }
-
-        fromJsonValue(j["definition"], comp.definition);
-        fromJsonValue(j["state"], comp.state);
-        // comp.state.auxData = &comp.definition.auxData;
-
-        if (j.isMember("inputConnections")) {
-            for (const auto &connArr : j["inputConnections"]) {
-                std::vector<ComponentPin> connList;
-                for (const auto &connJ : connArr) {
-                    ComponentPin conn;
-                    fromJsonValue(connJ, conn);
-                    connList.push_back(conn);
-                }
-                comp.inputConnections.push_back(connList);
-            }
-        }
-
-        comp.outputConnections.clear();
-        if (j.isMember("outputConnections")) {
-            for (const auto &connArr : j["outputConnections"]) {
-                std::vector<ComponentPin> connList;
-                for (const auto &connJ : connArr) {
-                    ComponentPin conn;
-                    fromJsonValue(connJ, conn);
-                    connList.push_back(conn);
-                }
-                comp.outputConnections.push_back(connList);
-            }
-        }
+        // if (!j.isObject()) {
+        //     return;
+        // }
+        //
+        // fromJsonValue(j["definition"], comp.definition);
+        // fromJsonValue(j["state"], comp.state);
+        // // comp.state.auxData = &comp.definition.auxData;
+        //
+        // if (j.isMember("inputConnections")) {
+        //     for (const auto &connArr : j["inputConnections"]) {
+        //         std::vector<ComponentPin> connList;
+        //         for (const auto &connJ : connArr) {
+        //             ComponentPin conn;
+        //             fromJsonValue(connJ, conn);
+        //             connList.push_back(conn);
+        //         }
+        //         comp.inputConnections.push_back(connList);
+        //     }
+        // }
+        //
+        // comp.outputConnections.clear();
+        // if (j.isMember("outputConnections")) {
+        //     for (const auto &connArr : j["outputConnections"]) {
+        //         std::vector<ComponentPin> connList;
+        //         for (const auto &connJ : connArr) {
+        //             ComponentPin conn;
+        //             fromJsonValue(connJ, conn);
+        //             connList.push_back(conn);
+        //         }
+        //         comp.outputConnections.push_back(connList);
+        //     }
+        // }
     }
 } // namespace Bess::JsonConvert

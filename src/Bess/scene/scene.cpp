@@ -287,11 +287,11 @@ namespace Bess::Canvas {
     }
 
     UUID Scene::createSimEntity(const UUID &simEngineEntt,
-                                SimEngine::ComponentDefinition &comp,
+                                const std::shared_ptr<SimEngine::ComponentDefinition> &comp,
                                 const glm::vec2 &pos) {
         const auto &catalog = SimEngine::ComponentCatalog::instance();
-        const bool isInput = comp.getBehaviorType() == SimEngine::ComponentBehaviorType::input;
-        const bool isOutput = comp.getBehaviorType() == SimEngine::ComponentBehaviorType::output;
+        const bool isInput = comp->getBehaviorType() == SimEngine::ComponentBehaviorType::input;
+        const bool isOutput = comp->getBehaviorType() == SimEngine::ComponentBehaviorType::output;
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
         const auto state = simEngine.getComponentState(simEngineEntt);
@@ -307,7 +307,7 @@ namespace Bess::Canvas {
 
         // transform
         sceneComp->setPosition(glm::vec3(getSnappedPos(pos), getNextZCoord()));
-        sceneComp->setName(comp.getName());
+        sceneComp->setName(comp->getName());
         sceneComp->setSimEngineId(simEngineEntt);
 
         // style
@@ -320,7 +320,7 @@ namespace Bess::Canvas {
         } else {
             style.color = ViewportTheme::colors.componentBG;
             style.borderRadius = glm::vec4(6.f);
-            style.headerColor = ViewportTheme::getCompHeaderColor(comp.getGroupName());
+            style.headerColor = ViewportTheme::getCompHeaderColor(comp->getGroupName());
         }
 
         style.borderColor = ViewportTheme::colors.componentBorder;
@@ -329,8 +329,8 @@ namespace Bess::Canvas {
 
         // slots
         const auto &def = simEngine.getComponentDefinition(sceneComp->getSimEngineId());
-        const auto &inpDetails = def.getInputSlotsInfo();
-        const auto &outDetails = def.getOutputSlotsInfo();
+        const auto &inpDetails = def->getInputSlotsInfo();
+        const auto &outDetails = def->getOutputSlotsInfo();
 
         m_state.addComponent<SimulationSceneComponent>(sceneComp);
 
@@ -563,8 +563,8 @@ namespace Bess::Canvas {
                 const Commands::AddCommandData cmdData = {
                     .def = def,
                     .nsComp = m_lastCreatedComp.nsComponent,
-                    .inputCount = def.getInputSlotsInfo().count,
-                    .outputCount = def.getOutputSlotsInfo().count,
+                    .inputCount = def->getInputSlotsInfo().count,
+                    .outputCount = def->getOutputSlotsInfo().count,
                     .pos = getSnappedPos(toScenePos(m_mousePos)),
                 };
 

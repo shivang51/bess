@@ -11,7 +11,7 @@ namespace Bess::Canvas::Commands {
     using Command = SimEngine::Commands::Command;
 
     struct AddCommandData {
-        SimEngine::ComponentDefinition def;
+        std::shared_ptr<SimEngine::ComponentDefinition> def;
         Components::NSComponent nsComp;
         size_t inputCount = -1, outputCount = -1;
         glm::vec2 pos;

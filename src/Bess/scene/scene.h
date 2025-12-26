@@ -35,7 +35,7 @@ namespace Bess::Canvas {
     };
 
     struct LastCreatedComponent {
-        SimEngine::ComponentDefinition componentDefinition;
+        std::shared_ptr<SimEngine::ComponentDefinition> componentDefinition;
         Components::NSComponent nsComponent;
         bool set = false;
     };
@@ -90,7 +90,7 @@ namespace Bess::Canvas {
         const glm::vec2 &getSize() const;
 
         UUID createSimEntity(const UUID &simEngineEntt,
-                             SimEngine::ComponentDefinition &comp,
+                             const std::shared_ptr<SimEngine::ComponentDefinition> &comp,
                              const glm::vec2 &pos);
         UUID createNonSimEntity(const Canvas::Components::NSComponent &comp,
                                 const glm::vec2 &pos);
@@ -185,7 +185,7 @@ namespace Bess::Canvas {
 
         LastCreatedComponent m_lastCreatedComp = {};
         struct CopiedComponent {
-            SimEngine::ComponentDefinition def;
+            std::shared_ptr<SimEngine::ComponentDefinition> def;
             Components::NSComponent nsComp;
             int inputCount, outputCount;
         };

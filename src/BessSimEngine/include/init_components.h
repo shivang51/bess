@@ -168,6 +168,26 @@ namespace Bess::SimEngine {
         // catalog.registerComponent(flipFlop);
     }
 
+    class ClockDefinition : public ComponentDefinition {
+      public:
+        ClockDefinition(const std::string &groupName) {
+            m_name = "Clock";
+            m_groupName = groupName;
+            m_outputSlotsInfo = {SlotsGroupType::output, false, 1, {"", ""}, {}};
+            setSimulationFunction([](auto &, auto ts, const auto &oldState) -> ComponentState {
+            auto newState = oldState;
+						newState.isChanged = true;
+						newState.outputStates[0].lastChangeTime = ts;
+						return newState; });
+            m_simDelay = SimDelayNanoSeconds(0);
+        }
+
+        SimTime getNextSimTime() override {
+            BESS_SE_TRACE("[++++] override");
+            return m_simDelay;
+        }
+    };
+
     inline void initIO() {
         auto &catalog = ComponentCatalog::instance();
 
@@ -184,18 +204,8 @@ namespace Bess::SimEngine {
         inpDef.setSimDelay(SimDelayNanoSeconds(0));
         catalog.registerComponent(inpDef);
 
-        //   ComponentDefinition clockDef{};
-        //   inpDef.setName("Clock");
-        //   inpDef.setGroupName("IO");
-        //   inpDef.setBehaviorType(ComponentBehaviorType::input);
-        //   inpDef.setOutputSlotsInfo({SlotsGroupType::output, true, 1, {"", ""}, {}});
-        //   inpDef.setSimulationFunction([](auto &, auto ts, const auto &oldState) -> ComponentState {
-        //       auto newState = oldState;
-        // newState.isChanged = true;
-        // newState.outputStates[0].lastChangeTime = ts;
-        // return newState; });
-        //   inpDef.setSimDelay(SimDelayNanoSeconds(0));
-        //   catalog.registerComponent(inpDef);
+        ClockDefinition clockDef("IO");
+        catalog.registerComponent(clockDef);
 
         ComponentDefinition outDef{};
         outDef.setName("Output");

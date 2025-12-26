@@ -2,6 +2,7 @@
 
 #include "bess_api.h"
 #include "types.h"
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -110,11 +111,20 @@ namespace Bess::SimEngine {
          **/
         virtual SimTime getNextSimTime();
 
+        virtual std::shared_ptr<ComponentDefinition> clone() const {
+            return std::make_shared<ComponentDefinition>(*this);
+        }
+
         friend bool operator==(ComponentDefinition &a, ComponentDefinition &b) noexcept {
             return a.getHash() == b.getHash();
         }
 
-      private:
+        friend bool operator==(const std::shared_ptr<ComponentDefinition> &a,
+                               const std::shared_ptr<ComponentDefinition> &b) noexcept {
+            return a->getHash() == b->getHash();
+        }
+
+      protected:
         bool m_shouldAutoReschedule = false;
         SlotsGroupInfo m_inputSlotsInfo{}, m_outputSlotsInfo{};
         OperatorInfo m_opInfo{};

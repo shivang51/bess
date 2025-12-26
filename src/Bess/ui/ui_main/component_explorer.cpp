@@ -5,9 +5,7 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "scene/commands/add_command.h"
-#include "scene/scene.h"
 #include "scene/scene_pch.h"
-#include "ui/icons/FontAwesomeIcons.h"
 #include "ui/widgets/m_widgets.h"
 #include <utility>
 
@@ -17,10 +15,11 @@ namespace Bess::UI {
     bool ComponentExplorer::m_isfirstTimeDraw = true;
     std::string ComponentExplorer::m_searchQuery;
 
-    void ComponentExplorer::createComponent(const std::shared_ptr<const SimEngine::ComponentDefinition> &def, int inputCount, int outputCount) {
+    void ComponentExplorer::createComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def,
+                                            int inputCount, int outputCount) {
         auto scene = Canvas::Scene::instance();
         Canvas::Commands::AddCommandData data;
-        data.def = *def.get();
+        data.def = def;
         data.pos = scene->getCameraPos();
         data.inputCount = inputCount;
         data.outputCount = outputCount;

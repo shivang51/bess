@@ -2,7 +2,6 @@
 #include "bess_api.h"
 #include "bess_uuid.h"
 #include "commands/commands_manager.h"
-#include "entt/entity/fwd.hpp"
 #include "entt_components.h"
 #include "net/net.h"
 #include "sim_engine_state.h"
@@ -11,6 +10,7 @@
 #include <condition_variable>
 #include <cstdint>
 #include <entt/entt.hpp>
+#include <memory>
 #include <mutex>
 #include <thread>
 
@@ -26,7 +26,7 @@ namespace Bess::SimEngine {
 
         void destroy();
 
-        const UUID &addComponent(const ComponentDefinition &definition, int inputCount = -1, int outputCount = -1);
+        const UUID &addComponent(const std::shared_ptr<ComponentDefinition> &definition);
 
         bool connectComponent(const UUID &src, int srcPin, PinType srcType,
                               const UUID &dst, int dstPin, PinType dstType, bool overrideConn = false);
@@ -55,7 +55,7 @@ namespace Bess::SimEngine {
         void stepSimulation();
 
         const ComponentState &getComponentState(const UUID &uuid);
-        const ComponentDefinition &getComponentDefinition(const UUID &uuid);
+        const std::shared_ptr<ComponentDefinition> &getComponentDefinition(const UUID &uuid);
         std::shared_ptr<DigitalComponent> getDigitalComponent(const UUID &uuid);
 
         void clear();
@@ -90,8 +90,6 @@ namespace Bess::SimEngine {
         void run();
 
         std::thread m_simThread;
-
-        std::chrono::steady_clock m_realWorldClock;
 
         mutable std::mutex m_queueMutex;
         mutable std::mutex m_stateMutex;

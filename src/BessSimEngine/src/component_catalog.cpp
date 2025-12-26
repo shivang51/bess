@@ -8,21 +8,7 @@ namespace Bess::SimEngine {
         return instance;
     }
 
-    void ComponentCatalog::registerComponent(ComponentDefinition def) {
-        if (m_componentHashMap.contains(def.getHash())) {
-            return;
-        }
-
-        def.computeHash();
-
-        auto compPtr = std::make_shared<const ComponentDefinition>(std::move(def));
-        m_components.emplace_back(compPtr);
-        m_componentHashMap[compPtr->getHash()] = compPtr;
-
-        m_componentTree = nullptr;
-    }
-
-    const std::vector<std::shared_ptr<const ComponentDefinition>> &ComponentCatalog::getComponents() const {
+    const std::vector<std::shared_ptr<ComponentDefinition>> &ComponentCatalog::getComponents() const {
         return m_components;
     }
 
@@ -38,7 +24,7 @@ namespace Bess::SimEngine {
         return m_componentTree;
     }
 
-    std::shared_ptr<const ComponentDefinition> ComponentCatalog::getComponentDefinition(uint64_t hash) const {
+    std::shared_ptr<ComponentDefinition> ComponentCatalog::getComponentDefinition(uint64_t hash) const {
         if (m_componentHashMap.contains(hash)) {
             return m_componentHashMap.at(hash);
         }
