@@ -91,6 +91,8 @@ namespace Bess::SimEngine {
         MAKE_GETTER_SETTER(ComponentBehaviorType, BehaviorType, m_behaviorType)
         MAKE_GETTER_SETTER(SimulationFunction, SimulationFunction, m_simulationFunction)
         MAKE_GETTER_SETTER(std::any, AuxData, m_auxData)
+        MAKE_GETTER_SETTER(std::vector<std::string>,
+                           OutputExpressions, m_outputExpressions)
 
         template <typename T>
         T &getAuxDataAs() {
@@ -148,7 +150,7 @@ namespace Bess::SimEngine {
          * e.g.: if 10ns is returned the component will be scheduled to be simulated after
          * 10ns in the simulation engine
          **/
-        virtual SimTime getSimDelay();
+        virtual SimDelayNanoSeconds getSimDelay() const;
 
         /**
          * This function returns the delay after which the component should be auto-rescheduled.
@@ -191,6 +193,7 @@ namespace Bess::SimEngine {
         std::any m_auxData;
         uint64_t m_hash = 0;
         SimulationFunction m_simulationFunction = nullptr;
+        std::vector<std::string> m_outputExpressions; // A+B or A.B etc.
         TypeMap<std::shared_ptr<Trait>> m_traits;
     };
 

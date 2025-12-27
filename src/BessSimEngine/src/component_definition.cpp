@@ -92,7 +92,7 @@ namespace Bess::SimEngine {
         m_hash = hash;
     }
 
-    SimTime ComponentDefinition::getSimDelay() {
+    SimDelayNanoSeconds ComponentDefinition::getSimDelay() const {
         return m_simDelay;
     }
 

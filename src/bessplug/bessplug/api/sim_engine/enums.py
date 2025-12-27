@@ -6,7 +6,15 @@ Python-level names consistent with the rest of the API.
 
 from __future__ import annotations
 from enum import Enum
-from bessplug.bindings._bindings.sim_engine import LogicState as _LogicState, PinType as _PinType, ExtendedPinType as _ExtendedPinType
+from bessplug.bindings._bindings.sim_engine import (
+    LogicState as _LogicState,
+    PinType as _PinType,
+    ExtendedPinType as _ExtendedPinType,
+    SlotsGroupType as _SlotsGroupType,
+    SlotCatergory as _SlotCategory,
+    ComponentBehaviorType as _ComponentBehaviorType,
+)
+
 
 class PinType(Enum):
     INPUT = _PinType.INPUT
@@ -55,9 +63,27 @@ class LogicState(Enum):
         raise ValueError(f"Invalid LogicState name: {s}")
 
 
+class SlotGroupType(Enum):
+    NONE = _SlotsGroupType.NONE
+    INPUT = _SlotsGroupType.INPUT
+    OUTPUT = _SlotsGroupType.OUTPUT
+
+
+class SlotCategory(Enum):
+    NONE = _SlotCategory.NONE
+    CLOCK = _SlotCategory.CLOCK
+    CLEAR = _SlotCategory.CLEAR
+    ENABLE = _SlotCategory.ENABLE
+
+
+class ComponentBehaviorType(Enum):
+    NONE = _ComponentBehaviorType.NONE
+    INPUT = _ComponentBehaviorType.INPUT
+    OUTPUT = _ComponentBehaviorType.OUTPUT
+
+
 __all__ = [
     "LogicState",
     "PinType",
     "ExtendedPinType",
 ]
-

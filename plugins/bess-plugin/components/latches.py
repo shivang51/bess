@@ -1,11 +1,12 @@
 from enum import Enum
+import datetime
 from bessplug.api.sim_engine import (
     ComponentDefinition,
     ComponentState,
     PinState,
     LogicState,
-    PinDetail,
 )
+from bessplug.api.sim_engine.slots_group_info import SlotsGroupInfo
 
 
 class LatchType(Enum):
@@ -126,23 +127,22 @@ latchDetails = {
 latches = []
 
 for latch_type, details in latchDetails.items():
-    input_pin_details = [
-        PinDetail.for_input_pin(name) for name in details["input_pins"]
-    ]
-    output_pins_details = [
-        PinDetail.for_output_pin(name) for name in details["output_pins"]
-    ]
+    input_slots_info: SlotsGroupInfo = SlotsGroupInfo()
+    input_slots_info.count = len(details["input_pins"])
+    input_slots_info.names = details["input_pins"]
+
+    output_slots_info: SlotsGroupInfo = SlotsGroupInfo()
+    output_slots_info.count = len(details["output_pins"])
+    output_slots_info.names = details["output_pins"]
 
     latch = ComponentDefinition.from_sim_fn(
         name=details["name"],
-        category="Latches",
-        input_count=len(input_pin_details),
-        output_count=len(output_pins_details),
-        delay_ns=2,
+        groupName="Latches",
+        inputs=input_slots_info,
+        outputs=output_slots_info,
+        sim_delay=datetime.timedelta(microseconds=0.001),
         simFn=_simulate_latch,
     )
-    latch.input_pin_details = input_pin_details
-    latch.output_pin_details = output_pins_details
     latch.aux_data = details["aux_data"]
     latches.append(latch)
 

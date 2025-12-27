@@ -1,8 +1,11 @@
 from __future__ import annotations
-from typing import Callable, Optional, Union, Any
+from typing import Callable, Optional, Union
 import json
+import datetime
+from bessplug.api.sim_engine.enums import ComponentBehaviorType
+from bessplug.api.sim_engine.operator_info import OperatorInfo
+from bessplug.api.sim_engine.slots_group_info import SlotsGroupInfo
 
-from .pin_detail import PinDetail
 from bessplug.bindings._bindings.sim_engine import (
     ComponentDefinition as NativeComponentDefinition,
 )
@@ -29,27 +32,8 @@ class ComponentDefinition:
         self._simulate_py: Optional[Callable] = None
 
     def init(self):
-        sim_callable = self._simulate_py or self._native.simulation_function
-        if self.op != "0":
-            self._native = NativeComponentDefinition(
-                self.name,
-                self.category,
-                int(self.input_count),
-                int(self.output_count),
-                sim_callable,
-                int(self.delay_ns),
-                self.op,
-            )
-        else:
-            self._native = NativeComponentDefinition(
-                self.name,
-                self.category,
-                int(self.input_count),
-                int(self.output_count),
-                sim_callable,
-                int(self.delay_ns),
-                self.expressions,
-            )
+        self._native = NativeComponentDefinition()
+        self._simulate_py = None
 
     @property
     def simulation_function(self):
@@ -59,7 +43,7 @@ class ComponentDefinition:
     def simulation_function(
         self, simulate: Union[NativeSimulationFunction, Callable]
     ) -> None:
-        self.set_simulation_function(simulate)
+        self._native.simulation_function = simulate
 
     @property
     def name(self) -> str:
@@ -70,102 +54,68 @@ class ComponentDefinition:
         self._native.name = str(v)
 
     @property
-    def category(self) -> str:
-        return self._native.category
+    def group_name(self) -> str:
+        return self._native.group_name
 
-    @category.setter
-    def category(self, v: str) -> None:
-        self._native.category = str(v)
-
-    @property
-    def delay_ns(self) -> int:
-        return self._native.delay_ns
-
-    @delay_ns.setter
-    def delay_ns(self, ns: int) -> None:
-        self._native.delay_ns = int(ns)
-
-    @property
-    def setup_time_ns(self) -> int:
-        return self._native.setup_time_ns
-
-    @setup_time_ns.setter
-    def setup_time_ns(self, ns: int) -> None:
-        self._native.setup_time_ns = int(ns)
-
-    @property
-    def hold_time_ns(self) -> int:
-        return self._native.hold_time_ns
-
-    @hold_time_ns.setter
-    def hold_time_ns(self, ns: int) -> None:
-        self._native.hold_time_ns = int(ns)
+    @group_name.setter
+    def group_name(self, v: str) -> None:
+        self._native.group_name = str(v)
 
     @property
     def expressions(self) -> list[str]:
-        return list(self._native.expressions)
+        return list(self._native.output_expressions)
 
     @expressions.setter
     def expressions(self, expr: list[str]) -> None:
-        self._native.expressions = list(expr)
+        self._native.output_expressions = list(expr)
 
     @property
-    def input_pin_details(self) -> list[PinDetail]:
-        return [PinDetail(p) for p in self._native.input_pin_details]
+    def should_auto_reschedule(self) -> bool:
+        return self._native.should_auto_reschedule
+
+    @should_auto_reschedule.setter
+    def should_auto_reschedule(self, v: bool) -> None:
+        self._native.should_auto_reschedule = bool(v)
 
     @property
-    def native_input_pin_details(self):
-        return self._native.input_pin_details
+    def behavior_type(self) -> ComponentBehaviorType:
+        return self._native.behavior_type
 
-    @input_pin_details.setter
-    def input_pin_details(self, pins: list[PinDetail]) -> None:
-        pins = [p._native if isinstance(p, PinDetail) else p for p in pins]
-        self._native.input_pin_details = pins
-
-    @property
-    def native_output_pin_details(self):
-        return self._native.output_pin_details
+    @behavior_type.setter
+    def behavior_type(self, v: ComponentBehaviorType) -> None:
+        self._native.behavior_type = v
 
     @property
-    def output_pin_details(self) -> list[PinDetail]:
-        return [PinDetail(p) for p in self._native.output_pin_details]
+    def input_slots_info(self) -> SlotsGroupInfo:
+        return self._native.input_slots_info
 
-    @output_pin_details.setter
-    def output_pin_details(self, pins: list[PinDetail]) -> None:
-        pins = [p._native if isinstance(p, PinDetail) else p for p in pins]
-        self._native.output_pin_details = pins
-
-    @property
-    def input_count(self) -> int:
-        return self._native.input_count
-
-    @input_count.setter
-    def input_count(self, v: int) -> None:
-        self._native.input_count = int(v)
+    @input_slots_info.setter
+    def input_slots_info(self, v: SlotsGroupInfo) -> None:
+        self._native.input_slots_info = v._native
 
     @property
-    def output_count(self) -> int:
-        return self._native.output_count
+    def output_slots_info(self) -> SlotsGroupInfo:
+        return self._native.output_slots_info
 
-    @output_count.setter
-    def output_count(self, v: int) -> None:
-        self._native.output_count = int(v)
-
-    @property
-    def op(self) -> str:
-        return self._native.op
-
-    @op.setter
-    def op(self, c: str) -> None:
-        self._native.op = (c or "")[0] if c else ""
+    @output_slots_info.setter
+    def output_slots_info(self, v: SlotsGroupInfo) -> None:
+        self._native.output_slots_info = v._native
 
     @property
-    def negate(self) -> bool:
-        return self._native.negate
+    def sim_delay(self) -> datetime.timedelta:
+        return self._native.sim_delay
 
-    @negate.setter
-    def negate(self, v: bool) -> None:
-        self._native.negate = bool(v)
+    @sim_delay.setter
+    def sim_delay(self, v: datetime.timedelta) -> None:
+        self._native.sim_delay = v
+
+    @property
+    def op_info(self) -> OperatorInfo:
+        return self._native.op_info
+
+    @op_info.setter
+    def op_info(self, v: OperatorInfo) -> None:
+        self._native.op_info = v
 
     def set_simulation_function(
         self, simulate: Union[NativeSimulationFunction, Callable]
@@ -180,39 +130,28 @@ class ComponentDefinition:
             if isinstance(simulate, NativeSimulationFunction)
             else NativeSimulationFunction(simulate)
         )
-        self._native.set_simulation_function(sim)
-
-    def get_expressions(self, input_count: int = -1) -> list[str]:
-        return list(self._native.get_expressions(input_count))
-
-    def get_pin_details(self) -> tuple[list[PinDetail], list[PinDetail]]:
-        return self._native.get_pin_details()
+        self._native.simulation_function = sim
 
     def get_hash(self) -> int:
         return int(self._native.get_hash())
 
     @property
     def aux_data(self):
-        return self._native.get_aux_pyobject()
+        return self._native.aux_data
 
     @aux_data.setter
     def aux_data(self, obj) -> None:
-        self._native.set_aux_pyobject(obj)
+        self._native.aux_data = obj
 
     def __str__(self) -> str:
         data = {
             "name": self.name,
             "category": self.category,
-            "delay_ns": self.delay_ns,
-            "setup_time_ns": self.setup_time_ns,
-            "hold_time_ns": self.hold_time_ns,
+            "sim_delay": self.sim_delay,
             "expressions": self.expressions,
-            "input_pin_details": self.input_pin_details,
-            "output_pin_details": self.output_pin_details,
-            "input_count": self.input_count,
-            "output_count": self.output_count,
-            "op": self.op,
-            "negate": self.negate,
+            "input_slots": self.input_slots_info,
+            "output_slots": self.output_slots_info,
+            "operator_info": self.op_info,
             "aux_data": self.aux_data,
         }
         return json.dumps(data)
@@ -243,34 +182,41 @@ class ComponentDefinition:
     @staticmethod
     def from_expressions(
         name: str,
-        category: str,
-        input_count: int,
-        output_count: int,
-        delay_ns: int,
+        groupName: str,
+        inputs: SlotsGroupInfo,
+        outputs: SlotsGroupInfo,
+        sim_delay: datetime.timedelta,
         expressions: list[str],
     ) -> "ComponentDefinition":
         simFn = expr_sim_function
-        native = NativeComponentDefinition(
-            name, category, input_count, output_count, simFn, int(delay_ns), expressions
-        )
+        native = NativeComponentDefinition()
         defi = ComponentDefinition(native)
         defi.set_simulation_function(simFn)
+        defi.name = name
+        defi.group_name = groupName
+        defi.sim_delay = sim_delay
+        defi.input_slots_info = inputs
+        defi.output_slots_info = outputs
+        defi.expressions = expressions
         return defi
 
     @staticmethod
     def from_sim_fn(
         name: str,
-        category: str,
-        input_count: int,
-        output_count: int,
-        delay_ns: int,
+        groupName: str,
+        inputs: SlotsGroupInfo,
+        outputs: SlotsGroupInfo,
+        sim_delay: datetime.timedelta,
         simFn: NativeSimulationFunction | Callable,
     ) -> "ComponentDefinition":
-        native = NativeComponentDefinition(
-            name, category, input_count, output_count, simFn, int(delay_ns), []
-        )
+        native = NativeComponentDefinition()
         defi = ComponentDefinition(native)
         defi.set_simulation_function(simFn)
+        defi.name = name
+        defi.group_name = groupName
+        defi.sim_delay = sim_delay
+        defi.input_slots_info = inputs
+        defi.output_slots_info = outputs
         return defi
 
 

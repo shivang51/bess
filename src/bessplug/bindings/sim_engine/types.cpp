@@ -1,4 +1,5 @@
 #include "types.h"
+#include "component_definition.h"
 #include "internal_types.h"
 
 #include <cstdint>
@@ -160,4 +161,36 @@ void bind_sim_engine_types(py::module_ &m) {
         .def_readwrite("type", &PinDetail::type)
         .def_readwrite("name", &PinDetail::name)
         .def_readwrite("extended_type", &PinDetail::extendedType);
+
+    py::enum_<SlotsGroupType>(m, "SlotsGroupType")
+        .value("NONE", SlotsGroupType::none)
+        .value("INPUT", SlotsGroupType::input)
+        .value("OUTPUT", SlotsGroupType::output)
+        .export_values();
+
+    py::class_<SlotsGroupInfo>(m, "SlotsGroupInfo")
+        .def(py::init<>())
+        .def_readwrite("type", &SlotsGroupInfo::type)
+        .def_readwrite("is_resizeable", &SlotsGroupInfo::isResizeable)
+        .def_readwrite("count", &SlotsGroupInfo::count)
+        .def_readwrite("names", &SlotsGroupInfo::names)
+        .def_readwrite("categories", &SlotsGroupInfo::categories);
+
+    py::class_<OperatorInfo>(m, "OperatorInfo")
+        .def(py::init<>())
+        .def_readwrite("op", &OperatorInfo::op)
+        .def_readwrite("should_negate_output", &OperatorInfo::shouldNegateOutput);
+
+    py::enum_<SlotCatergory>(m, "SlotCatergory")
+        .value("NONE", SlotCatergory::none)
+        .value("CLOCK", SlotCatergory::clock)
+        .value("CLEAR", SlotCatergory::clear)
+        .value("ENABLE", SlotCatergory::enable)
+        .export_values();
+
+    py::enum_<ComponentBehaviorType>(m, "ComponentBehaviorType")
+        .value("NONE", ComponentBehaviorType::none)
+        .value("INPUT", ComponentBehaviorType::input)
+        .value("OUTPUT", ComponentBehaviorType::output)
+        .export_values();
 }

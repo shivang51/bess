@@ -18,15 +18,31 @@ namespace Bess::SimEngine {
         // If one with the same ComponentType exists, it won't be added.
         template <typename TCompDefination>
         void registerComponent(TCompDefination def) {
+            def.computeHash();
+
             if (m_componentHashMap.contains(def.getHash())) {
                 return;
             }
 
-            def.computeHash();
-
             auto compPtr = std::make_shared<TCompDefination>(std::move(def));
             m_components.emplace_back(compPtr);
             m_componentHashMap[compPtr->getHash()] = compPtr;
+
+            m_componentTree = nullptr;
+        }
+
+        // Register a new component definition.
+        // If one with the same ComponentType exists, it won't be added.
+        template <typename TCompDefination>
+        void registerComponent(const std::shared_ptr<TCompDefination> &def) {
+            def->computeHash();
+
+            if (m_componentHashMap.contains(def->getHash())) {
+                return;
+            }
+
+            m_components.emplace_back(std::move(def));
+            m_componentHashMap[def->getHash()] = def;
 
             m_componentTree = nullptr;
         }
