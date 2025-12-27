@@ -9,11 +9,12 @@ from bessplug.api.sim_engine.slots_group_info import SlotsGroupInfo
 from bessplug.bindings._bindings.sim_engine import (
     ComponentDefinition as NativeComponentDefinition,
 )
-from bessplug.bindings._bindings.sim_engine import (
-    SimulationFunction as NativeSimulationFunction,
-)
 
-from .sim_engine import expr_sim_function
+from .sim_engine import (
+    expr_sim_function,
+    PinState,
+    ComponentState,
+)
 
 
 class ComponentDefinition(NativeComponentDefinition):
@@ -28,7 +29,7 @@ class ComponentDefinition(NativeComponentDefinition):
 
     def __init__(self):
         super().__init__()
-        self._simulate_py = None
+        self.sim_fn_base: Optional[Callable] = None
 
     def cloneViaPythonImpl(self) -> ComponentDefinition:
         """Create a deep copy of this ComponentDefinition via Python implementation."""
@@ -47,20 +48,8 @@ class ComponentDefinition(NativeComponentDefinition):
         clone.set_simulation_function(self.simulation_function)
         return clone
 
-    def set_simulation_function(
-        self, simulate: Union[NativeSimulationFunction, Callable]
-    ) -> None:
-        self._simulate_py = (
-            simulate
-            if callable(simulate) and not isinstance(simulate, NativeSimulationFunction)
-            else None
-        )
-        sim = (
-            simulate
-            if isinstance(simulate, NativeSimulationFunction)
-            else NativeSimulationFunction(simulate)
-        )
-        self.simulation_function = sim
+    def set_simulation_function(self, sim_function: Callable) -> None:
+        self.simulation_function = sim_function
 
     @staticmethod
     def from_operator(
@@ -85,9 +74,8 @@ class ComponentDefinition(NativeComponentDefinition):
         sim_delay: datetime.timedelta,
         expressions: list[str],
     ) -> "ComponentDefinition":
-        simFn = expr_sim_function
         defi = ComponentDefinition()
-        defi.set_simulation_function(simFn)
+        defi.set_simulation_function(expr_sim_function)
         defi.name = name
         defi.group_name = groupName
         defi.sim_delay = sim_delay
@@ -103,7 +91,7 @@ class ComponentDefinition(NativeComponentDefinition):
         inputs: SlotsGroupInfo,
         outputs: SlotsGroupInfo,
         sim_delay: datetime.timedelta,
-        simFn: NativeSimulationFunction | Callable,
+        simFn: Callable,
     ) -> "ComponentDefinition":
         defi = ComponentDefinition()
         defi.set_simulation_function(simFn)

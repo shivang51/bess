@@ -147,8 +147,6 @@ static ComponentState convertResultToComponentState(const py::object &result,
         return prev;
     }
     if (py::isinstance<ComponentState>(result)) {
-        std::cerr << "[Bindings] simulate: got native ComponentState\n";
-        std::flush(std::cerr);
         return result.cast<ComponentState>();
     }
     if (py::hasattr(result, "_native")) {

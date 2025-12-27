@@ -12,7 +12,8 @@ from .enums import LogicState
 
 _n = _b.sim_engine
 
-class PinState:
+
+class PinState(NativePinState):
     """Pin signal state with timestamp.
 
     Wraps the native `PinState` and exposes:
@@ -20,60 +21,14 @@ class PinState:
     - last_change_time_ns: int nanoseconds since last transition
     """
 
-    def __init__(self,
-                 native: NativePinState | "PinState" | None = None):
+    def __init__(self):
         """Create a PinState.
 
         - state: Initial logic level
         - last_change_time_ns: Transition timestamp in nanoseconds
         - native: Optional native instance to wrap
         """
-        if native is None:
-            self._native: NativePinState = _n.PinState()
-        elif isinstance(native, PinState):
-            self._native = native._native
-        else:
-            self._native = native
-
-
-    def is_high(self) -> bool:
-        """Check if the pin state is HIGH."""
-        return self.state == LogicState.HIGH
-
-    def is_low(self) -> bool:
-        """Check if the pin state is LOW."""
-        return self.state == LogicState.LOW
-
-    def is_high_z(self) -> bool:
-        """Check if the pin state is HIGH_Z."""
-        return self.state == LogicState.HIGH_Z
-
-    def invert(self) -> None:
-        """Invert the pin state."""
-        if self.is_high():
-            self.state = LogicState.LOW.value
-        elif self.is_low():
-            self.state = LogicState.HIGH.value
-
-    @property
-    def state(self) -> LogicState:
-        """Current logic level for the pin."""
-        return LogicState(self._native.state)
-
-    @state.setter
-    def state(self, value: LogicState) -> None:
-        """Set the pin logic level."""
-        self._native.state = value
-
-    @property
-    def last_change_time_ns(self) -> int:
-        """Nanoseconds since epoch when state last changed."""
-        return self._native.last_change_time_ns
-
-    @last_change_time_ns.setter
-    def last_change_time_ns(self, ns: float) -> None:
-        """Set last-change timestamp in nanoseconds."""
-        self._native.last_change_time_ns = int(ns)
+        super().__init__()
 
     def __repr__(self) -> str:
         """Debug representation."""
@@ -81,11 +36,12 @@ class PinState:
 
     def copy(self) -> "PinState":
         """Return a new PinState wrapper copying the native state."""
-        return PinState(_n.PinState(self._native))
+        state = PinState()
+        state.state = self.state
+        state.last_change_time_ns = self.last_change_time_ns
+        return state
 
 
 __all__ = [
     "PinState",
 ]
-
-

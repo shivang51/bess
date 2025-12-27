@@ -14,36 +14,6 @@ namespace py = pybind11;
 
 using namespace Bess::SimEngine;
 
-namespace {
-    struct PySimulationFunctionWrapper {
-        SimulationFunction fn;
-
-        PySimulationFunctionWrapper() = default;
-
-        explicit PySimulationFunctionWrapper(py::function callable) {
-            set(std::move(callable));
-        }
-
-        void set(py::function callable) {
-            py::function f = std::move(callable);
-            fn = [f](const std::vector<PinState> &inputs, SimTime t, const ComponentState &prev) -> ComponentState {
-                py::gil_scoped_acquire gil;
-                py::object result = f(inputs, static_cast<long long>(t.count()), prev);
-                return result.cast<ComponentState>();
-            };
-        }
-
-        ComponentState call(const std::vector<PinState> &inputs, long long t_ns, const ComponentState &prev) const {
-            if (!fn) {
-                return prev;
-            }
-            return fn(inputs, SimTime(t_ns), prev);
-        }
-
-        bool valid() const noexcept { return static_cast<bool>(fn); }
-    };
-} // namespace
-
 void bind_sim_engine_types(py::module_ &m) {
     py::enum_<LogicState>(m, "LogicState")
         .value("LOW", LogicState::low)
@@ -69,6 +39,20 @@ void bind_sim_engine_types(py::module_ &m) {
             [](const PinState &self) { return static_cast<long long>(self.lastChangeTime.count()); },
             [](PinState &self, long long ns) { self.lastChangeTime = SimTime(ns); })
         .def("copy", [](const PinState &self) { return PinState(self); })
+        .def("invert", [](PinState &self) {
+            switch (self.state) {
+            case LogicState::low:
+                self.state = LogicState::high;
+                break;
+            case LogicState::high:
+                self.state = LogicState::low;
+                break;
+            case LogicState::unknown:
+            case LogicState::high_z:
+                // leave unchanged
+                break;
+            }
+        })
         .def("__repr__", [](const PinState &self) {
             const char *s = "UNKNOWN";
             switch (self.state) {
@@ -116,34 +100,22 @@ void bind_sim_engine_types(py::module_ &m) {
                 return cpy; })
         .def_property("input_connected", [](const ComponentState &self) { return self.inputConnected; }, [](ComponentState &self, const std::vector<bool> &v) { self.inputConnected = v; })
         .def_property("output_connected", [](const ComponentState &self) { return self.outputConnected; }, [](ComponentState &self, const std::vector<bool> &v) { self.outputConnected = v; })
-        .def_property("aux_data_ptr", [](const ComponentState &self) { return static_cast<std::uintptr_t>(reinterpret_cast<std::uintptr_t>(self.auxData)); }, [](ComponentState &self, std::uintptr_t ptr_value) { self.auxData = reinterpret_cast<std::any *>(ptr_value); })
-
-        .def("set_aux_pyobject", [](ComponentState &self, py::object obj) {
-                if (self.auxData && self.auxData->type() == typeid(Bess::Py::OwnedPyObject)) {
-                    delete self.auxData;
-                    self.auxData = nullptr;
-                }
-                self.auxData = new std::any(Bess::Py::OwnedPyObject{obj});
-                return static_cast<std::uintptr_t>(reinterpret_cast<std::uintptr_t>(self.auxData)); }, py::arg("obj"), "Attach a Python object as aux data. Returns the aux_data pointer value.")
-        .def("get_aux_pyobject", [](const ComponentState &self) -> py::object {
-                if (self.auxData && self.auxData->type() == typeid(Bess::Py::OwnedPyObject)) {
-                    const auto &owned = std::any_cast<const Bess::Py::OwnedPyObject &>(*self.auxData);
-                    return owned.object;
-                }
-                return py::none(); }, "Return the attached Python object if owned by Python, else None.")
+        .def_property("aux_data", [](const ComponentState &self) -> py::object {
+								if (self.auxData && self.auxData->type() == typeid(Bess::Py::OwnedPyObject)) {
+										const auto &owned = std::any_cast<const Bess::Py::OwnedPyObject &>(*self.auxData);
+										return owned.object;
+								}
+								return py::none(); }, [](ComponentState &self, py::object obj) {
+								if (self.auxData && self.auxData->type() == typeid(Bess::Py::OwnedPyObject)) {
+										delete self.auxData;
+										self.auxData = nullptr;
+								}
+								self.auxData = new std::any(Bess::Py::OwnedPyObject{obj}); }, "Get or set the aux_data as a Python object if it was set via set_aux_pyobject.")
         .def("clear_aux_data", [](ComponentState &self) {
                 if (self.auxData && self.auxData->type() == typeid(Bess::Py::OwnedPyObject)) {
                     delete self.auxData;
                     self.auxData = nullptr;
                 } }, "Clear aux_data if it was set via set_aux_pyobject.");
-
-    // SimulationFunction wrapper exposed to Python
-    py::class_<PySimulationFunctionWrapper>(m, "SimulationFunction")
-        .def(py::init<>())
-        .def(py::init<py::function>(), py::arg("callable"), "Wrap a Python callable as a SimulationFunction.")
-        .def("set", &PySimulationFunctionWrapper::set, py::arg("callable"), "Assign/replace the underlying callable.")
-        .def("__call__", &PySimulationFunctionWrapper::call, py::arg("inputs"), py::arg("t_ns"), py::arg("prev"), "Invoke the simulation function.")
-        .def_property_readonly("valid", &PySimulationFunctionWrapper::valid, "Whether a callable is set.");
 
     py::enum_<PinType>(m, "PinType")
         .value("INPUT", PinType::input)
