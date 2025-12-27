@@ -183,4 +183,5 @@ namespace Bess::Plugins {
         PyEval_RestoreThread(savedThreadStates[std::this_thread::get_id()]);
         savedThreadStates[std::this_thread::get_id()] = nullptr;
     }
+
 } // namespace Bess::Plugins

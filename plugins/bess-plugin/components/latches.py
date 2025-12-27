@@ -28,6 +28,7 @@ class LatchAuxData:
 def _simulate_latch(
     inputs: list[PinState], simTime: float, oldState: ComponentState
 ) -> ComponentState:
+    oldState = ComponentState(oldState)
     newState = oldState.copy()
     oldState = oldState
     newState.input_states = inputs.copy()
@@ -37,7 +38,7 @@ def _simulate_latch(
     enable_input = inputs[aux_data.enable_pin_idx]
 
     if not enable_input.state == LogicState.HIGH:
-        return newState
+        return newState._native
 
     latch_type = aux_data.type
 
@@ -83,7 +84,7 @@ def _simulate_latch(
         raise ValueError(f"Unsupported latch type: {latch_type}")
 
     if oldState.output_states[0].state == newQ.state:
-        return newState
+        return newState._native
 
     newQ.last_change_time_ns = simTime
     newState.changed = True
@@ -93,7 +94,7 @@ def _simulate_latch(
 
     newState.set_output_state(0, newQ)
     newState.set_output_state(1, newQI)
-    return newState
+    return newState._native
 
 
 latchDetails = {

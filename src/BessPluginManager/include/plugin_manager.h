@@ -12,6 +12,9 @@ namespace Bess::Plugins {
     void releasePyThreadState(PyGILState_STATE state);
     void savePyThreadState();
     void restorePyThreadState();
+    inline pybind11::gil_scoped_acquire acquireGIL() {
+        return pybind11::gil_scoped_acquire{};
+    }
 
     class PluginManager {
       public:

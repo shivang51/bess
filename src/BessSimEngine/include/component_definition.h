@@ -3,7 +3,6 @@
 #include "bess_api.h"
 #include "type_map.h"
 #include "types.h"
-#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
@@ -32,6 +31,11 @@ namespace Bess::SimEngine {
     void set##name(const type &value) {  \
         varName = value;                 \
     }
+
+    enum class CompDefinitionOwnership : uint8_t {
+        NativeCpp,
+        Python
+    };
 
     enum class SlotsGroupType : uint8_t {
         none,
@@ -93,6 +97,7 @@ namespace Bess::SimEngine {
         MAKE_GETTER_SETTER(std::any, AuxData, m_auxData)
         MAKE_GETTER_SETTER(std::vector<std::string>,
                            OutputExpressions, m_outputExpressions)
+        MAKE_GETTER_SETTER(CompDefinitionOwnership, Ownership, m_ownership)
 
         template <typename T>
         T &getAuxDataAs() {
@@ -170,7 +175,10 @@ namespace Bess::SimEngine {
                                    const ComponentState &newState) {}
 
         virtual std::shared_ptr<ComponentDefinition> clone() const {
-            return std::make_shared<ComponentDefinition>(*this);
+            if (m_ownership == CompDefinitionOwnership::NativeCpp)
+                return cloneViaCppImpl();
+            else
+                return cloneViaPythonImpl();
         }
 
         friend bool operator==(ComponentDefinition &a, ComponentDefinition &b) noexcept {
@@ -180,6 +188,15 @@ namespace Bess::SimEngine {
         friend bool operator==(const std::shared_ptr<ComponentDefinition> &a,
                                const std::shared_ptr<ComponentDefinition> &b) noexcept {
             return a->getHash() == b->getHash();
+        }
+
+      protected:
+        virtual std::shared_ptr<ComponentDefinition> cloneViaCppImpl() const {
+            return std::make_shared<ComponentDefinition>(*this);
+        }
+
+        virtual std::shared_ptr<ComponentDefinition> cloneViaPythonImpl() const {
+            throw std::runtime_error("ComponentDefinition::cloneViaPythonImpl not implemented");
         }
 
       protected:
@@ -195,6 +212,7 @@ namespace Bess::SimEngine {
         SimulationFunction m_simulationFunction = nullptr;
         std::vector<std::string> m_outputExpressions; // A+B or A.B etc.
         TypeMap<std::shared_ptr<Trait>> m_traits;
+        CompDefinitionOwnership m_ownership = CompDefinitionOwnership::NativeCpp;
     };
 
 } // namespace Bess::SimEngine

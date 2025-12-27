@@ -225,7 +225,7 @@ namespace Bess::SimEngine {
             clockTrait->high = newState.outputStates[0].state == LogicState::high;
         }
 
-        std::shared_ptr<ComponentDefinition> clone() const override {
+        std::shared_ptr<ComponentDefinition> cloneViaCppImpl() const override {
             return std::make_shared<ClockDefinition>(*this);
         }
     };

@@ -37,12 +37,16 @@ namespace Bess::SimEngine {
         Logger::getInstance().initLogger("BessSimEngine");
         initComponentCatalog();
         const auto &pluginMangaer = Plugins::PluginManager::getInstance();
+
+        auto &catalog = ComponentCatalog::instance();
         for (const auto &plugin : pluginMangaer.getLoadedPlugins()) {
             const auto comps = plugin.second->onComponentsRegLoad();
             for (const auto &comp : comps) {
-                ComponentCatalog::instance().registerComponent(comp);
+                catalog.registerComponent(comp);
             }
-            BESS_SE_INFO("Registered {} components from plugin {}", comps.size(), plugin.first);
+            BESS_SE_INFO("Registered {} components from plugin {}",
+                         comps.size(),
+                         plugin.first);
         }
         Plugins::savePyThreadState();
         m_simThread = std::thread(&SimulationEngine::run, this);
