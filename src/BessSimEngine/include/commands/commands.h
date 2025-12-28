@@ -35,8 +35,8 @@ namespace Bess::SimEngine::Commands {
 
     class BESS_API ConnectCommand : public Command {
       public:
-        ConnectCommand(const UUID &src, int srcPin, PinType srcType,
-                       const UUID &dst, int dstPin, PinType dstType);
+        ConnectCommand(const UUID &src, int srcPin, SlotType srcType,
+                       const UUID &dst, int dstPin, SlotType dstType);
         bool execute() override;
         std::any undo() override;
         COMMAND_RESULT_OVERRIDE;
@@ -44,10 +44,10 @@ namespace Bess::SimEngine::Commands {
       private:
         UUID m_src;
         int m_srcPin;
-        PinType m_srcType;
+        SlotType m_srcType;
         UUID m_dst;
         int m_dstPin;
-        PinType m_dstType;
+        SlotType m_dstType;
     };
 
     class BESS_API DeleteCompCommand : public Command {
@@ -71,10 +71,10 @@ namespace Bess::SimEngine::Commands {
     struct BESS_API DelConnectionCommandData {
         UUID src;
         uint32_t srcPin;
-        PinType srcType;
+        SlotType srcType;
         UUID dst;
         uint32_t dstPin;
-        PinType dstType;
+        SlotType dstType;
     };
 
     class BESS_API DelConnectionCommand : public Command {

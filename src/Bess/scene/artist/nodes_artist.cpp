@@ -184,55 +184,55 @@ namespace Bess::Canvas {
 
     void NodesArtist::paintSlot(int id, int parentId, const glm::vec3 &pos,
                                 float angle, const std::string &label, float labelDx,
-                                SimEngine::LogicState state, bool isConnected, SimEngine::ExtendedPinType extendedType) const {
-        auto bg = ViewportTheme::colors.stateLow;
-        if (extendedType == SimEngine::ExtendedPinType::inputClock) {
-            if ((bool)state) {
-                bg = ViewportTheme::colors.clockConnectionHigh;
-            } else {
-                bg = ViewportTheme::colors.clockConnectionLow;
-            }
-        } else {
-            switch (state) {
-            case SimEngine::LogicState::low:
-                bg = ViewportTheme::colors.stateLow;
-                break;
-            case SimEngine::LogicState::high:
-                bg = ViewportTheme::colors.stateHigh;
-                break;
-            case SimEngine::LogicState::unknown:
-                bg = ViewportTheme::colors.stateUnknow;
-                break;
-            case SimEngine::LogicState::high_z:
-                bg = ViewportTheme::colors.stateHighZ;
-                break;
-            }
-        }
-
-        auto border = bg;
-        if (!isConnected)
-            bg.a = 0.1f;
-
-        float ir = componentStyles.slotRadius - componentStyles.slotBorderSize;
-        float r = componentStyles.slotRadius;
-
-        if (extendedType == SimEngine::ExtendedPinType::inputClear) {
-            Renderer::QuadRenderProperties props;
-            props.borderColor = border;
-            props.borderRadius = glm::vec4(2.5f);
-            props.borderSize = glm::vec4(componentStyles.slotBorderSize + 0.5);
-            m_materialRenderer->drawQuad(pos, glm::vec2(r * 2.f), glm::vec4(0.f), id, props);
-            props.borderSize = {};
-            props.borderRadius = glm::vec4(1.5f);
-            m_materialRenderer->drawQuad(pos, glm::vec2((ir - 1) * 2.f), glm::vec4(bg), id, props);
-        } else {
-            m_materialRenderer->drawCircle(pos, r, border, id, ir);
-            m_materialRenderer->drawCircle(pos, ir - 1.f, bg, id);
-        }
-
-        float labelX = pos.x + labelDx;
-        float dY = componentStyles.slotRadius - (std::abs((componentStyles.slotRadius * 2.f) - componentStyles.slotLabelSize) / 2.f);
-        m_materialRenderer->drawText(label, {labelX, pos.y + dY, pos.z}, componentStyles.slotLabelSize, ViewportTheme::colors.text, parentId, angle);
+                                SimEngine::LogicState state, bool isConnected) const {
+        // auto bg = ViewportTheme::colors.stateLow;
+        // if (extendedType == SimEngine::ExtendedPinType::inputClock) {
+        //     if ((bool)state) {
+        //         bg = ViewportTheme::colors.clockConnectionHigh;
+        //     } else {
+        //         bg = ViewportTheme::colors.clockConnectionLow;
+        //     }
+        // } else {
+        //     switch (state) {
+        //     case SimEngine::LogicState::low:
+        //         bg = ViewportTheme::colors.stateLow;
+        //         break;
+        //     case SimEngine::LogicState::high:
+        //         bg = ViewportTheme::colors.stateHigh;
+        //         break;
+        //     case SimEngine::LogicState::unknown:
+        //         bg = ViewportTheme::colors.stateUnknow;
+        //         break;
+        //     case SimEngine::LogicState::high_z:
+        //         bg = ViewportTheme::colors.stateHighZ;
+        //         break;
+        //     }
+        // }
+        //
+        // auto border = bg;
+        // if (!isConnected)
+        //     bg.a = 0.1f;
+        //
+        // float ir = componentStyles.slotRadius - componentStyles.slotBorderSize;
+        // float r = componentStyles.slotRadius;
+        //
+        // if (extendedType == SimEngine::ExtendedPinType::inputClear) {
+        //     Renderer::QuadRenderProperties props;
+        //     props.borderColor = border;
+        //     props.borderRadius = glm::vec4(2.5f);
+        //     props.borderSize = glm::vec4(componentStyles.slotBorderSize + 0.5);
+        //     m_materialRenderer->drawQuad(pos, glm::vec2(r * 2.f), glm::vec4(0.f), id, props);
+        //     props.borderSize = {};
+        //     props.borderRadius = glm::vec4(1.5f);
+        //     m_materialRenderer->drawQuad(pos, glm::vec2((ir - 1) * 2.f), glm::vec4(bg), id, props);
+        // } else {
+        //     m_materialRenderer->drawCircle(pos, r, border, id, ir);
+        //     m_materialRenderer->drawCircle(pos, ir - 1.f, bg, id);
+        // }
+        //
+        // float labelX = pos.x + labelDx;
+        // float dY = componentStyles.slotRadius - (std::abs((componentStyles.slotRadius * 2.f) - componentStyles.slotLabelSize) / 2.f);
+        // m_materialRenderer->drawText(label, {labelX, pos.y + dY, pos.z}, componentStyles.slotLabelSize, ViewportTheme::colors.text, parentId, angle);
     }
 
     void NodesArtist::drawSevenSegDisplay(

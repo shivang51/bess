@@ -5,76 +5,6 @@
 namespace Bess::JsonConvert {
     using namespace Bess::SimEngine;
 
-    void toJsonValue(const IdComponent &comp, Json::Value &j) {
-        j = Json::Value(Json::objectValue);
-        j["uuid"] = static_cast<Json::UInt64>(comp.uuid);
-    }
-
-    void fromJsonValue(const Json::Value &j, IdComponent &comp) {
-        if (j.isMember("uuid")) {
-            comp.uuid = static_cast<UUID>(j["uuid"].asUInt64());
-        }
-    }
-
-    void toJsonValue(const FlipFlopComponent &comp, Json::Value &j) {
-        j = Json::Value(Json::objectValue);
-        j["clockPinIdx"] = comp.clockPinIdx;
-        j["prevClockState"] = static_cast<int>(comp.prevClockState);
-    }
-
-    void fromJsonValue(const Json::Value &j, FlipFlopComponent &comp) {
-        if (!j.isObject()) {
-            return;
-        }
-        if (j.isMember("clockPinIdx")) {
-            comp.clockPinIdx = j["clockPinIdx"].asInt();
-        }
-        if (j.isMember("prevClockState")) {
-            comp.prevClockState = static_cast<LogicState>(j["prevClockState"].asInt());
-        }
-    }
-
-    void toJsonValue(const ClockComponent &comp, Json::Value &j) {
-        j = Json::Value(Json::objectValue);
-        j["frequency"] = comp.frequency;
-        j["frequencyUnit"] = (int)comp.frequencyUnit;
-        j["dutyCycle"] = comp.dutyCycle;
-    }
-
-    void fromJsonValue(const Json::Value &j, ClockComponent &comp) {
-        if (!j.isObject()) {
-            return;
-        }
-
-        if (j.isMember("frequencyUnit")) {
-            comp.frequencyUnit = (FrequencyUnit)j["frequencyUnit"].asInt();
-        }
-
-        if (j.isMember("frequency")) {
-            comp.frequency = j["frequency"].asFloat();
-        }
-
-        if (j.isMember("dutyCycle")) {
-            comp.dutyCycle = j.get("dutyCycle", comp.dutyCycle).asFloat();
-        }
-    }
-
-    void toJsonValue(const Bess::SimEngine::PinDetail &pin, Json::Value &j) {
-        j = Json::Value(Json::objectValue);
-        j["type"] = static_cast<int>(pin.type);
-        j["name"] = pin.name;
-        j["extendedType"] = static_cast<int>(pin.extendedType);
-    }
-
-    void fromJsonValue(const Json::Value &j, Bess::SimEngine::PinDetail &pin) {
-        if (!j.isObject()) {
-            return;
-        }
-        pin.type = static_cast<Bess::SimEngine::PinType>(j.get("type", 0).asInt());
-        pin.name = j.get("name", pin.name).asString();
-        pin.extendedType = static_cast<Bess::SimEngine::ExtendedPinType>(j.get("extendedType", -1).asInt());
-    }
-
     void toJsonValue(const ComponentDefinition &def, Json::Value &j) {
         // j = Json::Value(Json::objectValue);
         // j["name"] = def.name;
@@ -176,13 +106,13 @@ namespace Bess::JsonConvert {
     // };
     //
 
-    void toJsonValue(const PinState &state, Json::Value &j) {
+    void toJsonValue(const SlotState &state, Json::Value &j) {
         j = Json::Value(Json::objectValue);
         j["state"] = static_cast<int>(state.state);
         j["lastChangeTime"] = static_cast<Json::Int64>(state.lastChangeTime.count());
     }
 
-    void fromJsonValue(const Json::Value &j, PinState &state) {
+    void fromJsonValue(const Json::Value &j, SlotState &state) {
         if (!j.isObject()) {
             return;
         }
@@ -230,7 +160,7 @@ namespace Bess::JsonConvert {
         state.inputStates.clear();
         if (j.isMember("inputStates")) {
             for (const auto &pinJ : j["inputStates"]) {
-                PinState pinState;
+                SlotState pinState;
                 fromJsonValue(pinJ, pinState);
                 state.inputStates.push_back(pinState);
             }
@@ -246,7 +176,7 @@ namespace Bess::JsonConvert {
         state.outputStates.clear();
         if (j.isMember("outputStates")) {
             for (const auto &pinJ : j["outputStates"]) {
-                PinState pinState;
+                SlotState pinState;
                 fromJsonValue(pinJ, pinState);
                 state.outputStates.push_back(pinState);
             }

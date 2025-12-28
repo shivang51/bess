@@ -19,7 +19,7 @@ namespace Bess::SimEngine {
     };
 
     inline void initFlipFlops() {
-        auto simFunc = [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
+        auto simFunc = [&](const std::vector<SlotState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
             ComponentState newState = prevState;
             newState.inputStates = inputs;
             const auto flipFlopData = std::any_cast<FlipFlopAuxData>(prevState.auxData);
@@ -254,7 +254,7 @@ namespace Bess::SimEngine {
         outDef.setGroupName("IO");
         outDef.setBehaviorType(ComponentBehaviorType::output);
         outDef.setInputSlotsInfo({SlotsGroupType::input, true, 1, {"LSB"}, {}});
-        outDef.setSimulationFunction([](const std::vector<PinState> &, SimTime,
+        outDef.setSimulationFunction([](const std::vector<SlotState> &, SimTime,
                                         const ComponentState &prevState) -> ComponentState {
 						auto newState = prevState;
 						return newState; });

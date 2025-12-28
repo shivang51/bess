@@ -36,11 +36,11 @@ namespace Bess::Canvas::Commands {
                     slotCompB->getParentComponent());
 
                 const auto pinTypeA = slotCompA->getSlotType() == SlotType::digitalInput
-                                          ? SimEngine::PinType::input
-                                          : SimEngine::PinType::output;
+                                          ? SimEngine::SlotType::digitalInput
+                                          : SimEngine::SlotType::digitalOutput;
                 const auto pinTypeB = slotCompB->getSlotType() == SlotType::digitalInput
-                                          ? SimEngine::PinType::input
-                                          : SimEngine::PinType::output;
+                                          ? SimEngine::SlotType::digitalInput
+                                          : SimEngine::SlotType::digitalOutput;
 
                 SimEngine::Commands::DelConnectionCommandData data = {simCompA->getSimEngineId(),
                                                                       (uint32_t)slotCompA->getIndex(), pinTypeA,

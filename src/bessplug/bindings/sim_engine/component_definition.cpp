@@ -82,7 +82,7 @@ void bind_sim_engine_component_definition(py::module_ &m) {
             return py::none();
 
         return py::cpp_function(
-            [fn](const std::vector<PinState> &inputs,
+            [fn](const std::vector<SlotState> &inputs,
                  long long t_ns,
                  const ComponentState &prev) {
                 py::gil_scoped_acquire gil;
@@ -94,7 +94,7 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         if (!PyCallable_Check(callable.ptr())) {
             throw py::type_error("simulation_function expects a callable");
         }
-        auto fn = [callable](const std::vector<PinState> &inputs,
+        auto fn = [callable](const std::vector<SlotState> &inputs,
                              SimTime t,
                              const ComponentState &prev) -> ComponentState {
             py::gil_scoped_acquire gil;

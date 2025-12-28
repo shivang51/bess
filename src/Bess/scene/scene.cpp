@@ -973,12 +973,12 @@ namespace Bess::Canvas {
             const auto endParent = m_state.getComponentByUuid<SimulationSceneComponent>(endSlot->getParentComponent());
 
             const auto startPinType = startSlot->getSlotType() == SlotType::digitalInput
-                                          ? SimEngine::PinType::input
-                                          : SimEngine::PinType::output;
+                                          ? SimEngine::SlotType::digitalInput
+                                          : SimEngine::SlotType::digitalOutput;
 
             const auto endPinType = endSlot->getSlotType() == SlotType::digitalInput
-                                        ? SimEngine::PinType::input
-                                        : SimEngine::PinType::output;
+                                        ? SimEngine::SlotType::digitalInput
+                                        : SimEngine::SlotType::digitalOutput;
 
             const auto res = cmdMngr.execute<SimEngine::Commands::ConnectCommand,
                                              std::string>(startParent->getSimEngineId(), startSlot->getIndex(), startPinType,

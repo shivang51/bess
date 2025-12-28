@@ -38,13 +38,6 @@ namespace Bess::SimEngine {
             return fnv1aPod(hash, v);
         }
 
-        inline uint64_t hashPinDetails(uint64_t hash, const PinDetail &pin) noexcept {
-            hash = fnv1aEnum(hash, pin.type);
-            hash = fnv1aString(hash, pin.name);
-            hash = fnv1aEnum(hash, pin.extendedType);
-            return hash;
-        }
-
         template <typename T>
         inline uint64_t hashVector(uint64_t hash, const std::vector<T> &vec, auto elemHasher) noexcept {
             hash = fnv1aPod(hash, vec.size());

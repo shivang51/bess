@@ -37,25 +37,6 @@ namespace Bess::SimEngine {
         Python
     };
 
-    enum class SlotsGroupType : uint8_t {
-        none,
-        input,
-        output
-    };
-
-    enum class SlotCatergory : uint8_t {
-        none,
-        clock,
-        clear,
-        enable,
-    };
-
-    enum class ComponentBehaviorType : uint8_t {
-        none,
-        input,
-        output
-    };
-
     struct BESS_API SlotsGroupInfo {
         SlotsGroupType type = SlotsGroupType::none;
         bool isResizeable = false;

@@ -14,6 +14,15 @@ namespace py = pybind11;
 
 using namespace Bess::SimEngine;
 
+void bindLogicState(py::module_ &m);
+void bindPinState(py::module_ &m);
+void bindComponentState(py::module_ &m);
+void bindSlotsGroupType(py::module_ &m);
+void bindSlotsGroupInfo(py::module_ &m);
+void bindOperatorInfo(py::module_ &m);
+void bindSlotCategory(py::module_ &m);
+void bindComponentBehaviorType(py::module_ &m);
+
 void bind_sim_engine_types(py::module_ &m) {
     py::enum_<LogicState>(m, "LogicState")
         .value("LOW", LogicState::low)
@@ -22,24 +31,24 @@ void bind_sim_engine_types(py::module_ &m) {
         .value("HIGH_Z", LogicState::high_z)
         .export_values();
 
-    py::class_<PinState>(m, "PinState")
+    py::class_<SlotState>(m, "PinState")
         .def(py::init<>())
-        .def(py::init<const PinState &>())
+        .def(py::init<const SlotState &>())
         .def(py::init<bool>(), py::arg("value"))
         .def(py::init([](LogicState state, long long last_change_time_ns) {
-                 PinState p;
+                 SlotState p;
                  p.state = state;
                  p.lastChangeTime = SimTime(last_change_time_ns);
                  return p;
              }),
              py::arg("state"), py::arg("last_change_time_ns"))
-        .def_readwrite("state", &PinState::state)
+        .def_readwrite("state", &SlotState::state)
         .def_property(
             "last_change_time_ns",
-            [](const PinState &self) { return static_cast<long long>(self.lastChangeTime.count()); },
-            [](PinState &self, long long ns) { self.lastChangeTime = SimTime(ns); })
-        .def("copy", [](const PinState &self) { return PinState(self); })
-        .def("invert", [](PinState &self) {
+            [](const SlotState &self) { return static_cast<long long>(self.lastChangeTime.count()); },
+            [](SlotState &self, long long ns) { self.lastChangeTime = SimTime(ns); })
+        .def("copy", [](const SlotState &self) { return SlotState(self); })
+        .def("invert", [](SlotState &self) {
             switch (self.state) {
             case LogicState::low:
                 self.state = LogicState::high;
@@ -53,7 +62,7 @@ void bind_sim_engine_types(py::module_ &m) {
                 break;
             }
         })
-        .def("__repr__", [](const PinState &self) {
+        .def("__repr__", [](const SlotState &self) {
             const char *s = "UNKNOWN";
             switch (self.state) {
             case LogicState::low:
@@ -77,19 +86,19 @@ void bind_sim_engine_types(py::module_ &m) {
         .def(py::init<const ComponentState &>())
         .def_property(
             "input_states",
-            [](ComponentState &self) -> std::vector<PinState> & { return self.inputStates; },
-            [](ComponentState &self, const std::vector<PinState> &v) { self.inputStates = v; },
+            [](ComponentState &self) -> std::vector<SlotState> & { return self.inputStates; },
+            [](ComponentState &self, const std::vector<SlotState> &v) { self.inputStates = v; },
             py::return_value_policy::reference_internal)
         .def_property(
             "output_states",
-            [](ComponentState &self) -> std::vector<PinState> & {
+            [](ComponentState &self) -> std::vector<SlotState> & {
                 return self.outputStates;
             },
-            [](ComponentState &self, const std::vector<PinState> &v) {
+            [](ComponentState &self, const std::vector<SlotState> &v) {
                 self.outputStates = v;
             },
             py::return_value_policy::reference_internal)
-        .def("set_output_state", [](ComponentState &self, std::size_t idx, const PinState &value) {
+        .def("set_output_state", [](ComponentState &self, std::size_t idx, const SlotState &value) {
                 if (idx >= self.outputStates.size()) {
                     throw py::index_error("output index out of range");
                 }
@@ -117,22 +126,10 @@ void bind_sim_engine_types(py::module_ &m) {
                     self.auxData = nullptr;
                 } }, "Clear aux_data if it was set via set_aux_pyobject.");
 
-    py::enum_<PinType>(m, "PinType")
-        .value("INPUT", PinType::input)
-        .value("OUTPUT", PinType::output)
+    py::enum_<SlotType>(m, "PinType")
+        .value("INPUT", SlotType::digitalInput)
+        .value("OUTPUT", SlotType::digitalOutput)
         .export_values();
-
-    py::enum_<ExtendedPinType>(m, "ExtendedPinType")
-        .value("NONE", ExtendedPinType::none)
-        .value("INPUT_CLOCK", ExtendedPinType::inputClock)
-        .value("INPUT_CLEAR", ExtendedPinType::inputClear)
-        .export_values();
-
-    py::class_<PinDetail>(m, "PinDetail")
-        .def(py::init<>())
-        .def_readwrite("type", &PinDetail::type)
-        .def_readwrite("name", &PinDetail::name)
-        .def_readwrite("extended_type", &PinDetail::extendedType);
 
     py::enum_<SlotsGroupType>(m, "SlotsGroupType")
         .value("NONE", SlotsGroupType::none)

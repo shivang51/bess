@@ -67,9 +67,5 @@ namespace Bess::SimEngine {
     }
 
     void SimEngineSerializer::registerAll() {
-        registerComponent<IdComponent>("IdComponent");
-        registerComponent<DigitalComponent>("DigitalComponent");
-        registerComponent<ClockComponent>("ClockComponent");
-        registerComponent<FlipFlopComponent>("FlipFlopComponent");
     }
 } // namespace Bess::SimEngine

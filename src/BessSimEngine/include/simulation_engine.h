@@ -28,21 +28,21 @@ namespace Bess::SimEngine {
 
         const UUID &addComponent(const std::shared_ptr<ComponentDefinition> &definition);
 
-        bool connectComponent(const UUID &src, int srcPin, PinType srcType,
-                              const UUID &dst, int dstPin, PinType dstType, bool overrideConn = false);
+        bool connectComponent(const UUID &src, int srcSlotIdx, SlotType srcType,
+                              const UUID &dst, int dstSlotIdx, SlotType dstType, bool overrideConn = false);
 
         void deleteComponent(const UUID &uuid);
 
-        void deleteConnection(const UUID &compA, PinType pinAType, int idxA,
-                              const UUID &compB, PinType pinBType, int idxB);
+        void deleteConnection(const UUID &compA, SlotType pinAType, int idxA,
+                              const UUID &compB, SlotType pinBType, int idxB);
 
-        PinState getDigitalPinState(const UUID &uuid, PinType type, int idx);
+        SlotState getDigitalSlotState(const UUID &uuid, SlotType type, int idx);
 
         ConnectionBundle getConnections(const UUID &uuid);
 
-        void setInputPinState(const UUID &uuid, int pinIdx, LogicState state);
-        void setOutputPinState(const UUID &uuid, int pinIdx, LogicState state);
-        void invertInputPinState(const UUID &uuid, int pinIdx);
+        void setInputSlotState(const UUID &uuid, int pinIdx, LogicState state);
+        void setOutputSlotState(const UUID &uuid, int pinIdx, LogicState state);
+        void invertInputSlotState(const UUID &uuid, int pinIdx);
 
         std::chrono::milliseconds getSimulationTimeMS();
         std::chrono::seconds getSimulationTimeS();
@@ -85,8 +85,8 @@ namespace Bess::SimEngine {
 
         void scheduleEvent(UUID id, UUID schedulerId, SimDelayNanoSeconds simTime);
         void clearEventsForEntity(const UUID &id);
-        std::vector<PinState> getInputPinsState(UUID compId) const;
-        bool simulateComponent(const UUID &compId, const std::vector<PinState> &inputs);
+        std::vector<SlotState> getInputSlotsState(UUID compId) const;
+        bool simulateComponent(const UUID &compId, const std::vector<SlotState> &inputs);
         void run();
 
         std::thread m_simThread;

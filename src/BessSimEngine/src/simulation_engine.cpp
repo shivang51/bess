@@ -115,8 +115,8 @@ namespace Bess::SimEngine {
         return digiComp->id;
     }
 
-    bool SimulationEngine::connectComponent(const UUID &src, int srcPin, PinType srcType,
-                                            const UUID &dst, int dstPin, PinType dstType, bool overrideConn) {
+    bool SimulationEngine::connectComponent(const UUID &src, int srcSlot, SlotType srcType,
+                                            const UUID &dst, int dstSlot, SlotType dstType, bool overrideConn) {
         if (src == UUID::null || dst == UUID::null) {
             BESS_SE_WARN("Cannot connect to/from null component");
             return false;
@@ -140,28 +140,28 @@ namespace Bess::SimEngine {
         const auto srcComp = m_simEngineState.getDigitalComponent(src);
         const auto dstComp = m_simEngineState.getDigitalComponent(dst);
 
-        auto &outPins = srcType == PinType::output
+        auto &outPins = srcType == SlotType::digitalOutput
                             ? srcComp->outputConnections
                             : srcComp->inputConnections;
-        auto &inPins = dstType == PinType::input
+        auto &inPins = dstType == SlotType::digitalInput
                            ? dstComp->inputConnections
                            : dstComp->outputConnections;
 
-        if (srcPin < 0 || srcPin >= static_cast<int>(outPins.size())) {
+        if (srcSlot < 0 || srcSlot >= static_cast<int>(outPins.size())) {
             BESS_SE_WARN("Invalid source pin index. Valid range: 0 to {}",
                          srcComp->outputConnections.size() - 1);
             return false;
         }
-        if (dstPin < 0 || dstPin >= static_cast<int>(inPins.size())) {
+        if (dstSlot < 0 || dstSlot >= static_cast<int>(inPins.size())) {
             BESS_SE_WARN("Invalid source pin index. Valid range: 0 to {}",
                          srcComp->inputConnections.size() - 1);
             return false;
         }
 
         // Check for duplicate connection.
-        auto &conns = outPins[srcPin];
+        auto &conns = outPins[srcSlot];
         for (auto it = conns.begin(); it != conns.end(); ++it) {
-            if (it->first == dst && it->second == dstPin) {
+            if (it->first == dst && it->second == dstSlot) {
                 if (overrideConn) {
                     conns.erase(it);
                     break;
@@ -190,15 +190,15 @@ namespace Bess::SimEngine {
         //     }
         // }
 
-        outPins[srcPin].emplace_back(dst, dstPin);
-        inPins[dstPin].emplace_back(src, srcPin);
+        outPins[srcSlot].emplace_back(dst, dstSlot);
+        inPins[dstSlot].emplace_back(src, srcSlot);
 
-        if (srcType == PinType::output) {
-            srcComp->state.outputConnected[srcPin] = true;
-            dstComp->state.inputConnected[dstPin] = true;
+        if (srcType == SlotType::digitalOutput) {
+            srcComp->state.outputConnected[srcSlot] = true;
+            dstComp->state.inputConnected[dstSlot] = true;
         } else {
-            srcComp->state.inputConnected[srcPin] = true;
-            dstComp->state.outputConnected[dstPin] = true;
+            srcComp->state.inputConnected[srcSlot] = true;
+            dstComp->state.outputConnected[dstSlot] = true;
         }
 
         // Mix two nets
@@ -346,14 +346,14 @@ namespace Bess::SimEngine {
         return true;
     }
 
-    PinState SimulationEngine::getDigitalPinState(const UUID &uuid, PinType type, int idx) {
+    SlotState SimulationEngine::getDigitalSlotState(const UUID &uuid, SlotType type, int idx) {
         if (!m_simEngineState.isComponentValid(uuid)) {
             BESS_SE_WARN("[getDigitalPinState] Component with UUID {} is invalid", (uint64_t)uuid);
             return {LogicState::unknown, SimTime(0)};
         }
         const auto &comp = m_simEngineState.getDigitalComponent(uuid);
 
-        return type == PinType::output
+        return type == SlotType::digitalOutput
                    ? comp->state.outputStates[idx]
                    : comp->state.inputStates[idx];
     }
@@ -373,7 +373,7 @@ namespace Bess::SimEngine {
         return bundle;
     }
 
-    void SimulationEngine::setInputPinState(const UUID &uuid, int pinIdx, LogicState state) {
+    void SimulationEngine::setInputSlotState(const UUID &uuid, int pinIdx, LogicState state) {
         const auto comp = m_simEngineState.getDigitalComponent(uuid);
 
         comp->state.inputStates[pinIdx].state = state;
@@ -381,7 +381,7 @@ namespace Bess::SimEngine {
         scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition->getSimDelay());
     }
 
-    void SimulationEngine::setOutputPinState(const UUID &uuid, int pinIdx, LogicState state) {
+    void SimulationEngine::setOutputSlotState(const UUID &uuid, int pinIdx, LogicState state) {
         const auto comp = m_simEngineState.getDigitalComponent(uuid);
 
         comp->state.outputStates[pinIdx].state = state;
@@ -389,7 +389,7 @@ namespace Bess::SimEngine {
         scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition->getSimDelay());
     }
 
-    void SimulationEngine::invertInputPinState(const UUID &uuid, int pinIdx) {
+    void SimulationEngine::invertInputSlotState(const UUID &uuid, int pinIdx) {
         const auto comp = m_simEngineState.getDigitalComponent(uuid);
         const auto state = comp->state.inputStates[pinIdx].state == LogicState::high
                                ? LogicState::low
@@ -410,8 +410,8 @@ namespace Bess::SimEngine {
         return comp->definition;
     }
 
-    void SimulationEngine::deleteConnection(const UUID &compA, PinType pinAType, int idxA,
-                                            const UUID &compB, PinType pinBType, int idxB) {
+    void SimulationEngine::deleteConnection(const UUID &compA, SlotType pinAType, int idxA,
+                                            const UUID &compB, SlotType pinBType, int idxB) {
 
         if (!m_simEngineState.isComponentValid(compA) ||
             !m_simEngineState.isComponentValid(compB))
@@ -421,10 +421,10 @@ namespace Bess::SimEngine {
         const auto compARef = m_simEngineState.getDigitalComponent(compA);
         const auto compBRef = m_simEngineState.getDigitalComponent(compB);
 
-        auto &pinsA = pinAType == PinType::input
+        auto &pinsA = pinAType == SlotType::digitalInput
                           ? compARef->inputConnections
                           : compARef->outputConnections;
-        auto &pinsB = pinBType == PinType::input
+        auto &pinsB = pinBType == SlotType::digitalInput
                           ? compBRef->inputConnections
                           : compBRef->outputConnections;
 
@@ -440,7 +440,7 @@ namespace Bess::SimEngine {
             pinsB[idxB].end());
 
         if (pinsA[idxA].empty()) {
-            if (pinAType == PinType::output) {
+            if (pinAType == SlotType::digitalOutput) {
                 compARef->state.outputConnected[idxA] = false;
             } else {
                 compARef->state.inputConnected[idxA] = false;
@@ -448,7 +448,7 @@ namespace Bess::SimEngine {
         }
 
         if (pinsB[idxB].empty()) {
-            if (pinBType == PinType::output) {
+            if (pinBType == SlotType::digitalOutput) {
                 compBRef->state.outputConnected[idxB] = false;
             } else {
                 compBRef->state.inputConnected[idxB] = false;
@@ -456,7 +456,7 @@ namespace Bess::SimEngine {
         }
 
         // Schedule next simulation on the appropriate side
-        const UUID toSchedule = pinAType == PinType::output ? compB : compA;
+        const UUID toSchedule = pinAType == SlotType::digitalOutput ? compB : compA;
 
         updateNets({compA, compB});
 
@@ -466,18 +466,18 @@ namespace Bess::SimEngine {
         BESS_SE_INFO("Deleted connection");
     }
 
-    std::vector<PinState> SimulationEngine::getInputPinsState(UUID compId) const {
+    std::vector<SlotState> SimulationEngine::getInputSlotsState(UUID compId) const {
 
         if (!m_simEngineState.isComponentValid(compId)) {
             BESS_SE_WARN("Component with UUID {} is invalid", (uint64_t)compId);
             return {};
         }
 
-        std::vector<PinState> states;
+        std::vector<SlotState> states;
 
         const auto &comp = m_simEngineState.getDigitalComponent(compId);
         for (const auto &pinConnections : comp->inputConnections) {
-            PinState aggregatedPinState = {LogicState::low, SimTime(0)};
+            SlotState aggregatedPinState = {LogicState::low, SimTime(0)};
 
             if (pinConnections.empty()) {
                 states.push_back(aggregatedPinState);
@@ -512,7 +512,7 @@ namespace Bess::SimEngine {
         return states;
     }
 
-    bool SimulationEngine::simulateComponent(const UUID &compId, const std::vector<PinState> &inputs) {
+    bool SimulationEngine::simulateComponent(const UUID &compId, const std::vector<SlotState> &inputs) {
         const auto &comp = m_simEngineState.getDigitalComponent(compId);
         const auto &def = comp->definition;
 #ifdef BESS_SE_ENABLE_LOG_EVENTS
@@ -640,10 +640,10 @@ namespace Bess::SimEngine {
             BESS_SE_LOG_EVENT("");
             BESS_SE_LOG_EVENT("[SimulationEngine][t = {}ns][dt = {}ns] Picked {} events to simulate", m_currentSimTime.count(), deltaTime.count(), eventsToSim.size());
 
-            std::unordered_map<UUID, std::vector<PinState>> inputsMap = {};
+            std::unordered_map<UUID, std::vector<SlotState>> inputsMap = {};
 
             for (auto &ev : eventsToSim) {
-                inputsMap[ev.compId] = getInputPinsState(ev.compId);
+                inputsMap[ev.compId] = getInputSlotsState(ev.compId);
             }
             BESS_SE_LOG_EVENT("[SimulationEngine] Selected {} unique entites to simulate", inputsMap.size());
 
@@ -826,7 +826,7 @@ namespace Bess::SimEngine {
             for (size_t i = 0; i < numInputs; i++) {
                 std::lock_guard lk(m_registryMutex);
                 LogicState state = (comb & (1 << i)) ? LogicState::high : LogicState::low;
-                setOutputPinState(inputs[numInputs - i - 1], 0, state);
+                setOutputSlotState(inputs[numInputs - i - 1], 0, state);
                 tableData[comb][numInputs - i - 1] = state;
             }
 
@@ -844,7 +844,7 @@ namespace Bess::SimEngine {
 
             for (size_t i = 0; i < outputs.size(); i++) {
                 std::lock_guard lk(m_registryMutex);
-                const auto states = getInputPinsState(outputs[i]);
+                const auto states = getInputSlotsState(outputs[i]);
                 tableData[comb][numInputs + i] = states[0].state;
             }
         }

@@ -22,17 +22,6 @@ namespace Bess::SimEngine {
         Connections outputs;
     };
 
-    enum class PinType {
-        input,
-        output
-    };
-
-    enum class ExtendedPinType {
-        none = -1,
-        inputClock,
-        inputClear
-    };
-
     enum class FrequencyUnit {
         hz,
         kHz,
@@ -50,28 +39,42 @@ namespace Bess::SimEngine {
                             high_z
     };
 
-    struct BESS_API PinDetail {
-        PinType type;
-        std::string name = "";
-        ExtendedPinType extendedType = ExtendedPinType::none;
+    enum class SlotsGroupType : uint8_t {
+        none,
+        input,
+        output
     };
 
-    inline bool operator==(const Bess::SimEngine::PinDetail &a, const Bess::SimEngine::PinDetail &b) noexcept {
-        return a.type == b.type && a.name == b.name && a.extendedType == b.extendedType;
-    }
+    enum class SlotCatergory : uint8_t {
+        none,
+        clock,
+        clear,
+        enable,
+    };
 
-    struct BESS_API PinState {
+    enum class ComponentBehaviorType : uint8_t {
+        none,
+        input,
+        output
+    };
+
+    enum class SlotType : uint8_t {
+        digitalInput,
+        digitalOutput
+    };
+
+    struct BESS_API SlotState {
         LogicState state = LogicState::low;
         SimTime lastChangeTime{0};
 
-        PinState() = default;
+        SlotState() = default;
 
-        PinState(LogicState state, SimTime time) {
+        SlotState(LogicState state, SimTime time) {
             this->state = state;
             lastChangeTime = time;
         }
 
-        PinState(bool value) {
+        SlotState(bool value) {
             state = value ? LogicState::high : LogicState::low;
         }
 
@@ -79,7 +82,7 @@ namespace Bess::SimEngine {
             return state == LogicState::high;
         }
 
-        PinState &operator=(const bool &val) {
+        SlotState &operator=(const bool &val) {
             this->state = val ? LogicState::high : LogicState::low;
             return *this;
         }
@@ -98,9 +101,9 @@ namespace Bess::SimEngine {
     };
 
     struct BESS_API ComponentState {
-        std::vector<PinState> inputStates;
+        std::vector<SlotState> inputStates;
         std::vector<bool> inputConnected;
-        std::vector<PinState> outputStates;
+        std::vector<SlotState> outputStates;
         std::vector<bool> outputConnected;
         bool isChanged = false;
         std::any *auxData = nullptr;
@@ -108,7 +111,7 @@ namespace Bess::SimEngine {
         std::string errorMessage;
     };
 
-    typedef std::function<ComponentState(const std::vector<PinState> &, SimTime, const ComponentState &)> SimulationFunction;
+    typedef std::function<ComponentState(const std::vector<SlotState> &, SimTime, const ComponentState &)> SimulationFunction;
 
     struct BESS_API TruthTable {
         std::vector<std::vector<LogicState>> table;

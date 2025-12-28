@@ -9,7 +9,6 @@ from enum import Enum
 from bessplug.bindings._bindings.sim_engine import (
     LogicState,
     PinType as _PinType,
-    ExtendedPinType as _ExtendedPinType,
     SlotsGroupType as _SlotsGroupType,
     SlotCatergory as _SlotCategory,
     ComponentBehaviorType as _ComponentBehaviorType,
@@ -19,19 +18,6 @@ from bessplug.bindings._bindings.sim_engine import (
 class PinType(Enum):
     INPUT = _PinType.INPUT
     OUTPUT = _PinType.OUTPUT
-
-    @classmethod
-    def from_str(cls, name: str):
-        return cls[name.upper()]
-
-
-class ExtendedPinType(Enum):
-    NONE = _ExtendedPinType.NONE
-    INPUT_CLOCK = _ExtendedPinType.INPUT_CLOCK
-    INPUT_CLEAR = _ExtendedPinType.INPUT_CLEAR
-
-    def is_input_related(self) -> bool:
-        return self in (self.INPUT_CLOCK, self.INPUT_CLEAR)
 
     @classmethod
     def from_str(cls, name: str):

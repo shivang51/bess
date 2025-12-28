@@ -108,17 +108,17 @@ namespace Bess {
     }
 
     void SceneSerializer::registerAll() {
-        registerComponent<SimEngine::IdComponent>("IdComponent");
-        registerComponent<TransformComponent>("TransformComponent");
-        registerComponent<SpriteComponent>("SpriteComponent");
-        registerComponent<TagComponent>("TagComponent");
-        registerComponent<SlotComponent>("SlotComponent");
-        registerComponent<SimulationComponent>("SimulationComponent");
-        registerComponent<ConnectionSegmentComponent>("ConnectionSegmentComponent");
-        registerComponent<ConnectionComponent>("ConnectionComponent");
-        registerComponent<SimulationOutputComponent>("SimulationOutputComponent");
-        registerComponent<SimulationInputComponent>("SimulationInputComponent");
-        registerComponent<TextNodeComponent>("TextNodeComponent");
-        registerComponent<NSComponent>("NSComponent");
+        // registerComponent<SimEngine::IdComponent>("IdComponent");
+        // registerComponent<TransformComponent>("TransformComponent");
+        // registerComponent<SpriteComponent>("SpriteComponent");
+        // registerComponent<TagComponent>("TagComponent");
+        // registerComponent<SlotComponent>("SlotComponent");
+        // registerComponent<SimulationComponent>("SimulationComponent");
+        // registerComponent<ConnectionSegmentComponent>("ConnectionSegmentComponent");
+        // registerComponent<ConnectionComponent>("ConnectionComponent");
+        // registerComponent<SimulationOutputComponent>("SimulationOutputComponent");
+        // registerComponent<SimulationInputComponent>("SimulationInputComponent");
+        // registerComponent<TextNodeComponent>("TextNodeComponent");
+        // registerComponent<NSComponent>("NSComponent");
     }
 } // namespace Bess

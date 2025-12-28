@@ -13,8 +13,6 @@
 
 namespace Bess::Canvas::Components {
 
-    using IdComponent = Bess::SimEngine::IdComponent;
-
     class TransformComponent {
       public:
         TransformComponent() = default;

@@ -8,29 +8,13 @@
 namespace Bess::JsonConvert {
     using namespace Bess::SimEngine;
 
-    // --- IdComponent ---
-    void toJsonValue(const IdComponent &comp, Json::Value &j);
-    void fromJsonValue(const Json::Value &j, IdComponent &comp);
-
-    // --- FlipFlopComonent ---
-    void toJsonValue(const FlipFlopComponent &comp, Json::Value &j);
-    void fromJsonValue(const Json::Value &j, FlipFlopComponent &comp);
-
-    // --- ClockComponent ---
-    void toJsonValue(const ClockComponent &comp, Json::Value &j);
-    void fromJsonValue(const Json::Value &j, ClockComponent &comp);
-
-    // --- PinDetails ---
-    void toJsonValue(const Bess::SimEngine::PinDetail &pin, Json::Value &j);
-    void fromJsonValue(const Json::Value &j, Bess::SimEngine::PinDetail &pin);
-
     // --- ComponentDefinition ---
     void toJsonValue(const ComponentDefinition &def, Json::Value &j);
     void fromJsonValue(const Json::Value &j, ComponentDefinition &def);
 
     // --- PinState ---
-    void toJsonValue(const PinState &state, Json::Value &j);
-    void fromJsonValue(const Json::Value &j, PinState &state);
+    void toJsonValue(const SlotState &state, Json::Value &j);
+    void fromJsonValue(const Json::Value &j, SlotState &state);
 
     // --- ComponentState ---
     void toJsonValue(const ComponentState &state, Json::Value &j);

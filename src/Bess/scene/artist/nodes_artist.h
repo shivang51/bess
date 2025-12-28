@@ -1,10 +1,10 @@
 #pragma once
 
+#include "application/types.h"
 #include "base_artist.h"
 #include "entt/entity/fwd.hpp"
 #include "ext/vector_float3.hpp"
 #include "scene/components/components.h"
-#include "application/types.h"
 
 namespace Bess::Canvas {
     constexpr struct NodeComponentStyles {
@@ -56,7 +56,7 @@ namespace Bess::Canvas {
 
         void paintSlot(int id, int parentId, const glm::vec3 &pos,
                        float angle, const std::string &label, float labelDx,
-                       SimEngine::LogicState state, bool isConnected, SimEngine::ExtendedPinType extendedType) const;
+                       SimEngine::LogicState state, bool isConnected) const;
 
         void drawHeaderLessComp(entt::entity entity,
                                 const Components::TagComponent &tagComp,

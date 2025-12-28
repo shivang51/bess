@@ -101,7 +101,7 @@ namespace Bess::SimEngine::ExprEval {
     }
 
     /// expression evaluator simulation function
-    const SimulationFunction exprEvalSimFunc = [](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) {
+    const SimulationFunction exprEvalSimFunc = [](const std::vector<SlotState> &inputs, SimTime currentTime, const ComponentState &prevState) {
         auto newState = prevState;
         newState.inputStates = inputs;
         bool changed = false;

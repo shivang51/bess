@@ -113,11 +113,11 @@ namespace Bess::Canvas {
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
 
-        simEngine.setOutputPinState(slotParentComp->getSimEngineId(),
-                                    slotComp->getIndex(),
-                                    slotComp->getSlotState(e.sceneState).state == SimEngine::LogicState::high
-                                        ? SimEngine::LogicState::low
-                                        : SimEngine::LogicState::high);
+        simEngine.setOutputSlotState(slotParentComp->getSimEngineId(),
+                                     slotComp->getIndex(),
+                                     slotComp->getSlotState(e.sceneState).state == SimEngine::LogicState::high
+                                         ? SimEngine::LogicState::low
+                                         : SimEngine::LogicState::high);
     }
 } // namespace Bess::Canvas
 

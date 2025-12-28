@@ -37,8 +37,8 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(UUID, SimEngineId, m_simEngineId)
         MAKE_GETTER_SETTER(int, Index, m_index)
 
-        SimEngine::PinState getSlotState(const SceneState &state) const;
-        SimEngine::PinState getSlotState(const SceneState *state) const;
+        SimEngine::SlotState getSlotState(const SceneState &state) const;
+        SimEngine::SlotState getSlotState(const SceneState *state) const;
         bool isSlotConnected(const SceneState &state) const;
 
       private:
