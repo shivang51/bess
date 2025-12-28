@@ -3,6 +3,8 @@
 #include "bess_api.h"
 #include "bess_uuid.h"
 #include "component_definition.h"
+#include "event_dispatcher.h"
+#include "events/sim_engine_events.h"
 #include "types.h"
 #include <entt/entt.hpp>
 #include <memory>
@@ -51,6 +53,9 @@ namespace Bess::SimEngine {
                                           SlotState{LogicState::low, SimTime(0)});
                 state.outputConnected.resize(newOutputCount, false);
                 outputConnections.resize(newOutputCount);
+
+                EventSystem::EventDispatcher::instance().dispatch(
+                    Events::CompDefOutputsResizedEvent{this->id});
             }
             definition->computeHash();
             return definition->getInputSlotsInfo().count;

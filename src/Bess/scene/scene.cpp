@@ -1,9 +1,11 @@
+#include "scene/scene.h"
 #include "bess_uuid.h"
 #include "common/log.h"
 #include "component_catalog.h"
+#include "event_dispatcher.h"
 #include "events/application_event.h"
-#include "events/event_dispatcher.h"
 #include "events/scene_events.h"
+#include "events/sim_engine_events.h"
 #include "fwd.hpp"
 #include "pages/main_page/main_page_state.h"
 #include "scene/components/non_sim_comp.h"
@@ -26,7 +28,10 @@
 namespace Bess::Canvas {
     Scene::Scene() {
         reset();
-        Events::EventDispatcher::instance().sink<Events::SlotClickedEvent>().connect<&Scene::onSlotClicked>(this);
+
+        auto &dispatcher = EventSystem::EventDispatcher::instance();
+        dispatcher.sink<Events::SlotClickedEvent>().connect<&Scene::onSlotClicked>(this);
+        dispatcher.sink<SimEngine::Events::CompDefOutputsResizedEvent>().connect<&Scene::onCompDefOutputsResized>(this);
     }
 
     Scene::~Scene() {
@@ -376,7 +381,7 @@ namespace Bess::Canvas {
 
         setLastCreatedComp({.componentDefinition = def, .set = true});
 
-        Events::EventDispatcher::instance().trigger(Events::ComponentCreatedEvent{uuid, true});
+        EventSystem::EventDispatcher::instance().dispatch(Events::ComponentCreatedEvent{uuid, true});
         return uuid;
     }
 
@@ -1065,5 +1070,18 @@ namespace Bess::Canvas {
                 }
             }
         }
+    }
+
+    void Scene::onCompDefOutputsResized(const SimEngine::Events::CompDefOutputsResizedEvent &e) {
+        const auto &parent = m_state.getComponentBySimEngineId<SimulationSceneComponent>(e.componentId);
+        const auto &digitalComp = SimEngine::SimulationEngine::instance().getDigitalComponent(e.componentId);
+        const auto &outSlotsInfo = digitalComp->definition->getOutputSlotsInfo();
+
+        std::shared_ptr<SlotSceneComponent> newSlot = std::make_shared<SlotSceneComponent>();
+        newSlot->setSlotType(SlotType::digitalOutput);
+        newSlot->setIndex((int)outSlotsInfo.count - 1);
+        parent->addOutputSlot(newSlot->getUuid(), outSlotsInfo.isResizeable);
+        m_state.addComponent<SlotSceneComponent>(newSlot);
+        m_state.attachChild(parent->getUuid(), newSlot->getUuid());
     }
 } // namespace Bess::Canvas

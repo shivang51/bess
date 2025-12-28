@@ -8,6 +8,7 @@
 #include "entt/entt.hpp"
 #include "events/application_event.h"
 #include "events/scene_events.h"
+#include "events/sim_engine_events.h"
 #include "scene/camera.h"
 #include "scene/components/non_sim_comp.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -152,6 +153,8 @@ namespace Bess::Canvas {
         bool m_isLeftMousePressed = false, m_isMiddleMousePressed = false;
 
         void onSlotClicked(const Events::SlotClickedEvent &e);
+
+        void onCompDefOutputsResized(const SimEngine::Events::CompDefOutputsResizedEvent &e);
 
         void drawGhostConnection(const std::shared_ptr<PathRenderer> &pathRenderer,
                                  const glm::vec2 &startPos,

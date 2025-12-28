@@ -1,6 +1,6 @@
 #include "ui/ui_main/project_explorer.h"
 #include "bess_uuid.h"
-#include "events/event_dispatcher.h"
+#include "event_dispatcher.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "scene/commands/create_group_command.h"
@@ -36,8 +36,8 @@ namespace Bess::UI {
     }
 
     void ProjectExplorer::init() {
-        Events::EventDispatcher::instance().sink<Bess::Events::ComponentCreatedEvent>().connect<&ProjectExplorer::onEntityCreated>();
-        Events::EventDispatcher::instance().sink<Bess::Events::EntityDestroyedEvent>().connect<&ProjectExplorer::onEntityDestroyed>();
+        EventSystem::EventDispatcher::instance().sink<Bess::Events::ComponentCreatedEvent>().connect<&ProjectExplorer::onEntityCreated>();
+        EventSystem::EventDispatcher::instance().sink<Bess::Events::EntityDestroyedEvent>().connect<&ProjectExplorer::onEntityDestroyed>();
     }
 
     void ProjectExplorer::onEntityCreated(const Bess::Events::ComponentCreatedEvent &e) {

@@ -2,6 +2,7 @@
 
 #include "bess_uuid.h"
 #include "scene/scene_state/components/scene_component.h"
+#include "scene/scene_state/components/sim_scene_component.h"
 #include <cstdint>
 #include <unordered_set>
 
@@ -20,15 +21,20 @@ namespace Bess::Canvas {
                 m_componentsMap.contains(component->getUuid()))
                 return;
 
-            const auto casted = component->cast<T>();
-            m_componentsMap[casted->getUuid()] = casted;
-            m_typeToUuidsMap[casted->getType()].emplace_back(casted->getUuid());
+            const auto id = component->getUuid();
+            m_componentsMap[id] = component;
+            m_typeToUuidsMap[component->getType()].emplace_back(id);
 
             if (component->getParentComponent() == UUID::null) {
-                m_rootComponents.insert(casted->getUuid());
+                m_rootComponents.insert(id);
             }
 
-            assignRuntimeId(casted->getUuid());
+            if (component->getType() == SceneComponentType::simulation) {
+                auto simComp = component->cast<SimulationSceneComponent>();
+                m_simEngineIdToSceneCompMap[simComp->getSimEngineId()] = id;
+            }
+
+            assignRuntimeId(id);
         }
 
         template <typename T>
@@ -37,6 +43,15 @@ namespace Bess::Canvas {
                 return m_componentsMap.at(uuid)->cast<T>();
             }
             return nullptr;
+        }
+
+        template <typename T>
+        std::shared_ptr<T> getComponentBySimEngineId(const UUID &simEngineId) const {
+            auto it = m_simEngineIdToSceneCompMap.find(simEngineId);
+            if (it == m_simEngineIdToSceneCompMap.end()) {
+                return nullptr;
+            }
+            return getComponentByUuid<T>(it->second);
         }
 
         std::shared_ptr<SceneComponent> getComponentByUuid(const UUID &uuid) const;
@@ -79,6 +94,7 @@ namespace Bess::Canvas {
       private:
         std::unordered_map<UUID, std::shared_ptr<SceneComponent>> m_componentsMap;
         std::unordered_map<SceneComponentType, std::vector<UUID>> m_typeToUuidsMap;
+        std::unordered_map<UUID, UUID> m_simEngineIdToSceneCompMap;
         std::unordered_map<UUID, bool> m_selectedComponents;
         std::unordered_map<std::string, UUID> m_slotsConnectionMap;
         std::unordered_map<uint32_t, UUID> m_runtimeIdMap;

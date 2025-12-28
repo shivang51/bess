@@ -116,7 +116,6 @@ set(Header_Files
 "application/application_state.h"
 "events/application_event.h"
 "events/scene_events.h"
-"events/event_dispatcher.h"
 "asset_manager/asset_loader.h"
 "asset_manager/asset_manager.h"
 "asset_manager/asset_id.h"
@@ -208,7 +207,7 @@ set(ALL_FILES
 )
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
-target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine BessVulkan BessPluginManager)
+target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine BessVulkan BessPluginManager EventSystem)
 add_dependencies(${PROJECT_NAME} BessSimEngine BessVulkan BessPluginManager)
 
 file(GLOB_RECURSE SCENE_PCH_SOURCES
@@ -267,6 +266,7 @@ if("${BUILD_ARCH}" STREQUAL "x64")
 			"${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"
 			"${CMAKE_SOURCE_DIR}/src/BessVulkan/include"
 			"${CMAKE_SOURCE_DIR}/src/BessPluginManager/include"
+			"${CMAKE_SOURCE_DIR}/src/EventSystem/include"
 			"${CMAKE_SOURCE_DIR}/external/imgui"
 			"${CMAKE_SOURCE_DIR}/external/implot"
 			"${CMAKE_SOURCE_DIR}/external/freetype/include"

@@ -8,13 +8,14 @@
 
 namespace Bess::Canvas {
     void SceneState::clear() {
+        m_runtimeIdMap.clear();
         m_componentsMap.clear();
         m_typeToUuidsMap.clear();
-        m_selectedComponents.clear();
         m_rootComponents.clear();
-        m_runtimeIdMap.clear();
         m_freeRuntimeIds.clear();
+        m_selectedComponents.clear();
         m_slotsConnectionMap.clear();
+        m_simEngineIdToSceneCompMap.clear();
     }
 
     std::shared_ptr<SceneComponent> SceneState::getComponentByUuid(const UUID &uuid) const {

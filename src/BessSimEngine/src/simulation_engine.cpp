@@ -3,6 +3,8 @@
 #include "component_catalog.h"
 #include "component_definition.h"
 #include "entt_components.h"
+#include "event_dispatcher.h"
+#include "events/sim_engine_events.h"
 #include "init_components.h"
 #include "logger.h"
 #include "types.h"
@@ -111,6 +113,7 @@ namespace Bess::SimEngine {
 
         scheduleEvent(digiComp->id, UUID::null, m_currentSimTime + definition->getSimDelay());
 
+        EventSystem::EventDispatcher::instance().dispatch<Events::ComponentAddedEvent>({digiComp->id});
         BESS_SE_INFO("Added component {}", definition->getName());
         return digiComp->id;
     }

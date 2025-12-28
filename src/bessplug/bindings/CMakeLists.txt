@@ -41,6 +41,7 @@ set(EXTERNAL_INCLUDE_DIRS
 			"${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"
 			"${CMAKE_SOURCE_DIR}/src/Bess/"
 			"${CMAKE_SOURCE_DIR}/src/BessVulkan/include"
+			"${CMAKE_SOURCE_DIR}/src/EventSystem/include"
 )
 
 target_include_directories(bess_scene_obj PRIVATE ${EXTERNAL_INCLUDE_DIRS})
@@ -59,14 +60,13 @@ set(BESS_PYBIND_SOURCES
     sim_engine/component_definition.cpp
 )
 
-set(BESS_PYBIND_SOURCES ${BESS_PYBIND_SOURCES})
-
 pybind11_add_module(${PROJECT_NAME} ${BESS_PYBIND_SOURCES})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
 	$<TARGET_OBJECTS:bess_scene_obj>
 	BessVulkan
 	BessSimEngine
+	EventSystem
 	"freetype"
 )
 
