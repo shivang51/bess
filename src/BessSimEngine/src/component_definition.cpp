@@ -97,8 +97,7 @@ namespace Bess::SimEngine {
     }
 
     bool ComponentDefinition::computeExpressionsIfNeeded() {
-
-        // opeterator '0' means no operation
+        // operator '0' means no operation
         // if no operation is defined, no expressions to compute
         if (m_opInfo.op == '0') {
             return false;
@@ -111,6 +110,9 @@ namespace Bess::SimEngine {
 
         m_outputExpressions.clear();
 
+        // handeling unary and binary operators
+        // For binary operators, only single output is supported
+        // and for uniary operator, each input generates one output
         if (m_opInfo.op != '!' && m_outputSlotsInfo.count == 1) {
             std::string expr = m_opInfo.shouldNegateOutput ? "!(0" : "0";
             for (size_t i = 1; i < m_inputSlotsInfo.count; i++) {
