@@ -37,7 +37,21 @@ namespace Bess::SimEngine {
             state.inputStates.emplace_back();
             state.inputConnected.emplace_back(false);
             inputConnections.emplace_back();
-            definition->computeExpressionsIfNeeded();
+            const bool exprComputed = definition->computeExpressionsIfNeeded();
+            if (exprComputed &&
+                definition->getOutputSlotsInfo().count !=
+                    definition->getOutputExpressions().size()) {
+                // if expressions were recomputed,
+                // but output count does not match expressions size
+                // we need to resize output related states and connections
+                size_t newOutputCount = definition->getOutputExpressions().size();
+                size_t oldOutputCount = definition->getOutputSlotsInfo().count;
+                definition->getOutputSlotsInfo().count = newOutputCount;
+                state.outputStates.resize(newOutputCount,
+                                          SlotState{LogicState::low, SimTime(0)});
+                state.outputConnected.resize(newOutputCount, false);
+                outputConnections.resize(newOutputCount);
+            }
             definition->computeHash();
             return definition->getInputSlotsInfo().count;
         }

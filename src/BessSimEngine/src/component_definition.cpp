@@ -96,22 +96,22 @@ namespace Bess::SimEngine {
         return getSimDelay();
     }
 
-    void ComponentDefinition::computeExpressionsIfNeeded() {
+    bool ComponentDefinition::computeExpressionsIfNeeded() {
 
         // opeterator '0' means no operation
         // if no operation is defined, no expressions to compute
         if (m_opInfo.op == '0') {
-            return;
+            return false;
+        }
+
+        if (m_inputSlotsInfo.count <= 0) {
+            BESS_SE_WARN("[SimulationEngine][ComponentDefinition] Input count not provided for expression(s) generation");
+            return false;
         }
 
         m_outputExpressions.clear();
 
-        if (m_inputSlotsInfo.count <= 0) {
-            BESS_SE_WARN("[SimulationEngine][ComponentDefinition] Input count not provided for expression(s) generation");
-            return;
-        }
-
-        if (m_inputSlotsInfo.count != 1 && m_outputSlotsInfo.count == 1) {
+        if (m_opInfo.op != '!' && m_outputSlotsInfo.count == 1) {
             std::string expr = m_opInfo.shouldNegateOutput ? "!(0" : "0";
             for (size_t i = 1; i < m_inputSlotsInfo.count; i++) {
                 expr += m_opInfo.op + std::to_string(i);
@@ -119,17 +119,19 @@ namespace Bess::SimEngine {
             if (m_opInfo.shouldNegateOutput)
                 expr += ")";
             m_outputExpressions = {expr};
-        } else if (m_inputSlotsInfo.count == m_outputSlotsInfo.count) {
+        } else if (m_opInfo.op == '!') {
             m_outputExpressions.reserve(m_inputSlotsInfo.count);
             for (size_t i = 0; i < m_inputSlotsInfo.count; i++) {
                 m_outputExpressions.emplace_back(std::format("{}{}", m_opInfo.op, i));
             }
+            BESS_SE_TRACE("{}", m_outputExpressions.size());
         } else {
             BESS_SE_ERROR("Invalid IO config for expression generation");
             assert(false);
         }
 
         this->setAuxData(m_outputExpressions);
+        return true;
     }
 
     void ComponentDefinition::setAuxData(const std::any &data) {

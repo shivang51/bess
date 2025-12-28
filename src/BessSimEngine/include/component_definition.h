@@ -119,8 +119,9 @@ namespace Bess::SimEngine {
         /**
          * This function will compute the output expressions if needed.
          * i.e. when operator info is set and expressions are based on it.
+         * returns: true if expressions were computed, false otherwise;
          **/
-        void computeExpressionsIfNeeded();
+        bool computeExpressionsIfNeeded();
 
         // callbacks
       public:
