@@ -390,7 +390,20 @@ namespace Bess::SimEngine {
     }
 
     inline void initCombCircuits() {
-        // const std::string groupName = "Combinational Circuits";
+        const std::string groupName = "Combinational Circuits";
+        auto &catalog = ComponentCatalog::instance();
+
+        ComponentDefinition definition{};
+        definition.setGroupName(groupName);
+        definition.setSimulationFunction(ExprEval::exprEvalSimFunc);
+
+        definition.setName("Full Adder");
+        definition.setInputSlotsInfo({SlotsGroupType::input, false, 3, {"A", "B", "C"}, {}});
+        definition.setOutputSlotsInfo({SlotsGroupType::output, false, 2, {"S", "C"}, {}});
+        definition.setSimDelay(SimDelayNanoSeconds(3));
+        definition.setOutputExpressions({"0^1^2", "(0*1) + 2*(0^1)"});
+        catalog.registerComponent(definition);
+
         // ComponentDefinition comp = {"Full Adder", "Combinational Circuits", 3, 2, ExprEval::exprEvalSimFunc, SimDelayNanoSeconds(3), {"0^1^2", "(0*1) + 2*(0^1)"}};
         // comp.inputPinDetails = {{PinType::input, "A"}, {PinType::input, "B"}, {PinType::input, "C"}};
         // comp.outputPinDetails = {{PinType::output, "S"}, {PinType::output, "C"}};

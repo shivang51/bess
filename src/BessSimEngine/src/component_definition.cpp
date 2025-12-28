@@ -130,7 +130,8 @@ namespace Bess::SimEngine {
             assert(false);
         }
 
-        this->setAuxData(m_outputExpressions);
+        onExpressionsChange();
+
         return true;
     }
 
@@ -151,5 +152,9 @@ namespace Bess::SimEngine {
             return cloneViaCppImpl();
         else
             return cloneViaPythonImpl();
+    }
+
+    void ComponentDefinition::onExpressionsChange() {
+        this->setAuxData(m_outputExpressions);
     }
 } // namespace Bess::SimEngine

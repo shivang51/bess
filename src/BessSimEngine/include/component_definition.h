@@ -76,8 +76,10 @@ namespace Bess::SimEngine {
         MAKE_GETTER_SETTER(ComponentBehaviorType, BehaviorType, m_behaviorType)
         MAKE_GETTER_SETTER(SimulationFunction, SimulationFunction, m_simulationFunction)
         MAKE_GETTER(std::any, AuxData, m_auxData)
-        MAKE_GETTER_SETTER(std::vector<std::string>,
-                           OutputExpressions, m_outputExpressions)
+        MAKE_GETTER_SETTER_WC(std::vector<std::string>,
+                              OutputExpressions,
+                              m_outputExpressions,
+                              onExpressionsChange)
         MAKE_GETTER_SETTER(CompDefinitionOwnership, Ownership, m_ownership)
 
         template <typename T>
@@ -161,6 +163,8 @@ namespace Bess::SimEngine {
          **/
         virtual void onStateChange(const ComponentState &oldState,
                                    const ComponentState &newState) {}
+
+        virtual void onExpressionsChange();
 
         virtual std::shared_ptr<ComponentDefinition> clone() const;
 
