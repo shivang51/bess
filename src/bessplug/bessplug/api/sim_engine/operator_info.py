@@ -26,11 +26,11 @@ class OperatorInfo:
 
     @property
     def should_negate_output(self) -> bool:
-        return self._native.negate_output
+        return self._native.should_negate_output
 
     @should_negate_output.setter
     def should_negate_output(self, value: bool) -> None:
-        self._native.negate_output = value
+        self._native.should_negate_output = value
 
 
 __all__ = ["OperatorInfo"]

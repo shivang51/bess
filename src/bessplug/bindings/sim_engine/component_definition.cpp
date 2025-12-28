@@ -8,7 +8,6 @@
 #include "types.h"
 
 #include <iostream>
-#include <print>
 
 namespace py = pybind11;
 
@@ -31,10 +30,15 @@ struct PyComponentDefinition : public ComponentDefinition {
     }
 
     std::shared_ptr<ComponentDefinition> cloneViaPythonImpl() const override {
-        PYBIND11_OVERRIDE_PURE(
+        PYBIND11_OVERRIDE(
             std::shared_ptr<ComponentDefinition>,
             ComponentDefinition,
             cloneViaPythonImpl);
+    }
+
+    void setAuxData(const std::any &data) override {
+        py::gil_scoped_acquire gil;
+        ComponentDefinition::setAuxData(data);
     }
 };
 

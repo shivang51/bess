@@ -75,7 +75,7 @@ namespace Bess::SimEngine {
         MAKE_GETTER_SETTER(std::string, GroupName, m_groupName)
         MAKE_GETTER_SETTER(ComponentBehaviorType, BehaviorType, m_behaviorType)
         MAKE_GETTER_SETTER(SimulationFunction, SimulationFunction, m_simulationFunction)
-        MAKE_GETTER_SETTER(std::any, AuxData, m_auxData)
+        MAKE_GETTER(std::any, AuxData, m_auxData)
         MAKE_GETTER_SETTER(std::vector<std::string>,
                            OutputExpressions, m_outputExpressions)
         MAKE_GETTER_SETTER(CompDefinitionOwnership, Ownership, m_ownership)
@@ -116,6 +116,12 @@ namespace Bess::SimEngine {
 
         void computeHash();
 
+        /**
+         * This function will compute the output expressions if needed.
+         * i.e. when operator info is set and expressions are based on it.
+         **/
+        void computeExpressionsIfNeeded();
+
         // callbacks
       public:
         /**
@@ -155,12 +161,9 @@ namespace Bess::SimEngine {
         virtual void onStateChange(const ComponentState &oldState,
                                    const ComponentState &newState) {}
 
-        virtual std::shared_ptr<ComponentDefinition> clone() const {
-            if (m_ownership == CompDefinitionOwnership::NativeCpp)
-                return cloneViaCppImpl();
-            else
-                return cloneViaPythonImpl();
-        }
+        virtual std::shared_ptr<ComponentDefinition> clone() const;
+
+        virtual void setAuxData(const std::any &data);
 
         friend bool operator==(ComponentDefinition &a, ComponentDefinition &b) noexcept {
             return a.getHash() == b.getHash();
@@ -172,13 +175,9 @@ namespace Bess::SimEngine {
         }
 
       protected:
-        virtual std::shared_ptr<ComponentDefinition> cloneViaCppImpl() const {
-            return std::make_shared<ComponentDefinition>(*this);
-        }
+        virtual std::shared_ptr<ComponentDefinition> cloneViaCppImpl() const;
 
-        virtual std::shared_ptr<ComponentDefinition> cloneViaPythonImpl() const {
-            throw std::runtime_error("ComponentDefinition::cloneViaPythonImpl not implemented");
-        }
+        virtual std::shared_ptr<ComponentDefinition> cloneViaPythonImpl() const;
 
       protected:
         bool m_shouldAutoReschedule = false;

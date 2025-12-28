@@ -95,4 +95,59 @@ namespace Bess::SimEngine {
         }
         return getSimDelay();
     }
+
+    void ComponentDefinition::computeExpressionsIfNeeded() {
+
+        // opeterator '0' means no operation
+        // if no operation is defined, no expressions to compute
+        if (m_opInfo.op == '0') {
+            return;
+        }
+
+        m_outputExpressions.clear();
+
+        if (m_inputSlotsInfo.count <= 0) {
+            BESS_SE_WARN("[SimulationEngine][ComponentDefinition] Input count not provided for expression(s) generation");
+            return;
+        }
+
+        if (m_inputSlotsInfo.count != 1 && m_outputSlotsInfo.count == 1) {
+            std::string expr = m_opInfo.shouldNegateOutput ? "!(0" : "0";
+            for (size_t i = 1; i < m_inputSlotsInfo.count; i++) {
+                expr += m_opInfo.op + std::to_string(i);
+            }
+            if (m_opInfo.shouldNegateOutput)
+                expr += ")";
+            m_outputExpressions = {expr};
+        } else if (m_inputSlotsInfo.count == m_outputSlotsInfo.count) {
+            m_outputExpressions.reserve(m_inputSlotsInfo.count);
+            for (size_t i = 0; i < m_inputSlotsInfo.count; i++) {
+                m_outputExpressions.emplace_back(std::format("{}{}", m_opInfo.op, i));
+            }
+        } else {
+            BESS_SE_ERROR("Invalid IO config for expression generation");
+            assert(false);
+        }
+
+        this->setAuxData(m_outputExpressions);
+    }
+
+    void ComponentDefinition::setAuxData(const std::any &data) {
+        m_auxData = data;
+    }
+
+    std::shared_ptr<ComponentDefinition> ComponentDefinition::cloneViaCppImpl() const {
+        return std::make_shared<ComponentDefinition>(*this);
+    }
+
+    std::shared_ptr<ComponentDefinition> ComponentDefinition::cloneViaPythonImpl() const {
+        throw std::runtime_error("ComponentDefinition::cloneViaPythonImpl not implemented");
+    }
+
+    std::shared_ptr<ComponentDefinition> ComponentDefinition::clone() const {
+        if (m_ownership == CompDefinitionOwnership::NativeCpp)
+            return cloneViaCppImpl();
+        else
+            return cloneViaPythonImpl();
+    }
 } // namespace Bess::SimEngine

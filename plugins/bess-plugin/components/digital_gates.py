@@ -1,7 +1,9 @@
+import datetime
 from bessplug.api.common.math import Vec2
-from bessplug.api.sim_engine import ComponentDefinition
+from bessplug.api.sim_engine import ComponentDefinition, SlotsGroupInfo, OperatorInfo
 from bessplug.api.renderer.path import Path
 import math
+import datetime
 
 from bessplug.plugin import SchematicDiagram
 
@@ -224,19 +226,27 @@ digital_gates: list[ComponentDefinition] = []
 schematic_symbols: dict[int, SchematicDiagram] = {}
 
 for gate_key, gate_data in _gates.items():
+    input_slots_info: SlotsGroupInfo = SlotsGroupInfo()
+    input_slots_info.count = len(gate_data["input_pins"])
+    input_slots_info.is_resizeable = True
+
+    output_slots_info: SlotsGroupInfo = SlotsGroupInfo()
+    output_slots_info.count = len(gate_data["output_pins"])
+
+    opInfo = OperatorInfo()
+    opInfo.operator_symbol = gate_data["op"]
+    opInfo.should_negate_output = gate_data.get("negate_output", False)
+
     def_gate = ComponentDefinition.from_operator(
         name=gate_data["name"],
-        category="Digital Gates",
-        input_count=len(gate_data["input_pins"]),
-        output_count=len(gate_data["output_pins"]),
-        delay_ns=1,
-        op=gate_data["op"],
+        groupName="Digital Gates",
+        inputs=input_slots_info,
+        outputs=output_slots_info,
+        sim_delay=datetime.timedelta(microseconds=0.001),
+        op_info=opInfo,
     )
     def_gate.negate = gate_data.get("negate_output", False)
     digital_gates.append(def_gate)
-
-    if not gate_key in ["NOT"]:
-        def_gate.set_alt_input_counts([3, 4, 5])
 
     if gate_key in _paths:
         schematic_symbols[def_gate.get_hash()] = _paths[gate_key]

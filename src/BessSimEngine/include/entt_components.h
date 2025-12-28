@@ -15,6 +15,7 @@ namespace Bess::SimEngine {
         DigitalComponent(const DigitalComponent &) = default;
         DigitalComponent(const std::shared_ptr<ComponentDefinition> &def) {
             definition = def->clone();
+            definition->computeExpressionsIfNeeded();
             state.inputStates.resize(definition->getInputSlotsInfo().count,
                                      {LogicState::low, SimTime(0)});
             state.outputStates.resize(definition->getOutputSlotsInfo().count,
@@ -36,6 +37,7 @@ namespace Bess::SimEngine {
             state.inputStates.emplace_back();
             state.inputConnected.emplace_back(false);
             inputConnections.emplace_back();
+            definition->computeExpressionsIfNeeded();
             definition->computeHash();
             return definition->getInputSlotsInfo().count;
         }
@@ -50,6 +52,7 @@ namespace Bess::SimEngine {
             state.outputStates.emplace_back();
             state.outputConnected.emplace_back(false);
             outputConnections.emplace_back();
+            definition->computeExpressionsIfNeeded();
             definition->computeHash();
             return definition->getOutputSlotsInfo().count;
         }

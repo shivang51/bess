@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable, Optional, Union
+from typing import Any, Callable, Optional, Union, override
 import json
 import datetime
 from bessplug.api.sim_engine.enums import ComponentBehaviorType
@@ -12,8 +12,6 @@ from bessplug.bindings._bindings.sim_engine import (
 
 from .sim_engine import (
     expr_sim_function,
-    PinState,
-    ComponentState,
 )
 
 
@@ -33,7 +31,6 @@ class ComponentDefinition(NativeComponentDefinition):
 
     def cloneViaPythonImpl(self) -> ComponentDefinition:
         """Create a deep copy of this ComponentDefinition via Python implementation."""
-        print("Cloning ComponentDefinition via Python implementation...")
         clone = ComponentDefinition()
         clone.name = self.name
         clone.group_name = self.group_name
@@ -54,15 +51,20 @@ class ComponentDefinition(NativeComponentDefinition):
     @staticmethod
     def from_operator(
         name: str,
-        category: str,
-        input_count: int,
-        output_count: int,
-        delay_ns: int,
-        op: str,
+        groupName: str,
+        inputs: SlotsGroupInfo,
+        outputs: SlotsGroupInfo,
+        sim_delay: datetime.timedelta,
+        op_info: OperatorInfo,
     ) -> "ComponentDefinition":
-        simFn = expr_sim_function
         defi = ComponentDefinition()
-        defi.set_simulation_function(simFn)
+        defi.set_simulation_function(expr_sim_function)
+        defi.name = name
+        defi.group_name = groupName
+        defi.sim_delay = sim_delay
+        defi.input_slots_info = inputs._native
+        defi.output_slots_info = outputs._native
+        defi.op_info = op_info._native
         return defi
 
     @staticmethod
@@ -79,8 +81,8 @@ class ComponentDefinition(NativeComponentDefinition):
         defi.name = name
         defi.group_name = groupName
         defi.sim_delay = sim_delay
-        defi.input_slots_info = inputs
-        defi.output_slots_info = outputs
+        defi.input_slots_info = inputs._native
+        defi.output_slots_info = outputs._native
         defi.expressions = expressions
         return defi
 
