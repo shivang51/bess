@@ -40,6 +40,8 @@ namespace Bess::Canvas {
 
         void setScaleDirty();
 
+        std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
+
       protected:
         void resetSlotPositions(SceneState &state);
 

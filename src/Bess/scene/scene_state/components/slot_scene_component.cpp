@@ -142,7 +142,6 @@ namespace Bess::Canvas {
     }
 
     std::vector<UUID> SlotSceneComponent::cleanup(SceneState &state, UUID caller) {
-        BESS_TRACE("[Scene] Cleaning up slot {}", (uint64_t)m_uuid);
         for (const auto &connUuid : m_connectedConnections) {
             auto connComp = state.getComponentByUuid(connUuid);
             if (connComp) {

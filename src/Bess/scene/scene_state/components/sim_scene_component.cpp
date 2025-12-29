@@ -3,6 +3,7 @@
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "settings/viewport_theme.h"
+#include "simulation_engine.h"
 
 namespace Bess::Canvas {
     SimulationSceneComponent::SimulationSceneComponent(UUID uuid) : SceneComponent(uuid) {
@@ -193,6 +194,12 @@ namespace Bess::Canvas {
 
     void SimulationSceneComponent::setScaleDirty() {
         m_isScaleDirty = true;
+    }
+
+    std::vector<UUID> SimulationSceneComponent::cleanup(SceneState &state, UUID caller) {
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+        simEngine.deleteComponent(m_simEngineId);
+        return SceneComponent::cleanup(state, caller);
     }
 } // namespace Bess::Canvas
 

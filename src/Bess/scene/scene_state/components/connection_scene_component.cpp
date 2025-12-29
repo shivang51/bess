@@ -1,5 +1,4 @@
 #include "scene/scene_state/components/connection_scene_component.h"
-#include "common/log.h"
 #include "fwd.hpp"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/slot_scene_component.h"
@@ -198,11 +197,12 @@ namespace Bess::Canvas {
         auto slotCompA = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
         auto slotCompB = state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
 
-        BESS_ASSERT(slotCompA && slotCompB,
-                    "Connection's slots are invalid during cleanup");
-
-        // Removing connection from simulation engine
-        if (slotCompA && slotCompB) {
+        // clean the connection from simulation engine,
+        // if only connection between the slots is being removed
+        // in that case caller is null
+        // if connection is being removed as part of slot/component removal,
+        // the slot/component cleanup will handle removing connections from sim engine
+        if (caller == UUID::null) {
             auto &simEngine = SimEngine::SimulationEngine::instance();
             const auto &simCompA = state.getComponentByUuid<SimulationSceneComponent>(
                 slotCompA->getParentComponent());
