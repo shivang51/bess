@@ -380,8 +380,6 @@ namespace Bess::Canvas {
         }
 
         setLastCreatedComp({.componentDefinition = def, .set = true});
-
-        EventSystem::EventDispatcher::instance().dispatch(Events::ComponentCreatedEvent{uuid, true});
         return uuid;
     }
 
@@ -999,6 +997,8 @@ namespace Bess::Canvas {
             m_state.addComponent<ConnectionSceneComponent>(conn);
 
             conn->setStartEndSlots(startSlot->getUuid(), endSlot->getUuid());
+            startSlot->addConnection(conn->getUuid());
+            endSlot->addConnection(conn->getUuid());
 
             BESS_INFO("[Scene] Created connection between slots {} and {}",
                       (uint64_t)startSlot->getUuid(),

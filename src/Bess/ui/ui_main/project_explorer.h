@@ -23,8 +23,8 @@ namespace Bess::UI {
         static void groupOnNets();
 
       private:
-        static void onEntityCreated(const Bess::Events::ComponentCreatedEvent &e);
-        static void onEntityDestroyed(const Bess::Events::EntityDestroyedEvent &e);
+        static void onEntityCreated(const Bess::Events::ComponentAddedEvent &e);
+        static void onEntityDestroyed(const Bess::Events::ComponentRemovedEvent &e);
 
         static std::pair<bool, bool> drawLeafNode(int key, uint64_t nodeId,
                                                   const char *label,

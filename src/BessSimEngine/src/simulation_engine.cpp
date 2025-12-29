@@ -416,10 +416,8 @@ namespace Bess::SimEngine {
     void SimulationEngine::deleteConnection(const UUID &compA, SlotType pinAType, int idxA,
                                             const UUID &compB, SlotType pinBType, int idxB) {
 
-        if (!m_simEngineState.isComponentValid(compA) ||
-            !m_simEngineState.isComponentValid(compB))
-            return;
-
+        assert(m_simEngineState.isComponentValid(compA) ||
+               m_simEngineState.isComponentValid(compB));
         std::lock_guard lk(m_registryMutex);
         const auto compARef = m_simEngineState.getDigitalComponent(compA);
         const auto compBRef = m_simEngineState.getDigitalComponent(compB);

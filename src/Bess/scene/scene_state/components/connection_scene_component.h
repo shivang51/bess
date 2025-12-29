@@ -12,9 +12,6 @@ namespace Bess::Canvas {
     class ConnectionSceneComponent : public SceneComponent,
                                      public DragBehaviour<ConnectionSceneComponent> {
       public:
-        static std::string genSlotsKey(const SceneState &state, const UUID &slotA, const UUID &slotB);
-        static std::pair<UUID, UUID> parseSlotsKey(const std::string &key);
-
         ConnectionSceneComponent() = default;
         ConnectionSceneComponent(const ConnectionSceneComponent &other) = default;
         ConnectionSceneComponent(UUID uuid);
@@ -43,27 +40,18 @@ namespace Bess::Canvas {
 
         void reconsturctSegments(const SceneState &state);
 
-        std::string getSlotsKey() const;
+        std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
 
       private:
         void onFirstDraw(SceneState &sceneState,
                          std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                          std::shared_ptr<PathRenderer> pathRenderer) override;
 
-        void calculateKey(SceneState &state);
-
         UUID m_startSlot = UUID::null;
         UUID m_endSlot = UUID::null;
         std::vector<ConnSegment> m_segments;
         int m_draggedSegIdx = -1;
         int m_hoveredSegIdx = -1;
-
-        // String of <inputSlotUUID>-<outputSlotUUID>
-        // Depends on which slot is start and which is end
-        // To store the which slots are connected with which connection
-        // Will be used by scene state in a unordered_map<std::string, UUID>
-        std::string m_slotsKey;
-        bool m_isKeyDirty = true;
     };
 } // namespace Bess::Canvas
 

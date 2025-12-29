@@ -1,5 +1,6 @@
 #pragma once
 #include "bess_uuid.h"
+#include "scene/scene_state/components/types.h"
 #include <cstdint>
 #include <glm.hpp>
 
@@ -25,13 +26,14 @@ namespace Bess::Events {
         button8 = 7
     };
 
-    struct ComponentCreatedEvent {
+    struct ComponentAddedEvent {
         UUID uuid;
-        bool isSimEntity;
+        Canvas::SceneComponentType type;
     };
 
-    struct EntityDestroyedEvent {
+    struct ComponentRemovedEvent {
         UUID uuid;
+        Canvas::SceneComponentType type;
     };
 
     struct EntityReparentedEvent {

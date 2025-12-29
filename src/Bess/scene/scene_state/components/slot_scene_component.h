@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_uuid.h"
 #include "events/scene_events.h"
 #include "scene/renderer/material_renderer.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -34,16 +35,20 @@ namespace Bess::Canvas {
         REG_SCENE_COMP(SceneComponentType::slot)
 
         MAKE_GETTER_SETTER(SlotType, SlotType, m_slotType)
-        MAKE_GETTER_SETTER(UUID, SimEngineId, m_simEngineId)
         MAKE_GETTER_SETTER(int, Index, m_index)
+
+        void addConnection(const UUID &connectionId);
+        void removeConnection(const UUID &connectionId);
 
         SimEngine::SlotState getSlotState(const SceneState &state) const;
         SimEngine::SlotState getSlotState(const SceneState *state) const;
         bool isSlotConnected(const SceneState &state) const;
 
+        std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
+
       private:
         SlotType m_slotType = SlotType::none;
-        UUID m_simEngineId = UUID::null;
+        std::vector<UUID> m_connectedConnections;
         int m_index = -1;
     };
 

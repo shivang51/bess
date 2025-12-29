@@ -84,6 +84,16 @@ namespace Bess::Canvas {
 
         return parentComp->getAbsolutePosition(state) + m_transform.position;
     }
+
+    std::vector<UUID> SceneComponent::cleanup(SceneState &state, UUID caller) {
+        for (const auto &childUuid : m_childComponents) {
+            auto childComp = state.getComponentByUuid(childUuid);
+            if (childComp) {
+                state.removeComponent(childUuid, m_uuid);
+            }
+        }
+        return m_childComponents;
+    }
 } // namespace Bess::Canvas
 
 namespace Bess::JsonConvert {

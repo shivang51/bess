@@ -1,13 +1,19 @@
 #pragma once
 
 #include "glm.hpp"
+#include <cstdint>
 
 namespace Bess::Canvas {
+
+    enum class SceneComponentTypeFlag : uint8_t {
+        showInProjectExplorer = 1 << 7,
+    };
+
     enum class SceneComponentType : uint8_t {
-        simulation,
-        slot,
-        nonSimulation,
-        connection,
+        simulation = 0 | (uint8_t)SceneComponentTypeFlag::showInProjectExplorer,
+        slot = 1,
+        nonSimulation = 2 | (uint8_t)SceneComponentTypeFlag::showInProjectExplorer,
+        connection = 3,
     };
 
     class Transform {

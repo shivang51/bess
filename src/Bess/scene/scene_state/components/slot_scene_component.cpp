@@ -140,6 +140,25 @@ namespace Bess::Canvas {
                    : compState.outputConnected[m_index];
     }
 
+    std::vector<UUID> SlotSceneComponent::cleanup(SceneState &state, UUID caller) {
+        BESS_TRACE("[Scene] Cleaning up slot {}", (uint64_t)m_uuid);
+        for (const auto &connUuid : m_connectedConnections) {
+            auto connComp = state.getComponentByUuid(connUuid);
+            if (connComp) {
+                state.removeComponent(connUuid, m_uuid);
+            }
+        }
+        return m_connectedConnections;
+    }
+
+    void SlotSceneComponent::addConnection(const UUID &connectionId) {
+        m_connectedConnections.emplace_back(connectionId);
+    }
+
+    void SlotSceneComponent::removeConnection(const UUID &connectionId) {
+        m_connectedConnections.erase(std::ranges::remove(m_connectedConnections, connectionId).begin(),
+                                     m_connectedConnections.end());
+    }
 } // namespace Bess::Canvas
 
 namespace Bess::JsonConvert {
@@ -147,7 +166,6 @@ namespace Bess::JsonConvert {
         toJsonValue(static_cast<const Bess::Canvas::SceneComponent &>(component), j);
 
         j["slotType"] = static_cast<uint8_t>(component.getSlotType());
-        j["simEngineId"] = static_cast<uint64_t>(component.getSimEngineId());
         j["index"] = component.getIndex();
     }
 
@@ -156,10 +174,6 @@ namespace Bess::JsonConvert {
 
         if (j.isMember("slotType")) {
             component.setSlotType(static_cast<Bess::Canvas::SlotType>(j["slotType"].asUInt()));
-        }
-
-        if (j.isMember("simEngineId")) {
-            component.setSimEngineId(UUID(j["simEngineId"].asUInt64()));
         }
 
         if (j.isMember("index")) {

@@ -149,7 +149,8 @@ namespace Bess::SimEngine::Commands {
     bool DelConnectionCommand::execute() {
         auto &engine = SimulationEngine::instance();
         for (auto &data : m_delData) {
-            engine.deleteConnection(data.src, data.srcType, data.srcPin, data.dst, data.dstType, data.dstPin);
+            engine.deleteConnection(data.src, data.srcType, data.srcPin,
+                                    data.dst, data.dstType, data.dstPin);
         }
         return true;
     }

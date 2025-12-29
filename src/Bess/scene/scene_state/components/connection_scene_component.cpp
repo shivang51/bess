@@ -1,8 +1,10 @@
 #include "scene/scene_state/components/connection_scene_component.h"
+#include "common/log.h"
 #include "fwd.hpp"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/slot_scene_component.h"
 #include "settings/viewport_theme.h"
+#include "simulation_engine.h"
 
 namespace Bess::Canvas {
     ConnectionSceneComponent::ConnectionSceneComponent(UUID uuid)
@@ -21,10 +23,6 @@ namespace Bess::Canvas {
 
         if (m_isFirstDraw) {
             onFirstDraw(state, materialRenderer, pathRenderer);
-        }
-
-        if (m_isKeyDirty) {
-            calculateKey(state);
         }
 
         auto startSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
@@ -148,7 +146,6 @@ namespace Bess::Canvas {
     void ConnectionSceneComponent::setStartEndSlots(const UUID &startSlot, const UUID &endSlot) {
         m_startSlot = startSlot;
         m_endSlot = endSlot;
-        m_isKeyDirty = true;
     }
 
     void ConnectionSceneComponent::reconsturctSegments(const SceneState &state) {
@@ -197,42 +194,46 @@ namespace Bess::Canvas {
         m_hoveredSegIdx = -1;
     }
 
-    void ConnectionSceneComponent::calculateKey(SceneState &state) {
-        if (!m_slotsKey.empty()) {
-            state.removeSlotConnMapping(m_slotsKey);
+    std::vector<UUID> ConnectionSceneComponent::cleanup(SceneState &state, UUID caller) {
+        auto slotCompA = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
+        auto slotCompB = state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
+
+        BESS_ASSERT(slotCompA && slotCompB,
+                    "Connection's slots are invalid during cleanup");
+
+        // Removing connection from simulation engine
+        if (slotCompA && slotCompB) {
+            auto &simEngine = SimEngine::SimulationEngine::instance();
+            const auto &simCompA = state.getComponentByUuid<SimulationSceneComponent>(
+                slotCompA->getParentComponent());
+            const auto &simCompB = state.getComponentByUuid<SimulationSceneComponent>(
+                slotCompB->getParentComponent());
+
+            const auto pinTypeA = slotCompA->getSlotType() == SlotType::digitalInput
+                                      ? SimEngine::SlotType::digitalInput
+                                      : SimEngine::SlotType::digitalOutput;
+            const auto pinTypeB = slotCompB->getSlotType() == SlotType::digitalInput
+                                      ? SimEngine::SlotType::digitalInput
+                                      : SimEngine::SlotType::digitalOutput;
+
+            SimEngine::Commands::DelConnectionCommandData data = {simCompA->getSimEngineId(),
+                                                                  (uint32_t)slotCompA->getIndex(), pinTypeA,
+                                                                  simCompB->getSimEngineId(),
+                                                                  (uint32_t)slotCompB->getIndex(), pinTypeB};
+
+            auto &cmdMngr = simEngine.getCmdManager();
+            auto _ = cmdMngr.execute<SimEngine::Commands::DelConnectionCommand,
+                                     std::string>(std::vector{data});
         }
 
-        m_slotsKey = genSlotsKey(state, m_startSlot, m_endSlot);
-
-        state.addSlotConnMapping(m_slotsKey, m_uuid);
-
-        m_isKeyDirty = false;
-    }
-
-    std::string ConnectionSceneComponent::genSlotsKey(const SceneState &state, const UUID &slotA, const UUID &slotB) {
-        const auto startSlot = state.getComponentByUuid<SlotSceneComponent>(slotA);
-
-        if (startSlot->getSlotType() == SlotType::digitalInput) {
-            return slotA.toString() + "-" + slotB.toString();
-        } else {
-            return slotB.toString() + "-" + slotA.toString();
-        }
-    }
-
-    std::pair<UUID, UUID> ConnectionSceneComponent::parseSlotsKey(const std::string &key) {
-        auto delimiterPos = key.find('-');
-        if (delimiterPos == std::string::npos) {
-            return {UUID::null, UUID::null};
+        if (slotCompA) {
+            slotCompB->removeConnection(m_uuid);
         }
 
-        auto slotAStr = key.substr(0, delimiterPos);
-        auto slotBStr = key.substr(delimiterPos + 1);
-
-        return {UUID::fromString(slotAStr), UUID::fromString(slotBStr)};
-    }
-
-    std::string ConnectionSceneComponent::getSlotsKey() const {
-        return m_slotsKey;
+        if (slotCompB) {
+            slotCompB->removeConnection(m_uuid);
+        }
+        return {};
     }
 } // namespace Bess::Canvas
 

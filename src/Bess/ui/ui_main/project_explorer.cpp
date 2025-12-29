@@ -9,6 +9,7 @@
 #include "scene/components/components.h"
 #include "scene/scene.h"
 #include "scene/scene_state/components/sim_scene_component.h"
+#include "scene/scene_state/components/types.h"
 #include "ui/ui_main/project_explorer_state.h"
 #include "ui/widgets/m_widgets.h"
 #include <cstdint>
@@ -36,11 +37,15 @@ namespace Bess::UI {
     }
 
     void ProjectExplorer::init() {
-        EventSystem::EventDispatcher::instance().sink<Bess::Events::ComponentCreatedEvent>().connect<&ProjectExplorer::onEntityCreated>();
-        EventSystem::EventDispatcher::instance().sink<Bess::Events::EntityDestroyedEvent>().connect<&ProjectExplorer::onEntityDestroyed>();
+        EventSystem::EventDispatcher::instance().sink<Bess::Events::ComponentAddedEvent>().connect<&ProjectExplorer::onEntityCreated>();
+        EventSystem::EventDispatcher::instance().sink<Bess::Events::ComponentRemovedEvent>().connect<&ProjectExplorer::onEntityDestroyed>();
     }
 
-    void ProjectExplorer::onEntityCreated(const Bess::Events::ComponentCreatedEvent &e) {
+    void ProjectExplorer::onEntityCreated(const Bess::Events::ComponentAddedEvent &e) {
+        if (!((uint8_t)e.type & (uint8_t)Canvas::SceneComponentTypeFlag::showInProjectExplorer)) {
+            return;
+        }
+
         auto scene = Bess::Canvas::Scene::instance();
         const auto &sceneState = scene->getState();
         const auto &comp = sceneState.getComponentByUuid(e.uuid);
@@ -54,7 +59,11 @@ namespace Bess::UI {
         state.addNode(node);
     }
 
-    void ProjectExplorer::onEntityDestroyed(const Bess::Events::EntityDestroyedEvent &e) {
+    void ProjectExplorer::onEntityDestroyed(const Bess::Events::ComponentRemovedEvent &e) {
+        if (!((uint8_t)e.type & (uint8_t)Canvas::SceneComponentTypeFlag::showInProjectExplorer)) {
+            return;
+        }
+
         auto node = state.getNodeOfSceneEntt(e.uuid);
         if (node) {
             state.removeNode(node);

@@ -14,7 +14,6 @@ namespace Bess::Canvas {
         m_rootComponents.clear();
         m_freeRuntimeIds.clear();
         m_selectedComponents.clear();
-        m_slotsConnectionMap.clear();
         m_simEngineIdToSceneCompMap.clear();
     }
 
@@ -123,7 +122,8 @@ namespace Bess::Canvas {
         m_runtimeIdMap[runtimeId] = uuid;
     }
 
-    std::shared_ptr<SceneComponent> SceneState::getComponentByPickingId(const PickingId &id) const {
+    std::shared_ptr<SceneComponent> SceneState::getComponentByPickingId(
+        const PickingId &id) const {
         if (!m_runtimeIdMap.contains(id.runtimeId)) {
             return nullptr;
         }
@@ -133,23 +133,22 @@ namespace Bess::Canvas {
     }
 
     std::vector<UUID> SceneState::removeComponent(const UUID &uuid, const UUID &callerId) {
+        BESS_INFO("[SceneState] Removing component {}", (uint64_t)uuid);
         auto component = getComponentByUuid(uuid);
         BESS_ASSERT(component, "Component was not found");
 
         /// For now, Preventing removing child components directly
         /// If parent is not the caller, then do not remove
         /// TODO(Shivang): Add lifetime ownership management later
-        if (component->getParentComponent() != callerId) {
+        if (component->getType() != SceneComponentType::connection &&
+            component->getParentComponent() != callerId) {
+            BESS_WARN("[SceneState] Attempt to remove child component {} directly prevented",
+                      (uint64_t)uuid);
             return {};
         }
 
-        std::vector<UUID> removedUuids = {uuid};
-
-        for (const auto &childUuid : component->getChildComponents()) {
-            auto childComp = getComponentByUuid(childUuid);
-            auto ids = removeComponent(childUuid, uuid);
-            removedUuids.insert(removedUuids.end(), ids.begin(), ids.end());
-        }
+        std::vector<UUID> removedUuids = component->cleanup(*this, callerId);
+        removedUuids.push_back(uuid);
 
         const uint32_t runtimeId = component->getRuntimeId();
         if (runtimeId != PickingId::invalidRuntimeId) {
@@ -167,35 +166,11 @@ namespace Bess::Canvas {
         }
 
         m_componentsMap.erase(uuid);
+        EventSystem::EventDispatcher::instance().dispatch(
+            Events::ComponentRemovedEvent{uuid,
+                                          component->getType()});
 
         return removedUuids;
-    }
-
-    void SceneState::addSlotConnMapping(const std::string &slotKey, const UUID &connId) {
-        m_slotsConnectionMap[slotKey] = connId;
-    }
-
-    void SceneState::removeSlotConnMapping(const std::string &slotKey) {
-        m_slotsConnectionMap.erase(slotKey);
-    }
-
-    UUID SceneState::getConnBetweenSlots(const UUID &slotA, const UUID &slotB) const {
-        const auto slotAComp = getComponentByUuid<SlotSceneComponent>(slotA);
-        const auto slotBComp = getComponentByUuid<SlotSceneComponent>(slotB);
-
-        if (slotAComp->getSlotType() == SlotType::digitalInput) {
-            const std::string key1 = slotA.toString() + "-" + slotB.toString();
-            if (m_slotsConnectionMap.contains(key1)) {
-                return m_slotsConnectionMap.at(key1);
-            }
-        } else {
-            const std::string key2 = slotB.toString() + "-" + slotA.toString();
-            if (m_slotsConnectionMap.contains(key2)) {
-                return m_slotsConnectionMap.at(key2);
-            }
-        }
-
-        return UUID::null;
     }
 } // namespace Bess::Canvas
 

@@ -84,6 +84,11 @@ namespace Bess::Canvas {
 
         glm::vec3 getAbsolutePosition(const SceneState &state) const;
 
+        // Cleanup function
+        // Default implementation removes all child components recursively
+        // This must be called in the overrides as well
+        virtual std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null);
+
       protected:
         virtual void onTransformChanged() {}
         virtual void onStyleChanged() {}

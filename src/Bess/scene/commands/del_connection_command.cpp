@@ -24,34 +24,34 @@ namespace Bess::Canvas::Commands {
 
             int i = 0;
             for (const auto uuid : m_uuids) {
-                const auto &connComp = sceneState.getComponentByUuid<ConnectionSceneComponent>(uuid);
-                const auto &slots = ConnectionSceneComponent::parseSlotsKey(connComp->getSlotsKey());
-
-                const auto &slotCompA = sceneState.getComponentByUuid<SlotSceneComponent>(slots.first);
-                const auto &slotCompB = sceneState.getComponentByUuid<SlotSceneComponent>(slots.second);
-
-                const auto &simCompA = sceneState.getComponentByUuid<SimulationSceneComponent>(
-                    slotCompA->getParentComponent());
-                const auto &simCompB = sceneState.getComponentByUuid<SimulationSceneComponent>(
-                    slotCompB->getParentComponent());
-
-                const auto pinTypeA = slotCompA->getSlotType() == SlotType::digitalInput
-                                          ? SimEngine::SlotType::digitalInput
-                                          : SimEngine::SlotType::digitalOutput;
-                const auto pinTypeB = slotCompB->getSlotType() == SlotType::digitalInput
-                                          ? SimEngine::SlotType::digitalInput
-                                          : SimEngine::SlotType::digitalOutput;
-
-                SimEngine::Commands::DelConnectionCommandData data = {simCompA->getSimEngineId(),
-                                                                      (uint32_t)slotCompA->getIndex(), pinTypeA,
-                                                                      simCompB->getSimEngineId(),
-                                                                      (uint32_t)slotCompB->getIndex(), pinTypeB};
-                simCmdData.emplace_back(data);
-
-                auto &json = m_jsons[i++];
-                json.clear();
-                JsonConvert::toJsonValue(*connComp, json);
-                sceneState.removeComponent(uuid);
+                // const auto &connComp = sceneState.getComponentByUuid<ConnectionSceneComponent>(uuid);
+                // const auto &slots = ConnectionSceneComponent::parseSlotsKey(connComp->getSlotsKey());
+                //
+                // const auto &slotCompA = sceneState.getComponentByUuid<SlotSceneComponent>(slots.first);
+                // const auto &slotCompB = sceneState.getComponentByUuid<SlotSceneComponent>(slots.second);
+                //
+                // const auto &simCompA = sceneState.getComponentByUuid<SimulationSceneComponent>(
+                //     slotCompA->getParentComponent());
+                // const auto &simCompB = sceneState.getComponentByUuid<SimulationSceneComponent>(
+                //     slotCompB->getParentComponent());
+                //
+                // const auto pinTypeA = slotCompA->getSlotType() == SlotType::digitalInput
+                //                           ? SimEngine::SlotType::digitalInput
+                //                           : SimEngine::SlotType::digitalOutput;
+                // const auto pinTypeB = slotCompB->getSlotType() == SlotType::digitalInput
+                //                           ? SimEngine::SlotType::digitalInput
+                //                           : SimEngine::SlotType::digitalOutput;
+                //
+                // SimEngine::Commands::DelConnectionCommandData data = {simCompA->getSimEngineId(),
+                //                                                       (uint32_t)slotCompA->getIndex(), pinTypeA,
+                //                                                       simCompB->getSimEngineId(),
+                //                                                       (uint32_t)slotCompB->getIndex(), pinTypeB};
+                // simCmdData.emplace_back(data);
+                //
+                // auto &json = m_jsons[i++];
+                // json.clear();
+                // JsonConvert::toJsonValue(*connComp, json);
+                // sceneState.removeComponent(uuid);
             }
 
             auto _ = simCmdManager.execute<SimEngine::Commands::DelConnectionCommand, std::string>(simCmdData);
