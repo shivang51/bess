@@ -433,17 +433,6 @@ namespace Bess::Canvas {
         }
     }
 
-    // void Scene::deleteEntity(const UUID &entUuid) {
-    //     auto ent = getEntityWithUuid(entUuid);
-    //     if (m_registry.all_of<Components::SimulationComponent>(ent)) {
-    //         auto &simComp = m_registry.get<Components::SimulationComponent>(ent);
-    //         // remove from simlation engine
-    //         SimEngine::SimulationEngine::instance().deleteComponent(simComp.simEngineEntity);
-    //     }
-    //
-    //     deleteSceneEntity(entUuid);
-    // }
-
     const glm::vec2 &Scene::getSize() const {
         return m_size;
     }
@@ -591,8 +580,10 @@ namespace Bess::Canvas {
             // then we only deselect othere on mouse release,
             // so that drag can work properly
             size_t selSize = m_state.getSelectedComponents().size();
-            bool isCtrlPressed = Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
-            if (selSize > 1 && !m_isDragging && !isCtrlPressed && m_state.isComponentSelected(m_pickingId)) {
+            bool isCtrlPressed = Pages::MainPageState::getInstance()->isKeyPressed(
+                GLFW_KEY_LEFT_CONTROL);
+            if (selSize > 1 && !m_isDragging &&
+                !isCtrlPressed && m_state.isComponentSelected(m_pickingId)) {
                 m_state.clearSelectedComponents();
                 m_state.addSelectedComponent(m_pickingId);
             }

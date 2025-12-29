@@ -2,6 +2,7 @@
 #include "event_dispatcher.h"
 #include "scene/scene_state/components/sim_scene_component.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
+#include "scene/scene_state/components/types.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
 
@@ -36,7 +37,7 @@ namespace Bess::Canvas {
         const auto parentComp = state.getComponentByUuid<SimulationSceneComponent>(m_parentComponent);
         const auto &parentPos = parentComp->getTransform().position;
         const auto pos = parentPos + m_transform.position;
-        const auto pickingId = PickingId{m_runtimeId, 0};
+        const auto pickingId = PickingId{m_runtimeId, PickingId::InfoFlags::unSelectable};
 
         auto bg = ViewportTheme::colors.stateLow;
         auto border = bg;

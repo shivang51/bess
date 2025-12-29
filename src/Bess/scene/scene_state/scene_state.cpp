@@ -54,6 +54,10 @@ namespace Bess::Canvas {
     }
 
     void SceneState::addSelectedComponent(const PickingId &id) {
+        if (id.info & PickingId::InfoFlags::unSelectable) {
+            return;
+        }
+
         addSelectedComponent(m_runtimeIdMap.at(id.runtimeId));
     }
 

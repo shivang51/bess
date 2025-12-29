@@ -47,6 +47,10 @@ namespace Bess::Canvas {
         uint32_t runtimeId;
         uint32_t info;
 
+        struct InfoFlags {
+            static constexpr uint32_t unSelectable = 1 << 31;
+        };
+
         static constexpr uint32_t invalidRuntimeId = std::numeric_limits<uint32_t>::max();
 
         static constexpr PickingId invalid() noexcept {
