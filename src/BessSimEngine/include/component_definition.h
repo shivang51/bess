@@ -111,8 +111,9 @@ namespace Bess::SimEngine {
             m_traits.put<T>(std::make_shared<T>(std::forward<T>(T())));
         }
 
-        bool hasTrait(const std::shared_ptr<Trait> &trait) const {
-            auto itr = m_traits.find<Trait>();
+        template <typename T>
+        bool hasTrait() const {
+            auto itr = m_traits.find<T>();
             return itr != m_traits.end();
         }
 

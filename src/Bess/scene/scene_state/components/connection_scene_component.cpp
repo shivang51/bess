@@ -27,11 +27,14 @@ namespace Bess::Canvas {
         auto startSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
         auto endSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
 
+        if (!startSlotComp || !endSlotComp)
+            return;
+
         glm::vec4 color;
 
         if (m_isSelected) {
             color = ViewportTheme::colors.selectedComp;
-        } else {
+        } else if (!m_useCustomColor) {
             const auto &startSlotState = startSlotComp->getSlotState(state);
             const auto &endSlotState = endSlotComp->getSlotState(state);
 
@@ -43,10 +46,9 @@ namespace Bess::Canvas {
             } else {
                 color = ViewportTheme::colors.stateLow;
             }
+        } else {
+            color = m_style.color;
         }
-
-        if (!startSlotComp || !endSlotComp)
-            return;
 
         const auto startPos = startSlotComp->getAbsolutePosition(state);
         const auto endPos = endSlotComp->getAbsolutePosition(state);

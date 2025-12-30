@@ -2,28 +2,25 @@
 #include "common/helpers.h"
 #include "gtc/type_ptr.hpp"
 #include "imgui_internal.h"
+#include "init_components.h"
 #include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
 #include "scene/scene.h"
 #include "scene/scene_pch.h"
+#include "scene/scene_state/components/connection_scene_component.h"
+#include "scene/scene_state/components/sim_scene_component.h"
+#include "scene/scene_state/components/types.h"
+#include "simulation_engine.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/widgets/m_widgets.h"
 #include <imgui.h>
+
+#include <algorithm>
 
 using namespace Bess::Canvas::Components;
 
 namespace Bess::UI {
     bool PropertiesPanel::isShown = true;
-
-    void drawTagComponent(TagComponent &comp) {
-        std::string icon;
-        if (comp.isSimComponent) {
-            icon = Common::Helpers::getComponentIcon(comp.type.simCompHash);
-        } else {
-            icon = Common::Helpers::getComponentIcon(comp.type.nsCompType);
-        }
-        Widgets::TextBox("Name", comp.name);
-    }
 
     bool MyCollapsingHeader(const char *label) {
         const ImGuiContext &g = *ImGui::GetCurrentContext();
@@ -60,40 +57,21 @@ namespace Bess::UI {
         return opened;
     }
 
-    void drawSimulationOutputComponent(SimulationOutputComponent &comp) {
-        ImGui::Spacing();
-        Widgets::CheckboxWithLabel("Record Output", &comp.recordOutput);
-    }
-
-    void drawSimulationInputComponent(SimulationInputComponent &comp, const UUID &uuid) {
+    void drawClockTrait(const std::shared_ptr<SimEngine::ClockTrait> &trait, const UUID &uuid) {
         if (MyCollapsingHeader("Input Behaviour")) {
-            if (Widgets::CheckboxWithLabel("Clocked", &comp.clockBhaviour)) {
-                comp.updateClock(uuid);
+            if (ImGui::SliderFloat("Frequency", &trait->frequency, 0.1f, 3.0f, "%.1f Hz", ImGuiSliderFlags_AlwaysClamp)) {
+                const float stepSize = 0.1f;
+                trait->frequency = roundf(trait->frequency / stepSize) * stepSize; // Force step increments
             }
-            if (comp.clockBhaviour) {
 
-                if (ImGui::SliderFloat("Frequency", &comp.frequency, 0.1f, 3.0f, "%.1f Hz", ImGuiSliderFlags_AlwaysClamp)) {
-                    const float stepSize = 0.1f;
-                    comp.frequency = roundf(comp.frequency / stepSize) * stepSize; // Force step increments
-                    comp.updateClock(uuid);
-                }
-
-                static std::vector<std::string> frequencies = {"Hz", "kHz", "MHz"};
-                std::string currFreq = frequencies[(int)comp.frequencyUnit];
-                if (UI::Widgets::ComboBox("Unit", currFreq, frequencies)) {
-                    auto idx = std::distance(frequencies.begin(), std::find(frequencies.begin(), frequencies.end(), currFreq));
-                    comp.frequencyUnit = static_cast<SimEngine::FrequencyUnit>(idx);
-                    comp.updateClock(uuid);
-                }
+            static std::vector<std::string> frequencies = {"Hz", "kHz", "MHz"};
+            std::string currFreq = frequencies[(int)trait->frequencyUnit];
+            if (UI::Widgets::ComboBox("Unit", currFreq, frequencies)) {
+                auto idx = std::distance(frequencies.begin(), std::ranges::find(frequencies, currFreq));
+                trait->frequencyUnit = static_cast<SimEngine::FrequencyUnit>(idx);
             }
             ImGui::Unindent();
         }
-    }
-
-    void drawSpriteComponent(SpriteComponent &comp) {
-        ImGui::Indent();
-        ImGui::ColorEdit4("Color", glm::value_ptr(comp.color));
-        ImGui::Unindent();
     }
 
     void drawTextNodeComponent(TextNodeComponent &comp) {
@@ -104,52 +82,48 @@ namespace Bess::UI {
         ImGui::Unindent();
     }
 
+    void drawConnectionComponent(const std::shared_ptr<Canvas::ConnectionSceneComponent> &comp) {
+        Widgets::CheckboxWithLabel("Use Custom Color", &comp->getUseCustomColor());
+        if (comp->getUseCustomColor()) {
+            auto &style = comp->getStyle();
+            ImGui::ColorEdit4("Color", glm::value_ptr(style.color));
+        }
+    }
+
     void PropertiesPanel::draw() {
-        // if (!isShown)
-        //     return;
-        //
-        // ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
-        //
-        // auto &registry = Canvas::Scene::instance()->getEnttRegistry();
-        // const auto view = registry.view<SelectedComponent>();
-        //
-        // if (view.size() == 0) {
-        //     ImGui::Text("No Component Selected");
-        //     ImGui::End();
-        //     return;
-        // }
-        //
-        // const auto entt = view.front();
-        // if (!registry.valid(entt)) {
-        //     ImGui::End();
-        //     return;
-        // }
-        //
-        // if (registry.all_of<TagComponent>(entt)) {
-        //     drawTagComponent(registry.get<TagComponent>(entt));
-        // }
-        //
-        // if (registry.all_of<SimulationOutputComponent>(entt)) {
-        //     drawSimulationOutputComponent(registry.get<SimulationOutputComponent>(entt));
-        // }
-        //
-        // if (registry.all_of<SimulationInputComponent>(entt)) {
-        //     const auto simulationComp = registry.get<SimulationComponent>(entt);
-        //     drawSimulationInputComponent(registry.get<SimulationInputComponent>(entt), simulationComp.simEngineEntity);
-        // }
-        //
-        // if (registry.all_of<ConnectionComponent>(entt)) {
-        //     auto &connectionComponent = registry.get<ConnectionComponent>(entt);
-        //     Widgets::CheckboxWithLabel("Use Custom Color", &connectionComponent.useCustomColor);
-        //     if (connectionComponent.useCustomColor) {
-        //         drawSpriteComponent(registry.get<SpriteComponent>(entt));
-        //     }
-        // }
-        //
-        // if (registry.all_of<TextNodeComponent>(entt)) {
-        //     drawTextNodeComponent(registry.get<TextNodeComponent>(entt));
-        // }
-        //
-        // ImGui::End();
+        if (!isShown)
+            return;
+
+        ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
+        auto &sceneState = Canvas::Scene::instance()->getState();
+        if (sceneState.getSelectedComponents().empty()) {
+            ImGui::TextUnformatted("No component selected.");
+            ImGui::End();
+            return;
+        }
+
+        // for now only showing first selected component's properties
+        const UUID &compId = sceneState.getSelectedComponents().begin()->first;
+        auto comp = sceneState.getComponentByUuid(compId);
+        const auto compType = comp->getType();
+
+        if (!comp->getName().empty()) {
+            ImGui::TextWrapped("%s", comp->getName().c_str());
+        }
+
+        if (compType == Canvas::SceneComponentType::simulation) {
+            auto simComp = comp->cast<Canvas::SimulationSceneComponent>();
+            auto &simEngine = SimEngine::SimulationEngine::instance();
+            auto &def = simEngine.getComponentDefinition(simComp->getSimEngineId());
+
+            if (def->hasTrait<SimEngine::ClockTrait>()) {
+                drawClockTrait(def->getTrait<SimEngine::ClockTrait>(), compId);
+            }
+        } else if (compType == Canvas::SceneComponentType::connection) {
+            auto connComp = comp->cast<Canvas::ConnectionSceneComponent>();
+            drawConnectionComponent(connComp);
+        }
+
+        ImGui::End();
     }
 } // namespace Bess::UI

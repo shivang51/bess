@@ -35,6 +35,7 @@ namespace Bess::Canvas {
         MAKE_GETTER(UUID, StartSlot, m_startSlot)
         MAKE_GETTER(UUID, EndSlot, m_endSlot)
         MAKE_GETTER_SETTER(std::vector<ConnSegment>, Segments, m_segments)
+        MAKE_GETTER_SETTER(bool, UseCustomColor, m_useCustomColor)
 
         void setStartEndSlots(const UUID &startSlot, const UUID &endSlot);
 
@@ -52,6 +53,7 @@ namespace Bess::Canvas {
         std::vector<ConnSegment> m_segments;
         int m_draggedSegIdx = -1;
         int m_hoveredSegIdx = -1;
+        bool m_useCustomColor = false;
     };
 } // namespace Bess::Canvas
 

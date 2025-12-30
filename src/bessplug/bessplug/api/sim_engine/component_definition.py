@@ -1,8 +1,6 @@
 from __future__ import annotations
-from typing import Any, Callable, Optional, Union, override
-import json
+from typing import Callable, Optional
 import datetime
-from bessplug.api.sim_engine.enums import ComponentBehaviorType
 from bessplug.api.sim_engine.operator_info import OperatorInfo
 from bessplug.api.sim_engine.slots_group_info import SlotsGroupInfo
 
@@ -30,7 +28,6 @@ class ComponentDefinition(NativeComponentDefinition):
         self.sim_fn_base: Optional[Callable] = None
 
     def clone(self) -> ComponentDefinition:
-        print("Cloning via Python impl")
         """Create a deep copy of this ComponentDefinition via Python implementation."""
         clone = ComponentDefinition()
         clone.name = self.name

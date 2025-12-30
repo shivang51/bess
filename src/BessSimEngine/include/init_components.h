@@ -173,7 +173,7 @@ namespace Bess::SimEngine {
         ClockTrait() = default;
 
         FrequencyUnit frequencyUnit = FrequencyUnit::hz;
-        double frequency = 1.0;
+        float frequency = 1.0;
         bool high = false; // current output phase
         float dutyCycle = 0.5f;
     };
