@@ -13,7 +13,7 @@ set(External
 
 
 set(Header_Files
-    "include/entt_components.h"
+    "include/digital_component.h"
     "include/types.h"
     "include/bess_uuid.h"
     "include/logger.h"
@@ -35,6 +35,7 @@ set(Source_Files
     "src/comp_json_converters.cpp"
     "src/simulation_engine_serializer.cpp"
     "src/bess_uuid.cpp"
+    "src/digital_component.cpp"
     "src/logger.cpp"
     "src/net/net.cpp" 
 		"src/entt_registry_serializer.cpp"

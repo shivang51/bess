@@ -29,7 +29,8 @@ class ComponentDefinition(NativeComponentDefinition):
         super().__init__()
         self.sim_fn_base: Optional[Callable] = None
 
-    def cloneViaPythonImpl(self) -> ComponentDefinition:
+    def clone(self) -> ComponentDefinition:
+        print("Cloning via Python impl")
         """Create a deep copy of this ComponentDefinition via Python implementation."""
         clone = ComponentDefinition()
         clone.name = self.name

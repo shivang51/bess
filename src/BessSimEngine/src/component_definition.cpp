@@ -141,19 +141,10 @@ namespace Bess::SimEngine {
         m_auxData = data;
     }
 
-    std::shared_ptr<ComponentDefinition> ComponentDefinition::cloneViaCppImpl() const {
-        return std::make_shared<ComponentDefinition>(*this);
-    }
-
-    std::shared_ptr<ComponentDefinition> ComponentDefinition::cloneViaPythonImpl() const {
-        throw std::runtime_error("ComponentDefinition::cloneViaPythonImpl not implemented");
-    }
-
     std::shared_ptr<ComponentDefinition> ComponentDefinition::clone() const {
-        if (m_ownership == CompDefinitionOwnership::NativeCpp)
-            return cloneViaCppImpl();
-        else
-            return cloneViaPythonImpl();
+        assert(m_ownership == CompDefinitionOwnership::NativeCpp &&
+               "Cloning of Python-owned ComponentDefinitions is not supported.");
+        return std::make_shared<ComponentDefinition>(*this);
     }
 
     void ComponentDefinition::onExpressionsChange() {

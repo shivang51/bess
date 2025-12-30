@@ -8,7 +8,7 @@
 #include <vector>
 
 namespace Bess::Plugins {
-    PyGILState_STATE createPyThreadState();
+    PyGILState_STATE capturePyThreadState();
     void releasePyThreadState(PyGILState_STATE state);
     void savePyThreadState();
     void restorePyThreadState();

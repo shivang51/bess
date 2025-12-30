@@ -91,7 +91,7 @@ namespace Bess::Canvas {
         const glm::vec2 &getSize() const;
 
         UUID createSimEntity(const UUID &simEngineEntt,
-                             const std::shared_ptr<SimEngine::ComponentDefinition> &comp,
+                             const std::shared_ptr<SimEngine::ComponentDefinition> &def,
                              const glm::vec2 &pos);
         UUID createNonSimEntity(const Canvas::Components::NSComponent &comp,
                                 const glm::vec2 &pos);
@@ -116,8 +116,6 @@ namespace Bess::Canvas {
       private:
         /// to draw testing stuff
         void drawScratchContent(TFrameTime ts, const std::shared_ptr<Viewport> &viewport);
-
-        void setLastCreatedComp(LastCreatedComponent comp);
 
         void updatePickingId();
 

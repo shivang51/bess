@@ -2,7 +2,7 @@
 #include "bess_api.h"
 #include "bess_uuid.h"
 #include "commands/commands_manager.h"
-#include "entt_components.h"
+#include "digital_component.h"
 #include "net/net.h"
 #include "sim_engine_state.h"
 #include "types.h"

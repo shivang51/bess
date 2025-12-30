@@ -2,12 +2,14 @@
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#define PYBIND11_DEBUG
 
 #include "component_definition.h"
 #include "internal_types.h"
 #include "types.h"
 
 #include <iostream>
+#include <pystate.h>
 
 namespace py = pybind11;
 
@@ -16,29 +18,35 @@ using namespace Bess::SimEngine;
 static ComponentState convertResultToComponentState(const py::object &result,
                                                     const ComponentState &prev);
 
-struct PyComponentDefinition : public ComponentDefinition {
+struct PyComponentDefinition : public ComponentDefinition,
+                               public py::trampoline_self_life_support {
     using ComponentDefinition::ComponentDefinition;
 
     PyComponentDefinition() {
         m_ownership = CompDefinitionOwnership::Python;
     }
 
-    std::shared_ptr<ComponentDefinition> clone() const override {
+    ~PyComponentDefinition() override {
         py::gil_scoped_acquire gil;
-        return std::static_pointer_cast<PyComponentDefinition>(
-            ComponentDefinition::clone());
+        m_auxData.reset();
+        m_simulationFunction = nullptr;
     }
 
-    std::shared_ptr<ComponentDefinition> cloneViaPythonImpl() const override {
+    std::shared_ptr<ComponentDefinition> clone() const override {
         PYBIND11_OVERRIDE(
             std::shared_ptr<ComponentDefinition>,
             ComponentDefinition,
-            cloneViaPythonImpl);
+            clone);
     }
 
     void setAuxData(const std::any &data) override {
         py::gil_scoped_acquire gil;
         ComponentDefinition::setAuxData(data);
+    }
+
+    void onExpressionsChange() override {
+        py::gil_scoped_acquire gil;
+        ComponentDefinition::onExpressionsChange();
     }
 };
 
@@ -114,11 +122,8 @@ void bind_sim_engine_component_definition(py::module_ &m) {
 
     py::class_<ComponentDefinition,
                PyComponentDefinition,
-               std::shared_ptr<ComponentDefinition>>(m, "ComponentDefinition")
-        .def(py::init([]() {
-                 return std::make_shared<PyComponentDefinition>();
-             }),
-             "Create an empty, inert component definition.")
+               py::smart_holder>(m, "ComponentDefinition")
+        .def(py::init<>(), "Create an empty, inert component definition.")
         .def("get_hash", &ComponentDefinition::getHash)
         .def("clone", &ComponentDefinition::clone)
         .DEF_PROP_STR_GSET("name", Name)

@@ -2,7 +2,7 @@
 #include "bess_uuid.h"
 #include "component_catalog.h"
 #include "component_definition.h"
-#include "entt_components.h"
+#include "digital_component.h"
 #include "event_dispatcher.h"
 #include "events/sim_engine_events.h"
 #include "init_components.h"
@@ -79,6 +79,7 @@ namespace Bess::SimEngine {
 
         Plugins::restorePyThreadState();
         ComponentCatalog::instance().destroy();
+        m_cmdManager.clearStacks();
 
         m_destroyed = true;
         m_simEngineState.reset();
@@ -115,6 +116,7 @@ namespace Bess::SimEngine {
 
         EventSystem::EventDispatcher::instance().dispatch<Events::ComponentAddedEvent>({digiComp->id});
         BESS_SE_INFO("Added component {}", definition->getName());
+
         return digiComp->id;
     }
 
@@ -600,7 +602,7 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::run() {
-        auto state = Plugins::createPyThreadState();
+        auto state = Plugins::capturePyThreadState();
         Plugins::releasePyThreadState(state);
         BESS_SE_INFO("[SimulationEngine] Simulation loop started");
         m_currentSimTime = SimTime(0);

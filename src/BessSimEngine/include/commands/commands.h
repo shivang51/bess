@@ -3,7 +3,7 @@
 #include "bess_api.h"
 #include "bess_uuid.h"
 #include "command.h"
-#include "entt_components.h"
+#include "digital_component.h"
 #include "types.h"
 
 #include "json/config.h"

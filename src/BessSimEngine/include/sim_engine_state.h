@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bess_uuid.h"
-#include "entt_components.h"
+#include "digital_component.h"
 #include "net/net.h"
 #include <memory>
 #include <unordered_map>

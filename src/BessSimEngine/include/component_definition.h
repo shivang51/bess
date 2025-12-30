@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "../../Bess/common/log.h"
+
 namespace Bess::SimEngine {
 #define MAKE_GETTER_SETTER_WC(type, name, varName, onChange) \
     const type &get##name() const { return varName; }        \
@@ -53,14 +55,12 @@ namespace Bess::SimEngine {
     class BESS_API Trait {
     };
 
-    class BESS_API ComponentDefinition {
+    class BESS_API ComponentDefinition : public std::enable_shared_from_this<ComponentDefinition> {
       public:
         ComponentDefinition() = default;
 
         ComponentDefinition(const ComponentDefinition &) = default;
         ComponentDefinition(ComponentDefinition &&) = default;
-        ComponentDefinition &operator=(const ComponentDefinition &) = default;
-        ComponentDefinition &operator=(ComponentDefinition &&) = default;
 
         virtual ~ComponentDefinition() = default;
 
@@ -123,7 +123,7 @@ namespace Bess::SimEngine {
          * i.e. when operator info is set and expressions are based on it.
          * returns: true if expressions were computed, false otherwise;
          **/
-        bool computeExpressionsIfNeeded();
+        virtual bool computeExpressionsIfNeeded();
 
         // callbacks
       public:
@@ -178,11 +178,6 @@ namespace Bess::SimEngine {
                                const std::shared_ptr<ComponentDefinition> &b) noexcept {
             return a->getHash() == b->getHash();
         }
-
-      protected:
-        virtual std::shared_ptr<ComponentDefinition> cloneViaCppImpl() const;
-
-        virtual std::shared_ptr<ComponentDefinition> cloneViaPythonImpl() const;
 
       protected:
         bool m_shouldAutoReschedule = false;

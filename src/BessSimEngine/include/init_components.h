@@ -102,26 +102,26 @@ namespace Bess::SimEngine {
 
         auto &catalog = ComponentCatalog::instance();
 
-        ComponentDefinition flipFlop{};
-        flipFlop.setName("JK Flip Flop");
-        flipFlop.setGroupName("Flip Flop");
-        flipFlop.setOutputSlotsInfo({SlotsGroupType::input,
+        auto flipFlop = std::make_shared<ComponentDefinition>();
+        flipFlop->setName("JK Flip Flop");
+        flipFlop->setGroupName("Flip Flop");
+        flipFlop->setOutputSlotsInfo({SlotsGroupType::input,
+                                      false,
+                                      2,
+                                      {"Q", "Q'"},
+                                      {}});
+        flipFlop->setInputSlotsInfo({SlotsGroupType::output,
                                      false,
-                                     2,
-                                     {"Q", "Q'"},
-                                     {}});
-        flipFlop.setInputSlotsInfo({SlotsGroupType::output,
-                                    false,
-                                    4,
-                                    {"J", "CLK", "K", "CLR"},
-                                    {SlotCatergory::none,
-                                     SlotCatergory::clock,
-                                     SlotCatergory::none,
-                                     SlotCatergory::clear}});
-        flipFlop.setSimulationFunction(simFunc);
-        flipFlop.setSimDelay(SimDelayNanoSeconds(5));
+                                     4,
+                                     {"J", "CLK", "K", "CLR"},
+                                     {SlotCatergory::none,
+                                      SlotCatergory::clock,
+                                      SlotCatergory::none,
+                                      SlotCatergory::clear}});
+        flipFlop->setSimulationFunction(simFunc);
+        flipFlop->setSimDelay(SimDelayNanoSeconds(5));
         auto auxData = FlipFlopAuxData{1, 3, FlipFlopAuxData::FlipFlopType::JK};
-        flipFlop.setAuxData(auxData);
+        flipFlop->setAuxData(auxData);
         catalog.registerComponent(flipFlop);
 
         // auto flipFlop = ComponentDefinition("JK Flip Flop", "Flip Flop", 4, 2, simFunc, SimDelayNanoSeconds(5));
@@ -225,7 +225,7 @@ namespace Bess::SimEngine {
             clockTrait->high = newState.outputStates[0].state == LogicState::high;
         }
 
-        std::shared_ptr<ComponentDefinition> cloneViaCppImpl() const override {
+        std::shared_ptr<ComponentDefinition> clone() const override {
             return std::make_shared<ClockDefinition>(*this);
         }
     };
@@ -233,32 +233,32 @@ namespace Bess::SimEngine {
     inline void initIO() {
         auto &catalog = ComponentCatalog::instance();
 
-        ComponentDefinition inpDef{};
-        inpDef.setName("Input");
-        inpDef.setGroupName("IO");
-        inpDef.setBehaviorType(ComponentBehaviorType::input);
-        inpDef.setOutputSlotsInfo({SlotsGroupType::output, true, 1, {}, {}});
-        inpDef.setSimulationFunction([](auto &, auto ts, const auto &oldState) -> ComponentState {
+        const auto inpDef = std::make_shared<ComponentDefinition>();
+        inpDef->setName("Input");
+        inpDef->setGroupName("IO");
+        inpDef->setBehaviorType(ComponentBehaviorType::input);
+        inpDef->setOutputSlotsInfo({SlotsGroupType::output, true, 1, {}, {}});
+        inpDef->setSimulationFunction([](auto &, auto ts, const auto &oldState) -> ComponentState {
             auto newState = oldState;
 						newState.isChanged = true;
 						newState.outputStates[0].lastChangeTime = ts;
 						return newState; });
-        inpDef.setSimDelay(SimDelayNanoSeconds(0));
+        inpDef->setSimDelay(SimDelayNanoSeconds(0));
         catalog.registerComponent(inpDef);
 
-        ClockDefinition clockDef("IO");
+        const auto clockDef = std::make_shared<ClockDefinition>("IO");
         catalog.registerComponent(clockDef);
 
-        ComponentDefinition outDef{};
-        outDef.setName("Output");
-        outDef.setGroupName("IO");
-        outDef.setBehaviorType(ComponentBehaviorType::output);
-        outDef.setInputSlotsInfo({SlotsGroupType::input, true, 1, {"LSB"}, {}});
-        outDef.setSimulationFunction([](const std::vector<SlotState> &, SimTime,
-                                        const ComponentState &prevState) -> ComponentState {
+        const auto outDef = std::make_shared<ComponentDefinition>();
+        outDef->setName("Output");
+        outDef->setGroupName("IO");
+        outDef->setBehaviorType(ComponentBehaviorType::output);
+        outDef->setInputSlotsInfo({SlotsGroupType::input, true, 1, {"LSB"}, {}});
+        outDef->setSimulationFunction([](const std::vector<SlotState> &, SimTime,
+                                         const ComponentState &prevState) -> ComponentState {
 						auto newState = prevState;
 						return newState; });
-        outDef.setSimDelay(SimDelayNanoSeconds(0));
+        outDef->setSimDelay(SimDelayNanoSeconds(0));
         catalog.registerComponent(outDef);
 
         // ComponentDefinition stateMonDef = {"State Monitor", "IO", 1, 0,
@@ -393,15 +393,15 @@ namespace Bess::SimEngine {
         const std::string groupName = "Combinational Circuits";
         auto &catalog = ComponentCatalog::instance();
 
-        ComponentDefinition definition{};
-        definition.setGroupName(groupName);
-        definition.setSimulationFunction(ExprEval::exprEvalSimFunc);
+        const auto definition = std::make_shared<ComponentDefinition>();
+        definition->setGroupName(groupName);
+        definition->setSimulationFunction(ExprEval::exprEvalSimFunc);
 
-        definition.setName("Full Adder");
-        definition.setInputSlotsInfo({SlotsGroupType::input, false, 3, {"A", "B", "C"}, {}});
-        definition.setOutputSlotsInfo({SlotsGroupType::output, false, 2, {"S", "C"}, {}});
-        definition.setSimDelay(SimDelayNanoSeconds(3));
-        definition.setOutputExpressions({"0^1^2", "(0*1) + 2*(0^1)"});
+        definition->setName("Full Adder");
+        definition->setInputSlotsInfo({SlotsGroupType::input, false, 3, {"A", "B", "C"}, {}});
+        definition->setOutputSlotsInfo({SlotsGroupType::output, false, 2, {"S", "C"}, {}});
+        definition->setSimDelay(SimDelayNanoSeconds(3));
+        definition->setOutputExpressions({"0^1^2", "(0*1) + 2*(0^1)"});
         catalog.registerComponent(definition);
 
         // ComponentDefinition comp = {"Full Adder", "Combinational Circuits", 3, 2, ExprEval::exprEvalSimFunc, SimDelayNanoSeconds(3), {"0^1^2", "(0*1) + 2*(0^1)"}};

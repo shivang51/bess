@@ -44,7 +44,8 @@ namespace Bess::Canvas {
 
         BESS_INFO("[Scene] Destroying");
         m_viewport.reset();
-
+        m_lastCreatedComp = {};
+        m_cmdManager.clearStacks();
         m_isDestroyed = true;
     }
 
@@ -292,11 +293,11 @@ namespace Bess::Canvas {
     }
 
     UUID Scene::createSimEntity(const UUID &simEngineEntt,
-                                const std::shared_ptr<SimEngine::ComponentDefinition> &comp,
+                                const std::shared_ptr<SimEngine::ComponentDefinition> &def,
                                 const glm::vec2 &pos) {
         const auto &catalog = SimEngine::ComponentCatalog::instance();
-        const bool isInput = comp->getBehaviorType() == SimEngine::ComponentBehaviorType::input;
-        const bool isOutput = comp->getBehaviorType() == SimEngine::ComponentBehaviorType::output;
+        const bool isInput = def->getBehaviorType() == SimEngine::ComponentBehaviorType::input;
+        const bool isOutput = def->getBehaviorType() == SimEngine::ComponentBehaviorType::output;
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
         const auto state = simEngine.getComponentState(simEngineEntt);
@@ -312,7 +313,7 @@ namespace Bess::Canvas {
 
         // transform
         sceneComp->setPosition(glm::vec3(getSnappedPos(pos), getNextZCoord()));
-        sceneComp->setName(comp->getName());
+        sceneComp->setName(def->getName());
         sceneComp->setSimEngineId(simEngineEntt);
 
         // style
@@ -325,7 +326,7 @@ namespace Bess::Canvas {
         } else {
             style.color = ViewportTheme::colors.componentBG;
             style.borderRadius = glm::vec4(6.f);
-            style.headerColor = ViewportTheme::getCompHeaderColor(comp->getGroupName());
+            style.headerColor = ViewportTheme::getCompHeaderColor(def->getGroupName());
         }
 
         style.borderColor = ViewportTheme::colors.componentBorder;
@@ -333,7 +334,6 @@ namespace Bess::Canvas {
         style.color = ViewportTheme::colors.componentBG;
 
         // slots
-        const auto &def = simEngine.getComponentDefinition(sceneComp->getSimEngineId());
         const auto &inpDetails = def->getInputSlotsInfo();
         const auto &outDetails = def->getOutputSlotsInfo();
 
@@ -379,7 +379,7 @@ namespace Bess::Canvas {
             sceneComp->addOutputSlot(resizeSlot->getUuid(), false);
         }
 
-        setLastCreatedComp({.componentDefinition = def, .set = true});
+        m_lastCreatedComp = {.componentDefinition = def, .set = true};
         return uuid;
     }
 
@@ -789,11 +789,6 @@ namespace Bess::Canvas {
 
     std::shared_ptr<Camera> Scene::getCamera() {
         return m_camera;
-    }
-
-    void Scene::setLastCreatedComp(LastCreatedComponent comp) {
-        m_lastCreatedComp = std::move(comp);
-        m_lastCreatedComp.set = true;
     }
 
     void Scene::setSceneMode(SceneMode mode) {

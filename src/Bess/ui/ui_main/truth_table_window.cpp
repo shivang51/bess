@@ -1,5 +1,5 @@
 #include "truth_table_window.h"
-#include "entt_components.h"
+#include "digital_component.h"
 #include "imgui.h"
 #include "scene/components/components.h"
 #include "scene/scene.h"
