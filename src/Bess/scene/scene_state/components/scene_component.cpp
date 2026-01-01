@@ -1,9 +1,10 @@
 #include "scene/scene_state/components/scene_component.h"
-
 #include <utility>
 
+#include "ext/matrix_transform.hpp"
+#include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/comp_style.h"
-#include "scene/scene_state/components/types.h"
+#include "scene/scene_state/scene_state.h"
 
 namespace Bess::Canvas {
     SceneComponent::SceneComponent() : m_uuid{UUID()} {};
@@ -42,7 +43,7 @@ namespace Bess::Canvas {
 
     glm::vec2 SceneComponent::calculateScale(std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) {
         const auto labelSize = materialRenderer->getTextRenderSize(m_name, Styles::componentStyles.headerFontSize);
-        float width = labelSize.x + (componentStyles.paddingX * 2.f);
+        float width = labelSize.x + (Styles::componentStyles.paddingX * 2.f);
         return {width, Styles::componentStyles.headerHeight};
     }
 

@@ -5,7 +5,7 @@
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
-#include "scene/scene_state/components/types.h"
+#include "scene/scene_state/components/scene_component_types.h"
 
 namespace Bess::Canvas {
 

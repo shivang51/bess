@@ -1,4 +1,4 @@
-#include "scene/scene_state/components/types.h"
+#include "scene/scene_state/components/scene_component_types.h"
 
 namespace Bess::JsonConvert {
     void toJsonValue(const Bess::Canvas::Transform &transform, Json::Value &j) {

@@ -28,3 +28,11 @@ class Plugin:
         @return: Dict[int, Path] mapping of component definition hash to their schematic symbol paths.
         """
         pass
+
+    @abstractmethod
+    def on_scene_comp_load(self) -> dict[int, type]:
+        """
+        Method is called when scene components are getting loaded for rendered inside scene in schematic view.
+        @return: Dict[int, type] mapping of component definition hash to their scene component class
+        """
+        pass

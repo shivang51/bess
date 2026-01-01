@@ -57,54 +57,54 @@ namespace Bess::Canvas {
                                               const Components::TransformComponent &transform,
                                               const Components::SpriteComponent &spriteComp,
                                               const Components::SimulationComponent &simComp) const {
-        const auto schematicInfo = getCompSchematicInfo(entity);
-        const auto &textColor = ViewportTheme::schematicViewColors.text;
-        const auto &fillColor = ViewportTheme::schematicViewColors.componentFill;
-        const auto &strokeColor = ViewportTheme::schematicViewColors.componentStroke;
-        constexpr float strokeSize = schematicCompStyles.strokeSize;
-
-        const int id = static_cast<int>(entity);
-        const auto &pos = transform.position;
-
-        const float w = schematicInfo.width, h = schematicInfo.height;
-        const float x = pos.x - (w / 2), x1 = pos.x + (w / 2);
-        const float y = pos.y - (h / 2), y1 = pos.y + (h / 2);
-
-        m_pathRenderer->beginPathMode({x, y, pos.z}, strokeSize, strokeColor, id);
-        m_pathRenderer->pathLineTo({x1, y, pos.z}, strokeSize, strokeColor, id);
-        m_pathRenderer->pathLineTo({x1, y1, pos.z}, strokeSize, strokeColor, id);
-        m_pathRenderer->pathLineTo({x, y1, pos.z}, strokeSize, ViewportTheme::colors.wire, id);
-        m_pathRenderer->endPathMode(true, true, fillColor);
-
-        const auto textSize = m_materialRenderer->getTextRenderSize(tagComp.name, componentStyles.headerFontSize);
-        glm::vec3 textPos = {pos.x,
-                             y + componentStyles.paddingY + strokeSize,
-                             pos.z + 0.0005f};
-        textPos.x -= textSize.x / 2.f;
-        textPos.y += componentStyles.headerFontSize / 2.f;
-        m_materialRenderer->drawText(tagComp.name, textPos, schematicCompStyles.nameFontSize, textColor, id, 0.f);
-
-        {
-            const auto compState = SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity);
-            auto tex = m_artistTools.sevenSegDispTexs[0];
-            const auto texSize = tex->getScale();
-            float texWidth = 60;
-            float texHeight = (texSize.y / texSize.x) * texWidth;
-            glm::vec3 texPos = {pos.x,
-                                pos.y,
-                                transform.position.z + 0.0001};
-
-            m_materialRenderer->drawTexturedQuad(texPos, {texWidth, texHeight}, glm::vec4(1.f), static_cast<int>(entity), m_artistTools.sevenSegDispTexs[0]);
-
-            texPos.z += 0.0001f;
-
-            for (int i = 0; i < static_cast<int>(compState.inputStates.size()); i++) {
-                if (!compState.inputStates[i])
-                    continue;
-                tex = m_artistTools.sevenSegDispTexs[i + 1];
-                m_materialRenderer->drawTexturedQuad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity, tex);
-            }
-        }
+        // const auto schematicInfo = getCompSchematicInfo(entity);
+        // const auto &textColor = ViewportTheme::schematicViewColors.text;
+        // const auto &fillColor = ViewportTheme::schematicViewColors.componentFill;
+        // const auto &strokeColor = ViewportTheme::schematicViewColors.componentStroke;
+        // constexpr float strokeSize = schematicCompStyles.strokeSize;
+        //
+        // const int id = static_cast<int>(entity);
+        // const auto &pos = transform.position;
+        //
+        // const float w = schematicInfo.width, h = schematicInfo.height;
+        // const float x = pos.x - (w / 2), x1 = pos.x + (w / 2);
+        // const float y = pos.y - (h / 2), y1 = pos.y + (h / 2);
+        //
+        // m_pathRenderer->beginPathMode({x, y, pos.z}, strokeSize, strokeColor, id);
+        // m_pathRenderer->pathLineTo({x1, y, pos.z}, strokeSize, strokeColor, id);
+        // m_pathRenderer->pathLineTo({x1, y1, pos.z}, strokeSize, strokeColor, id);
+        // m_pathRenderer->pathLineTo({x, y1, pos.z}, strokeSize, ViewportTheme::colors.wire, id);
+        // m_pathRenderer->endPathMode(true, true, fillColor);
+        //
+        // const auto textSize = m_materialRenderer->getTextRenderSize(tagComp.name, componentStyles.headerFontSize);
+        // glm::vec3 textPos = {pos.x,
+        //                      y + componentStyles.paddingY + strokeSize,
+        //                      pos.z + 0.0005f};
+        // textPos.x -= textSize.x / 2.f;
+        // textPos.y += componentStyles.headerFontSize / 2.f;
+        // m_materialRenderer->drawText(tagComp.name, textPos, schematicCompStyles.nameFontSize, textColor, id, 0.f);
+        //
+        // {
+        //     const auto compState = SimEngine::SimulationEngine::instance().getComponentState(simComp.simEngineEntity);
+        //     auto tex = m_artistTools.sevenSegDispTexs[0];
+        //     const auto texSize = tex->getScale();
+        //     float texWidth = 60;
+        //     float texHeight = (texSize.y / texSize.x) * texWidth;
+        //     glm::vec3 texPos = {pos.x,
+        //                         pos.y,
+        //                         transform.position.z + 0.0001};
+        //
+        //     m_materialRenderer->drawTexturedQuad(texPos, {texWidth, texHeight}, glm::vec4(1.f), static_cast<int>(entity), m_artistTools.sevenSegDispTexs[0]);
+        //
+        //     texPos.z += 0.0001f;
+        //
+        //     for (int i = 0; i < static_cast<int>(compState.inputStates.size()); i++) {
+        //         if (!compState.inputStates[i])
+        //             continue;
+        //         tex = m_artistTools.sevenSegDispTexs[i + 1];
+        //         m_materialRenderer->drawTexturedQuad(texPos, {texWidth, texHeight}, glm::vec4(1.f), (int)entity, tex);
+        //     }
+        // }
     }
 
     void SchematicArtist::paintSchematicView(entt::entity entity,
@@ -112,101 +112,101 @@ namespace Bess::Canvas {
                                              const Components::TransformComponent &transform,
                                              const Components::SpriteComponent &spriteComp,
                                              const Components::SimulationComponent &simComponent) {
-        const auto &pos = transform.position;
-
-        const auto schematicInfo = getCompSchematicInfo(entity);
-
-        if (!schematicInfo.shouldDraw)
-            return;
-
-        const auto &textColor = ViewportTheme::schematicViewColors.text;
-        const auto &fillColor = ViewportTheme::schematicViewColors.componentFill;
-        const auto &strokeColor = ViewportTheme::schematicViewColors.componentStroke;
-
-        float nodeWeight = schematicCompStyles.strokeSize;
-        constexpr float negCircleR = schematicCompStyles.negCircleR;
-
-        auto negateCircleAt = [&](const glm::vec3 pos) {
-            m_materialRenderer->drawCircle(pos, negCircleR, strokeColor, -1, negCircleR - nodeWeight);
-        };
-
-        const int id = (int)entity;
-
-        float w = schematicInfo.width;
-        float h = schematicInfo.height;
-        const float x = pos.x - (w / 2), x1 = pos.x + (w / 2);
-        const float y = pos.y - (h / 2), y1 = pos.y + (h / 2);
-        const float cpXL = x + (w * 0.25f);
-        const float rb = schematicInfo.outPinStart;
-
-        bool showName = true;
-
-        auto itr = m_artistTools.schematicSymbolPaths.find(simComponent.defHash);
-        if (itr != m_artistTools.schematicSymbolPaths.end()) {
-            auto &diagram = itr->second;
-            showName = diagram.showName();
-            const auto strokeWeight = diagram.getStrokeSize() > 0.f
-                                          ? diagram.getStrokeSize()
-                                          : nodeWeight;
-
-            ContoursDrawInfo info;
-            info.fillColor = fillColor;
-            info.strokeColor = strokeColor;
-            info.glyphId = id;
-
-            const glm::vec2 boxSize = glm::vec2(w, h);
-            const glm::vec2 diagramSize = glm::vec2(diagram.getSize().x, diagram.getSize().y);
-
-            if (diagramSize.x <= 0.0f || diagramSize.y <= 0.0f) {
-                BESS_ERROR("Diagram has zero size");
-                return;
-            }
-
-            const glm::vec2 scaleNonUniform = boxSize / diagramSize;
-            glm::vec2 baseScale;
-            glm::vec2 inset(0.0f);
-
-            const float s = std::max(scaleNonUniform.x, scaleNonUniform.y);
-            baseScale = glm::vec2(s, s);
-            const glm::vec2 used = diagramSize * s;
-            inset = (boxSize - used) * 0.5f;
-
-            glm::vec2 boxTopLeft = glm::vec2(pos.x, pos.y) - boxSize * 0.5f;
-
-            auto &paths = itr->second.getPathsMut();
-            for (auto &p : paths) {
-                const glm::vec2 pathBounds = glm::vec2(p.getBounds().x, p.getBounds().y);
-                const glm::vec2 pathLowest = glm::vec2(p.getLowestPos().x, p.getLowestPos().y);
-
-                glm::vec2 finalScale = baseScale;
-                glm::vec2 finalPosPx = boxTopLeft + inset + pathLowest * finalScale;
-
-                info.translate = {finalPosPx.x, finalPosPx.y, pos.z};
-                info.scale = {finalScale.x, finalScale.y};
-
-                h = std::max(h, pathBounds.y * finalScale.y);
-                w = std::max(w, pathBounds.x * finalScale.x);
-
-                p.setStrokeWidth(strokeWeight);
-                m_pathRenderer->drawPath(p, info);
-            }
-        } else {
-            m_pathRenderer->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
-            m_pathRenderer->pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);
-            m_pathRenderer->pathLineTo({x1, y1, pos.z}, nodeWeight, strokeColor, id);
-            m_pathRenderer->pathLineTo({x, y1, pos.z}, nodeWeight, ViewportTheme::colors.wire, id);
-            m_pathRenderer->endPathMode(true, true, fillColor);
-        }
-
-        if (showName) {
-            const auto textSize = m_materialRenderer->getTextRenderSize(tagComp.name, componentStyles.headerFontSize);
-            glm::vec3 textPos = {pos.x, y + ((y1 - y) / 2.f), pos.z + 0.0005f};
-            textPos.x -= textSize.x / 2.f;
-            textPos.y += componentStyles.headerFontSize / 2.f;
-            m_materialRenderer->drawText(tagComp.name, textPos, schematicCompStyles.nameFontSize, textColor, id, 0.f);
-        }
-
-        m_diagramSize[id] = glm::vec2(w, h);
+        // const auto &pos = transform.position;
+        //
+        // const auto schematicInfo = getCompSchematicInfo(entity);
+        //
+        // if (!schematicInfo.shouldDraw)
+        //     return;
+        //
+        // const auto &textColor = ViewportTheme::schematicViewColors.text;
+        // const auto &fillColor = ViewportTheme::schematicViewColors.componentFill;
+        // const auto &strokeColor = ViewportTheme::schematicViewColors.componentStroke;
+        //
+        // float nodeWeight = schematicCompStyles.strokeSize;
+        // constexpr float negCircleR = schematicCompStyles.negCircleR;
+        //
+        // auto negateCircleAt = [&](const glm::vec3 pos) {
+        //     m_materialRenderer->drawCircle(pos, negCircleR, strokeColor, -1, negCircleR - nodeWeight);
+        // };
+        //
+        // const int id = (int)entity;
+        //
+        // float w = schematicInfo.width;
+        // float h = schematicInfo.height;
+        // const float x = pos.x - (w / 2), x1 = pos.x + (w / 2);
+        // const float y = pos.y - (h / 2), y1 = pos.y + (h / 2);
+        // const float cpXL = x + (w * 0.25f);
+        // const float rb = schematicInfo.outPinStart;
+        //
+        // bool showName = true;
+        //
+        // auto itr = m_artistTools.schematicSymbolPaths.find(simComponent.defHash);
+        // if (itr != m_artistTools.schematicSymbolPaths.end()) {
+        //     auto &diagram = itr->second;
+        //     showName = diagram.showName();
+        //     const auto strokeWeight = diagram.getStrokeSize() > 0.f
+        //                                   ? diagram.getStrokeSize()
+        //                                   : nodeWeight;
+        //
+        //     ContoursDrawInfo info;
+        //     info.fillColor = fillColor;
+        //     info.strokeColor = strokeColor;
+        //     info.glyphId = id;
+        //
+        //     const glm::vec2 boxSize = glm::vec2(w, h);
+        //     const glm::vec2 diagramSize = glm::vec2(diagram.getSize().x, diagram.getSize().y);
+        //
+        //     if (diagramSize.x <= 0.0f || diagramSize.y <= 0.0f) {
+        //         BESS_ERROR("Diagram has zero size");
+        //         return;
+        //     }
+        //
+        //     const glm::vec2 scaleNonUniform = boxSize / diagramSize;
+        //     glm::vec2 baseScale;
+        //     glm::vec2 inset(0.0f);
+        //
+        //     const float s = std::max(scaleNonUniform.x, scaleNonUniform.y);
+        //     baseScale = glm::vec2(s, s);
+        //     const glm::vec2 used = diagramSize * s;
+        //     inset = (boxSize - used) * 0.5f;
+        //
+        //     glm::vec2 boxTopLeft = glm::vec2(pos.x, pos.y) - boxSize * 0.5f;
+        //
+        //     auto &paths = itr->second.getPathsMut();
+        //     for (auto &p : paths) {
+        //         const glm::vec2 pathBounds = glm::vec2(p.getBounds().x, p.getBounds().y);
+        //         const glm::vec2 pathLowest = glm::vec2(p.getLowestPos().x, p.getLowestPos().y);
+        //
+        //         glm::vec2 finalScale = baseScale;
+        //         glm::vec2 finalPosPx = boxTopLeft + inset + pathLowest * finalScale;
+        //
+        //         info.translate = {finalPosPx.x, finalPosPx.y, pos.z};
+        //         info.scale = {finalScale.x, finalScale.y};
+        //
+        //         h = std::max(h, pathBounds.y * finalScale.y);
+        //         w = std::max(w, pathBounds.x * finalScale.x);
+        //
+        //         p.setStrokeWidth(strokeWeight);
+        //         m_pathRenderer->drawPath(p, info);
+        //     }
+        // } else {
+        //     m_pathRenderer->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
+        //     m_pathRenderer->pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);
+        //     m_pathRenderer->pathLineTo({x1, y1, pos.z}, nodeWeight, strokeColor, id);
+        //     m_pathRenderer->pathLineTo({x, y1, pos.z}, nodeWeight, ViewportTheme::colors.wire, id);
+        //     m_pathRenderer->endPathMode(true, true, fillColor);
+        // }
+        //
+        // if (showName) {
+        //     const auto textSize = m_materialRenderer->getTextRenderSize(tagComp.name, componentStyles.headerFontSize);
+        //     glm::vec3 textPos = {pos.x, y + ((y1 - y) / 2.f), pos.z + 0.0005f};
+        //     textPos.x -= textSize.x / 2.f;
+        //     textPos.y += componentStyles.headerFontSize / 2.f;
+        //     m_materialRenderer->drawText(tagComp.name, textPos, schematicCompStyles.nameFontSize, textColor, id, 0.f);
+        // }
+        //
+        // m_diagramSize[id] = glm::vec2(w, h);
     }
 
     void SchematicArtist::drawSlots(const entt::entity parentEntt, const Components::SimulationComponent &simComp, const Components::TransformComponent &transformComp) {

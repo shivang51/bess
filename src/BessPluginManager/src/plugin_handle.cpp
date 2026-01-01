@@ -27,6 +27,21 @@ namespace Bess::Plugins {
             }
         }
 
+        /// temp begin
+        if (py::hasattr(m_pluginObj, "on_scene_comp_load")) {
+            // maping of uint64_t to py::type, a python class
+            py::object compDict = m_pluginObj.attr("on_scene_comp_load")();
+
+            for (auto item : compDict.cast<py::dict>()) {
+                uint64_t key = item.first.cast<uint64_t>();
+                py::type pyCompType = item.second.cast<py::type>();
+                py::print(key, pyCompType);
+                py::object pyCompObj = pyCompType(); // instantiate the python class
+                // auto d = pyCompObj.cast<std::shared_ptr<Canvas::SchematicDiagram>>();
+            }
+        }
+        /// temp end
+
         py::gil_scoped_release release;
         return components;
     }

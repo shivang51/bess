@@ -5,6 +5,8 @@ set(CMAKE_BUILD_RPATH "\$ORIGIN")
 set(CMAKE_INSTALL_RPATH "\$ORIGIN")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+add_subdirectory("scene")
+
 file(GLOB EXT_JSON_SRC "${CMAKE_SOURCE_DIR}/external/jsoncpp/src/lib_json/*.cpp")
 source_group("external/jsoncpp" FILES ${EXT_JSON_SRC})
 
@@ -55,7 +57,7 @@ set(Header_Files
 "scene/scene_serializer.h"
 "scene/scene_pch.h"
 "scene/scene_state/scene_state.h"
-"scene/scene_state/components/types.h"
+"scene/scene_state/components/scene_component_types.h"
 "scene/scene_state/components/scene_component.h"
 "scene/scene_state/components/input_scene_component.h"
 "scene/scene_state/components/slot_scene_component.h"
@@ -133,47 +135,6 @@ set(Source_Files
 "pages/main_page/scene_driver.cpp"
 "pages/start_page/start_page.cpp"
 "common/helpers.cpp"
-"scene/schematic_diagram.cpp"
-"scene/components/non_sim_comp.cpp"
-"scene/components/components.cpp"
-"scene/scene_serializer.cpp"
-"scene/viewport.cpp"
-"scene/artist/schematic_artist.cpp"
-"scene/artist/base_artist.cpp"
-"scene/artist/nodes_artist.cpp"
-"scene/artist/artist_manager.cpp"
-"scene/scene_state/scene_state.cpp"
-"scene/scene_state/components/types.cpp"
-"scene/scene_state/components/scene_component.cpp"
-"scene/scene_state/components/sim_scene_component.cpp"
-"scene/scene_state/components/input_scene_component.cpp"
-"scene/scene_state/components/slot_scene_component.cpp"
-"scene/scene_state/components/connection_scene_component.cpp"
-"scene/scene.cpp"
-"scene/scene_key_maps.cpp"
-"scene/camera.cpp"
-"scene/commands/connect_command.cpp"
-"scene/commands/delete_comp_command.cpp"
-"scene/commands/del_connection_command.cpp"
-"scene/commands/set_input_command.cpp"
-"scene/commands/add_command.cpp"
-"scene/commands/create_group_command.cpp"
-"scene/commands/delete_node_command.cpp"
-"scene/commands/reparent_node_command.cpp"
-"scene/renderer/vulkan/path_renderer.cpp"
-"scene/renderer/vulkan/text_renderer.cpp"
-"scene/renderer/vulkan/pipelines/path_stroke_pipeline.cpp"
-"scene/renderer/vulkan/pipelines/text_pipeline.cpp"
-"scene/renderer/vulkan/pipelines/quad_pipeline.cpp"
-"scene/renderer/vulkan/pipelines/circle_pipeline.cpp"
-"scene/renderer/vulkan/pipelines/path_fill_pipeline.cpp"
-"scene/renderer/vulkan/pipelines/grid_pipeline.cpp"
-"scene/renderer/vulkan/pipelines/pipeline.cpp"
-"scene/renderer/font.cpp"
-"scene/renderer/path.cpp"
-"scene/renderer/glyph_extractor.cpp"
-"scene/renderer/msdf_font.cpp"
-"scene/renderer/material_renderer.cpp"
 "ui/ui.cpp"
 "ui/widgets/m_widgets.cpp"
 "ui/ui_main/component_explorer.cpp"
@@ -207,8 +168,8 @@ set(ALL_FILES
 )
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
-target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine BessVulkan BessPluginManager EventSystem)
-add_dependencies(${PROJECT_NAME} BessSimEngine BessVulkan BessPluginManager)
+target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine BessVulkan BessPluginManager EventSystem BessScene)
+add_dependencies(${PROJECT_NAME} BessSimEngine BessVulkan BessPluginManager BessScene)
 
 file(GLOB_RECURSE SCENE_PCH_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/scene/*.cpp"

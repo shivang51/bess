@@ -1,10 +1,19 @@
 from typing import override
 from bessplug import Plugin
 from bessplug.api.renderer.path import Path
+from bessplug.api.scene.scene import SceneComp
 from bessplug.api.sim_engine import ComponentDefinition
 from bessplug.plugin import SchematicDiagram
 from components.latches import latches
 from components.digital_gates import digital_gates, schematic_symbols
+
+
+class DummySceneComp(SceneComp):
+    def __init__(self):
+        super().__init__()
+        print("DummyScenComp created")
+        self.set_comp_def_hash(12345)
+        print(self.get_comp_def_hash())
 
 
 class BessPlugin(Plugin):
@@ -19,6 +28,11 @@ class BessPlugin(Plugin):
     def on_schematic_symbols_load(self) -> dict[int, SchematicDiagram]:
         # return {**schematic_symbols}
         return {}
+
+    @override
+    def on_scene_comp_load(self) -> dict[int, type]:
+        d = {12345: DummySceneComp}
+        return d
 
 
 plugin_hwd = BessPlugin()

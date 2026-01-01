@@ -1,7 +1,9 @@
 #include "scene/scene_state/components/connection_scene_component.h"
+#include "commands/commands.h"
 #include "fwd.hpp"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/slot_scene_component.h"
+#include "scene/scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 

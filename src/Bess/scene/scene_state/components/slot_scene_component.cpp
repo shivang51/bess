@@ -1,8 +1,10 @@
 #include "scene/scene_state/components/slot_scene_component.h"
 #include "event_dispatcher.h"
+#include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/sim_scene_component.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
-#include "scene/scene_state/components/types.h"
+#include "scene/scene_state/scene_state.h"
+#include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
 
@@ -86,12 +88,12 @@ namespace Bess::Canvas {
                                                                            Styles::simCompStyles.slotLabelSize);
                 labelX -= labeldx + labelSize.x;
             }
-            float dY = componentStyles.slotRadius -
-                       (std::abs((componentStyles.slotRadius * 2.f) - componentStyles.slotLabelSize) / 2.f);
+            float dY = Styles::componentStyles.slotRadius -
+                       (std::abs((Styles::componentStyles.slotRadius * 2.f) - Styles::componentStyles.slotLabelSize) / 2.f);
 
             materialRenderer->drawText(m_name,
                                        {labelX, pos.y + dY, pos.z},
-                                       componentStyles.slotLabelSize,
+                                       Styles::componentStyles.slotLabelSize,
                                        ViewportTheme::colors.text,
                                        PickingId{parentComp->getRuntimeId(), 0},
                                        parentComp->getTransform().angle);
@@ -124,7 +126,7 @@ namespace Bess::Canvas {
         if (!m_name.empty()) {
             materialRenderer->drawText(m_name,
                                        {pos.x + offset.x, pos.y + offset.y - nodeWeight, pos.z},
-                                       componentStyles.slotLabelSize,
+                                       Styles::componentStyles.slotLabelSize,
                                        ViewportTheme::colors.text, pinId,
                                        0.f);
         }

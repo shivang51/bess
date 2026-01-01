@@ -8,8 +8,8 @@
 #include "scene/commands/reparent_node_command.h"
 #include "scene/components/components.h"
 #include "scene/scene.h"
+#include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/sim_scene_component.h"
-#include "scene/scene_state/components/types.h"
 #include "ui/ui_main/project_explorer_state.h"
 #include "ui/widgets/m_widgets.h"
 #include <cstdint>

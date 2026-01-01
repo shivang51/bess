@@ -8,7 +8,7 @@ namespace Bess::Canvas {
     class SchematicDiagram {
       public:
         SchematicDiagram() = default;
-        ~SchematicDiagram() = default;
+        virtual ~SchematicDiagram() = default;
 
         const std::vector<Renderer::Path> &getPaths() const;
         void setPaths(const std::vector<Renderer::Path> &paths);

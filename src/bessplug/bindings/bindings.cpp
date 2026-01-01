@@ -9,6 +9,7 @@ void bind_sim_engine_types(py::module_ &m);
 void bind_sim_functions(py::module_ &m);
 void bind_sim_engine_component_definition(py::module_ &m);
 void bind_scene_schematic_diagram(py::module_ &m);
+void bind_scene_component(py::module_ &m);
 
 PYBIND11_MODULE(_bindings, m) {
     m.doc() = "BESS Python bindings";
@@ -29,6 +30,7 @@ PYBIND11_MODULE(_bindings, m) {
 
     // Scene
     bind_scene_schematic_diagram(scene);
+    bind_scene_component(scene);
 
     // Renderer
     bind_renderer_path(renderer);

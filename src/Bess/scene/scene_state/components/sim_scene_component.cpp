@@ -5,6 +5,7 @@
 #include "scene/scene_state/components/slot_scene_component.h"
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
+#include "scene/scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 
@@ -92,7 +93,7 @@ namespace Bess::Canvas {
                                    pickingId,
                                    props);
 
-        const auto textPos = glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) + componentStyles.paddingX,
+        const auto textPos = glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) + Styles::componentStyles.paddingX,
                                        headerPos.y + Styles::simCompStyles.paddingY,
                                        m_transform.position.z + 0.0005f);
         // component name

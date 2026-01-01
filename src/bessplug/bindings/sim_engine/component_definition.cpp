@@ -18,8 +18,9 @@ using namespace Bess::SimEngine;
 static ComponentState convertResultToComponentState(const py::object &result,
                                                     const ComponentState &prev);
 
-struct PyComponentDefinition : public ComponentDefinition,
-                               public py::trampoline_self_life_support {
+class PyComponentDefinition : public ComponentDefinition,
+                              public py::trampoline_self_life_support {
+  public:
     using ComponentDefinition::ComponentDefinition;
 
     PyComponentDefinition() {

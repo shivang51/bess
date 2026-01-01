@@ -4,7 +4,7 @@
 #include "scene/renderer/material_renderer.h"
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_state/components/behaviours/mouse_behaviour.h"
-#include "scene/scene_state/components/types.h"
+#include "scene/scene_state/components/scene_component_types.h"
 #include "json/value.h"
 
 namespace Bess::Canvas {

@@ -1,6 +1,6 @@
 #pragma once
-
 #include "glm.hpp"
+#include "json/json.h"
 #include <cstdint>
 
 namespace Bess::Canvas {

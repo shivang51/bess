@@ -1,6 +1,8 @@
 #pragma once
 
-#include "scene/scene_state/components/types.h"
+#include "scene/renderer/material_renderer.h"
+#include "scene/scene_state/components/scene_component_types.h"
+#include "settings/viewport_theme.h"
 namespace Bess::Canvas::SceneUI {
     void drawToggleButton(const PickingId id,
                           const bool isHigh,

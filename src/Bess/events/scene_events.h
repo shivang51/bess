@@ -1,6 +1,6 @@
 #pragma once
 #include "bess_uuid.h"
-#include "scene/scene_state/components/types.h"
+#include "scene/scene_state/components/scene_component_types.h"
 #include <cstdint>
 #include <glm.hpp>
 
