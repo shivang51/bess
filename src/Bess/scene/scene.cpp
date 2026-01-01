@@ -298,95 +298,13 @@ namespace Bess::Canvas {
         renderer->drawQuad(glm::vec3(pos, 7.f), size, ViewportTheme::colors.selectionBoxFill, -1, props);
     }
 
-    UUID Scene::createSimEntity(const UUID &simEngineEntt,
+    UUID Scene::createSimEntity(const UUID &simEngineId,
                                 const std::shared_ptr<SimEngine::ComponentDefinition> &def,
                                 const glm::vec2 &pos) {
-        const auto &catalog = SimEngine::ComponentCatalog::instance();
-        const bool isInput = def->getBehaviorType() == SimEngine::ComponentBehaviorType::input;
-        const bool isOutput = def->getBehaviorType() == SimEngine::ComponentBehaviorType::output;
-
-        auto &simEngine = SimEngine::SimulationEngine::instance();
-        const auto state = simEngine.getComponentState(simEngineEntt);
-        const UUID uuid;
-
-        std::shared_ptr<SimulationSceneComponent> sceneComp;
-
-        if (isInput) {
-            sceneComp = std::make_shared<InputSceneComponent>(uuid);
-        } else {
-            sceneComp = std::make_shared<SimulationSceneComponent>(uuid);
-        }
-
-        // transform
+        auto sceneComp = SimulationSceneComponent::createNewAndRegister(m_state, simEngineId);
         sceneComp->setPosition(glm::vec3(getSnappedPos(pos), getNextZCoord()));
-        sceneComp->setName(def->getName());
-        sceneComp->setSimEngineId(simEngineEntt);
-
-        // style
-        auto &style = sceneComp->getStyle();
-
-        if (isInput || isOutput) {
-            constexpr glm::vec4 ioCompColor = glm::vec4(0.2f, 0.2f, 0.4f, 0.6f);
-            style.color = ioCompColor;
-            style.borderRadius = glm::vec4(8.f);
-        } else {
-            style.color = ViewportTheme::colors.componentBG;
-            style.borderRadius = glm::vec4(6.f);
-            style.headerColor = ViewportTheme::getCompHeaderColor(def->getGroupName());
-        }
-
-        style.borderColor = ViewportTheme::colors.componentBorder;
-        style.borderSize = glm::vec4(1.f);
-        style.color = ViewportTheme::colors.componentBG;
-
-        // slots
-        const auto &inpDetails = def->getInputSlotsInfo();
-        const auto &outDetails = def->getOutputSlotsInfo();
-
-        m_state.addComponent<SimulationSceneComponent>(sceneComp);
-
-        int inSlotIdx = 0, outSlotIdx = 0;
-        char inpCh = 'A', outCh = 'A';
-
-        const auto slots = sceneComp->createIOSlots(state.inputStates.size(),
-                                                    state.outputStates.size());
-
-        for (const auto &slot : slots) {
-            if (slot->getSlotType() == SlotType::digitalInput) {
-                if (inpDetails.names.size() > inSlotIdx)
-                    slot->setName(inpDetails.names[inSlotIdx++]);
-                else
-                    slot->setName(std::string(1, inpCh++));
-            } else {
-                if (outDetails.names.size() > outSlotIdx)
-                    slot->setName(outDetails.names[outSlotIdx++]);
-                else
-                    slot->setName(std::string(std::format("{}'", outCh++)));
-            }
-            m_state.addComponent<SlotSceneComponent>(slot);
-            m_state.attachChild(sceneComp->getUuid(), slot->getUuid());
-        }
-
-        if (inpDetails.isResizeable) {
-            auto resizeSlot = std::make_shared<SlotSceneComponent>();
-            resizeSlot->setSlotType(SlotType::inputsResize);
-            resizeSlot->setIndex(-1); // assign -1 for resize slots
-            m_state.addComponent<SlotSceneComponent>(resizeSlot);
-            m_state.attachChild(sceneComp->getUuid(), resizeSlot->getUuid());
-            sceneComp->addInputSlot(resizeSlot->getUuid(), false);
-        }
-
-        if (outDetails.isResizeable) {
-            auto resizeSlot = std::make_shared<SlotSceneComponent>();
-            resizeSlot->setSlotType(SlotType::outputsResize);
-            resizeSlot->setIndex(-1); // assign -1 for resize slots
-            m_state.addComponent<SlotSceneComponent>(resizeSlot);
-            m_state.attachChild(sceneComp->getUuid(), resizeSlot->getUuid());
-            sceneComp->addOutputSlot(resizeSlot->getUuid(), false);
-        }
-
         m_lastCreatedComp = {.componentDefinition = def, .set = true};
-        return uuid;
+        return sceneComp->getUuid();
     }
 
     UUID Scene::createNonSimEntity(const Canvas::Components::NSComponent &comp, const glm::vec2 &pos) {

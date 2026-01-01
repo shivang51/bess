@@ -39,8 +39,6 @@ namespace Bess::Canvas {
       public:
         SceneComponent();
         SceneComponent(const SceneComponent &other) = default;
-        SceneComponent(UUID uuid);
-        SceneComponent(UUID uuid, const Transform &transform);
         virtual ~SceneComponent() = default;
 
         virtual void draw(SceneState &,

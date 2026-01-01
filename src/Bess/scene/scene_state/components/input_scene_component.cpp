@@ -7,7 +7,7 @@
 #include "simulation_engine.h"
 
 namespace Bess::Canvas {
-    InputSceneComponent::InputSceneComponent(UUID uuid) : SimulationSceneComponent(uuid) {}
+    InputSceneComponent::InputSceneComponent(UUID simEngineId) : SimulationSceneComponent(simEngineId) {}
 
     void InputSceneComponent::draw(SceneState &state,
                                    std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
@@ -26,8 +26,8 @@ namespace Bess::Canvas {
     }
 
     void InputSceneComponent::drawToggleButton(SceneState &state,
-                                               std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                               std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer,
+                                               const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,
+                                               const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer,
                                                UUID slotUuid,
                                                int buttonIndex) {
         constexpr float buttonWidth = 30.f;

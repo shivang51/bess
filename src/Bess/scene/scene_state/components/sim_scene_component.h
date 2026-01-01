@@ -5,16 +5,18 @@
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/slot_scene_component.h"
+#include "scene/scene_state/scene_state.h"
 
 namespace Bess::Canvas {
     class SimulationSceneComponent : public SceneComponent,
                                      public DragBehaviour<SimulationSceneComponent> {
       public:
-        SimulationSceneComponent() = default;
+        SimulationSceneComponent();
         SimulationSceneComponent(const SimulationSceneComponent &other) = default;
-        SimulationSceneComponent(UUID uuid);
-        SimulationSceneComponent(UUID uuid, const Transform &transform);
+        SimulationSceneComponent(UUID simEngineId);
         ~SimulationSceneComponent() override = default;
+
+        static std::shared_ptr<SimulationSceneComponent> createNewAndRegister(SceneState &sceneState, UUID simEngineId);
 
         // Creates the slots and also add there ids inside the components
         // input slots array and output slots array

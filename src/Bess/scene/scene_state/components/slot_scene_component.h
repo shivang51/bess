@@ -18,9 +18,6 @@ namespace Bess::Canvas {
       public:
         SlotSceneComponent() = default;
         SlotSceneComponent(const SlotSceneComponent &other) = default;
-        SlotSceneComponent(UUID uuid);
-
-        SlotSceneComponent(UUID uuid, const Transform &transform);
         ~SlotSceneComponent() override = default;
 
         void draw(SceneState &state,

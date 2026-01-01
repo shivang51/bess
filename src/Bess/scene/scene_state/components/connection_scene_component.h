@@ -12,11 +12,8 @@ namespace Bess::Canvas {
     class ConnectionSceneComponent : public SceneComponent,
                                      public DragBehaviour<ConnectionSceneComponent> {
       public:
-        ConnectionSceneComponent() = default;
-        ConnectionSceneComponent(const ConnectionSceneComponent &other) = default;
-        ConnectionSceneComponent(UUID uuid);
+        ConnectionSceneComponent();
 
-        ConnectionSceneComponent(UUID uuid, const Transform &transform);
         ~ConnectionSceneComponent() override = default;
 
         void draw(SceneState &state,

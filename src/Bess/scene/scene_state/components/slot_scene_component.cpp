@@ -4,18 +4,9 @@
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/components/types.h"
 #include "simulation_engine.h"
-#include "spdlog/common.h"
 #include "ui/ui.h"
 
 namespace Bess::Canvas {
-    SlotSceneComponent::SlotSceneComponent(UUID uuid)
-        : SceneComponent(uuid) {
-    }
-
-    SlotSceneComponent::SlotSceneComponent(UUID uuid, const Transform &transform)
-        : SceneComponent(uuid, transform) {
-    }
-
     void SlotSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
         UI::setCursorPointer();
     }

@@ -90,7 +90,7 @@ namespace Bess::Canvas {
         void resize(const glm::vec2 &size);
         const glm::vec2 &getSize() const;
 
-        UUID createSimEntity(const UUID &simEngineEntt,
+        UUID createSimEntity(const UUID &simEngineId,
                              const std::shared_ptr<SimEngine::ComponentDefinition> &def,
                              const glm::vec2 &pos);
         UUID createNonSimEntity(const Canvas::Components::NSComponent &comp,

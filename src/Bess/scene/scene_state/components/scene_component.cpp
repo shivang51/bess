@@ -1,22 +1,12 @@
 #include "scene/scene_state/components/scene_component.h"
 
-#include <algorithm>
 #include <utility>
 
 #include "scene/scene_state/components/styles/comp_style.h"
-#include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/components/types.h"
-#include "settings/viewport_theme.h"
-#include <utility>
 
 namespace Bess::Canvas {
     SceneComponent::SceneComponent() : m_uuid{UUID()} {};
-
-    SceneComponent::SceneComponent(UUID uuid)
-        : m_uuid(uuid) {}
-
-    SceneComponent::SceneComponent(UUID uuid, const Transform &transform)
-        : m_uuid(uuid), m_transform(transform) {}
 
     bool SceneComponent::isDraggable() const {
         return m_isDraggable;

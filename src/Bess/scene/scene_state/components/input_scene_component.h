@@ -8,17 +8,16 @@ namespace Bess::Canvas {
       public:
         static constexpr const char *subType = "InputSceneComponent";
         InputSceneComponent() = default;
+        InputSceneComponent(UUID simEngineId);
         ~InputSceneComponent() override = default;
-
-        InputSceneComponent(UUID uuid);
 
         void draw(SceneState &state,
                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                   std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
 
         void drawToggleButton(SceneState &state,
-                              std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                              std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer,
+                              const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,
+                              const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer,
                               UUID slotUuid,
                               int buttonIndex);
 

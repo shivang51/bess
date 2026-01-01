@@ -1,4 +1,6 @@
 #include "scene/scene_state/components/sim_scene_component.h"
+#include "bess_uuid.h"
+#include "scene/scene_state/components/input_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/slot_scene_component.h"
 #include "scene/scene_state/components/styles/comp_style.h"
@@ -7,12 +9,11 @@
 #include "simulation_engine.h"
 
 namespace Bess::Canvas {
-    SimulationSceneComponent::SimulationSceneComponent(UUID uuid) : SceneComponent(uuid) {
+    SimulationSceneComponent::SimulationSceneComponent() {
         initDragBehaviour();
     }
 
-    SimulationSceneComponent::SimulationSceneComponent(UUID uuid, const Transform &transform)
-        : SceneComponent(uuid, transform) {
+    SimulationSceneComponent::SimulationSceneComponent(UUID simEngineId) {
         initDragBehaviour();
     }
 
@@ -303,6 +304,91 @@ namespace Bess::Canvas {
         float width = m_transform.scale.x; // keep the same width as normal view
 
         m_schematicScale = {width, height};
+    }
+
+    std::shared_ptr<SimulationSceneComponent> SimulationSceneComponent::createNewAndRegister(SceneState &sceneState, UUID simEngineId) {
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+        const auto &simComp = simEngine.getDigitalComponent(simEngineId);
+        const auto &compDef = simComp->definition;
+        const bool isInput = compDef->getBehaviorType() == SimEngine::ComponentBehaviorType::input;
+        const bool isOutput = compDef->getBehaviorType() == SimEngine::ComponentBehaviorType::output;
+
+        const UUID uuid;
+        std::shared_ptr<SimulationSceneComponent> sceneComp;
+        if (isInput) {
+            sceneComp = std::make_shared<InputSceneComponent>(uuid);
+        } else {
+            sceneComp = std::make_shared<SimulationSceneComponent>(uuid);
+        }
+
+        // setting the name before adding to scene state, so that event listeners can access it
+        sceneComp->setName(compDef->getName());
+
+        sceneState.addComponent<SimulationSceneComponent>(sceneComp);
+
+        sceneComp->setSimEngineId(simEngineId);
+
+        // style
+        auto &style = sceneComp->getStyle();
+
+        if (isInput || isOutput) {
+            constexpr glm::vec4 ioCompColor = glm::vec4(0.2f, 0.2f, 0.4f, 0.6f);
+            style.color = ioCompColor;
+            style.borderRadius = glm::vec4(8.f);
+        } else {
+            style.color = ViewportTheme::colors.componentBG;
+            style.borderRadius = glm::vec4(6.f);
+            style.headerColor = ViewportTheme::getCompHeaderColor(compDef->getGroupName());
+        }
+
+        style.borderColor = ViewportTheme::colors.componentBorder;
+        style.borderSize = glm::vec4(1.f);
+        style.color = ViewportTheme::colors.componentBG;
+
+        const auto &inpDetails = compDef->getInputSlotsInfo();
+        const auto &outDetails = compDef->getOutputSlotsInfo();
+
+        int inSlotIdx = 0, outSlotIdx = 0;
+        char inpCh = 'A', outCh = 'A';
+
+        const auto slots = sceneComp->createIOSlots(compDef->getInputSlotsInfo().count,
+                                                    compDef->getOutputSlotsInfo().count);
+
+        for (const auto &slot : slots) {
+            if (slot->getSlotType() == SlotType::digitalInput) {
+                if (inpDetails.names.size() > inSlotIdx)
+                    slot->setName(inpDetails.names[inSlotIdx++]);
+                else
+                    slot->setName(std::string(1, inpCh++));
+            } else {
+                if (outDetails.names.size() > outSlotIdx)
+                    slot->setName(outDetails.names[outSlotIdx++]);
+                else
+                    slot->setName(std::string(std::format("{}'", outCh++)));
+            }
+            sceneState.addComponent<SlotSceneComponent>(slot);
+            sceneState.attachChild(sceneComp->getUuid(), slot->getUuid());
+        }
+
+        if (inpDetails.isResizeable) {
+            auto slot = std::make_shared<SlotSceneComponent>();
+            slot->setSlotType(SlotType::inputsResize);
+            slot->setIndex(-1); // assign -1 for resize slots
+            sceneComp->addInputSlot(slot->getUuid(), false);
+            sceneState.addComponent<SlotSceneComponent>(slot);
+            sceneState.attachChild(sceneComp->getUuid(), slot->getUuid());
+        }
+
+        if (outDetails.isResizeable) {
+            auto slot = std::make_shared<SlotSceneComponent>();
+            slot->setSlotType(SlotType::outputsResize);
+            slot->setIndex(-1); // assign -1 for resize slots
+            sceneComp->addOutputSlot(slot->getUuid(), false);
+            sceneState.addComponent<SlotSceneComponent>(slot);
+            sceneState.attachChild(sceneComp->getUuid(), slot->getUuid());
+        }
+
+        return sceneComp;
     }
 } // namespace Bess::Canvas
 

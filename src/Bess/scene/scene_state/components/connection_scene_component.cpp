@@ -6,13 +6,7 @@
 #include "simulation_engine.h"
 
 namespace Bess::Canvas {
-    ConnectionSceneComponent::ConnectionSceneComponent(UUID uuid)
-        : SceneComponent(uuid) {
-        initDragBehaviour();
-    }
-
-    ConnectionSceneComponent::ConnectionSceneComponent(UUID uuid, const Transform &transform)
-        : SceneComponent(uuid, transform) {
+    ConnectionSceneComponent::ConnectionSceneComponent() {
         initDragBehaviour();
     }
 
