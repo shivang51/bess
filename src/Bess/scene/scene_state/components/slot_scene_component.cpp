@@ -4,6 +4,7 @@
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/components/types.h"
 #include "simulation_engine.h"
+#include "spdlog/common.h"
 #include "ui/ui.h"
 
 namespace Bess::Canvas {
@@ -106,6 +107,38 @@ namespace Bess::Canvas {
         }
     }
 
+    void SlotSceneComponent::drawSchematic(SceneState &state,
+                                           std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                                           std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+
+        if (isResizeSlot())
+            return;
+
+        const auto &pos = getSchematicPosAbsolute(state);
+        const auto pinId = PickingId{m_runtimeId, PickingId::InfoFlags::unSelectable};
+        constexpr float nodeWeight = Styles::compSchematicStyles.strokeSize;
+        const auto &pinColor = ViewportTheme::schematicViewColors.pin;
+        glm::vec2 offset = {0.f, 0.f};
+        if (m_slotType == SlotType::digitalOutput) {
+            offset.x = Styles::compSchematicStyles.pinSize;
+        } else {
+            offset.x = -Styles::compSchematicStyles.pinSize;
+        }
+
+        pathRenderer->beginPathMode(pos, nodeWeight, pinColor, pinId);
+        pathRenderer->pathLineTo({pos.x + offset.x, pos.y + offset.y, pos.z},
+                                 nodeWeight, pinColor, pinId);
+        pathRenderer->endPathMode(false);
+
+        if (!m_name.empty()) {
+            materialRenderer->drawText(m_name,
+                                       {pos.x + offset.x, pos.y + offset.y - nodeWeight, pos.z},
+                                       componentStyles.slotLabelSize,
+                                       ViewportTheme::colors.text, pinId,
+                                       0.f);
+        }
+    }
+
     SimEngine::SlotState SlotSceneComponent::getSlotState(const SceneState *state) const {
         BESS_ASSERT(m_index >= 0, "Slot index is negative");
 
@@ -156,8 +189,20 @@ namespace Bess::Canvas {
     }
 
     void SlotSceneComponent::removeConnection(const UUID &connectionId) {
-        m_connectedConnections.erase(std::ranges::remove(m_connectedConnections, connectionId).begin(),
+        m_connectedConnections.erase(std::ranges::remove(m_connectedConnections,
+                                                         connectionId)
+                                         .begin(),
                                      m_connectedConnections.end());
+    }
+
+    glm::vec3 SlotSceneComponent::getSchematicPosAbsolute(const SceneState &state) const {
+        return state.getComponentByUuid(m_parentComponent)->getAbsolutePosition(state) +
+               m_schematicPos;
+    }
+
+    bool SlotSceneComponent::isResizeSlot() const {
+        return m_slotType == SlotType::inputsResize ||
+               m_slotType == SlotType::outputsResize;
     }
 } // namespace Bess::Canvas
 

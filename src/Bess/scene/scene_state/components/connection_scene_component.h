@@ -23,6 +23,10 @@ namespace Bess::Canvas {
                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                   std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
 
+        void drawSchematic(SceneState &state,
+                           std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                           std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
+
         void onMouseDragged(const Events::MouseDraggedEvent &e) override;
 
         void onMouseDragBegin(const Events::MouseDraggedEvent &e) override;
@@ -47,6 +51,12 @@ namespace Bess::Canvas {
         void onFirstDraw(SceneState &sceneState,
                          std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                          std::shared_ptr<PathRenderer> pathRenderer) override;
+
+        void drawSegments(const SceneState &state,
+                          const glm::vec3 &startPos,
+                          const glm::vec3 &endPos,
+                          const glm::vec4 &color,
+                          std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer);
 
         UUID m_startSlot = UUID::null;
         UUID m_endSlot = UUID::null;

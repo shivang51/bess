@@ -163,7 +163,8 @@ namespace Bess::Renderer2D::Vulkan {
         }
     }
 
-    void PathRenderer::drawContours(const std::vector<std::vector<PathPoint>> &contours, ContoursDrawInfo info) {
+    void PathRenderer::drawContours(const std::vector<std::vector<PathPoint>> &contours,
+                                    ContoursDrawInfo info) {
         std::vector<std::vector<CommonVertex>> strokeVertices;
         std::vector<CommonVertex> fillVertices;
         if (info.genStroke) {
@@ -329,7 +330,7 @@ namespace Bess::Renderer2D::Vulkan {
         m_pathData.currentPos = startPos;
         m_pathData.points.emplace_back(PathPoint{startPos, weight, id});
         m_pathData.color = color;
-        m_pathData.id = (int64_t)id;
+        m_pathData.id = id;
     }
 
     void PathRenderer::endPathMode(bool closePath, bool genFill,

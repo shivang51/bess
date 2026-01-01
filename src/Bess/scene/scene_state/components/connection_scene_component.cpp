@@ -16,43 +16,11 @@ namespace Bess::Canvas {
         initDragBehaviour();
     }
 
-    void ConnectionSceneComponent::draw(SceneState &state,
-                                        std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                        std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
-
-        if (m_isFirstDraw) {
-            onFirstDraw(state, materialRenderer, pathRenderer);
-        }
-
-        auto startSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
-        auto endSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
-
-        if (!startSlotComp || !endSlotComp)
-            return;
-
-        glm::vec4 color;
-
-        if (m_isSelected) {
-            color = ViewportTheme::colors.selectedComp;
-        } else if (!m_useCustomColor) {
-            const auto &startSlotState = startSlotComp->getSlotState(state);
-            const auto &endSlotState = endSlotComp->getSlotState(state);
-
-            const bool isHigh = startSlotState.state == SimEngine::LogicState::high ||
-                                endSlotState.state == SimEngine::LogicState::high;
-
-            if (isHigh) {
-                color = ViewportTheme::colors.stateHigh;
-            } else {
-                color = ViewportTheme::colors.stateLow;
-            }
-        } else {
-            color = m_style.color;
-        }
-
-        const auto startPos = startSlotComp->getAbsolutePosition(state);
-        const auto endPos = endSlotComp->getAbsolutePosition(state);
-
+    void ConnectionSceneComponent::drawSegments(const SceneState &state,
+                                                const glm::vec3 &startPos,
+                                                const glm::vec3 &endPos,
+                                                const glm::vec4 &color,
+                                                std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
         auto pos = startPos;
         auto prevPos = startPos;
         pos.z = 0.5f;
@@ -92,6 +60,84 @@ namespace Bess::Canvas {
                                  color,
                                  pickingId);
         pathRenderer->endPathMode(false, false, glm::vec4(0.f), true, true);
+    }
+
+    void ConnectionSceneComponent::draw(SceneState &state,
+                                        std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                                        std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+
+        if (m_isFirstDraw) {
+            onFirstDraw(state, materialRenderer, pathRenderer);
+        }
+
+        auto startSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
+        auto endSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
+
+        if (!startSlotComp || !endSlotComp)
+            return;
+
+        glm::vec4 color;
+
+        if (m_isSelected) {
+            color = ViewportTheme::colors.selectedComp;
+        } else if (!m_useCustomColor) {
+            const auto &startSlotState = startSlotComp->getSlotState(state);
+            const auto &endSlotState = endSlotComp->getSlotState(state);
+
+            const bool isHigh = startSlotState.state == SimEngine::LogicState::high ||
+                                endSlotState.state == SimEngine::LogicState::high;
+
+            if (isHigh) {
+                color = ViewportTheme::colors.stateHigh;
+            } else {
+                color = ViewportTheme::colors.stateLow;
+            }
+        } else {
+            color = m_style.color;
+        }
+
+        const auto startPos = startSlotComp->getAbsolutePosition(state);
+        const auto endPos = endSlotComp->getAbsolutePosition(state);
+
+        drawSegments(state, startPos, endPos, color, pathRenderer);
+    }
+
+    void ConnectionSceneComponent::drawSchematic(SceneState &state,
+                                                 std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                                                 std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+        if (m_isFirstSchematicDraw) {
+            onFirstSchematicDraw(state, materialRenderer, pathRenderer);
+        }
+
+        auto startSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
+        auto endSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
+
+        if (!startSlotComp || !endSlotComp)
+            return;
+
+        glm::vec4 color;
+
+        if (m_isSelected) {
+            color = ViewportTheme::colors.selectedComp;
+        } else if (!m_useCustomColor) {
+            const auto &startSlotState = startSlotComp->getSlotState(state);
+            const auto &endSlotState = endSlotComp->getSlotState(state);
+
+            const bool isHigh = startSlotState.state == SimEngine::LogicState::high ||
+                                endSlotState.state == SimEngine::LogicState::high;
+
+            if (isHigh) {
+                color = ViewportTheme::colors.stateHigh;
+            } else {
+                color = ViewportTheme::colors.stateLow;
+            }
+        } else {
+            color = m_style.color;
+        }
+
+        const auto startPos = startSlotComp->getSchematicPosAbsolute(state);
+        const auto endPos = endSlotComp->getSchematicPosAbsolute(state);
+        drawSegments(state, startPos, endPos, color, pathRenderer);
     }
 
     void ConnectionSceneComponent::onMouseDragged(const Events::MouseDraggedEvent &e) {

@@ -1,9 +1,12 @@
 #include "scene/scene_state/components/scene_component.h"
 
+#include <algorithm>
 #include <utility>
 
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
+#include "scene/scene_state/components/types.h"
+#include "settings/viewport_theme.h"
 #include <utility>
 
 namespace Bess::Canvas {
@@ -68,6 +71,14 @@ namespace Bess::Canvas {
         }
     }
 
+    void SceneComponent::drawSchematic(SceneState &state,
+                                       std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                                       std::shared_ptr<PathRenderer> pathRenderer) {
+        if (m_isFirstSchematicDraw) {
+            onFirstSchematicDraw(state, materialRenderer, pathRenderer);
+        }
+    }
+
     void SceneComponent::addChildComponent(const UUID &uuid) {
         m_childComponents.emplace_back(uuid);
     }
@@ -93,6 +104,16 @@ namespace Bess::Canvas {
             }
         }
         return m_childComponents;
+    }
+
+    void SceneComponent::onFirstSchematicDraw(SceneState &state,
+                                              std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                                              std::shared_ptr<PathRenderer> pathRenderer) {
+
+        m_isFirstSchematicDraw = false;
+        if (m_isFirstDraw) {
+            onFirstDraw(state, std::move(materialRenderer), std::move(pathRenderer));
+        }
     }
 } // namespace Bess::Canvas
 

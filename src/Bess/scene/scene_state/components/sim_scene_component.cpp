@@ -1,5 +1,6 @@
 #include "scene/scene_state/components/sim_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
+#include "scene/scene_state/components/slot_scene_component.h"
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "settings/viewport_theme.h"
@@ -45,6 +46,7 @@ namespace Bess::Canvas {
             onFirstDraw(state, materialRenderer, pathRenderer);
         } else if (m_isScaleDirty) {
             setScale(calculateScale(materialRenderer));
+            calculateSchematicScale(state);
             resetSlotPositions(state);
             m_isScaleDirty = false;
         }
@@ -107,6 +109,47 @@ namespace Bess::Canvas {
         }
     }
 
+    void SimulationSceneComponent::drawSchematic(SceneState &state,
+                                                 std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                                                 std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+
+        if (m_isFirstSchematicDraw) {
+            onFirstSchematicDraw(state, materialRenderer, pathRenderer);
+        }
+
+        float x = m_transform.position.x - (m_schematicScale.x / 2.f);
+        float y = m_transform.position.y - (m_schematicScale.y / 2.f);
+        float x1 = x + m_schematicScale.x;
+        float y1 = y + m_schematicScale.y;
+        const glm::vec3 &pos = getAbsolutePosition(state);
+        float nodeWeight = Styles::compSchematicStyles.strokeSize;
+        const auto &textColor = ViewportTheme::schematicViewColors.text;
+        const auto &fillColor = ViewportTheme::schematicViewColors.componentFill;
+        const auto &strokeColor = ViewportTheme::schematicViewColors.componentStroke;
+        const auto &id = PickingId{m_runtimeId, 0};
+        pathRenderer->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
+        pathRenderer->pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);
+        pathRenderer->pathLineTo({x1, y1, pos.z}, nodeWeight, strokeColor, id);
+        pathRenderer->pathLineTo({x, y1, pos.z}, nodeWeight, strokeColor, id);
+        pathRenderer->endPathMode(true, true, fillColor);
+
+        const auto textSize = materialRenderer->getTextRenderSize(m_name,
+                                                                  Styles::compSchematicStyles.nameFontSize);
+        glm::vec3 textPos = {pos.x, y + ((y1 - y) / 2.f), pos.z + 0.0005f};
+        textPos.x -= textSize.x / 2.f;
+        textPos.y += Styles::simCompStyles.headerFontSize / 2.f;
+        materialRenderer->drawText(m_name,
+                                   textPos,
+                                   Styles::compSchematicStyles.nameFontSize,
+                                   textColor, id, 0.f);
+
+        // slots
+        for (const auto &childId : m_childComponents) {
+            auto child = state.getComponentByUuid(childId);
+            child->drawSchematic(state, materialRenderer, pathRenderer);
+        }
+    }
+
     std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>>
     SimulationSceneComponent::calculateSlotPositions(size_t inputCount, size_t outputCount) const {
         const auto pScale = m_transform.scale;
@@ -149,14 +192,41 @@ namespace Bess::Canvas {
         const auto [inpPositions, outPositions] =
             calculateSlotPositions(m_inputSlots.size(), m_outputSlots.size());
 
+        // Schematic diagram pin positions
+        // We will ignore resize slots for schematic view positioning
+        // Resize slots will be hidden in schematic view.
+        auto inpCount = inpPositions.size();
+        auto outCount = outPositions.size();
+        if (inpCount != 0 &&
+            state.getComponentByUuid<SlotSceneComponent>(m_inputSlots.back())->isResizeSlot()) {
+            inpCount -= 1;
+        }
+
+        if (outCount != 0 &&
+            state.getComponentByUuid<SlotSceneComponent>(m_outputSlots.back())->isResizeSlot()) {
+            outCount -= 1;
+        }
+
+        const float inpStartX = -m_schematicScale.x / 2.f;
+        const float inpOffsetY = (m_schematicScale.y / ((float)inpCount + 1.f));
+        const float outStartX = m_schematicScale.x / 2.f;
+        const float outOffsetY = (m_schematicScale.y / ((float)outCount + 1.f));
+        const float startY = -(m_schematicScale.y / 2.f);
+
         for (size_t i = 0; i < inpPositions.size(); i++) {
-            const auto slotComp = state.getComponentByUuid(m_inputSlots[i]);
+            const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(m_inputSlots[i]);
             slotComp->setPosition(inpPositions[i]);
+            slotComp->setSchematicPos(glm::vec3(inpStartX,
+                                                startY + (inpOffsetY * (float)(i + 1)),
+                                                inpPositions[i].z));
         }
 
         for (size_t i = 0; i < outPositions.size(); i++) {
-            const auto slotComp = state.getComponentByUuid(m_outputSlots[i]);
+            const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(m_outputSlots[i]);
             slotComp->setPosition(outPositions[i]);
+            slotComp->setSchematicPos(glm::vec3(outStartX,
+                                                startY + (outOffsetY * (float)(i + 1)),
+                                                outPositions[i].z));
         }
     }
 
@@ -166,6 +236,18 @@ namespace Bess::Canvas {
         setScale(calculateScale(materialRenderer));
         resetSlotPositions(sceneState);
         m_isFirstDraw = false;
+    }
+
+    void SimulationSceneComponent::onFirstSchematicDraw(SceneState &sceneState,
+                                                        std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                                                        std::shared_ptr<PathRenderer> /*unused*/) {
+        if (m_isFirstDraw) {
+            setScale(calculateScale(materialRenderer));
+        }
+
+        calculateSchematicScale(sceneState);
+        resetSlotPositions(sceneState);
+        m_isFirstSchematicDraw = false;
     }
 
     size_t SimulationSceneComponent::getInputSlotsCount() const {
@@ -200,6 +282,27 @@ namespace Bess::Canvas {
         auto &simEngine = SimEngine::SimulationEngine::instance();
         simEngine.deleteComponent(m_simEngineId);
         return SceneComponent::cleanup(state, caller);
+    }
+
+    void SimulationSceneComponent::calculateSchematicScale(SceneState &state) {
+        auto inpCount = m_inputSlots.size();
+        auto outCount = m_outputSlots.size();
+        if (inpCount != 0 &&
+            state.getComponentByUuid<SlotSceneComponent>(m_inputSlots.back())->isResizeSlot()) {
+            inpCount -= 1;
+        }
+
+        if (outCount != 0 &&
+            state.getComponentByUuid<SlotSceneComponent>(m_outputSlots.back())->isResizeSlot()) {
+            outCount -= 1;
+        }
+
+        const size_t maxRows = std::max(inpCount, outCount);
+        const float height = ((float)maxRows * Styles::SCHEMATIC_VIEW_PIN_ROW_SIZE);
+
+        float width = m_transform.scale.x; // keep the same width as normal view
+
+        m_schematicScale = {width, height};
     }
 } // namespace Bess::Canvas
 

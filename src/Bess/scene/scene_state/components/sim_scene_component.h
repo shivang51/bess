@@ -25,6 +25,10 @@ namespace Bess::Canvas {
                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                   std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
 
+        void drawSchematic(SceneState &state,
+                           std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                           std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
+
         REG_SCENE_COMP(SceneComponentType::simulation)
 
         MAKE_GETTER_SETTER(UUID, SimEngineId, m_simEngineId)
@@ -43,6 +47,10 @@ namespace Bess::Canvas {
         std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
 
       protected:
+        /**
+         * Resets the slot positions based on the current scale and number of slots
+         * in the component. Will ignore slots that are resize slots for the schematic view.
+         */
         void resetSlotPositions(SceneState &state);
 
         // Generates the positions relative to the component position
@@ -51,9 +59,15 @@ namespace Bess::Canvas {
 
         glm::vec2 calculateScale(std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) override;
 
+        void calculateSchematicScale(SceneState &state);
+
         void onFirstDraw(SceneState &sceneState,
                          std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                          std::shared_ptr<PathRenderer> /*unused*/) override;
+
+        void onFirstSchematicDraw(SceneState &sceneState,
+                                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                                  std::shared_ptr<PathRenderer> /*unused*/) override;
 
       protected:
         // Associated simulation engine ID
@@ -62,6 +76,7 @@ namespace Bess::Canvas {
         std::vector<UUID> m_inputSlots;
         std::vector<UUID> m_outputSlots;
         bool m_isScaleDirty = true;
+        glm::vec2 m_schematicScale = glm::vec2(0.f);
     };
 } // namespace Bess::Canvas
 

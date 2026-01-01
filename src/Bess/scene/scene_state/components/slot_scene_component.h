@@ -27,6 +27,10 @@ namespace Bess::Canvas {
                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                   std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
 
+        void drawSchematic(SceneState &state,
+                           std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                           std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
+
         void onMouseEnter(const Events::MouseEnterEvent &e) override;
         void onMouseLeave(const Events::MouseLeaveEvent &e) override;
 
@@ -36,9 +40,12 @@ namespace Bess::Canvas {
 
         MAKE_GETTER_SETTER(SlotType, SlotType, m_slotType)
         MAKE_GETTER_SETTER(int, Index, m_index)
+        MAKE_GETTER_SETTER(glm::vec3, SchematicPos, m_schematicPos)
 
         void addConnection(const UUID &connectionId);
         void removeConnection(const UUID &connectionId);
+
+        glm::vec3 getSchematicPosAbsolute(const SceneState &state) const;
 
         SimEngine::SlotState getSlotState(const SceneState &state) const;
         SimEngine::SlotState getSlotState(const SceneState *state) const;
@@ -46,7 +53,10 @@ namespace Bess::Canvas {
 
         std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
 
+        bool isResizeSlot() const;
+
       private:
+        glm::vec3 m_schematicPos = glm::vec3(0.f);
         SlotType m_slotType = SlotType::none;
         std::vector<UUID> m_connectedConnections;
         int m_index = -1;

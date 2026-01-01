@@ -47,6 +47,10 @@ namespace Bess::Canvas {
                           std::shared_ptr<Renderer::MaterialRenderer> /*unused*/,
                           std::shared_ptr<PathRenderer> /*unused*/);
 
+        virtual void drawSchematic(SceneState &,
+                                   std::shared_ptr<Renderer::MaterialRenderer> /*unused*/,
+                                   std::shared_ptr<PathRenderer> /*unused*/);
+
         MAKE_GETTER_SETTER(UUID, Uuid, m_uuid)
         MAKE_GETTER_SETTER_WC(Transform, Transform, m_transform, onTransformChanged)
         MAKE_GETTER_SETTER_WC(Style, Style, m_style, onStyleChanged)
@@ -101,6 +105,10 @@ namespace Bess::Canvas {
                                  std::shared_ptr<Renderer::MaterialRenderer> /*unused*/,
                                  std::shared_ptr<PathRenderer> /*unused*/);
 
+        virtual void onFirstSchematicDraw(SceneState &,
+                                          std::shared_ptr<Renderer::MaterialRenderer> /*unused*/,
+                                          std::shared_ptr<PathRenderer> /*unused*/);
+
         UUID m_uuid = UUID::null;
         uint32_t m_runtimeId = PickingId::invalidRuntimeId; // assigned during rendering for picking
         Transform m_transform;
@@ -110,6 +118,7 @@ namespace Bess::Canvas {
         bool m_isDraggable = false;
         bool m_isSelected = false;
         bool m_isFirstDraw = true;
+        bool m_isFirstSchematicDraw = true;
 
         UUID m_parentComponent = UUID::null;
         std::vector<UUID> m_childComponents;

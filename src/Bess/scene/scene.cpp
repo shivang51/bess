@@ -264,9 +264,15 @@ namespace Bess::Canvas {
             if (x < -span.x || x > span.x || y < -span.y || y > span.y)
                 continue;
 
-            comp->draw(m_state,
-                       artist->getMaterialRenderer(),
-                       artist->getPathRenderer());
+            if (m_isSchematicView) {
+                comp->drawSchematic(m_state,
+                                    artist->getMaterialRenderer(),
+                                    artist->getPathRenderer());
+            } else {
+                comp->draw(m_state,
+                           artist->getMaterialRenderer(),
+                           artist->getPathRenderer());
+            }
         }
 
         if (m_drawMode == SceneDrawMode::selectionBox) {

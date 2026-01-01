@@ -23,7 +23,7 @@ namespace Bess::Renderer2D::Vulkan {
         glm::vec3 startPos;
         std::vector<PathPoint> points;
         std::vector<std::vector<PathPoint>> contours;
-        int64_t id = 0;
+        uint64_t id = 0;
 
         void setCurrentPos(const glm::vec3 &pos) {
             currentPos = pos;
