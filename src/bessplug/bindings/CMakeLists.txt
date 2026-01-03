@@ -66,6 +66,7 @@ set(BESS_PYBIND_SOURCES
 
 		scene/schematic_diagram.cpp
 		scene/scene_component.binding.cpp
+		scene/sim_scene_component.binding.cpp
 
     sim_engine/types.cpp
     sim_engine/sim_functions.cpp

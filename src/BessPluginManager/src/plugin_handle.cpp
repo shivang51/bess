@@ -29,22 +29,6 @@ namespace Bess::Plugins {
             }
         }
 
-        /// temp begin
-        if (py::hasattr(m_pluginObj, "on_scene_comp_load")) {
-            // maping of uint64_t to py::type, a python class
-            py::object compDict = m_pluginObj.attr("on_scene_comp_load")();
-
-            for (auto item : compDict.cast<py::dict>()) {
-                uint64_t key = item.first.cast<uint64_t>();
-                py::type pyCompType = item.second.cast<py::type>();
-                py::print(key, pyCompType);
-                py::object pyCompObj = pyCompType(); // instantiate the python class
-                auto d = pyCompObj.cast<std::shared_ptr<Canvas::SceneComponent>>();
-                d->onNameChanged(); // just to use the class
-            }
-        }
-        /// temp end
-
         py::gil_scoped_release release;
         return components;
     }
@@ -65,6 +49,21 @@ namespace Bess::Plugins {
 
         py::gil_scoped_release release;
         return symbols;
+    }
+
+    void PluginHandle::onSceneComponentsLoad(std::unordered_map<uint64_t, pybind11::type> &reg) {
+        if (py::hasattr(m_pluginObj, "on_scene_comp_load")) {
+            // maping of uint64_t to py::type, a python class
+            py::object compDict = m_pluginObj.attr("on_scene_comp_load")();
+
+            for (auto item : compDict.cast<py::dict>()) {
+                uint64_t key = item.first.cast<uint64_t>();
+                py::type pyCompType = item.second.cast<py::type>();
+                reg.emplace(key, std::move(pyCompType));
+            }
+        }
+
+        py::gil_scoped_release release;
     }
 
     const pybind11::object &PluginHandle::getPluginObject() const {

@@ -90,9 +90,9 @@ namespace Bess::Canvas {
         // Default implementation removes all child components recursively
         // This must be called in the overrides as well
         virtual std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null);
-        virtual void onNameChanged() {}
 
       protected:
+        virtual void onNameChanged() {}
         virtual void onTransformChanged() {}
         virtual void onStyleChanged() {}
 

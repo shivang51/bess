@@ -1,5 +1,6 @@
 #include "plugin_manager.h"
 #include "plugin_handle.h"
+#include "scene/scene_state/components/scene_component.h"
 #include <filesystem>
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
@@ -73,6 +74,11 @@ namespace Bess::Plugins {
                 auto name = pluginHwd.attr("name").cast<std::string>();
 
                 m_plugins[name] = std::make_shared<PluginHandle>(pluginHwd);
+
+                // FIXME: For now we just load scene components directly here,
+                // since I don't use pybind11 outside plugin manager yet.
+                // Load scene component types
+                m_plugins[name]->onSceneComponentsLoad(m_sceneComponentTypes);
 
                 spdlog::info("Successfully loaded plugin: {} from {}", name, path.parent_path().string());
 
@@ -184,4 +190,16 @@ namespace Bess::Plugins {
         savedThreadStates[std::this_thread::get_id()] = nullptr;
     }
 
+    std::shared_ptr<Canvas::SceneComponent> PluginManager::createSceneComponentInstance(uint64_t compDefHash) const {
+        if (!hasSceneComponentType(compDefHash)) {
+            return nullptr;
+        }
+        pybind11::type compType = m_sceneComponentTypes.at(compDefHash);
+        pybind11::object compObj = compType();
+        return compObj.cast<std::shared_ptr<Canvas::SceneComponent>>();
+    }
+
+    bool PluginManager::hasSceneComponentType(uint64_t compDefHash) const {
+        return m_sceneComponentTypes.contains(compDefHash);
+    }
 } // namespace Bess::Plugins

@@ -3,7 +3,6 @@
 #include "plugin_handle.h"
 #include <memory>
 #include <string>
-#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -12,11 +11,9 @@ namespace Bess::Plugins {
     void releasePyThreadState(PyGILState_STATE state);
     void savePyThreadState();
     void restorePyThreadState();
-    inline pybind11::gil_scoped_acquire acquireGIL() {
-        return pybind11::gil_scoped_acquire{};
-    }
 
-    class PluginManager {
+    // using this macro to fix pybind11 warning
+    class __attribute__((visibility("default"))) PluginManager {
       public:
         static PluginManager &getInstance();
         static bool isIntialized;
@@ -30,6 +27,9 @@ namespace Bess::Plugins {
         void unloadAllPlugins();
         bool loadPluginsFromDirectory(const std::string &pluginsDir = "plugins");
 
+        bool hasSceneComponentType(uint64_t compDefHash) const;
+        std::shared_ptr<Canvas::SceneComponent> createSceneComponentInstance(uint64_t compDefHash) const;
+
         std::vector<std::string> getLoadedPluginsNames() const;
         const std::unordered_map<std::string, std::shared_ptr<PluginHandle>> &getLoadedPlugins() const;
         bool isPluginLoaded(const std::string &pluginName) const;
@@ -37,6 +37,7 @@ namespace Bess::Plugins {
 
       private:
         std::unordered_map<std::string, std::shared_ptr<PluginHandle>> m_plugins;
+        std::unordered_map<uint64_t, pybind11::type> m_sceneComponentTypes;
     };
 
 } // namespace Bess::Plugins

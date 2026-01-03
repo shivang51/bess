@@ -1,4 +1,5 @@
 
+#include "scene/scene_state/components/sim_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/scene_state.h" // included for pybind11
 #include <pybind11/functional.h>
@@ -8,17 +9,17 @@
 
 namespace py = pybind11;
 
-class PySceneComponent : public Bess::Canvas::SceneComponent,
-                         public py::trampoline_self_life_support {
+class PySimSceneComponent : public Bess::Canvas::SimulationSceneComponent,
+                            public py::trampoline_self_life_support {
   public:
-    PySceneComponent() = default;
+    PySimSceneComponent() = default;
 
     void draw(Bess::Canvas::SceneState &state,
               std::shared_ptr<Bess::Renderer::MaterialRenderer> materialRenderer,
               std::shared_ptr<Bess::Canvas::PathRenderer> pathRenderer) override {
         PYBIND11_OVERRIDE(
             void,
-            Bess::Canvas::SceneComponent,
+            Bess::Canvas::SimulationSceneComponent,
             draw,
             state,
             materialRenderer,
@@ -30,7 +31,7 @@ class PySceneComponent : public Bess::Canvas::SceneComponent,
                        std::shared_ptr<Bess::Canvas::PathRenderer> pathRenderer) override {
         PYBIND11_OVERRIDE(
             void,
-            Bess::Canvas::SceneComponent,
+            Bess::Canvas::SimulationSceneComponent,
             drawSchematic,
             state,
             materialRenderer,
@@ -38,11 +39,11 @@ class PySceneComponent : public Bess::Canvas::SceneComponent,
     }
 };
 
-void bind_scene_component(py::module_ &m) {
-    py::class_<Bess::Canvas::SceneComponent,
-               PySceneComponent,
-               py::smart_holder>(m, "SceneComponent")
+void bind_sim_scene_component(py::module_ &m) {
+    py::class_<Bess::Canvas::SimulationSceneComponent,
+               PySimSceneComponent,
+               py::smart_holder>(m, "SimSceneComponent")
         .def(py::init<>())
-        .def("draw", &Bess::Canvas::SceneComponent::draw)
-        .def("draw_schematic", &Bess::Canvas::SceneComponent::drawSchematic);
+        .def("draw", &Bess::Canvas::SimulationSceneComponent::draw)
+        .def("draw_schematic", &Bess::Canvas::SimulationSceneComponent::drawSchematic);
 }
