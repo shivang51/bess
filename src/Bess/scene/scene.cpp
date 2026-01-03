@@ -182,8 +182,6 @@ namespace Bess::Canvas {
 
         auto &inst = Bess::Vulkan::VulkanCore::instance();
 
-        auto artistManager = viewport->getArtistManager();
-        artistManager->setSchematicMode(m_isSchematicView);
         viewport->begin((int)inst.getCurrentFrameIdx(),
                         ViewportTheme::colors.background,
                         {0, PickingId::invalid().runtimeId});
@@ -225,12 +223,10 @@ namespace Bess::Canvas {
             }
         }
 
-        auto artistManager = viewport->getArtistManager();
-        artistManager->setSchematicMode(m_isSchematicView);
-        const auto artist = artistManager->getCurrentArtist();
+        const auto &renderers = viewport->getRenderers();
 
         // Grid
-        artist->getMaterialRenderer()->drawGrid(
+        renderers.materialRenderer->drawGrid(
             glm::vec3(0.f, 0.f, 0.1f),
             m_camera->getSpan(),
             PickingId::invalid(),
@@ -247,7 +243,7 @@ namespace Bess::Canvas {
             const auto &pos = comp->getAbsolutePosition(m_state);
             const auto endPos = toScenePos(m_mousePos);
 
-            drawGhostConnection(artist->getPathRenderer(), glm::vec2(pos), endPos);
+            drawGhostConnection(renderers.pathRenderer, glm::vec2(pos), endPos);
         }
 
         const auto &cam = viewport->getCamera();
@@ -265,14 +261,14 @@ namespace Bess::Canvas {
             if (x < -span.x || x > span.x || y < -span.y || y > span.y)
                 continue;
 
-            if (m_isSchematicView) {
+            if (m_state.getIsSchematicView()) {
                 comp->drawSchematic(m_state,
-                                    artist->getMaterialRenderer(),
-                                    artist->getPathRenderer());
+                                    renderers.materialRenderer,
+                                    renderers.pathRenderer);
             } else {
                 comp->draw(m_state,
-                           artist->getMaterialRenderer(),
-                           artist->getPathRenderer());
+                           renderers.materialRenderer,
+                           renderers.pathRenderer);
             }
         }
 
@@ -295,7 +291,7 @@ namespace Bess::Canvas {
         props.borderColor = ViewportTheme::colors.selectionBoxBorder;
         props.borderSize = glm::vec4(1.f);
 
-        auto renderer = m_viewport->getArtistManager()->getCurrentArtist()->getMaterialRenderer();
+        auto renderer = m_viewport->getRenderers().materialRenderer;
         renderer->drawQuad(glm::vec3(pos, 7.f), size, ViewportTheme::colors.selectionBoxFill, -1, props);
     }
 
@@ -725,15 +721,11 @@ namespace Bess::Canvas {
     }
 
     bool *Scene::getIsSchematicViewPtr() {
-        return &m_isSchematicView;
+        return &m_state.getIsSchematicView();
     }
 
     void Scene::toggleSchematicView() {
-        m_isSchematicView = !m_isSchematicView;
-    }
-
-    std::shared_ptr<ArtistManager> Scene::getArtistManager() {
-        return m_viewport->getArtistManager();
+        m_state.setIsSchematicView(!m_state.getIsSchematicView());
     }
 
     VkExtent2D Scene::vec2Extent2D(const glm::vec2 &vec) {
@@ -746,25 +738,6 @@ namespace Bess::Canvas {
     }
 
     void Scene::drawScratchContent(TFrameTime ts, const std::shared_ptr<Viewport> &viewport) {
-        return;
-        auto renderer = viewport->getArtistManager()->getCurrentArtist()->getMaterialRenderer();
-
-        constexpr size_t w = 100;
-        constexpr size_t h = 30;
-        Renderer::QuadRenderProperties props;
-        props.borderRadius = glm::vec4(h / 2.f);
-        renderer->drawQuad(
-            glm::vec3(0.f, 0.f, 1.f),
-            glm::vec2(w, h),
-            glm::vec4(0.2f, 0.2f, 0.8f, 1.f),
-            PickingId::invalid(),
-            props);
-
-        renderer->drawCircle(
-            glm::vec3(-35.f, 0.f, 1.01f),
-            h / 2.f,
-            glm::vec4(0.3f),
-            PickingId::invalid());
     }
 
     bool Scene::isHoveredEntityValid() {

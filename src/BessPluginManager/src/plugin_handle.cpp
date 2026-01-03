@@ -1,5 +1,7 @@
 #include "plugin_handle.h"
 #include "component_definition.h"
+#include "scene/scene_state/components/scene_component.h"
+#include "scene/scene_state/components/sim_scene_component.h"
 #include "scene/schematic_diagram.h"
 #include "spdlog/spdlog.h"
 #include <memory>
@@ -37,7 +39,8 @@ namespace Bess::Plugins {
                 py::type pyCompType = item.second.cast<py::type>();
                 py::print(key, pyCompType);
                 py::object pyCompObj = pyCompType(); // instantiate the python class
-                // auto d = pyCompObj.cast<std::shared_ptr<Canvas::SchematicDiagram>>();
+                auto d = pyCompObj.cast<std::shared_ptr<Canvas::SceneComponent>>();
+                d->onNameChanged(); // just to use the class
             }
         }
         /// temp end

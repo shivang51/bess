@@ -109,8 +109,6 @@ namespace Bess::Canvas {
         bool *getIsSchematicViewPtr();
         void toggleSchematicView();
 
-        std::shared_ptr<ArtistManager> getArtistManager();
-
         bool isHoveredEntityValid();
 
       private:
@@ -171,7 +169,6 @@ namespace Bess::Canvas {
         bool m_selectInSelectionBox = false;
         bool m_getIdsInSelBox = false;
 
-        bool m_isSchematicView = false;
         bool m_isDragging = false;
         SceneDrawMode m_drawMode = SceneDrawMode::none;
         SceneMode m_sceneMode = SceneMode::general;

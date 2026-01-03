@@ -15,6 +15,13 @@ class PySceneComponent : public Bess::Canvas::SceneComponent,
     void setCompDefHash(uint64_t hash) { m_compDefHash = hash; }
     uint64_t getCompDefHash() const { return m_compDefHash; }
 
+    void onNameChanged() override {
+        PYBIND11_OVERRIDE(
+            void,
+            Bess::Canvas::SceneComponent,
+            onNameChanged);
+    }
+
   private:
     uint64_t m_compDefHash = false;
 };

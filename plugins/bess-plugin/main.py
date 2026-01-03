@@ -15,6 +15,9 @@ class DummySceneComp(SceneComp):
         self.set_comp_def_hash(12345)
         print(self.get_comp_def_hash())
 
+    def onNameChanged(self):
+        print("Name changed: og name")
+
 
 class BessPlugin(Plugin):
     def __init__(self):

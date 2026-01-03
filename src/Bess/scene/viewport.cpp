@@ -1,13 +1,14 @@
 #include "scene/viewport.h"
 #include "fwd.hpp"
-#include "scene/scene_pch.h"
 #include "vulkan_core.h"
 
 namespace Bess::Canvas {
 
     constexpr size_t maxFrames = Bess::Vulkan::VulkanCore::MAX_FRAMES_IN_FLIGHT;
 
-    Viewport::Viewport(const std::shared_ptr<Vulkan::VulkanDevice> &device, VkFormat imgFormat, VkExtent2D size)
+    Viewport::Viewport(const std::shared_ptr<Vulkan::VulkanDevice> &device,
+                       VkFormat imgFormat,
+                       VkExtent2D size)
         : m_device(device), m_imgFormat(imgFormat), m_size(size) {
 
         m_cmdBuffers = std::make_unique<Vulkan::VulkanCommandBuffers>(m_device, maxFrames);
@@ -20,8 +21,11 @@ namespace Bess::Canvas {
         m_imgView->createFramebuffer(m_renderPass->getVkHandle());
 
         // Create straight color image for post-processing
-        m_straightColorImageView = std::make_unique<Vulkan::VulkanImageView>(m_device, m_imgFormat, size,
-                                                                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+        m_straightColorImageView = std::make_unique<Vulkan::VulkanImageView>(m_device,
+                                                                             m_imgFormat,
+                                                                             size,
+                                                                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                                                                                 VK_IMAGE_USAGE_SAMPLED_BIT);
 
         // Create post-processing pipeline
         m_postprocessPipeline = std::make_unique<Vulkan::VulkanPostprocessPipeline>(m_device, m_imgFormat);
@@ -34,7 +38,12 @@ namespace Bess::Canvas {
         m_mousePickingData = {};
         m_mousePickingData.ids = {glm::uvec2(0, 0)};
 
-        m_artistManager = std::make_shared<ArtistManager>(m_device, m_renderPass, size);
+        m_renderers.pathRenderer = std::make_shared<Renderer2D::Vulkan::PathRenderer>(device,
+                                                                                      m_renderPass,
+                                                                                      size);
+        m_renderers.materialRenderer = std::make_shared<Renderer::MaterialRenderer>(device,
+                                                                                    m_renderPass,
+                                                                                    size);
 
         auto cmd = m_device->beginSingleTimeCommands();
         transitionImageLayout(cmd, m_imgView->getImage(), m_imgView->getFormat(), VK_IMAGE_LAYOUT_UNDEFINED,
@@ -45,8 +54,7 @@ namespace Bess::Canvas {
     Viewport::~Viewport() {
         m_device->waitForIdle();
 
-        m_artistManager->destroy();
-
+        m_renderers.reset();
         deleteFences();
 
         cleanupPickingResources();
@@ -68,12 +76,11 @@ namespace Bess::Canvas {
         const auto cmdBuffer = m_cmdBuffers->at(frameIdx)->getVkHandle();
 
         m_renderPass->begin(cmdBuffer, m_imgView->getFramebuffer(), m_size, clearColor, clearPickingId);
-
-        m_artistManager->getCurrentArtist()->begin(cmdBuffer, m_camera, frameIdx);
+        m_renderers.begin(cmdBuffer, m_camera, frameIdx);
     }
 
     VkCommandBuffer Viewport::end() {
-        m_artistManager->getCurrentArtist()->end();
+        m_renderers.end();
         m_renderPass->end();
 
         if (m_mousePickingData.pending)
@@ -103,8 +110,7 @@ namespace Bess::Canvas {
         }
         initPostprocessResources();
         m_camera->resize((float)size.width, (float)size.height);
-        m_artistManager->getSchematicArtist()->resize(size);
-        m_artistManager->getNodesArtist()->resize(size);
+        m_renderers.resize(size);
     }
 
     VkCommandBuffer Viewport::getVkCmdBuffer(int idx) {
@@ -369,10 +375,6 @@ namespace Bess::Canvas {
         m_pickingStagingBufferSize = newSize;
     }
 
-    std::shared_ptr<ArtistManager> Viewport::getArtistManager() {
-        return m_artistManager;
-    }
-
     std::vector<unsigned char> Viewport::getPixelData() {
         VkDeviceSize byteSize = m_size.width * m_size.height * 4;
         VkBuffer stagingBuffer = VK_NULL_HANDLE;
@@ -550,4 +552,8 @@ namespace Bess::Canvas {
     }
 
     bool Viewport::isPickingPending() const { return m_mousePickingData.pending; }
+
+    const Renderers &Viewport::getRenderers() const {
+        return m_renderers;
+    }
 }; // namespace Bess::Canvas

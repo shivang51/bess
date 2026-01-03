@@ -1,8 +1,7 @@
 #pragma once
-#include "bess_uuid.h"
 #include "command_buffer.h"
+#include "common/log.h"
 #include "device.h"
-#include "entt/entity/fwd.hpp"
 #include "fwd.hpp"
 #include "scene/artist/artist_manager.h"
 #include "scene/camera.h"
@@ -22,11 +21,52 @@ namespace Bess::Canvas {
         std::vector<glm::uvec2> ids;
     };
 
+    struct Renderers {
+        std::shared_ptr<Renderer::MaterialRenderer> materialRenderer;
+        std::shared_ptr<PathRenderer> pathRenderer;
+
+        void reset() {
+            materialRenderer.reset();
+            pathRenderer.reset();
+        }
+
+        void begin(VkCommandBuffer cmd, const std::shared_ptr<Camera> &camera, uint32_t frameIdx) {
+            BESS_ASSERT(materialRenderer && pathRenderer, "[Viewport] Renderers not initialized");
+
+            materialRenderer->setCurrentFrameIndex(frameIdx);
+            pathRenderer->setCurrentFrameIndex(frameIdx);
+
+            materialRenderer->beginFrame(cmd);
+            pathRenderer->beginFrame(cmd);
+
+            Vulkan::UniformBufferObject ubo{};
+            ubo.mvp = camera->getTransform();
+            ubo.ortho = camera->getOrtho();
+
+            materialRenderer->updateUBO(camera);
+            pathRenderer->updateUniformBuffer(ubo);
+        }
+
+        void end() {
+            materialRenderer->endFrame();
+            pathRenderer->endFrame();
+        }
+
+        void resize(VkExtent2D size) {
+            materialRenderer->resize(size);
+            pathRenderer->resize(size);
+        }
+    };
+
     class Viewport {
       public:
-        Viewport(const std::shared_ptr<Vulkan::VulkanDevice> &device, VkFormat imgFormat, VkExtent2D size);
+        Viewport(const std::shared_ptr<Vulkan::VulkanDevice> &device,
+                 VkFormat imgFormat,
+                 VkExtent2D size);
 
         ~Viewport();
+
+        const Renderers &getRenderers() const;
 
         void begin(int frameIdx, const glm::vec4 &clearColor, const glm::uvec2 &clearPickingId);
 
@@ -47,8 +87,6 @@ namespace Bess::Canvas {
         bool tryUpdatePickingResults();
         bool waitForPickingResults(uint64_t timeoutNs);
         bool isPickingPending() const;
-
-        std::shared_ptr<ArtistManager> getArtistManager();
 
         std::vector<unsigned char> getPixelData();
 
@@ -101,6 +139,6 @@ namespace Bess::Canvas {
         uint32_t m_pickingCopyRecordedFrameIdx = 0;
         uint64_t m_pickingStagingBufferSize = 1;
 
-        std::shared_ptr<ArtistManager> m_artistManager;
+        Renderers m_renderers;
     };
 } // namespace Bess::Canvas
