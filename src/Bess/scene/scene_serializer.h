@@ -1,14 +1,13 @@
 #pragma once
 
-#include "entt_registry_serializer.h"
-#include "scene/components/components.h"
-#include "scene/components/json_converters.h"
-#include "scene/components/non_sim_comp.h"
+#include "bess_uuid.h"
+#include "json/json.h"
+#include <string>
 
 namespace Bess {
-    class SceneSerializer : public EnttRegistrySerializer {
+    class SceneSerializer {
       public:
-        SceneSerializer();
+        SceneSerializer() = default;
 
         void serializeToPath(const std::string &path, int indent = -1);
         void serialize(Json::Value &j);
@@ -17,8 +16,6 @@ namespace Bess {
         void deserializeFromPath(const std::string &path);
         void deserialize(const Json::Value &json);
         void deserializeEntity(const Json::Value &json);
-
-        void registerAll() override;
 
       private:
         float m_maxZ = 0;

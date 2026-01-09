@@ -4,7 +4,6 @@
 #include "bess_uuid.h"
 #include "component_definition.h"
 #include "types.h"
-#include <entt/entt.hpp>
 #include <memory>
 
 namespace Bess::SimEngine {

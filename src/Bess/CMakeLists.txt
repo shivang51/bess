@@ -50,10 +50,6 @@ set(Header_Files
 "scene/scene.h"
 "scene/viewport.h"
 "scene/camera.h"
-"scene/artist/artist_manager.h"
-"scene/artist/nodes_artist.h"
-"scene/artist/base_artist.h"
-"scene/artist/schematic_artist.h"
 "scene/scene_serializer.h"
 "scene/scene_pch.h"
 "scene/scene_state/scene_state.h"
@@ -236,7 +232,6 @@ if("${BUILD_ARCH}" STREQUAL "x64")
 			"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
 			"${CMAKE_SOURCE_DIR}/external/stb_image/include"
 			"${CMAKE_SOURCE_DIR}/external/tinyfiledialogs"
-			"${CMAKE_SOURCE_DIR}/external/entt/include"
 			"${CMAKE_SOURCE_DIR}/external/spdlog/include"
 			"${CMAKE_SOURCE_DIR}/external/libtess2/Include"
 	)

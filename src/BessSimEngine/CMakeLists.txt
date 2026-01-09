@@ -17,7 +17,6 @@ set(Header_Files
     "include/types.h"
     "include/bess_uuid.h"
     "include/logger.h"
-    "include/entt_registry_serializer.h"
     "include/simulation_engine.h"
     "include/sim_engine_state.h"
     "include/simulation_engine_serializer.h"
@@ -38,7 +37,6 @@ set(Source_Files
     "src/digital_component.cpp"
     "src/logger.cpp"
     "src/net/net.cpp" 
-		"src/entt_registry_serializer.cpp"
     "src/component_catalog.cpp"
     "src/component_definition.cpp"
 )
@@ -68,7 +66,6 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE BESS_EXPORTS)
 target_include_directories(${PROJECT_NAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include;"
 		"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
-    "${CMAKE_SOURCE_DIR}/external/entt/include;"
     "${CMAKE_SOURCE_DIR}/external/spdlog/include;"
     "${CMAKE_SOURCE_DIR}/src/BessPluginManager/include;"
 		"${CMAKE_SOURCE_DIR}/src/EventSystem/include"

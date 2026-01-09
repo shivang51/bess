@@ -3,7 +3,6 @@
 #include "bess_api.h"
 #include "component_definition.h"
 #include <cstdint>
-#include <entt/entt.hpp>
 #include <memory>
 
 namespace Bess::SimEngine {

@@ -4,7 +4,6 @@
 #include "bess_uuid.h"
 #include <any>
 #include <chrono>
-#include <entt/entt.hpp>
 #include <functional>
 #include <string>
 

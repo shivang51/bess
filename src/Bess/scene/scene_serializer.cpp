@@ -10,10 +10,6 @@ using namespace Bess::Canvas::Components;
 
 namespace Bess {
 
-    SceneSerializer::SceneSerializer() {
-        SceneSerializer::registerAll();
-    }
-
     void SceneSerializer::serializeToPath(const std::string &path, int indent) {
     }
 
@@ -107,18 +103,4 @@ namespace Bess {
         // }
     }
 
-    void SceneSerializer::registerAll() {
-        // registerComponent<SimEngine::IdComponent>("IdComponent");
-        // registerComponent<TransformComponent>("TransformComponent");
-        // registerComponent<SpriteComponent>("SpriteComponent");
-        // registerComponent<TagComponent>("TagComponent");
-        // registerComponent<SlotComponent>("SlotComponent");
-        // registerComponent<SimulationComponent>("SimulationComponent");
-        // registerComponent<ConnectionSegmentComponent>("ConnectionSegmentComponent");
-        // registerComponent<ConnectionComponent>("ConnectionComponent");
-        // registerComponent<SimulationOutputComponent>("SimulationOutputComponent");
-        // registerComponent<SimulationInputComponent>("SimulationInputComponent");
-        // registerComponent<TextNodeComponent>("TextNodeComponent");
-        // registerComponent<NSComponent>("NSComponent");
-    }
 } // namespace Bess

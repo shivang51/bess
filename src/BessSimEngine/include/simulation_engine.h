@@ -9,9 +9,9 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
-#include <entt/entt.hpp>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <thread>
 
 namespace Bess::SimEngine {

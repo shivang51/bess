@@ -17,11 +17,6 @@
 #include "scene/scene_serializer.h"
 #include "scene/viewport.h"
 
-#include "scene/artist/artist_manager.h"
-#include "scene/artist/base_artist.h"
-#include "scene/artist/nodes_artist.h"
-#include "scene/artist/schematic_artist.h"
-
 #include "scene/components/components.h"
 #include "scene/components/json_converters.h"
 #include "scene/components/non_sim_comp.h"

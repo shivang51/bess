@@ -21,10 +21,6 @@ set(Source_Files
 "components/components.cpp"
 "scene_serializer.cpp"
 "viewport.cpp"
-"artist/schematic_artist.cpp"
-"artist/base_artist.cpp"
-"artist/nodes_artist.cpp"
-"artist/artist_manager.cpp"
 "scene_state/scene_state.cpp"
 "scene_state/components/scene_component_types.cpp"
 "scene_state/components/scene_component.cpp"
@@ -88,7 +84,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 			"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
 			"${CMAKE_SOURCE_DIR}/external/stb_image/include"
 			"${CMAKE_SOURCE_DIR}/external/tinyfiledialogs"
-			"${CMAKE_SOURCE_DIR}/external/entt/include"
 			"${CMAKE_SOURCE_DIR}/external/spdlog/include"
 			"${CMAKE_SOURCE_DIR}/external/libtess2/Include"
 )

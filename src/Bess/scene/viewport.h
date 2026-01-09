@@ -3,7 +3,7 @@
 #include "common/log.h"
 #include "device.h"
 #include "fwd.hpp"
-#include "scene/artist/artist_manager.h"
+#include "renderer/material_renderer.h"
 #include "scene/camera.h"
 #include "vulkan_image_view.h"
 #include "vulkan_offscreen_render_pass.h"

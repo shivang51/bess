@@ -18,7 +18,6 @@ if("${BUILD_ARCH}" STREQUAL "x64")
 	target_include_directories(${PROJECT_NAME} PRIVATE
 			"${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"
 			"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
-			"${CMAKE_SOURCE_DIR}/external/entt/include"
 			"${CMAKE_SOURCE_DIR}/external/spdlog/include;"
 	)
 endif()

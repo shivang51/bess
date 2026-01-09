@@ -2,10 +2,6 @@
 #include "simulation_engine.h"
 
 namespace Bess::SimEngine {
-    SimEngineSerializer::SimEngineSerializer() {
-        SimEngineSerializer::registerAll();
-    }
-
     void SimEngineSerializer::serializeToPath(const std::string &path, int indent) {
         // EnttRegistrySerializer::serializeToPath(SimEngine::SimulationEngine::instance().m_registry, path, indent);
     }
@@ -66,6 +62,4 @@ namespace Bess::SimEngine {
         // EnttRegistrySerializer::deserializeEntity(registry, json);
     }
 
-    void SimEngineSerializer::registerAll() {
-    }
 } // namespace Bess::SimEngine

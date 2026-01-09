@@ -5,6 +5,7 @@
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/sim_scene_component.h"
 #include <cstdint>
+#include <set>
 #include <unordered_set>
 
 namespace Bess::Canvas {

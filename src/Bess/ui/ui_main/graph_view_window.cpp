@@ -10,15 +10,15 @@ namespace Bess::UI {
     GraphViewWindowData GraphViewWindow::s_data{};
     bool GraphViewWindow::isShown = false;
 
-    LabeledDigitalSignal fetchSignal(const std::string &name, const Canvas::Components::SimulationComponent &comp) {
-        const auto &data = SimEngine::SimulationEngine::instance().getStateMonitorData(comp.simEngineEntity);
-
-        std::vector<std::pair<float, int>> parsedData;
-        for (const auto &d : data) {
-            parsedData.emplace_back(std::pair(d.first, (int)d.second));
-        }
-        return {name, parsedData};
-    }
+    // LabeledDigitalSignal fetchSignal(const std::string &name, const Canvas::Components::SimulationComponent &comp) {
+    //     const auto &data = SimEngine::SimulationEngine::instance().getStateMonitorData(comp.simEngineEntity);
+    //
+    //     std::vector<std::pair<float, int>> parsedData;
+    //     for (const auto &d : data) {
+    //         parsedData.emplace_back(std::pair(d.first, (int)d.second));
+    //     }
+    //     return {name, parsedData};
+    // }
 
     void GraphViewWindow::draw() {
         if (!isShown)
@@ -37,7 +37,7 @@ namespace Bess::UI {
         }
 
         std::vector<std::string> comps = {};
-        std::unordered_map<std::string, entt::entity> entities = {};
+        // std::unordered_map<std::string, entt::entity> entities = {};
         // for (auto &ent : view) {
         //     const auto &tagComponent = view.get<Bess::Canvas::Components::TagComponent>(ent);
         //     comps.emplace_back(tagComponent.name);

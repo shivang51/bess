@@ -1,8 +1,6 @@
 #pragma once
 
 #include "bess_uuid.h"
-#include "entt/entity/fwd.hpp"
-#include "entt/entt.hpp"
 #include "json/value.h"
 #include <memory>
 #include <string>

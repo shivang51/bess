@@ -4,8 +4,6 @@
 #include "bess_uuid.h"
 #include "commands/commands_manager.h"
 #include "component_definition.h"
-#include "entt/entity/fwd.hpp"
-#include "entt/entt.hpp"
 #include "events/application_event.h"
 #include "events/scene_events.h"
 #include "events/sim_engine_events.h"
@@ -176,8 +174,6 @@ namespace Bess::Canvas {
         const float m_zIncrement = 0.001f;
         const int snapSize = 2;
         float m_compZCoord = m_zIncrement;
-
-        std::unordered_map<UUID, entt::entity> m_uuidToEntt;
 
         TFrameTime m_frameTimeStep = {};
 
