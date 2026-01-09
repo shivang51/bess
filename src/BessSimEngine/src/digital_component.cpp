@@ -28,6 +28,9 @@ namespace Bess::SimEngine {
         state.inputConnected.emplace_back(false);
         inputConnections.emplace_back();
         const bool exprComputed = definition->computeExpressionsIfNeeded();
+
+        const auto growthPolicy = definition->getIOGrowthPolicy();
+
         if (exprComputed &&
             definition->getOutputSlotsInfo().count !=
                 definition->getOutputExpressions().size()) {
@@ -41,6 +44,13 @@ namespace Bess::SimEngine {
                                       SlotState{LogicState::low, SimTime(0)});
             state.outputConnected.resize(newOutputCount, false);
             outputConnections.resize(newOutputCount);
+
+            EventSystem::EventDispatcher::instance().dispatch(
+                Events::CompDefOutputsResizedEvent{this->id});
+        } else if (growthPolicy == CompDefIOGrowthPolicy::eq &&
+                   definition->getOutputSlotsInfo().count !=
+                       definition->getInputSlotsInfo().count) {
+            incrementOutputCount();
 
             EventSystem::EventDispatcher::instance().dispatch(
                 Events::CompDefOutputsResizedEvent{this->id});
@@ -61,6 +71,18 @@ namespace Bess::SimEngine {
         outputConnections.emplace_back();
         definition->computeExpressionsIfNeeded();
         definition->computeHash();
+
+        const auto growthPolicy = definition->getIOGrowthPolicy();
+        if (growthPolicy == CompDefIOGrowthPolicy::eq &&
+            definition->getOutputSlotsInfo().count !=
+                definition->getInputSlotsInfo().count) {
+
+            incrementInputCount();
+
+            EventSystem::EventDispatcher::instance().dispatch(
+                Events::CompDefInputsResizedEvent{this->id});
+        }
+
         return definition->getOutputSlotsInfo().count;
     }
 } // namespace Bess::SimEngine

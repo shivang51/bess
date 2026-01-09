@@ -48,8 +48,8 @@ namespace Bess::Canvas {
         }
 
         void end() {
-            materialRenderer->endFrame();
             pathRenderer->endFrame();
+            materialRenderer->endFrame();
         }
 
         void resize(VkExtent2D size) {

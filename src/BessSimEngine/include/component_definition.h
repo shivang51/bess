@@ -34,6 +34,11 @@ namespace Bess::SimEngine {
         varName = value;                 \
     }
 
+    enum class CompDefIOGrowthPolicy : uint8_t {
+        none,
+        eq,
+    };
+
     enum class CompDefinitionOwnership : uint8_t {
         NativeCpp,
         Python
@@ -81,6 +86,7 @@ namespace Bess::SimEngine {
                               m_outputExpressions,
                               onExpressionsChange)
         MAKE_GETTER_SETTER(CompDefinitionOwnership, Ownership, m_ownership)
+        MAKE_GETTER_SETTER(CompDefIOGrowthPolicy, IOGrowthPolicy, m_ioGrowthPolicy)
 
         template <typename T>
         T &getAuxDataAs() {
@@ -182,6 +188,7 @@ namespace Bess::SimEngine {
 
       protected:
         bool m_shouldAutoReschedule = false;
+        CompDefIOGrowthPolicy m_ioGrowthPolicy = CompDefIOGrowthPolicy::none;
         SlotsGroupInfo m_inputSlotsInfo{}, m_outputSlotsInfo{};
         OperatorInfo m_opInfo{};
         SimDelayNanoSeconds m_simDelay = SimDelayNanoSeconds{0};

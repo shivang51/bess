@@ -135,6 +135,7 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         .DEF_PROP_GSET_T(SlotsGroupInfo, "output_slots_info", OutputSlotsInfo)
         .DEF_PROP_GSET_T(SimDelayNanoSeconds, "sim_delay", SimDelay)
         .DEF_PROP_GSET_T(OperatorInfo, "op_info", OpInfo)
+        .DEF_PROP_GSET_T(CompDefIOGrowthPolicy, "io_growth_policy", IOGrowthPolicy)
         .DEF_PROP_GSET_T(std::vector<std::string>, "output_expressions", OutputExpressions)
         .def_property("aux_data", getAuxData, setAuxData, "Get Set Aux Data as a Python object.")
         .def_property("simulation_function", getSimFn, setSimFn, "Get or set the simulation function as a Python callable.");

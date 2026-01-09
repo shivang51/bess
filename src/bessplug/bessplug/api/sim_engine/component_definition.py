@@ -29,21 +29,23 @@ class ComponentDefinition(NativeComponentDefinition):
 
     def clone(self) -> ComponentDefinition:
         """Create a deep copy of this ComponentDefinition via Python implementation."""
-        clone = ComponentDefinition()
-        clone.name = self.name
-        clone.group_name = self.group_name
-        clone.sim_delay = self.sim_delay
-        clone.input_slots_info = self.input_slots_info
-        clone.output_slots_info = self.output_slots_info
-        clone.behavior_type = self.behavior_type
-        clone.should_auto_reschedule = self.should_auto_reschedule
-        clone.op_info = self.op_info
-        clone.aux_data = self.aux_data
-        clone.output_expressions = (
-            self.output_expressions
-        )  # its very important to copy them after aux_data
-        clone.set_simulation_function(self.simulation_function)
-        return clone
+        cloned = ComponentDefinition()
+        cloned.name = self.name
+        cloned.group_name = self.group_name
+        cloned.sim_delay = self.sim_delay
+        cloned.input_slots_info = self.input_slots_info
+        cloned.output_slots_info = self.output_slots_info
+        cloned.behavior_type = self.behavior_type
+        cloned.should_auto_reschedule = self.should_auto_reschedule
+        cloned.op_info = self.op_info
+        cloned.aux_data = self.aux_data
+        cloned.io_growth_policy = self.io_growth_policy
+        if self.output_expressions is not None and len(self.output_expressions) > 0:
+            cloned.output_expressions = (
+                self.output_expressions
+            )  # its very important to copy them after aux_data
+        cloned.set_simulation_function(self.simulation_function)
+        return cloned
 
     def set_simulation_function(self, sim_function: Callable) -> None:
         self.simulation_function = sim_function

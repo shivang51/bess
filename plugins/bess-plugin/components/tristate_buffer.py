@@ -5,7 +5,7 @@ from bessplug.api.sim_engine import (
     LogicState,
     SlotsGroupInfo,
 )
-from bessplug.api.sim_engine.enums import SlotCategory
+from bessplug.api.sim_engine.enums import SlotCategory, CompDefIOGrowthPolicy
 import datetime
 
 
@@ -15,7 +15,7 @@ def _simulate_tristate_buffer(
     newState = oldState.copy()
     newState.input_states = inputs.copy()
     output_states = []
-    enable_input = inputs[-1]
+    enable_input = inputs[1]
     changed = False
     for inp in inputs[:-1]:
         new_output = PinState()
@@ -39,6 +39,7 @@ input_slots = SlotsGroupInfo()
 input_slots.count = 2
 input_slots.names = ["A", "Enable"]
 input_slots.categories = [(1, SlotCategory.ENABLE)]
+input_slots.is_resizeable = True
 
 output_slots = SlotsGroupInfo()
 output_slots.count = 1
@@ -52,5 +53,7 @@ tristate_buffer_def = ComponentDefinition.from_sim_fn(
     sim_delay=datetime.timedelta(microseconds=0.01),
     simFn=_simulate_tristate_buffer,
 )
+
+tristate_buffer_def.io_growth_policy = CompDefIOGrowthPolicy.EQ
 
 __all__ = ["tristate_buffer_def"]

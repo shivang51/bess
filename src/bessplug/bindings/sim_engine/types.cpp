@@ -162,4 +162,9 @@ void bind_sim_engine_types(py::module_ &m) {
         .value("INPUT", ComponentBehaviorType::input)
         .value("OUTPUT", ComponentBehaviorType::output)
         .export_values();
+
+    py::enum_<CompDefIOGrowthPolicy>(m, "CompDefIOGrowthPolicy")
+        .value("NONE", CompDefIOGrowthPolicy::none)
+        .value("EQ", CompDefIOGrowthPolicy::eq)
+        .export_values();
 }

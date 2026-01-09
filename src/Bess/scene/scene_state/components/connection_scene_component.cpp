@@ -18,8 +18,8 @@ namespace Bess::Canvas {
                                                 const glm::vec4 &color,
                                                 std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
         auto pos = startPos;
-        auto prevPos = startPos;
         pos.z = 0.5f;
+        auto prevPos = pos;
         PickingId pickingId{m_runtimeId, 0};
         pathRenderer->beginPathMode(pos,
                                     m_hoveredSegIdx == 0 ? 3 : 2,

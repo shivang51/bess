@@ -62,8 +62,10 @@ void main() {
 
     if (v_IsMica == 1) {
         vec3 dark = baseColor.rgb * smoothstep(0.5f, 1.f, length(1.f - v_TexCoord - 0.45f));
-        baseColor.rgb *= mix(baseColor.rgb, dark, v_TexCoord.y + 0.01);
-        baseColor.a *= mix(0.4f, 0.9f, 1.f - v_TexCoord.y);
+
+        float v = length(vec2(v_TexCoord.x, v_TexCoord.y + 0.01f));
+        baseColor.rgb *= mix(baseColor.rgb, dark, v);
+        baseColor.a *= mix(0.4f, 0.9f, v);
     }
 
     vec4 color = mix(v_BorderColor, baseColor, mI);

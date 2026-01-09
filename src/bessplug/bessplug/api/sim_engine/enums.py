@@ -12,6 +12,7 @@ from bessplug.bindings._bindings.sim_engine import (
     SlotsGroupType,
     SlotCategory,
     ComponentBehaviorType,
+    CompDefIOGrowthPolicy,
 )
 
 
@@ -21,4 +22,5 @@ __all__ = [
     "SlotsGroupType",
     "SlotCategory",
     "ComponentBehaviorType",
+    "CompDefIOGrowthPolicy",
 ]
