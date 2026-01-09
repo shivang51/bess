@@ -150,7 +150,7 @@ void bind_sim_engine_types(py::module_ &m) {
         .def_readwrite("op", &OperatorInfo::op)
         .def_readwrite("should_negate_output", &OperatorInfo::shouldNegateOutput);
 
-    py::enum_<SlotCatergory>(m, "SlotCatergory")
+    py::enum_<SlotCatergory>(m, "SlotCategory")
         .value("NONE", SlotCatergory::none)
         .value("CLOCK", SlotCatergory::clock)
         .value("CLEAR", SlotCatergory::clear)

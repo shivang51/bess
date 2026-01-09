@@ -8,43 +8,17 @@ from __future__ import annotations
 from enum import Enum
 from bessplug.bindings._bindings.sim_engine import (
     LogicState,
-    PinType as _PinType,
-    SlotsGroupType as _SlotsGroupType,
-    SlotCatergory as _SlotCategory,
-    ComponentBehaviorType as _ComponentBehaviorType,
+    PinType,
+    SlotsGroupType,
+    SlotCategory,
+    ComponentBehaviorType,
 )
-
-
-class PinType(Enum):
-    INPUT = _PinType.INPUT
-    OUTPUT = _PinType.OUTPUT
-
-    @classmethod
-    def from_str(cls, name: str):
-        return cls[name.upper()]
-
-
-class SlotGroupType(Enum):
-    NONE = _SlotsGroupType.NONE
-    INPUT = _SlotsGroupType.INPUT
-    OUTPUT = _SlotsGroupType.OUTPUT
-
-
-class SlotCategory(Enum):
-    NONE = _SlotCategory.NONE
-    CLOCK = _SlotCategory.CLOCK
-    CLEAR = _SlotCategory.CLEAR
-    ENABLE = _SlotCategory.ENABLE
-
-
-class ComponentBehaviorType(Enum):
-    NONE = _ComponentBehaviorType.NONE
-    INPUT = _ComponentBehaviorType.INPUT
-    OUTPUT = _ComponentBehaviorType.OUTPUT
 
 
 __all__ = [
     "LogicState",
     "PinType",
-    "ExtendedPinType",
+    "SlotsGroupType",
+    "SlotCategory",
+    "ComponentBehaviorType",
 ]

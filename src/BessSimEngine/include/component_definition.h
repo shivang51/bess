@@ -44,7 +44,7 @@ namespace Bess::SimEngine {
         bool isResizeable = false;
         size_t count = 0;
         std::vector<std::string> names;
-        std::vector<SlotCatergory> categories;
+        std::vector<std::pair<int, SlotCatergory>> categories; // slot_index, category
     };
 
     struct BESS_API OperatorInfo {

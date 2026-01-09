@@ -1,4 +1,4 @@
-from .enums import SlotGroupType
+from .enums import SlotCategory, SlotsGroupType
 from bessplug.bindings._bindings.sim_engine import (
     SlotsGroupInfo as NativeSlotsGroupInfo,
 )
@@ -13,11 +13,11 @@ class SlotsGroupInfo:
         self._native: NativeSlotsGroupInfo = NativeSlotsGroupInfo()
 
     @property
-    def type(self) -> SlotGroupType:
-        return SlotGroupType(self._native.type)
+    def type(self) -> SlotsGroupType:
+        return SlotsGroupType(self._native.type)
 
     @type.setter
-    def type(self, value: SlotGroupType) -> None:
+    def type(self, value: SlotsGroupType) -> None:
         self._native.type = value.value
 
     @property
@@ -45,11 +45,11 @@ class SlotsGroupInfo:
         self._native.names = value
 
     @property
-    def categories(self) -> list[str]:
+    def categories(self) -> list[tuple[int, SlotCategory]]:
         return list(self._native.categories)
 
     @categories.setter
-    def categories(self, value: list[str]) -> None:
+    def categories(self, value: list[tuple[int, SlotCategory]]) -> None:
         self._native.categories = value
 
 
