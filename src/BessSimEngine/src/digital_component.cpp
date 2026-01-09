@@ -69,7 +69,6 @@ namespace Bess::SimEngine {
         state.outputStates.emplace_back();
         state.outputConnected.emplace_back(false);
         outputConnections.emplace_back();
-        definition->computeExpressionsIfNeeded();
         definition->computeHash();
 
         const auto growthPolicy = definition->getIOGrowthPolicy();

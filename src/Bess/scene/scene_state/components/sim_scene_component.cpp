@@ -324,10 +324,9 @@ namespace Bess::Canvas {
 
         // setting the name before adding to scene state, so that event listeners can access it
         sceneComp->setName(compDef->getName());
+        sceneComp->setSimEngineId(simEngineId);
 
         sceneState.addComponent<SimulationSceneComponent>(sceneComp);
-
-        sceneComp->setSimEngineId(simEngineId);
 
         // style
         auto &style = sceneComp->getStyle();

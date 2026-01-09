@@ -958,6 +958,8 @@ namespace Bess::Canvas {
 
     void Scene::onCompDefOutputsResized(const SimEngine::Events::CompDefOutputsResizedEvent &e) {
         const auto &parent = m_state.getComponentBySimEngineId<SimulationSceneComponent>(e.componentId);
+        BESS_ASSERT(parent, std::format("[Scene] Component with simEngineId {} not found in scene state",
+                                        (uint64_t)e.componentId));
         const auto &digitalComp = SimEngine::SimulationEngine::instance().getDigitalComponent(e.componentId);
         const auto &outSlotsInfo = digitalComp->definition->getOutputSlotsInfo();
 

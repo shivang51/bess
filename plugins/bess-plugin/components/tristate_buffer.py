@@ -12,6 +12,7 @@ import datetime
 def _simulate_tristate_buffer(
     inputs: list[PinState], simTime: float, oldState: ComponentState
 ) -> ComponentState:
+    print(len(oldState.input_states), len(inputs))
     newState = oldState.copy()
     newState.input_states = inputs.copy()
     output_states = []
@@ -39,7 +40,7 @@ input_slots = SlotsGroupInfo()
 input_slots.count = 2
 input_slots.names = ["A", "Enable"]
 input_slots.categories = [(1, SlotCategory.ENABLE)]
-input_slots.is_resizeable = True
+input_slots.is_resizeable = False  # FIXME: Should be true to allow multiple data inputs
 
 output_slots = SlotsGroupInfo()
 output_slots.count = 1
