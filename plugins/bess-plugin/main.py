@@ -8,17 +8,7 @@ from components.latches import latches
 from components.digital_gates import digital_gates, schematic_symbols
 from components.flip_flops import flip_flops
 from components.combinational_circuits import combinational_circuits
-
-
-class DummySceneComp(SceneComp):
-    def __init__(self):
-        super().__init__()
-        print("DummyScenComp created")
-        self.set_comp_def_hash(12345)
-        print(self.get_comp_def_hash())
-
-    def onNameChanged(self):
-        print("Name changed: og name")
+from components.tristate_buffer import tristate_buffer_def
 
 
 class BessPlugin(Plugin):
@@ -27,7 +17,13 @@ class BessPlugin(Plugin):
 
     @override
     def on_components_reg_load(self) -> list[ComponentDefinition]:
-        return [*latches, *digital_gates, *flip_flops, *combinational_circuits]
+        return [
+            *latches,
+            *digital_gates,
+            *flip_flops,
+            *combinational_circuits,
+            tristate_buffer_def,
+        ]
 
     @override
     def on_schematic_symbols_load(self) -> dict[int, SchematicDiagram]:
@@ -36,8 +32,9 @@ class BessPlugin(Plugin):
 
     @override
     def on_scene_comp_load(self) -> dict[int, type]:
-        d = {12345: DummySceneComp}
-        return d
+        # Its implementation is not completed yet in backend
+        # :(
+        return {}
 
 
 plugin_hwd = BessPlugin()
