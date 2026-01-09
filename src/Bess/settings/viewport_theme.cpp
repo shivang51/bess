@@ -80,10 +80,7 @@ namespace Bess {
     }
 
     void ViewportTheme::initCompColorMap() {
-        // We use slightly desaturated "Pastel-Pro" colors.
-        // They are bright enough to categorize but muted enough to not be distracting.
 
-        const glm::vec4 logicColor = glm::vec4(0.26f, 0.39f, 0.55f, 0.90f);          // Blue (Input/Logic)
         const glm::vec4 memoryColor = glm::vec4(0.48f, 0.35f, 0.58f, 0.90f);         // Muted Amethyst (State/Memory)
         const glm::vec4 arithmeticColor = glm::vec4(0.32f, 0.56f, 0.32f, 0.90f);     // Sage Green (Math/Numbers)
         const glm::vec4 routingColor = glm::vec4(0.72f, 0.45f, 0.25f, 0.90f);        // Ochre/Orange (Routing/Data Flow)
@@ -91,28 +88,21 @@ namespace Bess {
         const glm::vec4 combinationalColor = glm::vec4(0.25f, 0.55f, 0.55f, 0.90f);  // Deep Cyan (Process)
         const glm::vec4 ioColor = glm::vec4(0.45f, 0.45f, 0.45f, 0.90f);             // Graphite (Hardware I/O)
         const glm::vec4 specialColor = glm::vec4(0.35f, 0.35f, 0.35f, 0.85f);        // Dark Grey
+        const glm::vec4 logicColor = arithmeticColor;
 
         s_compHeaderColorMap.clear();
 
-        // Logic & Basic Gates
-        s_compHeaderColorMap["Digital Gates"] = logicColor;
-        s_compHeaderColorMap["IO"] = ioColor;
+        s_compHeaderColorMap["IO"] = routingColor;
 
-        // Sequential / State
-        s_compHeaderColorMap["Flip Flop"] = memoryColor;
+        s_compHeaderColorMap["Flip Flops"] = memoryColor;
         s_compHeaderColorMap["Registers/Memory"] = memoryColor; // Added for future use
 
-        // Math & Computation
-        s_compHeaderColorMap["Adders/Subtractors"] = arithmeticColor;
+        s_compHeaderColorMap["Digital Gates"] = logicColor;
 
-        // Data Routing
-        s_compHeaderColorMap["Multiplexers/Demultiplexers"] = routingColor;
-        s_compHeaderColorMap["Encoders/Decoders"] = encoderDecoderColor;
+        s_compHeaderColorMap["Latches"] = encoderDecoderColor;
 
-        // Mixed/Combinational
         s_compHeaderColorMap["Combinational Circuits"] = combinationalColor;
 
-        // System
         s_compHeaderColorMap["Miscellaneous"] = specialColor;
     }
 } // namespace Bess
