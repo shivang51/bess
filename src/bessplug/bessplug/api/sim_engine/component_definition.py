@@ -33,13 +33,15 @@ class ComponentDefinition(NativeComponentDefinition):
         clone.name = self.name
         clone.group_name = self.group_name
         clone.sim_delay = self.sim_delay
-        clone.output_expressions = self.output_expressions
         clone.input_slots_info = self.input_slots_info
         clone.output_slots_info = self.output_slots_info
         clone.behavior_type = self.behavior_type
         clone.should_auto_reschedule = self.should_auto_reschedule
         clone.op_info = self.op_info
         clone.aux_data = self.aux_data
+        clone.output_expressions = (
+            self.output_expressions
+        )  # its very important to copy them after aux_data
         clone.set_simulation_function(self.simulation_function)
         return clone
 
@@ -81,7 +83,7 @@ class ComponentDefinition(NativeComponentDefinition):
         defi.sim_delay = sim_delay
         defi.input_slots_info = inputs._native
         defi.output_slots_info = outputs._native
-        defi.expressions = expressions
+        defi.output_expressions = expressions
         return defi
 
     @staticmethod

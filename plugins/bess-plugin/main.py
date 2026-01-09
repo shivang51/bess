@@ -7,6 +7,7 @@ from bessplug.plugin import SchematicDiagram
 from components.latches import latches
 from components.digital_gates import digital_gates, schematic_symbols
 from components.flip_flops import flip_flops
+from components.combinational_circuits import combinational_circuits
 
 
 class DummySceneComp(SceneComp):
@@ -26,7 +27,7 @@ class BessPlugin(Plugin):
 
     @override
     def on_components_reg_load(self) -> list[ComponentDefinition]:
-        return [*latches, *digital_gates, *flip_flops]
+        return [*latches, *digital_gates, *flip_flops, *combinational_circuits]
 
     @override
     def on_schematic_symbols_load(self) -> dict[int, SchematicDiagram]:

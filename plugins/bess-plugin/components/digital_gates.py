@@ -9,6 +9,12 @@ from bessplug.plugin import SchematicDiagram
 
 
 _gates = {
+    "BUF": {
+        "name": "Buffer Gate",
+        "input_pins": ["A"],
+        "output_pins": ["Y"],
+        "op": "$",
+    },
     "AND": {
         "name": "AND Gate",
         "input_pins": ["A", "B"],

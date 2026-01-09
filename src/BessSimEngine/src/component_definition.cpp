@@ -1,4 +1,5 @@
 #include "component_definition.h"
+#include "expression_evalutator/expr_evaluator.h"
 #include "types.h"
 #include <logger.h>
 #include <memory>
@@ -113,7 +114,8 @@ namespace Bess::SimEngine {
         // handeling unary and binary operators
         // For binary operators, only single output is supported
         // and for uniary operator, each input generates one output
-        if (m_opInfo.op != '!' && m_outputSlotsInfo.count == 1) {
+        if (!ExprEval::isUninaryOperator(m_opInfo.op) &&
+            m_outputSlotsInfo.count == 1) {
             std::string expr = m_opInfo.shouldNegateOutput ? "!(0" : "0";
             for (size_t i = 1; i < m_inputSlotsInfo.count; i++) {
                 expr += m_opInfo.op + std::to_string(i);
@@ -121,7 +123,7 @@ namespace Bess::SimEngine {
             if (m_opInfo.shouldNegateOutput)
                 expr += ")";
             m_outputExpressions = {expr};
-        } else if (m_opInfo.op == '!') {
+        } else if (ExprEval::isUninaryOperator(m_opInfo.op)) {
             m_outputExpressions.reserve(m_inputSlotsInfo.count);
             for (size_t i = 0; i < m_inputSlotsInfo.count; i++) {
                 m_outputExpressions.emplace_back(std::format("{}{}", m_opInfo.op, i));

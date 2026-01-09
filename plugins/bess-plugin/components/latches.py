@@ -5,8 +5,8 @@ from bessplug.api.sim_engine import (
     ComponentState,
     PinState,
     LogicState,
+    SlotsGroupInfo,
 )
-from bessplug.api.sim_engine.slots_group_info import SlotsGroupInfo
 
 
 class LatchType(Enum):

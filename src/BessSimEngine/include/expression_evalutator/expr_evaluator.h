@@ -1,4 +1,13 @@
+/**
+ * @file expr_evaluator.h
+ * @brief Expression evaluator for logic simulation engine
+ * @details This file contains functions to evaluate logical expressions based on input slot states.
+ * The expressions can include binary operators (+ for OR, * for AND, ^ for XOR)
+ * and unary operators (! for NOT, $ for buffer).
+ **/
+
 #pragma once
+
 #include "types.h"
 #include <logger.h>
 #include <stack>
@@ -23,7 +32,13 @@ namespace Bess::SimEngine::ExprEval {
     inline bool applyUnaryOperator(bool a, char op) {
         if (op == '!')
             return !a;
+        else if (op == '$') // buffer operator
+            return a;
         throw std::runtime_error("Unsupported unary operator");
+    }
+
+    inline bool isUninaryOperator(char op) {
+        return op == '!' || op == '$';
     }
 
     inline bool evaluateExpression(const std::string &expr, const std::vector<bool> &values) {
@@ -32,10 +47,12 @@ namespace Bess::SimEngine::ExprEval {
 
         auto precedence = [](char op) {
             switch (op) {
+            case '$':
+                return 5;
             case '!':
-                return 3;
+                return 4;
             case '*':
-                return 2;
+                return 3;
             case '^':
                 return 2;
             case '+':
@@ -48,7 +65,7 @@ namespace Bess::SimEngine::ExprEval {
         auto applyTopOperator = [&]() {
             char op = operators.top();
             operators.pop();
-            if (op == '!') {
+            if (op == '!' || op == '$') {
                 int a = operands.top();
                 operands.pop();
                 operands.push(applyUnaryOperator(a, op));
@@ -84,8 +101,8 @@ namespace Bess::SimEngine::ExprEval {
                     applyTopOperator();
                 }
                 operators.push(expr[i]);
-            } else if (expr[i] == '!') {
-                operators.push('!');
+            } else if (isUninaryOperator(expr[i])) {
+                operators.push(expr[i]);
             } else {
                 BESS_SE_ERROR("Invalid expression {}", expr);
                 throw std::runtime_error("Invalid character in expression");
@@ -106,6 +123,12 @@ namespace Bess::SimEngine::ExprEval {
         newState.inputStates = inputs;
         bool changed = false;
         assert(prevState.auxData && "ExprEvalSimFunc requires auxData to be set with expressions");
+        if (prevState.auxData->type() != typeid(std::vector<std::string>)) {
+            throw std::runtime_error(
+                std::format(
+                    "ExprEvalSimFunc auxData must be std::vector<std::string>, got {}",
+                    prevState.auxData->type().name()));
+        }
         auto expressions = std::any_cast<std::vector<std::string>>(prevState.auxData);
         for (int i = 0; i < (int)expressions->size(); i++) {
             std::vector<bool> states;
