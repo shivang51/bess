@@ -166,68 +166,7 @@ namespace Bess::SimEngine {
         // ComponentCatalog::instance().registerComponent(def, ComponentCatalog::SpecialType::sevenSegmentDisplay);
     }
 
-    inline void initDigitalGates() {
-        // auto registerTriBufferN = [&](int N, const std::string &humanName, const std::string &shortName) {
-        //     auto simFuncN = [N](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
-        //         auto newState = prevState;
-        //         newState.inputStates = inputs;
-        //
-        //         const PinState &oe = inputs[N];
-        //         bool enabled = (oe.state == LogicState::high);
-        //
-        //         if (prevState.outputStates.size() < (size_t)N)
-        //             newState.outputStates.resize(N, {LogicState::high_z, SimTime(0)});
-        //
-        //         bool anyChanged = false;
-        //         for (int i = 0; i < N; ++i) {
-        //             PinState newOut;
-        //             if (enabled) {
-        //                 newOut.state = inputs[i].state;
-        //                 newOut.lastChangeTime = currentTime;
-        //             } else {
-        //                 newOut.state = LogicState::high_z;
-        //                 newOut.lastChangeTime = currentTime;
-        //             }
-        //
-        //             if (prevState.outputStates[i].state != newOut.state) {
-        //                 newState.outputStates[i] = newOut;
-        //                 anyChanged = true;
-        //             } else {
-        //                 newState.outputStates[i].lastChangeTime = newOut.lastChangeTime;
-        //             }
-        //         }
-        //
-        //         newState.isChanged = anyChanged;
-        //         return newState;
-        //     };
-        //
-        //     ComponentDefinition inst(
-        //         humanName,
-        //         shortName,
-        //         N + 1,
-        //         N,
-        //         simFuncN,
-        //         SimDelayNanoSeconds(1));
-        //
-        //     inst.inputPinDetails.clear();
-        //     for (int i = 0; i < N; ++i)
-        //         inst.inputPinDetails.emplace_back(PinType::input, std::format("D{}", i));
-        //     inst.inputPinDetails.emplace_back(PinType::input, "OE");
-        //     inst.outputPinDetails.clear();
-        //     for (int i = 0; i < N; ++i)
-        //         inst.outputPinDetails.emplace_back(PinType::output, std::format("Q{}", i));
-        //
-        //     ComponentCatalog::instance().registerComponent(inst);
-        // };
-        //
-        // registerTriBufferN(8, "8-Bit Tri-State Buffer", "Digital Gates");
-        // registerTriBufferN(4, "4-Bit Tri-State Buffer", "Digital Gates");
-        // registerTriBufferN(2, "2-Bit Tri-State Buffer", "Digital Gates");
-        // registerTriBufferN(1, "Tri-State Buffer", "Digital Gates");
-    }
-
     inline void initComponentCatalog() {
-        initDigitalGates();
         initIO();
     }
 } // namespace Bess::SimEngine
