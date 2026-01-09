@@ -331,16 +331,9 @@ namespace Bess::Canvas {
         // style
         auto &style = sceneComp->getStyle();
 
-        if (isInput || isOutput) {
-            constexpr glm::vec4 ioCompColor = glm::vec4(0.2f, 0.2f, 0.4f, 0.6f);
-            style.color = ioCompColor;
-            style.borderRadius = glm::vec4(8.f);
-        } else {
-            style.color = ViewportTheme::colors.componentBG;
-            style.borderRadius = glm::vec4(6.f);
-            style.headerColor = ViewportTheme::getCompHeaderColor(compDef->getGroupName());
-        }
-
+        style.color = ViewportTheme::colors.componentBG;
+        style.borderRadius = glm::vec4(6.f);
+        style.headerColor = ViewportTheme::getCompHeaderColor(compDef->getGroupName());
         style.borderColor = ViewportTheme::colors.componentBorder;
         style.borderSize = glm::vec4(1.f);
         style.color = ViewportTheme::colors.componentBG;

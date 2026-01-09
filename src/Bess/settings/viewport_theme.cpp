@@ -92,7 +92,7 @@ namespace Bess {
 
         s_compHeaderColorMap.clear();
 
-        s_compHeaderColorMap["IO"] = routingColor;
+        s_compHeaderColorMap["IO"] = ioColor;
 
         s_compHeaderColorMap["Flip Flops"] = memoryColor;
         s_compHeaderColorMap["Registers/Memory"] = memoryColor; // Added for future use

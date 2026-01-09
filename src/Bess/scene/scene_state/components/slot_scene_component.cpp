@@ -124,8 +124,16 @@ namespace Bess::Canvas {
         pathRenderer->endPathMode(false);
 
         if (!m_name.empty()) {
+            const auto textSize = materialRenderer->getTextRenderSize(m_name,
+                                                                      Styles::componentStyles.slotLabelSize);
+
+            float textOffsetX = 0.f;
+
+            if (m_slotType == SlotType::digitalOutput)
+                textOffsetX -= textSize.x;
+
             materialRenderer->drawText(m_name,
-                                       {pos.x + offset.x, pos.y + offset.y - nodeWeight, pos.z},
+                                       {pos.x + offset.x + textOffsetX, pos.y + offset.y - nodeWeight, pos.z},
                                        Styles::componentStyles.slotLabelSize,
                                        ViewportTheme::colors.text, pinId,
                                        0.f);
