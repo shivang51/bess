@@ -138,7 +138,7 @@ namespace Bess::Canvas {
             materialRenderer->drawText(m_name,
                                        {pos.x + textOffsetX, pos.y + (textSize.y / 2.f) - 2.f, getAbsolutePosition(state).z},
                                        Styles::componentStyles.slotLabelSize,
-                                       ViewportTheme::colors.text, pinId,
+                                       ViewportTheme::schematicViewColors.componentStroke, pinId,
                                        0.f);
         }
     }

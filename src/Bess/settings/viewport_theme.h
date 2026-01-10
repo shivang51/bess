@@ -38,11 +38,12 @@ namespace Bess {
     };
 
     struct SchematicViewColors {
-        glm::vec4 pin = glm::vec4(0.25f, 0.85f, 0.75f, 1.0f);
-        glm::vec4 text = glm::vec4(0.90f, 0.92f, 0.95f, 1.0f);
-        glm::vec4 connection = glm::vec4(0.55f, 0.80f, 0.45f, 1.0f);
-        glm::vec4 componentFill = glm::vec4(0.12f, 0.14f, 0.18f, 1.0f);
-        glm::vec4 componentStroke = glm::vec4(0.30f, 0.35f, 0.45f, 1.0f);
+        glm::vec4 pin = glm::vec4(0.20f, 0.75f, 0.85f, 1.0f);
+        glm::vec4 text = glm::vec4(0.85f, 0.85f, 0.85f, 1.0f);
+        glm::vec4 connection = glm::vec4(0.00f, 0.80f, 0.40f, 1.0f);
+        glm::vec4 componentFill = glm::vec4(0.08f, 0.09f, 0.11f, 1.0f);
+        glm::vec4 componentStroke = glm::vec4(0.45f, 0.50f, 0.60f, 1.0f);
+        glm::vec4 activeSignal = glm::vec4(1.00f, 0.90f, 0.20f, 1.0f);
     };
 
     class ViewportTheme {

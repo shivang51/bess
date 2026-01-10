@@ -61,7 +61,7 @@ namespace Bess::Canvas {
 
         glm::vec2 calculateScale(std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) override;
 
-        void calculateSchematicScale(SceneState &state);
+        virtual void calculateSchematicScale(SceneState &state);
 
         void onFirstDraw(SceneState &sceneState,
                          std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,

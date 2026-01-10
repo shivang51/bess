@@ -1,4 +1,5 @@
 #include "scene/scene_state/components/input_scene_component.h"
+#include "scene/scene_state/components/sim_scene_component.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
 #include "scene/scene_ui/scene_ui.h"
@@ -119,6 +120,11 @@ namespace Bess::Canvas {
                                      slotComp->getSlotState(e.sceneState).state == SimEngine::LogicState::high
                                          ? SimEngine::LogicState::low
                                          : SimEngine::LogicState::high);
+    }
+
+    void InputSceneComponent::calculateSchematicScale(SceneState &state) {
+        SimulationSceneComponent::calculateSchematicScale(state);
+        m_schematicScale.x = 50.f;
     }
 } // namespace Bess::Canvas
 

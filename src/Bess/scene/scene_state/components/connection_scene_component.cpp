@@ -118,17 +118,7 @@ namespace Bess::Canvas {
         if (m_isSelected) {
             color = ViewportTheme::colors.selectedComp;
         } else if (!m_useCustomColor) {
-            const auto &startSlotState = startSlotComp->getSlotState(state);
-            const auto &endSlotState = endSlotComp->getSlotState(state);
-
-            const bool isHigh = startSlotState.state == SimEngine::LogicState::high ||
-                                endSlotState.state == SimEngine::LogicState::high;
-
-            if (isHigh) {
-                color = ViewportTheme::colors.stateHigh;
-            } else {
-                color = ViewportTheme::colors.stateLow;
-            }
+            color = ViewportTheme::schematicViewColors.connection;
         } else {
             color = m_style.color;
         }
