@@ -1,6 +1,8 @@
 #pragma once
 #include "bess_api.h"
 #include <any>
+#include <format>
+#include <stdexcept>
 
 namespace Bess::SimEngine::Commands {
     class BESS_API Command {
@@ -19,6 +21,10 @@ namespace Bess::SimEngine::Commands {
 
         template <typename T>
         T getResult() {
+            if (getResult().type() != typeid(T)) {
+                throw std::runtime_error(std::format("Command result type mismatch, req cast type: {}, got type: {}",
+                                                     typeid(T).name(), getResult().type().name()));
+            }
             return std::any_cast<T>(getResult());
         }
     };

@@ -27,7 +27,11 @@ int main(int argc, char **argv) {
         app.run();
     } catch (const std::exception &e) {
         std::cerr << e.what() << std::endl;
-        app.quit();
+#ifdef DEBUG
+        const std::stacktrace st = std::stacktrace::current();
+        std::cerr << st << std::endl;
+#endif
+        throw e;
         return -1;
     }
 

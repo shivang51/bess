@@ -1,6 +1,6 @@
 #pragma once
-#include "commands/command.h"
 #include "bess_uuid.h"
+#include "commands/command.h"
 #include <vector>
 
 namespace Bess::Canvas::Commands {
@@ -16,8 +16,5 @@ namespace Bess::Canvas::Commands {
 
       private:
         std::vector<UUID> m_nodeIds;
-        // We need to store sub-commands for undo/redo
-        std::unique_ptr<Command> m_internalCommand; 
     };
-}
-
+} // namespace Bess::Canvas::Commands

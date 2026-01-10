@@ -534,7 +534,7 @@ namespace Bess::UI {
             auto &cmdMgr = scene->getCmdManager();
             // Use generic DeleteNodeCommand which handles both entities and groups
             auto _ = cmdMgr.execute<Canvas::Commands::DeleteNodeCommand,
-                                    std::any>(entitesToDel);
+                                    std::string>(entitesToDel);
             entitesToDel.clear();
         }
     }
@@ -565,30 +565,56 @@ namespace Bess::UI {
         auto scene = Bess::Canvas::Scene::instance();
 
         auto &sceneState = scene->getState();
-        const auto &selComponents = sceneState.getSelectedComponents();
 
-        for (auto &selId : selComponents | std::views::keys) {
-            const auto &comp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(selId);
+        // preparing new groups for nodes
+        for (const auto &node : state.nodesLookup | std::views::values) {
+            if (node->isGroup)
+                continue;
+            const auto &comp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(node->sceneId);
+            if (!comp)
+                continue;
             const auto &netId = comp->getNetId();
             if (netId != UUID::null) {
-                netGroups[netId].emplace_back(netId);
+                netGroups[netId].emplace_back(node->nodeId);
             }
         }
 
         state.netIdToNameMap.clear();
+        std::vector<UUID> emptyGroups;
+
+        // move nodes to new groups
         int i = 1;
-        for (const auto &[netId, entities] : netGroups) {
+        for (const auto &[netId, nodes] : netGroups) {
             auto res = scene->getCmdManager().execute<Canvas::Commands::CreateGroupCommand, UUID>(std::format("Net {}", i++));
 
             if (res.has_value()) {
-                UUID groupUUID = res.value();
-                state.netIdToNameMap[netId] = state.nodesLookup[groupUUID]->label;
+                UUID newGroupId = res.value();
+                state.netIdToNameMap[netId] = state.nodesLookup[newGroupId]->label;
 
-                for (const auto &enttId : entities) {
-                    auto cmd = std::make_unique<Canvas::Commands::ReparentNodeCommand>(enttId, groupUUID);
+                for (const auto &nodeId : nodes) {
+                    const auto &node = state.nodesLookup[nodeId];
+                    if (node->parentId != UUID::null) {
+                        const auto &parentNode = state.nodesLookup[node->parentId];
+                        BESS_ASSERT(parentNode->isGroup, "Parent node is expected to be a group");
+                        // if the parent group will be empty after moving this node, mark it for deletion
+                        if (parentNode->children.size() == 1) {
+                            emptyGroups.emplace_back(parentNode->nodeId);
+                        }
+                    }
+
+                    auto cmd = std::make_unique<Canvas::Commands::ReparentNodeCommand>(nodeId, newGroupId);
                     scene->getCmdManager().execute(std::move(cmd));
                 }
             }
         }
+
+        // delete empty groups
+        for (const auto &groupId : emptyGroups) {
+            const auto &groupNode = state.nodesLookup[groupId];
+            if (groupNode->children.empty()) {
+                deleteNode(groupNode);
+            }
+        }
+        BESS_INFO("[ProjectExplorer] Grouped components on nets: created {} groups.", netGroups.size());
     }
 } // namespace Bess::UI
