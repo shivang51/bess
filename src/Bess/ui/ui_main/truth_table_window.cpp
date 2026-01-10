@@ -72,13 +72,15 @@ namespace Bess::UI {
             }
 
             if (!currentTruthTable.table.empty()) {
+                char inp = 'A';
+                char out = 'M';
                 if (ImGui::BeginTable("TruthTable", currentTruthTable.table[0].size(), tableFlags)) {
                     for (auto &compId : currentTruthTable.inputUuids) {
-                        ImGui::TableSetupColumn(std::format("{}", compIdToNameMap.at(compId)).c_str());
+                        ImGui::TableSetupColumn(std::format("{}", inp++).c_str());
                     }
 
                     for (auto &compId : currentTruthTable.outputUuids) {
-                        ImGui::TableSetupColumn(std::format("{}", compIdToNameMap.at(compId)).c_str());
+                        ImGui::TableSetupColumn(std::format("{}", out++).c_str());
                     }
 
                     ImGui::TableHeadersRow();
