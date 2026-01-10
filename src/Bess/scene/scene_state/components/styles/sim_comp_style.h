@@ -12,11 +12,11 @@ namespace Bess::Canvas::Styles {
 
         float pinSize = 20.f;
         float pinRowGap = 12.f;
-        float pinLabelSize = 10.f;
+        float pinLabelSize = 8.f;
 
         float nameFontSize = 10.f;
 
-        float strokeSize = 2.f;
+        float strokeSize = 1.f;
 
         float negCircleR = 4.f, negCircleOff = negCircleR * 2.f;
     } compSchematicStyles;

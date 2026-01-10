@@ -2,6 +2,7 @@
 #include "commands/commands.h"
 #include "fwd.hpp"
 #include "scene/scene_state/components/scene_component.h"
+#include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/slot_scene_component.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
@@ -19,17 +20,24 @@ namespace Bess::Canvas {
                                                 const glm::vec4 &color,
                                                 std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
 
+        const float weight = state.getIsSchematicView()
+                                 ? Styles::compSchematicStyles.strokeSize
+                                 : 2.f;
+        const float offsetXDecr = state.getIsSchematicView() ? Styles::compSchematicStyles.pinSize : 0.f;
         auto pos = startPos;
         pos.z = 0.5f;
         auto prevPos = pos;
         PickingId pickingId{m_runtimeId, 0};
         pathRenderer->beginPathMode(pos,
-                                    m_hoveredSegIdx == 0 ? 3 : 2,
+                                    m_hoveredSegIdx == 0 ? 3 : weight,
                                     color, pickingId);
 
         int segmentIndex = 0;
         for (auto &segment : m_segments) {
             pos += glm::vec3(segment.offset, 0);
+            if (segment.orientation == ConnSegOrientaion::horizontal) {
+                pos.x -= offsetXDecr;
+            }
 
             // Ensure the last segment ends exactly in straight line to the endPos
             if (segmentIndex == m_segments.size() - 1) {
@@ -46,7 +54,7 @@ namespace Bess::Canvas {
             pickingId.info = segmentIndex++;
 
             pathRenderer->pathLineTo(pos,
-                                     isHovered ? 3 : 2,
+                                     isHovered ? 3 : weight,
                                      color,
                                      pickingId);
             prevPos = pos;
@@ -54,7 +62,7 @@ namespace Bess::Canvas {
 
         pickingId.info = segmentIndex;
         pathRenderer->pathLineTo({glm::vec2(endPos), pos.z},
-                                 m_hoveredSegIdx == segmentIndex ? 3 : 2,
+                                 m_hoveredSegIdx == segmentIndex ? 3 : weight,
                                  color,
                                  pickingId);
         pathRenderer->endPathMode(false, false, glm::vec4(0.f), true, !state.getIsSchematicView());

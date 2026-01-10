@@ -16,6 +16,7 @@
 #include "scene/scene_state/components/connection_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/sim_scene_component.h"
+#include "scene/scene_state/components/slot_scene_component.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
@@ -240,8 +241,10 @@ namespace Bess::Canvas {
             viewport->getCamera());
 
         if (m_connectionStartSlot != UUID::null) {
-            const auto comp = m_state.getComponentByUuid(m_connectionStartSlot);
-            const auto &pos = comp->getAbsolutePosition(m_state);
+            const auto comp = m_state.getComponentByUuid<SlotSceneComponent>(m_connectionStartSlot);
+            const auto &pos = m_state.getIsSchematicView()
+                                  ? comp->getSchematicConnStartPos(m_state)
+                                  : comp->getAbsolutePosition(m_state);
             const auto endPos = toScenePos(m_mousePos);
 
             drawGhostConnection(renderers.pathRenderer, glm::vec2(pos), endPos);

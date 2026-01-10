@@ -204,6 +204,15 @@ namespace Bess::Canvas {
                m_schematicPos;
     }
 
+    glm::vec3 SlotSceneComponent::getSchematicConnStartPos(const SceneState &state) const {
+        auto pos = getSchematicPosAbsolute(state);
+        const float offsetX = (m_slotType == SlotType::digitalInput)
+                                  ? -Styles::compSchematicStyles.pinSize
+                                  : Styles::compSchematicStyles.pinSize;
+        pos.x += offsetX;
+        return pos;
+    }
+
     bool SlotSceneComponent::isResizeSlot() const {
         return m_slotType == SlotType::inputsResize ||
                m_slotType == SlotType::outputsResize;
