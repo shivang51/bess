@@ -8,7 +8,6 @@ namespace Bess::Canvas {
       public:
         static constexpr const char *subType = "InputSceneComponent";
         InputSceneComponent() = default;
-        InputSceneComponent(UUID simEngineId);
         ~InputSceneComponent() override = default;
 
         void draw(SceneState &state,

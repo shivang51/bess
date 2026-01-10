@@ -14,10 +14,6 @@ namespace Bess::Canvas {
         initDragBehaviour();
     }
 
-    SimulationSceneComponent::SimulationSceneComponent(UUID simEngineId) {
-        initDragBehaviour();
-    }
-
     std::vector<std::shared_ptr<SlotSceneComponent>>
     SimulationSceneComponent::createIOSlots(size_t inputCount, size_t outputCount) {
         std::vector<std::shared_ptr<SlotSceneComponent>> slots;
@@ -51,6 +47,11 @@ namespace Bess::Canvas {
             calculateSchematicScale(state);
             resetSlotPositions(state);
             m_isScaleDirty = false;
+        }
+
+        if (m_drawHook) {
+            m_drawHook->onDraw(std::ref(state), materialRenderer, pathRenderer);
+            return;
         }
 
         const auto pickingId = PickingId{m_runtimeId, 0};
@@ -283,6 +284,9 @@ namespace Bess::Canvas {
     std::vector<UUID> SimulationSceneComponent::cleanup(SceneState &state, UUID caller) {
         auto &simEngine = SimEngine::SimulationEngine::instance();
         simEngine.deleteComponent(m_simEngineId);
+        if (m_drawHook) {
+            m_drawHook.reset();
+        }
         return SceneComponent::cleanup(state, caller);
     }
 
@@ -317,9 +321,9 @@ namespace Bess::Canvas {
         const UUID uuid;
         std::shared_ptr<SimulationSceneComponent> sceneComp;
         if (isInput) {
-            sceneComp = std::make_shared<InputSceneComponent>(uuid);
+            sceneComp = std::make_shared<InputSceneComponent>();
         } else {
-            sceneComp = std::make_shared<SimulationSceneComponent>(uuid);
+            sceneComp = std::make_shared<SimulationSceneComponent>();
         }
 
         // setting the name before adding to scene state, so that event listeners can access it

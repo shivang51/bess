@@ -127,6 +127,8 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         .def(py::init<>(), "Create an empty, inert component definition.")
         .def("get_hash", &ComponentDefinition::getHash)
         .def("clone", &ComponentDefinition::clone)
+        .def("compute_hash", &ComponentDefinition::computeHash)
+        .def("get_hash", &ComponentDefinition::getHash)
         .DEF_PROP_STR_GSET("name", Name)
         .DEF_PROP_STR_GSET("group_name", GroupName)
         .DEF_PROP_GSET_T(bool, "should_auto_reschedule", ShouldAutoReschedule)

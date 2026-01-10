@@ -6,6 +6,10 @@
 #include <unordered_map>
 #include <vector>
 
+namespace Bess::Canvas {
+    class SimSceneCompDrawHook;
+} // namespace Bess::Canvas
+
 namespace Bess::Plugins {
     PyGILState_STATE capturePyThreadState();
     void releasePyThreadState(PyGILState_STATE state);
@@ -28,7 +32,7 @@ namespace Bess::Plugins {
         bool loadPluginsFromDirectory(const std::string &pluginsDir = "plugins");
 
         bool hasSceneComponentType(uint64_t compDefHash) const;
-        std::shared_ptr<Canvas::SceneComponent> createSceneComponentInstance(uint64_t compDefHash) const;
+        std::shared_ptr<Canvas::SimSceneCompDrawHook> createSceneComponentInstance(uint64_t compDefHash) const;
 
         std::vector<std::string> getLoadedPluginsNames() const;
         const std::unordered_map<std::string, std::shared_ptr<PluginHandle>> &getLoadedPlugins() const;

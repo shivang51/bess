@@ -9,7 +9,6 @@
 #include "simulation_engine.h"
 
 namespace Bess::Canvas {
-    InputSceneComponent::InputSceneComponent(UUID simEngineId) : SimulationSceneComponent(simEngineId) {}
 
     void InputSceneComponent::draw(SceneState &state,
                                    std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,

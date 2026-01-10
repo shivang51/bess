@@ -9,6 +9,7 @@
 #include "events/sim_engine_events.h"
 #include "fwd.hpp"
 #include "pages/main_page/main_page_state.h"
+#include "plugin_manager.h"
 #include "scene/commands/add_command.h"
 #include "scene/components/non_sim_comp.h"
 #include "scene/renderer/material_renderer.h"
@@ -47,6 +48,7 @@ namespace Bess::Canvas {
         m_lastCreatedComp = {};
         m_cmdManager.clearStacks();
         m_isDestroyed = true;
+        m_state.clear();
     }
 
     std::shared_ptr<Scene> Scene::instance() {
@@ -299,6 +301,13 @@ namespace Bess::Canvas {
                                 const glm::vec2 &pos) {
         auto sceneComp = SimulationSceneComponent::createNewAndRegister(m_state, simEngineId);
         sceneComp->setPosition(glm::vec3(getSnappedPos(pos), getNextZCoord()));
+
+        const auto &pluginManger = Plugins::PluginManager::getInstance();
+        if (pluginManger.hasSceneComponentType(def->getHash())) {
+            auto hook = pluginManger.createSceneComponentInstance(def->getHash());
+            sceneComp->setDrawHook(hook);
+        }
+
         m_lastCreatedComp = {.componentDefinition = def, .set = true};
         return sceneComp->getUuid();
     }

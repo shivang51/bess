@@ -64,12 +64,13 @@ set(BESS_PYBIND_SOURCES
     renderer/path.cpp
 
 		scene/schematic_diagram.cpp
+		scene/scene_state.binding.cpp
 		scene/scene_component.binding.cpp
-		scene/sim_scene_component.binding.cpp
+		scene/sim_comp_draw_hook.binding.cpp
 
     sim_engine/types.cpp
     sim_engine/sim_functions.cpp
-    sim_engine/component_definition.cpp
+    sim_engine/component_definition.binding.cpp
 )
 
 pybind11_add_module(${PROJECT_NAME} ${BESS_PYBIND_SOURCES})

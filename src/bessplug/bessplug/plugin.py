@@ -1,7 +1,5 @@
 from abc import abstractmethod
 
-from .api.renderer.path import Path
-
 from .api.log import Logger
 from .api.sim_engine import ComponentDefinition
 from .api.scene.schematic_diagram import SchematicDiagram

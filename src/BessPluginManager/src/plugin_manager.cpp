@@ -1,6 +1,7 @@
 #include "plugin_manager.h"
 #include "plugin_handle.h"
 #include "scene/scene_state/components/scene_component.h"
+#include "scene/scene_state/components/sim_scene_comp_draw_hook.h"
 #include <filesystem>
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
@@ -190,13 +191,15 @@ namespace Bess::Plugins {
         savedThreadStates[std::this_thread::get_id()] = nullptr;
     }
 
-    std::shared_ptr<Canvas::SceneComponent> PluginManager::createSceneComponentInstance(uint64_t compDefHash) const {
+    std::shared_ptr<Canvas::SimSceneCompDrawHook> PluginManager::createSceneComponentInstance(uint64_t compDefHash) const {
+        pybind11::gil_scoped_acquire gil;
+
         if (!hasSceneComponentType(compDefHash)) {
             return nullptr;
         }
         pybind11::type compType = m_sceneComponentTypes.at(compDefHash);
         pybind11::object compObj = compType();
-        return compObj.cast<std::shared_ptr<Canvas::SceneComponent>>();
+        return compObj.cast<std::shared_ptr<Canvas::SimSceneCompDrawHook>>();
     }
 
     bool PluginManager::hasSceneComponentType(uint64_t compDefHash) const {

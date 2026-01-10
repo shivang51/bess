@@ -4,6 +4,7 @@
 #include "scene/renderer/material_renderer.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
+#include "scene/scene_state/components/sim_scene_comp_draw_hook.h"
 #include "scene/scene_state/components/slot_scene_component.h"
 
 namespace Bess::Canvas {
@@ -12,7 +13,6 @@ namespace Bess::Canvas {
       public:
         SimulationSceneComponent();
         SimulationSceneComponent(const SimulationSceneComponent &other) = default;
-        SimulationSceneComponent(UUID simEngineId);
         ~SimulationSceneComponent() override = default;
 
         static std::shared_ptr<SimulationSceneComponent> createNewAndRegister(SceneState &sceneState, UUID simEngineId);
@@ -36,6 +36,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(UUID, NetId, m_netId)
         MAKE_GETTER_SETTER(std::vector<UUID>, InputSlots, m_inputSlots)
         MAKE_GETTER_SETTER(std::vector<UUID>, OutputSlots, m_outputSlots)
+        MAKE_GETTER_SETTER(std::shared_ptr<SimSceneCompDrawHook>, DrawHook, m_drawHook)
 
         size_t getInputSlotsCount() const;
         size_t getOutputSlotsCount() const;
@@ -78,6 +79,7 @@ namespace Bess::Canvas {
         std::vector<UUID> m_outputSlots;
         bool m_isScaleDirty = true;
         glm::vec2 m_schematicScale = glm::vec2(0.f);
+        std::shared_ptr<SimSceneCompDrawHook> m_drawHook = nullptr;
     };
 } // namespace Bess::Canvas
 
