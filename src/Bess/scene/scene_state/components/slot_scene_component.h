@@ -53,6 +53,8 @@ namespace Bess::Canvas {
 
         bool isResizeSlot() const;
 
+        bool isInputSlot() const;
+
       private:
         glm::vec3 m_schematicPos = glm::vec3(0.f);
         SlotType m_slotType = SlotType::none;

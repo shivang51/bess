@@ -594,11 +594,15 @@ namespace Bess::SimEngine {
     }
 
     std::chrono::milliseconds SimulationEngine::getSimulationTimeMS() {
-        return std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()).time_since_epoch();
+        return std::chrono::time_point_cast<std::chrono::milliseconds>(
+                   std::chrono::steady_clock::now())
+            .time_since_epoch();
     }
 
     std::chrono::seconds SimulationEngine::getSimulationTimeS() {
-        return std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::steady_clock::now()).time_since_epoch();
+        return std::chrono::time_point_cast<std::chrono::seconds>(
+                   std::chrono::steady_clock::now())
+            .time_since_epoch();
     }
 
     void SimulationEngine::run() {
@@ -618,7 +622,9 @@ namespace Bess::SimEngine {
             if (m_simState.load() == SimulationState::paused) {
                 queueLock.unlock();
                 m_stepFlag.store(false);
-                m_stateCV.wait(stateLock, [&] { return m_stopFlag.load() || m_simState.load() == SimulationState::running || m_stepFlag.load(); });
+                m_stateCV.wait(stateLock, [&] { return m_stopFlag.load() ||
+                                                       m_simState.load() == SimulationState::running ||
+                                                       m_stepFlag.load(); });
                 queueLock.lock();
             }
 
@@ -641,7 +647,8 @@ namespace Bess::SimEngine {
             }
 
             BESS_SE_LOG_EVENT("");
-            BESS_SE_LOG_EVENT("[SimulationEngine][t = {}ns][dt = {}ns] Picked {} events to simulate", m_currentSimTime.count(), deltaTime.count(), eventsToSim.size());
+            BESS_SE_LOG_EVENT("[SimulationEngine][t = {}ns][dt = {}ns] Picked {} events to simulate",
+                              m_currentSimTime.count(), deltaTime.count(), eventsToSim.size());
 
             std::unordered_map<UUID, std::vector<SlotState>> inputsMap = {};
 

@@ -221,7 +221,7 @@ namespace Bess::Canvas {
             slotComp->setPosition(inpPositions[i]);
             slotComp->setSchematicPos(glm::vec3(inpStartX,
                                                 startY + (inpOffsetY * (float)(i + 1)),
-                                                inpPositions[i].z));
+                                                -inpPositions[i].z));
         }
 
         for (size_t i = 0; i < outPositions.size(); i++) {
@@ -229,7 +229,7 @@ namespace Bess::Canvas {
             slotComp->setPosition(outPositions[i]);
             slotComp->setSchematicPos(glm::vec3(outStartX,
                                                 startY + (outOffsetY * (float)(i + 1)),
-                                                outPositions[i].z));
+                                                -outPositions[i].z));
         }
     }
 

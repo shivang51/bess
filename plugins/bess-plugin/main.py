@@ -1,11 +1,9 @@
 from typing import override
 from bessplug import Plugin
-from bessplug.api.renderer.path import Path
-from bessplug.api.scene import SimCompDrawHook
 from bessplug.api.sim_engine import ComponentDefinition
 from bessplug.plugin import SchematicDiagram
 from components.latches import latches
-from components.digital_gates import digital_gates, schematic_symbols
+from components.digital_gates import digital_gates
 from components.flip_flops import flip_flops
 from components.combinational_circuits import combinational_circuits
 from components.tristate_buffer import tristate_buffer_def

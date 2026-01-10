@@ -127,13 +127,16 @@ namespace Bess::Canvas {
             const auto textSize = materialRenderer->getTextRenderSize(m_name,
                                                                       Styles::componentStyles.slotLabelSize);
 
-            float textOffsetX = 0.f;
+            float textOffsetX = 4.f;
 
             if (m_slotType == SlotType::digitalOutput)
-                textOffsetX -= textSize.x;
+                textOffsetX -= textSize.x + 6.f;
 
+            // not using schematic slot pos for text as in schematic view,
+            // slot is rendered behind the component but text should be in front of component
+            // so using z of node view
             materialRenderer->drawText(m_name,
-                                       {pos.x + offset.x + textOffsetX, pos.y + offset.y - nodeWeight, pos.z},
+                                       {pos.x + textOffsetX, pos.y + (textSize.y / 2.f) - 2.f, getAbsolutePosition(state).z},
                                        Styles::componentStyles.slotLabelSize,
                                        ViewportTheme::colors.text, pinId,
                                        0.f);
@@ -204,6 +207,9 @@ namespace Bess::Canvas {
     bool SlotSceneComponent::isResizeSlot() const {
         return m_slotType == SlotType::inputsResize ||
                m_slotType == SlotType::outputsResize;
+    }
+    bool SlotSceneComponent::isInputSlot() const {
+        return m_slotType == SlotType::digitalInput || m_slotType == SlotType::inputsResize;
     }
 } // namespace Bess::Canvas
 

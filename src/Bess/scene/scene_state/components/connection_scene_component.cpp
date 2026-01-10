@@ -3,6 +3,7 @@
 #include "fwd.hpp"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/slot_scene_component.h"
+#include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
@@ -17,6 +18,7 @@ namespace Bess::Canvas {
                                                 const glm::vec3 &endPos,
                                                 const glm::vec4 &color,
                                                 std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+
         auto pos = startPos;
         pos.z = 0.5f;
         auto prevPos = pos;
@@ -55,7 +57,7 @@ namespace Bess::Canvas {
                                  m_hoveredSegIdx == segmentIndex ? 3 : 2,
                                  color,
                                  pickingId);
-        pathRenderer->endPathMode(false, false, glm::vec4(0.f), true, true);
+        pathRenderer->endPathMode(false, false, glm::vec4(0.f), true, !state.getIsSchematicView());
     }
 
     void ConnectionSceneComponent::draw(SceneState &state,
@@ -131,8 +133,15 @@ namespace Bess::Canvas {
             color = m_style.color;
         }
 
-        const auto startPos = startSlotComp->getSchematicPosAbsolute(state);
-        const auto endPos = endSlotComp->getSchematicPosAbsolute(state);
+        auto startPos = startSlotComp->getSchematicPosAbsolute(state);
+        auto endPos = endSlotComp->getSchematicPosAbsolute(state);
+        if (startSlotComp->isInputSlot()) {
+            startPos.x -= Styles::compSchematicStyles.pinSize;
+            endPos.x += Styles::compSchematicStyles.pinSize;
+        } else {
+            startPos.x += Styles::compSchematicStyles.pinSize;
+            endPos.x -= Styles::compSchematicStyles.pinSize;
+        }
         drawSegments(state, startPos, endPos, color, pathRenderer);
     }
 
