@@ -10,13 +10,14 @@ from components.flip_flops import flip_flops
 from components.combinational_circuits import combinational_circuits
 from components.tristate_buffer import tristate_buffer_def
 
-
-class DummyHook(SimCompDrawHook):
-    def __init__(self):
-        super().__init__()
-
-    def onDraw(self, state, material_renderer, path_renderer):
-        print("DummyHook draw called")
+# FIXME: will use it soon
+# class DummyHook(SimCompDrawHook):
+#     def __init__(self):
+#         super().__init__()
+#
+#     def onDraw(self, state, material_renderer, path_renderer):
+#         print("DummyHook draw called")
+#
 
 
 class BessPlugin(Plugin):
@@ -40,10 +41,12 @@ class BessPlugin(Plugin):
 
     @override
     def on_scene_comp_load(self) -> dict[int, type]:
-        flip_flops[0].compute_hash()
-        hash = flip_flops[0].get_hash()
-        self.logger.log(f"FlipFlop {flip_flops[0].name} hash: {hash}")
-        return {hash: DummyHook}
+        # FIXME: temporarily disabled will use it later
+        # flip_flops[0].compute_hash()
+        # hash = flip_flops[0].get_hash()
+        # self.logger.log(f"FlipFlop {flip_flops[0].name} hash: {hash}")
+        # return {hash: DummyHook}
+        return {}
 
 
 plugin_hwd = BessPlugin()
