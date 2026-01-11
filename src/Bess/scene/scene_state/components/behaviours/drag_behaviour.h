@@ -2,6 +2,7 @@
 
 #include "events/scene_events.h"
 namespace Bess::Canvas {
+    constexpr float snapAmount = 5.f;
     template <typename Derived>
     class DragBehaviour {
       public:
@@ -10,7 +11,8 @@ namespace Bess::Canvas {
                 onMouseDragBegin(e);
             }
             auto &self = static_cast<Derived &>(*this);
-            const auto newPos = e.mousePos + m_dragOffset;
+            auto newPos = e.mousePos + m_dragOffset;
+            newPos = glm::round(newPos / snapAmount) * snapAmount;
             self.setPosition(glm::vec3(newPos, self.getTransform().position.z));
         }
 

@@ -10,6 +10,8 @@
 #include "simulation_engine.h"
 
 namespace Bess::Canvas {
+    constexpr float SNAP_AMOUNT = 5.f;
+
     SimulationSceneComponent::SimulationSceneComponent() {
         initDragBehaviour();
     }
@@ -158,7 +160,9 @@ namespace Bess::Canvas {
         const auto pScale = m_transform.scale;
 
         std::vector<glm::vec3> inputPositions;
+        inputPositions.reserve(inputCount);
         std::vector<glm::vec3> outputPositions;
+        outputPositions.reserve(outputCount);
 
         const auto slotRowSize = Styles::SIM_COMP_SLOT_ROW_SIZE;
 
@@ -166,14 +170,16 @@ namespace Bess::Canvas {
             auto posX = -(pScale.x / 2.f) + Styles::SIM_COMP_SLOT_DX;
             float posY = -(pScale.y / 2.f) + (slotRowSize * (float)i) + (slotRowSize / 2.f);
             posY += Styles::SIM_COMP_SLOT_START_Y;
-            inputPositions.emplace_back(posX, posY, 0.0005f);
+            glm::vec2 pos = glm::round(glm::vec2(posX, posY) / SNAP_AMOUNT) * SNAP_AMOUNT;
+            inputPositions.emplace_back(pos.x, pos.y, 0.0005f);
         }
 
         for (size_t i = 0; i < outputCount; i++) {
             auto posX = (pScale.x / 2.f) - Styles::SIM_COMP_SLOT_DX;
             float posY = -(pScale.y / 2.f) + (slotRowSize * (float)i) + (slotRowSize / 2.f);
             posY += Styles::SIM_COMP_SLOT_START_Y;
-            outputPositions.emplace_back(posX, posY, 0.0005f);
+            glm::vec2 pos = glm::round(glm::vec2(posX, posY) / SNAP_AMOUNT) * SNAP_AMOUNT;
+            outputPositions.emplace_back(pos.x, pos.y, 0.0005f);
         }
 
         return {inputPositions, outputPositions};
@@ -187,6 +193,9 @@ namespace Bess::Canvas {
 
         width = std::max(width, 100.f);
         height += Styles::simCompStyles.headerHeight + Styles::simCompStyles.rowGap;
+
+        width = glm::round(width / SNAP_AMOUNT) * SNAP_AMOUNT;
+        height = glm::round(height / SNAP_AMOUNT) * SNAP_AMOUNT;
 
         return {width, height};
     }
@@ -219,17 +228,17 @@ namespace Bess::Canvas {
         for (size_t i = 0; i < inpPositions.size(); i++) {
             const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(m_inputSlots[i]);
             slotComp->setPosition(inpPositions[i]);
-            slotComp->setSchematicPos(glm::vec3(inpStartX,
-                                                startY + (inpOffsetY * (float)(i + 1)),
-                                                -inpPositions[i].z));
+            auto pos = glm::vec2(inpStartX, startY + (inpOffsetY * (float)(i + 1)));
+            pos = glm::round(pos / SNAP_AMOUNT) * SNAP_AMOUNT;
+            slotComp->setSchematicPos(glm::vec3(pos, -inpPositions[i].z));
         }
 
         for (size_t i = 0; i < outPositions.size(); i++) {
             const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(m_outputSlots[i]);
             slotComp->setPosition(outPositions[i]);
-            slotComp->setSchematicPos(glm::vec3(outStartX,
-                                                startY + (outOffsetY * (float)(i + 1)),
-                                                -outPositions[i].z));
+            auto pos = glm::vec2(outStartX, startY + (outOffsetY * (float)(i + 1)));
+            pos = glm::round(pos / SNAP_AMOUNT) * SNAP_AMOUNT;
+            slotComp->setSchematicPos(glm::vec3(pos, -outPositions[i].z));
         }
     }
 
@@ -309,6 +318,7 @@ namespace Bess::Canvas {
         float width = m_transform.scale.x; // keep the same width as normal view
 
         m_schematicScale = {width, height};
+        m_schematicScale = glm::round(m_schematicScale / SNAP_AMOUNT) * SNAP_AMOUNT;
     }
 
     std::shared_ptr<SimulationSceneComponent> SimulationSceneComponent::createNewAndRegister(SceneState &sceneState, UUID simEngineId) {
