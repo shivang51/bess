@@ -45,6 +45,7 @@ namespace Bess::Canvas {
             return;
 
         BESS_INFO("[Scene] Destroying");
+        m_copiedComponents.clear();
         m_viewport.reset();
         m_lastCreatedComp = {};
         m_cmdManager.clearStacks();

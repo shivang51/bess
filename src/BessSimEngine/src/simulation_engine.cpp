@@ -806,14 +806,14 @@ namespace Bess::SimEngine {
             bool isOutput = comp->definition->getBehaviorType() == ComponentBehaviorType::output;
 
             if (isInput) {
-                truthTable.inputUuids.push_back(compUuid);
                 for (int i = 0; i < comp->definition->getOutputSlotsInfo().count; i++) {
                     inputs.emplace_back(compUuid, i);
+                    truthTable.inputUuids.push_back(compUuid);
                 }
             } else if (isOutput) {
-                truthTable.outputUuids.push_back(compUuid);
                 for (int i = 0; i < comp->definition->getInputSlotsInfo().count; i++) {
                     outputs.emplace_back(compUuid, i);
+                    truthTable.outputUuids.push_back(compUuid);
                 }
             } else {
                 components.emplace_back(compUuid);

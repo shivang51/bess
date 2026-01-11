@@ -1,7 +1,5 @@
 #include "truth_table_window.h"
-#include "digital_component.h"
 #include "imgui.h"
-#include "scene/components/components.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
 #include "types.h"
@@ -23,7 +21,8 @@ namespace Bess::UI {
         static constexpr auto tableFlags = ImGuiTableFlags_Borders |
                                            ImGuiTableFlags_RowBg |
                                            ImGuiTableFlags_SizingStretchProp |
-                                           ImGuiTableFlags_Resizable;
+                                           ImGuiTableFlags_Resizable |
+                                           ImGuiTableFlags_Reorderable;
 
         const auto &state = ProjectExplorer::state;
 
@@ -46,28 +45,6 @@ namespace Bess::UI {
                 auto &simEngine = SimEngine::SimulationEngine::instance();
                 currentTruthTable = simEngine.getTruthTableOfNet(selectedNetId);
                 const auto &scene = Bess::Canvas::Scene::instance();
-                // const auto &reg = scene->getEnttRegistry();
-
-                // auto viewInp = reg.view<Canvas::Components::TagComponent,
-                //                         Canvas::Components::SimulationComponent,
-                //                         Canvas::Components::SimulationInputComponent>();
-                //
-                // viewInp.each([&](auto entity, const Canvas::Components::TagComponent &tagComp,
-                //                  const Canvas::Components::SimulationComponent &simComp,
-                //                  const Canvas::Components::SimulationInputComponent &simInputComp) {
-                //     compIdToNameMap[simComp.simEngineEntity] = tagComp.name;
-                // });
-                //
-                // auto viewOut = reg.view<Canvas::Components::TagComponent,
-                //                         Canvas::Components::SimulationComponent,
-                //                         Canvas::Components::SimulationOutputComponent>();
-                //
-                // viewOut.each([&](auto entity, const Canvas::Components::TagComponent &tagComp,
-                //                  const Canvas::Components::SimulationComponent &simComp,
-                //                  const Canvas::Components::SimulationOutputComponent &simOutputComp) {
-                //     compIdToNameMap[simComp.simEngineEntity] = tagComp.name;
-                // });
-
                 isDirty = false;
             }
 
