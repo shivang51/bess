@@ -284,6 +284,10 @@ namespace Bess::Canvas {
         if (slotCompB) {
             slotCompB->removeConnection(m_uuid);
         }
+
+        Events::ConnectionRemovedEvent event{m_startSlot,
+                                             m_endSlot};
+        EventSystem::EventDispatcher::instance().dispatch(event);
         return {};
     }
 } // namespace Bess::Canvas

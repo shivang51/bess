@@ -82,4 +82,9 @@ namespace Bess::Events {
         MouseButton button;
         MouseClickAction action;
     };
+
+    struct ConnectionRemovedEvent {
+        UUID slotAId;
+        UUID slotBId;
+    };
 } // namespace Bess::Events

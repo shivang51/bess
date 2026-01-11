@@ -8,6 +8,7 @@ namespace Bess {
     static std::uniform_int_distribution<uint64_t> s_UniformDistribution;
 
     constexpr UUID UUID::null = UUID(0);
+    constexpr UUID UUID::master = UUID(9);
 
     UUID::UUID() : m_UUID(s_UniformDistribution(s_Engine)) {
     }

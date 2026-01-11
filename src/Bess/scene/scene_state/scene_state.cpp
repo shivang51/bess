@@ -1,4 +1,5 @@
 #include "scene/scene_state/scene_state.h"
+#include "bess_uuid.h"
 #include "scene/scene_state/components/connection_scene_component.h"
 #include "scene/scene_state/components/input_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -145,6 +146,7 @@ namespace Bess::Canvas {
         /// If parent is not the caller, then do not remove
         /// TODO(Shivang): Add lifetime ownership management later
         if (component->getType() != SceneComponentType::connection &&
+            callerId != UUID::master &&
             component->getParentComponent() != callerId) {
             BESS_WARN("[SceneState] Attempt to remove child component {} directly prevented",
                       (uint64_t)uuid);
@@ -170,6 +172,15 @@ namespace Bess::Canvas {
         }
 
         m_componentsMap.erase(uuid);
+
+        if (callerId == UUID::master &&
+            component->getParentComponent() != UUID::null) {
+            auto parentComp = getComponentByUuid(component->getParentComponent());
+            if (parentComp) {
+                parentComp->removeChildComponent(uuid);
+            }
+        }
+
         EventSystem::EventDispatcher::instance().dispatch(
             Events::ComponentRemovedEvent{uuid,
                                           component->getType()});

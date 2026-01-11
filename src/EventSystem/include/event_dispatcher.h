@@ -1,5 +1,6 @@
 #pragma once
 
+#include "spdlog/spdlog.h"
 #include <any>
 #include <functional>
 #include <typeindex>
@@ -52,6 +53,7 @@ namespace Bess::EventSystem {
         template <typename Event>
         void dispatch(const Event &event) {
             auto type = std::type_index(typeid(Event));
+            spdlog::info("[EventSystem] Dispatching event of type {}", type.name());
             if (m_handlers.contains(type)) {
                 for (auto &handlerAny : m_handlers[type]) {
                     const auto &handler = std::any_cast<EventHandler<Event>>(handlerAny);

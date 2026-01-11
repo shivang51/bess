@@ -51,10 +51,11 @@ namespace Bess::SimEngine {
                    definition->getOutputSlotsInfo().count !=
                        definition->getInputSlotsInfo().count) {
             incrementOutputCount();
-
-            EventSystem::EventDispatcher::instance().dispatch(
-                Events::CompDefOutputsResizedEvent{this->id});
         }
+
+        EventSystem::EventDispatcher::instance().dispatch(
+            Events::CompDefInputsResizedEvent{this->id});
+
         definition->computeHash();
         return definition->getInputSlotsInfo().count;
     }
@@ -77,10 +78,75 @@ namespace Bess::SimEngine {
                 definition->getInputSlotsInfo().count) {
 
             incrementInputCount();
+        }
+
+        EventSystem::EventDispatcher::instance().dispatch(
+            Events::CompDefOutputsResizedEvent{this->id});
+        return definition->getOutputSlotsInfo().count;
+    }
+
+    size_t DigitalComponent::decrementInputCount() {
+        if (!definition->onSlotsResizeReq(SlotsGroupType::input,
+                                          definition->getInputSlotsInfo().count - 1)) {
+            return definition->getInputSlotsInfo().count;
+        }
+
+        definition->getInputSlotsInfo().count -= 1;
+        state.inputStates.pop_back();
+        state.inputConnected.pop_back();
+        inputConnections.pop_back();
+
+        const auto growthPolicy = definition->getIOGrowthPolicy();
+        const bool exprComputed = definition->computeExpressionsIfNeeded();
+
+        if (exprComputed &&
+            definition->getOutputSlotsInfo().count !=
+                definition->getOutputExpressions().size()) {
+            // if expressions were recomputed,
+            // but output count does not match expressions size
+            // we need to resize output related states and connections
+            size_t newOutputCount = definition->getOutputExpressions().size();
+            size_t oldOutputCount = definition->getOutputSlotsInfo().count;
+            definition->getOutputSlotsInfo().count = newOutputCount;
+            state.outputStates.resize(newOutputCount,
+                                      SlotState{LogicState::low, SimTime(0)});
+            state.outputConnected.resize(newOutputCount, false);
+            outputConnections.resize(newOutputCount);
 
             EventSystem::EventDispatcher::instance().dispatch(
-                Events::CompDefInputsResizedEvent{this->id});
+                Events::CompDefOutputsResizedEvent{this->id});
+        } else if (growthPolicy == CompDefIOGrowthPolicy::eq &&
+                   definition->getOutputSlotsInfo().count !=
+                       definition->getInputSlotsInfo().count) {
+            decrementOutputCount();
         }
+        definition->computeHash();
+        EventSystem::EventDispatcher::instance().dispatch(
+            Events::CompDefInputsResizedEvent{this->id});
+        return definition->getInputSlotsInfo().count;
+    }
+
+    size_t DigitalComponent::decrementOutputCount() {
+        if (!definition->onSlotsResizeReq(SlotsGroupType::output,
+                                          definition->getOutputSlotsInfo().count - 1)) {
+            return definition->getOutputSlotsInfo().count;
+        }
+
+        definition->getOutputSlotsInfo().count -= 1;
+        state.outputStates.pop_back();
+        state.outputConnected.pop_back();
+        outputConnections.pop_back();
+        definition->computeHash();
+
+        const auto growthPolicy = definition->getIOGrowthPolicy();
+        if (growthPolicy == CompDefIOGrowthPolicy::eq &&
+            definition->getOutputSlotsInfo().count !=
+                definition->getInputSlotsInfo().count) {
+            decrementInputCount();
+        }
+
+        EventSystem::EventDispatcher::instance().dispatch(
+            Events::CompDefOutputsResizedEvent{this->id});
 
         return definition->getOutputSlotsInfo().count;
     }

@@ -30,6 +30,7 @@ namespace Bess {
         std::string toString() const noexcept;
 
         static const UUID null;
+        static const UUID master;
 
       private:
         uint64_t m_UUID;

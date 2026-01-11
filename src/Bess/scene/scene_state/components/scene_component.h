@@ -57,6 +57,8 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(std::vector<UUID>, ChildComponents, m_childComponents)
         MAKE_GETTER_SETTER(uint32_t, RuntimeId, m_runtimeId)
 
+        virtual void removeChildComponent(const UUID &uuid);
+
         bool isDraggable() const;
 
         void setPosition(const glm::vec3 &pos);

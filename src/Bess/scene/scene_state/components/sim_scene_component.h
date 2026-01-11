@@ -71,6 +71,8 @@ namespace Bess::Canvas {
                                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                   std::shared_ptr<PathRenderer> /*unused*/) override;
 
+        void removeChildComponent(const UUID &uuid) override;
+
       protected:
         // Associated simulation engine ID
         UUID m_simEngineId = UUID::null;

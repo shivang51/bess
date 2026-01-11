@@ -1,4 +1,7 @@
 #include "scene/scene_state/components/sim_scene_component.h"
+
+#include <algorithm>
+
 #include "bess_uuid.h"
 #include "scene/scene_state/components/input_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -8,6 +11,7 @@
 #include "scene/scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
+#include <algorithm>
 
 namespace Bess::Canvas {
     constexpr float SNAP_AMOUNT = 5.f;
@@ -396,6 +400,16 @@ namespace Bess::Canvas {
         }
 
         return sceneComp;
+    }
+
+    void SimulationSceneComponent::removeChildComponent(const UUID &uuid) {
+        BESS_INFO("[SimulationSceneComponent] Removing slot component {}", (uint64_t)uuid);
+        SceneComponent::removeChildComponent(uuid);
+        m_inputSlots.erase(std::ranges::remove(m_inputSlots, uuid).begin(),
+                           m_inputSlots.end());
+
+        m_outputSlots.erase(std::ranges::remove(m_outputSlots, uuid).begin(),
+                            m_outputSlots.end());
     }
 } // namespace Bess::Canvas
 

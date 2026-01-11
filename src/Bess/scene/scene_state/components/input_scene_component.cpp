@@ -126,6 +126,7 @@ namespace Bess::Canvas {
         SimulationSceneComponent::calculateSchematicScale(state);
         m_schematicScale.x = 50.f;
     }
+
 } // namespace Bess::Canvas
 
 namespace Bess::JsonConvert {

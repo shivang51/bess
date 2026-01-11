@@ -149,6 +149,9 @@ namespace Bess::Canvas {
         void onSlotClicked(const Events::SlotClickedEvent &e);
 
         void onCompDefOutputsResized(const SimEngine::Events::CompDefOutputsResizedEvent &e);
+        void onCompDefInputsResized(const SimEngine::Events::CompDefInputsResizedEvent &e);
+
+        void onConnectionRemoved(const Events::ConnectionRemovedEvent &e);
 
         void drawGhostConnection(const std::shared_ptr<PathRenderer> &pathRenderer,
                                  const glm::vec2 &startPos,

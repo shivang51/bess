@@ -16,6 +16,9 @@ namespace Bess::SimEngine {
         size_t incrementInputCount();
         size_t incrementOutputCount();
 
+        size_t decrementInputCount();
+        size_t decrementOutputCount();
+
         UUID id;
         UUID netUuid = UUID::null;
         ComponentState state;

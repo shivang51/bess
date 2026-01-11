@@ -106,6 +106,13 @@ namespace Bess::Canvas {
             onFirstDraw(state, std::move(materialRenderer), std::move(pathRenderer));
         }
     }
+
+    void SceneComponent::removeChildComponent(const UUID &uuid) {
+        m_childComponents.erase(std::ranges::remove(m_childComponents,
+                                                    uuid)
+                                    .begin(),
+                                m_childComponents.end());
+    }
 } // namespace Bess::Canvas
 
 namespace Bess::JsonConvert {

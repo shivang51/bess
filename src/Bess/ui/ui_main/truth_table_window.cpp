@@ -8,12 +8,6 @@
 
 namespace Bess::UI {
 
-    std::string TruthTableWindow::selectedNetName;
-    UUID TruthTableWindow::selectedNetId = UUID::null;
-    bool TruthTableWindow::isDirty = true;
-    SimEngine::TruthTable TruthTableWindow::currentTruthTable;
-    std::unordered_map<UUID, std::string> TruthTableWindow::compIdToNameMap;
-
     void TruthTableWindow::draw() {
         if (!isShown)
             return;
@@ -51,7 +45,7 @@ namespace Bess::UI {
             if (!currentTruthTable.table.empty()) {
                 char inp = 'A';
                 char out = 'M';
-                if (ImGui::BeginTable("TruthTable", currentTruthTable.table[0].size(), tableFlags)) {
+                if (ImGui::BeginTable("TruthTable", (int)currentTruthTable.table[0].size(), tableFlags)) {
                     for (auto &compId : currentTruthTable.inputUuids) {
                         ImGui::TableSetupColumn(std::format("{}", inp++).c_str());
                     }
@@ -85,4 +79,10 @@ namespace Bess::UI {
 
     bool TruthTableWindow::isShown = false;
     bool TruthTableWindow::isfirstTimeDraw = true;
+    std::string TruthTableWindow::selectedNetName;
+    UUID TruthTableWindow::selectedNetId = UUID::null;
+    bool TruthTableWindow::isDirty = true;
+    SimEngine::TruthTable TruthTableWindow::currentTruthTable;
+    std::unordered_map<UUID, std::string> TruthTableWindow::compIdToNameMap;
+
 } // namespace Bess::UI
