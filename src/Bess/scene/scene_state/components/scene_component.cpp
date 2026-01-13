@@ -124,6 +124,7 @@ namespace Bess::JsonConvert {
         j["name"] = component.getName();
         j["childComponents"] = Json::Value(Json::arrayValue);
         j["type"] = static_cast<int>(component.getType());
+        j["subType"] = component.getSubType();
         for (const auto &childUuid : component.getChildComponents()) {
             Json::Value childJson;
             toJsonValue(childUuid, childJson);
@@ -132,6 +133,11 @@ namespace Bess::JsonConvert {
     }
 
     void fromJsonValue(const Json::Value &j, Bess::Canvas::SceneComponent &component) {
+
+        if (j.isMember("subType")) {
+            component.setSubType(j["subType"].asString());
+        }
+
         if (j.isMember("transform")) {
             fromJsonValue(j["transform"], component.getTransform());
         }

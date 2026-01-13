@@ -2,12 +2,16 @@
 
 #include "bess_uuid.h"
 #include "scene/scene_state/components/sim_scene_component.h"
+#include "scene/scene_state/scene_state.h"
 
 namespace Bess::Canvas {
     class InputSceneComponent : public SimulationSceneComponent {
       public:
         static constexpr const char *subType = "InputSceneComponent";
-        InputSceneComponent() = default;
+        InputSceneComponent() {
+            m_subType = subType;
+        }
+
         ~InputSceneComponent() override = default;
 
         void draw(SceneState &state,
@@ -29,9 +33,6 @@ namespace Bess::Canvas {
         void onMouseLeave(const Events::MouseLeaveEvent &e) override;
 
         void onMouseButton(const Events::MouseButtonEvent &e) override;
-
-      private:
-        short m_redundantVar; // just so cast of normal SimulationSceneComponent fails
     };
 } // namespace Bess::Canvas
 

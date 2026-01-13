@@ -1,7 +1,5 @@
 #include "scene/scene_state/components/sim_scene_component.h"
-
-#include <algorithm>
-
+#include "bess_json/json_converters.h"
 #include "bess_uuid.h"
 #include "scene/scene_state/components/input_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -11,6 +9,7 @@
 #include "scene/scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
+
 #include <algorithm>
 
 namespace Bess::Canvas {
@@ -430,6 +429,8 @@ namespace Bess::JsonConvert {
             toJsonValue(component.getOutputSlots()[i],
                         j["outputSlots"][static_cast<int>(i)]);
         }
+
+        toJsonValue(component.getSchematicScale(), j["schematicScale"]);
     }
 
     void fromJsonValue(const Json::Value &j, Bess::Canvas::SimulationSceneComponent &component) {
@@ -464,6 +465,12 @@ namespace Bess::JsonConvert {
                 fromJsonValue(slotJson, slotId);
                 component.getOutputSlots().push_back(slotId);
             }
+        }
+
+        if (j.isMember("schematicScale")) {
+            glm::vec2 schematicScale;
+            fromJsonValue(j["schematicScale"], schematicScale);
+            component.setSchematicScale(schematicScale);
         }
     }
 

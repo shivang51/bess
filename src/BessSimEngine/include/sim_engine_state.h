@@ -37,3 +37,8 @@ namespace Bess::SimEngine {
         std::unordered_map<UUID, Net> m_nets;
     };
 } // namespace Bess::SimEngine
+
+namespace Bess::JsonConvert {
+    void toJsonValue(const Bess::SimEngine::SimEngineState &state, Json::Value &j);
+    void fromJsonValue(const Json::Value &j, Bess::SimEngine::SimEngineState &state);
+} // namespace Bess::JsonConvert

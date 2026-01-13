@@ -37,6 +37,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(std::vector<UUID>, InputSlots, m_inputSlots)
         MAKE_GETTER_SETTER(std::vector<UUID>, OutputSlots, m_outputSlots)
         MAKE_GETTER_SETTER(std::shared_ptr<SimSceneCompDrawHook>, DrawHook, m_drawHook)
+        MAKE_GETTER_SETTER(glm::vec2, SchematicScale, m_schematicScale)
 
         size_t getInputSlotsCount() const;
         size_t getOutputSlotsCount() const;

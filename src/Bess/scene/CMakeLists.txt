@@ -11,8 +11,6 @@ set(External
 )
 
 set(Header_Files
-	"components/components.h"
-	"components/json_converters.h"
 	"components/non_sim_comp.h"
 	"schematic_diagram.h"
 	"scene.h"
@@ -59,7 +57,6 @@ source_group("include/scene" FILES ${Header_Files})
 set(Source_Files
 	"schematic_diagram.cpp"
 	"components/non_sim_comp.cpp"
-	"components/components.cpp"
 	"scene_serializer.cpp"
 	"viewport.cpp"
 	"scene_state/scene_state.cpp"

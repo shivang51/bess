@@ -1,10 +1,7 @@
 #pragma once
 #include "bess_uuid.h"
 #include "commands/command.h"
-#include "vec2.hpp"
 
-#include "component_definition.h"
-#include "scene/components/components.h"
 #include "json/value.h"
 #include "json/writer.h"
 

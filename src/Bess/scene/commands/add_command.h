@@ -1,10 +1,9 @@
 #pragma once
 #include "bess_uuid.h"
 #include "commands/command.h"
-#include "vec2.hpp"
+#include "scene/components/non_sim_comp.h"
 
 #include "component_definition.h"
-#include "scene/components/components.h"
 #include "json/value.h"
 
 namespace Bess::Canvas::Commands {

@@ -54,7 +54,7 @@ namespace Bess::SimEngine {
 } // namespace Bess::SimEngine
 
 namespace Bess::JsonConvert {
-    void toJsonValue(Json::Value &j, const Bess::SimEngine::Net &net) {
+    void toJsonValue(const Bess::SimEngine::Net &net, Json::Value &j) {
         j = Json::objectValue;
         toJsonValue(net.getUUID(), j["uuid"]);
         j["components"] = Json::arrayValue;

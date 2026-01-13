@@ -7,6 +7,7 @@
 #include "events/application_event.h"
 #include "events/scene_events.h"
 #include "events/sim_engine_events.h"
+#include "ext/matrix_transform.hpp"
 #include "fwd.hpp"
 #include "pages/main_page/main_page_state.h"
 #include "plugin_manager.h"

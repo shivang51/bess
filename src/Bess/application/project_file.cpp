@@ -1,9 +1,7 @@
 #include "application/project_file.h"
-#include "bess_uuid.h"
 #include "common/log.h"
 #include "json/json.h"
 
-#include "scene/components/components.h"
 #include "scene/scene.h"
 #include "ui/ui_main/dialogs.h"
 #include "ui/ui_main/project_explorer.h"

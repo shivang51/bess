@@ -1,10 +1,7 @@
 #include "ui/ui_main/properties_panel.h"
-#include "common/helpers.h"
 #include "gtc/type_ptr.hpp"
 #include "imgui_internal.h"
 #include "init_components.h"
-#include "scene/components/components.h"
-#include "scene/components/non_sim_comp.h"
 #include "scene/scene.h"
 #include "scene/scene_state/components/connection_scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
@@ -71,14 +68,6 @@ namespace Bess::UI {
             }
             ImGui::Unindent();
         }
-    }
-
-    void drawTextNodeComponent(TextNodeComponent &comp) {
-        ImGui::Indent();
-        Widgets::TextBox("Text", comp.text);
-        ImGui::SliderFloat("Font Size", &comp.fontSize, 1.0f, 100.0f, "%.1f");
-        ImGui::ColorEdit4("Color", glm::value_ptr(comp.color));
-        ImGui::Unindent();
     }
 
     void drawConnectionComponent(const std::shared_ptr<Canvas::ConnectionSceneComponent> &comp) {

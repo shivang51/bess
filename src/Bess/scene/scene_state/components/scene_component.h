@@ -56,6 +56,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(UUID, ParentComponent, m_parentComponent)
         MAKE_GETTER_SETTER(std::vector<UUID>, ChildComponents, m_childComponents)
         MAKE_GETTER_SETTER(uint32_t, RuntimeId, m_runtimeId)
+        MAKE_GETTER_SETTER(std::string, SubType, m_subType)
 
         virtual void removeChildComponent(const UUID &uuid);
 
@@ -122,6 +123,8 @@ namespace Bess::Canvas {
 
         UUID m_parentComponent = UUID::null;
         std::vector<UUID> m_childComponents;
+
+        std::string m_subType;
     };
 } // namespace Bess::Canvas
 

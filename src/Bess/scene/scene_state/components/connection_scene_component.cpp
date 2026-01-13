@@ -304,6 +304,8 @@ namespace Bess::JsonConvert {
             toJsonValue(segment, segJson);
             j["segments"].append(segJson);
         }
+
+        j["useCustomColor"] = component.getUseCustomColor();
     }
 
     void fromJsonValue(const Json::Value &j, Bess::Canvas::ConnectionSceneComponent &component) {
@@ -328,6 +330,10 @@ namespace Bess::JsonConvert {
                 segments.push_back(segment);
             }
             component.setSegments(segments);
+        }
+
+        if (j.isMember("useCustomColor")) {
+            component.setUseCustomColor(j["useCustomColor"].asBool());
         }
     }
 } // namespace Bess::JsonConvert

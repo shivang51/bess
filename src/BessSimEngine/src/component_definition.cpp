@@ -153,3 +153,97 @@ namespace Bess::SimEngine {
         this->setAuxData(m_outputExpressions);
     }
 } // namespace Bess::SimEngine
+
+namespace Bess::JsonConvert {
+
+    void toJsonValue(Json::Value &j, const Bess::SimEngine::SlotsGroupInfo &info) {
+        j = Json::Value(Json::objectValue);
+        j["type"] = static_cast<Json::UInt64>(static_cast<uint8_t>(info.type));
+        j["is_resizeable"] = info.isResizeable;
+        j["count"] = static_cast<Json::UInt64>(info.count);
+        j["names"] = Json::Value(Json::arrayValue);
+        for (const auto &name : info.names) {
+            j["names"].append(name);
+        }
+        j["categories"] = Json::Value(Json::arrayValue);
+        for (const auto &[index, category] : info.categories) {
+            Json::Value catJ = Json::Value(Json::objectValue);
+            catJ["index"] = static_cast<Json::UInt64>(index);
+            catJ["category"] = static_cast<Json::UInt64>(static_cast<uint8_t>(category));
+            j["categories"].append(catJ);
+        }
+    }
+
+    void fromJsonValue(const Json::Value &j, Bess::SimEngine::SlotsGroupInfo &info) {
+        if (!j.isObject()) {
+            return;
+        }
+        info.type = static_cast<Bess::SimEngine::SlotsGroupType>(
+            j.get("type", 0).asUInt64());
+        info.isResizeable = j.get("is_resizeable", false).asBool();
+        info.count = j.get("count", 0).asUInt64();
+        info.names.clear();
+        if (j.isMember("names")) {
+            for (const auto &nameJ : j["names"]) {
+                info.names.push_back(nameJ.asString());
+            }
+        }
+        info.categories.clear();
+        if (j.isMember("categories")) {
+            for (const auto &catJ : j["categories"]) {
+                size_t index = catJ.get("index", 0).asUInt64();
+                Bess::SimEngine::SlotCatergory category =
+                    static_cast<Bess::SimEngine::SlotCatergory>(
+                        catJ.get("category", 0).asUInt64());
+                info.categories.emplace_back(index, category);
+            }
+        }
+    }
+
+    void toJsonValue(const Bess::SimEngine::ComponentDefinition &def, Json::Value &j) {
+        j = Json::Value(Json::objectValue);
+        j["name"] = def.getName();
+        j["group_name"] = def.getGroupName();
+        j["should_auto_reschedule"] = def.getShouldAutoReschedule();
+        toJsonValue(j["input_slots_info"], def.getInputSlotsInfo());
+        toJsonValue(j["output_slots_info"], def.getOutputSlotsInfo());
+        j["op_info"] = Json::Value(Json::objectValue);
+        j["op_info"]["op"] = std::string(1, def.getOpInfo().op);
+        j["op_info"]["should_negate_output"] = def.getOpInfo().shouldNegateOutput;
+        j["sim_delay_ns"] = static_cast<Json::UInt64>(def.getSimDelay().count());
+        j["behavior_type"] = static_cast<Json::UInt64>(static_cast<uint8_t>(def.getBehaviorType()));
+        j["output_expressions"] = Json::Value(Json::arrayValue);
+        for (const auto &expr : def.getOutputExpressions()) {
+            j["output_expressions"].append(expr);
+        }
+    }
+
+    void fromJsonValue(const Json::Value &j, Bess::SimEngine::ComponentDefinition &def) {
+        if (!j.isObject()) {
+            return;
+        }
+        def.setName(j.get("name", "Unnamed Component").asString());
+        def.setGroupName(j.get("group_name", "").asString());
+        def.setShouldAutoReschedule(j.get("should_auto_reschedule", false).asBool());
+        fromJsonValue(j["input_slots_info"], def.getInputSlotsInfo());
+        fromJsonValue(j["output_slots_info"], def.getOutputSlotsInfo());
+        if (j.isMember("op_info")) {
+            const auto &opJ = j["op_info"];
+            std::string opStr = opJ.get("op", "0").asString();
+            char opChar = (opStr.size() > 0) ? opStr[0] : '0';
+            Bess::SimEngine::OperatorInfo opInfo;
+            opInfo.op = opChar;
+            opInfo.shouldNegateOutput = opJ.get("should_negate_output", false).asBool();
+            def.setOpInfo(opInfo);
+        }
+        def.setSimDelay(SimEngine::SimDelayNanoSeconds(j.get("sim_delay_ns", 0).asUInt64()));
+        def.setBehaviorType(static_cast<Bess::SimEngine::ComponentBehaviorType>(
+            j.get("behavior_type", 0).asUInt64()));
+        def.getOutputExpressions().clear();
+        if (j.isMember("output_expressions")) {
+            for (const auto &exprJ : j["output_expressions"]) {
+                def.getOutputExpressions().push_back(exprJ.asString());
+            }
+        }
+    }
+} // namespace Bess::JsonConvert

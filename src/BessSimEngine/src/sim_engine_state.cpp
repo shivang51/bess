@@ -53,4 +53,37 @@ namespace Bess::SimEngine {
     bool SimEngineState::isComponentValid(const UUID &uuid) const {
         return m_digitalComponents.contains(uuid);
     }
+
 } // namespace Bess::SimEngine
+
+namespace Bess::JsonConvert {
+    void toJsonValue(const Bess::SimEngine::SimEngineState &state, Json::Value &j) {
+        j["digital_components"] = Json::arrayValue;
+        for (const auto &[uuid, comp] : state.getDigitalComponents()) {
+            Json::Value compJson;
+            JsonConvert::toJsonValue(compJson, *comp);
+            j["digital_components"].append(compJson);
+        }
+
+        j["nets"] = Json::arrayValue;
+        for (const auto &[netUuid, net] : state.getNetsMap()) {
+            JsonConvert::toJsonValue(net, j["nets"].append(Json::Value()));
+        }
+    }
+
+    void fromJsonValue(const Json::Value &j, Bess::SimEngine::SimEngineState &state) {
+        state.reset();
+
+        for (const auto &compJson : j["digital_components"]) {
+            std::shared_ptr<SimEngine::DigitalComponent> comp = std::make_shared<SimEngine::DigitalComponent>();
+            JsonConvert::fromJsonValue(compJson, *comp);
+            state.addDigitalComponent(comp);
+        }
+
+        for (const auto &netJson : j["nets"]) {
+            SimEngine::Net net;
+            JsonConvert::fromJsonValue(netJson, net);
+            state.addNet(net);
+        }
+    }
+} // namespace Bess::JsonConvert

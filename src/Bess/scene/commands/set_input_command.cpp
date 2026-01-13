@@ -2,7 +2,6 @@
 #include "application/types.h"
 #include "commands/commands.h"
 #include "commands/commands_manager.h"
-#include "scene/components/components.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
 

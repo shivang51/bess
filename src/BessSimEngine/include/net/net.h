@@ -39,6 +39,6 @@ namespace Bess::SimEngine {
 } // namespace Bess::SimEngine
 
 namespace Bess::JsonConvert {
-    void toJsonValue(Json::Value &j, const Bess::SimEngine::Net &net);
+    void toJsonValue(const Bess::SimEngine::Net &net, Json::Value &j);
     void fromJsonValue(const Json::Value &j, Bess::SimEngine::Net &net);
 } // namespace Bess::JsonConvert

@@ -39,6 +39,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(SlotType, SlotType, m_slotType)
         MAKE_GETTER_SETTER(int, Index, m_index)
         MAKE_GETTER_SETTER(glm::vec3, SchematicPos, m_schematicPos)
+        MAKE_GETTER_SETTER(std::vector<UUID>, ConnectedConnections, m_connectedConnections)
 
         void addConnection(const UUID &connectionId);
         void removeConnection(const UUID &connectionId);

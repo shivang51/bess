@@ -78,6 +78,9 @@ namespace Bess::SimEngine {
 
         bool isSimStable();
 
+        const SimEngineState &getSimEngineState() const;
+        SimEngineState &getSimEngineState();
+
       private:
         bool isSimStableLocked() const;
 

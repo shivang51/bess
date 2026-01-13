@@ -6,6 +6,7 @@
 #include "scene/scene_state/components/sim_scene_component.h"
 #include "scene/scene_state/components/slot_scene_component.h"
 #include <cstdint>
+#include <memory>
 
 namespace Bess::Canvas {
     void SceneState::clear() {
@@ -198,8 +199,8 @@ namespace Bess::JsonConvert {
             auto &compJson = j["components"][static_cast<int>(j["components"].size() - 1)];
             switch (component->getType()) {
             case Canvas::SceneComponentType::simulation: {
-                if (auto inputComp = component->cast<Canvas::InputSceneComponent>()) {
-                    toJsonValue(*inputComp, compJson);
+                if (component->getSubType() == Canvas::InputSceneComponent::subType) {
+                    toJsonValue(*component->cast<Canvas::InputSceneComponent>(), compJson);
                 } else {
                     toJsonValue(*component->cast<Canvas::SimulationSceneComponent>(),
                                 compJson);

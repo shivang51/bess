@@ -202,5 +202,9 @@ namespace Bess::SimEngine {
         TypeMap<std::shared_ptr<Trait>> m_traits;
         CompDefinitionOwnership m_ownership = CompDefinitionOwnership::NativeCpp;
     };
-
 } // namespace Bess::SimEngine
+
+namespace Bess::JsonConvert {
+    BESS_API void toJsonValue(const Bess::SimEngine::ComponentDefinition &def, Json::Value &j);
+    BESS_API void fromJsonValue(const Json::Value &j, Bess::SimEngine::ComponentDefinition &def);
+} // namespace Bess::JsonConvert

@@ -28,3 +28,8 @@ namespace Bess::SimEngine {
     };
 
 } // namespace Bess::SimEngine
+
+namespace Bess::JsonConvert {
+    BESS_API void toJsonValue(Json::Value &j, const Bess::SimEngine::DigitalComponent &comp);
+    BESS_API void fromJsonValue(const Json::Value &j, Bess::SimEngine::DigitalComponent &comp);
+} // namespace Bess::JsonConvert

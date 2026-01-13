@@ -118,3 +118,17 @@ namespace Bess::SimEngine {
         std::vector<UUID> outputUuids;
     };
 } // namespace Bess::SimEngine
+
+namespace Bess::JsonConvert {
+    BESS_API void toJsonValue(const Bess::SimEngine::SlotState &state, Json::Value &j);
+    BESS_API void fromJsonValue(const Json::Value &j, Bess::SimEngine::SlotState &state);
+
+    BESS_API void toJsonValue(const Bess::SimEngine::ComponentState &state, Json::Value &j);
+    BESS_API void fromJsonValue(const Json::Value &j, Bess::SimEngine::ComponentState &state);
+
+    BESS_API void toJsonValue(const Bess::SimEngine::Connections &connections, Json::Value &j);
+    BESS_API void fromJsonValue(const Json::Value &j, Bess::SimEngine::Connections &connections);
+
+    BESS_API void toJsonValue(const Bess::SimEngine::ComponentPin &pin, Json::Value &j);
+    BESS_API void fromJsonValue(const Json::Value &j, Bess::SimEngine::ComponentPin &pin);
+} // namespace Bess::JsonConvert

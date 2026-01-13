@@ -22,35 +22,6 @@ namespace Bess {
     }
 
     void SceneSerializer::serializeEntity(UUID uid, Json::Value &j) {
-        // const auto ent = Canvas::Scene::instance()->getEntityWithUuid(uid);
-        // auto &reg = Canvas::Scene::instance()->getEnttRegistry();
-        // EnttRegistrySerializer::serializeEntity(reg, ent, j["components"]);
-        //
-        // if (const auto *simComp = reg.try_get<SimulationComponent>(ent)) {
-        //     for (const auto &slot : simComp->inputSlots)
-        //         serializeEntity(slot, j["slots"].append(Json::objectValue));
-        //
-        //     for (const auto &slot : simComp->outputSlots)
-        //         serializeEntity(slot, j["slots"].append(Json::objectValue));
-        // }
-        //
-        // if (const auto *slotComp = reg.try_get<SlotComponent>(ent)) {
-        //     for (const auto &conn : slotComp->connections) {
-        //         serializeEntity(conn, j["connections"].append(Json::objectValue));
-        //     }
-        // }
-        //
-        // if (const auto *connComp = reg.try_get<ConnectionComponent>(ent)) {
-        //     UUID segId = connComp->segmentHead;
-        //     while (segId != UUID::null) {
-        //         const auto &seg = reg.get<ConnectionSegmentComponent>(
-        //             Canvas::Scene::instance()->getEntityWithUuid(segId));
-        //
-        //         serializeEntity(segId, j["segments"].append(Json::objectValue));
-        //
-        //         segId = seg.next;
-        //     }
-        // }
     }
 
     void SceneSerializer::deserialize(const Json::Value &json) {
@@ -69,38 +40,6 @@ namespace Bess {
     }
 
     void SceneSerializer::deserializeEntity(const Json::Value &json) {
-        // auto &registry = Canvas::Scene::instance()->getEnttRegistry();
-        // entt::entity entity = EnttRegistrySerializer::deserializeEntity(registry, json["components"]);
-        //
-        // if (registry.valid(entity)) {
-        //     bool isSim = registry.any_of<SimulationComponent>(entity);
-        //     bool isNS = registry.any_of<NSComponent>(entity);
-        //
-        //     if (isSim || isNS) {
-        //         if (registry.any_of<IdComponent>(entity)) {
-        //             UUID uuid = registry.get<IdComponent>(entity).uuid;
-        //             // Canvas::Scene::instance()->getEventDispatcher().trigger(Events::ComponentCreatedEvent{uuid, entity, isSim});
-        //         }
-        //     }
-        // }
-        //
-        // if (json.isMember("slots")) {
-        //     for (auto &slot : json["slots"]) {
-        //         deserializeEntity(slot);
-        //     }
-        // }
-        //
-        // if (json.isMember("connections")) {
-        //     for (auto &conn : json["connections"]) {
-        //         deserializeEntity(conn);
-        //     }
-        // }
-        //
-        // if (json.isMember("segments")) {
-        //     for (auto &seg : json["segments"]) {
-        //         deserializeEntity(seg);
-        //     }
-        // }
     }
 
 } // namespace Bess

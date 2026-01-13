@@ -151,3 +151,24 @@ namespace Bess::SimEngine {
         return definition->getOutputSlotsInfo().count;
     }
 } // namespace Bess::SimEngine
+
+namespace Bess::JsonConvert {
+    void toJsonValue(Json::Value &j, const Bess::SimEngine::DigitalComponent &comp) {
+        toJsonValue(comp.id, j["id"]);
+        toJsonValue(comp.netUuid, j["net_uuid"]);
+        toJsonValue(*comp.definition, j["definition"]);
+        toJsonValue(comp.state, j["state"]);
+        toJsonValue(comp.inputConnections, j["input_connections"]);
+        toJsonValue(comp.outputConnections, j["output_connections"]);
+    }
+
+    void fromJsonValue(const Json::Value &j, Bess::SimEngine::DigitalComponent &comp) {
+        fromJsonValue(j["id"], comp.id);
+        fromJsonValue(j["net_uuid"], comp.netUuid);
+        comp.definition = std::make_shared<Bess::SimEngine::ComponentDefinition>();
+        fromJsonValue(j["definition"], *comp.definition);
+        fromJsonValue(j["state"], comp.state);
+        fromJsonValue(j["input_connections"], comp.inputConnections);
+        fromJsonValue(j["output_connections"], comp.outputConnections);
+    }
+} // namespace Bess::JsonConvert

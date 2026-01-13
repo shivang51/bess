@@ -1,4 +1,5 @@
 #include "scene/scene_state/components/slot_scene_component.h"
+#include "bess_json/json_converters.h"
 #include "event_dispatcher.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/sim_scene_component.h"
@@ -228,6 +229,13 @@ namespace Bess::JsonConvert {
 
         j["slotType"] = static_cast<uint8_t>(component.getSlotType());
         j["index"] = component.getIndex();
+        toJsonValue(component.getSchematicPos(), j["schematicPos"]);
+        j["connectecConnections"] = Json::Value(Json::arrayValue);
+        for (const auto &connId : component.getConnectedConnections()) {
+            Json::Value val;
+            toJsonValue(connId, val);
+            j["connectedConnections"].append(std::move(val));
+        }
     }
 
     void fromJsonValue(const Json::Value &j, Bess::Canvas::SlotSceneComponent &component) {
@@ -239,6 +247,22 @@ namespace Bess::JsonConvert {
 
         if (j.isMember("index")) {
             component.setIndex(j["index"].asInt());
+        }
+
+        if (j.isMember("schematicPos")) {
+            glm::vec3 schematicPos;
+            fromJsonValue(j["schematicPos"], schematicPos);
+            component.setSchematicPos(schematicPos);
+        }
+
+        if (j.isMember("connectedConnections")) {
+            std::vector<UUID> connections;
+            for (const auto &connJson : j["connectedConnections"]) {
+                UUID connId;
+                fromJsonValue(connJson, connId);
+                connections.push_back(connId);
+            }
+            component.setConnectedConnections(connections);
         }
     }
 } // namespace Bess::JsonConvert
