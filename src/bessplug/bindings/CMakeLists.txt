@@ -20,7 +20,6 @@ file(GLOB libtess2_src
 
 file(GLOB_RECURSE BESS_SOURCES
 		"${CMAKE_SOURCE_DIR}/src/Bess/camera.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/ui/*.cpp"
 		"${CMAKE_SOURCE_DIR}/src/Bess/pages/*.cpp"
 		"${CMAKE_SOURCE_DIR}/src/Bess/application/project_file.cpp"
 		"${CMAKE_SOURCE_DIR}/src/Bess/application/window.cpp"
@@ -32,7 +31,7 @@ file(GLOB_RECURSE BESS_SOURCES
 		"${CMAKE_SOURCE_DIR}/src/Bess/asset_manager/*.cpp"
 )
 
-add_library(bess_scene_obj OBJECT
+add_library(bess_ext_obj OBJECT
 	${libtess2_src}
 	${BESS_SOURCES}
 )
@@ -54,7 +53,7 @@ set(EXTERNAL_INCLUDE_DIRS
 			"${CMAKE_SOURCE_DIR}/src/EventSystem/include"
 )
 
-target_include_directories(bess_scene_obj PRIVATE ${EXTERNAL_INCLUDE_DIRS})
+target_include_directories(bess_ext_obj PRIVATE ${EXTERNAL_INCLUDE_DIRS})
 
 set(BESS_PYBIND_SOURCES
 		internal_types.h
@@ -76,11 +75,12 @@ set(BESS_PYBIND_SOURCES
 pybind11_add_module(${PROJECT_NAME} ${BESS_PYBIND_SOURCES})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-	$<TARGET_OBJECTS:bess_scene_obj>
+	$<TARGET_OBJECTS:bess_ext_obj>
 	BessVulkan
 	BessSimEngine
 	EventSystem
 	BessScene
+	BessUI
 	"freetype"
 )
 

@@ -6,6 +6,7 @@ set(CMAKE_INSTALL_RPATH "\$ORIGIN")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_subdirectory("scene")
+add_subdirectory("ui")
 
 file(GLOB EXT_JSON_SRC "${CMAKE_SOURCE_DIR}/external/jsoncpp/src/lib_json/*.cpp")
 source_group("external/jsoncpp" FILES ${EXT_JSON_SRC})
@@ -43,67 +44,6 @@ set(Header_Files
 "common/bind_helpers.h"
 "common/digital_state.h"
 "common/log.h"
-"scene/components/components.h"
-"scene/components/json_converters.h"
-"scene/components/non_sim_comp.h"
-"scene/schematic_diagram.h"
-"scene/scene.h"
-"scene/viewport.h"
-"scene/camera.h"
-"scene/scene_serializer.h"
-"scene/scene_pch.h"
-"scene/scene_state/scene_state.h"
-"scene/scene_state/components/scene_component_types.h"
-"scene/scene_state/components/scene_component.h"
-"scene/scene_state/components/input_scene_component.h"
-"scene/scene_state/components/slot_scene_component.h"
-"scene/scene_state/components/sim_scene_component.h"
-"scene/scene_state/components/connection_scene_component.h"
-"scene/scene_state/components/behaviours/drag_behaviour.h"
-"scene/scene_state/components/behaviours/mouse_behaviour.h"
-"scene/commands/set_input_command.h"
-"scene/commands/del_connection_command.h"
-"scene/commands/delete_comp_command.h"
-"scene/commands/connect_command.h"
-"scene/commands/add_command.h"
-"scene/commands/create_group_command.h"
-"scene/commands/delete_node_command.h"
-"scene/commands/reparent_node_command.h"
-"scene/renderer/vulkan/path_renderer.h"
-"scene/renderer/vulkan/text_renderer.h"
-"scene/renderer/vulkan/pipelines/quad_pipeline.h"
-"scene/renderer/vulkan/pipelines/pipeline.h"
-"scene/renderer/vulkan/pipelines/circle_pipeline.h"
-"scene/renderer/vulkan/pipelines/grid_pipeline.h"
-"scene/renderer/vulkan/pipelines/path_stroke_pipeline.h"
-"scene/renderer/vulkan/pipelines/text_pipeline.h"
-"scene/renderer/vulkan/pipelines/path_fill_pipeline.h"
-"scene/renderer/material_renderer.h"
-"scene/renderer/material.h"
-"scene/renderer/msdf_font.h"
-"scene/renderer/glyph_extractor.h"
-"scene/renderer/font.h"
-"scene/renderer/asset_loaders.h"
-"scene/renderer/path.h"
-"ui/icons/ComponentIcons.h"
-"ui/icons/CodIcons.h"
-"ui/icons/FontAwesomeIcons.h"
-"ui/icons/MaterialIcons.h"
-"ui/widgets/m_widgets.h"
-"ui/ui.h"
-"ui/ui_main/properties_panel.h"
-"ui/ui_main/settings_window.h"
-"ui/ui_main/graph_view_window.h"
-"ui/ui_main/project_settings_window.h"
-"ui/ui_main/component_explorer.h"
-"ui/ui_main/truth_table_window.h"
-"ui/ui_main/scene_export_window.h"
-"ui/ui_main/ui_main.h"
-"ui/ui_main/popups.h"
-"ui/ui_main/dialogs.h"
-"ui/ui_main/project_explorer.h"
-"ui/ui_main/project_explorer_state.h"
-"ui/ui_main/scene_viewport.h"
 "application/types.h"
 "application/args_parser.h"
 "application/crash_detail_helper.h"
@@ -131,21 +71,6 @@ set(Source_Files
 "pages/main_page/scene_driver.cpp"
 "pages/start_page/start_page.cpp"
 "common/helpers.cpp"
-"ui/ui.cpp"
-"ui/widgets/m_widgets.cpp"
-"ui/ui_main/component_explorer.cpp"
-"ui/ui_main/truth_table_window.cpp"
-"ui/ui_main/properties_panel.cpp"
-"ui/ui_main/scene_viewport.cpp"
-"ui/ui_main/project_explorer.cpp"
-"ui/ui_main/project_explorer_state.cpp"
-"ui/ui_main/project_settings_window.cpp"
-"ui/ui_main/dialogs.cpp"
-"ui/ui_main/ui_main.cpp"
-"ui/ui_main/settings_window.cpp"
-"ui/ui_main/scene_export_window.cpp"
-"ui/ui_main/popups.cpp"
-"ui/ui_main/graph_view_window.cpp"
 "application/application_state.cpp"
 "application/application.cpp"
 "application/window.cpp"
@@ -164,21 +89,8 @@ set(ALL_FILES
 )
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
-target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine BessVulkan BessPluginManager EventSystem BessScene)
-add_dependencies(${PROJECT_NAME} BessSimEngine BessVulkan BessPluginManager BessScene)
-
-file(GLOB_RECURSE SCENE_PCH_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/scene/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/scene/*/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/scene/*/*/*.cpp"
-)
-set_source_files_properties(${Source_Files} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
-set_source_files_properties(${External} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
-set_source_files_properties(${SCENE_PCH_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS OFF)
-
-set_source_files_properties(${SCENE_PCH_SOURCES} PROPERTIES
-    COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:-include${CMAKE_CURRENT_SOURCE_DIR}/scene/scene_pch.h>
-)
+target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessUI)
+add_dependencies(${PROJECT_NAME} BessSimEngine BessVulkan BessPluginManager BessScene BessUI)
 
 if("${BUILD_ARCH}" STREQUAL "x64" AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
@@ -271,10 +183,5 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)
 
 if(MSVC)
 	target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8" "/Zc:__cplusplus")
-endif()
-
-# Precompiled header for scene (C++ only)
-if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
-    target_precompile_headers(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:"${CMAKE_CURRENT_SOURCE_DIR}/include/scene/scene_pch.h">)
 endif()
 
