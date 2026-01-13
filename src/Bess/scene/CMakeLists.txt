@@ -19,7 +19,6 @@ set(Header_Files
 	"viewport.h"
 	"camera.h"
 	"scene_serializer.h"
-	"scene_pch.h"
 	"scene_state/scene_state.h"
 	"scene_state/components/scene_component_types.h"
 	"scene_state/components/scene_component.h"
@@ -135,12 +134,13 @@ if(MSVC)
 endif()
 
 
-# Precompiled header for scene 
-set_source_files_properties(${Source_Files} PROPERTIES SKIP_PRECOMPILE_HEADERS OFF)
-set_source_files_properties(${Header_Files} PROPERTIES SKIP_PRECOMPILE_HEADERS OFF)
-set_source_files_properties(${Source_Files} PROPERTIES
-		COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:-include${CMAKE_CURRENT_SOURCE_DIR}/scene_pch.h>
-)
-if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
-    target_precompile_headers(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:"${CMAKE_CURRENT_SOURCE_DIR}/scene_pch.h">)
-endif()
+# NOT REQUIRED FOR NOW
+# # Precompiled header for scene 
+# set_source_files_properties(${Source_Files} PROPERTIES SKIP_PRECOMPILE_HEADERS OFF)
+# set_source_files_properties(${Header_Files} PROPERTIES SKIP_PRECOMPILE_HEADERS OFF)
+# set_source_files_properties(${Source_Files} PROPERTIES
+# 		COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:-include${CMAKE_CURRENT_SOURCE_DIR}/scene_pch.h>
+# )
+# if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
+#     target_precompile_headers(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:"${CMAKE_CURRENT_SOURCE_DIR}/scene_pch.h">)
+# endif()

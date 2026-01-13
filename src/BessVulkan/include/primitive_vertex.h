@@ -13,7 +13,7 @@ namespace Bess::Vulkan {
         glm::vec2 texCoord;  // location 1
         glm::uvec2 fragId;   // location 2
         glm::vec4 fragColor; // location 3
-        int ar;              // location 4
+        float ar;            // location 4
 
         static VkVertexInputBindingDescription getBindingDescription() {
             VkVertexInputBindingDescription bindingDescription{};
@@ -53,7 +53,7 @@ namespace Bess::Vulkan {
             // AR
             attributeDescriptions[4].binding = 0;
             attributeDescriptions[4].location = 4;
-            attributeDescriptions[4].format = VK_FORMAT_R32_SINT;
+            attributeDescriptions[4].format = VK_FORMAT_R32_SFLOAT;
             attributeDescriptions[4].offset = offsetof(GridVertex, ar);
 
             return attributeDescriptions;

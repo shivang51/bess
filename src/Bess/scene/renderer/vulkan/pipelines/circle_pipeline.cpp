@@ -1,7 +1,8 @@
 #include "scene/renderer/vulkan/pipelines/circle_pipeline.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
-#include "scene/scene_pch.h"
 #include "vulkan_core.h"
+#include <cstring>
+#include <span>
 #include <vulkan/vulkan_core.h>
 
 namespace Bess::Vulkan::Pipelines {
@@ -32,7 +33,7 @@ namespace Bess::Vulkan::Pipelines {
 
     CirclePipeline::CirclePipeline(CirclePipeline &&other) noexcept
         : Pipeline(std::move(other)),
-          m_buffers(other.m_buffers),
+          m_buffers(std::move(other.m_buffers)),
           m_instances(std::move(other.m_instances)) {
     }
 
@@ -69,7 +70,7 @@ namespace Bess::Vulkan::Pipelines {
                 return;
             void *data = nullptr;
             vkMapMemory(m_device->device(), m_buffers.instanceBufferMemory, offset, sizeof(CircleInstance) * instances.size(), 0, &data);
-            memcpy(data, instances.data(), sizeof(CircleInstance) * instances.size());
+            std::memcpy(data, instances.data(), sizeof(CircleInstance) * instances.size());
             vkUnmapMemory(m_device->device(), m_buffers.instanceBufferMemory);
 
             std::array<VkBuffer, 2> vbs = {m_buffers.vertexBuffer, m_buffers.instanceBuffer};

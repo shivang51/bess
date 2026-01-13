@@ -6,7 +6,6 @@
 #include "scene/components/components.h"
 #include "scene/components/non_sim_comp.h"
 #include "scene/scene.h"
-#include "scene/scene_pch.h"
 #include "scene/scene_state/components/connection_scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/sim_scene_component.h"

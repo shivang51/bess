@@ -1,7 +1,6 @@
 #include "scene/renderer/glyph_extractor.h"
 #include "common/log.h"
 #include "freetype/freetype.h"
-#include "scene/scene_pch.h"
 #include <cassert>
 
 namespace Bess::Renderer::Font {

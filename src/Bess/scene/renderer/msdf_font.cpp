@@ -1,4 +1,3 @@
-#include "scene/scene_pch.h"
 #include "scene/renderer/msdf_font.h"
 #include "common/log.h"
 

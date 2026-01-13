@@ -1,8 +1,8 @@
 #include "scene/renderer/vulkan/pipelines/quad_pipeline.h"
 #include "common/log.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
-#include "scene/scene_pch.h"
 #include "vulkan_core.h"
+#include "vulkan_texture.h"
 
 namespace Bess::Vulkan::Pipelines {
 
@@ -302,8 +302,8 @@ namespace Bess::Vulkan::Pipelines {
         instanceAttribs[9].offset = offsetof(QuadInstance, texData);
 
         std::array<VkVertexInputAttributeDescription, 12> allAttribs{};
-        std::copy(localAttribs.begin(), localAttribs.end(), allAttribs.begin());
-        std::copy(instanceAttribs.begin(), instanceAttribs.end(), allAttribs.begin() + 2);
+        std::ranges::copy(localAttribs, allAttribs.begin());
+        std::ranges::copy(instanceAttribs, allAttribs.begin() + localAttribs.size());
 
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;

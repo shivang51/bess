@@ -5,7 +5,7 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "scene/commands/add_command.h"
-#include "scene/scene_pch.h"
+#include "scene/scene.h"
 #include "ui/widgets/m_widgets.h"
 #include <utility>
 

@@ -2,7 +2,6 @@
 #include "application/assets.h"
 #include "asset_manager/asset_manager.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
-#include "scene/scene_pch.h"
 
 namespace Bess::Vulkan::Pipelines {
 

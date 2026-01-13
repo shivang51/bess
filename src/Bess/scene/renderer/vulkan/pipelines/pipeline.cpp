@@ -1,5 +1,5 @@
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
-#include "scene/scene_pch.h"
+#include <cstring>
 #include <fstream>
 
 namespace Bess::Vulkan::Pipelines {

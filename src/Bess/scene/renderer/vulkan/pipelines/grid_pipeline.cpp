@@ -1,6 +1,7 @@
 #include "scene/renderer/vulkan/pipelines/grid_pipeline.h"
+#include "ext/matrix_transform.hpp"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
-#include "scene/scene_pch.h"
+#include <cstring>
 
 namespace Bess::Vulkan::Pipelines {
 
@@ -334,7 +335,7 @@ namespace Bess::Vulkan::Pipelines {
         bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr, &m_gridUniformBuffers[0]) != VK_SUCCESS) {
+        if (vkCreateBuffer(m_device->device(), &bufferInfo, nullptr, m_gridUniformBuffers.data()) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create grid uniform buffer!");
         }
 
@@ -346,7 +347,7 @@ namespace Bess::Vulkan::Pipelines {
         allocInfo.allocationSize = memRequirements.size;
         allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-        if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr, &m_gridUniformBufferMemory[0]) != VK_SUCCESS) {
+        if (vkAllocateMemory(m_device->device(), &allocInfo, nullptr, m_gridUniformBufferMemory.data()) != VK_SUCCESS) {
             throw std::runtime_error("Failed to allocate grid uniform buffer memory!");
         }
 
