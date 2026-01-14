@@ -1,4 +1,5 @@
 #include "component_definition.h"
+#include "component_catalog.h"
 #include "expression_evalutator/expr_evaluator.h"
 #include "types.h"
 #include <logger.h>
@@ -84,6 +85,9 @@ namespace Bess::SimEngine {
         hash = fnv1aPod(hash, m_simDelay.count());
 
         m_hash = hash;
+        if (m_baseHash == 0) {
+            m_baseHash = m_hash;
+        }
     }
 
     SimDelayNanoSeconds ComponentDefinition::getSimDelay() const {
@@ -216,17 +220,30 @@ namespace Bess::JsonConvert {
         for (const auto &expr : def.getOutputExpressions()) {
             j["output_expressions"].append(expr);
         }
+        // Will be used to get simulation function from the correct
+        // comp definition from catalog
+        j["base_hash"] = static_cast<Json::UInt64>(def.getBaseHash());
     }
 
-    void fromJsonValue(const Json::Value &j, Bess::SimEngine::ComponentDefinition &def) {
+    void fromJsonValue(const Json::Value &j, std::shared_ptr<Bess::SimEngine::ComponentDefinition> &def) {
         if (!j.isObject()) {
             return;
         }
-        def.setName(j.get("name", "Unnamed Component").asString());
-        def.setGroupName(j.get("group_name", "").asString());
-        def.setShouldAutoReschedule(j.get("should_auto_reschedule", false).asBool());
-        fromJsonValue(j["input_slots_info"], def.getInputSlotsInfo());
-        fromJsonValue(j["output_slots_info"], def.getOutputSlotsInfo());
+        const auto baseDefHash = j.get("base_hash", 0).asUInt64();
+        auto &compCatalog = SimEngine::ComponentCatalog::instance();
+        if (!compCatalog.isRegistered(baseDefHash)) {
+            BESS_SE_ERROR("ComponentDefinition deserialization: could not find base definition with hash {} in catalog for {}",
+                          baseDefHash, def->getName());
+            assert(false && "ComponentDefinition base definition not found in catalog");
+        }
+
+        def = compCatalog.getComponentDefinition(baseDefHash)->clone();
+
+        def->setName(j.get("name", "Unnamed Component").asString());
+        def->setGroupName(j.get("group_name", "").asString());
+        def->setShouldAutoReschedule(j.get("should_auto_reschedule", false).asBool());
+        fromJsonValue(j["input_slots_info"], def->getInputSlotsInfo());
+        fromJsonValue(j["output_slots_info"], def->getOutputSlotsInfo());
         if (j.isMember("op_info")) {
             const auto &opJ = j["op_info"];
             std::string opStr = opJ.get("op", "0").asString();
@@ -234,16 +251,18 @@ namespace Bess::JsonConvert {
             Bess::SimEngine::OperatorInfo opInfo;
             opInfo.op = opChar;
             opInfo.shouldNegateOutput = opJ.get("should_negate_output", false).asBool();
-            def.setOpInfo(opInfo);
+            def->setOpInfo(opInfo);
         }
-        def.setSimDelay(SimEngine::SimDelayNanoSeconds(j.get("sim_delay_ns", 0).asUInt64()));
-        def.setBehaviorType(static_cast<Bess::SimEngine::ComponentBehaviorType>(
+        def->setSimDelay(SimEngine::SimDelayNanoSeconds(j.get("sim_delay_ns", 0).asUInt64()));
+        def->setBehaviorType(static_cast<Bess::SimEngine::ComponentBehaviorType>(
             j.get("behavior_type", 0).asUInt64()));
-        def.getOutputExpressions().clear();
+        def->getOutputExpressions().clear();
         if (j.isMember("output_expressions")) {
             for (const auto &exprJ : j["output_expressions"]) {
-                def.getOutputExpressions().push_back(exprJ.asString());
+                def->getOutputExpressions().push_back(exprJ.asString());
             }
         }
+        def->setBaseHash(baseDefHash);
+        def->computeHash();
     }
 } // namespace Bess::JsonConvert

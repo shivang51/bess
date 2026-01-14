@@ -3,11 +3,10 @@
 #include "bess_api.h"
 #include "type_map.h"
 #include "types.h"
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
-
-#include "../../Bess/common/log.h"
 
 namespace Bess::SimEngine {
 #define MAKE_GETTER_SETTER_WC(type, name, varName, onChange) \
@@ -24,6 +23,13 @@ namespace Bess::SimEngine {
         varName = value;                              \
     }                                                 \
     type &get##name() { return varName; }
+
+#define MAKE_VGETTER_VSETTER(type, name, varName)             \
+    virtual const type &get##name() const { return varName; } \
+    virtual void set##name(const type &value) {               \
+        varName = value;                                      \
+    }                                                         \
+    virtual type &get##name() { return varName; }
 
 #define MAKE_GETTER(type, name, varName)              \
     const type &get##name() const { return varName; } \
@@ -64,7 +70,7 @@ namespace Bess::SimEngine {
       public:
         ComponentDefinition() = default;
 
-        ComponentDefinition(const ComponentDefinition &) = default;
+        ComponentDefinition(const ComponentDefinition &other) = default;
         ComponentDefinition(ComponentDefinition &&) = default;
 
         virtual ~ComponentDefinition() = default;
@@ -79,7 +85,7 @@ namespace Bess::SimEngine {
         MAKE_GETTER_SETTER(std::string, Name, m_name)
         MAKE_GETTER_SETTER(std::string, GroupName, m_groupName)
         MAKE_GETTER_SETTER(ComponentBehaviorType, BehaviorType, m_behaviorType)
-        MAKE_GETTER_SETTER(SimulationFunction, SimulationFunction, m_simulationFunction)
+        MAKE_VGETTER_VSETTER(SimulationFunction, SimulationFunction, m_simulationFunction)
         MAKE_GETTER(std::any, AuxData, m_auxData)
         MAKE_GETTER_SETTER_WC(std::vector<std::string>,
                               OutputExpressions,
@@ -87,6 +93,11 @@ namespace Bess::SimEngine {
                               onExpressionsChange)
         MAKE_GETTER_SETTER(CompDefinitionOwnership, Ownership, m_ownership)
         MAKE_GETTER_SETTER(CompDefIOGrowthPolicy, IOGrowthPolicy, m_ioGrowthPolicy)
+        MAKE_GETTER_SETTER(uint64_t, BaseHash, m_baseHash)
+
+        virtual SimulationFunction getSimFunctionCopy() const {
+            return m_simulationFunction;
+        }
 
         template <typename T>
         T &getAuxDataAs() {
@@ -197,6 +208,7 @@ namespace Bess::SimEngine {
         std::string m_groupName;
         std::any m_auxData;
         uint64_t m_hash = 0;
+        uint64_t m_baseHash = 0; // OG hash before any mutations
         SimulationFunction m_simulationFunction = nullptr;
         std::vector<std::string> m_outputExpressions; // A+B or A.B etc.
         TypeMap<std::shared_ptr<Trait>> m_traits;
@@ -206,5 +218,5 @@ namespace Bess::SimEngine {
 
 namespace Bess::JsonConvert {
     BESS_API void toJsonValue(const Bess::SimEngine::ComponentDefinition &def, Json::Value &j);
-    BESS_API void fromJsonValue(const Json::Value &j, Bess::SimEngine::ComponentDefinition &def);
+    BESS_API void fromJsonValue(const Json::Value &j, std::shared_ptr<Bess::SimEngine::ComponentDefinition> &def);
 } // namespace Bess::JsonConvert

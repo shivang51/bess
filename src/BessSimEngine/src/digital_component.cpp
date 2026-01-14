@@ -6,6 +6,7 @@ namespace Bess::SimEngine {
     DigitalComponent::DigitalComponent(const std::shared_ptr<ComponentDefinition> &def) {
         definition = def->clone();
         definition->computeExpressionsIfNeeded();
+        definition->computeHash();
         state.inputStates.resize(definition->getInputSlotsInfo().count,
                                  {LogicState::low, SimTime(0)});
         state.outputStates.resize(definition->getOutputSlotsInfo().count,
@@ -165,9 +166,9 @@ namespace Bess::JsonConvert {
     void fromJsonValue(const Json::Value &j, Bess::SimEngine::DigitalComponent &comp) {
         fromJsonValue(j["id"], comp.id);
         fromJsonValue(j["net_uuid"], comp.netUuid);
-        comp.definition = std::make_shared<Bess::SimEngine::ComponentDefinition>();
-        fromJsonValue(j["definition"], *comp.definition);
+        fromJsonValue(j["definition"], comp.definition);
         fromJsonValue(j["state"], comp.state);
+        comp.state.auxData = &comp.definition->getAuxData();
         fromJsonValue(j["input_connections"], comp.inputConnections);
         fromJsonValue(j["output_connections"], comp.outputConnections);
     }

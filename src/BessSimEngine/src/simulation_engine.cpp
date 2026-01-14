@@ -527,43 +527,49 @@ namespace Bess::SimEngine {
         }
         BESS_SE_LOG_EVENT("");
 #endif // BESS_SE_ENABLE_LOG_EVENTS
-        if (def->getSimulationFunction()) {
-            comp->state.simError = false;
-            auto oldState = comp->state;
-            ComponentState newState;
-            try {
-                newState = def->getSimulationFunction()(inputs, m_currentSimTime, comp->state);
-            } catch (std::exception &ex) {
-                BESS_SE_ERROR("Exception during simulation of component {}. Output won't be updated: {}",
-                              def->getName(), ex.what());
-                comp->state.simError = true;
-                comp->state.errorMessage = ex.what();
-                comp->state.isChanged = false;
-            }
 
-            comp->state.inputStates = inputs;
+        auto &simFunction = def->getSimulationFunction();
 
-            BESS_SE_LOG_EVENT("\tState changed: {}", newState.isChanged ? "YES" : "NO");
-
-            if (newState.isChanged && !comp->state.simError) {
-                comp->state = newState;
-                comp->definition->onStateChange(oldState, comp->state);
-                BESS_SE_LOG_EVENT("\tOutputs changed to:");
-                for (auto &outp : newState.outputStates) {
-                    BESS_SE_LOG_EVENT("\t\t{}", (bool)outp.state);
-                }
-            }
-
-            // FIXME: State monitor logic
-            // if (auto *stateMonitor = m_registry.try_get<StateMonitorComponent>(e)) {
-            //     stateMonitor->appendState(newState.inputStates[0].lastChangeTime,
-            //                               newState.inputStates[0].state);
-            // }
-            //
-
-            return newState.isChanged;
+        if (!simFunction) {
+            BESS_SE_ERROR("Component {} does not have a simulation function defined. Skipping simulation.", def->getName());
+            assert(false && "Simulation function not defined for component");
+            return false;
         }
-        return false;
+
+        comp->state.simError = false;
+        auto oldState = comp->state;
+        ComponentState newState;
+        try {
+            newState = def->getSimulationFunction()(inputs, m_currentSimTime, comp->state);
+        } catch (std::exception &ex) {
+            BESS_SE_ERROR("Exception during simulation of component {}. Output won't be updated: {}",
+                          def->getName(), ex.what());
+            comp->state.simError = true;
+            comp->state.errorMessage = ex.what();
+            comp->state.isChanged = false;
+        }
+
+        comp->state.inputStates = inputs;
+
+        BESS_SE_LOG_EVENT("\tState changed: {}", newState.isChanged ? "YES" : "NO");
+
+        if (newState.isChanged && !comp->state.simError) {
+            comp->state = newState;
+            comp->definition->onStateChange(oldState, comp->state);
+            BESS_SE_LOG_EVENT("\tOutputs changed to:");
+            for (auto &outp : newState.outputStates) {
+                BESS_SE_LOG_EVENT("\t\t{}", (bool)outp.state);
+            }
+        }
+
+        // FIXME: State monitor logic
+        // if (auto *stateMonitor = m_registry.try_get<StateMonitorComponent>(e)) {
+        //     stateMonitor->appendState(newState.inputStates[0].lastChangeTime,
+        //                               newState.inputStates[0].state);
+        // }
+        //
+
+        return newState.isChanged;
     }
 
     SimulationState SimulationEngine::getSimulationState() {
@@ -874,10 +880,10 @@ namespace Bess::SimEngine {
                 const auto states = getInputSlotsState(outputs[i].first);
                 tableData[comb][numInputs + i] = states[outputs[i].second].state;
 
-                BESS_TRACE("Output component {} slot {} state: {}",
-                           (uint64_t)outputs[i].first,
-                           outputs[i].second,
-                           (int)tableData[comb][numInputs + i]);
+                BESS_SE_TRACE("Output component {} slot {} state: {}",
+                              (uint64_t)outputs[i].first,
+                              outputs[i].second,
+                              (int)tableData[comb][numInputs + i]);
             }
         }
 
