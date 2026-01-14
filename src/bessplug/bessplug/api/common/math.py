@@ -1,4 +1,4 @@
-from bessplug.bindings._bindings import vec2
+from bessplug.bindings._bindings.common import vec2
 
 
 class Vec2:

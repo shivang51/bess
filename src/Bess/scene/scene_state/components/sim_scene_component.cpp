@@ -54,12 +54,12 @@ namespace Bess::Canvas {
             m_isScaleDirty = false;
         }
 
+        const auto pickingId = PickingId{m_runtimeId, 0};
+
         if (m_drawHook && m_drawHook->isDrawEnabled()) {
-            m_drawHook->onDraw(std::ref(state), materialRenderer, pathRenderer);
+            m_drawHook->onDraw(m_transform, pickingId, materialRenderer, pathRenderer);
             return;
         }
-
-        const auto pickingId = PickingId{m_runtimeId, 0};
 
         // background
         Renderer::QuadRenderProperties props;
@@ -124,9 +124,10 @@ namespace Bess::Canvas {
         if (m_isFirstSchematicDraw) {
             onFirstSchematicDraw(state, materialRenderer, pathRenderer);
         }
+        const auto &id = PickingId{m_runtimeId, 0};
 
         if (m_drawHook && m_drawHook->isSchematicDrawEnabled()) {
-            m_drawHook->onSchematicDraw(std::ref(state), materialRenderer, pathRenderer);
+            m_drawHook->onSchematicDraw(m_transform, id, materialRenderer, pathRenderer);
             return;
         }
 
@@ -139,7 +140,6 @@ namespace Bess::Canvas {
         const auto &textColor = ViewportTheme::schematicViewColors.text;
         const auto &fillColor = ViewportTheme::schematicViewColors.componentFill;
         const auto &strokeColor = ViewportTheme::schematicViewColors.componentStroke;
-        const auto &id = PickingId{m_runtimeId, 0};
         pathRenderer->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
         pathRenderer->pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);
         pathRenderer->pathLineTo({x1, y1, pos.z}, nodeWeight, strokeColor, id);

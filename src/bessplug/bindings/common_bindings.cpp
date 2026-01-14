@@ -1,6 +1,7 @@
 #include "bess_uuid.h"
 #include "glm.hpp"
 
+#include <format>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -95,10 +96,7 @@ void bind_bess_uuid(py::module_ &m) {
         })
 
         .def("__repr__", [](const UUID &self) {
-            char buf[32];
-            std::snprintf(buf, sizeof(buf), "<UUID %016llx>",
-                          static_cast<unsigned long long>(static_cast<uint64_t>(self)));
-            return std::string(buf);
+            return std::format("<UUID {}>", static_cast<uint64_t>(self));
         })
 
         .def("__eq__", [](const UUID &a, const UUID &b) { return a == b; })

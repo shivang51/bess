@@ -65,6 +65,7 @@ set(BESS_PYBIND_SOURCES
 
 		scene/schematic_diagram.cpp
 		scene/scene_state.binding.cpp
+		scene/scene_common.binding.cpp
 		scene/scene_component.binding.cpp
 		scene/sim_comp_draw_hook.binding.cpp
 

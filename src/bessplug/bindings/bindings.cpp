@@ -13,6 +13,7 @@ void bind_scene_component(py::module_ &m);
 void bind_sim_comp_draw_hook(py::module_ &m);
 void bind_scene_state(py::module_ &m);
 void bind_path_renderer(py::module_ &m);
+void bind_scene_common_binding(py::module_ &m);
 
 PYBIND11_MODULE(_bindings, m) {
     m.doc() = "BESS Python bindings";
@@ -24,7 +25,7 @@ PYBIND11_MODULE(_bindings, m) {
     auto renderer = scene.def_submodule("renderer", "Scene Renderer bindings");
 
     // Common
-    bind_common_bindings(m);
+    bind_common_bindings(common);
 
     // Sim Engine
     bind_sim_functions(simFn);
@@ -38,4 +39,5 @@ PYBIND11_MODULE(_bindings, m) {
     bind_scene_state(scene);
     bind_path_renderer(renderer);
     bind_renderer_path(renderer);
+    bind_scene_common_binding(scene);
 }

@@ -6,8 +6,8 @@ from bessplug.bindings._bindings.scene.renderer import (
     PathCommandKind,
     PathProperties as NativePathProperties,
 )
-from bessplug.bindings._bindings import UUID
 from bessplug.api.common.math import Vec2
+from bessplug.api.common.uuid import BessUuid as UUID
 
 
 class PathProperties:

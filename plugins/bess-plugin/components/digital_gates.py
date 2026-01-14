@@ -1,8 +1,10 @@
 import datetime
+from bessplug.api.scene.renderer.path import UUID
 from bessplug.api.scene.sim_comp_draw_hook import SimCompDrawHook
 from bessplug.api.common.math import Vec2
+from bessplug.api.common.uuid import BessUuid
 from bessplug.api.sim_engine import ComponentDefinition, SlotsGroupInfo, OperatorInfo
-from bessplug.api.scene.renderer import Path, PathRenderer
+from bessplug.api.scene.renderer import ContoursDrawInfo, Path, PathRenderer
 import math
 import datetime
 from typing import override
@@ -237,9 +239,24 @@ class DrawHook(SimCompDrawHook):
         self.schematic_draw_enabled = True
 
     @override
-    def onSchematicDraw(self, state, material_renderer, path_renderer: PathRenderer):
-        diagram: SchematicDiagram = _paths["OR"]
-        path_renderer.drawPath(diagram.get_paths()[0]._native)
+    def onSchematicDraw(
+        self,
+        transform,
+        pickingId,
+        material_renderer,
+        path_renderer,
+    ):
+        diagram: SchematicDiagram = _paths["NOR"]
+        for path in diagram.get_paths():
+            path_props = path.properties
+            draw_info = ContoursDrawInfo()
+            draw_info.gen_fill = path_props.render_fill
+            draw_info.gen_stroke = path_props.render_stroke
+            draw_info.rounedJoints = path_props.rounded_joints
+            draw_info.close_path = path_props.is_closed
+            draw_info.glyph_id = pickingId.asUint64()
+            path._native.uuid = BessUuid.fromInt(pickingId.asUint64())
+            path_renderer.drawPath(path._native, draw_info)
 
 
 digital_gates: list[ComponentDefinition] = []

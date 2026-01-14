@@ -13,26 +13,30 @@ class PySimCompDrawHook : public Bess::Canvas::SimSceneCompDrawHook,
         py::gil_scoped_acquire gil;
     }
 
-    void onDraw(Bess::Canvas::SceneState &state,
+    void onDraw(const Bess::Canvas::Transform &transform,
+                const Bess::Canvas::PickingId &pickingId,
                 std::shared_ptr<Bess::Renderer::MaterialRenderer> materialRenderer,
                 std::shared_ptr<Bess::Renderer2D::Vulkan::PathRenderer> pathRenderer) override {
         PYBIND11_OVERRIDE_PURE(
             void,                               /* Return type */
             Bess::Canvas::SimSceneCompDrawHook, /* Parent class */
             onDraw,                             /* Name of function in C++ (must match Python name) */
-            std::ref(state),                    /* Argument(s) */
+            std::ref(transform),                /* Argument(s) */
+            std::ref(pickingId),
             materialRenderer,
             pathRenderer);
     }
 
-    void onSchematicDraw(Bess::Canvas::SceneState &state,
+    void onSchematicDraw(const Bess::Canvas::Transform &transform,
+                         const Bess::Canvas::PickingId &pickingId,
                          std::shared_ptr<Bess::Renderer::MaterialRenderer> materialRenderer,
                          std::shared_ptr<Bess::Renderer2D::Vulkan::PathRenderer> pathRenderer) override {
         PYBIND11_OVERRIDE_PURE(
             void,                               /* Return type */
             Bess::Canvas::SimSceneCompDrawHook, /* Parent class */
             onSchematicDraw,                    /* Name of function in C++ (must match Python name) */
-            state,                              /* Argument(s) */
+            std::ref(transform),                /* Argument(s) */
+            std::ref(pickingId),
             materialRenderer,
             pathRenderer);
     }
@@ -45,12 +49,14 @@ void bind_sim_comp_draw_hook(py::module &m) {
         .def(py::init<>())
         .def("onDraw",
              &Bess::Canvas::SimSceneCompDrawHook::onDraw,
-             py::arg("state"),
+             py::arg("transform"),
+             py::arg("pickingId"),
              py::arg("materialRenderer"),
              py::arg("pathRenderer"))
         .def("onSchematicDraw",
              &Bess::Canvas::SimSceneCompDrawHook::onSchematicDraw,
-             py::arg("state"),
+             py::arg("transform"),
+             py::arg("pickingId"),
              py::arg("materialRenderer"),
              py::arg("pathRenderer"))
         .def_property("draw_enabled",
