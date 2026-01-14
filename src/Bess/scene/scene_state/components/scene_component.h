@@ -57,6 +57,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(std::vector<UUID>, ChildComponents, m_childComponents)
         MAKE_GETTER_SETTER(uint32_t, RuntimeId, m_runtimeId)
         MAKE_GETTER_SETTER(std::string, SubType, m_subType)
+        MAKE_GETTER_SETTER(bool, ShouldReconstructSegments, m_shouldReconstructSegments)
 
         virtual void removeChildComponent(const UUID &uuid);
 
@@ -120,6 +121,8 @@ namespace Bess::Canvas {
         bool m_isSelected = false;
         bool m_isFirstDraw = true;
         bool m_isFirstSchematicDraw = true;
+
+        bool m_shouldReconstructSegments = false;
 
         UUID m_parentComponent = UUID::null;
         std::vector<UUID> m_childComponents;

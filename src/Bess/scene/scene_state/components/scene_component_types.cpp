@@ -1,4 +1,5 @@
 #include "scene/scene_state/components/scene_component_types.h"
+#include "bess_json/json_converters.h"
 
 namespace Bess::JsonConvert {
     void toJsonValue(const Bess::Canvas::Transform &transform, Json::Value &j) {
@@ -102,17 +103,14 @@ namespace Bess::JsonConvert {
 
     // Conn segment
     void toJsonValue(const Bess::Canvas::ConnSegment &segment, Json::Value &j) {
-        j["offset"] = Json::Value(Json::arrayValue);
-        j["offset"].append(segment.offset.x);
-        j["offset"].append(segment.offset.y);
+        toJsonValue(segment.offset, j["offset"]);
 
         j["orientation"] = static_cast<uint8_t>(segment.orientation);
     }
 
     void fromJsonValue(const Json::Value &j, Bess::Canvas::ConnSegment &segment) {
-        if (j.isMember("offset") && j["offset"].isArray() && j["offset"].size() == 2) {
-            segment.offset.x = j["offset"][0].asFloat();
-            segment.offset.y = j["offset"][1].asFloat();
+        if (j.isMember("offset")) {
+            fromJsonValue(j["offset"], segment.offset);
         }
 
         if (j.isMember("orientation")) {

@@ -12,6 +12,7 @@
 namespace Bess::Canvas {
     ConnectionSceneComponent::ConnectionSceneComponent() {
         initDragBehaviour();
+        m_shouldReconstructSegments = true;
     }
 
     void ConnectionSceneComponent::drawSegments(const SceneState &state,
@@ -76,6 +77,11 @@ namespace Bess::Canvas {
             onFirstDraw(state, materialRenderer, pathRenderer);
         }
 
+        if (m_shouldReconstructSegments) {
+            reconsturctSegments(state);
+            m_shouldReconstructSegments = false;
+        }
+
         auto startSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
         auto endSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
 
@@ -113,6 +119,11 @@ namespace Bess::Canvas {
                                                  std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
         if (m_isFirstSchematicDraw) {
             onFirstSchematicDraw(state, materialRenderer, pathRenderer);
+        }
+
+        if (m_shouldReconstructSegments) {
+            reconsturctSegments(state);
+            m_shouldReconstructSegments = false;
         }
 
         auto startSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
@@ -233,7 +244,6 @@ namespace Bess::Canvas {
                                                std::shared_ptr<PathRenderer> pathRenderer) {
 
         m_isFirstDraw = false;
-        reconsturctSegments(sceneState);
     }
 
     void ConnectionSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
@@ -300,9 +310,8 @@ namespace Bess::JsonConvert {
 
         j["segments"] = Json::Value(Json::arrayValue);
         for (const auto &segment : component.getSegments()) {
-            Json::Value segJson;
-            toJsonValue(segment, segJson);
-            j["segments"].append(segJson);
+            toJsonValue(segment,
+                        j["segments"].append(Json::Value()));
         }
 
         j["useCustomColor"] = component.getUseCustomColor();
@@ -335,5 +344,7 @@ namespace Bess::JsonConvert {
         if (j.isMember("useCustomColor")) {
             component.setUseCustomColor(j["useCustomColor"].asBool());
         }
+
+        component.setShouldReconstructSegments(false);
     }
 } // namespace Bess::JsonConvert

@@ -52,19 +52,16 @@ class PyComponentDefinition : public ComponentDefinition,
 
     SimulationFunction &getSimulationFunction() override {
         py::gil_scoped_acquire gil;
-        std::cout << "[Bindings] getSimulationFunction called\n";
         return ComponentDefinition::getSimulationFunction();
     }
 
     const SimulationFunction &getSimulationFunction() const override {
         py::gil_scoped_acquire gil;
-        std::cout << "[Bindings] getSimulationFunction (const) called\n";
         return ComponentDefinition::getSimulationFunction();
     }
 
     SimulationFunction getSimFunctionCopy() const override {
         py::gil_scoped_acquire gil;
-        std::cout << "[Bindings] getSimFunctionCopy called\n";
         return ComponentDefinition::getSimFunctionCopy();
     }
 };
