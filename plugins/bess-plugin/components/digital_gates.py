@@ -1,9 +1,11 @@
 import datetime
+from bessplug.api.scene.sim_comp_draw_hook import SimCompDrawHook
 from bessplug.api.common.math import Vec2
 from bessplug.api.sim_engine import ComponentDefinition, SlotsGroupInfo, OperatorInfo
 from bessplug.api.renderer.path import Path
 import math
 import datetime
+from typing import override
 
 from bessplug.plugin import SchematicDiagram
 
@@ -228,8 +230,19 @@ def _init_paths():
 
 _paths = _init_paths()
 
+
+class DrawHook(SimCompDrawHook):
+    def __init__(self):
+        super().__init__()
+        self.schematic_draw_enabled = True
+
+    @override
+    def onSchematicDraw(self, state, material_renderer, path_renderer):
+        print("DummyHook draw called")
+
+
 digital_gates: list[ComponentDefinition] = []
-schematic_symbols: dict[int, SchematicDiagram] = {}
+draw_hooks: dict[int, type] = {}
 
 for gate_key, gate_data in _gates.items():
     input_slots_info: SlotsGroupInfo = SlotsGroupInfo()
@@ -254,8 +267,8 @@ for gate_key, gate_data in _gates.items():
     def_gate.negate = gate_data.get("negate_output", False)
     digital_gates.append(def_gate)
 
-    if gate_key in _paths:
-        schematic_symbols[def_gate.get_hash()] = _paths[gate_key]
+    def_gate.compute_hash()
+    draw_hooks[def_gate.get_hash()] = DrawHook
 
 
-__all__ = ["digital_gates", "schematic_symbols"]
+__all__ = ["digital_gates", "draw_hooks"]

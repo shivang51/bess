@@ -3,7 +3,7 @@ from bessplug import Plugin
 from bessplug.api.sim_engine import ComponentDefinition
 from bessplug.plugin import SchematicDiagram
 from components.latches import latches
-from components.digital_gates import digital_gates
+from components.digital_gates import digital_gates, draw_hooks
 from components.flip_flops import flip_flops
 from components.combinational_circuits import combinational_circuits
 from components.tristate_buffer import tristate_buffer_def
@@ -44,7 +44,8 @@ class BessPlugin(Plugin):
         # hash = flip_flops[0].get_hash()
         # self.logger.log(f"FlipFlop {flip_flops[0].name} hash: {hash}")
         # return {hash: DummyHook}
-        return {}
+        print(draw_hooks)
+        return {**draw_hooks}
 
 
 plugin_hwd = BessPlugin()

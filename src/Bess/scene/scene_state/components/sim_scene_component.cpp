@@ -54,7 +54,7 @@ namespace Bess::Canvas {
             m_isScaleDirty = false;
         }
 
-        if (m_drawHook) {
+        if (m_drawHook && m_drawHook->isDrawEnabled()) {
             m_drawHook->onDraw(std::ref(state), materialRenderer, pathRenderer);
             return;
         }
@@ -123,6 +123,11 @@ namespace Bess::Canvas {
 
         if (m_isFirstSchematicDraw) {
             onFirstSchematicDraw(state, materialRenderer, pathRenderer);
+        }
+
+        if (m_drawHook && m_drawHook->isSchematicDrawEnabled()) {
+            m_drawHook->onSchematicDraw(std::ref(state), materialRenderer, pathRenderer);
+            return;
         }
 
         float x = m_transform.position.x - (m_schematicScale.x / 2.f);

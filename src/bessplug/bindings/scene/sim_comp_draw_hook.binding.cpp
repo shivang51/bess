@@ -52,5 +52,11 @@ void bind_sim_comp_draw_hook(py::module &m) {
              &Bess::Canvas::SimSceneCompDrawHook::onSchematicDraw,
              py::arg("state"),
              py::arg("materialRenderer"),
-             py::arg("pathRenderer"));
+             py::arg("pathRenderer"))
+        .def_property("draw_enabled",
+                      &Bess::Canvas::SimSceneCompDrawHook::isDrawEnabled,
+                      &Bess::Canvas::SimSceneCompDrawHook::setDrawEnabled)
+        .def_property("schematic_draw_enabled",
+                      &Bess::Canvas::SimSceneCompDrawHook::isSchematicDrawEnabled,
+                      &Bess::Canvas::SimSceneCompDrawHook::setSchematicDrawEnabled);
 }
