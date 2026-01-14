@@ -1,7 +1,7 @@
 import datetime
 from bessplug.api.scene.renderer.path import UUID
 from bessplug.api.scene.sim_comp_draw_hook import SimCompDrawHook
-from bessplug.api.common.math import Vec2
+from bessplug.api.common.math import Vec2, Vec3, Vec4
 from bessplug.api.common.uuid import BessUuid
 from bessplug.api.sim_engine import ComponentDefinition, SlotsGroupInfo, OperatorInfo
 from bessplug.api.scene.renderer import ContoursDrawInfo, Path, PathRenderer
@@ -90,6 +90,7 @@ def _init_paths():
     circle.set_lowest_pos(Vec2(92, 46))
     circle.properties.render_fill = True
     circle.properties.is_closed = True
+    circle.normalize()
 
     # AND Gate
     andPath = Path()
@@ -100,7 +101,8 @@ def _init_paths():
     andPath.properties.is_closed = True
     andPath.properties.render_fill = True
     andPath.calc_set_bounds()
-    andPath.set_bounds(Vec2(100, 100))
+    andPath.set_bounds(Vec2(130, 100))
+    andPath.normalize()
 
     andDiagram = SchematicDiagram()
     andDiagram.add_path(andPath)
@@ -153,6 +155,7 @@ def _init_paths():
     norPath.set_lowest_pos(Vec2(0, 0))
     norPath.properties.is_closed = True
     norPath.properties.render_fill = True
+    norPath.normalize()
     norDiagram.add_path(norPath)
     norDiagram.add_path(circle.copy())
     norDiagram.size = (100, 100)
@@ -244,19 +247,21 @@ class DrawHook(SimCompDrawHook):
         transform,
         pickingId,
         material_renderer,
-        path_renderer,
+        path_renderer: PathRenderer,
     ):
-        diagram: SchematicDiagram = _paths["NOR"]
-        for path in diagram.get_paths():
-            path_props = path.properties
-            draw_info = ContoursDrawInfo()
-            draw_info.gen_fill = path_props.render_fill
-            draw_info.gen_stroke = path_props.render_stroke
-            draw_info.rounedJoints = path_props.rounded_joints
-            draw_info.close_path = path_props.is_closed
-            draw_info.glyph_id = pickingId.asUint64()
-            path._native.uuid = BessUuid.fromInt(pickingId.asUint64())
-            path_renderer.drawPath(path._native, draw_info)
+        pos = transform.position.copy()
+        scale: Vec2 = transform.scale
+        path_renderer.beginPath(pos, 2, Vec4(1.0, 1.0, 1.0, 1.0), pickingId.asUint64())
+        pos.x += scale.x
+        path_renderer.pathLineTo(pos, 2, Vec4(1.0, 1.0, 1.0, 1.0), pickingId.asUint64())
+        pos.y += scale.y
+        path_renderer.pathLineTo(
+            pos,
+            2,
+            Vec4(1.0, 1.0, 1.0, 1.0),
+            pickingId.asUint64(),
+        )
+        path_renderer.endPath(True, True, Vec4(1.0, 1.0, 1.0, 1.0), True, False)
 
 
 digital_gates: list[ComponentDefinition] = []

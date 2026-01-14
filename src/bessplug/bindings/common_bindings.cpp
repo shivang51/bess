@@ -12,13 +12,128 @@ namespace py = pybind11;
 typedef Bess::UUID UUID;
 
 void bind_vec2(py::module_ &m);
+void bind_vec3(py::module_ &m);
+void bind_vec4(py::module_ &m);
 void bind_bess_uuid(py::module_ &m);
 
 void bind_common_bindings(py::module_ &m) {
     bind_vec2(m);
+    bind_vec3(m);
+    bind_vec4(m);
     bind_bess_uuid(m);
 }
 
+void bind_vec4(py::module_ &m) {
+    py::class_<glm::vec4>(m, "vec4")
+        .def(py::init<>()) // default (0,0)
+        .def(py::init<float, float, float, float>(),
+             py::arg("x"),
+             py::arg("y"),
+             py::arg("z"),
+             py::arg("w"))
+        .def(py::init([](py::sequence seq) {
+                 if (py::len(seq) != 4)
+                     throw std::runtime_error("vec4 requires a sequence of length 4");
+                 return glm::vec4(seq[0].cast<float>(),
+                                  seq[1].cast<float>(),
+                                  seq[2].cast<float>(),
+                                  seq[3].cast<float>());
+             }),
+             py::arg("seq"))
+        .def_readwrite("x", &glm::vec4::x)
+        .def_readwrite("y", &glm::vec4::y)
+        .def_readwrite("z", &glm::vec4::z)
+        .def_readwrite("w", &glm::vec4::w);
+}
+
+void bind_vec3(py::module_ &m) {
+    py::class_<glm::vec3>(m, "vec3")
+        // Constructors
+        .def(py::init<>()) // default (0,0)
+        .def(py::init<float, float, float>(), py::arg("x"), py::arg("y"), py::arg("z"))
+        .def(py::init([](py::sequence seq) {
+                 if (py::len(seq) != 2)
+                     throw std::runtime_error("vec3 requires a sequence of length 2");
+                 return glm::vec3(seq[0].cast<float>(),
+                                  seq[1].cast<float>(),
+                                  seq[2].cast<float>());
+             }),
+             py::arg("seq"))
+
+        // Data members
+        .def_readwrite("x", &glm::vec3::x)
+        .def_readwrite("y", &glm::vec3::y)
+        .def_readwrite("z", &glm::vec3::z)
+
+        // copy function
+        .def("copy", [](const glm::vec3 &v) {
+            return glm::vec3(v.x, v.y, v.z);
+        })
+
+        // Basic arithmetic
+        .def(py::self + py::self)
+        .def(py::self - py::self)
+        .def(py::self * float())
+        .def(float() * py::self)
+        .def(py::self / float())
+        .def(-py::self)
+
+        // Equality and comparison
+        .def("__eq__", [](const glm::vec3 &a, const glm::vec3 &b) {
+            return a.x == b.x && a.y == b.y && a.z == b.z;
+        })
+        .def("__ne__", [](const glm::vec3 &a, const glm::vec3 &b) {
+            return a.x != b.x || a.y != b.y || a.z != b.z;
+        })
+
+        // Sequence-like access (v[0], v[1])
+        .def("__getitem__", [](const glm::vec3 &v, size_t i) {
+            if (i >= 3)
+                throw py::index_error();
+
+            switch (i) {
+            case 0:
+                return v.x;
+            case 1:
+                return v.y;
+            case 2:
+                return v.z;
+            default:
+                throw py::index_error();
+            }
+        })
+        .def("__setitem__", [](glm::vec3 &v, size_t i, float val) {
+            if (i >= 3)
+                throw py::index_error();
+
+            switch (i) {
+            case 0:
+                v.x = val;
+                break;
+            case 1:
+                v.y = val;
+                break;
+            case 2:
+                v.z = val;
+                break;
+            default:
+                throw py::index_error();
+            }
+        })
+        .def("__len__", [](const glm::vec3 &) { return 3; })
+
+        // String representations
+        .def("__repr__", [](const glm::vec3 &v) {
+            return "(" + std::to_string(v.x) + ", " +
+                   std::to_string(v.y) + ", " +
+                   std::to_string(v.z) + ")";
+        })
+        .def("__str__", [](const glm::vec3 &v) {
+            return "(" + std::to_string(v.x) + ", " +
+                   std::to_string(v.y) + ", " +
+                   std::to_string(v.z) + ")";
+        });
+}
 void bind_vec2(py::module_ &m) {
     py::class_<glm::vec2>(m, "vec2")
         // Constructors

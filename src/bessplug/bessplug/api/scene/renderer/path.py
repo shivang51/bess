@@ -228,7 +228,7 @@ class Path:
 
     def normalize(self):
         """Normalize path commands."""
-        [max_w, max_h] = self.calc_bounds()
+        [max_w, max_h] = self.get_bounds()
         self.scale(1.0 / max_w if max_w > 0 else 1.0, 1.0 / max_h if max_h > 0 else 1.0)
 
     def get_bounds(self) -> Vec2:
