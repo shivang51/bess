@@ -6,13 +6,13 @@ namespace Bess::SimEngine {
         // EnttRegistrySerializer::serializeToPath(SimEngine::SimulationEngine::instance().m_registry, path, indent);
     }
 
-    void SimEngineSerializer::simulateClockedComponents() {
-        // const auto &registry = SimEngine::SimulationEngine::instance().m_registry;
-        // auto view = registry.view<SimEngine::ClockComponent>();
-        //
-        // for (auto entt : view) {
-        //     SimulationEngine::instance().scheduleEvent(entt, entt::null, SimulationEngine::instance().m_currentSimTime);
-        // }
+    void SimEngineSerializer::simAutoReschedulableComponents() {
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+        for (const auto &[uid, comp] : simEngine.getSimEngineState().getDigitalComponents()) {
+            if (comp->definition->getShouldAutoReschedule()) {
+                simEngine.scheduleEvent(uid, UUID::null, comp->definition->getRescheduleDelay());
+            }
+        }
     }
 
     void SimEngineSerializer::deserializeFromPath(const std::string &path) {
@@ -36,7 +36,7 @@ namespace Bess::SimEngine {
     void SimEngineSerializer::deserialize(const Json::Value &json) {
         auto &simEngine = SimEngine::SimulationEngine::instance();
         JsonConvert::fromJsonValue(json["sim_engine_state"], simEngine.getSimEngineState());
-        simulateClockedComponents();
+        simAutoReschedulableComponents();
     }
 
     void SimEngineSerializer::deserializeEntity(const Json::Value &json) {

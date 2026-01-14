@@ -18,6 +18,6 @@ namespace Bess::SimEngine {
         void deserializeEntity(const Json::Value &json);
 
       private:
-        void simulateClockedComponents();
+        void simAutoReschedulableComponents();
     };
 } // namespace Bess::SimEngine
