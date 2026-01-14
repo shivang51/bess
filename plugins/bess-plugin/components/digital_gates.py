@@ -2,7 +2,7 @@ import datetime
 from bessplug.api.scene.sim_comp_draw_hook import SimCompDrawHook
 from bessplug.api.common.math import Vec2
 from bessplug.api.sim_engine import ComponentDefinition, SlotsGroupInfo, OperatorInfo
-from bessplug.api.renderer.path import Path
+from bessplug.api.scene.renderer import Path, PathRenderer
 import math
 import datetime
 from typing import override
@@ -237,8 +237,9 @@ class DrawHook(SimCompDrawHook):
         self.schematic_draw_enabled = True
 
     @override
-    def onSchematicDraw(self, state, material_renderer, path_renderer):
-        print("DummyHook draw called")
+    def onSchematicDraw(self, state, material_renderer, path_renderer: PathRenderer):
+        diagram: SchematicDiagram = _paths["OR"]
+        path_renderer.drawPath(diagram.get_paths()[0]._native)
 
 
 digital_gates: list[ComponentDefinition] = []

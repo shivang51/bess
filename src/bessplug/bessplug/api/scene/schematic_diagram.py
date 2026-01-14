@@ -1,5 +1,5 @@
 from bessplug.api.common.math import Vec2
-from bessplug.api.renderer.path import Path
+from bessplug.api.scene.renderer import Path
 from bessplug.bindings._bindings.scene import SchematicDiagram as NativeSchematicDiagram
 
 

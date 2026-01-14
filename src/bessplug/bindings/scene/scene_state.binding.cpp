@@ -1,6 +1,5 @@
 #include "scene/scene_state/scene_state.h"
 #include "scene/renderer/material_renderer.h"
-#include "scene/renderer/vulkan/path_renderer.h"
 #include <pybind11/pybind11.h>
 
 namespace py = pybind11;
@@ -13,5 +12,4 @@ void bind_scene_state(py::module_ &m) {
     // fornow binding material and path renderer here as well
 
     py::class_<Bess::Renderer::MaterialRenderer, py::smart_holder>(m, "MaterialRenderer");
-    py::class_<Bess::Renderer2D::Vulkan::PathRenderer, py::smart_holder>(m, "PathRenderer");
 }

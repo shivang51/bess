@@ -1,6 +1,6 @@
-from bessplug.bindings._bindings.renderer import Path as NativePath
+from bessplug.bindings._bindings.scene.renderer import Path as NativePath
 from typing import List, Union
-from bessplug.bindings._bindings.renderer import (
+from bessplug.bindings._bindings.scene.renderer import (
     Path,
     PathCommand,
     PathCommandKind,
