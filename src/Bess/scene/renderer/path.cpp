@@ -121,7 +121,11 @@ namespace Bess::Renderer {
         }
     }
 
-    bool Path::scale(const glm::vec2 &factor) {
+    void Path::normalize(const glm::vec2 &size) {
+        scale({1.f / size.x, 1.f / size.y}, true);
+    }
+
+    bool Path::scale(const glm::vec2 &factor, bool overrideOriginal) {
         if (factor == m_currentScale) {
             return false;
         }
@@ -130,20 +134,24 @@ namespace Bess::Renderer {
 
         const auto cacheKey = std::format("{}_{}", m_currentScale.x, m_currentScale.y);
 
-        if (m_scaledCmdsCache.contains(cacheKey)) {
+        if (!overrideOriginal && m_scaledCmdsCache.contains(cacheKey)) {
             m_cmds = m_scaledCmdsCache.at(cacheKey);
             m_currentScale = factor;
             m_contours.clear();
             if (m_scaledContoursCache.contains(cacheKey)) {
                 m_contours = m_scaledContoursCache.at(cacheKey);
+                m_lowestPos = m_ogLowestPos * factor;
             }
             return m_contours.empty();
         }
 
-        if (m_ogCmds.empty())
+        if (m_ogCmds.empty()) {
             m_ogCmds = m_cmds;
-        else
+            m_ogLowestPos = m_lowestPos;
+        } else {
             m_cmds = m_ogCmds;
+            m_lowestPos = m_ogLowestPos;
+        }
 
         m_contours.clear();
         for (auto &cmd : m_cmds) {
@@ -167,7 +175,14 @@ namespace Bess::Renderer {
             }
         }
 
+        m_lowestPos *= factor;
+
         m_scaledCmdsCache[cacheKey] = m_cmds;
+
+        if (overrideOriginal) {
+            m_ogCmds = m_cmds;
+            m_ogLowestPos = m_lowestPos;
+        }
 
         return true;
     }

@@ -73,7 +73,9 @@ namespace Bess::Renderer {
 
         const std::vector<PathCommand> &getCmds() const;
 
-        bool scale(const glm::vec2 &factor);
+        bool scale(const glm::vec2 &factor, bool overrideOriginal = false);
+
+        void normalize(const glm::vec2 &size);
 
         void setCommands(const std::vector<PathCommand> &cmds);
 
@@ -107,6 +109,7 @@ namespace Bess::Renderer {
         glm::vec2 m_currentScale = glm::vec2(1.f);
         glm::vec2 m_bounds = glm::vec2(0.f);
         glm::vec2 m_lowestPos = glm::vec2(0.f);
+        glm::vec2 m_ogLowestPos = glm::vec2(0.f);
         std::vector<PathCommand> m_cmds;
         std::vector<PathCommand> m_ogCmds;
         std::vector<std::vector<Renderer2D::Vulkan::PathPoint>> m_contours;

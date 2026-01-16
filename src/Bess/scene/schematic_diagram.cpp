@@ -1,4 +1,5 @@
 #include "scene/schematic_diagram.h"
+#include "common/log.h"
 
 namespace Bess::Canvas {
     const std::vector<Renderer::Path> &SchematicDiagram::getPaths() const { return m_paths; }
@@ -25,7 +26,14 @@ namespace Bess::Canvas {
             path.setStrokeWidth(size);
         }
     }
+
     void SchematicDiagram::addPath(const Renderer::Path &path) {
         m_paths.emplace_back(path);
+    }
+
+    void SchematicDiagram::normalizePaths() {
+        for (auto &path : m_paths) {
+            path.normalize(m_size);
+        }
     }
 } // namespace Bess::Canvas

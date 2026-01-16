@@ -19,23 +19,6 @@ class SchematicDiagram(NativeSchematicDiagram):
     def __init__(self):
         super().__init__()
 
-    def calc_set_size(self):
-        """Calculates and sets the size based on the bounds of all paths. Make sure to call this after modifying paths."""
-
-        # FIXME: This is a naive implementation, needs to be fixed to calculate correct bounding box
-        w, h = 0, 0
-        for path in self.paths:
-            bounds = path.get_bounds()
-            w += bounds.x
-            h += bounds.y
-        self.size = Vec2(w, h)
-
-    def scale(self, scale: Vec2):
-        """Scales all paths by the given factor."""
-        for path in self.paths:
-            path = Path.from_native(path)
-            path.scale(scale.x, scale.y)
-
     @staticmethod
     def draw(
         transfrom: Transform,
@@ -56,20 +39,24 @@ class SchematicDiagram(NativeSchematicDiagram):
         mid = dig_scale / 2.0
 
         for path in diagram.paths:
-            path.set_stroke_width(diagram.stroke_size)
-
             path_pos = path.get_lowest_pos()
-            path_pos.x *= dig_scale.x
-            path_pos.y *= dig_scale.y
+
             info.translate = Vec3(
                 pos.x + path_pos.x - mid.x,
                 pos.y + path_pos.y - mid.y,
                 pos.z,
             )
+
             info.scale = dig_scale
-            info.gen_stroke = True
             info.glyph_id = pickingId.asUint64()
-            info.stroke_color = Vec4(1.0, 1.0, 1.0, 1.0)
+            info.stroke_color = Vec4(0.45, 0.50, 0.60, 1.0)
+            info.fill_color = Vec4(0.08, 0.09, 0.11, 1.0)
+
+            info.gen_fill = path.get_props().render_fill
+            info.close_path = path.get_props().is_closed
+            info.gen_stroke = path.get_props().render_stroke
+            info.rouned_joint = path.get_props().rounded_joints
+
             path_renderer.drawPath(path, info)
 
         return dig_scale

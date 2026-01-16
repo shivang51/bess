@@ -139,6 +139,8 @@ void bind_renderer_path(py::module_ &m) {
         .def("get_bounds", &Path::getBounds)
         .def("get_lowest_pos", &Path::getLowestPos)
         .def("set_lowest_pos", &Path::setLowestPos)
+        .def("scale", &Path::scale, py::arg("factor"), py::arg("override_original") = false)
+        .def("normalize", &Path::normalize, py::arg("size"))
         .def_readwrite("uuid", &Path::uuid)
         .def("__repr__", [](const Path &) { return "<Path>"; });
 }

@@ -20,6 +20,8 @@ namespace Bess::Canvas {
 
         std::vector<Renderer::Path> &getPathsMut();
 
+        void normalizePaths();
+
         bool getShowName() const;
         void setShowName(bool show);
 
