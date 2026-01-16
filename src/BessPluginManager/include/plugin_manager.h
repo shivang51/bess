@@ -41,7 +41,7 @@ namespace Bess::Plugins {
 
       private:
         std::unordered_map<std::string, std::shared_ptr<PluginHandle>> m_plugins;
-        std::unordered_map<uint64_t, pybind11::type> m_sceneComponentTypes;
+        std::unordered_map<uint64_t, std::shared_ptr<Canvas::SimSceneCompDrawHook>> m_sceneComponentTypes;
     };
 
 } // namespace Bess::Plugins

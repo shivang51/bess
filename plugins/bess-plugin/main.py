@@ -28,7 +28,7 @@ class BessPlugin(Plugin):
         return {}
 
     @override
-    def on_scene_comp_load(self) -> dict[int, type]:
+    def on_scene_comp_load(self) -> dict[int, object]:
         return {**draw_hooks}
 
 

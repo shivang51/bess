@@ -13,6 +13,7 @@ namespace Bess::Renderer {
 namespace Bess::Canvas {
     class SchematicDiagram;
     class SceneComponent;
+    class SimSceneCompDrawHook;
 } // namespace Bess::Canvas
 
 namespace Bess::Plugins {
@@ -26,7 +27,7 @@ namespace Bess::Plugins {
 
         std::vector<std::shared_ptr<SimEngine::ComponentDefinition>> onComponentsRegLoad() const;
         std::unordered_map<uint64_t, Canvas::SchematicDiagram> onSchematicSymbolsLoad() const;
-        void onSceneComponentsLoad(std::unordered_map<uint64_t, pybind11::type> &reg);
+        void onSceneComponentsLoad(std::unordered_map<uint64_t, std::shared_ptr<Canvas::SimSceneCompDrawHook>> &reg);
 
       private:
         pybind11::object m_pluginObj;

@@ -39,7 +39,7 @@ namespace Bess::Canvas {
         }
 
       protected:
-        bool m_drawEnabled = true;
-        bool m_schematicDrawEnabled = true;
+        bool m_drawEnabled = false;
+        bool m_schematicDrawEnabled = false;
     };
 } // namespace Bess::Canvas

@@ -237,9 +237,10 @@ _paths = _init_paths()
 
 
 class DrawHook(SimCompDrawHook):
-    def __init__(self):
+    def __init__(self, diagram: SchematicDiagram):
         super().__init__()
         self.schematic_draw_enabled = True
+        self.schematic_diagram = diagram
 
     @override
     def onSchematicDraw(
@@ -249,13 +250,14 @@ class DrawHook(SimCompDrawHook):
         material_renderer,
         path_renderer: PathRenderer,
     ):
-        pos = transform.position.copy()
-        diagram = _paths["NAND"]
-        SchematicDiagram.draw(transform, pickingId, path_renderer, diagram)
+        scale = SchematicDiagram.draw(
+            transform, pickingId, path_renderer, self.schematic_diagram
+        )
+        return scale
 
 
 digital_gates: list[ComponentDefinition] = []
-draw_hooks: dict[int, type] = {}
+draw_hooks: dict[int, DrawHook] = {}
 
 for gate_key, gate_data in _gates.items():
     input_slots_info: SlotsGroupInfo = SlotsGroupInfo()
@@ -279,8 +281,11 @@ for gate_key, gate_data in _gates.items():
     )
     digital_gates.append(def_gate)
 
+    if _paths.get(gate_key) is None:
+        continue
+
     def_gate.compute_hash()
-    draw_hooks[def_gate.get_hash()] = DrawHook
+    draw_hooks[def_gate.get_hash()] = DrawHook(_paths[gate_key])
 
 
 __all__ = ["digital_gates", "draw_hooks"]

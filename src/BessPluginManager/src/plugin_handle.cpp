@@ -1,6 +1,7 @@
 #include "plugin_handle.h"
 #include "component_definition.h"
 #include "scene/scene_state/components/scene_component.h"
+#include "scene/scene_state/components/sim_scene_comp_draw_hook.h"
 #include "scene/scene_state/components/sim_scene_component.h"
 #include "scene/schematic_diagram.h"
 #include "spdlog/spdlog.h"
@@ -24,7 +25,7 @@ namespace Bess::Plugins {
 
             for (py::handle item : compList) {
                 py::object pyComp = py::reinterpret_borrow<py::object>(item);
-                auto d = pyComp.cast<std::shared_ptr<SimEngine::ComponentDefinition>>();
+                auto d = item.cast<std::shared_ptr<SimEngine::ComponentDefinition>>();
                 components.emplace_back(std::move(d));
             }
         }
@@ -51,15 +52,15 @@ namespace Bess::Plugins {
         return symbols;
     }
 
-    void PluginHandle::onSceneComponentsLoad(std::unordered_map<uint64_t, pybind11::type> &reg) {
+    void PluginHandle::onSceneComponentsLoad(std::unordered_map<uint64_t, std::shared_ptr<Canvas::SimSceneCompDrawHook>> &reg) {
+        py::gil_scoped_acquire gil;
         if (py::hasattr(m_pluginObj, "on_scene_comp_load")) {
-            // maping of uint64_t to py::type, a python class
             py::object compDict = m_pluginObj.attr("on_scene_comp_load")();
 
             for (auto item : compDict.cast<py::dict>()) {
                 uint64_t key = item.first.cast<uint64_t>();
-                py::type pyCompType = item.second.cast<py::type>();
-                reg.emplace(key, std::move(pyCompType));
+                auto hook = item.second.cast<std::shared_ptr<Canvas::SimSceneCompDrawHook>>();
+                reg.emplace(key, std::move(hook));
             }
         }
 

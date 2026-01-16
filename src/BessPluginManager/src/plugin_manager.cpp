@@ -131,6 +131,7 @@ namespace Bess::Plugins {
     void PluginManager::unloadAllPlugins() {
         pybind11::gil_scoped_acquire gil;
         m_plugins.clear();
+        m_sceneComponentTypes.clear();
     }
 
     std::vector<std::string> PluginManager::getLoadedPluginsNames() const {
@@ -197,9 +198,7 @@ namespace Bess::Plugins {
         if (!hasSceneComponentType(compDefHash)) {
             return nullptr;
         }
-        pybind11::type compType = m_sceneComponentTypes.at(compDefHash);
-        pybind11::object compObj = compType();
-        return compObj.cast<std::shared_ptr<Canvas::SimSceneCompDrawHook>>();
+        return m_sceneComponentTypes.at(compDefHash);
     }
 
     bool PluginManager::hasSceneComponentType(uint64_t compDefHash) const {
