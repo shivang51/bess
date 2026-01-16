@@ -1,5 +1,5 @@
 from bessplug.api.common.math import Vec2
-from bessplug.api.scene.renderer import Path
+from bessplug.api.scene.renderer import Path, PathRenderer
 from bessplug.bindings._bindings.scene import SchematicDiagram as NativeSchematicDiagram
 
 
@@ -58,6 +58,11 @@ class SchematicDiagram:
     @stroke_size.setter
     def stroke_width(self, value: float):
         self._native.set_stroke_size(value)
+
+
+def draw_schematic_diagram(path_renderer: PathRenderer, diagram: SchematicDiagram):
+    native = diagram._native
+    native.draw_schematic_diagram()
 
 
 __all__ = ["SchematicDiagram"]

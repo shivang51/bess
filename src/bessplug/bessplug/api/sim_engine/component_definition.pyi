@@ -89,11 +89,11 @@ class ComponentDefinition(NativeComponentDefinition):
     @staticmethod
     def from_operator(
         name: str,
-        category: str,
-        input_count: int,
-        output_count: int,
-        delay_ns: int,
-        op: str,
+        groupName: str,
+        inputs: SlotsGroupInfo,
+        outputs: SlotsGroupInfo,
+        sim_delay: datetime.timedelta,
+        op_info: OperatorInfo,
     ) -> ComponentDefinition: ...
 
     @staticmethod

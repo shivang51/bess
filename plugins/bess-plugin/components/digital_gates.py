@@ -1,10 +1,8 @@
 import datetime
-from bessplug.api.scene.renderer.path import UUID
 from bessplug.api.scene.sim_comp_draw_hook import SimCompDrawHook
-from bessplug.api.common.math import Vec2, Vec3, Vec4
-from bessplug.api.common.uuid import BessUuid
+from bessplug.api.common.math import Vec2, Vec4
 from bessplug.api.sim_engine import ComponentDefinition, SlotsGroupInfo, OperatorInfo
-from bessplug.api.scene.renderer import ContoursDrawInfo, Path, PathRenderer
+from bessplug.api.scene.renderer import Path, PathRenderer
 import math
 import datetime
 from typing import override
@@ -233,7 +231,7 @@ def _init_paths():
     }
 
 
-_paths = _init_paths()
+# _paths = _init_paths()
 
 
 class DrawHook(SimCompDrawHook):
