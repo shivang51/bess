@@ -20,15 +20,15 @@ namespace Bess::Canvas {
       public:
         virtual ~SimSceneCompDrawHook() = default;
 
-        virtual void onDraw(const Transform &transform,
-                            const PickingId &pickingId,
-                            std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                            std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) = 0;
+        virtual glm::vec2 onDraw(const Transform &transform,
+                                 const PickingId &pickingId,
+                                 std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                                 std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) = 0;
 
-        virtual void onSchematicDraw(const Transform &transform,
-                                     const PickingId &pickingId,
-                                     std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                     std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) = 0;
+        virtual glm::vec2 onSchematicDraw(const Transform &transform,
+                                          const PickingId &pickingId,
+                                          std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                                          std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) = 0;
 
         bool isDrawEnabled() const { return m_drawEnabled; }
         void setDrawEnabled(bool enabled) { m_drawEnabled = enabled; }

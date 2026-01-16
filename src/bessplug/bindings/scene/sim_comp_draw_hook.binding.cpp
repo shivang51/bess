@@ -13,12 +13,12 @@ class PySimCompDrawHook : public Bess::Canvas::SimSceneCompDrawHook,
         py::gil_scoped_acquire gil;
     }
 
-    void onDraw(const Bess::Canvas::Transform &transform,
-                const Bess::Canvas::PickingId &pickingId,
-                std::shared_ptr<Bess::Renderer::MaterialRenderer> materialRenderer,
-                std::shared_ptr<Bess::Renderer2D::Vulkan::PathRenderer> pathRenderer) override {
+    glm::vec2 onDraw(const Bess::Canvas::Transform &transform,
+                     const Bess::Canvas::PickingId &pickingId,
+                     std::shared_ptr<Bess::Renderer::MaterialRenderer> materialRenderer,
+                     std::shared_ptr<Bess::Renderer2D::Vulkan::PathRenderer> pathRenderer) override {
         PYBIND11_OVERRIDE_PURE(
-            void,                               /* Return type */
+            glm::vec2,                          /* Return type */
             Bess::Canvas::SimSceneCompDrawHook, /* Parent class */
             onDraw,                             /* Name of function in C++ (must match Python name) */
             std::ref(transform),                /* Argument(s) */
@@ -27,12 +27,12 @@ class PySimCompDrawHook : public Bess::Canvas::SimSceneCompDrawHook,
             pathRenderer);
     }
 
-    void onSchematicDraw(const Bess::Canvas::Transform &transform,
-                         const Bess::Canvas::PickingId &pickingId,
-                         std::shared_ptr<Bess::Renderer::MaterialRenderer> materialRenderer,
-                         std::shared_ptr<Bess::Renderer2D::Vulkan::PathRenderer> pathRenderer) override {
+    glm::vec2 onSchematicDraw(const Bess::Canvas::Transform &transform,
+                              const Bess::Canvas::PickingId &pickingId,
+                              std::shared_ptr<Bess::Renderer::MaterialRenderer> materialRenderer,
+                              std::shared_ptr<Bess::Renderer2D::Vulkan::PathRenderer> pathRenderer) override {
         PYBIND11_OVERRIDE_PURE(
-            void,                               /* Return type */
+            glm::vec2,                          /* Return type */
             Bess::Canvas::SimSceneCompDrawHook, /* Parent class */
             onSchematicDraw,                    /* Name of function in C++ (must match Python name) */
             std::ref(transform),                /* Argument(s) */

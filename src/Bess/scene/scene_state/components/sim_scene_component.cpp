@@ -1,5 +1,4 @@
 #include "scene/scene_state/components/sim_scene_component.h"
-#include "bess_json/json_converters.h"
 #include "bess_uuid.h"
 #include "scene/scene_state/components/input_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -127,34 +126,39 @@ namespace Bess::Canvas {
         const auto &id = PickingId{m_runtimeId, 0};
 
         if (m_drawHook && m_drawHook->isSchematicDrawEnabled()) {
-            m_drawHook->onSchematicDraw(m_transform, id, materialRenderer, pathRenderer);
-            return;
+            auto newScale = m_drawHook->onSchematicDraw(m_schematicTransform, id, materialRenderer, pathRenderer);
+            const auto &prevScale = m_schematicTransform.scale;
+            if (newScale.x != prevScale.x || newScale.y != prevScale.y) {
+                BESS_TRACE("Schematic scale changed from draw hook");
+                m_schematicTransform.scale = newScale;
+                resetSchematicPinsPositions(state);
+            }
+        } else {
+            float x = m_transform.position.x - (m_schematicTransform.scale.x / 2.f);
+            float y = m_transform.position.y - (m_schematicTransform.scale.y / 2.f);
+            float x1 = x + m_schematicTransform.scale.x;
+            float y1 = y + m_schematicTransform.scale.y;
+            const glm::vec3 &pos = getAbsolutePosition(state);
+            float nodeWeight = Styles::compSchematicStyles.strokeSize;
+            const auto &textColor = ViewportTheme::schematicViewColors.text;
+            const auto &fillColor = ViewportTheme::schematicViewColors.componentFill;
+            const auto &strokeColor = ViewportTheme::schematicViewColors.componentStroke;
+            pathRenderer->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
+            pathRenderer->pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);
+            pathRenderer->pathLineTo({x1, y1, pos.z}, nodeWeight, strokeColor, id);
+            pathRenderer->pathLineTo({x, y1, pos.z}, nodeWeight, strokeColor, id);
+            pathRenderer->endPathMode(true, true, fillColor);
+
+            const auto textSize = materialRenderer->getTextRenderSize(m_name,
+                                                                      Styles::compSchematicStyles.nameFontSize);
+            glm::vec3 textPos = {pos.x, y + ((y1 - y) / 2.f), pos.z + 0.0005f};
+            textPos.x -= textSize.x / 2.f;
+            textPos.y += Styles::simCompStyles.headerFontSize / 2.f;
+            materialRenderer->drawText(m_name,
+                                       textPos,
+                                       Styles::compSchematicStyles.nameFontSize,
+                                       textColor, id, 0.f);
         }
-
-        float x = m_transform.position.x - (m_schematicScale.x / 2.f);
-        float y = m_transform.position.y - (m_schematicScale.y / 2.f);
-        float x1 = x + m_schematicScale.x;
-        float y1 = y + m_schematicScale.y;
-        const glm::vec3 &pos = getAbsolutePosition(state);
-        float nodeWeight = Styles::compSchematicStyles.strokeSize;
-        const auto &textColor = ViewportTheme::schematicViewColors.text;
-        const auto &fillColor = ViewportTheme::schematicViewColors.componentFill;
-        const auto &strokeColor = ViewportTheme::schematicViewColors.componentStroke;
-        pathRenderer->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
-        pathRenderer->pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);
-        pathRenderer->pathLineTo({x1, y1, pos.z}, nodeWeight, strokeColor, id);
-        pathRenderer->pathLineTo({x, y1, pos.z}, nodeWeight, strokeColor, id);
-        pathRenderer->endPathMode(true, true, fillColor);
-
-        const auto textSize = materialRenderer->getTextRenderSize(m_name,
-                                                                  Styles::compSchematicStyles.nameFontSize);
-        glm::vec3 textPos = {pos.x, y + ((y1 - y) / 2.f), pos.z + 0.0005f};
-        textPos.x -= textSize.x / 2.f;
-        textPos.y += Styles::simCompStyles.headerFontSize / 2.f;
-        materialRenderer->drawText(m_name,
-                                   textPos,
-                                   Styles::compSchematicStyles.nameFontSize,
-                                   textColor, id, 0.f);
 
         // slots
         for (const auto &childId : m_childComponents) {
@@ -212,11 +216,23 @@ namespace Bess::Canvas {
         const auto [inpPositions, outPositions] =
             calculateSlotPositions(m_inputSlots.size(), m_outputSlots.size());
 
+        for (size_t i = 0; i < inpPositions.size(); i++) {
+            const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(m_inputSlots[i]);
+            slotComp->setPosition(inpPositions[i]);
+        }
+
+        for (size_t i = 0; i < outPositions.size(); i++) {
+            const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(m_outputSlots[i]);
+            slotComp->setPosition(outPositions[i]);
+        }
+    }
+
+    void SimulationSceneComponent::resetSchematicPinsPositions(SceneState &state) {
         // Schematic diagram pin positions
         // We will ignore resize slots for schematic view positioning
         // Resize slots will be hidden in schematic view.
-        auto inpCount = inpPositions.size();
-        auto outCount = outPositions.size();
+        auto inpCount = m_inputSlots.size();
+        auto outCount = m_outputSlots.size();
         if (inpCount != 0 &&
             state.getComponentByUuid<SlotSceneComponent>(m_inputSlots.back())->isResizeSlot()) {
             inpCount -= 1;
@@ -227,26 +243,24 @@ namespace Bess::Canvas {
             outCount -= 1;
         }
 
-        const float inpStartX = -m_schematicScale.x / 2.f;
-        const float inpOffsetY = (m_schematicScale.y / ((float)inpCount + 1.f));
-        const float outStartX = m_schematicScale.x / 2.f;
-        const float outOffsetY = (m_schematicScale.y / ((float)outCount + 1.f));
-        const float startY = -(m_schematicScale.y / 2.f);
+        const float inpStartX = -m_schematicTransform.scale.x / 2.f;
+        const float inpOffsetY = (m_schematicTransform.scale.y / ((float)inpCount + 1.f));
+        const float outStartX = m_schematicTransform.scale.x / 2.f;
+        const float outOffsetY = (m_schematicTransform.scale.y / ((float)outCount + 1.f));
+        const float startY = -(m_schematicTransform.scale.y / 2.f);
 
-        for (size_t i = 0; i < inpPositions.size(); i++) {
+        for (size_t i = 0; i < inpCount; i++) {
             const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(m_inputSlots[i]);
-            slotComp->setPosition(inpPositions[i]);
             auto pos = glm::vec2(inpStartX, startY + (inpOffsetY * (float)(i + 1)));
-            pos = glm::round(pos / SNAP_AMOUNT) * SNAP_AMOUNT;
-            slotComp->setSchematicPos(glm::vec3(pos, -inpPositions[i].z));
+            pos.y = glm::round(pos.y / SNAP_AMOUNT) * SNAP_AMOUNT;
+            slotComp->setSchematicPos(glm::vec3(pos, -0.0005f));
         }
 
-        for (size_t i = 0; i < outPositions.size(); i++) {
+        for (size_t i = 0; i < outCount; i++) {
             const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(m_outputSlots[i]);
-            slotComp->setPosition(outPositions[i]);
             auto pos = glm::vec2(outStartX, startY + (outOffsetY * (float)(i + 1)));
-            pos = glm::round(pos / SNAP_AMOUNT) * SNAP_AMOUNT;
-            slotComp->setSchematicPos(glm::vec3(pos, -outPositions[i].z));
+            pos.y = glm::round(pos.y / SNAP_AMOUNT) * SNAP_AMOUNT;
+            slotComp->setSchematicPos(glm::vec3(pos, -0.0005));
         }
     }
 
@@ -266,7 +280,7 @@ namespace Bess::Canvas {
         }
 
         calculateSchematicScale(sceneState);
-        resetSlotPositions(sceneState);
+        resetSchematicPinsPositions(sceneState);
         m_isFirstSchematicDraw = false;
     }
 
@@ -325,8 +339,8 @@ namespace Bess::Canvas {
 
         float width = m_transform.scale.x; // keep the same width as normal view
 
-        m_schematicScale = {width, height};
-        m_schematicScale = glm::round(m_schematicScale / SNAP_AMOUNT) * SNAP_AMOUNT;
+        m_schematicTransform.scale = {width, height};
+        m_schematicTransform.scale = glm::round(m_schematicTransform.scale / SNAP_AMOUNT) * SNAP_AMOUNT;
     }
 
     std::shared_ptr<SimulationSceneComponent> SimulationSceneComponent::createNewAndRegister(SceneState &sceneState, UUID simEngineId) {
@@ -415,6 +429,10 @@ namespace Bess::Canvas {
         m_outputSlots.erase(std::ranges::remove(m_outputSlots, uuid).begin(),
                             m_outputSlots.end());
     }
+
+    void SimulationSceneComponent::onTransformChanged() {
+        m_schematicTransform.position = m_transform.position;
+    }
 } // namespace Bess::Canvas
 
 namespace Bess::JsonConvert {
@@ -435,7 +453,7 @@ namespace Bess::JsonConvert {
                         j["outputSlots"][static_cast<int>(i)]);
         }
 
-        toJsonValue(component.getSchematicScale(), j["schematicScale"]);
+        toJsonValue(component.getSchematicTransform(), j["schematicTransform"]);
     }
 
     void fromJsonValue(const Json::Value &j, Bess::Canvas::SimulationSceneComponent &component) {
@@ -473,9 +491,9 @@ namespace Bess::JsonConvert {
         }
 
         if (j.isMember("schematicScale")) {
-            glm::vec2 schematicScale;
-            fromJsonValue(j["schematicScale"], schematicScale);
-            component.setSchematicScale(schematicScale);
+            Canvas::Transform schematicTransform;
+            fromJsonValue(j["schematicScale"], schematicTransform);
+            component.setSchematicTransform(schematicTransform);
         }
     }
 

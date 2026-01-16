@@ -124,7 +124,7 @@ namespace Bess::Canvas {
 
     void InputSceneComponent::calculateSchematicScale(SceneState &state) {
         SimulationSceneComponent::calculateSchematicScale(state);
-        m_schematicScale.x = 50.f;
+        m_schematicTransform.scale.x = 50.f;
     }
 
 } // namespace Bess::Canvas

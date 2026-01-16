@@ -1,6 +1,6 @@
 import datetime
 from bessplug.api.scene.sim_comp_draw_hook import SimCompDrawHook
-from bessplug.api.common.math import Vec2, Vec4
+from bessplug.api.common.math import Vec2
 from bessplug.api.sim_engine import ComponentDefinition, SlotsGroupInfo, OperatorInfo
 from bessplug.api.scene.renderer import Path, PathRenderer
 import math
@@ -247,11 +247,11 @@ class DrawHook(SimCompDrawHook):
         self,
         transform,
         pickingId,
-        material_renderer,
-        path_renderer: PathRenderer,
-    ):
+        materialRenderer,
+        pathRenderer: PathRenderer,
+    ) -> Vec2:
         scale = SchematicDiagram.draw(
-            transform, pickingId, path_renderer, self.schematic_diagram
+            transform, pickingId, pathRenderer, self.schematic_diagram
         )
         return scale
 
