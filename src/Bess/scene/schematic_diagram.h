@@ -13,12 +13,14 @@ namespace Bess::Canvas {
         const std::vector<Renderer::Path> &getPaths() const;
         void setPaths(const std::vector<Renderer::Path> &paths);
 
+        void addPath(const Renderer::Path &path);
+
         const glm::vec2 &getSize() const;
         void setSize(const glm::vec2 &size);
 
         std::vector<Renderer::Path> &getPathsMut();
 
-        bool showName() const;
+        bool getShowName() const;
         void setShowName(bool show);
 
         float getStrokeSize() const;

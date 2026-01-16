@@ -1,10 +1,14 @@
-from bessplug.api.common.math import Vec2, Vec3
+from bessplug.api.common.math import Vec2, Vec3, Vec4
 from bessplug.api.scene.renderer import Path, PathRenderer
 from bessplug.api.scene.renderer.contours_draw_info import ContoursDrawInfo
-from bessplug.bindings._bindings.scene import SchematicDiagram as NativeSchematicDiagram
+from bessplug.bindings._bindings.scene import (
+    PickingId,
+    SchematicDiagram as NativeSchematicDiagram,
+    Transform,
+)
 
 
-class SchematicDiagram:
+class SchematicDiagram(NativeSchematicDiagram):
     """
     Represents a schematic diagram consisting of multiple paths.
     After adding or modifying paths, update the diagram size,
@@ -12,62 +16,63 @@ class SchematicDiagram:
     paths with correct scale. This should be size of bounding box containing all paths.
     """
 
-    def __init__(self, native: NativeSchematicDiagram | None = None):
-        self._native = native or NativeSchematicDiagram()
-
-    def get_paths(self) -> list[Path]:
-        return [Path(native) for native in self._native.get_paths()]
-
-    def set_paths(self, value: list[Path]):
-        native_paths = [path._native for path in value]
-        self._native.set_paths(native_paths)
-
-    def add_path(self, path: Path):
-        self._native.add_path(path._native)
-
-    @property
-    def size(self) -> tuple[float, float]:
-        size = self._native.get_size()
-        return size.x, size.y
-
-    @size.setter
-    def size(self, value: tuple[float, float]):
-        width, height = value
-        self._native.set_size(Vec2(width, height).native)
+    def __init__(self):
+        super().__init__()
 
     def calc_set_size(self):
         """Calculates and sets the size based on the bounds of all paths. Make sure to call this after modifying paths."""
+
+        # FIXME: This is a naive implementation, needs to be fixed to calculate correct bounding box
         w, h = 0, 0
-        for path in self.get_paths():
+        for path in self.paths:
             bounds = path.get_bounds()
             w += bounds.x
             h += bounds.y
-        self.size = (w, h)
+        self.size = Vec2(w, h)
 
-    @property
-    def show_name(self) -> bool:
-        return self._native.show_name()
+    def scale(self, scale: Vec2):
+        """Scales all paths by the given factor."""
+        for path in self.paths:
+            path = Path.from_native(path)
+            path.scale(scale.x, scale.y)
 
-    @show_name.setter
-    def show_name(self, value: bool):
-        self._native.set_show_name(value)
-
-    @property
-    def stroke_size(self) -> float:
-        return self._native.get_stroke_size()
-
-    @stroke_size.setter
-    def stroke_width(self, value: float):
-        self._native.set_stroke_size(value)
-
-
-def draw_schematic_diagram(
-    pos: Vec3, path_renderer: PathRenderer, diagram: SchematicDiagram
-):
-    for path in diagram.get_paths():
+    @staticmethod
+    def draw(
+        transfrom: Transform,
+        pickingId: PickingId,
+        path_renderer: PathRenderer,
+        diagram: "SchematicDiagram",
+    ) -> Vec2:
+        pos = transfrom.position
         info = ContoursDrawInfo()
-        info.translate = pos
-        path_renderer.drawPath(path, info)
+
+        d_ar = diagram.size.x / diagram.size.y
+        t_ar = transfrom.scale.x / transfrom.scale.y
+        ad_ar = d_ar / t_ar
+
+        dig_scale = Vec2(transfrom.scale.x, transfrom.scale.y)
+        dig_scale.x *= ad_ar
+
+        mid = dig_scale / 2.0
+
+        for path in diagram.paths:
+            path.set_stroke_width(diagram.stroke_size)
+
+            path_pos = path.get_lowest_pos()
+            path_pos.x *= dig_scale.x
+            path_pos.y *= dig_scale.y
+            info.translate = Vec3(
+                pos.x + path_pos.x - mid.x,
+                pos.y + path_pos.y - mid.y,
+                pos.z,
+            )
+            info.scale = dig_scale
+            info.gen_stroke = True
+            info.glyph_id = pickingId.asUint64()
+            info.stroke_color = Vec4(1.0, 1.0, 1.0, 1.0)
+            path_renderer.drawPath(path, info)
+
+        return dig_scale
 
 
 __all__ = ["SchematicDiagram"]

@@ -1,62 +1,13 @@
-from bessplug.bindings._bindings.scene.renderer import Path as NativePath
-from typing import List, Union
 from bessplug.bindings._bindings.scene.renderer import (
-    Path,
+    Path as NativePath,
     PathCommand,
     PathCommandKind,
-    PathProperties as NativePathProperties,
+    PathProperties,
 )
 from bessplug.api.common.math import Vec2
-from bessplug.api.common.uuid import BessUuid as UUID
 
 
-class PathProperties:
-    """
-    Wrapper for path rendering properties.
-    Attributes:
-        - render_stroke (bool): Whether to render the stroke.
-        - render_fill (bool): Whether to render the fill.
-        - is_closed (bool): Whether the path is closed.
-        - rounded_joints (bool): Whether to use rounded joints.
-    """
-
-    def __init__(self, native: NativePathProperties | None = None):
-        self._native = native or NativePathProperties()
-
-    @property
-    def render_stroke(self) -> bool:
-        return self._native.render_stroke
-
-    @render_stroke.setter
-    def render_stroke(self, value: bool):
-        self._native.render_stroke = value
-
-    @property
-    def render_fill(self) -> bool:
-        return self._native.render_fill
-
-    @render_fill.setter
-    def render_fill(self, value: bool):
-        self._native.render_fill = value
-
-    @property
-    def is_closed(self) -> bool:
-        return self._native.is_closed
-
-    @is_closed.setter
-    def is_closed(self, value: bool):
-        self._native.is_closed = value
-
-    @property
-    def rounded_joints(self) -> bool:
-        return self._native.rounded_joints
-
-    @rounded_joints.setter
-    def rounded_joints(self, value: bool):
-        self._native.rounded_joints = value
-
-
-class Path:
+class Path(NativePath):
     """
     Pythonic wrapper for the native C++ Path class.
     Available Commands:
@@ -68,63 +19,45 @@ class Path:
     Path properties can be accessed and modified via get_path_properties() and set_path_properties().
     """
 
-    def __init__(self, native: NativePath | None = None):
-        self._native = native or NativePath()
+    def __init__(self):
+        super().__init__()
 
-    # ---------------------------------------------------------------------
-    # --- High-level API for constructing paths
-    # ---------------------------------------------------------------------
-
-    def move_to_vec(self, pos: Vec2) -> "Path":
-        """Move current position to Vec2Vec2(x, y)."""
-        self._native.move_to(pos.native)
-        return self
+    @staticmethod
+    def from_native(native_path: NativePath) -> "Path":
+        """Create a Path instance from a native Path object."""
+        path = Path()
+        path.set_commands(native_path.get_commands())
+        path.set_props(native_path.get_props())
+        path.set_bounds(native_path.get_bounds())
+        path.set_lowest_pos(native_path.get_lowest_pos())
+        return path
 
     def move_to(self, x: float, y: float) -> "Path":
-        """Move current position to Vec2(x, y)."""
-        return self.move_to_vec(Vec2(x, y))
-
-    def line_to_vec(self, pos: Vec2) -> "Path":
-        """Draw a line from current position to Vec2Vec2(x, y)."""
-        self._native.line_to(pos.native)
+        """Add MoveTo command to path."""
+        super().move_to_vec(Vec2(x, y))
         return self
 
     def line_to(self, x: float, y: float) -> "Path":
-        """Draw a line from current position to Vec2(x, y)."""
-        return self.line_to_vec(Vec2(x, y))
-
-    def quad_to_vec(self, c: Vec2, pos: Vec2) -> "Path":
-        """Draw a quadratic curve using control point c."""
-        self._native.quad_to(c.native, pos.native)
+        """Add LineTo command to path."""
+        super().line_to_vec(Vec2(x, y))
         return self
 
     def quad_to(self, cx: float, cy: float, x: float, y: float) -> "Path":
-        """Draw a quadratic curve using control point Vec2(cx, cy)."""
-        return self.quad_to_vec(Vec2(cx, cy), Vec2(x, y))
-
-    def cubic_to_vec(self, c1: Vec2, c2: Vec2, pos: Vec2) -> "Path":
-        """Draw a cubic Bezier curve."""
-        self._native.cubic_to(c1.native, c2.native, pos.native)
+        """Add QuadTo command to path."""
+        super().quad_to_vec(Vec2(cx, cy), Vec2(x, y))
         return self
 
     def cubic_to(
         self, c1x: float, c1y: float, c2x: float, c2y: float, x: float, y: float
     ) -> "Path":
-        """Draw a cubic Bezier curve."""
-        return self.cubic_to_vec(Vec2(c1x, c1y), Vec2(c2x, c2y), Vec2(x, y))
-
-    # ---------------------------------------------------------------------
-    # --- Command management
-    # ---------------------------------------------------------------------
-
-    def add_command(self, cmd: Union[PathCommand, dict]) -> "Path":
-        """Add a PathCommand or dictionary-based command."""
-        if isinstance(cmd, dict):
-            cmd = self._dict_to_command(cmd)
-        if not isinstance(cmd, PathCommand):
-            raise TypeError("cmd must be PathCommand or dict")
-        self._native.add_command(cmd)
+        """Add CubicTo command to path."""
+        super().cubic_to_vec(Vec2(c1x, c1y), Vec2(c2x, c2y), Vec2(x, y))
         return self
+
+    @property
+    def properties(self) -> PathProperties:
+        """Get path rendering properties."""
+        return self.get_props_ref()
 
     def add_commands(self, cmds):
         """Return the list of underlying path commands."""
@@ -134,37 +67,16 @@ class Path:
         ]
 
         cmds_.extend(native_cmds)
-        self._native.set_commands(cmds_)
-
-    def get_commands(self) -> List[PathCommand]:
-        """Return the list of underlying path commands."""
-        return list(self._native.get_commands())
-
-    def set_commands(self, cmds: List[Union[PathCommand, dict]]):
-        """Replace path commands."""
-        native_cmds = [
-            self._dict_to_command(c) if isinstance(c, dict) else c for c in cmds
-        ]
-        self._native.set_commands(native_cmds)
+        self.set_commands(cmds_)
 
     def set_path_properties(self, properties: PathProperties) -> "Path":
         """Set path rendering properties."""
-        self._native.set_props(properties._native)
+        self.set_props(properties)
         return self
-
-    @property
-    def properties(self) -> PathProperties:
-        """Get path rendering properties."""
-        return self._native.get_props_ref()
-
-    @properties.setter
-    def properties(self, properties: PathProperties):
-        """Set path rendering properties."""
-        self._native.set_props(properties._native)
 
     def get_path_props_copy(self) -> PathProperties:
         """Get copy of path rendering properties wrapped in PathProperties."""
-        return PathProperties(self._native.get_props())
+        return self.get_props()
 
     def scale(self, sx: float, sy: float):
         """Scale path by (sx, sy)."""
@@ -197,6 +109,10 @@ class Path:
                     p.x *= sx
                     p.y *= sy
 
+        bounds = self.get_lowest_pos()
+        bounds.x *= sx
+        bounds.y *= sy
+        self.set_lowest_pos(bounds)
         self.set_commands(cmds)
 
     def calc_bounds(self) -> tuple[float, float]:
@@ -231,32 +147,18 @@ class Path:
         [max_w, max_h] = self.get_bounds()
         self.scale(1.0 / max_w if max_w > 0 else 1.0, 1.0 / max_h if max_h > 0 else 1.0)
 
-    def get_bounds(self) -> Vec2:
-        """Return (min_x, min_y, max_x, max_y) bounds of the path."""
-        return Vec2.from_native(self._native.get_bounds())
-
-    def set_bounds(self, bounds: Vec2):
-        """Set (min_x, min_y, max_x, max_y) bounds of the path."""
-        self._native.set_bounds(bounds._native)
+    def normalize_wh(self, w: float, h: float):
+        """Normalize path commands to given width and height."""
+        self.scale(1.0 / w if w > 0 else 1.0, 1.0 / h if h > 0 else 1.0)
 
     def calc_set_bounds(self):
         """Calculate and set bounds of the path."""
-        self._native.set_bounds(Vec2(*self.calc_bounds())._native)
-
-    def set_lowest_pos(self, pos: Vec2):
-        self._native.set_lowest_pos(pos._native)
-
-    def get_lowest_pos(self) -> Vec2:
-        return Vec2.from_native(self._native.get_lowest_pos())
+        self.set_bounds(Vec2(*self.calc_bounds()))
 
     @property
     def contours(self):
         """Return computed contours (list of list of PathPoints)."""
-        return self._native.get_contours()
-
-    @property
-    def uuid(self) -> UUID:
-        return self._native.uuid
+        return self.get_contours()
 
     # ---------------------------------------------------------------------
     # --- Serialization helpers
@@ -265,7 +167,7 @@ class Path:
     def to_dict(self) -> dict:
         """Serialize path into a JSON-serializable dict."""
         return {
-            "uuid": int(self._native.uuid),
+            "uuid": int(self.uuid),
             "commands": [self._command_to_dict(c) for c in self.get_commands()],
         }
 
@@ -274,7 +176,7 @@ class Path:
         """Reconstruct path from a serialized dict."""
         path = cls()
         cmds = [cls._dict_to_command(c) for c in data.get("commands", [])]
-        path._native.set_commands(cmds)
+        path.set_commands(cmds)
         return path
 
     @staticmethod
@@ -792,28 +694,28 @@ class Path:
             if e[0] == "M":
                 _, x, y = e
                 # use move_to_vec
-                path.move_to_vec(Vec2(x, y))
+                path.move_to(x, y)
                 cur_x, cur_y = x, y
                 sub_x, sub_y = x, y
             elif e[0] == "L":
                 _, x, y = e
-                path.line_to_vec(Vec2(x, y))
+                path.line_to(x, y)
                 cur_x, cur_y = x, y
             elif e[0] == "C":
                 _, c1x, c1y, c2x, c2y, ex, ey = e
-                path.cubic_to_vec(Vec2(c1x, c1y), Vec2(c2x, c2y), Vec2(ex, ey))
+                path.cubic_to(c1x, c1y, c2x, c2y, ex, ey)
                 cur_x, cur_y = ex, ey
             elif e[0] == "Q":
                 _, cx, cy, ex, ey = e
-                path.quad_to_vec(Vec2(cx, cy), Vec2(ex, ey))
+                path.quad_to(cx, cy, ex, ey)
                 cur_x, cur_y = ex, ey
             elif e[0] == "Z":
                 if hasattr(path, "close"):
-                    path.properties.is_closed = True
+                    path.get_props_ref().is_closed = True
                 else:
                     # fallback: line to subpath start
                     if sub_x is not None and sub_y is not None:
-                        path.line_to_vec(Vec2(sub_x, sub_y))
+                        path.line_to(sub_x, sub_y)
                 # current point becomes subpath start
                 cur_x, cur_y = sub_x, sub_y
             else:
@@ -838,8 +740,8 @@ class Path:
     @staticmethod
     def _dict_to_command(data: dict) -> PathCommand:
         """Convert dictionary to a C++ PathCommand."""
-        kind_str = data.get("kind")
-        if kind_str is None:
+        kind_str: str = data.get("kind", "")
+        if len(kind_str) == 0:
             raise ValueError("PathCommand dict missing 'kind'")
         kind = PathCommandKind[kind_str]
 
@@ -851,16 +753,16 @@ class Path:
 
         match kind:
             case PathCommandKind.Move:
-                cmd.move.p = data["p"].native
+                cmd.move.p = data["p"]
             case PathCommandKind.Line:
-                cmd.line.p = data["p"].native
+                cmd.line.p = data["p"]
             case PathCommandKind.Quad:
-                cmd.quad.c = data["c"].native
-                cmd.quad.p = data["p"].native
+                cmd.quad.c = data["c"]
+                cmd.quad.p = data["p"]
             case PathCommandKind.Cubic:
-                cmd.cubic.c1 = data["c1"].native
-                cmd.cubic.c2 = data["c2"].native
-                cmd.cubic.p = data["p"].native
+                cmd.cubic.c1 = data["c1"]
+                cmd.cubic.c2 = data["c2"]
+                cmd.cubic.p = data["p"]
         return cmd
 
     @staticmethod
@@ -875,16 +777,16 @@ class Path:
 
         match cmd.kind:
             case PathCommandKind.Move:
-                base["p"] = tuple(cmd.move.p)
+                base["p"] = cmd.move.p
             case PathCommandKind.Line:
-                base["p"] = tuple(cmd.line.p)
+                base["p"] = cmd.line.p
             case PathCommandKind.Quad:
-                base["c"] = tuple(cmd.quad.c)
-                base["p"] = tuple(cmd.quad.p)
+                base["c"] = cmd.quad.c
+                base["p"] = cmd.quad.p
             case PathCommandKind.Cubic:
-                base["c1"] = tuple(cmd.cubic.c1)
-                base["c2"] = tuple(cmd.cubic.c2)
-                base["p"] = tuple(cmd.cubic.p)
+                base["c1"] = cmd.cubic.c1
+                base["c2"] = cmd.cubic.c2
+                base["p"] = cmd.cubic.p
         return base
 
     def __repr__(self):

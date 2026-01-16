@@ -10,15 +10,16 @@ namespace py = pybind11;
 void bind_scene_schematic_diagram(py::module_ &m) {
     py::class_<Bess::Canvas::SchematicDiagram>(m, "SchematicDiagram")
         .def(py::init<>())
-        .def("get_paths", &Bess::Canvas::SchematicDiagram::getPaths, py::return_value_policy::reference_internal)
-        .def("set_paths", &Bess::Canvas::SchematicDiagram::setPaths)
-        .def("get_size", &Bess::Canvas::SchematicDiagram::getSize, py::return_value_policy::reference_internal)
-        .def("set_size", &Bess::Canvas::SchematicDiagram::setSize)
-        .def("add_path", [](Bess::Canvas::SchematicDiagram &self, const Bess::Renderer::Path &p) {
-            self.getPathsMut().emplace_back(p);
-        })
-        .def("show_name", &Bess::Canvas::SchematicDiagram::showName)
-        .def("set_show_name", &Bess::Canvas::SchematicDiagram::setShowName)
-        .def("get_stroke_size", &Bess::Canvas::SchematicDiagram::getStrokeSize)
-        .def("set_stroke_size", &Bess::Canvas::SchematicDiagram::setStrokeSize);
+        .def_property("paths", &Bess::Canvas::SchematicDiagram::getPaths,
+                      &Bess::Canvas::SchematicDiagram::setPaths)
+        .def_property("size",
+                      &Bess::Canvas::SchematicDiagram::getSize,
+                      &Bess::Canvas::SchematicDiagram::setSize)
+        .def("add_path", &Bess::Canvas::SchematicDiagram::addPath)
+        .def_property("show_name",
+                      &Bess::Canvas::SchematicDiagram::getShowName,
+                      &Bess::Canvas::SchematicDiagram::setShowName)
+        .def_property("stroke_size",
+                      &Bess::Canvas::SchematicDiagram::getStrokeSize,
+                      &Bess::Canvas::SchematicDiagram::setStrokeSize);
 }

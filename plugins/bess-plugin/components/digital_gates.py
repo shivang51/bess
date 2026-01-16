@@ -88,7 +88,6 @@ def _init_paths():
     circle.set_lowest_pos(Vec2(92, 46))
     circle.properties.render_fill = True
     circle.properties.is_closed = True
-    circle.normalize()
 
     # AND Gate
     andPath = Path()
@@ -100,12 +99,12 @@ def _init_paths():
     andPath.properties.render_fill = True
     andPath.calc_set_bounds()
     andPath.set_bounds(Vec2(130, 100))
-    andPath.normalize()
 
     andDiagram = SchematicDiagram()
     andDiagram.add_path(andPath)
     andDiagram.show_name = False
-    andDiagram.size = (100, 100)
+    andDiagram.size = Vec2(100, 100)
+    andDiagram.stroke_size = 1
 
     # NAND Gate
     nandDiagram = SchematicDiagram()
@@ -120,9 +119,13 @@ def _init_paths():
     nandPath.set_lowest_pos(Vec2(0, 0))
     nandPath.properties.is_closed = True
     nandPath.properties.render_fill = True
+    nandPath.normalize_wh(100, 100)
+    c = circle.copy()
+    c.normalize_wh(100, 100)
     nandDiagram.add_path(nandPath)
-    nandDiagram.add_path(circle.copy())
-    nandDiagram.size = (100, 100)
+    nandDiagram.add_path(c)
+    nandDiagram.size = Vec2(100, 100)
+    nandDiagram.stroke_size = 1
 
     # OR Gate
     orDiagram = SchematicDiagram()
@@ -138,7 +141,7 @@ def _init_paths():
     orPath.properties.is_closed = True
     orPath.properties.render_fill = True
     orDiagram.add_path(orPath)
-    orDiagram.size = (100, 100)
+    orDiagram.size = Vec2(100, 100)
 
     # NOR Gate
     norDiagram = SchematicDiagram()
@@ -153,10 +156,9 @@ def _init_paths():
     norPath.set_lowest_pos(Vec2(0, 0))
     norPath.properties.is_closed = True
     norPath.properties.render_fill = True
-    norPath.normalize()
     norDiagram.add_path(norPath)
     norDiagram.add_path(circle.copy())
-    norDiagram.size = (100, 100)
+    norDiagram.size = Vec2(100, 100)
 
     # XOR
     xorDiagram = SchematicDiagram()
@@ -183,7 +185,7 @@ def _init_paths():
 
     xorDiagram.add_path(xorArcPath.copy())
     xorDiagram.add_path(xorPath)
-    xorDiagram.size = (100, 100)
+    xorDiagram.size = Vec2(100, 100)
 
     # XNOR
     xnorDiagram = SchematicDiagram()
@@ -204,7 +206,7 @@ def _init_paths():
     xnorDiagram.add_path(xorArcPath.copy())
     xnorDiagram.add_path(xnorPath)
     xnorDiagram.add_path(circle.copy())
-    xnorDiagram.size = (100, 100)
+    xnorDiagram.size = Vec2(100, 100)
 
     # NOT
     notDiagram = SchematicDiagram()
@@ -218,7 +220,7 @@ def _init_paths():
     notPath.properties.is_closed = True
     notPath.properties.render_fill = True
     notDiagram.add_path(notPath)
-    notDiagram.size = (100, 100)
+    notDiagram.size = Vec2(100, 100)
 
     return {
         "AND": andDiagram,
@@ -231,7 +233,7 @@ def _init_paths():
     }
 
 
-# _paths = _init_paths()
+_paths = _init_paths()
 
 
 class DrawHook(SimCompDrawHook):
@@ -248,18 +250,8 @@ class DrawHook(SimCompDrawHook):
         path_renderer: PathRenderer,
     ):
         pos = transform.position.copy()
-        scale: Vec2 = transform.scale
-        path_renderer.beginPath(pos, 2, Vec4(1.0, 1.0, 1.0, 1.0), pickingId.asUint64())
-        pos.x += scale.x
-        path_renderer.pathLineTo(pos, 2, Vec4(1.0, 1.0, 1.0, 1.0), pickingId.asUint64())
-        pos.y += scale.y
-        path_renderer.pathLineTo(
-            pos,
-            2,
-            Vec4(1.0, 1.0, 1.0, 1.0),
-            pickingId.asUint64(),
-        )
-        path_renderer.endPath(True, True, Vec4(1.0, 1.0, 1.0, 1.0), True, False)
+        diagram = _paths["NAND"]
+        SchematicDiagram.draw(transform, pickingId, path_renderer, diagram)
 
 
 digital_gates: list[ComponentDefinition] = []
@@ -285,7 +277,6 @@ for gate_key, gate_data in _gates.items():
         sim_delay=datetime.timedelta(microseconds=0.001),
         op_info=opInfo,
     )
-    def_gate.negate = gate_data.get("negate_output", False)
     digital_gates.append(def_gate)
 
     def_gate.compute_hash()
