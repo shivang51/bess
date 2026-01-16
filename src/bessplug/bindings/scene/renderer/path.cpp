@@ -118,6 +118,8 @@ void bind_renderer_path(py::module_ &m) {
                    " render_fill=" + std::to_string(props.renderFill) + ">";
         });
 
+    py::class_<Bess::Renderer2D::Vulkan::PathPoint>(m, "PathPoint");
+
     py::class_<Path>(m, "Path")
         .def(py::init<>())
         .def("move_to", &Path::moveTo, py::return_value_policy::reference_internal)

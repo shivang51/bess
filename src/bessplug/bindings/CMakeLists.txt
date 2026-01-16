@@ -86,20 +86,46 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 	"freetype"
 )
 
+find_package(glfw3 REQUIRED)
+if(UNIX AND NOT APPLE)
+    find_package(X11 REQUIRED)
+    find_package(Threads REQUIRED)
+    
+    target_link_libraries(${PROJECT_NAME} PRIVATE 
+        glfw 
+        X11::X11 
+        Threads::Threads
+        ${CMAKE_DL_LIBS}
+    )
+else()
+    target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
+endif()
+
 target_include_directories(${PROJECT_NAME} PRIVATE 
 	${EXTERNAL_INCLUDE_DIRS}
 	"${CMAKE_CURRENT_SOURCE_DIR}/"
 )
 
+
+set(OUT_DIR "${CMAKE_SOURCE_DIR}/src/bessplug/bessplug/bindings/")
+
 set_target_properties(${PROJECT_NAME} PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/src/bessplug/bessplug/bindings"
+	LIBRARY_OUTPUT_DIRECTORY "${OUT_DIR}"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
     OUTPUT_NAME "_bindings"
 )
 
-add_dependencies(${PROJECT_NAME} BessSimEngine)
+add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E env "PYTHONPATH=$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+            pybind11-stubgen 
+            "_bindings"  # Use the actual OUTPUT_NAME/Module name here
+            -o "${OUT_DIR}"
+    WORKING_DIRECTORY $<TARGET_FILE_DIR:${PROJECT_NAME}>
+    COMMENT "Generating python stubs for bessplug_bindings..."
+)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
     BUILD_RPATH "${CMAKE_SOURCE_DIR}/build/lib"

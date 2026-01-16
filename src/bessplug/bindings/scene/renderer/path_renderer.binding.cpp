@@ -21,7 +21,7 @@ void bind_path_renderer(py::module_ &m) {
         .def("drawPath",
              &Bess::Renderer2D::Vulkan::PathRenderer::drawPath,
              py::arg("path"),
-             py::arg("info") = Bess::Renderer2D::Vulkan::ContoursDrawInfo{})
+             py::arg("info"))
         .def("beginPath",
              &Bess::Renderer2D::Vulkan::PathRenderer::beginPathMode,
              py::arg("startPos"),

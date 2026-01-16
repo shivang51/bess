@@ -28,16 +28,16 @@ PYBIND11_MODULE(_bindings, m) {
     bind_common_bindings(common);
 
     // Sim Engine
-    bind_sim_functions(simFn);
     bind_sim_engine_types(simEngine);
     bind_sim_engine_component_definition(simEngine);
+    bind_sim_functions(simFn);
 
     // Scene
+    bind_scene_state(scene);
+    bind_scene_common_binding(scene);
+    bind_renderer_path(renderer);
     bind_scene_schematic_diagram(scene);
+    bind_path_renderer(renderer);
     bind_scene_component(scene);
     bind_sim_comp_draw_hook(scene);
-    bind_scene_state(scene);
-    bind_path_renderer(renderer);
-    bind_renderer_path(renderer);
-    bind_scene_common_binding(scene);
 }

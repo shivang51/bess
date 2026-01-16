@@ -137,6 +137,13 @@ void bind_sim_engine_types(py::module_ &m) {
         .value("OUTPUT", SlotsGroupType::output)
         .export_values();
 
+    py::enum_<SlotCatergory>(m, "SlotCategory")
+        .value("NONE", SlotCatergory::none)
+        .value("CLOCK", SlotCatergory::clock)
+        .value("CLEAR", SlotCatergory::clear)
+        .value("ENABLE", SlotCatergory::enable)
+        .export_values();
+
     py::class_<SlotsGroupInfo>(m, "SlotsGroupInfo")
         .def(py::init<>())
         .def_readwrite("type", &SlotsGroupInfo::type)
@@ -149,13 +156,6 @@ void bind_sim_engine_types(py::module_ &m) {
         .def(py::init<>())
         .def_readwrite("op", &OperatorInfo::op)
         .def_readwrite("should_negate_output", &OperatorInfo::shouldNegateOutput);
-
-    py::enum_<SlotCatergory>(m, "SlotCategory")
-        .value("NONE", SlotCatergory::none)
-        .value("CLOCK", SlotCatergory::clock)
-        .value("CLEAR", SlotCatergory::clear)
-        .value("ENABLE", SlotCatergory::enable)
-        .export_values();
 
     py::enum_<ComponentBehaviorType>(m, "ComponentBehaviorType")
         .value("NONE", ComponentBehaviorType::none)

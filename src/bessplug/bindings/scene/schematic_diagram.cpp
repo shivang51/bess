@@ -8,7 +8,6 @@
 namespace py = pybind11;
 
 void bind_scene_schematic_diagram(py::module_ &m) {
-    py::bind_vector<std::vector<Bess::Renderer::Path>>(m, "PathVector");
     py::class_<Bess::Canvas::SchematicDiagram>(m, "SchematicDiagram")
         .def(py::init<>())
         .def("get_paths", &Bess::Canvas::SchematicDiagram::getPaths, py::return_value_policy::reference_internal)

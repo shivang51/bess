@@ -43,7 +43,11 @@ void bind_vec4(py::module_ &m) {
         .def_readwrite("x", &glm::vec4::x)
         .def_readwrite("y", &glm::vec4::y)
         .def_readwrite("z", &glm::vec4::z)
-        .def_readwrite("w", &glm::vec4::w);
+        .def_readwrite("w", &glm::vec4::w)
+        .def("__repr__", [](const glm::vec4 &v) {
+            return "vec4(" + std::to_string(v.r) + ", " + std::to_string(v.g) +
+                   ", " + std::to_string(v.b) + ", " + std::to_string(v.a) + ")";
+        });
 }
 
 void bind_vec3(py::module_ &m) {
