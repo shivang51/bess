@@ -265,8 +265,9 @@ namespace Bess::Canvas {
             const auto x = transform.position.x - camPos.x;
             const auto y = transform.position.y - camPos.y;
 
-            // skipping if outside camera
-            if (x < -span.x || x > span.x || y < -span.y || y > span.y)
+            // skipping if outside camera and not connection
+            if (comp->getType() != SceneComponentType::connection &&
+                (x < -span.x || x > span.x || y < -span.y || y > span.y))
                 continue;
 
             if (m_state.getIsSchematicView()) {

@@ -12,6 +12,7 @@
 
 #include "png.h"
 #include "stb_image_write.h"
+#include <algorithm>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -52,32 +53,24 @@ namespace Bess::UI {
     };
 
     SceneBounds computeSceneBounds() {
-        return {};
-        // const auto &reg = Canvas::Scene::instance()->getEnttRegistry();
-        // const auto view = reg.view<Canvas::Components::TransformComponent>();
-        //
-        // glm::vec2 min, max;
-        // bool first = true;
-        // for (const auto &ent : view) {
-        //     const auto &comp = view.get<Canvas::Components::TransformComponent>(ent);
-        //     if (first) {
-        //         min = glm::vec2(comp.position) - glm::vec2(comp.scale);
-        //         max = glm::vec2(comp.position) + glm::vec2(comp.scale);
-        //         first = false;
-        //         continue;
-        //     }
-        //     if (comp.position.x - comp.scale.x < min.x)
-        //         min.x = comp.position.x - comp.scale.x;
-        //     if (comp.position.x + comp.scale.x > max.x)
-        //         max.x = comp.position.x + comp.scale.x;
-        //
-        //     if (comp.position.y + comp.scale.y > max.y)
-        //         max.y = comp.position.y + comp.scale.y;
-        //     if (comp.position.y - comp.scale.y < min.y)
-        //         min.y = comp.position.y - comp.scale.y;
-        // }
-        //
-        // return {min, max};
+        glm::vec2 min, max;
+        bool first = true;
+        const auto &state = Canvas::Scene::instance()->getState();
+        for (const auto &compId : state.getRootComponents()) {
+            const auto comp = state.getComponentByUuid<Canvas::SceneComponent>(compId)->getTransform();
+            if (first) {
+                min = glm::vec2(comp.position) - glm::vec2(comp.scale);
+                max = glm::vec2(comp.position) + glm::vec2(comp.scale);
+                first = false;
+                continue;
+            }
+            min.x = std::min(comp.position.x - comp.scale.x, min.x);
+            max.x = std::max(comp.position.x + comp.scale.x, max.x);
+            max.y = std::max(comp.position.y + comp.scale.y, max.y);
+            min.y = std::min(comp.position.y - comp.scale.y, min.y);
+        }
+
+        return {min, max};
     }
 
     SceneExportInfo getSceneExportInfo(const SceneBounds &bounds, float zoom) {
