@@ -114,6 +114,8 @@ namespace Bess {
             m_simEngineSerializer.deserialize(data["sim_engine_data"]);
         }
 
+        // make sure to decode scene after sim engine,
+        // as scene components may depend on sim engine components
         if (data.isMember("scene_data")) {
             m_sceneSerializer.deserialize(data["scene_data"]);
         }

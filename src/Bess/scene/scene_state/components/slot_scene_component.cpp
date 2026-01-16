@@ -113,13 +113,19 @@ namespace Bess::Canvas {
         constexpr float nodeWeight = Styles::compSchematicStyles.strokeSize;
         const auto &pinColor = ViewportTheme::schematicViewColors.pin;
         glm::vec2 offset = {0.f, 0.f};
+
+        // will begin pin from little behind than the position
+        // so that line joins nicely with the components like OR gate or xor gate which have
+        // curved edges
+        auto startPos = pos;
         if (m_slotType == SlotType::digitalOutput) {
             offset.x = Styles::compSchematicStyles.pinSize;
         } else {
             offset.x = -Styles::compSchematicStyles.pinSize;
+            startPos.x += 5.f;
         }
 
-        pathRenderer->beginPathMode(pos, nodeWeight, pinColor, pinId);
+        pathRenderer->beginPathMode(startPos, nodeWeight, pinColor, pinId);
         pathRenderer->pathLineTo({pos.x + offset.x, pos.y + offset.y, pos.z},
                                  nodeWeight, pinColor, pinId);
         pathRenderer->endPathMode(false);

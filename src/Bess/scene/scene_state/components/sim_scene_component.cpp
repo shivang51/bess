@@ -490,9 +490,9 @@ namespace Bess::JsonConvert {
             }
         }
 
-        if (j.isMember("schematicScale")) {
+        if (j.isMember("schematicTransform")) {
             Canvas::Transform schematicTransform;
-            fromJsonValue(j["schematicScale"], schematicTransform);
+            fromJsonValue(j["schematicTransform"], schematicTransform);
             component.setSchematicTransform(schematicTransform);
         }
     }

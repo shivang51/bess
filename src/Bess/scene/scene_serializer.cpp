@@ -1,10 +1,11 @@
 #include "scene/scene_serializer.h"
 
-#include <algorithm>
-
 #include "bess_uuid.h"
 #include "events/scene_events.h"
+#include "plugin_manager.h"
 #include "scene/scene.h"
+#include "simulation_engine.h"
+#include <algorithm>
 
 using namespace Bess::Canvas::Components;
 
@@ -32,10 +33,20 @@ namespace Bess {
         auto &state = scene->getState();
         JsonConvert::fromJsonValue(json["scene_state"], state);
 
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+
+        const auto &pluginManager = Plugins::PluginManager::getInstance();
+
         for (const auto &[uuid, comp] : state.getAllComponents()) {
             m_maxZ = std::max(comp->getTransform().position.z, m_maxZ);
+            if (comp->getType() == Canvas::SceneComponentType::simulation) {
+                auto simComp = state.getComponentByUuid<Canvas::SimulationSceneComponent>(uuid);
+                const auto &compDef = simEngine.getComponentDefinition(simComp->getSimEngineId());
+                if (pluginManager.hasSceneComponentType(compDef->getBaseHash())) {
+                    simComp->setDrawHook(pluginManager.createSceneComponentInstance(compDef->getBaseHash()));
+                }
+            }
         }
-
         scene->setZCoord(m_maxZ);
     }
 
