@@ -1,8 +1,9 @@
 import datetime
 from bessplug.api.scene.sim_comp_draw_hook import SimCompDrawHook
-from bessplug.api.common.math import Vec2
+from bessplug.api.common.math import Vec2, Vec3
+from bessplug.api.common import theme
 from bessplug.api.sim_engine import ComponentDefinition, SlotsGroupInfo, OperatorInfo
-from bessplug.api.scene.renderer import Path, PathRenderer
+from bessplug.api.scene.renderer import Path
 import math
 import datetime
 from typing import override
@@ -230,10 +231,12 @@ _paths = _init_paths()
 
 
 class DrawHook(SimCompDrawHook):
-    def __init__(self, diagram: SchematicDiagram):
+    def __init__(self, diagram: SchematicDiagram, name: str):
         super().__init__()
         self.schematic_draw_enabled = True
         self.schematic_diagram = diagram
+        self.label_size = 8
+        self.name = name
 
     @override
     def onSchematicDraw(
@@ -241,10 +244,18 @@ class DrawHook(SimCompDrawHook):
         transform,
         pickingId,
         materialRenderer,
-        pathRenderer: PathRenderer,
+        pathRenderer,
     ) -> Vec2:
         scale = SchematicDiagram.draw(
             transform, pickingId, pathRenderer, self.schematic_diagram
+        )
+        size = materialRenderer.get_text_render_size(self.name, self.label_size)
+        materialRenderer.draw_text(
+            self.name,
+            transform.position + Vec3(-size.x / 2, scale.y / 2 + self.label_size, 0),
+            self.label_size,
+            theme.schematic.text,
+            pickingId.asUint64(),
         )
         return scale
 
@@ -281,7 +292,7 @@ for gate_key, gate_data in _gates.items():
     dig = _paths[gate_key]
     dig.normalize_paths()
     dig.stroke_size = 1.0
-    draw_hooks[def_gate.get_hash()] = DrawHook(_paths[gate_key])
+    draw_hooks[def_gate.get_hash()] = DrawHook(_paths[gate_key], def_gate.name)
 
 
 __all__ = ["digital_gates", "draw_hooks"]

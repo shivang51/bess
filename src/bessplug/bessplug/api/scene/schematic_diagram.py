@@ -1,6 +1,7 @@
 from bessplug.api.common.math import Vec2, Vec3, Vec4
 from bessplug.api.scene.renderer import Path, PathRenderer
 from bessplug.api.scene.renderer.contours_draw_info import ContoursDrawInfo
+from bessplug.api.common import theme
 from bessplug.bindings._bindings.scene import (
     PickingId,
     SchematicDiagram as NativeSchematicDiagram,
@@ -49,8 +50,8 @@ class SchematicDiagram(NativeSchematicDiagram):
 
             info.scale = dig_scale
             info.glyph_id = pickingId.asUint64()
-            info.stroke_color = Vec4(0.45, 0.50, 0.60, 1.0)
-            info.fill_color = Vec4(0.08, 0.09, 0.11, 1.0)
+            info.stroke_color = theme.schematic.componentStroke
+            info.fill_color = theme.schematic.componentFill
 
             info.gen_fill = path.get_props().render_fill
             info.close_path = path.get_props().is_closed

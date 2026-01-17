@@ -1,5 +1,6 @@
 #include "bess_uuid.h"
 #include "glm.hpp"
+#include "settings/viewport_theme.h"
 
 #include <format>
 #include <pybind11/functional.h>
@@ -14,12 +15,14 @@ typedef Bess::UUID UUID;
 void bind_vec2(py::module_ &m);
 void bind_vec3(py::module_ &m);
 void bind_vec4(py::module_ &m);
+void bind_theme(py::module_ &m);
 void bind_bess_uuid(py::module_ &m);
 
 void bind_common_bindings(py::module_ &m) {
     bind_vec2(m);
     bind_vec3(m);
     bind_vec4(m);
+    bind_theme(m);
     bind_bess_uuid(m);
 }
 
@@ -226,4 +229,19 @@ void bind_bess_uuid(py::module_ &m) {
         })
 
         .def_readonly_static("null", &UUID::null);
+}
+
+void bind_theme(py::module_ &m) {
+    auto themeModule = m.def_submodule("theme");
+
+    py::class_<Bess::SchematicViewColors>(themeModule, "SchematicThemeColors")
+        .def(py::init<>())
+        .def_readwrite("pin", &Bess::SchematicViewColors::pin)
+        .def_readwrite("text", &Bess::SchematicViewColors::text)
+        .def_readwrite("connection", &Bess::SchematicViewColors::connection)
+        .def_readwrite("componentFill", &Bess::SchematicViewColors::componentFill)
+        .def_readwrite("componentStroke", &Bess::SchematicViewColors::componentStroke)
+        .def_readwrite("activeSignal", &Bess::SchematicViewColors::activeSignal);
+
+    themeModule.attr("schematic") = Bess::ViewportTheme::schematicViewColors;
 }
