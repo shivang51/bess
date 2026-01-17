@@ -159,7 +159,7 @@ namespace Bess::Renderer {
     void MaterialRenderer::drawTexturedQuad(const glm::vec3 &pos,
                                             const glm::vec2 &size,
                                             const glm::vec4 &tint,
-                                            int id,
+                                            uint64_t id,
                                             const std::shared_ptr<SubTexture> &subTexture,
                                             QuadRenderProperties props) {
         if (!m_quadPipeline) {

@@ -70,7 +70,7 @@ namespace Bess::Renderer {
         void drawTexturedQuad(const glm::vec3 &pos,
                               const glm::vec2 &size,
                               const glm::vec4 &tint,
-                              int id,
+                              uint64_t id,
                               const std::shared_ptr<SubTexture> &subTexture,
                               QuadRenderProperties props = {});
 

@@ -13,6 +13,7 @@ void bind_scene_component(py::module_ &m);
 void bind_sim_comp_draw_hook(py::module_ &m);
 void bind_scene_state(py::module_ &m);
 void bind_path_renderer(py::module_ &m);
+void bind_material_renderer(py::module_ &m);
 void bind_scene_common_binding(py::module_ &m);
 
 PYBIND11_MODULE(_bindings, m) {
@@ -38,6 +39,7 @@ PYBIND11_MODULE(_bindings, m) {
     bind_renderer_path(renderer);
     bind_scene_schematic_diagram(scene);
     bind_path_renderer(renderer);
+    bind_material_renderer(renderer);
     bind_scene_component(scene);
     bind_sim_comp_draw_hook(scene);
 }
