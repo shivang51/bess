@@ -324,12 +324,13 @@ namespace Bess::Canvas {
     }
 
     std::vector<UUID> SimulationSceneComponent::cleanup(SceneState &state, UUID caller) {
+        const auto ids = SceneComponent::cleanup(state, caller);
         auto &simEngine = SimEngine::SimulationEngine::instance();
         simEngine.deleteComponent(m_simEngineId);
         if (m_drawHook) {
             m_drawHook.reset();
         }
-        return SceneComponent::cleanup(state, caller);
+        return ids;
     }
 
     void SimulationSceneComponent::calculateSchematicScale(SceneState &state) {

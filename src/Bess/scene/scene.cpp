@@ -1034,12 +1034,20 @@ namespace Bess::Canvas {
 
         auto processSlot = [&](const std::shared_ptr<SlotSceneComponent> &slotComp) {
             const auto &parentComp = m_state.getComponentByUuid<SimulationSceneComponent>(slotComp->getParentComponent());
+            BESS_ASSERT(parentComp, std::format("[Scene] Parent component with uuid {} not found for slot {}",
+                                                (uint64_t)slotComp->getParentComponent(),
+                                                (uint64_t)slotComp->getUuid()));
             const auto &simEngineId = parentComp->getSimEngineId();
             auto &simEngine = SimEngine::SimulationEngine::instance();
+
             const auto &digitalComp = simEngine.getDigitalComponent(simEngineId);
+            BESS_ASSERT(digitalComp, std::format("[Scene] Digital component with simEngineId {} not found",
+                                                 (uint64_t)simEngineId));
+
             const auto &def = digitalComp->definition;
-            if (!def)
-                return;
+            BESS_ASSERT(def, std::format("[Scene] Component definition not found for component with simEngineId {}",
+                                         (uint64_t)simEngineId));
+
             const bool isInputSlot = (slotComp->getSlotType() == SlotType::digitalInput);
             const auto &slotsInfo = isInputSlot
                                         ? def->getInputSlotsInfo()
@@ -1069,8 +1077,10 @@ namespace Bess::Canvas {
             }
         };
 
-        processSlot(slotCompA);
-        processSlot(slotCompB);
+        if (slotCompA)
+            processSlot(slotCompA);
+        if (slotCompB)
+            processSlot(slotCompB);
     }
 
     void Scene::loadComponentFromPlugins() {
