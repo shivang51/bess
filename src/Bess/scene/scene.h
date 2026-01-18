@@ -25,7 +25,6 @@ namespace Bess::Canvas {
 
     enum class SceneMode : uint8_t {
         general,
-        move
     };
 
     enum class SceneDrawMode : uint8_t {

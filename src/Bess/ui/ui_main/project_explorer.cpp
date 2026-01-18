@@ -484,9 +484,11 @@ namespace Bess::UI {
             const float yPadding = ImGui::GetCursorPosY();
             ImGui::SetCursorPosY(yPadding + g.Style.FramePadding.y);
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+            ImGui::PushStyleColor(ImGuiCol_FrameBg, colors[ImGuiCol_ButtonHovered]);
 
             ImGui::Checkbox(("##CheckBox" + std::to_string(nodeId)).c_str(), &selected);
             ImGui::PopStyleVar();
+            ImGui::PopStyleColor();
             ImGui::SetCursorPosY(yPadding);
         }
 

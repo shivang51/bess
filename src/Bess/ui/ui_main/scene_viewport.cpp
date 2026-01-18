@@ -65,17 +65,19 @@ namespace Bess::UI {
         const auto colors = g.Style.Colors;
         auto &simEngine = SimEngine::SimulationEngine::instance();
         static float checkboxWidth = ImGui::CalcTextSize("W").x + g.Style.FramePadding.x + 2.f;
-        static float size = ImGui::CalcTextSize("Schematic Mode").x + checkboxWidth + 12.f;
+        const auto textSize = ImGui::CalcTextSize("Schematic Mode");
+        static float size = textSize.x + checkboxWidth + 12.f;
         ImGui::SetNextWindowPos({m_localPos.x + g.Style.FramePadding.x,
                                  m_localPos.y + g.Style.FramePadding.y});
         ImGui::SetNextWindowSize({size, 0});
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
 
-        auto col = colors[ImGuiCol_Header];
-        col.w = 0.1f;
+        auto col = colors[ImGuiCol_ButtonActive];
+        col.w = 0.2f;
         ImGui::PushStyleColor(ImGuiCol_WindowBg, col);
         ImGui::Begin("TopLeftViewportActions", nullptr, NO_MOVE_FLAGS);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
         ImGui::Text("Schematic Mode");
         ImGui::SameLine();
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
@@ -90,8 +92,8 @@ namespace Bess::UI {
         const ImGuiContext &g = *ImGui::GetCurrentContext();
         const auto colors = g.Style.Colors;
         auto &simEngine = SimEngine::SimulationEngine::instance();
-        static int n = 4; // number of action buttons
-        static float size = (float)(32 * n) - (float)(n - 1) + (g.Style.FramePadding.x * 2);
+        static constexpr int n = 3; // number of action buttons
+        static const float size = (float)(32 * n) - (float)(n - 1) + (g.Style.FramePadding.x * 2);
         ImGui::SetNextWindowPos(
             {m_localPos.x + m_viewportSize.x - size - g.Style.FramePadding.x,
              m_localPos.y + g.Style.FramePadding.y});
@@ -99,8 +101,8 @@ namespace Bess::UI {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
 
-        auto col = colors[ImGuiCol_Header];
-        col.w = 0.5;
+        auto col = colors[ImGuiCol_ButtonActive];
+        col.w = 0.2;
         ImGui::PushStyleColor(ImGuiCol_WindowBg, col);
         ImGui::Begin("TopRightViewportActions", nullptr, NO_MOVE_FLAGS);
 
@@ -126,26 +128,10 @@ namespace Bess::UI {
 
             if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
             }
-
-            // move mode
-            if (!isGeneral) {
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.f, 0.667f, 0.f, 1.f});
-            }
-            ImGui::SameLine();
-            icon = Icons::FontAwesomeIcons::FA_ARROWS_ALT;
-            if (ImGui::Button(icon)) {
-                scene->setSceneMode(Canvas::SceneMode::move);
-            }
-
-            if (!isGeneral) {
-                ImGui::PopStyleColor();
-            }
-
-            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                const auto msg = "Move Mode";
-                ImGui::SetTooltip("%s", msg);
-            }
         }
+
+        ImGui::SameLine();
+        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
 
         const auto isSimPaused = simEngine.getSimulationState() == SimEngine::SimulationState::paused;
 

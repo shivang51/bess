@@ -183,10 +183,6 @@ namespace Bess::Canvas {
     }
 
     void Scene::renderWithViewport(const std::shared_ptr<Viewport> &viewport) {
-        if (m_sceneMode == SceneMode::move) {
-            UI::setCursorMove();
-        }
-
         auto &inst = Bess::Vulkan::VulkanCore::instance();
 
         viewport->begin((int)inst.getCurrentFrameIdx(),
