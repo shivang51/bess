@@ -46,6 +46,39 @@ namespace Bess::UI {
         drawStatusbar();
         drawExternalWindows();
 
+        if (m_pageState->actionFlags.saveProject) {
+            onSaveProject();
+            m_pageState->actionFlags.saveProject = false;
+        } else if (m_pageState->actionFlags.openProject) {
+            onOpenProject();
+            m_pageState->actionFlags.openProject = false;
+        }
+
+        Popups::PopupRes res = Popups::handleUnsavedProjectWarning();
+        if (res != Popups::PopupRes::none) {
+            if (res == Popups::PopupRes::yes) {
+                m_pageState->saveCurrentProject();
+                if (!m_pageState->getCurrentProjectFile()->isSaved()) {
+                    state._internalData.newFileClicked = false;
+                    state._internalData.openFileClicked = false;
+                    return;
+                }
+            }
+
+            if (res != Popups::PopupRes::cancel) {
+                if (state._internalData.newFileClicked) {
+                    m_pageState->createNewProject();
+                    state._internalData.newFileClicked = false;
+                } else if (state._internalData.openFileClicked) {
+                    m_pageState->loadProject(state._internalData.path);
+                    state._internalData.statusMessage = std::format("Opened project: {}",
+                                                                    std::filesystem::path(state._internalData.path).filename().string());
+                    state._internalData.path = "";
+                    state._internalData.openFileClicked = false;
+                }
+            }
+        }
+
         return;
         ImGui::Begin("Scene State JSON");
         static std::string sceneJson;
@@ -77,7 +110,7 @@ namespace Bess::UI {
     void UIMain::drawStatusbar() {
         const ImGuiContext &g = *ImGui::GetCurrentContext();
         auto style = g.Style;
-        ImGuiViewportP *viewport = (ImGuiViewportP *)(void *)ImGui::GetMainViewport();
+        ImGuiViewportP *viewport = (ImGuiViewportP *)ImGui::GetMainViewport();
         const ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
         auto &simEngine = SimEngine::SimulationEngine::instance();
         const float height = ImGui::GetFrameHeight();
@@ -93,19 +126,13 @@ namespace Bess::UI {
                     ImGui::Text("Unknown State");
                 }
 
-                ImGui::SameLine();
+                if (!state._internalData.statusMessage.empty()) {
+                    const auto msg = std::format("{}\t", state._internalData.statusMessage);
+                    const auto size = ImGui::CalcTextSize(msg.c_str());
+                    ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - size.x);
+                    ImGui::TextDisabled("%s", msg.c_str());
+                }
 
-                auto hoveredId = Canvas::Scene::instance()->getHoveredEntity();
-                ImGui::TextDisabled("%s", std::format(" | Hovered Entity ID: {}", (uint64_t)hoveredId).c_str());
-
-                // std::string rightContent[] = {};
-                // float offset = style.FramePadding.x;
-                // for (auto &content : rightContent)
-                //     offset += getTextSize(content).x;
-
-                // ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - offset);
-                // for (auto &content : rightContent)
-                //     ImGui::Text("%s", content.c_str());
                 ImGui::EndMenuBar();
             }
             ImGui::End();
@@ -114,7 +141,7 @@ namespace Bess::UI {
     }
 
     void UIMain::drawMenubar() {
-        bool newFileClicked = false, openFileClicked = false;
+        bool newFileClicked = false;
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.f, 6.f));
         ImGui::BeginMainMenuBar();
@@ -131,14 +158,14 @@ namespace Bess::UI {
             temp_name = Icons::FontAwesomeIcons::FA_FOLDER_OPEN;
             temp_name += "  Open";
             if (ImGui::MenuItem(temp_name.c_str(), "Ctrl+O")) {
-                openFileClicked = true;
+                m_pageState->actionFlags.openProject = true;
             };
 
             // Save File
             temp_name = Icons::FontAwesomeIcons::FA_SAVE;
             temp_name += "   Save";
             if (ImGui::MenuItem(temp_name.c_str(), "Ctrl+S")) {
-                onSaveProject();
+                m_pageState->actionFlags.saveProject = true;
             };
 
             ImGui::Spacing();
@@ -246,31 +273,6 @@ namespace Bess::UI {
 
         if (newFileClicked) {
             onNewProject();
-        } else if (openFileClicked) {
-            onOpenProject();
-        }
-
-        Popups::PopupRes res{};
-        if ((res = Popups::handleUnsavedProjectWarning()) != Popups::PopupRes::none) {
-            if (res == Popups::PopupRes::yes) {
-                m_pageState->saveCurrentProject();
-                if (!m_pageState->getCurrentProjectFile()->isSaved()) {
-                    state._internalData.newFileClicked = false;
-                    state._internalData.openFileClicked = false;
-                    return;
-                }
-            }
-
-            if (res != Popups::PopupRes::cancel) {
-                if (state._internalData.newFileClicked) {
-                    m_pageState->createNewProject();
-                    state._internalData.newFileClicked = false;
-                } else if (state._internalData.openFileClicked) {
-                    m_pageState->loadProject(state._internalData.path);
-                    state._internalData.path = "";
-                    state._internalData.openFileClicked = false;
-                }
-            }
         }
     }
 
@@ -318,12 +320,12 @@ namespace Bess::UI {
     }
 
     void UIMain::onOpenProject() {
-
         const auto filepath =
             Dialogs::showOpenFileDialog("Open BESS Project File", "*.bproj|");
 
         if (filepath == "" || !std::filesystem::exists(filepath)) {
             BESS_WARN("No or invalid file path selcted");
+            state._internalData.statusMessage = "No or invalid file path selected";
             return;
         }
 
@@ -333,18 +335,21 @@ namespace Bess::UI {
             ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning.c_str());
         } else {
             m_pageState->loadProject(filepath);
+            state._internalData.statusMessage = std::format("Project loaded from {}", filepath);
         }
     }
 
     void UIMain::onSaveProject() {
         m_pageState->getCurrentProjectFile()->save();
+        state._internalData.statusMessage = std::format("Project saved to {}",
+                                                        m_pageState->getCurrentProjectFile()->getPath());
     }
 
     void UIMain::onExportSceneView() {
         auto path = UI::Dialogs::showSelectPathDialog("Save To");
         if (path == "")
             return;
-        BESS_TRACE("[ExportSceneView] Saving to {}", path);
+        BESS_INFO("[ExportSceneView] Saving to {}", path);
         Canvas::Scene::instance()->saveScenePNG(path);
     }
 

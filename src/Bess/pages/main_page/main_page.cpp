@@ -76,6 +76,8 @@ namespace Bess::Pages {
             m_sceneDriver.getActiveScene()->resize(viewportSize);
         }
 
+        m_state->releasedKeysFrame.clear();
+
         for (const auto &event : events) {
             switch (event.getType()) {
             case ApplicationEventType::KeyPress: {
@@ -85,11 +87,14 @@ namespace Bess::Pages {
             case ApplicationEventType::KeyRelease: {
                 const auto data = event.getData<ApplicationEvent::KeyReleaseData>();
                 m_state->setKeyPressed(data.key, false);
+                m_state->releasedKeysFrame[data.key] = true;
             } break;
             default:
                 break;
             }
         }
+
+        handleKeyboardShortcuts();
 
         const auto isViewportHovered = UI::UIMain::state.mainViewport.isHovered();
         if (isViewportHovered)
@@ -98,5 +103,18 @@ namespace Bess::Pages {
 
     std::shared_ptr<Window> MainPage::getParentWindow() {
         return m_parentWindow;
+    }
+
+    void MainPage::handleKeyboardShortcuts() {
+        const bool ctrlPressed = m_state->isKeyPressed(GLFW_KEY_LEFT_CONTROL) ||
+                                 m_state->isKeyPressed(GLFW_KEY_RIGHT_CONTROL);
+
+        if (ctrlPressed) {
+            if (m_state->releasedKeysFrame[GLFW_KEY_S]) {
+                m_state->actionFlags.saveProject = true;
+            } else if (m_state->releasedKeysFrame[GLFW_KEY_O]) {
+                m_state->actionFlags.openProject = true;
+            }
+        }
     }
 } // namespace Bess::Pages

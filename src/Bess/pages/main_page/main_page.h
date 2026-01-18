@@ -13,6 +13,7 @@
 #include <vector>
 
 namespace Bess::Pages {
+
     class MainPage : public Page {
       public:
         MainPage(std::shared_ptr<Window> parentWindow);
@@ -34,6 +35,9 @@ namespace Bess::Pages {
         std::shared_ptr<Window> m_parentWindow;
         std::shared_ptr<Bess::Canvas::Scene> m_scene;
         Bess::SceneDriver m_sceneDriver;
+
+      private:
+        void handleKeyboardShortcuts();
 
         // event handlers
       private:
