@@ -1,4 +1,5 @@
 #include "scene/renderer/material_renderer.h"
+#include "vulkan_subtexture.h"
 #include "vulkan_texture.h"
 #include <pybind11/pybind11.h>
 
@@ -14,6 +15,25 @@ void bind_material_renderer(py::module_ &m) {
         .def_readwrite("hasShadow", &Bess::Renderer::QuadRenderProperties::hasShadow)
         .def_readwrite("isMica", &Bess::Renderer::QuadRenderProperties::isMica);
 
+    py::class_<Bess::Vulkan::VulkanTexture, py::smart_holder>(m, "VulkanTexture");
+    py::class_<Bess::Vulkan::SubTexture, py::smart_holder>(m, "SubTexture");
+
+    const auto draw_textured_quad_overload = static_cast<void (Bess::Renderer::MaterialRenderer::*)(
+        const glm::vec3 &,
+        const glm::vec2 &,
+        const glm::vec4 &,
+        uint64_t,
+        const std::shared_ptr<Bess::Vulkan::VulkanTexture> &,
+        Bess::Renderer::QuadRenderProperties)>(&Bess::Renderer::MaterialRenderer::drawTexturedQuad);
+
+    const auto draw_textured_quad_subtexture_overload = static_cast<void (Bess::Renderer::MaterialRenderer::*)(
+        const glm::vec3 &,
+        const glm::vec2 &,
+        const glm::vec4 &,
+        uint64_t,
+        const std::shared_ptr<Bess::Vulkan::SubTexture> &,
+        Bess::Renderer::QuadRenderProperties)>(&Bess::Renderer::MaterialRenderer::drawTexturedQuad);
+
     py::class_<Bess::Renderer::MaterialRenderer, py::smart_holder>(m, "MaterialRenderer")
         .def("get_text_render_size", &Bess::Renderer::MaterialRenderer::getTextRenderSize,
              "Calculate the size of the rendered text",
@@ -26,14 +46,32 @@ void bind_material_renderer(py::module_ &m) {
              py::arg("color"),
              py::arg("id"),
              py::arg("props"))
-        .def("draw_circle", &Bess::Renderer::MaterialRenderer::drawCircle,
+        .def("draw_textured_quad", draw_textured_quad_overload,
+             "Draw a textured quad on the screen using a VulkanTexture",
+             py::arg("pos"),
+             py::arg("size"),
+             py::arg("tint"),
+             py::arg("id"),
+             py::arg("texture"),
+             py::arg("props"))
+        .def("draw_sub_textured_quad", draw_textured_quad_subtexture_overload,
+             "Draw a textured quad on the screen using a SubTexture",
+             py::arg("pos"),
+             py::arg("size"),
+             py::arg("tint"),
+             py::arg("id"),
+             py::arg("sub_texture"),
+             py::arg("props"))
+        .def("draw_circle",
+             &Bess::Renderer::MaterialRenderer::drawCircle,
              "Draw a colored circle on the screen",
              py::arg("center"),
              py::arg("radius"),
              py::arg("color"),
              py::arg("id"),
              py::arg("inner_radius") = 0.0f)
-        .def("draw_text", &Bess::Renderer::MaterialRenderer::drawText,
+        .def("draw_text",
+             &Bess::Renderer::MaterialRenderer::drawText,
              "Draw text on the screen",
              py::arg("text"),
              py::arg("position"),

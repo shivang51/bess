@@ -73,6 +73,8 @@ set(BESS_PYBIND_SOURCES
     sim_engine/types.cpp
     sim_engine/sim_functions.cpp
     sim_engine/component_definition.binding.cpp
+
+		assets/asset_manager.binding.cpp
 )
 
 pybind11_add_module(${PROJECT_NAME} ${BESS_PYBIND_SOURCES})

@@ -17,13 +17,28 @@ void bind_vec3(py::module_ &m);
 void bind_vec4(py::module_ &m);
 void bind_theme(py::module_ &m);
 void bind_bess_uuid(py::module_ &m);
-
 void bind_common_bindings(py::module_ &m) {
     bind_vec2(m);
     bind_vec3(m);
     bind_vec4(m);
     bind_theme(m);
     bind_bess_uuid(m);
+
+    using StringViewArray1 = std::array<std::string_view, 1>;
+    auto pyStringViewArray = py::class_<StringViewArray1>(m, "StringViewArray1");
+
+    pyStringViewArray
+        .def(py::init<>())
+        .def("__len__", [](const StringViewArray1 &v) { return v.size(); })
+        .def("__getitem__", [](const StringViewArray1 &v, size_t i) -> std::string {
+            return std::string(v.at(i));
+        })
+        .def("__iter__", [](StringViewArray1 &v) { return py::make_iterator(v.begin(), v.end()); }, py::keep_alive<0, 1>())
+        .def("__repr__", [](const StringViewArray1 &v) {
+						std::string repr = "StringViewArray([";
+						repr += "\"" + std::string(v[0]) + "\"";
+						repr += "])";
+						return repr; });
 }
 
 void bind_vec4(py::module_ &m) {

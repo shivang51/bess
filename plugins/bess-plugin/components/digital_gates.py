@@ -1,13 +1,16 @@
 import datetime
+from bessplug.api import assets
 from bessplug.api.scene.sim_comp_draw_hook import SimCompDrawHook
 from bessplug.api.common.math import Vec2, Vec3
 from bessplug.api.common import theme
 from bessplug.api.sim_engine import ComponentDefinition, SlotsGroupInfo, OperatorInfo
 from bessplug.api.scene.renderer import Path
+from bessplug.api.assets import AssetManager
 import math
 import datetime
 from typing import override
 
+from bessplug.bindings._bindings.scene.renderer import QuadRenderProperties
 from bessplug.plugin import SchematicDiagram
 
 
@@ -237,6 +240,9 @@ class DrawHook(SimCompDrawHook):
         self.schematic_diagram = diagram
         self.label_size = 8
         self.name = name
+        self.tex_id = AssetManager.register_texture_asset(
+            "assets/images/7-seg-display-tilemap.png"
+        )
 
     @override
     def onSchematicDraw(
@@ -256,6 +262,14 @@ class DrawHook(SimCompDrawHook):
             self.label_size,
             theme.schematic.text,
             pickingId.asUint64(),
+        )
+        materialRenderer.draw_textured_quad(
+            transform.position + Vec3(-10, -scale.y / 2 - 20, 0),
+            Vec2(200, 200),
+            theme.schematic.text,
+            pickingId.asUint64(),
+            assets.AssetManager.get_texture_asset(self.tex_id),
+            QuadRenderProperties(),
         )
         return scale
 
