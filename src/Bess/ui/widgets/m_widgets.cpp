@@ -63,8 +63,8 @@ namespace Bess::UI::Widgets {
         if (hovered || held)
             window->DrawList->AddRectFilled(bb.Min, bb.Max,
                                             ImGui::GetColorU32(held
-                                                                   ? ImGuiCol_HeaderActive
-                                                                   : ImGuiCol_HeaderHovered),
+                                                                   ? ImGuiCol_ButtonActive
+                                                                   : ImGuiCol_ButtonHovered),
                                             rounding);
 
         // Icon, text
@@ -229,10 +229,13 @@ namespace Bess::UI::Widgets {
 
         bool rowHovered = ImGui::IsMouseHoveringRect(rowBB.Min, rowBB.Max);
 
-        if (selected || rowHovered) {
-            ImU32 bg = selected
-                           ? ImGui::GetColorU32(ImGuiCol_HeaderActive)
-                           : ImGui::GetColorU32(ImGuiCol_HeaderHovered);
+        if (rowHovered) {
+            const auto &bg = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
+            ImVec2 bgStart(window->Pos.x, pos.y);
+            ImVec2 bgEnd(window->Pos.x + window->Size.x, pos.y + rowHeight);
+            window->DrawList->AddRectFilled(bgStart, bgEnd, bg, g.Style.FrameRounding);
+        } else if (selected) {
+            const ImU32 &bg = ImGui::GetColorU32(ImGuiCol_HeaderActive);
             window->DrawList->AddRectFilled(rowBB.Min, rowBB.Max, bg, g.Style.FrameRounding);
         }
 

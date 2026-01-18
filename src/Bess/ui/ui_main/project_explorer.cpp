@@ -3,13 +3,13 @@
 #include "event_dispatcher.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "settings/viewport_theme.h"
 #include "scene/commands/create_group_command.h"
 #include "scene/commands/delete_node_command.h"
 #include "scene/commands/reparent_node_command.h"
 #include "scene/scene.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/sim_scene_component.h"
+#include "settings/viewport_theme.h"
 #include "ui/ui_main/project_explorer_state.h"
 #include "ui/widgets/m_widgets.h"
 #include <cstdint>
@@ -348,6 +348,10 @@ namespace Bess::UI {
 
         if (ImGui::InvisibleButton("project_explorer_root_drop_target",
                                    ImVec2(window->Size.x, window->Size.y - startY))) {
+            sceneState.clearSelectedComponents();
+            for (auto &node : state.nodes) {
+                node->selected = false;
+            }
         }
 
         HandleNodeDropTarget([&](uint64_t id) {
@@ -453,7 +457,7 @@ namespace Bess::UI {
         if (selected) {
             bgColor = colors[ImGuiCol_HeaderActive];
         } else if (hovered || held) {
-            bgColor = colors[ImGuiCol_HeaderHovered];
+            bgColor = colors[ImGuiCol_ButtonHovered];
         }
 
         if (bgColor.w > 0.0f) {
