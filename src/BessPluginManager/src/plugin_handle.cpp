@@ -52,4 +52,11 @@ namespace Bess::Plugins {
     const pybind11::object &PluginHandle::getPluginObject() const {
         return m_pluginObj;
     }
+
+    void PluginHandle::cleanup() {
+        py::gil_scoped_acquire gil;
+        if (py::hasattr(m_pluginObj, "cleanup")) {
+            m_pluginObj.attr("cleanup")();
+        }
+    }
 } // namespace Bess::Plugins

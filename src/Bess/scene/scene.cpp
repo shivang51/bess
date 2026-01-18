@@ -31,7 +31,7 @@
 namespace Bess::Canvas {
     Scene::Scene() {
         reset();
-
+        loadComponentFromPlugins();
         auto &dispatcher = EventSystem::EventDispatcher::instance();
         dispatcher.sink<Events::SlotClickedEvent>().connect<&Scene::onSlotClicked>(this);
         dispatcher.sink<SimEngine::Events::CompDefOutputsResizedEvent>().connect<&Scene::onCompDefOutputsResized>(this);
@@ -48,6 +48,7 @@ namespace Bess::Canvas {
             return;
 
         BESS_INFO("[Scene] Destroying");
+        cleanupPlugins();
         m_copiedComponents.clear();
         m_viewport.reset();
         m_lastCreatedComp = {};
@@ -310,9 +311,8 @@ namespace Bess::Canvas {
         auto sceneComp = SimulationSceneComponent::createNewAndRegister(m_state, simEngineId);
         sceneComp->setPosition(glm::vec3(getSnappedPos(pos), getNextZCoord()));
 
-        const auto &pluginManger = Plugins::PluginManager::getInstance();
-        if (pluginManger.hasSceneComponentType(def->getHash())) {
-            auto hook = pluginManger.createSceneComponentInstance(def->getHash());
+        if (hasPluginDrawHookForComponentHash(def->getHash())) {
+            auto hook = getPluginDrawHookForComponentHash(def->getHash());
             sceneComp->setDrawHook(hook);
         }
 
@@ -1069,5 +1069,34 @@ namespace Bess::Canvas {
 
         processSlot(slotCompA);
         processSlot(slotCompB);
+    }
+
+    void Scene::loadComponentFromPlugins() {
+        const auto &pluginManger = Plugins::PluginManager::getInstance();
+        for (const auto &plugin : pluginManger.getLoadedPlugins()) {
+            plugin.second->onSceneComponentsLoad(m_pluginSceneDrawHooks);
+        }
+        BESS_INFO("[Scene] Loaded {} draw hooks from plugins",
+                  m_pluginSceneDrawHooks.size());
+    }
+
+    std::shared_ptr<SimSceneCompDrawHook> Scene::getPluginDrawHookForComponentHash(uint64_t compHash) const {
+        auto it = m_pluginSceneDrawHooks.find(compHash);
+        if (it != m_pluginSceneDrawHooks.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    bool Scene::hasPluginDrawHookForComponentHash(uint64_t compHash) const {
+        return m_pluginSceneDrawHooks.contains(compHash);
+    }
+
+    void Scene::cleanupPlugins() {
+        m_pluginSceneDrawHooks.clear();
+        const auto &pluginManger = Plugins::PluginManager::getInstance();
+        for (const auto &plugin : pluginManger.getLoadedPlugins()) {
+            plugin.second->cleanup();
+        }
     }
 } // namespace Bess::Canvas

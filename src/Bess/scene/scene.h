@@ -10,6 +10,7 @@
 #include "scene/camera.h"
 #include "scene/components/non_sim_comp.h"
 #include "scene/scene_state/components/scene_component.h"
+#include "scene/scene_state/components/sim_scene_comp_draw_hook.h"
 #include "scene/scene_state/scene_state.h"
 #include "scene/viewport.h"
 #include <memory>
@@ -109,6 +110,10 @@ namespace Bess::Canvas {
 
         bool isHoveredEntityValid();
 
+        std::shared_ptr<SimSceneCompDrawHook> getPluginDrawHookForComponentHash(uint64_t compHash) const;
+
+        bool hasPluginDrawHookForComponentHash(uint64_t compHash) const;
+
       private:
         /// to draw testing stuff
         void drawScratchContent(TFrameTime ts, const std::shared_ptr<Viewport> &viewport);
@@ -157,6 +162,9 @@ namespace Bess::Canvas {
                                  const glm::vec2 &startPos,
                                  const glm::vec2 &endPos);
 
+        void loadComponentFromPlugins();
+        void cleanupPlugins();
+
       private:
         SceneState m_state;
 
@@ -194,5 +202,6 @@ namespace Bess::Canvas {
         VkExtent2D vec2Extent2D(const glm::vec2 &vec);
 
         bool m_isDestroyed = false;
+        std::unordered_map<uint64_t, std::shared_ptr<Canvas::SimSceneCompDrawHook>> m_pluginSceneDrawHooks;
     };
 } // namespace Bess::Canvas

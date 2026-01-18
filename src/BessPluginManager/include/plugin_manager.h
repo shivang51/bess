@@ -31,9 +31,6 @@ namespace Bess::Plugins {
         void unloadAllPlugins();
         bool loadPluginsFromDirectory(const std::string &pluginsDir = "plugins");
 
-        bool hasSceneComponentType(uint64_t compDefHash) const;
-        std::shared_ptr<Canvas::SimSceneCompDrawHook> createSceneComponentInstance(uint64_t compDefHash) const;
-
         std::vector<std::string> getLoadedPluginsNames() const;
         const std::unordered_map<std::string, std::shared_ptr<PluginHandle>> &getLoadedPlugins() const;
         bool isPluginLoaded(const std::string &pluginName) const;
@@ -41,7 +38,6 @@ namespace Bess::Plugins {
 
       private:
         std::unordered_map<std::string, std::shared_ptr<PluginHandle>> m_plugins;
-        std::unordered_map<uint64_t, std::shared_ptr<Canvas::SimSceneCompDrawHook>> m_sceneComponentTypes;
     };
 
 } // namespace Bess::Plugins

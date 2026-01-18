@@ -1,7 +1,5 @@
 #include "plugin_manager.h"
 #include "plugin_handle.h"
-#include "scene/scene_state/components/scene_component.h"
-#include "scene/scene_state/components/sim_scene_comp_draw_hook.h"
 #include <filesystem>
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
@@ -76,11 +74,6 @@ namespace Bess::Plugins {
 
                 m_plugins[name] = std::make_shared<PluginHandle>(pluginHwd);
 
-                // FIXME: For now we just load scene components directly here,
-                // since I don't use pybind11 outside plugin manager yet.
-                // Load scene component types
-                m_plugins[name]->onSceneComponentsLoad(m_sceneComponentTypes);
-
                 spdlog::info("Successfully loaded plugin: {} from {}", name, path.parent_path().string());
 
                 return true;
@@ -131,7 +124,6 @@ namespace Bess::Plugins {
     void PluginManager::unloadAllPlugins() {
         pybind11::gil_scoped_acquire gil;
         m_plugins.clear();
-        m_sceneComponentTypes.clear();
     }
 
     std::vector<std::string> PluginManager::getLoadedPluginsNames() const {
@@ -190,18 +182,5 @@ namespace Bess::Plugins {
         }
         PyEval_RestoreThread(savedThreadStates[std::this_thread::get_id()]);
         savedThreadStates[std::this_thread::get_id()] = nullptr;
-    }
-
-    std::shared_ptr<Canvas::SimSceneCompDrawHook> PluginManager::createSceneComponentInstance(uint64_t compDefHash) const {
-        pybind11::gil_scoped_acquire gil;
-
-        if (!hasSceneComponentType(compDefHash)) {
-            return nullptr;
-        }
-        return m_sceneComponentTypes.at(compDefHash);
-    }
-
-    bool PluginManager::hasSceneComponentType(uint64_t compDefHash) const {
-        return m_sceneComponentTypes.contains(compDefHash);
     }
 } // namespace Bess::Plugins

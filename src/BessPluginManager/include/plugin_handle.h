@@ -28,6 +28,8 @@ namespace Bess::Plugins {
         std::vector<std::shared_ptr<SimEngine::ComponentDefinition>> onComponentsRegLoad() const;
         void onSceneComponentsLoad(std::unordered_map<uint64_t, std::shared_ptr<Canvas::SimSceneCompDrawHook>> &reg);
 
+        void cleanup();
+
       private:
         pybind11::object m_pluginObj;
     };

@@ -12,8 +12,8 @@ class Plugin:
         self.version = version
         self.logger = Logger(name)
 
-    def __del__(self):
-        print(f"Unloading plugin: {self.name} v{self.version}")
+    def cleanup(self):
+        print(f"Cleaning plugin: {self.name} v{self.version}")
         AssetManager.cleanup()
 
     @abstractmethod

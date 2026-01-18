@@ -42,8 +42,8 @@ namespace Bess {
             if (comp->getType() == Canvas::SceneComponentType::simulation) {
                 auto simComp = state.getComponentByUuid<Canvas::SimulationSceneComponent>(uuid);
                 const auto &compDef = simEngine.getComponentDefinition(simComp->getSimEngineId());
-                if (pluginManager.hasSceneComponentType(compDef->getBaseHash())) {
-                    simComp->setDrawHook(pluginManager.createSceneComponentInstance(compDef->getBaseHash()));
+                if (scene->hasPluginDrawHookForComponentHash(compDef->getBaseHash())) {
+                    simComp->setDrawHook(scene->getPluginDrawHookForComponentHash(compDef->getBaseHash()));
                 }
             }
         }
