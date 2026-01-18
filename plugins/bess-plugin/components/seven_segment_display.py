@@ -26,6 +26,7 @@ class SevenSegmentDisplayDrawHook(SimCompDrawHook):
         self.tex_draw_size = Vec2(64, -1)
         self.on_draw_res = DrawHookOnDrawResult()
         self.on_draw_res.draw_children = True
+        self.on_draw_res.draw_original = True
         self.on_draw_res.size_changed = False
 
     def onDraw(
@@ -40,7 +41,7 @@ class SevenSegmentDisplayDrawHook(SimCompDrawHook):
             self.is_first_draw = False
             self._create_subtextures()
 
-        pos = transform.position + Vec3(20, 0, 0)
+        pos = transform.position + Vec3(20, 0, 0.0001)
         materialRenderer.draw_sub_textured_quad(
             pos,
             self.tex_draw_size,
@@ -49,6 +50,8 @@ class SevenSegmentDisplayDrawHook(SimCompDrawHook):
             self.sub_textures[0],
             QuadRenderProperties(),
         )
+
+        pos.z += 0.0001
 
         for idx, inp in enumerate(compState.input_states):
             if inp.state == LogicState.HIGH:
