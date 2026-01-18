@@ -30,8 +30,14 @@ class PyAssetManager {
     }
 
     static std::shared_ptr<Bess::Vulkan::VulkanTexture> get_texture_asset(const AssetID<Bess::Vulkan::VulkanTexture, 1> &id) {
+        py::gil_scoped_acquire acquire;
         assert(Bess::Vulkan::VulkanCore::instance().getDevice() && "Vulkan device must be initialized before getting texture assets.");
         return AssetManager::instance().get(id);
+    }
+
+    static void cleanup() {
+        py::gil_scoped_acquire acquire;
+        AssetManager::instance().clear();
     }
 };
 
@@ -50,5 +56,6 @@ void bind_asset_manager(py::module_ &m) {
         .def_static("register_texture_asset", &PyAssetManager::register_texture_asset, py::arg("path"),
                     "Register a texture asset and return its AssetID")
         .def_static("get_texture_asset", &PyAssetManager::get_texture_asset, py::arg("asset_id"),
-                    "Get a texture asset by its AssetID");
+                    "Get a texture asset by its AssetID")
+        .def_static("cleanup", &PyAssetManager::cleanup, "Cleanup all assets in the AssetManager");
 }

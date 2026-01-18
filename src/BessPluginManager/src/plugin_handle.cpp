@@ -34,24 +34,6 @@ namespace Bess::Plugins {
         return components;
     }
 
-    std::unordered_map<uint64_t, Canvas::SchematicDiagram> PluginHandle::onSchematicSymbolsLoad() const {
-        std::unordered_map<uint64_t, Canvas::SchematicDiagram> symbols;
-
-        py::gil_scoped_acquire gil;
-        if (py::hasattr(m_pluginObj, "on_schematic_symbols_load")) {
-            py::object symDict = m_pluginObj.attr("on_schematic_symbols_load")();
-
-            for (auto item : symDict.cast<py::dict>()) {
-                uint64_t key = item.first.cast<uint64_t>();
-                auto symbol = item.second.attr("_native").cast<Canvas::SchematicDiagram>();
-                symbols.emplace(key, std::move(symbol));
-            }
-        }
-
-        py::gil_scoped_release release;
-        return symbols;
-    }
-
     void PluginHandle::onSceneComponentsLoad(std::unordered_map<uint64_t, std::shared_ptr<Canvas::SimSceneCompDrawHook>> &reg) {
         py::gil_scoped_acquire gil;
         if (py::hasattr(m_pluginObj, "on_scene_comp_load")) {

@@ -3,6 +3,7 @@ from abc import abstractmethod
 from .api.log import Logger
 from .api.sim_engine import ComponentDefinition
 from .api.scene.schematic_diagram import SchematicDiagram
+from .api.assets import AssetManager
 
 
 class Plugin:
@@ -11,19 +12,15 @@ class Plugin:
         self.version = version
         self.logger = Logger(name)
 
+    def __del__(self):
+        print(f"Unloading plugin: {self.name} v{self.version}")
+        AssetManager.cleanup()
+
     @abstractmethod
     def on_components_reg_load(self) -> list[ComponentDefinition]:
         """
         Method is called when components are getting loaded into the simulation engine.
         @return: List[Component]
-        """
-        pass
-
-    @abstractmethod
-    def on_schematic_symbols_load(self) -> dict[int, SchematicDiagram]:
-        """
-        Method is called when schematic symbols are getting loaded for rendered inside scene in schematic view.
-        @return: Dict[int, Path] mapping of component definition hash to their schematic symbol paths.
         """
         pass
 

@@ -24,10 +24,6 @@ class BessPlugin(Plugin):
         ]
 
     @override
-    def on_schematic_symbols_load(self) -> dict[int, SchematicDiagram]:
-        return {}
-
-    @override
     def on_scene_comp_load(self) -> dict[int, object]:
         return {**draw_hooks}
 

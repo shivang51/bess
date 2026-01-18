@@ -26,7 +26,6 @@ namespace Bess::Plugins {
         const pybind11::object &getPluginObject() const;
 
         std::vector<std::shared_ptr<SimEngine::ComponentDefinition>> onComponentsRegLoad() const;
-        std::unordered_map<uint64_t, Canvas::SchematicDiagram> onSchematicSymbolsLoad() const;
         void onSceneComponentsLoad(std::unordered_map<uint64_t, std::shared_ptr<Canvas::SimSceneCompDrawHook>> &reg);
 
       private:
