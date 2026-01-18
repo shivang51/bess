@@ -29,6 +29,9 @@ class SevenSegmentDisplayDrawHook(SimCompDrawHook):
         self.on_draw_res.draw_original = True
         self.on_draw_res.size_changed = False
 
+    def cleanup(self):
+        self.sub_textures.clear()
+
     def onDraw(
         self,
         transform,

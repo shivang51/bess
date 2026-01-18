@@ -1,5 +1,7 @@
+#include "scene/renderer/material_renderer.h"
+#include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_state/components/sim_scene_comp_draw_hook.h"
-#include "scene/scene_state/scene_state.h"
+#include "types.h"
 #include <pybind11/pybind11.h>
 
 namespace py = pybind11;
@@ -11,6 +13,13 @@ class PySimCompDrawHook : public Bess::Canvas::SimSceneCompDrawHook,
 
     ~PySimCompDrawHook() override {
         py::gil_scoped_acquire gil;
+    }
+
+    void cleanup() override {
+        PYBIND11_OVERRIDE_PURE(
+            void,
+            Bess::Canvas::SimSceneCompDrawHook,
+            cleanup);
     }
 
     Bess::Canvas::DrawHookOnDrawResult onDraw(const Bess::Canvas::Transform &transform,
@@ -69,6 +78,8 @@ void bind_sim_comp_draw_hook(py::module &m) {
              py::arg("pickingId"),
              py::arg("materialRenderer"),
              py::arg("pathRenderer"))
+        .def("cleanup",
+             &Bess::Canvas::SimSceneCompDrawHook::cleanup)
         .def_property("draw_enabled",
                       &Bess::Canvas::SimSceneCompDrawHook::isDrawEnabled,
                       &Bess::Canvas::SimSceneCompDrawHook::setDrawEnabled)

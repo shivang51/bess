@@ -31,6 +31,8 @@ namespace Bess::Canvas {
       public:
         virtual ~SimSceneCompDrawHook() = default;
 
+        virtual void cleanup() {}
+
         virtual DrawHookOnDrawResult onDraw(const Transform &transform,
                                             const PickingId &pickingId,
                                             const SimEngine::ComponentState &compState,

@@ -51,9 +51,15 @@ def _simulate_seven_seg_disp_driver(
             new_state.output_states[i].state = LogicState.HIGH
         else:
             new_state.output_states[i].state = LogicState.LOW
-        changed = changed or (
+
+        this_changed = (
             new_state.output_states[i].state != oldState.output_states[i].state
         )
+
+        if this_changed:
+            new_state.output_states[i].last_change_time_ns = simTime
+
+        changed = changed or this_changed
 
     new_state.is_changed = changed
 

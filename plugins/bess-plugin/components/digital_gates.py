@@ -238,6 +238,9 @@ class DrawHook(SimCompDrawHook):
         self.label_size = 8
         self.name = name
 
+    def cleanup(self) -> None:
+        pass
+
     @override
     def onSchematicDraw(
         self,

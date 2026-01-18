@@ -1038,6 +1038,8 @@ namespace Bess::Canvas {
             auto &simEngine = SimEngine::SimulationEngine::instance();
             const auto &digitalComp = simEngine.getDigitalComponent(simEngineId);
             const auto &def = digitalComp->definition;
+            if (!def)
+                return;
             const bool isInputSlot = (slotComp->getSlotType() == SlotType::digitalInput);
             const auto &slotsInfo = isInputSlot
                                         ? def->getInputSlotsInfo()
@@ -1093,6 +1095,9 @@ namespace Bess::Canvas {
     }
 
     void Scene::cleanupPlugins() {
+        for (auto &item : m_pluginSceneDrawHooks) {
+            item.second->cleanup();
+        }
         m_pluginSceneDrawHooks.clear();
         const auto &pluginManger = Plugins::PluginManager::getInstance();
         for (const auto &plugin : pluginManger.getLoadedPlugins()) {
