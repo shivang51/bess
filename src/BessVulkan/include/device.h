@@ -1,12 +1,13 @@
 #pragma once
 
+#include "bess_vulkan_api.h"
 #include <optional>
 #include <vector>
 #include <vulkan/vulkan.h>
 
 namespace Bess::Vulkan {
 
-    struct QueueFamilyIndices {
+    struct BESS_VULKAN_API QueueFamilyIndices {
         std::optional<uint32_t> graphicsFamily;
         std::optional<uint32_t> presentFamily;
 
@@ -15,7 +16,7 @@ namespace Bess::Vulkan {
         }
     };
 
-    class VulkanDevice {
+    class BESS_VULKAN_API VulkanDevice {
       public:
         VulkanDevice(VkInstance instance, VkSurfaceKHR surface);
         ~VulkanDevice();

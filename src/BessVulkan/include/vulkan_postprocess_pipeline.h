@@ -1,12 +1,12 @@
 #pragma once
-
+#include "bess_vulkan_api.h"
 #include "device.h"
 #include <memory>
 #include <vulkan/vulkan_core.h>
 
 namespace Bess::Vulkan {
 
-    class VulkanPostprocessPipeline {
+    class BESS_VULKAN_API VulkanPostprocessPipeline {
       public:
         VulkanPostprocessPipeline(const std::shared_ptr<VulkanDevice> &device, VkFormat colorFormat);
         ~VulkanPostprocessPipeline();

@@ -1,28 +1,28 @@
 #pragma once
-
-#include <vulkan/vulkan.h>
-#include <string>
-#include <memory>
-#include <vector>
+#include "bess_vulkan_api.h"
 #include "glm.hpp"
+#include <memory>
+#include <string>
+#include <vector>
+#include <vulkan/vulkan.h>
 
 namespace Bess::Vulkan {
 
     class VulkanDevice;
 
-    class VulkanTexture {
-    public:
-        VulkanTexture(std::shared_ptr<VulkanDevice> device, const std::string& path);
-        VulkanTexture(std::shared_ptr<VulkanDevice> device, uint32_t width, uint32_t height, VkFormat format, const void* data = nullptr);
+    class BESS_VULKAN_API VulkanTexture {
+      public:
+        VulkanTexture(std::shared_ptr<VulkanDevice> device, const std::string &path);
+        VulkanTexture(std::shared_ptr<VulkanDevice> device, uint32_t width, uint32_t height, VkFormat format, const void *data = nullptr);
         ~VulkanTexture();
 
         // Delete copy constructor and assignment operator
-        VulkanTexture(const VulkanTexture&) = delete;
-        VulkanTexture& operator=(const VulkanTexture&) = delete;
+        VulkanTexture(const VulkanTexture &) = delete;
+        VulkanTexture &operator=(const VulkanTexture &) = delete;
 
         // Move constructor and assignment operator
-        VulkanTexture(VulkanTexture&& other) noexcept;
-        VulkanTexture& operator=(VulkanTexture&& other) noexcept;
+        VulkanTexture(VulkanTexture &&other) noexcept;
+        VulkanTexture &operator=(VulkanTexture &&other) noexcept;
 
         VkImage getImage() const { return m_image; }
         VkImageView getImageView() const { return m_imageView; }
@@ -32,9 +32,9 @@ namespace Bess::Vulkan {
         uint32_t getHeight() const { return m_height; }
 
         // New capabilities (parity with GL texture utilities)
-        void setData(const void* data, size_t byteSize = 0);
-        void resize(uint32_t width, uint32_t height, const void* data = nullptr);
-        void saveToPath(const std::string& path) const;
+        void setData(const void *data, size_t byteSize = 0);
+        void resize(uint32_t width, uint32_t height, const void *data = nullptr);
+        void saveToPath(const std::string &path) const;
         std::vector<unsigned char> getData() const; // RGBA8 readback
 
         // Helper to bind in descriptor sets
@@ -46,7 +46,7 @@ namespace Bess::Vulkan {
             return info;
         }
 
-    private:
+      private:
         std::shared_ptr<VulkanDevice> m_device;
         VkImage m_image = VK_NULL_HANDLE;
         VkDeviceMemory m_imageMemory = VK_NULL_HANDLE;
@@ -56,9 +56,9 @@ namespace Bess::Vulkan {
         uint32_t m_width = 0;
         uint32_t m_height = 0;
 
-        void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, 
-                        VkImageUsageFlags usage, VkMemoryPropertyFlags properties, 
-                        VkImage& image, VkDeviceMemory& imageMemory) const;
+        void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
+                         VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
+                         VkImage &image, VkDeviceMemory &imageMemory) const;
         void createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
         void createTextureSampler();
         void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const;
@@ -67,7 +67,7 @@ namespace Bess::Vulkan {
 
         // buffer helpers
         void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
-                          VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
+                          VkBuffer &buffer, VkDeviceMemory &bufferMemory) const;
     };
 
 } // namespace Bess::Vulkan

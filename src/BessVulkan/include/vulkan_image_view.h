@@ -1,18 +1,18 @@
 #pragma once
-
+#include "bess_vulkan_api.h"
 #include "device.h"
 #include <memory>
 #include <vulkan/vulkan.h>
 
 namespace Bess::Vulkan {
 
-    class VulkanImageView {
+    class BESS_VULKAN_API VulkanImageView {
       public:
         VulkanImageView(const std::shared_ptr<VulkanDevice> &device,
                         VkFormat format,
                         VkExtent2D extent,
                         VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-        
+
         // Constructor for dual attachments (color + picking)
         VulkanImageView(const std::shared_ptr<VulkanDevice> &device,
                         VkFormat colorFormat,
@@ -34,7 +34,7 @@ namespace Bess::Vulkan {
         VkFramebuffer getFramebuffer() const { return m_framebuffer; }
         VkDescriptorSet getDescriptorSet() const { return m_descriptorSet; }
         VkSampler getSampler() const { return m_sampler; }
-        
+
         // Picking attachment accessors
         VkImage getPickingImage() const { return m_pickingImage; }
         VkImage getMsaaPickingImage() const { return m_msaaPickingImage; }
@@ -47,7 +47,7 @@ namespace Bess::Vulkan {
         void createDescriptorSet();
         // Recreate image, image view, and framebuffer for a new extent
         void recreate(VkExtent2D extent, VkRenderPass renderPass);
-        
+
         // Check if this image view has picking attachments
         bool hasPickingAttachments() const { return m_hasPickingAttachments; }
 
@@ -76,7 +76,7 @@ namespace Bess::Vulkan {
         VkImage m_msaaImage = VK_NULL_HANDLE;
         VkDeviceMemory m_msaaImageMemory = VK_NULL_HANDLE;
         VkImageView m_msaaImageView = VK_NULL_HANDLE;
-        
+
         // Picking attachments
         VkImage m_pickingImage = VK_NULL_HANDLE;
         VkDeviceMemory m_pickingImageMemory = VK_NULL_HANDLE;
@@ -88,7 +88,7 @@ namespace Bess::Vulkan {
         VkImage m_depthImage = VK_NULL_HANDLE;
         VkDeviceMemory m_depthImageMemory = VK_NULL_HANDLE;
         VkImageView m_depthImageView = VK_NULL_HANDLE;
-        
+
         VkFramebuffer m_framebuffer = VK_NULL_HANDLE;
         VkSampler m_sampler = VK_NULL_HANDLE;
         VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;

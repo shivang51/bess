@@ -1,5 +1,5 @@
 #pragma once
-
+#include "bess_vulkan_api.h"
 #include "device.h"
 #include "glm.hpp"
 #include <memory>
@@ -9,7 +9,7 @@ namespace Bess::Vulkan {
 
     class VulkanDevice;
 
-    class VulkanOffscreenRenderPass {
+    class BESS_VULKAN_API VulkanOffscreenRenderPass {
       public:
         VulkanOffscreenRenderPass(const std::shared_ptr<VulkanDevice> &device,
                                   VkFormat colorFormat,
