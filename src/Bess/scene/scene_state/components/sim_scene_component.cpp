@@ -390,7 +390,7 @@ namespace Bess::Canvas {
         const auto &outDetails = compDef->getOutputSlotsInfo();
 
         int inSlotIdx = 0, outSlotIdx = 0;
-        char inpCh = 'A', outCh = 'A';
+        char inpCh = 'A', outCh = 'a';
 
         const auto slots = sceneComp->createIOSlots(compDef->getInputSlotsInfo().count,
                                                     compDef->getOutputSlotsInfo().count);
@@ -405,7 +405,7 @@ namespace Bess::Canvas {
                 if (outDetails.names.size() > outSlotIdx)
                     slot->setName(outDetails.names[outSlotIdx++]);
                 else
-                    slot->setName(std::string(std::format("{}'", outCh++)));
+                    slot->setName(std::string(1, outCh++));
             }
             sceneState.addComponent<SlotSceneComponent>(slot);
             sceneState.attachChild(sceneComp->getUuid(), slot->getUuid());

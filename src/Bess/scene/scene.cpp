@@ -791,6 +791,7 @@ namespace Bess::Canvas {
 
                     newSlot->setSlotType(SlotType::digitalInput);
                     newSlot->setIndex((int)newSize - 1);
+                    newSlot->setName(std::string(1, (char)('A' + newSize - 1)));
                     startParent->addInputSlot(newSlot->getUuid());
                 } else {
                     const auto newSize = digitalComp->incrementOutputCount();
@@ -805,6 +806,7 @@ namespace Bess::Canvas {
 
                     newSlot->setSlotType(SlotType::digitalOutput);
                     newSlot->setIndex((int)newSize - 1);
+                    newSlot->setName(std::string(1, (char)('a' + newSize - 1)));
                     startParent->addOutputSlot(newSlot->getUuid());
                 }
 
@@ -843,6 +845,7 @@ namespace Bess::Canvas {
 
                     newSlot->setSlotType(SlotType::digitalInput);
                     newSlot->setIndex((int)newSize - 1);
+                    newSlot->setName(std::string(1, (char)('A' + newSize - 1)));
                     endParent->addInputSlot(newSlot->getUuid());
                 } else {
                     const auto newSize = digitalComp->incrementOutputCount();
@@ -855,6 +858,7 @@ namespace Bess::Canvas {
 
                     newSlot->setSlotType(SlotType::digitalOutput);
                     newSlot->setIndex((int)newSize - 1);
+                    newSlot->setName(std::string(1, (char)('a' + newSize - 1)));
                     endParent->addOutputSlot(newSlot->getUuid());
                 }
 
@@ -993,6 +997,9 @@ namespace Bess::Canvas {
                 std::shared_ptr<SlotSceneComponent> newSlot = std::make_shared<SlotSceneComponent>();
                 newSlot->setSlotType(SlotType::digitalOutput);
                 newSlot->setIndex((int)outSlotsInfo.count - 1);
+                if (i < outSlotsInfo.names.size()) {
+                    newSlot->setName(std::string(1, (char)('a' + i)));
+                }
                 parent->addOutputSlot(newSlot->getUuid(), outSlotsInfo.isResizeable);
                 m_state.addComponent<SlotSceneComponent>(newSlot);
                 m_state.attachChild(parent->getUuid(), newSlot->getUuid());
@@ -1021,6 +1028,9 @@ namespace Bess::Canvas {
                 std::shared_ptr<SlotSceneComponent> newSlot = std::make_shared<SlotSceneComponent>();
                 newSlot->setSlotType(SlotType::digitalInput);
                 newSlot->setIndex((int)inSlotsInfo.count - 1);
+                if (i < inSlotsInfo.names.size()) {
+                    newSlot->setName(std::string(1, (char)('A' + i)));
+                }
                 parent->addInputSlot(newSlot->getUuid(), inSlotsInfo.isResizeable);
                 m_state.addComponent<SlotSceneComponent>(newSlot);
                 m_state.attachChild(parent->getUuid(), newSlot->getUuid());

@@ -24,7 +24,12 @@ namespace Bess::SimEngine {
             return definition->getInputSlotsInfo().count;
         }
 
-        definition->getInputSlotsInfo().count += 1;
+        auto &inputsInfo = definition->getInputSlotsInfo();
+        inputsInfo.count += 1;
+        if (!inputsInfo.names.empty() && inputsInfo.names.back().size() == 1) {
+            char ch = inputsInfo.names.back()[0];
+            inputsInfo.names.emplace_back(1, ch + 1);
+        }
         state.inputStates.emplace_back();
         state.inputConnected.emplace_back(false);
         inputConnections.emplace_back();
@@ -67,7 +72,12 @@ namespace Bess::SimEngine {
             return definition->getOutputSlotsInfo().count;
         }
 
-        definition->getOutputSlotsInfo().count += 1;
+        auto &outputsInfo = definition->getOutputSlotsInfo();
+        outputsInfo.count += 1;
+        if (!outputsInfo.names.empty() && outputsInfo.names.back().size() == 1) {
+            char ch = outputsInfo.names.back()[0];
+            outputsInfo.names.emplace_back(1, ch + 1);
+        }
         state.outputStates.emplace_back();
         state.outputConnected.emplace_back(false);
         outputConnections.emplace_back();

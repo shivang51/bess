@@ -132,7 +132,6 @@ namespace Bess::SimEngine {
             for (size_t i = 0; i < m_inputSlotsInfo.count; i++) {
                 m_outputExpressions.emplace_back(std::format("{}{}", m_opInfo.op, i));
             }
-            BESS_SE_TRACE("{}", m_outputExpressions.size());
         } else {
             BESS_SE_ERROR("Invalid IO config for expression generation");
             assert(false);
