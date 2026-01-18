@@ -16,7 +16,25 @@ void bind_material_renderer(py::module_ &m) {
         .def_readwrite("isMica", &Bess::Renderer::QuadRenderProperties::isMica);
 
     py::class_<Bess::Vulkan::VulkanTexture, py::smart_holder>(m, "VulkanTexture");
-    py::class_<Bess::Vulkan::SubTexture, py::smart_holder>(m, "SubTexture");
+
+    const auto createSubTexture = [](std::shared_ptr<VulkanTexture> texture,
+                                     const glm::vec2 &coord,
+                                     const glm::vec2 &spriteSize,
+                                     float margin, const glm::vec2 &cellSize) {
+        py::gil_scoped_acquire gil;
+        return std::make_shared<Bess::Vulkan::SubTexture>(std::move(texture), coord, spriteSize, margin, cellSize);
+    };
+
+    py::class_<Bess::Vulkan::SubTexture, py::smart_holder>(m, "SubTexture")
+        .def_static("create", createSubTexture,
+                    "Create a SubTexture from a VulkanTexture with margin and cell size",
+                    py::arg("texture"),
+                    py::arg("coord"),
+                    py::arg("sprite_size"),
+                    py::arg("margin"),
+                    py::arg("cell_size"))
+        .def_property_readonly("size", &Bess::Vulkan::SubTexture::getScale,
+                               "Get the size of the SubTexture");
 
     const auto draw_textured_quad_overload = static_cast<void (Bess::Renderer::MaterialRenderer::*)(
         const glm::vec3 &,

@@ -55,64 +55,75 @@ namespace Bess::Canvas {
 
         const auto pickingId = PickingId{m_runtimeId, 0};
 
+        DrawHookOnDrawResult drawHookResult{.drawChildren = true, .drawOriginal = true};
         if (m_drawHook && m_drawHook->isDrawEnabled()) {
-            m_drawHook->onDraw(m_transform, pickingId, materialRenderer, pathRenderer);
-            return;
+            const auto &compState = SimEngine::SimulationEngine::instance().getComponentState(m_simEngineId);
+            drawHookResult = m_drawHook->onDraw(m_transform, pickingId, compState, materialRenderer, pathRenderer);
+
+            if (drawHookResult.sizeChanged) {
+                setScale(drawHookResult.newSize);
+                calculateSchematicScale(state);
+                resetSlotPositions(state);
+            }
         }
 
-        // background
-        Renderer::QuadRenderProperties props;
-        props.angle = m_transform.angle;
-        props.borderRadius = m_style.borderRadius;
-        props.borderSize = m_style.borderSize;
-        props.borderColor = m_isSelected
-                                ? ViewportTheme::colors.selectedComp
-                                : m_style.borderColor;
-        props.isMica = true;
-        props.hasShadow = true;
+        if (drawHookResult.drawOriginal) {
+            // background
+            Renderer::QuadRenderProperties props;
+            props.angle = m_transform.angle;
+            props.borderRadius = m_style.borderRadius;
+            props.borderSize = m_style.borderSize;
+            props.borderColor = m_isSelected
+                                    ? ViewportTheme::colors.selectedComp
+                                    : m_style.borderColor;
+            props.isMica = true;
+            props.hasShadow = true;
 
-        materialRenderer->drawQuad(m_transform.position,
-                                   m_transform.scale,
-                                   m_style.color,
-                                   pickingId,
-                                   props);
+            materialRenderer->drawQuad(m_transform.position,
+                                       m_transform.scale,
+                                       m_style.color,
+                                       pickingId,
+                                       props);
 
-        props = {};
-        props.angle = m_transform.angle;
-        props.borderSize = glm::vec4(0.f);
-        props.borderRadius = glm::vec4(0,
-                                       0,
-                                       m_style.borderRadius.x - m_style.borderSize.x,
-                                       m_style.borderRadius.y - m_style.borderSize.y);
-        props.isMica = true;
+            props = {};
+            props.angle = m_transform.angle;
+            props.borderSize = glm::vec4(0.f);
+            props.borderRadius = glm::vec4(0,
+                                           0,
+                                           m_style.borderRadius.x - m_style.borderSize.x,
+                                           m_style.borderRadius.y - m_style.borderSize.y);
+            props.isMica = true;
 
-        // header
-        const float headerHeight = Styles::componentStyles.headerHeight;
-        const auto headerPos = glm::vec3(m_transform.position.x,
-                                         m_transform.position.y - (m_transform.scale.y / 2.f) + (headerHeight / 2.f),
-                                         m_transform.position.z + 0.0004f);
-        materialRenderer->drawQuad(headerPos,
-                                   glm::vec2(m_transform.scale.x - m_style.borderSize.w - m_style.borderSize.y,
-                                             headerHeight - m_style.borderSize.x - m_style.borderSize.z),
-                                   m_style.headerColor,
-                                   pickingId,
-                                   props);
+            // header
+            const float headerHeight = Styles::componentStyles.headerHeight;
+            const auto headerPos = glm::vec3(m_transform.position.x,
+                                             m_transform.position.y - (m_transform.scale.y / 2.f) + (headerHeight / 2.f),
+                                             m_transform.position.z + 0.0004f);
+            materialRenderer->drawQuad(headerPos,
+                                       glm::vec2(m_transform.scale.x - m_style.borderSize.w - m_style.borderSize.y,
+                                                 headerHeight - m_style.borderSize.x - m_style.borderSize.z),
+                                       m_style.headerColor,
+                                       pickingId,
+                                       props);
 
-        const auto textPos = glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) + Styles::componentStyles.paddingX,
-                                       headerPos.y + Styles::simCompStyles.paddingY,
-                                       m_transform.position.z + 0.0005f);
-        // component name
-        materialRenderer->drawText(m_name,
-                                   textPos,
-                                   Styles::simCompStyles.headerFontSize,
-                                   ViewportTheme::colors.text,
-                                   pickingId,
-                                   m_transform.angle);
+            const auto textPos = glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) + Styles::componentStyles.paddingX,
+                                           headerPos.y + Styles::simCompStyles.paddingY,
+                                           m_transform.position.z + 0.0005f);
+            // component name
+            materialRenderer->drawText(m_name,
+                                       textPos,
+                                       Styles::simCompStyles.headerFontSize,
+                                       ViewportTheme::colors.text,
+                                       pickingId,
+                                       m_transform.angle);
+        }
 
-        // slots
-        for (const auto &childId : m_childComponents) {
-            auto child = state.getComponentByUuid(childId);
-            child->draw(state, materialRenderer, pathRenderer);
+        if (drawHookResult.drawChildren) {
+            // slots
+            for (const auto &childId : m_childComponents) {
+                auto child = state.getComponentByUuid(childId);
+                child->draw(state, materialRenderer, pathRenderer);
+            }
         }
     }
 

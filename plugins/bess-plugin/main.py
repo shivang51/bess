@@ -1,12 +1,12 @@
 from typing import override
 from bessplug import Plugin
 from bessplug.api.sim_engine import ComponentDefinition
-from bessplug.plugin import SchematicDiagram
 from components.latches import latches
 from components.digital_gates import digital_gates, draw_hooks
 from components.flip_flops import flip_flops
 from components.combinational_circuits import combinational_circuits
 from components.tristate_buffer import tristate_buffer_def
+from components import seven_segment_display
 
 
 class BessPlugin(Plugin):
@@ -21,11 +21,12 @@ class BessPlugin(Plugin):
             *flip_flops,
             *combinational_circuits,
             tristate_buffer_def,
+            seven_segment_display.seven_seg_disp_def,
         ]
 
     @override
     def on_scene_comp_load(self) -> dict[int, object]:
-        return {**draw_hooks}
+        return {**draw_hooks, **seven_segment_display.seven_seg_disp_draw_hook}
 
 
 plugin_hwd = BessPlugin()

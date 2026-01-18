@@ -2,7 +2,6 @@ from abc import abstractmethod
 
 from .api.log import Logger
 from .api.sim_engine import ComponentDefinition
-from .api.scene.schematic_diagram import SchematicDiagram
 from .api.assets import AssetManager
 
 
