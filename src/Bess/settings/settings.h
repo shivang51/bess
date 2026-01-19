@@ -12,7 +12,7 @@ namespace Bess::Config {
         void init();
 
         // theme
-        std::string getCurrentTheme() const;
+        const std::string &getCurrentTheme() const;
         const Themes &getThemes() const;
         void loadCurrentTheme();
         void applyTheme(const std::string &theme);

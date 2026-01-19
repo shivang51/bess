@@ -22,22 +22,28 @@ namespace Bess::UI {
 
         auto &settings = Config::Settings::instance();
         auto currentTheme = settings.getCurrentTheme();
-        if (Widgets::ComboBox("Theme", currentTheme, m_availableThemes)) {
+
+        if (drawSetting("Theme", "(Default: Bess Dark)", currentTheme, m_availableThemes)) {
             settings.applyTheme(currentTheme);
         }
 
+        ImGui::NewLine();
         auto fontSize = settings.getFontSize();
-        if (Widgets::ComboBox("Font Size", fontSize, m_availableFontSizes)) {
+        if (drawSetting("Font Size", "(Default: 18px)", fontSize, m_availableFontSizes)) {
             settings.setFontSize(fontSize);
         }
 
+        ImGui::NewLine();
         auto scale = settings.getScale();
-        if (Widgets::ComboBox("Scale", scale, m_availableScales)) {
+        if (drawSetting("Scale", "(Default: 1)", scale, m_availableScales)) {
             settings.setScale(scale);
         }
 
+        ImGui::NewLine();
         auto fps = settings.getFps();
-        if (Widgets::ComboBox("Target FPS", fps, m_availableFps)) {
+        if (drawSetting("FPS",
+                        "(Default and Recommended: 60) Higher number gives smoothness but with high GPU consumption.",
+                        fps, m_availableFps)) {
             settings.setFps(fps);
         }
 

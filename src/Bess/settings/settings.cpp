@@ -1,7 +1,7 @@
 #include "settings/settings.h"
 
 namespace Bess::Config {
-    std::string Settings::getCurrentTheme() const {
+    const std::string &Settings::getCurrentTheme() const {
         return m_currentTheme;
     }
 

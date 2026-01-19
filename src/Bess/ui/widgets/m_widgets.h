@@ -2,12 +2,9 @@
 
 #include "glm.hpp"
 #include "imgui.h"
-#include "imgui_internal.h"
-#include "ui/icons/FontAwesomeIcons.h"
 #include <format>
 #include <ranges>
 #include <string>
-#include <vector>
 
 namespace Bess::UI::Widgets {
     bool TextBox(const std::string &label, std::string &value, const std::string &hintText = "");
@@ -18,7 +15,7 @@ namespace Bess::UI::Widgets {
 
         if (ImGui::BeginCombo(label.c_str(), std::format("{}", currentValue).c_str())) {
 
-            for (auto &&value : predefinedValues) {
+            for (auto &&value : std::forward<Range>(predefinedValues)) {
                 bool isSelected = (currentValue == value);
 
                 if (ImGui::Selectable(std::format("{}", value).c_str(), isSelected)) {
