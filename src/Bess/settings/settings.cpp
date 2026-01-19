@@ -1,11 +1,11 @@
 #include "settings/settings.h"
 
 namespace Bess::Config {
-    std::string Settings::getCurrentTheme() {
+    std::string Settings::getCurrentTheme() const {
         return m_currentTheme;
     }
 
-    const Themes &Settings::getThemes() {
+    const Themes &Settings::getThemes() const {
         return m_themes;
     }
 
@@ -20,7 +20,7 @@ namespace Bess::Config {
         m_themes.applyTheme(theme);
     }
 
-    float Settings::getFontSize() {
+    float Settings::getFontSize() const {
         return m_fontSize;
     }
 
@@ -31,7 +31,7 @@ namespace Bess::Config {
         m_fontRebuild = true;
     }
 
-    float Settings::getScale() {
+    float Settings::getScale() const {
         return m_scale;
     }
 
@@ -42,10 +42,6 @@ namespace Bess::Config {
         m_fontRebuild = true;
     }
 
-    bool Settings::shouldFontRebuild() {
-        return m_fontRebuild;
-    }
-
     void Settings::setFontRebuild(bool rebuild) {
         m_fontRebuild = !rebuild;
     }
@@ -53,11 +49,32 @@ namespace Bess::Config {
     void Settings::init() {
         m_themes = Themes();
         m_currentTheme = "Bess Dark";
+        m_scale = 1.0f;
+        m_fontSize = 18.0f;
+        m_fontRebuild = true;
+        m_fps = 60;
+        m_frameTimeStep = TFrameTime(1000.0 / m_fps);
     }
 
-    std::string Settings::m_currentTheme;
-    Themes Settings::m_themes;
-    float Settings::m_scale = 1.f;
-    float Settings::m_fontSize = 18.f;
-    bool Settings::m_fontRebuild = false;
+    TFrameTime Settings::getFrameTimeStep() const {
+        return m_frameTimeStep;
+    }
+
+    int Settings::getFps() const {
+        return m_fps;
+    }
+
+    void Settings::setFps(int fps) {
+        m_fps = fps;
+        m_frameTimeStep = TFrameTime(1000.0 / m_fps);
+    }
+
+    Settings &Settings::instance() {
+        static Settings instance;
+        return instance;
+    }
+
+    bool Settings::shouldFontRebuild() const {
+        return m_fontRebuild;
+    }
 } // namespace Bess::Config

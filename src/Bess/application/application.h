@@ -1,8 +1,8 @@
 #pragma once
 
-#include "events/application_event.h"
 #include "application/types.h"
 #include "application/window.h"
+#include "events/application_event.h"
 #include <chrono>
 #include <memory>
 #include <vector>
@@ -48,5 +48,7 @@ namespace Bess {
         void onRightMouse(bool pressed);
         void onMiddleMouse(bool pressed);
         void onMouseMove(double x, double y);
+
+        int m_currentFps = 0;
     };
 } // namespace Bess

@@ -33,13 +33,14 @@ namespace Bess::UI {
 
         ImGui::StyleColorsDark();
 
-        Config::Settings::loadCurrentTheme();
+        auto &settings = Config::Settings::instance();
+        settings.loadCurrentTheme();
 
         ImGui_ImplGlfw_InitForVulkan(window, true);
 
         initVulkanImGui();
 
-        loadFontAndSetScale(Config::Settings::getFontSize(), Config::Settings::getScale());
+        loadFontAndSetScale(settings.getFontSize(), settings.getScale());
 
         ProjectExplorer::init();
     }
@@ -114,10 +115,11 @@ namespace Bess::UI {
     }
 
     void begin() {
-        if (Config::Settings::shouldFontRebuild()) {
-            loadFontAndSetScale(Config::Settings::getFontSize(),
-                                Config::Settings::getScale());
-            Config::Settings::setFontRebuild(true);
+        auto &settings = Config::Settings::instance();
+        if (settings.shouldFontRebuild()) {
+            loadFontAndSetScale(settings.getFontSize(),
+                                settings.getScale());
+            settings.setFontRebuild(true);
         }
 
         ImGui_ImplVulkan_NewFrame();

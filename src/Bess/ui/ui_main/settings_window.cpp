@@ -9,41 +9,40 @@ namespace Bess::UI {
         if (!m_shown)
             return;
 
+        if (m_isFirstDraw) {
+            onFirstDraw();
+            m_isFirstDraw = false;
+        }
+
         const ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
 
         ImGui::SetNextWindowSize(ImVec2(600, 600));
 
         ImGui::Begin("Settings", &m_shown, flags);
 
-        auto currentTheme = Config::Settings::getCurrentTheme();
-        auto &themes = Config::Settings::getThemes();
-
-        std::vector<std::string> availableThemes = {};
-        for (auto &ent : themes.getThemes())
-            availableThemes.emplace_back(ent.first);
-
-        if (Widgets::ComboBox("Theme", currentTheme, availableThemes)) {
-            Config::Settings::applyTheme(currentTheme);
+        auto &settings = Config::Settings::instance();
+        auto currentTheme = settings.getCurrentTheme();
+        if (Widgets::ComboBox("Theme", currentTheme, m_availableThemes)) {
+            settings.applyTheme(currentTheme);
         }
 
-        auto fontSize = Config::Settings::getFontSize();
-        static std::vector<float> availableFontSizes = {10.f, 12.f, 14.f, 16.f, 18.f, 20.f, 22.f, 24.f};
-        if (Widgets::ComboBox("Font Size", fontSize, availableFontSizes)) {
-            Config::Settings::setFontSize(fontSize);
+        auto fontSize = settings.getFontSize();
+        if (Widgets::ComboBox("Font Size", fontSize, m_availableFontSizes)) {
+            settings.setFontSize(fontSize);
         }
 
-        auto scale = Config::Settings::getScale();
-        std::vector<float> availableScales = {};
-        for (float i = 1.f; i <= 2.0f; i += 0.1f)
-            availableScales.emplace_back(i);
-        if (Widgets::ComboBox("Scale", scale, availableScales)) {
-            Config::Settings::setScale(scale);
+        auto scale = settings.getScale();
+        if (Widgets::ComboBox("Scale", scale, m_availableScales)) {
+            settings.setScale(scale);
+        }
+
+        auto fps = settings.getFps();
+        if (Widgets::ComboBox("Target FPS", fps, m_availableFps)) {
+            settings.setFps(fps);
         }
 
         ImGui::End();
     }
-
-    bool SettingsWindow::m_shown = false;
 
     void SettingsWindow::hide() {
         m_shown = false;
@@ -57,4 +56,30 @@ namespace Bess::UI {
         return m_shown;
     }
 
+    void SettingsWindow::onFirstDraw() {
+        // Populate available font sizes
+        m_availableFontSizes = {10.f, 12.f, 14.f, 16.f,
+                                18.f, 20.f, 22.f, 24.f};
+
+        // Populate available scales
+        m_availableScales.clear();
+        for (float i = 1.f; i <= 2.0f; i += 0.1f)
+            m_availableScales.emplace_back(i);
+
+        // Populate available themes
+        m_availableThemes.clear();
+        auto &themes = Config::Settings::instance().getThemes();
+        for (auto &ent : themes.getThemes())
+            m_availableThemes.emplace_back(ent.first);
+
+        // Populate available fps
+        m_availableFps = {60, 90, 120, 144, 240};
+    }
+
+    bool SettingsWindow::m_shown = false;
+    bool SettingsWindow::m_isFirstDraw = true;
+    std::vector<float> SettingsWindow::m_availableScales = {};
+    std::vector<float> SettingsWindow::m_availableFontSizes = {};
+    std::vector<std::string> SettingsWindow::m_availableThemes = {};
+    std::vector<int> SettingsWindow::m_availableFps = {};
 } // namespace Bess::UI

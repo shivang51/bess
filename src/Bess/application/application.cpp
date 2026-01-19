@@ -26,8 +26,6 @@ namespace Bess {
         shutdown();
     }
 
-    static int fps = 0;
-
     void Application::draw() {
         auto &vkCore = Bess::Vulkan::VulkanCore::instance();
         if (m_mainWindow->wasWindowResized()) {
@@ -41,7 +39,7 @@ namespace Bess {
 
         ApplicationState::getCurrentPage()->draw();
 
-        // UI::drawStats(fps);
+        UI::drawStats(m_currentFps);
         UI::end();
 
         vkCore.renderToSwapchain(
@@ -53,8 +51,6 @@ namespace Bess {
     }
 
     void Application::run() {
-        constexpr TFrameTime logicTimestep(1000.0f / 60.0f);
-
         m_clock = {};
         auto previousTime = m_clock.now();
 
@@ -67,14 +63,15 @@ namespace Bess {
 
             accumulatedTime += deltaTime;
 
-            if (accumulatedTime < logicTimestep) {
-                std::this_thread::sleep_for(logicTimestep - accumulatedTime);
-                accumulatedTime += logicTimestep - accumulatedTime;
+            const auto &frameTS = Config::Settings::instance().getFrameTimeStep();
+            if (accumulatedTime < frameTS) {
+                std::this_thread::sleep_for(frameTS - accumulatedTime);
+                accumulatedTime += frameTS - accumulatedTime;
             }
 
             update(accumulatedTime);
             draw();
-            fps = static_cast<int>(std::round(1000.0 / accumulatedTime.count()));
+            m_currentFps = static_cast<int>(std::round(1000.0 / accumulatedTime.count()));
             accumulatedTime = std::chrono::duration<double>(0.0);
             Window::pollEvents();
         }
@@ -147,7 +144,6 @@ namespace Bess {
 #ifdef DISABLE_PLUGINS
         flags |= AppStartupFlag::disablePlugins;
 #endif
-
         BESS_INFO("[Application] Initializing application, with project path: {}", path.empty() ? "None" : path);
 
         auto &pluginMangaer = Plugins::PluginManager::getInstance();
@@ -158,10 +154,11 @@ namespace Bess {
             pluginMangaer.loadPluginsFromDirectory("plugins");
         }
 
+        auto &settings = Config::Settings::instance();
+        settings.init();
+
         m_mainWindow = std::make_shared<Window>(800, 600, "Bess");
         ApplicationState::setParentWindow(m_mainWindow);
-
-        Config::Settings::init();
 
         m_mainWindow->onWindowResize(BIND_FN_2(Application::onWindowResize));
         m_mainWindow->onMouseWheel(BIND_FN_2(Application::onMouseWheel));
