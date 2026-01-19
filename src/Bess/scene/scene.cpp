@@ -745,7 +745,6 @@ namespace Bess::Canvas {
     }
 
     glm::vec2 Scene::getSnappedPos(const glm::vec2 &pos) const {
-        constexpr float snapSize = 5.f;
         return glm::vec2(glm::round(pos / snapSize)) * snapSize;
     }
 

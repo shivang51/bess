@@ -12,7 +12,7 @@
 #include <algorithm>
 
 namespace Bess::Canvas {
-    constexpr float SNAP_AMOUNT = 5.f;
+    constexpr float SNAP_AMOUNT = 2.f;
 
     SimulationSceneComponent::SimulationSceneComponent() {
         initDragBehaviour();

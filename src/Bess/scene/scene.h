@@ -181,8 +181,8 @@ namespace Bess::Canvas {
         SceneDrawMode m_drawMode = SceneDrawMode::none;
         SceneMode m_sceneMode = SceneMode::general;
 
-        const float m_zIncrement = 0.001f;
-        const int snapSize = 2;
+        static constexpr float m_zIncrement = 0.001f;
+        static constexpr float snapSize = 2.f;
         float m_compZCoord = m_zIncrement;
 
         TFrameTime m_frameTimeStep = {};
