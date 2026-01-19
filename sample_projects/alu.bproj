@@ -1,0 +1,3999 @@
+{
+    "name" : "alu",
+    "project_explorere_state" : 
+    {
+        "netIdToNameMap" : [],
+        "nodes" : 
+        [
+            {
+                "children" : [],
+                "isGroup" : false,
+                "label" : "DM74LS181 ALU (Verified)",
+                "multiSelectMode" : false,
+                "nodeId" : 4989034150665120774,
+                "parentId" : 0,
+                "sceneId" : 15647076676770555426,
+                "selected" : false,
+                "visibleIndex" : 0
+            },
+            {
+                "children" : [],
+                "isGroup" : false,
+                "label" : "Input",
+                "multiSelectMode" : false,
+                "nodeId" : 10138988577832036602,
+                "parentId" : 0,
+                "sceneId" : 6825214859359325543,
+                "selected" : false,
+                "visibleIndex" : 1
+            },
+            {
+                "children" : [],
+                "isGroup" : false,
+                "label" : "Input",
+                "multiSelectMode" : false,
+                "nodeId" : 580992716663316265,
+                "parentId" : 0,
+                "sceneId" : 16739236117717396412,
+                "selected" : false,
+                "visibleIndex" : 2
+            },
+            {
+                "children" : [],
+                "isGroup" : false,
+                "label" : "Input",
+                "multiSelectMode" : false,
+                "nodeId" : 16337444531588465054,
+                "parentId" : 0,
+                "sceneId" : 7162098126997526105,
+                "selected" : false,
+                "visibleIndex" : 3
+            },
+            {
+                "children" : [],
+                "isGroup" : false,
+                "label" : "Input",
+                "multiSelectMode" : false,
+                "nodeId" : 10973406875847589139,
+                "parentId" : 0,
+                "sceneId" : 11898827031167296612,
+                "selected" : false,
+                "visibleIndex" : 4
+            },
+            {
+                "children" : [],
+                "isGroup" : false,
+                "label" : "Seven Segment Display",
+                "multiSelectMode" : false,
+                "nodeId" : 10626248850865057980,
+                "parentId" : 0,
+                "sceneId" : 15001013967610286517,
+                "selected" : false,
+                "visibleIndex" : 5
+            },
+            {
+                "children" : [],
+                "isGroup" : false,
+                "label" : "Seven Segment Display Driver",
+                "multiSelectMode" : false,
+                "nodeId" : 17359787080252462392,
+                "parentId" : 0,
+                "sceneId" : 4941954465526782891,
+                "selected" : false,
+                "visibleIndex" : 6
+            }
+        ]
+    },
+    "scene_data" : 
+    {
+        "scene_state" : 
+        {
+            "components" : 
+            [
+                {
+                    "childComponents" : [],
+                    "endSlot" : 11483902232616517257,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 88.0, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, -88.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 14405061934231115430,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 10395688978998648762
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 11454854336844311364 ],
+                    "index" : 3,
+                    "name" : "F3",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ 68.0, -18.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 54.0, -66.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 1257298510008685208
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 10600959061371899091,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 17.0, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, 0.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 17725356312919750951,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 6237301824759844314
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 2803715116412769873,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 68.654998779296875, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, -112.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 2716697829314898203,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 2178344505360626000
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "index" : 7,
+                    "name" : "G",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ 68.0, 126.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 54.0, 18.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 14160604249522402979
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 2178344505360626000 ],
+                    "index" : 1,
+                    "name" : "b",
+                    "parentComponent" : 11898827031167296612,
+                    "schematicPos" : [ 25.0, -10.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 36.0, -14.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 2716697829314898203
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 6237301824759844314 ],
+                    "index" : 6,
+                    "name" : "g",
+                    "parentComponent" : 4941954465526782891,
+                    "schematicPos" : [ 74.0, 60.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 60.0, 70.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 17725356312919750951
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "index" : -1,
+                    "name" : "",
+                    "parentComponent" : 11898827031167296612,
+                    "schematicPos" : [ 0.0, 0.0, 0.0 ],
+                    "slotType" : 4,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 36.0, 48.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 591515742968726910
+                },
+                {
+                    "childComponents" : 
+                    [
+                        1210454347003085413,
+                        591515742968726910,
+                        2716697829314898203,
+                        14405061934231115430,
+                        7992417008410466850
+                    ],
+                    "name" : "A",
+                    "netId" : 5143549288814434294,
+                    "outputSlots" : 
+                    [
+                        1210454347003085413,
+                        2716697829314898203,
+                        14405061934231115430,
+                        7992417008410466850,
+                        591515742968726910
+                    ],
+                    "parentComponent" : 0,
+                    "schematicTransform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -238.0, 190.0, 1.006000280380249 ],
+                        "scale" : [ 50.0, 92.0 ]
+                    },
+                    "simEngineId" : 13017555066746991070,
+                    "style" : 
+                    {
+                        "borderColor" : 
+                        [
+                            0.18000000715255737,
+                            0.18000000715255737,
+                            0.18000000715255737,
+                            0.80000001192092896
+                        ],
+                        "borderRadius" : [ 6.0, 6.0, 6.0, 6.0 ],
+                        "borderSize" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "color" : 
+                        [
+                            0.14000000059604645,
+                            0.14000000059604645,
+                            0.14000000059604645,
+                            0.94999998807907104
+                        ],
+                        "headerColor" : 
+                        [
+                            0.44999998807907104,
+                            0.44999998807907104,
+                            0.44999998807907104,
+                            0.89999997615814209
+                        ]
+                    },
+                    "subType" : "InputSceneComponent",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -238.0, 190.0, 1.006000280380249 ],
+                        "scale" : [ 100.0, 128.0 ]
+                    },
+                    "type" : 128,
+                    "uuid" : 11898827031167296612
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 10568536959619945118 ],
+                    "index" : 1,
+                    "name" : "b",
+                    "parentComponent" : 7162098126997526105,
+                    "schematicPos" : [ 25.0, -10.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 36.0, -14.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 10079365703194413707
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "index" : -1,
+                    "name" : "",
+                    "parentComponent" : 7162098126997526105,
+                    "schematicPos" : [ 0.0, 0.0, 0.0 ],
+                    "slotType" : 4,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 36.0, 48.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 15897657370356625390
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 10568536959619945118 ],
+                    "index" : 10,
+                    "name" : "B2",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ -68.0, 76.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -54.0, 80.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 8525960685865406161
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 4160376850888458242,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 36.3734130859375, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, 86.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 17864880942050186946,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 18195704731683801803
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 12936786823071719784 ],
+                    "index" : 2,
+                    "name" : "c",
+                    "parentComponent" : 16739236117717396412,
+                    "schematicPos" : [ 25.0, 10.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 36.0, 6.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 10532730036922809636
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 8044991748199961625 ],
+                    "index" : 0,
+                    "name" : "a",
+                    "parentComponent" : 7162098126997526105,
+                    "schematicPos" : [ 25.0, -28.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 36.0, -36.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 2400405589774031443
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 7249088786565332655 ],
+                    "index" : 1,
+                    "name" : "A0",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ -68.0, -118.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -54.0, -108.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 8240704425638575434
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 14424168154934133598,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 67.69549560546875, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, 80.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 6838722831258535295,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 6200374557862896344
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 2694511042355597434 ],
+                    "index" : 2,
+                    "name" : "F2",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ 68.0, -54.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 54.0, -88.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 13605385029528287192
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 18195704731683801803 ],
+                    "index" : 3,
+                    "name" : "d",
+                    "parentComponent" : 16739236117717396412,
+                    "schematicPos" : [ 25.0, 28.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 36.0, 28.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 17864880942050186946
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 10395688978998648762 ],
+                    "index" : 13,
+                    "name" : "A1",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ -68.0, 140.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -54.0, 144.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 11483902232616517257
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 6200374557862896344 ],
+                    "index" : 1,
+                    "name" : "b",
+                    "parentComponent" : 16739236117717396412,
+                    "schematicPos" : [ 25.0, -10.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 36.0, -14.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 6838722831258535295
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 3857167209398272274,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 84.290435791015625, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, 78.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 10984384125216665782,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 349208941042303658
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "index" : -1,
+                    "name" : "",
+                    "parentComponent" : 16739236117717396412,
+                    "schematicPos" : [ 0.0, 0.0, 0.0 ],
+                    "slotType" : 4,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 36.0, 48.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 12813594276293506271
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 2489940890534609673,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 17.0, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, 0.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 13542481445493100214,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 15092526832776369886
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 349208941042303658 ],
+                    "index" : 0,
+                    "name" : "a",
+                    "parentComponent" : 16739236117717396412,
+                    "schematicPos" : [ 25.0, -28.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 36.0, -36.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 10984384125216665782
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 11716534084915133432 ],
+                    "index" : 2,
+                    "name" : "c",
+                    "parentComponent" : 7162098126997526105,
+                    "schematicPos" : [ 25.0, 10.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 36.0, 6.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 8490561580479553570
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 11842959034969266491 ],
+                    "index" : 1,
+                    "name" : "B",
+                    "parentComponent" : 15001013967610286517,
+                    "schematicPos" : [ -60.0, -40.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -46.0, -36.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 13768963675506507041
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "index" : 6,
+                    "name" : "Cn+4",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ 68.0, 90.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 54.0, -4.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 1834871982119750217
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 8240704425638575434,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 24.07354736328125, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, 48.14453125 ],
+                            "orientation" : 1
+                        },
+                        {
+                            "offset" : [ -132.80487060546875, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, -524.302734375 ],
+                            "orientation" : 1
+                        },
+                        {
+                            "offset" : [ 269.5645751953125, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, 112.158203125 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 7992417008410466850,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 7249088786565332655
+                },
+                {
+                    "childComponents" : [ 10998653084530742270, 16494618421143869081, 13943921370995163162 ],
+                    "name" : "Cn and M",
+                    "netId" : 5143549288814434294,
+                    "outputSlots" : [ 10998653084530742270, 13943921370995163162, 16494618421143869081 ],
+                    "parentComponent" : 0,
+                    "schematicTransform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -236.0, -64.0, 1.002000093460083 ],
+                        "scale" : [ 50.0, 46.0 ]
+                    },
+                    "simEngineId" : 4919475295433205187,
+                    "style" : 
+                    {
+                        "borderColor" : 
+                        [
+                            0.18000000715255737,
+                            0.18000000715255737,
+                            0.18000000715255737,
+                            0.80000001192092896
+                        ],
+                        "borderRadius" : [ 6.0, 6.0, 6.0, 6.0 ],
+                        "borderSize" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "color" : 
+                        [
+                            0.14000000059604645,
+                            0.14000000059604645,
+                            0.14000000059604645,
+                            0.94999998807907104
+                        ],
+                        "headerColor" : 
+                        [
+                            0.44999998807907104,
+                            0.44999998807907104,
+                            0.44999998807907104,
+                            0.89999997615814209
+                        ]
+                    },
+                    "subType" : "InputSceneComponent",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -236.0, -64.0, 1.002000093460083 ],
+                        "scale" : [ 100.0, 86.0 ]
+                    },
+                    "type" : 128,
+                    "uuid" : 6825214859359325543
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 11150960355879228279 ],
+                    "index" : 3,
+                    "name" : "d",
+                    "parentComponent" : 7162098126997526105,
+                    "schematicPos" : [ 25.0, 28.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 36.0, 28.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 7768601369200630958
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 2621490688271782079 ],
+                    "index" : 0,
+                    "name" : "a",
+                    "parentComponent" : 11898827031167296612,
+                    "schematicPos" : [ 25.0, -28.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 36.0, -36.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 1210454347003085413
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 4121918396840282871 ],
+                    "index" : 0,
+                    "name" : "F0",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ 68.0, -126.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 54.0, -130.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 18050069768099894452
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 3518635717031444069 ],
+                    "index" : 5,
+                    "name" : "f",
+                    "parentComponent" : 4941954465526782891,
+                    "schematicPos" : [ 74.0, 40.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 60.0, 48.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 2108192900207331571
+                },
+                {
+                    "childComponents" : 
+                    [
+                        12861980310971915997,
+                        13768963675506507041,
+                        2489940890534609673,
+                        17976181060380780851,
+                        1588160839633552048,
+                        7078523378623570030,
+                        10600959061371899091
+                    ],
+                    "inputSlots" : 
+                    [
+                        12861980310971915997,
+                        13768963675506507041,
+                        2489940890534609673,
+                        17976181060380780851,
+                        1588160839633552048,
+                        7078523378623570030,
+                        10600959061371899091
+                    ],
+                    "name" : "Seven Segment Display",
+                    "netId" : 5143549288814434294,
+                    "parentComponent" : 0,
+                    "schematicTransform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 432.0, -106.0, 1.0070003271102905 ],
+                        "scale" : [ 120.0, 162.0 ]
+                    },
+                    "simEngineId" : 11435689778423568984,
+                    "style" : 
+                    {
+                        "borderColor" : 
+                        [
+                            0.18000000715255737,
+                            0.18000000715255737,
+                            0.18000000715255737,
+                            0.80000001192092896
+                        ],
+                        "borderRadius" : [ 6.0, 6.0, 6.0, 6.0 ],
+                        "borderSize" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "color" : 
+                        [
+                            0.14000000059604645,
+                            0.14000000059604645,
+                            0.14000000059604645,
+                            0.94999998807907104
+                        ],
+                        "headerColor" : 
+                        [
+                            0.44999998807907104,
+                            0.44999998807907104,
+                            0.44999998807907104,
+                            0.89999997615814209
+                        ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 432.0, -106.0, 1.0070003271102905 ],
+                        "scale" : [ 120.0, 170.0 ]
+                    },
+                    "type" : 128,
+                    "uuid" : 15001013967610286517
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 15092526832776369886 ],
+                    "index" : 2,
+                    "name" : "C",
+                    "parentComponent" : 15001013967610286517,
+                    "schematicPos" : [ -60.0, -20.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -46.0, -14.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 2489940890534609673
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "index" : 5,
+                    "name" : "P",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ 68.0, 54.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 54.0, -24.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 7451792748638665289
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 4253852869119140743 ],
+                    "index" : 0,
+                    "name" : "A",
+                    "parentComponent" : 15001013967610286517,
+                    "schematicPos" : [ -60.0, -60.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -46.0, -56.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 12861980310971915997
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "index" : -1,
+                    "name" : "",
+                    "parentComponent" : 6825214859359325543,
+                    "schematicPos" : [ 0.0, 0.0, 0.0 ],
+                    "slotType" : 4,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 36.0, 28.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 16494618421143869081
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 17343223462685113638 ],
+                    "index" : 3,
+                    "name" : "D",
+                    "parentComponent" : 15001013967610286517,
+                    "schematicPos" : [ -60.0, 0.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -46.0, 6.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 17976181060380780851
+                },
+                {
+                    "childComponents" : 
+                    [
+                        6294022288576964338,
+                        8240704425638575434,
+                        3857167209398272274,
+                        14424168154934133598,
+                        13903504776571737080,
+                        4160376850888458242,
+                        9253950333089699708,
+                        752361887051458933,
+                        5855116777003215635,
+                        3701671172077616479,
+                        8525960685865406161,
+                        2803715116412769873,
+                        7060838095240748786,
+                        11483902232616517257,
+                        18050069768099894452,
+                        2106697372851587409,
+                        13605385029528287192,
+                        1257298510008685208,
+                        16110922196359487151,
+                        7451792748638665289,
+                        1834871982119750217,
+                        14160604249522402979
+                    ],
+                    "inputSlots" : 
+                    [
+                        6294022288576964338,
+                        8240704425638575434,
+                        3857167209398272274,
+                        14424168154934133598,
+                        13903504776571737080,
+                        4160376850888458242,
+                        9253950333089699708,
+                        752361887051458933,
+                        5855116777003215635,
+                        3701671172077616479,
+                        8525960685865406161,
+                        2803715116412769873,
+                        7060838095240748786,
+                        11483902232616517257
+                    ],
+                    "name" : "DM74LS181 ALU",
+                    "netId" : 5143549288814434294,
+                    "outputSlots" : 
+                    [
+                        18050069768099894452,
+                        2106697372851587409,
+                        13605385029528287192,
+                        1257298510008685208,
+                        16110922196359487151,
+                        7451792748638665289,
+                        1834871982119750217,
+                        14160604249522402979
+                    ],
+                    "parentComponent" : 0,
+                    "schematicTransform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 62.0, -28.0, 1.0010000467300415 ],
+                        "scale" : [ 136.0, 322.0 ]
+                    },
+                    "simEngineId" : 12445892414461445020,
+                    "style" : 
+                    {
+                        "borderColor" : 
+                        [
+                            0.18000000715255737,
+                            0.18000000715255737,
+                            0.18000000715255737,
+                            0.80000001192092896
+                        ],
+                        "borderRadius" : [ 6.0, 6.0, 6.0, 6.0 ],
+                        "borderSize" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "color" : 
+                        [
+                            0.14000000059604645,
+                            0.14000000059604645,
+                            0.14000000059604645,
+                            0.94999998807907104
+                        ],
+                        "headerColor" : [ 0.2199999988079071, 0.31999999284744263, 0.44999998807907104, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 62.0, -28.0, 1.0010000467300415 ],
+                        "scale" : [ 136.0, 316.0 ]
+                    },
+                    "type" : 128,
+                    "uuid" : 15647076676770555426
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 17680662605150069367 ],
+                    "index" : 4,
+                    "name" : "E",
+                    "parentComponent" : 15001013967610286517,
+                    "schematicPos" : [ -60.0, 20.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -46.0, 28.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 1588160839633552048
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 2621957663613624314 ],
+                    "index" : 6,
+                    "name" : "Cn",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ -68.0, -10.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -54.0, -4.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 9253950333089699708
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 17976181060380780851,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 17.0, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, 0.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 9043799758180267800,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 17343223462685113638
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 12861980310971915997,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 17.0, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, 0.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 15811013216000324106,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 4253852869119140743
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "index" : 4,
+                    "name" : "A=B",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ 68.0, 18.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 54.0, -46.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 16110922196359487151
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 8044991748199961625 ],
+                    "index" : 8,
+                    "name" : "B3",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ -68.0, 32.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -54.0, 38.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 5855116777003215635
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 13162761698227882871 ],
+                    "index" : 1,
+                    "name" : "b",
+                    "parentComponent" : 6825214859359325543,
+                    "schematicPos" : [ 25.0, 8.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 36.0, 6.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 13943921370995163162
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 15272335592255888520,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 30.0, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, -8.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 13605385029528287192,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 2694511042355597434
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 7249088786565332655 ],
+                    "index" : 3,
+                    "name" : "d",
+                    "parentComponent" : 11898827031167296612,
+                    "schematicPos" : [ 25.0, 28.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 36.0, 28.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 7992417008410466850
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 10467164494517293484, 2621957663613624314 ],
+                    "index" : 0,
+                    "name" : "a",
+                    "parentComponent" : 6825214859359325543,
+                    "schematicPos" : [ 25.0, -8.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 36.0, -14.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 10998653084530742270
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 15092526832776369886 ],
+                    "index" : 2,
+                    "name" : "c",
+                    "parentComponent" : 4941954465526782891,
+                    "schematicPos" : [ 74.0, -20.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 60.0, -14.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 13542481445493100214
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 2694511042355597434 ],
+                    "index" : 2,
+                    "name" : "C",
+                    "parentComponent" : 4941954465526782891,
+                    "schematicPos" : [ -74.0, 16.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -60.0, -14.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 15272335592255888520
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 9253950333089699708,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 28.31884765625, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, 46.270217895507812 ],
+                            "orientation" : 1
+                        },
+                        {
+                            "offset" : [ 158.4852294921875, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, -12.270217895507812 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 10998653084530742270,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 0.52941179275512695, 0.43137255311012268, 0.31372550129890442, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : true,
+                    "uuid" : 2621957663613624314
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 10285714876683520155 ],
+                    "index" : 1,
+                    "name" : "B",
+                    "parentComponent" : 4941954465526782891,
+                    "schematicPos" : [ -74.0, -16.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -60.0, -36.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 11577498790963855650
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 5663455616771477827,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 30.0, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, -12.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 1257298510008685208,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 11454854336844311364
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 17204260123756149170,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 30.0, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, 0.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 18050069768099894452,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 4121918396840282871
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 17343223462685113638 ],
+                    "index" : 3,
+                    "name" : "d",
+                    "parentComponent" : 4941954465526782891,
+                    "schematicPos" : [ 74.0, 0.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 60.0, 6.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 9043799758180267800
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 7060838095240748786,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 32.852447509765625, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, 32.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 8490561580479553570,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 11716534084915133432
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 7078523378623570030,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 17.0, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, 0.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 2108192900207331571,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 3518635717031444069
+                },
+                {
+                    "childComponents" : 
+                    [
+                        17204260123756149170,
+                        11577498790963855650,
+                        15272335592255888520,
+                        5663455616771477827,
+                        15811013216000324106,
+                        17076644887007225874,
+                        13542481445493100214,
+                        9043799758180267800,
+                        14497635455872499252,
+                        2108192900207331571,
+                        17725356312919750951
+                    ],
+                    "inputSlots" : 
+                    [
+                        17204260123756149170,
+                        11577498790963855650,
+                        15272335592255888520,
+                        5663455616771477827
+                    ],
+                    "name" : "Seven Segment Display Driver",
+                    "netId" : 5143549288814434294,
+                    "outputSlots" : 
+                    [
+                        15811013216000324106,
+                        17076644887007225874,
+                        13542481445493100214,
+                        9043799758180267800,
+                        14497635455872499252,
+                        2108192900207331571,
+                        17725356312919750951
+                    ],
+                    "parentComponent" : 0,
+                    "schematicTransform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 260.0, -106.0, 1.008000373840332 ],
+                        "scale" : [ 148.0, 162.0 ]
+                    },
+                    "simEngineId" : 293690203138427612,
+                    "style" : 
+                    {
+                        "borderColor" : 
+                        [
+                            0.18000000715255737,
+                            0.18000000715255737,
+                            0.18000000715255737,
+                            0.80000001192092896
+                        ],
+                        "borderRadius" : [ 6.0, 6.0, 6.0, 6.0 ],
+                        "borderSize" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "color" : 
+                        [
+                            0.14000000059604645,
+                            0.14000000059604645,
+                            0.14000000059604645,
+                            0.94999998807907104
+                        ],
+                        "headerColor" : 
+                        [
+                            0.44999998807907104,
+                            0.44999998807907104,
+                            0.44999998807907104,
+                            0.89999997615814209
+                        ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 260.0, -106.0, 1.008000373840332 ],
+                        "scale" : [ 148.0, 170.0 ]
+                    },
+                    "type" : 128,
+                    "uuid" : 4941954465526782891
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 752361887051458933,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 20.316680908203125, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, 38.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 13943921370995163162,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 0.53046596050262451, 0.43024840950965881, 0.31371644139289856, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : true,
+                    "uuid" : 13162761698227882871
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 4253852869119140743 ],
+                    "index" : 0,
+                    "name" : "a",
+                    "parentComponent" : 4941954465526782891,
+                    "schematicPos" : [ 74.0, -60.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 60.0, -56.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 15811013216000324106
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 6294022288576964338,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 23.337081909179688, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, 41.65032958984375 ],
+                            "orientation" : 1
+                        },
+                        {
+                            "offset" : [ -117.85282897949219, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, -364.73245239257812 ],
+                            "orientation" : 1
+                        },
+                        {
+                            "offset" : [ 281.1109619140625, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, 79.082122802734375 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 7768601369200630958,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 11150960355879228279
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 11842959034969266491 ],
+                    "index" : 1,
+                    "name" : "b",
+                    "parentComponent" : 4941954465526782891,
+                    "schematicPos" : [ 74.0, -40.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 60.0, -36.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 17076644887007225874
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 3518635717031444069 ],
+                    "index" : 5,
+                    "name" : "F",
+                    "parentComponent" : 15001013967610286517,
+                    "schematicPos" : [ -60.0, 40.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -46.0, 48.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 7078523378623570030
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 10285714876683520155 ],
+                    "index" : 1,
+                    "name" : "F1",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ 68.0, -90.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 54.0, -108.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 2106697372851587409
+                },
+                {
+                    "childComponents" : 
+                    [
+                        10984384125216665782,
+                        12813594276293506271,
+                        6838722831258535295,
+                        10532730036922809636,
+                        17864880942050186946
+                    ],
+                    "name" : "Select Lines",
+                    "netId" : 5143549288814434294,
+                    "outputSlots" : 
+                    [
+                        10984384125216665782,
+                        6838722831258535295,
+                        10532730036922809636,
+                        17864880942050186946,
+                        12813594276293506271
+                    ],
+                    "parentComponent" : 0,
+                    "schematicTransform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -230.0, -174.0, 1.004000186920166 ],
+                        "scale" : [ 50.0, 92.0 ]
+                    },
+                    "simEngineId" : 17291718063073814128,
+                    "style" : 
+                    {
+                        "borderColor" : 
+                        [
+                            0.18000000715255737,
+                            0.18000000715255737,
+                            0.18000000715255737,
+                            0.80000001192092896
+                        ],
+                        "borderRadius" : [ 6.0, 6.0, 6.0, 6.0 ],
+                        "borderSize" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "color" : 
+                        [
+                            0.14000000059604645,
+                            0.14000000059604645,
+                            0.14000000059604645,
+                            0.94999998807907104
+                        ],
+                        "headerColor" : 
+                        [
+                            0.44999998807907104,
+                            0.44999998807907104,
+                            0.44999998807907104,
+                            0.89999997615814209
+                        ]
+                    },
+                    "subType" : "InputSceneComponent",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -230.0, -174.0, 1.004000186920166 ],
+                        "scale" : [ 100.0, 128.0 ]
+                    },
+                    "type" : 128,
+                    "uuid" : 16739236117717396412
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 4121918396840282871 ],
+                    "index" : 0,
+                    "name" : "A (LSB)",
+                    "parentComponent" : 4941954465526782891,
+                    "schematicPos" : [ -74.0, -48.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -60.0, -56.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 17204260123756149170
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 349208941042303658 ],
+                    "index" : 2,
+                    "name" : "S3",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ -68.0, -96.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -54.0, -88.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 3857167209398272274
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 8525960685865406161,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 33.037872314453125, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, 10.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 10079365703194413707,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 10568536959619945118
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 11716534084915133432 ],
+                    "index" : 12,
+                    "name" : "B1",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ -68.0, 118.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -54.0, 122.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 7060838095240748786
+                },
+                {
+                    "childComponents" : 
+                    [
+                        2400405589774031443,
+                        15897657370356625390,
+                        10079365703194413707,
+                        8490561580479553570,
+                        7768601369200630958
+                    ],
+                    "name" : "B",
+                    "netId" : 5143549288814434294,
+                    "outputSlots" : 
+                    [
+                        2400405589774031443,
+                        10079365703194413707,
+                        8490561580479553570,
+                        7768601369200630958,
+                        15897657370356625390
+                    ],
+                    "parentComponent" : 0,
+                    "schematicTransform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -240.0, 48.0, 1.0050002336502075 ],
+                        "scale" : [ 50.0, 92.0 ]
+                    },
+                    "simEngineId" : 16690562813052120053,
+                    "style" : 
+                    {
+                        "borderColor" : 
+                        [
+                            0.18000000715255737,
+                            0.18000000715255737,
+                            0.18000000715255737,
+                            0.80000001192092896
+                        ],
+                        "borderRadius" : [ 6.0, 6.0, 6.0, 6.0 ],
+                        "borderSize" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "color" : 
+                        [
+                            0.14000000059604645,
+                            0.14000000059604645,
+                            0.14000000059604645,
+                            0.94999998807907104
+                        ],
+                        "headerColor" : 
+                        [
+                            0.44999998807907104,
+                            0.44999998807907104,
+                            0.44999998807907104,
+                            0.89999997615814209
+                        ]
+                    },
+                    "subType" : "InputSceneComponent",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -240.0, 48.0, 1.0050002336502075 ],
+                        "scale" : [ 100.0, 128.0 ]
+                    },
+                    "type" : 128,
+                    "uuid" : 7162098126997526105
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 6237301824759844314 ],
+                    "index" : 6,
+                    "name" : "G",
+                    "parentComponent" : 15001013967610286517,
+                    "schematicPos" : [ -60.0, 60.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -46.0, 70.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 10600959061371899091
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 13903504776571737080,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 50.748687744140625, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, 82.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 10532730036922809636,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 12936786823071719784
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 3701671172077616479,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 47.127288818359375, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, -136.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 1210454347003085413,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 2621490688271782079
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 11150960355879228279 ],
+                    "index" : 0,
+                    "name" : "B0",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ -68.0, -140.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -54.0, -130.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 6294022288576964338
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 13768963675506507041,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 17.0, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, 0.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 17076644887007225874,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 11842959034969266491
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 17680662605150069367 ],
+                    "index" : 4,
+                    "name" : "e",
+                    "parentComponent" : 4941954465526782891,
+                    "schematicPos" : [ 74.0, 20.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 60.0, 28.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 14497635455872499252
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 13162761698227882871 ],
+                    "index" : 7,
+                    "name" : "M",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ -68.0, 10.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -54.0, 18.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 752361887051458933
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 6200374557862896344 ],
+                    "index" : 3,
+                    "name" : "S2",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ -68.0, -76.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -54.0, -66.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 14424168154934133598
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 1588160839633552048,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 17.0, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, 0.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 14497635455872499252,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 17680662605150069367
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 11577498790963855650,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 30.0, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, -4.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 2106697372851587409,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 10285714876683520155
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 2178344505360626000 ],
+                    "index" : 11,
+                    "name" : "A2",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ -68.0, 96.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -54.0, 102.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 2803715116412769873
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 12936786823071719784 ],
+                    "index" : 4,
+                    "name" : "S1",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ -68.0, -54.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -54.0, -46.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 13903504776571737080
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 11454854336844311364 ],
+                    "index" : 3,
+                    "name" : "D (MSB)",
+                    "parentComponent" : 4941954465526782891,
+                    "schematicPos" : [ -74.0, 48.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -60.0, 6.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 5663455616771477827
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 18195704731683801803 ],
+                    "index" : 5,
+                    "name" : "S0",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ -68.0, -32.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -54.0, -24.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 4160376850888458242
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 2621490688271782079 ],
+                    "index" : 9,
+                    "name" : "A3",
+                    "parentComponent" : 15647076676770555426,
+                    "schematicPos" : [ -68.0, 54.0, -0.00050000002374872565 ],
+                    "slotType" : 1,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ -54.0, 60.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 3701671172077616479
+                },
+                {
+                    "childComponents" : [],
+                    "endSlot" : 5855116777003215635,
+                    "name" : "",
+                    "parentComponent" : 0,
+                    "segments" : 
+                    [
+                        {
+                            "offset" : [ 136.19595336914062, 0.0 ],
+                            "orientation" : 0
+                        },
+                        {
+                            "offset" : [ 0.0, -16.0 ],
+                            "orientation" : 1
+                        }
+                    ],
+                    "startSlot" : 2400405589774031443,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 0.0, 0.0, 0.0 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 3,
+                    "useCustomColor" : false,
+                    "uuid" : 8044991748199961625
+                },
+                {
+                    "childComponents" : [],
+                    "connectecConnections" : [],
+                    "connectedConnections" : [ 10395688978998648762 ],
+                    "index" : 2,
+                    "name" : "c",
+                    "parentComponent" : 11898827031167296612,
+                    "schematicPos" : [ 25.0, 10.0, -0.00050000002374872565 ],
+                    "slotType" : 2,
+                    "style" : 
+                    {
+                        "borderColor" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "borderRadius" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "borderSize" : [ 0.0, 0.0, 0.0, 0.0 ],
+                        "color" : [ 1.0, 1.0, 1.0, 1.0 ],
+                        "headerColor" : [ 0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1.0 ]
+                    },
+                    "subType" : "",
+                    "transform" : 
+                    {
+                        "angle" : 0.0,
+                        "position" : [ 36.0, 6.0, 0.00050000002374872565 ],
+                        "scale" : [ 1.0, 1.0 ]
+                    },
+                    "type" : 1,
+                    "uuid" : 14405061934231115430
+                }
+            ]
+        }
+    },
+    "sim_engine_data" : 
+    {
+        "sim_engine_state" : 
+        {
+            "digital_components" : 
+            [
+                {
+                    "definition" : 
+                    {
+                        "base_hash" : 14540628956930936849,
+                        "behavior_type" : 0,
+                        "group_name" : "TTL 74 Series",
+                        "input_slots_info" : 
+                        {
+                            "categories" : [],
+                            "count" : 14,
+                            "is_resizeable" : false,
+                            "names" : 
+                            [
+                                "B0",
+                                "A0",
+                                "S3",
+                                "S2",
+                                "S1",
+                                "S0",
+                                "Cn",
+                                "M",
+                                "B3",
+                                "A3",
+                                "B2",
+                                "A2",
+                                "B1",
+                                "A1"
+                            ],
+                            "type" : 0
+                        },
+                        "name" : "DM74LS181 ALU (Verified)",
+                        "op_info" : 
+                        {
+                            "op" : "0",
+                            "should_negate_output" : false
+                        },
+                        "output_expressions" : [],
+                        "output_slots_info" : 
+                        {
+                            "categories" : [],
+                            "count" : 8,
+                            "is_resizeable" : false,
+                            "names" : [ "F0", "F1", "F2", "F3", "A=B", "P", "Cn+4", "G" ],
+                            "type" : 0
+                        },
+                        "should_auto_reschedule" : false,
+                        "sim_delay_ns" : 0
+                    },
+                    "id" : 12445892414461445020,
+                    "input_connections" : 
+                    [
+                        [
+                            {
+                                "componentUuid" : 16690562813052120053,
+                                "pinIdx" : 3
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 13017555066746991070,
+                                "pinIdx" : 3
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 17291718063073814128,
+                                "pinIdx" : 0
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 17291718063073814128,
+                                "pinIdx" : 1
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 17291718063073814128,
+                                "pinIdx" : 2
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 17291718063073814128,
+                                "pinIdx" : 3
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 4919475295433205187,
+                                "pinIdx" : 0
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 4919475295433205187,
+                                "pinIdx" : 1
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 16690562813052120053,
+                                "pinIdx" : 0
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 13017555066746991070,
+                                "pinIdx" : 0
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 16690562813052120053,
+                                "pinIdx" : 1
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 13017555066746991070,
+                                "pinIdx" : 1
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 16690562813052120053,
+                                "pinIdx" : 2
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 13017555066746991070,
+                                "pinIdx" : 2
+                            }
+                        ]
+                    ],
+                    "net_uuid" : 5143549288814434294,
+                    "output_connections" : 
+                    [
+                        [
+                            {
+                                "componentUuid" : 293690203138427612,
+                                "pinIdx" : 0
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 293690203138427612,
+                                "pinIdx" : 1
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 293690203138427612,
+                                "pinIdx" : 2
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 293690203138427612,
+                                "pinIdx" : 3
+                            }
+                        ],
+                        [],
+                        [],
+                        [],
+                        []
+                    ],
+                    "state" : 
+                    {
+                        "errorMessage" : "",
+                        "inputConnected" : 
+                        [
+                            true,
+                            true,
+                            true,
+                            true,
+                            true,
+                            true,
+                            true,
+                            true,
+                            true,
+                            true,
+                            true,
+                            true,
+                            true,
+                            true
+                        ],
+                        "inputStates" : 
+                        [
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            }
+                        ],
+                        "isChanged" : true,
+                        "outputConnected" : [ true, true, true, true, false, false, false, false ],
+                        "outputStates" : 
+                        [
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            }
+                        ],
+                        "simError" : false
+                    }
+                },
+                {
+                    "definition" : 
+                    {
+                        "base_hash" : 5271179154965332885,
+                        "behavior_type" : 1,
+                        "group_name" : "IO",
+                        "input_slots_info" : 
+                        {
+                            "categories" : [],
+                            "count" : 0,
+                            "is_resizeable" : false,
+                            "names" : [],
+                            "type" : 0
+                        },
+                        "name" : "Input",
+                        "op_info" : 
+                        {
+                            "op" : "0",
+                            "should_negate_output" : false
+                        },
+                        "output_expressions" : [],
+                        "output_slots_info" : 
+                        {
+                            "categories" : [],
+                            "count" : 2,
+                            "is_resizeable" : true,
+                            "names" : [],
+                            "type" : 2
+                        },
+                        "should_auto_reschedule" : false,
+                        "sim_delay_ns" : 0
+                    },
+                    "id" : 4919475295433205187,
+                    "input_connections" : [],
+                    "net_uuid" : 5143549288814434294,
+                    "output_connections" : 
+                    [
+                        [
+                            {
+                                "componentUuid" : 12445892414461445020,
+                                "pinIdx" : 6
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 12445892414461445020,
+                                "pinIdx" : 7
+                            }
+                        ]
+                    ],
+                    "state" : 
+                    {
+                        "errorMessage" : "",
+                        "inputConnected" : [],
+                        "inputStates" : [],
+                        "isChanged" : true,
+                        "outputConnected" : [ true, true ],
+                        "outputStates" : 
+                        [
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            }
+                        ],
+                        "simError" : false
+                    }
+                },
+                {
+                    "definition" : 
+                    {
+                        "base_hash" : 5271179154965332885,
+                        "behavior_type" : 1,
+                        "group_name" : "IO",
+                        "input_slots_info" : 
+                        {
+                            "categories" : [],
+                            "count" : 0,
+                            "is_resizeable" : false,
+                            "names" : [],
+                            "type" : 0
+                        },
+                        "name" : "Input",
+                        "op_info" : 
+                        {
+                            "op" : "0",
+                            "should_negate_output" : false
+                        },
+                        "output_expressions" : [],
+                        "output_slots_info" : 
+                        {
+                            "categories" : [],
+                            "count" : 4,
+                            "is_resizeable" : true,
+                            "names" : [],
+                            "type" : 2
+                        },
+                        "should_auto_reschedule" : false,
+                        "sim_delay_ns" : 0
+                    },
+                    "id" : 17291718063073814128,
+                    "input_connections" : [],
+                    "net_uuid" : 5143549288814434294,
+                    "output_connections" : 
+                    [
+                        [
+                            {
+                                "componentUuid" : 12445892414461445020,
+                                "pinIdx" : 2
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 12445892414461445020,
+                                "pinIdx" : 3
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 12445892414461445020,
+                                "pinIdx" : 4
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 12445892414461445020,
+                                "pinIdx" : 5
+                            }
+                        ]
+                    ],
+                    "state" : 
+                    {
+                        "errorMessage" : "",
+                        "inputConnected" : [],
+                        "inputStates" : [],
+                        "isChanged" : true,
+                        "outputConnected" : [ true, true, true, true ],
+                        "outputStates" : 
+                        [
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            }
+                        ],
+                        "simError" : false
+                    }
+                },
+                {
+                    "definition" : 
+                    {
+                        "base_hash" : 5271179154965332885,
+                        "behavior_type" : 1,
+                        "group_name" : "IO",
+                        "input_slots_info" : 
+                        {
+                            "categories" : [],
+                            "count" : 0,
+                            "is_resizeable" : false,
+                            "names" : [],
+                            "type" : 0
+                        },
+                        "name" : "Input",
+                        "op_info" : 
+                        {
+                            "op" : "0",
+                            "should_negate_output" : false
+                        },
+                        "output_expressions" : [],
+                        "output_slots_info" : 
+                        {
+                            "categories" : [],
+                            "count" : 4,
+                            "is_resizeable" : true,
+                            "names" : [],
+                            "type" : 2
+                        },
+                        "should_auto_reschedule" : false,
+                        "sim_delay_ns" : 0
+                    },
+                    "id" : 16690562813052120053,
+                    "input_connections" : [],
+                    "net_uuid" : 5143549288814434294,
+                    "output_connections" : 
+                    [
+                        [
+                            {
+                                "componentUuid" : 12445892414461445020,
+                                "pinIdx" : 8
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 12445892414461445020,
+                                "pinIdx" : 10
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 12445892414461445020,
+                                "pinIdx" : 12
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 12445892414461445020,
+                                "pinIdx" : 0
+                            }
+                        ]
+                    ],
+                    "state" : 
+                    {
+                        "errorMessage" : "",
+                        "inputConnected" : [],
+                        "inputStates" : [],
+                        "isChanged" : true,
+                        "outputConnected" : [ true, true, true, true ],
+                        "outputStates" : 
+                        [
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            }
+                        ],
+                        "simError" : false
+                    }
+                },
+                {
+                    "definition" : 
+                    {
+                        "base_hash" : 5271179154965332885,
+                        "behavior_type" : 1,
+                        "group_name" : "IO",
+                        "input_slots_info" : 
+                        {
+                            "categories" : [],
+                            "count" : 0,
+                            "is_resizeable" : false,
+                            "names" : [],
+                            "type" : 0
+                        },
+                        "name" : "Input",
+                        "op_info" : 
+                        {
+                            "op" : "0",
+                            "should_negate_output" : false
+                        },
+                        "output_expressions" : [],
+                        "output_slots_info" : 
+                        {
+                            "categories" : [],
+                            "count" : 4,
+                            "is_resizeable" : true,
+                            "names" : [],
+                            "type" : 2
+                        },
+                        "should_auto_reschedule" : false,
+                        "sim_delay_ns" : 0
+                    },
+                    "id" : 13017555066746991070,
+                    "input_connections" : [],
+                    "net_uuid" : 5143549288814434294,
+                    "output_connections" : 
+                    [
+                        [
+                            {
+                                "componentUuid" : 12445892414461445020,
+                                "pinIdx" : 9
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 12445892414461445020,
+                                "pinIdx" : 11
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 12445892414461445020,
+                                "pinIdx" : 13
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 12445892414461445020,
+                                "pinIdx" : 1
+                            }
+                        ]
+                    ],
+                    "state" : 
+                    {
+                        "errorMessage" : "",
+                        "inputConnected" : [],
+                        "inputStates" : [],
+                        "isChanged" : true,
+                        "outputConnected" : [ true, true, true, true ],
+                        "outputStates" : 
+                        [
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            }
+                        ],
+                        "simError" : false
+                    }
+                },
+                {
+                    "definition" : 
+                    {
+                        "base_hash" : 17007077037450353424,
+                        "behavior_type" : 0,
+                        "group_name" : "IO",
+                        "input_slots_info" : 
+                        {
+                            "categories" : [],
+                            "count" : 7,
+                            "is_resizeable" : false,
+                            "names" : [ "A", "B", "C", "D", "E", "F", "G" ],
+                            "type" : 0
+                        },
+                        "name" : "Seven Segment Display",
+                        "op_info" : 
+                        {
+                            "op" : "0",
+                            "should_negate_output" : false
+                        },
+                        "output_expressions" : [],
+                        "output_slots_info" : 
+                        {
+                            "categories" : [],
+                            "count" : 0,
+                            "is_resizeable" : false,
+                            "names" : [],
+                            "type" : 0
+                        },
+                        "should_auto_reschedule" : false,
+                        "sim_delay_ns" : 0
+                    },
+                    "id" : 11435689778423568984,
+                    "input_connections" : 
+                    [
+                        [
+                            {
+                                "componentUuid" : 293690203138427612,
+                                "pinIdx" : 0
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 293690203138427612,
+                                "pinIdx" : 1
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 293690203138427612,
+                                "pinIdx" : 2
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 293690203138427612,
+                                "pinIdx" : 3
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 293690203138427612,
+                                "pinIdx" : 4
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 293690203138427612,
+                                "pinIdx" : 5
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 293690203138427612,
+                                "pinIdx" : 6
+                            }
+                        ]
+                    ],
+                    "net_uuid" : 5143549288814434294,
+                    "output_connections" : [],
+                    "state" : 
+                    {
+                        "errorMessage" : "",
+                        "inputConnected" : [ true, true, true, true, true, true, true ],
+                        "inputStates" : 
+                        [
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            }
+                        ],
+                        "isChanged" : false,
+                        "outputConnected" : [],
+                        "outputStates" : [],
+                        "simError" : false
+                    }
+                },
+                {
+                    "definition" : 
+                    {
+                        "base_hash" : 9467161457527763628,
+                        "behavior_type" : 0,
+                        "group_name" : "IO",
+                        "input_slots_info" : 
+                        {
+                            "categories" : [],
+                            "count" : 4,
+                            "is_resizeable" : false,
+                            "names" : [ "A (LSB)", "B", "C", "D (MSB)" ],
+                            "type" : 0
+                        },
+                        "name" : "Seven Segment Display Driver",
+                        "op_info" : 
+                        {
+                            "op" : "0",
+                            "should_negate_output" : false
+                        },
+                        "output_expressions" : [],
+                        "output_slots_info" : 
+                        {
+                            "categories" : [],
+                            "count" : 7,
+                            "is_resizeable" : false,
+                            "names" : [ "a", "b", "c", "d", "e", "f", "g" ],
+                            "type" : 0
+                        },
+                        "should_auto_reschedule" : false,
+                        "sim_delay_ns" : 0
+                    },
+                    "id" : 293690203138427612,
+                    "input_connections" : 
+                    [
+                        [
+                            {
+                                "componentUuid" : 12445892414461445020,
+                                "pinIdx" : 0
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 12445892414461445020,
+                                "pinIdx" : 1
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 12445892414461445020,
+                                "pinIdx" : 2
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 12445892414461445020,
+                                "pinIdx" : 3
+                            }
+                        ]
+                    ],
+                    "net_uuid" : 5143549288814434294,
+                    "output_connections" : 
+                    [
+                        [
+                            {
+                                "componentUuid" : 11435689778423568984,
+                                "pinIdx" : 0
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 11435689778423568984,
+                                "pinIdx" : 1
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 11435689778423568984,
+                                "pinIdx" : 2
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 11435689778423568984,
+                                "pinIdx" : 3
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 11435689778423568984,
+                                "pinIdx" : 4
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 11435689778423568984,
+                                "pinIdx" : 5
+                            }
+                        ],
+                        [
+                            {
+                                "componentUuid" : 11435689778423568984,
+                                "pinIdx" : 6
+                            }
+                        ]
+                    ],
+                    "state" : 
+                    {
+                        "errorMessage" : "",
+                        "inputConnected" : [ true, true, true, true ],
+                        "inputStates" : 
+                        [
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            }
+                        ],
+                        "isChanged" : true,
+                        "outputConnected" : [ true, true, true, true, true, true, true ],
+                        "outputStates" : 
+                        [
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 0
+                            },
+                            {
+                                "lastChangeTime" : 0,
+                                "state" : 1
+                            }
+                        ],
+                        "simError" : false
+                    }
+                }
+            ],
+            "nets" : []
+        }
+    },
+    "version" : "<dev>"
+}

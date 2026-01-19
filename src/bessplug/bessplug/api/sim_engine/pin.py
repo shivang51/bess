@@ -21,7 +21,7 @@ class PinState(NativePinState):
     - last_change_time_ns: int nanoseconds since last transition
     """
 
-    def __init__(self):
+    def __init__(self, state: LogicState = LogicState.LOW):
         """Create a PinState.
 
         - state: Initial logic level
@@ -29,6 +29,7 @@ class PinState(NativePinState):
         - native: Optional native instance to wrap
         """
         super().__init__()
+        self.state = state
 
     def __repr__(self) -> str:
         """Debug representation."""

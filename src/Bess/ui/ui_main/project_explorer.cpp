@@ -185,7 +185,7 @@ namespace Bess::UI {
                 const auto [pressed, cbPressed] = drawLeafNode(
                     i++,
                     node->nodeId,
-                    (icon + " " + node->label).c_str(),
+                    (icon + " " + sceneComp->getName()).c_str(),
                     node->selected,
                     isMultiSelected);
                 clicked = pressed;
