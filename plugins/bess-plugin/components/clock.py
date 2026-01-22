@@ -34,10 +34,11 @@ class ClockDefinition(ComponentDefinition):
         self.should_auto_reschedule = True
         self.unit = FrequencyUnit.HZ
         self.frequency = 1.0
+        self.duty_cycle = 0.5
+        self.prev_logic_state = LogicState.LOW
 
     @override
     def clone(self) -> ComponentDefinition:
-        print("Cloning clock definition...")
         cloned = ClockDefinition()
         cloned.name = self.name
         cloned.group_name = self.group_name
@@ -55,8 +56,6 @@ class ClockDefinition(ComponentDefinition):
     def get_reschedule_time(
         self, current_time_ns: datetime.timedelta
     ) -> datetime.timedelta:
-        print("Getting reschedule time for clock...")
-
         if self.frequency <= 0:
             raise ValueError("Frequency must be greater than zero.")
 
@@ -70,39 +69,34 @@ class ClockDefinition(ComponentDefinition):
         }[self.unit]
 
         period = 1.0 / (self.frequency * frequency_multiplier)
+
+        if self.prev_logic_state == LogicState.LOW:
+            period = period * self.duty_cycle
+        else:
+            period = period * (1 - self.duty_cycle)
+
         next_sim_time = current_time + period
         return datetime.timedelta(seconds=next_sim_time)
 
+    @override
+    def on_state_change(
+        self,
+        old_state: ComponentState,
+        new_state: ComponentState,
+    ) -> None:
+        self.prev_logic_state = new_state.output_states[0].state
+
     @staticmethod
     def _simulate_clock(
-        inputs: list[PinState], simTime: float, oldState: ComponentState
+        _: list[PinState], simTime: float, oldState: ComponentState
     ) -> ComponentState:
-        """
-        Simulation of a simple clock component that toggles its output state
-        at regular intervals defined by the clock period.
-        """
-        CLOCK_PERIOD = 1.0  # Clock period in seconds
-
-        newState = oldState.copy()
-        newState.input_states = inputs.copy()
-
-        # Determine the number of clock cycles that have passed
-        elapsed_time = simTime
-        num_cycles = int(elapsed_time / CLOCK_PERIOD)
-
-        # Toggle output state based on the number of cycles
-        if num_cycles % 2 == 0:
-            output_state = LogicState.LOW
-        else:
-            output_state = LogicState.HIGH
-
-        # Set the output pin state (assuming single output pin at index 0)
-        newState.output_states = [PinState(state=output_state)]
-
-        return newState
+        new_state = oldState.copy()
+        new_state.output_states[0].invert()
+        new_state.output_states[0].last_change_time_ns = simTime
+        new_state.is_changed = True
+        return new_state
 
 
 clock_def = ClockDefinition()
-print(clock_def.should_auto_reschedule)
 
 __all__ = ["clock_def"]

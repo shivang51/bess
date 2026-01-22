@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Callable, Optional, override
 import datetime
+from bessplug.api.sim_engine.component_state import ComponentState
 from bessplug.api.sim_engine.operator_info import OperatorInfo
 from bessplug.api.sim_engine.slots_group_info import SlotsGroupInfo
 
@@ -46,15 +47,21 @@ class ComponentDefinition(NativeComponentDefinition):
                 self.output_expressions
             )  # its very important to copy them after aux_data
         cloned.set_simulation_function(self.simulation_function)
-        print(cloned.get_reschedule_time)
         return cloned
 
     @override
     def get_reschedule_time(
         self, current_time_ns: datetime.timedelta
     ) -> datetime.timedelta:
-        print("Getting reschedule time...")
         return current_time_ns
+
+    @override
+    def on_state_change(
+        self,
+        old_state: ComponentState,
+        new_state: ComponentState,
+    ) -> None:
+        pass
 
     def set_simulation_function(self, sim_function: Callable) -> None:
         self.simulation_function = sim_function

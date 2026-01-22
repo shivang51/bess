@@ -74,6 +74,17 @@ class PyComponentDefinition : public ComponentDefinition,
             currentTime // in nano seconds
         );
     }
+
+    void onStateChange(const ComponentState &oldState,
+                       const ComponentState &newState) override {
+        PYBIND11_OVERRIDE_NAME(
+            void,
+            ComponentDefinition,
+            "on_state_change",
+            onStateChange,
+            oldState,
+            newState);
+    }
 };
 
 template <typename T>
@@ -153,7 +164,12 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         .def("get_hash", &ComponentDefinition::getHash)
         .def("clone", &ComponentDefinition::clone)
         .def("compute_hash", &ComponentDefinition::computeHash)
-        .def("get_reschedule_time", &ComponentDefinition::getRescheduleTime)
+        .def("get_reschedule_time", &ComponentDefinition::getRescheduleTime,
+             py::arg("current_time_ns"),
+             "Get the next reschedule time given the current time in nanoseconds.")
+        .def("on_state_change", &ComponentDefinition::onStateChange,
+             py::arg("old_state"), py::arg("new_state"),
+             "Callback invoked when the component's state changes.")
         .DEF_PROP_STR_GSET("name", Name)
         .DEF_PROP_STR_GSET("group_name", GroupName)
         .DEF_PROP_GSET_T(bool, "should_auto_reschedule", ShouldAutoReschedule)
