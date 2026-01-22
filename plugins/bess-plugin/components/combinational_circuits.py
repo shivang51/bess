@@ -134,7 +134,7 @@ for circuit in _comb_circuits:
 
     defi = ComponentDefinition.from_expressions(
         name=circuit["name"],
-        groupName="Comb Circuits",
+        group_name="Comb Circuits",
         inputs=inp_grp_info,
         outputs=out_grp_info,
         sim_delay=datetime.timedelta(microseconds=0.001),

@@ -8,9 +8,12 @@ namespace Bess::SimEngine {
 
     void SimEngineSerializer::simAutoReschedulableComponents() {
         auto &simEngine = SimEngine::SimulationEngine::instance();
+        const auto currentTime = simEngine.getSimulationTime();
         for (const auto &[uid, comp] : simEngine.getSimEngineState().getDigitalComponents()) {
             if (comp->definition->getShouldAutoReschedule()) {
-                simEngine.scheduleEvent(uid, UUID::null, comp->definition->getRescheduleDelay());
+                simEngine.scheduleEvent(uid,
+                                        UUID::null,
+                                        comp->definition->getRescheduleTime(currentTime));
             }
         }
     }

@@ -48,11 +48,11 @@ output_slots.names = ["Y"]
 
 tristate_buffer_def = ComponentDefinition.from_sim_fn(
     name="Tri-State Buffer",
-    groupName="Digital Gates",
+    group_name="Digital Gates",
     inputs=input_slots,
     outputs=output_slots,
     sim_delay=datetime.timedelta(microseconds=0.01),
-    simFn=_simulate_tristate_buffer,
+    sim_function=_simulate_tristate_buffer,
 )
 
 tristate_buffer_def.io_growth_policy = CompDefIOGrowthPolicy.EQ

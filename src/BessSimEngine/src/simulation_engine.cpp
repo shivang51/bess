@@ -690,7 +690,7 @@ namespace Bess::SimEngine {
                     if (dc->definition->getShouldAutoReschedule()) {
                         scheduleEvent(compId,
                                       UUID::null,
-                                      m_currentSimTime + dc->definition->getRescheduleDelay());
+                                      dc->definition->getRescheduleTime(m_currentSimTime));
                     }
                 }
 
@@ -920,5 +920,9 @@ namespace Bess::SimEngine {
 
     SimEngineState &SimulationEngine::getSimEngineState() {
         return m_simEngineState;
+    }
+
+    SimTime SimulationEngine::getSimulationTime() const {
+        return m_currentSimTime;
     }
 } // namespace Bess::SimEngine

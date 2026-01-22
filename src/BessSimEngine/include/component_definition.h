@@ -105,7 +105,7 @@ namespace Bess::SimEngine {
         }
 
         template <typename T>
-        std::shared_ptr<T> getTrait() {
+        std::shared_ptr<T> getTrait() const {
             auto itr = m_traits.find<T>();
             if (itr != m_traits.end()) {
                 return std::static_pointer_cast<T>(itr->second);
@@ -172,7 +172,7 @@ namespace Bess::SimEngine {
          * e.g.: if 10ns is returned the component will be rescheduled to be simulated after
          * 10ns in the simulation engine
          **/
-        virtual SimTime getRescheduleDelay();
+        virtual SimTime getRescheduleTime(SimTime currentTime) const;
 
         /**
          * This function will be called when the component state changes;

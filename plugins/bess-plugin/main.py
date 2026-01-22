@@ -6,7 +6,7 @@ from components.digital_gates import digital_gates, draw_hooks
 from components.flip_flops import flip_flops
 from components.combinational_circuits import combinational_circuits
 from components.tristate_buffer import tristate_buffer_def
-from components import seven_segment_display, seven_segment_display_driver
+from components import seven_segment_display, seven_segment_display_driver, clock
 from components.alu_74LS181 import dm74ls181
 
 
@@ -25,6 +25,7 @@ class BessPlugin(Plugin):
             seven_segment_display.seven_seg_disp_def,
             seven_segment_display_driver.seven_seg_disp_driver_def,
             dm74ls181,
+            clock.clock_def,
         ]
 
     @override

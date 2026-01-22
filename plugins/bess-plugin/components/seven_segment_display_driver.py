@@ -75,10 +75,10 @@ output_slots.names = ["a", "b", "c", "d", "e", "f", "g"]
 
 seven_seg_disp_driver_def = ComponentDefinition.from_sim_fn(
     name="Seven Segment Display Driver",
-    groupName="IO",
+    group_name="IO",
     inputs=input_slots,
     outputs=output_slots,
     sim_delay=datetime.timedelta(microseconds=0.01),
-    simFn=_simulate_seven_seg_disp_driver,
+    sim_function=_simulate_seven_seg_disp_driver,
 )
 __all__ = ["seven_seg_disp_driver_def"]

@@ -94,13 +94,6 @@ namespace Bess::SimEngine {
         return m_simDelay;
     }
 
-    SimTime ComponentDefinition::getRescheduleDelay() {
-        if (!m_shouldAutoReschedule) {
-            BESS_SE_ERROR("[ComponentDefinition] For comp {}, getRescheduleDelay called on component that should not auto-reschedule", m_name);
-        }
-        return getSimDelay();
-    }
-
     bool ComponentDefinition::computeExpressionsIfNeeded() {
         // operator '0' means no operation
         // if no operation is defined, no expressions to compute
@@ -154,6 +147,15 @@ namespace Bess::SimEngine {
 
     void ComponentDefinition::onExpressionsChange() {
         this->setAuxData(m_outputExpressions);
+    }
+
+    SimTime ComponentDefinition::getRescheduleTime(SimTime currentTime) const {
+        if (!m_shouldAutoReschedule) {
+            BESS_SE_ERROR("[ComponentDefinition] For comp {}, getRescheduleTime called on component that should not auto-reschedule", m_name);
+        }
+
+        BESS_SE_WARN("[ComponentDefinition] Using base `getRescheduleTime` for component {}", m_name);
+        return getSimDelay() + currentTime;
     }
 } // namespace Bess::SimEngine
 

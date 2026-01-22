@@ -280,7 +280,7 @@ for gate_key, gate_data in _gates.items():
 
     def_gate = ComponentDefinition.from_operator(
         name=gate_data["name"],
-        groupName="Digital Gates",
+        group_name="Digital Gates",
         inputs=input_slots_info,
         outputs=output_slots_info,
         sim_delay=datetime.timedelta(microseconds=0.001),

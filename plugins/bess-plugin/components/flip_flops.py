@@ -167,11 +167,11 @@ for ff_type, ff_data in _flip_flops.items():
 
     def_ff = ComponentDefinition.from_sim_fn(
         name=ff_data["name"],
-        groupName="Flip Flops",
+        group_name="Flip Flops",
         inputs=inp_grp_info,
         outputs=out_grp_info,
         sim_delay=datetime.timedelta(microseconds=0.001),
-        simFn=_simulate_flip_flop,
+        sim_function=_simulate_flip_flop,
     )
     def_ff.aux_data = aux_data
 

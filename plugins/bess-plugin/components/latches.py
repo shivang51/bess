@@ -136,11 +136,11 @@ for latch_type, details in latchDetails.items():
 
     latch = ComponentDefinition.from_sim_fn(
         name=details["name"],
-        groupName="Latches",
+        group_name="Latches",
         inputs=input_slots_info,
         outputs=output_slots_info,
         sim_delay=datetime.timedelta(microseconds=0.001),
-        simFn=_simulate_latch,
+        sim_function=_simulate_latch,
     )
     latch.aux_data = details["aux_data"]
     latches.append(latch)

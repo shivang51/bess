@@ -44,6 +44,7 @@ namespace Bess::SimEngine {
         void setOutputSlotState(const UUID &uuid, int pinIdx, LogicState state);
         void invertInputSlotState(const UUID &uuid, int pinIdx);
 
+        SimTime getSimulationTime() const;
         std::chrono::milliseconds getSimulationTimeMS();
         std::chrono::seconds getSimulationTimeS();
 

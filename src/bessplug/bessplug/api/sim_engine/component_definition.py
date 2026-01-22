@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable, Optional
+from typing import Callable, Optional, override
 import datetime
 from bessplug.api.sim_engine.operator_info import OperatorInfo
 from bessplug.api.sim_engine.slots_group_info import SlotsGroupInfo
@@ -27,6 +27,7 @@ class ComponentDefinition(NativeComponentDefinition):
         super().__init__()
         self.sim_fn_base: Optional[Callable] = None
 
+    @override
     def clone(self) -> ComponentDefinition:
         """Create a deep copy of this ComponentDefinition via Python implementation."""
         cloned = ComponentDefinition()
@@ -45,7 +46,15 @@ class ComponentDefinition(NativeComponentDefinition):
                 self.output_expressions
             )  # its very important to copy them after aux_data
         cloned.set_simulation_function(self.simulation_function)
+        print(cloned.get_reschedule_time)
         return cloned
+
+    @override
+    def get_reschedule_time(
+        self, current_time_ns: datetime.timedelta
+    ) -> datetime.timedelta:
+        print("Getting reschedule time...")
+        return current_time_ns
 
     def set_simulation_function(self, sim_function: Callable) -> None:
         self.simulation_function = sim_function
@@ -53,7 +62,7 @@ class ComponentDefinition(NativeComponentDefinition):
     @staticmethod
     def from_operator(
         name: str,
-        groupName: str,
+        group_name: str,
         inputs: SlotsGroupInfo,
         outputs: SlotsGroupInfo,
         sim_delay: datetime.timedelta,
@@ -62,17 +71,17 @@ class ComponentDefinition(NativeComponentDefinition):
         defi = ComponentDefinition()
         defi.set_simulation_function(expr_sim_function)
         defi.name = name
-        defi.group_name = groupName
+        defi.group_name = group_name
         defi.sim_delay = sim_delay
-        defi.input_slots_info = inputs._native
-        defi.output_slots_info = outputs._native
+        defi.input_slots_info = inputs
+        defi.output_slots_info = outputs
         defi.op_info = op_info._native
         return defi
 
     @staticmethod
     def from_expressions(
         name: str,
-        groupName: str,
+        group_name: str,
         inputs: SlotsGroupInfo,
         outputs: SlotsGroupInfo,
         sim_delay: datetime.timedelta,
@@ -81,29 +90,29 @@ class ComponentDefinition(NativeComponentDefinition):
         defi = ComponentDefinition()
         defi.set_simulation_function(expr_sim_function)
         defi.name = name
-        defi.group_name = groupName
+        defi.group_name = group_name
         defi.sim_delay = sim_delay
-        defi.input_slots_info = inputs._native
-        defi.output_slots_info = outputs._native
+        defi.input_slots_info = inputs
+        defi.output_slots_info = outputs
         defi.output_expressions = expressions
         return defi
 
     @staticmethod
     def from_sim_fn(
         name: str,
-        groupName: str,
+        group_name: str,
         inputs: SlotsGroupInfo,
         outputs: SlotsGroupInfo,
         sim_delay: datetime.timedelta,
-        simFn: Callable,
+        sim_function: Callable,
     ) -> "ComponentDefinition":
         defi = ComponentDefinition()
-        defi.set_simulation_function(simFn)
+        defi.set_simulation_function(sim_function)
         defi.name = name
-        defi.group_name = groupName
+        defi.group_name = group_name
         defi.sim_delay = sim_delay
-        defi.input_slots_info = inputs._native
-        defi.output_slots_info = outputs._native
+        defi.input_slots_info = inputs
+        defi.output_slots_info = outputs
         return defi
 
 

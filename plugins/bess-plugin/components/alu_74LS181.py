@@ -233,11 +233,11 @@ out_info.count = len(out_info.names)
 
 dm74ls181 = ComponentDefinition.from_sim_fn(
     name="DM74LS181 ALU (Verified)",
-    groupName="TTL 74 Series",
+    group_name="TTL 74 Series",
     inputs=inp_info,
     outputs=out_info,
     sim_delay=datetime.timedelta(microseconds=25 / 1000),
-    simFn=_simulate_74ls181_schematic_verified,
+    sim_function=_simulate_74ls181_schematic_verified,
 )
 
 __all__ = ["dm74ls181"]

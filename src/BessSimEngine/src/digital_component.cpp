@@ -1,6 +1,8 @@
 #include "digital_component.h"
 #include "event_dispatcher.h"
 #include "events/sim_engine_events.h"
+#include "types.h"
+#include <iostream>
 
 namespace Bess::SimEngine {
     DigitalComponent::DigitalComponent(const std::shared_ptr<ComponentDefinition> &def) {

@@ -30,7 +30,6 @@ namespace Bess::Plugins {
             }
         }
 
-        py::gil_scoped_release release;
         return components;
     }
 
@@ -45,8 +44,6 @@ namespace Bess::Plugins {
                 reg.emplace(key, std::move(hook));
             }
         }
-
-        py::gil_scoped_release release;
     }
 
     const pybind11::object &PluginHandle::getPluginObject() const {

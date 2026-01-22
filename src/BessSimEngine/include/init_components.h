@@ -35,7 +35,7 @@ namespace Bess::SimEngine {
             addTrait<ClockTrait>();
         }
 
-        SimTime getRescheduleDelay() override {
+        SimTime getRescheduleTime(SimTime currentTime) const override {
             const auto &clockTrait = getTrait<ClockTrait>();
             double f = clockTrait->frequency;
             if (clockTrait->frequencyUnit == FrequencyUnit::kHz) {
@@ -49,11 +49,13 @@ namespace Bess::SimEngine {
             }
 
             const double period = 1 / f;
-            const double phase = clockTrait->high
-                                     ? period * clockTrait->dutyCycle
-                                     : period * (1.0 - clockTrait->dutyCycle);
+            double phase = clockTrait->high
+                               ? period * clockTrait->dutyCycle
+                               : period * (1.0 - clockTrait->dutyCycle);
+            const auto nanoSeconds = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::duration<double>(phase));
 
-            return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(phase));
+            return currentTime + nanoSeconds;
         }
 
         void onStateChange(const ComponentState &oldState,
@@ -97,73 +99,6 @@ namespace Bess::SimEngine {
 						return newState; });
         outDef->setSimDelay(SimDelayNanoSeconds(0));
         catalog.registerComponent(outDef);
-
-        // ComponentDefinition stateMonDef = {"State Monitor", "IO", 1, 0,
-        //                                    [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
-        //                                        auto newState = prevState;
-        //                                        newState.isChanged = false;
-        //                                        if (inputs.size() == 0) {
-        //                                            return newState;
-        //                                        }
-        //                                        newState.inputStates = inputs;
-        //                                        return newState;
-        //                                    },
-        //                                    SimDelayNanoSeconds(0)};
-        // stateMonDef.inputPinDetails = {{PinType::input, ""}};
-        // ComponentCatalog::instance().registerComponent(stateMonDef, ComponentCatalog::SpecialType::stateMonitor);
-        //
-        // ComponentCatalog::instance().registerComponent({"7-Seg Display Driver", "IO", 4, 7,
-        //                                                 [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
-        //                                                     auto newState = prevState;
-        //                                                     newState.inputStates = inputs;
-        //                                                     const bool connected = std::ranges::any_of(prevState.inputConnected, [](bool b) { return b; });
-        //                                                     int dec = connected ? 0 : -1;
-        //                                                     for (int i = 0; i < (int)inputs.size() && connected; i++) {
-        //                                                         if (inputs[i])
-        //                                                             dec |= 1 << i;
-        //                                                     }
-        //
-        //                                                     constexpr std::array<int, 16> digitToSegment = {
-        //                                                         0b0111111,
-        //                                                         0b00000110,
-        //                                                         0b01011011,
-        //                                                         0b01001111,
-        //                                                         0b01100110,
-        //                                                         0b01101101,
-        //                                                         0b01111101,
-        //                                                         0b00000111,
-        //                                                         0b01111111,
-        //                                                         0b01101111,
-        //                                                         0b01110111,
-        //                                                         0b01111100,
-        //                                                         0b00111001,
-        //                                                         0b01011110,
-        //                                                         0b01111001,
-        //                                                         0b01110001};
-        //
-        //                                                     const auto val = dec == -1 ? 0 : digitToSegment[dec];
-        //
-        //                                                     bool changed = false;
-        //                                                     for (int i = 0; i < (int)prevState.outputStates.size(); i++) {
-        //                                                         bool out = val & (1 << i);
-        //                                                         changed = changed || out != (bool)prevState.outputStates[i];
-        //                                                         newState.outputStates[i] = out;
-        //                                                     }
-        //                                                     newState.isChanged = changed;
-        //
-        //                                                     return newState;
-        //                                                 },
-        //                                                 SimDelayNanoSeconds(0)});
-        //
-        // ComponentDefinition def = {"Seven Segment Display", "IO", 7, 0,
-        //                            [&](const std::vector<PinState> &inputs, SimTime currentTime, const ComponentState &prevState) -> ComponentState {
-        //                                auto newState = prevState;
-        //                                newState.inputStates = inputs;
-        //                                newState.isChanged = false;
-        //                                return newState;
-        //                            },
-        //                            SimDelayNanoSeconds(0)};
-        // ComponentCatalog::instance().registerComponent(def, ComponentCatalog::SpecialType::sevenSegmentDisplay);
     }
 
     inline void initComponentCatalog() {

@@ -64,6 +64,16 @@ class PyComponentDefinition : public ComponentDefinition,
         py::gil_scoped_acquire gil;
         return ComponentDefinition::getSimFunctionCopy();
     }
+
+    SimTime getRescheduleTime(SimTime currentTime) const override {
+        PYBIND11_OVERRIDE_NAME(
+            SimTime,
+            ComponentDefinition,
+            "get_reschedule_time", // very important to match the Python name
+            getRescheduleTime,
+            currentTime // in nano seconds
+        );
+    }
 };
 
 template <typename T>
@@ -143,7 +153,7 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         .def("get_hash", &ComponentDefinition::getHash)
         .def("clone", &ComponentDefinition::clone)
         .def("compute_hash", &ComponentDefinition::computeHash)
-        .def("get_hash", &ComponentDefinition::getHash)
+        .def("get_reschedule_time", &ComponentDefinition::getRescheduleTime)
         .DEF_PROP_STR_GSET("name", Name)
         .DEF_PROP_STR_GSET("group_name", GroupName)
         .DEF_PROP_GSET_T(bool, "should_auto_reschedule", ShouldAutoReschedule)
