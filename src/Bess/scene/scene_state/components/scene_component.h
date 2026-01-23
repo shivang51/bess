@@ -67,7 +67,7 @@ namespace Bess::Canvas {
         void setScale(const glm::vec2 &scale);
 
         virtual SceneComponentType getType() const {
-            return SceneComponentType::nonSimulation;
+            return SceneComponentType::_base;
         }
 
         template <typename T>

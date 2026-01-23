@@ -4,6 +4,7 @@
 #include "init_components.h"
 #include "scene/scene.h"
 #include "scene/scene_state/components/connection_scene_component.h"
+#include "scene/scene_state/components/non_sim_scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/sim_scene_component.h"
 #include "scene/scene_state/components/slot_scene_component.h"
@@ -137,6 +138,9 @@ namespace Bess::UI {
         } else if (compType == Canvas::SceneComponentType::connection) {
             auto connComp = comp->cast<Canvas::ConnectionSceneComponent>();
             drawConnectionComponent(connComp);
+        } else if (compType == Canvas::SceneComponentType::nonSimulation) {
+            auto nsComp = comp->cast<Canvas::NonSimSceneComponent>();
+            nsComp->getUIHook().draw();
         }
 
         ImGui::End();

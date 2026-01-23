@@ -9,10 +9,11 @@ namespace Bess::Canvas {
         showInProjectExplorer = 1 << 7,
     };
 
-    enum class SceneComponentType : uint8_t {
-        simulation = 0 | (uint8_t)SceneComponentTypeFlag::showInProjectExplorer,
+    enum class SceneComponentType : int8_t {
+        _base = -1,
+        simulation = 0 | (int8_t)SceneComponentTypeFlag::showInProjectExplorer,
         slot = 1,
-        nonSimulation = 2 | (uint8_t)SceneComponentTypeFlag::showInProjectExplorer,
+        nonSimulation = 2 | (int8_t)SceneComponentTypeFlag::showInProjectExplorer,
         connection = 3,
     };
 
