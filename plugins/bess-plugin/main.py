@@ -25,7 +25,7 @@ class BessPlugin(Plugin):
             seven_segment_display.seven_seg_disp_def,
             seven_segment_display_driver.seven_seg_disp_driver_def,
             dm74ls181,
-            clock.clock_def,
+            # clock.clock_def, WILL ADD BACK LATER (POST UI HOOK ARCHITECUTRE)
         ]
 
     @override
