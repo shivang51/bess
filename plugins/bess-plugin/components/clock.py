@@ -9,6 +9,8 @@ from bessplug.api.sim_engine import (
     SlotsGroupInfo,
 )
 
+from bessplug.api.ui import ui_hook
+
 
 class FrequencyUnit(Enum):
     HZ = "Hz"
@@ -25,7 +27,7 @@ class ClockDefinition(ComponentDefinition):
         self.simulation_function = ClockDefinition._simulate_clock
         self.input_slots_info = SlotsGroupInfo()
 
-        # FIXME: the mutation of set type should work, using workaround for now
+        # FIXME: the mutation of set value should work, using workaround for now
         ouput_info = SlotsGroupInfo()
         ouput_info.count = 1
         self.output_slots_info = ouput_info
@@ -97,6 +99,27 @@ class ClockDefinition(ComponentDefinition):
         return new_state
 
 
-clock_def = ClockDefinition()
+# describes the properties to be shown in properties panel of the UI
+def get_ui_hook():
+    prop = ui_hook.PropertyDesc()
+    prop.name = "Frequency"
+    prop.type = ui_hook.PropertyDescType.float_t
+    prop.default_value = 1.0
+    prop.constraints = ui_hook.float_constraint(0.1, 5, 0.1)
 
-__all__ = ["clock_def"]
+    unit_prop = ui_hook.PropertyDesc()
+    unit_prop.name = "Unit"
+    unit_prop.type = ui_hook.PropertyDescType.enum_t
+    unit_prop.default_value = FrequencyUnit.HZ.value
+    unit_prop.constraints = ui_hook.EnumConstraintsBuilder.for_enum(FrequencyUnit)
+
+    hook = ui_hook.UIHook()
+    hook.add_property(prop)
+    hook.add_property(unit_prop)
+    return hook
+
+
+clock_def = ClockDefinition()
+clock_ui_hook = get_ui_hook()
+
+__all__ = ["clock_def", "clock_ui_hook"]

@@ -16,6 +16,7 @@ void bind_path_renderer(py::module_ &m);
 void bind_material_renderer(py::module_ &m);
 void bind_scene_common_binding(py::module_ &m);
 void bind_asset_manager(py::module_ &m);
+void bind_ui_hook(py::module_ &m);
 
 PYBIND11_MODULE(_bindings, m) {
     m.doc() = "BESS Python bindings";
@@ -26,6 +27,7 @@ PYBIND11_MODULE(_bindings, m) {
     auto scene = m.def_submodule("scene", "Scene bindings");
     auto renderer = scene.def_submodule("renderer", "Scene Renderer bindings");
     auto assetMgr = m.def_submodule("asset_manager", "Asset Manager bindings");
+    auto uiHook = m.def_submodule("ui_hook", "UI Hook bindings");
 
     // Common
     bind_common_bindings(common);
@@ -47,4 +49,7 @@ PYBIND11_MODULE(_bindings, m) {
 
     // Asset Manager
     bind_asset_manager(assetMgr);
+
+    // UI Hook
+    bind_ui_hook(uiHook);
 }
