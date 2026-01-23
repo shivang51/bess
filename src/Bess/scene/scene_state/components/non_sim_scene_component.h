@@ -3,6 +3,8 @@
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/styles/comp_style.h"
+#include "scene/scene_state/scene_state.h"
+#include "settings/viewport_theme.h"
 #include "ui/ui_hook.h"
 #include <typeindex>
 
@@ -52,7 +54,8 @@ namespace Bess::Canvas {
                         return m_data;
                     },
                     .setter = [&](const UI::Hook::PropertyValue &value) {
-                        m_data = std::get<std::string>(value); // to move bracket;
+                        m_data = std::get<std::string>(value);
+                        m_isScaleDirty = true; // to move bracket;
                     },
                 },
             });
@@ -75,44 +78,33 @@ namespace Bess::Canvas {
             m_uiHook.addPropertyDescriptor(UI::Hook::PropertyDesc{
                 .name = "Color",
                 .type = UI::Hook::PropertyDescType::color_t,
-                .defaultValue = m_style.color,
+                .defaultValue = m_foregroundColor,
                 .binding = {
                     .getter = [&]() -> const glm::vec4 & {
-                        return m_style.color;
+                        return m_foregroundColor;
                     },
                     .setter = [&](const UI::Hook::PropertyValue &value) {
-                        m_style.color = std::get<glm::vec4>(value); // to move bracket;
+                        m_foregroundColor = std::get<glm::vec4>(value); // to move bracket;
                     },
                 },
             });
+
+            m_style.color = ViewportTheme::colors.componentBG;
+            m_style.borderRadius = glm::vec4(6.f);
+            m_style.borderSize = glm::vec4(1.f);
+            m_style.color = ViewportTheme::colors.componentBG;
         } // namespace Bess::Canvas
 
         void draw(SceneState &state,
                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                  std::shared_ptr<PathRenderer> pathRenderer) override {
-            if (m_isFirstDraw) {
-                onFirstDraw(state, materialRenderer, pathRenderer);
-                m_isFirstDraw = false;
-            }
-
-            if (m_isScaleDirty) {
-                m_transform.scale = calculateScale(materialRenderer);
-                m_isScaleDirty = false;
-            }
-
-            materialRenderer->drawText(m_data, m_transform.position, m_size, m_style.color, PickingId{m_runtimeId, 0});
-        }
+                  std::shared_ptr<PathRenderer> pathRenderer) override;
 
       private:
-        glm::vec2 calculateScale(std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) override {
-            auto textSize = materialRenderer->getTextRenderSize(m_data, (float)m_size);
-            textSize.y += Styles::componentStyles.paddingY * 2.f;
-            textSize.x += Styles::componentStyles.paddingX * 2.f;
-            return textSize;
-        }
+        glm::vec2 calculateScale(std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) override;
 
       private:
         std::string m_data = "New Text";
+        glm::vec4 m_foregroundColor = glm::vec4(1.f);
         size_t m_size = 12.f;
         bool m_isScaleDirty = true;
     };
