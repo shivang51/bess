@@ -6,6 +6,7 @@
 #include "scene/scene_state/components/connection_scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/sim_scene_component.h"
+#include "scene/scene_state/components/slot_scene_component.h"
 #include "simulation_engine.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/widgets/m_widgets.h"
@@ -53,11 +54,13 @@ namespace Bess::UI {
         return opened;
     }
 
-    void drawClockTrait(const std::shared_ptr<SimEngine::ClockTrait> &trait, const UUID &uuid) {
+    bool drawClockTrait(const std::shared_ptr<SimEngine::ClockTrait> &trait, const UUID &uuid) {
+        bool changed = false;
         if (MyCollapsingHeader("Input Behaviour")) {
             if (ImGui::SliderFloat("Frequency", &trait->frequency, 0.1f, 3.0f, "%.1f Hz", ImGuiSliderFlags_AlwaysClamp)) {
                 const float stepSize = 0.1f;
                 trait->frequency = roundf(trait->frequency / stepSize) * stepSize; // Force step increments
+                changed = true;
             }
 
             static std::vector<std::string> frequencies = {"Hz", "kHz", "MHz"};
@@ -65,9 +68,11 @@ namespace Bess::UI {
             if (UI::Widgets::ComboBox("Unit", currFreq, frequencies)) {
                 auto idx = std::distance(frequencies.begin(), std::ranges::find(frequencies, currFreq));
                 trait->frequencyUnit = static_cast<SimEngine::FrequencyUnit>(idx);
+                changed = true;
             }
             ImGui::Unindent();
         }
+        return changed;
     }
 
     void drawConnectionComponent(const std::shared_ptr<Canvas::ConnectionSceneComponent> &comp) {
@@ -107,7 +112,27 @@ namespace Bess::UI {
             auto &def = simEngine.getComponentDefinition(simComp->getSimEngineId());
 
             if (def->hasTrait<SimEngine::ClockTrait>()) {
-                drawClockTrait(def->getTrait<SimEngine::ClockTrait>(), compId);
+                bool changed = drawClockTrait(def->getTrait<SimEngine::ClockTrait>(), compId);
+                if (changed) {
+                    auto &def = simEngine.getComponentDefinition(simComp->getSimEngineId());
+                    const auto &trait = def->getTrait<SimEngine::ClockTrait>();
+
+                    std::string frequencyUnitStr;
+                    switch (trait->frequencyUnit) {
+                    case SimEngine::FrequencyUnit::hz:
+                        frequencyUnitStr = "Hz";
+                        break;
+                    case SimEngine::FrequencyUnit::kHz:
+                        frequencyUnitStr = "kHz";
+                        break;
+                    case SimEngine::FrequencyUnit::MHz:
+                        frequencyUnitStr = "MHz";
+                        break;
+                    }
+                    def->getOutputSlotsInfo().names[0] = std::format("{:.2f}", trait->frequency) + frequencyUnitStr;
+                    const auto &slotComp = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(simComp->getOutputSlots()[0]);
+                    slotComp->setName(def->getOutputSlotsInfo().names[0]);
+                }
             }
         } else if (compType == Canvas::SceneComponentType::connection) {
             auto connComp = comp->cast<Canvas::ConnectionSceneComponent>();

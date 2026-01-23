@@ -20,7 +20,7 @@ namespace Bess::SimEngine {
         ClockDefinition(const std::string &groupName) {
             m_name = "Clock";
             m_groupName = groupName;
-            m_outputSlotsInfo = {SlotsGroupType::output, false, 1, {"", ""}, {}};
+            m_outputSlotsInfo = {SlotsGroupType::output, false, 1, {"1.00Hz"}, {}};
             setSimulationFunction([](auto &, auto ts, const auto &oldState) -> ComponentState {
             auto newState = oldState;
 						newState.outputStates[0].state = oldState.outputStates[0].state == LogicState::low 
