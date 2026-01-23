@@ -7,8 +7,6 @@
 #include "simulation_engine.h"
 #include <algorithm>
 
-using namespace Bess::Canvas::Components;
-
 namespace Bess {
 
     void SceneSerializer::serializeToPath(const std::string &path, int indent) {

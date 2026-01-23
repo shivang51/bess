@@ -12,17 +12,17 @@
 #include "pages/main_page/main_page_state.h"
 #include "plugin_manager.h"
 #include "scene/commands/add_command.h"
-#include "scene/components/non_sim_comp.h"
 #include "scene/renderer/material_renderer.h"
 #include "scene/scene_state/components/connection_scene_component.h"
+#include "scene/scene_state/components/non_sim_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/sim_scene_component.h"
 #include "scene/scene_state/components/slot_scene_component.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
-#include "ui/ui.h"
 #include "ui/ui_main/ui_main.h"
 #include "vulkan_core.h"
+#include <GLFW/glfw3.h>
 #include <cstdint>
 #include <memory>
 #include <ranges>
@@ -32,6 +32,7 @@ namespace Bess::Canvas {
     Scene::Scene() {
         reset();
         loadComponentFromPlugins();
+        registerNonSimComponents();
         auto &dispatcher = EventSystem::EventDispatcher::instance();
         dispatcher.sink<Events::SlotClickedEvent>().connect<&Scene::onSlotClicked>(this);
         dispatcher.sink<SimEngine::Events::CompDefOutputsResizedEvent>().connect<&Scene::onCompDefOutputsResized>(this);
@@ -316,36 +317,11 @@ namespace Bess::Canvas {
         return sceneComp->getUuid();
     }
 
-    UUID Scene::createNonSimEntity(const Canvas::Components::NSComponent &comp, const glm::vec2 &pos) {
-        return UUID::null;
-        // using namespace Canvas::Components;
-        // auto entity = m_registry.create();
-        // const auto &idComp = m_registry.emplace<Components::IdComponent>(entity);
-        // auto &nonSimComp = m_registry.emplace<Components::NSComponent>(entity);
-        // auto &tag = m_registry.emplace<Components::TagComponent>(entity);
-        // auto &transformComp = m_registry.emplace<Components::TransformComponent>(entity);
-        //
-        // tag.name = comp.name;
-        // tag.type.nsCompType = comp.type;
-        // nonSimComp.type = comp.type;
-        //
-        // transformComp.position = glm::vec3(pos, getNextZCoord());
-        // transformComp.scale = glm::vec2(0.f, 0.f);
-        //
-        // switch (comp.type) {
-        // case Components::NSComponentType::text: {
-        //     auto &textComp = m_registry.emplace<Components::TextNodeComponent>(entity);
-        //     textComp.text = "New Text";
-        //     textComp.fontSize = 20.f;
-        //     textComp.color = ViewportTheme::colors.text;
-        // } break;
-        // default:
-        //     break;
-        // }
-        // BESS_INFO("[Scene] Created Non simulation entity {}", (uint64_t)entity);
-        // setLastCreatedComp({.nsComponent = comp});
-        // Events::EventDispatcher::instance().trigger(Events::ComponentCreatedEvent{idComp.uuid, false});
-        // return idComp.uuid;
+    UUID Scene::createNonSimEntity(std::type_index tIdx, const glm::vec2 &pos) {
+        auto inst = NonSimSceneComponent::getInstance(tIdx);
+        inst->setPosition(glm::vec3(getSnappedPos(pos), getNextZCoord()));
+        m_state.addComponent<NonSimSceneComponent>(inst);
+        return inst->getUuid();
     }
 
     void Scene::deleteSceneEntity(const UUID &entUuid) {
@@ -615,7 +591,7 @@ namespace Bess::Canvas {
         for (auto &comp : m_copiedComponents) {
             data = {};
 
-            if (comp.nsComp.type == Canvas::Components::NSComponentType::EMPTY) {
+            if (comp.nsComp == typeid(void)) {
                 data.def = comp.def;
                 data.inputCount = comp.inputCount;
                 data.outputCount = comp.outputCount;
@@ -1118,5 +1094,9 @@ namespace Bess::Canvas {
         for (const auto &plugin : pluginManger.getLoadedPlugins()) {
             plugin.second->cleanup();
         }
+    }
+
+    void Scene::registerNonSimComponents() {
+        NonSimSceneComponent::registerComponent<TextComponent>("Text Component");
     }
 } // namespace Bess::Canvas

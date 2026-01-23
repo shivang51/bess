@@ -6,6 +6,7 @@
 #include "imgui_internal.h"
 #include "scene/commands/add_command.h"
 #include "scene/scene.h"
+#include "scene/scene_state/components/non_sim_scene_component.h"
 #include "ui/widgets/m_widgets.h"
 #include <utility>
 
@@ -31,10 +32,10 @@ namespace Bess::UI {
         isShown = false;
     }
 
-    void ComponentExplorer::createComponent(const Canvas::Components::NSComponent &comp) {
+    void ComponentExplorer::createComponent(std::type_index tIdx) {
         auto scene = Canvas::Scene::instance();
         Canvas::Commands::AddCommandData data;
-        data.nsComp = comp;
+        data.nsComp = tIdx;
         data.pos = scene->getCameraPos();
         auto &cmdManager = scene->getCmdManager();
         const auto res = cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{data});
@@ -134,16 +135,13 @@ namespace Bess::UI {
 
         // non simulation components
         if (Widgets::TreeNode(++key, "Miscellaneous", ImGuiTreeNodeFlags_DefaultOpen)) {
-            static auto nonSimComponents = Canvas::Components::getNSComponents();
+            static auto nonSimComponents = Canvas::NonSimSceneComponent::registry;
             for (auto &comp : nonSimComponents) {
-                if (m_searchQuery != "" && Common::Helpers::toLowerCase(comp.name).find(m_searchQuery) == std::string::npos)
+                if (m_searchQuery != "" && Common::Helpers::toLowerCase(comp.second).find(m_searchQuery) == std::string::npos)
                     continue;
 
-                const std::string name = Common::Helpers::getComponentIcon(comp.type) +
-                                         "  " + comp.name;
-
-                if (Widgets::ButtonWithPopup(name, "", false)) {
-                    createComponent(comp);
+                if (Widgets::ButtonWithPopup(comp.second, "", false)) {
+                    createComponent(comp.first);
                 }
             }
 

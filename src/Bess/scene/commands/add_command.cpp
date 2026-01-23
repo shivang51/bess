@@ -34,7 +34,7 @@ namespace Bess::Canvas::Commands {
                 continue;
             }
 
-            if (data.nsComp.type == Components::NSComponentType::EMPTY) {
+            if (data.nsComp == typeid(void)) {
                 simAddCmdData.emplace_back(data.def, data.inputCount, data.outputCount);
             } else {
                 m_compIds.emplace_back(scene->createNonSimEntity(data.nsComp, data.pos));

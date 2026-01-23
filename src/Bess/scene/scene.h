@@ -8,12 +8,12 @@
 #include "events/scene_events.h"
 #include "events/sim_engine_events.h"
 #include "scene/camera.h"
-#include "scene/components/non_sim_comp.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/sim_scene_comp_draw_hook.h"
 #include "scene/scene_state/scene_state.h"
 #include "scene/viewport.h"
 #include <memory>
+#include <typeindex>
 #include <vulkan/vulkan_core.h>
 
 // Forward declaration
@@ -35,7 +35,7 @@ namespace Bess::Canvas {
 
     struct LastCreatedComponent {
         std::shared_ptr<SimEngine::ComponentDefinition> componentDefinition;
-        Components::NSComponent nsComponent;
+        std::type_index nsComponent = typeid(void);
         bool set = false;
     };
 
@@ -91,8 +91,7 @@ namespace Bess::Canvas {
         UUID createSimEntity(const UUID &simEngineId,
                              const std::shared_ptr<SimEngine::ComponentDefinition> &def,
                              const glm::vec2 &pos);
-        UUID createNonSimEntity(const Canvas::Components::NSComponent &comp,
-                                const glm::vec2 &pos);
+        UUID createNonSimEntity(std::type_index tIdx, const glm::vec2 &pos);
 
         void deleteSceneEntity(const UUID &entUuid);
         void deleteSelectedSceneEntities();
@@ -164,6 +163,8 @@ namespace Bess::Canvas {
         void loadComponentFromPlugins();
         void cleanupPlugins();
 
+        void registerNonSimComponents();
+
       private:
         SceneState m_state;
 
@@ -190,7 +191,7 @@ namespace Bess::Canvas {
         LastCreatedComponent m_lastCreatedComp = {};
         struct CopiedComponent {
             std::shared_ptr<SimEngine::ComponentDefinition> def;
-            Components::NSComponent nsComp;
+            std::type_index nsComp = typeid(void);
             int inputCount, outputCount;
         };
 

@@ -22,13 +22,14 @@ namespace Bess::SimEngine {
             m_groupName = groupName;
             m_outputSlotsInfo = {SlotsGroupType::output, false, 1, {"1.00Hz"}, {}};
             setSimulationFunction([](auto &, auto ts, const auto &oldState) -> ComponentState {
-            auto newState = oldState;
-						newState.outputStates[0].state = oldState.outputStates[0].state == LogicState::low 
-						? LogicState::high 
-						: LogicState::low;
-						newState.outputStates[0].lastChangeTime = ts;
-						newState.isChanged = true;
-						return newState; });
+                auto newState = oldState;
+                newState.outputStates[0].state = oldState.outputStates[0].state == LogicState::low
+                                                     ? LogicState::high
+                                                     : LogicState::low;
+                newState.outputStates[0].lastChangeTime = ts;
+                newState.isChanged = true;
+                return newState;
+            });
 
             m_shouldAutoReschedule = true;
             m_simDelay = SimDelayNanoSeconds(0);

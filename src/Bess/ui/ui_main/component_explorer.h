@@ -7,6 +7,7 @@
 #include "common/helpers.h"
 
 #include <string>
+#include <typeindex>
 
 namespace Bess::UI {
 
@@ -20,7 +21,7 @@ namespace Bess::UI {
 
       private:
         static void createComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def, int inputCount, int outputCount);
-        static void createComponent(const Canvas::Components::NSComponent &comp);
+        static void createComponent(std::type_index tIdx);
 
       private:
         static std::string m_searchQuery;
