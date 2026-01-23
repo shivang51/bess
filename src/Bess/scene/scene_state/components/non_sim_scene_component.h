@@ -2,7 +2,6 @@
 
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
-#include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
 #include "ui/ui_hook.h"
@@ -118,3 +117,11 @@ namespace Bess::Canvas {
     };
 
 } // namespace Bess::Canvas
+
+namespace Bess::JsonConvert {
+    void toJsonValue(const Bess::Canvas::NonSimSceneComponent &component, Json::Value &j);
+    void fromJsonValue(const Json::Value &j, Bess::Canvas::NonSimSceneComponent &component);
+
+    void toJsonValue(const Bess::Canvas::TextComponent &component, Json::Value &j);
+    void fromJsonValue(const Json::Value &j, Bess::Canvas::TextComponent &component);
+} // namespace Bess::JsonConvert

@@ -85,6 +85,7 @@ namespace Bess::Canvas {
                                        pickingId,
                                        props);
 
+            // header
             props = {};
             props.angle = m_transform.angle;
             props.borderSize = glm::vec4(0.f);
@@ -94,7 +95,6 @@ namespace Bess::Canvas {
                                            m_style.borderRadius.y - m_style.borderSize.y);
             props.isMica = true;
 
-            // header
             const float headerHeight = Styles::componentStyles.headerHeight;
             const auto headerPos = glm::vec3(m_transform.position.x,
                                              m_transform.position.y - (m_transform.scale.y / 2.f) + (headerHeight / 2.f),
