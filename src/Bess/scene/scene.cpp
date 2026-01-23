@@ -563,22 +563,19 @@ namespace Bess::Canvas {
             const auto comp = m_state.getComponentByUuid(selId);
             const bool isSimComp = comp->getType() == SceneComponentType::simulation;
             const bool isNonSimComp = comp->getType() == SceneComponentType::nonSimulation;
+            CopiedComponent compData{};
             if (isSimComp) {
                 const auto casted = comp->cast<SimulationSceneComponent>();
-                CopiedComponent compData{};
                 compData.def = simEngine.getComponentDefinition(casted->getSimEngineId());
                 compData.inputCount = (int)casted->getInputSlotsCount();
                 compData.outputCount = (int)casted->getOutputSlotsCount();
-                m_copiedComponents.emplace_back(compData);
             } else if (isNonSimComp) {
-                // const auto nsCompView = m_registry.view<Components::SelectedComponent, Components::NSComponent>();
-                // for (const auto entt : nsCompView) {
-                //     const auto &comp = nsCompView.get<Components::NSComponent>(entt);
-                //     CopiedComponent compData{};
-                //     compData.nsComp = comp;
-                //     m_copiedComponents.emplace_back(compData);
-                // }
+                const auto casted = comp->cast<NonSimSceneComponent>();
+                compData.nsComp = casted->getTypeIndex();
+            } else {
+                continue;
             }
+            m_copiedComponents.emplace_back(compData);
         }
     }
 

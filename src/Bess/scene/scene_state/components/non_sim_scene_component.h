@@ -31,6 +31,10 @@ namespace Bess::Canvas {
 
         MAKE_GETTER_SETTER(UI::Hook::UIHook, UIHook, m_uiHook)
 
+        virtual std::type_index getTypeIndex() {
+            return {typeid(void)};
+        }
+
       protected:
         UI::Hook::UIHook m_uiHook;
 
@@ -98,6 +102,10 @@ namespace Bess::Canvas {
         void draw(SceneState &state,
                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                   std::shared_ptr<PathRenderer> pathRenderer) override;
+
+        std::type_index getTypeIndex() override {
+            return typeid(TextComponent);
+        }
 
       private:
         glm::vec2 calculateScale(std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) override;
