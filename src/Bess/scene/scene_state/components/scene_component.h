@@ -88,7 +88,7 @@ namespace Bess::Canvas {
 
         void setIsSelected(bool selected);
 
-        glm::vec3 getAbsolutePosition(const SceneState &state) const;
+        virtual glm::vec3 getAbsolutePosition(const SceneState &state) const;
 
         // Cleanup function
         // Default implementation removes all child components recursively

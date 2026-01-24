@@ -6,6 +6,7 @@
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
+#include "scene/scene_state/scene_state.h"
 
 namespace Bess::Canvas {
 
@@ -31,6 +32,8 @@ namespace Bess::Canvas {
         void onMouseEnter(const Events::MouseEnterEvent &e) override;
         void onMouseLeave(const Events::MouseLeaveEvent &e) override;
 
+        void onMouseButton(const Events::MouseButtonEvent &e) override;
+
         REG_SCENE_COMP(SceneComponentType::connection)
 
         MAKE_GETTER(UUID, StartSlot, m_startSlot)
@@ -44,6 +47,8 @@ namespace Bess::Canvas {
 
         std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
 
+        glm::vec3 getSegVertexPos(const SceneState &state, size_t vertexIdx);
+
       private:
         void onFirstDraw(SceneState &sceneState,
                          std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
@@ -53,11 +58,14 @@ namespace Bess::Canvas {
                           const glm::vec3 &startPos,
                           const glm::vec3 &endPos,
                           const glm::vec4 &color,
-                          std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer);
+                          const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer);
 
+        void resetSegmentPositionCache(const SceneState &state);
         UUID m_startSlot = UUID::null;
         UUID m_endSlot = UUID::null;
         std::vector<ConnSegment> m_segments;
+        std::vector<glm::vec3> m_segmentCachedPositions;
+        bool m_segmentPosCacheDirty = true;
         int m_draggedSegIdx = -1;
         int m_hoveredSegIdx = -1;
         bool m_useCustomColor = false;

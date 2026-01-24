@@ -13,6 +13,7 @@
 #include "plugin_manager.h"
 #include "scene/commands/add_command.h"
 #include "scene/renderer/material_renderer.h"
+#include "scene/scene_state/components/conn_joint_scene_component.h"
 #include "scene/scene_state/components/connection_scene_component.h"
 #include "scene/scene_state/components/non_sim_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -38,6 +39,7 @@ namespace Bess::Canvas {
         dispatcher.sink<SimEngine::Events::CompDefOutputsResizedEvent>().connect<&Scene::onCompDefOutputsResized>(this);
         dispatcher.sink<SimEngine::Events::CompDefInputsResizedEvent>().connect<&Scene::onCompDefInputsResized>(this);
         dispatcher.sink<Events::ConnectionRemovedEvent>().connect<&Scene::onConnectionRemoved>(this);
+        dispatcher.sink<Events::ConnSegClickEvent>().connect<&Scene::onConnSegClicked>(this);
     }
 
     Scene::~Scene() {
@@ -726,6 +728,14 @@ namespace Bess::Canvas {
 
     bool Scene::isHoveredEntityValid() {
         return m_pickingId.isValid();
+    }
+
+    void Scene::onConnSegClicked(const Events::ConnSegClickEvent &e) {
+        if (e.action == Events::MouseClickAction::release &&
+            Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
+            auto jointComp = std::make_shared<ConnJointSceneComp>(e.connectionId, e.segIdx);
+            m_state.addComponent<ConnJointSceneComp>(jointComp);
+        }
     }
 
     void Scene::onSlotClicked(const Events::SlotClickedEvent &e) {

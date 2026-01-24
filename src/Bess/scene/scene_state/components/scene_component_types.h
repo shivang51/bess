@@ -15,6 +15,7 @@ namespace Bess::Canvas {
         slot = 1,
         nonSimulation = 2 | (int8_t)SceneComponentTypeFlag::showInProjectExplorer,
         connection = 3,
+        connJoint = 4,
     };
 
     class Transform {

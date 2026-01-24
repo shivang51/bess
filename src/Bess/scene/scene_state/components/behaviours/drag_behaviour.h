@@ -6,6 +6,10 @@ namespace Bess::Canvas {
     template <typename Derived>
     class DragBehaviour {
       public:
+        DragBehaviour() {
+            initDragBehaviour();
+        }
+
         virtual void onMouseDragged(const Events::MouseDraggedEvent &e) {
             if (!m_isDragging) {
                 onMouseDragBegin(e);
@@ -18,12 +22,6 @@ namespace Bess::Canvas {
 
         void onMouseDragEnd() {
             m_isDragging = false;
-        }
-
-      private:
-        DragBehaviour() {
-            auto &self = static_cast<Derived &>(*this);
-            self.setIsDraggable(true);
         }
 
       protected:

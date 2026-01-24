@@ -1,5 +1,7 @@
 #include "scene/scene_state/components/connection_scene_component.h"
 #include "commands/commands.h"
+#include "common/log.h"
+#include "event_dispatcher.h"
 #include "fwd.hpp"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
@@ -19,53 +21,38 @@ namespace Bess::Canvas {
                                                 const glm::vec3 &startPos,
                                                 const glm::vec3 &endPos,
                                                 const glm::vec4 &color,
-                                                std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+                                                const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer) {
+
+        if (startPos != m_segmentCachedPositions.front() ||
+            endPos != m_segmentCachedPositions.back()) {
+            resetSegmentPositionCache(state);
+        }
 
         const float weight = state.getIsSchematicView()
                                  ? Styles::compSchematicStyles.strokeSize
                                  : 2.f;
-        const float offsetXDecr = state.getIsSchematicView() ? Styles::compSchematicStyles.pinSize : 0.f;
-        auto pos = startPos;
-        pos.z = 0.5f;
-        auto prevPos = pos;
+
         PickingId pickingId{m_runtimeId, 0};
+
+        auto pos = m_segmentCachedPositions[0];
+        pos.z = 0.5f;
         pathRenderer->beginPathMode(pos,
                                     m_hoveredSegIdx == 0 ? 3 : weight,
                                     color, pickingId);
 
-        int segmentIndex = 0;
-        for (auto &segment : m_segments) {
-            pos += glm::vec3(segment.offset, 0);
-            if (segment.orientation == ConnSegOrientaion::horizontal) {
-                pos.x -= offsetXDecr;
-            }
+        size_t segmentIndex = 0;
+        for (size_t i = 1; i < m_segmentCachedPositions.size(); i++) {
+            const auto &segPos = m_segmentCachedPositions[i];
 
-            // Ensure the last segment ends exactly in straight line to the endPos
-            if (segmentIndex == m_segments.size() - 1) {
-                if (segment.orientation == ConnSegOrientaion::horizontal) {
-                    pos.x = endPos.x;
-                    segment.offset.x = pos.x - prevPos.x;
-                } else {
-                    pos.y = endPos.y;
-                    segment.offset.y = pos.y - prevPos.y;
-                }
-            }
-
-            bool isHovered = m_hoveredSegIdx == segmentIndex;
+            const bool isHovered = m_hoveredSegIdx == segmentIndex;
             pickingId.info = segmentIndex++;
 
-            pathRenderer->pathLineTo(pos,
+            pathRenderer->pathLineTo(glm::vec3(segPos.x, segPos.y, 0.5f),
                                      isHovered ? 3 : weight,
                                      color,
                                      pickingId);
-            prevPos = pos;
         }
 
-        pickingId.info = segmentIndex;
-        pathRenderer->pathLineTo({glm::vec2(endPos), pos.z},
-                                 m_hoveredSegIdx == segmentIndex ? 3 : weight,
-                                 color,
-                                 pickingId);
         pathRenderer->endPathMode(false, false, glm::vec4(0.f), true, !state.getIsSchematicView());
     }
 
@@ -77,16 +64,19 @@ namespace Bess::Canvas {
             onFirstDraw(state, materialRenderer, pathRenderer);
         }
 
-        if (m_shouldReconstructSegments) {
-            reconsturctSegments(state);
-            m_shouldReconstructSegments = false;
-        }
-
         auto startSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
         auto endSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
 
         if (!startSlotComp || !endSlotComp)
             return;
+
+        if (m_shouldReconstructSegments) {
+            reconsturctSegments(state);
+        }
+
+        if (m_segmentPosCacheDirty) {
+            resetSegmentPositionCache(state);
+        }
 
         glm::vec4 color;
 
@@ -123,7 +113,10 @@ namespace Bess::Canvas {
 
         if (m_shouldReconstructSegments) {
             reconsturctSegments(state);
-            m_shouldReconstructSegments = false;
+        }
+
+        if (m_segmentPosCacheDirty) {
+            resetSegmentPositionCache(state);
         }
 
         auto startSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
@@ -197,6 +190,8 @@ namespace Bess::Canvas {
         } else {
             seg.offset.y += e.delta.y;
         }
+
+        m_segmentPosCacheDirty = true;
     }
 
     void ConnectionSceneComponent::onMouseDragBegin(const Events::MouseDraggedEvent &e) {
@@ -237,6 +232,8 @@ namespace Bess::Canvas {
         endPoint.offset = glm::vec2{0, height};
         endPoint.orientation = ConnSegOrientaion::vertical;
         m_segments.emplace_back(endPoint);
+        m_segmentPosCacheDirty = true;
+        m_shouldReconstructSegments = false;
     }
 
     void ConnectionSceneComponent::onFirstDraw(SceneState &sceneState,
@@ -299,6 +296,74 @@ namespace Bess::Canvas {
                                              m_endSlot};
         EventSystem::EventDispatcher::instance().dispatch(event);
         return {};
+    }
+
+    void ConnectionSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
+        const int segIdx = (int)e.details;
+        Events::ConnSegClickEvent event{m_uuid, segIdx, e.button, e.action};
+        EventSystem::EventDispatcher::instance().dispatch(event);
+    }
+
+    void ConnectionSceneComponent::resetSegmentPositionCache(const SceneState &state) {
+        m_segmentPosCacheDirty = false;
+        m_segmentCachedPositions.clear();
+
+        auto startSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
+        auto endSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
+
+        if (!startSlotComp || !endSlotComp)
+            return;
+
+        const auto startPos = startSlotComp->getAbsolutePosition(state);
+        const auto endPos = endSlotComp->getAbsolutePosition(state);
+
+        const float offsetXDecr = state.getIsSchematicView()
+                                      ? Styles::compSchematicStyles.pinSize
+                                      : 0.f;
+        auto pos = startPos;
+        auto prevPos = pos;
+
+        m_segmentCachedPositions.push_back(startPos);
+
+        int segmentIndex = 0;
+        for (auto &segment : m_segments) {
+            pos += glm::vec3(segment.offset, 0);
+            if (segment.orientation == ConnSegOrientaion::horizontal) {
+                pos.x -= offsetXDecr;
+            }
+
+            // Ensure the last segment ends exactly in straight line to the endPos
+            if (segmentIndex == m_segments.size() - 1) {
+                if (segment.orientation == ConnSegOrientaion::horizontal) {
+                    pos.x = endPos.x;
+                    segment.offset.x = pos.x - prevPos.x;
+                } else {
+                    pos.y = endPos.y;
+                    segment.offset.y = pos.y - prevPos.y;
+                }
+            }
+
+            segmentIndex++;
+            prevPos = pos;
+            m_segmentCachedPositions.push_back(pos);
+        }
+
+        m_segmentCachedPositions.emplace_back(endPos);
+    }
+
+    glm::vec3 ConnectionSceneComponent::getSegVertexPos(const SceneState &state, size_t vertexIdx) {
+        if (m_segmentPosCacheDirty) {
+            resetSegmentPositionCache(state);
+        }
+
+        if (vertexIdx >= m_segmentCachedPositions.size()) {
+            BESS_WARN("[ConnectionSceneComponent] Requested segment vertex index {} out of bounds (max {})",
+                      vertexIdx,
+                      m_segmentCachedPositions.size() - 1);
+            return glm::vec3(0.f);
+        }
+
+        return m_segmentCachedPositions[vertexIdx];
     }
 } // namespace Bess::Canvas
 
