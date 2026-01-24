@@ -9,7 +9,7 @@ namespace Bess::Canvas {
                                public DragBehaviour<ConnJointSceneComp> {
       public:
         ConnJointSceneComp() = default;
-        ConnJointSceneComp(UUID connectionId, int m_connSegIdx);
+        ConnJointSceneComp(UUID connectionId, int connSegIdx, ConnSegOrientaion segOrientation);
 
         REG_SCENE_COMP(SceneComponentType::connJoint)
         MAKE_GETTER_SETTER(int, ConnSegIdx, m_connSegIdx);
@@ -23,6 +23,7 @@ namespace Bess::Canvas {
                            std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                            std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
 
+        void onMouseDragged(const Events::MouseDraggedEvent &e) override;
         void onMouseEnter(const Events::MouseEnterEvent &e) override;
         void onMouseLeave(const Events::MouseLeaveEvent &e) override;
 
@@ -32,5 +33,6 @@ namespace Bess::Canvas {
         int m_connSegIdx;
         UUID m_connectionId;
         float m_segOffset = 0.5f; // normalized 0-1 offset, signifying pos on segment
+        ConnSegOrientaion m_segOrientation = ConnSegOrientaion::horizontal;
     };
 } // namespace Bess::Canvas

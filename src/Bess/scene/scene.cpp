@@ -731,9 +731,18 @@ namespace Bess::Canvas {
     }
 
     void Scene::onConnSegClicked(const Events::ConnSegClickEvent &e) {
-        if (e.action == Events::MouseClickAction::release &&
+        if (e.action == Events::MouseClickAction::press &&
             Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
-            auto jointComp = std::make_shared<ConnJointSceneComp>(e.connectionId, e.segIdx);
+            const auto &conn = m_state.getComponentByUuid<ConnectionSceneComponent>(e.connectionId);
+            const auto &oriEven = conn->getSegments()[0].orientation;
+            const auto &oriOdd = conn->getSegments()[1].orientation;
+
+            // since there are only two orientations both alternating
+            auto ori = (e.segIdx % 2 == 0) ? oriEven : oriOdd;
+
+            auto jointComp = std::make_shared<ConnJointSceneComp>(e.connectionId,
+                                                                  e.segIdx,
+                                                                  ori);
             m_state.addComponent<ConnJointSceneComp>(jointComp);
         }
     }

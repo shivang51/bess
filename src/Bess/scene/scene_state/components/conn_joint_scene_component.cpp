@@ -1,11 +1,15 @@
 #include "scene/scene_state/components/conn_joint_scene_component.h"
 #include "scene/scene_state/components/connection_scene_component.h"
+#include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
+#include "ui/ui.h"
 
 namespace Bess::Canvas {
-    ConnJointSceneComp::ConnJointSceneComp(UUID connectionId, int connSegIdx)
-        : m_connSegIdx(connSegIdx), m_connectionId(connectionId) {
+    ConnJointSceneComp::ConnJointSceneComp(UUID connectionId,
+                                           int connSegIdx,
+                                           ConnSegOrientaion segOrientation)
+        : m_connSegIdx(connSegIdx), m_connectionId(connectionId), m_segOrientation(segOrientation) {
     }
 
     void ConnJointSceneComp::draw(SceneState &state,
@@ -28,9 +32,13 @@ namespace Bess::Canvas {
                                      pickingId);
     }
 
-    void ConnJointSceneComp::onMouseEnter(const Events::MouseEnterEvent &e) {}
+    void ConnJointSceneComp::onMouseEnter(const Events::MouseEnterEvent &e) {
+        UI::setCursorPointer();
+    }
 
-    void ConnJointSceneComp::onMouseLeave(const Events::MouseLeaveEvent &e) {}
+    void ConnJointSceneComp::onMouseLeave(const Events::MouseLeaveEvent &e) {
+        UI::setCursorNormal();
+    }
 
     glm::vec3 ConnJointSceneComp::getAbsolutePosition(const SceneState &state) const {
         const auto &conn = state.getComponentByUuid<ConnectionSceneComponent>(m_connectionId);
@@ -42,5 +50,17 @@ namespace Bess::Canvas {
         pos.z += 0.0001f;
 
         return pos;
+    }
+
+    void ConnJointSceneComp::onMouseDragged(const Events::MouseDraggedEvent &e) {
+        if (!m_isDragging) {
+            onMouseDragBegin(e);
+        }
+
+        m_segOffset += m_segOrientation == ConnSegOrientaion::horizontal
+                           ? e.delta.x
+                           : e.delta.y;
+
+        m_segOffset = glm::clamp(m_segOffset, 0.0f, 1.0f);
     }
 } // namespace Bess::Canvas
