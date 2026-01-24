@@ -15,6 +15,12 @@ namespace Bess::Canvas {
     void ConnJointSceneComp::draw(SceneState &state,
                                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                   std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+
+        const auto &conn = state.getComponentByUuid<ConnectionSceneComponent>(m_connectionId);
+        const glm::vec3 &segStartPos = conn->getSegVertexPos(state, m_connSegIdx);
+        const glm::vec3 &segEndPos = conn->getSegVertexPos(state, m_connSegIdx + 1);
+        m_segLen = glm::length(segEndPos - segStartPos);
+
         const auto pickingId = PickingId{m_runtimeId, 0};
         materialRenderer->drawCircle(getAbsolutePosition(state),
                                      4.f,
@@ -57,9 +63,11 @@ namespace Bess::Canvas {
             onMouseDragBegin(e);
         }
 
-        m_segOffset += m_segOrientation == ConnSegOrientaion::horizontal
-                           ? e.delta.x
-                           : e.delta.y;
+        float delta = m_segOrientation == ConnSegOrientaion::horizontal
+                          ? e.delta.x
+                          : -e.delta.y;
+
+        m_segOffset += delta / m_segLen;
 
         m_segOffset = glm::clamp(m_segOffset, 0.0f, 1.0f);
     }
