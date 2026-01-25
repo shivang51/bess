@@ -2,6 +2,7 @@
 
 #include "bess_uuid.h"
 #include "events/scene_events.h"
+#include "fwd.hpp"
 #include "scene/renderer/material_renderer.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "types.h"
@@ -44,7 +45,7 @@ namespace Bess::Canvas {
         void addConnection(const UUID &connectionId);
         void removeConnection(const UUID &connectionId);
 
-        glm::vec3 getSchematicPosAbsolute(const SceneState &state) const;
+        glm::vec3 getAbsolutePosition(const SceneState &state) const override;
 
         glm::vec3 getSchematicConnStartPos(const SceneState &state) const;
 
@@ -56,6 +57,9 @@ namespace Bess::Canvas {
         bool isResizeSlot() const;
 
         bool isInputSlot() const;
+
+      private:
+        glm::vec3 getSchematicPosAbsolute(const SceneState &state) const;
 
       private:
         glm::vec3 m_schematicPos = glm::vec3(0.f);

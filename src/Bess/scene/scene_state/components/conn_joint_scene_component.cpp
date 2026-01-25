@@ -1,6 +1,7 @@
 #include "scene/scene_state/components/conn_joint_scene_component.h"
 #include "scene/scene_state/components/connection_scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
+#include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
 #include "ui/ui.h"
@@ -32,9 +33,17 @@ namespace Bess::Canvas {
                                            std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                            std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
         const auto pickingId = PickingId{m_runtimeId, 0};
+
+        glm::vec4 color;
+        if (m_isSelected) {
+            color = ViewportTheme::colors.selectedComp;
+        } else {
+            color = ViewportTheme::schematicViewColors.connection;
+        }
+
         materialRenderer->drawCircle(getAbsolutePosition(state),
-                                     4.f,
-                                     ViewportTheme::colors.selectedComp,
+                                     Styles::compSchematicStyles.connJointRadius,
+                                     color,
                                      pickingId);
     }
 

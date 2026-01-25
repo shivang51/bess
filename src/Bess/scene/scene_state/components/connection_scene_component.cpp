@@ -158,9 +158,10 @@ namespace Bess::Canvas {
             color = m_style.color;
         }
 
-        auto startPos = startSlotComp->getSchematicPosAbsolute(state);
-        auto endPos = endSlotComp->getSchematicPosAbsolute(state);
-        if (startSlotComp->isInputSlot()) {
+        auto startPos = startSlotComp->getAbsolutePosition(state);
+        auto endPos = endSlotComp->getAbsolutePosition(state);
+        if (startSlotComp->getType() == SceneComponentType::slot &&
+            startSlotComp->isInputSlot()) {
             startPos.x -= Styles::compSchematicStyles.pinSize;
             endPos.x += Styles::compSchematicStyles.pinSize;
         } else {

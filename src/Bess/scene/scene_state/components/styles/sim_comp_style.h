@@ -17,6 +17,7 @@ namespace Bess::Canvas::Styles {
         float nameFontSize = 10.f;
 
         float strokeSize = 1.f;
+        float connJointRadius = 2.f;
 
         float negCircleR = 4.f, negCircleOff = negCircleR * 2.f;
     } compSchematicStyles;

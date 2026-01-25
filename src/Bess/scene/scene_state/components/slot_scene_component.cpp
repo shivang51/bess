@@ -215,6 +215,14 @@ namespace Bess::Canvas {
     bool SlotSceneComponent::isInputSlot() const {
         return m_slotType == SlotType::digitalInput || m_slotType == SlotType::inputsResize;
     }
+
+    glm::vec3 SlotSceneComponent::getAbsolutePosition(const SceneState &state) const {
+        if (state.getIsSchematicView()) {
+            return getSchematicPosAbsolute(state);
+        }
+
+        return SceneComponent::getAbsolutePosition(state);
+    }
 } // namespace Bess::Canvas
 
 namespace Bess::JsonConvert {
