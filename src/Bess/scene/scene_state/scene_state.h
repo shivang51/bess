@@ -70,6 +70,7 @@ namespace Bess::Canvas {
         const std::unordered_set<UUID> &getRootComponents() const;
 
         MAKE_GETTER_SETTER(bool, IsSchematicView, m_isSchematicView);
+        MAKE_GETTER_SETTER(UUID, ConnectionStartSlot, m_connectionStartSlot);
 
         bool isComponentValid(const UUID &uuid) const;
 
@@ -104,6 +105,7 @@ namespace Bess::Canvas {
         std::unordered_set<UUID> m_rootComponents;
         std::set<uint32_t> m_freeRuntimeIds;
 
+        UUID m_connectionStartSlot = UUID::null;
         bool m_isSchematicView = false;
     };
 } // namespace Bess::Canvas

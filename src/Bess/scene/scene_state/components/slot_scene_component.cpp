@@ -1,6 +1,9 @@
 #include "scene/scene_state/components/slot_scene_component.h"
 #include "bess_json/json_converters.h"
+#include "commands/commands.h"
 #include "event_dispatcher.h"
+#include "scene/scene_state/components/conn_joint_scene_component.h"
+#include "scene/scene_state/components/connection_scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/sim_scene_component.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
@@ -19,6 +22,12 @@ namespace Bess::Canvas {
     }
 
     void SlotSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
+        if (e.action == Events::MouseClickAction::press) {
+            if (e.button == Events::MouseButton::left) {
+                onMouseLeftClick(e);
+            }
+        }
+
         EventSystem::EventDispatcher::instance().dispatch(Events::SlotClickedEvent{
             e.mousePos,
             m_uuid,
@@ -222,6 +231,166 @@ namespace Bess::Canvas {
         }
 
         return SceneComponent::getAbsolutePosition(state);
+    }
+
+    void SlotSceneComponent::onMouseLeftClick(const Events::MouseButtonEvent &e) {
+        auto &connStartSlot = e.sceneState->getConnectionStartSlot();
+        if (connStartSlot == UUID::null) {
+            connStartSlot = m_uuid;
+            return;
+        }
+
+        auto startComp = e.sceneState->getComponentByUuid(connStartSlot);
+        std::shared_ptr<ConnJointSceneComp> jointComp = nullptr;
+        std::shared_ptr<SlotSceneComponent> startSlot = nullptr;
+        if (startComp->getType() == SceneComponentType::connJoint) {
+            jointComp = startComp->cast<ConnJointSceneComp>();
+            startSlot = e.sceneState->getComponentByUuid<SlotSceneComponent>(jointComp->getOutputSlotId());
+        } else {
+            startSlot = e.sceneState->getComponentByUuid<SlotSceneComponent>(connStartSlot);
+        }
+        auto endSlot = e.sceneState->getComponentByUuid<SlotSceneComponent>(m_uuid);
+        auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
+
+        if (startSlot->getSlotType() == SlotType::inputsResize ||
+            startSlot->getSlotType() == SlotType::outputsResize) {
+            const auto startParent = e.sceneState->getComponentByUuid<SimulationSceneComponent>(startSlot->getParentComponent());
+            const auto &simEngineId = startParent->getSimEngineId();
+            const auto &digitalComp = SimEngine::SimulationEngine::instance().getDigitalComponent(simEngineId);
+
+            std::shared_ptr<SlotSceneComponent> newSlot = std::make_shared<SlotSceneComponent>();
+
+            if (startSlot->getSlotType() == SlotType::inputsResize) {
+                const auto newSize = digitalComp->incrementInputCount();
+                // we check against -1 because the resize slot is also there
+                if (newSize == startParent->getInputSlotsCount() - 1) {
+                    BESS_WARN("[Scene] Failed to resize input slots for component {}", (uint64_t)startParent->getUuid());
+                    connStartSlot = UUID::null;
+                    return;
+                }
+
+                newSlot->setSlotType(SlotType::digitalInput);
+                newSlot->setIndex((int)newSize - 1);
+                newSlot->setName(std::string(1, (char)('A' + newSize - 1)));
+                startParent->addInputSlot(newSlot->getUuid());
+            } else {
+                const auto newSize = digitalComp->incrementOutputCount();
+                // we check against -1 because the resize slot is also there
+                if (newSize == startParent->getOutputSlotsCount() - 1) {
+                    BESS_WARN("[Scene] Failed to resize output slots for component {}, returnedNewSize = {}",
+                              (uint64_t)startParent->getUuid(),
+                              newSize);
+                    connStartSlot = UUID::null;
+                    return;
+                }
+
+                newSlot->setSlotType(SlotType::digitalOutput);
+                newSlot->setIndex((int)newSize - 1);
+                newSlot->setName(std::string(1, (char)('a' + newSize - 1)));
+                startParent->addOutputSlot(newSlot->getUuid());
+            }
+
+            e.sceneState->addComponent<SlotSceneComponent>(newSlot);
+            e.sceneState->attachChild(startParent->getUuid(), newSlot->getUuid());
+
+            startParent->setScaleDirty();
+            startSlot = newSlot;
+
+            BESS_INFO("[Scene] Resized component {}, new slot index = {}, new total slots = {}",
+                      (uint64_t)startParent->getUuid(),
+                      newSlot->getIndex(),
+                      startSlot->getSlotType() == SlotType::digitalInput
+                          ? startParent->getInputSlotsCount()
+                          : startParent->getOutputSlotsCount());
+        }
+
+        if (endSlot->getSlotType() == SlotType::inputsResize ||
+            endSlot->getSlotType() == SlotType::outputsResize) {
+            const auto endParent = e.sceneState->getComponentByUuid<SimulationSceneComponent>(endSlot->getParentComponent());
+
+            const auto &simEngineId = endParent->getSimEngineId();
+
+            const auto &digitalComp = SimEngine::SimulationEngine::instance().getDigitalComponent(simEngineId);
+
+            std::shared_ptr<SlotSceneComponent> newSlot = std::make_shared<SlotSceneComponent>();
+
+            if (endSlot->getSlotType() == SlotType::inputsResize) {
+                const auto newSize = digitalComp->incrementInputCount();
+                // we check against -1 because the resize slot is also there
+                if (newSize == endParent->getInputSlotsCount() - 1) {
+                    BESS_WARN("[Scene] Failed to resize input slots for component {}", (uint64_t)endParent->getUuid());
+                    connStartSlot = UUID::null;
+                    return;
+                }
+
+                newSlot->setSlotType(SlotType::digitalInput);
+                newSlot->setIndex((int)newSize - 1);
+                newSlot->setName(std::string(1, (char)('A' + newSize - 1)));
+                endParent->addInputSlot(newSlot->getUuid());
+            } else {
+                const auto newSize = digitalComp->incrementOutputCount();
+                // we check against -1 because the resize slot is also there
+                if (newSize == endParent->getOutputSlotsCount() - 1) {
+                    BESS_WARN("[Scene] Failed to resize output slots for component {}", (uint64_t)endParent->getUuid());
+                    connStartSlot = UUID::null;
+                    return;
+                }
+
+                newSlot->setSlotType(SlotType::digitalOutput);
+                newSlot->setIndex((int)newSize - 1);
+                newSlot->setName(std::string(1, (char)('a' + newSize - 1)));
+                endParent->addOutputSlot(newSlot->getUuid());
+            }
+
+            e.sceneState->addComponent<SlotSceneComponent>(newSlot);
+            e.sceneState->attachChild(endParent->getUuid(), newSlot->getUuid());
+
+            endParent->setScaleDirty();
+            endSlot = newSlot;
+
+            BESS_INFO("[Scene] Resized component {}, new slot index = {}, new total slots = {}",
+                      (uint64_t)endParent->getUuid(),
+                      newSlot->getIndex(),
+                      endSlot->getSlotType() == SlotType::digitalInput
+                          ? endParent->getInputSlotsCount()
+                          : endParent->getOutputSlotsCount());
+        }
+
+        const auto startParent = e.sceneState->getComponentByUuid<SimulationSceneComponent>(startSlot->getParentComponent());
+        const auto endParent = e.sceneState->getComponentByUuid<SimulationSceneComponent>(endSlot->getParentComponent());
+
+        const auto startPinType = startSlot->getSlotType() == SlotType::digitalInput
+                                      ? SimEngine::SlotType::digitalInput
+                                      : SimEngine::SlotType::digitalOutput;
+
+        const auto endPinType = endSlot->getSlotType() == SlotType::digitalInput
+                                    ? SimEngine::SlotType::digitalInput
+                                    : SimEngine::SlotType::digitalOutput;
+
+        const auto res = cmdMngr.execute<SimEngine::Commands::ConnectCommand,
+                                         std::string>(startParent->getSimEngineId(), startSlot->getIndex(), startPinType,
+                                                      endParent->getSimEngineId(), endSlot->getIndex(), endPinType);
+
+        if (!res.has_value()) {
+            BESS_WARN("[Scene] Failed to create connection between slots, {}", res.error());
+            connStartSlot = UUID::null;
+            return;
+        }
+
+        auto conn = std::make_shared<ConnectionSceneComponent>();
+        e.sceneState->addComponent<ConnectionSceneComponent>(conn);
+
+        UUID starSlotUuid = jointComp ? jointComp->getUuid() : startSlot->getUuid();
+
+        conn->setStartEndSlots(starSlotUuid, endSlot->getUuid());
+        startSlot->addConnection(conn->getUuid());
+        endSlot->addConnection(conn->getUuid());
+
+        BESS_INFO("[Scene] Created connection between slots {} and {}",
+                  (uint64_t)startSlot->getUuid(),
+                  (uint64_t)endSlot->getUuid());
+
+        e.sceneState->setConnectionStartSlot(UUID::null);
     }
 } // namespace Bess::Canvas
 

@@ -1,9 +1,11 @@
 #include "scene/scene_state/components/conn_joint_scene_component.h"
+#include "commands/commands.h"
 #include "scene/scene_state/components/connection_scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
+#include "simulation_engine.h"
 #include "ui/ui.h"
 
 namespace Bess::Canvas {
@@ -82,6 +84,11 @@ namespace Bess::Canvas {
     }
 
     void ConnJointSceneComp::onMouseButton(const Events::MouseButtonEvent &e) {
+        if (e.action == Events::MouseClickAction::press) {
+            if (e.button == Events::MouseButton::left) {
+                onMouseLeftClick(e);
+            }
+        }
         Events::ConnJointClickEvent event{m_uuid, e.button, e.action};
         EventSystem::EventDispatcher::instance().dispatch(event);
     }
@@ -92,5 +99,69 @@ namespace Bess::Canvas {
     }
     void ConnJointSceneComp::addConnection(const UUID &connectionId) {
         m_connections.emplace_back(connectionId);
+    }
+
+    void ConnJointSceneComp::onMouseLeftClick(const Events::MouseButtonEvent &e) {
+        auto &connStartSlot = e.sceneState->getConnectionStartSlot();
+
+        if (connStartSlot == UUID::null) {
+            connStartSlot = m_uuid;
+            return;
+        }
+
+        auto startSlot = e.sceneState->getComponentByUuid<
+            SlotSceneComponent>(connStartSlot);
+
+        if (startSlot->getType() != SceneComponentType::slot) {
+            BESS_WARN("[Scene] Two joints can't be connected directly");
+            connStartSlot = UUID::null;
+            return;
+        }
+
+        auto endComp = e.sceneState->getComponentByUuid<ConnJointSceneComp>(m_uuid);
+        auto endSlot = e.sceneState->getComponentByUuid<
+            SlotSceneComponent>(endComp->getOutputSlotId());
+
+        const auto startParent = e.sceneState->getComponentByUuid<
+            SimulationSceneComponent>(startSlot->getParentComponent());
+        const auto endParent = e.sceneState->getComponentByUuid<
+            SimulationSceneComponent>(endSlot->getParentComponent());
+
+        const auto startPinType = startSlot->getSlotType() == SlotType::digitalInput
+                                      ? SimEngine::SlotType::digitalInput
+                                      : SimEngine::SlotType::digitalOutput;
+
+        const auto endPinType = endSlot->getSlotType() == SlotType::digitalInput
+                                    ? SimEngine::SlotType::digitalInput
+                                    : SimEngine::SlotType::digitalOutput;
+
+        auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
+        const auto res = cmdMngr.execute<SimEngine::Commands::ConnectCommand,
+                                         std::string>(startParent->getSimEngineId(),
+                                                      startSlot->getIndex(),
+                                                      startPinType,
+                                                      endParent->getSimEngineId(),
+                                                      endSlot->getIndex(),
+                                                      endPinType);
+
+        if (!res.has_value()) {
+            BESS_WARN("[Scene] Failed to create connection between slots, {}",
+                      res.error());
+            connStartSlot = UUID::null;
+            return;
+        }
+
+        auto conn = std::make_shared<ConnectionSceneComponent>();
+        e.sceneState->addComponent<ConnectionSceneComponent>(conn);
+
+        conn->setStartEndSlots(startSlot->getUuid(), endComp->getUuid());
+        startSlot->addConnection(conn->getUuid());
+        endComp->addConnection(conn->getUuid());
+
+        BESS_INFO("[Scene] Created connection between slots {} and {}",
+                  (uint64_t)startSlot->getUuid(),
+                  (uint64_t)endComp->getUuid());
+
+        connStartSlot = UUID::null;
     }
 } // namespace Bess::Canvas

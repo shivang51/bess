@@ -37,6 +37,7 @@ namespace Bess::Canvas {
         void onMouseButton(const Events::MouseButtonEvent &e) override;
 
         glm::vec3 getAbsolutePosition(const SceneState &state) const override;
+        void onMouseLeftClick(const Events::MouseButtonEvent &e);
 
       private:
         int m_connSegIdx;

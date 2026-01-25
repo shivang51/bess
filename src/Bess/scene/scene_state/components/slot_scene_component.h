@@ -61,6 +61,8 @@ namespace Bess::Canvas {
       private:
         glm::vec3 getSchematicPosAbsolute(const SceneState &state) const;
 
+        void onMouseLeftClick(const Events::MouseButtonEvent &e);
+
       private:
         glm::vec3 m_schematicPos = glm::vec3(0.f);
         SlotType m_slotType = SlotType::none;

@@ -149,9 +149,7 @@ namespace Bess::Canvas {
 
         bool m_isLeftMousePressed = false, m_isMiddleMousePressed = false;
 
-        void onSlotClicked(const Events::SlotClickedEvent &e);
         void onConnSegClicked(const Events::ConnSegClickEvent &e);
-        void onConnJointClicked(const Events::ConnJointClickEvent &e);
 
         void onCompDefOutputsResized(const SimEngine::Events::CompDefOutputsResizedEvent &e);
         void onCompDefInputsResized(const SimEngine::Events::CompDefInputsResizedEvent &e);
@@ -172,7 +170,6 @@ namespace Bess::Canvas {
 
         PickingId m_pickingId = PickingId::invalid();
         PickingId m_prevPickingId = PickingId::invalid();
-        UUID m_connectionStartSlot = UUID::null;
 
         // selection box
         glm::vec2 m_selectionBoxStart;
