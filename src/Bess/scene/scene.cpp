@@ -40,6 +40,7 @@ namespace Bess::Canvas {
         dispatcher.sink<SimEngine::Events::CompDefInputsResizedEvent>().connect<&Scene::onCompDefInputsResized>(this);
         dispatcher.sink<Events::ConnectionRemovedEvent>().connect<&Scene::onConnectionRemoved>(this);
         dispatcher.sink<Events::ConnSegClickEvent>().connect<&Scene::onConnSegClicked>(this);
+        dispatcher.sink<Events::ConnJointClickEvent>().connect<&Scene::onConnJointClicked>(this);
     }
 
     Scene::~Scene() {
@@ -245,10 +246,8 @@ namespace Bess::Canvas {
             viewport->getCamera());
 
         if (m_connectionStartSlot != UUID::null) {
-            const auto comp = m_state.getComponentByUuid<SlotSceneComponent>(m_connectionStartSlot);
-            const auto &pos = m_state.getIsSchematicView()
-                                  ? comp->getSchematicConnStartPos(m_state)
-                                  : comp->getAbsolutePosition(m_state);
+            const auto comp = m_state.getComponentByUuid(m_connectionStartSlot);
+            const auto &pos = comp->getAbsolutePosition(m_state);
             const auto endPos = toScenePos(m_mousePos);
 
             drawGhostConnection(renderers.pathRenderer, glm::vec2(pos), endPos);
@@ -730,9 +729,62 @@ namespace Bess::Canvas {
         return m_pickingId.isValid();
     }
 
+    void Scene::onConnJointClicked(const Events::ConnJointClickEvent &e) {
+        if (e.action != Events::MouseClickAction::press)
+            return;
+
+        if (m_connectionStartSlot == UUID::null) {
+            m_connectionStartSlot = e.jointId;
+            return;
+        }
+
+        auto startSlot = m_state.getComponentByUuid<SlotSceneComponent>(m_connectionStartSlot);
+        auto endComp = m_state.getComponentByUuid<ConnJointSceneComp>(e.jointId);
+        auto endSlot = m_state.getComponentByUuid<SlotSceneComponent>(endComp->getOutputSlotId());
+
+        const auto startParent = m_state.getComponentByUuid<SimulationSceneComponent>(startSlot->getParentComponent());
+        const auto endParent = m_state.getComponentByUuid<SimulationSceneComponent>(endSlot->getParentComponent());
+
+        const auto startPinType = startSlot->getSlotType() == SlotType::digitalInput
+                                      ? SimEngine::SlotType::digitalInput
+                                      : SimEngine::SlotType::digitalOutput;
+
+        const auto endPinType = endSlot->getSlotType() == SlotType::digitalInput
+                                    ? SimEngine::SlotType::digitalInput
+                                    : SimEngine::SlotType::digitalOutput;
+
+        auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
+        const auto res = cmdMngr.execute<SimEngine::Commands::ConnectCommand,
+                                         std::string>(startParent->getSimEngineId(), startSlot->getIndex(), startPinType,
+                                                      endParent->getSimEngineId(), endSlot->getIndex(), endPinType);
+
+        if (!res.has_value()) {
+            BESS_WARN("[Scene] Failed to create connection between slots, {}", res.error());
+            m_connectionStartSlot = UUID::null;
+            return;
+        }
+
+        auto conn = std::make_shared<ConnectionSceneComponent>();
+        m_state.addComponent<ConnectionSceneComponent>(conn);
+
+        conn->setStartEndSlots(startSlot->getUuid(), endComp->getUuid());
+        startSlot->addConnection(conn->getUuid());
+        endComp->addConnection(conn->getUuid());
+
+        BESS_INFO("[Scene] Created connection between slots {} and {}",
+                  (uint64_t)startSlot->getUuid(),
+                  (uint64_t)endComp->getUuid());
+
+        m_connectionStartSlot = UUID::null;
+
+        m_connectionStartSlot = UUID::null;
+    }
+
     void Scene::onConnSegClicked(const Events::ConnSegClickEvent &e) {
-        if (e.action == Events::MouseClickAction::press &&
-            Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
+        if (e.action != Events::MouseClickAction::press)
+            return;
+
+        if (Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
             const auto &conn = m_state.getComponentByUuid<ConnectionSceneComponent>(e.connectionId);
             const auto &oriEven = conn->getSegments()[0].orientation;
             const auto &oriOdd = conn->getSegments()[1].orientation;
@@ -743,6 +795,16 @@ namespace Bess::Canvas {
             auto jointComp = std::make_shared<ConnJointSceneComp>(e.connectionId,
                                                                   e.segIdx,
                                                                   ori);
+
+            const auto &startSlot = m_state.getComponentByUuid<SlotSceneComponent>(conn->getStartSlot());
+            const auto &endSlot = m_state.getComponentByUuid<SlotSceneComponent>(conn->getEndSlot());
+
+            if (startSlot->isInputSlot()) {
+                jointComp->setOutputSlotId(endSlot->getUuid());
+            } else {
+                jointComp->setOutputSlotId(startSlot->getUuid());
+            }
+
             m_state.addComponent<ConnJointSceneComp>(jointComp);
         }
     }

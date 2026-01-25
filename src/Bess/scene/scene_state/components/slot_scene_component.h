@@ -49,7 +49,6 @@ namespace Bess::Canvas {
         glm::vec3 getSchematicConnStartPos(const SceneState &state) const;
 
         SimEngine::SlotState getSlotState(const SceneState &state) const;
-        SimEngine::SlotState getSlotState(const SceneState *state) const;
         bool isSlotConnected(const SceneState &state) const;
 
         std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;

@@ -3,6 +3,7 @@
 #include "common/log.h"
 #include "event_dispatcher.h"
 #include "fwd.hpp"
+#include "scene/scene_state/components/conn_joint_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/slot_scene_component.h"
@@ -10,6 +11,7 @@
 #include "scene/scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
+#include "types.h"
 
 namespace Bess::Canvas {
     ConnectionSceneComponent::ConnectionSceneComponent() {
@@ -64,8 +66,8 @@ namespace Bess::Canvas {
             onFirstDraw(state, materialRenderer, pathRenderer);
         }
 
-        auto startSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
-        auto endSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
+        auto startSlotComp = state.getComponentByUuid(m_startSlot);
+        auto endSlotComp = state.getComponentByUuid(m_endSlot);
 
         if (!startSlotComp || !endSlotComp)
             return;
@@ -83,11 +85,32 @@ namespace Bess::Canvas {
         if (m_isSelected) {
             color = ViewportTheme::colors.selectedComp;
         } else if (!m_useCustomColor) {
-            const auto &startSlotState = startSlotComp->getSlotState(state);
-            const auto &endSlotState = endSlotComp->getSlotState(state);
+            SimEngine::LogicState startSlotState{}, endSlotState{};
 
-            const bool isHigh = startSlotState.state == SimEngine::LogicState::high ||
-                                endSlotState.state == SimEngine::LogicState::high;
+            auto comp = state.getComponentByUuid(m_startSlot);
+            if (comp->getType() == SceneComponentType::slot) {
+                const auto &slot = comp->cast<SlotSceneComponent>();
+                startSlotState = slot->getSlotState(state).state;
+            } else if (comp->getType() == SceneComponentType::connJoint) {
+                const auto &slot = comp->cast<ConnJointSceneComp>();
+                startSlotState = slot->getSlotState(state).state;
+            } else {
+                BESS_ASSERT(false, "Start slot component not convertable to SlotSceneComponent or ConnJointSceneComp");
+            }
+
+            comp = state.getComponentByUuid(m_endSlot);
+            if (comp->getType() == SceneComponentType::slot) {
+                const auto &slot = comp->cast<SlotSceneComponent>();
+                endSlotState = slot->getSlotState(state).state;
+            } else if (comp->getType() == SceneComponentType::connJoint) {
+                const auto &slot = comp->cast<ConnJointSceneComp>();
+                endSlotState = slot->getSlotState(state).state;
+            } else {
+                BESS_ASSERT(false, "End slot component not convertable to SlotSceneComponent or ConnJointSceneComp");
+            }
+
+            const bool isHigh = startSlotState == SimEngine::LogicState::high ||
+                                endSlotState == SimEngine::LogicState::high;
 
             if (isHigh) {
                 color = ViewportTheme::colors.stateHigh;

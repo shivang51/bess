@@ -88,6 +88,12 @@ namespace Bess::Events {
         UUID slotBId;
     };
 
+    struct ConnJointClickEvent {
+        UUID jointId;
+        MouseButton button;
+        MouseClickAction action;
+    };
+
     struct ConnSegClickEvent {
         UUID connectionId;
         int segIdx;

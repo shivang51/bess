@@ -150,18 +150,6 @@ namespace Bess::Canvas {
         }
     }
 
-    SimEngine::SlotState SlotSceneComponent::getSlotState(const SceneState *state) const {
-        BESS_ASSERT(m_index >= 0, "Slot index is negative");
-
-        const auto parentComp = state->getComponentByUuid<SimulationSceneComponent>(m_parentComponent);
-        auto &simEngine = SimEngine::SimulationEngine::instance();
-        const auto &compState = simEngine.getComponentState(parentComp->getSimEngineId());
-
-        return (m_slotType == SlotType::digitalInput)
-                   ? compState.inputStates[m_index]
-                   : compState.outputStates[m_index];
-    }
-
     SimEngine::SlotState SlotSceneComponent::getSlotState(const SceneState &state) const {
         BESS_ASSERT(m_parentComponent != UUID::null, "Parent component UUID is null");
         BESS_ASSERT(m_index >= 0, "Slot index is negative");

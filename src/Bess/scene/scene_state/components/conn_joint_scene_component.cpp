@@ -71,4 +71,17 @@ namespace Bess::Canvas {
 
         m_segOffset = glm::clamp(m_segOffset, 0.0f, 1.0f);
     }
+
+    void ConnJointSceneComp::onMouseButton(const Events::MouseButtonEvent &e) {
+        Events::ConnJointClickEvent event{m_uuid, e.button, e.action};
+        EventSystem::EventDispatcher::instance().dispatch(event);
+    }
+
+    SimEngine::SlotState ConnJointSceneComp::getSlotState(const SceneState &state) const {
+        const auto &slotComp = state.getComponentByUuid<SlotSceneComponent>(m_outputSlotId);
+        return slotComp->getSlotState(state);
+    }
+    void ConnJointSceneComp::addConnection(const UUID &connectionId) {
+        m_connections.emplace_back(connectionId);
+    }
 } // namespace Bess::Canvas

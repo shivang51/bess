@@ -117,7 +117,7 @@ namespace Bess::Canvas {
 
         simEngine.setOutputSlotState(slotParentComp->getSimEngineId(),
                                      slotComp->getIndex(),
-                                     slotComp->getSlotState(e.sceneState).state == SimEngine::LogicState::high
+                                     slotComp->getSlotState(*e.sceneState).state == SimEngine::LogicState::high
                                          ? SimEngine::LogicState::low
                                          : SimEngine::LogicState::high);
     }
