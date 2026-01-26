@@ -117,3 +117,5 @@ REFLECT_ENUM(Bess::Canvas::ConnSegOrientaion);
 REFLECT(Bess::Canvas::ConnSegment,
         offset,
         orientation);
+
+REFLECT_VECTOR(Bess::Canvas::ConnSegment)

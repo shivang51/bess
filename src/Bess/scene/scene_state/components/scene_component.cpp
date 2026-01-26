@@ -114,6 +114,3 @@ namespace Bess::Canvas {
                                 m_childComponents.end());
     }
 } // namespace Bess::Canvas
-
-namespace Bess::JsonConvert {
-} // namespace Bess::JsonConvert

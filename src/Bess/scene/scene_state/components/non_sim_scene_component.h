@@ -47,6 +47,7 @@ namespace Bess::Canvas {
     class TextComponent : public NonSimSceneComponent {
       public:
         TextComponent() {
+            m_subType = "TextComponent";
             m_name = "New Text";
             m_uiHook.addPropertyDescriptor(UI::Hook::PropertyDesc{
                 .name = "Text",
@@ -106,6 +107,10 @@ namespace Bess::Canvas {
             return typeid(TextComponent);
         }
 
+        MAKE_GETTER_SETTER(std::string, Data, m_data)
+        MAKE_GETTER_SETTER(glm::vec4, ForegroundColor, m_foregroundColor)
+        MAKE_GETTER_SETTER(size_t, Size, m_size)
+
       private:
         glm::vec2 calculateScale(std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) override;
 
@@ -118,10 +123,9 @@ namespace Bess::Canvas {
 
 } // namespace Bess::Canvas
 
-namespace Bess::JsonConvert {
-    void toJsonValue(const Bess::Canvas::NonSimSceneComponent &component, Json::Value &j);
-    void fromJsonValue(const Json::Value &j, Bess::Canvas::NonSimSceneComponent &component);
+REFLECT_DERIVED_EMPTY(Bess::Canvas::NonSimSceneComponent, Bess::Canvas::SceneComponent)
 
-    void toJsonValue(const Bess::Canvas::TextComponent &component, Json::Value &j);
-    void fromJsonValue(const Json::Value &j, Bess::Canvas::TextComponent &component);
-} // namespace Bess::JsonConvert
+REFLECT_DERIVED_PROPS(Bess::Canvas::TextComponent, Bess::Canvas::NonSimSceneComponent,
+                      ("data", getData, setData),
+                      ("foregroundColor", getForegroundColor, setForegroundColor),
+                      ("size", getSize, setSize));

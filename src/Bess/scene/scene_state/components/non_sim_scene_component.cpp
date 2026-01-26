@@ -68,14 +68,3 @@ namespace Bess::Canvas {
         return textSize;
     }
 } // namespace Bess::Canvas
-
-namespace Bess::JsonConvert {
-    void toJsonValue(const Bess::Canvas::NonSimSceneComponent &component, Json::Value &j) {
-    }
-
-    void fromJsonValue(const Json::Value &j, Bess::Canvas::NonSimSceneComponent &component) {}
-
-    void toJsonValue(const Bess::Canvas::TextComponent &component, Json::Value &j) {}
-
-    void fromJsonValue(const Json::Value &j, Bess::Canvas::TextComponent &component) {}
-} // namespace Bess::JsonConvert

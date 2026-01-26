@@ -72,7 +72,10 @@ namespace Bess::Canvas {
 
 } // namespace Bess::Canvas
 
-namespace Bess::JsonConvert {
-    void toJsonValue(const Bess::Canvas::SlotSceneComponent &component, Json::Value &j);
-    void fromJsonValue(const Json::Value &j, Bess::Canvas::SlotSceneComponent &component);
-} // namespace Bess::JsonConvert
+REFLECT_ENUM(Bess::Canvas::SlotType);
+
+REFLECT_DERIVED_PROPS(Bess::Canvas::SlotSceneComponent, Bess::Canvas::SceneComponent,
+                      ("slotType", getSlotType, setSlotType),
+                      ("index", getIndex, setIndex),
+                      ("schematicPos", getSchematicPos, setSchematicPos),
+                      ("connectedConnections", getConnectedConnections, setConnectedConnections));

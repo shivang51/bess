@@ -36,7 +36,4 @@ namespace Bess::Canvas {
     };
 } // namespace Bess::Canvas
 
-namespace Bess::JsonConvert {
-    void toJsonValue(const Bess::Canvas::InputSceneComponent &component, Json::Value &j);
-    void fromJsonValue(const Json::Value &j, Bess::Canvas::InputSceneComponent &component);
-} // namespace Bess::JsonConvert
+REFLECT_DERIVED_EMPTY(Bess::Canvas::InputSceneComponent, Bess::Canvas::SimulationSceneComponent)

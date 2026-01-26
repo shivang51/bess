@@ -7,6 +7,7 @@
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/scene_state.h"
+#include "scene_component_types.h"
 
 namespace Bess::Canvas {
 
@@ -36,8 +37,8 @@ namespace Bess::Canvas {
 
         REG_SCENE_COMP(SceneComponentType::connection)
 
-        MAKE_GETTER(UUID, StartSlot, m_startSlot)
-        MAKE_GETTER(UUID, EndSlot, m_endSlot)
+        MAKE_GETTER_SETTER(UUID, StartSlot, m_startSlot)
+        MAKE_GETTER_SETTER(UUID, EndSlot, m_endSlot)
         MAKE_GETTER_SETTER(std::vector<ConnSegment>, Segments, m_segments)
         MAKE_GETTER_SETTER(bool, ShouldReconstructSegments, m_shouldReconstructSegments)
         MAKE_GETTER_SETTER(bool, UseCustomColor, m_useCustomColor)
@@ -76,7 +77,10 @@ namespace Bess::Canvas {
     };
 } // namespace Bess::Canvas
 
-namespace Bess::JsonConvert {
-    void toJsonValue(const Bess::Canvas::ConnectionSceneComponent &component, Json::Value &j);
-    void fromJsonValue(const Json::Value &j, Bess::Canvas::ConnectionSceneComponent &component);
-} // namespace Bess::JsonConvert
+REFLECT_DERIVED_PROPS(Bess::Canvas::ConnectionSceneComponent, Bess::Canvas::SceneComponent,
+                      ("startSlot", getStartSlot, setStartSlot),
+                      ("endSlot", getEndSlot, setEndSlot),
+                      ("segments", getSegments, setSegments),
+                      ("shouldReconstructSegments", getShouldReconstructSegments, setShouldReconstructSegments),
+                      ("useCustomColor", getUseCustomColor, setUseCustomColor),
+                      ("initialSegmentCount", getInitialSegmentCount, setInitialSegmentCount));

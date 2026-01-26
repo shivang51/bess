@@ -64,12 +64,12 @@
 #define SERIALIZE_PROP(tuple) \
     Bess::JsonConvert::toJsonValue(obj.GET_2ND_ARG tuple(), j[GET_1ST_ARG_RAW tuple]);
 
-#define DESER_3(k, g, s)                               \
-    if (j.isMember(#k)) {                              \
-        using T = std::decay_t<decltype(obj.g())>;     \
-        T temp;                                        \
-        Bess::JsonConvert::fromJsonValue(j[#k], temp); \
-        obj.s(temp);                                   \
+#define DESER_3(k, g, s)                              \
+    if (j.isMember(k)) {                              \
+        using T = std::decay_t<decltype(obj.g())>;    \
+        T temp;                                       \
+        Bess::JsonConvert::fromJsonValue(j[k], temp); \
+        obj.s(temp);                                  \
     }
 
 #define DESER_2(k, g)
@@ -99,6 +99,52 @@
                 FOR_EACH(DESERIALIZE_DISPATCH, __VA_ARGS__)                         \
             }                                                                       \
         }                                                                           \
+    }
+
+#define REFLECT_DERIVED_EMPTY(className, BaseClass)                                 \
+    namespace Bess::JsonConvert {                                                   \
+        inline void toJsonValue(const className &obj, Json::Value &j) {             \
+            Bess::JsonConvert::toJsonValue(static_cast<const BaseClass &>(obj), j); \
+        }                                                                           \
+                                                                                    \
+        inline void fromJsonValue(const Json::Value &j, className &obj) {           \
+            if (j.isObject()) {                                                     \
+                Bess::JsonConvert::fromJsonValue(j, static_cast<BaseClass &>(obj)); \
+            }                                                                       \
+        }                                                                           \
+    }
+
+#define REFLECT_EMPTY(className)                                          \
+    namespace Bess::JsonConvert {                                         \
+        inline void toJsonValue(const className &obj, Json::Value &j) {   \
+            j = Json::objectValue;                                        \
+        }                                                                 \
+                                                                          \
+        inline void fromJsonValue(const Json::Value &j, className &obj) { \
+        }                                                                 \
+    }
+
+#define REFLECT_VECTOR(ElementType)                                                      \
+    namespace Bess::JsonConvert {                                                        \
+        inline void toJsonValue(const std::vector<ElementType> &vec, Json::Value &j) {   \
+            j = Json::arrayValue;                                                        \
+            for (const auto &item : vec) {                                               \
+                Json::Value val;                                                         \
+                Bess::JsonConvert::toJsonValue(item, val);                               \
+                j.append(val);                                                           \
+            }                                                                            \
+        }                                                                                \
+                                                                                         \
+        inline void fromJsonValue(const Json::Value &j, std::vector<ElementType> &vec) { \
+            vec.clear();                                                                 \
+            if (j.isArray()) {                                                           \
+                for (const auto &item : j) {                                             \
+                    ElementType val;                                                     \
+                    Bess::JsonConvert::fromJsonValue(item, val);                         \
+                    vec.push_back(val);                                                  \
+                }                                                                        \
+            }                                                                            \
+        }                                                                                \
     }
 
 #define FOR_EACH_ENUM(action, type, ...) \
