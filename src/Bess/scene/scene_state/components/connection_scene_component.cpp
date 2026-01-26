@@ -349,23 +349,32 @@ namespace Bess::Canvas {
 
             // create new joint
             const auto &oriEven = getSegments()[0].orientation;
-            const auto &oriOdd = getSegments()[1].orientation;
+            const auto &oriOdd = oriEven == ConnSegOrientaion::horizontal
+                                     ? ConnSegOrientaion::vertical
+                                     : ConnSegOrientaion::horizontal;
 
             // since there are only two orientations both alternating
             auto ori = (segIdx % 2 == 0) ? oriEven : oriOdd;
 
             auto jointComp = std::make_shared<ConnJointSceneComp>(m_uuid, segIdx, ori);
 
-            const auto &startSlot = e.sceneState->getComponentByUuid<SlotSceneComponent>(m_startSlot);
-            const auto &endSlot = e.sceneState->getComponentByUuid<SlotSceneComponent>(m_endSlot);
+            const auto &startComp = e.sceneState->getComponentByUuid(m_startSlot);
+            const auto &endComp = e.sceneState->getComponentByUuid(m_endSlot);
 
-            if (startSlot->isInputSlot()) {
-                jointComp->setOutputSlotId(endSlot->getUuid());
+            if (startComp->getType() == SceneComponentType::connJoint) {
+                auto startJoint = startComp->cast<ConnJointSceneComp>();
+                jointComp->setOutputSlotId(startJoint->getOutputSlotId());
+            } else if (endComp->getType() == SceneComponentType::connJoint) {
+                auto endJoint = endComp->cast<ConnJointSceneComp>();
+                jointComp->setOutputSlotId(endJoint->getOutputSlotId());
+            } else if (!startComp->cast<SlotSceneComponent>()->isInputSlot()) {
+                jointComp->setOutputSlotId(startComp->getUuid());
             } else {
-                jointComp->setOutputSlotId(startSlot->getUuid());
+                jointComp->setOutputSlotId(endComp->getUuid());
             }
 
             e.sceneState->addComponent<ConnJointSceneComp>(jointComp);
+            BESS_INFO("[Scene] Created joint component {}", (uint64_t)jointComp->getUuid());
 
             // calculating t value for joint position between segment vertices
             const auto jointPos = e.sceneState->getMousePos();
