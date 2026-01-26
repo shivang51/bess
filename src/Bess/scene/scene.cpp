@@ -425,10 +425,16 @@ namespace Bess::Canvas {
                 for (const auto &compId : selectedComps | std::ranges::views::keys) {
                     std::shared_ptr<SceneComponent> comp = m_state.getComponentByUuid(compId);
                     if (comp && comp->isDraggable()) {
-                        comp->cast<SimulationSceneComponent>()->onMouseDragged({toScenePos(m_mousePos),
-                                                                                m_dMousePos,
-                                                                                m_pickingId.info,
-                                                                                selectedComps.size() > 1});
+
+                        auto simComp = comp->cast<SimulationSceneComponent>();
+                        simComp->onMouseDragged({toScenePos(m_mousePos),
+                                                 m_dMousePos,
+                                                 m_pickingId.info,
+                                                 selectedComps.size() > 1});
+
+                        if (m_state.getConnectionStartSlot() == compId) {
+                            m_state.setConnectionStartSlot(UUID::null);
+                        }
                         m_isDragging = true;
                     }
                 }

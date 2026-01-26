@@ -20,7 +20,6 @@ namespace Bess::Canvas {
     void ConnJointSceneComp::draw(SceneState &state,
                                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                   std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
-
         const auto &conn = state.getComponentByUuid<ConnectionSceneComponent>(m_connectionId);
         const auto &slot = state.getComponentByUuid<SlotSceneComponent>(m_outputSlotId);
         const glm::vec3 &segStartPos = conn->getSegVertexPos(state, m_connSegIdx);
