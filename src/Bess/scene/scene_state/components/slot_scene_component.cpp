@@ -376,11 +376,18 @@ namespace Bess::Canvas {
         UUID starSlotUuid = jointComp ? jointComp->getUuid() : startSlot->getUuid();
 
         conn->setStartEndSlots(starSlotUuid, endSlot->getUuid());
-        startSlot->addConnection(conn->getUuid());
+
+        if (jointComp) {
+            jointComp->addConnection(conn->getUuid());
+        } else {
+            startSlot->addConnection(conn->getUuid());
+        }
+
         endSlot->addConnection(conn->getUuid());
 
-        BESS_INFO("[Scene] Created connection between slots {} and {}",
-                  (uint64_t)startSlot->getUuid(),
+        BESS_INFO("[Scene] Created connection {} between slots {} and {}",
+                  (uint64_t)conn->getUuid(),
+                  (uint64_t)starSlotUuid,
                   (uint64_t)endSlot->getUuid());
 
         e.sceneState->setConnectionStartSlot(UUID::null);

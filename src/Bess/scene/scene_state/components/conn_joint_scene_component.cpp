@@ -175,7 +175,8 @@ namespace Bess::Canvas {
         startSlot->addConnection(conn->getUuid());
         endComp->addConnection(conn->getUuid());
 
-        BESS_INFO("[Scene] Created connection between slots {} and {}",
+        BESS_INFO("[Scene] Created connection {} between slots {} and {}",
+                  (uint64_t)conn->getUuid(),
                   (uint64_t)startSlot->getUuid(),
                   (uint64_t)endComp->getUuid());
 
@@ -193,7 +194,7 @@ namespace Bess::Canvas {
         auto ids = SceneComponent::cleanup(state, caller);
 
         for (const auto &connId : m_connections) {
-            state.removeComponent(connId, UUID::master);
+            state.removeComponent(connId, m_uuid);
             ids.emplace_back(connId);
         }
 

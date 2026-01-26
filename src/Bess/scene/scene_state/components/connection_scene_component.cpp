@@ -293,7 +293,6 @@ namespace Bess::Canvas {
     std::vector<UUID> ConnectionSceneComponent::cleanup(SceneState &state, UUID caller) {
         auto compA = state.getComponentByUuid(m_startSlot);
         auto compB = state.getComponentByUuid(m_endSlot);
-
         std::shared_ptr<SlotSceneComponent> slotCompA = nullptr;
         std::shared_ptr<SlotSceneComponent> slotCompB = nullptr;
 
@@ -310,15 +309,20 @@ namespace Bess::Canvas {
             slotCompB = compB->cast<SlotSceneComponent>();
         }
 
-        BESS_ASSERT(slotCompA, "Failed to get slot component A during connection cleanup");
-        BESS_ASSERT(slotCompB, "Failed to get slot component B during connection cleanup");
+        auto callerComp = state.getComponentByUuid(caller);
 
         // clean the connection from simulation engine,
-        // if only connection between the slots is being removed
+        // only when connection between the slots is being removed directly,
         // in that case caller is null
         // if connection is being removed as part of slot/component removal,
         // the slot/component cleanup will handle removing connections from sim engine
-        if (caller == UUID::null || caller == UUID::master) {
+        // and since slots/components are removed no need to remove connection entry in them
+        if (caller == UUID::null ||
+            (callerComp && callerComp->getType() == SceneComponentType::connJoint)) {
+
+            BESS_ASSERT(slotCompA, "Failed to get slot component A during connection cleanup");
+            BESS_ASSERT(slotCompB, "Failed to get slot component B during connection cleanup");
+
             auto &simEngine = SimEngine::SimulationEngine::instance();
             const auto &simCompA = state.getComponentByUuid<SimulationSceneComponent>(
                 slotCompA->getParentComponent());
@@ -342,16 +346,20 @@ namespace Bess::Canvas {
                                      std::string>(std::vector{data});
         }
 
-        if (compA->getType() == SceneComponentType::connJoint) {
-            compA->cast<ConnJointSceneComp>()->removeConnection(m_uuid);
-        } else {
-            slotCompB->removeConnection(m_uuid);
+        if (m_startSlot != caller) {
+            if (compA->getType() == SceneComponentType::connJoint) {
+                compA->cast<ConnJointSceneComp>()->removeConnection(m_uuid);
+            } else {
+                slotCompB->removeConnection(m_uuid);
+            }
         }
 
-        if (compB->getType() == SceneComponentType::connJoint) {
-            compB->cast<ConnJointSceneComp>()->removeConnection(m_uuid);
-        } else {
-            slotCompB->removeConnection(m_uuid);
+        if (m_endSlot != caller) {
+            if (compB->getType() == SceneComponentType::connJoint) {
+                compB->cast<ConnJointSceneComp>()->removeConnection(m_uuid);
+            } else {
+                slotCompB->removeConnection(m_uuid);
+            }
         }
 
         for (auto &jointId : m_associatedJoints) {
