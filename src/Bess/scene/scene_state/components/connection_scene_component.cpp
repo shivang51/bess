@@ -268,9 +268,10 @@ namespace Bess::Canvas {
             endPoint.offset = glm::vec2{0, height};
             endPoint.orientation = ConnSegOrientaion::vertical;
             m_segments.emplace_back(endPoint);
-            m_segmentPosCacheDirty = true;
-            m_shouldReconstructSegments = false;
         }
+
+        m_segmentPosCacheDirty = true;
+        m_shouldReconstructSegments = false;
     }
 
     void ConnectionSceneComponent::onFirstDraw(SceneState &sceneState,
