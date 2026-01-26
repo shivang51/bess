@@ -1,4 +1,5 @@
 #include "scene/scene_state/components/conn_joint_scene_component.h"
+#include "bess_uuid.h"
 #include "commands/commands.h"
 #include "scene/scene_state/components/connection_scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
@@ -175,7 +176,7 @@ namespace Bess::Canvas {
         auto ids = SceneComponent::cleanup(state, caller);
 
         for (const auto &connId : m_connections) {
-            state.removeComponent(connId, m_uuid);
+            state.removeComponent(connId, UUID::master);
             ids.emplace_back(connId);
         }
 

@@ -12,8 +12,6 @@
 #include "plugin_manager.h"
 #include "scene/commands/add_command.h"
 #include "scene/renderer/material_renderer.h"
-#include "scene/scene_state/components/conn_joint_scene_component.h"
-#include "scene/scene_state/components/connection_scene_component.h"
 #include "scene/scene_state/components/non_sim_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/sim_scene_component.h"
@@ -244,6 +242,10 @@ namespace Bess::Canvas {
 
         if (m_state.getConnectionStartSlot() != UUID::null) {
             const auto comp = m_state.getComponentByUuid(m_state.getConnectionStartSlot());
+            if (!comp) {
+                m_state.setConnectionStartSlot(UUID::null);
+                return;
+            }
             const auto &pos = comp->getAbsolutePosition(m_state);
             const auto endPos = toScenePos(m_mousePos);
 

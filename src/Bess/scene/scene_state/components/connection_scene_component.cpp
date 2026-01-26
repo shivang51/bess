@@ -318,7 +318,7 @@ namespace Bess::Canvas {
         // in that case caller is null
         // if connection is being removed as part of slot/component removal,
         // the slot/component cleanup will handle removing connections from sim engine
-        if (caller == UUID::null) {
+        if (caller == UUID::null || caller == UUID::master) {
             auto &simEngine = SimEngine::SimulationEngine::instance();
             const auto &simCompA = state.getComponentByUuid<SimulationSceneComponent>(
                 slotCompA->getParentComponent());
