@@ -135,6 +135,5 @@ REFLECT_PROPS(Bess::Canvas::SceneComponent,
               ("name", getName, setName),
               ("parentComponent", getParentComponent, setParentComponent),
               ("childComponents", getChildComponents, setChildComponents),
-              ("runtimeId", getRuntimeId, setRuntimeId),
               ("subType", getSubType, setSubType),
               ("type", getType));
