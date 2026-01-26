@@ -128,7 +128,13 @@ namespace Bess::Canvas {
     };
 } // namespace Bess::Canvas
 
-namespace Bess::JsonConvert {
-    void toJsonValue(const Bess::Canvas::SceneComponent &component, Json::Value &j);
-    void fromJsonValue(const Json::Value &j, Bess::Canvas::SceneComponent &component);
-} // namespace Bess::JsonConvert
+REFLECT_PROPS(Bess::Canvas::SceneComponent,
+              ("uuid", getUuid, setUuid),
+              ("transform", getTransform, setTransform),
+              ("style", getStyle, setStyle),
+              ("name", getName, setName),
+              ("parentComponent", getParentComponent, setParentComponent),
+              ("childComponents", getChildComponents, setChildComponents),
+              ("runtimeId", getRuntimeId, setRuntimeId),
+              ("subType", getSubType, setSubType),
+              ("type", getType));

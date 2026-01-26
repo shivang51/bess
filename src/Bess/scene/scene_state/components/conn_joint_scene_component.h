@@ -56,10 +56,10 @@ namespace Bess::Canvas {
     };
 } // namespace Bess::Canvas
 
-REFLECT_PROPS(Canvas::ConnJointSceneComp,
-              ("connSegIdx", getConnSegIdx, setConnSegIdx),
-              ("connectionId", getConnectionId, setConnectionId),
-              ("outputSlotId", getOutputSlotId, setOutputSlotId),
-              ("segOffset", getSegOffset, setSegOffset),
-              ("segOrientation", getSegOrientation, setSegOrientation),
-              ("connections", getConnections, setConnections));
+REFLECT_DERIVED_PROPS(Bess::Canvas::ConnJointSceneComp, Bess::Canvas::SceneComponent,
+                      ("connSegIdx", getConnSegIdx, setConnSegIdx),
+                      ("connectionId", getConnectionId, setConnectionId),
+                      ("outputSlotId", getOutputSlotId, setOutputSlotId),
+                      ("segOffset", getSegOffset, setSegOffset),
+                      ("segOrientation", getSegOrientation, setSegOrientation),
+                      ("connections", getConnections, setConnections));

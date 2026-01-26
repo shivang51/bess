@@ -2,10 +2,11 @@
 #include <json/json.h>
 #include <type_traits>
 
+#define EXPAND(x) x
 #define GET_MACRO(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, NAME, ...) NAME
 
 #define FOR_EACH(action, ...) \
-    GET_MACRO(__VA_ARGS__, FE_20, FE_19, FE_18, FE_17, FE_16, FE_15, FE_14, FE_13, FE_12, FE_11, FE_10, FE_9, FE_8, FE_7, FE_6, FE_5, FE_4, FE_3, FE_2, FE_1)(action, __VA_ARGS__)
+    EXPAND(GET_MACRO(__VA_ARGS__, FE_20, FE_19, FE_18, FE_17, FE_16, FE_15, FE_14, FE_13, FE_12, FE_11, FE_10, FE_9, FE_8, FE_7, FE_6, FE_5, FE_4, FE_3, FE_2, FE_1)(action, __VA_ARGS__))
 
 #define FE_1(m, x) m(x)
 #define FE_2(m, x, ...) m(x) FE_1(m, __VA_ARGS__)
@@ -28,23 +29,50 @@
 #define FE_19(m, x, ...) m(x) FE_18(m, __VA_ARGS__)
 #define FE_20(m, x, ...) m(x) FE_19(m, __VA_ARGS__)
 
-#define STRIP_PARENS(X) X
-#define GET_KEY(k, g, s) #k
-#define GET_GETTER(k, g, s) g
-#define GET_SETTER(k, g, s) s
+#define SERIALIZE_MEMBER(member) \
+    Bess::JsonConvert::toJsonValue(obj.member, j[#member]);
 
-#define SERIALIZE_PROP(prop) \
-    Bess::JsonConvert::toJsonValue(obj.GET_GETTER prop(), j[GET_KEY prop]);
-
-// Deserialization Logic
-#define DESERIALIZE_PROP(prop)                                   \
-    if (j.isMember(GET_KEY prop)) {                              \
-        /* Use decltype to find the return type of the getter */ \
-        using T = std::decay_t<decltype(obj.GET_GETTER prop())>; \
-        T temp;                                                  \
-        Bess::JsonConvert::fromJsonValue(j[GET_KEY prop], temp); \
-        obj.GET_SETTER prop(temp);                               \
+#define DESERIALIZE_MEMBER(member)                                \
+    if (j.isMember(#member)) {                                    \
+        Bess::JsonConvert::fromJsonValue(j[#member], obj.member); \
     }
+
+#define REFLECT(ClassName, ...)                                           \
+    namespace Bess::JsonConvert {                                         \
+        inline void toJsonValue(const ClassName &obj, Json::Value &j) {   \
+            j = Json::objectValue;                                        \
+            FOR_EACH(SERIALIZE_MEMBER, __VA_ARGS__)                       \
+        }                                                                 \
+        inline void fromJsonValue(const Json::Value &j, ClassName &obj) { \
+            if (j.isObject()) {                                           \
+                FOR_EACH(DESERIALIZE_MEMBER, __VA_ARGS__)                 \
+            }                                                             \
+        }                                                                 \
+    }
+
+#define GET_1ST_ARG(k, ...) #k
+#define GET_2ND_ARG(k, g, ...) g
+
+#define GET_NTH_ARG(_1, _2, _3, N, ...) N
+#define HELP_COUNT(...) EXPAND(GET_NTH_ARG(__VA_ARGS__, 3, 2, 0))
+
+#define DESERIALIZE_DISPATCH(tuple) DESERIALIZE_IMPL_INNER(HELP_COUNT tuple, tuple)
+#define DESERIALIZE_IMPL_INNER(count, tuple) DESERIALIZE_IMPL_CONCAT(count, tuple)
+#define DESERIALIZE_IMPL_CONCAT(count, tuple) DESER_##count tuple
+
+#define GET_1ST_ARG_RAW(k, ...) k
+#define SERIALIZE_PROP(tuple) \
+    Bess::JsonConvert::toJsonValue(obj.GET_2ND_ARG tuple(), j[GET_1ST_ARG_RAW tuple]);
+
+#define DESER_3(k, g, s)                               \
+    if (j.isMember(#k)) {                              \
+        using T = std::decay_t<decltype(obj.g())>;     \
+        T temp;                                        \
+        Bess::JsonConvert::fromJsonValue(j[#k], temp); \
+        obj.s(temp);                                   \
+    }
+
+#define DESER_2(k, g)
 
 #define REFLECT_PROPS(className, ...)                                     \
     namespace Bess::JsonConvert {                                         \
@@ -54,14 +82,27 @@
         }                                                                 \
         inline void fromJsonValue(const Json::Value &j, className &obj) { \
             if (j.isObject()) {                                           \
-                FOR_EACH(DESERIALIZE_PROP, __VA_ARGS__)                   \
+                FOR_EACH(DESERIALIZE_DISPATCH, __VA_ARGS__)               \
             }                                                             \
         }                                                                 \
     }
 
-// Helper logic for Enum Strings
+#define REFLECT_DERIVED_PROPS(ClassName, BaseClass, ...)                            \
+    namespace Bess::JsonConvert {                                                   \
+        inline void toJsonValue(const ClassName &obj, Json::Value &j) {             \
+            Bess::JsonConvert::toJsonValue(static_cast<const BaseClass &>(obj), j); \
+            FOR_EACH(SERIALIZE_PROP, __VA_ARGS__)                                   \
+        }                                                                           \
+        inline void fromJsonValue(const Json::Value &j, ClassName &obj) {           \
+            if (j.isObject()) {                                                     \
+                Bess::JsonConvert::fromJsonValue(j, static_cast<BaseClass &>(obj)); \
+                FOR_EACH(DESERIALIZE_DISPATCH, __VA_ARGS__)                         \
+            }                                                                       \
+        }                                                                           \
+    }
+
 #define FOR_EACH_ENUM(action, type, ...) \
-    GET_MACRO(__VA_ARGS__, FE_E_20, FE_E_19, FE_E_18, FE_E_17, FE_E_16, FE_E_15, FE_E_14, FE_E_13, FE_E_12, FE_E_11, FE_E_10, FE_E_9, FE_E_8, FE_E_7, FE_E_6, FE_E_5, FE_E_4, FE_E_3, FE_E_2, FE_E_1)(action, type, __VA_ARGS__)
+    EXPAND(GET_MACRO(__VA_ARGS__, FE_E_20, FE_E_19, FE_E_18, FE_E_17, FE_E_16, FE_E_15, FE_E_14, FE_E_13, FE_E_12, FE_E_11, FE_E_10, FE_E_9, FE_E_8, FE_E_7, FE_E_6, FE_E_5, FE_E_4, FE_E_3, FE_E_2, FE_E_1)(action, type, __VA_ARGS__))
 
 #define FE_E_1(m, t, x) m(t, x)
 #define FE_E_2(m, t, x, ...) m(t, x) FE_E_1(m, t, __VA_ARGS__)
@@ -95,16 +136,28 @@
         return;                     \
     }
 
-#define REFLECT_ENUM(EnumType, ...)                                    \
+#define REFLECT_ENUM_STR(EnumType, ...)                                \
     namespace Bess::JsonConvert {                                      \
         inline void toJsonValue(const EnumType &v, Json::Value &j) {   \
             FOR_EACH_ENUM(ENUM_TO_STR_CASE, EnumType, __VA_ARGS__)     \
-            j = (int)v; /* Fallback to int if not found */             \
+            j = static_cast<int>(v);                                   \
         }                                                              \
         inline void fromJsonValue(const Json::Value &j, EnumType &v) { \
             if (j.isString()) {                                        \
                 FOR_EACH_ENUM(STR_TO_ENUM_CASE, EnumType, __VA_ARGS__) \
-            } else if (j.isInt()) {                                    \
+            } else if (j.isInt() || j.isUInt()) {                      \
+                v = static_cast<EnumType>(j.asInt());                  \
+            }                                                          \
+        }                                                              \
+    }
+
+#define REFLECT_ENUM(EnumType)                                         \
+    namespace Bess::JsonConvert {                                      \
+        inline void toJsonValue(const EnumType &v, Json::Value &j) {   \
+            j = static_cast<int>(v);                                   \
+        }                                                              \
+        inline void fromJsonValue(const Json::Value &j, EnumType &v) { \
+            if (j.isInt() || j.isUInt()) {                             \
                 v = static_cast<EnumType>(j.asInt());                  \
             }                                                          \
         }                                                              \

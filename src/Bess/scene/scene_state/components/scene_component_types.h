@@ -98,17 +98,22 @@ namespace Bess::Canvas {
 
 } // namespace Bess::Canvas
 
-REFLECT_ENUM(Bess::Canvas::ConnSegOrientaion,
-             horizontal,
-             vertical);
+REFLECT_ENUM(Bess::Canvas::SceneComponentType);
 
-namespace Bess::JsonConvert {
-    void toJsonValue(const Bess::Canvas::Transform &transform, Json::Value &j);
-    void fromJsonValue(const Json::Value &j, Bess::Canvas::Transform &transform);
+REFLECT(Bess::Canvas::Transform,
+        position,
+        scale,
+        angle);
 
-    void toJsonValue(const Bess::Canvas::Style &style, Json::Value &j);
-    void fromJsonValue(const Json::Value &j, Bess::Canvas::Style &style);
+REFLECT(Bess::Canvas::Style,
+        color,
+        borderColor,
+        borderSize,
+        borderRadius,
+        headerColor);
 
-    void toJsonValue(const Bess::Canvas::ConnSegment &segment, Json::Value &j);
-    void fromJsonValue(const Json::Value &j, Bess::Canvas::ConnSegment &segment);
-} // namespace Bess::JsonConvert
+REFLECT_ENUM(Bess::Canvas::ConnSegOrientaion);
+
+REFLECT(Bess::Canvas::ConnSegment,
+        offset,
+        orientation);

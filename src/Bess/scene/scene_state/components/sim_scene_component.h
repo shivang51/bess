@@ -95,7 +95,9 @@ namespace Bess::Canvas {
     };
 } // namespace Bess::Canvas
 
-namespace Bess::JsonConvert {
-    void toJsonValue(const Bess::Canvas::SimulationSceneComponent &component, Json::Value &j);
-    void fromJsonValue(const Json::Value &j, Bess::Canvas::SimulationSceneComponent &component);
-} // namespace Bess::JsonConvert
+REFLECT_DERIVED_PROPS(Bess::Canvas::SimulationSceneComponent, Bess::Canvas::SceneComponent,
+                      ("simEngineId", getSimEngineId, setSimEngineId),
+                      ("netId", getNetId, setNetId),
+                      ("inputSlots", getInputSlots, setInputSlots),
+                      ("outputSlots", getOutputSlots, setOutputSlots),
+                      ("schematicTransform", getSchematicTransform, setSchematicTransform))
