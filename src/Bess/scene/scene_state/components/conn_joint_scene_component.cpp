@@ -7,6 +7,7 @@
 #include "scene/scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
+#include "types.h"
 #include "ui/ui.h"
 
 namespace Bess::Canvas {
@@ -21,14 +22,29 @@ namespace Bess::Canvas {
                                   std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
 
         const auto &conn = state.getComponentByUuid<ConnectionSceneComponent>(m_connectionId);
+        const auto &slot = state.getComponentByUuid<SlotSceneComponent>(m_outputSlotId);
         const glm::vec3 &segStartPos = conn->getSegVertexPos(state, m_connSegIdx);
         const glm::vec3 &segEndPos = conn->getSegVertexPos(state, m_connSegIdx + 1);
         m_segLen = glm::length(segEndPos - segStartPos);
 
+        auto color = ViewportTheme::colors.stateLow;
+
+        if (m_isSelected) {
+            color = ViewportTheme::colors.selectedComp;
+        } else if (slot->getSlotState(state).state == SimEngine::LogicState::high) {
+            color = ViewportTheme::colors.stateHigh;
+        }
+
+        float radius = 3.f;
+
+        if (m_isHovered) {
+            radius = 4.f;
+        }
+
         const auto pickingId = PickingId{m_runtimeId, 0};
         materialRenderer->drawCircle(getAbsolutePosition(state),
-                                     4.f,
-                                     ViewportTheme::colors.selectedComp,
+                                     radius,
+                                     color,
                                      pickingId);
     }
 
@@ -52,10 +68,12 @@ namespace Bess::Canvas {
 
     void ConnJointSceneComp::onMouseEnter(const Events::MouseEnterEvent &e) {
         UI::setCursorPointer();
+        m_isHovered = true;
     }
 
     void ConnJointSceneComp::onMouseLeave(const Events::MouseLeaveEvent &e) {
         UI::setCursorNormal();
+        m_isHovered = false;
     }
 
     glm::vec3 ConnJointSceneComp::getAbsolutePosition(const SceneState &state) const {

@@ -52,6 +52,8 @@ namespace Bess::Canvas {
 
         UUID m_outputSlotId;
 
+        bool m_isHovered = false;
+
         float m_segLen;
         float m_segOffset = 0.5f; // normalized 0-1 offset, signifying pos on segment
         ConnSegOrientaion m_segOrientation = ConnSegOrientaion::horizontal;
