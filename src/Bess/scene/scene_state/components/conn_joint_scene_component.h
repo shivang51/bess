@@ -43,6 +43,9 @@ namespace Bess::Canvas {
         glm::vec3 getAbsolutePosition(const SceneState &state) const override;
         void onMouseLeftClick(const Events::MouseButtonEvent &e);
 
+        void removeConnection(const UUID &connectionId);
+        std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
+
       private:
         int m_connSegIdx;
         UUID m_connectionId;

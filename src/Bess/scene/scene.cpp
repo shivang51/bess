@@ -901,9 +901,10 @@ namespace Bess::Canvas {
             }
         };
 
-        if (slotCompA)
+        // can be a joint as well so checking for slot explicitly
+        if (slotCompA && slotCompA->getType() == SceneComponentType::slot)
             processSlot(slotCompA);
-        if (slotCompB)
+        if (slotCompB && slotCompB->getType() == SceneComponentType::slot)
             processSlot(slotCompB);
     }
 

@@ -163,4 +163,22 @@ namespace Bess::Canvas {
 
         return true;
     }
+
+    void ConnJointSceneComp::removeConnection(const UUID &connectionId) {
+        m_connections.erase(std::ranges::remove(m_connections,
+                                                connectionId)
+                                .begin(),
+                            m_connections.end());
+    }
+
+    std::vector<UUID> ConnJointSceneComp::cleanup(SceneState &state, UUID caller) {
+        auto ids = SceneComponent::cleanup(state, caller);
+
+        for (const auto &connId : m_connections) {
+            state.removeComponent(connId, m_uuid);
+            ids.emplace_back(connId);
+        }
+
+        return ids;
+    }
 } // namespace Bess::Canvas
