@@ -1,4 +1,5 @@
 #pragma once
+#include "bess_json/bess_json.h"
 #include "glm.hpp"
 #include "json/json.h"
 #include <cstdint>
@@ -96,6 +97,10 @@ namespace Bess::Canvas {
     };
 
 } // namespace Bess::Canvas
+
+REFLECT_ENUM(Bess::Canvas::ConnSegOrientaion,
+             horizontal,
+             vertical);
 
 namespace Bess::JsonConvert {
     void toJsonValue(const Bess::Canvas::Transform &transform, Json::Value &j);

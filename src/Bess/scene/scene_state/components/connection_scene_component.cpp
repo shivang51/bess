@@ -19,7 +19,6 @@
 namespace Bess::Canvas {
     ConnectionSceneComponent::ConnectionSceneComponent() {
         initDragBehaviour();
-        m_shouldReconstructSegments = true;
     }
 
     void ConnectionSceneComponent::drawSegments(const SceneState &state,

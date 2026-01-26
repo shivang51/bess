@@ -72,7 +72,7 @@ namespace Bess::Canvas {
         int m_hoveredSegIdx = -1;
         bool m_useCustomColor = false;
         int m_initialSegmentCount = 3;
-        bool m_shouldReconstructSegments = false;
+        bool m_shouldReconstructSegments = true;
     };
 } // namespace Bess::Canvas
 

@@ -24,7 +24,6 @@ set(Header_Files
     "include/component_definition.h"
     "include/init_components.h" 
     "include/net/net.h" 
-    "include/comp_json_converters.h"
 )
 source_group("include" FILES ${Header_Files})
 

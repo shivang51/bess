@@ -1,13 +1,76 @@
 #pragma once
-#include "comp_json_converters.h"
+#include "bess_uuid.h"
 #include "glm.hpp"
 #include "gtc/type_ptr.hpp"
 #include "json/json.h"
 
 namespace Bess::JsonConvert {
+    // Primitives
+    inline void toJsonValue(const int &v, Json::Value &j) { j = v; }
+    inline void toJsonValue(const float &v, Json::Value &j) { j = v; }
+    inline void toJsonValue(const double &v, Json::Value &j) { j = v; }
+    inline void toJsonValue(const std::string &v, Json::Value &j) { j = v; }
+    inline void toJsonValue(const bool &v, Json::Value &j) { j = v; }
+
+    // 32bit and 64bit unsigned integers
+    inline void toJsonValue(const uint32_t &v, Json::Value &j) { j = Json::UInt(v); }
+    inline void toJsonValue(const uint64_t &v, Json::Value &j) { j = Json::UInt64(v); }
+
+    // Vectors
+    template <typename T>
+    void toJsonValue(const std::vector<T> &vec, Json::Value &j) {
+        j = Json::arrayValue;
+        for (const auto &item : vec) {
+            Json::Value val;
+            toJsonValue(item, val);
+            j.append(val);
+        }
+    }
+
+    // --- FROM JSON ---
+    inline void fromJsonValue(const Json::Value &j, int &v) {
+        if (j.isInt())
+            v = j.asInt();
+    }
+    inline void fromJsonValue(const Json::Value &j, float &v) {
+        if (j.isNumeric())
+            v = j.asFloat();
+    }
+    inline void fromJsonValue(const Json::Value &j, double &v) {
+        if (j.isNumeric())
+            v = j.asDouble();
+    }
+    inline void fromJsonValue(const Json::Value &j, std::string &v) {
+        if (j.isString())
+            v = j.asString();
+    }
+    inline void fromJsonValue(const Json::Value &j, bool &v) {
+        if (j.isBool())
+            v = j.asBool();
+    }
+    inline void fromJsonValue(const Json::Value &j, uint32_t &v) {
+        if (j.isUInt())
+            v = j.asUInt();
+    }
+    inline void fromJsonValue(const Json::Value &j, uint64_t &v) {
+        if (j.isUInt64())
+            v = j.asUInt64();
+    }
+
+    template <typename T>
+    void fromJsonValue(const Json::Value &j, std::vector<T> &vec) {
+        vec.clear();
+        if (j.isArray()) {
+            for (const auto &item : j) {
+                T val;
+                fromJsonValue(item, val);
+                vec.push_back(val);
+            }
+        }
+    }
+
     // --- glm::vec2 ---
     inline void toJsonValue(const glm::vec2 &vec, Json::Value &j) {
-        // Explicitly create an array and append elements.
         j = Json::Value(Json::arrayValue);
         j.append(vec.x);
         j.append(vec.y);
@@ -22,7 +85,6 @@ namespace Bess::JsonConvert {
         if (!j.isArray() || j.size() != 2) {
             throw std::runtime_error("Bess::JsonHelpers: Invalid JSON for glm::vec2. Must be an array of size 2.");
         }
-        // Access elements by index and use the 'as' methods for type conversion.
         vec.x = j[0].asFloat();
         vec.y = j[1].asFloat();
     }
@@ -93,8 +155,7 @@ namespace Bess::JsonConvert {
         }
         for (int row = 0; row < 4; ++row) {
             for (int col = 0; col < 4; ++col) {
-                // The index into the flat array
-                Json::ArrayIndex index = row * 4 + col;
+                Json::ArrayIndex index = (row * 4) + col;
                 mat[col][row] = j[index].asFloat();
             }
         }

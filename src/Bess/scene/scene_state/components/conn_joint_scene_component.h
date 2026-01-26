@@ -1,4 +1,5 @@
 #pragma once
+#include "bess_json/bess_json.h"
 #include "bess_uuid.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -18,7 +19,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(UUID, OutputSlotId, m_outputSlotId);
         MAKE_GETTER_SETTER(float, SegOffset, m_segOffset);
         MAKE_GETTER_SETTER(ConnSegOrientaion, SegOrientation, m_segOrientation);
-        MAKE_GETTER(std::vector<UUID>, Connections, m_connections);
+        MAKE_GETTER_SETTER(std::vector<UUID>, Connections, m_connections);
 
         // Connect this joint to another slot
         bool connectWith(SceneState &sceneState, const UUID &slotId);
@@ -54,3 +55,11 @@ namespace Bess::Canvas {
         std::vector<UUID> m_connections;
     };
 } // namespace Bess::Canvas
+
+REFLECT_PROPS(Canvas::ConnJointSceneComp,
+              ("connSegIdx", getConnSegIdx, setConnSegIdx),
+              ("connectionId", getConnectionId, setConnectionId),
+              ("outputSlotId", getOutputSlotId, setOutputSlotId),
+              ("segOffset", getSegOffset, setSegOffset),
+              ("segOrientation", getSegOrientation, setSegOrientation),
+              ("connections", getConnections, setConnections));
