@@ -146,7 +146,7 @@ namespace Bess::Canvas {
         /// For now, Preventing removing child components directly
         /// If parent is not the caller, then do not remove
         /// TODO(Shivang): Add lifetime ownership management later
-        if (component->getType() != SceneComponentType::connection &&
+        if (component->getParentComponent() != UUID::null &&
             callerId != UUID::master &&
             component->getParentComponent() != callerId) {
             BESS_WARN("[SceneState] Attempt to remove child component {} directly prevented",

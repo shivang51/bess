@@ -354,6 +354,14 @@ namespace Bess::Canvas {
             slotCompB->removeConnection(m_uuid);
         }
 
+        for (auto &jointId : m_associatedJoints) {
+            auto jointComp = state.getComponentByUuid<ConnJointSceneComp>(jointId);
+            if (jointComp) {
+                state.removeComponent(jointId, m_uuid);
+                BESS_INFO("[Scene] Removed associated joint component {}", (uint64_t)jointId);
+            }
+        }
+
         Events::ConnectionRemovedEvent event{m_startSlot,
                                              m_endSlot};
         EventSystem::EventDispatcher::instance().dispatch(event);
@@ -396,6 +404,7 @@ namespace Bess::Canvas {
             }
 
             e.sceneState->addComponent<ConnJointSceneComp>(jointComp);
+            m_associatedJoints.emplace_back(jointComp->getUuid());
             BESS_INFO("[Scene] Created joint component {}", (uint64_t)jointComp->getUuid());
 
             // calculating t value for joint position between segment vertices
@@ -476,5 +485,16 @@ namespace Bess::Canvas {
         }
 
         return m_segmentCachedPositions[vertexIdx];
+    }
+
+    void ConnectionSceneComponent::addAssociatedJoint(const UUID &jointId) {
+        m_associatedJoints.emplace_back(jointId);
+    }
+
+    void ConnectionSceneComponent::removeAssociatedJoint(const UUID &jointId) {
+        m_associatedJoints.erase(std::ranges::remove(m_associatedJoints,
+                                                     jointId)
+                                     .begin(),
+                                 m_associatedJoints.end());
     }
 } // namespace Bess::Canvas

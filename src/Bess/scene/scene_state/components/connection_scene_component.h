@@ -43,6 +43,10 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(bool, ShouldReconstructSegments, m_shouldReconstructSegments)
         MAKE_GETTER_SETTER(bool, UseCustomColor, m_useCustomColor)
         MAKE_GETTER_SETTER(int, InitialSegmentCount, m_initialSegmentCount)
+        MAKE_GETTER_SETTER(std::vector<UUID>, AssociatedJoints, m_associatedJoints)
+
+        void addAssociatedJoint(const UUID &jointId);
+        void removeAssociatedJoint(const UUID &jointId);
 
         void setStartEndSlots(const UUID &startSlot, const UUID &endSlot);
 
@@ -68,6 +72,7 @@ namespace Bess::Canvas {
         UUID m_endSlot = UUID::null;
         std::vector<ConnSegment> m_segments;
         std::vector<glm::vec3> m_segmentCachedPositions;
+        std::vector<UUID> m_associatedJoints;
         bool m_segmentPosCacheDirty = true;
         int m_draggedSegIdx = -1;
         int m_hoveredSegIdx = -1;
@@ -83,4 +88,5 @@ REFLECT_DERIVED_PROPS(Bess::Canvas::ConnectionSceneComponent, Bess::Canvas::Scen
                       ("segments", getSegments, setSegments),
                       ("shouldReconstructSegments", getShouldReconstructSegments, setShouldReconstructSegments),
                       ("useCustomColor", getUseCustomColor, setUseCustomColor),
+                      ("associatedJoints", getAssociatedJoints, setAssociatedJoints),
                       ("initialSegmentCount", getInitialSegmentCount, setInitialSegmentCount));

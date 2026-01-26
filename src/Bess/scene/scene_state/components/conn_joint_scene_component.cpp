@@ -180,6 +180,13 @@ namespace Bess::Canvas {
             ids.emplace_back(connId);
         }
 
+        if (caller != m_connectionId) {
+            auto connComp = state.getComponentByUuid<ConnectionSceneComponent>(m_connectionId);
+            if (connComp) {
+                connComp->removeAssociatedJoint(m_uuid);
+            }
+        }
+
         return ids;
     }
 } // namespace Bess::Canvas
