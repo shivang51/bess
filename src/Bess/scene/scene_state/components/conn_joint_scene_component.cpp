@@ -152,7 +152,7 @@ namespace Bess::Canvas {
 
         auto conn = std::make_shared<ConnectionSceneComponent>();
         sceneState.addComponent<ConnectionSceneComponent>(conn);
-
+        conn->setInitialSegmentCount(2);
         conn->setStartEndSlots(startSlot->getUuid(), endComp->getUuid());
         startSlot->addConnection(conn->getUuid());
         endComp->addConnection(conn->getUuid());

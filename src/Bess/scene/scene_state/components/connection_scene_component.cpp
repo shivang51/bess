@@ -76,7 +76,7 @@ namespace Bess::Canvas {
             return;
 
         if (m_shouldReconstructSegments) {
-            reconsturctSegments(state);
+            reconstructSegments(state);
         }
 
         if (m_segmentPosCacheDirty) {
@@ -146,7 +146,7 @@ namespace Bess::Canvas {
         }
 
         if (m_shouldReconstructSegments) {
-            reconsturctSegments(state);
+            reconstructSegments(state);
         }
 
         if (m_segmentPosCacheDirty) {
@@ -239,7 +239,7 @@ namespace Bess::Canvas {
         m_endSlot = endSlot;
     }
 
-    void ConnectionSceneComponent::reconsturctSegments(const SceneState &state) {
+    void ConnectionSceneComponent::reconstructSegments(const SceneState &state) {
         if (m_startSlot == UUID::null || m_endSlot == UUID::null) {
             return;
         }
@@ -263,12 +263,14 @@ namespace Bess::Canvas {
         midPoint.orientation = ConnSegOrientaion::horizontal;
         m_segments.emplace_back(midPoint);
 
-        ConnSegment endPoint;
-        endPoint.offset = glm::vec2{0, height};
-        endPoint.orientation = ConnSegOrientaion::vertical;
-        m_segments.emplace_back(endPoint);
-        m_segmentPosCacheDirty = true;
-        m_shouldReconstructSegments = false;
+        if (m_initialSegmentCount == 3) {
+            ConnSegment endPoint;
+            endPoint.offset = glm::vec2{0, height};
+            endPoint.orientation = ConnSegOrientaion::vertical;
+            m_segments.emplace_back(endPoint);
+            m_segmentPosCacheDirty = true;
+            m_shouldReconstructSegments = false;
+        }
     }
 
     void ConnectionSceneComponent::onFirstDraw(SceneState &sceneState,
@@ -336,6 +338,10 @@ namespace Bess::Canvas {
     }
 
     void ConnectionSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
+        if (e.action != Events::MouseClickAction::press ||
+            e.button != Events::MouseButton::left)
+            return;
+
         const int segIdx = (int)e.details;
 
         if (e.sceneState->getConnectionStartSlot() != UUID::null) {
