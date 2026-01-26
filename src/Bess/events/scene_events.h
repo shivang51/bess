@@ -76,28 +76,8 @@ namespace Bess::Events {
         Canvas::SceneState *sceneState;
     };
 
-    struct SlotClickedEvent {
-        glm::vec2 mousePos;
-        UUID slotUuid;
-        MouseButton button;
-        MouseClickAction action;
-    };
-
     struct ConnectionRemovedEvent {
         UUID slotAId;
         UUID slotBId;
-    };
-
-    struct ConnJointClickEvent {
-        UUID jointId;
-        MouseButton button;
-        MouseClickAction action;
-    };
-
-    struct ConnSegClickEvent {
-        UUID connectionId;
-        int segIdx;
-        MouseButton button;
-        MouseClickAction action;
     };
 } // namespace Bess::Events

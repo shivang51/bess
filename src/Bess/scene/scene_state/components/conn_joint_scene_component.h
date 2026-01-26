@@ -20,6 +20,9 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(ConnSegOrientaion, SegOrientation, m_segOrientation);
         MAKE_GETTER(std::vector<UUID>, Connections, m_connections);
 
+        // Connect this joint to another slot
+        bool connectWith(SceneState &sceneState, const UUID &slotId);
+
         void addConnection(const UUID &connectionId);
 
         void draw(SceneState &state,

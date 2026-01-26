@@ -1,7 +1,6 @@
 #include "scene/scene_state/components/slot_scene_component.h"
 #include "bess_json/json_converters.h"
 #include "commands/commands.h"
-#include "event_dispatcher.h"
 #include "scene/scene_state/components/conn_joint_scene_component.h"
 #include "scene/scene_state/components/connection_scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
@@ -27,12 +26,6 @@ namespace Bess::Canvas {
                 onMouseLeftClick(e);
             }
         }
-
-        EventSystem::EventDispatcher::instance().dispatch(Events::SlotClickedEvent{
-            e.mousePos,
-            m_uuid,
-            e.button,
-            e.action});
     }
 
     void SlotSceneComponent::draw(SceneState &state,

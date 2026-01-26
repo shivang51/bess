@@ -149,8 +149,6 @@ namespace Bess::Canvas {
 
         bool m_isLeftMousePressed = false, m_isMiddleMousePressed = false;
 
-        void onConnSegClicked(const Events::ConnSegClickEvent &e);
-
         void onCompDefOutputsResized(const SimEngine::Events::CompDefOutputsResizedEvent &e);
         void onCompDefInputsResized(const SimEngine::Events::CompDefInputsResizedEvent &e);
 

@@ -89,8 +89,6 @@ namespace Bess::Canvas {
                 onMouseLeftClick(e);
             }
         }
-        Events::ConnJointClickEvent event{m_uuid, e.button, e.action};
-        EventSystem::EventDispatcher::instance().dispatch(event);
     }
 
     SimEngine::SlotState ConnJointSceneComp::getSlotState(const SceneState &state) const {
@@ -109,22 +107,25 @@ namespace Bess::Canvas {
             return;
         }
 
-        auto startSlot = e.sceneState->getComponentByUuid<
-            SlotSceneComponent>(connStartSlot);
+        connectWith(*e.sceneState, connStartSlot);
+        connStartSlot = UUID::null;
+    }
+
+    bool ConnJointSceneComp::connectWith(SceneState &sceneState, const UUID &slotId) {
+        auto startSlot = sceneState.getComponentByUuid<SlotSceneComponent>(slotId);
 
         if (startSlot->getType() != SceneComponentType::slot) {
             BESS_WARN("[Scene] Two joints can't be connected directly");
-            connStartSlot = UUID::null;
-            return;
+            return false;
         }
 
-        auto endComp = e.sceneState->getComponentByUuid<ConnJointSceneComp>(m_uuid);
-        auto endSlot = e.sceneState->getComponentByUuid<
+        auto endComp = sceneState.getComponentByUuid<ConnJointSceneComp>(m_uuid);
+        auto endSlot = sceneState.getComponentByUuid<
             SlotSceneComponent>(endComp->getOutputSlotId());
 
-        const auto startParent = e.sceneState->getComponentByUuid<
+        const auto startParent = sceneState.getComponentByUuid<
             SimulationSceneComponent>(startSlot->getParentComponent());
-        const auto endParent = e.sceneState->getComponentByUuid<
+        const auto endParent = sceneState.getComponentByUuid<
             SimulationSceneComponent>(endSlot->getParentComponent());
 
         const auto startPinType = startSlot->getSlotType() == SlotType::digitalInput
@@ -145,14 +146,12 @@ namespace Bess::Canvas {
                                                       endPinType);
 
         if (!res.has_value()) {
-            BESS_WARN("[Scene] Failed to create connection between slots, {}",
-                      res.error());
-            connStartSlot = UUID::null;
-            return;
+            BESS_WARN("[Scene] Failed to create connection between slots, {}", res.error());
+            return false;
         }
 
         auto conn = std::make_shared<ConnectionSceneComponent>();
-        e.sceneState->addComponent<ConnectionSceneComponent>(conn);
+        sceneState.addComponent<ConnectionSceneComponent>(conn);
 
         conn->setStartEndSlots(startSlot->getUuid(), endComp->getUuid());
         startSlot->addConnection(conn->getUuid());
@@ -162,6 +161,6 @@ namespace Bess::Canvas {
                   (uint64_t)startSlot->getUuid(),
                   (uint64_t)endComp->getUuid());
 
-        connStartSlot = UUID::null;
+        return true;
     }
 } // namespace Bess::Canvas

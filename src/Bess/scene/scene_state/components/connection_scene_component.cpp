@@ -1,4 +1,5 @@
 #include "scene/scene_state/components/connection_scene_component.h"
+#include "bess_uuid.h"
 #include "commands/commands.h"
 #include "common/log.h"
 #include "event_dispatcher.h"
@@ -12,6 +13,8 @@
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "types.h"
+#include "ui/ui.h"
+#include <cstdint>
 
 namespace Bess::Canvas {
     ConnectionSceneComponent::ConnectionSceneComponent() {
@@ -125,6 +128,14 @@ namespace Bess::Canvas {
         const auto endPos = endSlotComp->getAbsolutePosition(state);
 
         drawSegments(state, startPos, endPos, color, pathRenderer);
+
+        if (m_hoveredSegIdx >= 0 && state.getConnectionStartSlot() != UUID::null) {
+            materialRenderer->drawCircle(
+                {state.getMousePos(), 0.51f},
+                6.f,
+                ViewportTheme::colors.selectedComp,
+                PickingId{m_runtimeId, (uint32_t)m_hoveredSegIdx});
+        }
     }
 
     void ConnectionSceneComponent::drawSchematic(SceneState &state,
@@ -269,10 +280,12 @@ namespace Bess::Canvas {
 
     void ConnectionSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
         m_hoveredSegIdx = (int)e.details;
+        UI::setCursorPointer();
     }
 
     void ConnectionSceneComponent::onMouseLeave(const Events::MouseLeaveEvent &e) {
         m_hoveredSegIdx = -1;
+        UI::setCursorNormal();
     }
 
     std::vector<UUID> ConnectionSceneComponent::cleanup(SceneState &state, UUID caller) {
@@ -324,8 +337,45 @@ namespace Bess::Canvas {
 
     void ConnectionSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
         const int segIdx = (int)e.details;
-        Events::ConnSegClickEvent event{m_uuid, segIdx, e.button, e.action};
-        EventSystem::EventDispatcher::instance().dispatch(event);
+
+        if (e.sceneState->getConnectionStartSlot() != UUID::null) {
+
+            // create new joint
+            const auto &oriEven = getSegments()[0].orientation;
+            const auto &oriOdd = getSegments()[1].orientation;
+
+            // since there are only two orientations both alternating
+            auto ori = (segIdx % 2 == 0) ? oriEven : oriOdd;
+
+            auto jointComp = std::make_shared<ConnJointSceneComp>(m_uuid, segIdx, ori);
+
+            const auto &startSlot = e.sceneState->getComponentByUuid<SlotSceneComponent>(m_startSlot);
+            const auto &endSlot = e.sceneState->getComponentByUuid<SlotSceneComponent>(m_endSlot);
+
+            if (startSlot->isInputSlot()) {
+                jointComp->setOutputSlotId(endSlot->getUuid());
+            } else {
+                jointComp->setOutputSlotId(startSlot->getUuid());
+            }
+
+            e.sceneState->addComponent<ConnJointSceneComp>(jointComp);
+
+            // calculating t value for joint position between segment vertices
+            const auto jointPos = e.sceneState->getMousePos();
+            const auto segStartPos = getSegVertexPos(*e.sceneState, segIdx);
+            const auto segEndPos = getSegVertexPos(*e.sceneState, segIdx + 1);
+            float t = 0.f;
+            if (glm::distance(segStartPos, segEndPos) > 0.f) {
+                t = glm::distance(segStartPos, glm::vec3{jointPos, 0.f}) /
+                    glm::distance(segStartPos, segEndPos);
+            }
+            jointComp->setSegOffset(t);
+
+            // connect with start slot
+            jointComp->connectWith(*e.sceneState, e.sceneState->getConnectionStartSlot());
+            e.sceneState->setConnectionStartSlot(UUID::null);
+            return;
+        }
     }
 
     void ConnectionSceneComponent::resetSegmentPositionCache(const SceneState &state) {

@@ -71,6 +71,7 @@ namespace Bess::Canvas {
 
         MAKE_GETTER_SETTER(bool, IsSchematicView, m_isSchematicView);
         MAKE_GETTER_SETTER(UUID, ConnectionStartSlot, m_connectionStartSlot);
+        MAKE_GETTER_SETTER(glm::vec2, MousePos, m_mousePos);
 
         bool isComponentValid(const UUID &uuid) const;
 
@@ -107,6 +108,7 @@ namespace Bess::Canvas {
 
         UUID m_connectionStartSlot = UUID::null;
         bool m_isSchematicView = false;
+        glm::vec2 m_mousePos;
     };
 } // namespace Bess::Canvas
 
