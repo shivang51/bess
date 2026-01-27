@@ -2,7 +2,6 @@
 #include "bess_uuid.h"
 #include "commands/commands.h"
 #include "geometric.hpp"
-#include "glm.hpp"
 #include "scene/scene_state/components/connection_scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
@@ -96,7 +95,7 @@ namespace Bess::Canvas {
 
         float delta = m_segOrientation == ConnSegOrientaion::horizontal
                           ? e.delta.x
-                          : -e.delta.y;
+                          : e.delta.y;
 
         const auto &conn = e.sceneState->getComponentByUuid<ConnectionSceneComponent>(m_connectionId);
         const auto &slot = e.sceneState->getComponentByUuid<SlotSceneComponent>(m_outputSlotId);
@@ -104,10 +103,18 @@ namespace Bess::Canvas {
         const glm::vec3 &segEndPos = conn->getSegVertexPos(*e.sceneState, m_connSegIdx + 1);
         const auto &segLen = glm::distance(segEndPos, segStartPos);
 
-        if (glm::length(segEndPos) > glm::length(segStartPos))
+        float startCoord = (m_segOrientation == ConnSegOrientaion::horizontal)
+                               ? segStartPos.x
+                               : segStartPos.y;
+        float endCoord = (m_segOrientation == ConnSegOrientaion::horizontal)
+                             ? segEndPos.x
+                             : segEndPos.y;
+
+        if (endCoord >= startCoord) {
             m_segOffset += delta / segLen;
-        else
+        } else {
             m_segOffset -= delta / segLen;
+        }
 
         m_segOffset = glm::clamp(m_segOffset, 0.0f, 1.0f);
     }
