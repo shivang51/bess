@@ -70,8 +70,9 @@ namespace Bess::Canvas {
         void resetSegmentPositionCache(const SceneState &state);
         UUID m_startSlot = UUID::null;
         UUID m_endSlot = UUID::null;
-        std::vector<ConnSegment> m_segments;
+        std::vector<ConnSegment> m_segments, m_schematicSegments;
         std::vector<glm::vec3> m_segmentCachedPositions;
+        std::vector<glm::vec3> m_segCachedSchemeticPos;
         std::vector<UUID> m_associatedJoints;
         bool m_segmentPosCacheDirty = true;
         int m_draggedSegIdx = -1;

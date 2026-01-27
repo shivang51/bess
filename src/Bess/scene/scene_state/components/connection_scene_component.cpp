@@ -27,8 +27,14 @@ namespace Bess::Canvas {
                                                 const glm::vec4 &color,
                                                 const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer) {
 
-        if (startPos != m_segmentCachedPositions.front() ||
-            endPos != m_segmentCachedPositions.back()) {
+        const auto &segCache = state.getIsSchematicView()
+                                   ? m_segCachedSchemeticPos
+                                   : m_segmentCachedPositions;
+
+        BESS_ASSERT(!segCache.empty(), "Segment position cache is empty");
+
+        if (startPos != segCache.front() ||
+            endPos != segCache.back()) {
             resetSegmentPositionCache(state);
         }
 
@@ -38,20 +44,20 @@ namespace Bess::Canvas {
 
         PickingId pickingId{m_runtimeId, 0};
 
-        auto pos = m_segmentCachedPositions[0];
+        auto pos = segCache.front();
         pos.z = 0.5f;
         pathRenderer->beginPathMode(pos,
                                     m_hoveredSegIdx == 0 ? 3 : weight,
                                     color, pickingId);
 
         size_t segmentIndex = 0;
-        for (size_t i = 1; i < m_segmentCachedPositions.size(); i++) {
-            const auto &segPos = m_segmentCachedPositions[i];
+        for (size_t i = 1; i < segCache.size(); i++) {
+            const auto &segPos = segCache[i];
 
             const bool isHovered = m_hoveredSegIdx == segmentIndex;
             pickingId.info = segmentIndex++;
 
-            pathRenderer->pathLineTo(glm::vec3(segPos.x, segPos.y, 0.5f),
+            pathRenderer->pathLineTo(glm::vec3(segPos.x, segPos.y, pos.z),
                                      isHovered ? 3 : weight,
                                      color,
                                      pickingId);
@@ -66,6 +72,14 @@ namespace Bess::Canvas {
 
         if (m_isFirstDraw) {
             onFirstDraw(state, materialRenderer, pathRenderer);
+            if (m_segments.empty()) {
+                if (!m_isFirstSchematicDraw) {
+                    m_segments = m_schematicSegments;
+                } else {
+                    m_shouldReconstructSegments = true;
+                }
+            }
+            m_segmentPosCacheDirty = true;
         }
 
         auto startSlotComp = state.getComponentByUuid(m_startSlot);
@@ -141,7 +155,9 @@ namespace Bess::Canvas {
                                                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                                  std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
         if (m_isFirstSchematicDraw) {
-            onFirstSchematicDraw(state, materialRenderer, pathRenderer);
+            m_isFirstSchematicDraw = false;
+            m_schematicSegments = m_segments;
+            m_segmentPosCacheDirty = true;
         }
 
         if (m_shouldReconstructSegments) {
@@ -152,8 +168,8 @@ namespace Bess::Canvas {
             resetSegmentPositionCache(state);
         }
 
-        auto startSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
-        auto endSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
+        const auto startSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
+        const auto endSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
 
         if (!startSlotComp || !endSlotComp)
             return;
@@ -189,9 +205,13 @@ namespace Bess::Canvas {
             onMouseDragBegin(e);
         }
 
+        auto &segs = e.sceneState->getIsSchematicView()
+                         ? m_schematicSegments
+                         : m_segments;
+
         if (m_draggedSegIdx == 0) {
             ConnSegment newSeg{};
-            auto &firstSeg = m_segments[0];
+            auto &firstSeg = segs[0];
             newSeg.orientation = firstSeg.orientation == ConnSegOrientaion::horizontal
                                      ? ConnSegOrientaion::vertical
                                      : ConnSegOrientaion::horizontal;
@@ -201,23 +221,23 @@ namespace Bess::Canvas {
                 newSeg.offset.y = e.delta.y;
             }
 
-            m_segments.insert(m_segments.begin(), newSeg);
+            segs.insert(segs.begin(), newSeg);
 
             m_draggedSegIdx++;
             m_hoveredSegIdx++;
-        } else if (m_draggedSegIdx == m_segments.size()) {
+        } else if (m_draggedSegIdx == segs.size()) {
             ConnSegment newSeg{};
-            auto &lastSeg = m_segments[m_segments.size() - 1];
+            auto &lastSeg = segs[segs.size() - 1];
             newSeg.orientation = lastSeg.orientation == ConnSegOrientaion::horizontal
                                      ? ConnSegOrientaion::vertical
                                      : ConnSegOrientaion::horizontal;
 
             // offset of last segment is set from end point
 
-            m_segments.emplace_back(newSeg);
+            segs.emplace_back(newSeg);
         }
 
-        auto &seg = m_segments[m_draggedSegIdx - 1];
+        auto &seg = segs[m_draggedSegIdx - 1];
 
         if (seg.orientation == ConnSegOrientaion::horizontal) {
             seg.offset.x += e.delta.x;
@@ -243,7 +263,10 @@ namespace Bess::Canvas {
             return;
         }
 
-        m_segments.clear();
+        auto &segments = state.getIsSchematicView()
+                             ? m_schematicSegments
+                             : m_segments;
+        segments.clear();
 
         auto startSlotComp = state.getComponentByUuid(m_startSlot);
         auto endSlotComp = state.getComponentByUuid(m_endSlot);
@@ -260,13 +283,13 @@ namespace Bess::Canvas {
         ConnSegment midPoint;
         midPoint.offset = glm::vec2{midX, 0};
         midPoint.orientation = ConnSegOrientaion::horizontal;
-        m_segments.emplace_back(midPoint);
+        segments.emplace_back(midPoint);
 
         if (m_initialSegmentCount == 3) {
             ConnSegment endPoint;
             endPoint.offset = glm::vec2{0, height};
             endPoint.orientation = ConnSegOrientaion::vertical;
-            m_segments.emplace_back(endPoint);
+            segments.emplace_back(endPoint);
         }
 
         m_segmentPosCacheDirty = true;
@@ -435,7 +458,6 @@ namespace Bess::Canvas {
 
     void ConnectionSceneComponent::resetSegmentPositionCache(const SceneState &state) {
         m_segmentPosCacheDirty = false;
-        m_segmentCachedPositions.clear();
 
         auto startSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
         auto endSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
@@ -452,17 +474,26 @@ namespace Bess::Canvas {
         auto pos = startPos;
         auto prevPos = pos;
 
-        m_segmentCachedPositions.push_back(startPos);
+        auto &segments = state.getIsSchematicView()
+                             ? m_schematicSegments
+                             : m_segments;
+
+        auto &cache = state.getIsSchematicView()
+                          ? m_segCachedSchemeticPos
+                          : m_segmentCachedPositions;
+
+        cache.clear();
+        cache.push_back(startPos);
 
         int segmentIndex = 0;
-        for (auto &segment : m_segments) {
+        for (auto &segment : segments) {
             pos += glm::vec3(segment.offset, 0);
             if (segment.orientation == ConnSegOrientaion::horizontal) {
                 pos.x -= offsetXDecr;
             }
 
             // Ensure the last segment ends exactly in straight line to the endPos
-            if (segmentIndex == m_segments.size() - 1) {
+            if (segmentIndex == segments.size() - 1) {
                 if (segment.orientation == ConnSegOrientaion::horizontal) {
                     pos.x = endPos.x;
                     segment.offset.x = pos.x - prevPos.x;
@@ -474,10 +505,10 @@ namespace Bess::Canvas {
 
             segmentIndex++;
             prevPos = pos;
-            m_segmentCachedPositions.push_back(pos);
+            cache.push_back(pos);
         }
 
-        m_segmentCachedPositions.emplace_back(endPos);
+        cache.emplace_back(endPos);
     }
 
     glm::vec3 ConnectionSceneComponent::getSegVertexPos(const SceneState &state, size_t vertexIdx) {
@@ -485,14 +516,18 @@ namespace Bess::Canvas {
             resetSegmentPositionCache(state);
         }
 
-        if (vertexIdx >= m_segmentCachedPositions.size()) {
+        auto &segments = state.getIsSchematicView()
+                             ? m_segCachedSchemeticPos
+                             : m_segmentCachedPositions;
+
+        if (vertexIdx >= segments.size()) {
             BESS_WARN("[ConnectionSceneComponent] Requested segment vertex index {} out of bounds (max {})",
                       vertexIdx,
-                      m_segmentCachedPositions.size() - 1);
+                      segments.size() - 1);
             return glm::vec3(0.f);
         }
 
-        return m_segmentCachedPositions[vertexIdx];
+        return segments[vertexIdx];
     }
 
     void ConnectionSceneComponent::addAssociatedJoint(const UUID &jointId) {

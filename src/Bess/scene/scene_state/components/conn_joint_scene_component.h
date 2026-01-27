@@ -17,7 +17,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(int, ConnSegIdx, m_connSegIdx);
         MAKE_GETTER_SETTER(UUID, ConnectionId, m_connectionId);
         MAKE_GETTER_SETTER(UUID, OutputSlotId, m_outputSlotId);
-        MAKE_GETTER_SETTER(float, SegOffset, m_segOffset);
+        MAKE_GETTER_SETTER(float, SegOffset, m_offset);
         MAKE_GETTER_SETTER(ConnSegOrientaion, SegOrientation, m_segOrientation);
         MAKE_GETTER_SETTER(std::vector<UUID>, Connections, m_connections);
 
@@ -54,7 +54,7 @@ namespace Bess::Canvas {
 
         bool m_isHovered = false;
 
-        float m_segOffset = 0.5f; // normalized 0-1 offset, signifying pos on segment
+        float m_offset = 0.5f, m_schematicOffset; // normalized 0-1 offset, signifying pos on segment
         ConnSegOrientaion m_segOrientation = ConnSegOrientaion::horizontal;
         std::vector<UUID> m_connections;
     };

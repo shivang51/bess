@@ -48,6 +48,12 @@ namespace Bess::Canvas {
     void ConnJointSceneComp::drawSchematic(SceneState &state,
                                            std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                            std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+
+        if (m_isFirstSchematicDraw) {
+            m_schematicOffset = m_offset;
+            m_isFirstSchematicDraw = false;
+        }
+
         const auto pickingId = PickingId{m_runtimeId, 0};
 
         glm::vec4 color;
@@ -79,7 +85,10 @@ namespace Bess::Canvas {
         const glm::vec3 &segStartPos = conn->getSegVertexPos(state, m_connSegIdx);
         const glm::vec3 &segEndPos = conn->getSegVertexPos(state, m_connSegIdx + 1);
 
-        auto pos = glm::mix(segStartPos, segEndPos, m_segOffset);
+        const float offset = state.getIsSchematicView()
+                                 ? m_schematicOffset
+                                 : m_offset;
+        auto pos = glm::mix(segStartPos, segEndPos, offset);
         pos.z += 0.0001f;
 
         return pos;
@@ -111,12 +120,18 @@ namespace Bess::Canvas {
                              : segEndPos.y;
 
         if (endCoord >= startCoord) {
-            m_segOffset += delta / segLen;
+            delta = delta / segLen;
         } else {
-            m_segOffset -= delta / segLen;
+            delta = -delta / segLen;
         }
 
-        m_segOffset = glm::clamp(m_segOffset, 0.0f, 1.0f);
+        if (e.sceneState->getIsSchematicView()) {
+            m_schematicOffset += delta;
+            m_schematicOffset = glm::clamp(m_schematicOffset, 0.0f, 1.0f);
+        } else {
+            m_offset += delta;
+            m_offset = glm::clamp(m_offset, 0.0f, 1.0f);
+        }
     }
 
     void ConnJointSceneComp::onMouseButton(const Events::MouseButtonEvent &e) {
