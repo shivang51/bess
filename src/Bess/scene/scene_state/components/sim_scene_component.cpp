@@ -145,11 +145,11 @@ namespace Bess::Canvas {
                 resetSchematicPinsPositions(state);
             }
         } else {
-            float x = m_transform.position.x - (m_schematicTransform.scale.x / 2.f);
-            float y = m_transform.position.y - (m_schematicTransform.scale.y / 2.f);
+            const glm::vec3 &pos = getAbsolutePosition(state);
+            float x = pos.x - (m_schematicTransform.scale.x / 2.f);
+            float y = pos.y - (m_schematicTransform.scale.y / 2.f);
             float x1 = x + m_schematicTransform.scale.x;
             float y1 = y + m_schematicTransform.scale.y;
-            const glm::vec3 &pos = getAbsolutePosition(state);
             float nodeWeight = Styles::compSchematicStyles.strokeSize;
             const auto &textColor = ViewportTheme::schematicViewColors.text;
             const auto &fillColor = ViewportTheme::schematicViewColors.componentFill;
@@ -293,6 +293,7 @@ namespace Bess::Canvas {
         calculateSchematicScale(sceneState);
         resetSchematicPinsPositions(sceneState);
         m_isFirstSchematicDraw = false;
+        m_schematicTransform.position = m_transform.position;
     }
 
     size_t SimulationSceneComponent::getInputSlotsCount() const {
@@ -442,7 +443,35 @@ namespace Bess::Canvas {
                             m_outputSlots.end());
     }
 
-    void SimulationSceneComponent::onTransformChanged() {
-        m_schematicTransform.position = m_transform.position;
+    void SimulationSceneComponent::onMouseDragged(const Events::MouseDraggedEvent &e) {
+        if (!m_isDragging) {
+            onMouseDragBegin(e);
+        }
+
+        auto newPos = e.mousePos + m_dragOffset;
+        newPos = glm::round(newPos / SNAP_AMOUNT) * SNAP_AMOUNT;
+
+        if (e.sceneState->getIsSchematicView()) {
+            m_schematicTransform.position = glm::vec3(newPos, m_schematicTransform.position.z);
+        } else {
+            setPosition(glm::vec3(newPos, m_transform.position.z));
+        }
+    }
+
+    glm::vec3 SimulationSceneComponent::getAbsolutePosition(const SceneState &state) const {
+        if (state.getIsSchematicView()) {
+            if (m_parentComponent == UUID::null) {
+                return m_schematicTransform.position;
+            }
+
+            auto parentComp = state.getComponentByUuid(m_parentComponent);
+            if (!parentComp) {
+                return m_schematicTransform.position;
+            }
+
+            return parentComp->getAbsolutePosition(state) + m_schematicTransform.position;
+        } else {
+            return SceneComponent::getAbsolutePosition(state);
+        }
     }
 } // namespace Bess::Canvas

@@ -50,6 +50,10 @@ namespace Bess::Canvas {
 
         std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
 
+        void onMouseDragged(const Events::MouseDraggedEvent &e) override;
+
+        glm::vec3 getAbsolutePosition(const SceneState &state) const override;
+
       protected:
         /**
          * Resets the slot positions based on the current scale and number of slots
@@ -80,8 +84,6 @@ namespace Bess::Canvas {
                                   std::shared_ptr<PathRenderer> /*unused*/) override;
 
         void removeChildComponent(const UUID &uuid) override;
-
-        void onTransformChanged() override;
 
       protected:
         // Associated simulation engine ID
