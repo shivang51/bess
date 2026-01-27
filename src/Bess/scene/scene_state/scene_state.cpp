@@ -1,5 +1,6 @@
 #include "scene/scene_state/scene_state.h"
 #include "bess_uuid.h"
+#include "scene/scene_state/components/conn_joint_scene_component.h"
 #include "scene/scene_state/components/connection_scene_component.h"
 #include "scene/scene_state/components/input_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -211,6 +212,10 @@ namespace Bess::JsonConvert {
                 toJsonValue(*component->cast<Canvas::SlotSceneComponent>(), compJson);
                 break;
             }
+            case Canvas::SceneComponentType::connJoint: {
+                toJsonValue(*component->cast<Canvas::ConnJointSceneComp>(), compJson);
+                break;
+            }
             case Canvas::SceneComponentType::connection: {
                 toJsonValue(*component->cast<Canvas::ConnectionSceneComponent>(), compJson);
                 break;
@@ -262,6 +267,13 @@ namespace Bess::JsonConvert {
                 fromJsonValue(compJson, slotComp);
                 state.addComponent<Canvas::SlotSceneComponent>(
                     std::make_shared<Canvas::SlotSceneComponent>(slotComp));
+                break;
+            }
+            case Canvas::SceneComponentType::connJoint: {
+                Canvas::ConnJointSceneComp connJointComp;
+                fromJsonValue(compJson, connJointComp);
+                state.addComponent<Canvas::ConnJointSceneComp>(
+                    std::make_shared<Canvas::ConnJointSceneComp>(connJointComp));
                 break;
             }
             case Canvas::SceneComponentType::connection: {

@@ -465,7 +465,7 @@ namespace Bess::Canvas {
             const bool isShiftPressed = Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_SHIFT) ||
                                         Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_RIGHT_SHIFT);
 
-            if (isShiftPressed) {
+            if (isShiftPressed && m_lastCreatedComp.set) {
                 const auto def = m_lastCreatedComp.componentDefinition;
                 const Commands::AddCommandData cmdData = {
                     .def = def,
