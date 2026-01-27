@@ -145,7 +145,9 @@ namespace Bess::Canvas {
             // slot is rendered behind the component but text should be in front of component
             // so using z of node view
             materialRenderer->drawText(m_name,
-                                       {pos.x + textOffsetX, pos.y + (textSize.y / 2.f) - 2.f, getAbsolutePosition(state).z},
+                                       {pos.x + textOffsetX,
+                                        pos.y + (textSize.y / 2.f) - 2.f,
+                                        SceneComponent::getAbsolutePosition(state).z}, // because we don't want schematic pos
                                        Styles::componentStyles.slotLabelSize,
                                        ViewportTheme::schematicViewColors.componentStroke, pinId,
                                        0.f);
