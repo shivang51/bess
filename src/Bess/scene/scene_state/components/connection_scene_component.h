@@ -87,6 +87,7 @@ REFLECT_DERIVED_PROPS(Bess::Canvas::ConnectionSceneComponent, Bess::Canvas::Scen
                       ("startSlot", getStartSlot, setStartSlot),
                       ("endSlot", getEndSlot, setEndSlot),
                       ("segments", getSegments, setSegments),
+                      ("schemeticSegments", getSegments, setSegments),
                       ("shouldReconstructSegments", getShouldReconstructSegments, setShouldReconstructSegments),
                       ("useCustomColor", getUseCustomColor, setUseCustomColor),
                       ("associatedJoints", getAssociatedJoints, setAssociatedJoints),
