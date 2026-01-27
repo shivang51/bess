@@ -1,5 +1,4 @@
 #include "scene_viewport.h"
-#include "common/log.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "scene/camera.h"

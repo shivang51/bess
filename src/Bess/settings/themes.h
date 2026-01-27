@@ -18,6 +18,7 @@ namespace Bess::Config {
         static void setCatpuccinMochaColors();
         static void setFluentUIColors();
         static void setBessDarkColors();
+        static void setBessMinimalColors();
         static void setModernDarkColors();
 
         // theme name and a void callback
