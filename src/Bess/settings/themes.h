@@ -21,7 +21,9 @@ namespace Bess::Config {
         static void setBessMinimalColors();
         static void setModernDarkColors();
 
+        static void setBessLightColors();
+
         // theme name and a void callback
-        std::unordered_map<std::string, std::function<void()>> m_themes = {};
+        std::unordered_map<std::string, std::function<void()>> m_themes;
     };
 } // namespace Bess::Config
