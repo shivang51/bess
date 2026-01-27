@@ -1,4 +1,5 @@
 #include "scene_viewport.h"
+#include "common/log.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "scene/camera.h"
@@ -86,43 +87,57 @@ namespace Bess::UI {
     }
 
     void SceneViewport::drawBottomControls() const {
-        // Camera controls (on bottom right)
         const auto &mousePos = Canvas::Scene::instance()->getSceneMousePos();
-        const auto posLabel = std::format("X:{:.2f}, Y:{:.2f}", mousePos.x, mousePos.y);
-        const auto posLabelCStr = posLabel.c_str();
-        const auto posLabelSize = ImGui::CalcTextSize(posLabelCStr);
+        const auto posLabel = std::format("Pos: ({:.2f}, {:.2f})", mousePos.x, mousePos.y);
+        const auto posLabelSize = ImGui::CalcTextSize(posLabel.c_str());
 
-        ImGui::SetNextWindowPos(
-            {m_localPos.x + m_viewportSize.x - 208 - posLabelSize.x,
-             m_localPos.y + m_viewportSize.y - 40});
+        float windowWidth = posLabelSize.x + ImGui::GetStyle().ItemSpacing.x + 150.0f + 20.f;
+
+        ImGui::SetNextWindowPos({m_localPos.x + m_viewportSize.x - windowWidth - 10.f,
+                                 m_localPos.y + m_viewportSize.y - 44.f});
         ImGui::SetNextWindowBgAlpha(0.f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
 
-        ImGui::Begin("SceneBottomRightControls", nullptr, NO_MOVE_FLAGS);
-        // Mouse Pos
+        // Force height 34
+        ImGui::SetNextWindowSize({0, 34});
+        ImGui::Begin("SceneBottomRightControls", nullptr, NO_MOVE_FLAGS | ImGuiWindowFlags_NoScrollbar);
+
+        const float windowHeight = 34.0f;
+        const float sliderHeight = ImGui::GetFrameHeight();
+
+        ImGui::SetCursorPosY((windowHeight - sliderHeight) * 0.5f);
+        const auto &camera = Canvas::Scene::instance()->getCamera();
+
+        // Mouse Pos Text
         {
-            ImGui::Text("%s", posLabelCStr);
-            ImGui::SameLine();
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted(posLabel.c_str());
+
+            // Recenter on click
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+                camera->focusAtPoint({0.f, 0.f}, false);
+            }
         }
 
         ImGui::SameLine();
 
         // Zoom Slider
         {
-            const auto &camera = Canvas::Scene::instance()->getCamera();
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8);
             ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 8);
+
             ImGui::SetNextItemWidth(150.0f);
-            if (ImGui::SliderFloat("Zoom", &camera->getZoomRef(), Camera::zoomMin,
-                                   Camera::zoomMax, nullptr,
-                                   ImGuiSliderFlags_AlwaysClamp)) {
+            if (ImGui::SliderFloat("##Zoom", &camera->getZoomRef(), Camera::zoomMin,
+                                   Camera::zoomMax, "%.1fx", ImGuiSliderFlags_AlwaysClamp)) {
                 const float stepSize = 0.1f;
                 const float val = roundf(camera->getZoom() / stepSize) * stepSize;
                 camera->setZoom(val);
             }
             ImGui::PopStyleVar(2);
         }
+
         ImGui::End();
         ImGui::PopStyleVar(2);
     }
