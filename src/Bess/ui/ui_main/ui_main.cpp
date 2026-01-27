@@ -85,15 +85,15 @@ namespace Bess::UI {
             }
         }
 
-        ImGui::Begin("Scene State JSON");
-        static std::string sceneJson;
-        if (ImGui::Button("Refresh")) {
-            Json::Value j;
-            JsonConvert::toJsonValue(Canvas::Scene::instance()->getState(), j);
-            sceneJson = j.toStyledString();
-        }
-        ImGui::TextWrapped("%s", sceneJson.data());
-        ImGui::End();
+        // ImGui::Begin("Scene State JSON");
+        // static std::string sceneJson;
+        // if (ImGui::Button("Refresh")) {
+        //     Json::Value j;
+        //     JsonConvert::toJsonValue(Canvas::Scene::instance()->getState(), j);
+        //     sceneJson = j.toStyledString();
+        // }
+        // ImGui::TextWrapped("%s", sceneJson.data());
+        // ImGui::End();
     }
 
     void UIMain::setViewportTexture(const uint64_t texture) {
