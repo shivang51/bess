@@ -49,7 +49,7 @@ namespace Bess::SimEngine {
         std::chrono::seconds getSimulationTimeS();
 
         SimulationState toggleSimState();
-        SimulationState getSimulationState();
+        SimulationState getSimulationState() const;
         void setSimulationState(SimulationState state);
 
         // only steps if sim state is paused

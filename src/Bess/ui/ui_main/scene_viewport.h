@@ -17,7 +17,6 @@ namespace Bess::UI {
 
       private:
         void firstTime();
-        void drawTopRightControls() const;
         void drawTopLeftControls() const;
         void drawBottomControls() const;
 

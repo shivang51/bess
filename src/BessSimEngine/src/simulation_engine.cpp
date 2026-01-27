@@ -572,7 +572,7 @@ namespace Bess::SimEngine {
         return newState.isChanged;
     }
 
-    SimulationState SimulationEngine::getSimulationState() {
+    SimulationState SimulationEngine::getSimulationState() const {
         return m_simState.load();
     }
 

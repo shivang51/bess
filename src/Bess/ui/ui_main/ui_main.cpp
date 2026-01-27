@@ -5,6 +5,7 @@
 #include "imgui_internal.h"
 #include "simulation_engine.h"
 #include "stb_image_write.h"
+#include "ui/icons/CodIcons.h"
 #include "ui/ui_main/scene_export_window.h"
 #include "ui/widgets/m_widgets.h"
 #include <cstdint>
@@ -27,6 +28,11 @@
 namespace Bess::UI {
     UIState UIMain::state{};
     std::shared_ptr<Pages::MainPageState> UIMain::m_pageState;
+
+    static constexpr ImGuiWindowFlags NO_MOVE_FLAGS =
+        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
+        ImGuiWindowFlags_NoDecoration;
 
     void UIMain::draw() {
         static bool firstTime = true;
@@ -143,6 +149,7 @@ namespace Bess::UI {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.f, 6.f));
         ImGui::BeginMainMenuBar();
+        const float menuBarHeight = ImGui::GetFrameHeight();
 
         if (ImGui::BeginMenu("File")) {
             // New File
@@ -265,6 +272,73 @@ namespace Bess::UI {
         state._internalData.isTbFocused = ImGui::IsItemFocused();
 
         // project name textbox - end
+
+        // right aligned controls
+        constexpr size_t buttonCount = 2;
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+        ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.5f, 0.5f));
+
+        const float targetHeight = menubar_size.y - 4.0f;
+        const ImVec2 buttonSize = ImVec2(targetHeight - 2.f, targetHeight - 2.f);
+        const float winSizeX = (buttonCount * (buttonSize.x + style.ItemSpacing.x));
+        const float winX = menubar_size.x - winSizeX - 4.f;
+        auto window = ImGui::GetCurrentWindow();
+        window->DrawList->AddRectFilled(ImVec2(winX, 2.f),
+                                        ImVec2(winX + winSizeX - 4.f, menubar_size.y - 2.f),
+                                        ImGui::GetColorU32(ImGuiCol_WindowBg), 4.f);
+        ImGui::SameLine(winX - 8.f);
+        ImGui::SetCursorPosY(((targetHeight - buttonSize.y) * 0.5f) + 2.f);
+
+        {
+            auto &simEngine = SimEngine::SimulationEngine::instance();
+            const auto isSimPaused = simEngine.getSimulationState() == SimEngine::SimulationState::paused;
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0, 0, 0, 0});
+
+            // Play / Pause
+            {
+
+                const auto icon = isSimPaused
+                                      ? Icons::CodIcons::DEBUG_START
+                                      : Icons::CodIcons::DEBUG_PAUSE;
+
+                if (isSimPaused) {
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.f, 0.667f, 0.f, 1.f});
+                }
+
+                if (ImGui::Button(icon, buttonSize)) {
+                    simEngine.toggleSimState();
+                }
+
+                if (isSimPaused) {
+                    ImGui::PopStyleColor();
+                }
+
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                    const auto msg = isSimPaused ? "Resume Simulation" : "Pause Simulation";
+                    ImGui::SetTooltip("%s", msg);
+                }
+            }
+
+            ImGui::SameLine();
+            ImGui::SetCursorPosY(((targetHeight - buttonSize.y) * 0.5f) + 2.f);
+
+            // Step when paused
+            {
+                ImGui::BeginDisabled(!isSimPaused);
+
+                if (ImGui::Button(Icons::CodIcons::DEBUG_STEP_OVER, buttonSize)) {
+                    simEngine.stepSimulation();
+                }
+
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                    ImGui::SetTooltip("%s", "Step");
+                }
+                ImGui::EndDisabled();
+            }
+
+            ImGui::PopStyleColor();
+        }
+        ImGui::PopStyleVar(2);
 
         ImGui::EndMainMenuBar();
         ImGui::PopStyleVar(2);

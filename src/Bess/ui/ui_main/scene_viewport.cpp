@@ -4,8 +4,6 @@
 #include "scene/camera.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
-#include "ui/icons/FontAwesomeIcons.h"
-#include "ui/icons/MaterialIcons.h"
 #include "ui/ui_main/component_explorer.h"
 
 namespace Bess::UI {
@@ -56,7 +54,6 @@ namespace Bess::UI {
         ImGui::End();
 
         drawTopLeftControls();
-        drawTopRightControls();
         drawBottomControls();
     }
 
@@ -83,98 +80,6 @@ namespace Bess::UI {
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
         ImGui::Checkbox("##CheckBoxSchematicMode", Canvas::Scene::instance()->getIsSchematicViewPtr());
         ImGui::PopStyleVar();
-        ImGui::End();
-        ImGui::PopStyleVar(2);
-        ImGui::PopStyleColor(1);
-    }
-
-    void SceneViewport::drawTopRightControls() const {
-        const ImGuiContext &g = *ImGui::GetCurrentContext();
-        const auto colors = g.Style.Colors;
-        auto &simEngine = SimEngine::SimulationEngine::instance();
-        static constexpr int n = 3; // number of action buttons
-        static const float size = (float)(32 * n) - (float)(n - 1) + (g.Style.FramePadding.x * 2);
-        ImGui::SetNextWindowPos(
-            {m_localPos.x + m_viewportSize.x - size - g.Style.FramePadding.x,
-             m_localPos.y + g.Style.FramePadding.y});
-        ImGui::SetNextWindowSize({size, 0});
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
-
-        auto col = colors[ImGuiCol_ButtonActive];
-        col.w = 0.2;
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, col);
-        ImGui::Begin("TopRightViewportActions", nullptr, NO_MOVE_FLAGS);
-
-        auto scene = Canvas::Scene::instance();
-
-        // scene modes
-        {
-
-            const bool isGeneral = scene->getSceneMode() == Canvas::SceneMode::general;
-
-            // general mode
-            if (isGeneral) {
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.f, 0.667f, 0.f, 1.f});
-            }
-
-            auto icon = Icons::FontAwesomeIcons::FA_MOUSE_POINTER;
-            if (ImGui::Button(icon)) {
-                scene->setSceneMode(Canvas::SceneMode::general);
-            }
-            if (isGeneral) {
-                ImGui::PopStyleColor();
-            }
-
-            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-            }
-        }
-
-        ImGui::SameLine();
-        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-
-        const auto isSimPaused = simEngine.getSimulationState() == SimEngine::SimulationState::paused;
-
-        // Play / Pause
-        {
-
-            auto icon = Icons::FontAwesomeIcons::FA_PAUSE;
-            if (isSimPaused) {
-                // #574735
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.f, 0.667f, 0.f, 1.f});
-                icon = Icons::FontAwesomeIcons::FA_PLAY;
-            }
-
-            ImGui::SameLine();
-            if (ImGui::Button(icon)) {
-                simEngine.toggleSimState();
-            }
-
-            if (isSimPaused)
-                ImGui::PopStyleColor();
-
-            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                const auto msg = isSimPaused ? "Resume Simulation" : "Pause Simulation";
-                ImGui::SetTooltip("%s", msg);
-            }
-        }
-
-        ImGui::SameLine();
-
-        // Step when paused
-        {
-            ImGui::BeginDisabled(!isSimPaused);
-
-            if (ImGui::Button(Icons::MaterialIcons::REDO)) {
-                simEngine.stepSimulation();
-            }
-
-            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                ImGui::SetTooltip("%s", "Step");
-            }
-            ImGui::EndDisabled();
-        }
-
         ImGui::End();
         ImGui::PopStyleVar(2);
         ImGui::PopStyleColor(1);
