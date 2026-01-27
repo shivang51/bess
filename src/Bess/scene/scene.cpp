@@ -430,7 +430,8 @@ namespace Bess::Canvas {
                         simComp->onMouseDragged({toScenePos(m_mousePos),
                                                  m_dMousePos,
                                                  m_pickingId.info,
-                                                 selectedComps.size() > 1});
+                                                 selectedComps.size() > 1,
+                                                 &m_state});
 
                         if (m_state.getConnectionStartSlot() == compId) {
                             m_state.setConnectionStartSlot(UUID::null);

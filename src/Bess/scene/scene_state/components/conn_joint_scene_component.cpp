@@ -1,6 +1,8 @@
 #include "scene/scene_state/components/conn_joint_scene_component.h"
 #include "bess_uuid.h"
 #include "commands/commands.h"
+#include "geometric.hpp"
+#include "glm.hpp"
 #include "scene/scene_state/components/connection_scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
@@ -22,9 +24,6 @@ namespace Bess::Canvas {
                                   std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
         const auto &conn = state.getComponentByUuid<ConnectionSceneComponent>(m_connectionId);
         const auto &slot = state.getComponentByUuid<SlotSceneComponent>(m_outputSlotId);
-        const glm::vec3 &segStartPos = conn->getSegVertexPos(state, m_connSegIdx);
-        const glm::vec3 &segEndPos = conn->getSegVertexPos(state, m_connSegIdx + 1);
-        m_segLen = glm::length(segEndPos - segStartPos);
 
         auto color = ViewportTheme::colors.stateLow;
 
@@ -88,6 +87,9 @@ namespace Bess::Canvas {
     }
 
     void ConnJointSceneComp::onMouseDragged(const Events::MouseDraggedEvent &e) {
+        if (e.isMultiDrag)
+            return;
+
         if (!m_isDragging) {
             onMouseDragBegin(e);
         }
@@ -96,7 +98,16 @@ namespace Bess::Canvas {
                           ? e.delta.x
                           : -e.delta.y;
 
-        m_segOffset += delta / m_segLen;
+        const auto &conn = e.sceneState->getComponentByUuid<ConnectionSceneComponent>(m_connectionId);
+        const auto &slot = e.sceneState->getComponentByUuid<SlotSceneComponent>(m_outputSlotId);
+        const glm::vec3 &segStartPos = conn->getSegVertexPos(*e.sceneState, m_connSegIdx);
+        const glm::vec3 &segEndPos = conn->getSegVertexPos(*e.sceneState, m_connSegIdx + 1);
+        const auto &segLen = glm::distance(segEndPos, segStartPos);
+
+        if (glm::length(segEndPos) > glm::length(segStartPos))
+            m_segOffset += delta / segLen;
+        else
+            m_segOffset -= delta / segLen;
 
         m_segOffset = glm::clamp(m_segOffset, 0.0f, 1.0f);
     }

@@ -51,6 +51,7 @@ namespace Bess::Events {
         glm::vec2 delta;
         uint32_t details;
         bool isMultiDrag;
+        Canvas::SceneState *sceneState;
     };
 
     struct MouseHoveredEvent {
