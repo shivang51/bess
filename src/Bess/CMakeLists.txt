@@ -8,28 +8,6 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 add_subdirectory("scene")
 add_subdirectory("ui")
 
-file(GLOB EXT_JSON_SRC "${CMAKE_SOURCE_DIR}/external/jsoncpp/src/lib_json/*.cpp")
-source_group("external/jsoncpp" FILES ${EXT_JSON_SRC})
-
-file(GLOB EXT_IMGUI_SRC
-	"${CMAKE_SOURCE_DIR}/external/imgui/backends/*.cpp"
-    "${CMAKE_SOURCE_DIR}/external/imgui/*.cpp"
-    "${CMAKE_SOURCE_DIR}/external/implot/*.cpp"
-)
-source_group("external/imgui" FILES ${EXT_IMGUI_SRC})
-
-set(EXT_OTHERS_SRC
-	"${CMAKE_SOURCE_DIR}/external/stb_image/src/stb_image.cpp"
-    "${CMAKE_SOURCE_DIR}/external/tinyfiledialogs/tinyfiledialogs.c"
-)
-source_group("external/others" FILES ${EXT_OTHERS_SRC})
-
-set(External
-    ${EXT_JSON_SRC}
-    ${EXT_IMGUI_SRC}
-    ${EXT_OTHERS_SRC}
-)
-
 set(Header_Files
 "settings/themes.h"
 "settings/settings.h"
@@ -83,36 +61,13 @@ set(Source_Files
 source_group("src" FILES ${Source_Files})
 
 set(ALL_FILES
-    ${External}
     ${Header_Files}
     ${Source_Files}
 )
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
-target_link_libraries(${PROJECT_NAME} PRIVATE BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessUI)
-add_dependencies(${PROJECT_NAME} BessSimEngine BessVulkan BessPluginManager BessScene BessUI)
-
-if("${BUILD_ARCH}" STREQUAL "x64" AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-    set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "gdi32;"
-        "freetype;"
-    )
-
-    target_link_directories(${PROJECT_NAME} PRIVATE
-        "${CMAKE_SOURCE_DIR}/external/freetype/libs/windows"
-    )
-
-else()
-    if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14")
-	    target_link_libraries(${PROJECT_NAME} PRIVATE stdc++exp)
-    else()
-		target_link_libraries(${PROJECT_NAME} PRIVATE stdc++_libbacktrace)
-    endif()
-
-    set(ADDITIONAL_LIBRARY_DEPENDENCIES
-        "freetype;"
-    )
-endif()
+target_link_libraries(${PROJECT_NAME} PRIVATE BessExtDependencies BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessUI)
+add_dependencies(${PROJECT_NAME} BessExtDependencies BessSimEngine BessVulkan BessPluginManager BessScene BessUI)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
 
@@ -136,47 +91,8 @@ if("${BUILD_ARCH}" STREQUAL "x64")
 			"${CMAKE_SOURCE_DIR}/src/BessVulkan/include"
 			"${CMAKE_SOURCE_DIR}/src/BessPluginManager/include"
 			"${CMAKE_SOURCE_DIR}/src/EventSystem/include"
-			"${CMAKE_SOURCE_DIR}/external/imgui"
-			"${CMAKE_SOURCE_DIR}/external/implot"
-			"${CMAKE_SOURCE_DIR}/external/freetype/include"
-			"${CMAKE_SOURCE_DIR}/external/imgui/backends"
-			"${CMAKE_SOURCE_DIR}/external/glm"
-			"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
-			"${CMAKE_SOURCE_DIR}/external/stb_image/include"
-			"${CMAKE_SOURCE_DIR}/external/tinyfiledialogs"
-			"${CMAKE_SOURCE_DIR}/external/spdlog/include"
-			"${CMAKE_SOURCE_DIR}/external/libtess2/Include"
 	)
 endif()
-
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(GLFW REQUIRED glfw3)
-pkg_check_modules(VULKAN REQUIRED vulkan)
-find_package(X11 REQUIRED)
-find_package(PNG REQUIRED)
-
-target_link_libraries(${PROJECT_NAME} PUBLIC 
-	${PNG_LIBRARIES}
-	${GLFW_LIBRARIES}
-	${X11_LIBRARIES}
-	${VULKAN_LIBRARIES}
-)
-target_include_directories(${PROJECT_NAME} PUBLIC 
-	${PNG_INCLUDE_DIRS}
-	${VULKAN_INCLUDE_DIRS}
-	${GLFW_INCLUDE_DIRS}
-)
-
-
-file(GLOB libtess2_src
-	"${CMAKE_SOURCE_DIR}/external/libtess2/Source/*.c"
-)
-add_library(libtess2_obj OBJECT ${libtess2_src})
-target_include_directories(libtess2_obj PUBLIC 
-			"${CMAKE_SOURCE_DIR}/external/libtess2/Include"
-)
-
-target_link_libraries(${PROJECT_NAME} PRIVATE $<TARGET_OBJECTS:libtess2_obj>)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)

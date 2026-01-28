@@ -32,7 +32,7 @@ message(STATUS "Output location: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 
 # add_compile_definitions(DISABLE_PLUGINS)
 
-# add_subdirectory(tests)
+add_subdirectory(external)
 add_subdirectory(src)
 
 find_package(Doxygen REQUIRED)

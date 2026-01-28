@@ -2,14 +2,6 @@ set(PROJECT_NAME BessScene)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(EXT_OTHERS_SRC
-)
-source_group("external/others" FILES ${EXT_OTHERS_SRC})
-
-set(External
-		${EXT_OTHERS_SRC}
-)
-
 set(Header_Files
 	"components/non_sim_comp.h"
 	"schematic_diagram.h"
