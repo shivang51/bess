@@ -4,8 +4,6 @@
 [![GitHub issues](https://img.shields.io/github/issues/shivang51/bess)](https://github.com/shivang51/bess/issues)
 [![GitHub license](https://img.shields.io/github/license/shivang51/bess)](https://github.com/shivang51/bess/blob/main/LICENSE)
 
-> Will be merging soon [Usability Enhancements](https://github.com/shivang51/bess/pull/18)
-
 BESS (Basic Electrical Simulation Software) is an open-source circuit simulator designed to be accessible, modern, and cross-platform.
 
 The project began as an attempt to remove the barriers students often face when working with existing tools. Many popular circuit simulators are proprietary, restricted to a single operating system, or rely on outdated interfaces. BESS was created to provide a free, user-friendly, and modern alternative that works consistently across platforms. Its goal is to make learning and experimenting with circuits simpler and more approachable for everyone.
@@ -23,7 +21,7 @@ Check out [Bess Wiki](https://github.com/shivang51/bess/wiki) to see available c
 ## Build & Run
 Tested Build On:
 - [x] Linux (Arch Linux: Wayland)
-- [x] Windows (Untested after plugin support is added)
+- [x] Windows (Untested after plugin support was added)
 - [ ] MacOS
 
 Following commands are only valid for Linux, as build scripts for windows have not been written yet.
