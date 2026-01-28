@@ -1,6 +1,8 @@
 #include "bess_uuid.h"
 #include "glm.hpp"
+#include "settings/viewport_theme.h"
 
+#include <format>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -11,13 +13,149 @@ namespace py = pybind11;
 typedef Bess::UUID UUID;
 
 void bind_vec2(py::module_ &m);
+void bind_vec3(py::module_ &m);
+void bind_vec4(py::module_ &m);
+void bind_theme(py::module_ &m);
 void bind_bess_uuid(py::module_ &m);
-
 void bind_common_bindings(py::module_ &m) {
     bind_vec2(m);
+    bind_vec3(m);
+    bind_vec4(m);
+    bind_theme(m);
     bind_bess_uuid(m);
+
+    using StringViewArray1 = std::array<std::string_view, 1>;
+    auto pyStringViewArray = py::class_<StringViewArray1>(m, "StringViewArray1");
+
+    pyStringViewArray
+        .def(py::init<>())
+        .def("__len__", [](const StringViewArray1 &v) { return v.size(); })
+        .def("__getitem__", [](const StringViewArray1 &v, size_t i) -> std::string {
+            return std::string(v.at(i));
+        })
+        .def("__iter__", [](StringViewArray1 &v) { return py::make_iterator(v.begin(), v.end()); }, py::keep_alive<0, 1>())
+        .def("__repr__", [](const StringViewArray1 &v) {
+						std::string repr = "StringViewArray([";
+						repr += "\"" + std::string(v[0]) + "\"";
+						repr += "])";
+						return repr; });
 }
 
+void bind_vec4(py::module_ &m) {
+    py::class_<glm::vec4>(m, "vec4")
+        .def(py::init<>()) // default (0,0)
+        .def(py::init<float, float, float, float>(),
+             py::arg("x"),
+             py::arg("y"),
+             py::arg("z"),
+             py::arg("w"))
+        .def(py::init([](py::sequence seq) {
+                 if (py::len(seq) != 4)
+                     throw std::runtime_error("vec4 requires a sequence of length 4");
+                 return glm::vec4(seq[0].cast<float>(),
+                                  seq[1].cast<float>(),
+                                  seq[2].cast<float>(),
+                                  seq[3].cast<float>());
+             }),
+             py::arg("seq"))
+        .def_readwrite("x", &glm::vec4::x)
+        .def_readwrite("y", &glm::vec4::y)
+        .def_readwrite("z", &glm::vec4::z)
+        .def_readwrite("w", &glm::vec4::w)
+        .def("__repr__", [](const glm::vec4 &v) {
+            return "vec4(" + std::to_string(v.r) + ", " + std::to_string(v.g) +
+                   ", " + std::to_string(v.b) + ", " + std::to_string(v.a) + ")";
+        });
+}
+
+void bind_vec3(py::module_ &m) {
+    py::class_<glm::vec3>(m, "vec3")
+        // Constructors
+        .def(py::init<>()) // default (0,0)
+        .def(py::init<float, float, float>(), py::arg("x"), py::arg("y"), py::arg("z"))
+        .def(py::init([](py::sequence seq) {
+                 if (py::len(seq) != 2)
+                     throw std::runtime_error("vec3 requires a sequence of length 2");
+                 return glm::vec3(seq[0].cast<float>(),
+                                  seq[1].cast<float>(),
+                                  seq[2].cast<float>());
+             }),
+             py::arg("seq"))
+
+        // Data members
+        .def_readwrite("x", &glm::vec3::x)
+        .def_readwrite("y", &glm::vec3::y)
+        .def_readwrite("z", &glm::vec3::z)
+
+        // copy function
+        .def("copy", [](const glm::vec3 &v) {
+            return glm::vec3(v.x, v.y, v.z);
+        })
+
+        // Basic arithmetic
+        .def(py::self + py::self)
+        .def(py::self - py::self)
+        .def(py::self * float())
+        .def(float() * py::self)
+        .def(py::self / float())
+        .def(-py::self)
+
+        // Equality and comparison
+        .def("__eq__", [](const glm::vec3 &a, const glm::vec3 &b) {
+            return a.x == b.x && a.y == b.y && a.z == b.z;
+        })
+        .def("__ne__", [](const glm::vec3 &a, const glm::vec3 &b) {
+            return a.x != b.x || a.y != b.y || a.z != b.z;
+        })
+
+        // Sequence-like access (v[0], v[1])
+        .def("__getitem__", [](const glm::vec3 &v, size_t i) {
+            if (i >= 3)
+                throw py::index_error();
+
+            switch (i) {
+            case 0:
+                return v.x;
+            case 1:
+                return v.y;
+            case 2:
+                return v.z;
+            default:
+                throw py::index_error();
+            }
+        })
+        .def("__setitem__", [](glm::vec3 &v, size_t i, float val) {
+            if (i >= 3)
+                throw py::index_error();
+
+            switch (i) {
+            case 0:
+                v.x = val;
+                break;
+            case 1:
+                v.y = val;
+                break;
+            case 2:
+                v.z = val;
+                break;
+            default:
+                throw py::index_error();
+            }
+        })
+        .def("__len__", [](const glm::vec3 &) { return 3; })
+
+        // String representations
+        .def("__repr__", [](const glm::vec3 &v) {
+            return "(" + std::to_string(v.x) + ", " +
+                   std::to_string(v.y) + ", " +
+                   std::to_string(v.z) + ")";
+        })
+        .def("__str__", [](const glm::vec3 &v) {
+            return "(" + std::to_string(v.x) + ", " +
+                   std::to_string(v.y) + ", " +
+                   std::to_string(v.z) + ")";
+        });
+}
 void bind_vec2(py::module_ &m) {
     py::class_<glm::vec2>(m, "vec2")
         // Constructors
@@ -95,10 +233,7 @@ void bind_bess_uuid(py::module_ &m) {
         })
 
         .def("__repr__", [](const UUID &self) {
-            char buf[32];
-            std::snprintf(buf, sizeof(buf), "<UUID %016llx>",
-                          static_cast<unsigned long long>(static_cast<uint64_t>(self)));
-            return std::string(buf);
+            return std::format("<UUID {}>", static_cast<uint64_t>(self));
         })
 
         .def("__eq__", [](const UUID &a, const UUID &b) { return a == b; })
@@ -109,4 +244,19 @@ void bind_bess_uuid(py::module_ &m) {
         })
 
         .def_readonly_static("null", &UUID::null);
+}
+
+void bind_theme(py::module_ &m) {
+    auto themeModule = m.def_submodule("theme");
+
+    py::class_<Bess::SchematicViewColors>(themeModule, "SchematicThemeColors")
+        .def(py::init<>())
+        .def_readwrite("pin", &Bess::SchematicViewColors::pin)
+        .def_readwrite("text", &Bess::SchematicViewColors::text)
+        .def_readwrite("connection", &Bess::SchematicViewColors::connection)
+        .def_readwrite("componentFill", &Bess::SchematicViewColors::componentFill)
+        .def_readwrite("componentStroke", &Bess::SchematicViewColors::componentStroke)
+        .def_readwrite("activeSignal", &Bess::SchematicViewColors::activeSignal);
+
+    themeModule.attr("schematic") = Bess::ViewportTheme::schematicViewColors;
 }

@@ -3,51 +3,66 @@
 #include "bess_api.h"
 #include "component_definition.h"
 #include <cstdint>
-#include <entt/entt.hpp>
 #include <memory>
 
 namespace Bess::SimEngine {
 
     class BESS_API ComponentCatalog {
       public:
-        enum class SpecialType : int8_t {
-            none = -1,
-            input,
-            output,
-            stateMonitor,
-            sevenSegmentDisplay
-        };
-
         void destroy();
 
         static ComponentCatalog &instance();
 
         // Register a new component definition.
         // If one with the same ComponentType exists, it won't be added.
-        void registerComponent(ComponentDefinition def, SpecialType specialType = SpecialType::none);
+        template <typename TCompDefination>
+        void registerComponent(TCompDefination def) {
+            def.computeHash();
+
+            if (m_componentHashMap.contains(def.getHash())) {
+                return;
+            }
+
+            auto compPtr = std::make_shared<TCompDefination>(std::move(def));
+            m_components.emplace_back(compPtr);
+            m_componentHashMap[compPtr->getHash()] = compPtr;
+
+            m_componentTree = nullptr;
+        }
+
+        // Register a new component definition.
+        // If one with the same ComponentType exists, it won't be added.
+        template <typename TCompDefination>
+        void registerComponent(const std::shared_ptr<TCompDefination> &def) {
+            def->computeHash();
+
+            if (m_componentHashMap.contains(def->getHash())) {
+                return;
+            }
+
+            m_components.emplace_back(std::move(def));
+            m_componentHashMap[def->getHash()] = def;
+
+            m_componentTree = nullptr;
+        }
 
         // Get the full list of registered components.
-        const std::vector<std::shared_ptr<const ComponentDefinition>> &getComponents() const;
+        const std::vector<std::shared_ptr<ComponentDefinition>> &getComponents() const;
 
         // Get the full list of registered components as tree format, grouped based on the category.
-        typedef std::unordered_map<std::string, std::vector<std::shared_ptr<const ComponentDefinition>>> ComponentTree;
+        typedef std::unordered_map<std::string, std::vector<std::shared_ptr<ComponentDefinition>>> ComponentTree;
         std::shared_ptr<ComponentTree> getComponentsTree();
 
         // Look up a component definition by its hash.
-        std::shared_ptr<const ComponentDefinition> getComponentDefinition(uint64_t hash) const;
+        std::shared_ptr<ComponentDefinition> getComponentDefinition(uint64_t hash) const;
         ComponentDefinition getComponentDefinitionCopy(uint64_t hash);
-
-        std::shared_ptr<const ComponentDefinition> getSpecialCompDef(SpecialType specialType) const;
-
-        bool isSpecialCompDef(uint64_t hash, SpecialType type) const;
 
         bool isRegistered(uint64_t hash) const;
 
       private:
         ComponentCatalog() = default;
-        std::vector<std::shared_ptr<const ComponentDefinition>> m_components;
+        std::vector<std::shared_ptr<ComponentDefinition>> m_components;
         std::shared_ptr<ComponentTree> m_componentTree = nullptr;
-        std::unordered_map<SpecialType, uint64_t> m_specialTypeMap;
-        std::unordered_map<uint64_t, std::shared_ptr<const ComponentDefinition>> m_componentHashMap;
+        std::unordered_map<uint64_t, std::shared_ptr<ComponentDefinition>> m_componentHashMap;
     };
 } // namespace Bess::SimEngine

@@ -24,18 +24,18 @@ namespace Bess::SimEngine::Commands {
                 ser.deserializeEntity(compJson);
                 for (int i = 0; i < connections.inputs.size(); i++) {
                     for (auto &conn : connections.inputs[i]) {
-                        engine.connectComponent(compId, i, PinType::input, conn.first, conn.second, PinType::output, true);
+                        engine.connectComponent(compId, i, SlotType::digitalInput, conn.first, conn.second, SlotType::digitalOutput, true);
                     }
                 }
 
                 for (int i = 0; i < connections.outputs.size(); i++) {
                     for (auto &conn : connections.outputs[i]) {
-                        engine.connectComponent(compId, i, PinType::output, conn.first, conn.second, PinType::input, true);
+                        engine.connectComponent(compId, i, SlotType::digitalOutput, conn.first, conn.second, SlotType::digitalInput, true);
                     }
                 }
             } else {
                 const auto &data = m_data[i];
-                compId = engine.addComponent(data.def, data.inputCount, data.outputCount);
+                compId = engine.addComponent(data.def);
             }
         }
 
@@ -70,7 +70,7 @@ namespace Bess::SimEngine::Commands {
         return m_compIds;
     }
 
-    ConnectCommand::ConnectCommand(const UUID &src, int srcPin, PinType srcType, const UUID &dst, int dstPin, PinType dstType) {
+    ConnectCommand::ConnectCommand(const UUID &src, int srcPin, SlotType srcType, const UUID &dst, int dstPin, SlotType dstType) {
         m_src = src;
         m_srcPin = srcPin;
         m_srcType = srcType;
@@ -124,13 +124,13 @@ namespace Bess::SimEngine::Commands {
 
             for (int i = 0; i < connections.inputs.size(); i++) {
                 for (auto &conn : connections.inputs[i]) {
-                    engine.connectComponent(compId, i, PinType::input, conn.first, conn.second, PinType::output, true);
+                    engine.connectComponent(compId, i, SlotType::digitalInput, conn.first, conn.second, SlotType::digitalOutput, true);
                 }
             }
 
             for (int i = 0; i < connections.outputs.size(); i++) {
                 for (auto &conn : connections.outputs[i]) {
-                    engine.connectComponent(compId, i, PinType::output, conn.first, conn.second, PinType::input, true);
+                    engine.connectComponent(compId, i, SlotType::digitalOutput, conn.first, conn.second, SlotType::digitalInput, true);
                 }
             }
         }
@@ -149,7 +149,8 @@ namespace Bess::SimEngine::Commands {
     bool DelConnectionCommand::execute() {
         auto &engine = SimulationEngine::instance();
         for (auto &data : m_delData) {
-            engine.deleteConnection(data.src, data.srcType, data.srcPin, data.dst, data.dstType, data.dstPin);
+            engine.deleteConnection(data.src, data.srcType, data.srcPin,
+                                    data.dst, data.dstType, data.dstPin);
         }
         return true;
     }
@@ -174,20 +175,20 @@ namespace Bess::SimEngine::Commands {
 
     bool SetInputCommand::execute() {
         auto &engine = SimulationEngine::instance();
-        m_oldState = engine.getDigitalPinState(m_compId, PinType::output, 0).state;
+        m_oldState = engine.getDigitalSlotState(m_compId, SlotType::digitalOutput, 0).state;
 
         if (m_oldState == m_newState) {
             return false;
         }
 
-        engine.setOutputPinState(m_compId, 0,
-                                 m_newState == LogicState::low ? LogicState::low : LogicState::high);
+        engine.setOutputSlotState(m_compId, 0,
+                                  m_newState == LogicState::low ? LogicState::low : LogicState::high);
         return true;
     }
 
     std::any SetInputCommand::undo() {
-        SimulationEngine::instance().setOutputPinState(m_compId, 0,
-                                                       m_oldState == LogicState::low ? LogicState::low : LogicState::high);
+        SimulationEngine::instance().setOutputSlotState(m_compId, 0,
+                                                        m_oldState == LogicState::low ? LogicState::low : LogicState::high);
 
         return {};
     }

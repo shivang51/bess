@@ -1,12 +1,23 @@
-from bessplug.api.common.math import Vec2
-from bessplug.api.sim_engine import ComponentDefinition
-from bessplug.api.renderer.path import Path
+import datetime
+from bessplug.api import assets
+from bessplug.api.scene.sim_comp_draw_hook import SimCompDrawHook
+from bessplug.api.common.math import Vec2, Vec3
+from bessplug.api.common import theme
+from bessplug.api.sim_engine import ComponentDefinition, SlotsGroupInfo, OperatorInfo
+from bessplug.api.scene.renderer import Path
+from bessplug.api.scene import SchematicDiagram
 import math
-
-from bessplug.plugin import SchematicDiagram
+import datetime
+from typing import override
 
 
 _gates = {
+    "BUF": {
+        "name": "Buffer Gate",
+        "input_pins": ["A"],
+        "output_pins": ["Y"],
+        "op": "$",
+    },
     "AND": {
         "name": "AND Gate",
         "input_pins": ["A", "B"],
@@ -87,13 +98,12 @@ def _init_paths():
     andPath.line_to(0, 100)
     andPath.properties.is_closed = True
     andPath.properties.render_fill = True
-    andPath.calc_set_bounds()
-    andPath.set_bounds(Vec2(100, 100))
+    andPath.set_bounds(Vec2(130, 100))
 
     andDiagram = SchematicDiagram()
     andDiagram.add_path(andPath)
     andDiagram.show_name = False
-    andDiagram.size = (100, 100)
+    andDiagram.size = Vec2(100, 100)
 
     # NAND Gate
     nandDiagram = SchematicDiagram()
@@ -103,14 +113,13 @@ def _init_paths():
     nandPath.line_to(62, 0)
     nandPath.quad_to(122, 50, 62, 100)
     nandPath.line_to(0, 100)
-    nandPath.calc_set_bounds()
     nandPath.set_bounds(Vec2(92, 100))
     nandPath.set_lowest_pos(Vec2(0, 0))
     nandPath.properties.is_closed = True
     nandPath.properties.render_fill = True
     nandDiagram.add_path(nandPath)
     nandDiagram.add_path(circle.copy())
-    nandDiagram.size = (100, 100)
+    nandDiagram.size = Vec2(100, 100)
 
     # OR Gate
     orDiagram = SchematicDiagram()
@@ -126,7 +135,7 @@ def _init_paths():
     orPath.properties.is_closed = True
     orPath.properties.render_fill = True
     orDiagram.add_path(orPath)
-    orDiagram.size = (100, 100)
+    orDiagram.size = Vec2(100, 100)
 
     # NOR Gate
     norDiagram = SchematicDiagram()
@@ -143,7 +152,7 @@ def _init_paths():
     norPath.properties.render_fill = True
     norDiagram.add_path(norPath)
     norDiagram.add_path(circle.copy())
-    norDiagram.size = (100, 100)
+    norDiagram.size = Vec2(100, 100)
 
     # XOR
     xorDiagram = SchematicDiagram()
@@ -170,7 +179,7 @@ def _init_paths():
 
     xorDiagram.add_path(xorArcPath.copy())
     xorDiagram.add_path(xorPath)
-    xorDiagram.size = (100, 100)
+    xorDiagram.size = Vec2(100, 100)
 
     # XNOR
     xnorDiagram = SchematicDiagram()
@@ -191,21 +200,21 @@ def _init_paths():
     xnorDiagram.add_path(xorArcPath.copy())
     xnorDiagram.add_path(xnorPath)
     xnorDiagram.add_path(circle.copy())
-    xnorDiagram.size = (100, 100)
+    xnorDiagram.size = Vec2(100, 100)
 
-    # NOT
-    notDiagram = SchematicDiagram()
-    notDiagram.show_name = False
-    notPath = Path()
-    notPath.move_to(0, 0)
-    notPath.line_to(100, 50)
-    notPath.line_to(0, 100)
-    notPath.set_bounds(Vec2(100, 100))
-    notPath.set_lowest_pos(Vec2(0, 0))
-    notPath.properties.is_closed = True
-    notPath.properties.render_fill = True
-    notDiagram.add_path(notPath)
-    notDiagram.size = (100, 100)
+    # BUF
+    bufDiagram = SchematicDiagram()
+    bufDiagram.show_name = False
+    bufPath = Path()
+    bufPath.move_to(0, 0)
+    bufPath.line_to(100, 50)
+    bufPath.line_to(0, 100)
+    bufPath.set_bounds(Vec2(100, 100))
+    bufPath.set_lowest_pos(Vec2(0, 0))
+    bufPath.properties.is_closed = True
+    bufPath.properties.render_fill = True
+    bufDiagram.add_path(bufPath)
+    bufDiagram.size = Vec2(100, 100)
 
     return {
         "AND": andDiagram,
@@ -214,32 +223,79 @@ def _init_paths():
         "NOR": norDiagram,
         "XOR": xorDiagram,
         "XNOR": xnorDiagram,
-        "NOT": notDiagram,
+        "BUF": bufDiagram,
     }
 
 
 _paths = _init_paths()
 
+
+class DrawHook(SimCompDrawHook):
+    def __init__(self, diagram: SchematicDiagram, name: str):
+        super().__init__()
+        self.schematic_draw_enabled = True
+        self.schematic_diagram = diagram
+        self.label_size = 8
+        self.name = name
+
+    def cleanup(self) -> None:
+        pass
+
+    @override
+    def onSchematicDraw(
+        self,
+        transform,
+        pickingId,
+        materialRenderer,
+        pathRenderer,
+    ) -> Vec2:
+        scale = SchematicDiagram.draw(
+            transform, pickingId, pathRenderer, self.schematic_diagram
+        )
+        size = materialRenderer.get_text_render_size(self.name, self.label_size)
+        materialRenderer.draw_text(
+            self.name,
+            transform.position + Vec3(-size.x / 2, scale.y / 2 + self.label_size, 0),
+            self.label_size,
+            theme.schematic.text,
+            pickingId.asUint64(),
+        )
+        return scale
+
+
 digital_gates: list[ComponentDefinition] = []
-schematic_symbols: dict[int, SchematicDiagram] = {}
+draw_hooks: dict[int, DrawHook] = {}
 
 for gate_key, gate_data in _gates.items():
+    input_slots_info: SlotsGroupInfo = SlotsGroupInfo()
+    input_slots_info.count = len(gate_data["input_pins"])
+    input_slots_info.is_resizeable = True
+
+    output_slots_info: SlotsGroupInfo = SlotsGroupInfo()
+    output_slots_info.count = len(gate_data["output_pins"])
+
+    opInfo = OperatorInfo()
+    opInfo.operator_symbol = gate_data["op"]
+    opInfo.should_negate_output = gate_data.get("negate_output", False)
+
     def_gate = ComponentDefinition.from_operator(
         name=gate_data["name"],
-        category="Digital Gates",
-        input_count=len(gate_data["input_pins"]),
-        output_count=len(gate_data["output_pins"]),
-        delay_ns=1,
-        op=gate_data["op"],
+        group_name="Digital Gates",
+        inputs=input_slots_info,
+        outputs=output_slots_info,
+        sim_delay=datetime.timedelta(microseconds=0.001),
+        op_info=opInfo,
     )
-    def_gate.negate = gate_data.get("negate_output", False)
     digital_gates.append(def_gate)
 
-    if not gate_key in ["NOT"]:
-        def_gate.set_alt_input_counts([3, 4, 5])
+    if _paths.get(gate_key) is None:
+        continue
 
-    if gate_key in _paths:
-        schematic_symbols[def_gate.get_hash()] = _paths[gate_key]
+    def_gate.compute_hash()
+    dig = _paths[gate_key]
+    dig.normalize_paths()
+    dig.stroke_size = 1.0
+    draw_hooks[def_gate.get_hash()] = DrawHook(_paths[gate_key], def_gate.name)
 
 
-__all__ = ["digital_gates", "schematic_symbols"]
+__all__ = ["digital_gates", "draw_hooks"]

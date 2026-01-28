@@ -1,13 +1,13 @@
 #pragma once
 
 #include "bess_api.h"
-#include "comp_json_converters.h"
-#include "entt_registry_serializer.h"
+#include "bess_uuid.h"
+#include "json/value.h"
 
 namespace Bess::SimEngine {
-    class BESS_API SimEngineSerializer : EnttRegistrySerializer {
+    class BESS_API SimEngineSerializer {
       public:
-        SimEngineSerializer();
+        SimEngineSerializer() = default;
 
         void serializeToPath(const std::string &path, int indent = -1);
         void serialize(Json::Value &j);
@@ -17,9 +17,7 @@ namespace Bess::SimEngine {
         void deserialize(const Json::Value &json);
         void deserializeEntity(const Json::Value &json);
 
-        void registerAll() override;
-
       private:
-        void simulateClockedComponents();
+        void simAutoReschedulableComponents();
     };
 } // namespace Bess::SimEngine

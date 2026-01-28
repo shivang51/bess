@@ -1,12 +1,12 @@
 #version 460
 
 layout(location = 0) out vec4 fragColor;
-layout(location = 1) out int fragColor1;
+layout(location = 1) out uvec2 fragColor1;
 
 layout(location = 0) in vec3 v_FragPos;
 layout(location = 1) in vec4 v_FragColor;
 layout(location = 2) in vec2 v_TexCoord;
-layout(location = 3) in flat int v_FragId;
+layout(location = 3) in flat uvec2 v_FragId;
 layout(location = 4) in flat int v_TexSlotIdx;
 layout(location = 5) noperspective in vec3 v_Barycentric;
 

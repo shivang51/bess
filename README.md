@@ -50,7 +50,7 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
        ```
 ## TODO
 - [x] Basic Plugin Suppport
+- [x] Usability enhancements - [Details](https://github.com/shivang51/bess/pull/18)
 - [ ] Scriptable rendering
-- [ ] Usability enhancements
 - [ ] Basic Verilog Support
 - [ ] Add More components

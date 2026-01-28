@@ -1,10 +1,8 @@
 from abc import abstractmethod
 
-from .api.renderer.path import Path
-
 from .api.log import Logger
 from .api.sim_engine import ComponentDefinition
-from .api.scene.schematic_diagram import SchematicDiagram
+from .api.assets import AssetManager
 
 
 class Plugin:
@@ -12,6 +10,10 @@ class Plugin:
         self.name = name
         self.version = version
         self.logger = Logger(name)
+
+    def cleanup(self):
+        print(f"Cleaning plugin: {self.name} v{self.version}")
+        AssetManager.cleanup()
 
     @abstractmethod
     def on_components_reg_load(self) -> list[ComponentDefinition]:
@@ -22,9 +24,9 @@ class Plugin:
         pass
 
     @abstractmethod
-    def on_schematic_symbols_load(self) -> dict[int, SchematicDiagram]:
+    def on_scene_comp_load(self) -> dict[int, object]:
         """
-        Method is called when schematic symbols are getting loaded for rendered inside scene in schematic view.
-        @return: Dict[int, Path] mapping of component definition hash to their schematic symbol paths.
+        Method is called when scene components are getting loaded for rendered inside scene in schematic view.
+        @return: Dict[int, type] mapping of component definition hash to their scene component class
         """
         pass

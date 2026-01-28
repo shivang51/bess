@@ -4,7 +4,6 @@
 #include "bess_uuid.h"
 #include <any>
 #include <chrono>
-#include <entt/entt.hpp>
 #include <functional>
 #include <string>
 
@@ -20,17 +19,6 @@ namespace Bess::SimEngine {
     struct BESS_API ConnectionBundle {
         Connections inputs;
         Connections outputs;
-    };
-
-    enum class PinType {
-        input,
-        output
-    };
-
-    enum class ExtendedPinType {
-        none = -1,
-        inputClock,
-        inputClear
     };
 
     enum class FrequencyUnit {
@@ -50,28 +38,42 @@ namespace Bess::SimEngine {
                             high_z
     };
 
-    struct BESS_API PinDetail {
-        PinType type;
-        std::string name = "";
-        ExtendedPinType extendedType = ExtendedPinType::none;
+    enum class SlotsGroupType : uint8_t {
+        none,
+        input,
+        output
     };
 
-    inline bool operator==(const Bess::SimEngine::PinDetail &a, const Bess::SimEngine::PinDetail &b) noexcept {
-        return a.type == b.type && a.name == b.name && a.extendedType == b.extendedType;
-    }
+    enum class SlotCatergory : uint8_t {
+        none,
+        clock,
+        clear,
+        enable,
+    };
 
-    struct BESS_API PinState {
+    enum class ComponentBehaviorType : uint8_t {
+        none,
+        input,
+        output
+    };
+
+    enum class SlotType : uint8_t {
+        digitalInput,
+        digitalOutput
+    };
+
+    struct BESS_API SlotState {
         LogicState state = LogicState::low;
         SimTime lastChangeTime{0};
 
-        PinState() = default;
+        SlotState() = default;
 
-        PinState(LogicState state, SimTime time) {
+        SlotState(LogicState state, SimTime time) {
             this->state = state;
             lastChangeTime = time;
         }
 
-        PinState(bool value) {
+        SlotState(bool value) {
             state = value ? LogicState::high : LogicState::low;
         }
 
@@ -79,7 +81,7 @@ namespace Bess::SimEngine {
             return state == LogicState::high;
         }
 
-        PinState &operator=(const bool &val) {
+        SlotState &operator=(const bool &val) {
             this->state = val ? LogicState::high : LogicState::low;
             return *this;
         }
@@ -87,8 +89,8 @@ namespace Bess::SimEngine {
 
     struct BESS_API SimulationEvent {
         SimTime simTime;
-        entt::entity entity;
-        entt::entity schedulerEntity; // enitity that triggered the change
+        UUID compId;
+        UUID schedulerId; // enitity that triggered the change
         uint64_t id;
         bool operator<(const SimulationEvent &other) const noexcept {
             if (simTime != other.simTime)
@@ -98,9 +100,9 @@ namespace Bess::SimEngine {
     };
 
     struct BESS_API ComponentState {
-        std::vector<PinState> inputStates;
+        std::vector<SlotState> inputStates;
         std::vector<bool> inputConnected;
-        std::vector<PinState> outputStates;
+        std::vector<SlotState> outputStates;
         std::vector<bool> outputConnected;
         bool isChanged = false;
         std::any *auxData = nullptr;
@@ -108,5 +110,25 @@ namespace Bess::SimEngine {
         std::string errorMessage;
     };
 
-    typedef std::function<ComponentState(const std::vector<PinState> &, SimTime, const ComponentState &)> SimulationFunction;
+    typedef std::function<ComponentState(const std::vector<SlotState> &, SimTime, const ComponentState &)> SimulationFunction;
+
+    struct BESS_API TruthTable {
+        std::vector<std::vector<LogicState>> table;
+        std::vector<UUID> inputUuids;
+        std::vector<UUID> outputUuids;
+    };
 } // namespace Bess::SimEngine
+
+namespace Bess::JsonConvert {
+    BESS_API void toJsonValue(const Bess::SimEngine::SlotState &state, Json::Value &j);
+    BESS_API void fromJsonValue(const Json::Value &j, Bess::SimEngine::SlotState &state);
+
+    BESS_API void toJsonValue(const Bess::SimEngine::ComponentState &state, Json::Value &j);
+    BESS_API void fromJsonValue(const Json::Value &j, Bess::SimEngine::ComponentState &state);
+
+    BESS_API void toJsonValue(const Bess::SimEngine::Connections &connections, Json::Value &j);
+    BESS_API void fromJsonValue(const Json::Value &j, Bess::SimEngine::Connections &connections);
+
+    BESS_API void toJsonValue(const Bess::SimEngine::ComponentPin &pin, Json::Value &j);
+    BESS_API void fromJsonValue(const Json::Value &j, Bess::SimEngine::ComponentPin &pin);
+} // namespace Bess::JsonConvert

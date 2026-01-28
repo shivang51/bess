@@ -1,17 +1,16 @@
-from .enums import LogicState, PinType, ExtendedPinType
+from .enums import LogicState, PinType
 from .pin import PinState
-from .pin_detail import PinDetail
 from .component_state import ComponentState
 from .component_definition import ComponentDefinition
+from .operator_info import OperatorInfo
+from .slots_group_info import SlotsGroupInfo
 
 __all__ = [
-    "LogicState",
-    "PinType",
-    "ExtendedPinType",
-    "PinDetail",
-    "PinState",
     "ComponentState",
     "ComponentDefinition",
+    "LogicState",
+    "OperatorInfo",
+    "PinType",
+    "PinState",
+    "SlotsGroupInfo",
 ]
-
-

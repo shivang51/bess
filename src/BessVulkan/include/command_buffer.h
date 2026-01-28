@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bess_vulkan_api.h"
 #include "device.h"
 
 #include <memory>
@@ -9,7 +10,7 @@
 
 namespace Bess::Vulkan {
 
-    class VulkanCommandBuffer {
+    class BESS_VULKAN_API VulkanCommandBuffer {
       public:
         VulkanCommandBuffer(VkCommandBuffer vkHandle);
 
@@ -26,7 +27,7 @@ namespace Bess::Vulkan {
         VkCommandBuffer m_vkCmdBufferHandel = VK_NULL_HANDLE;
     };
 
-    class VulkanCommandBuffers {
+    class BESS_VULKAN_API VulkanCommandBuffers {
       public:
         VulkanCommandBuffers(const std::shared_ptr<VulkanDevice> &device, size_t count);
         ~VulkanCommandBuffers();

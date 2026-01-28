@@ -20,6 +20,8 @@ bin/
 
 vgcore*
 
+sample_projects/test.bproj
+
 # this is generated through cmake (check build.sh)
 compile_commands.json
 .cache
@@ -28,9 +30,9 @@ compile_commands.json
 tests_output/
 Testing/
 
-perf.data
+perf.data*
 doxygen_warnings.txt
-docs/
+docs/html/
 
 __pycache__/
 *.pyc

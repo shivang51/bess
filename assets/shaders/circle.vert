@@ -7,12 +7,12 @@ layout(location = 2) in vec3 a_InstancePos;
 layout(location = 3) in vec4 a_Color;
 layout(location = 4) in float a_Radius;
 layout(location = 5) in float a_InnerRadius;
-layout(location = 6) in int a_Id;
+layout(location = 6) in uvec2 a_Id;
 
 layout(location = 0) out vec4 v_FragColor;
 layout(location = 1) out vec2 v_TexCoord;
 layout(location = 2) out float v_InnerRadius;
-layout(location = 3) out flat int v_FragId;
+layout(location = 3) out flat uvec2 v_FragId;
 
 layout(binding = 0) uniform UniformBufferObject {
     mat4 u_mvp;

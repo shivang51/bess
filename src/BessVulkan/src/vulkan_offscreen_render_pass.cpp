@@ -44,7 +44,7 @@ namespace Bess::Vulkan {
                                           VkFramebuffer framebuffer,
                                           VkExtent2D extent,
                                           const glm::vec4 &clearColor,
-                                          int clearPickingId) {
+                                          const glm::uvec2 &clearPickingId) {
         m_recordingCmdBuffer = cmdBuffer;
 
         VkRenderPassBeginInfo renderPassInfo{};
@@ -58,9 +58,9 @@ namespace Bess::Vulkan {
         std::array<VkClearValue, 5> clearValues{};
         clearValues[0].color = {{clearColor.r, clearColor.g, clearColor.b, clearColor.a}}; // Clear MSAA color
         clearValues[1].color = {{0.f, 0.f, 0.f, 0.f}};                                     // Resolve attachment ignored for clear
-        // Clear MSAA picking with integer value (VK_FORMAT_R32_SINT)
-        clearValues[2].color.int32[0] = clearPickingId;
-        clearValues[2].color.int32[1] = 0;
+        // Clear MSAA picking with integer value (VK_FORMAT_R32G32_UINT)
+        clearValues[2].color.int32[0] = (int32_t)clearPickingId.x;
+        clearValues[2].color.int32[1] = (int32_t)clearPickingId.y;
         clearValues[2].color.int32[2] = 0;
         clearValues[2].color.int32[3] = 0;
         clearValues[3].color = {{0.f, 0.f, 0.f, 0.f}}; // Resolve picking ignored for clear

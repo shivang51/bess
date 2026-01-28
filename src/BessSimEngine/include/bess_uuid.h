@@ -1,27 +1,45 @@
 #pragma once
 
 #include "bess_api.h"
+#include "json/json.h"
 #include <cstdint>
 #include <functional>
 
 namespace Bess {
     class BESS_API UUID {
       public:
-        static UUID null;
+        static UUID fromString(const std::string &str) noexcept;
+
+        constexpr UUID(uint64_t id) noexcept : m_UUID(id) {}
 
         UUID();
-        UUID(uint64_t id);
-        UUID(const UUID &) = default;
+        ~UUID() = default;
 
-        operator uint64_t() const { return m_UUID; }
+        constexpr UUID(const UUID &other) noexcept = default;
 
-        bool operator==(const Bess::UUID &other) const {
-            return other.m_UUID == m_UUID;
+        constexpr operator uint64_t() const noexcept { return m_UUID; }
+
+        constexpr bool operator==(const UUID &other) const noexcept {
+            return m_UUID == other.m_UUID;
         }
+
+        constexpr bool operator!=(const UUID &other) const noexcept {
+            return m_UUID != other.m_UUID;
+        }
+
+        std::string toString() const noexcept;
+
+        static const UUID null;
+        static const UUID master;
 
       private:
         uint64_t m_UUID;
     };
+
+    namespace JsonConvert {
+        BESS_API void toJsonValue(const Bess::UUID &uuid, Json::Value &j);
+        BESS_API void fromJsonValue(const Json::Value &j, Bess::UUID &uuid);
+    } // namespace JsonConvert
 } // namespace Bess
 
 namespace std {

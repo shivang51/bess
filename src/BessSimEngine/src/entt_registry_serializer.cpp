@@ -1,5 +1,5 @@
 #include "entt_registry_serializer.h"
-#include "entt_components.h"
+#include "digital_component.h"
 #include <fstream>
 #include <iostream>
 
@@ -7,7 +7,7 @@ using namespace Bess::SimEngine;
 
 namespace Bess {
     void EnttRegistrySerializer::serialize(const entt::registry &registry, Json::Value &j) {
-        if(m_ComponentSerializers.empty()) {
+        if (m_ComponentSerializers.empty()) {
             registerAll();
         }
 
@@ -38,22 +38,23 @@ namespace Bess {
     }
 
     void EnttRegistrySerializer::deserialize(entt::registry &registry, const Json::Value &json) {
-        if(m_ComponentDeserializers.empty()) {
+        if (m_ComponentDeserializers.empty()) {
             registerAll();
         }
 
-        if(json.isMember("entities")) {
+        if (json.isMember("entities")) {
             for (const auto &j : json["entities"]) {
                 deserializeEntity(registry, j);
             }
         }
     }
 
-    void EnttRegistrySerializer::deserializeEntity(entt::registry &registry, const Json::Value &j) {
+    entt::entity EnttRegistrySerializer::deserializeEntity(entt::registry &registry, const Json::Value &j) {
         const auto entity = registry.create();
         for (const auto &deserializeCB : m_ComponentDeserializers | std::views::values) {
             deserializeCB(registry, entity, j);
         }
+        return entity;
     }
 
     void EnttRegistrySerializer::deserializeFromPath(entt::registry &registry, const std::string &filename) {

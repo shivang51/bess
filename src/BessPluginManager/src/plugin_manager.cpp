@@ -151,7 +151,7 @@ namespace Bess::Plugins {
         return nullptr;
     }
 
-    PyGILState_STATE createPyThreadState() {
+    PyGILState_STATE capturePyThreadState() {
         return PyGILState_Ensure();
     }
 

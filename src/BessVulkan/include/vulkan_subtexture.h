@@ -1,5 +1,5 @@
 #pragma once
-
+#include "bess_vulkan_api.h"
 #include "glm.hpp"
 #include <memory>
 #include <vector>
@@ -8,7 +8,7 @@ namespace Bess::Vulkan {
 
     class VulkanTexture;
 
-    class SubTexture {
+    class BESS_VULKAN_API SubTexture {
       public:
         SubTexture() = default;
         SubTexture(std::shared_ptr<VulkanTexture> texture, const glm::vec2 &coord, const glm::vec2 &spriteSize);

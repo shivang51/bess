@@ -17,6 +17,7 @@ namespace Bess::SimEngine::Commands {
             if (!cmd->execute()) {
                 return std::unexpected(false);
             }
+
             auto res = cmd->template getResult<RT>();
             m_undoStack.push(std::move(cmd));
             return res;

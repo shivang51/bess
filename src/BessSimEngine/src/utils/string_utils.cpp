@@ -6,13 +6,13 @@
 
 namespace Bess::SimEngine::StringUtils {
 
-    PinType toPinType(std::string str) {
-        std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+    SlotType toPinType(std::string str) {
+        std::ranges::transform(str, str.begin(), ::tolower);
 
         if (str == "output") {
-            return PinType::output;
+            return SlotType::digitalOutput;
         }
 
-        return PinType::input;
+        return SlotType::digitalInput;
     }
 } // namespace Bess::SimEngine::StringUtils

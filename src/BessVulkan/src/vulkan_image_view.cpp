@@ -308,9 +308,7 @@ namespace Bess::Vulkan {
 
     void VulkanImageView::createFramebuffer(VkRenderPass renderPass) {
         if (renderPass == VK_NULL_HANDLE) {
-            const std::stacktrace st = std::stacktrace::current();
-            BESS_VK_ERROR("[VulkanImageView] Got null handle to renderpass:\nStack trace");
-            std::cerr << st << std::endl;
+            BESS_VK_ERROR("[VulkanImageView] Got null handle to renderpass");
             assert(false);
         }
         if (m_hasPickingAttachments) {

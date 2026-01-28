@@ -1,5 +1,6 @@
 #pragma once
-
+#include "bess_vulkan_api.h"
+#include "fwd.hpp"
 #include <array>
 #include <glm.hpp>
 #include <vulkan/vulkan.h>
@@ -7,12 +8,12 @@
 
 namespace Bess::Vulkan {
 
-    struct GridVertex {
+    struct BESS_VULKAN_API GridVertex {
         glm::vec3 position;  // location 0
         glm::vec2 texCoord;  // location 1
-        int fragId;          // location 2
+        glm::uvec2 fragId;   // location 2
         glm::vec4 fragColor; // location 3
-        int ar;              // location 4
+        float ar;            // location 4
 
         static VkVertexInputBindingDescription getBindingDescription() {
             VkVertexInputBindingDescription bindingDescription{};
@@ -40,7 +41,7 @@ namespace Bess::Vulkan {
             // FragId
             attributeDescriptions[2].binding = 0;
             attributeDescriptions[2].location = 2;
-            attributeDescriptions[2].format = VK_FORMAT_R32_SINT;
+            attributeDescriptions[2].format = VK_FORMAT_R32G32_UINT;
             attributeDescriptions[2].offset = offsetof(GridVertex, fragId);
 
             // FragColor
@@ -52,20 +53,20 @@ namespace Bess::Vulkan {
             // AR
             attributeDescriptions[4].binding = 0;
             attributeDescriptions[4].location = 4;
-            attributeDescriptions[4].format = VK_FORMAT_R32_SINT;
+            attributeDescriptions[4].format = VK_FORMAT_R32_SFLOAT;
             attributeDescriptions[4].offset = offsetof(GridVertex, ar);
 
             return attributeDescriptions;
         }
     };
 
-    struct UniformBufferObject {
+    struct BESS_VULKAN_API UniformBufferObject {
         glm::mat4 mvp;
         glm::mat4 ortho;
     };
 
     // std140-compatible layout for the fragment UBO
-    struct GridUniforms {
+    struct BESS_VULKAN_API GridUniforms {
         float zoom;               // offset 0
         float _pad0;              // pad to 8 for next vec2
         glm::vec2 cameraOffset;   // offset 8
@@ -77,40 +78,40 @@ namespace Bess::Vulkan {
         glm::vec2 _pad1;          // pad to 96 (multiple of 16)
     };
 
-    struct QuadInstance {
+    struct BESS_VULKAN_API QuadInstance {
         glm::vec3 position;     // location 2
         glm::vec4 color;        // location 3
         glm::vec4 borderRadius; // location 4
         glm::vec4 borderColor;  // location 5
         glm::vec4 borderSize;   // location 6
         glm::vec2 size;         // location 7
-        int id;                 // location 8
+        glm::uvec2 id;          // location 8
         int isMica;             // location 9
         int texSlotIdx;         // location 10
         int _pad;               // padding to align next vec4
         glm::vec4 texData;      // location 11
     };
 
-    struct CircleInstance {
+    struct BESS_VULKAN_API CircleInstance {
         glm::vec3 position; // location 2
         glm::vec4 color;    // location 3
         float radius;       // location 4
         float innerRadius;  // location 5
-        int id;             // location 6
+        glm::uvec2 id;      // location 6
     };
 
-    struct InstanceVertex {
+    struct BESS_VULKAN_API InstanceVertex {
         glm::vec3 position; // location 2
         glm::vec2 size;     // location 3
         float angle;        // location 4
         glm::vec4 color;    // location 5
-        int id;             // location 6
+        glm::uvec2 id;      // location 6
         int texSlotIdx;     // location 7
         glm::vec4 texData;  // location 8
     };
 
     // Text uniforms for MSDF rendering
-    struct TextUniforms {
+    struct BESS_VULKAN_API TextUniforms {
         float pxRange; // offset 0
         float _pad0;   // pad to 8 for next vec2
         float _pad1;   // pad to 12
@@ -118,11 +119,11 @@ namespace Bess::Vulkan {
     };
 
     // Common vertex structure for path rendering
-    struct CommonVertex {
+    struct BESS_VULKAN_API CommonVertex {
         glm::vec3 position; // location 0
         glm::vec4 color;    // location 1
         glm::vec2 texCoord; // location 2
-        int id;             // location 3
+        glm::uvec2 id;      // location 3
         int texSlotIdx = 0; // location 4
 
         static VkVertexInputBindingDescription getBindingDescription() {
@@ -157,7 +158,7 @@ namespace Bess::Vulkan {
             // ID
             attributeDescriptions[3].binding = 0;
             attributeDescriptions[3].location = 3;
-            attributeDescriptions[3].format = VK_FORMAT_R32_SINT;
+            attributeDescriptions[3].format = VK_FORMAT_R32G32_UINT;
             attributeDescriptions[3].offset = offsetof(CommonVertex, id);
 
             // TexSlotIdx
@@ -171,11 +172,11 @@ namespace Bess::Vulkan {
     };
 
     // Instance data for path rendering
-    struct PathInstance {
+    struct BESS_VULKAN_API PathInstance {
         glm::vec3 position; // location 5 - instance position
         glm::vec3 scale;    // location 6 - instance scale
         glm::vec4 color;    // location 7 - instance color
-        int id;             // location 8 - instance id
+        glm::uvec2 id;      // location 8 - instance id
 
         static VkVertexInputBindingDescription getBindingDescription() {
             VkVertexInputBindingDescription bindingDescription{};
@@ -209,18 +210,18 @@ namespace Bess::Vulkan {
             // ID
             attributeDescriptions[3].binding = 1;
             attributeDescriptions[3].location = 8;
-            attributeDescriptions[3].format = VK_FORMAT_R32_SINT;
+            attributeDescriptions[3].format = VK_FORMAT_R32G32_UINT;
             attributeDescriptions[3].offset = offsetof(PathInstance, id);
 
             return attributeDescriptions;
         }
     };
 
-    struct FillInstance {
+    struct BESS_VULKAN_API FillInstance {
         glm::vec3 translation; // location 5
         glm::vec2 scale;       // location 6
         glm::vec4 color;       // location 7
-        int pickId;            // location 8
+        glm::uvec2 pickId;     // location 8
 
         static VkVertexInputBindingDescription getBindingDescription() {
             VkVertexInputBindingDescription bd{};
@@ -250,7 +251,7 @@ namespace Bess::Vulkan {
             // pick id
             a[3].binding = 1;
             a[3].location = 8;
-            a[3].format = VK_FORMAT_R32_SINT;
+            a[3].format = VK_FORMAT_R32G32_UINT;
             a[3].offset = offsetof(FillInstance, pickId);
             return a;
         }

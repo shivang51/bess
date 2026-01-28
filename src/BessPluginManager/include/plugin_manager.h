@@ -3,17 +3,21 @@
 #include "plugin_handle.h"
 #include <memory>
 #include <string>
-#include <thread>
 #include <unordered_map>
 #include <vector>
 
+namespace Bess::Canvas {
+    class SimSceneCompDrawHook;
+} // namespace Bess::Canvas
+
 namespace Bess::Plugins {
-    PyGILState_STATE createPyThreadState();
+    PyGILState_STATE capturePyThreadState();
     void releasePyThreadState(PyGILState_STATE state);
     void savePyThreadState();
     void restorePyThreadState();
 
-    class PluginManager {
+    // using this macro to fix pybind11 warning
+    class __attribute__((visibility("default"))) PluginManager {
       public:
         static PluginManager &getInstance();
         static bool isIntialized;

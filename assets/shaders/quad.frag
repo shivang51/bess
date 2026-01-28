@@ -1,7 +1,7 @@
 #version 460
 
 layout(location = 0) out vec4 fragColor;
-layout(location = 1) out int pickingId;
+layout(location = 1) out uvec2 pickingId;
 
 layout(location = 0) in vec4 v_FragColor;
 layout(location = 1) in vec2 v_TexCoord;
@@ -9,7 +9,7 @@ layout(location = 2) in vec4 v_BorderRadius;
 layout(location = 3) in vec4 v_BorderSize;
 layout(location = 4) in vec4 v_BorderColor;
 layout(location = 5) in vec2 v_Size;
-layout(location = 6) in flat int v_FragId;
+layout(location = 6) in flat uvec2 v_FragId;
 layout(location = 7) in flat int v_IsMica;
 layout(location = 8) in flat int v_TexSlotIdx;
 
@@ -61,8 +61,11 @@ void main() {
     }
 
     if (v_IsMica == 1) {
-        vec3 dark = baseColor.rgb * smoothstep(0.9f, 1.f, length(1.f - v_TexCoord.y));
-        baseColor.rgb *= mix(baseColor.rgb, dark, v_TexCoord.y + 0.05);
+        vec3 dark = baseColor.rgb * smoothstep(0.5f, 1.f, length(1.f - v_TexCoord - 0.45f));
+
+        float v = length(vec2(v_TexCoord.x, v_TexCoord.y + 0.01f));
+        baseColor.rgb *= mix(baseColor.rgb, dark, v);
+        baseColor.a *= mix(0.4f, 0.9f, v);
     }
 
     vec4 color = mix(v_BorderColor, baseColor, mI);

@@ -50,7 +50,10 @@ set(ALL_FILES
 		${EXT_OTHERS_SRC}
 )
 
-add_library(${PROJECT_NAME} STATIC ${ALL_FILES})
+# Using shared lib to prevent double brain problem with BessVulkan singleton
+# FIXME: add __declspec for Windows
+add_library(${PROJECT_NAME} SHARED ${ALL_FILES})
+target_compile_definitions(BessVulkan PRIVATE BESS_VULKAN_EXPORT)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
 		"${CMAKE_CURRENT_SOURCE_DIR}/include"
