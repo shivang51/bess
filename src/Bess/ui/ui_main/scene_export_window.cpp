@@ -200,7 +200,7 @@ namespace Bess::UI {
         png_write_end(pngPtr, NULL);
         png_destroy_write_struct(&pngPtr, &pngInfoPtr);
 
-        BESS_TRACE("[ExportSceneView] Successfully saved file to {}", path.string());
+        BESS_INFO("[ExportSceneView] Successfully saved file to {}", path.string());
     }
 
     SceneBounds sceneBounds;

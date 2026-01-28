@@ -109,7 +109,6 @@ namespace Bess::Canvas {
             return;
 
         const auto &pos = getSchematicPosAbsolute(state);
-        BESS_TRACE("Drawing schematic for slot: {} at {}", m_name, pos.z);
         const auto pinId = PickingId{m_runtimeId, PickingId::InfoFlags::unSelectable};
         constexpr float nodeWeight = Styles::compSchematicStyles.strokeSize;
         const auto &pinColor = ViewportTheme::schematicViewColors.pin;

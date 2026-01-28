@@ -77,8 +77,6 @@ namespace Bess::Renderer2D {
         for (auto &[ch, data] : glyphs) {
             m_charTable[(size_t)ch] = data;
         }
-
-        BESS_TRACE("[MsdfFont] Made lookup table of size {} characters", maxAscii);
     }
 
     float MsdfFont::getScale(float size) const {
