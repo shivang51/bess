@@ -35,7 +35,11 @@ namespace Bess::UI {
 
         void moveNode(UUID node, UUID newParent);
 
-        void moveNode(std::shared_ptr<ProjectExplorerNode> node, const std::shared_ptr<ProjectExplorerNode> &newParent);
+        void moveNode(std::shared_ptr<ProjectExplorerNode> node,
+                      const std::shared_ptr<ProjectExplorerNode> &newParent);
+
+        bool containsNode(const UUID &nodeId) const;
+        bool containsSceneEntt(const UUID &sceneId) const;
 
         Json::Value toJson() const;
         void fromJson(const Json::Value &j);

@@ -109,6 +109,14 @@ namespace Bess::UI {
     void ProjectExplorerState::fromJson(const Json::Value &j) {
         JsonConvert::fromJsonValue(j, *this);
     }
+
+    bool ProjectExplorerState::containsNode(const UUID &nodeId) const {
+        return nodesLookup.contains(nodeId);
+    }
+
+    bool ProjectExplorerState::containsSceneEntt(const UUID &sceneId) const {
+        return enttNodesLookup.contains(sceneId);
+    }
 } // namespace Bess::UI
 
 namespace Bess::JsonConvert {

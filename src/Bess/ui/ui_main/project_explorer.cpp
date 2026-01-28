@@ -177,11 +177,6 @@ namespace Bess::UI {
 
             } else {
                 const auto &sceneComp = sceneState.getComponentByUuid(node->sceneId);
-                if (sceneComp->getType() == Canvas::SceneComponentType::simulation) {
-                    // icon = Common::Helpers::getComponentIcon(tagComp.type.simCompHash);
-                } else {
-                    // icon = Common::Helpers::getComponentIcon(tagComp.type.nsCompType);
-                }
                 const auto [pressed, cbPressed] = drawLeafNode(
                     i++,
                     node->nodeId,
@@ -555,15 +550,23 @@ namespace Bess::UI {
 
         auto res = scene->getCmdManager().execute<Canvas::Commands::CreateGroupCommand, UUID>("New Group");
 
-        if (res.has_value()) {
-            UUID groupUUID = res.value();
-            // Reparent selected nodes to this group
-            for (const auto &selId : selComponents | std::views::keys) {
-                auto id = state.getNodeOfSceneEntt(selId)->nodeId;
-                auto cmd = std::make_unique<Canvas::Commands::ReparentNodeCommand>(id, groupUUID);
-                scene->getCmdManager().execute(std::move(cmd));
-            }
+        if (!res.has_value()) {
+            BESS_WARN("[ProjectExplorer] Failed to create group for selected components -> {}",
+                      res.error());
+            return;
         }
+
+        UUID groupUUID = res.value();
+        // Reparent selected nodes to this group
+        for (const auto &selId : selComponents | std::views::keys) {
+            if (!state.containsSceneEntt(selId))
+                continue;
+            const auto id = state.getNodeOfSceneEntt(selId)->nodeId;
+            auto cmd = std::make_unique<Canvas::Commands::ReparentNodeCommand>(id, groupUUID);
+            scene->getCmdManager().execute(std::move(cmd));
+        }
+
+        BESS_INFO("[ProjectExplorer] Grouped {} selected components into new group.", selComponents.size());
     }
 
     void ProjectExplorer::groupOnNets() {
