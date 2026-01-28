@@ -34,6 +34,7 @@ message(STATUS "Output location: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 
 add_subdirectory(external)
 add_subdirectory(src)
+add_subdirectory(tests)
 
 find_package(Doxygen REQUIRED)
 set(DOXYGEN_INPUT_DIRS
