@@ -11,28 +11,31 @@ layout(location = 4) in flat int v_TexSlotIdx;
 layout(location = 5) noperspective in vec3 v_Barycentric;
 
 layout(binding = 1) uniform ZoomUniforms {
-    float u_zoom;
+  float u_zoom;
 };
 
 void main() {
-    vec2 dx = dFdx(v_FragPos.xy);
-    vec2 dy = dFdy(v_FragPos.xy);
+  vec2 dx = dFdx(v_FragPos.xy);
+  vec2 dy = dFdy(v_FragPos.xy);
 
-    float pixelSize = length(dx) + length(dy);
+  float pixelSize = length(dx) + length(dy);
 
-    pixelSize *= 1.0 / max(u_zoom, 1e-6);
+  pixelSize *= 1.0 / max(u_zoom, 1e-6);
 
-    float dist = 1.0 - min(v_Barycentric.x, min(v_Barycentric.y, v_Barycentric.z));
-    float w = max(fwidth(dist), 1e-6);
-    float coverage = smoothstep(0.0, w * 1.5, dist);
-    coverage = max(coverage, 0.95);
+  float dist = 1.0 - min(v_Barycentric.x, min(v_Barycentric.y, v_Barycentric.z));
+  float w = max(fwidth(dist), 1e-6);
 
-    vec4 color = v_FragColor;
-    color.a *= coverage;
+  float aaMultiplier = clamp(u_zoom, 0.1, 1.0);
+  float aaWidth = 1.5 * w * aaMultiplier;
 
-    if (color.a < 0.0001f) discard;
-    color.rgb *= color.a;
+  float coverage = smoothstep(0.0, aaWidth, dist);
 
-    fragColor = color;
-    fragColor1 = v_FragId;
+  vec4 color = v_FragColor;
+  color.a *= coverage;
+
+  if (color.a < 0.0001f) discard;
+  color.rgb *= color.a;
+
+  fragColor = color;
+  fragColor1 = v_FragId;
 }

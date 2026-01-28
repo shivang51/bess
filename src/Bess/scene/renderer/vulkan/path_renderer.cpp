@@ -824,12 +824,13 @@ namespace Bess::Renderer2D::Vulkan {
             if (c.size() < 3)
                 continue;
             std::vector<TESSreal> coords;
-            coords.reserve(c.size() * 2);
+            coords.reserve(c.size() * 3);
             for (const auto &pt : c) {
                 coords.push_back((TESSreal)pt.pos.x);
                 coords.push_back((TESSreal)pt.pos.y);
+                coords.push_back((TESSreal)pt.pos.z);
             }
-            tessAddContour(tess, 2, coords.data(), sizeof(TESSreal) * 2, (int)c.size());
+            tessAddContour(tess, 3, coords.data(), sizeof(TESSreal) * 3, (int)c.size());
         }
 
         constexpr int polySize = 3;
@@ -837,7 +838,7 @@ namespace Bess::Renderer2D::Vulkan {
                            TESS_WINDING_NONZERO,
                            TESS_POLYGONS,
                            polySize, // number of indices per element
-                           2,        // vertex size (x,y)
+                           3,        // vertex size (x,y)
                            nullptr)) // normal
         {
             tessDeleteTess(tess);
@@ -852,24 +853,23 @@ namespace Bess::Renderer2D::Vulkan {
 
         std::vector<const PathPoint *> flatPoints;
         flatPoints.reserve(1024);
-        for (const auto &c : contours)
+        for (const auto &c : useContours)
             for (const auto &p : c)
                 flatPoints.push_back(&p);
 
         auto makeVertex = [&](int vi) -> CommonVertex {
-            glm::vec3 pos((float)verts[(vi * 2) + 0], (float)verts[(vi * 2) + 1], 0.0f);
+            glm::vec3 pos(
+                (float)verts[(vi * 3) + 0],
+                (float)verts[(vi * 3) + 1],
+                (float)verts[(vi * 3) + 2]);
 
-            int mapped = vindex ? vindex[vi] : -1;
-            float z = 0.0f;
+            const int mapped = vindex ? vindex[vi] : -1;
             uint64_t id = 0;
             if (mapped >= 0 && mapped < (int)flatPoints.size()) {
-                z = flatPoints[mapped]->pos.z;
                 id = flatPoints[mapped]->id;
             } else if (!flatPoints.empty()) {
-                z = flatPoints.front()->pos.z;
                 id = flatPoints.front()->id;
             }
-            pos.z = z;
 
             CommonVertex v;
             v.position = pos;

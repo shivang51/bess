@@ -7,4 +7,4 @@ ln -sf ./build/compile_commands.json ..
 make -j4
 cd ..
 
-# ./scripts/compile_shaders.sh
+./scripts/compile_shaders.sh

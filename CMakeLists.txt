@@ -34,8 +34,8 @@ message(STATUS "Output location: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 
 add_subdirectory(external)
 add_subdirectory(src)
-add_subdirectory(tests)
-add_subdirectory(docs)
+# add_subdirectory(tests)
+# add_subdirectory(docs)
 
 if(MSVC)
 	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Bess)

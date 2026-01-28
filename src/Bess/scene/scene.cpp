@@ -265,9 +265,9 @@ namespace Bess::Canvas {
         for (const auto &compId : m_state.getRootComponents()) {
             const auto comp = m_state.getComponentByUuid(compId);
 
-            const auto &transform = comp->getTransform();
-            const auto x = transform.position.x - camPos.x;
-            const auto y = transform.position.y - camPos.y;
+            const auto &pos = comp->getAbsolutePosition(m_state);
+            const auto x = pos.x - camPos.x;
+            const auto y = pos.y - camPos.y;
 
             // skipping if outside camera and not connection
             if (comp->getType() != SceneComponentType::connection &&
