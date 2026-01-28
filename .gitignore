@@ -32,6 +32,7 @@ Testing/
 
 perf.data*
 doxygen_warnings.txt
+docs/html/
 
 __pycache__/
 *.pyc
