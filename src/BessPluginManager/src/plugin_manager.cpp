@@ -25,7 +25,7 @@ namespace Bess::Plugins {
         pybind11::module_ sys = pybind11::module_::import("sys");
         pybind11::list path_list = sys.attr("path");
 
-#ifdef _DEBUG
+#ifdef DEBUG
         path_list.append("src/bessplug");
 #else
         path_list.append("bindings");
