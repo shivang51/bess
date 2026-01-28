@@ -21,6 +21,15 @@ namespace Bess::Plugins {
         if (isIntialized)
             return;
         pybind11::initialize_interpreter();
+
+        pybind11::module_ sys = pybind11::module_::import("sys");
+        pybind11::list path_list = sys.attr("path");
+
+#ifdef _DEBUG
+        path_list.append("src/bessplug");
+#else
+        path_list.append("bindings");
+#endif
         pybind11::gil_scoped_release gil;
         spdlog::info("PluginManager initialized with Python interpreter");
         isIntialized = true;
@@ -61,9 +70,7 @@ namespace Bess::Plugins {
             }
 
             py::module_ sys = py::module_::import("sys");
-
             py::list path_list = sys.attr("path");
-            path_list.append("src/bessplug");
             path_list.append(path.parent_path().string());
 
             py::module_ pluginModule = py::module::import(pluginName.c_str());

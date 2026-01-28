@@ -67,14 +67,14 @@ set(ALL_FILES
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 target_link_libraries(${PROJECT_NAME} PRIVATE BessExtDependencies BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessUI)
-add_dependencies(${PROJECT_NAME} BessExtDependencies BessSimEngine BessVulkan BessPluginManager BessScene BessUI)
+add_dependencies(${PROJECT_NAME} BessExtDependencies besspybindings BessSimEngine BessVulkan BessPluginManager BessScene BessUI)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(ASSETS_DST_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets")
-
-    file(MAKE_DIRECTORY "${ASSETS_DST_DIR}")
+		set(BESSPLUG_DST_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bindings/bessplug")
+		set(PLUGINS_DST_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/plugins")
 
     add_custom_command(
 				TARGET ${PROJECT_NAME} POST_BUILD
@@ -82,6 +82,20 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
             "${CMAKE_SOURCE_DIR}/assets" "${ASSETS_DST_DIR}"
         COMMENT "Copying assets to build directory"
     )
+
+    add_custom_command(
+				TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+					"${CMAKE_SOURCE_DIR}/plugins" "${PLUGINS_DST_DIR}"
+        COMMENT "Copying plugins to build directory"
+    )
+
+		add_custom_command(
+				TARGET ${PROJECT_NAME} POST_BUILD
+				COMMAND ${CMAKE_COMMAND} -E copy_directory
+				"${CMAKE_SOURCE_DIR}/src/bessplug/bessplug" "${BESSPLUG_DST_DIR}"
+				COMMENT "Copying bindings to build directory"
+		)
 endif()
 
 if("${BUILD_ARCH}" STREQUAL "x64")
