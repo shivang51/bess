@@ -40,6 +40,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(UUID, StartSlot, m_startSlot)
         MAKE_GETTER_SETTER(UUID, EndSlot, m_endSlot)
         MAKE_GETTER_SETTER(std::vector<ConnSegment>, Segments, m_segments)
+        MAKE_GETTER_SETTER(std::vector<ConnSegment>, SchematicSegments, m_schematicSegments)
         MAKE_GETTER_SETTER(bool, ShouldReconstructSegments, m_shouldReconstructSegments)
         MAKE_GETTER_SETTER(bool, UseCustomColor, m_useCustomColor)
         MAKE_GETTER_SETTER(int, InitialSegmentCount, m_initialSegmentCount)
@@ -87,7 +88,7 @@ REFLECT_DERIVED_PROPS(Bess::Canvas::ConnectionSceneComponent, Bess::Canvas::Scen
                       ("startSlot", getStartSlot, setStartSlot),
                       ("endSlot", getEndSlot, setEndSlot),
                       ("segments", getSegments, setSegments),
-                      ("schemeticSegments", getSegments, setSegments),
+                      ("schemeticSegments", getSchematicSegments, setSchematicSegments),
                       ("shouldReconstructSegments", getShouldReconstructSegments, setShouldReconstructSegments),
                       ("useCustomColor", getUseCustomColor, setUseCustomColor),
                       ("associatedJoints", getAssociatedJoints, setAssociatedJoints),

@@ -1,8 +1,10 @@
 #pragma once
 
 #include "bess_uuid.h"
+#include "scene/renderer/material_renderer.h"
 #include "scene/scene_state/components/sim_scene_component.h"
 #include "scene/scene_state/scene_state.h"
+#include <memory>
 
 namespace Bess::Canvas {
     class InputSceneComponent : public SimulationSceneComponent {
@@ -18,7 +20,8 @@ namespace Bess::Canvas {
                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                   std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
 
-        void calculateSchematicScale(SceneState &state) override;
+        void calculateSchematicScale(SceneState &state,
+                                     std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) override;
 
         void drawToggleButton(SceneState &state,
                               const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,

@@ -15,6 +15,7 @@ namespace Bess::Canvas {
 
         REG_SCENE_COMP(SceneComponentType::connJoint)
         MAKE_GETTER_SETTER(int, ConnSegIdx, m_connSegIdx);
+        MAKE_GETTER_SETTER(int, SchConnSegIdx, m_schConnSegIdx);
         MAKE_GETTER_SETTER(UUID, ConnectionId, m_connectionId);
         MAKE_GETTER_SETTER(UUID, OutputSlotId, m_outputSlotId);
         MAKE_GETTER_SETTER(float, SegOffset, m_offset);
@@ -48,14 +49,14 @@ namespace Bess::Canvas {
         std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
 
       private:
-        int m_connSegIdx;
+        int m_connSegIdx, m_schConnSegIdx;
         UUID m_connectionId;
 
         UUID m_outputSlotId;
 
         bool m_isHovered = false;
 
-        float m_offset = 0.5f, m_schematicOffset; // normalized 0-1 offset, signifying pos on segment
+        float m_offset = -1.f, m_schematicOffset = -1.f; // normalized 0-1 offset, signifying pos on segment
         ConnSegOrientaion m_segOrientation = ConnSegOrientaion::horizontal;
         std::vector<UUID> m_connections;
     };

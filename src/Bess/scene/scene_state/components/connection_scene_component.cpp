@@ -70,9 +70,15 @@ namespace Bess::Canvas {
                                         std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                         std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
 
+        auto startSlotComp = state.getComponentByUuid(m_startSlot);
+        auto endSlotComp = state.getComponentByUuid(m_endSlot);
+
+        if (!startSlotComp || !endSlotComp)
+            return;
+
         if (m_isFirstDraw) {
-            onFirstDraw(state, materialRenderer, pathRenderer);
             if (m_segments.empty()) {
+                BESS_WARN("Segments empty on first draw for {}", (uint64_t)m_uuid);
                 if (!m_isFirstSchematicDraw) {
                     m_segments = m_schematicSegments;
                 } else {
@@ -80,13 +86,8 @@ namespace Bess::Canvas {
                 }
             }
             m_segmentPosCacheDirty = true;
+            m_isFirstDraw = false;
         }
-
-        auto startSlotComp = state.getComponentByUuid(m_startSlot);
-        auto endSlotComp = state.getComponentByUuid(m_endSlot);
-
-        if (!startSlotComp || !endSlotComp)
-            return;
 
         if (m_shouldReconstructSegments) {
             reconstructSegments(state);
@@ -156,7 +157,12 @@ namespace Bess::Canvas {
                                                  std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
         if (m_isFirstSchematicDraw) {
             m_isFirstSchematicDraw = false;
-            m_schematicSegments = m_segments;
+            if (m_schematicSegments.empty()) {
+                BESS_WARN("Schematic segments empty on first schematic draw for {}, copying from normal segments",
+                          (uint64_t)m_uuid);
+                m_schematicSegments = m_segments;
+            }
+            m_shouldReconstructSegments = m_schematicSegments.empty();
             m_segmentPosCacheDirty = true;
         }
 

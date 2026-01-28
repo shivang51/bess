@@ -41,7 +41,7 @@ namespace Bess::Canvas {
         return transform;
     }
 
-    glm::vec2 SceneComponent::calculateScale(std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) {
+    glm::vec2 SceneComponent::calculateScale(SceneState &_, std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) {
         const auto labelSize = materialRenderer->getTextRenderSize(m_name, Styles::componentStyles.headerFontSize);
         float width = labelSize.x + (Styles::componentStyles.paddingX * 2.f);
         return {width, Styles::componentStyles.headerHeight};
@@ -50,7 +50,7 @@ namespace Bess::Canvas {
     void SceneComponent::onFirstDraw(SceneState &_,
                                      std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                      std::shared_ptr<PathRenderer> /*unused*/) {
-        setScale(calculateScale(std::move(materialRenderer)));
+        setScale(calculateScale(_, std::move(materialRenderer)));
         m_isFirstDraw = false;
     }
 
@@ -102,9 +102,6 @@ namespace Bess::Canvas {
                                               std::shared_ptr<PathRenderer> pathRenderer) {
 
         m_isFirstSchematicDraw = false;
-        if (m_isFirstDraw) {
-            onFirstDraw(state, std::move(materialRenderer), std::move(pathRenderer));
-        }
     }
 
     void SceneComponent::removeChildComponent(const UUID &uuid) {

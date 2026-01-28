@@ -122,8 +122,9 @@ namespace Bess::Canvas {
                                          : SimEngine::LogicState::high);
     }
 
-    void InputSceneComponent::calculateSchematicScale(SceneState &state) {
-        SimulationSceneComponent::calculateSchematicScale(state);
+    void InputSceneComponent::calculateSchematicScale(SceneState &state,
+                                                      std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) {
+        SimulationSceneComponent::calculateSchematicScale(state, materialRenderer);
         m_schematicTransform.scale.x = 50.f;
     }
 

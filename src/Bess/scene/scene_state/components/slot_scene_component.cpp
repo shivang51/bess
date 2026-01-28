@@ -1,5 +1,4 @@
 #include "scene/scene_state/components/slot_scene_component.h"
-#include "bess_json/json_converters.h"
 #include "commands/commands.h"
 #include "scene/scene_state/components/conn_joint_scene_component.h"
 #include "scene/scene_state/components/connection_scene_component.h"
@@ -31,9 +30,7 @@ namespace Bess::Canvas {
     void SlotSceneComponent::draw(SceneState &state,
                                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                   std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
-        const auto parentComp = state.getComponentByUuid<SimulationSceneComponent>(m_parentComponent);
-        const auto &parentPos = parentComp->getTransform().position;
-        const auto pos = parentPos + m_transform.position;
+        const auto pos = getAbsolutePosition(state);
         const auto pickingId = PickingId{m_runtimeId, PickingId::InfoFlags::unSelectable};
 
         auto bg = ViewportTheme::colors.stateLow;
@@ -94,6 +91,7 @@ namespace Bess::Canvas {
             float dY = Styles::componentStyles.slotRadius -
                        (std::abs((Styles::componentStyles.slotRadius * 2.f) - Styles::componentStyles.slotLabelSize) / 2.f);
 
+            const auto parentComp = state.getComponentByUuid<SimulationSceneComponent>(m_parentComponent);
             materialRenderer->drawText(m_name,
                                        {labelX, pos.y + dY, pos.z},
                                        Styles::componentStyles.slotLabelSize,
@@ -111,6 +109,7 @@ namespace Bess::Canvas {
             return;
 
         const auto &pos = getSchematicPosAbsolute(state);
+        BESS_TRACE("Drawing schematic for slot: {} at {}", m_name, pos.z);
         const auto pinId = PickingId{m_runtimeId, PickingId::InfoFlags::unSelectable};
         constexpr float nodeWeight = Styles::compSchematicStyles.strokeSize;
         const auto &pinColor = ViewportTheme::schematicViewColors.pin;
@@ -141,6 +140,7 @@ namespace Bess::Canvas {
             if (m_slotType == SlotType::digitalOutput)
                 textOffsetX -= textSize.x + 6.f;
 
+            const auto parentComp = state.getComponentByUuid<SimulationSceneComponent>(m_parentComponent);
             // not using schematic slot pos for text as in schematic view,
             // slot is rendered behind the component but text should be in front of component
             // so using z of node view
@@ -149,7 +149,8 @@ namespace Bess::Canvas {
                                         pos.y + (textSize.y / 2.f) - 2.f,
                                         SceneComponent::getAbsolutePosition(state).z}, // because we don't want schematic pos
                                        Styles::componentStyles.slotLabelSize,
-                                       ViewportTheme::schematicViewColors.componentStroke, pinId,
+                                       ViewportTheme::schematicViewColors.componentStroke,
+                                       PickingId{parentComp->getRuntimeId(), 0},
                                        0.f);
         }
     }

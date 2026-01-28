@@ -71,9 +71,11 @@ namespace Bess::Canvas {
         std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>>
         calculateSlotPositions(size_t inputCount, size_t outputCount) const;
 
-        glm::vec2 calculateScale(std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) override;
+        glm::vec2 calculateScale(SceneState &state,
+                                 std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) override;
 
-        virtual void calculateSchematicScale(SceneState &state);
+        virtual void calculateSchematicScale(SceneState &state,
+                                             std::shared_ptr<Renderer::MaterialRenderer> materialRenderer);
 
         void onFirstDraw(SceneState &sceneState,
                          std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,

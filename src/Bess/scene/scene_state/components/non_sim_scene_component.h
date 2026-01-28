@@ -112,7 +112,8 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(size_t, Size, m_size)
 
       private:
-        glm::vec2 calculateScale(std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) override;
+        glm::vec2 calculateScale(SceneState &state,
+                                 std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) override;
 
       private:
         std::string m_data = "New Text";

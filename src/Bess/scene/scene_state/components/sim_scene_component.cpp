@@ -46,9 +46,11 @@ namespace Bess::Canvas {
                                         std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
         if (m_isFirstDraw) {
             onFirstDraw(state, materialRenderer, pathRenderer);
-        } else if (m_isScaleDirty) {
-            setScale(calculateScale(materialRenderer));
-            calculateSchematicScale(state);
+        }
+
+        if (m_isScaleDirty) {
+            setScale(calculateScale(state, materialRenderer));
+            calculateSchematicScale(state, materialRenderer);
             resetSlotPositions(state);
             m_isScaleDirty = false;
         }
@@ -62,7 +64,7 @@ namespace Bess::Canvas {
 
             if (drawHookResult.sizeChanged) {
                 setScale(drawHookResult.newSize);
-                calculateSchematicScale(state);
+                calculateSchematicScale(state, materialRenderer);
                 resetSlotPositions(state);
             }
         }
@@ -134,13 +136,13 @@ namespace Bess::Canvas {
         if (m_isFirstSchematicDraw) {
             onFirstSchematicDraw(state, materialRenderer, pathRenderer);
         }
+
         const auto &id = PickingId{m_runtimeId, 0};
 
         if (m_drawHook && m_drawHook->isSchematicDrawEnabled()) {
             auto newScale = m_drawHook->onSchematicDraw(m_schematicTransform, id, materialRenderer, pathRenderer);
             const auto &prevScale = m_schematicTransform.scale;
             if (newScale.x != prevScale.x || newScale.y != prevScale.y) {
-                BESS_TRACE("Schematic scale changed from draw hook");
                 m_schematicTransform.scale = newScale;
                 resetSchematicPinsPositions(state);
             }
@@ -208,7 +210,7 @@ namespace Bess::Canvas {
         return {inputPositions, outputPositions};
     }
 
-    glm::vec2 SimulationSceneComponent::calculateScale(std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) {
+    glm::vec2 SimulationSceneComponent::calculateScale(SceneState &state, std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) {
         const auto labelSize = materialRenderer->getTextRenderSize(m_name, Styles::simCompStyles.headerFontSize);
         float width = labelSize.x + (Styles::simCompStyles.paddingX * 2.f);
         size_t maxRows = std::max(m_inputSlots.size(), m_outputSlots.size());
@@ -278,7 +280,7 @@ namespace Bess::Canvas {
     void SimulationSceneComponent::onFirstDraw(SceneState &sceneState,
                                                std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                                std::shared_ptr<PathRenderer> /*unused*/) {
-        setScale(calculateScale(materialRenderer));
+        setScale(calculateScale(sceneState, materialRenderer));
         resetSlotPositions(sceneState);
         m_isFirstDraw = false;
     }
@@ -286,14 +288,9 @@ namespace Bess::Canvas {
     void SimulationSceneComponent::onFirstSchematicDraw(SceneState &sceneState,
                                                         std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                                         std::shared_ptr<PathRenderer> /*unused*/) {
-        if (m_isFirstDraw) {
-            setScale(calculateScale(materialRenderer));
-        }
-
-        calculateSchematicScale(sceneState);
+        calculateSchematicScale(sceneState, materialRenderer);
         resetSchematicPinsPositions(sceneState);
         m_isFirstSchematicDraw = false;
-        m_schematicTransform.position = m_transform.position;
     }
 
     size_t SimulationSceneComponent::getInputSlotsCount() const {
@@ -334,7 +331,8 @@ namespace Bess::Canvas {
         return ids;
     }
 
-    void SimulationSceneComponent::calculateSchematicScale(SceneState &state) {
+    void SimulationSceneComponent::calculateSchematicScale(SceneState &state,
+                                                           std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) {
         auto inpCount = m_inputSlots.size();
         auto outCount = m_outputSlots.size();
         if (inpCount != 0 &&
@@ -347,10 +345,30 @@ namespace Bess::Canvas {
             outCount -= 1;
         }
 
+        float maxInpSlotWidth = 0.f, maxOutSlotWidth = 0.f;
+        for (size_t i = 0; i < inpCount; i++) {
+            const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(m_inputSlots[i]);
+            const auto slotLabelSize = materialRenderer->getTextRenderSize(slotComp->getName(),
+                                                                           Styles::componentStyles.slotLabelSize);
+            maxInpSlotWidth = std::max(maxInpSlotWidth, slotLabelSize.x);
+        }
+
+        for (size_t i = 0; i < outCount; i++) {
+            const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(m_outputSlots[i]);
+            const auto slotLabelSize = materialRenderer->getTextRenderSize(slotComp->getName(),
+                                                                           Styles::componentStyles.slotLabelSize);
+            maxOutSlotWidth = std::max(maxOutSlotWidth, slotLabelSize.x);
+        }
+
         const size_t maxRows = std::max(inpCount, outCount);
         const float height = ((float)maxRows * Styles::SCHEMATIC_VIEW_PIN_ROW_SIZE);
 
-        float width = m_transform.scale.x; // keep the same width as normal view
+        const auto textWidth = materialRenderer->getTextRenderSize(m_name,
+                                                                   Styles::compSchematicStyles.nameFontSize)
+                                   .x;
+
+        float width = textWidth + (Styles::compSchematicStyles.paddingX * 2.f); // keep the same width as normal view
+        width += maxInpSlotWidth + maxOutSlotWidth;
 
         m_schematicTransform.scale = {width, height};
         m_schematicTransform.scale = glm::round(m_schematicTransform.scale / SNAP_AMOUNT) * SNAP_AMOUNT;

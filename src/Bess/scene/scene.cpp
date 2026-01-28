@@ -307,6 +307,7 @@ namespace Bess::Canvas {
                                 const glm::vec2 &pos) {
         auto sceneComp = SimulationSceneComponent::createNewAndRegister(m_state, simEngineId);
         sceneComp->setPosition(glm::vec3(getSnappedPos(pos), getNextZCoord()));
+        sceneComp->getSchematicTransform().position = glm::vec3(glm::vec3(getSnappedPos(pos), getNextZCoord()));
 
         if (hasPluginDrawHookForComponentHash(def->getHash())) {
             auto hook = getPluginDrawHookForComponentHash(def->getHash());

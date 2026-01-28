@@ -21,6 +21,14 @@ namespace Bess::Canvas {
     void ConnJointSceneComp::draw(SceneState &state,
                                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                   std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+
+        if (m_isFirstDraw) {
+            m_isFirstDraw = false;
+            if (m_offset < 0.f) {
+                m_offset = 0.5f;
+            }
+        }
+
         const auto &conn = state.getComponentByUuid<ConnectionSceneComponent>(m_connectionId);
         const auto &slot = state.getComponentByUuid<SlotSceneComponent>(m_outputSlotId);
 
@@ -50,7 +58,8 @@ namespace Bess::Canvas {
                                            std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
 
         if (m_isFirstSchematicDraw) {
-            m_schematicOffset = m_offset;
+            if (m_schematicOffset < 0.f)
+                m_schematicOffset = m_offset >= 0.f ? m_offset : 0.5f;
             m_isFirstSchematicDraw = false;
         }
 
