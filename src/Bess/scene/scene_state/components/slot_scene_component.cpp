@@ -198,17 +198,16 @@ namespace Bess::Canvas {
                                      m_connectedConnections.end());
     }
 
-    glm::vec3 SlotSceneComponent::getSchematicPosAbsolute(const SceneState &state) const {
-        return state.getComponentByUuid(m_parentComponent)->getAbsolutePosition(state) +
-               m_schematicPos;
-    }
+    glm::vec3 SlotSceneComponent::getConnectionPos(const SceneState &state) const {
+        auto pos = getAbsolutePosition(state);
 
-    glm::vec3 SlotSceneComponent::getSchematicConnStartPos(const SceneState &state) const {
-        auto pos = getSchematicPosAbsolute(state);
-        const float offsetX = (m_slotType == SlotType::digitalInput)
-                                  ? -Styles::compSchematicStyles.pinSize
-                                  : Styles::compSchematicStyles.pinSize;
-        pos.x += offsetX;
+        if (state.getIsSchematicView()) {
+            const float offsetX = (m_slotType == SlotType::digitalInput)
+                                      ? -Styles::compSchematicStyles.pinSize
+                                      : Styles::compSchematicStyles.pinSize;
+            pos.x += offsetX;
+        }
+
         return pos;
     }
 
@@ -226,6 +225,11 @@ namespace Bess::Canvas {
         }
 
         return SceneComponent::getAbsolutePosition(state);
+    }
+
+    glm::vec3 SlotSceneComponent::getSchematicPosAbsolute(const SceneState &state) const {
+        return state.getComponentByUuid(m_parentComponent)->getAbsolutePosition(state) +
+               m_schematicPos;
     }
 
     void SlotSceneComponent::onMouseLeftClick(const Events::MouseButtonEvent &e) {

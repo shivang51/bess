@@ -246,7 +246,13 @@ namespace Bess::Canvas {
                 m_state.setConnectionStartSlot(UUID::null);
                 return;
             }
-            const auto &pos = comp->getAbsolutePosition(m_state);
+
+            glm::vec3 pos;
+            if (comp->getType() == SceneComponentType::slot) {
+                pos = comp->cast<SlotSceneComponent>()->getConnectionPos(m_state);
+            } else {
+                pos = comp->getAbsolutePosition(m_state);
+            }
             const auto endPos = toScenePos(m_mousePos);
 
             drawGhostConnection(renderers.pathRenderer, glm::vec2(pos), endPos);

@@ -70,10 +70,10 @@ namespace Bess::Canvas {
                                         std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                         std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
 
-        auto startSlotComp = state.getComponentByUuid(m_startSlot);
-        auto endSlotComp = state.getComponentByUuid(m_endSlot);
+        const auto &startComp = state.getComponentByUuid(m_startSlot);
+        const auto &endComp = state.getComponentByUuid(m_endSlot);
 
-        if (!startSlotComp || !endSlotComp)
+        if (!startComp || !endComp)
             return;
 
         if (m_isFirstDraw) {
@@ -103,24 +103,21 @@ namespace Bess::Canvas {
             color = ViewportTheme::colors.selectedComp;
         } else if (!m_useCustomColor) {
             SimEngine::LogicState startSlotState{}, endSlotState{};
-
-            auto comp = state.getComponentByUuid(m_startSlot);
-            if (comp->getType() == SceneComponentType::slot) {
-                const auto &slot = comp->cast<SlotSceneComponent>();
+            if (startComp->getType() == SceneComponentType::slot) {
+                const auto &slot = startComp->cast<SlotSceneComponent>();
                 startSlotState = slot->getSlotState(state).state;
-            } else if (comp->getType() == SceneComponentType::connJoint) {
-                const auto &slot = comp->cast<ConnJointSceneComp>();
+            } else if (startComp->getType() == SceneComponentType::connJoint) {
+                const auto &slot = startComp->cast<ConnJointSceneComp>();
                 startSlotState = slot->getSlotState(state).state;
             } else {
                 BESS_ASSERT(false, "Start slot component not convertable to SlotSceneComponent or ConnJointSceneComp");
             }
 
-            comp = state.getComponentByUuid(m_endSlot);
-            if (comp->getType() == SceneComponentType::slot) {
-                const auto &slot = comp->cast<SlotSceneComponent>();
+            if (endComp->getType() == SceneComponentType::slot) {
+                const auto &slot = endComp->cast<SlotSceneComponent>();
                 endSlotState = slot->getSlotState(state).state;
-            } else if (comp->getType() == SceneComponentType::connJoint) {
-                const auto &slot = comp->cast<ConnJointSceneComp>();
+            } else if (endComp->getType() == SceneComponentType::connJoint) {
+                const auto &slot = endComp->cast<ConnJointSceneComp>();
                 endSlotState = slot->getSlotState(state).state;
             } else {
                 BESS_ASSERT(false, "End slot component not convertable to SlotSceneComponent or ConnJointSceneComp");
@@ -138,8 +135,15 @@ namespace Bess::Canvas {
             color = m_style.color;
         }
 
-        const auto startPos = startSlotComp->getAbsolutePosition(state);
-        const auto endPos = endSlotComp->getAbsolutePosition(state);
+        auto startPos = startComp->getAbsolutePosition(state);
+        if (startComp->getType() == SceneComponentType::slot) {
+            startPos = startComp->cast<SlotSceneComponent>()->getConnectionPos(state);
+        }
+
+        auto endPos = endComp->getAbsolutePosition(state);
+        if (endComp->getType() == SceneComponentType::slot) {
+            endPos = endComp->cast<SlotSceneComponent>()->getConnectionPos(state);
+        }
 
         drawSegments(state, startPos, endPos, color, pathRenderer);
 
@@ -174,10 +178,10 @@ namespace Bess::Canvas {
             resetSegmentPositionCache(state);
         }
 
-        const auto startSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
-        const auto endSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
+        const auto startComp = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
+        const auto endComp = state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
 
-        if (!startSlotComp || !endSlotComp)
+        if (!startComp || !endComp)
             return;
 
         glm::vec4 color;
@@ -190,10 +194,18 @@ namespace Bess::Canvas {
             color = m_style.color;
         }
 
-        auto startPos = startSlotComp->getAbsolutePosition(state);
-        auto endPos = endSlotComp->getAbsolutePosition(state);
-        if (startSlotComp->getType() == SceneComponentType::slot &&
-            startSlotComp->isInputSlot()) {
+        auto startPos = startComp->getAbsolutePosition(state);
+        if (startComp->getType() == SceneComponentType::slot) {
+            startPos = startComp->cast<SlotSceneComponent>()->getConnectionPos(state);
+        }
+
+        auto endPos = endComp->getAbsolutePosition(state);
+        if (endComp->getType() == SceneComponentType::slot) {
+            endPos = endComp->cast<SlotSceneComponent>()->getConnectionPos(state);
+        }
+
+        if (startComp->getType() == SceneComponentType::slot &&
+            startComp->isInputSlot()) {
             startPos.x -= Styles::compSchematicStyles.pinSize;
             endPos.x += Styles::compSchematicStyles.pinSize;
         } else {
@@ -465,14 +477,21 @@ namespace Bess::Canvas {
     void ConnectionSceneComponent::resetSegmentPositionCache(const SceneState &state) {
         m_segmentPosCacheDirty = false;
 
-        auto startSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_startSlot);
-        auto endSlotComp = state.getComponentByUuid<SlotSceneComponent>(m_endSlot);
+        const auto &startComp = state.getComponentByUuid(m_startSlot);
+        const auto &endComp = state.getComponentByUuid(m_endSlot);
 
-        if (!startSlotComp || !endSlotComp)
+        if (!startComp || !endComp)
             return;
 
-        const auto startPos = startSlotComp->getAbsolutePosition(state);
-        const auto endPos = endSlotComp->getAbsolutePosition(state);
+        auto startPos = startComp->getAbsolutePosition(state);
+        if (startComp->getType() == SceneComponentType::slot) {
+            startPos = startComp->cast<SlotSceneComponent>()->getConnectionPos(state);
+        }
+
+        auto endPos = endComp->getAbsolutePosition(state);
+        if (endComp->getType() == SceneComponentType::slot) {
+            endPos = endComp->cast<SlotSceneComponent>()->getConnectionPos(state);
+        }
 
         const float offsetXDecr = state.getIsSchematicView()
                                       ? Styles::compSchematicStyles.pinSize

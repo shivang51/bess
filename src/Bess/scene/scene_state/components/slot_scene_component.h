@@ -47,7 +47,7 @@ namespace Bess::Canvas {
 
         glm::vec3 getAbsolutePosition(const SceneState &state) const override;
 
-        glm::vec3 getSchematicConnStartPos(const SceneState &state) const;
+        glm::vec3 getConnectionPos(const SceneState &state) const;
 
         SimEngine::SlotState getSlotState(const SceneState &state) const;
         bool isSlotConnected(const SceneState &state) const;
