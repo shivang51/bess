@@ -1,4 +1,4 @@
-PROJECT_NAME           = "Bess Docs"
+PROJECT_NAME           = "Bess Source Code Docs"
 INPUT                  = @DOXYGEN_INPUT_LIST@
 OUTPUT_DIRECTORY       = @CMAKE_SOURCE_DIR@/docs
 RECURSIVE              = YES
