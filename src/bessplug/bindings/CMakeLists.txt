@@ -19,7 +19,6 @@ file(GLOB libtess2_src
 )
 
 file(GLOB_RECURSE BESS_SOURCES
-		"${CMAKE_SOURCE_DIR}/src/Bess/camera.cpp"
 		"${CMAKE_SOURCE_DIR}/src/Bess/pages/*.cpp"
 		"${CMAKE_SOURCE_DIR}/src/Bess/application/project_file.cpp"
 		"${CMAKE_SOURCE_DIR}/src/Bess/application/window.cpp"
@@ -50,6 +49,7 @@ set(EXTERNAL_INCLUDE_DIRS
 			"${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"
 			"${CMAKE_SOURCE_DIR}/src/Bess/"
 			"${CMAKE_SOURCE_DIR}/src/BessVulkan/include"
+			"${CMAKE_SOURCE_DIR}/src/BessJson/include"
 			"${CMAKE_SOURCE_DIR}/src/EventSystem/include"
 )
 
@@ -88,7 +88,17 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 	EventSystem
 	BessScene
 	BessUI
+	BessJson
 	"freetype"
+)
+
+add_dependencies(${PROJECT_NAME}
+	BessVulkan
+	BessSimEngine
+	EventSystem
+	BessScene
+	BessUI
+	BessJson
 )
 
 find_package(glfw3 REQUIRED)

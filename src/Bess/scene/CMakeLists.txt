@@ -106,6 +106,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 			"${CMAKE_SOURCE_DIR}/src/BessVulkan/include"
 			"${CMAKE_SOURCE_DIR}/src/BessPluginManager/include"
 			"${CMAKE_SOURCE_DIR}/src/EventSystem/include"
+			"${CMAKE_SOURCE_DIR}/src/BessJson/include"
 			"${CMAKE_SOURCE_DIR}/external/imgui"
 			"${CMAKE_SOURCE_DIR}/external/implot"
 			"${CMAKE_SOURCE_DIR}/external/freetype/include"
@@ -118,7 +119,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 			"${CMAKE_SOURCE_DIR}/external/libtess2/Include"
 )
 
-target_link_libraries(${PROJECT_NAME} PUBLIC BessSimEngine BessVulkan BessPluginManager EventSystem)
+target_link_libraries(${PROJECT_NAME} PUBLIC BessSimEngine BessVulkan BessPluginManager EventSystem BessJson)
+add_dependencies(${PROJECT_NAME} BessSimEngine BessVulkan BessPluginManager EventSystem BessJson)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)
 

@@ -66,8 +66,8 @@ set(ALL_FILES
 )
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
-target_link_libraries(${PROJECT_NAME} PRIVATE BessExtDependencies BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessUI)
-add_dependencies(${PROJECT_NAME} BessExtDependencies besspybindings BessSimEngine BessVulkan BessPluginManager BessScene BessUI)
+target_link_libraries(${PROJECT_NAME} PRIVATE BessExtDependencies BessJson BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessUI)
+add_dependencies(${PROJECT_NAME} BessExtDependencies besspybindings BessJson BessSimEngine BessVulkan BessPluginManager BessScene BessUI)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
 
@@ -98,15 +98,14 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
 		)
 endif()
 
-if("${BUILD_ARCH}" STREQUAL "x64")
-	target_include_directories(${PROJECT_NAME} PRIVATE
-			"${CMAKE_CURRENT_SOURCE_DIR}"
-			"${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"
-			"${CMAKE_SOURCE_DIR}/src/BessVulkan/include"
-			"${CMAKE_SOURCE_DIR}/src/BessPluginManager/include"
-			"${CMAKE_SOURCE_DIR}/src/EventSystem/include"
-	)
-endif()
+target_include_directories(${PROJECT_NAME} PRIVATE
+	"${CMAKE_CURRENT_SOURCE_DIR}"
+	"${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"
+	"${CMAKE_SOURCE_DIR}/src/BessVulkan/include"
+	"${CMAKE_SOURCE_DIR}/src/BessPluginManager/include"
+	"${CMAKE_SOURCE_DIR}/src/EventSystem/include"
+	"${CMAKE_SOURCE_DIR}/src/BessJson/include"
+)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)
