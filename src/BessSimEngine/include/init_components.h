@@ -5,6 +5,12 @@
 #include "types.h"
 
 namespace Bess::SimEngine {
+    enum class FrequencyUnit : uint8_t {
+        hz,
+        kHz,
+        MHz
+    };
+
     class ClockTrait : public Trait {
       public:
         ClockTrait() = default;

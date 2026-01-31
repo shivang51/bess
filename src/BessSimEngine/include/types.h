@@ -1,9 +1,11 @@
 #pragma once
 
 #include "bess_api.h"
+#include "bess_json/bess_json.h"
 #include "bess_uuid.h"
 #include <any>
 #include <chrono>
+#include <cstdint>
 #include <functional>
 #include <string>
 
@@ -21,21 +23,16 @@ namespace Bess::SimEngine {
         Connections outputs;
     };
 
-    enum class FrequencyUnit {
-        hz,
-        kHz,
-        MHz
-    };
-
-    enum class SimulationState {
+    enum class SimulationState : uint8_t {
         running,
         paused
     };
 
-    enum class LogicState { low,
-                            high,
-                            unknown,
-                            high_z
+    enum class LogicState : uint8_t {
+        low,
+        high,
+        unknown,
+        high_z
     };
 
     enum class SlotsGroupType : uint8_t {
@@ -119,16 +116,28 @@ namespace Bess::SimEngine {
     };
 } // namespace Bess::SimEngine
 
-namespace Bess::JsonConvert {
-    BESS_API void toJsonValue(const Bess::SimEngine::SlotState &state, Json::Value &j);
-    BESS_API void fromJsonValue(const Json::Value &j, Bess::SimEngine::SlotState &state);
+REFLECT_ENUM(Bess::SimEngine::SimulationState)
+REFLECT_ENUM(Bess::SimEngine::LogicState)
+REFLECT_ENUM(Bess::SimEngine::SlotsGroupType)
+REFLECT_ENUM(Bess::SimEngine::SlotCatergory)
+REFLECT_ENUM(Bess::SimEngine::ComponentBehaviorType)
+REFLECT_ENUM(Bess::SimEngine::SlotType)
 
-    BESS_API void toJsonValue(const Bess::SimEngine::ComponentState &state, Json::Value &j);
-    BESS_API void fromJsonValue(const Json::Value &j, Bess::SimEngine::ComponentState &state);
+REFLECT(Bess::SimEngine::SlotState, state, lastChangeTime)
+REFLECT_VECTOR(Bess::SimEngine::SlotState)
+REFLECT_VECTOR(bool)
 
-    BESS_API void toJsonValue(const Bess::SimEngine::Connections &connections, Json::Value &j);
-    BESS_API void fromJsonValue(const Json::Value &j, Bess::SimEngine::Connections &connections);
+REFLECT(Bess::SimEngine::ComponentState,
+        inputStates,
+        inputConnected,
+        outputStates,
+        outputConnected,
+        isChanged,
+        simError,
+        errorMessage)
 
-    BESS_API void toJsonValue(const Bess::SimEngine::ComponentPin &pin, Json::Value &j);
-    BESS_API void fromJsonValue(const Json::Value &j, Bess::SimEngine::ComponentPin &pin);
-} // namespace Bess::JsonConvert
+REFLECT_VECTOR(Bess::SimEngine::ComponentState)
+
+REFLECT(Bess::SimEngine::ComponentPin, first, second)
+REFLECT_VECTOR(Bess::SimEngine::ComponentPin)
+REFLECT_VECTOR(std::vector<Bess::SimEngine::ComponentPin>)

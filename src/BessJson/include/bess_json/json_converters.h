@@ -1,20 +1,26 @@
 #pragma once
-#include "bess_uuid.h"
 #include "glm.hpp"
 #include "gtc/type_ptr.hpp"
 #include "json/json.h"
+#include <chrono>
+#include <string>
 
 namespace Bess::JsonConvert {
     // Primitives
+    inline void toJsonValue(const char &v, Json::Value &j) { j = static_cast<int>(v); }
     inline void toJsonValue(const int &v, Json::Value &j) { j = v; }
     inline void toJsonValue(const float &v, Json::Value &j) { j = v; }
     inline void toJsonValue(const double &v, Json::Value &j) { j = v; }
     inline void toJsonValue(const std::string &v, Json::Value &j) { j = v; }
     inline void toJsonValue(const bool &v, Json::Value &j) { j = v; }
-
-    // 32bit and 64bit unsigned integers
     inline void toJsonValue(const uint32_t &v, Json::Value &j) { j = Json::UInt(v); }
     inline void toJsonValue(const uint64_t &v, Json::Value &j) { j = Json::UInt64(v); }
+
+    // std::chrono::duration
+    template <typename Rep, typename Period>
+    void toJsonValue(const std::chrono::duration<Rep, Period> &duration, Json::Value &j) {
+        j = static_cast<double>(std::chrono::duration_cast<std::chrono::duration<double>>(duration).count());
+    }
 
     // Vectors
     template <typename T>
@@ -28,33 +34,52 @@ namespace Bess::JsonConvert {
     }
 
     // --- FROM JSON ---
+    inline void fromJsonValue(const Json::Value &j, char &v) {
+        if (j.isInt())
+            v = static_cast<char>(j.asInt());
+    }
+
     inline void fromJsonValue(const Json::Value &j, int &v) {
         if (j.isInt())
             v = j.asInt();
     }
+
     inline void fromJsonValue(const Json::Value &j, float &v) {
         if (j.isNumeric())
             v = j.asFloat();
     }
+
     inline void fromJsonValue(const Json::Value &j, double &v) {
         if (j.isNumeric())
             v = j.asDouble();
     }
+
     inline void fromJsonValue(const Json::Value &j, std::string &v) {
         if (j.isString())
             v = j.asString();
     }
+
     inline void fromJsonValue(const Json::Value &j, bool &v) {
         if (j.isBool())
             v = j.asBool();
     }
+
     inline void fromJsonValue(const Json::Value &j, uint32_t &v) {
         if (j.isUInt())
             v = j.asUInt();
     }
+
     inline void fromJsonValue(const Json::Value &j, uint64_t &v) {
         if (j.isUInt64())
             v = j.asUInt64();
+    }
+
+    template <typename Rep, typename Period>
+    void fromJsonValue(const Json::Value &j, std::chrono::duration<Rep, Period> &duration) {
+        if (j.isNumeric()) {
+            double count = j.asDouble();
+            duration = std::chrono::duration<Rep, Period>(static_cast<Rep>(count));
+        }
     }
 
     template <typename T>

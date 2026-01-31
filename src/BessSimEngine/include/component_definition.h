@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bess_api.h"
+#include "bess_json/bess_json.h"
 #include "type_map.h"
 #include "types.h"
 #include <cstdint>
@@ -216,7 +217,37 @@ namespace Bess::SimEngine {
     };
 } // namespace Bess::SimEngine
 
-namespace Bess::JsonConvert {
-    BESS_API void toJsonValue(const Bess::SimEngine::ComponentDefinition &def, Json::Value &j);
-    BESS_API void fromJsonValue(const Json::Value &j, std::shared_ptr<Bess::SimEngine::ComponentDefinition> &def);
-} // namespace Bess::JsonConvert
+REFLECT_ENUM(Bess::SimEngine::CompDefIOGrowthPolicy)
+REFLECT_ENUM(Bess::SimEngine::CompDefinitionOwnership)
+
+REFLECT(SimEngine::OperatorInfo,
+        op,
+        shouldNegateOutput)
+
+typedef std::pair<int, Bess::SimEngine::SlotCatergory> SlotCategoryPair;
+REFLECT(SlotCategoryPair,
+        first,
+        second)
+REFLECT_VECTOR(SlotCategoryPair)
+REFLECT(Bess::SimEngine::SlotsGroupInfo,
+        type,
+        isResizeable,
+        count,
+        names,
+        categories)
+
+REFLECT_PROPS(Bess::SimEngine::ComponentDefinition,
+              ("name", getName, setName),
+              ("group_name", getGroupName, setGroupName),
+              ("should_auto_reschedule", getShouldAutoReschedule, setShouldAutoReschedule),
+              ("input_slots_info", getInputSlotsInfo, setInputSlotsInfo),
+              ("output_slots_info", getOutputSlotsInfo, setOutputSlotsInfo),
+              ("op_info", getOpInfo, setOpInfo),
+              ("sim_delay_ns", getSimDelay, setSimDelay),
+              ("behavior_type", getBehaviorType, setBehaviorType),
+              ("output_expressions", getOutputExpressions, setOutputExpressions),
+              ("ownership", getOwnership, setOwnership),
+              ("io_growth_policy", getIOGrowthPolicy, setIOGrowthPolicy),
+              ("base_hash", getBaseHash, setBaseHash));
+
+REFLECT_PROPS_SP(Bess::SimEngine::ComponentDefinition);

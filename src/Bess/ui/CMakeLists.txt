@@ -64,20 +64,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 			"${CMAKE_SOURCE_DIR}/src/BessPluginManager/include"
 			"${CMAKE_SOURCE_DIR}/src/EventSystem/include"
 			"${CMAKE_SOURCE_DIR}/src/BessJson/include"
-			"${CMAKE_SOURCE_DIR}/external/imgui"
-			"${CMAKE_SOURCE_DIR}/external/implot"
-			"${CMAKE_SOURCE_DIR}/external/freetype/include"
-			"${CMAKE_SOURCE_DIR}/external/imgui/backends"
-			"${CMAKE_SOURCE_DIR}/external/glm"
-			"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
-			"${CMAKE_SOURCE_DIR}/external/stb_image/include"
-			"${CMAKE_SOURCE_DIR}/external/tinyfiledialogs"
-			"${CMAKE_SOURCE_DIR}/external/spdlog/include"
-			"${CMAKE_SOURCE_DIR}/external/libtess2/Include"
 )
 
-target_link_libraries(${PROJECT_NAME} PUBLIC BessSimEngine BessVulkan BessPluginManager EventSystem BessScene)
-add_dependencies(${PROJECT_NAME} BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessJson)
+target_link_libraries(${PROJECT_NAME} PUBLIC BessSimEngine BessExtDeps BessVulkan BessPluginManager EventSystem BessScene)
+add_dependencies(${PROJECT_NAME} BessSimEngine BessVulkan BessExtDeps BessPluginManager EventSystem BessScene BessJson)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)
 

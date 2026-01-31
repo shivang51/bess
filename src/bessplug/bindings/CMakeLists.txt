@@ -11,13 +11,6 @@ set(PYBIND11_FINDPYTHON ON)
 find_package(Python3 COMPONENTS Interpreter Development Development.Module Development.Embed REQUIRED)
 find_package(pybind11 REQUIRED)
 
-file(GLOB libtess2_src
-	"${CMAKE_SOURCE_DIR}/external/libtess2/Source/*.c"
-	"${CMAKE_SOURCE_DIR}/external/imgui/backends/*.cpp"
-    "${CMAKE_SOURCE_DIR}/external/imgui/*.cpp"
-    "${CMAKE_SOURCE_DIR}/external/implot/*.cpp"
-)
-
 file(GLOB_RECURSE BESS_SOURCES
 		"${CMAKE_SOURCE_DIR}/src/Bess/pages/*.cpp"
 		"${CMAKE_SOURCE_DIR}/src/Bess/application/project_file.cpp"
@@ -31,7 +24,6 @@ file(GLOB_RECURSE BESS_SOURCES
 )
 
 add_library(bess_ext_obj OBJECT
-	${libtess2_src}
 	${BESS_SOURCES}
 )
 
@@ -83,16 +75,18 @@ pybind11_add_module(${PROJECT_NAME} ${BESS_PYBIND_SOURCES})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
 	$<TARGET_OBJECTS:bess_ext_obj>
+	BessExtDeps
 	BessVulkan
 	BessSimEngine
 	EventSystem
 	BessScene
 	BessUI
 	BessJson
-	"freetype"
+	freetype
 )
 
 add_dependencies(${PROJECT_NAME}
+	BessExtDeps
 	BessVulkan
 	BessSimEngine
 	EventSystem

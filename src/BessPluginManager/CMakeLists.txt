@@ -33,21 +33,12 @@ add_library(${PROJECT_NAME} SHARED ${ALL_FILES})
 target_link_libraries(${PROJECT_NAME} PUBLIC 
 	Python3::Python
 	pybind11::embed
+	BessExtDeps
 )
 
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
-			"${CMAKE_SOURCE_DIR}/external/imgui"
-			"${CMAKE_SOURCE_DIR}/external/implot"
-			"${CMAKE_SOURCE_DIR}/external/freetype/include"
-			"${CMAKE_SOURCE_DIR}/external/imgui/backends"
-			"${CMAKE_SOURCE_DIR}/external/glm"
-			"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
-			"${CMAKE_SOURCE_DIR}/external/stb_image/include"
-			"${CMAKE_SOURCE_DIR}/external/tinyfiledialogs"
-			"${CMAKE_SOURCE_DIR}/external/spdlog/include"
-			"${CMAKE_SOURCE_DIR}/external/libtess2/Include"
 			"${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"
 			"${CMAKE_SOURCE_DIR}/src/Bess/"
 			"${CMAKE_SOURCE_DIR}/src/BessJson/include"

@@ -66,8 +66,8 @@ set(ALL_FILES
 )
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
-target_link_libraries(${PROJECT_NAME} PRIVATE BessExtDependencies BessJson BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessUI)
-add_dependencies(${PROJECT_NAME} BessExtDependencies besspybindings BessJson BessSimEngine BessVulkan BessPluginManager BessScene BessUI)
+target_link_libraries(${PROJECT_NAME} PRIVATE BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessUI)
+add_dependencies(${PROJECT_NAME} BessExtDeps besspybindings BessJson BessSimEngine BessVulkan BessPluginManager BessScene BessUI)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
 

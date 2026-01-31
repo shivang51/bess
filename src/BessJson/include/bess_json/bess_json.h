@@ -87,6 +87,20 @@
         }                                                                 \
     }
 
+// Shared pointer version
+#define REFLECT_PROPS_SP(className)                                                        \
+    namespace Bess::JsonConvert {                                                          \
+        inline void toJsonValue(const std::shared_ptr<className> &obj, Json::Value &j) {   \
+            j = Json::objectValue;                                                         \
+            toJsonValue(*obj, j);                                                          \
+        }                                                                                  \
+        inline void fromJsonValue(const Json::Value &j, std::shared_ptr<className> &obj) { \
+            if (j.isObject()) {                                                            \
+                fromJsonValue(j, *obj);                                                    \
+            }                                                                              \
+        }                                                                                  \
+    }
+
 #define REFLECT_DERIVED_PROPS(ClassName, BaseClass, ...)                            \
     namespace Bess::JsonConvert {                                                   \
         inline void toJsonValue(const ClassName &obj, Json::Value &j) {             \

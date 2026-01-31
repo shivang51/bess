@@ -3,15 +3,6 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 
-file(GLOB EXT_JSON_INCLUDES "${CMAKE_SOURCE_DIR}/external/jsoncpp/include/*.h")
-file(GLOB EXT_JSON_SRC "${CMAKE_SOURCE_DIR}/external/jsoncpp/src/lib_json/*.cpp")
-source_group("external/jsoncpp" FILES ${EXT_JSON_SRC})
-
-set(External
-	 "${EXT_JSON_SRC}"
-)
-
-
 set(Header_Files
     "include/digital_component.h"
     "include/types.h"
@@ -24,13 +15,19 @@ set(Header_Files
     "include/component_definition.h"
     "include/init_components.h" 
     "include/net/net.h" 
+		"include/expression_evalutator/expr_evaluator.h"
+		"include/commands/command.h"
+		"include/commands/commands.h"
+		"include/commands/commands_manager.h"
+		"include/utils/string_utils.h"
+		"include/command_processor/command_processor.h"
+		"include/command_processor/commands_reg.h"
 )
 source_group("include" FILES ${Header_Files})
 
 set(Source_Files
     "src/simulation_engine.cpp"
 		"src/sim_engine_state.cpp"
-    "src/comp_json_converters.cpp"
     "src/simulation_engine_serializer.cpp"
     "src/bess_uuid.cpp"
     "src/digital_component.cpp"
@@ -38,6 +35,10 @@ set(Source_Files
     "src/net/net.cpp" 
     "src/component_catalog.cpp"
     "src/component_definition.cpp"
+		"src/commands/commands.cpp"
+		"src/commands/commands_manager.cpp"
+		"src/utils/string_utils.cpp"
+		"src/command_processor/command_processor.cpp"
 )
 source_group("src" FILES ${Source_Files})
 
@@ -48,7 +49,7 @@ set(ALL_FILES
     ${Source_Files}
 )
 
-add_library(${PROJECT_NAME} SHARED ${ALL_FILES} "include/expression_evalutator/expr_evaluator.h" "include/commands/command.h" "include/commands/commands.h" "src/commands/commands.cpp" "src/commands/commands_manager.cpp" "include/commands/commands_manager.h" "include/utils/string_utils.h" "src/utils/string_utils.cpp" "include/command_processor/command_processor.h" "src/command_processor/command_processor.cpp" "include/command_processor/commands_reg.h")
+add_library(${PROJECT_NAME} SHARED ${ALL_FILES} )
 if(UNIX)
 if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14")
     target_link_libraries(${PROJECT_NAME} PRIVATE stdc++exp)
@@ -57,8 +58,8 @@ else()
 endif()
 endif()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE BessPluginManager EventSystem)
-add_dependencies(${PROJECT_NAME} BessPluginManager EventSystem)
+target_link_libraries(${PROJECT_NAME} PRIVATE BessPluginManager EventSystem BessJson)
+add_dependencies(${PROJECT_NAME} BessPluginManager EventSystem BessJson)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE BESS_EXPORTS)
 
@@ -68,6 +69,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     "${CMAKE_SOURCE_DIR}/external/spdlog/include;"
     "${CMAKE_SOURCE_DIR}/src/BessPluginManager/include;"
 		"${CMAKE_SOURCE_DIR}/src/EventSystem/include"
+		"${CMAKE_SOURCE_DIR}/src/BessJson/include"
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)

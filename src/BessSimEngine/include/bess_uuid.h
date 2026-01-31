@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bess_api.h"
-#include "json/json.h"
+#include "bess_json/bess_json.h"
 #include <cstdint>
 #include <functional>
 
@@ -36,11 +36,14 @@ namespace Bess {
         uint64_t m_UUID;
     };
 
-    namespace JsonConvert {
-        BESS_API void toJsonValue(const Bess::UUID &uuid, Json::Value &j);
-        BESS_API void fromJsonValue(const Json::Value &j, Bess::UUID &uuid);
-    } // namespace JsonConvert
 } // namespace Bess
+
+namespace Bess::JsonConvert {
+    BESS_API void toJsonValue(const Bess::UUID &uuid, Json::Value &j);
+    BESS_API void fromJsonValue(const Json::Value &j, Bess::UUID &uuid);
+} // namespace Bess::JsonConvert
+
+REFLECT_VECTOR(Bess::UUID)
 
 namespace std {
     template <>
