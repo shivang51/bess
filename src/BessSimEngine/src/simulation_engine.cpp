@@ -22,7 +22,7 @@
 #include <ranges>
 #include <thread>
 
-#define BESS_SE_ENABLE_LOG_EVENTS
+// #define BESS_SE_ENABLE_LOG_EVENTS
 
 #ifdef BESS_SE_ENABLE_LOG_EVENTS
     #define BESS_SE_LOG_EVENT(...) BESS_SE_TRACE(__VA_ARGS__);
@@ -680,9 +680,10 @@ namespace Bess::SimEngine {
                             const auto &keyView = pin | std::views::keys;
                             const std::set<UUID> uniqueEntities = std::set<UUID>(keyView.begin(), keyView.end());
                             for (auto &ent : uniqueEntities) {
+                                const auto simDelay = m_simEngineState.getDigitalComponent(ent)->definition->getSimDelay();
                                 scheduleEvent(ent,
                                               compId,
-                                              m_currentSimTime + dc->definition->getSimDelay());
+                                              m_currentSimTime + simDelay);
                             }
                         }
                     }
