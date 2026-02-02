@@ -1,3 +1,4 @@
+from bessplug.api.common.time import TimeNS
 from bessplug.api.sim_engine import (
     ComponentDefinition,
     ComponentState,
@@ -6,13 +7,11 @@ from bessplug.api.sim_engine import (
     SlotsGroupInfo,
 )
 from bessplug.api.sim_engine.enums import SlotCategory, CompDefIOGrowthPolicy
-import datetime
 
 
 def _simulate_tristate_buffer(
     inputs: list[PinState], simTime: float, oldState: ComponentState
 ) -> ComponentState:
-    print(len(oldState.input_states), len(inputs))
     newState = oldState.copy()
     newState.input_states = inputs.copy()
     output_states = []
@@ -51,7 +50,7 @@ tristate_buffer_def = ComponentDefinition.from_sim_fn(
     group_name="Digital Gates",
     inputs=input_slots,
     outputs=output_slots,
-    sim_delay=datetime.timedelta(microseconds=0.01),
+    sim_delay=TimeNS(2),
     sim_function=_simulate_tristate_buffer,
 )
 

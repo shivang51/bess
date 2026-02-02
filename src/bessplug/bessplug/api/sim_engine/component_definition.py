@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Callable, Optional, override
-import datetime
+from bessplug.api.common import time
 from bessplug.api.sim_engine.component_state import ComponentState
 from bessplug.api.sim_engine.operator_info import OperatorInfo
 from bessplug.api.sim_engine.slots_group_info import SlotsGroupInfo
@@ -50,9 +50,7 @@ class ComponentDefinition(NativeComponentDefinition):
         return cloned
 
     @override
-    def get_reschedule_time(
-        self, current_time_ns: datetime.timedelta
-    ) -> datetime.timedelta:
+    def get_reschedule_time(self, current_time_ns: time.TimeNS) -> time.TimeNS:
         return current_time_ns
 
     @override
@@ -72,7 +70,7 @@ class ComponentDefinition(NativeComponentDefinition):
         group_name: str,
         inputs: SlotsGroupInfo,
         outputs: SlotsGroupInfo,
-        sim_delay: datetime.timedelta,
+        sim_delay: time.TimeNS,
         op_info: OperatorInfo,
     ) -> "ComponentDefinition":
         defi = ComponentDefinition()
@@ -91,7 +89,7 @@ class ComponentDefinition(NativeComponentDefinition):
         group_name: str,
         inputs: SlotsGroupInfo,
         outputs: SlotsGroupInfo,
-        sim_delay: datetime.timedelta,
+        sim_delay: time.TimeNS,
         expressions: list[str],
     ) -> "ComponentDefinition":
         defi = ComponentDefinition()
@@ -110,7 +108,7 @@ class ComponentDefinition(NativeComponentDefinition):
         group_name: str,
         inputs: SlotsGroupInfo,
         outputs: SlotsGroupInfo,
-        sim_delay: datetime.timedelta,
+        sim_delay: time.TimeNS,
         sim_function: Callable,
     ) -> "ComponentDefinition":
         defi = ComponentDefinition()

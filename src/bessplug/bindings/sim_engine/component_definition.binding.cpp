@@ -1,8 +1,10 @@
-#include <pybind11/chrono.h>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#define PYBIND11_DEBUG
+
+#ifdef DEBUG
+    #define PYBIND11_DEBUG
+#endif
 
 #include "component_definition.h"
 #include "internal_types.h"

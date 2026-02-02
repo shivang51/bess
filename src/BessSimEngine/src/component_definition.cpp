@@ -1,5 +1,4 @@
 #include "component_definition.h"
-#include "component_catalog.h"
 #include "expression_evalutator/expr_evaluator.h"
 #include "types.h"
 #include <logger.h>

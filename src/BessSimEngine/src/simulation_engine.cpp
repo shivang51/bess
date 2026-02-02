@@ -22,7 +22,7 @@
 #include <ranges>
 #include <thread>
 
-// #define BESS_SE_ENABLE_LOG_EVENTS
+#define BESS_SE_ENABLE_LOG_EVENTS
 
 #ifdef BESS_SE_ENABLE_LOG_EVENTS
     #define BESS_SE_LOG_EVENT(...) BESS_SE_TRACE(__VA_ARGS__);
@@ -520,7 +520,7 @@ namespace Bess::SimEngine {
         const auto &comp = m_simEngineState.getDigitalComponent(compId);
         const auto &def = comp->definition;
 #ifdef BESS_SE_ENABLE_LOG_EVENTS
-        BESS_SE_LOG_EVENT("Simulating {}, with delay {}ns", def.name, def.delay.count());
+        BESS_SE_LOG_EVENT("Simulating {}, with delay {}ns", def->getName(), def->getSimDelay().count());
         BESS_SE_LOG_EVENT("\tInputs:");
         for (auto &inp : inputs) {
             BESS_SE_LOG_EVENT("\t\t{}", (int)inp.state);

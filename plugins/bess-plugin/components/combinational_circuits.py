@@ -1,8 +1,8 @@
+from bessplug.api.common.time import TimeNS
 from bessplug.api.sim_engine import (
     ComponentDefinition,
     SlotsGroupInfo,
 )
-import datetime
 
 _comb_circuits = [
     {
@@ -137,7 +137,7 @@ for circuit in _comb_circuits:
         group_name="Comb Circuits",
         inputs=inp_grp_info,
         outputs=out_grp_info,
-        sim_delay=datetime.timedelta(microseconds=0.001),
+        sim_delay=TimeNS(2),
         expressions=circuit["expressions"],
     )
     combinational_circuits.append(defi)

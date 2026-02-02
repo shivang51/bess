@@ -1,3 +1,4 @@
+from bessplug.api.common.time import TimeNS
 from bessplug.api.sim_engine import (
     ComponentDefinition,
     ComponentState,
@@ -5,9 +6,6 @@ from bessplug.api.sim_engine import (
     PinState,
     SlotsGroupInfo,
 )
-
-import datetime
-
 
 _digit_to_seg_map = {
     0: 0b0111111,
@@ -78,7 +76,7 @@ seven_seg_disp_driver_def = ComponentDefinition.from_sim_fn(
     group_name="IO",
     inputs=input_slots,
     outputs=output_slots,
-    sim_delay=datetime.timedelta(microseconds=0.01),
+    sim_delay=TimeNS(2),
     sim_function=_simulate_seven_seg_disp_driver,
 )
 __all__ = ["seven_seg_disp_driver_def"]

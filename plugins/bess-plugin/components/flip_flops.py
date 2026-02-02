@@ -1,11 +1,11 @@
 from enum import Enum
+from bessplug.api.common.time import TimeNS
 from bessplug.api.sim_engine import (
     ComponentDefinition,
     ComponentState,
     PinState,
     LogicState,
 )
-import datetime
 from bessplug.api.sim_engine.enums import SlotCategory
 from bessplug.api.sim_engine.slots_group_info import SlotsGroupInfo
 
@@ -170,7 +170,7 @@ for ff_type, ff_data in _flip_flops.items():
         group_name="Flip Flops",
         inputs=inp_grp_info,
         outputs=out_grp_info,
-        sim_delay=datetime.timedelta(microseconds=0.001),
+        sim_delay=TimeNS(2),
         sim_function=_simulate_flip_flop,
     )
     def_ff.aux_data = aux_data

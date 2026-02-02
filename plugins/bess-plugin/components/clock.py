@@ -1,6 +1,6 @@
-import datetime
 from typing import override
 from enum import Enum
+from bessplug.api.common.time import TimeNS
 from bessplug.api.sim_engine import (
     ComponentDefinition,
     ComponentState,
@@ -32,7 +32,7 @@ class ClockDefinition(ComponentDefinition):
         ouput_info.count = 1
         self.output_slots_info = ouput_info
 
-        self.sim_delay = datetime.timedelta(seconds=0)
+        self.sim_delay = TimeNS(0)
         self.should_auto_reschedule = True
         self.unit = FrequencyUnit.HZ
         self.frequency = 1.0
@@ -55,13 +55,11 @@ class ClockDefinition(ComponentDefinition):
         return cloned
 
     @override
-    def get_reschedule_time(
-        self, current_time_ns: datetime.timedelta
-    ) -> datetime.timedelta:
+    def get_reschedule_time(self, current_time_ns: TimeNS) -> TimeNS:
         if self.frequency <= 0:
             raise ValueError("Frequency must be greater than zero.")
 
-        current_time = current_time_ns.total_seconds()
+        current_time = current_time_ns
 
         frequency_multiplier = {
             FrequencyUnit.HZ: 1,
@@ -78,7 +76,7 @@ class ClockDefinition(ComponentDefinition):
             period = period * (1 - self.duty_cycle)
 
         next_sim_time = current_time + period
-        return datetime.timedelta(seconds=next_sim_time)
+        return TimeNS(int(next_sim_time * 1e9))
 
     @override
     def on_state_change(

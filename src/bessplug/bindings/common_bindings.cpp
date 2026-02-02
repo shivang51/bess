@@ -1,6 +1,7 @@
 #include "bess_uuid.h"
 #include "glm.hpp"
 #include "settings/viewport_theme.h"
+#include "types.h"
 
 #include <format>
 #include <pybind11/functional.h>
@@ -8,16 +9,20 @@
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 
+#include <chrono>
+
 namespace py = pybind11;
 
 typedef Bess::UUID UUID;
 
+void bind_time_ns(py::module_ &m);
 void bind_vec2(py::module_ &m);
 void bind_vec3(py::module_ &m);
 void bind_vec4(py::module_ &m);
 void bind_theme(py::module_ &m);
 void bind_bess_uuid(py::module_ &m);
 void bind_common_bindings(py::module_ &m) {
+    bind_time_ns(m);
     bind_vec2(m);
     bind_vec3(m);
     bind_vec4(m);
@@ -259,4 +264,28 @@ void bind_theme(py::module_ &m) {
         .def_readwrite("activeSignal", &Bess::SchematicViewColors::activeSignal);
 
     themeModule.attr("schematic") = Bess::ViewportTheme::schematicViewColors;
+}
+
+void bind_time_ns(py::module_ &m) {
+    py::class_<std::chrono::nanoseconds>(m, "TimeNS")
+        .def(py::init<>())
+        .def(py::init<uint64_t>(), py::arg("ns"))
+        .def("__int__", [](const std::chrono::nanoseconds &self) {
+            return static_cast<uint64_t>(self.count());
+        })
+        .def("__repr__", [](const std::chrono::nanoseconds &self) {
+            return std::format("<TimeNS {} ns>", static_cast<uint64_t>(self.count()));
+        })
+        .def("__eq__", [](const std::chrono::nanoseconds &a, const std::chrono::nanoseconds &b) { return a == b; })
+        .def("__ne__", [](const std::chrono::nanoseconds &a, const std::chrono::nanoseconds &b) { return !(a == b); })
+        .def("__lt__", [](const std::chrono::nanoseconds &a, const std::chrono::nanoseconds &b) { return a < b; })
+        .def("__le__", [](const std::chrono::nanoseconds &a, const std::chrono::nanoseconds &b) { return a <= b; })
+        .def("__gt__", [](const std::chrono::nanoseconds &a, const std::chrono::nanoseconds &b) { return a > b; })
+        .def("__ge__", [](const std::chrono::nanoseconds &a, const std::chrono::nanoseconds &b) { return a >= b; })
+        .def("__add__", [](const std::chrono::nanoseconds &a, const std::chrono::nanoseconds &b) {
+            return std::chrono::nanoseconds(static_cast<uint64_t>(a.count()) + static_cast<uint64_t>(b.count()));
+        })
+        .def("__sub__", [](const std::chrono::nanoseconds &a, const std::chrono::nanoseconds &b) {
+            return std::chrono::nanoseconds(static_cast<uint64_t>(a.count()) - static_cast<uint64_t>(b.count()));
+        });
 }

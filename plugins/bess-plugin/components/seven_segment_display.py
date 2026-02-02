@@ -1,3 +1,4 @@
+from bessplug.api.common.time import TimeNS
 from bessplug.api.sim_engine import (
     ComponentDefinition,
     ComponentState,
@@ -10,8 +11,6 @@ from bessplug.api.common.math import Vec2, Vec3, Vec4
 from bessplug.api.assets import AssetManager
 from bessplug.api.scene.sim_comp_draw_hook import DrawHookOnDrawResult, SimCompDrawHook
 from bessplug.api.scene.renderer import QuadRenderProperties, SubTexture
-
-import datetime
 
 
 class SevenSegmentDisplayDrawHook(SimCompDrawHook):
@@ -116,7 +115,7 @@ seven_seg_disp_def = ComponentDefinition.from_sim_fn(
     group_name="IO",
     inputs=input_slots,
     outputs=output_slots,
-    sim_delay=datetime.timedelta(microseconds=0.01),
+    sim_delay=TimeNS(1),
     sim_function=_simulate_seven_segment_display,
 )
 seven_seg_disp_def.compute_hash()

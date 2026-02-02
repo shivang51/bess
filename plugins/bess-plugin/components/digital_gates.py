@@ -1,15 +1,11 @@
-import datetime
-from bessplug.api import assets
 from bessplug.api.scene.sim_comp_draw_hook import SimCompDrawHook
 from bessplug.api.common.math import Vec2, Vec3
-from bessplug.api.common import theme
+from bessplug.api.common import theme, time
 from bessplug.api.sim_engine import ComponentDefinition, SlotsGroupInfo, OperatorInfo
 from bessplug.api.scene.renderer import Path
 from bessplug.api.scene import SchematicDiagram
 import math
-import datetime
 from typing import override
-
 
 _gates = {
     "BUF": {
@@ -72,14 +68,14 @@ def quadratic_circle_path(cx=0.0, cy=0.0, r=50.0):
 
     return f"""
 M {cx + r},{cy}
-Q {cx + r},{cy + r*s} {cx + r*m},{cy + r*m}
-Q {cx + r*s},{cy + r} {cx},{cy + r}
-Q {cx - r*s},{cy + r} {cx - r*m},{cy + r*m}
-Q {cx - r},{cy + r*s} {cx - r},{cy}
-Q {cx - r},{cy - r*s} {cx - r*m},{cy - r*m}
-Q {cx - r*s},{cy - r} {cx},{cy - r}
-Q {cx + r*s},{cy - r} {cx + r*m},{cy - r*m}
-Q {cx + r},{cy - r*s} {cx + r},{cy}
+Q {cx + r},{cy + r * s} {cx + r * m},{cy + r * m}
+Q {cx + r * s},{cy + r} {cx},{cy + r}
+Q {cx - r * s},{cy + r} {cx - r * m},{cy + r * m}
+Q {cx - r},{cy + r * s} {cx - r},{cy}
+Q {cx - r},{cy - r * s} {cx - r * m},{cy - r * m}
+Q {cx - r * s},{cy - r} {cx},{cy - r}
+Q {cx + r * s},{cy - r} {cx + r * m},{cy - r * m}
+Q {cx + r},{cy - r * s} {cx + r},{cy}
 """.strip()
 
 
@@ -283,7 +279,7 @@ for gate_key, gate_data in _gates.items():
         group_name="Digital Gates",
         inputs=input_slots_info,
         outputs=output_slots_info,
-        sim_delay=datetime.timedelta(microseconds=0.001),
+        sim_delay=time.TimeNS(2),
         op_info=opInfo,
     )
     digital_gates.append(def_gate)

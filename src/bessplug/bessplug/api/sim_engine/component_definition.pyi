@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Callable, Optional, Union, List, Any
-import datetime
+from bessplug.api.common import time
 from bessplug.api.sim_engine.enums import ComponentBehaviorType
 from bessplug.api.sim_engine.operator_info import OperatorInfo
 from bessplug.api.sim_engine.slots_group_info import SlotsGroupInfo
@@ -11,7 +11,6 @@ from bessplug.bindings._bindings.sim_engine import (
 from bessplug.bindings._bindings.sim_engine import (
     SimulationFunction as NativeSimulationFunction,
 )
-
 
 class ComponentDefinition(NativeComponentDefinition):
     """
@@ -39,7 +38,7 @@ class ComponentDefinition(NativeComponentDefinition):
     name: str
     group_name: str
     ouput_expressions: List[str]
-    sim_delay: datetime.timedelta
+    sim_delay: time.TimeNS
 
     should_auto_reschedule: bool
     behavior_type: ComponentBehaviorType
@@ -56,13 +55,11 @@ class ComponentDefinition(NativeComponentDefinition):
 
     @property
     def simulation_function(self) -> Optional[Callable[..., Any]]: ...
-
     @simulation_function.setter
     def simulation_function(
         self,
         simulate: Union[NativeSimulationFunction, Callable[..., Any]],
     ) -> None: ...
-
     def set_simulation_function(
         self,
         simulate: Union[NativeSimulationFunction, Callable[..., Any]],
@@ -95,7 +92,6 @@ class ComponentDefinition(NativeComponentDefinition):
         sim_delay: datetime.timedelta,
         op_info: OperatorInfo,
     ) -> ComponentDefinition: ...
-
     @staticmethod
     def from_expressions(
         name: str,
@@ -105,7 +101,6 @@ class ComponentDefinition(NativeComponentDefinition):
         sim_delay: datetime.timedelta,
         expressions: List[str],
     ) -> ComponentDefinition: ...
-
     @staticmethod
     def from_sim_fn(
         name: str,
@@ -116,6 +111,4 @@ class ComponentDefinition(NativeComponentDefinition):
         simFn: Union[NativeSimulationFunction, Callable[..., Any]],
     ) -> ComponentDefinition: ...
 
-
 __all__: List[str]
-
