@@ -100,8 +100,30 @@ namespace Bess::Renderer {
 
         void setLowestPos(const glm::vec2 &pos);
 
+        Path copy() const;
+
+        static Path fromSvgString(const std::string &svgData);
+
       private:
         void formContours();
+
+        // Private helpers used by fromSvgString
+        static void skipSpacesAndCommas(const std::string_view &sv, size_t &i) noexcept;
+        static bool isCommandChar(char c) noexcept;
+        static double parseNumber(const std::string_view &sv, size_t &i, bool &ok);
+        static double distancePointToLine(double px, double py, double ax, double ay, double bx, double by) noexcept;
+        static double dist(double ax, double ay, double bx, double by) noexcept;
+        static bool isDegenerateCubic(double sx, double sy,
+                                      double c1x, double c1y,
+                                      double c2x, double c2y,
+                                      double ex, double ey,
+                                      double rel_tol = 1e-6, double abs_tol = 1e-3) noexcept;
+        // append arc-converted cubics directly into cmds vector
+        static void arcToCubicsAppend(std::vector<PathCommand> &cmds,
+                                      double x1, double y1,
+                                      double rx, double ry, double phi_deg,
+                                      bool large_arc, bool sweep,
+                                      double x2, double y2);
 
       private:
         PathProperties m_props{};

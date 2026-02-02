@@ -120,12 +120,54 @@ void bind_renderer_path(py::module_ &m) {
 
     py::class_<Bess::Renderer2D::Vulkan::PathPoint>(m, "PathPoint");
 
+    auto move_to_flat = [](Path &self, float x, float y) {
+        self.moveTo(glm::vec2(x, y));
+        return &self;
+    };
+
+    auto line_to_flat = [](Path &self, float x, float y) {
+        self.lineTo(glm::vec2(x, y));
+        return &self;
+    };
+
+    auto quad_to_flat = [](Path &self, float cx, float cy, float px, float py) {
+        self.quadTo(glm::vec2(cx, cy), glm::vec2(px, py));
+        return &self;
+    };
+
+    auto cubic_to_flat = [](Path &self, float c1x, float c1y, float c2x, float c2y, float px, float py) {
+        self.cubicTo(glm::vec2(c1x, c1y), glm::vec2(c2x, c2y), glm::vec2(px, py));
+        return &self;
+    };
+
     py::class_<Path>(m, "Path")
         .def(py::init<>())
         .def("move_to_vec", &Path::moveTo, py::arg("pos"))
+        .def("move_to",
+             move_to_flat,
+             py::arg("x"),
+             py::arg("y"), py::return_value_policy::reference_internal)
         .def("line_to_vec", &Path::lineTo, py::return_value_policy::reference_internal)
+        .def("line_to",
+             line_to_flat,
+             py::arg("x"),
+             py::arg("y"), py::return_value_policy::reference_internal)
         .def("quad_to_vec", &Path::quadTo, py::return_value_policy::reference_internal)
+        .def("quad_to",
+             quad_to_flat,
+             py::arg("cx"),
+             py::arg("cy"),
+             py::arg("px"),
+             py::arg("py"), py::return_value_policy::reference_internal)
         .def("cubic_to_vec", &Path::cubicTo, py::return_value_policy::reference_internal)
+        .def("cubic_to",
+             cubic_to_flat,
+             py::arg("c1x"),
+             py::arg("c1y"),
+             py::arg("c2x"),
+             py::arg("c2y"),
+             py::arg("px"),
+             py::arg("py"), py::return_value_policy::reference_internal)
         .def("add_command", &Path::addCommand, py::return_value_policy::reference_internal)
         .def("get_commands", &Path::getCmds, py::return_value_policy::reference_internal)
         .def("set_commands", &Path::setCommands)
@@ -139,6 +181,12 @@ void bind_renderer_path(py::module_ &m) {
         .def("get_bounds", &Path::getBounds)
         .def("get_lowest_pos", &Path::getLowestPos)
         .def("set_lowest_pos", &Path::setLowestPos)
+        .def("copy", &Path::copy)
+        .def_static("from_svg_str", &Path::fromSvgString, py::arg("svg_data"), "Create a Path from an SVG path data string.")
+        .def_property("properties",
+                      &Path::getPropsRef,
+                      &Path::setProps,
+                      py::return_value_policy::reference_internal)
         .def("scale", &Path::scale, py::arg("factor"), py::arg("override_original") = false)
         .def("normalize", &Path::normalize, py::arg("size"))
         .def_readwrite("uuid", &Path::uuid)

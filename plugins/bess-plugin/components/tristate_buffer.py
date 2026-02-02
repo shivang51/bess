@@ -6,7 +6,7 @@ from bessplug.api.sim_engine import (
     LogicState,
     SlotsGroupInfo,
 )
-from bessplug.api.sim_engine.enums import SlotCategory, CompDefIOGrowthPolicy
+from bessplug.api.sim_engine import SlotCategory, CompDefIOGrowthPolicy
 
 
 def _simulate_tristate_buffer(

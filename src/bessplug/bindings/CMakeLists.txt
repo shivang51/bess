@@ -51,8 +51,9 @@ set(BESS_PYBIND_SOURCES
 		internal_types.h
 
     bindings.cpp
+		plugin.cpp
     common_bindings.cpp
-    scene/renderer/path.cpp
+    scene/renderer/path.binding.cpp
     scene/renderer/path_renderer.binding.cpp
     scene/renderer/material_renderer.binding.cpp
 
@@ -116,14 +117,14 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 
-set(OUT_DIR "${CMAKE_SOURCE_DIR}/src/bessplug/bessplug/bindings/")
+set(OUT_DIR "${CMAKE_SOURCE_DIR}/src/bessplug/")
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${OUT_DIR}"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
-    OUTPUT_NAME "_bindings"
+    OUTPUT_NAME "bessplug"
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)
@@ -132,10 +133,10 @@ add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E env "PYTHONPATH=$<TARGET_FILE_DIR:${PROJECT_NAME}>"
             pybind11-stubgen 
-            "_bindings"  # Use the actual OUTPUT_NAME/Module name here
+            "bessplug"
             -o "${OUT_DIR}"
     WORKING_DIRECTORY $<TARGET_FILE_DIR:${PROJECT_NAME}>
-    COMMENT "Generating python stubs for bessplug_bindings..."
+    COMMENT "Generating python stubs for bessplug bindings..."
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES

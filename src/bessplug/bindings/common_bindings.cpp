@@ -15,14 +15,14 @@ namespace py = pybind11;
 
 typedef Bess::UUID UUID;
 
-void bind_time_ns(py::module_ &m);
+void bind_time(py::module_ &m);
 void bind_vec2(py::module_ &m);
 void bind_vec3(py::module_ &m);
 void bind_vec4(py::module_ &m);
 void bind_theme(py::module_ &m);
 void bind_bess_uuid(py::module_ &m);
 void bind_common_bindings(py::module_ &m) {
-    bind_time_ns(m);
+    bind_time(m);
     bind_vec2(m);
     bind_vec3(m);
     bind_vec4(m);
@@ -266,8 +266,9 @@ void bind_theme(py::module_ &m) {
     themeModule.attr("schematic") = Bess::ViewportTheme::schematicViewColors;
 }
 
-void bind_time_ns(py::module_ &m) {
-    py::class_<std::chrono::nanoseconds>(m, "TimeNS")
+void bind_time(py::module_ &m) {
+    auto timeModule = m.def_submodule("time");
+    py::class_<std::chrono::nanoseconds>(timeModule, "TimeNS")
         .def(py::init<>())
         .def(py::init<uint64_t>(), py::arg("ns"))
         .def("__int__", [](const std::chrono::nanoseconds &self) {

@@ -1,10 +1,6 @@
 #include "plugin_handle.h"
 #include "component_definition.h"
-#include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/sim_scene_comp_draw_hook.h"
-#include "scene/scene_state/components/sim_scene_component.h"
-#include "scene/schematic_diagram.h"
-#include "spdlog/spdlog.h"
 #include <memory>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>

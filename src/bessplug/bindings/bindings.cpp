@@ -17,17 +17,19 @@ void bind_material_renderer(py::module_ &m);
 void bind_scene_common_binding(py::module_ &m);
 void bind_asset_manager(py::module_ &m);
 void bind_ui_hook(py::module_ &m);
+void bind_plugin(py::module_ &m);
 
-PYBIND11_MODULE(_bindings, m) {
+PYBIND11_MODULE(bessplug, m) {
     m.doc() = "BESS Python bindings";
 
-    auto common = m.def_submodule("common", "Common bindings");
-    auto simEngine = m.def_submodule("sim_engine", "Simulation engine bindings");
+    auto mApi = m.def_submodule("api", "BESS API bindings");
+    auto common = mApi.def_submodule("common", "Common bindings");
+    auto simEngine = mApi.def_submodule("sim_engine", "Simulation engine bindings");
     auto simFn = simEngine.def_submodule("sim_functions", "Simulation engine prebuilt simulation functions");
-    auto scene = m.def_submodule("scene", "Scene bindings");
+    auto scene = mApi.def_submodule("scene", "Scene bindings");
     auto renderer = scene.def_submodule("renderer", "Scene Renderer bindings");
-    auto assetMgr = m.def_submodule("asset_manager", "Asset Manager bindings");
-    auto uiHook = m.def_submodule("ui_hook", "UI Hook bindings");
+    auto assetMgr = mApi.def_submodule("asset_manager", "Asset Manager bindings");
+    auto uiHook = mApi.def_submodule("ui_hook", "UI Hook bindings");
 
     // Common
     bind_common_bindings(common);
@@ -52,4 +54,6 @@ PYBIND11_MODULE(_bindings, m) {
 
     // UI Hook
     bind_ui_hook(uiHook);
+
+    bind_plugin(m);
 }

@@ -9,7 +9,7 @@ from bessplug.api.sim_engine import (
     SlotsGroupInfo,
 )
 
-from bessplug.api.ui import ui_hook
+from bessplug.api import ui_hook
 
 
 class FrequencyUnit(Enum):
@@ -49,7 +49,7 @@ class ClockDefinition(ComponentDefinition):
         cloned.output_slots_info = self.output_slots_info
         cloned.behavior_type = self.behavior_type
         cloned.should_auto_reschedule = self.should_auto_reschedule
-        cloned.set_simulation_function(self.simulation_function)
+        cloned.simulation_function = self.simulation_function
         cloned.unit = self.unit
         cloned.frequency = self.frequency
         return cloned
@@ -103,13 +103,13 @@ def get_ui_hook():
     prop.name = "Frequency"
     prop.type = ui_hook.PropertyDescType.float_t
     prop.default_value = 1.0
-    prop.constraints = ui_hook.float_constraint(0.1, 5, 0.1)
+    # prop.constraints = ui_hook.float_t(0.1, 5, 0.1)
 
     unit_prop = ui_hook.PropertyDesc()
     unit_prop.name = "Unit"
     unit_prop.type = ui_hook.PropertyDescType.enum_t
     unit_prop.default_value = FrequencyUnit.HZ.value
-    unit_prop.constraints = ui_hook.EnumConstraintsBuilder.for_enum(FrequencyUnit)
+    # unit_prop.constraints = ui_hook.EnumConstraintsBuilder.for_enum(FrequencyUnit)
 
     hook = ui_hook.UIHook()
     hook.add_property(prop)
