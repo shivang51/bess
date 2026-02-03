@@ -107,23 +107,22 @@ namespace Bess::Renderer {
       private:
         void formContours();
 
-        // Private helpers used by fromSvgString
-        static void skipSpacesAndCommas(const std::string_view &sv, size_t &i) noexcept;
-        static bool isCommandChar(char c) noexcept;
-        static double parseNumber(const std::string_view &sv, size_t &i, bool &ok);
-        static double distancePointToLine(double px, double py, double ax, double ay, double bx, double by) noexcept;
-        static double dist(double ax, double ay, double bx, double by) noexcept;
-        static bool isDegenerateCubic(double sx, double sy,
-                                      double c1x, double c1y,
-                                      double c2x, double c2y,
-                                      double ex, double ey,
-                                      double rel_tol = 1e-6, double abs_tol = 1e-3) noexcept;
-        // append arc-converted cubics directly into cmds vector
-        static void arcToCubicsAppend(std::vector<PathCommand> &cmds,
-                                      double x1, double y1,
-                                      double rx, double ry, double phi_deg,
-                                      bool large_arc, bool sweep,
-                                      double x2, double y2);
+        static float parseNumber(const char *&ptr, const char *end);
+
+        // Skips whitespace and commas
+        static void skipSeparators(const char *&ptr, const char *end);
+
+        // Converts an arc to cubic bezier segments and appends them to the path
+        static void arcToCubics(Path &path,
+                                glm::vec2 cur,
+                                glm::vec2 rxry,
+                                float phi_deg,
+                                bool large_arc,
+                                bool sweep,
+                                glm::vec2 end);
+
+        // Helper to calculate reflection for S and T commands
+        static glm::vec2 reflectPoint(glm::vec2 p, glm::vec2 pivot);
 
       private:
         PathProperties m_props{};
