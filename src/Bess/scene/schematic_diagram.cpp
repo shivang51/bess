@@ -1,5 +1,5 @@
 #include "scene/schematic_diagram.h"
-#include "common/log.h"
+#include "settings/viewport_theme.h"
 
 namespace Bess::Canvas {
     const std::vector<Renderer::Path> &SchematicDiagram::getPaths() const { return m_paths; }
@@ -35,5 +35,40 @@ namespace Bess::Canvas {
         for (auto &path : m_paths) {
             path.normalize(m_size);
         }
+    }
+
+    glm::vec2 SchematicDiagram::draw(const Bess::Canvas::Transform &transform,
+                                     const Bess::Canvas::PickingId &pickingId,
+                                     const std::shared_ptr<Bess::Renderer2D::Vulkan::PathRenderer> &pathRenderer) {
+        const auto &pos = transform.position;
+        float dAr = getSize().x / getSize().y;
+        float tAr = transform.scale.x / transform.scale.y;
+        float adAr = dAr / tAr;
+
+        auto digScale = transform.scale;
+        digScale.x *= adAr;
+
+        auto mid = digScale * 0.5f;
+
+        auto drawInfo = Renderer2D::Vulkan::ContoursDrawInfo();
+        for (auto &path : getPathsMut()) {
+            const auto pathPos = path.getLowestPos();
+            drawInfo.translate = glm::vec3(
+                pos.x + pathPos.x - mid.x,
+                pos.y + pathPos.y - mid.y,
+                transform.position.z);
+            drawInfo.scale = digScale;
+            drawInfo.glyphId = pickingId;
+            drawInfo.strokeColor = Bess::ViewportTheme::schematicViewColors.componentStroke;
+            drawInfo.fillColor = Bess::ViewportTheme::schematicViewColors.componentFill;
+
+            drawInfo.genFill = path.getProps().renderFill;
+            drawInfo.genStroke = path.getProps().renderStroke;
+            drawInfo.closePath = path.getProps().isClosed;
+            drawInfo.rounedJoint = path.getProps().roundedJoints;
+            pathRenderer->drawPath(path, drawInfo);
+        }
+
+        return digScale;
     }
 } // namespace Bess::Canvas

@@ -245,9 +245,7 @@ class DrawHook(SimCompDrawHook):
         materialRenderer,
         pathRenderer,
     ) -> vec2:
-        scale = SchematicDiagram.draw(
-            transform, pickingId, pathRenderer, self.schematic_diagram
-        )
+        scale = self.schematic_diagram.draw(transform, pickingId, pathRenderer)
         size = materialRenderer.get_text_render_size(self.name, self.label_size)
         materialRenderer.draw_text(
             self.name,

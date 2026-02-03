@@ -1,7 +1,8 @@
 #pragma once
 
-#include "glm.hpp"
 #include "scene/renderer/path.h"
+#include "scene/renderer/vulkan/path_renderer.h"
+#include "scene/scene_state/components/scene_component_types.h"
 #include <vector>
 
 namespace Bess::Canvas {
@@ -27,6 +28,10 @@ namespace Bess::Canvas {
 
         float getStrokeSize() const;
         void setStrokeSize(float size);
+
+        glm::vec2 draw(const Bess::Canvas::Transform &transform,
+                       const Bess::Canvas::PickingId &pickingId,
+                       const std::shared_ptr<Bess::Renderer2D::Vulkan::PathRenderer> &pathRenderer);
 
       private:
         std::vector<Renderer::Path> m_paths;

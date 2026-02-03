@@ -22,5 +22,6 @@ void bind_scene_schematic_diagram(py::module_ &m) {
                       &Bess::Canvas::SchematicDiagram::setShowName)
         .def_property("stroke_size",
                       &Bess::Canvas::SchematicDiagram::getStrokeSize,
-                      &Bess::Canvas::SchematicDiagram::setStrokeSize);
+                      &Bess::Canvas::SchematicDiagram::setStrokeSize)
+        .def("draw", &Bess::Canvas::SchematicDiagram::draw);
 }
