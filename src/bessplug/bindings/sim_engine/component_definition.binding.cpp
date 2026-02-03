@@ -38,7 +38,7 @@ class PyComponentDefinition : public ComponentDefinition,
 
     std::shared_ptr<ComponentDefinition> clone() const override {
         py::gil_scoped_acquire gil;
-        std::shared_ptr<ComponentDefinition> ret = std::make_shared<ComponentDefinition>();
+        auto ret = std::make_shared<PyComponentDefinition>();
         ret->setName(this->getName());
         ret->setGroupName(this->getGroupName());
         ret->setInputSlotsInfo(this->getInputSlotsInfo());
@@ -47,14 +47,11 @@ class PyComponentDefinition : public ComponentDefinition,
         ret->setOpInfo(this->getOpInfo());
         ret->setIOGrowthPolicy(this->getIOGrowthPolicy());
         ret->setOutputExpressions(this->getOutputExpressions());
-
-        if (getAuxData().has_value() &&
-            getAuxData().type() == typeid(Bess::Py::OwnedPyObject)) {
-            const auto &owned = std::any_cast<const Bess::Py::OwnedPyObject &>(
-                getAuxData());
-            ret->setAuxData(std::any(Bess::Py::OwnedPyObject{owned.object}));
-        }
+        ret->setBehaviorType(this->getBehaviorType());
         ret->setSimulationFunction(this->getSimulationFunction());
+        ret->setAuxData(this->getAuxData());
+        ret->setShouldAutoReschedule(this->getShouldAutoReschedule());
+        ret->setOwnership(this->getOwnership());
         return ret;
     }
 
@@ -182,7 +179,7 @@ void bind_sim_engine_component_definition(py::module_ &m) {
                                   SimDelayNanoSeconds sim_delay,
                                   const py::function &sim_function) -> std::shared_ptr<ComponentDefinition> {
         py::gil_scoped_acquire gil;
-        auto comp_def = std::make_shared<ComponentDefinition>();
+        auto comp_def = std::make_shared<PyComponentDefinition>();
         comp_def->setName(name);
         comp_def->setGroupName(group_name);
         comp_def->setInputSlotsInfo(inputs);
@@ -213,7 +210,7 @@ void bind_sim_engine_component_definition(py::module_ &m) {
                                  SimDelayNanoSeconds sim_delay,
                                  OperatorInfo info) -> std::shared_ptr<ComponentDefinition> {
         py::gil_scoped_acquire gil;
-        auto comp_def = std::make_shared<ComponentDefinition>();
+        auto comp_def = std::make_shared<PyComponentDefinition>();
         comp_def->setName(name);
         comp_def->setGroupName(group_name);
         comp_def->setInputSlotsInfo(inputs);
@@ -231,7 +228,7 @@ void bind_sim_engine_component_definition(py::module_ &m) {
                                       SimDelayNanoSeconds sim_delay,
                                       const std::vector<std::string> &output_expressions) -> std::shared_ptr<ComponentDefinition> {
         py::gil_scoped_acquire gil;
-        auto comp_def = std::make_shared<ComponentDefinition>();
+        auto comp_def = std::make_shared<PyComponentDefinition>();
         comp_def->setName(name);
         comp_def->setGroupName(group_name);
         comp_def->setInputSlotsInfo(inputs);

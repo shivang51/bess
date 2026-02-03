@@ -67,7 +67,7 @@ namespace Bess::SimEngine {
     class BESS_API Trait {
     };
 
-    class BESS_API ComponentDefinition : public std::enable_shared_from_this<ComponentDefinition> {
+    class BESS_API ComponentDefinition {
       public:
         ComponentDefinition() = default;
 
