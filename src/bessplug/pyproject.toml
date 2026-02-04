@@ -14,3 +14,6 @@ packages = ["bessplug"]
 
 [tool.setuptools.package-data]
 bessplug = ["*.so"]
+
+[tool.pyright]
+reportMissingModuleSource = false

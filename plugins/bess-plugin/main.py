@@ -10,11 +10,12 @@ from components import seven_segment_display, seven_segment_display_driver, cloc
 from components.alu_74LS181 import dm74ls181
 
 
-class BessPlugin:
+class BessPlugin(Plugin):
     def __init__(self):
         self.name = "BESS Plugin"
         self.version = "1.0.0.dev"
 
+    @override
     def on_components_reg_load(self) -> list[ComponentDefinition]:
         return [
             *latches,
@@ -28,6 +29,7 @@ class BessPlugin:
             # clock.clock_def, WILL ADD BACK LATER (POST UI HOOK ARCHITECUTRE)
         ]
 
+    @override
     def on_scene_comp_load(self) -> dict[int, object]:
         return {**draw_hooks, **seven_segment_display.seven_seg_disp_draw_hook}
 
