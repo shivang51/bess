@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/helpers.h"
-#include "events/scene_events.h"
+#include "scene/scene_events.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/ui_main/project_explorer_state.h"
 #include <cstdint>
@@ -23,8 +23,8 @@ namespace Bess::UI {
         static void groupOnNets();
 
       private:
-        static void onEntityCreated(const Bess::Events::ComponentAddedEvent &e);
-        static void onEntityDestroyed(const Bess::Events::ComponentRemovedEvent &e);
+        static void onEntityCreated(const Bess::Canvas::Events::ComponentAddedEvent &e);
+        static void onEntityDestroyed(const Bess::Canvas::Events::ComponentRemovedEvent &e);
 
         static std::pair<bool, bool> drawLeafNode(int key, uint64_t nodeId,
                                                   const char *label,

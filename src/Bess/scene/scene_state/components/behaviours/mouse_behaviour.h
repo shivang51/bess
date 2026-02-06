@@ -1,6 +1,6 @@
 #pragma once
 
-#include "events/scene_events.h"
+#include "scene/scene_events.h"
 #include <glm.hpp>
 
 namespace Bess::Canvas {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "application/project_file.h"
+#include "command_system.h"
 
 namespace Bess::Pages {
     struct PageActionFlags {
@@ -13,6 +14,10 @@ namespace Bess::Pages {
         static std::shared_ptr<MainPageState> getInstance();
 
         MainPageState();
+
+        Cmd::CommandSystem &getCommandSystem() {
+            return m_commandSystem;
+        }
 
         void setKeyPressed(int key, bool pressed);
         bool isKeyPressed(int key);
@@ -34,5 +39,9 @@ namespace Bess::Pages {
         // contains the state of keyboard keys pressed
         std::unordered_map<int, bool> m_pressedKeys;
         std::unordered_map<int, bool> releasedKeysFrame;
+        std::unordered_map<int, bool> pressedKeysFrame;
+
+      private:
+        Cmd::CommandSystem m_commandSystem;
     };
 } // namespace Bess::Pages

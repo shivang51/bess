@@ -1,9 +1,9 @@
 #pragma once
 
 #include "bess_uuid.h"
-#include "events/scene_events.h"
 #include "fwd.hpp"
 #include "scene/renderer/material_renderer.h"
+#include "scene/scene_events.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "types.h"
 

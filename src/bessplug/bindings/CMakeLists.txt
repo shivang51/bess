@@ -43,6 +43,7 @@ set(EXTERNAL_INCLUDE_DIRS
 			"${CMAKE_SOURCE_DIR}/src/BessVulkan/include"
 			"${CMAKE_SOURCE_DIR}/src/BessJson/include"
 			"${CMAKE_SOURCE_DIR}/src/EventSystem/include"
+			"${CMAKE_SOURCE_DIR}/src/CommandSystem/include"
 )
 
 target_include_directories(bess_ext_obj PRIVATE ${EXTERNAL_INCLUDE_DIRS})
@@ -83,7 +84,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 	BessScene
 	BessUI
 	BessJson
-	freetype
+	BessCmdSystem
 )
 
 add_dependencies(${PROJECT_NAME}

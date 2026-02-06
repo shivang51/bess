@@ -16,6 +16,11 @@ namespace Bess {
         void setActiveScene(const std::shared_ptr<Canvas::Scene> &scene);
         std::shared_ptr<Canvas::Scene> getActiveScene() const;
 
+        // using pointer operator to directly access active scene
+        std::shared_ptr<Canvas::Scene> operator->() {
+            return m_activeScene;
+        }
+
       private:
         std::shared_ptr<Canvas::Scene> m_activeScene;
     };

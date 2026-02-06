@@ -4,11 +4,9 @@
 #include "component_catalog.h"
 #include "event_dispatcher.h"
 #include "events/application_event.h"
-#include "events/scene_events.h"
 #include "events/sim_engine_events.h"
 #include "ext/matrix_transform.hpp"
 #include "fwd.hpp"
-#include "pages/main_page/main_page_state.h"
 #include "plugin_manager.h"
 #include "scene/commands/add_command.h"
 #include "scene/renderer/material_renderer.h"
@@ -18,7 +16,6 @@
 #include "scene/scene_state/components/slot_scene_component.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
-#include "ui/ui_main/ui_main.h"
 #include "vulkan_core.h"
 #include <GLFW/glfw3.h>
 #include <cstdint>
@@ -129,7 +126,14 @@ namespace Bess::Canvas {
                 onMouseWheel(data.x, data.y);
             } break;
             case ApplicationEventType::KeyPress: {
-                handleKeyboardShortcuts();
+                const auto data = event.getData<ApplicationEvent::KeyPressData>();
+
+                if (data.key == GLFW_KEY_LEFT_CONTROL || data.key == GLFW_KEY_RIGHT_CONTROL) {
+                    m_isCtrlPressed = true;
+                } else if (data.key == GLFW_KEY_LEFT_SHIFT || data.key == GLFW_KEY_RIGHT_SHIFT) {
+                    m_isShiftPressed = true;
+                }
+
             } break;
             default:
                 break;
@@ -203,7 +207,7 @@ namespace Bess::Canvas {
         //
         {
             auto mousePos_ = m_mousePos;
-            const auto &viewportSize = UI::UIMain::state.mainViewport.getViewportSize();
+            const auto &viewportSize = m_viewportTransform.size;
             mousePos_.y = viewportSize.y - mousePos_.y;
             int x = static_cast<int>(mousePos_.x);
             int y = static_cast<int>(mousePos_.y);
@@ -354,13 +358,13 @@ namespace Bess::Canvas {
     }
 
     void Scene::resize(const glm::vec2 &size) {
-        m_size = UI::UIMain::state.mainViewport.getViewportSize();
+        m_size = size;
         m_viewport->resize(vec2Extent2D(m_size));
         m_camera->resize(m_size.x, m_size.y);
     }
 
     glm::vec2 Scene::getViewportMousePos(const glm::vec2 &mousePos) const {
-        const auto &viewportPos = UI::UIMain::state.mainViewport.getViewportPos();
+        const auto &viewportPos = m_viewportTransform.pos;
         auto x = mousePos.x - viewportPos.x;
         auto y = mousePos.y - viewportPos.y;
         return {x, y};
@@ -402,7 +406,7 @@ namespace Bess::Canvas {
         m_mousePos = pos;
         {
             auto mousePos_ = m_mousePos;
-            const auto &viewportSize = UI::UIMain::state.mainViewport.getViewportSize();
+            const auto &viewportSize = m_viewportTransform.size;
             mousePos_.y = viewportSize.y - mousePos_.y;
             int x = static_cast<int>(mousePos_.x);
             int y = static_cast<int>(mousePos_.y);
@@ -456,8 +460,8 @@ namespace Bess::Canvas {
     }
 
     bool Scene::isCursorInViewport(const glm::vec2 &pos) const {
-        const auto &viewportSize = UI::UIMain::state.mainViewport.getViewportSize();
-        const auto viewportPos = UI::UIMain::state.mainViewport.getViewportPos();
+        const auto &viewportSize = m_viewportTransform.size;
+        const auto &viewportPos = m_viewportTransform.pos;
         return pos.x >= 1.f &&
                pos.x < viewportSize.x - 1.f &&
                pos.y >= 1.f &&
@@ -470,10 +474,7 @@ namespace Bess::Canvas {
         }
 
         if (!m_pickingId.isValid()) {
-            const bool isShiftPressed = Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_SHIFT) ||
-                                        Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_RIGHT_SHIFT);
-
-            if (isShiftPressed && m_lastCreatedComp.set) {
+            if (m_isShiftPressed && m_lastCreatedComp.set) {
                 const auto def = m_lastCreatedComp.componentDefinition;
                 const Commands::AddCommandData cmdData = {
                     .def = def,
@@ -503,10 +504,8 @@ namespace Bess::Canvas {
             // then we only deselect othere on mouse release,
             // so that drag can work properly
             size_t selSize = m_state.getSelectedComponents().size();
-            bool isCtrlPressed = Pages::MainPageState::getInstance()->isKeyPressed(
-                GLFW_KEY_LEFT_CONTROL);
             if (selSize > 1 && !m_isDragging &&
-                !isCtrlPressed && m_state.isComponentSelected(m_pickingId)) {
+                !m_isCtrlPressed && m_state.isComponentSelected(m_pickingId)) {
                 m_state.clearSelectedComponents();
                 m_state.addSelectedComponent(m_pickingId);
             }
@@ -545,8 +544,7 @@ namespace Bess::Canvas {
                                  m_pickingId.info,
                                  &m_state});
 
-            const bool isCtrlPressed = Pages::MainPageState::getInstance()->isKeyPressed(GLFW_KEY_LEFT_CONTROL);
-            if (isCtrlPressed) {
+            if (m_isCtrlPressed) {
                 if (m_state.isComponentSelected(m_pickingId))
                     m_state.removeSelectedComponent(m_pickingId);
                 else
@@ -652,8 +650,7 @@ namespace Bess::Canvas {
         if (!isCursorInViewport(m_mousePos))
             return;
 
-        const auto mainPageState = Pages::MainPageState::getInstance();
-        if (mainPageState->isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
+        if (m_isCtrlPressed) {
             const float delta = static_cast<float>(y) * 0.1f;
             m_camera->incrementZoomToPoint(toScenePos(m_mousePos), delta);
         } else {
@@ -958,5 +955,26 @@ namespace Bess::Canvas {
 
     void Scene::registerNonSimComponents() {
         NonSimSceneComponent::registerComponent<TextComponent>("Text Component");
+    }
+
+    void Scene::updateViewportTransform(const ViewportTransform &transform) {
+        m_viewportTransform = transform;
+    }
+
+    const ViewportTransform &Scene::getViewportTransform() const {
+        return m_viewportTransform;
+    }
+
+    void Scene::focusCameraOnSelected() {
+
+        const auto &selectedComps = m_state.getSelectedComponents() |
+                                    std::ranges::views::keys;
+
+        if (selectedComps.empty()) {
+            return;
+        }
+
+        const auto &comp = m_state.getComponentByUuid(*selectedComps.begin());
+        m_camera->focusAtPoint(comp->getAbsolutePosition(m_state));
     }
 } // namespace Bess::Canvas

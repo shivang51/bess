@@ -6,5 +6,6 @@ add_subdirectory(BessPluginManager)
 add_subdirectory(EventSystem)
 add_subdirectory(BessSimEngine)
 add_subdirectory(BessVulkan)
+add_subdirectory(CommandSystem)
 add_subdirectory(Bess)
 

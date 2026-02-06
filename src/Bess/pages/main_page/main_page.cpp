@@ -6,8 +6,11 @@
 #include "scene/scene.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
+#include "ui/ui_main/component_explorer.h"
+#include "ui/ui_main/project_explorer.h"
 #include "ui/ui_main/ui_main.h"
 #include "vulkan_core.h"
+#include <GLFW/glfw3.h>
 #include <memory>
 
 namespace Bess::Pages {
@@ -45,6 +48,8 @@ namespace Bess::Pages {
         m_sceneDriver.setActiveScene(m_scene);
 
         UI::UIMain::setViewportTexture(m_scene->getTextureId());
+
+        m_state->getCommandSystem().init(m_scene.get(), &SimEngine::SimulationEngine::instance());
     }
 
     MainPage::~MainPage() {
@@ -55,6 +60,7 @@ namespace Bess::Pages {
         if (m_isDestroyed)
             return;
         BESS_INFO("[MainPage] Destroying");
+        m_state->getCommandSystem().reset();
         auto &instance = Bess::Vulkan::VulkanCore::instance();
         instance.cleanup([&]() {
             m_scene->destroy();
@@ -72,17 +78,23 @@ namespace Bess::Pages {
 
     void MainPage::update(TFrameTime ts, const std::vector<ApplicationEvent> &events) {
         const auto &viewportSize = UI::UIMain::state.mainViewport.getViewportSize();
+        const auto &viewportPos = UI::UIMain::state.mainViewport.getViewportPos();
+
+        m_sceneDriver.getActiveScene()->updateViewportTransform({viewportPos, viewportSize});
+
         if (m_sceneDriver.getActiveScene()->getSize() != viewportSize) {
             m_sceneDriver.getActiveScene()->resize(viewportSize);
         }
 
         m_state->releasedKeysFrame.clear();
+        m_state->pressedKeysFrame.clear();
 
         for (const auto &event : events) {
             switch (event.getType()) {
             case ApplicationEventType::KeyPress: {
                 const auto data = event.getData<ApplicationEvent::KeyPressData>();
                 m_state->setKeyPressed(data.key, true);
+                m_state->pressedKeysFrame[data.key] = true;
             } break;
             case ApplicationEventType::KeyRelease: {
                 const auto data = event.getData<ApplicationEvent::KeyReleaseData>();
@@ -109,11 +121,44 @@ namespace Bess::Pages {
         const bool ctrlPressed = m_state->isKeyPressed(GLFW_KEY_LEFT_CONTROL) ||
                                  m_state->isKeyPressed(GLFW_KEY_RIGHT_CONTROL);
 
+        const bool shiftPressed = m_state->isKeyPressed(GLFW_KEY_LEFT_SHIFT) ||
+                                  m_state->isKeyPressed(GLFW_KEY_RIGHT_SHIFT);
+
         if (ctrlPressed) {
             if (m_state->releasedKeysFrame[GLFW_KEY_S]) {
                 m_state->actionFlags.saveProject = true;
             } else if (m_state->releasedKeysFrame[GLFW_KEY_O]) {
                 m_state->actionFlags.openProject = true;
+            } else if (m_state->pressedKeysFrame[GLFW_KEY_Z]) {
+                if (shiftPressed) {
+                    m_state->getCommandSystem().redo();
+                } else {
+                    m_state->getCommandSystem().undo();
+                }
+            } else if (m_state->releasedKeysFrame[GLFW_KEY_G]) {
+                UI::ProjectExplorer::groupSelectedNodes();
+            } else if (m_state->releasedKeysFrame[GLFW_KEY_A]) {
+                m_sceneDriver->selectAllEntities();
+            } else if (m_state->releasedKeysFrame[GLFW_KEY_C]) {
+                m_sceneDriver->copySelectedComponents();
+            } else if (m_state->releasedKeysFrame[GLFW_KEY_V]) {
+                m_sceneDriver->generateCopiedComponents();
+            }
+        } else if (shiftPressed) {
+            if (m_state->pressedKeysFrame[GLFW_KEY_A]) {
+                UI::ComponentExplorer::isShown = !UI::ComponentExplorer::isShown;
+            }
+        } else {
+            if (m_state->pressedKeysFrame[GLFW_KEY_DELETE]) {
+                m_sceneDriver->deleteSelectedSceneEntities();
+            } else if (m_state->pressedKeysFrame[GLFW_KEY_F]) {
+                m_sceneDriver->focusCameraOnSelected();
+            } else if (m_state->pressedKeysFrame[GLFW_KEY_TAB]) {
+                m_sceneDriver->toggleSchematicView();
+            } else if (m_state->pressedKeysFrame[GLFW_KEY_ESCAPE]) {
+                if (UI::ComponentExplorer::isShown) {
+                    UI::ComponentExplorer::isShown = false;
+                }
             }
         }
     }

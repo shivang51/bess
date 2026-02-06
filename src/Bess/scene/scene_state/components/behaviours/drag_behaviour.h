@@ -1,6 +1,8 @@
 #pragma once
 
-#include "events/scene_events.h"
+#include "event_dispatcher.h"
+#include "scene/scene_events.h"
+
 namespace Bess::Canvas {
     constexpr float SNAP_ANOUNT = 2.f;
     template <typename Derived>
@@ -22,6 +24,12 @@ namespace Bess::Canvas {
 
         void onMouseDragEnd() {
             m_isDragging = false;
+            auto &self = static_cast<Derived &>(*this);
+            EventSystem::EventDispatcher::instance().dispatch(Events::EntityMovedEvent{
+                .entityUuid = static_cast<const Derived &>(*this).getUuid(),
+                .oldPos = m_dragStartPos,
+                .newPos = self.getTransform().position,
+            });
         }
 
       protected:
@@ -33,11 +41,13 @@ namespace Bess::Canvas {
         virtual void onMouseDragBegin(const Events::MouseDraggedEvent &e) {
             const auto &self = static_cast<const Derived &>(*this);
             m_dragOffset = glm::vec2(self.getAbsolutePosition(*e.sceneState)) - e.mousePos;
+            m_dragStartPos = self.getTransform().position;
             m_isDragging = true;
         }
 
         bool m_isDragging = false;
         glm::vec2 m_dragOffset = {0.f, 0.f};
+        glm::vec3 m_dragStartPos = {0.f, 0.f, 0.f};
         friend Derived;
     };
 } // namespace Bess::Canvas

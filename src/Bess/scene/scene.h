@@ -5,9 +5,9 @@
 #include "commands/commands_manager.h"
 #include "component_definition.h"
 #include "events/application_event.h"
-#include "events/scene_events.h"
 #include "events/sim_engine_events.h"
 #include "scene/camera.h"
+#include "scene/scene_events.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/sim_scene_comp_draw_hook.h"
 #include "scene/scene_state/scene_state.h"
@@ -22,6 +22,13 @@ namespace Bess::Canvas {
 }
 
 namespace Bess::Canvas {
+
+    // Need to contain the size and pos of the UI viewport in which
+    // scene is rendered, so that mouse coordinates can be transformed correctly
+    struct ViewportTransform {
+        glm::vec2 pos;
+        glm::vec2 size;
+    };
 
     enum class SceneMode : uint8_t {
         general,
@@ -70,6 +77,10 @@ namespace Bess::Canvas {
         SceneState &getState();
 
       public:
+        void updateViewportTransform(const ViewportTransform &transform);
+
+        const ViewportTransform &getViewportTransform() const;
+
         void updateNetsFromSimEngine();
 
         PickingId getHoveredEntity() const {
@@ -112,6 +123,12 @@ namespace Bess::Canvas {
 
         bool hasPluginDrawHookForComponentHash(uint64_t compHash) const;
 
+        void selectAllEntities();
+        void copySelectedComponents();
+        void generateCopiedComponents();
+
+        void focusCameraOnSelected();
+
       private:
         /// to draw testing stuff
         void drawScratchContent(TFrameTime ts, const std::shared_ptr<Viewport> &viewport);
@@ -132,11 +149,7 @@ namespace Bess::Canvas {
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
         bool isCursorInViewport(const glm::vec2 &pos) const;
         void drawSelectionBox();
-        void handleKeyboardShortcuts();
-        void copySelectedComponents();
-        void generateCopiedComponents();
         bool selectEntitesInArea();
-        void selectAllEntities();
 
         float getNextZCoord();
 
@@ -165,6 +178,9 @@ namespace Bess::Canvas {
 
       private:
         SceneState m_state;
+
+        bool m_isCtrlPressed = false, m_isShiftPressed = false;
+        ViewportTransform m_viewportTransform;
 
         PickingId m_pickingId = PickingId::invalid();
         PickingId m_prevPickingId = PickingId::invalid();

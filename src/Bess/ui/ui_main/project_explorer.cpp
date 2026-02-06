@@ -37,11 +37,11 @@ namespace Bess::UI {
     }
 
     void ProjectExplorer::init() {
-        EventSystem::EventDispatcher::instance().sink<Bess::Events::ComponentAddedEvent>().connect<&ProjectExplorer::onEntityCreated>();
-        EventSystem::EventDispatcher::instance().sink<Bess::Events::ComponentRemovedEvent>().connect<&ProjectExplorer::onEntityDestroyed>();
+        EventSystem::EventDispatcher::instance().sink<Bess::Canvas::Events::ComponentAddedEvent>().connect<&ProjectExplorer::onEntityCreated>();
+        EventSystem::EventDispatcher::instance().sink<Bess::Canvas::Events::ComponentRemovedEvent>().connect<&ProjectExplorer::onEntityDestroyed>();
     }
 
-    void ProjectExplorer::onEntityCreated(const Bess::Events::ComponentAddedEvent &e) {
+    void ProjectExplorer::onEntityCreated(const Bess::Canvas::Events::ComponentAddedEvent &e) {
         if (!((uint8_t)e.type & (uint8_t)Canvas::SceneComponentTypeFlag::showInProjectExplorer)) {
             return;
         }
@@ -59,7 +59,7 @@ namespace Bess::UI {
         state.addNode(node);
     }
 
-    void ProjectExplorer::onEntityDestroyed(const Bess::Events::ComponentRemovedEvent &e) {
+    void ProjectExplorer::onEntityDestroyed(const Bess::Canvas::Events::ComponentRemovedEvent &e) {
         if (!((uint8_t)e.type & (uint8_t)Canvas::SceneComponentTypeFlag::showInProjectExplorer)) {
             return;
         }
@@ -370,42 +370,6 @@ namespace Bess::UI {
             }
 
             ImGui::EndPopup();
-        }
-
-        // Global shortcuts for Project Explorer window
-        if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
-            const bool ctrl = ImGui::GetIO().KeyCtrl;
-            if (ctrl && ImGui::IsKeyPressed(ImGuiKey_G)) {
-                groupSelectedNodes();
-            }
-
-            if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
-                std::vector<std::shared_ptr<UI::ProjectExplorerNode>> nodesToDelete;
-
-                for (const auto &selId : sceneState.getSelectedComponents() | std::views::keys) {
-                    const auto node = state.getNodeOfSceneEntt(selId);
-                    if (node != nullptr) {
-                        nodesToDelete.emplace_back(node);
-                    }
-                }
-
-                std::function<void(const std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &)> collectGroups =
-                    [&](const std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &nodes) {
-                        for (const auto &node : nodes) {
-                            if (node->isGroup && node->selected) {
-                                nodesToDelete.emplace_back(node);
-                            }
-                            if (!node->children.empty()) {
-                                collectGroups(node->children);
-                            }
-                        }
-                    };
-                collectGroups(state.nodes);
-
-                for (const auto &node : nodesToDelete) {
-                    deleteNode(node);
-                }
-            }
         }
 
         ImGui::End();

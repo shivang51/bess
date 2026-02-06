@@ -31,7 +31,6 @@ set(Header_Files
 "application/window.h"
 "application/application_state.h"
 "events/application_event.h"
-"events/scene_events.h"
 "asset_manager/asset_loader.h"
 "asset_manager/asset_manager.h"
 "asset_manager/asset_id.h"
@@ -66,8 +65,8 @@ set(ALL_FILES
 )
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
-target_link_libraries(${PROJECT_NAME} PRIVATE BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessUI)
-add_dependencies(${PROJECT_NAME} BessExtDeps besspybindings BessJson BessSimEngine BessVulkan BessPluginManager BessScene BessUI)
+target_link_libraries(${PROJECT_NAME} PRIVATE BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessCmdSystem BessUI)
+add_dependencies(${PROJECT_NAME} BessExtDeps besspybindings BessJson BessSimEngine BessVulkan BessPluginManager BessScene BessCmdSystem BessUI)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
 
@@ -104,6 +103,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_SOURCE_DIR}/src/BessVulkan/include"
 	"${CMAKE_SOURCE_DIR}/src/BessPluginManager/include"
 	"${CMAKE_SOURCE_DIR}/src/EventSystem/include"
+	"${CMAKE_SOURCE_DIR}/src/CommandSystem/include"
 	"${CMAKE_SOURCE_DIR}/src/BessJson/include"
 )
 

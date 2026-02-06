@@ -8,7 +8,7 @@ namespace Bess::Canvas {
     class SceneState;
 } // namespace Bess::Canvas
 
-namespace Bess::Events {
+namespace Bess::Canvas::Events {
     enum class MouseClickAction : uint8_t {
         release = 0,
         press = 1,
@@ -81,4 +81,10 @@ namespace Bess::Events {
         UUID slotAId;
         UUID slotBId;
     };
-} // namespace Bess::Events
+
+    struct EntityMovedEvent {
+        UUID entityUuid;
+        glm::vec3 oldPos;
+        glm::vec3 newPos;
+    };
+} // namespace Bess::Canvas::Events
