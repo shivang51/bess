@@ -45,7 +45,7 @@ namespace Bess::Canvas {
             props.borderSize = m_style.borderSize;
             props.borderColor = ViewportTheme::colors.selectedComp;
             props.isMica = true;
-            props.hasShadow = false;
+            props.shadow.enabled = true;
 
             const auto textSize = materialRenderer->getTextRenderSize(m_data, (float)m_size);
 

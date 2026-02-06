@@ -119,13 +119,18 @@ namespace Bess::Renderer {
             m_translucentMaterials.push(m);
         }
 
-        if (props.hasShadow) {
+        if (props.shadow.enabled) {
             QuadRenderProperties shadowProps;
+            const auto &offset = props.shadow.offset;
+            const auto &scaleShadow = props.shadow.scale;
             shadowProps.borderRadius = props.borderRadius;
-            drawTexturedQuad({pos.x, pos.y + 2.f, pos.z - 0.0001},
-                             {size.x + 2.5f, size.y + 0.5f},
-                             glm::vec4(glm::vec3(0.15), 0.4f), id,
-                             m_shadowTexture, shadowProps);
+            drawTexturedQuad({pos.x + offset.x, pos.y + offset.y, pos.z - 0.0001},
+                             {(size.x * scaleShadow.x) - props.borderRadius.x,
+                              (size.y * scaleShadow.y) - props.borderRadius.y},
+                             props.shadow.color,
+                             id,
+                             m_shadowTexture,
+                             shadowProps);
         }
     }
 

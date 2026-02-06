@@ -79,7 +79,12 @@ namespace Bess::Canvas {
                                     ? ViewportTheme::colors.selectedComp
                                     : m_style.borderColor;
             props.isMica = true;
-            props.hasShadow = true;
+            props.shadow = {
+                .enabled = true,
+                .offset = glm::vec2(0.f, 0.f),
+                .scale = glm::vec2(1.701f, 1.701f),
+                .color = glm::vec4(1.f),
+            };
 
             materialRenderer->drawQuad(m_transform.position,
                                        m_transform.scale,

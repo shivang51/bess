@@ -5,7 +5,7 @@ from __future__ import annotations
 import bessplug.api.common
 import collections.abc
 import typing
-__all__: list[str] = ['ContoursDrawInfo', 'Cubic', 'CubicTo', 'Line', 'LineTo', 'MaterialRenderer', 'Move', 'MoveTo', 'Path', 'PathCommand', 'PathCommandKind', 'PathPoint', 'PathProperties', 'PathRenderer', 'Quad', 'QuadRenderProperties', 'QuadTo', 'SubTexture', 'VulkanTexture']
+__all__: list[str] = ['ContoursDrawInfo', 'Cubic', 'CubicTo', 'Line', 'LineTo', 'MaterialRenderer', 'Move', 'MoveTo', 'Path', 'PathCommand', 'PathCommandKind', 'PathPoint', 'PathProperties', 'PathRenderer', 'Quad', 'QuadRenderProperties', 'QuadTo', 'ShadowProps', 'SubTexture', 'VulkanTexture']
 class ContoursDrawInfo:
     close_path: bool
     fill_color: bessplug.api.common.vec4
@@ -223,8 +223,8 @@ class QuadRenderProperties:
     borderColor: bessplug.api.common.vec4
     borderRadius: bessplug.api.common.vec4
     borderSize: bessplug.api.common.vec4
-    hasShadow: bool
     isMica: bool
+    shadow: ShadowProps
     def __init__(self) -> None:
         ...
     @property
@@ -236,6 +236,13 @@ class QuadRenderProperties:
 class QuadTo:
     c: bessplug.api.common.vec2
     p: bessplug.api.common.vec2
+    def __init__(self) -> None:
+        ...
+class ShadowProps:
+    color: bessplug.api.common.vec4
+    enabled: bool
+    offset: bessplug.api.common.vec2
+    scale: bessplug.api.common.vec2
     def __init__(self) -> None:
         ...
 class SubTexture:

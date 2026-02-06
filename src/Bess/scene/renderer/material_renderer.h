@@ -22,12 +22,19 @@ using namespace Bess::Vulkan;
 using namespace Bess::Renderer2D::Vulkan;
 namespace Bess::Renderer {
 
+    struct ShadowProps {
+        bool enabled = false;
+        glm::vec2 offset = {5.f, 5.f};
+        glm::vec2 scale = {1.f, 1.f};
+        glm::vec4 color = {0.f, 0.f, 0.f, 0.5f};
+    };
+
     struct QuadRenderProperties {
         float angle = 0.0f;
         glm::vec4 borderColor = {0.0f, 0.0f, 0.0f, 0.0f};
         glm::vec4 borderRadius = {0.0f, 0.0f, 0.0f, 0.0f};
         glm::vec4 borderSize = {0.0f, 0.0f, 0.0f, 0.0f};
-        bool hasShadow = false;
+        ShadowProps shadow;
         bool isMica = false;
     };
 

@@ -6,13 +6,21 @@
 namespace py = pybind11;
 
 void bind_material_renderer(py::module_ &m) {
+
+    py::class_<Bess::Renderer::ShadowProps>(m, "ShadowProps")
+        .def(py::init<>())
+        .def_readwrite("enabled", &Bess::Renderer::ShadowProps::enabled)
+        .def_readwrite("offset", &Bess::Renderer::ShadowProps::offset)
+        .def_readwrite("scale", &Bess::Renderer::ShadowProps::scale)
+        .def_readwrite("color", &Bess::Renderer::ShadowProps::color);
+
     py::class_<Bess::Renderer::QuadRenderProperties>(m, "QuadRenderProperties")
         .def(py::init<>())
         .def_readwrite("angle", &Bess::Renderer::QuadRenderProperties::angle)
         .def_readwrite("borderColor", &Bess::Renderer::QuadRenderProperties::borderColor)
         .def_readwrite("borderRadius", &Bess::Renderer::QuadRenderProperties::borderRadius)
         .def_readwrite("borderSize", &Bess::Renderer::QuadRenderProperties::borderSize)
-        .def_readwrite("hasShadow", &Bess::Renderer::QuadRenderProperties::hasShadow)
+        .def_readwrite("shadow", &Bess::Renderer::QuadRenderProperties::shadow)
         .def_readwrite("isMica", &Bess::Renderer::QuadRenderProperties::isMica);
 
     py::class_<Bess::Vulkan::VulkanTexture, py::smart_holder>(m, "VulkanTexture");
