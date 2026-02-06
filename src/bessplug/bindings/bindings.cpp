@@ -31,6 +31,9 @@ PYBIND11_MODULE(bessplug, m) {
     auto assetMgr = mApi.def_submodule("asset_manager", "Asset Manager bindings");
     auto uiHook = mApi.def_submodule("ui_hook", "UI Hook bindings");
 
+    // Correct order of bindings is important. So that types can be found during
+    // stubs generation, please make sure changes are made meaningfully.
+
     // Common
     bind_common_bindings(common);
 
@@ -42,9 +45,9 @@ PYBIND11_MODULE(bessplug, m) {
     // Scene
     bind_scene_state(scene);
     bind_scene_common_binding(scene);
-    bind_renderer_path(renderer);
+    bind_renderer_path(renderer); // Path class and related things
+    bind_path_renderer(renderer); // Path renderer it self.
     bind_scene_schematic_diagram(scene);
-    bind_path_renderer(renderer);
     bind_material_renderer(renderer);
     bind_scene_component(scene);
     bind_sim_comp_draw_hook(scene);
