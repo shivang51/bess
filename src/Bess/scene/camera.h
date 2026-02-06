@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+
 #include "application/types.h"
 #include "glm.hpp"
 
@@ -16,8 +18,7 @@ namespace Bess {
             }
 
             float t = currentTime / duration;
-            if (t > 1.f)
-                t = 1.f;
+            t = std::min(t, 1.f);
 
             auto pos = glm::mix(startPos, endPos, t);
             currentTime += ts;
@@ -38,8 +39,7 @@ namespace Bess {
             }
 
             float t = currentTime / duration;
-            if (t > 1.f)
-                t = 1.f;
+            t = std::min(t, 1.f);
 
             auto pos = glm::mix(startPos, endPos, t);
             auto zoom = glm::mix(startZoom, endZoom, t);

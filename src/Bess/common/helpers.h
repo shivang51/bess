@@ -1,14 +1,10 @@
 #pragma once
-#include "scene/components/non_sim_comp.h"
+#include <array>
 #include <string>
 
 namespace Bess::Common {
     class Helpers {
       public:
-        static std::string getComponentIcon(uint64_t type);
-
-        static std::string getComponentIcon(Canvas::Components::NSComponentType type);
-
         static std::string toLowerCase(const std::string &str);
 
         template <std::size_t N1, std::size_t N2>

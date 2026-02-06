@@ -15,8 +15,6 @@
 
 #include <algorithm>
 
-using namespace Bess::Canvas::Components;
-
 namespace Bess::UI {
     bool PropertiesPanel::isShown = true;
 

@@ -3,7 +3,6 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(Header_Files
-	"components/non_sim_comp.h"
 	"schematic_diagram.h"
 	"scene.h"
 	"viewport.h"
@@ -50,7 +49,6 @@ source_group("include/scene" FILES ${Header_Files})
 
 set(Source_Files
 	"schematic_diagram.cpp"
-	"components/non_sim_comp.cpp"
 	"scene_serializer.cpp"
 	"viewport.cpp"
 	"scene_state/scene_state.cpp"

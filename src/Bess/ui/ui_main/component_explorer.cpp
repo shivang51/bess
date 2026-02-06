@@ -116,9 +116,7 @@ namespace Bess::UI {
                                     .find(m_searchQuery) == std::string::npos)
                             continue;
 
-                        const std::string name = Common::Helpers::getComponentIcon(
-                                                     comp->getHash()) +
-                                                 "  " + comp->getName();
+                        const std::string &name = comp->getName();
 
                         if (Widgets::ButtonWithPopup(name, name + "OptionsMenu", false)) {
                             createComponent(comp, -1, -1);

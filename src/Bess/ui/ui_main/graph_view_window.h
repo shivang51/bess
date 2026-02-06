@@ -2,6 +2,8 @@
 
 #include "common/helpers.h"
 #include "ui/icons/CodIcons.h"
+#include <unordered_map>
+#include <vector>
 
 namespace Bess::UI {
     struct LabeledDigitalSignal {
