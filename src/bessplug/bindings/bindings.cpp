@@ -19,9 +19,15 @@ void bind_asset_manager(py::module_ &m);
 void bind_ui_hook(py::module_ &m);
 void bind_plugin(py::module_ &m);
 
+void bind_api(py::module_ &m);
+
 PYBIND11_MODULE(bessplug, m) {
     m.doc() = "BESS Python bindings";
 
+    bind_api(m);
+}
+
+void bind_api(py::module_ &m) {
     auto mApi = m.def_submodule("api", "BESS API bindings");
     auto common = mApi.def_submodule("common", "Common bindings");
     auto simEngine = mApi.def_submodule("sim_engine", "Simulation engine bindings");
