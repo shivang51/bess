@@ -135,6 +135,15 @@ namespace Bess::Canvas {
                 }
 
             } break;
+            case Bess::ApplicationEventType::KeyRelease: {
+                const auto data = event.getData<ApplicationEvent::KeyReleaseData>();
+
+                if (data.key == GLFW_KEY_LEFT_CONTROL || data.key == GLFW_KEY_RIGHT_CONTROL) {
+                    m_isCtrlPressed = false;
+                } else if (data.key == GLFW_KEY_LEFT_SHIFT || data.key == GLFW_KEY_RIGHT_SHIFT) {
+                    m_isShiftPressed = false;
+                }
+            } break;
             default:
                 break;
             }
