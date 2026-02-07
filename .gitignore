@@ -29,6 +29,7 @@ compile_commands.json
 /CMakeSettings.json
 tests_output/
 Testing/
+CMakeFiles/
 
 perf.data*
 doxygen_warnings.txt
