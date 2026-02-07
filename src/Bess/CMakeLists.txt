@@ -92,7 +92,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
 		add_custom_command(
 				TARGET ${PROJECT_NAME} POST_BUILD
 				COMMAND ${CMAKE_COMMAND} -E copy_directory
-				"${CMAKE_SOURCE_DIR}/src/bessplug/bessplug" "${BESSPLUG_DST_DIR}"
+				"${CMAKE_SOURCE_DIR}/src/bessplug/py" "${BESSPLUG_DST_DIR}"
 				COMMENT "Copying bindings to build directory"
 		)
 endif()

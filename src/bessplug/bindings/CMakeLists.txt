@@ -118,7 +118,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 
-set(OUT_DIR "${CMAKE_SOURCE_DIR}/src/bessplug/")
+set(OUT_DIR "${CMAKE_SOURCE_DIR}/src/bessplug/py/")
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${OUT_DIR}"

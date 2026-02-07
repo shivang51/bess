@@ -28,9 +28,9 @@ set(External
     ${EXT_LIB_TESS2}
 )
 
-add_library(${PROJECT_NAME} STATIC)
+add_library(${PROJECT_NAME} OBJECT)
 
-target_sources(${PROJECT_NAME} PUBLIC ${External})
+target_sources(${PROJECT_NAME} PRIVATE ${External})
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GLFW REQUIRED glfw3)
