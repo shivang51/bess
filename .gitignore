@@ -38,3 +38,5 @@ docs/html/
 __pycache__/
 *.pyc
 *.egg-info/
+
+src/bessplug/py/
