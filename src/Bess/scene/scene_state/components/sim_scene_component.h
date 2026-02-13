@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bess_uuid.h"
+#include "component_definition.h"
 #include "scene/renderer/material_renderer.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -16,7 +17,11 @@ namespace Bess::Canvas {
         SimulationSceneComponent(const SimulationSceneComponent &other) = default;
         ~SimulationSceneComponent() override = default;
 
-        static std::shared_ptr<SimulationSceneComponent> createNewAndRegister(SceneState &sceneState, UUID simEngineId);
+        // Create a new SimSceneComp
+        // [0] -> Component itself
+        // [1...] -> Created slots
+        static std::vector<std::shared_ptr<SceneComponent>> createNewAndRegister(
+            const std::shared_ptr<SimEngine::ComponentDefinition> &compDef);
 
         // Creates the slots and also add there ids inside the components
         // input slots array and output slots array
@@ -39,6 +44,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(std::vector<UUID>, OutputSlots, m_outputSlots)
         MAKE_GETTER_SETTER(std::shared_ptr<SimSceneCompDrawHook>, DrawHook, m_drawHook)
         MAKE_GETTER_SETTER(Transform, SchematicTransform, m_schematicTransform)
+        MAKE_GETTER_SETTER(std::shared_ptr<SimEngine::ComponentDefinition>, CompDef, m_compDef)
 
         size_t getInputSlotsCount() const;
         size_t getOutputSlotsCount() const;
@@ -49,6 +55,8 @@ namespace Bess::Canvas {
         void setScaleDirty();
 
         std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
+
+        void onAttach() override;
 
         void onMouseDragged(const Events::MouseDraggedEvent &e) override;
 
@@ -75,7 +83,7 @@ namespace Bess::Canvas {
                                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) override;
 
         virtual void calculateSchematicScale(SceneState &state,
-                                             std::shared_ptr<Renderer::MaterialRenderer> materialRenderer);
+                                             const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer);
 
         void onFirstDraw(SceneState &sceneState,
                          std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
@@ -96,6 +104,7 @@ namespace Bess::Canvas {
         bool m_isScaleDirty = true;
         Transform m_schematicTransform;
         std::shared_ptr<SimSceneCompDrawHook> m_drawHook = nullptr;
+        std::shared_ptr<SimEngine::ComponentDefinition> m_compDef = nullptr;
     };
 } // namespace Bess::Canvas
 

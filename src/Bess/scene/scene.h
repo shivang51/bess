@@ -73,6 +73,8 @@ namespace Bess::Canvas {
         SceneState &getState();
 
       public:
+        void addComponent(const std::shared_ptr<SceneComponent> &comp, bool setZ = true);
+
         void updateViewportTransform(const ViewportTransform &transform);
 
         const ViewportTransform &getViewportTransform() const;
@@ -95,16 +97,10 @@ namespace Bess::Canvas {
         void resize(const glm::vec2 &size);
         const glm::vec2 &getSize() const;
 
-        UUID createSimEntity(const UUID &simEngineId,
-                             const std::shared_ptr<SimEngine::ComponentDefinition> &def,
-                             const glm::vec2 &pos);
         UUID createNonSimEntity(std::type_index tIdx, const glm::vec2 &pos);
 
         void deleteSceneEntity(const UUID &entUuid);
         void deleteSelectedSceneEntities();
-
-        /// deletes entity from sim engine as well
-        void deleteEntity(const UUID &entUuid);
 
         void setZCoord(float val);
 

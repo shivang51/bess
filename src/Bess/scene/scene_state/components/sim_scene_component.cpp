@@ -326,6 +326,13 @@ namespace Bess::Canvas {
         m_isScaleDirty = true;
     }
 
+    void SimulationSceneComponent::onAttach() {
+        SceneComponent::onAttach();
+        BESS_ASSERT(m_compDef, "SimSceneComp: Component definition must be set before attaching to scene");
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+        m_simEngineId = simEngine.addComponent(m_compDef);
+    }
+
     std::vector<UUID> SimulationSceneComponent::cleanup(SceneState &state, UUID caller) {
         const auto ids = SceneComponent::cleanup(state, caller);
         auto &simEngine = SimEngine::SimulationEngine::instance();
@@ -337,7 +344,7 @@ namespace Bess::Canvas {
     }
 
     void SimulationSceneComponent::calculateSchematicScale(SceneState &state,
-                                                           std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) {
+                                                           const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer) {
         auto inpCount = m_inputSlots.size();
         auto outCount = m_outputSlots.size();
         if (inpCount != 0 &&
@@ -379,10 +386,10 @@ namespace Bess::Canvas {
         m_schematicTransform.scale = glm::round(m_schematicTransform.scale / SNAP_AMOUNT) * SNAP_AMOUNT;
     }
 
-    std::shared_ptr<SimulationSceneComponent> SimulationSceneComponent::createNewAndRegister(SceneState &sceneState, UUID simEngineId) {
-        auto &simEngine = SimEngine::SimulationEngine::instance();
-        const auto &simComp = simEngine.getDigitalComponent(simEngineId);
-        const auto &compDef = simComp->definition;
+    std::vector<std::shared_ptr<SceneComponent>>
+    SimulationSceneComponent::createNewAndRegister(const std::shared_ptr<SimEngine::ComponentDefinition> &compDef) {
+        std::vector<std::shared_ptr<SceneComponent>> createdComps;
+
         const bool isInput = compDef->getBehaviorType() == SimEngine::ComponentBehaviorType::input;
         const bool isOutput = compDef->getBehaviorType() == SimEngine::ComponentBehaviorType::output;
 
@@ -394,11 +401,10 @@ namespace Bess::Canvas {
             sceneComp = std::make_shared<SimulationSceneComponent>();
         }
 
+        createdComps.push_back(sceneComp);
+
         // setting the name before adding to scene state, so that event listeners can access it
         sceneComp->setName(compDef->getName());
-        sceneComp->setSimEngineId(simEngineId);
-
-        sceneState.addComponent<SimulationSceneComponent>(sceneComp);
 
         // style
         auto &style = sceneComp->getStyle();
@@ -431,8 +437,7 @@ namespace Bess::Canvas {
                 else
                     slot->setName(std::string(1, outCh++));
             }
-            sceneState.addComponent<SlotSceneComponent>(slot);
-            sceneState.attachChild(sceneComp->getUuid(), slot->getUuid());
+            createdComps.push_back(slot);
         }
 
         if (inpDetails.isResizeable) {
@@ -440,8 +445,7 @@ namespace Bess::Canvas {
             slot->setSlotType(SlotType::inputsResize);
             slot->setIndex(-1); // assign -1 for resize slots
             sceneComp->addInputSlot(slot->getUuid(), false);
-            sceneState.addComponent<SlotSceneComponent>(slot);
-            sceneState.attachChild(sceneComp->getUuid(), slot->getUuid());
+            createdComps.push_back(slot);
         }
 
         if (outDetails.isResizeable) {
@@ -449,11 +453,10 @@ namespace Bess::Canvas {
             slot->setSlotType(SlotType::outputsResize);
             slot->setIndex(-1); // assign -1 for resize slots
             sceneComp->addOutputSlot(slot->getUuid(), false);
-            sceneState.addComponent<SlotSceneComponent>(slot);
-            sceneState.attachChild(sceneComp->getUuid(), slot->getUuid());
+            createdComps.push_back(slot);
         }
 
-        return sceneComp;
+        return createdComps;
     }
 
     void SimulationSceneComponent::removeChildComponent(const UUID &uuid) {

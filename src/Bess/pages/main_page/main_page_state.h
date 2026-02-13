@@ -23,9 +23,7 @@ namespace Bess::Pages {
       public:
         MainPageState() = default;
 
-        Cmd::CommandSystem &getCommandSystem() {
-            return m_commandSystem;
-        }
+        Cmd::CommandSystem &getCommandSystem();
 
         void setKeyPressed(int key, bool pressed);
         bool isKeyPressed(int key);

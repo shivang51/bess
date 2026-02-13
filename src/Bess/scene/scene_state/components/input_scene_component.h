@@ -21,7 +21,7 @@ namespace Bess::Canvas {
                   std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
 
         void calculateSchematicScale(SceneState &state,
-                                     std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) override;
+                                     const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer) override;
 
         void drawToggleButton(SceneState &state,
                               const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,

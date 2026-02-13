@@ -18,7 +18,10 @@ namespace Bess::Canvas {
 
         // T: SceneComponentType = type of scene component
         template <typename T>
-        void addComponent(const std::shared_ptr<SceneComponent> &component) {
+        void addComponent(const std::shared_ptr<T> &component) {
+            static_assert(std::is_base_of<Bess::Canvas::SceneComponent, T>(),
+                          "T must be derived from SceneComponent");
+
             if (!component ||
                 m_componentsMap.contains(component->getUuid()))
                 return;
@@ -32,11 +35,14 @@ namespace Bess::Canvas {
             }
 
             if (component->getType() == SceneComponentType::simulation) {
-                auto simComp = component->cast<SimulationSceneComponent>();
+                auto simComp = component->template cast<SimulationSceneComponent>();
                 m_simEngineIdToSceneCompMap[simComp->getSimEngineId()] = id;
             }
 
             assignRuntimeId(id);
+
+            component->onAttach();
+
             EventSystem::EventDispatcher::instance().dispatch(
                 Events::ComponentAddedEvent{.uuid = id,
                                             .type = component->getType()});

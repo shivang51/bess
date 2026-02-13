@@ -33,13 +33,19 @@ namespace Bess::Cmd {
         if (!m_redoStack.empty()) {
             auto cmd = std::move(m_redoStack.top());
             m_redoStack.pop();
-            cmd->execute(mp_scene, mp_simEngine);
+            cmd->redo(mp_scene, mp_simEngine);
             m_undoStack.push(std::move(cmd));
         }
     }
 
-    void CommandSystem::push(std::unique_ptr<Command> cmd) {
-        m_undoStack.push(std::move(cmd));
+    void CommandSystem::push(std::unique_ptr<Command> cmd, bool tryMerge) {
+        if (tryMerge &&
+            !m_undoStack.empty() &&
+            m_undoStack.top()->canMergeWith(cmd.get())) {
+            m_undoStack.top()->mergeWith(cmd.get());
+        } else {
+            m_undoStack.push(std::move(cmd));
+        }
     }
 
     void CommandSystem::reset() {

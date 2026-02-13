@@ -25,7 +25,7 @@ namespace Bess::Cmd {
 
         // For commands that are already executed,
         // just want to push to undo stack without executing again
-        void push(std::unique_ptr<Command> cmd);
+        void push(std::unique_ptr<Command> cmd, bool tryMerge = true);
 
         void undo();
         void redo();

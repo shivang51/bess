@@ -316,22 +316,6 @@ namespace Bess::Canvas {
         renderer->drawQuad(glm::vec3(pos, 7.f), size, ViewportTheme::colors.selectionBoxFill, -1, props);
     }
 
-    UUID Scene::createSimEntity(const UUID &simEngineId,
-                                const std::shared_ptr<SimEngine::ComponentDefinition> &def,
-                                const glm::vec2 &pos) {
-        auto sceneComp = SimulationSceneComponent::createNewAndRegister(m_state, simEngineId);
-        sceneComp->setPosition(glm::vec3(getSnappedPos(pos), getNextZCoord()));
-        sceneComp->getSchematicTransform().position = glm::vec3(glm::vec3(getSnappedPos(pos), getNextZCoord()));
-
-        if (hasPluginDrawHookForComponentHash(def->getHash())) {
-            auto hook = getPluginDrawHookForComponentHash(def->getHash());
-            sceneComp->setDrawHook(hook);
-        }
-
-        m_lastCreatedComp = {.componentDefinition = def, .set = true};
-        return sceneComp->getUuid();
-    }
-
     UUID Scene::createNonSimEntity(std::type_index tIdx, const glm::vec2 &pos) {
         auto inst = NonSimSceneComponent::getInstance(tIdx);
         inst->setPosition(glm::vec3(getSnappedPos(pos), getNextZCoord()));
@@ -984,5 +968,13 @@ namespace Bess::Canvas {
 
     std::shared_ptr<Viewport> Scene::getViewport() {
         return m_viewport;
+    }
+
+    void Scene::addComponent(const std::shared_ptr<SceneComponent> &comp, bool setZ) {
+        if (setZ) {
+            auto &pos = comp->getTransform().position;
+            pos.z = getNextZCoord();
+        }
+        m_state.addComponent(comp);
     }
 } // namespace Bess::Canvas

@@ -110,4 +110,6 @@ namespace Bess::Canvas {
                                     .begin(),
                                 m_childComponents.end());
     }
+
+    void SceneComponent::onAttach() {}
 } // namespace Bess::Canvas

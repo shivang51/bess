@@ -93,6 +93,9 @@ namespace Bess::Canvas {
         // This must be called in the overrides as well
         virtual std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null);
 
+        // Called when component is added/attached to the scene
+        virtual void onAttach();
+
       protected:
         virtual void onNameChanged() {}
         virtual void onTransformChanged() {}

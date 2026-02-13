@@ -61,12 +61,16 @@ namespace Bess::Pages {
         glm::vec3 *posPtr = &entity->getTransform().position;
 
         if (entity) {
-            // auto cmd = std::make_unique<Cmd::UpdateVecCommand<glm::vec3>>(posPtr, e.newPos, e.oldPos);
-            // m_commandSystem.push(std::move(cmd));
+            auto cmd = std::make_unique<Cmd::UpdateVecCommand<glm::vec3>>(posPtr, e.newPos, e.oldPos);
+            m_commandSystem.push(std::move(cmd));
         }
     }
 
     SceneDriver &MainPageState::getSceneDriver() {
         return m_sceneDriver;
+    }
+
+    Cmd::CommandSystem &MainPageState::getCommandSystem() {
+        return m_commandSystem;
     }
 } // namespace Bess::Pages

@@ -4,9 +4,10 @@
 #include "component_catalog.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
-#include "scene/commands/add_command.h"
 #include "scene/scene_state/components/non_sim_scene_component.h"
+#include "scene/scene_state/components/sim_scene_component.h"
 #include "ui/widgets/m_widgets.h"
 #include <utility>
 
@@ -18,30 +19,31 @@ namespace Bess::UI {
 
     void ComponentExplorer::createComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def,
                                             int inputCount, int outputCount) {
+        auto &cmdSystem = Pages::MainPage::getTypedInstance()->getState().getCommandSystem();
         auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
-        Canvas::Commands::AddCommandData data;
-        data.def = def;
-        data.pos = scene->getCameraPos();
-        data.inputCount = inputCount;
-        data.outputCount = outputCount;
-        auto &cmdManager = scene->getCmdManager();
-        const auto res = cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{data});
-        if (!res.has_value()) {
-            BESS_ERROR("[ComponentExplorer][SimComp] Failed to execute AddCommand");
+
+        SimEngine::SimulationEngine &simEngine = SimEngine::SimulationEngine::instance();
+        auto simEngineId = simEngine.addComponent(def);
+
+        auto components = Canvas::SimulationSceneComponent::createNewAndRegister(def);
+
+        auto sceneComp = components.front()->template cast<Canvas::SimulationSceneComponent>();
+        components.erase(components.begin());
+        sceneComp->setCompDef(def->clone());
+
+        if (scene->hasPluginDrawHookForComponentHash(def->getHash())) {
+            auto hook = scene->getPluginDrawHookForComponentHash(def->getHash());
+            sceneComp->cast<Canvas::SimulationSceneComponent>()->setDrawHook(hook);
         }
+
+        cmdSystem.execute(std::make_unique<Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(sceneComp, components));
         isShown = false;
     }
 
     void ComponentExplorer::createComponent(std::type_index tIdx) {
-        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
-        Canvas::Commands::AddCommandData data;
-        data.nsComp = tIdx;
-        data.pos = scene->getCameraPos();
-        auto &cmdManager = scene->getCmdManager();
-        const auto res = cmdManager.execute<Canvas::Commands::AddCommand, std::vector<UUID>>(std::vector{data});
-        if (!res.has_value()) {
-            BESS_ERROR("[ComponentExplorer][NonSimComp] Failed to execute AddCommand");
-        }
+        auto &cmdSystem = Pages::MainPage::getTypedInstance()->getState().getCommandSystem();
+        auto inst = Canvas::NonSimSceneComponent::getInstance(tIdx);
+        cmdSystem.execute(std::make_unique<Cmd::AddCompCmd<Canvas::NonSimSceneComponent>>(inst));
         isShown = false;
     }
 

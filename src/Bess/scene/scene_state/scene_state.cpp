@@ -104,6 +104,9 @@ namespace Bess::Canvas {
         parent->addChildComponent(childId);
         child->setParentComponent(parentId);
 
+        BESS_INFO("[SceneState] Attached component {} to parent component {}",
+                  (uint64_t)childId, (uint64_t)parentId);
+
         m_rootComponents.erase(childId);
     }
 
@@ -160,6 +163,7 @@ namespace Bess::Canvas {
 
         const uint32_t runtimeId = component->getRuntimeId();
         if (runtimeId != PickingId::invalidRuntimeId) {
+            component->setRuntimeId(PickingId::invalidRuntimeId); // Don't remove this its not redundant
             m_runtimeIdMap[runtimeId] = UUID::null;
             m_freeRuntimeIds.insert(runtimeId);
         }
