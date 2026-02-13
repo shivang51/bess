@@ -65,7 +65,7 @@ namespace Bess::Canvas {
         void setScale(const glm::vec2 &scale);
 
         virtual SceneComponentType getType() const {
-            return SceneComponentType::_base;
+            return (SceneComponentType)-1;
         }
 
         template <typename T>
@@ -94,7 +94,7 @@ namespace Bess::Canvas {
         virtual std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null);
 
         // Called when component is added/attached to the scene
-        virtual void onAttach();
+        virtual void onAttach(SceneState &state);
 
       protected:
         virtual void onNameChanged() {}
@@ -137,5 +137,4 @@ REFLECT_PROPS(Bess::Canvas::SceneComponent,
               ("name", getName, setName),
               ("parentComponent", getParentComponent, setParentComponent),
               ("childComponents", getChildComponents, setChildComponents),
-              ("subType", getSubType, setSubType),
-              ("type", getType));
+              ("subType", getSubType, setSubType));

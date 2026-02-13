@@ -2,8 +2,9 @@
 
 #include "bess_uuid.h"
 #include "scene/renderer/material_renderer.h"
-#include "scene/scene_state/components/sim_scene_component.h"
 #include "scene/scene_state/scene_state.h"
+#include "scene_comp_types.h"
+#include "sim_scene_component.h"
 #include <memory>
 
 namespace Bess::Canvas {

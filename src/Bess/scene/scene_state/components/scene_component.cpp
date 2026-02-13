@@ -111,5 +111,5 @@ namespace Bess::Canvas {
                                 m_childComponents.end());
     }
 
-    void SceneComponent::onAttach() {}
+    void SceneComponent::onAttach(SceneState &state) {}
 } // namespace Bess::Canvas

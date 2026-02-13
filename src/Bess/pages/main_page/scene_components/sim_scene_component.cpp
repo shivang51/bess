@@ -1,13 +1,13 @@
-#include "scene/scene_state/components/sim_scene_component.h"
+#include "sim_scene_component.h"
 #include "bess_uuid.h"
-#include "scene/scene_state/components/input_scene_component.h"
+#include "input_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
-#include "scene/scene_state/components/slot_scene_component.h"
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
+#include "slot_scene_component.h"
 
 #include <algorithm>
 
@@ -326,8 +326,8 @@ namespace Bess::Canvas {
         m_isScaleDirty = true;
     }
 
-    void SimulationSceneComponent::onAttach() {
-        SceneComponent::onAttach();
+    void SimulationSceneComponent::onAttach(SceneState &state) {
+        SceneComponent::onAttach(state);
         BESS_ASSERT(m_compDef, "SimSceneComp: Component definition must be set before attaching to scene");
         auto &simEngine = SimEngine::SimulationEngine::instance();
         m_simEngineId = simEngine.addComponent(m_compDef);

@@ -1,4 +1,4 @@
-#include "scene/scene_state/components/non_sim_scene_component.h"
+#include "non_sim_scene_component.h"
 #include "scene/scene_state/components/styles/comp_style.h"
 #include <unordered_map>
 

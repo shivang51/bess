@@ -1,7 +1,6 @@
 #pragma once
 #include "bess_api.h"
 #include "bess_uuid.h"
-#include "commands/commands_manager.h"
 #include "digital_component.h"
 #include "net/net.h"
 #include "sim_engine_state.h"
@@ -61,8 +60,6 @@ namespace Bess::SimEngine {
 
         void clear();
 
-        Commands::CommandsManager &getCmdManager();
-
         bool updateInputCount(const UUID &uuid, int n);
 
         std::vector<std::pair<float, bool>> getStateMonitorData(UUID uuid);
@@ -110,8 +107,6 @@ namespace Bess::SimEngine {
         SimTime m_currentSimTime;
 
         SimEngineState m_simEngineState;
-
-        Commands::CommandsManager m_cmdManager;
 
         std::unordered_map<UUID, Net> m_nets;
 

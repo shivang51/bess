@@ -3,6 +3,7 @@
 #include "bess_uuid.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
+#include "scene_comp_types.h"
 #include "types.h"
 
 namespace Bess::Canvas {

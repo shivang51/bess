@@ -1,9 +1,9 @@
-#include "scene/scene_state/components/input_scene_component.h"
-#include "scene/scene_state/components/sim_scene_component.h"
+#include "input_scene_component.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
 #include "scene/scene_ui/scene_ui.h"
 #include "settings/viewport_theme.h"
+#include "sim_scene_component.h"
 #include "types.h"
 #include "ui/ui.h"
 

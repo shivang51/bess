@@ -97,8 +97,6 @@ namespace Bess::Canvas {
         void resize(const glm::vec2 &size);
         const glm::vec2 &getSize() const;
 
-        UUID createNonSimEntity(std::type_index tIdx, const glm::vec2 &pos);
-
         void deleteSceneEntity(const UUID &entUuid);
         void deleteSelectedSceneEntities();
 

@@ -51,8 +51,8 @@ namespace Bess::Canvas::Commands {
 
     std::any DeleteCompCommand::undo() {
         if (!m_simEngineComps.empty()) {
-            auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
-            cmdMngr.undo();
+            // auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
+            // cmdMngr.undo();
         }
 
         SceneSerializer ser;

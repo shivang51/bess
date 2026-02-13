@@ -1,12 +1,11 @@
-#include "scene/scene_state/components/slot_scene_component.h"
-#include "commands/commands.h"
-#include "scene/scene_state/components/conn_joint_scene_component.h"
-#include "scene/scene_state/components/connection_scene_component.h"
+#include "slot_scene_component.h"
+#include "conn_joint_scene_component.h"
+#include "connection_scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
-#include "scene/scene_state/components/sim_scene_component.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
+#include "sim_scene_component.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
 
@@ -252,7 +251,6 @@ namespace Bess::Canvas {
             startSlot = e.sceneState->getComponentByUuid<SlotSceneComponent>(connStartSlot);
         }
         auto endSlot = e.sceneState->getComponentByUuid<SlotSceneComponent>(m_uuid);
-        auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
 
         if (startSlot->getSlotType() == SlotType::inputsResize ||
             startSlot->getSlotType() == SlotType::outputsResize) {
@@ -369,19 +367,7 @@ namespace Bess::Canvas {
                                     ? SimEngine::SlotType::digitalInput
                                     : SimEngine::SlotType::digitalOutput;
 
-        const auto res = cmdMngr.execute<SimEngine::Commands::ConnectCommand,
-                                         std::string>(startParent->getSimEngineId(), startSlot->getIndex(), startPinType,
-                                                      endParent->getSimEngineId(), endSlot->getIndex(), endPinType);
-
-        if (!res.has_value()) {
-            BESS_WARN("[Scene] Failed to create connection between slots, {}", res.error());
-            connStartSlot = UUID::null;
-            return;
-        }
-
         auto conn = std::make_shared<ConnectionSceneComponent>();
-        e.sceneState->addComponent<ConnectionSceneComponent>(conn);
-
         UUID starSlotUuid = jointComp ? jointComp->getUuid() : startSlot->getUuid();
 
         conn->setStartEndSlots(starSlotUuid, endSlot->getUuid());
@@ -393,6 +379,8 @@ namespace Bess::Canvas {
         }
 
         endSlot->addConnection(conn->getUuid());
+
+        e.sceneState->addComponent<ConnectionSceneComponent>(conn);
 
         BESS_INFO("[Scene] Created connection {} between slots {} and {}",
                   (uint64_t)conn->getUuid(),

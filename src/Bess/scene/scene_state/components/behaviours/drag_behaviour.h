@@ -5,14 +5,22 @@
 
 namespace Bess::Canvas {
     constexpr float SNAP_ANOUNT = 2.f;
+
+    class IDragBehaviour {
+      public:
+        virtual ~IDragBehaviour() = default;
+        virtual void onMouseDragged(const Events::MouseDraggedEvent &e) = 0;
+        virtual void onMouseDragEnd() = 0;
+    };
+
     template <typename Derived>
-    class DragBehaviour {
+    class DragBehaviour : public IDragBehaviour {
       public:
         DragBehaviour() {
             initDragBehaviour();
         }
 
-        virtual void onMouseDragged(const Events::MouseDraggedEvent &e) {
+        void onMouseDragged(const Events::MouseDraggedEvent &e) override {
             if (!m_isDragging) {
                 onMouseDragBegin(e);
             }
@@ -22,7 +30,7 @@ namespace Bess::Canvas {
             self.setPosition(glm::vec3(newPos, self.getTransform().position.z));
         }
 
-        void onMouseDragEnd() {
+        void onMouseDragEnd() override {
             m_isDragging = false;
             auto &self = static_cast<Derived &>(*this);
             EventSystem::EventDispatcher::instance().dispatch(Events::EntityMovedEvent{

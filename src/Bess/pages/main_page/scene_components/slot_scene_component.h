@@ -5,6 +5,7 @@
 #include "scene/renderer/material_renderer.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/scene_component.h"
+#include "scene_comp_types.h"
 #include "types.h"
 
 namespace Bess::Canvas {

@@ -28,8 +28,8 @@ namespace Bess::Canvas::Commands {
     }
 
     std::any SetInputCommand::undo() {
-        auto &simCmdManager = SimEngine::SimulationEngine::instance().getCmdManager();
-        simCmdManager.undo();
+        // auto &simCmdManager = SimEngine::SimulationEngine::instance().getCmdManager();
+        // simCmdManager.undo();
         m_redo = true;
         return {};
     }

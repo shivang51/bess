@@ -1,13 +1,13 @@
-#include "scene/scene_state/components/conn_joint_scene_component.h"
+#include "conn_joint_scene_component.h"
 #include "bess_uuid.h"
-#include "commands/commands.h"
+#include "connection_scene_component.h"
 #include "geometric.hpp"
-#include "scene/scene_state/components/connection_scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
-#include "simulation_engine.h"
+#include "sim_scene_component.h"
+#include "slot_scene_component.h"
 #include "types.h"
 #include "ui/ui.h"
 
@@ -196,19 +196,19 @@ namespace Bess::Canvas {
                                     ? SimEngine::SlotType::digitalInput
                                     : SimEngine::SlotType::digitalOutput;
 
-        auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
-        const auto res = cmdMngr.execute<SimEngine::Commands::ConnectCommand,
-                                         std::string>(startParent->getSimEngineId(),
-                                                      startSlot->getIndex(),
-                                                      startPinType,
-                                                      endParent->getSimEngineId(),
-                                                      endSlot->getIndex(),
-                                                      endPinType);
-
-        if (!res.has_value()) {
-            BESS_WARN("[Scene] Failed to create connection between slots, {}", res.error());
-            return false;
-        }
+        // auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
+        // const auto res = cmdMngr.execute<SimEngine::Commands::ConnectCommand,
+        //                                  std::string>(startParent->getSimEngineId(),
+        //                                               startSlot->getIndex(),
+        //                                               startPinType,
+        //                                               endParent->getSimEngineId(),
+        //                                               endSlot->getIndex(),
+        //                                               endPinType);
+        //
+        // if (!res.has_value()) {
+        //     BESS_WARN("[Scene] Failed to create connection between slots, {}", res.error());
+        //     return false;
+        // }
 
         auto conn = std::make_shared<ConnectionSceneComponent>();
         sceneState.addComponent<ConnectionSceneComponent>(conn);

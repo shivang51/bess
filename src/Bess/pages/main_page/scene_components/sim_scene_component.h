@@ -7,7 +7,8 @@
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/sim_scene_comp_draw_hook.h"
-#include "scene/scene_state/components/slot_scene_component.h"
+#include "scene_comp_types.h"
+#include "slot_scene_component.h"
 
 namespace Bess::Canvas {
     class SimulationSceneComponent : public SceneComponent,
@@ -56,7 +57,7 @@ namespace Bess::Canvas {
 
         std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
 
-        void onAttach() override;
+        void onAttach(SceneState &state) override;
 
         void onMouseDragged(const Events::MouseDraggedEvent &e) override;
 

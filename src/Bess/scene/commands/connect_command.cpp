@@ -16,7 +16,7 @@ namespace Bess::Canvas::Commands {
     bool ConnectCommand::execute() {
         if (m_delete)
             return false;
-        auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
+        // auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
 
         // if (!m_redo) {
         //     auto &registry = Scene::instance()->getEnttRegistry();
@@ -65,8 +65,8 @@ namespace Bess::Canvas::Commands {
     }
 
     std::any ConnectCommand::undo() {
-        auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
-        cmdMngr.undo();
+        // auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
+        // cmdMngr.undo();
 
         m_json.clear();
         SceneSerializer ser;

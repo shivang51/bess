@@ -1,11 +1,6 @@
 #include "scene/scene_state/scene_state.h"
 #include "bess_uuid.h"
-#include "scene/scene_state/components/conn_joint_scene_component.h"
-#include "scene/scene_state/components/connection_scene_component.h"
-#include "scene/scene_state/components/input_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
-#include "scene/scene_state/components/sim_scene_component.h"
-#include "scene/scene_state/components/slot_scene_component.h"
 #include <cstdint>
 #include <memory>
 
@@ -13,11 +8,9 @@ namespace Bess::Canvas {
     void SceneState::clear() {
         m_runtimeIdMap.clear();
         m_componentsMap.clear();
-        m_typeToUuidsMap.clear();
         m_rootComponents.clear();
         m_freeRuntimeIds.clear();
         m_selectedComponents.clear();
-        m_simEngineIdToSceneCompMap.clear();
     }
 
     std::shared_ptr<SceneComponent> SceneState::getComponentByUuid(const UUID &uuid) const {
@@ -25,12 +18,6 @@ namespace Bess::Canvas {
             return m_componentsMap.at(uuid);
         }
         return nullptr;
-    }
-
-    const std::vector<UUID> &SceneState::getComponentsByType(SceneComponentType type) const {
-        static const std::vector<UUID> empty;
-        auto it = m_typeToUuidsMap.find(type);
-        return it != m_typeToUuidsMap.end() ? it->second : empty;
     }
 
     const std::unordered_map<UUID, std::shared_ptr<SceneComponent>> &SceneState::getAllComponents() const {
@@ -170,9 +157,6 @@ namespace Bess::Canvas {
 
         removeSelectedComponent(uuid);
 
-        auto &typeVec = m_typeToUuidsMap[component->getType()];
-        typeVec.erase(std::ranges::remove(typeVec, uuid).begin(), typeVec.end());
-
         if (component->getParentComponent() == UUID::null) {
             m_rootComponents.erase(uuid);
         }
@@ -202,33 +186,35 @@ namespace Bess::JsonConvert {
         for (const auto &[uuid, component] : state.getAllComponents()) {
             j["components"].append(Json::Value());
             auto &compJson = j["components"][static_cast<int>(j["components"].size() - 1)];
-            switch (component->getType()) {
-            case Canvas::SceneComponentType::simulation: {
-                if (component->getSubType() == Canvas::InputSceneComponent::subType) {
-                    toJsonValue(*component->cast<Canvas::InputSceneComponent>(), compJson);
-                } else {
-                    toJsonValue(*component->cast<Canvas::SimulationSceneComponent>(),
-                                compJson);
-                }
-                break;
-            }
-            case Canvas::SceneComponentType::slot: {
-                toJsonValue(*component->cast<Canvas::SlotSceneComponent>(), compJson);
-                break;
-            }
-            case Canvas::SceneComponentType::connJoint: {
-                toJsonValue(*component->cast<Canvas::ConnJointSceneComp>(), compJson);
-                break;
-            }
-            case Canvas::SceneComponentType::connection: {
-                toJsonValue(*component->cast<Canvas::ConnectionSceneComponent>(), compJson);
-                break;
-            }
-            default: {
-                toJsonValue(*component, compJson);
-                break;
-            }
-            }
+
+            toJsonValue(*component, compJson);
+            // switch (component->getType()) {
+            // case Canvas::SceneComponentType::simulation: {
+            //     if (component->getSubType() == Canvas::InputSceneComponent::subType) {
+            //         toJsonValue(*component->cast<Canvas::InputSceneComponent>(), compJson);
+            //     } else {
+            //         toJsonValue(*component->cast<Canvas::SimulationSceneComponent>(),
+            //                     compJson);
+            //     }
+            //     break;
+            // }
+            // case Canvas::SceneComponentType::slot: {
+            //     toJsonValue(*component->cast<Canvas::SlotSceneComponent>(), compJson);
+            //     break;
+            // }
+            // case Canvas::SceneComponentType::connJoint: {
+            //     toJsonValue(*component->cast<Canvas::ConnJointSceneComp>(), compJson);
+            //     break;
+            // }
+            // case Canvas::SceneComponentType::connection: {
+            //     toJsonValue(*component->cast<Canvas::ConnectionSceneComponent>(), compJson);
+            //     break;
+            // }
+            // default: {
+            //     toJsonValue(*component, compJson);
+            //     break;
+            // }
+            // }
         }
     }
 
@@ -247,53 +233,53 @@ namespace Bess::JsonConvert {
             Canvas::SceneComponentType type =
                 static_cast<Canvas::SceneComponentType>(compJson["type"].asInt());
 
-            switch (type) {
-            case Canvas::SceneComponentType::simulation: {
-                std::string subType;
-                if (compJson.isMember("subType")) {
-                    subType = compJson["subType"].asString();
-                }
-                if (subType == Canvas::InputSceneComponent::subType) {
-                    Canvas::InputSceneComponent inputComp;
-                    fromJsonValue(compJson, inputComp);
-                    state.addComponent<Canvas::InputSceneComponent>(
-                        std::make_shared<Canvas::InputSceneComponent>(inputComp));
-                } else {
-                    Canvas::SimulationSceneComponent simComp;
-                    fromJsonValue(compJson, simComp);
-                    state.addComponent<Canvas::SimulationSceneComponent>(
-                        std::make_shared<Canvas::SimulationSceneComponent>(simComp));
-                }
-                break;
-            }
-            case Canvas::SceneComponentType::slot: {
-                Canvas::SlotSceneComponent slotComp;
-                fromJsonValue(compJson, slotComp);
-                state.addComponent<Canvas::SlotSceneComponent>(
-                    std::make_shared<Canvas::SlotSceneComponent>(slotComp));
-                break;
-            }
-            case Canvas::SceneComponentType::connJoint: {
-                Canvas::ConnJointSceneComp connJointComp;
-                fromJsonValue(compJson, connJointComp);
-                state.addComponent<Canvas::ConnJointSceneComp>(
-                    std::make_shared<Canvas::ConnJointSceneComp>(connJointComp));
-                break;
-            }
-            case Canvas::SceneComponentType::connection: {
-                Canvas::ConnectionSceneComponent connComp;
-                fromJsonValue(compJson, connComp);
-                state.addComponent<Canvas::ConnectionSceneComponent>(
-                    std::make_shared<Canvas::ConnectionSceneComponent>(connComp));
-                break;
-            }
-            default: {
-                Canvas::SceneComponent baseComp;
-                fromJsonValue(compJson, baseComp);
-                state.addComponent<Canvas::SceneComponent>(std::make_shared<Canvas::SceneComponent>(baseComp));
-                break;
-            }
-            }
+            // switch (type) {
+            // case Canvas::SceneComponentType::simulation: {
+            //     std::string subType;
+            //     if (compJson.isMember("subType")) {
+            //         subType = compJson["subType"].asString();
+            //     }
+            //     if (subType == Canvas::InputSceneComponent::subType) {
+            //         Canvas::InputSceneComponent inputComp;
+            //         fromJsonValue(compJson, inputComp);
+            //         state.addComponent<Canvas::InputSceneComponent>(
+            //             std::make_shared<Canvas::InputSceneComponent>(inputComp));
+            //     } else {
+            //         Canvas::SimulationSceneComponent simComp;
+            //         fromJsonValue(compJson, simComp);
+            //         state.addComponent<Canvas::SimulationSceneComponent>(
+            //             std::make_shared<Canvas::SimulationSceneComponent>(simComp));
+            //     }
+            //     break;
+            // }
+            // case Canvas::SceneComponentType::slot: {
+            //     Canvas::SlotSceneComponent slotComp;
+            //     fromJsonValue(compJson, slotComp);
+            //     state.addComponent<Canvas::SlotSceneComponent>(
+            //         std::make_shared<Canvas::SlotSceneComponent>(slotComp));
+            //     break;
+            // }
+            // case Canvas::SceneComponentType::connJoint: {
+            //     Canvas::ConnJointSceneComp connJointComp;
+            //     fromJsonValue(compJson, connJointComp);
+            //     state.addComponent<Canvas::ConnJointSceneComp>(
+            //         std::make_shared<Canvas::ConnJointSceneComp>(connJointComp));
+            //     break;
+            // }
+            // case Canvas::SceneComponentType::connection: {
+            //     Canvas::ConnectionSceneComponent connComp;
+            //     fromJsonValue(compJson, connComp);
+            //     state.addComponent<Canvas::ConnectionSceneComponent>(
+            //         std::make_shared<Canvas::ConnectionSceneComponent>(connComp));
+            //     break;
+            // }
+            // default: {
+            //     Canvas::SceneComponent baseComp;
+            //     fromJsonValue(compJson, baseComp);
+            //     state.addComponent<Canvas::SceneComponent>(std::make_shared<Canvas::SceneComponent>(baseComp));
+            //     break;
+            // }
+            // }
         }
     }
 

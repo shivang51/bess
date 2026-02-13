@@ -3,6 +3,7 @@
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/scene_state.h"
+#include "scene_comp_types.h"
 #include "settings/viewport_theme.h"
 #include "ui/ui_hook.h"
 #include <typeindex>

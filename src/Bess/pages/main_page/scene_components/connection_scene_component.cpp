@@ -1,17 +1,18 @@
-#include "scene/scene_state/components/connection_scene_component.h"
+#include "connection_scene_component.h"
 #include "bess_uuid.h"
 #include "commands/commands.h"
 #include "common/log.h"
+#include "conn_joint_scene_component.h"
 #include "event_dispatcher.h"
 #include "fwd.hpp"
-#include "scene/scene_state/components/conn_joint_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
-#include "scene/scene_state/components/slot_scene_component.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
+#include "sim_scene_component.h"
 #include "simulation_engine.h"
+#include "slot_scene_component.h"
 #include "types.h"
 #include "ui/ui.h"
 #include <cstdint>
@@ -377,14 +378,13 @@ namespace Bess::Canvas {
                                       ? SimEngine::SlotType::digitalInput
                                       : SimEngine::SlotType::digitalOutput;
 
-            SimEngine::Commands::DelConnectionCommandData data = {simCompA->getSimEngineId(),
-                                                                  (uint32_t)slotCompA->getIndex(), pinTypeA,
-                                                                  simCompB->getSimEngineId(),
-                                                                  (uint32_t)slotCompB->getIndex(), pinTypeB};
+            SimEngine::Commands::DelConnectionCommandData data = {};
 
-            auto &cmdMngr = simEngine.getCmdManager();
-            auto _ = cmdMngr.execute<SimEngine::Commands::DelConnectionCommand,
-                                     std::string>(std::vector{data});
+            simEngine.deleteConnection(simCompA->getSimEngineId(), pinTypeA,
+                                       slotCompA->getIndex(),
+                                       simCompB->getSimEngineId(),
+                                       pinTypeB,
+                                       slotCompB->getIndex());
         }
 
         if (m_startSlot != caller) {
@@ -564,5 +564,58 @@ namespace Bess::Canvas {
                                                      jointId)
                                      .begin(),
                                  m_associatedJoints.end());
+    }
+
+    void ConnectionSceneComponent::onAttach(SceneState &sceneState) {
+        auto startSlot = sceneState.getComponentByUuid(m_startSlot);
+        auto endSlot = sceneState.getComponentByUuid(m_endSlot);
+
+        const auto startParent = sceneState.getComponentByUuid<
+            SimulationSceneComponent>(startSlot->getParentComponent());
+        const auto endParent = sceneState.getComponentByUuid<
+            SimulationSceneComponent>(endSlot->getParentComponent());
+
+        SimEngine::SlotType startPinType{}, endPinType{};
+        int startSlotIdx = -1, endSlotIdx = -1;
+
+        if (startSlot->getType() == SceneComponentType::connJoint) {
+            endPinType = SimEngine::SlotType::digitalInput;
+            startPinType = SimEngine::SlotType::digitalOutput;
+            auto outSlotId = sceneState.getComponentByUuid<ConnJointSceneComp>(m_startSlot)->getOutputSlotId();
+
+            auto startSlot = sceneState.getComponentByUuid<SlotSceneComponent>(outSlotId);
+            startSlotIdx = startSlot->getIndex();
+
+            auto endSlot = sceneState.getComponentByUuid<SlotSceneComponent>(m_endSlot);
+            endSlotIdx = endSlot->getIndex();
+        } else if (endSlot->getType() == SceneComponentType::connJoint) {
+            startPinType = SimEngine::SlotType::digitalInput;
+            endPinType = SimEngine::SlotType::digitalOutput;
+
+            auto outSlotId = sceneState.getComponentByUuid<ConnJointSceneComp>(m_endSlot)->getOutputSlotId();
+            auto endSlot = sceneState.getComponentByUuid<SlotSceneComponent>(outSlotId);
+            endSlotIdx = endSlot->getIndex();
+
+            auto startSlot = sceneState.getComponentByUuid<SlotSceneComponent>(m_startSlot);
+            startSlotIdx = startSlot->getIndex();
+        } else {
+            startPinType = startSlot->cast<SlotSceneComponent>()->getSlotType() == SlotType::digitalInput
+                               ? SimEngine::SlotType::digitalInput
+                               : SimEngine::SlotType::digitalOutput;
+
+            endPinType = endSlot->cast<SlotSceneComponent>()->getSlotType() == SlotType::digitalInput
+                             ? SimEngine::SlotType::digitalInput
+                             : SimEngine::SlotType::digitalOutput;
+
+            auto startSlot = sceneState.getComponentByUuid<SlotSceneComponent>(m_startSlot);
+            auto endSlot = sceneState.getComponentByUuid<SlotSceneComponent>(m_endSlot);
+
+            startSlotIdx = startSlot->getIndex();
+            endSlotIdx = endSlot->getIndex();
+        }
+
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+        simEngine.connectComponent(startParent->getSimEngineId(), startSlotIdx, startPinType,
+                                   endParent->getSimEngineId(), endSlotIdx, endPinType);
     }
 } // namespace Bess::Canvas

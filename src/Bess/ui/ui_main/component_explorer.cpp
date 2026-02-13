@@ -1,13 +1,12 @@
 #include "ui/ui_main/component_explorer.h"
 #include "common/helpers.h"
-#include "common/log.h"
 #include "component_catalog.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
-#include "scene/scene_state/components/non_sim_scene_component.h"
-#include "scene/scene_state/components/sim_scene_component.h"
+#include "pages/main_page/scene_components/non_sim_scene_component.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
 #include "ui/widgets/m_widgets.h"
 #include <utility>
 

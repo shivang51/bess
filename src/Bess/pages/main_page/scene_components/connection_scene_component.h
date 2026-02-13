@@ -7,7 +7,7 @@
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/scene_state.h"
-#include "scene_component_types.h"
+#include "scene_comp_types.h"
 
 namespace Bess::Canvas {
 
@@ -34,6 +34,8 @@ namespace Bess::Canvas {
         void onMouseLeave(const Events::MouseLeaveEvent &e) override;
 
         void onMouseButton(const Events::MouseButtonEvent &e) override;
+
+        void onAttach(SceneState &sceneState) override;
 
         REG_SCENE_COMP(SceneComponentType::connection)
 

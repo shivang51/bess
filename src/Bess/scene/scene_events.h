@@ -1,11 +1,11 @@
 #pragma once
 #include "bess_uuid.h"
-#include "scene/scene_state/components/scene_component_types.h"
 #include <cstdint>
 #include <glm.hpp>
 
 namespace Bess::Canvas {
     class SceneState;
+    enum class SceneComponentType : int8_t;
 } // namespace Bess::Canvas
 
 namespace Bess::Canvas::Events {

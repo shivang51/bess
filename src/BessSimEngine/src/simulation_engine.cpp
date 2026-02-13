@@ -80,7 +80,6 @@ namespace Bess::SimEngine {
 
         Plugins::restorePyThreadState();
         ComponentCatalog::instance().destroy();
-        m_cmdManager.clearStacks();
 
         m_destroyed = true;
         m_simEngineState.reset();
@@ -712,10 +711,6 @@ namespace Bess::SimEngine {
                 m_queueCV.notify_all();
             }
         }
-    }
-
-    Commands::CommandsManager &SimulationEngine::getCmdManager() {
-        return m_cmdManager;
     }
 
     bool SimulationEngine::updateInputCount(const UUID &uuid, int n) {

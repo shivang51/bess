@@ -2,9 +2,6 @@
 #include "bess_uuid.h"
 #include "commands/commands.h"
 #include "scene/scene.h"
-#include "scene/scene_state/components/connection_scene_component.h"
-#include "scene/scene_state/components/sim_scene_component.h"
-#include "scene/scene_state/components/slot_scene_component.h"
 #include "simulation_engine.h"
 #include "json/value.h"
 #include <cstdint>
