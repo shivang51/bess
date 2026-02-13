@@ -2,6 +2,8 @@
 #include "bess_uuid.h"
 #include "connection_scene_component.h"
 #include "geometric.hpp"
+#include "pages/main_page/cmds/add_comp_cmd.h"
+#include "pages/main_page/main_page.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
@@ -196,26 +198,14 @@ namespace Bess::Canvas {
                                     ? SimEngine::SlotType::digitalInput
                                     : SimEngine::SlotType::digitalOutput;
 
-        // auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
-        // const auto res = cmdMngr.execute<SimEngine::Commands::ConnectCommand,
-        //                                  std::string>(startParent->getSimEngineId(),
-        //                                               startSlot->getIndex(),
-        //                                               startPinType,
-        //                                               endParent->getSimEngineId(),
-        //                                               endSlot->getIndex(),
-        //                                               endPinType);
-        //
-        // if (!res.has_value()) {
-        //     BESS_WARN("[Scene] Failed to create connection between slots, {}", res.error());
-        //     return false;
-        // }
-
         auto conn = std::make_shared<ConnectionSceneComponent>();
-        sceneState.addComponent<ConnectionSceneComponent>(conn);
         conn->setInitialSegmentCount(2);
         conn->setStartEndSlots(startSlot->getUuid(), endComp->getUuid());
         startSlot->addConnection(conn->getUuid());
         endComp->addConnection(conn->getUuid());
+
+        auto &cmdManager = Pages::MainPage::getTypedInstance()->getState().getCommandSystem();
+        cmdManager.execute(std::make_unique<Cmd::AddCompCmd<ConnectionSceneComponent>>(conn));
 
         BESS_INFO("[Scene] Created connection {} between slots {} and {}",
                   (uint64_t)conn->getUuid(),

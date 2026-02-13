@@ -1,6 +1,8 @@
 #include "slot_scene_component.h"
 #include "conn_joint_scene_component.h"
 #include "connection_scene_component.h"
+#include "pages/main_page/cmds/add_comp_cmd.h"
+#include "pages/main_page/main_page.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
@@ -380,7 +382,8 @@ namespace Bess::Canvas {
 
         endSlot->addConnection(conn->getUuid());
 
-        e.sceneState->addComponent<ConnectionSceneComponent>(conn);
+        auto &cmdManager = Pages::MainPage::getTypedInstance()->getState().getCommandSystem();
+        cmdManager.execute(std::make_unique<Cmd::AddCompCmd<ConnectionSceneComponent>>(conn));
 
         BESS_INFO("[Scene] Created connection {} between slots {} and {}",
                   (uint64_t)conn->getUuid(),

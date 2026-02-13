@@ -5,6 +5,8 @@
 #include "conn_joint_scene_component.h"
 #include "event_dispatcher.h"
 #include "fwd.hpp"
+#include "pages/main_page/cmds/add_comp_cmd.h"
+#include "pages/main_page/main_page.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
@@ -452,7 +454,6 @@ namespace Bess::Canvas {
                 jointComp->setOutputSlotId(endComp->getUuid());
             }
 
-            e.sceneState->addComponent<ConnJointSceneComp>(jointComp);
             m_associatedJoints.emplace_back(jointComp->getUuid());
             BESS_INFO("[Scene] Created joint component {}", (uint64_t)jointComp->getUuid());
 
@@ -468,7 +469,11 @@ namespace Bess::Canvas {
             jointComp->setSegOffset(t);
 
             // connect with start slot
+            auto &cmdManager = Pages::MainPage::getTypedInstance()->getState().getCommandSystem();
+            cmdManager.execute(std::make_unique<Cmd::AddCompCmd<ConnJointSceneComp>>(jointComp));
+
             jointComp->connectWith(*e.sceneState, e.sceneState->getConnectionStartSlot());
+
             e.sceneState->setConnectionStartSlot(UUID::null);
             return;
         }
@@ -567,54 +572,62 @@ namespace Bess::Canvas {
     }
 
     void ConnectionSceneComponent::onAttach(SceneState &sceneState) {
-        auto startSlot = sceneState.getComponentByUuid(m_startSlot);
-        auto endSlot = sceneState.getComponentByUuid(m_endSlot);
+        auto startComp = sceneState.getComponentByUuid(m_startSlot);
+        auto endComp = sceneState.getComponentByUuid(m_endSlot);
+
+        std::shared_ptr<SlotSceneComponent> startSlot = nullptr;
+        std::shared_ptr<SlotSceneComponent> endSlot = nullptr;
+
+        SimEngine::SlotType startPinType{}, endPinType{};
+        int startSlotIdx = -1, endSlotIdx = -1;
+
+        if (startComp->getType() == SceneComponentType::connJoint) {
+            endPinType = SimEngine::SlotType::digitalInput;
+            startPinType = SimEngine::SlotType::digitalOutput;
+            auto outSlotId = sceneState.getComponentByUuid<ConnJointSceneComp>(m_startSlot)->getOutputSlotId();
+
+            startSlot = sceneState.getComponentByUuid<SlotSceneComponent>(outSlotId);
+            startSlotIdx = startSlot->getIndex();
+
+            endSlot = sceneState.getComponentByUuid<SlotSceneComponent>(m_endSlot);
+            endSlotIdx = endSlot->getIndex();
+        } else if (endComp->getType() == SceneComponentType::connJoint) {
+            startPinType = SimEngine::SlotType::digitalInput;
+            endPinType = SimEngine::SlotType::digitalOutput;
+
+            auto outSlotId = sceneState.getComponentByUuid<ConnJointSceneComp>(m_endSlot)->getOutputSlotId();
+            endSlot = sceneState.getComponentByUuid<SlotSceneComponent>(outSlotId);
+            endSlotIdx = endSlot->getIndex();
+
+            startSlot = sceneState.getComponentByUuid<SlotSceneComponent>(m_startSlot);
+            startSlotIdx = startSlot->getIndex();
+        } else {
+            startPinType = startComp->cast<SlotSceneComponent>()->getSlotType() == SlotType::digitalInput
+                               ? SimEngine::SlotType::digitalInput
+                               : SimEngine::SlotType::digitalOutput;
+
+            endPinType = endComp->cast<SlotSceneComponent>()->getSlotType() == SlotType::digitalInput
+                             ? SimEngine::SlotType::digitalInput
+                             : SimEngine::SlotType::digitalOutput;
+
+            startSlot = sceneState.getComponentByUuid<SlotSceneComponent>(m_startSlot);
+            endSlot = sceneState.getComponentByUuid<SlotSceneComponent>(m_endSlot);
+
+            startSlotIdx = startSlot->getIndex();
+            endSlotIdx = endSlot->getIndex();
+        }
 
         const auto startParent = sceneState.getComponentByUuid<
             SimulationSceneComponent>(startSlot->getParentComponent());
         const auto endParent = sceneState.getComponentByUuid<
             SimulationSceneComponent>(endSlot->getParentComponent());
 
-        SimEngine::SlotType startPinType{}, endPinType{};
-        int startSlotIdx = -1, endSlotIdx = -1;
-
-        if (startSlot->getType() == SceneComponentType::connJoint) {
-            endPinType = SimEngine::SlotType::digitalInput;
-            startPinType = SimEngine::SlotType::digitalOutput;
-            auto outSlotId = sceneState.getComponentByUuid<ConnJointSceneComp>(m_startSlot)->getOutputSlotId();
-
-            auto startSlot = sceneState.getComponentByUuid<SlotSceneComponent>(outSlotId);
-            startSlotIdx = startSlot->getIndex();
-
-            auto endSlot = sceneState.getComponentByUuid<SlotSceneComponent>(m_endSlot);
-            endSlotIdx = endSlot->getIndex();
-        } else if (endSlot->getType() == SceneComponentType::connJoint) {
-            startPinType = SimEngine::SlotType::digitalInput;
-            endPinType = SimEngine::SlotType::digitalOutput;
-
-            auto outSlotId = sceneState.getComponentByUuid<ConnJointSceneComp>(m_endSlot)->getOutputSlotId();
-            auto endSlot = sceneState.getComponentByUuid<SlotSceneComponent>(outSlotId);
-            endSlotIdx = endSlot->getIndex();
-
-            auto startSlot = sceneState.getComponentByUuid<SlotSceneComponent>(m_startSlot);
-            startSlotIdx = startSlot->getIndex();
-        } else {
-            startPinType = startSlot->cast<SlotSceneComponent>()->getSlotType() == SlotType::digitalInput
-                               ? SimEngine::SlotType::digitalInput
-                               : SimEngine::SlotType::digitalOutput;
-
-            endPinType = endSlot->cast<SlotSceneComponent>()->getSlotType() == SlotType::digitalInput
-                             ? SimEngine::SlotType::digitalInput
-                             : SimEngine::SlotType::digitalOutput;
-
-            auto startSlot = sceneState.getComponentByUuid<SlotSceneComponent>(m_startSlot);
-            auto endSlot = sceneState.getComponentByUuid<SlotSceneComponent>(m_endSlot);
-
-            startSlotIdx = startSlot->getIndex();
-            endSlotIdx = endSlot->getIndex();
-        }
-
         auto &simEngine = SimEngine::SimulationEngine::instance();
+        BESS_ASSERT(startParent->getSimEngineId() != UUID::null,
+                    "Start parent component does not have a valid simulation engine ID");
+
+        BESS_ASSERT(endParent->getSimEngineId() != UUID::null,
+                    "End parent component does not have a valid simulation engine ID");
         simEngine.connectComponent(startParent->getSimEngineId(), startSlotIdx, startPinType,
                                    endParent->getSimEngineId(), endSlotIdx, endPinType);
     }
