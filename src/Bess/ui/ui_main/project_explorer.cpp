@@ -3,10 +3,10 @@
 #include "event_dispatcher.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "pages/main_page/main_page.h"
 #include "scene/commands/create_group_command.h"
 #include "scene/commands/delete_node_command.h"
 #include "scene/commands/reparent_node_command.h"
-#include "scene/scene.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/sim_scene_component.h"
 #include "settings/viewport_theme.h"
@@ -46,8 +46,7 @@ namespace Bess::UI {
             return;
         }
 
-        auto scene = Bess::Canvas::Scene::instance();
-        const auto &sceneState = scene->getState();
+        auto &sceneState = Pages::MainPage::getTypedInstance()->getState().getSceneDriver()->getState();
         const auto &comp = sceneState.getComponentByUuid(e.uuid);
 
         auto node = std::make_shared<UI::ProjectExplorerNode>();
@@ -73,8 +72,7 @@ namespace Bess::UI {
     int ProjectExplorer::lastSelectedIndex = -1;
 
     void ProjectExplorer::clearAllSelections() {
-        auto scene = Bess::Canvas::Scene::instance();
-        auto &sceneState = scene->getState();
+        auto &sceneState = Pages::MainPage::getTypedInstance()->getState().getSceneDriver()->getState();
 
         sceneState.clearSelectedComponents();
 
@@ -92,8 +90,7 @@ namespace Bess::UI {
     }
 
     void ProjectExplorer::selectRange(int start, int end) {
-        auto scene = Bess::Canvas::Scene::instance();
-        auto &sceneState = scene->getState();
+        auto &sceneState = Pages::MainPage::getTypedInstance()->getState().getSceneDriver()->getState();
 
         clearAllSelections();
 
@@ -120,9 +117,7 @@ namespace Bess::UI {
         constexpr auto treeIcon = Icons::CodIcons::FOLDER;
         constexpr auto nodePopupName = "node_popup";
 
-        auto scene = Bess::Canvas::Scene::instance();
-
-        auto &sceneState = scene->getState();
+        auto &sceneState = Pages::MainPage::getTypedInstance()->getState().getSceneDriver()->getState();
 
         const auto selSize = sceneState.getSelectedComponents().size();
         const bool isMultiSelected = selSize > 1;
@@ -292,9 +287,7 @@ namespace Bess::UI {
         const ImColor &itemAltBg = ImGui::GetStyle().Colors[ImGuiCol_TableRowBgAlt];
         ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
-        auto scene = Bess::Canvas::Scene::instance();
-
-        auto &sceneState = scene->getState();
+        auto &sceneState = Pages::MainPage::getTypedInstance()->getState().getSceneDriver()->getState();
 
         const auto size = sceneState.getRootComponents().size();
         const auto selSize = sceneState.getSelectedComponents().size();
@@ -360,7 +353,7 @@ namespace Bess::UI {
                 }
             } else {
                 if (ImGui::MenuItem("Create Empty Group", "Ctrl-G")) {
-                    auto scene = Bess::Canvas::Scene::instance();
+                    auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
                     auto _ = scene->getCmdManager().execute<Canvas::Commands::CreateGroupCommand, UUID>("New Group");
                 }
             }
@@ -463,7 +456,7 @@ namespace Bess::UI {
     }
 
     void ProjectExplorer::selectNode(const std::shared_ptr<UI::ProjectExplorerNode> &node) {
-        auto scene = Bess::Canvas::Scene::instance();
+        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
 
         if (node->isGroup) {
             for (const auto &childNode : node->children) {
@@ -482,7 +475,7 @@ namespace Bess::UI {
         }
 
         // Collect entities and nodes recursively
-        auto scene = Bess::Canvas::Scene::instance();
+        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
 
         // Always add the current node ID to be deleted (whether it's a group or entity)
         entitesToDel.emplace_back(node->nodeId);
@@ -505,7 +498,7 @@ namespace Bess::UI {
     }
 
     void ProjectExplorer::groupSelectedNodes() {
-        auto scene = Bess::Canvas::Scene::instance();
+        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
 
         const auto &selComponents = scene->getState().getSelectedComponents();
 
@@ -535,8 +528,8 @@ namespace Bess::UI {
 
     void ProjectExplorer::groupOnNets() {
         std::unordered_map<UUID, std::vector<UUID>> netGroups;
-        auto scene = Bess::Canvas::Scene::instance();
 
+        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
         auto &sceneState = scene->getState();
 
         // preparing new groups for nodes

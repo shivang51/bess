@@ -1,20 +1,12 @@
 #include "pages/main_page/main_page_state.h"
+#include "pages/main_page/cmds/update_vec_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "simulation_engine.h"
 
 namespace Bess::Pages {
 
-    std::shared_ptr<MainPageState> MainPageState::getInstance() {
-        static std::shared_ptr<MainPageState> instance = std::make_shared<MainPageState>();
-        return instance;
-    }
-
-    MainPageState::MainPageState() {
-        createNewProject(false);
-    }
-
     void MainPageState::resetProjectState() const {
-        Canvas::Scene::instance()->clear();
+        m_sceneDriver.getActiveScene()->clear();
         SimEngine::SimulationEngine::instance().clear();
     }
 
@@ -37,7 +29,7 @@ namespace Bess::Pages {
         m_currentProjectFile->save();
     }
 
-    void MainPageState::updateCurrentProject(std::shared_ptr<ProjectFile> project) {
+    void MainPageState::updateCurrentProject(const std::shared_ptr<ProjectFile> &project) {
         if (project == nullptr)
             return;
         m_currentProjectFile = project;
@@ -45,7 +37,7 @@ namespace Bess::Pages {
         win->setName(m_currentProjectFile->getName() + " - BESS");
     }
 
-    std::shared_ptr<ProjectFile> MainPageState::getCurrentProjectFile() {
+    std::shared_ptr<ProjectFile> MainPageState::getCurrentProjectFile() const {
         return m_currentProjectFile;
     }
 
@@ -55,5 +47,26 @@ namespace Bess::Pages {
 
     void MainPageState::setKeyPressed(int key, bool pressed) {
         m_pressedKeys[key] = pressed;
+    }
+
+    void MainPageState::initCmdSystem(Canvas::Scene *scene,
+                                      SimEngine::SimulationEngine *simEngine) {
+
+        m_commandSystem.init(scene, simEngine);
+        EventSystem::EventDispatcher::instance().sink<Canvas::Events::EntityMovedEvent>().connect<&MainPageState::onEntityMoved>(this);
+    }
+
+    void MainPageState::onEntityMoved(const Canvas::Events::EntityMovedEvent &e) {
+        auto entity = m_sceneDriver->getState().getComponentByUuid(e.entityUuid);
+        glm::vec3 *posPtr = &entity->getTransform().position;
+
+        if (entity) {
+            // auto cmd = std::make_unique<Cmd::UpdateVecCommand<glm::vec3>>(posPtr, e.newPos, e.oldPos);
+            // m_commandSystem.push(std::move(cmd));
+        }
+    }
+
+    SceneDriver &MainPageState::getSceneDriver() {
+        return m_sceneDriver;
     }
 } // namespace Bess::Pages

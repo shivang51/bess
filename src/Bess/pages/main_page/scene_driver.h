@@ -10,6 +10,8 @@ namespace Bess {
         SceneDriver() = default;
         ~SceneDriver() = default;
 
+        void createDefaultScene();
+
         void update(TFrameTime deltaTime, const std::vector<class ApplicationEvent> &events);
         void render();
 
@@ -23,5 +25,6 @@ namespace Bess {
 
       private:
         std::shared_ptr<Canvas::Scene> m_activeScene;
+        std::vector<std::shared_ptr<Canvas::Scene>> m_scenes;
     };
 } // namespace Bess

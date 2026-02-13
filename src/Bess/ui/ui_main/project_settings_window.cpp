@@ -1,5 +1,6 @@
 #include "ui/ui_main/project_settings_window.h"
 #include "imgui.h"
+#include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
 #include "ui/widgets/m_widgets.h"
 
@@ -42,7 +43,7 @@ namespace Bess::UI {
     }
 
     void ProjectSettingsWindow::show() {
-        m_projectFile = Pages::MainPageState::getInstance()->getCurrentProjectFile();
+        m_projectFile = Pages::MainPage::getTypedInstance()->getState().getCurrentProjectFile();
         m_projectName = m_projectFile->getName();
         m_shown = true;
     }

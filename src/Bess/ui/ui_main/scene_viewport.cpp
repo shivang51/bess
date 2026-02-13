@@ -1,8 +1,8 @@
 #include "scene_viewport.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "pages/main_page/main_page.h"
 #include "scene/camera.h"
-#include "scene/scene.h"
 #include "simulation_engine.h"
 #include "ui/ui_main/component_explorer.h"
 
@@ -12,7 +12,7 @@ namespace Bess::UI {
 
     void SceneViewport::draw() {
 
-        const auto scene = Canvas::Scene::instance();
+        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
         ImGui::SetNextWindowSizeConstraints({400.f, 400.f}, {-1.f, -1.f});
@@ -78,7 +78,9 @@ namespace Bess::UI {
         ImGui::Text("Schematic Mode");
         ImGui::SameLine();
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-        ImGui::Checkbox("##CheckBoxSchematicMode", Canvas::Scene::instance()->getIsSchematicViewPtr());
+
+        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
+        ImGui::Checkbox("##CheckBoxSchematicMode", scene->getIsSchematicViewPtr());
         ImGui::PopStyleVar();
         ImGui::End();
         ImGui::PopStyleVar(2);
@@ -86,7 +88,8 @@ namespace Bess::UI {
     }
 
     void SceneViewport::drawBottomControls() const {
-        const auto &mousePos = Canvas::Scene::instance()->getSceneMousePos();
+        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
+        const auto &mousePos = scene->getSceneMousePos();
         const auto posLabel = std::format("Pos: ({:.2f}, {:.2f})", mousePos.x, mousePos.y);
         const auto posLabelSize = ImGui::CalcTextSize(posLabel.c_str());
 
@@ -107,7 +110,7 @@ namespace Bess::UI {
         const float sliderHeight = ImGui::GetFrameHeight();
 
         ImGui::SetCursorPosY((windowHeight - sliderHeight) * 0.5f);
-        const auto &camera = Canvas::Scene::instance()->getCamera();
+        const auto &camera = scene->getCamera();
 
         // Mouse Pos Text
         {

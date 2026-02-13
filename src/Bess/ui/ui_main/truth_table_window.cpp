@@ -38,7 +38,6 @@ namespace Bess::UI {
             if (isDirty) {
                 auto &simEngine = SimEngine::SimulationEngine::instance();
                 currentTruthTable = simEngine.getTruthTableOfNet(selectedNetId);
-                const auto &scene = Bess::Canvas::Scene::instance();
                 isDirty = false;
             }
 

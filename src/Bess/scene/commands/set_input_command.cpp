@@ -11,7 +11,7 @@ namespace Bess::Canvas::Commands {
 
     bool SetInputCommand::execute() {
         return false;
-        auto scene = Scene::instance();
+        // auto scene = Scene::instance();
         // auto &simComp = scene->getEnttRegistry().get<Components::SimulationComponent>(scene->getEntityWithUuid(m_compId));
         //
         // auto &simCmdManager = SimEngine::SimulationEngine::instance().getCmdManager();

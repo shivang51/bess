@@ -52,11 +52,6 @@ namespace Bess::Canvas {
         m_state.clear();
     }
 
-    std::shared_ptr<Scene> Scene::instance() {
-        static std::shared_ptr<Scene> m_instance = std::make_shared<Scene>();
-        return m_instance;
-    }
-
     void Scene::reset() {
         clear();
 
@@ -985,5 +980,9 @@ namespace Bess::Canvas {
 
         const auto &comp = m_state.getComponentByUuid(*selectedComps.begin());
         m_camera->focusAtPoint(comp->getAbsolutePosition(m_state));
+    }
+
+    std::shared_ptr<Viewport> Scene::getViewport() {
+        return m_viewport;
     }
 } // namespace Bess::Canvas

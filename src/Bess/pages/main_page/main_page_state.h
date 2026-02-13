@@ -2,6 +2,16 @@
 
 #include "application/project_file.h"
 #include "command_system.h"
+#include "pages/main_page/scene_driver.h"
+
+namespace Bess {
+    namespace Canvas {
+        class Scene;
+    }
+    namespace SimEngine {
+        class SimulationEngine;
+    }
+} // namespace Bess
 
 namespace Bess::Pages {
     struct PageActionFlags {
@@ -11,9 +21,7 @@ namespace Bess::Pages {
 
     class MainPageState {
       public:
-        static std::shared_ptr<MainPageState> getInstance();
-
-        MainPageState();
+        MainPageState() = default;
 
         Cmd::CommandSystem &getCommandSystem() {
             return m_commandSystem;
@@ -26,8 +34,13 @@ namespace Bess::Pages {
         void createNewProject(bool updateWindowName = true);
         void saveCurrentProject() const;
         void loadProject(const std::string &path);
-        void updateCurrentProject(std::shared_ptr<ProjectFile> project);
-        std::shared_ptr<ProjectFile> getCurrentProjectFile();
+        void updateCurrentProject(const std::shared_ptr<ProjectFile> &project);
+
+        void initCmdSystem(Canvas::Scene *scene,
+                           SimEngine::SimulationEngine *simEngine);
+
+        SceneDriver &getSceneDriver();
+        std::shared_ptr<ProjectFile> getCurrentProjectFile() const;
 
         PageActionFlags actionFlags = {};
 
@@ -42,6 +55,10 @@ namespace Bess::Pages {
         std::unordered_map<int, bool> pressedKeysFrame;
 
       private:
+        void onEntityMoved(const Canvas::Events::EntityMovedEvent &e);
+
+      private:
         Cmd::CommandSystem m_commandSystem;
+        SceneDriver m_sceneDriver;
     };
 } // namespace Bess::Pages

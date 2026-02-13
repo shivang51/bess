@@ -1,5 +1,4 @@
 #include "command_system.h"
-#include "cmds/update_vec_cmd.h"
 #include "scene/scene.h"
 
 namespace Bess::Cmd {
@@ -8,8 +7,6 @@ namespace Bess::Cmd {
                              SimEngine::SimulationEngine *simEngine) {
         this->mp_scene = scene;
         this->mp_simEngine = simEngine;
-
-        EventSystem::EventDispatcher::instance().sink<Canvas::Events::EntityMovedEvent>().connect<&CommandSystem::onEntityMoved>(this);
     }
 
     void CommandSystem::execute(std::unique_ptr<Command> cmd) {
@@ -43,16 +40,6 @@ namespace Bess::Cmd {
 
     void CommandSystem::push(std::unique_ptr<Command> cmd) {
         m_undoStack.push(std::move(cmd));
-    }
-
-    void CommandSystem::onEntityMoved(const Canvas::Events::EntityMovedEvent &e) {
-        auto entity = mp_scene->getState().getComponentByUuid(e.entityUuid);
-        glm::vec3 *posPtr = &entity->getTransform().position;
-
-        if (entity) {
-            auto cmd = std::make_unique<UpdateVecCommand<glm::vec3>>(posPtr, e.newPos, e.oldPos);
-            push(std::move(cmd));
-        }
     }
 
     void CommandSystem::reset() {

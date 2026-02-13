@@ -2,7 +2,7 @@
 #include "gtc/type_ptr.hpp"
 #include "imgui_internal.h"
 #include "init_components.h"
-#include "scene/scene.h"
+#include "pages/main_page/main_page.h"
 #include "scene/scene_state/components/connection_scene_component.h"
 #include "scene/scene_state/components/non_sim_scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
@@ -10,6 +10,7 @@
 #include "scene/scene_state/components/slot_scene_component.h"
 #include "simulation_engine.h"
 #include "ui/icons/FontAwesomeIcons.h"
+#include "ui/ui_main/ui_main.h"
 #include "ui/widgets/m_widgets.h"
 #include <imgui.h>
 
@@ -87,7 +88,7 @@ namespace Bess::UI {
             return;
 
         ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
-        auto &sceneState = Canvas::Scene::instance()->getState();
+        auto &sceneState = Pages::MainPage::getTypedInstance()->getState().getSceneDriver()->getState();
         if (sceneState.getSelectedComponents().empty()) {
             ImGui::TextUnformatted("No component selected.");
             ImGui::End();

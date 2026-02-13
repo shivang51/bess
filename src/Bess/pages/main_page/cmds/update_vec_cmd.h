@@ -9,7 +9,7 @@ namespace Bess::Cmd {
         requires std::is_same_v<VecType, glm::vec2> ||
                  std::is_same_v<VecType, glm::vec3> ||
                  std::is_same_v<VecType, glm::vec4>
-    class UpdateVecCommand : public Command {
+    class UpdateVecCommand : public Bess::Cmd::Command {
       public:
         UpdateVecCommand(VecType *originalLoc, const VecType &newValue)
             : m_orignalLoc(originalLoc), m_newValue(newValue) {}

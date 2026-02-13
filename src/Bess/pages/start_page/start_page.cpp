@@ -1,17 +1,13 @@
 #include "pages/start_page/start_page.h"
 #include "application/application_state.h"
-#include "pages/main_page/main_page.h"
-#include "pages/page_identifier.h"
 #include "application/types.h"
+#include "pages/main_page/main_page.h"
 #include "ui/ui.h"
 
 #include "imgui.h"
 #include "imgui_internal.h"
 
 namespace Bess::Pages {
-
-    StartPage::StartPage() : Page(PageIdentifier::StartPage) {
-    }
 
     std::shared_ptr<Page> StartPage::getInstance() {
         static auto instance = std::make_shared<StartPage>();
@@ -65,7 +61,7 @@ namespace Bess::Pages {
 
             ImGui::SetCursorPosY(windowSize.y - ImGui::GetFrameHeight() - 8.f);
             if (ImGui::Button("Continue with empty project")) {
-                MainPage::getInstance(ApplicationState::getParentWindow())->show();
+                // MainPage::getInstance(ApplicationState::getParentWindow())->show();
             }
         }
 

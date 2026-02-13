@@ -14,67 +14,70 @@ namespace Bess::Canvas::Commands {
     }
 
     bool AddCommand::execute() {
-        auto &simEngine = SimEngine::SimulationEngine::instance();
-        auto &cmdMngr = simEngine.getCmdManager();
 
-        SceneSerializer ser;
-        auto scene = Scene::instance();
+        return false;
 
-        std::vector<SimEngine::Commands::AddCommandData> simAddCmdData{};
-        if (m_redo) {
-            cmdMngr.redo();
-        }
-
-        for (size_t i = 0; i < m_data.size(); i++) {
-            const auto &data = m_data[i];
-            auto &compJson = m_compJsons[i];
-
-            if (m_redo) {
-                ser.deserializeEntity(compJson);
-                continue;
-            }
-
-            if (data.nsComp == typeid(void)) {
-                simAddCmdData.emplace_back(data.def, data.inputCount, data.outputCount);
-            } else {
-                m_compIds.emplace_back(scene->createNonSimEntity(data.nsComp, data.pos));
-            }
-        }
-
-        if (m_redo || simAddCmdData.empty()) {
-            return true;
-        }
-
-        const auto simEngineUuids = cmdMngr.execute<SimEngine::Commands::AddCommand, std::vector<UUID>>(simAddCmdData);
-
-        if (!simEngineUuids.has_value())
-            return false;
-
-        int i = 0;
-        for (auto &simEngineId : simEngineUuids.value()) {
-            auto &data = m_data[i];
-            m_compIds.emplace_back(scene->createSimEntity(simEngineId, data.def, data.pos));
-            i++;
-        }
-
-        return true;
+        // auto &simEngine = SimEngine::SimulationEngine::instance();
+        // auto &cmdMngr = simEngine.getCmdManager();
+        //
+        // SceneSerializer ser;
+        // auto scene = Scene::instance();
+        //
+        // std::vector<SimEngine::Commands::AddCommandData> simAddCmdData{};
+        // if (m_redo) {
+        //     cmdMngr.redo();
+        // }
+        //
+        // for (size_t i = 0; i < m_data.size(); i++) {
+        //     const auto &data = m_data[i];
+        //     auto &compJson = m_compJsons[i];
+        //
+        //     if (m_redo) {
+        //         ser.deserializeEntity(compJson);
+        //         continue;
+        //     }
+        //
+        //     if (data.nsComp == typeid(void)) {
+        //         simAddCmdData.emplace_back(data.def, data.inputCount, data.outputCount);
+        //     } else {
+        //         m_compIds.emplace_back(scene->createNonSimEntity(data.nsComp, data.pos));
+        //     }
+        // }
+        //
+        // if (m_redo || simAddCmdData.empty()) {
+        //     return true;
+        // }
+        //
+        // const auto simEngineUuids = cmdMngr.execute<SimEngine::Commands::AddCommand, std::vector<UUID>>(simAddCmdData);
+        //
+        // if (!simEngineUuids.has_value())
+        //     return false;
+        //
+        // int i = 0;
+        // for (auto &simEngineId : simEngineUuids.value()) {
+        //     auto &data = m_data[i];
+        //     m_compIds.emplace_back(scene->createSimEntity(simEngineId, data.def, data.pos));
+        //     i++;
+        // }
+        //
+        // return true;
     }
 
     std::any AddCommand::undo() {
-        auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
-        cmdMngr.undo();
-
-        auto scene = Scene::instance();
-        for (size_t i = 0; i < m_data.size(); i++) {
-            const auto &data = m_data[i];
-            auto &compJson = m_compJsons[i];
-            compJson.clear();
-            SceneSerializer ser;
-            ser.serializeEntity(m_compIds[i], compJson);
-            scene->deleteSceneEntity(m_compIds[i]);
-        }
-
-        m_redo = true;
+        // auto &cmdMngr = SimEngine::SimulationEngine::instance().getCmdManager();
+        // cmdMngr.undo();
+        //
+        // auto scene = Scene::instance();
+        // for (size_t i = 0; i < m_data.size(); i++) {
+        //     const auto &data = m_data[i];
+        //     auto &compJson = m_compJsons[i];
+        //     compJson.clear();
+        //     SceneSerializer ser;
+        //     ser.serializeEntity(m_compIds[i], compJson);
+        //     scene->deleteSceneEntity(m_compIds[i]);
+        // }
+        //
+        // m_redo = true;
         return {};
     }
 

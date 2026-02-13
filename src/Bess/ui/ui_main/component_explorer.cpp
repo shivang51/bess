@@ -4,8 +4,8 @@
 #include "component_catalog.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "pages/main_page/main_page.h"
 #include "scene/commands/add_command.h"
-#include "scene/scene.h"
 #include "scene/scene_state/components/non_sim_scene_component.h"
 #include "ui/widgets/m_widgets.h"
 #include <utility>
@@ -18,7 +18,7 @@ namespace Bess::UI {
 
     void ComponentExplorer::createComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def,
                                             int inputCount, int outputCount) {
-        auto scene = Canvas::Scene::instance();
+        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
         Canvas::Commands::AddCommandData data;
         data.def = def;
         data.pos = scene->getCameraPos();
@@ -33,7 +33,7 @@ namespace Bess::UI {
     }
 
     void ComponentExplorer::createComponent(std::type_index tIdx) {
-        auto scene = Canvas::Scene::instance();
+        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
         Canvas::Commands::AddCommandData data;
         data.nsComp = tIdx;
         data.pos = scene->getCameraPos();

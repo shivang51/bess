@@ -8,28 +8,30 @@ namespace Bess::Canvas::Commands {
         : m_entityId(entityId), m_newParentId(newParentId) {}
 
     bool ReparentNodeCommand::execute() {
-        auto scene = Scene::instance();
-
-        if (m_firstRun) {
-            auto &state = UI::ProjectExplorer::state;
-            auto node = state.nodesLookup.at(m_entityId);
-            m_oldParentId = node->parentId;
-            state.moveNode(m_entityId, m_newParentId);
-            m_firstRun = false;
-        }
-
-        // scene->getEventDispatcher().trigger(Events::EntityReparentedEvent{m_entityId, m_newParentId});
-
-        return true;
+        return false;
+        // auto scene = Scene::instance();
+        //
+        // if (m_firstRun) {
+        //     auto &state = UI::ProjectExplorer::state;
+        //     auto node = state.nodesLookup.at(m_entityId);
+        //     m_oldParentId = node->parentId;
+        //     state.moveNode(m_entityId, m_newParentId);
+        //     m_firstRun = false;
+        // }
+        //
+        // // scene->getEventDispatcher().trigger(Events::EntityReparentedEvent{m_entityId, m_newParentId});
+        //
+        // return true;
     }
 
     std::any ReparentNodeCommand::undo() {
-        auto scene = Scene::instance();
-
-        UI::ProjectExplorer::state.moveNode(m_entityId, m_oldParentId);
-        // scene->getEventDispatcher().trigger(Events::EntityReparentedEvent{m_entityId, m_oldParentId});
-
-        return {};
+        return false;
+        // auto scene = Scene::instance();
+        //
+        // UI::ProjectExplorer::state.moveNode(m_entityId, m_oldParentId);
+        // // scene->getEventDispatcher().trigger(Events::EntityReparentedEvent{m_entityId, m_oldParentId});
+        //
+        // return {};
     }
 
     std::any ReparentNodeCommand::getResult() {

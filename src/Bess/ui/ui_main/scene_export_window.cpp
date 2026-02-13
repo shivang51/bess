@@ -1,6 +1,7 @@
 #include "ui/ui_main/scene_export_window.h"
 #include "common/log.h"
 #include "imgui.h"
+#include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
 #include "scene/scene.h"
 #include "scene/viewport.h"
@@ -55,7 +56,8 @@ namespace Bess::UI {
     SceneBounds computeSceneBounds() {
         glm::vec2 min, max;
         bool first = true;
-        const auto &state = Canvas::Scene::instance()->getState();
+        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
+        const auto &state = scene->getState();
         for (const auto &compId : state.getRootComponents()) {
             const auto comp = state.getComponentByUuid<Canvas::SceneComponent>(compId)->getTransform();
             if (first) {
@@ -74,7 +76,8 @@ namespace Bess::UI {
     }
 
     SceneExportInfo getSceneExportInfo(const SceneBounds &bounds, float zoom) {
-        auto size = Canvas::Scene::instance()->getSize();
+        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
+        auto size = scene->getSize();
         std::shared_ptr<Camera> camera = std::make_shared<Camera>(size.x, size.y);
         camera->setPos(bounds.min);
         camera->setZoom(zoom);
@@ -175,7 +178,8 @@ namespace Bess::UI {
                 camera->setPos(pos);
 
                 viewport->begin(frameIdx, ViewportTheme::colors.background, {0, 0});
-                Canvas::Scene::instance()->drawSceneToViewport(viewport);
+                auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
+                scene->drawSceneToViewport(viewport);
                 viewport->end();
                 viewport->submit();
                 frameIdx = (frameIdx + 1) % 2;
@@ -214,12 +218,12 @@ namespace Bess::UI {
             if (!std::filesystem::exists(exportPath))
                 std::filesystem::create_directories(exportPath);
 
-            const auto mainPage = Pages::MainPageState::getInstance();
+            const auto &mainPage = Pages::MainPage::getTypedInstance()->getState();
 
             const auto now = std::chrono::system_clock::now();
             const std::chrono::zoned_time localTime{std::chrono::current_zone(), now};
 
-            fileName = std::format("{}_{:%Y-%m-%d_%H:%M:%S}", mainPage->getCurrentProjectFile()->getName(), localTime);
+            fileName = std::format("{}_{:%Y-%m-%d_%H:%M:%S}", mainPage.getCurrentProjectFile()->getName(), localTime);
 
             sceneBounds = computeSceneBounds();
             imgSize = getSceneExportInfo(sceneBounds, zoom).imgSize;

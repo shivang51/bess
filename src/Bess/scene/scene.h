@@ -52,11 +52,7 @@ namespace Bess::Canvas {
         ~Scene();
 
       public:
-        static std::shared_ptr<Scene> instance();
-
-        std::shared_ptr<Viewport> getViewport() {
-            return m_viewport;
-        }
+        std::shared_ptr<Viewport> getViewport();
 
         void destroy();
 

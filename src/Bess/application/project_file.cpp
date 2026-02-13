@@ -2,6 +2,7 @@
 #include "common/log.h"
 #include "json/json.h"
 
+#include "pages/main_page/main_page.h"
 #include "scene/scene.h"
 #include "ui/ui_main/dialogs.h"
 #include "ui/ui_main/project_explorer.h"
@@ -73,7 +74,9 @@ namespace Bess {
         data["scene_data"] = Json::objectValue;
         data["sim_engine_data"] = Json::objectValue;
 
-        m_sceneSerializer.serialize(data["scene_data"]);
+        auto scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver().getActiveScene();
+
+        m_sceneSerializer.serialize(data["scene_data"], scene);
         m_simEngineSerializer.serialize(data["sim_engine_data"]);
 
         data["project_explorere_state"] = UI::ProjectExplorer::state.toJson();
@@ -117,7 +120,8 @@ namespace Bess {
         // make sure to decode scene after sim engine,
         // as scene components may depend on sim engine components
         if (data.isMember("scene_data")) {
-            m_sceneSerializer.deserialize(data["scene_data"]);
+            auto scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver().getActiveScene();
+            m_sceneSerializer.deserialize(data["scene_data"], scene);
         }
 
         UI::ProjectExplorer::state.fromJson(data["project_explorere_state"]);

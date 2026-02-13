@@ -37,9 +37,6 @@ namespace Bess::Cmd {
 
         void setSimEngine(SimEngine::SimulationEngine *simEngine);
 
-      public:
-        void onEntityMoved(const Canvas::Events::EntityMovedEvent &e);
-
       private:
         std::stack<std::unique_ptr<Command>> m_undoStack;
         std::stack<std::unique_ptr<Command>> m_redoStack;

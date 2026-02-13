@@ -20,4 +20,9 @@ namespace Bess {
     std::shared_ptr<Canvas::Scene> SceneDriver::getActiveScene() const {
         return m_activeScene;
     }
+
+    void SceneDriver::createDefaultScene() {
+        m_scenes.emplace_back(std::make_shared<Canvas::Scene>());
+        m_activeScene = m_scenes.front();
+    }
 } // namespace Bess

@@ -5,16 +5,20 @@
 #include <string>
 
 namespace Bess {
+    namespace Canvas {
+        class Scene;
+    }
+
     class SceneSerializer {
       public:
         SceneSerializer() = default;
 
         void serializeToPath(const std::string &path, int indent = -1);
-        void serialize(Json::Value &j);
+        void serialize(Json::Value &json, const std::shared_ptr<Canvas::Scene> &scene);
         void serializeEntity(UUID uid, Json::Value &j);
 
         void deserializeFromPath(const std::string &path);
-        void deserialize(const Json::Value &json);
+        void deserialize(Json::Value &json, const std::shared_ptr<Canvas::Scene> &scene);
         void deserializeEntity(const Json::Value &json);
 
       private:

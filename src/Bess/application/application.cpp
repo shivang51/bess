@@ -56,6 +56,9 @@ namespace Bess {
 
         TFrameTime accumulatedTime(0.0);
 
+        BESS_ASSERT(ApplicationState::getCurrentPage(),
+                    "Current page of application is not set");
+
         while (!m_mainWindow->isClosed()) {
             auto currentTime = m_clock.now();
             TFrameTime deltaTime = currentTime - previousTime;
@@ -146,6 +149,9 @@ namespace Bess {
 #endif
         BESS_INFO("[Application] Initializing application, with project path: {}", path.empty() ? "None" : path);
 
+        auto &settings = Config::Settings::instance();
+        settings.init();
+
         auto &pluginMangaer = Plugins::PluginManager::getInstance();
 
         if (flags & AppStartupFlag::disablePlugins) {
@@ -153,9 +159,6 @@ namespace Bess {
         } else {
             pluginMangaer.loadPluginsFromDirectory("plugins");
         }
-
-        auto &settings = Config::Settings::instance();
-        settings.init();
 
         m_mainWindow = std::make_shared<Window>(800, 600, "Bess");
         ApplicationState::setParentWindow(m_mainWindow);
@@ -172,7 +175,7 @@ namespace Bess {
         const auto page = Pages::MainPage::getInstance(ApplicationState::getParentWindow());
         UI::init(m_mainWindow->getGLFWHandle());
 
-        page->show();
+        ApplicationState::setCurrentPage(page);
 
         if (!path.empty())
             loadProject(path);
@@ -192,8 +195,8 @@ namespace Bess {
     }
 
     void Application::loadProject(const std::string &path) const {
-        Pages::MainPageState::getInstance()->loadProject(path);
+        Pages::MainPage::getTypedInstance()->getState().loadProject(path);
     }
 
-    void Application::saveProject() const { Pages::MainPageState::getInstance()->saveCurrentProject(); }
+    void Application::saveProject() const { Pages::MainPage::getTypedInstance()->getState().saveCurrentProject(); }
 } // namespace Bess

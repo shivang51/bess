@@ -43,6 +43,6 @@ namespace Bess::UI {
         static void onNewProject();
         static void onExportSceneView();
 
-        static std::shared_ptr<Pages::MainPageState> m_pageState;
+        static Pages::MainPageState *m_pageState;
     };
 } // namespace Bess::UI

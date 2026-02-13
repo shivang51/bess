@@ -1,7 +1,7 @@
 #pragma once
 
-#include "pages/page.h"
 #include "application/types.h"
+#include "pages/page.h"
 #include <memory>
 #include <string>
 #include <vector>
@@ -9,7 +9,7 @@
 namespace Bess::Pages {
     class StartPage final : public Page {
       public:
-        StartPage();
+        StartPage() = default;
         static std::shared_ptr<Page> getInstance();
 
         void draw() override;

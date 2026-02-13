@@ -3,6 +3,7 @@
 #include "common/log.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "pages/main_page/main_page.h"
 #include "simulation_engine.h"
 #include "stb_image_write.h"
 #include "ui/icons/CodIcons.h"
@@ -12,7 +13,6 @@
 #include <string>
 
 #include "pages/main_page/main_page_state.h"
-#include "scene/scene.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui/ui_main/dialogs.h"
@@ -27,7 +27,7 @@
 
 namespace Bess::UI {
     UIState UIMain::state{};
-    std::shared_ptr<Pages::MainPageState> UIMain::m_pageState;
+    Pages::MainPageState *UIMain::m_pageState;
 
     static constexpr ImGuiWindowFlags NO_MOVE_FLAGS =
         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
@@ -38,7 +38,7 @@ namespace Bess::UI {
         static bool firstTime = true;
         if (firstTime) {
             firstTime = false;
-            m_pageState = Pages::MainPageState::getInstance();
+            m_pageState = &Pages::MainPage::getTypedInstance()->getState();
             resetDockspace();
         }
         drawMenubar();
@@ -207,7 +207,7 @@ namespace Bess::UI {
         }
 
         if (ImGui::BeginMenu("Edit")) {
-            static auto scene = Canvas::Scene::instance();
+            auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
             static auto &cmdManager = scene->getCmdManager();
 
             std::string icon = Icons::FontAwesomeIcons::FA_UNDO;
@@ -251,7 +251,7 @@ namespace Bess::UI {
         // project name textbox - begin
 
         const auto &style = ImGui::GetStyle();
-        auto &name = Pages::MainPageState::getInstance()->getCurrentProjectFile()->getNameRef();
+        auto &name = Pages::MainPage::getTypedInstance()->getState().getCurrentProjectFile()->getNameRef();
         const auto fontSize = ImGui::CalcTextSize(name.c_str());
         auto width = fontSize.x + (style.FramePadding.x * 2);
         if (width < 150)
@@ -422,7 +422,8 @@ namespace Bess::UI {
         if (path == "")
             return;
         BESS_INFO("[ExportSceneView] Saving to {}", path);
-        Canvas::Scene::instance()->saveScenePNG(path);
+        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
+        scene->saveScenePNG(path);
     }
 
 } // namespace Bess::UI

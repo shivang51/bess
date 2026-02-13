@@ -6,7 +6,6 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(Header_Files
 	"include/command.h"
 	"include/command_system.h"
-	"include/cmds/update_vec_cmd.h"
 )
 
 
