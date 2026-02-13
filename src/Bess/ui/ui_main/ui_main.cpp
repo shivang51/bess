@@ -207,17 +207,17 @@ namespace Bess::UI {
         }
 
         if (ImGui::BeginMenu("Edit")) {
-            auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
-            static auto &cmdManager = scene->getCmdManager();
+            auto &mainPageState = Pages::MainPage::getTypedInstance()->getState();
+            auto &cmdSystem = mainPageState.getCommandSystem();
 
             std::string icon = Icons::FontAwesomeIcons::FA_UNDO;
-            if (ImGui::MenuItem((icon + "  Undo").c_str(), "Ctrl+Z", false, cmdManager.canUndo())) {
-                cmdManager.undo();
+            if (ImGui::MenuItem((icon + "  Undo").c_str(), "Ctrl+Z", false, cmdSystem.canUndo())) {
+                cmdSystem.undo();
             }
 
             icon = Icons::FontAwesomeIcons::FA_REDO;
-            if (ImGui::MenuItem((icon + "  Redo").c_str(), "Ctrl+Shift+Z", false, cmdManager.canRedo())) {
-                cmdManager.redo();
+            if (ImGui::MenuItem((icon + "  Redo").c_str(), "Ctrl+Shift+Z", false, cmdSystem.canRedo())) {
+                cmdSystem.redo();
             }
 
             ImGui::Spacing();

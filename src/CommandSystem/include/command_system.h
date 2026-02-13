@@ -34,8 +34,10 @@ namespace Bess::Cmd {
 
       public:
         void setScene(Canvas::Scene *scene);
-
         void setSimEngine(SimEngine::SimulationEngine *simEngine);
+
+        bool canUndo() const;
+        bool canRedo() const;
 
       private:
         std::stack<std::unique_ptr<Command>> m_undoStack;

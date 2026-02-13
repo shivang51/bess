@@ -60,4 +60,12 @@ namespace Bess::Cmd {
     void CommandSystem::setSimEngine(SimEngine::SimulationEngine *simEngine) {
         this->mp_simEngine = simEngine;
     }
+
+    bool CommandSystem::canUndo() const {
+        return !m_undoStack.empty();
+    }
+
+    bool CommandSystem::canRedo() const {
+        return !m_redoStack.empty();
+    }
 } // namespace Bess::Cmd
