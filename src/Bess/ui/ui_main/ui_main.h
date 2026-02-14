@@ -41,7 +41,6 @@ namespace Bess::UI {
       private:
         // menu bar events
         static void onNewProject();
-        static void onExportSceneView();
 
         static Pages::MainPageState *m_pageState;
     };

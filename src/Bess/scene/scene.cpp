@@ -9,6 +9,7 @@
 #include "plugin_manager.h"
 #include "scene/commands/add_command.h"
 #include "scene/renderer/material_renderer.h"
+#include "scene/scene_events.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "settings/viewport_theme.h"
@@ -23,7 +24,6 @@ namespace Bess::Canvas {
     Scene::Scene() {
         reset();
         loadComponentFromPlugins();
-        registerNonSimComponents();
         auto &dispatcher = EventSystem::EventDispatcher::instance();
         dispatcher.sink<SimEngine::Events::CompDefOutputsResizedEvent>().connect<&Scene::onCompDefOutputsResized>(this);
         dispatcher.sink<SimEngine::Events::CompDefInputsResizedEvent>().connect<&Scene::onCompDefInputsResized>(this);
@@ -40,9 +40,7 @@ namespace Bess::Canvas {
 
         BESS_INFO("[Scene] Destroying");
         cleanupPlugins();
-        m_copiedComponents.clear();
         m_viewport.reset();
-        m_lastCreatedComp = {};
         m_cmdManager.clearStacks();
         m_isDestroyed = true;
         m_state.clear();
@@ -65,8 +63,6 @@ namespace Bess::Canvas {
     void Scene::clear() {
         m_state.clear();
         m_compZCoord = 1.f + m_zIncrement;
-        m_lastCreatedComp = {};
-        m_copiedComponents = {};
         m_drawMode = SceneDrawMode::none;
     }
 
@@ -448,35 +444,37 @@ namespace Bess::Canvas {
     }
 
     void Scene::onRightMouse(bool isPressed) {
-        if (!isPressed) {
-            return;
-        }
-
-        if (!m_pickingId.isValid()) {
-            if (m_isShiftPressed && m_lastCreatedComp.set) {
-                const auto def = m_lastCreatedComp.componentDefinition;
-                const Commands::AddCommandData cmdData = {
-                    .def = def,
-                    .nsComp = m_lastCreatedComp.nsComponent,
-                    .inputCount = def->getInputSlotsInfo().count,
-                    .outputCount = def->getOutputSlotsInfo().count,
-                    .pos = getSnappedPos(toScenePos(m_mousePos)),
-                };
-
-                const auto res = m_cmdManager.execute<Commands::AddCommand, std::vector<UUID>>(std::vector{cmdData});
-                if (!res.has_value()) {
-                    BESS_ERROR("[Scene][OnRightMouse] Failed to execute AddCommand");
-                }
-            }
-        }
+        EventSystem::EventDispatcher::instance().dispatch(
+            Events::MouseButtonEvent{toScenePos(m_mousePos),
+                                     Events::MouseButton::right,
+                                     isPressed
+                                         ? Events::MouseClickAction::press
+                                         : Events::MouseClickAction::release,
+                                     m_pickingId.info});
     }
 
     void Scene::onMiddleMouse(bool isPressed) {
         m_isMiddleMousePressed = isPressed;
+        EventSystem::EventDispatcher::instance().dispatch(
+            Events::MouseButtonEvent{toScenePos(m_mousePos),
+                                     Events::MouseButton::middle,
+                                     isPressed
+                                         ? Events::MouseClickAction::press
+                                         : Events::MouseClickAction::release,
+                                     m_pickingId.info});
     }
 
     void Scene::onLeftMouse(bool isPressed) {
         m_isLeftMousePressed = isPressed;
+
+        EventSystem::EventDispatcher::instance().dispatch(
+            Events::MouseButtonEvent{toScenePos(m_mousePos),
+                                     Events::MouseButton::left,
+                                     isPressed
+                                         ? Events::MouseClickAction::press
+                                         : Events::MouseClickAction::release,
+                                     m_pickingId.info});
+
         if (!isPressed) {
 
             // if left ctrl is not pressed and multiple entities are selected,
@@ -542,64 +540,6 @@ namespace Bess::Canvas {
         }
     }
 
-    void Scene::copySelectedComponents() {
-        m_copiedComponents.clear();
-        //
-        // auto &simEngine = SimEngine::SimulationEngine::instance();
-        // const auto &catalogInstance = SimEngine::ComponentCatalog::instance();
-        //
-        // const auto &selComponents = m_state.getSelectedComponents() | std::views::keys;
-        //
-        // for (const auto &selId : selComponents) {
-        //     const auto comp = m_state.getComponentByUuid(selId);
-        //     const bool isSimComp = comp->getType() == SceneComponentType::simulation;
-        //     const bool isNonSimComp = comp->getType() == SceneComponentType::nonSimulation;
-        //     CopiedComponent compData{};
-        //     if (isSimComp) {
-        //         const auto casted = comp->cast<SimulationSceneComponent>();
-        //         compData.def = simEngine.getComponentDefinition(casted->getSimEngineId());
-        //         compData.inputCount = (int)casted->getInputSlotsCount();
-        //         compData.outputCount = (int)casted->getOutputSlotsCount();
-        //     } else if (isNonSimComp) {
-        //         const auto casted = comp->cast<NonSimSceneComponent>();
-        //         compData.nsComp = casted->getTypeIndex();
-        //     } else {
-        //         continue;
-        //     }
-        //     m_copiedComponents.emplace_back(compData);
-        // }
-    }
-
-    void Scene::generateCopiedComponents() {
-        auto pos = getCameraPos();
-
-        std::vector<Commands::AddCommandData> cmdData = {};
-        Commands::AddCommandData data;
-
-        for (auto &comp : m_copiedComponents) {
-            data = {};
-
-            if (comp.nsComp == typeid(void)) {
-                data.def = comp.def;
-                data.inputCount = comp.inputCount;
-                data.outputCount = comp.outputCount;
-            } else {
-                data.nsComp = comp.nsComp;
-            }
-
-            data.pos = pos;
-            cmdData.emplace_back(data);
-            pos += glm::vec2(50.f, 50.f);
-        }
-
-        const auto res = m_cmdManager.execute<Canvas::Commands::AddCommand,
-                                              std::vector<UUID>>(std::vector{cmdData});
-
-        if (!res.has_value()) {
-            BESS_ERROR("Failed to execute AddCommand");
-        }
-    }
-
     bool Scene::selectEntitesInArea() {
         if (!m_viewport->tryUpdatePickingResults())
             return false;
@@ -637,12 +577,6 @@ namespace Bess::Canvas {
             dPos *= 10 / m_camera->getZoom() * -1;
             m_camera->incrementPos(dPos);
         }
-    }
-
-    void Scene::saveScenePNG(const std::string &path) const {
-        // TODO: Implement Vulkan scene save to PNG
-        // This will require reading from Vulkan framebuffer and saving to file
-        BESS_WARN("Scene save to PNG not yet implemented for Vulkan");
     }
 
     const glm::vec2 &Scene::getCameraPos() const {
@@ -930,10 +864,6 @@ namespace Bess::Canvas {
         for (const auto &plugin : pluginManger.getLoadedPlugins()) {
             plugin.second->cleanup();
         }
-    }
-
-    void Scene::registerNonSimComponents() {
-        // NonSimSceneComponent::registerComponent<TextComponent>("Text Component");
     }
 
     void Scene::updateViewportTransform(const ViewportTransform &transform) {

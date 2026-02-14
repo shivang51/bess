@@ -22,7 +22,7 @@ namespace Bess::Canvas::Commands {
         };
         std::vector<UUID> m_compIds;
         std::vector<DeleteCompCommandData> m_delData;
-        std::vector<UUID> m_simEngineComps = {};
+        std::vector<UUID> m_simEngineComps;
         bool m_redo = false;
     };
 } // namespace Bess::Canvas::Commands

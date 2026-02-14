@@ -12,6 +12,12 @@
 
 namespace Bess::Pages {
 
+    struct CopiedComponent {
+        std::shared_ptr<SimEngine::ComponentDefinition> def;
+        std::type_index nsComp = typeid(void);
+        glm::vec2 pos = {0.f, 0.f};
+    };
+
     class MainPage : public Page {
       public:
         MainPage(const std::shared_ptr<Window> &parentWindow);
@@ -37,6 +43,9 @@ namespace Bess::Pages {
       private:
         void handleKeyboardShortcuts();
 
+        void copySelectedEntities();
+        void pasteCopiedEntities();
+
       private:
         bool m_leftMousePressed = false;
         bool m_rightMousePressed = false;
@@ -47,5 +56,7 @@ namespace Bess::Pages {
         MainPageState m_state;
 
         bool m_isDestroyed = false;
+
+        std::vector<CopiedComponent> m_copiedComponents;
     };
 } // namespace Bess::Pages

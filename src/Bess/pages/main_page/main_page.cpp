@@ -1,9 +1,14 @@
 #include "pages/main_page/main_page.h"
 #include "application/types.h"
 #include "asset_manager/asset_manager.h"
+#include "component_catalog.h"
 #include "events/application_event.h"
+#include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/cmds/delete_comp_cmd.h"
 #include "pages/main_page/main_page_state.h"
+#include "pages/main_page/scene_components/non_sim_scene_component.h"
+#include "pages/main_page/scene_components/scene_comp_types.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
 #include "ui/ui_main/component_explorer.h"
@@ -51,6 +56,9 @@ namespace Bess::Pages {
                               &SimEngine::SimulationEngine::instance());
 
         m_state.createNewProject(false);
+
+        // TODO(shivang): Think about a better way and scalabilty for plugins
+        Canvas::NonSimSceneComponent::registerComponent<Canvas::TextComponent>("Text Component");
     }
 
     MainPage::~MainPage() {
@@ -141,9 +149,9 @@ namespace Bess::Pages {
             } else if (m_state.releasedKeysFrame[GLFW_KEY_A]) {
                 m_state.getSceneDriver()->selectAllEntities();
             } else if (m_state.releasedKeysFrame[GLFW_KEY_C]) {
-                m_state.getSceneDriver()->copySelectedComponents();
+                copySelectedEntities();
             } else if (m_state.releasedKeysFrame[GLFW_KEY_V]) {
-                m_state.getSceneDriver()->generateCopiedComponents();
+                pasteCopiedEntities();
             }
         } else if (shiftPressed) {
             if (m_state.pressedKeysFrame[GLFW_KEY_A]) {
@@ -171,4 +179,46 @@ namespace Bess::Pages {
     MainPageState &MainPage::getState() {
         return m_state;
     };
+
+    void MainPage::copySelectedEntities() {
+        m_copiedComponents.clear();
+
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+        const auto &catalogInstance = SimEngine::ComponentCatalog::instance();
+
+        const auto &sceneState = m_state.getSceneDriver()->getState();
+        const auto &selComponents = sceneState.getSelectedComponents() | std::views::keys;
+
+        for (const auto &selId : selComponents) {
+            const auto comp = sceneState.getComponentByUuid(selId);
+            const bool isSimComp = comp->getType() == Canvas::SceneComponentType::simulation;
+            const bool isNonSimComp = comp->getType() == Canvas::SceneComponentType::nonSimulation;
+            CopiedComponent compData{};
+            if (isSimComp) {
+                const auto casted = comp->cast<Canvas::SimulationSceneComponent>();
+                compData.def = simEngine.getComponentDefinition(casted->getSimEngineId());
+            } else if (isNonSimComp) {
+                const auto casted = comp->cast<Canvas::NonSimSceneComponent>();
+                compData.nsComp = casted->getTypeIndex();
+            } else {
+                continue;
+            }
+            compData.pos = comp->getTransform().position;
+            m_copiedComponents.emplace_back(compData);
+        }
+    }
+
+    void MainPage::pasteCopiedEntities() {
+        auto pos = m_state.getSceneDriver()->getCameraPos();
+
+        for (auto &comp : m_copiedComponents) {
+            auto addCmd = std::make_unique<Cmd::AddCompCmd<Canvas::SceneComponent>>();
+            auto pos = comp.pos + glm::vec2(50.f, 50.f); // offset pasted component position to avoid overlap
+            if (comp.nsComp == typeid(void)) {
+                UI::ComponentExplorer::createComponent(comp.def, pos);
+            } else {
+                UI::ComponentExplorer::createComponent(comp.nsComp, pos);
+            }
+        }
+    }
 } // namespace Bess::Pages

@@ -2,6 +2,7 @@
 
 #include "bess_uuid.h"
 #include "command.h"
+#include "pages/main_page/scene_components/scene_comp_types.h"
 #include "scene/scene.h"
 #include "scene/scene_state/components/scene_component.h"
 #include <ranges>
@@ -26,9 +27,23 @@ namespace Bess::Cmd {
                      SimEngine::SimulationEngine *simEngine) override {
 
             m_deletedComponents.clear();
+
+            std::vector<UUID> notConnectionComps;
+
             for (const auto &compUuid : m_compUuids) {
                 auto comp = scene->getState().getComponentByUuid(compUuid);
-                if (comp->getParentComponent() == UUID::null) {
+                if (comp->getType() == Canvas::SceneComponentType::connection) {
+                    exploreChildren(scene->getState(), compUuid);
+                    m_deletedComponents.push_back(comp);
+                    scene->deleteSceneEntity(compUuid);
+                } else {
+                    notConnectionComps.push_back(compUuid);
+                }
+            }
+
+            for (const auto &compUuid : notConnectionComps) {
+                auto comp = scene->getState().getComponentByUuid(compUuid);
+                if (comp && comp->getParentComponent() == UUID::null) {
                     m_deletedComponents.push_back(comp);
                     exploreChildren(scene->getState(), compUuid);
                     scene->deleteSceneEntity(compUuid);

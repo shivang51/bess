@@ -40,12 +40,6 @@ namespace Bess::Canvas {
         selectionBox
     };
 
-    struct LastCreatedComponent {
-        std::shared_ptr<SimEngine::ComponentDefinition> componentDefinition;
-        std::type_index nsComponent = typeid(void);
-        bool set = false;
-    };
-
     class Scene {
       public:
         Scene();
@@ -66,8 +60,6 @@ namespace Bess::Canvas {
         std::shared_ptr<Camera> getCamera();
 
         void drawSceneToViewport(const std::shared_ptr<Viewport> &viewport);
-
-        void saveScenePNG(const std::string &path) const;
 
         const SceneState &getState() const;
         SceneState &getState();
@@ -114,9 +106,6 @@ namespace Bess::Canvas {
         bool hasPluginDrawHookForComponentHash(uint64_t compHash) const;
 
         void selectAllEntities();
-        void copySelectedComponents();
-        void generateCopiedComponents();
-
         void focusCameraOnSelected();
 
       private:
@@ -164,8 +153,6 @@ namespace Bess::Canvas {
         void loadComponentFromPlugins();
         void cleanupPlugins();
 
-        void registerNonSimComponents();
-
       private:
         SceneState m_state;
 
@@ -190,15 +177,6 @@ namespace Bess::Canvas {
         float m_compZCoord = m_zIncrement;
 
         TFrameTime m_frameTimeStep = {};
-
-        LastCreatedComponent m_lastCreatedComp = {};
-        struct CopiedComponent {
-            std::shared_ptr<SimEngine::ComponentDefinition> def;
-            std::type_index nsComp = typeid(void);
-            int inputCount, outputCount;
-        };
-
-        std::vector<CopiedComponent> m_copiedComponents;
 
         SimEngine::Commands::CommandsManager m_cmdManager;
 

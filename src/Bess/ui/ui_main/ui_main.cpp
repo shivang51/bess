@@ -417,13 +417,4 @@ namespace Bess::UI {
                                                         m_pageState->getCurrentProjectFile()->getPath());
     }
 
-    void UIMain::onExportSceneView() {
-        auto path = UI::Dialogs::showSelectPathDialog("Save To");
-        if (path == "")
-            return;
-        BESS_INFO("[ExportSceneView] Saving to {}", path);
-        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
-        scene->saveScenePNG(path);
-    }
-
 } // namespace Bess::UI

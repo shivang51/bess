@@ -17,7 +17,7 @@ namespace Bess::UI {
     std::string ComponentExplorer::m_searchQuery;
 
     void ComponentExplorer::createComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def,
-                                            int inputCount, int outputCount) {
+                                            const glm::vec2 &pos) {
         auto &cmdSystem = Pages::MainPage::getTypedInstance()->getState().getCommandSystem();
         auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
 
@@ -29,6 +29,8 @@ namespace Bess::UI {
         auto sceneComp = components.front()->template cast<Canvas::SimulationSceneComponent>();
         components.erase(components.begin());
         sceneComp->setCompDef(def->clone());
+        sceneComp->getTransform().position.x = pos.x;
+        sceneComp->getTransform().position.y = pos.y;
 
         if (scene->hasPluginDrawHookForComponentHash(def->getHash())) {
             auto hook = scene->getPluginDrawHookForComponentHash(def->getHash());
@@ -39,9 +41,11 @@ namespace Bess::UI {
         isShown = false;
     }
 
-    void ComponentExplorer::createComponent(std::type_index tIdx) {
+    void ComponentExplorer::createComponent(std::type_index tIdx, const glm::vec2 &pos) {
         auto &cmdSystem = Pages::MainPage::getTypedInstance()->getState().getCommandSystem();
         auto inst = Canvas::NonSimSceneComponent::getInstance(tIdx);
+        inst->getTransform().position.x = pos.x;
+        inst->getTransform().position.y = pos.y;
         cmdSystem.execute(std::make_unique<Cmd::AddCompCmd<Canvas::NonSimSceneComponent>>(inst));
         isShown = false;
     }
@@ -120,7 +124,7 @@ namespace Bess::UI {
                         const std::string &name = comp->getName();
 
                         if (Widgets::ButtonWithPopup(name, name + "OptionsMenu", false)) {
-                            createComponent(comp, -1, -1);
+                            createComponent(comp);
                         }
 
                         if (ImGui::BeginPopup((name + "OptionsMenu").c_str())) {

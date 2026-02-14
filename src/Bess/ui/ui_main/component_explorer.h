@@ -18,9 +18,9 @@ namespace Bess::UI {
 
         static bool isShown;
 
-      private:
-        static void createComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def, int inputCount, int outputCount);
-        static void createComponent(std::type_index tIdx);
+        static void createComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def,
+                                    const glm::vec2 &pos = {0.f, 0.f});
+        static void createComponent(std::type_index tIdx, const glm::vec2 &pos = {0.f, 0.f});
 
       private:
         static std::string m_searchQuery;
