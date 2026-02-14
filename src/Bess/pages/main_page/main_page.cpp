@@ -2,6 +2,7 @@
 #include "application/types.h"
 #include "asset_manager/asset_manager.h"
 #include "events/application_event.h"
+#include "pages/main_page/cmds/delete_comp_cmd.h"
 #include "pages/main_page/main_page_state.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
@@ -11,6 +12,7 @@
 #include "vulkan_core.h"
 #include <GLFW/glfw3.h>
 #include <memory>
+#include <ranges>
 
 namespace Bess::Pages {
     std::shared_ptr<Page> MainPage::getInstance(const std::shared_ptr<Window> &parentWindow) {
@@ -149,7 +151,11 @@ namespace Bess::Pages {
             }
         } else {
             if (m_state.pressedKeysFrame[GLFW_KEY_DELETE]) {
-                m_state.getSceneDriver()->deleteSelectedSceneEntities();
+                auto ids = m_state.getSceneDriver()->getState().getSelectedComponents() |
+                           std::ranges::views::keys |
+                           std::ranges::to<std::vector<UUID>>();
+
+                m_state.getCommandSystem().execute(std::make_unique<Cmd::DeleteCompCmd>(ids));
             } else if (m_state.pressedKeysFrame[GLFW_KEY_F]) {
                 m_state.getSceneDriver()->focusCameraOnSelected();
             } else if (m_state.pressedKeysFrame[GLFW_KEY_TAB]) {

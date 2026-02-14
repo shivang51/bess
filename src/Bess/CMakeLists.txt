@@ -17,6 +17,7 @@ set(Header_Files
 "pages/main_page/scene_driver.h"
 "pages/main_page/main_page_state.h"
 "pages/main_page/cmds/add_comp_cmd.h"
+"pages/main_page/cmds/delete_comp_cmd.h"
 "pages/main_page/cmds/update_vec_cmd.h"
 "pages/main_page/scene_components/input_scene_component.h"
 "pages/main_page/scene_components/slot_scene_component.h"
