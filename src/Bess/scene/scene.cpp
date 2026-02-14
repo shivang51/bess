@@ -7,7 +7,6 @@
 #include "ext/matrix_transform.hpp"
 #include "fwd.hpp"
 #include "plugin_manager.h"
-#include "scene/commands/add_command.h"
 #include "scene/renderer/material_renderer.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"

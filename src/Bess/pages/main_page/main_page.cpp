@@ -98,14 +98,20 @@ namespace Bess::Pages {
         m_state.releasedKeysFrame.clear();
         m_state.pressedKeysFrame.clear();
 
+        const bool imguiWantsKeyboard = ImGui::GetIO().WantTextInput;
+
         for (const auto &event : events) {
             switch (event.getType()) {
             case ApplicationEventType::KeyPress: {
+                if (imguiWantsKeyboard)
+                    break;
                 const auto data = event.getData<ApplicationEvent::KeyPressData>();
                 m_state.setKeyPressed(data.key, true);
                 m_state.pressedKeysFrame[data.key] = true;
             } break;
             case ApplicationEventType::KeyRelease: {
+                if (imguiWantsKeyboard)
+                    break;
                 const auto data = event.getData<ApplicationEvent::KeyReleaseData>();
                 m_state.setKeyPressed(data.key, false);
                 m_state.releasedKeysFrame[data.key] = true;
@@ -115,7 +121,8 @@ namespace Bess::Pages {
             }
         }
 
-        handleKeyboardShortcuts();
+        if (!imguiWantsKeyboard)
+            handleKeyboardShortcuts();
 
         const auto isViewportHovered = UI::UIMain::state.mainViewport.isHovered();
         if (isViewportHovered)
