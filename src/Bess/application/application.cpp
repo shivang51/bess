@@ -1,6 +1,6 @@
 #include "application.h"
+#include "application/app_types.h"
 #include "application/application_state.h"
-#include "application/types.h"
 #include "common/log.h"
 #include "events/application_event.h"
 #include "imgui_impl_vulkan.h"

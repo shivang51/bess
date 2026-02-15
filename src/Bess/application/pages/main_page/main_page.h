@@ -1,10 +1,11 @@
 #pragma once
 
-#include "application/types.h"
+#include "application/app_types.h"
+#include "application/events/application_event.h"
+#include "application/pages/main_page/main_page_state.h"
+#include "application/pages/page.h"
 #include "application/window.h"
-#include "events/application_event.h"
-#include "pages/main_page/main_page_state.h"
-#include "pages/page.h"
+#include "component_definition.h"
 
 #include <chrono>
 #include <memory>

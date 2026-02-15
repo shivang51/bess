@@ -83,11 +83,12 @@ set(ALL_FILES
 		${EXT_OTHERS_SRC}
 )
 
-add_library(${PROJECT_NAME} STATIC ${ALL_FILES})
+add_library(${PROJECT_NAME} OBJECT ${ALL_FILES})
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
 		"${CMAKE_SOURCE_DIR}/src/Bess/"
+		"${CMAKE_SOURCE_DIR}/src/Bess/application"
 			"${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"
 			"${CMAKE_SOURCE_DIR}/src/BessVulkan/include"
 			"${CMAKE_SOURCE_DIR}/src/BessPluginManager/include"

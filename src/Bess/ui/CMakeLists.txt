@@ -59,6 +59,7 @@ add_library(${PROJECT_NAME} STATIC ${ALL_FILES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
 		"${CMAKE_SOURCE_DIR}/src/Bess/"
+		"${CMAKE_SOURCE_DIR}/src/Bess/application"
 			"${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"
 			"${CMAKE_SOURCE_DIR}/src/BessVulkan/include"
 			"${CMAKE_SOURCE_DIR}/src/BessPluginManager/include"

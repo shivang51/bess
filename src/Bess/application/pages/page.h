@@ -1,6 +1,6 @@
 #pragma once
-#include "application/types.h"
-#include "events/application_event.h"
+#include "application/app_types.h"
+#include "application/events/application_event.h"
 #include <memory>
 #include <vector>
 

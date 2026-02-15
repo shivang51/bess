@@ -1,8 +1,8 @@
 #include "scene/scene.h"
+#include "application/settings/viewport_theme.h"
 #include "bess_uuid.h"
 #include "common/log.h"
 #include "event_dispatcher.h"
-#include "events/application_event.h"
 #include "events/sim_engine_events.h"
 #include "ext/matrix_transform.hpp"
 #include "fwd.hpp"
@@ -11,7 +11,6 @@
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
-#include "settings/viewport_theme.h"
 #include "vulkan_core.h"
 #include <GLFW/glfw3.h>
 #include <cstdint>

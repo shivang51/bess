@@ -7,68 +7,15 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_subdirectory("scene")
 add_subdirectory("ui")
+add_subdirectory("application")
 
 set(Header_Files
-"settings/themes.h"
-"settings/settings.h"
-"settings/viewport_theme.h"
-"pages/page.h"
-"pages/main_page/main_page.h"
-"pages/main_page/scene_driver.h"
-"pages/main_page/main_page_state.h"
-"pages/main_page/cmds/add_comp_cmd.h"
-"pages/main_page/cmds/delete_comp_cmd.h"
-"pages/main_page/cmds/update_vec_cmd.h"
-"pages/main_page/scene_components/input_scene_component.h"
-"pages/main_page/scene_components/slot_scene_component.h"
-"pages/main_page/scene_components/sim_scene_component.h"
-"pages/main_page/scene_components/non_sim_scene_component.h"
-"pages/main_page/scene_components/connection_scene_component.h"
-"pages/main_page/scene_components/conn_joint_scene_component.h"
-# "pages/start_page/start_page.h"
-"common/helpers.h"
-"common/bind_helpers.h"
-"common/digital_state.h"
-"common/log.h"
-"application/types.h"
-"application/args_parser.h"
-"application/crash_detail_helper.h"
-"application/application.h"
-"application/assets.h"
-"application/project_file.h"
-"application/window.h"
-"application/application_state.h"
-"events/application_event.h"
-"asset_manager/asset_loader.h"
-"asset_manager/asset_manager.h"
-"asset_manager/asset_id.h"
 )
 
 source_group("include" FILES ${Header_Files})
 
 set(Source_Files
-"settings/viewport_theme.cpp"
-"settings/themes.cpp"
-"settings/settings.cpp"
-"pages/page.cpp"
-"pages/main_page/main_page_state.cpp"
-"pages/main_page/main_page.cpp"
-"pages/main_page/scene_driver.cpp"
-# "pages/start_page/start_page.cpp"
-"pages/main_page/scene_components/sim_scene_component.cpp"
-"pages/main_page/scene_components/non_sim_scene_component.cpp"
-"pages/main_page/scene_components/input_scene_component.cpp"
-"pages/main_page/scene_components/slot_scene_component.cpp"
-"pages/main_page/scene_components/connection_scene_component.cpp"
-"pages/main_page/scene_components/conn_joint_scene_component.cpp"
-"common/helpers.cpp"
-"application/application_state.cpp"
-"application/application.cpp"
-"application/window.cpp"
-"application/main.cpp"
-"application/project_file.cpp"
-"events/application_event.cpp"
-"asset_manager/asset_manager.cpp"
+	"main.cpp"
 )
 
 source_group("src" FILES ${Source_Files})
@@ -79,8 +26,8 @@ set(ALL_FILES
 )
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
-target_link_libraries(${PROJECT_NAME} PRIVATE BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessCmdSystem BessUI)
-add_dependencies(${PROJECT_NAME} BessExtDeps besspybindings BessJson BessSimEngine BessVulkan BessPluginManager BessScene BessCmdSystem BessUI)
+target_link_libraries(${PROJECT_NAME} PUBLIC BessExtDeps BessScene BessUI BessApp)
+add_dependencies(${PROJECT_NAME} BessScene BessUI BessApp)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE "${ADDITIONAL_LIBRARY_DEPENDENCIES}")
 

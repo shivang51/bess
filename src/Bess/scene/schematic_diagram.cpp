@@ -1,5 +1,5 @@
 #include "scene/schematic_diagram.h"
-#include "settings/viewport_theme.h"
+#include "application/settings/viewport_theme.h"
 
 namespace Bess::Canvas {
     const std::vector<Renderer::Path> &SchematicDiagram::getPaths() const { return m_paths; }

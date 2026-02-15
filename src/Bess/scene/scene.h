@@ -1,10 +1,9 @@
 #pragma once
 
-#include "application/types.h"
+#include "application/app_types.h"
+#include "application/events/application_event.h"
 #include "bess_uuid.h"
 #include "commands/commands_manager.h"
-#include "component_definition.h"
-#include "events/application_event.h"
 #include "events/sim_engine_events.h"
 #include "scene/camera.h"
 #include "scene/scene_events.h"
@@ -13,7 +12,6 @@
 #include "scene/scene_state/scene_state.h"
 #include "scene/viewport.h"
 #include <memory>
-#include <typeindex>
 #include <vulkan/vulkan_core.h>
 
 // Forward declaration

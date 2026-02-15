@@ -1,7 +1,7 @@
 #pragma once
 
-#include "application/types.h"
-#include "settings/themes.h"
+#include "application/app_types.h"
+#include "application/settings/themes.h"
 #include <string>
 
 namespace Bess::Config {

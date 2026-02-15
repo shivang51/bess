@@ -1,5 +1,5 @@
 #pragma once
-#include "asset_manager/asset_loader.h"
+#include "application/asset_manager/asset_loader.h"
 #include "font.h"
 #include "msdf_font.h"
 #include "vulkan_core.h"

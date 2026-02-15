@@ -1,5 +1,5 @@
 #include "scene/commands/set_input_command.h"
-#include "application/types.h"
+#include "application/app_types.h"
 #include "commands/commands.h"
 #include "commands/commands_manager.h"
 #include "scene/scene.h"

@@ -11,43 +11,6 @@ set(PYBIND11_FINDPYTHON ON)
 find_package(Python3 COMPONENTS Interpreter Development Development.Module Development.Embed REQUIRED)
 find_package(pybind11 REQUIRED)
 
-file(GLOB_RECURSE BESS_SOURCES
-		"${CMAKE_SOURCE_DIR}/src/Bess/pages/*.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/application/project_file.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/application/window.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/application/application_state.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/settings/*.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/common/*.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/events/*.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/settings/viewport_theme.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/asset_manager/*.cpp"
-)
-
-add_library(bess_ext_obj OBJECT
-	${BESS_SOURCES}
-)
-
-set(EXTERNAL_INCLUDE_DIRS
-			"${CMAKE_SOURCE_DIR}/external/imgui"
-			"${CMAKE_SOURCE_DIR}/external/implot"
-			"${CMAKE_SOURCE_DIR}/external/freetype/include"
-			"${CMAKE_SOURCE_DIR}/external/imgui/backends"
-			"${CMAKE_SOURCE_DIR}/external/glm"
-			"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
-			"${CMAKE_SOURCE_DIR}/external/stb_image/include"
-			"${CMAKE_SOURCE_DIR}/external/tinyfiledialogs"
-			"${CMAKE_SOURCE_DIR}/external/spdlog/include"
-			"${CMAKE_SOURCE_DIR}/external/libtess2/Include"
-			"${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"
-			"${CMAKE_SOURCE_DIR}/src/Bess/"
-			"${CMAKE_SOURCE_DIR}/src/BessVulkan/include"
-			"${CMAKE_SOURCE_DIR}/src/BessJson/include"
-			"${CMAKE_SOURCE_DIR}/src/EventSystem/include"
-			"${CMAKE_SOURCE_DIR}/src/CommandSystem/include"
-)
-
-target_include_directories(bess_ext_obj PRIVATE ${EXTERNAL_INCLUDE_DIRS})
-
 set(BESS_PYBIND_SOURCES
 		internal_types.h
 
@@ -76,7 +39,6 @@ set(BESS_PYBIND_SOURCES
 pybind11_add_module(${PROJECT_NAME} ${BESS_PYBIND_SOURCES})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-	$<TARGET_OBJECTS:bess_ext_obj>
 	BessExtDeps
 	BessVulkan
 	BessSimEngine
@@ -85,9 +47,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 	BessUI
 	BessJson
 	BessCmdSystem
+	BessApp
 )
 
 add_dependencies(${PROJECT_NAME}
+	BessApp
 	BessExtDeps
 	BessVulkan
 	BessSimEngine
@@ -113,7 +77,6 @@ else()
 endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
-	${EXTERNAL_INCLUDE_DIRS}
 	"${CMAKE_CURRENT_SOURCE_DIR}/"
 )
 

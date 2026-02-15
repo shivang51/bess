@@ -3,7 +3,6 @@
 #include "bess_uuid.h"
 #include "common/helpers.h"
 #include "types.h"
-#include "ui/icons/CodIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include <string>
 

@@ -1,9 +1,10 @@
 #include "application/project_file.h"
 #include "common/log.h"
-#include "json/json.h"
+#include "plugin_manager.h"
 
 #include "pages/main_page/main_page.h"
 #include "scene/scene.h"
+#include "simulation_engine.h"
 #include "ui/ui_main/dialogs.h"
 #include "ui/ui_main/project_explorer.h"
 
@@ -124,6 +125,22 @@ namespace Bess {
             m_sceneSerializer.deserialize(data["scene_data"], scene);
         }
 
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+
+        // const auto &pluginManager = Plugins::PluginManager::instance();
+        //
+        // for (const auto &[uuid, comp] : state.getAllComponents()) {
+        //     m_maxZ = std::max(comp->getTransform().position.z, m_maxZ);
+        //     // if (comp->getType() == Canvas::SceneComponentType::simulation) {
+        //     // auto simComp = state.getComponentByUuid<Canvas::SimulationSceneComponent>(uuid);
+        //     // const auto &compDef = simEngine.getComponentDefinition(simComp->getSimEngineId());
+        //     // if (scene->hasPluginDrawHookForComponentHash(compDef->getBaseHash())) {
+        //     //     simComp->setDrawHook(scene->getPluginDrawHookForComponentHash(compDef->getBaseHash()));
+        //     // }
+        //     // }
+        // }
+        // scene->setZCoord(m_maxZ);
+
         UI::ProjectExplorer::state.fromJson(data["project_explorere_state"]);
     }
 
@@ -139,101 +156,5 @@ namespace Bess {
     }
 
     void ProjectFile::patchFile() const {
-        // using namespace Bess::Canvas;
-        // auto scene = Canvas::Scene::instance();
-        // auto &reg = scene->getEnttRegistry();
-        //
-        // for (auto &ent : reg.view<entt::entity>()) {
-        //     auto *comp = reg.try_get<Components::TagComponent>(ent);
-        //     if (!comp)
-        //         continue;
-        //     BESS_WARN("Running patch for {}", comp->name);
-        //     if (auto *simComp = reg.try_get<Components::SimulationComponent>(ent)) {
-        //         try {
-        //             BESS_WARN("Running patch for SimulationComponent of {}", (uint64_t)simComp->simEngineEntity);
-        //             auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
-        //             auto &idComp = reg.get<Components::IdComponent>(ent);
-        //
-        //             if (comp->type.simCompType == Bess::SimEngine::ComponentType::EMPTY) {
-        //                 BESS_WARN("Patching empty component type...");
-        //                 comp->type.simCompType = simEngine.getComponentType(simComp->simEngineEntity);
-        //             }
-        //
-        //             simComp->type = comp->type.simCompType;
-        //
-        //             if ((comp->type.simCompType == SimEngine::ComponentType::FLIP_FLOP_JK ||
-        //                  comp->type.simCompType == SimEngine::ComponentType::FLIP_FLOP_SR) &&
-        //                 simComp->inputSlots.size() != 4) {
-        //                 BESS_WARN("Patching flip flop input count...");
-        //
-        //                 simEngine.updateInputCount(simComp->simEngineEntity, 4);
-        //                 simComp->inputSlots.emplace_back(scene->createSlotEntity(Components::SlotType::digitalInput, idComp.uuid, 3));
-        //             } else if ((comp->type.simCompType == SimEngine::ComponentType::FLIP_FLOP_D ||
-        //                         comp->type.simCompType == SimEngine::ComponentType::FLIP_FLOP_T) &&
-        //                        simComp->inputSlots.size() != 3) {
-        //                 BESS_WARN("Patching flip flop input count...");
-        //                 simEngine.updateInputCount(simComp->simEngineEntity, 3);
-        //                 simComp->inputSlots.emplace_back(scene->createSlotEntity(Components::SlotType::digitalInput, idComp.uuid, 2));
-        //             }
-        //
-        //             auto connView = reg.view<Components::IdComponent, Components::ConnectionComponent>();
-        //
-        //             for (const auto slotUuid : simComp->inputSlots) {
-        //                 auto &slotComp = reg.get<Components::SlotComponent>(scene->getEntityWithUuid(slotUuid));
-        //                 if (!slotComp.connections.empty())
-        //                     continue;
-        //                 std::set<UUID> connections = {};
-        //                 for (const auto connEnt : connView) {
-        //                     const auto &conn = connView.get<Components::ConnectionComponent>(connEnt);
-        //                     if (slotUuid == conn.inputSlot || slotUuid == conn.outputSlot) {
-        //                         const auto &id = connView.get<Components::IdComponent>(connEnt);
-        //                         connections.insert(id.uuid);
-        //                     }
-        //                 }
-        //                 if (connections.empty())
-        //                     continue;
-        //                 BESS_WARN("Patching {} connections for slot {}", connections.size(), (uint64_t)slotUuid);
-        //                 slotComp.connections.insert(slotComp.connections.begin(), connections.begin(), connections.end());
-        //             }
-        //
-        //             for (const auto slotUuid : simComp->outputSlots) {
-        //                 auto &slotComp = reg.get<Components::SlotComponent>(scene->getEntityWithUuid(slotUuid));
-        //                 if (!slotComp.connections.empty())
-        //                     continue;
-        //                 std::set<UUID> connections = {};
-        //                 for (const auto connEnt : connView) {
-        //                     const auto &conn = connView.get<Components::ConnectionComponent>(connEnt);
-        //                     if (slotUuid == conn.inputSlot || slotUuid == conn.outputSlot) {
-        //                         const auto &id = connView.get<Components::IdComponent>(connEnt);
-        //                         connections.insert(id.uuid);
-        //                     }
-        //                 }
-        //                 if (connections.empty())
-        //                     continue;
-        //                 BESS_WARN("Patching {} connections for slot {}", connections.size(), (uint64_t)slotUuid);
-        //                 slotComp.connections.insert(slotComp.connections.begin(), connections.begin(), connections.end());
-        //             }
-        //
-        //             BESS_WARN("(Done)");
-        //         } catch (std::exception e) {
-        //             BESS_ERROR("(Failed)");
-        //         }
-        //     }
-        //     if (auto *spriteComp = reg.try_get<Components::SpriteComponent>(ent)) {
-        //         BESS_WARN("Running patch for SpriteComponent");
-        //         auto expectedColor = ViewportTheme::getCompHeaderColor(comp->type.simCompType);
-        //         if (spriteComp->headerColor != expectedColor) {
-        //             spriteComp->headerColor = expectedColor;
-        //             BESS_WARN("Fixed Header Color");
-        //         }
-        //     }
-        //     if (auto *comp = reg.try_get<Components::TransformComponent>(ent)) {
-        //         BESS_WARN("Running patch for TransformComponent");
-        //         if (comp->position.z < 1.f) {
-        //             comp->position.z += 1.f;
-        //             BESS_WARN("Fixed Z Pos");
-        //         }
-        //     }
-        // }
     }
 } // namespace Bess

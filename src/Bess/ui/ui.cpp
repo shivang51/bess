@@ -4,10 +4,10 @@
 #include "ui/icons/CodIcons.h"
 #include "ui/icons/ComponentIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
-#include "ui/icons/MaterialIcons.h"
 
 #include "application/assets.h"
-#include "settings/settings.h"
+#include "application/settings/settings.h"
+#include "ui/icons/MaterialIcons.h"
 #include "ui/ui_main/project_explorer.h"
 
 #include "imgui.h"

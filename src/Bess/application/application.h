@@ -1,6 +1,6 @@
 #pragma once
 
-#include "application/types.h"
+#include "application/app_types.h"
 #include "application/window.h"
 #include "events/application_event.h"
 #include <chrono>

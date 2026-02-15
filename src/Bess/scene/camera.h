@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include "application/types.h"
+#include "application/app_types.h"
 #include "glm.hpp"
 
 namespace Bess {

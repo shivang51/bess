@@ -1,6 +1,6 @@
 #include "scene/renderer/vulkan/pipelines/text_pipeline.h"
+#include "application/asset_manager/asset_manager.h"
 #include "application/assets.h"
-#include "asset_manager/asset_manager.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
 
 namespace Bess::Vulkan::Pipelines {

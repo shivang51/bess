@@ -1,6 +1,6 @@
 #include "scene/renderer/material_renderer.h"
+#include "application/asset_manager/asset_manager.h"
 #include "application/assets.h"
-#include "asset_manager/asset_manager.h"
 #include <cstdint>
 
 namespace Bess::Renderer {

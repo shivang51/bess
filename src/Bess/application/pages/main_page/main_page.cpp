@@ -1,5 +1,4 @@
 #include "pages/main_page/main_page.h"
-#include "application/types.h"
 #include "asset_manager/asset_manager.h"
 #include "component_catalog.h"
 #include "events/application_event.h"
