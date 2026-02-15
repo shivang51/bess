@@ -64,6 +64,8 @@ namespace Bess::Canvas {
         glm::vec3 getAbsolutePosition(const SceneState &state) const override;
 
       protected:
+        void onTransformChanged() override;
+
         /**
          * Resets the slot positions based on the current scale and number of slots
          * in the component.

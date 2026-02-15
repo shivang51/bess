@@ -892,8 +892,9 @@ namespace Bess::Canvas {
 
     void Scene::addComponent(const std::shared_ptr<SceneComponent> &comp, bool setZ) {
         if (setZ) {
-            auto &pos = comp->getTransform().position;
+            auto pos = comp->getTransform().position;
             pos.z = getNextZCoord();
+            comp->setPosition(pos); // doing it like this so, change cb is called
         }
         m_state.addComponent(comp);
     }

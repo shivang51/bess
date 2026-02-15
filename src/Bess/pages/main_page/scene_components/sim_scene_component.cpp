@@ -500,4 +500,8 @@ namespace Bess::Canvas {
             return SceneComponent::getAbsolutePosition(state);
         }
     }
+
+    void SimulationSceneComponent::onTransformChanged() {
+        m_schematicTransform.position.z = m_transform.position.z;
+    }
 } // namespace Bess::Canvas
