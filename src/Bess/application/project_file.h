@@ -9,10 +9,9 @@ namespace Bess {
       public:
         ProjectFile();
         ProjectFile(const std::string &path);
-        ~ProjectFile();
+        ~ProjectFile() = default;
 
         void save();
-        // void update(const Simulator::TComponents components);
 
         const std::string &getName() const;
         std::string &getNameRef();
@@ -31,11 +30,12 @@ namespace Bess {
         void patchFile() const;
 
       private:
-        std::string m_name = "";
-        std::string m_path = "";
-        
+        std::string m_name;
+        std::string m_path;
+
+        // TODO (Shivang): Use undo redo to figure this out
         bool m_saved = false;
-        
+
         SimEngine::SimEngineSerializer m_simEngineSerializer;
         SceneSerializer m_sceneSerializer;
     };

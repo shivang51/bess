@@ -1,32 +1,27 @@
 #include "application/project_file.h"
 #include "common/log.h"
+#include "pages/main_page/scene_components/scene_comp_types.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
 #include "plugin_manager.h"
 
 #include "pages/main_page/main_page.h"
-#include "scene/scene.h"
 #include "simulation_engine.h"
 #include "ui/ui_main/dialogs.h"
 #include "ui/ui_main/project_explorer.h"
 
-#include <cstdint>
 #include <fstream>
 
 namespace Bess {
-    ProjectFile::ProjectFile() {
-        m_name = "Unnamed";
-        m_saved = false;
+    ProjectFile::ProjectFile() : m_name("Unnamed") {
     }
 
-    ProjectFile::ProjectFile(const std::string &path) {
+    ProjectFile::ProjectFile(const std::string &path) : m_path(path), m_saved(true) {
         BESS_INFO("Opening project from {}", path);
-        m_path = path;
+
         decode();
         patchFile();
-        m_saved = true;
-        BESS_INFO("Project Loaded Successfully");
-    }
 
-    ProjectFile::~ProjectFile() {
+        BESS_INFO("Project Loaded Successfully");
     }
 
     void ProjectFile::save() {
@@ -39,6 +34,7 @@ namespace Bess {
         BESS_INFO("Saving project {}", m_path);
         encodeAndSave();
         BESS_INFO("Saving Successfull");
+
         m_saved = true;
     }
 
@@ -127,19 +123,25 @@ namespace Bess {
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
 
-        // const auto &pluginManager = Plugins::PluginManager::instance();
-        //
-        // for (const auto &[uuid, comp] : state.getAllComponents()) {
-        //     m_maxZ = std::max(comp->getTransform().position.z, m_maxZ);
-        //     // if (comp->getType() == Canvas::SceneComponentType::simulation) {
-        //     // auto simComp = state.getComponentByUuid<Canvas::SimulationSceneComponent>(uuid);
-        //     // const auto &compDef = simEngine.getComponentDefinition(simComp->getSimEngineId());
-        //     // if (scene->hasPluginDrawHookForComponentHash(compDef->getBaseHash())) {
-        //     //     simComp->setDrawHook(scene->getPluginDrawHookForComponentHash(compDef->getBaseHash()));
-        //     // }
-        //     // }
-        // }
-        // scene->setZCoord(m_maxZ);
+        auto scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver().getActiveScene();
+        auto &sceneState = scene->getState();
+
+        const auto &pluginManager = Plugins::PluginManager::getInstance();
+
+        float maxZ = 0;
+
+        for (const auto &[uuid, comp] : sceneState.getAllComponents()) {
+            maxZ = std::max(comp->getTransform().position.z, maxZ);
+            if (comp->getType() == Canvas::SceneComponentType::simulation) {
+                auto simComp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(uuid);
+                const auto &compDef = simEngine.getComponentDefinition(simComp->getSimEngineId());
+                if (scene->hasPluginDrawHookForComponentHash(compDef->getBaseHash())) {
+                    simComp->setDrawHook(scene->getPluginDrawHookForComponentHash(compDef->getBaseHash()));
+                }
+            }
+        }
+
+        scene->setZCoord(maxZ);
 
         UI::ProjectExplorer::state.fromJson(data["project_explorere_state"]);
     }
