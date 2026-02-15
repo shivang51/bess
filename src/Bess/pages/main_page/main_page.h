@@ -18,6 +18,12 @@ namespace Bess::Pages {
         glm::vec2 pos = {0.f, 0.f};
     };
 
+    struct LastMouseButtonEvent {
+        std::chrono::time_point<std::chrono::steady_clock> timestamp;
+        ApplicationEvent::MouseButtonData data;
+        bool processed = true;
+    };
+
     class MainPage : public Page {
       public:
         MainPage(const std::shared_ptr<Window> &parentWindow);
@@ -29,7 +35,7 @@ namespace Bess::Pages {
 
         void draw() override;
 
-        void update(TFrameTime ts, const std::vector<ApplicationEvent> &events) override;
+        void update(TFrameTime ts, std::vector<ApplicationEvent> &events) override;
 
         std::shared_ptr<Window> getParentWindow();
 
@@ -52,6 +58,8 @@ namespace Bess::Pages {
         bool m_middleMousePressed = false;
 
         std::chrono::time_point<std::chrono::steady_clock> m_lastUpdateTime;
+
+        LastMouseButtonEvent m_lastMouseButtonEvent;
 
         MainPageState m_state;
 

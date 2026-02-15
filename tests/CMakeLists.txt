@@ -20,7 +20,6 @@ set(External
 		"${CMAKE_SOURCE_DIR}/src/Bess/pages/main_page/main_page_state.cpp"
 		"${CMAKE_SOURCE_DIR}/src/Bess/pages/main_page/main_page.cpp"
 		"${CMAKE_SOURCE_DIR}/src/Bess/pages/main_page/scene_driver.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/pages/start_page/start_page.cpp"
 		"${CMAKE_SOURCE_DIR}/src/Bess/common/helpers.cpp"
 		"${CMAKE_SOURCE_DIR}/src/Bess/application/application_state.cpp"
 		"${CMAKE_SOURCE_DIR}/src/Bess/application/application.cpp"

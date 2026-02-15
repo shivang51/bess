@@ -100,11 +100,15 @@ namespace Bess::Canvas {
                 updatePickingId();
                 const auto data = event.getData<ApplicationEvent::MouseButtonData>();
                 if (data.button == MouseButton::left) {
-                    onLeftMouse(data.pressed);
+                    if (data.action == MouseButtonAction::doubleClick) {
+                        BESS_INFO("[Scene] Left mouse double click at ({}, {})", m_mousePos.x, m_mousePos.y);
+                    } else {
+                        onLeftMouse(data.action == MouseButtonAction::press);
+                    }
                 } else if (data.button == MouseButton::right) {
-                    onRightMouse(data.pressed);
+                    onRightMouse(data.action == MouseButtonAction::press);
                 } else if (data.button == MouseButton::middle) {
-                    onMiddleMouse(data.pressed);
+                    onMiddleMouse(data.action == MouseButtonAction::press);
                 }
             } break;
             case ApplicationEventType::MouseWheel: {
@@ -461,6 +465,23 @@ namespace Bess::Canvas {
                                          ? Events::MouseClickAction::press
                                          : Events::MouseClickAction::release,
                                      m_pickingId.info});
+    }
+
+    void Scene::onLeftDoubleClick() {
+        EventSystem::EventDispatcher::instance().dispatch(
+            Events::MouseButtonEvent{toScenePos(m_mousePos),
+                                     Events::MouseButton::left,
+                                     Events::MouseClickAction::doubleClick,
+                                     m_pickingId.info});
+
+        if (m_pickingId.isValid()) {
+            auto comp = m_state.getComponentByPickingId(m_pickingId);
+            comp->onMouseButton({toScenePos(m_mousePos),
+                                 Events::MouseButton::left,
+                                 Events::MouseClickAction::doubleClick,
+                                 m_pickingId.info,
+                                 &m_state});
+        }
     }
 
     void Scene::onLeftMouse(bool isPressed) {

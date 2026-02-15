@@ -1,11 +1,12 @@
 #pragma once
+#include "events/application_event.h"
+#include "fwd.hpp"
+#include <cstdint>
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
-#include "glm.hpp"
 
 #include <any>
 #include <functional>
-#include <iostream>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -13,14 +14,12 @@
 
 namespace Bess {
 
-    enum Callback {
+    enum class Callback : uint8_t {
         WindowResize,
         MouseWheel,
         KeyPress,
         KeyRelease,
-        LeftMouse,
-        RightMouse,
-        MiddleMouse,
+        MouseButton,
         MouseMove
     };
 
@@ -28,9 +27,7 @@ namespace Bess {
     typedef std::function<void(double, double)> MouseWheelCallback;
     typedef std::function<void(int)> KeyReleaseCallback;
     typedef std::function<void(int)> KeyPressCallback;
-    typedef std::function<void(bool)> LeftMouseCallback;
-    typedef std::function<void(bool)> RightMouseCallback;
-    typedef std::function<void(bool)> MiddleMouseCallback;
+    typedef std::function<void(MouseButton, MouseButtonAction)> MouseButtonCallback;
     typedef std::function<void(double, double)> MouseMoveCallback;
 
     class Window {
@@ -62,9 +59,7 @@ namespace Bess {
         void onMouseWheel(MouseWheelCallback callback);
         void onKeyPress(KeyPressCallback callback);
         void onKeyRelease(KeyReleaseCallback callback);
-        void onLeftMouse(LeftMouseCallback callback);
-        void onRightMouse(RightMouseCallback callback);
-        void onMiddleMouse(MiddleMouseCallback callback);
+        void onMouseButton(MouseButtonCallback callback);
         void onMouseMove(MouseMoveCallback callback);
 
         glm::vec2 getMousePos() const;

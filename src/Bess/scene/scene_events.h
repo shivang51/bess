@@ -12,7 +12,8 @@ namespace Bess::Canvas::Events {
     enum class MouseClickAction : uint8_t {
         release = 0,
         press = 1,
-        repeat = 2
+        repeat = 2,
+        doubleClick = 3
     };
 
     enum class MouseButton : uint8_t {

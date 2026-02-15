@@ -85,7 +85,7 @@ namespace Bess::Pages {
         UI::UIMain::draw();
     }
 
-    void MainPage::update(TFrameTime ts, const std::vector<ApplicationEvent> &events) {
+    void MainPage::update(TFrameTime ts, std::vector<ApplicationEvent> &events) {
         const auto &viewportSize = UI::UIMain::state.mainViewport.getViewportSize();
         const auto &viewportPos = UI::UIMain::state.mainViewport.getViewportPos();
 
@@ -99,8 +99,28 @@ namespace Bess::Pages {
 
         const bool imguiWantsKeyboard = ImGui::GetIO().WantTextInput;
 
+        bool isDoubleClick = false;
+
         for (const auto &event : events) {
             switch (event.getType()) {
+            case Bess::ApplicationEventType::MouseButton: {
+                const auto data = event.getData<ApplicationEvent::MouseButtonData>();
+                if (m_lastMouseButtonEvent.processed && data.action == MouseButtonAction::press) {
+                    m_lastMouseButtonEvent.timestamp = std::chrono::steady_clock::now();
+                    m_lastMouseButtonEvent.data = data;
+                    m_lastMouseButtonEvent.processed = false;
+                } else {
+                    if (data.action == m_lastMouseButtonEvent.data.action) {
+                        const auto diff = std::chrono::steady_clock::now() - m_lastMouseButtonEvent.timestamp;
+                        if (diff < std::chrono::milliseconds(500) &&
+                            data.action == MouseButtonAction::press &&
+                            m_lastMouseButtonEvent.data.button == data.button) {
+                            isDoubleClick = true;
+                        }
+                        m_lastMouseButtonEvent.processed = true;
+                    }
+                }
+            } break;
             case ApplicationEventType::KeyPress: {
                 const auto data = event.getData<ApplicationEvent::KeyPressData>();
                 m_state.setKeyPressed(data.key);
@@ -114,6 +134,13 @@ namespace Bess::Pages {
             default:
                 break;
             }
+        }
+
+        if (isDoubleClick) {
+            auto data = m_lastMouseButtonEvent.data;
+            data.action = MouseButtonAction::doubleClick;
+            ApplicationEvent event(ApplicationEventType::MouseButton, data);
+            events.emplace_back(event);
         }
 
         if (!imguiWantsKeyboard)

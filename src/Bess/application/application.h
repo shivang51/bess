@@ -44,9 +44,7 @@ namespace Bess {
         void onMouseWheel(double x, double y);
         void onKeyPress(int key);
         void onKeyRelease(int key);
-        void onLeftMouse(bool pressed);
-        void onRightMouse(bool pressed);
-        void onMiddleMouse(bool pressed);
+        void onMouseButton(MouseButton button, MouseButtonAction action);
         void onMouseMove(double x, double y);
 
         int m_currentFps = 0;

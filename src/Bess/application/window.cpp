@@ -1,7 +1,8 @@
 #include "application/window.h"
-
 #include "common/log.h"
+#include "events/application_event.h"
 #include "stb_image.h"
+#include "vec2.hpp"
 #include <GLFW/glfw3.h>
 #include <cassert>
 #include <cstdint>
@@ -27,7 +28,7 @@ namespace Bess {
         GLFWimage images[1];
         images[0].pixels = stbi_load("assets/images/logo/BessLogo.png",
                                      &images[0].width,
-                                     &images[0].height, 0, 4); // rgba channels
+                                     &images[0].height, nullptr, 4); // rgba channels
         glfwSetWindowIcon(window, 1, images);
         stbi_image_free(images[0].pixels);
 
@@ -99,38 +100,40 @@ namespace Bess {
                     this_->m_callbacks[Callback::KeyRelease]);
                 cb(key);
             } break;
+            default:
+                BESS_WARN("[Window] Unhandled key action type {}", action);
+                break;
             }
         });
 
         glfwSetMouseButtonCallback(
             window, [](GLFWwindow *window, int button, int action, int mods) {
                 const auto this_ = (Window *)glfwGetWindowUserPointer(window);
+                const auto cb = std::any_cast<MouseButtonCallback>(
+                    this_->m_callbacks[Callback::MouseButton]);
+
+                MouseButton btn = MouseButton::unknown;
+
                 switch (button) {
                 case GLFW_MOUSE_BUTTON_LEFT: {
-                    if (!this_->m_callbacks.contains(Callback::LeftMouse))
-                        return;
-                    const auto cb = std::any_cast<LeftMouseCallback>(
-                        this_->m_callbacks[Callback::LeftMouse]);
-                    cb(action == GLFW_PRESS);
+                    btn = MouseButton::left;
                 } break;
                 case GLFW_MOUSE_BUTTON_RIGHT: {
-                    if (!this_->m_callbacks.contains(Callback::RightMouse))
-                        return;
-                    const auto cb = std::any_cast<RightMouseCallback>(
-                        this_->m_callbacks[Callback::RightMouse]);
-                    cb(action == GLFW_PRESS);
+                    btn = MouseButton::right;
                 } break;
                 case GLFW_MOUSE_BUTTON_MIDDLE: {
-                    if (!this_->m_callbacks.contains(Callback::MiddleMouse))
-                        return;
-                    const auto cb = std::any_cast<MiddleMouseCallback>(
-                        this_->m_callbacks[Callback::MiddleMouse]);
-                    cb(action == GLFW_PRESS);
+                    btn = MouseButton::middle;
                 } break;
                 default:
                     BESS_WARN("[Window] Unhandled mouse button type {}", button);
                     break;
                 }
+
+                const auto btnAction = action == GLFW_PRESS
+                                           ? MouseButtonAction::press
+                                           : MouseButtonAction::release;
+
+                cb(btn, btnAction);
             });
 
         glfwSetCursorPosCallback(
@@ -196,16 +199,8 @@ namespace Bess {
         m_callbacks[Callback::KeyRelease] = callback;
     }
 
-    void Window::onLeftMouse(LeftMouseCallback callback) {
-        m_callbacks[Callback::LeftMouse] = callback;
-    }
-
-    void Window::onRightMouse(RightMouseCallback callback) {
-        m_callbacks[Callback::RightMouse] = callback;
-    }
-
-    void Window::onMiddleMouse(MiddleMouseCallback callback) {
-        m_callbacks[Callback::MiddleMouse] = callback;
+    void Window::onMouseButton(MouseButtonCallback callback) {
+        m_callbacks[Callback::MouseButton] = callback;
     }
 
     void Window::onMouseMove(MouseMoveCallback callback) {

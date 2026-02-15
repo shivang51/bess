@@ -11,6 +11,6 @@ namespace Bess::Pages {
         virtual ~Page() = default;
 
         virtual void draw() = 0;
-        virtual void update(TFrameTime ts, const std::vector<ApplicationEvent> &events) = 0;
+        virtual void update(TFrameTime ts, std::vector<ApplicationEvent> &events) = 0;
     };
 } // namespace Bess::Pages

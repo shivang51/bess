@@ -119,20 +119,8 @@ namespace Bess {
         m_events.emplace_back(event);
     }
 
-    void Application::onLeftMouse(bool pressed) {
-        ApplicationEvent::MouseButtonData data(MouseButton::left, pressed);
-        ApplicationEvent event(ApplicationEventType::MouseButton, data);
-        m_events.emplace_back(event);
-    }
-
-    void Application::onRightMouse(bool pressed) {
-        ApplicationEvent::MouseButtonData data(MouseButton::right, pressed);
-        ApplicationEvent event(ApplicationEventType::MouseButton, data);
-        m_events.emplace_back(event);
-    }
-
-    void Application::onMiddleMouse(bool pressed) {
-        ApplicationEvent::MouseButtonData data(MouseButton::middle, pressed);
+    void Application::onMouseButton(MouseButton button, MouseButtonAction action) {
+        ApplicationEvent::MouseButtonData data(button, action);
         ApplicationEvent event(ApplicationEventType::MouseButton, data);
         m_events.emplace_back(event);
     }
@@ -167,9 +155,7 @@ namespace Bess {
         m_mainWindow->onMouseWheel(BIND_FN_2(Application::onMouseWheel));
         m_mainWindow->onKeyPress(BIND_FN_1(Application::onKeyPress));
         m_mainWindow->onKeyRelease(BIND_FN_1(Application::onKeyRelease));
-        m_mainWindow->onLeftMouse(BIND_FN_1(Application::onLeftMouse));
-        m_mainWindow->onRightMouse(BIND_FN_1(Application::onRightMouse));
-        m_mainWindow->onMiddleMouse(BIND_FN_1(Application::onMiddleMouse));
+        m_mainWindow->onMouseButton(BIND_FN_2(Application::onMouseButton));
         m_mainWindow->onMouseMove(BIND_FN_2(Application::onMouseMove));
 
         const auto page = Pages::MainPage::getInstance(ApplicationState::getParentWindow());

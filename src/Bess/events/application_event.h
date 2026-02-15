@@ -12,13 +12,15 @@ namespace Bess {
         KeyRelease
     };
 
-    enum class MouseClickAction : uint8_t {
+    enum class MouseButtonAction : uint8_t {
         release = 0,
         press = 1,
-        repeat = 2
+        repeat = 2,
+        doubleClick = 3
     };
 
-    enum class MouseButton : uint8_t {
+    enum class MouseButton : int8_t {
+        unknown = -1,
         left = 0,
         right = 1,
         middle = 2,
@@ -52,7 +54,7 @@ namespace Bess {
 
         struct MouseButtonData {
             MouseButton button;
-            bool pressed;
+            MouseButtonAction action;
         };
 
         struct KeyPressData {

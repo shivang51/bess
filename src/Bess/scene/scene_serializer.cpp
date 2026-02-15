@@ -34,11 +34,11 @@ namespace Bess {
         for (const auto &[uuid, comp] : state.getAllComponents()) {
             m_maxZ = std::max(comp->getTransform().position.z, m_maxZ);
             // if (comp->getType() == Canvas::SceneComponentType::simulation) {
-                // auto simComp = state.getComponentByUuid<Canvas::SimulationSceneComponent>(uuid);
-                // const auto &compDef = simEngine.getComponentDefinition(simComp->getSimEngineId());
-                // if (scene->hasPluginDrawHookForComponentHash(compDef->getBaseHash())) {
-                //     simComp->setDrawHook(scene->getPluginDrawHookForComponentHash(compDef->getBaseHash()));
-                // }
+            // auto simComp = state.getComponentByUuid<Canvas::SimulationSceneComponent>(uuid);
+            // const auto &compDef = simEngine.getComponentDefinition(simComp->getSimEngineId());
+            // if (scene->hasPluginDrawHookForComponentHash(compDef->getBaseHash())) {
+            //     simComp->setDrawHook(scene->getPluginDrawHookForComponentHash(compDef->getBaseHash()));
+            // }
             // }
         }
         scene->setZCoord(m_maxZ);

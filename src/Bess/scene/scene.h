@@ -118,6 +118,7 @@ namespace Bess::Canvas {
 
         void onMouseMove(const glm::vec2 &pos);
         void onLeftMouse(bool isPressed);
+        void onLeftDoubleClick();
         void onMiddleMouse(bool isPressed);
         void onRightMouse(bool isPressed);
         void onMouseWheel(double x, double y);
