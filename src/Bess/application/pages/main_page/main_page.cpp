@@ -69,6 +69,7 @@ namespace Bess::Pages {
             return;
         BESS_INFO("[MainPage] Destroying");
         m_state.getCommandSystem().reset();
+        m_copiedComponents.clear();
         auto &instance = Bess::Vulkan::VulkanCore::instance();
         instance.cleanup([&]() {
             m_state.getSceneDriver()->destroy();
