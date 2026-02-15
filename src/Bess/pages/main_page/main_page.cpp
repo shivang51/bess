@@ -89,32 +89,27 @@ namespace Bess::Pages {
         const auto &viewportSize = UI::UIMain::state.mainViewport.getViewportSize();
         const auto &viewportPos = UI::UIMain::state.mainViewport.getViewportPos();
 
+        m_state.update();
+
         m_state.getSceneDriver().getActiveScene()->updateViewportTransform({viewportPos, viewportSize});
 
         if (m_state.getSceneDriver().getActiveScene()->getSize() != viewportSize) {
             m_state.getSceneDriver().getActiveScene()->resize(viewportSize);
         }
 
-        m_state.releasedKeysFrame.clear();
-        m_state.pressedKeysFrame.clear();
-
         const bool imguiWantsKeyboard = ImGui::GetIO().WantTextInput;
 
         for (const auto &event : events) {
             switch (event.getType()) {
             case ApplicationEventType::KeyPress: {
-                if (imguiWantsKeyboard)
-                    break;
                 const auto data = event.getData<ApplicationEvent::KeyPressData>();
-                m_state.setKeyPressed(data.key, true);
-                m_state.pressedKeysFrame[data.key] = true;
+                m_state.setKeyPressed(data.key);
+                m_state.setKeyDown(data.key, true);
             } break;
             case ApplicationEventType::KeyRelease: {
-                if (imguiWantsKeyboard)
-                    break;
                 const auto data = event.getData<ApplicationEvent::KeyReleaseData>();
-                m_state.setKeyPressed(data.key, false);
-                m_state.releasedKeysFrame[data.key] = true;
+                m_state.setKeyReleased(data.key);
+                m_state.setKeyDown(data.key, false);
             } break;
             default:
                 break;
@@ -134,48 +129,48 @@ namespace Bess::Pages {
     }
 
     void MainPage::handleKeyboardShortcuts() {
-        const bool ctrlPressed = m_state.isKeyPressed(GLFW_KEY_LEFT_CONTROL) ||
-                                 m_state.isKeyPressed(GLFW_KEY_RIGHT_CONTROL);
+        const bool ctrlPressed = m_state.isKeyDown(GLFW_KEY_LEFT_CONTROL) ||
+                                 m_state.isKeyDown(GLFW_KEY_RIGHT_CONTROL);
 
-        const bool shiftPressed = m_state.isKeyPressed(GLFW_KEY_LEFT_SHIFT) ||
-                                  m_state.isKeyPressed(GLFW_KEY_RIGHT_SHIFT);
+        const bool shiftPressed = m_state.isKeyDown(GLFW_KEY_LEFT_SHIFT) ||
+                                  m_state.isKeyDown(GLFW_KEY_RIGHT_SHIFT);
 
         if (ctrlPressed) {
-            if (m_state.releasedKeysFrame[GLFW_KEY_S]) {
+            if (m_state.isKeyPressed(GLFW_KEY_S)) {
                 m_state.actionFlags.saveProject = true;
-            } else if (m_state.releasedKeysFrame[GLFW_KEY_O]) {
+            } else if (m_state.isKeyPressed(GLFW_KEY_O)) {
                 m_state.actionFlags.openProject = true;
-            } else if (m_state.pressedKeysFrame[GLFW_KEY_Z]) {
+            } else if (m_state.isKeyPressed(GLFW_KEY_Z)) {
                 if (shiftPressed) {
                     m_state.getCommandSystem().redo();
                 } else {
                     m_state.getCommandSystem().undo();
                 }
-            } else if (m_state.releasedKeysFrame[GLFW_KEY_G]) {
+            } else if (m_state.isKeyPressed(GLFW_KEY_G)) {
                 UI::ProjectExplorer::groupSelectedNodes();
-            } else if (m_state.releasedKeysFrame[GLFW_KEY_A]) {
+            } else if (m_state.isKeyPressed(GLFW_KEY_A)) {
                 m_state.getSceneDriver()->selectAllEntities();
-            } else if (m_state.releasedKeysFrame[GLFW_KEY_C]) {
+            } else if (m_state.isKeyPressed(GLFW_KEY_C)) {
                 copySelectedEntities();
-            } else if (m_state.releasedKeysFrame[GLFW_KEY_V]) {
+            } else if (m_state.isKeyPressed(GLFW_KEY_V)) {
                 pasteCopiedEntities();
             }
         } else if (shiftPressed) {
-            if (m_state.pressedKeysFrame[GLFW_KEY_A]) {
+            if (m_state.isKeyPressed(GLFW_KEY_A)) {
                 UI::ComponentExplorer::isShown = !UI::ComponentExplorer::isShown;
             }
         } else {
-            if (m_state.pressedKeysFrame[GLFW_KEY_DELETE]) {
+            if (m_state.isKeyPressed(GLFW_KEY_DELETE)) {
                 auto ids = m_state.getSceneDriver()->getState().getSelectedComponents() |
                            std::ranges::views::keys |
                            std::ranges::to<std::vector<UUID>>();
 
                 m_state.getCommandSystem().execute(std::make_unique<Cmd::DeleteCompCmd>(ids));
-            } else if (m_state.pressedKeysFrame[GLFW_KEY_F]) {
+            } else if (m_state.isKeyPressed(GLFW_KEY_F)) {
                 m_state.getSceneDriver()->focusCameraOnSelected();
-            } else if (m_state.pressedKeysFrame[GLFW_KEY_TAB]) {
+            } else if (m_state.isKeyPressed(GLFW_KEY_TAB)) {
                 m_state.getSceneDriver()->toggleSchematicView();
-            } else if (m_state.pressedKeysFrame[GLFW_KEY_ESCAPE]) {
+            } else if (m_state.isKeyPressed(GLFW_KEY_ESCAPE)) {
                 if (UI::ComponentExplorer::isShown) {
                     UI::ComponentExplorer::isShown = false;
                 }

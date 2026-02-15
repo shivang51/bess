@@ -41,12 +41,28 @@ namespace Bess::Pages {
         return m_currentProjectFile;
     }
 
-    bool MainPageState::isKeyPressed(int key) {
-        return m_pressedKeys[key];
+    bool MainPageState::isKeyPressed(int key) const {
+        return m_pressedKeysFrame.contains(key) && m_pressedKeysFrame.at(key);
     }
 
-    void MainPageState::setKeyPressed(int key, bool pressed) {
-        m_pressedKeys[key] = pressed;
+    void MainPageState::setKeyPressed(int key) {
+        m_pressedKeysFrame[key] = true;
+    }
+
+    bool MainPageState::isKeyReleased(int key) const {
+        return m_releasedKeysFrame.contains(key) && m_releasedKeysFrame.at(key);
+    }
+
+    void MainPageState::setKeyReleased(int key) {
+        m_releasedKeysFrame[key] = true;
+    }
+
+    bool MainPageState::isKeyDown(int key) const {
+        return m_downKeys.contains(key) && m_downKeys.at(key);
+    }
+
+    void MainPageState::setKeyDown(int key, bool isDown) {
+        m_downKeys[key] = isDown;
     }
 
     void MainPageState::initCmdSystem(Canvas::Scene *scene,
@@ -72,5 +88,10 @@ namespace Bess::Pages {
 
     Cmd::CommandSystem &MainPageState::getCommandSystem() {
         return m_commandSystem;
+    }
+
+    void MainPageState::update() {
+        m_releasedKeysFrame.clear();
+        m_pressedKeysFrame.clear();
     }
 } // namespace Bess::Pages

@@ -25,8 +25,22 @@ namespace Bess::Pages {
 
         Cmd::CommandSystem &getCommandSystem();
 
-        void setKeyPressed(int key, bool pressed);
-        bool isKeyPressed(int key);
+        void update();
+
+        void setKeyPressed(int key);
+
+        // returns true if the key was pressed in the current frame, false otherwise
+        bool isKeyPressed(int key) const;
+
+        void setKeyReleased(int key);
+
+        // returns true if the key was released in the current frame, false otherwise
+        bool isKeyReleased(int key) const;
+
+        void setKeyDown(int key, bool isDown);
+
+        // returns true if the key is currently being held down, false otherwise
+        bool isKeyDown(int key) const;
 
         void resetProjectState() const;
         void createNewProject(bool updateWindowName = true);
@@ -48,9 +62,6 @@ namespace Bess::Pages {
         bool m_simulationPaused = false;
 
         // contains the state of keyboard keys pressed
-        std::unordered_map<int, bool> m_pressedKeys;
-        std::unordered_map<int, bool> releasedKeysFrame;
-        std::unordered_map<int, bool> pressedKeysFrame;
 
       private:
         void onEntityMoved(const Canvas::Events::EntityMovedEvent &e);
@@ -58,5 +69,8 @@ namespace Bess::Pages {
       private:
         Cmd::CommandSystem m_commandSystem;
         SceneDriver m_sceneDriver;
+        std::unordered_map<int, bool> m_releasedKeysFrame;
+        std::unordered_map<int, bool> m_pressedKeysFrame;
+        std::unordered_map<int, bool> m_downKeys;
     };
 } // namespace Bess::Pages
