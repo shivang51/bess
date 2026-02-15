@@ -24,6 +24,7 @@ namespace Bess::Renderer {
 
     struct ShadowProps {
         bool enabled = false;
+        bool useInvalidId = true;
         glm::vec2 offset = {5.f, 5.f};
         glm::vec2 scale = {1.f, 1.f};
         glm::vec4 color = {0.f, 0.f, 0.f, 0.5f};

@@ -1,6 +1,7 @@
 #include "scene/renderer/material_renderer.h"
 #include "application/asset_manager/asset_manager.h"
 #include "application/assets.h"
+#include "scene/scene_state/components/scene_component_types.h"
 #include <cstdint>
 
 namespace Bess::Renderer {
@@ -124,11 +125,14 @@ namespace Bess::Renderer {
             const auto &offset = props.shadow.offset;
             const auto &scaleShadow = props.shadow.scale;
             shadowProps.borderRadius = props.borderRadius;
+
             drawTexturedQuad({pos.x + offset.x, pos.y + offset.y, pos.z - 0.0001},
                              {(size.x * scaleShadow.x) - props.borderRadius.x,
                               (size.y * scaleShadow.y) - props.borderRadius.y},
                              props.shadow.color,
-                             id,
+                             props.shadow.useInvalidId
+                                 ? Canvas::PickingId::invalid()
+                                 : id,
                              m_shadowTexture,
                              shadowProps);
         }
