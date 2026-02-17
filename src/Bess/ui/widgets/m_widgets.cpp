@@ -188,7 +188,7 @@ namespace Bess::UI::Widgets {
     std::pair<bool, bool> EditableTreeNode(
         uint64_t key,
         std::string &name,
-        bool &selected,
+        const bool selected,
         ImGuiTreeNodeFlags treeFlags,
         const std::string &icon,
         glm::vec4 iconColor,
@@ -236,7 +236,7 @@ namespace Bess::UI::Widgets {
             ImVec2 bgEnd(window->Pos.x + window->Size.x, pos.y + rowHeight);
             window->DrawList->AddRectFilled(bgStart, bgEnd, bg, g.Style.FrameRounding);
         } else if (selected) {
-            const ImU32 &bg = ImGui::GetColorU32(ImGuiCol_HeaderActive);
+            const ImU32 &bg = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
             window->DrawList->AddRectFilled(rowBB.Min, rowBB.Max, bg, g.Style.FrameRounding);
         }
 

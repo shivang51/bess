@@ -47,7 +47,7 @@ namespace Bess::UI::Widgets {
     std::pair<bool, bool> EditableTreeNode(
         uint64_t key,
         std::string &name,
-        bool &selected,
+        bool selected,
         ImGuiTreeNodeFlags treeFlags,
         const std::string &icon,
         glm::vec4 iconColor,

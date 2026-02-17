@@ -12,7 +12,7 @@ namespace Bess::UI {
         static constexpr auto windowName = Common::Helpers::concat(
             Icons::CodIcons::SYMBOL_CLASS, "  Project Explorer");
 
-        static void init(); // New init method
+        static void init();
         static void draw();
 
         static bool isShown;

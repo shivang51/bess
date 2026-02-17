@@ -1,6 +1,7 @@
 #include "ui/ui_main/project_explorer.h"
 #include "application/pages/main_page/main_page.h"
 #include "bess_uuid.h"
+#include "common/log.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
@@ -293,8 +294,8 @@ namespace Bess::UI {
 
         std::vector<std::pair<UUID, UUID>> pendingMoves;
 
-        for (const auto &entt : entities) {
-            const auto &comp = sceneState.getComponentByUuid(entt);
+        for (const auto &compId : entities) {
+            const auto &comp = sceneState.getComponentByUuid(compId);
             const auto type = comp->getType();
             if (!((int8_t)type &
                   (int8_t)Canvas::SceneComponentTypeFlag::showInProjectExplorer))
@@ -315,16 +316,16 @@ namespace Bess::UI {
                                                            nodePopupName,
                                                            comp->getUuid());
 
+                count++;
                 const auto opened = ret.first;
                 clicked = ret.second;
 
                 HandleNodeDropTarget([&](uint64_t id) { //\n (just for formatting)
                     pendingMoves.emplace_back(id,
-                                              entt //\n
+                                              compId //\n
                     );
                 });
 
-                count++;
                 if (opened) {
                     count += drawEntites(comp->getChildComponents());
                     ImGui::TreePop();
@@ -332,11 +333,11 @@ namespace Bess::UI {
 
             } else {
                 const auto &[pressed, cbPressed] = drawLeafNode(nodesKeyCounter++,
-                                                                entt,
+                                                                compId,
                                                                 comp->getName().c_str(),
                                                                 comp->getIsSelected(),
                                                                 selSize > 1);
-
+                count++;
                 clicked = pressed;
                 if (ImGui::BeginDragDropSource()) {
                     std::vector<uint64_t> payloadData;
@@ -354,14 +355,12 @@ namespace Bess::UI {
 
                 if (cbPressed) {
                     if (comp->getIsSelected()) {
-                        sceneState.removeSelectedComponent(entt);
+                        sceneState.removeSelectedComponent(compId);
                     } else {
-                        sceneState.addSelectedComponent(entt);
+                        sceneState.addSelectedComponent(compId);
                     }
                     lastSelectedIndex = (int32_t)nodesKeyCounter - 1;
                 }
-
-                count++;
             }
 
             if (clicked) {
@@ -382,43 +381,17 @@ namespace Bess::UI {
                     // } else {
                     if (comp->getType() != Canvas::SceneComponentType::group) {
                         if (comp->getIsSelected()) {
-                            sceneState.removeSelectedComponent(entt);
+                            sceneState.removeSelectedComponent(compId);
                         } else {
-                            sceneState.addSelectedComponent(entt);
+                            sceneState.addSelectedComponent(compId);
                         }
                     }
                     lastSelectedIndex = currentIndex;
                 } else {
-                    // Exclusive selection - but handle multi-select drag
-                    if (!comp->getIsSelected()) {
-                        sceneState.clearSelectedComponents();
-                        if (comp->getType() == Canvas::SceneComponentType::group) {
-                            comp->setIsSelected(true);
-                        } else {
-                            sceneState.addSelectedComponent(entt);
-                        }
-                    }
+                    // selects the clicked component and deselects all other components
+                    sceneState.clearSelectedComponents();
+                    sceneState.addSelectedComponent(compId);
                     lastSelectedIndex = currentIndex;
-                }
-            } else {
-                bool released = false;
-
-                if (ImGui::IsMouseReleased(0) &&
-                    ImGui::IsItemHovered(ImGuiHoveredFlags_None) &&
-                    !ImGui::IsMouseDragging(0)) {
-                    released = true;
-                }
-
-                if (released && !ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyShift) {
-                    if (comp->getIsSelected()) {
-                        sceneState.clearSelectedComponents();
-                        if (comp->getType() == Canvas::SceneComponentType::group) {
-                            comp->setIsSelected(true);
-                        } else {
-                            sceneState.addSelectedComponent(entt);
-                        }
-                        lastSelectedIndex = (int32_t)nodesKeyCounter - 1;
-                    }
                 }
             }
         }
