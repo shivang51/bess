@@ -26,14 +26,6 @@ namespace Bess::Canvas {
         m_isDraggable = draggable;
     }
 
-    bool SceneComponent::isSelected() const {
-        return m_isSelected;
-    }
-
-    void SceneComponent::setIsSelected(bool selected) {
-        m_isSelected = selected;
-    }
-
     glm::mat4 Transform::getTransform() const {
         auto transform = glm::translate(glm::mat4(1), position);
         transform = glm::rotate(transform, angle, {0.f, 0.f, 1.f});
@@ -58,7 +50,12 @@ namespace Bess::Canvas {
                               std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                               std::shared_ptr<PathRenderer> pathRenderer) {
         if (m_isFirstDraw) {
-            onFirstDraw(state, std::move(materialRenderer), std::move(pathRenderer));
+            onFirstDraw(state, materialRenderer, pathRenderer);
+        }
+
+        for (const auto &childId : m_childComponents) {
+            auto child = state.getComponentByUuid(childId);
+            child->draw(state, materialRenderer, pathRenderer);
         }
     }
 
@@ -68,10 +65,15 @@ namespace Bess::Canvas {
         if (m_isFirstSchematicDraw) {
             onFirstSchematicDraw(state, materialRenderer, pathRenderer);
         }
+
+        for (const auto &childId : m_childComponents) {
+            auto child = state.getComponentByUuid(childId);
+            child->drawSchematic(state, materialRenderer, pathRenderer);
+        }
     }
 
     void SceneComponent::addChildComponent(const UUID &uuid) {
-        m_childComponents.emplace_back(uuid);
+        m_childComponents.insert(uuid);
     }
 
     glm::vec3 SceneComponent::getAbsolutePosition(const SceneState &state) const {
@@ -94,7 +96,7 @@ namespace Bess::Canvas {
                 state.removeComponent(childUuid, m_uuid);
             }
         }
-        return m_childComponents;
+        return m_childComponents | std::views::transform([](const UUID &uuid) { return uuid; }) | std::ranges::to<std::vector<UUID>>();
     }
 
     void SceneComponent::onFirstSchematicDraw(SceneState &state,
@@ -105,10 +107,7 @@ namespace Bess::Canvas {
     }
 
     void SceneComponent::removeChildComponent(const UUID &uuid) {
-        m_childComponents.erase(std::ranges::remove(m_childComponents,
-                                                    uuid)
-                                    .begin(),
-                                m_childComponents.end());
+        m_childComponents.erase(uuid);
     }
 
     void SceneComponent::onAttach(SceneState &state) {}

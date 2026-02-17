@@ -43,8 +43,7 @@ namespace Bess::JsonConvert {
     BESS_API void fromJsonValue(const Json::Value &j, Bess::UUID &uuid);
 } // namespace Bess::JsonConvert
 
-REFLECT_VECTOR(Bess::UUID)
-
+// define hash function before reflecting for unordered_set
 namespace std {
     template <>
     struct hash<Bess::UUID> {
@@ -53,3 +52,6 @@ namespace std {
         }
     };
 } // namespace std
+
+REFLECT_VECTOR(Bess::UUID)
+REFLECT_UNORDERED_SET(Bess::UUID)

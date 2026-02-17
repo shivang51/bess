@@ -116,14 +116,13 @@ namespace Bess {
 
         // make sure to decode scene after sim engine,
         // as scene components may depend on sim engine components
+        auto scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver().getActiveScene();
         if (data.isMember("scene_data")) {
-            auto scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver().getActiveScene();
             m_sceneSerializer.deserialize(data["scene_data"], scene);
         }
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
 
-        auto scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver().getActiveScene();
         auto &sceneState = scene->getState();
 
         const auto &pluginManager = Plugins::PluginManager::getInstance();

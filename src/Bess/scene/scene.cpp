@@ -547,7 +547,7 @@ namespace Bess::Canvas {
                     m_state.addSelectedComponent(m_pickingId);
             } else {
                 size_t selSize = m_state.getSelectedComponents().size();
-                if (selSize < 2 || !comp->isSelected()) {
+                if (selSize < 2 || !comp->getIsSelected()) {
                     m_state.clearSelectedComponents();
                     m_state.addSelectedComponent(m_pickingId);
                 }

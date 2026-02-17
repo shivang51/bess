@@ -4,6 +4,7 @@
 #include "json/json.h"
 #include <chrono>
 #include <string>
+#include <unordered_set>
 
 namespace Bess::JsonConvert {
     // Primitives
@@ -25,6 +26,17 @@ namespace Bess::JsonConvert {
     // Vectors
     template <typename T>
     void toJsonValue(const std::vector<T> &vec, Json::Value &j) {
+        j = Json::arrayValue;
+        for (const auto &item : vec) {
+            Json::Value val;
+            toJsonValue(item, val);
+            j.append(val);
+        }
+    }
+
+    // Vectors
+    template <typename T>
+    void toJsonValue(const std::unordered_set<T> &vec, Json::Value &j) {
         j = Json::arrayValue;
         for (const auto &item : vec) {
             Json::Value val;
@@ -90,6 +102,18 @@ namespace Bess::JsonConvert {
                 T val;
                 fromJsonValue(item, val);
                 vec.push_back(val);
+            }
+        }
+    }
+
+    template <typename T>
+    void fromJsonValue(const Json::Value &j, std::unordered_set<T> &vec) {
+        vec.clear();
+        if (j.isArray()) {
+            for (const auto &item : j) {
+                T val;
+                fromJsonValue(item, val);
+                vec.insert(val);
             }
         }
     }

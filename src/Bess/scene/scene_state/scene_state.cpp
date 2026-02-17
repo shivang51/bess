@@ -88,13 +88,32 @@ namespace Bess::Canvas {
 
         BESS_ASSERT(parent && child, "Parent or child was not found");
 
-        parent->addChildComponent(childId);
+        if (!parent->getChildComponents().contains(childId)) {
+            parent->addChildComponent(childId);
+        }
+
         child->setParentComponent(parentId);
 
         BESS_INFO("[SceneState] Attached component {} to parent component {}",
                   (uint64_t)childId, (uint64_t)parentId);
 
         m_rootComponents.erase(childId);
+    }
+
+    void SceneState::detachChild(const UUID &childId) {
+        const auto &child = getComponentByUuid(childId);
+        const auto parentId = child->getParentComponent();
+        const auto &parent = getComponentByUuid(parentId);
+
+        BESS_ASSERT(parent && child, "Parent or child was not found");
+
+        parent->removeChildComponent(childId);
+        child->setParentComponent(UUID::null);
+
+        BESS_INFO("[SceneState] Detached component {} from parent component {}",
+                  (uint64_t)childId, (uint64_t)parentId);
+
+        m_rootComponents.insert(childId);
     }
 
     void SceneState::assignRuntimeId(const UUID &uuid) {
@@ -176,6 +195,20 @@ namespace Bess::Canvas {
                                           component->getType()});
 
         return removedUuids;
+    }
+
+    void SceneState::orphanComponent(const UUID &uuid) {
+        auto component = getComponentByUuid(uuid);
+        BESS_ASSERT(component, "Component was not found");
+
+        if (component->getParentComponent() != UUID::null) {
+            component->setParentComponent(UUID::null);
+            m_rootComponents.insert(uuid);
+        }
+    }
+
+    bool SceneState::isRootComponent(const UUID &uuid) const {
+        return m_rootComponents.contains(uuid);
     }
 } // namespace Bess::Canvas
 

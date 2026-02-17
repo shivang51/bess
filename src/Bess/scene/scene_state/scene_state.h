@@ -61,6 +61,12 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(UUID, ConnectionStartSlot, m_connectionStartSlot);
         MAKE_GETTER_SETTER(glm::vec2, MousePos, m_mousePos);
 
+        // Removes the parent reference of the component,
+        // but keeps this component in parents children list,
+        // So its still parents child but parent is null(dead),
+        // so this component becomes the root component
+        void orphanComponent(const UUID &uuid);
+
         bool isComponentValid(const UUID &uuid) const;
 
         void clearSelectedComponents();
@@ -74,9 +80,13 @@ namespace Bess::Canvas {
         bool isComponentSelected(const UUID &uuid) const;
         bool isComponentSelected(const PickingId &pickingId) const;
 
+        bool isRootComponent(const UUID &uuid) const;
+
         const std::unordered_map<UUID, bool> &getSelectedComponents() const;
 
         void attachChild(const UUID &parentId, const UUID &childId);
+        void detachChild(const UUID &childId);
+
         void assignRuntimeId(const UUID &uuid);
 
         // Removes a component by UUID from the scene state

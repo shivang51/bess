@@ -14,6 +14,7 @@ namespace Bess::Canvas {
         nonSimulation = 2 | (int8_t)SceneComponentTypeFlag::showInProjectExplorer,
         connection = 3,
         connJoint = 4,
+        group = 5 | (int8_t)SceneComponentTypeFlag::showInProjectExplorer,
     };
 } // namespace Bess::Canvas
 

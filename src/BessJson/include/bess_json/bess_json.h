@@ -161,6 +161,29 @@
         }                                                                                \
     }
 
+#define REFLECT_UNORDERED_SET(ElementType)                                                      \
+    namespace Bess::JsonConvert {                                                               \
+        inline void toJsonValue(const std::unordered_set<ElementType> &set, Json::Value &j) {   \
+            j = Json::arrayValue;                                                               \
+            for (const auto &item : set) {                                                      \
+                Json::Value val;                                                                \
+                Bess::JsonConvert::toJsonValue(item, val);                                      \
+                j.append(val);                                                                  \
+            }                                                                                   \
+        }                                                                                       \
+                                                                                                \
+        inline void fromJsonValue(const Json::Value &j, std::unordered_set<ElementType> &set) { \
+            set.clear();                                                                        \
+            if (j.isArray()) {                                                                  \
+                for (const auto &item : j) {                                                    \
+                    ElementType val;                                                            \
+                    Bess::JsonConvert::fromJsonValue(item, val);                                \
+                    set.insert(val);                                                            \
+                }                                                                               \
+            }                                                                                   \
+        }                                                                                       \
+    }
+
 #define FOR_EACH_ENUM(action, type, ...) \
     EXPAND(GET_MACRO(__VA_ARGS__, FE_E_20, FE_E_19, FE_E_18, FE_E_17, FE_E_16, FE_E_15, FE_E_14, FE_E_13, FE_E_12, FE_E_11, FE_E_10, FE_E_9, FE_E_8, FE_E_7, FE_E_6, FE_E_5, FE_E_4, FE_E_3, FE_E_2, FE_E_1)(action, type, __VA_ARGS__))
 

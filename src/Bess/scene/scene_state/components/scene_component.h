@@ -5,6 +5,7 @@
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_state/components/behaviours/mouse_behaviour.h"
 #include "scene/scene_state/components/scene_component_types.h"
+#include <unordered_set>
 
 namespace Bess::Canvas {
 #define REG_SCENE_COMP(type) \
@@ -53,9 +54,10 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER_WC(Style, Style, m_style, onStyleChanged)
         MAKE_GETTER_SETTER_WC(std::string, Name, m_name, onNameChanged)
         MAKE_GETTER_SETTER(UUID, ParentComponent, m_parentComponent)
-        MAKE_GETTER_SETTER(std::vector<UUID>, ChildComponents, m_childComponents)
+        MAKE_GETTER_SETTER(std::unordered_set<UUID>, ChildComponents, m_childComponents)
         MAKE_GETTER_SETTER(uint32_t, RuntimeId, m_runtimeId)
         MAKE_GETTER_SETTER(std::string, SubType, m_subType)
+        MAKE_GETTER_SETTER(bool, IsSelected, m_isSelected)
 
         virtual void removeChildComponent(const UUID &uuid);
 
@@ -81,10 +83,6 @@ namespace Bess::Canvas {
         void addChildComponent(const UUID &uuid);
 
         void setIsDraggable(bool draggable);
-
-        bool isSelected() const;
-
-        void setIsSelected(bool selected);
 
         virtual glm::vec3 getAbsolutePosition(const SceneState &state) const;
 
@@ -124,7 +122,7 @@ namespace Bess::Canvas {
         bool m_isFirstSchematicDraw = true;
 
         UUID m_parentComponent = UUID::null;
-        std::vector<UUID> m_childComponents;
+        std::unordered_set<UUID> m_childComponents;
 
         std::string m_subType;
     };
