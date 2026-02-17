@@ -1,9 +1,7 @@
 #include "truth_table_window.h"
 #include "imgui.h"
-#include "scene/scene.h"
 #include "simulation_engine.h"
 #include "types.h"
-#include "ui/ui_main/project_explorer.h"
 #include "ui/widgets/m_widgets.h"
 
 namespace Bess::UI {
@@ -18,21 +16,21 @@ namespace Bess::UI {
                                            ImGuiTableFlags_Resizable |
                                            ImGuiTableFlags_Reorderable;
 
-        const auto &state = ProjectExplorer::state;
+        // const auto &state = ProjectExplorer::state;
 
         ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
-        if (Widgets::ComboBox("Select Net",
-                              selectedNetName,
-                              state.netIdToNameMap | std::views::values)) {
-            for (const auto &[netId, netName] : state.netIdToNameMap) {
-                if (netName == selectedNetName) {
-                    selectedNetId = netId;
-                    isDirty = true;
-                    break;
-                }
-            }
-        }
+        // if (Widgets::ComboBox("Select Net",
+        //                       selectedNetName,
+        //                       state.netIdToNameMap | std::views::values)) {
+        //     for (const auto &[netId, netName] : state.netIdToNameMap) {
+        //         if (netName == selectedNetName) {
+        //             selectedNetId = netId;
+        //             isDirty = true;
+        //             break;
+        //         }
+        //     }
+        // }
 
         if (selectedNetId != UUID::null) {
             if (isDirty) {

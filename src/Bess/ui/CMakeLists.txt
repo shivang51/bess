@@ -21,7 +21,6 @@ set(Header_Files
 	"ui_main/popups.h"
 	"ui_main/dialogs.h"
 	"ui_main/project_explorer.h"
-	"ui_main/project_explorer_state.h"
 	"ui_main/scene_viewport.h"
 )
 
@@ -34,7 +33,6 @@ set(Source_Files
 	"ui_main/component_explorer.cpp"
 	"ui_main/properties_panel.cpp"
 	"ui_main/project_explorer.cpp"
-	"ui_main/project_explorer_state.cpp"
 	"ui_main/project_settings_window.cpp"
 	"ui_main/dialogs.cpp"
 	"ui_main/ui_main.cpp"

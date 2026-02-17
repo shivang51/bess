@@ -1,17 +1,14 @@
 #include "ui/ui_main/project_explorer.h"
 #include "application/pages/main_page/main_page.h"
 #include "bess_uuid.h"
-#include "event_dispatcher.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
+#include "pages/main_page/cmds/delete_comp_cmd.h"
 #include "pages/main_page/scene_components/group_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
-#include "scene/commands/create_group_command.h"
-#include "scene/commands/delete_node_command.h"
 #include "settings/viewport_theme.h"
-#include "ui/ui_main/project_explorer_state.h"
 #include "ui/widgets/m_widgets.h"
 #include <cstdint>
 #include <memory>
@@ -20,7 +17,6 @@
 namespace Bess::UI {
     bool ProjectExplorer::isShown = true;
     bool ProjectExplorer::isfirstTimeDraw = true;
-    ProjectExplorerState ProjectExplorer::state{};
 
     template <typename Func>
     void HandleNodeDropTarget(Func op) {
@@ -38,168 +34,10 @@ namespace Bess::UI {
     }
 
     void ProjectExplorer::init() {
-        EventSystem::EventDispatcher::instance().sink<Bess::Canvas::Events::ComponentAddedEvent>().connect<&ProjectExplorer::onEntityCreated>();
-        EventSystem::EventDispatcher::instance().sink<Bess::Canvas::Events::ComponentRemovedEvent>().connect<&ProjectExplorer::onEntityDestroyed>();
-    }
-
-    void ProjectExplorer::onEntityCreated(const Bess::Canvas::Events::ComponentAddedEvent &e) {
-        if (!((uint8_t)e.type & (uint8_t)Canvas::SceneComponentTypeFlag::showInProjectExplorer)) {
-            return;
-        }
-
-        auto &sceneState = Pages::MainPage::getTypedInstance()->getState().getSceneDriver()->getState();
-        const auto &comp = sceneState.getComponentByUuid(e.uuid);
-
-        auto node = std::make_shared<UI::ProjectExplorerNode>();
-        node->sceneId = e.uuid;
-        node->label = comp->getName();
-        node->selected = false;
-        node->multiSelectMode = false;
-
-        state.addNode(node);
-    }
-
-    void ProjectExplorer::onEntityDestroyed(const Bess::Canvas::Events::ComponentRemovedEvent &e) {
-        if (!((uint8_t)e.type & (uint8_t)Canvas::SceneComponentTypeFlag::showInProjectExplorer)) {
-            return;
-        }
-
-        auto node = state.getNodeOfSceneEntt(e.uuid);
-        if (node) {
-            state.removeNode(node);
-        }
     }
 
     int32_t ProjectExplorer::lastSelectedIndex = -1;
     size_t ProjectExplorer::nodesKeyCounter = 0;
-
-    void ProjectExplorer::clearAllSelections() {
-        auto &sceneState = Pages::MainPage::getTypedInstance()->getState().getSceneDriver()->getState();
-
-        sceneState.clearSelectedComponents();
-
-        // Note (Shivang): Can't use auto here because of recursive lambda
-        std::function<void(std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &)> clearNodes =
-            [&](std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &nodes) {
-                for (auto &node : nodes) {
-                    node->selected = false;
-                    if (!node->children.empty()) {
-                        clearNodes(node->children);
-                    }
-                }
-            };
-        clearNodes(state.nodes);
-    }
-
-    void ProjectExplorer::selectRange(int start, int end) {
-        auto &sceneState = Pages::MainPage::getTypedInstance()->getState().getSceneDriver()->getState();
-
-        sceneState.clearSelectedComponents();
-
-        // Note (Shivang): Can't use auto here because of recursive lambda
-        std::function<void(std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &)> traverse =
-            [&](std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &nodes) {
-                for (auto &node : nodes) {
-                    if (node->visibleIndex >= start && node->visibleIndex <= end) {
-                        node->selected = true;
-                        if (!node->isGroup) {
-                            sceneState.addSelectedComponent(node->sceneId);
-                        }
-                    }
-                    if (node->isGroup && !node->children.empty()) {
-                        traverse(node->children);
-                    }
-                }
-            };
-        traverse(state.nodes);
-    }
-
-    size_t ProjectExplorer::drawNodes(std::vector<std::shared_ptr<UI::ProjectExplorerNode>> &nodes, bool isRoot) {
-        static int i = 0;
-        constexpr auto treeIcon = Icons::CodIcons::FOLDER;
-        constexpr auto nodePopupName = "node_popup";
-
-        auto &sceneState = Pages::MainPage::getTypedInstance()->getState().getSceneDriver()->getState();
-
-        const auto selSize = sceneState.getSelectedComponents().size();
-        const bool isMultiSelected = selSize > 1;
-
-        size_t count = 0;
-        if (isRoot) {
-            i = 0;
-        }
-
-        std::vector<std::pair<UUID, UUID>> pendingMoves;
-        for (auto &node : nodes) {
-            count++;
-            node->visibleIndex = i; // Track visible index for shift-selection
-            bool clicked = false;
-            bool opened = false;
-
-            if (clicked) {
-                int currentIndex = i - 1; // i was incremented
-                const bool ctrl = ImGui::GetIO().KeyCtrl;
-                const bool shift = ImGui::GetIO().KeyShift;
-
-                if (shift && lastSelectedIndex != -1) {
-                    int start = std::min(lastSelectedIndex, currentIndex);
-                    int end = std::max(lastSelectedIndex, currentIndex);
-                    selectRange(start, end);
-                } else if (ctrl) {
-                    // Toggle selection
-                    // FIXME (Shivang): For now ignoring group nodes
-                    // if (node->isGroup) {
-                    //     node->selected = !node->selected;
-                    // } else {
-                    if (!node->isGroup) {
-                        if (node->selected) {
-                            sceneState.removeSelectedComponent(node->sceneId);
-                        } else {
-                            sceneState.addSelectedComponent(node->sceneId);
-                        }
-                    }
-                    lastSelectedIndex = currentIndex;
-                } else {
-                    // Exclusive selection - but handle multi-select drag
-                    if (!node->selected) {
-                        clearAllSelections();
-                        if (node->isGroup) {
-                            node->selected = true;
-                        } else {
-                            sceneState.addSelectedComponent(node->sceneId);
-                        }
-                    }
-                    lastSelectedIndex = currentIndex;
-                }
-            } else {
-                bool released = false;
-
-                if (ImGui::IsMouseReleased(0) &&
-                    ImGui::IsItemHovered(ImGuiHoveredFlags_None) &&
-                    !ImGui::IsMouseDragging(0)) {
-                    released = true;
-                }
-
-                if (released && !ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyShift) {
-                    if (node->selected) {
-                        clearAllSelections();
-                        if (node->isGroup) {
-                            node->selected = true;
-                        } else {
-                            sceneState.addSelectedComponent(node->sceneId);
-                        }
-                        lastSelectedIndex = i - 1;
-                    }
-                }
-            }
-        }
-
-        for (const auto &[draggedNodeID, newParentID] : pendingMoves) {
-            state.moveNode(draggedNodeID, newParentID);
-        }
-
-        return count;
-    }
 
     void ProjectExplorer::draw() {
         if (!isShown)
@@ -264,9 +102,6 @@ namespace Bess::UI {
         if (ImGui::InvisibleButton("project_explorer_root_drop_target",
                                    ImVec2(window->Size.x, window->Size.y - startY))) {
             sceneState.clearSelectedComponents();
-            for (auto &node : state.nodes) {
-                node->selected = false;
-            }
         }
 
         HandleNodeDropTarget([&](uint64_t id) {
@@ -280,8 +115,9 @@ namespace Bess::UI {
                 }
             } else {
                 if (ImGui::MenuItem("Create Empty Group", "Ctrl-G")) {
-                    auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
-                    auto _ = scene->getCmdManager().execute<Canvas::Commands::CreateGroupCommand, UUID>("New Group");
+                    const auto group = Canvas::GroupSceneComponent::create("New Group");
+                    auto cmd = std::make_unique<Cmd::AddCompCmd<Canvas::GroupSceneComponent>>(group);
+                    Pages::MainPage::getTypedInstance()->getState().getCommandSystem().execute(std::move(cmd));
                 }
             }
 
@@ -379,49 +215,6 @@ namespace Bess::UI {
 
     void ProjectExplorer::firstTime() {
         isfirstTimeDraw = false;
-        state.reset();
-    }
-
-    void ProjectExplorer::selectNode(const std::shared_ptr<UI::ProjectExplorerNode> &node) {
-        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
-
-        if (node->isGroup) {
-            for (const auto &childNode : node->children) {
-                selectNode(childNode);
-            }
-        } else {
-            scene->getState().addSelectedComponent(node->sceneId);
-        }
-    }
-
-    void ProjectExplorer::deleteNode(const std::shared_ptr<UI::ProjectExplorerNode> &node, bool firstCall) {
-        static std::vector<UUID> entitesToDel;
-
-        if (firstCall) {
-            entitesToDel.clear();
-        }
-
-        // Collect entities and nodes recursively
-        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
-
-        // Always add the current node ID to be deleted (whether it's a group or entity)
-        entitesToDel.emplace_back(node->nodeId);
-
-        if (node->isGroup) {
-            for (const auto &childNode : node->children) {
-                if (!childNode)
-                    continue;
-                deleteNode(childNode, false);
-            }
-        }
-
-        if (firstCall && !entitesToDel.empty()) {
-            auto &cmdMgr = scene->getCmdManager();
-            // Use generic DeleteNodeCommand which handles both entities and groups
-            auto _ = cmdMgr.execute<Canvas::Commands::DeleteNodeCommand,
-                                    std::string>(entitesToDel);
-            entitesToDel.clear();
-        }
     }
 
     void ProjectExplorer::groupSelectedNodes() {
@@ -460,59 +253,38 @@ namespace Bess::UI {
         auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
         auto &sceneState = scene->getState();
 
+        std::vector<UUID> emptyGroups;
+
         // preparing new groups for nodes
-        for (const auto &node : state.nodesLookup | std::views::values) {
-            if (node->isGroup)
+        for (const auto &compId : sceneState.getRootComponents()) {
+            const auto &comp = sceneState.getComponentByUuid(compId);
+            if (!comp || comp->getType() != Canvas::SceneComponentType::simulation)
                 continue;
-            const auto &comp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(node->sceneId);
-            if (!comp)
-                continue;
-            const auto &netId = comp->getNetId();
+            const auto &netId = comp->cast<Canvas::SimulationSceneComponent>()->getNetId();
             if (netId != UUID::null) {
-                netGroups[netId].emplace_back(node->nodeId);
+                netGroups[netId].emplace_back(compId);
             }
         }
 
-        state.netIdToNameMap.clear();
-        std::vector<UUID> emptyGroups;
+        auto &cmdSystem = Pages::MainPage::getTypedInstance()->getState().getCommandSystem();
 
         // move nodes to new groups
         int i = 1;
-        for (const auto &[netId, nodes] : netGroups) {
-            auto res = scene->getCmdManager().execute<Canvas::Commands::CreateGroupCommand, UUID>(std::format("Net {}", i++));
-
-            if (res.has_value()) {
-                UUID newGroupId = res.value();
-                state.netIdToNameMap[netId] = state.nodesLookup[newGroupId]->label;
-
-                for (const auto &nodeId : nodes) {
-                    const auto &node = state.nodesLookup[nodeId];
-                    if (node->parentId != UUID::null) {
-                        const auto &parentNode = state.nodesLookup[node->parentId];
-                        BESS_ASSERT(parentNode->isGroup, "Parent node is expected to be a group");
-                        // if the parent group will be empty after moving this node, mark it for deletion
-                        if (parentNode->children.size() == 1) {
-                            emptyGroups.emplace_back(parentNode->nodeId);
-                        }
-                    }
-
-                    state.moveNode(nodeId, newGroupId);
-                }
+        for (const auto &[netId, components] : netGroups) {
+            auto group = Canvas::GroupSceneComponent::create("Net " + std::to_string(i++));
+            for (const auto &nodeId : components) {
+                group->addChildComponent(nodeId);
             }
+            cmdSystem.execute(std::make_unique<Cmd::AddCompCmd<Canvas::GroupSceneComponent>>(group));
         }
 
-        // delete empty groups
-        for (const auto &groupId : emptyGroups) {
-            const auto &groupNode = state.nodesLookup[groupId];
-            if (groupNode->children.empty()) {
-                deleteNode(groupNode);
-            }
-        }
+        cmdSystem.execute(std::make_unique<Cmd::DeleteCompCmd>(emptyGroups));
         BESS_INFO("[ProjectExplorer] Grouped components on nets: created {} groups.", netGroups.size());
     }
 
     size_t ProjectExplorer::drawEntites(const std::unordered_set<UUID> &entities) {
         constexpr auto treeIcon = Icons::CodIcons::FOLDER;
+        constexpr auto nodePopupName = "node_popup";
 
         auto &sceneState = Pages::MainPage::getTypedInstance()->getState().getSceneDriver()->getState();
         const auto selSize = sceneState.getSelectedComponents().size();
@@ -540,7 +312,7 @@ namespace Bess::UI {
                                                                ImGuiTreeNodeFlags_DrawLinesFull,
                                                            treeIcon,
                                                            ViewportTheme::colors.selectedWire,
-                                                           "",
+                                                           nodePopupName,
                                                            comp->getUuid());
 
                 const auto opened = ret.first;

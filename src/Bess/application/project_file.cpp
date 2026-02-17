@@ -7,7 +7,6 @@
 #include "pages/main_page/main_page.h"
 #include "simulation_engine.h"
 #include "ui/ui_main/dialogs.h"
-#include "ui/ui_main/project_explorer.h"
 
 #include <fstream>
 
@@ -76,8 +75,6 @@ namespace Bess {
         m_sceneSerializer.serialize(data["scene_data"], scene);
         m_simEngineSerializer.serialize(data["sim_engine_data"]);
 
-        data["project_explorere_state"] = UI::ProjectExplorer::state.toJson();
-
         if (std::ofstream outFile(m_path, std::ios::out); outFile.is_open()) {
             Json::StreamWriterBuilder builder;
             builder["commentStyle"] = "None";
@@ -141,8 +138,6 @@ namespace Bess {
         }
 
         scene->setZCoord(maxZ);
-
-        UI::ProjectExplorer::state.fromJson(data["project_explorere_state"]);
     }
 
     void ProjectFile::browsePath() {

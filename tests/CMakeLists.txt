@@ -29,7 +29,7 @@ set(External
 		"${CMAKE_SOURCE_DIR}/src/Bess/asset_manager/asset_manager.cpp"
 )
 
-add_executable(BessTests ${External} main.cpp project_explorer_state_test.cpp scene_state_test.cpp)
+add_executable(BessTests ${External} main.cpp scene_state_test.cpp)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"

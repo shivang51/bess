@@ -102,10 +102,14 @@ namespace Bess::Canvas {
 
     void SceneState::detachChild(const UUID &childId) {
         const auto &child = getComponentByUuid(childId);
-        const auto parentId = child->getParentComponent();
-        const auto &parent = getComponentByUuid(parentId);
+        BESS_ASSERT(child, "(Detach Child) Child not found");
 
-        BESS_ASSERT(parent && child, "Parent or child was not found");
+        const auto parentId = child->getParentComponent();
+        if (parentId == UUID::null) {
+            return;
+        }
+
+        const auto &parent = getComponentByUuid(parentId);
 
         parent->removeChildComponent(childId);
         child->setParentComponent(UUID::null);
