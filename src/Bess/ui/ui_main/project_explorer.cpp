@@ -235,8 +235,7 @@ namespace Bess::UI {
         for (const auto &compId : selComponents) {
             auto comp = scene->getState().getComponentByUuid(compId);
 
-            // Only root components can be grouped
-            if (!comp || !sceneState.isRootComponent(compId))
+            if (!comp)
                 continue;
 
             groupComp->addChildComponent(compId);
