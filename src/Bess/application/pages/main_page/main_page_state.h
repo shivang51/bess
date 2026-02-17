@@ -65,6 +65,7 @@ namespace Bess::Pages {
 
       private:
         void onEntityMoved(const Canvas::Events::EntityMovedEvent &e);
+        void onEntityReparented(const Canvas::Events::EntityReparentedEvent &e);
 
       private:
         Cmd::CommandSystem m_commandSystem;

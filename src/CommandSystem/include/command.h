@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 namespace Bess::Canvas {
     class Scene;
 }
@@ -29,12 +30,13 @@ namespace Bess::Cmd {
         virtual void redo(Canvas::Scene *scene,
                           SimEngine::SimulationEngine *simEngine) = 0;
 
-        virtual bool canMergeWith(const Command *other) const {
-            return false;
-        }
+        virtual bool canMergeWith(const Command *other) const;
 
-        virtual bool mergeWith(const Command *other) {
-            return false;
-        }
+        virtual bool mergeWith(const Command *other);
+
+        virtual std::string getName() const;
+
+      protected:
+        std::string m_name;
     };
 } // namespace Bess::Cmd

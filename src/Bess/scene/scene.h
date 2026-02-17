@@ -185,3 +185,13 @@ namespace Bess::Canvas {
         std::unordered_map<uint64_t, std::shared_ptr<Canvas::SimSceneCompDrawHook>> m_pluginSceneDrawHooks;
     };
 } // namespace Bess::Canvas
+bool Bess::Cmd::Command::mergeWith(const Command *other) {
+    return false;
+}
+bool Bess::Cmd::Command::canMergeWith(const Command *other) const {
+    return false;
+}
+bool Bess::Cmd::Command::canMergeWith(const Command *other) const {}
+bool Bess::Cmd::Command::canMergeWith(const Command *other) const {
+    return false;
+}

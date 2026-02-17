@@ -25,6 +25,7 @@ namespace Bess::Cmd {
             auto cmd = std::move(m_undoStack.top());
             m_undoStack.pop();
             cmd->undo(mp_scene, mp_simEngine);
+            std::cout << "[CommandSystem] Undo: " << cmd->getName() << std::endl;
             m_redoStack.push(std::move(cmd));
         }
     }
@@ -34,6 +35,7 @@ namespace Bess::Cmd {
             auto cmd = std::move(m_redoStack.top());
             m_redoStack.pop();
             cmd->redo(mp_scene, mp_simEngine);
+            std::cout << "[CommandSystem] Redo: " << cmd->getName() << std::endl;
             m_undoStack.push(std::move(cmd));
         }
     }

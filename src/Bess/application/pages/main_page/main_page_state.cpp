@@ -1,7 +1,9 @@
 #include "pages/main_page/main_page_state.h"
-#include "pages/main_page/cmds/update_vec_cmd.h"
+#include "bess_uuid.h"
+#include "pages/main_page/cmds/update_value_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "simulation_engine.h"
+#include <cstdint>
 
 namespace Bess::Pages {
 
@@ -67,9 +69,10 @@ namespace Bess::Pages {
 
     void MainPageState::initCmdSystem(Canvas::Scene *scene,
                                       SimEngine::SimulationEngine *simEngine) {
-
         m_commandSystem.init(scene, simEngine);
-        EventSystem::EventDispatcher::instance().sink<Canvas::Events::EntityMovedEvent>().connect<&MainPageState::onEntityMoved>(this);
+        auto &dispatcher = EventSystem::EventDispatcher::instance();
+        dispatcher.sink<Canvas::Events::EntityMovedEvent>().connect<&MainPageState::onEntityMoved>(this);
+        dispatcher.sink<Canvas::Events::EntityReparentedEvent>().connect<&MainPageState::onEntityReparented>(this);
     }
 
     void MainPageState::onEntityMoved(const Canvas::Events::EntityMovedEvent &e) {
@@ -77,7 +80,32 @@ namespace Bess::Pages {
         glm::vec3 *posPtr = &entity->getTransform().position;
 
         if (entity) {
-            auto cmd = std::make_unique<Cmd::UpdateVecCommand<glm::vec3>>(posPtr, e.newPos, e.oldPos);
+            auto cmd = std::make_unique<Cmd::UpdateValCommand<glm::vec3>>(posPtr, e.newPos, e.oldPos);
+            m_commandSystem.push(std::move(cmd));
+        }
+    }
+
+    void MainPageState::onEntityReparented(const Canvas::Events::EntityReparentedEvent &e) {
+        auto entity = m_sceneDriver->getState().getComponentByUuid(e.entityUuid);
+        UUID *parentPtr = &entity->getParentComponent();
+
+        // TODO fix to pass if its a undo or redo in callback
+        // and figure out a way to set root componets inside the scene state
+        const auto callback = [this, entityUuid = e.entityUuid](const UUID &newParent) {
+            if (newParent == UUID::null)
+                return;
+
+            BESS_TRACE("[MainPageState] Reparenting entity {} to new parent {}",
+                       (uint64_t)entityUuid, (uint64_t)newParent);
+            const auto &parent = m_sceneDriver->getState().getComponentByUuid(newParent);
+            parent->addChildComponent(entityUuid);
+        };
+
+        if (entity) {
+            auto cmd = std::make_unique<Cmd::UpdateValCommand<UUID>>(parentPtr,
+                                                                     e.newParentUuid,
+                                                                     e.prevParent,
+                                                                     callback);
             m_commandSystem.push(std::move(cmd));
         }
     }

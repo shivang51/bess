@@ -73,6 +73,8 @@ namespace Bess::Canvas {
     }
 
     void SceneComponent::addChildComponent(const UUID &uuid) {
+        if (m_childComponents.contains(uuid))
+            return;
         m_childComponents.insert(uuid);
     }
 

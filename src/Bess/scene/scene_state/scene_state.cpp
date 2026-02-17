@@ -1,5 +1,6 @@
 #include "scene/scene_state/scene_state.h"
 #include "bess_uuid.h"
+#include "event_dispatcher.h"
 #include "scene/scene_state/components/scene_component.h"
 #include <cstdint>
 #include <memory>
@@ -103,6 +104,9 @@ namespace Bess::Canvas {
         BESS_INFO("[SceneState] Attached component {} to parent component {}",
                   (uint64_t)childId, (uint64_t)parentId);
 
+        EventSystem::EventDispatcher::instance().dispatch(
+            Events::EntityReparentedEvent{childId, parentId, prevParentId});
+
         m_rootComponents.erase(childId);
     }
 
@@ -122,6 +126,9 @@ namespace Bess::Canvas {
 
         BESS_INFO("[SceneState] Detached component {} from parent component {}",
                   (uint64_t)childId, (uint64_t)parentId);
+
+        EventSystem::EventDispatcher::instance().dispatch(
+            Events::EntityReparentedEvent{childId, UUID::null, parentId});
 
         m_rootComponents.insert(childId);
     }
@@ -211,10 +218,16 @@ namespace Bess::Canvas {
         auto component = getComponentByUuid(uuid);
         BESS_ASSERT(component, "Component was not found");
 
-        if (component->getParentComponent() != UUID::null) {
+        auto parentId = component->getParentComponent();
+        if (parentId != UUID::null) {
             component->setParentComponent(UUID::null);
             m_rootComponents.insert(uuid);
         }
+
+        BESS_INFO("[SceneState] Orphaned component {}", (uint64_t)uuid);
+
+        EventSystem::EventDispatcher::instance().dispatch(
+            Events::EntityReparentedEvent{uuid, UUID::null, parentId});
     }
 
     bool SceneState::isRootComponent(const UUID &uuid) const {

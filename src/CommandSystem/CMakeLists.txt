@@ -13,6 +13,7 @@ source_group("include/command_system" FILES ${Header_Files})
 
 set(Source_Files
 	"src/command_system.cpp"
+	"src/command.cpp"
 )
 
 

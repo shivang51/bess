@@ -40,6 +40,7 @@ namespace Bess::Canvas::Events {
     struct EntityReparentedEvent {
         UUID entityUuid;
         UUID newParentUuid;
+        UUID prevParent;
     };
 
     struct EntityHoveredEvent {
