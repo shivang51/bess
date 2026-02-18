@@ -20,6 +20,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(bool, IsExpanded, m_isExpanded)
 
         void onAttach(SceneState &state) override;
+        void onSelect() override;
 
         std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
 
