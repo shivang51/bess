@@ -19,7 +19,7 @@ namespace Bess::UI {
       private:
         static void firstTime();
         static bool isfirstTimeDraw;
-        static std::string selectedNetName;
+        static std::string *selectedNetName;
         static UUID selectedNetId;
         static bool isDirty;
         static SimEngine::TruthTable currentTruthTable;

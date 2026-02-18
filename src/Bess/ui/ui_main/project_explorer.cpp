@@ -254,6 +254,8 @@ namespace Bess::UI {
         if (!simEngine.isNetUpdated())
             return;
 
+        auto &mainPageState = Pages::MainPage::getTypedInstance()->getState();
+        auto &netIdToNameMap = mainPageState.getNetIdToNameMap();
         auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
         auto &sceneState = scene->getState();
         std::unordered_map<UUID, std::shared_ptr<Canvas::SimulationSceneComponent>> simIdToComp;
@@ -301,7 +303,7 @@ namespace Bess::UI {
             for (const auto &compId : components) {
                 group->addChildComponent(compId);
                 auto prevParent = sceneState.getComponentByUuid(compId)->getParentComponent();
-                if (prevParent != UUID::null) {
+                if (prevParent != UUID::null && sceneState.isComponentValid(prevParent)) {
                     auto prevParentComp = sceneState.getComponentByUuid(prevParent);
                     prevParentComp->removeChildComponent(compId);
                     if (prevParentComp->getChildComponents().empty()) {
@@ -309,6 +311,8 @@ namespace Bess::UI {
                     }
                 }
             }
+
+            netIdToNameMap[netId] = &group->getName();
 
             if (newGroup) {
                 cmdSystem.execute(std::make_unique<Cmd::AddCompCmd<Canvas::GroupSceneComponent>>(group));

@@ -1,5 +1,6 @@
 #include "truth_table_window.h"
 #include "imgui.h"
+#include "pages/main_page/main_page.h"
 #include "simulation_engine.h"
 #include "types.h"
 #include "ui/widgets/m_widgets.h"
@@ -16,21 +17,21 @@ namespace Bess::UI {
                                            ImGuiTableFlags_Resizable |
                                            ImGuiTableFlags_Reorderable;
 
-        // const auto &state = ProjectExplorer::state;
-
         ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
-        // if (Widgets::ComboBox("Select Net",
-        //                       selectedNetName,
-        //                       state.netIdToNameMap | std::views::values)) {
-        //     for (const auto &[netId, netName] : state.netIdToNameMap) {
-        //         if (netName == selectedNetName) {
-        //             selectedNetId = netId;
-        //             isDirty = true;
-        //             break;
-        //         }
-        //     }
-        // }
+        const auto &mainPageState = Pages::MainPage::getTypedInstance()->getState();
+
+        if (Widgets::ComboBox("Select Net",
+                              selectedNetName,
+                              mainPageState.getNetIdToNameMap() | std::views::values)) {
+            for (const auto &[netId, netName] : mainPageState.getNetIdToNameMap()) {
+                if (netName == selectedNetName) {
+                    selectedNetId = netId;
+                    isDirty = true;
+                    break;
+                }
+            }
+        }
 
         if (selectedNetId != UUID::null) {
             if (isDirty) {
@@ -76,7 +77,7 @@ namespace Bess::UI {
 
     bool TruthTableWindow::isShown = false;
     bool TruthTableWindow::isfirstTimeDraw = true;
-    std::string TruthTableWindow::selectedNetName;
+    std::string *TruthTableWindow::selectedNetName = nullptr;
     UUID TruthTableWindow::selectedNetId = UUID::null;
     bool TruthTableWindow::isDirty = true;
     SimEngine::TruthTable TruthTableWindow::currentTruthTable;

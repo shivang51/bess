@@ -42,6 +42,9 @@ namespace Bess::Pages {
         // returns true if the key is currently being held down, false otherwise
         bool isKeyDown(int key) const;
 
+        typedef std::unordered_map<UUID, std::string *> TNetIdToNameMap;
+        MAKE_GETTER_SETTER(TNetIdToNameMap, NetIdToNameMap, m_netIdToNameMap)
+
         void resetProjectState() const;
         void createNewProject(bool updateWindowName = true);
         void saveCurrentProject() const;
@@ -73,5 +76,6 @@ namespace Bess::Pages {
         std::unordered_map<int, bool> m_releasedKeysFrame;
         std::unordered_map<int, bool> m_pressedKeysFrame;
         std::unordered_map<int, bool> m_downKeys;
+        TNetIdToNameMap m_netIdToNameMap;
     };
 } // namespace Bess::Pages
