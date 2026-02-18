@@ -250,35 +250,74 @@ namespace Bess::UI {
     void ProjectExplorer::groupOnNets() {
         std::unordered_map<UUID, std::vector<UUID>> netGroups;
 
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+        if (!simEngine.isNetUpdated())
+            return;
+
         auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
         auto &sceneState = scene->getState();
+        std::unordered_map<UUID, std::shared_ptr<Canvas::SimulationSceneComponent>> simIdToComp;
 
-        std::vector<UUID> emptyGroups;
-
-        // preparing new groups for nodes
-        for (const auto &compId : sceneState.getRootComponents()) {
-            const auto &comp = sceneState.getComponentByUuid(compId);
-            if (!comp || comp->getType() != Canvas::SceneComponentType::simulation)
-                continue;
-            const auto &netId = comp->cast<Canvas::SimulationSceneComponent>()->getNetId();
-            if (netId != UUID::null) {
-                netGroups[netId].emplace_back(compId);
+        for (const auto &[compId, comp] : sceneState.getAllComponents()) {
+            if (comp->getType() == Canvas::SceneComponentType::simulation) {
+                const auto simComp = comp->cast<Canvas::SimulationSceneComponent>();
+                simIdToComp[simComp->getSimEngineId()] = simComp;
             }
         }
+
+        const auto &nets = simEngine.getNetsMap();
+        for (const auto &[netId, net] : nets) {
+            for (const auto &simId : net.getComponents()) {
+                if (simIdToComp.contains(simId)) {
+                    const auto &comp = simIdToComp[simId];
+                    netGroups[netId].emplace_back(comp->getUuid());
+                    comp->setNetId(netId);
+                } else {
+                    BESS_WARN("[ProjectExplorer] Simulation component with simId {} not found in scene for net grouping.",
+                              (uint64_t)simId);
+                }
+            }
+        }
+
+        // Use groups which get empty instead of creating new ones
+        std::vector<UUID> emptyGroups;
 
         auto &cmdSystem = Pages::MainPage::getTypedInstance()->getState().getCommandSystem();
 
-        // move nodes to new groups
         int i = 1;
+        // move nodes to new groups and ones which get empty
         for (const auto &[netId, components] : netGroups) {
-            auto group = Canvas::GroupSceneComponent::create("Net " + std::to_string(i++));
-            for (const auto &nodeId : components) {
-                group->addChildComponent(nodeId);
+            std::shared_ptr<Canvas::GroupSceneComponent> group = nullptr;
+            const bool newGroup = emptyGroups.empty();
+
+            if (emptyGroups.empty()) {
+                group = Canvas::GroupSceneComponent::create("Net " + std::to_string(i++));
+            } else {
+                group = sceneState.getComponentByUuid<Canvas::GroupSceneComponent>(emptyGroups.back());
+                emptyGroups.pop_back();
+                group->setName("Net " + std::to_string(i++));
             }
-            cmdSystem.execute(std::make_unique<Cmd::AddCompCmd<Canvas::GroupSceneComponent>>(group));
+
+            for (const auto &compId : components) {
+                group->addChildComponent(compId);
+                auto prevParent = sceneState.getComponentByUuid(compId)->getParentComponent();
+                if (prevParent != UUID::null) {
+                    auto prevParentComp = sceneState.getComponentByUuid(prevParent);
+                    prevParentComp->removeChildComponent(compId);
+                    if (prevParentComp->getChildComponents().empty()) {
+                        emptyGroups.emplace_back(prevParent);
+                    }
+                }
+            }
+
+            if (newGroup) {
+                cmdSystem.execute(std::make_unique<Cmd::AddCompCmd<Canvas::GroupSceneComponent>>(group));
+            }
         }
 
-        cmdSystem.execute(std::make_unique<Cmd::DeleteCompCmd>(emptyGroups));
+        if (!emptyGroups.empty()) {
+            cmdSystem.execute(std::make_unique<Cmd::DeleteCompCmd>(emptyGroups));
+        }
         BESS_INFO("[ProjectExplorer] Grouped components on nets: created {} groups.", netGroups.size());
     }
 

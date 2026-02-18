@@ -137,41 +137,6 @@ namespace Bess::Canvas {
                 break;
             }
         }
-
-        updateNetsFromSimEngine();
-    }
-
-    void Scene::updateNetsFromSimEngine() {
-        // auto &simEngine = SimEngine::SimulationEngine::instance();
-        // if (!simEngine.isNetUpdated()) {
-        //     return;
-        // }
-        //
-        // const auto &nets = simEngine.getNetsMap();
-        //
-        // std::unordered_map<UUID, UUID> cache;
-        //
-        // for (const auto &id : m_state.getComponentsByType(SceneComponentType::simulation)) {
-        //     const auto &simComp = m_state.getComponentByUuid<SimulationSceneComponent>(id);
-        //     cache[simComp->getSimEngineId()] = id;
-        // }
-        //
-        // for (const auto &netInfo : nets) {
-        //     const auto &netId = netInfo.first;
-        //     const auto &componentsInNet = netInfo.second.getComponents();
-        //
-        //     for (const auto &simEngineUuid : componentsInNet) {
-        //         if (!cache.contains(simEngineUuid)) {
-        //             return;
-        //         }
-        //
-        //         const auto &simComp = m_state.getComponentByUuid<SimulationSceneComponent>(cache[simEngineUuid]);
-        //
-        //         simComp->setNetId(netId);
-        //     }
-        // }
-        //
-        // BESS_INFO("[Scene] Updated nets from Simulation Engine, total nets = {}", nets.size());
     }
 
     void Scene::selectAllEntities() {

@@ -69,8 +69,6 @@ namespace Bess::Canvas {
 
         const ViewportTransform &getViewportTransform() const;
 
-        void updateNetsFromSimEngine();
-
         PickingId getHoveredEntity() const {
             return m_pickingId;
         }
