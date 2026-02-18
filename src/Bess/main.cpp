@@ -16,11 +16,11 @@ int main(int argc, char **argv) {
 
     SETUP_CRASH_DETAIL_HELPER
 
-    Bess::Application app;
-
     AppArgs args;
     parseArgs(argc, argv, args);
     auto flags = prepareFlags(args);
+
+    Bess::Application app;
 
     try {
         app.init(args.projectFile, flags);

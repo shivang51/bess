@@ -20,7 +20,7 @@ namespace Bess::Plugins {
     void PluginManager::init() {
         if (isIntialized)
             return;
-        pybind11::initialize_interpreter();
+        pybind11::initialize_interpreter(false);
 
         pybind11::module_ sys = pybind11::module_::import("sys");
         pybind11::list path_list = sys.attr("path");
