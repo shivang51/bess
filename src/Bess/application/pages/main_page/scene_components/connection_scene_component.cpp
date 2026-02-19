@@ -66,7 +66,9 @@ namespace Bess::Canvas {
                                      pickingId);
         }
 
-        pathRenderer->endPathMode(false, false, glm::vec4(0.f), true, !state.getIsSchematicView());
+        pathRenderer->endPathMode(false, false, glm::vec4(0.f), true,
+                                  !state.getIsSchematicView(), m_invalidatePathCache);
+        m_invalidatePathCache = false;
     }
 
     void ConnectionSceneComponent::draw(SceneState &state,
@@ -361,7 +363,7 @@ namespace Bess::Canvas {
         // if connection is being removed as part of slot/component removal,
         // the slot/component cleanup will handle removing connections from sim engine
         // and since slots/components are removed no need to remove connection entry in them
-        if (caller == UUID::null ||
+        if (caller == UUID::null || caller == UUID::master ||
             (callerComp && callerComp->getType() == SceneComponentType::connJoint)) {
 
             BESS_ASSERT(slotCompA, "Failed to get slot component A during connection cleanup");
@@ -630,5 +632,9 @@ namespace Bess::Canvas {
                     "End parent component does not have a valid simulation engine ID");
         simEngine.connectComponent(startParent->getSimEngineId(), startSlotIdx, startPinType,
                                    endParent->getSimEngineId(), endSlotIdx, endPinType);
+    }
+
+    void ConnectionSceneComponent::onRuntimeIdChanged() {
+        m_invalidatePathCache = true;
     }
 } // namespace Bess::Canvas

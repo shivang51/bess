@@ -44,7 +44,7 @@ namespace Bess::Cmd {
                 if (comp->getType() == Canvas::SceneComponentType::connection) {
                     const auto count = exploreChildren(sceneState, compUuid);
                     auto compRef = comp;
-                    if (scene->deleteSceneEntity(compUuid)) {
+                    if (!sceneState.removeComponent(compUuid, UUID::master).empty()) {
                         m_deletedComponents.push_back(std::move(compRef));
                     } else {
                         m_deletedComponents.resize(m_deletedComponents.size() - count);
@@ -77,8 +77,6 @@ namespace Bess::Cmd {
                 }
             }
 
-            BESS_TRACE("[DeleteCompCmd] Deleted {} components", m_deletedComponents.size());
-
             return !m_deletedComponents.empty();
         }
 
@@ -87,7 +85,7 @@ namespace Bess::Cmd {
 
             auto &sceneState = scene->getState();
             for (auto &deletedComponent : std::ranges::reverse_view(m_deletedComponents)) {
-                scene->addComponent(deletedComponent, false);
+                sceneState.addComponent(deletedComponent);
 
                 const auto &parentUuid = deletedComponent->getParentComponent();
                 const auto &parentComp = sceneState.getComponentByUuid(parentUuid);

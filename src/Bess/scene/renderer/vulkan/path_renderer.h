@@ -112,14 +112,15 @@ namespace Bess::Renderer2D::Vulkan {
         void endFrame();
         void setCurrentFrameIndex(uint32_t frameIndex);
 
-        void drawContours(const std::vector<std::vector<PathPoint>> &contours, ContoursDrawInfo info = {});
-        void drawPath(Renderer::Path &path, ContoursDrawInfo info = {});
+        void drawContours(const std::vector<std::vector<PathPoint>> &contours,
+                          ContoursDrawInfo info = {}, bool invalidateCache = false);
+        void drawPath(Renderer::Path &path, ContoursDrawInfo info = {}, bool invalidateCache = false);
 
         // Path API functions
         void beginPathMode(const glm::vec3 &startPos, float weight, const glm::vec4 &color, uint64_t id);
         void endPathMode(bool closePath = false, bool genFill = false,
                          const glm::vec4 &fillColor = glm::vec4(1.f), bool genStroke = true,
-                         bool genRoundedJoints = false);
+                         bool genRoundedJoints = false, bool invalidateCache = false);
         void pathMoveTo(const glm::vec3 &pos);
         void pathLineTo(const glm::vec3 &pos, float size, const glm::vec4 &color, uint64_t id);
         void pathCubicBeizerTo(const glm::vec3 &end, const glm::vec2 &controlPoint1, const glm::vec2 &controlPoint2,

@@ -21,7 +21,8 @@ void bind_path_renderer(py::module_ &m) {
         .def("drawPath",
              &Bess::Renderer2D::Vulkan::PathRenderer::drawPath,
              py::arg("path"),
-             py::arg("info"))
+             py::arg("info"),
+             py::arg("invalidateCache") = false)
         .def("beginPath",
              &Bess::Renderer2D::Vulkan::PathRenderer::beginPathMode,
              py::arg("startPos"),
@@ -34,7 +35,8 @@ void bind_path_renderer(py::module_ &m) {
              py::arg("genFill") = false,
              py::arg("fillColor") = glm::vec4(1.f),
              py::arg("genStroke") = true,
-             py::arg("roundedJoints") = false)
+             py::arg("roundedJoints") = false,
+             py::arg("invalidateCache") = false)
         .def("pathMoveTo",
              &Bess::Renderer2D::Vulkan::PathRenderer::pathMoveTo,
              py::arg("pos"))

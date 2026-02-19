@@ -5,6 +5,7 @@
 
 namespace Bess::Canvas {
     void GroupSceneComponent::onAttach(SceneState &state) {
+        m_transform.position = glm::vec3(0.0);
         for (const auto &childId : m_childComponents) {
             state.attachChild(m_uuid, childId);
         }

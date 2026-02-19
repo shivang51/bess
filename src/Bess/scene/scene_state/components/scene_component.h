@@ -55,7 +55,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER_WC(std::string, Name, m_name, onNameChanged)
         MAKE_GETTER_SETTER(UUID, ParentComponent, m_parentComponent)
         MAKE_GETTER_SETTER(std::unordered_set<UUID>, ChildComponents, m_childComponents)
-        MAKE_GETTER_SETTER(uint32_t, RuntimeId, m_runtimeId)
+        MAKE_GETTER_SETTER_WC(uint32_t, RuntimeId, m_runtimeId, onRuntimeIdChanged)
         MAKE_GETTER_SETTER(std::string, SubType, m_subType)
         MAKE_GETTER_SETTER_WC(bool, IsSelected, m_isSelected, onSelect)
 
@@ -99,6 +99,7 @@ namespace Bess::Canvas {
         virtual void onTransformChanged() {}
         virtual void onSelect() {}
         virtual void onStyleChanged() {}
+        virtual void onRuntimeIdChanged() {}
 
         virtual glm::vec2 calculateScale(SceneState &,
                                          std::shared_ptr<Renderer::MaterialRenderer> materialRenderer);

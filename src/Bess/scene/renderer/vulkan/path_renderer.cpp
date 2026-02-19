@@ -69,17 +69,18 @@ namespace Bess::Renderer2D::Vulkan {
 
     PathRenderer::~PathRenderer() = default;
 
-    void PathRenderer::drawPath(Renderer::Path &path, ContoursDrawInfo info) {
+    void PathRenderer::drawPath(Renderer::Path &path, ContoursDrawInfo info, bool invalidateCache) {
         const PathGeometryCacheEntry *cachedPtr = nullptr;
         const auto cacheKey = PathGeometryCache::generateCacheKey(path.uuid,
                                                                   info.scale,
                                                                   info.rounedJoint);
         bool cacheHit = m_cache.getEntryPtr(cacheKey, cachedPtr);
 
-        if (path.scale(info.scale)) {
+        if (invalidateCache || path.scale(info.scale)) {
             m_cache.invalidateCacheEntry(cacheKey);
             cacheHit = false;
         }
+
         const auto &pathProps = path.getProps();
 
         if (!cacheHit) {
@@ -164,13 +165,13 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void PathRenderer::drawContours(const std::vector<std::vector<PathPoint>> &contours,
-                                    ContoursDrawInfo info) {
+                                    ContoursDrawInfo info, bool invalidateCache) {
         std::vector<std::vector<CommonVertex>> strokeVertices;
         std::vector<CommonVertex> fillVertices;
         if (info.genStroke) {
             uint64_t key = hashContours(contours, info.strokeColor, info.closePath, info.rounedJoint);
             auto dynIt = m_dynamicStrokeCache.find(key);
-            if (dynIt != m_dynamicStrokeCache.end()) {
+            if (dynIt != m_dynamicStrokeCache.end() && !invalidateCache) {
                 for (auto vertices : dynIt->second.strokeVertices) {
                     for (auto &p : vertices)
                         p.position += info.translate;
@@ -207,7 +208,7 @@ namespace Bess::Renderer2D::Vulkan {
             uint64_t keyFill = hashContours(contours, info.fillColor, info.closePath, info.rounedJoint);
             const std::vector<CommonVertex> *fillGeomRef = nullptr;
             auto dynItF = m_dynamicStrokeCache.find(keyFill);
-            if (dynItF != m_dynamicStrokeCache.end() && !dynItF->second.fillVertices.empty()) {
+            if (dynItF != m_dynamicStrokeCache.end() && !dynItF->second.fillVertices.empty() && !invalidateCache) {
                 fillGeomRef = &dynItF->second.fillVertices;
             } else {
                 fillVertices = generateFillGeometry(contours, info.fillColor, info.rounedJoint);
@@ -334,7 +335,8 @@ namespace Bess::Renderer2D::Vulkan {
     }
 
     void PathRenderer::endPathMode(bool closePath, bool genFill,
-                                   const glm::vec4 &fillColor, bool genStroke, bool genRoundedJoints) {
+                                   const glm::vec4 &fillColor, bool genStroke,
+                                   bool genRoundedJoints, bool invalidateCache) {
         if (m_pathData.ended)
             return;
 
@@ -354,7 +356,7 @@ namespace Bess::Renderer2D::Vulkan {
         info.scale = glm::vec2(1.0f);
         info.glyphId = m_pathData.id;
 
-        drawContours(m_pathData.contours, info);
+        drawContours(m_pathData.contours, info, invalidateCache);
 
         m_pathData = {};
     }

@@ -4,7 +4,6 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "simulation_engine.h"
-#include <cstdint>
 
 namespace Bess::Pages {
 
@@ -100,8 +99,6 @@ namespace Bess::Pages {
             if (newParent == UUID::null)
                 return;
 
-            BESS_TRACE("[MainPageState] Reparenting entity {} to new parent {}",
-                       (uint64_t)entityUuid, (uint64_t)newParent);
             const auto &parent = m_sceneDriver->getState().getComponentByUuid(newParent);
             parent->addChildComponent(entityUuid);
         };

@@ -27,12 +27,9 @@ namespace Bess::Canvas {
                            std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
 
         void onMouseDragged(const Events::MouseDraggedEvent &e) override;
-
         void onMouseDragBegin(const Events::MouseDraggedEvent &e) override;
-
         void onMouseEnter(const Events::MouseEnterEvent &e) override;
         void onMouseLeave(const Events::MouseLeaveEvent &e) override;
-
         void onMouseButton(const Events::MouseButtonEvent &e) override;
 
         void onAttach(SceneState &sceneState) override;
@@ -60,6 +57,8 @@ namespace Bess::Canvas {
         glm::vec3 getSegVertexPos(const SceneState &state, size_t vertexIdx);
 
       private:
+        void onRuntimeIdChanged() override;
+
         void onFirstDraw(SceneState &sceneState,
                          std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                          std::shared_ptr<PathRenderer> pathRenderer) override;
@@ -83,6 +82,8 @@ namespace Bess::Canvas {
         bool m_useCustomColor = false;
         int m_initialSegmentCount = 3;
         bool m_shouldReconstructSegments = true;
+
+        bool m_invalidatePathCache = false;
     };
 } // namespace Bess::Canvas
 
