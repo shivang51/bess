@@ -13,7 +13,8 @@ namespace Bess::Cmd {
                  std::is_same_v<ValType, UUID>
     class UpdateValCommand : public Bess::Cmd::Command {
       public:
-        typedef std::function<void(const ValType &)> OnUndoRedoCB;
+        // Callback signature: void(bool isUndo, const ValType &newValue)
+        typedef std::function<void(bool, const ValType &)> OnUndoRedoCB;
 
         UpdateValCommand(ValType *originalLoc, const ValType &newValue)
             : m_orignalLoc(originalLoc), m_newValue(newValue) {}
@@ -50,7 +51,7 @@ namespace Bess::Cmd {
                   SimEngine::SimulationEngine *simEngine) override {
             *m_orignalLoc = m_oldValue;
             if (m_onUndoRedo) {
-                m_onUndoRedo(m_oldValue);
+                m_onUndoRedo(true, m_oldValue);
             }
         }
 
@@ -58,7 +59,7 @@ namespace Bess::Cmd {
                   SimEngine::SimulationEngine *simEngine) override {
             *m_orignalLoc = m_newValue;
             if (m_onUndoRedo) {
-                m_onUndoRedo(m_newValue);
+                m_onUndoRedo(false, m_newValue);
             }
         }
 

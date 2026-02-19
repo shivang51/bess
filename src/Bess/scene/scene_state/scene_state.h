@@ -22,8 +22,11 @@ namespace Bess::Canvas {
                           "T must be derived from SceneComponent");
 
             if (!component ||
-                m_componentsMap.contains(component->getUuid()))
+                m_componentsMap.contains(component->getUuid())) {
+                BESS_WARN("[SceneState] Component with uuid {} already exists in the scene. Skipping addComponent.",
+                          (uint64_t)component->getUuid());
                 return;
+            }
 
             const auto id = component->getUuid();
             m_componentsMap[id] = component;

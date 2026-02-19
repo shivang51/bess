@@ -275,9 +275,10 @@ namespace Bess::Canvas {
         renderer->drawQuad(glm::vec3(pos, 7.f), size, ViewportTheme::colors.selectionBoxFill, -1, props);
     }
 
-    void Scene::deleteSceneEntity(const UUID &entUuid) {
+    bool Scene::deleteSceneEntity(const UUID &entUuid) {
         const auto ids = m_state.removeComponent(entUuid);
         BESS_INFO("[Scene] Deleted entity {}", (uint64_t)entUuid);
+        return !ids.empty();
     }
 
     void Scene::deleteSelectedSceneEntities() {

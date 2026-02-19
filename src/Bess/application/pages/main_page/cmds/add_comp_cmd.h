@@ -10,11 +10,19 @@ namespace Bess::Cmd {
     template <typename TComponent>
     class AddCompCmd : public Bess::Cmd::Command {
       public:
-        AddCompCmd() = default;
-        AddCompCmd(std::shared_ptr<TComponent> comp) : m_comp(std::move(comp)) {}
+        AddCompCmd() {
+            m_name = "AddComponentCmd";
+        }
+
+        AddCompCmd(std::shared_ptr<TComponent> comp) : m_comp(std::move(comp)) {
+            m_name = "AddComponentCmd";
+        }
+
         AddCompCmd(std::shared_ptr<TComponent> comp,
                    const std::vector<std::shared_ptr<Canvas::SceneComponent>> &childComponents)
-            : m_comp(std::move(comp)), m_childComponents(childComponents) {}
+            : m_comp(std::move(comp)), m_childComponents(childComponents) {
+            m_name = "AddComponentCmd";
+        }
 
         bool execute(Canvas::Scene *scene,
                      SimEngine::SimulationEngine *simEngine) override {

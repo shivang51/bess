@@ -85,7 +85,7 @@ namespace Bess::Canvas {
         void resize(const glm::vec2 &size);
         const glm::vec2 &getSize() const;
 
-        void deleteSceneEntity(const UUID &entUuid);
+        bool deleteSceneEntity(const UUID &entUuid);
         void deleteSelectedSceneEntities();
 
         void setZCoord(float val);

@@ -2,6 +2,7 @@
 #include "bess_uuid.h"
 #include "pages/main_page/cmds/update_value_cmd.h"
 #include "pages/main_page/main_page.h"
+#include "pages/main_page/scene_components/scene_comp_types.h"
 #include "simulation_engine.h"
 #include <cstdint>
 
@@ -87,11 +88,15 @@ namespace Bess::Pages {
 
     void MainPageState::onEntityReparented(const Canvas::Events::EntityReparentedEvent &e) {
         auto entity = m_sceneDriver->getState().getComponentByUuid(e.entityUuid);
+
+        if (entity->getType() == Canvas::SceneComponentType::slot) {
+            return;
+        }
+
         UUID *parentPtr = &entity->getParentComponent();
 
-        // TODO fix to pass if its a undo or redo in callback
-        // and figure out a way to set root componets inside the scene state
-        const auto callback = [this, entityUuid = e.entityUuid](const UUID &newParent) {
+        /// undo redo callback
+        const auto callback = [this, entityUuid = e.entityUuid](bool isUndo, const UUID &newParent) {
             if (newParent == UUID::null)
                 return;
 
