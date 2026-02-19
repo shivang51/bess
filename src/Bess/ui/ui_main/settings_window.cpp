@@ -47,6 +47,12 @@ namespace Bess::UI {
             settings.setFps(fps);
         }
 
+        ImGui::NewLine();
+        auto showStatsWindow = settings.getShowStatsWindow();
+        if (Widgets::CheckboxWithLabel("Show Stats Window", &showStatsWindow)) {
+            settings.setShowStatsWindow(showStatsWindow);
+        }
+
         ImGui::End();
     }
 

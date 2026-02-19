@@ -20,28 +20,6 @@ namespace Bess::Config {
         m_themes.applyTheme(theme);
     }
 
-    float Settings::getFontSize() const {
-        return m_fontSize;
-    }
-
-    void Settings::setFontSize(float size) {
-        if (m_fontRebuild)
-            return;
-        m_fontSize = size;
-        m_fontRebuild = true;
-    }
-
-    float Settings::getScale() const {
-        return m_scale;
-    }
-
-    void Settings::setScale(float scale) {
-        if (m_fontRebuild)
-            return;
-        m_scale = scale;
-        m_fontRebuild = true;
-    }
-
     void Settings::setFontRebuild(bool rebuild) {
         m_fontRebuild = !rebuild;
     }
@@ -58,15 +36,6 @@ namespace Bess::Config {
 
     TFrameTime Settings::getFrameTimeStep() const {
         return m_frameTimeStep;
-    }
-
-    int Settings::getFps() const {
-        return m_fps;
-    }
-
-    void Settings::setFps(int fps) {
-        m_fps = fps;
-        m_frameTimeStep = TFrameTime(1000.0 / m_fps);
     }
 
     Settings &Settings::instance() {
