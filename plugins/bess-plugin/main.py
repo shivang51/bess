@@ -1,5 +1,6 @@
 from typing import override
 from bessplug import Plugin
+from bessplug.api.asset_manager import AssetManager
 from bessplug.api.sim_engine import ComponentDefinition
 from components.latches import latches
 from components.digital_gates import digital_gates, draw_hooks

@@ -9,19 +9,30 @@
 #include <typeindex>
 #include <unordered_map>
 
+/// Note (Shivang)
+/// Doing this to remove copies of singleton across different shared library boundaries.
+/// This is needed for the asset manager to cleanup properly across plugins and main application. :)
+#if defined(_WIN32) // still need to check on windows (this should not work)
+    #define API_EXPORT __declspec(dllexport)
+#else
+    #define API_EXPORT __attribute__((visibility("default")))
+#endif
+
 namespace Bess::Assets {
-    class AssetManager {
+    class API_EXPORT AssetManager {
       public:
-        AssetManager() = default;
-        ~AssetManager() = default;
+        static AssetManager &instance();
 
         AssetManager(const AssetManager &) = delete;
         AssetManager &operator=(const AssetManager &) = delete;
         AssetManager(AssetManager &&) = delete;
         AssetManager &operator=(AssetManager &&) = delete;
+        ~AssetManager() = default;
 
-        static AssetManager &instance();
+      private:
+        AssetManager() = default;
 
+      public:
         template <typename T, size_t N>
         std::shared_ptr<T> get(const AssetID<T, N> &id) {
             const auto typeIdx = std::type_index(typeid(T));
