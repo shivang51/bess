@@ -33,7 +33,6 @@ namespace Bess {
       private:
         std::shared_ptr<Window> m_mainWindow;
         std::vector<ApplicationEvent> m_events;
-        std::chrono::steady_clock m_clock;
 
       private:
         void draw();

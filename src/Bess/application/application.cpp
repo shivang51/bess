@@ -10,6 +10,7 @@
 #include "simulation_engine.h"
 #include "ui/ui.h"
 #include "vulkan_core.h"
+#include <chrono>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
 
@@ -51,8 +52,7 @@ namespace Bess {
     }
 
     void Application::run() {
-        m_clock = {};
-        auto previousTime = m_clock.now();
+        auto previousTime = std::chrono::steady_clock::now();
 
         TFrameTime accumulatedTime(0.0);
 
@@ -60,7 +60,7 @@ namespace Bess {
                     "Current page of application is not set");
 
         while (!m_mainWindow->isClosed()) {
-            auto currentTime = m_clock.now();
+            auto currentTime = std::chrono::steady_clock::now();
             TFrameTime deltaTime = currentTime - previousTime;
             previousTime = currentTime;
 
@@ -151,12 +151,12 @@ namespace Bess {
         m_mainWindow = std::make_shared<Window>(800, 600, "Bess");
         ApplicationState::setParentWindow(m_mainWindow);
 
-        m_mainWindow->onWindowResize(BIND_FN_2(Application::onWindowResize));
-        m_mainWindow->onMouseWheel(BIND_FN_2(Application::onMouseWheel));
-        m_mainWindow->onKeyPress(BIND_FN_1(Application::onKeyPress));
-        m_mainWindow->onKeyRelease(BIND_FN_1(Application::onKeyRelease));
-        m_mainWindow->onMouseButton(BIND_FN_2(Application::onMouseButton));
-        m_mainWindow->onMouseMove(BIND_FN_2(Application::onMouseMove));
+        m_mainWindow->onWindowResize(BIND_FN_L(Application::onWindowResize));
+        m_mainWindow->onMouseWheel(BIND_FN_L(Application::onMouseWheel));
+        m_mainWindow->onKeyPress(BIND_FN_L(Application::onKeyPress));
+        m_mainWindow->onKeyRelease(BIND_FN_L(Application::onKeyRelease));
+        m_mainWindow->onMouseButton(BIND_FN_L(Application::onMouseButton));
+        m_mainWindow->onMouseMove(BIND_FN_L(Application::onMouseMove));
 
         const auto page = Pages::MainPage::getInstance(ApplicationState::getParentWindow());
         UI::init(m_mainWindow->getGLFWHandle());
