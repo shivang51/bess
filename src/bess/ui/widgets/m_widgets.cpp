@@ -28,13 +28,28 @@ namespace Bess::UI::Widgets {
         return false;
     }
 
-    bool CheckboxWithLabel(const char *label, bool *value) {
+    bool CheckboxWithLabel(const char *label, bool *value, bool expandToFullWidth, bool alignToFramePadding) {
+        if (alignToFramePadding)
+            ImGui::AlignTextToFramePadding();
+
         ImGui::Text("%s", label);
-        auto style = ImGui::GetStyle();
-        float availWidth = ImGui::GetContentRegionAvail().x;
-        ImGui::SameLine();
-        float checkboxWidth = ImGui::CalcTextSize("X").x + style.FramePadding.x;
-        ImGui::SetCursorPosX(availWidth - checkboxWidth);
+
+        const auto style = ImGui::GetStyle();
+
+        if (expandToFullWidth) {
+            const float checkboxWidth = ImGui::CalcTextSize("X").x + style.FramePadding.x;
+            const float availWidth = ImGui::GetContentRegionAvail().x;
+            ImGui::SameLine();
+            ImGui::SetCursorPosX(availWidth - checkboxWidth);
+        } else {
+            const auto textWidth = ImGui::CalcTextSize(label).x;
+            ImGui::SameLine();
+            ImGui::SetCursorPosX(textWidth + style.ItemInnerSpacing.x + style.FramePadding.x);
+        }
+
+        if (alignToFramePadding)
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + style.FramePadding.y);
+
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
         bool changed = ImGui::Checkbox(("##" + std::string(label)).c_str(), value);
         ImGui::PopStyleVar();

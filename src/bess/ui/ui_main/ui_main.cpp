@@ -1,6 +1,5 @@
 #include "ui/ui_main/ui_main.h"
 #include "application/application_state.h"
-#include "common/bess_assert.h"
 #include "common/logger.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -8,6 +7,7 @@
 #include "simulation_engine.h"
 #include "stb_image_write.h"
 #include "ui/icons/CodIcons.h"
+#include "ui/ui_main/log_window.h"
 #include "ui/ui_main/scene_export_window.h"
 #include "ui/widgets/m_widgets.h"
 #include <cstdint>
@@ -44,12 +44,6 @@ namespace Bess::UI {
         }
         drawMenubar();
         drawViewport();
-        ComponentExplorer::draw();
-        ProjectExplorer::draw();
-        PropertiesPanel::draw();
-        GraphViewWindow::draw();
-        TruthTableWindow::draw();
-
         drawStatusbar();
         drawExternalWindows();
 
@@ -244,6 +238,8 @@ namespace Bess::UI {
 
             Widgets::CheckboxWithLabel(TruthTableWindow::windowName.data(), &TruthTableWindow::isShown);
 
+            Widgets::CheckboxWithLabel(LogWindow::windowName.data(), &LogWindow::isShown);
+
             ImGui::EndMenu();
         }
 
@@ -373,6 +369,7 @@ namespace Bess::UI {
         ImGui::DockBuilderDockWindow(PropertiesPanel::windowName.data(), dockIdRight);
         ImGui::DockBuilderDockWindow(GraphViewWindow::windowName.data(), dockIdBot);
         ImGui::DockBuilderDockWindow(TruthTableWindow::windowName.data(), dockIdBot);
+        ImGui::DockBuilderDockWindow(LogWindow::windowName.data(), dockIdBot);
 
         ImGui::DockBuilderFinish(mainDockspaceId);
     }
@@ -381,6 +378,12 @@ namespace Bess::UI {
         SettingsWindow::draw();
         ProjectSettingsWindow::draw();
         SceneExportWindow::draw();
+        ComponentExplorer::draw();
+        ProjectExplorer::draw();
+        PropertiesPanel::draw();
+        GraphViewWindow::draw();
+        TruthTableWindow::draw();
+        LogWindow::draw();
     }
 
     void UIMain::onNewProject() {

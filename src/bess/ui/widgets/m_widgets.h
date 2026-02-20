@@ -45,7 +45,7 @@ namespace Bess::UI::Widgets {
         return valueChanged;
     }
 
-    bool CheckboxWithLabel(const char *label, bool *value);
+    bool CheckboxWithLabel(const char *label, bool *value, bool expandToFullWidth = true, bool alignToFramePadding = false);
 
     bool TreeNode(
         int key, // unique key to id the tree node uniquely in the UI

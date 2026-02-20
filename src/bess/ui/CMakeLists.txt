@@ -22,6 +22,7 @@ set(Header_Files
 	"ui_main/dialogs.h"
 	"ui_main/project_explorer.h"
 	"ui_main/scene_viewport.h"
+	"ui_main/log_window.h"
 )
 
 source_group("include/ui" FILES ${Header_Files})
@@ -42,6 +43,7 @@ set(Source_Files
 	"ui_main/truth_table_window.cpp"
 	"ui_main/popups.cpp"
 	"ui_main/graph_view_window.cpp"
+	"ui_main/log_window.cpp"
 )
 
 source_group("src/ui" FILES ${Source_Files})
