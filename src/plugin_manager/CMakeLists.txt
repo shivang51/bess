@@ -39,10 +39,10 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
-			"${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"
-			"${CMAKE_SOURCE_DIR}/src/Bess/"
-			"${CMAKE_SOURCE_DIR}/src/BessJson/include"
-			"${CMAKE_SOURCE_DIR}/src/BessVulkan/include"
+			"${CMAKE_SOURCE_DIR}/src/sim_engine/include"
+			"${CMAKE_SOURCE_DIR}/src/bess/"
+			"${CMAKE_SOURCE_DIR}/src/bess_json/include"
+			"${CMAKE_SOURCE_DIR}/src/bess_vulkan/include"
 )
 
 target_include_directories(BessPluginManager
