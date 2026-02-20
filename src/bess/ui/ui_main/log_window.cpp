@@ -32,7 +32,7 @@ namespace Bess::UI {
         const ImGuiContext &g = *ImGui::GetCurrentContext();
         const auto &uiLogSink = Logger::getUISink();
 
-        static constexpr ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY |
+        static constexpr ImGuiTableFlags tableFlags = ImGuiTableFlags_ScrollY |
                                                       ImGuiTableFlags_ScrollX | ImGuiTableFlags_RowBg;
         ImGui::Begin(windowName.data());
 
@@ -45,6 +45,7 @@ namespace Bess::UI {
                 std::lock_guard<std::mutex> lock(uiLogSink->bufferMutex);
 
                 for (const auto &log : uiLogSink->logs) {
+                    ImGui::TableNextRow();
                     ImGui::TableNextColumn();
                     ImVec4 textColor = ImGui::GetStyleColorVec4(ImGuiCol_Text);
                     switch (log.level) {
