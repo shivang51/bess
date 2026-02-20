@@ -32,10 +32,6 @@ set(Header_Files
 "asset_manager/asset_loader.h"
 "asset_manager/asset_manager.h"
 "asset_manager/asset_id.h"
-"common/helpers.h"
-"common/bind_helpers.h"
-"common/digital_state.h"
-"common/log.h"
 )
 
 source_group("include" FILES ${Header_Files})
@@ -62,7 +58,6 @@ set(Source_Files
 "project_file.cpp"
 "events/application_event.cpp"
 "asset_manager/asset_manager.cpp"
-	"common/helpers.cpp"
 )
 
 source_group("src" FILES ${Source_Files})
@@ -73,8 +68,8 @@ set(ALL_FILES
 )
 
 add_library(${PROJECT_NAME} OBJECT ${ALL_FILES})
-target_link_libraries(${PROJECT_NAME} PUBLIC BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessCmdSystem BessUI)
-add_dependencies(${PROJECT_NAME} BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager BessScene BessCmdSystem BessUI)
+target_link_libraries(${PROJECT_NAME} PUBLIC common BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessCmdSystem BessUI)
+add_dependencies(${PROJECT_NAME} common BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager BessScene BessCmdSystem BessUI)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_CURRENT_SOURCE_DIR}"

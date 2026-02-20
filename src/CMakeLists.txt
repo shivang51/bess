@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR)
 
+add_subdirectory(common)
 add_subdirectory(bess_json)
 add_subdirectory(bessplug/bindings)
 add_subdirectory(plugin_manager)
