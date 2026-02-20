@@ -1,5 +1,5 @@
 #include "simulation_engine.h"
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "component_catalog.h"
 #include "component_definition.h"
 #include "digital_component.h"

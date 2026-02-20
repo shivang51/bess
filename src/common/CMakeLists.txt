@@ -7,12 +7,14 @@ set(Header_Files
 "include/common/bind_helpers.h"
 "include/common/digital_state.h"
 "include/common/log.h"
+"include/common/bess_uuid.h"
 )
 
 source_group("include/common" FILES ${Header_Files})
 
 set(Source_Files
 	"src/helpers.cpp"
+	"src/bess_uuid.cpp"
 )
 
 source_group("src/common" FILES ${Source_Files})
@@ -24,6 +26,9 @@ set(ALL_FILES
 )
 
 add_library(${PROJECT_NAME} STATIC ${ALL_FILES})
+
+target_link_libraries(${PROJECT_NAME} PRIVATE BessJson)
+add_dependencies(${PROJECT_NAME} BessJson)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
 	${CMAKE_CURRENT_SOURCE_DIR}/include

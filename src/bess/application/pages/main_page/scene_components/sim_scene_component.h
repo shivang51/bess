@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "component_definition.h"
 #include "scene/renderer/material_renderer.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"

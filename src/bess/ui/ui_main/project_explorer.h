@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "common/helpers.h"
 #include "ui/icons/CodIcons.h"
 #include <cstdint>

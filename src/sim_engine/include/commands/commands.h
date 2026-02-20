@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bess_api.h"
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "command.h"
 #include "digital_component.h"
 #include "types.h"

@@ -1,5 +1,5 @@
 #include "sim_scene_component.h"
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "input_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/styles/comp_style.h"

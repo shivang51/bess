@@ -1,6 +1,6 @@
 #include "ui/ui_main/project_explorer.h"
 #include "application/pages/main_page/main_page.h"
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "common/log.h"
 #include "imgui.h"
 #include "imgui_internal.h"

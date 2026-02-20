@@ -1,6 +1,6 @@
 #include "scene/scene.h"
 #include "application/settings/viewport_theme.h"
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "common/log.h"
 #include "event_dispatcher.h"
 #include "events/sim_engine_events.h"

@@ -1,5 +1,5 @@
 #include "connection_scene_component.h"
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "commands/commands.h"
 #include "common/log.h"
 #include "conn_joint_scene_component.h"

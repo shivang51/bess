@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "glm.hpp"
 #include <string>
 #include <unordered_map>

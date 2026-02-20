@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "scene/renderer/material_renderer.h"
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_state/components/behaviours/mouse_behaviour.h"

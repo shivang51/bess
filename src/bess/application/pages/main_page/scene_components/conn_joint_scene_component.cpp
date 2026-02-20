@@ -1,5 +1,5 @@
 #include "conn_joint_scene_component.h"
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "connection_scene_component.h"
 #include "geometric.hpp"
 #include "pages/main_page/cmds/add_comp_cmd.h"

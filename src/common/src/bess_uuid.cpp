@@ -1,4 +1,4 @@
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include <random>
 
 namespace Bess {
@@ -23,11 +23,11 @@ namespace Bess {
 } // namespace Bess
 
 namespace Bess::JsonConvert {
-    BESS_API void toJsonValue(const Bess::UUID &uuid, Json::Value &j) {
+    void toJsonValue(const Bess::UUID &uuid, Json::Value &j) {
         j = (Json::UInt64)uuid;
     }
 
-    BESS_API void fromJsonValue(const Json::Value &j, Bess::UUID &uuid) {
+    void fromJsonValue(const Json::Value &j, Bess::UUID &uuid) {
         uuid = j.asUInt64();
     }
 } // namespace Bess::JsonConvert

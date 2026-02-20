@@ -2,7 +2,7 @@
 
 #include "application/app_types.h"
 #include "application/events/application_event.h"
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "commands/commands_manager.h"
 #include "events/sim_engine_events.h"
 #include "scene/camera.h"

@@ -1,5 +1,5 @@
 #include "group_scene_component.h"
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "pages/main_page/main_page.h"
 #include "scene/scene_state/scene_state.h"
 

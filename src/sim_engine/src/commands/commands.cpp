@@ -1,5 +1,5 @@
 #include "commands/commands.h"
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "simulation_engine.h"
 #include "simulation_engine_serializer.h"
 #include "types.h"

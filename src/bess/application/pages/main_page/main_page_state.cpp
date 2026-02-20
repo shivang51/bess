@@ -1,5 +1,5 @@
 #include "pages/main_page/main_page_state.h"
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "pages/main_page/cmds/update_value_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"

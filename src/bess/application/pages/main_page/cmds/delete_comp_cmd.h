@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "command.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "scene/scene.h"

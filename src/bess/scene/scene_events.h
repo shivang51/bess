@@ -1,5 +1,5 @@
 #pragma once
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include <cstdint>
 #include <glm.hpp>
 

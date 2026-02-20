@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "fwd.hpp"
 #include "scene/renderer/material_renderer.h"
 #include "scene/scene_events.h"

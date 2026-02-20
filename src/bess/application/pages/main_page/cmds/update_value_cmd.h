@@ -1,5 +1,5 @@
 #pragma once
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "command.h"
 #include "fwd.hpp"
 #include <type_traits>

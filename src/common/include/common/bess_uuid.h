@@ -1,12 +1,12 @@
 #pragma once
 
-#include "bess_api.h"
 #include "bess_json/bess_json.h"
 #include <cstdint>
 #include <functional>
+#include <string>
 
 namespace Bess {
-    class BESS_API UUID {
+    class UUID {
       public:
         static UUID fromString(const std::string &str) noexcept;
 
@@ -39,8 +39,8 @@ namespace Bess {
 } // namespace Bess
 
 namespace Bess::JsonConvert {
-    BESS_API void toJsonValue(const Bess::UUID &uuid, Json::Value &j);
-    BESS_API void fromJsonValue(const Json::Value &j, Bess::UUID &uuid);
+    void toJsonValue(const Bess::UUID &uuid, Json::Value &j);
+    void fromJsonValue(const Json::Value &j, Bess::UUID &uuid);
 } // namespace Bess::JsonConvert
 
 // define hash function before reflecting for unordered_set

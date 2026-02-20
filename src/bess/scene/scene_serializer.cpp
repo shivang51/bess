@@ -1,6 +1,6 @@
 #include "scene/scene_serializer.h"
 
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "plugin_manager.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "pipeline.h"
 #include "primitive_vertex.h"
 #include <memory>

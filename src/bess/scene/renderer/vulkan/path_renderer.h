@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "common/log.h"
 #include "device.h"
 #include "pipelines/path_fill_pipeline.h"

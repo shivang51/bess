@@ -2,7 +2,7 @@
 
 #include "bess_api.h"
 #include "bess_json/bess_json.h"
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include <any>
 #include <chrono>
 #include <cstdint>

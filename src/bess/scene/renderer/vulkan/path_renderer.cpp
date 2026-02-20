@@ -1,5 +1,5 @@
 #include "scene/renderer/vulkan/path_renderer.h"
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "geometric.hpp"
 #include <cstdint>
 #include <ranges>

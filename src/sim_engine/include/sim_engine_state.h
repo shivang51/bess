@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "digital_component.h"
 #include "net/net.h"
 #include <memory>

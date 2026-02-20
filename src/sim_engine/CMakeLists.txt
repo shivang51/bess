@@ -6,7 +6,6 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(Header_Files
     "include/digital_component.h"
     "include/types.h"
-    "include/bess_uuid.h"
     "include/logger.h"
     "include/simulation_engine.h"
     "include/sim_engine_state.h"
@@ -29,7 +28,6 @@ set(Source_Files
     "src/simulation_engine.cpp"
 		"src/sim_engine_state.cpp"
     "src/simulation_engine_serializer.cpp"
-    "src/bess_uuid.cpp"
     "src/digital_component.cpp"
     "src/logger.cpp"
     "src/net/net.cpp" 
@@ -58,8 +56,8 @@ else()
 endif()
 endif()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE BessPluginManager EventSystem BessJson)
-add_dependencies(${PROJECT_NAME} BessPluginManager EventSystem BessJson)
+target_link_libraries(${PROJECT_NAME} PRIVATE BessPluginManager EventSystem BessJson common)
+add_dependencies(${PROJECT_NAME} BessPluginManager EventSystem BessJson common)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE BESS_EXPORTS)
 
