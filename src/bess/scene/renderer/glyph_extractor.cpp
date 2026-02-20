@@ -1,5 +1,6 @@
 #include "scene/renderer/glyph_extractor.h"
-#include "common/log.h"
+#include "common/bess_assert.h"
+#include "common/logger.h"
 #include "freetype/freetype.h"
 #include <cassert>
 

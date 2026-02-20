@@ -37,7 +37,7 @@ namespace Bess::SimEngine {
             return *(m_componentHashMap.at(hash));
         }
 
-        BESS_SE_ERROR("Component definition with hash {} not found", hash);
+        BESS_ERROR("Component definition with hash {} not found", hash);
         throw std::runtime_error("Component definition not found");
     }
 

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "common/log.h"
+#include "common/bess_assert.h"
+#include "common/logger.h"
 #include "pipeline.h"
 #include "primitive_vertex.h"
 #include <array>

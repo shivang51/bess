@@ -1,7 +1,8 @@
 #pragma once
 #include "asset_id.h"
 #include "asset_loader.h"
-#include "common/log.h"
+#include "common/bess_assert.h"
+#include "common/logger.h"
 #include "scene/renderer/asset_loaders.h"
 #include <any>
 #include <memory>

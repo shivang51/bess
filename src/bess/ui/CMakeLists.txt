@@ -69,8 +69,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_link_libraries(${PROJECT_NAME} PUBLIC BessSimEngine BessExtDeps BessVulkan BessPluginManager EventSystem BessScene BessCmdSystem)
 add_dependencies(${PROJECT_NAME} BessSimEngine BessVulkan BessExtDeps BessPluginManager EventSystem BessScene BessJson BessCmdSystem)
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)
-
 if(MSVC)
 		target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8" "/Zc:__cplusplus")
 endif()

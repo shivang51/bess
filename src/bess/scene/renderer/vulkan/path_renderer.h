@@ -1,7 +1,8 @@
 #pragma once
 
 #include "common/bess_uuid.h"
-#include "common/log.h"
+#include "common/bess_assert.h"
+#include "common/logger.h"
 #include "device.h"
 #include "pipelines/path_fill_pipeline.h"
 #include "pipelines/path_stroke_pipeline.h"

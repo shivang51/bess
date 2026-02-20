@@ -50,10 +50,7 @@ target_include_directories(BessPluginManager
     PUBLIC include
 )
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE 
-    BESS_PLUGIN_MANAGER_EXPORTS
-    $<$<CONFIG:Debug>:DEBUG>
-)
+target_compile_definitions(${PROJECT_NAME} PRIVATE BESS_PLUGIN_MANAGER_EXPORTS)
 
 if(UNIX)
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14")

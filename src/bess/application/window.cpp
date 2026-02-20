@@ -1,5 +1,6 @@
 #include "application/window.h"
-#include "common/log.h"
+#include "common/bess_assert.h"
+#include "common/logger.h"
 #include "events/application_event.h"
 #include "stb_image.h"
 #include "vec2.hpp"

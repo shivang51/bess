@@ -6,7 +6,7 @@ set(Header_Files
 "include/common/helpers.h"
 "include/common/bind_helpers.h"
 "include/common/digital_state.h"
-"include/common/log.h"
+"include/common/bess_assert.h"
 "include/common/bess_uuid.h"
 "include/common/logger.h"
 )
@@ -39,8 +39,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_include_directories(${PROJECT_NAME} PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/include/common
 )
-
-target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)
 
 if(MSVC)
 		target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8" "/Zc:__cplusplus")

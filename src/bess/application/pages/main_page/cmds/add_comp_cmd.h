@@ -1,6 +1,7 @@
 #pragma once
 #include "command.h"
-#include "common/log.h"
+#include "common/bess_assert.h"
+#include "common/logger.h"
 #include "scene/scene.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "simulation_engine.h"

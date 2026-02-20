@@ -28,7 +28,7 @@ namespace Bess::SimEngine {
 
         auto it = m_commandFactory.find(commandName);
         if (it == m_commandFactory.end()) {
-            BESS_SE_ERROR("[CommandProcessor] Unknown Command: {}", commandString);
+            BESS_ERROR("[CommandProcessor] Unknown Command: {}", commandString);
             return std::unexpected("Unknown command: " + commandName);
         }
 

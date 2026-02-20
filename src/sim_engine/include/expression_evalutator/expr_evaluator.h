@@ -85,7 +85,7 @@ namespace Bess::SimEngine::ExprEval {
             if (isdigit(expr[i])) {
                 int index = expr[i] - '0';
                 if (index >= values.size()) {
-                    BESS_SE_ERROR("Invalid index {} in epxr {}", index, expr);
+                    BESS_ERROR("Invalid index {} in epxr {}", index, expr);
                     throw std::out_of_range("Index out of range in the values array");
                 }
                 operands.push(values[index]);
@@ -104,7 +104,7 @@ namespace Bess::SimEngine::ExprEval {
             } else if (isUninaryOperator(expr[i])) {
                 operators.push(expr[i]);
             } else {
-                BESS_SE_ERROR("Invalid expression {}", expr);
+                BESS_ERROR("Invalid expression {}", expr);
                 throw std::runtime_error("Invalid character in expression");
             }
         }

@@ -91,8 +91,6 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     OUTPUT_NAME "bessplug"
 )
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)
-
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E env "PYTHONPATH=$<TARGET_FILE_DIR:${PROJECT_NAME}>"

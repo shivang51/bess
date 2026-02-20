@@ -1,5 +1,6 @@
 #include "scene/renderer/msdf_font.h"
-#include "common/log.h"
+#include "common/bess_assert.h"
+#include "common/logger.h"
 
 #include <filesystem>
 #include <fstream>

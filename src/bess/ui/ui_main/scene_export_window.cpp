@@ -1,5 +1,6 @@
 #include "ui/ui_main/scene_export_window.h"
-#include "common/log.h"
+#include "common/bess_assert.h"
+#include "common/logger.h"
 #include "imgui.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"

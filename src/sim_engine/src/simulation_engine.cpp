@@ -1,12 +1,12 @@
 #include "simulation_engine.h"
 #include "common/bess_uuid.h"
+#include "common/logger.h"
 #include "component_catalog.h"
 #include "component_definition.h"
 #include "digital_component.h"
 #include "event_dispatcher.h"
 #include "events/sim_engine_events.h"
 #include "init_components.h"
-#include "common/logger.h"
 #include "types.h"
 
 #include "plugin_manager.h"
@@ -22,13 +22,13 @@
 #include <ranges>
 #include <thread>
 
-// #define BESS_SE_ENABLE_LOG_EVENTS
+// #define BESS_ENABLE_LOG_EVENTS
 
-#ifdef BESS_SE_ENABLE_LOG_EVENTS
-    #define BESS_SE_LOG_EVENT(...) BESS_SE_TRACE(__VA_ARGS__);
+#ifdef BESS_ENABLE_LOG_EVENTS
+    #define BESS_LOG_EVENT(...) BESS_TRACE(__VA_ARGS__);
 #else
-    #define BESS_SE_LOG_EVENT(...)
-#endif // !BESS_SE_LOG_EVENT
+    #define BESS_LOG_EVENT(...)
+#endif // !BESS_LOG_EVENT
 
 namespace Bess::SimEngine {
     SimulationEngine &SimulationEngine::instance() {
@@ -37,7 +37,6 @@ namespace Bess::SimEngine {
     }
 
     SimulationEngine::SimulationEngine() {
-        Logger::getInstance().initLogger("BessSimEngine");
         initComponentCatalog();
         const auto &pluginMangaer = Plugins::PluginManager::getInstance();
 
@@ -47,9 +46,9 @@ namespace Bess::SimEngine {
             for (const auto &comp : comps) {
                 catalog.registerComponent(comp);
             }
-            BESS_SE_INFO("Registered {} components from plugin {}",
-                         comps.size(),
-                         plugin.first);
+            BESS_INFO("Registered {} components from plugin {}",
+                      comps.size(),
+                      plugin.first);
         }
         Plugins::savePyThreadState();
         m_simThread = std::thread(&SimulationEngine::run, this);
@@ -115,7 +114,7 @@ namespace Bess::SimEngine {
         scheduleEvent(digiComp->id, UUID::null, m_currentSimTime + definition->getSimDelay());
 
         EventSystem::EventDispatcher::instance().dispatch<Events::ComponentAddedEvent>({digiComp->id});
-        BESS_SE_INFO("Added component {} with id {}", definition->getName(), (uint64_t)digiComp->id);
+        BESS_INFO("Added component {} with id {}", definition->getName(), (uint64_t)digiComp->id);
 
         return digiComp->id;
     }
@@ -123,22 +122,22 @@ namespace Bess::SimEngine {
     bool SimulationEngine::connectComponent(const UUID &src, int srcSlot, SlotType srcType,
                                             const UUID &dst, int dstSlot, SlotType dstType, bool overrideConn) {
         if (src == UUID::null || dst == UUID::null) {
-            BESS_SE_WARN("Cannot connect to/from null component");
+            BESS_WARN("Cannot connect to/from null component");
             return false;
         }
 
         if (!m_simEngineState.isComponentValid(src)) {
-            BESS_SE_WARN("Source component with UUID {} does not exist", (uint64_t)src);
+            BESS_WARN("Source component with UUID {} does not exist", (uint64_t)src);
             return false;
         }
 
         if (!m_simEngineState.isComponentValid(dst)) {
-            BESS_SE_WARN("Destination component with UUID {} does not exist", (uint64_t)dst);
+            BESS_WARN("Destination component with UUID {} does not exist", (uint64_t)dst);
             return false;
         }
 
         if (srcType == dstType) {
-            BESS_SE_WARN("Cannot connect pins of the same type i.e. input -> input or output -> output");
+            BESS_WARN("Cannot connect pins of the same type i.e. input -> input or output -> output");
             return false;
         }
 
@@ -153,13 +152,13 @@ namespace Bess::SimEngine {
                            : dstComp->outputConnections;
 
         if (srcSlot < 0 || srcSlot >= static_cast<int>(outPins.size())) {
-            BESS_SE_WARN("Invalid source pin index. Valid range: 0 to {}",
-                         srcComp->outputConnections.size() - 1);
+            BESS_WARN("Invalid source pin index. Valid range: 0 to {}",
+                      srcComp->outputConnections.size() - 1);
             return false;
         }
         if (dstSlot < 0 || dstSlot >= static_cast<int>(inPins.size())) {
-            BESS_SE_WARN("Invalid source pin index. Valid range: 0 to {}",
-                         srcComp->inputConnections.size() - 1);
+            BESS_WARN("Invalid source pin index. Valid range: 0 to {}",
+                      srcComp->inputConnections.size() - 1);
             return false;
         }
 
@@ -171,7 +170,7 @@ namespace Bess::SimEngine {
                     conns.erase(it);
                     break;
                 }
-                BESS_SE_WARN("Connection already exists, skipping");
+                BESS_WARN("Connection already exists, skipping");
                 return false;
             }
         }
@@ -191,7 +190,7 @@ namespace Bess::SimEngine {
         //
         //     if (stateMonitorComp) {
         //         stateMonitorComp->attacthTo(pin, type);
-        //         BESS_SE_INFO("Attached state monitor");
+        //         BESS_INFO("Attached state monitor");
         //     }
         // }
 
@@ -237,7 +236,7 @@ namespace Bess::SimEngine {
         }
 
         scheduleEvent(dst, src, m_currentSimTime + dstComp->definition->getSimDelay());
-        BESS_SE_INFO("Connected components");
+        BESS_INFO("Connected components");
         return true;
     }
 
@@ -306,7 +305,7 @@ namespace Bess::SimEngine {
             scheduleEvent(e, UUID::null, m_currentSimTime + dc->definition->getSimDelay());
         }
 
-        BESS_SE_INFO("Deleted component");
+        BESS_INFO("Deleted component");
     }
 
     bool SimulationEngine::updateNets(const std::vector<UUID> &startCompIds) {
@@ -353,7 +352,7 @@ namespace Bess::SimEngine {
 
     SlotState SimulationEngine::getDigitalSlotState(const UUID &uuid, SlotType type, int idx) {
         if (!m_simEngineState.isComponentValid(uuid)) {
-            BESS_SE_WARN("[getDigitalPinState] Component with UUID {} is invalid", (uint64_t)uuid);
+            BESS_WARN("[getDigitalPinState] Component with UUID {} is invalid", (uint64_t)uuid);
             return {LogicState::unknown, SimTime(0)};
         }
         const auto &comp = m_simEngineState.getDigitalComponent(uuid);
@@ -366,8 +365,8 @@ namespace Bess::SimEngine {
     ConnectionBundle SimulationEngine::getConnections(const UUID &uuid) {
         ConnectionBundle bundle;
         if (!m_simEngineState.isComponentValid(uuid)) {
-            BESS_SE_WARN("[getConnections] Component with UUID {} is invalid",
-                         (uint64_t)uuid);
+            BESS_WARN("[getConnections] Component with UUID {} is invalid",
+                      (uint64_t)uuid);
             return bundle;
         }
         const auto &comp = m_simEngineState.getDigitalComponent(uuid);
@@ -466,13 +465,13 @@ namespace Bess::SimEngine {
         const auto &dc = m_simEngineState.getDigitalComponent(toSchedule);
         scheduleEvent(toSchedule, UUID::null, m_currentSimTime + dc->definition->getSimDelay());
 
-        BESS_SE_INFO("Deleted connection");
+        BESS_INFO("Deleted connection");
     }
 
     std::vector<SlotState> SimulationEngine::getInputSlotsState(UUID compId) const {
 
         if (!m_simEngineState.isComponentValid(compId)) {
-            BESS_SE_WARN("Component with UUID {} is invalid", (uint64_t)compId);
+            BESS_WARN("Component with UUID {} is invalid", (uint64_t)compId);
             return {};
         }
 
@@ -518,19 +517,19 @@ namespace Bess::SimEngine {
     bool SimulationEngine::simulateComponent(const UUID &compId, const std::vector<SlotState> &inputs) {
         const auto &comp = m_simEngineState.getDigitalComponent(compId);
         const auto &def = comp->definition;
-#ifdef BESS_SE_ENABLE_LOG_EVENTS
-        BESS_SE_LOG_EVENT("Simulating {}, with delay {}ns", def->getName(), def->getSimDelay().count());
-        BESS_SE_LOG_EVENT("\tInputs:");
+#ifdef BESS_ENABLE_LOG_EVENTS
+        BESS_LOG_EVENT("Simulating {}, with delay {}ns", def->getName(), def->getSimDelay().count());
+        BESS_LOG_EVENT("\tInputs:");
         for (auto &inp : inputs) {
-            BESS_SE_LOG_EVENT("\t\t{}", (int)inp.state);
+            BESS_LOG_EVENT("\t\t{}", (int)inp.state);
         }
-        BESS_SE_LOG_EVENT("");
-#endif // BESS_SE_ENABLE_LOG_EVENTS
+        BESS_LOG_EVENT("");
+#endif // BESS_ENABLE_LOG_EVENTS
 
         auto &simFunction = def->getSimulationFunction();
 
         if (!simFunction) {
-            BESS_SE_ERROR("Component {} does not have a simulation function defined. Skipping simulation.", def->getName());
+            BESS_ERROR("Component {} does not have a simulation function defined. Skipping simulation.", def->getName());
             assert(false && "Simulation function not defined for component");
             return false;
         }
@@ -541,8 +540,8 @@ namespace Bess::SimEngine {
         try {
             newState = def->getSimulationFunction()(inputs, m_currentSimTime, comp->state);
         } catch (std::exception &ex) {
-            BESS_SE_ERROR("Exception during simulation of component {}. Output won't be updated: {}",
-                          def->getName(), ex.what());
+            BESS_ERROR("Exception during simulation of component {}. Output won't be updated: {}",
+                       def->getName(), ex.what());
             comp->state.simError = true;
             comp->state.errorMessage = ex.what();
             comp->state.isChanged = false;
@@ -550,14 +549,14 @@ namespace Bess::SimEngine {
 
         comp->state.inputStates = inputs;
 
-        BESS_SE_LOG_EVENT("\tState changed: {}", newState.isChanged ? "YES" : "NO");
+        BESS_LOG_EVENT("\tState changed: {}", newState.isChanged ? "YES" : "NO");
 
         if (newState.isChanged && !comp->state.simError) {
             comp->state = newState;
             comp->definition->onStateChange(oldState, comp->state);
-            BESS_SE_LOG_EVENT("\tOutputs changed to:");
+            BESS_LOG_EVENT("\tOutputs changed to:");
             for (auto &outp : newState.outputStates) {
-                BESS_SE_LOG_EVENT("\t\t{}", (bool)outp.state);
+                BESS_LOG_EVENT("\t\t{}", (bool)outp.state);
             }
         }
 
@@ -614,7 +613,7 @@ namespace Bess::SimEngine {
     void SimulationEngine::run() {
         auto state = Plugins::capturePyThreadState();
         Plugins::releasePyThreadState(state);
-        BESS_SE_INFO("[SimulationEngine] Simulation loop started");
+        BESS_INFO("[SimulationEngine] Simulation loop started");
         m_currentSimTime = SimTime(0);
 
         while (!m_stopFlag.load()) {
@@ -652,16 +651,16 @@ namespace Bess::SimEngine {
                 m_eventSet.erase(m_eventSet.begin());
             }
 
-            BESS_SE_LOG_EVENT("");
-            BESS_SE_LOG_EVENT("[SimulationEngine][t = {}ns][dt = {}ns] Picked {} events to simulate",
-                              m_currentSimTime.count(), deltaTime.count(), eventsToSim.size());
+            BESS_LOG_EVENT("");
+            BESS_LOG_EVENT("[SimulationEngine][t = {}ns][dt = {}ns] Picked {} events to simulate",
+                           m_currentSimTime.count(), deltaTime.count(), eventsToSim.size());
 
             std::unordered_map<UUID, std::vector<SlotState>> inputsMap = {};
 
             for (auto &ev : eventsToSim) {
                 inputsMap[ev.compId] = getInputSlotsState(ev.compId);
             }
-            BESS_SE_LOG_EVENT("[SimulationEngine] Selected {} unique entites to simulate", inputsMap.size());
+            BESS_LOG_EVENT("[SimulationEngine] Selected {} unique entites to simulate", inputsMap.size());
 
             m_isSimulating = true;
             for (auto &[compId, inputs] : inputsMap) {
@@ -700,14 +699,14 @@ namespace Bess::SimEngine {
             m_isSimulating = false;
             m_queueCV.notify_all();
 
-            BESS_SE_LOG_EVENT("[BessSimEngine] Sim Cycle End");
-            BESS_SE_LOG_EVENT("");
+            BESS_LOG_EVENT("[BessSimEngine] Sim Cycle End");
+            BESS_LOG_EVENT("");
 
             if (!m_eventSet.empty()) {
                 m_queueCV.wait_until(queueLock, std::chrono::steady_clock::now() +
                                                     (m_eventSet.begin()->simTime - m_currentSimTime));
             } else {
-                BESS_SE_TRACE("[BessSimEngine] Event queue empty, waiting for new events");
+                BESS_TRACE("[BessSimEngine] Event queue empty, waiting for new events");
                 m_queueCV.notify_all();
             }
         }
@@ -727,7 +726,7 @@ namespace Bess::SimEngine {
 
     std::vector<std::pair<float, bool>> SimulationEngine::getStateMonitorData(UUID uuid) {
         if (!m_simEngineState.isComponentValid(uuid)) {
-            BESS_SE_WARN("[SimulationEngine] getStateMonitorData was called on entity with no StateMonitorComponent: {}", (uint64_t)uuid);
+            BESS_WARN("[SimulationEngine] getStateMonitorData was called on entity with no StateMonitorComponent: {}", (uint64_t)uuid);
             return {};
         }
 
@@ -788,7 +787,7 @@ namespace Bess::SimEngine {
         if (!m_nets.contains(netUuid))
             return {};
 
-        BESS_SE_INFO("\nGenerating truth table for net {}", (uint64_t)netUuid);
+        BESS_INFO("\nGenerating truth table for net {}", (uint64_t)netUuid);
         const auto &net = m_nets.at(netUuid);
 
         TruthTable truthTable;
@@ -823,12 +822,12 @@ namespace Bess::SimEngine {
         }
 
         if (inputs.size() == 0 || outputs.size() == 0) {
-            BESS_SE_WARN("Cannot generate truth table for net {} without input or output components",
-                         (uint64_t)netUuid);
+            BESS_WARN("Cannot generate truth table for net {} without input or output components",
+                      (uint64_t)netUuid);
             return {};
         }
 
-        BESS_SE_INFO("Truth table will have {} inputs and {} outputs", inputs.size(), outputs.size());
+        BESS_INFO("Truth table will have {} inputs and {} outputs", inputs.size(), outputs.size());
 
         const size_t numInputs = inputs.size();
         const size_t numCombinations = 1 << numInputs;
@@ -838,14 +837,14 @@ namespace Bess::SimEngine {
                                                            numInputs + outputs.size(),
                                                            LogicState::low));
 
-        BESS_SE_INFO("Truth table dimensions: {} rows x {} columns",
-                     tableData.size(),
-                     tableData[0].size());
+        BESS_INFO("Truth table dimensions: {} rows x {} columns",
+                  tableData.size(),
+                  tableData[0].size());
 
-        BESS_SE_INFO("Total combinations to simulate: {}", numCombinations);
+        BESS_INFO("Total combinations to simulate: {}", numCombinations);
 
         for (size_t comb = 0; comb < numCombinations; comb++) {
-            BESS_SE_INFO("Simulating combination {}/{}: ", comb + 1, numCombinations);
+            BESS_INFO("Simulating combination {}/{}: ", comb + 1, numCombinations);
             size_t runningIdx = numInputs - 1, i = 0;
             for (const auto &[inpUuid, slotIdx] : inputs) {
                 std::lock_guard lk(m_registryMutex);
@@ -856,7 +855,7 @@ namespace Bess::SimEngine {
                 i++;
             }
 
-            BESS_SE_INFO("Waiting for simulation to stabilize...");
+            BESS_INFO("Waiting for simulation to stabilize...");
 
             // Wait for simulation to stabilize
             {
@@ -866,7 +865,7 @@ namespace Bess::SimEngine {
                 });
             }
 
-            BESS_SE_INFO("Simulation stabilized. Recording outputs");
+            BESS_INFO("Simulation stabilized. Recording outputs");
 
             // FIXME: Temporary sleep to ensure all events are processed
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -876,14 +875,14 @@ namespace Bess::SimEngine {
                 const auto states = getInputSlotsState(outputs[i].first);
                 tableData[comb][numInputs + i] = states[outputs[i].second].state;
 
-                BESS_SE_TRACE("Output component {} slot {} state: {}",
-                              (uint64_t)outputs[i].first,
-                              outputs[i].second,
-                              (int)tableData[comb][numInputs + i]);
+                BESS_TRACE("Output component {} slot {} state: {}",
+                           (uint64_t)outputs[i].first,
+                           outputs[i].second,
+                           (int)tableData[comb][numInputs + i]);
             }
         }
 
-        BESS_SE_INFO("Truth table generation completed for net {}\n", (uint64_t)netUuid);
+        BESS_INFO("Truth table generation completed for net {}\n", (uint64_t)netUuid);
         std::ranges::reverse(truthTable.inputUuids);
         truthTable.table = tableData;
 

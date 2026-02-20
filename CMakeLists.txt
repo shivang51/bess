@@ -30,6 +30,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}/
 
 message(STATUS "Output location: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 
+add_compile_definitions($<$<CONFIG:Debug>:DEBUG>)
+
 # add_compile_definitions(DISABLE_PLUGINS)
 
 add_subdirectory(external)

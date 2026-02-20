@@ -1,6 +1,7 @@
 #pragma once
 #include "command_buffer.h"
-#include "common/log.h"
+#include "common/bess_assert.h"
+#include "common/logger.h"
 #include "device.h"
 #include "fwd.hpp"
 #include "renderer/material_renderer.h"

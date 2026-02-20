@@ -1,5 +1,6 @@
 #include "ui/ui.h"
-#include "common/log.h"
+#include "common/bess_assert.h"
+#include "common/logger.h"
 #include "device.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/icons/ComponentIcons.h"

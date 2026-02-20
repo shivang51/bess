@@ -1,5 +1,6 @@
 #include "scene/renderer/font.h"
-#include "common/log.h"
+#include "common/bess_assert.h"
+#include "common/logger.h"
 
 namespace Bess::Renderer::Font {
     FontFile::FontFile(const std::string &path)

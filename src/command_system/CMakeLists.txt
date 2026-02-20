@@ -18,9 +18,9 @@ set(Source_Files
 
 
 add_library(${PROJECT_NAME} STATIC ${Header_Files} ${Source_Files})
-add_dependencies(${PROJECT_NAME} BessExtDeps BessSimEngine BessScene)
+add_dependencies(${PROJECT_NAME} BessExtDeps BessSimEngine BessScene common)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC BessExtDeps BessSimEngine BessScene)
+target_link_libraries(${PROJECT_NAME} PUBLIC BessExtDeps BessSimEngine BessScene common)
 
 target_include_directories(${PROJECT_NAME} PUBLIC 
 	${CMAKE_CURRENT_SOURCE_DIR}/include)

@@ -68,7 +68,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 		"${CMAKE_SOURCE_DIR}/src/BessJson/include"
 )
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)
+target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 
 if(MSVC)
 	target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8")

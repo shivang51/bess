@@ -1,6 +1,7 @@
 #include "ui/ui_main/ui_main.h"
 #include "application/application_state.h"
-#include "common/log.h"
+#include "common/bess_assert.h"
+#include "common/logger.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/main_page.h"

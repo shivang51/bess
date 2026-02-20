@@ -101,7 +101,7 @@ namespace Bess::SimEngine {
         }
 
         if (m_inputSlotsInfo.count <= 0) {
-            BESS_SE_WARN("[SimulationEngine][ComponentDefinition] Input count not provided for expression(s) generation");
+            BESS_WARN("[SimulationEngine][ComponentDefinition] Input count not provided for expression(s) generation");
             return false;
         }
 
@@ -125,7 +125,7 @@ namespace Bess::SimEngine {
                 m_outputExpressions.emplace_back(std::format("{}{}", m_opInfo.op, i));
             }
         } else {
-            BESS_SE_ERROR("Invalid IO config for expression generation");
+            BESS_ERROR("Invalid IO config for expression generation");
             assert(false);
         }
 
@@ -150,10 +150,10 @@ namespace Bess::SimEngine {
 
     SimTime ComponentDefinition::getRescheduleTime(SimTime currentTime) const {
         if (!m_shouldAutoReschedule) {
-            BESS_SE_ERROR("[ComponentDefinition] For comp {}, getRescheduleTime called on component that should not auto-reschedule", m_name);
+            BESS_ERROR("[ComponentDefinition] For comp {}, getRescheduleTime called on component that should not auto-reschedule", m_name);
         }
 
-        BESS_SE_WARN("[ComponentDefinition] Using base `getRescheduleTime` for component {}", m_name);
+        BESS_WARN("[ComponentDefinition] Using base `getRescheduleTime` for component {}", m_name);
         return getSimDelay() + currentTime;
     }
 } // namespace Bess::SimEngine

@@ -1,5 +1,6 @@
 #include "scene/renderer/vulkan/pipelines/quad_pipeline.h"
-#include "common/log.h"
+#include "common/bess_assert.h"
+#include "common/logger.h"
 #include "scene/renderer/vulkan/pipelines/pipeline.h"
 #include "vulkan_core.h"
 #include "vulkan_texture.h"

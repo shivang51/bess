@@ -1,5 +1,6 @@
 #include "application/project_file.h"
-#include "common/log.h"
+#include "common/bess_assert.h"
+#include "common/logger.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "plugin_manager.h"

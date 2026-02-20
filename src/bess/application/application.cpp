@@ -1,7 +1,8 @@
 #include "application.h"
 #include "application/app_types.h"
 #include "application/application_state.h"
-#include "common/log.h"
+#include "common/bess_assert.h"
+#include "common/logger.h"
 #include "events/application_event.h"
 #include "imgui_impl_vulkan.h"
 #include "pages/main_page/main_page.h"
@@ -19,9 +20,7 @@
 #include "settings/settings.h"
 
 namespace Bess {
-    Application::Application() {
-        SimEngine::Logger::getInstance().initLogger(BESS_LOGGER_NAME);
-    }
+    Application::Application() = default;
 
     Application::~Application() {
         shutdown();
