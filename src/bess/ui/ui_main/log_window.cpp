@@ -46,7 +46,27 @@ namespace Bess::UI {
 
                 for (const auto &log : uiLogSink->logs) {
                     ImGui::TableNextColumn();
+                    ImVec4 textColor = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+                    switch (log.level) {
+                    case LogLevel::trace:
+                    case LogLevel::debug:
+                        textColor = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
+                        break;
+                    case LogLevel::warn:
+                        textColor = ImVec4(1.00f, 0.80f, 0.40f, 1.00f);
+                        break;
+                    case LogLevel::error:
+                        textColor = ImVec4(0.90f, 0.45f, 0.45f, 1.00f);
+                        break;
+                    case LogLevel::critical:
+                        textColor = ImVec4(1.00f, 0.33f, 0.33f, 1.00f);
+                        break;
+                    default:
+                        break;
+                    }
+                    ImGui::PushStyleColor(ImGuiCol_Text, textColor);
                     ImGui::TextUnformatted(log.message.c_str());
+                    ImGui::PopStyleColor();
                 }
 
                 if (m_controls.autoScroll &&
