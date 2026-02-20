@@ -1,8 +1,9 @@
 #include "vulkan_texture.h"
+#include "common/logger.h"
 #include "device.h"
-#include "log.h"
 #include "stb_image.h"
 #include "stb_image_write.h"
+#include <cstddef>
 #include <cstring>
 #include <stdexcept>
 #include <vulkan/vulkan_core.h>
@@ -43,7 +44,7 @@ namespace Bess::Vulkan {
         if (data != nullptr) {
             setData(data, static_cast<size_t>(m_width) * m_height * 4);
         } else {
-            std::vector<uint32_t> zeros(m_width * m_height, 0x000000FF);
+            std::vector<uint32_t> zeros(static_cast<size_t>(m_width * m_height), 0x000000FF);
             setData(zeros.data(), zeros.size() * sizeof(uint32_t));
         }
     }
@@ -331,13 +332,13 @@ namespace Bess::Vulkan {
     void VulkanTexture::saveToPath(const std::string &path) const {
         std::vector<unsigned char> rgba = getData();
         if (rgba.empty()) {
-            BESS_VK_ERROR("[VulkanTexture] saveToPath: empty buffer");
+            BESS_ERROR("[VulkanTexture] saveToPath: empty buffer");
             return;
         }
         stbi_flip_vertically_on_write(1);
         int result = stbi_write_png(path.c_str(), static_cast<int>(m_width), static_cast<int>(m_height), 4, rgba.data(), static_cast<int>(m_width * 4));
         if (result == 0) {
-            BESS_VK_ERROR("[VulkanTexture] Failed to write file %s", path.c_str());
+            BESS_ERROR("[VulkanTexture] Failed to write file %s", path.c_str());
         }
     }
 

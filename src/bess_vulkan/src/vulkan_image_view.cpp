@@ -1,8 +1,6 @@
 #include "vulkan_image_view.h"
-#include "log.h"
+#include "common/logger.h"
 #include <array>
-#include <iostream>
-#include <stacktrace>
 #include <stdexcept>
 #include <vulkan/vulkan_core.h>
 
@@ -12,7 +10,7 @@ namespace Bess::Vulkan {
                                      VkFormat format,
                                      VkExtent2D extent,
                                      VkImageUsageFlags usage)
-        : m_device(device), m_format(format), m_extent(extent), m_usage(usage), m_hasPickingAttachments(false) {
+        : m_device(device), m_format(format), m_extent(extent), m_usage(usage) {
         createImage();
         createMsaaImage();
         createImageView();
@@ -308,7 +306,7 @@ namespace Bess::Vulkan {
 
     void VulkanImageView::createFramebuffer(VkRenderPass renderPass) {
         if (renderPass == VK_NULL_HANDLE) {
-            BESS_VK_ERROR("[VulkanImageView] Got null handle to renderpass");
+            BESS_ERROR("[VulkanImageView] Got null handle to renderpass");
             assert(false);
         }
         if (m_hasPickingAttachments) {

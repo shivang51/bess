@@ -1,19 +1,20 @@
 #include "swapchain.h"
-#include "log.h"
+#include "common/logger.h"
 #include <algorithm>
 #include <limits>
 #include <stdexcept>
+#include <utility>
 
 namespace Bess::Vulkan {
 
     VulkanSwapchain::VulkanSwapchain(const VkInstance instance, std::shared_ptr<VulkanDevice> device, const VkSurfaceKHR surface, const VkExtent2D windowExtent)
-        : m_instance(instance), m_device(device), m_surface(surface), m_windowExtent(windowExtent) {
+        : m_instance(instance), m_device(std::move(device)), m_surface(surface), m_windowExtent(windowExtent) {
         createSwapchain();
         createImageViews();
     }
 
     VulkanSwapchain::VulkanSwapchain(const VkInstance instance, std::shared_ptr<VulkanDevice> device, const VkSurfaceKHR surface, const VkExtent2D windowExtent, const VkSwapchainKHR oldSwapchain)
-        : m_instance(instance), m_device(device), m_surface(surface), m_windowExtent(windowExtent) {
+        : m_instance(instance), m_device(std::move(device)), m_surface(surface), m_windowExtent(windowExtent) {
         createSwapchain(oldSwapchain);
         createImageViews();
     }
@@ -24,7 +25,7 @@ namespace Bess::Vulkan {
 
     VulkanSwapchain::VulkanSwapchain(VulkanSwapchain &&other) noexcept
         : m_instance(other.m_instance),
-          m_device(other.m_device),
+          m_device(std::move(other.m_device)),
           m_surface(other.m_surface),
           m_windowExtent(other.m_windowExtent),
           m_swapchain(other.m_swapchain),
@@ -95,7 +96,7 @@ namespace Bess::Vulkan {
 
         const VkResult result = vkCreateSwapchainKHR(m_device->device(), &createInfo, nullptr, &m_swapchain);
         if (result != VK_SUCCESS) {
-            BESS_VK_ERROR("Failed to create swap chain! Error code: {}", static_cast<int>(result));
+            BESS_ERROR("Failed to create swap chain! Error code: {}", static_cast<int>(result));
             throw std::runtime_error("Failed to create swap chain!");
         }
 
@@ -148,7 +149,7 @@ namespace Bess::Vulkan {
 
         const VkResult result = vkCreateSwapchainKHR(m_device->device(), &createInfo, nullptr, &m_swapchain);
         if (result != VK_SUCCESS) {
-            BESS_VK_ERROR("Failed to create swap chain! Error code: {}", static_cast<int>(result));
+            BESS_ERROR("Failed to create swap chain! Error code: {}", static_cast<int>(result));
             throw std::runtime_error("Failed to create swap chain!");
         }
 
@@ -229,7 +230,7 @@ namespace Bess::Vulkan {
 
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_surface, &details.capabilities);
 
-        uint32_t formatCount;
+        uint32_t formatCount = 0;
         vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_surface, &formatCount, nullptr);
 
         if (formatCount != 0) {
@@ -237,7 +238,7 @@ namespace Bess::Vulkan {
             vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_surface, &formatCount, details.formats.data());
         }
 
-        uint32_t presentModeCount;
+        uint32_t presentModeCount = 0;
         vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_surface, &presentModeCount, nullptr);
 
         if (presentModeCount != 0) {
@@ -265,7 +266,7 @@ namespace Bess::Vulkan {
             return availableFormats[0];
         }
 
-        BESS_VK_WARN("[Swapchain] Using the fallback format");
+        BESS_WARN("[Swapchain] Using the fallback format");
 
         VkSurfaceFormatKHR fallback{};
         fallback.format = VK_FORMAT_B8G8R8A8_UNORM;

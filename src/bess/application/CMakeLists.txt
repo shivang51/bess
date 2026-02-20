@@ -70,16 +70,11 @@ set(ALL_FILES
 add_library(${PROJECT_NAME} OBJECT ${ALL_FILES})
 target_link_libraries(${PROJECT_NAME} PUBLIC common BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessCmdSystem BessUI)
 add_dependencies(${PROJECT_NAME} common BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager BessScene BessCmdSystem BessUI)
+target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 
 target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_CURRENT_SOURCE_DIR}"
 	"${CMAKE_SOURCE_DIR}/src/Bess/"
-	"${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"
-	"${CMAKE_SOURCE_DIR}/src/BessVulkan/include"
-	"${CMAKE_SOURCE_DIR}/src/BessPluginManager/include"
-	"${CMAKE_SOURCE_DIR}/src/EventSystem/include"
-	"${CMAKE_SOURCE_DIR}/src/CommandSystem/include"
-	"${CMAKE_SOURCE_DIR}/src/BessJson/include"
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")

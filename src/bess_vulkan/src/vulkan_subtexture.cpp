@@ -1,5 +1,6 @@
 #include "vulkan_subtexture.h"
 #include "vulkan_texture.h"
+#include <utility>
 
 namespace Bess::Vulkan {
     SubTexture::SubTexture(std::shared_ptr<VulkanTexture> texture, const glm::vec2 &coord, const glm::vec2 &spriteSize)
@@ -34,8 +35,8 @@ namespace Bess::Vulkan {
         float startY = m_coord.y * (m_spriteSize.y + m_margin);
         float texSizeX = m_spriteSize.x * m_cellSize.x;
         float texSizeY = m_spriteSize.y * m_cellSize.y;
-        glm::vec2 texOffset = {startX / m_texture->getWidth(), startY / m_texture->getHeight()};
-        glm::vec2 texSize = {texSizeX / m_texture->getWidth(), texSizeY / m_texture->getHeight()};
+        glm::vec2 texOffset = {startX / (float)m_texture->getWidth(), startY / (float)m_texture->getHeight()};
+        glm::vec2 texSize = {texSizeX / (float)m_texture->getWidth(), texSizeY / (float)m_texture->getHeight()};
 
         m_startWH = {texOffset.x, texOffset.y, texSize.x, texSize.y};
 
@@ -51,9 +52,9 @@ namespace Bess::Vulkan {
         float startY = pos.y;
         float texSizeX = size.x;
         float texSizeY = size.y;
-        m_texture = tex;
-        glm::vec2 texOffset = {startX / m_texture->getWidth(), startY / m_texture->getHeight()};
-        glm::vec2 texSize = {texSizeX / m_texture->getWidth(), texSizeY / m_texture->getHeight()};
+        m_texture = std::move(tex);
+        glm::vec2 texOffset = {startX / (float)m_texture->getWidth(), startY / (float)m_texture->getHeight()};
+        glm::vec2 texSize = {texSizeX / (float)m_texture->getWidth(), texSizeY / (float)m_texture->getHeight()};
         m_startWH = {texOffset.x, texOffset.y, texSize.x, texSize.y};
         m_texCoords = {
             {texOffset.x, texOffset.y + texSize.y},

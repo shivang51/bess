@@ -14,7 +14,6 @@ set(External
 set(Header_Files
     "include/vulkan_core.h"
     "include/device.h"
-    "include/log.h"
     "include/swapchain.h"
     "include/command_buffer.h"
     "include/vulkan_texture.h"
@@ -31,7 +30,6 @@ source_group("include" FILES ${Header_Files})
 set(Source_Files
     "src/command_buffer.cpp"
     "src/device.cpp"
-    "src/log.cpp"
     "src/swapchain.cpp"
     "src/vulkan_core.cpp"
     "src/vulkan_image_view.cpp"
@@ -53,7 +51,9 @@ set(ALL_FILES
 # Using shared lib to prevent double brain problem with BessVulkan singleton
 # FIXME: add __declspec for Windows
 add_library(${PROJECT_NAME} SHARED ${ALL_FILES})
+
 target_compile_definitions(BessVulkan PRIVATE BESS_VULKAN_EXPORT)
+target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 
 target_include_directories(${PROJECT_NAME} PUBLIC
 		"${CMAKE_CURRENT_SOURCE_DIR}/include"
@@ -69,6 +69,13 @@ pkg_check_modules(VULKAN REQUIRED vulkan)
 target_link_libraries(${PROJECT_NAME} PUBLIC 
     ${VULKAN_LIBRARIES}
 )
+
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+    ${VULKAN_LIBRARIES}
+		common
+)
+
+add_dependencies(${PROJECT_NAME} common)
 
 target_include_directories(${PROJECT_NAME} PUBLIC 
     ${VULKAN_INCLUDE_DIRS}

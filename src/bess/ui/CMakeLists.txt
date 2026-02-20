@@ -68,6 +68,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 			"${CMAKE_SOURCE_DIR}/src/CommandSystem/include"
 )
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 target_link_libraries(${PROJECT_NAME} PUBLIC BessSimEngine BessExtDeps BessVulkan BessPluginManager EventSystem BessScene BessCmdSystem)
 add_dependencies(${PROJECT_NAME} BessSimEngine BessVulkan BessExtDeps BessPluginManager EventSystem BessScene BessJson BessCmdSystem)
 
