@@ -29,25 +29,35 @@ namespace Bess::UI {
         if (!isShown)
             return;
 
+        const ImGuiContext &g = *ImGui::GetCurrentContext();
         const auto &uiLogSink = Logger::getUISink();
+
+        static constexpr ImGuiTableFlags tableFlags = ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY |
+                                                      ImGuiTableFlags_ScrollX | ImGuiTableFlags_RowBg;
         ImGui::Begin(windowName.data());
+
         if (uiLogSink) {
             drawControls();
+
             ImGui::Separator();
 
-            ImGui::BeginChild("scrolling");
-            {
+            if (ImGui::BeginTable("##logTable", 1, tableFlags)) {
                 std::lock_guard<std::mutex> lock(uiLogSink->bufferMutex);
-                for (const auto &msg : uiLogSink->logs) {
-                    ImGui::TextUnformatted(msg.message.c_str());
+
+                for (const auto &log : uiLogSink->logs) {
+                    ImGui::TableNextColumn();
+                    ImGui::TextUnformatted(log.message.c_str());
                 }
+
                 if (m_controls.autoScroll &&
                     ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) {
                     ImGui::SetScrollHereY(1.0f);
                 }
+
+                ImGui::EndTable();
             }
-            ImGui::EndChild();
         }
+
         ImGui::End();
     }
 } // namespace Bess::UI
