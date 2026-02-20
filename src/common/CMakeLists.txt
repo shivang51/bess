@@ -9,6 +9,7 @@ set(Header_Files
 "include/common/bess_assert.h"
 "include/common/bess_uuid.h"
 "include/common/logger.h"
+"include/common/ui_log_sink.h"
 )
 
 source_group("include/common" FILES ${Header_Files})

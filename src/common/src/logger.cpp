@@ -4,7 +4,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
-namespace Bess::SimEngine {
+namespace Bess {
 
     Logger &Logger::getInstance() {
         static Logger instance;
@@ -12,18 +12,25 @@ namespace Bess::SimEngine {
     }
 
     void Logger::initLogger(const std::string &name) {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        std::lock_guard<std::mutex> lock(m_initMutex);
         std::vector<spdlog::sink_ptr> logSinks;
 
 #ifdef DEBUG
-        logSinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
+        auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+        consoleSink->set_pattern("%^[%T] [%L] %n: %v%$");
+        logSinks.push_back(std::move(consoleSink));
 #endif
-        logSinks.emplace_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(name + ".log", true));
 
-        logSinks[0]->set_pattern("%^[%T] %n: %v%$");
-        logSinks[1]->set_pattern("[%T] [%l] %n: %v");
+        auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(name + ".log", true);
+        fileSink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [thread %t] [%l] [%n] %v");
+        logSinks.push_back(std::move(fileSink));
 
-        auto logger = std::make_shared<spdlog::logger>(name, begin(logSinks), end(logSinks));
+        if (m_uiSink) {
+            m_uiSink->set_pattern("[%T] [%L] %v");
+            logSinks.push_back(m_uiSink);
+        }
+
+        auto logger = std::make_shared<spdlog::logger>(name, logSinks.begin(), logSinks.end());
         spdlog::register_logger(logger);
 
 #ifdef DEBUG
@@ -38,11 +45,15 @@ namespace Bess::SimEngine {
     }
 
     const std::shared_ptr<spdlog::logger> &Logger::getLogger(const std::string &name) {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        std::lock_guard<std::mutex> lock(m_getMutex);
         auto it = m_loggers.find(name);
         if (it == m_loggers.end()) {
             initLogger(name);
         }
         return m_loggers.at(name);
     }
-} // namespace Bess::SimEngine
+
+    const std::shared_ptr<SpdLogUISink> &Logger::getUISink() {
+        return Logger::getInstance().m_uiSink;
+    }
+} // namespace Bess
