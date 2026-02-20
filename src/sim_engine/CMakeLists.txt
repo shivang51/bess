@@ -6,7 +6,6 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(Header_Files
     "include/digital_component.h"
     "include/types.h"
-    "include/logger.h"
     "include/simulation_engine.h"
     "include/sim_engine_state.h"
     "include/simulation_engine_serializer.h"
@@ -29,7 +28,6 @@ set(Source_Files
 		"src/sim_engine_state.cpp"
     "src/simulation_engine_serializer.cpp"
     "src/digital_component.cpp"
-    "src/logger.cpp"
     "src/net/net.cpp" 
     "src/component_catalog.cpp"
     "src/component_definition.cpp"

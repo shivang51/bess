@@ -1,6 +1,6 @@
 #pragma once
 #include "bess_api.h"
-#include "logger.h"
+#include "common/logger.h"
 #include "json/json.h"
 
 namespace Bess::JsonConvert {

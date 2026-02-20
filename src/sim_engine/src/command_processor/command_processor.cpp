@@ -1,7 +1,7 @@
 #include "command_processor/command_processor.h"
 #include "command_processor/commands_reg.h"
 #include <algorithm>
-#include <logger.h>
+#include "common/logger.h"
 #include <sstream>
 
 namespace Bess::SimEngine {

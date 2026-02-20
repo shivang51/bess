@@ -1,5 +1,5 @@
 #include "component_catalog.h"
-#include "logger.h"
+#include "common/logger.h"
 
 namespace Bess::SimEngine {
 

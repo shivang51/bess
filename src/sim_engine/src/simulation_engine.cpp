@@ -6,7 +6,7 @@
 #include "event_dispatcher.h"
 #include "events/sim_engine_events.h"
 #include "init_components.h"
-#include "logger.h"
+#include "common/logger.h"
 #include "types.h"
 
 #include "plugin_manager.h"
