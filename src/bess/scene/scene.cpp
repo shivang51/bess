@@ -1,10 +1,9 @@
 #include "scene/scene.h"
 #include "application/settings/viewport_theme.h"
-#include "common/bess_uuid.h"
 #include "common/bess_assert.h"
+#include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "event_dispatcher.h"
-#include "events/sim_engine_events.h"
 #include "ext/matrix_transform.hpp"
 #include "fwd.hpp"
 #include "plugin_manager.h"
@@ -23,10 +22,6 @@ namespace Bess::Canvas {
     Scene::Scene() {
         reset();
         loadComponentFromPlugins();
-        auto &dispatcher = EventSystem::EventDispatcher::instance();
-        dispatcher.sink<SimEngine::Events::CompDefOutputsResizedEvent>().connect<&Scene::onCompDefOutputsResized>(this);
-        dispatcher.sink<SimEngine::Events::CompDefInputsResizedEvent>().connect<&Scene::onCompDefInputsResized>(this);
-        dispatcher.sink<Events::ConnectionRemovedEvent>().connect<&Scene::onConnectionRemoved>(this);
     }
 
     Scene::~Scene() {
@@ -700,124 +695,6 @@ namespace Bess::Canvas {
                 }
             }
         }
-    }
-
-    void Scene::onCompDefOutputsResized(const SimEngine::Events::CompDefOutputsResizedEvent &e) {
-        // const auto &parent = m_state.getComponentBySimEngineId<SimulationSceneComponent>(e.componentId);
-        // BESS_ASSERT(parent, std::format("[Scene] Component with simEngineId {} not found in scene state",
-        //                                 (uint64_t)e.componentId));
-        // const auto &digitalComp = SimEngine::SimulationEngine::instance().getDigitalComponent(e.componentId);
-        // const auto &outSlotsInfo = digitalComp->definition->getOutputSlotsInfo();
-        //
-        // if (parent->getOutputSlotsCount() > outSlotsInfo.count) {
-        //     for (size_t i = outSlotsInfo.count; i < parent->getOutputSlotsCount(); i++) {
-        //         const auto slotUuid = parent->getOutputSlots()[i];
-        //         const auto &slotComp = m_state.getComponentByUuid<SlotSceneComponent>(slotUuid);
-        //         if (!slotComp->isResizeSlot()) {
-        //             m_state.removeComponent(slotUuid, UUID::master);
-        //         }
-        //     }
-        //     parent->setScaleDirty();
-        // } else {
-        //     for (size_t i = parent->getOutputSlotsCount(); i < outSlotsInfo.count; i++) {
-        //         std::shared_ptr<SlotSceneComponent> newSlot = std::make_shared<SlotSceneComponent>();
-        //         newSlot->setSlotType(SlotType::digitalOutput);
-        //         newSlot->setIndex((int)outSlotsInfo.count - 1);
-        //         if (i < outSlotsInfo.names.size()) {
-        //             newSlot->setName(std::string(1, (char)('a' + i)));
-        //         }
-        //         parent->addOutputSlot(newSlot->getUuid(), outSlotsInfo.isResizeable);
-        //         m_state.addComponent<SlotSceneComponent>(newSlot);
-        //         m_state.attachChild(parent->getUuid(), newSlot->getUuid());
-        //     }
-        // }
-    }
-
-    void Scene::onCompDefInputsResized(const SimEngine::Events::CompDefInputsResizedEvent &e) {
-        // const auto &parent = m_state.getComponentBySimEngineId<SimulationSceneComponent>(e.componentId);
-        // BESS_ASSERT(parent, std::format("[Scene] Component with simEngineId {} not found in scene state",
-        //                                 (uint64_t)e.componentId));
-        // const auto &digitalComp = SimEngine::SimulationEngine::instance().getDigitalComponent(e.componentId);
-        //
-        // const auto &inSlotsInfo = digitalComp->definition->getInputSlotsInfo();
-        //
-        // if (parent->getInputSlotsCount() > inSlotsInfo.count) {
-        //     for (size_t i = inSlotsInfo.count; i < parent->getInputSlotsCount(); i++) {
-        //         const auto slotUuid = parent->getInputSlots()[i];
-        //         const auto &slotComp = m_state.getComponentByUuid<SlotSceneComponent>(slotUuid);
-        //         if (!slotComp->isResizeSlot())
-        //             m_state.removeComponent(slotUuid, UUID::master);
-        //     }
-        //     parent->setScaleDirty();
-        // } else {
-        //     for (size_t i = parent->getInputSlotsCount(); i < inSlotsInfo.count; i++) {
-        //         std::shared_ptr<SlotSceneComponent> newSlot = std::make_shared<SlotSceneComponent>();
-        //         newSlot->setSlotType(SlotType::digitalInput);
-        //         newSlot->setIndex((int)inSlotsInfo.count - 1);
-        //         if (i < inSlotsInfo.names.size()) {
-        //             newSlot->setName(std::string(1, (char)('A' + i)));
-        //         }
-        //         parent->addInputSlot(newSlot->getUuid(), inSlotsInfo.isResizeable);
-        //         m_state.addComponent<SlotSceneComponent>(newSlot);
-        //         m_state.attachChild(parent->getUuid(), newSlot->getUuid());
-        //     }
-        // }
-    }
-
-    void Scene::onConnectionRemoved(const Events::ConnectionRemovedEvent &e) {
-        // const auto &slotCompA = m_state.getComponentByUuid<SlotSceneComponent>(e.slotAId);
-        // const auto &slotCompB = m_state.getComponentByUuid<SlotSceneComponent>(e.slotBId);
-        //
-        // auto processSlot = [&](const std::shared_ptr<SlotSceneComponent> &slotComp) {
-        //     const auto &parentComp = m_state.getComponentByUuid<SimulationSceneComponent>(slotComp->getParentComponent());
-        //     BESS_ASSERT(parentComp, std::format("[Scene] Parent component with uuid {} not found for slot {}",
-        //                                         (uint64_t)slotComp->getParentComponent(),
-        //                                         (uint64_t)slotComp->getUuid()));
-        //     const auto &simEngineId = parentComp->getSimEngineId();
-        //     auto &simEngine = SimEngine::SimulationEngine::instance();
-        //
-        //     const auto &digitalComp = simEngine.getDigitalComponent(simEngineId);
-        //     BESS_ASSERT(digitalComp, std::format("[Scene] Digital component with simEngineId {} not found",
-        //                                          (uint64_t)simEngineId));
-        //
-        //     const auto &def = digitalComp->definition;
-        //     BESS_ASSERT(def, std::format("[Scene] Component definition not found for component with simEngineId {}",
-        //                                  (uint64_t)simEngineId));
-        //
-        //     const bool isInputSlot = (slotComp->getSlotType() == SlotType::digitalInput);
-        //     const auto &slotsInfo = isInputSlot
-        //                                 ? def->getInputSlotsInfo()
-        //                                 : def->getOutputSlotsInfo();
-        //
-        //     if (slotsInfo.isResizeable) {
-        //         const auto idx = slotComp->getIndex();
-        //         if (idx == 0)
-        //             return; // do not remove first slot
-        //
-        //         if (isInputSlot) {
-        //             const bool isConnected = !digitalComp->inputConnections[idx].empty();
-        //             // if not last slot or still connected, then abort !!! :)
-        //             if (isConnected ||
-        //                 idx != def->getInputSlotsInfo().count - 1)
-        //                 return;
-        //
-        //             digitalComp->decrementInputCount();
-        //         } else {
-        //             const bool isConnected = !digitalComp->outputConnections[idx].empty();
-        //             // if not last slot or still connected, then return
-        //             if (isConnected || idx != def->getOutputSlotsInfo().count - 1)
-        //                 return;
-        //
-        //             digitalComp->decrementOutputCount();
-        //         }
-        //     }
-        // };
-        //
-        // // can be a joint as well so checking for slot explicitly
-        // if (slotCompA && slotCompA->getType() == SceneComponentType::slot)
-        //     processSlot(slotCompA);
-        // if (slotCompB && slotCompB->getType() == SceneComponentType::slot)
-        //     processSlot(slotCompB);
     }
 
     void Scene::loadComponentFromPlugins() {

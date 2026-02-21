@@ -2,9 +2,8 @@
 
 #include "application/app_types.h"
 #include "application/events/application_event.h"
-#include "common/bess_uuid.h"
 #include "commands/commands_manager.h"
-#include "events/sim_engine_events.h"
+#include "common/bess_uuid.h"
 #include "scene/camera.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -13,11 +12,6 @@
 #include "scene/viewport.h"
 #include <memory>
 #include <vulkan/vulkan_core.h>
-
-// Forward declaration
-namespace Bess::Canvas {
-    class ArtistManager;
-}
 
 namespace Bess::Canvas {
 
@@ -137,11 +131,6 @@ namespace Bess::Canvas {
         std::shared_ptr<Camera> m_camera;
 
         bool m_isLeftMousePressed = false, m_isMiddleMousePressed = false;
-
-        void onCompDefOutputsResized(const SimEngine::Events::CompDefOutputsResizedEvent &e);
-        void onCompDefInputsResized(const SimEngine::Events::CompDefInputsResizedEvent &e);
-
-        void onConnectionRemoved(const Events::ConnectionRemovedEvent &e);
 
         void drawGhostConnection(const std::shared_ptr<PathRenderer> &pathRenderer,
                                  const glm::vec2 &startPos,
