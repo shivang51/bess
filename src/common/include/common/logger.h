@@ -40,7 +40,8 @@ namespace Bess {
 
 #ifdef DEBUG
     #define BESS_TRACE(...) LOGGER(LOGGER_NAME)->trace("[{}:{}] {}", __FILE__, __LINE__, fmt::format(__VA_ARGS__))
-    #define BESS_DEBUG(...) LOGGER(LOGGER_NAME)->debug("[{}:{}] {}", __FILE__, __LINE__, fmt::format(__VA_ARGS__))
+    #define BESS_DEBUG_F(...) LOGGER(LOGGER_NAME)->debug("[{}:{}] {}", __FILE__, __LINE__, fmt::format(__VA_ARGS__))
+    #define BESS_DEBUG(...) LOGGER(LOGGER_NAME)->debug(__VA_ARGS__)
 #else
     #define BESS_TRACE(...)
     #define BESS_DEBUG(...)

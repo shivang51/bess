@@ -33,12 +33,18 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 		"${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 
-target_link_libraries(${PROJECT_NAME} PUBLIC 
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+	common
+)
+
+add_dependencies(${PROJECT_NAME} 
+	common
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC 
-	"${CMAKE_SOURCE_DIR}/external/spdlog/include"
+	"${CMAKE_SOURCE_DIR}/external/spdlogP/include"
 )
 
 if(MSVC)
