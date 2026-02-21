@@ -21,9 +21,12 @@ namespace Bess {
         logSinks.push_back(std::move(consoleSink));
 #endif
 
-        auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(name + ".log", true);
-        fileSink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [thread %t] [%l] [%n] %v");
-        logSinks.push_back(std::move(fileSink));
+        if (!m_fileSink) {
+            m_fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("bess.log", true);
+            m_fileSink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [thread %t] [%l] [%n] %v");
+        }
+
+        logSinks.push_back(m_fileSink);
 
         if (m_uiSink) {
             m_uiSink->set_pattern("[%T] [%L] %v");

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "spdlog/sinks/basic_file_sink.h"
 #include "ui_log_sink.h"
 
 #include "spdlog/logger.h"
@@ -24,6 +25,7 @@ namespace Bess {
         std::mutex m_initMutex;
         std::mutex m_getMutex;
         std::shared_ptr<SpdLogUISink> m_uiSink = std::make_shared<SpdLogUISink>();
+        std::shared_ptr<spdlog::sinks::basic_file_sink_mt> m_fileSink = nullptr;
     };
 } // namespace Bess
 
