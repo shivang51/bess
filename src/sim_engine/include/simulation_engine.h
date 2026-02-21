@@ -30,6 +30,10 @@ namespace Bess::SimEngine {
         bool connectComponent(const UUID &src, int srcSlotIdx, SlotType srcType,
                               const UUID &dst, int dstSlotIdx, SlotType dstType, bool overrideConn = false);
 
+        // returns {canConnect, errorMessage}
+        std::pair<bool, std::string> canConnectComponents(const UUID &src, int srcSlotIdx, SlotType srcType,
+                                                          const UUID &dst, int dstSlotIdx, SlotType dstType) const;
+
         void deleteComponent(const UUID &uuid);
 
         void deleteConnection(const UUID &compA, SlotType pinAType, int idxA,

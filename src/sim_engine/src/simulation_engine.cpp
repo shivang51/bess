@@ -119,26 +119,18 @@ namespace Bess::SimEngine {
         return digiComp->id;
     }
 
-    bool SimulationEngine::connectComponent(const UUID &src, int srcSlot, SlotType srcType,
-                                            const UUID &dst, int dstSlot, SlotType dstType, bool overrideConn) {
+    std::pair<bool, std::string> SimulationEngine::canConnectComponents(const UUID &src, int srcSlot, SlotType srcType,
+                                                                        const UUID &dst, int dstSlot, SlotType dstType) const {
         if (src == UUID::null || dst == UUID::null) {
-            BESS_WARN("Cannot connect to/from null component");
-            return false;
+            return {false, "Cannot connect to/from null component"};
         }
 
-        if (!m_simEngineState.isComponentValid(src)) {
-            BESS_WARN("Source component with UUID {} does not exist", (uint64_t)src);
-            return false;
-        }
-
-        if (!m_simEngineState.isComponentValid(dst)) {
-            BESS_WARN("Destination component with UUID {} does not exist", (uint64_t)dst);
-            return false;
+        if (!m_simEngineState.isComponentValid(src) || !m_simEngineState.isComponentValid(dst)) {
+            return {false, "Source or destination component does not exist"};
         }
 
         if (srcType == dstType) {
-            BESS_WARN("Cannot connect pins of the same type i.e. input -> input or output -> output");
-            return false;
+            return {false, "Cannot connect pins of the same type i.e. input -> input or output -> output"};
         }
 
         const auto srcComp = m_simEngineState.getDigitalComponent(src);
@@ -152,28 +144,39 @@ namespace Bess::SimEngine {
                            : dstComp->outputConnections;
 
         if (srcSlot < 0 || srcSlot >= static_cast<int>(outPins.size())) {
-            BESS_WARN("Invalid source pin index. Valid range: 0 to {}",
-                      srcComp->outputConnections.size() - 1);
-            return false;
+            return {false, "Invalid source pin index. Valid range: 0 to " + std::to_string(outPins.size() - 1)};
         }
         if (dstSlot < 0 || dstSlot >= static_cast<int>(inPins.size())) {
-            BESS_WARN("Invalid source pin index. Valid range: 0 to {}",
-                      srcComp->inputConnections.size() - 1);
-            return false;
+            return {false, "Invalid destination pin index. Valid range: 0 to " + std::to_string(inPins.size() - 1)};
         }
 
         // Check for duplicate connection.
         auto &conns = outPins[srcSlot];
-        for (auto it = conns.begin(); it != conns.end(); ++it) {
-            if (it->first == dst && it->second == dstSlot) {
-                if (overrideConn) {
-                    conns.erase(it);
-                    break;
-                }
-                BESS_WARN("Connection already exists, skipping");
-                return false;
-            }
+        bool exists = std::ranges::any_of(conns, [&](const auto &conn) {
+            return conn.first == dst && conn.second == dstSlot;
+        });
+
+        return {!exists, exists ? "Connection already exists" : ""};
+    }
+
+    bool SimulationEngine::connectComponent(const UUID &src, int srcSlot, SlotType srcType,
+                                            const UUID &dst, int dstSlot, SlotType dstType, bool overrideConn) {
+
+        auto [canConnect, errorMsg] = canConnectComponents(src, srcSlot, srcType, dst, dstSlot, dstType);
+        if (!canConnect) {
+            BESS_WARN("Cannot connect components: {}", errorMsg);
+            return false;
         }
+
+        const auto srcComp = m_simEngineState.getDigitalComponent(src);
+        const auto dstComp = m_simEngineState.getDigitalComponent(dst);
+
+        auto &outPins = srcType == SlotType::digitalOutput
+                            ? srcComp->outputConnections
+                            : srcComp->inputConnections;
+        auto &inPins = dstType == SlotType::digitalInput
+                           ? dstComp->inputConnections
+                           : dstComp->outputConnections;
 
         // FIXME: State monitor attachment logic
         // {

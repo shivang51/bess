@@ -237,9 +237,9 @@ namespace Bess::Canvas {
     }
 
     void SlotSceneComponent::onMouseLeftClick(const Events::MouseButtonEvent &e) {
-        auto &connStartSlot = e.sceneState->getConnectionStartSlot();
+        const auto &connStartSlot = e.sceneState->getConnectionStartSlot();
         if (connStartSlot == UUID::null) {
-            connStartSlot = m_uuid;
+            e.sceneState->setConnectionStartSlot(m_uuid);
             return;
         }
 
@@ -267,7 +267,7 @@ namespace Bess::Canvas {
                 // we check against -1 because the resize slot is also there
                 if (newSize == startParent->getInputSlotsCount() - 1) {
                     BESS_WARN("[Scene] Failed to resize input slots for component {}", (uint64_t)startParent->getUuid());
-                    connStartSlot = UUID::null;
+                    e.sceneState->setConnectionStartSlot(UUID::null);
                     return;
                 }
 
@@ -282,7 +282,7 @@ namespace Bess::Canvas {
                     BESS_WARN("[Scene] Failed to resize output slots for component {}, returnedNewSize = {}",
                               (uint64_t)startParent->getUuid(),
                               newSize);
-                    connStartSlot = UUID::null;
+                    e.sceneState->setConnectionStartSlot(UUID::null);
                     return;
                 }
 
@@ -321,7 +321,7 @@ namespace Bess::Canvas {
                 // we check against -1 because the resize slot is also there
                 if (newSize == endParent->getInputSlotsCount() - 1) {
                     BESS_WARN("[Scene] Failed to resize input slots for component {}", (uint64_t)endParent->getUuid());
-                    connStartSlot = UUID::null;
+                    e.sceneState->setConnectionStartSlot(UUID::null);
                     return;
                 }
 
@@ -334,7 +334,7 @@ namespace Bess::Canvas {
                 // we check against -1 because the resize slot is also there
                 if (newSize == endParent->getOutputSlotsCount() - 1) {
                     BESS_WARN("[Scene] Failed to resize output slots for component {}", (uint64_t)endParent->getUuid());
-                    connStartSlot = UUID::null;
+                    e.sceneState->setConnectionStartSlot(UUID::null);
                     return;
                 }
 
@@ -368,6 +368,19 @@ namespace Bess::Canvas {
         const auto endPinType = endSlot->getSlotType() == SlotType::digitalInput
                                     ? SimEngine::SlotType::digitalInput
                                     : SimEngine::SlotType::digitalOutput;
+
+        const auto &simEngine = SimEngine::SimulationEngine::instance();
+        const auto [canConnect, reason] = simEngine.canConnectComponents(startParent->getSimEngineId(), startSlot->getIndex(), startPinType,
+                                                                         endParent->getSimEngineId(), endSlot->getIndex(), endPinType);
+
+        if (!canConnect) {
+            BESS_WARN("Cannot create connection between component {} slot {} and component {} slot {}: {}",
+                      (uint64_t)startParent->getUuid(), startSlot->getIndex(),
+                      (uint64_t)endParent->getUuid(), endSlot->getIndex(),
+                      reason);
+            e.sceneState->setConnectionStartSlot(UUID::null);
+            return;
+        }
 
         auto conn = std::make_shared<ConnectionSceneComponent>();
         UUID starSlotUuid = jointComp ? jointComp->getUuid() : startSlot->getUuid();
