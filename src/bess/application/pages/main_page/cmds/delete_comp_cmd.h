@@ -15,7 +15,8 @@ namespace Bess::Cmd {
             m_name = "DeleteComponentCmd";
         }
 
-        DeleteCompCmd(const std::vector<UUID> &compUuids) : m_compUuids(compUuids) {
+        DeleteCompCmd(const std::vector<UUID> &compUuids) {
+            m_compUuids = std::set<UUID>(compUuids.begin(), compUuids.end());
             m_name = "DeleteComponentCmd";
         }
 
@@ -28,6 +29,8 @@ namespace Bess::Cmd {
 
             std::vector<UUID> notConnectionComps;
             std::set<UUID> dependantsToDelete;
+            std::unordered_map<UUID, size_t> dependantsCount;
+            std::vector<std::shared_ptr<Canvas::SceneComponent>> notConnDependants;
 
             for (const auto &compUuid : m_compUuids) {
                 const auto &comp = sceneState.getComponentByUuid(compUuid);
@@ -39,6 +42,7 @@ namespace Bess::Cmd {
 
                 const auto &dependants = sceneState.getLifeDependants(compUuid);
                 dependantsToDelete.insert(dependants.begin(), dependants.end());
+                dependantsCount[compUuid] = dependants.size();
             }
 
             // Storing dependants
@@ -49,9 +53,24 @@ namespace Bess::Cmd {
                     continue;
                 }
 
+                // deleting from passed comp list if it was also explictly passed
+                if (m_compUuids.contains(dependantUuid)) {
+                    m_compUuids.erase(dependantUuid);
+                }
+
                 auto comp = sceneState.getComponentByUuid(dependantUuid);
+                if (comp->getType() == Canvas::SceneComponentType::connection) {
+                    m_deletedComponents.push_back(comp);
+                } else {
+                    notConnDependants.push_back(comp);
+                }
+            }
+
+            for (const auto &comp : notConnDependants) {
                 m_deletedComponents.push_back(comp);
             }
+
+            notConnDependants.clear();
 
             size_t deletedCount = 0;
 
@@ -61,10 +80,20 @@ namespace Bess::Cmd {
                 if (comp->getType() == Canvas::SceneComponentType::connection) {
                     auto compRef = comp;
                     const auto removedUuids = sceneState.removeComponent(compUuid, UUID::master);
-                    deletedCount += removedUuids.size();
-                    deletedCount += 1; // for the component itself
                     if (!removedUuids.empty()) {
+                        deletedCount += removedUuids.size();
                         m_deletedComponents.push_back(std::move(compRef));
+#ifdef DEBUG
+                        if (dependantsCount.contains(compUuid)) {
+                            const auto &count = dependantsCount[compUuid];
+                            if (count != removedUuids.size() - 1) {
+                                BESS_WARN("Deleted dependants count {} does not match expected count {} for component {}.",
+                                          count, removedUuids.size() - 1, (uint64_t)compUuid);
+                            }
+                        }
+#endif
+                    } else {
+                        BESS_WARN("Failed to delete connection component {}", (uint64_t)compUuid);
                     }
                 } else {
                     notConnectionComps.push_back(compUuid);
@@ -86,11 +115,20 @@ namespace Bess::Cmd {
 
                     auto compRef = comp;
                     const auto removedUuids = sceneState.removeComponent(compUuid, UUID::master);
-                    deletedCount += removedUuids.size();
-                    deletedCount += 1; // for the component itself
                     if (!removedUuids.empty()) {
-                        BESS_DEBUG("removedUuids {}", removedUuids.size());
+                        deletedCount += removedUuids.size();
                         m_deletedComponents.push_back(std::move(compRef));
+#ifdef DEBUG
+                        if (dependantsCount.contains(compUuid)) {
+                            const auto &count = dependantsCount[compUuid];
+                            if (count != removedUuids.size() - 1) {
+                                BESS_WARN("Deleted dependants count {} does not match expected count {} for component {}.",
+                                          count, removedUuids.size() - 1, (uint64_t)compUuid);
+                            }
+                        }
+#endif
+                    } else {
+                        BESS_WARN("Failed to delete component {}", (uint64_t)compUuid);
                     }
                 }
             }
@@ -99,6 +137,11 @@ namespace Bess::Cmd {
             if (deletedCount != expectedDeletedCount) {
                 BESS_WARN("Deleted components count {} does not match expected dependants count {}.",
                           deletedCount, expectedDeletedCount);
+            }
+
+            if (deletedCount != m_deletedComponents.size()) {
+                BESS_WARN("Deleted components count {} does not match stored deleted components count {}.",
+                          deletedCount, m_deletedComponents.size());
             }
 
             return !m_deletedComponents.empty();
@@ -145,7 +188,7 @@ namespace Bess::Cmd {
         }
 
       private:
-        std::vector<UUID> m_compUuids;
+        std::set<UUID> m_compUuids;
         std::vector<std::shared_ptr<Canvas::SceneComponent>> m_deletedComponents;
     };
 } // namespace Bess::Cmd
