@@ -64,6 +64,11 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(UUID, ConnectionStartSlot, m_connectionStartSlot);
         MAKE_GETTER_SETTER(glm::vec2, MousePos, m_mousePos);
 
+        void addConnectionForComponent(const UUID &compId, const UUID &connectionId);
+        void removeConnectionForComponent(const UUID &compId, const UUID &connectionId);
+        const std::vector<UUID> &getConnectionsForComponent(const UUID &compId) const;
+        const std::unordered_map<UUID, std::vector<UUID>> &getAllComponentConnections() const;
+
         // Removes the parent reference of the component,
         // but keeps this component in parents children list,
         // So its still parents child but parent is null(dead),
@@ -100,6 +105,9 @@ namespace Bess::Canvas {
       private:
         std::unordered_map<UUID, std::shared_ptr<SceneComponent>> m_componentsMap;
         std::unordered_map<UUID, bool> m_selectedComponents;
+
+        // Tracks comp and associated connections
+        std::unordered_map<UUID, std::vector<UUID>> m_compConnections;
 
         std::unordered_map<uint32_t, UUID> m_runtimeIdMap;
         std::unordered_set<UUID> m_rootComponents;
