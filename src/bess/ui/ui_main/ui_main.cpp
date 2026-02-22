@@ -35,6 +35,26 @@ namespace Bess::UI {
         ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
         ImGuiWindowFlags_NoDecoration;
 
+#ifdef DEBUG
+    void drawDebugWindow() {
+
+        auto &mainPageState = Pages::MainPage::getTypedInstance()->getState();
+        auto &sceneState = mainPageState.getSceneDriver()->getState();
+
+        ImGui::Begin("Debug Window");
+        const auto &connections = sceneState.getAllComponentConnections();
+        for (const auto &[compId, connIds] : connections) {
+            ImGui::Text("Component %lu has connections: ", (uint64_t)compId);
+            ImGui::Indent();
+            for (const auto &connId : connIds) {
+                ImGui::BulletText("%lu", (uint64_t)connId);
+            }
+            ImGui::Unindent();
+        }
+        ImGui::End();
+    }
+#endif
+
     void UIMain::draw() {
         static bool firstTime = true;
         if (firstTime) {
@@ -46,6 +66,9 @@ namespace Bess::UI {
         drawViewport();
         drawStatusbar();
         drawExternalWindows();
+#ifdef DEBUG
+        drawDebugWindow();
+#endif
 
         if (m_pageState->actionFlags.saveProject) {
             onSaveProject();
@@ -370,6 +393,7 @@ namespace Bess::UI {
         ImGui::DockBuilderDockWindow(GraphViewWindow::windowName.data(), dockIdBot);
         ImGui::DockBuilderDockWindow(TruthTableWindow::windowName.data(), dockIdBot);
         ImGui::DockBuilderDockWindow(LogWindow::windowName.data(), dockIdBot);
+        ImGui::DockBuilderDockWindow("Debug Window", dockIdBot);
 
         ImGui::DockBuilderFinish(mainDockspaceId);
     }
