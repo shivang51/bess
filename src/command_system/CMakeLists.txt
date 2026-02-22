@@ -5,6 +5,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(Header_Files
 	"include/command.h"
+	"include/macro_command.h"
 	"include/command_system.h"
 )
 
@@ -14,6 +15,7 @@ source_group("include/command_system" FILES ${Header_Files})
 set(Source_Files
 	"src/command_system.cpp"
 	"src/command.cpp"
+	"src/macro_command.cpp"
 )
 
 
