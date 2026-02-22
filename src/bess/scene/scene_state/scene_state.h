@@ -13,6 +13,10 @@ namespace Bess::Canvas {
         SceneState() = default;
         ~SceneState() = default;
 
+        SceneState(const SceneState &);
+        SceneState &operator=(const SceneState &) = delete;
+        SceneState(SceneState &&) = delete;
+
         void clear();
 
         // T: SceneComponentType = type of scene component
@@ -96,6 +100,9 @@ namespace Bess::Canvas {
         void detachChild(const UUID &childId);
 
         void assignRuntimeId(const UUID &uuid);
+
+        // Returns set of UUIDs whose life depends on the componets existance
+        std::set<UUID> getLifeDependants(const UUID &uuid) const;
 
         // Removes a component by UUID from the scene state
         // and all its child components recursively.

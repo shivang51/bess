@@ -246,6 +246,8 @@ namespace Bess::Canvas {
     }
 
     void SceneState::removeConnectionForComponent(const UUID &compId, const UUID &connectionId) {
+        BESS_DEBUG("[SceneState] Removing connection {} for component {}",
+                   (uint64_t)connectionId, (uint64_t)compId);
         if (!m_compConnections.contains(compId)) {
             return;
         }
@@ -270,6 +272,34 @@ namespace Bess::Canvas {
 
     const std::unordered_map<UUID, std::vector<UUID>> &SceneState::getAllComponentConnections() const {
         return m_compConnections;
+    }
+
+    SceneState::SceneState(const SceneState &scene) {
+        BESS_ERROR("SceneState copy is not allowed");
+        BESS_ASSERT(false, "SceneState copy is not allowed");
+    }
+
+    std::set<UUID> SceneState::getLifeDependants(const UUID &uuid) const {
+        std::set<UUID> dependants;
+        const auto &comp = getComponentByUuid(uuid);
+        if (!comp) {
+            return dependants;
+        }
+
+        for (const auto &childId : comp->getChildComponents()) {
+            dependants.insert(childId);
+            const auto &childDependants = getLifeDependants(childId);
+            dependants.insert(childDependants.begin(), childDependants.end());
+        }
+
+        const auto &connections = getConnectionsForComponent(uuid);
+        for (const auto &connId : connections) {
+            dependants.insert(connId);
+            const auto &connDependants = getLifeDependants(connId);
+            dependants.insert(connDependants.begin(), connDependants.end());
+        }
+
+        return dependants;
     }
 } // namespace Bess::Canvas
 

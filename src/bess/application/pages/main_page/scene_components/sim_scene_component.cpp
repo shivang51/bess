@@ -14,9 +14,7 @@
 namespace Bess::Canvas {
     constexpr float SNAP_AMOUNT = 2.f;
 
-    SimulationSceneComponent::SimulationSceneComponent() {
-        initDragBehaviour();
-    }
+    SimulationSceneComponent::SimulationSceneComponent() = default;
 
     std::vector<std::shared_ptr<SlotSceneComponent>>
     SimulationSceneComponent::createIOSlots(size_t inputCount, size_t outputCount) {

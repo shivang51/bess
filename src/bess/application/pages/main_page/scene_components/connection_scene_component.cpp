@@ -637,8 +637,8 @@ namespace Bess::Canvas {
         simEngine.connectComponent(startParent->getSimEngineId(), startSlotIdx, startPinType,
                                    endParent->getSimEngineId(), endSlotIdx, endPinType);
 
-        sceneState.addConnectionForComponent(startParent->getSimEngineId(), m_uuid);
-        sceneState.addConnectionForComponent(endParent->getSimEngineId(), m_uuid);
+        sceneState.addConnectionForComponent(startParent->getUuid(), m_uuid);
+        sceneState.addConnectionForComponent(endParent->getUuid(), m_uuid);
     }
 
     void ConnectionSceneComponent::onRuntimeIdChanged() {
