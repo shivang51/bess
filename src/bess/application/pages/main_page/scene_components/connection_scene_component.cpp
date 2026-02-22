@@ -1,7 +1,7 @@
 #include "connection_scene_component.h"
-#include "common/bess_uuid.h"
 #include "commands/commands.h"
 #include "common/bess_assert.h"
+#include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "conn_joint_scene_component.h"
 #include "event_dispatcher.h"
@@ -390,6 +390,9 @@ namespace Bess::Canvas {
                                        simCompB->getSimEngineId(),
                                        pinTypeB,
                                        slotCompB->getIndex());
+
+            state.removeConnectionForComponent(compA->getParentComponent(), m_uuid);
+            state.removeConnectionForComponent(compB->getParentComponent(), m_uuid);
         }
 
         if (m_startSlot != caller) {
@@ -633,6 +636,9 @@ namespace Bess::Canvas {
                     "End parent component does not have a valid simulation engine ID");
         simEngine.connectComponent(startParent->getSimEngineId(), startSlotIdx, startPinType,
                                    endParent->getSimEngineId(), endSlotIdx, endPinType);
+
+        sceneState.addConnectionForComponent(startParent->getSimEngineId(), m_uuid);
+        sceneState.addConnectionForComponent(endParent->getSimEngineId(), m_uuid);
     }
 
     void ConnectionSceneComponent::onRuntimeIdChanged() {
