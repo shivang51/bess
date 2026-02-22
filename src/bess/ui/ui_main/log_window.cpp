@@ -50,8 +50,10 @@ namespace Bess::UI {
                     ImVec4 textColor = ImGui::GetStyleColorVec4(ImGuiCol_Text);
                     switch (log.level) {
                     case LogLevel::trace:
-                    case LogLevel::debug:
                         textColor = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
+                        break;
+                    case LogLevel::debug:
+                        textColor = ImVec4(0.45f, 0.45f, 0.90f, 1.0f);
                         break;
                     case LogLevel::warn:
                         textColor = ImVec4(1.00f, 0.80f, 0.40f, 1.00f);
