@@ -18,6 +18,7 @@ namespace Bess::Cmd {
             } else {
                 m_undoStack.push(std::move(cmd));
             }
+            m_redoStack = std::stack<std::unique_ptr<Command>>();
         }
     }
 
@@ -49,6 +50,7 @@ namespace Bess::Cmd {
         } else {
             m_undoStack.push(std::move(cmd));
         }
+        m_redoStack = std::stack<std::unique_ptr<Command>>();
     }
 
     void CommandSystem::reset() {
