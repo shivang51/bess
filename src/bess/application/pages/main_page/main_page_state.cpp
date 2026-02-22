@@ -123,6 +123,10 @@ namespace Bess::Pages {
         }
     }
 
+    const SceneDriver &MainPageState::getSceneDriver() const {
+        return m_sceneDriver;
+    }
+
     SceneDriver &MainPageState::getSceneDriver() {
         return m_sceneDriver;
     }

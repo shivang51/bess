@@ -124,7 +124,9 @@ namespace Bess::UI {
                         const std::string &name = comp->getName();
 
                         if (Widgets::ButtonWithPopup(name, name + "OptionsMenu", false)) {
-                            createComponent(comp);
+                            const auto &mainPageState = Pages::MainPage::getTypedInstance()->getState();
+                            const auto &pos = mainPageState.getSceneDriver()->getCameraPos();
+                            createComponent(comp, pos);
                         }
 
                         if (ImGui::BeginPopup((name + "OptionsMenu").c_str())) {
@@ -144,7 +146,9 @@ namespace Bess::UI {
                     continue;
 
                 if (Widgets::ButtonWithPopup(comp.second, "", false)) {
-                    createComponent(comp.first);
+                    const auto &mainPageState = Pages::MainPage::getTypedInstance()->getState();
+                    const auto &pos = mainPageState.getSceneDriver()->getCameraPos();
+                    createComponent(comp.first, pos);
                 }
             }
 

@@ -2,6 +2,7 @@
 #include "asset_manager/asset_manager.h"
 #include "component_catalog.h"
 #include "events/application_event.h"
+#include "macro_command.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/cmds/delete_comp_cmd.h"
 #include "pages/main_page/main_page_state.h"
@@ -238,16 +239,37 @@ namespace Bess::Pages {
     }
 
     void MainPage::pasteCopiedEntities() {
-        auto pos = m_state.getSceneDriver()->getCameraPos();
+        auto &cmdSystem = m_state.getCommandSystem();
+        auto &scene = m_state.getSceneDriver();
+
+        auto macroCmd = std::make_unique<Cmd::MacroCommand>();
 
         for (auto &comp : m_copiedComponents) {
-            auto addCmd = std::make_unique<Cmd::AddCompCmd<Canvas::SceneComponent>>();
-            auto pos = comp.pos + glm::vec2(50.f, 50.f); // offset pasted component position to avoid overlap
+            const auto pos = comp.pos + glm::vec2(50.f, 50.f);
             if (comp.nsComp == typeid(void)) {
-                UI::ComponentExplorer::createComponent(comp.def, pos);
+                auto &simEngine = SimEngine::SimulationEngine::instance();
+                auto components = Canvas::SimulationSceneComponent::createNewAndRegister(comp.def);
+                auto sceneComp = components.front()->template cast<Canvas::SimulationSceneComponent>();
+                components.erase(components.begin());
+                sceneComp->setCompDef(comp.def->clone());
+                sceneComp->getTransform().position.x = pos.x;
+                sceneComp->getTransform().position.y = pos.y;
+
+                if (scene->hasPluginDrawHookForComponentHash(comp.def->getHash())) {
+                    auto hook = scene->getPluginDrawHookForComponentHash(comp.def->getHash());
+                    sceneComp->cast<Canvas::SimulationSceneComponent>()->setDrawHook(hook);
+                }
+                auto addCmd = std::make_unique<Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(sceneComp, components);
+                macroCmd->addCommand(std::move(addCmd));
             } else {
-                UI::ComponentExplorer::createComponent(comp.nsComp, pos);
+                auto inst = Canvas::NonSimSceneComponent::getInstance(comp.nsComp);
+                inst->getTransform().position.x = pos.x;
+                inst->getTransform().position.y = pos.y;
+                auto addCmd = std::make_unique<Cmd::AddCompCmd<Canvas::NonSimSceneComponent>>(inst);
+                macroCmd->addCommand(std::move(addCmd));
             }
         }
+
+        cmdSystem.execute(std::move(macroCmd));
     }
 } // namespace Bess::Pages

@@ -23,6 +23,10 @@ namespace Bess {
             return m_activeScene;
         }
 
+        const std::shared_ptr<Canvas::Scene> &operator->() const {
+            return m_activeScene;
+        }
+
       private:
         std::shared_ptr<Canvas::Scene> m_activeScene;
         std::vector<std::shared_ptr<Canvas::Scene>> m_scenes;
