@@ -34,6 +34,8 @@ namespace Bess::Pages {
 
         static std::shared_ptr<MainPage> getTypedInstance(const std::shared_ptr<Window> &parentWindow = nullptr);
 
+        static void resetInstance();
+
         void draw() override;
 
         void update(TFrameTime ts, std::vector<ApplicationEvent> &events) override;

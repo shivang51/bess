@@ -23,7 +23,7 @@ namespace Bess {
     Application::Application() = default;
 
     Application::~Application() {
-        shutdown();
+        // shutdown();
     }
 
     void Application::draw() {
@@ -171,12 +171,16 @@ namespace Bess {
         BESS_INFO("[Application] Application initialized successfully\n");
     }
 
-    void Application::shutdown() const {
+    void Application::shutdown() {
         BESS_INFO("[Application] Shutting down application");
         Pages::MainPage::getTypedInstance()->destory();
         UI::shutdown();
+
         ApplicationState::clear();
+
         m_mainWindow->close();
+        m_mainWindow.reset();
+
         SimEngine::SimulationEngine::instance().destroy();
         Config::Settings::instance().cleanup();
         auto &pluginMangaer = Plugins::PluginManager::getInstance();

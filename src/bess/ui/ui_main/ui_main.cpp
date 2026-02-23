@@ -443,7 +443,7 @@ namespace Bess::UI {
     void UIMain::onNewProject() {
         if (!m_pageState->getCurrentProjectFile()->isSaved()) {
             state._internalData.newFileClicked = true;
-            ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning.c_str());
+            ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning);
         } else {
             m_pageState->createNewProject();
         }
@@ -462,7 +462,7 @@ namespace Bess::UI {
         if (!m_pageState->getCurrentProjectFile()->isSaved()) {
             state._internalData.openFileClicked = true;
             state._internalData.path = filepath;
-            ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning.c_str());
+            ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning);
         } else {
             m_pageState->loadProject(filepath);
             state._internalData.statusMessage = std::format("Project loaded from {}", filepath);

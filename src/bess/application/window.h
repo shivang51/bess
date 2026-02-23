@@ -45,6 +45,7 @@ namespace Bess {
         bool isClosed() const;
         void close() const;
 
+        void destroy();
         void setName(const std::string &name) const;
 
         static void pollEvents() { glfwPollEvents(); }

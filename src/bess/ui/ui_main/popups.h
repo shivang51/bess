@@ -4,10 +4,10 @@
 
 namespace Bess::UI {
     class Popups {
-    public:
+      public:
         class PopupIds {
-        public:
-            static const std::string unsavedProjectWarning;
+          public:
+            static constexpr const char *unsavedProjectWarning = "Save Current Project";
         };
 
         enum class PopupRes {
@@ -19,4 +19,4 @@ namespace Bess::UI {
 
         static PopupRes handleUnsavedProjectWarning();
     };
-}
+} // namespace Bess::UI

@@ -18,6 +18,6 @@ namespace Bess::Canvas {
         static void clearRegistry();
 
       private:
-        static std::unordered_map<std::string, DeSerFunc> m_registry;
+        static std::unordered_map<std::string, SceneSerReg::DeSerFunc> &getRegistry();
     };
 } // namespace Bess::Canvas

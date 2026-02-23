@@ -3,7 +3,6 @@
 #include "application/app_types.h"
 #include "application/window.h"
 #include "events/application_event.h"
-#include <chrono>
 #include <memory>
 #include <vector>
 
@@ -24,6 +23,7 @@ namespace Bess {
         void init(const std::string &path, AppStartupFlags flags = AppStartupFlag::none);
         void run();
         void quit() const;
+        void shutdown();
 
         void update(TFrameTime ts);
 
@@ -36,7 +36,6 @@ namespace Bess {
 
       private:
         void draw();
-        void shutdown() const;
 
       private: // callbacks
         void onWindowResize(int w, int h);

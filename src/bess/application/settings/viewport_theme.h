@@ -57,6 +57,6 @@ namespace Bess {
 
       private:
         static void initCompColorMap();
-        static std::unordered_map<std::string, glm::vec4> s_compHeaderColorMap;
+        static std::unordered_map<std::string, glm::vec4> &getCompHeaderColorMap();
     };
 } // namespace Bess

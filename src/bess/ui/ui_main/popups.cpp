@@ -3,7 +3,6 @@
 #include "imgui.h"
 
 namespace Bess::UI {
-    const std::string Popups::PopupIds::unsavedProjectWarning = "Save Current Project";
 
     Popups::PopupRes Popups::handleUnsavedProjectWarning() {
         const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -11,7 +10,7 @@ namespace Bess::UI {
 
         PopupRes val = PopupRes::none;
 
-        if (ImGui::BeginPopupModal(PopupIds::unsavedProjectWarning.c_str(), NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (ImGui::BeginPopupModal(PopupIds::unsavedProjectWarning, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::TextWrapped("All the changes will be lost if you don't save current project. Save Changes?");
             ImGui::Separator();
 

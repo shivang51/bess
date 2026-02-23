@@ -25,16 +25,6 @@ namespace Bess::UI {
     bool SceneExportWindow::m_firstDraw = false;
 
     // JUST TEMP CODE, WILL CHANGE LATER
-    int zoom = 4;
-
-#ifdef _WIN32
-    std::filsystem::path homeDir = std::getenv("USERPROFILE");
-#else
-    std::filesystem::path homeDir = std::getenv("HOME");
-#endif
-
-    std::string fileName = "bess_scene_export";
-    std::string exportPath = homeDir / "Pictures" / "bess";
 
     struct SceneBounds {
         glm::vec2 min, max;
@@ -214,6 +204,16 @@ namespace Bess::UI {
         if (!m_shown)
             return;
 
+#ifdef _WIN32
+        static std::filsystem::path homeDir = std::getenv("USERPROFILE");
+#else
+        static std::filesystem::path homeDir = std::getenv("HOME");
+#endif
+
+        static std::string fileName = "bess_scene_export";
+        static std::string exportPath = homeDir / "Pictures" / "bess";
+        static int zoom = 4;
+
         if (m_firstDraw) {
             exportPath = std::filesystem::absolute(exportPath);
             if (!std::filesystem::exists(exportPath))
@@ -227,7 +227,7 @@ namespace Bess::UI {
             fileName = std::format("{}_{:%Y-%m-%d_%H:%M:%S}", mainPage.getCurrentProjectFile()->getName(), localTime);
 
             sceneBounds = computeSceneBounds();
-            imgSize = getSceneExportInfo(sceneBounds, zoom).imgSize;
+            imgSize = getSceneExportInfo(sceneBounds, (float)zoom).imgSize;
         }
 
         ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_FirstUseEver);
@@ -259,7 +259,7 @@ namespace Bess::UI {
 
         ImGui::Spacing();
         if (ImGui::SliderInt("Scale", &zoom, 1, 4)) {
-            imgSize = getSceneExportInfo(sceneBounds, zoom).imgSize;
+            imgSize = getSceneExportInfo(sceneBounds, (float)zoom).imgSize;
         }
 
         ImGui::TextDisabled("Image Size %lux%lu px.", (uint64_t)imgSize.x, (uint64_t)imgSize.y);
@@ -268,7 +268,7 @@ namespace Bess::UI {
         ImGui::Spacing();
 
         if (ImGui::Button("Start Export")) {
-            auto info = getSceneExportInfo(sceneBounds, zoom);
+            auto info = getSceneExportInfo(sceneBounds, (float)zoom);
             info.path = exportPath;
             info.path /= fileName + ".png";
             exportScene(info);

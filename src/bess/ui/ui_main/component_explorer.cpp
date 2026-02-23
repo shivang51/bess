@@ -137,7 +137,7 @@ namespace Bess::UI {
 
         // non simulation components
         if (Widgets::TreeNode(++key, "Miscellaneous", ImGuiTreeNodeFlags_DefaultOpen)) {
-            static auto nonSimComponents = Canvas::NonSimSceneComponent::registry;
+            static auto nonSimComponents = Canvas::NonSimSceneComponent::getRegistry();
             for (auto &comp : nonSimComponents) {
                 if (m_searchQuery != "" && Common::Helpers::toLowerCase(comp.second).find(m_searchQuery) == std::string::npos)
                     continue;

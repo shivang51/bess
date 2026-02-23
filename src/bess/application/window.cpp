@@ -208,7 +208,9 @@ namespace Bess {
         m_callbacks[Callback::MouseMove] = callback;
     }
 
-    void Window::close() const { glfwSetWindowShouldClose(mp_window.get(), true); }
+    void Window::close() const {
+        glfwSetWindowShouldClose(mp_window.get(), true);
+    }
 
     void Window::setName(const std::string &name) const {
         glfwSetWindowTitle(mp_window.get(), name.c_str());
@@ -245,5 +247,10 @@ namespace Bess {
     void Window::framebufferResizeCallback(GLFWwindow *window, int width, int height) {
         const auto this_ = static_cast<Window *>(glfwGetWindowUserPointer(window));
         this_->m_framebufferResized = true;
+    }
+
+    void Window::destroy() {
+        if (mp_window)
+            mp_window.reset();
     }
 } // namespace Bess

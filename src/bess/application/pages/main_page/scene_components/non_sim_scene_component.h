@@ -16,12 +16,14 @@ namespace Bess::Canvas {
     class NonSimSceneComponent : public SceneComponent,
                                  public DragBehaviour<NonSimSceneComponent> {
       public:
-        NonSimSceneComponent();
+        NonSimSceneComponent() = default;
 
-        static std::unordered_map<std::type_index, std::string> registry;
+        static std::unordered_map<std::type_index, std::string> &getRegistry();
 
         template <typename T>
         static void registerComponent(const std::string &name) {
+            auto &registry = getRegistry();
+            auto &m_contrRegistry = getContrRegistry();
             auto tIdx = std::type_index(typeid(T));
             registry[tIdx] = name;
             m_contrRegistry[tIdx] = []() {
@@ -36,23 +38,17 @@ namespace Bess::Canvas {
 
         MAKE_GETTER_SETTER(UI::Hook::UIHook, UIHook, m_uiHook)
 
-        virtual std::type_index getTypeIndex() {
-            return {typeid(void)};
-        }
+        virtual std::type_index getTypeIndex();
 
-        static void clearRegistry() {
-            registry.clear();
-            m_contrRegistry.clear();
-        }
+        static void clearRegistry();
+        typedef std::function<std::shared_ptr<NonSimSceneComponent>()> ContrFunc;
 
       protected:
         UI::Hook::UIHook m_uiHook;
 
       private:
         // this stores functions to invoke constructors of components
-        static std::unordered_map<std::type_index,
-                                  std::function<std::shared_ptr<NonSimSceneComponent>()>>
-            m_contrRegistry;
+        static std::unordered_map<std::type_index, ContrFunc> &getContrRegistry();
     };
 
     class TextComponent : public NonSimSceneComponent {

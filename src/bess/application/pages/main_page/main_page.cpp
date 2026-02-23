@@ -32,8 +32,11 @@ namespace Bess::Pages {
     }
 
     std::shared_ptr<MainPage> MainPage::getTypedInstance(const std::shared_ptr<Window> &parentWindow) {
-        static auto instance = getInstance(parentWindow);
-        return std::dynamic_pointer_cast<MainPage>(instance);
+        return std::dynamic_pointer_cast<MainPage>(getInstance(parentWindow));
+    }
+
+    void MainPage::resetInstance() {
+        getInstance().reset();
     }
 
     MainPage::MainPage(const std::shared_ptr<Window> &parentWindow) {
@@ -94,6 +97,7 @@ namespace Bess::Pages {
             Assets::AssetManager::instance().clear();
             UI::vulkanCleanup(instance.getDevice());
         });
+        resetInstance();
         BESS_INFO("[MainPage] Destroyed");
         m_isDestroyed = true;
     }

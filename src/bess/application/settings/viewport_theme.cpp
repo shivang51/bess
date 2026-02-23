@@ -1,12 +1,9 @@
 #include "settings/viewport_theme.h"
 #include "imgui.h"
-#include <cstdint>
 
 namespace Bess {
     SceneColors ViewportTheme::colors;
     SchematicViewColors ViewportTheme::schematicViewColors;
-
-    std::unordered_map<std::string, glm::vec4> ViewportTheme::s_compHeaderColorMap;
 
     void ViewportTheme::updateColorsFromImGuiStyle() {
         ImGuiStyle &style = ImGui::GetStyle();
@@ -74,6 +71,7 @@ namespace Bess {
     }
 
     glm::vec4 ViewportTheme::getCompHeaderColor(const std::string &group) {
+        const auto &s_compHeaderColorMap = getCompHeaderColorMap();
         if (!s_compHeaderColorMap.contains(group))
             return colors.compHeader;
         return s_compHeaderColorMap.at(group);
@@ -90,6 +88,7 @@ namespace Bess {
         const glm::vec4 specialColor = glm::vec4(0.35f, 0.35f, 0.35f, 0.85f);        // Dark Grey
         const glm::vec4 logicColor = arithmeticColor;
 
+        auto &s_compHeaderColorMap = getCompHeaderColorMap();
         s_compHeaderColorMap.clear();
 
         s_compHeaderColorMap["IO"] = ioColor;
@@ -107,6 +106,13 @@ namespace Bess {
     }
 
     void ViewportTheme::cleanup() {
-        s_compHeaderColorMap.clear();
+        getCompHeaderColorMap().clear();
+        schematicViewColors = {};
+        colors = {};
+    }
+
+    std::unordered_map<std::string, glm::vec4> &ViewportTheme::getCompHeaderColorMap() {
+        static std::unordered_map<std::string, glm::vec4> s_compHeaderColorMap;
+        return s_compHeaderColorMap;
     }
 } // namespace Bess
