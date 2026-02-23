@@ -204,7 +204,7 @@ namespace Bess::Canvas {
         startSlot->addConnection(conn->getUuid());
         endComp->addConnection(conn->getUuid());
 
-        auto &cmdManager = Pages::MainPage::getTypedInstance()->getState().getCommandSystem();
+        auto &cmdManager = Pages::MainPage::getInstance()->getState().getCommandSystem();
         cmdManager.execute(std::make_unique<Cmd::AddCompCmd<ConnectionSceneComponent>>(conn));
 
         BESS_INFO("[Scene] Created connection {} between slots {} and {}",

@@ -71,7 +71,7 @@ namespace Bess {
         data["scene_data"] = Json::objectValue;
         data["sim_engine_data"] = Json::objectValue;
 
-        auto scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver().getActiveScene();
+        auto scene = Pages::MainPage::getInstance()->getState().getSceneDriver().getActiveScene();
 
         m_sceneSerializer.serialize(data["scene_data"], scene);
         m_simEngineSerializer.serialize(data["sim_engine_data"]);
@@ -115,7 +115,7 @@ namespace Bess {
 
         // make sure to decode scene after sim engine,
         // as scene components may depend on sim engine components
-        auto scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver().getActiveScene();
+        auto scene = Pages::MainPage::getInstance()->getState().getSceneDriver().getActiveScene();
         if (data.isMember("scene_data")) {
             m_sceneSerializer.deserialize(data["scene_data"], scene);
         }

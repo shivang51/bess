@@ -18,8 +18,8 @@ namespace Bess::UI {
 
     void ComponentExplorer::createComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def,
                                             const glm::vec2 &pos) {
-        auto &cmdSystem = Pages::MainPage::getTypedInstance()->getState().getCommandSystem();
-        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
+        auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
+        auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
 
         auto components = Canvas::SimulationSceneComponent::createNewAndRegister(def);
 
@@ -39,7 +39,7 @@ namespace Bess::UI {
     }
 
     void ComponentExplorer::createComponent(std::type_index tIdx, const glm::vec2 &pos) {
-        auto &cmdSystem = Pages::MainPage::getTypedInstance()->getState().getCommandSystem();
+        auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
         auto inst = Canvas::NonSimSceneComponent::getInstance(tIdx);
         inst->getTransform().position.x = pos.x;
         inst->getTransform().position.y = pos.y;
@@ -121,7 +121,7 @@ namespace Bess::UI {
                         const std::string &name = comp->getName();
 
                         if (Widgets::ButtonWithPopup(name, name + "OptionsMenu", false)) {
-                            const auto &mainPageState = Pages::MainPage::getTypedInstance()->getState();
+                            const auto &mainPageState = Pages::MainPage::getInstance()->getState();
                             const auto &pos = mainPageState.getSceneDriver()->getCameraPos();
                             createComponent(comp, pos);
                         }
@@ -143,7 +143,7 @@ namespace Bess::UI {
                     continue;
 
                 if (Widgets::ButtonWithPopup(comp.second, "", false)) {
-                    const auto &mainPageState = Pages::MainPage::getTypedInstance()->getState();
+                    const auto &mainPageState = Pages::MainPage::getInstance()->getState();
                     const auto &pos = mainPageState.getSceneDriver()->getCameraPos();
                     createComponent(comp.first, pos);
                 }

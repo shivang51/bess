@@ -22,7 +22,7 @@ namespace Bess::Canvas {
         if (!m_isSelected)
             return;
 
-        auto &mainPageState = Pages::MainPage::getTypedInstance()->getState();
+        auto &mainPageState = Pages::MainPage::getInstance()->getState();
         auto &sceneState = mainPageState.getSceneDriver()->getState();
         for (const auto &childId : m_childComponents) {
             auto childComp = sceneState.getComponentByUuid(childId);

@@ -25,7 +25,6 @@ int main(int argc, char **argv) {
     try {
         app.init(args.projectFile, flags);
         app.run();
-        app.shutdown();
     } catch (const std::exception &e) {
         std::cerr << e.what() << std::endl;
 #ifdef DEBUG

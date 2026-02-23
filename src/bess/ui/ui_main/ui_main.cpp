@@ -38,7 +38,7 @@ namespace Bess::UI {
 #ifdef DEBUG
     void drawDebugWindow() {
 
-        auto &mainPageState = Pages::MainPage::getTypedInstance()->getState();
+        auto &mainPageState = Pages::MainPage::getInstance()->getState();
         auto &sceneState = mainPageState.getSceneDriver()->getState();
 
         ImGui::Begin("Debug Window");
@@ -89,7 +89,7 @@ namespace Bess::UI {
         static bool firstTime = true;
         if (firstTime) {
             firstTime = false;
-            m_pageState = &Pages::MainPage::getTypedInstance()->getState();
+            m_pageState = &Pages::MainPage::getInstance()->getState();
             resetDockspace();
         }
         drawMenubar();
@@ -255,7 +255,7 @@ namespace Bess::UI {
         }
 
         if (ImGui::BeginMenu("Edit")) {
-            auto &mainPageState = Pages::MainPage::getTypedInstance()->getState();
+            auto &mainPageState = Pages::MainPage::getInstance()->getState();
             auto &cmdSystem = mainPageState.getCommandSystem();
 
             std::string icon = Icons::FontAwesomeIcons::FA_UNDO;
@@ -301,7 +301,7 @@ namespace Bess::UI {
         // project name textbox - begin
 
         const auto &style = ImGui::GetStyle();
-        auto &name = Pages::MainPage::getTypedInstance()->getState().getCurrentProjectFile()->getNameRef();
+        auto &name = Pages::MainPage::getInstance()->getState().getCurrentProjectFile()->getNameRef();
         const auto fontSize = ImGui::CalcTextSize(name.c_str());
         auto width = fontSize.x + (style.FramePadding.x * 2);
         if (width < 150)
@@ -475,4 +475,8 @@ namespace Bess::UI {
                                                         m_pageState->getCurrentProjectFile()->getPath());
     }
 
+    void UIMain::destroy() {
+        state = UIState{};
+        m_pageState = nullptr;
+    }
 } // namespace Bess::UI

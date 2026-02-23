@@ -19,7 +19,7 @@ namespace Bess::UI {
 
         ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
-        const auto &mainPageState = Pages::MainPage::getTypedInstance()->getState();
+        const auto &mainPageState = Pages::MainPage::getInstance()->getState();
 
         if (Widgets::ComboBox("Select Net",
                               selectedNetName,

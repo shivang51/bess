@@ -28,6 +28,8 @@ namespace Bess::UI {
 
         static UIState state;
 
+        static void destroy();
+
       private:
         static void drawProjectExplorer();
         static void drawMenubar();

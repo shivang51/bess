@@ -175,6 +175,7 @@ namespace Bess {
         if (mp_window) // clear if not nullptr
             this->mp_window.reset();
 
+        BESS_INFO("[Window] Window destroyed, terminating GLFW");
         glfwTerminate();
         isGLFWInitialized = false;
     }

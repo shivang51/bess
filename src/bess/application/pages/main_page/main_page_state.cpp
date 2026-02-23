@@ -23,7 +23,7 @@ namespace Bess::Pages {
         m_currentProjectFile = std::make_shared<ProjectFile>();
         if (!updateWindowName)
             return;
-        const auto win = MainPage::getTypedInstance()->getParentWindow();
+        const auto win = MainPage::getInstance()->getParentWindow();
         win->setName(m_currentProjectFile->getName());
     }
 
@@ -41,7 +41,7 @@ namespace Bess::Pages {
         if (project == nullptr)
             return;
         m_currentProjectFile = project;
-        const auto win = MainPage::getTypedInstance()->getParentWindow();
+        const auto win = MainPage::getInstance()->getParentWindow();
         win->setName(m_currentProjectFile->getName() + " - BESS");
     }
 

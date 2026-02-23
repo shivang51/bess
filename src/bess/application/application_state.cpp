@@ -25,6 +25,7 @@ namespace Bess {
     }
 
     void ApplicationState::clear() {
-        m_currentPage.reset();
+        m_currentPage = nullptr;
+        m_parentWindow = nullptr;
     }
 } // namespace Bess

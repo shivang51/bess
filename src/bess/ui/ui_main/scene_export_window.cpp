@@ -47,7 +47,7 @@ namespace Bess::UI {
     SceneBounds computeSceneBounds() {
         glm::vec2 min, max;
         bool first = true;
-        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
+        auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
         const auto &state = scene->getState();
         for (const auto &compId : state.getRootComponents()) {
             const auto comp = state.getComponentByUuid<Canvas::SceneComponent>(compId)->getTransform();
@@ -67,7 +67,7 @@ namespace Bess::UI {
     }
 
     SceneExportInfo getSceneExportInfo(const SceneBounds &bounds, float zoom) {
-        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
+        auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
         auto size = scene->getSize();
         std::shared_ptr<Camera> camera = std::make_shared<Camera>(size.x, size.y);
         camera->setPos(bounds.min);
@@ -169,7 +169,7 @@ namespace Bess::UI {
                 camera->setPos(pos);
 
                 viewport->begin(frameIdx, ViewportTheme::colors.background, {0, 0});
-                auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
+                auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
                 scene->drawSceneToViewport(viewport);
                 viewport->end();
                 viewport->submit();
@@ -219,7 +219,7 @@ namespace Bess::UI {
             if (!std::filesystem::exists(exportPath))
                 std::filesystem::create_directories(exportPath);
 
-            const auto &mainPage = Pages::MainPage::getTypedInstance()->getState();
+            const auto &mainPage = Pages::MainPage::getInstance()->getState();
 
             const auto now = std::chrono::system_clock::now();
             const std::chrono::zoned_time localTime{std::chrono::current_zone(), now};

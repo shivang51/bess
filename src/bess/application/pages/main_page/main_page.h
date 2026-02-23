@@ -30,11 +30,7 @@ namespace Bess::Pages {
         MainPage(const std::shared_ptr<Window> &parentWindow);
         ~MainPage() override;
 
-        static std::shared_ptr<Page> getInstance(const std::shared_ptr<Window> &parentWindow = nullptr);
-
-        static std::shared_ptr<MainPage> getTypedInstance(const std::shared_ptr<Window> &parentWindow = nullptr);
-
-        static void resetInstance();
+        static std::shared_ptr<MainPage> &getInstance(const std::shared_ptr<Window> &parentWindow = nullptr);
 
         void draw() override;
 

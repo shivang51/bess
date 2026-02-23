@@ -12,7 +12,7 @@ namespace Bess::UI {
 
     void SceneViewport::draw() {
 
-        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
+        auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
         ImGui::SetNextWindowSizeConstraints({400.f, 400.f}, {-1.f, -1.f});
@@ -79,7 +79,7 @@ namespace Bess::UI {
         ImGui::SameLine();
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
 
-        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
+        auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
         ImGui::Checkbox("##CheckBoxSchematicMode", scene->getIsSchematicViewPtr());
         ImGui::PopStyleVar();
         ImGui::End();
@@ -88,7 +88,7 @@ namespace Bess::UI {
     }
 
     void SceneViewport::drawBottomControls() const {
-        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
+        auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
         const auto &mousePos = scene->getSceneMousePos();
         const auto posLabel = std::format("Pos: ({:.2f}, {:.2f})", mousePos.x, mousePos.y);
         const auto posLabelSize = ImGui::CalcTextSize(posLabel.c_str());

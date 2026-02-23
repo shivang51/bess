@@ -87,7 +87,7 @@ namespace Bess::UI {
             return;
 
         ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
-        auto &sceneState = Pages::MainPage::getTypedInstance()->getState().getSceneDriver()->getState();
+        auto &sceneState = Pages::MainPage::getInstance()->getState().getSceneDriver()->getState();
         if (sceneState.getSelectedComponents().empty()) {
             ImGui::TextUnformatted("No component selected.");
             ImGui::End();

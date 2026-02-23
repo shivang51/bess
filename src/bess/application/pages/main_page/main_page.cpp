@@ -1,5 +1,6 @@
 #include "pages/main_page/main_page.h"
 #include "asset_manager/asset_manager.h"
+#include "common/logger.h"
 #include "component_catalog.h"
 #include "events/application_event.h"
 #include "macro_command.h"
@@ -26,17 +27,9 @@
 #include <ranges>
 
 namespace Bess::Pages {
-    std::shared_ptr<Page> MainPage::getInstance(const std::shared_ptr<Window> &parentWindow) {
+    std::shared_ptr<MainPage> &MainPage::getInstance(const std::shared_ptr<Window> &parentWindow) {
         static auto instance = std::make_shared<MainPage>(parentWindow);
         return instance;
-    }
-
-    std::shared_ptr<MainPage> MainPage::getTypedInstance(const std::shared_ptr<Window> &parentWindow) {
-        return std::dynamic_pointer_cast<MainPage>(getInstance(parentWindow));
-    }
-
-    void MainPage::resetInstance() {
-        getInstance().reset();
     }
 
     MainPage::MainPage(const std::shared_ptr<Window> &parentWindow) {
@@ -81,6 +74,7 @@ namespace Bess::Pages {
 
     MainPage::~MainPage() {
         destory();
+        BESS_DEBUG("MainPage died now");
     }
 
     void MainPage::destory() {
@@ -97,7 +91,7 @@ namespace Bess::Pages {
             Assets::AssetManager::instance().clear();
             UI::vulkanCleanup(instance.getDevice());
         });
-        resetInstance();
+        UI::UIMain::destroy();
         BESS_INFO("[MainPage] Destroyed");
         m_isDestroyed = true;
     }

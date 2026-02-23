@@ -52,7 +52,7 @@ namespace Bess::UI {
         const ImColor &itemAltBg = ImGui::GetStyle().Colors[ImGuiCol_TableRowBgAlt];
         ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
-        auto &sceneState = Pages::MainPage::getTypedInstance()->getState().getSceneDriver()->getState();
+        auto &sceneState = Pages::MainPage::getInstance()->getState().getSceneDriver()->getState();
 
         const auto size = sceneState.getRootComponents().size();
         const auto selSize = sceneState.getSelectedComponents().size();
@@ -119,7 +119,7 @@ namespace Bess::UI {
                 if (ImGui::MenuItem("Create Empty Group", "Ctrl-G")) {
                     const auto group = Canvas::GroupSceneComponent::create("New Group");
                     auto cmd = std::make_unique<Cmd::AddCompCmd<Canvas::GroupSceneComponent>>(group);
-                    Pages::MainPage::getTypedInstance()->getState().getCommandSystem().execute(std::move(cmd));
+                    Pages::MainPage::getInstance()->getState().getCommandSystem().execute(std::move(cmd));
                 }
             }
 
@@ -220,7 +220,7 @@ namespace Bess::UI {
     }
 
     void ProjectExplorer::groupSelectedNodes() {
-        auto &mainPageState = Pages::MainPage::getTypedInstance()->getState();
+        auto &mainPageState = Pages::MainPage::getInstance()->getState();
         auto &scene = mainPageState.getSceneDriver();
         auto &sceneState = scene->getState();
 
@@ -255,9 +255,9 @@ namespace Bess::UI {
         if (!simEngine.isNetUpdated())
             return;
 
-        auto &mainPageState = Pages::MainPage::getTypedInstance()->getState();
+        auto &mainPageState = Pages::MainPage::getInstance()->getState();
         auto &netIdToNameMap = mainPageState.getNetIdToNameMap();
-        auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
+        auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
         auto &sceneState = scene->getState();
         std::unordered_map<UUID, std::shared_ptr<Canvas::SimulationSceneComponent>> simIdToComp;
 
@@ -285,7 +285,7 @@ namespace Bess::UI {
         // Use groups which get empty instead of creating new ones
         std::vector<UUID> emptyGroups;
 
-        auto &cmdSystem = Pages::MainPage::getTypedInstance()->getState().getCommandSystem();
+        auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
 
         int i = 1;
         // move nodes to new groups and ones which get empty
@@ -330,7 +330,7 @@ namespace Bess::UI {
         constexpr auto treeIcon = Icons::CodIcons::FOLDER;
         constexpr auto nodePopupName = "node_popup";
 
-        auto &sceneState = Pages::MainPage::getTypedInstance()->getState().getSceneDriver()->getState();
+        auto &sceneState = Pages::MainPage::getInstance()->getState().getSceneDriver()->getState();
         const auto selSize = sceneState.getSelectedComponents().size();
 
         size_t count = 0;

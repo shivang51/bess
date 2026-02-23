@@ -23,7 +23,7 @@ namespace Bess {
     Application::Application() = default;
 
     Application::~Application() {
-        // shutdown();
+        shutdown();
     }
 
     void Application::draw() {
@@ -173,7 +173,11 @@ namespace Bess {
 
     void Application::shutdown() {
         BESS_INFO("[Application] Shutting down application");
-        Pages::MainPage::getTypedInstance()->destory();
+
+        ApplicationState::setCurrentPage(nullptr);
+        Pages::MainPage::getInstance()->destory();
+        Pages::MainPage::getInstance().reset();
+
         UI::shutdown();
 
         ApplicationState::clear();
@@ -183,14 +187,16 @@ namespace Bess {
 
         SimEngine::SimulationEngine::instance().destroy();
         Config::Settings::instance().cleanup();
+
         auto &pluginMangaer = Plugins::PluginManager::getInstance();
         pluginMangaer.destroy();
+
         BESS_INFO("[Application] Application shutdown complete");
     }
 
     void Application::loadProject(const std::string &path) const {
-        Pages::MainPage::getTypedInstance()->getState().loadProject(path);
+        Pages::MainPage::getInstance()->getState().loadProject(path);
     }
 
-    void Application::saveProject() const { Pages::MainPage::getTypedInstance()->getState().saveCurrentProject(); }
+    void Application::saveProject() const { Pages::MainPage::getInstance()->getState().saveCurrentProject(); }
 } // namespace Bess
