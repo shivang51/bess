@@ -1,8 +1,11 @@
 #include "scene/scene_state/scene_state.h"
 #include "common/bess_uuid.h"
 #include "event_dispatcher.h"
+#include "pages/main_page/scene_components/scene_comp_types.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene_ser_reg.h"
+#include "simulation_engine.h"
 #include <cstdint>
 #include <memory>
 
@@ -320,6 +323,8 @@ namespace Bess::JsonConvert {
             return;
         }
 
+        const auto &simEngine = SimEngine::SimulationEngine::instance();
+
         for (const auto &compJson : j["components"]) {
             if (!compJson.isMember("typeName")) {
                 BESS_WARN("Component JSON is missing typeName field. Skipping component.");
@@ -330,6 +335,12 @@ namespace Bess::JsonConvert {
             if (!comp) {
                 BESS_WARN("Failed to create component from JSON. Skipping component.");
                 continue;
+            }
+
+            if (comp->getType() == Canvas::SceneComponentType::simulation) {
+                const auto &simComp = comp->cast<Canvas::SimulationSceneComponent>();
+                const auto &def = simEngine.getComponentDefinition(simComp->getSimEngineId());
+                simComp->setCompDef(def->clone());
             }
 
             state.addComponent(comp, false, false);

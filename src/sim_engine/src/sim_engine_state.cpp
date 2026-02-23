@@ -81,16 +81,22 @@ namespace Bess::JsonConvert {
             auto comp = std::make_shared<SimEngine::DigitalComponent>();
             JsonConvert::fromJsonValue(compJson, *comp);
             if (!compCatalog.isRegistered(comp->definition->getBaseHash())) {
-                BESS_WARN("Component definition with hash {} is not registered in the catalog. Skipping.",
-                          comp->definition->getBaseHash());
+                BESS_ERROR("Component definition with hash {} is not registered in the catalog. Skipping.",
+                           comp->definition->getBaseHash());
                 continue;
             }
 
             auto baseDef = compCatalog.getComponentDefinition(comp->definition->getBaseHash())->clone();
             baseDef->setInputSlotsInfo(comp->definition->getInputSlotsInfo());
             baseDef->setOutputSlotsInfo(comp->definition->getOutputSlotsInfo());
+
             comp->definition = std::move(baseDef);
-            comp->state.auxData = &comp->definition->getAuxData();
+            if (comp->definition->getAuxData().has_value()) {
+                comp->state.auxData = &comp->definition->getAuxData();
+            }
+            comp->definition->computeExpressionsIfNeeded();
+            comp->definition->computeHash();
+
             state.addDigitalComponent(comp);
         }
 

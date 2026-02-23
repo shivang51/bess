@@ -52,6 +52,7 @@ class PyComponentDefinition : public ComponentDefinition,
         ret->setAuxData(this->getAuxData());
         ret->setShouldAutoReschedule(this->getShouldAutoReschedule());
         ret->setOwnership(this->getOwnership());
+        ret->setBaseHash(this->getBaseHash());
         return ret;
     }
 

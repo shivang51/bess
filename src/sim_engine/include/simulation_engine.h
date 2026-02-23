@@ -59,7 +59,7 @@ namespace Bess::SimEngine {
         void stepSimulation();
 
         const ComponentState &getComponentState(const UUID &uuid);
-        const std::shared_ptr<ComponentDefinition> &getComponentDefinition(const UUID &uuid);
+        const std::shared_ptr<ComponentDefinition> &getComponentDefinition(const UUID &uuid) const;
         std::shared_ptr<DigitalComponent> getDigitalComponent(const UUID &uuid);
 
         void clear();
