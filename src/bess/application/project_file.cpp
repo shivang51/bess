@@ -110,6 +110,7 @@ namespace Bess {
         m_name = data.get("name", "Unnamed Project").asString();
         if (data.isMember("sim_engine_data")) {
             m_simEngineSerializer.deserialize(data["sim_engine_data"]);
+            BESS_DEBUG("Derserialzed Sim Engine Data");
         }
 
         // make sure to decode scene after sim engine,

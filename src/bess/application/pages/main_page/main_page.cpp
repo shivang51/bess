@@ -261,7 +261,6 @@ namespace Bess::Pages {
         for (auto &comp : m_copiedComponents) {
             const auto pos = comp.pos + glm::vec2(50.f, 50.f);
             if (comp.nsComp == typeid(void)) {
-                auto &simEngine = SimEngine::SimulationEngine::instance();
                 auto components = Canvas::SimulationSceneComponent::createNewAndRegister(comp.def);
                 auto sceneComp = components.front()->template cast<Canvas::SimulationSceneComponent>();
                 components.erase(components.begin());

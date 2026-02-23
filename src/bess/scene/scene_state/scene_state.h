@@ -21,7 +21,9 @@ namespace Bess::Canvas {
 
         // T: SceneComponentType = type of scene component
         template <typename T>
-        void addComponent(const std::shared_ptr<T> &component) {
+        void addComponent(const std::shared_ptr<T> &component,
+                          bool triggerAttach = true,
+                          bool dispatchEvent = true) {
             static_assert(std::is_base_of<Bess::Canvas::SceneComponent, T>(),
                           "T must be derived from SceneComponent");
 
@@ -41,11 +43,13 @@ namespace Bess::Canvas {
 
             assignRuntimeId(id);
 
-            component->onAttach(*this);
+            if (triggerAttach)
+                component->onAttach(*this);
 
-            EventSystem::EventDispatcher::instance().dispatch(
-                Events::ComponentAddedEvent{.uuid = id,
-                                            .type = component->getType()});
+            if (dispatchEvent)
+                EventSystem::EventDispatcher::instance().dispatch(
+                    Events::ComponentAddedEvent{.uuid = id,
+                                                .type = component->getType()});
         }
 
         template <typename T>

@@ -140,44 +140,12 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         return py::none();
     };
 
-    auto getSimFn = [](const ComponentDefinition &self) -> py::object {
-        SimulationFunction fn = self.getSimulationFunction();
-        if (!fn)
-            return py::none();
-
-        return py::cpp_function(
-            [fn](const std::vector<SlotState> &inputs,
-                 long long t_ns,
-                 const ComponentState &prev) {
-                py::gil_scoped_acquire gil;
-                return fn(inputs, SimTime(t_ns), prev);
-            });
-    };
-
-    auto setSimFn = [](ComponentDefinition &self, py::object callable) {
-        if (!PyCallable_Check(callable.ptr())) {
-            throw py::type_error("simulation_function expects a callable");
-        }
-        auto fn = [callable](const std::vector<SlotState> &inputs,
-                             SimTime t,
-                             const ComponentState &prev) -> ComponentState {
-            py::gil_scoped_acquire gil;
-            py::list py_inputs = toPyList(inputs);
-            py::object py_prev = py::cast(prev);
-            py::object result = callable(py_inputs,
-                                         static_cast<long long>(t.count()),
-                                         py_prev);
-            return convertResultToComponentState(result, prev);
-        };
-        self.setSimulationFunction(fn);
-    };
-
-    auto from_sim_fn = [setSimFn](const std::string &name,
-                                  const std::string &group_name,
-                                  const SlotsGroupInfo &inputs,
-                                  const SlotsGroupInfo &outputs,
-                                  SimDelayNanoSeconds sim_delay,
-                                  const py::function &sim_function) -> std::shared_ptr<ComponentDefinition> {
+    auto from_sim_fn = [](const std::string &name,
+                          const std::string &group_name,
+                          const SlotsGroupInfo &inputs,
+                          const SlotsGroupInfo &outputs,
+                          SimDelayNanoSeconds sim_delay,
+                          const py::function &sim_function) -> std::shared_ptr<ComponentDefinition> {
         py::gil_scoped_acquire gil;
         auto comp_def = std::make_shared<PyComponentDefinition>();
         comp_def->setName(name);
@@ -185,21 +153,7 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         comp_def->setInputSlotsInfo(inputs);
         comp_def->setOutputSlotsInfo(outputs);
         comp_def->setSimDelay(sim_delay);
-        if (!PyCallable_Check(sim_function.ptr())) {
-            throw py::type_error("simulation_function expects a callable");
-        }
-        auto fn = [sim_function](const std::vector<SlotState> &inputs,
-                                 SimTime t,
-                                 const ComponentState &prev) -> ComponentState {
-            py::gil_scoped_acquire gil;
-            py::list py_inputs = toPyList(inputs);
-            py::object py_prev = py::cast(prev);
-            py::object result = sim_function(py_inputs,
-                                             static_cast<long long>(t.count()),
-                                             py_prev);
-            return convertResultToComponentState(result, prev);
-        };
-        comp_def->setSimulationFunction(fn);
+        comp_def->setSimulationFunction(sim_function.cast<SimulationFunction>());
         return comp_def;
     };
 
@@ -263,7 +217,7 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         .DEF_PROP_GSET_T(CompDefIOGrowthPolicy, "io_growth_policy", IOGrowthPolicy)
         .DEF_PROP_GSET_T(std::vector<std::string>, "output_expressions", OutputExpressions)
         .def_property("aux_data", getAuxData, setAuxData, "Get Set Aux Data as a Python object.")
-        .def_property("simulation_function", getSimFn, setSimFn, "Get or set the simulation function as a Python callable.")
+        .DEF_PROP_GSET_T(SimulationFunction, "simulation_function", SimulationFunction)
         .def_static("from_expressions", from_output_expressions,
                     py::arg("name"),
                     py::arg("group_name"),

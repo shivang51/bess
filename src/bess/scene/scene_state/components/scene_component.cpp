@@ -121,9 +121,18 @@ namespace Bess::Canvas {
                                     ("style", getStyle, setStyle),
                                     ("name", getName, setName),
                                     ("parentComponent", getParentComponent, setParentComponent),
-                                    ("childComponents", getChildComponents, setChildComponents),
-                                    ("typeName", getTypeName, setTypeName));
+                                    ("childComponents", getChildComponents, setChildComponents));
 
         return json;
+    }
+
+    void SceneComponent::fromJson(const Json::Value &j,
+                                  const std::shared_ptr<SceneComponent> &ptr) {
+        DESERIALIZE_PROPS(ptr, ("uuid", getUuid, setUuid),
+                          ("transform", getTransform, setTransform),
+                          ("style", getStyle, setStyle),
+                          ("name", getName, setName),
+                          ("parentComponent", getParentComponent, setParentComponent),
+                          ("childComponents", getChildComponents, setChildComponents));
     }
 } // namespace Bess::Canvas

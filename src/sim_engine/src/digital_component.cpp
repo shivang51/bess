@@ -177,6 +177,7 @@ namespace Bess::JsonConvert {
     void fromJsonValue(const Json::Value &j, Bess::SimEngine::DigitalComponent &comp) {
         fromJsonValue(j["id"], comp.id);
         fromJsonValue(j["net_uuid"], comp.netUuid);
+        comp.definition = std::make_shared<SimEngine::ComponentDefinition>();
         fromJsonValue(j["definition"], comp.definition);
         fromJsonValue(j["state"], comp.state);
         comp.state.auxData = &comp.definition->getAuxData();

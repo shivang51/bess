@@ -1,4 +1,6 @@
 #include "sim_engine_state.h"
+#include "common/logger.h"
+#include "component_catalog.h"
 
 namespace Bess::SimEngine {
     SimEngineState::SimEngineState() = default;
@@ -74,9 +76,21 @@ namespace Bess::JsonConvert {
     void fromJsonValue(const Json::Value &j, Bess::SimEngine::SimEngineState &state) {
         state.reset();
 
+        const auto &compCatalog = SimEngine::ComponentCatalog::instance();
         for (const auto &compJson : j["digital_components"]) {
-            std::shared_ptr<SimEngine::DigitalComponent> comp = std::make_shared<SimEngine::DigitalComponent>();
+            auto comp = std::make_shared<SimEngine::DigitalComponent>();
             JsonConvert::fromJsonValue(compJson, *comp);
+            if (!compCatalog.isRegistered(comp->definition->getBaseHash())) {
+                BESS_WARN("Component definition with hash {} is not registered in the catalog. Skipping.",
+                          comp->definition->getBaseHash());
+                continue;
+            }
+
+            auto baseDef = compCatalog.getComponentDefinition(comp->definition->getBaseHash())->clone();
+            baseDef->setInputSlotsInfo(comp->definition->getInputSlotsInfo());
+            baseDef->setOutputSlotsInfo(comp->definition->getOutputSlotsInfo());
+            comp->definition = std::move(baseDef);
+            comp->state.auxData = &comp->definition->getAuxData();
             state.addDigitalComponent(comp);
         }
 

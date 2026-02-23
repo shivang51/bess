@@ -46,9 +46,19 @@ namespace Bess::Canvas {
         json["typeName"] = TClass::getStaticTypeName();             \
         return json;                                                \
     }                                                               \
+    static void fromJson(const Json::Value &j,                      \
+                         std::shared_ptr<TClass> ptr) {             \
+        auto castedComp = std::dynamic_pointer_cast<TBase>(ptr);    \
+        TBase::fromJson(j, castedComp);                             \
+        DESERIALIZE_PROPS(ptr, __VA_ARGS__);                        \
+    }                                                               \
     static std::shared_ptr<TClass> fromJson(const Json::Value &j) { \
+        const auto &typeName = j["typeName"].asString();            \
+        BESS_ASSERT(typeName == TClass::getStaticTypeName(),        \
+                    "[fromJson] Static type name mismatch");        \
         auto comp = std::make_shared<TClass>();                     \
-        DESERIALIZE_PROPS(comp, __VA_ARGS__);                       \
+        TBase::fromJson(j, comp);                                   \
+        TClass::fromJson(j, comp);                                  \
         return comp;                                                \
     }
 
@@ -58,15 +68,20 @@ namespace Bess::Canvas {
         json["typeName"] = TClass::getStaticTypeName();             \
         return json;                                                \
     }                                                               \
+    static void fromJson(const Json::Value &j,                      \
+                         std::shared_ptr<TClass> ptr) {             \
+        auto castedComp = std::dynamic_pointer_cast<TBase>(ptr);    \
+        TBase::fromJson(j, castedComp);                             \
+    }                                                               \
     static std::shared_ptr<TClass> fromJson(const Json::Value &j) { \
         auto comp = std::make_shared<TClass>();                     \
         auto castedComp = std::dynamic_pointer_cast<TBase>(comp);   \
-        Bess::JsonConvert::fromJsonValue(j, *castedComp.get());     \
+        TBase::fromJson(j, castedComp);                             \
         return comp;                                                \
     }
 
 #define REG_TO_SER_REGISTRY(TClass)                                                                                           \
-    Bess::Canvas::SceneSerReg::registerComponent(TClass::getTypeName(),                                                       \
+    Bess::Canvas::SceneSerReg::registerComponent(TClass::getStaticTypeName(),                                                 \
                                                  [&](const Json::Value &j) -> std::shared_ptr<Bess::Canvas::SceneComponent> { \
                                                      return TClass::fromJson(j);                                              \
                                                  });
@@ -108,11 +123,6 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER_WC(uint32_t, RuntimeId, m_runtimeId, onRuntimeIdChanged)
         MAKE_GETTER_SETTER_WC(bool, IsSelected, m_isSelected, onSelect)
 
-        static const std::string &getTypeName() {
-            static std::string typeName = "SceneComponent";
-            return typeName;
-        }
-
         virtual void removeChildComponent(const UUID &uuid);
 
         bool isDraggable() const;
@@ -152,6 +162,10 @@ namespace Bess::Canvas {
         virtual Json::Value toJson() const;
 
       protected:
+        // Deserialize the component from JSON
+        static void fromJson(const Json::Value &j,
+                             const std::shared_ptr<SceneComponent> &ptr);
+
         virtual void onNameChanged() {}
         virtual void onTransformChanged() {}
         virtual void onSelect() {}

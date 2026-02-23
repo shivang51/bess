@@ -21,9 +21,6 @@ namespace Bess::UI {
         auto &cmdSystem = Pages::MainPage::getTypedInstance()->getState().getCommandSystem();
         auto &scene = Pages::MainPage::getTypedInstance()->getState().getSceneDriver();
 
-        SimEngine::SimulationEngine &simEngine = SimEngine::SimulationEngine::instance();
-        auto simEngineId = simEngine.addComponent(def);
-
         auto components = Canvas::SimulationSceneComponent::createNewAndRegister(def);
 
         auto sceneComp = components.front()->template cast<Canvas::SimulationSceneComponent>();
