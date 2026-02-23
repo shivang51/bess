@@ -3,19 +3,19 @@
 #include "common/bess_uuid.h"
 #include "scene/renderer/material_renderer.h"
 #include "scene/scene_state/scene_state.h"
-#include "scene_comp_types.h"
 #include "sim_scene_component.h"
 #include <memory>
 
 namespace Bess::Canvas {
     class InputSceneComponent : public SimulationSceneComponent {
       public:
-        static constexpr const char *subType = "InputSceneComponent";
-        InputSceneComponent() {
-            m_typeName = subType;
-        }
+        InputSceneComponent() = default;
 
         ~InputSceneComponent() override = default;
+
+        REG_SCENE_COMP_TYPE("InputSceneComponent", SceneComponentType::simulation)
+        SCENE_COMP_SER_NP(Bess::Canvas::InputSceneComponent,
+                          Bess::Canvas::SimulationSceneComponent)
 
         void draw(SceneState &state,
                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,

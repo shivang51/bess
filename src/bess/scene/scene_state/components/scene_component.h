@@ -5,12 +5,17 @@
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_state/components/behaviours/mouse_behaviour.h"
 #include "scene/scene_state/components/scene_component_types.h"
+#include "scene_ser_reg.h"
 #include "json/value.h"
 #include <unordered_set>
 
 namespace Bess::Canvas {
-#define REG_SCENE_COMP_TYPE(type) \
-    SceneComponentType getType() const override { return type; }
+#define REG_SCENE_COMP_TYPE(TypeName, type)                      \
+    SceneComponentType getType() const override { return type; } \
+    static std::string getStaticTypeName() {                     \
+        static std::string typeName = TypeName;                  \
+        return typeName;                                         \
+    }
 
 #define MAKE_GETTER_SETTER_WC(type, name, varName, onChange) \
     const type &get##name() const { return varName; }        \
@@ -31,25 +36,49 @@ namespace Bess::Canvas {
     const type &get##name() const { return varName; } \
     type &get##name() { return varName; }
 
-#define SCENE_COMP_SER(TClass, ...)                                       \
-    Json::Value toJson() const override {                                 \
-        auto json = SceneComponent::toJson();                             \
-        const auto newJson = SERIALIZE_PROPS(__VA_ARGS__);                \
-        for (const auto &member : newJson.getMemberNames()) {             \
-            json[member] = newJson[member];                               \
-        }                                                                 \
-        return json;                                                      \
-    }                                                                     \
-    static std::shared_ptr<TClass> createFromJson(const Json::Value &j) { \
-        auto comp = std::make_shared<TClass>();                           \
-        DESERIALIZE_PROPS(comp, __VA_ARGS__);                             \
-        return comp;                                                      \
+#define SCENE_COMP_SER(TClass, TBase, ...)                          \
+    Json::Value toJson() const override {                           \
+        auto json = TBase::toJson();                                \
+        const auto newJson = SERIALIZE_PROPS(__VA_ARGS__);          \
+        for (const auto &member : newJson.getMemberNames()) {       \
+            json[member] = newJson[member];                         \
+        }                                                           \
+        json["typeName"] = TClass::getStaticTypeName();             \
+        return json;                                                \
+    }                                                               \
+    static std::shared_ptr<TClass> fromJson(const Json::Value &j) { \
+        auto comp = std::make_shared<TClass>();                     \
+        DESERIALIZE_PROPS(comp, __VA_ARGS__);                       \
+        return comp;                                                \
     }
 
-#define REG_SCENE_COMP(TComp)                     \
-    REFLECT_DERIVED(TComp,                        \
-                    Bess::Canvas::SceneComponent, \
-                    TComp::_getSerializableProps())
+#define SCENE_COMP_SER_NP(TClass, TBase)                            \
+    Json::Value toJson() const override {                           \
+        auto json = TBase::toJson();                                \
+        json["typeName"] = TClass::getStaticTypeName();             \
+        return json;                                                \
+    }                                                               \
+    static std::shared_ptr<TClass> fromJson(const Json::Value &j) { \
+        auto comp = std::make_shared<TClass>();                     \
+        auto castedComp = std::dynamic_pointer_cast<TBase>(comp);   \
+        Bess::JsonConvert::fromJsonValue(j, *castedComp.get());     \
+        return comp;                                                \
+    }
+
+#define REG_TO_SER_REGISTRY(TClass)                                                                                           \
+    Bess::Canvas::SceneSerReg::registerComponent(TClass::getTypeName(),                                                       \
+                                                 [&](const Json::Value &j) -> std::shared_ptr<Bess::Canvas::SceneComponent> { \
+                                                     return TClass::fromJson(j);                                              \
+                                                 });
+
+#define REG_SCENE_COMP(TComp, TBase, ...) \
+    REFLECT_DERIVED_PROPS(TComp,          \
+                          TBase,          \
+                          __VA_ARGS__)
+
+#define REG_SCENE_COMP_NP(TComp, TBase) \
+    REFLECT_DERIVED_EMPTY(TComp,        \
+                          TBase)
 
     using PathRenderer = Renderer2D::Vulkan::PathRenderer;
 
@@ -77,8 +106,12 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(UUID, ParentComponent, m_parentComponent)
         MAKE_GETTER_SETTER(std::unordered_set<UUID>, ChildComponents, m_childComponents)
         MAKE_GETTER_SETTER_WC(uint32_t, RuntimeId, m_runtimeId, onRuntimeIdChanged)
-        MAKE_GETTER_SETTER(std::string, typeName, m_typeName)
         MAKE_GETTER_SETTER_WC(bool, IsSelected, m_isSelected, onSelect)
+
+        static const std::string &getTypeName() {
+            static std::string typeName = "SceneComponent";
+            return typeName;
+        }
 
         virtual void removeChildComponent(const UUID &uuid);
 
@@ -149,7 +182,13 @@ namespace Bess::Canvas {
 
         UUID m_parentComponent = UUID::null;
         std::unordered_set<UUID> m_childComponents;
-
-        std::string m_typeName;
     };
 } // namespace Bess::Canvas
+
+REFLECT_PROPS(Bess::Canvas::SceneComponent,
+              ("uuid", getUuid, setUuid),
+              ("transform", getTransform, setTransform),
+              ("style", getStyle, setStyle),
+              ("name", getName, setName),
+              ("parentComponent", getParentComponent, setParentComponent),
+              ("childComponents", getChildComponents, setChildComponents))

@@ -6,9 +6,14 @@
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/cmds/delete_comp_cmd.h"
 #include "pages/main_page/main_page_state.h"
+#include "pages/main_page/scene_components/conn_joint_scene_component.h"
+#include "pages/main_page/scene_components/connection_scene_component.h"
+#include "pages/main_page/scene_components/group_scene_component.h"
+#include "pages/main_page/scene_components/input_scene_component.h"
 #include "pages/main_page/scene_components/non_sim_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
+#include "pages/main_page/scene_components/slot_scene_component.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
 #include "ui/ui_main/component_explorer.h"
@@ -59,6 +64,15 @@ namespace Bess::Pages {
 
         // TODO(shivang): Think about a better way and scalabilty for plugins
         Canvas::NonSimSceneComponent::registerComponent<Canvas::TextComponent>("Text Component");
+
+        REG_TO_SER_REGISTRY(Canvas::ConnJointSceneComp);
+        REG_TO_SER_REGISTRY(Canvas::ConnectionSceneComponent);
+        REG_TO_SER_REGISTRY(Canvas::GroupSceneComponent);
+        REG_TO_SER_REGISTRY(Canvas::InputSceneComponent);
+        REG_TO_SER_REGISTRY(Canvas::NonSimSceneComponent);
+        REG_TO_SER_REGISTRY(Canvas::SimulationSceneComponent);
+        REG_TO_SER_REGISTRY(Canvas::SlotSceneComponent);
+        REG_TO_SER_REGISTRY(Canvas::TextComponent);
     }
 
     MainPage::~MainPage() {

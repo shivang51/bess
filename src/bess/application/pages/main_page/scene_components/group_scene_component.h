@@ -15,16 +15,14 @@ namespace Bess::Canvas {
             return comp;
         }
 
-        REG_SCENE_COMP_TYPE(SceneComponentType::group)
-
-        MAKE_GETTER_SETTER(bool, IsExpanded, m_isExpanded)
+        REG_SCENE_COMP_TYPE("GroupSceneComponent", SceneComponentType::group)
+        SCENE_COMP_SER_NP(Bess::Canvas::GroupSceneComponent, Bess::Canvas::SceneComponent)
 
         void onAttach(SceneState &state) override;
         void onSelect() override;
 
         std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
-
-      private:
-        bool m_isExpanded = true; // For ProjectExplorer UI
     };
 } // namespace Bess::Canvas
+
+REG_SCENE_COMP_NP(Bess::Canvas::GroupSceneComponent, Bess::Canvas::SceneComponent)

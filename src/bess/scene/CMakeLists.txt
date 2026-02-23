@@ -5,6 +5,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(Header_Files
 	"schematic_diagram.h"
 	"scene.h"
+	"scene_ser_reg.h"
 	"viewport.h"
 	"camera.h"
 	"scene_events.h"
@@ -38,6 +39,7 @@ set(Source_Files
 	"schematic_diagram.cpp"
 	"scene_serializer.cpp"
 	"viewport.cpp"
+	"scene_ser_reg.cpp"
 	"scene_state/scene_state.cpp"
 	"scene_state/components/scene_component_types.cpp"
 	"scene_state/components/scene_component.cpp"

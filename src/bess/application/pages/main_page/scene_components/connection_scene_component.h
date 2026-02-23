@@ -9,6 +9,15 @@
 #include "scene/scene_state/scene_state.h"
 #include "scene_comp_types.h"
 
+#define CONN_SC_SER_PROPS ("startSlot", getStartSlot, setStartSlot),                                                 \
+                          ("endSlot", getEndSlot, setEndSlot),                                                       \
+                          ("segments", getSegments, setSegments),                                                    \
+                          ("schemeticSegments", getSchematicSegments, setSchematicSegments),                         \
+                          ("shouldReconstructSegments", getShouldReconstructSegments, setShouldReconstructSegments), \
+                          ("useCustomColor", getUseCustomColor, setUseCustomColor),                                  \
+                          ("associatedJoints", getAssociatedJoints, setAssociatedJoints),                            \
+                          ("initialSegmentCount", getInitialSegmentCount, setInitialSegmentCount)
+
 namespace Bess::Canvas {
 
     class ConnectionSceneComponent : public SceneComponent,
@@ -34,7 +43,9 @@ namespace Bess::Canvas {
 
         void onAttach(SceneState &sceneState) override;
 
-        REG_SCENE_COMP_TYPE(SceneComponentType::connection)
+        REG_SCENE_COMP_TYPE("ConnSceneComponent", SceneComponentType::connection)
+        SCENE_COMP_SER(Bess::Canvas::ConnectionSceneComponent,
+                       Canvas::SceneComponent, CONN_SC_SER_PROPS)
 
         MAKE_GETTER_SETTER(UUID, StartSlot, m_startSlot)
         MAKE_GETTER_SETTER(UUID, EndSlot, m_endSlot)
@@ -87,12 +98,5 @@ namespace Bess::Canvas {
     };
 } // namespace Bess::Canvas
 
-// REFLECT_DERIVED_PROPS(Bess::Canvas::ConnectionSceneComponent, Bess::Canvas::SceneComponent,
-//                       ("startSlot", getStartSlot, setStartSlot),
-//                       ("endSlot", getEndSlot, setEndSlot),
-//                       ("segments", getSegments, setSegments),
-//                       ("schemeticSegments", getSchematicSegments, setSchematicSegments),
-//                       ("shouldReconstructSegments", getShouldReconstructSegments, setShouldReconstructSegments),
-//                       ("useCustomColor", getUseCustomColor, setUseCustomColor),
-//                       ("associatedJoints", getAssociatedJoints, setAssociatedJoints),
-//                       ("initialSegmentCount", getInitialSegmentCount, setInitialSegmentCount));
+REG_SCENE_COMP(Bess::Canvas::ConnectionSceneComponent,
+               Canvas::SceneComponent, CONN_SC_SER_PROPS)

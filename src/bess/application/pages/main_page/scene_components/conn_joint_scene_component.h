@@ -6,6 +6,15 @@
 #include "scene_comp_types.h"
 #include "types.h"
 
+#define CONNJOINT_SC_SER_PROPS ("connSegIdx", getConnSegIdx, setConnSegIdx),                \
+                               ("schConnSegIdx", getSchConnSegIdx, setSchConnSegIdx),       \
+                               ("connectionId", getConnectionId, setConnectionId),          \
+                               ("outputSlotId", getOutputSlotId, setOutputSlotId),          \
+                               ("offset", getSegOffset, setSegOffset),                      \
+                               ("schematicOffset", getSchematicOffset, setSchematicOffset), \
+                               ("segOrientation", getSegOrientation, setSegOrientation),    \
+                               ("connections", getConnections, setConnections)
+
 namespace Bess::Canvas {
 
     class ConnJointSceneComp : public SceneComponent,
@@ -14,7 +23,9 @@ namespace Bess::Canvas {
         ConnJointSceneComp() = default;
         ConnJointSceneComp(UUID connectionId, int connSegIdx, ConnSegOrientaion segOrientation);
 
-        REG_SCENE_COMP_TYPE(SceneComponentType::connJoint)
+        REG_SCENE_COMP_TYPE("ConnJointSceneComp", SceneComponentType::connJoint)
+        SCENE_COMP_SER(Bess::Canvas::ConnJointSceneComp, Bess::Canvas::SceneComponent, CONNJOINT_SC_SER_PROPS)
+
         MAKE_GETTER_SETTER(int, ConnSegIdx, m_connSegIdx);
         MAKE_GETTER_SETTER(int, SchConnSegIdx, m_schConnSegIdx);
         MAKE_GETTER_SETTER(UUID, ConnectionId, m_connectionId);
@@ -63,11 +74,4 @@ namespace Bess::Canvas {
     };
 } // namespace Bess::Canvas
 
-// REFLECT_DERIVED_PROPS(Bess::Canvas::ConnJointSceneComp, Bess::Canvas::SceneComponent,
-//                       ("connSegIdx", getConnSegIdx, setConnSegIdx),
-//                       ("connectionId", getConnectionId, setConnectionId),
-//                       ("outputSlotId", getOutputSlotId, setOutputSlotId),
-//                       ("offset", getSegOffset, setSegOffset),
-//                       ("schematicOffset", getSchematicOffset, setSchematicOffset),
-//                       ("segOrientation", getSegOrientation, setSegOrientation),
-//                       ("connections", getConnections, setConnections));
+REG_SCENE_COMP(Bess::Canvas::ConnJointSceneComp, Bess::Canvas::SceneComponent, CONNJOINT_SC_SER_PROPS)

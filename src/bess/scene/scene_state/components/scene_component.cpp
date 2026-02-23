@@ -122,7 +122,7 @@ namespace Bess::Canvas {
                                     ("name", getName, setName),
                                     ("parentComponent", getParentComponent, setParentComponent),
                                     ("childComponents", getChildComponents, setChildComponents),
-                                    ("typeName", gettypeName, setTypeName));
+                                    ("typeName", getTypeName, setTypeName));
 
         return json;
     }

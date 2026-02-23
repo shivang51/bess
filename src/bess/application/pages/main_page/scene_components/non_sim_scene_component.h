@@ -8,6 +8,10 @@
 #include "ui/ui_hook.h"
 #include <typeindex>
 
+#define TEXT_SER_PROPS ("data", getData, setData),                                  \
+                       ("foregroundColor", getForegroundColor, setForegroundColor), \
+                       ("size", getSize, setSize)
+
 namespace Bess::Canvas {
     class NonSimSceneComponent : public SceneComponent,
                                  public DragBehaviour<NonSimSceneComponent> {
@@ -27,7 +31,8 @@ namespace Bess::Canvas {
 
         static std::shared_ptr<NonSimSceneComponent> getInstance(std::type_index tIdx);
 
-        REG_SCENE_COMP_TYPE(SceneComponentType::nonSimulation)
+        REG_SCENE_COMP_TYPE("NonSimComponent", SceneComponentType::nonSimulation)
+        SCENE_COMP_SER_NP(Bess::Canvas::NonSimSceneComponent, Bess::Canvas::SceneComponent)
 
         MAKE_GETTER_SETTER(UI::Hook::UIHook, UIHook, m_uiHook)
 
@@ -48,7 +53,6 @@ namespace Bess::Canvas {
     class TextComponent : public NonSimSceneComponent {
       public:
         TextComponent() {
-            m_typeName = "TextComponent";
             m_name = "New Text";
             m_uiHook.addPropertyDescriptor(UI::Hook::PropertyDesc{
                 .name = "Text",
@@ -100,6 +104,10 @@ namespace Bess::Canvas {
             m_style.color = ViewportTheme::colors.componentBG;
         } // namespace Bess::Canvas
 
+        REG_SCENE_COMP_TYPE("TextComponent", SceneComponentType::nonSimulation)
+        SCENE_COMP_SER(Bess::Canvas::TextComponent,
+                       Bess::Canvas::NonSimSceneComponent, TEXT_SER_PROPS)
+
         void draw(SceneState &state,
                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                   std::shared_ptr<PathRenderer> pathRenderer) override;
@@ -125,9 +133,8 @@ namespace Bess::Canvas {
 
 } // namespace Bess::Canvas
 
-// REFLECT_DERIVED_EMPTY(Bess::Canvas::NonSimSceneComponent, Bess::Canvas::SceneComponent)
+REG_SCENE_COMP_NP(Bess::Canvas::NonSimSceneComponent, Bess::Canvas::SceneComponent)
 
-// REFLECT_DERIVED_PROPS(Bess::Canvas::TextComponent, Bess::Canvas::NonSimSceneComponent,
-//                       ("data", getData, setData),
-//                       ("foregroundColor", getForegroundColor, setForegroundColor),
-//                       ("size", getSize, setSize));
+REFLECT_DERIVED_PROPS(Bess::Canvas::TextComponent,
+                      Bess::Canvas::NonSimSceneComponent,
+                      TEXT_SER_PROPS);

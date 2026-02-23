@@ -10,6 +10,12 @@
 #include "scene_comp_types.h"
 #include "slot_scene_component.h"
 
+#define SIM_SC_SER_PROPS ("simEngineId", getSimEngineId, setSimEngineId), \
+                         ("netId", getNetId, setNetId),                   \
+                         ("inputSlots", getInputSlots, setInputSlots),    \
+                         ("outputSlots", getOutputSlots, setOutputSlots), \
+                         ("schematicTransform", getSchematicTransform, setSchematicTransform)
+
 namespace Bess::Canvas {
     class SimulationSceneComponent : public SceneComponent,
                                      public DragBehaviour<SimulationSceneComponent> {
@@ -37,8 +43,6 @@ namespace Bess::Canvas {
                            std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                            std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
 
-        REG_SCENE_COMP_TYPE(SceneComponentType::simulation)
-
         MAKE_GETTER_SETTER(UUID, SimEngineId, m_simEngineId)
         MAKE_GETTER_SETTER(UUID, NetId, m_netId)
         MAKE_GETTER_SETTER(std::vector<UUID>, InputSlots, m_inputSlots)
@@ -63,12 +67,10 @@ namespace Bess::Canvas {
 
         glm::vec3 getAbsolutePosition(const SceneState &state) const override;
 
+        REG_SCENE_COMP_TYPE("SimulationSceneComponent", SceneComponentType::simulation)
         SCENE_COMP_SER(Bess::Canvas::SimulationSceneComponent,
-                       ("simEngineId", getSimEngineId, setSimEngineId),
-                       ("netId", getNetId, setNetId),
-                       ("inputSlots", getInputSlots, setInputSlots),
-                       ("outputSlots", getOutputSlots, setOutputSlots),
-                       ("schematicTransform", getSchematicTransform, setSchematicTransform))
+                       Bess::Canvas::SceneComponent,
+                       SIM_SC_SER_PROPS)
 
       protected:
         void onTransformChanged() override;
@@ -117,3 +119,6 @@ namespace Bess::Canvas {
         std::shared_ptr<SimEngine::ComponentDefinition> m_compDef = nullptr;
     };
 } // namespace Bess::Canvas
+
+REG_SCENE_COMP(Bess::Canvas::SimulationSceneComponent,
+               Bess::Canvas::SceneComponent, SIM_SC_SER_PROPS)
