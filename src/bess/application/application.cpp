@@ -178,9 +178,9 @@ namespace Bess {
         ApplicationState::clear();
         m_mainWindow->close();
         SimEngine::SimulationEngine::instance().destroy();
+        Config::Settings::instance().cleanup();
         auto &pluginMangaer = Plugins::PluginManager::getInstance();
         pluginMangaer.destroy();
-        Config::Settings::instance().cleanup();
         BESS_INFO("[Application] Application shutdown complete");
     }
 
