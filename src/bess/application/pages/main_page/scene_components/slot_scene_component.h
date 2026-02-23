@@ -36,7 +36,7 @@ namespace Bess::Canvas {
 
         void onMouseButton(const Events::MouseButtonEvent &e) override;
 
-        REG_SCENE_COMP(SceneComponentType::slot)
+        REG_SCENE_COMP_TYPE(SceneComponentType::slot)
 
         MAKE_GETTER_SETTER(SlotType, SlotType, m_slotType)
         MAKE_GETTER_SETTER(int, Index, m_index)
@@ -75,8 +75,8 @@ namespace Bess::Canvas {
 
 REFLECT_ENUM(Bess::Canvas::SlotType);
 
-REFLECT_DERIVED_PROPS(Bess::Canvas::SlotSceneComponent, Bess::Canvas::SceneComponent,
-                      ("slotType", getSlotType, setSlotType),
-                      ("index", getIndex, setIndex),
-                      ("schematicPos", getSchematicPos, setSchematicPos),
-                      ("connectedConnections", getConnectedConnections, setConnectedConnections));
+// REFLECT_DERIVED_PROPS(Bess::Canvas::SlotSceneComponent, Bess::Canvas::SceneComponent,
+//                       ("slotType", getSlotType, setSlotType),
+//                       ("index", getIndex, setIndex),
+//                       ("schematicPos", getSchematicPos, setSchematicPos),
+//                       ("connectedConnections", getConnectedConnections, setConnectedConnections));

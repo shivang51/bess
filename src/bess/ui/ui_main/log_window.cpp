@@ -5,7 +5,11 @@
 #include "ui/widgets/m_widgets.h"
 
 namespace Bess::UI {
+#ifdef DEBUG
+    bool LogWindow::isShown = true;
+#else
     bool LogWindow::isShown = false;
+#endif
 
     LogWindow::Controls LogWindow::m_controls{};
 

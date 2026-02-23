@@ -34,7 +34,7 @@ namespace Bess::Canvas {
 
         void onAttach(SceneState &sceneState) override;
 
-        REG_SCENE_COMP(SceneComponentType::connection)
+        REG_SCENE_COMP_TYPE(SceneComponentType::connection)
 
         MAKE_GETTER_SETTER(UUID, StartSlot, m_startSlot)
         MAKE_GETTER_SETTER(UUID, EndSlot, m_endSlot)
@@ -87,12 +87,12 @@ namespace Bess::Canvas {
     };
 } // namespace Bess::Canvas
 
-REFLECT_DERIVED_PROPS(Bess::Canvas::ConnectionSceneComponent, Bess::Canvas::SceneComponent,
-                      ("startSlot", getStartSlot, setStartSlot),
-                      ("endSlot", getEndSlot, setEndSlot),
-                      ("segments", getSegments, setSegments),
-                      ("schemeticSegments", getSchematicSegments, setSchematicSegments),
-                      ("shouldReconstructSegments", getShouldReconstructSegments, setShouldReconstructSegments),
-                      ("useCustomColor", getUseCustomColor, setUseCustomColor),
-                      ("associatedJoints", getAssociatedJoints, setAssociatedJoints),
-                      ("initialSegmentCount", getInitialSegmentCount, setInitialSegmentCount));
+// REFLECT_DERIVED_PROPS(Bess::Canvas::ConnectionSceneComponent, Bess::Canvas::SceneComponent,
+//                       ("startSlot", getStartSlot, setStartSlot),
+//                       ("endSlot", getEndSlot, setEndSlot),
+//                       ("segments", getSegments, setSegments),
+//                       ("schemeticSegments", getSchematicSegments, setSchematicSegments),
+//                       ("shouldReconstructSegments", getShouldReconstructSegments, setShouldReconstructSegments),
+//                       ("useCustomColor", getUseCustomColor, setUseCustomColor),
+//                       ("associatedJoints", getAssociatedJoints, setAssociatedJoints),
+//                       ("initialSegmentCount", getInitialSegmentCount, setInitialSegmentCount));

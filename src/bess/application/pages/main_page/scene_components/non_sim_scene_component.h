@@ -27,7 +27,7 @@ namespace Bess::Canvas {
 
         static std::shared_ptr<NonSimSceneComponent> getInstance(std::type_index tIdx);
 
-        REG_SCENE_COMP(SceneComponentType::nonSimulation)
+        REG_SCENE_COMP_TYPE(SceneComponentType::nonSimulation)
 
         MAKE_GETTER_SETTER(UI::Hook::UIHook, UIHook, m_uiHook)
 
@@ -48,7 +48,7 @@ namespace Bess::Canvas {
     class TextComponent : public NonSimSceneComponent {
       public:
         TextComponent() {
-            m_subType = "TextComponent";
+            m_typeName = "TextComponent";
             m_name = "New Text";
             m_uiHook.addPropertyDescriptor(UI::Hook::PropertyDesc{
                 .name = "Text",
@@ -125,9 +125,9 @@ namespace Bess::Canvas {
 
 } // namespace Bess::Canvas
 
-REFLECT_DERIVED_EMPTY(Bess::Canvas::NonSimSceneComponent, Bess::Canvas::SceneComponent)
+// REFLECT_DERIVED_EMPTY(Bess::Canvas::NonSimSceneComponent, Bess::Canvas::SceneComponent)
 
-REFLECT_DERIVED_PROPS(Bess::Canvas::TextComponent, Bess::Canvas::NonSimSceneComponent,
-                      ("data", getData, setData),
-                      ("foregroundColor", getForegroundColor, setForegroundColor),
-                      ("size", getSize, setSize));
+// REFLECT_DERIVED_PROPS(Bess::Canvas::TextComponent, Bess::Canvas::NonSimSceneComponent,
+//                       ("data", getData, setData),
+//                       ("foregroundColor", getForegroundColor, setForegroundColor),
+//                       ("size", getSize, setSize));

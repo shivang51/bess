@@ -87,6 +87,22 @@
         }                                                                 \
     }
 
+#define SERIALIZE_PROPS(...)                                                         \
+    [&]() -> Json::Value {                                                           \
+        const auto &obj = static_cast<const std::decay_t<decltype(*this)> &>(*this); \
+        Json::Value j = Json::objectValue;                                           \
+        FOR_EACH(SERIALIZE_PROP, __VA_ARGS__)                                        \
+        return j;                                                                    \
+    }()
+
+#define DESERIALIZE_PROPS(sharedPtr, ...)               \
+    do {                                                \
+        auto &obj = *sharedPtr;                         \
+        if (j.isObject()) {                             \
+            FOR_EACH(DESERIALIZE_DISPATCH, __VA_ARGS__) \
+        }                                               \
+    } while (0)
+
 // Shared pointer version
 #define REFLECT_PROPS_SP(className)                                                        \
     namespace Bess::JsonConvert {                                                          \

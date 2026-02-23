@@ -15,7 +15,7 @@ namespace Bess::Canvas {
             return comp;
         }
 
-        REG_SCENE_COMP(SceneComponentType::group)
+        REG_SCENE_COMP_TYPE(SceneComponentType::group)
 
         MAKE_GETTER_SETTER(bool, IsExpanded, m_isExpanded)
 

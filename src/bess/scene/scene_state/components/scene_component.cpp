@@ -1,4 +1,5 @@
 #include "scene/scene_state/components/scene_component.h"
+#include "json/value.h"
 #include <utility>
 
 #include "ext/matrix_transform.hpp"
@@ -113,4 +114,16 @@ namespace Bess::Canvas {
     }
 
     void SceneComponent::onAttach(SceneState &state) {}
+
+    Json::Value SceneComponent::toJson() const {
+        auto json = SERIALIZE_PROPS(("uuid", getUuid, setUuid),
+                                    ("transform", getTransform, setTransform),
+                                    ("style", getStyle, setStyle),
+                                    ("name", getName, setName),
+                                    ("parentComponent", getParentComponent, setParentComponent),
+                                    ("childComponents", getChildComponents, setChildComponents),
+                                    ("typeName", gettypeName, setTypeName));
+
+        return json;
+    }
 } // namespace Bess::Canvas

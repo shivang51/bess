@@ -37,7 +37,7 @@ namespace Bess::Canvas {
                            std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                            std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
 
-        REG_SCENE_COMP(SceneComponentType::simulation)
+        REG_SCENE_COMP_TYPE(SceneComponentType::simulation)
 
         MAKE_GETTER_SETTER(UUID, SimEngineId, m_simEngineId)
         MAKE_GETTER_SETTER(UUID, NetId, m_netId)
@@ -62,6 +62,13 @@ namespace Bess::Canvas {
         void onMouseDragged(const Events::MouseDraggedEvent &e) override;
 
         glm::vec3 getAbsolutePosition(const SceneState &state) const override;
+
+        SCENE_COMP_SER(Bess::Canvas::SimulationSceneComponent,
+                       ("simEngineId", getSimEngineId, setSimEngineId),
+                       ("netId", getNetId, setNetId),
+                       ("inputSlots", getInputSlots, setInputSlots),
+                       ("outputSlots", getOutputSlots, setOutputSlots),
+                       ("schematicTransform", getSchematicTransform, setSchematicTransform))
 
       protected:
         void onTransformChanged() override;
@@ -110,10 +117,3 @@ namespace Bess::Canvas {
         std::shared_ptr<SimEngine::ComponentDefinition> m_compDef = nullptr;
     };
 } // namespace Bess::Canvas
-
-REFLECT_DERIVED_PROPS(Bess::Canvas::SimulationSceneComponent, Bess::Canvas::SceneComponent,
-                      ("simEngineId", getSimEngineId, setSimEngineId),
-                      ("netId", getNetId, setNetId),
-                      ("inputSlots", getInputSlots, setInputSlots),
-                      ("outputSlots", getOutputSlots, setOutputSlots),
-                      ("schematicTransform", getSchematicTransform, setSchematicTransform))

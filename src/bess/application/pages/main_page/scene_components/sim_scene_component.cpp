@@ -14,7 +14,9 @@
 namespace Bess::Canvas {
     constexpr float SNAP_AMOUNT = 2.f;
 
-    SimulationSceneComponent::SimulationSceneComponent() = default;
+    SimulationSceneComponent::SimulationSceneComponent() {
+        m_typeName = "SimulationSceneComponent";
+    }
 
     std::vector<std::shared_ptr<SlotSceneComponent>>
     SimulationSceneComponent::createIOSlots(size_t inputCount, size_t outputCount) {

@@ -5,10 +5,11 @@
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_state/components/behaviours/mouse_behaviour.h"
 #include "scene/scene_state/components/scene_component_types.h"
+#include "json/value.h"
 #include <unordered_set>
 
 namespace Bess::Canvas {
-#define REG_SCENE_COMP(type) \
+#define REG_SCENE_COMP_TYPE(type) \
     SceneComponentType getType() const override { return type; }
 
 #define MAKE_GETTER_SETTER_WC(type, name, varName, onChange) \
@@ -29,6 +30,26 @@ namespace Bess::Canvas {
 #define MAKE_GETTER(type, name, varName)              \
     const type &get##name() const { return varName; } \
     type &get##name() { return varName; }
+
+#define SCENE_COMP_SER(TClass, ...)                                       \
+    Json::Value toJson() const override {                                 \
+        auto json = SceneComponent::toJson();                             \
+        const auto newJson = SERIALIZE_PROPS(__VA_ARGS__);                \
+        for (const auto &member : newJson.getMemberNames()) {             \
+            json[member] = newJson[member];                               \
+        }                                                                 \
+        return json;                                                      \
+    }                                                                     \
+    static std::shared_ptr<TClass> createFromJson(const Json::Value &j) { \
+        auto comp = std::make_shared<TClass>();                           \
+        DESERIALIZE_PROPS(comp, __VA_ARGS__);                             \
+        return comp;                                                      \
+    }
+
+#define REG_SCENE_COMP(TComp)                     \
+    REFLECT_DERIVED(TComp,                        \
+                    Bess::Canvas::SceneComponent, \
+                    TComp::_getSerializableProps())
 
     using PathRenderer = Renderer2D::Vulkan::PathRenderer;
 
@@ -56,7 +77,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(UUID, ParentComponent, m_parentComponent)
         MAKE_GETTER_SETTER(std::unordered_set<UUID>, ChildComponents, m_childComponents)
         MAKE_GETTER_SETTER_WC(uint32_t, RuntimeId, m_runtimeId, onRuntimeIdChanged)
-        MAKE_GETTER_SETTER(std::string, SubType, m_subType)
+        MAKE_GETTER_SETTER(std::string, typeName, m_typeName)
         MAKE_GETTER_SETTER_WC(bool, IsSelected, m_isSelected, onSelect)
 
         virtual void removeChildComponent(const UUID &uuid);
@@ -94,6 +115,9 @@ namespace Bess::Canvas {
         // Called when component is added/attached to the scene
         virtual void onAttach(SceneState &state);
 
+        // Serialize the component to JSON for saving
+        virtual Json::Value toJson() const;
+
       protected:
         virtual void onNameChanged() {}
         virtual void onTransformChanged() {}
@@ -126,15 +150,6 @@ namespace Bess::Canvas {
         UUID m_parentComponent = UUID::null;
         std::unordered_set<UUID> m_childComponents;
 
-        std::string m_subType;
+        std::string m_typeName;
     };
 } // namespace Bess::Canvas
-
-REFLECT_PROPS(Bess::Canvas::SceneComponent,
-              ("uuid", getUuid, setUuid),
-              ("transform", getTransform, setTransform),
-              ("style", getStyle, setStyle),
-              ("name", getName, setName),
-              ("parentComponent", getParentComponent, setParentComponent),
-              ("childComponents", getChildComponents, setChildComponents),
-              ("subType", getSubType, setSubType));

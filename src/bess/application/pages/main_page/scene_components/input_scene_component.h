@@ -12,7 +12,7 @@ namespace Bess::Canvas {
       public:
         static constexpr const char *subType = "InputSceneComponent";
         InputSceneComponent() {
-            m_subType = subType;
+            m_typeName = subType;
         }
 
         ~InputSceneComponent() override = default;
@@ -40,4 +40,4 @@ namespace Bess::Canvas {
     };
 } // namespace Bess::Canvas
 
-REFLECT_DERIVED_EMPTY(Bess::Canvas::InputSceneComponent, Bess::Canvas::SimulationSceneComponent)
+// REFLECT_DERIVED_EMPTY(Bess::Canvas::InputSceneComponent, Bess::Canvas::SimulationSceneComponent)

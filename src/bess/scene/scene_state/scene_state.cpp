@@ -311,7 +311,7 @@ namespace Bess::JsonConvert {
             j["components"].append(Json::Value());
             auto &compJson = j["components"][static_cast<int>(j["components"].size() - 1)];
 
-            toJsonValue(*component, compJson);
+            // toJsonValue(*component, compJson);
             // switch (component->getType()) {
             // case Canvas::SceneComponentType::simulation: {
             //     if (component->getSubType() == Canvas::InputSceneComponent::subType) {
