@@ -1,7 +1,6 @@
 #pragma once
 
 #include "command.h"
-#include "scene/scene_events.h"
 #include <memory>
 #include <stack>
 
@@ -19,7 +18,7 @@ namespace Bess::Cmd {
         CommandSystem() = default;
         ~CommandSystem() = default;
 
-        void init(Canvas::Scene *scene, SimEngine::SimulationEngine *simEngine);
+        void init();
 
         void execute(std::unique_ptr<Command> cmd);
 

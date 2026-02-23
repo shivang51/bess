@@ -23,8 +23,8 @@ namespace Bess::UI {
         m_viewportSize = {viewportPanelSize.x, viewportPanelSize.y};
 
         const auto offset = ImGui::GetCursorPos();
-        if (m_viewportTexture) {
-            ImGui::Image((ImTextureRef)m_viewportTexture,
+        if (scene->getTextureId() != 0) {
+            ImGui::Image((ImTextureRef)scene->getTextureId(),
                          ImVec2(viewportPanelSize.x, viewportPanelSize.y), ImVec2(0, 1),
                          ImVec2(1, 0));
         } else {
@@ -145,10 +145,6 @@ namespace Bess::UI {
     }
 
     void SceneViewport::firstTime() {
-    }
-
-    void SceneViewport::setViewportTexture(const uint64_t texture) {
-        m_viewportTexture = texture;
     }
 
     bool SceneViewport::isHovered() const {

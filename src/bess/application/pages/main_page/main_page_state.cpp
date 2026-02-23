@@ -73,9 +73,8 @@ namespace Bess::Pages {
         m_downKeys[key] = isDown;
     }
 
-    void MainPageState::initCmdSystem(Canvas::Scene *scene,
-                                      SimEngine::SimulationEngine *simEngine) {
-        m_commandSystem.init(scene, simEngine);
+    void MainPageState::initCmdSystem() {
+        m_commandSystem.init();
         auto &dispatcher = EventSystem::EventDispatcher::instance();
         dispatcher.sink<Canvas::Events::EntityMovedEvent>().connect<&MainPageState::onEntityMoved>(this);
         dispatcher.sink<Canvas::Events::EntityReparentedEvent>().connect<&MainPageState::onEntityReparented>(this);

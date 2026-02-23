@@ -10,13 +10,22 @@ namespace Bess {
         SceneDriver() = default;
         ~SceneDriver() = default;
 
-        void createDefaultScene();
-
         void update(TFrameTime deltaTime, const std::vector<class ApplicationEvent> &events);
         void render();
 
-        void setActiveScene(const std::shared_ptr<Canvas::Scene> &scene);
         std::shared_ptr<Canvas::Scene> getActiveScene() const;
+
+        void addScene(const std::shared_ptr<Canvas::Scene> &scene);
+
+        std::shared_ptr<Canvas::Scene> getSceneAtIdx(size_t index) const;
+
+        std::shared_ptr<Canvas::Scene> createNewScene();
+
+        std::shared_ptr<Canvas::Scene> setActiveScene(size_t index, bool updateCmdSys = true);
+
+        size_t getActiveSceneIdx() const;
+
+        size_t getSceneCount() const;
 
         // using pointer operator to directly access active scene
         std::shared_ptr<Canvas::Scene> operator->() {
@@ -30,5 +39,6 @@ namespace Bess {
       private:
         std::shared_ptr<Canvas::Scene> m_activeScene;
         std::vector<std::shared_ptr<Canvas::Scene>> m_scenes;
+        size_t m_activeSceneIdx{0};
     };
 } // namespace Bess

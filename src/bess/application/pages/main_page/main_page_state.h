@@ -54,8 +54,7 @@ namespace Bess::Pages {
         void loadProject(const std::string &path);
         void updateCurrentProject(const std::shared_ptr<ProjectFile> &project);
 
-        void initCmdSystem(Canvas::Scene *scene,
-                           SimEngine::SimulationEngine *simEngine);
+        void initCmdSystem();
 
         const SceneDriver &getSceneDriver() const;
         SceneDriver &getSceneDriver();

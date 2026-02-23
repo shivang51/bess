@@ -51,13 +51,15 @@ namespace Bess::Pages {
         auto &instance = Bess::Vulkan::VulkanCore::instance();
         instance.init(extensions, createSurface, extent);
 
-        m_state.getSceneDriver().createDefaultScene();
-        m_state.getSceneDriver()->setViewportDrawFn(BIND_FN_L(onViewportDraw));
+        m_state.initCmdSystem();
 
-        UI::UIMain::setViewportTexture(m_state.getSceneDriver()->getTextureId());
+        auto scene = m_state.getSceneDriver().createNewScene();
+        scene->setViewportDrawFn(BIND_FN_L(onViewportDraw));
 
-        m_state.initCmdSystem(m_state.getSceneDriver().getActiveScene().get(),
-                              &SimEngine::SimulationEngine::instance());
+        m_state.getSceneDriver().setActiveScene(0, false);
+
+        m_state.getCommandSystem().setScene(scene.get());
+        m_state.getCommandSystem().setSimEngine(&SimEngine::SimulationEngine::instance());
 
         m_state.createNewProject(false);
 
@@ -72,6 +74,8 @@ namespace Bess::Pages {
         REG_TO_SER_REGISTRY(Canvas::SimulationSceneComponent);
         REG_TO_SER_REGISTRY(Canvas::SlotSceneComponent);
         REG_TO_SER_REGISTRY(Canvas::TextComponent);
+
+        BESS_DEBUG("MainPage created successfully");
     }
 
     MainPage::~MainPage() {

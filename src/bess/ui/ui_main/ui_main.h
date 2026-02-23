@@ -24,8 +24,6 @@ namespace Bess::UI {
       public:
         static void draw();
 
-        static void setViewportTexture(std::uint64_t texture);
-
         static UIState state;
 
         static void destroy();

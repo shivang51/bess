@@ -39,9 +39,36 @@ namespace Bess::UI {
     void drawDebugWindow() {
 
         auto &mainPageState = Pages::MainPage::getInstance()->getState();
-        auto &sceneState = mainPageState.getSceneDriver()->getState();
+
+        auto &sceneDriver = mainPageState.getSceneDriver();
+        const auto &sceneState = sceneDriver->getState();
 
         ImGui::Begin("Debug Window");
+
+        ImGui::Text("Active Scene: %lu", sceneDriver.getActiveSceneIdx());
+
+        ImGui::SameLine();
+        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+        ImGui::SameLine();
+
+        ImGui::Text("Scene Count: %lu", sceneDriver.getSceneCount());
+
+        ImGui::SameLine();
+        if (ImGui::Button("Prev-Scene")) {
+            size_t activeScene = sceneDriver.getActiveSceneIdx();
+            if (activeScene > 0) {
+                sceneDriver.setActiveScene(activeScene - 1);
+            }
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Next-Scene")) {
+            size_t activeScene = sceneDriver.getActiveSceneIdx();
+            if (activeScene < sceneDriver.getSceneCount() - 1) {
+                sceneDriver.setActiveScene(activeScene + 1);
+            }
+        }
 
         if (Widgets::TreeNode(0, "Selected components")) {
             const auto &selComps = sceneState.getSelectedComponents();
@@ -142,10 +169,6 @@ namespace Bess::UI {
         // }
         // ImGui::TextWrapped("%s", sceneJson.data());
         // ImGui::End();
-    }
-
-    void UIMain::setViewportTexture(const uint64_t texture) {
-        state.mainViewport.setViewportTexture(texture);
     }
 
     ImVec2 getTextSize(const std::string &text, const bool includePadding = true) {

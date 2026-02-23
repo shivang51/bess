@@ -1,13 +1,15 @@
 #include "command_system.h"
 #include "common/logger.h"
+#include "pages/main_page/main_page_state.h"
 #include "scene/scene.h"
 
 namespace Bess::Cmd {
 
-    void CommandSystem::init(Canvas::Scene *scene,
-                             SimEngine::SimulationEngine *simEngine) {
-        this->mp_scene = scene;
-        this->mp_simEngine = simEngine;
+    void CommandSystem::init() {
+        mp_scene = nullptr;
+        mp_simEngine = nullptr;
+        m_redoStack = {};
+        m_undoStack = {};
     }
 
     void CommandSystem::execute(std::unique_ptr<Command> cmd) {
@@ -73,4 +75,5 @@ namespace Bess::Cmd {
     bool CommandSystem::canRedo() const {
         return !m_redoStack.empty();
     }
+
 } // namespace Bess::Cmd
