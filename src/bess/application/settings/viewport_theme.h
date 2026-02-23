@@ -48,6 +48,7 @@ namespace Bess {
 
     class ViewportTheme {
       public:
+        static void cleanup();
         static SceneColors colors;
         static SchematicViewColors schematicViewColors;
         static void updateColorsFromImGuiStyle();

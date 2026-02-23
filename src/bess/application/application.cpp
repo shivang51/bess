@@ -180,6 +180,8 @@ namespace Bess {
         SimEngine::SimulationEngine::instance().destroy();
         auto &pluginMangaer = Plugins::PluginManager::getInstance();
         pluginMangaer.destroy();
+        Config::Settings::instance().cleanup();
+        BESS_INFO("[Application] Application shutdown complete");
     }
 
     void Application::loadProject(const std::string &path) const {

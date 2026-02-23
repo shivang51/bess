@@ -105,4 +105,8 @@ namespace Bess {
 
         s_compHeaderColorMap["Miscellaneous"] = specialColor;
     }
+
+    void ViewportTheme::cleanup() {
+        s_compHeaderColorMap.clear();
+    }
 } // namespace Bess

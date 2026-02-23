@@ -40,6 +40,11 @@ namespace Bess::Canvas {
             return {typeid(void)};
         }
 
+        static void clearRegistry() {
+            registry.clear();
+            m_contrRegistry.clear();
+        }
+
       protected:
         UI::Hook::UIHook m_uiHook;
 

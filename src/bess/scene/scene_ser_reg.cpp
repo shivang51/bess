@@ -17,4 +17,8 @@ namespace Bess::Canvas {
                   typeName);
         return nullptr;
     }
+
+    void SceneSerReg::clearRegistry() {
+        m_registry.clear();
+    }
 } // namespace Bess::Canvas

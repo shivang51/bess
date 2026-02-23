@@ -15,6 +15,8 @@ namespace Bess::Canvas {
 
         static std::shared_ptr<SceneComponent> createComponentFromJson(const Json::Value &j);
 
+        static void clearRegistry();
+
       private:
         static std::unordered_map<std::string, DeSerFunc> m_registry;
     };

@@ -15,6 +15,7 @@ namespace Bess::Config {
         static Settings &instance();
 
         void init();
+        void cleanup();
 
         // theme
         const std::string &getCurrentTheme() const;

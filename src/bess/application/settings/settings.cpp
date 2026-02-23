@@ -1,6 +1,22 @@
 #include "settings/settings.h"
+#include "settings/viewport_theme.h"
 
 namespace Bess::Config {
+
+    void Settings::init() {
+        m_themes = Themes();
+        m_currentTheme = "Bess Dark";
+        m_scale = 1.0f;
+        m_fontSize = 18.0f;
+        m_fontRebuild = true;
+        m_fps = 60;
+        m_frameTimeStep = TFrameTime(1000.0 / m_fps);
+    }
+
+    void Settings::cleanup() {
+        ViewportTheme::cleanup();
+    }
+
     const std::string &Settings::getCurrentTheme() const {
         return m_currentTheme;
     }
@@ -22,16 +38,6 @@ namespace Bess::Config {
 
     void Settings::setFontRebuild(bool rebuild) {
         m_fontRebuild = !rebuild;
-    }
-
-    void Settings::init() {
-        m_themes = Themes();
-        m_currentTheme = "Bess Dark";
-        m_scale = 1.0f;
-        m_fontSize = 18.0f;
-        m_fontRebuild = true;
-        m_fps = 60;
-        m_frameTimeStep = TFrameTime(1000.0 / m_fps);
     }
 
     TFrameTime Settings::getFrameTimeStep() const {

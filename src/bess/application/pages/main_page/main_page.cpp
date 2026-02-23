@@ -14,6 +14,7 @@
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
+#include "scene_ser_reg.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
 #include "ui/ui_main/component_explorer.h"
@@ -83,6 +84,8 @@ namespace Bess::Pages {
         if (m_isDestroyed)
             return;
         BESS_INFO("[MainPage] Destroying");
+        Canvas::NonSimSceneComponent::clearRegistry();
+        Canvas::SceneSerReg::clearRegistry();
         m_state.getCommandSystem().reset();
         m_copiedComponents.clear();
         auto &instance = Bess::Vulkan::VulkanCore::instance();

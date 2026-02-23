@@ -15,7 +15,7 @@ static bool parseArgs(int argc, char **argv, AppArgs &outArgs) {
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg.size() > 2 && arg.starts_with("--")) {
-            if (arg == "--disable-plugins") {
+            if (arg == "--no-plugins") {
                 outArgs.disablePlugins = true;
             }
         } else {
