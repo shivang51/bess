@@ -479,6 +479,9 @@ namespace Bess::Canvas {
             m_schematicTransform.position = glm::vec3(newPos, m_schematicTransform.position.z);
         } else {
             setPosition(glm::vec3(newPos, m_transform.position.z));
+            if (m_isFirstSchematicDraw) {
+                m_schematicTransform.position = glm::vec3(newPos, m_schematicTransform.position.z);
+            }
         }
     }
 

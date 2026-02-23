@@ -51,10 +51,11 @@ namespace Bess::Canvas {
         uint64_t getTextureId() const;
         std::shared_ptr<Camera> getCamera();
 
-        void drawSceneToViewport(const std::shared_ptr<Viewport> &viewport);
-
         const SceneState &getState() const;
         SceneState &getState();
+
+        typedef std::function<void(const std::shared_ptr<Viewport> &viewport)> ViewportDrawFn;
+        MAKE_GETTER_SETTER(ViewportDrawFn, ViewportDrawFn, m_viewportDrawFunc);
 
       public:
         void addComponent(const std::shared_ptr<SceneComponent> &comp, bool setZ = true);
@@ -97,6 +98,7 @@ namespace Bess::Canvas {
 
         void selectAllEntities();
         void focusCameraOnSelected();
+        glm::vec2 toScenePos(const glm::vec2 &mousePos) const;
 
       private:
         /// to draw testing stuff
@@ -115,7 +117,6 @@ namespace Bess::Canvas {
 
         std::shared_ptr<Viewport> m_viewport;
 
-        glm::vec2 toScenePos(const glm::vec2 &mousePos) const;
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
         bool isCursorInViewport(const glm::vec2 &pos) const;
         void drawSelectionBox();
@@ -132,15 +133,13 @@ namespace Bess::Canvas {
 
         bool m_isLeftMousePressed = false, m_isMiddleMousePressed = false;
 
-        void drawGhostConnection(const std::shared_ptr<PathRenderer> &pathRenderer,
-                                 const glm::vec2 &startPos,
-                                 const glm::vec2 &endPos);
-
         void loadComponentFromPlugins();
         void cleanupPlugins();
 
       private:
         SceneState m_state;
+
+        ViewportDrawFn m_viewportDrawFunc = nullptr;
 
         bool m_isCtrlPressed = false, m_isShiftPressed = false;
         ViewportTransform m_viewportTransform;

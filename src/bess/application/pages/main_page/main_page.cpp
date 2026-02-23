@@ -1,5 +1,6 @@
 #include "pages/main_page/main_page.h"
 #include "asset_manager/asset_manager.h"
+#include "common/bind_helpers.h"
 #include "common/logger.h"
 #include "component_catalog.h"
 #include "events/application_event.h"
@@ -51,6 +52,7 @@ namespace Bess::Pages {
         instance.init(extensions, createSurface, extent);
 
         m_state.getSceneDriver().createDefaultScene();
+        m_state.getSceneDriver()->setViewportDrawFn(BIND_FN_L(onViewportDraw));
 
         UI::UIMain::setViewportTexture(m_state.getSceneDriver()->getTextureId());
 
@@ -285,5 +287,101 @@ namespace Bess::Pages {
         }
 
         cmdSystem.execute(std::move(macroCmd));
+    }
+
+    void MainPage::onViewportDraw(const std::shared_ptr<Canvas::Viewport> &viewport) {
+        const auto &renderers = viewport->getRenderers();
+        const auto &camera = viewport->getCamera();
+        const auto &scene = m_state.getSceneDriver().getActiveScene();
+        auto &sceneState = m_state.getSceneDriver()->getState();
+
+        // Grid
+        renderers.materialRenderer->drawGrid(
+            glm::vec3(0.f, 0.f, 0.1f),
+            camera->getSpan(),
+            Canvas::PickingId::invalid(),
+            {
+                .minorColor = ViewportTheme::colors.gridMinorColor,
+                .majorColor = ViewportTheme::colors.gridMajorColor,
+                .axisXColor = ViewportTheme::colors.gridAxisXColor,
+                .axisYColor = ViewportTheme::colors.gridAxisYColor,
+            },
+            viewport->getCamera());
+
+        if (sceneState.getConnectionStartSlot() != UUID::null) {
+            const auto comp = sceneState.getComponentByUuid(sceneState.getConnectionStartSlot());
+            if (!comp) {
+                sceneState.setConnectionStartSlot(UUID::null);
+                return;
+            }
+
+            glm::vec3 pos;
+            if (comp->getType() == Canvas::SceneComponentType::slot) {
+                pos = comp->cast<Canvas::SlotSceneComponent>()->getConnectionPos(sceneState);
+            } else {
+                pos = comp->getAbsolutePosition(sceneState);
+            }
+
+            const auto endPos = scene->toScenePos(scene->getMousePos());
+
+            drawGhostConnection(renderers.pathRenderer, glm::vec2(pos), endPos);
+        }
+
+        const auto &cam = viewport->getCamera();
+        const auto &span = (cam->getSpan() / 2.f) + 200.f;
+        const auto &camPos = cam->getPos();
+
+        for (const auto &compId : sceneState.getRootComponents()) {
+            const auto comp = sceneState.getComponentByUuid(compId);
+
+            const auto &pos = comp->getAbsolutePosition(sceneState);
+            const auto x = pos.x - camPos.x;
+            const auto y = pos.y - camPos.y;
+
+            // skipping if outside camera and not connection
+            if (
+                (x < -span.x || x > span.x || y < -span.y || y > span.y))
+                continue;
+
+            if (sceneState.getIsSchematicView()) {
+                comp->drawSchematic(sceneState,
+                                    renderers.materialRenderer,
+                                    renderers.pathRenderer);
+            } else {
+                comp->draw(sceneState,
+                           renderers.materialRenderer,
+                           renderers.pathRenderer);
+            }
+        }
+    }
+
+    void MainPage::drawGhostConnection(const std::shared_ptr<PathRenderer> &pathRenderer,
+                                       const glm::vec2 &startPos,
+                                       const glm::vec2 &endPos) {
+        auto midX = (startPos.x + endPos.x) / 2.f;
+
+        const auto &id = Canvas::PickingId::invalid();
+
+        pathRenderer->beginPathMode(glm::vec3(startPos.x, startPos.y, 0.8f),
+                                    2.f,
+                                    ViewportTheme::colors.ghostWire,
+                                    id);
+
+        pathRenderer->pathLineTo(glm::vec3(midX, startPos.y, 0.8f),
+                                 2.f,
+                                 ViewportTheme::colors.ghostWire,
+                                 id);
+
+        pathRenderer->pathLineTo(glm::vec3(midX, endPos.y, 0.8f),
+                                 2.f,
+                                 ViewportTheme::colors.ghostWire,
+                                 id);
+
+        pathRenderer->pathLineTo(glm::vec3(endPos, 0.8f),
+                                 2.f,
+                                 ViewportTheme::colors.ghostWire,
+                                 id);
+
+        pathRenderer->endPathMode(false, false, glm::vec4(1.f), true, true);
     }
 } // namespace Bess::Pages

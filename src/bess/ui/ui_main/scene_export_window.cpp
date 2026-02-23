@@ -170,7 +170,7 @@ namespace Bess::UI {
 
                 viewport->begin(frameIdx, ViewportTheme::colors.background, {0, 0});
                 auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
-                scene->drawSceneToViewport(viewport);
+                scene->getViewportDrawFn()(viewport);
                 viewport->end();
                 viewport->submit();
                 frameIdx = (frameIdx + 1) % 2;

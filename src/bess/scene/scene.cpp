@@ -151,101 +151,30 @@ namespace Bess::Canvas {
                         ViewportTheme::colors.background,
                         {0, PickingId::invalid().runtimeId});
 
-        drawSceneToViewport(viewport);
-
-        viewport->end();
-        viewport->submit();
-    }
-
-    void Scene::render() {
-        renderWithViewport(m_viewport);
-    }
-
-    void Scene::drawSceneToViewport(const std::shared_ptr<Viewport> &viewport) {
-        // check if start frame does not happen again within same frame
-        //
-        {
-            auto mousePos_ = m_mousePos;
-            const auto &viewportSize = m_viewportTransform.size;
-            mousePos_.y = viewportSize.y - mousePos_.y;
-            int x = static_cast<int>(mousePos_.x);
-            int y = static_cast<int>(mousePos_.y);
-            if (m_selectInSelectionBox) {
-                auto start = m_selectionBoxStart;
-                auto end = m_selectionBoxEnd;
-                auto size = end - start;
-                const glm::vec2 pos = {std::min(start.x, end.x), std::max(start.y, end.y)};
-                size = glm::abs(size);
-                int w = (int)size.x;
-                int h = (int)size.y;
-                int x = (int)pos.x;
-                int y = (int)(viewportSize.y - pos.y);
-                m_viewport->setPickingCoord(x, y, w, h);
-                m_selectInSelectionBox = false;
-                m_getIdsInSelBox = true;
-            } else {
-                m_viewport->setPickingCoord(x, y);
-            }
+        auto mousePos_ = m_mousePos;
+        const auto &viewportSize = m_viewportTransform.size;
+        mousePos_.y = viewportSize.y - mousePos_.y;
+        int x = static_cast<int>(mousePos_.x);
+        int y = static_cast<int>(mousePos_.y);
+        if (m_selectInSelectionBox) {
+            auto start = m_selectionBoxStart;
+            auto end = m_selectionBoxEnd;
+            auto size = end - start;
+            const glm::vec2 pos = {std::min(start.x, end.x), std::max(start.y, end.y)};
+            size = glm::abs(size);
+            int w = (int)size.x;
+            int h = (int)size.y;
+            int x = (int)pos.x;
+            int y = (int)(viewportSize.y - pos.y);
+            m_viewport->setPickingCoord(x, y, w, h);
+            m_selectInSelectionBox = false;
+            m_getIdsInSelBox = true;
+        } else {
+            m_viewport->setPickingCoord(x, y);
         }
 
-        const auto &renderers = viewport->getRenderers();
-
-        // Grid
-        renderers.materialRenderer->drawGrid(
-            glm::vec3(0.f, 0.f, 0.1f),
-            m_camera->getSpan(),
-            PickingId::invalid(),
-            {
-                .minorColor = ViewportTheme::colors.gridMinorColor,
-                .majorColor = ViewportTheme::colors.gridMajorColor,
-                .axisXColor = ViewportTheme::colors.gridAxisXColor,
-                .axisYColor = ViewportTheme::colors.gridAxisYColor,
-            },
-            viewport->getCamera());
-
-        if (m_state.getConnectionStartSlot() != UUID::null) {
-            const auto comp = m_state.getComponentByUuid(m_state.getConnectionStartSlot());
-            if (!comp) {
-                m_state.setConnectionStartSlot(UUID::null);
-                return;
-            }
-
-            glm::vec3 pos;
-            // if (comp->getType() == SceneComponentType::slot) {
-            // pos = comp->cast<SlotSceneComponent>()->getConnectionPos(m_state);
-            // } else {
-            pos = comp->getAbsolutePosition(m_state);
-            // }
-            const auto endPos = toScenePos(m_mousePos);
-
-            drawGhostConnection(renderers.pathRenderer, glm::vec2(pos), endPos);
-        }
-
-        const auto &cam = viewport->getCamera();
-        const auto &span = (cam->getSpan() / 2.f) + 200.f;
-        const auto &camPos = cam->getPos();
-
-        for (const auto &compId : m_state.getRootComponents()) {
-            const auto comp = m_state.getComponentByUuid(compId);
-
-            const auto &pos = comp->getAbsolutePosition(m_state);
-            const auto x = pos.x - camPos.x;
-            const auto y = pos.y - camPos.y;
-
-            // skipping if outside camera and not connection
-            if (
-                (x < -span.x || x > span.x || y < -span.y || y > span.y))
-                continue;
-
-            if (m_state.getIsSchematicView()) {
-                comp->drawSchematic(m_state,
-                                    renderers.materialRenderer,
-                                    renderers.pathRenderer);
-            } else {
-                comp->draw(m_state,
-                           renderers.materialRenderer,
-                           renderers.pathRenderer);
-            }
+        if (m_viewportDrawFunc) {
+            m_viewportDrawFunc(viewport);
         }
 
         if (m_drawMode == SceneDrawMode::selectionBox) {
@@ -253,6 +182,13 @@ namespace Bess::Canvas {
         }
 
         drawScratchContent(m_frameTimeStep, viewport);
+
+        viewport->end();
+        viewport->submit();
+    }
+
+    void Scene::render() {
+        renderWithViewport(m_viewport);
     }
 
     void Scene::drawSelectionBox() {
@@ -631,34 +567,6 @@ namespace Bess::Canvas {
 
     bool Scene::isHoveredEntityValid() {
         return m_pickingId.isValid();
-    }
-
-    void Scene::drawGhostConnection(const std::shared_ptr<PathRenderer> &pathRenderer,
-                                    const glm::vec2 &startPos,
-                                    const glm::vec2 &endPos) {
-        auto midX = (startPos.x + endPos.x) / 2.f;
-
-        pathRenderer->beginPathMode(glm::vec3(startPos.x, startPos.y, 0.8f),
-                                    2.f,
-                                    ViewportTheme::colors.ghostWire,
-                                    PickingId::invalid());
-
-        pathRenderer->pathLineTo(glm::vec3(midX, startPos.y, 0.8f),
-                                 2.f,
-                                 ViewportTheme::colors.ghostWire,
-                                 PickingId::invalid());
-
-        pathRenderer->pathLineTo(glm::vec3(midX, endPos.y, 0.8f),
-                                 2.f,
-                                 ViewportTheme::colors.ghostWire,
-                                 PickingId::invalid());
-
-        pathRenderer->pathLineTo(glm::vec3(endPos, 0.8f),
-                                 2.f,
-                                 ViewportTheme::colors.ghostWire,
-                                 PickingId::invalid());
-
-        pathRenderer->endPathMode(false, false, glm::vec4(1.f), true, true);
     }
 
     const SceneState &Scene::getState() const {

@@ -45,6 +45,11 @@ namespace Bess::Pages {
       private:
         std::shared_ptr<Window> m_parentWindow;
 
+        void onViewportDraw(const std::shared_ptr<Canvas::Viewport> &viewport);
+        void drawGhostConnection(const std::shared_ptr<PathRenderer> &pathRenderer,
+                                 const glm::vec2 &startPos,
+                                 const glm::vec2 &endPos);
+
       private:
         void handleKeyboardShortcuts();
 
