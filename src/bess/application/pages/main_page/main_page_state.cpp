@@ -105,6 +105,26 @@ namespace Bess::Pages {
 
         UUID *parentPtr = &entity->getParentComponent();
 
+        bool parentIsWasGroup = false;
+
+        if (e.newParentUuid != UUID::null) {
+            const auto &parentComp = m_sceneDriver->getState().getComponentByUuid(e.newParentUuid);
+            parentIsWasGroup = parentComp->getType() == Canvas::SceneComponentType::group;
+        }
+
+        if (!parentIsWasGroup && e.prevParent != UUID::null) {
+            const auto &prevParentComp = m_sceneDriver->getState().getComponentByUuid(e.prevParent);
+            if (prevParentComp->getType() == Canvas::SceneComponentType::group) {
+                parentIsWasGroup = true;
+            }
+        }
+
+        // ignore if parent is/was a group
+        // group handels this shit it self
+        if (parentIsWasGroup) {
+            return;
+        }
+
         /// undo redo callback
         const auto callback = [this, entityUuid = e.entityUuid](bool isUndo, const UUID &newParent) {
             if (newParent == UUID::null)

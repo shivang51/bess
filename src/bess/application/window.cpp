@@ -1,9 +1,8 @@
 #include "application/window.h"
-#include "common/bess_assert.h"
 #include "common/logger.h"
 #include "events/application_event.h"
+#include "ext/vector_float2.hpp"
 #include "stb_image.h"
-#include "vec2.hpp"
 #include <GLFW/glfw3.h>
 #include <cassert>
 #include <cstdint>
