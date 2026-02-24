@@ -419,9 +419,6 @@ namespace Bess::Canvas {
             }
         }
 
-        Events::ConnectionRemovedEvent event{m_startSlot,
-                                             m_endSlot};
-        EventSystem::EventDispatcher::instance().dispatch(event);
         return {};
     }
 

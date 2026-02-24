@@ -179,6 +179,7 @@ namespace Bess::Canvas {
     }
 
     std::vector<UUID> SlotSceneComponent::cleanup(SceneState &state, UUID caller) {
+        std::vector<UUID> removedConnections;
         for (const auto &connUuid : m_connectedConnections) {
             if (caller == connUuid) {
                 continue;

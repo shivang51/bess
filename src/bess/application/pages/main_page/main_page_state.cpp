@@ -2,6 +2,7 @@
 
 #include "common/bess_uuid.h"
 #include "common/logger.h"
+#include "pages/main_page/cmds/delete_comp_cmd.h"
 #include "pages/main_page/cmds/update_value_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
@@ -179,7 +180,7 @@ namespace Bess::Pages {
                 const auto slotUuid = parent->getOutputSlots()[i];
                 const auto &slotComp = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(slotUuid);
                 if (!slotComp->isResizeSlot()) {
-                    sceneState.removeComponent(slotUuid, UUID::master);
+                    // sceneState.removeComponent(slotUuid, UUID::master);
                 }
             }
             parent->setScaleDirty();
@@ -219,8 +220,8 @@ namespace Bess::Pages {
             for (size_t i = inSlotsInfo.count; i < parent->getInputSlotsCount(); i++) {
                 const auto slotUuid = parent->getInputSlots()[i];
                 const auto &slotComp = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(slotUuid);
-                if (!slotComp->isResizeSlot())
-                    sceneState.removeComponent(slotUuid, UUID::master);
+                // if (!slotComp->isResizeSlot())
+                // sceneState.removeComponent(slotUuid, UUID::master);
             }
             parent->setScaleDirty();
         } else if (parent->getInputSlotsCount() < inSlotsInfo.count) {
@@ -269,8 +270,12 @@ namespace Bess::Pages {
         const auto &slotCompA = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(e.slotAId);
         const auto &slotCompB = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(e.slotBId);
 
-        auto processSlot = [&](const std::shared_ptr<Canvas::SlotSceneComponent> &slotComp) {
-            auto parentComp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(slotComp->getParentComponent());
+        auto processSlot = [&](const std::shared_ptr<Canvas::SlotSceneComponent> &slotComp) -> bool {
+            // Can be a joint as well so checking for slot explicitly
+            if (slotComp->getType() != Canvas::SceneComponentType::slot)
+                return false;
+
+            const auto parentComp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(slotComp->getParentComponent());
             BESS_ASSERT(parentComp, std::format("[Scene] Parent component with uuid {} not found for slot {}",
                                                 (uint64_t)slotComp->getParentComponent(),
                                                 (uint64_t)slotComp->getUuid()));
@@ -291,7 +296,7 @@ namespace Bess::Pages {
                                         : def->getOutputSlotsInfo();
 
             if (!slotsInfo.isResizeable)
-                return;
+                return false;
 
             const auto prevCount = slotsInfo.count;
             const auto idx = slotComp->getIndex();
@@ -299,35 +304,72 @@ namespace Bess::Pages {
 
             // do not remove if not last slot or if it's the only slot
             if (idx == 0 || !isLastSlot)
-                return;
+                return false;
 
             if (isInputSlot) {
                 const auto newCount = digitalComp->decrementInputCount();
-
-                if (newCount == prevCount)
-                    return;
 
                 parentComp->getInputSlots().erase(std::remove(parentComp->getInputSlots().begin(),
                                                               parentComp->getInputSlots().end(),
                                                               slotComp->getUuid()),
                                                   parentComp->getInputSlots().end());
+
+                return newCount != prevCount;
+
             } else {
                 const auto newCount = digitalComp->decrementOutputCount();
-
-                if (newCount == prevCount)
-                    return;
 
                 parentComp->getOutputSlots().erase(std::remove(parentComp->getOutputSlots().begin(),
                                                                parentComp->getOutputSlots().end(),
                                                                slotComp->getUuid()),
                                                    parentComp->getOutputSlots().end());
+
+                return newCount != prevCount;
             }
         };
 
+        std::vector<UUID> slotsToRemove;
+
         // can be a joint as well so checking for slot explicitly
-        if (slotCompA && slotCompA->getType() == Canvas::SceneComponentType::slot)
-            processSlot(slotCompA);
-        if (slotCompB && slotCompB->getType() == Canvas::SceneComponentType::slot)
-            processSlot(slotCompB);
+        if (slotCompA && processSlot(slotCompA)) {
+            slotsToRemove.push_back(slotCompA->getUuid());
+        }
+
+        if (slotCompB && processSlot(slotCompB)) {
+            slotsToRemove.push_back(slotCompB->getUuid());
+        }
+
+        if (slotsToRemove.empty())
+            return;
+
+        const auto onUndoRedo = [this, &sceneState](bool isUndo, const std::vector<std::shared_ptr<Canvas::SceneComponent>> &comps) {
+            for (const auto &comp : comps) {
+                auto parentComp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
+                    comp->getParentComponent());
+                const auto &slotComp = comp->template cast<Canvas::SlotSceneComponent>();
+                if (slotComp->getSlotType() == Canvas::SlotType::digitalInput) {
+                    if (isUndo) {
+                        parentComp->addInputSlot(comp->getUuid(), true);
+                    } else {
+                        parentComp->getInputSlots().erase(std::remove(parentComp->getInputSlots().begin(),
+                                                                      parentComp->getInputSlots().end(),
+                                                                      slotComp->getUuid()),
+                                                          parentComp->getInputSlots().end());
+                    }
+                } else {
+                    if (isUndo) {
+                        parentComp->addOutputSlot(comp->getUuid(), true);
+                    } else {
+                        parentComp->getOutputSlots().erase(std::remove(parentComp->getOutputSlots().begin(),
+                                                                       parentComp->getOutputSlots().end(),
+                                                                       slotComp->getUuid()),
+                                                           parentComp->getOutputSlots().end());
+                    }
+                }
+            }
+        };
+
+        auto delCmd = std::make_unique<Cmd::DeleteCompCmd>(slotsToRemove, onUndoRedo);
+        m_commandSystem.execute(std::move(delCmd));
     }
 } // namespace Bess::Pages
