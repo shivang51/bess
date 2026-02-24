@@ -344,7 +344,7 @@ namespace Bess::Canvas {
     }
 
     void Scene::onRightMouse(bool isPressed) {
-        EventSystem::EventDispatcher::instance().dispatch(
+        EventSystem::EventDispatcher::instance().queue(
             Events::MouseButtonEvent{toScenePos(m_mousePos),
                                      Events::MouseButton::right,
                                      isPressed
@@ -355,7 +355,7 @@ namespace Bess::Canvas {
 
     void Scene::onMiddleMouse(bool isPressed) {
         m_isMiddleMousePressed = isPressed;
-        EventSystem::EventDispatcher::instance().dispatch(
+        EventSystem::EventDispatcher::instance().queue(
             Events::MouseButtonEvent{toScenePos(m_mousePos),
                                      Events::MouseButton::middle,
                                      isPressed
@@ -365,7 +365,7 @@ namespace Bess::Canvas {
     }
 
     void Scene::onLeftDoubleClick() {
-        EventSystem::EventDispatcher::instance().dispatch(
+        EventSystem::EventDispatcher::instance().queue(
             Events::MouseButtonEvent{toScenePos(m_mousePos),
                                      Events::MouseButton::left,
                                      Events::MouseClickAction::doubleClick,
@@ -384,7 +384,7 @@ namespace Bess::Canvas {
     void Scene::onLeftMouse(bool isPressed) {
         m_isLeftMousePressed = isPressed;
 
-        EventSystem::EventDispatcher::instance().dispatch(
+        EventSystem::EventDispatcher::instance().queue(
             Events::MouseButtonEvent{toScenePos(m_mousePos),
                                      Events::MouseButton::left,
                                      isPressed

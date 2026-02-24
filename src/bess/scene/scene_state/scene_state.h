@@ -47,7 +47,7 @@ namespace Bess::Canvas {
                 component->onAttach(*this);
 
             if (dispatchEvent)
-                EventSystem::EventDispatcher::instance().dispatch(
+                EventSystem::EventDispatcher::instance().queue(
                     Events::ComponentAddedEvent{.uuid = id,
                                                 .type = component->getType()});
         }

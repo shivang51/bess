@@ -52,7 +52,7 @@ namespace Bess::SimEngine {
             state.outputConnected.resize(newOutputCount, false);
             outputConnections.resize(newOutputCount);
 
-            EventSystem::EventDispatcher::instance().dispatch(
+            EventSystem::EventDispatcher::instance().queue(
                 Events::CompDefOutputsResizedEvent{this->id});
         } else if (growthPolicy == CompDefIOGrowthPolicy::eq &&
                    definition->getOutputSlotsInfo().count !=
@@ -60,7 +60,7 @@ namespace Bess::SimEngine {
             incrementOutputCount();
         }
 
-        EventSystem::EventDispatcher::instance().dispatch(
+        EventSystem::EventDispatcher::instance().queue(
             Events::CompDefInputsResizedEvent{this->id});
 
         definition->computeHash();
@@ -92,7 +92,7 @@ namespace Bess::SimEngine {
             incrementInputCount();
         }
 
-        EventSystem::EventDispatcher::instance().dispatch(
+        EventSystem::EventDispatcher::instance().queue(
             Events::CompDefOutputsResizedEvent{this->id});
         return definition->getOutputSlotsInfo().count;
     }
@@ -125,7 +125,7 @@ namespace Bess::SimEngine {
             state.outputConnected.resize(newOutputCount, false);
             outputConnections.resize(newOutputCount);
 
-            EventSystem::EventDispatcher::instance().dispatch(
+            EventSystem::EventDispatcher::instance().queue(
                 Events::CompDefOutputsResizedEvent{this->id});
         } else if (growthPolicy == CompDefIOGrowthPolicy::eq &&
                    definition->getOutputSlotsInfo().count !=
@@ -133,7 +133,7 @@ namespace Bess::SimEngine {
             decrementOutputCount();
         }
         definition->computeHash();
-        EventSystem::EventDispatcher::instance().dispatch(
+        EventSystem::EventDispatcher::instance().queue(
             Events::CompDefInputsResizedEvent{this->id});
         return definition->getInputSlotsInfo().count;
     }
@@ -157,7 +157,7 @@ namespace Bess::SimEngine {
             decrementInputCount();
         }
 
-        EventSystem::EventDispatcher::instance().dispatch(
+        EventSystem::EventDispatcher::instance().queue(
             Events::CompDefOutputsResizedEvent{this->id});
 
         return definition->getOutputSlotsInfo().count;

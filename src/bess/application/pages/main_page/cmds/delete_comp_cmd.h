@@ -179,7 +179,7 @@ namespace Bess::Cmd {
                 auto connComp = comp->cast<Canvas::ConnectionSceneComponent>();
                 Canvas::Events::ConnectionRemovedEvent event{connComp->getStartSlot(),
                                                              connComp->getEndSlot()};
-                EventSystem::EventDispatcher::instance().dispatch(event);
+                EventSystem::EventDispatcher::instance().queue(event);
             }
 
             return !m_deletedComponents.empty();
@@ -258,7 +258,7 @@ namespace Bess::Cmd {
                 auto connComp = comp->cast<Canvas::ConnectionSceneComponent>();
                 Canvas::Events::ConnectionRemovedEvent event{connComp->getStartSlot(),
                                                              connComp->getEndSlot()};
-                EventSystem::EventDispatcher::instance().dispatch(event);
+                EventSystem::EventDispatcher::instance().queue(event);
             }
         }
 

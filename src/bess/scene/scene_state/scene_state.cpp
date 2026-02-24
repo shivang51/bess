@@ -111,7 +111,7 @@ namespace Bess::Canvas {
         BESS_INFO("[SceneState] Attached component {} to parent component {}",
                   (uint64_t)childId, (uint64_t)parentId);
 
-        EventSystem::EventDispatcher::instance().dispatch(
+        EventSystem::EventDispatcher::instance().queue(
             Events::EntityReparentedEvent{childId, parentId, prevParentId});
 
         m_rootComponents.erase(childId);
@@ -134,7 +134,7 @@ namespace Bess::Canvas {
         BESS_INFO("[SceneState] Detached component {} from parent component {}",
                   (uint64_t)childId, (uint64_t)parentId);
 
-        EventSystem::EventDispatcher::instance().dispatch(
+        EventSystem::EventDispatcher::instance().queue(
             Events::EntityReparentedEvent{childId, UUID::null, parentId});
 
         m_rootComponents.insert(childId);
@@ -220,7 +220,7 @@ namespace Bess::Canvas {
             }
         }
 
-        EventSystem::EventDispatcher::instance().dispatch(
+        EventSystem::EventDispatcher::instance().queue(
             Events::ComponentRemovedEvent{uuid,
                                           component->getType()});
 
@@ -239,7 +239,7 @@ namespace Bess::Canvas {
 
         BESS_INFO("[SceneState] Orphaned component {}", (uint64_t)uuid);
 
-        EventSystem::EventDispatcher::instance().dispatch(
+        EventSystem::EventDispatcher::instance().queue(
             Events::EntityReparentedEvent{uuid, UUID::null, parentId});
     }
 

@@ -33,7 +33,7 @@ namespace Bess::Canvas {
         void onMouseDragEnd() override {
             m_isDragging = false;
             auto &self = static_cast<Derived &>(*this);
-            EventSystem::EventDispatcher::instance().dispatch(Events::EntityMovedEvent{
+            EventSystem::EventDispatcher::instance().queue(Events::EntityMovedEvent{
                 .entityUuid = static_cast<const Derived &>(*this).getUuid(),
                 .oldPos = m_dragStartPos,
                 .newPos = self.getTransform().position,
