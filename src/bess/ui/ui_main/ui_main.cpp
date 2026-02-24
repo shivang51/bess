@@ -1,6 +1,7 @@
 #include "ui/ui_main/ui_main.h"
 #include "application/application_state.h"
 #include "common/logger.h"
+#include "debug_panel.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/main_page.h"
@@ -35,83 +36,6 @@ namespace Bess::UI {
         ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
         ImGuiWindowFlags_NoDecoration;
 
-#ifdef DEBUG
-    void drawDebugWindow() {
-
-        auto &mainPageState = Pages::MainPage::getInstance()->getState();
-
-        auto &sceneDriver = mainPageState.getSceneDriver();
-        const auto &sceneState = sceneDriver->getState();
-
-        ImGui::Begin("Debug Window");
-
-        ImGui::Text("Active Scene: %lu", sceneDriver.getActiveSceneIdx());
-
-        ImGui::SameLine();
-        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-        ImGui::SameLine();
-
-        ImGui::Text("Scene Count: %lu", sceneDriver.getSceneCount());
-
-        ImGui::SameLine();
-        if (ImGui::Button("Prev-Scene")) {
-            size_t activeScene = sceneDriver.getActiveSceneIdx();
-            if (activeScene > 0) {
-                sceneDriver.setActiveScene(activeScene - 1);
-            }
-        }
-
-        ImGui::SameLine();
-
-        if (ImGui::Button("Next-Scene")) {
-            size_t activeScene = sceneDriver.getActiveSceneIdx();
-            if (activeScene < sceneDriver.getSceneCount() - 1) {
-                sceneDriver.setActiveScene(activeScene + 1);
-            }
-        }
-
-        if (Widgets::TreeNode(0, "Selected components")) {
-            const auto &selComps = sceneState.getSelectedComponents();
-            ImGui::Indent();
-            for (const auto &[compId, selected] : selComps) {
-                ImGui::BulletText("%lu", (uint64_t)compId);
-            }
-            ImGui::Unindent();
-            ImGui::TreePop();
-        }
-
-        if (Widgets::TreeNode(1, "Connections")) {
-            ImGui::Indent();
-            const auto &connections = sceneState.getAllComponentConnections();
-            for (const auto &[compId, connIds] : connections) {
-
-                ImGui::Text("Component %lu", (uint64_t)compId);
-                ImGui::Indent();
-                for (const auto &connId : connIds) {
-                    ImGui::BulletText("%lu", (uint64_t)connId);
-                }
-                ImGui::Unindent();
-            }
-            ImGui::Unindent();
-            ImGui::TreePop();
-        }
-
-        if (Widgets::TreeNode(2, "First Sim Component Serilaized")) {
-            const auto &selComps = sceneState.getSelectedComponents();
-            if (!selComps.empty()) {
-                const auto &compId = selComps.begin()->first;
-                const auto &comp = sceneState.getComponentByUuid(compId);
-
-                const auto &j = comp->toJson();
-                ImGui::TextWrapped("%s", j.toStyledString().c_str());
-            }
-            ImGui::TreePop();
-        }
-
-        ImGui::End();
-    }
-#endif
-
     void UIMain::draw() {
         static bool firstTime = true;
         if (firstTime) {
@@ -119,13 +43,17 @@ namespace Bess::UI {
             m_pageState = &Pages::MainPage::getInstance()->getState();
             resetDockspace();
         }
+
+        for (auto &panel : getPanels()) {
+            if (panel->isVisible()) {
+                panel->render();
+            }
+        }
+
         drawMenubar();
         drawViewport();
         drawStatusbar();
         drawExternalWindows();
-#ifdef DEBUG
-        drawDebugWindow();
-#endif
 
         if (m_pageState->actionFlags.saveProject) {
             onSaveProject();
@@ -499,7 +427,45 @@ namespace Bess::UI {
     }
 
     void UIMain::destroy() {
+        for (auto &panel : getPanels()) {
+            panel->hide();
+            panel->destroy();
+        }
+
+        getPanels().clear();
+        getPreInitCallbacks().clear();
+
         state = UIState{};
         m_pageState = nullptr;
+    }
+
+    void UIMain::init() {
+        preInit();
+
+        for (auto &panel : getPanels()) {
+            panel->init();
+            panel->show();
+        }
+    }
+    void UIMain::onPreInit(const PreInitCallback &callback) {
+        getPreInitCallbacks().push_back(callback);
+    }
+
+    void UIMain::preInit() {
+        for (const auto &callback : getPreInitCallbacks()) {
+            callback();
+        }
+
+        registerPanel<DebugPanel>();
+    }
+
+    std::vector<std::unique_ptr<Panel>> &UIMain::getPanels() {
+        static std::vector<std::unique_ptr<Panel>> m_panels;
+        return m_panels;
+    }
+
+    std::vector<PreInitCallback> &UIMain::getPreInitCallbacks() {
+        static std::vector<PreInitCallback> s_preInitCallbacks;
+        return s_preInitCallbacks;
     }
 } // namespace Bess::UI

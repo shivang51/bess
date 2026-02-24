@@ -75,6 +75,8 @@ namespace Bess::Pages {
         REG_TO_SER_REGISTRY(Canvas::SlotSceneComponent);
         REG_TO_SER_REGISTRY(Canvas::TextComponent);
 
+        UI::UIMain::init();
+
         BESS_DEBUG("MainPage created successfully");
     }
 
