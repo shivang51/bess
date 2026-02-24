@@ -95,7 +95,7 @@ namespace Bess::Canvas {
         BESS_ASSERT(parent && child, "Parent or child was not found");
 
         auto prevParentId = child->getParentComponent();
-        if (prevParentId != UUID::null) {
+        if (prevParentId != UUID::null && prevParentId != parentId) {
             auto prevParent = getComponentByUuid(prevParentId);
             prevParent->removeChildComponent(childId);
         }

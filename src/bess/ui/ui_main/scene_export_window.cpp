@@ -31,6 +31,7 @@ namespace Bess::UI {
         defaultExportPath /= "bess";
         exportPath = homeDir / defaultExportPath;
         m_showInMenuBar = false;
+        m_defaultDock = Dock::none;
     }
 
     void SceneExportWindow::onDraw() {
