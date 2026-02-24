@@ -11,6 +11,9 @@ namespace Bess::UI {
         Icons::CodIcons::HISTORY, "  Log Window");
 
     LogWindow::LogWindow() : Panel(std::string(windowName.data())) {
+#ifdef DEBUG
+        m_visible = true;
+#endif
     }
 
     void LogWindow::drawControls() {

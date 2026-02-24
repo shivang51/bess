@@ -57,7 +57,6 @@ namespace Bess::UI {
         static void drawStatusbar();
         static void drawViewport();
         static void resetDockspace();
-        static void drawExternalWindows();
         static void onOpenProject();
         static void onSaveProject();
 

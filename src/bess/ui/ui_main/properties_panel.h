@@ -1,15 +1,11 @@
 #pragma once
 
-#include "common/helpers.h"
-#include "ui/icons/CodIcons.h"
+#include "ui_panel.h"
 
 namespace Bess::UI {
-    class PropertiesPanel {
+    class PropertiesPanel : public Panel {
       public:
-        static constexpr auto windowName = Common::Helpers::concat(
-            Icons::CodIcons::SYMBOL_PROPERTY, "  Properties");
-        static void draw();
-
-        static bool isShown;
+        PropertiesPanel();
+        void onDraw() override;
     };
 } // namespace Bess::UI

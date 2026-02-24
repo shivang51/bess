@@ -1,24 +1,21 @@
 #include "truth_table_window.h"
+#include "common/helpers.h"
 #include "imgui.h"
 #include "pages/main_page/main_page.h"
 #include "simulation_engine.h"
 #include "types.h"
+#include "ui/icons/FontAwesomeIcons.h"
 #include "ui/widgets/m_widgets.h"
 
 namespace Bess::UI {
 
-    void TruthTableWindow::draw() {
-        if (!isShown)
-            return;
+    static constexpr auto windowName = Common::Helpers::concat(Icons::FontAwesomeIcons::FA_TABLE,
+                                                               "  Truth Table Viewer");
 
-        static constexpr auto tableFlags = ImGuiTableFlags_Borders |
-                                           ImGuiTableFlags_RowBg |
-                                           ImGuiTableFlags_SizingStretchProp |
-                                           ImGuiTableFlags_Resizable |
-                                           ImGuiTableFlags_Reorderable;
+    TruthTableWindow::TruthTableWindow() : Panel(std::string(windowName.data())) {
+    }
 
-        ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
-
+    void TruthTableWindow::onDraw() {
         const auto &mainPageState = Pages::MainPage::getInstance()->getState();
 
         if (Widgets::ComboBox("Select Net",
@@ -43,6 +40,11 @@ namespace Bess::UI {
             if (!currentTruthTable.table.empty()) {
                 char inp = 'A';
                 char out = 'M';
+                static constexpr auto tableFlags = ImGuiTableFlags_Borders |
+                                                   ImGuiTableFlags_RowBg |
+                                                   ImGuiTableFlags_SizingStretchProp |
+                                                   ImGuiTableFlags_Resizable |
+                                                   ImGuiTableFlags_Reorderable;
                 if (ImGui::BeginTable("TruthTable", (int)currentTruthTable.table[0].size(), tableFlags)) {
                     for (auto &compId : currentTruthTable.inputUuids) {
                         ImGui::TableSetupColumn(std::format("{}", inp++).c_str());
@@ -53,10 +55,10 @@ namespace Bess::UI {
                     }
 
                     ImGui::TableHeadersRow();
-                    for (int row = 0; row < currentTruthTable.table.size(); row++) {
+                    for (auto &row : currentTruthTable.table) {
                         for (int column = 0; column < currentTruthTable.table[0].size(); column++) {
                             ImGui::TableNextColumn();
-                            const auto &state = currentTruthTable.table[row][column];
+                            const auto &state = row[column];
                             int value = state == SimEngine::LogicState::low
                                             ? 0
                                             : (state == SimEngine::LogicState::high
@@ -71,16 +73,5 @@ namespace Bess::UI {
         } else {
             ImGui::Text("Please select a net to view its truth table.");
         }
-
-        ImGui::End();
     }
-
-    bool TruthTableWindow::isShown = false;
-    bool TruthTableWindow::isfirstTimeDraw = true;
-    std::string *TruthTableWindow::selectedNetName = nullptr;
-    UUID TruthTableWindow::selectedNetId = UUID::null;
-    bool TruthTableWindow::isDirty = true;
-    SimEngine::TruthTable TruthTableWindow::currentTruthTable;
-    std::unordered_map<UUID, std::string> TruthTableWindow::compIdToNameMap;
-
 } // namespace Bess::UI

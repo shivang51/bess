@@ -5,15 +5,19 @@
 #include "ui/widgets/m_widgets.h"
 
 namespace Bess::UI {
-    void ProjectSettingsWindow::draw() {
-        if (!m_shown)
-            return;
+    ProjectSettingsWindow::ProjectSettingsWindow() : Panel("Project Settings") {
+        m_showInMenuBar = false;
+        m_defaultDock = Dock::none;
+    }
+
+    void ProjectSettingsWindow::onBeforeDraw() {
+        ImGui::SetNextWindowSize(ImVec2(400, 200), ImGuiCond_FirstUseEver);
+    }
+
+    void ProjectSettingsWindow::onDraw() {
         const float buttonHeight = ImGui::GetFrameHeight();
         const float textHeight = ImGui::CalcTextSize("ajP").y;
         const float verticalOffset = (buttonHeight - textHeight) / 2.0f;
-
-        ImGui::SetNextWindowSize(ImVec2(400, 200), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Project Settings", &m_shown);
 
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + verticalOffset);
         ImGui::Text("Project Name");
@@ -39,25 +43,10 @@ namespace Bess::UI {
             m_projectFile->getNameRef() = m_projectName;
             m_projectFile->save();
         }
-        ImGui::End();
     }
 
-    void ProjectSettingsWindow::show() {
+    void ProjectSettingsWindow::onShow() {
         m_projectFile = Pages::MainPage::getInstance()->getState().getCurrentProjectFile();
         m_projectName = m_projectFile->getName();
-        m_shown = true;
     }
-
-    void ProjectSettingsWindow::hide() {
-        m_shown = false;
-    }
-
-    bool ProjectSettingsWindow::isShown() {
-        return m_shown;
-    }
-
-    bool ProjectSettingsWindow::m_shown = false;
-    std::string ProjectSettingsWindow::m_projectName;
-    std::shared_ptr<ProjectFile> ProjectSettingsWindow::m_projectFile;
-
 } // namespace Bess::UI

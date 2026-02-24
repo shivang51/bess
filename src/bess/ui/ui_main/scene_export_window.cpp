@@ -1,10 +1,8 @@
 #include "ui/ui_main/scene_export_window.h"
-#include "common/bess_assert.h"
 #include "common/logger.h"
 #include "imgui.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
-#include "scene/scene.h"
 #include "scene/viewport.h"
 #include "settings/viewport_theme.h"
 #include "ui/icons/FontAwesomeIcons.h"
@@ -21,30 +19,82 @@
 #include <vulkan/vulkan_core.h>
 
 namespace Bess::UI {
-    bool SceneExportWindow::m_shown = false;
-    bool SceneExportWindow::m_firstDraw = false;
 
-    // JUST TEMP CODE, WILL CHANGE LATER
+    SceneExportWindow::SceneExportWindow()
+        : Panel("Scene Export Window"), defaultExportPath("Pictures") {
+#ifdef _WIN32
+        const std::filsystem::path homeDir = std::getenv("USERPROFILE");
+#else
+        const std::filesystem::path homeDir = std::getenv("HOME");
+#endif
 
-    struct SceneBounds {
-        glm::vec2 min, max;
-    };
+        defaultExportPath /= "bess";
+        exportPath = homeDir / defaultExportPath;
+        m_showInMenuBar = false;
+    }
 
-    struct SceneSnapsInfo {
-        glm::ivec2 count;
-        glm::vec2 span;
-        glm::vec2 size;
-    };
+    void SceneExportWindow::onDraw() {
+        const float buttonHeight = ImGui::GetFrameHeight();
+        const float textHeight = ImGui::CalcTextSize("ajP").y;
+        const float verticalOffset = (buttonHeight - textHeight) / 2.0f;
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + verticalOffset);
+        ImGui::Text("File Name");
+        ImGui::SameLine();
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - verticalOffset);
+        Widgets::TextBox("##File Name", fileName);
+        ImGui::SameLine();
+        ImGui::TextDisabled(".png");
 
-    struct SceneExportInfo {
-        SceneBounds sceneBounds;
-        SceneSnapsInfo snapsInfo;
-        float scale;
-        glm::ivec2 imgSize;
-        std::filesystem::path path;
-    };
+        ImGui::Spacing();
+        {
+            Widgets::TextBox("##Export Path", exportPath);
+            ImGui::SameLine();
+            if (ImGui::SmallButton(UI::Icons::FontAwesomeIcons::FA_FOLDER_OPEN)) {
+                const auto sel = Dialogs::showSelectPathDialog("Path to save");
+                if (sel.size() > 0)
+                    exportPath = sel;
+            }
+        }
 
-    SceneBounds computeSceneBounds() {
+        ImGui::Spacing();
+        if (ImGui::SliderInt("Scale", &zoom, 1, 4)) {
+            imgSize = getSceneExportInfo(sceneBounds, (float)zoom).imgSize;
+        }
+
+        ImGui::TextDisabled("Image Size %lux%lu px.", (uint64_t)imgSize.x, (uint64_t)imgSize.y);
+
+        ImGui::Spacing();
+        ImGui::Spacing();
+
+        if (ImGui::Button("Start Export")) {
+            auto info = getSceneExportInfo(sceneBounds, (float)zoom);
+            info.path = exportPath;
+            info.path /= fileName + ".png";
+            exportScene(info);
+        }
+    }
+
+    void SceneExportWindow::onShow() {
+        exportPath = std::filesystem::absolute(exportPath);
+        if (!std::filesystem::exists(exportPath))
+            std::filesystem::create_directories(exportPath);
+
+        const auto &mainPage = Pages::MainPage::getInstance()->getState();
+
+        const auto now = std::chrono::system_clock::now();
+        const std::chrono::zoned_time localTime{std::chrono::current_zone(), now};
+
+        fileName = std::format("{}_{:%Y-%m-%d_%H:%M:%S}", mainPage.getCurrentProjectFile()->getName(), localTime);
+
+        sceneBounds = computeSceneBounds();
+        imgSize = getSceneExportInfo(sceneBounds, (float)zoom).imgSize;
+    }
+
+    void SceneExportWindow::onBeforeDraw() {
+        ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_FirstUseEver);
+    }
+
+    SceneBounds SceneExportWindow::computeSceneBounds() {
         glm::vec2 min, max;
         bool first = true;
         auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
@@ -66,7 +116,7 @@ namespace Bess::UI {
         return {min, max};
     }
 
-    SceneExportInfo getSceneExportInfo(const SceneBounds &bounds, float zoom) {
+    SceneExportInfo SceneExportWindow::getSceneExportInfo(const SceneBounds &bounds, float zoom) {
         auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
         auto size = scene->getSize();
         std::shared_ptr<Camera> camera = std::make_shared<Camera>(size.x, size.y);
@@ -99,7 +149,7 @@ namespace Bess::UI {
     }
 
     /// will move this to separate thread when vulkan is integrated
-    void exportScene(const SceneExportInfo &info) {
+    void SceneExportWindow::exportScene(const SceneExportInfo &info) {
         const auto &size = info.snapsInfo.size;
         const auto &sceneBounds = info.sceneBounds;
         const auto &min = sceneBounds.min;
@@ -197,95 +247,4 @@ namespace Bess::UI {
 
         BESS_INFO("[ExportSceneView] Successfully saved file to {}", path.string());
     }
-
-    SceneBounds sceneBounds;
-    glm::vec2 imgSize;
-    void SceneExportWindow::draw() {
-        if (!m_shown)
-            return;
-
-#ifdef _WIN32
-        static std::filsystem::path homeDir = std::getenv("USERPROFILE");
-#else
-        static std::filesystem::path homeDir = std::getenv("HOME");
-#endif
-
-        static std::string fileName = "bess_scene_export";
-        static std::string exportPath = homeDir / "Pictures" / "bess";
-        static int zoom = 4;
-
-        if (m_firstDraw) {
-            exportPath = std::filesystem::absolute(exportPath);
-            if (!std::filesystem::exists(exportPath))
-                std::filesystem::create_directories(exportPath);
-
-            const auto &mainPage = Pages::MainPage::getInstance()->getState();
-
-            const auto now = std::chrono::system_clock::now();
-            const std::chrono::zoned_time localTime{std::chrono::current_zone(), now};
-
-            fileName = std::format("{}_{:%Y-%m-%d_%H:%M:%S}", mainPage.getCurrentProjectFile()->getName(), localTime);
-
-            sceneBounds = computeSceneBounds();
-            imgSize = getSceneExportInfo(sceneBounds, (float)zoom).imgSize;
-        }
-
-        ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Export scene as PNG", &m_shown);
-
-        {
-            const float buttonHeight = ImGui::GetFrameHeight();
-            const float textHeight = ImGui::CalcTextSize("ajP").y;
-            const float verticalOffset = (buttonHeight - textHeight) / 2.0f;
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + verticalOffset);
-            ImGui::Text("File Name");
-            ImGui::SameLine();
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - verticalOffset);
-            Widgets::TextBox("##File Name", fileName);
-            ImGui::SameLine();
-            ImGui::TextDisabled(".png");
-        }
-
-        ImGui::Spacing();
-        {
-            Widgets::TextBox("##Export Path", exportPath);
-            ImGui::SameLine();
-            if (ImGui::SmallButton(UI::Icons::FontAwesomeIcons::FA_FOLDER_OPEN)) {
-                const auto sel = Dialogs::showSelectPathDialog("Path to save");
-                if (sel.size() > 0)
-                    exportPath = sel;
-            }
-        }
-
-        ImGui::Spacing();
-        if (ImGui::SliderInt("Scale", &zoom, 1, 4)) {
-            imgSize = getSceneExportInfo(sceneBounds, (float)zoom).imgSize;
-        }
-
-        ImGui::TextDisabled("Image Size %lux%lu px.", (uint64_t)imgSize.x, (uint64_t)imgSize.y);
-
-        ImGui::Spacing();
-        ImGui::Spacing();
-
-        if (ImGui::Button("Start Export")) {
-            auto info = getSceneExportInfo(sceneBounds, (float)zoom);
-            info.path = exportPath;
-            info.path /= fileName + ".png";
-            exportScene(info);
-        }
-
-        ImGui::End();
-
-        m_firstDraw = false;
-    }
-
-    void SceneExportWindow::show() {
-        m_shown = true;
-        m_firstDraw = true;
-    }
-
-    bool SceneExportWindow::isShown() {
-        return m_shown;
-    }
-
 } // namespace Bess::UI

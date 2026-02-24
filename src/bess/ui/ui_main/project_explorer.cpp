@@ -18,6 +18,14 @@
 #include <ranges>
 
 namespace Bess::UI {
+    static constexpr auto windowName = Common::Helpers::concat(
+        Icons::CodIcons::SYMBOL_CLASS, "  Project Explorer");
+
+    ProjectExplorer::ProjectExplorer() : Panel(std::string(windowName.data())) {
+        m_defaultDock = Dock::left;
+        m_visible = true;
+    }
+
     template <typename Func>
     void HandleNodeDropTarget(Func op) {
         if (ImGui::BeginDragDropTarget()) {
@@ -422,12 +430,5 @@ namespace Bess::UI {
         }
 
         return count;
-    }
-
-    static constexpr auto windowName = Common::Helpers::concat(
-        Icons::CodIcons::SYMBOL_CLASS, "  Project Explorer");
-
-    ProjectExplorer::ProjectExplorer() : Panel(std::string(windowName.data())) {
-        m_defaultDock = Dock::left;
     }
 } // namespace Bess::UI

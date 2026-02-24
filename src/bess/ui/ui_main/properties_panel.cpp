@@ -1,5 +1,6 @@
 #include "ui/ui_main/properties_panel.h"
 #include "application/pages/main_page/main_page.h"
+#include "common/helpers.h"
 #include "gtc/type_ptr.hpp"
 #include "imgui_internal.h"
 #include "init_components.h"
@@ -9,6 +10,7 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "simulation_engine.h"
+#include "ui/icons/CodIcons.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/widgets/m_widgets.h"
 #include <imgui.h>
@@ -16,7 +18,13 @@
 #include <algorithm>
 
 namespace Bess::UI {
-    bool PropertiesPanel::isShown = true;
+    static constexpr auto windowName = Common::Helpers::concat(
+        Icons::CodIcons::SYMBOL_PROPERTY, "  Properties");
+
+    PropertiesPanel::PropertiesPanel() : Panel(std::string(windowName.data())) {
+        m_defaultDock = Dock::right;
+        m_visible = true;
+    }
 
     bool MyCollapsingHeader(const char *label) {
         const ImGuiContext &g = *ImGui::GetCurrentContext();
@@ -82,15 +90,10 @@ namespace Bess::UI {
         }
     }
 
-    void PropertiesPanel::draw() {
-        if (!isShown)
-            return;
-
-        ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
+    void PropertiesPanel::onDraw() {
         auto &sceneState = Pages::MainPage::getInstance()->getState().getSceneDriver()->getState();
         if (sceneState.getSelectedComponents().empty()) {
             ImGui::TextUnformatted("No component selected.");
-            ImGui::End();
             return;
         }
 
@@ -140,7 +143,5 @@ namespace Bess::UI {
             auto nsComp = comp->cast<Canvas::NonSimSceneComponent>();
             nsComp->getUIHook().draw();
         }
-
-        ImGui::End();
     }
 } // namespace Bess::UI

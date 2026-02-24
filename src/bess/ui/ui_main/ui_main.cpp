@@ -52,7 +52,6 @@ namespace Bess::UI {
         drawMenubar();
         drawViewport();
         drawStatusbar();
-        drawExternalWindows();
 
         auto &pageState = Pages::MainPage::getInstance()->getState();
         if (pageState.actionFlags.saveProject) {
@@ -180,7 +179,7 @@ namespace Bess::UI {
             temp_name = Icons::FontAwesomeIcons::FA_PENCIL_ALT;
             temp_name += "  Prefrences";
             if (ImGui::MenuItem(temp_name.c_str())) {
-                SettingsWindow::show();
+                getPanel<SettingsWindow>()->show();
             }
 
             temp_name = Icons::FontAwesomeIcons::FA_FILE_EXPORT;
@@ -189,7 +188,7 @@ namespace Bess::UI {
                 temp_name = Icons::FontAwesomeIcons::FA_FILE_IMAGE;
                 temp_name += "  Scene View PNG";
                 if (ImGui::MenuItem(temp_name.c_str())) {
-                    SceneExportWindow::show();
+                    getPanel<SceneExportWindow>()->show();
                 }
                 ImGui::EndMenu();
             }
@@ -226,7 +225,7 @@ namespace Bess::UI {
 
             icon = Icons::FontAwesomeIcons::FA_WRENCH;
             if (ImGui::MenuItem((icon + "  Project Settings").c_str(), "Ctrl+P")) {
-                ProjectSettingsWindow::show();
+                getPanel<ProjectSettingsWindow>()->show();
             }
 
             ImGui::EndMenu();
@@ -234,10 +233,6 @@ namespace Bess::UI {
 
         ImGui::SetNextWindowSize(ImVec2(300, 0));
         if (ImGui::BeginMenu("View")) {
-
-            Widgets::CheckboxWithLabel(PropertiesPanel::windowName.data(), &PropertiesPanel::isShown);
-
-            Widgets::CheckboxWithLabel(TruthTableWindow::windowName.data(), &TruthTableWindow::isShown);
 
             for (auto &panel : getPanels()) {
                 if (panel->getShowInMenuBar()) {
@@ -395,9 +390,6 @@ namespace Bess::UI {
         DockIds[Dock::bottom] = dockIdBot;
 
         ImGui::DockBuilderDockWindow("MainViewport", mainDockspaceId);
-        ImGui::DockBuilderDockWindow(PropertiesPanel::windowName.data(), dockIdRight);
-        ImGui::DockBuilderDockWindow(TruthTableWindow::windowName.data(), dockIdBot);
-        ImGui::DockBuilderDockWindow("Debug Window", dockIdBot);
 
         for (auto &panel : getPanels()) {
             if (panel->getDefaultDock() == Dock::none)
@@ -408,14 +400,6 @@ namespace Bess::UI {
         }
 
         ImGui::DockBuilderFinish(mainDockspaceId);
-    }
-
-    void UIMain::drawExternalWindows() {
-        SettingsWindow::draw();
-        ProjectSettingsWindow::draw();
-        SceneExportWindow::draw();
-        PropertiesPanel::draw();
-        TruthTableWindow::draw();
     }
 
     void UIMain::onNewProject() {
@@ -473,7 +457,6 @@ namespace Bess::UI {
 
         for (auto &panel : getPanels()) {
             panel->init();
-            panel->show();
         }
     }
     void UIMain::onPreInit(const PreInitCallback &callback) {
@@ -490,6 +473,11 @@ namespace Bess::UI {
         registerPanel<GraphViewWindow>();
         registerPanel<LogWindow>();
         registerPanel<ProjectExplorer>();
+        registerPanel<PropertiesPanel>();
+        registerPanel<ProjectSettingsWindow>();
+        registerPanel<SceneExportWindow>();
+        registerPanel<SettingsWindow>();
+        registerPanel<TruthTableWindow>();
     }
 
     std::vector<std::shared_ptr<Panel>> &UIMain::getPanels() {

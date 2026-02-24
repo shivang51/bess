@@ -3,19 +3,20 @@
 #include <string>
 
 #include "application/project_file.h"
+#include "ui_panel.h"
 
 namespace Bess::UI {
-    class ProjectSettingsWindow {
+    class ProjectSettingsWindow : public Panel {
       public:
-        static void hide();
-        static void show();
-        static void draw();
+        ProjectSettingsWindow();
 
-        static bool isShown();
+        void onBeforeDraw() override;
+        void onDraw() override;
+
+        void onShow() override;
 
       private:
-        static bool m_shown;
-        static std::string m_projectName;
-        static std::shared_ptr<ProjectFile> m_projectFile;
+        std::string m_projectName;
+        std::shared_ptr<ProjectFile> m_projectFile;
     };
 } // namespace Bess::UI

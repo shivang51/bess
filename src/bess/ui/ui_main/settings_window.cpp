@@ -5,21 +5,17 @@
 #include "ui/widgets/m_widgets.h"
 
 namespace Bess::UI {
-    void SettingsWindow::draw() {
-        if (!m_shown)
-            return;
+    SettingsWindow::SettingsWindow() : Panel("Settings Window") {
+        m_defaultDock = Dock::none;
+        m_showInMenuBar = false;
+    }
 
-        if (m_isFirstDraw) {
-            onFirstDraw();
-            m_isFirstDraw = false;
-        }
-
-        const ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
-
+    void SettingsWindow::onBeforeDraw() {
         ImGui::SetNextWindowSize(ImVec2(600, 600));
+        m_flags = ImGuiWindowFlags_NoCollapse;
+    }
 
-        ImGui::Begin("Settings", &m_shown, flags);
-
+    void SettingsWindow::onDraw() {
         auto &settings = Config::Settings::instance();
         auto currentTheme = settings.getCurrentTheme();
 
@@ -52,23 +48,9 @@ namespace Bess::UI {
         if (Widgets::CheckboxWithLabel("Show Stats Window", &showStatsWindow)) {
             settings.setShowStatsWindow(showStatsWindow);
         }
-
-        ImGui::End();
     }
 
-    void SettingsWindow::hide() {
-        m_shown = false;
-    }
-
-    void SettingsWindow::show() {
-        m_shown = true;
-    }
-
-    bool SettingsWindow::isShown() {
-        return m_shown;
-    }
-
-    void SettingsWindow::onFirstDraw() {
+    void SettingsWindow::onShow() {
         // Populate available font sizes
         m_availableFontSizes = {10.f, 12.f, 14.f, 16.f,
                                 18.f, 20.f, 22.f, 24.f};
@@ -88,10 +70,4 @@ namespace Bess::UI {
         m_availableFps = {60, 90, 120, 144, 240};
     }
 
-    bool SettingsWindow::m_shown = false;
-    bool SettingsWindow::m_isFirstDraw = true;
-    std::vector<float> SettingsWindow::m_availableScales = {};
-    std::vector<float> SettingsWindow::m_availableFontSizes = {};
-    std::vector<std::string> SettingsWindow::m_availableThemes = {};
-    std::vector<int> SettingsWindow::m_availableFps = {};
 } // namespace Bess::UI

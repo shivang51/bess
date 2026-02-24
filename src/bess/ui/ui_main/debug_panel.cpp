@@ -8,6 +8,9 @@
 namespace Bess::UI {
     DebugPanel::DebugPanel() : Panel("Debug Panel") {
         m_name = Icons::FontAwesomeIcons::FA_USER_NURSE + std::string(" Debug Panel");
+#ifdef DEBUG
+        m_visible = true;
+#endif
     }
 
     void DebugPanel::onDraw() {
