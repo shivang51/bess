@@ -3,7 +3,7 @@
 #include "common/class_helpers.h"
 #include "component_definition.h"
 #include "imgui.h"
-#include "ui_main/dock_ids.h"
+#include "dock_ids.h"
 #include <string>
 
 namespace Bess::UI {

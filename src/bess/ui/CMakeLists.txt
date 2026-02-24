@@ -10,6 +10,7 @@ set(Header_Files
 	"widgets/m_widgets.h"
 	"ui.h"
 	"ui_hook.h"
+	"dock_ids.h"
 	"ui_main/properties_panel.h"
 	"ui_main/settings_window.h"
 	"ui_main/graph_view_window.h"

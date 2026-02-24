@@ -13,6 +13,7 @@
 #include "ui/widgets/m_widgets.h"
 #include <string>
 
+#include "dock_ids.h"
 #include "pages/main_page/main_page_state.h"
 #include "ui/icons/FontAwesomeIcons.h"
 #include "ui/ui_main/component_explorer.h"
@@ -24,7 +25,6 @@
 #include "ui/ui_main/properties_panel.h"
 #include "ui/ui_main/settings_window.h"
 #include "ui/ui_main/truth_table_window.h"
-#include "ui_main/dock_ids.h"
 #include <filesystem>
 
 namespace Bess::UI {
