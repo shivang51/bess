@@ -270,7 +270,7 @@ namespace Bess::Pages {
         const auto &slotCompB = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(e.slotBId);
 
         auto processSlot = [&](const std::shared_ptr<Canvas::SlotSceneComponent> &slotComp) {
-            const auto &parentComp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(slotComp->getParentComponent());
+            auto parentComp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(slotComp->getParentComponent());
             BESS_ASSERT(parentComp, std::format("[Scene] Parent component with uuid {} not found for slot {}",
                                                 (uint64_t)slotComp->getParentComponent(),
                                                 (uint64_t)slotComp->getUuid()));
@@ -290,27 +290,37 @@ namespace Bess::Pages {
                                         ? def->getInputSlotsInfo()
                                         : def->getOutputSlotsInfo();
 
-            if (slotsInfo.isResizeable) {
-                const auto idx = slotComp->getIndex();
-                if (idx == 0)
-                    return; // do not remove first slot
+            if (!slotsInfo.isResizeable)
+                return;
 
-                if (isInputSlot) {
-                    const bool isConnected = !digitalComp->inputConnections[idx].empty();
-                    // if not last slot or still connected, then abort !!! :)
-                    if (isConnected ||
-                        idx != def->getInputSlotsInfo().count - 1)
-                        return;
+            const auto prevCount = slotsInfo.count;
+            const auto idx = slotComp->getIndex();
+            const auto isLastSlot = (idx == slotsInfo.count - 1);
 
-                    digitalComp->decrementInputCount();
-                } else {
-                    const bool isConnected = !digitalComp->outputConnections[idx].empty();
-                    // if not last slot or still connected, then return
-                    if (isConnected || idx != def->getOutputSlotsInfo().count - 1)
-                        return;
+            // do not remove if not last slot or if it's the only slot
+            if (idx == 0 || !isLastSlot)
+                return;
 
-                    digitalComp->decrementOutputCount();
-                }
+            if (isInputSlot) {
+                const auto newCount = digitalComp->decrementInputCount();
+
+                if (newCount == prevCount)
+                    return;
+
+                parentComp->getInputSlots().erase(std::remove(parentComp->getInputSlots().begin(),
+                                                              parentComp->getInputSlots().end(),
+                                                              slotComp->getUuid()),
+                                                  parentComp->getInputSlots().end());
+            } else {
+                const auto newCount = digitalComp->decrementOutputCount();
+
+                if (newCount == prevCount)
+                    return;
+
+                parentComp->getOutputSlots().erase(std::remove(parentComp->getOutputSlots().begin(),
+                                                               parentComp->getOutputSlots().end(),
+                                                               slotComp->getUuid()),
+                                                   parentComp->getOutputSlots().end());
             }
         };
 
