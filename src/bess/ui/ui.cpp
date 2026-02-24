@@ -43,7 +43,7 @@ namespace Bess::UI {
 
         loadFontAndSetScale(settings.getFontSize(), settings.getScale());
 
-        ProjectExplorer::init();
+        BESS_INFO("[UI] ImGui initialized successfully");
     }
 
     void initVulkanImGui() {

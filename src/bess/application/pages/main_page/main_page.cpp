@@ -41,16 +41,6 @@ namespace Bess::Pages {
 
         SimEngine::SimulationEngine::instance();
 
-        const auto extensions = m_parentWindow->getVulkanExtensions();
-        const VkExtent2D extent = m_parentWindow->getExtent();
-
-        auto createSurface = [parentWindow](VkInstance &instance, VkSurfaceKHR &surface) {
-            parentWindow->createWindowSurface(instance, surface);
-        };
-
-        auto &instance = Bess::Vulkan::VulkanCore::instance();
-        instance.init(extensions, createSurface, extent);
-
         m_state.initCmdSystem();
 
         auto scene = m_state.getSceneDriver().createNewScene();

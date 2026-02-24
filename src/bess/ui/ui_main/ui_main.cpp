@@ -11,7 +11,6 @@
 #include "ui/ui_main/log_window.h"
 #include "ui/ui_main/scene_export_window.h"
 #include "ui/widgets/m_widgets.h"
-#include <cstdint>
 #include <string>
 
 #include "pages/main_page/main_page_state.h"
@@ -25,11 +24,11 @@
 #include "ui/ui_main/properties_panel.h"
 #include "ui/ui_main/settings_window.h"
 #include "ui/ui_main/truth_table_window.h"
+#include "ui_main/dock_ids.h"
 #include <filesystem>
 
 namespace Bess::UI {
     UIState UIMain::state{};
-    Pages::MainPageState *UIMain::m_pageState;
 
     static constexpr ImGuiWindowFlags NO_MOVE_FLAGS =
         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
@@ -37,15 +36,14 @@ namespace Bess::UI {
         ImGuiWindowFlags_NoDecoration;
 
     void UIMain::draw() {
-        static bool firstTime = true;
-        if (firstTime) {
-            firstTime = false;
-            m_pageState = &Pages::MainPage::getInstance()->getState();
+        static bool firstFrame = true;
+        if (firstFrame) {
             resetDockspace();
+            firstFrame = false;
         }
 
         for (auto &panel : getPanels()) {
-            if (panel->isVisible()) {
+            if (panel->getVisible()) {
                 panel->render();
             }
         }
@@ -55,19 +53,20 @@ namespace Bess::UI {
         drawStatusbar();
         drawExternalWindows();
 
-        if (m_pageState->actionFlags.saveProject) {
+        auto &pageState = Pages::MainPage::getInstance()->getState();
+        if (pageState.actionFlags.saveProject) {
             onSaveProject();
-            m_pageState->actionFlags.saveProject = false;
-        } else if (m_pageState->actionFlags.openProject) {
+            pageState.actionFlags.saveProject = false;
+        } else if (pageState.actionFlags.openProject) {
             onOpenProject();
-            m_pageState->actionFlags.openProject = false;
+            pageState.actionFlags.openProject = false;
         }
 
         Popups::PopupRes res = Popups::handleUnsavedProjectWarning();
         if (res != Popups::PopupRes::none) {
             if (res == Popups::PopupRes::yes) {
-                m_pageState->saveCurrentProject();
-                if (!m_pageState->getCurrentProjectFile()->isSaved()) {
+                pageState.saveCurrentProject();
+                if (!pageState.getCurrentProjectFile()->isSaved()) {
                     state._internalData.newFileClicked = false;
                     state._internalData.openFileClicked = false;
                     return;
@@ -76,10 +75,10 @@ namespace Bess::UI {
 
             if (res != Popups::PopupRes::cancel) {
                 if (state._internalData.newFileClicked) {
-                    m_pageState->createNewProject();
+                    pageState.createNewProject();
                     state._internalData.newFileClicked = false;
                 } else if (state._internalData.openFileClicked) {
-                    m_pageState->loadProject(state._internalData.path);
+                    pageState.loadProject(state._internalData.path);
                     state._internalData.statusMessage = std::format("Opened project: {}",
                                                                     std::filesystem::path(state._internalData.path).filename().string());
                     state._internalData.path = "";
@@ -150,6 +149,7 @@ namespace Bess::UI {
         ImGui::BeginMainMenuBar();
         const float menuBarHeight = ImGui::GetFrameHeight();
 
+        auto &pageState = Pages::MainPage::getInstance()->getState();
         if (ImGui::BeginMenu("File")) {
             // New File
             std::string temp_name = Icons::FontAwesomeIcons::FA_FILE_ALT;
@@ -162,14 +162,14 @@ namespace Bess::UI {
             temp_name = Icons::FontAwesomeIcons::FA_FOLDER_OPEN;
             temp_name += "  Open";
             if (ImGui::MenuItem(temp_name.c_str(), "Ctrl+O")) {
-                m_pageState->actionFlags.openProject = true;
+                pageState.actionFlags.openProject = true;
             };
 
             // Save File
             temp_name = Icons::FontAwesomeIcons::FA_SAVE;
             temp_name += "   Save";
             if (ImGui::MenuItem(temp_name.c_str(), "Ctrl+S")) {
-                m_pageState->actionFlags.saveProject = true;
+                pageState.actionFlags.saveProject = true;
             };
 
             ImGui::Spacing();
@@ -357,16 +357,41 @@ namespace Bess::UI {
     }
 
     void UIMain::resetDockspace() {
+        static std::unordered_map<Dock, ImGuiID> DockIds{
+            {Dock::left, 0},
+            {Dock::right, 0},
+            {Dock::top, 0},
+            {Dock::bottom, 0},
+            {Dock::main, 0},
+        };
+
         auto mainDockspaceId = ImGui::GetID("MainDockspace");
 
         ImGui::DockBuilderRemoveNode(mainDockspaceId);
         ImGui::DockBuilderAddNode(mainDockspaceId, ImGuiDockNodeFlags_NoTabBar);
 
-        const auto dockIdLeft = ImGui::DockBuilderSplitNode(mainDockspaceId, ImGuiDir_Left, 0.15f, nullptr, &mainDockspaceId);
-        auto dockIdRight = ImGui::DockBuilderSplitNode(mainDockspaceId, ImGuiDir_Right, 0.25f, nullptr, &mainDockspaceId);
-        const auto dockIdBot = ImGui::DockBuilderSplitNode(mainDockspaceId, ImGuiDir_Down, 0.25f, nullptr, &mainDockspaceId);
+        const auto dockIdLeft = ImGui::DockBuilderSplitNode(mainDockspaceId,
+                                                            ImGuiDir_Left,
+                                                            0.15f,
+                                                            nullptr,
+                                                            &mainDockspaceId);
 
-        const auto dockIdRightBot = ImGui::DockBuilderSplitNode(dockIdRight, ImGuiDir_Down, 0.35f, nullptr, &dockIdRight);
+        const auto dockIdRight = ImGui::DockBuilderSplitNode(mainDockspaceId,
+                                                             ImGuiDir_Right,
+                                                             0.15f,
+                                                             nullptr,
+                                                             &mainDockspaceId);
+
+        const auto dockIdBot = ImGui::DockBuilderSplitNode(mainDockspaceId,
+                                                           ImGuiDir_Down,
+                                                           0.25f,
+                                                           nullptr,
+                                                           &mainDockspaceId);
+
+        DockIds[Dock::main] = mainDockspaceId;
+        DockIds[Dock::left] = dockIdLeft;
+        DockIds[Dock::right] = dockIdRight;
+        DockIds[Dock::bottom] = dockIdBot;
 
         ImGui::DockBuilderDockWindow("MainViewport", mainDockspaceId);
         ImGui::DockBuilderDockWindow(ProjectExplorer::windowName.data(), dockIdLeft);
@@ -375,6 +400,11 @@ namespace Bess::UI {
         ImGui::DockBuilderDockWindow(TruthTableWindow::windowName.data(), dockIdBot);
         ImGui::DockBuilderDockWindow(LogWindow::windowName.data(), dockIdBot);
         ImGui::DockBuilderDockWindow("Debug Window", dockIdBot);
+
+        for (auto &panel : getPanels()) {
+            ImGui::DockBuilderDockWindow(panel->getName().c_str(),
+                                         DockIds[panel->getDefaultDock()]);
+        }
 
         ImGui::DockBuilderFinish(mainDockspaceId);
     }
@@ -392,11 +422,12 @@ namespace Bess::UI {
     }
 
     void UIMain::onNewProject() {
-        if (!m_pageState->getCurrentProjectFile()->isSaved()) {
+        auto &pageState = Pages::MainPage::getInstance()->getState();
+        if (!pageState.getCurrentProjectFile()->isSaved()) {
             state._internalData.newFileClicked = true;
             ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning);
         } else {
-            m_pageState->createNewProject();
+            pageState.createNewProject();
         }
     }
 
@@ -410,20 +441,22 @@ namespace Bess::UI {
             return;
         }
 
-        if (!m_pageState->getCurrentProjectFile()->isSaved()) {
+        auto &pageState = Pages::MainPage::getInstance()->getState();
+        if (!pageState.getCurrentProjectFile()->isSaved()) {
             state._internalData.openFileClicked = true;
             state._internalData.path = filepath;
             ImGui::OpenPopup(Popups::PopupIds::unsavedProjectWarning);
         } else {
-            m_pageState->loadProject(filepath);
+            pageState.loadProject(filepath);
             state._internalData.statusMessage = std::format("Project loaded from {}", filepath);
         }
     }
 
     void UIMain::onSaveProject() {
-        m_pageState->getCurrentProjectFile()->save();
+        auto &pageState = Pages::MainPage::getInstance()->getState();
+        pageState.getCurrentProjectFile()->save();
         state._internalData.statusMessage = std::format("Project saved to {}",
-                                                        m_pageState->getCurrentProjectFile()->getPath());
+                                                        pageState.getCurrentProjectFile()->getPath());
     }
 
     void UIMain::destroy() {
@@ -436,7 +469,6 @@ namespace Bess::UI {
         getPreInitCallbacks().clear();
 
         state = UIState{};
-        m_pageState = nullptr;
     }
 
     void UIMain::init() {

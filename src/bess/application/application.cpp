@@ -160,8 +160,19 @@ namespace Bess {
         m_mainWindow->onMouseButton(BIND_FN_L(Application::onMouseButton));
         m_mainWindow->onMouseMove(BIND_FN_L(Application::onMouseMove));
 
-        const auto page = Pages::MainPage::getInstance(ApplicationState::getParentWindow());
+        const auto extensions = m_mainWindow->getVulkanExtensions();
+        const VkExtent2D extent = m_mainWindow->getExtent();
+
+        auto createSurface = [this](VkInstance &instance, VkSurfaceKHR &surface) {
+            m_mainWindow->createWindowSurface(instance, surface);
+        };
+
+        auto &instance = Bess::Vulkan::VulkanCore::instance();
+        instance.init(extensions, createSurface, extent);
+
         UI::init(m_mainWindow->getGLFWHandle());
+
+        const auto page = Pages::MainPage::getInstance(ApplicationState::getParentWindow());
 
         ApplicationState::setCurrentPage(page);
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/bess_uuid.h"
+#include "common/class_helpers.h"
 #include "scene/renderer/material_renderer.h"
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_state/components/behaviours/mouse_behaviour.h"
@@ -16,25 +17,6 @@ namespace Bess::Canvas {
         static std::string typeName = TypeName;                  \
         return typeName;                                         \
     }
-
-#define MAKE_GETTER_SETTER_WC(type, name, varName, onChange) \
-    const type &get##name() const { return varName; }        \
-    void set##name(const type &value) {                      \
-        varName = value;                                     \
-        onChange();                                          \
-    }                                                        \
-    type &get##name() { return varName; }
-
-#define MAKE_GETTER_SETTER(type, name, varName)       \
-    const type &get##name() const { return varName; } \
-    void set##name(const type &value) {               \
-        varName = value;                              \
-    }                                                 \
-    type &get##name() { return varName; }
-
-#define MAKE_GETTER(type, name, varName)              \
-    const type &get##name() const { return varName; } \
-    type &get##name() { return varName; }
 
 #define SCENE_COMP_SER(TClass, TBase, ...)                          \
     Json::Value toJson() const override {                           \

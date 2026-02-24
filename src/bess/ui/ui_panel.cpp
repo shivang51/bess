@@ -1,8 +1,8 @@
 #include "ui_panel.h"
 
 namespace Bess::UI {
-    Panel::Panel(const std::string &name, const std::string &title)
-        : m_name(name), m_title(title) {}
+    Panel::Panel(const std::string &name)
+        : m_name(name) {}
 
     void Panel::hide() {
         if (m_visible) {
@@ -17,10 +17,6 @@ namespace Bess::UI {
             onShow();
         }
     }
-
-    bool Panel::isVisible() const { return m_visible; }
-
-    bool &Panel::isVisibleRef() { return m_visible; }
 
     void Panel::onShow() {}
 

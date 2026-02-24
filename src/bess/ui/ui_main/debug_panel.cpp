@@ -1,13 +1,13 @@
 #include "debug_panel.h"
-#include "icons/CodIcons.h"
+#include "icons/FontAwesomeIcons.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/main_page.h"
 #include "widgets/m_widgets.h"
 
 namespace Bess::UI {
-    DebugPanel::DebugPanel() : Panel("debug_panel", "Debug Panel") {
-        m_title = Icons::CodIcons::DEBUG_ALT + std::string(" Debug Panel");
+    DebugPanel::DebugPanel() : Panel("Debug Panel") {
+        m_name = Icons::FontAwesomeIcons::FA_USER_NURSE + std::string(" Debug Panel");
     }
 
     void DebugPanel::render() {
@@ -16,7 +16,7 @@ namespace Bess::UI {
         auto &sceneDriver = mainPageState.getSceneDriver();
         const auto &sceneState = sceneDriver->getState();
 
-        ImGui::Begin("Debug Window");
+        ImGui::Begin(m_name.c_str(), &m_visible);
 
         ImGui::Text("Active Scene: %lu", sceneDriver.getActiveSceneIdx());
 

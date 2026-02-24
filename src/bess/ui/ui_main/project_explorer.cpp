@@ -1,7 +1,7 @@
 #include "ui/ui_main/project_explorer.h"
 #include "application/pages/main_page/main_page.h"
-#include "common/bess_uuid.h"
 #include "common/bess_assert.h"
+#include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -33,9 +33,6 @@ namespace Bess::UI {
             }
             ImGui::EndDragDropTarget();
         }
-    }
-
-    void ProjectExplorer::init() {
     }
 
     int32_t ProjectExplorer::lastSelectedIndex = -1;
