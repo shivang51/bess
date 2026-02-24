@@ -457,16 +457,6 @@ namespace Bess::Canvas {
         return createdComps;
     }
 
-    void SimulationSceneComponent::removeChildComponent(const UUID &uuid) {
-        BESS_INFO("[SimulationSceneComponent] Removing slot component {}", (uint64_t)uuid);
-        SceneComponent::removeChildComponent(uuid);
-        m_inputSlots.erase(std::ranges::remove(m_inputSlots, uuid).begin(),
-                           m_inputSlots.end());
-
-        m_outputSlots.erase(std::ranges::remove(m_outputSlots, uuid).begin(),
-                            m_outputSlots.end());
-    }
-
     void SimulationSceneComponent::onMouseDragged(const Events::MouseDraggedEvent &e) {
         if (!m_isDragging) {
             onMouseDragBegin(e);
