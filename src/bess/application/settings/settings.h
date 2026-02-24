@@ -2,13 +2,10 @@
 
 #include "application/app_types.h"
 #include "application/settings/themes.h"
+#include "common/class_helpers.h"
 #include <string>
 
 namespace Bess::Config {
-
-#define MAKE_GETTER_SETTER(type, name, member) \
-    type get##name() const { return member; }  \
-    void set##name(type value) { (member) = value; }
 
     class Settings {
       public:

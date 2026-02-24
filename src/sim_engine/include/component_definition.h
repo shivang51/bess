@@ -2,6 +2,7 @@
 
 #include "bess_api.h"
 #include "bess_json/bess_json.h"
+#include "common/class_helpers.h"
 #include "type_map.h"
 #include "types.h"
 #include <cstdint>
@@ -10,36 +11,6 @@
 #include <vector>
 
 namespace Bess::SimEngine {
-#define MAKE_GETTER_SETTER_WC(type, name, varName, onChange) \
-    const type &get##name() const { return varName; }        \
-    void set##name(const type &value) {                      \
-        varName = value;                                     \
-        onChange();                                          \
-    }                                                        \
-    type &get##name() { return varName; }
-
-#define MAKE_GETTER_SETTER(type, name, varName)       \
-    const type &get##name() const { return varName; } \
-    void set##name(const type &value) {               \
-        varName = value;                              \
-    }                                                 \
-    type &get##name() { return varName; }
-
-#define MAKE_VGETTER_VSETTER(type, name, varName)             \
-    virtual const type &get##name() const { return varName; } \
-    virtual void set##name(const type &value) {               \
-        varName = value;                                      \
-    }                                                         \
-    virtual type &get##name() { return varName; }
-
-#define MAKE_GETTER(type, name, varName)              \
-    const type &get##name() const { return varName; } \
-    type &get##name() { return varName; }
-
-#define MAKE_SETTER(type, name, varName) \
-    void set##name(const type &value) {  \
-        varName = value;                 \
-    }
 
     enum class CompDefIOGrowthPolicy : uint8_t {
         none,
