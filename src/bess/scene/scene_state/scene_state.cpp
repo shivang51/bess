@@ -8,6 +8,7 @@
 #include "simulation_engine.h"
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 namespace Bess::Canvas {
     void SceneState::clear() {
@@ -92,7 +93,8 @@ namespace Bess::Canvas {
         auto parent = getComponentByUuid(parentId);
         auto child = getComponentByUuid(childId);
 
-        BESS_ASSERT(parent && child, "Parent or child was not found");
+        BESS_ASSERT(parent, "Parent was not found");
+        BESS_ASSERT(child, "Child was not found");
 
         auto prevParentId = child->getParentComponent();
         if (prevParentId != UUID::null && prevParentId != parentId) {
@@ -283,24 +285,24 @@ namespace Bess::Canvas {
         BESS_ASSERT(false, "SceneState copy is not allowed");
     }
 
-    std::set<UUID> SceneState::getLifeDependants(const UUID &uuid) const {
-        std::set<UUID> dependants;
+    std::vector<UUID> SceneState::getLifeDependants(const UUID &uuid) const {
+        std::vector<UUID> dependants;
         const auto &comp = getComponentByUuid(uuid);
         if (!comp) {
             return dependants;
         }
 
-        for (const auto &childId : comp->getChildComponents()) {
-            dependants.insert(childId);
-            const auto &childDependants = getLifeDependants(childId);
-            dependants.insert(childDependants.begin(), childDependants.end());
-        }
-
         const auto &connections = getConnectionsForComponent(uuid);
         for (const auto &connId : connections) {
-            dependants.insert(connId);
             const auto &connDependants = getLifeDependants(connId);
-            dependants.insert(connDependants.begin(), connDependants.end());
+            dependants.insert(dependants.end(), connDependants.begin(), connDependants.end());
+            dependants.push_back(connId);
+        }
+
+        for (const auto &childId : comp->getChildComponents()) {
+            const auto &childDependants = getLifeDependants(childId);
+            dependants.insert(dependants.end(), childDependants.begin(), childDependants.end());
+            dependants.push_back(childId);
         }
 
         return dependants;

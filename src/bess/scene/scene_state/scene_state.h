@@ -106,7 +106,7 @@ namespace Bess::Canvas {
         void assignRuntimeId(const UUID &uuid);
 
         // Returns set of UUIDs whose life depends on the componets existance
-        std::set<UUID> getLifeDependants(const UUID &uuid) const;
+        std::vector<UUID> getLifeDependants(const UUID &uuid) const;
 
         // Removes a component by UUID from the scene state
         // and all its child components recursively.
