@@ -6,6 +6,6 @@ namespace Bess::UI {
     class DebugPanel : public Panel {
       public:
         DebugPanel();
-        void render() override;
+        void onDraw() override;
     };
 } // namespace Bess::UI

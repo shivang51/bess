@@ -26,6 +26,7 @@
 #include "ui/ui_main/settings_window.h"
 #include "ui/ui_main/truth_table_window.h"
 #include <filesystem>
+#include <typeindex>
 
 namespace Bess::UI {
     UIState UIMain::state{};
@@ -244,6 +245,12 @@ namespace Bess::UI {
 
             Widgets::CheckboxWithLabel(LogWindow::windowName.data(), &LogWindow::isShown);
 
+            for (auto &panel : getPanels()) {
+                if (panel->getShowInMenuBar()) {
+                    Widgets::CheckboxWithLabel(panel->getName().c_str(), &panel->getVisible());
+                }
+            }
+
             ImGui::EndMenu();
         }
 
@@ -402,6 +409,9 @@ namespace Bess::UI {
         ImGui::DockBuilderDockWindow("Debug Window", dockIdBot);
 
         for (auto &panel : getPanels()) {
+            if (panel->getDefaultDock() == Dock::none)
+                continue;
+
             ImGui::DockBuilderDockWindow(panel->getName().c_str(),
                                          DockIds[panel->getDefaultDock()]);
         }
@@ -413,7 +423,6 @@ namespace Bess::UI {
         SettingsWindow::draw();
         ProjectSettingsWindow::draw();
         SceneExportWindow::draw();
-        ComponentExplorer::draw();
         ProjectExplorer::draw();
         PropertiesPanel::draw();
         GraphViewWindow::draw();
@@ -489,15 +498,21 @@ namespace Bess::UI {
         }
 
         registerPanel<DebugPanel>();
+        registerPanel<ComponentExplorer>();
     }
 
-    std::vector<std::unique_ptr<Panel>> &UIMain::getPanels() {
-        static std::vector<std::unique_ptr<Panel>> m_panels;
+    std::vector<std::shared_ptr<Panel>> &UIMain::getPanels() {
+        static std::vector<std::shared_ptr<Panel>> m_panels;
         return m_panels;
     }
 
     std::vector<PreInitCallback> &UIMain::getPreInitCallbacks() {
         static std::vector<PreInitCallback> s_preInitCallbacks;
         return s_preInitCallbacks;
+    }
+
+    std::unordered_map<std::type_index, std::shared_ptr<Panel>> &UIMain::getPanelMap() {
+        static std::unordered_map<std::type_index, std::shared_ptr<Panel>> m_panelMap;
+        return m_panelMap;
     }
 } // namespace Bess::UI

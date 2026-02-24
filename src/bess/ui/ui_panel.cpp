@@ -18,6 +18,22 @@ namespace Bess::UI {
         }
     }
 
+    void Panel::toggleVisibility() {
+        if (getVisible()) {
+            hide();
+        } else {
+            show();
+        }
+    }
+
+    void Panel::render() {
+        onBeforeDraw();
+        ImGui::Begin(m_name.c_str(), &m_visible, m_flags);
+        onDraw();
+        ImGui::End();
+        onAfterDraw();
+    }
+
     void Panel::onShow() {}
 
     void Panel::onHide() {}
@@ -27,4 +43,5 @@ namespace Bess::UI {
     void Panel::init() {}
 
     void Panel::destroy() {}
+
 } // namespace Bess::UI

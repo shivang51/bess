@@ -198,7 +198,7 @@ namespace Bess::Pages {
             }
         } else if (shiftPressed) {
             if (m_state.isKeyPressed(GLFW_KEY_A)) {
-                UI::ComponentExplorer::isShown = !UI::ComponentExplorer::isShown;
+                UI::UIMain::getPanel<UI::ComponentExplorer>()->toggleVisibility();
             }
         } else {
             if (m_state.isKeyPressed(GLFW_KEY_DELETE)) {
@@ -212,9 +212,7 @@ namespace Bess::Pages {
             } else if (m_state.isKeyPressed(GLFW_KEY_TAB)) {
                 m_state.getSceneDriver()->toggleSchematicView();
             } else if (m_state.isKeyPressed(GLFW_KEY_ESCAPE)) {
-                if (UI::ComponentExplorer::isShown) {
-                    UI::ComponentExplorer::isShown = false;
-                }
+                UI::UIMain::getPanel<UI::ComponentExplorer>()->hide();
             }
         }
     }

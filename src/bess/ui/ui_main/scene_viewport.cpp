@@ -5,6 +5,7 @@
 #include "scene/camera.h"
 #include "simulation_engine.h"
 #include "ui/ui_main/component_explorer.h"
+#include "ui_main/ui_main.h"
 
 namespace Bess::UI {
     SceneViewport::SceneViewport(const std::string &viewportName)
@@ -45,7 +46,7 @@ namespace Bess::UI {
 
         if (!scene->isHoveredEntityValid() && ImGui::BeginPopupContextWindow()) {
             if (ImGui::MenuItem("Add Component", "Shift-A")) {
-                ComponentExplorer::isShown = true;
+                UI::UIMain::getPanel<ComponentExplorer>()->show();
             }
 
             ImGui::EndPopup();

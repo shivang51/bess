@@ -10,13 +10,11 @@ namespace Bess::UI {
         m_name = Icons::FontAwesomeIcons::FA_USER_NURSE + std::string(" Debug Panel");
     }
 
-    void DebugPanel::render() {
+    void DebugPanel::onDraw() {
         auto &mainPageState = Pages::MainPage::getInstance()->getState();
 
         auto &sceneDriver = mainPageState.getSceneDriver();
         const auto &sceneState = sceneDriver->getState();
-
-        ImGui::Begin(m_name.c_str(), &m_visible);
 
         ImGui::Text("Active Scene: %lu", sceneDriver.getActiveSceneIdx());
 
@@ -80,7 +78,5 @@ namespace Bess::UI {
             }
             ImGui::TreePop();
         }
-
-        ImGui::End();
     }
 } // namespace Bess::UI

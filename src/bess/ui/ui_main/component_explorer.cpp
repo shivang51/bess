@@ -7,69 +7,39 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
+#include "ui/icons/CodIcons.h"
 #include "ui/widgets/m_widgets.h"
 #include <utility>
 
 namespace Bess::UI {
+    constexpr auto flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
+                           ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize |
+                           ImGuiWindowFlags_Modal;
 
-    bool ComponentExplorer::isShown = false;
-    bool ComponentExplorer::m_isfirstTimeDraw = true;
-    std::string ComponentExplorer::m_searchQuery;
-
-    void ComponentExplorer::createComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def,
-                                            const glm::vec2 &pos) {
-        auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
-        auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
-
-        auto components = Canvas::SimulationSceneComponent::createNewAndRegister(def);
-
-        auto sceneComp = components.front()->template cast<Canvas::SimulationSceneComponent>();
-        components.erase(components.begin());
-        sceneComp->setCompDef(def->clone());
-        sceneComp->getTransform().position.x = pos.x;
-        sceneComp->getTransform().position.y = pos.y;
-
-        if (scene->hasPluginDrawHookForComponentHash(def->getHash())) {
-            auto hook = scene->getPluginDrawHookForComponentHash(def->getHash());
-            sceneComp->cast<Canvas::SimulationSceneComponent>()->setDrawHook(hook);
-        }
-
-        cmdSystem.execute(std::make_unique<Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(sceneComp, components));
-        isShown = false;
+    ComponentExplorer::ComponentExplorer()
+        : Panel(Icons::CodIcons::LIST_TREE + std::string("  Component Explorer")) {
+        m_showInMenuBar = false;
+        m_flags = flags;
+        m_defaultDock = Dock::none;
     }
 
-    void ComponentExplorer::createComponent(std::type_index tIdx, const glm::vec2 &pos) {
-        auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
-        auto inst = Canvas::NonSimSceneComponent::getInstance(tIdx);
-        inst->getTransform().position.x = pos.x;
-        inst->getTransform().position.y = pos.y;
-        cmdSystem.execute(std::make_unique<Cmd::AddCompCmd<Canvas::NonSimSceneComponent>>(inst));
-        isShown = false;
-    }
-
-    void ComponentExplorer::draw() {
-        if (!isShown)
-            return;
-
-        if (m_isfirstTimeDraw)
-            firstTime();
-
+    void ComponentExplorer::onBeforeDraw() {
         const ImVec2 windowSize = ImVec2(400, 400);
         ImGui::SetNextWindowSize(windowSize);
 
         const auto *viewport = ImGui::GetMainViewport();
-        const ImGuiContext &g = *ImGui::GetCurrentContext();
-        const auto style = g.Style;
+        const auto *ctx = ImGui::GetCurrentContext();
+        const auto style = ctx->Style;
         ImGui::SetNextWindowPos(
             ImVec2(viewport->Pos.x + (viewport->Size.x / 2) - (windowSize.x / 2),
                    viewport->Pos.y + (viewport->Size.y / 2) - (windowSize.y / 2)));
+    }
 
-        constexpr auto flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
-                               ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize |
-                               ImGuiWindowFlags_Modal;
-        ImGui::Begin(windowName.data(), &isShown, flags);
+    void ComponentExplorer::onDraw() {
+        if (!ImGui::IsWindowFocused()) {
+            hide();
+        }
 
-        isShown = ImGui::IsWindowFocused();
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4);
 
         static bool focusRequested = false;
@@ -154,11 +124,37 @@ namespace Bess::UI {
 
         ImGui::PopStyleColor(2);
         ImGui::PopStyleVar(2);
-        ImGui::End();
     }
 
-    void ComponentExplorer::firstTime() {
-        assert(m_isfirstTimeDraw);
-        m_isfirstTimeDraw = false;
+    void ComponentExplorer::createComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def,
+                                            const glm::vec2 &pos) {
+        auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
+        auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
+
+        auto components = Canvas::SimulationSceneComponent::createNewAndRegister(def);
+
+        auto sceneComp = components.front()->template cast<Canvas::SimulationSceneComponent>();
+        components.erase(components.begin());
+        sceneComp->setCompDef(def->clone());
+        sceneComp->getTransform().position.x = pos.x;
+        sceneComp->getTransform().position.y = pos.y;
+
+        if (scene->hasPluginDrawHookForComponentHash(def->getHash())) {
+            auto hook = scene->getPluginDrawHookForComponentHash(def->getHash());
+            sceneComp->cast<Canvas::SimulationSceneComponent>()->setDrawHook(hook);
+        }
+
+        cmdSystem.execute(std::make_unique<Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(sceneComp, components));
+        hide();
     }
+
+    void ComponentExplorer::createComponent(std::type_index tIdx, const glm::vec2 &pos) {
+        auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
+        auto inst = Canvas::NonSimSceneComponent::getInstance(tIdx);
+        inst->getTransform().position.x = pos.x;
+        inst->getTransform().position.y = pos.y;
+        cmdSystem.execute(std::make_unique<Cmd::AddCompCmd<Canvas::NonSimSceneComponent>>(inst));
+        hide();
+    }
+
 } // namespace Bess::UI
