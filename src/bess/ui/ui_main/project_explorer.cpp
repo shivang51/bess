@@ -1,7 +1,7 @@
 #include "ui/ui_main/project_explorer.h"
 #include "application/pages/main_page/main_page.h"
-#include "common/bess_assert.h"
 #include "common/bess_uuid.h"
+#include "common/helpers.h"
 #include "common/logger.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -11,15 +11,13 @@
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "settings/viewport_theme.h"
+#include "ui/icons/CodIcons.h"
 #include "ui/widgets/m_widgets.h"
 #include <cstdint>
 #include <memory>
 #include <ranges>
 
 namespace Bess::UI {
-    bool ProjectExplorer::isShown = true;
-    bool ProjectExplorer::isfirstTimeDraw = true;
-
     template <typename Func>
     void HandleNodeDropTarget(Func op) {
         if (ImGui::BeginDragDropTarget()) {
@@ -35,19 +33,8 @@ namespace Bess::UI {
         }
     }
 
-    int32_t ProjectExplorer::lastSelectedIndex = -1;
-    size_t ProjectExplorer::nodesKeyCounter = 0;
-
-    void ProjectExplorer::draw() {
-        if (!isShown)
-            return;
-
-        if (isfirstTimeDraw) {
-            firstTime();
-        }
-
+    void ProjectExplorer::onDraw() {
         const ImColor &itemAltBg = ImGui::GetStyle().Colors[ImGuiCol_TableRowBgAlt];
-        ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
         auto &sceneState = Pages::MainPage::getInstance()->getState().getSceneDriver()->getState();
 
@@ -72,7 +59,7 @@ namespace Bess::UI {
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
 
-        nodesKeyCounter = 0;
+        m_nodesKeyCounter = 0;
         drawEntites(sceneState.getRootComponents());
 
         const ImGuiContext &g = *ImGui::GetCurrentContext();
@@ -85,7 +72,7 @@ namespace Bess::UI {
         float startY = y;
         ImVec2 bgStart, bgEnd;
 
-        if (nodesKeyCounter & 1) { // skipping if its not alternating color row
+        if (m_nodesKeyCounter & 1) { // skipping if its not alternating color row
             y += height;
         }
 
@@ -126,8 +113,6 @@ namespace Bess::UI {
 
             ImGui::EndPopup();
         }
-
-        ImGui::End();
     }
 
     std::pair<bool, bool> ProjectExplorer::drawLeafNode(const size_t key, const uint64_t nodeId,
@@ -210,10 +195,6 @@ namespace Bess::UI {
         ImGui::ItemAdd(bb, id);
 
         return {pressed, cbPressed};
-    }
-
-    void ProjectExplorer::firstTime() {
-        isfirstTimeDraw = false;
     }
 
     void ProjectExplorer::groupSelectedNodes() {
@@ -346,7 +327,7 @@ namespace Bess::UI {
 
             bool clicked = false;
             if (comp->getType() == Canvas::SceneComponentType::group) {
-                const auto ret = Widgets::EditableTreeNode(nodesKeyCounter++,
+                const auto ret = Widgets::EditableTreeNode(m_nodesKeyCounter++,
                                                            comp->getName(),
                                                            comp->getIsSelected(),
                                                            ImGuiTreeNodeFlags_DefaultOpen |
@@ -372,7 +353,7 @@ namespace Bess::UI {
                 }
 
             } else {
-                const auto &[pressed, cbPressed] = drawLeafNode(nodesKeyCounter++,
+                const auto &[pressed, cbPressed] = drawLeafNode(m_nodesKeyCounter++,
                                                                 compId,
                                                                 comp->getName().c_str(),
                                                                 comp->getIsSelected(),
@@ -399,16 +380,16 @@ namespace Bess::UI {
                     } else {
                         sceneState.addSelectedComponent(compId);
                     }
-                    lastSelectedIndex = (int32_t)nodesKeyCounter - 1;
+                    m_lastSelectedIndex = (int32_t)m_nodesKeyCounter - 1;
                 }
             }
 
             if (clicked) {
-                int32_t currentIndex = (int32_t)nodesKeyCounter - 1;
+                int32_t currentIndex = (int32_t)m_nodesKeyCounter - 1;
                 const bool ctrl = ImGui::GetIO().KeyCtrl;
                 const bool shift = ImGui::GetIO().KeyShift;
 
-                if (shift && lastSelectedIndex != -1) {
+                if (shift && m_lastSelectedIndex != -1) {
                     // TODO (Shivang): Fix range selection
                     // int start = std::min(lastSelectedIndex, currentIndex);
                     // int end = std::max(lastSelectedIndex, currentIndex);
@@ -426,12 +407,12 @@ namespace Bess::UI {
                             sceneState.addSelectedComponent(compId);
                         }
                     }
-                    lastSelectedIndex = currentIndex;
+                    m_lastSelectedIndex = currentIndex;
                 } else {
                     // selects the clicked component and deselects all other components
                     sceneState.clearSelectedComponents();
                     sceneState.addSelectedComponent(compId);
-                    lastSelectedIndex = currentIndex;
+                    m_lastSelectedIndex = currentIndex;
                 }
             }
         }
@@ -441,5 +422,12 @@ namespace Bess::UI {
         }
 
         return count;
+    }
+
+    static constexpr auto windowName = Common::Helpers::concat(
+        Icons::CodIcons::SYMBOL_CLASS, "  Project Explorer");
+
+    ProjectExplorer::ProjectExplorer() : Panel(std::string(windowName.data())) {
+        m_defaultDock = Dock::left;
     }
 } // namespace Bess::UI

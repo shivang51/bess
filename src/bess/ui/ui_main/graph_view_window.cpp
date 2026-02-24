@@ -8,7 +8,9 @@
 namespace Bess::UI {
 
     GraphViewWindowData GraphViewWindow::s_data{};
-    bool GraphViewWindow::isShown = false;
+    static constexpr auto windowName = Common::Helpers::concat(Icons::CodIcons::GRAPH_LINE, "  Graph View");
+    GraphViewWindow::GraphViewWindow() : Panel(std::string(windowName.data())) {
+    }
 
     // LabeledDigitalSignal fetchSignal(const std::string &name, const Canvas::Components::SimulationComponent &comp) {
     //     const auto &data = SimEngine::SimulationEngine::instance().getStateMonitorData(comp.simEngineEntity);
@@ -20,16 +22,11 @@ namespace Bess::UI {
     //     return {name, parsedData};
     // }
 
-    void GraphViewWindow::draw() {
-        if (!isShown)
-            return;
-
+    void GraphViewWindow::onDraw() {
         // auto &reg = Canvas::Scene::instance()->getEnttRegistry();
         // const auto view = reg.view<Bess::Canvas::Components::TagComponent,
         //                            Bess::Canvas::Components::SimulationStateMonitor,
         //                            Bess::Canvas::Components::SimulationComponent>();
-
-        ImGui::Begin(windowName.data(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
 
         if (ImGui::Button("Add Graph")) {
             s_data.graphs[s_data.offset] = "";
@@ -68,7 +65,6 @@ namespace Bess::UI {
         }
 
         plotDigitalSignals("Signals", s_data.allSignals);
-        ImGui::End();
     }
 
     GraphViewWindowData &GraphViewWindow::getDataRef() {
@@ -141,4 +137,5 @@ namespace Bess::UI {
 
         ImGui::EndChild();
     }
+
 } // namespace Bess::UI

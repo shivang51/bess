@@ -1,17 +1,17 @@
 #include "log_window.h"
+#include "common/helpers.h"
 #include "common/logger.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "ui/icons/CodIcons.h"
 #include "ui/widgets/m_widgets.h"
 
 namespace Bess::UI {
-#ifdef DEBUG
-    bool LogWindow::isShown = true;
-#else
-    bool LogWindow::isShown = false;
-#endif
+    static constexpr auto windowName = Common::Helpers::concat(
+        Icons::CodIcons::HISTORY, "  Log Window");
 
-    LogWindow::Controls LogWindow::m_controls{};
+    LogWindow::LogWindow() : Panel(std::string(windowName.data())) {
+    }
 
     void LogWindow::drawControls() {
         const auto &uiLogSink = Logger::getUISink();
@@ -29,16 +29,12 @@ namespace Bess::UI {
         }
     }
 
-    void LogWindow::draw() {
-        if (!isShown)
-            return;
-
+    void LogWindow::onDraw() {
         const ImGuiContext &g = *ImGui::GetCurrentContext();
         const auto &uiLogSink = Logger::getUISink();
 
         static constexpr ImGuiTableFlags tableFlags = ImGuiTableFlags_ScrollY |
                                                       ImGuiTableFlags_ScrollX | ImGuiTableFlags_RowBg;
-        ImGui::Begin(windowName.data());
 
         if (uiLogSink) {
             drawControls();
@@ -84,7 +80,6 @@ namespace Bess::UI {
                 ImGui::EndTable();
             }
         }
-
-        ImGui::End();
     }
+
 } // namespace Bess::UI

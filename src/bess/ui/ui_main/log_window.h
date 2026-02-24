@@ -1,21 +1,16 @@
 #pragma once
 
-#include "common/helpers.h"
-#include "ui/icons/CodIcons.h"
+#include "ui_panel.h"
 namespace Bess::UI {
-
-    class LogWindow {
+    class LogWindow : public Panel {
       public:
-        static constexpr auto windowName = Common::Helpers::concat(
-            Icons::CodIcons::HISTORY, "  Log Window");
-
-        static bool isShown;
-        static void draw();
+        LogWindow();
 
       private:
-        static void drawControls();
+        void onDraw() override;
+        void drawControls();
 
-        static struct Controls {
+        struct Controls {
             bool autoScroll = true;
         } m_controls;
     };

@@ -39,10 +39,10 @@ namespace Bess::UI {
         }
 
         template <typename TPanel>
-        static std::shared_ptr<Panel> getPanel() {
+        static std::shared_ptr<TPanel> getPanel() {
             auto it = getPanelMap().find(typeid(TPanel));
             if (it != getPanelMap().end()) {
-                return it->second;
+                return std::dynamic_pointer_cast<TPanel>(it->second);
             }
             return nullptr;
         }

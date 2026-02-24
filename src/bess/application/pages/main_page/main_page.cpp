@@ -188,7 +188,7 @@ namespace Bess::Pages {
                     m_state.getCommandSystem().undo();
                 }
             } else if (m_state.isKeyPressed(GLFW_KEY_G)) {
-                UI::ProjectExplorer::groupSelectedNodes();
+                UI::UIMain::getPanel<UI::ProjectExplorer>()->groupSelectedNodes();
             } else if (m_state.isKeyPressed(GLFW_KEY_A)) {
                 m_state.getSceneDriver()->selectAllEntities();
             } else if (m_state.isKeyPressed(GLFW_KEY_C)) {

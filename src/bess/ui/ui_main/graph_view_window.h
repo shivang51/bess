@@ -2,6 +2,7 @@
 
 #include "common/helpers.h"
 #include "ui/icons/CodIcons.h"
+#include "ui_panel.h"
 #include <unordered_map>
 #include <vector>
 
@@ -13,24 +14,22 @@ namespace Bess::UI {
 
     struct GraphViewWindowData {
         int offset = 0;
-        std::unordered_map<int, std::string> graphs = {};
-        std::unordered_map<std::string, LabeledDigitalSignal> allSignals = {};
+        std::unordered_map<int, std::string> graphs;
+        std::unordered_map<std::string, LabeledDigitalSignal> allSignals;
     };
 
-    class GraphViewWindow {
+    class GraphViewWindow : public Panel {
       public:
-        static void hide();
-        static void show();
-        static void draw();
+        GraphViewWindow();
 
-        static bool isShown;
+        GraphViewWindowData &getDataRef();
 
-        static constexpr auto windowName = Common::Helpers::concat(Icons::CodIcons::GRAPH_LINE, "  Graph View");
-
-        static GraphViewWindowData &getDataRef();
+        void onDraw() override;
 
       private:
-        static void plotDigitalSignals(const std::string &plotName, const std::unordered_map<std::string, LabeledDigitalSignal> &signals, float plotHeight = 150.0f);
+        void plotDigitalSignals(const std::string &plotName,
+                                const std::unordered_map<std::string, LabeledDigitalSignal> &signals,
+                                float plotHeight = 150.0f);
 
       private:
         static GraphViewWindowData s_data;

@@ -235,15 +235,9 @@ namespace Bess::UI {
         ImGui::SetNextWindowSize(ImVec2(300, 0));
         if (ImGui::BeginMenu("View")) {
 
-            Widgets::CheckboxWithLabel(ProjectExplorer::windowName.data(), &ProjectExplorer::isShown);
-
             Widgets::CheckboxWithLabel(PropertiesPanel::windowName.data(), &PropertiesPanel::isShown);
 
-            Widgets::CheckboxWithLabel(GraphViewWindow::windowName.data(), &GraphViewWindow::isShown);
-
             Widgets::CheckboxWithLabel(TruthTableWindow::windowName.data(), &TruthTableWindow::isShown);
-
-            Widgets::CheckboxWithLabel(LogWindow::windowName.data(), &LogWindow::isShown);
 
             for (auto &panel : getPanels()) {
                 if (panel->getShowInMenuBar()) {
@@ -401,11 +395,8 @@ namespace Bess::UI {
         DockIds[Dock::bottom] = dockIdBot;
 
         ImGui::DockBuilderDockWindow("MainViewport", mainDockspaceId);
-        ImGui::DockBuilderDockWindow(ProjectExplorer::windowName.data(), dockIdLeft);
         ImGui::DockBuilderDockWindow(PropertiesPanel::windowName.data(), dockIdRight);
-        ImGui::DockBuilderDockWindow(GraphViewWindow::windowName.data(), dockIdBot);
         ImGui::DockBuilderDockWindow(TruthTableWindow::windowName.data(), dockIdBot);
-        ImGui::DockBuilderDockWindow(LogWindow::windowName.data(), dockIdBot);
         ImGui::DockBuilderDockWindow("Debug Window", dockIdBot);
 
         for (auto &panel : getPanels()) {
@@ -423,11 +414,8 @@ namespace Bess::UI {
         SettingsWindow::draw();
         ProjectSettingsWindow::draw();
         SceneExportWindow::draw();
-        ProjectExplorer::draw();
         PropertiesPanel::draw();
-        GraphViewWindow::draw();
         TruthTableWindow::draw();
-        LogWindow::draw();
     }
 
     void UIMain::onNewProject() {
@@ -499,6 +487,9 @@ namespace Bess::UI {
 
         registerPanel<DebugPanel>();
         registerPanel<ComponentExplorer>();
+        registerPanel<GraphViewWindow>();
+        registerPanel<LogWindow>();
+        registerPanel<ProjectExplorer>();
     }
 
     std::vector<std::shared_ptr<Panel>> &UIMain::getPanels() {
