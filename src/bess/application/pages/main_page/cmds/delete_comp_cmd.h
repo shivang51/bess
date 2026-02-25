@@ -29,169 +29,61 @@ namespace Bess::Cmd {
             m_name = "DeleteComponentCmd";
         }
 
-        bool execute(Canvas::Scene *scene,
-                     SimEngine::SimulationEngine *simEngine) override {
-
+        bool execute(Canvas::Scene *scene, SimEngine::SimulationEngine *simEngine) override {
             m_deletedComponents.clear();
-
             auto &sceneState = scene->getState();
 
-            std::vector<UUID> notConnectionComps;
-            std::unordered_map<UUID, std::vector<UUID>> dependantsMap;
-            std::unordered_set<UUID> unqDependants;
+            std::unordered_set<UUID> visited;
+            std::vector<UUID> deletionOrder;
 
-            for (const auto &compUuid : m_compUuids) {
-                const auto &comp = sceneState.getComponentByUuid(compUuid);
-                if (!comp) {
-                    BESS_WARN("Component with uuid {} not found in scene state. Skipping deletion.",
-                              (uint64_t)compUuid);
-                    continue;
+            // topological sort
+            // identifies everything that must go, dependants first.
+            std::function<void(const UUID &)> collect = [&](const UUID &uuid) {
+                if (visited.contains(uuid))
+                    return;
+                auto comp = sceneState.getComponentByUuid(uuid);
+                if (!comp)
+                    return;
+
+                visited.insert(uuid);
+                for (const auto &depUuid : comp->getDependants(sceneState)) {
+                    collect(depUuid);
                 }
+                deletionOrder.push_back(uuid);
+            };
 
-                BESS_DEBUG("Collecting dependants for {} | {}", (uint64_t)compUuid, comp->getName());
-
-                const auto &dependants = comp->getDependants(sceneState);
-
-                std::vector<UUID> unqDependantsList;
-
-                for (const auto &dependantUuid : dependants) {
-                    if (!unqDependants.contains(dependantUuid)) {
-                        unqDependantsList.push_back(dependantUuid);
-                        unqDependants.insert(dependantUuid);
-                    }
-                }
-
-                if (unqDependantsList.empty())
-                    continue;
-
-                dependantsMap[compUuid] = std::move(unqDependantsList);
+            for (const auto &startUuid : m_compUuids) {
+                collect(startUuid);
             }
 
-            for (const auto &[compId, dependants] : dependantsMap) {
-                BESS_DEBUG("Component {} with uuid {} has {} dependants",
-                           sceneState.getComponentByUuid(compId)->getName(),
-                           (uint64_t)compId, dependants.size());
-                for (const auto &depId : dependants) {
-                    const auto &comp = sceneState.getComponentByUuid(depId);
-                    BESS_DEBUG("Got Dependant {} | {}", comp->getName(), (uint64_t)depId);
-                }
-            }
+            // connection cleanup
+            // we process connections first. even if they are parents in the graph,
+            // the service needs the dependants (slots) to exist during this call.
+            for (auto it = deletionOrder.begin(); it != deletionOrder.end();) {
+                auto comp = sceneState.getComponentByUuid(*it);
+                if (comp && comp->getType() == Canvas::SceneComponentType::connection) {
+                    BESS_DEBUG("Removing Connection {}", (uint64_t)*it);
 
-            // Storing components in a order so that cleanup and restoration is correct.
-            for (const auto &[compId, dependants] : dependantsMap) {
-                for (const auto &dependantUuid : dependants) {
-                    if (!sceneState.isComponentValid(dependantUuid)) {
-                        BESS_WARN("Dependant component with uuid {} not found in scene state. Skipping deletion.",
-                                  (uint64_t)dependantUuid);
-                        continue;
-                    }
-
-                    // ignoring the dependant which was passed explicitly as well.
-                    if (m_compUuids.contains(dependantUuid)) {
-                        BESS_DEBUG("Ignoring dependant {} as it was also explicitly passed",
-                                   (uint64_t)dependantUuid);
-                        continue;
-                    }
-
-                    auto comp = sceneState.getComponentByUuid(dependantUuid);
-                    m_deletedComponents.push_back(std::move(comp));
-                }
-
-                auto comp = sceneState.getComponentByUuid(compId);
-                m_deletedComponents.push_back(std::move(comp));
-            }
-
-            for (const auto &compUuid : m_compUuids) {
-                if (!dependantsMap.contains(compUuid)) {
-                    auto comp = sceneState.getComponentByUuid(compUuid);
-                    if (comp) {
-                        m_deletedComponents.push_back(std::move(comp));
-                    } else {
-                        BESS_WARN("Component with uuid {} not found in scene state. Skipping deletion.",
-                                  (uint64_t)compUuid);
-                    }
-                }
-            }
-
-            std::unordered_set<UUID> deletedUuids;
-
-            auto &connectionsSvc = Svc::SvcConnection::instance();
-
-            // Handeling connections first
-            for (const auto &compUuid : m_compUuids) {
-                auto comp = sceneState.getComponentByUuid(compUuid);
-                if (comp->getType() == Canvas::SceneComponentType::connection) {
-                    const auto &removedUuids = connectionsSvc.removeConnection(
+                    Svc::SvcConnection::instance().removeConnection(
                         comp->cast<Canvas::ConnectionSceneComponent>());
-                    if (!removedUuids.empty()) {
-                        deletedUuids.insert_range(removedUuids);
-#ifdef DEBUG
-                        if (dependantsMap.contains(compUuid)) {
-                            const auto &count = dependantsMap.at(compUuid).size();
-                            if (count == removedUuids.size() - 1) {
-                                BESS_DEBUG("Deleted dependants count {} does not match expected count {} for component {}.",
-                                           removedUuids.size() - 1, count, (uint64_t)compUuid);
-                            }
-                        }
-#endif
-                    } else {
-                        BESS_WARN("Failed to delete connection component {}", (uint64_t)compUuid);
-                    }
+
+                    m_deletedComponents.push_back(std::move(comp));
+                    it = deletionOrder.erase(it);
                 } else {
-                    notConnectionComps.push_back(compUuid);
+                    ++it;
                 }
             }
 
-            for (const auto &compUuid : notConnectionComps) {
-                auto comp = sceneState.getComponentByUuid(compUuid);
-                if (comp) {
-                    const auto removedUuids = sceneState.removeComponent(compUuid, UUID::master);
-                    if (!removedUuids.empty()) {
-                        deletedUuids.insert_range(removedUuids);
-#ifdef DEBUG
-                        if (dependantsMap.contains(compUuid)) {
-                            const auto &count = dependantsMap.at(compUuid).size();
-                            if (count != removedUuids.size() - 1) {
-                                BESS_WARN("Deleted dependants count {} does not match expected count {} for component {}.",
-                                          removedUuids.size() - 1, count, (uint64_t)compUuid);
-                                for (const auto &id : removedUuids) {
-                                    BESS_DEBUG("Removed id {}", (uint64_t)id);
-                                }
-                            }
-                        }
-#endif
-                    } else {
-                        BESS_WARN("Failed to delete component {}", (uint64_t)compUuid);
-                    }
-                }
-            }
+            //  delete the rest (slots, nodes, etc.)
+            for (const auto &uuid : deletionOrder) {
+                auto comp = sceneState.getComponentByUuid(uuid);
+                if (!comp)
+                    continue;
 
-            const auto expectedDeletedCount = m_deletedComponents.size();
-            const auto deletedCount = deletedUuids.size();
+                BESS_DEBUG("Removing Component {} ({})", (uint64_t)uuid, comp->getName());
 
-            if (deletedCount != expectedDeletedCount) {
-                BESS_WARN("Deleted components count {} does not match expected count {}.",
-                          deletedCount, expectedDeletedCount);
-            }
-
-            if (deletedCount != m_deletedComponents.size()) {
-                BESS_WARN("Deleted components count {} does not match stored deleted components count {}.",
-                          deletedCount, m_deletedComponents.size());
-                if (deletedCount > m_deletedComponents.size()) {
-                    for (const auto &uuid : deletedUuids) {
-                        if (std::ranges::none_of(m_deletedComponents, [&uuid](const auto &comp) { return comp->getUuid() == uuid; })) {
-                            BESS_DEBUG("Component with uuid {} was deleted but not stored in deleted components list.",
-                                       (uint64_t)uuid);
-                        }
-                    }
-                }
-            }
-
-            BESS_ASSERT(deletedCount == m_deletedComponents.size(),
-                        "Deleted components count does not match stored deleted components count");
-
-            for (const auto &comp : m_deletedComponents) {
-                BESS_DEBUG("Deleted component: {} with uuid {}", comp->getName(), (uint64_t)comp->getUuid());
+                sceneState.removeComponent(uuid, UUID::master);
+                m_deletedComponents.push_back(std::move(comp));
             }
 
             return !m_deletedComponents.empty();
@@ -247,24 +139,8 @@ namespace Bess::Cmd {
         void redo(Canvas::Scene *scene,
                   SimEngine::SimulationEngine *simEngine) override {
             auto &connectionsSvc = Svc::SvcConnection::instance();
+
             for (const auto &comp : m_deletedComponents) {
-                bool shouldDelete = true;
-
-                if (comp->getParentComponent() != UUID::null) {
-                    const auto parentComp = scene->getState().getComponentByUuid(
-                        comp->getParentComponent());
-                    if (parentComp) {
-                        shouldDelete = parentComp->getType() == Canvas::SceneComponentType::group;
-                    } else {
-                        BESS_ERROR("Parent {} not found for component {} during redo of del cmd.",
-                                   (uint64_t)comp->getParentComponent(), comp->getName());
-                        BESS_ASSERT(false, "Parent component not found during redo of delete command");
-                    }
-                }
-
-                if (!shouldDelete)
-                    continue;
-
                 if (comp->getType() == Canvas::SceneComponentType::connection) {
                     connectionsSvc.removeConnection(comp->cast<Canvas::ConnectionSceneComponent>());
                 } else {

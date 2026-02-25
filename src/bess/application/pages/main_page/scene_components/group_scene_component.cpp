@@ -13,7 +13,10 @@ namespace Bess::Canvas {
 
     std::vector<UUID> GroupSceneComponent::cleanup(SceneState &state, UUID caller) {
         for (const auto &childId : m_childComponents) {
-            state.orphanComponent(childId);
+            auto childComp = state.getComponentByUuid(childId);
+            if (childComp) {
+                state.orphanComponent(childId);
+            }
         }
         return {};
     }
