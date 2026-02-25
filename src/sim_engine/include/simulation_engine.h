@@ -60,7 +60,7 @@ namespace Bess::SimEngine {
 
         const ComponentState &getComponentState(const UUID &uuid);
         const std::shared_ptr<ComponentDefinition> &getComponentDefinition(const UUID &uuid) const;
-        std::shared_ptr<DigitalComponent> getDigitalComponent(const UUID &uuid);
+        std::shared_ptr<DigitalComponent> getDigitalComponent(const UUID &uuid) const;
 
         void clear();
 

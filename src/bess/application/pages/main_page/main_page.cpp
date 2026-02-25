@@ -16,6 +16,7 @@
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
+#include "pages/main_page/services/connection_service.h"
 #include "scene_ser_reg.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
@@ -67,6 +68,8 @@ namespace Bess::Pages {
 
         UI::UIMain::init();
 
+        Svc::SvcConnection::instance().init();
+
         BESS_DEBUG("MainPage created successfully");
     }
 
@@ -79,17 +82,24 @@ namespace Bess::Pages {
         if (m_isDestroyed)
             return;
         BESS_INFO("[MainPage] Destroying");
+
+        Svc::SvcConnection::instance().destroy();
+
         Canvas::NonSimSceneComponent::clearRegistry();
         Canvas::SceneSerReg::clearRegistry();
+
         m_state.getCommandSystem().reset();
         m_copiedComponents.clear();
+
         auto &instance = Bess::Vulkan::VulkanCore::instance();
         instance.cleanup([&]() {
             m_state.getSceneDriver()->destroy();
             Assets::AssetManager::instance().clear();
             UI::vulkanCleanup(instance.getDevice());
         });
+
         UI::UIMain::destroy();
+
         BESS_INFO("[MainPage] Destroyed");
         m_isDestroyed = true;
     }

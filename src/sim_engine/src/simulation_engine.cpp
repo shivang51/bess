@@ -908,7 +908,7 @@ namespace Bess::SimEngine {
         return true;
     }
 
-    std::shared_ptr<DigitalComponent> SimulationEngine::getDigitalComponent(const UUID &uuid) {
+    std::shared_ptr<DigitalComponent> SimulationEngine::getDigitalComponent(const UUID &uuid) const {
         return m_simEngineState.getDigitalComponent(uuid);
     }
 
