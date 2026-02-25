@@ -523,13 +523,26 @@ namespace Bess::Canvas {
         std::vector<UUID> dependants;
 
         // get connections and their dependants
-        const auto &connections = state.getConnectionsForComponent(getUuid());
+        for (const auto &inp : std::ranges::reverse_view(m_inputSlots)) {
+            const auto &slotComp = state.getComponentByUuid<SlotSceneComponent>(inp);
+            const auto &connections = slotComp->getConnectedConnections();
+            for (const auto &connUuid : connections) {
+                const auto &connComp = state.getComponentByUuid<ConnectionSceneComponent>(connUuid);
+                const auto &connDeps = connComp->getDependants(state);
+                dependants.insert(dependants.end(), connDeps.begin(), connDeps.end());
+                dependants.push_back(connUuid);
+            }
+        }
 
-        for (const auto &connUuid : connections) {
-            const auto &connComp = state.getComponentByUuid<ConnectionSceneComponent>(connUuid);
-            const auto &connDeps = connComp->getDependants(state);
-            dependants.insert(dependants.end(), connDeps.begin(), connDeps.end());
-            dependants.push_back(connUuid);
+        for (const auto &out : std::ranges::reverse_view(m_outputSlots)) {
+            const auto &slotComp = state.getComponentByUuid<SlotSceneComponent>(out);
+            const auto &connections = slotComp->getConnectedConnections();
+            for (const auto &connUuid : connections) {
+                const auto &connComp = state.getComponentByUuid<ConnectionSceneComponent>(connUuid);
+                const auto &connDeps = connComp->getDependants(state);
+                dependants.insert(dependants.end(), connDeps.begin(), connDeps.end());
+                dependants.push_back(connUuid);
+            }
         }
 
         // get children and their dependants
