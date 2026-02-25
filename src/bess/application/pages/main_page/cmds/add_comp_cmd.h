@@ -2,6 +2,9 @@
 #include "command.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
+#include "pages/main_page/scene_components/connection_scene_component.h"
+#include "pages/main_page/scene_components/scene_comp_types.h"
+#include "pages/main_page/services/connection_service.h"
 #include "scene/scene.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "simulation_engine.h"
@@ -30,7 +33,13 @@ namespace Bess::Cmd {
             if (!m_comp) {
                 return false;
             }
-            scene->addComponent(m_comp);
+
+            if (m_comp->getType() == Canvas::SceneComponentType::connection) {
+                Svc::SvcConnection::instance().addConnection(
+                    m_comp->template cast<Canvas::ConnectionSceneComponent>());
+            } else {
+                scene->addComponent(m_comp);
+            }
 
             auto &sceneState = scene->getState();
             for (const auto &childComp : m_childComponents) {
@@ -45,14 +54,24 @@ namespace Bess::Cmd {
                   SimEngine::SimulationEngine *simEngine) override {
             BESS_ASSERT(m_comp, "Cannot undo AddCompCmd without a valid component");
 
-            scene->deleteSceneEntity(m_comp->getUuid());
+            if (m_comp->getType() == Canvas::SceneComponentType::connection) {
+                Svc::SvcConnection::instance().removeConnection(
+                    m_comp->template cast<Canvas::ConnectionSceneComponent>());
+            } else {
+                scene->deleteSceneEntity(m_comp->getUuid());
+            }
         }
 
         void redo(Canvas::Scene *scene,
                   SimEngine::SimulationEngine *simEngine) override {
             BESS_ASSERT(m_comp, "Cannot redo AddCompCmd without a valid component");
 
-            scene->addComponent(m_comp, false);
+            if (m_comp->getType() == Canvas::SceneComponentType::connection) {
+                Svc::SvcConnection::instance().addConnection(
+                    m_comp->template cast<Canvas::ConnectionSceneComponent>());
+            } else {
+                scene->addComponent(m_comp, false);
+            }
 
             auto &sceneState = scene->getState();
             for (const auto &childComp : m_childComponents) {
