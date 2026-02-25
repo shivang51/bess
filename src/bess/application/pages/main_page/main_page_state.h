@@ -79,8 +79,6 @@ namespace Bess::Pages {
         void onCompDefOutputsResized(const SimEngine::Events::CompDefOutputsResizedEvent &e);
         void onCompDefInputsResized(const SimEngine::Events::CompDefInputsResizedEvent &e);
 
-        void onConnectionRemoved(const Canvas::Events::ConnectionRemovedEvent &e);
-
       private:
         Cmd::CommandSystem m_commandSystem;
         SceneDriver m_sceneDriver;
