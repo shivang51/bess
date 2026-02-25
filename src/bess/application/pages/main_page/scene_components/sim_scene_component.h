@@ -72,6 +72,8 @@ namespace Bess::Canvas {
                        Bess::Canvas::SceneComponent,
                        SIM_SC_SER_PROPS)
 
+        std::vector<UUID> getDependants(SceneState &state) const override;
+
       protected:
         void onTransformChanged() override;
 

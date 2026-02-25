@@ -41,8 +41,13 @@ namespace Bess::Svc {
         bool addConnection(const std::shared_ptr<Canvas::ConnectionSceneComponent> &conn);
 
         // Takes a connection component and tries to remove it safely
-        // @returns: true on sucess and false otherwise
-        bool removeConnection(const std::shared_ptr<Canvas::ConnectionSceneComponent> &conn);
+        // @returns: ids of all the components which were removed (includes slots if any were removed),
+        // empty on fail
+        std::vector<UUID> removeConnection(const std::shared_ptr<Canvas::ConnectionSceneComponent> &conn);
+
+        // Takes a connection id and returns the ids of all the components which are life dependants on it,
+        // empty if no dependants or connection not found.
+        std::vector<UUID> getDependants(const UUID &connection);
 
       private:
         // Checks if given slot is a resize slot,
@@ -53,8 +58,9 @@ namespace Bess::Svc {
         // Checks if slot is safe to remove, true if following are met.
         // If its part of resizeable slot group,
         // If its the last slot and not resize slot,
-        // and has no connections.
-        bool isSlotRemovable(const std::shared_ptr<Canvas::SlotSceneComponent> &slot);
+        // and has less than or equal to given threshold connections.
+        bool isSlotRemovable(const std::shared_ptr<Canvas::SlotSceneComponent> &slot,
+                             size_t connectionThreshold = 0);
 
         // Removes the slot from the sim componenet,
         // and decrements count in sim engine digital component.

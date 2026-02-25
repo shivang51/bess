@@ -62,8 +62,6 @@ namespace Bess::Canvas {
         SimEngine::SlotState getSlotState(const SceneState &state) const;
         bool isSlotConnected(const SceneState &state) const;
 
-        std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
-
         bool isResizeSlot() const;
 
         bool isInputSlot() const;

@@ -347,6 +347,10 @@ namespace Bess::Canvas {
             }
         }
 
+        Canvas::Events::ConnectionRemovedEvent event{m_startSlot,
+                                                     m_startSlot};
+        EventSystem::EventDispatcher::instance().queue(event);
+
         return {};
     }
 
@@ -502,71 +506,26 @@ namespace Bess::Canvas {
                                  m_associatedJoints.end());
     }
 
-    void ConnectionSceneComponent::onAttach(SceneState &sceneState) {
-        // auto startComp = sceneState.getComponentByUuid(m_startSlot);
-        // auto endComp = sceneState.getComponentByUuid(m_endSlot);
-        //
-        // std::shared_ptr<SlotSceneComponent> startSlot = nullptr;
-        // std::shared_ptr<SlotSceneComponent> endSlot = nullptr;
-        //
-        // SimEngine::SlotType startPinType{}, endPinType{};
-        // int startSlotIdx = -1, endSlotIdx = -1;
-        //
-        // if (startComp->getType() == SceneComponentType::connJoint) {
-        //     endPinType = SimEngine::SlotType::digitalInput;
-        //     startPinType = SimEngine::SlotType::digitalOutput;
-        //     auto outSlotId = sceneState.getComponentByUuid<ConnJointSceneComp>(m_startSlot)->getOutputSlotId();
-        //
-        //     startSlot = sceneState.getComponentByUuid<SlotSceneComponent>(outSlotId);
-        //     startSlotIdx = startSlot->getIndex();
-        //
-        //     endSlot = sceneState.getComponentByUuid<SlotSceneComponent>(m_endSlot);
-        //     endSlotIdx = endSlot->getIndex();
-        // } else if (endComp->getType() == SceneComponentType::connJoint) {
-        //     startPinType = SimEngine::SlotType::digitalInput;
-        //     endPinType = SimEngine::SlotType::digitalOutput;
-        //
-        //     auto outSlotId = sceneState.getComponentByUuid<ConnJointSceneComp>(m_endSlot)->getOutputSlotId();
-        //     endSlot = sceneState.getComponentByUuid<SlotSceneComponent>(outSlotId);
-        //     endSlotIdx = endSlot->getIndex();
-        //
-        //     startSlot = sceneState.getComponentByUuid<SlotSceneComponent>(m_startSlot);
-        //     startSlotIdx = startSlot->getIndex();
-        // } else {
-        //     startPinType = startComp->cast<SlotSceneComponent>()->getSlotType() == SlotType::digitalInput
-        //                        ? SimEngine::SlotType::digitalInput
-        //                        : SimEngine::SlotType::digitalOutput;
-        //
-        //     endPinType = endComp->cast<SlotSceneComponent>()->getSlotType() == SlotType::digitalInput
-        //                      ? SimEngine::SlotType::digitalInput
-        //                      : SimEngine::SlotType::digitalOutput;
-        //
-        //     startSlot = sceneState.getComponentByUuid<SlotSceneComponent>(m_startSlot);
-        //     endSlot = sceneState.getComponentByUuid<SlotSceneComponent>(m_endSlot);
-        //
-        //     startSlotIdx = startSlot->getIndex();
-        //     endSlotIdx = endSlot->getIndex();
-        // }
-        //
-        // const auto startParent = sceneState.getComponentByUuid<
-        //     SimulationSceneComponent>(startSlot->getParentComponent());
-        // const auto endParent = sceneState.getComponentByUuid<
-        //     SimulationSceneComponent>(endSlot->getParentComponent());
-        //
-        // auto &simEngine = SimEngine::SimulationEngine::instance();
-        // BESS_ASSERT(startParent->getSimEngineId() != UUID::null,
-        //             "Start parent component does not have a valid simulation engine ID");
-        //
-        // BESS_ASSERT(endParent->getSimEngineId() != UUID::null,
-        //             "End parent component does not have a valid simulation engine ID");
-        // simEngine.connectComponent(startParent->getSimEngineId(), startSlotIdx, startPinType,
-        //                            endParent->getSimEngineId(), endSlotIdx, endPinType);
-        //
-        // sceneState.addConnectionForComponent(startParent->getUuid(), m_uuid);
-        // sceneState.addConnectionForComponent(endParent->getUuid(), m_uuid);
-    }
-
     void ConnectionSceneComponent::onRuntimeIdChanged() {
         m_invalidatePathCache = true;
+    }
+
+    std::vector<UUID> ConnectionSceneComponent::getDependants(SceneState &state) const {
+        std::vector<UUID> dependants;
+
+        // get joints associated with this connection
+        for (const auto &jointId : m_associatedJoints) {
+            const auto &jointComp = state.getComponentByUuid<ConnJointSceneComp>(jointId);
+            const auto &jointDeps = jointComp->getDependants(state);
+            dependants.insert(dependants.end(), jointDeps.begin(), jointDeps.end());
+            dependants.push_back(jointId);
+        }
+
+        // get its depents from ConnectionService
+        auto &connectionsSvc = Svc::SvcConnection::instance();
+        const auto &connDependants = connectionsSvc.getDependants(getUuid());
+        dependants.insert(dependants.end(), connDependants.begin(), connDependants.end());
+
+        return dependants;
     }
 } // namespace Bess::Canvas

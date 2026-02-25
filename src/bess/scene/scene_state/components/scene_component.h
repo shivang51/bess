@@ -143,6 +143,8 @@ namespace Bess::Canvas {
         // Serialize the component to JSON for saving
         virtual Json::Value toJson() const;
 
+        virtual std::vector<UUID> getDependants(SceneState &state) const;
+
       protected:
         // Deserialize the component from JSON
         static void fromJson(const Json::Value &j,

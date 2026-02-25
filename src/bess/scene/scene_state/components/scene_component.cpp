@@ -93,13 +93,15 @@ namespace Bess::Canvas {
     }
 
     std::vector<UUID> SceneComponent::cleanup(SceneState &state, UUID caller) {
+        auto removedIds = std::vector<UUID>{};
         for (const auto &childUuid : m_childComponents) {
             auto childComp = state.getComponentByUuid(childUuid);
             if (childComp) {
-                state.removeComponent(childUuid, m_uuid);
+                auto ids = state.removeComponent(childUuid, m_uuid);
+                removedIds.insert(removedIds.end(), ids.begin(), ids.end());
             }
         }
-        return m_childComponents | std::views::transform([](const UUID &uuid) { return uuid; }) | std::ranges::to<std::vector<UUID>>();
+        return removedIds;
     }
 
     void SceneComponent::onFirstSchematicDraw(SceneState &state,
@@ -134,5 +136,11 @@ namespace Bess::Canvas {
                           ("name", getName, setName),
                           ("parentComponent", getParentComponent, setParentComponent),
                           ("childComponents", getChildComponents, setChildComponents));
+    }
+
+    std::vector<UUID> SceneComponent::getDependants(SceneState &state) const {
+        return m_childComponents.empty()
+                   ? std::vector<UUID>{}
+                   : std::vector<UUID>(m_childComponents.begin(), m_childComponents.end());
     }
 } // namespace Bess::Canvas

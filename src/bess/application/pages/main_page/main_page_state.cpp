@@ -169,9 +169,12 @@ namespace Bess::Pages {
         auto &sceneState = m_sceneDriver->getState();
         const auto &compId = m_simIdToSceneCompId[e.componentId];
         const auto &comp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(compId);
-        BESS_ASSERT(comp, std::format("[Scene] Component with uuid {} not found in scene state", (uint64_t)compId));
+        if (!comp)
+            return; // most likely the component was deleted, so we can ignore this event
+
         const auto &parent = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(compId);
         BESS_ASSERT(parent, std::format("[Scene] Component with uuid {} not found in scene state", (uint64_t)compId));
+
         const auto &digitalComp = SimEngine::SimulationEngine::instance().getDigitalComponent(e.componentId);
         const auto &outSlotsInfo = digitalComp->definition->getOutputSlotsInfo();
 

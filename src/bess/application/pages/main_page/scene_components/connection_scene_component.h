@@ -41,8 +41,6 @@ namespace Bess::Canvas {
         void onMouseLeave(const Events::MouseLeaveEvent &e) override;
         void onMouseButton(const Events::MouseButtonEvent &e) override;
 
-        void onAttach(SceneState &sceneState) override;
-
         REG_SCENE_COMP_TYPE("ConnSceneComponent", SceneComponentType::connection)
         SCENE_COMP_SER(Bess::Canvas::ConnectionSceneComponent,
                        Canvas::SceneComponent, CONN_SC_SER_PROPS)
@@ -66,6 +64,8 @@ namespace Bess::Canvas {
         std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
 
         glm::vec3 getSegVertexPos(const SceneState &state, size_t vertexIdx);
+
+        std::vector<UUID> getDependants(SceneState &state) const override;
 
       private:
         void onRuntimeIdChanged() override;

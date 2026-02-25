@@ -28,7 +28,38 @@ namespace Bess::Svc {
         BESS_DEBUG("Destroyed Connection Service");
     }
 
+    std::vector<UUID> SvcConnection::getDependants(const UUID &connection) {
+
+        auto &sceneState = getScene()->getState();
+        if (!sceneState.isComponentValid(connection)) {
+            BESS_ERROR("Connection with id {} not found in scene state", (uint64_t)connection);
+            return {};
+        }
+
+        const auto &connComp = sceneState.getComponentByUuid<Canvas::ConnectionSceneComponent>(connection);
+
+        // Check for slots which can be removed with the connection
+        const auto &slotA = getSlot(connComp->getStartSlot());
+        const auto &slotB = getSlot(connComp->getEndSlot());
+
+        std::vector<UUID> dependants;
+
+        if (slotA && isSlotRemovable(slotA, 1)) {
+            dependants.push_back(slotA->getUuid());
+        }
+
+        if (slotB && isSlotRemovable(slotB, 1)) {
+            dependants.push_back(slotB->getUuid());
+        }
+
+        return dependants;
+    }
+
     bool SvcConnection::addConnection(const std::shared_ptr<Canvas::ConnectionSceneComponent> &conn) {
+        BESS_DEBUG("Adding connection with uuid {} between slot {} and slot {}",
+                   (uint64_t)conn->getUuid(),
+                   (uint64_t)conn->getStartSlot(), (uint64_t)conn->getEndSlot());
+
         if (!conn) {
             BESS_ERROR("[SvcConnection] [addConnection] Invalid connection given");
             return false;
@@ -81,6 +112,8 @@ namespace Bess::Svc {
             if (!foundBInScene) {
                 removeSlot(slotB);
             }
+
+            BESS_ASSERT(false, "Failed to connect slots for the connection in simulation engine");
             return false;
         }
 
@@ -89,6 +122,12 @@ namespace Bess::Svc {
 
         sceneState.addComponent(conn);
 
+        const auto &slotAParent = slotA->getParentComponent();
+        const auto &slotBParent = slotB->getParentComponent();
+
+        sceneState.addConnectionForComponent(slotAParent, conn->getUuid());
+        sceneState.addConnectionForComponent(slotBParent, conn->getUuid());
+
         BESS_INFO("[ConnectionSvc] Added connection {} between slot {} and slot {}",
                   (uint64_t)conn->getUuid(),
                   (uint64_t)slotAId, (uint64_t)slotBId);
@@ -96,10 +135,10 @@ namespace Bess::Svc {
         return true;
     }
 
-    bool SvcConnection::removeConnection(const std::shared_ptr<Canvas::ConnectionSceneComponent> &conn) {
+    std::vector<UUID> SvcConnection::removeConnection(const std::shared_ptr<Canvas::ConnectionSceneComponent> &conn) {
         if (!conn) {
             BESS_ERROR("[SvcConnection] [removeConnection] Invalid connection given");
-            return false;
+            return {};
         }
 
         const auto &slotA = conn->getStartSlot();
@@ -111,6 +150,8 @@ namespace Bess::Svc {
         auto slotAComp = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(slotA);
         auto slotBComp = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(slotB);
 
+        auto removedIds = std::vector<UUID>{};
+
         if (slotAComp) {
             slotAComp->removeConnection(conn->getUuid());
             if (isSlotRemovable(slotAComp)) {
@@ -119,8 +160,9 @@ namespace Bess::Svc {
                     BESS_ERROR("Failed to remove slot A with id {} for connection {}", (uint64_t)slotA,
                                (uint64_t)conn->getUuid());
                     BESS_ASSERT(false, "Failed to remove slot A for connection");
-                    return false;
+                    return {};
                 }
+                removedIds.push_back(slotAComp->getUuid());
             }
         }
 
@@ -132,17 +174,26 @@ namespace Bess::Svc {
                     BESS_ERROR("Failed to remove slot B with id {} for connection {}", (uint64_t)slotB,
                                (uint64_t)conn->getUuid());
                     BESS_ASSERT(false, "Failed to remove slot B for connection");
-                    return false;
+                    return {};
                 }
+                removedIds.push_back(slotBComp->getUuid());
             }
         }
 
         sceneState.removeComponent(conn->getUuid());
+        const auto &slotAParent = slotAComp->getParentComponent();
+        const auto &slotBParent = slotBComp->getParentComponent();
 
-        return true;
+        sceneState.removeConnectionForComponent(slotAParent, conn->getUuid());
+        sceneState.removeConnectionForComponent(slotBParent, conn->getUuid());
+
+        removedIds.push_back(conn->getUuid());
+
+        return removedIds;
     }
 
-    bool SvcConnection::isSlotRemovable(const std::shared_ptr<Canvas::SlotSceneComponent> &slot) {
+    bool SvcConnection::isSlotRemovable(const std::shared_ptr<Canvas::SlotSceneComponent> &slot,
+                                        size_t connectionThreshold) {
         if (!slot) {
             BESS_ERROR("[SvcConnection] [isSlotRemovable] Invalid slot given");
             return false;
@@ -151,7 +202,7 @@ namespace Bess::Svc {
         const size_t idx = slot->getIndex();
 
         // False: if there are still some connections or is the first or only slot
-        if (!slot->getConnectedConnections().empty() && idx != 0)
+        if (slot->getConnectedConnections().size() > connectionThreshold && idx == 0)
             return false;
 
         const auto &sceneState = getScene()->getState();
@@ -334,6 +385,7 @@ namespace Bess::Svc {
         // then from internal bin
         if (m_slotsBin.contains(slotId)) {
             auto slot = m_slotsBin.at(slotId);
+            BESS_DEBUG("Found slot {} in bin", (uint64_t)slotId);
             m_slotsBin.erase(slotId);
             return {slot, false};
         }

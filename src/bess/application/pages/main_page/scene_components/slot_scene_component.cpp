@@ -3,6 +3,7 @@
 #include "connection_scene_component.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
+#include "pages/main_page/services/connection_service.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
@@ -176,20 +177,6 @@ namespace Bess::Canvas {
         return (m_slotType == SlotType::digitalInput)
                    ? compState.inputConnected[m_index]
                    : compState.outputConnected[m_index];
-    }
-
-    std::vector<UUID> SlotSceneComponent::cleanup(SceneState &state, UUID caller) {
-        std::vector<UUID> removedConnections;
-        for (const auto &connUuid : m_connectedConnections) {
-            if (caller == connUuid) {
-                continue;
-            }
-            auto connComp = state.getComponentByUuid(connUuid);
-            if (connComp) {
-                state.removeComponent(connUuid, m_uuid);
-            }
-        }
-        return m_connectedConnections;
     }
 
     void SlotSceneComponent::addConnection(const UUID &connectionId) {

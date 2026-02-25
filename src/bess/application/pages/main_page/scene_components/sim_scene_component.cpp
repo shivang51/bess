@@ -1,6 +1,8 @@
 #include "sim_scene_component.h"
 #include "common/bess_uuid.h"
 #include "input_scene_component.h"
+#include "pages/main_page/scene_components/connection_scene_component.h"
+#include "pages/main_page/services/connection_service.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
@@ -332,13 +334,34 @@ namespace Bess::Canvas {
     }
 
     std::vector<UUID> SimulationSceneComponent::cleanup(SceneState &state, UUID caller) {
+        // its important that we take a copy
+        auto connections = state.getConnectionsForComponent(getUuid());
+
+        std::vector<UUID> removedIds;
+
+        auto &connectionsSvc = Svc::SvcConnection::instance();
+        for (const auto &connUuid : connections) {
+            const auto connComp = state.getComponentByUuid<ConnectionSceneComponent>(connUuid);
+            const auto &ids = connectionsSvc.removeConnection(connComp);
+            if (ids.empty()) {
+                BESS_WARN("Failed to remove connection with uuid {} during cleanup of component {}",
+                          (uint64_t)connUuid, getName());
+            } else {
+                removedIds.insert(removedIds.end(), ids.begin(), ids.end());
+            }
+        }
+
         const auto ids = SceneComponent::cleanup(state, caller);
+        removedIds.insert(removedIds.end(), ids.begin(), ids.end());
+
         auto &simEngine = SimEngine::SimulationEngine::instance();
         simEngine.deleteComponent(m_simEngineId);
+
         if (m_drawHook) {
             m_drawHook.reset();
         }
-        return ids;
+
+        return removedIds;
     }
 
     void SimulationSceneComponent::calculateSchematicScale(SceneState &state,
@@ -494,5 +517,29 @@ namespace Bess::Canvas {
 
     void SimulationSceneComponent::onTransformChanged() {
         m_schematicTransform.position.z = m_transform.position.z;
+    }
+
+    std::vector<UUID> SimulationSceneComponent::getDependants(SceneState &state) const {
+        std::vector<UUID> dependants;
+
+        // get connections and their dependants
+        const auto &connections = state.getConnectionsForComponent(getUuid());
+
+        for (const auto &connUuid : connections) {
+            const auto &connComp = state.getComponentByUuid<ConnectionSceneComponent>(connUuid);
+            const auto &connDeps = connComp->getDependants(state);
+            dependants.insert(dependants.end(), connDeps.begin(), connDeps.end());
+            dependants.push_back(connUuid);
+        }
+
+        // get children and their dependants
+        for (const auto &childId : m_childComponents) {
+            const auto &childComp = state.getComponentByUuid(childId);
+            const auto &childDeps = childComp->getDependants(state);
+            dependants.insert(dependants.end(), childDeps.begin(), childDeps.end());
+            dependants.push_back(childId);
+        }
+
+        return dependants;
     }
 } // namespace Bess::Canvas
