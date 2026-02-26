@@ -1,6 +1,7 @@
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "common/bess_uuid.h"
 #include "geometric.hpp"
+#include <algorithm>
 #include <cstdint>
 #include <ranges>
 #define GLM_ENABLE_EXPERIMENTAL
@@ -29,9 +30,13 @@ namespace Bess::Renderer2D::Vulkan {
         return id;
     }
 
-    uint64_t PathRenderer::hashContours(const std::vector<std::vector<PathPoint>> &contours, const glm::vec4 &color, bool isClosed, bool rounded) {
+    uint64_t PathRenderer::hashContours(const uint64_t &id,
+                                        const std::vector<std::vector<PathPoint>> &contours,
+                                        const glm::vec4 &color,
+                                        bool isClosed, bool rounded) {
         uint64_t seed = 1469598103934665603ULL; // FNV-ish base
         auto h = [&seed](uint64_t v) { hash_combine(seed, v); };
+        h(id);
         h(static_cast<uint64_t>(contours.size()));
         for (const auto &c : contours) {
             h(static_cast<uint64_t>(c.size()));
@@ -169,7 +174,11 @@ namespace Bess::Renderer2D::Vulkan {
         std::vector<std::vector<CommonVertex>> strokeVertices;
         std::vector<CommonVertex> fillVertices;
         if (info.genStroke) {
-            uint64_t key = hashContours(contours, info.strokeColor, info.closePath, info.rounedJoint);
+            uint64_t key = hashContours(info.glyphId,
+                                        contours,
+                                        info.strokeColor,
+                                        info.closePath,
+                                        info.rounedJoint);
             auto dynIt = m_dynamicStrokeCache.find(key);
             if (dynIt != m_dynamicStrokeCache.end() && !invalidateCache) {
                 for (auto vertices : dynIt->second.strokeVertices) {
@@ -178,6 +187,12 @@ namespace Bess::Renderer2D::Vulkan {
                     strokeVertices.emplace_back(std::move(vertices));
                 }
             } else {
+                if (invalidateCache && dynIt != m_dynamicStrokeCache.end()) {
+                    m_dynamicStrokeCache.erase(key);
+                    m_dynamicStrokeCacheOrder.erase(std::ranges::remove(m_dynamicStrokeCacheOrder, key).begin(),
+                                                    m_dynamicStrokeCacheOrder.end());
+                }
+
                 std::vector<std::vector<CommonVertex>> built;
                 built.reserve(contours.size());
                 for (const auto &points : contours) {
@@ -188,7 +203,7 @@ namespace Bess::Renderer2D::Vulkan {
                     strokeVertices.emplace_back(vertices);
                 }
 
-                constexpr size_t kMaxDynEntries = 1024;
+                constexpr size_t kMaxDynEntries = 2048;
                 PathGeometryCacheEntry entry{};
                 entry.pathId = UUID{};
                 entry.strokeVertices = built;
@@ -205,15 +220,26 @@ namespace Bess::Renderer2D::Vulkan {
         }
 
         if (info.genFill) {
-            uint64_t keyFill = hashContours(contours, info.fillColor, info.closePath, info.rounedJoint);
+            uint64_t keyFill = hashContours(info.glyphId,
+                                            contours,
+                                            info.fillColor,
+                                            info.closePath,
+                                            info.rounedJoint);
             const std::vector<CommonVertex> *fillGeomRef = nullptr;
             auto dynItF = m_dynamicStrokeCache.find(keyFill);
-            if (dynItF != m_dynamicStrokeCache.end() && !dynItF->second.fillVertices.empty() && !invalidateCache) {
+            if (dynItF != m_dynamicStrokeCache.end() &&
+                !dynItF->second.fillVertices.empty() &&
+                !invalidateCache) {
                 fillGeomRef = &dynItF->second.fillVertices;
             } else {
+                if (invalidateCache && dynItF != m_dynamicStrokeCache.end()) {
+                    m_dynamicStrokeCache.erase(keyFill);
+                    m_dynamicStrokeCacheOrder.erase(std::ranges::remove(m_dynamicStrokeCacheOrder, keyFill).begin(),
+                                                    m_dynamicStrokeCacheOrder.end());
+                }
+
                 fillVertices = generateFillGeometry(contours, info.fillColor, info.rounedJoint);
                 if (!fillVertices.empty()) {
-                    // Cache it for reuse
                     constexpr size_t kMaxDynEntries = 1024;
                     PathGeometryCacheEntry entry{};
                     entry.pathId = UUID{};
@@ -238,6 +264,12 @@ namespace Bess::Renderer2D::Vulkan {
                 }
                 const auto key = PathGeometryCache::generateCacheKey(glyphId, info.scale, info.rounedJoint);
                 auto found = m_glyphIdToMesh.find(key);
+
+                if (found != m_glyphIdToMesh.end() && invalidateCache) {
+                    m_glyphIdToMesh.erase(found);
+                    m_glyphIdToInstances.erase(key);
+                }
+
                 if (found == m_glyphIdToMesh.end()) {
                     uint32_t firstIndex = static_cast<uint32_t>(m_fillIndices.size());
                     uint32_t baseVertex = static_cast<uint32_t>(m_fillVertices.size());

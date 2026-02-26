@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/bess_uuid.h"
 #include "common/bess_assert.h"
+#include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "device.h"
 #include "pipelines/path_fill_pipeline.h"
@@ -9,6 +9,7 @@
 #include "primitive_vertex.h"
 #include "scene/renderer/path.h"
 #include "vulkan_offscreen_render_pass.h"
+#include <cstdint>
 #include <deque>
 #include <memory>
 #include <unordered_map>
@@ -190,7 +191,11 @@ namespace Bess::Renderer2D::Vulkan {
         QuadBezierCurvePoints generateSmoothBendPoints(const glm::vec2 &prevPoint, const glm::vec2 &joinPoint, const glm::vec2 &nextPoint, float curveRadius);
 
         // Hash helpers for dynamic cache
-        static uint64_t hashContours(const std::vector<std::vector<PathPoint>> &contours, const glm::vec4 &color, bool isClosed, bool rounded);
+        static uint64_t hashContours(const uint64_t &id,
+                                     const std::vector<std::vector<PathPoint>> &contours,
+                                     const glm::vec4 &color,
+                                     bool isClosed,
+                                     bool rounded);
     };
 
 } // namespace Bess::Renderer2D::Vulkan
