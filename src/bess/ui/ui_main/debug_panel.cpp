@@ -19,29 +19,47 @@ namespace Bess::UI {
         auto &sceneDriver = mainPageState.getSceneDriver();
         const auto &sceneState = sceneDriver->getState();
 
-        ImGui::Text("Active Scene: %lu", sceneDriver.getActiveSceneIdx());
+        if (sceneDriver.getSceneCount() > 1) {
 
-        ImGui::SameLine();
-        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-        ImGui::SameLine();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Active Scene: %lu", sceneDriver.getActiveSceneIdx());
 
-        ImGui::Text("Scene Count: %lu", sceneDriver.getSceneCount());
+            ImGui::SameLine();
+            ImGui::AlignTextToFramePadding();
+            ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+            ImGui::SameLine();
 
-        ImGui::SameLine();
-        if (ImGui::Button("Prev-Scene")) {
-            size_t activeScene = sceneDriver.getActiveSceneIdx();
-            if (activeScene > 0) {
-                sceneDriver.setActiveScene(activeScene - 1);
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Scene Count: %lu", sceneDriver.getSceneCount());
+
+            ImGui::SameLine();
+            if (ImGui::Button("Prev-Scene")) {
+                size_t activeScene = sceneDriver.getActiveSceneIdx();
+                if (activeScene > 0) {
+                    sceneDriver.setActiveScene(activeScene - 1);
+                }
+            }
+
+            ImGui::SameLine();
+
+            ImGui::AlignTextToFramePadding();
+            if (ImGui::Button("Next-Scene")) {
+                size_t activeScene = sceneDriver.getActiveSceneIdx();
+                if (activeScene < sceneDriver.getSceneCount() - 1) {
+                    sceneDriver.setActiveScene(activeScene + 1);
+                }
             }
         }
 
-        ImGui::SameLine();
+        const auto &hoverId = sceneDriver->getHoveredEntity();
+        ImGui::Text("Hovered  Runtime Id: %u | Info: %u", hoverId.runtimeId, hoverId.info);
 
-        if (ImGui::Button("Next-Scene")) {
-            size_t activeScene = sceneDriver.getActiveSceneIdx();
-            if (activeScene < sceneDriver.getSceneCount() - 1) {
-                sceneDriver.setActiveScene(activeScene + 1);
-            }
+        if (sceneState.getSelectedComponents().size() >= 1) {
+            const auto &selectedCompId = sceneState.getSelectedComponents().begin()->first;
+            const auto &selectedComp = sceneState.getComponentByUuid(selectedCompId);
+            ImGui::Text("Selected Id: %lu | Runtime Id of component: %u",
+                        (uint64_t)selectedCompId,
+                        selectedComp ? selectedComp->getRuntimeId() : 0);
         }
 
         if (Widgets::TreeNode(0, "Selected components")) {
