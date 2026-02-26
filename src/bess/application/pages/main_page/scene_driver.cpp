@@ -2,7 +2,7 @@
 #include "pages/main_page/main_page.h"
 
 namespace Bess {
-    void SceneDriver::update(TFrameTime deltaTime, const std::vector<ApplicationEvent> &events) {
+    void SceneDriver::update(TimeMs deltaTime, const std::vector<ApplicationEvent> &events) {
         if (m_activeScene) {
             m_activeScene->update(deltaTime, events);
         }

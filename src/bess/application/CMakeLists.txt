@@ -21,7 +21,6 @@ set(Header_Files
 "pages/main_page/scene_components/connection_scene_component.h"
 "pages/main_page/scene_components/conn_joint_scene_component.h"
 # "pages/start_page/start_page.h"
-"app_types.h"
 "args_parser.h"
 "crash_detail_helper.h"
 "application.h"

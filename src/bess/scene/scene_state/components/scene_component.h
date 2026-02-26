@@ -2,6 +2,7 @@
 
 #include "common/bess_uuid.h"
 #include "common/class_helpers.h"
+#include "common/types.h"
 #include "scene/renderer/material_renderer.h"
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_state/components/behaviours/mouse_behaviour.h"
@@ -87,6 +88,8 @@ namespace Bess::Canvas {
         SceneComponent();
         SceneComponent(const SceneComponent &other) = default;
         virtual ~SceneComponent() = default;
+
+        virtual void update(TimeMs frameTime, SceneState & /*state*/) {}
 
         virtual void draw(SceneState &,
                           std::shared_ptr<Renderer::MaterialRenderer> /*unused*/,

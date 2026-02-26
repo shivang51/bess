@@ -2,17 +2,17 @@
 
 #include <algorithm>
 
-#include "application/app_types.h"
+#include "common/types.h"
 #include "glm.hpp"
 
 namespace Bess {
     struct CameraPositionAnimation {
         glm::vec2 startPos, endPos;
-        TAnimationTime duration;
-        TAnimationTime currentTime = TAnimationTime(0);
+        TimeMs duration;
+        TimeMs currentTime = TimeMs(0);
         bool finised = true;
 
-        glm::vec2 getNextPos(TFrameTime ts) {
+        glm::vec2 getNextPos(TimeMs ts) {
             if (currentTime >= duration) {
                 finised = true;
             }
@@ -29,11 +29,11 @@ namespace Bess {
     struct CameraPositionZoomAnimation {
         glm::vec2 startPos, endPos;
         float startZoom, endZoom;
-        TAnimationTime duration;
-        TAnimationTime currentTime = TAnimationTime(0);
+        TimeMs duration;
+        TimeMs currentTime = TimeMs(0);
         bool finised = true;
 
-        std::pair<glm::vec2, float> getNextVal(TFrameTime ts) {
+        std::pair<glm::vec2, float> getNextVal(TimeMs ts) {
             if (currentTime >= duration) {
                 finised = true;
             }
@@ -53,7 +53,7 @@ namespace Bess {
         Camera(float width, float height);
         ~Camera() = default;
 
-        void update(TFrameTime ts);
+        void update(TimeMs ts);
 
         void setPos(const glm::vec2 &pos);
         const glm::vec2 &getPos() const;

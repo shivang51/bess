@@ -10,7 +10,7 @@ namespace Bess::Config {
         m_fontSize = 18.0f;
         m_fontRebuild = true;
         m_fps = 60;
-        m_frameTimeStep = TFrameTime(1000.0 / m_fps);
+        m_frameTimeStep = TimeMs(1000.0 / m_fps);
     }
 
     void Settings::cleanup() {
@@ -40,7 +40,7 @@ namespace Bess::Config {
         m_fontRebuild = !rebuild;
     }
 
-    TFrameTime Settings::getFrameTimeStep() const {
+    TimeMs Settings::getFrameTimeStep() const {
         return m_frameTimeStep;
     }
 

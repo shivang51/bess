@@ -1,9 +1,9 @@
 #pragma once
 
-#include "application/app_types.h"
 #include "application/events/application_event.h"
 #include "commands/commands_manager.h"
 #include "common/bess_uuid.h"
+#include "common/types.h"
 #include "scene/camera.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -46,7 +46,7 @@ namespace Bess::Canvas {
         void clear();
         void render();
         void renderWithViewport(const std::shared_ptr<Viewport> &viewport);
-        void update(TFrameTime ts, const std::vector<ApplicationEvent> &events);
+        void update(TimeMs ts, const std::vector<ApplicationEvent> &events);
 
         uint64_t getTextureId() const;
         std::shared_ptr<Camera> getCamera();
@@ -102,7 +102,7 @@ namespace Bess::Canvas {
 
       private:
         /// to draw testing stuff
-        void drawScratchContent(TFrameTime ts, const std::shared_ptr<Viewport> &viewport);
+        void drawScratchContent(TimeMs ts, const std::shared_ptr<Viewport> &viewport);
 
         void updatePickingId();
 
@@ -161,7 +161,7 @@ namespace Bess::Canvas {
         static constexpr float snapSize = 2.f;
         float m_compZCoord = m_zIncrement;
 
-        TFrameTime m_frameTimeStep = {};
+        TimeMs m_frameTimeStep = {};
 
         SimEngine::Commands::CommandsManager m_cmdManager;
 

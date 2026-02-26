@@ -1,6 +1,6 @@
 #pragma once
 
-#include "application/app_types.h"
+#include "common/types.h"
 #include "pages/page.h"
 #include <memory>
 #include <string>

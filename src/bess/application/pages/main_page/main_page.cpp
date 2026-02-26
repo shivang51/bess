@@ -109,7 +109,7 @@ namespace Bess::Pages {
         UI::UIMain::draw();
     }
 
-    void MainPage::update(TFrameTime ts, std::vector<ApplicationEvent> &events) {
+    void MainPage::update(TimeMs ts, std::vector<ApplicationEvent> &events) {
         const auto &viewportSize = UI::UIMain::state.mainViewport.getViewportSize();
         const auto &viewportPos = UI::UIMain::state.mainViewport.getViewportPos();
 

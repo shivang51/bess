@@ -1,6 +1,6 @@
 #pragma once
 
-#include "application/app_types.h"
+#include "common/types.h"
 #include "application/events/application_event.h"
 #include "application/pages/main_page/main_page_state.h"
 #include "application/pages/page.h"
@@ -34,7 +34,7 @@ namespace Bess::Pages {
 
         void draw() override;
 
-        void update(TFrameTime ts, std::vector<ApplicationEvent> &events) override;
+        void update(TimeMs ts, std::vector<ApplicationEvent> &events) override;
 
         std::shared_ptr<Window> getParentWindow();
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "application/app_types.h"
+#include "common/types.h"
 #include "application/window.h"
 #include "events/application_event.h"
 #include <memory>
@@ -25,7 +25,7 @@ namespace Bess {
         void quit() const;
         void shutdown();
 
-        void update(TFrameTime ts);
+        void update(TimeMs ts);
 
         void loadProject(const std::string &path) const;
         void saveProject() const;

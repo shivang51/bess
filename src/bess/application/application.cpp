@@ -1,5 +1,5 @@
 #include "application.h"
-#include "application/app_types.h"
+#include "common/types.h"
 #include "application/application_state.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
@@ -56,14 +56,14 @@ namespace Bess {
     void Application::run() {
         auto previousTime = std::chrono::steady_clock::now();
 
-        TFrameTime accumulatedTime(0.0);
+        TimeMs accumulatedTime(0.0);
 
         BESS_ASSERT(ApplicationState::getCurrentPage(),
                     "Current page of application is not set");
 
         while (!m_mainWindow->isClosed()) {
             auto currentTime = std::chrono::steady_clock::now();
-            TFrameTime deltaTime = currentTime - previousTime;
+            TimeMs deltaTime = currentTime - previousTime;
             previousTime = currentTime;
 
             accumulatedTime += deltaTime;
@@ -82,7 +82,7 @@ namespace Bess {
         }
     }
 
-    void Application::update(TFrameTime ts) {
+    void Application::update(TimeMs ts) {
         EventSystem::EventDispatcher::instance().dispatchAll();
         m_mainWindow->update();
         ApplicationState::getCurrentPage()->update(ts, m_events);

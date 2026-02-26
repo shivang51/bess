@@ -1,6 +1,6 @@
 #pragma once
 
-#include "application/app_types.h"
+#include "common/types.h"
 #include "application/settings/themes.h"
 #include "common/class_helpers.h"
 #include <string>
@@ -31,7 +31,7 @@ namespace Bess::Config {
         void setFontRebuild(bool rebuild);
 
         // No set function, frame time step is derived from fps
-        TFrameTime getFrameTimeStep() const;
+        TimeMs getFrameTimeStep() const;
 
       private:
         std::string m_currentTheme;
@@ -43,6 +43,6 @@ namespace Bess::Config {
 
       private:
         Themes m_themes;
-        TFrameTime m_frameTimeStep;
+        TimeMs m_frameTimeStep;
     };
 } // namespace Bess::Config

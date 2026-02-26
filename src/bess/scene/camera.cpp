@@ -1,6 +1,7 @@
 #include "scene/camera.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
+#include "common/types.h"
 #include "ext/matrix_clip_space.hpp"
 #include "ext/matrix_transform.hpp"
 
@@ -12,7 +13,7 @@ namespace Bess {
         setPos({0.f, 0.f});
     }
 
-    void Camera::update(TFrameTime ts) {
+    void Camera::update(TimeMs ts) {
         if (!m_posAnimation.finised) {
             setPos(m_posAnimation.getNextPos(ts));
         }
@@ -77,7 +78,7 @@ namespace Bess {
         m_posZoomAnimation.endPos = pos;
         m_posZoomAnimation.startZoom = m_zoom;
         m_posZoomAnimation.endZoom = 2.f;
-        m_posZoomAnimation.duration = TAnimationTime(100);
+        m_posZoomAnimation.duration = TimeMs(100);
         m_posZoomAnimation.finised = false;
     }
 

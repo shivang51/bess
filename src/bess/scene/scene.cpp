@@ -60,7 +60,7 @@ namespace Bess::Canvas {
         m_drawMode = SceneDrawMode::none;
     }
 
-    void Scene::update(TFrameTime ts, const std::vector<ApplicationEvent> &events) {
+    void Scene::update(TimeMs ts, const std::vector<ApplicationEvent> &events) {
         m_frameTimeStep = ts;
         if (m_getIdsInSelBox) {
             if (selectEntitesInArea())
@@ -131,6 +131,15 @@ namespace Bess::Canvas {
             } break;
             default:
                 break;
+            }
+        }
+
+        const auto &rootComps = m_state.getRootComponents();
+
+        for (const auto &compId : rootComps) {
+            auto comp = m_state.getComponentByUuid(compId);
+            if (comp) {
+                comp->update(ts, m_state);
             }
         }
     }
@@ -562,7 +571,7 @@ namespace Bess::Canvas {
         return glm::vec2(glm::round(pos / snapSize)) * snapSize;
     }
 
-    void Scene::drawScratchContent(TFrameTime ts, const std::shared_ptr<Viewport> &viewport) {
+    void Scene::drawScratchContent(TimeMs ts, const std::shared_ptr<Viewport> &viewport) {
     }
 
     bool Scene::isHoveredEntityValid() {
