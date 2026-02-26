@@ -77,6 +77,7 @@ namespace Bess::Canvas {
         if (m_childComponents.contains(uuid))
             return;
         m_childComponents.insert(uuid);
+        onChildrenChanged();
     }
 
     glm::vec3 SceneComponent::getAbsolutePosition(const SceneState &state) const {
@@ -113,6 +114,7 @@ namespace Bess::Canvas {
 
     void SceneComponent::removeChildComponent(const UUID &uuid) {
         m_childComponents.erase(uuid);
+        onChildrenChanged();
     }
 
     void SceneComponent::onAttach(SceneState &state) {}
@@ -143,4 +145,6 @@ namespace Bess::Canvas {
                    ? std::vector<UUID>{}
                    : std::vector<UUID>(m_childComponents.begin(), m_childComponents.end());
     }
+
+    void SceneComponent::onChildrenChanged() {}
 } // namespace Bess::Canvas

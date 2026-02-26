@@ -167,6 +167,9 @@ namespace Bess::Canvas {
                                           std::shared_ptr<Renderer::MaterialRenderer> /*unused*/,
                                           std::shared_ptr<PathRenderer> /*unused*/);
 
+        // Called when children count changes (added / removed)
+        virtual void onChildrenChanged();
+
         UUID m_uuid = UUID::null;
         uint32_t m_runtimeId = PickingId::invalidRuntimeId; // assigned during rendering for picking
         Transform m_transform;
