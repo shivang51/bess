@@ -50,7 +50,6 @@ namespace Bess::Canvas {
 
         if (m_isScaleDirty) {
             setScale(calculateScale(state, materialRenderer));
-            calculateSchematicScale(state, materialRenderer);
             resetSlotPositions(state);
             m_isScaleDirty = false;
         }
@@ -64,8 +63,8 @@ namespace Bess::Canvas {
 
             if (drawHookResult.sizeChanged) {
                 setScale(drawHookResult.newSize);
-                calculateSchematicScale(state, materialRenderer);
                 resetSlotPositions(state);
+                setSchematicScaleDirty();
             }
         }
 
@@ -138,8 +137,10 @@ namespace Bess::Canvas {
                                                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                                  std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
 
-        if (m_isFirstSchematicDraw) {
-            onFirstSchematicDraw(state, materialRenderer, pathRenderer);
+        if (m_isSchematicScaleDirty) {
+            calculateSchematicScale(state, materialRenderer);
+            resetSchematicPinsPositions(state);
+            m_isSchematicScaleDirty = false;
         }
 
         const auto &id = PickingId{m_runtimeId, 0};
@@ -358,7 +359,7 @@ namespace Bess::Canvas {
         simEngine.deleteComponent(m_simEngineId);
 
         if (m_drawHook) {
-            m_drawHook.reset();
+            // m_drawHook.reset();
         }
 
         return removedIds;
@@ -405,6 +406,7 @@ namespace Bess::Canvas {
 
         m_schematicTransform.scale = {width, height};
         m_schematicTransform.scale = glm::round(m_schematicTransform.scale / SNAP_AMOUNT) * SNAP_AMOUNT;
+        m_isSchematicScaleDirty = false;
     }
 
     std::vector<std::shared_ptr<SceneComponent>>
@@ -554,5 +556,14 @@ namespace Bess::Canvas {
         }
 
         return dependants;
+    }
+
+    inline void SimulationSceneComponent::setSchematicScaleDirty() {
+        m_isSchematicScaleDirty = true;
+    }
+
+    void SimulationSceneComponent::onChildrenChanged() {
+        setScaleDirty();
+        setSchematicScaleDirty();
     }
 } // namespace Bess::Canvas

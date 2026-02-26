@@ -68,8 +68,6 @@ namespace Bess::Canvas {
         std::vector<UUID> getDependants(SceneState &state) const override;
 
       private:
-        void onRuntimeIdChanged() override;
-
         void onFirstDraw(SceneState &sceneState,
                          std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                          std::shared_ptr<PathRenderer> pathRenderer) override;
@@ -93,8 +91,6 @@ namespace Bess::Canvas {
         bool m_useCustomColor = false;
         int m_initialSegmentCount = 3;
         bool m_shouldReconstructSegments = true;
-
-        bool m_invalidatePathCache = false;
     };
 } // namespace Bess::Canvas
 

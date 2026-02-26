@@ -130,7 +130,9 @@ namespace Bess::Canvas {
         pathRenderer->beginPathMode(startPos, nodeWeight, pinColor, pinId);
         pathRenderer->pathLineTo({pos.x + offset.x, pos.y + offset.y, pos.z},
                                  nodeWeight, pinColor, pinId);
-        pathRenderer->endPathMode(false);
+        pathRenderer->endPathMode(false,
+                                  false, {}, true, false, m_invalidateCache);
+        m_invalidateCache = true;
 
         if (!m_name.empty()) {
             const auto textSize = materialRenderer->getTextRenderSize(m_name,
@@ -392,5 +394,9 @@ namespace Bess::Canvas {
                   (uint64_t)endSlot->getUuid());
 
         e.sceneState->setConnectionStartSlot(UUID::null);
+    }
+
+    void SlotSceneComponent::onRuntimeIdChanged() {
+        m_invalidateCache = true;
     }
 } // namespace Bess::Canvas

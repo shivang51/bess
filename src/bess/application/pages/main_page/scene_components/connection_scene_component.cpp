@@ -1,5 +1,4 @@
 #include "connection_scene_component.h"
-#include "commands/commands.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
@@ -13,8 +12,6 @@
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
-#include "sim_scene_component.h"
-#include "simulation_engine.h"
 #include "slot_scene_component.h"
 #include "types.h"
 #include "ui/ui.h"
@@ -68,8 +65,7 @@ namespace Bess::Canvas {
         }
 
         pathRenderer->endPathMode(false, false, glm::vec4(0.f), true,
-                                  !state.getIsSchematicView(), m_invalidatePathCache);
-        m_invalidatePathCache = false;
+                                  !state.getIsSchematicView());
     }
 
     void ConnectionSceneComponent::draw(SceneState &state,
@@ -504,10 +500,6 @@ namespace Bess::Canvas {
                                                      jointId)
                                      .begin(),
                                  m_associatedJoints.end());
-    }
-
-    void ConnectionSceneComponent::onRuntimeIdChanged() {
-        m_invalidatePathCache = true;
     }
 
     std::vector<UUID> ConnectionSceneComponent::getDependants(SceneState &state) const {

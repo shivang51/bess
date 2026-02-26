@@ -67,6 +67,8 @@ namespace Bess::Canvas {
         bool isInputSlot() const;
 
       private:
+        void onRuntimeIdChanged() override;
+
         glm::vec3 getSchematicPosAbsolute(const SceneState &state) const;
 
         void onMouseLeftClick(const Events::MouseButtonEvent &e);
@@ -75,6 +77,8 @@ namespace Bess::Canvas {
         glm::vec3 m_schematicPos = glm::vec3(0.f);
         SlotType m_slotType = SlotType::none;
         std::vector<UUID> m_connectedConnections;
+
+        bool m_invalidateCache = false;
         int m_index = -1;
     };
 

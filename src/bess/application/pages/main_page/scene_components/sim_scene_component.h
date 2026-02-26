@@ -59,7 +59,10 @@ namespace Bess::Canvas {
 
         void setScaleDirty();
 
-        std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
+        inline void setSchematicScaleDirty();
+
+        std::vector<UUID>
+        cleanup(SceneState &state, UUID caller = UUID::null) override;
 
         void onAttach(SceneState &state) override;
 
@@ -107,13 +110,15 @@ namespace Bess::Canvas {
                                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                   std::shared_ptr<PathRenderer> /*unused*/) override;
 
+        void onChildrenChanged() override;
+
       protected:
         // Associated simulation engine ID
         UUID m_simEngineId = UUID::null;
         UUID m_netId = UUID::null;
         std::vector<UUID> m_inputSlots;
         std::vector<UUID> m_outputSlots;
-        bool m_isScaleDirty = true;
+        bool m_isScaleDirty = true, m_isSchematicScaleDirty = true;
         Transform m_schematicTransform;
         std::shared_ptr<SimSceneCompDrawHook> m_drawHook = nullptr;
         std::shared_ptr<SimEngine::ComponentDefinition> m_compDef = nullptr;
