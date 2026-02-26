@@ -239,4 +239,17 @@ namespace Bess::Canvas {
 
         return ids;
     }
+
+    std::vector<UUID> ConnJointSceneComp::getDependants(const SceneState &state) const {
+        std::vector<UUID> dependants;
+
+        for (const auto &connId : m_connections) {
+            const auto &connComp = state.getComponentByUuid<ConnectionSceneComponent>(connId);
+            const auto &ids = connComp->getDependants(state);
+            dependants.insert(dependants.end(), ids.begin(), ids.end());
+            dependants.emplace_back(connId);
+        }
+
+        return dependants;
+    }
 } // namespace Bess::Canvas

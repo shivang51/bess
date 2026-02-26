@@ -60,6 +60,8 @@ namespace Bess::Canvas {
         void removeConnection(const UUID &connectionId);
         std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
 
+        std::vector<UUID> getDependants(const SceneState &state) const override;
+
       private:
         int m_connSegIdx, m_schConnSegIdx;
         UUID m_connectionId;
