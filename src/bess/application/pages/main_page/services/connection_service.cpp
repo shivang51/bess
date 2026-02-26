@@ -141,48 +141,57 @@ namespace Bess::Svc {
             return {};
         }
 
-        const auto &slotA = conn->getStartSlot();
-        const auto &slotB = conn->getEndSlot();
+        const auto &startSlotId = conn->getStartSlot();
+        const auto &endSlotId = conn->getEndSlot();
 
-        disconnect(slotA, slotB);
+        const auto &slotA = getSlot(startSlotId);
+        BESS_ASSERT(slotA, "Failed to get slot A for connection");
+
+        const auto &slotB = getSlot(endSlotId);
+        BESS_ASSERT(slotB, "Failed to get slot B for connection");
+
+        const auto &slotAId = slotA->getUuid();
+        const auto &slotBId = slotB->getUuid();
+
+        disconnect(slotAId, slotBId);
 
         auto &sceneState = getScene()->getState();
-        auto slotAComp = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(slotA);
-        auto slotBComp = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(slotB);
 
         auto removedIds = std::vector<UUID>{};
 
-        if (slotAComp) {
-            slotAComp->removeConnection(conn->getUuid());
-            if (isSlotRemovable(slotAComp)) {
-                m_slotsBin[slotAComp->getUuid()] = slotAComp;
-                if (!removeSlot(slotAComp)) {
-                    BESS_ERROR("Failed to remove slot A with id {} for connection {}", (uint64_t)slotA,
+        // Processing Slot-A
+        {
+            slotA->removeConnection(conn->getUuid());
+            if (isSlotRemovable(slotA)) {
+                m_slotsBin[slotA->getUuid()] = slotA;
+                if (!removeSlot(slotA)) {
+                    BESS_ERROR("Failed to remove slot A with id {} for connection {}", (uint64_t)slotAId,
                                (uint64_t)conn->getUuid());
                     BESS_ASSERT(false, "Failed to remove slot A for connection");
                     return {};
                 }
-                removedIds.push_back(slotAComp->getUuid());
+                removedIds.push_back(slotA->getUuid());
             }
         }
 
-        if (slotBComp) {
-            slotBComp->removeConnection(conn->getUuid());
-            if (isSlotRemovable(slotBComp)) {
-                m_slotsBin[slotBComp->getUuid()] = slotBComp;
-                if (!removeSlot(slotBComp)) {
-                    BESS_ERROR("Failed to remove slot B with id {} for connection {}", (uint64_t)slotB,
+        // Processing Slot-B
+        {
+            slotB->removeConnection(conn->getUuid());
+            if (isSlotRemovable(slotB)) {
+                m_slotsBin[slotB->getUuid()] = slotB;
+                if (!removeSlot(slotB)) {
+                    BESS_ERROR("Failed to remove slot B with id {} for connection {}", (uint64_t)slotBId,
                                (uint64_t)conn->getUuid());
                     BESS_ASSERT(false, "Failed to remove slot B for connection");
                     return {};
                 }
-                removedIds.push_back(slotBComp->getUuid());
+                removedIds.push_back(slotB->getUuid());
             }
         }
 
         sceneState.removeComponent(conn->getUuid());
-        const auto &slotAParent = slotAComp->getParentComponent();
-        const auto &slotBParent = slotBComp->getParentComponent();
+        const auto &slotAParent = slotA->getParentComponent();
+        const auto &slotBParent = slotB->getParentComponent();
 
         sceneState.removeConnectionForComponent(slotAParent, conn->getUuid());
         sceneState.removeConnectionForComponent(slotBParent, conn->getUuid());
@@ -378,7 +387,7 @@ namespace Bess::Svc {
         const auto &sceneState = getScene()->getState();
 
         // try to find in scene
-        auto slot = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(slotId);
+        auto slot = getSlot(slotId, false);
         if (slot) {
             return {slot, true};
         }
@@ -468,14 +477,17 @@ namespace Bess::Svc {
         return true;
     }
 
-    std::shared_ptr<Canvas::SlotSceneComponent> SvcConnection::getSlot(const UUID &compId) {
+    std::shared_ptr<Canvas::SlotSceneComponent> SvcConnection::getSlot(const UUID &compId,
+                                                                       bool assertOnFail) {
         const auto &sceneState = getScene()->getState();
 
         auto comp = sceneState.getComponentByUuid(compId);
 
         if (!comp) {
-            BESS_ERROR("Component with id {} not found in scene", (uint64_t)compId);
-            BESS_ASSERT(false, "Component not found in scene");
+            if (assertOnFail) {
+                BESS_ERROR("Component with id {} not found in scene", (uint64_t)compId);
+                BESS_ASSERT(false, "Component not found in scene");
+            }
             return nullptr;
         }
 
@@ -484,8 +496,10 @@ namespace Bess::Svc {
             const auto &id = jointComp->getOutputSlotId();
             auto slotComp = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(id);
             if (!slotComp) {
-                BESS_ERROR("Slot component with id {} not found for joint component {}", (uint64_t)id, (uint64_t)compId);
-                BESS_ASSERT(false, "Slot component for joint not found in scene");
+                if (assertOnFail) {
+                    BESS_ERROR("Slot component with id {} not found for joint component {}", (uint64_t)id, (uint64_t)compId);
+                    BESS_ASSERT(false, "Slot component for joint not found in scene");
+                }
                 return nullptr;
             }
             return slotComp;

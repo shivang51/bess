@@ -82,7 +82,8 @@ namespace Bess::Svc {
         std::pair<std::shared_ptr<Canvas::SlotSceneComponent>, bool> tryFindSlot(const UUID &slotId);
 
         // Checks if comp is joint or slot and returns the slot component correctly.
-        std::shared_ptr<Canvas::SlotSceneComponent> getSlot(const UUID &compId);
+        std::shared_ptr<Canvas::SlotSceneComponent> getSlot(const UUID &compId,
+                                                            bool assertOnFail = true);
 
       private:
         std::shared_ptr<Canvas::Scene> getScene();
