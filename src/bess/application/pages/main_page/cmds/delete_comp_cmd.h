@@ -5,9 +5,11 @@
 #include "common/logger.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
+#include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
 #include "scene/scene.h"
 #include "scene/scene_state/components/scene_component.h"
+#include <algorithm>
 #include <vector>
 
 namespace Bess::Cmd {
@@ -56,22 +58,51 @@ namespace Bess::Cmd {
                 collect(startUuid);
             }
 
-            // connection cleanup
-            // we process connections first. even if they are parents in the graph,
-            // the service needs the dependants (slots) to exist during this call.
+            std::vector<std::shared_ptr<Canvas::ConnectionSceneComponent>> connections;
+
+            // extract all connections from the deletion list
             for (auto it = deletionOrder.begin(); it != deletionOrder.end();) {
                 auto comp = sceneState.getComponentByUuid(*it);
                 if (comp && comp->getType() == Canvas::SceneComponentType::connection) {
-                    BESS_DEBUG("Removing Connection {}", (uint64_t)*it);
-
-                    Svc::SvcConnection::instance().removeConnection(
-                        comp->cast<Canvas::ConnectionSceneComponent>());
-
-                    m_deletedComponents.push_back(std::move(comp));
-                    it = deletionOrder.erase(it);
+                    connections.push_back(comp->cast<Canvas::ConnectionSceneComponent>());
+                    it = deletionOrder.erase(it); // Remove from the main list
                 } else {
                     ++it;
                 }
+            }
+
+            // Sort connections:
+            // sort by slot Index DESCENDING (3 -> 2 -> 1)
+            std::ranges::sort(connections, [&sceneState](const auto &a, const auto &b) {
+                if (a->getParentComponent() != b->getParentComponent()) {
+                    return true;
+                }
+
+                const auto getMaxSlotIdx = [&](const auto &conn) {
+                    const auto &slotA = conn->getStartSlot();
+                    const auto &slotB = conn->getEndSlot();
+                    const auto &slotAComp = sceneState.getComponentByUuid<
+                        Canvas::SlotSceneComponent>(slotA);
+                    const auto &slotBComp = sceneState.getComponentByUuid<
+                        Canvas::SlotSceneComponent>(slotB);
+
+                    const auto &idxA = slotAComp ? slotAComp->getIndex() : 0;
+                    const auto &idxB = slotBComp ? slotBComp->getIndex() : 0;
+                    return std::max(idxA, idxB);
+                };
+
+                const auto &maxSlotIdxA = getMaxSlotIdx(a);
+                const auto &maxSlotIdxB = getMaxSlotIdx(b);
+
+                return maxSlotIdxA > maxSlotIdxB; // Descending order
+            });
+
+            // Now execute the deletion in the safe order
+            for (auto conn : connections) {
+
+                Svc::SvcConnection::instance().removeConnection(conn);
+
+                m_deletedComponents.push_back(std::move(conn));
             }
 
             //  delete the rest (slots, nodes, etc.)
