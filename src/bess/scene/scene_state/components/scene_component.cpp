@@ -140,7 +140,7 @@ namespace Bess::Canvas {
                           ("childComponents", getChildComponents, setChildComponents));
     }
 
-    std::vector<UUID> SceneComponent::getDependants(SceneState &state) const {
+    std::vector<UUID> SceneComponent::getDependants(const SceneState &state) const {
         return m_childComponents.empty()
                    ? std::vector<UUID>{}
                    : std::vector<UUID>(m_childComponents.begin(), m_childComponents.end());

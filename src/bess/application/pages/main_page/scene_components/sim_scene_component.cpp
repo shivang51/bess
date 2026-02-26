@@ -521,7 +521,7 @@ namespace Bess::Canvas {
         m_schematicTransform.position.z = m_transform.position.z;
     }
 
-    std::vector<UUID> SimulationSceneComponent::getDependants(SceneState &state) const {
+    std::vector<UUID> SimulationSceneComponent::getDependants(const SceneState &state) const {
         std::vector<UUID> dependants;
 
         // get connections and their dependants

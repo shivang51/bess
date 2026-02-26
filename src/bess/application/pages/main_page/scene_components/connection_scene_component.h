@@ -65,7 +65,7 @@ namespace Bess::Canvas {
 
         glm::vec3 getSegVertexPos(const SceneState &state, size_t vertexIdx);
 
-        std::vector<UUID> getDependants(SceneState &state) const override;
+        std::vector<UUID> getDependants(const SceneState &state) const override;
 
       private:
         void onFirstDraw(SceneState &sceneState,

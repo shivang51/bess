@@ -502,7 +502,7 @@ namespace Bess::Canvas {
                                  m_associatedJoints.end());
     }
 
-    std::vector<UUID> ConnectionSceneComponent::getDependants(SceneState &state) const {
+    std::vector<UUID> ConnectionSceneComponent::getDependants(const SceneState &state) const {
         std::vector<UUID> dependants;
 
         // get joints associated with this connection
