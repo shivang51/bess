@@ -202,7 +202,8 @@ namespace Bess::Svc {
         const size_t idx = slot->getIndex();
 
         // False: if there are still some connections or is the first or only slot
-        if (slot->getConnectedConnections().size() > connectionThreshold && idx == 0)
+        if (slot->getConnectedConnections().size() > connectionThreshold ||
+            idx == 0)
             return false;
 
         const auto &sceneState = getScene()->getState();
