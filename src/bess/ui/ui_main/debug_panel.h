@@ -7,5 +7,8 @@ namespace Bess::UI {
       public:
         DebugPanel();
         void onDraw() override;
+
+      private:
+        void drawDependencyGraph(const UUID &compId);
     };
 } // namespace Bess::UI

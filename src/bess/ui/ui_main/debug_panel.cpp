@@ -18,7 +18,6 @@ namespace Bess::UI {
 
         auto &sceneDriver = mainPageState.getSceneDriver();
         const auto &sceneState = sceneDriver->getState();
-
         if (sceneDriver.getSceneCount() > 1) {
 
             ImGui::AlignTextToFramePadding();
@@ -60,6 +59,8 @@ namespace Bess::UI {
             ImGui::Text("Selected Id: %lu | Runtime Id of component: %u",
                         (uint64_t)selectedCompId,
                         selectedComp ? selectedComp->getRuntimeId() : 0);
+
+            drawDependencyGraph(selectedCompId);
         }
 
         if (Widgets::TreeNode(0, "Selected components")) {
@@ -99,5 +100,26 @@ namespace Bess::UI {
             }
             ImGui::TreePop();
         }
+    }
+
+    void DebugPanel::drawDependencyGraph(const UUID &compId) {
+        const auto &mainPageState = Pages::MainPage::getInstance()->getState();
+        const auto &sceneDriver = mainPageState.getSceneDriver();
+        const auto &sceneState = sceneDriver->getState();
+
+        const auto &comp = sceneState.getComponentByUuid(compId);
+        const auto &dependants = comp->getDependants(sceneState);
+
+        ImGui::Text("Dependants of component %s (%lu):",
+                    comp->getName().c_str(),
+                    (uint64_t)compId);
+
+        ImGui::Indent();
+
+        for (const auto &depId : dependants) {
+            ImGui::BulletText("%lu", (uint64_t)depId);
+        }
+
+        ImGui::Unindent();
     }
 } // namespace Bess::UI
