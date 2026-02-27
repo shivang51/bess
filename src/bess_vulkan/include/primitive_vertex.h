@@ -88,8 +88,8 @@ namespace Bess::Vulkan {
         glm::uvec2 id;          // location 8
         int isMica;             // location 9
         int texSlotIdx;         // location 10
-        int _pad;               // padding to align next vec4
         glm::vec4 texData;      // location 11
+        float angle;            // location 12
     };
 
     struct BESS_VULKAN_API CircleInstance {

@@ -112,6 +112,7 @@ namespace Bess::Renderer {
         instance.isMica = (int)props.isMica;
         instance.texSlotIdx = 0;
         instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f);
+        instance.angle = props.angle;
 
         if (color.a == 1.f) {
             m_quadInstances.emplace_back(instance);

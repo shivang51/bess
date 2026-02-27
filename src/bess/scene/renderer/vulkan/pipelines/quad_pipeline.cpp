@@ -251,7 +251,7 @@ namespace Bess::Vulkan::Pipelines {
         localAttribs[1].offset = sizeof(float) * 3;
 
         // Instance attributes (binding 1)
-        std::array<VkVertexInputAttributeDescription, 10> instanceAttribs{};
+        std::array<VkVertexInputAttributeDescription, 11> instanceAttribs{};
         instanceAttribs[0].binding = 1;
         instanceAttribs[0].location = 2;
         instanceAttribs[0].format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -302,7 +302,12 @@ namespace Bess::Vulkan::Pipelines {
         instanceAttribs[9].format = VK_FORMAT_R32G32B32A32_SFLOAT;
         instanceAttribs[9].offset = offsetof(QuadInstance, texData);
 
-        std::array<VkVertexInputAttributeDescription, 12> allAttribs{};
+        instanceAttribs[10].binding = 1;
+        instanceAttribs[10].location = 12;
+        instanceAttribs[10].format = VK_FORMAT_R32_SFLOAT;
+        instanceAttribs[10].offset = offsetof(QuadInstance, angle);
+
+        std::array<VkVertexInputAttributeDescription, 13> allAttribs{};
         std::ranges::copy(localAttribs, allAttribs.begin());
         std::ranges::copy(instanceAttribs, allAttribs.begin() + localAttribs.size());
 
