@@ -33,7 +33,6 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(UUID, ConnectionId, m_connectionId);
         MAKE_GETTER_SETTER(float, SegOffset, m_offset);
         MAKE_GETTER_SETTER(ConnSegOrientaion, SegOrientation, m_segOrientation);
-        MAKE_GETTER_SETTER(std::vector<UUID>, Connections, m_connections);
         MAKE_GETTER_SETTER(float, SchematicOffset, m_schematicOffset);
 
         // Connect this joint to another slot
@@ -71,7 +70,6 @@ namespace Bess::Canvas {
 
         float m_offset = -1.f, m_schematicOffset = -1.f; // normalized 0-1 offset, signifying pos on segment
         ConnSegOrientaion m_segOrientation = ConnSegOrientaion::horizontal;
-        std::vector<UUID> m_connections;
     };
 } // namespace Bess::Canvas
 

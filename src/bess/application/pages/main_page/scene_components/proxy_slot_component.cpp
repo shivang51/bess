@@ -11,4 +11,13 @@ namespace Bess::Canvas {
         m_inputSlotId = UUID::null;
         m_outputSlotId = UUID::null;
     }
+
+    void ProxySlotComponent::clearConnections() {
+        m_connections.clear();
+    }
+
+    void ProxySlotComponent::clear() {
+        clearSlots();
+        clearConnections();
+    }
 } // namespace Bess::Canvas

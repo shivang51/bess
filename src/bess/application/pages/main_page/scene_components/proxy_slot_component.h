@@ -12,14 +12,20 @@ namespace Bess::Canvas {
 
         MAKE_GETTER_SETTER(UUID, InputSlotId, m_inputSlotId)
         MAKE_GETTER_SETTER(UUID, OutputSlotId, m_outputSlotId)
+        MAKE_GETTER_SETTER(std::vector<UUID>, Connections, m_connections)
 
         void setInputOutputSlots(const UUID &inputSlotId,
                                  const UUID &outputSlotId);
 
         void clearSlots();
 
+        void clearConnections();
+
+        void clear();
+
       protected:
         UUID m_inputSlotId = UUID::null;
         UUID m_outputSlotId = UUID::null;
+        std::vector<UUID> m_connections;
     };
 } // namespace Bess::Canvas
