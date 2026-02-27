@@ -1,6 +1,7 @@
 #pragma once
 #include "bess_json/bess_json.h"
 #include "common/bess_uuid.h"
+#include "pages/main_page/scene_components/proxy_slot_component.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene_comp_types.h"
@@ -18,7 +19,8 @@
 namespace Bess::Canvas {
 
     class ConnJointSceneComp : public SceneComponent,
-                               public DragBehaviour<ConnJointSceneComp> {
+                               public DragBehaviour<ConnJointSceneComp>,
+                               public ProxySlotComponent {
       public:
         ConnJointSceneComp() = default;
         ConnJointSceneComp(UUID connectionId, int connSegIdx, ConnSegOrientaion segOrientation);
@@ -29,7 +31,6 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(int, ConnSegIdx, m_connSegIdx);
         MAKE_GETTER_SETTER(int, SchConnSegIdx, m_schConnSegIdx);
         MAKE_GETTER_SETTER(UUID, ConnectionId, m_connectionId);
-        MAKE_GETTER_SETTER(UUID, OutputSlotId, m_outputSlotId);
         MAKE_GETTER_SETTER(float, SegOffset, m_offset);
         MAKE_GETTER_SETTER(ConnSegOrientaion, SegOrientation, m_segOrientation);
         MAKE_GETTER_SETTER(std::vector<UUID>, Connections, m_connections);
@@ -65,8 +66,6 @@ namespace Bess::Canvas {
       private:
         int m_connSegIdx, m_schConnSegIdx;
         UUID m_connectionId;
-
-        UUID m_outputSlotId;
 
         bool m_isHovered = false;
 
