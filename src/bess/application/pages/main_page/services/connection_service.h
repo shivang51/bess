@@ -28,14 +28,6 @@ namespace Bess::Svc {
         void init();
         void destroy();
 
-        // Takes two slots/joint ids and connects them in sim engine
-        // @returns: true on sucess and false otherwise
-        bool connect(const UUID &idA, const UUID &idB);
-
-        // Takes two slot/joint ids and disconnects them in sim engine,
-        // @returns: true on sucess and false otherwise
-        bool disconnect(const UUID &idA, const UUID &idB);
-
         // Takes a connection component and tries to add it to the correct place
         // @returns: true on sucess and false otherwise
         bool addConnection(const std::shared_ptr<Canvas::ConnectionSceneComponent> &conn);
@@ -50,6 +42,38 @@ namespace Bess::Svc {
         std::vector<UUID> getDependants(const UUID &connection);
 
       private:
+        // Takes a slot/proxy id and a connection id, and add it to its connection list,
+        // @returns: error message on failure, empty on success
+        std::optional<std::string> regConnToComp(const UUID &compId, const UUID &connId);
+
+        // Takes two slot/proxy ids and tries to connect them together in the scene and sim engine,
+        // @returns: error message on failure, empty on success
+        std::optional<std::string> connect(const UUID &idA, const UUID &idB);
+
+        // Takes two proxy slot ids (scene component ids) and connects them together
+        // by creating a connection between relevant slots
+        // In Debug: Will assert if ids are not of valid Proxy Slot Components
+        // @returns: error message on failure, empty on success
+        std::optional<std::string> connectProxySlots(const UUID &proxyA, const UUID &proxyB);
+
+        // Takes a slot id and a proxy slot id (scene slot component) and connects them together
+        // by creating a connection between them,
+        // it picks the correct and relvant slot from the proxy slot component to connect to the given slot.
+        // @returns: error message on failure
+        std::optional<std::string> connectSlotToProxy(const UUID &slotId, const UUID &proxyId);
+
+        // Takes two slot ids (scene slots) and connects them together by creating a connection between them
+        // @returns: error message on failure, empty on success
+        std::optional<std::string> connectSlots(const UUID &slotAId, const UUID &slotBId);
+
+        // Takes two slots/proxy ids and connects them in sim engine
+        // @returns: error message on failure, empty on success
+        std::optional<std::string> connectInSimEngine(const UUID &idA, const UUID &idB);
+
+        // Takes two slot/proxy ids and disconnects them in sim engine,
+        // @returns: true on sucess and false otherwise
+        bool disconnectInSimEngine(const UUID &idA, const UUID &idB);
+
         // Checks if given slot is a resize slot,
         // which means we will add new slot inplace of it,
         // and move it down.
@@ -81,9 +105,8 @@ namespace Bess::Svc {
         // second (bool): true if found in scene, false if found in bin or not found at all.
         std::pair<std::shared_ptr<Canvas::SlotSceneComponent>, bool> tryFindSlot(const UUID &slotId);
 
-        // Checks if comp is joint or slot and returns the slot component correctly.
-        std::shared_ptr<Canvas::SlotSceneComponent> getSlot(const UUID &compId,
-                                                            bool assertOnFail = true);
+        // Checks if comp is proxy or slot and returns the slot component correctly.
+        std::shared_ptr<Canvas::SlotSceneComponent> getSlot(const UUID &compId);
 
       private:
         std::shared_ptr<Canvas::Scene> getScene();

@@ -23,6 +23,10 @@ namespace Bess::Canvas {
 
         void clear();
 
+        void addConnection(const UUID &connectionId);
+
+        void removeConnection(const UUID &connectionId);
+
       protected:
         UUID m_inputSlotId = UUID::null;
         UUID m_outputSlotId = UUID::null;

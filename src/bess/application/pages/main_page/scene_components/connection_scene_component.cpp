@@ -376,13 +376,17 @@ namespace Bess::Canvas {
             if (startComp->getType() == SceneComponentType::connJoint) {
                 auto startJoint = startComp->cast<ConnJointSceneComp>();
                 jointComp->setOutputSlotId(startJoint->getOutputSlotId());
+                jointComp->setInputSlotId(startJoint->getInputSlotId());
             } else if (endComp->getType() == SceneComponentType::connJoint) {
                 auto endJoint = endComp->cast<ConnJointSceneComp>();
                 jointComp->setOutputSlotId(endJoint->getOutputSlotId());
+                jointComp->setInputSlotId(endJoint->getInputSlotId());
             } else if (!startComp->cast<SlotSceneComponent>()->isInputSlot()) {
                 jointComp->setOutputSlotId(startComp->getUuid());
+                jointComp->setInputSlotId(endComp->getUuid());
             } else {
                 jointComp->setOutputSlotId(endComp->getUuid());
+                jointComp->setInputSlotId(startComp->getUuid());
             }
 
             m_associatedJoints.emplace_back(jointComp->getUuid());

@@ -201,8 +201,6 @@ namespace Bess::Canvas {
         auto conn = std::make_shared<ConnectionSceneComponent>();
         conn->setInitialSegmentCount(2);
         conn->setStartEndSlots(startSlot->getUuid(), endComp->getUuid());
-        startSlot->addConnection(conn->getUuid());
-        endComp->addConnection(conn->getUuid());
 
         auto &cmdManager = Pages::MainPage::getInstance()->getState().getCommandSystem();
         cmdManager.execute(std::make_unique<Cmd::AddCompCmd<ConnectionSceneComponent>>(conn));
