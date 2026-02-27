@@ -34,25 +34,32 @@ namespace Bess::Canvas {
         const auto &conn = state.getComponentByUuid<ConnectionSceneComponent>(m_connectionId);
         const auto &slot = state.getComponentByUuid<SlotSceneComponent>(m_outputSlotId);
 
-        auto color = ViewportTheme::colors.stateLow;
+        auto color = ViewportTheme::colors.stateLow, borderColor = ViewportTheme::colors.text;
 
         if (m_isSelected) {
-            color = ViewportTheme::colors.selectedComp;
-        } else if (slot->getSlotState(state).state == SimEngine::LogicState::high) {
+            borderColor = ViewportTheme::colors.selectedComp;
+        }
+
+        if (slot->getSlotState(state).state == SimEngine::LogicState::high) {
             color = ViewportTheme::colors.stateHigh;
         }
 
-        float radius = 3.f;
+        float sideLength = 6.f;
 
         if (m_isHovered) {
-            radius = 4.f;
+            sideLength = 8.f;
         }
 
         const auto pickingId = PickingId{m_runtimeId, 0};
-        materialRenderer->drawCircle(getAbsolutePosition(state),
-                                     radius,
-                                     color,
-                                     pickingId);
+        materialRenderer->drawQuad(getAbsolutePosition(state),
+                                   glm::vec2{sideLength, sideLength},
+                                   color,
+                                   pickingId,
+                                   {
+                                       .angle = 45,
+                                       .borderColor = borderColor,
+                                       .borderSize = glm::vec4(1.f),
+                                   });
     }
 
     void ConnJointSceneComp::drawSchematic(SceneState &state,
