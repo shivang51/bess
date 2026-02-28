@@ -62,6 +62,8 @@ namespace Bess::Canvas {
 
         std::vector<UUID> getDependants(const SceneState &state) const override;
 
+        void onAttach(SceneState &state) override;
+
       private:
         int m_connSegIdx, m_schConnSegIdx;
         UUID m_connectionId;

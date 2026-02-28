@@ -18,6 +18,9 @@ namespace Bess::Canvas {
                                            int connSegIdx,
                                            ConnSegOrientaion segOrientation)
         : m_connSegIdx(connSegIdx), m_connectionId(connectionId), m_segOrientation(segOrientation) {
+#ifdef DEBUG
+        m_name = "ConnJointSceneComp";
+#endif
     }
 
     void ConnJointSceneComp::draw(SceneState &state,
@@ -256,5 +259,15 @@ namespace Bess::Canvas {
         }
 
         return dependants;
+    }
+
+    void ConnJointSceneComp::onAttach(SceneState &state) {
+        auto connComp = state.getComponentByUuid<ConnectionSceneComponent>(m_connectionId);
+        if (connComp) {
+            auto &associatedJoints = connComp->getAssociatedJoints();
+            if (!std::ranges::any_of(associatedJoints, [&](const UUID &jointId) { return jointId == m_uuid; })) {
+                connComp->addAssociatedJoint(m_uuid);
+            }
+        }
     }
 } // namespace Bess::Canvas
