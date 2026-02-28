@@ -1,4 +1,4 @@
-#include "glm.hpp"
+#include "glm/ext/vector_float2.hpp"
 #include "imgui.h"
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
@@ -8,10 +8,10 @@ namespace py = pybind11;
 
 void bind_bess_ui(py::module &m) {
     m.def("begin_panel", [](const std::string &name,
-                            const glm::vec2 &initSize = glm::vec2(200.f, 200.f),
-                            bool *open = nullptr) {
+                            bool &open,
+                            const glm::vec2 &initSize = glm::vec2(200.f, 200.f)) {
         ImGui::SetNextWindowSize(ImVec2(initSize.x, initSize.y), ImGuiCond_FirstUseEver);
-        ImGui::Begin(name.c_str(), open);
+        return ImGui::Begin(name.c_str(), &open, ImGuiWindowFlags_NoFocusOnAppearing);
     });
 
     m.def("end_panel", []() {
