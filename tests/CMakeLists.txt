@@ -12,33 +12,16 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(googletest)
 
-set(External
-		"${CMAKE_SOURCE_DIR}/src/Bess/settings/viewport_theme.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/settings/themes.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/settings/settings.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/pages/page.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/pages/main_page/main_page_state.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/pages/main_page/main_page.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/pages/main_page/scene_driver.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/pages/start_page/start_page.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/common/helpers.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/application/application_state.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/application/application.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/application/window.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/application/project_file.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/events/application_event.cpp"
-		"${CMAKE_SOURCE_DIR}/src/Bess/asset_manager/asset_manager.cpp"
-)
-
-add_executable(BessTests ${External} main.cpp project_explorer_state_test.cpp scene_state_test.cpp)
+add_executable(BessTests main.cpp scene_state_test.cpp connection_service_test.cpp)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
-	"${CMAKE_SOURCE_DIR}/src/BessSimEngine/include"
-	"${CMAKE_SOURCE_DIR}/src/Bess/"
-	"${CMAKE_SOURCE_DIR}/src/EventSystem/include"
+	"${CMAKE_SOURCE_DIR}/src/sim_engine/include"
+	"${CMAKE_SOURCE_DIR}/src/bess/"
+	"${CMAKE_SOURCE_DIR}/src/event_system/include"
+	"${CMAKE_SOURCE_DIR}/src/common/include"
 )
 
-target_link_libraries(BessTests PRIVATE GTest::gtest_main BessExtDependencies BessSimEngine BessScene BessUI EventSystem)
+target_link_libraries(BessTests PRIVATE GTest::gtest_main BessExtDeps common BessSimEngine BessScene BessUI BessApp EventSystem)
 
 include(GoogleTest)
 gtest_discover_tests(BessTests)

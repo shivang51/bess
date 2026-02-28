@@ -1,0 +1,682 @@
+#include "scene/scene.h"
+#include "application/settings/viewport_theme.h"
+#include "common/bess_assert.h"
+#include "common/bess_uuid.h"
+#include "common/logger.h"
+#include "event_dispatcher.h"
+#include "ext/matrix_transform.hpp"
+#include "fwd.hpp"
+#include "plugin_manager.h"
+#include "scene/renderer/material_renderer.h"
+#include "scene/scene_events.h"
+#include "scene/scene_state/components/behaviours/drag_behaviour.h"
+#include "scene/scene_state/components/scene_component.h"
+#include "vulkan_core.h"
+#include <GLFW/glfw3.h>
+#include <cstdint>
+#include <memory>
+#include <ranges>
+#include <utility>
+
+namespace Bess::Canvas {
+    Scene::Scene() {
+        reset();
+        loadComponentFromPlugins();
+    }
+
+    Scene::~Scene() {
+        destroy();
+    }
+
+    void Scene::destroy() {
+        if (m_isDestroyed)
+            return;
+
+        BESS_INFO("[Scene] Destroying");
+        cleanupPlugins();
+        m_viewport.reset();
+        m_cmdManager.clearStacks();
+        m_isDestroyed = true;
+        m_state.clear();
+    }
+
+    void Scene::reset() {
+        clear();
+
+        m_size = glm::vec2(800.f, 600.f);
+
+        auto &vkCore = Vulkan::VulkanCore::instance();
+        m_viewport = std::make_shared<Viewport>(vkCore.getDevice(),
+                                                vkCore.getSwapchain()->imageFormat(),
+                                                vec2Extent2D(m_size));
+
+        m_camera = m_viewport->getCamera();
+        m_mousePos = {0.f, 0.f};
+    }
+
+    void Scene::clear() {
+        m_state.clear();
+        m_compZCoord = 1.f + m_zIncrement;
+        m_drawMode = SceneDrawMode::none;
+    }
+
+    void Scene::update(TimeMs ts, const std::vector<ApplicationEvent> &events) {
+        m_frameTimeStep = ts;
+        if (m_getIdsInSelBox) {
+            if (selectEntitesInArea())
+                m_getIdsInSelBox = false;
+        }
+
+        m_camera->update(ts);
+
+        for (const auto &event : events) {
+            switch (event.getType()) {
+            case ApplicationEventType::MouseMove: {
+                const auto data = event.getData<ApplicationEvent::MouseMoveData>();
+                auto pos = getViewportMousePos(glm::vec2(data.x, data.y));
+                m_state.setMousePos(toScenePos(pos));
+                if (!isCursorInViewport(pos)) {
+                    m_isLeftMousePressed = false;
+                    m_mousePos = pos;
+                    break;
+                }
+                onMouseMove(pos);
+            } break;
+            case ApplicationEventType::MouseButton: {
+                if (!isCursorInViewport(m_mousePos)) {
+                    if (!m_isLeftMousePressed) {
+                        setPickingId(PickingId::invalid());
+                        break;
+                    }
+                    m_isLeftMousePressed = false;
+                    setPickingId(PickingId::invalid());
+                }
+                m_viewport->waitForPickingResults(5'000'000);
+                updatePickingId();
+                const auto data = event.getData<ApplicationEvent::MouseButtonData>();
+                if (data.button == MouseButton::left) {
+                    if (data.action == MouseButtonAction::doubleClick) {
+                        BESS_INFO("[Scene] Left mouse double click at ({}, {})", m_mousePos.x, m_mousePos.y);
+                    } else {
+                        onLeftMouse(data.action == MouseButtonAction::press);
+                    }
+                } else if (data.button == MouseButton::right) {
+                    onRightMouse(data.action == MouseButtonAction::press);
+                } else if (data.button == MouseButton::middle) {
+                    onMiddleMouse(data.action == MouseButtonAction::press);
+                }
+            } break;
+            case ApplicationEventType::MouseWheel: {
+                const auto data = event.getData<ApplicationEvent::MouseWheelData>();
+                onMouseWheel(data.x, data.y);
+            } break;
+            case ApplicationEventType::KeyPress: {
+                const auto data = event.getData<ApplicationEvent::KeyPressData>();
+
+                if (data.key == GLFW_KEY_LEFT_CONTROL || data.key == GLFW_KEY_RIGHT_CONTROL) {
+                    m_isCtrlPressed = true;
+                } else if (data.key == GLFW_KEY_LEFT_SHIFT || data.key == GLFW_KEY_RIGHT_SHIFT) {
+                    m_isShiftPressed = true;
+                }
+
+            } break;
+            case Bess::ApplicationEventType::KeyRelease: {
+                const auto data = event.getData<ApplicationEvent::KeyReleaseData>();
+
+                if (data.key == GLFW_KEY_LEFT_CONTROL || data.key == GLFW_KEY_RIGHT_CONTROL) {
+                    m_isCtrlPressed = false;
+                } else if (data.key == GLFW_KEY_LEFT_SHIFT || data.key == GLFW_KEY_RIGHT_SHIFT) {
+                    m_isShiftPressed = false;
+                }
+            } break;
+            default:
+                break;
+            }
+        }
+
+        const auto &rootComps = m_state.getRootComponents();
+
+        for (const auto &compId : rootComps) {
+            auto comp = m_state.getComponentByUuid(compId);
+            if (comp) {
+                comp->update(ts, m_state);
+            }
+        }
+    }
+
+    void Scene::selectAllEntities() {
+        m_state.clearSelectedComponents();
+        const auto &comps = m_state.getRootComponents();
+
+        for (auto &id : comps) {
+            m_state.addSelectedComponent(id);
+        }
+    }
+
+    void Scene::renderWithViewport(const std::shared_ptr<Viewport> &viewport) {
+        auto &inst = Bess::Vulkan::VulkanCore::instance();
+
+        viewport->begin((int)inst.getCurrentFrameIdx(),
+                        ViewportTheme::colors.background,
+                        {0, PickingId::invalid().runtimeId});
+
+        auto mousePos_ = m_mousePos;
+        const auto &viewportSize = m_viewportTransform.size;
+        mousePos_.y = viewportSize.y - mousePos_.y;
+        int x = static_cast<int>(mousePos_.x);
+        int y = static_cast<int>(mousePos_.y);
+        if (m_selectInSelectionBox) {
+            auto start = m_selectionBoxStart;
+            auto end = m_selectionBoxEnd;
+            auto size = end - start;
+            const glm::vec2 pos = {std::min(start.x, end.x), std::max(start.y, end.y)};
+            size = glm::abs(size);
+            int w = (int)size.x;
+            int h = (int)size.y;
+            int x = (int)pos.x;
+            int y = (int)(viewportSize.y - pos.y);
+            m_viewport->setPickingCoord(x, y, w, h);
+            m_selectInSelectionBox = false;
+            m_getIdsInSelBox = true;
+        } else {
+            m_viewport->setPickingCoord(x, y);
+        }
+
+        if (m_viewportDrawFunc) {
+            m_viewportDrawFunc(viewport);
+        }
+
+        if (m_drawMode == SceneDrawMode::selectionBox) {
+            drawSelectionBox();
+        }
+
+        drawScratchContent(m_frameTimeStep, viewport);
+
+        viewport->end();
+        viewport->submit();
+    }
+
+    void Scene::render() {
+        renderWithViewport(m_viewport);
+    }
+
+    void Scene::drawSelectionBox() {
+        const auto start = toScenePos(m_selectionBoxStart);
+        const auto end = toScenePos(m_mousePos);
+
+        auto size = end - start;
+        const auto pos = start + size / 2.f;
+        size = glm::abs(size);
+
+        Renderer::QuadRenderProperties props;
+        props.borderColor = ViewportTheme::colors.selectionBoxBorder;
+        props.borderSize = glm::vec4(1.f);
+
+        auto renderer = m_viewport->getRenderers().materialRenderer;
+        renderer->drawQuad(glm::vec3(pos, 7.f), size, ViewportTheme::colors.selectionBoxFill, -1, props);
+    }
+
+    bool Scene::deleteSceneEntity(const UUID &entUuid) {
+        const auto ids = m_state.removeComponent(entUuid);
+        BESS_INFO("[Scene] Deleted entity {}", (uint64_t)entUuid);
+        return !ids.empty();
+    }
+
+    void Scene::deleteSelectedSceneEntities() {
+        const auto selectedComps = m_state.getSelectedComponents();
+        std::vector<UUID> entsToDelete;
+        entsToDelete.reserve(selectedComps.size());
+        for (const auto &comp : selectedComps) {
+            entsToDelete.emplace_back(comp.first);
+        }
+
+        for (const auto &entUuid : entsToDelete) {
+            deleteSceneEntity(entUuid);
+        }
+    }
+
+    const glm::vec2 &Scene::getSize() const {
+        return m_size;
+    }
+
+    void Scene::resize(const glm::vec2 &size) {
+        m_size = size;
+        m_viewport->resize(vec2Extent2D(m_size));
+        m_camera->resize(m_size.x, m_size.y);
+    }
+
+    glm::vec2 Scene::getViewportMousePos(const glm::vec2 &mousePos) const {
+        const auto &viewportPos = m_viewportTransform.pos;
+        auto x = mousePos.x - viewportPos.x;
+        auto y = mousePos.y - viewportPos.y;
+        return {x, y};
+    }
+
+    glm::vec2 Scene::toScenePos(const glm::vec2 &mousePos) const {
+        glm::vec2 pos = mousePos;
+
+        const auto cameraPos = m_camera->getPos();
+        glm::mat4 tansform = glm::translate(glm::mat4(1.f), glm::vec3(cameraPos.x, cameraPos.y, 0.f));
+        const auto zoom = m_camera->getZoom();
+        tansform = glm::scale(tansform, glm::vec3(1.f / zoom, 1.f / zoom, 1.f));
+
+        pos = glm::vec2(tansform * glm::vec4(pos.x, pos.y, 0.f, 1.f));
+        auto span = m_camera->getSpan() / 2.f;
+        pos -= glm::vec2({span.x, span.y});
+        return pos;
+    }
+
+    uint64_t decodeGpuHoverValue(const glm::uvec2 &encodedId) {
+        uint64_t id = static_cast<uint64_t>(encodedId.x);
+        id |= (static_cast<uint64_t>(encodedId.y) << 32);
+        return id;
+    }
+
+    void Scene::updatePickingId() {
+        m_viewport->tryUpdatePickingResults();
+
+        const auto &ids = m_viewport->getPickingIdsResult();
+        const uint64_t hoverValue = (ids.empty())
+                                        ? PickingId::invalid()
+                                        : decodeGpuHoverValue(ids[0]);
+
+        setPickingId(PickingId::fromUint64(hoverValue));
+    }
+
+    void Scene::onMouseMove(const glm::vec2 &pos) {
+        m_dMousePos = toScenePos(pos) - toScenePos(m_mousePos);
+        m_mousePos = pos;
+        {
+            auto mousePos_ = m_mousePos;
+            const auto &viewportSize = m_viewportTransform.size;
+            mousePos_.y = viewportSize.y - mousePos_.y;
+            int x = static_cast<int>(mousePos_.x);
+            int y = static_cast<int>(mousePos_.y);
+            m_viewport->setPickingCoord(x, y);
+        }
+
+        if (!m_isLeftMousePressed) {
+            if (m_viewport->waitForPickingResults(1000000)) {
+                updatePickingId();
+            }
+
+            // dispatch hover event
+            if (m_pickingId.isValid() && m_pickingId == m_prevPickingId) {
+                auto comp = m_state.getComponentByPickingId(m_pickingId);
+                if (comp) {
+                    comp->onMouseHovered({toScenePos(m_mousePos), m_pickingId.info});
+                } else {
+                    BESS_WARN("Picking id was valid but comp not found, {}", m_pickingId.runtimeId);
+                }
+            }
+        }
+
+        if (m_isLeftMousePressed && m_drawMode == SceneDrawMode::none) {
+
+            if (m_pickingId.isValid()) {
+                const auto &selectedComps = m_state.getSelectedComponents();
+                for (const auto &compId : selectedComps | std::ranges::views::keys) {
+                    std::shared_ptr<SceneComponent> comp = m_state.getComponentByUuid(compId);
+                    if (comp && comp->isDraggable()) {
+
+                        auto dragComp = std::dynamic_pointer_cast<IDragBehaviour>(comp);
+                        BESS_ASSERT(dragComp,
+                                    "Component is marked as draggable but does not implement IDragBehaviour");
+                        dragComp->onMouseDragged({toScenePos(m_mousePos),
+                                                  m_dMousePos,
+                                                  m_pickingId.info,
+                                                  selectedComps.size() > 1,
+                                                  &m_state});
+
+                        if (m_state.getConnectionStartSlot() == compId) {
+                            m_state.setConnectionStartSlot(UUID::null);
+                        }
+                        m_isDragging = true;
+                    }
+                }
+            } else {
+                m_drawMode = SceneDrawMode::selectionBox;
+                m_selectionBoxStart = m_mousePos;
+            }
+        } else if (m_isMiddleMousePressed) {
+            m_camera->incrementPos(-m_dMousePos);
+        }
+    }
+
+    bool Scene::isCursorInViewport(const glm::vec2 &pos) const {
+        const auto &viewportSize = m_viewportTransform.size;
+        const auto &viewportPos = m_viewportTransform.pos;
+        return pos.x >= 1.f &&
+               pos.x < viewportSize.x - 1.f &&
+               pos.y >= 1.f &&
+               pos.y < viewportSize.y - 1.f;
+    }
+
+    void Scene::onRightMouse(bool isPressed) {
+        EventSystem::EventDispatcher::instance().queue(
+            Events::MouseButtonEvent{toScenePos(m_mousePos),
+                                     Events::MouseButton::right,
+                                     isPressed
+                                         ? Events::MouseClickAction::press
+                                         : Events::MouseClickAction::release,
+                                     m_pickingId.info});
+    }
+
+    void Scene::onMiddleMouse(bool isPressed) {
+        m_isMiddleMousePressed = isPressed;
+        EventSystem::EventDispatcher::instance().queue(
+            Events::MouseButtonEvent{toScenePos(m_mousePos),
+                                     Events::MouseButton::middle,
+                                     isPressed
+                                         ? Events::MouseClickAction::press
+                                         : Events::MouseClickAction::release,
+                                     m_pickingId.info});
+    }
+
+    void Scene::onLeftDoubleClick() {
+        EventSystem::EventDispatcher::instance().queue(
+            Events::MouseButtonEvent{toScenePos(m_mousePos),
+                                     Events::MouseButton::left,
+                                     Events::MouseClickAction::doubleClick,
+                                     m_pickingId.info});
+
+        if (m_pickingId.isValid()) {
+            auto comp = m_state.getComponentByPickingId(m_pickingId);
+            comp->onMouseButton({toScenePos(m_mousePos),
+                                 Events::MouseButton::left,
+                                 Events::MouseClickAction::doubleClick,
+                                 m_pickingId.info,
+                                 &m_state});
+        }
+    }
+
+    void Scene::onLeftMouse(bool isPressed) {
+        m_isLeftMousePressed = isPressed;
+
+        EventSystem::EventDispatcher::instance().queue(
+            Events::MouseButtonEvent{toScenePos(m_mousePos),
+                                     Events::MouseButton::left,
+                                     isPressed
+                                         ? Events::MouseClickAction::press
+                                         : Events::MouseClickAction::release,
+                                     m_pickingId.info});
+
+        if (!isPressed) {
+
+            // if left ctrl is not pressed and multiple entities are selected,
+            // then we only deselect othere on mouse release,
+            // so that drag can work properly
+            size_t selSize = m_state.getSelectedComponents().size();
+            if (selSize > 1 && !m_isDragging &&
+                !m_isCtrlPressed && m_state.isComponentSelected(m_pickingId)) {
+                m_state.clearSelectedComponents();
+                m_state.addSelectedComponent(m_pickingId);
+            }
+
+            if (m_drawMode == SceneDrawMode::selectionBox) {
+                m_drawMode = SceneDrawMode::none;
+                m_selectInSelectionBox = true;
+                m_selectionBoxEnd = m_mousePos;
+            } else if (m_isDragging) {
+                m_isDragging = false;
+                for (const auto &compId : m_state.getSelectedComponents() | std::ranges::views::keys) {
+                    std::shared_ptr<SceneComponent> comp = m_state.getComponentByUuid(compId);
+                    if (comp && comp->isDraggable()) {
+                        std::dynamic_pointer_cast<IDragBehaviour>(comp)->onMouseDragEnd();
+                    }
+                }
+            } else {
+                if (m_pickingId.isValid()) {
+                    auto comp = m_state.getComponentByPickingId(m_pickingId);
+                    comp->onMouseButton({toScenePos(m_mousePos),
+                                         Events::MouseButton::left,
+                                         Events::MouseClickAction::release,
+                                         m_pickingId.info,
+                                         &m_state});
+                }
+            }
+
+            return;
+        }
+
+        if (m_pickingId.isValid()) {
+            auto comp = m_state.getComponentByPickingId(m_pickingId);
+            comp->onMouseButton({toScenePos(m_mousePos),
+                                 Events::MouseButton::left,
+                                 Events::MouseClickAction::press,
+                                 m_pickingId.info,
+                                 &m_state});
+
+            if (m_isCtrlPressed) {
+                if (m_state.isComponentSelected(m_pickingId))
+                    m_state.removeSelectedComponent(m_pickingId);
+                else
+                    m_state.addSelectedComponent(m_pickingId);
+            } else {
+                size_t selSize = m_state.getSelectedComponents().size();
+                if (selSize < 2 || !comp->getIsSelected()) {
+                    m_state.clearSelectedComponents();
+                    m_state.addSelectedComponent(m_pickingId);
+                }
+            }
+        } else {
+            m_state.clearSelectedComponents();
+            m_state.setConnectionStartSlot(UUID::null);
+            m_drawMode = SceneDrawMode::none;
+        }
+    }
+
+    bool Scene::selectEntitesInArea() {
+        if (!m_viewport->tryUpdatePickingResults())
+            return false;
+
+        const std::vector<glm::uvec2> rawIds = m_viewport->getPickingIdsResult();
+
+        if (rawIds.size() == 0)
+            return false;
+
+        std::set<PickingId> ids;
+        for (const auto &id : rawIds) {
+            ids.insert(PickingId::fromUint64(decodeGpuHoverValue(id)));
+        }
+
+        m_state.clearSelectedComponents();
+        for (const auto &id : ids) {
+            auto comp = m_state.getComponentByPickingId(id);
+            if (comp == nullptr)
+                continue;
+            m_state.addSelectedComponent(id);
+        }
+
+        return true;
+    }
+
+    void Scene::onMouseWheel(double x, double y) {
+        if (!isCursorInViewport(m_mousePos))
+            return;
+
+        if (m_isCtrlPressed) {
+            const float delta = static_cast<float>(y) * 0.1f;
+            m_camera->incrementZoomToPoint(toScenePos(m_mousePos), delta);
+        } else {
+            glm::vec2 dPos = {x, y};
+            dPos *= 10 / m_camera->getZoom() * -1;
+            m_camera->incrementPos(dPos);
+        }
+    }
+
+    const glm::vec2 &Scene::getCameraPos() const {
+        return m_camera->getPos();
+    }
+
+    const glm::vec2 &Scene::getMousePos() const {
+        return m_mousePos;
+    }
+
+    glm::vec2 Scene::getSceneMousePos() {
+        return toScenePos(m_mousePos);
+    }
+
+    float Scene::getCameraZoom() const {
+        return m_camera->getZoom();
+    }
+
+    void Scene::setZoom(float value) const {
+        m_camera->setZoom(value);
+    }
+
+    float Scene::getNextZCoord() {
+        const float z = m_compZCoord;
+        m_compZCoord += m_zIncrement;
+        return z;
+    }
+
+    void Scene::setZCoord(float value) {
+        m_compZCoord = value + m_zIncrement;
+    }
+
+    SimEngine::Commands::CommandsManager &Scene::getCmdManager() {
+        return m_cmdManager;
+    }
+
+    uint64_t Scene::getTextureId() const {
+        return m_viewport->getViewportTexture();
+    }
+
+    std::shared_ptr<Camera> Scene::getCamera() {
+        return m_camera;
+    }
+
+    void Scene::setSceneMode(SceneMode mode) {
+        m_sceneMode = mode;
+    }
+
+    SceneMode Scene::getSceneMode() const {
+        return m_sceneMode;
+    }
+
+    bool *Scene::getIsSchematicViewPtr() {
+        return &m_state.getIsSchematicView();
+    }
+
+    void Scene::toggleSchematicView() {
+        m_state.setIsSchematicView(!m_state.getIsSchematicView());
+    }
+
+    VkExtent2D Scene::vec2Extent2D(const glm::vec2 &vec) {
+        return {(uint32_t)vec.x, (uint32_t)vec.y};
+    }
+
+    glm::vec2 Scene::getSnappedPos(const glm::vec2 &pos) const {
+        return glm::vec2(glm::round(pos / snapSize)) * snapSize;
+    }
+
+    void Scene::drawScratchContent(TimeMs ts, const std::shared_ptr<Viewport> &viewport) {
+    }
+
+    bool Scene::isHoveredEntityValid() {
+        return m_pickingId.isValid();
+    }
+
+    const SceneState &Scene::getState() const {
+        return m_state;
+    }
+
+    SceneState &Scene::getState() {
+        return m_state;
+    }
+
+    void Scene::setPickingId(const PickingId &pickingId) {
+        m_prevPickingId = m_pickingId;
+        m_pickingId = pickingId;
+
+        if (m_pickingId != m_prevPickingId) {
+            if (m_prevPickingId.isValid()) {
+                const auto prevComp = m_state.getComponentByPickingId(m_prevPickingId);
+                if (prevComp) {
+                    prevComp->onMouseLeave({toScenePos(m_mousePos), m_prevPickingId.info});
+                } else {
+                    BESS_WARN("[Scene] Previous PickingId is valid but no component found for id {}",
+                              (uint64_t)m_prevPickingId);
+                }
+            }
+
+            if (m_pickingId.isValid()) {
+                const auto currComp = m_state.getComponentByPickingId(m_pickingId);
+
+                if (currComp) {
+                    currComp->onMouseEnter({toScenePos(m_mousePos), m_pickingId.info});
+                } else {
+                    BESS_WARN("[Scene] PickingId is valid but no component found for id {}",
+                              (uint64_t)m_pickingId);
+                }
+            }
+        }
+    }
+
+    void Scene::loadComponentFromPlugins() {
+        const auto &pluginManger = Plugins::PluginManager::getInstance();
+        for (const auto &plugin : pluginManger.getLoadedPlugins()) {
+            plugin.second->onSceneComponentsLoad(m_pluginSceneDrawHooks);
+        }
+        BESS_INFO("[Scene] Loaded {} draw hooks from plugins",
+                  m_pluginSceneDrawHooks.size());
+    }
+
+    std::shared_ptr<SimSceneCompDrawHook> Scene::getPluginDrawHookForComponentHash(uint64_t compHash) const {
+        auto it = m_pluginSceneDrawHooks.find(compHash);
+        if (it != m_pluginSceneDrawHooks.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    bool Scene::hasPluginDrawHookForComponentHash(uint64_t compHash) const {
+        return m_pluginSceneDrawHooks.contains(compHash);
+    }
+
+    void Scene::cleanupPlugins() {
+        for (auto &item : m_pluginSceneDrawHooks) {
+            item.second->cleanup();
+        }
+        m_pluginSceneDrawHooks.clear();
+        const auto &pluginManger = Plugins::PluginManager::getInstance();
+        for (const auto &plugin : pluginManger.getLoadedPlugins()) {
+            plugin.second->cleanup();
+        }
+    }
+
+    void Scene::updateViewportTransform(const ViewportTransform &transform) {
+        m_viewportTransform = transform;
+    }
+
+    const ViewportTransform &Scene::getViewportTransform() const {
+        return m_viewportTransform;
+    }
+
+    void Scene::focusCameraOnSelected() {
+
+        const auto &selectedComps = m_state.getSelectedComponents() |
+                                    std::ranges::views::keys;
+
+        if (selectedComps.empty()) {
+            return;
+        }
+
+        const auto &comp = m_state.getComponentByUuid(*selectedComps.begin());
+        m_camera->focusAtPoint(comp->getAbsolutePosition(m_state));
+    }
+
+    std::shared_ptr<Viewport> Scene::getViewport() {
+        return m_viewport;
+    }
+
+    void Scene::addComponent(const std::shared_ptr<SceneComponent> &comp, bool setZ) {
+        if (setZ) {
+            auto pos = comp->getTransform().position;
+            pos.z = getNextZCoord();
+            comp->setPosition(pos); // doing it like this so, change cb is called
+        }
+        m_state.addComponent(comp);
+    }
+} // namespace Bess::Canvas

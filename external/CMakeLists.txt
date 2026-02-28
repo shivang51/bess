@@ -1,4 +1,4 @@
-set(PROJECT_NAME BessExtDependencies)
+set(PROJECT_NAME BessExtDeps)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 file(GLOB EXT_JSON_SRC "${CMAKE_SOURCE_DIR}/external/jsoncpp/src/lib_json/*.cpp")
@@ -28,9 +28,9 @@ set(External
     ${EXT_LIB_TESS2}
 )
 
-add_library(${PROJECT_NAME} INTERFACE)
+add_library(${PROJECT_NAME} OBJECT)
 
-target_sources(${PROJECT_NAME} INTERFACE ${External})
+target_sources(${PROJECT_NAME} PRIVATE ${External})
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GLFW REQUIRED glfw3)
@@ -38,7 +38,7 @@ pkg_check_modules(VULKAN REQUIRED vulkan)
 find_package(X11 REQUIRED)
 find_package(PNG REQUIRED)
 
-target_include_directories(${PROJECT_NAME} INTERFACE
+target_include_directories(${PROJECT_NAME} PUBLIC
 		"${CMAKE_SOURCE_DIR}/external/imgui"
 		"${CMAKE_SOURCE_DIR}/external/implot"
 		"${CMAKE_SOURCE_DIR}/external/freetype/include"
@@ -55,7 +55,7 @@ target_include_directories(${PROJECT_NAME} INTERFACE
 		${PNG_INCLUDE_DIRS}
 )
 
-target_link_libraries(${PROJECT_NAME} INTERFACE 
+target_link_libraries(${PROJECT_NAME} PUBLIC 
 	${PNG_LIBRARIES}
 	${GLFW_LIBRARIES}
 	${X11_LIBRARIES}
@@ -63,23 +63,23 @@ target_link_libraries(${PROJECT_NAME} INTERFACE
 )
 
 if("${BUILD_ARCH}" STREQUAL "x64" AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-		target_link_libraries(${PROJECT_NAME} INTERFACE 
+		target_link_libraries(${PROJECT_NAME} PUBLIC 
         "gdi32;"
         "freetype;"
     )
 
-		target_link_directories(${PROJECT_NAME} INTERFACE
+		target_link_directories(${PROJECT_NAME} PUBLIC
         "${CMAKE_SOURCE_DIR}/external/freetype/libs/windows"
     )
 
 else()
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14")
-			target_link_libraries(${PROJECT_NAME} INTERFACE stdc++exp)
+			target_link_libraries(${PROJECT_NAME} PUBLIC stdc++exp)
     else()
-			target_link_libraries(${PROJECT_NAME} INTERFACE stdc++_libbacktrace)
+			target_link_libraries(${PROJECT_NAME} PUBLIC stdc++_libbacktrace)
     endif()
 
-		target_link_libraries(${PROJECT_NAME} INTERFACE 
+		target_link_libraries(${PROJECT_NAME} PUBLIC 
         "freetype;"
     )
 endif()

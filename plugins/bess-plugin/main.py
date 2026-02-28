@@ -1,18 +1,21 @@
 from typing import override
 from bessplug import Plugin
+from bessplug.api.asset_manager import AssetManager
 from bessplug.api.sim_engine import ComponentDefinition
 from components.latches import latches
 from components.digital_gates import digital_gates, draw_hooks
 from components.flip_flops import flip_flops
 from components.combinational_circuits import combinational_circuits
 from components.tristate_buffer import tristate_buffer_def
-from components import seven_segment_display, seven_segment_display_driver, clock
+from components import seven_segment_display, seven_segment_display_driver
 from components.alu_74LS181 import dm74ls181
 
 
 class BessPlugin(Plugin):
     def __init__(self):
-        super().__init__("BessPlugin", "0.0")
+        super().__init__()
+        self.name = "BESS Plugin"
+        self.version = "1.0.0.dev"
 
     @override
     def on_components_reg_load(self) -> list[ComponentDefinition]:

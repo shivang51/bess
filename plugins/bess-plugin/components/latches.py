@@ -1,5 +1,5 @@
 from enum import Enum
-import datetime
+from bessplug.api.common import time
 from bessplug.api.sim_engine import (
     ComponentDefinition,
     ComponentState,
@@ -139,7 +139,7 @@ for latch_type, details in latchDetails.items():
         group_name="Latches",
         inputs=input_slots_info,
         outputs=output_slots_info,
-        sim_delay=datetime.timedelta(microseconds=0.001),
+        sim_delay=time.TimeNS(2),
         sim_function=_simulate_latch,
     )
     latch.aux_data = details["aux_data"]

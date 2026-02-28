@@ -30,12 +30,14 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}/
 
 message(STATUS "Output location: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 
+add_compile_definitions($<$<CONFIG:Debug>:DEBUG>)
+
 # add_compile_definitions(DISABLE_PLUGINS)
 
 add_subdirectory(external)
 add_subdirectory(src)
 add_subdirectory(tests)
-add_subdirectory(docs)
+# add_subdirectory(docs)
 
 if(MSVC)
 	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Bess)

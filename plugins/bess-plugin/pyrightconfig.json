@@ -1,5 +1,6 @@
 {
 	"extraPaths": [
     "../../src/bessplug"
-  ]
+  ],
+	"reportMissingModuleSource": false
 }
