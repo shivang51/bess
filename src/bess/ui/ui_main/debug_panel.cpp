@@ -110,16 +110,20 @@ namespace Bess::UI {
         const auto &comp = sceneState.getComponentByUuid(compId);
         const auto &dependants = comp->getDependants(sceneState);
 
-        ImGui::Text("Dependants of component %s (%lu):",
-                    comp->getName().c_str(),
-                    (uint64_t)compId);
-
-        ImGui::Indent();
-
-        for (const auto &depId : dependants) {
-            ImGui::BulletText("%lu", (uint64_t)depId);
+        if (Widgets::TreeNode(1,
+                              std::format("Dependants of component {} ({}):",
+                                          comp->getName(),
+                                          (uint64_t)compId))) {
+            ImGui::Indent();
+            for (const auto &depId : dependants) {
+                const auto &depComp = sceneState.getComponentByUuid(depId);
+                ImGui::BulletText("%s (%lu) - %s",
+                                  depComp->getName().c_str(),
+                                  (uint64_t)depId,
+                                  typeid(depComp->getType()).name());
+            }
+            ImGui::Unindent();
+            ImGui::TreePop();
         }
-
-        ImGui::Unindent();
     }
 } // namespace Bess::UI
