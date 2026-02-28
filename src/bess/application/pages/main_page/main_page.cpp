@@ -17,6 +17,7 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
+#include "plugin_manager.h"
 #include "scene_ser_reg.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
@@ -107,6 +108,11 @@ namespace Bess::Pages {
     void MainPage::draw() {
         m_state.getSceneDriver().render();
         UI::UIMain::draw();
+
+        const auto &plugins = Plugins::PluginManager::getInstance().getLoadedPlugins();
+        for (const auto &plugin : plugins) {
+            plugin.second->drawUI();
+        }
     }
 
     void MainPage::update(TimeMs ts, std::vector<ApplicationEvent> &events) {

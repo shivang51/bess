@@ -17,6 +17,7 @@ void bind_material_renderer(py::module_ &m);
 void bind_scene_common_binding(py::module_ &m);
 void bind_asset_manager(py::module_ &m);
 void bind_ui_hook(py::module_ &m);
+void bind_bess_ui(py::module_ &m);
 void bind_plugin(py::module_ &m);
 
 void bind_api(py::module_ &m);
@@ -36,6 +37,7 @@ void bind_api(py::module_ &m) {
     auto renderer = scene.def_submodule("renderer", "Scene Renderer bindings");
     auto assetMgr = mApi.def_submodule("asset_manager", "Asset Manager bindings");
     auto uiHook = mApi.def_submodule("ui_hook", "UI Hook bindings");
+    auto bessUI = mApi.def_submodule("bess_ui", "Bess UI bindings");
 
     // Correct order of bindings is important. So that types can be found during
     // stubs generation, please make sure changes are made meaningfully.
@@ -63,6 +65,7 @@ void bind_api(py::module_ &m) {
 
     // UI Hook
     bind_ui_hook(uiHook);
+    bind_bess_ui(bessUI);
 
     bind_plugin(m);
 }

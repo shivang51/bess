@@ -52,4 +52,11 @@ namespace Bess::Plugins {
             m_pluginObj.attr("cleanup")();
         }
     }
+
+    void PluginHandle::drawUI() {
+        py::gil_scoped_acquire gil;
+        if (py::hasattr(m_pluginObj, "draw_ui")) {
+            m_pluginObj.attr("draw_ui")();
+        }
+    }
 } // namespace Bess::Plugins

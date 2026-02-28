@@ -30,6 +30,8 @@ namespace Bess::Plugins {
 
         void cleanup();
 
+        void drawUI();
+
       private:
         pybind11::object m_pluginObj;
     };

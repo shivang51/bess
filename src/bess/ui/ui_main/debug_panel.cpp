@@ -18,6 +18,23 @@ namespace Bess::UI {
 
         auto &sceneDriver = mainPageState.getSceneDriver();
         const auto &sceneState = sceneDriver->getState();
+
+        if (ImGui::BeginTabBar("MyTabBar")) {
+            if (ImGui::BeginTabItem("Tab 1")) {
+                ImGui::Text("This is the content of Tab 1");
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Tab 2")) {
+                ImGui::Text("This is the content of Tab 2");
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Tab 3")) {
+                ImGui::Text("This is the content of Tab 3");
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
+        }
+
         if (sceneDriver.getSceneCount() > 1) {
 
             ImGui::AlignTextToFramePadding();

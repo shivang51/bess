@@ -40,6 +40,9 @@ class Plugin {
         version = new_version;
     }
 
+    void draw_ui() {
+    }
+
   private:
     std::string name;
     std::string version;
@@ -54,6 +57,7 @@ void bind_plugin(py::module &m) {
             py::print(std::format("Cleaning plugin: {} v{}",
                                   self.get_name(), self.get_version()));
         })
+        .def("draw_ui", &Plugin::draw_ui)
         .def_property("name", &Plugin::get_name, &Plugin::set_name)
         .def_property("version", &Plugin::get_version, &Plugin::set_version);
 }
