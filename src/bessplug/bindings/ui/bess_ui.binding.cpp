@@ -3,15 +3,17 @@
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <tuple>
 
 namespace py = pybind11;
 
 void bind_bess_ui(py::module &m) {
     m.def("begin_panel", [](const std::string &name,
-                            bool &open,
-                            const glm::vec2 &initSize = glm::vec2(200.f, 200.f)) {
+                            const glm::vec2 &initSize = glm::vec2(200.f, 200.f),
+                            bool open = true) {
         ImGui::SetNextWindowSize(ImVec2(initSize.x, initSize.y), ImGuiCond_FirstUseEver);
-        return ImGui::Begin(name.c_str(), &open, ImGuiWindowFlags_NoFocusOnAppearing);
+        ImGui::Begin(name.c_str(), &open, ImGuiWindowFlags_NoFocusOnAppearing);
+        return open;
     });
 
     m.def("end_panel", []() {
@@ -36,5 +38,14 @@ void bind_bess_ui(py::module &m) {
 
     m.def("align_text_to_frame_padding", []() {
         ImGui::AlignTextToFramePadding();
+    });
+
+    m.def("slider_float", [](const std::string &label, float value, float min, float max) {
+        bool changed = ImGui::SliderFloat(label.c_str(), &value, min, max);
+        return std::make_tuple(changed, value);
+    });
+
+    m.def("checkbox", [](const std::string &label, bool &value) {
+        return ImGui::Checkbox(label.c_str(), &value);
     });
 }
