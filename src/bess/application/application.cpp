@@ -1,8 +1,8 @@
 #include "application.h"
-#include "common/types.h"
 #include "application/application_state.h"
 #include "common/bess_assert.h"
 #include "common/logger.h"
+#include "common/types.h"
 #include "events/application_event.h"
 #include "imgui_impl_vulkan.h"
 #include "pages/main_page/main_page.h"
@@ -54,12 +54,12 @@ namespace Bess {
     }
 
     void Application::run() {
+        BESS_ASSERT(ApplicationState::getCurrentPage(),
+                    "Current page of application is not set");
+
         auto previousTime = std::chrono::steady_clock::now();
 
         TimeMs accumulatedTime(0.0);
-
-        BESS_ASSERT(ApplicationState::getCurrentPage(),
-                    "Current page of application is not set");
 
         while (!m_mainWindow->isClosed()) {
             auto currentTime = std::chrono::steady_clock::now();

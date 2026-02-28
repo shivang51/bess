@@ -77,7 +77,7 @@ namespace Bess::Svc {
         // Checks if given slot is a resize slot,
         // which means we will add new slot inplace of it,
         // and move it down.
-        bool isSlotResizable(const std::shared_ptr<Canvas::SlotSceneComponent> &slot);
+        bool isResizeTriggerSlot(const std::shared_ptr<Canvas::SlotSceneComponent> &slot);
 
         // Checks if slot is safe to remove, true if following are met.
         // If its part of resizeable slot group,

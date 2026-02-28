@@ -46,10 +46,14 @@ namespace Bess::Svc {
         std::vector<UUID> dependants;
 
         if (slotA && isSlotRemovable(slotA, 1)) {
+            const auto &slotADeps = slotA->getDependants(sceneState);
+            dependants.insert(dependants.end(), slotADeps.begin(), slotADeps.end());
             dependants.push_back(slotA->getUuid());
         }
 
         if (slotB && isSlotRemovable(slotB, 1)) {
+            const auto &slotBDeps = slotB->getDependants(sceneState);
+            dependants.insert(dependants.end(), slotBDeps.begin(), slotBDeps.end());
             dependants.push_back(slotB->getUuid());
         }
 
@@ -91,10 +95,20 @@ namespace Bess::Svc {
             return false;
         }
 
+        if (foundAInScene && isResizeTriggerSlot(slotA)) {
+            BESS_WARN("Connection service cannot handle connection to resize trigger slots yet");
+            return false;
+        }
+
         if (!foundAInScene && !addSlot(slotA)) {
             BESS_ERROR("Failed to add slot A with id {} for connection {}", (uint64_t)slotAId,
                        (uint64_t)conn->getUuid());
             BESS_ASSERT(false, "Failed to add slot A for connection");
+            return false;
+        }
+
+        if (!foundBInScene && isResizeTriggerSlot(slotB)) {
+            BESS_WARN("Connection service cannot handle connection to resize trigger slots yet");
             return false;
         }
 
@@ -361,7 +375,7 @@ namespace Bess::Svc {
         return true;
     }
 
-    bool SvcConnection::isSlotResizable(const std::shared_ptr<Canvas::SlotSceneComponent> &slot) {
+    bool SvcConnection::isResizeTriggerSlot(const std::shared_ptr<Canvas::SlotSceneComponent> &slot) {
         const auto type = slot->getSlotType();
         return type == Canvas::SlotType::inputsResize ||
                type == Canvas::SlotType::outputsResize;
@@ -432,6 +446,9 @@ namespace Bess::Svc {
                                                         simCompB->getSimEngineId(), slotCompB->getIndex(), pinTypeB);
 
         if (!success) {
+            BESS_WARN("[ConnectionSvc] Failed to connect slots in simulation engine between component {} slot {} and component {} slot {}",
+                      (uint64_t)simCompA->getUuid(), slotCompA->getIndex(),
+                      (uint64_t)simCompB->getUuid(), slotCompB->getIndex());
             return "Failed to connect slots in simulation engine";
         }
 
@@ -533,6 +550,10 @@ namespace Bess::Svc {
         for (const auto &connId : proxySlot->getConnections()) {
             const auto &connComp = sceneState.getComponentByUuid<
                 Canvas::ConnectionSceneComponent>(connId);
+
+            if (!connComp) {
+                continue;
+            }
 
             const auto slotAId = connComp->getStartSlot();
             const auto slotBId = connComp->getEndSlot();

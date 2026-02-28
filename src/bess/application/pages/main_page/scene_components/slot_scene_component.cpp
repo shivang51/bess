@@ -377,14 +377,6 @@ namespace Bess::Canvas {
 
         conn->setStartEndSlots(starSlotUuid, endSlot->getUuid());
 
-        if (jointComp) {
-            jointComp->addConnection(conn->getUuid());
-        } else {
-            startSlot->addConnection(conn->getUuid());
-        }
-
-        endSlot->addConnection(conn->getUuid());
-
         auto &cmdManager = Pages::MainPage::getInstance()->getState().getCommandSystem();
         cmdManager.execute(std::make_unique<Cmd::AddCompCmd<ConnectionSceneComponent>>(conn));
 

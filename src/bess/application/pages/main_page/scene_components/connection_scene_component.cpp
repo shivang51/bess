@@ -403,10 +403,11 @@ namespace Bess::Canvas {
             }
             jointComp->setSegOffset(t);
 
-            // connect with start slot
+            // add to scene
             auto &cmdManager = Pages::MainPage::getInstance()->getState().getCommandSystem();
             cmdManager.execute(std::make_unique<Cmd::AddCompCmd<ConnJointSceneComp>>(jointComp));
 
+            // connect with start slot
             jointComp->connectWith(*e.sceneState, e.sceneState->getConnectionStartSlot());
 
             e.sceneState->setConnectionStartSlot(UUID::null);
