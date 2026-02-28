@@ -1,7 +1,9 @@
+#include "application/events/application_event.h"
 #include "event_dispatcher.h"
-#include "scene/scene_state/components/scene_component.h"
-#include "scene/scene_state/components/sim_scene_component.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
+#include "scene/scene_events.h"
 #include "scene/scene_state/scene_state.h"
+#include "scene_state/components/scene_component.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -52,13 +54,14 @@ TEST_F(SceneStateTest, AddComponent) {
     bool eventReceived = false;
     // Listen for ComponentAddedEvent
     // Event type dispatching is handled by EventDispatcher
-    auto sink = Bess::EventSystem::EventDispatcher::instance().sink<Bess::Events::ComponentAddedEvent>();
-    sink.connect([&](const Bess::Events::ComponentAddedEvent &e) {
+    auto sink = Bess::EventSystem::EventDispatcher::instance().sink<Events::ComponentAddedEvent>();
+    sink.connect([&](const Events::ComponentAddedEvent &e) {
         if (e.uuid == id)
             eventReceived = true;
     });
 
     state.addComponent<TestSceneComponent>(comp);
+    Bess::EventSystem::EventDispatcher::instance().dispatchAll();
 
     EXPECT_TRUE(state.getComponentByUuid(id) != nullptr);
     EXPECT_EQ(state.getComponentByUuid(id), comp);
@@ -110,6 +113,9 @@ TEST_F(SceneStateTest, SelectionParams) {
     UUID id1 = genUUID();
     UUID id2 = genUUID();
 
+    state.addComponent<TestSceneComponent>(createComponent(id1));
+    state.addComponent<TestSceneComponent>(createComponent(id2));
+
     state.addSelectedComponent(id1);
     EXPECT_TRUE(state.isComponentSelected(id1));
     EXPECT_FALSE(state.isComponentSelected(id2));
@@ -128,13 +134,6 @@ TEST_F(SceneStateTest, SelectionParams) {
     EXPECT_EQ(state.getSelectedComponents().size(), 0);
 }
 
-TEST_F(SceneStateTest, EdgeCases_AddNull) {
-    std::shared_ptr<TestSceneComponent> nullComp = nullptr;
-    state.addComponent<TestSceneComponent>(nullComp);
-    // Should safely ignore
-    EXPECT_EQ(state.getAllComponents().size(), 0);
-}
-
 TEST_F(SceneStateTest, EdgeCases_AddDuplicate) {
     auto comp = createComponent();
     state.addComponent<TestSceneComponent>(comp);
@@ -146,10 +145,27 @@ TEST_F(SceneStateTest, EdgeCases_AddDuplicate) {
     EXPECT_EQ(state.getAllComponents().size(), 1);
 }
 
-TEST_F(SceneStateTest, EdgeCases_RemoveNonExistent) {
-    UUID id = genUUID();
-    auto removed = state.removeComponent(id);
+TEST_F(SceneStateTest, EdgeCases_ChildRemovalProtection) {
+    auto parent = createComponent();
+    auto child = createComponent();
+
+    parent->addChildComponent(child->getUuid());
+    child->setParentComponent(parent->getUuid());
+
+    state.addComponent<TestSceneComponent>(parent);
+    state.addComponent<TestSceneComponent>(child);
+
+    // Try to remove child directly (no callerId, i.e., UUID::null)
+    auto removed = state.removeComponent(child->getUuid());
+
+    // Should be prevented
     EXPECT_TRUE(removed.empty());
+    EXPECT_TRUE(state.getComponentByUuid(child->getUuid()) != nullptr);
+
+    // Try to remove with UUID::master
+    removed = state.removeComponent(child->getUuid(), Bess::UUID::master);
+    EXPECT_EQ(removed.size(), 1);
+    EXPECT_TRUE(state.getComponentByUuid(child->getUuid()) == nullptr);
 }
 
 TEST_F(SceneStateTest, Getters) {

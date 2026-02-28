@@ -1,4 +1,4 @@
-#include "bess_uuid.h"
+#include "common/bess_uuid.h"
 #include "simulation_engine.h"
 #include <gtest/gtest.h>
 #include <thread>

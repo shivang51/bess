@@ -36,7 +36,7 @@ add_compile_definitions($<$<CONFIG:Debug>:DEBUG>)
 
 add_subdirectory(external)
 add_subdirectory(src)
-# add_subdirectory(tests)
+add_subdirectory(tests)
 # add_subdirectory(docs)
 
 if(MSVC)
