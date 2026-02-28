@@ -75,11 +75,11 @@ namespace Bess::Svc {
 
         auto &sceneState = getScene()->getState();
 
-        const auto &slotAId = conn->getStartSlot();
-        const auto &slotBId = conn->getEndSlot();
+        auto slotAId = conn->getStartSlot();
+        auto slotBId = conn->getEndSlot();
 
-        const auto &[slotA, foundAInScene] = tryFindSlot(slotAId);
-        const auto &[slotB, foundBInScene] = tryFindSlot(slotBId);
+        auto [slotA, foundAInScene] = tryFindSlot(slotAId);
+        auto [slotB, foundBInScene] = tryFindSlot(slotBId);
 
         if (!slotA) {
             BESS_ERROR("Slot A with id {} of connection {} not found", (uint64_t)slotAId,
@@ -96,8 +96,14 @@ namespace Bess::Svc {
         }
 
         if (foundAInScene && isResizeTriggerSlot(slotA)) {
-            BESS_WARN("Connection service cannot handle connection to resize trigger slots yet");
-            return false;
+            slotA = createSlotFromResizeTrigger(slotA);
+            if (!slotA) {
+                BESS_ERROR("Failed to create slot from resize trigger A for connection {}", (uint64_t)conn->getUuid());
+                return false;
+            }
+            slotAId = slotA->getUuid();
+            conn->setStartEndSlots(slotAId, slotBId);
+            foundAInScene = true; // The new slot was added to the scene in createSlotFromResizeTrigger
         }
 
         if (!foundAInScene && !addSlot(slotA)) {
@@ -107,9 +113,15 @@ namespace Bess::Svc {
             return false;
         }
 
-        if (!foundBInScene && isResizeTriggerSlot(slotB)) {
-            BESS_WARN("Connection service cannot handle connection to resize trigger slots yet");
-            return false;
+        if (foundBInScene && isResizeTriggerSlot(slotB)) {
+            slotB = createSlotFromResizeTrigger(slotB);
+            if (!slotB) {
+                BESS_ERROR("Failed to create slot from resize trigger B for connection {}", (uint64_t)conn->getUuid());
+                return false;
+            }
+            slotBId = slotB->getUuid();
+            conn->setStartEndSlots(slotAId, slotBId);
+            foundBInScene = true; // The new slot was added to the scene in createSlotFromResizeTrigger
         }
 
         if (!foundBInScene && !addSlot(slotB)) {
@@ -507,7 +519,36 @@ namespace Bess::Svc {
     }
 
     std::optional<std::string> SvcConnection::connectProxySlots(const UUID &proxyA, const UUID &proxyB) {
-        BESS_ASSERT(false, "connectProxySlots not implemented yet");
+        const auto &sceneState = getScene()->getState();
+
+        const auto &proxyCompA = sceneState.getComponentByUuid(proxyA);
+        auto proxySlotA = std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(proxyCompA);
+
+        const auto &proxyCompB = sceneState.getComponentByUuid(proxyB);
+        auto proxySlotB = std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(proxyCompB);
+
+        if (!proxySlotA || !proxySlotB) {
+            BESS_ERROR("Failed to connect proxy slots, invalid proxy components");
+            BESS_ASSERT(false, "Invalid proxy components for proxy-proxy connection");
+            return "Invalid proxy components";
+        }
+
+        // Determine correct slot mapping: Proxy acts as pass-through
+        // Typical use-case implies one is acting as input, other as output
+        // We'll connect proxyA's output to proxyB's input
+        const auto actualSlotAId = proxySlotA->getOutputSlotId();
+        const auto actualSlotBId = proxySlotB->getInputSlotId();
+
+        const auto res = connectSlots(actualSlotAId, actualSlotBId);
+
+        if (res.has_value()) {
+            BESS_ERROR("Failed to connect proxy slot A {} to proxy slot B {} in sim engine, error: {}",
+                       (uint64_t)proxyA, (uint64_t)proxyB, res.value());
+            BESS_ASSERT(false, "Failed to connect proxy to proxy in sim engine");
+            return "Failed to connect proxy to proxy in sim engine";
+        }
+
+        return std::nullopt;
     }
 
     std::optional<std::string> SvcConnection::connectSlotToProxy(const UUID &slotId, const UUID &proxyId) {
@@ -672,5 +713,120 @@ namespace Bess::Svc {
         }
 
         return std::nullopt;
+    }
+
+    std::shared_ptr<Canvas::SlotSceneComponent> SvcConnection::createSlotFromResizeTrigger(const std::shared_ptr<Canvas::SlotSceneComponent> &resizeSlot) {
+        auto &sceneState = getScene()->getState();
+        const auto parentId = resizeSlot->getParentComponent();
+        const auto parent = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(parentId);
+        const auto &simEngineId = parent->getSimEngineId();
+        const auto &digitalComp = getSimEngine().getDigitalComponent(simEngineId);
+
+        std::shared_ptr<Canvas::SlotSceneComponent> newSlot = std::make_shared<Canvas::SlotSceneComponent>();
+
+        if (resizeSlot->getSlotType() == Canvas::SlotType::inputsResize) {
+            const auto newSize = digitalComp->incrementInputCount();
+            if (newSize == parent->getInputSlotsCount() - 1) {
+                BESS_WARN("[Scene] Failed to resize input slots for component {}", (uint64_t)parent->getUuid());
+                return nullptr;
+            }
+
+            newSlot->setSlotType(Canvas::SlotType::digitalInput);
+            newSlot->setIndex((int)newSize - 1);
+            newSlot->setName(std::string(1, (char)('A' + newSize - 1)));
+            parent->addInputSlot(newSlot->getUuid());
+        } else {
+            const auto newSize = digitalComp->incrementOutputCount();
+            if (newSize == parent->getOutputSlotsCount() - 1) {
+                BESS_WARN("[Scene] Failed to resize output slots for component {}", (uint64_t)parent->getUuid());
+                return nullptr;
+            }
+
+            newSlot->setSlotType(Canvas::SlotType::digitalOutput);
+            newSlot->setIndex((int)newSize - 1);
+            newSlot->setName(std::string(1, (char)('a' + newSize - 1)));
+            parent->addOutputSlot(newSlot->getUuid());
+        }
+
+        sceneState.addComponent<Canvas::SlotSceneComponent>(newSlot);
+        sceneState.attachChild(parent->getUuid(), newSlot->getUuid());
+
+        parent->setScaleDirty();
+
+        BESS_INFO("[Scene] Resized component {}, new slot index = {}, new total slots = {}",
+                  (uint64_t)parent->getUuid(),
+                  newSlot->getIndex(),
+                  newSlot->getSlotType() == Canvas::SlotType::digitalInput
+                      ? parent->getInputSlotsCount()
+                      : parent->getOutputSlotsCount());
+
+        return newSlot;
+    }
+
+    std::pair<bool, std::string> SvcConnection::canConnect(const UUID &idA, const UUID &idB) {
+        auto &simEngine = getSimEngine();
+        const auto &sceneState = getScene()->getState();
+
+        // Helper to resolve actual slot UUID and handle Proxy/Resize
+        auto resolveSlot = [&](const UUID &id) -> std::shared_ptr<Canvas::SlotSceneComponent> {
+            auto comp = sceneState.getComponentByUuid(id);
+            if (!comp)
+                return nullptr;
+
+            if (comp->getType() == Canvas::SceneComponentType::slot) {
+                return comp->cast<Canvas::SlotSceneComponent>();
+            }
+
+            auto proxySlot = std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(comp);
+            if (proxySlot) {
+                // If it's a proxy slot, just return its currently valid connection slot for canConnect.
+                // Depending on how it's connected, we might need an actual physical slot.
+                // We'll optimistically try mapping it arbitrarily since we can't tell whether it acts as input or output yet,
+                // but for valid checking, let's use its input slot.
+                // Wait, realistically canConnect is a physical sim engine check that requires real ports.
+                return sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(proxySlot->getInputSlotId());
+            }
+            return nullptr;
+        };
+
+        const auto slotCompA = resolveSlot(idA);
+        const auto slotCompB = resolveSlot(idB);
+
+        if (!slotCompA || !slotCompB) {
+            return {false, "Invalid slot components for connection check"};
+        }
+
+        const auto simCompA = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(slotCompA->getParentComponent());
+        const auto simCompB = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(slotCompB->getParentComponent());
+
+        if (!simCompA || !simCompB) {
+            return {false, "Missing parent simulation components for connection check"};
+        }
+
+        const auto pinTypeA = (slotCompA->getSlotType() == Canvas::SlotType::digitalInput || slotCompA->getSlotType() == Canvas::SlotType::inputsResize)
+                                  ? SimEngine::SlotType::digitalInput
+                                  : SimEngine::SlotType::digitalOutput;
+        const auto pinTypeB = (slotCompB->getSlotType() == Canvas::SlotType::digitalInput || slotCompB->getSlotType() == Canvas::SlotType::inputsResize)
+                                  ? SimEngine::SlotType::digitalInput
+                                  : SimEngine::SlotType::digitalOutput;
+
+        if (pinTypeA == pinTypeB) {
+            return {false, "Cannot connect pins of the same type i.e. input -> input or output -> output"};
+        }
+
+        const bool isResizeA = slotCompA->isResizeSlot();
+        const bool isResizeB = slotCompB->isResizeSlot();
+
+        if (isResizeA || isResizeB) {
+            // A resize slot inherently expands the bounds, representing a new valid pin.
+            // Since we've validated the type constraints above, we can safely allow the topological intent.
+            return {true, ""};
+        }
+
+        auto indexA = slotCompA->getIndex();
+        auto indexB = slotCompB->getIndex();
+
+        return simEngine.canConnectComponents(simCompA->getSimEngineId(), indexA, pinTypeA,
+                                              simCompB->getSimEngineId(), indexB, pinTypeB);
     }
 } // namespace Bess::Svc

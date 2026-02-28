@@ -95,6 +95,18 @@ namespace Bess::Svc {
         // @returns: true on sucess and false otherwise
         bool addSlot(const std::shared_ptr<Canvas::SlotSceneComponent> &slot);
 
+        // Creates a new slot in place of the given resize trigger slot
+        // @returns: new slot or nullptr on failure
+        std::shared_ptr<Canvas::SlotSceneComponent> createSlotFromResizeTrigger(const std::shared_ptr<Canvas::SlotSceneComponent> &resizeSlot);
+
+      public:
+        // Checks if a connection can be made between two components.
+        // Handles resize slots, proxy slots, and standard slots.
+        // @returns: pair,
+        // first (bool): true if they can connect.
+        // second (string): error message if they cannot connect.
+        std::pair<bool, std::string> canConnect(const UUID &idA, const UUID &idB);
+
       private:
         // Tries to find the slot in the scene.
         // If not found in scene then in the internal bin.
