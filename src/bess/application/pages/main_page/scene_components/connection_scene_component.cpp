@@ -58,7 +58,7 @@ namespace Bess::Canvas {
             const bool isHovered = m_hoveredSegIdx == segmentIndex;
             pickingId.info = segmentIndex++;
 
-            pathRenderer->pathLineTo(glm::vec3(segPos.x, segPos.y, pos.z),
+            pathRenderer->pathLineTo(glm::vec3(segPos.x, segPos.y, isHovered ? 0.82f : pos.z),
                                      isHovered ? 3 : weight,
                                      color,
                                      pickingId);

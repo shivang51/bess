@@ -62,9 +62,22 @@ namespace Bess::Svc {
         // @returns: error message on failure
         std::optional<std::string> connectSlotToProxy(const UUID &slotId, const UUID &proxyId);
 
+        // Takes two proxy slot ids (scene component ids) and disconnects them together
+        // by severing the connection between relevant slots
+        // @returns: error message on failure, empty on success
+        std::optional<std::string> disconnectProxySlots(const UUID &proxyA, const UUID &proxyB);
+
+        // Takes a slot id and a proxy slot id and severs the active connection
+        // @returns: error message on failure, empty on success
+        std::optional<std::string> disconnectSlotFromProxy(const UUID &slotId, const UUID &proxyId);
+
         // Takes two slot ids (scene slots) and connects them together by creating a connection between them
         // @returns: error message on failure, empty on success
         std::optional<std::string> connectSlots(const UUID &slotAId, const UUID &slotBId);
+
+        // Disconnects an abstract pair of IDs safely branching through proxy/slot types
+        // @returns: error message on failure, empty on success
+        std::optional<std::string> disconnect(const UUID &idA, const UUID &idB);
 
         // Takes two slots/proxy ids and connects them in sim engine
         // @returns: error message on failure, empty on success
@@ -116,6 +129,9 @@ namespace Bess::Svc {
         // first (comp): nullptr if not found, otherwise the slot.
         // second (bool): true if found in scene, false if found in bin or not found at all.
         std::pair<std::shared_ptr<Canvas::SlotSceneComponent>, bool> tryFindSlot(const UUID &slotId);
+
+        // Safely retrieves the physical valid slots from IDs, parsing proxy links based on opposites
+        std::pair<std::shared_ptr<Canvas::SlotSceneComponent>, std::shared_ptr<Canvas::SlotSceneComponent>> resolvePhysicalSlotPair(const UUID &idA, const UUID &idB);
 
         // Checks if comp is proxy or slot and returns the slot component correctly.
         std::shared_ptr<Canvas::SlotSceneComponent> getSlot(const UUID &compId);

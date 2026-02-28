@@ -158,21 +158,25 @@ namespace Bess::Svc {
             return {};
         }
 
+        auto &sceneState = getScene()->getState();
+
         const auto &startSlotId = conn->getStartSlot();
         const auto &endSlotId = conn->getEndSlot();
 
-        const auto &slotA = getSlot(startSlotId);
-        BESS_ASSERT(slotA, "Failed to get slot A for connection");
+        auto [slotA, slotB] = resolvePhysicalSlotPair(startSlotId, endSlotId);
 
-        const auto &slotB = getSlot(endSlotId);
-        BESS_ASSERT(slotB, "Failed to get slot B for connection");
+        if (!slotA || !slotB) {
+            BESS_ERROR("Failed to get fully resolved slot components for disconnection.");
+            return {};
+        }
+
+        BESS_ASSERT(slotA, "Failed to get resolved slot A for connection removal");
+        BESS_ASSERT(slotB, "Failed to get resolved slot B for connection removal");
 
         const auto &slotAId = slotA->getUuid();
         const auto &slotBId = slotB->getUuid();
 
-        disconnectInSimEngine(slotAId, slotBId);
-
-        auto &sceneState = getScene()->getState();
+        disconnect(startSlotId, endSlotId);
 
         auto removedIds = std::vector<UUID>{};
 
@@ -210,8 +214,27 @@ namespace Bess::Svc {
         const auto &slotAParent = slotA->getParentComponent();
         const auto &slotBParent = slotB->getParentComponent();
 
-        sceneState.removeConnectionForComponent(slotAParent, conn->getUuid());
-        sceneState.removeConnectionForComponent(slotBParent, conn->getUuid());
+        if (sceneState.isComponentValid(slotAParent)) {
+            sceneState.removeConnectionForComponent(slotAParent, conn->getUuid());
+        }
+        if (sceneState.isComponentValid(slotBParent)) {
+            sceneState.removeConnectionForComponent(slotBParent, conn->getUuid());
+        }
+
+        // Inform proxies if involved
+        auto startComp = sceneState.getComponentByUuid(startSlotId);
+        if (startComp && startComp->getType() != Canvas::SceneComponentType::slot) {
+            auto proxyA = std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(startComp);
+            if (proxyA)
+                proxyA->removeConnection(conn->getUuid());
+        }
+
+        auto endComp = sceneState.getComponentByUuid(endSlotId);
+        if (endComp && endComp->getType() != Canvas::SceneComponentType::slot) {
+            auto proxyB = std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(endComp);
+            if (proxyB)
+                proxyB->removeConnection(conn->getUuid());
+        }
 
         removedIds.push_back(conn->getUuid());
 
@@ -427,17 +450,16 @@ namespace Bess::Svc {
         auto &simEngine = getSimEngine();
         const auto &sceneState = getScene()->getState();
 
-        const auto &slotCompA = getSlot(idA);
-        const auto &slotCompB = getSlot(idB);
+        auto [slotCompA, slotCompB] = resolvePhysicalSlotPair(idA, idB);
 
         if (!slotCompA) {
-            BESS_ERROR("Failed to get slot component A with id {} for connection", (uint64_t)idA);
+            BESS_ERROR("Failed to get physical slot component A with id {} for connection", (uint64_t)idA);
             BESS_ASSERT(false, "Failed to get slot component A for connection");
             return "Failed to get slot component A for connection";
         }
 
         if (!slotCompB) {
-            BESS_ERROR("Failed to get slot component B with id {} for connection", (uint64_t)idB);
+            BESS_ERROR("Failed to get physical slot component B with id {} for connection", (uint64_t)idB);
             BESS_ASSERT(false, "Failed to get slot component B for connection");
             return "Failed to get slot component B for connection";
         }
@@ -471,17 +493,16 @@ namespace Bess::Svc {
         auto &simEngine = getSimEngine();
         const auto &sceneState = getScene()->getState();
 
-        const auto &slotCompA = getSlot(idA);
-        const auto &slotCompB = getSlot(idB);
+        auto [slotCompA, slotCompB] = resolvePhysicalSlotPair(idA, idB);
 
         if (!slotCompA) {
-            BESS_ERROR("Failed to get slot component A with id {} for disconnection", (uint64_t)idA);
+            BESS_ERROR("Failed to get physical slot component A with id {} for disconnection", (uint64_t)idA);
             BESS_ASSERT(false, "Failed to get slot component A for disconnection");
             return false;
         }
 
         if (!slotCompB) {
-            BESS_ERROR("Failed to get slot component B with id {} for disconnection", (uint64_t)idB);
+            BESS_ERROR("Failed to get physical slot component B with id {} for disconnection", (uint64_t)idB);
             BESS_ASSERT(false, "Failed to get slot component B for disconnection");
             return false;
         }
@@ -511,11 +532,46 @@ namespace Bess::Svc {
 
         if (!comp) {
             BESS_ERROR("Component with id {} not found in scene", (uint64_t)compId);
-            BESS_ASSERT(false, "Component not found in scene");
             return nullptr;
         }
 
-        return comp->cast<Canvas::SlotSceneComponent>();
+        if (comp->getType() == Canvas::SceneComponentType::slot) {
+            return std::dynamic_pointer_cast<Canvas::SlotSceneComponent>(comp);
+        }
+
+        return nullptr;
+    }
+
+    std::pair<std::shared_ptr<Canvas::SlotSceneComponent>, std::shared_ptr<Canvas::SlotSceneComponent>> SvcConnection::resolvePhysicalSlotPair(const UUID &idA, const UUID &idB) {
+        auto &sceneState = getScene()->getState();
+
+        auto getOrCastSlot = [&](const UUID &id) -> std::shared_ptr<Canvas::SlotSceneComponent> {
+            return getSlot(id);
+        };
+
+        auto proxyA = std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(sceneState.getComponentByUuid(idA));
+        auto proxyB = std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(sceneState.getComponentByUuid(idB));
+
+        auto slotA = getOrCastSlot(idA);
+        auto slotB = getOrCastSlot(idB);
+
+        if (proxyA && slotB) {
+            bool isBInput = (slotB->getSlotType() == Canvas::SlotType::digitalInput || slotB->getSlotType() == Canvas::SlotType::inputsResize);
+            slotA = getOrCastSlot(isBInput ? proxyA->getOutputSlotId() : proxyA->getInputSlotId());
+        } else if (slotA && proxyB) {
+            bool isAInput = (slotA->getSlotType() == Canvas::SlotType::digitalInput || slotA->getSlotType() == Canvas::SlotType::inputsResize);
+            slotB = getOrCastSlot(isAInput ? proxyB->getOutputSlotId() : proxyB->getInputSlotId());
+        } else if (proxyA && proxyB) {
+            slotA = getOrCastSlot(proxyA->getOutputSlotId());
+            slotB = getOrCastSlot(proxyB->getInputSlotId());
+        } else {
+            if (!slotA && proxyA)
+                slotA = getOrCastSlot(proxyA->getOutputSlotId());
+            if (!slotB && proxyB)
+                slotB = getOrCastSlot(proxyB->getInputSlotId());
+        }
+
+        return {slotA, slotB};
     }
 
     std::optional<std::string> SvcConnection::connectProxySlots(const UUID &proxyA, const UUID &proxyB) {
@@ -533,11 +589,15 @@ namespace Bess::Svc {
             return "Invalid proxy components";
         }
 
-        // Determine correct slot mapping: Proxy acts as pass-through
-        // Typical use-case implies one is acting as input, other as output
-        // We'll connect proxyA's output to proxyB's input
-        const auto actualSlotAId = proxySlotA->getOutputSlotId();
-        const auto actualSlotBId = proxySlotB->getInputSlotId();
+        auto actualSlotAId = proxySlotA->getOutputSlotId();
+        auto actualSlotBId = proxySlotB->getInputSlotId();
+
+        // Cross-verify with resolvePhysicalSlotPair
+        auto [slotA, slotB] = resolvePhysicalSlotPair(proxyA, proxyB);
+        if (slotA)
+            actualSlotAId = slotA->getUuid();
+        if (slotB)
+            actualSlotBId = slotB->getUuid();
 
         const auto res = connectSlots(actualSlotAId, actualSlotBId);
 
@@ -572,18 +632,22 @@ namespace Bess::Svc {
 
         UUID actualSlotId = UUID::null;
 
-        if (slotComp->getSlotType() == Canvas::SlotType::digitalInput) {
-            actualSlotId = proxySlot->getOutputSlotId();
+        auto [slotA, slotB] = resolvePhysicalSlotPair(slotId, proxyId);
+        if (slotA && slotB) {
+            actualSlotId = (slotA->getUuid() == slotId) ? slotB->getUuid() : slotA->getUuid();
         } else {
-            actualSlotId = proxySlot->getInputSlotId();
+            if (slotComp->getSlotType() == Canvas::SlotType::digitalInput) {
+                actualSlotId = proxySlot->getOutputSlotId();
+            } else {
+                actualSlotId = proxySlot->getInputSlotId();
+            }
         }
 
         const auto res = connectSlots(slotId, actualSlotId);
 
         if (res.has_value()) {
-            BESS_ERROR("Failed to connect slot with id {} to proxy slot with id {} in sim engine, error: {}",
-                       (uint64_t)slotId, (uint64_t)actualSlotId, res.value());
-            BESS_ASSERT(false, "Failed to connect slot to proxy slot in sim engine");
+            BESS_WARN("Failed to connect slot with id {} to proxy slot with id {} in sim engine, error: {}",
+                      (uint64_t)slotId, (uint64_t)actualSlotId, res.value());
             return "Failed to connect slot to proxy slot in sim engine";
         }
 
@@ -605,6 +669,48 @@ namespace Bess::Svc {
             }
 
             connect(potentialId, slotId);
+        }
+
+        return std::nullopt;
+    }
+
+    std::optional<std::string> SvcConnection::disconnectProxySlots(const UUID &proxyA, const UUID &proxyB) {
+        auto [slotA, slotB] = resolvePhysicalSlotPair(proxyA, proxyB);
+        if (slotA && slotB) {
+            disconnectInSimEngine(slotA->getUuid(), slotB->getUuid());
+        }
+        return std::nullopt;
+    }
+
+    std::optional<std::string> SvcConnection::disconnectSlotFromProxy(const UUID &slotId, const UUID &proxyId) {
+        auto [slotA, slotB] = resolvePhysicalSlotPair(slotId, proxyId);
+        if (slotA && slotB) {
+            disconnectInSimEngine(slotA->getUuid(), slotB->getUuid());
+        }
+
+        // Disconnect all cascaded mappings that piggy-backed through this proxy joint
+        const auto &sceneState = getScene()->getState();
+        const auto &proxyComp = sceneState.getComponentByUuid(proxyId);
+        auto proxySlot = std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(proxyComp);
+        if (proxySlot) {
+            for (const auto &connId : proxySlot->getConnections()) {
+                const auto &connComp = sceneState.getComponentByUuid<Canvas::ConnectionSceneComponent>(connId);
+                if (!connComp)
+                    continue;
+
+                const auto loopSlotAId = connComp->getStartSlot();
+                const auto loopSlotBId = connComp->getEndSlot();
+
+                Bess::UUID potentialId = loopSlotAId;
+                if (loopSlotAId == proxyId)
+                    potentialId = loopSlotBId;
+
+                // Unlink underlying physical structures that the proxy previously connected
+                auto [resolvedA, resolvedB] = resolvePhysicalSlotPair(potentialId, slotId);
+                if (resolvedA && resolvedB) {
+                    disconnectInSimEngine(resolvedA->getUuid(), resolvedB->getUuid());
+                }
+            }
         }
 
         return std::nullopt;
@@ -683,6 +789,33 @@ namespace Bess::Svc {
         }
 
         return connectProxySlots(idA, idB);
+    }
+
+    std::optional<std::string> SvcConnection::disconnect(const UUID &idA, const UUID &idB) {
+        const auto &sceneState = getScene()->getState();
+
+        const auto &compA = sceneState.getComponentByUuid(idA);
+        const auto &compB = sceneState.getComponentByUuid(idB);
+
+        if (!compA || !compB) {
+            BESS_ERROR("Components not found in scene for disconnecting endpoints: {} and {}", (uint64_t)idA, (uint64_t)idB);
+            return "Components not found";
+        }
+
+        const auto &typeA = compA->getType();
+        const auto &typeB = compB->getType();
+
+        if (typeA == Canvas::SceneComponentType::slot && typeB == Canvas::SceneComponentType::slot) {
+            disconnectInSimEngine(idA, idB);
+            return std::nullopt;
+        }
+
+        if (typeA == Canvas::SceneComponentType::slot)
+            return disconnectSlotFromProxy(idA, idB);
+        if (typeB == Canvas::SceneComponentType::slot)
+            return disconnectSlotFromProxy(idB, idA);
+
+        return disconnectProxySlots(idA, idB);
     }
 
     std::optional<std::string> SvcConnection::regConnToComp(const UUID &compId,
@@ -767,33 +900,10 @@ namespace Bess::Svc {
         auto &simEngine = getSimEngine();
         const auto &sceneState = getScene()->getState();
 
-        // Helper to resolve actual slot UUID and handle Proxy/Resize
-        auto resolveSlot = [&](const UUID &id) -> std::shared_ptr<Canvas::SlotSceneComponent> {
-            auto comp = sceneState.getComponentByUuid(id);
-            if (!comp)
-                return nullptr;
-
-            if (comp->getType() == Canvas::SceneComponentType::slot) {
-                return comp->cast<Canvas::SlotSceneComponent>();
-            }
-
-            auto proxySlot = std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(comp);
-            if (proxySlot) {
-                // If it's a proxy slot, just return its currently valid connection slot for canConnect.
-                // Depending on how it's connected, we might need an actual physical slot.
-                // We'll optimistically try mapping it arbitrarily since we can't tell whether it acts as input or output yet,
-                // but for valid checking, let's use its input slot.
-                // Wait, realistically canConnect is a physical sim engine check that requires real ports.
-                return sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(proxySlot->getInputSlotId());
-            }
-            return nullptr;
-        };
-
-        const auto slotCompA = resolveSlot(idA);
-        const auto slotCompB = resolveSlot(idB);
+        auto [slotCompA, slotCompB] = resolvePhysicalSlotPair(idA, idB);
 
         if (!slotCompA || !slotCompB) {
-            return {false, "Invalid slot components for connection check"};
+            return {false, "Invalid slot components for connection check (Proxy links might be dead)"};
         }
 
         const auto simCompA = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(slotCompA->getParentComponent());
