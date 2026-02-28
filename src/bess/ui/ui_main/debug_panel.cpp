@@ -73,22 +73,6 @@ namespace Bess::UI {
             ImGui::TreePop();
         }
 
-        if (Widgets::TreeNode(1, "Connections")) {
-            ImGui::Indent();
-            const auto &connections = sceneState.getAllComponentConnections();
-            for (const auto &[compId, connIds] : connections) {
-
-                ImGui::Text("Component %lu", (uint64_t)compId);
-                ImGui::Indent();
-                for (const auto &connId : connIds) {
-                    ImGui::BulletText("%lu", (uint64_t)connId);
-                }
-                ImGui::Unindent();
-            }
-            ImGui::Unindent();
-            ImGui::TreePop();
-        }
-
         if (Widgets::TreeNode(2, "First Sim Component Serilaized")) {
             const auto &selComps = sceneState.getSelectedComponents();
             if (!selComps.empty()) {

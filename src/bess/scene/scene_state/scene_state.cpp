@@ -16,7 +16,6 @@ namespace Bess::Canvas {
         m_componentsMap.clear();
         m_rootComponents.clear();
         m_freeRuntimeIds.clear();
-        m_compConnections.clear();
         m_selectedComponents.clear();
     }
 
@@ -191,11 +190,6 @@ namespace Bess::Canvas {
         std::vector<UUID> removedUuids = component->cleanup(*this, callerId);
         removedUuids.push_back(uuid);
 
-        const auto &connections = getConnectionsForComponent(uuid);
-        for (const auto &connectionId : connections) {
-            removedUuids.push_back(connectionId);
-        }
-
         const uint32_t runtimeId = component->getRuntimeId();
         if (runtimeId != PickingId::invalidRuntimeId) {
             component->setRuntimeId(PickingId::invalidRuntimeId); // Don't remove this its not redundant
@@ -210,7 +204,6 @@ namespace Bess::Canvas {
         }
 
         m_componentsMap.erase(uuid);
-        m_compConnections.erase(uuid);
 
         if (callerId == UUID::master &&
             component->getParentComponent() != UUID::null) {
@@ -247,65 +240,9 @@ namespace Bess::Canvas {
         return m_rootComponents.contains(uuid);
     }
 
-    void SceneState::addConnectionForComponent(const UUID &compId, const UUID &connectionId) {
-        m_compConnections[compId].push_back(connectionId);
-    }
-
-    void SceneState::removeConnectionForComponent(const UUID &compId, const UUID &connectionId) {
-        BESS_DEBUG("[SceneState] Removing connection {} for component {}",
-                   (uint64_t)connectionId, (uint64_t)compId);
-        if (!m_compConnections.contains(compId)) {
-            return;
-        }
-
-        auto &connections = m_compConnections[compId];
-        connections.erase(std::ranges::remove(connections, connectionId).begin(),
-                          connections.end());
-
-        if (connections.empty()) {
-            m_compConnections.erase(compId);
-        }
-    }
-
-    const std::vector<UUID> &SceneState::getConnectionsForComponent(const UUID &compId) const {
-        if (!m_compConnections.contains(compId)) {
-            static const std::vector<UUID> emptyConnections;
-            return emptyConnections;
-        }
-
-        return m_compConnections.at(compId);
-    }
-
-    const std::unordered_map<UUID, std::vector<UUID>> &SceneState::getAllComponentConnections() const {
-        return m_compConnections;
-    }
-
     SceneState::SceneState(const SceneState &scene) {
         BESS_ERROR("SceneState copy is not allowed");
         BESS_ASSERT(false, "SceneState copy is not allowed");
-    }
-
-    std::vector<UUID> SceneState::getLifeDependants(const UUID &uuid) const {
-        std::vector<UUID> dependants;
-        const auto &comp = getComponentByUuid(uuid);
-        if (!comp) {
-            return dependants;
-        }
-
-        const auto &connections = getConnectionsForComponent(uuid);
-        for (const auto &connId : connections) {
-            const auto &connDependants = getLifeDependants(connId);
-            dependants.insert(dependants.end(), connDependants.begin(), connDependants.end());
-            dependants.push_back(connId);
-        }
-
-        for (const auto &childId : comp->getChildComponents()) {
-            const auto &childDependants = getLifeDependants(childId);
-            dependants.insert(dependants.end(), childDependants.begin(), childDependants.end());
-            dependants.push_back(childId);
-        }
-
-        return dependants;
     }
 } // namespace Bess::Canvas
 

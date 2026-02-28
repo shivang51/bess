@@ -19,7 +19,9 @@
 
 namespace Bess::Canvas {
     ConnectionSceneComponent::ConnectionSceneComponent() {
-        initDragBehaviour();
+#ifdef DEBUG
+        m_name = "ConnSceneComp";
+#endif
     }
 
     void ConnectionSceneComponent::drawSegments(const SceneState &state,

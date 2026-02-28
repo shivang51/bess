@@ -211,15 +211,6 @@ namespace Bess::Svc {
         }
 
         sceneState.removeComponent(conn->getUuid());
-        const auto &slotAParent = slotA->getParentComponent();
-        const auto &slotBParent = slotB->getParentComponent();
-
-        if (sceneState.isComponentValid(slotAParent)) {
-            sceneState.removeConnectionForComponent(slotAParent, conn->getUuid());
-        }
-        if (sceneState.isComponentValid(slotBParent)) {
-            sceneState.removeConnectionForComponent(slotBParent, conn->getUuid());
-        }
 
         // Inform proxies if involved
         auto startComp = sceneState.getComponentByUuid(startSlotId);

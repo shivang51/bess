@@ -335,22 +335,7 @@ namespace Bess::Canvas {
     }
 
     std::vector<UUID> SimulationSceneComponent::cleanup(SceneState &state, UUID caller) {
-        // its important that we take a copy
-        auto connections = state.getConnectionsForComponent(getUuid());
-
         std::vector<UUID> removedIds;
-
-        auto &connectionsSvc = Svc::SvcConnection::instance();
-        for (const auto &connUuid : connections) {
-            const auto connComp = state.getComponentByUuid<ConnectionSceneComponent>(connUuid);
-            const auto &ids = connectionsSvc.removeConnection(connComp);
-            if (ids.empty()) {
-                BESS_WARN("Failed to remove connection with uuid {} during cleanup of component {}",
-                          (uint64_t)connUuid, getName());
-            } else {
-                removedIds.insert(removedIds.end(), ids.begin(), ids.end());
-            }
-        }
 
         const auto ids = SceneComponent::cleanup(state, caller);
         removedIds.insert(removedIds.end(), ids.begin(), ids.end());
