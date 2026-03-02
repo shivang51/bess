@@ -35,7 +35,9 @@ target_sources(${PROJECT_NAME} PRIVATE ${External})
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GLFW REQUIRED glfw3)
 pkg_check_modules(VULKAN REQUIRED vulkan)
-find_package(X11 REQUIRED)
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+	find_package(X11 REQUIRED)
+endif()
 find_package(PNG REQUIRED)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
