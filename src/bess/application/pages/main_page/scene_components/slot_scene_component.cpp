@@ -253,13 +253,11 @@ namespace Bess::Canvas {
             return;
         }
 
-        auto conn = std::make_shared<ConnectionSceneComponent>();
         UUID starSlotUuid = jointComp ? jointComp->getUuid() : startSlot->getUuid();
-
-        conn->setStartEndSlots(starSlotUuid, m_uuid);
+        auto conn = Svc::SvcConnection::instance().createConnection(starSlotUuid, m_uuid);
 
         auto &cmdManager = Pages::MainPage::getInstance()->getState().getCommandSystem();
-        cmdManager.execute(std::make_unique<Cmd::AddCompCmd<ConnectionSceneComponent>>(conn));
+        cmdManager.push(std::make_unique<Cmd::AddCompCmd<ConnectionSceneComponent>>(conn));
 
         BESS_INFO("[Scene] Created connection {} between slots {} and {}",
                   (uint64_t)conn->getUuid(),

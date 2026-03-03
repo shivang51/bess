@@ -29,6 +29,14 @@ namespace Bess::Svc {
         BESS_DEBUG("Destroyed Connection Service");
     }
 
+    std::shared_ptr<Canvas::ConnectionSceneComponent> SvcConnection::createConnection(const UUID &slotAId,
+                                                                                      const UUID &slotBId) {
+        auto conn = std::make_shared<Canvas::ConnectionSceneComponent>();
+        conn->setStartEndSlots(slotAId, slotBId);
+        addConnection(conn);
+        return conn;
+    }
+
     std::vector<UUID> SvcConnection::getDependants(const UUID &connection) {
 
         auto &sceneState = getScene()->getState();
@@ -930,4 +938,5 @@ namespace Bess::Svc {
         return simEngine.canConnectComponents(simCompA->getSimEngineId(), indexA, pinTypeA,
                                               simCompB->getSimEngineId(), indexB, pinTypeB);
     }
+
 } // namespace Bess::Svc

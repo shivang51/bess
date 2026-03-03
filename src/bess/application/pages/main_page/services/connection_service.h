@@ -28,6 +28,12 @@ namespace Bess::Svc {
         void init();
         void destroy();
 
+        // Connects two slots/proxy slots together by creating a connection between them,
+        // and also handles the sim engine connection and slot resizing if needed.
+        // @returns: shared_ptr to the created connection component on success, nullptr on failure
+        std::shared_ptr<Canvas::ConnectionSceneComponent> createConnection(const UUID &slotAId,
+                                                                           const UUID &slotBId);
+
         // Takes a connection component and tries to add it to the correct place
         // @returns: true on sucess and false otherwise
         bool addConnection(const std::shared_ptr<Canvas::ConnectionSceneComponent> &conn);

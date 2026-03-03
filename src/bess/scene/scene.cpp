@@ -320,6 +320,13 @@ namespace Bess::Canvas {
                     if (comp && comp->isDraggable()) {
 
                         auto dragComp = std::dynamic_pointer_cast<IDragBehaviour>(comp);
+
+                        if (!dragComp) {
+                            BESS_ERROR("Component {}  of type {} is marked as draggable but does not implement IDragBehaviour",
+                                       (uint64_t)comp->getUuid(),
+                                       comp->getStaticTypeName());
+                            continue;
+                        }
                         BESS_ASSERT(dragComp,
                                     "Component is marked as draggable but does not implement IDragBehaviour");
                         dragComp->onMouseDragged({toScenePos(m_mousePos),

@@ -15,6 +15,7 @@
 #include "pages/main_page/scene_components/non_sim_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
+#include "pages/main_page/scene_components/slot_probe_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
 #include "plugin_manager.h"
@@ -57,6 +58,7 @@ namespace Bess::Pages {
 
         // TODO(shivang): Think about a better way and scalabilty for plugins
         Canvas::NonSimSceneComponent::registerComponent<Canvas::TextComponent>("Text Component");
+        Canvas::NonSimSceneComponent::registerComponent<Canvas::SlotProbeSceneComponent>("Probe");
 
         REG_TO_SER_REGISTRY(Canvas::ConnJointSceneComp);
         REG_TO_SER_REGISTRY(Canvas::ConnectionSceneComponent);
@@ -66,6 +68,7 @@ namespace Bess::Pages {
         REG_TO_SER_REGISTRY(Canvas::SimulationSceneComponent);
         REG_TO_SER_REGISTRY(Canvas::SlotSceneComponent);
         REG_TO_SER_REGISTRY(Canvas::TextComponent);
+        REG_TO_SER_REGISTRY(Canvas::SlotProbeSceneComponent);
 
         UI::UIMain::init();
 

@@ -30,7 +30,7 @@ namespace Bess::Canvas {
         return json;                                                \
     }                                                               \
     static void fromJson(const Json::Value &j,                      \
-                         std::shared_ptr<TClass> ptr) {             \
+                         const std::shared_ptr<TClass> &ptr) {      \
         auto castedComp = std::dynamic_pointer_cast<TBase>(ptr);    \
         TBase::fromJson(j, castedComp);                             \
         DESERIALIZE_PROPS(ptr, __VA_ARGS__);                        \
@@ -52,7 +52,7 @@ namespace Bess::Canvas {
         return json;                                                \
     }                                                               \
     static void fromJson(const Json::Value &j,                      \
-                         std::shared_ptr<TClass> ptr) {             \
+                         const std::shared_ptr<TClass> &ptr) {      \
         auto castedComp = std::dynamic_pointer_cast<TBase>(ptr);    \
         TBase::fromJson(j, castedComp);                             \
     }                                                               \
@@ -88,6 +88,10 @@ namespace Bess::Canvas {
         SceneComponent();
         SceneComponent(const SceneComponent &other) = default;
         virtual ~SceneComponent() = default;
+
+        static std::string getStaticTypeName() {
+            return "SceneComponent";
+        }
 
         virtual void update(TimeMs frameTime, SceneState & /*state*/) {}
 
