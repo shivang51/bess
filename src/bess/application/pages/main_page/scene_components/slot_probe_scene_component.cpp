@@ -13,8 +13,13 @@ namespace Bess::Canvas {
 
         const auto &textSize = materialRenderer->getTextRenderSize(m_name, 9);
         if (m_isFirstDraw) {
-            m_transform.scale = {textSize.x + 16.f, textSize.y + 8.f};
+            m_scaleDirty = true;
             m_isFirstDraw = false;
+        }
+
+        if (m_scaleDirty) {
+            m_transform.scale = {textSize.x + 16.f, textSize.y + 8.f};
+            m_scaleDirty = false;
         }
 
         Renderer::QuadRenderProperties props;
@@ -121,7 +126,6 @@ namespace Bess::Canvas {
     }
 
     void SlotProbeSceneComponent::onAttach(SceneState &state) {
-        m_name = "Slot Probe";
         auto &mainPageState = Pages::MainPage::getInstance()->getState();
         mainPageState.getProbes().insert(getUuid());
     }
@@ -130,5 +134,16 @@ namespace Bess::Canvas {
         auto &mainPageState = Pages::MainPage::getInstance()->getState();
         mainPageState.getProbes().erase(getUuid());
         return NonSimSceneComponent::cleanup(state, caller);
+    }
+
+    SlotProbeSceneComponent::SlotProbeSceneComponent() {
+        m_name = "Slot Probe";
+    }
+    std::type_index SlotProbeSceneComponent::getTypeIndex() {
+        return typeid(SlotProbeSceneComponent);
+    }
+
+    void SlotProbeSceneComponent::onNameChanged() {
+        m_scaleDirty = true;
     }
 } // namespace Bess::Canvas

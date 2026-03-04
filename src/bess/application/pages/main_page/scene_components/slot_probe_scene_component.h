@@ -12,7 +12,7 @@ namespace Bess::Canvas {
 
     class SlotProbeSceneComponent : public NonSimSceneComponent {
       public:
-        SlotProbeSceneComponent() = default;
+        SlotProbeSceneComponent();
         ~SlotProbeSceneComponent() override = default;
 
         REG_SCENE_COMP_TYPE("SlotProbeSceneComponent",
@@ -35,16 +35,17 @@ namespace Bess::Canvas {
 
         void onMouseButton(const Events::MouseButtonEvent &e) override;
 
-        std::type_index getTypeIndex() override {
-            return typeid(SlotProbeSceneComponent);
-        }
+        std::type_index getTypeIndex() override;
 
       private:
         void onProbedSlotChanged();
 
+        void onNameChanged() override;
+
       private:
         UUID m_probedSlotUuid = UUID::null;
         std::vector<std::pair<TimeNs, SimEngine::LogicState>> m_probeData;
+        bool m_scaleDirty = false;
     };
 } // namespace Bess::Canvas
 

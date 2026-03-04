@@ -106,7 +106,9 @@ namespace Bess::UI {
             ImGui::TextWrapped("%s", comp->getName().c_str());
         }
 
-        Widgets::TextBox("Name", comp->getName());
+        if (Widgets::TextBox("Name", comp->getName())) {
+            comp->setName(comp->getName());
+        }
 
         if (compType == Canvas::SceneComponentType::simulation) {
             auto simComp = comp->cast<Canvas::SimulationSceneComponent>();
