@@ -55,11 +55,11 @@ namespace Bess::Canvas {
             auto endPos = comp->getConnectionPos(sceneState);
 
             // This looks awesome, just hit and trial :)
-            const glm::vec2 ctrl1 = glm::mix(glm::vec2(startPos.x, 0),
-                                             glm::vec2(endPos.x, 0),
+            const glm::vec2 ctrl1 = glm::mix(glm::vec2(startPos.x, startPos.y),
+                                             glm::vec2(endPos.x, startPos.y),
                                              0.25f);
-            const glm::vec2 ctrl2 = glm::mix(glm::vec2(0, startPos.y),
-                                             glm::vec2(0, endPos.y),
+            const glm::vec2 ctrl2 = glm::mix(glm::vec2(endPos.x, startPos.y),
+                                             glm::vec2(endPos.x, endPos.y),
                                              0.75f);
 
             const auto &color = !m_probeData.empty() &&
