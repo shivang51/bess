@@ -126,6 +126,8 @@ namespace Bess::Canvas {
 
         glm::vec2 getSnappedPos(const glm::vec2 &pos) const;
 
+        void processEvents(const std::vector<ApplicationEvent> &events);
+
       private:
         // Vulkan framebuffers for scene rendering
         glm::vec2 m_size, m_mousePos, m_dMousePos;

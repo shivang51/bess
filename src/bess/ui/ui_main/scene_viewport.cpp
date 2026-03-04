@@ -64,12 +64,14 @@ namespace Bess::UI {
         auto &simEngine = SimEngine::SimulationEngine::instance();
         static float checkboxWidth = ImGui::CalcTextSize("W").x + g.Style.FramePadding.x + 2.f;
         const auto textSize = ImGui::CalcTextSize("Schematic Mode");
-        static float size = textSize.x + checkboxWidth + 12.f;
+        constexpr float windowR = 16.f;
+        static float size = textSize.x + checkboxWidth + (windowR * 2);
         ImGui::SetNextWindowPos({m_localPos.x + g.Style.FramePadding.x,
                                  m_localPos.y + g.Style.FramePadding.y});
         ImGui::SetNextWindowSize({size, 0});
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(windowR, 4));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, windowR);
 
         auto col = colors[ImGuiCol_ButtonActive];
         col.w = 0.2f;
@@ -84,7 +86,7 @@ namespace Bess::UI {
         ImGui::Checkbox("##CheckBoxSchematicMode", scene->getIsSchematicViewPtr());
         ImGui::PopStyleVar();
         ImGui::End();
-        ImGui::PopStyleVar(2);
+        ImGui::PopStyleVar(3);
         ImGui::PopStyleColor(1);
     }
 

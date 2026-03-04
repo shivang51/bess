@@ -60,15 +60,7 @@ namespace Bess::Canvas {
         m_drawMode = SceneDrawMode::none;
     }
 
-    void Scene::update(TimeMs ts, const std::vector<ApplicationEvent> &events) {
-        m_frameTimeStep = ts;
-        if (m_getIdsInSelBox) {
-            if (selectEntitesInArea())
-                m_getIdsInSelBox = false;
-        }
-
-        m_camera->update(ts);
-
+    void Scene::processEvents(const std::vector<ApplicationEvent> &events) {
         for (const auto &event : events) {
             switch (event.getType()) {
             case ApplicationEventType::MouseMove: {
@@ -76,8 +68,13 @@ namespace Bess::Canvas {
                 auto pos = getViewportMousePos(glm::vec2(data.x, data.y));
                 m_state.setMousePos(toScenePos(pos));
                 if (!isCursorInViewport(pos)) {
-                    m_isLeftMousePressed = false;
                     m_mousePos = pos;
+                    if (m_isLeftMousePressed) {
+                        onLeftMouse(false);
+                    }
+                    if (m_isMiddleMousePressed) {
+                        onMiddleMouse(false);
+                    }
                     break;
                 }
                 onMouseMove(pos);
@@ -133,6 +130,18 @@ namespace Bess::Canvas {
                 break;
             }
         }
+    }
+
+    void Scene::update(TimeMs ts, const std::vector<ApplicationEvent> &events) {
+        m_frameTimeStep = ts;
+        if (m_getIdsInSelBox) {
+            if (selectEntitesInArea())
+                m_getIdsInSelBox = false;
+        }
+
+        processEvents(events);
+
+        m_camera->update(ts);
 
         const auto &rootComps = m_state.getRootComponents();
 
