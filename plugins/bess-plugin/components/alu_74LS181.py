@@ -1,4 +1,4 @@
-import datetime
+from bessplug.api.common.time import TimeNS
 from bessplug.api.sim_engine import (
     ComponentDefinition,
     ComponentState,
@@ -134,11 +134,11 @@ def _simulate_74ls181_schematic_verified(
             0x7: ((A & (~B & MASK4)) - 1),  # A!B minus 1
             0x8: (A + (A & B)),  # A plus AB
             0x9: (A + B),  # A plus B
-            0xA: (((A | (~B & MASK4)) + (A & B))),  # (A+!B) plus AB
+            0xA: ((A | (~B & MASK4)) + (A & B)),  # (A+!B) plus AB
             0xB: ((A & B) - 1),  # AB minus 1
             0xC: (A + A),  # A plus A
             0xD: ((A | B) + A),  # (A+B) plus A
-            0xE: (((A | (~B & MASK4)) + A)),  # (A+!B) plus A
+            0xE: ((A | (~B & MASK4)) + A),  # (A+!B) plus A
             0xF: (A - 1),  # A minus 1
         }
 
@@ -236,7 +236,7 @@ dm74ls181 = ComponentDefinition.from_sim_fn(
     group_name="TTL 74 Series",
     inputs=inp_info,
     outputs=out_info,
-    sim_delay=datetime.timedelta(microseconds=25 / 1000),
+    sim_delay=TimeNS(25),
     sim_function=_simulate_74ls181_schematic_verified,
 )
 

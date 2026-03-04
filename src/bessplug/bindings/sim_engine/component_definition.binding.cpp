@@ -1,8 +1,11 @@
-#include <pybind11/chrono.h>
+#include "expression_evalutator/expr_evaluator.h"
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#define PYBIND11_DEBUG
+
+#ifdef DEBUG
+    #define PYBIND11_DEBUG
+#endif
 
 #include "component_definition.h"
 #include "internal_types.h"
@@ -34,10 +37,23 @@ class PyComponentDefinition : public ComponentDefinition,
     }
 
     std::shared_ptr<ComponentDefinition> clone() const override {
-        PYBIND11_OVERRIDE(
-            std::shared_ptr<ComponentDefinition>,
-            ComponentDefinition,
-            clone);
+        py::gil_scoped_acquire gil;
+        auto ret = std::make_shared<PyComponentDefinition>();
+        ret->setName(this->getName());
+        ret->setGroupName(this->getGroupName());
+        ret->setInputSlotsInfo(this->getInputSlotsInfo());
+        ret->setOutputSlotsInfo(this->getOutputSlotsInfo());
+        ret->setSimDelay(this->getSimDelay());
+        ret->setOpInfo(this->getOpInfo());
+        ret->setIOGrowthPolicy(this->getIOGrowthPolicy());
+        ret->setOutputExpressions(this->getOutputExpressions());
+        ret->setBehaviorType(this->getBehaviorType());
+        ret->setSimulationFunction(this->getSimulationFunction());
+        ret->setAuxData(this->getAuxData());
+        ret->setShouldAutoReschedule(this->getShouldAutoReschedule());
+        ret->setOwnership(this->getOwnership());
+        ret->setBaseHash(this->getBaseHash());
+        return ret;
     }
 
     void setAuxData(const std::any &data) override {
@@ -125,36 +141,57 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         return py::none();
     };
 
-    auto getSimFn = [](const ComponentDefinition &self) -> py::object {
-        SimulationFunction fn = self.getSimulationFunction();
-        if (!fn)
-            return py::none();
-
-        return py::cpp_function(
-            [fn](const std::vector<SlotState> &inputs,
-                 long long t_ns,
-                 const ComponentState &prev) {
-                py::gil_scoped_acquire gil;
-                return fn(inputs, SimTime(t_ns), prev);
-            });
+    auto from_sim_fn = [](const std::string &name,
+                          const std::string &group_name,
+                          const SlotsGroupInfo &inputs,
+                          const SlotsGroupInfo &outputs,
+                          SimDelayNanoSeconds sim_delay,
+                          const py::function &sim_function) -> std::shared_ptr<ComponentDefinition> {
+        py::gil_scoped_acquire gil;
+        auto comp_def = std::make_shared<PyComponentDefinition>();
+        comp_def->setName(name);
+        comp_def->setGroupName(group_name);
+        comp_def->setInputSlotsInfo(inputs);
+        comp_def->setOutputSlotsInfo(outputs);
+        comp_def->setSimDelay(sim_delay);
+        comp_def->setSimulationFunction(sim_function.cast<SimulationFunction>());
+        return comp_def;
     };
 
-    auto setSimFn = [](ComponentDefinition &self, py::object callable) {
-        if (!PyCallable_Check(callable.ptr())) {
-            throw py::type_error("simulation_function expects a callable");
-        }
-        auto fn = [callable](const std::vector<SlotState> &inputs,
-                             SimTime t,
-                             const ComponentState &prev) -> ComponentState {
-            py::gil_scoped_acquire gil;
-            py::list py_inputs = toPyList(inputs);
-            py::object py_prev = py::cast(prev);
-            py::object result = callable(py_inputs,
-                                         static_cast<long long>(t.count()),
-                                         py_prev);
-            return convertResultToComponentState(result, prev);
-        };
-        self.setSimulationFunction(fn);
+    auto from_operator_info = [](const std::string &name,
+                                 const std::string &group_name,
+                                 const SlotsGroupInfo &inputs,
+                                 const SlotsGroupInfo &outputs,
+                                 SimDelayNanoSeconds sim_delay,
+                                 OperatorInfo info) -> std::shared_ptr<ComponentDefinition> {
+        py::gil_scoped_acquire gil;
+        auto comp_def = std::make_shared<PyComponentDefinition>();
+        comp_def->setName(name);
+        comp_def->setGroupName(group_name);
+        comp_def->setInputSlotsInfo(inputs);
+        comp_def->setOutputSlotsInfo(outputs);
+        comp_def->setSimDelay(sim_delay);
+        comp_def->setOpInfo(info);
+        comp_def->setSimulationFunction(ExprEval::exprEvalSimFunc);
+        return comp_def;
+    };
+
+    auto from_output_expressions = [](const std::string &name,
+                                      const std::string &group_name,
+                                      const SlotsGroupInfo &inputs,
+                                      const SlotsGroupInfo &outputs,
+                                      SimDelayNanoSeconds sim_delay,
+                                      const std::vector<std::string> &output_expressions) -> std::shared_ptr<ComponentDefinition> {
+        py::gil_scoped_acquire gil;
+        auto comp_def = std::make_shared<PyComponentDefinition>();
+        comp_def->setName(name);
+        comp_def->setGroupName(group_name);
+        comp_def->setInputSlotsInfo(inputs);
+        comp_def->setOutputSlotsInfo(outputs);
+        comp_def->setSimDelay(sim_delay);
+        comp_def->setOutputExpressions(output_expressions);
+        comp_def->setSimulationFunction(ExprEval::exprEvalSimFunc);
+        return comp_def;
     };
 
     py::class_<ComponentDefinition,
@@ -181,7 +218,31 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         .DEF_PROP_GSET_T(CompDefIOGrowthPolicy, "io_growth_policy", IOGrowthPolicy)
         .DEF_PROP_GSET_T(std::vector<std::string>, "output_expressions", OutputExpressions)
         .def_property("aux_data", getAuxData, setAuxData, "Get Set Aux Data as a Python object.")
-        .def_property("simulation_function", getSimFn, setSimFn, "Get or set the simulation function as a Python callable.");
+        .DEF_PROP_GSET_T(SimulationFunction, "simulation_function", SimulationFunction)
+        .def_static("from_expressions", from_output_expressions,
+                    py::arg("name"),
+                    py::arg("group_name"),
+                    py::arg("inputs"),
+                    py::arg("outputs"),
+                    py::arg("sim_delay"),
+                    py::arg("expressions"),
+                    "Create a ComponentDefinition from output expressions.")
+        .def_static("from_operator", from_operator_info,
+                    py::arg("name"),
+                    py::arg("group_name"),
+                    py::arg("inputs"),
+                    py::arg("outputs"),
+                    py::arg("sim_delay"),
+                    py::arg("op_info"),
+                    "Create a ComponentDefinition from operator info.")
+        .def_static("from_sim_fn", from_sim_fn,
+                    py::arg("name"),
+                    py::arg("group_name"),
+                    py::arg("inputs"),
+                    py::arg("outputs"),
+                    py::arg("sim_delay"),
+                    py::arg("sim_function"),
+                    "Create a ComponentDefinition from a simulation function.");
 }
 
 template <typename T>

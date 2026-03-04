@@ -38,7 +38,8 @@ Checks: >
   -cppcoreguidelines-pro-type-cstyle-cast,
   -readability-else-after-return,
   -cppcoreguidelines-pro-type-reinterpret-cast,
-  -readability-redundant-access-specifiers
+  -readability-redundant-access-specifiers,
+  -cppcoreguidelines-macro-usage
 
 
 WarningsAsErrors: ''

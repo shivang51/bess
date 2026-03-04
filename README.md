@@ -4,15 +4,11 @@
 [![GitHub issues](https://img.shields.io/github/issues/shivang51/bess)](https://github.com/shivang51/bess/issues)
 [![GitHub license](https://img.shields.io/github/license/shivang51/bess)](https://github.com/shivang51/bess/blob/main/LICENSE)
 
-[![Discord](https://img.shields.io/discord/1475852976357773312?logo=discord&label=Discord)](https://discord.gg/nkarCRTn)
-
-> Will be soon updated with [command-system](https://github.com/shivang51/bess/pull/19) branch.
+[![Discord](https://img.shields.io/discord/1475852976357773312?logo=discord&label=Discord)](https://discord.gg/cuB7c9q275)
 
 BESS (Basic Electrical Simulation Software) is an open-source circuit simulator designed to be accessible, modern, and cross-platform.
 
 The project began as an attempt to remove the barriers students often face when working with existing tools. Many popular circuit simulators are proprietary, restricted to a single operating system, or rely on outdated interfaces. BESS was created to provide a free, user-friendly, and modern alternative that works consistently across platforms. Its goal is to make learning and experimenting with circuits simpler and more approachable for everyone.
-
-https://discord.gg/nkarCRTn
 
 Check out [Bess Wiki](https://github.com/shivang51/bess/wiki) to see available components.
 > Only digital components are there for now, analog components are planned for future.
@@ -55,7 +51,7 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
 ## TODO
 - [x] Basic Plugin Suppport
 - [x] Usability enhancements - [Details](https://github.com/shivang51/bess/pull/18)
-- [ ] Command System
+- [x] Command System - [Details](https://github.com/shivang51/bess/pull/19)
 - [ ] Module Support
 - [ ] Basic Verilog Support
 - [ ] Add More components

@@ -13,6 +13,7 @@ layout(location = 8) in uvec2 a_InstanceId;
 layout(location = 9) in int a_InstanceIsMica;
 layout(location = 10) in int a_InstanceTexSlotIdx;
 layout(location = 11) in vec4 a_InstanceTexData;
+layout(location = 12) in float a_InstanceAngle;
 
 layout(location = 0) out vec4 v_FragColor;
 layout(location = 1) out vec2 v_TexCoord;
@@ -25,26 +26,35 @@ layout(location = 7) out flat int v_IsMica;
 layout(location = 8) out flat int v_TexSlotIdx;
 
 layout(binding = 0) uniform UniformBufferObject {
-    mat4 u_mvp;
-    mat4 u_ortho;
+  mat4 u_mvp;
+  mat4 u_ortho;
 };
 
 void main() {
-    vec2 transformedPos = a_LocalPosition.xy * a_InstanceSize;
-    vec3 worldPos = a_InstancePosition + vec3(transformedPos, 0.0);
+  vec2 scaledPos = a_LocalPosition.xy * a_InstanceSize;
 
-    gl_Position = u_mvp * vec4(worldPos, 1.0);
+  float cosAngle = cos(a_InstanceAngle);
+  float sinAngle = sin(a_InstanceAngle);
 
-    vec2 start = a_InstanceTexData.xy;
-    vec2 size = a_InstanceTexData.zw;
+  vec2 rotatedPos = vec2(
+      scaledPos.x * cosAngle - scaledPos.y * sinAngle,
+      scaledPos.x * sinAngle + scaledPos.y * cosAngle
+    );
 
-    v_FragColor = a_InstanceColor;
-    v_TexCoord = start + (size * a_LocalTexCoord);
-    v_BorderRadius = a_InstanceBorderRadius;
-    v_BorderColor = a_InstanceBorderColor;
-    v_BorderSize = a_InstanceBorderSize;
-    v_FragId = a_InstanceId;
-    v_Size = a_InstanceSize;
-    v_IsMica = a_InstanceIsMica;
-    v_TexSlotIdx = a_InstanceTexSlotIdx;
+  vec3 worldPos = a_InstancePosition + vec3(rotatedPos, 0.0);
+
+  gl_Position = u_mvp * vec4(worldPos, 1.0);
+
+  vec2 start = a_InstanceTexData.xy;
+  vec2 size = a_InstanceTexData.zw;
+
+  v_FragColor = a_InstanceColor;
+  v_TexCoord = start + (size * a_LocalTexCoord);
+  v_BorderRadius = a_InstanceBorderRadius;
+  v_BorderColor = a_InstanceBorderColor;
+  v_BorderSize = a_InstanceBorderSize;
+  v_FragId = a_InstanceId;
+  v_Size = a_InstanceSize;
+  v_IsMica = a_InstanceIsMica;
+  v_TexSlotIdx = a_InstanceTexSlotIdx;
 }

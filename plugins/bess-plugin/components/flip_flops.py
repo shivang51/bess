@@ -1,13 +1,13 @@
 from enum import Enum
+from bessplug.api.common.time import TimeNS
 from bessplug.api.sim_engine import (
     ComponentDefinition,
     ComponentState,
     PinState,
     LogicState,
 )
-import datetime
-from bessplug.api.sim_engine.enums import SlotCategory
-from bessplug.api.sim_engine.slots_group_info import SlotsGroupInfo
+from bessplug.api.sim_engine import SlotCategory
+from bessplug.api.sim_engine import SlotsGroupInfo
 
 CLK_PIN_NAME = "CLK"
 CLR_PIN_NAME = "CLR"
@@ -76,7 +76,7 @@ def _simulate_flip_flop(
     if clr_input.state == LogicState.HIGH:
         newQ = PinState()
         newQ.state = LogicState.LOW
-        newQ.last_changed_time = simTime
+        newQ.last_change_time_ns = simTime
         inv = newQ.copy()
         inv.invert()
         newState.output_states = [newQ, inv]
@@ -141,7 +141,7 @@ def _simulate_flip_flop(
     if current_q.state == newQ.state:
         return newState
 
-    newQ.last_changed_time = simTime
+    newQ.last_change_time_ns = simTime
     newQInv = newQ.copy()
     newQInv.invert()
     newState.output_states = [newQ, newQInv]
@@ -170,7 +170,7 @@ for ff_type, ff_data in _flip_flops.items():
         group_name="Flip Flops",
         inputs=inp_grp_info,
         outputs=out_grp_info,
-        sim_delay=datetime.timedelta(microseconds=0.001),
+        sim_delay=TimeNS(2),
         sim_function=_simulate_flip_flop,
     )
     def_ff.aux_data = aux_data

@@ -1,0 +1,42 @@
+#pragma once
+
+#include "scene/scene_serializer.h"
+#include "simulation_engine_serializer.h"
+#include <string>
+
+namespace Bess {
+    class ProjectFile {
+      public:
+        ProjectFile();
+        ProjectFile(const std::string &path);
+        ~ProjectFile() = default;
+
+        void save();
+
+        const std::string &getName() const;
+        std::string &getNameRef();
+        void setName(const std::string &name);
+
+        const std::string &getPath() const;
+        void setPath(const std::string &path);
+
+        bool isSaved() const;
+
+      private:
+        void encodeAndSave();
+        void decode();
+        void browsePath();
+
+        void patchFile() const;
+
+      private:
+        std::string m_name;
+        std::string m_path;
+
+        // TODO (Shivang): Use undo redo to figure this out
+        bool m_saved = false;
+
+        SimEngine::SimEngineSerializer m_simEngineSerializer;
+        SceneSerializer m_sceneSerializer;
+    };
+} // namespace Bess
