@@ -1,7 +1,5 @@
 #pragma once
 
-#include "common/helpers.h"
-#include "ui/icons/CodIcons.h"
 #include "ui_panel.h"
 #include <unordered_map>
 #include <vector>
@@ -14,8 +12,8 @@ namespace Bess::UI {
 
     struct GraphViewWindowData {
         int offset = 0;
-        std::unordered_map<int, std::string> graphs;
-        std::unordered_map<std::string, LabeledDigitalSignal> allSignals;
+        std::unordered_map<int, std::pair<std::string, UUID>> graphs;
+        std::unordered_map<UUID, LabeledDigitalSignal> allSignals;
     };
 
     class GraphViewWindow : public Panel {
@@ -25,10 +23,11 @@ namespace Bess::UI {
         GraphViewWindowData &getDataRef();
 
         void onDraw() override;
+        void destroy() override;
 
       private:
         void plotDigitalSignals(const std::string &plotName,
-                                const std::unordered_map<std::string, LabeledDigitalSignal> &signals,
+                                const std::unordered_map<UUID, LabeledDigitalSignal> &signals,
                                 float plotHeight = 150.0f);
 
       private:

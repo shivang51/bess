@@ -6,6 +6,7 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
+#include "pages/main_page/scene_components/slot_probe_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "simulation_engine.h"
 #include <algorithm>
@@ -248,13 +249,13 @@ namespace Bess::Pages {
 
     void MainPageState::onEntityAdded(const Canvas::Events::ComponentAddedEvent &e) {
         auto &sceneState = m_sceneDriver->getState();
+        const auto &comp = sceneState.getComponentByUuid(e.uuid);
 
-        if (e.type != Canvas::SceneComponentType::simulation)
-            return;
-
-        const auto &comp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(e.uuid);
-        const auto &simEngineId = comp->getSimEngineId();
-        m_simIdToSceneCompId[simEngineId] = e.uuid;
+        if (e.type == Canvas::SceneComponentType::simulation) {
+            const auto &simComp = comp->cast<Canvas::SimulationSceneComponent>();
+            const auto &simEngineId = simComp->getSimEngineId();
+            m_simIdToSceneCompId[simEngineId] = e.uuid;
+        }
     }
 
     void MainPageState::onEntityRemoved(const Canvas::Events::ComponentRemovedEvent &e) {

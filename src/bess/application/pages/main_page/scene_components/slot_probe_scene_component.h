@@ -19,6 +19,8 @@ namespace Bess::Canvas {
                             SceneComponentType::nonSimulation)
 
         MAKE_GETTER_SETTER_WC(UUID, ProbedSlotUuid, m_probedSlotUuid, onProbedSlotChanged)
+        typedef std::pair<TimeNs, SimEngine::LogicState> ProbeDataEntry;
+        MAKE_GETTER_SETTER(std::vector<ProbeDataEntry>, ProbeData, m_probeData)
 
         SCENE_COMP_SER(SlotProbeSceneComponent, NonSimSceneComponent, SLOT_PROBE_SER_PROPS)
 
@@ -29,6 +31,7 @@ namespace Bess::Canvas {
         void update(TimeMs frameTime, SceneState &state) override;
 
         void onAttach(SceneState &state) override;
+        std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
 
         void onMouseButton(const Events::MouseButtonEvent &e) override;
 

@@ -1,5 +1,6 @@
 #include "slot_probe_scene_component.h"
 #include "common/bess_uuid.h"
+#include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "renderer/material_renderer.h"
 #include "scene_state/scene_state.h"
@@ -10,7 +11,7 @@ namespace Bess::Canvas {
                                        std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                        std::shared_ptr<PathRenderer> pathRenderer) {
 
-        const auto &textSize = materialRenderer->getTextRenderSize("Probed", 9);
+        const auto &textSize = materialRenderer->getTextRenderSize(m_name, 9);
         if (m_isFirstDraw) {
             m_transform.scale = {textSize.x + 16.f, textSize.y + 8.f};
             m_isFirstDraw = false;
@@ -36,7 +37,7 @@ namespace Bess::Canvas {
                                    PickingId{m_runtimeId, 0},
                                    props);
 
-        materialRenderer->drawText(isProbed ? "Probed" : "Probe",
+        materialRenderer->drawText(m_name,
                                    startPos + glm::vec3(-textSize.x / 2.f, (textSize.y / 2.f) - 2.f, 0.0001f),
                                    9,
                                    isProbed
@@ -88,15 +89,11 @@ namespace Bess::Canvas {
 
         auto slotState = comp->getSlotState(state);
         if (m_probeData.empty()) {
-            BESS_DEBUG("Probe data is empty, adding first entry");
             m_probeData.emplace_back(slotState.lastChangeTime,
                                      slotState.state);
         } else {
             auto &lastEntry = m_probeData.back();
             if (slotState.state != lastEntry.second) {
-                BESS_DEBUG("Slot state changed: {} -> {}, adding entry to probe data",
-                           lastEntry.second == SimEngine::LogicState::high ? "high" : "stateLow",
-                           slotState.state == SimEngine::LogicState::high ? "high" : "stateLow");
                 m_probeData.emplace_back(slotState.lastChangeTime,
                                          slotState.state);
             }
@@ -125,5 +122,13 @@ namespace Bess::Canvas {
 
     void SlotProbeSceneComponent::onAttach(SceneState &state) {
         m_name = "Slot Probe";
+        auto &mainPageState = Pages::MainPage::getInstance()->getState();
+        mainPageState.getProbes().insert(getUuid());
+    }
+
+    std::vector<UUID> SlotProbeSceneComponent::cleanup(SceneState &state, UUID caller) {
+        auto &mainPageState = Pages::MainPage::getInstance()->getState();
+        mainPageState.getProbes().erase(getUuid());
+        return NonSimSceneComponent::cleanup(state, caller);
     }
 } // namespace Bess::Canvas

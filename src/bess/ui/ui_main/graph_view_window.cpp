@@ -1,8 +1,12 @@
 #include "ui/ui_main/graph_view_window.h"
 
+#include "common/bess_uuid.h"
+#include "common/helpers.h"
 #include "implot.h"
-#include "scene/scene.h"
-#include "simulation_engine.h"
+#include "pages/main_page/main_page.h"
+#include "pages/main_page/scene_components/slot_probe_scene_component.h"
+#include "types.h"
+#include "ui/icons/CodIcons.h"
 #include "ui/widgets/m_widgets.h"
 
 namespace Bess::UI {
@@ -10,46 +14,56 @@ namespace Bess::UI {
     GraphViewWindowData GraphViewWindow::s_data{};
     static constexpr auto windowName = Common::Helpers::concat(Icons::CodIcons::GRAPH_LINE, "  Graph View");
     GraphViewWindow::GraphViewWindow() : Panel(std::string(windowName.data())) {
+        m_visible = true;
     }
 
-    // LabeledDigitalSignal fetchSignal(const std::string &name, const Canvas::Components::SimulationComponent &comp) {
-    //     const auto &data = SimEngine::SimulationEngine::instance().getStateMonitorData(comp.simEngineEntity);
-    //
-    //     std::vector<std::pair<float, int>> parsedData;
-    //     for (const auto &d : data) {
-    //         parsedData.emplace_back(std::pair(d.first, (int)d.second));
-    //     }
-    //     return {name, parsedData};
-    // }
+    LabeledDigitalSignal fetchSignal(const std::string &name, const UUID &probeId) {
+        const auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver().getActiveScene();
+        const auto &sceneState = scene->getState();
+        const auto &probeComp = sceneState.getComponentByUuid<Canvas::SlotProbeSceneComponent>(probeId);
+        BESS_ASSERT(probeComp,
+                    std::format("Probe component with uuid {} not found in scene state", (uint64_t)probeId));
+
+        std::vector<std::pair<float, int>> parsedData;
+        for (const auto &d : probeComp->getProbeData()) {
+            auto timeSec = std::chrono::duration<float>(d.first).count();
+            parsedData.emplace_back(timeSec,
+                                    d.second == SimEngine::LogicState::high ? 1 : 0);
+        }
+        return {probeComp->getName(), parsedData};
+    }
 
     void GraphViewWindow::onDraw() {
-        // auto &reg = Canvas::Scene::instance()->getEnttRegistry();
-        // const auto view = reg.view<Bess::Canvas::Components::TagComponent,
-        //                            Bess::Canvas::Components::SimulationStateMonitor,
-        //                            Bess::Canvas::Components::SimulationComponent>();
+        const auto &mainPage = Pages::MainPage::getInstance();
+        const auto &mainPageState = mainPage->getState();
+        const auto &sceneState = mainPageState.getSceneDriver()->getState();
 
         if (ImGui::Button("Add Graph")) {
-            s_data.graphs[s_data.offset] = "";
+            s_data.graphs[s_data.offset].first = "";
+            s_data.graphs[s_data.offset].second = UUID::null;
             s_data.offset++;
         }
 
         std::vector<std::string> comps = {};
-        // std::unordered_map<std::string, entt::entity> entities = {};
-        // for (auto &ent : view) {
-        //     const auto &tagComponent = view.get<Bess::Canvas::Components::TagComponent>(ent);
-        //     comps.emplace_back(tagComponent.name);
-        //     entities[tagComponent.name] = ent;
-        // }
+        std::vector<UUID> compIds = {};
+        std::unordered_map<std::string, UUID> nameToIdMap;
+        for (const auto &id : mainPageState.getProbes()) {
+            const auto &comp = sceneState.getComponentByUuid<Canvas::SlotProbeSceneComponent>(id);
+            comps.emplace_back(comp->getName());
+            compIds.emplace_back(id);
+            nameToIdMap[comp->getName()] = id;
+        }
 
         int eraseIdx = -1;
-        for (auto &[idx, name] : s_data.graphs) {
-            std::string prevName = name;
-            if (Widgets::ComboBox(std::format("Select node for graph {}", idx), name, comps)) {
-                s_data.allSignals.erase(prevName);
+        for (auto &[idx, val] : s_data.graphs) {
+            const auto &prevId = val.second;
+            if (Widgets::ComboBox(std::format("Select node for graph {}", idx), val.first, comps)) {
+                s_data.allSignals.erase(prevId);
+                val.second = nameToIdMap.at(val.first);
             }
 
-            if (name != "") {
-                // s_data.allSignals[name] = fetchSignal(name, view.get<Canvas::Components::SimulationComponent>(entities[name]));
+            if (val.first != "") {
+                s_data.allSignals[val.second] = fetchSignal(val.first, val.second);
             }
 
             ImGui::SameLine();
@@ -60,7 +74,7 @@ namespace Bess::UI {
         }
 
         if (eraseIdx != -1) {
-            s_data.allSignals.erase(s_data.graphs[eraseIdx]);
+            s_data.allSignals.erase(s_data.graphs[eraseIdx].second);
             s_data.graphs.erase(eraseIdx);
         }
 
@@ -71,7 +85,9 @@ namespace Bess::UI {
         return s_data;
     }
 
-    void GraphViewWindow::plotDigitalSignals(const std::string &plotName, const std::unordered_map<std::string, LabeledDigitalSignal> &signals, const float plotHeight) {
+    void GraphViewWindow::plotDigitalSignals(const std::string &plotName,
+                                             const std::unordered_map<UUID, LabeledDigitalSignal> &signals,
+                                             const float plotHeight) {
         if (signals.empty()) {
             return;
         }
@@ -85,13 +101,15 @@ namespace Bess::UI {
 
         ImGui::BeginChild(plotName.c_str(), ImVec2(0, 0), false, ImGuiWindowFlags_None);
 
-        const int numSignals = signals.size();
+        const auto numSignals = signals.size();
 
         int i = 0;
         for (auto &[name, signal] : signals) {
-            const float height = plotHeight + (i == numSignals - 1 ? 20 : 0);
+            const float height = plotHeight + (i == numSignals - 1 ? 20.f : 0.f);
 
-            if (ImPlot::BeginPlot(signal.name.c_str(), ImVec2(-1, height), ImPlotFlags_NoLegend | ImPlotFlags_NoTitle)) {
+            if (ImPlot::BeginPlot(signal.name.c_str(),
+                                  ImVec2(-1, height),
+                                  ImPlotFlags_NoLegend | ImPlotFlags_NoTitle)) {
                 ImPlot::SetupAxis(ImAxis_Y1, signal.name.c_str(), ImPlotAxisFlags_NoTickLabels);
                 ImPlot::SetupAxisLimits(ImAxis_Y1, -0.2, 1.2, ImGuiCond_Always);
 
@@ -105,7 +123,7 @@ namespace Bess::UI {
 
                 std::vector<double> plotX;
                 std::vector<double> plotY;
-                const int dataCount = signal.values.size();
+                const auto dataCount = signal.values.size();
 
                 const auto &data = signal.values;
                 if (dataCount > 0) {
@@ -114,21 +132,13 @@ namespace Bess::UI {
                 }
 
                 for (int i = 1; i < dataCount; ++i) {
-                    if (data[i].second == plotY.back()) {
-                        if (i == dataCount - 1) {
-                            plotX.push_back(data[i].first);
-                            plotY.push_back(data[i].second);
-                        }
-                        continue;
-                    }
-
                     plotX.push_back(data[i].first);
                     plotY.push_back(data[i - 1].second);
                     plotX.push_back(data[i].first);
                     plotY.push_back(data[i].second);
                 }
 
-                ImPlot::PlotLine(name.c_str(), plotX.data(), plotY.data(), plotX.size());
+                ImPlot::PlotLine(name.toString().c_str(), plotX.data(), plotY.data(), (int)plotX.size());
 
                 ImPlot::EndPlot();
             }
@@ -138,4 +148,7 @@ namespace Bess::UI {
         ImGui::EndChild();
     }
 
+    void GraphViewWindow::destroy() {
+        s_data = {};
+    }
 } // namespace Bess::UI

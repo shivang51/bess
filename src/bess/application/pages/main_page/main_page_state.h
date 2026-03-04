@@ -47,6 +47,7 @@ namespace Bess::Pages {
 
         typedef std::unordered_map<UUID, std::string *> TNetIdToNameMap;
         MAKE_GETTER_SETTER(TNetIdToNameMap, NetIdToNameMap, m_netIdToNameMap)
+        MAKE_GETTER_SETTER(std::unordered_set<UUID>, Probes, m_probes)
 
         void resetProjectState() const;
         void createNewProject(bool updateWindowName = true);
@@ -86,6 +87,7 @@ namespace Bess::Pages {
         std::unordered_map<int, bool> m_pressedKeysFrame;
         std::unordered_map<int, bool> m_downKeys;
         std::unordered_map<UUID, UUID> m_simIdToSceneCompId;
+        std::unordered_set<UUID> m_probes;
         TNetIdToNameMap m_netIdToNameMap;
     };
 } // namespace Bess::Pages

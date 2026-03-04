@@ -179,9 +179,7 @@ namespace Bess::Pages {
         if (!imguiWantsKeyboard)
             handleKeyboardShortcuts();
 
-        const auto isViewportHovered = UI::UIMain::state.mainViewport.isHovered();
-        if (isViewportHovered)
-            m_state.getSceneDriver().update(ts, events);
+        m_state.getSceneDriver().update(ts, events);
     }
 
     std::shared_ptr<Window> MainPage::getParentWindow() {
