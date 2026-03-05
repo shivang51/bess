@@ -1,4 +1,5 @@
 #include "component_definition.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
 #include <map>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -22,6 +23,14 @@ class Plugin {
 
     SceneMap on_scene_comp_load() {
         PYBIND11_OVERRIDE_PURE(SceneMap, Plugin, on_scene_comp_load);
+    }
+
+    bool has_sim_comp(const uint64_t &baseHash) const {
+        return false;
+    }
+
+    std::shared_ptr<Bess::Canvas::SimulationSceneComponent> get_sim_comp(const uint64_t &baseHash) {
+        return nullptr;
     }
 
     std::string get_name() const {
@@ -58,6 +67,8 @@ void bind_plugin(py::module &m) {
                                   self.get_name(), self.get_version()));
         })
         .def("draw_ui", &Plugin::draw_ui)
+        .def("has_sim_comp", &Plugin::has_sim_comp, py::arg("baseHash"))
+        .def("get_sim_comp", &Plugin::get_sim_comp, py::arg("baseHash"))
         .def_property("name", &Plugin::get_name, &Plugin::set_name)
         .def_property("version", &Plugin::get_version, &Plugin::set_version);
 }

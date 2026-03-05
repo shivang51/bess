@@ -7,6 +7,7 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
+#include "plugin_manager.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/widgets/m_widgets.h"
 #include <utility>
@@ -128,7 +129,24 @@ namespace Bess::UI {
 
     void ComponentExplorer::createComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def,
                                             const glm::vec2 &pos) {
+
         auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
+        auto &plugins = Plugins::PluginManager::getInstance().getLoadedPlugins();
+        for (auto &[id, plugin] : plugins) {
+            if (plugin->hasSimComponent(def->getHash())) {
+                auto simComp = plugin->getSimComponent(def->getHash());
+                if (simComp) {
+                    simComp->getTransform().position.x = pos.x;
+                    simComp->getTransform().position.y = pos.y;
+                    simComp->setCompDef(def->clone());
+                    cmdSystem.execute(
+                        std::make_unique<Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(simComp));
+                    hide();
+                    return;
+                }
+            }
+        }
+
         auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
 
         auto components = Canvas::SimulationSceneComponent::createNewAndRegister(def);

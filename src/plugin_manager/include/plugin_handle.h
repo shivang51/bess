@@ -13,6 +13,7 @@ namespace Bess::Renderer {
 namespace Bess::Canvas {
     class SchematicDiagram;
     class SceneComponent;
+    class SimulationSceneComponent;
     class SimSceneCompDrawHook;
 } // namespace Bess::Canvas
 
@@ -31,6 +32,10 @@ namespace Bess::Plugins {
         void cleanup();
 
         void drawUI();
+
+        bool hasSimComponent(const uint64_t &baseHash) const;
+
+        std::shared_ptr<Canvas::SimulationSceneComponent> getSimComponent(const uint64_t &baseHash);
 
       private:
         pybind11::object m_pluginObj;
