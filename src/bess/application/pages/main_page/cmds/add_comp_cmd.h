@@ -30,6 +30,7 @@ namespace Bess::Cmd {
 
         bool execute(Canvas::Scene *scene,
                      SimEngine::SimulationEngine *simEngine) override {
+
             if (!m_comp) {
                 return false;
             }
@@ -40,6 +41,8 @@ namespace Bess::Cmd {
             } else {
                 scene->addComponent(m_comp);
             }
+
+            BESS_DEBUG("Adding {} child components", m_childComponents.size());
 
             auto &sceneState = scene->getState();
             for (const auto &childComp : m_childComponents) {

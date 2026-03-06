@@ -245,6 +245,13 @@ namespace Bess::Canvas {
         BESS_ASSERT(false, "SceneState copy is not allowed");
     }
 
+    std::shared_ptr<Renderer::MaterialRenderer> SceneState::getMaterialRenderer() const {
+        return m_viewport ? m_viewport->getRenderers().materialRenderer : nullptr;
+    }
+
+    std::shared_ptr<Renderer2D::Vulkan::PathRenderer> SceneState::getPathRenderer() const {
+        return m_viewport ? m_viewport->getRenderers().pathRenderer : nullptr;
+    }
 } // namespace Bess::Canvas
 
 namespace Bess::JsonConvert {

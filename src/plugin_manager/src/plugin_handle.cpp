@@ -62,10 +62,10 @@ namespace Bess::Plugins {
         }
     }
 
-    std::shared_ptr<Canvas::SimulationSceneComponent> PluginHandle::getSimComponent(const uint64_t &baseHash) {
+    std::shared_ptr<Canvas::SimulationSceneComponent> PluginHandle::getSimComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def) const {
         py::gil_scoped_acquire gil;
         if (py::hasattr(m_pluginObj, "get_sim_comp")) {
-            py::object result = m_pluginObj.attr("get_sim_comp")(baseHash);
+            py::object result = m_pluginObj.attr("get_sim_comp")(def);
             if (!result.is_none()) {
                 return result.cast<std::shared_ptr<Canvas::SimulationSceneComponent>>();
             }

@@ -132,22 +132,39 @@ namespace Bess::UI {
 
         auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
         auto &plugins = Plugins::PluginManager::getInstance().getLoadedPlugins();
-        for (auto &[id, plugin] : plugins) {
-            if (plugin->hasSimComponent(def->getHash())) {
-                auto simComp = plugin->getSimComponent(def->getHash());
-                if (simComp) {
-                    simComp->getTransform().position.x = pos.x;
-                    simComp->getTransform().position.y = pos.y;
-                    simComp->setCompDef(def->clone());
-                    cmdSystem.execute(
-                        std::make_unique<Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(simComp));
-                    hide();
-                    return;
-                }
-            }
-        }
-
         auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
+        auto &sceneState = scene->getState();
+
+        for (auto &[id, plugin] : plugins) {
+            if (!plugin->hasSimComponent(def->getHash()))
+                continue;
+
+            auto simComp = plugin->getSimComponent(def);
+
+            if (!simComp)
+                continue;
+
+            simComp->getTransform().position.x = pos.x;
+            simComp->getTransform().position.y = pos.y;
+            simComp->setCompDef(def->clone());
+            std::vector<std::shared_ptr<Canvas::SceneComponent>> children;
+            for (const auto &childId : simComp->getInputSlots()) {
+                const auto &child = sceneState.getComponentByUuid(childId);
+                BESS_ASSERT(child, "Child component not found in scene state");
+                children.push_back(child);
+            }
+
+            for (const auto &childId : simComp->getOutputSlots()) {
+                const auto &child = sceneState.getComponentByUuid(childId);
+                BESS_ASSERT(child, "Child component not found in scene state");
+                children.push_back(child);
+            }
+
+            cmdSystem.execute(
+                std::make_unique<Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(simComp, children));
+            hide();
+            return;
+        }
 
         auto components = Canvas::SimulationSceneComponent::createNewAndRegister(def);
 

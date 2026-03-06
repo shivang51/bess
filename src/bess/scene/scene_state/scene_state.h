@@ -2,6 +2,7 @@
 
 #include "common/bess_uuid.h"
 #include "event_dispatcher.h"
+#include "renderer/material_renderer.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "viewport.h"
 #include <cstdint>
@@ -108,8 +109,13 @@ namespace Bess::Canvas {
 
         MAKE_GETTER_SETTER(std::shared_ptr<Viewport>, Viewport, m_viewport);
 
+        std::shared_ptr<Renderer::MaterialRenderer> getMaterialRenderer() const;
+
+        std::shared_ptr<Renderer2D::Vulkan::PathRenderer> getPathRenderer() const;
+
       private:
-        std::unordered_map<UUID, std::shared_ptr<SceneComponent>> m_componentsMap;
+        std::unordered_map<UUID, std::shared_ptr<SceneComponent>>
+            m_componentsMap;
         std::unordered_map<UUID, bool> m_selectedComponents;
 
         std::unordered_map<uint32_t, UUID> m_runtimeIdMap;

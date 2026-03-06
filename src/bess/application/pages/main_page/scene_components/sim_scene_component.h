@@ -35,6 +35,8 @@ namespace Bess::Canvas {
         std::vector<std::shared_ptr<SlotSceneComponent>> createIOSlots(size_t inputCount,
                                                                        size_t outputCount);
 
+        void update(Bess::TimeMs timeStep, SceneState &state) override;
+
         void draw(SceneState &state,
                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                   std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
@@ -77,15 +79,11 @@ namespace Bess::Canvas {
 
         std::vector<UUID> getDependants(const SceneState &state) const override;
 
+        void drawBackground(SceneState &state);
+
+        void drawSlots(SceneState &state);
+
       protected:
-        void drawBackground(SceneState &state,
-                            const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,
-                            const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer);
-
-        void drawSlots(SceneState &state,
-                       const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,
-                       const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer);
-
         void onTransformChanged() override;
 
         /**

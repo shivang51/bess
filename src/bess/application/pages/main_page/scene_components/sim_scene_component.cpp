@@ -18,27 +18,12 @@ namespace Bess::Canvas {
 
     SimulationSceneComponent::SimulationSceneComponent() = default;
 
-    std::vector<std::shared_ptr<SlotSceneComponent>>
-    SimulationSceneComponent::createIOSlots(size_t inputCount, size_t outputCount) {
-        std::vector<std::shared_ptr<SlotSceneComponent>> slots;
-
-        for (size_t i = 0; i < inputCount; i++) {
-            auto slot = std::make_shared<SlotSceneComponent>();
-            slot->setSlotType(SlotType::digitalInput);
-            slot->setIndex(static_cast<int>(i));
-            m_inputSlots.push_back(slot->getUuid());
-            slots.push_back(slot);
+    void SimulationSceneComponent::update(Bess::TimeMs timeStep, SceneState &state) {
+        if (m_isScaleDirty) {
+            setScale(calculateScale(state, state.getMaterialRenderer()));
+            resetSlotPositions(state);
+            m_isScaleDirty = false;
         }
-
-        for (size_t i = 0; i < outputCount; i++) {
-            auto slot = std::make_shared<SlotSceneComponent>();
-            slot->setSlotType(SlotType::digitalOutput);
-            slot->setIndex(static_cast<int>(i));
-            m_outputSlots.push_back(slot->getUuid());
-            slots.push_back(slot);
-        }
-
-        return slots;
     }
 
     void SimulationSceneComponent::draw(SceneState &state,
@@ -46,12 +31,6 @@ namespace Bess::Canvas {
                                         std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
         if (m_isFirstDraw) {
             onFirstDraw(state, materialRenderer, pathRenderer);
-        }
-
-        if (m_isScaleDirty) {
-            setScale(calculateScale(state, materialRenderer));
-            resetSlotPositions(state);
-            m_isScaleDirty = false;
         }
 
         const auto pickingId = PickingId{m_runtimeId, 0};
@@ -69,17 +48,18 @@ namespace Bess::Canvas {
         }
 
         if (drawHookResult.drawOriginal) {
-            drawBackground(state, materialRenderer, pathRenderer);
+            drawBackground(state);
         }
 
         if (drawHookResult.drawChildren) {
-            drawSlots(state, materialRenderer, pathRenderer);
+            drawSlots(state);
         }
     }
 
-    void SimulationSceneComponent::drawBackground(SceneState &state,
-                                                  const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,
-                                                  const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer) {
+    void SimulationSceneComponent::drawBackground(SceneState &state) {
+
+        const auto &materialRenderer = state.getMaterialRenderer();
+
         const auto pickingId = PickingId{m_runtimeId, 0};
         Renderer::QuadRenderProperties props;
         props.angle = m_transform.angle;
@@ -135,13 +115,11 @@ namespace Bess::Canvas {
                                    m_transform.angle);
     }
 
-    void SimulationSceneComponent::drawSlots(SceneState &state,
-                                             const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,
-                                             const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer) {
+    void SimulationSceneComponent::drawSlots(SceneState &state) {
         // slots
         for (const auto &childId : m_childComponents) {
             auto child = state.getComponentByUuid(childId);
-            child->draw(state, materialRenderer, pathRenderer);
+            child->draw(state, state.getMaterialRenderer(), state.getPathRenderer());
         }
     }
 
@@ -564,4 +542,26 @@ namespace Bess::Canvas {
         setSchematicScaleDirty();
     }
 
+    std::vector<std::shared_ptr<SlotSceneComponent>>
+    SimulationSceneComponent::createIOSlots(size_t inputCount, size_t outputCount) {
+        std::vector<std::shared_ptr<SlotSceneComponent>> slots;
+
+        for (size_t i = 0; i < inputCount; i++) {
+            auto slot = std::make_shared<SlotSceneComponent>();
+            slot->setSlotType(SlotType::digitalInput);
+            slot->setIndex(static_cast<int>(i));
+            m_inputSlots.push_back(slot->getUuid());
+            slots.push_back(slot);
+        }
+
+        for (size_t i = 0; i < outputCount; i++) {
+            auto slot = std::make_shared<SlotSceneComponent>();
+            slot->setSlotType(SlotType::digitalOutput);
+            slot->setIndex(static_cast<int>(i));
+            m_outputSlots.push_back(slot->getUuid());
+            slots.push_back(slot);
+        }
+
+        return slots;
+    }
 } // namespace Bess::Canvas

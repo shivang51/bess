@@ -29,7 +29,7 @@ class Plugin {
         return false;
     }
 
-    std::shared_ptr<Bess::Canvas::SimulationSceneComponent> get_sim_comp(const uint64_t &baseHash) {
+    std::shared_ptr<Bess::Canvas::SimulationSceneComponent> get_sim_comp(const Bess::SimEngine::ComponentDefinition &compDef) const {
         return nullptr;
     }
 
@@ -67,8 +67,8 @@ void bind_plugin(py::module &m) {
                                   self.get_name(), self.get_version()));
         })
         .def("draw_ui", &Plugin::draw_ui)
-        .def("has_sim_comp", &Plugin::has_sim_comp, py::arg("baseHash"))
-        .def("get_sim_comp", &Plugin::get_sim_comp, py::arg("baseHash"))
+        .def("has_sim_comp", &Plugin::has_sim_comp, py::arg("base_hash"))
+        .def("get_sim_comp", &Plugin::get_sim_comp, py::arg("comp_def"))
         .def_property("name", &Plugin::get_name, &Plugin::set_name)
         .def_property("version", &Plugin::get_version, &Plugin::set_version);
 }

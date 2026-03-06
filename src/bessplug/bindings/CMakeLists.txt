@@ -25,6 +25,7 @@ set(BESS_PYBIND_SOURCES
 		scene/scene_state.binding.cpp
 		scene/scene_common.binding.cpp
 		scene/scene_component.binding.cpp
+		scene/sim_scene_component.binding.cpp
 		scene/sim_comp_draw_hook.binding.cpp
 
     sim_engine/types.cpp
