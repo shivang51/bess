@@ -152,6 +152,8 @@ namespace Bess::Canvas {
 
         virtual std::vector<UUID> getDependants(const SceneState &state) const;
 
+        virtual void onScaleChanged();
+
       protected:
         // Deserialize the component from JSON
         static void fromJson(const Json::Value &j,

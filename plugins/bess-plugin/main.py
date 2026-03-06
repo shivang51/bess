@@ -1,6 +1,6 @@
 from typing import override
 from bessplug import Plugin
-from bessplug.api.common import vec3, vec4
+from bessplug.api.common import vec2, vec3, vec4
 from bessplug.api.scene import PickingId, SimulationSceneComponent
 from bessplug.api.sim_engine import ComponentDefinition
 from components.latches import latches
@@ -13,24 +13,20 @@ from components.alu_74LS181 import dm74ls181
 
 
 class PyOutput(SimulationSceneComponent):
-    def __init__(self):
+    def __init__(self, comp_def):
         super().__init__()
-        self.name = "PyOutput"
+        self.name = "Py Output"
+        self.setup(comp_def)
 
     def update(self, time_step, scene_state):
-        pass
+        super().update(time_step, scene_state)
 
     @override
     def draw(self, scene_state, material_renderer, path_renderer):
         id = PickingId()
         id.runtime_id = self.runtime_id
-        material_renderer.draw_text(
-            self.name,
-            self.position,
-            id=id.asUint64(),
-            color=vec4(255, 0, 0, 255),
-            size=20,
-        )
+        self.draw_background(scene_state)
+        self.draw_slots(scene_state)
 
 
 class BessPlugin(Plugin):
@@ -63,10 +59,10 @@ class BessPlugin(Plugin):
         return base_hash == 15124334025293992558
 
     @override
-    def get_sim_comp(self, base_hash):
-        if not self.has_sim_comp(base_hash):
+    def get_sim_comp(self, component_def):
+        if not self.has_sim_comp(component_def.get_hash()):
             return None
-        return PyOutput()
+        return PyOutput(component_def)
 
     @override
     def draw_ui(self):

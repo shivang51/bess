@@ -52,6 +52,14 @@ class PySimSceneComponent : public Bess::Canvas::SimulationSceneComponent,
             timeStep,
             std::ref(state));
     }
+
+    void onScaleChanged() override {
+        PYBIND11_OVERRIDE_NAME(
+            void,
+            Bess::Canvas::SimulationSceneComponent,
+            "on_scale_changed",
+            onScaleChanged);
+    }
 };
 
 void bind_sim_scene_component(py::module_ &m) {
@@ -137,8 +145,11 @@ void bind_sim_scene_component(py::module_ &m) {
              py::arg("time_step"),
              py::arg("scene_state"))
         .def("setup", setup, py::arg("comp_def"))
+        .def("get_input_states", &Bess::Canvas::SimulationSceneComponent::getInputStates, py::arg("scene_state"))
+        .def("get_output_states", &Bess::Canvas::SimulationSceneComponent::getOutputStates, py::arg("scene_state"))
         .def("draw_slots", &Bess::Canvas::SimulationSceneComponent::drawSlots, py::arg("scene_state"))
         .def("draw_background", &Bess::Canvas::SimulationSceneComponent::drawBackground, py::arg("scene_state"))
+        .def("on_scale_changed", &Bess::Canvas::SimulationSceneComponent::onScaleChanged)
         .def_property("name",                                                                            //\n
                       [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getName(); }, // \n
                       &Bess::Canvas::SimulationSceneComponent::setName)

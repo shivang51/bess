@@ -21,6 +21,7 @@ namespace Bess::Canvas {
 
     void SceneComponent::setScale(const glm::vec2 &scale) {
         m_transform.scale = scale;
+        onScaleChanged();
     }
 
     void SceneComponent::setIsDraggable(bool draggable) {
@@ -147,4 +148,6 @@ namespace Bess::Canvas {
     }
 
     void SceneComponent::onChildrenChanged() {}
+
+    void SceneComponent::onScaleChanged() {}
 } // namespace Bess::Canvas

@@ -83,9 +83,12 @@ namespace Bess::Canvas {
 
         void drawSlots(SceneState &state);
 
-      protected:
+        std::vector<SimEngine::LogicState> getInputStates(const SceneState &state) const;
+        std::vector<SimEngine::LogicState> getOutputStates(const SceneState &state) const;
+
         void onTransformChanged() override;
 
+      protected:
         /**
          * Resets the slot positions based on the current scale and number of slots
          * in the component.

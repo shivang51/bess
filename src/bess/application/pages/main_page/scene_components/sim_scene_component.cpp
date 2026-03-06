@@ -564,4 +564,28 @@ namespace Bess::Canvas {
 
         return slots;
     }
+
+    std::vector<SimEngine::LogicState> SimulationSceneComponent::getInputStates(const SceneState &state) const {
+        std::vector<SimEngine::LogicState> states;
+        for (const auto &inp : m_inputSlots) {
+            const auto &slotComp = state.getComponentByUuid<SlotSceneComponent>(inp);
+            if (slotComp->isResizeSlot()) {
+                continue;
+            }
+            states.push_back(slotComp->getSlotState(state).state);
+        }
+        return states;
+    }
+
+    std::vector<SimEngine::LogicState> SimulationSceneComponent::getOutputStates(const SceneState &state) const {
+        std::vector<SimEngine::LogicState> states;
+        for (const auto &inp : m_outputSlots) {
+            const auto &slotComp = state.getComponentByUuid<SlotSceneComponent>(inp);
+            if (slotComp->isResizeSlot()) {
+                continue;
+            }
+            states.push_back(slotComp->getSlotState(state).state);
+        }
+        return states;
+    }
 } // namespace Bess::Canvas
