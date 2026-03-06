@@ -1,7 +1,5 @@
 from typing import override
 from bessplug import Plugin
-from bessplug.api.common import vec2, vec3, vec4
-from bessplug.api.scene import PickingId, SimulationSceneComponent
 from bessplug.api.sim_engine import ComponentDefinition
 from components.latches import latches
 from components.digital_gates import digital_gates, draw_hooks
@@ -10,23 +8,7 @@ from components.combinational_circuits import combinational_circuits
 from components.tristate_buffer import tristate_buffer_def
 from components import seven_segment_display, seven_segment_display_driver
 from components.alu_74LS181 import dm74ls181
-
-
-class PyOutput(SimulationSceneComponent):
-    def __init__(self, comp_def):
-        super().__init__()
-        self.name = "Py Output"
-        self.setup(comp_def)
-
-    def update(self, time_step, scene_state):
-        super().update(time_step, scene_state)
-
-    @override
-    def draw(self, scene_state, material_renderer, path_renderer):
-        id = PickingId()
-        id.runtime_id = self.runtime_id
-        self.draw_background(scene_state)
-        self.draw_slots(scene_state)
+from scene.output_comp import OutputComp
 
 
 class BessPlugin(Plugin):
@@ -62,7 +44,7 @@ class BessPlugin(Plugin):
     def get_sim_comp(self, component_def):
         if not self.has_sim_comp(component_def.get_hash()):
             return None
-        return PyOutput(component_def)
+        return OutputComp(component_def)
 
     @override
     def draw_ui(self):
