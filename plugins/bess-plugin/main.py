@@ -59,12 +59,12 @@ class BessPlugin(Plugin):
         return {**draw_hooks, **seven_segment_display.seven_seg_disp_draw_hook}
 
     @override
-    def has_sim_comp(self, basehash) -> bool:
-        return basehash == 15124334025293992558
+    def has_sim_comp(self, base_hash) -> bool:
+        return base_hash == 15124334025293992558
 
     @override
-    def get_sim_comp(self, basehash):
-        if not self.has_sim_comp(basehash):
+    def get_sim_comp(self, base_hash):
+        if not self.has_sim_comp(base_hash):
             return None
         return PyOutput()
 

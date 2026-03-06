@@ -38,8 +38,6 @@ namespace Bess::Canvas {
         ~Scene();
 
       public:
-        std::shared_ptr<Viewport> getViewport();
-
         void destroy();
 
         void reset();
@@ -114,8 +112,6 @@ namespace Bess::Canvas {
         void onMiddleMouse(bool isPressed);
         void onRightMouse(bool isPressed);
         void onMouseWheel(double x, double y);
-
-        std::shared_ptr<Viewport> m_viewport;
 
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
         bool isCursorInViewport(const glm::vec2 &pos) const;

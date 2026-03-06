@@ -34,3 +34,9 @@
     void set##name(const type &value) {  \
         varName = value;                 \
     }
+
+#define MAKE_GETTER_SETTER_NR(type, name, varName)    \
+    const type &get##name() const { return varName; } \
+    void set##name(const type &value) {               \
+        varName = value;                              \
+    }

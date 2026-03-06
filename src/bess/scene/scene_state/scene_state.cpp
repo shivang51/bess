@@ -244,6 +244,7 @@ namespace Bess::Canvas {
         BESS_ERROR("SceneState copy is not allowed");
         BESS_ASSERT(false, "SceneState copy is not allowed");
     }
+
 } // namespace Bess::Canvas
 
 namespace Bess::JsonConvert {

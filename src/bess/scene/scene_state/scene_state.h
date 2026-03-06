@@ -3,6 +3,7 @@
 #include "common/bess_uuid.h"
 #include "event_dispatcher.h"
 #include "scene/scene_state/components/scene_component.h"
+#include "viewport.h"
 #include <cstdint>
 #include <set>
 #include <unordered_set>
@@ -105,6 +106,8 @@ namespace Bess::Canvas {
         // returns the UUIDs of removed components
         std::vector<UUID> removeComponent(const UUID &uuid, const UUID &callerId = UUID::null);
 
+        MAKE_GETTER_SETTER(std::shared_ptr<Viewport>, Viewport, m_viewport);
+
       private:
         std::unordered_map<UUID, std::shared_ptr<SceneComponent>> m_componentsMap;
         std::unordered_map<UUID, bool> m_selectedComponents;
@@ -116,6 +119,7 @@ namespace Bess::Canvas {
         UUID m_connectionStartSlot = UUID::null;
         bool m_isSchematicView = false;
         glm::vec2 m_mousePos;
+        std::shared_ptr<Viewport> m_viewport;
     };
 } // namespace Bess::Canvas
 

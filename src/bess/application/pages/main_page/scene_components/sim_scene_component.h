@@ -78,6 +78,14 @@ namespace Bess::Canvas {
         std::vector<UUID> getDependants(const SceneState &state) const override;
 
       protected:
+        void drawBackground(SceneState &state,
+                            const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,
+                            const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer);
+
+        void drawSlots(SceneState &state,
+                       const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,
+                       const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer);
+
         void onTransformChanged() override;
 
         /**
