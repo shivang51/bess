@@ -252,6 +252,21 @@ namespace Bess::Canvas {
     std::shared_ptr<Renderer2D::Vulkan::PathRenderer> SceneState::getPathRenderer() const {
         return m_viewport ? m_viewport->getRenderers().pathRenderer : nullptr;
     }
+
+    void SceneState::removeFromMap(const UUID &uuid) {
+        auto component = getComponentByUuid(uuid);
+        BESS_ASSERT(component, "Component was not found");
+        const uint32_t runtimeId = component->getRuntimeId();
+        if (runtimeId != PickingId::invalidRuntimeId) {
+            component->setRuntimeId(PickingId::invalidRuntimeId); // Don't remove this its not redundant
+            m_runtimeIdMap[runtimeId] = UUID::null;
+            m_freeRuntimeIds.insert(runtimeId);
+        }
+
+        m_rootComponents.erase(uuid);
+        m_selectedComponents.erase(uuid);
+        m_componentsMap.erase(uuid);
+    }
 } // namespace Bess::Canvas
 
 namespace Bess::JsonConvert {

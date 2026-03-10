@@ -29,6 +29,12 @@ namespace Bess {
 
         size_t getSceneCount() const;
 
+        // syncs the net ids of comps in sim engine and passed scene
+        void updateNets(const std::shared_ptr<Canvas::Scene> &scene);
+
+        // syncs the net ids of comps in sim engine and active scene
+        void updateNets();
+
         // using pointer operator to directly access active scene
         std::shared_ptr<Canvas::Scene> operator->() {
             return m_activeScene;

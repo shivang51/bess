@@ -113,6 +113,8 @@ namespace Bess::Canvas {
 
         std::shared_ptr<Renderer2D::Vulkan::PathRenderer> getPathRenderer() const;
 
+        void removeFromMap(const UUID &uuid);
+
       private:
         std::unordered_map<UUID, std::shared_ptr<SceneComponent>>
             m_componentsMap;

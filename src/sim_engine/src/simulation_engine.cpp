@@ -781,8 +781,12 @@ namespace Bess::SimEngine {
         return m_isNetUpdated;
     }
 
-    const std::unordered_map<UUID, Net> &SimulationEngine::getNetsMap() {
-        m_isNetUpdated = false;
+    const std::unordered_map<UUID, Net> &SimulationEngine::getNetsMap(bool update) {
+
+        // using clean code rather than short on purpose ;)
+        if (update)
+            m_isNetUpdated = false;
+
         return m_nets;
     }
 

@@ -10,11 +10,8 @@ namespace Bess::Canvas {
         ModuleSceneComponent(const ModuleSceneComponent &other) = default;
         ~ModuleSceneComponent() override = default;
 
-        static std::shared_ptr<ModuleSceneComponent> create(const std::string &name) {
-            auto comp = std::make_shared<ModuleSceneComponent>();
-            comp->setName(name);
-            return comp;
-        }
+        static std::shared_ptr<ModuleSceneComponent> fromNet(const UUID &netId,
+                                                             const std::string &name = "New Module");
 
         REG_SCENE_COMP_TYPE("ModuleSceneComponent", SceneComponentType::module)
         SCENE_COMP_SER_NP(Bess::Canvas::ModuleSceneComponent, Bess::Canvas::SceneComponent)
@@ -23,6 +20,8 @@ namespace Bess::Canvas {
         void onSelect() override;
 
         std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
+
+        MAKE_GETTER_SETTER(UUID, SceneId, sceneId)
 
       private:
         UUID sceneId = UUID::null;

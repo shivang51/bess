@@ -74,7 +74,8 @@ namespace Bess::SimEngine {
 
         bool isNetUpdated() const;
 
-        const std::unordered_map<UUID, Net> &getNetsMap();
+        // if update is false, the sync flag will not be reset
+        const std::unordered_map<UUID, Net> &getNetsMap(bool update = true);
 
         TruthTable getTruthTableOfNet(const UUID &netUuid);
 

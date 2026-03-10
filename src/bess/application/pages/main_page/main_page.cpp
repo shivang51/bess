@@ -12,6 +12,7 @@
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/group_scene_component.h"
 #include "pages/main_page/scene_components/input_scene_component.h"
+#include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/non_sim_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
@@ -233,6 +234,30 @@ namespace Bess::Pages {
                 m_state.getSceneDriver()->toggleSchematicView();
             } else if (m_state.isKeyPressed(GLFW_KEY_ESCAPE)) {
                 UI::UIMain::getPanel<UI::ComponentExplorer>()->hide();
+            } else if (m_state.isKeyPressed(GLFW_KEY_C)) {
+                auto &mainPageState = Pages::MainPage::getInstance()->getState();
+                auto &sceneDriver = mainPageState.getSceneDriver();
+                auto &sceneState = sceneDriver->getState();
+                const auto &selComponents = sceneState.getSelectedComponents();
+                if (!selComponents.empty()) {
+                    sceneDriver.updateNets();
+                    for (const auto &entry : selComponents) {
+                        const auto &compId = entry.first;
+                        const auto &comp = sceneState.getComponentByUuid(compId);
+                        if (!comp ||
+                            comp->getType() != Canvas::SceneComponentType::simulation)
+                            continue;
+
+                        auto module = Canvas::ModuleSceneComponent::fromNet(
+                            comp->cast<Canvas::SimulationSceneComponent>()->getNetId());
+
+                        BESS_ASSERT(module, "Failed to create module");
+                        sceneState.addComponent(module);
+                        sceneDriver.getSceneAtIdx(
+                                       sceneDriver.getSceneCount() - 1)
+                            ->setViewportDrawFn(BIND_FN_L(onViewportDraw));
+                    }
+                }
             }
         }
     }

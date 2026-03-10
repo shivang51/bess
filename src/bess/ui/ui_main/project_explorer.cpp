@@ -235,15 +235,17 @@ namespace Bess::UI {
     }
 
     void ProjectExplorer::groupOnNets() {
-        std::unordered_map<UUID, std::vector<UUID>> netGroups;
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
         if (!simEngine.isNetUpdated())
             return;
 
         auto &mainPageState = Pages::MainPage::getInstance()->getState();
+        const auto &scene = mainPageState.getSceneDriver().getActiveScene();
+
         auto &netIdToNameMap = mainPageState.getNetIdToNameMap();
-        auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
+        auto &netIdCompMap = mainPageState.getNetIdToCompMap(scene->getSceneId());
+
         auto &sceneState = scene->getState();
         std::unordered_map<UUID, std::shared_ptr<Canvas::SimulationSceneComponent>> simIdToComp;
 
@@ -254,12 +256,13 @@ namespace Bess::UI {
             }
         }
 
+        netIdCompMap.clear();
         const auto &nets = simEngine.getNetsMap();
         for (const auto &[netId, net] : nets) {
             for (const auto &simId : net.getComponents()) {
                 if (simIdToComp.contains(simId)) {
                     const auto &comp = simIdToComp[simId];
-                    netGroups[netId].emplace_back(comp->getUuid());
+                    netIdCompMap[netId].emplace_back(comp->getUuid());
                     comp->setNetId(netId);
                 } else {
                     BESS_WARN("[ProjectExplorer] Simulation component with simId {} not found in scene for net grouping.",
@@ -275,7 +278,7 @@ namespace Bess::UI {
 
         int i = 1;
         // move nodes to new groups and ones which get empty
-        for (const auto &[netId, components] : netGroups) {
+        for (const auto &[netId, components] : netIdCompMap) {
             std::shared_ptr<Canvas::GroupSceneComponent> group = nullptr;
             const bool newGroup = emptyGroups.empty();
 
@@ -309,11 +312,12 @@ namespace Bess::UI {
         if (!emptyGroups.empty()) {
             cmdSystem.execute(std::make_unique<Cmd::DeleteCompCmd>(emptyGroups));
         }
-        BESS_INFO("[ProjectExplorer] Grouped components on nets: created {} groups.", netGroups.size());
+        BESS_INFO("[ProjectExplorer] Grouped components on nets: created {} groups.", netIdCompMap.size());
     }
 
     size_t ProjectExplorer::drawEntites(const std::unordered_set<UUID> &entities) {
         constexpr auto treeIcon = Icons::CodIcons::FOLDER;
+        constexpr auto moduleIcon = Icons::CodIcons::SYMBOL_MODULE;
         constexpr auto nodePopupName = "node_popup";
 
         auto &sceneState = Pages::MainPage::getInstance()->getState().getSceneDriver()->getState();
@@ -361,9 +365,14 @@ namespace Bess::UI {
                 }
 
             } else {
+
+                const bool isModule = comp->getType() == Canvas::SceneComponentType::module;
+
+                const auto name = std::format("{} {}", isModule ? moduleIcon : "", comp->getName());
+
                 const auto &[pressed, cbPressed] = drawLeafNode(m_nodesKeyCounter++,
                                                                 compId,
-                                                                comp->getName().c_str(),
+                                                                name.c_str(),
                                                                 comp->getIsSelected(),
                                                                 selSize > 1);
                 count++;

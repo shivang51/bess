@@ -271,4 +271,12 @@ namespace Bess::Pages {
             m_simIdToSceneCompId.erase(it);
         }
     }
+
+    MainPageState::TNetIdToCompMap &MainPageState::getNetIdToCompMap(UUID sceneId) {
+        if (!m_netIdToCompMap.contains(sceneId)) {
+            m_netIdToCompMap[sceneId] = TNetIdToCompMap{};
+        }
+
+        return m_netIdToCompMap.at(sceneId);
+    }
 } // namespace Bess::Pages

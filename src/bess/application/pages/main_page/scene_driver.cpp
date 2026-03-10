@@ -1,6 +1,8 @@
 #include "scene_driver.h"
 
 #include "pages/main_page/main_page.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
+#include "simulation_engine.h"
 #include <algorithm>
 
 namespace Bess {
@@ -79,5 +81,42 @@ namespace Bess {
 
     size_t SceneDriver::getActiveSceneIdx() const {
         return m_activeSceneIdx;
+    }
+
+    void SceneDriver::updateNets(const std::shared_ptr<Canvas::Scene> &scene) {
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+        if (!simEngine.isNetUpdated())
+            return;
+
+        auto &mainPageState = Pages::MainPage::getInstance()->getState();
+        auto &netIdToNameMap = mainPageState.getNetIdToNameMap();
+        auto &netIdCompMap = mainPageState.getNetIdToCompMap(scene->getSceneId());
+        auto &sceneState = scene->getState();
+
+        std::unordered_map<UUID,
+                           std::shared_ptr<Canvas::SimulationSceneComponent>>
+            simIdToComp;
+
+        for (const auto &[compId, comp] : sceneState.getAllComponents()) {
+            if (comp->getType() == Canvas::SceneComponentType::simulation) {
+                const auto simComp = comp->cast<Canvas::SimulationSceneComponent>();
+                simIdToComp[simComp->getSimEngineId()] = simComp;
+            }
+        }
+
+        const auto &nets = simEngine.getNetsMap();
+        for (const auto &[netId, net] : nets) {
+            for (const auto &simId : net.getComponents()) {
+                if (simIdToComp.contains(simId)) {
+                    const auto &comp = simIdToComp[simId];
+                    netIdCompMap[netId].emplace_back(comp->getUuid());
+                    comp->setNetId(netId);
+                }
+            }
+        }
+    }
+
+    void SceneDriver::updateNets() {
+        updateNets(m_activeScene);
     }
 } // namespace Bess
