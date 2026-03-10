@@ -6,6 +6,8 @@
 #include "sim_scene_component.h"
 #include <memory>
 
+#define INPSC_SER_PROPS ("isModuleInput", getIsModuleInput, setIsModuleInput)
+
 namespace Bess::Canvas {
     class InputSceneComponent : public SimulationSceneComponent {
       public:
@@ -14,8 +16,9 @@ namespace Bess::Canvas {
         ~InputSceneComponent() override = default;
 
         REG_SCENE_COMP_TYPE("InputSceneComponent", SceneComponentType::simulation)
-        SCENE_COMP_SER_NP(Bess::Canvas::InputSceneComponent,
-                          Bess::Canvas::SimulationSceneComponent)
+        SCENE_COMP_SER(Bess::Canvas::InputSceneComponent,
+                       Bess::Canvas::SimulationSceneComponent,
+                       INPSC_SER_PROPS)
 
         void draw(SceneState &state,
                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
@@ -37,7 +40,16 @@ namespace Bess::Canvas {
         void onMouseLeave(const Events::MouseLeaveEvent &e) override;
 
         void onMouseButton(const Events::MouseButtonEvent &e) override;
+
+        MAKE_GETTER_SETTER(bool, IsModuleInput, m_isModuleInput)
+
+      private:
+        bool m_isModuleInput = false;
     };
 } // namespace Bess::Canvas
 
 // REFLECT_DERIVED_EMPTY(Bess::Canvas::InputSceneComponent, Bess::Canvas::SimulationSceneComponent)
+
+REG_SCENE_COMP(Bess::Canvas::InputSceneComponent,
+               Bess::Canvas::SimulationSceneComponent,
+               INPSC_SER_PROPS)

@@ -15,6 +15,7 @@ namespace Bess::Canvas {
         connection = 3,
         connJoint = 4,
         group = 5 | (int8_t)SceneComponentTypeFlag::showInProjectExplorer,
+        module = 6 | (int8_t)SceneComponentTypeFlag::showInProjectExplorer,
     };
 } // namespace Bess::Canvas
 

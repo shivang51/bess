@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/bess_uuid.h"
 #include "common/types.h"
 #include "scene/scene.h"
 #include <memory>
@@ -22,6 +23,7 @@ namespace Bess {
         std::shared_ptr<Canvas::Scene> createNewScene();
 
         std::shared_ptr<Canvas::Scene> setActiveScene(size_t index, bool updateCmdSys = true);
+        std::shared_ptr<Canvas::Scene> setActiveScene(UUID id, bool updateCmdSys = true);
 
         size_t getActiveSceneIdx() const;
 
@@ -39,6 +41,7 @@ namespace Bess {
       private:
         std::shared_ptr<Canvas::Scene> m_activeScene;
         std::vector<std::shared_ptr<Canvas::Scene>> m_scenes;
+        std::unordered_map<UUID, std::shared_ptr<Canvas::Scene>> m_sceneIdToSceneMap;
         size_t m_activeSceneIdx{0};
     };
 } // namespace Bess

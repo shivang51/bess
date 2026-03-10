@@ -1,10 +1,12 @@
 #include "scene_driver.h"
+
 #include "pages/main_page/main_page.h"
+#include <algorithm>
 
 namespace Bess {
     void SceneDriver::update(TimeMs deltaTime, const std::vector<ApplicationEvent> &events) {
-        if (m_activeScene) {
-            m_activeScene->update(deltaTime, events);
+        for (auto &scene : m_scenes) {
+            scene->update(deltaTime, events);
         }
     }
 
@@ -15,6 +17,26 @@ namespace Bess {
     }
 
     std::shared_ptr<Canvas::Scene> SceneDriver::getActiveScene() const {
+        return m_activeScene;
+    }
+
+    std::shared_ptr<Canvas::Scene> SceneDriver::setActiveScene(UUID id, bool updateCmdSys) {
+        if (UUID::null == id || !m_sceneIdToSceneMap.contains(id)) {
+            return nullptr;
+        }
+
+        m_activeScene = m_sceneIdToSceneMap.at(id);
+        m_activeSceneIdx = std::distance(m_scenes.begin(), std::ranges::find_if(m_scenes,
+                                                                                [&](const std::shared_ptr<Canvas::Scene> &scene) {
+                                                                                    return scene->getSceneId() == id;
+                                                                                }));
+
+        if (updateCmdSys) {
+            auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
+            cmdSystem.setScene(m_activeScene.get());
+        }
+
+        BESS_INFO("[SceneDriver] Active scene set to id {}.", (uint64_t)id);
         return m_activeScene;
     }
 
@@ -35,6 +57,7 @@ namespace Bess {
     std::shared_ptr<Canvas::Scene> SceneDriver::createNewScene() {
         auto newScene = std::make_shared<Canvas::Scene>();
         m_scenes.emplace_back(newScene);
+        m_sceneIdToSceneMap[newScene->getSceneId()] = newScene;
         return newScene;
     }
 
@@ -47,6 +70,7 @@ namespace Bess {
 
     void SceneDriver::addScene(const std::shared_ptr<Canvas::Scene> &scene) {
         m_scenes.emplace_back(scene);
+        m_sceneIdToSceneMap[scene->getSceneId()] = scene;
     }
 
     size_t SceneDriver::getSceneCount() const {

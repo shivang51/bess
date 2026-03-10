@@ -54,6 +54,7 @@ namespace Bess::Canvas {
 
         typedef std::function<void(const std::shared_ptr<Viewport> &viewport)> ViewportDrawFn;
         MAKE_GETTER_SETTER(ViewportDrawFn, ViewportDrawFn, m_viewportDrawFunc);
+        MAKE_GETTER_SETTER(UUID, SceneId, m_sceneId);
 
       public:
         void addComponent(const std::shared_ptr<SceneComponent> &comp, bool setZ = true);
@@ -135,6 +136,7 @@ namespace Bess::Canvas {
         void cleanupPlugins();
 
       private:
+        UUID m_sceneId;
         SceneState m_state;
 
         ViewportDrawFn m_viewportDrawFunc = nullptr;
