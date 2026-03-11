@@ -14,9 +14,6 @@ set(Header_Files
     "include/init_components.h" 
     "include/net/net.h" 
 		"include/expression_evalutator/expr_evaluator.h"
-		"include/commands/command.h"
-		"include/commands/commands.h"
-		"include/commands/commands_manager.h"
 		"include/utils/string_utils.h"
 		"include/command_processor/command_processor.h"
 		"include/command_processor/commands_reg.h"
@@ -31,8 +28,6 @@ set(Source_Files
     "src/net/net.cpp" 
     "src/component_catalog.cpp"
     "src/component_definition.cpp"
-		"src/commands/commands.cpp"
-		"src/commands/commands_manager.cpp"
 		"src/utils/string_utils.cpp"
 		"src/command_processor/command_processor.cpp"
 )
