@@ -2,6 +2,7 @@
 
 #include "device.h"
 #include "primitive_vertex.h"
+#include "renderer/font.h"
 #include "scene/camera.h"
 #include "scene/renderer/material.h"
 #include "scene/renderer/vulkan/pipelines/circle_pipeline.h"
@@ -93,10 +94,11 @@ namespace Bess::Renderer {
         void resize(VkExtent2D extent);
         void updateUBO(const std::shared_ptr<Camera> &camera);
 
-        glm::vec2 getTextRenderSize(const std::string &str, float renderSize);
+        static glm::vec2 getTextRenderSize(const std::string &str, float renderSize);
 
       private:
         void flushVertices(bool isTranslucent);
+        static Font::FontFile **getFontFile();
 
       private:
         std::unique_ptr<Pipelines::CirclePipeline> m_circlePipeline;

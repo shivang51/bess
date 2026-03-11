@@ -11,7 +11,7 @@ namespace Bess::Canvas {
                                        std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                        std::shared_ptr<PathRenderer> pathRenderer) {
 
-        const auto &textSize = materialRenderer->getTextRenderSize(m_name, 9);
+        const auto &textSize = Renderer::MaterialRenderer::getTextRenderSize(m_name, 9);
         if (m_isFirstDraw) {
             m_scaleDirty = true;
             m_isFirstDraw = false;

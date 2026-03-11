@@ -1,4 +1,5 @@
 #include "input_scene_component.h"
+#include "renderer/material_renderer.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
 #include "scene/scene_ui/scene_ui.h"
@@ -59,7 +60,7 @@ namespace Bess::Canvas {
 
         // Button label
         const std::string label = isHigh ? "1" : "0";
-        const auto textSize = materialRenderer->getTextRenderSize(label, Styles::simCompStyles.slotLabelSize);
+        const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(label, Styles::simCompStyles.slotLabelSize);
 
         const float textPosX = buttonPos.x + (buttonSize.x / 2.f) + 8.f;
         const glm::vec3 textPos = glm::vec3(textPosX,
@@ -122,9 +123,8 @@ namespace Bess::Canvas {
                                          : SimEngine::LogicState::high);
     }
 
-    void InputSceneComponent::calculateSchematicScale(SceneState &state,
-                                                      const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer) {
-        SimulationSceneComponent::calculateSchematicScale(state, materialRenderer);
+    void InputSceneComponent::calculateSchematicScale(SceneState &state) {
+        SimulationSceneComponent::calculateSchematicScale(state);
         m_schematicTransform.scale.x = 50.f;
     }
 

@@ -3,6 +3,7 @@
 #include "input_scene_component.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
+#include "renderer/material_renderer.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
@@ -20,7 +21,7 @@ namespace Bess::Canvas {
 
     void SimulationSceneComponent::update(Bess::TimeMs timeStep, SceneState &state) {
         if (m_isScaleDirty) {
-            // setScale(calculateScale(state, state.getMaterialRenderer()));
+            setScale(calculateScale(state));
             resetSlotPositions(state);
             m_isScaleDirty = false;
         }
@@ -48,79 +49,81 @@ namespace Bess::Canvas {
         }
 
         if (drawHookResult.drawOriginal) {
-            drawBackground(state);
+            drawBackground(state, materialRenderer, pathRenderer);
         }
 
         if (drawHookResult.drawChildren) {
-            drawSlots(state);
+            drawSlots(state, materialRenderer, pathRenderer);
         }
     }
 
-    void SimulationSceneComponent::drawBackground(SceneState &state) {
+    void SimulationSceneComponent::drawBackground(SceneState &state,
+                                                  const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,
+                                                  const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer) {
 
-        // const auto &materialRenderer = state.getMaterialRenderer();
-        //
-        // const auto pickingId = PickingId{m_runtimeId, 0};
-        // Renderer::QuadRenderProperties props;
-        // props.angle = m_transform.angle;
-        // props.borderRadius = m_style.borderRadius;
-        // props.borderSize = m_style.borderSize;
-        // props.borderColor = m_isSelected
-        //                         ? ViewportTheme::colors.selectedComp
-        //                         : m_style.borderColor;
-        // props.isMica = true;
-        // props.shadow = {
-        //     .enabled = true,
-        //     .offset = glm::vec2(0.f, 0.f),
-        //     .scale = glm::vec2(1.701f, 1.701f),
-        //     .color = glm::vec4(1.f),
-        // };
-        //
-        // materialRenderer->drawQuad(m_transform.position,
-        //                            m_transform.scale,
-        //                            m_style.color,
-        //                            pickingId,
-        //                            props);
-        //
-        // // header
-        // props = {};
-        // props.angle = m_transform.angle;
-        // props.borderSize = glm::vec4(0.f);
-        // props.borderRadius = glm::vec4(0,
-        //                                0,
-        //                                m_style.borderRadius.x - m_style.borderSize.x,
-        //                                m_style.borderRadius.y - m_style.borderSize.y);
-        // props.isMica = true;
-        //
-        // const float headerHeight = Styles::componentStyles.headerHeight;
-        // const auto headerPos = glm::vec3(m_transform.position.x,
-        //                                  m_transform.position.y - (m_transform.scale.y / 2.f) + (headerHeight / 2.f),
-        //                                  m_transform.position.z + 0.0004f);
-        // materialRenderer->drawQuad(headerPos,
-        //                            glm::vec2(m_transform.scale.x - m_style.borderSize.w - m_style.borderSize.y,
-        //                                      headerHeight - m_style.borderSize.x - m_style.borderSize.z),
-        //                            m_style.headerColor,
-        //                            pickingId,
-        //                            props);
-        //
-        // const auto textPos = glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) + Styles::componentStyles.paddingX,
-        //                                headerPos.y + Styles::simCompStyles.paddingY,
-        //                                m_transform.position.z + 0.0005f);
-        // // component name
-        // materialRenderer->drawText(m_name,
-        //                            textPos,
-        //                            Styles::simCompStyles.headerFontSize,
-        //                            ViewportTheme::colors.text,
-        //                            pickingId,
-        //                            m_transform.angle);
+        const auto pickingId = PickingId{m_runtimeId, 0};
+        Renderer::QuadRenderProperties props;
+        props.angle = m_transform.angle;
+        props.borderRadius = m_style.borderRadius;
+        props.borderSize = m_style.borderSize;
+        props.borderColor = m_isSelected
+                                ? ViewportTheme::colors.selectedComp
+                                : m_style.borderColor;
+        props.isMica = true;
+        props.shadow = {
+            .enabled = true,
+            .offset = glm::vec2(0.f, 0.f),
+            .scale = glm::vec2(1.701f, 1.701f),
+            .color = glm::vec4(1.f),
+        };
+
+        materialRenderer->drawQuad(m_transform.position,
+                                   m_transform.scale,
+                                   m_style.color,
+                                   pickingId,
+                                   props);
+
+        // header
+        props = {};
+        props.angle = m_transform.angle;
+        props.borderSize = glm::vec4(0.f);
+        props.borderRadius = glm::vec4(0,
+                                       0,
+                                       m_style.borderRadius.x - m_style.borderSize.x,
+                                       m_style.borderRadius.y - m_style.borderSize.y);
+        props.isMica = true;
+
+        const float headerHeight = Styles::componentStyles.headerHeight;
+        const auto headerPos = glm::vec3(m_transform.position.x,
+                                         m_transform.position.y - (m_transform.scale.y / 2.f) + (headerHeight / 2.f),
+                                         m_transform.position.z + 0.0004f);
+        materialRenderer->drawQuad(headerPos,
+                                   glm::vec2(m_transform.scale.x - m_style.borderSize.w - m_style.borderSize.y,
+                                             headerHeight - m_style.borderSize.x - m_style.borderSize.z),
+                                   m_style.headerColor,
+                                   pickingId,
+                                   props);
+
+        const auto textPos = glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) + Styles::componentStyles.paddingX,
+                                       headerPos.y + Styles::simCompStyles.paddingY,
+                                       m_transform.position.z + 0.0005f);
+        // component name
+        materialRenderer->drawText(m_name,
+                                   textPos,
+                                   Styles::simCompStyles.headerFontSize,
+                                   ViewportTheme::colors.text,
+                                   pickingId,
+                                   m_transform.angle);
     }
 
-    void SimulationSceneComponent::drawSlots(SceneState &state) {
+    void SimulationSceneComponent::drawSlots(SceneState &state,
+                                             const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,
+                                             const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer) {
         // slots
-        // for (const auto &childId : m_childComponents) {
-        //     auto child = state.getComponentByUuid(childId);
-        //     child->draw(state, state.getMaterialRenderer(), state.getPathRenderer());
-        // }
+        for (const auto &childId : m_childComponents) {
+            auto child = state.getComponentByUuid(childId);
+            child->draw(state, materialRenderer, pathRenderer);
+        }
     }
 
     void SimulationSceneComponent::drawSchematic(SceneState &state,
@@ -128,7 +131,7 @@ namespace Bess::Canvas {
                                                  std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
 
         if (m_isSchematicScaleDirty) {
-            calculateSchematicScale(state, materialRenderer);
+            calculateSchematicScale(state);
             resetSchematicPinsPositions(state);
             m_isSchematicScaleDirty = false;
         }
@@ -158,8 +161,8 @@ namespace Bess::Canvas {
             pathRenderer->pathLineTo({x, y1, pos.z}, nodeWeight, strokeColor, id);
             pathRenderer->endPathMode(true, true, fillColor);
 
-            const auto textSize = materialRenderer->getTextRenderSize(m_name,
-                                                                      Styles::compSchematicStyles.nameFontSize);
+            const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(m_name,
+                                                                                Styles::compSchematicStyles.nameFontSize);
             glm::vec3 textPos = {pos.x, y + ((y1 - y) / 2.f), pos.z + 0.0005f};
             textPos.x -= textSize.x / 2.f;
             textPos.y += Styles::simCompStyles.headerFontSize / 2.f;
@@ -206,8 +209,9 @@ namespace Bess::Canvas {
         return {inputPositions, outputPositions};
     }
 
-    glm::vec2 SimulationSceneComponent::calculateScale(SceneState &state, std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) {
-        const auto labelSize = materialRenderer->getTextRenderSize(m_name, Styles::simCompStyles.headerFontSize);
+    glm::vec2 SimulationSceneComponent::calculateScale(SceneState &state) {
+        const auto labelSize = Renderer::MaterialRenderer::getTextRenderSize(m_name,
+                                                                             Styles::simCompStyles.headerFontSize);
         float width = labelSize.x + (Styles::simCompStyles.paddingX * 2.f);
         size_t maxRows = std::max(m_inputSlots.size(), m_outputSlots.size());
         float height = ((float)maxRows * Styles::SIM_COMP_SLOT_ROW_SIZE);
@@ -276,7 +280,7 @@ namespace Bess::Canvas {
     void SimulationSceneComponent::onFirstDraw(SceneState &sceneState,
                                                std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                                std::shared_ptr<PathRenderer> /*unused*/) {
-        setScale(calculateScale(sceneState, materialRenderer));
+        setScale(calculateScale(sceneState));
         resetSlotPositions(sceneState);
         m_isFirstDraw = false;
     }
@@ -284,7 +288,7 @@ namespace Bess::Canvas {
     void SimulationSceneComponent::onFirstSchematicDraw(SceneState &sceneState,
                                                         std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
                                                         std::shared_ptr<PathRenderer> /*unused*/) {
-        calculateSchematicScale(sceneState, materialRenderer);
+        calculateSchematicScale(sceneState);
         resetSchematicPinsPositions(sceneState);
         m_isFirstSchematicDraw = false;
     }
@@ -340,8 +344,7 @@ namespace Bess::Canvas {
         return removedIds;
     }
 
-    void SimulationSceneComponent::calculateSchematicScale(SceneState &state,
-                                                           const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer) {
+    void SimulationSceneComponent::calculateSchematicScale(SceneState &state) {
         auto inpCount = m_inputSlots.size();
         auto outCount = m_outputSlots.size();
         if (inpCount != 0 &&
@@ -357,23 +360,23 @@ namespace Bess::Canvas {
         float maxInpSlotWidth = 0.f, maxOutSlotWidth = 0.f;
         for (size_t i = 0; i < inpCount; i++) {
             const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(m_inputSlots[i]);
-            const auto slotLabelSize = materialRenderer->getTextRenderSize(slotComp->getName(),
-                                                                           Styles::componentStyles.slotLabelSize);
+            const auto slotLabelSize = Renderer::MaterialRenderer::getTextRenderSize(slotComp->getName(),
+                                                                                     Styles::componentStyles.slotLabelSize);
             maxInpSlotWidth = std::max(maxInpSlotWidth, slotLabelSize.x);
         }
 
         for (size_t i = 0; i < outCount; i++) {
             const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(m_outputSlots[i]);
-            const auto slotLabelSize = materialRenderer->getTextRenderSize(slotComp->getName(),
-                                                                           Styles::componentStyles.slotLabelSize);
+            const auto slotLabelSize = Renderer::MaterialRenderer::getTextRenderSize(slotComp->getName(),
+                                                                                     Styles::componentStyles.slotLabelSize);
             maxOutSlotWidth = std::max(maxOutSlotWidth, slotLabelSize.x);
         }
 
         const size_t maxRows = std::max(inpCount, outCount);
         const float height = ((float)maxRows * Styles::SCHEMATIC_VIEW_PIN_ROW_SIZE);
 
-        const auto textWidth = materialRenderer->getTextRenderSize(m_name,
-                                                                   Styles::compSchematicStyles.nameFontSize)
+        const auto textWidth = Renderer::MaterialRenderer::getTextRenderSize(m_name,
+                                                                             Styles::compSchematicStyles.nameFontSize)
                                    .x;
 
         float width = textWidth + (Styles::compSchematicStyles.paddingX * 2.f); // keep the same width as normal view

@@ -79,9 +79,13 @@ namespace Bess::Canvas {
 
         std::vector<UUID> getDependants(const SceneState &state) const override;
 
-        void drawBackground(SceneState &state);
+        void drawBackground(SceneState &state,
+                            const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,
+                            const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer);
 
-        void drawSlots(SceneState &state);
+        void drawSlots(SceneState &state,
+                       const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,
+                       const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer);
 
         std::vector<SimEngine::LogicState> getInputStates(const SceneState &state) const;
         std::vector<SimEngine::LogicState> getOutputStates(const SceneState &state) const;
@@ -105,11 +109,9 @@ namespace Bess::Canvas {
         std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>>
         calculateSlotPositions(size_t inputCount, size_t outputCount) const;
 
-        glm::vec2 calculateScale(SceneState &state,
-                                 std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) override;
+        glm::vec2 calculateScale(SceneState &state) override;
 
-        virtual void calculateSchematicScale(SceneState &state,
-                                             const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer);
+        virtual void calculateSchematicScale(SceneState &state);
 
         void onFirstDraw(SceneState &sceneState,
                          std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,

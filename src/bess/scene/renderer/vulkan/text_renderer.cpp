@@ -104,4 +104,8 @@ namespace Bess::Renderer {
     void TextRenderer::updateUBO(const UniformBufferObject &ubo) {
         m_pathRenderer->updateUniformBuffer(ubo);
     }
+
+    Font::FontFile *TextRenderer::getFontFile() {
+        return &m_font;
+    }
 } // namespace Bess::Renderer

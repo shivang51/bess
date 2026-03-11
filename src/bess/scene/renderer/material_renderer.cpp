@@ -1,6 +1,7 @@
 #include "scene/renderer/material_renderer.h"
 #include "application/asset_manager/asset_manager.h"
 #include "application/assets.h"
+#include "renderer/font.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include <cstdint>
 
@@ -25,6 +26,9 @@ namespace Bess::Renderer {
         m_gridPipeline = std::make_unique<Pipelines::GridPipeline>(device, renderPass, extent);
         m_quadPipeline = std::make_unique<Pipelines::QuadPipeline>(device, renderPass, extent);
         m_textRenderer = std::make_unique<Renderer::TextRenderer>(device, renderPass, extent);
+
+        auto fontFilePtr = getFontFile();
+        *fontFilePtr = m_textRenderer->getFontFile();
 
         m_translucentMaterials = {};
 
@@ -359,10 +363,25 @@ namespace Bess::Renderer {
             m_textRenderer->setCurrentFrameIndex(frameIndex);
     }
 
-    glm::vec2 MaterialRenderer::getTextRenderSize(const std::string &str, float renderSize) {
-        if (!m_textRenderer) {
-            return {0.f, 0.f};
+    glm::vec2 MaterialRenderer::getTextRenderSize(const std::string &str,
+                                                  float renderSize) {
+        auto font = *getFontFile();
+        BESS_ASSERT(font, "Font file not set in MaterialRenderer");
+        float scale = renderSize / font->getSize();
+
+        glm::vec2 calcSize = {0.f, 0.f};
+        for (const char ch : str) {
+            const auto &glyph = font->getGlyph(ch);
+            calcSize.x += glyph.advanceX;
         }
-        return m_textRenderer->getRenderSize(str, (size_t)renderSize);
+
+        calcSize.x *= scale;
+        calcSize.y = renderSize;
+        return calcSize;
+    }
+
+    Font::FontFile **MaterialRenderer::getFontFile() {
+        static Font::FontFile *file = nullptr;
+        return &file;
     }
 } // namespace Bess::Renderer

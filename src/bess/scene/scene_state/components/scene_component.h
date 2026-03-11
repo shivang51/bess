@@ -165,8 +165,7 @@ namespace Bess::Canvas {
         virtual void onStyleChanged() {}
         virtual void onRuntimeIdChanged() {}
 
-        virtual glm::vec2 calculateScale(SceneState &,
-                                         std::shared_ptr<Renderer::MaterialRenderer> materialRenderer);
+        virtual glm::vec2 calculateScale(SceneState &);
 
         virtual void onFirstDraw(SceneState &,
                                  std::shared_ptr<Renderer::MaterialRenderer> /*unused*/,

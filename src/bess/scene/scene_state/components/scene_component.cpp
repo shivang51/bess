@@ -35,16 +35,16 @@ namespace Bess::Canvas {
         return transform;
     }
 
-    glm::vec2 SceneComponent::calculateScale(SceneState &_, std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) {
-        const auto labelSize = materialRenderer->getTextRenderSize(m_name, Styles::componentStyles.headerFontSize);
+    glm::vec2 SceneComponent::calculateScale(SceneState &_) {
+        const auto labelSize = Renderer::MaterialRenderer::getTextRenderSize(m_name, Styles::componentStyles.headerFontSize);
         float width = labelSize.x + (Styles::componentStyles.paddingX * 2.f);
         return {width, Styles::componentStyles.headerHeight};
     }
 
     void SceneComponent::onFirstDraw(SceneState &_,
-                                     std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
+                                     std::shared_ptr<Renderer::MaterialRenderer> /*unused*/,
                                      std::shared_ptr<PathRenderer> /*unused*/) {
-        setScale(calculateScale(_, std::move(materialRenderer)));
+        setScale(calculateScale(_));
         m_isFirstDraw = false;
     }
 

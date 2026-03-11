@@ -20,7 +20,7 @@ namespace Bess::Canvas {
         }
 
         if (m_isScaleDirty) {
-            m_transform.scale = calculateScale(state, materialRenderer);
+            m_transform.scale = calculateScale(state);
             m_isScaleDirty = false;
         }
 
@@ -41,7 +41,7 @@ namespace Bess::Canvas {
             props.isMica = true;
             props.shadow.enabled = true;
 
-            const auto textSize = materialRenderer->getTextRenderSize(m_data, (float)m_size);
+            const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(m_data, (float)m_size);
 
             auto offset = glm::vec3((m_transform.scale.x / 2.f) - Styles::componentStyles.paddingX,
                                     (-textSize.y / 4.f) - Styles::componentStyles.paddingY,
@@ -55,9 +55,8 @@ namespace Bess::Canvas {
         }
     }
 
-    glm::vec2 TextComponent::calculateScale(SceneState &state,
-                                            std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) {
-        auto textSize = materialRenderer->getTextRenderSize(m_data, (float)m_size);
+    glm::vec2 TextComponent::calculateScale(SceneState &state) {
+        auto textSize = Renderer::MaterialRenderer::getTextRenderSize(m_data, (float)m_size);
         textSize.y += Styles::componentStyles.paddingY * 2.f;
         textSize.x += Styles::componentStyles.paddingX * 2.f;
         return textSize;

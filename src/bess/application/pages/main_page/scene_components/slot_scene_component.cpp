@@ -86,7 +86,7 @@ namespace Bess::Canvas {
             if (m_slotType == SlotType::digitalInput) {
                 labelX += labeldx;
             } else {
-                const auto labelSize = materialRenderer->getTextRenderSize(m_name,
+                const auto labelSize = Renderer::MaterialRenderer::getTextRenderSize(m_name,
                                                                            Styles::simCompStyles.slotLabelSize);
                 labelX -= labeldx + labelSize.x;
             }
@@ -135,7 +135,7 @@ namespace Bess::Canvas {
         m_invalidateCache = true;
 
         if (!m_name.empty()) {
-            const auto textSize = materialRenderer->getTextRenderSize(m_name,
+            const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(m_name,
                                                                       Styles::componentStyles.slotLabelSize);
 
             float textOffsetX = 4.f;

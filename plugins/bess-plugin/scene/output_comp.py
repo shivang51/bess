@@ -1,5 +1,5 @@
 from typing import override
-from bessplug.api.common import theme, vec2, vec3
+from bessplug.api.common import theme, vec3
 from bessplug.api.scene import PickingId, SimulationSceneComponent
 from bessplug.api.sim_engine import ComponentDefinition, LogicState
 
@@ -18,8 +18,8 @@ class OutputComp(SimulationSceneComponent):
 
     @override
     def draw(self, scene_state, material_renderer, path_renderer):
-        self.draw_background(scene_state)
-        self.draw_slots(scene_state)
+        self.draw_background(scene_state, material_renderer, path_renderer)
+        self.draw_slots(scene_state, material_renderer, path_renderer)
 
         id = PickingId()
         id.runtime_id = self.runtime_id

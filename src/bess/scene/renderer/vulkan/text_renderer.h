@@ -32,6 +32,8 @@ namespace Bess::Renderer {
 
         glm::vec2 getRenderSize(const std::string &text, size_t size);
 
+        Font::FontFile *getFontFile();
+
       private:
         std::unique_ptr<Renderer2D::Vulkan::PathRenderer> m_pathRenderer;
         std::shared_ptr<VulkanDevice> m_device;

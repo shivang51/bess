@@ -146,8 +146,8 @@ void bind_sim_scene_component(py::module_ &m) {
         .def("setup", setup, py::arg("comp_def"))
         .def("get_input_states", &Bess::Canvas::SimulationSceneComponent::getInputStates, py::arg("scene_state"))
         .def("get_output_states", &Bess::Canvas::SimulationSceneComponent::getOutputStates, py::arg("scene_state"))
-        .def("draw_slots", &Bess::Canvas::SimulationSceneComponent::drawSlots, py::arg("scene_state"))
-        .def("draw_background", &Bess::Canvas::SimulationSceneComponent::drawBackground, py::arg("scene_state"))
+        .def("draw_slots", &Bess::Canvas::SimulationSceneComponent::drawSlots, py::arg("scene_state"), py::arg("material_renderer"), py::arg("path_renderer"))
+        .def("draw_background", &Bess::Canvas::SimulationSceneComponent::drawBackground, py::arg("scene_state"), py::arg("material_renderer"), py::arg("path_renderer"))
         .def("on_scale_changed", &Bess::Canvas::SimulationSceneComponent::onScaleChanged)
         .def_property("name",                                                                            //\n
                       [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getName(); }, // \n

@@ -61,10 +61,10 @@ void bind_material_renderer(py::module_ &m) {
         Bess::Renderer::QuadRenderProperties)>(&Bess::Renderer::MaterialRenderer::drawTexturedQuad);
 
     py::class_<Bess::Renderer::MaterialRenderer, py::smart_holder>(m, "MaterialRenderer")
-        .def("get_text_render_size", &Bess::Renderer::MaterialRenderer::getTextRenderSize,
-             "Calculate the size of the rendered text",
-             py::arg("text"),
-             py::arg("render_size"))
+        .def_static("get_text_render_size", &Bess::Renderer::MaterialRenderer::getTextRenderSize,
+                    "Calculate the size of the rendered text",
+                    py::arg("text"),
+                    py::arg("render_size"))
         .def("draw_quad", &Bess::Renderer::MaterialRenderer::drawQuad,
              "Draw a colored quad on the screen",
              py::arg("pos"),
