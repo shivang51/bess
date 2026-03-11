@@ -15,8 +15,6 @@ set(Header_Files
     "include/net/net.h" 
 		"include/expression_evalutator/expr_evaluator.h"
 		"include/utils/string_utils.h"
-		"include/command_processor/command_processor.h"
-		"include/command_processor/commands_reg.h"
 )
 source_group("include" FILES ${Header_Files})
 
@@ -29,7 +27,6 @@ set(Source_Files
     "src/component_catalog.cpp"
     "src/component_definition.cpp"
 		"src/utils/string_utils.cpp"
-		"src/command_processor/command_processor.cpp"
 )
 source_group("src" FILES ${Source_Files})
 
