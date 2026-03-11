@@ -28,7 +28,15 @@ namespace Bess::Canvas {
     enum class SceneDrawMode : uint8_t {
         none,
         connection,
-        selectionBox
+    };
+
+    struct SelBoxContext {
+        glm::vec2 start;
+        glm::vec2 end;
+        bool draw = false;                // to draw sel box
+        bool readIds = false;             // to read the picking ids
+        bool queueSelInNextFrame = false; // to queue sel in next frame, needed to avoid sel box
+        bool queueForSel = false;         // to queue reading of ids from picking attachment
     };
 
     class Scene {
@@ -41,7 +49,6 @@ namespace Bess::Canvas {
 
         void reset();
         void clear();
-        void renderWithViewport(const std::shared_ptr<Viewport> &viewport);
         void update(TimeMs ts, const std::vector<ApplicationEvent> &events);
 
         const SceneState &getState() const;
@@ -51,6 +58,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(ViewportDrawFn, ViewportDrawFn, m_viewportDrawFunc);
         MAKE_GETTER_SETTER(UUID, SceneId, m_sceneId);
         MAKE_GETTER_SETTER(std::shared_ptr<Camera>, Camera, m_camera)
+        MAKE_GETTER_SETTER(SelBoxContext, SelBoxContext, m_selBoxContext)
 
       public:
         void addComponent(const std::shared_ptr<SceneComponent> &comp, bool setZ = true);
@@ -93,13 +101,11 @@ namespace Bess::Canvas {
         void focusCameraOnSelected();
         glm::vec2 toScenePos(const glm::vec2 &mousePos) const;
 
+        void setPickingId(const PickingId &pickingId);
+
       private:
         /// to draw testing stuff
         void drawScratchContent(TimeMs ts, const std::shared_ptr<Viewport> &viewport);
-
-        void updatePickingId();
-
-        void setPickingId(const PickingId &pickingId);
 
         void onMouseMove(const glm::vec2 &pos);
         void onLeftMouse(bool isPressed);
@@ -110,8 +116,6 @@ namespace Bess::Canvas {
 
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
         bool isCursorInViewport(const glm::vec2 &pos) const;
-        void drawSelectionBox();
-        bool selectEntitesInArea();
 
         float getNextZCoord();
 
@@ -141,10 +145,7 @@ namespace Bess::Canvas {
         PickingId m_prevPickingId = PickingId::invalid();
 
         // selection box
-        glm::vec2 m_selectionBoxStart;
-        glm::vec2 m_selectionBoxEnd;
-        bool m_selectInSelectionBox = false;
-        bool m_getIdsInSelBox = false;
+        SelBoxContext m_selBoxContext;
 
         bool m_isDragging = false;
         SceneDrawMode m_drawMode = SceneDrawMode::none;

@@ -1,13 +1,20 @@
 #pragma once
 #include "common/class_helpers.h"
 #include "events/application_event.h"
-#include "glm.hpp"
 #include "imgui.h"
 #include "scene.h"
+#include "scene_draw_context.h"
 #include "string"
 #include "ui_panel.h"
 #include "viewport.h"
 namespace Bess::UI {
+
+    struct SceneDrawFlags {
+        bool drawGrid = true;
+        bool drawConnections = true;
+        bool drawSelectionBox = true;
+    };
+
     class SceneViewportPanel : public Panel {
       public:
         SceneViewportPanel(const std::string &viewportName);
@@ -34,6 +41,19 @@ namespace Bess::UI {
                               AttachedScene,
                               m_attachedScene,
                               onSceneAttached);
+
+      private: // scene rendering funcs
+        void drawGrid(SceneDrawContext &context);
+        void drawComponents(SceneDrawContext &context);
+        void drawConnections(SceneDrawContext &context);
+        void drawSelectionBox(SceneDrawContext &context);
+        void drawGhostConnection(const std::shared_ptr<PathRenderer> &pathRenderer,
+                                 const glm::vec2 &startPos,
+                                 const glm::vec2 &endPos);
+
+        void updateScene(TimeMs ts,
+                         const std::vector<ApplicationEvent> &events);
+        SceneDrawFlags m_sceneDrawFlags{};
 
       private:
         void firstTime();

@@ -3,6 +3,9 @@
 #include "imgui_internal.h"
 #include "pages/main_page/main_page.h"
 #include "scene/camera.h"
+#include "scene_draw_context.h"
+#include "scene_state/components/scene_component_types.h"
+#include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui_main/ui_main.h"
@@ -33,6 +36,7 @@ namespace Bess::UI {
 
         if (m_isHovered || m_isFocused) {
             m_attachedScene->update(ts, events);
+            updateScene(ts, events);
         } else {
             m_attachedScene->update(ts, {});
         }
@@ -205,10 +209,6 @@ namespace Bess::UI {
 
     VkExtent2D SceneViewportPanel::vec2Extent2D(const glm::vec2 &vec) {
         return {(uint32_t)vec.x, (uint32_t)vec.y};
-    }
-
-    void SceneViewportPanel::renderAttachedScene() {
-        m_attachedScene->renderWithViewport(m_viewport);
     }
 
     void SceneViewportPanel::destroyViewport() {

@@ -1,5 +1,4 @@
 #include "scene/scene.h"
-#include "application/settings/viewport_theme.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
@@ -7,11 +6,9 @@
 #include "ext/matrix_transform.hpp"
 #include "fwd.hpp"
 #include "plugin_manager.h"
-#include "scene/renderer/material_renderer.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
-#include "vulkan_core.h"
 #include <GLFW/glfw3.h>
 #include <cstdint>
 #include <memory>
@@ -81,7 +78,6 @@ namespace Bess::Canvas {
                     setPickingId(PickingId::invalid());
                 }
                 // m_state.getViewport()->waitForPickingResults(5'000'000);
-                updatePickingId();
                 const auto data = event.getData<ApplicationEvent::MouseButtonData>();
                 if (data.button == MouseButton::left) {
                     if (data.action == MouseButtonAction::doubleClick) {
@@ -126,10 +122,6 @@ namespace Bess::Canvas {
 
     void Scene::update(TimeMs ts, const std::vector<ApplicationEvent> &events) {
         m_frameTimeStep = ts;
-        if (m_getIdsInSelBox) {
-            if (selectEntitesInArea())
-                m_getIdsInSelBox = false;
-        }
 
         processEvents(events);
 
@@ -152,67 +144,6 @@ namespace Bess::Canvas {
         for (auto &id : comps) {
             m_state.addSelectedComponent(id);
         }
-    }
-
-    void Scene::renderWithViewport(const std::shared_ptr<Viewport> &viewport) {
-        BESS_ASSERT(viewport, "Viewport is not valid");
-
-        auto &inst = Bess::Vulkan::VulkanCore::instance();
-
-        viewport->begin((int)inst.getCurrentFrameIdx(),
-                        ViewportTheme::colors.background,
-                        {0, PickingId::invalid().runtimeId});
-
-        auto mousePos_ = m_mousePos;
-        const auto &viewportSize = m_viewportTransform.size;
-        mousePos_.y = viewportSize.y - mousePos_.y;
-        int x = static_cast<int>(mousePos_.x);
-        int y = static_cast<int>(mousePos_.y);
-        if (m_selectInSelectionBox) {
-            auto start = m_selectionBoxStart;
-            auto end = m_selectionBoxEnd;
-            auto size = end - start;
-            const glm::vec2 pos = {std::min(start.x, end.x), std::max(start.y, end.y)};
-            size = glm::abs(size);
-            int w = (int)size.x;
-            int h = (int)size.y;
-            int x = (int)pos.x;
-            int y = (int)(viewportSize.y - pos.y);
-            viewport->setPickingCoord(x, y, w, h);
-            m_selectInSelectionBox = false;
-            m_getIdsInSelBox = true;
-        } else {
-            viewport->setPickingCoord(x, y);
-        }
-
-        if (m_viewportDrawFunc) {
-            m_viewportDrawFunc(viewport);
-        }
-
-        if (m_drawMode == SceneDrawMode::selectionBox) {
-            drawSelectionBox();
-        }
-
-        drawScratchContent(m_frameTimeStep, viewport);
-
-        viewport->end();
-        viewport->submit();
-    }
-
-    void Scene::drawSelectionBox() {
-        const auto start = toScenePos(m_selectionBoxStart);
-        const auto end = toScenePos(m_mousePos);
-
-        auto size = end - start;
-        const auto pos = start + size / 2.f;
-        size = glm::abs(size);
-
-        Renderer::QuadRenderProperties props;
-        props.borderColor = ViewportTheme::colors.selectionBoxBorder;
-        props.borderSize = glm::vec4(1.f);
-
-        // auto renderer = m_state.getViewport()->getRenderers().materialRenderer;
-        // renderer->drawQuad(glm::vec3(pos, 7.f), size, ViewportTheme::colors.selectionBoxFill, -1, props);
     }
 
     bool Scene::deleteSceneEntity(const UUID &entUuid) {
@@ -263,34 +194,9 @@ namespace Bess::Canvas {
         return pos;
     }
 
-    uint64_t decodeGpuHoverValue(const glm::uvec2 &encodedId) {
-        uint64_t id = static_cast<uint64_t>(encodedId.x);
-        id |= (static_cast<uint64_t>(encodedId.y) << 32);
-        return id;
-    }
-
-    void Scene::updatePickingId() {
-        // m_state.getViewport()->tryUpdatePickingResults();
-        //
-        // const auto &ids = m_state.getViewport()->getPickingIdsResult();
-        // const uint64_t hoverValue = (ids.empty())
-        //                                 ? PickingId::invalid()
-        //                                 : decodeGpuHoverValue(ids[0]);
-        //
-        // setPickingId(PickingId::fromUint64(hoverValue));
-    }
-
     void Scene::onMouseMove(const glm::vec2 &pos) {
         m_dMousePos = toScenePos(pos) - toScenePos(m_mousePos);
         m_mousePos = pos;
-        {
-            auto mousePos_ = m_mousePos;
-            const auto &viewportSize = m_viewportTransform.size;
-            mousePos_.y = viewportSize.y - mousePos_.y;
-            int x = static_cast<int>(mousePos_.x);
-            int y = static_cast<int>(mousePos_.y);
-            // m_state.getViewport()->setPickingCoord(x, y);
-        }
 
         if (!m_isLeftMousePressed) {
             // if (m_state.getViewport()->waitForPickingResults(1000000)) {
@@ -338,9 +244,9 @@ namespace Bess::Canvas {
                         m_isDragging = true;
                     }
                 }
-            } else {
-                m_drawMode = SceneDrawMode::selectionBox;
-                m_selectionBoxStart = m_mousePos;
+            } else if (!m_selBoxContext.draw) {
+                m_selBoxContext.draw = true;
+                m_selBoxContext.start = m_mousePos;
             }
         } else if (m_isMiddleMousePressed) {
             m_camera->incrementPos(-m_dMousePos);
@@ -417,10 +323,10 @@ namespace Bess::Canvas {
                 m_state.addSelectedComponent(m_pickingId);
             }
 
-            if (m_drawMode == SceneDrawMode::selectionBox) {
-                m_drawMode = SceneDrawMode::none;
-                m_selectInSelectionBox = true;
-                m_selectionBoxEnd = m_mousePos;
+            if (m_selBoxContext.draw) {
+                m_selBoxContext.draw = false;
+                m_selBoxContext.queueSelInNextFrame = true;
+                m_selBoxContext.end = m_mousePos;
             } else if (m_isDragging) {
                 m_isDragging = false;
                 for (const auto &compId : m_state.getSelectedComponents() | std::ranges::views::keys) {
@@ -468,31 +374,6 @@ namespace Bess::Canvas {
             m_state.setConnectionStartSlot(UUID::null);
             m_drawMode = SceneDrawMode::none;
         }
-    }
-
-    bool Scene::selectEntitesInArea() {
-        // if (!m_state.getViewport()->tryUpdatePickingResults())
-        //     return false;
-        //
-        // const std::vector<glm::uvec2> rawIds = m_state.getViewport()->getPickingIdsResult();
-        //
-        // if (rawIds.size() == 0)
-        //     return false;
-        //
-        // std::set<PickingId> ids;
-        // for (const auto &id : rawIds) {
-        //     ids.insert(PickingId::fromUint64(decodeGpuHoverValue(id)));
-        // }
-        //
-        // m_state.clearSelectedComponents();
-        // for (const auto &id : ids) {
-        //     auto comp = m_state.getComponentByPickingId(id);
-        //     if (comp == nullptr)
-        //         continue;
-        //     m_state.addSelectedComponent(id);
-        // }
-        //
-        // return true;
     }
 
     void Scene::onMouseWheel(double x, double y) {
@@ -579,6 +460,9 @@ namespace Bess::Canvas {
     }
 
     void Scene::setPickingId(const PickingId &pickingId) {
+        if (m_isDragging)
+            return;
+
         m_prevPickingId = m_pickingId;
         m_pickingId = pickingId;
 
