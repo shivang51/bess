@@ -24,7 +24,7 @@ set(Header_Files
 	"ui_main/popups.h"
 	"ui_main/dialogs.h"
 	"ui_main/project_explorer.h"
-	"ui_main/scene_viewport.h"
+	"ui_main/scene_viewport_panel.h"
 	"ui_main/log_window.h"
 )
 
@@ -44,7 +44,7 @@ set(Source_Files
 	"ui_main/ui_main.cpp"
 	"ui_main/settings_window.cpp"
 	"ui_main/scene_export_window.cpp"
-	"ui_main/scene_viewport.cpp"
+	"ui_main/scene_viewport_panel.cpp"
 	"ui_main/truth_table_window.cpp"
 	"ui_main/popups.cpp"
 	"ui_main/graph_view_window.cpp"

@@ -25,6 +25,7 @@
 #include "ui/ui_main/properties_panel.h"
 #include "ui/ui_main/settings_window.h"
 #include "ui/ui_main/truth_table_window.h"
+#include "ui_main/scene_viewport_panel.h"
 #include <filesystem>
 #include <typeindex>
 
@@ -50,7 +51,6 @@ namespace Bess::UI {
         }
 
         drawMenubar();
-        drawViewport();
         drawStatusbar();
 
         auto &pageState = Pages::MainPage::getInstance()->getState();
@@ -345,13 +345,6 @@ namespace Bess::UI {
         }
     }
 
-    /// will change when moving to multiple viewports
-    /// need to think about scenes and viewports
-    /// what does each actually mean, own and represent
-    void UIMain::drawViewport() {
-        state.mainViewport.draw();
-    }
-
     void UIMain::resetDockspace() {
         static std::unordered_map<Dock, ImGuiID> DockIds{
             {Dock::left, 0},
@@ -478,6 +471,7 @@ namespace Bess::UI {
         registerPanel<SceneExportWindow>();
         registerPanel<SettingsWindow>();
         registerPanel<TruthTableWindow>();
+        registerPanel<SceneViewportPanel>("MainViewport");
     }
 
     std::vector<std::shared_ptr<Panel>> &UIMain::getPanels() {
@@ -493,5 +487,18 @@ namespace Bess::UI {
     std::unordered_map<std::type_index, std::shared_ptr<Panel>> &UIMain::getPanelMap() {
         static std::unordered_map<std::type_index, std::shared_ptr<Panel>> m_panelMap;
         return m_panelMap;
+    }
+
+    std::vector<std::shared_ptr<SceneViewportPanel>> &UIMain::getScenePanels() {
+        static std::vector<std::shared_ptr<SceneViewportPanel>> m_scenePanels;
+        return m_scenePanels;
+    }
+
+    void UIMain::update(TimeMs ts, const std::vector<ApplicationEvent> &events) {
+        for (auto &panel : getPanels()) {
+            if (panel->getVisible()) {
+                panel->update(ts, events);
+            }
+        }
     }
 } // namespace Bess::UI

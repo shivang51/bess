@@ -34,9 +34,7 @@ namespace Bess::Canvas {
 
         BESS_INFO("[Scene] Destroying");
         cleanupPlugins();
-        m_cmdManager.clearStacks();
         m_isDestroyed = true;
-        m_state.getViewport().reset();
         m_state.clear();
     }
 
@@ -45,13 +43,6 @@ namespace Bess::Canvas {
 
         m_size = glm::vec2(800.f, 600.f);
 
-        auto &vkCore = Vulkan::VulkanCore::instance();
-        auto viewport = std::make_shared<Viewport>(vkCore.getDevice(),
-                                                   vkCore.getSwapchain()->imageFormat(),
-                                                   vec2Extent2D(m_size));
-
-        m_state.setViewport(viewport);
-        m_camera = m_state.getViewport()->getCamera();
         m_mousePos = {0.f, 0.f};
     }
 
@@ -89,7 +80,7 @@ namespace Bess::Canvas {
                     m_isLeftMousePressed = false;
                     setPickingId(PickingId::invalid());
                 }
-                m_state.getViewport()->waitForPickingResults(5'000'000);
+                // m_state.getViewport()->waitForPickingResults(5'000'000);
                 updatePickingId();
                 const auto data = event.getData<ApplicationEvent::MouseButtonData>();
                 if (data.button == MouseButton::left) {
@@ -208,10 +199,6 @@ namespace Bess::Canvas {
         viewport->submit();
     }
 
-    void Scene::render() {
-        renderWithViewport(m_state.getViewport());
-    }
-
     void Scene::drawSelectionBox() {
         const auto start = toScenePos(m_selectionBoxStart);
         const auto end = toScenePos(m_mousePos);
@@ -224,8 +211,8 @@ namespace Bess::Canvas {
         props.borderColor = ViewportTheme::colors.selectionBoxBorder;
         props.borderSize = glm::vec4(1.f);
 
-        auto renderer = m_state.getViewport()->getRenderers().materialRenderer;
-        renderer->drawQuad(glm::vec3(pos, 7.f), size, ViewportTheme::colors.selectionBoxFill, -1, props);
+        // auto renderer = m_state.getViewport()->getRenderers().materialRenderer;
+        // renderer->drawQuad(glm::vec3(pos, 7.f), size, ViewportTheme::colors.selectionBoxFill, -1, props);
     }
 
     bool Scene::deleteSceneEntity(const UUID &entUuid) {
@@ -253,8 +240,6 @@ namespace Bess::Canvas {
 
     void Scene::resize(const glm::vec2 &size) {
         m_size = size;
-        m_state.getViewport()->resize(vec2Extent2D(m_size));
-        m_camera->resize(m_size.x, m_size.y);
     }
 
     glm::vec2 Scene::getViewportMousePos(const glm::vec2 &mousePos) const {
@@ -285,14 +270,14 @@ namespace Bess::Canvas {
     }
 
     void Scene::updatePickingId() {
-        m_state.getViewport()->tryUpdatePickingResults();
-
-        const auto &ids = m_state.getViewport()->getPickingIdsResult();
-        const uint64_t hoverValue = (ids.empty())
-                                        ? PickingId::invalid()
-                                        : decodeGpuHoverValue(ids[0]);
-
-        setPickingId(PickingId::fromUint64(hoverValue));
+        // m_state.getViewport()->tryUpdatePickingResults();
+        //
+        // const auto &ids = m_state.getViewport()->getPickingIdsResult();
+        // const uint64_t hoverValue = (ids.empty())
+        //                                 ? PickingId::invalid()
+        //                                 : decodeGpuHoverValue(ids[0]);
+        //
+        // setPickingId(PickingId::fromUint64(hoverValue));
     }
 
     void Scene::onMouseMove(const glm::vec2 &pos) {
@@ -304,23 +289,23 @@ namespace Bess::Canvas {
             mousePos_.y = viewportSize.y - mousePos_.y;
             int x = static_cast<int>(mousePos_.x);
             int y = static_cast<int>(mousePos_.y);
-            m_state.getViewport()->setPickingCoord(x, y);
+            // m_state.getViewport()->setPickingCoord(x, y);
         }
 
         if (!m_isLeftMousePressed) {
-            if (m_state.getViewport()->waitForPickingResults(1000000)) {
-                updatePickingId();
-            }
-
-            // dispatch hover event
-            if (m_pickingId.isValid() && m_pickingId == m_prevPickingId) {
-                auto comp = m_state.getComponentByPickingId(m_pickingId);
-                if (comp) {
-                    comp->onMouseHovered({toScenePos(m_mousePos), m_pickingId.info});
-                } else {
-                    BESS_WARN("Picking id was valid but comp not found, {}", m_pickingId.runtimeId);
-                }
-            }
+            // if (m_state.getViewport()->waitForPickingResults(1000000)) {
+            //     updatePickingId();
+            // }
+            //
+            // // dispatch hover event
+            // if (m_pickingId.isValid() && m_pickingId == m_prevPickingId) {
+            //     auto comp = m_state.getComponentByPickingId(m_pickingId);
+            //     if (comp) {
+            //         comp->onMouseHovered({toScenePos(m_mousePos), m_pickingId.info});
+            //     } else {
+            //         BESS_WARN("Picking id was valid but comp not found, {}", m_pickingId.runtimeId);
+            //     }
+            // }
         }
 
         if (m_isLeftMousePressed && m_drawMode == SceneDrawMode::none) {
@@ -486,28 +471,28 @@ namespace Bess::Canvas {
     }
 
     bool Scene::selectEntitesInArea() {
-        if (!m_state.getViewport()->tryUpdatePickingResults())
-            return false;
-
-        const std::vector<glm::uvec2> rawIds = m_state.getViewport()->getPickingIdsResult();
-
-        if (rawIds.size() == 0)
-            return false;
-
-        std::set<PickingId> ids;
-        for (const auto &id : rawIds) {
-            ids.insert(PickingId::fromUint64(decodeGpuHoverValue(id)));
-        }
-
-        m_state.clearSelectedComponents();
-        for (const auto &id : ids) {
-            auto comp = m_state.getComponentByPickingId(id);
-            if (comp == nullptr)
-                continue;
-            m_state.addSelectedComponent(id);
-        }
-
-        return true;
+        // if (!m_state.getViewport()->tryUpdatePickingResults())
+        //     return false;
+        //
+        // const std::vector<glm::uvec2> rawIds = m_state.getViewport()->getPickingIdsResult();
+        //
+        // if (rawIds.size() == 0)
+        //     return false;
+        //
+        // std::set<PickingId> ids;
+        // for (const auto &id : rawIds) {
+        //     ids.insert(PickingId::fromUint64(decodeGpuHoverValue(id)));
+        // }
+        //
+        // m_state.clearSelectedComponents();
+        // for (const auto &id : ids) {
+        //     auto comp = m_state.getComponentByPickingId(id);
+        //     if (comp == nullptr)
+        //         continue;
+        //     m_state.addSelectedComponent(id);
+        // }
+        //
+        // return true;
     }
 
     void Scene::onMouseWheel(double x, double y) {
@@ -552,18 +537,6 @@ namespace Bess::Canvas {
 
     void Scene::setZCoord(float value) {
         m_compZCoord = value + m_zIncrement;
-    }
-
-    SimEngine::Commands::CommandsManager &Scene::getCmdManager() {
-        return m_cmdManager;
-    }
-
-    uint64_t Scene::getTextureId() const {
-        return m_state.getViewport()->getViewportTexture();
-    }
-
-    std::shared_ptr<Camera> Scene::getCamera() {
-        return m_camera;
     }
 
     void Scene::setSceneMode(SceneMode mode) {

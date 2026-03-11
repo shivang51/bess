@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/bess_uuid.h"
-#include "common/types.h"
 #include "scene/scene.h"
 #include <memory>
 
@@ -10,9 +9,6 @@ namespace Bess {
       public:
         SceneDriver() = default;
         ~SceneDriver() = default;
-
-        void update(TimeMs deltaTime, const std::vector<class ApplicationEvent> &events);
-        void render();
 
         std::shared_ptr<Canvas::Scene> getActiveScene() const;
 

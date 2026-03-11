@@ -245,17 +245,10 @@ namespace Bess::Canvas {
         BESS_ASSERT(false, "SceneState copy is not allowed");
     }
 
-    std::shared_ptr<Renderer::MaterialRenderer> SceneState::getMaterialRenderer() const {
-        return m_viewport ? m_viewport->getRenderers().materialRenderer : nullptr;
-    }
-
-    std::shared_ptr<Renderer2D::Vulkan::PathRenderer> SceneState::getPathRenderer() const {
-        return m_viewport ? m_viewport->getRenderers().pathRenderer : nullptr;
-    }
-
     void SceneState::removeFromMap(const UUID &uuid) {
         auto component = getComponentByUuid(uuid);
         BESS_ASSERT(component, "Component was not found");
+
         const uint32_t runtimeId = component->getRuntimeId();
         if (runtimeId != PickingId::invalidRuntimeId) {
             component->setRuntimeId(PickingId::invalidRuntimeId); // Don't remove this its not redundant

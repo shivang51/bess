@@ -30,6 +30,10 @@ namespace Bess::UI {
         onBeforeDraw();
         ImGui::Begin(m_name.c_str(), &m_visible, m_flags);
         onDraw();
+        m_isFocused = ImGui::IsWindowFocused(
+            ImGuiFocusedFlags_RootAndChildWindows);
+        m_isHovered = ImGui::IsWindowHovered(
+            ImGuiHoveredFlags_RootAndChildWindows);
         ImGui::End();
         onAfterDraw();
     }
@@ -38,7 +42,7 @@ namespace Bess::UI {
 
     void Panel::onHide() {}
 
-    void Panel::update() {}
+    void Panel::update(TimeMs ts, const std::vector<ApplicationEvent> &events) {}
 
     void Panel::init() {}
 

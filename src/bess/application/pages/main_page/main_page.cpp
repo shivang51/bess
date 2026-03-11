@@ -73,6 +73,8 @@ namespace Bess::Pages {
 
         UI::UIMain::init();
 
+        UI::UIMain::getScenePanels().front()->setAttachedScene(scene);
+
         Svc::SvcConnection::instance().init();
 
         BESS_DEBUG("MainPage created successfully");
@@ -98,6 +100,9 @@ namespace Bess::Pages {
 
         auto &instance = Bess::Vulkan::VulkanCore::instance();
         instance.cleanup([&]() {
+            for (const auto &panel : UI::UIMain::getScenePanels()) {
+                panel->destroyViewport();
+            }
             m_state.getSceneDriver()->destroy();
             Assets::AssetManager::instance().clear();
             UI::vulkanCleanup(instance.getDevice());
@@ -110,7 +115,6 @@ namespace Bess::Pages {
     }
 
     void MainPage::draw() {
-        m_state.getSceneDriver().render();
         UI::UIMain::draw();
 
         const auto &plugins = Plugins::PluginManager::getInstance().getLoadedPlugins();
@@ -180,10 +184,7 @@ namespace Bess::Pages {
         if (!imguiWantsKeyboard)
             handleKeyboardShortcuts();
 
-        const bool viewportHovered = UI::UIMain::state.mainViewport.isHovered();
-        m_state.getSceneDriver().update(ts, viewportHovered
-                                                ? events
-                                                : std::vector<ApplicationEvent>{});
+        UI::UIMain::update(ts, events);
     }
 
     std::shared_ptr<Window> MainPage::getParentWindow() {

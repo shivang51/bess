@@ -1,4 +1,4 @@
-#include "scene_viewport.h"
+#include "scene_viewport_panel.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/main_page.h"
@@ -6,26 +6,65 @@
 #include "simulation_engine.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui_main/ui_main.h"
+#include "ui_panel.h"
+#include "vulkan_core.h"
 
 namespace Bess::UI {
-    SceneViewport::SceneViewport(const std::string &viewportName)
-        : m_viewportName(viewportName) {}
+    SceneViewportPanel::SceneViewportPanel(const std::string &viewportName)
+        : Panel(viewportName), m_viewportName(viewportName) {}
 
-    void SceneViewport::draw() {
+    void SceneViewportPanel::init() {
+        auto &vkCore = Vulkan::VulkanCore::instance();
+        m_viewport = std::make_shared<Canvas::Viewport>(vkCore.getDevice(),
+                                                        vkCore.getSwapchain()->imageFormat(),
+                                                        vec2Extent2D(m_viewportSize));
 
-        auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
+        m_flags = NO_MOVE_FLAGS;
+        m_defaultDock = Dock::main;
+        m_showInMenuBar = false;
+        m_visible = true;
+    }
+
+    void SceneViewportPanel::update(TimeMs ts, const std::vector<ApplicationEvent> &events) {
+        if (m_isResized) {
+            m_viewport->resize(vec2Extent2D(m_viewportSize));
+            m_isResized = false;
+        }
+
+        if (m_isHovered || m_isFocused) {
+            m_attachedScene->update(ts, events);
+        } else {
+            m_attachedScene->update(ts, {});
+        }
+    }
+
+    void SceneViewportPanel::destroy() {
+        if (m_viewport) {
+            destroyViewport();
+        }
+    }
+
+    void SceneViewportPanel::onBeforeDraw() {
+
+        renderAttachedScene();
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
         ImGui::SetNextWindowSizeConstraints({400.f, 400.f}, {-1.f, -1.f});
+    }
 
-        ImGui::Begin(m_viewportName.c_str(), nullptr, NO_MOVE_FLAGS);
+    void SceneViewportPanel::onDraw() {
+        auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
 
         const auto viewportPanelSize = ImGui::GetContentRegionAvail();
-        m_viewportSize = {viewportPanelSize.x, viewportPanelSize.y};
+        if (viewportPanelSize.x != m_viewportSize.x ||
+            viewportPanelSize.y != m_viewportSize.y) {
+            m_isResized = true;
+            m_viewportSize = {viewportPanelSize.x, viewportPanelSize.y};
+        }
 
         const auto offset = ImGui::GetCursorPos();
-        if (scene->getTextureId() != 0) {
-            ImGui::Image((ImTextureRef)scene->getTextureId(),
+        if (m_viewport->getViewportTexture() != 0) {
+            ImGui::Image((ImTextureRef)m_viewport->getViewportTexture(),
                          ImVec2(viewportPanelSize.x, viewportPanelSize.y), ImVec2(0, 1),
                          ImVec2(1, 0));
         } else {
@@ -40,7 +79,6 @@ namespace Bess::UI {
         m_localPos = ImGui::GetWindowPos();
         m_viewportPos = {m_localPos.x - gPos.x + offset.x,
                          m_localPos.y - gPos.y + offset.y};
-        m_isHovered = ImGui::IsWindowHovered();
 
         ImGui::PopStyleVar();
 
@@ -51,14 +89,14 @@ namespace Bess::UI {
 
             ImGui::EndPopup();
         }
+    }
 
-        ImGui::End();
-
+    void SceneViewportPanel::onAfterDraw() {
         drawTopLeftControls();
         drawBottomControls();
     }
 
-    void SceneViewport::drawTopLeftControls() const {
+    void SceneViewportPanel::drawTopLeftControls() const {
         const ImGuiContext &g = *ImGui::GetCurrentContext();
         const auto colors = g.Style.Colors;
         auto &simEngine = SimEngine::SimulationEngine::instance();
@@ -85,12 +123,15 @@ namespace Bess::UI {
         auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
         ImGui::Checkbox("##CheckBoxSchematicMode", scene->getIsSchematicViewPtr());
         ImGui::PopStyleVar();
+        if (m_isFocused) {
+            ImGui::Text("Focused");
+        }
         ImGui::End();
         ImGui::PopStyleVar(3);
         ImGui::PopStyleColor(1);
     }
 
-    void SceneViewport::drawBottomControls() const {
+    void SceneViewportPanel::drawBottomControls() const {
         auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
         const auto &mousePos = scene->getSceneMousePos();
         const auto posLabel = std::format("Pos: ({:.2f}, {:.2f})", mousePos.x, mousePos.y);
@@ -147,18 +188,36 @@ namespace Bess::UI {
         ImGui::PopStyleVar(2);
     }
 
-    void SceneViewport::firstTime() {
+    void SceneViewportPanel::firstTime() {
     }
 
-    bool SceneViewport::isHovered() const {
+    bool SceneViewportPanel::isHovered() const {
         return m_isHovered;
     }
 
-    const glm::vec2 &SceneViewport::getViewportPos() const {
+    const glm::vec2 &SceneViewportPanel::getViewportPos() const {
         return m_viewportPos;
     }
 
-    const glm::vec2 &SceneViewport::getViewportSize() const {
+    const glm::vec2 &SceneViewportPanel::getViewportSize() const {
         return m_viewportSize;
+    }
+
+    VkExtent2D SceneViewportPanel::vec2Extent2D(const glm::vec2 &vec) {
+        return {(uint32_t)vec.x, (uint32_t)vec.y};
+    }
+
+    void SceneViewportPanel::renderAttachedScene() {
+        m_attachedScene->renderWithViewport(m_viewport);
+    }
+
+    void SceneViewportPanel::destroyViewport() {
+        m_viewport.reset();
+    }
+
+    void SceneViewportPanel::onSceneAttached() {
+        BESS_DEBUG("[SceneVewportPanel] Scene {} attached to viewport panel '{}'",
+                   (uint64_t)m_attachedScene->getSceneId(), m_viewportName);
+        m_attachedScene->setCamera(m_viewport->getCamera());
     }
 } // namespace Bess::UI

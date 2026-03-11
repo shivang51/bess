@@ -7,19 +7,21 @@ namespace py = pybind11;
 void bind_scene_state(py::module_ &m) {
 
     const auto &getMaterialRenderer = [](Bess::Canvas::SceneState &state) {
-        const auto &viewport = state.getViewport();
-        if (viewport) {
-            return viewport->getRenderers().materialRenderer;
-        }
-        return std::shared_ptr<Bess::Renderer::MaterialRenderer>(nullptr);
+        return nullptr;
+        // const auto &viewport = state.getViewport();
+        // if (viewport) {
+        //     return viewport->getRenderers().materialRenderer;
+        // }
+        // return std::shared_ptr<Bess::Renderer::MaterialRenderer>(nullptr);
     };
 
     const auto &getPathRenderer = [](Bess::Canvas::SceneState &state) {
-        const auto &viewport = state.getViewport();
-        if (viewport) {
-            return viewport->getRenderers().pathRenderer;
-        }
-        return std::shared_ptr<Bess::Renderer2D::Vulkan::PathRenderer>(nullptr);
+        return nullptr;
+        // const auto &viewport = state.getViewport();
+        // if (viewport) {
+        //     return viewport->getRenderers().pathRenderer;
+        // }
+        // return std::shared_ptr<Bess::Renderer2D::Vulkan::PathRenderer>(nullptr);
     };
 
     py::class_<Bess::Canvas::SceneState>(m, "SceneState")

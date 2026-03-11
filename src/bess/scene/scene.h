@@ -1,7 +1,6 @@
 #pragma once
 
 #include "application/events/application_event.h"
-#include "commands/commands_manager.h"
 #include "common/bess_uuid.h"
 #include "common/types.h"
 #include "scene/camera.h"
@@ -42,12 +41,8 @@ namespace Bess::Canvas {
 
         void reset();
         void clear();
-        void render();
         void renderWithViewport(const std::shared_ptr<Viewport> &viewport);
         void update(TimeMs ts, const std::vector<ApplicationEvent> &events);
-
-        uint64_t getTextureId() const;
-        std::shared_ptr<Camera> getCamera();
 
         const SceneState &getState() const;
         SceneState &getState();
@@ -55,6 +50,7 @@ namespace Bess::Canvas {
         typedef std::function<void(const std::shared_ptr<Viewport> &viewport)> ViewportDrawFn;
         MAKE_GETTER_SETTER(ViewportDrawFn, ViewportDrawFn, m_viewportDrawFunc);
         MAKE_GETTER_SETTER(UUID, SceneId, m_sceneId);
+        MAKE_GETTER_SETTER(std::shared_ptr<Camera>, Camera, m_camera)
 
       public:
         void addComponent(const std::shared_ptr<SceneComponent> &comp, bool setZ = true);
@@ -83,8 +79,6 @@ namespace Bess::Canvas {
         void deleteSelectedSceneEntities();
 
         void setZCoord(float val);
-
-        SimEngine::Commands::CommandsManager &getCmdManager();
 
         bool *getIsSchematicViewPtr();
         void toggleSchematicView();
@@ -126,16 +120,15 @@ namespace Bess::Canvas {
         void processEvents(const std::vector<ApplicationEvent> &events);
 
       private:
-        // Vulkan framebuffers for scene rendering
-        glm::vec2 m_size, m_mousePos, m_dMousePos;
-        std::shared_ptr<Camera> m_camera;
-
-        bool m_isLeftMousePressed = false, m_isMiddleMousePressed = false;
-
         void loadComponentFromPlugins();
         void cleanupPlugins();
 
       private:
+        glm::vec2 m_size, m_mousePos, m_dMousePos;
+        std::shared_ptr<Camera> m_camera = nullptr;
+
+        bool m_isLeftMousePressed = false, m_isMiddleMousePressed = false;
+
         UUID m_sceneId;
         SceneState m_state;
 
@@ -162,8 +155,6 @@ namespace Bess::Canvas {
         float m_compZCoord = m_zIncrement;
 
         TimeMs m_frameTimeStep = {};
-
-        SimEngine::Commands::CommandsManager m_cmdManager;
 
         VkExtent2D vec2Extent2D(const glm::vec2 &vec);
 

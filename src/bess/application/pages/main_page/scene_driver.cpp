@@ -6,18 +6,6 @@
 #include <algorithm>
 
 namespace Bess {
-    void SceneDriver::update(TimeMs deltaTime, const std::vector<ApplicationEvent> &events) {
-        for (auto &scene : m_scenes) {
-            scene->update(deltaTime, events);
-        }
-    }
-
-    void SceneDriver::render() {
-        if (m_activeScene) {
-            m_activeScene->render();
-        }
-    }
-
     std::shared_ptr<Canvas::Scene> SceneDriver::getActiveScene() const {
         return m_activeScene;
     }

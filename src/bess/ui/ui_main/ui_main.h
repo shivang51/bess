@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/bess_assert.h"
-#include "ui/ui_main/scene_viewport.h"
+#include "ui/ui_main/scene_viewport_panel.h"
 #include "ui_panel.h"
 #include <typeindex>
 
@@ -16,7 +16,7 @@ namespace Bess::UI {
     };
 
     struct UIState {
-        SceneViewport mainViewport{"MainViewport"};
+        SceneViewportPanel mainViewport{"MainViewport"};
         InternalData _internalData;
     };
 
@@ -30,12 +30,18 @@ namespace Bess::UI {
         static void init();
 
         static void draw();
+        static void update(TimeMs ts, const std::vector<ApplicationEvent> &events);
 
-        template <typename TPanel>
-        static void registerPanel() {
+        template <typename TPanel, typename... Args>
+        static void registerPanel(Args &&...args) {
             BESS_ASSERT((std::is_base_of_v<Panel, TPanel>), "TPanel must be derived from Panel");
-            getPanels().push_back(std::make_unique<TPanel>());
-            getPanelMap()[typeid(TPanel)] = getPanels().back();
+            getPanels().push_back(std::make_shared<TPanel>(std::forward<Args>(args)...));
+            const auto &panel = getPanels().back();
+            getPanelMap()[typeid(TPanel)] = panel;
+            if (std::is_same_v<TPanel, SceneViewportPanel>) {
+                getScenePanels().push_back(
+                    std::dynamic_pointer_cast<SceneViewportPanel>(panel));
+            }
         }
 
         template <typename TPanel>
@@ -51,11 +57,12 @@ namespace Bess::UI {
 
         static void destroy();
 
+        static std::vector<std::shared_ptr<SceneViewportPanel>> &getScenePanels();
+
       private:
         static void drawProjectExplorer();
         static void drawMenubar();
         static void drawStatusbar();
-        static void drawViewport();
         static void resetDockspace();
         static void onOpenProject();
         static void onSaveProject();
