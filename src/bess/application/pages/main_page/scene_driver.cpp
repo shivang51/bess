@@ -3,6 +3,7 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "simulation_engine.h"
+#include "ui_main/ui_main.h"
 #include <algorithm>
 
 namespace Bess {
@@ -38,6 +39,7 @@ namespace Bess {
                 auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
                 cmdSystem.setScene(m_activeScene.get());
             }
+            UI::UIMain::getScenePanels().front()->setAttachedScene(m_activeScene);
             BESS_INFO("[SceneDriver] Active scene set to index {}.", index);
             return m_activeScene;
         }

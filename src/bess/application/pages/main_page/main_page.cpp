@@ -45,17 +45,6 @@ namespace Bess::Pages {
 
         SimEngine::SimulationEngine::instance();
 
-        m_state.initCmdSystem();
-
-        auto scene = m_state.getSceneDriver().createNewScene();
-
-        m_state.getSceneDriver().setActiveScene(0, false);
-
-        m_state.getCommandSystem().setScene(scene.get());
-        m_state.getCommandSystem().setSimEngine(&SimEngine::SimulationEngine::instance());
-
-        m_state.createNewProject(false);
-
         // TODO(shivang): Think about a better way and scalabilty for plugins
         Canvas::NonSimSceneComponent::registerComponent<Canvas::TextComponent>("Text Component");
         Canvas::NonSimSceneComponent::registerComponent<Canvas::SlotProbeSceneComponent>("Probe");
@@ -72,7 +61,15 @@ namespace Bess::Pages {
 
         UI::UIMain::init();
 
-        UI::UIMain::getScenePanels().front()->setAttachedScene(scene);
+        auto scene = m_state.getSceneDriver().createNewScene();
+
+        m_state.getSceneDriver().setActiveScene(0, false); // false to avoid infinite loop of main page init
+
+        m_state.initCmdSystem();
+        m_state.getCommandSystem().setScene(scene.get());
+        m_state.getCommandSystem().setSimEngine(&SimEngine::SimulationEngine::instance());
+
+        m_state.createNewProject(false);
 
         Svc::SvcConnection::instance().init();
 
