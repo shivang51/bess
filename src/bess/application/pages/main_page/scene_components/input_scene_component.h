@@ -1,11 +1,9 @@
 #pragma once
 
 #include "common/bess_uuid.h"
-#include "scene/renderer/material_renderer.h"
 #include "scene/scene_state/scene_state.h"
 #include "scene_draw_context.h"
 #include "sim_scene_component.h"
-#include <memory>
 
 #define INPSC_SER_PROPS ("isModuleInput", getIsModuleInput, setIsModuleInput)
 
