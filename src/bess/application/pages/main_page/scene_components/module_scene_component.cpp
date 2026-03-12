@@ -71,4 +71,9 @@ namespace Bess::Canvas {
 
         return comp;
     }
+
+    void ModuleSceneComponent::draw(SceneDrawContext &context) {
+    }
+
+    void ModuleSceneComponent::update(TimeMs frameTime, SceneState &state) {}
 } // namespace Bess::Canvas

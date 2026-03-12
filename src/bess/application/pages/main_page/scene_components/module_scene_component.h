@@ -16,6 +16,9 @@ namespace Bess::Canvas {
         REG_SCENE_COMP_TYPE("ModuleSceneComponent", SceneComponentType::module)
         SCENE_COMP_SER_NP(Bess::Canvas::ModuleSceneComponent, Bess::Canvas::SceneComponent)
 
+        void draw(SceneDrawContext &context) override;
+        void update(TimeMs frameTime, SceneState &state) override;
+
         void onAttach(SceneState &state) override;
         void onSelect() override;
 
@@ -25,6 +28,7 @@ namespace Bess::Canvas {
 
       private:
         UUID sceneId = UUID::null;
+        UUID associatedInp = UUID::null, associatedOut = UUID::null;
     };
 } // namespace Bess::Canvas
 

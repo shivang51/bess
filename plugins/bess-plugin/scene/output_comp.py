@@ -12,6 +12,10 @@ class OutputComp(SimulationSceneComponent):
         self.decimal_value = 0
         self.hex_value = "0x0"
 
+    @override
+    def get_type_name(self):
+        return "OutputComp"
+
     def update(self, time_step, scene_state):
         super().update(time_step, scene_state)
         self.update_decoded_vals(scene_state)

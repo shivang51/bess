@@ -52,6 +52,14 @@ class PySimSceneComponent : public Bess::Canvas::SimulationSceneComponent,
             "on_scale_changed",
             onScaleChanged);
     }
+
+    std::string getTypeName() override {
+        PYBIND11_OVERRIDE_NAME(
+            std::string,
+            Bess::Canvas::SimulationSceneComponent,
+            "get_type_name",
+            getTypeName);
+    }
 };
 
 void bind_sim_scene_component(py::module_ &m) {
@@ -138,6 +146,7 @@ void bind_sim_scene_component(py::module_ &m) {
         .def("draw_slots", &Bess::Canvas::SimulationSceneComponent::drawSlots, py::arg("context"))
         .def("draw_background", &Bess::Canvas::SimulationSceneComponent::drawBackground, py::arg("context"))
         .def("on_scale_changed", &Bess::Canvas::SimulationSceneComponent::onScaleChanged)
+        .def("get_type_name", &Bess::Canvas::SimulationSceneComponent::getTypeName)
         .def_property("name",                                                                            //\n
                       [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getName(); }, // \n
                       &Bess::Canvas::SimulationSceneComponent::setName)

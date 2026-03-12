@@ -40,6 +40,14 @@ class PySceneComponent : public Bess::Canvas::SceneComponent,
             timeStep,
             std::ref(state));
     }
+
+    std::string getTypeName() override {
+        PYBIND11_OVERRIDE_NAME(
+            std::string,
+            Bess::Canvas::SceneComponent,
+            "get_type_name",
+            getTypeName);
+    }
 };
 
 void bind_scene_component(py::module_ &m) {
@@ -61,5 +69,6 @@ void bind_scene_component(py::module_ &m) {
         .def("draw_schematic", &Bess::Canvas::SceneComponent::drawSchematic, py::arg("context"))
         .def("update", &Bess::Canvas::SceneComponent::update,
              py::arg("time_step"),
-             py::arg("scene_state"));
+             py::arg("scene_state"))
+        .def("get_type_name", &Bess::Canvas::SceneComponent::getTypeName);
 }
