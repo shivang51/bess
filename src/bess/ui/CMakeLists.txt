@@ -12,7 +12,6 @@ set(Header_Files
 	"ui_hook.h"
 	"dock_ids.h"
 	"ui_main/properties_panel.h"
-	"ui_main/scene_draw_context.h"
 	"ui_main/settings_window.h"
 	"ui_main/graph_view_window.h"
 	"ui_main/project_settings_window.h"

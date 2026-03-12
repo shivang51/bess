@@ -31,7 +31,7 @@ namespace Bess::Canvas {
 
         glm::vec2 draw(const Bess::Canvas::Transform &transform,
                        const Bess::Canvas::PickingId &pickingId,
-                       const std::shared_ptr<Bess::Renderer2D::Vulkan::PathRenderer> &pathRenderer);
+                       const std::shared_ptr<Bess::Renderer::PathRenderer> &pathRenderer);
 
       private:
         std::vector<Renderer::Path> m_paths;

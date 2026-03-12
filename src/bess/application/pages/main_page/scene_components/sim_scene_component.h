@@ -8,6 +8,7 @@
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/sim_scene_comp_draw_hook.h"
 #include "scene_comp_types.h"
+#include "scene_draw_context.h"
 #include "slot_scene_component.h"
 
 #define SIM_SC_SER_PROPS ("simEngineId", getSimEngineId, setSimEngineId), \
@@ -37,13 +38,9 @@ namespace Bess::Canvas {
 
         void update(Bess::TimeMs timeStep, SceneState &state) override;
 
-        void draw(SceneState &state,
-                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                  std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
+        void draw(SceneDrawContext &context) override;
 
-        void drawSchematic(SceneState &state,
-                           std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                           std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
+        void drawSchematic(SceneDrawContext &context) override;
 
         MAKE_GETTER_SETTER(UUID, SimEngineId, m_simEngineId)
         MAKE_GETTER_SETTER(UUID, NetId, m_netId)
@@ -79,13 +76,9 @@ namespace Bess::Canvas {
 
         std::vector<UUID> getDependants(const SceneState &state) const override;
 
-        void drawBackground(SceneState &state,
-                            const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,
-                            const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer);
+        void drawBackground(SceneDrawContext &context);
 
-        void drawSlots(SceneState &state,
-                       const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,
-                       const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer);
+        void drawSlots(SceneDrawContext &context);
 
         std::vector<SimEngine::LogicState> getInputStates(const SceneState &state) const;
         std::vector<SimEngine::LogicState> getOutputStates(const SceneState &state) const;
@@ -113,13 +106,9 @@ namespace Bess::Canvas {
 
         virtual void calculateSchematicScale(SceneState &state);
 
-        void onFirstDraw(SceneState &sceneState,
-                         std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                         std::shared_ptr<PathRenderer> /*unused*/) override;
+        void onFirstDraw(SceneDrawContext &context) override;
 
-        void onFirstSchematicDraw(SceneState &sceneState,
-                                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                  std::shared_ptr<PathRenderer> /*unused*/) override;
+        void onFirstSchematicDraw(SceneDrawContext &context) override;
 
         void onChildrenChanged() override;
 

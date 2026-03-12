@@ -17,9 +17,9 @@ class OutputComp(SimulationSceneComponent):
         self.update_decoded_vals(scene_state)
 
     @override
-    def draw(self, scene_state, material_renderer, path_renderer):
-        self.draw_background(scene_state, material_renderer, path_renderer)
-        self.draw_slots(scene_state, material_renderer, path_renderer)
+    def draw(self, context):
+        self.draw_background(context)
+        self.draw_slots(context)
 
         id = PickingId()
         id.runtime_id = self.runtime_id
@@ -28,7 +28,7 @@ class OutputComp(SimulationSceneComponent):
         scale_hf = self.scale * 0.5
         posOffset = vec3(6, -scale_hf.y + 31.5, 0.0001)
 
-        material_renderer.draw_text(
+        context.material_renderer.draw_text(
             f"Dec = {self.decimal_value}",
             self.position + posOffset,
             id=id.asUint64(),
@@ -38,7 +38,7 @@ class OutputComp(SimulationSceneComponent):
 
         posOffset.y += 12
 
-        material_renderer.draw_text(
+        context.material_renderer.draw_text(
             f"Hex = {self.hex_value}",
             self.position + posOffset,
             id=id.asUint64(),

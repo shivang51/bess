@@ -25,9 +25,9 @@ namespace Bess::Assets {
     };
 
     template <>
-    struct AssetLoader<Bess::Renderer2D::MsdfFont> {
-        static std::shared_ptr<Bess::Renderer2D::MsdfFont> load(const std::string &path, const std::string &json) {
-            return std::make_shared<Bess::Renderer2D::MsdfFont>(path, json, Bess::Vulkan::VulkanCore::instance().getDevice());
+    struct AssetLoader<Bess::Renderer::MsdfFont> {
+        static std::shared_ptr<Bess::Renderer::MsdfFont> load(const std::string &path, const std::string &json) {
+            return std::make_shared<Bess::Renderer::MsdfFont>(path, json, Bess::Vulkan::VulkanCore::instance().getDevice());
         }
     };
 

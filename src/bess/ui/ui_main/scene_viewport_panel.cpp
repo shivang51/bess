@@ -3,7 +3,7 @@
 #include "imgui_internal.h"
 #include "pages/main_page/main_page.h"
 #include "scene/camera.h"
-#include "scene_draw_context.h"
+#include "scene/scene_draw_context.h"
 #include "scene_state/components/scene_component_types.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"

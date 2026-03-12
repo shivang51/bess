@@ -3,7 +3,7 @@
 #include "events/application_event.h"
 #include "imgui.h"
 #include "scene.h"
-#include "scene_draw_context.h"
+#include "scene/scene_draw_context.h"
 #include "string"
 #include "ui_panel.h"
 #include "viewport.h"

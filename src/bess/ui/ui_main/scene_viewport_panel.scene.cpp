@@ -2,7 +2,7 @@
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "scene.h"
-#include "scene_draw_context.h"
+#include "scene/scene_draw_context.h"
 #include "scene_state/components/scene_component_types.h"
 #include "settings/viewport_theme.h"
 #include "vulkan_core.h"
@@ -193,13 +193,9 @@ namespace Bess::UI {
                 continue;
 
             if (sceneState.getIsSchematicView()) {
-                comp->drawSchematic(sceneState,
-                                    context.materialRenderer,
-                                    context.pathRenderer);
+                comp->drawSchematic(context);
             } else {
-                comp->draw(sceneState,
-                           context.materialRenderer,
-                           context.pathRenderer);
+                comp->draw(context);
             }
         }
     }

@@ -1,21 +1,20 @@
 #pragma once
 
 #include "common/bess_uuid.h"
-#include "glm.hpp"
+#include "fwd.hpp"
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Renderer {
+
     struct PathPoint {
         glm::vec3 pos;
         float weight = -1.f;
         uint64_t id = 0.f;
         glm::vec4 color = glm::vec4(-1.f);
     };
-}; // namespace Bess::Renderer2D::Vulkan
 
-namespace Bess::Renderer {
     struct PathProperties {
         bool isClosed = false;
         bool roundedJoints = false;
@@ -85,7 +84,7 @@ namespace Bess::Renderer {
 
         PathProperties &getPropsRef();
 
-        const std::vector<std::vector<Renderer2D::Vulkan::PathPoint>> &getContours();
+        const std::vector<std::vector<PathPoint>> &getContours();
 
         UUID uuid;
 
@@ -133,9 +132,9 @@ namespace Bess::Renderer {
         glm::vec2 m_ogLowestPos = glm::vec2(0.f);
         std::vector<PathCommand> m_cmds;
         std::vector<PathCommand> m_ogCmds;
-        std::vector<std::vector<Renderer2D::Vulkan::PathPoint>> m_contours;
+        std::vector<std::vector<PathPoint>> m_contours;
 
         std::unordered_map<std::string, std::vector<PathCommand>> m_scaledCmdsCache;
-        std::unordered_map<std::string, std::vector<std::vector<Renderer2D::Vulkan::PathPoint>>> m_scaledContoursCache;
+        std::unordered_map<std::string, std::vector<std::vector<PathPoint>>> m_scaledContoursCache;
     };
 } // namespace Bess::Renderer

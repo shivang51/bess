@@ -3,13 +3,12 @@
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "renderer/material_renderer.h"
+#include "scene_draw_context.h"
 #include "scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
 
 namespace Bess::Canvas {
-    void SlotProbeSceneComponent::draw(SceneState &sceneState,
-                                       std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                       std::shared_ptr<PathRenderer> pathRenderer) {
+    void SlotProbeSceneComponent::draw(SceneDrawContext &context) {
 
         const auto &textSize = Renderer::MaterialRenderer::getTextRenderSize(m_name, 9);
         if (m_isFirstDraw) {
@@ -30,25 +29,26 @@ namespace Bess::Canvas {
         props.borderRadius = glm::vec4(4.f);
         props.borderSize = glm::vec4(1.f);
 
+        const auto &sceneState = *context.sceneState;
         const auto &scale = m_transform.scale;
         const auto &startPos = getAbsolutePosition(sceneState);
         const bool isProbed = m_probedSlotUuid != UUID::null;
 
-        materialRenderer->drawQuad(startPos,
-                                   scale,
-                                   isProbed
-                                       ? ViewportTheme::colors.clockConnectionLow
-                                       : ViewportTheme::colors.componentBG,
-                                   PickingId{m_runtimeId, 0},
-                                   props);
+        context.materialRenderer->drawQuad(startPos,
+                                           scale,
+                                           isProbed
+                                               ? ViewportTheme::colors.clockConnectionLow
+                                               : ViewportTheme::colors.componentBG,
+                                           PickingId{m_runtimeId, 0},
+                                           props);
 
-        materialRenderer->drawText(m_name,
-                                   startPos + glm::vec3(-textSize.x / 2.f, (textSize.y / 2.f) - 2.f, 0.0001f),
-                                   9,
-                                   isProbed
-                                       ? ViewportTheme::colors.clockConnectionHigh
-                                       : ViewportTheme::colors.text,
-                                   PickingId{m_runtimeId, 0});
+        context.materialRenderer->drawText(m_name,
+                                           startPos + glm::vec3(-textSize.x / 2.f, (textSize.y / 2.f) - 2.f, 0.0001f),
+                                           9,
+                                           isProbed
+                                               ? ViewportTheme::colors.clockConnectionHigh
+                                               : ViewportTheme::colors.text,
+                                           PickingId{m_runtimeId, 0});
 
         if (m_probedSlotUuid != UUID::null) {
             const auto &comp = sceneState.getComponentByUuid<SlotSceneComponent>(m_probedSlotUuid);
@@ -67,20 +67,20 @@ namespace Bess::Canvas {
                                     ? ViewportTheme::colors.stateHigh
                                     : ViewportTheme::colors.stateLow;
 
-            pathRenderer->beginPathMode({startPos.x - (textSize.x / 2.f), startPos.y, 0.51},
-                                        1.f,
-                                        color,
-                                        PickingId{m_runtimeId, 1});
+            context.pathRenderer->beginPathMode({startPos.x - (textSize.x / 2.f), startPos.y, 0.51},
+                                                1.f,
+                                                color,
+                                                PickingId{m_runtimeId, 1});
 
             endPos.z = 0.51f;
-            pathRenderer->pathCubicBeizerTo(endPos,
-                                            ctrl1,
-                                            ctrl2,
-                                            1.f,
-                                            color,
-                                            PickingId{m_runtimeId, 1});
+            context.pathRenderer->pathCubicBeizerTo(endPos,
+                                                    ctrl1,
+                                                    ctrl2,
+                                                    1.f,
+                                                    color,
+                                                    PickingId{m_runtimeId, 1});
 
-            pathRenderer->endPathMode();
+            context.pathRenderer->endPathMode();
         }
     }
 

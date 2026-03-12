@@ -8,6 +8,7 @@
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
+#include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "slot_scene_component.h"
@@ -27,11 +28,9 @@ namespace Bess::Canvas {
         }
     }
 
-    void SimulationSceneComponent::draw(SceneState &state,
-                                        std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                        std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+    void SimulationSceneComponent::draw(SceneDrawContext &context) {
         if (m_isFirstDraw) {
-            onFirstDraw(state, materialRenderer, pathRenderer);
+            onFirstDraw(context);
         }
 
         const auto pickingId = PickingId{m_runtimeId, 0};
@@ -39,8 +38,9 @@ namespace Bess::Canvas {
         DrawHookOnDrawResult drawHookResult{.drawChildren = true, .drawOriginal = true};
         if (m_drawHook && m_drawHook->isDrawEnabled()) {
             const auto &compState = SimEngine::SimulationEngine::instance().getComponentState(m_simEngineId);
-            drawHookResult = m_drawHook->onDraw(m_transform, pickingId, compState, materialRenderer, pathRenderer);
+            drawHookResult = m_drawHook->onDraw(m_transform, pickingId, compState, context.materialRenderer, context.pathRenderer);
 
+            auto &state = *context.sceneState;
             if (drawHookResult.sizeChanged) {
                 setScale(drawHookResult.newSize);
                 resetSlotPositions(state);
@@ -49,17 +49,15 @@ namespace Bess::Canvas {
         }
 
         if (drawHookResult.drawOriginal) {
-            drawBackground(state, materialRenderer, pathRenderer);
+            drawBackground(context);
         }
 
         if (drawHookResult.drawChildren) {
-            drawSlots(state, materialRenderer, pathRenderer);
+            drawSlots(context);
         }
     }
 
-    void SimulationSceneComponent::drawBackground(SceneState &state,
-                                                  const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,
-                                                  const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer) {
+    void SimulationSceneComponent::drawBackground(SceneDrawContext &context) {
 
         const auto pickingId = PickingId{m_runtimeId, 0};
         Renderer::QuadRenderProperties props;
@@ -77,11 +75,11 @@ namespace Bess::Canvas {
             .color = glm::vec4(1.f),
         };
 
-        materialRenderer->drawQuad(m_transform.position,
-                                   m_transform.scale,
-                                   m_style.color,
-                                   pickingId,
-                                   props);
+        context.materialRenderer->drawQuad(m_transform.position,
+                                           m_transform.scale,
+                                           m_style.color,
+                                           pickingId,
+                                           props);
 
         // header
         props = {};
@@ -97,39 +95,37 @@ namespace Bess::Canvas {
         const auto headerPos = glm::vec3(m_transform.position.x,
                                          m_transform.position.y - (m_transform.scale.y / 2.f) + (headerHeight / 2.f),
                                          m_transform.position.z + 0.0004f);
-        materialRenderer->drawQuad(headerPos,
-                                   glm::vec2(m_transform.scale.x - m_style.borderSize.w - m_style.borderSize.y,
-                                             headerHeight - m_style.borderSize.x - m_style.borderSize.z),
-                                   m_style.headerColor,
-                                   pickingId,
-                                   props);
+        context.materialRenderer->drawQuad(headerPos,
+                                           glm::vec2(m_transform.scale.x - m_style.borderSize.w - m_style.borderSize.y,
+                                                     headerHeight - m_style.borderSize.x - m_style.borderSize.z),
+                                           m_style.headerColor,
+                                           pickingId,
+                                           props);
 
         const auto textPos = glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) + Styles::componentStyles.paddingX,
                                        headerPos.y + Styles::simCompStyles.paddingY,
                                        m_transform.position.z + 0.0005f);
         // component name
-        materialRenderer->drawText(m_name,
-                                   textPos,
-                                   Styles::simCompStyles.headerFontSize,
-                                   ViewportTheme::colors.text,
-                                   pickingId,
-                                   m_transform.angle);
+        context.materialRenderer->drawText(m_name,
+                                           textPos,
+                                           Styles::simCompStyles.headerFontSize,
+                                           ViewportTheme::colors.text,
+                                           pickingId,
+                                           m_transform.angle);
     }
 
-    void SimulationSceneComponent::drawSlots(SceneState &state,
-                                             const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,
-                                             const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer) {
+    void SimulationSceneComponent::drawSlots(SceneDrawContext &context) {
+        const auto &state = *context.sceneState;
         // slots
         for (const auto &childId : m_childComponents) {
             auto child = state.getComponentByUuid(childId);
-            child->draw(state, materialRenderer, pathRenderer);
+            child->draw(context);
         }
     }
 
-    void SimulationSceneComponent::drawSchematic(SceneState &state,
-                                                 std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                                 std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+    void SimulationSceneComponent::drawSchematic(SceneDrawContext &context) {
 
+        auto &state = *context.sceneState;
         if (m_isSchematicScaleDirty) {
             calculateSchematicScale(state);
             resetSchematicPinsPositions(state);
@@ -139,7 +135,9 @@ namespace Bess::Canvas {
         const auto &id = PickingId{m_runtimeId, 0};
 
         if (m_drawHook && m_drawHook->isSchematicDrawEnabled()) {
-            auto newScale = m_drawHook->onSchematicDraw(m_schematicTransform, id, materialRenderer, pathRenderer);
+            auto newScale = m_drawHook->onSchematicDraw(m_schematicTransform, id,
+                                                        context.materialRenderer,
+                                                        context.pathRenderer);
             const auto &prevScale = m_schematicTransform.scale;
             if (newScale.x != prevScale.x || newScale.y != prevScale.y) {
                 m_schematicTransform.scale = newScale;
@@ -155,27 +153,27 @@ namespace Bess::Canvas {
             const auto &textColor = ViewportTheme::schematicViewColors.text;
             const auto &fillColor = ViewportTheme::schematicViewColors.componentFill;
             const auto &strokeColor = ViewportTheme::schematicViewColors.componentStroke;
-            pathRenderer->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
-            pathRenderer->pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);
-            pathRenderer->pathLineTo({x1, y1, pos.z}, nodeWeight, strokeColor, id);
-            pathRenderer->pathLineTo({x, y1, pos.z}, nodeWeight, strokeColor, id);
-            pathRenderer->endPathMode(true, true, fillColor);
+            context.pathRenderer->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
+            context.pathRenderer->pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);
+            context.pathRenderer->pathLineTo({x1, y1, pos.z}, nodeWeight, strokeColor, id);
+            context.pathRenderer->pathLineTo({x, y1, pos.z}, nodeWeight, strokeColor, id);
+            context.pathRenderer->endPathMode(true, true, fillColor);
 
             const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(m_name,
                                                                                 Styles::compSchematicStyles.nameFontSize);
             glm::vec3 textPos = {pos.x, y + ((y1 - y) / 2.f), pos.z + 0.0005f};
             textPos.x -= textSize.x / 2.f;
             textPos.y += Styles::simCompStyles.headerFontSize / 2.f;
-            materialRenderer->drawText(m_name,
-                                       textPos,
-                                       Styles::compSchematicStyles.nameFontSize,
-                                       textColor, id, 0.f);
+            context.materialRenderer->drawText(m_name,
+                                               textPos,
+                                               Styles::compSchematicStyles.nameFontSize,
+                                               textColor, id, 0.f);
         }
 
         // slots
         for (const auto &childId : m_childComponents) {
             auto child = state.getComponentByUuid(childId);
-            child->drawSchematic(state, materialRenderer, pathRenderer);
+            child->drawSchematic(context);
         }
     }
 
@@ -277,17 +275,15 @@ namespace Bess::Canvas {
         }
     }
 
-    void SimulationSceneComponent::onFirstDraw(SceneState &sceneState,
-                                               std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                               std::shared_ptr<PathRenderer> /*unused*/) {
+    void SimulationSceneComponent::onFirstDraw(SceneDrawContext &context) {
+        auto &sceneState = *context.sceneState;
         setScale(calculateScale(sceneState));
         resetSlotPositions(sceneState);
         m_isFirstDraw = false;
     }
 
-    void SimulationSceneComponent::onFirstSchematicDraw(SceneState &sceneState,
-                                                        std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                                        std::shared_ptr<PathRenderer> /*unused*/) {
+    void SimulationSceneComponent::onFirstSchematicDraw(SceneDrawContext &context) {
+        auto &sceneState = *context.sceneState;
         calculateSchematicScale(sceneState);
         resetSchematicPinsPositions(sceneState);
         m_isFirstSchematicDraw = false;

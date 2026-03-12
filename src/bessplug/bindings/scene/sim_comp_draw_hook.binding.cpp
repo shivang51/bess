@@ -26,7 +26,7 @@ class PySimCompDrawHook : public Bess::Canvas::SimSceneCompDrawHook,
                                               const Bess::Canvas::PickingId &pickingId,
                                               const Bess::SimEngine::ComponentState &compState,
                                               std::shared_ptr<Bess::Renderer::MaterialRenderer> materialRenderer,
-                                              std::shared_ptr<Bess::Renderer2D::Vulkan::PathRenderer> pathRenderer) override {
+                                              std::shared_ptr<Bess::Renderer::PathRenderer> pathRenderer) override {
         PYBIND11_OVERRIDE_PURE(
             Bess::Canvas::DrawHookOnDrawResult, /* Return type */
             Bess::Canvas::SimSceneCompDrawHook, /* Parent class */
@@ -41,7 +41,7 @@ class PySimCompDrawHook : public Bess::Canvas::SimSceneCompDrawHook,
     glm::vec2 onSchematicDraw(const Bess::Canvas::Transform &transform,
                               const Bess::Canvas::PickingId &pickingId,
                               std::shared_ptr<Bess::Renderer::MaterialRenderer> materialRenderer,
-                              std::shared_ptr<Bess::Renderer2D::Vulkan::PathRenderer> pathRenderer) override {
+                              std::shared_ptr<Bess::Renderer::PathRenderer> pathRenderer) override {
         PYBIND11_OVERRIDE_PURE(
             glm::vec2,                          /* Return type */
             Bess::Canvas::SimSceneCompDrawHook, /* Parent class */

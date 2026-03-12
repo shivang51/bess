@@ -3,6 +3,7 @@
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
 #include "scene/scene_ui/scene_ui.h"
+#include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
 #include "sim_scene_component.h"
 #include "types.h"
@@ -12,31 +13,28 @@
 
 namespace Bess::Canvas {
 
-    void InputSceneComponent::draw(SceneState &state,
-                                   std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                   std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+    void InputSceneComponent::draw(SceneDrawContext &context) {
 
         if (m_isFirstDraw) {
-            onFirstDraw(state, materialRenderer, pathRenderer);
+            onFirstDraw(context);
         }
 
-        SimulationSceneComponent::draw(state, materialRenderer, pathRenderer);
+        SimulationSceneComponent::draw(context);
 
         int i = 0;
         for (const auto &slotUuid : m_outputSlots) {
-            drawToggleButton(state, materialRenderer, pathRenderer, slotUuid, i++);
+            drawToggleButton(context, slotUuid, i++);
         }
     }
 
-    void InputSceneComponent::drawToggleButton(SceneState &state,
-                                               const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,
-                                               const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer,
+    void InputSceneComponent::drawToggleButton(SceneDrawContext &context,
                                                UUID slotUuid,
                                                int buttonIndex) {
         constexpr float buttonWidth = 30.f;
         constexpr float buttonHeight = Styles::SIM_COMP_SLOT_ROW_SIZE - (Styles::simCompStyles.rowMargin * 2.f);
         constexpr glm::vec2 buttonSize = glm::vec2(buttonWidth, buttonHeight);
 
+        const auto &state = *context.sceneState;
         const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(slotUuid);
         const auto slotType = slotComp->getSlotType();
 
@@ -56,7 +54,7 @@ namespace Bess::Canvas {
 
         const auto pickingId = PickingId{m_runtimeId, static_cast<uint32_t>(buttonIndex + 1)};
 
-        SceneUI::drawToggleButton(pickingId, isHigh, buttonPos, buttonSize, materialRenderer, pathRenderer);
+        SceneUI::drawToggleButton(pickingId, isHigh, buttonPos, buttonSize, context);
 
         // Button label
         const std::string label = isHigh ? "1" : "0";
@@ -67,11 +65,11 @@ namespace Bess::Canvas {
                                             slotPosY + (textSize.y / 2.f) - 1.f, // FIXME: why -2.f, maybe the baseline?
                                             m_transform.position.z + 0.001f);
 
-        materialRenderer->drawText(label,
-                                   textPos,
-                                   Styles::simCompStyles.slotLabelSize,
-                                   ViewportTheme::colors.text,
-                                   PickingId{m_runtimeId, 0});
+        context.materialRenderer->drawText(label,
+                                           textPos,
+                                           Styles::simCompStyles.slotLabelSize,
+                                           ViewportTheme::colors.text,
+                                           PickingId{m_runtimeId, 0});
     }
 
     void InputSceneComponent::onMouseHovered(const Events::MouseHoveredEvent &e) {

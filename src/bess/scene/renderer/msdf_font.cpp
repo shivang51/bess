@@ -5,7 +5,7 @@
 #include <filesystem>
 #include <fstream>
 
-namespace Bess::Renderer2D {
+namespace Bess::Renderer {
     MsdfFont::MsdfFont(const std::string &path, const std::string &fileName, std::shared_ptr<Bess::Vulkan::VulkanDevice> device) : m_device(device) {
         loadFont(path, fileName, device);
     }
@@ -112,4 +112,4 @@ namespace Bess::Renderer2D {
     float MsdfFont::getPxRange() const {
         return m_pxRange;
     }
-} // namespace Bess::Renderer2D
+} // namespace Bess::Renderer

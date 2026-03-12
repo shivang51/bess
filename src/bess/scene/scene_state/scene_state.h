@@ -108,7 +108,7 @@ namespace Bess::Canvas {
 
         std::shared_ptr<Renderer::MaterialRenderer> getMaterialRenderer() const;
 
-        std::shared_ptr<Renderer2D::Vulkan::PathRenderer> getPathRenderer() const;
+        std::shared_ptr<Renderer::PathRenderer> getPathRenderer() const;
 
         void removeFromMap(const UUID &uuid);
 

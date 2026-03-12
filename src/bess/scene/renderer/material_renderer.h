@@ -20,7 +20,6 @@
 #include <vulkan/vulkan.h>
 
 using namespace Bess::Vulkan;
-using namespace Bess::Renderer2D::Vulkan;
 namespace Bess::Renderer {
 
     struct ShadowProps {

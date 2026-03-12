@@ -118,7 +118,7 @@ void bind_renderer_path(py::module_ &m) {
                    " render_fill=" + std::to_string(props.renderFill) + ">";
         });
 
-    py::class_<Bess::Renderer2D::Vulkan::PathPoint>(m, "PathPoint");
+    py::class_<Bess::Renderer::PathPoint>(m, "PathPoint");
 
     auto move_to_flat = [](Path &self, float x, float y) {
         self.moveTo(glm::vec2(x, y));

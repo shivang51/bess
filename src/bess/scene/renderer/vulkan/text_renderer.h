@@ -35,7 +35,7 @@ namespace Bess::Renderer {
         Font::FontFile *getFontFile();
 
       private:
-        std::unique_ptr<Renderer2D::Vulkan::PathRenderer> m_pathRenderer;
+        std::unique_ptr<Renderer::PathRenderer> m_pathRenderer;
         std::shared_ptr<VulkanDevice> m_device;
         std::shared_ptr<VulkanOffscreenRenderPass> m_renderPass;
         VkExtent2D m_extent;

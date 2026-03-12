@@ -1,8 +1,6 @@
 #pragma once
 
-#include "common/bess_assert.h"
 #include "common/bess_uuid.h"
-#include "common/logger.h"
 #include "device.h"
 #include "pipelines/path_fill_pipeline.h"
 #include "pipelines/path_stroke_pipeline.h"
@@ -17,7 +15,7 @@
 #include <vulkan/vulkan_core.h>
 
 using namespace Bess::Vulkan;
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Renderer {
     struct PathContext {
         bool ended = true;
         glm::vec4 color = glm::vec4(1.f);
@@ -198,4 +196,4 @@ namespace Bess::Renderer2D::Vulkan {
                                      bool rounded);
     };
 
-} // namespace Bess::Renderer2D::Vulkan
+} // namespace Bess::Renderer

@@ -3,6 +3,7 @@
 #include "common/bess_uuid.h"
 #include "scene/renderer/material_renderer.h"
 #include "scene/scene_state/scene_state.h"
+#include "scene_draw_context.h"
 #include "sim_scene_component.h"
 #include <memory>
 
@@ -20,15 +21,11 @@ namespace Bess::Canvas {
                        Bess::Canvas::SimulationSceneComponent,
                        INPSC_SER_PROPS)
 
-        void draw(SceneState &state,
-                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                  std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
+        void draw(SceneDrawContext &context) override;
 
         void calculateSchematicScale(SceneState &state) override;
 
-        void drawToggleButton(SceneState &state,
-                              const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,
-                              const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer,
+        void drawToggleButton(SceneDrawContext &context,
                               UUID slotUuid,
                               int buttonIndex);
 

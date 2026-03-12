@@ -7,17 +7,16 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include "gtx/vector_angle.hpp"
 #include "tesselator.h"
-#include <algorithm>
 #include <cmath>
 #include <cstring>
 
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Renderer {
     static inline void hash_combine(uint64_t &seed, uint64_t v) {
         // 64-bit boost::hash_combine-like
         seed ^= v + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
     }
 
-    glm::uvec2 encodeId(uint64_t id) {
+    glm::uvec2 encodeId2(uint64_t id) {
         glm::uvec2 encoded;
         encoded.x = static_cast<uint32_t>(id & 0xFFFFFFFFULL);
         encoded.y = static_cast<uint32_t>((id >> 32));
@@ -115,7 +114,7 @@ namespace Bess::Renderer2D::Vulkan {
                 size_t offset = m_strokeVertices.size();
                 m_strokeVertices.reserve(offset + vertices.size());
 
-                auto encodedId = encodeId(info.glyphId);
+                auto encodedId = encodeId2(info.glyphId);
                 for (const auto &v : vertices) {
                     auto &newV = m_strokeVertices.emplace_back(v);
                     newV.position += info.translate; // Move this to GPU if possible!
@@ -153,7 +152,7 @@ namespace Bess::Renderer2D::Vulkan {
             m_glyphIdToInstances[cacheKey].push_back({info.translate,
                                                       glm::vec2(1.f),
                                                       info.fillColor,
-                                                      encodeId(info.glyphId)});
+                                                      encodeId2(info.glyphId)});
         }
     }
 
@@ -283,7 +282,7 @@ namespace Bess::Renderer2D::Vulkan {
                     FillInstance{.translation = info.translate,
                                  .scale = info.scale,
                                  .color = info.fillColor,
-                                 .pickId = encodeId(m_pathData.id)});
+                                 .pickId = encodeId2(m_pathData.id)});
             }
         }
 
@@ -324,7 +323,7 @@ namespace Bess::Renderer2D::Vulkan {
         } else if (!m_fillVertices.empty() && !m_fillIndices.empty()) {
             m_tempInstances.clear();
             m_fillDrawCalls.clear();
-            m_tempInstances.emplace_back(FillInstance{glm::vec3(0.0f), glm::vec2(1.0f), glm::vec4(1.f), encodeId(m_pathData.id)});
+            m_tempInstances.emplace_back(FillInstance{glm::vec3(0.0f), glm::vec2(1.0f), glm::vec4(1.f), encodeId2(m_pathData.id)});
             Pipelines::PathFillPipeline::FillDrawCall dc{};
             dc.firstIndex = 0;
             dc.indexCount = static_cast<uint32_t>(m_fillIndices.size());
@@ -524,7 +523,7 @@ namespace Bess::Renderer2D::Vulkan {
             CommonVertex v;
             v.position = glm::vec3(pos, z);
             v.color = color;
-            v.id = encodeId(id);
+            v.id = encodeId2(id);
             v.texCoord = glm::mix(glm::vec2(0.f), glm::vec2(1.), t);
             v.texSlotIdx = -1;
             return v;
@@ -908,7 +907,7 @@ namespace Bess::Renderer2D::Vulkan {
             CommonVertex v;
             v.position = pos;
             v.color = color;
-            v.id = encodeId(id);
+            v.id = encodeId2(id);
             v.texCoord = uvOf(pos);
             return v;
         };
@@ -1078,4 +1077,4 @@ namespace Bess::Renderer2D::Vulkan {
         m_pathData.points.clear();
         m_pathData.points.emplace_back(PathPoint{pos, prevPoint.weight, prevPoint.id});
     }
-} // namespace Bess::Renderer2D::Vulkan
+} // namespace Bess::Renderer

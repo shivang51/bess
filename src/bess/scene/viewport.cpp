@@ -38,7 +38,7 @@ namespace Bess::Canvas {
         m_mousePickingData = {};
         m_mousePickingData.ids = {glm::uvec2(0, 0)};
 
-        m_renderers.pathRenderer = std::make_shared<Renderer2D::Vulkan::PathRenderer>(device,
+        m_renderers.pathRenderer = std::make_shared<Renderer::PathRenderer>(device,
                                                                                       m_renderPass,
                                                                                       size);
         m_renderers.materialRenderer = std::make_shared<Renderer::MaterialRenderer>(device,

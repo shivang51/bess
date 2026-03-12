@@ -4,6 +4,7 @@
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/scene_state.h"
 #include "scene_comp_types.h"
+#include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
 #include "ui/ui_hook.h"
 #include <typeindex>
@@ -109,9 +110,7 @@ namespace Bess::Canvas {
         SCENE_COMP_SER(Bess::Canvas::TextComponent,
                        Bess::Canvas::NonSimSceneComponent, TEXT_SER_PROPS)
 
-        void draw(SceneState &state,
-                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                  std::shared_ptr<PathRenderer> pathRenderer) override;
+        void draw(SceneDrawContext &context) override;
 
         std::type_index getTypeIndex() override {
             return typeid(TextComponent);

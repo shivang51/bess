@@ -11,6 +11,7 @@
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
+#include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
 #include "slot_scene_component.h"
 #include "types.h"
@@ -28,7 +29,7 @@ namespace Bess::Canvas {
                                                 const glm::vec3 &startPos,
                                                 const glm::vec3 &endPos,
                                                 const glm::vec4 &color,
-                                                const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer) {
+                                                const std::shared_ptr<Renderer::PathRenderer> &pathRenderer) {
 
         const auto &segCache = state.getIsSchematicView()
                                    ? m_segCachedSchemeticPos
@@ -70,10 +71,9 @@ namespace Bess::Canvas {
                                   !state.getIsSchematicView());
     }
 
-    void ConnectionSceneComponent::draw(SceneState &state,
-                                        std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                        std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+    void ConnectionSceneComponent::draw(SceneDrawContext &context) {
 
+        const auto &state = *context.sceneState;
         const auto &startComp = state.getComponentByUuid(m_startSlot);
         const auto &endComp = state.getComponentByUuid(m_endSlot);
 
@@ -149,10 +149,10 @@ namespace Bess::Canvas {
             endPos = endComp->cast<SlotSceneComponent>()->getConnectionPos(state);
         }
 
-        drawSegments(state, startPos, endPos, color, pathRenderer);
+        drawSegments(state, startPos, endPos, color, context.pathRenderer);
 
         if (m_hoveredSegIdx >= 0 && state.getConnectionStartSlot() != UUID::null) {
-            materialRenderer->drawCircle(
+            context.materialRenderer->drawCircle(
                 {state.getMousePos(), 0.51f},
                 6.f,
                 ViewportTheme::colors.selectedComp,
@@ -160,9 +160,7 @@ namespace Bess::Canvas {
         }
     }
 
-    void ConnectionSceneComponent::drawSchematic(SceneState &state,
-                                                 std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                                 std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+    void ConnectionSceneComponent::drawSchematic(SceneDrawContext &context) {
         if (m_isFirstSchematicDraw) {
             m_isFirstSchematicDraw = false;
             if (m_schematicSegments.empty()) {
@@ -174,6 +172,7 @@ namespace Bess::Canvas {
             m_segmentPosCacheDirty = true;
         }
 
+        const auto &state = *context.sceneState;
         if (m_shouldReconstructSegments) {
             reconstructSegments(state);
         }
@@ -216,7 +215,7 @@ namespace Bess::Canvas {
             startPos.x += Styles::compSchematicStyles.pinSize;
             endPos.x -= Styles::compSchematicStyles.pinSize;
         }
-        drawSegments(state, startPos, endPos, color, pathRenderer);
+        drawSegments(state, startPos, endPos, color, context.pathRenderer);
     }
 
     void ConnectionSceneComponent::onMouseDragged(const Events::MouseDraggedEvent &e) {
@@ -318,10 +317,7 @@ namespace Bess::Canvas {
         m_shouldReconstructSegments = false;
     }
 
-    void ConnectionSceneComponent::onFirstDraw(SceneState &sceneState,
-                                               std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                               std::shared_ptr<PathRenderer> pathRenderer) {
-
+    void ConnectionSceneComponent::onFirstDraw(SceneDrawContext &context) {
         m_isFirstDraw = false;
     }
 

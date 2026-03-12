@@ -5,6 +5,7 @@
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/scene_state.h" // included for pybind11
+#include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
@@ -18,29 +19,21 @@ class PySimSceneComponent : public Bess::Canvas::SimulationSceneComponent,
   public:
     PySimSceneComponent() = default;
 
-    void draw(Bess::Canvas::SceneState &state,
-              std::shared_ptr<Bess::Renderer::MaterialRenderer> materialRenderer,
-              std::shared_ptr<Bess::Canvas::PathRenderer> pathRenderer) override {
+    void draw(Bess::SceneDrawContext &context) override {
         PYBIND11_OVERRIDE(
             void,
             Bess::Canvas::SimulationSceneComponent,
             draw,
-            std::ref(state),
-            materialRenderer,
-            pathRenderer);
+            std::ref(context));
     }
 
-    void drawSchematic(Bess::Canvas::SceneState &state,
-                       std::shared_ptr<Bess::Renderer::MaterialRenderer> materialRenderer,
-                       std::shared_ptr<Bess::Canvas::PathRenderer> pathRenderer) override {
+    void drawSchematic(Bess::SceneDrawContext &context) override {
         PYBIND11_OVERRIDE_NAME(
             void,
             Bess::Canvas::SimulationSceneComponent,
             "draw_schematic",
             drawSchematic,
-            std::ref(state),
-            materialRenderer,
-            pathRenderer);
+            std::ref(context));
     }
 
     void update(Bess::TimeMs timeStep, Bess::Canvas::SceneState &state) override {
@@ -133,21 +126,17 @@ void bind_sim_scene_component(py::module_ &m) {
                py::smart_holder>(m, "SimulationSceneComponent")
         .def(py::init<>())
         .def("draw", &Bess::Canvas::SimulationSceneComponent::draw,
-             py::arg("scene_state"),
-             py::arg("material_renderer"),
-             py::arg("path_renderer"))
+             py::arg("context"))
         .def("draw_schematic", &Bess::Canvas::SimulationSceneComponent::drawSchematic,
-             py::arg("scene_state"),
-             py::arg("material_renderer"),
-             py::arg("path_renderer"))
+             py::arg("context"))
         .def("update", &Bess::Canvas::SimulationSceneComponent::update,
              py::arg("time_step"),
              py::arg("scene_state"))
         .def("setup", setup, py::arg("comp_def"))
         .def("get_input_states", &Bess::Canvas::SimulationSceneComponent::getInputStates, py::arg("scene_state"))
         .def("get_output_states", &Bess::Canvas::SimulationSceneComponent::getOutputStates, py::arg("scene_state"))
-        .def("draw_slots", &Bess::Canvas::SimulationSceneComponent::drawSlots, py::arg("scene_state"), py::arg("material_renderer"), py::arg("path_renderer"))
-        .def("draw_background", &Bess::Canvas::SimulationSceneComponent::drawBackground, py::arg("scene_state"), py::arg("material_renderer"), py::arg("path_renderer"))
+        .def("draw_slots", &Bess::Canvas::SimulationSceneComponent::drawSlots, py::arg("context"))
+        .def("draw_background", &Bess::Canvas::SimulationSceneComponent::drawBackground, py::arg("context"))
         .def("on_scale_changed", &Bess::Canvas::SimulationSceneComponent::onScaleChanged)
         .def_property("name",                                                                            //\n
                       [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getName(); }, // \n

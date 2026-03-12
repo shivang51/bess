@@ -5,6 +5,7 @@
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene_comp_types.h"
+#include "scene_draw_context.h"
 #include "types.h"
 
 #define CONNJOINT_SC_SER_PROPS ("connSegIdx", getConnSegIdx, setConnSegIdx),                \
@@ -40,13 +41,9 @@ namespace Bess::Canvas {
 
         void addConnection(const UUID &connectionId);
 
-        void draw(SceneState &state,
-                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                  std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
+        void draw(SceneDrawContext &context) override;
 
-        void drawSchematic(SceneState &state,
-                           std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                           std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
+        void drawSchematic(SceneDrawContext &context) override;
 
         SimEngine::SlotState getSlotState(const SceneState &state) const;
         void onMouseDragged(const Events::MouseDraggedEvent &e) override;

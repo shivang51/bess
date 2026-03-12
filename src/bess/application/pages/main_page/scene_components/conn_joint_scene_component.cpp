@@ -23,9 +23,7 @@ namespace Bess::Canvas {
 #endif
     }
 
-    void ConnJointSceneComp::draw(SceneState &state,
-                                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                  std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+    void ConnJointSceneComp::draw(SceneDrawContext &context) {
 
         if (m_isFirstDraw) {
             m_isFirstDraw = false;
@@ -33,6 +31,8 @@ namespace Bess::Canvas {
                 m_offset = 0.5f;
             }
         }
+
+        const auto &state = *context.sceneState;
 
         const auto &conn = state.getComponentByUuid<ConnectionSceneComponent>(m_connectionId);
         const auto &slot = state.getComponentByUuid<SlotSceneComponent>(m_outputSlotId);
@@ -54,20 +54,18 @@ namespace Bess::Canvas {
         }
 
         const auto pickingId = PickingId{m_runtimeId, 0};
-        materialRenderer->drawQuad(getAbsolutePosition(state),
-                                   glm::vec2{sideLength, sideLength},
-                                   color,
-                                   pickingId,
-                                   {
-                                       .angle = 45,
-                                       .borderColor = borderColor,
-                                       .borderSize = glm::vec4(1.f),
-                                   });
+        context.materialRenderer->drawQuad(getAbsolutePosition(state),
+                                           glm::vec2{sideLength, sideLength},
+                                           color,
+                                           pickingId,
+                                           {
+                                               .angle = 45,
+                                               .borderColor = borderColor,
+                                               .borderSize = glm::vec4(1.f),
+                                           });
     }
 
-    void ConnJointSceneComp::drawSchematic(SceneState &state,
-                                           std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                           std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+    void ConnJointSceneComp::drawSchematic(SceneDrawContext &context) {
 
         if (m_isFirstSchematicDraw) {
             if (m_schematicOffset < 0.f)
@@ -84,10 +82,11 @@ namespace Bess::Canvas {
             color = ViewportTheme::schematicViewColors.connection;
         }
 
-        materialRenderer->drawCircle(getAbsolutePosition(state),
-                                     Styles::compSchematicStyles.connJointRadius,
-                                     color,
-                                     pickingId);
+        const auto &state = *context.sceneState;
+        context.materialRenderer->drawCircle(getAbsolutePosition(state),
+                                             Styles::compSchematicStyles.connJointRadius,
+                                             color,
+                                             pickingId);
     }
 
     void ConnJointSceneComp::onMouseEnter(const Events::MouseEnterEvent &e) {
@@ -167,6 +166,7 @@ namespace Bess::Canvas {
         const auto &slotComp = state.getComponentByUuid<SlotSceneComponent>(m_outputSlotId);
         return slotComp->getSlotState(state);
     }
+
     void ConnJointSceneComp::addConnection(const UUID &connectionId) {
         m_connections.emplace_back(connectionId);
     }

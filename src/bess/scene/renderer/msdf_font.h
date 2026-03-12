@@ -9,7 +9,7 @@
 #include <memory>
 #include <string>
 
-namespace Bess::Renderer2D {
+namespace Bess::Renderer {
 
     struct MsdfCharacter {
         char character;
@@ -61,4 +61,4 @@ namespace Bess::Renderer2D {
         float m_pxRange = 0.f;
         std::shared_ptr<Bess::Vulkan::VulkanDevice> m_device = nullptr;
     };
-} // namespace Bess::Renderer2D
+} // namespace Bess::Renderer

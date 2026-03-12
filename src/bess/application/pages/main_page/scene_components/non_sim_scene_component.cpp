@@ -1,5 +1,6 @@
 #include "non_sim_scene_component.h"
 #include "scene/scene_state/components/styles/comp_style.h"
+#include "scene_draw_context.h"
 #include <unordered_map>
 
 namespace Bess::Canvas {
@@ -11,25 +12,24 @@ namespace Bess::Canvas {
         return nullptr;
     }
 
-    void TextComponent::draw(SceneState &state,
-                             std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                             std::shared_ptr<PathRenderer> pathRenderer) {
+    void TextComponent::draw(SceneDrawContext &context) {
         if (m_isFirstDraw) {
-            onFirstDraw(state, materialRenderer, pathRenderer);
+            onFirstDraw(context);
             m_isFirstDraw = false;
         }
 
+        auto &state = *context.sceneState;
         if (m_isScaleDirty) {
             m_transform.scale = calculateScale(state);
             m_isScaleDirty = false;
         }
 
         const auto pickingId = PickingId{m_runtimeId, 0};
-        materialRenderer->drawText(m_data,
-                                   m_transform.position,
-                                   m_size,
-                                   m_foregroundColor,
-                                   pickingId);
+        context.materialRenderer->drawText(m_data,
+                                           m_transform.position,
+                                           m_size,
+                                           m_foregroundColor,
+                                           pickingId);
 
         // draw background if selected
         if (m_isSelected) {
@@ -47,11 +47,11 @@ namespace Bess::Canvas {
                                     (-textSize.y / 4.f) - Styles::componentStyles.paddingY,
                                     -0.0001f);
 
-            materialRenderer->drawQuad(m_transform.position + offset,
-                                       m_transform.scale,
-                                       m_style.color,
-                                       pickingId,
-                                       props);
+            context.materialRenderer->drawQuad(m_transform.position + offset,
+                                               m_transform.scale,
+                                               m_style.color,
+                                               pickingId,
+                                               props);
         }
     }
 

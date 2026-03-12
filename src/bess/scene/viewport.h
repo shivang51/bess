@@ -12,7 +12,7 @@
 #include <memory>
 #include <vulkan/vulkan_core.h>
 
-using namespace Bess::Renderer2D;
+using namespace Bess::Renderer;
 
 namespace Bess::Canvas {
     struct MousePickingData {

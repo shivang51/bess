@@ -2,10 +2,10 @@
 
 #include "common/bess_uuid.h"
 #include "fwd.hpp"
-#include "scene/renderer/material_renderer.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene_comp_types.h"
+#include "scene_draw_context.h"
 #include "types.h"
 
 namespace Bess::Canvas {
@@ -31,13 +31,9 @@ namespace Bess::Canvas {
         SlotSceneComponent(const SlotSceneComponent &other) = default;
         ~SlotSceneComponent() override = default;
 
-        void draw(SceneState &state,
-                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                  std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
+        void draw(SceneDrawContext &drawContext) override;
 
-        void drawSchematic(SceneState &state,
-                           std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                           std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
+        void drawSchematic(SceneDrawContext &drawContext) override;
 
         void onMouseEnter(const Events::MouseEnterEvent &e) override;
         void onMouseLeave(const Events::MouseLeaveEvent &e) override;

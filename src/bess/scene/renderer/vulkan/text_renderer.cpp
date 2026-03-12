@@ -11,7 +11,7 @@ namespace Bess::Renderer {
                                const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
                                VkExtent2D extent)
         : m_device(device), m_renderPass(renderPass), m_extent(extent) {
-        m_pathRenderer = std::make_unique<Renderer2D::Vulkan::PathRenderer>(device, renderPass, extent);
+        m_pathRenderer = std::make_unique<Renderer::PathRenderer>(device, renderPass, extent);
 
         constexpr auto robotoPath = Assets::Fonts::Paths::roboto.paths[0].data();
         constexpr auto alexBrushPath = Assets::Fonts::Paths::alexBrush.paths[0].data();

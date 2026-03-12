@@ -8,6 +8,7 @@ set(Header_Files
 	"scene_ser_reg.h"
 	"viewport.h"
 	"camera.h"
+	"scene_draw_context.h"
 	"scene_events.h"
 	"scene_serializer.h"
 	"scene_state/scene_state.h"
