@@ -142,4 +142,6 @@ namespace Bess::Canvas {
     void SceneComponent::onChildrenChanged() {}
 
     void SceneComponent::onScaleChanged() {}
+
+    void SceneComponent::drawPropertiesUI() {}
 } // namespace Bess::Canvas

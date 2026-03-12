@@ -21,6 +21,8 @@ namespace Bess::Canvas {
 
         void draw(SceneDrawContext &context) override;
 
+        void drawPropertiesUI() override;
+
         void calculateSchematicScale(SceneState &state) override;
 
         void drawToggleButton(SceneDrawContext &context,

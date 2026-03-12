@@ -110,6 +110,8 @@ namespace Bess::UI {
             comp->setName(comp->getName());
         }
 
+        comp->drawPropertiesUI();
+
         if (compType == Canvas::SceneComponentType::simulation) {
             auto simComp = comp->cast<Canvas::SimulationSceneComponent>();
             auto &simEngine = SimEngine::SimulationEngine::instance();

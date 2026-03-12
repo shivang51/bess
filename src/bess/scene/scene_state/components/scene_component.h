@@ -99,6 +99,8 @@ namespace Bess::Canvas {
         virtual void draw(SceneDrawContext &);
         virtual void drawSchematic(SceneDrawContext &);
 
+        virtual void drawPropertiesUI();
+
         MAKE_GETTER_SETTER(UUID, Uuid, m_uuid)
         MAKE_GETTER_SETTER_WC(Transform, Transform, m_transform, onTransformChanged)
         MAKE_GETTER_SETTER_WC(Style, Style, m_style, onStyleChanged)

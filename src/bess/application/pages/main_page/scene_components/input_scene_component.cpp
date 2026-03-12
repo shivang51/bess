@@ -10,6 +10,7 @@
 #include "ui/ui.h"
 
 #include "simulation_engine.h"
+#include "widgets/m_widgets.h"
 
 namespace Bess::Canvas {
 
@@ -126,4 +127,7 @@ namespace Bess::Canvas {
         m_schematicTransform.scale.x = 50.f;
     }
 
+    void InputSceneComponent::drawPropertiesUI() {
+        UI::Widgets::CheckboxWithLabel("Is Module Input", &m_isModuleInput);
+    }
 } // namespace Bess::Canvas
