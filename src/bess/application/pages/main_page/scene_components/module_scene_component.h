@@ -2,9 +2,11 @@
 #include "common/bess_uuid.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene_comp_types.h"
+#include "scene_state/components/behaviours/drag_behaviour.h"
 
 namespace Bess::Canvas {
-    class ModuleSceneComponent : public SceneComponent {
+    class ModuleSceneComponent : public SceneComponent,
+                                 public DragBehaviour<ModuleSceneComponent> {
       public:
         ModuleSceneComponent() = default;
         ModuleSceneComponent(const ModuleSceneComponent &other) = default;
@@ -24,11 +26,19 @@ namespace Bess::Canvas {
 
         std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
 
-        MAKE_GETTER_SETTER(UUID, SceneId, sceneId)
+        MAKE_GETTER_SETTER(UUID, SceneId, m_sceneId)
+        MAKE_GETTER_SETTER(UUID, AssociatedInp, m_associatedInp)
+        MAKE_GETTER_SETTER(UUID, AssociatedOut, m_associatedOut)
 
       private:
-        UUID sceneId = UUID::null;
-        UUID associatedInp = UUID::null, associatedOut = UUID::null;
+        glm::vec2 calculateScale(SceneState &state) override;
+        void drawBackground(SceneDrawContext &context);
+
+      private:
+        UUID m_sceneId = UUID::null;
+        UUID m_associatedInp = UUID::null, m_associatedOut = UUID::null;
+
+        bool m_isScaleDirty = true;
     };
 } // namespace Bess::Canvas
 
