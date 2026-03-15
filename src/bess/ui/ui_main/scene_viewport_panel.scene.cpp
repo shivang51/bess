@@ -16,68 +16,19 @@ namespace Bess::UI {
 
     void SceneViewportPanel::updateScene(TimeMs ts,
                                          const std::vector<ApplicationEvent> &events) {
-
         Canvas::ViewportTransform vpTrans{.pos = m_viewportPos, .size = m_viewportSize};
         m_attachedScene->updateViewportTransform(vpTrans);
 
-        auto &sceneState = m_attachedScene->getState();
-        auto &selCtx = m_attachedScene->getSelBoxContext();
-
-        if (selCtx.queueSelInNextFrame) {
-            selCtx.queueForSel = true;
-            selCtx.queueSelInNextFrame = false;
-        } else if (selCtx.queueForSel) {
-            const auto &start = selCtx.start;
-            const auto &end = selCtx.end;
-            const glm::vec2 pos = {std::min(start.x, end.x), std::max(start.y, end.y)};
-            const auto size = glm::abs(end - start);
-            int w = (int)size.x;
-            int h = (int)size.y;
-            int x = (int)pos.x;
-            int y = (int)(m_viewportSize.y - pos.y);
-            m_viewport->setPickingCoord(x, y, w, h);
-            m_viewport->tryUpdatePickingResults();
-
-            selCtx.queueForSel = false;
-            selCtx.readIds = true;
-        } else if (!selCtx.draw && !selCtx.readIds &&
-                   !m_viewport->isPickingPending()) {
-            auto mousePos_ = m_attachedScene->getMousePos();
-            mousePos_.y = m_viewportSize.y - mousePos_.y;
-            int x = static_cast<int>(mousePos_.x);
-            int y = static_cast<int>(mousePos_.y);
-            m_viewport->setPickingCoord(x, y);
+        bool mouseMoved = false;
+        for (const auto &event : events) {
+            if (event.getType() == ApplicationEventType::MouseMove) {
+                mouseMoved = true;
+                break;
+            }
         }
 
-        if (selCtx.readIds && !m_viewport->isPickingPending()) {
-
-            const std::vector<glm::uvec2> rawIds = m_viewport->getPickingIdsResult();
-
-            selCtx.readIds = false;
-
-            if (rawIds.size() > 0) {
-                std::set<Canvas::PickingId> ids;
-                for (const auto &rawId : rawIds) {
-                    auto id = Canvas::PickingId::fromUint64(decodeGpuHoverValue(rawId));
-                    ids.insert(id);
-                }
-
-                sceneState.clearSelectedComponents();
-                for (const auto &id : ids) {
-                    auto comp = sceneState.getComponentByPickingId(id);
-                    if (comp == nullptr)
-                        continue;
-                    sceneState.addSelectedComponent(id);
-                }
-            }
-
-        } else {
-            const auto &ids = m_viewport->getPickingIdsResult();
-            const uint64_t hoverValue = (ids.empty())
-                                            ? Canvas::PickingId::invalid()
-                                            : decodeGpuHoverValue(ids[0]);
-
-            m_attachedScene->setPickingId(Canvas::PickingId::fromUint64(hoverValue));
+        if (!m_attachedScene->getIsFirstFrame()) {
+            updatePickingIds(mouseMoved);
         }
     }
 
@@ -128,6 +79,10 @@ namespace Bess::UI {
         }
         m_viewport->end();
         m_viewport->submit();
+
+        if (m_attachedScene->getIsFirstFrame()) {
+            m_attachedScene->setIsFirstFrame(false);
+        }
     }
 
     void SceneViewportPanel::drawGrid(SceneDrawContext &context) {
@@ -222,4 +177,72 @@ namespace Bess::UI {
                                            -1, props);
     }
 
+    void SceneViewportPanel::updatePickingIds(bool mouseMoved) {
+        auto &sceneState = m_attachedScene->getState();
+        auto &selCtx = m_attachedScene->getSelBoxContext();
+
+        if (selCtx.queueSelInNextFrame) {
+            selCtx.queueForSel = true;
+            selCtx.queueSelInNextFrame = false;
+        } else if (selCtx.queueForSel) {
+            const auto &start = selCtx.start;
+            const auto &end = selCtx.end;
+            const glm::vec2 pos = {std::min(start.x, end.x), std::max(start.y, end.y)};
+            const auto size = glm::abs(end - start);
+            int w = (int)size.x;
+            int h = (int)size.y;
+            int x = (int)pos.x;
+            int y = (int)(m_viewportSize.y - pos.y);
+            m_viewport->setPickingCoord(x, y, w, h);
+            m_viewport->tryUpdatePickingResults();
+
+            selCtx.queueForSel = false;
+            selCtx.readIds = true;
+        } else if (mouseMoved && !selCtx.draw && !selCtx.readIds &&
+                   !m_viewport->isPickingPending()) {
+            auto mousePos_ = m_attachedScene->getMousePos();
+            mousePos_.y = m_viewportSize.y - mousePos_.y;
+            int x = static_cast<int>(mousePos_.x);
+            int y = static_cast<int>(mousePos_.y);
+            m_viewport->setPickingCoord(x, y);
+            m_viewport->tryUpdatePickingResults();
+        }
+
+        if (selCtx.readIds && !m_viewport->isPickingPending()) {
+
+            const std::vector<glm::uvec2> rawIds = m_viewport->getPickingIdsResult();
+
+            selCtx.readIds = false;
+
+            if (rawIds.size() > 0) {
+                std::set<Canvas::PickingId> ids;
+                for (const auto &rawId : rawIds) {
+                    auto id = Canvas::PickingId::fromUint64(decodeGpuHoverValue(rawId));
+                    ids.insert(id);
+                }
+
+                sceneState.clearSelectedComponents();
+                for (const auto &id : ids) {
+                    auto comp = sceneState.getComponentByPickingId(id);
+                    if (comp == nullptr)
+                        continue;
+                    sceneState.addSelectedComponent(id);
+                }
+            }
+
+        } else if (mouseMoved) {
+            const auto &ids = m_viewport->getPickingIdsResult();
+            const uint64_t hoverValue = (ids.empty())
+                                            ? Canvas::PickingId::invalid()
+                                            : decodeGpuHoverValue(ids[0]);
+
+            // FIXME: this is a temp fix, picking id intially is 0 when no comps are there,
+            // which is not right
+            if (hoverValue == 0 && sceneState.getAllComponents().empty()) {
+                m_attachedScene->setPickingId(Canvas::PickingId::invalid());
+                return;
+            }
+            m_attachedScene->setPickingId(Canvas::PickingId::fromUint64(hoverValue));
+        }
+    }
 } // namespace Bess::UI

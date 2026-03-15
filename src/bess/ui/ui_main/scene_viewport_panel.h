@@ -53,6 +53,8 @@ namespace Bess::UI {
 
         void updateScene(TimeMs ts,
                          const std::vector<ApplicationEvent> &events);
+
+        void updatePickingIds(bool mouseMoved);
         SceneDrawFlags m_sceneDrawFlags{};
 
       private:

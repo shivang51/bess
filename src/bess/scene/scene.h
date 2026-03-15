@@ -3,6 +3,7 @@
 #include "application/events/application_event.h"
 #include "common/bess_uuid.h"
 #include "common/types.h"
+#include "component_definition.h"
 #include "scene/camera.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -59,6 +60,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(UUID, SceneId, m_sceneId);
         MAKE_GETTER_SETTER(std::shared_ptr<Camera>, Camera, m_camera)
         MAKE_GETTER_SETTER(SelBoxContext, SelBoxContext, m_selBoxContext)
+        MAKE_GETTER_SETTER(bool, IsFirstFrame, m_isFirstFrame)
 
       public:
         void addComponent(const std::shared_ptr<SceneComponent> &comp, bool setZ = true);
@@ -161,5 +163,7 @@ namespace Bess::Canvas {
 
         bool m_isDestroyed = false;
         std::unordered_map<uint64_t, std::shared_ptr<Canvas::SimSceneCompDrawHook>> m_pluginSceneDrawHooks;
+
+        bool m_isFirstFrame = true;
     };
 } // namespace Bess::Canvas

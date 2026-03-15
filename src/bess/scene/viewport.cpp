@@ -39,8 +39,8 @@ namespace Bess::Canvas {
         m_mousePickingData.ids = {glm::uvec2(0, 0)};
 
         m_renderers.pathRenderer = std::make_shared<Renderer::PathRenderer>(device,
-                                                                                      m_renderPass,
-                                                                                      size);
+                                                                            m_renderPass,
+                                                                            size);
         m_renderers.materialRenderer = std::make_shared<Renderer::MaterialRenderer>(device,
                                                                                     m_renderPass,
                                                                                     size);
@@ -172,8 +172,12 @@ namespace Bess::Canvas {
         auto count = m_mousePickingData.extent.width * m_mousePickingData.extent.height;
         count = std::max(count, (uint32_t)1);
         void *data = nullptr;
-        vkMapMemory(m_device->device(), m_pickingStagingBufferMemory, 0,
-                    sizeof(glm::uvec2) * count, 0, &data);
+        vkMapMemory(m_device->device(),
+                    m_pickingStagingBufferMemory,
+                    0,
+                    sizeof(glm::uvec2) * count,
+                    0,
+                    &data);
 
         auto &ids = m_mousePickingData.ids;
         ids.clear();

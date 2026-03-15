@@ -22,7 +22,7 @@ namespace Bess::UI {
                                                         vkCore.getSwapchain()->imageFormat(),
                                                         vec2Extent2D(m_viewportSize));
 
-        m_flags = NO_MOVE_FLAGS;
+        m_flags = NO_MOVE_FLAGS | ImGuiWindowFlags_NoFocusOnAppearing;
         m_defaultDock = Dock::main;
         m_showInMenuBar = false;
         m_visible = true;
