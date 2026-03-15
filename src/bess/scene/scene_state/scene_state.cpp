@@ -268,6 +268,9 @@ namespace Bess::JsonConvert {
 
         for (const auto &[uuid, component] : state.getAllComponents()) {
             j["components"].append(component->toJson());
+            j["sceneId"] = (uint64_t)state.getSceneId();
+            j["moduleId"] = (uint64_t)state.getModuleId();
+            j["isRootScene"] = state.getIsRootScene();
         }
     }
 
@@ -302,6 +305,10 @@ namespace Bess::JsonConvert {
             BESS_DEBUG("Added component {} with UUID {} from JSON", comp->getName(),
                        (uint64_t)comp->getUuid());
         }
+
+        state.setSceneId((UUID)j["sceneId"].asUInt64());
+        state.setModuleId((UUID)j["moduleId"].asUInt64());
+        state.setIsRootScene(j["isRootScene"].asBool());
     }
 
 } // namespace Bess::JsonConvert

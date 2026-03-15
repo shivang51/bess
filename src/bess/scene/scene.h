@@ -3,7 +3,6 @@
 #include "application/events/application_event.h"
 #include "common/bess_uuid.h"
 #include "common/types.h"
-#include "component_definition.h"
 #include "scene/camera.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -57,12 +56,13 @@ namespace Bess::Canvas {
 
         typedef std::function<void(const std::shared_ptr<Viewport> &viewport)> ViewportDrawFn;
         MAKE_GETTER_SETTER(ViewportDrawFn, ViewportDrawFn, m_viewportDrawFunc);
-        MAKE_GETTER_SETTER(UUID, SceneId, m_sceneId);
         MAKE_GETTER_SETTER(std::shared_ptr<Camera>, Camera, m_camera)
         MAKE_GETTER_SETTER(SelBoxContext, SelBoxContext, m_selBoxContext)
         MAKE_GETTER_SETTER(bool, IsFirstFrame, m_isFirstFrame)
 
       public:
+        const UUID &getSceneId() const;
+
         void addComponent(const std::shared_ptr<SceneComponent> &comp, bool setZ = true);
 
         void updateViewportTransform(const ViewportTransform &transform);
@@ -134,8 +134,6 @@ namespace Bess::Canvas {
         std::shared_ptr<Camera> m_camera = nullptr;
 
         bool m_isLeftMousePressed = false, m_isMiddleMousePressed = false;
-
-        UUID m_sceneId;
         SceneState m_state;
 
         ViewportDrawFn m_viewportDrawFunc = nullptr;

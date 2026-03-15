@@ -109,6 +109,10 @@ namespace Bess::UI {
         const auto &sceneState = sceneDriver->getState();
 
         const auto &comp = sceneState.getComponentByUuid(compId);
+        if (!comp) {
+            return;
+        }
+
         const auto &dependants = comp->getDependants(sceneState);
 
         if (Widgets::TreeNode(1,

@@ -1,6 +1,5 @@
 #include "pages/main_page/main_page.h"
 #include "asset_manager/asset_manager.h"
-#include "common/bind_helpers.h"
 #include "common/logger.h"
 #include "component_catalog.h"
 #include "events/application_event.h"
@@ -62,6 +61,7 @@ namespace Bess::Pages {
         UI::UIMain::init();
 
         auto scene = m_state.getSceneDriver().createNewScene();
+        m_state.getSceneDriver().setRootSceneId(scene->getSceneId());
 
         m_state.getSceneDriver().setActiveScene(0, false); // false to avoid infinite loop of main page init
 

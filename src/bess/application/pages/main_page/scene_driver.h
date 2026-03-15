@@ -40,10 +40,15 @@ namespace Bess {
             return m_activeScene;
         }
 
+        MAKE_GETTER_SETTER(UUID, RootSceneId, m_rootSceneId);
+
+        void makeRootSceneActive();
+
       private:
         std::shared_ptr<Canvas::Scene> m_activeScene;
         std::vector<std::shared_ptr<Canvas::Scene>> m_scenes;
         std::unordered_map<UUID, std::shared_ptr<Canvas::Scene>> m_sceneIdToSceneMap;
+        UUID m_rootSceneId{UUID::null};
         size_t m_activeSceneIdx{0};
     };
 } // namespace Bess

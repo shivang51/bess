@@ -24,7 +24,7 @@ namespace Bess::Canvas {
         auto &mainPageState = Pages::MainPage::getInstance()->getState();
         auto &sceneDriver = mainPageState.getSceneDriver();
         auto &sceneState = sceneDriver->getState();
-        auto &netCompMap = mainPageState.getNetIdToCompMap(sceneDriver->getSceneId());
+        auto &netCompMap = mainPageState.getNetIdToCompMap(sceneDriver->getState().getSceneId());
 
         if (!netCompMap.contains(netId) || netCompMap[netId].empty()) {
             BESS_WARN("[ModuleSceneComponent] No components found for netId {}, cannot create module component.",
@@ -39,9 +39,12 @@ namespace Bess::Canvas {
         auto &newSceneState = newScene->getState();
 
         auto moduleComp = std::make_shared<ModuleSceneComponent>();
-        moduleComp->setSceneId(newScene->getSceneId());
+        moduleComp->setSceneId(newSceneState.getSceneId());
         moduleComp->setName(name);
         auto &style = moduleComp->getStyle();
+
+        newSceneState.setIsRootScene(false);
+        newSceneState.setModuleId(moduleComp->getUuid());
 
         style.color = ViewportTheme::colors.componentBG;
         style.headerColor = ViewportTheme::colors.componentBG;

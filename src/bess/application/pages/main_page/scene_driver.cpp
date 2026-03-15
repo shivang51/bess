@@ -27,6 +27,7 @@ namespace Bess {
             cmdSystem.setScene(m_activeScene.get());
         }
 
+        UI::UIMain::getScenePanels().front()->setAttachedScene(m_activeScene);
         BESS_INFO("[SceneDriver] Active scene set to id {}.", (uint64_t)id);
         return m_activeScene;
     }
@@ -108,5 +109,11 @@ namespace Bess {
 
     void SceneDriver::updateNets() {
         updateNets(m_activeScene);
+    }
+
+    void SceneDriver::makeRootSceneActive() {
+        if (m_rootSceneId != UUID::null) {
+            setActiveScene(m_rootSceneId);
+        }
     }
 } // namespace Bess

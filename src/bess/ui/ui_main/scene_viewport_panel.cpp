@@ -4,8 +4,6 @@
 #include "pages/main_page/main_page.h"
 #include "scene/camera.h"
 #include "scene/scene_draw_context.h"
-#include "scene_state/components/scene_component_types.h"
-#include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui_main/ui_main.h"
@@ -101,13 +99,17 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::drawTopLeftControls() const {
-        const ImGuiContext &g = *ImGui::GetCurrentContext();
-        const auto colors = g.Style.Colors;
-        auto &simEngine = SimEngine::SimulationEngine::instance();
-        static float checkboxWidth = ImGui::CalcTextSize("W").x + g.Style.FramePadding.x + 2.f;
-        const auto textSize = ImGui::CalcTextSize("Schematic Mode");
         constexpr float windowR = 16.f;
+
+        const ImGuiContext &g = *ImGui::GetCurrentContext();
+
+        static float checkboxWidth = ImGui::CalcTextSize("W").x + g.Style.FramePadding.x + 2.f;
+        static const auto textSize = ImGui::CalcTextSize("Schematic Mode");
         static float size = textSize.x + checkboxWidth + (windowR * 2);
+
+        const auto colors = g.Style.Colors;
+
+        // Is schematic mode
         ImGui::SetNextWindowPos({m_localPos.x + g.Style.FramePadding.x,
                                  m_localPos.y + g.Style.FramePadding.y});
         ImGui::SetNextWindowSize({size, 0});
@@ -127,12 +129,32 @@ namespace Bess::UI {
         auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
         ImGui::Checkbox("##CheckBoxSchematicMode", scene->getIsSchematicViewPtr());
         ImGui::PopStyleVar();
-        if (m_isFocused) {
-            ImGui::Text("Focused");
+        ImGui::End();
+        ImGui::PopStyleColor(1);
+
+        // Scene path (root > module ...)
+        ImGui::SetNextWindowPos({m_localPos.x + g.Style.FramePadding.x + size + 8.f,
+                                 m_localPos.y + g.Style.FramePadding.y});
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
+        ImGui::SetNextWindowSize({0, 0});
+        ImGui::Begin("TopLeftViewportActions1", nullptr, NO_MOVE_FLAGS);
+        if (m_attachedScene->getState().getIsRootScene()) {
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Root");
+        } else {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+            if (ImGui::Button("Root")) {
+                Pages::MainPage::getInstance()->getState().getSceneDriver().makeRootSceneActive();
+            }
+            ImGui::PopStyleColor(1);
+            ImGui::SameLine();
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("> Module");
         }
         ImGui::End();
-        ImGui::PopStyleVar(3);
         ImGui::PopStyleColor(1);
+
+        ImGui::PopStyleVar(3);
     }
 
     void SceneViewportPanel::drawBottomControls() const {
@@ -217,7 +239,7 @@ namespace Bess::UI {
 
     void SceneViewportPanel::onSceneAttached() {
         BESS_DEBUG("[SceneVewportPanel] Scene {} attached to viewport panel '{}'",
-                   (uint64_t)m_attachedScene->getSceneId(), m_viewportName);
+                   (uint64_t)m_attachedScene->getState().getSceneId(), m_viewportName);
         m_attachedScene->setCamera(m_viewport->getCamera());
     }
 } // namespace Bess::UI

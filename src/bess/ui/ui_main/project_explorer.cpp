@@ -244,7 +244,7 @@ namespace Bess::UI {
         const auto &scene = mainPageState.getSceneDriver().getActiveScene();
 
         auto &netIdToNameMap = mainPageState.getNetIdToNameMap();
-        auto &netIdCompMap = mainPageState.getNetIdToCompMap(scene->getSceneId());
+        auto &netIdCompMap = mainPageState.getNetIdToCompMap(scene->getState().getSceneId());
 
         auto &sceneState = scene->getState();
         std::unordered_map<UUID, std::shared_ptr<Canvas::SimulationSceneComponent>> simIdToComp;

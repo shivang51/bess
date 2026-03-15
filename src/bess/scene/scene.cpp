@@ -551,4 +551,8 @@ namespace Bess::Canvas {
         }
         m_state.addComponent(comp);
     }
+
+    const UUID &Scene::getSceneId() const {
+        return m_state.getSceneId();
+    }
 } // namespace Bess::Canvas
