@@ -6,6 +6,7 @@
 #include "scene_state/components/scene_component_types.h"
 #include "settings/viewport_theme.h"
 #include "vulkan_core.h"
+#include <cstdint>
 
 namespace Bess::UI {
     uint64_t decodeGpuHoverValue(const glm::uvec2 &encodedId) {
@@ -189,21 +190,21 @@ namespace Bess::UI {
             const auto &end = selCtx.end;
             const glm::vec2 pos = {std::min(start.x, end.x), std::max(start.y, end.y)};
             const auto size = glm::abs(end - start);
-            int w = (int)size.x;
-            int h = (int)size.y;
-            int x = (int)pos.x;
-            int y = (int)(m_viewportSize.y - pos.y);
+            const auto w = (uint32_t)size.x;
+            const auto h = (uint32_t)size.y;
+            const auto x = (uint32_t)pos.x;
+            const auto y = (uint32_t)(m_viewportSize.y - pos.y);
             m_viewport->setPickingCoord(x, y, w, h);
             m_viewport->tryUpdatePickingResults();
 
             selCtx.queueForSel = false;
             selCtx.readIds = true;
-        } else if (mouseMoved && !selCtx.draw && !selCtx.readIds &&
+        } else if (!selCtx.draw && !selCtx.readIds &&
                    !m_viewport->isPickingPending()) {
             auto mousePos_ = m_attachedScene->getMousePos();
             mousePos_.y = m_viewportSize.y - mousePos_.y;
-            int x = static_cast<int>(mousePos_.x);
-            int y = static_cast<int>(mousePos_.y);
+            const uint32_t x = static_cast<uint32_t>(mousePos_.x);
+            const uint32_t y = static_cast<uint32_t>(mousePos_.y);
             m_viewport->setPickingCoord(x, y);
             m_viewport->tryUpdatePickingResults();
         }
@@ -230,7 +231,7 @@ namespace Bess::UI {
                 }
             }
 
-        } else if (mouseMoved) {
+        } else {
             const auto &ids = m_viewport->getPickingIdsResult();
             const uint64_t hoverValue = (ids.empty())
                                             ? Canvas::PickingId::invalid()
