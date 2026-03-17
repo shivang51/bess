@@ -106,14 +106,14 @@ namespace Bess::Canvas {
 
         auto outDef = simEngine.getComponentDefinition(moduleDef->getOutputId());
         auto outComps = SimulationSceneComponent::createNewAndRegister(outDef);
-        auto outComp = std::dynamic_pointer_cast<SimulationSceneComponent>(outComps.front());
-        outComp->setName("Module Output");
+        auto outSceneComp = std::dynamic_pointer_cast<SimulationSceneComponent>(outComps.front());
+        outSceneComp->setName("Module Output");
         outComps.erase(outComps.begin());
-        newSceneState.addComponent(outComp, true, false);
-        outComp->setSimEngineId(moduleDef->getOutputId()); // Fixme: a temp fix as onAttach sets its own id
+        newSceneState.addComponent(outSceneComp, true, false);
+        outSceneComp->setSimEngineId(moduleDef->getOutputId()); // Fixme: a temp fix as onAttach sets its own id
         for (const auto &outComp : outComps) {
             newSceneState.addComponent(outComp, true, false);
-            newSceneState.attachChild(outComp->getUuid(), outComp->getUuid(), false);
+            newSceneState.attachChild(outSceneComp->getUuid(), outComp->getUuid(), false);
         }
 
         return moduleComp->cast<ModuleSceneComponent>();
