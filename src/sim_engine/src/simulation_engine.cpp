@@ -557,6 +557,7 @@ namespace Bess::SimEngine {
         if (newState.isChanged && !comp->state.simError) {
             comp->state = newState;
             comp->definition->onStateChange(oldState, comp->state);
+            comp->dispatchStateChange(oldState, newState);
             BESS_LOG_EVENT("\tOutputs changed to:");
             for (auto &outp : newState.outputStates) {
                 BESS_LOG_EVENT("\t\t{}", (bool)outp.state);

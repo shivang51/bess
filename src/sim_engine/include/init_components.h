@@ -100,9 +100,11 @@ namespace Bess::SimEngine {
         outDef->setGroupName("IO");
         outDef->setBehaviorType(ComponentBehaviorType::output);
         outDef->setInputSlotsInfo({SlotsGroupType::input, true, 1, {"LSB"}, {}});
-        outDef->setSimulationFunction([](const std::vector<SlotState> &, SimTime,
+        outDef->setSimulationFunction([](const std::vector<SlotState> &inputs, SimTime,
                                          const ComponentState &prevState) -> ComponentState {
 						auto newState = prevState;
+						newState.inputStates = inputs;
+						newState.isChanged = true;
 						return newState; });
         outDef->setSimDelay(SimDelayNanoSeconds(0));
         catalog.registerComponent(outDef);

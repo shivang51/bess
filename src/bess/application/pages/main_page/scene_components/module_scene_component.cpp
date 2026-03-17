@@ -2,13 +2,28 @@
 #include "common/bess_uuid.h"
 #include "module_def.h"
 #include "pages/main_page/main_page.h"
-#include "pages/main_page/scene_components/input_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "scene/scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
+#include "types.h"
 
 namespace Bess::Canvas {
+
+    void ModuleSceneComponent::onAttach(SceneState &state) {
+        SimulationSceneComponent::onAttach(state);
+
+        const auto &simEngine = SimEngine::SimulationEngine::instance();
+        auto moduleDef = std::dynamic_pointer_cast<SimEngine::ModuleDefinition>(m_compDef);
+        auto outputDigitalComp = simEngine.getDigitalComponent(moduleDef->getOutputId());
+
+        outputDigitalComp->addOnStateChangeCB([this](const SimEngine::ComponentState &oldState,
+                                                     const SimEngine::ComponentState &newState) {
+            const auto &simEngine = SimEngine::SimulationEngine::instance();
+            auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
+            moduleDigComp->state.outputStates = newState.inputStates;
+        });
+    }
 
     std::vector<UUID> ModuleSceneComponent::cleanup(SceneState &state, UUID caller) {
         return {};

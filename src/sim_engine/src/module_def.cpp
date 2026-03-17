@@ -28,7 +28,7 @@ namespace Bess::SimEngine {
 
         const auto &outputState = simEngine.getComponentState(m_output);
         bool isChanged = false;
-        for (size_t i = 0; i < outputState.outputStates.size(); ++i) {
+        for (size_t i = 0; i < outputState.inputStates.size(); ++i) {
             newState.outputStates[i] = outputState.inputStates[i];
             if (newState.outputStates[i].state != prevState.outputStates[i].state) {
                 isChanged = true;
@@ -70,7 +70,7 @@ namespace Bess::SimEngine {
         BESS_ASSERT(inpDef, "Input component definition not found in catalog");
         moduleDef->m_input = simEngine.addComponent(inpDef);
 
-        const auto &outDef = catalog.getComponentDefinition(15124334025293992558);
+        const auto &outDef = catalog.getComponentDefinition(15124334025293992558ULL);
         BESS_ASSERT(outDef, "Output component definition not found in catalog");
         moduleDef->m_output = simEngine.addComponent(outDef);
 

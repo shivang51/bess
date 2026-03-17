@@ -162,6 +162,16 @@ namespace Bess::SimEngine {
 
         return definition->getOutputSlotsInfo().count;
     }
+
+    void DigitalComponent::addOnStateChangeCB(const TOnStateChangeCB &cb) {
+        onStateChangeCbs.push_back(cb);
+    }
+
+    void DigitalComponent::dispatchStateChange(ComponentState &oldState, ComponentState &newState) {
+        for (const auto &cb : onStateChangeCbs) {
+            cb(oldState, newState);
+        }
+    }
 } // namespace Bess::SimEngine
 
 namespace Bess::JsonConvert {

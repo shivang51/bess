@@ -22,6 +22,7 @@ namespace Bess::Canvas {
 
         void onSelect() override;
 
+        void onAttach(SceneState &state) override;
         std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;
 
         MAKE_GETTER_SETTER(UUID, SceneId, m_sceneId)

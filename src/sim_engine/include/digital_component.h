@@ -8,6 +8,8 @@
 
 namespace Bess::SimEngine {
 
+    typedef std::function<void(ComponentState &, ComponentState &)> TOnStateChangeCB;
+
     struct BESS_API DigitalComponent {
         DigitalComponent() = default;
         DigitalComponent(const DigitalComponent &) = default;
@@ -19,12 +21,18 @@ namespace Bess::SimEngine {
         size_t decrementInputCount();
         size_t decrementOutputCount();
 
+        void addOnStateChangeCB(const TOnStateChangeCB &cb);
+
+        void dispatchStateChange(ComponentState &oldState, ComponentState &newState);
+
         UUID id;
         UUID netUuid = UUID::null;
         ComponentState state;
         std::shared_ptr<ComponentDefinition> definition;
         Connections inputConnections;
         Connections outputConnections;
+
+        std::vector<TOnStateChangeCB> onStateChangeCbs;
     };
 
 } // namespace Bess::SimEngine
