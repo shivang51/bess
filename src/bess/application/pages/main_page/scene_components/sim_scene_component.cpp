@@ -383,77 +383,16 @@ namespace Bess::Canvas {
         m_isSchematicScaleDirty = false;
     }
 
-    std::vector<std::shared_ptr<SceneComponent>>
-    SimulationSceneComponent::createNewAndRegister(const std::shared_ptr<SimEngine::ComponentDefinition> &compDef) {
-        std::vector<std::shared_ptr<SceneComponent>> createdComps;
-
+    std::vector<std::shared_ptr<SceneComponent>> SimulationSceneComponent::createNewAndRegister(
+        const std::shared_ptr<SimEngine::ComponentDefinition> &compDef) {
         const bool isInput = compDef->getBehaviorType() == SimEngine::ComponentBehaviorType::input;
         const bool isOutput = compDef->getBehaviorType() == SimEngine::ComponentBehaviorType::output;
 
-        const UUID uuid;
-        std::shared_ptr<SimulationSceneComponent> sceneComp;
         if (isInput) {
-            sceneComp = std::make_shared<InputSceneComponent>();
+            return createNew<InputSceneComponent>(compDef);
         } else {
-            sceneComp = std::make_shared<SimulationSceneComponent>();
+            return createNew<SimulationSceneComponent>(compDef);
         }
-
-        createdComps.push_back(sceneComp);
-
-        // setting the name before adding to scene state, so that event listeners can access it
-        sceneComp->setName(compDef->getName());
-
-        // style
-        auto &style = sceneComp->getStyle();
-
-        style.color = ViewportTheme::colors.componentBG;
-        style.borderRadius = glm::vec4(6.f);
-        style.headerColor = ViewportTheme::getCompHeaderColor(compDef->getGroupName());
-        style.borderColor = ViewportTheme::colors.componentBorder;
-        style.borderSize = glm::vec4(1.f);
-        style.color = ViewportTheme::colors.componentBG;
-
-        const auto &inpDetails = compDef->getInputSlotsInfo();
-        const auto &outDetails = compDef->getOutputSlotsInfo();
-
-        int inSlotIdx = 0, outSlotIdx = 0;
-        char inpCh = 'A', outCh = 'a';
-
-        const auto slots = sceneComp->createIOSlots(compDef->getInputSlotsInfo().count,
-                                                    compDef->getOutputSlotsInfo().count);
-
-        for (const auto &slot : slots) {
-            if (slot->getSlotType() == SlotType::digitalInput) {
-                if (inpDetails.names.size() > inSlotIdx)
-                    slot->setName(inpDetails.names[inSlotIdx++]);
-                else
-                    slot->setName(std::string(1, inpCh++));
-            } else {
-                if (outDetails.names.size() > outSlotIdx)
-                    slot->setName(outDetails.names[outSlotIdx++]);
-                else
-                    slot->setName(std::string(1, outCh++));
-            }
-            createdComps.push_back(slot);
-        }
-
-        if (inpDetails.isResizeable) {
-            auto slot = std::make_shared<SlotSceneComponent>();
-            slot->setSlotType(SlotType::inputsResize);
-            slot->setIndex(-1); // assign -1 for resize slots
-            sceneComp->addInputSlot(slot->getUuid(), false);
-            createdComps.push_back(slot);
-        }
-
-        if (outDetails.isResizeable) {
-            auto slot = std::make_shared<SlotSceneComponent>();
-            slot->setSlotType(SlotType::outputsResize);
-            slot->setIndex(-1); // assign -1 for resize slots
-            sceneComp->addOutputSlot(slot->getUuid(), false);
-            createdComps.push_back(slot);
-        }
-
-        return createdComps;
     }
 
     void SimulationSceneComponent::onMouseDragged(const Events::MouseDraggedEvent &e) {

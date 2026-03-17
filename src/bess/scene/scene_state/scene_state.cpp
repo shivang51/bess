@@ -88,7 +88,7 @@ namespace Bess::Canvas {
         return m_rootComponents;
     }
 
-    void SceneState::attachChild(const UUID &parentId, const UUID &childId) {
+    void SceneState::attachChild(const UUID &parentId, const UUID &childId, bool emitEvent) {
         auto parent = getComponentByUuid(parentId);
         auto child = getComponentByUuid(childId);
 
@@ -110,8 +110,10 @@ namespace Bess::Canvas {
         BESS_INFO("[SceneState] Attached component {} to parent component {}",
                   (uint64_t)childId, (uint64_t)parentId);
 
-        EventSystem::EventDispatcher::instance().queue(
-            Events::EntityReparentedEvent{childId, parentId, prevParentId});
+        if (emitEvent) {
+            EventSystem::EventDispatcher::instance().queue(
+                Events::EntityReparentedEvent{childId, parentId, prevParentId});
+        }
 
         m_rootComponents.erase(childId);
     }

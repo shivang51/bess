@@ -6,6 +6,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(Header_Files
     "include/digital_component.h"
     "include/types.h"
+    "include/module_def.h"
     "include/simulation_engine.h"
     "include/sim_engine_state.h"
     "include/simulation_engine_serializer.h"
@@ -21,6 +22,7 @@ source_group("include" FILES ${Header_Files})
 set(Source_Files
     "src/simulation_engine.cpp"
 		"src/sim_engine_state.cpp"
+		"src/module_def.cpp"
     "src/simulation_engine_serializer.cpp"
     "src/digital_component.cpp"
     "src/net/net.cpp" 

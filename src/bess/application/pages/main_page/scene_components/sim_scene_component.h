@@ -2,13 +2,13 @@
 
 #include "common/bess_uuid.h"
 #include "component_definition.h"
-#include "scene/renderer/material_renderer.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/sim_scene_comp_draw_hook.h"
 #include "scene_comp_types.h"
 #include "scene_draw_context.h"
+#include "settings/viewport_theme.h"
 #include "slot_scene_component.h"
 
 #define SIM_SC_SER_PROPS ("simEngineId", getSimEngineId, setSimEngineId), \
@@ -30,6 +30,73 @@ namespace Bess::Canvas {
         // [1...] -> Created slots
         static std::vector<std::shared_ptr<SceneComponent>> createNewAndRegister(
             const std::shared_ptr<SimEngine::ComponentDefinition> &compDef);
+
+        template <typename T = SimulationSceneComponent>
+        static std::vector<std::shared_ptr<SceneComponent>> createNew(
+            const std::shared_ptr<SimEngine::ComponentDefinition> &compDef) {
+            std::vector<std::shared_ptr<SceneComponent>> createdComps;
+
+            const UUID uuid;
+            std::shared_ptr<T> sceneComp = std::make_shared<T>();
+            sceneComp->setCompDef(compDef);
+
+            createdComps.push_back(sceneComp);
+
+            // setting the name before adding to scene state, so that event listeners can access it
+            sceneComp->setName(compDef->getName());
+
+            // style
+            auto &style = sceneComp->getStyle();
+
+            style.color = ViewportTheme::colors.componentBG;
+            style.borderRadius = glm::vec4(6.f);
+            style.headerColor = ViewportTheme::getCompHeaderColor(compDef->getGroupName());
+            style.borderColor = ViewportTheme::colors.componentBorder;
+            style.borderSize = glm::vec4(1.f);
+            style.color = ViewportTheme::colors.componentBG;
+
+            const auto &inpDetails = compDef->getInputSlotsInfo();
+            const auto &outDetails = compDef->getOutputSlotsInfo();
+
+            int inSlotIdx = 0, outSlotIdx = 0;
+            char inpCh = 'A', outCh = 'a';
+
+            const auto slots = sceneComp->createIOSlots(compDef->getInputSlotsInfo().count,
+                                                        compDef->getOutputSlotsInfo().count);
+
+            for (const auto &slot : slots) {
+                if (slot->getSlotType() == SlotType::digitalInput) {
+                    if (inpDetails.names.size() > inSlotIdx)
+                        slot->setName(inpDetails.names[inSlotIdx++]);
+                    else
+                        slot->setName(std::string(1, inpCh++));
+                } else {
+                    if (outDetails.names.size() > outSlotIdx)
+                        slot->setName(outDetails.names[outSlotIdx++]);
+                    else
+                        slot->setName(std::string(1, outCh++));
+                }
+                createdComps.push_back(slot);
+            }
+
+            if (inpDetails.isResizeable) {
+                auto slot = std::make_shared<SlotSceneComponent>();
+                slot->setSlotType(SlotType::inputsResize);
+                slot->setIndex(-1); // assign -1 for resize slots
+                sceneComp->addInputSlot(slot->getUuid(), false);
+                createdComps.push_back(slot);
+            }
+
+            if (outDetails.isResizeable) {
+                auto slot = std::make_shared<SlotSceneComponent>();
+                slot->setSlotType(SlotType::outputsResize);
+                slot->setIndex(-1); // assign -1 for resize slots
+                sceneComp->addOutputSlot(slot->getUuid(), false);
+                createdComps.push_back(slot);
+            }
+
+            return createdComps;
+        }
 
         // Creates the slots and also add there ids inside the components
         // input slots array and output slots array

@@ -27,9 +27,8 @@ namespace Bess::Canvas {
                           bool dispatchEvent = true) {
             static_assert(std::is_base_of<Bess::Canvas::SceneComponent, T>(),
                           "T must be derived from SceneComponent");
-
-            if (!component ||
-                m_componentsMap.contains(component->getUuid())) {
+            BESS_ASSERT(component != nullptr, "Cannot add null component to scene");
+            if (m_componentsMap.contains(component->getUuid())) {
                 BESS_WARN("[SceneState] Component with uuid {} already exists in the scene. Skipping addComponent.",
                           (uint64_t)component->getUuid());
                 return;
@@ -99,7 +98,7 @@ namespace Bess::Canvas {
 
         const std::unordered_map<UUID, bool> &getSelectedComponents() const;
 
-        void attachChild(const UUID &parentId, const UUID &childId);
+        void attachChild(const UUID &parentId, const UUID &childId, bool emitEvent = true);
         void detachChild(const UUID &childId);
 
         void assignRuntimeId(const UUID &uuid);
