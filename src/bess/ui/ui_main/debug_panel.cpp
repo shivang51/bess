@@ -1,8 +1,11 @@
 #include "debug_panel.h"
+#include "common/bess_uuid.h"
 #include "icons/FontAwesomeIcons.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/main_page.h"
+#include "pages/main_page/scene_components/scene_comp_types.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
 #include "widgets/m_widgets.h"
 
 namespace Bess::UI {
@@ -90,7 +93,7 @@ namespace Bess::UI {
             ImGui::TreePop();
         }
 
-        if (Widgets::TreeNode(2, "First Sim Component Serilaized")) {
+        if (Widgets::TreeNode(2, "First Component Serilaized")) {
             const auto &selComps = sceneState.getSelectedComponents();
             if (!selComps.empty()) {
                 const auto &compId = selComps.begin()->first;
@@ -98,6 +101,16 @@ namespace Bess::UI {
 
                 const auto &j = comp->toJson();
                 ImGui::TextWrapped("%s", j.toStyledString().c_str());
+
+                if (comp->getType() == Canvas::SceneComponentType::module ||
+                    comp->getType() == Canvas::SceneComponentType::simulation) {
+                    const auto &simComp = comp->cast<Canvas::SimulationSceneComponent>();
+                    const auto &def = simComp->getCompDef();
+                    Json::Value defJson;
+                    JsonConvert::toJsonValue(def, defJson);
+                    ImGui::Separator();
+                    ImGui::TextWrapped("%s", defJson.toStyledString().c_str());
+                }
             }
             ImGui::TreePop();
         }

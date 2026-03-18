@@ -100,8 +100,9 @@ namespace Bess::SimEngine {
         });
     }
 
-    const UUID &SimulationEngine::addComponent(const std::shared_ptr<ComponentDefinition> &definition) {
-        auto digiComp = std::make_shared<DigitalComponent>(definition);
+    const UUID &SimulationEngine::addComponent(const std::shared_ptr<ComponentDefinition> &definition,
+                                               bool cloneDef) {
+        auto digiComp = std::make_shared<DigitalComponent>(definition, cloneDef);
         m_simEngineState.addDigitalComponent(digiComp);
 
         // create a new net for new component

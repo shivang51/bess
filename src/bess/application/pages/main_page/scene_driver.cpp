@@ -116,4 +116,12 @@ namespace Bess {
             setActiveScene(m_rootSceneId);
         }
     }
+
+    std::shared_ptr<Canvas::Scene> SceneDriver::getSceneWithId(const UUID &id) const {
+        if (!m_sceneIdToSceneMap.contains(id)) {
+            return nullptr;
+        }
+
+        return m_sceneIdToSceneMap.at(id);
+    }
 } // namespace Bess

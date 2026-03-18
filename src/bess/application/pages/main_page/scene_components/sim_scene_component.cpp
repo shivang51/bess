@@ -321,7 +321,7 @@ namespace Bess::Canvas {
         SceneComponent::onAttach(state);
         BESS_ASSERT(m_compDef, "SimSceneComp: Component definition must be set before attaching to scene");
         auto &simEngine = SimEngine::SimulationEngine::instance();
-        m_simEngineId = simEngine.addComponent(m_compDef);
+        m_simEngineId = simEngine.addComponent(m_compDef, false);
     }
 
     std::vector<UUID> SimulationSceneComponent::cleanup(SceneState &state, UUID caller) {

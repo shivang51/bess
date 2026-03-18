@@ -4,8 +4,15 @@
 #include "types.h"
 
 namespace Bess::SimEngine {
-    DigitalComponent::DigitalComponent(const std::shared_ptr<ComponentDefinition> &def) {
-        definition = def->clone();
+    DigitalComponent::DigitalComponent(const std::shared_ptr<ComponentDefinition> &def,
+                                       bool cloneDef) {
+
+        if (cloneDef) {
+            definition = def->clone();
+        } else {
+            definition = def;
+        }
+
         definition->computeExpressionsIfNeeded();
         definition->computeHash();
         state.inputStates.resize(definition->getInputSlotsInfo().count,
@@ -19,9 +26,9 @@ namespace Bess::SimEngine {
         outputConnections.resize(state.outputStates.size());
     }
 
-    size_t DigitalComponent::incrementInputCount() {
-        if (!definition->onSlotsResizeReq(SlotsGroupType::input,
-                                          definition->getInputSlotsInfo().count + 1)) {
+    size_t DigitalComponent::incrementInputCount(bool force) {
+        if (!force && !definition->onSlotsResizeReq(SlotsGroupType::input,
+                                                    definition->getInputSlotsInfo().count + 1)) {
             return definition->getInputSlotsInfo().count;
         }
 
@@ -60,6 +67,8 @@ namespace Bess::SimEngine {
             incrementOutputCount();
         }
 
+        dispatchInputSlotCountChange(definition->getInputSlotsInfo().count);
+
         EventSystem::EventDispatcher::instance().queue(
             Events::CompDefInputsResizedEvent{this->id});
 
@@ -67,9 +76,9 @@ namespace Bess::SimEngine {
         return definition->getInputSlotsInfo().count;
     }
 
-    size_t DigitalComponent::incrementOutputCount() {
-        if (!definition->onSlotsResizeReq(SlotsGroupType::output,
-                                          definition->getOutputSlotsInfo().count + 1)) {
+    size_t DigitalComponent::incrementOutputCount(bool force) {
+        if (!force && !definition->onSlotsResizeReq(SlotsGroupType::output,
+                                                    definition->getOutputSlotsInfo().count + 1)) {
             return definition->getOutputSlotsInfo().count;
         }
 
@@ -92,14 +101,16 @@ namespace Bess::SimEngine {
             incrementInputCount();
         }
 
+        dispatchOutputSlotCountChange(definition->getOutputSlotsInfo().count);
+
         EventSystem::EventDispatcher::instance().queue(
             Events::CompDefOutputsResizedEvent{this->id});
         return definition->getOutputSlotsInfo().count;
     }
 
-    size_t DigitalComponent::decrementInputCount() {
-        if (!definition->onSlotsResizeReq(SlotsGroupType::input,
-                                          definition->getInputSlotsInfo().count - 1)) {
+    size_t DigitalComponent::decrementInputCount(bool force) {
+        if (!force && !definition->onSlotsResizeReq(SlotsGroupType::input,
+                                                    definition->getInputSlotsInfo().count - 1)) {
             return definition->getInputSlotsInfo().count;
         }
 
@@ -133,14 +144,16 @@ namespace Bess::SimEngine {
             decrementOutputCount();
         }
         definition->computeHash();
+
+        dispatchInputSlotCountChange(definition->getInputSlotsInfo().count);
         EventSystem::EventDispatcher::instance().queue(
             Events::CompDefInputsResizedEvent{this->id});
         return definition->getInputSlotsInfo().count;
     }
 
-    size_t DigitalComponent::decrementOutputCount() {
-        if (!definition->onSlotsResizeReq(SlotsGroupType::output,
-                                          definition->getOutputSlotsInfo().count - 1)) {
+    size_t DigitalComponent::decrementOutputCount(bool force) {
+        if (!force && !definition->onSlotsResizeReq(SlotsGroupType::output,
+                                                    definition->getOutputSlotsInfo().count - 1)) {
             return definition->getOutputSlotsInfo().count;
         }
 
@@ -157,6 +170,10 @@ namespace Bess::SimEngine {
             decrementInputCount();
         }
 
+        definition->computeHash();
+
+        dispatchOutputSlotCountChange(definition->getOutputSlotsInfo().count);
+
         EventSystem::EventDispatcher::instance().queue(
             Events::CompDefOutputsResizedEvent{this->id});
 
@@ -167,9 +184,29 @@ namespace Bess::SimEngine {
         onStateChangeCbs.push_back(cb);
     }
 
+    void DigitalComponent::addOnOutputSlotCountChangeCB(const TOnSlotCountChangeCB &cb) {
+        onOutputSlotCountChangeCbs.push_back(cb);
+    }
+
+    void DigitalComponent::addOnInputSlotCountChangeCB(const TOnSlotCountChangeCB &cb) {
+        onInputSlotCountChangeCbs.push_back(cb);
+    }
+
     void DigitalComponent::dispatchStateChange(ComponentState &oldState, ComponentState &newState) {
         for (const auto &cb : onStateChangeCbs) {
             cb(oldState, newState);
+        }
+    }
+
+    void DigitalComponent::dispatchInputSlotCountChange(size_t newCount) {
+        for (const auto &cb : onInputSlotCountChangeCbs) {
+            cb(newCount);
+        }
+    }
+
+    void DigitalComponent::dispatchOutputSlotCountChange(size_t newCount) {
+        for (const auto &cb : onOutputSlotCountChangeCbs) {
+            cb(newCount);
         }
     }
 } // namespace Bess::SimEngine

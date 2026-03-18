@@ -48,12 +48,12 @@ namespace Bess::SimEngine {
 
         moduleDef->m_inputSlotsInfo = SlotsGroupInfo{
             .type = SlotsGroupType::input,
-            .isResizeable = true,
+            .isResizeable = false,
             .count = 1,
         };
         moduleDef->m_outputSlotsInfo = SlotsGroupInfo{
             .type = SlotsGroupType::output,
-            .isResizeable = true,
+            .isResizeable = false,
             .count = 1,
         };
 

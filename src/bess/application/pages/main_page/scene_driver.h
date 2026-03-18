@@ -15,6 +15,7 @@ namespace Bess {
         void addScene(const std::shared_ptr<Canvas::Scene> &scene);
 
         std::shared_ptr<Canvas::Scene> getSceneAtIdx(size_t index) const;
+        std::shared_ptr<Canvas::Scene> getSceneWithId(const UUID &id) const;
 
         std::shared_ptr<Canvas::Scene> createNewScene();
 

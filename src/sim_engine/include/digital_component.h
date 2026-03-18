@@ -10,20 +10,27 @@ namespace Bess::SimEngine {
 
     typedef std::function<void(ComponentState &, ComponentState &)> TOnStateChangeCB;
 
+    typedef std::function<void(size_t count)> TOnSlotCountChangeCB;
+
     struct BESS_API DigitalComponent {
         DigitalComponent() = default;
         DigitalComponent(const DigitalComponent &) = default;
-        DigitalComponent(const std::shared_ptr<ComponentDefinition> &def);
+        DigitalComponent(const std::shared_ptr<ComponentDefinition> &def,
+                         bool cloneDef = true);
 
-        size_t incrementInputCount();
-        size_t incrementOutputCount();
+        size_t incrementInputCount(bool force = false);
+        size_t incrementOutputCount(bool force = false);
 
-        size_t decrementInputCount();
-        size_t decrementOutputCount();
+        size_t decrementInputCount(bool force = false);
+        size_t decrementOutputCount(bool force = false);
 
         void addOnStateChangeCB(const TOnStateChangeCB &cb);
+        void addOnInputSlotCountChangeCB(const TOnSlotCountChangeCB &cb);
+        void addOnOutputSlotCountChangeCB(const TOnSlotCountChangeCB &cb);
 
         void dispatchStateChange(ComponentState &oldState, ComponentState &newState);
+        void dispatchInputSlotCountChange(size_t newCount);
+        void dispatchOutputSlotCountChange(size_t newCount);
 
         UUID id;
         UUID netUuid = UUID::null;
@@ -32,7 +39,10 @@ namespace Bess::SimEngine {
         Connections inputConnections;
         Connections outputConnections;
 
+      private:
         std::vector<TOnStateChangeCB> onStateChangeCbs;
+        std::vector<TOnSlotCountChangeCB> onInputSlotCountChangeCbs;
+        std::vector<TOnSlotCountChangeCB> onOutputSlotCountChangeCbs;
     };
 
 } // namespace Bess::SimEngine

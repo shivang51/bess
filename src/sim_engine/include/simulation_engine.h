@@ -26,7 +26,8 @@ namespace Bess::SimEngine {
 
         void destroy();
 
-        const UUID &addComponent(const std::shared_ptr<ComponentDefinition> &definition);
+        const UUID &addComponent(const std::shared_ptr<ComponentDefinition> &definition,
+                                 bool cloneDef = true);
 
         bool connectComponent(const UUID &src, int srcSlotIdx, SlotType srcType,
                               const UUID &dst, int dstSlotIdx, SlotType dstType, bool overrideConn = false);
