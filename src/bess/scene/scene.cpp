@@ -39,6 +39,7 @@ namespace Bess::Canvas {
         clear();
 
         m_size = glm::vec2(800.f, 600.f);
+        m_camera = std::make_shared<Camera>(m_size.x, m_size.y);
 
         m_mousePos = {0.f, 0.f};
     }

@@ -13,8 +13,6 @@ namespace Bess::Canvas {
 
         m_cmdBuffers = std::make_unique<Vulkan::VulkanCommandBuffers>(m_device, maxFrames);
 
-        m_camera = std::make_shared<Camera>(size.width, size.height);
-
         m_renderPass = std::make_shared<Vulkan::VulkanOffscreenRenderPass>(m_device, m_imgFormat, m_pickingIdFormat);
 
         m_imgView = std::make_unique<Vulkan::VulkanImageView>(m_device, m_imgFormat, m_pickingIdFormat, size);
@@ -109,7 +107,6 @@ namespace Bess::Canvas {
             cleanupPostprocessResources();
         }
         initPostprocessResources();
-        m_camera->resize((float)size.width, (float)size.height);
         m_renderers.resize(size);
     }
 
@@ -140,10 +137,6 @@ namespace Bess::Canvas {
             vkResetFences(m_device->device(), 1, &fence);
             vkDestroyFence(m_device->device(), fence, nullptr);
         }
-    }
-
-    std::shared_ptr<Camera> Viewport::getCamera() {
-        return m_camera;
     }
 
     uint64_t Viewport::getViewportTexture() {

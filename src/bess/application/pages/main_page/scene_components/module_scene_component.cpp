@@ -23,10 +23,12 @@ namespace Bess::Canvas {
 
         outputDigitalComp->addOnStateChangeCB([this](const SimEngine::ComponentState &oldState,
                                                      const SimEngine::ComponentState &newState) {
-            BESS_TRACE("OUT STATE CHANGE CALLED");
-            const auto &simEngine = SimEngine::SimulationEngine::instance();
+            auto &simEngine = SimEngine::SimulationEngine::instance();
             auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
-            moduleDigComp->state.outputStates = newState.inputStates;
+            int i = 0;
+            for (auto state : newState.inputStates) {
+                simEngine.setOutputSlotState(this->m_simEngineId, i++, state.state);
+            }
         });
 
         outputDigitalComp->addOnInputSlotCountChangeCB([this](size_t newCount) {

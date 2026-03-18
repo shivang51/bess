@@ -29,6 +29,7 @@ namespace Bess::UI {
     void SceneViewportPanel::update(TimeMs ts, const std::vector<ApplicationEvent> &events) {
         if (m_isResized) {
             m_viewport->resize(vec2Extent2D(m_viewportSize));
+            m_attachedScene->getCamera()->resize(m_viewportSize.x, m_viewportSize.y);
             m_isResized = false;
         }
 
@@ -240,6 +241,8 @@ namespace Bess::UI {
     void SceneViewportPanel::onSceneAttached() {
         BESS_DEBUG("[SceneVewportPanel] Scene {} attached to viewport panel '{}'",
                    (uint64_t)m_attachedScene->getState().getSceneId(), m_viewportName);
-        m_attachedScene->setCamera(m_viewport->getCamera());
+
+        m_attachedScene->getCamera()->resize(m_viewportSize.x, m_viewportSize.y);
+        m_viewport->setCamera(m_attachedScene->getCamera());
     }
 } // namespace Bess::UI

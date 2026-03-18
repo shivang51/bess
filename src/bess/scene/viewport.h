@@ -6,6 +6,7 @@
 #include "fwd.hpp"
 #include "renderer/material_renderer.h"
 #include "scene/camera.h"
+#include "scene_state/components/scene_component.h"
 #include "vulkan_image_view.h"
 #include "vulkan_offscreen_render_pass.h"
 #include "vulkan_postprocess_pipeline.h"
@@ -80,8 +81,6 @@ namespace Bess::Canvas {
         void submit();
         void resizePickingBuffer(VkDeviceSize newSize);
 
-        std::shared_ptr<Camera> getCamera();
-
         uint64_t getViewportTexture();
         void setPickingCoord(uint32_t x, uint32_t y, uint32_t w = 1, uint32_t h = 1);
         std::vector<glm::uvec2> getPickingIdsResult();
@@ -90,6 +89,8 @@ namespace Bess::Canvas {
         bool isPickingPending() const;
 
         std::vector<unsigned char> getPixelData();
+
+        MAKE_GETTER_SETTER(std::shared_ptr<Camera>, Camera, m_camera);
 
       private:
         void createFences(size_t count);
