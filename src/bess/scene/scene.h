@@ -105,6 +105,8 @@ namespace Bess::Canvas {
 
         void setPickingId(const PickingId &pickingId);
 
+        float getNextZCoord();
+
       private:
         /// to draw testing stuff
         void drawScratchContent(TimeMs ts, const std::shared_ptr<Viewport> &viewport);
@@ -118,8 +120,6 @@ namespace Bess::Canvas {
 
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
         bool isCursorInViewport(const glm::vec2 &pos) const;
-
-        float getNextZCoord();
 
         glm::vec2 getSnappedPos(const glm::vec2 &pos) const;
 

@@ -306,7 +306,8 @@ namespace Bess::JsonConvert {
                 simComp->setCompDef(def);
             }
 
-            state.addComponent(comp, false, false);
+            state.addComponent(comp, true, false);
+
             BESS_DEBUG("Added component {} with UUID {} from JSON", comp->getName(),
                        (uint64_t)comp->getUuid());
         }

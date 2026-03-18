@@ -320,6 +320,10 @@ namespace Bess::Canvas {
     void SimulationSceneComponent::onAttach(SceneState &state) {
         SceneComponent::onAttach(state);
         BESS_ASSERT(m_compDef, "SimSceneComp: Component definition must be set before attaching to scene");
+
+        if (m_simEngineId != UUID::null)
+            return;
+
         auto &simEngine = SimEngine::SimulationEngine::instance();
         m_simEngineId = simEngine.addComponent(m_compDef, false);
     }
@@ -332,6 +336,7 @@ namespace Bess::Canvas {
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
         simEngine.deleteComponent(m_simEngineId);
+        m_simEngineId = UUID::null;
 
         if (m_drawHook) {
             // m_drawHook.reset();
