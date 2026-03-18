@@ -95,6 +95,7 @@ namespace Bess::SimEngine {
         void clearEventsForEntity(const UUID &id);
         std::vector<SlotState> getInputSlotsState(UUID compId) const;
         bool simulateComponent(const UUID &compId, const std::vector<SlotState> &inputs);
+        void scheduleDependantsOf(const UUID &compId);
         void run();
 
         std::thread m_simThread;

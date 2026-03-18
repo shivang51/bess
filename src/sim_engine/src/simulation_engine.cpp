@@ -394,7 +394,7 @@ namespace Bess::SimEngine {
 
         comp->state.outputStates[pinIdx].state = state;
         comp->state.outputStates[pinIdx].lastChangeTime = m_currentSimTime;
-        scheduleEvent(uuid, UUID::null, m_currentSimTime + comp->definition->getSimDelay());
+        scheduleDependantsOf(uuid);
     }
 
     void SimulationEngine::invertInputSlotState(const UUID &uuid, int pinIdx) {
@@ -679,16 +679,7 @@ namespace Bess::SimEngine {
                     const auto &dc = m_simEngineState.getDigitalComponent(compId);
 
                     if (changed) {
-                        for (auto &pin : dc->outputConnections) {
-                            const auto &keyView = pin | std::views::keys;
-                            const std::set<UUID> uniqueEntities = std::set<UUID>(keyView.begin(), keyView.end());
-                            for (auto &ent : uniqueEntities) {
-                                const auto simDelay = m_simEngineState.getDigitalComponent(ent)->definition->getSimDelay();
-                                scheduleEvent(ent,
-                                              compId,
-                                              m_currentSimTime + simDelay);
-                            }
-                        }
+                        scheduleDependantsOf(compId);
                     }
 
                     if (dc->definition->getShouldAutoReschedule()) {
@@ -928,5 +919,19 @@ namespace Bess::SimEngine {
 
     SimTime SimulationEngine::getSimulationTime() const {
         return m_currentSimTime;
+    }
+
+    void SimulationEngine::scheduleDependantsOf(const UUID &compId) {
+        const auto &dc = m_simEngineState.getDigitalComponent(compId);
+        for (auto &pin : dc->outputConnections) {
+            const auto &keyView = pin | std::views::keys;
+            const std::set<UUID> uniqueEntities = std::set<UUID>(keyView.begin(), keyView.end());
+            for (auto &ent : uniqueEntities) {
+                const auto simDelay = m_simEngineState.getDigitalComponent(ent)->definition->getSimDelay();
+                scheduleEvent(ent,
+                              compId,
+                              m_currentSimTime + simDelay);
+            }
+        }
     }
 } // namespace Bess::SimEngine
