@@ -100,7 +100,7 @@ namespace Bess::UI {
                 const auto &comp = sceneState.getComponentByUuid(compId);
 
                 const auto &j = comp->toJson();
-                ImGui::TextWrapped("%s", j.toStyledString().c_str());
+                Widgets::SelectableText(compId.toString(), j.toStyledString());
 
                 if (comp->getType() == Canvas::SceneComponentType::module ||
                     comp->getType() == Canvas::SceneComponentType::simulation) {
@@ -110,7 +110,7 @@ namespace Bess::UI {
                     Json::Value defJson;
                     JsonConvert::toJsonValue(def, defJson);
                     ImGui::Separator();
-                    ImGui::TextWrapped("%s", defJson.toStyledString().c_str());
+                    Widgets::SelectableText(std::to_string(def->getHash()), defJson.toStyledString());
                 }
             }
             ImGui::TreePop();

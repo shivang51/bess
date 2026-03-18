@@ -7,6 +7,9 @@
 #include <string>
 
 namespace Bess::UI::Widgets {
+
+    void SelectableText(const std::string &id, const std::string &text);
+
     bool TextBox(const std::string &label, std::string &value, const std::string &hintText = "");
 
     template <typename T>

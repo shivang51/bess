@@ -416,4 +416,12 @@ namespace Bess::UI::Widgets {
         ImGui::PopID();
         return {opened, clicked};
     }
+
+    void SelectableText(const std::string &id, const std::string &text) {
+        ImGui::InputTextMultiline(std::format("##{}", id).c_str(),
+                                  (char *)text.data(),
+                                  text.size() + 1,
+                                  ImVec2(0, 800),
+                                  ImGuiInputTextFlags_ReadOnly);
+    }
 } // namespace Bess::UI::Widgets
