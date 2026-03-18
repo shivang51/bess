@@ -1,6 +1,9 @@
 #include "sim_engine_state.h"
 #include "common/logger.h"
 #include "component_catalog.h"
+#include "module_def.h"
+#include "types.h"
+#include <memory>
 
 namespace Bess::SimEngine {
     SimEngineState::SimEngineState() = default;
@@ -80,17 +83,31 @@ namespace Bess::JsonConvert {
         for (const auto &compJson : j["digital_components"]) {
             auto comp = std::make_shared<SimEngine::DigitalComponent>();
             JsonConvert::fromJsonValue(compJson, *comp);
-            if (!compCatalog.isRegistered(comp->definition->getBaseHash())) {
-                BESS_ERROR("Component definition with hash {} is not registered in the catalog. Skipping.",
-                           comp->definition->getBaseHash());
-                continue;
+
+            bool isModule = compJson["definition"].isMember("is_module");
+
+            if (isModule) {
+                auto moduleDef = std::dynamic_pointer_cast<SimEngine::ModuleDefinition>(comp->definition);
+                auto simFn = [moduleDef](const std::vector<SimEngine::SlotState> &inputs,
+                                         SimEngine::SimTime simTime,
+                                         const SimEngine::ComponentState &prevState) {
+                    return moduleDef->simulationFunction(inputs, simTime, prevState);
+                };
+                comp->definition->setSimulationFunction(simFn);
+            } else {
+                if (!compCatalog.isRegistered(comp->definition->getBaseHash())) {
+                    BESS_ERROR("Component definition with hash {} is not registered in the catalog. Skipping.",
+                               comp->definition->getBaseHash());
+                    continue;
+                }
+
+                auto baseDef = compCatalog.getComponentDefinition(comp->definition->getBaseHash())->clone();
+                baseDef->setInputSlotsInfo(comp->definition->getInputSlotsInfo());
+                baseDef->setOutputSlotsInfo(comp->definition->getOutputSlotsInfo());
+
+                comp->definition = std::move(baseDef);
             }
 
-            auto baseDef = compCatalog.getComponentDefinition(comp->definition->getBaseHash())->clone();
-            baseDef->setInputSlotsInfo(comp->definition->getInputSlotsInfo());
-            baseDef->setOutputSlotsInfo(comp->definition->getOutputSlotsInfo());
-
-            comp->definition = std::move(baseDef);
             if (comp->definition->getAuxData().has_value()) {
                 comp->state.auxData = &comp->definition->getAuxData();
             }

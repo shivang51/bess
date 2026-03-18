@@ -20,3 +20,10 @@ namespace Bess::SimEngine {
         UUID m_input = UUID::null, m_output = UUID::null;
     };
 } // namespace Bess::SimEngine
+
+REFLECT_DERIVED_PROPS(Bess::SimEngine::ModuleDefinition,
+                      Bess::SimEngine::ComponentDefinition,
+                      ("input", getInputId, setInputId),
+                      ("output", getOutputId, setOutputId))
+
+REFLECT_PROPS_SP(Bess::SimEngine::ModuleDefinition);

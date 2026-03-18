@@ -270,10 +270,11 @@ namespace Bess::JsonConvert {
 
         for (const auto &[uuid, component] : state.getAllComponents()) {
             j["components"].append(component->toJson());
-            j["sceneId"] = (uint64_t)state.getSceneId();
-            j["moduleId"] = (uint64_t)state.getModuleId();
-            j["isRootScene"] = state.getIsRootScene();
         }
+
+        JsonConvert::toJsonValue(state.getSceneId(), j["sceneId"]);
+        JsonConvert::toJsonValue(state.getModuleId(), j["moduleId"]);
+        j["isRootScene"] = state.getIsRootScene();
     }
 
     void fromJsonValue(const Json::Value &j, Bess::Canvas::SceneState &state) {
@@ -297,10 +298,12 @@ namespace Bess::JsonConvert {
                 continue;
             }
 
-            if (comp->getType() == Canvas::SceneComponentType::simulation) {
+            if (comp->getType() == Canvas::SceneComponentType::module ||
+                comp->getType() == Canvas::SceneComponentType::simulation) {
                 const auto &simComp = comp->cast<Canvas::SimulationSceneComponent>();
                 const auto &def = simEngine.getComponentDefinition(simComp->getSimEngineId());
-                simComp->setCompDef(def->clone());
+                BESS_ASSERT(def, "Definition not found in sim engine");
+                simComp->setCompDef(def);
             }
 
             state.addComponent(comp, false, false);
@@ -308,8 +311,8 @@ namespace Bess::JsonConvert {
                        (uint64_t)comp->getUuid());
         }
 
-        state.setSceneId((UUID)j["sceneId"].asUInt64());
-        state.setModuleId((UUID)j["moduleId"].asUInt64());
+        JsonConvert::fromJsonValue(j["sceneId"], state.getSceneId());
+        JsonConvert::fromJsonValue(j["moduleId"], state.getModuleId());
         state.setIsRootScene(j["isRootScene"].asBool());
     }
 

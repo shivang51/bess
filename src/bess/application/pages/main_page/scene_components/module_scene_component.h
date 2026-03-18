@@ -4,6 +4,10 @@
 #include "scene/scene_state/components/scene_component.h"
 #include "scene_comp_types.h"
 
+#define MODULE_SER_PROPS ("sceneId", getSceneId, setSceneId),                   \
+                         ("associatedInp", getAssociatedInp, setAssociatedInp), \
+                         ("associatedOut", getAssociatedOut, setAssociatedOut)
+
 namespace Bess::Canvas {
     class ModuleSceneComponent : public SimulationSceneComponent {
       public:
@@ -15,10 +19,9 @@ namespace Bess::Canvas {
                                                              const std::string &name = "New Module");
 
         REG_SCENE_COMP_TYPE("ModuleSceneComponent", SceneComponentType::module)
-        SCENE_COMP_SER_NP(Bess::Canvas::ModuleSceneComponent, Bess::Canvas::SimulationSceneComponent)
-
-        // void draw(SceneDrawContext &context) override;
-        // void update(TimeMs frameTime, SceneState &state) override;
+        SCENE_COMP_SER(Bess::Canvas::ModuleSceneComponent,
+                       Bess::Canvas::SimulationSceneComponent,
+                       MODULE_SER_PROPS)
 
         void onSelect() override;
 
@@ -37,4 +40,6 @@ namespace Bess::Canvas {
     };
 } // namespace Bess::Canvas
 
-REG_SCENE_COMP_NP(Bess::Canvas::ModuleSceneComponent, Bess::Canvas::SimulationSceneComponent)
+REG_SCENE_COMP(Bess::Canvas::ModuleSceneComponent,
+               Bess::Canvas::SimulationSceneComponent,
+               MODULE_SER_PROPS)

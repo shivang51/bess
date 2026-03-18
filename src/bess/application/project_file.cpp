@@ -1,14 +1,17 @@
 #include "application/project_file.h"
 #include "common/bess_assert.h"
+#include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "plugin_manager.h"
 
 #include "pages/main_page/main_page.h"
+#include "scene.h"
 #include "simulation_engine.h"
 #include "ui/ui_main/dialogs.h"
 
+#include "json/value.h"
 #include <fstream>
 
 namespace Bess {
@@ -71,9 +74,15 @@ namespace Bess {
         data["scene_data"] = Json::objectValue;
         data["sim_engine_data"] = Json::objectValue;
 
-        auto scene = Pages::MainPage::getInstance()->getState().getSceneDriver().getActiveScene();
+        const auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
+        JsonConvert::toJsonValue(sceneDriver.getRootSceneId(), data["scene_data"]["root_scene_id"]);
 
-        m_sceneSerializer.serialize(data["scene_data"], scene);
+        data["scene_data"]["scenes"] = Json::arrayValue;
+        for (const auto &scene : sceneDriver.getScenes()) {
+            m_sceneSerializer.serialize(data["scene_data"]["scenes"].append(Json::objectValue),
+                                        scene);
+        }
+
         m_simEngineSerializer.serialize(data["sim_engine_data"]);
 
         if (std::ofstream outFile(m_path, std::ios::out); outFile.is_open()) {
@@ -115,31 +124,45 @@ namespace Bess {
 
         // make sure to decode scene after sim engine,
         // as scene components may depend on sim engine components
-        auto scene = Pages::MainPage::getInstance()->getState().getSceneDriver().getActiveScene();
         if (data.isMember("scene_data")) {
-            m_sceneSerializer.deserialize(data["scene_data"], scene);
-        }
+            auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
 
-        auto &simEngine = SimEngine::SimulationEngine::instance();
+            sceneDriver.removeScenes();
 
-        auto &sceneState = scene->getState();
+            BESS_DEBUG("[Decode] Cleared Scenes. count = {}", sceneDriver.getSceneCount());
 
-        const auto &pluginManager = Plugins::PluginManager::getInstance();
+            auto &simEngine = SimEngine::SimulationEngine::instance();
 
-        float maxZ = 0;
+            const auto &pluginManager = Plugins::PluginManager::getInstance();
 
-        for (const auto &[uuid, comp] : sceneState.getAllComponents()) {
-            maxZ = std::max(comp->getTransform().position.z, maxZ);
-            if (comp->getType() == Canvas::SceneComponentType::simulation) {
-                auto simComp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(uuid);
-                const auto &compDef = simEngine.getComponentDefinition(simComp->getSimEngineId());
-                if (scene->hasPluginDrawHookForComponentHash(compDef->getBaseHash())) {
-                    simComp->setDrawHook(scene->getPluginDrawHookForComponentHash(compDef->getBaseHash()));
+            // decoding scenes
+            for (auto &sceneJson : data["scene_data"]["scenes"]) {
+                auto scene = std::make_shared<Canvas::Scene>();
+                m_sceneSerializer.deserialize(sceneJson, scene);
+                sceneDriver.addScene(scene);
+
+                auto &sceneState = scene->getState();
+
+                float maxZ = 0;
+                for (const auto &[uuid, comp] : sceneState.getAllComponents()) {
+                    maxZ = std::max(comp->getTransform().position.z, maxZ);
+                    if (comp->getType() == Canvas::SceneComponentType::simulation) {
+                        auto simComp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(uuid);
+                        const auto &compDef = simEngine.getComponentDefinition(simComp->getSimEngineId());
+                        if (scene->hasPluginDrawHookForComponentHash(compDef->getBaseHash())) {
+                            simComp->setDrawHook(scene->getPluginDrawHookForComponentHash(compDef->getBaseHash()));
+                        }
+                    }
                 }
+                scene->setZCoord(maxZ);
+                BESS_INFO("[Decode] Added new scene");
             }
-        }
 
-        scene->setZCoord(maxZ);
+            // setting root scene id
+            JsonConvert::fromJsonValue(data["scene_data"]["root_scene_id"], sceneDriver.getRootSceneId());
+
+            sceneDriver.makeRootSceneActive();
+        }
     }
 
     void ProjectFile::browsePath() {

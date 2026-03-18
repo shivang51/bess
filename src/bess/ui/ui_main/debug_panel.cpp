@@ -106,6 +106,7 @@ namespace Bess::UI {
                     comp->getType() == Canvas::SceneComponentType::simulation) {
                     const auto &simComp = comp->cast<Canvas::SimulationSceneComponent>();
                     const auto &def = simComp->getCompDef();
+                    BESS_ASSERT(def, "[DEBUGPANEL] def not set");
                     Json::Value defJson;
                     JsonConvert::toJsonValue(def, defJson);
                     ImGui::Separator();

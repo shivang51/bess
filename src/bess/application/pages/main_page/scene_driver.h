@@ -22,6 +22,8 @@ namespace Bess {
         std::shared_ptr<Canvas::Scene> setActiveScene(size_t index, bool updateCmdSys = true);
         std::shared_ptr<Canvas::Scene> setActiveScene(UUID id, bool updateCmdSys = true);
 
+        void removeScenes();
+
         size_t getActiveSceneIdx() const;
 
         size_t getSceneCount() const;
@@ -42,6 +44,7 @@ namespace Bess {
         }
 
         MAKE_GETTER_SETTER(UUID, RootSceneId, m_rootSceneId);
+        MAKE_GETTER_SETTER(std::vector<std::shared_ptr<Canvas::Scene>>, Scenes, m_scenes);
 
         void makeRootSceneActive();
 

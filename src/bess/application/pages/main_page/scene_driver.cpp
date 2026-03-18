@@ -124,4 +124,12 @@ namespace Bess {
 
         return m_sceneIdToSceneMap.at(id);
     }
+
+    void SceneDriver::removeScenes() {
+        m_scenes.clear();
+        m_sceneIdToSceneMap.clear();
+        m_rootSceneId = UUID::null;
+        m_activeScene = nullptr;
+        m_activeSceneIdx = 0;
+    }
 } // namespace Bess

@@ -57,6 +57,7 @@ namespace Bess::Pages {
         REG_TO_SER_REGISTRY(Canvas::SlotSceneComponent);
         REG_TO_SER_REGISTRY(Canvas::TextComponent);
         REG_TO_SER_REGISTRY(Canvas::SlotProbeSceneComponent);
+        REG_TO_SER_REGISTRY(Canvas::ModuleSceneComponent);
 
         UI::UIMain::init();
 

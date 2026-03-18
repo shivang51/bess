@@ -23,6 +23,7 @@ namespace Bess::Canvas {
 
         outputDigitalComp->addOnStateChangeCB([this](const SimEngine::ComponentState &oldState,
                                                      const SimEngine::ComponentState &newState) {
+            BESS_TRACE("OUT STATE CHANGE CALLED");
             const auto &simEngine = SimEngine::SimulationEngine::instance();
             auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
             moduleDigComp->state.outputStates = newState.inputStates;
@@ -128,7 +129,7 @@ namespace Bess::Canvas {
         auto comps = SimulationSceneComponent::createNew<ModuleSceneComponent>(moduleDef);
         BESS_TRACE("Created module component with {} subcomponents", comps.size());
 
-        auto moduleComp = comps.front();
+        auto moduleComp = std::dynamic_pointer_cast<ModuleSceneComponent>(comps.front());
         comps.erase(comps.begin());
         sceneState.addComponent(moduleComp);
         for (const auto &comp : comps) {
@@ -136,6 +137,7 @@ namespace Bess::Canvas {
             sceneState.attachChild(moduleComp->getUuid(), comp->getUuid());
         }
 
+        moduleComp->setSceneId(newSceneState.getSceneId());
         newSceneState.setModuleId(moduleComp->getUuid());
 
         auto &style = moduleComp->getStyle();
