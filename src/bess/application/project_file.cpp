@@ -101,7 +101,7 @@ namespace Bess {
     void ProjectFile::decode() {
         std::ifstream inFile(m_path);
         if (!inFile.is_open()) {
-            std::cerr << "Failed to open file for reading: " << m_path << std::endl;
+            BESS_ERROR("Failed to open file for reading: {}", m_path);
             return;
         }
         Json::Value data;
@@ -111,8 +111,7 @@ namespace Bess {
         bool parsingSuccessful = Json::parseFromStream(builder, inFile, &data, &errs);
 
         if (!parsingSuccessful) {
-            std::cerr << "Failed to parse JSON from " << m_path << ":" << std::endl
-                      << errs << std::endl;
+            BESS_ERROR("Failed to parse JSON from {}\n{}", m_path, errs);
             return;
         }
 
