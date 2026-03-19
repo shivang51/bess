@@ -133,7 +133,7 @@ namespace Bess {
                                            ? MouseButtonAction::press
                                            : MouseButtonAction::release;
 
-                cb(btn, btnAction);
+                cb(btn, btnAction, this_->getMousePos());
             });
 
         glfwSetCursorPosCallback(
@@ -142,6 +142,7 @@ namespace Bess {
                 if (!this_->m_callbacks.contains(Callback::MouseMove))
                     return;
                 const auto cb = std::any_cast<MouseMoveCallback>(this_->m_callbacks[Callback::MouseMove]);
+
                 cb(x, y);
             });
     }

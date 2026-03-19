@@ -22,7 +22,6 @@ namespace Bess::Pages {
     struct LastMouseButtonEvent {
         std::chrono::time_point<std::chrono::steady_clock> timestamp;
         ApplicationEvent::MouseButtonData data;
-        bool processed = true;
     };
 
     class MainPage : public Page {
@@ -67,6 +66,8 @@ namespace Bess::Pages {
         MainPageState m_state;
 
         bool m_isDestroyed = false;
+
+        int m_clickCount = 0;
 
         std::vector<CopiedComponent> m_copiedComponents;
     };

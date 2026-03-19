@@ -1,8 +1,10 @@
 #include "pages/main_page/main_page.h"
 #include "asset_manager/asset_manager.h"
 #include "common/logger.h"
+#include "common/types.h"
 #include "component_catalog.h"
 #include "events/application_event.h"
+#include "geometric.hpp"
 #include "macro_command.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/cmds/delete_comp_cmd.h"
@@ -27,6 +29,7 @@
 #include "ui/ui_main/ui_main.h"
 #include "vulkan_core.h"
 #include <GLFW/glfw3.h>
+#include <chrono>
 #include <memory>
 #include <ranges>
 
@@ -125,27 +128,25 @@ namespace Bess::Pages {
 
         const bool imguiWantsKeyboard = ImGui::GetIO().WantTextInput;
 
-        bool isDoubleClick = false;
-
         for (const auto &event : events) {
             switch (event.getType()) {
             case Bess::ApplicationEventType::MouseButton: {
                 const auto data = event.getData<ApplicationEvent::MouseButtonData>();
-                if (m_lastMouseButtonEvent.processed && data.action == MouseButtonAction::press) {
-                    m_lastMouseButtonEvent.timestamp = std::chrono::steady_clock::now();
-                    m_lastMouseButtonEvent.data = data;
-                    m_lastMouseButtonEvent.processed = false;
+                if (data.action != MouseButtonAction::press)
+                    continue;
+
+                const bool isSameBtn = data.button == m_lastMouseButtonEvent.data.button;
+                const float dis = glm::distance(data.pos, m_lastMouseButtonEvent.data.pos);
+                const auto timeDif = std::chrono::steady_clock::now() - m_lastMouseButtonEvent.timestamp;
+
+                if (isSameBtn && dis <= 5.f && timeDif < TimeMs(500)) {
+                    m_clickCount++;
                 } else {
-                    if (data.action == m_lastMouseButtonEvent.data.action) {
-                        const auto diff = std::chrono::steady_clock::now() - m_lastMouseButtonEvent.timestamp;
-                        if (diff < std::chrono::milliseconds(500) &&
-                            data.action == MouseButtonAction::press &&
-                            m_lastMouseButtonEvent.data.button == data.button) {
-                            isDoubleClick = true;
-                        }
-                        m_lastMouseButtonEvent.processed = true;
-                    }
+                    m_clickCount = 1;
                 }
+
+                m_lastMouseButtonEvent.timestamp = std::chrono::steady_clock::now();
+                m_lastMouseButtonEvent.data = data;
             } break;
             case ApplicationEventType::KeyPress: {
                 const auto data = event.getData<ApplicationEvent::KeyPressData>();
@@ -162,7 +163,7 @@ namespace Bess::Pages {
             }
         }
 
-        if (isDoubleClick) {
+        if (m_clickCount == 2) {
             auto data = m_lastMouseButtonEvent.data;
             data.action = MouseButtonAction::doubleClick;
             ApplicationEvent event(ApplicationEventType::MouseButton, data);
