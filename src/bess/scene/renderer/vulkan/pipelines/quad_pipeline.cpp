@@ -151,11 +151,13 @@ namespace Bess::Vulkan::Pipelines {
             needsUpdate = std::memcmp(m_cachedTextureInfos[m_texDescSetIdx].data(), m_textureInfos.data(), sizeof(VkDescriptorImageInfo) * m_textureInfos.size()) != 0;
         }
         if (needsUpdate) {
+            VkDescriptorSet textureSet = getTextureArraySet(m_texDescSetIdx);
+            BESS_ASSERT(textureSet != VK_NULL_HANDLE, "Texture descriptor set must be valid");
             std::vector<VkWriteDescriptorSet> writes;
             writes.reserve(m_textureInfos.size());
             for (uint32_t i = 0; i < m_textureInfos.size(); i++) {
                 VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-                write.dstSet = getTextureArraySet(m_texDescSetIdx);
+                write.dstSet = textureSet;
                 write.dstBinding = 2;
                 write.dstArrayElement = i;
                 write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -194,6 +196,20 @@ namespace Bess::Vulkan::Pipelines {
             m_buffers.instanceBufferMemory = VK_NULL_HANDLE;
         }
 
+        for (auto buffer : m_buffers.retiredInstanceBuffers) {
+            if (buffer != VK_NULL_HANDLE) {
+                vkDestroyBuffer(m_device->device(), buffer, nullptr);
+            }
+        }
+        m_buffers.retiredInstanceBuffers.clear();
+
+        for (auto memory : m_buffers.retiredInstanceMemories) {
+            if (memory != VK_NULL_HANDLE) {
+                vkFreeMemory(m_device->device(), memory, nullptr);
+            }
+        }
+        m_buffers.retiredInstanceMemories.clear();
+
         if (m_textureArrayDescriptorPool != VK_NULL_HANDLE) {
             vkDestroyDescriptorPool(m_device->device(), m_textureArrayDescriptorPool, nullptr);
         }
@@ -201,6 +217,9 @@ namespace Bess::Vulkan::Pipelines {
         if (m_textureArrayLayout != VK_NULL_HANDLE) {
             vkDestroyDescriptorSetLayout(m_device->device(), m_textureArrayLayout, nullptr);
         }
+
+        m_cachedTextureInfos.clear();
+        m_tempDescSets.reset(m_device->device());
 
         Pipeline::cleanup();
     }
@@ -452,42 +471,7 @@ namespace Bess::Vulkan::Pipelines {
     }
 
     void QuadPipeline::ensureQuadInstanceCapacity(size_t instanceCount) {
-        if (instanceCount <= m_buffers.instanceCapacity) {
-            return; // Already have enough capacity
-        }
-
-        // Destroy old instance buffer if it exists
-        if (m_buffers.instanceBuffer != VK_NULL_HANDLE) {
-            vkDestroyBuffer(m_device->device(), m_buffers.instanceBuffer, nullptr);
-            vkFreeMemory(m_device->device(), m_buffers.instanceBufferMemory, nullptr);
-        }
-
-        // Create new instance buffer with required capacity
-        VkDeviceSize size = sizeof(QuadInstance) * instanceCount;
-        VkBufferCreateInfo bi{};
-        bi.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bi.size = size;
-        bi.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-        bi.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        if (vkCreateBuffer(m_device->device(), &bi, nullptr, &m_buffers.instanceBuffer) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create quad instance buffer!");
-        }
-        VkMemoryRequirements req{};
-        vkGetBufferMemoryRequirements(m_device->device(), m_buffers.instanceBuffer, &req);
-        VkMemoryAllocateInfo ai{};
-        ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        ai.allocationSize = req.size;
-        ai.memoryTypeIndex = m_device->findMemoryType(req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        if (vkAllocateMemory(m_device->device(), &ai, nullptr, &m_buffers.instanceBufferMemory) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate quad instance buffer memory!");
-        }
-        vkBindBufferMemory(m_device->device(), m_buffers.instanceBuffer, m_buffers.instanceBufferMemory, 0);
-
-        void *mappedPtr = nullptr;
-        vkMapMemory(m_device->device(), m_buffers.instanceBufferMemory, 0, size, 0, &mappedPtr);
-        m_buffers.instanceBufferMapped = mappedPtr;
-
-        m_buffers.instanceCapacity = instanceCount;
+        ensureInstanceCapacity(m_buffers, instanceCount, sizeof(QuadInstance));
     }
 
     VkDescriptorPool QuadPipeline::createDescriptorPool(uint32_t maxSets, uint32_t descriptorCount) {
@@ -556,7 +540,7 @@ namespace Bess::Vulkan::Pipelines {
         createDescriptorSets(m_texArraySize, m_texArraySetsCount, m_textureArrayDescriptorPool, m_textureArrayLayout, m_textureArraySets);
     }
 
-    VkDescriptorSet QuadPipeline::getTextureArraySet(uint8_t idx) {
+    VkDescriptorSet QuadPipeline::getTextureArraySet(size_t idx) {
         if (isTexArraySetAvailable(idx))
             return m_textureArraySets[idx];
 
@@ -582,25 +566,25 @@ namespace Bess::Vulkan::Pipelines {
         }
         m_texArraySetsCount = size;
         m_textureArraySets.clear();
-        m_textureArrayDescriptorPool = createDescriptorPool(m_texArraySetsCount * maxFrames, m_texArraySize * m_texArraySetsCount * maxFrames);
-        createDescriptorSets(m_texArraySize, m_texArraySetsCount * maxFrames, m_textureArrayDescriptorPool, m_textureArrayLayout, m_textureArraySets);
+        m_cachedTextureInfos.clear();
+        m_textureArrayDescriptorPool = createDescriptorPool(m_texArraySetsCount, m_texArraySize * m_texArraySetsCount);
+        createDescriptorSets(m_texArraySize, m_texArraySetsCount, m_textureArrayDescriptorPool, m_textureArrayLayout, m_textureArraySets);
 
         BESS_INFO("[QuadPipeline] Resized texture array descriptor sets to size {}", m_texArraySetsCount);
     }
 
     void QuadPipeline::cleanPrevStateCounter() {
         Pipeline::cleanPrevStateCounter();
-        const auto texSetsCount = m_texArraySetsCount; // VIL, do not remove
         if (m_tempDescSets.maxExhaustedSize != 0) {
             const size_t required = m_texArraySetsCount + m_tempDescSets.maxExhaustedSize;
             size_t headroom = std::max<size_t>(m_texSetsMinHeadroom, required / 2);
             // Compute target without narrowing: cast growthFactor to double for precision
             const double scaled = static_cast<double>(required) * static_cast<double>(m_texSetsGrowthFactor);
             size_t target = std::min<size_t>(static_cast<size_t>(scaled) + headroom, static_cast<size_t>(m_texSetsMaxCap));
-            resizeTexArrayDescriptorPool(target * maxFrames);
+            resizeTexArrayDescriptorPool(target);
             m_tempDescSets.reset(m_device->device());
         }
-        m_texDescSetIdx = m_currentFrameIndex * (texSetsCount / maxFrames);
+        m_texDescSetIdx = static_cast<uint32_t>(textureSetFrameBase());
     }
 
     void QuadPipeline::setTextureSetGrowthPolicy(float growthFactor, uint32_t minHeadroom, uint32_t maxSetsCap) {
@@ -665,8 +649,22 @@ namespace Bess::Vulkan::Pipelines {
     }
 
     bool QuadPipeline::isTexArraySetAvailable(size_t idx) const {
-        size_t limit = (m_currentFrameIndex + 1) * (m_texArraySetsCount / maxFrames);
-        return idx < limit && m_textureArraySets.size() > idx && m_textureArraySets[idx] != VK_NULL_HANDLE;
+        return idx >= textureSetFrameBase() &&
+               idx < textureSetFrameLimit() &&
+               idx < m_textureArraySets.size() &&
+               m_textureArraySets[idx] != VK_NULL_HANDLE;
+    }
+
+    size_t QuadPipeline::textureSetsPerFrame() const {
+        return std::max<size_t>(1, m_texArraySetsCount / maxFrames);
+    }
+
+    size_t QuadPipeline::textureSetFrameBase() const {
+        return static_cast<size_t>(m_currentFrameIndex) * textureSetsPerFrame();
+    }
+
+    size_t QuadPipeline::textureSetFrameLimit() const {
+        return textureSetFrameBase() + textureSetsPerFrame();
     }
 
 } // namespace Bess::Vulkan::Pipelines

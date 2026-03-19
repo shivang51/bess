@@ -55,10 +55,13 @@ namespace Bess::Vulkan::Pipelines {
 
         bool isTexArraySetAvailable(size_t idx) const;
 
-        VkDescriptorSet getTextureArraySet(uint8_t idx);
+        VkDescriptorSet getTextureArraySet(size_t idx);
 
         void resizeTexArrayDescriptorPool(uint64_t size);
         void setTextureSetGrowthPolicy(float growthFactor, uint32_t minHeadroom, uint32_t maxSetsCap);
+        size_t textureSetsPerFrame() const;
+        size_t textureSetFrameBase() const;
+        size_t textureSetFrameLimit() const;
 
         VkDescriptorPool createDescriptorPool(uint32_t maxSets, uint32_t descriptorCount);
         void createDescriptorSets(uint32_t descCount, uint32_t setsCount,
@@ -112,7 +115,7 @@ namespace Bess::Vulkan::Pipelines {
         VkDescriptorSetLayout m_textureArrayLayout = VK_NULL_HANDLE;
         std::unique_ptr<VulkanTexture> m_fallbackTexture;
         std::array<VkDescriptorImageInfo, m_texArraySize> m_textureInfos;
-        std::unordered_map<uint32_t, std::array<VkDescriptorImageInfo, m_texArraySize>> m_cachedTextureInfos;
+        std::unordered_map<size_t, std::array<VkDescriptorImageInfo, m_texArraySize>> m_cachedTextureInfos;
 
         bool m_isTranslucentFlow = false;
         uint32_t m_texDescSetIdx = 0;
