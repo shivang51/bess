@@ -23,7 +23,7 @@ namespace Bess::Canvas {
                        Bess::Canvas::SimulationSceneComponent,
                        MODULE_SER_PROPS)
 
-        void onSelect() override;
+        void onMouseButton(const Events::MouseButtonEvent &e) override;
 
         void onAttach(SceneState &state) override;
         std::vector<UUID> cleanup(SceneState &state, UUID caller = UUID::null) override;

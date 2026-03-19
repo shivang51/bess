@@ -104,9 +104,6 @@ namespace Bess::Canvas {
         return {};
     }
 
-    void ModuleSceneComponent::onSelect() {
-    }
-
     std::shared_ptr<ModuleSceneComponent> ModuleSceneComponent::fromNet(const UUID &netId,
                                                                         const std::string &name) {
 
@@ -214,4 +211,11 @@ namespace Bess::Canvas {
         return moduleComp->cast<ModuleSceneComponent>();
     }
 
+    void ModuleSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {
+        if (e.button == Canvas::Events::MouseButton::left &&
+            e.action == Canvas::Events::MouseClickAction::doubleClick) {
+            auto &driver = Pages::MainPage::getInstance()->getState().getSceneDriver();
+            driver.setActiveScene(m_sceneId);
+        }
+    }
 } // namespace Bess::Canvas

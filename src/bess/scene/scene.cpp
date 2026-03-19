@@ -82,7 +82,7 @@ namespace Bess::Canvas {
                 const auto data = event.getData<ApplicationEvent::MouseButtonData>();
                 if (data.button == MouseButton::left) {
                     if (data.action == MouseButtonAction::doubleClick) {
-                        BESS_INFO("[Scene] Left mouse double click at ({}, {})", m_mousePos.x, m_mousePos.y);
+                        onLeftDoubleClick();
                     } else {
                         onLeftMouse(data.action == MouseButtonAction::press);
                     }

@@ -16,6 +16,10 @@ namespace Bess {
             return nullptr;
         }
 
+        if (m_activeScene) {
+            m_activeScene->getState().clearSelectedComponents();
+        }
+
         m_activeScene = m_sceneIdToSceneMap.at(id);
         m_activeSceneIdx = std::distance(m_scenes.begin(), std::ranges::find_if(m_scenes,
                                                                                 [&](const std::shared_ptr<Canvas::Scene> &scene) {
@@ -34,6 +38,9 @@ namespace Bess {
 
     std::shared_ptr<Canvas::Scene> SceneDriver::setActiveScene(size_t index, bool updateCmdSys) {
         if (index < m_scenes.size()) {
+            if (m_activeScene) {
+                m_activeScene->getState().clearSelectedComponents();
+            }
             m_activeScene = m_scenes.at(index);
             m_activeSceneIdx = index;
             if (updateCmdSys) {
