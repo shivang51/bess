@@ -225,6 +225,14 @@ namespace Bess::Renderer {
         }
     }
 
+    void MaterialRenderer::drawIcon(const std::string &text, const glm::vec3 &pos, const size_t size,
+                                    const glm::vec4 &color, const uint64_t &id, float angle) {
+
+        if (m_textRenderer) {
+            m_textRenderer->drawIcon(text, pos, size, color, id);
+        }
+    }
+
     glm::vec2 MaterialRenderer::drawTextWrapped(const std::string &text, const glm::vec3 &pos, const size_t size,
                                                 const glm::vec4 &color, const uint64_t &id, float wrapWidthPx, float angle) {
         if (m_textRenderer) {

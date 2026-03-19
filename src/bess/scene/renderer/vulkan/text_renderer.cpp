@@ -2,6 +2,7 @@
 #include "application/assets.h"
 #include "scene/renderer/font.h"
 #include "scene/renderer/vulkan/path_renderer.h"
+#include "ui/icons/CodIcons.h"
 #include <cstdint>
 
 using namespace Bess::Vulkan;
@@ -15,8 +16,15 @@ namespace Bess::Renderer {
 
         constexpr auto robotoPath = Assets::Fonts::Paths::roboto.paths[0].data();
         constexpr auto alexBrushPath = Assets::Fonts::Paths::alexBrush.paths[0].data();
+        constexpr auto codIcons = Assets::Fonts::Paths::codeIcons.paths[0].data();
         m_font = std::move(Font::FontFile(robotoPath));
         m_font.init(48);
+
+        auto iconFont = Font::FontFile(codIcons);
+        iconFont.init(48,
+                      UI::Icons::CodIcons::ICON_MIN_CI,
+                      UI::Icons::CodIcons::ICON_MAX_CI);
+        m_iconFonts.push_back(std::move(iconFont));
     }
 
     void TextRenderer::drawText(const std::string &text, const glm::vec3 &pos, const size_t size,
@@ -37,6 +45,41 @@ namespace Bess::Renderer {
                                                   .fillColor = color,
                                                   .glyphId = id});
             posX += glyph.advanceX * scale;
+        }
+    }
+
+    void TextRenderer::drawIcon(const std::string &text, const glm::vec3 &pos, const size_t size,
+                                const glm::vec4 &color, const uint64_t &id, float angle) {
+        float scale = (float)size / m_font.getSize();
+        float posX = pos.x, posY = pos.y;
+
+        // Pointer-based iteration to handle multi-byte UTF-8 sequences
+        const char *ptr = text.c_str();
+        const char *end = ptr + text.length();
+
+        while (ptr < end) {
+            int bytesConsumed = 0;
+            uint32_t codepoint = Font::GlyphExtractor::decodeSingleUTF8(ptr,
+                                                                        bytesConsumed);
+
+            if (codepoint == '\n') {
+                posY += m_iconFonts.front().getSize();
+                posX = pos.x;
+                ptr++;
+                continue;
+            }
+
+            auto &glyph = m_iconFonts.front().getGlyph(codepoint);
+
+            m_pathRenderer->drawPath(glyph.path, {.genStroke = false,
+                                                  .genFill = true,
+                                                  .translate = {posX, posY, pos.z},
+                                                  .scale = glm::vec2(scale),
+                                                  .fillColor = color,
+                                                  .glyphId = id});
+
+            posX += glyph.advanceX * scale;
+            ptr += bytesConsumed;
         }
     }
 

@@ -84,10 +84,13 @@ namespace Bess::Renderer {
 
         void drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, uint64_t id, float innerRadius = 0.0F);
 
-        void drawText(const std::string &text, const glm::vec3 &pos, const size_t size,
+        void drawText(const std::string &text, const glm::vec3 &pos, size_t size,
                       const glm::vec4 &color, const uint64_t &id, float angle = 0);
 
-        glm::vec2 drawTextWrapped(const std::string &text, const glm::vec3 &pos, const size_t size,
+        void drawIcon(const std::string &text, const glm::vec3 &pos, size_t size,
+                      const glm::vec4 &color, const uint64_t &id, float angle = 0);
+
+        glm::vec2 drawTextWrapped(const std::string &text, const glm::vec3 &pos, size_t size,
                                   const glm::vec4 &color, const uint64_t &id, float wrapWidthPx, float angle = 0);
 
         void resize(VkExtent2D extent);
@@ -117,7 +120,7 @@ namespace Bess::Renderer {
         std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> m_texturedQuadInstances;
         std::vector<CircleInstance> m_circleInstances;
 
-        Material2D m_gridMaterial = {};
+        Material2D m_gridMaterial;
         std::shared_ptr<VulkanTexture> m_shadowTexture = nullptr;
 
         VkCommandBuffer m_cmdBuffer;

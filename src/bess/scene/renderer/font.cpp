@@ -42,7 +42,8 @@ namespace Bess::Renderer::Font {
     }
 
     Glyph &FontFile::getGlyph(const char *data) {
-        auto ch = GlyphExtractor::decodeSingleUTF8(data);
+        int bytesRead = 0;
+        auto ch = GlyphExtractor::decodeSingleUTF8(data, bytesRead);
         return indexChar(ch);
     }
 
@@ -67,7 +68,7 @@ namespace Bess::Renderer::Font {
         m_glyphsTable.resize(glyphMax - glyphMin + 1);
         m_glyphExtractor.setPixelSize((int)fontSize);
 
-        BESS_INFO("[FontFile] Reserved lookup table for {} glyphs", m_glyphsTable.size());
+        BESS_DEBUG("[FontFile] Reserved lookup table for {} glyphs", m_glyphsTable.size());
     }
 
     float FontFile::getSize() const {

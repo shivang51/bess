@@ -27,6 +27,9 @@ namespace Bess::Renderer {
         void drawText(const std::string &text, const glm::vec3 &pos, size_t size,
                       const glm::vec4 &color, const uint64_t &id, float angle = 0);
 
+        void drawIcon(const std::string &text, const glm::vec3 &pos, size_t size,
+                      const glm::vec4 &color, const uint64_t &id, float angle = 0);
+
         glm::vec2 drawTextWrapped(const std::string &text, const glm::vec3 &pos, size_t size,
                                   const glm::vec4 &color, const uint64_t &id, float wrapWidthPx, float angle = 0);
 
@@ -41,6 +44,7 @@ namespace Bess::Renderer {
         VkExtent2D m_extent;
 
         Font::FontFile m_font;
+        std::vector<Font::FontFile> m_iconFonts;
     };
 
 } // namespace Bess::Renderer
