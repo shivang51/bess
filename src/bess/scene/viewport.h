@@ -17,9 +17,11 @@ using namespace Bess::Renderer;
 
 namespace Bess::Canvas {
     struct MousePickingData {
-        VkExtent2D startPos;
-        VkExtent2D extent;
-        bool pending = false;
+        VkExtent2D queuedStartPos = {};
+        VkExtent2D queuedExtent = {1, 1};
+        bool queued = false;
+        VkExtent2D inFlightStartPos = {};
+        VkExtent2D inFlightExtent = {1, 1};
         std::vector<glm::uvec2> ids;
     };
 
@@ -83,7 +85,7 @@ namespace Bess::Canvas {
 
         uint64_t getViewportTexture();
         void setPickingCoord(uint32_t x, uint32_t y, uint32_t w = 1, uint32_t h = 1);
-        std::vector<glm::uvec2> getPickingIdsResult();
+        const std::vector<glm::uvec2> &getPickingIdsResult();
         bool tryUpdatePickingResults();
         bool waitForPickingResults(uint64_t timeoutNs);
         bool isPickingPending() const;
@@ -135,6 +137,8 @@ namespace Bess::Canvas {
         // mouse picking resources
         VkBuffer m_pickingStagingBuffer = VK_NULL_HANDLE;
         VkDeviceMemory m_pickingStagingBufferMemory = VK_NULL_HANDLE;
+        std::vector<VkBuffer> m_retiredPickingBuffers;
+        std::vector<VkDeviceMemory> m_retiredPickingBufferMemories;
 
         MousePickingData m_mousePickingData = {};
         bool m_pickingCopyInFlight = false;

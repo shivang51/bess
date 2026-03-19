@@ -181,6 +181,7 @@ namespace Bess::UI {
     void SceneViewportPanel::updatePickingIds(bool mouseMoved) {
         auto &sceneState = m_attachedScene->getState();
         auto &selCtx = m_attachedScene->getSelBoxContext();
+        m_viewport->tryUpdatePickingResults();
 
         if (selCtx.queueSelInNextFrame) {
             selCtx.queueForSel = true;
@@ -211,7 +212,7 @@ namespace Bess::UI {
 
         if (selCtx.readIds && !m_viewport->isPickingPending()) {
 
-            const std::vector<glm::uvec2> rawIds = m_viewport->getPickingIdsResult();
+            const auto &rawIds = m_viewport->getPickingIdsResult();
 
             selCtx.readIds = false;
 
