@@ -22,6 +22,8 @@
 #include "pages/main_page/services/connection_service.h"
 #include "plugin_manager.h"
 #include "scene_ser_reg.h"
+#include "scene_state/components/scene_component_types.h"
+#include "services/copy_paste_service.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
 #include "ui/ui_main/component_explorer.h"
@@ -272,22 +274,37 @@ namespace Bess::Pages {
         const auto &sceneState = m_state.getSceneDriver()->getState();
         const auto &selComponents = sceneState.getSelectedComponents() | std::views::keys;
 
+        auto &ctx = Svc::CopyPaste::Context::instance();
+        ctx.clear();
+
         for (const auto &selId : selComponents) {
             const auto comp = sceneState.getComponentByUuid(selId);
-            const bool isSimComp = comp->getType() == Canvas::SceneComponentType::simulation;
-            const bool isNonSimComp = comp->getType() == Canvas::SceneComponentType::nonSimulation;
-            CopiedComponent compData{};
-            if (isSimComp) {
+            const auto type = comp->getType();
+
+            Svc::CopyPaste::CopiedEntity entity{};
+            entity.type = type;
+
+            switch (type) {
+            case Canvas::SceneComponentType::simulation: {
                 const auto casted = comp->cast<Canvas::SimulationSceneComponent>();
-                compData.def = simEngine.getComponentDefinition(casted->getSimEngineId());
-            } else if (isNonSimComp) {
+                entity.data = Svc::CopyPaste::ETSimComp{casted};
+            } break;
+            case Canvas::SceneComponentType::nonSimulation: {
                 const auto casted = comp->cast<Canvas::NonSimSceneComponent>();
-                compData.nsComp = casted->getTypeIndex();
-            } else {
+                entity.data = Svc::CopyPaste::ETNonSimComp{casted->getTypeIndex(), casted};
+            } break;
+            case Canvas::SceneComponentType::connection: {
+                const auto casted = comp->cast<Canvas::ConnectionSceneComponent>();
+                entity.data = Svc::CopyPaste::ETConnection{casted};
+            } break;
+            default:
                 continue;
+                break;
             }
-            compData.pos = comp->getTransform().position;
-            m_copiedComponents.emplace_back(compData);
+
+            entity.pos = comp->getTransform().position;
+
+            ctx.addEntity(entity);
         }
     }
 
@@ -295,26 +312,36 @@ namespace Bess::Pages {
         auto &cmdSystem = m_state.getCommandSystem();
         auto &scene = m_state.getSceneDriver();
 
+        auto &ctx = Svc::CopyPaste::Context::instance();
+        ctx.calcCenter();
+
         auto macroCmd = std::make_unique<Cmd::MacroCommand>();
 
-        for (auto &comp : m_copiedComponents) {
-            const auto pos = comp.pos + glm::vec2(50.f, 50.f);
-            if (comp.nsComp == typeid(void)) {
-                auto components = Canvas::SimulationSceneComponent::createNewAndRegister(comp.def);
+        const auto &newCenter = scene->getSceneMousePos();
+
+        for (auto &entity : ctx.getEntites()) {
+            const auto pos = newCenter + entity.pos - ctx.getCenter();
+            if (entity.type == Canvas::SceneComponentType::simulation) {
+                const auto &entityData = std::get<Svc::CopyPaste::ETSimComp>(entity.data);
+
+                auto def = entityData.comp->getCompDef()->clone();
+                auto components = Canvas::SimulationSceneComponent::createNewAndRegister(def);
                 auto sceneComp = components.front()->template cast<Canvas::SimulationSceneComponent>();
                 components.erase(components.begin());
-                sceneComp->setCompDef(comp.def->clone());
                 sceneComp->getTransform().position.x = pos.x;
                 sceneComp->getTransform().position.y = pos.y;
 
-                if (scene->hasPluginDrawHookForComponentHash(comp.def->getHash())) {
-                    auto hook = scene->getPluginDrawHookForComponentHash(comp.def->getHash());
+                if (scene->hasPluginDrawHookForComponentHash(def->getHash())) {
+                    auto hook = scene->getPluginDrawHookForComponentHash(def->getHash());
                     sceneComp->cast<Canvas::SimulationSceneComponent>()->setDrawHook(hook);
                 }
                 auto addCmd = std::make_unique<Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(sceneComp, components);
                 macroCmd->addCommand(std::move(addCmd));
-            } else {
-                auto inst = Canvas::NonSimSceneComponent::getInstance(comp.nsComp);
+            } else if (entity.type == Canvas::SceneComponentType::nonSimulation) {
+                const auto &entityData = std::get<Svc::CopyPaste::ETNonSimComp>(entity.data);
+                auto inst = std::make_shared<entityData.typeIdx>(*entityData.comp);
+                inst->setUuid(UUID{});
+                inst->setRuntimeId(Canvas::PickingId::invalidRuntimeId);
                 inst->getTransform().position.x = pos.x;
                 inst->getTransform().position.y = pos.y;
                 auto addCmd = std::make_unique<Cmd::AddCompCmd<Canvas::NonSimSceneComponent>>(inst);
