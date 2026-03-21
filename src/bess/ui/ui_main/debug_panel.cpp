@@ -1,6 +1,6 @@
 #include "debug_panel.h"
 #include "common/bess_uuid.h"
-#include "icons/FontAwesomeIcons.h"
+#include "icons/CodIcons.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/main_page.h"
@@ -10,7 +10,7 @@
 
 namespace Bess::UI {
     DebugPanel::DebugPanel() : Panel("Debug Panel") {
-        m_name = Icons::FontAwesomeIcons::FA_USER_NURSE + std::string(" Debug Panel");
+        m_name = Icons::CodIcons::COPILOT + std::string(" Debug Panel");
 #ifdef DEBUG
         m_visible = true;
 #endif

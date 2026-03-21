@@ -1,5 +1,6 @@
 #include "truth_table_window.h"
 #include "common/helpers.h"
+#include "icons/CodIcons.h"
 #include "imgui.h"
 #include "pages/main_page/main_page.h"
 #include "simulation_engine.h"
@@ -9,7 +10,7 @@
 
 namespace Bess::UI {
 
-    static constexpr auto windowName = Common::Helpers::concat(Icons::FontAwesomeIcons::FA_TABLE,
+    static constexpr auto windowName = Common::Helpers::concat(Icons::CodIcons::TABLE,
                                                                "  Truth Table Viewer");
 
     TruthTableWindow::TruthTableWindow() : Panel(std::string(windowName.data())) {
