@@ -128,12 +128,18 @@ namespace Bess::Pages {
 
         const bool imguiWantsKeyboard = ImGui::GetIO().WantTextInput;
 
+        int clickEvtIdx = -1;
+
+        int idx = -1;
         for (const auto &event : events) {
+            idx++;
+
             switch (event.getType()) {
             case Bess::ApplicationEventType::MouseButton: {
                 const auto data = event.getData<ApplicationEvent::MouseButtonData>();
-                if (data.action != MouseButtonAction::press)
+                if (data.action != MouseButtonAction::press) {
                     continue;
+                }
 
                 const bool isSameBtn = data.button == m_lastMouseButtonEvent.data.button;
                 const float dis = glm::distance(data.pos, m_lastMouseButtonEvent.data.pos);
@@ -144,6 +150,7 @@ namespace Bess::Pages {
                 } else {
                     m_clickCount = 1;
                 }
+                clickEvtIdx = idx;
 
                 m_lastMouseButtonEvent.timestamp = std::chrono::steady_clock::now();
                 m_lastMouseButtonEvent.data = data;
@@ -164,10 +171,13 @@ namespace Bess::Pages {
         }
 
         if (m_clickCount == 2) {
+            BESS_ASSERT(clickEvtIdx != -1, "Click event idx can't be -1, when double click is valid");
+            events.erase(events.begin() + clickEvtIdx);
             auto data = m_lastMouseButtonEvent.data;
             data.action = MouseButtonAction::doubleClick;
             ApplicationEvent event(ApplicationEventType::MouseButton, data);
             events.emplace_back(event);
+            m_clickCount = 0;
         }
 
         if (!imguiWantsKeyboard)

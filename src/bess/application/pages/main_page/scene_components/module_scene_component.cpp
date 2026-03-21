@@ -36,7 +36,6 @@ namespace Bess::Canvas {
         });
 
         outputDigitalComp->addOnInputSlotCountChangeCB([this](size_t newCount) {
-            BESS_TRACE("Resizing Slots to {}", newCount);
             const auto &simEngine = SimEngine::SimulationEngine::instance();
             auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
             const auto currCount = moduleDigComp->definition->getOutputSlotsInfo().count;
@@ -71,7 +70,6 @@ namespace Bess::Canvas {
         });
 
         inputDigitalComp->addOnOutputSlotCountChangeCB([this](size_t newCount) {
-            BESS_TRACE("Resizing Inp Slots to {}", newCount);
             const auto &simEngine = SimEngine::SimulationEngine::instance();
             auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
             const auto currCount = moduleDigComp->definition->getInputSlotsInfo().count;
@@ -130,7 +128,6 @@ namespace Bess::Canvas {
 
         auto moduleDef = SimEngine::ModuleDefinition::createNew();
         auto comps = SimulationSceneComponent::createNew<ModuleSceneComponent>(moduleDef);
-        BESS_TRACE("Created module component with {} subcomponents", comps.size());
 
         auto moduleComp = std::dynamic_pointer_cast<ModuleSceneComponent>(comps.front());
         comps.erase(comps.begin());

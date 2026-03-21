@@ -254,7 +254,6 @@ namespace Bess::Pages {
         if (e.type == Canvas::SceneComponentType::simulation) {
             const auto &simComp = comp->cast<Canvas::SimulationSceneComponent>();
             const auto &def = simComp->getCompDef();
-            BESS_TRACE("{} > {}", def->getName(), def->getBaseHash());
             const auto &simEngineId = simComp->getSimEngineId();
             m_simIdToSceneCompId[simEngineId] = e.uuid;
         }

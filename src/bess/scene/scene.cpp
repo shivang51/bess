@@ -3,6 +3,7 @@
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "event_dispatcher.h"
+#include "events/application_event.h"
 #include "ext/matrix_transform.hpp"
 #include "fwd.hpp"
 #include "plugin_manager.h"
@@ -78,18 +79,18 @@ namespace Bess::Canvas {
                     m_isLeftMousePressed = false;
                     setPickingId(PickingId::invalid());
                 }
-                // m_state.getViewport()->waitForPickingResults(5'000'000);
                 const auto data = event.getData<ApplicationEvent::MouseButtonData>();
+                const bool isPressed = data.action == MouseButtonAction::press;
                 if (data.button == MouseButton::left) {
                     if (data.action == MouseButtonAction::doubleClick) {
                         onLeftDoubleClick();
                     } else {
-                        onLeftMouse(data.action == MouseButtonAction::press);
+                        onLeftMouse(isPressed);
                     }
                 } else if (data.button == MouseButton::right) {
-                    onRightMouse(data.action == MouseButtonAction::press);
+                    onRightMouse(isPressed);
                 } else if (data.button == MouseButton::middle) {
-                    onMiddleMouse(data.action == MouseButtonAction::press);
+                    onMiddleMouse(isPressed);
                 }
             } break;
             case ApplicationEventType::MouseWheel: {
@@ -313,7 +314,6 @@ namespace Bess::Canvas {
                                      m_pickingId.info});
 
         if (!isPressed) {
-
             // if left ctrl is not pressed and multiple entities are selected,
             // then we only deselect othere on mouse release,
             // so that drag can work properly

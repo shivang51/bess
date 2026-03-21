@@ -1,10 +1,11 @@
 #include "scene_viewport_panel.h"
+#include "common/logger.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/main_page.h"
 #include "scene/camera.h"
 #include "scene/scene_draw_context.h"
-#include "simulation_engine.h"
+#include "ui/icons/FontAwesomeIcons.h"
 #include "ui/ui_main/component_explorer.h"
 #include "ui_main/ui_main.h"
 #include "ui_panel.h"
@@ -33,7 +34,7 @@ namespace Bess::UI {
             m_isResized = false;
         }
 
-        if (m_isHovered || m_isFocused) {
+        if (m_isHovered) {
             m_attachedScene->update(ts, events);
             updateScene(ts, events);
         } else {
@@ -141,7 +142,7 @@ namespace Bess::UI {
         ImGui::Begin("TopLeftViewportActions1", nullptr, NO_MOVE_FLAGS);
         if (m_attachedScene->getState().getIsRootScene()) {
             ImGui::AlignTextToFramePadding();
-            ImGui::Text("Root");
+            ImGui::TextDisabled("Root");
         } else {
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
             if (ImGui::Button("Root")) {
@@ -150,7 +151,10 @@ namespace Bess::UI {
             ImGui::PopStyleColor(1);
             ImGui::SameLine();
             ImGui::AlignTextToFramePadding();
-            ImGui::Text("> Module");
+            ImGui::TextDisabled(Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT);
+            ImGui::SameLine();
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextDisabled(" Module");
         }
         ImGui::End();
         ImGui::PopStyleColor(1);
