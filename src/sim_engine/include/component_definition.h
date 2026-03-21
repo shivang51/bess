@@ -36,6 +36,9 @@ namespace Bess::SimEngine {
     };
 
     class BESS_API Trait {
+      public:
+        virtual ~Trait() = default;
+        virtual std::shared_ptr<Trait> clone() const;
     };
 
     class BESS_API ComponentDefinition {
