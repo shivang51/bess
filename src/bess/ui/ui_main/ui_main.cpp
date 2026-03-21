@@ -152,7 +152,7 @@ namespace Bess::UI {
         auto &pageState = Pages::MainPage::getInstance()->getState();
         if (ImGui::BeginMenu("File")) {
             // New File
-            std::string temp_name = Icons::FontAwesomeIcons::FA_FILE_ALT;
+            std::string temp_name = Icons::FontAwesomeIcons::FA_FILE;
             temp_name += "   New";
             if (ImGui::MenuItem(temp_name.c_str(), "Ctrl+N")) {
                 newFileClicked = true;
@@ -166,7 +166,7 @@ namespace Bess::UI {
             };
 
             // Save File
-            temp_name = Icons::FontAwesomeIcons::FA_SAVE;
+            temp_name = Icons::FontAwesomeIcons::FA_FLOPPY_DISK;
             temp_name += "   Save";
             if (ImGui::MenuItem(temp_name.c_str(), "Ctrl+S")) {
                 pageState.actionFlags.saveProject = true;
@@ -176,7 +176,7 @@ namespace Bess::UI {
             ImGui::Separator();
             ImGui::Spacing();
 
-            temp_name = Icons::FontAwesomeIcons::FA_PENCIL_ALT;
+            temp_name = Icons::FontAwesomeIcons::FA_GEAR;
             temp_name += "  Prefrences";
             if (ImGui::MenuItem(temp_name.c_str())) {
                 getPanel<SettingsWindow>()->show();
@@ -209,12 +209,12 @@ namespace Bess::UI {
             auto &mainPageState = Pages::MainPage::getInstance()->getState();
             auto &cmdSystem = mainPageState.getCommandSystem();
 
-            std::string icon = Icons::FontAwesomeIcons::FA_UNDO;
+            std::string icon = Icons::CodIcons::DISCARD;
             if (ImGui::MenuItem((icon + "  Undo").c_str(), "Ctrl+Z", false, cmdSystem.canUndo())) {
                 cmdSystem.undo();
             }
 
-            icon = Icons::FontAwesomeIcons::FA_REDO;
+            icon = Icons::CodIcons::REDO;
             if (ImGui::MenuItem((icon + "  Redo").c_str(), "Ctrl+Shift+Z", false, cmdSystem.canRedo())) {
                 cmdSystem.redo();
             }
@@ -223,7 +223,7 @@ namespace Bess::UI {
             ImGui::Separator();
             ImGui::Spacing();
 
-            icon = Icons::FontAwesomeIcons::FA_WRENCH;
+            icon = Icons::FontAwesomeIcons::FA_PENCIL;
             if (ImGui::MenuItem((icon + "  Project Settings").c_str(), "Ctrl+P")) {
                 getPanel<ProjectSettingsWindow>()->show();
             }

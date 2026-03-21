@@ -192,7 +192,7 @@ namespace Bess::UI::Widgets {
                 bgColor = ImGui::GetColorU32(ImGuiCol_TabActive);
             window->DrawList->AddRectFilled(bbMenuButton.Min, bbMenuButton.Max, bgColor, rounding);
             const float x = bbMenuButton.Min.x + ((bbMenuButton.Max.x - bbMenuButton.Min.x) / 2.f) - 3.f;
-            ImGui::RenderText(ImVec2(x, pos.y + g.Style.FramePadding.y), Icons::FontAwesomeIcons::FA_ELLIPSIS_V);
+            ImGui::RenderText(ImVec2(x, pos.y + g.Style.FramePadding.y), Icons::FontAwesomeIcons::FA_ELLIPSIS_VERTICAL);
             if (menuClicked)
                 ImGui::OpenPopup(popupName.c_str());
         }
@@ -291,7 +291,7 @@ namespace Bess::UI::Widgets {
         ImVec2 backupCursorPos = window->DC.CursorPos;
         if (rowHovered) {
             ImGui::SetCursorScreenPos(ImVec2(rowBB.Max.x - g.FontSize - g.Style.FramePadding.x, rowBB.Min.y + g.Style.FramePadding.y));
-            if (ImGui::SmallButton(Icons::FontAwesomeIcons::FA_ELLIPSIS_V)) {
+            if (ImGui::SmallButton(Icons::FontAwesomeIcons::FA_ELLIPSIS_VERTICAL)) {
                 ImGui::OpenPopup(popupName.c_str());
             }
         }
