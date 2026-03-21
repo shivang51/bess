@@ -202,5 +202,6 @@ REFLECT_PROPS(Bess::Canvas::SceneComponent,
               ("transform", getTransform, setTransform),
               ("style", getStyle, setStyle),
               ("name", getName, setName),
+              ("icon", getIcon, setIcon),
               ("parentComponent", getParentComponent, setParentComponent),
               ("childComponents", getChildComponents, setChildComponents))
