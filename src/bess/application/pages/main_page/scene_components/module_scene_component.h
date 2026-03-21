@@ -11,9 +11,8 @@
 namespace Bess::Canvas {
     class ModuleSceneComponent : public SimulationSceneComponent {
       public:
-        ModuleSceneComponent() = default;
+        ModuleSceneComponent();
         ModuleSceneComponent(const ModuleSceneComponent &other) = default;
-        ~ModuleSceneComponent() override = default;
 
         static std::shared_ptr<ModuleSceneComponent> fromNet(const UUID &netId,
                                                              const std::string &name = "New Module");

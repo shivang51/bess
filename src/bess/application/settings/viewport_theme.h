@@ -12,6 +12,7 @@ namespace Bess {
         glm::vec4 componentBG;
         glm::vec4 componentBorder;
         glm::vec4 selectedComp;
+        glm::vec4 moduleColor;
 
         glm::vec4 wire;
         glm::vec4 ghostWire;

@@ -116,6 +116,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(std::unordered_set<UUID>, ChildComponents, m_childComponents)
         MAKE_GETTER_SETTER_WC(uint32_t, RuntimeId, m_runtimeId, onRuntimeIdChanged)
         MAKE_GETTER_SETTER_WC(bool, IsSelected, m_isSelected, onSelect)
+        MAKE_GETTER_SETTER(std::string, Icon, m_icon);
 
         virtual void removeChildComponent(const UUID &uuid);
 
@@ -184,6 +185,7 @@ namespace Bess::Canvas {
         Transform m_transform;
         Style m_style;
         std::string m_name;
+        std::string m_icon;
 
         bool m_isDraggable = false;
         bool m_isSelected = false;

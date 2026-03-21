@@ -1,4 +1,6 @@
 #include "non_sim_scene_component.h"
+#include "icons/CodIcons.h"
+#include "icons/FontAwesomeIcons.h"
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene_draw_context.h"
 #include <unordered_map>
@@ -78,5 +80,58 @@ namespace Bess::Canvas {
     NonSimSceneComponent::getContrRegistry() {
         static std::unordered_map<std::type_index, ContrFunc> reg;
         return reg;
+    }
+
+    TextComponent::TextComponent() {
+        m_name = "New Text";
+        m_icon = UI::Icons::FontAwesomeIcons::FA_FONT;
+        m_uiHook.addPropertyDescriptor(UI::Hook::PropertyDesc{
+            .name = "Text",
+            .type = UI::Hook::PropertyDescType::string_t,
+            .defaultValue = m_data,
+            .binding = {
+                .getter = [&]() -> std::string {
+                    return m_data;
+                },
+                .setter = [&](const UI::Hook::PropertyValue &value) {
+                    m_data = std::get<std::string>(value);
+                    m_isScaleDirty = true; // to move bracket;
+                },
+            },
+        });
+
+        m_uiHook.addPropertyDescriptor(UI::Hook::PropertyDesc{
+            .name = "Font Size",
+            .type = UI::Hook::PropertyDescType::uint_t,
+            .defaultValue = static_cast<int64_t>(m_size),
+            .binding = {
+                .getter = [&]() -> uint64_t {
+                    return static_cast<uint64_t>(m_size);
+                },
+                .setter = [&](const UI::Hook::PropertyValue &value) {
+                    m_size = static_cast<size_t>(std::get<uint64_t>(value));
+                    m_isScaleDirty = true; // to move bracket;
+                },
+            },
+        });
+
+        m_uiHook.addPropertyDescriptor(UI::Hook::PropertyDesc{
+            .name = "Color",
+            .type = UI::Hook::PropertyDescType::color_t,
+            .defaultValue = m_foregroundColor,
+            .binding = {
+                .getter = [&]() -> const glm::vec4 & {
+                    return m_foregroundColor;
+                },
+                .setter = [&](const UI::Hook::PropertyValue &value) {
+                    m_foregroundColor = std::get<glm::vec4>(value); // to move bracket;
+                },
+            },
+        });
+
+        m_style.color = ViewportTheme::colors.componentBG;
+        m_style.borderRadius = glm::vec4(6.f);
+        m_style.borderSize = glm::vec4(1.f);
+        m_style.color = ViewportTheme::colors.componentBG;
     }
 } // namespace Bess::Canvas

@@ -5,7 +5,7 @@
 namespace Bess::Canvas {
     class GroupSceneComponent : public SceneComponent {
       public:
-        GroupSceneComponent() = default;
+        GroupSceneComponent();
         GroupSceneComponent(const GroupSceneComponent &other) = default;
         ~GroupSceneComponent() override = default;
 

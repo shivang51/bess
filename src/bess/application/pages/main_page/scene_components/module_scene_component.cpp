@@ -1,5 +1,6 @@
 #include "module_scene_component.h"
 #include "common/bess_uuid.h"
+#include "icons/FontAwesomeIcons.h"
 #include "module_def.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
@@ -12,6 +13,9 @@
 #include <memory>
 
 namespace Bess::Canvas {
+    ModuleSceneComponent::ModuleSceneComponent() {
+        m_icon = UI::Icons::FontAwesomeIcons::FA_OBJECT_GROUP;
+    };
 
     void ModuleSceneComponent::onAttach(SceneState &state) {
         SimulationSceneComponent::onAttach(state);

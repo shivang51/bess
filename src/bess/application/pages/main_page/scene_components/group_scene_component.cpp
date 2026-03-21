@@ -4,6 +4,8 @@
 #include "scene/scene_state/scene_state.h"
 
 namespace Bess::Canvas {
+    GroupSceneComponent::GroupSceneComponent() = default;
+
     void GroupSceneComponent::onAttach(SceneState &state) {
         m_transform.position = glm::vec3(0.0);
         for (const auto &childId : m_childComponents) {

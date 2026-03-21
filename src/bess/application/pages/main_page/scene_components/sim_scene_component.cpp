@@ -1,5 +1,7 @@
 #include "sim_scene_component.h"
 #include "common/bess_uuid.h"
+#include "icons/CodIcons.h"
+#include "icons/FontAwesomeIcons.h"
 #include "input_scene_component.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
@@ -18,7 +20,9 @@
 namespace Bess::Canvas {
     constexpr float SNAP_AMOUNT = 2.f;
 
-    SimulationSceneComponent::SimulationSceneComponent() = default;
+    SimulationSceneComponent::SimulationSceneComponent() {
+        m_icon = UI::Icons::FontAwesomeIcons::FA_MICROCHIP;
+    }
 
     void SimulationSceneComponent::update(Bess::TimeMs timeStep, SceneState &state) {
         if (m_isScaleDirty) {
@@ -66,7 +70,7 @@ namespace Bess::Canvas {
         props.borderSize = m_style.borderSize;
         props.borderColor = m_isSelected
                                 ? ViewportTheme::colors.selectedComp
-                                : m_style.borderColor;
+                                : m_style.headerColor;
         props.isMica = true;
         props.shadow = {
             .enabled = true,

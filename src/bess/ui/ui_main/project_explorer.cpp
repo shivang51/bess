@@ -1,5 +1,6 @@
 #include "ui/ui_main/project_explorer.h"
 #include "application/pages/main_page/main_page.h"
+#include "common.hpp"
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
 #include "common/logger.h"
@@ -365,16 +366,25 @@ namespace Bess::UI {
                 }
 
             } else {
-
                 const bool isModule = comp->getType() == Canvas::SceneComponentType::module;
 
-                const auto name = std::format("{} {}", isModule ? moduleIcon : "", comp->getName());
+                const auto name = std::format("{} {}", comp->getIcon(), comp->getName());
+
+                if (isModule) {
+                    const auto &moduleColor = ViewportTheme::colors.moduleColor;
+                    ImGui::PushStyleColor(ImGuiCol_Text,
+                                          ImVec4(moduleColor.x, moduleColor.y, moduleColor.z, moduleColor.w));
+                }
 
                 const auto &[pressed, cbPressed] = drawLeafNode(m_nodesKeyCounter++,
                                                                 compId,
                                                                 name.c_str(),
                                                                 comp->getIsSelected(),
                                                                 selSize > 1);
+                if (isModule) {
+                    ImGui::PopStyleColor();
+                }
+
                 count++;
                 clicked = pressed;
                 if (ImGui::BeginDragDropSource()) {

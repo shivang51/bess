@@ -1,4 +1,5 @@
 #include "input_scene_component.h"
+#include "icons/FontAwesomeIcons.h"
 #include "renderer/material_renderer.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
@@ -13,6 +14,9 @@
 #include "widgets/m_widgets.h"
 
 namespace Bess::Canvas {
+    InputSceneComponent::InputSceneComponent() {
+        m_icon = UI::Icons::FontAwesomeIcons::FA_TOGGLE_OFF;
+    }
 
     void InputSceneComponent::draw(SceneDrawContext &context) {
 

@@ -10,7 +10,7 @@
 namespace Bess::Canvas {
     class InputSceneComponent : public SimulationSceneComponent {
       public:
-        InputSceneComponent() = default;
+        InputSceneComponent();
 
         ~InputSceneComponent() override = default;
 
