@@ -16,12 +16,18 @@
 #include "slot_scene_component.h"
 
 #include <algorithm>
+#include <unordered_set>
 
 namespace Bess::Canvas {
     constexpr float SNAP_AMOUNT = 2.f;
 
     SimulationSceneComponent::SimulationSceneComponent() {
         m_icon = UI::Icons::FontAwesomeIcons::FA_MICROCHIP;
+    }
+
+    std::vector<std::shared_ptr<SceneComponent>> SimulationSceneComponent::clone(const SceneState &sceneState) const {
+        auto clonedComponent = std::make_shared<SimulationSceneComponent>(*this);
+        return cloneSimulationComponent(sceneState, clonedComponent);
     }
 
     void SimulationSceneComponent::update(Bess::TimeMs timeStep, SceneState &state) {
@@ -534,5 +540,71 @@ namespace Bess::Canvas {
             states.push_back(slotComp->getSlotState(state).state);
         }
         return states;
+    }
+
+    std::vector<std::shared_ptr<SceneComponent>> SimulationSceneComponent::cloneSimulationComponent(
+        const SceneState &sceneState,
+        const std::shared_ptr<SimulationSceneComponent> &clonedComponent) const {
+        BESS_ASSERT(clonedComponent, "Cannot clone a null simulation component");
+
+        prepareClone(*clonedComponent);
+        clonedComponent->setSimEngineId(UUID::null);
+        clonedComponent->setNetId(UUID::null);
+        clonedComponent->setInputSlots({});
+        clonedComponent->setOutputSlots({});
+        clonedComponent->setCompDef(m_compDef ? m_compDef->clone() : nullptr);
+
+        std::vector<std::shared_ptr<SceneComponent>> clonedComponents;
+        clonedComponents.push_back(clonedComponent);
+
+        std::unordered_set<UUID> clonedChildren;
+
+        const auto cloneSlot = [&](const UUID &slotId, const bool isInputSlot) {
+            const auto slotComponent = sceneState.getComponentByUuid<SlotSceneComponent>(slotId);
+            BESS_ASSERT(slotComponent, "Simulation child slot was not found during clone");
+
+            const auto slotClones = slotComponent->clone(sceneState);
+            BESS_ASSERT(slotClones.size() == 1, "Slot clone should only produce one component");
+
+            const auto clonedSlot = std::dynamic_pointer_cast<SlotSceneComponent>(slotClones.front());
+            BESS_ASSERT(clonedSlot, "Cloned simulation child is not a slot component");
+
+            clonedComponent->addChildComponent(clonedSlot->getUuid());
+            clonedSlot->setParentComponent(clonedComponent->getUuid());
+            if (isInputSlot) {
+                clonedComponent->addInputSlot(clonedSlot->getUuid(), false);
+            } else {
+                clonedComponent->addOutputSlot(clonedSlot->getUuid(), false);
+            }
+
+            clonedComponents.insert(clonedComponents.end(), slotClones.begin(), slotClones.end());
+            clonedChildren.insert(slotId);
+        };
+
+        for (const auto &slotId : m_inputSlots) {
+            cloneSlot(slotId, true);
+        }
+
+        for (const auto &slotId : m_outputSlots) {
+            cloneSlot(slotId, false);
+        }
+
+        for (const auto &childId : m_childComponents) {
+            if (clonedChildren.contains(childId)) {
+                continue;
+            }
+
+            const auto childComponent = sceneState.getComponentByUuid(childId);
+            BESS_ASSERT(childComponent, "Simulation child component was not found during clone");
+
+            const auto childClones = childComponent->clone(sceneState);
+            BESS_ASSERT(!childClones.empty(), "Simulation child clone returned no components");
+
+            clonedComponent->addChildComponent(childClones.front()->getUuid());
+            childClones.front()->setParentComponent(clonedComponent->getUuid());
+            clonedComponents.insert(clonedComponents.end(), childClones.begin(), childClones.end());
+        }
+
+        return clonedComponents;
     }
 } // namespace Bess::Canvas

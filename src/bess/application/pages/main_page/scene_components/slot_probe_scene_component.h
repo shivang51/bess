@@ -24,6 +24,8 @@ namespace Bess::Canvas {
 
         SCENE_COMP_SER(SlotProbeSceneComponent, NonSimSceneComponent, SLOT_PROBE_SER_PROPS)
 
+        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
+
         void draw(SceneDrawContext &context) override;
 
         void update(TimeMs frameTime, SceneState &state) override;

@@ -8,6 +8,14 @@
 #include "settings/viewport_theme.h"
 
 namespace Bess::Canvas {
+    std::vector<std::shared_ptr<SceneComponent>> SlotProbeSceneComponent::clone(const SceneState &sceneState) const {
+        (void)sceneState;
+        auto clonedComponent = std::make_shared<SlotProbeSceneComponent>(*this);
+        prepareClone(*clonedComponent);
+        clonedComponent->setProbeData({});
+        return {clonedComponent};
+    }
+
     void SlotProbeSceneComponent::draw(SceneDrawContext &context) {
 
         const auto &textSize = Renderer::MaterialRenderer::getTextRenderSize(m_name, 9);

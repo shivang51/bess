@@ -18,6 +18,11 @@ namespace Bess::Canvas {
         m_icon = UI::Icons::FontAwesomeIcons::FA_TOGGLE_OFF;
     }
 
+    std::vector<std::shared_ptr<SceneComponent>> InputSceneComponent::clone(const SceneState &sceneState) const {
+        auto clonedComponent = std::make_shared<InputSceneComponent>(*this);
+        return cloneSimulationComponent(sceneState, clonedComponent);
+    }
+
     void InputSceneComponent::draw(SceneDrawContext &context) {
 
         if (m_isFirstDraw) {

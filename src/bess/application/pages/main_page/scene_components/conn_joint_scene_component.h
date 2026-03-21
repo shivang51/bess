@@ -29,6 +29,8 @@ namespace Bess::Canvas {
         REG_SCENE_COMP_TYPE("ConnJointSceneComp", SceneComponentType::connJoint)
         SCENE_COMP_SER(Bess::Canvas::ConnJointSceneComp, Bess::Canvas::SceneComponent, CONNJOINT_SC_SER_PROPS)
 
+        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
+
         MAKE_GETTER_SETTER(int, ConnSegIdx, m_connSegIdx);
         MAKE_GETTER_SETTER(int, SchConnSegIdx, m_schConnSegIdx);
         MAKE_GETTER_SETTER(UUID, ConnectionId, m_connectionId);

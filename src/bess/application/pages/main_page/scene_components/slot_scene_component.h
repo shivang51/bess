@@ -40,6 +40,8 @@ namespace Bess::Canvas {
 
         void onMouseButton(const Events::MouseButtonEvent &e) override;
 
+        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
+
         REG_SCENE_COMP_TYPE("SlotSceneComponent", SceneComponentType::slot)
         SCENE_COMP_SER(Bess::Canvas::SlotSceneComponent, Bess::Canvas::SceneComponent, SLOT_SC_SER_PROPS)
 

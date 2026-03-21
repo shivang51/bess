@@ -147,4 +147,20 @@ namespace Bess::Canvas {
     void SceneComponent::onScaleChanged() {}
 
     void SceneComponent::drawPropertiesUI() {}
+
+    std::vector<std::shared_ptr<SceneComponent>> SceneComponent::clone(const SceneState &sceneState) const {
+        (void)sceneState;
+        auto clonedComponent = std::make_shared<SceneComponent>(*this);
+        prepareClone(*clonedComponent);
+        return {clonedComponent};
+    }
+
+    void SceneComponent::prepareClone(SceneComponent &clonedComponent) const {
+        clonedComponent.setUuid(UUID{});
+        clonedComponent.setRuntimeId(PickingId::invalidRuntimeId);
+        clonedComponent.setParentComponent(UUID::null);
+        clonedComponent.setChildComponents({});
+        clonedComponent.setIsSelected(false);
+    }
+
 } // namespace Bess::Canvas

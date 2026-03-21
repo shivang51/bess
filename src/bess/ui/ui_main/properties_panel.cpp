@@ -102,10 +102,6 @@ namespace Bess::UI {
         auto comp = sceneState.getComponentByUuid(compId);
         const auto compType = comp->getType();
 
-        if (!comp->getName().empty()) {
-            ImGui::TextWrapped("%s", comp->getName().c_str());
-        }
-
         if (Widgets::TextBox("Name", comp->getName())) {
             comp->setName(comp->getName());
         }
@@ -143,9 +139,6 @@ namespace Bess::UI {
         } else if (compType == Canvas::SceneComponentType::connection) {
             auto connComp = comp->cast<Canvas::ConnectionSceneComponent>();
             drawConnectionComponent(connComp);
-        } else if (compType == Canvas::SceneComponentType::nonSimulation) {
-            auto nsComp = comp->cast<Canvas::NonSimSceneComponent>();
-            nsComp->getUIHook().draw();
         }
     }
 } // namespace Bess::UI

@@ -108,6 +108,8 @@ namespace Bess::Canvas {
 
         virtual void drawPropertiesUI();
 
+        virtual std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const;
+
         MAKE_GETTER_SETTER(UUID, Uuid, m_uuid)
         MAKE_GETTER_SETTER_WC(Transform, Transform, m_transform, onTransformChanged)
         MAKE_GETTER_SETTER_WC(Style, Style, m_style, onStyleChanged)
@@ -165,6 +167,7 @@ namespace Bess::Canvas {
         static void fromJson(const Json::Value &j,
                              const std::shared_ptr<SceneComponent> &ptr);
 
+        void prepareClone(SceneComponent &clonedComponent) const;
         virtual void onNameChanged() {}
         virtual void onTransformChanged() {}
         virtual void onSelect() {}

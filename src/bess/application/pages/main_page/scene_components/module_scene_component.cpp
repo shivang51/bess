@@ -11,11 +11,17 @@
 #include "simulation_engine.h"
 #include "types.h"
 #include <memory>
+#include <stdexcept>
 
 namespace Bess::Canvas {
     ModuleSceneComponent::ModuleSceneComponent() {
         m_icon = UI::Icons::FontAwesomeIcons::FA_OBJECT_GROUP;
     };
+
+    std::vector<std::shared_ptr<SceneComponent>> ModuleSceneComponent::clone(const SceneState &sceneState) const {
+        (void)sceneState;
+        throw std::runtime_error("Cloning ModuleSceneComponent is not supported yet");
+    }
 
     void ModuleSceneComponent::onAttach(SceneState &state) {
         SimulationSceneComponent::onAttach(state);

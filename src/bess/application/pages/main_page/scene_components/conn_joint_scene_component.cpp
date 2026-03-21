@@ -12,6 +12,7 @@
 #include "slot_scene_component.h"
 #include "types.h"
 #include "ui/ui.h"
+#include <stdexcept>
 
 namespace Bess::Canvas {
     ConnJointSceneComp::ConnJointSceneComp(UUID connectionId,
@@ -21,6 +22,11 @@ namespace Bess::Canvas {
 #ifdef DEBUG
         m_name = "ConnJointSceneComp";
 #endif
+    }
+
+    std::vector<std::shared_ptr<SceneComponent>> ConnJointSceneComp::clone(const SceneState &sceneState) const {
+        (void)sceneState;
+        throw std::runtime_error("Cloning ConnJointSceneComp is not supported yet");
     }
 
     void ConnJointSceneComp::draw(SceneDrawContext &context) {

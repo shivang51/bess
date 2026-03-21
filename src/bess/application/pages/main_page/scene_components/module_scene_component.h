@@ -22,6 +22,8 @@ namespace Bess::Canvas {
                        Bess::Canvas::SimulationSceneComponent,
                        MODULE_SER_PROPS)
 
+        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
+
         void onMouseButton(const Events::MouseButtonEvent &e) override;
 
         void onAttach(SceneState &state) override;

@@ -109,6 +109,8 @@ namespace Bess::Canvas {
 
         void drawSchematic(SceneDrawContext &context) override;
 
+        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
+
         MAKE_GETTER_SETTER(UUID, SimEngineId, m_simEngineId)
         MAKE_GETTER_SETTER(UUID, NetId, m_netId)
         MAKE_GETTER_SETTER(std::vector<UUID>, InputSlots, m_inputSlots)
@@ -153,6 +155,10 @@ namespace Bess::Canvas {
         void onTransformChanged() override;
 
       protected:
+        std::vector<std::shared_ptr<SceneComponent>> cloneSimulationComponent(
+            const SceneState &sceneState,
+            const std::shared_ptr<SimulationSceneComponent> &clonedComponent) const;
+
         /**
          * Resets the slot positions based on the current scale and number of slots
          * in the component.

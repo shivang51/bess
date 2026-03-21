@@ -17,12 +17,18 @@
 #include "types.h"
 #include "ui/ui.h"
 #include <cstdint>
+#include <stdexcept>
 
 namespace Bess::Canvas {
     ConnectionSceneComponent::ConnectionSceneComponent() {
 #ifdef DEBUG
         m_name = "ConnSceneComp";
 #endif
+    }
+
+    std::vector<std::shared_ptr<SceneComponent>> ConnectionSceneComponent::clone(const SceneState &sceneState) const {
+        (void)sceneState;
+        throw std::runtime_error("Cloning ConnectionSceneComponent is not supported yet");
     }
 
     void ConnectionSceneComponent::drawSegments(const SceneState &state,

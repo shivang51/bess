@@ -18,6 +18,8 @@ namespace Bess::Canvas {
         REG_SCENE_COMP_TYPE("GroupSceneComponent", SceneComponentType::group)
         SCENE_COMP_SER_NP(Bess::Canvas::GroupSceneComponent, Bess::Canvas::SceneComponent)
 
+        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
+
         void onAttach(SceneState &state) override;
         void onSelect() override;
 

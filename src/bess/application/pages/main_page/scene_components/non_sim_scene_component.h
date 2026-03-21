@@ -37,15 +37,12 @@ namespace Bess::Canvas {
         REG_SCENE_COMP_TYPE("NonSimComponent", SceneComponentType::nonSimulation)
         SCENE_COMP_SER_NP(Bess::Canvas::NonSimSceneComponent, Bess::Canvas::SceneComponent)
 
-        MAKE_GETTER_SETTER(UI::Hook::UIHook, UIHook, m_uiHook)
+        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
 
         virtual std::type_index getTypeIndex();
 
         static void clearRegistry();
         typedef std::function<std::shared_ptr<NonSimSceneComponent>()> ContrFunc;
-
-      protected:
-        UI::Hook::UIHook m_uiHook;
 
       private:
         // this stores functions to invoke constructors of components
@@ -60,6 +57,8 @@ namespace Bess::Canvas {
         SCENE_COMP_SER(Bess::Canvas::TextComponent,
                        Bess::Canvas::NonSimSceneComponent, TEXT_SER_PROPS)
 
+        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
+
         void draw(SceneDrawContext &context) override;
 
         std::type_index getTypeIndex() override {
@@ -69,6 +68,8 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(std::string, Data, m_data)
         MAKE_GETTER_SETTER(glm::vec4, ForegroundColor, m_foregroundColor)
         MAKE_GETTER_SETTER(size_t, Size, m_size)
+
+        void drawPropertiesUI() override;
 
       private:
         glm::vec2 calculateScale(SceneState &state) override;

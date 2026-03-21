@@ -13,6 +13,14 @@
 #include "ui/ui.h"
 
 namespace Bess::Canvas {
+    std::vector<std::shared_ptr<SceneComponent>> SlotSceneComponent::clone(const SceneState &sceneState) const {
+        (void)sceneState;
+        auto clonedComponent = std::make_shared<SlotSceneComponent>(*this);
+        prepareClone(*clonedComponent);
+        clonedComponent->setConnectedConnections({});
+        return {clonedComponent};
+    }
+
     void SlotSceneComponent::onMouseEnter(const Events::MouseEnterEvent &e) {
         UI::setCursorPointer();
     }

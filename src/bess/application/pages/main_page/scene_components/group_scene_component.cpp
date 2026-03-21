@@ -6,6 +6,28 @@
 namespace Bess::Canvas {
     GroupSceneComponent::GroupSceneComponent() = default;
 
+    std::vector<std::shared_ptr<SceneComponent>> GroupSceneComponent::clone(const SceneState &sceneState) const {
+        auto clonedComponent = std::make_shared<GroupSceneComponent>(*this);
+        prepareClone(*clonedComponent);
+
+        std::vector<std::shared_ptr<SceneComponent>> clonedComponents;
+        clonedComponents.push_back(clonedComponent);
+
+        for (const auto &childId : m_childComponents) {
+            const auto childComponent = sceneState.getComponentByUuid(childId);
+            BESS_ASSERT(childComponent, "Group child component was not found during clone");
+
+            const auto childClones = childComponent->clone(sceneState);
+            BESS_ASSERT(!childClones.empty(), "Group child clone returned no components");
+
+            clonedComponent->addChildComponent(childClones.front()->getUuid());
+            childClones.front()->setParentComponent(clonedComponent->getUuid());
+            clonedComponents.insert(clonedComponents.end(), childClones.begin(), childClones.end());
+        }
+
+        return clonedComponents;
+    }
+
     void GroupSceneComponent::onAttach(SceneState &state) {
         m_transform.position = glm::vec3(0.0);
         for (const auto &childId : m_childComponents) {

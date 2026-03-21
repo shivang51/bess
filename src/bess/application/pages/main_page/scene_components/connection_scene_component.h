@@ -32,6 +32,8 @@ namespace Bess::Canvas {
 
         void drawSchematic(SceneDrawContext &context) override;
 
+        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
+
         void onMouseDragged(const Events::MouseDraggedEvent &e) override;
         void onMouseDragBegin(const Events::MouseDraggedEvent &e) override;
         void onMouseEnter(const Events::MouseEnterEvent &e) override;

@@ -19,6 +19,8 @@ namespace Bess::Canvas {
                        Bess::Canvas::SimulationSceneComponent,
                        INPSC_SER_PROPS)
 
+        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
+
         void draw(SceneDrawContext &context) override;
 
         void drawPropertiesUI() override;

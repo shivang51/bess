@@ -72,7 +72,9 @@ namespace Bess::SimEngine {
         }
 
         std::shared_ptr<ComponentDefinition> clone() const override {
-            return std::make_shared<ClockDefinition>(*this);
+            auto cloned = std::make_shared<ClockDefinition>(*this);
+
+            return cloned;
         }
     };
 
