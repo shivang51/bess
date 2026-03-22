@@ -4,6 +4,7 @@
 #include "icons/FontAwesomeIcons.h"
 #include "input_scene_component.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
+#include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/services/connection_service.h"
 #include "renderer/material_renderer.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -569,8 +570,6 @@ namespace Bess::Canvas {
             const auto clonedSlot = std::dynamic_pointer_cast<SlotSceneComponent>(slotClones.front());
             BESS_ASSERT(clonedSlot, "Cloned simulation child is not a slot component");
 
-            clonedComponent->addChildComponent(clonedSlot->getUuid());
-            clonedSlot->setParentComponent(clonedComponent->getUuid());
             if (isInputSlot) {
                 clonedComponent->addInputSlot(clonedSlot->getUuid(), false);
             } else {
@@ -581,28 +580,43 @@ namespace Bess::Canvas {
             clonedChildren.insert(slotId);
         };
 
-        for (const auto &slotId : m_inputSlots) {
-            cloneSlot(slotId, true);
+        for (const auto &childId : m_inputSlots) {
+            const auto childComponent = sceneState.getComponentByUuid(childId);
+            BESS_ASSERT(childComponent,
+                        "Simulation child component was not found during clone");
+            auto slot = childComponent->cast<SlotSceneComponent>();
+            cloneSlot(childId, true);
+            BESS_TRACE("{}", slot->getName());
         }
 
-        for (const auto &slotId : m_outputSlots) {
-            cloneSlot(slotId, false);
+        for (const auto &childId : m_outputSlots) {
+            const auto childComponent = sceneState.getComponentByUuid(childId);
+            BESS_ASSERT(childComponent,
+                        "Simulation child component was not found during clone");
+            auto slot = childComponent->cast<SlotSceneComponent>();
+            cloneSlot(childId, false);
+            BESS_TRACE("{}", slot->getName());
         }
 
         for (const auto &childId : m_childComponents) {
+
             if (clonedChildren.contains(childId)) {
                 continue;
             }
 
             const auto childComponent = sceneState.getComponentByUuid(childId);
-            BESS_ASSERT(childComponent, "Simulation child component was not found during clone");
+            BESS_ASSERT(childComponent,
+                        "Simulation child component was not found during clone");
 
             const auto childClones = childComponent->clone(sceneState);
-            BESS_ASSERT(!childClones.empty(), "Simulation child clone returned no components");
+            BESS_ASSERT(!childClones.empty(),
+                        "Simulation child clone returned no components");
 
-            clonedComponent->addChildComponent(childClones.front()->getUuid());
-            childClones.front()->setParentComponent(clonedComponent->getUuid());
-            clonedComponents.insert(clonedComponents.end(), childClones.begin(), childClones.end());
+            clonedComponents.insert(clonedComponents.end(),
+                                    childClones.begin(),
+                                    childClones.end());
+
+            clonedChildren.insert(childId);
         }
 
         return clonedComponents;

@@ -28,6 +28,10 @@ namespace Bess::Canvas {
 
         ~ConnectionSceneComponent() override = default;
 
+        std::vector<std::shared_ptr<SceneComponent>> cloneConn(
+            const SceneState &state,
+            const std::unordered_map<UUID, UUID> &ogToClonedIdMap);
+
         void draw(SceneDrawContext &context) override;
 
         void drawSchematic(SceneDrawContext &context) override;

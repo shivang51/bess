@@ -1,5 +1,7 @@
 #include "pages/main_page/main_page.h"
 #include "asset_manager/asset_manager.h"
+#include "common/bess_assert.h"
+#include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "common/types.h"
 #include "component_catalog.h"
@@ -318,24 +320,48 @@ namespace Bess::Pages {
         auto macroCmd = std::make_unique<Cmd::MacroCommand>();
 
         const auto &newCenter = scene->getSceneMousePos();
+        std::vector<Svc::CopyPaste::CopiedEntity> connEntites;
+
+        std::unordered_map<UUID, UUID> ogToClonedIdMap;
 
         for (auto &entity : ctx.getEntites()) {
             const auto pos = newCenter + entity.pos - ctx.getCenter();
             if (entity.type == Canvas::SceneComponentType::simulation) {
                 const auto &entityData = std::get<Svc::CopyPaste::ETSimComp>(entity.data);
                 auto clonedComponents = entityData.comp->clone(scene->getState());
-                BESS_ASSERT(!clonedComponents.empty(), "Simulation clone returned no components");
+                BESS_ASSERT(!clonedComponents.empty(),
+                            "Simulation clone returned no components");
 
-                auto sceneComp = std::dynamic_pointer_cast<Canvas::SimulationSceneComponent>(clonedComponents.front());
-                BESS_ASSERT(sceneComp, "Simulation clone did not return a simulation component first");
+                auto clonedComp = std::dynamic_pointer_cast<Canvas::SimulationSceneComponent>(
+                    clonedComponents.front());
+                BESS_ASSERT(clonedComp,
+                            "Simulation clone did not return a simulation component first");
                 clonedComponents.erase(clonedComponents.begin());
-                sceneComp->getTransform().position.x = pos.x;
-                sceneComp->getTransform().position.y = pos.y;
-                // if (scene->hasPluginDrawHookForComponentHash(def->getHash())) {
-                //     auto hook = scene->getPluginDrawHookForComponentHash(def->getHash());
-                //     sceneComp->cast<Canvas::SimulationSceneComponent>()->setDrawHook(hook);
-                // }
-                auto addCmd = std::make_unique<Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(sceneComp, clonedComponents);
+                BESS_ASSERT(clonedComponents.size() == entityData.comp->getChildComponents().size(),
+                            "[Paste] Not all child comps got cloned");
+
+                clonedComp->getTransform().position.x = pos.x;
+                clonedComp->getTransform().position.y = pos.y;
+
+                ogToClonedIdMap[entityData.comp->getUuid()] = clonedComp->getUuid();
+
+                size_t idx = 0;
+                for (const auto &ogId : entityData.comp->getInputSlots()) {
+                    const auto &clonedId = clonedComp->getInputSlots()[idx];
+                    ogToClonedIdMap[ogId] = clonedId;
+                    idx++;
+                }
+
+                idx = 0;
+                for (const auto &ogId : entityData.comp->getOutputSlots()) {
+                    const auto &clonedId = clonedComp->getOutputSlots()[idx];
+                    ogToClonedIdMap[ogId] = clonedId;
+                    idx++;
+                }
+
+                auto addCmd = std::make_unique<Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(
+                    clonedComp,
+                    clonedComponents);
                 macroCmd->addCommand(std::move(addCmd));
             } else if (entity.type == Canvas::SceneComponentType::nonSimulation) {
                 const auto &entityData = std::get<Svc::CopyPaste::ETNonSimComp>(entity.data);
@@ -345,11 +371,37 @@ namespace Bess::Pages {
                 auto inst = std::dynamic_pointer_cast<Canvas::NonSimSceneComponent>(clonedComponents.front());
                 BESS_ASSERT(inst, "Non-simulation clone did not return a non-simulation component first");
                 clonedComponents.erase(clonedComponents.begin());
+                BESS_ASSERT(clonedComponents.size() == entityData.comp->getChildComponents().size(),
+                            "[Paste] Not all child comps got cloned");
                 inst->getTransform().position.x = pos.x;
                 inst->getTransform().position.y = pos.y;
+
+                ogToClonedIdMap[entityData.comp->getUuid()] = inst->getUuid();
+
+                size_t idx = 0;
+                for (const auto &ogId : entityData.comp->getChildComponents()) {
+                    const auto &clonedId = clonedComponents[idx]->getUuid();
+                    ogToClonedIdMap[ogId] = clonedId;
+                    idx++;
+                }
+
                 auto addCmd = std::make_unique<Cmd::AddCompCmd<Canvas::NonSimSceneComponent>>(inst, clonedComponents);
                 macroCmd->addCommand(std::move(addCmd));
+            } else if (entity.type == Canvas::SceneComponentType::connection) {
+                connEntites.push_back(entity);
             }
+        }
+
+        for (const auto &connEntity : connEntites) {
+            const auto &entityData = std::get<Svc::CopyPaste::ETConnection>(connEntity.data);
+            const auto &ogConn = entityData.conn->cast<Canvas::ConnectionSceneComponent>();
+            auto clonedComps = ogConn->cloneConn(scene->getState(),
+                                                 ogToClonedIdMap);
+            auto clonedConn = clonedComps.front()->cast<Canvas::ConnectionSceneComponent>();
+            clonedComps.erase(clonedComps.begin());
+
+            auto addCmd = std::make_unique<Cmd::AddCompCmd<Canvas::ConnectionSceneComponent>>(clonedConn, clonedComps);
+            macroCmd->addCommand(std::move(addCmd));
         }
 
         cmdSystem.execute(std::move(macroCmd));

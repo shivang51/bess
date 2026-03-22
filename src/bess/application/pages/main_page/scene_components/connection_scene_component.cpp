@@ -17,7 +17,6 @@
 #include "types.h"
 #include "ui/ui.h"
 #include <cstdint>
-#include <stdexcept>
 
 namespace Bess::Canvas {
     ConnectionSceneComponent::ConnectionSceneComponent() {
@@ -26,9 +25,11 @@ namespace Bess::Canvas {
 #endif
     }
 
-    std::vector<std::shared_ptr<SceneComponent>> ConnectionSceneComponent::clone(const SceneState &sceneState) const {
+    std::vector<std::shared_ptr<SceneComponent>> ConnectionSceneComponent::clone(
+        const SceneState &sceneState) const {
         (void)sceneState;
-        throw std::runtime_error("Cloning ConnectionSceneComponent is not supported yet");
+        BESS_ASSERT(false,
+                    "Cloning ConnectionSceneComponent is supported via cloneConn function");
     }
 
     void ConnectionSceneComponent::drawSegments(const SceneState &state,
@@ -528,5 +529,24 @@ namespace Bess::Canvas {
         dependants.insert(dependants.end(), connDependants.begin(), connDependants.end());
 
         return dependants;
+    }
+
+    std::vector<std::shared_ptr<SceneComponent>> ConnectionSceneComponent::cloneConn(
+        const SceneState &state,
+        const std::unordered_map<UUID, UUID> &ogToClonedIdMap) {
+        auto cloned = std::make_shared<ConnectionSceneComponent>(*this);
+        prepareClone(*cloned);
+
+        BESS_ASSERT(ogToClonedIdMap.contains(m_startSlot),
+                    "[CloneConn] Start slot has no clone");
+        BESS_ASSERT(ogToClonedIdMap.contains(m_endSlot),
+                    "[CloneConn] End slot has no clone");
+
+        cloned->setStartEndSlots(ogToClonedIdMap.at(m_startSlot),
+                                 ogToClonedIdMap.at(m_endSlot));
+
+        // TODO: Handle cloning of joints
+        cloned->m_associatedJoints.clear();
+        return {cloned};
     }
 } // namespace Bess::Canvas
