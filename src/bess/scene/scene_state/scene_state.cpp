@@ -217,7 +217,8 @@ namespace Bess::Canvas {
 
         EventSystem::EventDispatcher::instance().queue(
             Events::ComponentRemovedEvent{uuid,
-                                          component->getType()});
+                                          component->getType(),
+                                          this});
 
         return removedUuids;
     }

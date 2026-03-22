@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR)
 set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
 
 project(bess C CXX)
+include(CTest)
 enable_testing()
 set(CMAKE_CXX_STANDARD 23)
 
@@ -36,7 +37,9 @@ add_compile_definitions($<$<CONFIG:Debug>:DEBUG>)
 
 add_subdirectory(external)
 add_subdirectory(src)
-# add_subdirectory(tests)
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
 # add_subdirectory(docs)
 
 if(MSVC)
