@@ -69,9 +69,19 @@ namespace Bess::Cmd {
 
             std::vector<std::shared_ptr<Canvas::ConnectionSceneComponent>> connections;
             std::unordered_map<UUID, std::vector<std::shared_ptr<Canvas::ConnJointSceneComp>>> jointsByConnection;
+            std::unordered_set<UUID> connectionDeletionIds;
+
+            for (const auto &uuid : deletionOrder) {
+                auto comp = sceneState.getComponentByUuid(uuid);
+                if (comp && comp->getType() == Canvas::SceneComponentType::connection) {
+                    connectionDeletionIds.insert(uuid);
+                }
+            }
 
             // Extract connections and connection joints from the deletion list.
-            // Joints are grouped by their owning connection instead of depending on traversal order.
+            // Joints are only grouped with their owning connection when that connection is also
+            // part of the same delete command. Standalone joint deletion must remain in the
+            // regular deletion order so the joint itself is removed after its dependant branches.
             for (auto it = deletionOrder.begin(); it != deletionOrder.end();) {
                 auto comp = sceneState.getComponentByUuid(*it);
                 if (!comp) {
@@ -84,8 +94,12 @@ namespace Bess::Cmd {
                     it = deletionOrder.erase(it); // Remove from the main list
                 } else if (comp->getType() == Canvas::SceneComponentType::connJoint) {
                     const auto joint = comp->cast<Canvas::ConnJointSceneComp>();
-                    jointsByConnection[joint->getConnectionId()].push_back(joint);
-                    it = deletionOrder.erase(it); // Remove from the main list
+                    if (connectionDeletionIds.contains(joint->getConnectionId())) {
+                        jointsByConnection[joint->getConnectionId()].push_back(joint);
+                        it = deletionOrder.erase(it); // Remove from the main list
+                    } else {
+                        it++;
+                    }
                 } else {
                     it++;
                 }
