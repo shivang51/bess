@@ -394,17 +394,38 @@ namespace Bess::Pages {
             }
         }
 
-        for (const auto &connEntity : connEntites) {
-            const auto &entityData = std::get<Svc::CopyPaste::ETConnection>(connEntity.data);
-            const auto &ogConn = entityData.conn->cast<Canvas::ConnectionSceneComponent>();
-            auto clonedComps = ogConn->cloneConn(scene->getState(),
-                                                 ogToClonedIdMap);
-            auto clonedConn = clonedComps.front()->cast<Canvas::ConnectionSceneComponent>();
-            clonedComps.erase(clonedComps.begin());
+        size_t prevSize = 0;
+        do {
+            auto prevSize = connEntites.size();
+            std::vector<Svc::CopyPaste::CopiedEntity> delayedConnections;
 
-            auto addCmd = std::make_unique<Cmd::AddCompCmd<Canvas::ConnectionSceneComponent>>(clonedConn, clonedComps);
-            macroCmd->addCommand(std::move(addCmd));
-        }
+            for (const auto &connEntity : connEntites) {
+                const auto &entityData = std::get<Svc::CopyPaste::ETConnection>(connEntity.data);
+                const auto &ogConn = entityData.conn->cast<Canvas::ConnectionSceneComponent>();
+
+                if (!ogToClonedIdMap.contains(ogConn->getStartSlot()) ||
+                    !ogToClonedIdMap.contains(ogConn->getEndSlot())) {
+                    delayedConnections.push_back(connEntity);
+                    continue;
+                }
+
+                auto clonedComps = ogConn->cloneConn(scene->getState(),
+                                                     ogToClonedIdMap);
+                auto clonedConn = clonedComps.front()->cast<Canvas::ConnectionSceneComponent>();
+                clonedComps.erase(clonedComps.begin());
+
+                auto addCmd = std::make_unique<Cmd::AddCompCmd<Canvas::ConnectionSceneComponent>>(clonedConn, clonedComps);
+                macroCmd->addCommand(std::move(addCmd));
+            }
+
+            connEntites.clear();
+            for (const auto &entity : delayedConnections) {
+                const auto &entityData = std::get<Svc::CopyPaste::ETConnection>(entity.data);
+                if (!ogToClonedIdMap.contains(entityData.conn->getUuid())) {
+                    connEntites.push_back(entity);
+                }
+            }
+        } while (!connEntites.empty() && prevSize < connEntites.size());
 
         cmdSystem.execute(std::move(macroCmd));
     }

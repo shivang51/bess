@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/bess_uuid.h"
+#include "common/types.h"
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
@@ -30,9 +31,10 @@ namespace Bess::Canvas {
 
         std::vector<std::shared_ptr<SceneComponent>> cloneConn(
             const SceneState &state,
-            const std::unordered_map<UUID, UUID> &ogToClonedIdMap);
+            std::unordered_map<UUID, UUID> &ogToClonedIdMap);
 
         void draw(SceneDrawContext &context) override;
+        void update(TimeMs frameTime, SceneState &sceneState) override;
 
         void drawSchematic(SceneDrawContext &context) override;
 

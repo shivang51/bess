@@ -25,6 +25,12 @@ namespace Bess::Canvas {
 #endif
     }
 
+    void ConnectionSceneComponent::update(TimeMs frameTime, SceneState &sceneState) {
+        if (m_segmentPosCacheDirty) {
+            resetSegmentPositionCache(sceneState);
+        }
+    }
+
     std::vector<std::shared_ptr<SceneComponent>> ConnectionSceneComponent::clone(
         const SceneState &sceneState) const {
         (void)sceneState;
@@ -44,7 +50,8 @@ namespace Bess::Canvas {
 
         BESS_ASSERT(!segCache.empty(), "Segment position cache is empty");
 
-        if (startPos != segCache.front() ||
+        if (m_segmentPosCacheDirty ||
+            startPos != segCache.front() ||
             endPos != segCache.back()) {
             resetSegmentPositionCache(state);
         }
@@ -426,8 +433,10 @@ namespace Bess::Canvas {
         const auto &startComp = state.getComponentByUuid(m_startSlot);
         const auto &endComp = state.getComponentByUuid(m_endSlot);
 
-        if (!startComp || !endComp)
+        if (!startComp || !endComp) {
+            BESS_ASSERT(false, "Tried to reset segment pos of invalid conn");
             return;
+        }
 
         auto startPos = startComp->getAbsolutePosition(state);
         if (startComp->getType() == SceneComponentType::slot) {
@@ -480,6 +489,8 @@ namespace Bess::Canvas {
         }
 
         cache.emplace_back(endPos);
+
+        m_transform.position = (startPos + endPos) / 2.f;
     }
 
     glm::vec3 ConnectionSceneComponent::getSegVertexPos(const SceneState &state, size_t vertexIdx) {
@@ -533,20 +544,41 @@ namespace Bess::Canvas {
 
     std::vector<std::shared_ptr<SceneComponent>> ConnectionSceneComponent::cloneConn(
         const SceneState &state,
-        const std::unordered_map<UUID, UUID> &ogToClonedIdMap) {
-        auto cloned = std::make_shared<ConnectionSceneComponent>(*this);
-        prepareClone(*cloned);
-
+        std::unordered_map<UUID, UUID> &ogToClonedIdMap) {
         BESS_ASSERT(ogToClonedIdMap.contains(m_startSlot),
                     "[CloneConn] Start slot has no clone");
         BESS_ASSERT(ogToClonedIdMap.contains(m_endSlot),
                     "[CloneConn] End slot has no clone");
 
+        auto cloned = std::make_shared<ConnectionSceneComponent>(*this);
+        prepareClone(*cloned);
+
+        ogToClonedIdMap[m_uuid] = cloned->m_uuid;
+
         cloned->setStartEndSlots(ogToClonedIdMap.at(m_startSlot),
                                  ogToClonedIdMap.at(m_endSlot));
 
-        // TODO: Handle cloning of joints
+        std::vector<std::shared_ptr<SceneComponent>> clonedComps;
+
+        clonedComps.push_back(cloned);
+
+        cloned->m_segmentPosCacheDirty = true;
         cloned->m_associatedJoints.clear();
-        return {cloned};
+
+        for (const auto &id : m_associatedJoints) {
+            const auto &joint = state.getComponentByUuid<ConnJointSceneComp>(id);
+            BESS_ASSERT(joint, "[ConnClone] Joint not found in scene");
+            auto jointCloneComps = joint->cloneConnJoint(state, ogToClonedIdMap);
+            auto clonedJoint = jointCloneComps.front()->cast<ConnJointSceneComp>();
+            BESS_ASSERT(clonedJoint, "[ConnClone] Joint was cloned with error");
+            clonedComps.insert(clonedComps.end(),
+                               jointCloneComps.begin(),
+                               jointCloneComps.end());
+
+            cloned->m_associatedJoints.push_back(clonedJoint->getUuid());
+        }
+
+        return clonedComps;
     }
+
 } // namespace Bess::Canvas

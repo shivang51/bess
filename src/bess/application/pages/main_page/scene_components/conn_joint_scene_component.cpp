@@ -12,7 +12,7 @@
 #include "slot_scene_component.h"
 #include "types.h"
 #include "ui/ui.h"
-#include <stdexcept>
+#include <memory>
 
 namespace Bess::Canvas {
     ConnJointSceneComp::ConnJointSceneComp(UUID connectionId,
@@ -26,7 +26,39 @@ namespace Bess::Canvas {
 
     std::vector<std::shared_ptr<SceneComponent>> ConnJointSceneComp::clone(const SceneState &sceneState) const {
         (void)sceneState;
-        throw std::runtime_error("Cloning ConnJointSceneComp is not supported yet");
+        BESS_ASSERT(false, "Cloning ConnJointSceneComp is supported through cloneConnJoin function");
+    }
+
+    std::vector<std::shared_ptr<SceneComponent>> ConnJointSceneComp::cloneConnJoint(
+        const SceneState &sceneState,
+        std::unordered_map<UUID, UUID> &ogToClonedIdMap) {
+
+        std::vector<std::shared_ptr<SceneComponent>> clonedComps;
+
+        BESS_ASSERT(ogToClonedIdMap.contains(m_connectionId),
+                    "Connection of joint has no mapping to its clone");
+
+        auto clone = std::make_shared<ConnJointSceneComp>(*this);
+        prepareClone(*clone);
+        clone->m_connectionId = ogToClonedIdMap.at(m_connectionId);
+        ogToClonedIdMap[m_uuid] = clone->m_uuid;
+
+        clonedComps.push_back(clone);
+
+        for (const auto &id : m_connections) {
+            const auto &conn = sceneState.getComponentByUuid<ConnectionSceneComponent>(id);
+            BESS_ASSERT(conn, "[CloneJoint] Connection not found");
+            if (!ogToClonedIdMap.contains(conn->getStartSlot()) ||
+                !ogToClonedIdMap.contains(conn->getEndSlot())) {
+                continue;
+            }
+
+            auto clonedConn = conn->cloneConn(sceneState, ogToClonedIdMap);
+
+            clonedComps.insert(clonedComps.end(), clonedConn.begin(), clonedConn.end());
+        }
+
+        return clonedComps;
     }
 
     void ConnJointSceneComp::draw(SceneDrawContext &context) {
