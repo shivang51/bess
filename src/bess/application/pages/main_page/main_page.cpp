@@ -301,12 +301,16 @@ namespace Bess::Pages {
                 auto &mainPageState = Pages::MainPage::getInstance()->getState();
                 auto &sceneDriver = mainPageState.getSceneDriver();
                 auto &sceneState = sceneDriver->getState();
-                const auto &selComponents = sceneState.getSelectedComponents();
-                if (!selComponents.empty()) {
+                const auto selectedIds = sceneState.getSelectedComponents() |
+                                         std::views::keys |
+                                         std::ranges::to<std::vector<UUID>>();
+                if (!selectedIds.empty()) {
                     sceneDriver.updateNets();
                     std::unordered_set<UUID> processedNetIds;
-                    for (const auto &entry : selComponents) {
-                        const auto &compId = entry.first;
+                    std::vector<UUID> netIdsToModule;
+                    netIdsToModule.reserve(selectedIds.size());
+
+                    for (const auto &compId : selectedIds) {
                         const auto &comp = sceneState.getComponentByUuid(compId);
                         if (!comp ||
                             comp->getType() != Canvas::SceneComponentType::simulation)
@@ -317,10 +321,13 @@ namespace Bess::Pages {
                             continue;
                         }
 
-                        auto module = Canvas::ModuleSceneComponent::fromNet(netId);
-
-                        BESS_ASSERT(module, "Failed to create module");
+                        netIdsToModule.push_back(netId);
                         processedNetIds.insert(netId);
+                    }
+
+                    for (const auto &netId : netIdsToModule) {
+                        auto module = Canvas::ModuleSceneComponent::fromNet(netId);
+                        BESS_ASSERT(module, "Failed to create module");
                     }
                 }
             }
