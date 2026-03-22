@@ -149,6 +149,26 @@ TEST_F(SimulationEngineTest, CatalogIncludesBuiltInAndPluginDefinitions) {
     EXPECT_NE(findDefinitionByName("XOR Gate"), nullptr);
 }
 
+TEST_F(SimulationEngineTest, CanConnectComponentsRejectsInvalidConfigurations) {
+    const auto input = addComponent(inputDef);
+    const auto gate = addComponent(andDef);
+
+    const auto [nullOk, nullError] = engine->canConnectComponents(
+        Bess::UUID::null, 0, SlotType::digitalOutput, gate, 0, SlotType::digitalInput);
+    EXPECT_FALSE(nullOk);
+    EXPECT_EQ(nullError, "Cannot connect to/from null component");
+
+    const auto [sameTypeOk, sameTypeError] = engine->canConnectComponents(
+        input, 0, SlotType::digitalOutput, gate, 0, SlotType::digitalOutput);
+    EXPECT_FALSE(sameTypeOk);
+    EXPECT_EQ(sameTypeError, "Cannot connect pins of the same type i.e. input -> input or output -> output");
+
+    const auto [badIndexOk, badIndexError] = engine->canConnectComponents(
+        input, 9, SlotType::digitalOutput, gate, 0, SlotType::digitalInput);
+    EXPECT_FALSE(badIndexOk);
+    EXPECT_TRUE(badIndexError.starts_with("Invalid source pin index."));
+}
+
 TEST_F(SimulationEngineTest, ConnectionLifecycleTracksDuplicatesAndComponentDeletion) {
     const auto inputA = addComponent(inputDef);
     const auto inputB = addComponent(inputDef);
@@ -248,4 +268,19 @@ TEST_F(SimulationEngineTest, PauseAndStepControlsWhenQueuedSimulationRuns) {
 
     engine->stepSimulation();
     expectOutputEventually(gate, SlotType::digitalOutput, 0, LogicState::high);
+}
+
+TEST_F(SimulationEngineTest, DeleteComponentRemovesItFromStateAndConnections) {
+    const auto input = addComponent(inputDef);
+    const auto gate = addComponent(notDef);
+
+    ASSERT_TRUE(engine->connectComponent(input, 0, SlotType::digitalOutput,
+                                         gate, 0, SlotType::digitalInput));
+
+    engine->deleteComponent(input);
+
+    EXPECT_EQ(engine->getDigitalComponent(input), nullptr);
+    const auto connections = engine->getConnections(gate);
+    ASSERT_EQ(connections.inputs.size(), 1u);
+    EXPECT_TRUE(connections.inputs[0].empty());
 }

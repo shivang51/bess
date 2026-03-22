@@ -10,11 +10,14 @@ add_executable(BessTests
     scene_state_test.cpp
     simulation_engine_test.cpp
     connection_service_test.cpp
+    copy_paste_test.cpp
+    command_system_test.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_SOURCE_DIR}/src/sim_engine/include"
 	"${CMAKE_SOURCE_DIR}/src/plugin_manager/include"
+	"${CMAKE_SOURCE_DIR}/src/command_system/include"
 	"${CMAKE_SOURCE_DIR}/src/bess/"
 	"${CMAKE_SOURCE_DIR}/src/event_system/include"
 	"${CMAKE_SOURCE_DIR}/src/common/include"

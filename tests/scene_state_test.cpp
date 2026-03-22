@@ -267,3 +267,33 @@ TEST_F(SceneStateTest, ClearRemovesComponentsRootsAndSelection) {
     EXPECT_TRUE(state.getRootComponents().empty());
     EXPECT_TRUE(state.getSelectedComponents().empty());
 }
+
+TEST_F(SceneStateTest, RemoveComponentWithMasterDetachesItFromParentChildSet) {
+    const auto parent = createComponent();
+    const auto child = createComponent();
+
+    state.addComponent(parent);
+    state.addComponent(child);
+    state.attachChild(parent->getUuid(), child->getUuid(), false);
+
+    const auto removed = state.removeComponent(child->getUuid(), Bess::UUID::master);
+
+    ASSERT_EQ(removed.size(), 1u);
+    EXPECT_EQ(removed.front(), child->getUuid());
+    EXPECT_FALSE(parent->getChildComponents().contains(child->getUuid()));
+    EXPECT_EQ(state.getComponentByUuid(child->getUuid()), nullptr);
+}
+
+TEST_F(SceneStateTest, AssignRuntimeIdReusesFreedIdsAfterRemoval) {
+    const auto first = createComponent();
+    const auto second = createComponent();
+
+    state.addComponent(first);
+    const auto firstRuntimeId = first->getRuntimeId();
+    ASSERT_NE(firstRuntimeId, PickingId::invalidRuntimeId);
+
+    state.removeComponent(first->getUuid(), Bess::UUID::master);
+    state.addComponent(second);
+
+    EXPECT_EQ(second->getRuntimeId(), firstRuntimeId);
+}
