@@ -586,7 +586,6 @@ namespace Bess::Canvas {
                         "Simulation child component was not found during clone");
             auto slot = childComponent->cast<SlotSceneComponent>();
             cloneSlot(childId, true);
-            BESS_TRACE("{}", slot->getName());
         }
 
         for (const auto &childId : m_outputSlots) {
@@ -595,7 +594,6 @@ namespace Bess::Canvas {
                         "Simulation child component was not found during clone");
             auto slot = childComponent->cast<SlotSceneComponent>();
             cloneSlot(childId, false);
-            BESS_TRACE("{}", slot->getName());
         }
 
         for (const auto &childId : m_childComponents) {

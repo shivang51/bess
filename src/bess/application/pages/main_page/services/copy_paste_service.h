@@ -5,7 +5,9 @@
 #include "pages/main_page/scene_components/non_sim_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
+#include "scene.h"
 #include "scene_state/components/scene_component.h"
+#include "scene_state/scene_state.h"
 #include <typeindex>
 #include <vector>
 
@@ -36,20 +38,22 @@ namespace Bess::Svc::CopyPaste {
         void init();
         void destroy();
 
+        void copy(const std::shared_ptr<Canvas::Scene> &scene);
+        void paste(const std::shared_ptr<Canvas::Scene> &scene);
+
+      private:
         void addEntity(const CopiedEntity &entity);
 
         void clear();
 
         void calcCenter();
 
-        MAKE_GETTER_SETTER(std::vector<CopiedEntity>, Entites, m_entities);
-        MAKE_GETTER_SETTER(glm::vec2, Center, m_center);
-
-      private:
         Context() = default;
         ~Context() = default;
 
         std::vector<CopiedEntity> m_entities;
         glm::vec2 m_center;
+
+        std::shared_ptr<Canvas::Scene> m_copiedScene = nullptr;
     };
 } // namespace Bess::Svc::CopyPaste
