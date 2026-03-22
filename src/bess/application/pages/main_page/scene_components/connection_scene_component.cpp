@@ -7,6 +7,7 @@
 #include "fwd.hpp"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
+#include "pages/main_page/main_page_state.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
@@ -535,8 +536,10 @@ namespace Bess::Canvas {
         }
 
         // get its depents from ConnectionService
+        const auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
         auto &connectionsSvc = Svc::SvcConnection::instance();
-        const auto &connDependants = connectionsSvc.getDependants(getUuid());
+        const auto &connDependants = connectionsSvc.getDependants(getUuid(),
+                                                                  sceneDriver.getSceneWithId(state.getSceneId()).get());
         dependants.insert(dependants.end(), connDependants.begin(), connDependants.end());
 
         return dependants;

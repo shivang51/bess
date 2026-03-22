@@ -76,4 +76,7 @@ namespace Bess::Cmd {
         return !m_redoStack.empty();
     }
 
+    Canvas::Scene *CommandSystem::getScene() {
+        return mp_scene;
+    }
 } // namespace Bess::Cmd

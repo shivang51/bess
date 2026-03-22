@@ -112,7 +112,7 @@ namespace Bess::Canvas {
 
         if (emitEvent) {
             EventSystem::EventDispatcher::instance().queue(
-                Events::EntityReparentedEvent{childId, parentId, prevParentId});
+                Events::EntityReparentedEvent{childId, parentId, prevParentId, this});
         }
 
         m_rootComponents.erase(childId);
@@ -136,7 +136,7 @@ namespace Bess::Canvas {
                   (uint64_t)childId, (uint64_t)parentId);
 
         EventSystem::EventDispatcher::instance().queue(
-            Events::EntityReparentedEvent{childId, UUID::null, parentId});
+            Events::EntityReparentedEvent{childId, UUID::null, parentId, this});
 
         m_rootComponents.insert(childId);
     }
@@ -235,7 +235,7 @@ namespace Bess::Canvas {
         BESS_INFO("[SceneState] Orphaned component {}", (uint64_t)uuid);
 
         EventSystem::EventDispatcher::instance().queue(
-            Events::EntityReparentedEvent{uuid, UUID::null, parentId});
+            Events::EntityReparentedEvent{uuid, UUID::null, parentId, this});
     }
 
     bool SceneState::isRootComponent(const UUID &uuid) const {

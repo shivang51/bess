@@ -127,7 +127,7 @@ namespace Bess::Cmd {
                     sceneState.removeComponent(joint->getUuid(), UUID::master);
                     m_deletedComponents.push_back(joint);
                 }
-                Svc::SvcConnection::instance().removeConnection(conn);
+                Svc::SvcConnection::instance().removeConnection(conn, scene);
 
                 m_deletedComponents.push_back(std::move(conn));
             }
@@ -157,7 +157,7 @@ namespace Bess::Cmd {
                 BESS_DEBUG("Restoring component: {} with uuid {}", deletedComponent->getName(),
                            (uint64_t)deletedComponent->getUuid());
                 if (deletedComponent->getType() == Canvas::SceneComponentType::connection) {
-                    connectionsSvc.addConnection(deletedComponent->cast<Canvas::ConnectionSceneComponent>());
+                    connectionsSvc.addConnection(deletedComponent->cast<Canvas::ConnectionSceneComponent>(), scene);
                 } else {
                     sceneState.addComponent(deletedComponent,
                                             deletedComponent->getType() != Canvas::SceneComponentType::group);
@@ -203,7 +203,7 @@ namespace Bess::Cmd {
 
             for (const auto &comp : m_deletedComponents) {
                 if (comp->getType() == Canvas::SceneComponentType::connection) {
-                    connectionsSvc.removeConnection(comp->cast<Canvas::ConnectionSceneComponent>());
+                    connectionsSvc.removeConnection(comp->cast<Canvas::ConnectionSceneComponent>(), scene);
                 } else {
                     scene->getState().removeComponent(comp->getUuid(), UUID::master);
                 }

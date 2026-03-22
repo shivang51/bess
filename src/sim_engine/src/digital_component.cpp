@@ -211,6 +211,12 @@ namespace Bess::SimEngine {
             cb(newCount);
         }
     }
+
+    void DigitalComponent::clearCallbacks() {
+        onInputSlotCountChangeCbs.clear();
+        onOutputSlotCountChangeCbs.clear();
+        onStateChangeCbs.clear();
+    }
 } // namespace Bess::SimEngine
 
 namespace Bess::JsonConvert {

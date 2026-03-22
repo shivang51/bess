@@ -1,9 +1,13 @@
 #include "copy_paste_service.h"
+#include "common/bess_uuid.h"
 #include "component_catalog.h"
 #include "macro_command.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
+#include "pages/main_page/scene_components/module_scene_component.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
 #include "simulation_engine.h"
+#include <unordered_map>
 
 namespace Bess::Svc::CopyPaste {
     void Context::copy(const std::shared_ptr<Canvas::Scene> &scene) {
@@ -27,7 +31,8 @@ namespace Bess::Svc::CopyPaste {
             entity.type = type;
 
             switch (type) {
-            case Canvas::SceneComponentType::simulation: {
+            case Canvas::SceneComponentType::simulation:
+            case Canvas::SceneComponentType::module: {
                 const auto casted = comp->cast<Canvas::SimulationSceneComponent>();
                 entity.data = Svc::CopyPaste::ETSimComp{casted};
             } break;
@@ -50,9 +55,9 @@ namespace Bess::Svc::CopyPaste {
         }
     }
 
-    void Context::paste(const std::shared_ptr<Canvas::Scene> &targetScene) {
+    std::unordered_map<UUID, UUID> Context::paste(const std::shared_ptr<Canvas::Scene> &targetScene) {
         if (m_entities.empty())
-            return;
+            return {};
 
         BESS_ASSERT(m_copiedScene,
                     "Copied Scene is invalid, although entities were copied");
@@ -60,6 +65,8 @@ namespace Bess::Svc::CopyPaste {
         calcCenter();
 
         auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
+        const auto currentCmdSystemScene = cmdSystem.getScene();
+        cmdSystem.setScene(targetScene.get());
         auto macroCmd = std::make_unique<Cmd::MacroCommand>();
 
         const auto &newCenter = targetScene->getSceneMousePos();
@@ -69,16 +76,24 @@ namespace Bess::Svc::CopyPaste {
 
         for (auto &entity : m_entities) {
             const auto pos = newCenter + entity.pos - m_center;
-            if (entity.type == Canvas::SceneComponentType::simulation) {
+            if (entity.type == Canvas::SceneComponentType::simulation ||
+                entity.type == Canvas::SceneComponentType::module) {
                 const auto &entityData = std::get<Svc::CopyPaste::ETSimComp>(entity.data);
                 auto clonedComponents = entityData.comp->clone(m_copiedScene->getState());
                 BESS_ASSERT(!clonedComponents.empty(),
                             "Simulation clone returned no components");
 
-                auto clonedComp = std::dynamic_pointer_cast<Canvas::SimulationSceneComponent>(
-                    clonedComponents.front());
-                BESS_ASSERT(clonedComp,
-                            "Simulation clone did not return a simulation component first");
+                if (entity.type == Canvas::SceneComponentType::module) {
+                    BESS_ASSERT(std::dynamic_pointer_cast<Canvas::ModuleSceneComponent>(
+                                    clonedComponents.front()),
+                                "Module clone did not return a module component first");
+                } else {
+                    BESS_ASSERT(std::dynamic_pointer_cast<Canvas::SimulationSceneComponent>(
+                                    clonedComponents.front()),
+                                "Simulation clone did not return a simulation component first");
+                }
+
+                auto clonedComp = clonedComponents.front()->cast<Canvas::SimulationSceneComponent>();
                 clonedComponents.erase(clonedComponents.begin());
                 BESS_ASSERT(clonedComponents.size() == entityData.comp->getChildComponents().size(),
                             "[Paste] Not all child comps got cloned");
@@ -132,6 +147,9 @@ namespace Bess::Svc::CopyPaste {
                 macroCmd->addCommand(std::move(addCmd));
             } else if (entity.type == Canvas::SceneComponentType::connection) {
                 connEntites.push_back(entity);
+            } else {
+                BESS_ERROR("Trying to paste unknown type {}", (int)entity.type);
+                BESS_ASSERT(false, "Trying to paste unknown type");
             }
         }
 
@@ -170,6 +188,10 @@ namespace Bess::Svc::CopyPaste {
         } while (!connEntites.empty() && prevSize < connEntites.size());
 
         cmdSystem.execute(std::move(macroCmd));
+
+        cmdSystem.setScene(currentCmdSystemScene);
+
+        return ogToClonedIdMap;
     }
 
     Context &Context::instance() {

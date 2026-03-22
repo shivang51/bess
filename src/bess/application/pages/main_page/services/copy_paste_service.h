@@ -2,6 +2,7 @@
 
 #include "ext/quaternion_geometric.hpp"
 #include "pages/main_page/scene_components/connection_scene_component.h"
+#include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/non_sim_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
@@ -35,11 +36,18 @@ namespace Bess::Svc::CopyPaste {
       public:
         static Context &instance();
 
+        // I will allow a new instance creation as well,
+        // so module can leverage it to clone it self
+        Context() = default;
+        ~Context() = default;
+
         void init();
         void destroy();
 
         void copy(const std::shared_ptr<Canvas::Scene> &scene);
-        void paste(const std::shared_ptr<Canvas::Scene> &scene);
+
+        // Retruns og id to clone id map
+        std::unordered_map<UUID, UUID> paste(const std::shared_ptr<Canvas::Scene> &scene);
 
       private:
         void addEntity(const CopiedEntity &entity);
@@ -47,9 +55,6 @@ namespace Bess::Svc::CopyPaste {
         void clear();
 
         void calcCenter();
-
-        Context() = default;
-        ~Context() = default;
 
         std::vector<CopiedEntity> m_entities;
         glm::vec2 m_center;

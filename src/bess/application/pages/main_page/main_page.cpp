@@ -258,7 +258,6 @@ namespace Bess::Pages {
                             comp->cast<Canvas::SimulationSceneComponent>()->getNetId());
 
                         BESS_ASSERT(module, "Failed to create module");
-                        sceneDriver->addComponent(module);
                     }
                 }
             }

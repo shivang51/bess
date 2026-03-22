@@ -9,6 +9,8 @@ namespace Bess::SimEngine {
       public:
         static std::shared_ptr<ModuleDefinition> createNew();
 
+        std::shared_ptr<ComponentDefinition> clone() const override;
+
         ComponentState simulationFunction(const std::vector<SlotState> &inputs,
                                           SimTime simTime,
                                           const ComponentState &prevState);

@@ -1,4 +1,5 @@
 #include "module_scene_component.h"
+#include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "icons/FontAwesomeIcons.h"
 #include "module_def.h"
@@ -6,31 +7,78 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/scene_driver.h"
+#include "pages/main_page/services/copy_paste_service.h"
 #include "scene/scene_state/scene_state.h"
-#include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "types.h"
 #include <memory>
-#include <stdexcept>
+#include <unordered_map>
 
 namespace Bess::Canvas {
     ModuleSceneComponent::ModuleSceneComponent() {
-        m_icon = UI::Icons::FontAwesomeIcons::FA_OBJECT_GROUP;
+        m_icon = UI::Icons::FontAwesomeIcons::FA_CUBES;
     };
 
-    std::vector<std::shared_ptr<SceneComponent>> ModuleSceneComponent::clone(const SceneState &sceneState) const {
-        (void)sceneState;
-        throw std::runtime_error("Cloning ModuleSceneComponent is not supported yet");
+    std::vector<std::shared_ptr<SceneComponent>> ModuleSceneComponent::clone(
+        const SceneState &sceneState) const {
+        auto moduleClone = std::make_shared<ModuleSceneComponent>(*this);
+        auto clonedComps = cloneSimulationComponent(sceneState, moduleClone);
+
+        const auto &clonedModDef = std::dynamic_pointer_cast<SimEngine::ModuleDefinition>(
+            moduleClone->getCompDef());
+
+        auto &mainPageState = Pages::MainPage::getInstance()->getState();
+        auto &sceneDriver = mainPageState.getSceneDriver();
+
+        auto newScene = sceneDriver.createNewScene();
+        auto &newSceneState = newScene->getState();
+        newSceneState.setIsRootScene(false);
+
+        moduleClone->setSceneId(newSceneState.getSceneId());
+        newSceneState.setModuleId(moduleClone->getUuid());
+
+        std::unordered_map<UUID, UUID> ogToCloneId = {};
+
+        // Copying comps from old scene to new
+        {
+            auto ogScene = sceneDriver.getSceneWithId(m_sceneId);
+            ogScene->selectAllEntities();
+            Svc::CopyPaste::Context cpCtx;
+            cpCtx.init();
+            cpCtx.copy(ogScene);
+            ogToCloneId = cpCtx.paste(newScene);
+            cpCtx.destroy();
+            ogScene->getState().clearSelectedComponents();
+        }
+
+        BESS_ASSERT(ogToCloneId.contains(m_associatedInp),
+                    "[CloneModule] Associated input cloned mapping not found");
+
+        BESS_ASSERT(ogToCloneId.contains(m_associatedOut),
+                    "[CloneModule] Associated output cloned mapping not found");
+
+        const auto &clonedInpId = ogToCloneId.at(m_associatedInp);
+        const auto &clonedOutId = ogToCloneId.at(m_associatedOut);
+
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+
+        auto clonedInp = newSceneState.getComponentByUuid<SimulationSceneComponent>(clonedInpId);
+        simEngine.deleteComponent(clonedModDef->getInputId());
+        clonedModDef->setInputId(clonedInp->getSimEngineId());
+        auto clonedOut = newSceneState.getComponentByUuid<SimulationSceneComponent>(clonedOutId);
+        simEngine.deleteComponent(clonedModDef->getOutputId());
+        clonedModDef->setOutputId(clonedOut->getSimEngineId());
+
+        return clonedComps;
     }
 
-    void ModuleSceneComponent::onAttach(SceneState &state) {
-        SimulationSceneComponent::onAttach(state);
-
+    void ModuleSceneComponent::setCallbacks(const SceneState &state) {
         const auto &simEngine = SimEngine::SimulationEngine::instance();
         auto moduleDef = std::dynamic_pointer_cast<SimEngine::ModuleDefinition>(m_compDef);
         auto outputDigitalComp = simEngine.getDigitalComponent(moduleDef->getOutputId());
         auto inputDigitalComp = simEngine.getDigitalComponent(moduleDef->getInputId());
 
+        outputDigitalComp->clearCallbacks();
         outputDigitalComp->addOnStateChangeCB([this](const SimEngine::ComponentState &oldState,
                                                      const SimEngine::ComponentState &newState) {
             auto &simEngine = SimEngine::SimulationEngine::instance();
@@ -75,6 +123,7 @@ namespace Bess::Canvas {
             BESS_ASSERT(modOutCount == newCount, "Failed to sync module inputs");
         });
 
+        inputDigitalComp->clearCallbacks();
         inputDigitalComp->addOnOutputSlotCountChangeCB([this](size_t newCount) {
             const auto &simEngine = SimEngine::SimulationEngine::instance();
             auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
@@ -108,8 +157,75 @@ namespace Bess::Canvas {
         });
     }
 
+    void ModuleSceneComponent::onAttach(SceneState &state) {
+        SimulationSceneComponent::onAttach(state);
+        setCallbacks(state);
+    }
+
     std::vector<UUID> ModuleSceneComponent::cleanup(SceneState &state, UUID caller) {
         return {};
+    }
+
+    std::vector<std::shared_ptr<SceneComponent>> ModuleSceneComponent::createNew(UUID &moduleInpId,
+                                                                                 UUID &moduleOutId) {
+        auto &mainPageState = Pages::MainPage::getInstance()->getState();
+        auto &sceneDriver = mainPageState.getSceneDriver();
+
+        auto newScene = sceneDriver.createNewScene();
+        auto &newSceneState = newScene->getState();
+        newSceneState.setIsRootScene(false);
+
+        auto moduleDef = SimEngine::ModuleDefinition::createNew();
+        auto comps = SimulationSceneComponent::createNew<ModuleSceneComponent>(moduleDef);
+
+        auto moduleComp = std::dynamic_pointer_cast<ModuleSceneComponent>(comps.front());
+        moduleComp->setSceneId(newSceneState.getSceneId());
+        moduleComp->m_transform.position.z = sceneDriver->getNextZCoord();
+        newSceneState.setModuleId(moduleComp->getUuid());
+
+        const auto &simEngine = SimEngine::SimulationEngine::instance();
+
+        // adding io to new module scene
+
+        const auto inpDef = simEngine.getComponentDefinition(moduleDef->getInputId());
+        auto inpComps = SimulationSceneComponent::createNew<SimulationSceneComponent>(inpDef);
+        const auto inpSceneComp = std::dynamic_pointer_cast<SimulationSceneComponent>(inpComps.front());
+        inpSceneComp->setName("Module Input");
+        inpSceneComp->getTransform().position.z = newScene->getNextZCoord();
+        inpSceneComp->getTransform().position.x = -200.f;
+        inpSceneComp->setSimEngineId(moduleDef->getInputId());
+        moduleInpId = inpSceneComp->getUuid();
+        moduleComp->m_associatedInp = inpSceneComp->getUuid();
+        inpComps.erase(inpComps.begin());
+
+        // comps.insert(comps.end(), inpComps.begin(), inpComps.end());
+
+        newSceneState.addComponent(inpSceneComp, true, false);
+
+        for (const auto &inpComp : inpComps) {
+            newSceneState.addComponent(inpComp, true, false);
+            newSceneState.attachChild(inpSceneComp->getUuid(), inpComp->getUuid(), false);
+        }
+
+        auto outDef = simEngine.getComponentDefinition(moduleDef->getOutputId());
+        auto outComps = SimulationSceneComponent::createNewAndRegister(outDef);
+        auto outSceneComp = std::dynamic_pointer_cast<SimulationSceneComponent>(outComps.front());
+        outSceneComp->setName("Module Output");
+        outSceneComp->getTransform().position.z = newScene->getNextZCoord();
+        outSceneComp->getTransform().position.x = 200.f;
+        outSceneComp->setSimEngineId(moduleDef->getOutputId());
+        moduleOutId = outSceneComp->getUuid();
+        moduleComp->m_associatedOut = outSceneComp->getUuid();
+        outComps.erase(outComps.begin());
+        // comps.insert(comps.end(), outComps.begin(), outComps.end());
+
+        newSceneState.addComponent(outSceneComp, true, false);
+        for (const auto &outComp : outComps) {
+            newSceneState.addComponent(outComp, true, false);
+            newSceneState.attachChild(outSceneComp->getUuid(), outComp->getUuid(), false);
+        }
+
+        return comps;
     }
 
     std::shared_ptr<ModuleSceneComponent> ModuleSceneComponent::fromNet(const UUID &netId,
@@ -128,31 +244,9 @@ namespace Bess::Canvas {
 
         const auto &compIds = netCompMap.at(netId);
 
-        auto newScene = sceneDriver.createNewScene();
-        auto &newSceneState = newScene->getState();
-        newSceneState.setIsRootScene(false);
-
-        auto moduleDef = SimEngine::ModuleDefinition::createNew();
-        auto comps = SimulationSceneComponent::createNew<ModuleSceneComponent>(moduleDef);
-
-        auto moduleComp = std::dynamic_pointer_cast<ModuleSceneComponent>(comps.front());
-        comps.erase(comps.begin());
-        sceneState.addComponent(moduleComp);
-        for (const auto &comp : comps) {
-            sceneState.addComponent(comp);
-            sceneState.attachChild(moduleComp->getUuid(), comp->getUuid());
-        }
-
-        moduleComp->setSceneId(newSceneState.getSceneId());
-        newSceneState.setModuleId(moduleComp->getUuid());
-
-        auto &style = moduleComp->getStyle();
-        style.color = ViewportTheme::colors.componentBG;
-        style.headerColor = ViewportTheme::colors.componentBG;
-        style.borderRadius = glm::vec4(6.f);
-        style.borderColor = ViewportTheme::colors.componentBorder;
-        style.borderSize = glm::vec4(1.f);
-        style.color = ViewportTheme::colors.componentBG;
+        UUID moduleInpId = UUID::null;
+        UUID moduleOutId = UUID::null;
+        auto moduleComps = ModuleSceneComponent::createNew(moduleInpId, moduleOutId);
 
         std::vector<std::shared_ptr<SceneComponent>> compsToMove;
 
@@ -178,44 +272,27 @@ namespace Bess::Canvas {
             }
         }
 
+        auto moduleComp = moduleComps.front()->cast<ModuleSceneComponent>();
+
+        // TODO: integrate with undo/redo
+        moduleComps.erase(moduleComps.begin());
+        sceneState.addComponent(moduleComp);
+        for (const auto &comp : moduleComps) {
+            sceneState.addComponent(comp);
+            sceneState.attachChild(moduleComp->getUuid(), comp->getUuid());
+        }
+
+        auto newScene = sceneDriver.getSceneWithId(moduleComp->getSceneId());
+
+        auto &newSceneState = newScene->getState();
+
         // moving i.e. removing from the active scene to the new scene
         for (const auto &comp : compsToMove) {
             sceneState.removeFromMap(comp->getUuid());
             newSceneState.addComponent(comp, false, false);
         }
 
-        const auto &simEngine = SimEngine::SimulationEngine::instance();
-
-        // adding io to new module scene
-        const auto inpDef = simEngine.getComponentDefinition(moduleDef->getInputId());
-        auto inpComps = SimulationSceneComponent::createNew<SimulationSceneComponent>(inpDef);
-        const auto inpSceneComp = std::dynamic_pointer_cast<SimulationSceneComponent>(inpComps.front());
-        inpSceneComp->setName("Module Input");
-        inpSceneComp->getTransform().position.z = newScene->getNextZCoord();
-        inpSceneComp->getTransform().position.x = -200.f;
-        inpComps.erase(inpComps.begin());
-        newSceneState.addComponent(inpSceneComp, true, false);
-        inpSceneComp->setSimEngineId(moduleDef->getInputId()); // Fixme: a temp fix as onAttach sets its own id
-        for (const auto &inpComp : inpComps) {
-            newSceneState.addComponent(inpComp, true, false);
-            newSceneState.attachChild(inpSceneComp->getUuid(), inpComp->getUuid(), false);
-        }
-
-        auto outDef = simEngine.getComponentDefinition(moduleDef->getOutputId());
-        auto outComps = SimulationSceneComponent::createNewAndRegister(outDef);
-        auto outSceneComp = std::dynamic_pointer_cast<SimulationSceneComponent>(outComps.front());
-        outSceneComp->setName("Module Output");
-        outSceneComp->getTransform().position.z = newScene->getNextZCoord();
-        outSceneComp->getTransform().position.x = 200.f;
-        outComps.erase(outComps.begin());
-        newSceneState.addComponent(outSceneComp, true, false);
-        outSceneComp->setSimEngineId(moduleDef->getOutputId()); // Fixme: a temp fix as onAttach sets its own id
-        for (const auto &outComp : outComps) {
-            newSceneState.addComponent(outComp, true, false);
-            newSceneState.attachChild(outSceneComp->getUuid(), outComp->getUuid(), false);
-        }
-
-        return moduleComp->cast<ModuleSceneComponent>();
+        return moduleComp;
     }
 
     void ModuleSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {

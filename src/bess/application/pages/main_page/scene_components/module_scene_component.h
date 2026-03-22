@@ -3,6 +3,7 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene_comp_types.h"
+#include "scene_state/scene_state.h"
 
 #define MODULE_SER_PROPS ("sceneId", getSceneId, setSceneId),                   \
                          ("associatedInp", getAssociatedInp, setAssociatedInp), \
@@ -16,6 +17,9 @@ namespace Bess::Canvas {
 
         static std::shared_ptr<ModuleSceneComponent> fromNet(const UUID &netId,
                                                              const std::string &name = "New Module");
+
+        static std::vector<std::shared_ptr<SceneComponent>> createNew(UUID &moduleInpId,
+                                                                      UUID &moduleOutId);
 
         REG_SCENE_COMP_TYPE("ModuleSceneComponent", SceneComponentType::module)
         SCENE_COMP_SER(Bess::Canvas::ModuleSceneComponent,
@@ -32,6 +36,9 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(UUID, SceneId, m_sceneId)
         MAKE_GETTER_SETTER(UUID, AssociatedInp, m_associatedInp)
         MAKE_GETTER_SETTER(UUID, AssociatedOut, m_associatedOut)
+
+      private:
+        void setCallbacks(const SceneState &state);
 
       private:
         UUID m_sceneId = UUID::null;

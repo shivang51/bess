@@ -3,6 +3,7 @@
 #include "connection_scene_component.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
+#include "pages/main_page/main_page_state.h"
 #include "pages/main_page/services/connection_service.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
@@ -250,7 +251,10 @@ namespace Bess::Canvas {
         }
         auto endSlot = e.sceneState->getComponentByUuid<SlotSceneComponent>(m_uuid);
 
-        const auto [canConnect, reason] = Svc::SvcConnection::instance().canConnect(connStartSlot, m_uuid);
+        const auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
+        const auto [canConnect, reason] = Svc::SvcConnection::instance().canConnect(connStartSlot,
+                                                                                    m_uuid,
+                                                                                    sceneDriver.getSceneWithId(e.sceneState->getSceneId()).get());
 
         if (!canConnect) {
             BESS_WARN("Cannot create connection between component {} and component {}: {}",
@@ -260,7 +264,9 @@ namespace Bess::Canvas {
         }
 
         UUID starSlotUuid = jointComp ? jointComp->getUuid() : startSlot->getUuid();
-        auto conn = Svc::SvcConnection::instance().createConnection(starSlotUuid, m_uuid);
+        auto conn = Svc::SvcConnection::instance().createConnection(starSlotUuid,
+                                                                    m_uuid,
+                                                                    sceneDriver.getSceneWithId(e.sceneState->getSceneId()).get());
 
         auto &cmdManager = Pages::MainPage::getInstance()->getState().getCommandSystem();
         cmdManager.push(std::make_unique<Cmd::AddCompCmd<ConnectionSceneComponent>>(conn));

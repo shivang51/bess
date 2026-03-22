@@ -43,13 +43,17 @@ namespace Bess::Canvas {
 
             assignRuntimeId(id);
 
+            BESS_DEBUG("[SceneState] Added {} | {} to scene {}",
+                       component->getName(), (uint64_t)id, (uint64_t)m_sceneId);
+
             if (triggerAttach)
                 component->onAttach(*this);
 
             if (dispatchEvent)
                 EventSystem::EventDispatcher::instance().queue(
                     Events::ComponentAddedEvent{.uuid = id,
-                                                .type = component->getType()});
+                                                .type = component->getType(),
+                                                .state = this});
         }
 
         template <typename T>

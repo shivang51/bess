@@ -32,6 +32,8 @@ namespace Bess::SimEngine {
         void dispatchInputSlotCountChange(size_t newCount);
         void dispatchOutputSlotCountChange(size_t newCount);
 
+        void clearCallbacks();
+
         UUID id;
         UUID netUuid = UUID::null;
         ComponentState state;

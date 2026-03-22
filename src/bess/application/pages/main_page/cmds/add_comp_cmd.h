@@ -37,7 +37,8 @@ namespace Bess::Cmd {
 
             if (m_comp->getType() == Canvas::SceneComponentType::connection) {
                 Svc::SvcConnection::instance().addConnection(
-                    m_comp->template cast<Canvas::ConnectionSceneComponent>());
+                    m_comp->template cast<Canvas::ConnectionSceneComponent>(),
+                    scene);
             } else {
                 scene->addComponent(m_comp);
             }
@@ -59,7 +60,7 @@ namespace Bess::Cmd {
 
             if (m_comp->getType() == Canvas::SceneComponentType::connection) {
                 Svc::SvcConnection::instance().removeConnection(
-                    m_comp->template cast<Canvas::ConnectionSceneComponent>());
+                    m_comp->template cast<Canvas::ConnectionSceneComponent>(), scene);
             } else {
                 scene->deleteSceneEntity(m_comp->getUuid());
             }
@@ -71,7 +72,8 @@ namespace Bess::Cmd {
 
             if (m_comp->getType() == Canvas::SceneComponentType::connection) {
                 Svc::SvcConnection::instance().addConnection(
-                    m_comp->template cast<Canvas::ConnectionSceneComponent>());
+                    m_comp->template cast<Canvas::ConnectionSceneComponent>(),
+                    scene);
             } else {
                 scene->addComponent(m_comp, false);
             }

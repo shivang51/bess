@@ -1,4 +1,5 @@
 #pragma once
+#include "common/bess_uuid.h"
 #include "common/class_helpers.h"
 #include "events/application_event.h"
 #include "imgui.h"
@@ -59,7 +60,7 @@ namespace Bess::UI {
 
       private:
         void firstTime();
-        void drawTopLeftControls() const;
+        void drawTopLeftControls();
         void drawBottomControls() const;
 
         void onSceneAttached();
@@ -79,6 +80,7 @@ namespace Bess::UI {
         std::string m_viewportName;
         std::shared_ptr<Canvas::Viewport> m_viewport;
         bool m_isResized = false;
+        UUID m_nextSceneId = UUID::null;
         std::shared_ptr<Canvas::Scene> m_attachedScene;
     };
 } // namespace Bess::UI

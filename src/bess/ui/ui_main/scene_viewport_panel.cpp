@@ -1,4 +1,5 @@
 #include "scene_viewport_panel.h"
+#include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -39,6 +40,11 @@ namespace Bess::UI {
             updateScene(ts, events);
         } else {
             m_attachedScene->update(ts, {});
+        }
+
+        if (m_nextSceneId != UUID::null) {
+            Pages::MainPage::getInstance()->getState().getSceneDriver().setActiveScene(m_nextSceneId);
+            m_nextSceneId = UUID::null;
         }
     }
 
@@ -100,7 +106,7 @@ namespace Bess::UI {
         drawBottomControls();
     }
 
-    void SceneViewportPanel::drawTopLeftControls() const {
+    void SceneViewportPanel::drawTopLeftControls() {
         constexpr float windowR = 16.f;
 
         const ImGuiContext &g = *ImGui::GetCurrentContext();
@@ -128,8 +134,11 @@ namespace Bess::UI {
         ImGui::SameLine();
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
 
-        auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
-        ImGui::Checkbox("##CheckBoxSchematicMode", scene->getIsSchematicViewPtr());
+        const auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
+
+        const auto &rootScene = sceneDriver.getSceneWithId(sceneDriver.getRootSceneId());
+
+        ImGui::Checkbox("##CheckBoxSchematicMode", m_attachedScene->getIsSchematicViewPtr());
         ImGui::PopStyleVar();
         ImGui::End();
         ImGui::PopStyleColor(1);
@@ -146,7 +155,7 @@ namespace Bess::UI {
         } else {
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
             if (ImGui::Button("Root")) {
-                Pages::MainPage::getInstance()->getState().getSceneDriver().makeRootSceneActive();
+                m_nextSceneId = sceneDriver.getRootSceneId();
             }
             ImGui::PopStyleColor(1);
             ImGui::SameLine();
@@ -154,7 +163,13 @@ namespace Bess::UI {
             ImGui::TextDisabled(Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT);
             ImGui::SameLine();
             ImGui::AlignTextToFramePadding();
-            ImGui::TextDisabled(" Module");
+            const auto &module = rootScene->getState().getComponentByUuid(
+                m_attachedScene->getState().getModuleId());
+            if (module) {
+                ImGui::TextDisabled(" %s", module->getName().c_str());
+            } else {
+                ImGui::TextDisabled(" Unknown Module");
+            }
         }
         ImGui::End();
         ImGui::PopStyleColor(1);

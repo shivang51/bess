@@ -1,4 +1,5 @@
 #include "simulation_engine.h"
+#include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "component_catalog.h"
@@ -309,7 +310,7 @@ namespace Bess::SimEngine {
             scheduleEvent(e, UUID::null, m_currentSimTime + dc->definition->getSimDelay());
         }
 
-        BESS_INFO("Deleted component");
+        BESS_INFO("Deleted component {}", (uint64_t)uuid);
     }
 
     bool SimulationEngine::updateNets(const std::vector<UUID> &startCompIds) {
@@ -520,7 +521,11 @@ namespace Bess::SimEngine {
 
     bool SimulationEngine::simulateComponent(const UUID &compId, const std::vector<SlotState> &inputs) {
         const auto &comp = m_simEngineState.getDigitalComponent(compId);
+        BESS_ASSERT(comp,
+                    std::format("Component {} is invalid", (uint64_t)compId));
         const auto &def = comp->definition;
+        BESS_ASSERT(def,
+                    std::format("Component definition of {} is invalid", (uint64_t)comp->id));
 #ifdef BESS_ENABLE_LOG_EVENTS
         BESS_LOG_EVENT("Simulating {}, with delay {}ns", def->getName(), def->getSimDelay().count());
         BESS_LOG_EVENT("\tInputs:");

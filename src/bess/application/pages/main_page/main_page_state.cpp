@@ -96,7 +96,7 @@ namespace Bess::Pages {
     }
 
     void MainPageState::onEntityReparented(const Canvas::Events::EntityReparentedEvent &e) {
-        auto entity = m_sceneDriver->getState().getComponentByUuid(e.entityUuid);
+        auto entity = e.state->getComponentByUuid(e.entityUuid);
 
         if (entity->getType() == Canvas::SceneComponentType::slot) {
             return;
@@ -107,12 +107,12 @@ namespace Bess::Pages {
         bool parentIsWasGroup = false;
 
         if (e.newParentUuid != UUID::null) {
-            const auto &parentComp = m_sceneDriver->getState().getComponentByUuid(e.newParentUuid);
+            const auto &parentComp = e.state->getComponentByUuid(e.newParentUuid);
             parentIsWasGroup = parentComp->getType() == Canvas::SceneComponentType::group;
         }
 
         if (!parentIsWasGroup && e.prevParent != UUID::null) {
-            const auto &prevParentComp = m_sceneDriver->getState().getComponentByUuid(e.prevParent);
+            const auto &prevParentComp = e.state->getComponentByUuid(e.prevParent);
             if (!prevParentComp)
                 return;
             if (prevParentComp->getType() == Canvas::SceneComponentType::group) {
@@ -127,11 +127,11 @@ namespace Bess::Pages {
         }
 
         /// undo redo callback
-        const auto callback = [this, entityUuid = e.entityUuid](bool isUndo, const UUID &newParent) {
+        const auto callback = [this, entityUuid = e.entityUuid, state = e.state](bool isUndo, const UUID &newParent) {
             if (newParent == UUID::null)
                 return;
 
-            const auto &parent = m_sceneDriver->getState().getComponentByUuid(newParent);
+            const auto &parent = state->getComponentByUuid(newParent);
             parent->addChildComponent(entityUuid);
         };
 
@@ -248,8 +248,7 @@ namespace Bess::Pages {
     }
 
     void MainPageState::onEntityAdded(const Canvas::Events::ComponentAddedEvent &e) {
-        auto &sceneState = m_sceneDriver->getState();
-        const auto &comp = sceneState.getComponentByUuid(e.uuid);
+        const auto &comp = e.state->getComponentByUuid(e.uuid);
 
         if (e.type == Canvas::SceneComponentType::simulation) {
             const auto &simComp = comp->cast<Canvas::SimulationSceneComponent>();

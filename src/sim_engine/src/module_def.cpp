@@ -1,12 +1,32 @@
 #include "module_def.h"
 #include "common/bess_assert.h"
-#include "common/logger.h"
 #include "component_catalog.h"
 #include "component_definition.h"
 #include "simulation_engine.h"
-#include <cstdint>
+#include <memory>
 
 namespace Bess::SimEngine {
+    std::shared_ptr<ComponentDefinition> ModuleDefinition::clone() const {
+        auto clone = std::make_shared<ModuleDefinition>(*this);
+
+        clone->m_simulationFunction = [clone](const std::vector<SlotState> &inputs,
+                                              SimTime simTime,
+                                              const ComponentState &prevState) {
+            return clone->simulationFunction(inputs, simTime, prevState);
+        };
+
+        const auto &catalog = ComponentCatalog::instance();
+
+        auto &simEngine = SimulationEngine::instance();
+
+        const auto &inpDef = simEngine.getComponentDefinition(m_input);
+        clone->m_input = simEngine.addComponent(inpDef);
+
+        const auto &outDef = simEngine.getComponentDefinition(m_output);
+        clone->m_output = simEngine.addComponent(outDef);
+
+        return clone;
+    }
 
     ComponentState ModuleDefinition::simulationFunction(const std::vector<SlotState> &inputs,
                                                         SimTime simTime,
