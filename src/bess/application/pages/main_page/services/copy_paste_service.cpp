@@ -137,7 +137,7 @@ namespace Bess::Svc::CopyPaste {
 
         size_t prevSize = 0;
         do {
-            auto prevSize = connEntites.size();
+            prevSize = connEntites.size();
             std::vector<Svc::CopyPaste::CopiedEntity> delayedConnections;
 
             for (const auto &connEntity : connEntites) {
