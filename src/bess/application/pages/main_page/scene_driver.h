@@ -13,6 +13,7 @@ namespace Bess {
         std::shared_ptr<Canvas::Scene> getActiveScene() const;
 
         void addScene(const std::shared_ptr<Canvas::Scene> &scene);
+        void removeScene(const UUID &id);
 
         std::shared_ptr<Canvas::Scene> getSceneAtIdx(size_t index) const;
         std::shared_ptr<Canvas::Scene> getSceneWithId(const UUID &id) const;

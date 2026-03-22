@@ -10,6 +10,7 @@
 #include "macro_command.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/cmds/delete_comp_cmd.h"
+#include "pages/main_page/cmds/module_comp_cmd.h"
 #include "pages/main_page/main_page_state.h"
 #include "pages/main_page/scene_components/conn_joint_scene_component.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
@@ -34,8 +35,10 @@
 #include "vulkan_core.h"
 #include <GLFW/glfw3.h>
 #include <chrono>
+#include <functional>
 #include <memory>
 #include <ranges>
+#include <unordered_set>
 
 namespace Bess::Pages {
     std::shared_ptr<MainPage> &MainPage::getInstance(const std::shared_ptr<Window> &parentWindow) {
@@ -229,11 +232,65 @@ namespace Bess::Pages {
             }
         } else {
             if (m_state.isKeyPressed(GLFW_KEY_DELETE)) {
-                auto ids = m_state.getSceneDriver()->getState().getSelectedComponents() |
-                           std::ranges::views::keys |
-                           std::ranges::to<std::vector<UUID>>();
+                const auto &sceneState = m_state.getSceneDriver()->getState();
+                const auto selectedIds = sceneState.getSelectedComponents() |
+                                         std::ranges::views::keys |
+                                         std::ranges::to<std::vector<UUID>>();
 
-                m_state.getCommandSystem().execute(std::make_unique<Cmd::DeleteCompCmd>(ids));
+                std::unordered_set<UUID> moduleCoveredIds;
+                std::vector<UUID> moduleIds;
+                std::vector<UUID> regularIds;
+
+                std::function<void(const UUID &)> collectCoveredIds = [&](const UUID &uuid) {
+                    if (moduleCoveredIds.contains(uuid)) {
+                        return;
+                    }
+
+                    const auto component = sceneState.getComponentByUuid(uuid);
+                    if (!component) {
+                        return;
+                    }
+
+                    moduleCoveredIds.insert(uuid);
+                    for (const auto &dependantUuid : component->getDependants(sceneState)) {
+                        collectCoveredIds(dependantUuid);
+                    }
+                };
+
+                for (const auto &id : selectedIds) {
+                    const auto component = sceneState.getComponentByUuid(id);
+                    if (!component) {
+                        continue;
+                    }
+
+                    if (component->getType() == Canvas::SceneComponentType::module) {
+                        moduleIds.push_back(id);
+                        collectCoveredIds(id);
+                    }
+                }
+
+                for (const auto &id : selectedIds) {
+                    if (!moduleCoveredIds.contains(id)) {
+                        regularIds.push_back(id);
+                    }
+                }
+
+                if (moduleIds.empty() && regularIds.empty()) {
+                    return;
+                }
+
+                auto deleteCommand = std::make_unique<Cmd::MacroCommand>();
+                for (const auto &moduleId : moduleIds) {
+                    deleteCommand->addCommand(std::make_unique<Cmd::DeleteModuleCmd>(
+                        m_state.getSceneDriver().getActiveScene(),
+                        moduleId));
+                }
+
+                if (!regularIds.empty()) {
+                    deleteCommand->addCommand(std::make_unique<Cmd::DeleteCompCmd>(regularIds));
+                }
+
+                m_state.getCommandSystem().execute(std::move(deleteCommand));
             } else if (m_state.isKeyPressed(GLFW_KEY_F)) {
                 m_state.getSceneDriver()->focusCameraOnSelected();
             } else if (m_state.isKeyPressed(GLFW_KEY_TAB)) {
@@ -247,6 +304,7 @@ namespace Bess::Pages {
                 const auto &selComponents = sceneState.getSelectedComponents();
                 if (!selComponents.empty()) {
                     sceneDriver.updateNets();
+                    std::unordered_set<UUID> processedNetIds;
                     for (const auto &entry : selComponents) {
                         const auto &compId = entry.first;
                         const auto &comp = sceneState.getComponentByUuid(compId);
@@ -254,10 +312,15 @@ namespace Bess::Pages {
                             comp->getType() != Canvas::SceneComponentType::simulation)
                             continue;
 
-                        auto module = Canvas::ModuleSceneComponent::fromNet(
-                            comp->cast<Canvas::SimulationSceneComponent>()->getNetId());
+                        const auto netId = comp->cast<Canvas::SimulationSceneComponent>()->getNetId();
+                        if (netId == UUID::null || processedNetIds.contains(netId)) {
+                            continue;
+                        }
+
+                        auto module = Canvas::ModuleSceneComponent::fromNet(netId);
 
                         BESS_ASSERT(module, "Failed to create module");
+                        processedNetIds.insert(netId);
                     }
                 }
             }

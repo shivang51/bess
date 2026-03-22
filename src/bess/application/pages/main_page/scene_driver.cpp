@@ -69,8 +69,57 @@ namespace Bess {
     }
 
     void SceneDriver::addScene(const std::shared_ptr<Canvas::Scene> &scene) {
+        if (!scene) {
+            return;
+        }
+
+        if (m_sceneIdToSceneMap.contains(scene->getSceneId())) {
+            return;
+        }
+
         m_scenes.emplace_back(scene);
         m_sceneIdToSceneMap[scene->getSceneId()] = scene;
+    }
+
+    void SceneDriver::removeScene(const UUID &id) {
+        if (!m_sceneIdToSceneMap.contains(id)) {
+            return;
+        }
+
+        const bool removingActiveScene = m_activeScene && m_activeScene->getSceneId() == id;
+        m_scenes.erase(std::ranges::remove_if(m_scenes,
+                                              [&id](const std::shared_ptr<Canvas::Scene> &scene) {
+                                                  return scene && scene->getSceneId() == id;
+                                              })
+                           .begin(),
+                       m_scenes.end());
+        m_sceneIdToSceneMap.erase(id);
+
+        if (m_scenes.empty()) {
+            m_activeScene = nullptr;
+            m_activeSceneIdx = 0;
+            return;
+        }
+
+        if (removingActiveScene) {
+            if (m_rootSceneId != UUID::null && m_sceneIdToSceneMap.contains(m_rootSceneId)) {
+                setActiveScene(m_rootSceneId);
+            } else {
+                setActiveScene((size_t)0);
+            }
+            return;
+        }
+
+        if (m_activeScene) {
+            auto activeIt = std::ranges::find_if(m_scenes,
+                                                 [this](const std::shared_ptr<Canvas::Scene> &scene) {
+                                                     return scene && m_activeScene &&
+                                                            scene->getSceneId() == m_activeScene->getSceneId();
+                                                 });
+            if (activeIt != m_scenes.end()) {
+                m_activeSceneIdx = std::distance(m_scenes.begin(), activeIt);
+            }
+        }
     }
 
     size_t SceneDriver::getSceneCount() const {

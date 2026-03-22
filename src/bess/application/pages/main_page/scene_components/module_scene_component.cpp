@@ -3,6 +3,7 @@
 #include "common/bess_uuid.h"
 #include "icons/FontAwesomeIcons.h"
 #include "module_def.h"
+#include "pages/main_page/cmds/module_comp_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
@@ -231,69 +232,13 @@ namespace Bess::Canvas {
 
     std::shared_ptr<ModuleSceneComponent> ModuleSceneComponent::fromNet(const UUID &netId,
                                                                         const std::string &name) {
-
         auto &mainPageState = Pages::MainPage::getInstance()->getState();
-        auto &sceneDriver = mainPageState.getSceneDriver();
-        auto &sceneState = sceneDriver->getState();
-        auto &netCompMap = mainPageState.getNetIdToCompMap(sceneDriver->getState().getSceneId());
-
-        if (!netCompMap.contains(netId) || netCompMap[netId].empty()) {
-            BESS_WARN("[ModuleSceneComponent] No components found for netId {}, cannot create module component.",
-                      (uint64_t)netId);
-            return nullptr;
-        }
-
-        const auto &compIds = netCompMap.at(netId);
-
-        UUID moduleInpId = UUID::null;
-        UUID moduleOutId = UUID::null;
-        auto moduleComps = ModuleSceneComponent::createNew(moduleInpId, moduleOutId);
-
-        std::vector<std::shared_ptr<SceneComponent>> compsToMove;
-
-        // move components and their dependants to new scene
-        {
-            std::unordered_set<UUID> visited;
-            std::function<void(const UUID &)> collect = [&](const UUID &uuid) {
-                if (visited.contains(uuid))
-                    return;
-                auto comp = sceneState.getComponentByUuid(uuid);
-                if (!comp)
-                    return;
-
-                visited.insert(uuid);
-                for (const auto &depUuid : comp->getDependants(sceneState)) {
-                    collect(depUuid);
-                }
-                compsToMove.push_back(comp);
-            };
-
-            for (const auto &startUuid : compIds) {
-                collect(startUuid);
-            }
-        }
-
-        auto moduleComp = moduleComps.front()->cast<ModuleSceneComponent>();
-
-        // TODO: integrate with undo/redo
-        moduleComps.erase(moduleComps.begin());
-        sceneState.addComponent(moduleComp);
-        for (const auto &comp : moduleComps) {
-            sceneState.addComponent(comp);
-            sceneState.attachChild(moduleComp->getUuid(), comp->getUuid());
-        }
-
-        auto newScene = sceneDriver.getSceneWithId(moduleComp->getSceneId());
-
-        auto &newSceneState = newScene->getState();
-
-        // moving i.e. removing from the active scene to the new scene
-        for (const auto &comp : compsToMove) {
-            sceneState.removeFromMap(comp->getUuid());
-            newSceneState.addComponent(comp, false, false);
-        }
-
-        return moduleComp;
+        auto command = std::make_unique<Cmd::CreateModuleCmd>(mainPageState.getSceneDriver().getActiveScene(),
+                                                              netId,
+                                                              name);
+        auto *commandPtr = command.get();
+        mainPageState.getCommandSystem().execute(std::move(command));
+        return commandPtr->getModuleComponent();
     }
 
     void ModuleSceneComponent::onMouseButton(const Events::MouseButtonEvent &e) {

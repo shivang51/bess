@@ -13,6 +13,7 @@ set(Header_Files
 "pages/main_page/main_page_state.h"
 "pages/main_page/cmds/add_comp_cmd.h"
 "pages/main_page/cmds/delete_comp_cmd.h"
+"pages/main_page/cmds/module_comp_cmd.h"
 "pages/main_page/cmds/update_value_cmd.h"
 "pages/main_page/scene_components/proxy_slot_component.h"
 "pages/main_page/scene_components/input_scene_component.h"
@@ -91,4 +92,3 @@ set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "
 if(MSVC)
 	target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8" "/Zc:__cplusplus")
 endif()
-
