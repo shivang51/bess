@@ -41,6 +41,19 @@ namespace Bess::Canvas {
         auto clone = std::make_shared<ConnJointSceneComp>(*this);
         prepareClone(*clone);
         clone->m_connectionId = ogToClonedIdMap.at(m_connectionId);
+
+        if (m_outputSlotId != UUID::null) {
+            BESS_ASSERT(ogToClonedIdMap.contains(m_outputSlotId),
+                        "Connection of joint has no mapping to its outputSlotId");
+            clone->m_outputSlotId = ogToClonedIdMap.at(m_outputSlotId);
+        }
+
+        if (m_inputSlotId != UUID::null) {
+            BESS_ASSERT(ogToClonedIdMap.contains(m_inputSlotId),
+                        "Connection of joint has no mapping to its inputSlotId");
+            clone->m_inputSlotId = ogToClonedIdMap.at(m_inputSlotId);
+        }
+
         ogToClonedIdMap[m_uuid] = clone->m_uuid;
 
         clonedComps.push_back(clone);

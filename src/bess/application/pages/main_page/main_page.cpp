@@ -411,11 +411,12 @@ namespace Bess::Pages {
 
                 auto clonedComps = ogConn->cloneConn(scene->getState(),
                                                      ogToClonedIdMap);
-                auto clonedConn = clonedComps.front()->cast<Canvas::ConnectionSceneComponent>();
-                clonedComps.erase(clonedComps.begin());
 
-                auto addCmd = std::make_unique<Cmd::AddCompCmd<Canvas::ConnectionSceneComponent>>(clonedConn, clonedComps);
-                macroCmd->addCommand(std::move(addCmd));
+                for (const auto &comp : clonedComps) {
+                    // either it can be a joint or a conn
+                    auto addCmd = std::make_unique<Cmd::AddCompCmd<Canvas::SceneComponent>>(comp);
+                    macroCmd->addCommand(std::move(addCmd));
+                }
             }
 
             connEntites.clear();
