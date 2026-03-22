@@ -68,11 +68,10 @@ namespace Bess::Cmd {
 #endif
 
             std::vector<std::shared_ptr<Canvas::ConnectionSceneComponent>> connections;
-            std::vector<std::shared_ptr<Canvas::ConnJointSceneComp>> collectedJoints;
-            std::unordered_map<UUID, decltype(collectedJoints)> joints;
+            std::unordered_map<UUID, std::vector<std::shared_ptr<Canvas::ConnJointSceneComp>>> jointsByConnection;
 
-            // extract all connections from the deletion list
-            // and also connecting its joints so they are deleted before the connection is deleted
+            // Extract connections and connection joints from the deletion list.
+            // Joints are grouped by their owning connection instead of depending on traversal order.
             for (auto it = deletionOrder.begin(); it != deletionOrder.end();) {
                 auto comp = sceneState.getComponentByUuid(*it);
                 if (!comp) {
@@ -81,14 +80,11 @@ namespace Bess::Cmd {
                 }
 
                 if (comp->getType() == Canvas::SceneComponentType::connection) {
-                    if (!collectedJoints.empty()) {
-                        joints[comp->getUuid()] = collectedJoints;
-                        collectedJoints.clear();
-                    }
                     connections.push_back(comp->cast<Canvas::ConnectionSceneComponent>());
                     it = deletionOrder.erase(it); // Remove from the main list
                 } else if (comp->getType() == Canvas::SceneComponentType::connJoint) {
-                    collectedJoints.push_back(comp->cast<Canvas::ConnJointSceneComp>());
+                    const auto joint = comp->cast<Canvas::ConnJointSceneComp>();
+                    jointsByConnection[joint->getConnectionId()].push_back(joint);
                     it = deletionOrder.erase(it); // Remove from the main list
                 } else {
                     it++;
@@ -123,7 +119,7 @@ namespace Bess::Cmd {
 
             // Now execute the deletion in the safe order
             for (auto conn : connections) {
-                for (const auto &joint : joints[conn->getUuid()]) {
+                for (const auto &joint : jointsByConnection[conn->getUuid()]) {
                     sceneState.removeComponent(joint->getUuid(), UUID::master);
                     m_deletedComponents.push_back(joint);
                 }
