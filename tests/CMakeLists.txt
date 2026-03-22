@@ -8,6 +8,8 @@ find_package(GTest CONFIG REQUIRED)
 add_executable(BessTests
     main.cpp
     scene_state_test.cpp
+    scene_serialization_test.cpp
+    scene_component_clone_test.cpp
     simulation_engine_test.cpp
     connection_service_test.cpp
     copy_paste_test.cpp

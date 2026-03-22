@@ -284,3 +284,50 @@ TEST_F(SimulationEngineTest, DeleteComponentRemovesItFromStateAndConnections) {
     ASSERT_EQ(connections.inputs.size(), 1u);
     EXPECT_TRUE(connections.inputs[0].empty());
 }
+
+TEST_F(SimulationEngineTest, MultiStageCircuitPropagatesAcrossChainedComponents) {
+    const auto inputA = addComponent(inputDef);
+    const auto inputB = addComponent(inputDef);
+    const auto andGate = addComponent(andDef);
+    const auto notGate = addComponent(notDef);
+    const auto sink = addComponent(outputDef);
+
+    ASSERT_TRUE(engine->connectComponent(inputA, 0, SlotType::digitalOutput,
+                                         andGate, 0, SlotType::digitalInput));
+    ASSERT_TRUE(engine->connectComponent(inputB, 0, SlotType::digitalOutput,
+                                         andGate, 1, SlotType::digitalInput));
+    ASSERT_TRUE(engine->connectComponent(andGate, 0, SlotType::digitalOutput,
+                                         notGate, 0, SlotType::digitalInput));
+    ASSERT_TRUE(engine->connectComponent(notGate, 0, SlotType::digitalOutput,
+                                         sink, 0, SlotType::digitalInput));
+
+    driveInput(inputA, false);
+    driveInput(inputB, false);
+    expectOutputEventually(notGate, SlotType::digitalOutput, 0, LogicState::high);
+    expectOutputEventually(sink, SlotType::digitalInput, 0, LogicState::high);
+
+    driveInput(inputA, true);
+    driveInput(inputB, true);
+    expectOutputEventually(notGate, SlotType::digitalOutput, 0, LogicState::low);
+    expectOutputEventually(sink, SlotType::digitalInput, 0, LogicState::low);
+
+    driveInput(inputB, false);
+    expectOutputEventually(andGate, SlotType::digitalOutput, 0, LogicState::low);
+    expectOutputEventually(sink, SlotType::digitalInput, 0, LogicState::high);
+}
+
+TEST_F(SimulationEngineTest, RepeatedSignalChangesRemainConsistentAcrossSingleChain) {
+    const auto input = addComponent(inputDef);
+    const auto notGate = addComponent(notDef);
+    const auto sink = addComponent(outputDef);
+    ASSERT_TRUE(engine->connectComponent(input, 0, SlotType::digitalOutput,
+                                         notGate, 0, SlotType::digitalInput));
+    ASSERT_TRUE(engine->connectComponent(notGate, 0, SlotType::digitalOutput,
+                                         sink, 0, SlotType::digitalInput));
+
+    for (const bool value : {false, true, false, true, true, false}) {
+        driveInput(input, value);
+        expectOutputEventually(notGate, SlotType::digitalOutput, 0, boolToState(!value));
+        expectOutputEventually(sink, SlotType::digitalInput, 0, boolToState(!value));
+    }
+}

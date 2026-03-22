@@ -4,13 +4,18 @@
 #include "component_catalog.h"
 #include "component_definition.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
+#include "pages/main_page/scene_components/conn_joint_scene_component.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
+#include "pages/main_page/scene_components/group_scene_component.h"
+#include "pages/main_page/scene_components/input_scene_component.h"
+#include "pages/main_page/scene_components/non_sim_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
 #include "pages/main_page/services/copy_paste_service.h"
 #include "plugin_manager.h"
 #include "scene/scene.h"
+#include "scene/scene_ser_reg.h"
 #include "simulation_engine.h"
 #include <gtest/gtest.h>
 #include <memory>
@@ -54,6 +59,40 @@ namespace Bess::Tests {
       protected:
         static void SetUpTestSuite() {
             Bess::Plugins::PluginManager::getInstance().loadPluginsFromDirectory("plugins");
+            Canvas::NonSimSceneComponent::registerComponent<Canvas::TextComponent>("Text Component");
+
+            Canvas::SceneSerReg::registerComponent(Canvas::ConnJointSceneComp::getStaticTypeName(),
+                                                   [](const Json::Value &j) {
+                                                       return Canvas::ConnJointSceneComp::fromJson(j);
+                                                   });
+            Canvas::SceneSerReg::registerComponent(Canvas::ConnectionSceneComponent::getStaticTypeName(),
+                                                   [](const Json::Value &j) {
+                                                       return Canvas::ConnectionSceneComponent::fromJson(j);
+                                                   });
+            Canvas::SceneSerReg::registerComponent(Canvas::GroupSceneComponent::getStaticTypeName(),
+                                                   [](const Json::Value &j) {
+                                                       return Canvas::GroupSceneComponent::fromJson(j);
+                                                   });
+            Canvas::SceneSerReg::registerComponent(Canvas::InputSceneComponent::getStaticTypeName(),
+                                                   [](const Json::Value &j) {
+                                                       return Canvas::InputSceneComponent::fromJson(j);
+                                                   });
+            Canvas::SceneSerReg::registerComponent(Canvas::NonSimSceneComponent::getStaticTypeName(),
+                                                   [](const Json::Value &j) {
+                                                       return Canvas::NonSimSceneComponent::fromJson(j);
+                                                   });
+            Canvas::SceneSerReg::registerComponent(Canvas::SimulationSceneComponent::getStaticTypeName(),
+                                                   [](const Json::Value &j) {
+                                                       return Canvas::SimulationSceneComponent::fromJson(j);
+                                                   });
+            Canvas::SceneSerReg::registerComponent(Canvas::SlotSceneComponent::getStaticTypeName(),
+                                                   [](const Json::Value &j) {
+                                                       return Canvas::SlotSceneComponent::fromJson(j);
+                                                   });
+            Canvas::SceneSerReg::registerComponent(Canvas::TextComponent::getStaticTypeName(),
+                                                   [](const Json::Value &j) {
+                                                       return Canvas::TextComponent::fromJson(j);
+                                                   });
         }
 
         void SetUp() override {
@@ -70,9 +109,15 @@ namespace Bess::Tests {
 
             inputDef = findDefinitionByName("Input");
             outputDef = findDefinitionByName("Output");
+            notDef = findDefinitionByName("NOT Gate");
+            andDef = findDefinitionByName("AND Gate");
+            orDef = findDefinitionByName("OR Gate");
 
             ASSERT_NE(inputDef, nullptr);
             ASSERT_NE(outputDef, nullptr);
+            ASSERT_NE(notDef, nullptr);
+            ASSERT_NE(andDef, nullptr);
+            ASSERT_NE(orDef, nullptr);
 
             scene = std::make_shared<Scene>();
 
@@ -146,10 +191,24 @@ namespace Bess::Tests {
             return connection;
         }
 
+        std::shared_ptr<TextComponent> addTextComponentDirect(const std::shared_ptr<Scene> &targetScene,
+                                                              const std::string &text,
+                                                              const glm::vec3 &position = {}) {
+            auto component = std::make_shared<TextComponent>();
+            component->setData(text);
+            component->setName(text);
+            component->setPosition(position);
+            targetScene->getState().addComponent(component);
+            return component;
+        }
+
         Bess::Svc::SvcConnection *service = nullptr;
         Bess::Svc::CopyPaste::Context *copyPaste = nullptr;
         std::shared_ptr<ComponentDefinition> inputDef;
         std::shared_ptr<ComponentDefinition> outputDef;
+        std::shared_ptr<ComponentDefinition> notDef;
+        std::shared_ptr<ComponentDefinition> andDef;
+        std::shared_ptr<ComponentDefinition> orDef;
         std::shared_ptr<Scene> scene;
         Bess::Cmd::CommandSystem cmdSystem;
     };

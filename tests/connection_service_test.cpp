@@ -191,3 +191,32 @@ TEST_F(ConnectionServiceTest, GetDependantsReturnsEmptyForConnectionWithoutResiz
     const auto dependants = service->getDependants(connection->getUuid(), scene.get());
     EXPECT_TRUE(dependants.empty());
 }
+
+TEST_F(ConnectionServiceTest, SharedSourceCanDriveMultipleIndependentConnections) {
+    const auto source = addSimComponent(inputDef);
+    const auto leftSink = addSimComponent(outputDef);
+    const auto rightSink = addSimComponent(outputDef);
+
+    auto leftConnection = service->createConnection(source.outputs.front()->getUuid(),
+                                                    leftSink.inputs.front()->getUuid(),
+                                                    scene.get());
+    auto rightConnection = service->createConnection(source.outputs.front()->getUuid(),
+                                                     rightSink.inputs.front()->getUuid(),
+                                                     scene.get());
+
+    ASSERT_NE(leftConnection, nullptr);
+    ASSERT_NE(rightConnection, nullptr);
+    EXPECT_NE(leftConnection->getUuid(), rightConnection->getUuid());
+    EXPECT_EQ(source.outputs.front()->getConnectedConnections().size(), 2u);
+    EXPECT_EQ(leftSink.inputs.front()->getConnectedConnections().size(), 1u);
+    EXPECT_EQ(rightSink.inputs.front()->getConnectedConnections().size(), 1u);
+
+    const auto removedIds = service->removeConnection(leftConnection, scene.get());
+    ASSERT_EQ(removedIds.size(), 1u);
+    EXPECT_EQ(removedIds.front(), leftConnection->getUuid());
+    EXPECT_EQ(source.outputs.front()->getConnectedConnections().size(), 1u);
+    EXPECT_EQ(source.outputs.front()->getConnectedConnections().front(), rightConnection->getUuid());
+    EXPECT_TRUE(leftSink.inputs.front()->getConnectedConnections().empty());
+    EXPECT_EQ(rightSink.inputs.front()->getConnectedConnections().size(), 1u);
+    EXPECT_EQ(rightSink.inputs.front()->getConnectedConnections().front(), rightConnection->getUuid());
+}

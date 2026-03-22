@@ -286,6 +286,8 @@ namespace Bess::JsonConvert {
         }
 
         const auto &simEngine = SimEngine::SimulationEngine::instance();
+        std::vector<std::shared_ptr<Canvas::SceneComponent>> deserializedComponents;
+        deserializedComponents.reserve(j["components"].size());
 
         for (const auto &compJson : j["components"]) {
             if (!compJson.isMember("typeName")) {
@@ -307,10 +309,15 @@ namespace Bess::JsonConvert {
                 simComp->setCompDef(def);
             }
 
-            state.addComponent(comp, true, false);
+            state.addComponent(comp, false, false);
+            deserializedComponents.push_back(comp);
 
             BESS_DEBUG("Added component {} with UUID {} from JSON", comp->getName(),
                        (uint64_t)comp->getUuid());
+        }
+
+        for (const auto &component : deserializedComponents) {
+            component->onAttach(state);
         }
 
         JsonConvert::fromJsonValue(j["sceneId"], state.getSceneId());
