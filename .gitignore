@@ -40,3 +40,5 @@ __pycache__/
 *.egg-info/
 
 src/bessplug/py/
+
+cmake_test_discovery*.json
