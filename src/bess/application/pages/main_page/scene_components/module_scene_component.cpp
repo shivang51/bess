@@ -47,7 +47,7 @@ namespace Bess::Canvas {
             Svc::CopyPaste::Context cpCtx;
             cpCtx.init();
             cpCtx.copy(ogScene);
-            ogToCloneId = cpCtx.paste(newScene);
+            ogToCloneId = cpCtx.paste(newScene, false);
             cpCtx.destroy();
             ogScene->getState().clearSelectedComponents();
         }
@@ -77,14 +77,29 @@ namespace Bess::Canvas {
     void ModuleSceneComponent::setCallbacks(const SceneState &state) {
         const auto &simEngine = SimEngine::SimulationEngine::instance();
         auto moduleDef = std::dynamic_pointer_cast<SimEngine::ModuleDefinition>(m_compDef);
+        BESS_ASSERT(moduleDef, "[ModuleSceneComponent] Module definition not found while setting callbacks");
+
         auto outputDigitalComp = simEngine.getDigitalComponent(moduleDef->getOutputId());
         auto inputDigitalComp = simEngine.getDigitalComponent(moduleDef->getInputId());
+        auto moduleDigComp = simEngine.getDigitalComponent(m_simEngineId);
+
+        if (!outputDigitalComp || !inputDigitalComp || !moduleDigComp) {
+            BESS_ERROR("[ModuleSceneComponent] Failed to bind callbacks for module {}. Missing sim components. module={}, input={}, output={}",
+                       m_name,
+                       (uint64_t)m_simEngineId,
+                       (uint64_t)moduleDef->getInputId(),
+                       (uint64_t)moduleDef->getOutputId());
+            return;
+        }
 
         outputDigitalComp->clearCallbacks();
         outputDigitalComp->addOnStateChangeCB([this](const SimEngine::ComponentState &oldState,
                                                      const SimEngine::ComponentState &newState) {
             auto &simEngine = SimEngine::SimulationEngine::instance();
             auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
+            if (!moduleDigComp) {
+                return;
+            }
             int i = 0;
             for (auto state : newState.inputStates) {
                 simEngine.setOutputSlotState(this->m_simEngineId, i++, state.state);
@@ -94,6 +109,9 @@ namespace Bess::Canvas {
         outputDigitalComp->addOnInputSlotCountChangeCB([this](size_t newCount) {
             const auto &simEngine = SimEngine::SimulationEngine::instance();
             auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
+            if (!moduleDigComp) {
+                return;
+            }
             const auto currCount = moduleDigComp->definition->getOutputSlotsInfo().count;
 
             const auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
@@ -129,6 +147,9 @@ namespace Bess::Canvas {
         inputDigitalComp->addOnOutputSlotCountChangeCB([this](size_t newCount) {
             const auto &simEngine = SimEngine::SimulationEngine::instance();
             auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
+            if (!moduleDigComp) {
+                return;
+            }
             const auto currCount = moduleDigComp->definition->getInputSlotsInfo().count;
 
             const auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();

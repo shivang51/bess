@@ -4,7 +4,27 @@
 #include "scene/scene.h"
 
 namespace Bess::Cmd {
+    namespace {
+        Canvas::Scene *resolveCommandScene(Command *cmd, Canvas::Scene *fallbackScene) {
+            if (!cmd) {
+                return fallbackScene;
+            }
 
+            if (!cmd->hasSceneContext()) {
+                cmd->setSceneContext(fallbackScene);
+            }
+
+            return cmd->getSceneContext();
+        }
+
+        bool canMergeCommands(const Command *existingCmd,
+                              const Command *newCmd) {
+            return existingCmd &&
+                   newCmd &&
+                   existingCmd->sharesSceneContextWith(newCmd) &&
+                   existingCmd->canMergeWith(newCmd);
+        }
+    } // namespace
     void CommandSystem::init() {
         mp_scene = nullptr;
         mp_simEngine = nullptr;
@@ -13,9 +33,10 @@ namespace Bess::Cmd {
     }
 
     void CommandSystem::execute(std::unique_ptr<Command> cmd) {
+        auto *commandScene = resolveCommandScene(cmd.get(), mp_scene);
         if (cmd &&
-            cmd->execute(mp_scene, mp_simEngine)) {
-            if (!m_undoStack.empty() && m_undoStack.top()->canMergeWith(cmd.get())) {
+            cmd->execute(commandScene, mp_simEngine)) {
+            if (canMergeCommands(m_undoStack.empty() ? nullptr : m_undoStack.top().get(), cmd.get())) {
                 m_undoStack.top()->mergeWith(cmd.get());
             } else {
                 m_undoStack.push(std::move(cmd));
@@ -28,7 +49,7 @@ namespace Bess::Cmd {
         if (!m_undoStack.empty()) {
             auto cmd = std::move(m_undoStack.top());
             m_undoStack.pop();
-            cmd->undo(mp_scene, mp_simEngine);
+            cmd->undo(resolveCommandScene(cmd.get(), mp_scene), mp_simEngine);
             BESS_DEBUG("[CommandSystem] Undo: {}", cmd->getName());
             m_redoStack.push(std::move(cmd));
         }
@@ -38,16 +59,16 @@ namespace Bess::Cmd {
         if (!m_redoStack.empty()) {
             auto cmd = std::move(m_redoStack.top());
             m_redoStack.pop();
-            cmd->redo(mp_scene, mp_simEngine);
+            cmd->redo(resolveCommandScene(cmd.get(), mp_scene), mp_simEngine);
             BESS_DEBUG("[CommandSystem] Redo: {}", cmd->getName());
             m_undoStack.push(std::move(cmd));
         }
     }
 
     void CommandSystem::push(std::unique_ptr<Command> cmd, bool tryMerge) {
+        resolveCommandScene(cmd.get(), mp_scene);
         if (tryMerge &&
-            !m_undoStack.empty() &&
-            m_undoStack.top()->canMergeWith(cmd.get())) {
+            canMergeCommands(m_undoStack.empty() ? nullptr : m_undoStack.top().get(), cmd.get())) {
             m_undoStack.top()->mergeWith(cmd.get());
         } else {
             m_undoStack.push(std::move(cmd));

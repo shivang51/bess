@@ -55,7 +55,8 @@ namespace Bess::Svc::CopyPaste {
         }
     }
 
-    std::unordered_map<UUID, UUID> Context::paste(const std::shared_ptr<Canvas::Scene> &targetScene) {
+    std::unordered_map<UUID, UUID> Context::paste(const std::shared_ptr<Canvas::Scene> &targetScene,
+                                                  bool recordHistory) {
         if (m_entities.empty())
             return {};
 
@@ -64,9 +65,6 @@ namespace Bess::Svc::CopyPaste {
 
         calcCenter();
 
-        auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
-        const auto currentCmdSystemScene = cmdSystem.getScene();
-        cmdSystem.setScene(targetScene.get());
         auto macroCmd = std::make_unique<Cmd::MacroCommand>();
 
         const auto &newCenter = targetScene->getSceneMousePos();
@@ -187,9 +185,15 @@ namespace Bess::Svc::CopyPaste {
             }
         } while (!connEntites.empty() && prevSize < connEntites.size());
 
-        cmdSystem.execute(std::move(macroCmd));
-
-        cmdSystem.setScene(currentCmdSystemScene);
+        if (recordHistory) {
+            auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
+            const auto currentCmdSystemScene = cmdSystem.getScene();
+            cmdSystem.setScene(targetScene.get());
+            cmdSystem.execute(std::move(macroCmd));
+            cmdSystem.setScene(currentCmdSystemScene);
+        } else {
+            macroCmd->execute(targetScene.get(), &SimEngine::SimulationEngine::instance());
+        }
 
         return ogToClonedIdMap;
     }
