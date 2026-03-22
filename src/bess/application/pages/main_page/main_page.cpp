@@ -80,6 +80,7 @@ namespace Bess::Pages {
         m_state.createNewProject(false);
 
         Svc::SvcConnection::instance().init();
+        Svc::CopyPaste::Context::instance().init();
 
         BESS_DEBUG("MainPage created successfully");
     }
@@ -94,6 +95,7 @@ namespace Bess::Pages {
             return;
         BESS_INFO("[MainPage] Destroying");
 
+        Svc::CopyPaste::Context::instance().destroy();
         Svc::SvcConnection::instance().destroy();
 
         Canvas::NonSimSceneComponent::clearRegistry();

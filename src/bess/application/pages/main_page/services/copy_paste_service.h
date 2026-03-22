@@ -31,33 +31,16 @@ namespace Bess::Svc::CopyPaste {
 
     class Context {
       public:
-        static Context &instance() {
-            static Context context;
-            return context;
-        }
+        static Context &instance();
 
-        void addEntity(const CopiedEntity &entity) {
-            m_entities.push_back(entity);
-        }
+        void init();
+        void destroy();
 
-        void clear() {
-            m_entities.clear();
-        }
+        void addEntity(const CopiedEntity &entity);
 
-        void calcCenter() {
-            if (m_entities.empty())
-                return;
-            if (m_entities.size() == 1)
-                m_center = m_entities.front().pos;
+        void clear();
 
-            glm::vec2 sumPos{0.f, 0.f};
-
-            for (const auto &ent : m_entities) {
-                sumPos += ent.pos;
-            }
-
-            m_center = sumPos / (float)m_entities.size();
-        }
+        void calcCenter();
 
         MAKE_GETTER_SETTER(std::vector<CopiedEntity>, Entites, m_entities);
         MAKE_GETTER_SETTER(glm::vec2, Center, m_center);
