@@ -60,8 +60,8 @@ namespace Bess::Canvas {
 
         for (const auto &id : m_connections) {
             const auto &conn = sceneState.getComponentByUuid<ConnectionSceneComponent>(id);
-            BESS_ASSERT(conn, "[CloneJoint] Connection not found");
-            if (!ogToClonedIdMap.contains(conn->getStartSlot()) ||
+            if (!conn ||
+                !ogToClonedIdMap.contains(conn->getStartSlot()) ||
                 !ogToClonedIdMap.contains(conn->getEndSlot())) {
                 continue;
             }

@@ -62,6 +62,7 @@ namespace Bess::Canvas {
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
 
+        // becuase onAttach simulation scene component creates its own dig comp in simulation engine
         auto clonedInp = newSceneState.getComponentByUuid<SimulationSceneComponent>(clonedInpId);
         simEngine.deleteComponent(clonedModDef->getInputId());
         clonedModDef->setInputId(clonedInp->getSimEngineId());

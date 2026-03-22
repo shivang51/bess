@@ -156,7 +156,7 @@ namespace Bess::Svc {
         if (res.has_value()) {
             BESS_ERROR("Failed to connect slots {} and {} in sim engine for connection {}, error: {}",
                        (uint64_t)slotAId, (uint64_t)slotBId, (uint64_t)conn->getUuid(), res.value());
-            BESS_ASSERT(false, "Failed to connect slots in sim engine for connection");
+            // BESS_ASSERT(false, "Failed to connect slots in sim engine for connection");
             mp_scene = nullptr;
             return false;
         }
