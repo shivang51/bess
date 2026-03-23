@@ -12,6 +12,7 @@
 #include "slot_scene_component.h"
 #include "types.h"
 #include "ui/ui.h"
+#include <cstdint>
 #include <memory>
 
 namespace Bess::Canvas {
@@ -57,6 +58,7 @@ namespace Bess::Canvas {
         ogToClonedIdMap[m_uuid] = clone->m_uuid;
 
         clonedComps.push_back(clone);
+        clone->m_connections.clear();
 
         for (const auto &id : m_connections) {
             const auto &conn = sceneState.getComponentByUuid<ConnectionSceneComponent>(id);
@@ -69,6 +71,7 @@ namespace Bess::Canvas {
             auto clonedConn = conn->cloneConn(sceneState, ogToClonedIdMap);
 
             clonedComps.insert(clonedComps.end(), clonedConn.begin(), clonedConn.end());
+            clone->m_connections.push_back(clonedConn.front()->getUuid());
         }
 
         return clonedComps;
@@ -304,6 +307,11 @@ namespace Bess::Canvas {
 
         for (const auto &connId : m_connections) {
             const auto &connComp = state.getComponentByUuid<ConnectionSceneComponent>(connId);
+            BESS_ASSERT(connComp,
+                        std::format("[ConnJointDeps] connComp not found {} in joint {}",
+                                    (uint64_t)connId, (uint64_t)m_uuid));
+            if (!connComp)
+                continue;
             const auto &ids = connComp->getDependants(state);
             dependants.insert(dependants.end(), ids.begin(), ids.end());
             dependants.emplace_back(connId);

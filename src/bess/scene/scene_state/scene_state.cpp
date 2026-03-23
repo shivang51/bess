@@ -285,6 +285,10 @@ namespace Bess::JsonConvert {
             return;
         }
 
+        JsonConvert::fromJsonValue(j["sceneId"], state.getSceneId());
+        JsonConvert::fromJsonValue(j["moduleId"], state.getModuleId());
+        state.setIsRootScene(j["isRootScene"].asBool());
+
         const auto &simEngine = SimEngine::SimulationEngine::instance();
         std::vector<std::shared_ptr<Canvas::SceneComponent>> deserializedComponents;
         deserializedComponents.reserve(j["components"].size());
@@ -316,10 +320,6 @@ namespace Bess::JsonConvert {
         for (const auto &component : deserializedComponents) {
             component->onAttach(state);
         }
-
-        JsonConvert::fromJsonValue(j["sceneId"], state.getSceneId());
-        JsonConvert::fromJsonValue(j["moduleId"], state.getModuleId());
-        state.setIsRootScene(j["isRootScene"].asBool());
     }
 
 } // namespace Bess::JsonConvert

@@ -435,7 +435,8 @@ namespace Bess::Canvas {
         const auto &endComp = state.getComponentByUuid(m_endSlot);
 
         if (!startComp || !endComp) {
-            BESS_ASSERT(false, "Tried to reset segment pos of invalid conn");
+            BESS_ASSERT(false,
+                        std::format("Tried to reset segment pos of invalid conn {}", (uint64_t)m_uuid));
             return;
         }
 
