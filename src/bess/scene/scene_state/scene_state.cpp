@@ -311,9 +311,6 @@ namespace Bess::JsonConvert {
 
             state.addComponent(comp, false, false);
             deserializedComponents.push_back(comp);
-
-            BESS_DEBUG("Added component {} with UUID {} from JSON", comp->getName(),
-                       (uint64_t)comp->getUuid());
         }
 
         for (const auto &component : deserializedComponents) {

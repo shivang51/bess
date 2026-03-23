@@ -115,6 +115,8 @@ namespace Bess {
             return;
         }
 
+        auto &simEngine = SimEngine::SimulationEngine::instance();
+        simEngine.setSimulationState(SimEngine::SimulationState::paused);
         m_name = data.get("name", "Unnamed Project").asString();
         if (data.isMember("sim_engine_data")) {
             m_simEngineSerializer.deserialize(data["sim_engine_data"]);
@@ -154,13 +156,14 @@ namespace Bess {
                     }
                 }
                 scene->setZCoord(maxZ);
-                BESS_INFO("[Decode] Added new scene");
+                BESS_DEBUG("[Decode] Added new scene {}", (uint64_t)scene->getSceneId());
             }
 
             // setting root scene id
             JsonConvert::fromJsonValue(data["scene_data"]["root_scene_id"], sceneDriver.getRootSceneId());
 
             sceneDriver.makeRootSceneActive();
+            simEngine.setSimulationState(SimEngine::SimulationState::running);
         }
     }
 
