@@ -17,7 +17,7 @@ namespace Bess::UI {
 
     struct UIState {
         SceneViewportPanel mainViewport{"MainViewport"};
-        InternalData _internalData;
+        InternalData _internalData{};
     };
 
     typedef std::function<void()> PreInitCallback;
@@ -53,7 +53,7 @@ namespace Bess::UI {
             return nullptr;
         }
 
-        static UIState state;
+        static UIState &getState();
 
         static void destroy();
 

@@ -1,5 +1,4 @@
 #include "application/project_file.h"
-#include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
@@ -12,6 +11,7 @@
 #include "ui/ui_main/dialogs.h"
 
 #include "json/value.h"
+#include <filesystem>
 #include <fstream>
 
 namespace Bess {
@@ -160,7 +160,8 @@ namespace Bess {
             }
 
             // setting root scene id
-            JsonConvert::fromJsonValue(data["scene_data"]["root_scene_id"], sceneDriver.getRootSceneId());
+            JsonConvert::fromJsonValue(data["scene_data"]["root_scene_id"],
+                                       sceneDriver.getRootSceneId());
 
             sceneDriver.makeRootSceneActive();
             simEngine.setSimulationState(SimEngine::SimulationState::running);
@@ -168,13 +169,24 @@ namespace Bess {
     }
 
     void ProjectFile::browsePath() {
-        const auto path = UI::Dialogs::showSaveFileDialog("Save To", "");
-        if (path.size() == 0) {
+        const auto pathStr = UI::Dialogs::showSaveFileDialog("Save To", "");
+
+        if (pathStr.empty()) {
             BESS_WARN("No path selected");
             return;
         }
-        m_path = path;
-        m_name = path.substr(path.find_last_of("/\\") + 1);
+
+        m_path = pathStr;
+
+        const auto path = std::filesystem::path(pathStr);
+        m_name = path.filename();
+
+        if (!m_path.ends_with(".bproj")) {
+            m_path += ".bproj";
+        } else {
+            m_name = m_name.substr(0, m_name.size() - 6);
+        }
+
         BESS_INFO("Project path {} selected with name {}", m_path, m_name);
     }
 
