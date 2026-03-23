@@ -1,5 +1,6 @@
 #include "slot_probe_scene_component.h"
 #include "common/bess_uuid.h"
+#include "imgui.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "renderer/material_renderer.h"
@@ -13,6 +14,7 @@ namespace Bess::Canvas {
         auto clonedComponent = std::make_shared<SlotProbeSceneComponent>(*this);
         prepareClone(*clonedComponent);
         clonedComponent->setProbeData({});
+        clonedComponent->m_probedSlotUuid = UUID::null;
         return {clonedComponent};
     }
 
@@ -60,6 +62,9 @@ namespace Bess::Canvas {
 
         if (m_probedSlotUuid != UUID::null) {
             const auto &comp = sceneState.getComponentByUuid<SlotSceneComponent>(m_probedSlotUuid);
+            if (!comp) {
+                return;
+            }
             auto endPos = comp->getConnectionPos(sceneState);
 
             // This looks awesome, just hit and trial :)
@@ -153,5 +158,29 @@ namespace Bess::Canvas {
 
     void SlotProbeSceneComponent::onNameChanged() {
         m_scaleDirty = true;
+    }
+
+    void SlotProbeSceneComponent::drawPropertiesUI() {
+        // render 20 most recent probe data entries in imgui table
+        ImGui::Text("Probed Slot: %s",
+                    m_probedSlotUuid != UUID::null
+                        ? m_probedSlotUuid.toString().c_str()
+                        : "None");
+        if (ImGui::BeginTable("ProbeDataTable", 2, ImGuiTableFlags_Borders)) {
+            ImGui::TableSetupColumn("Time");
+            ImGui::TableSetupColumn("State");
+            ImGui::TableHeadersRow();
+            for (auto it = m_probeData.rbegin();
+                 it != m_probeData.rend() &&
+                 std::distance(m_probeData.rbegin(), it) < 20;
+                 ++it) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("%.3f s", std::chrono::duration<float>(it->first).count());
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%s", it->second == SimEngine::LogicState::high ? "High" : "Low");
+            }
+            ImGui::EndTable();
+        }
     }
 } // namespace Bess::Canvas

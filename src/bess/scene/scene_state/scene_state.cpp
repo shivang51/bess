@@ -308,6 +308,7 @@ namespace Bess::JsonConvert {
             if (comp->getType() == Canvas::SceneComponentType::module ||
                 comp->getType() == Canvas::SceneComponentType::simulation) {
                 const auto &simComp = comp->cast<Canvas::SimulationSceneComponent>();
+                BESS_ASSERT(simComp, "Simulation component cast failed");
                 const auto &def = simEngine.getComponentDefinition(simComp->getSimEngineId());
                 BESS_ASSERT(def, "Definition not found in sim engine");
                 simComp->setCompDef(def);
