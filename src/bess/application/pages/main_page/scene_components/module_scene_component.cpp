@@ -61,13 +61,20 @@ namespace Bess::Canvas {
         const auto &clonedInpId = ogToCloneId.at(m_associatedInp);
         const auto &clonedOutId = ogToCloneId.at(m_associatedOut);
 
+        moduleClone->setAssociatedInp(clonedInpId);
+        moduleClone->setAssociatedOut(clonedOutId);
+
         auto &simEngine = SimEngine::SimulationEngine::instance();
 
         // becuase onAttach simulation scene component creates its own dig comp in simulation engine
         auto clonedInp = newSceneState.getComponentByUuid<SimulationSceneComponent>(clonedInpId);
+        BESS_ASSERT(clonedInp,
+                    "[CloneModule] Cloned associated input component not found in new scene");
         simEngine.deleteComponent(clonedModDef->getInputId());
         clonedModDef->setInputId(clonedInp->getSimEngineId());
         auto clonedOut = newSceneState.getComponentByUuid<SimulationSceneComponent>(clonedOutId);
+        BESS_ASSERT(clonedOut,
+                    "[CloneModule] Cloned associated output component not found in new scene");
         simEngine.deleteComponent(clonedModDef->getOutputId());
         clonedModDef->setOutputId(clonedOut->getSimEngineId());
 
