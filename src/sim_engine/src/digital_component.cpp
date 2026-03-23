@@ -3,7 +3,6 @@
 #include "events/sim_engine_events.h"
 #include "module_def.h"
 #include "types.h"
-#include <cstdint>
 #include <memory>
 
 namespace Bess::SimEngine {
@@ -184,9 +183,7 @@ namespace Bess::SimEngine {
     }
 
     void DigitalComponent::dispatchStateChange(ComponentState &oldState, ComponentState &newState) {
-        BESS_TRACE("Dispatching state change for component {}", (uint64_t)this->id);
         for (const auto &cb : onStateChangeCbs) {
-            BESS_TRACE("Dispatching state change to ", (uint64_t)cb.first);
             cb.second(oldState, newState);
         }
     }

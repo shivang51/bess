@@ -708,7 +708,7 @@ namespace Bess::SimEngine {
                 m_queueCV.wait_until(queueLock, std::chrono::steady_clock::now() +
                                                     (m_eventSet.begin()->simTime - m_currentSimTime));
             } else {
-                BESS_TRACE("[BessSimEngine] Event queue empty, waiting for new events");
+                BESS_DEBUG("[BessSimEngine] Event queue empty, waiting for new events");
                 m_queueCV.notify_all();
             }
         }
@@ -880,8 +880,7 @@ namespace Bess::SimEngine {
             for (size_t i = 0; i < outputs.size(); i++) {
                 const auto states = getInputSlotsState(outputs[i].first);
                 tableData[comb][numInputs + i] = states[outputs[i].second].state;
-
-                BESS_TRACE("Output component {} slot {} state: {}",
+                BESS_DEBUG("Output component {} slot {} state: {}",
                            (uint64_t)outputs[i].first,
                            outputs[i].second,
                            (int)tableData[comb][numInputs + i]);
