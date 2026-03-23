@@ -3,6 +3,7 @@
 #include "events/sim_engine_events.h"
 #include "module_def.h"
 #include "types.h"
+#include <cstdint>
 #include <memory>
 
 namespace Bess::SimEngine {
@@ -182,33 +183,23 @@ namespace Bess::SimEngine {
         return definition->getOutputSlotsInfo().count;
     }
 
-    void DigitalComponent::addOnStateChangeCB(const TOnStateChangeCB &cb) {
-        onStateChangeCbs.push_back(cb);
-    }
-
-    void DigitalComponent::addOnOutputSlotCountChangeCB(const TOnSlotCountChangeCB &cb) {
-        onOutputSlotCountChangeCbs.push_back(cb);
-    }
-
-    void DigitalComponent::addOnInputSlotCountChangeCB(const TOnSlotCountChangeCB &cb) {
-        onInputSlotCountChangeCbs.push_back(cb);
-    }
-
     void DigitalComponent::dispatchStateChange(ComponentState &oldState, ComponentState &newState) {
+        BESS_TRACE("Dispatching state change for component {}", (uint64_t)this->id);
         for (const auto &cb : onStateChangeCbs) {
-            cb(oldState, newState);
+            BESS_TRACE("Dispatching state change to ", (uint64_t)cb.first);
+            cb.second(oldState, newState);
         }
     }
 
     void DigitalComponent::dispatchInputSlotCountChange(size_t newCount) {
         for (const auto &cb : onInputSlotCountChangeCbs) {
-            cb(newCount);
+            cb.second(newCount);
         }
     }
 
     void DigitalComponent::dispatchOutputSlotCountChange(size_t newCount) {
         for (const auto &cb : onOutputSlotCountChangeCbs) {
-            cb(newCount);
+            cb.second(newCount);
         }
     }
 
@@ -216,6 +207,38 @@ namespace Bess::SimEngine {
         onInputSlotCountChangeCbs.clear();
         onOutputSlotCountChangeCbs.clear();
         onStateChangeCbs.clear();
+    }
+
+    void DigitalComponent::addOnStateChangeCB(const UUID &id, const TOnStateChangeCB &cb) {
+        onStateChangeCbs.emplace_back(id, cb);
+    }
+
+    void DigitalComponent::addOnInputSlotCountChangeCB(const UUID &id,
+                                                       const TOnSlotCountChangeCB &cb) {
+        onInputSlotCountChangeCbs.emplace_back(id, cb);
+    }
+
+    void DigitalComponent::addOnOutputSlotCountChangeCB(const UUID &id,
+                                                        const TOnSlotCountChangeCB &cb) {
+        onOutputSlotCountChangeCbs.emplace_back(id, cb);
+    }
+
+    void DigitalComponent::removeOnStateChangeCB(const UUID &id) {
+        std::erase_if(onStateChangeCbs, [id](const auto &cb) {
+            return cb.first == id;
+        });
+    }
+
+    void DigitalComponent::removeOnInputSlotCountChangeCB(const UUID &id) {
+        std::erase_if(onInputSlotCountChangeCbs, [id](const auto &cb) {
+            return cb.first == id;
+        });
+    }
+
+    void DigitalComponent::removeOnOutputSlotCountChangeCB(const UUID &id) {
+        std::erase_if(onOutputSlotCountChangeCbs, [id](const auto &cb) {
+            return cb.first == id;
+        });
     }
 } // namespace Bess::SimEngine
 

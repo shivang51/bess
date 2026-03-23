@@ -99,9 +99,9 @@ namespace Bess::Canvas {
             return;
         }
 
-        outputDigitalComp->clearCallbacks();
-        outputDigitalComp->addOnStateChangeCB([this](const SimEngine::ComponentState &oldState,
-                                                     const SimEngine::ComponentState &newState) {
+        outputDigitalComp->removeOnStateChangeCB(m_uuid);
+        outputDigitalComp->addOnStateChangeCB(m_uuid, [this](const SimEngine::ComponentState &oldState,
+                                                             const SimEngine::ComponentState &newState) {
             auto &simEngine = SimEngine::SimulationEngine::instance();
             auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
             if (!moduleDigComp) {
@@ -113,7 +113,8 @@ namespace Bess::Canvas {
             }
         });
 
-        outputDigitalComp->addOnInputSlotCountChangeCB([this](size_t newCount) {
+        outputDigitalComp->removeOnInputSlotCountChangeCB(m_uuid);
+        outputDigitalComp->addOnInputSlotCountChangeCB(m_uuid, [this](size_t newCount) {
             const auto &simEngine = SimEngine::SimulationEngine::instance();
             auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
             if (!moduleDigComp) {
@@ -150,8 +151,8 @@ namespace Bess::Canvas {
             BESS_ASSERT(modOutCount == newCount, "Failed to sync module inputs");
         });
 
-        inputDigitalComp->clearCallbacks();
-        inputDigitalComp->addOnOutputSlotCountChangeCB([this](size_t newCount) {
+        inputDigitalComp->removeOnOutputSlotCountChangeCB(m_uuid);
+        inputDigitalComp->addOnOutputSlotCountChangeCB(m_uuid, [this](size_t newCount) {
             const auto &simEngine = SimEngine::SimulationEngine::instance();
             auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
             if (!moduleDigComp) {

@@ -2,11 +2,14 @@
 #include "common/bess_uuid.h"
 #include "imgui.h"
 #include "pages/main_page/main_page.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "renderer/material_renderer.h"
 #include "scene_draw_context.h"
 #include "scene_state/scene_state.h"
 #include "settings/viewport_theme.h"
+#include "simulation_engine.h"
+#include "types.h"
 
 namespace Bess::Canvas {
     std::vector<std::shared_ptr<SceneComponent>> SlotProbeSceneComponent::clone(const SceneState &sceneState) const {
@@ -101,20 +104,14 @@ namespace Bess::Canvas {
         if (m_probedSlotUuid == UUID::null)
             return;
 
-        const auto &comp = state.getComponentByUuid<SlotSceneComponent>(m_probedSlotUuid);
-        if (!comp)
-            return;
+        if (m_unsubscribeFlag) {
+            m_unsubscribeFlag = false;
+            unsubscribeFromSlot(state);
+        }
 
-        auto slotState = comp->getSlotState(state);
-        if (m_probeData.empty()) {
-            m_probeData.emplace_back(slotState.lastChangeTime,
-                                     slotState.state);
-        } else {
-            auto &lastEntry = m_probeData.back();
-            if (slotState.state != lastEntry.second) {
-                m_probeData.emplace_back(slotState.lastChangeTime,
-                                         slotState.state);
-            }
+        if (m_subscribeFlag) {
+            m_subscribeFlag = false;
+            subscribeToSlot(state, m_probedSlotUuid);
         }
     }
 
@@ -136,6 +133,7 @@ namespace Bess::Canvas {
 
     void SlotProbeSceneComponent::onProbedSlotChanged() {
         m_probeData.clear();
+        m_subscribeFlag = true;
     }
 
     void SlotProbeSceneComponent::onAttach(SceneState &state) {
@@ -182,5 +180,57 @@ namespace Bess::Canvas {
             }
             ImGui::EndTable();
         }
+    }
+
+    void SlotProbeSceneComponent::subscribeToSlot(const SceneState &sceneState, const UUID &slotUuid) {
+        const auto &comp = sceneState.getComponentByUuid<SlotSceneComponent>(slotUuid);
+        if (!comp)
+            return;
+
+        const auto &simId = sceneState.getComponentByUuid<SimulationSceneComponent>(
+                                          comp->getParentComponent())
+                                ->getSimEngineId();
+        const auto &digComp = SimEngine::SimulationEngine::instance().getDigitalComponent(simId);
+        digComp->addOnStateChangeCB(m_uuid, [this, slotComp = comp](const SimEngine::ComponentState &oldState,
+                                                                    const SimEngine::ComponentState &newState) {
+            SimEngine::SlotState slotState;
+
+            if (slotComp->isInputSlot()) {
+                slotState = newState.inputStates[slotComp->getIndex()];
+            } else {
+                slotState = newState.outputStates[slotComp->getIndex()];
+            }
+
+            if (m_probeData.empty()) {
+                m_probeData.emplace_back(slotState.lastChangeTime,
+                                         slotState.state);
+            } else {
+                auto &lastEntry = m_probeData.back();
+                if (slotState.state != lastEntry.second) {
+                    m_probeData.emplace_back(slotState.lastChangeTime,
+                                             slotState.state);
+                }
+            }
+        });
+    }
+
+    void SlotProbeSceneComponent::unsubscribeFromSlot(const SceneState &sceneState) {
+        if (m_unsubscribeSlotUuid == UUID::null)
+            return;
+
+        const auto &comp = sceneState.getComponentByUuid<SlotSceneComponent>(m_unsubscribeSlotUuid);
+        if (!comp)
+            return;
+
+        const auto &simId = sceneState.getComponentByUuid<SimulationSceneComponent>(
+                                          comp->getParentComponent())
+                                ->getSimEngineId();
+        const auto &digComp = SimEngine::SimulationEngine::instance().getDigitalComponent(simId);
+        digComp->removeOnStateChangeCB(m_uuid);
+    }
+
+    void SlotProbeSceneComponent::onBeforeProbedSlotChanged() {
+        m_unsubscribeFlag = true;
+        m_unsubscribeSlotUuid = m_probedSlotUuid;
     }
 } // namespace Bess::Canvas

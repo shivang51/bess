@@ -8,7 +8,8 @@
 
 namespace Bess::SimEngine {
 
-    typedef std::function<void(ComponentState &, ComponentState &)> TOnStateChangeCB;
+    // oldState, newState
+    typedef std::function<void(const ComponentState &, const ComponentState &)> TOnStateChangeCB;
 
     typedef std::function<void(size_t count)> TOnSlotCountChangeCB;
 
@@ -24,9 +25,13 @@ namespace Bess::SimEngine {
         size_t decrementInputCount(bool force = false);
         size_t decrementOutputCount(bool force = false);
 
-        void addOnStateChangeCB(const TOnStateChangeCB &cb);
-        void addOnInputSlotCountChangeCB(const TOnSlotCountChangeCB &cb);
-        void addOnOutputSlotCountChangeCB(const TOnSlotCountChangeCB &cb);
+        void addOnStateChangeCB(const UUID &id, const TOnStateChangeCB &cb);
+        void addOnInputSlotCountChangeCB(const UUID &id, const TOnSlotCountChangeCB &cb);
+        void addOnOutputSlotCountChangeCB(const UUID &id, const TOnSlotCountChangeCB &cb);
+
+        void removeOnStateChangeCB(const UUID &id);
+        void removeOnInputSlotCountChangeCB(const UUID &id);
+        void removeOnOutputSlotCountChangeCB(const UUID &id);
 
         void dispatchStateChange(ComponentState &oldState, ComponentState &newState);
         void dispatchInputSlotCountChange(size_t newCount);
@@ -42,9 +47,9 @@ namespace Bess::SimEngine {
         Connections outputConnections;
 
       private:
-        std::vector<TOnStateChangeCB> onStateChangeCbs;
-        std::vector<TOnSlotCountChangeCB> onInputSlotCountChangeCbs;
-        std::vector<TOnSlotCountChangeCB> onOutputSlotCountChangeCbs;
+        std::vector<std::pair<UUID, TOnStateChangeCB>> onStateChangeCbs;
+        std::vector<std::pair<UUID, TOnSlotCountChangeCB>> onInputSlotCountChangeCbs;
+        std::vector<std::pair<UUID, TOnSlotCountChangeCB>> onOutputSlotCountChangeCbs;
     };
 
 } // namespace Bess::SimEngine

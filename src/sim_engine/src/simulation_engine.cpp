@@ -392,9 +392,10 @@ namespace Bess::SimEngine {
 
     void SimulationEngine::setOutputSlotState(const UUID &uuid, int pinIdx, LogicState state) {
         const auto comp = m_simEngineState.getDigitalComponent(uuid);
-
+        auto oldState = comp->state;
         comp->state.outputStates[pinIdx].state = state;
         comp->state.outputStates[pinIdx].lastChangeTime = m_currentSimTime;
+        comp->dispatchStateChange(oldState, comp->state);
         scheduleDependantsOf(uuid);
     }
 
