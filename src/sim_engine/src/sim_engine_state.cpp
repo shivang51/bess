@@ -108,10 +108,12 @@ namespace Bess::JsonConvert {
                 comp->definition = std::move(baseDef);
             }
 
+            // Very important, do no change the order of following ops
+            // As expressions need to be set in auxData
+            comp->definition->computeExpressionsIfNeeded();
             if (comp->definition->getAuxData().has_value()) {
                 comp->state.auxData = &comp->definition->getAuxData();
             }
-            comp->definition->computeExpressionsIfNeeded();
             comp->definition->computeHash();
 
             state.addDigitalComponent(comp);
