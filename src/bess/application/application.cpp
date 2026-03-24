@@ -83,8 +83,6 @@ namespace Bess {
     }
 
     void Application::update(TimeMs ts) {
-        EventSystem::EventDispatcher::instance().dispatchAll();
-        m_mainWindow->update();
         ApplicationState::getCurrentPage()->update(ts, m_events);
         m_events.clear();
     }

@@ -173,9 +173,15 @@ namespace Bess::Canvas {
         auto &simEngine = SimEngine::SimulationEngine::instance();
         const auto &compState = simEngine.getComponentState(parentComp->getSimEngineId());
 
-        return (m_slotType == SlotType::digitalInput)
-                   ? compState.inputStates[m_index]
-                   : compState.outputStates[m_index];
+        if (isInputSlot()) {
+            BESS_ASSERT(m_index < compState.inputStates.size(),
+                        "Slot index greater than input states size");
+            return compState.inputStates[m_index];
+        } else {
+            BESS_ASSERT(m_index < compState.outputStates.size(),
+                        "Slot index greater than output states size");
+            return compState.outputStates[m_index];
+        }
     }
 
     bool SlotSceneComponent::isSlotConnected(const SceneState &state) const {
@@ -183,9 +189,15 @@ namespace Bess::Canvas {
         auto &simEngine = SimEngine::SimulationEngine::instance();
         const auto &compState = simEngine.getComponentState(parentComp->getSimEngineId());
 
-        return (m_slotType == SlotType::digitalInput)
-                   ? compState.inputConnected[m_index]
-                   : compState.outputConnected[m_index];
+        if (isInputSlot()) {
+            BESS_ASSERT(m_index < compState.inputStates.size(),
+                        "Slot index greater than inputs in sim engine");
+            return compState.inputConnected[m_index];
+        } else {
+            BESS_ASSERT(m_index < compState.outputStates.size(),
+                        "Slot index greater than outputs in sim engine");
+            return compState.outputConnected[m_index];
+        }
     }
 
     void SlotSceneComponent::addConnection(const UUID &connectionId) {

@@ -4,11 +4,9 @@
 #include "common/bess_uuid.h"
 #include "common/logger.h"
 #include "common/types.h"
-#include "component_catalog.h"
 #include "events/application_event.h"
 #include "geometric.hpp"
 #include "macro_command.h"
-#include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/cmds/delete_comp_cmd.h"
 #include "pages/main_page/cmds/module_comp_cmd.h"
 #include "pages/main_page/main_page_state.h"
@@ -25,7 +23,6 @@
 #include "pages/main_page/services/connection_service.h"
 #include "plugin_manager.h"
 #include "scene_ser_reg.h"
-#include "scene_state/components/scene_component_types.h"
 #include "services/copy_paste_service.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
@@ -135,8 +132,6 @@ namespace Bess::Pages {
     void MainPage::update(TimeMs ts, std::vector<ApplicationEvent> &events) {
         m_state.update();
 
-        const bool imguiWantsKeyboard = ImGui::GetIO().WantTextInput;
-
         int clickEvtIdx = -1;
 
         int idx = -1;
@@ -189,8 +184,14 @@ namespace Bess::Pages {
             m_clickCount = 0;
         }
 
+        const bool imguiWantsKeyboard = ImGui::GetIO().WantTextInput;
+
         if (!imguiWantsKeyboard)
             handleKeyboardShortcuts();
+
+        // dispatching events after handling keyboard shortcuts,
+        // so all modification are synced before updaing UI
+        EventSystem::EventDispatcher::instance().dispatchAll();
 
         UI::UIMain::update(ts, events);
     }

@@ -186,6 +186,7 @@ namespace Bess::Pages {
                 const auto slotUuid = comp->getOutputSlots()[i];
                 const auto &slotComp = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(slotUuid);
                 if (!slotComp->isResizeSlot()) {
+                    comp->getOutputSlots().erase(std::ranges::find(comp->getOutputSlots(), slotUuid));
                     sceneState.removeComponent(slotUuid, UUID::master);
                 }
             }
@@ -230,8 +231,10 @@ namespace Bess::Pages {
             for (size_t i = inSlotsInfo.count; i < comp->getInputSlotsCount(); i++) {
                 const auto slotUuid = comp->getInputSlots()[i];
                 const auto &slotComp = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(slotUuid);
-                if (!slotComp->isResizeSlot())
+                if (!slotComp->isResizeSlot()) {
+                    comp->getInputSlots().erase(std::ranges::find(comp->getInputSlots(), slotUuid));
                     sceneState.removeComponent(slotUuid, UUID::master);
+                }
             }
             comp->setScaleDirty();
         } else if (comp->getInputSlotsCount() < realCmpSize) {

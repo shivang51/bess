@@ -180,9 +180,6 @@ namespace Bess {
         isGLFWInitialized = false;
     }
 
-    void Window::update() const {
-    }
-
     bool Window::isClosed() const { return glfwWindowShouldClose(mp_window.get()); }
 
     void Window::onWindowResize(WindowResizeCallback callback) {

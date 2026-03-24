@@ -244,6 +244,9 @@ namespace Bess::Canvas {
 
         for (size_t i = 0; i < outPositions.size(); i++) {
             const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(m_outputSlots[i]);
+            BESS_ASSERT(slotComp,
+                        std::format("Slot component with UUID {} not found in scene state",
+                                    (uint64_t)m_outputSlots[i]));
             slotComp->setPosition(outPositions[i]);
         }
     }

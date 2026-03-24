@@ -41,7 +41,6 @@ namespace Bess {
         Window(int width, int height, const std::string &title);
         ~Window();
 
-        void update() const;
         bool isClosed() const;
         void close() const;
 
