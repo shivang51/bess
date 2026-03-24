@@ -455,31 +455,26 @@ namespace Bess::Canvas {
     std::vector<UUID> SimulationSceneComponent::getDependants(const SceneState &state) const {
         std::vector<UUID> dependants;
 
-        // get connections and their dependants
+        // get slots and their dependants
         for (const auto &inp : std::ranges::reverse_view(m_inputSlots)) {
             const auto &slotComp = state.getComponentByUuid<SlotSceneComponent>(inp);
-            const auto &connections = slotComp->getConnectedConnections();
-            for (const auto &connUuid : connections) {
-                const auto &connComp = state.getComponentByUuid<ConnectionSceneComponent>(connUuid);
-                const auto &connDeps = connComp->getDependants(state);
-                dependants.insert(dependants.end(), connDeps.begin(), connDeps.end());
-                dependants.push_back(connUuid);
-            }
+            const auto &slotDeps = slotComp->getDependants(state);
+            dependants.insert(dependants.end(), slotDeps.begin(), slotDeps.end());
+            dependants.push_back(inp);
         }
 
         for (const auto &out : std::ranges::reverse_view(m_outputSlots)) {
             const auto &slotComp = state.getComponentByUuid<SlotSceneComponent>(out);
-            const auto &connections = slotComp->getConnectedConnections();
-            for (const auto &connUuid : connections) {
-                const auto &connComp = state.getComponentByUuid<ConnectionSceneComponent>(connUuid);
-                const auto &connDeps = connComp->getDependants(state);
-                dependants.insert(dependants.end(), connDeps.begin(), connDeps.end());
-                dependants.push_back(connUuid);
-            }
+            const auto &slotDeps = slotComp->getDependants(state);
+            dependants.insert(dependants.end(), slotDeps.begin(), slotDeps.end());
+            dependants.push_back(out);
         }
 
         // get children and their dependants
         for (const auto &childId : m_childComponents) {
+            if (std::ranges::find(dependants, childId) != dependants.end()) {
+                continue;
+            }
             const auto &childComp = state.getComponentByUuid(childId);
             const auto &childDeps = childComp->getDependants(state);
             dependants.insert(dependants.end(), childDeps.begin(), childDeps.end());

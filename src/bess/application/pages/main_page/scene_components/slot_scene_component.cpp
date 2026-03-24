@@ -1,6 +1,7 @@
 #include "slot_scene_component.h"
 #include "conn_joint_scene_component.h"
 #include "connection_scene_component.h"
+#include "expression_evalutator/expr_evaluator.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
@@ -293,5 +294,37 @@ namespace Bess::Canvas {
 
     void SlotSceneComponent::onRuntimeIdChanged() {
         m_invalidateCache = true;
+    }
+
+    std::vector<UUID> SlotSceneComponent::getDependants(const SceneState &state) const {
+        auto dependants = SceneComponent::getDependants(state);
+        if (isResizeSlot()) {
+            return dependants;
+        }
+
+        for (const auto &connUuid : m_connectedConnections) {
+            const auto &connComp = state.getComponentByUuid<ConnectionSceneComponent>(connUuid);
+            const auto &connDeps = connComp->getDependants(state);
+            dependants.insert(dependants.end(), connDeps.begin(), connDeps.end());
+            dependants.push_back(connUuid);
+        }
+
+        const auto &simComp = state.getComponentByUuid<SimulationSceneComponent>(
+            m_parentComponent);
+
+        const bool isUnirary = SimEngine::ExprEval::isUninaryOperator(
+            simComp->getCompDef()->getOpInfo().op);
+
+        if (!isUnirary) {
+            return dependants;
+        }
+
+        if (isInputSlot()) {
+            dependants.push_back(simComp->getOutputSlots()[m_index]);
+        } else {
+            dependants.push_back(simComp->getInputSlots()[m_index]);
+        }
+
+        return dependants;
     }
 } // namespace Bess::Canvas

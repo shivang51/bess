@@ -58,14 +58,10 @@ namespace Bess::Svc {
         std::vector<UUID> dependants;
 
         if (slotA && isSlotRemovable(slotA, 1)) {
-            const auto &slotADeps = slotA->getDependants(sceneState);
-            dependants.insert(dependants.end(), slotADeps.begin(), slotADeps.end());
             dependants.push_back(slotA->getUuid());
         }
 
         if (slotB && isSlotRemovable(slotB, 1)) {
-            const auto &slotBDeps = slotB->getDependants(sceneState);
-            dependants.insert(dependants.end(), slotBDeps.begin(), slotBDeps.end());
             dependants.push_back(slotB->getUuid());
         }
 

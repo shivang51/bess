@@ -64,6 +64,8 @@ namespace Bess::Canvas {
 
         bool isInputSlot() const;
 
+        std::vector<UUID> getDependants(const SceneState &state) const override;
+
       private:
         void onRuntimeIdChanged() override;
 
