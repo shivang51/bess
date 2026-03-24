@@ -1,10 +1,8 @@
 #include "sim_scene_component.h"
 #include "common/bess_uuid.h"
-#include "icons/CodIcons.h"
 #include "icons/FontAwesomeIcons.h"
 #include "input_scene_component.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
-#include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/services/connection_service.h"
 #include "renderer/material_renderer.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -15,6 +13,7 @@
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "slot_scene_component.h"
+#include "ui/widgets/m_widgets.h"
 
 #include <algorithm>
 #include <unordered_set>
@@ -618,5 +617,39 @@ namespace Bess::Canvas {
         }
 
         return clonedComponents;
+    }
+
+    void SimulationSceneComponent::drawPropertiesUI(SceneState &state) {
+        SceneComponent::drawPropertiesUI(state);
+
+        // Input Slots Names
+        if (UI::Widgets::TreeNode(0, "Input Slots")) {
+            for (size_t i = 0; i < m_inputSlots.size(); i++) {
+                const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(m_inputSlots[i]);
+                if (slotComp->isResizeSlot()) {
+                    continue;
+                }
+                std::string label = "Input Slot " + std::to_string(i);
+                if (UI::Widgets::TextBox(label, slotComp->getName())) {
+                    slotComp->onNameChanged();
+                }
+            }
+            ImGui::TreePop();
+        }
+
+        // Output Slots Names
+        if (UI::Widgets::TreeNode(0, "Output Slots")) {
+            for (size_t i = 0; i < m_outputSlots.size(); i++) {
+                const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(m_outputSlots[i]);
+                if (slotComp->isResizeSlot()) {
+                    continue;
+                }
+                std::string label = "Output Slot " + std::to_string(i);
+                if (UI::Widgets::TextBox(label, slotComp->getName())) {
+                    slotComp->onNameChanged();
+                }
+            }
+            ImGui::TreePop();
+        }
     }
 } // namespace Bess::Canvas

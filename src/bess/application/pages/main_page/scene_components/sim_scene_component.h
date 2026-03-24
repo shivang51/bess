@@ -132,6 +132,7 @@ namespace Bess::Canvas {
         std::vector<UUID>
         cleanup(SceneState &state, UUID caller = UUID::null) override;
 
+        void drawPropertiesUI(SceneState &state) override;
         void onAttach(SceneState &state) override;
 
         void onMouseDragged(const Events::MouseDraggedEvent &e) override;

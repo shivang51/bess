@@ -106,7 +106,7 @@ namespace Bess::Canvas {
         virtual void draw(SceneDrawContext &);
         virtual void drawSchematic(SceneDrawContext &);
 
-        virtual void drawPropertiesUI(SceneState& sceneState);
+        virtual void drawPropertiesUI(SceneState &sceneState);
 
         virtual std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const;
 
@@ -161,6 +161,7 @@ namespace Bess::Canvas {
         virtual std::vector<UUID> getDependants(const SceneState &state) const;
 
         virtual void onScaleChanged();
+        virtual void onNameChanged() {}
 
       protected:
         // Deserialize the component from JSON
@@ -168,7 +169,6 @@ namespace Bess::Canvas {
                              const std::shared_ptr<SceneComponent> &ptr);
 
         void prepareClone(SceneComponent &clonedComponent) const;
-        virtual void onNameChanged() {}
         virtual void onTransformChanged() {}
         virtual void onSelect() {}
         virtual void onStyleChanged() {}
