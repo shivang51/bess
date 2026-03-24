@@ -116,7 +116,10 @@ namespace Bess::SimEngine {
         scheduleEvent(digiComp->id, UUID::null, m_currentSimTime + definition->getSimDelay());
 
         EventSystem::EventDispatcher::instance().queue<Events::ComponentAddedEvent>({digiComp->id});
-        BESS_INFO("Added component {} with id {}", definition->getName(), (uint64_t)digiComp->id);
+        BESS_INFO("Added component {} with id {} | base hash {}",
+                  definition->getName(),
+                  (uint64_t)digiComp->id,
+                  definition->getBaseHash());
 
         return digiComp->id;
     }

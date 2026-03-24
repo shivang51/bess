@@ -216,8 +216,7 @@ namespace Bess::Canvas {
 
         const auto &simEngine = SimEngine::SimulationEngine::instance();
 
-        // adding io to new module scene
-
+        // adding module input
         const auto inpDef = simEngine.getComponentDefinition(moduleDef->getInputId());
         auto inpComps = SimulationSceneComponent::createNew<SimulationSceneComponent>(inpDef);
         const auto inpSceneComp = std::dynamic_pointer_cast<SimulationSceneComponent>(inpComps.front());
@@ -229,15 +228,16 @@ namespace Bess::Canvas {
         moduleComp->m_associatedInp = inpSceneComp->getUuid();
         inpComps.erase(inpComps.begin());
 
-        // comps.insert(comps.end(), inpComps.begin(), inpComps.end());
-
-        newSceneState.addComponent(inpSceneComp, true, false);
+        newSceneState.addComponent(inpSceneComp);
 
         for (const auto &inpComp : inpComps) {
-            newSceneState.addComponent(inpComp, true, false);
-            newSceneState.attachChild(inpSceneComp->getUuid(), inpComp->getUuid(), false);
+            newSceneState.addComponent(inpComp);
+            newSceneState.attachChild(inpSceneComp->getUuid(),
+                                      inpComp->getUuid(),
+                                      false);
         }
 
+        // adding module output
         auto outDef = simEngine.getComponentDefinition(moduleDef->getOutputId());
         auto outComps = SimulationSceneComponent::createNewAndRegister(outDef);
         auto outSceneComp = std::dynamic_pointer_cast<SimulationSceneComponent>(outComps.front());
@@ -248,12 +248,13 @@ namespace Bess::Canvas {
         moduleOutId = outSceneComp->getUuid();
         moduleComp->m_associatedOut = outSceneComp->getUuid();
         outComps.erase(outComps.begin());
-        // comps.insert(comps.end(), outComps.begin(), outComps.end());
 
-        newSceneState.addComponent(outSceneComp, true, false);
+        newSceneState.addComponent(outSceneComp);
         for (const auto &outComp : outComps) {
-            newSceneState.addComponent(outComp, true, false);
-            newSceneState.attachChild(outSceneComp->getUuid(), outComp->getUuid(), false);
+            newSceneState.addComponent(outComp);
+            newSceneState.attachChild(outSceneComp->getUuid(),
+                                      outComp->getUuid(),
+                                      false);
         }
 
         return comps;

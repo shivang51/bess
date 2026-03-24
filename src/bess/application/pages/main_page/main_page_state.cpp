@@ -167,41 +167,42 @@ namespace Bess::Pages {
             return;
         }
 
-        auto &sceneState = m_sceneDriver->getState();
-        const auto &compId = m_simIdToSceneCompId[e.componentId];
-        const auto &comp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(compId);
+        const auto &compData = m_simIdToSceneCompId[e.componentId];
+
+        auto &sceneState = m_sceneDriver.getSceneWithId(compData.sceneId)->getState();
+        const auto &comp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(compData.sceneCompId);
         if (!comp)
             return; // most likely the component was deleted, so we can ignore this event
-
-        const auto &parent = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(compId);
-        BESS_ASSERT(parent, std::format("[Scene] Component with uuid {} not found in scene state", (uint64_t)compId));
 
         const auto &digitalComp = SimEngine::SimulationEngine::instance().getDigitalComponent(e.componentId);
         const auto &outSlotsInfo = digitalComp->definition->getOutputSlotsInfo();
 
-        if (parent->getOutputSlotsCount() > outSlotsInfo.count) {
-            for (size_t i = outSlotsInfo.count; i < parent->getOutputSlotsCount(); i++) {
-                const auto slotUuid = parent->getOutputSlots()[i];
+        size_t realCmpSize = outSlotsInfo.count;
+        if (outSlotsInfo.isResizeable)
+            realCmpSize = realCmpSize + 1; // doing this because scene comp will also contain a resize slot
+
+        if (comp->getOutputSlotsCount() > realCmpSize) {
+            for (size_t i = outSlotsInfo.count; i < comp->getOutputSlotsCount(); i++) {
+                const auto slotUuid = comp->getOutputSlots()[i];
                 const auto &slotComp = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(slotUuid);
                 if (!slotComp->isResizeSlot()) {
-                    // sceneState.removeComponent(slotUuid, UUID::master);
+                    sceneState.removeComponent(slotUuid, UUID::master);
                 }
             }
-            parent->setScaleDirty();
-        } else if (parent->getOutputSlotsCount() < outSlotsInfo.count) {
-            for (size_t i = parent->getOutputSlotsCount(); i < outSlotsInfo.count; i++) {
+            comp->setScaleDirty();
+        } else if (comp->getOutputSlotsCount() < realCmpSize) {
+            for (size_t i = comp->getOutputSlotsCount(); i < outSlotsInfo.count; i++) {
                 std::shared_ptr<Canvas::SlotSceneComponent> newSlot = std::make_shared<Canvas::SlotSceneComponent>();
                 newSlot->setSlotType(Canvas::SlotType::digitalOutput);
                 newSlot->setIndex((int)outSlotsInfo.count - 1);
                 if (i < outSlotsInfo.names.size()) {
                     newSlot->setName(std::string(1, (char)('a' + i)));
                 }
-                parent->addOutputSlot(newSlot->getUuid(), outSlotsInfo.isResizeable);
+                comp->addOutputSlot(newSlot->getUuid(), outSlotsInfo.isResizeable);
                 sceneState.addComponent<Canvas::SlotSceneComponent>(newSlot);
-                sceneState.attachChild(parent->getUuid(), newSlot->getUuid());
+                sceneState.attachChild(comp->getUuid(),
+                                       newSlot->getUuid());
             }
-        } else {
-            BESS_WARN("CompDefOutputsResizedEvent received without any change");
         }
     }
 
@@ -211,50 +212,51 @@ namespace Bess::Pages {
             return;
         }
 
-        auto &sceneState = m_sceneDriver->getState();
-        const auto &compId = m_simIdToSceneCompId[e.componentId];
-        const auto &comp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(compId);
+        const auto &compData = m_simIdToSceneCompId[e.componentId];
+
+        auto &sceneState = m_sceneDriver.getSceneWithId(compData.sceneId)->getState();
+        const auto &comp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(compData.sceneCompId);
         if (!comp)
             return; // most likely the component was deleted, so we can ignore this event
 
-        const auto &parent = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(compId);
-        BESS_ASSERT(parent, std::format("[Scene] Component with uuid {} not found in scene state", (uint64_t)compId));
         const auto &digitalComp = SimEngine::SimulationEngine::instance().getDigitalComponent(e.componentId);
         const auto &inSlotsInfo = digitalComp->definition->getInputSlotsInfo();
 
-        if (parent->getInputSlotsCount() > inSlotsInfo.count) {
-            for (size_t i = inSlotsInfo.count; i < parent->getInputSlotsCount(); i++) {
-                const auto slotUuid = parent->getInputSlots()[i];
+        size_t realCmpSize = inSlotsInfo.count;
+        if (inSlotsInfo.isResizeable)
+            realCmpSize = realCmpSize + 1; // doing this because scene comp will also contain a resize slot
+
+        if (comp->getInputSlotsCount() > realCmpSize) {
+            for (size_t i = inSlotsInfo.count; i < comp->getInputSlotsCount(); i++) {
+                const auto slotUuid = comp->getInputSlots()[i];
                 const auto &slotComp = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(slotUuid);
-                // if (!slotComp->isResizeSlot())
-                // sceneState.removeComponent(slotUuid, UUID::master);
+                if (!slotComp->isResizeSlot())
+                    sceneState.removeComponent(slotUuid, UUID::master);
             }
-            parent->setScaleDirty();
-        } else if (parent->getInputSlotsCount() < inSlotsInfo.count) {
-            for (size_t i = parent->getInputSlotsCount(); i < inSlotsInfo.count; i++) {
+            comp->setScaleDirty();
+        } else if (comp->getInputSlotsCount() < realCmpSize) {
+            for (size_t i = comp->getInputSlotsCount(); i < inSlotsInfo.count; i++) {
                 std::shared_ptr<Canvas::SlotSceneComponent> newSlot = std::make_shared<Canvas::SlotSceneComponent>();
                 newSlot->setSlotType(Canvas::SlotType::digitalInput);
                 newSlot->setIndex((int)inSlotsInfo.count - 1);
                 if (i < inSlotsInfo.names.size()) {
                     newSlot->setName(std::string(1, (char)('A' + i)));
                 }
-                parent->addInputSlot(newSlot->getUuid(), inSlotsInfo.isResizeable);
+                comp->addInputSlot(newSlot->getUuid(), inSlotsInfo.isResizeable);
                 sceneState.addComponent<Canvas::SlotSceneComponent>(newSlot);
-                sceneState.attachChild(parent->getUuid(), newSlot->getUuid());
+                sceneState.attachChild(comp->getUuid(), newSlot->getUuid());
             }
-        } else {
-            BESS_WARN("CompDefInputsResizedEvent received without any change");
         }
     }
 
     void MainPageState::onEntityAdded(const Canvas::Events::ComponentAddedEvent &e) {
         const auto &comp = e.state->getComponentByUuid(e.uuid);
 
-        if (e.type == Canvas::SceneComponentType::simulation) {
+        if (e.type == Canvas::SceneComponentType::simulation ||
+            e.type == Canvas::SceneComponentType::module) {
             const auto &simComp = comp->cast<Canvas::SimulationSceneComponent>();
-            const auto &def = simComp->getCompDef();
             const auto &simEngineId = simComp->getSimEngineId();
-            m_simIdToSceneCompId[simEngineId] = e.uuid;
+            m_simIdToSceneCompId[simEngineId] = {e.uuid, e.state->getSceneId()};
         }
     }
 
@@ -263,7 +265,7 @@ namespace Bess::Pages {
             return;
 
         auto it = std::ranges::find_if(m_simIdToSceneCompId,
-                                       [&e](const auto &pair) { return pair.second == e.uuid; });
+                                       [&e](const auto &pair) { return pair.second.sceneCompId == e.uuid; });
 
         if (it != m_simIdToSceneCompId.end()) {
             m_simIdToSceneCompId.erase(it);

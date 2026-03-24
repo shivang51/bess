@@ -89,7 +89,11 @@ namespace Bess::Pages {
         std::unordered_map<int, bool> m_releasedKeysFrame;
         std::unordered_map<int, bool> m_pressedKeysFrame;
         std::unordered_map<int, bool> m_downKeys;
-        std::unordered_map<UUID, UUID> m_simIdToSceneCompId;
+        struct SceneCompInfo {
+            UUID sceneCompId;
+            UUID sceneId;
+        };
+        std::unordered_map<UUID, SceneCompInfo> m_simIdToSceneCompId;
         std::unordered_set<UUID> m_probes;
         TNetIdToNameMap m_netIdToNameMap;
         std::unordered_map<UUID, TNetIdToCompMap> m_netIdToCompMap;

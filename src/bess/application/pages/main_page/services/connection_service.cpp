@@ -371,7 +371,8 @@ namespace Bess::Svc {
 
         auto &sceneState = getScene()->getState();
         const auto &parentId = slot->getParentComponent();
-        const auto &parent = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(parentId);
+        const auto &parent = sceneState.getComponentByUuid<
+            Canvas::SimulationSceneComponent>(parentId);
 
         if (!parent) {
             BESS_ERROR("Parent component {} of slot {} not valid",
