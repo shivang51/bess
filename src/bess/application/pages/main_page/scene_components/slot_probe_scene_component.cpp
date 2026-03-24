@@ -158,7 +158,7 @@ namespace Bess::Canvas {
         m_scaleDirty = true;
     }
 
-    void SlotProbeSceneComponent::drawPropertiesUI() {
+    void SlotProbeSceneComponent::drawPropertiesUI(SceneState& sceneState) {
         // render 20 most recent probe data entries in imgui table
         ImGui::Text("Probed Slot: %s",
                     m_probedSlotUuid != UUID::null

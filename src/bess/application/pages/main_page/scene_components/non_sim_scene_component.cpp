@@ -106,8 +106,8 @@ namespace Bess::Canvas {
         return {clonedComponent};
     }
 
-    void TextComponent::drawPropertiesUI() {
-        NonSimSceneComponent::drawPropertiesUI();
+    void TextComponent::drawPropertiesUI(SceneState& sceneState) {
+        NonSimSceneComponent::drawPropertiesUI(SceneState& sceneState);
 
         if (UI::Widgets::TreeNode(0, "Text Properties")) {
             if (UI::Widgets::TextBox("Text", m_data)) {

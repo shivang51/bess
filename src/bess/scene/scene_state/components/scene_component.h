@@ -106,7 +106,7 @@ namespace Bess::Canvas {
         virtual void draw(SceneDrawContext &);
         virtual void drawSchematic(SceneDrawContext &);
 
-        virtual void drawPropertiesUI();
+        virtual void drawPropertiesUI(SceneState& sceneState);
 
         virtual std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const;
 

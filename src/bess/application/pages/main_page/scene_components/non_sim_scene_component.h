@@ -69,7 +69,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(glm::vec4, ForegroundColor, m_foregroundColor)
         MAKE_GETTER_SETTER(size_t, Size, m_size)
 
-        void drawPropertiesUI() override;
+        void drawPropertiesUI(SceneState& sceneState) override;
 
       private:
         glm::vec2 calculateScale(SceneState &state) override;

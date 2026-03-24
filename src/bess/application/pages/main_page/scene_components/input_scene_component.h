@@ -23,7 +23,7 @@ namespace Bess::Canvas {
 
         void draw(SceneDrawContext &context) override;
 
-        void drawPropertiesUI() override;
+        void drawPropertiesUI(SceneState& sceneState) override;
 
         void calculateSchematicScale(SceneState &state) override;
 

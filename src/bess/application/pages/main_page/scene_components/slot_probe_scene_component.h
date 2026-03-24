@@ -42,7 +42,7 @@ namespace Bess::Canvas {
 
         std::type_index getTypeIndex() override;
 
-        void drawPropertiesUI() override;
+        void drawPropertiesUI(SceneState& sceneState) override;
 
       private:
         void onProbedSlotChanged();

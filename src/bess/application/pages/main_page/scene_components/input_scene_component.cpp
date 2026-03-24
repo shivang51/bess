@@ -136,7 +136,7 @@ namespace Bess::Canvas {
         m_schematicTransform.scale.x = 50.f;
     }
 
-    void InputSceneComponent::drawPropertiesUI() {
+    void InputSceneComponent::drawPropertiesUI(SceneState& sceneState) {
         UI::Widgets::CheckboxWithLabel("Is Module Input", &m_isModuleInput);
     }
 } // namespace Bess::Canvas

@@ -146,7 +146,7 @@ namespace Bess::Canvas {
 
     void SceneComponent::onScaleChanged() {}
 
-    void SceneComponent::drawPropertiesUI() {}
+    void SceneComponent::drawPropertiesUI(SceneState& sceneState) {}
 
     std::vector<std::shared_ptr<SceneComponent>> SceneComponent::clone(const SceneState &sceneState) const {
         (void)sceneState;
