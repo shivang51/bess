@@ -3,7 +3,6 @@
 #include "command.h"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
-#include "macro_command.h"
 #include "module_def.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/cmds/delete_comp_cmd.h"
@@ -105,6 +104,11 @@ namespace Bess::Cmd {
             auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
             if (!sceneDriver.getSceneWithId(scene->getSceneId())) {
                 sceneDriver.addScene(scene);
+            }
+
+            if (scene->getState().getParentSceneId() == UUID::null) {
+                scene->getState().setParentSceneId(
+                    sceneDriver.getActiveScene()->getSceneId());
             }
         }
 

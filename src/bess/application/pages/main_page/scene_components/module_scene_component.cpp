@@ -34,9 +34,10 @@ namespace Bess::Canvas {
         auto newScene = sceneDriver.createNewScene();
         auto &newSceneState = newScene->getState();
         newSceneState.setIsRootScene(false);
+        newSceneState.setParentSceneId(sceneState.getSceneId());
+        newSceneState.setModuleId(moduleClone->getUuid());
 
         moduleClone->setSceneId(newSceneState.getSceneId());
-        newSceneState.setModuleId(moduleClone->getUuid());
 
         std::unordered_map<UUID, UUID> ogToCloneId = {};
 

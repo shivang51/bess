@@ -78,6 +78,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(bool, IsRootScene, m_isRootScene);
         MAKE_GETTER_SETTER(UUID, ModuleId, m_moduleId);
         MAKE_GETTER_SETTER(UUID, SceneId, m_sceneId);
+        MAKE_GETTER_SETTER(UUID, ParentSceneId, m_parentSceneId);
 
         // Removes the parent reference of the component,
         // but keeps this component in parents children list,
@@ -131,7 +132,7 @@ namespace Bess::Canvas {
         bool m_isSchematicView = false;
         bool m_isRootScene = true;
         UUID m_moduleId = UUID::null; // only used for sub scenes, to know which module it belongs to
-        UUID m_sceneId;
+        UUID m_sceneId, m_parentSceneId = UUID::null;
         glm::vec2 m_mousePos;
     };
 } // namespace Bess::Canvas

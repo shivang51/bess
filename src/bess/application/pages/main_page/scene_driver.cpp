@@ -1,5 +1,6 @@
 #include "scene_driver.h"
 
+#include "common/bess_uuid.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "simulation_engine.h"
@@ -31,6 +32,14 @@ namespace Bess {
             cmdSystem.setScene(m_activeScene.get());
         }
 
+        if (!m_activeScene->getState().getIsRootScene()) {
+            const auto &modId = m_activeScene->getState().getModuleId();
+            if (modId != UUID::null &&
+                !m_modIdToSceneMap.contains(modId)) {
+                m_modIdToSceneMap[modId] = m_activeScene;
+            }
+        }
+
         UI::UIMain::getScenePanels().front()->setAttachedScene(m_activeScene);
         BESS_INFO("[SceneDriver] Active scene set to id {}.", (uint64_t)id);
         return m_activeScene;
@@ -47,6 +56,15 @@ namespace Bess {
                 auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
                 cmdSystem.setScene(m_activeScene.get());
             }
+
+            if (!m_activeScene->getState().getIsRootScene()) {
+                const auto &modId = m_activeScene->getState().getModuleId();
+                if (modId != UUID::null &&
+                    !m_modIdToSceneMap.contains(modId)) {
+                    m_modIdToSceneMap[modId] = m_activeScene;
+                }
+            }
+
             UI::UIMain::getScenePanels().front()->setAttachedScene(m_activeScene);
             BESS_INFO("[SceneDriver] Active scene set to index {}.", index);
             return m_activeScene;
@@ -79,6 +97,11 @@ namespace Bess {
 
         m_scenes.emplace_back(scene);
         m_sceneIdToSceneMap[scene->getSceneId()] = scene;
+
+        if (!scene->getState().getIsRootScene()) {
+            const auto &modId = scene->getState().getModuleId();
+            m_modIdToSceneMap[modId] = scene;
+        }
     }
 
     void SceneDriver::removeScene(const UUID &id) {
@@ -87,6 +110,8 @@ namespace Bess {
         }
 
         const bool removingActiveScene = m_activeScene && m_activeScene->getSceneId() == id;
+
+        const auto &scene = m_sceneIdToSceneMap.at(id);
         m_scenes.erase(std::ranges::remove_if(m_scenes,
                                               [&id](const std::shared_ptr<Canvas::Scene> &scene) {
                                                   return scene && scene->getSceneId() == id;
@@ -94,6 +119,13 @@ namespace Bess {
                            .begin(),
                        m_scenes.end());
         m_sceneIdToSceneMap.erase(id);
+
+        if (!scene->getState().getIsRootScene()) {
+            const auto &modId = scene->getState().getModuleId();
+            if (m_modIdToSceneMap.contains(modId)) {
+                m_modIdToSceneMap.erase(modId);
+            }
+        }
 
         if (m_scenes.empty()) {
             m_activeScene = nullptr;
@@ -187,5 +219,14 @@ namespace Bess {
         m_rootSceneId = UUID::null;
         m_activeScene = nullptr;
         m_activeSceneIdx = 0;
+        m_modIdToSceneMap.clear();
+    }
+
+    std::shared_ptr<Canvas::Scene> SceneDriver::getSceneForModule(const UUID &modId) const {
+        if (!m_modIdToSceneMap.contains(modId)) {
+            return nullptr;
+        }
+
+        return m_modIdToSceneMap.at(modId);
     }
 } // namespace Bess

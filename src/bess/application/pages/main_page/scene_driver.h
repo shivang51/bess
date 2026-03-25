@@ -23,6 +23,8 @@ namespace Bess {
         std::shared_ptr<Canvas::Scene> setActiveScene(size_t index, bool updateCmdSys = true);
         std::shared_ptr<Canvas::Scene> setActiveScene(UUID id, bool updateCmdSys = true);
 
+        std::shared_ptr<Canvas::Scene> getSceneForModule(const UUID &modId) const;
+
         void removeScenes();
 
         size_t getActiveSceneIdx() const;
@@ -53,6 +55,7 @@ namespace Bess {
         std::shared_ptr<Canvas::Scene> m_activeScene;
         std::vector<std::shared_ptr<Canvas::Scene>> m_scenes;
         std::unordered_map<UUID, std::shared_ptr<Canvas::Scene>> m_sceneIdToSceneMap;
+        std::unordered_map<UUID, std::shared_ptr<Canvas::Scene>> m_modIdToSceneMap;
         UUID m_rootSceneId{UUID::null};
         size_t m_activeSceneIdx{0};
     };

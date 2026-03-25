@@ -11,6 +11,7 @@
 #include "ui_main/ui_main.h"
 #include "ui_panel.h"
 #include "vulkan_core.h"
+#include <cstdint>
 
 namespace Bess::UI {
     SceneViewportPanel::SceneViewportPanel(const std::string &viewportName)
@@ -52,6 +53,7 @@ namespace Bess::UI {
         if (m_viewport) {
             destroyViewport();
         }
+        m_rootToSceneStatePtrs.clear();
     }
 
     void SceneViewportPanel::onBeforeDraw() {
@@ -154,22 +156,56 @@ namespace Bess::UI {
             ImGui::TextDisabled("Root");
         } else {
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-            if (ImGui::Button("Root")) {
-                m_nextSceneId = sceneDriver.getRootSceneId();
+
+            for (int i = 0; i < m_rootToSceneStatePtrs.size(); i++) {
+                if (i == 0) {
+                    if (ImGui::Button("Root")) {
+                        m_nextSceneId = sceneDriver.getRootSceneId();
+                    }
+                    continue;
+                }
+
+                const auto &sceneStatePtr = m_rootToSceneStatePtrs[i];
+                const auto &parentStatePtr = m_rootToSceneStatePtrs[i - 1];
+                const auto &module = parentStatePtr->getComponentByUuid(sceneStatePtr->getModuleId());
+
+                ImGui::SameLine();
+                ImGui::AlignTextToFramePadding();
+                ImGui::TextDisabled(Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT);
+                ImGui::SameLine();
+
+                if (i == m_rootToSceneStatePtrs.size() - 1) {
+                    ImGui::AlignTextToFramePadding();
+                    if (module) {
+                        ImGui::TextDisabled(" %s", module->getName().c_str());
+                    } else {
+                        ImGui::TextDisabled(" Unknown Module");
+                    }
+                } else {
+                    ImGui::PushID(i);
+                    if (ImGui::Button(module ? module->getName().c_str() : " Unknown Module")) {
+                        m_nextSceneId = sceneStatePtr->getSceneId();
+                    }
+                    ImGui::PopID();
+                }
             }
             ImGui::PopStyleColor(1);
-            ImGui::SameLine();
-            ImGui::AlignTextToFramePadding();
-            ImGui::TextDisabled(Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT);
-            ImGui::SameLine();
-            ImGui::AlignTextToFramePadding();
-            const auto &module = rootScene->getState().getComponentByUuid(
-                m_attachedScene->getState().getModuleId());
-            if (module) {
-                ImGui::TextDisabled(" %s", module->getName().c_str());
-            } else {
-                ImGui::TextDisabled(" Unknown Module");
-            }
+            // if (ImGui::Button("Root")) {
+            //     m_nextSceneId = sceneDriver.getRootSceneId();
+            // }
+            // ImGui::PopStyleColor(1);
+            // ImGui::SameLine();
+            // ImGui::AlignTextToFramePadding();
+            // ImGui::TextDisabled(Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT);
+            // ImGui::SameLine();
+            // ImGui::AlignTextToFramePadding();
+            // const auto &module = m_rootToSceneStatePtrs.back()->getComponentByUuid(
+            //     m_attachedScene->getState().getModuleId());
+            // if (module) {
+            //     ImGui::TextDisabled(" %s", module->getName().c_str());
+            // } else {
+            //     ImGui::TextDisabled(" Unknown Module");
+            // }
         }
         ImGui::End();
         ImGui::PopStyleColor(1);
@@ -258,10 +294,37 @@ namespace Bess::UI {
     }
 
     void SceneViewportPanel::onSceneAttached() {
-        BESS_DEBUG("[SceneVewportPanel] Scene {} attached to viewport panel '{}'",
-                   (uint64_t)m_attachedScene->getState().getSceneId(), m_viewportName);
-
         m_attachedScene->getCamera()->resize(m_viewportSize.x, m_viewportSize.y);
         m_viewport->setCamera(m_attachedScene->getCamera());
+
+        m_rootToSceneStatePtrs.clear();
+
+        // Very Important: to avoid circular intialization of mainpage,
+        // we do this, do not remove this
+        if (m_attachedScene->getState().getIsRootScene()) {
+            m_rootToSceneStatePtrs.push_back(&m_attachedScene->getState());
+            return;
+        }
+
+        const auto &mainPageState = Pages::MainPage::getInstance()->getState();
+        const auto &sceneDriver = mainPageState.getSceneDriver();
+
+        UUID sceneId = m_attachedScene->getSceneId();
+
+        while (sceneId != UUID::null) {
+            const auto &scene = sceneDriver.getSceneWithId(sceneId);
+            if (!scene) {
+                BESS_ERROR("[SceneVewportPanel] Scene with id {} not found while traversing parent scenes during scene attach.",
+                           (uint64_t)sceneId);
+                break;
+            }
+            m_rootToSceneStatePtrs.push_back(&scene->getState());
+            sceneId = scene->getState().getParentSceneId();
+        }
+
+        std::ranges::reverse(m_rootToSceneStatePtrs);
+
+        BESS_DEBUG("[SceneVewportPanel] Scene {} attached to viewport panel '{}'",
+                   (uint64_t)m_attachedScene->getState().getSceneId(), m_viewportName);
     }
 } // namespace Bess::UI

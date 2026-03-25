@@ -82,5 +82,6 @@ namespace Bess::UI {
         bool m_isResized = false;
         UUID m_nextSceneId = UUID::null;
         std::shared_ptr<Canvas::Scene> m_attachedScene;
+        std::vector<const Canvas::SceneState *> m_rootToSceneStatePtrs;
     };
 } // namespace Bess::UI
