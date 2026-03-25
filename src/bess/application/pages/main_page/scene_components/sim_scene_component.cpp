@@ -661,4 +661,11 @@ namespace Bess::Canvas {
             ImGui::TreePop();
         }
     }
+
+    void SimulationSceneComponent::onNameChanged() {
+        SceneComponent::onNameChanged();
+        setScaleDirty();
+        setSchematicScaleDirty();
+    }
+
 } // namespace Bess::Canvas

@@ -251,7 +251,8 @@ namespace Bess::UI {
         std::unordered_map<UUID, std::shared_ptr<Canvas::SimulationSceneComponent>> simIdToComp;
 
         for (const auto &[compId, comp] : sceneState.getAllComponents()) {
-            if (comp->getType() == Canvas::SceneComponentType::simulation) {
+            if (comp->getType() == Canvas::SceneComponentType::simulation ||
+                comp->getType() == Canvas::SceneComponentType::module) {
                 const auto simComp = comp->cast<Canvas::SimulationSceneComponent>();
                 simIdToComp[simComp->getSimEngineId()] = simComp;
             }

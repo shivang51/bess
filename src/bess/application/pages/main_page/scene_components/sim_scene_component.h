@@ -135,6 +135,8 @@ namespace Bess::Canvas {
         void drawPropertiesUI(SceneState &state) override;
         void onAttach(SceneState &state) override;
 
+        void onNameChanged() override;
+
         void onMouseDragged(const Events::MouseDraggedEvent &e) override;
 
         glm::vec3 getAbsolutePosition(const SceneState &state) const override;
