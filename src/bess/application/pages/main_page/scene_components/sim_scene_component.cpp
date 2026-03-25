@@ -2,7 +2,6 @@
 #include "common/bess_uuid.h"
 #include "icons/FontAwesomeIcons.h"
 #include "input_scene_component.h"
-#include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
 #include "renderer/material_renderer.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -35,6 +34,11 @@ namespace Bess::Canvas {
             setScale(calculateScale(state));
             resetSlotPositions(state);
             m_isScaleDirty = false;
+        }
+        if (m_isSchematicScaleDirty) {
+            calculateSchematicScale(state);
+            resetSchematicPinsPositions(state);
+            m_isSchematicScaleDirty = false;
         }
     }
 
@@ -289,16 +293,10 @@ namespace Bess::Canvas {
     }
 
     void SimulationSceneComponent::onFirstDraw(SceneDrawContext &context) {
-        auto &sceneState = *context.sceneState;
-        setScale(calculateScale(sceneState));
-        resetSlotPositions(sceneState);
         m_isFirstDraw = false;
     }
 
     void SimulationSceneComponent::onFirstSchematicDraw(SceneDrawContext &context) {
-        auto &sceneState = *context.sceneState;
-        calculateSchematicScale(sceneState);
-        resetSchematicPinsPositions(sceneState);
         m_isFirstSchematicDraw = false;
     }
 
@@ -326,8 +324,8 @@ namespace Bess::Canvas {
         }
     }
 
-    void SimulationSceneComponent::setScaleDirty() {
-        m_isScaleDirty = true;
+    void SimulationSceneComponent::setScaleDirty(bool val) {
+        m_isScaleDirty = val;
     }
 
     void SimulationSceneComponent::onAttach(SceneState &state) {
@@ -619,6 +617,19 @@ namespace Bess::Canvas {
 
     void SimulationSceneComponent::drawPropertiesUI(SceneState &state) {
         SceneComponent::drawPropertiesUI(state);
+
+        // Width and Height
+        if (UI::Widgets::TreeNode(0, "Size")) {
+            float width = m_transform.scale.x;
+            float height = m_transform.scale.y;
+            if (ImGui::InputFloat("Width", &width, 1.f, 1000.f) ||
+                ImGui::InputFloat("Height", &height, 1.f, 1000.f)) {
+                setScale(glm::vec2(width, height));
+                resetSlotPositions(state);
+                setSchematicScaleDirty();
+            }
+            ImGui::TreePop();
+        }
 
         // Input Slots Names
         if (UI::Widgets::TreeNode(0, "Input Slots")) {

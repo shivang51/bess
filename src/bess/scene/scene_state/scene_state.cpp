@@ -1,5 +1,6 @@
 #include "scene/scene_state/scene_state.h"
 #include "common/bess_uuid.h"
+#include "common/logger.h"
 #include "event_dispatcher.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
@@ -312,14 +313,15 @@ namespace Bess::JsonConvert {
                 const auto &def = simEngine.getComponentDefinition(simComp->getSimEngineId());
                 BESS_ASSERT(def, "Definition not found in sim engine");
                 simComp->setCompDef(def);
+                simComp->setScaleDirty(false);
             }
 
             state.addComponent(comp, false, false);
             deserializedComponents.push_back(comp);
         }
 
-        for (const auto &component : deserializedComponents) {
-            component->onAttach(state);
+        for (const auto &comp : deserializedComponents) {
+            comp->onAttach(state);
         }
     }
 

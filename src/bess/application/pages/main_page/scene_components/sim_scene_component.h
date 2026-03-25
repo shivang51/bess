@@ -125,7 +125,7 @@ namespace Bess::Canvas {
         void addInputSlot(UUID slotId, bool isLastResizeable = true);
         void addOutputSlot(UUID slotId, bool isLastResizeable = true);
 
-        void setScaleDirty();
+        void setScaleDirty(bool val = true);
 
         inline void setSchematicScaleDirty();
 
