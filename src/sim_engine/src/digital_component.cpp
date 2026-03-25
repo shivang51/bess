@@ -138,6 +138,7 @@ namespace Bess::SimEngine {
             state.outputConnected.resize(newOutputCount, false);
             outputConnections.resize(newOutputCount);
 
+            dispatchOutputSlotCountChange(newOutputCount);
             EventSystem::EventDispatcher::instance().queue(
                 Events::CompDefOutputsResizedEvent{this->id});
         } else if (growthPolicy == CompDefIOGrowthPolicy::eq &&
