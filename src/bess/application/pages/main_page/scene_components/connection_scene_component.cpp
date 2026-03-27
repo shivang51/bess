@@ -97,7 +97,6 @@ namespace Bess::Canvas {
 
         if (m_isFirstDraw) {
             if (m_segments.empty()) {
-                BESS_WARN("Segments empty on first draw for {}", (uint64_t)m_uuid);
                 if (!m_isFirstSchematicDraw) {
                     m_segments = m_schematicSegments;
                 } else {
@@ -179,8 +178,6 @@ namespace Bess::Canvas {
         if (m_isFirstSchematicDraw) {
             m_isFirstSchematicDraw = false;
             if (m_schematicSegments.empty()) {
-                BESS_WARN("Schematic segments empty on first schematic draw for {}, copying from normal segments",
-                          (uint64_t)m_uuid);
                 m_schematicSegments = m_segments;
             }
             m_shouldReconstructSegments = m_schematicSegments.empty();
