@@ -2,6 +2,7 @@
 #include "bess_vulkan_api.h"
 #include "fwd.hpp"
 #include <array>
+#include <cstdint>
 #include <glm.hpp>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
@@ -78,26 +79,25 @@ namespace Bess::Vulkan {
         glm::vec2 _pad1;          // pad to 96 (multiple of 16)
     };
 
-    struct BESS_VULKAN_API QuadInstance {
-        glm::vec3 position;     // location 2
-        glm::vec4 color;        // location 3
-        glm::vec4 borderRadius; // location 4
-        glm::vec4 borderColor;  // location 5
-        glm::vec4 borderSize;   // location 6
-        glm::vec2 size;         // location 7
-        glm::uvec2 id;          // location 8
-        int isMica;             // location 9
-        int texSlotIdx;         // location 10
-        glm::vec4 texData;      // location 11
-        float angle;            // location 12
+    enum class PrimitiveType : int32_t {
+        Quad = 0,
+        Circle = 1,
     };
 
-    struct BESS_VULKAN_API CircleInstance {
-        glm::vec3 position; // location 2
-        glm::vec4 color;    // location 3
-        float radius;       // location 4
-        float innerRadius;  // location 5
-        glm::uvec2 id;      // location 6
+    struct BESS_VULKAN_API PrimitiveInstance {
+        glm::vec3 position;      // location 2
+        glm::vec4 color;         // location 3
+        glm::vec4 borderRadius;  // location 4
+        glm::vec4 borderColor;   // location 5
+        glm::vec4 borderSize;    // location 6
+        glm::vec4 texData;       // location 7
+        glm::vec4 primitiveData; // location 8, primitive-specific payload
+        glm::vec2 size;          // location 9
+        glm::uvec2 id;           // location 10
+        int32_t primitiveType;   // location 11
+        int32_t isMica;          // location 12
+        int32_t texSlotIdx;      // location 13
+        float angle;             // location 14
     };
 
     struct BESS_VULKAN_API InstanceVertex {

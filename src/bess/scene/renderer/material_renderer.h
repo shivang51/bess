@@ -5,9 +5,8 @@
 #include "renderer/font.h"
 #include "scene/camera.h"
 #include "scene/renderer/material.h"
-#include "scene/renderer/vulkan/pipelines/circle_pipeline.h"
 #include "scene/renderer/vulkan/pipelines/grid_pipeline.h"
-#include "scene/renderer/vulkan/pipelines/quad_pipeline.h"
+#include "scene/renderer/vulkan/pipelines/primitive_pipeline.h"
 #include "scene/renderer/vulkan/text_renderer.h"
 #include "vulkan_offscreen_render_pass.h"
 #include "vulkan_subtexture.h"
@@ -103,9 +102,8 @@ namespace Bess::Renderer {
         static Font::FontFile **getFontFile();
 
       private:
-        std::unique_ptr<Pipelines::CirclePipeline> m_circlePipeline;
         std::unique_ptr<Pipelines::GridPipeline> m_gridPipeline;
-        std::unique_ptr<Pipelines::QuadPipeline> m_quadPipeline;
+        std::unique_ptr<Pipelines::PrimitivePipeline> m_primitivePipeline;
         std::unique_ptr<Renderer::TextRenderer> m_textRenderer;
 
         VkCommandBuffer m_currentCommandBuffer = VK_NULL_HANDLE;
@@ -116,9 +114,8 @@ namespace Bess::Renderer {
 
         std::priority_queue<Material2D, std::vector<Material2D>, MaterialComp> m_translucentMaterials;
 
-        std::vector<QuadInstance> m_quadInstances;
-        std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> m_texturedQuadInstances;
-        std::vector<CircleInstance> m_circleInstances;
+        std::vector<PrimitiveInstance> m_primitiveInstances;
+        std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<PrimitiveInstance>> m_texturedPrimitiveInstances;
 
         Material2D m_gridMaterial;
         std::shared_ptr<VulkanTexture> m_shadowTexture = nullptr;

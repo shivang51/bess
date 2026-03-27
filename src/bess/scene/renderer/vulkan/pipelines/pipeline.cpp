@@ -37,7 +37,7 @@ namespace Bess::Vulkan::Pipelines {
 
         if (m_transPipelineLayout != VK_NULL_HANDLE) {
             vkDestroyPipelineLayout(m_device->device(), m_transPipelineLayout, nullptr);
-            m_translucentPipeline = VK_NULL_HANDLE;
+            m_transPipelineLayout = VK_NULL_HANDLE;
         }
 
         if (m_opaquePipeline != VK_NULL_HANDLE) {
@@ -56,14 +56,20 @@ namespace Bess::Vulkan::Pipelines {
           m_renderPass(std::move(other.m_renderPass)),
           m_extent(other.m_extent),
           m_opaquePipeline(other.m_opaquePipeline),
+          m_translucentPipeline(other.m_translucentPipeline),
           m_opaquePipelineLayout(other.m_opaquePipelineLayout),
+          m_transPipelineLayout(other.m_transPipelineLayout),
           m_descriptorSetLayout(other.m_descriptorSetLayout),
           m_descriptorPool(other.m_descriptorPool),
+          m_descriptorSets(std::move(other.m_descriptorSets)),
           m_uniformBuffers(std::move(other.m_uniformBuffers)),
           m_uniformBufferMemory(std::move(other.m_uniformBufferMemory)),
+          m_currentFrameIndex(other.m_currentFrameIndex),
           m_currentCommandBuffer(other.m_currentCommandBuffer) {
         other.m_opaquePipeline = VK_NULL_HANDLE;
+        other.m_translucentPipeline = VK_NULL_HANDLE;
         other.m_opaquePipelineLayout = VK_NULL_HANDLE;
+        other.m_transPipelineLayout = VK_NULL_HANDLE;
         other.m_descriptorSetLayout = VK_NULL_HANDLE;
         other.m_descriptorPool = VK_NULL_HANDLE;
         other.m_currentCommandBuffer = VK_NULL_HANDLE;
@@ -76,15 +82,21 @@ namespace Bess::Vulkan::Pipelines {
             m_renderPass = std::move(other.m_renderPass);
             m_extent = other.m_extent;
             m_opaquePipeline = other.m_opaquePipeline;
+            m_translucentPipeline = other.m_translucentPipeline;
             m_opaquePipelineLayout = other.m_opaquePipelineLayout;
+            m_transPipelineLayout = other.m_transPipelineLayout;
             m_descriptorSetLayout = other.m_descriptorSetLayout;
             m_descriptorPool = other.m_descriptorPool;
+            m_descriptorSets = std::move(other.m_descriptorSets);
             m_uniformBuffers = std::move(other.m_uniformBuffers);
             m_uniformBufferMemory = std::move(other.m_uniformBufferMemory);
+            m_currentFrameIndex = other.m_currentFrameIndex;
             m_currentCommandBuffer = other.m_currentCommandBuffer;
 
             other.m_opaquePipeline = VK_NULL_HANDLE;
+            other.m_translucentPipeline = VK_NULL_HANDLE;
             other.m_opaquePipelineLayout = VK_NULL_HANDLE;
+            other.m_transPipelineLayout = VK_NULL_HANDLE;
             other.m_descriptorSetLayout = VK_NULL_HANDLE;
             other.m_descriptorPool = VK_NULL_HANDLE;
             other.m_currentCommandBuffer = VK_NULL_HANDLE;

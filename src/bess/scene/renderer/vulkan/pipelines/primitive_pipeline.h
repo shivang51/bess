@@ -18,54 +18,58 @@ namespace Bess::Vulkan {
 
 namespace Bess::Vulkan::Pipelines {
 
-    class QuadPipeline : public Pipeline {
+    class PrimitivePipeline : public Pipeline {
       public:
-        QuadPipeline(const std::shared_ptr<VulkanDevice> &device,
-                     const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
-                     VkExtent2D extent);
-        ~QuadPipeline() override;
+        static constexpr size_t m_texArraySize = 32;
 
-        QuadPipeline(const QuadPipeline &) = delete;
-        QuadPipeline &operator=(const QuadPipeline &) = delete;
-        QuadPipeline(QuadPipeline &&other) noexcept;
-        QuadPipeline &operator=(QuadPipeline &&other) noexcept;
+        PrimitivePipeline(const std::shared_ptr<VulkanDevice> &device,
+                          const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
+                          VkExtent2D extent);
+        ~PrimitivePipeline() override;
+
+        PrimitivePipeline(const PrimitivePipeline &) = delete;
+        PrimitivePipeline &operator=(const PrimitivePipeline &) = delete;
+        PrimitivePipeline(PrimitivePipeline &&other) noexcept;
+        PrimitivePipeline &operator=(PrimitivePipeline &&other) noexcept;
 
         void beginPipeline(VkCommandBuffer commandBuffer, bool isTranslucent) override;
         void endPipeline() override;
 
-        void setQuadsData(const std::vector<QuadInstance> &instances,
-                          std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> &texutredData);
+        void drawPrimitiveInstances(
+            VkCommandBuffer commandBuffer,
+            bool isTranslucent,
+            const std::vector<PrimitiveInstance> &instances,
+            const std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<PrimitiveInstance>> &texturedInstances);
 
-        void setQuadsData(const std::vector<QuadInstance> &instances);
-        void drawQuadInstances(VkCommandBuffer cmd,
-                               bool isTranslucent,
-                               const std::vector<QuadInstance> &instances,
-                               std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> &texturedData);
         void cleanup() override;
-
         void cleanPrevStateCounter() override;
 
       private:
         void createGraphicsPipeline(bool isTranslucent) override;
-        void createQuadBuffers();
-        void ensureQuadInstanceCapacity(size_t instanceCount);
+        void createPrimitiveBuffers();
+        void ensurePrimitiveInstanceCapacity(size_t instanceCount);
 
         void createDescriptorPool() override;
         void createDescriptorSets() override;
 
         bool isTexArraySetAvailable(size_t idx) const;
-
         VkDescriptorSet getTextureArraySet(size_t idx);
-
         void resizeTexArrayDescriptorPool(uint64_t size);
         void setTextureSetGrowthPolicy(float growthFactor, uint32_t minHeadroom, uint32_t maxSetsCap);
         size_t textureSetsPerFrame() const;
         size_t textureSetFrameBase() const;
         size_t textureSetFrameLimit() const;
 
-        VkDescriptorPool createDescriptorPool(uint32_t maxSets, uint32_t descriptorCount);
-        void createDescriptorSets(uint32_t descCount, uint32_t setsCount,
-                                  VkDescriptorPool pool, VkDescriptorSetLayout &layout, std::vector<VkDescriptorSet> &sets);
+        VkDescriptorPool createTextureDescriptorPool(uint32_t maxSets, uint32_t descriptorCount);
+        void createTextureDescriptorSets(uint32_t descCount,
+                                         uint32_t setsCount,
+                                         VkDescriptorPool pool,
+                                         VkDescriptorSetLayout &layout,
+                                         std::vector<VkDescriptorSet> &sets);
+        void bindDescriptorSets(bool isTranslucent, VkDescriptorSet textureSet) const;
+        void updateTextureSet(size_t descriptorSetIndex,
+                              const std::array<VkDescriptorImageInfo, m_texArraySize> &textureInfos);
+        void drawBatch(const std::vector<PrimitiveInstance> &instances);
 
         struct TempDescSets {
             std::vector<VkDescriptorPool> pools;
@@ -79,12 +83,13 @@ namespace Bess::Vulkan::Pipelines {
 
             VkDescriptorSet getSetAtIdx(uint64_t idx) {
                 if (!isDescSetAvailable(idx)) {
-                    BESS_WARN("[TempDescSets] Descriptor set was not found at idx {} for poolSize = {}, setsCount = {}",
+                    BESS_WARN("[PrimitivePipeline] Descriptor set not found at idx {} for poolSize = {}, setsCount = {}",
                               idx, pools.size(), pools.size() * DESC_SET_COUNT_PER_POOL);
                     return VK_NULL_HANDLE;
                 }
-                auto poolIdx = idx / DESC_SET_COUNT_PER_POOL;
-                auto setIdx = idx % DESC_SET_COUNT_PER_POOL;
+
+                const auto poolIdx = idx / DESC_SET_COUNT_PER_POOL;
+                const auto setIdx = idx % DESC_SET_COUNT_PER_POOL;
                 maxExhaustedSize = std::max(idx + 1, maxExhaustedSize);
                 return sets[poolIdx][setIdx];
             }
@@ -106,21 +111,15 @@ namespace Bess::Vulkan::Pipelines {
             }
         } m_tempDescSets;
 
-        static constexpr size_t m_texArraySize = 32;
-
         BufferSet m_buffers;
-        std::vector<QuadInstance> m_instances;
-        std::vector<VkDescriptorSet> m_textureArraySets;
         VkDescriptorPool m_textureArrayDescriptorPool = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_textureArrayLayout = VK_NULL_HANDLE;
+        std::vector<VkDescriptorSet> m_textureArraySets;
         std::unique_ptr<VulkanTexture> m_fallbackTexture;
-        std::array<VkDescriptorImageInfo, m_texArraySize> m_textureInfos;
         std::unordered_map<size_t, std::array<VkDescriptorImageInfo, m_texArraySize>> m_cachedTextureInfos;
 
-        bool m_isTranslucentFlow = false;
         uint32_t m_texDescSetIdx = 0;
-
-        size_t m_texArraySetsCount = 2; // One for opaque flow, one for translucent flow
+        size_t m_texArraySetsCount = 2;
 
         float m_texSetsGrowthFactor = 2.0f;
         uint32_t m_texSetsMinHeadroom = 64;

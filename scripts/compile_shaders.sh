@@ -17,6 +17,7 @@ echo "Compiling Shaders"
 cd "assets/shaders"
 rm *.spv
 compile "quad";
+compile "primitive";
 compile "circle";
 compile "instance.vert" "text.frag";
 compile "common.vert" "path.frag" "path_instanced.vert";
