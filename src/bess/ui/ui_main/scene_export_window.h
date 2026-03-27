@@ -1,7 +1,14 @@
 #pragma once
 
+#include "common/bess_uuid.h"
 #include "ui_panel.h"
 #include <filesystem>
+#include <memory>
+
+namespace Bess::Canvas {
+    class Scene;
+}
+
 namespace Bess::UI {
     struct SceneBounds {
         glm::vec2 min, max;
@@ -19,6 +26,7 @@ namespace Bess::UI {
         float scale;
         glm::ivec2 imgSize;
         std::filesystem::path path;
+        UUID sceneId = UUID::null;
     };
 
     class SceneExportWindow : public Panel {
@@ -30,9 +38,16 @@ namespace Bess::UI {
         void onDraw() override;
 
       private:
-        static SceneBounds computeSceneBounds();
-        static SceneExportInfo getSceneExportInfo(const SceneBounds &bounds, float zoom);
-        static void exportScene(const SceneExportInfo &info);
+        void refreshSelectedScene();
+        std::shared_ptr<Canvas::Scene> getSelectedScene() const;
+        std::string getSceneLabel(const std::shared_ptr<Canvas::Scene> &scene) const;
+
+        static SceneBounds computeSceneBounds(const std::shared_ptr<Canvas::Scene> &scene);
+        static SceneExportInfo getSceneExportInfo(const std::shared_ptr<Canvas::Scene> &scene,
+                                                  const SceneBounds &bounds,
+                                                  float zoom);
+        static void exportScene(const std::shared_ptr<Canvas::Scene> &scene,
+                                const SceneExportInfo &info);
 
       private:
         std::string fileName = "bess_scene_export";
@@ -41,6 +56,7 @@ namespace Bess::UI {
 
         SceneBounds sceneBounds;
         glm::vec2 imgSize;
+        UUID m_selectedSceneId = UUID::null;
 
         int zoom = 4;
     };

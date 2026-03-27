@@ -3,6 +3,8 @@
 #include "imgui.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/main_page_state.h"
+#include "pages/main_page/scene_components/slot_scene_component.h"
+#include "scene/scene_draw_context.h"
 #include "scene/viewport.h"
 #include "settings/viewport_theme.h"
 #include "ui/icons/FontAwesomeIcons.h"
@@ -16,9 +18,76 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <vulkan/vulkan_core.h>
 
 namespace Bess::UI {
+    namespace {
+        void drawExportGrid(SceneDrawContext &context) {
+            context.materialRenderer->drawGrid(
+                glm::vec3(0.f, 0.f, 0.1f),
+                context.camera->getSpan(),
+                Canvas::PickingId::invalid(),
+                {
+                    .minorColor = ViewportTheme::colors.gridMinorColor,
+                    .majorColor = ViewportTheme::colors.gridMajorColor,
+                    .axisXColor = ViewportTheme::colors.gridAxisXColor,
+                    .axisYColor = ViewportTheme::colors.gridAxisYColor,
+                },
+                context.camera);
+        }
+
+        void drawExportComponents(SceneDrawContext &context) {
+            auto &sceneState = *context.sceneState;
+            const auto &cam = context.camera;
+            const auto &span = (cam->getSpan() / 2.f) + 200.f;
+            const auto &camPos = cam->getPos();
+
+            for (const auto &compId : sceneState.getRootComponents()) {
+                const auto comp = sceneState.getComponentByUuid(compId);
+                if (!comp) {
+                    continue;
+                }
+
+                const auto &pos = comp->getAbsolutePosition(sceneState);
+                const auto x = pos.x - camPos.x;
+                const auto y = pos.y - camPos.y;
+
+                if (x < -span.x || x > span.x || y < -span.y || y > span.y) {
+                    continue;
+                }
+
+                if (sceneState.getIsSchematicView()) {
+                    comp->drawSchematic(context);
+                } else {
+                    comp->draw(context);
+                }
+            }
+        }
+
+        void renderSceneToViewport(const std::shared_ptr<Canvas::Scene> &scene,
+                                   const std::shared_ptr<Canvas::Viewport> &viewport,
+                                   int frameIdx) {
+            BESS_ASSERT(scene, "[SceneExportWindow] Scene must be valid for export");
+            BESS_ASSERT(viewport, "[SceneExportWindow] Viewport must be valid for export");
+            BESS_ASSERT(viewport->getCamera(), "[SceneExportWindow] Export viewport camera must be valid");
+
+            SceneDrawContext context;
+            context.materialRenderer = viewport->getRenderers().materialRenderer;
+            context.pathRenderer = viewport->getRenderers().pathRenderer;
+            context.camera = viewport->getCamera();
+            context.sceneState = &scene->getState();
+
+            viewport->begin(frameIdx,
+                            ViewportTheme::colors.background,
+                            {0, Canvas::PickingId::invalid().runtimeId});
+            drawExportGrid(context);
+            drawExportComponents(context);
+            viewport->end();
+            viewport->submit();
+        }
+    } // namespace
+
 
     SceneExportWindow::SceneExportWindow()
         : Panel("Scene Export Window"), defaultExportPath("Pictures") {
@@ -38,6 +107,31 @@ namespace Bess::UI {
         const float buttonHeight = ImGui::GetFrameHeight();
         const float textHeight = ImGui::CalcTextSize("ajP").y;
         const float verticalOffset = (buttonHeight - textHeight) / 2.0f;
+        refreshSelectedScene();
+        const auto selectedScene = getSelectedScene();
+
+        if (ImGui::BeginCombo("Scene", selectedScene ? getSceneLabel(selectedScene).c_str() : "No Scene")) {
+            auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
+            for (size_t i = 0; i < sceneDriver.getSceneCount(); ++i) {
+                const auto scene = sceneDriver.getSceneAtIdx(i);
+                if (!scene) {
+                    continue;
+                }
+
+                const bool isSelected = scene->getSceneId() == m_selectedSceneId;
+                const auto label = getSceneLabel(scene);
+                if (ImGui::Selectable(label.c_str(), isSelected)) {
+                    m_selectedSceneId = scene->getSceneId();
+                    sceneBounds = computeSceneBounds(scene);
+                    imgSize = getSceneExportInfo(scene, sceneBounds, static_cast<float>(zoom)).imgSize;
+                }
+                if (isSelected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + verticalOffset);
         ImGui::Text("File Name");
         ImGui::SameLine();
@@ -59,7 +153,9 @@ namespace Bess::UI {
 
         ImGui::Spacing();
         if (ImGui::SliderInt("Scale", &zoom, 1, 4)) {
-            imgSize = getSceneExportInfo(sceneBounds, (float)zoom).imgSize;
+            if (selectedScene) {
+                imgSize = getSceneExportInfo(selectedScene, sceneBounds, static_cast<float>(zoom)).imgSize;
+            }
         }
 
         ImGui::TextDisabled("Image Size %lux%lu px.", (uint64_t)imgSize.x, (uint64_t)imgSize.y);
@@ -68,10 +164,15 @@ namespace Bess::UI {
         ImGui::Spacing();
 
         if (ImGui::Button("Start Export")) {
-            auto info = getSceneExportInfo(sceneBounds, (float)zoom);
+            if (!selectedScene) {
+                BESS_ERROR("[SceneExportWindow] No scene selected for export");
+                return;
+            }
+
+            auto info = getSceneExportInfo(selectedScene, sceneBounds, static_cast<float>(zoom));
             info.path = exportPath;
             info.path /= fileName + ".png";
-            exportScene(info);
+            exportScene(selectedScene, info);
         }
     }
 
@@ -87,21 +188,72 @@ namespace Bess::UI {
 
         fileName = std::format("{}_{:%Y-%m-%d_%H:%M:%S}", mainPage.getCurrentProjectFile()->getName(), localTime);
 
-        sceneBounds = computeSceneBounds();
-        imgSize = getSceneExportInfo(sceneBounds, (float)zoom).imgSize;
+        refreshSelectedScene();
+        if (const auto scene = getSelectedScene()) {
+            sceneBounds = computeSceneBounds(scene);
+            imgSize = getSceneExportInfo(scene, sceneBounds, static_cast<float>(zoom)).imgSize;
+        } else {
+            sceneBounds = {};
+            imgSize = {};
+        }
     }
 
     void SceneExportWindow::onBeforeDraw() {
         ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_FirstUseEver);
     }
 
-    SceneBounds SceneExportWindow::computeSceneBounds() {
+    void SceneExportWindow::refreshSelectedScene() {
+        auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
+        if (m_selectedSceneId != UUID::null &&
+            sceneDriver.getSceneWithId(m_selectedSceneId)) {
+            return;
+        }
+
+        const auto activeScene = sceneDriver.getActiveScene();
+        m_selectedSceneId = activeScene ? activeScene->getSceneId() : UUID::null;
+    }
+
+    std::shared_ptr<Canvas::Scene> SceneExportWindow::getSelectedScene() const {
+        auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
+        return m_selectedSceneId == UUID::null ? nullptr : sceneDriver.getSceneWithId(m_selectedSceneId);
+    }
+
+    std::string SceneExportWindow::getSceneLabel(const std::shared_ptr<Canvas::Scene> &scene) const {
+        if (!scene) {
+            return "No Scene";
+        }
+
+        if (scene->getState().getIsRootScene()) {
+            return "Root";
+        }
+
+        auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
+        const auto parentScene = sceneDriver.getSceneWithId(scene->getState().getParentSceneId());
+        if (!parentScene) {
+            return std::format("Scene {}", static_cast<uint64_t>(scene->getSceneId()));
+        }
+
+        const auto module = parentScene->getState().getComponentByUuid(scene->getState().getModuleId());
+        if (!module) {
+            return std::format("Scene {}", static_cast<uint64_t>(scene->getSceneId()));
+        }
+
+        return module->getName();
+    }
+
+    SceneBounds SceneExportWindow::computeSceneBounds(const std::shared_ptr<Canvas::Scene> &scene) {
+        BESS_ASSERT(scene, "[SceneExportWindow] Scene must be valid while computing bounds");
+
         glm::vec2 min, max;
         bool first = true;
-        auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
         const auto &state = scene->getState();
         for (const auto &compId : state.getRootComponents()) {
-            const auto comp = state.getComponentByUuid<Canvas::SceneComponent>(compId)->getTransform();
+            const auto component = state.getComponentByUuid<Canvas::SceneComponent>(compId);
+            if (!component) {
+                continue;
+            }
+
+            const auto comp = component->getTransform();
             if (first) {
                 min = glm::vec2(comp.position) - glm::vec2(comp.scale);
                 max = glm::vec2(comp.position) + glm::vec2(comp.scale);
@@ -114,11 +266,19 @@ namespace Bess::UI {
             min.y = std::min(comp.position.y - comp.scale.y, min.y);
         }
 
+        if (first) {
+            min = {-400.f, -300.f};
+            max = {400.f, 300.f};
+        }
+
         return {min, max};
     }
 
-    SceneExportInfo SceneExportWindow::getSceneExportInfo(const SceneBounds &bounds, float zoom) {
-        auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
+    SceneExportInfo SceneExportWindow::getSceneExportInfo(const std::shared_ptr<Canvas::Scene> &scene,
+                                                          const SceneBounds &bounds,
+                                                          float zoom) {
+        BESS_ASSERT(scene, "[SceneExportWindow] Scene must be valid while preparing export info");
+
         auto size = scene->getSize();
         std::shared_ptr<Camera> camera = std::make_shared<Camera>(size.x, size.y);
         camera->setPos(bounds.min);
@@ -145,12 +305,16 @@ namespace Bess::UI {
         info.snapsInfo = {.count = snaps, .span = snapSize, .size = size};
         info.imgSize = {snaps.x * size.x, snaps.y * size.y};
         info.scale = zoom;
+        info.sceneId = scene->getSceneId();
 
         return info;
     }
 
     /// will move this to separate thread when vulkan is integrated
-    void SceneExportWindow::exportScene(const SceneExportInfo &info) {
+    void SceneExportWindow::exportScene(const std::shared_ptr<Canvas::Scene> &scene,
+                                        const SceneExportInfo &info) {
+        BESS_ASSERT(scene, "[SceneExportWindow] Scene must be valid while exporting");
+
         const auto &size = info.snapsInfo.size;
         const auto &sceneBounds = info.sceneBounds;
         const auto &min = sceneBounds.min;
@@ -206,8 +370,9 @@ namespace Bess::UI {
 
         auto &vkCore = Bess::Vulkan::VulkanCore::instance();
         auto viewport = std::make_shared<Canvas::Viewport>(vkCore.getDevice(), vkCore.getSwapchain()->imageFormat(), extent);
+        auto camera = std::make_shared<Camera>(size.x, size.y);
+        viewport->setCamera(camera);
         auto pos = min + snapSpan / 2.f;
-        std::shared_ptr<Camera> camera = viewport->getCamera();
         camera->setPos(pos);
         camera->setZoom(info.scale);
 
@@ -218,12 +383,7 @@ namespace Bess::UI {
             snapsData.reserve(snaps.x);
             for (int j = 0; j < snaps.x; j++) {
                 camera->setPos(pos);
-
-                viewport->begin(frameIdx, ViewportTheme::colors.background, {0, 0});
-                auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
-                scene->getViewportDrawFn()(viewport);
-                viewport->end();
-                viewport->submit();
+                renderSceneToViewport(scene, viewport, frameIdx);
                 frameIdx = (frameIdx + 1) % 2;
 
                 snapsData.emplace_back(viewport->getPixelData());
