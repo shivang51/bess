@@ -12,8 +12,32 @@
 #include "pages/main_page/verilog_scene_import.h"
 #include "simulation_engine.h"
 #include <cstdint>
+#include <optional>
 
 namespace Bess::Pages {
+    struct MainPageState::VerilogImportSession {
+        enum class Phase : uint8_t {
+            resetProject,
+            importSimulation,
+            createScene,
+            updateNets,
+            completed,
+            failed,
+        };
+
+        std::string path;
+        float progress = 0.f;
+        std::string stageMessage = "Select a Verilog file";
+        bool importing = false;
+        bool finished = false;
+        bool failed = false;
+        Phase phase = Phase::resetProject;
+        std::optional<Verilog::SimEngineImportResult> stagedResult;
+    };
+
+    MainPageState::MainPageState() = default;
+    MainPageState::~MainPageState() = default;
+
     void MainPageState::resetProjectState() const {
         m_sceneDriver.getActiveScene()->clear();
         SimEngine::SimulationEngine::instance().clear();
@@ -56,6 +80,7 @@ namespace Bess::Pages {
                 return false;
             }
 
+            resetProjectState();
             auto &simEngine = SimEngine::SimulationEngine::instance();
             const auto result = Verilog::importVerilogFileIntoSimulationEngine(path, simEngine);
             populateSceneFromVerilogImportResult(result, simEngine, *scene);
@@ -68,6 +93,103 @@ namespace Bess::Pages {
             BESS_ERROR("[MainPageState] Failed to import Verilog file {}: {}", path, ex.what());
             return false;
         }
+    }
+
+    void MainPageState::startVerilogImport(const std::string &path) {
+        m_verilogImportSession = std::make_unique<VerilogImportSession>();
+        m_verilogImportSession->path = path;
+        m_verilogImportSession->progress = 0.05f;
+        m_verilogImportSession->stageMessage = "Clearing current project";
+        m_verilogImportSession->importing = true;
+        m_verilogImportSession->phase = VerilogImportSession::Phase::resetProject;
+    }
+
+    VerilogImportStatus MainPageState::advanceVerilogImport(std::string *errorMessage) {
+        VerilogImportStatus status;
+        if (!m_verilogImportSession) {
+            status.stageMessage = "No active import";
+            status.finished = true;
+            status.failed = true;
+            return status;
+        }
+
+        auto &session = *m_verilogImportSession;
+        status.progress = session.progress;
+        status.stageMessage = session.stageMessage;
+        status.importing = session.importing;
+        status.finished = session.finished;
+        status.failed = session.failed;
+
+        if (!session.importing || session.finished) {
+            return status;
+        }
+
+        try {
+            auto &simEngine = SimEngine::SimulationEngine::instance();
+            auto scene = m_sceneDriver.getActiveScene();
+
+            switch (session.phase) {
+            case VerilogImportSession::Phase::resetProject:
+                resetProjectState();
+                session.progress = 0.2f;
+                session.stageMessage = "Converting Verilog to simulation graph";
+                session.phase = VerilogImportSession::Phase::importSimulation;
+                break;
+            case VerilogImportSession::Phase::importSimulation:
+                session.stagedResult = Verilog::importVerilogFileIntoSimulationEngine(session.path, simEngine);
+                session.progress = 0.7f;
+                session.stageMessage = "Creating scene components";
+                session.phase = VerilogImportSession::Phase::createScene;
+                break;
+            case VerilogImportSession::Phase::createScene:
+                if (!scene) {
+                    throw std::runtime_error("No active scene available");
+                }
+                populateSceneFromVerilogImportResult(*session.stagedResult, simEngine, *scene);
+                session.progress = 0.92f;
+                session.stageMessage = "Updating nets";
+                session.phase = VerilogImportSession::Phase::updateNets;
+                break;
+            case VerilogImportSession::Phase::updateNets:
+                if (!scene) {
+                    throw std::runtime_error("No active scene available");
+                }
+                m_sceneDriver.updateNets(scene);
+                session.progress = 1.f;
+                session.stageMessage = "Import complete";
+                session.phase = VerilogImportSession::Phase::completed;
+                session.importing = false;
+                session.finished = true;
+                session.failed = false;
+                session.stagedResult.reset();
+                break;
+            case VerilogImportSession::Phase::completed:
+            case VerilogImportSession::Phase::failed:
+                break;
+            }
+        } catch (const std::exception &ex) {
+            session.importing = false;
+            session.finished = true;
+            session.failed = true;
+            session.phase = VerilogImportSession::Phase::failed;
+            session.progress = 1.f;
+            session.stageMessage = std::format("Import failed: {}", ex.what());
+            session.stagedResult.reset();
+            if (errorMessage) {
+                *errorMessage = ex.what();
+            }
+        }
+
+        status.progress = session.progress;
+        status.stageMessage = session.stageMessage;
+        status.importing = session.importing;
+        status.finished = session.finished;
+        status.failed = session.failed;
+        return status;
+    }
+
+    void MainPageState::cancelVerilogImport() {
+        m_verilogImportSession.reset();
     }
 
     std::shared_ptr<ProjectFile> MainPageState::getCurrentProjectFile() const {

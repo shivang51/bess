@@ -5,7 +5,6 @@ namespace Bess::UI {
     constexpr const char *filterList[1] = {"*.bproj"};
 
     std::string Dialogs::showSaveFileDialog(const std::string &title, const std::string &filters) {
-
         const auto filepath = tinyfd_saveFileDialog(title.c_str(),
                                                     "",
                                                     1,

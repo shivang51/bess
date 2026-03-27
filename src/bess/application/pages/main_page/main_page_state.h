@@ -22,9 +22,18 @@ namespace Bess::Pages {
         bool saveProject = false;
     };
 
+    struct VerilogImportStatus {
+        float progress = 0.f;
+        std::string stageMessage;
+        bool importing = false;
+        bool finished = false;
+        bool failed = false;
+    };
+
     class MainPageState {
       public:
-        MainPageState() = default;
+        MainPageState();
+        ~MainPageState();
 
         Cmd::CommandSystem &getCommandSystem();
 
@@ -58,6 +67,9 @@ namespace Bess::Pages {
         void loadProject(const std::string &path);
         void updateCurrentProject(const std::shared_ptr<ProjectFile> &project);
         bool importVerilogFile(const std::string &path, std::string *errorMessage = nullptr);
+        void startVerilogImport(const std::string &path);
+        VerilogImportStatus advanceVerilogImport(std::string *errorMessage = nullptr);
+        void cancelVerilogImport();
 
         void initCmdSystem();
 
@@ -98,5 +110,7 @@ namespace Bess::Pages {
         std::unordered_set<UUID> m_probes;
         TNetIdToNameMap m_netIdToNameMap;
         std::unordered_map<UUID, TNetIdToCompMap> m_netIdToCompMap;
+        struct VerilogImportSession;
+        std::unique_ptr<VerilogImportSession> m_verilogImportSession;
     };
 } // namespace Bess::Pages

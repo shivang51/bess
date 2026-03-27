@@ -34,6 +34,32 @@ namespace Bess::UI {
         ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
         ImGuiWindowFlags_NoDecoration;
 
+    namespace {
+        struct VerilogImportWizardState {
+            bool open = false;
+            bool requestOpenPopup = false;
+            std::string filePath;
+            std::string stageMessage = "Select a Verilog file";
+            float progress = 0.f;
+            bool importing = false;
+            bool finished = false;
+            bool failed = false;
+        };
+
+        VerilogImportWizardState &getVerilogImportWizardState() {
+            static VerilogImportWizardState state;
+            return state;
+        }
+
+        void resetVerilogImportWizard(VerilogImportWizardState &state) {
+            state.importing = false;
+            state.finished = false;
+            state.failed = false;
+            state.progress = 0.f;
+            state.stageMessage = "Select a Verilog file";
+        }
+    } // namespace
+
     void UIMain::draw() {
         static bool firstFrame = true;
         if (firstFrame) {
@@ -49,6 +75,7 @@ namespace Bess::UI {
 
         drawMenubar();
         drawStatusbar();
+        drawVerilogImportWizard();
 
         auto &pageState = Pages::MainPage::getInstance()->getState();
         if (pageState.actionFlags.saveProject) {
@@ -195,18 +222,8 @@ namespace Bess::UI {
             if (ImGui::BeginMenu(temp_name.c_str())) {
                 const std::string verilogLabel = std::string(Icons::FontAwesomeIcons::FA_MICROCHIP) + "  Verilog";
                 if (ImGui::MenuItem(verilogLabel.c_str())) {
-                    const auto path = Dialogs::showOpenFileDialog("Import Verilog File", "*.v|*.sv|");
-                    if (!path.empty()) {
-                        std::string errorMessage;
-                        if (pageState.importVerilogFile(path, &errorMessage)) {
-                            getState()._internalData.statusMessage =
-                                std::format("Imported Verilog: {}",
-                                            std::filesystem::path(path).filename().string());
-                        } else {
-                            getState()._internalData.statusMessage =
-                                std::format("Verilog import failed: {}", errorMessage);
-                        }
-                    }
+                    auto &wizard = getVerilogImportWizardState();
+                    wizard.requestOpenPopup = true;
                 }
                 ImGui::EndMenu();
             }
@@ -361,6 +378,100 @@ namespace Bess::UI {
         if (newFileClicked) {
             onNewProject();
         }
+    }
+
+    void UIMain::drawVerilogImportWizard() {
+        auto &wizard = getVerilogImportWizardState();
+        auto &pageState = Pages::MainPage::getInstance()->getState();
+
+        if (wizard.requestOpenPopup) {
+            wizard.requestOpenPopup = false;
+            wizard.open = true;
+            resetVerilogImportWizard(wizard);
+            ImGui::OpenPopup("Import Verilog");
+        }
+
+        if (!wizard.open) {
+            return;
+        }
+
+        ImGui::SetNextWindowSize(ImVec2(520.f, 0.f), ImGuiCond_FirstUseEver);
+        if (!ImGui::BeginPopupModal("Import Verilog", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            return;
+        }
+
+        if (wizard.importing) {
+            std::string errorMessage;
+            const auto status = pageState.advanceVerilogImport(&errorMessage);
+            wizard.progress = status.progress;
+            wizard.stageMessage = status.stageMessage;
+            wizard.importing = status.importing;
+            wizard.finished = status.finished;
+            wizard.failed = status.failed;
+
+            if (status.finished) {
+                if (status.failed) {
+                    getState()._internalData.statusMessage = status.stageMessage;
+                } else {
+                    getState()._internalData.statusMessage =
+                        std::format("Imported Verilog: {}",
+                                    std::filesystem::path(wizard.filePath).filename().string());
+                    wizard.open = false;
+                    resetVerilogImportWizard(wizard);
+                    pageState.cancelVerilogImport();
+                    ImGui::CloseCurrentPopup();
+                }
+            }
+        }
+
+        ImGui::TextUnformatted("File");
+        Widgets::TextBox("##VerilogImportPath", wizard.filePath, "Select a Verilog file");
+        ImGui::SameLine();
+        if (ImGui::Button("Browse") && !wizard.importing) {
+            const auto path = Dialogs::showOpenFileDialog("Import Verilog File", "*.v|*.sv|");
+            if (!path.empty()) {
+                wizard.filePath = path;
+            }
+        }
+
+        ImGui::Spacing();
+        ImGui::TextWrapped("%s", wizard.stageMessage.c_str());
+        ImGui::ProgressBar(wizard.progress, ImVec2(420.f, 0.f));
+
+        ImGui::Spacing();
+        ImGui::BeginDisabled(wizard.importing || wizard.filePath.empty());
+        if (ImGui::Button("Import", ImVec2(120.f, 0.f))) {
+            const auto extension = std::filesystem::path(wizard.filePath).extension().string();
+            if (extension != ".v" && extension != ".sv") {
+                wizard.importing = false;
+                wizard.finished = true;
+                wizard.failed = true;
+                wizard.progress = 1.f;
+                wizard.stageMessage = "Import failed: please choose a .v or .sv file";
+                getState()._internalData.statusMessage = wizard.stageMessage;
+            } else {
+                pageState.startVerilogImport(wizard.filePath);
+                wizard.importing = true;
+                wizard.finished = false;
+                wizard.failed = false;
+                wizard.progress = 0.05f;
+                wizard.stageMessage = "Clearing current project";
+            }
+        }
+        ImGui::EndDisabled();
+
+        ImGui::SameLine();
+        const char *closeLabel = wizard.importing ? "Close Disabled" : "Close";
+        ImGui::BeginDisabled(wizard.importing);
+        if (ImGui::Button(closeLabel, ImVec2(120.f, 0.f))) {
+            wizard.open = false;
+            resetVerilogImportWizard(wizard);
+            pageState.cancelVerilogImport();
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndDisabled();
+
+        ImGui::EndPopup();
     }
 
     void UIMain::resetDockspace() {
