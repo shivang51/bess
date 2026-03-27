@@ -144,7 +144,8 @@ namespace Bess::UI {
             const auto y = pos.y - camPos.y;
 
             // skipping if outside camera and not connection
-            if (
+            // Connections are exempted
+            if (comp->getType() != Canvas::SceneComponentType::connection &&
                 (x < -span.x || x > span.x || y < -span.y || y > span.y))
                 continue;
 
