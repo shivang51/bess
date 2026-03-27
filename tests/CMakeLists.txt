@@ -11,6 +11,7 @@ add_executable(BessTests
     scene_serialization_test.cpp
     scene_component_clone_test.cpp
     simulation_engine_test.cpp
+    verilog_import_test.cpp
     connection_service_test.cpp
     copy_paste_test.cpp
     command_system_test.cpp
@@ -18,6 +19,7 @@ add_executable(BessTests
 
 target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_SOURCE_DIR}/src/sim_engine/include"
+	"${CMAKE_SOURCE_DIR}/src/bverilog/include"
 	"${CMAKE_SOURCE_DIR}/src/plugin_manager/include"
 	"${CMAKE_SOURCE_DIR}/src/command_system/include"
 	"${CMAKE_SOURCE_DIR}/src/bess/"
@@ -25,7 +27,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 	"${CMAKE_SOURCE_DIR}/src/common/include"
 )
 
-target_link_libraries(BessTests PRIVATE GTest::gtest BessExtDeps common BessSimEngine BessScene BessUI BessApp EventSystem)
+target_link_libraries(BessTests PRIVATE GTest::gtest BessExtDeps common BessSimEngine bverilog BessScene BessUI BessApp EventSystem)
 
 include(GoogleTest)
 gtest_discover_tests(BessTests WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
