@@ -76,6 +76,105 @@ namespace Bess::Cmd {
             return {rootComponents.begin(), rootComponents.end()};
         }
 
+        inline std::shared_ptr<Canvas::ModuleSceneComponent>
+        getOwningModuleComponent(const std::shared_ptr<Canvas::Scene> &scene) {
+            BESS_ASSERT(scene, "[ModuleCmd] Scene must be valid while resolving owning module");
+
+            const auto &sceneState = scene->getState();
+            if (sceneState.getIsRootScene() ||
+                sceneState.getModuleId() == UUID::null ||
+                sceneState.getParentSceneId() == UUID::null) {
+                return nullptr;
+            }
+
+            auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
+            const auto parentScene = sceneDriver.getSceneWithId(sceneState.getParentSceneId());
+            if (!parentScene) {
+                return nullptr;
+            }
+
+            return parentScene->getState().getComponentByUuid<Canvas::ModuleSceneComponent>(
+                sceneState.getModuleId());
+        }
+
+        inline std::unordered_set<UUID>
+        collectConnectedConnectionIds(const std::shared_ptr<Canvas::Scene> &scene,
+                                     const UUID &componentId) {
+            BESS_ASSERT(scene, "[ModuleCmd] Scene must be valid while collecting boundary connections");
+
+            std::unordered_set<UUID> connectionIds;
+            const auto simComponent = scene->getState().getComponentByUuid<Canvas::SimulationSceneComponent>(
+                componentId);
+            if (!simComponent) {
+                return connectionIds;
+            }
+
+            const auto collectSlotConnections = [&](const std::vector<UUID> &slotIds) {
+                for (const auto &slotId : slotIds) {
+                    const auto slotComponent = scene->getState().getComponentByUuid<Canvas::SlotSceneComponent>(
+                        slotId);
+                    if (!slotComponent || slotComponent->isResizeSlot()) {
+                        continue;
+                    }
+
+                    for (const auto &connectionId : slotComponent->getConnectedConnections()) {
+                        connectionIds.insert(connectionId);
+                    }
+                }
+            };
+
+            collectSlotConnections(simComponent->getInputSlots());
+            collectSlotConnections(simComponent->getOutputSlots());
+            return connectionIds;
+        }
+
+        inline std::unordered_set<UUID>
+        collectBoundaryExclusionIds(const std::shared_ptr<Canvas::Scene> &scene,
+                                    const UUID &netId,
+                                    std::vector<UUID> &connectionIdsToDisconnect) {
+            BESS_ASSERT(scene, "[ModuleCmd] Scene must be valid while collecting module boundary exclusions");
+
+            std::unordered_set<UUID> excludedIds;
+            const auto owningModule = getOwningModuleComponent(scene);
+            if (!owningModule) {
+                return excludedIds;
+            }
+
+            const auto &sceneState = scene->getState();
+            for (const auto &boundaryComponentId :
+                 {owningModule->getAssociatedInp(), owningModule->getAssociatedOut()}) {
+                const auto boundaryComponent = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(
+                    boundaryComponentId);
+                if (!boundaryComponent || boundaryComponent->getNetId() != netId) {
+                    continue;
+                }
+
+                const auto boundaryComponents = collectComponentsForModule(scene, {boundaryComponentId});
+                for (const auto &excludedComponent : boundaryComponents) {
+                    if (excludedComponent) {
+                        excludedIds.insert(excludedComponent->getUuid());
+                    }
+                }
+
+                const auto connectionIds = collectConnectedConnectionIds(scene, boundaryComponentId);
+                for (const auto &connectionId : connectionIds) {
+                    if (!sceneState.isComponentValid(connectionId)) {
+                        continue;
+                    }
+
+                    connectionIdsToDisconnect.push_back(connectionId);
+                    const auto excludedComponents = collectComponentsForModule(scene, {connectionId});
+                    for (const auto &excludedComponent : excludedComponents) {
+                        if (excludedComponent) {
+                            excludedIds.insert(excludedComponent->getUuid());
+                        }
+                    }
+                }
+            }
+
+            return excludedIds;
+        }
+
         inline void rewireModuleIoIds(const std::shared_ptr<Canvas::ModuleSceneComponent> &moduleComponent,
                                       const std::shared_ptr<Canvas::Scene> &moduleScene) {
             BESS_ASSERT(moduleComponent, "[ModuleCmd] Module component must be valid");
@@ -140,6 +239,10 @@ namespace Bess::Cmd {
                 return false;
             }
 
+            if (m_boundaryDisconnectCmd) {
+                m_boundaryDisconnectCmd->execute(m_sourceScene.get(), simEngine);
+            }
+
             Detail::transferComponents(m_sourceScene.get(), m_moduleScene.get(), m_movedComponents);
             m_executed = true;
             return true;
@@ -151,6 +254,9 @@ namespace Bess::Cmd {
 
             Detail::transferComponents(m_moduleScene.get(), m_sourceScene.get(), m_movedComponents);
             m_addModuleCmd->undo(m_sourceScene.get(), simEngine);
+            if (m_boundaryDisconnectCmd) {
+                m_boundaryDisconnectCmd->undo(m_sourceScene.get(), simEngine);
+            }
 
             if (!m_moduleSceneCleanupCmd) {
                 m_moduleSceneCleanupCmd = std::make_unique<DeleteCompCmd>(
@@ -170,6 +276,10 @@ namespace Bess::Cmd {
             if (m_moduleSceneCleanupCmd) {
                 m_moduleSceneCleanupCmd->undo(m_moduleScene.get(), simEngine);
                 Detail::rewireModuleIoIds(m_moduleComponent, m_moduleScene);
+            }
+
+            if (m_boundaryDisconnectCmd) {
+                m_boundaryDisconnectCmd->redo(m_sourceScene.get(), simEngine);
             }
 
             m_addModuleCmd->redo(m_sourceScene.get(), simEngine);
@@ -211,9 +321,23 @@ namespace Bess::Cmd {
             m_moduleScene = sceneDriver.getSceneWithId(m_moduleComponent->getSceneId());
             BESS_ASSERT(m_moduleScene, "[ModuleCmd] Failed to resolve newly created module scene");
 
-            m_movedComponents = Detail::collectComponentsForModule(
-                m_sourceScene,
-                netCompMap.at(m_netId));
+            std::vector<UUID> boundaryConnectionIds;
+            auto excludedIds = Detail::collectBoundaryExclusionIds(m_sourceScene,
+                                                                   m_netId,
+                                                                   boundaryConnectionIds);
+            if (!boundaryConnectionIds.empty()) {
+                m_boundaryDisconnectCmd = std::make_unique<DeleteCompCmd>(boundaryConnectionIds);
+            }
+
+            auto movedComponents = Detail::collectComponentsForModule(m_sourceScene,
+                                                                      netCompMap.at(m_netId));
+            m_movedComponents.reserve(movedComponents.size());
+            for (const auto &component : movedComponents) {
+                if (!component || excludedIds.contains(component->getUuid())) {
+                    continue;
+                }
+                m_movedComponents.push_back(component);
+            }
 
             m_addModuleCmd =
                 std::make_unique<AddCompCmd<Canvas::SimulationSceneComponent>>(m_moduleComponent,
@@ -230,6 +354,7 @@ namespace Bess::Cmd {
         std::vector<std::shared_ptr<Canvas::SceneComponent>> m_moduleChildComponents;
         std::vector<std::shared_ptr<Canvas::SceneComponent>> m_movedComponents;
         std::unique_ptr<AddCompCmd<Canvas::SimulationSceneComponent>> m_addModuleCmd;
+        std::unique_ptr<DeleteCompCmd> m_boundaryDisconnectCmd;
         std::unique_ptr<DeleteCompCmd> m_moduleSceneCleanupCmd;
         UUID m_netId = UUID::null;
         std::string m_nameOverride;
