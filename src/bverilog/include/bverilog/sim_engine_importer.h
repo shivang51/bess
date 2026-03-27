@@ -11,6 +11,7 @@
 namespace Bess::Verilog {
     struct BESS_API ImportedModuleInstance {
         std::string instancePath;
+        std::string parentInstancePath;
         bool isFlattened = true;
         UUID componentId = UUID::null;
         UUID moduleInputId = UUID::null;
@@ -25,6 +26,7 @@ namespace Bess::Verilog {
         std::unordered_map<std::string, UUID> topOutputComponents;
         std::vector<UUID> createdComponentIds;
         std::unordered_map<std::string, ImportedModuleInstance> instancesByPath;
+        std::unordered_map<UUID, std::string> componentInstancePathById;
     };
 
     BESS_API SimEngineImportResult importDesignIntoSimulationEngine(

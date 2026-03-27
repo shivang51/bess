@@ -73,7 +73,6 @@ namespace Bess::Verilog {
         script << "techmap\n";
         script << "opt\n";
         script << "simplemap\n";
-        script << "splitnets -ports\n";
         for (const auto &extraPass : config.extraPasses) {
             script << extraPass << "\n";
         }

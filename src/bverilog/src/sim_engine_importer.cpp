@@ -18,6 +18,14 @@ namespace Bess::Verilog {
     using namespace Bess::SimEngine;
 
     namespace {
+        std::string parentInstancePath(std::string_view path) {
+            const auto separator = path.rfind('/');
+            if (separator == std::string_view::npos) {
+                return {};
+            }
+            return std::string(path.substr(0, separator));
+        }
+
         struct SlotEndpoint {
             UUID componentId = UUID::null;
             SlotType slotType = SlotType::digitalInput;
@@ -264,6 +272,7 @@ namespace Bess::Verilog {
                 m_result.topModuleName = topModuleName;
                 m_result.top.definitionName = topModule.name;
                 m_result.top.instancePath = topModuleName;
+                m_result.top.parentInstancePath = {};
                 m_result.instancesByPath[topModuleName] = m_result.top;
 
                 PortBindings topBindings;
@@ -344,6 +353,7 @@ namespace Bess::Verilog {
                 resizeOutputs(component, 1);
                 m_engine.setOutputSlotState(id, 0, constantToLogicState(constant));
                 m_createdComponentIds.push_back(id);
+                m_result.componentInstancePathById[id] = m_result.topModuleName;
 
                 SlotEndpoint endpoint{id, SlotType::digitalOutput, 0};
                 m_constantDrivers[constant] = endpoint;
@@ -356,6 +366,7 @@ namespace Bess::Verilog {
                                             bool isInputComponent) {
                 const auto id = m_engine.addComponent(definition);
                 m_createdComponentIds.push_back(id);
+                m_result.componentInstancePathById[id] = m_result.topModuleName;
                 auto component = m_engine.getDigitalComponent(id);
                 if (isInputComponent) {
                     resizeOutputs(component, std::max<size_t>(1, slotCount));
@@ -417,6 +428,7 @@ namespace Bess::Verilog {
                     ImportedModuleInstance instance;
                     instance.definitionName = module.name;
                     instance.instancePath = path;
+                    instance.parentInstancePath = parentInstancePath(path);
                     m_result.instancesByPath[path] = instance;
                 }
 
@@ -464,6 +476,7 @@ namespace Bess::Verilog {
                     for (size_t i = 0; i < outBits.size(); ++i) {
                         const auto componentId = m_engine.addComponent(primitiveDefinition);
                         m_createdComponentIds.push_back(componentId);
+                        m_result.componentInstancePathById[componentId] = path;
                         registerLoad(resolveSignal(path, inBits[i], bindings),
                                      SlotEndpoint{componentId, SlotType::digitalInput, 0});
                         registerDriver(resolveSignal(path, outBits[i], bindings),
@@ -487,6 +500,7 @@ namespace Bess::Verilog {
                     for (size_t i = 0; i < yBits.size(); ++i) {
                         const auto componentId = m_engine.addComponent(primitiveDefinition);
                         m_createdComponentIds.push_back(componentId);
+                        m_result.componentInstancePathById[componentId] = path;
                         registerLoad(resolveSignal(path, aBits[i], bindings),
                                      SlotEndpoint{componentId, SlotType::digitalInput, 0});
                         registerLoad(resolveSignal(path, bBits[i], bindings),
@@ -508,6 +522,7 @@ namespace Bess::Verilog {
 
                     const auto componentId = m_engine.addComponent(primitiveDefinition);
                     m_createdComponentIds.push_back(componentId);
+                    m_result.componentInstancePathById[componentId] = path;
                     auto component = m_engine.getDigitalComponent(componentId);
                     while (component->definition->getInputSlotsInfo().count < aBits.size()) {
                         component->incrementInputCount(true);
@@ -532,6 +547,7 @@ namespace Bess::Verilog {
                     for (size_t i = 0; i < yBits.size(); ++i) {
                         const auto componentId = m_engine.addComponent(primitiveDefinition);
                         m_createdComponentIds.push_back(componentId);
+                        m_result.componentInstancePathById[componentId] = path;
                         registerLoad(resolveSignal(path, aBits[i], bindings),
                                      SlotEndpoint{componentId, SlotType::digitalInput, 0});
                         registerLoad(resolveSignal(path, bBits[i], bindings),
@@ -554,6 +570,7 @@ namespace Bess::Verilog {
                     for (size_t i = 0; i < qBits.size(); ++i) {
                         const auto componentId = m_engine.addComponent(primitiveDefinition);
                         m_createdComponentIds.push_back(componentId);
+                        m_result.componentInstancePathById[componentId] = path;
                         registerLoad(resolveSignal(path, dBits[i], bindings),
                                      SlotEndpoint{componentId, SlotType::digitalInput, 0});
                         registerLoad(resolveSignal(path, clkBits[0], bindings),

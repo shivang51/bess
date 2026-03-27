@@ -27,6 +27,32 @@ namespace Bess::UI {
         m_visible = true;
     }
 
+    bool ProjectExplorer::shouldDisplayEntity(const UUID &entityId) const {
+        auto &sceneState = Pages::MainPage::getInstance()->getState().getSceneDriver()->getState();
+        const auto comp = sceneState.getComponentByUuid(entityId);
+        if (!comp) {
+            return false;
+        }
+
+        if (m_searchQuery.empty()) {
+            return true;
+        }
+
+        const auto query = Common::Helpers::toLowerCase(m_searchQuery);
+        const auto name = Common::Helpers::toLowerCase(comp->getName());
+        if (name.find(query) != std::string::npos) {
+            return true;
+        }
+
+        for (const auto &childId : comp->getChildComponents()) {
+            if (shouldDisplayEntity(childId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     template <typename Func>
     void HandleNodeDropTarget(Func op) {
         if (ImGui::BeginDragDropTarget()) {
@@ -64,6 +90,8 @@ namespace Bess::UI {
             ImGui::SameLine();
             ImGui::Text("(%lu / %lu Selected)", selSize, size);
         }
+
+        Widgets::TextBox("##ProjectExplorerSearch", m_searchQuery, "Search");
 
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
@@ -330,6 +358,10 @@ namespace Bess::UI {
         std::vector<std::pair<UUID, UUID>> pendingMoves;
 
         for (const auto &compId : entities) {
+            if (!shouldDisplayEntity(compId)) {
+                continue;
+            }
+
             const auto &comp = sceneState.getComponentByUuid(compId);
             const auto type = comp->getType();
             if (!((int8_t)type &

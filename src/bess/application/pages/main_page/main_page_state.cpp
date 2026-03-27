@@ -5,212 +5,15 @@
 #include "common/logger.h"
 #include "pages/main_page/cmds/update_value_cmd.h"
 #include "pages/main_page/main_page.h"
-#include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_probe_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
+#include "pages/main_page/verilog_scene_import.h"
 #include "simulation_engine.h"
-#include <algorithm>
-#include <deque>
 #include <cstdint>
-#include <unordered_set>
 
 namespace Bess::Pages {
-    namespace {
-        using namespace Bess::Canvas;
-        using namespace Bess::SimEngine;
-        using namespace Bess::Verilog;
-
-        struct ImportedSceneComponent {
-            std::shared_ptr<SimulationSceneComponent> component;
-            std::vector<std::shared_ptr<SceneComponent>> children;
-        };
-
-        ImportedSceneComponent createSceneComponentForImportedSimId(const UUID &simId) {
-            auto &simEngine = SimulationEngine::instance();
-            const auto &compDef = simEngine.getComponentDefinition(simId);
-            auto created = SimulationSceneComponent::createNewAndRegister(compDef);
-            BESS_ASSERT(!created.empty(), "Failed to create scene component for imported sim component");
-
-            ImportedSceneComponent result;
-            result.component = created.front()->cast<SimulationSceneComponent>();
-            BESS_ASSERT(result.component, "Imported scene root is not a simulation scene component");
-            result.component->setSimEngineId(simId);
-            result.component->setName(compDef->getName());
-            created.erase(created.begin());
-            result.children = std::move(created);
-            return result;
-        }
-
-        void addImportedSceneComponent(SceneState &sceneState,
-                                       ImportedSceneComponent &importedComp) {
-            sceneState.addComponent(importedComp.component);
-            for (const auto &child : importedComp.children) {
-                sceneState.addComponent(child);
-                sceneState.attachChild(importedComp.component->getUuid(), child->getUuid(), false);
-            }
-        }
-
-        std::unordered_map<UUID, int> computeImportedLevels(const SimEngineImportResult &result) {
-            std::unordered_set<UUID> importedIds(result.createdComponentIds.begin(),
-                                                 result.createdComponentIds.end());
-            std::unordered_map<UUID, int> indegree;
-            std::unordered_map<UUID, std::vector<UUID>> adjacency;
-
-            for (const auto &id : result.createdComponentIds) {
-                indegree[id] = 0;
-            }
-
-            auto &simEngine = SimulationEngine::instance();
-            for (const auto &id : result.createdComponentIds) {
-                const auto connections = simEngine.getConnections(id);
-                for (const auto &slotConnections : connections.outputs) {
-                    for (const auto &[dstId, dstSlot] : slotConnections) {
-                        (void)dstSlot;
-                        if (!importedIds.contains(dstId)) {
-                            continue;
-                        }
-                        adjacency[id].push_back(dstId);
-                        indegree[dstId] += 1;
-                    }
-                }
-            }
-
-            std::deque<UUID> queue;
-            std::unordered_map<UUID, int> levels;
-            for (const auto &[id, deg] : indegree) {
-                if (deg == 0) {
-                    queue.push_back(id);
-                    levels[id] = 0;
-                }
-            }
-
-            while (!queue.empty()) {
-                const auto current = queue.front();
-                queue.pop_front();
-                for (const auto &next : adjacency[current]) {
-                    levels[next] = std::max(levels[next], levels[current] + 1);
-                    indegree[next] -= 1;
-                    if (indegree[next] == 0) {
-                        queue.push_back(next);
-                    }
-                }
-            }
-
-            for (const auto &id : result.createdComponentIds) {
-                if (!levels.contains(id)) {
-                    levels[id] = 0;
-                }
-            }
-
-            return levels;
-        }
-
-        void layoutImportedComponents(const SimEngineImportResult &result,
-                                      const std::unordered_map<UUID, std::shared_ptr<SimulationSceneComponent>> &sceneBySimId,
-                                      Scene &scene) {
-            auto levels = computeImportedLevels(result);
-            std::unordered_map<int, std::vector<UUID>> levelBuckets;
-            int maxLevel = 0;
-            for (const auto &[id, level] : levels) {
-                levelBuckets[level].push_back(id);
-                maxLevel = std::max(maxLevel, level);
-            }
-
-            const float xSpacing = 220.f;
-            const float ySpacing = 140.f;
-            const float centerX = (static_cast<float>(maxLevel) * xSpacing) / 2.f;
-            for (auto &[level, ids] : levelBuckets) {
-                std::ranges::sort(ids, [&](const UUID &a, const UUID &b) {
-                    const auto &defA = SimulationEngine::instance().getComponentDefinition(a);
-                    const auto &defB = SimulationEngine::instance().getComponentDefinition(b);
-                    return defA->getName() < defB->getName();
-                });
-
-                const float totalHeight = (static_cast<float>(ids.size() - 1) * ySpacing);
-                for (size_t i = 0; i < ids.size(); ++i) {
-                    const auto it = sceneBySimId.find(ids[i]);
-                    if (it == sceneBySimId.end()) {
-                        continue;
-                    }
-                    auto &transform = it->second->getTransform();
-                    transform.position = {
-                        static_cast<float>(level) * xSpacing - centerX,
-                        static_cast<float>(i) * ySpacing - (totalHeight / 2.f),
-                        scene.getNextZCoord(),
-                    };
-                    it->second->setSchematicTransform(transform);
-                    it->second->setScaleDirty();
-                    it->second->setSchematicScaleDirty();
-                }
-            }
-        }
-
-        void addImportedConnections(Scene &scene,
-                                    const SimEngineImportResult &result,
-                                    const std::unordered_map<UUID, std::shared_ptr<SimulationSceneComponent>> &sceneBySimId) {
-            std::unordered_set<UUID> importedIds(result.createdComponentIds.begin(),
-                                                 result.createdComponentIds.end());
-            auto &sceneState = scene.getState();
-            auto &simEngine = SimulationEngine::instance();
-
-            std::unordered_map<UUID, std::unordered_map<int, UUID>> inputSlotBySimId;
-            std::unordered_map<UUID, std::unordered_map<int, UUID>> outputSlotBySimId;
-
-            for (const auto &[simId, sceneComp] : sceneBySimId) {
-                for (const auto &slotId : sceneComp->getInputSlots()) {
-                    const auto slot = sceneState.getComponentByUuid<SlotSceneComponent>(slotId);
-                    if (!slot || slot->isResizeSlot()) {
-                        continue;
-                    }
-                    inputSlotBySimId[simId][slot->getIndex()] = slotId;
-                }
-
-                for (const auto &slotId : sceneComp->getOutputSlots()) {
-                    const auto slot = sceneState.getComponentByUuid<SlotSceneComponent>(slotId);
-                    if (!slot || slot->isResizeSlot()) {
-                        continue;
-                    }
-                    outputSlotBySimId[simId][slot->getIndex()] = slotId;
-                }
-            }
-
-            for (const auto &srcId : result.createdComponentIds) {
-                const auto connections = simEngine.getConnections(srcId);
-                for (size_t srcSlot = 0; srcSlot < connections.outputs.size(); ++srcSlot) {
-                    for (const auto &[dstId, dstSlot] : connections.outputs[srcSlot]) {
-                        if (!importedIds.contains(dstId)) {
-                            continue;
-                        }
-                        if (!outputSlotBySimId.contains(srcId) ||
-                            !outputSlotBySimId[srcId].contains(static_cast<int>(srcSlot)) ||
-                            !inputSlotBySimId.contains(dstId) ||
-                            !inputSlotBySimId[dstId].contains(dstSlot)) {
-                            continue;
-                        }
-
-                        const auto startSlotId = outputSlotBySimId[srcId][static_cast<int>(srcSlot)];
-                        const auto endSlotId = inputSlotBySimId[dstId][dstSlot];
-
-                        auto startSlot = sceneState.getComponentByUuid<SlotSceneComponent>(startSlotId);
-                        auto endSlot = sceneState.getComponentByUuid<SlotSceneComponent>(endSlotId);
-                        if (!startSlot || !endSlot) {
-                            continue;
-                        }
-
-                        auto conn = std::make_shared<ConnectionSceneComponent>();
-                        conn->setStartEndSlots(startSlotId, endSlotId);
-                        startSlot->addConnection(conn->getUuid());
-                        endSlot->addConnection(conn->getUuid());
-                        sceneState.addComponent(conn, false);
-                    }
-                }
-            }
-        }
-    } // namespace
-
-
     void MainPageState::resetProjectState() const {
         m_sceneDriver.getActiveScene()->clear();
         SimEngine::SimulationEngine::instance().clear();
@@ -255,16 +58,7 @@ namespace Bess::Pages {
 
             auto &simEngine = SimEngine::SimulationEngine::instance();
             const auto result = Verilog::importVerilogFileIntoSimulationEngine(path, simEngine);
-
-            std::unordered_map<UUID, std::shared_ptr<Canvas::SimulationSceneComponent>> sceneBySimId;
-            for (const auto &simId : result.createdComponentIds) {
-                auto created = createSceneComponentForImportedSimId(simId);
-                sceneBySimId[simId] = created.component;
-                addImportedSceneComponent(scene->getState(), created);
-            }
-
-            layoutImportedComponents(result, sceneBySimId, *scene);
-            addImportedConnections(*scene, result, sceneBySimId);
+            populateSceneFromVerilogImportResult(result, simEngine, *scene);
             m_sceneDriver.updateNets(scene);
             return true;
         } catch (const std::exception &ex) {

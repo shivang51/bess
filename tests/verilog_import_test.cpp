@@ -1,7 +1,10 @@
+#include "application/pages/main_page/verilog_scene_import.h"
 #include "bverilog/sim_engine_importer.h"
 #include "bverilog/yosys_json_parser.h"
 #include "bverilog/yosys_runner.h"
 #include "gtest/gtest.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
+#include "scene/scene.h"
 #include "simulation_engine.h"
 #include "types.h"
 #include <array>
@@ -120,9 +123,22 @@ TEST_F(VerilogImportTest, ImportsNestedModulesIntoSimulationEngineAndPropagatesS
     ASSERT_EQ(result.topModuleName, "top");
     ASSERT_TRUE(result.instancesByPath.contains("top"));
     ASSERT_TRUE(result.instancesByPath.contains("top/u_child"));
+    EXPECT_EQ(result.instancesByPath.at("top/u_child").parentInstancePath, "top");
     ASSERT_TRUE(result.topInputComponents.contains("in0"));
     ASSERT_TRUE(result.topInputComponents.contains("in1"));
     ASSERT_TRUE(result.topOutputComponents.contains("out0"));
+    EXPECT_EQ(result.componentInstancePathById.at(result.topInputComponents.at("in0")), "top");
+    EXPECT_EQ(result.componentInstancePathById.at(result.topOutputComponents.at("out0")), "top");
+
+    bool foundChildOwnedPrimitive = false;
+    for (const auto &[componentId, ownerPath] : result.componentInstancePathById) {
+        (void)componentId;
+        if (ownerPath == "top/u_child") {
+            foundChildOwnedPrimitive = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(foundChildOwnedPrimitive);
 
     const auto in0 = result.topInputComponents.at("in0");
     const auto in1 = result.topInputComponents.at("in1");
@@ -210,6 +226,178 @@ endmodule
         })) << "Full adder outputs did not settle for inputs "
             << row[0] << row[1] << row[2];
     }
+
+    std::filesystem::remove(verilogPath);
+}
+
+TEST_F(VerilogImportTest, ImportsVectorPortsAndCarryOutputFromAluVerilog) {
+    const auto verilogPath = writeTempVerilogFile(
+        "bess_alu_test.v",
+        R"verilog(
+module alu(
+    input [7:0] A,
+    input [7:0] B,
+    input [3:0] ALU_Sel,
+    output [7:0] ALU_Out,
+    output CarryOut
+);
+    reg [7:0] ALU_Result;
+    wire [8:0] tmp;
+
+    assign ALU_Out = ALU_Result;
+    assign tmp = {1'b0, A} + {1'b0, B};
+    assign CarryOut = tmp[8];
+
+    always @(*) begin
+        case (ALU_Sel)
+            4'b0000: ALU_Result = A + B;
+            4'b1000: ALU_Result = A & B;
+            default: ALU_Result = 8'h00;
+        endcase
+    end
+endmodule
+)verilog");
+
+    const auto result = importVerilogFileIntoSimulationEngine(
+        verilogPath,
+        *engine,
+        YosysRunnerConfig{
+            .executablePath = "yosys",
+            .topModuleName = std::string("alu"),
+        });
+
+    ASSERT_EQ(result.topModuleName, "alu");
+    ASSERT_TRUE(result.topInputComponents.contains("A"));
+    ASSERT_TRUE(result.topInputComponents.contains("B"));
+    ASSERT_TRUE(result.topInputComponents.contains("ALU_Sel"));
+    ASSERT_TRUE(result.topOutputComponents.contains("ALU_Out"));
+    ASSERT_TRUE(result.topOutputComponents.contains("CarryOut"));
+
+    const auto a = result.topInputComponents.at("A");
+    const auto b = result.topInputComponents.at("B");
+    const auto aluSel = result.topInputComponents.at("ALU_Sel");
+    const auto aluOut = result.topOutputComponents.at("ALU_Out");
+    const auto carryOut = result.topOutputComponents.at("CarryOut");
+
+    EXPECT_EQ(engine->getDigitalComponent(a)->definition->getOutputSlotsInfo().count, 8);
+    EXPECT_EQ(engine->getDigitalComponent(b)->definition->getOutputSlotsInfo().count, 8);
+    EXPECT_EQ(engine->getDigitalComponent(aluSel)->definition->getOutputSlotsInfo().count, 4);
+    EXPECT_EQ(engine->getDigitalComponent(aluOut)->definition->getInputSlotsInfo().count, 8);
+    EXPECT_EQ(engine->getDigitalComponent(carryOut)->definition->getInputSlotsInfo().count, 1);
+
+    auto writeBus = [&](const UUID &componentId, uint32_t value, size_t width) {
+        for (size_t i = 0; i < width; ++i) {
+            const auto bit = ((value >> i) & 1U) != 0U ? LogicState::high : LogicState::low;
+            engine->setOutputSlotState(componentId, static_cast<int>(i), bit);
+        }
+    };
+
+    auto readBus = [&](const UUID &componentId, size_t width) {
+        uint32_t value = 0;
+        for (size_t i = 0; i < width; ++i) {
+            if (engine->getDigitalSlotState(componentId, SlotType::digitalInput, static_cast<int>(i)).state ==
+                LogicState::high) {
+                value |= (1U << i);
+            }
+        }
+        return value;
+    };
+
+    writeBus(a, 0xFF, 8);
+    writeBus(b, 0x01, 8);
+    writeBus(aluSel, 0x0, 4);
+    ASSERT_TRUE(waitUntil([&] {
+        return readBus(aluOut, 8) == 0x00 &&
+               engine->getDigitalSlotState(carryOut, SlotType::digitalInput, 0).state == LogicState::high;
+    })) << "ALU add mode did not produce expected overflow output";
+
+    writeBus(a, 0xAA, 8);
+    writeBus(b, 0xCC, 8);
+    writeBus(aluSel, 0x8, 4);
+    ASSERT_TRUE(waitUntil([&] {
+        return readBus(aluOut, 8) == 0x88 &&
+               engine->getDigitalSlotState(carryOut, SlotType::digitalInput, 0).state == LogicState::high;
+    })) << "ALU and mode did not preserve carry output wiring";
+
+    std::filesystem::remove(verilogPath);
+}
+
+TEST_F(VerilogImportTest, PopulatesSceneWithBothAluOutputsIncludingCarryOut) {
+    const auto verilogPath = writeTempVerilogFile(
+        "bess_alu_scene_test.v",
+        R"verilog(
+module alu(
+    input [7:0] A,
+    input [7:0] B,
+    input [3:0] ALU_Sel,
+    output [7:0] ALU_Out,
+    output CarryOut
+);
+    reg [7:0] ALU_Result;
+    wire [8:0] tmp;
+
+    assign ALU_Out = ALU_Result;
+    assign tmp = {1'b0, A} + {1'b0, B};
+    assign CarryOut = tmp[8];
+
+    always @(*) begin
+        case (ALU_Sel)
+            4'b0000: ALU_Result = A + B;
+            default: ALU_Result = 8'h00;
+        endcase
+    end
+endmodule
+)verilog");
+
+    const auto result = importVerilogFileIntoSimulationEngine(
+        verilogPath,
+        *engine,
+        YosysRunnerConfig{
+            .executablePath = "yosys",
+            .topModuleName = std::string("alu"),
+        });
+
+    Bess::Canvas::Scene scene;
+    Bess::Pages::populateSceneFromVerilogImportResult(result, *engine, scene);
+
+    bool foundAluOut = false;
+    bool foundCarryOut = false;
+    const auto &sceneState = scene.getState();
+
+    auto countRealInputSlots = [&](const std::shared_ptr<Bess::Canvas::SimulationSceneComponent> &simComp) {
+        size_t count = 0;
+        for (const auto &slotId : simComp->getInputSlots()) {
+            const auto slot = sceneState.getComponentByUuid<Bess::Canvas::SlotSceneComponent>(slotId);
+            if (slot && !slot->isResizeSlot()) {
+                ++count;
+            }
+        }
+        return count;
+    };
+
+    for (const auto &[uuid, component] : sceneState.getAllComponents()) {
+        (void)uuid;
+        if (component->getType() != Bess::Canvas::SceneComponentType::simulation) {
+            continue;
+        }
+        const auto simComp = component->cast<Bess::Canvas::SimulationSceneComponent>();
+        if (!simComp) {
+            continue;
+        }
+
+        if (simComp->getName() == "ALU_Out") {
+            foundAluOut = true;
+            EXPECT_EQ(countRealInputSlots(simComp), 8u);
+        }
+
+        if (simComp->getName() == "CarryOut") {
+            foundCarryOut = true;
+            EXPECT_EQ(countRealInputSlots(simComp), 1u);
+        }
+    }
+
+    EXPECT_TRUE(foundAluOut);
+    EXPECT_TRUE(foundCarryOut);
 
     std::filesystem::remove(verilogPath);
 }

@@ -3,6 +3,7 @@
 #include "common/bess_uuid.h"
 #include "ui_panel.h"
 #include <cstdint>
+#include <string>
 #include <unordered_set>
 
 namespace Bess::UI {
@@ -21,9 +22,11 @@ namespace Bess::UI {
                                                   bool selected,
                                                   bool multiSelectMode);
 
+        bool shouldDisplayEntity(const UUID &entityId) const;
         size_t drawEntites(const std::unordered_set<UUID> &entities);
 
         int32_t m_lastSelectedIndex;
         size_t m_nodesKeyCounter;
+        std::string m_searchQuery;
     };
 } // namespace Bess::UI
