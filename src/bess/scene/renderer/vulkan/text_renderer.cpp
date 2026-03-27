@@ -3,6 +3,7 @@
 #include "scene/renderer/font.h"
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "ui/icons/CodIcons.h"
+#include <algorithm>
 #include <cstdint>
 
 using namespace Bess::Vulkan;
@@ -29,11 +30,12 @@ namespace Bess::Renderer {
 
     void TextRenderer::drawText(const std::string &text, const glm::vec3 &pos, const size_t size,
                                 const glm::vec4 &color, const uint64_t &id, float angle) {
-        float scale = (float)size / m_font.getSize();
+        const float scale = static_cast<float>(size) / m_font.getSize();
         float posX = pos.x, posY = pos.y;
         for (const char ch : text) {
             if (ch == '\n') {
-                posY += m_font.getSize(), posX = 0.f;
+                posY += m_font.getSize() * scale;
+                posX = pos.x;
                 continue;
             }
 
@@ -50,7 +52,7 @@ namespace Bess::Renderer {
 
     void TextRenderer::drawIcon(const std::string &text, const glm::vec3 &pos, const size_t size,
                                 const glm::vec4 &color, const uint64_t &id, float angle) {
-        float scale = (float)size / m_font.getSize();
+        const float scale = static_cast<float>(size) / m_font.getSize();
         float posX = pos.x, posY = pos.y;
 
         // Pointer-based iteration to handle multi-byte UTF-8 sequences
@@ -85,7 +87,7 @@ namespace Bess::Renderer {
 
     glm::vec2 TextRenderer::drawTextWrapped(const std::string &text, const glm::vec3 &pos, size_t size,
                                             const glm::vec4 &color, const uint64_t &id, float wrapWidthPx, float angle) {
-        float scale = (float)size / m_font.getSize();
+        const float scale = static_cast<float>(size) / m_font.getSize();
         float posX = pos.x, posY = pos.y;
         float widthUsed = 0.f, heightUsed = 0;
         float maxWidth = 0.f;
@@ -114,17 +116,24 @@ namespace Bess::Renderer {
     }
 
     glm::vec2 TextRenderer::getRenderSize(const std::string &text, size_t size) {
-        float scale = (float)size / m_font.getSize();
+        const float scale = static_cast<float>(size) / m_font.getSize();
 
-        glm::vec2 renderSize = {0.f, 0.f};
+        float currentLineWidth = 0.f;
+        float maxLineWidth = 0.f;
+        float totalHeight = static_cast<float>(size);
         for (const char ch : text) {
+            if (ch == '\n') {
+                maxLineWidth = std::max(maxLineWidth, currentLineWidth);
+                currentLineWidth = 0.f;
+                totalHeight += static_cast<float>(size);
+                continue;
+            }
             const auto &glyph = m_font.getGlyph(ch);
-            renderSize.x += glyph.advanceX;
+            currentLineWidth += glyph.advanceX;
         }
 
-        renderSize.x *= scale;
-        renderSize.y = (float)size;
-        return renderSize;
+        maxLineWidth = std::max(maxLineWidth, currentLineWidth);
+        return {maxLineWidth * scale, totalHeight};
     }
 
     void TextRenderer::resize(VkExtent2D size) {

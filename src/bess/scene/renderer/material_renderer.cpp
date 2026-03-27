@@ -3,9 +3,30 @@
 #include "application/assets.h"
 #include "renderer/font.h"
 #include "scene/scene_state/components/scene_component_types.h"
+#include <cmath>
 #include <cstdint>
+#include <deque>
 
 namespace Bess::Renderer {
+    namespace {
+        struct TextMeasureCacheKey {
+            const Font::FontFile *font = nullptr;
+            int32_t renderSizeMilli = 0;
+            std::string text;
+
+            bool operator==(const TextMeasureCacheKey &other) const noexcept = default;
+        };
+
+        struct TextMeasureCacheKeyHash {
+            size_t operator()(const TextMeasureCacheKey &key) const noexcept {
+                size_t seed = std::hash<const void *>{}(key.font);
+                seed ^= std::hash<int32_t>{}(key.renderSizeMilli) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+                seed ^= std::hash<std::string>{}(key.text) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+                return seed;
+            }
+        };
+    } // namespace
+
     static Material2D makeGrid(const glm::vec3 &pos, const glm::vec2 &size, uint64_t id) {
         Material2D m;
         m.type = Material2D::MaterialType::grid;
@@ -346,16 +367,47 @@ namespace Bess::Renderer {
                                                   float renderSize) {
         auto font = *getFontFile();
         BESS_ASSERT(font, "Font file not set in MaterialRenderer");
-        float scale = renderSize / font->getSize();
+        const auto renderSizeMilli = static_cast<int32_t>(std::lround(renderSize * 1000.0f));
 
-        glm::vec2 calcSize = {0.f, 0.f};
-        for (const char ch : str) {
-            const auto &glyph = font->getGlyph(ch);
-            calcSize.x += glyph.advanceX;
+        static constexpr size_t kMaxTextMeasureCacheEntries = 4096;
+        static std::unordered_map<TextMeasureCacheKey, glm::vec2, TextMeasureCacheKeyHash> s_textMeasureCache;
+        static std::deque<TextMeasureCacheKey> s_textMeasureCacheOrder;
+
+        TextMeasureCacheKey cacheKey{
+            .font = font,
+            .renderSizeMilli = renderSizeMilli,
+            .text = str,
+        };
+
+        if (const auto it = s_textMeasureCache.find(cacheKey); it != s_textMeasureCache.end()) {
+            return it->second;
         }
 
-        calcSize.x *= scale;
-        calcSize.y = renderSize;
+        const float scale = renderSize / font->getSize();
+        float currentLineWidth = 0.f;
+        float maxLineWidth = 0.f;
+        float totalHeight = renderSize;
+        for (const char ch : str) {
+            if (ch == '\n') {
+                maxLineWidth = std::max(maxLineWidth, currentLineWidth);
+                currentLineWidth = 0.f;
+                totalHeight += renderSize;
+                continue;
+            }
+            const auto &glyph = font->getGlyph(ch);
+            currentLineWidth += glyph.advanceX;
+        }
+
+        maxLineWidth = std::max(maxLineWidth, currentLineWidth);
+        glm::vec2 calcSize = {maxLineWidth * scale, totalHeight};
+
+        s_textMeasureCache.emplace(cacheKey, calcSize);
+        s_textMeasureCacheOrder.push_back(cacheKey);
+        if (s_textMeasureCacheOrder.size() > kMaxTextMeasureCacheEntries) {
+            s_textMeasureCache.erase(s_textMeasureCacheOrder.front());
+            s_textMeasureCacheOrder.pop_front();
+        }
+
         return calcSize;
     }
 

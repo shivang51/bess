@@ -282,7 +282,7 @@ namespace Bess::Renderer {
                     FillInstance{.translation = info.translate,
                                  .scale = info.scale,
                                  .color = info.fillColor,
-                                 .pickId = encodeId2(m_pathData.id)});
+                                 .pickId = encodeId2(info.glyphId)});
             }
         }
 

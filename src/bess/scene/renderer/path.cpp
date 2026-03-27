@@ -58,7 +58,7 @@ namespace Bess::Renderer {
         if (!m_contours.empty())
             return m_contours;
 
-        const auto cacheKey = std::format("{}_{}", m_currentScale.x, m_currentScale.y);
+        const auto cacheKey = PathScaleKey::fromScale(m_currentScale);
 
         const auto &itr = m_scaledContoursCache.find(cacheKey);
         if (itr != m_scaledContoursCache.end()) {
@@ -136,7 +136,7 @@ namespace Bess::Renderer {
 
         m_currentScale = factor;
 
-        const auto cacheKey = std::format("{}_{}", m_currentScale.x, m_currentScale.y);
+        const auto cacheKey = PathScaleKey::fromScale(m_currentScale);
 
         if (!overrideOriginal && m_scaledCmdsCache.contains(cacheKey)) {
             m_cmds = m_scaledCmdsCache.at(cacheKey);
