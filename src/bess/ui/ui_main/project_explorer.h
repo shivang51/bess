@@ -28,5 +28,7 @@ namespace Bess::UI {
         int32_t m_lastSelectedIndex;
         size_t m_nodesKeyCounter;
         std::string m_searchQuery;
+        bool m_filterInputs = false;
+        bool m_filterOutputs = false;
     };
 } // namespace Bess::UI

@@ -11,6 +11,7 @@
 #include "pages/main_page/scene_components/group_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
+#include "simulation_engine.h"
 #include "settings/viewport_theme.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/widgets/m_widgets.h"
@@ -27,6 +28,38 @@ namespace Bess::UI {
         m_visible = true;
     }
 
+    namespace {
+        bool matchesProjectExplorerIoFilter(const std::shared_ptr<Canvas::SceneComponent> &comp,
+                                            bool filterInputs,
+                                            bool filterOutputs) {
+            if (!filterInputs && !filterOutputs) {
+                return true;
+            }
+
+            const auto simComp = comp ? comp->cast<Canvas::SimulationSceneComponent>() : nullptr;
+            if (!simComp) {
+                return false;
+            }
+
+            const auto simId = simComp->getSimEngineId();
+            if (simId == UUID::null) {
+                return false;
+            }
+
+            auto &simEngine = SimEngine::SimulationEngine::instance();
+            if (!simEngine.getSimEngineState().isComponentValid(simId)) {
+                return false;
+            }
+
+            const auto &definition = simEngine.getComponentDefinition(simId);
+            const auto behaviorType = definition->getBehaviorType();
+            const bool isInput = behaviorType == SimEngine::ComponentBehaviorType::input;
+            const bool isOutput = behaviorType == SimEngine::ComponentBehaviorType::output;
+
+            return (filterInputs && isInput) || (filterOutputs && isOutput);
+        }
+    } // namespace
+
     bool ProjectExplorer::shouldDisplayEntity(const UUID &entityId) const {
         auto &sceneState = Pages::MainPage::getInstance()->getState().getSceneDriver()->getState();
         const auto comp = sceneState.getComponentByUuid(entityId);
@@ -34,13 +67,16 @@ namespace Bess::UI {
             return false;
         }
 
-        if (m_searchQuery.empty()) {
-            return true;
+        const bool passesIoFilter = matchesProjectExplorerIoFilter(comp, m_filterInputs, m_filterOutputs);
+
+        bool passesSearch = m_searchQuery.empty();
+        if (!passesSearch) {
+            const auto query = Common::Helpers::toLowerCase(m_searchQuery);
+            const auto name = Common::Helpers::toLowerCase(comp->getName());
+            passesSearch = name.find(query) != std::string::npos;
         }
 
-        const auto query = Common::Helpers::toLowerCase(m_searchQuery);
-        const auto name = Common::Helpers::toLowerCase(comp->getName());
-        if (name.find(query) != std::string::npos) {
+        if (passesIoFilter && passesSearch) {
             return true;
         }
 
@@ -70,6 +106,7 @@ namespace Bess::UI {
 
     void ProjectExplorer::onDraw() {
         const ImColor &itemAltBg = ImGui::GetStyle().Colors[ImGuiCol_TableRowBgAlt];
+        const auto &style = ImGui::GetStyle();
 
         auto &sceneState = Pages::MainPage::getInstance()->getState().getSceneDriver()->getState();
 
@@ -78,6 +115,68 @@ namespace Bess::UI {
 
         const bool isMultiSelected = selSize > 1;
 
+        ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 34.f);
+        Widgets::TextBox("##ProjectExplorerSearch", m_searchQuery, "Search");
+        ImGui::PopItemWidth();
+        ImGui::SameLine();
+        if (ImGui::Button(Icons::CodIcons::ELLIPSIS)) {
+            ImGui::OpenPopup("project_explorer_filters");
+        }
+
+        if (ImGui::BeginPopup("project_explorer_filters")) {
+            if (ImGui::BeginMenu("Filters")) {
+                ImGui::Selectable("Inputs", &m_filterInputs);
+                ImGui::Selectable("Outputs", &m_filterOutputs);
+                ImGui::EndMenu();
+            }
+            ImGui::EndPopup();
+        }
+
+        const float footerHeight = ImGui::GetTextLineHeightWithSpacing() + style.ItemSpacing.y + style.WindowPadding.y;
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
+        if (ImGui::BeginChild("project_explorer_list", ImVec2(0.f, -footerHeight), false)) {
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
+
+            m_nodesKeyCounter = 0;
+            drawEntites(sceneState.getRootComponents());
+
+            const ImGuiContext &g = *ImGui::GetCurrentContext();
+            const ImGuiWindow *window = g.CurrentWindow;
+            const auto drawList = ImGui::GetWindowDrawList();
+            const float height = g.FontSize + (g.Style.FramePadding.y * 2);
+            const float x = window->Pos.x;
+            float y = window->DC.CursorPos.y;
+            ImVec2 bgStart, bgEnd;
+
+            if (m_nodesKeyCounter & 1) { // skipping if its not alternating color row
+                y += height;
+            }
+
+            while (y < window->Pos.y + window->Size.y) {
+                bgStart = ImVec2(x, y);
+                bgEnd = ImVec2(x + window->Size.x, y + height);
+                drawList->AddRectFilled(bgStart, bgEnd, itemAltBg, 0);
+                y += height * 2;
+            }
+
+            ImGui::PopStyleVar(2);
+
+            const ImVec2 remainingSpace = ImGui::GetContentRegionAvail();
+            if (remainingSpace.x > 0.f && remainingSpace.y > 0.f) {
+                if (ImGui::InvisibleButton("project_explorer_root_drop_target", remainingSpace)) {
+                    sceneState.clearSelectedComponents();
+                }
+
+                HandleNodeDropTarget([&](uint64_t id) {
+                    sceneState.detachChild(id);
+                });
+            }
+        }
+        ImGui::EndChild();
+        ImGui::PopStyleVar();
+
+        ImGui::Spacing();
         if (size == 0) {
             ImGui::Text("No Components Added");
         } else if (size == 1) {
@@ -90,46 +189,6 @@ namespace Bess::UI {
             ImGui::SameLine();
             ImGui::Text("(%lu / %lu Selected)", selSize, size);
         }
-
-        Widgets::TextBox("##ProjectExplorerSearch", m_searchQuery, "Search");
-
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
-
-        m_nodesKeyCounter = 0;
-        drawEntites(sceneState.getRootComponents());
-
-        const ImGuiContext &g = *ImGui::GetCurrentContext();
-        const ImGuiWindow *window = g.CurrentWindow;
-        const auto drawList = ImGui::GetWindowDrawList();
-        const auto colors = ImGui::GetStyle().Colors;
-        const float height = g.FontSize + (g.Style.FramePadding.y * 2);
-        const float x = window->Pos.x;
-        float y = window->DC.CursorPos.y;
-        float startY = y;
-        ImVec2 bgStart, bgEnd;
-
-        if (m_nodesKeyCounter & 1) { // skipping if its not alternating color row
-            y += height;
-        }
-
-        while (y < window->Pos.y + window->Size.y) {
-            bgStart = ImVec2(x, y);
-            bgEnd = ImVec2(x + window->Size.x, y + height);
-            drawList->AddRectFilled(bgStart, bgEnd, itemAltBg, 0);
-            y += height * 2;
-        }
-
-        ImGui::PopStyleVar(2);
-
-        if (ImGui::InvisibleButton("project_explorer_root_drop_target",
-                                   ImVec2(window->Size.x, window->Size.y - startY))) {
-            sceneState.clearSelectedComponents();
-        }
-
-        HandleNodeDropTarget([&](uint64_t id) {
-            sceneState.detachChild(id);
-        });
 
         if (ImGui::BeginPopupContextWindow()) {
             if (isMultiSelected) {
@@ -158,30 +217,29 @@ namespace Bess::UI {
         const ImGuiContext &g = *ImGui::GetCurrentContext();
         const float rounding = g.Style.FrameRounding;
         const float checkboxWidth = ImGui::CalcTextSize("W").x + g.Style.FramePadding.x + 2.f;
+        const float rowHeight = g.FontSize + (g.Style.FramePadding.y * 2);
         ImGuiWindow *window = g.CurrentWindow;
         const ImGuiID id = window->GetID(std::to_string(nodeId).c_str());
         const ImGuiID idcb = window->GetID((std::to_string(nodeId) + "cb").c_str());
-        const ImVec2 pos = window->DC.CursorPos;
+        const ImVec2 pos = ImGui::GetCursorScreenPos();
         const auto drawList = ImGui::GetWindowDrawList();
 
         const auto colors = ImGui::GetStyle().Colors;
+        const float rowMinX = window->WorkRect.Min.x;
+        const float rowMaxX = window->WorkRect.Max.x;
 
         if ((key & 1) == 0) {
-            float x = window->Pos.x;
-            float y = pos.y;
-            ImVec2 avail = ImGui::GetContentRegionAvail();
-            ImVec2 bgStart(x, y);
-            ImVec2 bgEnd(x + window->Size.x, y + g.FontSize + (g.Style.FramePadding.y * 2));
+            ImVec2 bgStart(rowMinX, pos.y);
+            ImVec2 bgEnd(rowMaxX, pos.y + rowHeight);
             drawList->AddRectFilled(bgStart, bgEnd, (ImColor)colors[ImGuiCol_TableRowBgAlt], 0);
         }
 
-        const ImRect bb(pos, ImVec2(window->Pos.x + window->Size.x - checkboxWidth - g.Style.FramePadding.x,
-                                    pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
-        auto checkBoxPos = bb.Max;
-        checkBoxPos.y = pos.y;
-        const ImRect bbCheckbox(checkBoxPos,
-                                ImVec2(checkBoxPos.x + checkboxWidth,
-                                       checkBoxPos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
+        const float checkboxAreaWidth = checkboxWidth + g.Style.FramePadding.x;
+        const ImRect bb(ImVec2(rowMinX, pos.y),
+                        ImVec2(rowMaxX - checkboxAreaWidth, pos.y + rowHeight));
+        const ImVec2 checkBoxPos(rowMaxX - checkboxWidth, pos.y + g.Style.FramePadding.y);
+        const ImRect bbCheckbox(ImVec2(rowMaxX - checkboxAreaWidth, pos.y),
+                                ImVec2(rowMaxX, pos.y + rowHeight));
 
         bool hovered = false, held = false;
         const auto pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held, ImGuiButtonFlags_PressedOnClick);
@@ -197,11 +255,8 @@ namespace Bess::UI {
         }
 
         if (bgColor.w > 0.0f) {
-            float x = window->Pos.x;
-            float y = pos.y;
-            ImVec2 avail = ImGui::GetContentRegionAvail();
-            ImVec2 bgStart(x, y);
-            ImVec2 bgEnd(x + window->Size.x, y + g.FontSize + (g.Style.FramePadding.y * 2));
+            ImVec2 bgStart(rowMinX, pos.y);
+            ImVec2 bgEnd(rowMaxX, pos.y + rowHeight);
             auto color = IM_COL32(bgColor.x * 255, bgColor.y * 255, bgColor.z * 255, 200);
             drawList->AddRectFilled(bgStart, bgEnd, color, 0);
         }
@@ -216,16 +271,15 @@ namespace Bess::UI {
                           label);
 
         if (hovered || cbHovered || multiSelectMode) {
-            ImGui::SetCursorPosX(checkBoxPos.x);
-            const float yPadding = ImGui::GetCursorPosY();
-            ImGui::SetCursorPosY(yPadding + g.Style.FramePadding.y);
+            const ImVec2 cursorPos = ImGui::GetCursorPos();
+            ImGui::SetCursorScreenPos(checkBoxPos);
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
             ImGui::PushStyleColor(ImGuiCol_FrameBg, colors[ImGuiCol_ButtonHovered]);
 
             ImGui::Checkbox(("##CheckBox" + std::to_string(nodeId)).c_str(), &selected);
             ImGui::PopStyleVar();
             ImGui::PopStyleColor();
-            ImGui::SetCursorPosY(yPadding);
+            ImGui::SetCursorPos(cursorPos);
         }
 
         ImGui::ItemSize(bb, g.Style.FramePadding.y * 2);
