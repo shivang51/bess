@@ -78,8 +78,8 @@ set(ALL_FILES
 )
 
 add_library(${PROJECT_NAME} OBJECT ${ALL_FILES})
-target_link_libraries(${PROJECT_NAME} PUBLIC common BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager EventSystem BessScene BessCmdSystem BessUI)
-add_dependencies(${PROJECT_NAME} common BessExtDeps BessJson BessSimEngine BessVulkan BessPluginManager BessScene BessCmdSystem BessUI)
+target_link_libraries(${PROJECT_NAME} PUBLIC common BessExtDeps BessJson BessSimEngine bverilog BessVulkan BessPluginManager EventSystem BessScene BessCmdSystem BessUI)
+add_dependencies(${PROJECT_NAME} common BessExtDeps BessJson BessSimEngine bverilog BessVulkan BessPluginManager BessScene BessCmdSystem BessUI)
 target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")
 
 target_include_directories(${PROJECT_NAME} PRIVATE

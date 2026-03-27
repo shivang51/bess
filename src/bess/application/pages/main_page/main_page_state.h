@@ -57,6 +57,7 @@ namespace Bess::Pages {
         void saveCurrentProject() const;
         void loadProject(const std::string &path);
         void updateCurrentProject(const std::shared_ptr<ProjectFile> &project);
+        bool importVerilogFile(const std::string &path, std::string *errorMessage = nullptr);
 
         void initCmdSystem();
 

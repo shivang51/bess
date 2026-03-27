@@ -190,6 +190,27 @@ namespace Bess::UI {
                 ImGui::EndMenu();
             }
 
+            temp_name = Icons::FontAwesomeIcons::FA_FILE_IMPORT;
+            temp_name += "  Import";
+            if (ImGui::BeginMenu(temp_name.c_str())) {
+                const std::string verilogLabel = std::string(Icons::FontAwesomeIcons::FA_MICROCHIP) + "  Verilog";
+                if (ImGui::MenuItem(verilogLabel.c_str())) {
+                    const auto path = Dialogs::showOpenFileDialog("Import Verilog File", "*.v|*.sv|");
+                    if (!path.empty()) {
+                        std::string errorMessage;
+                        if (pageState.importVerilogFile(path, &errorMessage)) {
+                            getState()._internalData.statusMessage =
+                                std::format("Imported Verilog: {}",
+                                            std::filesystem::path(path).filename().string());
+                        } else {
+                            getState()._internalData.statusMessage =
+                                std::format("Verilog import failed: {}", errorMessage);
+                        }
+                    }
+                }
+                ImGui::EndMenu();
+            }
+
             ImGui::Spacing();
             ImGui::Separator();
             ImGui::Spacing();
