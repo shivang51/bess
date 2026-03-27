@@ -203,6 +203,54 @@ namespace Bess::Pages {
             }
         }
 
+        void stackTopOutputComponents(const SimEngineImportResult &result,
+                                      const std::unordered_map<UUID, std::shared_ptr<SimulationSceneComponent>> &sceneBySimId) {
+            std::vector<std::pair<std::string, std::shared_ptr<SimulationSceneComponent>>> topOutputs;
+            topOutputs.reserve(result.topOutputComponents.size());
+
+            for (const auto &[portName, simId] : result.topOutputComponents) {
+                const auto it = sceneBySimId.find(simId);
+                if (it == sceneBySimId.end()) {
+                    continue;
+                }
+                topOutputs.emplace_back(portName, it->second);
+            }
+
+            if (topOutputs.size() < 2) {
+                return;
+            }
+
+            std::ranges::sort(topOutputs, [](const auto &lhs, const auto &rhs) {
+                return lhs.first < rhs.first;
+            });
+
+            float maxX = std::numeric_limits<float>::lowest();
+            float avgY = 0.f;
+            for (const auto &[portName, component] : topOutputs) {
+                (void)portName;
+                const auto pos = component->getTransform().position;
+                maxX = std::max(maxX, pos.x);
+                avgY += pos.y;
+            }
+            avgY /= static_cast<float>(topOutputs.size());
+
+            constexpr float ySpacing = 140.f;
+            const float totalHeight = (static_cast<float>(topOutputs.size() - 1) * ySpacing);
+            for (size_t i = 0; i < topOutputs.size(); ++i) {
+                auto &component = topOutputs[i].second;
+                auto transform = component->getTransform();
+                transform.position.x = maxX;
+                transform.position.y = (static_cast<float>(i) * ySpacing) - (totalHeight / 2.f) + avgY;
+                component->setTransform(transform);
+
+                auto schematicTransform = component->getSchematicTransform();
+                schematicTransform.position = transform.position;
+                component->setSchematicTransform(schematicTransform);
+                component->setScaleDirty();
+                component->setSchematicScaleDirty();
+            }
+        }
+
         void addImportedConnections(Scene &scene,
                                     const SimEngineImportResult &result,
                                     SimulationEngine &simEngine,
@@ -361,6 +409,7 @@ namespace Bess::Pages {
 
         applyImportedPortNames(result, sceneBySimId);
         layoutImportedComponents(result, simEngine, sceneBySimId, scene);
+        stackTopOutputComponents(result, sceneBySimId);
         buildImportedModuleHierarchy(result, scene, sceneBySimId);
         addImportedConnections(scene, result, simEngine, sceneBySimId);
     }
