@@ -233,6 +233,40 @@ namespace Bess::Renderer {
         }
     }
 
+    void MaterialRenderer::drawLine(const glm::vec3 &start,
+                                    const glm::vec3 &end,
+                                    const float thickness,
+                                    const glm::vec4 &color,
+                                    const uint64_t id) {
+        if (!m_primitivePipeline) {
+            return;
+        }
+
+        const glm::vec2 delta = glm::vec2(end) - glm::vec2(start);
+        const float length = glm::length(delta);
+        if (length <= 0.0001f) {
+            drawCircle(start, thickness * 0.5f, color, id);
+            return;
+        }
+
+        PrimitiveInstance instance{};
+        instance.primitiveType = static_cast<int32_t>(PrimitiveType::Line);
+        instance.position = glm::vec3((glm::vec2(start) + glm::vec2(end)) * 0.5f,
+                                      (start.z + end.z) * 0.5f);
+        instance.color = color;
+        instance.size = glm::vec2(length + thickness, thickness);
+        instance.primitiveData = glm::vec4(thickness, 0.0f, 0.0f, 0.0f);
+        instance.id = encodeId(id);
+        instance.angle = std::atan2(delta.y, delta.x);
+
+        if (color.a == 1.f) {
+            m_primitiveInstances.emplace_back(instance);
+        } else {
+            auto m = makePrimitive(instance);
+            m_translucentMaterials.push(m);
+        }
+    }
+
     void MaterialRenderer::drawText(const std::string &text, const glm::vec3 &pos, const size_t size,
                                     const glm::vec4 &color, const uint64_t &id, float angle) {
 

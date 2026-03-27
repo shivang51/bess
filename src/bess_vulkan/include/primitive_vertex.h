@@ -82,6 +82,7 @@ namespace Bess::Vulkan {
     enum class PrimitiveType : int32_t {
         Quad = 0,
         Circle = 1,
+        Line = 2,
     };
 
     struct BESS_VULKAN_API PrimitiveInstance {

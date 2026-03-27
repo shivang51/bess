@@ -83,6 +83,12 @@ namespace Bess::Renderer {
 
         void drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, uint64_t id, float innerRadius = 0.0F);
 
+        void drawLine(const glm::vec3 &start,
+                      const glm::vec3 &end,
+                      float thickness,
+                      const glm::vec4 &color,
+                      uint64_t id);
+
         void drawText(const std::string &text, const glm::vec3 &pos, size_t size,
                       const glm::vec4 &color, const uint64_t &id, float angle = 0);
 

@@ -20,6 +20,7 @@ layout(set = 1, binding = 2) uniform sampler2D uTextures[32];
 
 const int PRIMITIVE_TYPE_QUAD = 0;
 const int PRIMITIVE_TYPE_CIRCLE = 1;
+const int PRIMITIVE_TYPE_LINE = 2;
 
 float sdRoundedRect(vec2 p, vec2 halfExtents, vec4 radii) {
     float radius = p.x >= 0.0 && p.y >= 0.0 ? radii.y :
@@ -112,6 +113,34 @@ vec4 shadeCircle() {
     return color;
 }
 
+float sdCapsule(vec2 p, float halfSegmentLength, float radius) {
+    vec2 a = vec2(-halfSegmentLength, 0.0);
+    vec2 b = vec2(halfSegmentLength, 0.0);
+    vec2 pa = p - a;
+    vec2 ba = b - a;
+    float h = clamp(dot(pa, ba) / max(dot(ba, ba), 0.000001), 0.0, 1.0);
+    return length(pa - (ba * h)) - radius;
+}
+
+vec4 shadeLine() {
+    float thickness = max(v_Size.y, 1.0);
+    float radius = thickness * 0.5;
+    float halfSegmentLength = max((v_Size.x - thickness) * 0.5, 0.0);
+    vec2 p = v_LocalCoord * v_Size;
+
+    float dist = sdCapsule(p, halfSegmentLength, radius);
+    float aa = max(fwidth(dist), 0.75);
+    float mask = 1.0 - smoothstep(-aa, aa, dist);
+
+    if (mask < 0.001) {
+        discard;
+    }
+
+    vec4 color = v_FragColor;
+    color.a *= mask;
+    return color;
+}
+
 void main() {
     vec4 color;
 
@@ -119,6 +148,8 @@ void main() {
         color = shadeQuad();
     } else if (v_PrimitiveType == PRIMITIVE_TYPE_CIRCLE) {
         color = shadeCircle();
+    } else if (v_PrimitiveType == PRIMITIVE_TYPE_LINE) {
+        color = shadeLine();
     } else {
         discard;
     }
