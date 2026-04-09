@@ -68,6 +68,8 @@ namespace Bess {
         }
 
         initCompColorMap();
+
+        colors.moduleColor = glm::vec4(0.49, 0.81, 0.99f, 1.f);
     }
 
     glm::vec4 ViewportTheme::getCompHeaderColor(const std::string &group) {

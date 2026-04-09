@@ -2,14 +2,14 @@
 
 #include "scene/renderer/material_renderer.h"
 #include "scene/scene_state/components/scene_component_types.h"
+#include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
 namespace Bess::Canvas::SceneUI {
     void drawToggleButton(const PickingId id,
                           const bool isHigh,
                           const glm::vec3 &buttonPos,
                           const glm::vec2 &buttonSize,
-                          const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer,
-                          const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer) {
+                          SceneDrawContext &context) {
 
         static const Renderer::QuadRenderProperties trackProps{
             .borderColor = ViewportTheme::colors.componentBorder,
@@ -18,11 +18,11 @@ namespace Bess::Canvas::SceneUI {
         };
         constexpr Renderer::QuadRenderProperties buttonProps{.borderRadius = glm::vec4(5.f)};
         // Button background / track
-        materialRenderer->drawQuad(buttonPos,
-                                   buttonSize,
-                                   isHigh ? ViewportTheme::colors.stateHigh : ViewportTheme::colors.background,
-                                   id,
-                                   trackProps);
+        context.materialRenderer->drawQuad(buttonPos,
+                                           buttonSize,
+                                           isHigh ? ViewportTheme::colors.stateHigh : ViewportTheme::colors.background,
+                                           id,
+                                           trackProps);
 
         // Toggle head
         const float buttonHeadPosX = isHigh
@@ -32,10 +32,10 @@ namespace Bess::Canvas::SceneUI {
         const glm::vec3 buttonHeadPos = glm::vec3(buttonHeadPosX,
                                                   buttonPos.y,
                                                   buttonPos.z);
-        materialRenderer->drawQuad(buttonHeadPos,
-                                   {buttonSize.y - 1.f, buttonSize.y - 1.f},
-                                   ViewportTheme::colors.stateLow,
-                                   id,
-                                   buttonProps);
+        context.materialRenderer->drawQuad(buttonHeadPos,
+                                           {buttonSize.y - 1.f, buttonSize.y - 1.f},
+                                           ViewportTheme::colors.stateLow,
+                                           id,
+                                           buttonProps);
     }
 } // namespace Bess::Canvas::SceneUI

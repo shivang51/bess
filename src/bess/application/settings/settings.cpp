@@ -52,4 +52,8 @@ namespace Bess::Config {
     bool Settings::shouldFontRebuild() const {
         return m_fontRebuild;
     }
+
+    void Settings::onFpsChange() {
+        m_frameTimeStep = TimeMs(1000.0 / m_fps);
+    }
 } // namespace Bess::Config

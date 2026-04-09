@@ -1,8 +1,10 @@
 #pragma once
 
 #include "common/class_helpers.h"
+#include "common/types.h"
 #include "component_definition.h"
 #include "dock_ids.h"
+#include "events/application_event.h"
 #include "imgui.h"
 #include <string>
 
@@ -12,7 +14,7 @@ namespace Bess::UI {
         Panel(const std::string &name);
         virtual ~Panel() = default;
         virtual void init();
-        virtual void update();
+        virtual void update(TimeMs ts, const std::vector<ApplicationEvent> &events);
         virtual void destroy();
 
         void render();
@@ -42,5 +44,7 @@ namespace Bess::UI {
         bool m_showInMenuBar = true;
         Dock m_defaultDock = Dock::bottom;
         ImGuiWindowFlags m_flags = ImGuiWindowFlags_NoFocusOnAppearing;
+        bool m_isFocused = false;
+        bool m_isHovered = false;
     };
 } // namespace Bess::UI

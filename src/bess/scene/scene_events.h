@@ -30,17 +30,20 @@ namespace Bess::Canvas::Events {
     struct ComponentAddedEvent {
         UUID uuid;
         Canvas::SceneComponentType type;
+        Canvas::SceneState *state;
     };
 
     struct ComponentRemovedEvent {
         UUID uuid;
         Canvas::SceneComponentType type;
+        Canvas::SceneState *state;
     };
 
     struct EntityReparentedEvent {
         UUID entityUuid;
         UUID newParentUuid;
         UUID prevParent;
+        Canvas::SceneState *state;
     };
 
     struct EntityHoveredEvent {

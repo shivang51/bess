@@ -2,11 +2,11 @@
 
 #include "device.h"
 #include "primitive_vertex.h"
+#include "renderer/font.h"
 #include "scene/camera.h"
 #include "scene/renderer/material.h"
-#include "scene/renderer/vulkan/pipelines/circle_pipeline.h"
 #include "scene/renderer/vulkan/pipelines/grid_pipeline.h"
-#include "scene/renderer/vulkan/pipelines/quad_pipeline.h"
+#include "scene/renderer/vulkan/pipelines/primitive_pipeline.h"
 #include "scene/renderer/vulkan/text_renderer.h"
 #include "vulkan_offscreen_render_pass.h"
 #include "vulkan_subtexture.h"
@@ -19,7 +19,6 @@
 #include <vulkan/vulkan.h>
 
 using namespace Bess::Vulkan;
-using namespace Bess::Renderer2D::Vulkan;
 namespace Bess::Renderer {
 
     struct ShadowProps {
@@ -84,24 +83,33 @@ namespace Bess::Renderer {
 
         void drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, uint64_t id, float innerRadius = 0.0F);
 
-        void drawText(const std::string &text, const glm::vec3 &pos, const size_t size,
+        void drawLine(const glm::vec3 &start,
+                      const glm::vec3 &end,
+                      float thickness,
+                      const glm::vec4 &color,
+                      uint64_t id);
+
+        void drawText(const std::string &text, const glm::vec3 &pos, size_t size,
                       const glm::vec4 &color, const uint64_t &id, float angle = 0);
 
-        glm::vec2 drawTextWrapped(const std::string &text, const glm::vec3 &pos, const size_t size,
+        void drawIcon(const std::string &text, const glm::vec3 &pos, size_t size,
+                      const glm::vec4 &color, const uint64_t &id, float angle = 0);
+
+        glm::vec2 drawTextWrapped(const std::string &text, const glm::vec3 &pos, size_t size,
                                   const glm::vec4 &color, const uint64_t &id, float wrapWidthPx, float angle = 0);
 
         void resize(VkExtent2D extent);
         void updateUBO(const std::shared_ptr<Camera> &camera);
 
-        glm::vec2 getTextRenderSize(const std::string &str, float renderSize);
+        static glm::vec2 getTextRenderSize(const std::string &str, float renderSize);
 
       private:
         void flushVertices(bool isTranslucent);
+        static Font::FontFile **getFontFile();
 
       private:
-        std::unique_ptr<Pipelines::CirclePipeline> m_circlePipeline;
         std::unique_ptr<Pipelines::GridPipeline> m_gridPipeline;
-        std::unique_ptr<Pipelines::QuadPipeline> m_quadPipeline;
+        std::unique_ptr<Pipelines::PrimitivePipeline> m_primitivePipeline;
         std::unique_ptr<Renderer::TextRenderer> m_textRenderer;
 
         VkCommandBuffer m_currentCommandBuffer = VK_NULL_HANDLE;
@@ -112,11 +120,10 @@ namespace Bess::Renderer {
 
         std::priority_queue<Material2D, std::vector<Material2D>, MaterialComp> m_translucentMaterials;
 
-        std::vector<QuadInstance> m_quadInstances;
-        std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<QuadInstance>> m_texturedQuadInstances;
-        std::vector<CircleInstance> m_circleInstances;
+        std::vector<PrimitiveInstance> m_primitiveInstances;
+        std::unordered_map<std::shared_ptr<VulkanTexture>, std::vector<PrimitiveInstance>> m_texturedPrimitiveInstances;
 
-        Material2D m_gridMaterial = {};
+        Material2D m_gridMaterial;
         std::shared_ptr<VulkanTexture> m_shadowTexture = nullptr;
 
         VkCommandBuffer m_cmdBuffer;

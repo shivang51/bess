@@ -3,8 +3,12 @@
 /// Service is responsible to create, remove and maintain the connections in the scene.
 /// To update connections any where use this service only.
 
-#include "pages/main_page/scene_components/connection_scene_component.h"
+#include "common/bess_uuid.h"
+#include "scene.h"
 #include <memory>
+#include <optional>
+#include <unordered_map>
+#include <vector>
 
 namespace Bess {
     class UUID;
@@ -32,20 +36,32 @@ namespace Bess::Svc {
         // and also handles the sim engine connection and slot resizing if needed.
         // @returns: shared_ptr to the created connection component on success, nullptr on failure
         std::shared_ptr<Canvas::ConnectionSceneComponent> createConnection(const UUID &slotAId,
-                                                                           const UUID &slotBId);
+                                                                           const UUID &slotBId,
+                                                                           Canvas::Scene *scene);
 
         // Takes a connection component and tries to add it to the correct place
         // @returns: true on sucess and false otherwise
-        bool addConnection(const std::shared_ptr<Canvas::ConnectionSceneComponent> &conn);
+        bool addConnection(const std::shared_ptr<Canvas::ConnectionSceneComponent> &conn, Canvas::Scene *scene);
 
         // Takes a connection component and tries to remove it safely
         // @returns: ids of all the components which were removed (includes slots if any were removed),
         // empty on fail
-        std::vector<UUID> removeConnection(const std::shared_ptr<Canvas::ConnectionSceneComponent> &conn);
+        std::vector<UUID> removeConnection(const std::shared_ptr<Canvas::ConnectionSceneComponent> &conn,
+                                           Canvas::Scene *scene);
 
         // Takes a connection id and returns the ids of all the components which are life dependants on it,
         // empty if no dependants or connection not found.
-        std::vector<UUID> getDependants(const UUID &connection);
+        std::vector<UUID> getDependants(const UUID &connection,
+                                        Canvas::Scene *scene);
+
+        // Checks if a connection can be made between two components.
+        // Handles resize slots, proxy slots, and standard slots.
+        // @returns: pair,
+        // first (bool): true if they can connect.
+        // second (string): error message if they cannot connect.
+        std::pair<bool, std::string> canConnect(const UUID &idA,
+                                                const UUID &idB,
+                                                Canvas::Scene *scene);
 
       private:
         // Takes a slot/proxy id and a connection id, and add it to its connection list,
@@ -118,14 +134,6 @@ namespace Bess::Svc {
         // @returns: new slot or nullptr on failure
         std::shared_ptr<Canvas::SlotSceneComponent> createSlotFromResizeTrigger(const std::shared_ptr<Canvas::SlotSceneComponent> &resizeSlot);
 
-      public:
-        // Checks if a connection can be made between two components.
-        // Handles resize slots, proxy slots, and standard slots.
-        // @returns: pair,
-        // first (bool): true if they can connect.
-        // second (string): error message if they cannot connect.
-        std::pair<bool, std::string> canConnect(const UUID &idA, const UUID &idB);
-
       private:
         // Tries to find the slot in the scene.
         // If not found in scene then in the internal bin.
@@ -143,7 +151,7 @@ namespace Bess::Svc {
         std::shared_ptr<Canvas::SlotSceneComponent> getSlot(const UUID &compId);
 
       private:
-        std::shared_ptr<Canvas::Scene> getScene();
+        Canvas::Scene *getScene();
         SimEngine::SimulationEngine &getSimEngine();
 
       private:
@@ -158,5 +166,6 @@ namespace Bess::Svc {
         ~SvcConnection() = default;
         SvcConnection(const SvcConnection &) = delete;
         SvcConnection &operator=(const SvcConnection &) = delete;
+        Canvas::Scene *mp_scene = nullptr;
     };
 } // namespace Bess::Svc

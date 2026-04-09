@@ -1,7 +1,6 @@
 #pragma once
 
 #include "application/events/application_event.h"
-#include "commands/commands_manager.h"
 #include "common/bess_uuid.h"
 #include "common/types.h"
 #include "scene/camera.h"
@@ -29,7 +28,15 @@ namespace Bess::Canvas {
     enum class SceneDrawMode : uint8_t {
         none,
         connection,
-        selectionBox
+    };
+
+    struct SelBoxContext {
+        glm::vec2 start;
+        glm::vec2 end;
+        bool draw = false;                // to draw sel box
+        bool readIds = false;             // to read the picking ids
+        bool queueSelInNextFrame = false; // to queue sel in next frame, needed to avoid sel box
+        bool queueForSel = false;         // to queue reading of ids from picking attachment
     };
 
     class Scene {
@@ -38,26 +45,24 @@ namespace Bess::Canvas {
         ~Scene();
 
       public:
-        std::shared_ptr<Viewport> getViewport();
-
         void destroy();
 
         void reset();
         void clear();
-        void render();
-        void renderWithViewport(const std::shared_ptr<Viewport> &viewport);
         void update(TimeMs ts, const std::vector<ApplicationEvent> &events);
-
-        uint64_t getTextureId() const;
-        std::shared_ptr<Camera> getCamera();
 
         const SceneState &getState() const;
         SceneState &getState();
 
         typedef std::function<void(const std::shared_ptr<Viewport> &viewport)> ViewportDrawFn;
         MAKE_GETTER_SETTER(ViewportDrawFn, ViewportDrawFn, m_viewportDrawFunc);
+        MAKE_GETTER_SETTER(std::shared_ptr<Camera>, Camera, m_camera)
+        MAKE_GETTER_SETTER(SelBoxContext, SelBoxContext, m_selBoxContext)
+        MAKE_GETTER_SETTER(bool, IsFirstFrame, m_isFirstFrame)
 
       public:
+        const UUID &getSceneId() const;
+
         void addComponent(const std::shared_ptr<SceneComponent> &comp, bool setZ = true);
 
         void updateViewportTransform(const ViewportTransform &transform);
@@ -85,8 +90,6 @@ namespace Bess::Canvas {
 
         void setZCoord(float val);
 
-        SimEngine::Commands::CommandsManager &getCmdManager();
-
         bool *getIsSchematicViewPtr();
         void toggleSchematicView();
 
@@ -100,13 +103,13 @@ namespace Bess::Canvas {
         void focusCameraOnSelected();
         glm::vec2 toScenePos(const glm::vec2 &mousePos) const;
 
+        void setPickingId(const PickingId &pickingId);
+
+        float getNextZCoord();
+
       private:
         /// to draw testing stuff
         void drawScratchContent(TimeMs ts, const std::shared_ptr<Viewport> &viewport);
-
-        void updatePickingId();
-
-        void setPickingId(const PickingId &pickingId);
 
         void onMouseMove(const glm::vec2 &pos);
         void onLeftMouse(bool isPressed);
@@ -115,28 +118,22 @@ namespace Bess::Canvas {
         void onRightMouse(bool isPressed);
         void onMouseWheel(double x, double y);
 
-        std::shared_ptr<Viewport> m_viewport;
-
         glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
         bool isCursorInViewport(const glm::vec2 &pos) const;
-        void drawSelectionBox();
-        bool selectEntitesInArea();
-
-        float getNextZCoord();
 
         glm::vec2 getSnappedPos(const glm::vec2 &pos) const;
 
+        void processEvents(const std::vector<ApplicationEvent> &events);
+
       private:
-        // Vulkan framebuffers for scene rendering
-        glm::vec2 m_size, m_mousePos, m_dMousePos;
-        std::shared_ptr<Camera> m_camera;
-
-        bool m_isLeftMousePressed = false, m_isMiddleMousePressed = false;
-
         void loadComponentFromPlugins();
         void cleanupPlugins();
 
       private:
+        glm::vec2 m_size, m_mousePos, m_dMousePos;
+        std::shared_ptr<Camera> m_camera = nullptr;
+
+        bool m_isLeftMousePressed = false, m_isMiddleMousePressed = false;
         SceneState m_state;
 
         ViewportDrawFn m_viewportDrawFunc = nullptr;
@@ -148,10 +145,7 @@ namespace Bess::Canvas {
         PickingId m_prevPickingId = PickingId::invalid();
 
         // selection box
-        glm::vec2 m_selectionBoxStart;
-        glm::vec2 m_selectionBoxEnd;
-        bool m_selectInSelectionBox = false;
-        bool m_getIdsInSelBox = false;
+        SelBoxContext m_selBoxContext;
 
         bool m_isDragging = false;
         SceneDrawMode m_drawMode = SceneDrawMode::none;
@@ -163,11 +157,11 @@ namespace Bess::Canvas {
 
         TimeMs m_frameTimeStep = {};
 
-        SimEngine::Commands::CommandsManager m_cmdManager;
-
         VkExtent2D vec2Extent2D(const glm::vec2 &vec);
 
         bool m_isDestroyed = false;
         std::unordered_map<uint64_t, std::shared_ptr<Canvas::SimSceneCompDrawHook>> m_pluginSceneDrawHooks;
+
+        bool m_isFirstFrame = true;
     };
 } // namespace Bess::Canvas

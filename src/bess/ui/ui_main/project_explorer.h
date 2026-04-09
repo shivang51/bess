@@ -16,10 +16,10 @@ namespace Bess::UI {
         void groupOnNets();
 
       private:
-        static std::pair<bool, bool> drawLeafNode(size_t key, uint64_t nodeId,
-                                                  const char *label,
-                                                  bool selected,
-                                                  bool multiSelectMode);
+        static bool drawLeafNode(size_t key, uint64_t nodeId,
+                                 const char *label,
+                                 bool selected,
+                                 bool multiSelectMode);
 
         size_t drawEntites(const std::unordered_set<UUID> &entities);
 

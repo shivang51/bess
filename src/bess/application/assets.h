@@ -7,14 +7,14 @@
 namespace Bess::Assets {
     namespace Fonts {
         constexpr auto roboto = AssetID<Renderer::Font::FontFile, 1>("assets/fonts/Roboto/Roboto-Regular.ttf");
-        constexpr auto robotoMsdf = AssetID<Renderer2D::MsdfFont, 2>("assets/fonts/Roboto/msdf-Roboto-Regular-32/", "Roboto-Regular");
+        constexpr auto robotoMsdf = AssetID<Renderer::MsdfFont, 2>("assets/fonts/Roboto/msdf-Roboto-Regular-32/", "Roboto-Regular");
         namespace Paths {
             constexpr auto roboto = AssetID<std::string, 1>("assets/fonts/Roboto/Roboto-Regular.ttf");
             constexpr auto alexBrush = AssetID<std::string, 1>("assets/fonts/AlexBrush/AlexBrush-Regular.ttf");
-            constexpr auto componentIcons = AssetID<std::string, 1>("assets/icons/ComponentIcons.ttf");
-            constexpr auto codeIcons = AssetID<std::string, 1>("assets/icons/codicon.ttf");
-            constexpr auto materialIcons = AssetID<std::string, 1>("assets/icons/MaterialIcons-Regular.ttf");
-            constexpr auto fontAwesomeIcons = AssetID<std::string, 1>("assets/icons/fa-solid-900.ttf");
+            constexpr auto componentIcons = AssetID<std::string, 1>("assets/fonts/icons/ComponentIcons.ttf");
+            constexpr auto codeIcons = AssetID<std::string, 1>("assets/fonts/icons/codicon.ttf");
+            constexpr auto materialIcons = AssetID<std::string, 1>("assets/fonts/icons/MaterialIcons-Regular.ttf");
+            constexpr auto fontAwesomeIcons = AssetID<std::string, 1>("assets/fonts/icons/Font-Awesome-7-Free-Regular-400.otf");
         } // namespace Paths
     } // namespace Fonts
 

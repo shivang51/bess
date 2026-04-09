@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/types.h"
 #include "application/window.h"
+#include "common/types.h"
 #include "events/application_event.h"
 #include <memory>
 #include <vector>
@@ -42,7 +42,9 @@ namespace Bess {
         void onMouseWheel(double x, double y);
         void onKeyPress(int key);
         void onKeyRelease(int key);
-        void onMouseButton(MouseButton button, MouseButtonAction action);
+        void onMouseButton(MouseButton button,
+                           MouseButtonAction action,
+                           const glm::vec2 &pos);
         void onMouseMove(double x, double y);
 
         int m_currentFps = 0;

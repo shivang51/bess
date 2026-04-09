@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ext/vector_float2.hpp"
 #include "fwd.hpp"
 #include <any>
 namespace Bess {
@@ -55,6 +56,7 @@ namespace Bess {
         struct MouseButtonData {
             MouseButton button;
             MouseButtonAction action;
+            glm::vec2 pos = {};
         };
 
         struct KeyPressData {

@@ -1,8 +1,6 @@
 #pragma once
 
-#include "common/bess_assert.h"
 #include "common/bess_uuid.h"
-#include "common/logger.h"
 #include "device.h"
 #include "pipelines/path_fill_pipeline.h"
 #include "pipelines/path_stroke_pipeline.h"
@@ -17,7 +15,7 @@
 #include <vulkan/vulkan_core.h>
 
 using namespace Bess::Vulkan;
-namespace Bess::Renderer2D::Vulkan {
+namespace Bess::Renderer {
     struct PathContext {
         bool ended = true;
         glm::vec4 color = glm::vec4(1.f);
@@ -57,25 +55,49 @@ namespace Bess::Renderer2D::Vulkan {
         bool rounded = false;
     };
 
-    class PathGeometryCache {
-      public:
-        static std::string generateCacheKey(UUID uuid,
-                                            const glm::vec2 &scale,
-                                            bool rounded) {
-            return std::to_string(static_cast<uint64_t>(uuid)) + "_|" +
-                   std::to_string(scale.x * 1000) + "_" +
-                   std::to_string(scale.y * 1000) + "_|" +
-                   std::to_string(static_cast<int>(rounded));
+    struct PathGeometryKey {
+        UUID pathId = UUID::null;
+        PathScaleKey scaleKey{};
+        bool rounded = false;
+
+        static PathGeometryKey fromPath(const UUID &pathId,
+                                        const glm::vec2 &scale,
+                                        bool rounded) {
+            return {
+                pathId,
+                PathScaleKey::fromScale(scale),
+                rounded,
+            };
         }
 
-        bool getEntry(const std::string &key, PathGeometryCacheEntry &entry) {
+        bool operator==(const PathGeometryKey &other) const noexcept = default;
+    };
+
+    struct PathGeometryKeyHash {
+        size_t operator()(const PathGeometryKey &key) const noexcept {
+            size_t seed = std::hash<UUID>{}(key.pathId);
+            seed ^= PathScaleKeyHash{}(key.scaleKey) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+            seed ^= std::hash<bool>{}(key.rounded) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+            return seed;
+        }
+    };
+
+    class PathGeometryCache {
+      public:
+        static PathGeometryKey generateCacheKey(UUID uuid,
+                                                const glm::vec2 &scale,
+                                                bool rounded) {
+            return PathGeometryKey::fromPath(uuid, scale, rounded);
+        }
+
+        bool getEntry(const PathGeometryKey &key, PathGeometryCacheEntry &entry) {
             if (!m_cache.contains(key))
                 return false;
             entry = m_cache.at(key);
             return true;
         }
 
-        bool getEntryPtr(const std::string &key, const PathGeometryCacheEntry *&entryPtr) const {
+        bool getEntryPtr(const PathGeometryKey &key, const PathGeometryCacheEntry *&entryPtr) const {
             auto it = m_cache.find(key);
             if (it == m_cache.end())
                 return false;
@@ -83,7 +105,7 @@ namespace Bess::Renderer2D::Vulkan {
             return true;
         }
 
-        PathGeometryCacheEntry *cacheEntry(const std::string &key, const PathGeometryCacheEntry &entry) {
+        PathGeometryCacheEntry *cacheEntry(const PathGeometryKey &key, const PathGeometryCacheEntry &entry) {
             m_cache[key] = entry;
             return &m_cache.at(key);
         }
@@ -92,12 +114,12 @@ namespace Bess::Renderer2D::Vulkan {
             m_cache.clear();
         }
 
-        void invalidateCacheEntry(const std::string &key) {
+        void invalidateCacheEntry(const PathGeometryKey &key) {
             m_cache.erase(key);
         }
 
       private:
-        std::unordered_map<std::string, PathGeometryCacheEntry> m_cache;
+        std::unordered_map<PathGeometryKey, PathGeometryCacheEntry, PathGeometryKeyHash> m_cache;
     };
 
     class PathRenderer {
@@ -161,8 +183,8 @@ namespace Bess::Renderer2D::Vulkan {
             uint32_t firstIndex;
             uint32_t indexCount;
         };
-        std::unordered_map<std::string, MeshRange> m_glyphIdToMesh;
-        std::unordered_map<std::string, std::vector<FillInstance>> m_glyphIdToInstances;
+        std::unordered_map<PathGeometryKey, MeshRange, PathGeometryKeyHash> m_glyphIdToMesh;
+        std::unordered_map<PathGeometryKey, std::vector<FillInstance>, PathGeometryKeyHash> m_glyphIdToInstances;
 
         std::shared_ptr<VulkanDevice> m_device;
         std::shared_ptr<VulkanOffscreenRenderPass> m_renderPass;
@@ -198,4 +220,4 @@ namespace Bess::Renderer2D::Vulkan {
                                      bool rounded);
     };
 
-} // namespace Bess::Renderer2D::Vulkan
+} // namespace Bess::Renderer

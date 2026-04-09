@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
 namespace Bess::Canvas {
     class Scene;
@@ -36,7 +37,13 @@ namespace Bess::Cmd {
 
         virtual std::string getName() const;
 
+        void setSceneContext(Canvas::Scene *scene);
+        Canvas::Scene *getSceneContext() const;
+        bool hasSceneContext() const;
+        bool sharesSceneContextWith(const Command *other) const;
+
       protected:
+        Canvas::Scene *m_sceneContext = nullptr;
         std::string m_name;
     };
 } // namespace Bess::Cmd

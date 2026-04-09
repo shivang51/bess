@@ -49,7 +49,7 @@ namespace Bess::Renderer {
         m_cmds = cmds;
     }
 
-    using PathPoint = Renderer2D::Vulkan::PathPoint;
+    using PathPoint = PathPoint;
     const std::vector<std::vector<PathPoint>> &Path::getContours() {
         if (m_cmds.empty()) {
             return m_contours;
@@ -58,7 +58,7 @@ namespace Bess::Renderer {
         if (!m_contours.empty())
             return m_contours;
 
-        const auto cacheKey = std::format("{}_{}", m_currentScale.x, m_currentScale.y);
+        const auto cacheKey = PathScaleKey::fromScale(m_currentScale);
 
         const auto &itr = m_scaledContoursCache.find(cacheKey);
         if (itr != m_scaledContoursCache.end()) {
@@ -99,7 +99,7 @@ namespace Bess::Renderer {
                 currentPos = {c.line.p, c.z};
             } break;
             case Kind::Quad: {
-                auto positions = Renderer2D::Vulkan::PathRenderer::generateQuadBezierPoints(currentPos, c.quad.c, {c.quad.p, c.z});
+                auto positions = Renderer::PathRenderer::generateQuadBezierPoints(currentPos, c.quad.c, {c.quad.p, c.z});
                 points.reserve(points.size() + positions.size());
                 for (const auto &pos : positions) {
                     points.emplace_back(PathPoint{pos, weight, c.id});
@@ -107,7 +107,7 @@ namespace Bess::Renderer {
                 currentPos = {c.quad.p, c.z};
             } break;
             case Kind::Cubic: {
-                auto positions = Renderer2D::Vulkan::PathRenderer::generateCubicBezierPoints(currentPos,
+                auto positions = Renderer::PathRenderer::generateCubicBezierPoints(currentPos,
                                                                                              c.cubic.c1, c.cubic.c2,
                                                                                              {c.cubic.p, c.z});
                 points.reserve(points.size() + positions.size());
@@ -136,7 +136,7 @@ namespace Bess::Renderer {
 
         m_currentScale = factor;
 
-        const auto cacheKey = std::format("{}_{}", m_currentScale.x, m_currentScale.y);
+        const auto cacheKey = PathScaleKey::fromScale(m_currentScale);
 
         if (!overrideOriginal && m_scaledCmdsCache.contains(cacheKey)) {
             m_cmds = m_scaledCmdsCache.at(cacheKey);

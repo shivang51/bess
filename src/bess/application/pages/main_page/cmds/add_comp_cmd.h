@@ -30,16 +30,20 @@ namespace Bess::Cmd {
 
         bool execute(Canvas::Scene *scene,
                      SimEngine::SimulationEngine *simEngine) override {
+
             if (!m_comp) {
                 return false;
             }
 
             if (m_comp->getType() == Canvas::SceneComponentType::connection) {
                 Svc::SvcConnection::instance().addConnection(
-                    m_comp->template cast<Canvas::ConnectionSceneComponent>());
+                    m_comp->template cast<Canvas::ConnectionSceneComponent>(),
+                    scene);
             } else {
                 scene->addComponent(m_comp);
             }
+
+            BESS_DEBUG("Adding {} child components", m_childComponents.size());
 
             auto &sceneState = scene->getState();
             for (const auto &childComp : m_childComponents) {
@@ -56,7 +60,7 @@ namespace Bess::Cmd {
 
             if (m_comp->getType() == Canvas::SceneComponentType::connection) {
                 Svc::SvcConnection::instance().removeConnection(
-                    m_comp->template cast<Canvas::ConnectionSceneComponent>());
+                    m_comp->template cast<Canvas::ConnectionSceneComponent>(), scene);
             } else {
                 scene->deleteSceneEntity(m_comp->getUuid());
             }
@@ -68,7 +72,8 @@ namespace Bess::Cmd {
 
             if (m_comp->getType() == Canvas::SceneComponentType::connection) {
                 Svc::SvcConnection::instance().addConnection(
-                    m_comp->template cast<Canvas::ConnectionSceneComponent>());
+                    m_comp->template cast<Canvas::ConnectionSceneComponent>(),
+                    scene);
             } else {
                 scene->addComponent(m_comp, false);
             }

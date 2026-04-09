@@ -21,8 +21,9 @@ namespace Bess::UI {
         const auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver().getActiveScene();
         const auto &sceneState = scene->getState();
         const auto &probeComp = sceneState.getComponentByUuid<Canvas::SlotProbeSceneComponent>(probeId);
-        BESS_ASSERT(probeComp,
-                    std::format("Probe component with uuid {} not found in scene state", (uint64_t)probeId));
+        if (!probeComp) {
+            return {"Missing Probe", {}};
+        }
 
         std::vector<std::pair<float, int>> parsedData;
         for (const auto &d : probeComp->getProbeData()) {
@@ -47,8 +48,12 @@ namespace Bess::UI {
         std::vector<std::string> comps = {};
         std::vector<UUID> compIds = {};
         std::unordered_map<std::string, UUID> nameToIdMap;
+
         for (const auto &id : mainPageState.getProbes()) {
             const auto &comp = sceneState.getComponentByUuid<Canvas::SlotProbeSceneComponent>(id);
+            if (!comp) {
+                continue;
+            }
             comps.emplace_back(comp->getName());
             compIds.emplace_back(id);
             nameToIdMap[comp->getName()] = id;
@@ -56,6 +61,9 @@ namespace Bess::UI {
 
         int eraseIdx = -1;
         for (auto &[idx, val] : s_data.graphs) {
+            if (idx == eraseIdx)
+                continue;
+
             const auto &prevId = val.second;
             if (Widgets::ComboBox(std::format("Select node for graph {}", idx), val.first, comps)) {
                 s_data.allSignals.erase(prevId);

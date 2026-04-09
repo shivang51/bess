@@ -2,10 +2,10 @@
 
 #include "common/bess_uuid.h"
 #include "fwd.hpp"
-#include "scene/renderer/material_renderer.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene_comp_types.h"
+#include "scene_draw_context.h"
 #include "types.h"
 
 namespace Bess::Canvas {
@@ -31,18 +31,16 @@ namespace Bess::Canvas {
         SlotSceneComponent(const SlotSceneComponent &other) = default;
         ~SlotSceneComponent() override = default;
 
-        void draw(SceneState &state,
-                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                  std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
+        void draw(SceneDrawContext &drawContext) override;
 
-        void drawSchematic(SceneState &state,
-                           std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                           std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
+        void drawSchematic(SceneDrawContext &drawContext) override;
 
         void onMouseEnter(const Events::MouseEnterEvent &e) override;
         void onMouseLeave(const Events::MouseLeaveEvent &e) override;
 
         void onMouseButton(const Events::MouseButtonEvent &e) override;
+
+        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
 
         REG_SCENE_COMP_TYPE("SlotSceneComponent", SceneComponentType::slot)
         SCENE_COMP_SER(Bess::Canvas::SlotSceneComponent, Bess::Canvas::SceneComponent, SLOT_SC_SER_PROPS)
@@ -65,6 +63,8 @@ namespace Bess::Canvas {
         bool isResizeSlot() const;
 
         bool isInputSlot() const;
+
+        std::vector<UUID> getDependants(const SceneState &state) const override;
 
       private:
         void onRuntimeIdChanged() override;

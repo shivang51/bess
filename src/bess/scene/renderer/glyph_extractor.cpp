@@ -1,5 +1,4 @@
 #include "scene/renderer/glyph_extractor.h"
-#include "common/bess_assert.h"
 #include "common/logger.h"
 #include "freetype/freetype.h"
 #include <cassert>
@@ -130,7 +129,8 @@ namespace Bess::Renderer::Font {
     }
 
     bool GlyphExtractor::extractGlyph(const char *codepoint, Glyph &out, bool yDown) {
-        return extractGlyph(decodeSingleUTF8(codepoint), out, yDown);
+        int bytesConsumed = 0;
+        return extractGlyph(decodeSingleUTF8(codepoint, bytesConsumed), out, yDown);
     }
 
     bool GlyphExtractor::extractGlyph(char32_t codepoint, Glyph &out, bool yDown) {
@@ -192,25 +192,37 @@ namespace Bess::Renderer::Font {
         return count;
     }
 
-    char32_t GlyphExtractor::decodeSingleUTF8(std::string_view utf8) {
-        const unsigned char *s = reinterpret_cast<const unsigned char *>(utf8.data());
-        if (utf8.empty())
-            return U'\0';
+    uint32_t GlyphExtractor::decodeSingleUTF8(const char *ptr, int &out_bytes_consumed) {
+        unsigned char c = static_cast<unsigned char>(*ptr);
 
-        if (s[0] < 0x80) // 1-byte ASCII
-            return s[0];
-        else if ((s[0] & 0xE0) == 0xC0) // 2-byte
-            return ((s[0] & 0x1F) << 6) | (s[1] & 0x3F);
-        else if ((s[0] & 0xF0) == 0xE0) // 3-byte
-            return ((s[0] & 0x0F) << 12) |
-                   ((s[1] & 0x3F) << 6) |
-                   (s[2] & 0x3F);
-        else if ((s[0] & 0xF8) == 0xF0) // 4-byte
-            return ((s[0] & 0x07) << 18) |
-                   ((s[1] & 0x3F) << 12) |
-                   ((s[2] & 0x3F) << 6) |
-                   (s[3] & 0x3F);
+        // 1-byte (0xxxxxxx) - Standard ASCII
+        if (c <= 0x7F) {
+            out_bytes_consumed = 1;
+            return static_cast<uint32_t>(c);
+        }
+        // 2-bytes
+        else if ((c & 0xE0) == 0xC0) {
+            out_bytes_consumed = 2;
+            return ((static_cast<uint32_t>(c) & 0x1F) << 6) |
+                   (static_cast<uint32_t>(ptr[1]) & 0x3F);
+        }
+        // 3-bytes
+        else if ((c & 0xF0) == 0xE0) {
+            out_bytes_consumed = 3;
+            return ((static_cast<uint32_t>(c) & 0x0F) << 12) |
+                   ((static_cast<uint32_t>(ptr[1]) & 0x3F) << 6) |
+                   (static_cast<uint32_t>(ptr[2]) & 0x3F);
+        }
+        // 4-bytes
+        else if ((c & 0xF8) == 0xF0) {
+            out_bytes_consumed = 4;
+            return ((static_cast<uint32_t>(c) & 0x07) << 18) |
+                   ((static_cast<uint32_t>(ptr[1]) & 0x3F) << 12) |
+                   ((static_cast<uint32_t>(ptr[2]) & 0x3F) << 6) |
+                   (static_cast<uint32_t>(ptr[3]) & 0x3F);
+        }
 
-        return U'\0'; // invalid input
+        out_bytes_consumed = 1; // Fallback for invalid sequences
+        return 0;
     }
 } // namespace Bess::Renderer::Font

@@ -8,10 +8,12 @@ set(Header_Files
 "pages/page.h"
 "pages/main_page/main_page.h"
 "pages/main_page/services/connection_service.h"
+"pages/main_page/services/copy_paste_service.h"
 "pages/main_page/scene_driver.h"
 "pages/main_page/main_page_state.h"
 "pages/main_page/cmds/add_comp_cmd.h"
 "pages/main_page/cmds/delete_comp_cmd.h"
+"pages/main_page/cmds/module_comp_cmd.h"
 "pages/main_page/cmds/update_value_cmd.h"
 "pages/main_page/scene_components/proxy_slot_component.h"
 "pages/main_page/scene_components/input_scene_component.h"
@@ -22,6 +24,7 @@ set(Header_Files
 "pages/main_page/scene_components/connection_scene_component.h"
 "pages/main_page/scene_components/conn_joint_scene_component.h"
 "pages/main_page/scene_components/slot_probe_scene_component.h"
+"pages/main_page/scene_components/module_scene_component.h"
 # "pages/start_page/start_page.h"
 "args_parser.h"
 "crash_detail_helper.h"
@@ -48,6 +51,7 @@ set(Source_Files
 "pages/main_page/scene_driver.cpp"
 # "pages/start_page/start_page.cpp"
 "pages/main_page/services/connection_service.cpp"
+"pages/main_page/services/copy_paste_service.cpp"
 "pages/main_page/scene_components/proxy_slot_component.cpp"
 "pages/main_page/scene_components/sim_scene_component.cpp"
 "pages/main_page/scene_components/group_scene_component.cpp"
@@ -56,6 +60,7 @@ set(Source_Files
 "pages/main_page/scene_components/slot_scene_component.cpp"
 "pages/main_page/scene_components/connection_scene_component.cpp"
 "pages/main_page/scene_components/conn_joint_scene_component.cpp"
+"pages/main_page/scene_components/module_scene_component.cpp"
 "pages/main_page/scene_components/slot_probe_scene_component.cpp"
 "application_state.cpp"
 "application.cpp"
@@ -87,4 +92,3 @@ set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "
 if(MSVC)
 	target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8" "/Zc:__cplusplus")
 endif()
-

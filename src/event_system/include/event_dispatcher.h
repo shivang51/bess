@@ -21,11 +21,18 @@ namespace Bess::EventSystem {
         }
 
         void dispatchAll() {
+            // BESS_TRACE("[EventDispatcher] Dispatching All");
             while (!m_eventQueue.empty()) {
-                auto &eventFn = m_eventQueue.front();
-                eventFn();
-                m_eventQueue.pop();
+                auto queue = std::queue<std::function<void()>>{};
+                queue.swap(m_eventQueue);
+                // BESS_TRACE("Dispatching {} events", queue.size());
+                while (!queue.empty()) {
+                    auto &eventFn = queue.front();
+                    eventFn();
+                    queue.pop();
+                }
             }
+            // BESS_TRACE("[EventDispatcher] Finished Dispatching All");
         }
 
         template <typename Event>
@@ -61,6 +68,8 @@ namespace Bess::EventSystem {
 
         template <typename Event>
         void queue(const Event &event) {
+            // BESS_DEBUG("[EventSystem] Queueing event of type {}",
+            //            std::type_index(typeid(Event)).name());
             m_eventQueue.push([this, event]() {
                 dispatch(event);
             });

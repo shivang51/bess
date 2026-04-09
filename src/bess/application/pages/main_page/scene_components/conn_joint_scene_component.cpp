@@ -12,6 +12,8 @@
 #include "slot_scene_component.h"
 #include "types.h"
 #include "ui/ui.h"
+#include <cstdint>
+#include <memory>
 
 namespace Bess::Canvas {
     ConnJointSceneComp::ConnJointSceneComp(UUID connectionId,
@@ -23,9 +25,59 @@ namespace Bess::Canvas {
 #endif
     }
 
-    void ConnJointSceneComp::draw(SceneState &state,
-                                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                  std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+    std::vector<std::shared_ptr<SceneComponent>> ConnJointSceneComp::clone(const SceneState &sceneState) const {
+        (void)sceneState;
+        BESS_ASSERT(false, "Cloning ConnJointSceneComp is supported through cloneConnJoin function");
+    }
+
+    std::vector<std::shared_ptr<SceneComponent>> ConnJointSceneComp::cloneConnJoint(
+        const SceneState &sceneState,
+        std::unordered_map<UUID, UUID> &ogToClonedIdMap) {
+
+        std::vector<std::shared_ptr<SceneComponent>> clonedComps;
+
+        BESS_ASSERT(ogToClonedIdMap.contains(m_connectionId),
+                    "Connection of joint has no mapping to its clone");
+
+        auto clone = std::make_shared<ConnJointSceneComp>(*this);
+        prepareClone(*clone);
+        clone->m_connectionId = ogToClonedIdMap.at(m_connectionId);
+
+        if (m_outputSlotId != UUID::null) {
+            BESS_ASSERT(ogToClonedIdMap.contains(m_outputSlotId),
+                        "Connection of joint has no mapping to its outputSlotId");
+            clone->m_outputSlotId = ogToClonedIdMap.at(m_outputSlotId);
+        }
+
+        if (m_inputSlotId != UUID::null) {
+            BESS_ASSERT(ogToClonedIdMap.contains(m_inputSlotId),
+                        "Connection of joint has no mapping to its inputSlotId");
+            clone->m_inputSlotId = ogToClonedIdMap.at(m_inputSlotId);
+        }
+
+        ogToClonedIdMap[m_uuid] = clone->m_uuid;
+
+        clonedComps.push_back(clone);
+        clone->m_connections.clear();
+
+        for (const auto &id : m_connections) {
+            const auto &conn = sceneState.getComponentByUuid<ConnectionSceneComponent>(id);
+            if (!conn ||
+                !ogToClonedIdMap.contains(conn->getStartSlot()) ||
+                !ogToClonedIdMap.contains(conn->getEndSlot())) {
+                continue;
+            }
+
+            auto clonedConn = conn->cloneConn(sceneState, ogToClonedIdMap);
+
+            clonedComps.insert(clonedComps.end(), clonedConn.begin(), clonedConn.end());
+            clone->m_connections.push_back(clonedConn.front()->getUuid());
+        }
+
+        return clonedComps;
+    }
+
+    void ConnJointSceneComp::draw(SceneDrawContext &context) {
 
         if (m_isFirstDraw) {
             m_isFirstDraw = false;
@@ -33,6 +85,8 @@ namespace Bess::Canvas {
                 m_offset = 0.5f;
             }
         }
+
+        const auto &state = *context.sceneState;
 
         const auto &conn = state.getComponentByUuid<ConnectionSceneComponent>(m_connectionId);
         const auto &slot = state.getComponentByUuid<SlotSceneComponent>(m_outputSlotId);
@@ -54,20 +108,18 @@ namespace Bess::Canvas {
         }
 
         const auto pickingId = PickingId{m_runtimeId, 0};
-        materialRenderer->drawQuad(getAbsolutePosition(state),
-                                   glm::vec2{sideLength, sideLength},
-                                   color,
-                                   pickingId,
-                                   {
-                                       .angle = 45,
-                                       .borderColor = borderColor,
-                                       .borderSize = glm::vec4(1.f),
-                                   });
+        context.materialRenderer->drawQuad(getAbsolutePosition(state),
+                                           glm::vec2{sideLength, sideLength},
+                                           color,
+                                           pickingId,
+                                           {
+                                               .angle = 45,
+                                               .borderColor = borderColor,
+                                               .borderSize = glm::vec4(1.f),
+                                           });
     }
 
-    void ConnJointSceneComp::drawSchematic(SceneState &state,
-                                           std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                           std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+    void ConnJointSceneComp::drawSchematic(SceneDrawContext &context) {
 
         if (m_isFirstSchematicDraw) {
             if (m_schematicOffset < 0.f)
@@ -84,10 +136,11 @@ namespace Bess::Canvas {
             color = ViewportTheme::schematicViewColors.connection;
         }
 
-        materialRenderer->drawCircle(getAbsolutePosition(state),
-                                     Styles::compSchematicStyles.connJointRadius,
-                                     color,
-                                     pickingId);
+        const auto &state = *context.sceneState;
+        context.materialRenderer->drawCircle(getAbsolutePosition(state),
+                                             Styles::compSchematicStyles.connJointRadius,
+                                             color,
+                                             pickingId);
     }
 
     void ConnJointSceneComp::onMouseEnter(const Events::MouseEnterEvent &e) {
@@ -167,6 +220,7 @@ namespace Bess::Canvas {
         const auto &slotComp = state.getComponentByUuid<SlotSceneComponent>(m_outputSlotId);
         return slotComp->getSlotState(state);
     }
+
     void ConnJointSceneComp::addConnection(const UUID &connectionId) {
         m_connections.emplace_back(connectionId);
     }
@@ -253,6 +307,11 @@ namespace Bess::Canvas {
 
         for (const auto &connId : m_connections) {
             const auto &connComp = state.getComponentByUuid<ConnectionSceneComponent>(connId);
+            BESS_ASSERT(connComp,
+                        std::format("[ConnJointDeps] connComp not found {} in joint {}",
+                                    (uint64_t)connId, (uint64_t)m_uuid));
+            if (!connComp)
+                continue;
             const auto &ids = connComp->getDependants(state);
             dependants.insert(dependants.end(), ids.begin(), ids.end());
             dependants.emplace_back(connId);

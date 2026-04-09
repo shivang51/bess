@@ -6,19 +6,22 @@
 #include "fwd.hpp"
 #include "renderer/material_renderer.h"
 #include "scene/camera.h"
+#include "scene_state/components/scene_component.h"
 #include "vulkan_image_view.h"
 #include "vulkan_offscreen_render_pass.h"
 #include "vulkan_postprocess_pipeline.h"
 #include <memory>
 #include <vulkan/vulkan_core.h>
 
-using namespace Bess::Renderer2D;
+using namespace Bess::Renderer;
 
 namespace Bess::Canvas {
     struct MousePickingData {
-        VkExtent2D startPos;
-        VkExtent2D extent;
-        bool pending = false;
+        VkExtent2D queuedStartPos = {};
+        VkExtent2D queuedExtent = {1, 1};
+        bool queued = false;
+        VkExtent2D inFlightStartPos = {};
+        VkExtent2D inFlightExtent = {1, 1};
         std::vector<glm::uvec2> ids;
     };
 
@@ -80,16 +83,16 @@ namespace Bess::Canvas {
         void submit();
         void resizePickingBuffer(VkDeviceSize newSize);
 
-        std::shared_ptr<Camera> getCamera();
-
         uint64_t getViewportTexture();
         void setPickingCoord(uint32_t x, uint32_t y, uint32_t w = 1, uint32_t h = 1);
-        std::vector<glm::uvec2> getPickingIdsResult();
+        const std::vector<glm::uvec2> &getPickingIdsResult();
         bool tryUpdatePickingResults();
         bool waitForPickingResults(uint64_t timeoutNs);
         bool isPickingPending() const;
 
         std::vector<unsigned char> getPixelData();
+
+        MAKE_GETTER_SETTER(std::shared_ptr<Camera>, Camera, m_camera);
 
       private:
         void createFences(size_t count);
@@ -134,6 +137,8 @@ namespace Bess::Canvas {
         // mouse picking resources
         VkBuffer m_pickingStagingBuffer = VK_NULL_HANDLE;
         VkDeviceMemory m_pickingStagingBufferMemory = VK_NULL_HANDLE;
+        std::vector<VkBuffer> m_retiredPickingBuffers;
+        std::vector<VkDeviceMemory> m_retiredPickingBufferMemories;
 
         MousePickingData m_mousePickingData = {};
         bool m_pickingCopyInFlight = false;

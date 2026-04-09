@@ -7,10 +7,12 @@
 #include "fwd.hpp"
 #include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/main_page.h"
+#include "pages/main_page/main_page_state.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
+#include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
 #include "slot_scene_component.h"
 #include "types.h"
@@ -24,11 +26,24 @@ namespace Bess::Canvas {
 #endif
     }
 
+    void ConnectionSceneComponent::update(TimeMs frameTime, SceneState &sceneState) {
+        if (m_segmentPosCacheDirty) {
+            resetSegmentPositionCache(sceneState);
+        }
+    }
+
+    std::vector<std::shared_ptr<SceneComponent>> ConnectionSceneComponent::clone(
+        const SceneState &sceneState) const {
+        (void)sceneState;
+        BESS_ASSERT(false,
+                    "Cloning ConnectionSceneComponent is supported via cloneConn function");
+    }
+
     void ConnectionSceneComponent::drawSegments(const SceneState &state,
                                                 const glm::vec3 &startPos,
                                                 const glm::vec3 &endPos,
                                                 const glm::vec4 &color,
-                                                const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer) {
+                                                const std::shared_ptr<Renderer::PathRenderer> &pathRenderer) {
 
         const auto &segCache = state.getIsSchematicView()
                                    ? m_segCachedSchemeticPos
@@ -36,7 +51,8 @@ namespace Bess::Canvas {
 
         BESS_ASSERT(!segCache.empty(), "Segment position cache is empty");
 
-        if (startPos != segCache.front() ||
+        if (m_segmentPosCacheDirty ||
+            startPos != segCache.front() ||
             endPos != segCache.back()) {
             resetSegmentPositionCache(state);
         }
@@ -70,10 +86,9 @@ namespace Bess::Canvas {
                                   !state.getIsSchematicView());
     }
 
-    void ConnectionSceneComponent::draw(SceneState &state,
-                                        std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                        std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+    void ConnectionSceneComponent::draw(SceneDrawContext &context) {
 
+        const auto &state = *context.sceneState;
         const auto &startComp = state.getComponentByUuid(m_startSlot);
         const auto &endComp = state.getComponentByUuid(m_endSlot);
 
@@ -149,10 +164,10 @@ namespace Bess::Canvas {
             endPos = endComp->cast<SlotSceneComponent>()->getConnectionPos(state);
         }
 
-        drawSegments(state, startPos, endPos, color, pathRenderer);
+        drawSegments(state, startPos, endPos, color, context.pathRenderer);
 
         if (m_hoveredSegIdx >= 0 && state.getConnectionStartSlot() != UUID::null) {
-            materialRenderer->drawCircle(
+            context.materialRenderer->drawCircle(
                 {state.getMousePos(), 0.51f},
                 6.f,
                 ViewportTheme::colors.selectedComp,
@@ -160,9 +175,7 @@ namespace Bess::Canvas {
         }
     }
 
-    void ConnectionSceneComponent::drawSchematic(SceneState &state,
-                                                 std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                                 std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+    void ConnectionSceneComponent::drawSchematic(SceneDrawContext &context) {
         if (m_isFirstSchematicDraw) {
             m_isFirstSchematicDraw = false;
             if (m_schematicSegments.empty()) {
@@ -174,6 +187,7 @@ namespace Bess::Canvas {
             m_segmentPosCacheDirty = true;
         }
 
+        const auto &state = *context.sceneState;
         if (m_shouldReconstructSegments) {
             reconstructSegments(state);
         }
@@ -216,7 +230,7 @@ namespace Bess::Canvas {
             startPos.x += Styles::compSchematicStyles.pinSize;
             endPos.x -= Styles::compSchematicStyles.pinSize;
         }
-        drawSegments(state, startPos, endPos, color, pathRenderer);
+        drawSegments(state, startPos, endPos, color, context.pathRenderer);
     }
 
     void ConnectionSceneComponent::onMouseDragged(const Events::MouseDraggedEvent &e) {
@@ -318,10 +332,7 @@ namespace Bess::Canvas {
         m_shouldReconstructSegments = false;
     }
 
-    void ConnectionSceneComponent::onFirstDraw(SceneState &sceneState,
-                                               std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                               std::shared_ptr<PathRenderer> pathRenderer) {
-
+    void ConnectionSceneComponent::onFirstDraw(SceneDrawContext &context) {
         m_isFirstDraw = false;
     }
 
@@ -423,8 +434,11 @@ namespace Bess::Canvas {
         const auto &startComp = state.getComponentByUuid(m_startSlot);
         const auto &endComp = state.getComponentByUuid(m_endSlot);
 
-        if (!startComp || !endComp)
+        if (!startComp || !endComp) {
+            BESS_ASSERT(false,
+                        std::format("Tried to reset segment pos of invalid conn {}", (uint64_t)m_uuid));
             return;
+        }
 
         auto startPos = startComp->getAbsolutePosition(state);
         if (startComp->getType() == SceneComponentType::slot) {
@@ -477,6 +491,8 @@ namespace Bess::Canvas {
         }
 
         cache.emplace_back(endPos);
+
+        m_transform.position = (startPos + endPos) / 2.f;
     }
 
     glm::vec3 ConnectionSceneComponent::getSegVertexPos(const SceneState &state, size_t vertexIdx) {
@@ -521,10 +537,52 @@ namespace Bess::Canvas {
         }
 
         // get its depents from ConnectionService
+        const auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
         auto &connectionsSvc = Svc::SvcConnection::instance();
-        const auto &connDependants = connectionsSvc.getDependants(getUuid());
+        const auto &connDependants = connectionsSvc.getDependants(getUuid(),
+                                                                  sceneDriver.getSceneWithId(state.getSceneId()).get());
         dependants.insert(dependants.end(), connDependants.begin(), connDependants.end());
 
         return dependants;
     }
+
+    std::vector<std::shared_ptr<SceneComponent>> ConnectionSceneComponent::cloneConn(
+        const SceneState &state,
+        std::unordered_map<UUID, UUID> &ogToClonedIdMap) {
+        BESS_ASSERT(ogToClonedIdMap.contains(m_startSlot),
+                    "[CloneConn] Start slot has no clone");
+        BESS_ASSERT(ogToClonedIdMap.contains(m_endSlot),
+                    "[CloneConn] End slot has no clone");
+
+        auto cloned = std::make_shared<ConnectionSceneComponent>(*this);
+        prepareClone(*cloned);
+
+        ogToClonedIdMap[m_uuid] = cloned->m_uuid;
+
+        cloned->setStartEndSlots(ogToClonedIdMap.at(m_startSlot),
+                                 ogToClonedIdMap.at(m_endSlot));
+
+        std::vector<std::shared_ptr<SceneComponent>> clonedComps;
+
+        clonedComps.push_back(cloned);
+
+        cloned->m_segmentPosCacheDirty = true;
+        cloned->m_associatedJoints.clear();
+
+        for (const auto &id : m_associatedJoints) {
+            const auto &joint = state.getComponentByUuid<ConnJointSceneComp>(id);
+            BESS_ASSERT(joint, "[ConnClone] Joint not found in scene");
+            auto jointCloneComps = joint->cloneConnJoint(state, ogToClonedIdMap);
+            auto clonedJoint = jointCloneComps.front()->cast<ConnJointSceneComp>();
+            BESS_ASSERT(clonedJoint, "[ConnClone] Joint was cloned with error");
+            clonedComps.insert(clonedComps.end(),
+                               jointCloneComps.begin(),
+                               jointCloneComps.end());
+
+            cloned->m_associatedJoints.push_back(clonedJoint->getUuid());
+        }
+
+        return clonedComps;
+    }
+
 } // namespace Bess::Canvas

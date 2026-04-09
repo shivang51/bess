@@ -289,4 +289,28 @@ void bind_time(py::module_ &m) {
         .def("__sub__", [](const std::chrono::nanoseconds &a, const std::chrono::nanoseconds &b) {
             return std::chrono::nanoseconds(static_cast<uint64_t>(a.count()) - static_cast<uint64_t>(b.count()));
         });
+
+    py::class_<std::chrono::duration<double, std::milli>>(timeModule, "TimeMS")
+        .def(py::init<>())
+        .def(py::init<uint64_t>(), py::arg("ms"))
+        .def("__int__", [](const std::chrono::duration<double, std::milli> &self) {
+            return static_cast<uint64_t>(self.count());
+        })
+        .def("__repr__", [](const std::chrono::duration<double, std::milli> &self) {
+            return std::format("<TimeMS {} ms>", static_cast<uint64_t>(self.count()));
+        })
+        .def("__eq__", [](const std::chrono::duration<double, std::milli> &a, const std::chrono::duration<double, std::milli> &b) { return a == b; })
+        .def("__ne__", [](const std::chrono::duration<double, std::milli> &a, const std::chrono::duration<double, std::milli> &b) { return !(a == b); })
+        .def("__lt__", [](const std::chrono::duration<double, std::milli> &a, const std::chrono::duration<double, std::milli> &b) { return a < b; })
+        .def("__le__", [](const std::chrono::duration<double, std::milli> &a, const std::chrono::duration<double, std::milli> &b) { return a <= b; })
+        .def("__gt__", [](const std::chrono::duration<double, std::milli> &a, const std::chrono::duration<double, std::milli> &b) { return a > b; })
+        .def("__ge__", [](const std::chrono::duration<double, std::milli> &a, const std::chrono::duration<double, std::milli> &b) { return a >= b; })
+        .def("__add__", [](const std::chrono::duration<double, std::milli> &a, const std::chrono::duration<double, std::milli> &b) {
+            return std::chrono::duration<double, std::milli>(static_cast<uint64_t>(a.count()) + static_cast<uint64_t>(b.count()));
+        })
+        .def("__sub__", [](const std::chrono::duration<double, std::milli> &a, const std::chrono::duration<double, std::milli> &b) {
+            return std::chrono::duration<double, std::milli>(static_cast<uint64_t>(a.count()) - static_cast<uint64_t>(b.count()));
+        });
+
+    // std::chrono::duration<double, std::ratio<1l, 1000l>> alias to TimeMs
 }

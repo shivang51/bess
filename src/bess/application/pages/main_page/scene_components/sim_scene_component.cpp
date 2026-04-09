@@ -1,57 +1,50 @@
 #include "sim_scene_component.h"
 #include "common/bess_uuid.h"
+#include "icons/FontAwesomeIcons.h"
 #include "input_scene_component.h"
-#include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
+#include "renderer/material_renderer.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/components/styles/sim_comp_style.h"
 #include "scene/scene_state/scene_state.h"
+#include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
 #include "simulation_engine.h"
 #include "slot_scene_component.h"
+#include "ui/widgets/m_widgets.h"
 
 #include <algorithm>
+#include <unordered_set>
 
 namespace Bess::Canvas {
     constexpr float SNAP_AMOUNT = 2.f;
 
-    SimulationSceneComponent::SimulationSceneComponent() = default;
-
-    std::vector<std::shared_ptr<SlotSceneComponent>>
-    SimulationSceneComponent::createIOSlots(size_t inputCount, size_t outputCount) {
-        std::vector<std::shared_ptr<SlotSceneComponent>> slots;
-
-        for (size_t i = 0; i < inputCount; i++) {
-            auto slot = std::make_shared<SlotSceneComponent>();
-            slot->setSlotType(SlotType::digitalInput);
-            slot->setIndex(static_cast<int>(i));
-            m_inputSlots.push_back(slot->getUuid());
-            slots.push_back(slot);
-        }
-
-        for (size_t i = 0; i < outputCount; i++) {
-            auto slot = std::make_shared<SlotSceneComponent>();
-            slot->setSlotType(SlotType::digitalOutput);
-            slot->setIndex(static_cast<int>(i));
-            m_outputSlots.push_back(slot->getUuid());
-            slots.push_back(slot);
-        }
-
-        return slots;
+    SimulationSceneComponent::SimulationSceneComponent() {
+        m_icon = UI::Icons::FontAwesomeIcons::FA_MICROCHIP;
     }
 
-    void SimulationSceneComponent::draw(SceneState &state,
-                                        std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                        std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
-        if (m_isFirstDraw) {
-            onFirstDraw(state, materialRenderer, pathRenderer);
-        }
+    std::vector<std::shared_ptr<SceneComponent>> SimulationSceneComponent::clone(const SceneState &sceneState) const {
+        auto clonedComponent = std::make_shared<SimulationSceneComponent>(*this);
+        return cloneSimulationComponent(sceneState, clonedComponent);
+    }
 
+    void SimulationSceneComponent::update(Bess::TimeMs timeStep, SceneState &state) {
         if (m_isScaleDirty) {
-            setScale(calculateScale(state, materialRenderer));
+            setScale(calculateScale(state));
             resetSlotPositions(state);
             m_isScaleDirty = false;
+        }
+        if (m_isSchematicScaleDirty) {
+            calculateSchematicScale(state);
+            resetSchematicPinsPositions(state);
+            m_isSchematicScaleDirty = false;
+        }
+    }
+
+    void SimulationSceneComponent::draw(SceneDrawContext &context) {
+        if (m_isFirstDraw) {
+            onFirstDraw(context);
         }
 
         const auto pickingId = PickingId{m_runtimeId, 0};
@@ -59,8 +52,9 @@ namespace Bess::Canvas {
         DrawHookOnDrawResult drawHookResult{.drawChildren = true, .drawOriginal = true};
         if (m_drawHook && m_drawHook->isDrawEnabled()) {
             const auto &compState = SimEngine::SimulationEngine::instance().getComponentState(m_simEngineId);
-            drawHookResult = m_drawHook->onDraw(m_transform, pickingId, compState, materialRenderer, pathRenderer);
+            drawHookResult = m_drawHook->onDraw(m_transform, pickingId, compState, context.materialRenderer, context.pathRenderer);
 
+            auto &state = *context.sceneState;
             if (drawHookResult.sizeChanged) {
                 setScale(drawHookResult.newSize);
                 resetSlotPositions(state);
@@ -69,76 +63,85 @@ namespace Bess::Canvas {
         }
 
         if (drawHookResult.drawOriginal) {
-            // background
-            Renderer::QuadRenderProperties props;
-            props.angle = m_transform.angle;
-            props.borderRadius = m_style.borderRadius;
-            props.borderSize = m_style.borderSize;
-            props.borderColor = m_isSelected
-                                    ? ViewportTheme::colors.selectedComp
-                                    : m_style.borderColor;
-            props.isMica = true;
-            props.shadow = {
-                .enabled = true,
-                .offset = glm::vec2(0.f, 0.f),
-                .scale = glm::vec2(1.701f, 1.701f),
-                .color = glm::vec4(1.f),
-            };
-
-            materialRenderer->drawQuad(m_transform.position,
-                                       m_transform.scale,
-                                       m_style.color,
-                                       pickingId,
-                                       props);
-
-            // header
-            props = {};
-            props.angle = m_transform.angle;
-            props.borderSize = glm::vec4(0.f);
-            props.borderRadius = glm::vec4(0,
-                                           0,
-                                           m_style.borderRadius.x - m_style.borderSize.x,
-                                           m_style.borderRadius.y - m_style.borderSize.y);
-            props.isMica = true;
-
-            const float headerHeight = Styles::componentStyles.headerHeight;
-            const auto headerPos = glm::vec3(m_transform.position.x,
-                                             m_transform.position.y - (m_transform.scale.y / 2.f) + (headerHeight / 2.f),
-                                             m_transform.position.z + 0.0004f);
-            materialRenderer->drawQuad(headerPos,
-                                       glm::vec2(m_transform.scale.x - m_style.borderSize.w - m_style.borderSize.y,
-                                                 headerHeight - m_style.borderSize.x - m_style.borderSize.z),
-                                       m_style.headerColor,
-                                       pickingId,
-                                       props);
-
-            const auto textPos = glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) + Styles::componentStyles.paddingX,
-                                           headerPos.y + Styles::simCompStyles.paddingY,
-                                           m_transform.position.z + 0.0005f);
-            // component name
-            materialRenderer->drawText(m_name,
-                                       textPos,
-                                       Styles::simCompStyles.headerFontSize,
-                                       ViewportTheme::colors.text,
-                                       pickingId,
-                                       m_transform.angle);
+            drawBackground(context);
         }
 
         if (drawHookResult.drawChildren) {
-            // slots
-            for (const auto &childId : m_childComponents) {
-                auto child = state.getComponentByUuid(childId);
-                child->draw(state, materialRenderer, pathRenderer);
-            }
+            drawSlots(context);
         }
     }
 
-    void SimulationSceneComponent::drawSchematic(SceneState &state,
-                                                 std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                                 std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) {
+    void SimulationSceneComponent::drawBackground(SceneDrawContext &context) {
 
+        const auto pickingId = PickingId{m_runtimeId, 0};
+        Renderer::QuadRenderProperties props;
+        props.angle = m_transform.angle;
+        props.borderRadius = m_style.borderRadius;
+        props.borderSize = m_style.borderSize;
+        props.borderColor = m_isSelected
+                                ? ViewportTheme::colors.selectedComp
+                                : m_style.headerColor;
+        props.isMica = true;
+        props.shadow = {
+            .enabled = true,
+            .offset = glm::vec2(0.f, 0.f),
+            .scale = glm::vec2(1.701f, 1.701f),
+            .color = glm::vec4(1.f),
+        };
+
+        context.materialRenderer->drawQuad(m_transform.position,
+                                           m_transform.scale,
+                                           m_style.color,
+                                           pickingId,
+                                           props);
+
+        // header
+        props = {};
+        props.angle = m_transform.angle;
+        props.borderSize = glm::vec4(0.f);
+        props.borderRadius = glm::vec4(0,
+                                       0,
+                                       m_style.borderRadius.x - m_style.borderSize.x,
+                                       m_style.borderRadius.y - m_style.borderSize.y);
+        props.isMica = true;
+
+        const float headerHeight = Styles::componentStyles.headerHeight;
+        const auto headerPos = glm::vec3(m_transform.position.x,
+                                         m_transform.position.y - (m_transform.scale.y / 2.f) + (headerHeight / 2.f),
+                                         m_transform.position.z + 0.0004f);
+        context.materialRenderer->drawQuad(headerPos,
+                                           glm::vec2(m_transform.scale.x - m_style.borderSize.w - m_style.borderSize.y,
+                                                     headerHeight - m_style.borderSize.x - m_style.borderSize.z),
+                                           m_style.headerColor,
+                                           pickingId,
+                                           props);
+
+        const auto textPos = glm::vec3(m_transform.position.x - (m_transform.scale.x / 2.f) + Styles::componentStyles.paddingX,
+                                       headerPos.y + Styles::simCompStyles.paddingY,
+                                       m_transform.position.z + 0.0005f);
+        // component name
+        context.materialRenderer->drawText(m_name,
+                                           textPos,
+                                           Styles::simCompStyles.headerFontSize,
+                                           ViewportTheme::colors.text,
+                                           pickingId,
+                                           m_transform.angle);
+    }
+
+    void SimulationSceneComponent::drawSlots(SceneDrawContext &context) {
+        const auto &state = *context.sceneState;
+        // slots
+        for (const auto &childId : m_childComponents) {
+            auto child = state.getComponentByUuid(childId);
+            child->draw(context);
+        }
+    }
+
+    void SimulationSceneComponent::drawSchematic(SceneDrawContext &context) {
+
+        auto &state = *context.sceneState;
         if (m_isSchematicScaleDirty) {
-            calculateSchematicScale(state, materialRenderer);
+            calculateSchematicScale(state);
             resetSchematicPinsPositions(state);
             m_isSchematicScaleDirty = false;
         }
@@ -146,7 +149,9 @@ namespace Bess::Canvas {
         const auto &id = PickingId{m_runtimeId, 0};
 
         if (m_drawHook && m_drawHook->isSchematicDrawEnabled()) {
-            auto newScale = m_drawHook->onSchematicDraw(m_schematicTransform, id, materialRenderer, pathRenderer);
+            auto newScale = m_drawHook->onSchematicDraw(m_schematicTransform, id,
+                                                        context.materialRenderer,
+                                                        context.pathRenderer);
             const auto &prevScale = m_schematicTransform.scale;
             if (newScale.x != prevScale.x || newScale.y != prevScale.y) {
                 m_schematicTransform.scale = newScale;
@@ -162,27 +167,27 @@ namespace Bess::Canvas {
             const auto &textColor = ViewportTheme::schematicViewColors.text;
             const auto &fillColor = ViewportTheme::schematicViewColors.componentFill;
             const auto &strokeColor = ViewportTheme::schematicViewColors.componentStroke;
-            pathRenderer->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
-            pathRenderer->pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);
-            pathRenderer->pathLineTo({x1, y1, pos.z}, nodeWeight, strokeColor, id);
-            pathRenderer->pathLineTo({x, y1, pos.z}, nodeWeight, strokeColor, id);
-            pathRenderer->endPathMode(true, true, fillColor);
+            context.pathRenderer->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
+            context.pathRenderer->pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);
+            context.pathRenderer->pathLineTo({x1, y1, pos.z}, nodeWeight, strokeColor, id);
+            context.pathRenderer->pathLineTo({x, y1, pos.z}, nodeWeight, strokeColor, id);
+            context.pathRenderer->endPathMode(true, true, fillColor);
 
-            const auto textSize = materialRenderer->getTextRenderSize(m_name,
-                                                                      Styles::compSchematicStyles.nameFontSize);
+            const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(m_name,
+                                                                                Styles::compSchematicStyles.nameFontSize);
             glm::vec3 textPos = {pos.x, y + ((y1 - y) / 2.f), pos.z + 0.0005f};
             textPos.x -= textSize.x / 2.f;
             textPos.y += Styles::simCompStyles.headerFontSize / 2.f;
-            materialRenderer->drawText(m_name,
-                                       textPos,
-                                       Styles::compSchematicStyles.nameFontSize,
-                                       textColor, id, 0.f);
+            context.materialRenderer->drawText(m_name,
+                                               textPos,
+                                               Styles::compSchematicStyles.nameFontSize,
+                                               textColor, id, 0.f);
         }
 
         // slots
         for (const auto &childId : m_childComponents) {
             auto child = state.getComponentByUuid(childId);
-            child->drawSchematic(state, materialRenderer, pathRenderer);
+            child->drawSchematic(context);
         }
     }
 
@@ -216,8 +221,9 @@ namespace Bess::Canvas {
         return {inputPositions, outputPositions};
     }
 
-    glm::vec2 SimulationSceneComponent::calculateScale(SceneState &state, std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) {
-        const auto labelSize = materialRenderer->getTextRenderSize(m_name, Styles::simCompStyles.headerFontSize);
+    glm::vec2 SimulationSceneComponent::calculateScale(SceneState &state) {
+        const auto labelSize = Renderer::MaterialRenderer::getTextRenderSize(m_name,
+                                                                             Styles::simCompStyles.headerFontSize);
         float width = labelSize.x + (Styles::simCompStyles.paddingX * 2.f);
         size_t maxRows = std::max(m_inputSlots.size(), m_outputSlots.size());
         float height = ((float)maxRows * Styles::SIM_COMP_SLOT_ROW_SIZE);
@@ -242,6 +248,9 @@ namespace Bess::Canvas {
 
         for (size_t i = 0; i < outPositions.size(); i++) {
             const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(m_outputSlots[i]);
+            BESS_ASSERT(slotComp,
+                        std::format("Slot component with UUID {} not found in scene state",
+                                    (uint64_t)m_outputSlots[i]));
             slotComp->setPosition(outPositions[i]);
         }
     }
@@ -283,19 +292,11 @@ namespace Bess::Canvas {
         }
     }
 
-    void SimulationSceneComponent::onFirstDraw(SceneState &sceneState,
-                                               std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                               std::shared_ptr<PathRenderer> /*unused*/) {
-        setScale(calculateScale(sceneState, materialRenderer));
-        resetSlotPositions(sceneState);
+    void SimulationSceneComponent::onFirstDraw(SceneDrawContext &context) {
         m_isFirstDraw = false;
     }
 
-    void SimulationSceneComponent::onFirstSchematicDraw(SceneState &sceneState,
-                                                        std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                                        std::shared_ptr<PathRenderer> /*unused*/) {
-        calculateSchematicScale(sceneState, materialRenderer);
-        resetSchematicPinsPositions(sceneState);
+    void SimulationSceneComponent::onFirstSchematicDraw(SceneDrawContext &context) {
         m_isFirstSchematicDraw = false;
     }
 
@@ -323,15 +324,19 @@ namespace Bess::Canvas {
         }
     }
 
-    void SimulationSceneComponent::setScaleDirty() {
-        m_isScaleDirty = true;
+    void SimulationSceneComponent::setScaleDirty(bool val) {
+        m_isScaleDirty = val;
     }
 
     void SimulationSceneComponent::onAttach(SceneState &state) {
         SceneComponent::onAttach(state);
         BESS_ASSERT(m_compDef, "SimSceneComp: Component definition must be set before attaching to scene");
+
+        if (m_simEngineId != UUID::null)
+            return;
+
         auto &simEngine = SimEngine::SimulationEngine::instance();
-        m_simEngineId = simEngine.addComponent(m_compDef);
+        m_simEngineId = simEngine.addComponent(m_compDef, false);
     }
 
     std::vector<UUID> SimulationSceneComponent::cleanup(SceneState &state, UUID caller) {
@@ -342,6 +347,7 @@ namespace Bess::Canvas {
 
         auto &simEngine = SimEngine::SimulationEngine::instance();
         simEngine.deleteComponent(m_simEngineId);
+        m_simEngineId = UUID::null;
 
         if (m_drawHook) {
             // m_drawHook.reset();
@@ -350,8 +356,7 @@ namespace Bess::Canvas {
         return removedIds;
     }
 
-    void SimulationSceneComponent::calculateSchematicScale(SceneState &state,
-                                                           const std::shared_ptr<Renderer::MaterialRenderer> &materialRenderer) {
+    void SimulationSceneComponent::calculateSchematicScale(SceneState &state) {
         auto inpCount = m_inputSlots.size();
         auto outCount = m_outputSlots.size();
         if (inpCount != 0 &&
@@ -367,23 +372,23 @@ namespace Bess::Canvas {
         float maxInpSlotWidth = 0.f, maxOutSlotWidth = 0.f;
         for (size_t i = 0; i < inpCount; i++) {
             const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(m_inputSlots[i]);
-            const auto slotLabelSize = materialRenderer->getTextRenderSize(slotComp->getName(),
-                                                                           Styles::componentStyles.slotLabelSize);
+            const auto slotLabelSize = Renderer::MaterialRenderer::getTextRenderSize(slotComp->getName(),
+                                                                                     Styles::componentStyles.slotLabelSize);
             maxInpSlotWidth = std::max(maxInpSlotWidth, slotLabelSize.x);
         }
 
         for (size_t i = 0; i < outCount; i++) {
             const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(m_outputSlots[i]);
-            const auto slotLabelSize = materialRenderer->getTextRenderSize(slotComp->getName(),
-                                                                           Styles::componentStyles.slotLabelSize);
+            const auto slotLabelSize = Renderer::MaterialRenderer::getTextRenderSize(slotComp->getName(),
+                                                                                     Styles::componentStyles.slotLabelSize);
             maxOutSlotWidth = std::max(maxOutSlotWidth, slotLabelSize.x);
         }
 
         const size_t maxRows = std::max(inpCount, outCount);
         const float height = ((float)maxRows * Styles::SCHEMATIC_VIEW_PIN_ROW_SIZE);
 
-        const auto textWidth = materialRenderer->getTextRenderSize(m_name,
-                                                                   Styles::compSchematicStyles.nameFontSize)
+        const auto textWidth = Renderer::MaterialRenderer::getTextRenderSize(m_name,
+                                                                             Styles::compSchematicStyles.nameFontSize)
                                    .x;
 
         float width = textWidth + (Styles::compSchematicStyles.paddingX * 2.f); // keep the same width as normal view
@@ -394,77 +399,16 @@ namespace Bess::Canvas {
         m_isSchematicScaleDirty = false;
     }
 
-    std::vector<std::shared_ptr<SceneComponent>>
-    SimulationSceneComponent::createNewAndRegister(const std::shared_ptr<SimEngine::ComponentDefinition> &compDef) {
-        std::vector<std::shared_ptr<SceneComponent>> createdComps;
-
+    std::vector<std::shared_ptr<SceneComponent>> SimulationSceneComponent::createNewAndRegister(
+        const std::shared_ptr<SimEngine::ComponentDefinition> &compDef) {
         const bool isInput = compDef->getBehaviorType() == SimEngine::ComponentBehaviorType::input;
         const bool isOutput = compDef->getBehaviorType() == SimEngine::ComponentBehaviorType::output;
 
-        const UUID uuid;
-        std::shared_ptr<SimulationSceneComponent> sceneComp;
         if (isInput) {
-            sceneComp = std::make_shared<InputSceneComponent>();
+            return createNew<InputSceneComponent>(compDef);
         } else {
-            sceneComp = std::make_shared<SimulationSceneComponent>();
+            return createNew<SimulationSceneComponent>(compDef);
         }
-
-        createdComps.push_back(sceneComp);
-
-        // setting the name before adding to scene state, so that event listeners can access it
-        sceneComp->setName(compDef->getName());
-
-        // style
-        auto &style = sceneComp->getStyle();
-
-        style.color = ViewportTheme::colors.componentBG;
-        style.borderRadius = glm::vec4(6.f);
-        style.headerColor = ViewportTheme::getCompHeaderColor(compDef->getGroupName());
-        style.borderColor = ViewportTheme::colors.componentBorder;
-        style.borderSize = glm::vec4(1.f);
-        style.color = ViewportTheme::colors.componentBG;
-
-        const auto &inpDetails = compDef->getInputSlotsInfo();
-        const auto &outDetails = compDef->getOutputSlotsInfo();
-
-        int inSlotIdx = 0, outSlotIdx = 0;
-        char inpCh = 'A', outCh = 'a';
-
-        const auto slots = sceneComp->createIOSlots(compDef->getInputSlotsInfo().count,
-                                                    compDef->getOutputSlotsInfo().count);
-
-        for (const auto &slot : slots) {
-            if (slot->getSlotType() == SlotType::digitalInput) {
-                if (inpDetails.names.size() > inSlotIdx)
-                    slot->setName(inpDetails.names[inSlotIdx++]);
-                else
-                    slot->setName(std::string(1, inpCh++));
-            } else {
-                if (outDetails.names.size() > outSlotIdx)
-                    slot->setName(outDetails.names[outSlotIdx++]);
-                else
-                    slot->setName(std::string(1, outCh++));
-            }
-            createdComps.push_back(slot);
-        }
-
-        if (inpDetails.isResizeable) {
-            auto slot = std::make_shared<SlotSceneComponent>();
-            slot->setSlotType(SlotType::inputsResize);
-            slot->setIndex(-1); // assign -1 for resize slots
-            sceneComp->addInputSlot(slot->getUuid(), false);
-            createdComps.push_back(slot);
-        }
-
-        if (outDetails.isResizeable) {
-            auto slot = std::make_shared<SlotSceneComponent>();
-            slot->setSlotType(SlotType::outputsResize);
-            slot->setIndex(-1); // assign -1 for resize slots
-            sceneComp->addOutputSlot(slot->getUuid(), false);
-            createdComps.push_back(slot);
-        }
-
-        return createdComps;
     }
 
     void SimulationSceneComponent::onMouseDragged(const Events::MouseDraggedEvent &e) {
@@ -509,31 +453,26 @@ namespace Bess::Canvas {
     std::vector<UUID> SimulationSceneComponent::getDependants(const SceneState &state) const {
         std::vector<UUID> dependants;
 
-        // get connections and their dependants
+        // get slots and their dependants
         for (const auto &inp : std::ranges::reverse_view(m_inputSlots)) {
             const auto &slotComp = state.getComponentByUuid<SlotSceneComponent>(inp);
-            const auto &connections = slotComp->getConnectedConnections();
-            for (const auto &connUuid : connections) {
-                const auto &connComp = state.getComponentByUuid<ConnectionSceneComponent>(connUuid);
-                const auto &connDeps = connComp->getDependants(state);
-                dependants.insert(dependants.end(), connDeps.begin(), connDeps.end());
-                dependants.push_back(connUuid);
-            }
+            const auto &slotDeps = slotComp->getDependants(state);
+            dependants.insert(dependants.end(), slotDeps.begin(), slotDeps.end());
+            dependants.push_back(inp);
         }
 
         for (const auto &out : std::ranges::reverse_view(m_outputSlots)) {
             const auto &slotComp = state.getComponentByUuid<SlotSceneComponent>(out);
-            const auto &connections = slotComp->getConnectedConnections();
-            for (const auto &connUuid : connections) {
-                const auto &connComp = state.getComponentByUuid<ConnectionSceneComponent>(connUuid);
-                const auto &connDeps = connComp->getDependants(state);
-                dependants.insert(dependants.end(), connDeps.begin(), connDeps.end());
-                dependants.push_back(connUuid);
-            }
+            const auto &slotDeps = slotComp->getDependants(state);
+            dependants.insert(dependants.end(), slotDeps.begin(), slotDeps.end());
+            dependants.push_back(out);
         }
 
         // get children and their dependants
         for (const auto &childId : m_childComponents) {
+            if (std::ranges::find(dependants, childId) != dependants.end()) {
+                continue;
+            }
             const auto &childComp = state.getComponentByUuid(childId);
             const auto &childDeps = childComp->getDependants(state);
             dependants.insert(dependants.end(), childDeps.begin(), childDeps.end());
@@ -551,4 +490,182 @@ namespace Bess::Canvas {
         setScaleDirty();
         setSchematicScaleDirty();
     }
+
+    std::vector<std::shared_ptr<SlotSceneComponent>>
+    SimulationSceneComponent::createIOSlots(size_t inputCount, size_t outputCount) {
+        std::vector<std::shared_ptr<SlotSceneComponent>> slots;
+
+        for (size_t i = 0; i < inputCount; i++) {
+            auto slot = std::make_shared<SlotSceneComponent>();
+            slot->setSlotType(SlotType::digitalInput);
+            slot->setIndex(static_cast<int>(i));
+            m_inputSlots.push_back(slot->getUuid());
+            slots.push_back(slot);
+        }
+
+        for (size_t i = 0; i < outputCount; i++) {
+            auto slot = std::make_shared<SlotSceneComponent>();
+            slot->setSlotType(SlotType::digitalOutput);
+            slot->setIndex(static_cast<int>(i));
+            m_outputSlots.push_back(slot->getUuid());
+            slots.push_back(slot);
+        }
+
+        return slots;
+    }
+
+    std::vector<SimEngine::LogicState> SimulationSceneComponent::getInputStates(const SceneState &state) const {
+        std::vector<SimEngine::LogicState> states;
+        for (const auto &inp : m_inputSlots) {
+            const auto &slotComp = state.getComponentByUuid<SlotSceneComponent>(inp);
+            if (slotComp->isResizeSlot()) {
+                continue;
+            }
+            states.push_back(slotComp->getSlotState(state).state);
+        }
+        return states;
+    }
+
+    std::vector<SimEngine::LogicState> SimulationSceneComponent::getOutputStates(const SceneState &state) const {
+        std::vector<SimEngine::LogicState> states;
+        for (const auto &inp : m_outputSlots) {
+            const auto &slotComp = state.getComponentByUuid<SlotSceneComponent>(inp);
+            if (slotComp->isResizeSlot()) {
+                continue;
+            }
+            states.push_back(slotComp->getSlotState(state).state);
+        }
+        return states;
+    }
+
+    std::vector<std::shared_ptr<SceneComponent>> SimulationSceneComponent::cloneSimulationComponent(
+        const SceneState &sceneState,
+        const std::shared_ptr<SimulationSceneComponent> &clonedComponent) const {
+        BESS_ASSERT(clonedComponent, "Cannot clone a null simulation component");
+
+        prepareClone(*clonedComponent);
+        clonedComponent->setSimEngineId(UUID::null);
+        clonedComponent->setNetId(UUID::null);
+        clonedComponent->setInputSlots({});
+        clonedComponent->setOutputSlots({});
+        clonedComponent->setCompDef(m_compDef ? m_compDef->clone() : nullptr);
+
+        std::vector<std::shared_ptr<SceneComponent>> clonedComponents;
+        clonedComponents.push_back(clonedComponent);
+
+        std::unordered_set<UUID> clonedChildren;
+
+        const auto cloneSlot = [&](const UUID &slotId, const bool isInputSlot) {
+            const auto slotComponent = sceneState.getComponentByUuid<SlotSceneComponent>(slotId);
+            BESS_ASSERT(slotComponent, "Simulation child slot was not found during clone");
+
+            const auto slotClones = slotComponent->clone(sceneState);
+            BESS_ASSERT(slotClones.size() == 1, "Slot clone should only produce one component");
+
+            const auto clonedSlot = std::dynamic_pointer_cast<SlotSceneComponent>(slotClones.front());
+            BESS_ASSERT(clonedSlot, "Cloned simulation child is not a slot component");
+
+            if (isInputSlot) {
+                clonedComponent->addInputSlot(clonedSlot->getUuid(), false);
+            } else {
+                clonedComponent->addOutputSlot(clonedSlot->getUuid(), false);
+            }
+
+            clonedComponents.insert(clonedComponents.end(), slotClones.begin(), slotClones.end());
+            clonedChildren.insert(slotId);
+        };
+
+        for (const auto &childId : m_inputSlots) {
+            const auto childComponent = sceneState.getComponentByUuid(childId);
+            BESS_ASSERT(childComponent,
+                        "Simulation child component was not found during clone");
+            auto slot = childComponent->cast<SlotSceneComponent>();
+            cloneSlot(childId, true);
+        }
+
+        for (const auto &childId : m_outputSlots) {
+            const auto childComponent = sceneState.getComponentByUuid(childId);
+            BESS_ASSERT(childComponent,
+                        "Simulation child component was not found during clone");
+            auto slot = childComponent->cast<SlotSceneComponent>();
+            cloneSlot(childId, false);
+        }
+
+        for (const auto &childId : m_childComponents) {
+
+            if (clonedChildren.contains(childId)) {
+                continue;
+            }
+
+            const auto childComponent = sceneState.getComponentByUuid(childId);
+            BESS_ASSERT(childComponent,
+                        "Simulation child component was not found during clone");
+
+            const auto childClones = childComponent->clone(sceneState);
+            BESS_ASSERT(!childClones.empty(),
+                        "Simulation child clone returned no components");
+
+            clonedComponents.insert(clonedComponents.end(),
+                                    childClones.begin(),
+                                    childClones.end());
+
+            clonedChildren.insert(childId);
+        }
+
+        return clonedComponents;
+    }
+
+    void SimulationSceneComponent::drawPropertiesUI(SceneState &state) {
+        SceneComponent::drawPropertiesUI(state);
+
+        // Width and Height
+        if (UI::Widgets::TreeNode(0, "Size")) {
+            float width = m_transform.scale.x;
+            float height = m_transform.scale.y;
+            if (ImGui::InputFloat("Width", &width, 1.f, 1000.f) ||
+                ImGui::InputFloat("Height", &height, 1.f, 1000.f)) {
+                setScale(glm::vec2(width, height));
+                resetSlotPositions(state);
+                setSchematicScaleDirty();
+            }
+            ImGui::TreePop();
+        }
+
+        // Input Slots Names
+        if (UI::Widgets::TreeNode(0, "Input Slots")) {
+            for (size_t i = 0; i < m_inputSlots.size(); i++) {
+                const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(m_inputSlots[i]);
+                if (slotComp->isResizeSlot()) {
+                    continue;
+                }
+                std::string label = "Input Slot " + std::to_string(i);
+                if (UI::Widgets::TextBox(label, slotComp->getName())) {
+                    slotComp->onNameChanged();
+                }
+            }
+            ImGui::TreePop();
+        }
+
+        // Output Slots Names
+        if (UI::Widgets::TreeNode(0, "Output Slots")) {
+            for (size_t i = 0; i < m_outputSlots.size(); i++) {
+                const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(m_outputSlots[i]);
+                if (slotComp->isResizeSlot()) {
+                    continue;
+                }
+                std::string label = "Output Slot " + std::to_string(i);
+                if (UI::Widgets::TextBox(label, slotComp->getName())) {
+                    slotComp->onNameChanged();
+                }
+            }
+            ImGui::TreePop();
+        }
+    }
+
+    void SimulationSceneComponent::onNameChanged() {
+        SceneComponent::onNameChanged();
+        setScaleDirty();
+        setSchematicScaleDirty();
+    }
+
 } // namespace Bess::Canvas

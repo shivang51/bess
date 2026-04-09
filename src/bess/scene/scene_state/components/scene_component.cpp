@@ -1,14 +1,17 @@
 #include "scene/scene_state/components/scene_component.h"
 #include "json/value.h"
-#include <utility>
 
 #include "ext/matrix_transform.hpp"
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/components/styles/comp_style.h"
 #include "scene/scene_state/scene_state.h"
+#include "scene_draw_context.h"
+#include "ui/icons/FontAwesomeIcons.h"
 
 namespace Bess::Canvas {
-    SceneComponent::SceneComponent() : m_uuid{UUID()} {};
+    SceneComponent::SceneComponent()
+        : m_uuid{UUID()}, m_icon(UI::Icons::FontAwesomeIcons::FA_CUBE) {
+    }
 
     bool SceneComponent::isDraggable() const {
         return m_isDraggable;
@@ -21,6 +24,7 @@ namespace Bess::Canvas {
 
     void SceneComponent::setScale(const glm::vec2 &scale) {
         m_transform.scale = scale;
+        onScaleChanged();
     }
 
     void SceneComponent::setIsDraggable(bool draggable) {
@@ -34,42 +38,36 @@ namespace Bess::Canvas {
         return transform;
     }
 
-    glm::vec2 SceneComponent::calculateScale(SceneState &_, std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) {
-        const auto labelSize = materialRenderer->getTextRenderSize(m_name, Styles::componentStyles.headerFontSize);
+    glm::vec2 SceneComponent::calculateScale(SceneState &_) {
+        const auto labelSize = Renderer::MaterialRenderer::getTextRenderSize(m_name, Styles::componentStyles.headerFontSize);
         float width = labelSize.x + (Styles::componentStyles.paddingX * 2.f);
         return {width, Styles::componentStyles.headerHeight};
     }
 
-    void SceneComponent::onFirstDraw(SceneState &_,
-                                     std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                     std::shared_ptr<PathRenderer> /*unused*/) {
-        setScale(calculateScale(_, std::move(materialRenderer)));
+    void SceneComponent::onFirstDraw(SceneDrawContext &context) {
+        setScale(calculateScale(*context.sceneState));
         m_isFirstDraw = false;
     }
 
-    void SceneComponent::draw(SceneState &state,
-                              std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                              std::shared_ptr<PathRenderer> pathRenderer) {
+    void SceneComponent::draw(SceneDrawContext &context) {
         if (m_isFirstDraw) {
-            onFirstDraw(state, materialRenderer, pathRenderer);
+            onFirstDraw(context);
         }
 
         for (const auto &childId : m_childComponents) {
-            auto child = state.getComponentByUuid(childId);
-            child->draw(state, materialRenderer, pathRenderer);
+            auto child = context.sceneState->getComponentByUuid(childId);
+            child->draw(context);
         }
     }
 
-    void SceneComponent::drawSchematic(SceneState &state,
-                                       std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                       std::shared_ptr<PathRenderer> pathRenderer) {
+    void SceneComponent::drawSchematic(SceneDrawContext &context) {
         if (m_isFirstSchematicDraw) {
-            onFirstSchematicDraw(state, materialRenderer, pathRenderer);
+            onFirstSchematicDraw(context);
         }
 
         for (const auto &childId : m_childComponents) {
-            auto child = state.getComponentByUuid(childId);
-            child->drawSchematic(state, materialRenderer, pathRenderer);
+            auto child = context.sceneState->getComponentByUuid(childId);
+            child->drawSchematic(context);
         }
     }
 
@@ -105,9 +103,7 @@ namespace Bess::Canvas {
         return removedIds;
     }
 
-    void SceneComponent::onFirstSchematicDraw(SceneState &state,
-                                              std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                                              std::shared_ptr<PathRenderer> pathRenderer) {
+    void SceneComponent::onFirstSchematicDraw(SceneDrawContext &context) {
 
         m_isFirstSchematicDraw = false;
     }
@@ -147,4 +143,24 @@ namespace Bess::Canvas {
     }
 
     void SceneComponent::onChildrenChanged() {}
+
+    void SceneComponent::onScaleChanged() {}
+
+    void SceneComponent::drawPropertiesUI(SceneState& sceneState) {}
+
+    std::vector<std::shared_ptr<SceneComponent>> SceneComponent::clone(const SceneState &sceneState) const {
+        (void)sceneState;
+        auto clonedComponent = std::make_shared<SceneComponent>(*this);
+        prepareClone(*clonedComponent);
+        return {clonedComponent};
+    }
+
+    void SceneComponent::prepareClone(SceneComponent &clonedComponent) const {
+        clonedComponent.setUuid(UUID{});
+        clonedComponent.setRuntimeId(PickingId::invalidRuntimeId);
+        clonedComponent.setParentComponent(UUID::null);
+        clonedComponent.setChildComponents({});
+        clonedComponent.setIsSelected(false);
+    }
+
 } // namespace Bess::Canvas

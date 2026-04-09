@@ -1,7 +1,7 @@
 #include "component_definition.h"
+#include "common/logger.h"
 #include "expression_evalutator/expr_evaluator.h"
 #include "types.h"
-#include "common/logger.h"
 #include <memory>
 #include <type_traits>
 
@@ -51,6 +51,10 @@ namespace Bess::SimEngine {
             return hash;
         }
     } // namespace
+
+    std::shared_ptr<Trait> Trait::clone() const {
+        return std::make_shared<Trait>(*this);
+    }
 
     bool ComponentDefinition::onSlotsResizeReq(SlotsGroupType groupType, size_t newSize) {
         if (groupType == SlotsGroupType::input)

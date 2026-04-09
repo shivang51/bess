@@ -4,6 +4,7 @@
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/scene_state.h"
 #include "scene_comp_types.h"
+#include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
 #include "ui/ui_hook.h"
 #include <typeindex>
@@ -36,15 +37,12 @@ namespace Bess::Canvas {
         REG_SCENE_COMP_TYPE("NonSimComponent", SceneComponentType::nonSimulation)
         SCENE_COMP_SER_NP(Bess::Canvas::NonSimSceneComponent, Bess::Canvas::SceneComponent)
 
-        MAKE_GETTER_SETTER(UI::Hook::UIHook, UIHook, m_uiHook)
+        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
 
         virtual std::type_index getTypeIndex();
 
         static void clearRegistry();
         typedef std::function<std::shared_ptr<NonSimSceneComponent>()> ContrFunc;
-
-      protected:
-        UI::Hook::UIHook m_uiHook;
 
       private:
         // this stores functions to invoke constructors of components
@@ -53,65 +51,15 @@ namespace Bess::Canvas {
 
     class TextComponent : public NonSimSceneComponent {
       public:
-        TextComponent() {
-            m_name = "New Text";
-            m_uiHook.addPropertyDescriptor(UI::Hook::PropertyDesc{
-                .name = "Text",
-                .type = UI::Hook::PropertyDescType::string_t,
-                .defaultValue = m_data,
-                .binding = {
-                    .getter = [&]() -> std::string {
-                        return m_data;
-                    },
-                    .setter = [&](const UI::Hook::PropertyValue &value) {
-                        m_data = std::get<std::string>(value);
-                        m_isScaleDirty = true; // to move bracket;
-                    },
-                },
-            });
-
-            m_uiHook.addPropertyDescriptor(UI::Hook::PropertyDesc{
-                .name = "Font Size",
-                .type = UI::Hook::PropertyDescType::uint_t,
-                .defaultValue = static_cast<int64_t>(m_size),
-                .binding = {
-                    .getter = [&]() -> uint64_t {
-                        return static_cast<uint64_t>(m_size);
-                    },
-                    .setter = [&](const UI::Hook::PropertyValue &value) {
-                        m_size = static_cast<size_t>(std::get<uint64_t>(value));
-                        m_isScaleDirty = true; // to move bracket;
-                    },
-                },
-            });
-
-            m_uiHook.addPropertyDescriptor(UI::Hook::PropertyDesc{
-                .name = "Color",
-                .type = UI::Hook::PropertyDescType::color_t,
-                .defaultValue = m_foregroundColor,
-                .binding = {
-                    .getter = [&]() -> const glm::vec4 & {
-                        return m_foregroundColor;
-                    },
-                    .setter = [&](const UI::Hook::PropertyValue &value) {
-                        m_foregroundColor = std::get<glm::vec4>(value); // to move bracket;
-                    },
-                },
-            });
-
-            m_style.color = ViewportTheme::colors.componentBG;
-            m_style.borderRadius = glm::vec4(6.f);
-            m_style.borderSize = glm::vec4(1.f);
-            m_style.color = ViewportTheme::colors.componentBG;
-        } // namespace Bess::Canvas
+        TextComponent();
 
         REG_SCENE_COMP_TYPE("TextComponent", SceneComponentType::nonSimulation)
         SCENE_COMP_SER(Bess::Canvas::TextComponent,
                        Bess::Canvas::NonSimSceneComponent, TEXT_SER_PROPS)
 
-        void draw(SceneState &state,
-                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                  std::shared_ptr<PathRenderer> pathRenderer) override;
+        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
+
+        void draw(SceneDrawContext &context) override;
 
         std::type_index getTypeIndex() override {
             return typeid(TextComponent);
@@ -121,9 +69,10 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(glm::vec4, ForegroundColor, m_foregroundColor)
         MAKE_GETTER_SETTER(size_t, Size, m_size)
 
+        void drawPropertiesUI(SceneState& sceneState) override;
+
       private:
-        glm::vec2 calculateScale(SceneState &state,
-                                 std::shared_ptr<Renderer::MaterialRenderer> materialRenderer) override;
+        glm::vec2 calculateScale(SceneState &state) override;
 
       private:
         std::string m_data = "New Text";

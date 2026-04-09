@@ -5,6 +5,7 @@
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene_comp_types.h"
+#include "scene_draw_context.h"
 #include "types.h"
 
 #define CONNJOINT_SC_SER_PROPS ("connSegIdx", getConnSegIdx, setConnSegIdx),                \
@@ -28,6 +29,11 @@ namespace Bess::Canvas {
         REG_SCENE_COMP_TYPE("ConnJointSceneComp", SceneComponentType::connJoint)
         SCENE_COMP_SER(Bess::Canvas::ConnJointSceneComp, Bess::Canvas::SceneComponent, CONNJOINT_SC_SER_PROPS)
 
+        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
+        std::vector<std::shared_ptr<SceneComponent>> cloneConnJoint(
+            const SceneState &sceneState,
+            std::unordered_map<UUID, UUID> &ogToClonedIdMap);
+
         MAKE_GETTER_SETTER(int, ConnSegIdx, m_connSegIdx);
         MAKE_GETTER_SETTER(int, SchConnSegIdx, m_schConnSegIdx);
         MAKE_GETTER_SETTER(UUID, ConnectionId, m_connectionId);
@@ -40,13 +46,9 @@ namespace Bess::Canvas {
 
         void addConnection(const UUID &connectionId);
 
-        void draw(SceneState &state,
-                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                  std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
+        void draw(SceneDrawContext &context) override;
 
-        void drawSchematic(SceneState &state,
-                           std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                           std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
+        void drawSchematic(SceneDrawContext &context) override;
 
         SimEngine::SlotState getSlotState(const SceneState &state) const;
         void onMouseDragged(const Events::MouseDraggedEvent &e) override;

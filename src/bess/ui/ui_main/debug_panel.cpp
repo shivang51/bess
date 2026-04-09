@@ -1,13 +1,16 @@
 #include "debug_panel.h"
-#include "icons/FontAwesomeIcons.h"
+#include "common/bess_uuid.h"
+#include "icons/CodIcons.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/main_page.h"
+#include "pages/main_page/scene_components/scene_comp_types.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
 #include "widgets/m_widgets.h"
 
 namespace Bess::UI {
     DebugPanel::DebugPanel() : Panel("Debug Panel") {
-        m_name = Icons::FontAwesomeIcons::FA_USER_NURSE + std::string(" Debug Panel");
+        m_name = Icons::CodIcons::COPILOT + std::string(" Debug Panel");
 #ifdef DEBUG
         m_visible = true;
 #endif
@@ -90,14 +93,25 @@ namespace Bess::UI {
             ImGui::TreePop();
         }
 
-        if (Widgets::TreeNode(2, "First Sim Component Serilaized")) {
+        if (Widgets::TreeNode(2, "First Component Serilaized")) {
             const auto &selComps = sceneState.getSelectedComponents();
             if (!selComps.empty()) {
                 const auto &compId = selComps.begin()->first;
                 const auto &comp = sceneState.getComponentByUuid(compId);
 
                 const auto &j = comp->toJson();
-                ImGui::TextWrapped("%s", j.toStyledString().c_str());
+                Widgets::SelectableText(compId.toString(), j.toStyledString());
+
+                if (comp->getType() == Canvas::SceneComponentType::module ||
+                    comp->getType() == Canvas::SceneComponentType::simulation) {
+                    const auto &simComp = comp->cast<Canvas::SimulationSceneComponent>();
+                    const auto &def = simComp->getCompDef();
+                    BESS_ASSERT(def, "[DEBUGPANEL] def not set");
+                    Json::Value defJson;
+                    JsonConvert::toJsonValue(def, defJson);
+                    ImGui::Separator();
+                    Widgets::SelectableText(std::to_string(def->getHash()), defJson.toStyledString());
+                }
             }
             ImGui::TreePop();
         }
@@ -109,6 +123,10 @@ namespace Bess::UI {
         const auto &sceneState = sceneDriver->getState();
 
         const auto &comp = sceneState.getComponentByUuid(compId);
+        if (!comp) {
+            return;
+        }
+
         const auto &dependants = comp->getDependants(sceneState);
 
         if (Widgets::TreeNode(1,

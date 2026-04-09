@@ -1,11 +1,20 @@
 #include "digital_component.h"
 #include "event_dispatcher.h"
 #include "events/sim_engine_events.h"
+#include "module_def.h"
 #include "types.h"
+#include <memory>
 
 namespace Bess::SimEngine {
-    DigitalComponent::DigitalComponent(const std::shared_ptr<ComponentDefinition> &def) {
-        definition = def->clone();
+    DigitalComponent::DigitalComponent(const std::shared_ptr<ComponentDefinition> &def,
+                                       bool cloneDef) {
+
+        if (cloneDef) {
+            definition = def->clone();
+        } else {
+            definition = def;
+        }
+
         definition->computeExpressionsIfNeeded();
         definition->computeHash();
         state.inputStates.resize(definition->getInputSlotsInfo().count,
@@ -19,9 +28,9 @@ namespace Bess::SimEngine {
         outputConnections.resize(state.outputStates.size());
     }
 
-    size_t DigitalComponent::incrementInputCount() {
-        if (!definition->onSlotsResizeReq(SlotsGroupType::input,
-                                          definition->getInputSlotsInfo().count + 1)) {
+    size_t DigitalComponent::incrementInputCount(bool force) {
+        if (!force && !definition->onSlotsResizeReq(SlotsGroupType::input,
+                                                    definition->getInputSlotsInfo().count + 1)) {
             return definition->getInputSlotsInfo().count;
         }
 
@@ -60,6 +69,8 @@ namespace Bess::SimEngine {
             incrementOutputCount();
         }
 
+        dispatchInputSlotCountChange(definition->getInputSlotsInfo().count);
+
         EventSystem::EventDispatcher::instance().queue(
             Events::CompDefInputsResizedEvent{this->id});
 
@@ -67,9 +78,9 @@ namespace Bess::SimEngine {
         return definition->getInputSlotsInfo().count;
     }
 
-    size_t DigitalComponent::incrementOutputCount() {
-        if (!definition->onSlotsResizeReq(SlotsGroupType::output,
-                                          definition->getOutputSlotsInfo().count + 1)) {
+    size_t DigitalComponent::incrementOutputCount(bool force) {
+        if (!force && !definition->onSlotsResizeReq(SlotsGroupType::output,
+                                                    definition->getOutputSlotsInfo().count + 1)) {
             return definition->getOutputSlotsInfo().count;
         }
 
@@ -92,14 +103,16 @@ namespace Bess::SimEngine {
             incrementInputCount();
         }
 
+        dispatchOutputSlotCountChange(definition->getOutputSlotsInfo().count);
+
         EventSystem::EventDispatcher::instance().queue(
             Events::CompDefOutputsResizedEvent{this->id});
         return definition->getOutputSlotsInfo().count;
     }
 
-    size_t DigitalComponent::decrementInputCount() {
-        if (!definition->onSlotsResizeReq(SlotsGroupType::input,
-                                          definition->getInputSlotsInfo().count - 1)) {
+    size_t DigitalComponent::decrementInputCount(bool force) {
+        if (!force && !definition->onSlotsResizeReq(SlotsGroupType::input,
+                                                    definition->getInputSlotsInfo().count - 1)) {
             return definition->getInputSlotsInfo().count;
         }
 
@@ -125,6 +138,7 @@ namespace Bess::SimEngine {
             state.outputConnected.resize(newOutputCount, false);
             outputConnections.resize(newOutputCount);
 
+            dispatchOutputSlotCountChange(newOutputCount);
             EventSystem::EventDispatcher::instance().queue(
                 Events::CompDefOutputsResizedEvent{this->id});
         } else if (growthPolicy == CompDefIOGrowthPolicy::eq &&
@@ -133,14 +147,16 @@ namespace Bess::SimEngine {
             decrementOutputCount();
         }
         definition->computeHash();
+
+        dispatchInputSlotCountChange(definition->getInputSlotsInfo().count);
         EventSystem::EventDispatcher::instance().queue(
             Events::CompDefInputsResizedEvent{this->id});
         return definition->getInputSlotsInfo().count;
     }
 
-    size_t DigitalComponent::decrementOutputCount() {
-        if (!definition->onSlotsResizeReq(SlotsGroupType::output,
-                                          definition->getOutputSlotsInfo().count - 1)) {
+    size_t DigitalComponent::decrementOutputCount(bool force) {
+        if (!force && !definition->onSlotsResizeReq(SlotsGroupType::output,
+                                                    definition->getOutputSlotsInfo().count - 1)) {
             return definition->getOutputSlotsInfo().count;
         }
 
@@ -157,10 +173,70 @@ namespace Bess::SimEngine {
             decrementInputCount();
         }
 
+        definition->computeHash();
+
+        dispatchOutputSlotCountChange(definition->getOutputSlotsInfo().count);
+
         EventSystem::EventDispatcher::instance().queue(
             Events::CompDefOutputsResizedEvent{this->id});
 
         return definition->getOutputSlotsInfo().count;
+    }
+
+    void DigitalComponent::dispatchStateChange(ComponentState &oldState, ComponentState &newState) {
+        for (const auto &cb : onStateChangeCbs) {
+            cb.second(oldState, newState);
+        }
+    }
+
+    void DigitalComponent::dispatchInputSlotCountChange(size_t newCount) {
+        for (const auto &cb : onInputSlotCountChangeCbs) {
+            cb.second(newCount);
+        }
+    }
+
+    void DigitalComponent::dispatchOutputSlotCountChange(size_t newCount) {
+        for (const auto &cb : onOutputSlotCountChangeCbs) {
+            cb.second(newCount);
+        }
+    }
+
+    void DigitalComponent::clearCallbacks() {
+        onInputSlotCountChangeCbs.clear();
+        onOutputSlotCountChangeCbs.clear();
+        onStateChangeCbs.clear();
+    }
+
+    void DigitalComponent::addOnStateChangeCB(const UUID &id, const TOnStateChangeCB &cb) {
+        onStateChangeCbs.emplace_back(id, cb);
+    }
+
+    void DigitalComponent::addOnInputSlotCountChangeCB(const UUID &id,
+                                                       const TOnSlotCountChangeCB &cb) {
+        onInputSlotCountChangeCbs.emplace_back(id, cb);
+    }
+
+    void DigitalComponent::addOnOutputSlotCountChangeCB(const UUID &id,
+                                                        const TOnSlotCountChangeCB &cb) {
+        onOutputSlotCountChangeCbs.emplace_back(id, cb);
+    }
+
+    void DigitalComponent::removeOnStateChangeCB(const UUID &id) {
+        std::erase_if(onStateChangeCbs, [id](const auto &cb) {
+            return cb.first == id;
+        });
+    }
+
+    void DigitalComponent::removeOnInputSlotCountChangeCB(const UUID &id) {
+        std::erase_if(onInputSlotCountChangeCbs, [id](const auto &cb) {
+            return cb.first == id;
+        });
+    }
+
+    void DigitalComponent::removeOnOutputSlotCountChangeCB(const UUID &id) {
+        std::erase_if(onOutputSlotCountChangeCbs, [id](const auto &cb) {
+            return cb.first == id;
+        });
     }
 } // namespace Bess::SimEngine
 
@@ -168,7 +244,13 @@ namespace Bess::JsonConvert {
     void toJsonValue(Json::Value &j, const Bess::SimEngine::DigitalComponent &comp) {
         toJsonValue(comp.id, j["id"]);
         toJsonValue(comp.netUuid, j["net_uuid"]);
-        toJsonValue(*comp.definition, j["definition"]);
+        auto moduleDef = std::dynamic_pointer_cast<SimEngine::ModuleDefinition>(comp.definition);
+        if (moduleDef) {
+            toJsonValue(*moduleDef, j["definition"]);
+            j["definition"]["is_module"] = true;
+        } else {
+            toJsonValue(*comp.definition, j["definition"]);
+        }
         toJsonValue(comp.state, j["state"]);
         toJsonValue(comp.inputConnections, j["input_connections"]);
         toJsonValue(comp.outputConnections, j["output_connections"]);
@@ -177,8 +259,14 @@ namespace Bess::JsonConvert {
     void fromJsonValue(const Json::Value &j, Bess::SimEngine::DigitalComponent &comp) {
         fromJsonValue(j["id"], comp.id);
         fromJsonValue(j["net_uuid"], comp.netUuid);
-        comp.definition = std::make_shared<SimEngine::ComponentDefinition>();
-        fromJsonValue(j["definition"], comp.definition);
+        if (j["definition"].isMember("is_module")) {
+            auto modDef = std::make_shared<SimEngine::ModuleDefinition>();
+            fromJsonValue(j["definition"], modDef);
+            comp.definition = std::move(modDef);
+        } else {
+            comp.definition = std::make_shared<SimEngine::ComponentDefinition>();
+            fromJsonValue(j["definition"], comp.definition);
+        }
         fromJsonValue(j["state"], comp.state);
         comp.state.auxData = &comp.definition->getAuxData();
         fromJsonValue(j["input_connections"], comp.inputConnections);

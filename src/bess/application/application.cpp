@@ -83,8 +83,6 @@ namespace Bess {
     }
 
     void Application::update(TimeMs ts) {
-        EventSystem::EventDispatcher::instance().dispatchAll();
-        m_mainWindow->update();
         ApplicationState::getCurrentPage()->update(ts, m_events);
         m_events.clear();
     }
@@ -122,8 +120,10 @@ namespace Bess {
         m_events.emplace_back(event);
     }
 
-    void Application::onMouseButton(MouseButton button, MouseButtonAction action) {
-        ApplicationEvent::MouseButtonData data(button, action);
+    void Application::onMouseButton(MouseButton button,
+                                    MouseButtonAction action,
+                                    const glm::vec2 &pos) {
+        ApplicationEvent::MouseButtonData data(button, action, pos);
         ApplicationEvent event(ApplicationEventType::MouseButton, data);
         m_events.emplace_back(event);
     }

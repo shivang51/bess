@@ -28,7 +28,7 @@ namespace Bess::Plugins {
 #ifdef DEBUG
         path_list.append("src/bessplug/py");
 #else
-        path_list.append("bindings");
+        path_list.append("bindings/bessplug");
 #endif
         pybind11::gil_scoped_release gil;
         BESS_INFO("PluginManager initialized with Python interpreter");

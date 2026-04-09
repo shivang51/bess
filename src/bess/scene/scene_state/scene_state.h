@@ -2,6 +2,7 @@
 
 #include "common/bess_uuid.h"
 #include "event_dispatcher.h"
+#include "renderer/material_renderer.h"
 #include "scene/scene_state/components/scene_component.h"
 #include <cstdint>
 #include <set>
@@ -26,9 +27,8 @@ namespace Bess::Canvas {
                           bool dispatchEvent = true) {
             static_assert(std::is_base_of<Bess::Canvas::SceneComponent, T>(),
                           "T must be derived from SceneComponent");
-
-            if (!component ||
-                m_componentsMap.contains(component->getUuid())) {
+            BESS_ASSERT(component != nullptr, "Cannot add null component to scene");
+            if (m_componentsMap.contains(component->getUuid())) {
                 BESS_WARN("[SceneState] Component with uuid {} already exists in the scene. Skipping addComponent.",
                           (uint64_t)component->getUuid());
                 return;
@@ -43,13 +43,17 @@ namespace Bess::Canvas {
 
             assignRuntimeId(id);
 
+            BESS_DEBUG("[SceneState] Added {} | {} to scene {}",
+                       component->getName(), (uint64_t)id, (uint64_t)m_sceneId);
+
             if (triggerAttach)
                 component->onAttach(*this);
 
             if (dispatchEvent)
                 EventSystem::EventDispatcher::instance().queue(
                     Events::ComponentAddedEvent{.uuid = id,
-                                                .type = component->getType()});
+                                                .type = component->getType(),
+                                                .state = this});
         }
 
         template <typename T>
@@ -71,6 +75,10 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(bool, IsSchematicView, m_isSchematicView);
         MAKE_GETTER_SETTER(UUID, ConnectionStartSlot, m_connectionStartSlot);
         MAKE_GETTER_SETTER(glm::vec2, MousePos, m_mousePos);
+        MAKE_GETTER_SETTER(bool, IsRootScene, m_isRootScene);
+        MAKE_GETTER_SETTER(UUID, ModuleId, m_moduleId);
+        MAKE_GETTER_SETTER(UUID, SceneId, m_sceneId);
+        MAKE_GETTER_SETTER(UUID, ParentSceneId, m_parentSceneId);
 
         // Removes the parent reference of the component,
         // but keeps this component in parents children list,
@@ -95,7 +103,7 @@ namespace Bess::Canvas {
 
         const std::unordered_map<UUID, bool> &getSelectedComponents() const;
 
-        void attachChild(const UUID &parentId, const UUID &childId);
+        void attachChild(const UUID &parentId, const UUID &childId, bool emitEvent = true);
         void detachChild(const UUID &childId);
 
         void assignRuntimeId(const UUID &uuid);
@@ -105,8 +113,15 @@ namespace Bess::Canvas {
         // returns the UUIDs of removed components
         std::vector<UUID> removeComponent(const UUID &uuid, const UUID &callerId = UUID::null);
 
+        std::shared_ptr<Renderer::MaterialRenderer> getMaterialRenderer() const;
+
+        std::shared_ptr<Renderer::PathRenderer> getPathRenderer() const;
+
+        void removeFromMap(const UUID &uuid);
+
       private:
-        std::unordered_map<UUID, std::shared_ptr<SceneComponent>> m_componentsMap;
+        std::unordered_map<UUID, std::shared_ptr<SceneComponent>>
+            m_componentsMap;
         std::unordered_map<UUID, bool> m_selectedComponents;
 
         std::unordered_map<uint32_t, UUID> m_runtimeIdMap;
@@ -115,6 +130,9 @@ namespace Bess::Canvas {
 
         UUID m_connectionStartSlot = UUID::null;
         bool m_isSchematicView = false;
+        bool m_isRootScene = true;
+        UUID m_moduleId = UUID::null; // only used for sub scenes, to know which module it belongs to
+        UUID m_sceneId, m_parentSceneId = UUID::null;
         glm::vec2 m_mousePos;
     };
 } // namespace Bess::Canvas

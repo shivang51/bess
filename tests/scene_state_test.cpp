@@ -1,195 +1,299 @@
-#include "application/events/application_event.h"
 #include "event_dispatcher.h"
-#include "pages/main_page/scene_components/sim_scene_component.h"
+#include "gtest/gtest.h"
+#include "pages/main_page/scene_components/scene_comp_types.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/scene_state.h"
-#include "scene_state/components/scene_component.h"
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
+#include "scene/scene_state/components/scene_component.h"
+#include <algorithm>
+#include <unordered_set>
 
 using namespace Bess::Canvas;
 using Bess::UUID;
 
-// Helper to generate unique UUIDs for tests
-static UUID genUUID() {
-    static uint64_t counter = 1000; // Start high to avoid collision with potential defaults
-    return UUID(counter++);
-}
-
-// Concrete implementation for testing
-class TestSceneComponent : public SceneComponent {
-  public:
-    TestSceneComponent(UUID id) {
-        m_uuid = id;
+namespace {
+    UUID genUUID() {
+        static uint64_t counter = 1000;
+        return UUID(counter++);
     }
 
-    SceneComponentType getType() const override { return SceneComponentType::_base; }
-};
+    class TestSceneComponent : public SceneComponent {
+      public:
+        explicit TestSceneComponent(UUID id = UUID::null) {
+            m_uuid = id == UUID::null ? genUUID() : id;
+            m_name = "TestSceneComponent";
+        }
+
+        SceneComponentType getType() const override {
+            return SceneComponentType::_base;
+        }
+    };
+
+    bool containsUuid(const std::vector<UUID> &uuids, UUID target) {
+        return std::ranges::find(uuids, target) != uuids.end();
+    }
+} // namespace
 
 class SceneStateTest : public testing::Test {
   protected:
-    SceneState state;
-
     void SetUp() override {
         state.clear();
         Bess::EventSystem::EventDispatcher::instance().clear();
     }
 
     void TearDown() override {
-        state.clear();
+        Bess::EventSystem::EventDispatcher::instance().dispatchAll();
         Bess::EventSystem::EventDispatcher::instance().clear();
+        state.clear();
     }
 
     std::shared_ptr<TestSceneComponent> createComponent(UUID id = UUID::null) {
-        if (id == UUID::null)
-            id = genUUID();
         return std::make_shared<TestSceneComponent>(id);
     }
+
+    SceneState state;
 };
 
-TEST_F(SceneStateTest, AddComponent) {
-    UUID id = genUUID();
-    auto comp = createComponent(id);
+TEST_F(SceneStateTest, AddComponentRegistersRootAndDispatchesAddedEvent) {
+    const auto comp = createComponent();
 
-    bool eventReceived = false;
-    // Listen for ComponentAddedEvent
-    // Event type dispatching is handled by EventDispatcher
+    int addedEvents = 0;
     auto sink = Bess::EventSystem::EventDispatcher::instance().sink<Events::ComponentAddedEvent>();
-    sink.connect([&](const Events::ComponentAddedEvent &e) {
-        if (e.uuid == id)
-            eventReceived = true;
+    sink.connect([&](const Events::ComponentAddedEvent &event) {
+        EXPECT_EQ(event.uuid, comp->getUuid());
+        EXPECT_EQ(event.type, SceneComponentType::_base);
+        EXPECT_EQ(event.state, &state);
+        addedEvents++;
     });
 
-    state.addComponent<TestSceneComponent>(comp);
+    state.addComponent(comp);
     Bess::EventSystem::EventDispatcher::instance().dispatchAll();
 
-    EXPECT_TRUE(state.getComponentByUuid(id) != nullptr);
-    EXPECT_EQ(state.getComponentByUuid(id), comp);
-    EXPECT_TRUE(eventReceived);
-    EXPECT_TRUE(state.getRootComponents().contains(id));
+    ASSERT_EQ(state.getComponentByUuid(comp->getUuid()), comp);
+    EXPECT_TRUE(state.getRootComponents().contains(comp->getUuid()));
+    EXPECT_EQ(addedEvents, 1);
 }
 
-TEST_F(SceneStateTest, RemoveComponent) {
-    UUID id = genUUID();
-    auto comp = createComponent(id);
-    state.addComponent<TestSceneComponent>(comp);
+TEST_F(SceneStateTest, AddDuplicateComponentIsIgnored) {
+    const auto comp = createComponent();
+    state.addComponent(comp);
 
-    auto removed = state.removeComponent(id);
+    state.addComponent(comp);
+    Bess::EventSystem::EventDispatcher::instance().dispatchAll();
 
-    EXPECT_EQ(removed.size(), 1);
-    EXPECT_EQ(removed[0], id);
-    EXPECT_TRUE(state.getComponentByUuid(id) == nullptr);
-    EXPECT_FALSE(state.getRootComponents().contains(id));
+    EXPECT_EQ(state.getAllComponents().size(), 1u);
+    EXPECT_TRUE(state.getRootComponents().contains(comp->getUuid()));
 }
 
-TEST_F(SceneStateTest, RemoveComponentRecursive) {
-    // Parent -> Child structure setup manually for test since SceneState manages components
-    // SceneState logic for parent/child depends on components having parent/child links set
+TEST_F(SceneStateTest, RemoveComponentClearsSelectionRootAndDispatchesRemovedEvent) {
+    const auto comp = createComponent();
+    state.addComponent(comp);
+    state.addSelectedComponent(comp->getUuid());
 
-    auto parent = createComponent();
-    auto child = createComponent();
+    int removedEvents = 0;
+    auto sink = Bess::EventSystem::EventDispatcher::instance().sink<Events::ComponentRemovedEvent>();
+    sink.connect([&](const Events::ComponentRemovedEvent &event) {
+        EXPECT_EQ(event.uuid, comp->getUuid());
+        EXPECT_EQ(event.type, SceneComponentType::_base);
+        EXPECT_EQ(event.state, &state);
+        removedEvents++;
+    });
 
-    parent->addChildComponent(child->getUuid());
-    child->setParentComponent(parent->getUuid());
+    const auto removed = state.removeComponent(comp->getUuid());
+    Bess::EventSystem::EventDispatcher::instance().dispatchAll();
 
-    state.addComponent<TestSceneComponent>(parent);
-    state.addComponent<TestSceneComponent>(child);
+    ASSERT_EQ(removed.size(), 1u);
+    EXPECT_EQ(removed.front(), comp->getUuid());
+    EXPECT_EQ(state.getComponentByUuid(comp->getUuid()), nullptr);
+    EXPECT_FALSE(state.getRootComponents().contains(comp->getUuid()));
+    EXPECT_FALSE(state.isComponentSelected(comp->getUuid()));
+    EXPECT_EQ(removedEvents, 1);
+}
 
-    // Child should ideally NOT be in root components if it has a parent
-    // But addComponent checks if parent is null to add to root.
-    // Since child has parent set, it shouldn't be in root.
-    EXPECT_TRUE(state.getRootComponents().contains(parent->getUuid()));
+TEST_F(SceneStateTest, RemoveComponentRecursivelyRemovesChildren) {
+    const auto parent = createComponent();
+    const auto child = createComponent();
+    const auto grandChild = createComponent();
+
+    state.addComponent(parent);
+    state.addComponent(child);
+    state.addComponent(grandChild);
+
+    state.attachChild(parent->getUuid(), child->getUuid(), false);
+    state.attachChild(child->getUuid(), grandChild->getUuid(), false);
+
+    const auto removed = state.removeComponent(parent->getUuid());
+
+    EXPECT_EQ(removed.size(), 3u);
+    EXPECT_TRUE(containsUuid(removed, parent->getUuid()));
+    EXPECT_TRUE(containsUuid(removed, child->getUuid()));
+    EXPECT_TRUE(containsUuid(removed, grandChild->getUuid()));
+    EXPECT_EQ(state.getComponentByUuid(parent->getUuid()), nullptr);
+    EXPECT_EQ(state.getComponentByUuid(child->getUuid()), nullptr);
+    EXPECT_EQ(state.getComponentByUuid(grandChild->getUuid()), nullptr);
+}
+
+TEST_F(SceneStateTest, ChildRemovalIsBlockedUnlessCallerIsParentOrMaster) {
+    const auto parent = createComponent();
+    const auto child = createComponent();
+
+    state.addComponent(parent);
+    state.addComponent(child);
+    state.attachChild(parent->getUuid(), child->getUuid(), false);
+
+    auto removed = state.removeComponent(child->getUuid());
+    EXPECT_TRUE(removed.empty());
+    EXPECT_NE(state.getComponentByUuid(child->getUuid()), nullptr);
+
+    removed = state.removeComponent(child->getUuid(), parent->getUuid());
+    ASSERT_EQ(removed.size(), 1u);
+    EXPECT_EQ(removed.front(), child->getUuid());
+    EXPECT_EQ(state.getComponentByUuid(child->getUuid()), nullptr);
+}
+
+TEST_F(SceneStateTest, AttachChildReparentsAndDispatchesEntityReparentedEvent) {
+    const auto parentA = createComponent();
+    const auto parentB = createComponent();
+    const auto child = createComponent();
+
+    state.addComponent(parentA);
+    state.addComponent(parentB);
+    state.addComponent(child);
+    state.attachChild(parentA->getUuid(), child->getUuid(), false);
+
+    int reparentEvents = 0;
+    auto sink = Bess::EventSystem::EventDispatcher::instance().sink<Events::EntityReparentedEvent>();
+    sink.connect([&](const Events::EntityReparentedEvent &event) {
+        EXPECT_EQ(event.entityUuid, child->getUuid());
+        EXPECT_EQ(event.newParentUuid, parentB->getUuid());
+        EXPECT_EQ(event.prevParent, parentA->getUuid());
+        EXPECT_EQ(event.state, &state);
+        reparentEvents++;
+    });
+
+    state.attachChild(parentB->getUuid(), child->getUuid());
+    Bess::EventSystem::EventDispatcher::instance().dispatchAll();
+
+    EXPECT_EQ(child->getParentComponent(), parentB->getUuid());
+    EXPECT_FALSE(parentA->getChildComponents().contains(child->getUuid()));
+    EXPECT_TRUE(parentB->getChildComponents().contains(child->getUuid()));
     EXPECT_FALSE(state.getRootComponents().contains(child->getUuid()));
-
-    auto removed = state.removeComponent(parent->getUuid());
-
-    // Should remove both
-    EXPECT_EQ(removed.size(), 2);
-    EXPECT_TRUE(state.getComponentByUuid(parent->getUuid()) == nullptr);
-    EXPECT_TRUE(state.getComponentByUuid(child->getUuid()) == nullptr);
+    EXPECT_EQ(reparentEvents, 1);
 }
 
-TEST_F(SceneStateTest, SelectionParams) {
-    UUID id1 = genUUID();
-    UUID id2 = genUUID();
+TEST_F(SceneStateTest, DetachChildMakesItRootAndDispatchesEntityReparentedEvent) {
+    const auto parent = createComponent();
+    const auto child = createComponent();
 
-    state.addComponent<TestSceneComponent>(createComponent(id1));
-    state.addComponent<TestSceneComponent>(createComponent(id2));
+    state.addComponent(parent);
+    state.addComponent(child);
+    state.attachChild(parent->getUuid(), child->getUuid(), false);
 
-    state.addSelectedComponent(id1);
-    EXPECT_TRUE(state.isComponentSelected(id1));
-    EXPECT_FALSE(state.isComponentSelected(id2));
+    int reparentEvents = 0;
+    auto sink = Bess::EventSystem::EventDispatcher::instance().sink<Events::EntityReparentedEvent>();
+    sink.connect([&](const Events::EntityReparentedEvent &event) {
+        EXPECT_EQ(event.entityUuid, child->getUuid());
+        EXPECT_EQ(event.newParentUuid, UUID::null);
+        EXPECT_EQ(event.prevParent, parent->getUuid());
+        EXPECT_EQ(event.state, &state);
+        reparentEvents++;
+    });
 
-    state.addSelectedComponent(id2);
-    EXPECT_TRUE(state.isComponentSelected(id1));
-    EXPECT_TRUE(state.isComponentSelected(id2));
-    EXPECT_EQ(state.getSelectedComponents().size(), 2);
+    state.detachChild(child->getUuid());
+    Bess::EventSystem::EventDispatcher::instance().dispatchAll();
 
-    state.removeSelectedComponent(id1);
-    EXPECT_FALSE(state.isComponentSelected(id1));
-    EXPECT_TRUE(state.isComponentSelected(id2));
+    EXPECT_EQ(child->getParentComponent(), UUID::null);
+    EXPECT_FALSE(parent->getChildComponents().contains(child->getUuid()));
+    EXPECT_TRUE(state.getRootComponents().contains(child->getUuid()));
+    EXPECT_EQ(reparentEvents, 1);
+}
+
+TEST_F(SceneStateTest, OrphanComponentClearsParentAndKeepsChildInRootSet) {
+    const auto parent = createComponent();
+    const auto child = createComponent();
+
+    state.addComponent(parent);
+    state.addComponent(child);
+    state.attachChild(parent->getUuid(), child->getUuid(), false);
+
+    int reparentEvents = 0;
+    auto sink = Bess::EventSystem::EventDispatcher::instance().sink<Events::EntityReparentedEvent>();
+    sink.connect([&](const Events::EntityReparentedEvent &event) {
+        EXPECT_EQ(event.entityUuid, child->getUuid());
+        EXPECT_EQ(event.newParentUuid, UUID::null);
+        EXPECT_EQ(event.prevParent, parent->getUuid());
+        reparentEvents++;
+    });
+
+    state.orphanComponent(child->getUuid());
+    Bess::EventSystem::EventDispatcher::instance().dispatchAll();
+
+    EXPECT_EQ(child->getParentComponent(), UUID::null);
+    EXPECT_TRUE(state.getRootComponents().contains(child->getUuid()));
+    EXPECT_TRUE(parent->getChildComponents().contains(child->getUuid()));
+    EXPECT_EQ(reparentEvents, 1);
+}
+
+TEST_F(SceneStateTest, SelectionHelpersTrackSelectedComponents) {
+    const auto compA = createComponent();
+    const auto compB = createComponent();
+
+    state.addComponent(compA);
+    state.addComponent(compB);
+
+    state.addSelectedComponent(compA->getUuid());
+    state.addSelectedComponent(compB->getUuid());
+
+    EXPECT_TRUE(state.isComponentSelected(compA->getUuid()));
+    EXPECT_TRUE(state.isComponentSelected(compB->getUuid()));
+    EXPECT_EQ(state.getSelectedComponents().size(), 2u);
+
+    state.removeSelectedComponent(compA->getUuid());
+    EXPECT_FALSE(state.isComponentSelected(compA->getUuid()));
+    EXPECT_TRUE(state.isComponentSelected(compB->getUuid()));
 
     state.clearSelectedComponents();
-    EXPECT_FALSE(state.isComponentSelected(id2));
-    EXPECT_EQ(state.getSelectedComponents().size(), 0);
+    EXPECT_TRUE(state.getSelectedComponents().empty());
+    EXPECT_FALSE(state.isComponentSelected(compB->getUuid()));
 }
 
-TEST_F(SceneStateTest, EdgeCases_AddDuplicate) {
-    auto comp = createComponent();
-    state.addComponent<TestSceneComponent>(comp);
-
-    // Add same component again
-    state.addComponent<TestSceneComponent>(comp);
-
-    // Should not duplicate in map
-    EXPECT_EQ(state.getAllComponents().size(), 1);
-}
-
-TEST_F(SceneStateTest, EdgeCases_ChildRemovalProtection) {
-    auto parent = createComponent();
-    auto child = createComponent();
-
-    parent->addChildComponent(child->getUuid());
-    child->setParentComponent(parent->getUuid());
-
-    state.addComponent<TestSceneComponent>(parent);
-    state.addComponent<TestSceneComponent>(child);
-
-    // Try to remove child directly (no callerId, i.e., UUID::null)
-    auto removed = state.removeComponent(child->getUuid());
-
-    // Should be prevented
-    EXPECT_TRUE(removed.empty());
-    EXPECT_TRUE(state.getComponentByUuid(child->getUuid()) != nullptr);
-
-    // Try to remove with UUID::master
-    removed = state.removeComponent(child->getUuid(), Bess::UUID::master);
-    EXPECT_EQ(removed.size(), 1);
-    EXPECT_TRUE(state.getComponentByUuid(child->getUuid()) == nullptr);
-}
-
-TEST_F(SceneStateTest, Getters) {
-    auto comp = createComponent();
-    state.addComponent<TestSceneComponent>(comp);
-
-    auto retrieved = state.getComponentByUuid<TestSceneComponent>(comp->getUuid());
-    EXPECT_EQ(retrieved, comp);
-
-    auto retrievedBase = state.getComponentByUuid(comp->getUuid());
-    EXPECT_EQ(retrievedBase, comp);
-
-    auto nonExistent = state.getComponentByUuid(genUUID());
-    EXPECT_EQ(nonExistent, nullptr);
-}
-
-TEST_F(SceneStateTest, Clear) {
-    auto comp = createComponent();
-    state.addComponent<TestSceneComponent>(comp);
+TEST_F(SceneStateTest, ClearRemovesComponentsRootsAndSelection) {
+    const auto comp = createComponent();
+    state.addComponent(comp);
     state.addSelectedComponent(comp->getUuid());
 
     state.clear();
 
-    EXPECT_EQ(state.getAllComponents().size(), 0);
-    EXPECT_EQ(state.getSelectedComponents().size(), 0);
-    EXPECT_EQ(state.getRootComponents().size(), 0);
+    EXPECT_TRUE(state.getAllComponents().empty());
+    EXPECT_TRUE(state.getRootComponents().empty());
+    EXPECT_TRUE(state.getSelectedComponents().empty());
+}
+
+TEST_F(SceneStateTest, RemoveComponentWithMasterDetachesItFromParentChildSet) {
+    const auto parent = createComponent();
+    const auto child = createComponent();
+
+    state.addComponent(parent);
+    state.addComponent(child);
+    state.attachChild(parent->getUuid(), child->getUuid(), false);
+
+    const auto removed = state.removeComponent(child->getUuid(), Bess::UUID::master);
+
+    ASSERT_EQ(removed.size(), 1u);
+    EXPECT_EQ(removed.front(), child->getUuid());
+    EXPECT_FALSE(parent->getChildComponents().contains(child->getUuid()));
+    EXPECT_EQ(state.getComponentByUuid(child->getUuid()), nullptr);
+}
+
+TEST_F(SceneStateTest, AssignRuntimeIdReusesFreedIdsAfterRemoval) {
+    const auto first = createComponent();
+    const auto second = createComponent();
+
+    state.addComponent(first);
+    const auto firstRuntimeId = first->getRuntimeId();
+    ASSERT_NE(firstRuntimeId, PickingId::invalidRuntimeId);
+
+    state.removeComponent(first->getUuid(), Bess::UUID::master);
+    state.addComponent(second);
+
+    EXPECT_EQ(second->getRuntimeId(), firstRuntimeId);
 }

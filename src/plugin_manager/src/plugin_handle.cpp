@@ -1,5 +1,7 @@
 #include "plugin_handle.h"
+#include "application/pages/main_page/scene_components/sim_scene_component.h"
 #include "component_definition.h"
+#include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/sim_scene_comp_draw_hook.h"
 #include <memory>
 #include <pybind11/pybind11.h>
@@ -58,5 +60,24 @@ namespace Bess::Plugins {
         if (py::hasattr(m_pluginObj, "draw_ui")) {
             m_pluginObj.attr("draw_ui")();
         }
+    }
+
+    std::shared_ptr<Canvas::SimulationSceneComponent> PluginHandle::getSimComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def) const {
+        py::gil_scoped_acquire gil;
+        if (py::hasattr(m_pluginObj, "get_sim_comp")) {
+            py::object result = m_pluginObj.attr("get_sim_comp")(def);
+            if (!result.is_none()) {
+                return result.cast<std::shared_ptr<Canvas::SimulationSceneComponent>>();
+            }
+        }
+        return nullptr;
+    }
+
+    bool PluginHandle::hasSimComponent(const uint64_t &baseHash) const {
+        py::gil_scoped_acquire gil;
+        if (py::hasattr(m_pluginObj, "has_sim_comp")) {
+            return m_pluginObj.attr("has_sim_comp")(baseHash).cast<bool>();
+        }
+        return false;
     }
 } // namespace Bess::Plugins

@@ -68,11 +68,20 @@ namespace Bess::Cmd {
 #endif
 
             std::vector<std::shared_ptr<Canvas::ConnectionSceneComponent>> connections;
-            std::vector<std::shared_ptr<Canvas::ConnJointSceneComp>> collectedJoints;
-            std::unordered_map<UUID, decltype(collectedJoints)> joints;
+            std::unordered_map<UUID, std::vector<std::shared_ptr<Canvas::ConnJointSceneComp>>> jointsByConnection;
+            std::unordered_set<UUID> connectionDeletionIds;
 
-            // extract all connections from the deletion list
-            // and also connecting its joints so they are deleted before the connection is deleted
+            for (const auto &uuid : deletionOrder) {
+                auto comp = sceneState.getComponentByUuid(uuid);
+                if (comp && comp->getType() == Canvas::SceneComponentType::connection) {
+                    connectionDeletionIds.insert(uuid);
+                }
+            }
+
+            // Extract connections and connection joints from the deletion list.
+            // Joints are only grouped with their owning connection when that connection is also
+            // part of the same delete command. Standalone joint deletion must remain in the
+            // regular deletion order so the joint itself is removed after its dependant branches.
             for (auto it = deletionOrder.begin(); it != deletionOrder.end();) {
                 auto comp = sceneState.getComponentByUuid(*it);
                 if (!comp) {
@@ -81,15 +90,16 @@ namespace Bess::Cmd {
                 }
 
                 if (comp->getType() == Canvas::SceneComponentType::connection) {
-                    if (!collectedJoints.empty()) {
-                        joints[comp->getUuid()] = collectedJoints;
-                        collectedJoints.clear();
-                    }
                     connections.push_back(comp->cast<Canvas::ConnectionSceneComponent>());
                     it = deletionOrder.erase(it); // Remove from the main list
                 } else if (comp->getType() == Canvas::SceneComponentType::connJoint) {
-                    collectedJoints.push_back(comp->cast<Canvas::ConnJointSceneComp>());
-                    it = deletionOrder.erase(it); // Remove from the main list
+                    const auto joint = comp->cast<Canvas::ConnJointSceneComp>();
+                    if (connectionDeletionIds.contains(joint->getConnectionId())) {
+                        jointsByConnection[joint->getConnectionId()].push_back(joint);
+                        it = deletionOrder.erase(it); // Remove from the main list
+                    } else {
+                        it++;
+                    }
                 } else {
                     it++;
                 }
@@ -123,11 +133,11 @@ namespace Bess::Cmd {
 
             // Now execute the deletion in the safe order
             for (auto conn : connections) {
-                for (const auto &joint : joints[conn->getUuid()]) {
+                for (const auto &joint : jointsByConnection[conn->getUuid()]) {
                     sceneState.removeComponent(joint->getUuid(), UUID::master);
                     m_deletedComponents.push_back(joint);
                 }
-                Svc::SvcConnection::instance().removeConnection(conn);
+                Svc::SvcConnection::instance().removeConnection(conn, scene);
 
                 m_deletedComponents.push_back(std::move(conn));
             }
@@ -157,7 +167,7 @@ namespace Bess::Cmd {
                 BESS_DEBUG("Restoring component: {} with uuid {}", deletedComponent->getName(),
                            (uint64_t)deletedComponent->getUuid());
                 if (deletedComponent->getType() == Canvas::SceneComponentType::connection) {
-                    connectionsSvc.addConnection(deletedComponent->cast<Canvas::ConnectionSceneComponent>());
+                    connectionsSvc.addConnection(deletedComponent->cast<Canvas::ConnectionSceneComponent>(), scene);
                 } else {
                     sceneState.addComponent(deletedComponent,
                                             deletedComponent->getType() != Canvas::SceneComponentType::group);
@@ -203,7 +213,7 @@ namespace Bess::Cmd {
 
             for (const auto &comp : m_deletedComponents) {
                 if (comp->getType() == Canvas::SceneComponentType::connection) {
-                    connectionsSvc.removeConnection(comp->cast<Canvas::ConnectionSceneComponent>());
+                    connectionsSvc.removeConnection(comp->cast<Canvas::ConnectionSceneComponent>(), scene);
                 } else {
                     scene->getState().removeComponent(comp->getUuid(), UUID::master);
                 }

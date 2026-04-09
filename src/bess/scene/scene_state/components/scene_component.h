@@ -1,12 +1,13 @@
 #pragma once
 
+#include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "common/class_helpers.h"
 #include "common/types.h"
-#include "scene/renderer/material_renderer.h"
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_state/components/behaviours/mouse_behaviour.h"
 #include "scene/scene_state/components/scene_component_types.h"
+#include "scene_draw_context.h"
 #include "scene_ser_reg.h"
 #include "json/value.h"
 #include <unordered_set>
@@ -14,10 +15,13 @@
 namespace Bess::Canvas {
 #define REG_SCENE_COMP_TYPE(TypeName, type)                      \
     SceneComponentType getType() const override { return type; } \
+    std::string getTypeName() override {                         \
+        return TypeName;                                         \
+    }                                                            \
     static std::string getStaticTypeName() {                     \
         static std::string typeName = TypeName;                  \
         return typeName;                                         \
-    }
+    } // namespace Bess::Canvas
 
 #define SCENE_COMP_SER(TClass, TBase, ...)                          \
     Json::Value toJson() const override {                           \
@@ -78,7 +82,7 @@ namespace Bess::Canvas {
     REFLECT_DERIVED_EMPTY(TComp,        \
                           TBase)
 
-    using PathRenderer = Renderer2D::Vulkan::PathRenderer;
+    using PathRenderer = Renderer::PathRenderer;
 
     class SceneState;
 
@@ -93,15 +97,18 @@ namespace Bess::Canvas {
             return "SceneComponent";
         }
 
+        virtual std::string getTypeName() {
+            return "SceneComponent";
+        }
+
         virtual void update(TimeMs frameTime, SceneState & /*state*/) {}
 
-        virtual void draw(SceneState &,
-                          std::shared_ptr<Renderer::MaterialRenderer> /*unused*/,
-                          std::shared_ptr<PathRenderer> /*unused*/);
+        virtual void draw(SceneDrawContext &);
+        virtual void drawSchematic(SceneDrawContext &);
 
-        virtual void drawSchematic(SceneState &,
-                                   std::shared_ptr<Renderer::MaterialRenderer> /*unused*/,
-                                   std::shared_ptr<PathRenderer> /*unused*/);
+        virtual void drawPropertiesUI(SceneState &sceneState);
+
+        virtual std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const;
 
         MAKE_GETTER_SETTER(UUID, Uuid, m_uuid)
         MAKE_GETTER_SETTER_WC(Transform, Transform, m_transform, onTransformChanged)
@@ -111,6 +118,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(std::unordered_set<UUID>, ChildComponents, m_childComponents)
         MAKE_GETTER_SETTER_WC(uint32_t, RuntimeId, m_runtimeId, onRuntimeIdChanged)
         MAKE_GETTER_SETTER_WC(bool, IsSelected, m_isSelected, onSelect)
+        MAKE_GETTER_SETTER(std::string, Icon, m_icon);
 
         virtual void removeChildComponent(const UUID &uuid);
 
@@ -152,27 +160,25 @@ namespace Bess::Canvas {
 
         virtual std::vector<UUID> getDependants(const SceneState &state) const;
 
+        virtual void onScaleChanged();
+        virtual void onNameChanged() {}
+
       protected:
         // Deserialize the component from JSON
         static void fromJson(const Json::Value &j,
                              const std::shared_ptr<SceneComponent> &ptr);
 
-        virtual void onNameChanged() {}
+        void prepareClone(SceneComponent &clonedComponent) const;
         virtual void onTransformChanged() {}
         virtual void onSelect() {}
         virtual void onStyleChanged() {}
         virtual void onRuntimeIdChanged() {}
 
-        virtual glm::vec2 calculateScale(SceneState &,
-                                         std::shared_ptr<Renderer::MaterialRenderer> materialRenderer);
+        virtual glm::vec2 calculateScale(SceneState &);
 
-        virtual void onFirstDraw(SceneState &,
-                                 std::shared_ptr<Renderer::MaterialRenderer> /*unused*/,
-                                 std::shared_ptr<PathRenderer> /*unused*/);
+        virtual void onFirstDraw(SceneDrawContext &);
 
-        virtual void onFirstSchematicDraw(SceneState &,
-                                          std::shared_ptr<Renderer::MaterialRenderer> /*unused*/,
-                                          std::shared_ptr<PathRenderer> /*unused*/);
+        virtual void onFirstSchematicDraw(SceneDrawContext &);
 
         // Called when children count changes (added / removed)
         virtual void onChildrenChanged();
@@ -182,6 +188,7 @@ namespace Bess::Canvas {
         Transform m_transform;
         Style m_style;
         std::string m_name;
+        std::string m_icon;
 
         bool m_isDraggable = false;
         bool m_isSelected = false;
@@ -198,5 +205,6 @@ REFLECT_PROPS(Bess::Canvas::SceneComponent,
               ("transform", getTransform, setTransform),
               ("style", getStyle, setStyle),
               ("name", getName, setName),
+              ("icon", getIcon, setIcon),
               ("parentComponent", getParentComponent, setParentComponent),
               ("childComponents", getChildComponents, setChildComponents))

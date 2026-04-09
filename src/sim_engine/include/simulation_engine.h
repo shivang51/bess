@@ -1,4 +1,5 @@
 #pragma once
+
 #include "bess_api.h"
 #include "common/bess_uuid.h"
 #include "digital_component.h"
@@ -25,7 +26,8 @@ namespace Bess::SimEngine {
 
         void destroy();
 
-        const UUID &addComponent(const std::shared_ptr<ComponentDefinition> &definition);
+        const UUID &addComponent(const std::shared_ptr<ComponentDefinition> &definition,
+                                 bool cloneDef = true);
 
         bool connectComponent(const UUID &src, int srcSlotIdx, SlotType srcType,
                               const UUID &dst, int dstSlotIdx, SlotType dstType, bool overrideConn = false);
@@ -74,7 +76,8 @@ namespace Bess::SimEngine {
 
         bool isNetUpdated() const;
 
-        const std::unordered_map<UUID, Net> &getNetsMap();
+        // if update is false, the sync flag will not be reset
+        const std::unordered_map<UUID, Net> &getNetsMap(bool update = true);
 
         TruthTable getTruthTableOfNet(const UUID &netUuid);
 
@@ -92,6 +95,7 @@ namespace Bess::SimEngine {
         void clearEventsForEntity(const UUID &id);
         std::vector<SlotState> getInputSlotsState(UUID compId) const;
         bool simulateComponent(const UUID &compId, const std::vector<SlotState> &inputs);
+        void scheduleDependantsOf(const UUID &compId);
         void run();
 
         std::thread m_simThread;

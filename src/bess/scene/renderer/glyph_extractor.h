@@ -28,6 +28,8 @@ namespace Bess::Renderer::Font {
         GlyphExtractor(const GlyphExtractor &) = delete;
         GlyphExtractor &operator=(const GlyphExtractor &) = delete;
 
+        static uint32_t decodeSingleUTF8(const char *ptr, int &out_bytes_consumed);
+
         size_t getGlyphsCount();
 
         bool isValid() const { return m_face != nullptr; }
@@ -42,8 +44,6 @@ namespace Bess::Renderer::Font {
         float lineHeight() const;
 
         struct OutlineCollector;
-
-        static char32_t decodeSingleUTF8(std::string_view utf8);
 
       private:
         FT_Face m_face = nullptr;

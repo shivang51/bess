@@ -1,10 +1,10 @@
 #pragma once
 
-#include "common/types.h"
 #include "application/events/application_event.h"
 #include "application/pages/main_page/main_page_state.h"
 #include "application/pages/page.h"
 #include "application/window.h"
+#include "common/types.h"
 #include "component_definition.h"
 
 #include <chrono>
@@ -22,7 +22,6 @@ namespace Bess::Pages {
     struct LastMouseButtonEvent {
         std::chrono::time_point<std::chrono::steady_clock> timestamp;
         ApplicationEvent::MouseButtonData data;
-        bool processed = true;
     };
 
     class MainPage : public Page {
@@ -45,7 +44,6 @@ namespace Bess::Pages {
       private:
         std::shared_ptr<Window> m_parentWindow;
 
-        void onViewportDraw(const std::shared_ptr<Canvas::Viewport> &viewport);
         void drawGhostConnection(const std::shared_ptr<PathRenderer> &pathRenderer,
                                  const glm::vec2 &startPos,
                                  const glm::vec2 &endPos);
@@ -68,6 +66,8 @@ namespace Bess::Pages {
         MainPageState m_state;
 
         bool m_isDestroyed = false;
+
+        int m_clickCount = 0;
 
         std::vector<CopiedComponent> m_copiedComponents;
     };

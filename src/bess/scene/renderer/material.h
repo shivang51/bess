@@ -7,13 +7,9 @@
 #include <memory>
 
 namespace Bess::Renderer {
-    struct QuadMaterial {
-        Vulkan::QuadInstance instance;
+    struct PrimitiveMaterial {
+        Vulkan::PrimitiveInstance instance;
         std::shared_ptr<Vulkan::VulkanTexture> texture = nullptr;
-    };
-
-    struct CircleMaterial {
-        Vulkan::CircleInstance instance;
     };
 
     struct PathMaterial {
@@ -29,15 +25,13 @@ namespace Bess::Renderer {
 
     struct Material2D {
         enum class MaterialType : uint8_t {
-            quad,
-            circle,
+            primitive,
             path,
             grid
         } type;
 
         union {
-            QuadMaterial quad;
-            CircleMaterial circle;
+            PrimitiveMaterial primitive;
             PathMaterial path;
             GridMaterial grid;
         };
@@ -45,7 +39,7 @@ namespace Bess::Renderer {
         float z = 0.f;
         float alpha = 1.f;
 
-        Material2D() : type(MaterialType::quad), quad{} {}
+        Material2D() : type(MaterialType::primitive), primitive{} {}
         explicit Material2D(MaterialType type, float z, float alpha) : type(type), z(z), alpha(alpha) {
         }
 
@@ -89,11 +83,8 @@ namespace Bess::Renderer {
       private:
         void destroyActive() {
             switch (type) {
-            case MaterialType::quad:
-                quad.~QuadMaterial();
-                break;
-            case MaterialType::circle:
-                circle.~CircleMaterial();
+            case MaterialType::primitive:
+                primitive.~PrimitiveMaterial();
                 break;
             case MaterialType::path:
                 path.~PathMaterial();
@@ -106,11 +97,8 @@ namespace Bess::Renderer {
 
         void constructFrom(const Material2D &other) {
             switch (other.type) {
-            case MaterialType::quad:
-                new (&quad) QuadMaterial(other.quad);
-                break;
-            case MaterialType::circle:
-                new (&circle) CircleMaterial(other.circle);
+            case MaterialType::primitive:
+                new (&primitive) PrimitiveMaterial(other.primitive);
                 break;
             case MaterialType::path:
                 new (&path) PathMaterial(other.path);
@@ -123,11 +111,8 @@ namespace Bess::Renderer {
 
         void moveFrom(Material2D &&other) {
             switch (other.type) {
-            case MaterialType::quad:
-                new (&quad) QuadMaterial(std::move(other.quad));
-                break;
-            case MaterialType::circle:
-                new (&circle) CircleMaterial(std::move(other.circle));
+            case MaterialType::primitive:
+                new (&primitive) PrimitiveMaterial(std::move(other.primitive));
                 break;
             case MaterialType::path:
                 new (&path) PathMaterial(std::move(other.path));

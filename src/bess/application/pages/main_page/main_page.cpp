@@ -1,17 +1,20 @@
 #include "pages/main_page/main_page.h"
 #include "asset_manager/asset_manager.h"
-#include "common/bind_helpers.h"
+#include "common/bess_assert.h"
+#include "common/bess_uuid.h"
 #include "common/logger.h"
-#include "component_catalog.h"
+#include "common/types.h"
 #include "events/application_event.h"
+#include "geometric.hpp"
 #include "macro_command.h"
-#include "pages/main_page/cmds/add_comp_cmd.h"
 #include "pages/main_page/cmds/delete_comp_cmd.h"
+#include "pages/main_page/cmds/module_comp_cmd.h"
 #include "pages/main_page/main_page_state.h"
 #include "pages/main_page/scene_components/conn_joint_scene_component.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/group_scene_component.h"
 #include "pages/main_page/scene_components/input_scene_component.h"
+#include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/non_sim_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
@@ -20,6 +23,7 @@
 #include "pages/main_page/services/connection_service.h"
 #include "plugin_manager.h"
 #include "scene_ser_reg.h"
+#include "services/copy_paste_service.h"
 #include "simulation_engine.h"
 #include "ui/ui.h"
 #include "ui/ui_main/component_explorer.h"
@@ -27,8 +31,11 @@
 #include "ui/ui_main/ui_main.h"
 #include "vulkan_core.h"
 #include <GLFW/glfw3.h>
+#include <chrono>
+#include <functional>
 #include <memory>
 #include <ranges>
+#include <unordered_set>
 
 namespace Bess::Pages {
     std::shared_ptr<MainPage> &MainPage::getInstance(const std::shared_ptr<Window> &parentWindow) {
@@ -44,18 +51,6 @@ namespace Bess::Pages {
 
         SimEngine::SimulationEngine::instance();
 
-        m_state.initCmdSystem();
-
-        auto scene = m_state.getSceneDriver().createNewScene();
-        scene->setViewportDrawFn(BIND_FN_L(onViewportDraw));
-
-        m_state.getSceneDriver().setActiveScene(0, false);
-
-        m_state.getCommandSystem().setScene(scene.get());
-        m_state.getCommandSystem().setSimEngine(&SimEngine::SimulationEngine::instance());
-
-        m_state.createNewProject(false);
-
         // TODO(shivang): Think about a better way and scalabilty for plugins
         Canvas::NonSimSceneComponent::registerComponent<Canvas::TextComponent>("Text Component");
         Canvas::NonSimSceneComponent::registerComponent<Canvas::SlotProbeSceneComponent>("Probe");
@@ -69,10 +64,23 @@ namespace Bess::Pages {
         REG_TO_SER_REGISTRY(Canvas::SlotSceneComponent);
         REG_TO_SER_REGISTRY(Canvas::TextComponent);
         REG_TO_SER_REGISTRY(Canvas::SlotProbeSceneComponent);
+        REG_TO_SER_REGISTRY(Canvas::ModuleSceneComponent);
 
         UI::UIMain::init();
 
+        auto scene = m_state.getSceneDriver().createNewScene();
+        m_state.getSceneDriver().setRootSceneId(scene->getSceneId());
+
+        m_state.getSceneDriver().setActiveScene(0, false); // false to avoid infinite loop of main page init
+
+        m_state.initCmdSystem();
+        m_state.getCommandSystem().setScene(scene.get());
+        m_state.getCommandSystem().setSimEngine(&SimEngine::SimulationEngine::instance());
+
+        m_state.createNewProject(false);
+
         Svc::SvcConnection::instance().init();
+        Svc::CopyPaste::Context::instance().init();
 
         BESS_DEBUG("MainPage created successfully");
     }
@@ -87,6 +95,7 @@ namespace Bess::Pages {
             return;
         BESS_INFO("[MainPage] Destroying");
 
+        Svc::CopyPaste::Context::instance().destroy();
         Svc::SvcConnection::instance().destroy();
 
         Canvas::NonSimSceneComponent::clearRegistry();
@@ -97,6 +106,9 @@ namespace Bess::Pages {
 
         auto &instance = Bess::Vulkan::VulkanCore::instance();
         instance.cleanup([&]() {
+            for (const auto &panel : UI::UIMain::getScenePanels()) {
+                panel->destroyViewport();
+            }
             m_state.getSceneDriver()->destroy();
             Assets::AssetManager::instance().clear();
             UI::vulkanCleanup(instance.getDevice());
@@ -109,7 +121,6 @@ namespace Bess::Pages {
     }
 
     void MainPage::draw() {
-        m_state.getSceneDriver().render();
         UI::UIMain::draw();
 
         const auto &plugins = Plugins::PluginManager::getInstance().getLoadedPlugins();
@@ -119,40 +130,34 @@ namespace Bess::Pages {
     }
 
     void MainPage::update(TimeMs ts, std::vector<ApplicationEvent> &events) {
-        const auto &viewportSize = UI::UIMain::state.mainViewport.getViewportSize();
-        const auto &viewportPos = UI::UIMain::state.mainViewport.getViewportPos();
-
         m_state.update();
 
-        m_state.getSceneDriver().getActiveScene()->updateViewportTransform({viewportPos, viewportSize});
+        int clickEvtIdx = -1;
 
-        if (m_state.getSceneDriver().getActiveScene()->getSize() != viewportSize) {
-            m_state.getSceneDriver().getActiveScene()->resize(viewportSize);
-        }
-
-        const bool imguiWantsKeyboard = ImGui::GetIO().WantTextInput;
-
-        bool isDoubleClick = false;
-
+        int idx = -1;
         for (const auto &event : events) {
+            idx++;
+
             switch (event.getType()) {
             case Bess::ApplicationEventType::MouseButton: {
                 const auto data = event.getData<ApplicationEvent::MouseButtonData>();
-                if (m_lastMouseButtonEvent.processed && data.action == MouseButtonAction::press) {
-                    m_lastMouseButtonEvent.timestamp = std::chrono::steady_clock::now();
-                    m_lastMouseButtonEvent.data = data;
-                    m_lastMouseButtonEvent.processed = false;
-                } else {
-                    if (data.action == m_lastMouseButtonEvent.data.action) {
-                        const auto diff = std::chrono::steady_clock::now() - m_lastMouseButtonEvent.timestamp;
-                        if (diff < std::chrono::milliseconds(500) &&
-                            data.action == MouseButtonAction::press &&
-                            m_lastMouseButtonEvent.data.button == data.button) {
-                            isDoubleClick = true;
-                        }
-                        m_lastMouseButtonEvent.processed = true;
-                    }
+                if (data.action != MouseButtonAction::press) {
+                    continue;
                 }
+
+                const bool isSameBtn = data.button == m_lastMouseButtonEvent.data.button;
+                const float dis = glm::distance(data.pos, m_lastMouseButtonEvent.data.pos);
+                const auto timeDif = std::chrono::steady_clock::now() - m_lastMouseButtonEvent.timestamp;
+
+                if (isSameBtn && dis <= 5.f && timeDif < TimeMs(500)) {
+                    m_clickCount++;
+                } else {
+                    m_clickCount = 1;
+                }
+                clickEvtIdx = idx;
+
+                m_lastMouseButtonEvent.timestamp = std::chrono::steady_clock::now();
+                m_lastMouseButtonEvent.data = data;
             } break;
             case ApplicationEventType::KeyPress: {
                 const auto data = event.getData<ApplicationEvent::KeyPressData>();
@@ -169,17 +174,26 @@ namespace Bess::Pages {
             }
         }
 
-        if (isDoubleClick) {
+        if (m_clickCount == 2) {
+            BESS_ASSERT(clickEvtIdx != -1, "Click event idx can't be -1, when double click is valid");
+            events.erase(events.begin() + clickEvtIdx);
             auto data = m_lastMouseButtonEvent.data;
             data.action = MouseButtonAction::doubleClick;
             ApplicationEvent event(ApplicationEventType::MouseButton, data);
             events.emplace_back(event);
+            m_clickCount = 0;
         }
+
+        const bool imguiWantsKeyboard = ImGui::GetIO().WantTextInput;
 
         if (!imguiWantsKeyboard)
             handleKeyboardShortcuts();
 
-        m_state.getSceneDriver().update(ts, events);
+        // dispatching events after handling keyboard shortcuts,
+        // so all modification are synced before updaing UI
+        EventSystem::EventDispatcher::instance().dispatchAll();
+
+        UI::UIMain::update(ts, events);
     }
 
     std::shared_ptr<Window> MainPage::getParentWindow() {
@@ -219,17 +233,104 @@ namespace Bess::Pages {
             }
         } else {
             if (m_state.isKeyPressed(GLFW_KEY_DELETE)) {
-                auto ids = m_state.getSceneDriver()->getState().getSelectedComponents() |
-                           std::ranges::views::keys |
-                           std::ranges::to<std::vector<UUID>>();
+                const auto &sceneState = m_state.getSceneDriver()->getState();
+                const auto selectedIds = sceneState.getSelectedComponents() |
+                                         std::ranges::views::keys |
+                                         std::ranges::to<std::vector<UUID>>();
 
-                m_state.getCommandSystem().execute(std::make_unique<Cmd::DeleteCompCmd>(ids));
+                std::unordered_set<UUID> moduleCoveredIds;
+                std::vector<UUID> moduleIds;
+                std::vector<UUID> regularIds;
+
+                std::function<void(const UUID &)> collectCoveredIds = [&](const UUID &uuid) {
+                    if (moduleCoveredIds.contains(uuid)) {
+                        return;
+                    }
+
+                    const auto component = sceneState.getComponentByUuid(uuid);
+                    if (!component) {
+                        return;
+                    }
+
+                    moduleCoveredIds.insert(uuid);
+                    for (const auto &dependantUuid : component->getDependants(sceneState)) {
+                        collectCoveredIds(dependantUuid);
+                    }
+                };
+
+                for (const auto &id : selectedIds) {
+                    const auto component = sceneState.getComponentByUuid(id);
+                    if (!component) {
+                        continue;
+                    }
+
+                    if (component->getType() == Canvas::SceneComponentType::module) {
+                        moduleIds.push_back(id);
+                        collectCoveredIds(id);
+                    }
+                }
+
+                for (const auto &id : selectedIds) {
+                    if (!moduleCoveredIds.contains(id)) {
+                        regularIds.push_back(id);
+                    }
+                }
+
+                if (moduleIds.empty() && regularIds.empty()) {
+                    return;
+                }
+
+                auto deleteCommand = std::make_unique<Cmd::MacroCommand>();
+                for (const auto &moduleId : moduleIds) {
+                    deleteCommand->addCommand(std::make_unique<Cmd::DeleteModuleCmd>(
+                        m_state.getSceneDriver().getActiveScene(),
+                        moduleId));
+                }
+
+                if (!regularIds.empty()) {
+                    deleteCommand->addCommand(std::make_unique<Cmd::DeleteCompCmd>(regularIds));
+                }
+
+                m_state.getCommandSystem().execute(std::move(deleteCommand));
             } else if (m_state.isKeyPressed(GLFW_KEY_F)) {
                 m_state.getSceneDriver()->focusCameraOnSelected();
             } else if (m_state.isKeyPressed(GLFW_KEY_TAB)) {
                 m_state.getSceneDriver()->toggleSchematicView();
             } else if (m_state.isKeyPressed(GLFW_KEY_ESCAPE)) {
                 UI::UIMain::getPanel<UI::ComponentExplorer>()->hide();
+            } else if (m_state.isKeyPressed(GLFW_KEY_C)) {
+                auto &mainPageState = Pages::MainPage::getInstance()->getState();
+                auto &sceneDriver = mainPageState.getSceneDriver();
+                auto &sceneState = sceneDriver->getState();
+                const auto selectedIds = sceneState.getSelectedComponents() |
+                                         std::views::keys |
+                                         std::ranges::to<std::vector<UUID>>();
+                if (!selectedIds.empty()) {
+                    sceneDriver.updateNets();
+                    std::unordered_set<UUID> processedNetIds;
+                    std::vector<UUID> netIdsToModule;
+                    netIdsToModule.reserve(selectedIds.size());
+
+                    for (const auto &compId : selectedIds) {
+                        const auto &comp = sceneState.getComponentByUuid(compId);
+                        if (!comp ||
+                            comp->getType() != Canvas::SceneComponentType::simulation)
+                            continue;
+
+                        const auto netId = comp->cast<Canvas::SimulationSceneComponent>()->getNetId();
+                        if (netId == UUID::null || processedNetIds.contains(netId)) {
+                            continue;
+                        }
+
+                        netIdsToModule.push_back(netId);
+                        processedNetIds.insert(netId);
+                    }
+
+                    for (const auto &netId : netIdsToModule) {
+                        auto module = Canvas::ModuleSceneComponent::fromNet(netId);
+                        BESS_ASSERT(module, "Failed to create module");
+                    }
+                }
             }
         }
     }
@@ -239,160 +340,13 @@ namespace Bess::Pages {
     };
 
     void MainPage::copySelectedEntities() {
-        m_copiedComponents.clear();
-
-        auto &simEngine = SimEngine::SimulationEngine::instance();
-        const auto &catalogInstance = SimEngine::ComponentCatalog::instance();
-
-        const auto &sceneState = m_state.getSceneDriver()->getState();
-        const auto &selComponents = sceneState.getSelectedComponents() | std::views::keys;
-
-        for (const auto &selId : selComponents) {
-            const auto comp = sceneState.getComponentByUuid(selId);
-            const bool isSimComp = comp->getType() == Canvas::SceneComponentType::simulation;
-            const bool isNonSimComp = comp->getType() == Canvas::SceneComponentType::nonSimulation;
-            CopiedComponent compData{};
-            if (isSimComp) {
-                const auto casted = comp->cast<Canvas::SimulationSceneComponent>();
-                compData.def = simEngine.getComponentDefinition(casted->getSimEngineId());
-            } else if (isNonSimComp) {
-                const auto casted = comp->cast<Canvas::NonSimSceneComponent>();
-                compData.nsComp = casted->getTypeIndex();
-            } else {
-                continue;
-            }
-            compData.pos = comp->getTransform().position;
-            m_copiedComponents.emplace_back(compData);
-        }
+        auto &ctx = Svc::CopyPaste::Context::instance();
+        ctx.copy(m_state.getSceneDriver().getActiveScene());
     }
 
     void MainPage::pasteCopiedEntities() {
-        auto &cmdSystem = m_state.getCommandSystem();
-        auto &scene = m_state.getSceneDriver();
-
-        auto macroCmd = std::make_unique<Cmd::MacroCommand>();
-
-        for (auto &comp : m_copiedComponents) {
-            const auto pos = comp.pos + glm::vec2(50.f, 50.f);
-            if (comp.nsComp == typeid(void)) {
-                auto components = Canvas::SimulationSceneComponent::createNewAndRegister(comp.def);
-                auto sceneComp = components.front()->template cast<Canvas::SimulationSceneComponent>();
-                components.erase(components.begin());
-                sceneComp->setCompDef(comp.def->clone());
-                sceneComp->getTransform().position.x = pos.x;
-                sceneComp->getTransform().position.y = pos.y;
-
-                if (scene->hasPluginDrawHookForComponentHash(comp.def->getHash())) {
-                    auto hook = scene->getPluginDrawHookForComponentHash(comp.def->getHash());
-                    sceneComp->cast<Canvas::SimulationSceneComponent>()->setDrawHook(hook);
-                }
-                auto addCmd = std::make_unique<Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(sceneComp, components);
-                macroCmd->addCommand(std::move(addCmd));
-            } else {
-                auto inst = Canvas::NonSimSceneComponent::getInstance(comp.nsComp);
-                inst->getTransform().position.x = pos.x;
-                inst->getTransform().position.y = pos.y;
-                auto addCmd = std::make_unique<Cmd::AddCompCmd<Canvas::NonSimSceneComponent>>(inst);
-                macroCmd->addCommand(std::move(addCmd));
-            }
-        }
-
-        cmdSystem.execute(std::move(macroCmd));
+        auto &ctx = Svc::CopyPaste::Context::instance();
+        ctx.paste(m_state.getSceneDriver().getActiveScene());
     }
 
-    void MainPage::onViewportDraw(const std::shared_ptr<Canvas::Viewport> &viewport) {
-        const auto &renderers = viewport->getRenderers();
-        const auto &camera = viewport->getCamera();
-        const auto &scene = m_state.getSceneDriver().getActiveScene();
-        auto &sceneState = m_state.getSceneDriver()->getState();
-
-        // Grid
-        renderers.materialRenderer->drawGrid(
-            glm::vec3(0.f, 0.f, 0.1f),
-            camera->getSpan(),
-            Canvas::PickingId::invalid(),
-            {
-                .minorColor = ViewportTheme::colors.gridMinorColor,
-                .majorColor = ViewportTheme::colors.gridMajorColor,
-                .axisXColor = ViewportTheme::colors.gridAxisXColor,
-                .axisYColor = ViewportTheme::colors.gridAxisYColor,
-            },
-            viewport->getCamera());
-
-        if (sceneState.getConnectionStartSlot() != UUID::null) {
-            const auto comp = sceneState.getComponentByUuid(sceneState.getConnectionStartSlot());
-            if (!comp) {
-                sceneState.setConnectionStartSlot(UUID::null);
-                return;
-            }
-
-            glm::vec3 pos;
-            if (comp->getType() == Canvas::SceneComponentType::slot) {
-                pos = comp->cast<Canvas::SlotSceneComponent>()->getConnectionPos(sceneState);
-            } else {
-                pos = comp->getAbsolutePosition(sceneState);
-            }
-
-            const auto endPos = scene->toScenePos(scene->getMousePos());
-
-            drawGhostConnection(renderers.pathRenderer, glm::vec2(pos), endPos);
-        }
-
-        const auto &cam = viewport->getCamera();
-        const auto &span = (cam->getSpan() / 2.f) + 200.f;
-        const auto &camPos = cam->getPos();
-
-        for (const auto &compId : sceneState.getRootComponents()) {
-            const auto comp = sceneState.getComponentByUuid(compId);
-
-            const auto &pos = comp->getAbsolutePosition(sceneState);
-            const auto x = pos.x - camPos.x;
-            const auto y = pos.y - camPos.y;
-
-            // skipping if outside camera and not connection
-            if (
-                (x < -span.x || x > span.x || y < -span.y || y > span.y))
-                continue;
-
-            if (sceneState.getIsSchematicView()) {
-                comp->drawSchematic(sceneState,
-                                    renderers.materialRenderer,
-                                    renderers.pathRenderer);
-            } else {
-                comp->draw(sceneState,
-                           renderers.materialRenderer,
-                           renderers.pathRenderer);
-            }
-        }
-    }
-
-    void MainPage::drawGhostConnection(const std::shared_ptr<PathRenderer> &pathRenderer,
-                                       const glm::vec2 &startPos,
-                                       const glm::vec2 &endPos) {
-        auto midX = (startPos.x + endPos.x) / 2.f;
-
-        const auto &id = Canvas::PickingId::invalid();
-
-        pathRenderer->beginPathMode(glm::vec3(startPos.x, startPos.y, 0.8f),
-                                    2.f,
-                                    ViewportTheme::colors.ghostWire,
-                                    id);
-
-        pathRenderer->pathLineTo(glm::vec3(midX, startPos.y, 0.8f),
-                                 2.f,
-                                 ViewportTheme::colors.ghostWire,
-                                 id);
-
-        pathRenderer->pathLineTo(glm::vec3(midX, endPos.y, 0.8f),
-                                 2.f,
-                                 ViewportTheme::colors.ghostWire,
-                                 id);
-
-        pathRenderer->pathLineTo(glm::vec3(endPos, 0.8f),
-                                 2.f,
-                                 ViewportTheme::colors.ghostWire,
-                                 id);
-
-        pathRenderer->endPathMode(false, false, glm::vec4(1.f), true, true);
-    }
 } // namespace Bess::Pages

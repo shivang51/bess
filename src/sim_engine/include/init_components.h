@@ -3,6 +3,7 @@
 #include "component_catalog.h"
 #include "component_definition.h"
 #include "types.h"
+#include <memory>
 
 namespace Bess::SimEngine {
     enum class FrequencyUnit : uint8_t {
@@ -14,6 +15,11 @@ namespace Bess::SimEngine {
     class ClockTrait : public Trait {
       public:
         ClockTrait() = default;
+        ~ClockTrait() override = default;
+
+        std::shared_ptr<Trait> clone() const override {
+            return std::make_shared<ClockTrait>(*this);
+        }
 
         FrequencyUnit frequencyUnit = FrequencyUnit::hz;
         float frequency = 1.0;
@@ -72,7 +78,15 @@ namespace Bess::SimEngine {
         }
 
         std::shared_ptr<ComponentDefinition> clone() const override {
-            return std::make_shared<ClockDefinition>(*this);
+            auto cloned = std::make_shared<ClockDefinition>(*this);
+            cloned->m_traits.clear();
+            auto clockTrait = m_traits.find<ClockTrait>()->second;
+            if (clockTrait) {
+                cloned->m_traits.put<ClockTrait>(clockTrait->clone());
+            } else {
+                assert(false);
+            }
+            return cloned;
         }
     };
 
@@ -100,9 +114,11 @@ namespace Bess::SimEngine {
         outDef->setGroupName("IO");
         outDef->setBehaviorType(ComponentBehaviorType::output);
         outDef->setInputSlotsInfo({SlotsGroupType::input, true, 1, {"LSB"}, {}});
-        outDef->setSimulationFunction([](const std::vector<SlotState> &, SimTime,
+        outDef->setSimulationFunction([](const std::vector<SlotState> &inputs, SimTime,
                                          const ComponentState &prevState) -> ComponentState {
 						auto newState = prevState;
+						newState.inputStates = inputs;
+						newState.isChanged = true;
 						return newState; });
         outDef->setSimDelay(SimDelayNanoSeconds(0));
         catalog.registerComponent(outDef);

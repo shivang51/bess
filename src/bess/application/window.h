@@ -27,7 +27,7 @@ namespace Bess {
     typedef std::function<void(double, double)> MouseWheelCallback;
     typedef std::function<void(int)> KeyReleaseCallback;
     typedef std::function<void(int)> KeyPressCallback;
-    typedef std::function<void(MouseButton, MouseButtonAction)> MouseButtonCallback;
+    typedef std::function<void(MouseButton, MouseButtonAction, glm::vec2)> MouseButtonCallback;
     typedef std::function<void(double, double)> MouseMoveCallback;
 
     class Window {
@@ -41,7 +41,6 @@ namespace Bess {
         Window(int width, int height, const std::string &title);
         ~Window();
 
-        void update() const;
         bool isClosed() const;
         void close() const;
 

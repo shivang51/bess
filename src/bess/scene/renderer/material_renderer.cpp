@@ -1,14 +1,36 @@
 #include "scene/renderer/material_renderer.h"
 #include "application/asset_manager/asset_manager.h"
 #include "application/assets.h"
+#include "renderer/font.h"
 #include "scene/scene_state/components/scene_component_types.h"
+#include <cmath>
 #include <cstdint>
+#include <deque>
 
 namespace Bess::Renderer {
+    namespace {
+        struct TextMeasureCacheKey {
+            const Font::FontFile *font = nullptr;
+            int32_t renderSizeMilli = 0;
+            std::string text;
+
+            bool operator==(const TextMeasureCacheKey &other) const noexcept = default;
+        };
+
+        struct TextMeasureCacheKeyHash {
+            size_t operator()(const TextMeasureCacheKey &key) const noexcept {
+                size_t seed = std::hash<const void *>{}(key.font);
+                seed ^= std::hash<int32_t>{}(key.renderSizeMilli) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+                seed ^= std::hash<std::string>{}(key.text) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+                return seed;
+            }
+        };
+    } // namespace
+
     static Material2D makeGrid(const glm::vec3 &pos, const glm::vec2 &size, uint64_t id) {
         Material2D m;
         m.type = Material2D::MaterialType::grid;
-        new (&m.grid) QuadMaterial();
+        new (&m.grid) GridMaterial();
         m.grid.position = pos;
         m.grid.size = size;
         m.grid.id = id;
@@ -17,14 +39,26 @@ namespace Bess::Renderer {
         return m;
     }
 
+    static Material2D makePrimitive(const Vulkan::PrimitiveInstance &instance) {
+        Material2D m;
+        m.type = Material2D::MaterialType::primitive;
+        new (&m.primitive) PrimitiveMaterial();
+        m.primitive.instance = instance;
+        m.z = instance.position.z;
+        m.alpha = instance.color.a;
+        return m;
+    }
+
     MaterialRenderer::MaterialRenderer(const std::shared_ptr<VulkanDevice> &device,
                                        const std::shared_ptr<VulkanOffscreenRenderPass> &renderPass,
                                        VkExtent2D extent) {
 
-        m_circlePipeline = std::make_unique<Pipelines::CirclePipeline>(device, renderPass, extent);
         m_gridPipeline = std::make_unique<Pipelines::GridPipeline>(device, renderPass, extent);
-        m_quadPipeline = std::make_unique<Pipelines::QuadPipeline>(device, renderPass, extent);
+        m_primitivePipeline = std::make_unique<Pipelines::PrimitivePipeline>(device, renderPass, extent);
         m_textRenderer = std::make_unique<Renderer::TextRenderer>(device, renderPass, extent);
+
+        auto fontFilePtr = getFontFile();
+        *fontFilePtr = m_textRenderer->getFontFile();
 
         m_translucentMaterials = {};
 
@@ -65,26 +99,6 @@ namespace Bess::Renderer {
         m_translucentMaterials.push(m);
     }
 
-    static Material2D makeQuad(const Vulkan::QuadInstance &instance) {
-        Material2D m;
-        m.type = Material2D::MaterialType::quad;
-        new (&m.quad) QuadMaterial();
-        m.quad.instance = instance;
-        m.z = instance.position.z;
-        m.alpha = instance.color.a;
-        return m;
-    }
-
-    static Material2D makeCircle(const Vulkan::CircleInstance &instance) {
-        Material2D m;
-        m.type = Material2D::MaterialType::circle;
-        new (&m.circle) CircleMaterial();
-        m.circle.instance = instance;
-        m.z = instance.position.z;
-        m.alpha = instance.color.a;
-        return m;
-    }
-
     glm::uvec2 encodeId(uint64_t id) {
         glm::uvec2 encodedId;
         encodedId.x = static_cast<uint32_t>(id & 0xFFFFFFFF);
@@ -97,27 +111,28 @@ namespace Bess::Renderer {
                                     const glm::vec4 &color,
                                     uint64_t id,
                                     QuadRenderProperties props) {
-        if (!m_quadPipeline) {
+        if (!m_primitivePipeline) {
             return;
         }
 
-        QuadInstance instance{};
+        PrimitiveInstance instance{};
+        instance.primitiveType = static_cast<int32_t>(PrimitiveType::Quad);
         instance.position = pos;
         instance.color = color;
         instance.borderRadius = props.borderRadius;
         instance.borderColor = props.borderColor;
         instance.borderSize = props.borderSize;
+        instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f);
         instance.size = size;
         instance.id = encodeId(id);
-        instance.isMica = (int)props.isMica;
+        instance.isMica = static_cast<int>(props.isMica);
         instance.texSlotIdx = 0;
-        instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f);
         instance.angle = props.angle;
 
         if (color.a == 1.f) {
-            m_quadInstances.emplace_back(instance);
+            m_primitiveInstances.emplace_back(instance);
         } else {
-            auto m = makeQuad(instance);
+            auto m = makePrimitive(instance);
             m_translucentMaterials.push(m);
         }
 
@@ -145,24 +160,26 @@ namespace Bess::Renderer {
                                             uint64_t id,
                                             const std::shared_ptr<VulkanTexture> &texture,
                                             QuadRenderProperties props) {
-        if (!m_quadPipeline) {
+        if (!m_primitivePipeline) {
             return;
         }
 
-        QuadInstance instance{};
+        PrimitiveInstance instance{};
+        instance.primitiveType = static_cast<int32_t>(PrimitiveType::Quad);
         instance.position = pos;
         instance.color = tint;
         instance.borderRadius = props.borderRadius;
         instance.borderColor = props.borderColor;
         instance.borderSize = props.borderSize;
+        instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f);
         instance.size = size;
         instance.id = encodeId(id);
-        instance.isMica = (int)props.isMica;
-        instance.texData = glm::vec4(0.0f, 0.0f, 1.f, 1.f);
+        instance.isMica = static_cast<int>(props.isMica);
+        instance.angle = props.angle;
 
-        auto m = makeQuad(instance);
-        m.quad.instance = instance;
-        m.quad.texture = texture;
+        auto m = makePrimitive(instance);
+        m.primitive.instance = instance;
+        m.primitive.texture = texture;
         m_translucentMaterials.push(m);
     }
 
@@ -172,43 +189,80 @@ namespace Bess::Renderer {
                                             uint64_t id,
                                             const std::shared_ptr<SubTexture> &subTexture,
                                             QuadRenderProperties props) {
-        if (!m_quadPipeline) {
+        if (!m_primitivePipeline) {
             return;
         }
 
-        QuadInstance instance{};
+        PrimitiveInstance instance{};
+        instance.primitiveType = static_cast<int32_t>(PrimitiveType::Quad);
         instance.position = pos;
         instance.color = tint;
         instance.borderRadius = props.borderRadius;
         instance.borderColor = props.borderColor;
         instance.borderSize = props.borderSize;
+        instance.texData = subTexture->getStartWH();
         instance.size = size;
         instance.id = encodeId(id);
-        instance.isMica = (int)props.isMica;
-        instance.texData = subTexture->getStartWH();
+        instance.isMica = static_cast<int>(props.isMica);
+        instance.angle = props.angle;
 
-        auto m = makeQuad(instance);
-        m.quad.instance = instance;
-        m.quad.texture = subTexture->getTexture();
+        auto m = makePrimitive(instance);
+        m.primitive.instance = instance;
+        m.primitive.texture = subTexture->getTexture();
         m_translucentMaterials.push(m);
     }
 
     void MaterialRenderer::drawCircle(const glm::vec3 &center, float radius, const glm::vec4 &color, uint64_t id, float innerRadius) {
-        if (!m_circlePipeline) {
+        if (!m_primitivePipeline) {
             return;
         }
 
-        CircleInstance instance{};
+        PrimitiveInstance instance{};
+        instance.primitiveType = static_cast<int32_t>(PrimitiveType::Circle);
         instance.position = center;
         instance.color = color;
-        instance.radius = radius;
-        instance.innerRadius = innerRadius;
+        instance.size = glm::vec2(radius * 2.0f);
+        instance.primitiveData = glm::vec4(radius, innerRadius, 0.0f, 0.0f);
         instance.id = encodeId(id);
 
         if (color.a == 1.f) {
-            m_circleInstances.emplace_back(instance);
+            m_primitiveInstances.emplace_back(instance);
         } else {
-            auto m = makeCircle(instance);
+            auto m = makePrimitive(instance);
+            m_translucentMaterials.push(m);
+        }
+    }
+
+    void MaterialRenderer::drawLine(const glm::vec3 &start,
+                                    const glm::vec3 &end,
+                                    const float thickness,
+                                    const glm::vec4 &color,
+                                    const uint64_t id) {
+        if (!m_primitivePipeline) {
+            return;
+        }
+
+        const glm::vec2 delta = glm::vec2(end) - glm::vec2(start);
+        const float length = glm::length(delta);
+        if (length <= 0.0001f) {
+            drawCircle(start, thickness * 0.5f, color, id);
+            return;
+        }
+
+        PrimitiveInstance instance{};
+        instance.primitiveType = static_cast<int32_t>(PrimitiveType::Line);
+        instance.position = glm::vec3((glm::vec2(start) + glm::vec2(end)) * 0.5f,
+                                      (start.z + end.z) * 0.5f);
+        instance.color = color;
+        instance.size = glm::vec2(length + thickness, thickness);
+        instance.primitiveData = glm::vec4(thickness, 0.0f, 0.0f, 0.0f);
+        instance.id = encodeId(id);
+        instance.angle = std::atan2(delta.y, delta.x);
+
+        if (color.a == 1.f) {
+            m_primitiveInstances.emplace_back(instance);
+        } else {
+            auto m = makePrimitive(instance);
             m_translucentMaterials.push(m);
         }
     }
@@ -218,6 +272,14 @@ namespace Bess::Renderer {
 
         if (m_textRenderer) {
             m_textRenderer->drawText(text, pos, size, color, id);
+        }
+    }
+
+    void MaterialRenderer::drawIcon(const std::string &text, const glm::vec3 &pos, const size_t size,
+                                    const glm::vec4 &color, const uint64_t &id, float angle) {
+
+        if (m_textRenderer) {
+            m_textRenderer->drawIcon(text, pos, size, color, id);
         }
     }
 
@@ -231,11 +293,8 @@ namespace Bess::Renderer {
     }
 
     void MaterialRenderer::resize(VkExtent2D extent) {
-        if (m_quadPipeline)
-            m_quadPipeline->resize(extent);
-
-        if (m_circlePipeline)
-            m_circlePipeline->resize(extent);
+        if (m_primitivePipeline)
+            m_primitivePipeline->resize(extent);
 
         if (m_gridPipeline)
             m_gridPipeline->resize(extent);
@@ -248,11 +307,8 @@ namespace Bess::Renderer {
         Vulkan::UniformBufferObject ubo{};
         ubo.mvp = camera->getTransform();
         ubo.ortho = camera->getOrtho();
-        if (m_quadPipeline)
-            m_quadPipeline->updateUniformBuffer(ubo);
-
-        if (m_circlePipeline)
-            m_circlePipeline->updateUniformBuffer(ubo);
+        if (m_primitivePipeline)
+            m_primitivePipeline->updateUniformBuffer(ubo);
 
         if (m_gridPipeline) {
             m_gridPipeline->updateUniformBuffer(ubo);
@@ -268,15 +324,10 @@ namespace Bess::Renderer {
             m_textRenderer->beginFrame(m_cmdBuffer);
         }
 
-        if (m_circlePipeline) {
-            m_circlePipeline->cleanPrevStateCounter();
-            m_circleInstances.clear();
-        }
-
-        if (m_quadPipeline) {
-            m_quadPipeline->cleanPrevStateCounter();
-            m_quadInstances.clear();
-            m_texturedQuadInstances.clear();
+        if (m_primitivePipeline) {
+            m_primitivePipeline->cleanPrevStateCounter();
+            m_primitiveInstances.clear();
+            m_texturedPrimitiveInstances.clear();
         }
     }
 
@@ -301,16 +352,13 @@ namespace Bess::Renderer {
             }
 
             switch (m.type) {
-            case Material2D::MaterialType::quad: {
-                if (m.quad.texture) {
-                    m_texturedQuadInstances[m.quad.texture].emplace_back(m.quad.instance);
+            case Material2D::MaterialType::primitive: {
+                if (m.primitive.texture) {
+                    m_texturedPrimitiveInstances[m.primitive.texture].emplace_back(m.primitive.instance);
                 } else {
-                    m_quadInstances.emplace_back(m.quad.instance);
+                    m_primitiveInstances.emplace_back(m.primitive.instance);
                 }
             } break;
-            case Material2D::MaterialType::circle:
-                m_circleInstances.emplace_back(m.circle.instance);
-                break;
             case Material2D::MaterialType::grid:
                 m_gridMaterial = m;
                 break;
@@ -322,17 +370,10 @@ namespace Bess::Renderer {
     }
 
     void MaterialRenderer::flushVertices(bool isTranslucent) {
-        if (m_quadPipeline && (!m_quadInstances.empty() || !m_texturedQuadInstances.empty())) {
-            m_quadPipeline->drawQuadInstances(m_cmdBuffer, isTranslucent, m_quadInstances, m_texturedQuadInstances);
-            m_quadInstances.clear();
-            m_texturedQuadInstances.clear();
-        }
-
-        if (m_circlePipeline && !m_circleInstances.empty()) {
-            m_circlePipeline->beginPipeline(m_cmdBuffer, isTranslucent);
-            m_circlePipeline->setCirclesData(m_circleInstances);
-            m_circlePipeline->endPipeline();
-            m_circleInstances.clear();
+        if (m_primitivePipeline && (!m_primitiveInstances.empty() || !m_texturedPrimitiveInstances.empty())) {
+            m_primitivePipeline->drawPrimitiveInstances(m_cmdBuffer, isTranslucent, m_primitiveInstances, m_texturedPrimitiveInstances);
+            m_primitiveInstances.clear();
+            m_texturedPrimitiveInstances.clear();
         }
 
         if (m_gridPipeline && m_gridMaterial.grid.id != -2) {
@@ -346,11 +387,8 @@ namespace Bess::Renderer {
     }
 
     void MaterialRenderer::setCurrentFrameIndex(uint32_t frameIndex) {
-        if (m_quadPipeline)
-            m_quadPipeline->setCurrentFrameIndex(frameIndex);
-
-        if (m_circlePipeline)
-            m_circlePipeline->setCurrentFrameIndex(frameIndex);
+        if (m_primitivePipeline)
+            m_primitivePipeline->setCurrentFrameIndex(frameIndex);
 
         if (m_gridPipeline)
             m_gridPipeline->setCurrentFrameIndex(frameIndex);
@@ -359,10 +397,56 @@ namespace Bess::Renderer {
             m_textRenderer->setCurrentFrameIndex(frameIndex);
     }
 
-    glm::vec2 MaterialRenderer::getTextRenderSize(const std::string &str, float renderSize) {
-        if (!m_textRenderer) {
-            return {0.f, 0.f};
+    glm::vec2 MaterialRenderer::getTextRenderSize(const std::string &str,
+                                                  float renderSize) {
+        auto font = *getFontFile();
+        BESS_ASSERT(font, "Font file not set in MaterialRenderer");
+        const auto renderSizeMilli = static_cast<int32_t>(std::lround(renderSize * 1000.0f));
+
+        static constexpr size_t kMaxTextMeasureCacheEntries = 4096;
+        static std::unordered_map<TextMeasureCacheKey, glm::vec2, TextMeasureCacheKeyHash> s_textMeasureCache;
+        static std::deque<TextMeasureCacheKey> s_textMeasureCacheOrder;
+
+        TextMeasureCacheKey cacheKey{
+            .font = font,
+            .renderSizeMilli = renderSizeMilli,
+            .text = str,
+        };
+
+        if (const auto it = s_textMeasureCache.find(cacheKey); it != s_textMeasureCache.end()) {
+            return it->second;
         }
-        return m_textRenderer->getRenderSize(str, (size_t)renderSize);
+
+        const float scale = renderSize / font->getSize();
+        float currentLineWidth = 0.f;
+        float maxLineWidth = 0.f;
+        float totalHeight = renderSize;
+        for (const char ch : str) {
+            if (ch == '\n') {
+                maxLineWidth = std::max(maxLineWidth, currentLineWidth);
+                currentLineWidth = 0.f;
+                totalHeight += renderSize;
+                continue;
+            }
+            const auto &glyph = font->getGlyph(ch);
+            currentLineWidth += glyph.advanceX;
+        }
+
+        maxLineWidth = std::max(maxLineWidth, currentLineWidth);
+        glm::vec2 calcSize = {maxLineWidth * scale, totalHeight};
+
+        s_textMeasureCache.emplace(cacheKey, calcSize);
+        s_textMeasureCacheOrder.push_back(cacheKey);
+        if (s_textMeasureCacheOrder.size() > kMaxTextMeasureCacheEntries) {
+            s_textMeasureCache.erase(s_textMeasureCacheOrder.front());
+            s_textMeasureCacheOrder.pop_front();
+        }
+
+        return calcSize;
+    }
+
+    Font::FontFile **MaterialRenderer::getFontFile() {
+        static Font::FontFile *file = nullptr;
+        return &file;
     }
 } // namespace Bess::Renderer

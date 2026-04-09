@@ -6,6 +6,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(Header_Files
     "include/digital_component.h"
     "include/types.h"
+    "include/module_def.h"
     "include/simulation_engine.h"
     "include/sim_engine_state.h"
     "include/simulation_engine_serializer.h"
@@ -14,27 +15,20 @@ set(Header_Files
     "include/init_components.h" 
     "include/net/net.h" 
 		"include/expression_evalutator/expr_evaluator.h"
-		"include/commands/command.h"
-		"include/commands/commands.h"
-		"include/commands/commands_manager.h"
 		"include/utils/string_utils.h"
-		"include/command_processor/command_processor.h"
-		"include/command_processor/commands_reg.h"
 )
 source_group("include" FILES ${Header_Files})
 
 set(Source_Files
     "src/simulation_engine.cpp"
 		"src/sim_engine_state.cpp"
+		"src/module_def.cpp"
     "src/simulation_engine_serializer.cpp"
     "src/digital_component.cpp"
     "src/net/net.cpp" 
     "src/component_catalog.cpp"
     "src/component_definition.cpp"
-		"src/commands/commands.cpp"
-		"src/commands/commands_manager.cpp"
 		"src/utils/string_utils.cpp"
-		"src/command_processor/command_processor.cpp"
 )
 source_group("src" FILES ${Source_Files})
 

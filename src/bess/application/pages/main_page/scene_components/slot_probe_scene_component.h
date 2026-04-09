@@ -18,15 +18,20 @@ namespace Bess::Canvas {
         REG_SCENE_COMP_TYPE("SlotProbeSceneComponent",
                             SceneComponentType::nonSimulation)
 
-        MAKE_GETTER_SETTER_WC(UUID, ProbedSlotUuid, m_probedSlotUuid, onProbedSlotChanged)
+        MAKE_GETTER_SETTER_BC_AC(UUID,
+                                 ProbedSlotUuid,
+                                 m_probedSlotUuid,
+                                 onBeforeProbedSlotChanged,
+                                 onProbedSlotChanged);
+
         typedef std::pair<TimeNs, SimEngine::LogicState> ProbeDataEntry;
         MAKE_GETTER_SETTER(std::vector<ProbeDataEntry>, ProbeData, m_probeData)
 
         SCENE_COMP_SER(SlotProbeSceneComponent, NonSimSceneComponent, SLOT_PROBE_SER_PROPS)
 
-        void draw(SceneState &sceneState,
-                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                  std::shared_ptr<PathRenderer> pathRenderer) override;
+        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
+
+        void draw(SceneDrawContext &context) override;
 
         void update(TimeMs frameTime, SceneState &state) override;
 
@@ -37,13 +42,23 @@ namespace Bess::Canvas {
 
         std::type_index getTypeIndex() override;
 
+        void drawPropertiesUI(SceneState& sceneState) override;
+
       private:
         void onProbedSlotChanged();
+        void onBeforeProbedSlotChanged();
+
+        void subscribeToSlot(const SceneState &sceneState,
+                             const UUID &slotUuid);
+        void unsubscribeFromSlot(const SceneState &sceneState);
 
         void onNameChanged() override;
 
       private:
         UUID m_probedSlotUuid = UUID::null;
+        UUID m_unsubscribeSlotUuid = UUID::null;
+        bool m_subscribeFlag = false,
+             m_unsubscribeFlag = false;
         std::vector<std::pair<TimeNs, SimEngine::LogicState>> m_probeData;
         bool m_scaleDirty = false;
     };

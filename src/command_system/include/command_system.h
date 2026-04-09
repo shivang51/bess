@@ -33,6 +33,8 @@ namespace Bess::Cmd {
 
       public:
         void setScene(Canvas::Scene *scene);
+
+        Canvas::Scene *getScene();
         void setSimEngine(SimEngine::SimulationEngine *simEngine);
 
         bool canUndo() const;

@@ -10,6 +10,7 @@ void bind_sim_functions(py::module_ &m);
 void bind_sim_engine_component_definition(py::module_ &m);
 void bind_scene_schematic_diagram(py::module_ &m);
 void bind_scene_component(py::module_ &m);
+void bind_sim_scene_component(py::module_ &m);
 void bind_sim_comp_draw_hook(py::module_ &m);
 void bind_scene_state(py::module_ &m);
 void bind_path_renderer(py::module_ &m);
@@ -51,14 +52,15 @@ void bind_api(py::module_ &m) {
     bind_sim_functions(simFn);
 
     // Scene
-    bind_scene_state(scene);
     bind_scene_common_binding(scene);
     bind_renderer_path(renderer); // Path class and related things
     bind_path_renderer(renderer); // Path renderer it self.
-    bind_scene_schematic_diagram(scene);
     bind_material_renderer(renderer);
+    bind_scene_state(scene);
+    bind_scene_schematic_diagram(scene);
     bind_scene_component(scene);
     bind_sim_comp_draw_hook(scene);
+    bind_sim_scene_component(scene);
 
     // Asset Manager
     bind_asset_manager(assetMgr);

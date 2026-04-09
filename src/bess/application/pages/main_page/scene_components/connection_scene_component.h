@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/bess_uuid.h"
+#include "common/types.h"
 #include "scene/renderer/vulkan/path_renderer.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
@@ -8,6 +9,7 @@
 #include "scene/scene_state/components/scene_component_types.h"
 #include "scene/scene_state/scene_state.h"
 #include "scene_comp_types.h"
+#include "scene_draw_context.h"
 
 #define CONN_SC_SER_PROPS ("startSlot", getStartSlot, setStartSlot),                                                 \
                           ("endSlot", getEndSlot, setEndSlot),                                                       \
@@ -27,13 +29,16 @@ namespace Bess::Canvas {
 
         ~ConnectionSceneComponent() override = default;
 
-        void draw(SceneState &state,
-                  std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                  std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
+        std::vector<std::shared_ptr<SceneComponent>> cloneConn(
+            const SceneState &state,
+            std::unordered_map<UUID, UUID> &ogToClonedIdMap);
 
-        void drawSchematic(SceneState &state,
-                           std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                           std::shared_ptr<Renderer2D::Vulkan::PathRenderer> pathRenderer) override;
+        void draw(SceneDrawContext &context) override;
+        void update(TimeMs frameTime, SceneState &sceneState) override;
+
+        void drawSchematic(SceneDrawContext &context) override;
+
+        std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
 
         void onMouseDragged(const Events::MouseDraggedEvent &e) override;
         void onMouseDragBegin(const Events::MouseDraggedEvent &e) override;
@@ -68,15 +73,13 @@ namespace Bess::Canvas {
         std::vector<UUID> getDependants(const SceneState &state) const override;
 
       private:
-        void onFirstDraw(SceneState &sceneState,
-                         std::shared_ptr<Renderer::MaterialRenderer> materialRenderer,
-                         std::shared_ptr<PathRenderer> pathRenderer) override;
+        void onFirstDraw(SceneDrawContext &context) override;
 
         void drawSegments(const SceneState &state,
                           const glm::vec3 &startPos,
                           const glm::vec3 &endPos,
                           const glm::vec4 &color,
-                          const std::shared_ptr<Renderer2D::Vulkan::PathRenderer> &pathRenderer);
+                          const std::shared_ptr<Renderer::PathRenderer> &pathRenderer);
 
         void resetSegmentPositionCache(const SceneState &state);
         UUID m_startSlot = UUID::null;
