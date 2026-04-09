@@ -385,7 +385,7 @@ namespace Bess::Verilog {
             if (cellType == "$_MUX_" || cellType == "$mux") {
                 return ensureExprDefinition("2-to-1 Multiplexer", 3, 1, {"(!2*0) + (2*1)"});
             }
-            if (cellType == "$_DFF_P_" || cellType == "$dff") {
+            if (cellType == "$_DFF_P_" || cellType == "$_DFF_PP0_" || cellType == "$dff") {
                 return ensureDffDefinition("D Flip Flop", true);
             }
             if (cellType == "$_DFF_N_") {
@@ -771,10 +771,12 @@ namespace Bess::Verilog {
                     return;
                 }
 
-                if (cell.type == "$_DFF_P_" || cell.type == "$_DFF_N_" || cell.type == "$dff") {
+                if (cell.type == "$_DFF_P_" || cell.type == "$_DFF_N_" ||
+                    cell.type == "$_DFF_PP0_" || cell.type == "$dff") {
                     const auto &dBits = cell.connections.at("D");
                     const auto &qBits = cell.connections.at("Q");
                     const auto &clkBits = cell.connections.at(cell.connections.contains("C") ? "C" : "CLK");
+                    const bool hasResetPort = cell.connections.contains("R");
                     if (clkBits.size() != 1 || dBits.size() != qBits.size()) {
                         throw std::runtime_error("Unsupported DFF width configuration in " + cell.name);
                     }
@@ -788,7 +790,13 @@ namespace Bess::Verilog {
                         const SlotEndpoint qEndpoint{componentId, SlotType::digitalOutput, 0};
                         registerLoad(resolveSignal(path, dBits[i], bindings), dEndpoint);
                         registerLoad(resolveSignal(path, clkBits[0], bindings), clkEndpoint);
-                        registerLoad(SignalRef::constantValue("0"), clrEndpoint);
+                        if (hasResetPort) {
+                            const auto &rBits = cell.connections.at("R");
+                            registerLoad(resolveSignal(path, rBits[0], bindings), clrEndpoint);
+                            recordBoundaryInputSink(rBits[0], clrEndpoint);
+                        } else {
+                            registerLoad(SignalRef::constantValue("0"), clrEndpoint);
+                        }
                         registerDriver(resolveSignal(path, qBits[i], bindings), qEndpoint);
                         recordBoundaryInputSink(dBits[i], dEndpoint);
                         recordBoundaryInputSink(clkBits[0], clkEndpoint);
