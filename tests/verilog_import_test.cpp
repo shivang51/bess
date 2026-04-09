@@ -2,11 +2,11 @@
 #include "bverilog/sim_engine_importer.h"
 #include "bverilog/yosys_json_parser.h"
 #include "bverilog/yosys_runner.h"
-#include "gtest/gtest.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
 #include "types.h"
+#include "gtest/gtest.h"
 #include <array>
 #include <filesystem>
 #include <fstream>
@@ -54,8 +54,8 @@ class VerilogImportTest : public testing::Test {
 
     void TearDown() override {
         if (engine) {
-        engine->setSimulationState(SimulationState::paused);
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            engine->setSimulationState(SimulationState::paused);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
             engine->clear();
             engine->destroy();
             engine.reset();

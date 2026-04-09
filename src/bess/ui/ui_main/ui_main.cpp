@@ -428,7 +428,9 @@ namespace Bess::UI {
         Widgets::TextBox("##VerilogImportPath", wizard.filePath, "Select a Verilog file");
         ImGui::SameLine();
         if (ImGui::Button("Browse") && !wizard.importing) {
-            const auto path = Dialogs::showOpenFileDialog("Import Verilog File", "*.v|*.sv|");
+            const auto path = Dialogs::showOpenFileDialog("Import Verilog File",
+                                                          {"Verilog Script File", "*.sv *.v",
+                                                           "All Files", "*.*"});
             if (!path.empty()) {
                 wizard.filePath = path;
             }
@@ -536,7 +538,9 @@ namespace Bess::UI {
 
     void UIMain::onOpenProject() {
         const auto filepath =
-            Dialogs::showOpenFileDialog("Open BESS Project File", "*.bproj|");
+            Dialogs::showOpenFileDialog("Open BESS Project File",
+                                        {"Bess Project", "*.bproj",
+                                         "All Files", "*.*"});
 
         if (filepath == "" || !std::filesystem::exists(filepath)) {
             BESS_WARN("No or invalid file path selcted");

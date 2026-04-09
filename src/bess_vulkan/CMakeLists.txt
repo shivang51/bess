@@ -3,8 +3,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(EXT_OTHERS_SRC
 	"${CMAKE_SOURCE_DIR}/external/stb_image/src/stb_image.cpp"
-	"${CMAKE_SOURCE_DIR}/external/tinyfiledialogs/tinyfiledialogs.c"
 )
+
 source_group("external/others" FILES ${EXT_OTHERS_SRC})
 
 set(External
