@@ -13,6 +13,10 @@ The project began as an attempt to remove the barriers students often face when 
 Check out [Bess Wiki](https://github.com/shivang51/bess/wiki) to see available components.
 > Only digital components are there for now, analog components are planned for future.
 
+
+https://github.com/user-attachments/assets/86f467ee-4160-4be6-a6de-626ed7a3e3a6
+
+
 ## Screenshots
 
 <div align="center" height="100px">
@@ -52,6 +56,6 @@ All build scripts live in the **scripts/** folder inside the CMake source direct
 - [x] Basic Plugin Suppport
 - [x] Usability enhancements - [Details](https://github.com/shivang51/bess/pull/18)
 - [x] Command System - [Details](https://github.com/shivang51/bess/pull/19)
-- [ ] Module Support
+- [x] Module Support - [Details](https://github.com/shivang51/bess/pull/20)
 - [ ] Basic Verilog Support
 - [ ] Add More components
