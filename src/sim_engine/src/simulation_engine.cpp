@@ -365,9 +365,24 @@ namespace Bess::SimEngine {
         }
         const auto &comp = m_simEngineState.getDigitalComponent(uuid);
 
-        return type == SlotType::digitalOutput
-                   ? comp->state.outputStates[idx]
-                   : comp->state.inputStates[idx];
+        if (idx < 0) {
+            BESS_WARN("[getDigitalPinState] Negative slot index {} for component {}", idx, (uint64_t)uuid);
+            return {LogicState::unknown, SimTime(0)};
+        }
+
+        if (type == SlotType::digitalOutput) {
+            if (static_cast<size_t>(idx) >= comp->state.outputStates.size()) {
+                BESS_WARN("[getDigitalPinState] Output slot index {} out of range for component {}", idx, (uint64_t)uuid);
+                return {LogicState::unknown, SimTime(0)};
+            }
+            return comp->state.outputStates[idx];
+        }
+
+        if (static_cast<size_t>(idx) >= comp->state.inputStates.size()) {
+            BESS_WARN("[getDigitalPinState] Input slot index {} out of range for component {}", idx, (uint64_t)uuid);
+            return {LogicState::unknown, SimTime(0)};
+        }
+        return comp->state.inputStates[idx];
     }
 
     ConnectionBundle SimulationEngine::getConnections(const UUID &uuid) {

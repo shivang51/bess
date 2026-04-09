@@ -2,13 +2,17 @@
 
 #include "common/bess_assert.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
+#include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "scene/scene.h"
+#include "event_dispatcher.h"
+#include "module_def.h"
 #include "simulation_engine.h"
 #include <algorithm>
 #include <deque>
+#include <functional>
 #include <limits>
 #include <unordered_set>
 
@@ -47,7 +51,7 @@ namespace Bess::Pages {
             BESS_ASSERT(!created.empty(), "Failed to create scene component for imported sim component");
 
             ImportedSceneComponent result;
-            result.component = created.front()->cast<SimulationSceneComponent>();
+            result.component = std::dynamic_pointer_cast<SimulationSceneComponent>(created.front());
             BESS_ASSERT(result.component, "Imported scene root is not a simulation scene component");
             result.component->setSimEngineId(simId);
             result.component->setName(compDef->getName());
@@ -63,7 +67,7 @@ namespace Bess::Pages {
             BESS_ASSERT(!created.empty(), "Failed to create module scene component for imported instance");
 
             ImportedModuleSceneComponent result;
-            result.component = created.front()->cast<ModuleSceneComponent>();
+            result.component = std::dynamic_pointer_cast<ModuleSceneComponent>(created.front());
             BESS_ASSERT(result.component, "Imported module wrapper is not a module scene component");
             result.component->setName(leafInstanceName(instancePath));
             created.erase(created.begin());
@@ -107,18 +111,53 @@ namespace Bess::Pages {
             }
         }
 
-        std::unordered_map<UUID, int> computeImportedLevels(const SimEngineImportResult &result,
+        void resizeOutputs(const std::shared_ptr<DigitalComponent> &component, size_t count) {
+            while (component->definition->getOutputSlotsInfo().count < count) {
+                component->incrementOutputCount(true);
+            }
+            while (component->definition->getOutputSlotsInfo().count > count &&
+                   component->definition->getOutputSlotsInfo().count > 1) {
+                component->decrementOutputCount(true);
+            }
+        }
+
+        void resizeInputs(const std::shared_ptr<DigitalComponent> &component, size_t count) {
+            while (component->definition->getInputSlotsInfo().count < count) {
+                component->incrementInputCount(true);
+            }
+            while (component->definition->getInputSlotsInfo().count > count &&
+                   component->definition->getInputSlotsInfo().count > 1) {
+                component->decrementInputCount(true);
+            }
+        }
+
+        void applySlotNames(SceneState &sceneState,
+                            const std::vector<UUID> &slotIds,
+                            const std::vector<std::string> &slotNames) {
+            size_t nameIdx = 0;
+            for (const auto &slotId : slotIds) {
+                const auto slot = sceneState.getComponentByUuid<SlotSceneComponent>(slotId);
+                if (!slot || slot->isResizeSlot()) {
+                    continue;
+                }
+                if (nameIdx < slotNames.size()) {
+                    slot->setName(slotNames[nameIdx]);
+                }
+                ++nameIdx;
+            }
+        }
+
+        std::unordered_map<UUID, int> computeImportedLevels(const std::vector<UUID> &componentIds,
                                                             SimulationEngine &simEngine) {
-            std::unordered_set<UUID> importedIds(result.createdComponentIds.begin(),
-                                                 result.createdComponentIds.end());
+            std::unordered_set<UUID> importedIds(componentIds.begin(), componentIds.end());
             std::unordered_map<UUID, int> indegree;
             std::unordered_map<UUID, std::vector<UUID>> adjacency;
 
-            for (const auto &id : result.createdComponentIds) {
+            for (const auto &id : componentIds) {
                 indegree[id] = 0;
             }
 
-            for (const auto &id : result.createdComponentIds) {
+            for (const auto &id : componentIds) {
                 const auto connections = simEngine.getConnections(id);
                 for (const auto &slotConnections : connections.outputs) {
                     for (const auto &[dstId, dstSlot] : slotConnections) {
@@ -153,7 +192,7 @@ namespace Bess::Pages {
                 }
             }
 
-            for (const auto &id : result.createdComponentIds) {
+            for (const auto &id : componentIds) {
                 if (!levels.contains(id)) {
                     levels[id] = 0;
                 }
@@ -162,11 +201,11 @@ namespace Bess::Pages {
             return levels;
         }
 
-        void layoutImportedComponents(const SimEngineImportResult &result,
+        void layoutImportedComponents(const std::vector<UUID> &componentIds,
                                       SimulationEngine &simEngine,
                                       const std::unordered_map<UUID, std::shared_ptr<SimulationSceneComponent>> &sceneBySimId,
                                       Scene &scene) {
-            auto levels = computeImportedLevels(result, simEngine);
+            auto levels = computeImportedLevels(componentIds, simEngine);
             std::unordered_map<int, std::vector<UUID>> levelBuckets;
             int maxLevel = 0;
             for (const auto &[id, level] : levels) {
@@ -252,11 +291,10 @@ namespace Bess::Pages {
         }
 
         void addImportedConnections(Scene &scene,
-                                    const SimEngineImportResult &result,
+                                    const std::vector<UUID> &componentIds,
                                     SimulationEngine &simEngine,
                                     const std::unordered_map<UUID, std::shared_ptr<SimulationSceneComponent>> &sceneBySimId) {
-            std::unordered_set<UUID> importedIds(result.createdComponentIds.begin(),
-                                                 result.createdComponentIds.end());
+            std::unordered_set<UUID> importedIds(componentIds.begin(), componentIds.end());
             auto &sceneState = scene.getState();
             std::unordered_map<UUID, std::unordered_map<int, UUID>> inputSlotBySimId;
             std::unordered_map<UUID, std::unordered_map<int, UUID>> outputSlotBySimId;
@@ -279,7 +317,7 @@ namespace Bess::Pages {
                 }
             }
 
-            for (const auto &srcId : result.createdComponentIds) {
+            for (const auto &srcId : componentIds) {
                 const auto connections = simEngine.getConnections(srcId);
                 for (size_t srcSlot = 0; srcSlot < connections.outputs.size(); ++srcSlot) {
                     for (const auto &[dstId, dstSlot] : connections.outputs[srcSlot]) {
@@ -320,16 +358,249 @@ namespace Bess::Pages {
                                                const glm::vec3 &parentPos) {
             auto &transform = component->getTransform();
             transform.position -= parentPos;
-            if (const auto simComp = component->cast<SimulationSceneComponent>()) {
+            if (const auto simComp = std::dynamic_pointer_cast<SimulationSceneComponent>(component)) {
                 auto schematicTransform = simComp->getSchematicTransform();
                 schematicTransform.position -= parentPos;
                 simComp->setSchematicTransform(schematicTransform);
             }
         }
 
-        void buildImportedModuleHierarchy(
+        std::string endpointKey(UUID componentId, SimEngine::SlotType slotType, int slotIndex) {
+            return std::to_string(static_cast<uint64_t>(componentId)) + ":" +
+                   std::to_string(static_cast<int>(slotType)) + ":" +
+                   std::to_string(slotIndex);
+        }
+
+        std::string endpointKey(const ImportedSlotEndpoint &endpoint) {
+            return endpointKey(endpoint.componentId, endpoint.slotType, endpoint.slotIndex);
+        }
+
+        bool isOwnedByInstance(const SimEngineImportResult &result,
+                               const UUID &componentId,
+                               std::string_view instancePath) {
+            const auto it = result.componentInstancePathById.find(componentId);
+            return it != result.componentInstancePathById.end() && it->second == instancePath;
+        }
+
+        void configureImportedModuleInterface(const ImportedModuleSceneComponent &moduleComp,
+                                              const ImportedModuleInstance &instance,
+                                              SimulationEngine &simEngine) {
+            auto moduleDef = std::dynamic_pointer_cast<ModuleDefinition>(moduleComp.component->getCompDef());
+            BESS_ASSERT(moduleDef, "Imported module wrapper is missing its module definition");
+
+            const auto inputCount = std::max<size_t>(1, instance.inputSlotNames.size());
+            const auto outputCount = std::max<size_t>(1, instance.outputSlotNames.size());
+
+            const auto inputComponent = simEngine.getDigitalComponent(moduleDef->getInputId());
+            const auto outputComponent = simEngine.getDigitalComponent(moduleDef->getOutputId());
+            BESS_ASSERT(inputComponent, "Imported module input bridge component was not found");
+            BESS_ASSERT(outputComponent, "Imported module output bridge component was not found");
+
+            resizeOutputs(inputComponent, inputCount);
+            inputComponent->definition->getOutputSlotsInfo().names = instance.inputSlotNames;
+
+            resizeInputs(outputComponent, outputCount);
+            outputComponent->definition->getInputSlotsInfo().names = instance.outputSlotNames;
+
+            moduleDef->getInputSlotsInfo().names = instance.inputSlotNames;
+            moduleDef->getOutputSlotsInfo().names = instance.outputSlotNames;
+
+            auto &sceneDriver = MainPage::getInstance()->getState().getSceneDriver();
+            const auto moduleScene = sceneDriver.getSceneWithId(moduleComp.component->getSceneId());
+            if (!moduleScene) {
+                return;
+            }
+
+            auto &moduleSceneState = moduleScene->getState();
+            const auto moduleInput = moduleSceneState.getComponentByUuid<SimulationSceneComponent>(moduleComp.component->getAssociatedInp());
+            const auto moduleOutput = moduleSceneState.getComponentByUuid<SimulationSceneComponent>(moduleComp.component->getAssociatedOut());
+            if (moduleInput) {
+                moduleInput->setName("Module Input");
+                applySlotNames(moduleSceneState, moduleInput->getOutputSlots(), instance.inputSlotNames);
+            }
+            if (moduleOutput) {
+                moduleOutput->setName("Module Output");
+                applySlotNames(moduleSceneState, moduleOutput->getInputSlots(), instance.outputSlotNames);
+            }
+
+            applySlotNames(sceneDriver.getRootSceneId() == UUID::null ? moduleSceneState : sceneDriver.getSceneWithId(sceneDriver.getRootSceneId())->getState(),
+                           moduleComp.component->getInputSlots(),
+                           instance.inputSlotNames);
+            applySlotNames(sceneDriver.getRootSceneId() == UUID::null ? moduleSceneState : sceneDriver.getSceneWithId(sceneDriver.getRootSceneId())->getState(),
+                           moduleComp.component->getOutputSlots(),
+                           instance.outputSlotNames);
+        }
+
+        void bridgeImportedModuleBoundary(const SimEngineImportResult &result,
+                                          const ImportedModuleInstance &instance,
+                                          const ImportedModuleSceneComponent &moduleComp,
+                                          SimulationEngine &simEngine) {
+            auto moduleDef = std::dynamic_pointer_cast<ModuleDefinition>(moduleComp.component->getCompDef());
+            BESS_ASSERT(moduleDef, "Imported module wrapper is missing its module definition");
+
+            const auto wrapperId = moduleComp.component->getSimEngineId();
+            const auto moduleInputId = moduleDef->getInputId();
+            const auto moduleOutputId = moduleDef->getOutputId();
+
+            for (size_t slotIndex = 0; slotIndex < instance.internalInputSinks.size(); ++slotIndex) {
+                std::unordered_set<std::string> seenSources;
+                for (const auto &sink : instance.internalInputSinks[slotIndex]) {
+                    const auto connections = simEngine.getConnections(sink.componentId);
+                    if (sink.slotIndex < 0 || sink.slotIndex >= static_cast<int>(connections.inputs.size())) {
+                        continue;
+                    }
+
+                    const auto incomingConnections = connections.inputs[sink.slotIndex];
+                    for (const auto &[srcId, srcSlotIndex] : incomingConnections) {
+                        if (srcId == moduleInputId || srcId == wrapperId) {
+                            continue;
+                        }
+
+                        if (isOwnedByInstance(result, srcId, instance.instancePath)) {
+                            continue;
+                        }
+
+                        simEngine.deleteConnection(srcId,
+                                                   SimEngine::SlotType::digitalOutput,
+                                                   srcSlotIndex,
+                                                   sink.componentId,
+                                                   sink.slotType,
+                                                   sink.slotIndex);
+
+                        const auto key = endpointKey(srcId, SimEngine::SlotType::digitalOutput, srcSlotIndex);
+                        if (!seenSources.insert(key).second) {
+                            continue;
+                        }
+
+                        simEngine.connectComponent(srcId,
+                                                   srcSlotIndex,
+                                                   SimEngine::SlotType::digitalOutput,
+                                                   wrapperId,
+                                                   static_cast<int>(slotIndex),
+                                                   SimEngine::SlotType::digitalInput);
+                    }
+
+                    simEngine.connectComponent(moduleInputId,
+                                               static_cast<int>(slotIndex),
+                                               SimEngine::SlotType::digitalOutput,
+                                               sink.componentId,
+                                               sink.slotIndex,
+                                               sink.slotType);
+                }
+            }
+
+            for (size_t slotIndex = 0; slotIndex < instance.internalOutputDrivers.size(); ++slotIndex) {
+                std::unordered_set<std::string> seenTargets;
+                for (const auto &driver : instance.internalOutputDrivers[slotIndex]) {
+                    simEngine.connectComponent(driver.componentId,
+                                               driver.slotIndex,
+                                               driver.slotType,
+                                               moduleOutputId,
+                                               static_cast<int>(slotIndex),
+                                               SimEngine::SlotType::digitalInput);
+
+                    const auto connections = simEngine.getConnections(driver.componentId);
+                    if (driver.slotIndex < 0 || driver.slotIndex >= static_cast<int>(connections.outputs.size())) {
+                        continue;
+                    }
+
+                    const auto outgoingConnections = connections.outputs[driver.slotIndex];
+                    for (const auto &[dstId, dstSlotIndex] : outgoingConnections) {
+                        if (dstId == moduleOutputId || dstId == wrapperId) {
+                            continue;
+                        }
+
+                        if (isOwnedByInstance(result, dstId, instance.instancePath)) {
+                            continue;
+                        }
+
+                        simEngine.deleteConnection(driver.componentId,
+                                                   driver.slotType,
+                                                   driver.slotIndex,
+                                                   dstId,
+                                                   SimEngine::SlotType::digitalInput,
+                                                   dstSlotIndex);
+
+                        const auto key = endpointKey(dstId, SimEngine::SlotType::digitalInput, dstSlotIndex);
+                        if (!seenTargets.insert(key).second) {
+                            continue;
+                        }
+
+                        simEngine.connectComponent(wrapperId,
+                                                   static_cast<int>(slotIndex),
+                                                   SimEngine::SlotType::digitalOutput,
+                                                   dstId,
+                                                   dstSlotIndex,
+                                                   SimEngine::SlotType::digitalInput);
+                    }
+                }
+            }
+        }
+
+        void populateImportedModuleScene(const SimEngineImportResult &result,
+                                         const ImportedModuleInstance &instance,
+                                         SimulationEngine &simEngine,
+                                         const ImportedModuleSceneComponent &moduleComp) {
+            auto &sceneDriver = MainPage::getInstance()->getState().getSceneDriver();
+            const auto moduleScene = sceneDriver.getSceneWithId(moduleComp.component->getSceneId());
+            if (!moduleScene) {
+                return;
+            }
+
+            auto &moduleSceneState = moduleScene->getState();
+            std::unordered_map<UUID, std::shared_ptr<SimulationSceneComponent>> internalSceneBySimId;
+            std::vector<UUID> internalSimIds;
+
+            const auto moduleInput = moduleSceneState.getComponentByUuid<SimulationSceneComponent>(moduleComp.component->getAssociatedInp());
+            const auto moduleOutput = moduleSceneState.getComponentByUuid<SimulationSceneComponent>(moduleComp.component->getAssociatedOut());
+            if (moduleInput) {
+                internalSceneBySimId[moduleInput->getSimEngineId()] = moduleInput;
+                internalSimIds.push_back(moduleInput->getSimEngineId());
+            }
+            if (moduleOutput) {
+                internalSceneBySimId[moduleOutput->getSimEngineId()] = moduleOutput;
+                internalSimIds.push_back(moduleOutput->getSimEngineId());
+            }
+
+            for (const auto &[simId, ownerPath] : result.componentInstancePathById) {
+                if (ownerPath != instance.instancePath) {
+                    continue;
+                }
+
+                auto created = createSceneComponentForImportedSimId(simId, simEngine);
+                internalSceneBySimId[simId] = created.component;
+                internalSimIds.push_back(simId);
+                addImportedSceneComponent(moduleSceneState, created);
+            }
+
+            if (moduleInput) {
+                auto transform = moduleInput->getTransform();
+                transform.position = glm::vec3{-220.f, 0.f, moduleScene->getNextZCoord()};
+                moduleInput->setTransform(transform);
+                auto schematicTransform = moduleInput->getSchematicTransform();
+                schematicTransform.position = transform.position;
+                moduleInput->setSchematicTransform(schematicTransform);
+            }
+
+            if (moduleOutput) {
+                auto transform = moduleOutput->getTransform();
+                transform.position = glm::vec3{220.f, 0.f, moduleScene->getNextZCoord()};
+                moduleOutput->setTransform(transform);
+                auto schematicTransform = moduleOutput->getSchematicTransform();
+                schematicTransform.position = transform.position;
+                moduleOutput->setSchematicTransform(schematicTransform);
+            }
+
+            if (!internalSimIds.empty()) {
+                layoutImportedComponents(internalSimIds, simEngine, internalSceneBySimId, *moduleScene);
+                addImportedConnections(*moduleScene, internalSimIds, simEngine, internalSceneBySimId);
+            }
+        }
+
+        std::unordered_map<std::string, std::shared_ptr<ModuleSceneComponent>> buildImportedModuleHierarchy(
             const SimEngineImportResult &result,
             Scene &scene,
+            SimulationEngine &simEngine,
             const std::unordered_map<UUID, std::shared_ptr<SimulationSceneComponent>> &sceneBySimId) {
             auto &sceneState = scene.getState();
 
@@ -357,30 +628,34 @@ namespace Bess::Pages {
                 const auto wrapper = created.component;
                 addImportedModuleSceneComponent(sceneState, created);
                 moduleByPath[path] = wrapper;
+                configureImportedModuleInterface(created, instance, simEngine);
+                EventSystem::EventDispatcher::instance().dispatchAll();
+                bridgeImportedModuleBoundary(result, instance, created, simEngine);
+                populateImportedModuleScene(result, instance, simEngine, created);
 
-                std::vector<std::shared_ptr<SceneComponent>> ownedChildren;
+                std::vector<std::shared_ptr<SceneComponent>> layoutChildren;
                 for (const auto &[simId, ownerPath] : result.componentInstancePathById) {
                     if (ownerPath != path || !sceneBySimId.contains(simId)) {
                         continue;
                     }
-                    ownedChildren.push_back(sceneBySimId.at(simId));
+                    layoutChildren.push_back(sceneBySimId.at(simId));
                 }
 
                 for (const auto &[childPath, childModule] : moduleByPath) {
                     (void)childModule;
                     if (result.instancesByPath.contains(childPath) &&
                         result.instancesByPath.at(childPath).parentInstancePath == path) {
-                        ownedChildren.push_back(moduleByPath.at(childPath));
+                        layoutChildren.push_back(moduleByPath.at(childPath));
                     }
                 }
 
-                if (ownedChildren.empty()) {
+                if (layoutChildren.empty()) {
                     continue;
                 }
 
                 float minX = std::numeric_limits<float>::max();
                 float minY = std::numeric_limits<float>::max();
-                for (const auto &child : ownedChildren) {
+                for (const auto &child : layoutChildren) {
                     const auto pos = getSceneComponentPosition(child);
                     minX = std::min(minX, pos.x);
                     minY = std::min(minY, pos.y);
@@ -388,10 +663,153 @@ namespace Bess::Pages {
 
                 wrapper->getTransform().position = glm::vec3{minX - 120.f, minY - 80.f, scene.getNextZCoord()};
                 wrapper->setSchematicTransform(wrapper->getTransform());
+            }
 
-                for (const auto &child : ownedChildren) {
-                    setImportedChildRelativeTransform(child, wrapper->getTransform().position);
-                    sceneState.attachChild(wrapper->getUuid(), child->getUuid(), false);
+            return moduleByPath;
+        }
+
+        void removeNestedImportedComponentsFromRootScene(
+            const SimEngineImportResult &result,
+            Scene &scene,
+            std::unordered_map<UUID, std::shared_ptr<SimulationSceneComponent>> &sceneBySimId) {
+            auto collectSceneTree = [&](const std::shared_ptr<SceneComponent> &root) {
+                std::vector<std::shared_ptr<SceneComponent>> ordered;
+                std::unordered_set<UUID> visited;
+                std::function<void(const std::shared_ptr<SceneComponent> &)> walk =
+                    [&](const std::shared_ptr<SceneComponent> &component) {
+                        if (!component || visited.contains(component->getUuid())) {
+                            return;
+                        }
+
+                        visited.insert(component->getUuid());
+                        const auto dependants = component->getDependants(scene.getState());
+                        for (const auto &dependantId : dependants) {
+                            walk(scene.getState().getComponentByUuid(dependantId));
+                        }
+                        ordered.push_back(component);
+                    };
+
+                walk(root);
+                return ordered;
+            };
+
+            std::vector<UUID> toRemove;
+            for (const auto &[simId, ownerPath] : result.componentInstancePathById) {
+                if (ownerPath == result.topModuleName || !sceneBySimId.contains(simId)) {
+                    continue;
+                }
+                toRemove.push_back(simId);
+            }
+
+            auto &sceneState = scene.getState();
+            for (const auto &simId : toRemove) {
+                if (!sceneBySimId.contains(simId)) {
+                    continue;
+                }
+
+                const auto rootComponent = sceneBySimId.at(simId);
+                const auto detachedComponents = collectSceneTree(rootComponent);
+                for (const auto &component : detachedComponents) {
+                    if (!component) {
+                        continue;
+                    }
+
+                    if (component->getParentComponent() != UUID::null) {
+                        const auto parent = sceneState.getComponentByUuid(component->getParentComponent());
+                        if (parent) {
+                            parent->removeChildComponent(component->getUuid());
+                        }
+                    }
+                    sceneState.removeFromMap(component->getUuid());
+                }
+                sceneBySimId.erase(simId);
+            }
+        }
+
+        void addRootModuleConnections(Scene &scene,
+                                      SimulationEngine &simEngine,
+                                      const std::unordered_map<UUID, std::shared_ptr<SimulationSceneComponent>> &sceneBySimId,
+                                      const std::unordered_map<std::string, std::shared_ptr<ModuleSceneComponent>> &moduleByPath) {
+            auto &sceneState = scene.getState();
+            std::unordered_map<UUID, std::unordered_map<int, UUID>> inputSlotBySimId;
+            std::unordered_map<UUID, std::unordered_map<int, UUID>> outputSlotBySimId;
+            std::unordered_set<UUID> visibleRootSimIds;
+
+            auto registerVisibleComponent = [&](const std::shared_ptr<SimulationSceneComponent> &sceneComp) {
+                if (!sceneComp) {
+                    return;
+                }
+
+                const auto simId = sceneComp->getSimEngineId();
+                visibleRootSimIds.insert(simId);
+
+                for (const auto &slotId : sceneComp->getInputSlots()) {
+                    const auto slot = sceneState.getComponentByUuid<SlotSceneComponent>(slotId);
+                    if (!slot || slot->isResizeSlot()) {
+                        continue;
+                    }
+                    inputSlotBySimId[simId][slot->getIndex()] = slotId;
+                }
+
+                for (const auto &slotId : sceneComp->getOutputSlots()) {
+                    const auto slot = sceneState.getComponentByUuid<SlotSceneComponent>(slotId);
+                    if (!slot || slot->isResizeSlot()) {
+                        continue;
+                    }
+                    outputSlotBySimId[simId][slot->getIndex()] = slotId;
+                }
+            };
+
+            for (const auto &[simId, sceneComp] : sceneBySimId) {
+                (void)simId;
+                registerVisibleComponent(sceneComp);
+            }
+
+            for (const auto &[path, wrapper] : moduleByPath) {
+                (void)path;
+                registerVisibleComponent(wrapper);
+            }
+
+            std::unordered_set<std::string> createdConnections;
+            for (const auto &srcId : visibleRootSimIds) {
+                const auto connections = simEngine.getConnections(srcId);
+                for (size_t srcSlot = 0; srcSlot < connections.outputs.size(); ++srcSlot) {
+                    for (const auto &[dstId, dstSlot] : connections.outputs[srcSlot]) {
+                        if (!visibleRootSimIds.contains(dstId)) {
+                            continue;
+                        }
+
+                        if (!outputSlotBySimId.contains(srcId) ||
+                            !outputSlotBySimId.at(srcId).contains(static_cast<int>(srcSlot)) ||
+                            !inputSlotBySimId.contains(dstId) ||
+                            !inputSlotBySimId.at(dstId).contains(dstSlot)) {
+                            continue;
+                        }
+
+                        const auto startSlotId = outputSlotBySimId.at(srcId).at(static_cast<int>(srcSlot));
+                        const auto endSlotId = inputSlotBySimId.at(dstId).at(dstSlot);
+                        if (startSlotId == UUID::null || endSlotId == UUID::null || startSlotId == endSlotId) {
+                            continue;
+                        }
+
+                        const auto dedupeKey = std::to_string(static_cast<uint64_t>(startSlotId)) + ":" +
+                                               std::to_string(static_cast<uint64_t>(endSlotId));
+                        if (!createdConnections.insert(dedupeKey).second) {
+                            continue;
+                        }
+
+                        auto startSlot = sceneState.getComponentByUuid<SlotSceneComponent>(startSlotId);
+                        auto endSlot = sceneState.getComponentByUuid<SlotSceneComponent>(endSlotId);
+                        if (!startSlot || !endSlot) {
+                            continue;
+                        }
+
+                        auto conn = std::make_shared<ConnectionSceneComponent>();
+                        conn->setStartEndSlots(startSlotId, endSlotId);
+                        startSlot->addConnection(conn->getUuid());
+                        endSlot->addConnection(conn->getUuid());
+                        sceneState.addComponent(conn, false);
+                    }
                 }
             }
         }
@@ -408,9 +826,11 @@ namespace Bess::Pages {
         }
 
         applyImportedPortNames(result, sceneBySimId);
-        layoutImportedComponents(result, simEngine, sceneBySimId, scene);
+        layoutImportedComponents(result.createdComponentIds, simEngine, sceneBySimId, scene);
         stackTopOutputComponents(result, sceneBySimId);
-        buildImportedModuleHierarchy(result, scene, sceneBySimId);
-        addImportedConnections(scene, result, simEngine, sceneBySimId);
+        const auto moduleByPath = buildImportedModuleHierarchy(result, scene, simEngine, sceneBySimId);
+        removeNestedImportedComponentsFromRootScene(result, scene, sceneBySimId);
+        addRootModuleConnections(scene, simEngine, sceneBySimId, moduleByPath);
+        EventSystem::EventDispatcher::instance().dispatchAll();
     }
 } // namespace Bess::Pages

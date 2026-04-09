@@ -11,6 +11,8 @@
 #include <utility>
 #include <string>
 #include <string_view>
+#include <fstream>
+#include <sstream>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -26,11 +28,158 @@ namespace Bess::Verilog {
             return std::string(path.substr(0, separator));
         }
 
+        std::string trim(std::string value) {
+            const auto first = value.find_first_not_of(" \t\r\n");
+            if (first == std::string::npos) {
+                return {};
+            }
+            const auto last = value.find_last_not_of(" \t\r\n");
+            return value.substr(first, last - first + 1);
+        }
+
+        std::vector<std::string> tryReadModulePortOrderFromSource(const Module &module) {
+            const auto srcIt = module.attributes.find("src");
+            if (srcIt == module.attributes.end()) {
+                return {};
+            }
+
+            const auto colon = srcIt->second.rfind(':');
+            if (colon == std::string::npos) {
+                return {};
+            }
+
+            const auto filePath = srcIt->second.substr(0, colon);
+            const auto range = srcIt->second.substr(colon + 1);
+            const auto lineSep = range.find('.');
+            if (lineSep == std::string::npos) {
+                return {};
+            }
+
+            const auto startLine = std::stoul(range.substr(0, lineSep));
+
+            std::ifstream source(filePath);
+            if (!source.is_open()) {
+                return {};
+            }
+
+            std::string line;
+            std::string header;
+            size_t currentLine = 0;
+            bool collecting = false;
+            while (std::getline(source, line)) {
+                ++currentLine;
+                if (!collecting && currentLine >= startLine &&
+                    line.find("module " + module.name) != std::string::npos) {
+                    collecting = true;
+                }
+
+                if (!collecting) {
+                    continue;
+                }
+
+                header += line;
+                header.push_back('\n');
+                if (line.find(");") != std::string::npos) {
+                    break;
+                }
+            }
+
+            const auto modulePos = header.find("module " + module.name);
+            if (modulePos == std::string::npos) {
+                return {};
+            }
+
+            const auto openParen = header.find('(', modulePos);
+            const auto closeParen = header.find(')', openParen);
+            if (openParen == std::string::npos || closeParen == std::string::npos || closeParen <= openParen) {
+                return {};
+            }
+
+            std::vector<std::string> orderedNames;
+            std::stringstream portList(header.substr(openParen + 1, closeParen - openParen - 1));
+            std::string token;
+            while (std::getline(portList, token, ',')) {
+                token = trim(token);
+                if (!token.empty()) {
+                    orderedNames.push_back(token);
+                }
+            }
+            return orderedNames;
+        }
+
+        std::vector<std::string> buildPortSlotNames(const Module &module, PortDirection direction) {
+            std::vector<std::string> slotNames;
+            std::unordered_set<std::string> seenPorts;
+
+            auto appendPortBits = [&](const Port &port) {
+                seenPorts.insert(port.name);
+                if (port.direction != direction) {
+                    return;
+                }
+
+                if (port.bits.size() == 1) {
+                    slotNames.push_back(port.name);
+                    return;
+                }
+
+                for (size_t i = 0; i < port.bits.size(); ++i) {
+                    slotNames.push_back(port.name + "[" + std::to_string(i) + "]");
+                }
+            };
+
+            for (const auto &portName : tryReadModulePortOrderFromSource(module)) {
+                const auto *port = module.findPort(portName);
+                if (!port) {
+                    continue;
+                }
+                appendPortBits(*port);
+            }
+
+            for (const auto &port : module.ports) {
+                if (seenPorts.contains(port.name)) {
+                    continue;
+                }
+                appendPortBits(port);
+            }
+            return slotNames;
+        }
+
         struct SlotEndpoint {
             UUID componentId = UUID::null;
             SlotType slotType = SlotType::digitalInput;
             int slotIndex = 0;
         };
+
+        ImportedSlotEndpoint toImportedSlotEndpoint(const SlotEndpoint &endpoint) {
+            return ImportedSlotEndpoint{
+                .componentId = endpoint.componentId,
+                .slotType = endpoint.slotType,
+                .slotIndex = endpoint.slotIndex,
+            };
+        }
+
+        std::vector<const Port *> orderedPortsForDirection(const Module &module, PortDirection direction) {
+            std::vector<const Port *> orderedPorts;
+            std::unordered_set<std::string> seenPorts;
+
+            for (const auto &portName : tryReadModulePortOrderFromSource(module)) {
+                const auto *port = module.findPort(portName);
+                if (!port || port->direction != direction) {
+                    continue;
+                }
+                orderedPorts.push_back(port);
+                seenPorts.insert(port->name);
+            }
+
+            for (const auto &port : module.ports) {
+                if (port.direction != direction || seenPorts.contains(port.name)) {
+                    continue;
+                }
+                orderedPorts.push_back(&port);
+            }
+
+            return orderedPorts;
+        }
 
         struct ModuleInstantiation {
             ImportedModuleInstance instance;
@@ -424,12 +573,39 @@ namespace Bess::Verilog {
             void elaborateModule(const Module &module,
                                  const std::string &path,
                                  const PortBindings &bindings) {
+                std::unordered_map<int64_t, size_t> inputBoundarySlotByNetId;
+                std::unordered_map<int64_t, size_t> outputBoundarySlotByNetId;
+
                 if (path != m_result.topModuleName) {
                     ImportedModuleInstance instance;
                     instance.definitionName = module.name;
                     instance.instancePath = path;
                     instance.parentInstancePath = parentInstancePath(path);
+                    instance.inputSlotNames = buildPortSlotNames(module, PortDirection::input);
+                    instance.outputSlotNames = buildPortSlotNames(module, PortDirection::output);
+                    instance.internalInputSinks.resize(instance.inputSlotNames.size());
+                    instance.internalOutputDrivers.resize(instance.outputSlotNames.size());
                     m_result.instancesByPath[path] = instance;
+                }
+
+                size_t inputSlotIndex = 0;
+                for (const auto *port : orderedPortsForDirection(module, PortDirection::input)) {
+                    for (const auto &bit : port->bits) {
+                        if (bit.isNet()) {
+                            inputBoundarySlotByNetId[*bit.netId] = inputSlotIndex;
+                        }
+                        ++inputSlotIndex;
+                    }
+                }
+
+                size_t outputSlotIndex = 0;
+                for (const auto *port : orderedPortsForDirection(module, PortDirection::output)) {
+                    for (const auto &bit : port->bits) {
+                        if (bit.isNet()) {
+                            outputBoundarySlotByNetId[*bit.netId] = outputSlotIndex;
+                        }
+                        ++outputSlotIndex;
+                    }
                 }
 
                 for (const auto &cell : module.cells) {
@@ -454,13 +630,37 @@ namespace Bess::Verilog {
                         continue;
                     }
 
-                    instantiatePrimitive(path, cell, bindings);
+                    instantiatePrimitive(path, cell, bindings, inputBoundarySlotByNetId, outputBoundarySlotByNetId);
                 }
             }
 
             void instantiatePrimitive(const std::string &path,
                                       const Cell &cell,
-                                      const PortBindings &bindings) {
+                                      const PortBindings &bindings,
+                                      const std::unordered_map<int64_t, size_t> &inputBoundarySlotByNetId,
+                                      const std::unordered_map<int64_t, size_t> &outputBoundarySlotByNetId) {
+                auto recordBoundaryInputSink = [&](const SignalBit &bit, const SlotEndpoint &endpoint) {
+                    if (path == m_result.topModuleName || !bit.isNet()) {
+                        return;
+                    }
+                    const auto it = inputBoundarySlotByNetId.find(*bit.netId);
+                    if (it == inputBoundarySlotByNetId.end()) {
+                        return;
+                    }
+                    m_result.instancesByPath.at(path).internalInputSinks[it->second].push_back(toImportedSlotEndpoint(endpoint));
+                };
+
+                auto recordBoundaryOutputDriver = [&](const SignalBit &bit, const SlotEndpoint &endpoint) {
+                    if (path == m_result.topModuleName || !bit.isNet()) {
+                        return;
+                    }
+                    const auto it = outputBoundarySlotByNetId.find(*bit.netId);
+                    if (it == outputBoundarySlotByNetId.end()) {
+                        return;
+                    }
+                    m_result.instancesByPath.at(path).internalOutputDrivers[it->second].push_back(toImportedSlotEndpoint(endpoint));
+                };
+
                 auto primitiveDefinition = resolvePrimitiveDefinition(cell.type);
                 if (!primitiveDefinition) {
                     throw std::runtime_error("Unsupported Yosys cell type during import: " + cell.type);
@@ -477,10 +677,12 @@ namespace Bess::Verilog {
                         const auto componentId = m_engine.addComponent(primitiveDefinition);
                         m_createdComponentIds.push_back(componentId);
                         m_result.componentInstancePathById[componentId] = path;
-                        registerLoad(resolveSignal(path, inBits[i], bindings),
-                                     SlotEndpoint{componentId, SlotType::digitalInput, 0});
-                        registerDriver(resolveSignal(path, outBits[i], bindings),
-                                       SlotEndpoint{componentId, SlotType::digitalOutput, 0});
+                        const SlotEndpoint inputEndpoint{componentId, SlotType::digitalInput, 0};
+                        const SlotEndpoint outputEndpoint{componentId, SlotType::digitalOutput, 0};
+                        registerLoad(resolveSignal(path, inBits[i], bindings), inputEndpoint);
+                        registerDriver(resolveSignal(path, outBits[i], bindings), outputEndpoint);
+                        recordBoundaryInputSink(inBits[i], inputEndpoint);
+                        recordBoundaryOutputDriver(outBits[i], outputEndpoint);
                     }
                     return;
                 }
@@ -501,12 +703,15 @@ namespace Bess::Verilog {
                         const auto componentId = m_engine.addComponent(primitiveDefinition);
                         m_createdComponentIds.push_back(componentId);
                         m_result.componentInstancePathById[componentId] = path;
-                        registerLoad(resolveSignal(path, aBits[i], bindings),
-                                     SlotEndpoint{componentId, SlotType::digitalInput, 0});
-                        registerLoad(resolveSignal(path, bBits[i], bindings),
-                                     SlotEndpoint{componentId, SlotType::digitalInput, 1});
-                        registerDriver(resolveSignal(path, yBits[i], bindings),
-                                       SlotEndpoint{componentId, SlotType::digitalOutput, 0});
+                        const SlotEndpoint aEndpoint{componentId, SlotType::digitalInput, 0};
+                        const SlotEndpoint bEndpoint{componentId, SlotType::digitalInput, 1};
+                        const SlotEndpoint yEndpoint{componentId, SlotType::digitalOutput, 0};
+                        registerLoad(resolveSignal(path, aBits[i], bindings), aEndpoint);
+                        registerLoad(resolveSignal(path, bBits[i], bindings), bEndpoint);
+                        registerDriver(resolveSignal(path, yBits[i], bindings), yEndpoint);
+                        recordBoundaryInputSink(aBits[i], aEndpoint);
+                        recordBoundaryInputSink(bBits[i], bEndpoint);
+                        recordBoundaryOutputDriver(yBits[i], yEndpoint);
                     }
                     return;
                 }
@@ -528,11 +733,13 @@ namespace Bess::Verilog {
                         component->incrementInputCount(true);
                     }
                     for (size_t i = 0; i < aBits.size(); ++i) {
-                        registerLoad(resolveSignal(path, aBits[i], bindings),
-                                     SlotEndpoint{componentId, SlotType::digitalInput, static_cast<int>(i)});
+                        const SlotEndpoint inputEndpoint{componentId, SlotType::digitalInput, static_cast<int>(i)};
+                        registerLoad(resolveSignal(path, aBits[i], bindings), inputEndpoint);
+                        recordBoundaryInputSink(aBits[i], inputEndpoint);
                     }
-                    registerDriver(resolveSignal(path, yBits[0], bindings),
-                                   SlotEndpoint{componentId, SlotType::digitalOutput, 0});
+                    const SlotEndpoint outputEndpoint{componentId, SlotType::digitalOutput, 0};
+                    registerDriver(resolveSignal(path, yBits[0], bindings), outputEndpoint);
+                    recordBoundaryOutputDriver(yBits[0], outputEndpoint);
                     return;
                 }
 
@@ -548,14 +755,18 @@ namespace Bess::Verilog {
                         const auto componentId = m_engine.addComponent(primitiveDefinition);
                         m_createdComponentIds.push_back(componentId);
                         m_result.componentInstancePathById[componentId] = path;
-                        registerLoad(resolveSignal(path, aBits[i], bindings),
-                                     SlotEndpoint{componentId, SlotType::digitalInput, 0});
-                        registerLoad(resolveSignal(path, bBits[i], bindings),
-                                     SlotEndpoint{componentId, SlotType::digitalInput, 1});
-                        registerLoad(resolveSignal(path, sBits[0], bindings),
-                                     SlotEndpoint{componentId, SlotType::digitalInput, 2});
-                        registerDriver(resolveSignal(path, yBits[i], bindings),
-                                       SlotEndpoint{componentId, SlotType::digitalOutput, 0});
+                        const SlotEndpoint aEndpoint{componentId, SlotType::digitalInput, 0};
+                        const SlotEndpoint bEndpoint{componentId, SlotType::digitalInput, 1};
+                        const SlotEndpoint sEndpoint{componentId, SlotType::digitalInput, 2};
+                        const SlotEndpoint yEndpoint{componentId, SlotType::digitalOutput, 0};
+                        registerLoad(resolveSignal(path, aBits[i], bindings), aEndpoint);
+                        registerLoad(resolveSignal(path, bBits[i], bindings), bEndpoint);
+                        registerLoad(resolveSignal(path, sBits[0], bindings), sEndpoint);
+                        registerDriver(resolveSignal(path, yBits[i], bindings), yEndpoint);
+                        recordBoundaryInputSink(aBits[i], aEndpoint);
+                        recordBoundaryInputSink(bBits[i], bEndpoint);
+                        recordBoundaryInputSink(sBits[0], sEndpoint);
+                        recordBoundaryOutputDriver(yBits[i], yEndpoint);
                     }
                     return;
                 }
@@ -571,14 +782,17 @@ namespace Bess::Verilog {
                         const auto componentId = m_engine.addComponent(primitiveDefinition);
                         m_createdComponentIds.push_back(componentId);
                         m_result.componentInstancePathById[componentId] = path;
-                        registerLoad(resolveSignal(path, dBits[i], bindings),
-                                     SlotEndpoint{componentId, SlotType::digitalInput, 0});
-                        registerLoad(resolveSignal(path, clkBits[0], bindings),
-                                     SlotEndpoint{componentId, SlotType::digitalInput, 1});
-                        registerLoad(SignalRef::constantValue("0"),
-                                     SlotEndpoint{componentId, SlotType::digitalInput, 2});
-                        registerDriver(resolveSignal(path, qBits[i], bindings),
-                                       SlotEndpoint{componentId, SlotType::digitalOutput, 0});
+                        const SlotEndpoint dEndpoint{componentId, SlotType::digitalInput, 0};
+                        const SlotEndpoint clkEndpoint{componentId, SlotType::digitalInput, 1};
+                        const SlotEndpoint clrEndpoint{componentId, SlotType::digitalInput, 2};
+                        const SlotEndpoint qEndpoint{componentId, SlotType::digitalOutput, 0};
+                        registerLoad(resolveSignal(path, dBits[i], bindings), dEndpoint);
+                        registerLoad(resolveSignal(path, clkBits[0], bindings), clkEndpoint);
+                        registerLoad(SignalRef::constantValue("0"), clrEndpoint);
+                        registerDriver(resolveSignal(path, qBits[i], bindings), qEndpoint);
+                        recordBoundaryInputSink(dBits[i], dEndpoint);
+                        recordBoundaryInputSink(clkBits[0], clkEndpoint);
+                        recordBoundaryOutputDriver(qBits[i], qEndpoint);
                     }
                     return;
                 }

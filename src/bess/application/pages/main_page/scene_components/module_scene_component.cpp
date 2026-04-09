@@ -146,7 +146,8 @@ namespace Bess::Canvas {
                 }
             }
 
-            m_isScaleDirty = true;
+            setScaleDirty();
+            setSchematicScaleDirty();
 
             const auto modOutCount = moduleDigComp->definition->getOutputSlotsInfo().count;
             BESS_ASSERT(modOutCount == newCount, "Failed to sync module inputs");
@@ -183,6 +184,9 @@ namespace Bess::Canvas {
                     m_inputSlots.pop_back();
                 }
             }
+
+            setScaleDirty();
+            setSchematicScaleDirty();
 
             const auto modInpCount = moduleDigComp->definition->getInputSlotsInfo().count;
             BESS_ASSERT(modInpCount == newCount, "Failed to sync module inputs");

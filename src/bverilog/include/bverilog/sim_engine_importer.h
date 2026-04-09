@@ -7,8 +7,15 @@
 #include <filesystem>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace Bess::Verilog {
+    struct BESS_API ImportedSlotEndpoint {
+        UUID componentId = UUID::null;
+        SimEngine::SlotType slotType = SimEngine::SlotType::digitalInput;
+        int slotIndex = 0;
+    };
+
     struct BESS_API ImportedModuleInstance {
         std::string instancePath;
         std::string parentInstancePath;
@@ -17,6 +24,10 @@ namespace Bess::Verilog {
         UUID moduleInputId = UUID::null;
         UUID moduleOutputId = UUID::null;
         std::string definitionName;
+        std::vector<std::string> inputSlotNames;
+        std::vector<std::string> outputSlotNames;
+        std::vector<std::vector<ImportedSlotEndpoint>> internalInputSinks;
+        std::vector<std::vector<ImportedSlotEndpoint>> internalOutputDrivers;
     };
 
     struct BESS_API SimEngineImportResult {

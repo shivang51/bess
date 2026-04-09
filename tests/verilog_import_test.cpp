@@ -156,6 +156,67 @@ TEST_F(VerilogImportTest, ImportsNestedModulesIntoSimulationEngineAndPropagatesS
     })) << "Expected output to resolve low for 1 & !1";
 }
 
+TEST_F(VerilogImportTest, PreservesHierarchicalHalfAdderInstanceInterfacesForSceneImport) {
+    const auto verilogPath = writeTempVerilogFile(
+        "bess_hierarchical_full_adder_test.v",
+        R"verilog(
+module full_add(a,b,cin,sum,cout);
+  input a,b,cin;
+  output sum,cout;
+  wire x,y,z;
+
+  half_add h1(.a(a),.b(b),.s(x),.c(y));
+  half_add h2(.a(x),.b(cin),.s(sum),.c(z));
+  or o1(cout,y,z);
+endmodule : full_add
+
+module half_add(a,b,s,c);
+  input a,b;
+  output s,c;
+
+  xor x1(s,a,b);
+  and a1(c,a,b);
+endmodule :half_add
+)verilog");
+
+    const auto result = importVerilogFileIntoSimulationEngine(
+        verilogPath,
+        *engine,
+        YosysRunnerConfig{
+            .executablePath = "yosys",
+            .topModuleName = std::string("full_add"),
+        });
+
+    ASSERT_TRUE(result.instancesByPath.contains("full_add/h1"));
+    ASSERT_TRUE(result.instancesByPath.contains("full_add/h2"));
+
+    const auto &h1 = result.instancesByPath.at("full_add/h1");
+    const auto &h2 = result.instancesByPath.at("full_add/h2");
+
+    EXPECT_EQ(h1.definitionName, "half_add");
+    EXPECT_EQ(h2.definitionName, "half_add");
+    EXPECT_EQ(h1.parentInstancePath, "full_add");
+    EXPECT_EQ(h2.parentInstancePath, "full_add");
+    EXPECT_EQ(h1.inputSlotNames, (std::vector<std::string>{"a", "b"}));
+    EXPECT_EQ(h2.inputSlotNames, (std::vector<std::string>{"a", "b"}));
+    EXPECT_EQ(h1.outputSlotNames, (std::vector<std::string>{"s", "c"}));
+    EXPECT_EQ(h2.outputSlotNames, (std::vector<std::string>{"s", "c"}));
+    ASSERT_EQ(h1.internalInputSinks.size(), 2u);
+    ASSERT_EQ(h1.internalOutputDrivers.size(), 2u);
+    ASSERT_EQ(h2.internalInputSinks.size(), 2u);
+    ASSERT_EQ(h2.internalOutputDrivers.size(), 2u);
+    EXPECT_FALSE(h1.internalInputSinks[0].empty());
+    EXPECT_FALSE(h1.internalInputSinks[1].empty());
+    EXPECT_FALSE(h1.internalOutputDrivers[0].empty());
+    EXPECT_FALSE(h1.internalOutputDrivers[1].empty());
+    EXPECT_FALSE(h2.internalInputSinks[0].empty());
+    EXPECT_FALSE(h2.internalInputSinks[1].empty());
+    EXPECT_FALSE(h2.internalOutputDrivers[0].empty());
+    EXPECT_FALSE(h2.internalOutputDrivers[1].empty());
+
+    std::filesystem::remove(verilogPath);
+}
+
 TEST_F(VerilogImportTest, ImportsVerilogFullAdderViaYosysAndMatchesTruthTable) {
     const auto verilogPath = writeTempVerilogFile(
         "bess_full_adder_test.v",
@@ -226,6 +287,101 @@ endmodule
         })) << "Full adder outputs did not settle for inputs "
             << row[0] << row[1] << row[2];
     }
+
+    std::filesystem::remove(verilogPath);
+}
+
+TEST_F(VerilogImportTest, ImportedBoundaryInputCanDriveRecordedInternalPrimitiveSinks) {
+    const auto verilogPath = writeTempVerilogFile(
+        "bess_hierarchical_bridge_test.v",
+        R"verilog(
+module full_add(a,b,cin,sum,cout);
+  input a,b,cin;
+  output sum,cout;
+  wire x,y,z;
+
+  half_add h1(.a(a),.b(b),.s(x),.c(y));
+  half_add h2(.a(x),.b(cin),.s(sum),.c(z));
+  or o1(cout,y,z);
+endmodule : full_add
+
+module half_add(a,b,s,c);
+  input a,b;
+  output s,c;
+
+  xor x1(s,a,b);
+  and a1(c,a,b);
+endmodule :half_add
+)verilog");
+
+    const auto result = importVerilogFileIntoSimulationEngine(
+        verilogPath,
+        *engine,
+        YosysRunnerConfig{
+            .executablePath = "yosys",
+            .topModuleName = std::string("full_add"),
+        });
+
+    const auto &h1 = result.instancesByPath.at("full_add/h1");
+    ASSERT_EQ(h1.inputSlotNames, (std::vector<std::string>{"a", "b"}));
+    ASSERT_EQ(h1.internalInputSinks.size(), 2u);
+
+    auto resizeOutputs = [](const std::shared_ptr<DigitalComponent> &component, size_t count) {
+        while (component->definition->getOutputSlotsInfo().count < count) {
+            component->incrementOutputCount(true);
+        }
+    };
+
+    const auto topA = result.topInputComponents.at("a");
+    const auto inputDefinition = engine->getComponentDefinition(topA);
+    const auto bridgeInputId = engine->addComponent(inputDefinition);
+    const auto bridgeInput = engine->getDigitalComponent(bridgeInputId);
+    resizeOutputs(bridgeInput, h1.inputSlotNames.size());
+
+    for (const auto &sink : h1.internalInputSinks[0]) {
+        const auto connections = engine->getConnections(sink.componentId);
+        ASSERT_LT(sink.slotIndex, static_cast<int>(connections.inputs.size()));
+        for (const auto &[srcId, srcSlot] : connections.inputs[sink.slotIndex]) {
+            if (srcId == topA) {
+                engine->deleteConnection(topA,
+                                         SlotType::digitalOutput,
+                                         srcSlot,
+                                         sink.componentId,
+                                         sink.slotType,
+                                         sink.slotIndex);
+            }
+        }
+
+        ASSERT_TRUE(engine->connectComponent(bridgeInputId,
+                                             0,
+                                             SlotType::digitalOutput,
+                                             sink.componentId,
+                                             sink.slotIndex,
+                                             sink.slotType));
+    }
+
+    engine->setOutputSlotState(bridgeInputId, 0, LogicState::high);
+
+    ASSERT_TRUE(waitUntil([&] {
+        for (const auto &sink : h1.internalInputSinks[0]) {
+            const auto aggregatedInputs = engine->getInputSlotsState(sink.componentId);
+            if (static_cast<size_t>(sink.slotIndex) >= aggregatedInputs.size() ||
+                aggregatedInputs[sink.slotIndex].state != LogicState::high) {
+                return false;
+            }
+        }
+        return true;
+    })) << "Recorded internal primitive sinks did not resolve high from the bridged module input";
+
+    ASSERT_TRUE(waitUntil([&] {
+        for (const auto &sink : h1.internalInputSinks[0]) {
+            if (engine->getDigitalSlotState(sink.componentId, SlotType::digitalInput, sink.slotIndex).state !=
+                LogicState::high) {
+                return false;
+            }
+        }
+        return true;
+    })) << "Internal primitive sinks did not receive bridged module input state";
 
     std::filesystem::remove(verilogPath);
 }

@@ -15,6 +15,107 @@
 #include <optional>
 
 namespace Bess::Pages {
+    namespace {
+        std::string fallbackSlotName(size_t index, bool isInput) {
+            const char base = isInput ? 'A' : 'a';
+            return std::string(1, static_cast<char>(base + (index % 26)));
+        }
+
+        void syncSceneComponentSlots(Canvas::SceneState &sceneState,
+                                     const std::shared_ptr<Canvas::SimulationSceneComponent> &comp,
+                                     const SimEngine::SlotsGroupInfo &slotsInfo,
+                                     bool isInput) {
+            if (!comp) {
+                return;
+            }
+
+            auto &slotIds = isInput ? comp->getInputSlots() : comp->getOutputSlots();
+            const auto slotType = isInput ? Canvas::SlotType::digitalInput : Canvas::SlotType::digitalOutput;
+            const auto resizeSlotType = isInput ? Canvas::SlotType::inputsResize : Canvas::SlotType::outputsResize;
+
+            std::vector<UUID> realSlots;
+            realSlots.reserve(slotIds.size());
+            UUID resizeSlotId = UUID::null;
+
+            for (const auto &slotId : slotIds) {
+                const auto slot = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(slotId);
+                if (!slot) {
+                    continue;
+                }
+
+                if (slot->getSlotType() == resizeSlotType || slot->isResizeSlot()) {
+                    resizeSlotId = slotId;
+                    continue;
+                }
+
+                realSlots.push_back(slotId);
+            }
+
+            while (realSlots.size() > slotsInfo.count) {
+                const auto slotId = realSlots.back();
+                realSlots.pop_back();
+                comp->removeChildComponent(slotId);
+                sceneState.removeComponent(slotId, UUID::master);
+            }
+
+            while (realSlots.size() < slotsInfo.count) {
+                auto newSlot = std::make_shared<Canvas::SlotSceneComponent>();
+                newSlot->setSlotType(slotType);
+                sceneState.addComponent<Canvas::SlotSceneComponent>(newSlot);
+                sceneState.attachChild(comp->getUuid(), newSlot->getUuid(), false);
+                realSlots.push_back(newSlot->getUuid());
+            }
+
+            if (slotsInfo.isResizeable) {
+                if (resizeSlotId == UUID::null) {
+                    auto resizeSlot = std::make_shared<Canvas::SlotSceneComponent>();
+                    resizeSlot->setSlotType(resizeSlotType);
+                    resizeSlot->setIndex(-1);
+                    sceneState.addComponent<Canvas::SlotSceneComponent>(resizeSlot);
+                    sceneState.attachChild(comp->getUuid(), resizeSlot->getUuid(), false);
+                    resizeSlotId = resizeSlot->getUuid();
+                }
+            } else if (resizeSlotId != UUID::null) {
+                comp->removeChildComponent(resizeSlotId);
+                sceneState.removeComponent(resizeSlotId, UUID::master);
+                resizeSlotId = UUID::null;
+            }
+
+            slotIds.clear();
+            slotIds.insert(slotIds.end(), realSlots.begin(), realSlots.end());
+            if (resizeSlotId != UUID::null) {
+                slotIds.push_back(resizeSlotId);
+            }
+
+            for (size_t i = 0; i < realSlots.size(); ++i) {
+                const auto slot = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(realSlots[i]);
+                if (!slot) {
+                    continue;
+                }
+
+                slot->setSlotType(slotType);
+                slot->setIndex(static_cast<int>(i));
+                if (i < slotsInfo.names.size()) {
+                    slot->setName(slotsInfo.names[i]);
+                } else {
+                    slot->setName(fallbackSlotName(i, isInput));
+                }
+            }
+
+            if (resizeSlotId != UUID::null) {
+                const auto resizeSlot = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(resizeSlotId);
+                if (resizeSlot) {
+                    resizeSlot->setSlotType(resizeSlotType);
+                    resizeSlot->setIndex(-1);
+                    resizeSlot->setName("");
+                }
+            }
+
+            comp->setScaleDirty();
+            comp->setSchematicScaleDirty();
+        }
+    } // namespace
+
     struct MainPageState::VerilogImportSession {
         enum class Phase : uint8_t {
             resetProject,
@@ -322,41 +423,7 @@ namespace Bess::Pages {
 
         const auto &digitalComp = SimEngine::SimulationEngine::instance().getDigitalComponent(e.componentId);
         const auto &outSlotsInfo = digitalComp->definition->getOutputSlotsInfo();
-
-        size_t realCmpSize = outSlotsInfo.count;
-        if (outSlotsInfo.isResizeable)
-            realCmpSize = realCmpSize + 1; // doing this because scene comp will also contain a resize slot
-
-        if (comp->getOutputSlotsCount() > realCmpSize) {
-            for (size_t i = outSlotsInfo.count; i < comp->getOutputSlotsCount(); i++) {
-                const auto slotUuid = comp->getOutputSlots()[i];
-                const auto &slotComp = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(slotUuid);
-
-                if (!slotComp) {
-                    comp->getOutputSlots().erase(std::ranges::find(comp->getOutputSlots(), slotUuid));
-                    continue;
-                }
-
-                if (!slotComp->isResizeSlot()) {
-                    comp->getOutputSlots().erase(std::ranges::find(comp->getOutputSlots(), slotUuid));
-                    sceneState.removeComponent(slotUuid, UUID::master);
-                }
-            }
-            comp->setScaleDirty();
-        } else if (comp->getOutputSlotsCount() < realCmpSize) {
-            for (size_t i = comp->getOutputSlotsCount(); i < outSlotsInfo.count; i++) {
-                std::shared_ptr<Canvas::SlotSceneComponent> newSlot = std::make_shared<Canvas::SlotSceneComponent>();
-                newSlot->setSlotType(Canvas::SlotType::digitalOutput);
-                newSlot->setIndex((int)outSlotsInfo.count - 1);
-                if (i < outSlotsInfo.names.size()) {
-                    newSlot->setName(std::string(1, (char)('a' + i)));
-                }
-                comp->addOutputSlot(newSlot->getUuid(), outSlotsInfo.isResizeable);
-                sceneState.addComponent<Canvas::SlotSceneComponent>(newSlot);
-                sceneState.attachChild(comp->getUuid(),
-                                       newSlot->getUuid());
-            }
-        }
+        syncSceneComponentSlots(sceneState, comp, outSlotsInfo, false);
     }
 
     void MainPageState::onCompDefInputsResized(const SimEngine::Events::CompDefInputsResizedEvent &e) {
@@ -374,54 +441,29 @@ namespace Bess::Pages {
 
         const auto &digitalComp = SimEngine::SimulationEngine::instance().getDigitalComponent(e.componentId);
         const auto &inSlotsInfo = digitalComp->definition->getInputSlotsInfo();
-
-        size_t realCmpSize = inSlotsInfo.count;
-        if (inSlotsInfo.isResizeable)
-            realCmpSize = realCmpSize + 1; // doing this because scene comp will also contain a resize slot
-
-        if (comp->getInputSlotsCount() > realCmpSize) {
-            for (size_t i = inSlotsInfo.count; i < comp->getInputSlotsCount(); i++) {
-                const auto slotUuid = comp->getInputSlots()[i];
-                const auto &slotComp = sceneState.getComponentByUuid<Canvas::SlotSceneComponent>(slotUuid);
-                if (!slotComp) {
-                    comp->getInputSlots().erase(std::ranges::find(comp->getInputSlots(), slotUuid));
-                    continue;
-                }
-
-                if (!slotComp->isResizeSlot()) {
-                    comp->getInputSlots().erase(std::ranges::find(comp->getInputSlots(), slotUuid));
-                    sceneState.removeComponent(slotUuid, UUID::master);
-                }
-            }
-            comp->setScaleDirty();
-        } else if (comp->getInputSlotsCount() < realCmpSize) {
-            for (size_t i = comp->getInputSlotsCount(); i < inSlotsInfo.count; i++) {
-                std::shared_ptr<Canvas::SlotSceneComponent> newSlot = std::make_shared<Canvas::SlotSceneComponent>();
-                newSlot->setSlotType(Canvas::SlotType::digitalInput);
-                newSlot->setIndex((int)inSlotsInfo.count - 1);
-                if (i < inSlotsInfo.names.size()) {
-                    newSlot->setName(std::string(1, (char)('A' + i)));
-                }
-                comp->addInputSlot(newSlot->getUuid(), inSlotsInfo.isResizeable);
-                sceneState.addComponent<Canvas::SlotSceneComponent>(newSlot);
-                sceneState.attachChild(comp->getUuid(), newSlot->getUuid());
-            }
-        }
+        syncSceneComponentSlots(sceneState, comp, inSlotsInfo, true);
     }
 
     void MainPageState::onEntityAdded(const Canvas::Events::ComponentAddedEvent &e) {
         const auto &comp = e.state->getComponentByUuid(e.uuid);
+        if (!comp) {
+            return;
+        }
 
         if (e.type == Canvas::SceneComponentType::simulation ||
             e.type == Canvas::SceneComponentType::module) {
-            const auto &simComp = comp->cast<Canvas::SimulationSceneComponent>();
+            const auto simComp = std::dynamic_pointer_cast<Canvas::SimulationSceneComponent>(comp);
+            if (!simComp) {
+                return;
+            }
             const auto &simEngineId = simComp->getSimEngineId();
             m_simIdToSceneCompId[simEngineId] = {e.uuid, e.state->getSceneId()};
         }
     }
 
     void MainPageState::onEntityRemoved(const Canvas::Events::ComponentRemovedEvent &e) {
-        if (e.type != Canvas::SceneComponentType::simulation)
+        if (e.type != Canvas::SceneComponentType::simulation &&
+            e.type != Canvas::SceneComponentType::module)
             return;
 
         auto it = std::ranges::find_if(m_simIdToSceneCompId,

@@ -44,6 +44,7 @@ namespace Bess::SimEngine {
         SlotState getDigitalSlotState(const UUID &uuid, SlotType type, int idx);
 
         ConnectionBundle getConnections(const UUID &uuid);
+        std::vector<SlotState> getInputSlotsState(UUID compId) const;
 
         void setInputSlotState(const UUID &uuid, int pinIdx, LogicState state);
         void setOutputSlotState(const UUID &uuid, int pinIdx, LogicState state);
@@ -93,7 +94,6 @@ namespace Bess::SimEngine {
 
         void scheduleEvent(UUID id, UUID schedulerId, SimDelayNanoSeconds simTime);
         void clearEventsForEntity(const UUID &id);
-        std::vector<SlotState> getInputSlotsState(UUID compId) const;
         bool simulateComponent(const UUID &compId, const std::vector<SlotState> &inputs);
         void scheduleDependantsOf(const UUID &compId);
         void run();
