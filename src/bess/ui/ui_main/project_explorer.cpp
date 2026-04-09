@@ -1,9 +1,9 @@
 #include "ui/ui_main/project_explorer.h"
 #include "application/pages/main_page/main_page.h"
-#include "common.hpp"
 #include "common/bess_uuid.h"
 #include "common/helpers.h"
 #include "common/logger.h"
+#include "icons/FontAwesomeIcons.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/cmds/add_comp_cmd.h"
@@ -211,17 +211,14 @@ namespace Bess::UI {
         }
     }
 
-    std::pair<bool, bool> ProjectExplorer::drawLeafNode(const size_t key, const uint64_t nodeId,
-                                                        const char *label, bool selected,
-                                                        const bool multiSelectMode) {
+    bool ProjectExplorer::drawLeafNode(const size_t key, const uint64_t nodeId,
+                                       const char *label, bool selected,
+                                       const bool multiSelectMode) {
         const ImGuiContext &g = *ImGui::GetCurrentContext();
         const float rounding = g.Style.FrameRounding;
-        const float checkboxWidth = ImGui::CalcTextSize("W").x + g.Style.FramePadding.x + 2.f;
-        const float rowHeight = g.FontSize + (g.Style.FramePadding.y * 2);
         ImGuiWindow *window = g.CurrentWindow;
         const ImGuiID id = window->GetID(std::to_string(nodeId).c_str());
-        const ImGuiID idcb = window->GetID((std::to_string(nodeId) + "cb").c_str());
-        const ImVec2 pos = ImGui::GetCursorScreenPos();
+        const ImVec2 pos = window->DC.CursorPos;
         const auto drawList = ImGui::GetWindowDrawList();
 
         const auto colors = ImGui::GetStyle().Colors;
@@ -234,18 +231,11 @@ namespace Bess::UI {
             drawList->AddRectFilled(bgStart, bgEnd, (ImColor)colors[ImGuiCol_TableRowBgAlt], 0);
         }
 
-        const float checkboxAreaWidth = checkboxWidth + g.Style.FramePadding.x;
-        const ImRect bb(ImVec2(rowMinX, pos.y),
-                        ImVec2(rowMaxX - checkboxAreaWidth, pos.y + rowHeight));
-        const ImVec2 checkBoxPos(rowMaxX - checkboxWidth, pos.y + g.Style.FramePadding.y);
-        const ImRect bbCheckbox(ImVec2(rowMaxX - checkboxAreaWidth, pos.y),
-                                ImVec2(rowMaxX, pos.y + rowHeight));
+        const ImRect bb(pos, ImVec2(window->Pos.x + window->Size.x - g.Style.FramePadding.x,
+                                    pos.y + g.FontSize + (g.Style.FramePadding.y * 2)));
 
         bool hovered = false, held = false;
         const auto pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held, ImGuiButtonFlags_PressedOnClick);
-        bool cbHovered = false, cbHeld = false;
-        const auto cbPressed = ImGui::ButtonBehavior(bbCheckbox, idcb, &cbHovered,
-                                                     &cbHeld, ImGuiButtonFlags_PressedOnClick);
 
         ImVec4 bgColor = ImVec4(0, 0, 0, 0);
         if (selected) {
@@ -270,22 +260,10 @@ namespace Bess::UI {
                           IM_COL32(fgColor.x * 255, fgColor.y * 255, fgColor.z * 255, fgColor.w * 255),
                           label);
 
-        if (hovered || cbHovered || multiSelectMode) {
-            const ImVec2 cursorPos = ImGui::GetCursorPos();
-            ImGui::SetCursorScreenPos(checkBoxPos);
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-            ImGui::PushStyleColor(ImGuiCol_FrameBg, colors[ImGuiCol_ButtonHovered]);
-
-            ImGui::Checkbox(("##CheckBox" + std::to_string(nodeId)).c_str(), &selected);
-            ImGui::PopStyleVar();
-            ImGui::PopStyleColor();
-            ImGui::SetCursorPos(cursorPos);
-        }
-
         ImGui::ItemSize(bb, g.Style.FramePadding.y * 2);
         ImGui::ItemAdd(bb, id);
 
-        return {pressed, cbPressed};
+        return pressed;
     }
 
     void ProjectExplorer::groupSelectedNodes() {
@@ -400,8 +378,7 @@ namespace Bess::UI {
     }
 
     size_t ProjectExplorer::drawEntites(const std::unordered_set<UUID> &entities) {
-        constexpr auto treeIcon = Icons::CodIcons::FOLDER;
-        constexpr auto moduleIcon = Icons::CodIcons::SYMBOL_MODULE;
+        constexpr auto treeIcon = Icons::FontAwesomeIcons::FA_FOLDER;
         constexpr auto nodePopupName = "node_popup";
 
         auto &sceneState = Pages::MainPage::getInstance()->getState().getSceneDriver()->getState();
@@ -463,11 +440,11 @@ namespace Bess::UI {
                                           ImVec4(moduleColor.x, moduleColor.y, moduleColor.z, moduleColor.w));
                 }
 
-                const auto &[pressed, cbPressed] = drawLeafNode(m_nodesKeyCounter++,
-                                                                compId,
-                                                                name.c_str(),
-                                                                comp->getIsSelected(),
-                                                                selSize > 1);
+                const auto &pressed = drawLeafNode(m_nodesKeyCounter++,
+                                                   compId,
+                                                   name.c_str(),
+                                                   comp->getIsSelected(),
+                                                   selSize > 1);
                 if (isModule) {
                     ImGui::PopStyleColor();
                 }
@@ -486,15 +463,6 @@ namespace Bess::UI {
                                               payloadData.size() * sizeof(uint64_t));
                     ImGui::Text("Dragging %lu nodes", payloadData.size());
                     ImGui::EndDragDropSource();
-                }
-
-                if (cbPressed) {
-                    if (comp->getIsSelected()) {
-                        sceneState.removeSelectedComponent(compId);
-                    } else {
-                        sceneState.addSelectedComponent(compId);
-                    }
-                    m_lastSelectedIndex = (int32_t)m_nodesKeyCounter - 1;
                 }
             }
 

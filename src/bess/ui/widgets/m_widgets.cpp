@@ -216,7 +216,7 @@ namespace Bess::UI::Widgets {
         ImGui::PushID(key);
 
         const float rowHeight = g.FontSize + (g.Style.FramePadding.y * 2.0f);
-        const ImVec2 pos = window->DC.CursorPos;
+        const ImVec2 pos = {window->DC.CursorPos.x - 2.f, window->DC.CursorPos.y};
         const ImVec2 avail = ImGui::GetContentRegionAvail();
 
         ImDrawList *drawList = ImGui::GetWindowDrawList();
@@ -245,18 +245,23 @@ namespace Bess::UI::Widgets {
 
         bool rowHovered = ImGui::IsMouseHoveringRect(rowBB.Min, rowBB.Max);
 
-        if (rowHovered) {
-            const auto &bg = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
+        // background
+        if (rowHovered || selected) {
+            ImU32 bgColor = 0;
+
+            if (rowHovered) {
+                bgColor = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
+            } else if (selected) {
+                bgColor = ImGui::GetColorU32(ImGuiCol_HeaderActive);
+            }
+
             ImVec2 bgStart(window->Pos.x, pos.y);
             ImVec2 bgEnd(window->Pos.x + window->Size.x, pos.y + rowHeight);
-            window->DrawList->AddRectFilled(bgStart, bgEnd, bg, g.Style.FrameRounding);
-        } else if (selected) {
-            const ImU32 &bg = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
-            window->DrawList->AddRectFilled(rowBB.Min, rowBB.Max, bg, g.Style.FrameRounding);
+            window->DrawList->AddRectFilled(bgStart, bgEnd, bgColor);
         }
 
-        float toggleWidth = g.FontSize + (g.Style.ItemInnerSpacing.x * 2.0f);
-        ImRect toggleRect(rowBB.Min, ImVec2(rowBB.Min.x + toggleWidth, rowBB.Max.y));
+        const float toggleWidth = g.FontSize + g.Style.ItemInnerSpacing.x;
+        const ImRect toggleRect(rowBB.Min, ImVec2(rowBB.Min.x + toggleWidth, rowBB.Max.y));
         bool toggleHovered = false, toggleHeld = false;
 
         if (ImGui::ButtonBehavior(toggleRect, toggleId, &toggleHovered, &toggleHeld)) {
@@ -276,7 +281,7 @@ namespace Bess::UI::Widgets {
         float iconOffsetX = 0.0f;
         if (!icon.empty()) {
             float iconW = ImGui::CalcTextSize(icon.c_str()).x;
-            iconOffsetX = iconW + g.Style.ItemInnerSpacing.x;
+            iconOffsetX = iconW;
             if (iconColor.x >= 0)
                 ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetColorU32(ImVec4(iconColor.x, iconColor.y, iconColor.z, iconColor.w)));
             ImGui::RenderText(ImVec2(toggleRect.Max.x, rowBB.Min.y + g.Style.FramePadding.y), icon.c_str());
@@ -299,7 +304,7 @@ namespace Bess::UI::Widgets {
 
         ImVec2 labelPos(toggleRect.Max.x + iconOffsetX + g.Style.ItemInnerSpacing.x, rowBB.Min.y + g.Style.FramePadding.y);
         ImVec2 labelSize = ImGui::CalcTextSize(name.c_str());
-        ImRect labelRect(labelPos, ImVec2(labelPos.x + labelSize.x + 10.0f, rowBB.Max.y));
+        ImRect labelRect(labelPos, ImVec2(labelPos.x + labelSize.x, rowBB.Max.y));
 
         ImGui::ItemAdd(labelRect, labelId);
 

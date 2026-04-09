@@ -177,7 +177,8 @@ namespace Bess {
             simIdToComp;
 
         for (const auto &[compId, comp] : sceneState.getAllComponents()) {
-            if (comp->getType() == Canvas::SceneComponentType::simulation) {
+            if (comp->getType() == Canvas::SceneComponentType::group ||
+                comp->getType() == Canvas::SceneComponentType::simulation) {
                 const auto simComp = comp->cast<Canvas::SimulationSceneComponent>();
                 simIdToComp[simComp->getSimEngineId()] = simComp;
             }
