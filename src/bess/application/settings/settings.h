@@ -1,8 +1,8 @@
 #pragma once
 
-#include "common/types.h"
 #include "application/settings/themes.h"
 #include "common/class_helpers.h"
+#include "common/types.h"
 #include <string>
 
 namespace Bess::Config {
@@ -23,7 +23,7 @@ namespace Bess::Config {
         // font size and scale
         MAKE_GETTER_SETTER(float, Scale, m_scale)
         MAKE_GETTER_SETTER(float, FontSize, m_fontSize)
-        MAKE_GETTER_SETTER(int, Fps, m_fps)
+        MAKE_GETTER_SETTER_WC(int, Fps, m_fps, onFpsChange)
         MAKE_GETTER_SETTER(bool, ShowStatsWindow, m_showStatsWindow)
 
         bool shouldFontRebuild() const;
@@ -32,6 +32,9 @@ namespace Bess::Config {
 
         // No set function, frame time step is derived from fps
         TimeMs getFrameTimeStep() const;
+
+      private:
+        void onFpsChange();
 
       private:
         std::string m_currentTheme;
