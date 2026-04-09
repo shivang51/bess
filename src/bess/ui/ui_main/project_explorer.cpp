@@ -11,8 +11,8 @@
 #include "pages/main_page/scene_components/group_scene_component.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
-#include "simulation_engine.h"
 #include "settings/viewport_theme.h"
+#include "simulation_engine.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/widgets/m_widgets.h"
 #include <cstdint>
@@ -119,14 +119,16 @@ namespace Bess::UI {
         Widgets::TextBox("##ProjectExplorerSearch", m_searchQuery, "Search");
         ImGui::PopItemWidth();
         ImGui::SameLine();
-        if (ImGui::Button(Icons::CodIcons::ELLIPSIS)) {
+        if (ImGui::Button(Icons::FontAwesomeIcons::FA_ELLIPSIS_VERTICAL)) {
             ImGui::OpenPopup("project_explorer_filters");
         }
 
         if (ImGui::BeginPopup("project_explorer_filters")) {
-            if (ImGui::BeginMenu("Filters")) {
-                ImGui::Selectable("Inputs", &m_filterInputs);
-                ImGui::Selectable("Outputs", &m_filterOutputs);
+            constexpr auto filterTitle = Common::Helpers::concat(
+                Icons::FontAwesomeIcons::FA_FILTER, " Filters");
+            if (ImGui::BeginMenu(filterTitle.data())) {
+                ImGui::Selectable("Inputs", &m_filterInputs, ImGuiSelectableFlags_DontClosePopups);
+                ImGui::Selectable("Outputs", &m_filterOutputs, ImGuiSelectableFlags_DontClosePopups);
                 ImGui::EndMenu();
             }
             ImGui::EndPopup();
@@ -226,8 +228,11 @@ namespace Bess::UI {
         const float rowMaxX = window->WorkRect.Max.x;
 
         if ((key & 1) == 0) {
-            ImVec2 bgStart(rowMinX, pos.y);
-            ImVec2 bgEnd(rowMaxX, pos.y + rowHeight);
+            float x = window->Pos.x;
+            float y = pos.y;
+            ImVec2 avail = ImGui::GetContentRegionAvail();
+            ImVec2 bgStart(x, y);
+            ImVec2 bgEnd(x + window->Size.x, y + g.FontSize + (g.Style.FramePadding.y * 2));
             drawList->AddRectFilled(bgStart, bgEnd, (ImColor)colors[ImGuiCol_TableRowBgAlt], 0);
         }
 
@@ -245,8 +250,11 @@ namespace Bess::UI {
         }
 
         if (bgColor.w > 0.0f) {
-            ImVec2 bgStart(rowMinX, pos.y);
-            ImVec2 bgEnd(rowMaxX, pos.y + rowHeight);
+            float x = window->Pos.x;
+            float y = pos.y;
+            ImVec2 avail = ImGui::GetContentRegionAvail();
+            ImVec2 bgStart(x, y);
+            ImVec2 bgEnd(x + window->Size.x, y + g.FontSize + (g.Style.FramePadding.y * 2));
             auto color = IM_COL32(bgColor.x * 255, bgColor.y * 255, bgColor.z * 255, 200);
             drawList->AddRectFilled(bgStart, bgEnd, color, 0);
         }
