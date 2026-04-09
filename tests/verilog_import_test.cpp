@@ -47,7 +47,7 @@ namespace {
 class VerilogImportTest : public testing::Test {
   protected:
     void SetUp() override {
-        engine = std::make_unique<SimulationEngine>();
+        engine = &SimulationEngine::instance();
         engine->setSimulationState(SimulationState::running);
         engine->clear();
     }
@@ -57,8 +57,7 @@ class VerilogImportTest : public testing::Test {
             engine->setSimulationState(SimulationState::paused);
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             engine->clear();
-            engine->destroy();
-            engine.reset();
+            engine = nullptr;
         }
     }
 
@@ -106,7 +105,7 @@ class VerilogImportTest : public testing::Test {
         return root;
     }
 
-    std::unique_ptr<SimulationEngine> engine;
+    SimulationEngine *engine = nullptr;
 };
 
 TEST_F(VerilogImportTest, ParsesYosysJsonAndDetectsTopModule) {

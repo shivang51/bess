@@ -63,7 +63,7 @@ class ConnectionServiceTest : public testing::Test {
         }
 
         service->destroy();
-        SimulationEngine::instance().destroy();
+        SimulationEngine::instance().clear();
     }
 
     SimCompFixture addSimComponent(const std::shared_ptr<ComponentDefinition> &definition) {

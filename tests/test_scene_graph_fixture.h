@@ -133,7 +133,7 @@ namespace Bess::Tests {
                 scene->clear();
                 scene.reset();
             }
-            SimulationEngine::instance().destroy();
+            SimulationEngine::instance().clear();
         }
 
         SimCompFixture addSimComponentDirect(const std::shared_ptr<Scene> &targetScene,

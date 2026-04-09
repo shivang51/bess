@@ -604,12 +604,19 @@ namespace Bess::Verilog {
                 m_result.top.definitionName = topModule.name;
                 m_result.top.instancePath = topModuleName;
                 m_result.top.parentInstancePath = {};
+                m_result.top.inputSlotNames = buildPortSlotNames(topModule, PortDirection::input);
+                m_result.top.outputSlotNames = buildPortSlotNames(topModule, PortDirection::output);
+                m_result.top.internalInputSinks.resize(m_result.top.inputSlotNames.size());
+                m_result.top.internalOutputDrivers.resize(m_result.top.outputSlotNames.size());
                 m_result.instancesByPath[topModuleName] = m_result.top;
 
                 PortBindings topBindings;
                 initializeTopBoundary(topModule, topBindings);
                 elaborateModule(topModule, topModuleName, topBindings);
                 materializeConnections();
+
+                // Copy back boundary info populated during elaboration
+                m_result.top = m_result.instancesByPath[topModuleName];
 
                 SimEngineImportResult result;
                 result = m_result;
@@ -822,7 +829,7 @@ namespace Bess::Verilog {
                                       const std::unordered_map<int64_t, size_t> &inputBoundarySlotByNetId,
                                       const std::unordered_map<int64_t, size_t> &outputBoundarySlotByNetId) {
                 auto recordBoundaryInputSink = [&](const SignalBit &bit, const SlotEndpoint &endpoint) {
-                    if (path == m_result.topModuleName || !bit.isNet()) {
+                    if (!bit.isNet()) {
                         return;
                     }
                     const auto it = inputBoundarySlotByNetId.find(*bit.netId);
@@ -833,7 +840,7 @@ namespace Bess::Verilog {
                 };
 
                 auto recordBoundaryOutputDriver = [&](const SignalBit &bit, const SlotEndpoint &endpoint) {
-                    if (path == m_result.topModuleName || !bit.isNet()) {
+                    if (!bit.isNet()) {
                         return;
                     }
                     const auto it = outputBoundarySlotByNetId.find(*bit.netId);

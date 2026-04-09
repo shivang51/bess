@@ -378,6 +378,15 @@ namespace Bess::Pages {
         bool isOwnedByInstance(const SimEngineImportResult &result,
                                const UUID &componentId,
                                std::string_view instancePath) {
+            // Treat top IO components as external to any module instance (including the top module itself),
+            // so that their connections get properly bridged through the ModuleSceneComponent.
+            for (const auto &[portName, ioId] : result.topInputComponents) {
+                if (ioId == componentId) return false;
+            }
+            for (const auto &[portName, ioId] : result.topOutputComponents) {
+                if (ioId == componentId) return false;
+            }
+
             const auto it = result.componentInstancePathById.find(componentId);
             return it != result.componentInstancePathById.end() && it->second == instancePath;
         }
@@ -567,6 +576,20 @@ namespace Bess::Pages {
                     continue;
                 }
 
+                // For the top module, skip top IO components — they stay in root scene
+                if (instance.instancePath == result.topModuleName) {
+                    bool isTopIo = false;
+                    for (const auto &[portName, ioId] : result.topInputComponents) {
+                        if (ioId == simId) { isTopIo = true; break; }
+                    }
+                    if (!isTopIo) {
+                        for (const auto &[portName, ioId] : result.topOutputComponents) {
+                            if (ioId == simId) { isTopIo = true; break; }
+                        }
+                    }
+                    if (isTopIo) continue;
+                }
+
                 auto created = createSceneComponentForImportedSimId(simId, simEngine);
                 internalSceneBySimId[simId] = created.component;
                 internalSimIds.push_back(simId);
@@ -606,9 +629,6 @@ namespace Bess::Pages {
 
             std::vector<std::pair<std::string, ImportedModuleInstance>> modulePaths;
             for (const auto &[path, instance] : result.instancesByPath) {
-                if (path == result.topModuleName) {
-                    continue;
-                }
                 modulePaths.emplace_back(path, instance);
             }
 
@@ -693,11 +713,26 @@ namespace Bess::Pages {
                 return ordered;
             };
 
+            // Build a set of top IO sim IDs that should remain in root scene
+            std::unordered_set<UUID> topIoSimIds;
+            for (const auto &[portName, ioId] : result.topInputComponents) {
+                topIoSimIds.insert(ioId);
+            }
+            for (const auto &[portName, ioId] : result.topOutputComponents) {
+                topIoSimIds.insert(ioId);
+            }
+
             std::vector<UUID> toRemove;
             for (const auto &[simId, ownerPath] : result.componentInstancePathById) {
-                if (ownerPath == result.topModuleName || !sceneBySimId.contains(simId)) {
+                if (!sceneBySimId.contains(simId)) {
                     continue;
                 }
+                // Keep top IO components in root scene
+                if (topIoSimIds.contains(simId)) {
+                    continue;
+                }
+                // Everything else (top-owned internals and sub-module-owned)
+                // will live inside a module scene
                 toRemove.push_back(simId);
             }
 
@@ -826,10 +861,28 @@ namespace Bess::Pages {
         }
 
         applyImportedPortNames(result, sceneBySimId);
+        // Initial layout - places inner components correctly for buildImportedModuleHierarchy
         layoutImportedComponents(result.createdComponentIds, simEngine, sceneBySimId, scene);
-        stackTopOutputComponents(result, sceneBySimId);
+
         const auto moduleByPath = buildImportedModuleHierarchy(result, scene, simEngine, sceneBySimId);
         removeNestedImportedComponentsFromRootScene(result, scene, sceneBySimId);
+
+        // Gather remaining visible root components for the final root layout
+        std::vector<UUID> visibleRootSimIds;
+        for (const auto &[simId, component] : sceneBySimId) {
+            visibleRootSimIds.push_back(simId);
+        }
+        for (const auto &[path, wrapper] : moduleByPath) {
+            if (path == result.topModuleName) {
+                visibleRootSimIds.push_back(wrapper->getSimEngineId());
+                sceneBySimId[wrapper->getSimEngineId()] = wrapper;
+            }
+        }
+
+        // Final layout for the root scene
+        layoutImportedComponents(visibleRootSimIds, simEngine, sceneBySimId, scene);
+        stackTopOutputComponents(result, sceneBySimId);
+
         addRootModuleConnections(scene, simEngine, sceneBySimId, moduleByPath);
         EventSystem::EventDispatcher::instance().dispatchAll();
     }

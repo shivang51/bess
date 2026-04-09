@@ -54,8 +54,11 @@ class SimulationEngineTest : public testing::Test {
         ASSERT_TRUE(pluginManager.loadPluginsFromDirectory("plugins"));
     }
 
+    SimulationEngine *engine = nullptr;
+    std::shared_ptr<ComponentDefinition> inputDef, outputDef, notDef, andDef, orDef, xorDef;
+
     void SetUp() override {
-        engine = std::make_unique<SimulationEngine>();
+        engine = &SimulationEngine::instance();
 
         inputDef = findDefinitionByName("Input");
         outputDef = findDefinitionByName("Output");
@@ -80,8 +83,7 @@ class SimulationEngineTest : public testing::Test {
             engine->setSimulationState(SimulationState::paused);
             std::this_thread::sleep_for(10ms);
             engine->clear();
-            engine->destroy();
-            engine.reset();
+            engine = nullptr;
         }
     }
 
@@ -131,13 +133,6 @@ class SimulationEngineTest : public testing::Test {
         }
     }
 
-    std::unique_ptr<SimulationEngine> engine;
-    std::shared_ptr<ComponentDefinition> inputDef;
-    std::shared_ptr<ComponentDefinition> outputDef;
-    std::shared_ptr<ComponentDefinition> notDef;
-    std::shared_ptr<ComponentDefinition> andDef;
-    std::shared_ptr<ComponentDefinition> orDef;
-    std::shared_ptr<ComponentDefinition> xorDef;
 };
 
 TEST_F(SimulationEngineTest, CatalogIncludesBuiltInAndPluginDefinitions) {
