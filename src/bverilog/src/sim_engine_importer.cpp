@@ -281,7 +281,137 @@ namespace Bess::Verilog {
             return definition;
         }
 
-        std::shared_ptr<ComponentDefinition> ensureDffDefinition(const std::string &name, bool risingEdge) {
+        struct DffParams {
+            bool risingEdge = true;
+            bool hasReset = false;
+            bool resetActiveHigh = true;
+            bool resetToOne = false;
+            bool asyncReset = true;
+            bool hasEnable = false;
+            bool enableActiveHigh = true;
+
+            // Input slot indices depend on which features are present.
+            // D is always 0, CLK is always 1.
+            int rstSlotIndex() const { return hasReset ? 2 : -1; }
+            int enSlotIndex() const {
+                if (!hasEnable) return -1;
+                return hasReset ? 3 : 2;
+            }
+            size_t inputCount() const {
+                size_t n = 2; // D + CLK
+                if (hasReset) ++n;
+                if (hasEnable) ++n;
+                return n;
+            }
+        };
+
+        std::optional<DffParams> parseDffCellType(const std::string &cellType) {
+            // Handle coarse-grain Yosys cells
+            if (cellType == "$dff") return DffParams{true, false, true, false, true, false, true};
+            if (cellType == "$dffe") return DffParams{true, false, true, false, true, true, true};
+            if (cellType == "$adff") return DffParams{true, true, true, false, true, false, true};
+            if (cellType == "$sdff") return DffParams{true, true, true, false, false, false, true};
+
+            // Parse $_DFF_*, $_DFFE_*, $_SDFF_*, $_SDFFE_* naming convention
+            if (cellType.size() < 7 || cellType.front() != '$' || cellType.back() != '_') {
+                return std::nullopt;
+            }
+
+            std::string_view sv(cellType);
+            sv.remove_prefix(2); // skip "$_"
+            sv.remove_suffix(1); // skip trailing "_"
+
+            bool isSyncReset = false;
+            bool isEnableVariant = false;
+
+            if (sv.starts_with("SDFFE_")) {
+                isSyncReset = true;
+                isEnableVariant = true;
+                sv.remove_prefix(6);
+            } else if (sv.starts_with("SDFF_")) {
+                isSyncReset = true;
+                sv.remove_prefix(5);
+            } else if (sv.starts_with("DFFE_")) {
+                isEnableVariant = true;
+                sv.remove_prefix(5);
+            } else if (sv.starts_with("DFF_")) {
+                sv.remove_prefix(4);
+            } else {
+                return std::nullopt;
+            }
+
+            // sv now holds the polarity/value suffix, e.g. "P", "PP0", "PN0P"
+            if (sv.empty()) return std::nullopt;
+
+            DffParams params;
+            params.asyncReset = !isSyncReset;
+
+            // First char: clock polarity
+            if (sv[0] == 'P') params.risingEdge = true;
+            else if (sv[0] == 'N') params.risingEdge = false;
+            else return std::nullopt;
+            sv.remove_prefix(1);
+
+            if (sv.empty()) {
+                // $_DFF_P_ or $_DFF_N_ (basic, no reset, no enable)
+                if (isEnableVariant) return std::nullopt; // $_DFFE_P_ needs at least enable polarity
+                return params;
+            }
+
+            if (isEnableVariant && sv.size() == 1) {
+                // $_DFFE_PP_, $_DFFE_PN_, etc. — enable only, no reset
+                if (sv[0] == 'P') params.enableActiveHigh = true;
+                else if (sv[0] == 'N') params.enableActiveHigh = false;
+                else return std::nullopt;
+                params.hasEnable = true;
+                return params;
+            }
+
+            // Reset polarity
+            if (sv[0] == 'P') params.resetActiveHigh = true;
+            else if (sv[0] == 'N') params.resetActiveHigh = false;
+            else return std::nullopt;
+            sv.remove_prefix(1);
+
+            if (sv.empty()) return std::nullopt; // need reset value
+
+            // Reset value
+            if (sv[0] == '0') params.resetToOne = false;
+            else if (sv[0] == '1') params.resetToOne = true;
+            else return std::nullopt;
+            sv.remove_prefix(1);
+
+            params.hasReset = true;
+
+            if (isEnableVariant) {
+                if (sv.size() != 1) return std::nullopt;
+                if (sv[0] == 'P') params.enableActiveHigh = true;
+                else if (sv[0] == 'N') params.enableActiveHigh = false;
+                else return std::nullopt;
+                params.hasEnable = true;
+            } else {
+                if (!sv.empty()) return std::nullopt;
+            }
+
+            return params;
+        }
+
+        std::string dffDefinitionName(const DffParams &p) {
+            std::string name = "D Flip Flop";
+            if (!p.risingEdge) name += " (Neg Edge)";
+            if (p.hasReset) {
+                name += p.asyncReset ? " A" : " S";
+                name += p.resetActiveHigh ? "R+" : "R-";
+                name += p.resetToOne ? "1" : "0";
+            }
+            if (p.hasEnable) {
+                name += p.enableActiveHigh ? " EN+" : " EN-";
+            }
+            return name;
+        }
+
+        std::shared_ptr<ComponentDefinition> ensureGeneralDffDefinition(const DffParams &p) {
+            const auto name = dffDefinitionName(p);
             auto definition = findDefinitionByName(name);
             if (definition) {
                 return definition;
@@ -290,52 +420,106 @@ namespace Bess::Verilog {
             auto created = std::make_shared<ComponentDefinition>();
             created->setName(name);
             created->setGroupName("Verilog Imported");
-            SlotsGroupInfo inputs{SlotsGroupType::input, false, 3, {"D", "CLK", "CLR"}, {}};
-            inputs.categories = {
+
+            std::vector<std::string> inputNames = {"D", "CLK"};
+            std::vector<std::pair<int, SlotCatergory>> categories = {
                 {1, SlotCatergory::clock},
-                {2, SlotCatergory::clear},
             };
+            if (p.hasReset) {
+                inputNames.push_back("RST");
+                categories.push_back({static_cast<int>(inputNames.size() - 1), SlotCatergory::clear});
+            }
+            if (p.hasEnable) {
+                inputNames.push_back("EN");
+                categories.push_back({static_cast<int>(inputNames.size() - 1), SlotCatergory::enable});
+            }
+
+            SlotsGroupInfo inputs{SlotsGroupType::input, false, inputNames.size(), inputNames, {}};
+            inputs.categories = categories;
             created->setInputSlotsInfo(inputs);
             created->setOutputSlotsInfo({SlotsGroupType::output, false, 2, {"Q", "Q'"}, {}});
             created->setSimDelay(SimDelayNanoSeconds(2));
-            created->setSimulationFunction([risingEdge](const std::vector<SlotState> &inputs,
-                                                        SimTime simTime,
-                                                        const ComponentState &prevState) -> ComponentState {
-                auto next = prevState;
-                next.inputStates = inputs;
-                next.isChanged = false;
 
-                const auto currentClock = inputs[1].state == LogicState::high;
-                const auto previousClock = prevState.inputStates.size() > 1 &&
-                                           prevState.inputStates[1].state == LogicState::high;
-                const auto clear = inputs[2].state == LogicState::high;
-                const bool clockEdge = risingEdge
-                                           ? (!previousClock && currentClock)
-                                           : (previousClock && !currentClock);
+            const auto rstIdx = p.rstSlotIndex();
+            const auto enIdx = p.enSlotIndex();
 
-                SlotState q = prevState.outputStates.empty() ? SlotState{} : prevState.outputStates[0];
-                if (clear) {
-                    q.state = LogicState::low;
-                    q.lastChangeTime = simTime;
-                } else if (clockEdge) {
-                    q = inputs[0];
-                    q.lastChangeTime = simTime;
-                } else {
+            created->setSimulationFunction(
+                [p, rstIdx, enIdx](const std::vector<SlotState> &inputs,
+                                   SimTime simTime,
+                                   const ComponentState &prevState) -> ComponentState {
+                    auto next = prevState;
+                    next.inputStates = inputs;
+                    next.isChanged = false;
+
+                    const auto currentClock = inputs[1].state == LogicState::high;
+                    const auto previousClock = prevState.inputStates.size() > 1 &&
+                                               prevState.inputStates[1].state == LogicState::high;
+                    const bool clockEdge = p.risingEdge
+                                               ? (!previousClock && currentClock)
+                                               : (previousClock && !currentClock);
+
+                    // Check enable (if present)
+                    if (p.hasEnable && enIdx >= 0 && enIdx < static_cast<int>(inputs.size())) {
+                        const bool enActive = inputs[enIdx].state == LogicState::high;
+                        const bool enabled = p.enableActiveHigh ? enActive : !enActive;
+                        if (!enabled && !p.hasReset) {
+                            // No reset to check, and not enabled — nothing happens
+                            return next;
+                        }
+                        if (!enabled) {
+                            // Still need to check async reset below, but clock-triggered
+                            // data capture is suppressed.
+                        }
+                    }
+
+                    // Check reset
+                    bool resetActive = false;
+                    if (p.hasReset && rstIdx >= 0 && rstIdx < static_cast<int>(inputs.size())) {
+                        const bool rstHigh = inputs[rstIdx].state == LogicState::high;
+                        resetActive = p.resetActiveHigh ? rstHigh : !rstHigh;
+                    }
+
+                    const auto resetValue = p.resetToOne ? LogicState::high : LogicState::low;
+                    SlotState q = prevState.outputStates.empty() ? SlotState{} : prevState.outputStates[0];
+
+                    if (p.asyncReset && resetActive) {
+                        // Async reset: applied regardless of clock
+                        q.state = resetValue;
+                        q.lastChangeTime = simTime;
+                    } else if (clockEdge) {
+                        // Check enable gate for data capture
+                        bool enabled = true;
+                        if (p.hasEnable && enIdx >= 0 && enIdx < static_cast<int>(inputs.size())) {
+                            const bool enActive = inputs[enIdx].state == LogicState::high;
+                            enabled = p.enableActiveHigh ? enActive : !enActive;
+                        }
+
+                        if (!p.asyncReset && resetActive) {
+                            // Sync reset: applied on clock edge
+                            q.state = resetValue;
+                            q.lastChangeTime = simTime;
+                        } else if (enabled) {
+                            q = inputs[0];
+                            q.lastChangeTime = simTime;
+                        } else {
+                            return next;
+                        }
+                    } else {
+                        return next;
+                    }
+
+                    next.outputStates[0] = q;
+                    auto qInv = q;
+                    if (qInv.state == LogicState::high) {
+                        qInv.state = LogicState::low;
+                    } else if (qInv.state == LogicState::low) {
+                        qInv.state = LogicState::high;
+                    }
+                    next.outputStates[1] = qInv;
+                    next.isChanged = prevState.outputStates.empty() ||
+                                     prevState.outputStates[0].state != next.outputStates[0].state;
                     return next;
-                }
-
-                next.outputStates[0] = q;
-                auto qInv = q;
-                if (qInv.state == LogicState::high) {
-                    qInv.state = LogicState::low;
-                } else if (qInv.state == LogicState::low) {
-                    qInv.state = LogicState::high;
-                }
-                next.outputStates[1] = qInv;
-                next.isChanged = prevState.outputStates.empty() ||
-                                 prevState.outputStates[0].state != next.outputStates[0].state;
-                return next;
-            });
+                });
 
             ComponentCatalog::instance().registerComponent(created);
             definition = findDefinitionByName(name);
@@ -385,11 +569,9 @@ namespace Bess::Verilog {
             if (cellType == "$_MUX_" || cellType == "$mux") {
                 return ensureExprDefinition("2-to-1 Multiplexer", 3, 1, {"(!2*0) + (2*1)"});
             }
-            if (cellType == "$_DFF_P_" || cellType == "$_DFF_PP0_" || cellType == "$dff") {
-                return ensureDffDefinition("D Flip Flop", true);
-            }
-            if (cellType == "$_DFF_N_") {
-                return ensureDffDefinition("D Flip Flop (Neg Edge)", false);
+            const auto dffParams = parseDffCellType(cellType);
+            if (dffParams.has_value()) {
+                return ensureGeneralDffDefinition(*dffParams);
             }
             return nullptr;
         }
@@ -771,38 +953,66 @@ namespace Bess::Verilog {
                     return;
                 }
 
-                if (cell.type == "$_DFF_P_" || cell.type == "$_DFF_N_" ||
-                    cell.type == "$_DFF_PP0_" || cell.type == "$dff") {
-                    const auto &dBits = cell.connections.at("D");
-                    const auto &qBits = cell.connections.at("Q");
-                    const auto &clkBits = cell.connections.at(cell.connections.contains("C") ? "C" : "CLK");
-                    const bool hasResetPort = cell.connections.contains("R");
-                    if (clkBits.size() != 1 || dBits.size() != qBits.size()) {
-                        throw std::runtime_error("Unsupported DFF width configuration in " + cell.name);
-                    }
-                    for (size_t i = 0; i < qBits.size(); ++i) {
-                        const auto componentId = m_engine.addComponent(primitiveDefinition);
-                        m_createdComponentIds.push_back(componentId);
-                        m_result.componentInstancePathById[componentId] = path;
-                        const SlotEndpoint dEndpoint{componentId, SlotType::digitalInput, 0};
-                        const SlotEndpoint clkEndpoint{componentId, SlotType::digitalInput, 1};
-                        const SlotEndpoint clrEndpoint{componentId, SlotType::digitalInput, 2};
-                        const SlotEndpoint qEndpoint{componentId, SlotType::digitalOutput, 0};
-                        registerLoad(resolveSignal(path, dBits[i], bindings), dEndpoint);
-                        registerLoad(resolveSignal(path, clkBits[0], bindings), clkEndpoint);
-                        if (hasResetPort) {
-                            const auto &rBits = cell.connections.at("R");
-                            registerLoad(resolveSignal(path, rBits[0], bindings), clrEndpoint);
-                            recordBoundaryInputSink(rBits[0], clrEndpoint);
-                        } else {
-                            registerLoad(SignalRef::constantValue("0"), clrEndpoint);
+                {
+                    const auto dffParams = parseDffCellType(cell.type);
+                    if (dffParams.has_value()) {
+                        const auto &dp = *dffParams;
+                        const auto &dBits = cell.connections.at("D");
+                        const auto &qBits = cell.connections.at("Q");
+                        const auto &clkBits = cell.connections.at(
+                            cell.connections.contains("C") ? "C" : "CLK");
+                        if (clkBits.size() != 1 || dBits.size() != qBits.size()) {
+                            throw std::runtime_error("Unsupported DFF width configuration in " + cell.name);
                         }
-                        registerDriver(resolveSignal(path, qBits[i], bindings), qEndpoint);
-                        recordBoundaryInputSink(dBits[i], dEndpoint);
-                        recordBoundaryInputSink(clkBits[0], clkEndpoint);
-                        recordBoundaryOutputDriver(qBits[i], qEndpoint);
+                        for (size_t i = 0; i < qBits.size(); ++i) {
+                            const auto componentId = m_engine.addComponent(primitiveDefinition);
+                            m_createdComponentIds.push_back(componentId);
+                            m_result.componentInstancePathById[componentId] = path;
+
+                            // D → slot 0, CLK → slot 1
+                            const SlotEndpoint dEndpoint{componentId, SlotType::digitalInput, 0};
+                            const SlotEndpoint clkEndpoint{componentId, SlotType::digitalInput, 1};
+                            const SlotEndpoint qEndpoint{componentId, SlotType::digitalOutput, 0};
+                            registerLoad(resolveSignal(path, dBits[i], bindings), dEndpoint);
+                            registerLoad(resolveSignal(path, clkBits[0], bindings), clkEndpoint);
+                            recordBoundaryInputSink(dBits[i], dEndpoint);
+                            recordBoundaryInputSink(clkBits[0], clkEndpoint);
+
+                            // RST → slot 2 (if definition has reset)
+                            if (dp.hasReset) {
+                                const SlotEndpoint rstEndpoint{componentId, SlotType::digitalInput,
+                                                               dp.rstSlotIndex()};
+                                if (cell.connections.contains("R")) {
+                                    const auto &rBits = cell.connections.at("R");
+                                    registerLoad(resolveSignal(path, rBits[0], bindings), rstEndpoint);
+                                    recordBoundaryInputSink(rBits[0], rstEndpoint);
+                                } else {
+                                    // Tie reset inactive
+                                    registerLoad(SignalRef::constantValue(
+                                        dp.resetActiveHigh ? "0" : "1"), rstEndpoint);
+                                }
+                            }
+
+                            // EN → slot 2 or 3 (if definition has enable)
+                            if (dp.hasEnable) {
+                                const SlotEndpoint enEndpoint{componentId, SlotType::digitalInput,
+                                                              dp.enSlotIndex()};
+                                if (cell.connections.contains("E")) {
+                                    const auto &eBits = cell.connections.at("E");
+                                    registerLoad(resolveSignal(path, eBits[0], bindings), enEndpoint);
+                                    recordBoundaryInputSink(eBits[0], enEndpoint);
+                                } else {
+                                    // Tie enable active
+                                    registerLoad(SignalRef::constantValue(
+                                        dp.enableActiveHigh ? "1" : "0"), enEndpoint);
+                                }
+                            }
+
+                            registerDriver(resolveSignal(path, qBits[i], bindings), qEndpoint);
+                            recordBoundaryOutputDriver(qBits[i], qEndpoint);
+                        }
+                        return;
                     }
-                    return;
                 }
 
                 throw std::runtime_error("Unsupported primitive cell type during import: " + cell.type);
