@@ -21,6 +21,14 @@ namespace Bess::Pages {
             return std::string(1, static_cast<char>(base + (index % 26)));
         }
 
+        std::shared_ptr<Canvas::Scene> getTrackedScene(SceneDriver &sceneDriver, const UUID &sceneId) {
+            if (sceneId == UUID::null) {
+                return nullptr;
+            }
+
+            return sceneDriver.getSceneWithId(sceneId);
+        }
+
         void syncSceneComponentSlots(Canvas::SceneState &sceneState,
                                      const std::shared_ptr<Canvas::SimulationSceneComponent> &comp,
                                      const SimEngine::SlotsGroupInfo &slotsInfo,
@@ -196,6 +204,16 @@ namespace Bess::Pages {
         }
     }
 
+    HierarchicalSceneLayoutResult MainPageState::applyHierarchicalLayoutToActiveScene() {
+        HierarchicalSceneLayoutResult result;
+        const auto activeScene = m_sceneDriver.getActiveScene();
+        if (!activeScene) {
+            return result;
+        }
+
+        return applyHierarchicalSceneLayout(*activeScene, SimEngine::SimulationEngine::instance());
+    }
+
     void MainPageState::startVerilogImport(const std::string &path) {
         m_verilogImportSession = std::make_unique<VerilogImportSession>();
         m_verilogImportSession->path = path;
@@ -334,16 +352,26 @@ namespace Bess::Pages {
 
     void MainPageState::onEntityMoved(const Canvas::Events::EntityMovedEvent &e) {
         auto entity = m_sceneDriver->getState().getComponentByUuid(e.entityUuid);
-        glm::vec3 *posPtr = &entity->getTransform().position;
-
-        if (entity) {
-            auto cmd = std::make_unique<Cmd::UpdateValCommand<glm::vec3>>(posPtr, e.newPos, e.oldPos);
-            m_commandSystem.push(std::move(cmd));
+        if (!entity) {
+            return;
         }
+
+        glm::vec3 *posPtr = &entity->getTransform().position;
+        auto cmd = std::make_unique<Cmd::UpdateValCommand<glm::vec3>>(posPtr, e.newPos, e.oldPos);
+        m_commandSystem.push(std::move(cmd));
     }
 
     void MainPageState::onEntityReparented(const Canvas::Events::EntityReparentedEvent &e) {
-        auto entity = e.state->getComponentByUuid(e.entityUuid);
+        const auto scene = getTrackedScene(m_sceneDriver, e.sceneId);
+        if (!scene) {
+            return;
+        }
+
+        auto &sceneState = scene->getState();
+        auto entity = sceneState.getComponentByUuid(e.entityUuid);
+        if (!entity) {
+            return;
+        }
 
         if (entity->getType() == Canvas::SceneComponentType::slot) {
             return;
@@ -354,12 +382,15 @@ namespace Bess::Pages {
         bool parentIsWasGroup = false;
 
         if (e.newParentUuid != UUID::null) {
-            const auto &parentComp = e.state->getComponentByUuid(e.newParentUuid);
+            const auto &parentComp = sceneState.getComponentByUuid(e.newParentUuid);
+            if (!parentComp) {
+                return;
+            }
             parentIsWasGroup = parentComp->getType() == Canvas::SceneComponentType::group;
         }
 
         if (!parentIsWasGroup && e.prevParent != UUID::null) {
-            const auto &prevParentComp = e.state->getComponentByUuid(e.prevParent);
+            const auto &prevParentComp = sceneState.getComponentByUuid(e.prevParent);
             if (!prevParentComp)
                 return;
             if (prevParentComp->getType() == Canvas::SceneComponentType::group) {
@@ -374,11 +405,20 @@ namespace Bess::Pages {
         }
 
         /// undo redo callback
-        const auto callback = [this, entityUuid = e.entityUuid, state = e.state](bool isUndo, const UUID &newParent) {
+        const auto callback = [this, entityUuid = e.entityUuid, sceneId = e.sceneId](bool isUndo, const UUID &newParent) {
+            (void)isUndo;
             if (newParent == UUID::null)
                 return;
 
-            const auto &parent = state->getComponentByUuid(newParent);
+            const auto scene = getTrackedScene(m_sceneDriver, sceneId);
+            if (!scene) {
+                return;
+            }
+
+            const auto &parent = scene->getState().getComponentByUuid(newParent);
+            if (!parent) {
+                return;
+            }
             parent->addChildComponent(entityUuid);
         };
 
@@ -416,7 +456,13 @@ namespace Bess::Pages {
 
         const auto &compData = m_simIdToSceneCompId[e.componentId];
 
-        auto &sceneState = m_sceneDriver.getSceneWithId(compData.sceneId)->getState();
+        const auto scene = m_sceneDriver.getSceneWithId(compData.sceneId);
+        if (!scene) {
+            m_simIdToSceneCompId.erase(e.componentId);
+            return;
+        }
+
+        auto &sceneState = scene->getState();
         const auto &comp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(compData.sceneCompId);
         if (!comp)
             return; // most likely the component was deleted, so we can ignore this event
@@ -434,7 +480,13 @@ namespace Bess::Pages {
 
         const auto &compData = m_simIdToSceneCompId[e.componentId];
 
-        auto &sceneState = m_sceneDriver.getSceneWithId(compData.sceneId)->getState();
+        const auto scene = m_sceneDriver.getSceneWithId(compData.sceneId);
+        if (!scene) {
+            m_simIdToSceneCompId.erase(e.componentId);
+            return;
+        }
+
+        auto &sceneState = scene->getState();
         const auto &comp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(compData.sceneCompId);
         if (!comp)
             return; // most likely the component was deleted, so we can ignore this event
@@ -445,7 +497,13 @@ namespace Bess::Pages {
     }
 
     void MainPageState::onEntityAdded(const Canvas::Events::ComponentAddedEvent &e) {
-        const auto &comp = e.state->getComponentByUuid(e.uuid);
+        const auto scene = getTrackedScene(m_sceneDriver, e.sceneId);
+        if (!scene) {
+            return;
+        }
+
+        const auto &sceneState = scene->getState();
+        const auto &comp = sceneState.getComponentByUuid(e.uuid);
         if (!comp) {
             return;
         }
@@ -457,7 +515,7 @@ namespace Bess::Pages {
                 return;
             }
             const auto &simEngineId = simComp->getSimEngineId();
-            m_simIdToSceneCompId[simEngineId] = {e.uuid, e.state->getSceneId()};
+            m_simIdToSceneCompId[simEngineId] = {e.uuid, e.sceneId};
         }
     }
 
@@ -467,7 +525,10 @@ namespace Bess::Pages {
             return;
 
         auto it = std::ranges::find_if(m_simIdToSceneCompId,
-                                       [&e](const auto &pair) { return pair.second.sceneCompId == e.uuid; });
+                                       [&e](const auto &pair) {
+                                           return pair.second.sceneCompId == e.uuid &&
+                                                  pair.second.sceneId == e.sceneId;
+                                       });
 
         if (it != m_simIdToSceneCompId.end()) {
             m_simIdToSceneCompId.erase(it);

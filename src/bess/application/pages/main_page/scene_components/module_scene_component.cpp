@@ -86,6 +86,7 @@ namespace Bess::Canvas {
         const auto &simEngine = SimEngine::SimulationEngine::instance();
         auto moduleDef = std::dynamic_pointer_cast<SimEngine::ModuleDefinition>(m_compDef);
         BESS_ASSERT(moduleDef, "[ModuleSceneComponent] Module definition not found while setting callbacks");
+        const auto ownerSceneId = state.getSceneId();
 
         auto outputDigitalComp = simEngine.getDigitalComponent(moduleDef->getOutputId());
         auto inputDigitalComp = simEngine.getDigitalComponent(moduleDef->getInputId());
@@ -115,7 +116,7 @@ namespace Bess::Canvas {
         });
 
         outputDigitalComp->removeOnInputSlotCountChangeCB(m_uuid);
-        outputDigitalComp->addOnInputSlotCountChangeCB(m_uuid, [this](size_t newCount) {
+        outputDigitalComp->addOnInputSlotCountChangeCB(m_uuid, [this, ownerSceneId](size_t newCount) {
             const auto &simEngine = SimEngine::SimulationEngine::instance();
             auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
             if (!moduleDigComp) {
@@ -124,8 +125,11 @@ namespace Bess::Canvas {
             const auto currCount = moduleDigComp->definition->getOutputSlotsInfo().count;
 
             const auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
-            auto rootScene = sceneDriver.getSceneWithId(sceneDriver.getRootSceneId());
-            auto &rootSceneState = rootScene->getState();
+            const auto ownerScene = sceneDriver.getSceneWithId(ownerSceneId);
+            if (!ownerScene) {
+                return;
+            }
+            auto &ownerSceneState = ownerScene->getState();
 
             if (newCount > currCount) {
                 for (size_t i = currCount; i < newCount; ++i) {
@@ -134,13 +138,13 @@ namespace Bess::Canvas {
                     slot->setIndex((int)i);
                     slot->setSlotType(SlotType::digitalOutput);
                     m_outputSlots.push_back(slot->getUuid());
-                    rootSceneState.addComponent(slot, false, false);
-                    rootSceneState.attachChild(m_uuid, slot->getUuid(), false);
+                    ownerSceneState.addComponent(slot, false, false);
+                    ownerSceneState.attachChild(m_uuid, slot->getUuid(), false);
                 }
             } else if (newCount < currCount) {
                 for (size_t i = newCount; i < currCount; ++i) {
                     moduleDigComp->decrementOutputCount(true);
-                    rootSceneState.removeComponent(m_outputSlots.back(), m_uuid);
+                    ownerSceneState.removeComponent(m_outputSlots.back(), m_uuid);
                     removeChildComponent(m_outputSlots.back());
                     m_outputSlots.pop_back();
                 }
@@ -154,7 +158,7 @@ namespace Bess::Canvas {
         });
 
         inputDigitalComp->removeOnOutputSlotCountChangeCB(m_uuid);
-        inputDigitalComp->addOnOutputSlotCountChangeCB(m_uuid, [this](size_t newCount) {
+        inputDigitalComp->addOnOutputSlotCountChangeCB(m_uuid, [this, ownerSceneId](size_t newCount) {
             const auto &simEngine = SimEngine::SimulationEngine::instance();
             auto moduleDigComp = simEngine.getDigitalComponent(this->m_simEngineId);
             if (!moduleDigComp) {
@@ -163,8 +167,11 @@ namespace Bess::Canvas {
             const auto currCount = moduleDigComp->definition->getInputSlotsInfo().count;
 
             const auto &sceneDriver = Pages::MainPage::getInstance()->getState().getSceneDriver();
-            auto rootScene = sceneDriver.getSceneWithId(sceneDriver.getRootSceneId());
-            auto &rootSceneState = rootScene->getState();
+            const auto ownerScene = sceneDriver.getSceneWithId(ownerSceneId);
+            if (!ownerScene) {
+                return;
+            }
+            auto &ownerSceneState = ownerScene->getState();
 
             if (newCount > currCount) {
                 for (size_t i = currCount; i < newCount; ++i) {
@@ -173,13 +180,13 @@ namespace Bess::Canvas {
                     slot->setIndex((int)i);
                     slot->setSlotType(SlotType::digitalInput);
                     m_inputSlots.push_back(slot->getUuid());
-                    rootSceneState.addComponent(slot, false, false);
-                    rootSceneState.attachChild(m_uuid, slot->getUuid(), false);
+                    ownerSceneState.addComponent(slot, false, false);
+                    ownerSceneState.attachChild(m_uuid, slot->getUuid(), false);
                 }
             } else if (newCount < currCount) {
                 for (size_t i = newCount; i < currCount; ++i) {
                     moduleDigComp->decrementInputCount(true);
-                    rootSceneState.removeComponent(m_inputSlots.back(), m_uuid);
+                    ownerSceneState.removeComponent(m_inputSlots.back(), m_uuid);
                     removeChildComponent(m_inputSlots.back());
                     m_inputSlots.pop_back();
                 }

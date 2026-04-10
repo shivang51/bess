@@ -1,6 +1,7 @@
 #pragma once
 
 #include "application/pages/main_page/scene_driver.h"
+#include "application/pages/main_page/services/hierarchical_scene_layout.h"
 #include "application/project_file.h"
 #include "command_system.h"
 #include "events/sim_engine_events.h"
@@ -67,6 +68,7 @@ namespace Bess::Pages {
         void loadProject(const std::string &path);
         void updateCurrentProject(const std::shared_ptr<ProjectFile> &project);
         bool importVerilogFile(const std::string &path, std::string *errorMessage = nullptr);
+        HierarchicalSceneLayoutResult applyHierarchicalLayoutToActiveScene();
         void startVerilogImport(const std::string &path);
         VerilogImportStatus advanceVerilogImport(std::string *errorMessage = nullptr);
         void cancelVerilogImport();

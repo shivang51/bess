@@ -11,6 +11,7 @@ add_executable(BessTests
     scene_serialization_test.cpp
     scene_component_clone_test.cpp
     simulation_engine_test.cpp
+    hierarchical_layout_test.cpp
     verilog_import_test.cpp
     connection_service_test.cpp
     copy_paste_test.cpp

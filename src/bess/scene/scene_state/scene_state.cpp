@@ -113,7 +113,12 @@ namespace Bess::Canvas {
 
         if (emitEvent) {
             EventSystem::EventDispatcher::instance().queue(
-                Events::EntityReparentedEvent{childId, parentId, prevParentId, this});
+                Events::EntityReparentedEvent{
+                    .entityUuid = childId,
+                    .newParentUuid = parentId,
+                    .prevParent = prevParentId,
+                    .sceneId = m_sceneId,
+                    .state = this});
         }
 
         m_rootComponents.erase(childId);
@@ -137,7 +142,12 @@ namespace Bess::Canvas {
                   (uint64_t)childId, (uint64_t)parentId);
 
         EventSystem::EventDispatcher::instance().queue(
-            Events::EntityReparentedEvent{childId, UUID::null, parentId, this});
+            Events::EntityReparentedEvent{
+                .entityUuid = childId,
+                .newParentUuid = UUID::null,
+                .prevParent = parentId,
+                .sceneId = m_sceneId,
+                .state = this});
 
         m_rootComponents.insert(childId);
     }
@@ -217,9 +227,11 @@ namespace Bess::Canvas {
         }
 
         EventSystem::EventDispatcher::instance().queue(
-            Events::ComponentRemovedEvent{uuid,
-                                          component->getType(),
-                                          this});
+            Events::ComponentRemovedEvent{
+                .uuid = uuid,
+                .type = component->getType(),
+                .sceneId = m_sceneId,
+                .state = this});
 
         return removedUuids;
     }
@@ -237,7 +249,12 @@ namespace Bess::Canvas {
         BESS_INFO("[SceneState] Orphaned component {}", (uint64_t)uuid);
 
         EventSystem::EventDispatcher::instance().queue(
-            Events::EntityReparentedEvent{uuid, UUID::null, parentId, this});
+            Events::EntityReparentedEvent{
+                .entityUuid = uuid,
+                .newParentUuid = UUID::null,
+                .prevParent = parentId,
+                .sceneId = m_sceneId,
+                .state = this});
     }
 
     bool SceneState::isRootComponent(const UUID &uuid) const {

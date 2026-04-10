@@ -1,4 +1,6 @@
 #include "application/pages/main_page/verilog_scene_import.h"
+#include "pages/main_page/main_page.h"
+#include "pages/main_page/scene_components/module_scene_component.h"
 #include "bverilog/sim_engine_importer.h"
 #include "bverilog/yosys_json_parser.h"
 #include "bverilog/yosys_runner.h"
@@ -11,6 +13,7 @@
 #include <filesystem>
 #include <fstream>
 #include <json/value.h>
+#include <limits>
 #include <memory>
 #include <thread>
 
@@ -512,12 +515,14 @@ endmodule
             .topModuleName = std::string("alu"),
         });
 
-    Bess::Canvas::Scene scene;
-    Bess::Pages::populateSceneFromVerilogImportResult(result, *engine, scene);
+    auto scene = Bess::Pages::MainPage::getInstance()->getState().getSceneDriver().getActiveScene();
+    ASSERT_NE(scene, nullptr);
+    scene->clear();
+    Bess::Pages::populateSceneFromVerilogImportResult(result, *engine, *scene);
 
     bool foundAluOut = false;
     bool foundCarryOut = false;
-    const auto &sceneState = scene.getState();
+    const auto &sceneState = scene->getState();
 
     auto countRealInputSlots = [&](const std::shared_ptr<Bess::Canvas::SimulationSceneComponent> &simComp) {
         size_t count = 0;
@@ -553,6 +558,155 @@ endmodule
 
     EXPECT_TRUE(foundAluOut);
     EXPECT_TRUE(foundCarryOut);
+
+    std::filesystem::remove(verilogPath);
+}
+
+TEST_F(VerilogImportTest, AppliesHierarchicalLayoutToImportedRootAndModuleScenes) {
+    const auto verilogPath = writeTempVerilogFile(
+        "bess_hierarchical_layout_scene_test.v",
+        R"verilog(
+module full_add(a,b,cin,sum,cout);
+  input a,b,cin;
+  output sum,cout;
+  wire x,y,z;
+
+  half_add h1(.a(a),.b(b),.s(x),.c(y));
+  half_add h2(.a(x),.b(cin),.s(sum),.c(z));
+  or o1(cout,y,z);
+endmodule : full_add
+
+module half_add(a,b,s,c);
+  input a,b;
+  output s,c;
+
+  xor x1(s,a,b);
+  and a1(c,a,b);
+endmodule :half_add
+)verilog");
+
+    const auto result = importVerilogFileIntoSimulationEngine(
+        verilogPath,
+        *engine,
+        YosysRunnerConfig{
+            .executablePath = "yosys",
+            .topModuleName = std::string("full_add"),
+        });
+
+    auto scene = Bess::Pages::MainPage::getInstance()->getState().getSceneDriver().getActiveScene();
+    ASSERT_NE(scene, nullptr);
+    scene->clear();
+    Bess::Pages::populateSceneFromVerilogImportResult(result, *engine, *scene);
+
+    std::vector<std::shared_ptr<Bess::Canvas::SimulationSceneComponent>> rootInputs;
+    std::vector<std::shared_ptr<Bess::Canvas::SimulationSceneComponent>> rootOutputs;
+    std::vector<std::shared_ptr<Bess::Canvas::ModuleSceneComponent>> childModules;
+
+    for (const auto &[uuid, component] : scene->getState().getAllComponents()) {
+        (void)uuid;
+        if (component->getParentComponent() != UUID::null) {
+            continue;
+        }
+
+        if (component->getType() == Bess::Canvas::SceneComponentType::module) {
+            const auto moduleComponent =
+                std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(component);
+            if (moduleComponent &&
+                (moduleComponent->getName() == "h1" || moduleComponent->getName() == "h2")) {
+                childModules.push_back(moduleComponent);
+            }
+            continue;
+        }
+
+        if (component->getType() != Bess::Canvas::SceneComponentType::simulation) {
+            continue;
+        }
+
+        const auto simComponent =
+            std::dynamic_pointer_cast<Bess::Canvas::SimulationSceneComponent>(component);
+        if (!simComponent) {
+            continue;
+        }
+
+        if (simComponent->getName() == "a" ||
+            simComponent->getName() == "b" ||
+            simComponent->getName() == "cin") {
+            rootInputs.push_back(simComponent);
+        } else if (simComponent->getName() == "sum" ||
+                   simComponent->getName() == "cout") {
+            rootOutputs.push_back(simComponent);
+        }
+    }
+
+    ASSERT_EQ(rootInputs.size(), 3u);
+    ASSERT_EQ(rootOutputs.size(), 2u);
+    ASSERT_EQ(childModules.size(), 2u);
+
+    float maxInputX = std::numeric_limits<float>::lowest();
+    for (const auto &input : rootInputs) {
+        maxInputX = std::max(maxInputX, input->getTransform().position.x);
+    }
+
+    float minModuleX = std::numeric_limits<float>::max();
+    float maxModuleX = std::numeric_limits<float>::lowest();
+    for (const auto &module : childModules) {
+        minModuleX = std::min(minModuleX, module->getTransform().position.x);
+        maxModuleX = std::max(maxModuleX, module->getTransform().position.x);
+    }
+
+    float minOutputX = std::numeric_limits<float>::max();
+    for (const auto &output : rootOutputs) {
+        minOutputX = std::min(minOutputX, output->getTransform().position.x);
+    }
+
+    EXPECT_LT(maxInputX, minModuleX);
+    EXPECT_LT(maxModuleX, minOutputX);
+
+    auto &sceneDriver = Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
+    for (const auto &module : childModules) {
+        const auto moduleScene = sceneDriver.getSceneWithId(module->getSceneId());
+        ASSERT_NE(moduleScene, nullptr);
+
+        std::shared_ptr<Bess::Canvas::SimulationSceneComponent> moduleInput;
+        std::shared_ptr<Bess::Canvas::SimulationSceneComponent> moduleOutput;
+        float minInternalX = std::numeric_limits<float>::max();
+        float maxInternalX = std::numeric_limits<float>::lowest();
+        size_t internalCount = 0;
+
+        for (const auto &[uuid, component] : moduleScene->getState().getAllComponents()) {
+            (void)uuid;
+            if (component->getParentComponent() != UUID::null ||
+                component->getType() != Bess::Canvas::SceneComponentType::simulation) {
+                continue;
+            }
+
+            const auto simComponent =
+                std::dynamic_pointer_cast<Bess::Canvas::SimulationSceneComponent>(component);
+            if (!simComponent) {
+                continue;
+            }
+
+            if (simComponent->getName() == "Module Input") {
+                moduleInput = simComponent;
+                continue;
+            }
+
+            if (simComponent->getName() == "Module Output") {
+                moduleOutput = simComponent;
+                continue;
+            }
+
+            minInternalX = std::min(minInternalX, simComponent->getTransform().position.x);
+            maxInternalX = std::max(maxInternalX, simComponent->getTransform().position.x);
+            ++internalCount;
+        }
+
+        ASSERT_NE(moduleInput, nullptr);
+        ASSERT_NE(moduleOutput, nullptr);
+        ASSERT_GT(internalCount, 0u);
+        EXPECT_LT(moduleInput->getTransform().position.x, minInternalX);
+        EXPECT_LT(maxInternalX, moduleOutput->getTransform().position.x);
+    }
 
     std::filesystem::remove(verilogPath);
 }

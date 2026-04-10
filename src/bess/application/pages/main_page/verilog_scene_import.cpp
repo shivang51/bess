@@ -6,12 +6,12 @@
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
+#include "pages/main_page/services/hierarchical_scene_layout.h"
 #include "scene/scene.h"
 #include "event_dispatcher.h"
 #include "module_def.h"
 #include "simulation_engine.h"
 #include <algorithm>
-#include <deque>
 #include <functional>
 #include <limits>
 #include <unordered_set>
@@ -144,149 +144,6 @@ namespace Bess::Pages {
                     slot->setName(slotNames[nameIdx]);
                 }
                 ++nameIdx;
-            }
-        }
-
-        std::unordered_map<UUID, int> computeImportedLevels(const std::vector<UUID> &componentIds,
-                                                            SimulationEngine &simEngine) {
-            std::unordered_set<UUID> importedIds(componentIds.begin(), componentIds.end());
-            std::unordered_map<UUID, int> indegree;
-            std::unordered_map<UUID, std::vector<UUID>> adjacency;
-
-            for (const auto &id : componentIds) {
-                indegree[id] = 0;
-            }
-
-            for (const auto &id : componentIds) {
-                const auto connections = simEngine.getConnections(id);
-                for (const auto &slotConnections : connections.outputs) {
-                    for (const auto &[dstId, dstSlot] : slotConnections) {
-                        (void)dstSlot;
-                        if (!importedIds.contains(dstId)) {
-                            continue;
-                        }
-                        adjacency[id].push_back(dstId);
-                        indegree[dstId] += 1;
-                    }
-                }
-            }
-
-            std::deque<UUID> queue;
-            std::unordered_map<UUID, int> levels;
-            for (const auto &[id, deg] : indegree) {
-                if (deg == 0) {
-                    queue.push_back(id);
-                    levels[id] = 0;
-                }
-            }
-
-            while (!queue.empty()) {
-                const auto current = queue.front();
-                queue.pop_front();
-                for (const auto &next : adjacency[current]) {
-                    levels[next] = std::max(levels[next], levels[current] + 1);
-                    indegree[next] -= 1;
-                    if (indegree[next] == 0) {
-                        queue.push_back(next);
-                    }
-                }
-            }
-
-            for (const auto &id : componentIds) {
-                if (!levels.contains(id)) {
-                    levels[id] = 0;
-                }
-            }
-
-            return levels;
-        }
-
-        void layoutImportedComponents(const std::vector<UUID> &componentIds,
-                                      SimulationEngine &simEngine,
-                                      const std::unordered_map<UUID, std::shared_ptr<SimulationSceneComponent>> &sceneBySimId,
-                                      Scene &scene) {
-            auto levels = computeImportedLevels(componentIds, simEngine);
-            std::unordered_map<int, std::vector<UUID>> levelBuckets;
-            int maxLevel = 0;
-            for (const auto &[id, level] : levels) {
-                levelBuckets[level].push_back(id);
-                maxLevel = std::max(maxLevel, level);
-            }
-
-            const float xSpacing = 220.f;
-            const float ySpacing = 140.f;
-            const float centerX = (static_cast<float>(maxLevel) * xSpacing) / 2.f;
-            for (auto &[level, ids] : levelBuckets) {
-                std::ranges::sort(ids, [&](const UUID &a, const UUID &b) {
-                    const auto &defA = simEngine.getComponentDefinition(a);
-                    const auto &defB = simEngine.getComponentDefinition(b);
-                    return defA->getName() < defB->getName();
-                });
-
-                const float totalHeight = (static_cast<float>(ids.size() - 1) * ySpacing);
-                for (size_t i = 0; i < ids.size(); ++i) {
-                    const auto it = sceneBySimId.find(ids[i]);
-                    if (it == sceneBySimId.end()) {
-                        continue;
-                    }
-                    auto &transform = it->second->getTransform();
-                    transform.position = glm::vec3{
-                        static_cast<float>(level) * xSpacing - centerX,
-                        static_cast<float>(i) * ySpacing - (totalHeight / 2.f),
-                        scene.getNextZCoord(),
-                    };
-                    it->second->setSchematicTransform(transform);
-                    it->second->setScaleDirty();
-                    it->second->setSchematicScaleDirty();
-                }
-            }
-        }
-
-        void stackTopOutputComponents(const SimEngineImportResult &result,
-                                      const std::unordered_map<UUID, std::shared_ptr<SimulationSceneComponent>> &sceneBySimId) {
-            std::vector<std::pair<std::string, std::shared_ptr<SimulationSceneComponent>>> topOutputs;
-            topOutputs.reserve(result.topOutputComponents.size());
-
-            for (const auto &[portName, simId] : result.topOutputComponents) {
-                const auto it = sceneBySimId.find(simId);
-                if (it == sceneBySimId.end()) {
-                    continue;
-                }
-                topOutputs.emplace_back(portName, it->second);
-            }
-
-            if (topOutputs.size() < 2) {
-                return;
-            }
-
-            std::ranges::sort(topOutputs, [](const auto &lhs, const auto &rhs) {
-                return lhs.first < rhs.first;
-            });
-
-            float maxX = std::numeric_limits<float>::lowest();
-            float avgY = 0.f;
-            for (const auto &[portName, component] : topOutputs) {
-                (void)portName;
-                const auto pos = component->getTransform().position;
-                maxX = std::max(maxX, pos.x);
-                avgY += pos.y;
-            }
-            avgY /= static_cast<float>(topOutputs.size());
-
-            constexpr float ySpacing = 140.f;
-            const float totalHeight = (static_cast<float>(topOutputs.size() - 1) * ySpacing);
-            for (size_t i = 0; i < topOutputs.size(); ++i) {
-                auto &component = topOutputs[i].second;
-                auto transform = component->getTransform();
-                transform.position.x = maxX;
-                transform.position.y = (static_cast<float>(i) * ySpacing) - (totalHeight / 2.f) + avgY;
-                component->setTransform(transform);
-
-                auto schematicTransform = component->getSchematicTransform();
-                schematicTransform.position = transform.position;
-                component->setSchematicTransform(schematicTransform);
-                component->setScaleDirty();
-                component->setSchematicScaleDirty();
             }
         }
 
@@ -615,7 +472,7 @@ namespace Bess::Pages {
             }
 
             if (!internalSimIds.empty()) {
-                layoutImportedComponents(internalSimIds, simEngine, internalSceneBySimId, *moduleScene);
+                applyHierarchicalSceneLayout(*moduleScene, simEngine);
                 addImportedConnections(*moduleScene, internalSimIds, simEngine, internalSceneBySimId);
             }
         }
@@ -861,27 +718,11 @@ namespace Bess::Pages {
         }
 
         applyImportedPortNames(result, sceneBySimId);
-        // Initial layout - places inner components correctly for buildImportedModuleHierarchy
-        layoutImportedComponents(result.createdComponentIds, simEngine, sceneBySimId, scene);
+        applyHierarchicalSceneLayout(scene, simEngine);
 
         const auto moduleByPath = buildImportedModuleHierarchy(result, scene, simEngine, sceneBySimId);
         removeNestedImportedComponentsFromRootScene(result, scene, sceneBySimId);
-
-        // Gather remaining visible root components for the final root layout
-        std::vector<UUID> visibleRootSimIds;
-        for (const auto &[simId, component] : sceneBySimId) {
-            visibleRootSimIds.push_back(simId);
-        }
-        for (const auto &[path, wrapper] : moduleByPath) {
-            if (path == result.topModuleName) {
-                visibleRootSimIds.push_back(wrapper->getSimEngineId());
-                sceneBySimId[wrapper->getSimEngineId()] = wrapper;
-            }
-        }
-
-        // Final layout for the root scene
-        layoutImportedComponents(visibleRootSimIds, simEngine, sceneBySimId, scene);
-        stackTopOutputComponents(result, sceneBySimId);
+        applyHierarchicalSceneLayout(scene, simEngine);
 
         addRootModuleConnections(scene, simEngine, sceneBySimId, moduleByPath);
         EventSystem::EventDispatcher::instance().dispatchAll();

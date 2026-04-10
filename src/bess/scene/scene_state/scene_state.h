@@ -53,6 +53,7 @@ namespace Bess::Canvas {
                 EventSystem::EventDispatcher::instance().queue(
                     Events::ComponentAddedEvent{.uuid = id,
                                                 .type = component->getType(),
+                                                .sceneId = m_sceneId,
                                                 .state = this});
         }
 

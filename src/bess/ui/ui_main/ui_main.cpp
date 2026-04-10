@@ -174,6 +174,24 @@ namespace Bess::UI {
         const float menuBarHeight = ImGui::GetFrameHeight();
 
         auto &pageState = Pages::MainPage::getInstance()->getState();
+        const auto applyHierarchicalLayout = [&]() {
+            const auto result = pageState.applyHierarchicalLayoutToActiveScene();
+            if (!result.applied) {
+                if (result.laidOutNodes == 0) {
+                    getState()._internalData.statusMessage = "Hierarchical layout skipped: no scene components";
+                } else if (result.uniqueEdges == 0) {
+                    getState()._internalData.statusMessage = "Hierarchical layout skipped: no signal graph to rank";
+                } else {
+                    getState()._internalData.statusMessage = "Hierarchical layout skipped";
+                }
+                return;
+            }
+
+            getState()._internalData.statusMessage =
+                std::format("Applied hierarchical layout to {} components",
+                            result.laidOutNodes);
+        };
+
         if (ImGui::BeginMenu("File")) {
             // New File
             std::string temp_name = Icons::FontAwesomeIcons::FA_FILE;
@@ -263,6 +281,11 @@ namespace Bess::UI {
                 getPanel<ProjectSettingsWindow>()->show();
             }
 
+            icon = Icons::CodIcons::LAYOUT;
+            if (ImGui::MenuItem((icon + "  Hierarchical Layout").c_str())) {
+                applyHierarchicalLayout();
+            }
+
             ImGui::EndMenu();
         }
 
@@ -306,7 +329,7 @@ namespace Bess::UI {
         // project name textbox - end
 
         // right aligned controls
-        constexpr size_t buttonCount = 2;
+        constexpr size_t buttonCount = 3;
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
         ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.5f, 0.5f));
 
@@ -325,6 +348,17 @@ namespace Bess::UI {
             auto &simEngine = SimEngine::SimulationEngine::instance();
             const auto isSimPaused = simEngine.getSimulationState() == SimEngine::SimulationState::paused;
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0, 0, 0, 0});
+
+            if (ImGui::Button(Icons::CodIcons::LAYOUT, buttonSize)) {
+                applyHierarchicalLayout();
+            }
+
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                ImGui::SetTooltip("%s", "Apply Hierarchical Layout");
+            }
+
+            ImGui::SameLine();
+            ImGui::SetCursorPosY(((targetHeight - buttonSize.y) * 0.5f) + 2.f);
 
             // Play / Pause
             {
