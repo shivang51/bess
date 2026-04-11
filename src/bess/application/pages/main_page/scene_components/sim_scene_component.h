@@ -156,11 +156,11 @@ namespace Bess::Canvas {
 
         void onTransformChanged() override;
 
-      protected:
         std::vector<std::shared_ptr<SceneComponent>> cloneSimulationComponent(
             const SceneState &sceneState,
             const std::shared_ptr<SimulationSceneComponent> &clonedComponent) const;
 
+      protected:
         /**
          * Resets the slot positions based on the current scale and number of slots
          * in the component.

@@ -1,5 +1,6 @@
 #include "sim_scene_component.h"
 #include "common/bess_uuid.h"
+#include "common/logger.h"
 #include "icons/FontAwesomeIcons.h"
 #include "input_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
@@ -15,6 +16,7 @@
 #include "ui/widgets/m_widgets.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <unordered_set>
 
 namespace Bess::Canvas {
@@ -578,6 +580,10 @@ namespace Bess::Canvas {
 
             clonedChildren.insert(childId);
         }
+
+        BESS_TRACE("Cloned simulation component {} with {} child components",
+                   (uint64_t)clonedComponent->getUuid(),
+                   clonedComponents.size() - 1);
 
         return clonedComponents;
     }

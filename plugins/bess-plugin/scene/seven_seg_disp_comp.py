@@ -1,9 +1,10 @@
-from typing import override
+from typing import cast, override
 from bessplug.api.asset_manager import AssetManager, TextureAssetID
 from bessplug.api.common import vec2, vec3, vec4
 from bessplug.api.scene import PickingId, SimulationSceneComponent
 from bessplug.api.scene.renderer import QuadRenderProperties, SubTexture
 from bessplug.api.sim_engine import ComponentDefinition, LogicState
+import copy
 
 
 class SevenSegDispComp(SimulationSceneComponent):
@@ -16,6 +17,13 @@ class SevenSegDispComp(SimulationSceneComponent):
 
     def __del__(self):
         SevenSegDispComp._on_destroy()
+
+    @override
+    def clone(self, scene_state):
+        cloned = copy.deepcopy(self)
+        cloned.name = self.name
+        cloned.label_size = self.label_size
+        return self.clone_sim_comp(scene_state, cloned)
 
     @override
     def get_type_name(self):

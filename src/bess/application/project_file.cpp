@@ -134,8 +134,6 @@ namespace Bess {
 
             auto &simEngine = SimEngine::SimulationEngine::instance();
 
-            const auto &pluginManager = Plugins::PluginManager::getInstance();
-
             // decoding scenes
             for (auto &sceneJson : data["scene_data"]["scenes"]) {
                 auto scene = std::make_shared<Canvas::Scene>();
