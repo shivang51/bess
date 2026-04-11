@@ -1,15 +1,15 @@
 #include "pages/main_page/verilog_scene_import.h"
 
 #include "common/bess_assert.h"
-#include "pages/main_page/scene_components/connection_scene_component.h"
+#include "event_dispatcher.h"
+#include "module_def.h"
 #include "pages/main_page/main_page.h"
+#include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/module_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pages/main_page/services/hierarchical_scene_layout.h"
 #include "scene/scene.h"
-#include "event_dispatcher.h"
-#include "module_def.h"
 #include "simulation_engine.h"
 #include <algorithm>
 #include <functional>
@@ -45,9 +45,9 @@ namespace Bess::Pages {
         }
 
         ImportedSceneComponent createSceneComponentForImportedSimId(const UUID &simId,
-                                                                   SimulationEngine &simEngine) {
+                                                                    SimulationEngine &simEngine) {
             const auto &compDef = simEngine.getComponentDefinition(simId);
-            auto created = SimulationSceneComponent::createNewAndRegister(compDef);
+            auto created = SimulationSceneComponent::createNew(compDef);
             BESS_ASSERT(!created.empty(), "Failed to create scene component for imported sim component");
 
             ImportedSceneComponent result;
@@ -238,10 +238,12 @@ namespace Bess::Pages {
             // Treat top IO components as external to any module instance (including the top module itself),
             // so that their connections get properly bridged through the ModuleSceneComponent.
             for (const auto &[portName, ioId] : result.topInputComponents) {
-                if (ioId == componentId) return false;
+                if (ioId == componentId)
+                    return false;
             }
             for (const auto &[portName, ioId] : result.topOutputComponents) {
-                if (ioId == componentId) return false;
+                if (ioId == componentId)
+                    return false;
             }
 
             const auto it = result.componentInstancePathById.find(componentId);
@@ -437,14 +439,21 @@ namespace Bess::Pages {
                 if (instance.instancePath == result.topModuleName) {
                     bool isTopIo = false;
                     for (const auto &[portName, ioId] : result.topInputComponents) {
-                        if (ioId == simId) { isTopIo = true; break; }
+                        if (ioId == simId) {
+                            isTopIo = true;
+                            break;
+                        }
                     }
                     if (!isTopIo) {
                         for (const auto &[portName, ioId] : result.topOutputComponents) {
-                            if (ioId == simId) { isTopIo = true; break; }
+                            if (ioId == simId) {
+                                isTopIo = true;
+                                break;
+                            }
                         }
                     }
-                    if (isTopIo) continue;
+                    if (isTopIo)
+                        continue;
                 }
 
                 auto created = createSceneComponentForImportedSimId(simId, simEngine);

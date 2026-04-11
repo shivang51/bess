@@ -27,7 +27,7 @@ namespace Bess::Canvas {
         // Create a new SimSceneComp
         // [0] -> Component itself
         // [1...] -> Created slots
-        static std::vector<std::shared_ptr<SceneComponent>> createNewAndRegister(
+        static std::vector<std::shared_ptr<SceneComponent>> createNew(
             const std::shared_ptr<SimEngine::ComponentDefinition> &compDef);
 
         template <typename T = SimulationSceneComponent>

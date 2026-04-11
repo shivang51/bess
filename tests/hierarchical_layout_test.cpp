@@ -61,7 +61,7 @@ namespace {
 
     SimFixture addSimulationComponent(Scene &scene,
                                       const std::shared_ptr<ComponentDefinition> &definition) {
-        auto created = SimulationSceneComponent::createNewAndRegister(definition);
+        auto created = SimulationSceneComponent::createNew(definition);
         auto component =
             std::dynamic_pointer_cast<SimulationSceneComponent>(created.front());
 
@@ -92,7 +92,7 @@ namespace {
 
         SimulationEngine *engine = nullptr;
     };
-}
+} // namespace
 
 TEST_F(HierarchicalLayoutTest, PlacesConnectedComponentsInLeftToRightSignalOrder) {
     Scene scene;

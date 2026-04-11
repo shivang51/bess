@@ -138,7 +138,7 @@ namespace Bess::Tests {
 
         SimCompFixture addSimComponentDirect(const std::shared_ptr<Scene> &targetScene,
                                              const std::shared_ptr<ComponentDefinition> &definition) {
-            auto created = SimulationSceneComponent::createNewAndRegister(definition);
+            auto created = SimulationSceneComponent::createNew(definition);
             SimCompFixture fixture;
             fixture.comp = std::dynamic_pointer_cast<SimulationSceneComponent>(created.front());
             auto &state = targetScene->getState();
@@ -162,7 +162,7 @@ namespace Bess::Tests {
         }
 
         SimCompFixture executeAddSimComponent(const std::shared_ptr<ComponentDefinition> &definition) {
-            auto created = SimulationSceneComponent::createNewAndRegister(definition);
+            auto created = SimulationSceneComponent::createNew(definition);
             SimCompFixture fixture;
             fixture.comp = std::dynamic_pointer_cast<SimulationSceneComponent>(created.front());
 

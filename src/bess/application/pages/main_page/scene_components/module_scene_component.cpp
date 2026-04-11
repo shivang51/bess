@@ -251,7 +251,7 @@ namespace Bess::Canvas {
 
         // adding module output
         auto outDef = simEngine.getComponentDefinition(moduleDef->getOutputId());
-        auto outComps = SimulationSceneComponent::createNewAndRegister(outDef);
+        auto outComps = SimulationSceneComponent::createNew(outDef);
         auto outSceneComp = std::dynamic_pointer_cast<SimulationSceneComponent>(outComps.front());
         outSceneComp->setName("Module Output");
         outSceneComp->getTransform().position.z = newScene->getNextZCoord();

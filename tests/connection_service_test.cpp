@@ -1,6 +1,5 @@
 #include "component_catalog.h"
 #include "component_definition.h"
-#include "gtest/gtest.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
@@ -8,6 +7,7 @@
 #include "plugin_manager.h"
 #include "scene/scene.h"
 #include "simulation_engine.h"
+#include "gtest/gtest.h"
 #include <memory>
 #include <ranges>
 #include <string_view>
@@ -67,7 +67,7 @@ class ConnectionServiceTest : public testing::Test {
     }
 
     SimCompFixture addSimComponent(const std::shared_ptr<ComponentDefinition> &definition) {
-        auto created = SimulationSceneComponent::createNewAndRegister(definition);
+        auto created = SimulationSceneComponent::createNew(definition);
         SimCompFixture fixture;
         if (created.empty()) {
             ADD_FAILURE() << "No scene components were created";

@@ -38,10 +38,6 @@ class BessPlugin(Plugin):
         ]
 
     @override
-    def on_scene_comp_load(self) -> dict[int, object]:
-        return {}
-
-    @override
     def has_sim_comp(self, base_hash) -> bool:
         return (
             base_hash == 15124334025293992558

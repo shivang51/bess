@@ -366,7 +366,7 @@ namespace Bess::Canvas {
         m_isSchematicScaleDirty = false;
     }
 
-    std::vector<std::shared_ptr<SceneComponent>> SimulationSceneComponent::createNewAndRegister(
+    std::vector<std::shared_ptr<SceneComponent>> SimulationSceneComponent::createNew(
         const std::shared_ptr<SimEngine::ComponentDefinition> &compDef) {
         const bool isInput = compDef->getBehaviorType() == SimEngine::ComponentBehaviorType::input;
         const bool isOutput = compDef->getBehaviorType() == SimEngine::ComponentBehaviorType::output;
