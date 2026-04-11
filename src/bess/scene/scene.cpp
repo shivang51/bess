@@ -6,7 +6,6 @@
 #include "events/application_event.h"
 #include "ext/matrix_transform.hpp"
 #include "fwd.hpp"
-#include "plugin_manager.h"
 #include "scene/scene_events.h"
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
@@ -19,7 +18,6 @@
 namespace Bess::Canvas {
     Scene::Scene() {
         reset();
-        loadComponentFromPlugins();
     }
 
     Scene::~Scene() {
@@ -31,7 +29,6 @@ namespace Bess::Canvas {
             return;
 
         BESS_INFO("[Scene] Destroying");
-        cleanupPlugins();
         m_isDestroyed = true;
         m_state.clear();
     }
@@ -488,38 +485,6 @@ namespace Bess::Canvas {
                               (uint64_t)m_pickingId);
                 }
             }
-        }
-    }
-
-    void Scene::loadComponentFromPlugins() {
-        const auto &pluginManger = Plugins::PluginManager::getInstance();
-        for (const auto &plugin : pluginManger.getLoadedPlugins()) {
-            plugin.second->onSceneComponentsLoad(m_pluginSceneDrawHooks);
-        }
-        BESS_INFO("[Scene] Loaded {} draw hooks from plugins",
-                  m_pluginSceneDrawHooks.size());
-    }
-
-    std::shared_ptr<SimSceneCompDrawHook> Scene::getPluginDrawHookForComponentHash(uint64_t compHash) const {
-        auto it = m_pluginSceneDrawHooks.find(compHash);
-        if (it != m_pluginSceneDrawHooks.end()) {
-            return it->second;
-        }
-        return nullptr;
-    }
-
-    bool Scene::hasPluginDrawHookForComponentHash(uint64_t compHash) const {
-        return m_pluginSceneDrawHooks.contains(compHash);
-    }
-
-    void Scene::cleanupPlugins() {
-        for (auto &item : m_pluginSceneDrawHooks) {
-            item.second->cleanup();
-        }
-        m_pluginSceneDrawHooks.clear();
-        const auto &pluginManger = Plugins::PluginManager::getInstance();
-        for (const auto &plugin : pluginManger.getLoadedPlugins()) {
-            plugin.second->cleanup();
         }
     }
 

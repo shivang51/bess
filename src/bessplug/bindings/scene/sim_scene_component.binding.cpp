@@ -147,6 +147,18 @@ void bind_sim_scene_component(py::module_ &m) {
         .def("draw_background", &Bess::Canvas::SimulationSceneComponent::drawBackground, py::arg("context"))
         .def("on_scale_changed", &Bess::Canvas::SimulationSceneComponent::onScaleChanged)
         .def("get_type_name", &Bess::Canvas::SimulationSceneComponent::getTypeName)
+        .def("set_scale_dirty",
+             &Bess::Canvas::SimulationSceneComponent::setScaleDirty,
+             py::arg("val") = true)
+        .def("set_schematic_scale_dirty",
+             &Bess::Canvas::SimulationSceneComponent::setSchematicScaleDirty,
+             py::arg("val") = true)
+        .def_property("transform",                                                                            //\n
+                      [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getTransform(); }, // \n
+                      &Bess::Canvas::SimulationSceneComponent::setTransform)
+        .def_property("schematic_transform",                                                                           //\n
+                      [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getSchematicTransform(); }, // \n
+                      &Bess::Canvas::SimulationSceneComponent::setSchematicTransform)
         .def_property("name",                                                                            //\n
                       [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getName(); }, // \n
                       &Bess::Canvas::SimulationSceneComponent::setName)
@@ -156,6 +168,11 @@ void bind_sim_scene_component(py::module_ &m) {
         .def_property("scale",                                                                                      //\n
                       [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getTransform().scale; }, // \n
                       &Bess::Canvas::SimulationSceneComponent::setScale)
+        .def_property("schematic_scale",                                                                                     //\n
+                      [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getSchematicTransform().scale; }, // \n
+                      [](Bess::Canvas::SimulationSceneComponent &self, const glm::vec2 &scale) { 
+											self.getSchematicTransform().scale = scale; 
+											self.setSchSlotsPosDirty(); })
         .def_property_readonly("runtime_id", //\n
                                [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getRuntimeId(); });
 }

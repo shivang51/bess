@@ -16,6 +16,7 @@ class OutputComp(SimulationSceneComponent):
     def get_type_name(self):
         return "OutputComp"
 
+    @override
     def update(self, time_step, scene_state):
         super().update(time_step, scene_state)
         self.update_decoded_vals(scene_state)

@@ -1,0 +1,53 @@
+#include "plugin_service.h"
+#include "plugin_manager.h"
+
+namespace Bess::Svc {
+    void PluginService::init() {
+        auto &pluginMangaer = Plugins::PluginManager::getInstance();
+        pluginMangaer.loadPluginsFromDirectory("plugins");
+
+        m_initialized = true;
+        BESS_DEBUG("Plugin Service Intialized");
+    }
+
+    void PluginService::destroy() {
+        if (!m_initialized) {
+            return;
+        }
+        auto &pluginMangaer = Plugins::PluginManager::getInstance();
+        pluginMangaer.destroy();
+        m_initialized = false;
+        BESS_DEBUG("Plugin Service Destroyed");
+    }
+
+    PluginService &PluginService::getInstance() {
+        static PluginService instance;
+        return instance;
+    }
+
+    std::shared_ptr<Canvas::SimulationSceneComponent> PluginService::getSimComp(
+        const std::shared_ptr<SimEngine::ComponentDefinition> &def) const {
+        const auto &pluginMangaer = Plugins::PluginManager::getInstance();
+
+        for (const auto &plugin : pluginMangaer.getLoadedPlugins()) {
+            auto comp = plugin.second->getSimComponent(def);
+            if (comp) {
+                return comp;
+            }
+        }
+
+        return nullptr;
+    }
+
+    bool PluginService::hasSimComponent(const uint64_t &compHash) const {
+        const auto &pluginMangaer = Plugins::PluginManager::getInstance();
+
+        for (const auto &plugin : pluginMangaer.getLoadedPlugins()) {
+            if (plugin.second->hasSimComponent(compHash)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+} // namespace Bess::Svc

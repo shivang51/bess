@@ -259,6 +259,7 @@ class DrawHook(SimCompDrawHook):
 
 digital_gates: list[ComponentDefinition] = []
 draw_hooks: dict[int, DrawHook] = {}
+schematic_diagrams: dict[int, SchematicDiagram] = {}
 
 for gate_key, gate_data in _gates.items():
     input_slots_info: SlotsGroupInfo = SlotsGroupInfo()
@@ -290,6 +291,7 @@ for gate_key, gate_data in _gates.items():
     dig.normalize_paths()
     dig.stroke_size = 1.0
     draw_hooks[def_gate.get_hash()] = DrawHook(_paths[gate_key], def_gate.name)
+    schematic_diagrams[def_gate.get_hash()] = _paths[gate_key]
 
 
-__all__ = ["digital_gates", "draw_hooks"]
+__all__ = ["digital_gates", "draw_hooks", "schematic_diagrams"]

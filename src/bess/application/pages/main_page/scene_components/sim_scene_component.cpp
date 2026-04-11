@@ -1,5 +1,6 @@
 #include "sim_scene_component.h"
 #include "common/bess_uuid.h"
+#include "common/logger.h"
 #include "icons/FontAwesomeIcons.h"
 #include "input_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
@@ -35,10 +36,16 @@ namespace Bess::Canvas {
             resetSlotPositions(state);
             m_isScaleDirty = false;
         }
+
         if (m_isSchematicScaleDirty) {
             calculateSchematicScale(state);
             resetSchematicPinsPositions(state);
             m_isSchematicScaleDirty = false;
+        }
+
+        if (m_isSchSlotsPosDirty) {
+            resetSchematicPinsPositions(state);
+            m_isSchSlotsPosDirty = false;
         }
     }
 
@@ -129,11 +136,18 @@ namespace Bess::Canvas {
     }
 
     void SimulationSceneComponent::drawSlots(SceneDrawContext &context) {
-        const auto &state = *context.sceneState;
-        // slots
-        for (const auto &childId : m_childComponents) {
-            auto child = state.getComponentByUuid(childId);
-            child->draw(context);
+        // I know i am repeating my self here :), I have trust issues
+
+        if (context.sceneState->getIsSchematicView()) {
+            for (const auto &childId : m_childComponents) {
+                auto child = context.sceneState->getComponentByUuid(childId);
+                child->drawSchematic(context);
+            }
+        } else {
+            for (const auto &childId : m_childComponents) {
+                auto child = context.sceneState->getComponentByUuid(childId);
+                child->draw(context);
+            }
         }
     }
 
@@ -184,11 +198,7 @@ namespace Bess::Canvas {
                                                textColor, id, 0.f);
         }
 
-        // slots
-        for (const auto &childId : m_childComponents) {
-            auto child = state.getComponentByUuid(childId);
-            child->drawSchematic(context);
-        }
+        drawSlots(context);
     }
 
     std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>>
@@ -482,8 +492,8 @@ namespace Bess::Canvas {
         return dependants;
     }
 
-    inline void SimulationSceneComponent::setSchematicScaleDirty() {
-        m_isSchematicScaleDirty = true;
+    void SimulationSceneComponent::setSchematicScaleDirty(bool val) {
+        m_isSchematicScaleDirty = val;
     }
 
     void SimulationSceneComponent::onChildrenChanged() {
@@ -668,4 +678,7 @@ namespace Bess::Canvas {
         setSchematicScaleDirty();
     }
 
+    void SimulationSceneComponent::setSchSlotsPosDirty(bool val) {
+        m_isSchSlotsPosDirty = val;
+    }
 } // namespace Bess::Canvas

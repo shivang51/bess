@@ -2,13 +2,17 @@ from typing import override
 from bessplug import Plugin
 from bessplug.api.sim_engine import ComponentDefinition
 from components.latches import latches
-from components.digital_gates import digital_gates, draw_hooks
+from components.digital_gates import (
+    digital_gates,
+    schematic_diagrams as digital_gates_schematics,
+)
 from components.flip_flops import flip_flops
 from components.combinational_circuits import combinational_circuits
 from components.tristate_buffer import tristate_buffer_def
 from components import seven_segment_display, seven_segment_display_driver
 from components.alu_74LS181 import dm74ls181
 from scene.output_comp import OutputComp
+from scene.digital_gate_comp import DigitalGateComp
 
 
 class BessPlugin(Plugin):
@@ -34,17 +38,25 @@ class BessPlugin(Plugin):
 
     @override
     def on_scene_comp_load(self) -> dict[int, object]:
-        return {**draw_hooks, **seven_segment_display.seven_seg_disp_draw_hook}
+        return {**seven_segment_display.seven_seg_disp_draw_hook}
 
     @override
     def has_sim_comp(self, base_hash) -> bool:
-        return base_hash == 15124334025293992558
+        return (
+            base_hash == 15124334025293992558
+            or digital_gates_schematics.get(int(base_hash), None) is not None
+        )
 
     @override
     def get_sim_comp(self, component_def):
-        if not self.has_sim_comp(component_def.get_hash()):
+        base_hash = component_def.get_hash()
+        if not self.has_sim_comp(base_hash):
             return None
-        return OutputComp(component_def)
+
+        if base_hash == 15124334025293992558:
+            return OutputComp(component_def)
+        else:
+            return DigitalGateComp(component_def)
 
     @override
     def draw_ui(self):

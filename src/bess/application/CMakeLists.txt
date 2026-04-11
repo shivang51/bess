@@ -2,6 +2,7 @@ set(PROJECT_NAME BessApp)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(Header_Files
+"services/plugin_service/plugin_service.h"
 "settings/themes.h"
 "settings/settings.h"
 "settings/viewport_theme.h"
@@ -44,6 +45,7 @@ set(Header_Files
 source_group("include" FILES ${Header_Files})
 
 set(Source_Files
+"services/plugin_service/plugin_service.cpp"
 "settings/viewport_theme.cpp"
 "settings/themes.cpp"
 "settings/settings.cpp"

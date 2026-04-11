@@ -174,11 +174,6 @@ namespace Bess::UI {
         sceneComp->getTransform().position.x = pos.x;
         sceneComp->getTransform().position.y = pos.y;
 
-        if (scene->hasPluginDrawHookForComponentHash(def->getHash())) {
-            auto hook = scene->getPluginDrawHookForComponentHash(def->getHash());
-            sceneComp->cast<Canvas::SimulationSceneComponent>()->setDrawHook(hook);
-        }
-
         cmdSystem.execute(std::make_unique<Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(sceneComp, components));
         hide();
     }

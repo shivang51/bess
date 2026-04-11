@@ -95,10 +95,6 @@ namespace Bess::Canvas {
 
         bool isHoveredEntityValid();
 
-        std::shared_ptr<SimSceneCompDrawHook> getPluginDrawHookForComponentHash(uint64_t compHash) const;
-
-        bool hasPluginDrawHookForComponentHash(uint64_t compHash) const;
-
         void selectAllEntities();
         void focusCameraOnSelected();
         glm::vec2 toScenePos(const glm::vec2 &mousePos) const;
@@ -124,10 +120,6 @@ namespace Bess::Canvas {
         glm::vec2 getSnappedPos(const glm::vec2 &pos) const;
 
         void processEvents(const std::vector<ApplicationEvent> &events);
-
-      private:
-        void loadComponentFromPlugins();
-        void cleanupPlugins();
 
       private:
         glm::vec2 m_size, m_mousePos, m_dMousePos;
@@ -160,8 +152,6 @@ namespace Bess::Canvas {
         VkExtent2D vec2Extent2D(const glm::vec2 &vec);
 
         bool m_isDestroyed = false;
-        std::unordered_map<uint64_t, std::shared_ptr<Canvas::SimSceneCompDrawHook>> m_pluginSceneDrawHooks;
-
         bool m_isFirstFrame = true;
     };
 } // namespace Bess::Canvas

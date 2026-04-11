@@ -119,6 +119,7 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(Transform, SchematicTransform, m_schematicTransform)
         MAKE_GETTER_SETTER(std::shared_ptr<SimEngine::ComponentDefinition>, CompDef, m_compDef)
 
+        void setSchSlotsPosDirty(bool val = true);
         size_t getInputSlotsCount() const;
         size_t getOutputSlotsCount() const;
 
@@ -127,7 +128,7 @@ namespace Bess::Canvas {
 
         void setScaleDirty(bool val = true);
 
-        inline void setSchematicScaleDirty();
+        void setSchematicScaleDirty(bool val = true);
 
         std::vector<UUID>
         cleanup(SceneState &state, UUID caller = UUID::null) override;
@@ -195,6 +196,7 @@ namespace Bess::Canvas {
         std::vector<UUID> m_inputSlots;
         std::vector<UUID> m_outputSlots;
         bool m_isScaleDirty = true, m_isSchematicScaleDirty = true;
+        bool m_isSchSlotsPosDirty = true;
         Transform m_schematicTransform;
         std::shared_ptr<SimSceneCompDrawHook> m_drawHook = nullptr;
         std::shared_ptr<SimEngine::ComponentDefinition> m_compDef = nullptr;

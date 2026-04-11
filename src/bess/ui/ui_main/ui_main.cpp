@@ -232,7 +232,8 @@ namespace Bess::UI {
             temp_name = Icons::FontAwesomeIcons::FA_FILE_IMPORT;
             temp_name += "   Import";
             if (ImGui::BeginMenu(temp_name.c_str())) {
-                const std::string verilogLabel = std::string(Icons::FontAwesomeIcons::FA_MICROCHIP) + "  Verilog";
+                const std::string verilogLabel = std::string(Icons::FontAwesomeIcons::FA_V) +
+                                                 Icons::FontAwesomeIcons::FA_S + "  Verilog Script";
                 if (ImGui::MenuItem(verilogLabel.c_str())) {
                     auto &wizard = getVerilogImportWizardState();
                     wizard.requestOpenPopup = true;

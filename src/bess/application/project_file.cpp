@@ -147,13 +147,6 @@ namespace Bess {
                 float maxZ = 0;
                 for (const auto &[uuid, comp] : sceneState.getAllComponents()) {
                     maxZ = std::max(comp->getTransform().position.z, maxZ);
-                    if (comp->getType() == Canvas::SceneComponentType::simulation) {
-                        auto simComp = sceneState.getComponentByUuid<Canvas::SimulationSceneComponent>(uuid);
-                        const auto &compDef = simEngine.getComponentDefinition(simComp->getSimEngineId());
-                        if (scene->hasPluginDrawHookForComponentHash(compDef->getBaseHash())) {
-                            simComp->setDrawHook(scene->getPluginDrawHookForComponentHash(compDef->getBaseHash()));
-                        }
-                    }
                 }
                 scene->setZCoord(maxZ);
                 BESS_DEBUG("[Decode] Added new scene {}", (uint64_t)scene->getSceneId());
