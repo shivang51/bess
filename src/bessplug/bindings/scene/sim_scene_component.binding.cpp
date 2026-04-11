@@ -1,5 +1,6 @@
 
 #include "pages/main_page/scene_components/sim_scene_component.h"
+#include "common/bess_uuid.h"
 #include "component_definition.h"
 #include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
@@ -18,6 +19,7 @@ class PySimSceneComponent : public Bess::Canvas::SimulationSceneComponent,
                             public py::trampoline_self_life_support {
   public:
     PySimSceneComponent() = default;
+    ~PySimSceneComponent() override = default;
 
     void draw(Bess::SceneDrawContext &context) override {
         PYBIND11_OVERRIDE(
@@ -25,6 +27,16 @@ class PySimSceneComponent : public Bess::Canvas::SimulationSceneComponent,
             Bess::Canvas::SimulationSceneComponent,
             draw,
             std::ref(context));
+    }
+
+    std::vector<Bess::UUID> cleanup(Bess::Canvas::SceneState &state,
+                                    Bess::UUID caller) override {
+        PYBIND11_OVERRIDE(
+            std::vector<Bess::UUID>,
+            Bess::Canvas::SimulationSceneComponent,
+            cleanup,
+            std::ref(state),
+            caller);
     }
 
     void drawSchematic(Bess::SceneDrawContext &context) override {
@@ -133,6 +145,9 @@ void bind_sim_scene_component(py::module_ &m) {
                Bess::Canvas::SceneComponent,
                py::smart_holder>(m, "SimulationSceneComponent")
         .def(py::init<>())
+        .def("cleanup", &Bess::Canvas::SimulationSceneComponent::cleanup,
+             py::arg("state"),
+             py::arg("caller") = Bess::UUID::null)
         .def("draw", &Bess::Canvas::SimulationSceneComponent::draw,
              py::arg("context"))
         .def("draw_schematic", &Bess::Canvas::SimulationSceneComponent::drawSchematic,

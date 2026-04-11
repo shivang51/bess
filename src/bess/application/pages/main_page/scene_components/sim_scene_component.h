@@ -5,7 +5,6 @@
 #include "scene/scene_state/components/behaviours/drag_behaviour.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene/scene_state/components/scene_component_types.h"
-#include "scene/scene_state/components/sim_scene_comp_draw_hook.h"
 #include "scene_comp_types.h"
 #include "scene_draw_context.h"
 #include "settings/viewport_theme.h"
@@ -115,7 +114,6 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(UUID, NetId, m_netId)
         MAKE_GETTER_SETTER(std::vector<UUID>, InputSlots, m_inputSlots)
         MAKE_GETTER_SETTER(std::vector<UUID>, OutputSlots, m_outputSlots)
-        MAKE_GETTER_SETTER(std::shared_ptr<SimSceneCompDrawHook>, DrawHook, m_drawHook)
         MAKE_GETTER_SETTER(Transform, SchematicTransform, m_schematicTransform)
         MAKE_GETTER_SETTER(std::shared_ptr<SimEngine::ComponentDefinition>, CompDef, m_compDef)
 
@@ -198,7 +196,6 @@ namespace Bess::Canvas {
         bool m_isScaleDirty = true, m_isSchematicScaleDirty = true;
         bool m_isSchSlotsPosDirty = true;
         Transform m_schematicTransform;
-        std::shared_ptr<SimSceneCompDrawHook> m_drawHook = nullptr;
         std::shared_ptr<SimEngine::ComponentDefinition> m_compDef = nullptr;
     };
 } // namespace Bess::Canvas

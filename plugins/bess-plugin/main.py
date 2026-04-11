@@ -13,6 +13,7 @@ from components import seven_segment_display, seven_segment_display_driver
 from components.alu_74LS181 import dm74ls181
 from scene.output_comp import OutputComp
 from scene.digital_gate_comp import DigitalGateComp
+from scene.seven_seg_disp_comp import SevenSegDispComp
 
 
 class BessPlugin(Plugin):
@@ -38,13 +39,14 @@ class BessPlugin(Plugin):
 
     @override
     def on_scene_comp_load(self) -> dict[int, object]:
-        return {**seven_segment_display.seven_seg_disp_draw_hook}
+        return {}
 
     @override
     def has_sim_comp(self, base_hash) -> bool:
         return (
             base_hash == 15124334025293992558
             or digital_gates_schematics.get(int(base_hash), None) is not None
+            or seven_segment_display.seven_seg_disp_def.get_hash() == base_hash
         )
 
     @override
@@ -55,6 +57,8 @@ class BessPlugin(Plugin):
 
         if base_hash == 15124334025293992558:
             return OutputComp(component_def)
+        elif seven_segment_display.seven_seg_disp_def.get_hash() == base_hash:
+            return SevenSegDispComp(component_def)
         else:
             return DigitalGateComp(component_def)
 

@@ -11,7 +11,6 @@ void bind_sim_engine_component_definition(py::module_ &m);
 void bind_scene_schematic_diagram(py::module_ &m);
 void bind_scene_component(py::module_ &m);
 void bind_sim_scene_component(py::module_ &m);
-void bind_sim_comp_draw_hook(py::module_ &m);
 void bind_scene_state(py::module_ &m);
 void bind_path_renderer(py::module_ &m);
 void bind_material_renderer(py::module_ &m);
@@ -59,7 +58,6 @@ void bind_api(py::module_ &m) {
     bind_scene_state(scene);
     bind_scene_schematic_diagram(scene);
     bind_scene_component(scene);
-    bind_sim_comp_draw_hook(scene);
     bind_sim_scene_component(scene);
 
     // Asset Manager

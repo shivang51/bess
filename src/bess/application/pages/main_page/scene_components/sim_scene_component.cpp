@@ -1,6 +1,5 @@
 #include "sim_scene_component.h"
 #include "common/bess_uuid.h"
-#include "common/logger.h"
 #include "icons/FontAwesomeIcons.h"
 #include "input_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
@@ -54,28 +53,8 @@ namespace Bess::Canvas {
             onFirstDraw(context);
         }
 
-        const auto pickingId = PickingId{m_runtimeId, 0};
-
-        DrawHookOnDrawResult drawHookResult{.drawChildren = true, .drawOriginal = true};
-        if (m_drawHook && m_drawHook->isDrawEnabled()) {
-            const auto &compState = SimEngine::SimulationEngine::instance().getComponentState(m_simEngineId);
-            drawHookResult = m_drawHook->onDraw(m_transform, pickingId, compState, context.materialRenderer, context.pathRenderer);
-
-            auto &state = *context.sceneState;
-            if (drawHookResult.sizeChanged) {
-                setScale(drawHookResult.newSize);
-                resetSlotPositions(state);
-                setSchematicScaleDirty();
-            }
-        }
-
-        if (drawHookResult.drawOriginal) {
-            drawBackground(context);
-        }
-
-        if (drawHookResult.drawChildren) {
-            drawSlots(context);
-        }
+        drawBackground(context);
+        drawSlots(context);
     }
 
     void SimulationSceneComponent::drawBackground(SceneDrawContext &context) {
@@ -152,51 +131,33 @@ namespace Bess::Canvas {
     }
 
     void SimulationSceneComponent::drawSchematic(SceneDrawContext &context) {
-
         auto &state = *context.sceneState;
-        if (m_isSchematicScaleDirty) {
-            calculateSchematicScale(state);
-            resetSchematicPinsPositions(state);
-            m_isSchematicScaleDirty = false;
-        }
-
         const auto &id = PickingId{m_runtimeId, 0};
 
-        if (m_drawHook && m_drawHook->isSchematicDrawEnabled()) {
-            auto newScale = m_drawHook->onSchematicDraw(m_schematicTransform, id,
-                                                        context.materialRenderer,
-                                                        context.pathRenderer);
-            const auto &prevScale = m_schematicTransform.scale;
-            if (newScale.x != prevScale.x || newScale.y != prevScale.y) {
-                m_schematicTransform.scale = newScale;
-                resetSchematicPinsPositions(state);
-            }
-        } else {
-            const glm::vec3 &pos = getAbsolutePosition(state);
-            float x = pos.x - (m_schematicTransform.scale.x / 2.f);
-            float y = pos.y - (m_schematicTransform.scale.y / 2.f);
-            float x1 = x + m_schematicTransform.scale.x;
-            float y1 = y + m_schematicTransform.scale.y;
-            float nodeWeight = Styles::compSchematicStyles.strokeSize;
-            const auto &textColor = ViewportTheme::schematicViewColors.text;
-            const auto &fillColor = ViewportTheme::schematicViewColors.componentFill;
-            const auto &strokeColor = ViewportTheme::schematicViewColors.componentStroke;
-            context.pathRenderer->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
-            context.pathRenderer->pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);
-            context.pathRenderer->pathLineTo({x1, y1, pos.z}, nodeWeight, strokeColor, id);
-            context.pathRenderer->pathLineTo({x, y1, pos.z}, nodeWeight, strokeColor, id);
-            context.pathRenderer->endPathMode(true, true, fillColor);
+        const glm::vec3 &pos = getAbsolutePosition(state);
+        float x = pos.x - (m_schematicTransform.scale.x / 2.f);
+        float y = pos.y - (m_schematicTransform.scale.y / 2.f);
+        float x1 = x + m_schematicTransform.scale.x;
+        float y1 = y + m_schematicTransform.scale.y;
+        float nodeWeight = Styles::compSchematicStyles.strokeSize;
+        const auto &textColor = ViewportTheme::schematicViewColors.text;
+        const auto &fillColor = ViewportTheme::schematicViewColors.componentFill;
+        const auto &strokeColor = ViewportTheme::schematicViewColors.componentStroke;
+        context.pathRenderer->beginPathMode({x, y, pos.z}, nodeWeight, strokeColor, id);
+        context.pathRenderer->pathLineTo({x1, y, pos.z}, nodeWeight, strokeColor, id);
+        context.pathRenderer->pathLineTo({x1, y1, pos.z}, nodeWeight, strokeColor, id);
+        context.pathRenderer->pathLineTo({x, y1, pos.z}, nodeWeight, strokeColor, id);
+        context.pathRenderer->endPathMode(true, true, fillColor);
 
-            const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(m_name,
-                                                                                Styles::compSchematicStyles.nameFontSize);
-            glm::vec3 textPos = {pos.x, y + ((y1 - y) / 2.f), pos.z + 0.0005f};
-            textPos.x -= textSize.x / 2.f;
-            textPos.y += Styles::simCompStyles.headerFontSize / 2.f;
-            context.materialRenderer->drawText(m_name,
-                                               textPos,
-                                               Styles::compSchematicStyles.nameFontSize,
-                                               textColor, id, 0.f);
-        }
+        const auto textSize = Renderer::MaterialRenderer::getTextRenderSize(m_name,
+                                                                            Styles::compSchematicStyles.nameFontSize);
+        glm::vec3 textPos = {pos.x, y + ((y1 - y) / 2.f), pos.z + 0.0005f};
+        textPos.x -= textSize.x / 2.f;
+        textPos.y += Styles::simCompStyles.headerFontSize / 2.f;
+        context.materialRenderer->drawText(m_name,
+                                           textPos,
+                                           Styles::compSchematicStyles.nameFontSize,
+                                           textColor, id, 0.f);
 
         drawSlots(context);
     }
@@ -358,10 +319,6 @@ namespace Bess::Canvas {
         auto &simEngine = SimEngine::SimulationEngine::instance();
         simEngine.deleteComponent(m_simEngineId);
         m_simEngineId = UUID::null;
-
-        if (m_drawHook) {
-            // m_drawHook.reset();
-        }
 
         return removedIds;
     }
