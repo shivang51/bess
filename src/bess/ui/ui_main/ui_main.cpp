@@ -218,12 +218,6 @@ namespace Bess::UI {
             ImGui::Separator();
             ImGui::Spacing();
 
-            temp_name = Icons::FontAwesomeIcons::FA_GEAR;
-            temp_name += "  Prefrences";
-            if (ImGui::MenuItem(temp_name.c_str())) {
-                getPanel<SettingsWindow>()->show();
-            }
-
             temp_name = Icons::FontAwesomeIcons::FA_FILE_EXPORT;
             temp_name += "  Export";
             if (ImGui::BeginMenu(temp_name.c_str())) {
@@ -236,7 +230,7 @@ namespace Bess::UI {
             }
 
             temp_name = Icons::FontAwesomeIcons::FA_FILE_IMPORT;
-            temp_name += "  Import";
+            temp_name += "   Import";
             if (ImGui::BeginMenu(temp_name.c_str())) {
                 const std::string verilogLabel = std::string(Icons::FontAwesomeIcons::FA_MICROCHIP) + "  Verilog";
                 if (ImGui::MenuItem(verilogLabel.c_str())) {
@@ -275,15 +269,26 @@ namespace Bess::UI {
             ImGui::Spacing();
             ImGui::Separator();
             ImGui::Spacing();
+            icon = Icons::FontAwesomeIcons::FA_ALIGN_LEFT;
+            if (ImGui::BeginMenu((icon + "  Layout").c_str())) {
+                icon = Icons::CodIcons::LAYOUT;
+                if (ImGui::MenuItem((icon + "  Hierarchical Layout").c_str())) {
+                    applyHierarchicalLayout();
+                }
+                ImGui::EndMenu();
+            }
+
+            ImGui::Separator();
+            ImGui::Spacing();
 
             icon = Icons::FontAwesomeIcons::FA_PENCIL;
             if (ImGui::MenuItem((icon + "  Project Settings").c_str(), "Ctrl+P")) {
                 getPanel<ProjectSettingsWindow>()->show();
             }
 
-            icon = Icons::CodIcons::LAYOUT;
-            if (ImGui::MenuItem((icon + "  Hierarchical Layout").c_str())) {
-                applyHierarchicalLayout();
+            icon = Icons::FontAwesomeIcons::FA_GEAR;
+            if (ImGui::MenuItem((icon + "  Preferences").c_str(), "")) {
+                getPanel<SettingsWindow>()->show();
             }
 
             ImGui::EndMenu();
