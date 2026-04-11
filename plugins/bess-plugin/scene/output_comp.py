@@ -1,3 +1,4 @@
+import copy
 from typing import override
 from bessplug.api.common import theme, vec3
 from bessplug.api.scene import PickingId, SimulationSceneComponent
@@ -15,6 +16,13 @@ class OutputComp(SimulationSceneComponent):
     @override
     def get_type_name(self):
         return "OutputComp"
+
+    @override
+    def clone(self, scene_state):
+        cloned = copy.deepcopy(self)
+        cloned.decimal_value = self.decimal_value
+        cloned.hex_value = self.hex_value
+        return self.clone_sim_comp(scene_state, cloned)
 
     @override
     def update(self, time_step, scene_state):

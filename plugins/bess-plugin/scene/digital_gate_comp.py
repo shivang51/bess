@@ -1,3 +1,4 @@
+import copy
 from typing import override
 from bessplug.api.common import theme, vec3
 from bessplug.api.scene import PickingId, SimulationSceneComponent
@@ -12,6 +13,13 @@ class DigitalGateComp(SimulationSceneComponent):
         self.setup(comp_def)
         self.schematic_diagram = schematic_diagrams.get(comp_def.get_hash(), None)
         self.label_size = 8
+
+    @override
+    def clone(self, scene_state):
+        cloned = copy.deepcopy(self)
+        cloned.schematic_diagram = self.schematic_diagram
+        cloned.label_size = self.label_size
+        return self.clone_sim_comp(scene_state, cloned)
 
     @override
     def get_type_name(self):
