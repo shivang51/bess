@@ -75,7 +75,7 @@ class PySimSceneComponent : public Bess::Canvas::SimulationSceneComponent,
             onScaleChanged);
     }
 
-    std::string getTypeName() override {
+    std::string getTypeName() const override {
         PYBIND11_OVERRIDE_NAME(
             std::string,
             Bess::Canvas::SimulationSceneComponent,
@@ -166,7 +166,7 @@ void bind_sim_scene_component(py::module_ &m) {
                 const auto &self = t[0].cast<std::string>();
 
                 Json::CharReaderBuilder builder;
-                Json::CharReader *reader = builder.newCharReader();
+                auto reader = std::shared_ptr<Json::CharReader>(builder.newCharReader());
 
                 Json::Value json;
                 std::string errors;
@@ -176,7 +176,6 @@ void bind_sim_scene_component(py::module_ &m) {
                     self.c_str() + self.size(),
                     &json,
                     &errors);
-                delete reader;
 
                 if (!parsingSuccessful) {
                     throw std::runtime_error("Failed to parse SimulationSceneComponent from JSON: " + errors);
@@ -188,7 +187,9 @@ void bind_sim_scene_component(py::module_ &m) {
                 Bess::Canvas::SimulationSceneComponent::fromJson(json, sharedComp);
                 return newComp;
             }))
-        .def("cleanup", &Bess::Canvas::SimulationSceneComponent::cleanup, py::arg("state"), py::arg("caller") = Bess::UUID::null)
+        .def("cleanup", &Bess::Canvas::SimulationSceneComponent::cleanup,
+             py::arg("state"),
+             py::arg("caller") = 0)
         .def("draw", &Bess::Canvas::SimulationSceneComponent::draw, py::arg("context"))
         .def("draw_schematic", &Bess::Canvas::SimulationSceneComponent::drawSchematic, py::arg("context"))
         .def("update", &Bess::Canvas::SimulationSceneComponent::update, py::arg("time_step"), py::arg("scene_state"))

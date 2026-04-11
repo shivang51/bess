@@ -15,7 +15,7 @@
 namespace Bess::Canvas {
 #define REG_SCENE_COMP_TYPE(TypeName, type)                      \
     SceneComponentType getType() const override { return type; } \
-    std::string getTypeName() override {                         \
+    std::string getTypeName() const override {                   \
         return TypeName;                                         \
     }                                                            \
     static std::string getStaticTypeName() {                     \
@@ -30,7 +30,7 @@ namespace Bess::Canvas {
         for (const auto &member : newJson.getMemberNames()) {       \
             json[member] = newJson[member];                         \
         }                                                           \
-        json["typeName"] = TClass::getStaticTypeName();             \
+        json["typeName"] = getTypeName();                           \
         return json;                                                \
     }                                                               \
     static void fromJson(const Json::Value &j,                      \
@@ -97,7 +97,7 @@ namespace Bess::Canvas {
             return "SceneComponent";
         }
 
-        virtual std::string getTypeName() {
+        virtual std::string getTypeName() const {
             return "SceneComponent";
         }
 
