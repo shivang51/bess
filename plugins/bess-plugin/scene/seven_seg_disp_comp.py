@@ -19,13 +19,18 @@ class SevenSegDispComp(SimulationSceneComponent):
     @override
     def copy(self):
         cloned = copy.deepcopy(self)
-        cloned.name = self.name
         cloned.label_size = self.label_size
         return cloned
 
     @override
     def get_type_name(self):
         return "SevenSegDispComp"
+
+    @staticmethod
+    @SimulationSceneComponent.deser
+    def from_json(_):
+        comp = SevenSegDispComp()
+        return comp
 
     @override
     def draw(self, context):

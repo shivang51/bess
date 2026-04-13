@@ -30,6 +30,22 @@ class DigitalGateComp(SimulationSceneComponent):
         return "DigitalGateComp"
 
     @override
+    def to_json(self):
+        data = super().to_json()
+        if self.schematic_diagram:
+            data["schm_hash"] = self.schematic_diagram.hash
+        return data
+
+    @staticmethod
+    @SimulationSceneComponent.deser
+    def from_json(data):
+        comp = DigitalGateComp()
+        if data.has_key("schm_hash"):
+            schm_hash = data["schm_hash"].as_int()
+            comp.schematic_diagram = schematic_diagrams.get(schm_hash, None)
+        return comp
+
+    @override
     def draw_schematic(self, context):
         if self.schematic_diagram is None:
             super().draw_schematic(context)

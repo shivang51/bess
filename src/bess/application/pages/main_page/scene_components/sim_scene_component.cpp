@@ -581,10 +581,6 @@ namespace Bess::Canvas {
             clonedChildren.insert(childId);
         }
 
-        BESS_TRACE("Cloned simulation component {} with {} child components",
-                   (uint64_t)clonedComponent->getUuid(),
-                   clonedComponents.size() - 1);
-
         return clonedComponents;
     }
 

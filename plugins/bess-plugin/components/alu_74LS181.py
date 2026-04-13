@@ -168,18 +168,16 @@ def _simulate_74ls181_schematic_verified(
             g_active = final_calc >= 16
 
     # --- OUTPUT MAPPING ---
-    out_states = []
+    out_states: list[PinState] = []
 
     # F0-F3 (active LOW): physical LOW when logical bit==1
     for i in range(4):
         bit_is_one = ((res_val >> i) & 1) == 1
-        out_states.append(
-            PinState(state=LogicState.LOW if bit_is_one else LogicState.HIGH)
-        )
+        out_states.append(PinState(LogicState.LOW if bit_is_one else LogicState.HIGH))
 
     # A = B (comparator): goes HIGH when all four F outputs are HIGH (i.e. logical F bits are 0).
     a_eq_b = (res_val & MASK4) == 0
-    out_states.append(PinState(state=LogicState.HIGH if a_eq_b else LogicState.LOW))
+    out_states.append(PinState(LogicState.HIGH if a_eq_b else LogicState.LOW))
 
     # P (Carry Propagate) is Active LOW (pin low when propagate active)
     out_states.append(PinState(state=LogicState.LOW if p_active else LogicState.HIGH))

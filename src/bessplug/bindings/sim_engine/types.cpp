@@ -35,6 +35,12 @@ void bind_sim_engine_types(py::module_ &m) {
         .def(py::init<>())
         .def(py::init<const SlotState &>())
         .def(py::init<bool>(), py::arg("value"))
+        .def(py::init([](LogicState state) {
+                 SlotState p;
+                 p.state = state;
+                 return p;
+             }),
+             py::arg("state"))
         .def(py::init([](LogicState state, long long last_change_time_ns) {
                  SlotState p;
                  p.state = state;
