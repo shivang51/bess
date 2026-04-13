@@ -11,6 +11,8 @@ namespace Bess::Canvas {
       public:
         typedef std::function<std::shared_ptr<SceneComponent>(const Json::Value &)> DeSerFunc;
 
+        static bool hasComponent(const std::string &typeName);
+
         static void registerComponent(const std::string &typeName, DeSerFunc func);
 
         static std::shared_ptr<SceneComponent> createComponentFromJson(const Json::Value &j);

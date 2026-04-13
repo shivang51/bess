@@ -52,11 +52,11 @@ class BessPlugin(Plugin):
             return None
 
         if base_hash == 15124334025293992558:
-            return OutputComp(component_def)
+            return OutputComp()
         elif seven_segment_display.seven_seg_disp_def.get_hash() == base_hash:
-            return SevenSegDispComp(component_def)
+            return SevenSegDispComp()
         else:
-            return DigitalGateComp(component_def)
+            return DigitalGateComp.from_component_def(component_def)
 
     @override
     def draw_ui(self):

@@ -317,8 +317,16 @@ void bind_time(py::module_ &m) {
     // std::chrono::duration<double, std::ratio<1l, 1000l>> alias to TimeMs
 }
 
+template <typename T>
+T get(const Json::Value &v, const std::string &key, const T &defaultVal) {
+    if (!v.isObject())
+        throw py::type_error("Not a JSON Object");
+    return v.get(key, defaultVal).template as<T>();
+}
+
 void bind_json_cpp(py::module_ &m) {
     auto jsonMod = m.def_submodule("json", "Json bindings");
+
     py::class_<Json::Value>(m, "JVal")
         .def(py::init<>())
         .def(py::init<std::string>())
@@ -359,6 +367,11 @@ void bind_json_cpp(py::module_ &m) {
         .def("__len__", &Json::Value::size)
         .def("is_object", &Json::Value::isObject)
         .def("is_array", &Json::Value::isArray)
+        .def("has_key", [](const Json::Value &v, const std::string &key) {
+            if (!v.isObject())
+                throw py::type_error("Not a JSON Object");
+            return v.isMember(key);
+        })
 
         // String conversion (for print() in Python)
         .def("__str__", [](const Json::Value &v) {

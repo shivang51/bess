@@ -7,12 +7,16 @@ from components.digital_gates import schematic_diagrams
 
 
 class DigitalGateComp(SimulationSceneComponent):
-    def __init__(self, comp_def: ComponentDefinition):
+    @staticmethod
+    def from_component_def(comp_def: ComponentDefinition):
+        comp = DigitalGateComp()
+        comp.schematic_diagram = schematic_diagrams.get(comp_def.get_hash(), None)
+        return comp
+
+    def __init__(self):
         super().__init__()
-        self.name = comp_def.name
-        self.setup(comp_def)
-        self.schematic_diagram = schematic_diagrams.get(comp_def.get_hash(), None)
         self.label_size = 8
+        self.schematic_diagram = None
 
     @override
     def copy(self):

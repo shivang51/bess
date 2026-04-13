@@ -15,6 +15,8 @@ namespace Bess::Svc {
         void destroy();
 
         bool hasSimComponent(const uint64_t &compHash) const;
+        bool hasSceneComp(const std::string &typeName) const;
+        bool canDerserialize(const std::string &typeName) const;
 
         std::shared_ptr<Canvas::SimulationSceneComponent> getSimComp(
             const std::shared_ptr<SimEngine::ComponentDefinition> &def) const;

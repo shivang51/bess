@@ -3,15 +3,13 @@ from bessplug.api.asset_manager import AssetManager, TextureAssetID
 from bessplug.api.common import vec2, vec3, vec4
 from bessplug.api.scene import PickingId, SimulationSceneComponent
 from bessplug.api.scene.renderer import QuadRenderProperties, SubTexture
-from bessplug.api.sim_engine import ComponentDefinition, LogicState
+from bessplug.api.sim_engine import LogicState
 import copy
 
 
 class SevenSegDispComp(SimulationSceneComponent):
-    def __init__(self, comp_def: ComponentDefinition):
+    def __init__(self):
         super().__init__()
-        self.name = comp_def.name
-        self.setup(comp_def)
         self.label_size = 8
         SevenSegDispComp._on_create()
 

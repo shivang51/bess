@@ -1,15 +1,13 @@
 import copy
 from typing import override
-from bessplug.api.common import theme, vec3
+from bessplug.api.common import JVal, theme, vec3
 from bessplug.api.scene import PickingId, SimulationSceneComponent
-from bessplug.api.sim_engine import ComponentDefinition, LogicState
+from bessplug.api.sim_engine import LogicState
 
 
 class OutputComp(SimulationSceneComponent):
-    def __init__(self, comp_def: ComponentDefinition):
+    def __init__(self):
         super().__init__()
-        self.name = comp_def.name
-        self.setup(comp_def)
         self.decimal_value = 0
         self.hex_value = "0x0"
 
@@ -30,6 +28,14 @@ class OutputComp(SimulationSceneComponent):
         data["decimal_value"] = self.decimal_value
         data["hex_value"] = self.hex_value
         return data
+
+    @staticmethod
+    @SimulationSceneComponent.deser
+    def from_json(data: JVal):
+        comp = OutputComp()
+        comp.decimal_value = data["decimal_value"].as_int()
+        comp.hex_value = data["hex_value"].as_str()
+        return comp
 
     @override
     def update(self, time_step, scene_state):

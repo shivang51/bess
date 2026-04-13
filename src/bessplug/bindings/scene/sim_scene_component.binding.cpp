@@ -102,6 +102,7 @@ void bind_sim_scene_component(py::module_ &m) {
     const auto setup = [](Bess::Canvas::SimulationSceneComponent &comp,
                           const std::shared_ptr<Bess::SimEngine::ComponentDefinition> &compDef) {
         comp.setCompDef(compDef);
+        comp.setName(compDef->getName());
 
         // STYLE
         auto &style = comp.getStyle();
@@ -243,9 +244,21 @@ void bind_sim_scene_component(py::module_ &m) {
         return c; })
                               .def("to_json", &Bess::Canvas::SimulationSceneComponent::toJson);
 
-    // // decorators
-    // simCompBinding.def_static("clone_fn", [](const py::function &cloneFunc) { return [cloneFunc](const py::args &args, const py::kwargs &kwargs) {
-    //                                                                               auto cloned = cloneFunc(*args, **kwargs);
-    //                                                                               return cloned.attr("clone_sim_comp")(*args, **kwargs);
-    //                                                                           }; });
+    // decorators
+    auto deserDecorator = [&](const py::function &fromJsonFunc) {
+        return py::cpp_function([fromJsonFunc](const py::args &args, const py::kwargs &kwargs) {
+            auto pyComp = fromJsonFunc(*args, **kwargs);
+
+            if (pyComp.is_none()) {
+                return std::shared_ptr<Bess::Canvas::SimulationSceneComponent>(nullptr);
+            }
+
+            auto comp = pyComp.cast<std::shared_ptr<Bess::Canvas::SimulationSceneComponent>>();
+            Bess::Canvas::SimulationSceneComponent::fromJson(args[0].cast<Json::Value>(), comp);
+            return comp;
+        });
+    };
+    simCompBinding.def_static("deser",
+                              deserDecorator,
+                              py::arg("Use as a decorator over from_json static function"));
 }

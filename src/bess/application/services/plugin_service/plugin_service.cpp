@@ -50,4 +50,28 @@ namespace Bess::Svc {
 
         return false;
     }
+
+    bool PluginService::hasSceneComp(const std::string &typeName) const {
+        const auto &pluginMangaer = Plugins::PluginManager::getInstance();
+
+        for (const auto &plugin : pluginMangaer.getLoadedPlugins()) {
+            if (plugin.second->hasSceneComp(typeName)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool PluginService::canDerserialize(const std::string &typeName) const {
+        const auto &pluginMangaer = Plugins::PluginManager::getInstance();
+
+        for (const auto &plugin : pluginMangaer.getLoadedPlugins()) {
+            if (plugin.second->canDerserialize(typeName)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 } // namespace Bess::Svc
