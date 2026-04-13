@@ -18,11 +18,18 @@ class OutputComp(SimulationSceneComponent):
         return "OutputComp"
 
     @override
-    def clone(self, scene_state):
+    def copy(self):
         cloned = copy.deepcopy(self)
         cloned.decimal_value = self.decimal_value
         cloned.hex_value = self.hex_value
-        return self.clone_sim_comp(scene_state, cloned)
+        return cloned
+
+    @override
+    def to_json(self):
+        data = super().to_json()
+        data["decimal_value"] = self.decimal_value
+        data["hex_value"] = self.hex_value
+        return data
 
     @override
     def update(self, time_step, scene_state):

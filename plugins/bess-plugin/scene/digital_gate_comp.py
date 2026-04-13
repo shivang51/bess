@@ -15,11 +15,11 @@ class DigitalGateComp(SimulationSceneComponent):
         self.label_size = 8
 
     @override
-    def clone(self, scene_state):
+    def copy(self):
         cloned = copy.deepcopy(self)
         cloned.schematic_diagram = self.schematic_diagram
         cloned.label_size = self.label_size
-        return self.clone_sim_comp(scene_state, cloned)
+        return cloned
 
     @override
     def get_type_name(self):

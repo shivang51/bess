@@ -42,11 +42,16 @@ class PySimSceneComponent : public Bess::Canvas::SimulationSceneComponent,
     }
 
     std::vector<std::shared_ptr<SceneComponent>> clone(const Bess::Canvas::SceneState &sceneState) const override {
-        PYBIND11_OVERRIDE(
-            std::vector<std::shared_ptr<SceneComponent>>,
-            Bess::Canvas::SimulationSceneComponent,
-            clone,
-            std::cref(sceneState));
+        auto c = copy();
+        return cloneSimulationComponent(sceneState, c);
+    }
+
+    virtual std::shared_ptr<Bess::Canvas::SimulationSceneComponent> copy() const {
+        PYBIND11_OVERRIDE_NAME(
+            std::shared_ptr<Bess::Canvas::SimulationSceneComponent>,
+            PySimSceneComponent,
+            "copy",
+            copy);
     }
 
     void drawSchematic(Bess::SceneDrawContext &context) override {
@@ -81,6 +86,14 @@ class PySimSceneComponent : public Bess::Canvas::SimulationSceneComponent,
             Bess::Canvas::SimulationSceneComponent,
             "get_type_name",
             getTypeName);
+    }
+
+    Json::Value toJson() const override {
+        PYBIND11_OVERRIDE_NAME(
+            Json::Value,
+            Bess::Canvas::SimulationSceneComponent,
+            "to_json",
+            toJson);
     }
 };
 
@@ -150,81 +163,89 @@ void bind_sim_scene_component(py::module_ &m) {
         }
     };
 
-    py::class_<Bess::Canvas::SimulationSceneComponent,
-               PySimSceneComponent,
-               Bess::Canvas::SceneComponent,
-               py::smart_holder>(m, "SimulationSceneComponent")
-        .def(py::init<>())
-        .def(py::pickle(
-            [](const Bess::Canvas::SimulationSceneComponent &self) {
-                Json::StreamWriterBuilder builder;
-                builder["indentation"] = "";
-                const std::string output = Json::writeString(builder, self.toJson());
-                return py::make_tuple(output);
-            },
-            [](py::tuple &t) {
-                const auto &self = t[0].cast<std::string>();
+    auto simCompBinding = py::class_<Bess::Canvas::SimulationSceneComponent,
+                                     PySimSceneComponent,
+                                     Bess::Canvas::SceneComponent,
+                                     py::smart_holder>(m, "SimulationSceneComponent")
+                              .def(py::init<>())
+                              .def(py::pickle(
+                                  [](const Bess::Canvas::SimulationSceneComponent &self) {
+                                      Json::StreamWriterBuilder builder;
+                                      builder["indentation"] = "";
+                                      const std::string output = Json::writeString(builder, self.toJson());
+                                      return py::make_tuple(output);
+                                  },
+                                  [](py::tuple &t) {
+                                      const auto &self = t[0].cast<std::string>();
 
-                Json::CharReaderBuilder builder;
-                auto reader = std::shared_ptr<Json::CharReader>(builder.newCharReader());
+                                      Json::CharReaderBuilder builder;
+                                      auto reader = std::shared_ptr<Json::CharReader>(builder.newCharReader());
 
-                Json::Value json;
-                std::string errors;
+                                      Json::Value json;
+                                      std::string errors;
 
-                bool parsingSuccessful = reader->parse(
-                    self.c_str(),
-                    self.c_str() + self.size(),
-                    &json,
-                    &errors);
+                                      bool parsingSuccessful = reader->parse(
+                                          self.c_str(),
+                                          self.c_str() + self.size(),
+                                          &json,
+                                          &errors);
 
-                if (!parsingSuccessful) {
-                    throw std::runtime_error("Failed to parse SimulationSceneComponent from JSON: " + errors);
-                }
+                                      if (!parsingSuccessful) {
+                                          throw std::runtime_error("Failed to parse SimulationSceneComponent from JSON: " + errors);
+                                      }
 
-                auto newComp = PySimSceneComponent();
-                auto sharedComp = std::shared_ptr<Bess::Canvas::SimulationSceneComponent>(&newComp,
-                                                                                          [](Bess::Canvas::SimulationSceneComponent *) {});
-                Bess::Canvas::SimulationSceneComponent::fromJson(json, sharedComp);
-                return newComp;
-            }))
-        .def("cleanup", &Bess::Canvas::SimulationSceneComponent::cleanup,
-             py::arg("state"),
-             py::arg("caller") = 0)
-        .def("draw", &Bess::Canvas::SimulationSceneComponent::draw, py::arg("context"))
-        .def("draw_schematic", &Bess::Canvas::SimulationSceneComponent::drawSchematic, py::arg("context"))
-        .def("update", &Bess::Canvas::SimulationSceneComponent::update, py::arg("time_step"), py::arg("scene_state"))
-        .def("clone", &Bess::Canvas::SimulationSceneComponent::clone, py::arg("scene_state"))
-        .def("clone_sim_comp", &Bess::Canvas::SimulationSceneComponent::cloneSimulationComponent, py::arg("scene_state"), py::arg("cloned_component"))
-        .def("setup", setup, py::arg("comp_def"))
-        .def("get_input_states", &Bess::Canvas::SimulationSceneComponent::getInputStates, py::arg("scene_state"))
-        .def("get_output_states", &Bess::Canvas::SimulationSceneComponent::getOutputStates, py::arg("scene_state"))
-        .def("draw_slots", &Bess::Canvas::SimulationSceneComponent::drawSlots, py::arg("context"))
-        .def("draw_background", &Bess::Canvas::SimulationSceneComponent::drawBackground, py::arg("context"))
-        .def("on_scale_changed", &Bess::Canvas::SimulationSceneComponent::onScaleChanged)
-        .def("get_type_name", &Bess::Canvas::SimulationSceneComponent::getTypeName)
-        .def("set_scale_dirty", &Bess::Canvas::SimulationSceneComponent::setScaleDirty, py::arg("val") = true)
-        .def("set_schematic_scale_dirty", &Bess::Canvas::SimulationSceneComponent::setSchematicScaleDirty, py::arg("val") = true)
-        .def_property_readonly("comp_def", [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getCompDef(); })
-        .def_property("transform",                                                                            //\n
-                      [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getTransform(); }, // \n
-                      &Bess::Canvas::SimulationSceneComponent::setTransform)
-        .def_property("schematic_transform",                                                                           //\n
-                      [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getSchematicTransform(); }, // \n
-                      &Bess::Canvas::SimulationSceneComponent::setSchematicTransform)
-        .def_property("name",                                                                            //\n
-                      [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getName(); }, // \n
-                      &Bess::Canvas::SimulationSceneComponent::setName)
-        .def_property("position",                                                                                      //\n
-                      [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getTransform().position; }, // \n
-                      &Bess::Canvas::SimulationSceneComponent::setPosition)
-        .def_property("scale",                                                                                      //\n
-                      [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getTransform().scale; }, // \n
-                      &Bess::Canvas::SimulationSceneComponent::setScale)
-        .def_property("schematic_scale",                                                                                     //\n
-                      [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getSchematicTransform().scale; }, // \n
-                      [](Bess::Canvas::SimulationSceneComponent &self, const glm::vec2 &scale) {
+                                      auto newComp = PySimSceneComponent();
+                                      auto sharedComp = std::shared_ptr<Bess::Canvas::SimulationSceneComponent>(&newComp,
+                                                                                                                [](Bess::Canvas::SimulationSceneComponent *) {});
+                                      Bess::Canvas::SimulationSceneComponent::fromJson(json, sharedComp);
+                                      return newComp;
+                                  }))
+                              .def("cleanup", &Bess::Canvas::SimulationSceneComponent::cleanup,
+                                   py::arg("state"),
+                                   py::arg("caller") = 0)
+                              .def("draw", &Bess::Canvas::SimulationSceneComponent::draw, py::arg("context"))
+                              .def("draw_schematic", &Bess::Canvas::SimulationSceneComponent::drawSchematic, py::arg("context"))
+                              .def("update", &Bess::Canvas::SimulationSceneComponent::update, py::arg("time_step"), py::arg("scene_state"))
+                              .def("setup", setup, py::arg("comp_def"))
+                              .def("get_input_states", &Bess::Canvas::SimulationSceneComponent::getInputStates, py::arg("scene_state"))
+                              .def("get_output_states", &Bess::Canvas::SimulationSceneComponent::getOutputStates, py::arg("scene_state"))
+                              .def("draw_slots", &Bess::Canvas::SimulationSceneComponent::drawSlots, py::arg("context"))
+                              .def("draw_background", &Bess::Canvas::SimulationSceneComponent::drawBackground, py::arg("context"))
+                              .def("on_scale_changed", &Bess::Canvas::SimulationSceneComponent::onScaleChanged)
+                              .def("get_type_name", &Bess::Canvas::SimulationSceneComponent::getTypeName)
+                              .def("set_scale_dirty", &Bess::Canvas::SimulationSceneComponent::setScaleDirty, py::arg("val") = true)
+                              .def("set_schematic_scale_dirty", &Bess::Canvas::SimulationSceneComponent::setSchematicScaleDirty, py::arg("val") = true)
+                              .def_property_readonly("comp_def", [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getCompDef(); })
+                              .def_property("transform",                                                                            //\n
+                                            [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getTransform(); }, // \n
+                                            &Bess::Canvas::SimulationSceneComponent::setTransform)
+                              .def_property("schematic_transform",                                                                           //\n
+                                            [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getSchematicTransform(); }, // \n
+                                            &Bess::Canvas::SimulationSceneComponent::setSchematicTransform)
+                              .def_property("name",                                                                            //\n
+                                            [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getName(); }, // \n
+                                            &Bess::Canvas::SimulationSceneComponent::setName)
+                              .def_property("position",                                                                                      //\n
+                                            [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getTransform().position; }, // \n
+                                            &Bess::Canvas::SimulationSceneComponent::setPosition)
+                              .def_property("scale",                                                                                      //\n
+                                            [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getTransform().scale; }, // \n
+                                            &Bess::Canvas::SimulationSceneComponent::setScale)
+                              .def_property("schematic_scale",                                                                                     //\n
+                                            [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getSchematicTransform().scale; }, // \n
+                                            [](Bess::Canvas::SimulationSceneComponent &self, const glm::vec2 &scale) {
         self.getSchematicTransform().scale = scale;
         self.setSchSlotsPosDirty(); })
-        .def_property_readonly("runtime_id", //\n
-                               [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getRuntimeId(); });
+                              .def_property_readonly("runtime_id", //\n
+                                                     [](const Bess::Canvas::SimulationSceneComponent &self) { return self.getRuntimeId(); })
+                              .def("copy", [&](const Bess::Canvas::SimulationSceneComponent &self) {
+        auto c = std::make_shared<Bess::Canvas::SimulationSceneComponent>(self);
+        return c; })
+                              .def("to_json", &Bess::Canvas::SimulationSceneComponent::toJson);
+
+    // // decorators
+    // simCompBinding.def_static("clone_fn", [](const py::function &cloneFunc) { return [cloneFunc](const py::args &args, const py::kwargs &kwargs) {
+    //                                                                               auto cloned = cloneFunc(*args, **kwargs);
+    //                                                                               return cloned.attr("clone_sim_comp")(*args, **kwargs);
+    //                                                                           }; });
 }
