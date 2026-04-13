@@ -1,4 +1,5 @@
 #include "plugin_service.h"
+#include "common/logger.h"
 #include "plugin_manager.h"
 
 namespace Bess::Svc {
@@ -73,5 +74,19 @@ namespace Bess::Svc {
         }
 
         return false;
+    }
+
+    std::shared_ptr<Canvas::SceneComponent> PluginService::derserialize(
+        const std::string &typeName,
+        const Json::Value &json) const {
+        const auto &pluginMangaer = Plugins::PluginManager::getInstance();
+
+        for (const auto &plugin : pluginMangaer.getLoadedPlugins()) {
+            if (plugin.second->canDerserialize(typeName)) {
+                return plugin.second->derserialize(typeName, json);
+            }
+        }
+
+        return nullptr;
     }
 } // namespace Bess::Svc

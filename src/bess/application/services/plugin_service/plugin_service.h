@@ -3,8 +3,15 @@
 /// Responsible for managing plugins, including loading, unloading, and providing access to plugin functionalities.
 /// Simulation DOES NOT use this, it being an independent module handles plugins on its own.
 
-#include "pages/main_page/scene_components/sim_scene_component.h"
-#include "settings/settings.h"
+#include "component_definition.h"
+
+#include "json/value.h"
+
+namespace Bess::Canvas {
+    class SceneComponent;
+    class SimulationSceneComponent;
+} // namespace Bess::Canvas
+
 namespace Bess::Svc {
 
     class PluginService {
@@ -16,7 +23,12 @@ namespace Bess::Svc {
 
         bool hasSimComponent(const uint64_t &compHash) const;
         bool hasSceneComp(const std::string &typeName) const;
+
         bool canDerserialize(const std::string &typeName) const;
+
+        std::shared_ptr<Canvas::SceneComponent> derserialize(
+            const std::string &typeName,
+            const Json::Value &json) const;
 
         std::shared_ptr<Canvas::SimulationSceneComponent> getSimComp(
             const std::shared_ptr<SimEngine::ComponentDefinition> &def) const;

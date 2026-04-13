@@ -123,4 +123,20 @@ namespace Bess::Plugins {
 
         return py::hasattr(compClass, "from_json");
     }
+
+    std::shared_ptr<Canvas::SceneComponent> PluginHandle::derserialize(const std::string &typeName,
+                                                                       const Json::Value &json) {
+        if (!canDerserialize(typeName)) {
+            return nullptr;
+        }
+
+        py::gil_scoped_acquire gil;
+
+        const auto &modName = m_typeNameModule.at(typeName);
+        py::module_ mod = py::module_::import(modName.c_str());
+        py::object compClass = mod.attr(typeName.c_str());
+
+        py::object compObj = compClass.attr("from_json")(json);
+        return compObj.cast<std::shared_ptr<Canvas::SceneComponent>>();
+    }
 } // namespace Bess::Plugins

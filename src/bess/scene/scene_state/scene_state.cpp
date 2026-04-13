@@ -6,6 +6,7 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "scene/scene_state/components/scene_component.h"
 #include "scene_ser_reg.h"
+#include "services/plugin_service/plugin_service.h"
 #include "simulation_engine.h"
 #include <cstdint>
 #include <memory>
@@ -311,15 +312,29 @@ namespace Bess::JsonConvert {
         std::vector<std::shared_ptr<Canvas::SceneComponent>> deserializedComponents;
         deserializedComponents.reserve(j["components"].size());
 
+        const auto &pluginService = Svc::PluginService::getInstance();
+
         for (const auto &compJson : j["components"]) {
             if (!compJson.isMember("typeName")) {
                 BESS_WARN("Component JSON is missing typeName field. Skipping component.");
                 continue;
             }
 
-            auto comp = Canvas::SceneSerReg::createComponentFromJson(compJson);
+            std::shared_ptr<Canvas::SceneComponent> comp = nullptr;
+
+            const auto typeName = compJson["typeName"].asString();
+
+            if (Canvas::SceneSerReg::hasComponent(typeName)) {
+                comp = Canvas::SceneSerReg::createComponentFromJson(compJson);
+            } else if (pluginService.canDerserialize(typeName)) {
+                comp = pluginService.derserialize(typeName, compJson);
+            } else {
+                BESS_WARN("No derserializer found for {}. Skipping component.", typeName);
+                continue;
+            }
+
             if (!comp) {
-                BESS_WARN("Failed to create component from JSON. Skipping component.");
+                BESS_WARN("Failed to create component from JSON for {}. Skipping component.", typeName);
                 continue;
             }
 

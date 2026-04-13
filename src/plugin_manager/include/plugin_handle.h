@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/class_helpers.h"
+#include "json/value.h"
 #include <pybind11/pybind11.h>
 #include <string>
 
@@ -38,6 +39,10 @@ namespace Bess::Plugins {
         bool hasSceneComp(const std::string &typeName);
 
         bool canDerserialize(const std::string &typeName);
+
+        std::shared_ptr<Canvas::SceneComponent> derserialize(
+            const std::string &typeName,
+            const Json::Value &json);
 
         std::shared_ptr<Canvas::SimulationSceneComponent> getSimComponent(
             const std::shared_ptr<SimEngine::ComponentDefinition> &def) const;
