@@ -33,7 +33,7 @@ class DigitalGateComp(SimulationSceneComponent):
     def to_json(self):
         data = super().to_json()
         if self.schematic_diagram:
-            data["schm_hash"] = self.schematic_diagram.hash
+            data["schm_hash"] = self.comp_def.get_hash()
         return data
 
     @staticmethod
