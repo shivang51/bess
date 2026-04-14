@@ -57,9 +57,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include;"
 		"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
     "${CMAKE_SOURCE_DIR}/external/spdlog/include;"
-    "${CMAKE_SOURCE_DIR}/src/BessPluginManager/include;"
-		"${CMAKE_SOURCE_DIR}/src/EventSystem/include"
-		"${CMAKE_SOURCE_DIR}/src/BessJson/include"
+    "${CMAKE_SOURCE_DIR}/src/bverilog/include;"
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}")

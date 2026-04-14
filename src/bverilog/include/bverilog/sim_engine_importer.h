@@ -1,15 +1,37 @@
 #pragma once
 
+#include "bess_api.h"
 #include "bverilog/types.h"
 #include "bverilog/yosys_runner.h"
+#include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "simulation_engine.h"
+#include "json/value.h"
 #include <filesystem>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 namespace Bess::Verilog {
+    struct BESS_API VerCompDefAuxData {
+        typedef std::function<Json::Value()> SerFunc;
+        std::string id;
+        static constexpr std::string_view type = "VerCompDefAuxData";
+        SerFunc toJsonCb = nullptr;
+
+        Json::Value toJson() const {
+            BESS_ASSERT(toJsonCb,
+                        std::format("toJson callback is not set for VerCompDefAuxData with id: {}", id));
+            Json::Value j;
+            j["id"] = id;
+            j["type"] = type;
+            if (toJsonCb) {
+                j["data"] = toJsonCb();
+            }
+            return j;
+        }
+    };
+
     struct BESS_API ImportedSlotEndpoint {
         UUID componentId = UUID::null;
         SimEngine::SlotType slotType = SimEngine::SlotType::digitalInput;
@@ -49,4 +71,6 @@ namespace Bess::Verilog {
         const std::filesystem::path &verilogFile,
         Bess::SimEngine::SimulationEngine &engine,
         const YosysRunnerConfig &config = {});
+
+    BESS_API std::shared_ptr<SimEngine::ComponentDefinition> getFromAuxDataJson(Json::Value auxDataJson);
 } // namespace Bess::Verilog

@@ -1,20 +1,22 @@
 #include "bverilog/sim_engine_importer.h"
+#include "common/bess_assert.h"
+#include "common/logger.h"
 #include "component_catalog.h"
 #include "component_definition.h"
 #include "digital_component.h"
 #include "expression_evalutator/expr_evaluator.h"
 #include "init_components.h"
 #include "types.h"
+#include <fstream>
 #include <memory>
 #include <optional>
+#include <sstream>
 #include <stdexcept>
-#include <utility>
 #include <string>
 #include <string_view>
-#include <fstream>
-#include <sstream>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 namespace Bess::Verilog {
     using namespace Bess::SimEngine;
@@ -265,6 +267,10 @@ namespace Bess::Verilog {
                 return definition;
             }
 
+            BESS_TRACE("Creating new component definition for %s with %zu inputs and %zu outputs",
+                       name.c_str(), inputs, outputs);
+            BESS_ASSERT(false, "");
+
             auto created = std::make_shared<ComponentDefinition>();
             created->setName(name);
             created->setGroupName("Verilog Imported");
@@ -273,6 +279,7 @@ namespace Bess::Verilog {
             created->setOutputExpressions(expressions);
             created->setSimulationFunction(ExprEval::exprEvalSimFunc);
             created->setSimDelay(SimDelayNanoSeconds(2));
+
             ComponentCatalog::instance().registerComponent(created);
             definition = findDefinitionByName(name);
             if (!definition) {
@@ -294,23 +301,30 @@ namespace Bess::Verilog {
             // D is always 0, CLK is always 1.
             int rstSlotIndex() const { return hasReset ? 2 : -1; }
             int enSlotIndex() const {
-                if (!hasEnable) return -1;
+                if (!hasEnable)
+                    return -1;
                 return hasReset ? 3 : 2;
             }
             size_t inputCount() const {
                 size_t n = 2; // D + CLK
-                if (hasReset) ++n;
-                if (hasEnable) ++n;
+                if (hasReset)
+                    ++n;
+                if (hasEnable)
+                    ++n;
                 return n;
             }
         };
 
         std::optional<DffParams> parseDffCellType(const std::string &cellType) {
             // Handle coarse-grain Yosys cells
-            if (cellType == "$dff") return DffParams{true, false, true, false, true, false, true};
-            if (cellType == "$dffe") return DffParams{true, false, true, false, true, true, true};
-            if (cellType == "$adff") return DffParams{true, true, true, false, true, false, true};
-            if (cellType == "$sdff") return DffParams{true, true, true, false, false, false, true};
+            if (cellType == "$dff")
+                return DffParams{true, false, true, false, true, false, true};
+            if (cellType == "$dffe")
+                return DffParams{true, false, true, false, true, true, true};
+            if (cellType == "$adff")
+                return DffParams{true, true, true, false, true, false, true};
+            if (cellType == "$sdff")
+                return DffParams{true, true, true, false, false, false, true};
 
             // Parse $_DFF_*, $_DFFE_*, $_SDFF_*, $_SDFFE_* naming convention
             if (cellType.size() < 7 || cellType.front() != '$' || cellType.back() != '_') {
@@ -341,56 +355,76 @@ namespace Bess::Verilog {
             }
 
             // sv now holds the polarity/value suffix, e.g. "P", "PP0", "PN0P"
-            if (sv.empty()) return std::nullopt;
+            if (sv.empty())
+                return std::nullopt;
 
             DffParams params;
             params.asyncReset = !isSyncReset;
 
             // First char: clock polarity
-            if (sv[0] == 'P') params.risingEdge = true;
-            else if (sv[0] == 'N') params.risingEdge = false;
-            else return std::nullopt;
+            if (sv[0] == 'P')
+                params.risingEdge = true;
+            else if (sv[0] == 'N')
+                params.risingEdge = false;
+            else
+                return std::nullopt;
             sv.remove_prefix(1);
 
             if (sv.empty()) {
                 // $_DFF_P_ or $_DFF_N_ (basic, no reset, no enable)
-                if (isEnableVariant) return std::nullopt; // $_DFFE_P_ needs at least enable polarity
+                if (isEnableVariant)
+                    return std::nullopt; // $_DFFE_P_ needs at least enable polarity
                 return params;
             }
 
             if (isEnableVariant && sv.size() == 1) {
                 // $_DFFE_PP_, $_DFFE_PN_, etc. — enable only, no reset
-                if (sv[0] == 'P') params.enableActiveHigh = true;
-                else if (sv[0] == 'N') params.enableActiveHigh = false;
-                else return std::nullopt;
+                if (sv[0] == 'P')
+                    params.enableActiveHigh = true;
+                else if (sv[0] == 'N')
+                    params.enableActiveHigh = false;
+                else
+                    return std::nullopt;
                 params.hasEnable = true;
                 return params;
             }
 
             // Reset polarity
-            if (sv[0] == 'P') params.resetActiveHigh = true;
-            else if (sv[0] == 'N') params.resetActiveHigh = false;
-            else return std::nullopt;
+            if (sv[0] == 'P')
+                params.resetActiveHigh = true;
+            else if (sv[0] == 'N')
+                params.resetActiveHigh = false;
+            else
+                return std::nullopt;
             sv.remove_prefix(1);
 
-            if (sv.empty()) return std::nullopt; // need reset value
+            if (sv.empty())
+                return std::nullopt; // need reset value
 
             // Reset value
-            if (sv[0] == '0') params.resetToOne = false;
-            else if (sv[0] == '1') params.resetToOne = true;
-            else return std::nullopt;
+            if (sv[0] == '0')
+                params.resetToOne = false;
+            else if (sv[0] == '1')
+                params.resetToOne = true;
+            else
+                return std::nullopt;
             sv.remove_prefix(1);
 
             params.hasReset = true;
 
             if (isEnableVariant) {
-                if (sv.size() != 1) return std::nullopt;
-                if (sv[0] == 'P') params.enableActiveHigh = true;
-                else if (sv[0] == 'N') params.enableActiveHigh = false;
-                else return std::nullopt;
+                if (sv.size() != 1)
+                    return std::nullopt;
+                if (sv[0] == 'P')
+                    params.enableActiveHigh = true;
+                else if (sv[0] == 'N')
+                    params.enableActiveHigh = false;
+                else
+                    return std::nullopt;
                 params.hasEnable = true;
             } else {
-                if (!sv.empty()) return std::nullopt;
+                if (!sv.empty())
+                    return std::nullopt;
             }
 
             return params;
@@ -398,7 +432,8 @@ namespace Bess::Verilog {
 
         std::string dffDefinitionName(const DffParams &p) {
             std::string name = "D Flip Flop";
-            if (!p.risingEdge) name += " (Neg Edge)";
+            if (!p.risingEdge)
+                name += " (Neg Edge)";
             if (p.hasReset) {
                 name += p.asyncReset ? " A" : " S";
                 name += p.resetActiveHigh ? "R+" : "R-";
@@ -439,6 +474,22 @@ namespace Bess::Verilog {
             created->setInputSlotsInfo(inputs);
             created->setOutputSlotsInfo({SlotsGroupType::output, false, 2, {"Q", "Q'"}, {}});
             created->setSimDelay(SimDelayNanoSeconds(2));
+            auto paramsToJson = [p]() {
+                Json::Value j;
+                j["risingEdge"] = p.risingEdge;
+                j["hasReset"] = p.hasReset;
+                j["resetActiveHigh"] = p.resetActiveHigh;
+                j["resetToOne"] = p.resetToOne;
+                j["asyncReset"] = p.asyncReset;
+                j["hasEnable"] = p.hasEnable;
+                j["enableActiveHigh"] = p.enableActiveHigh;
+                return j;
+            };
+
+            created->setAuxData(VerCompDefAuxData{
+                .id = "DffParams",
+                .toJsonCb = paramsToJson,
+            });
 
             const auto rstIdx = p.rstSlotIndex();
             const auto enIdx = p.enSlotIndex();
@@ -996,7 +1047,8 @@ namespace Bess::Verilog {
                                 } else {
                                     // Tie reset inactive
                                     registerLoad(SignalRef::constantValue(
-                                        dp.resetActiveHigh ? "0" : "1"), rstEndpoint);
+                                                     dp.resetActiveHigh ? "0" : "1"),
+                                                 rstEndpoint);
                                 }
                             }
 
@@ -1011,7 +1063,8 @@ namespace Bess::Verilog {
                                 } else {
                                     // Tie enable active
                                     registerLoad(SignalRef::constantValue(
-                                        dp.enableActiveHigh ? "1" : "0"), enEndpoint);
+                                                     dp.enableActiveHigh ? "1" : "0"),
+                                                 enEndpoint);
                                 }
                             }
 
@@ -1094,5 +1147,25 @@ namespace Bess::Verilog {
         return importDesignIntoSimulationEngine(importVerilogToDesign(verilogFile, config),
                                                 engine,
                                                 config.topModuleName);
+    }
+
+    std::shared_ptr<SimEngine::ComponentDefinition> getFromAuxDataJson(Json::Value auxDataJson) {
+        BESS_ASSERT(auxDataJson["type"].asString() == VerCompDefAuxData::type,
+                    std::format("Expected aux data of type VerCompDefAuxData, got {}",
+                                auxDataJson["type"].asString()));
+
+        const auto &id = auxDataJson["id"].asString();
+        const auto &data = auxDataJson["data"];
+
+        if (id == "DffParams") {
+            DffParams params;
+            params.hasReset = data["hasReset"].asBool();
+            params.resetActiveHigh = data["resetActiveHigh"].asBool();
+            params.hasEnable = data["hasEnable"].asBool();
+            params.enableActiveHigh = data["enableActiveHigh"].asBool();
+            return ensureGeneralDffDefinition(params);
+        }
+
+        return nullptr;
     }
 } // namespace Bess::Verilog
