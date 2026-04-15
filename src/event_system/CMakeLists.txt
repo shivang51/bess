@@ -43,10 +43,6 @@ add_dependencies(${PROJECT_NAME}
 	common
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC 
-	"${CMAKE_SOURCE_DIR}/external/spdlogP/include"
-)
-
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8" "/Zc:__cplusplus")
 endif()

@@ -36,6 +36,7 @@ add_dependencies(${PROJECT_NAME} BessJson)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
 	${CMAKE_CURRENT_SOURCE_DIR}/include
+	${CMAKE_SOURCE_DIR}/external/spdlog/include
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
