@@ -1265,6 +1265,74 @@ endmodule
     std::filesystem::remove(verilogPath);
 }
 
+TEST_F(VerilogImportTest, KeepsVectorTopOutputSlotMappingWhenDriverIsSharedConstant) {
+    const auto verilogPath = writeTempVerilogFile(
+        buildUniqueTempVerilogFileName("bess_shared_const_output_mapping_test"),
+        R"verilog(
+module cpu(
+    output [15:0] address
+);
+    assign address = 16'h0000;
+endmodule
+)verilog");
+
+    const auto result = importVerilogFileIntoSimulationEngine(
+        verilogPath,
+        *engine,
+        YosysRunnerConfig{
+            .executablePath = "yosys",
+            .topModuleName = std::string("cpu"),
+        });
+
+    ASSERT_TRUE(result.topOutputComponents.contains("address"));
+    const auto addressOut = result.topOutputComponents.at("address");
+
+    auto &sceneDriver = Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
+    auto rootScene = sceneDriver.getActiveScene();
+    ASSERT_NE(rootScene, nullptr);
+    rootScene->clear();
+    Bess::Pages::populateSceneFromVerilogImportResult(result, *engine, *rootScene);
+
+    std::shared_ptr<Bess::Canvas::ModuleSceneComponent> topModule;
+    for (const auto &[uuid, component] : rootScene->getState().getAllComponents()) {
+        (void)uuid;
+        if (component->getParentComponent() != UUID::null) {
+            continue;
+        }
+        if (component->getType() != Bess::Canvas::SceneComponentType::module) {
+            continue;
+        }
+
+        const auto moduleComp = std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(component);
+        if (moduleComp && moduleComp->getName() == "cpu") {
+            topModule = moduleComp;
+            break;
+        }
+    }
+
+    ASSERT_NE(topModule, nullptr);
+    const auto wrapperId = topModule->getSimEngineId();
+
+    const auto addressConnections = engine->getConnections(addressOut);
+    ASSERT_EQ(addressConnections.inputs.size(), 16u);
+
+    for (int dstSlot = 0; dstSlot < 16; ++dstSlot) {
+        bool foundExpectedSource = false;
+        for (const auto &[srcId, srcSlot] : addressConnections.inputs[dstSlot]) {
+            if (srcId == wrapperId && srcSlot == dstSlot) {
+                foundExpectedSource = true;
+                break;
+            }
+        }
+
+        EXPECT_TRUE(foundExpectedSource)
+            << "Expected wrapper slot " << dstSlot
+            << " to drive address output slot " << dstSlot;
+    }
+
+    std::filesystem::remove(verilogPath);
+}
+
 TEST_F(VerilogImportTest, ImportsSingleTopFileWithIncludeFromSameDirectory) {
     const auto helperFileName = buildUniqueTempVerilogFileName("bess_include_helper_test");
     const auto topFileName = buildUniqueTempVerilogFileName("bess_include_top_test");

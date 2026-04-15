@@ -394,6 +394,7 @@ namespace Bess::Pages {
 
             auto inputBoundarySinks = instance.internalInputSinks;
             auto outputBoundaryDrivers = instance.internalOutputDrivers;
+            std::unordered_map<std::string, size_t> topOutputTargetToBoundarySlot;
 
             if (instance.instancePath == result.topModuleName) {
                 std::vector<std::unordered_set<std::string>> seenInputSinks(inputBoundarySinks.size());
@@ -450,6 +451,10 @@ namespace Bess::Pages {
                         if (!slotIndex.has_value() || *slotIndex >= outputBoundaryDrivers.size()) {
                             continue;
                         }
+
+                        topOutputTargetToBoundarySlot[endpointKey(topOutputId,
+                                                                  SimEngine::SlotType::digitalInput,
+                                                                  static_cast<int>(dstSlot))] = *slotIndex;
 
                         for (const auto &[srcId, srcSlot] : topOutputConnections.inputs[dstSlot]) {
                             if (srcId == wrapperId || srcId == moduleOutputId) {
@@ -543,6 +548,17 @@ namespace Bess::Pages {
                     for (const auto &[dstId, dstSlotIndex] : outgoingConnections) {
                         if (dstId == moduleOutputId || dstId == wrapperId) {
                             continue;
+                        }
+
+                        if (!topOutputTargetToBoundarySlot.empty()) {
+                            const auto targetKey = endpointKey(dstId,
+                                                               SimEngine::SlotType::digitalInput,
+                                                               dstSlotIndex);
+                            const auto mappedSlotIt = topOutputTargetToBoundarySlot.find(targetKey);
+                            if (mappedSlotIt != topOutputTargetToBoundarySlot.end() &&
+                                mappedSlotIt->second != slotIndex) {
+                                continue;
+                            }
                         }
 
                         if (isOwnedByInstance(result, moduleByPath, dstId, instance.instancePath)) {
