@@ -10,6 +10,7 @@
 #include "simulation_engine.h"
 #include "types.h"
 #include "gtest/gtest.h"
+#include <atomic>
 #include <array>
 #include <filesystem>
 #include <fstream>
@@ -46,6 +47,14 @@ namespace {
         }
         stream << source;
         return path;
+    }
+
+    std::string buildUniqueTempVerilogFileName(const std::string &stem) {
+        static std::atomic<uint64_t> counter{0};
+        return std::format("{}_{}_{}.v",
+                           stem,
+                           std::chrono::steady_clock::now().time_since_epoch().count(),
+                           counter.fetch_add(1));
     }
 } // namespace
 
@@ -118,6 +127,27 @@ TEST_F(VerilogImportTest, ParsesYosysJsonAndDetectsTopModule) {
     ASSERT_EQ(design.topModuleName, "top");
     ASSERT_NE(design.findModule("child"), nullptr);
     ASSERT_NE(design.findModule("top"), nullptr);
+}
+
+TEST_F(VerilogImportTest, ImportsTopOutputWithConstantEncodedBit) {
+    Json::Value root(Json::objectValue);
+    root["modules"] = Json::Value(Json::objectValue);
+
+    auto &top = root["modules"]["top"];
+    top["attributes"]["top"] = "1";
+    top["ports"]["const_out"]["direction"] = "output";
+    top["ports"]["const_out"]["bits"].append("0");
+
+    const auto design = parseDesignFromYosysJson(root);
+    const auto result = importDesignIntoSimulationEngine(design, *engine);
+
+    ASSERT_EQ(result.topModuleName, "top");
+    ASSERT_TRUE(result.topOutputComponents.contains("const_out"));
+
+    const auto constOut = result.topOutputComponents.at("const_out");
+    ASSERT_TRUE(waitUntil([&] {
+        return engine->getDigitalSlotState(constOut, SlotType::digitalInput, 0).state == LogicState::low;
+    })) << "Constant-encoded top output did not resolve to low";
 }
 
 TEST_F(VerilogImportTest, ImportsNestedModulesIntoSimulationEngineAndPropagatesSignals) {
@@ -1231,6 +1261,159 @@ endmodule
     // Long IO names should force wider components if scales were computed before layout.
     EXPECT_GT(rootInput->getTransform().scale.x, 100.f);
     EXPECT_GT(rootOutput->getTransform().scale.x, 100.f);
+
+    std::filesystem::remove(verilogPath);
+}
+
+TEST_F(VerilogImportTest, ImportsSingleTopFileWithIncludeFromSameDirectory) {
+    const auto helperFileName = buildUniqueTempVerilogFileName("bess_include_helper_test");
+    const auto topFileName = buildUniqueTempVerilogFileName("bess_include_top_test");
+
+    const auto helperPath = writeTempVerilogFile(
+        helperFileName,
+        R"verilog(
+module include_helper(input a, input b, output y);
+    assign y = a & b;
+endmodule
+)verilog");
+
+    const auto topPath = writeTempVerilogFile(
+        topFileName,
+        std::format(R"verilog(
+`include "{}"
+
+module include_top(input a, input b, output y);
+    include_helper u0(.a(a), .b(b), .y(y));
+endmodule
+)verilog",
+                    helperFileName));
+
+    const auto result = importVerilogFileIntoSimulationEngine(
+        topPath,
+        *engine,
+        YosysRunnerConfig{
+            .executablePath = "yosys",
+            .topModuleName = std::string("include_top"),
+        });
+
+    ASSERT_EQ(result.topModuleName, "include_top");
+    ASSERT_TRUE(result.topInputComponents.contains("a"));
+    ASSERT_TRUE(result.topInputComponents.contains("b"));
+    ASSERT_TRUE(result.topOutputComponents.contains("y"));
+
+    const auto a = result.topInputComponents.at("a");
+    const auto b = result.topInputComponents.at("b");
+    const auto y = result.topOutputComponents.at("y");
+
+    engine->setOutputSlotState(a, 0, LogicState::high);
+    engine->setOutputSlotState(b, 0, LogicState::high);
+    ASSERT_TRUE(waitUntil([&] {
+        return engine->getDigitalSlotState(y, SlotType::digitalInput, 0).state == LogicState::high;
+    })) << "Include-based helper module did not propagate expected output";
+
+    engine->setOutputSlotState(b, 0, LogicState::low);
+    ASSERT_TRUE(waitUntil([&] {
+        return engine->getDigitalSlotState(y, SlotType::digitalInput, 0).state == LogicState::low;
+    })) << "Include-based helper module did not update output after input change";
+
+    std::filesystem::remove(topPath);
+    std::filesystem::remove(helperPath);
+}
+
+TEST_F(VerilogImportTest, ImportsDesignFromExplicitMultipleVerilogSourceFiles) {
+    const auto childPath = writeTempVerilogFile(
+        buildUniqueTempVerilogFileName("bess_multifile_child_test"),
+        R"verilog(
+module child_and(input a, input b, output y);
+    assign y = a & b;
+endmodule
+)verilog");
+
+    const auto topPath = writeTempVerilogFile(
+        buildUniqueTempVerilogFileName("bess_multifile_top_test"),
+        R"verilog(
+module multi_top(input a, input b, output y);
+    child_and u0(.a(a), .b(b), .y(y));
+endmodule
+)verilog");
+
+    const auto result = importVerilogFilesIntoSimulationEngine(
+        std::vector<std::filesystem::path>{topPath, childPath},
+        *engine,
+        YosysRunnerConfig{
+            .executablePath = "yosys",
+            .topModuleName = std::string("multi_top"),
+        });
+
+    ASSERT_EQ(result.topModuleName, "multi_top");
+    ASSERT_TRUE(result.topInputComponents.contains("a"));
+    ASSERT_TRUE(result.topInputComponents.contains("b"));
+    ASSERT_TRUE(result.topOutputComponents.contains("y"));
+
+    const auto a = result.topInputComponents.at("a");
+    const auto b = result.topInputComponents.at("b");
+    const auto y = result.topOutputComponents.at("y");
+
+    engine->setOutputSlotState(a, 0, LogicState::high);
+    engine->setOutputSlotState(b, 0, LogicState::high);
+    ASSERT_TRUE(waitUntil([&] {
+        return engine->getDigitalSlotState(y, SlotType::digitalInput, 0).state == LogicState::high;
+    })) << "Multi-file design output did not resolve high for 1 & 1";
+
+    engine->setOutputSlotState(a, 0, LogicState::high);
+    engine->setOutputSlotState(b, 0, LogicState::low);
+    ASSERT_TRUE(waitUntil([&] {
+        return engine->getDigitalSlotState(y, SlotType::digitalInput, 0).state == LogicState::low;
+    })) << "Multi-file design output did not resolve low for 1 & 0";
+
+    std::filesystem::remove(topPath);
+    std::filesystem::remove(childPath);
+}
+
+TEST_F(VerilogImportTest, ImportsTriStateDesignWithTopLevelInoutPort) {
+    const auto verilogPath = writeTempVerilogFile(
+        buildUniqueTempVerilogFileName("bess_tristate_inout_test"),
+        R"verilog(
+module tri_top(
+    input en,
+    input d,
+    inout bus,
+    output q
+);
+    assign bus = en ? d : 1'bz;
+    assign q = bus;
+endmodule
+)verilog");
+
+    const auto yosysJson = runYosysForJson(
+        verilogPath,
+        YosysRunnerConfig{
+            .executablePath = "yosys",
+            .topModuleName = std::string("tri_top"),
+        });
+
+    ASSERT_TRUE(yosysJson.isMember("modules"));
+    ASSERT_TRUE(yosysJson["modules"].isMember("tri_top"));
+
+    const auto &ports = yosysJson["modules"]["tri_top"]["ports"];
+    ASSERT_TRUE(ports.isObject());
+    ASSERT_TRUE(ports.isMember("bus"));
+    ASSERT_EQ(ports["bus"]["direction"].asString(), "inout");
+
+    const auto result = importVerilogFileIntoSimulationEngine(
+        verilogPath,
+        *engine,
+        YosysRunnerConfig{
+            .executablePath = "yosys",
+            .topModuleName = std::string("tri_top"),
+        });
+
+    ASSERT_EQ(result.topModuleName, "tri_top");
+    ASSERT_TRUE(result.topInputComponents.contains("en"));
+    ASSERT_TRUE(result.topInputComponents.contains("d"));
+    ASSERT_TRUE(result.topInputComponents.contains("bus"));
+    ASSERT_TRUE(result.topOutputComponents.contains("bus"));
+    ASSERT_TRUE(result.topOutputComponents.contains("q"));
 
     std::filesystem::remove(verilogPath);
 }

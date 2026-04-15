@@ -12,6 +12,7 @@
 #include "pages/main_page/verilog_scene_import.h"
 #include "simulation_engine.h"
 #include <cstdint>
+#include <filesystem>
 #include <optional>
 
 namespace Bess::Pages {
@@ -122,6 +123,22 @@ namespace Bess::Pages {
             comp->setScaleDirty();
             comp->setSchematicScaleDirty();
         }
+
+        std::vector<std::filesystem::path> toFilesystemPaths(const std::vector<std::string> &paths) {
+            std::vector<std::filesystem::path> result;
+            result.reserve(paths.size());
+            for (const auto &path : paths) {
+                result.emplace_back(path);
+            }
+            return result;
+        }
+
+        std::string primaryImportPath(const std::vector<std::string> &paths) {
+            if (paths.empty()) {
+                return {};
+            }
+            return paths.front();
+        }
     } // namespace
 
     struct MainPageState::VerilogImportSession {
@@ -134,7 +151,7 @@ namespace Bess::Pages {
             failed,
         };
 
-        std::string path;
+        std::vector<std::string> paths;
         float progress = 0.f;
         std::string stageMessage = "Select a Verilog file";
         bool importing = false;
@@ -180,7 +197,18 @@ namespace Bess::Pages {
     }
 
     bool MainPageState::importVerilogFile(const std::string &path, std::string *errorMessage) {
+        return importVerilogFiles(std::vector<std::string>{path}, errorMessage);
+    }
+
+    bool MainPageState::importVerilogFiles(const std::vector<std::string> &paths, std::string *errorMessage) {
         try {
+            if (paths.empty()) {
+                if (errorMessage) {
+                    *errorMessage = "No Verilog files were selected";
+                }
+                return false;
+            }
+
             auto scene = m_sceneDriver.getActiveScene();
             if (!scene) {
                 if (errorMessage) {
@@ -191,7 +219,7 @@ namespace Bess::Pages {
 
             resetProjectState();
             auto &simEngine = SimEngine::SimulationEngine::instance();
-            const auto result = Verilog::importVerilogFileIntoSimulationEngine(path, simEngine);
+            const auto result = Verilog::importVerilogFilesIntoSimulationEngine(toFilesystemPaths(paths), simEngine);
             populateSceneFromVerilogImportResult(result, simEngine, *scene);
             m_sceneDriver.updateNets(scene);
             return true;
@@ -199,7 +227,9 @@ namespace Bess::Pages {
             if (errorMessage) {
                 *errorMessage = ex.what();
             }
-            BESS_ERROR("[MainPageState] Failed to import Verilog file {}: {}", path, ex.what());
+            BESS_ERROR("[MainPageState] Failed to import Verilog files (primary {}): {}",
+                       primaryImportPath(paths),
+                       ex.what());
             return false;
         }
     }
@@ -215,8 +245,12 @@ namespace Bess::Pages {
     }
 
     void MainPageState::startVerilogImport(const std::string &path) {
+        startVerilogImport(std::vector<std::string>{path});
+    }
+
+    void MainPageState::startVerilogImport(const std::vector<std::string> &paths) {
         m_verilogImportSession = std::make_unique<VerilogImportSession>();
-        m_verilogImportSession->path = path;
+        m_verilogImportSession->paths = paths;
         m_verilogImportSession->progress = 0.05f;
         m_verilogImportSession->stageMessage = "Clearing current project";
         m_verilogImportSession->importing = true;
@@ -255,7 +289,9 @@ namespace Bess::Pages {
                 session.phase = VerilogImportSession::Phase::importSimulation;
                 break;
             case VerilogImportSession::Phase::importSimulation:
-                session.stagedResult = Verilog::importVerilogFileIntoSimulationEngine(session.path, simEngine);
+                session.stagedResult = Verilog::importVerilogFilesIntoSimulationEngine(
+                    toFilesystemPaths(session.paths),
+                    simEngine);
                 session.progress = 0.7f;
                 session.stageMessage = "Creating scene components";
                 session.phase = VerilogImportSession::Phase::createScene;
@@ -450,7 +486,7 @@ namespace Bess::Pages {
 
     void MainPageState::onCompDefOutputsResized(const SimEngine::Events::CompDefOutputsResizedEvent &e) {
         if (!m_simIdToSceneCompId.contains(e.componentId)) {
-            BESS_ERROR("Received CompDefOutputsResizedEvent for unknown componentId: {}", (uint64_t)e.componentId);
+            BESS_TRACE("Ignoring CompDefOutputsResizedEvent for unknown componentId: {}", (uint64_t)e.componentId);
             return;
         }
 
@@ -474,7 +510,7 @@ namespace Bess::Pages {
 
     void MainPageState::onCompDefInputsResized(const SimEngine::Events::CompDefInputsResizedEvent &e) {
         if (!m_simIdToSceneCompId.contains(e.componentId)) {
-            BESS_ERROR("Received CompDefInputsResizedEvent for unknown componentId: {}", (uint64_t)e.componentId);
+            BESS_TRACE("Ignoring CompDefInputsResizedEvent for unknown componentId: {}", (uint64_t)e.componentId);
             return;
         }
 

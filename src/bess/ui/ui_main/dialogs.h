@@ -12,6 +12,8 @@ namespace Bess::UI {
                                               const FilterMap &filters);
         static std::string showOpenFileDialog(const std::string &title,
                                               const FilterMap &filters);
+        static std::vector<std::string> showOpenFilesDialog(const std::string &title,
+                                  const FilterMap &filters);
         static std::string showSelectPathDialog(const std::string &title);
     };
 } // namespace Bess::UI

@@ -25,4 +25,13 @@ namespace Bess::UI {
 
         return selection.empty() ? "" : selection.front();
     }
+
+    std::vector<std::string> Dialogs::showOpenFilesDialog(const std::string &title,
+                                                          const FilterMap &filters) {
+        return pfd::open_file(title,
+                              "",
+                              filters,
+                              pfd::opt::multiselect)
+            .result();
+    }
 } // namespace Bess::UI

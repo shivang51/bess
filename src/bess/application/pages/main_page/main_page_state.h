@@ -7,6 +7,7 @@
 #include "events/sim_engine_events.h"
 #include "scene.h"
 #include "scene_events.h"
+#include <vector>
 
 namespace Bess {
     namespace Canvas {
@@ -68,8 +69,10 @@ namespace Bess::Pages {
         void loadProject(const std::string &path);
         void updateCurrentProject(const std::shared_ptr<ProjectFile> &project);
         bool importVerilogFile(const std::string &path, std::string *errorMessage = nullptr);
+        bool importVerilogFiles(const std::vector<std::string> &paths, std::string *errorMessage = nullptr);
         HierarchicalSceneLayoutResult applyHierarchicalLayoutToActiveScene();
         void startVerilogImport(const std::string &path);
+        void startVerilogImport(const std::vector<std::string> &paths);
         VerilogImportStatus advanceVerilogImport(std::string *errorMessage = nullptr);
         void cancelVerilogImport();
 

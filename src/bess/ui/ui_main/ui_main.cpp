@@ -27,6 +27,7 @@
 #include "ui/ui_main/truth_table_window.h"
 #include "ui_main/scene_viewport_panel.h"
 #include <filesystem>
+#include <vector>
 
 namespace Bess::UI {
     static constexpr ImGuiWindowFlags NO_MOVE_FLAGS =
@@ -39,7 +40,8 @@ namespace Bess::UI {
             bool open = false;
             bool requestOpenPopup = false;
             std::string filePath;
-            std::string stageMessage = "Select a Verilog file";
+            std::vector<std::string> filePaths;
+            std::string stageMessage = "Select Verilog files";
             float progress = 0.f;
             bool importing = false;
             bool finished = false;
@@ -52,11 +54,41 @@ namespace Bess::UI {
         }
 
         void resetVerilogImportWizard(VerilogImportWizardState &state) {
+            state.filePath.clear();
+            state.filePaths.clear();
             state.importing = false;
             state.finished = false;
             state.failed = false;
             state.progress = 0.f;
-            state.stageMessage = "Select a Verilog file";
+            state.stageMessage = "Select Verilog files";
+        }
+
+        std::vector<std::string> selectedVerilogPaths(const VerilogImportWizardState &state) {
+            if (!state.filePaths.empty()) {
+                return state.filePaths;
+            }
+            if (!state.filePath.empty()) {
+                return {state.filePath};
+            }
+            return {};
+        }
+
+        std::string importSelectionLabel(const std::vector<std::string> &paths) {
+            if (paths.empty()) {
+                return {};
+            }
+
+            const auto primary = std::filesystem::path(paths.front()).filename().string();
+            if (paths.size() == 1) {
+                return primary;
+            }
+
+            return std::format("{} (+{} more)", primary, paths.size() - 1);
+        }
+
+        bool hasSupportedVerilogExtension(const std::filesystem::path &path) {
+            const auto extension = path.extension().string();
+            return extension == ".v" || extension == ".sv" || extension == ".vh" || extension == ".svh";
         }
     } // namespace
 
@@ -453,9 +485,9 @@ namespace Bess::UI {
                 if (status.failed) {
                     getState()._internalData.statusMessage = status.stageMessage;
                 } else {
+                    const auto paths = selectedVerilogPaths(wizard);
                     getState()._internalData.statusMessage =
-                        std::format("Imported Verilog: {}",
-                                    std::filesystem::path(wizard.filePath).filename().string());
+                        std::format("Imported Verilog: {}", importSelectionLabel(paths));
                     wizard.open = false;
                     resetVerilogImportWizard(wizard);
                     pageState.cancelVerilogImport();
@@ -464,16 +496,27 @@ namespace Bess::UI {
             }
         }
 
-        ImGui::TextUnformatted("File");
-        Widgets::TextBox("##VerilogImportPath", wizard.filePath, "Select a Verilog file");
+        ImGui::TextUnformatted("Files");
+        if (Widgets::TextBox("##VerilogImportPath", wizard.filePath, "Select Verilog files")) {
+            wizard.filePaths.clear();
+        }
         ImGui::SameLine();
         if (ImGui::Button("Browse") && !wizard.importing) {
-            const auto path = Dialogs::showOpenFileDialog("Import Verilog File",
-                                                          {"Verilog Script File", "*.sv *.v",
-                                                           "All Files", "*.*"});
-            if (!path.empty()) {
-                wizard.filePath = path;
+            const auto paths = Dialogs::showOpenFilesDialog("Import Verilog Files",
+                                                            {"Verilog Source Files", "*.sv *.v *.svh *.vh",
+                                                             "All Files", "*.*"});
+            if (!paths.empty()) {
+                wizard.filePaths = paths;
+                wizard.filePath = importSelectionLabel(paths);
             }
+        }
+
+        if (ImGui::IsItemHovered() && !wizard.filePaths.empty()) {
+            ImGui::BeginTooltip();
+            for (const auto &path : wizard.filePaths) {
+                ImGui::TextUnformatted(path.c_str());
+            }
+            ImGui::EndTooltip();
         }
 
         ImGui::Spacing();
@@ -481,18 +524,27 @@ namespace Bess::UI {
         ImGui::ProgressBar(wizard.progress, ImVec2(420.f, 0.f));
 
         ImGui::Spacing();
-        ImGui::BeginDisabled(wizard.importing || wizard.filePath.empty());
+        const auto selectedPaths = selectedVerilogPaths(wizard);
+
+        ImGui::BeginDisabled(wizard.importing || selectedPaths.empty());
         if (ImGui::Button("Import", ImVec2(120.f, 0.f))) {
-            const auto extension = std::filesystem::path(wizard.filePath).extension().string();
-            if (extension != ".v" && extension != ".sv") {
+            bool hasUnsupportedFiles = false;
+            for (const auto &path : selectedPaths) {
+                if (!hasSupportedVerilogExtension(path)) {
+                    hasUnsupportedFiles = true;
+                    break;
+                }
+            }
+
+            if (hasUnsupportedFiles) {
                 wizard.importing = false;
                 wizard.finished = true;
                 wizard.failed = true;
                 wizard.progress = 1.f;
-                wizard.stageMessage = "Import failed: please choose a .v or .sv file";
+                wizard.stageMessage = "Import failed: choose only .v, .sv, .vh, or .svh files";
                 getState()._internalData.statusMessage = wizard.stageMessage;
             } else {
-                pageState.startVerilogImport(wizard.filePath);
+                pageState.startVerilogImport(selectedPaths);
                 wizard.importing = true;
                 wizard.finished = false;
                 wizard.failed = false;

@@ -72,5 +72,10 @@ namespace Bess::Verilog {
         Bess::SimEngine::SimulationEngine &engine,
         const YosysRunnerConfig &config = {});
 
+    BESS_API SimEngineImportResult importVerilogFilesIntoSimulationEngine(
+        const std::vector<std::filesystem::path> &verilogFiles,
+        Bess::SimEngine::SimulationEngine &engine,
+        const YosysRunnerConfig &config = {});
+
     BESS_API std::shared_ptr<SimEngine::ComponentDefinition> getFromAuxDataJson(Json::Value auxDataJson);
 } // namespace Bess::Verilog

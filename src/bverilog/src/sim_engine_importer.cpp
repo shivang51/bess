@@ -684,15 +684,19 @@ namespace Bess::Verilog {
                 return module;
             }
 
-            std::string keyForBit(const SignalBit &bit) const {
+            std::optional<std::string> keyForBit(const SignalBit &bit) const {
                 if (!bit.isNet()) {
-                    throw std::runtime_error("Cannot build a net key for a constant signal bit");
+                    return std::nullopt;
                 }
                 return std::to_string(*bit.netId);
             }
 
-            std::string scopedNetKey(std::string_view path, const SignalBit &bit) const {
-                return std::string(path) + ":" + keyForBit(bit);
+            std::optional<std::string> scopedNetKey(std::string_view path, const SignalBit &bit) const {
+                const auto bitKey = keyForBit(bit);
+                if (!bitKey.has_value()) {
+                    return std::nullopt;
+                }
+                return std::string(path) + ":" + *bitKey;
             }
 
             std::string scopedPortBitKey(std::string_view path, const Port &port, size_t bitIndex) const {
@@ -706,12 +710,17 @@ namespace Bess::Verilog {
                     return SignalRef::constantValue(*bit.constant);
                 }
 
-                const auto directPortIt = bindings.find(scopedNetKey(path, bit));
+                const auto signalKey = scopedNetKey(path, bit);
+                if (!signalKey.has_value()) {
+                    throw std::runtime_error("Unsupported signal bit encoding while resolving imported Verilog signal");
+                }
+
+                const auto directPortIt = bindings.find(*signalKey);
                 if (directPortIt != bindings.end()) {
                     return directPortIt->second;
                 }
 
-                return SignalRef::net(scopedNetKey(path, bit));
+                return SignalRef::net(*signalKey);
             }
 
             void registerDriver(const SignalRef &signal, SlotEndpoint endpoint) {
@@ -771,10 +780,6 @@ namespace Bess::Verilog {
                 auto outputDefinition = ensureBuiltinIoDefinition("Output");
 
                 for (const auto &port : topModule.ports) {
-                    if (port.direction == PortDirection::inout) {
-                        throw std::runtime_error("Inout ports are not supported by the BESS Verilog importer");
-                    }
-
                     std::vector<std::string> slotNames;
                     slotNames.reserve(port.bits.size());
                     if (port.bits.size() == 1) {
@@ -792,18 +797,61 @@ namespace Bess::Verilog {
                                                                    true);
                         m_result.topInputComponents[port.name] = id;
                         for (size_t i = 0; i < port.bits.size(); ++i) {
-                            const auto signal = SignalRef::net(scopedNetKey(topModule.name, port.bits[i]));
+                            const auto signalKey = scopedNetKey(topModule.name, port.bits[i]);
+                            if (!signalKey.has_value()) {
+                                BESS_WARN("[Verilog Import] Top input port '{}' bit {} resolved to constant and cannot drive internal net",
+                                          port.name,
+                                          i);
+                                continue;
+                            }
+                            const auto signal = SignalRef::net(*signalKey);
                             registerDriver(signal, SlotEndpoint{id, SlotType::digitalOutput, static_cast<int>(i)});
                         }
-                    } else {
+                    } else if (port.direction == PortDirection::output) {
                         const auto id = createTopBoundaryComponent(outputDefinition,
                                                                    port.bits.size(),
                                                                    slotNames,
                                                                    false);
                         m_result.topOutputComponents[port.name] = id;
                         for (size_t i = 0; i < port.bits.size(); ++i) {
-                            const auto signal = SignalRef::net(scopedNetKey(topModule.name, port.bits[i]));
-                            registerLoad(signal, SlotEndpoint{id, SlotType::digitalInput, static_cast<int>(i)});
+                            const auto signalKey = scopedNetKey(topModule.name, port.bits[i]);
+                            if (signalKey.has_value()) {
+                                registerLoad(SignalRef::net(*signalKey),
+                                             SlotEndpoint{id, SlotType::digitalInput, static_cast<int>(i)});
+                            } else if (port.bits[i].isConstant()) {
+                                registerLoad(SignalRef::constantValue(*port.bits[i].constant),
+                                             SlotEndpoint{id, SlotType::digitalInput, static_cast<int>(i)});
+                            }
+                        }
+                    } else {
+                        BESS_WARN("[Verilog Import] Top-level inout port '{}' is imported as bidirectional boundary with limited multi-driver support",
+                                  port.name);
+
+                        const auto inputId = createTopBoundaryComponent(inputDefinition,
+                                                                        port.bits.size(),
+                                                                        slotNames,
+                                                                        true);
+                        m_result.topInputComponents[port.name] = inputId;
+
+                        const auto outputId = createTopBoundaryComponent(outputDefinition,
+                                                                         port.bits.size(),
+                                                                         slotNames,
+                                                                         false);
+                        m_result.topOutputComponents[port.name] = outputId;
+
+                        for (size_t i = 0; i < port.bits.size(); ++i) {
+                            const auto signalKey = scopedNetKey(topModule.name, port.bits[i]);
+                            if (signalKey.has_value()) {
+                                registerLoad(SignalRef::net(*signalKey),
+                                             SlotEndpoint{outputId, SlotType::digitalInput, static_cast<int>(i)});
+                                m_pendingTopInputDrivers.emplace_back(*signalKey,
+                                                                      SlotEndpoint{inputId,
+                                                                                   SlotType::digitalOutput,
+                                                                                   static_cast<int>(i)});
+                            } else if (port.bits[i].isConstant()) {
+                                registerLoad(SignalRef::constantValue(*port.bits[i].constant),
+                                             SlotEndpoint{outputId, SlotType::digitalInput, static_cast<int>(i)});
+                            }
                         }
                     }
                 }
@@ -860,8 +908,11 @@ namespace Bess::Verilog {
                             }
 
                             for (size_t i = 0; i < childPort.bits.size(); ++i) {
-                                childBindings[scopedNetKey(path + "/" + cell.name, childPort.bits[i])] =
-                                    resolveSignal(path, connIt->second[i], bindings);
+                                const auto bindingKey = scopedNetKey(path + "/" + cell.name, childPort.bits[i]);
+                                if (!bindingKey.has_value()) {
+                                    continue;
+                                }
+                                childBindings[*bindingKey] = resolveSignal(path, connIt->second[i], bindings);
                             }
                         }
 
@@ -1078,6 +1129,13 @@ namespace Bess::Verilog {
             }
 
             void materializeConnections() {
+                // For inout boundaries, only use the top input component when the net has no internal driver.
+                for (const auto &[netKey, endpoint] : m_pendingTopInputDrivers) {
+                    if (!m_netDrivers.contains(netKey)) {
+                        m_netDrivers[netKey] = endpoint;
+                    }
+                }
+
                 for (const auto &[signal, sink] : m_directLoads) {
                     SlotEndpoint source;
                     if (signal.kind == SignalRefKind::constant) {
@@ -1120,6 +1178,7 @@ namespace Bess::Verilog {
             std::unordered_map<std::string, std::vector<SlotEndpoint>> m_netLoads;
             std::vector<std::pair<SignalRef, SlotEndpoint>> m_directLoads;
             std::unordered_map<std::string, SlotEndpoint> m_constantDrivers;
+            std::vector<std::pair<std::string, SlotEndpoint>> m_pendingTopInputDrivers;
             std::vector<UUID> m_createdComponentIds;
         };
     } // namespace
@@ -1143,7 +1202,15 @@ namespace Bess::Verilog {
     SimEngineImportResult importVerilogFileIntoSimulationEngine(const std::filesystem::path &verilogFile,
                                                                 SimulationEngine &engine,
                                                                 const YosysRunnerConfig &config) {
-        return importDesignIntoSimulationEngine(importVerilogToDesign(verilogFile, config),
+        return importVerilogFilesIntoSimulationEngine(std::vector<std::filesystem::path>{verilogFile},
+                                                      engine,
+                                                      config);
+    }
+
+    SimEngineImportResult importVerilogFilesIntoSimulationEngine(const std::vector<std::filesystem::path> &verilogFiles,
+                                                                 SimulationEngine &engine,
+                                                                 const YosysRunnerConfig &config) {
+        return importDesignIntoSimulationEngine(importVerilogToDesign(verilogFiles, config),
                                                 engine,
                                                 config.topModuleName);
     }
