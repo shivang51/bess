@@ -147,9 +147,78 @@ function Test-MinGWToolchainAvailable {
     return [bool](Get-Command g++ -ErrorAction SilentlyContinue)
 }
 
+function Get-MinGWRoot {
+    $gpp = Get-Command g++ -ErrorAction SilentlyContinue
+    if (-not $gpp) {
+        return $null
+    }
+
+    $binDir = Split-Path -Parent $gpp.Source
+    if ([string]::IsNullOrWhiteSpace($binDir)) {
+        return $null
+    }
+
+    $rootDir = Split-Path -Parent $binDir
+    if ([string]::IsNullOrWhiteSpace($rootDir) -or -not (Test-Path $rootDir)) {
+        return $null
+    }
+
+    return $rootDir
+}
+
+function Get-MinGWWindres {
+    $candidates = @(
+        (Get-Command windres -ErrorAction SilentlyContinue),
+        (Get-Command x86_64-w64-mingw32-windres -ErrorAction SilentlyContinue)
+    )
+
+    foreach ($candidate in $candidates) {
+        if ($candidate) {
+            return $candidate.Source
+        }
+    }
+
+    return $null
+}
+
+function Test-ClangWithMinGWLink {
+    param(
+        [Parameter(Mandatory = $true)][string]$MinGWRoot
+    )
+
+    $clang = Get-Command clang -ErrorAction SilentlyContinue
+    if (-not $clang) {
+        return $false
+    }
+
+    $probeDir = Join-Path ([System.IO.Path]::GetTempPath()) ("bess-clang-probe-" + [Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $probeDir -Force | Out-Null
+
+    try {
+        $probeSource = Join-Path $probeDir "probe.c"
+        $probeOutput = Join-Path $probeDir "probe.exe"
+        Set-Content -Path $probeSource -Value "int main(void){return 0;}" -Encoding Ascii
+
+        $probeArgs = @(
+            "--target=x86_64-w64-windows-gnu"
+            "--gcc-toolchain=$MinGWRoot"
+            $probeSource
+            "-o"
+            $probeOutput
+        )
+
+        & $clang.Source @probeArgs *> $null
+        return ($LASTEXITCODE -eq 0)
+    }
+    finally {
+        Remove-Item $probeDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
 function Get-PreferredBuildConfig {
     $hasNinja = [bool](Get-Command ninja -ErrorAction SilentlyContinue)
     $hasMake = ((Get-Command mingw32-make -ErrorAction SilentlyContinue) -or (Get-Command make -ErrorAction SilentlyContinue))
+    $mingwRoot = Get-MinGWRoot
 
     if (Test-VisualStudioAvailable) {
         return @{
@@ -157,19 +226,31 @@ function Get-PreferredBuildConfig {
             Toolchain = "MSVC"
             CCompiler = $null
             CxxCompiler = $null
+            CCompilerTarget = $null
+            CxxCompilerTarget = $null
+            CExternalToolchain = $null
+            CxxExternalToolchain = $null
+            RcCompiler = $null
         }
     }
 
     if (Test-ClangToolchainAvailable) {
         $generator = if ($hasNinja) { "Ninja" } elseif ($hasMake) { "MinGW Makefiles" } else { $null }
-        if ($generator) {
+        if ($generator -and $mingwRoot -and (Test-ClangWithMinGWLink -MinGWRoot $mingwRoot)) {
             return @{
                 Generator = $generator
                 Toolchain = "Clang"
                 CCompiler = "clang"
                 CxxCompiler = "clang++"
+                CCompilerTarget = "x86_64-w64-windows-gnu"
+                CxxCompilerTarget = "x86_64-w64-windows-gnu"
+                CExternalToolchain = $mingwRoot
+                CxxExternalToolchain = $mingwRoot
+                RcCompiler = Get-MinGWWindres
             }
         }
+
+        Write-Warning "Clang was found but cannot link with available Windows libraries/toolchain. Falling back to MinGW."
     }
 
     if (Test-MinGWToolchainAvailable) {
@@ -180,6 +261,11 @@ function Get-PreferredBuildConfig {
                 Toolchain = "MinGW"
                 CCompiler = "gcc"
                 CxxCompiler = "g++"
+                CCompilerTarget = $null
+                CxxCompilerTarget = $null
+                CExternalToolchain = $null
+                CxxExternalToolchain = $null
+                RcCompiler = Get-MinGWWindres
             }
         }
     }
@@ -219,6 +305,24 @@ function Get-CachedCompiler {
     return ($line.Line -replace "^${VarName}:FILEPATH=", '').Trim()
 }
 
+function Get-CachedValue {
+    param(
+        [Parameter(Mandatory = $true)][string]$VarName
+    )
+
+    $cacheFile = Join-Path $buildDir "CMakeCache.txt"
+    if (-not (Test-Path $cacheFile)) {
+        return $null
+    }
+
+    $line = Select-String -Path $cacheFile -Pattern "^${VarName}:[^=]+=" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $line) {
+        return $null
+    }
+
+    return ($line.Line -replace "^${VarName}:[^=]+=", '').Trim()
+}
+
 function Normalize-CompilerName {
     param(
         [string]$Name
@@ -234,6 +338,18 @@ function Normalize-CompilerName {
     }
 
     return $leaf.ToLowerInvariant()
+}
+
+function Normalize-PathString {
+    param(
+        [string]$PathValue
+    )
+
+    if ([string]::IsNullOrWhiteSpace($PathValue)) {
+        return ""
+    }
+
+    return (($PathValue -replace '\\', '/').TrimEnd('/')).ToLowerInvariant()
 }
 
 function Reset-BuildCache {
@@ -266,6 +382,21 @@ if ($buildConfig.CCompiler) {
 if ($buildConfig.CxxCompiler) {
     $configureArgs += "-DCMAKE_CXX_COMPILER=$($buildConfig.CxxCompiler)"
 }
+if ($buildConfig.CCompilerTarget) {
+    $configureArgs += "-DCMAKE_C_COMPILER_TARGET=$($buildConfig.CCompilerTarget)"
+}
+if ($buildConfig.CxxCompilerTarget) {
+    $configureArgs += "-DCMAKE_CXX_COMPILER_TARGET=$($buildConfig.CxxCompilerTarget)"
+}
+if ($buildConfig.CExternalToolchain) {
+    $configureArgs += "-DCMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN=$($buildConfig.CExternalToolchain)"
+}
+if ($buildConfig.CxxExternalToolchain) {
+    $configureArgs += "-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN=$($buildConfig.CxxExternalToolchain)"
+}
+if ($buildConfig.RcCompiler) {
+    $configureArgs += "-DCMAKE_RC_COMPILER=$($buildConfig.RcCompiler)"
+}
 
 $pkgConfigExecutable = Find-PkgConfigExecutable
 if ($pkgConfigExecutable) {
@@ -285,10 +416,17 @@ if ($vulkanSdkPath) {
 
 Write-Host "Using toolchain: $toolchain"
 Write-Host "Using CMake generator: $generator"
+if ($buildConfig.CExternalToolchain) {
+    Write-Host "Using external toolchain root: $($buildConfig.CExternalToolchain)"
+}
 
 $cachedGenerator = Get-CachedGenerator
 $cachedCCompiler = Get-CachedCompiler -VarName "CMAKE_C_COMPILER"
 $cachedCxxCompiler = Get-CachedCompiler -VarName "CMAKE_CXX_COMPILER"
+$cachedCCompilerTarget = Get-CachedValue -VarName "CMAKE_C_COMPILER_TARGET"
+$cachedCxxCompilerTarget = Get-CachedValue -VarName "CMAKE_CXX_COMPILER_TARGET"
+$cachedCExternalToolchain = Get-CachedValue -VarName "CMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN"
+$cachedCxxExternalToolchain = Get-CachedValue -VarName "CMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN"
 
 $compilerMismatch = $false
 if ($buildConfig.CCompiler) {
@@ -296,6 +434,26 @@ if ($buildConfig.CCompiler) {
 }
 if ($buildConfig.CxxCompiler) {
     $compilerMismatch = $compilerMismatch -or (Normalize-CompilerName $cachedCxxCompiler) -ne (Normalize-CompilerName $buildConfig.CxxCompiler)
+}
+if ($buildConfig.CCompilerTarget) {
+    $cachedCTarget = ""
+    if ($cachedCCompilerTarget) {
+        $cachedCTarget = $cachedCCompilerTarget.ToLowerInvariant()
+    }
+    $compilerMismatch = $compilerMismatch -or ($cachedCTarget -ne $buildConfig.CCompilerTarget.ToLowerInvariant())
+}
+if ($buildConfig.CxxCompilerTarget) {
+    $cachedCxxTarget = ""
+    if ($cachedCxxCompilerTarget) {
+        $cachedCxxTarget = $cachedCxxCompilerTarget.ToLowerInvariant()
+    }
+    $compilerMismatch = $compilerMismatch -or ($cachedCxxTarget -ne $buildConfig.CxxCompilerTarget.ToLowerInvariant())
+}
+if ($buildConfig.CExternalToolchain) {
+    $compilerMismatch = $compilerMismatch -or (Normalize-PathString $cachedCExternalToolchain) -ne (Normalize-PathString $buildConfig.CExternalToolchain)
+}
+if ($buildConfig.CxxExternalToolchain) {
+    $compilerMismatch = $compilerMismatch -or (Normalize-PathString $cachedCxxExternalToolchain) -ne (Normalize-PathString $buildConfig.CxxExternalToolchain)
 }
 
 if (($cachedGenerator -and $cachedGenerator -ne $generator) -or $compilerMismatch) {
