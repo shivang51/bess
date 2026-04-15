@@ -297,6 +297,7 @@ namespace Bess::JsonConvert {
 
         JsonConvert::toJsonValue(state.getSceneId(), j["sceneId"]);
         JsonConvert::toJsonValue(state.getModuleId(), j["moduleId"]);
+        JsonConvert::toJsonValue(state.getParentSceneId(), j["parentSceneId"]);
         j["isRootScene"] = state.getIsRootScene();
     }
 
@@ -309,6 +310,7 @@ namespace Bess::JsonConvert {
 
         JsonConvert::fromJsonValue(j["sceneId"], state.getSceneId());
         JsonConvert::fromJsonValue(j["moduleId"], state.getModuleId());
+        JsonConvert::fromJsonValue(j["parentSceneId"], state.getParentSceneId());
         state.setIsRootScene(j["isRootScene"].asBool());
 
         const auto &simEngine = SimEngine::SimulationEngine::instance();
