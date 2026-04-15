@@ -182,6 +182,18 @@ namespace Bess::Verilog {
                         }
                     }
 
+                    if (cellJson.isMember("parameters") && cellJson["parameters"].isObject()) {
+                        for (const auto &paramName : cellJson["parameters"].getMemberNames()) {
+                            cell.parameters[paramName] = cellJson["parameters"][paramName].asString();
+                        }
+                    }
+
+                    if (cellJson.isMember("attributes") && cellJson["attributes"].isObject()) {
+                        for (const auto &attrName : cellJson["attributes"].getMemberNames()) {
+                            cell.attributes[attrName] = cellJson["attributes"][attrName].asString();
+                        }
+                    }
+
                     module.cells.push_back(std::move(cell));
                 }
             }

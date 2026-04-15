@@ -12,6 +12,7 @@
 #include "scene/scene_state/scene_state.h"
 #include "simulation_engine.h"
 #include "types.h"
+#include <algorithm>
 #include <memory>
 #include <unordered_map>
 
@@ -109,9 +110,13 @@ namespace Bess::Canvas {
             if (!moduleDigComp) {
                 return;
             }
-            int i = 0;
-            for (auto state : newState.inputStates) {
-                simEngine.setOutputSlotState(this->m_simEngineId, i++, state.state);
+
+            const auto maxOutputs = moduleDigComp->state.outputStates.size();
+            const auto copyCount = std::min(maxOutputs, newState.inputStates.size());
+            for (size_t i = 0; i < copyCount; ++i) {
+                simEngine.setOutputSlotState(this->m_simEngineId,
+                                             static_cast<int>(i),
+                                             newState.inputStates[i].state);
             }
         });
 

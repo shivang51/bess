@@ -1485,3 +1485,537 @@ endmodule
 
     std::filesystem::remove(verilogPath);
 }
+
+TEST_F(VerilogImportTest, ImportsCoarseAddCellFromYosysJson) {
+    Json::Value root(Json::objectValue);
+    root["modules"] = Json::Value(Json::objectValue);
+
+    auto &top = root["modules"]["top"];
+    top["attributes"]["top"] = "1";
+
+    top["ports"]["a"]["direction"] = "input";
+    top["ports"]["a"]["bits"].append(1);
+    top["ports"]["a"]["bits"].append(2);
+    top["ports"]["a"]["bits"].append(3);
+    top["ports"]["a"]["bits"].append(4);
+
+    top["ports"]["b"]["direction"] = "input";
+    top["ports"]["b"]["bits"].append(5);
+    top["ports"]["b"]["bits"].append(6);
+    top["ports"]["b"]["bits"].append(7);
+    top["ports"]["b"]["bits"].append(8);
+
+    top["ports"]["y"]["direction"] = "output";
+    top["ports"]["y"]["bits"].append(9);
+    top["ports"]["y"]["bits"].append(10);
+    top["ports"]["y"]["bits"].append(11);
+    top["ports"]["y"]["bits"].append(12);
+
+    auto &add = top["cells"]["u_add"];
+    add["type"] = "$add";
+    add["connections"]["A"].append(1);
+    add["connections"]["A"].append(2);
+    add["connections"]["A"].append(3);
+    add["connections"]["A"].append(4);
+    add["connections"]["B"].append(5);
+    add["connections"]["B"].append(6);
+    add["connections"]["B"].append(7);
+    add["connections"]["B"].append(8);
+    add["connections"]["Y"].append(9);
+    add["connections"]["Y"].append(10);
+    add["connections"]["Y"].append(11);
+    add["connections"]["Y"].append(12);
+    add["parameters"]["A_SIGNED"] = "0";
+    add["parameters"]["B_SIGNED"] = "0";
+
+    const auto design = parseDesignFromYosysJson(root);
+    const auto result = importDesignIntoSimulationEngine(design, *engine);
+
+    const auto a = result.topInputComponents.at("a");
+    const auto b = result.topInputComponents.at("b");
+    const auto y = result.topOutputComponents.at("y");
+
+    auto writeBus = [&](const UUID &componentId, uint32_t value, size_t width) {
+        for (size_t i = 0; i < width; ++i) {
+            engine->setOutputSlotState(componentId,
+                                       static_cast<int>(i),
+                                       ((value >> i) & 1U) ? LogicState::high : LogicState::low);
+        }
+    };
+
+    auto readBus = [&](const UUID &componentId, size_t width) {
+        uint32_t value = 0;
+        for (size_t i = 0; i < width; ++i) {
+            if (engine->getDigitalSlotState(componentId, SlotType::digitalInput, static_cast<int>(i)).state ==
+                LogicState::high) {
+                value |= (1U << i);
+            }
+        }
+        return value;
+    };
+
+    writeBus(a, 3, 4);
+    writeBus(b, 5, 4);
+    ASSERT_TRUE(waitUntil([&] { return readBus(y, 4) == 8; }));
+
+    writeBus(a, 9, 4);
+    writeBus(b, 8, 4);
+    ASSERT_TRUE(waitUntil([&] { return readBus(y, 4) == 1; }));
+}
+
+TEST_F(VerilogImportTest, ImportsComparatorAndShiftCellsFromYosysJson) {
+    Json::Value root(Json::objectValue);
+    root["modules"] = Json::Value(Json::objectValue);
+
+    auto &top = root["modules"]["top"];
+    top["attributes"]["top"] = "1";
+
+    top["ports"]["a"]["direction"] = "input";
+    top["ports"]["a"]["bits"].append(1);
+    top["ports"]["a"]["bits"].append(2);
+    top["ports"]["a"]["bits"].append(3);
+    top["ports"]["a"]["bits"].append(4);
+
+    top["ports"]["b"]["direction"] = "input";
+    top["ports"]["b"]["bits"].append(5);
+    top["ports"]["b"]["bits"].append(6);
+    top["ports"]["b"]["bits"].append(7);
+    top["ports"]["b"]["bits"].append(8);
+
+    top["ports"]["s"]["direction"] = "input";
+    top["ports"]["s"]["bits"].append(9);
+    top["ports"]["s"]["bits"].append(10);
+
+    top["ports"]["lt"]["direction"] = "output";
+    top["ports"]["lt"]["bits"].append(11);
+
+    top["ports"]["sh"]["direction"] = "output";
+    top["ports"]["sh"]["bits"].append(12);
+    top["ports"]["sh"]["bits"].append(13);
+    top["ports"]["sh"]["bits"].append(14);
+    top["ports"]["sh"]["bits"].append(15);
+
+    auto &lt = top["cells"]["u_lt"];
+    lt["type"] = "$lt";
+    lt["connections"]["A"].append(1);
+    lt["connections"]["A"].append(2);
+    lt["connections"]["A"].append(3);
+    lt["connections"]["A"].append(4);
+    lt["connections"]["B"].append(5);
+    lt["connections"]["B"].append(6);
+    lt["connections"]["B"].append(7);
+    lt["connections"]["B"].append(8);
+    lt["connections"]["Y"].append(11);
+    lt["parameters"]["A_SIGNED"] = "0";
+    lt["parameters"]["B_SIGNED"] = "0";
+
+    auto &shl = top["cells"]["u_shl"];
+    shl["type"] = "$shl";
+    shl["connections"]["A"].append(1);
+    shl["connections"]["A"].append(2);
+    shl["connections"]["A"].append(3);
+    shl["connections"]["A"].append(4);
+    shl["connections"]["B"].append(9);
+    shl["connections"]["B"].append(10);
+    shl["connections"]["Y"].append(12);
+    shl["connections"]["Y"].append(13);
+    shl["connections"]["Y"].append(14);
+    shl["connections"]["Y"].append(15);
+    shl["parameters"]["A_SIGNED"] = "0";
+
+    const auto design = parseDesignFromYosysJson(root);
+    const auto result = importDesignIntoSimulationEngine(design, *engine);
+
+    const auto a = result.topInputComponents.at("a");
+    const auto b = result.topInputComponents.at("b");
+    const auto s = result.topInputComponents.at("s");
+    const auto ltOut = result.topOutputComponents.at("lt");
+    const auto shOut = result.topOutputComponents.at("sh");
+
+    auto writeBus = [&](const UUID &componentId, uint32_t value, size_t width) {
+        for (size_t i = 0; i < width; ++i) {
+            engine->setOutputSlotState(componentId,
+                                       static_cast<int>(i),
+                                       ((value >> i) & 1U) ? LogicState::high : LogicState::low);
+        }
+    };
+
+    auto readBus = [&](const UUID &componentId, size_t width) {
+        uint32_t value = 0;
+        for (size_t i = 0; i < width; ++i) {
+            if (engine->getDigitalSlotState(componentId, SlotType::digitalInput, static_cast<int>(i)).state ==
+                LogicState::high) {
+                value |= (1U << i);
+            }
+        }
+        return value;
+    };
+
+    writeBus(a, 3, 4);
+    writeBus(b, 5, 4);
+    writeBus(s, 1, 2);
+    ASSERT_TRUE(waitUntil([&] {
+        return engine->getDigitalSlotState(ltOut, SlotType::digitalInput, 0).state == LogicState::high &&
+               readBus(shOut, 4) == 6;
+    }));
+
+    writeBus(s, 2, 2);
+    ASSERT_TRUE(waitUntil([&] { return readBus(shOut, 4) == 12; }));
+}
+
+TEST_F(VerilogImportTest, ImportsDlatchCellFromYosysJson) {
+    Json::Value root(Json::objectValue);
+    root["modules"] = Json::Value(Json::objectValue);
+
+    auto &top = root["modules"]["top"];
+    top["attributes"]["top"] = "1";
+    top["ports"]["d"]["direction"] = "input";
+    top["ports"]["d"]["bits"].append(1);
+    top["ports"]["en"]["direction"] = "input";
+    top["ports"]["en"]["bits"].append(2);
+    top["ports"]["q"]["direction"] = "output";
+    top["ports"]["q"]["bits"].append(3);
+
+    auto &latch = top["cells"]["u_latch"];
+    latch["type"] = "$dlatch";
+    latch["connections"]["D"].append(1);
+    latch["connections"]["EN"].append(2);
+    latch["connections"]["Q"].append(3);
+    latch["parameters"]["EN_POLARITY"] = "1";
+
+    const auto design = parseDesignFromYosysJson(root);
+    const auto result = importDesignIntoSimulationEngine(design, *engine);
+
+    const auto d = result.topInputComponents.at("d");
+    const auto en = result.topInputComponents.at("en");
+    const auto q = result.topOutputComponents.at("q");
+
+    engine->setOutputSlotState(en, 0, LogicState::high);
+    engine->setOutputSlotState(d, 0, LogicState::high);
+    ASSERT_TRUE(waitUntil([&] {
+        return engine->getDigitalSlotState(q, SlotType::digitalInput, 0).state == LogicState::high;
+    }));
+
+    engine->setOutputSlotState(en, 0, LogicState::low);
+    engine->setOutputSlotState(d, 0, LogicState::low);
+    ASSERT_TRUE(waitUntil([&] {
+        return engine->getDigitalSlotState(q, SlotType::digitalInput, 0).state == LogicState::high;
+    })) << "Latch did not hold value while disabled";
+
+    engine->setOutputSlotState(en, 0, LogicState::high);
+    ASSERT_TRUE(waitUntil([&] {
+        return engine->getDigitalSlotState(q, SlotType::digitalInput, 0).state == LogicState::low;
+    }));
+}
+
+TEST_F(VerilogImportTest, ImportsPmuxCellFromYosysJson) {
+    Json::Value root(Json::objectValue);
+    root["modules"] = Json::Value(Json::objectValue);
+
+    auto &top = root["modules"]["top"];
+    top["attributes"]["top"] = "1";
+
+    top["ports"]["a"]["direction"] = "input";
+    top["ports"]["a"]["bits"].append(1);
+    top["ports"]["a"]["bits"].append(2);
+    top["ports"]["b"]["direction"] = "input";
+    top["ports"]["b"]["bits"].append(3);
+    top["ports"]["b"]["bits"].append(4);
+    top["ports"]["c"]["direction"] = "input";
+    top["ports"]["c"]["bits"].append(5);
+    top["ports"]["c"]["bits"].append(6);
+    top["ports"]["s"]["direction"] = "input";
+    top["ports"]["s"]["bits"].append(7);
+    top["ports"]["s"]["bits"].append(8);
+    top["ports"]["y"]["direction"] = "output";
+    top["ports"]["y"]["bits"].append(9);
+    top["ports"]["y"]["bits"].append(10);
+
+    auto &pmux = top["cells"]["u_pmux"];
+    pmux["type"] = "$pmux";
+    pmux["connections"]["A"].append(1);
+    pmux["connections"]["A"].append(2);
+    pmux["connections"]["B"].append(3);
+    pmux["connections"]["B"].append(4);
+    pmux["connections"]["B"].append(5);
+    pmux["connections"]["B"].append(6);
+    pmux["connections"]["S"].append(7);
+    pmux["connections"]["S"].append(8);
+    pmux["connections"]["Y"].append(9);
+    pmux["connections"]["Y"].append(10);
+
+    const auto design = parseDesignFromYosysJson(root);
+    const auto result = importDesignIntoSimulationEngine(design, *engine);
+
+    const auto a = result.topInputComponents.at("a");
+    const auto b = result.topInputComponents.at("b");
+    const auto c = result.topInputComponents.at("c");
+    const auto s = result.topInputComponents.at("s");
+    const auto y = result.topOutputComponents.at("y");
+
+    auto writeBus = [&](const UUID &componentId, uint32_t value, size_t width) {
+        for (size_t i = 0; i < width; ++i) {
+            engine->setOutputSlotState(componentId,
+                                       static_cast<int>(i),
+                                       ((value >> i) & 1U) ? LogicState::high : LogicState::low);
+        }
+    };
+
+    auto readBus = [&](const UUID &componentId, size_t width) {
+        uint32_t value = 0;
+        for (size_t i = 0; i < width; ++i) {
+            if (engine->getDigitalSlotState(componentId, SlotType::digitalInput, static_cast<int>(i)).state ==
+                LogicState::high) {
+                value |= (1U << i);
+            }
+        }
+        return value;
+    };
+
+    writeBus(a, 1, 2);
+    writeBus(b, 2, 2);
+    writeBus(c, 3, 2);
+
+    writeBus(s, 0, 2);
+    ASSERT_TRUE(waitUntil([&] { return readBus(y, 2) == 1; }));
+
+    writeBus(s, 1, 2);
+    ASSERT_TRUE(waitUntil([&] { return readBus(y, 2) == 2; }));
+
+    writeBus(s, 2, 2);
+    ASSERT_TRUE(waitUntil([&] { return readBus(y, 2) == 3; }));
+}
+
+TEST_F(VerilogImportTest, ImportsMemoryReadWriteCellsFromYosysJson) {
+    Json::Value root(Json::objectValue);
+    root["modules"] = Json::Value(Json::objectValue);
+
+    auto &top = root["modules"]["top"];
+    top["attributes"]["top"] = "1";
+
+    top["ports"]["clk"]["direction"] = "input";
+    top["ports"]["clk"]["bits"].append(1);
+    top["ports"]["we"]["direction"] = "input";
+    top["ports"]["we"]["bits"].append(2);
+    top["ports"]["addr"]["direction"] = "input";
+    top["ports"]["addr"]["bits"].append(3);
+    top["ports"]["din"]["direction"] = "input";
+    top["ports"]["din"]["bits"].append(4);
+    top["ports"]["din"]["bits"].append(5);
+    top["ports"]["din"]["bits"].append(6);
+    top["ports"]["din"]["bits"].append(7);
+    top["ports"]["dout"]["direction"] = "output";
+    top["ports"]["dout"]["bits"].append(8);
+    top["ports"]["dout"]["bits"].append(9);
+    top["ports"]["dout"]["bits"].append(10);
+    top["ports"]["dout"]["bits"].append(11);
+
+    auto &memwr = top["cells"]["u_memwr"];
+    memwr["type"] = "$memwr_v2";
+    memwr["connections"]["ADDR"].append(3);
+    memwr["connections"]["CLK"].append(1);
+    memwr["connections"]["DATA"].append(4);
+    memwr["connections"]["DATA"].append(5);
+    memwr["connections"]["DATA"].append(6);
+    memwr["connections"]["DATA"].append(7);
+    memwr["connections"]["EN"].append(2);
+    memwr["connections"]["EN"].append(2);
+    memwr["connections"]["EN"].append(2);
+    memwr["connections"]["EN"].append(2);
+    memwr["parameters"]["ABITS"] = "1";
+    memwr["parameters"]["CLK_ENABLE"] = "1";
+    memwr["parameters"]["CLK_POLARITY"] = "1";
+    memwr["parameters"]["MEMID"] = "\\mem0";
+    memwr["parameters"]["WIDTH"] = "4";
+    memwr["parameters"]["PORTID"] = "0";
+    memwr["parameters"]["PRIORITY_MASK"] = "";
+
+    auto &memrd = top["cells"]["u_memrd"];
+    memrd["type"] = "$memrd";
+    memrd["connections"]["ADDR"].append(3);
+    memrd["connections"]["CLK"].append("x");
+    memrd["connections"]["DATA"].append(8);
+    memrd["connections"]["DATA"].append(9);
+    memrd["connections"]["DATA"].append(10);
+    memrd["connections"]["DATA"].append(11);
+    memrd["connections"]["EN"].append("x");
+    memrd["parameters"]["ABITS"] = "1";
+    memrd["parameters"]["CLK_ENABLE"] = "0";
+    memrd["parameters"]["CLK_POLARITY"] = "0";
+    memrd["parameters"]["MEMID"] = "\\mem0";
+    memrd["parameters"]["TRANSPARENT"] = "0";
+    memrd["parameters"]["WIDTH"] = "4";
+
+    const auto design = parseDesignFromYosysJson(root);
+    const auto result = importDesignIntoSimulationEngine(design, *engine);
+
+    const auto clk = result.topInputComponents.at("clk");
+    const auto we = result.topInputComponents.at("we");
+    const auto addr = result.topInputComponents.at("addr");
+    const auto din = result.topInputComponents.at("din");
+    const auto dout = result.topOutputComponents.at("dout");
+
+    auto writeBus = [&](const UUID &componentId, uint32_t value, size_t width) {
+        for (size_t i = 0; i < width; ++i) {
+            engine->setOutputSlotState(componentId,
+                                       static_cast<int>(i),
+                                       ((value >> i) & 1U) ? LogicState::high : LogicState::low);
+        }
+    };
+
+    auto readBus = [&](const UUID &componentId, size_t width) {
+        uint32_t value = 0;
+        for (size_t i = 0; i < width; ++i) {
+            if (engine->getDigitalSlotState(componentId, SlotType::digitalInput, static_cast<int>(i)).state ==
+                LogicState::high) {
+                value |= (1U << i);
+            }
+        }
+        return value;
+    };
+
+    engine->setOutputSlotState(clk, 0, LogicState::low);
+    engine->setOutputSlotState(we, 0, LogicState::low);
+
+    auto pulseClock = [&]() {
+        engine->setOutputSlotState(clk, 0, LogicState::high);
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        engine->setOutputSlotState(clk, 0, LogicState::low);
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    };
+
+    writeBus(addr, 0, 1);
+    writeBus(din, 0xA, 4);
+    engine->setOutputSlotState(we, 0, LogicState::high);
+    pulseClock();
+    engine->setOutputSlotState(we, 0, LogicState::low);
+    ASSERT_TRUE(waitUntil([&] { return readBus(dout, 4) == 0xA; }));
+
+    writeBus(addr, 1, 1);
+    writeBus(din, 0x3, 4);
+    engine->setOutputSlotState(we, 0, LogicState::high);
+    pulseClock();
+    engine->setOutputSlotState(we, 0, LogicState::low);
+    ASSERT_TRUE(waitUntil([&] { return readBus(dout, 4) == 0x3; }));
+
+    writeBus(addr, 0, 1);
+    ASSERT_TRUE(waitUntil([&] { return readBus(dout, 4) == 0xA; }));
+}
+
+TEST_F(VerilogImportTest, DISABLED_TemporaryHarvardCpuSmokeExecutesBasicInstructions) {
+    const std::filesystem::path cpuDir =
+        "Verilog-Harvard-CPU/01. Single-cycle CPU";
+
+    if (!std::filesystem::exists(cpuDir)) {
+        GTEST_SKIP() << "Temporary Harvard CPU folder not found: " << cpuDir.string();
+    }
+
+    const std::vector<std::filesystem::path> verilogFiles = {
+        cpuDir / "cpu.v",
+        cpuDir / "ALU.v",
+        cpuDir / "Control.v",
+        cpuDir / "RF.v",
+        cpuDir / "opcodes.v",
+    };
+
+    for (const auto &path : verilogFiles) {
+        if (!std::filesystem::exists(path)) {
+            GTEST_SKIP() << "Missing Harvard CPU source file: " << path.string();
+        }
+    }
+
+    const auto result = importVerilogFilesIntoSimulationEngine(
+        verilogFiles,
+        *engine,
+        YosysRunnerConfig{
+            .executablePath = "yosys",
+            .topModuleName = std::string("cpu"),
+        });
+
+    ASSERT_TRUE(result.topInputComponents.contains("clk"));
+    ASSERT_TRUE(result.topInputComponents.contains("reset_n"));
+    ASSERT_TRUE(result.topInputComponents.contains("inputReady"));
+    ASSERT_TRUE(result.topInputComponents.contains("data"));
+    ASSERT_TRUE(result.topOutputComponents.contains("readM"));
+    ASSERT_TRUE(result.topOutputComponents.contains("address"));
+    ASSERT_TRUE(result.topOutputComponents.contains("num_inst"));
+    ASSERT_TRUE(result.topOutputComponents.contains("output_port"));
+
+    const auto clk = result.topInputComponents.at("clk");
+    const auto resetN = result.topInputComponents.at("reset_n");
+    const auto inputReady = result.topInputComponents.at("inputReady");
+    const auto dataIn = result.topInputComponents.at("data");
+
+    const auto readM = result.topOutputComponents.at("readM");
+    const auto address = result.topOutputComponents.at("address");
+    const auto numInst = result.topOutputComponents.at("num_inst");
+    const auto outputPort = result.topOutputComponents.at("output_port");
+
+    auto writeBus = [&](const UUID &componentId, uint16_t value, size_t width) {
+        for (size_t i = 0; i < width; ++i) {
+            const auto bit = ((value >> i) & 1U) ? LogicState::high : LogicState::low;
+            engine->setOutputSlotState(componentId, static_cast<int>(i), bit);
+        }
+    };
+
+    auto readBus = [&](const UUID &componentId, size_t width) {
+        uint16_t value = 0;
+        for (size_t i = 0; i < width; ++i) {
+            if (engine->getDigitalSlotState(componentId, SlotType::digitalInput, static_cast<int>(i)).state ==
+                LogicState::high) {
+                value |= static_cast<uint16_t>(1U << i);
+            }
+        }
+        return value;
+    };
+
+    auto readBit = [&](const UUID &componentId) {
+        return engine->getDigitalSlotState(componentId, SlotType::digitalInput, 0).state;
+    };
+
+    auto pulseInputReady = [&]() {
+        engine->setOutputSlotState(inputReady, 0, LogicState::high);
+        ASSERT_TRUE(waitUntil([&] { return readBit(readM) == LogicState::low; }))
+            << "CPU did not acknowledge memory response (readM stayed high)";
+        engine->setOutputSlotState(inputReady, 0, LogicState::low);
+    };
+
+    auto clockTick = [&]() {
+        const auto before = readBus(numInst, 16);
+        engine->setOutputSlotState(clk, 0, LogicState::high);
+        ASSERT_TRUE(waitUntil([&] { return readBus(numInst, 16) != before; }))
+            << "CPU did not react to clock rising edge";
+        engine->setOutputSlotState(clk, 0, LogicState::low);
+    };
+
+    auto fetchInstruction = [&](uint16_t expectedAddress, uint16_t instructionWord) {
+        ASSERT_TRUE(waitUntil([&] { return readBit(readM) == LogicState::high; }))
+            << "CPU did not request instruction fetch";
+
+        ASSERT_EQ(readBus(address, 16), expectedAddress)
+            << "Unexpected instruction fetch address";
+
+        writeBus(dataIn, instructionWord, 16);
+        pulseInputReady();
+    };
+
+    // Initialize external inputs and reset sequence.
+    engine->setOutputSlotState(clk, 0, LogicState::low);
+    engine->setOutputSlotState(inputReady, 0, LogicState::low);
+    writeBus(dataIn, 0, 16);
+    engine->setOutputSlotState(resetN, 0, LogicState::low);
+    engine->setOutputSlotState(resetN, 0, LogicState::high);
+
+    // Program:
+    //   0x6034: LHI r0, 0x34   -> r0 = 0x3400
+    //   0xF01C: WWD r0         -> output_port should expose r0
+    fetchInstruction(0x0000, 0x6034);
+    clockTick();
+
+    fetchInstruction(0x0001, 0xF01C);
+    ASSERT_TRUE(waitUntil([&] { return readBus(outputPort, 16) == 0x3400; }))
+        << "WWD did not expose expected register value on output_port";
+
+    clockTick();
+    EXPECT_GE(readBus(numInst, 16), static_cast<uint16_t>(3));
+}

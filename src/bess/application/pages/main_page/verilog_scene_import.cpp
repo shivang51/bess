@@ -13,10 +13,12 @@
 #include "scene/scene.h"
 #include "simulation_engine.h"
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <limits>
 #include <optional>
+#include <thread>
 #include <unordered_set>
 
 namespace Bess::Pages {
@@ -945,23 +947,41 @@ namespace Bess::Pages {
     void populateSceneFromVerilogImportResult(const Verilog::SimEngineImportResult &result,
                                               SimEngine::SimulationEngine &simEngine,
                                               Canvas::Scene &scene) {
-        std::unordered_map<UUID, std::shared_ptr<Canvas::SimulationSceneComponent>> sceneBySimId;
-        for (const auto &simId : result.createdComponentIds) {
-            auto created = createSceneComponentForImportedSimId(simId, simEngine);
-            sceneBySimId[simId] = created.component;
-            addImportedSceneComponent(scene.getState(), created);
+        const auto previousSimulationState = simEngine.getSimulationState();
+        simEngine.setSimulationState(SimEngine::SimulationState::paused);
+        const auto restoreSimulationState = [&]() {
+            simEngine.setSimulationState(previousSimulationState);
+        };
+
+        // Ensure the simulation loop has quiesced before mutating graph topology.
+        for (int attempt = 0; attempt < 200 && !simEngine.isSimStable(); ++attempt) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
-        applyImportedPortNames(result, sceneBySimId);
-        updateSimulationComponentScalesForLayout(scene);
-        applyHierarchicalSceneLayout(scene, simEngine);
+        try {
+            std::unordered_map<UUID, std::shared_ptr<Canvas::SimulationSceneComponent>> sceneBySimId;
+            for (const auto &simId : result.createdComponentIds) {
+                auto created = createSceneComponentForImportedSimId(simId, simEngine);
+                sceneBySimId[simId] = created.component;
+                addImportedSceneComponent(scene.getState(), created);
+            }
 
-        const auto moduleByPath = buildImportedModuleHierarchy(result, scene, simEngine, sceneBySimId);
-        removeNestedImportedComponentsFromRootScene(result, scene, sceneBySimId);
-        updateSimulationComponentScalesForLayout(scene);
-        applyHierarchicalSceneLayout(scene, simEngine);
+            applyImportedPortNames(result, sceneBySimId);
+            updateSimulationComponentScalesForLayout(scene);
+            applyHierarchicalSceneLayout(scene, simEngine);
 
-        addRootModuleConnections(scene, simEngine, sceneBySimId, moduleByPath);
-        EventSystem::EventDispatcher::instance().dispatchAll();
+            const auto moduleByPath = buildImportedModuleHierarchy(result, scene, simEngine, sceneBySimId);
+            removeNestedImportedComponentsFromRootScene(result, scene, sceneBySimId);
+            updateSimulationComponentScalesForLayout(scene);
+            applyHierarchicalSceneLayout(scene, simEngine);
+
+            addRootModuleConnections(scene, simEngine, sceneBySimId, moduleByPath);
+            EventSystem::EventDispatcher::instance().dispatchAll();
+        } catch (...) {
+            restoreSimulationState();
+            throw;
+        }
+
+        restoreSimulationState();
     }
 } // namespace Bess::Pages

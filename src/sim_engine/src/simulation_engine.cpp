@@ -402,6 +402,17 @@ namespace Bess::SimEngine {
 
     void SimulationEngine::setInputSlotState(const UUID &uuid, int pinIdx, LogicState state) {
         const auto comp = m_simEngineState.getDigitalComponent(uuid);
+        if (!comp) {
+            BESS_WARN("[setInputSlotState] Component with UUID {} is invalid", (uint64_t)uuid);
+            return;
+        }
+
+        if (pinIdx < 0 || static_cast<size_t>(pinIdx) >= comp->state.inputStates.size()) {
+            BESS_WARN("[setInputSlotState] Input slot index {} out of range for component {}",
+                      pinIdx,
+                      (uint64_t)uuid);
+            return;
+        }
 
         comp->state.inputStates[pinIdx].state = state;
         comp->state.inputStates[pinIdx].lastChangeTime = m_currentSimTime;
@@ -410,6 +421,18 @@ namespace Bess::SimEngine {
 
     void SimulationEngine::setOutputSlotState(const UUID &uuid, int pinIdx, LogicState state) {
         const auto comp = m_simEngineState.getDigitalComponent(uuid);
+        if (!comp) {
+            BESS_WARN("[setOutputSlotState] Component with UUID {} is invalid", (uint64_t)uuid);
+            return;
+        }
+
+        if (pinIdx < 0 || static_cast<size_t>(pinIdx) >= comp->state.outputStates.size()) {
+            BESS_WARN("[setOutputSlotState] Output slot index {} out of range for component {}",
+                      pinIdx,
+                      (uint64_t)uuid);
+            return;
+        }
+
         auto oldState = comp->state;
         comp->state.outputStates[pinIdx].state = state;
         comp->state.outputStates[pinIdx].lastChangeTime = m_currentSimTime;
@@ -419,6 +442,18 @@ namespace Bess::SimEngine {
 
     void SimulationEngine::invertInputSlotState(const UUID &uuid, int pinIdx) {
         const auto comp = m_simEngineState.getDigitalComponent(uuid);
+        if (!comp) {
+            BESS_WARN("[invertInputSlotState] Component with UUID {} is invalid", (uint64_t)uuid);
+            return;
+        }
+
+        if (pinIdx < 0 || static_cast<size_t>(pinIdx) >= comp->state.inputStates.size()) {
+            BESS_WARN("[invertInputSlotState] Input slot index {} out of range for component {}",
+                      pinIdx,
+                      (uint64_t)uuid);
+            return;
+        }
+
         const auto state = comp->state.inputStates[pinIdx].state == LogicState::high
                                ? LogicState::low
                                : LogicState::high;
@@ -946,11 +981,18 @@ namespace Bess::SimEngine {
 
     void SimulationEngine::scheduleDependantsOf(const UUID &compId) {
         const auto &dc = m_simEngineState.getDigitalComponent(compId);
+        if (!dc) {
+            return;
+        }
         for (auto &pin : dc->outputConnections) {
             const auto &keyView = pin | std::views::keys;
             const std::set<UUID> uniqueEntities = std::set<UUID>(keyView.begin(), keyView.end());
             for (auto &ent : uniqueEntities) {
-                const auto simDelay = m_simEngineState.getDigitalComponent(ent)->definition->getSimDelay();
+                const auto dependant = m_simEngineState.getDigitalComponent(ent);
+                if (!dependant || !dependant->definition) {
+                    continue;
+                }
+                const auto simDelay = dependant->definition->getSimDelay();
                 scheduleEvent(ent,
                               compId,
                               m_currentSimTime + simDelay);

@@ -38,6 +38,8 @@ namespace Bess::Verilog {
         std::string type;
         std::unordered_map<std::string, std::vector<SignalBit>> connections;
         std::unordered_map<std::string, PortDirection> portDirections;
+        std::unordered_map<std::string, std::string> parameters;
+        std::unordered_map<std::string, std::string> attributes;
     };
 
     struct BESS_API Module {
