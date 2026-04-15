@@ -64,7 +64,7 @@ function Find-VulkanSdkPath {
             continue
         }
 
-        $normalized = $path.TrimEnd('\\', '/')
+        $normalized = $path.TrimEnd([char[]]@('\', '/'))
         $header = Join-Path $normalized "Include/vulkan/vulkan.h"
         $lib = Join-Path $normalized "Lib/vulkan-1.lib"
         if ((Test-Path $header) -and (Test-Path $lib)) {
