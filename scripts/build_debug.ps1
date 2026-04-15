@@ -96,6 +96,36 @@ function Ensure-VulkanEnvironment {
     return $sdkPath
 }
 
+function Find-PkgConfigExecutable {
+    $pkgConfig = Get-Command pkg-config -ErrorAction SilentlyContinue
+    if ($pkgConfig) {
+        return $pkgConfig.Source
+    }
+
+    $pkgconf = Get-Command pkgconf -ErrorAction SilentlyContinue
+    if ($pkgconf) {
+        return $pkgconf.Source
+    }
+
+    # Common MinGW installations provide pkgconf next to g++.
+    $gcc = Get-Command g++ -ErrorAction SilentlyContinue
+    if ($gcc) {
+        $gccDir = Split-Path -Parent $gcc.Source
+        $candidates = @(
+            (Join-Path $gccDir "pkgconf.exe"),
+            (Join-Path $gccDir "pkg-config.exe")
+        )
+
+        foreach ($candidate in $candidates) {
+            if (Test-Path $candidate) {
+                return $candidate
+            }
+        }
+    }
+
+    return $null
+}
+
 function Test-VisualStudioAvailable {
     $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio/Installer/vswhere.exe"
     if (Test-Path $vswhere) {
@@ -229,13 +259,23 @@ if (-not $buildConfig) {
 
 $generator = $buildConfig.Generator
 $toolchain = $buildConfig.Toolchain
-$configureArgs = @("-DCMAKE_EXPORT_COMPILE_COMMANDS=ON", "-DCMAKE_BUILD_TYPE=Debug")
+$configureArgs = @("-Wno-dev", "-Wno-deprecated", "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON", "-DCMAKE_BUILD_TYPE=Debug")
 if ($buildConfig.CCompiler) {
     $configureArgs += "-DCMAKE_C_COMPILER=$($buildConfig.CCompiler)"
 }
 if ($buildConfig.CxxCompiler) {
     $configureArgs += "-DCMAKE_CXX_COMPILER=$($buildConfig.CxxCompiler)"
 }
+
+$pkgConfigExecutable = Find-PkgConfigExecutable
+if ($pkgConfigExecutable) {
+    $configureArgs += "-DPKG_CONFIG_EXECUTABLE=$pkgConfigExecutable"
+    Write-Host "Using pkg-config executable: $pkgConfigExecutable"
+} else {
+    $configureArgs += "-DCMAKE_DISABLE_FIND_PACKAGE_PkgConfig=ON"
+    Write-Host "pkg-config executable not found; disabling PkgConfig package discovery."
+}
+
 if ($vulkanSdkPath) {
     $configureArgs += "-DVulkan_ROOT=$vulkanSdkPath"
     Write-Host "Using Vulkan SDK: $vulkanSdkPath"

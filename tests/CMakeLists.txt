@@ -5,11 +5,27 @@ set(CMAKE_CXX_STANDARD 23)
 
 include(FetchContent)
 
+function(_bess_set_cache_bool var value)
+    set(_bess_current_bool OFF)
+    if(DEFINED ${var} AND ${var})
+        set(_bess_current_bool ON)
+    endif()
+
+    set(_bess_desired_bool OFF)
+    if(${value})
+        set(_bess_desired_bool ON)
+    endif()
+
+    if(NOT "${_bess_current_bool}" STREQUAL "${_bess_desired_bool}")
+        set(${var} "${_bess_desired_bool}" CACHE BOOL "" FORCE)
+    endif()
+endfunction()
+
 find_package(GTest CONFIG QUIET)
 
 if(NOT GTest_FOUND AND BESS_FETCH_DEPS)
-    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
-    set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+    _bess_set_cache_bool(INSTALL_GTEST OFF)
+    _bess_set_cache_bool(BUILD_GMOCK OFF)
 
     FetchContent_Declare(googletest
         URL https://github.com/google/googletest/archive/refs/tags/v1.15.2.tar.gz

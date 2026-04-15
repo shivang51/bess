@@ -13,11 +13,15 @@ fi
 
 if [ -f "${ROOT_DIR}/build/CMakeCache.txt" ]; then
 	cmake -S "${ROOT_DIR}" -B "${ROOT_DIR}/build" \
+		-Wno-dev \
+		-Wno-deprecated \
 		-DCMAKE_BUILD_TYPE=Debug \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 else
 	cmake -S "${ROOT_DIR}" -B "${ROOT_DIR}/build" \
 		-G "${GENERATOR}" \
+		-Wno-dev \
+		-Wno-deprecated \
 		-DCMAKE_BUILD_TYPE=Debug \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 fi

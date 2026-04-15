@@ -5,8 +5,10 @@ include(CTest)
 enable_testing()
 set(CMAKE_CXX_STANDARD 23)
 
-if(WIN32)
-	set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
+if(WIN32 AND CMAKE_GENERATOR MATCHES "Ninja")
+	# build_debug scripts run an explicit configure step, so disabling auto-regeneration
+	# avoids pathological Ninja reconfigure loops in some Windows environments.
+	set(CMAKE_SUPPRESS_REGENERATION ON)
 endif()
 
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
