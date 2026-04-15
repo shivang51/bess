@@ -1149,3 +1149,88 @@ endmodule :half_add
 
     std::filesystem::remove(verilogPath);
 }
+
+TEST_F(VerilogImportTest, ComputesScalesBeforeApplyingHierarchicalLayout) {
+    const std::string topModuleName = "very_long_named_top_module_for_layout_check";
+    const std::string longInputName = "very_long_input_name_for_layout_spacing_validation_signal";
+    const std::string longOutputName = "very_long_output_name_for_layout_spacing_validation_signal";
+
+    const auto verilogPath = writeTempVerilogFile(
+        "bess_layout_scale_precompute_test.v",
+        R"verilog(
+module child_mod(in_sig,out_sig);
+  input in_sig;
+  output out_sig;
+  buf b1(out_sig,in_sig);
+endmodule
+
+module very_long_named_top_module_for_layout_check(
+    input very_long_input_name_for_layout_spacing_validation_signal,
+    output very_long_output_name_for_layout_spacing_validation_signal
+);
+    child_mod u_child(
+        .in_sig(very_long_input_name_for_layout_spacing_validation_signal),
+        .out_sig(very_long_output_name_for_layout_spacing_validation_signal)
+    );
+endmodule
+)verilog");
+
+    const auto result = importVerilogFileIntoSimulationEngine(
+        verilogPath,
+        *engine,
+        YosysRunnerConfig{
+            .executablePath = "yosys",
+            .topModuleName = topModuleName,
+        });
+
+    auto scene = Bess::Pages::MainPage::getInstance()->getState().getSceneDriver().getActiveScene();
+    ASSERT_NE(scene, nullptr);
+    scene->clear();
+    Bess::Pages::populateSceneFromVerilogImportResult(result, *engine, *scene);
+
+    std::shared_ptr<Bess::Canvas::SimulationSceneComponent> rootInput;
+    std::shared_ptr<Bess::Canvas::SimulationSceneComponent> rootOutput;
+    std::shared_ptr<Bess::Canvas::ModuleSceneComponent> topModule;
+
+    for (const auto &[uuid, component] : scene->getState().getAllComponents()) {
+        (void)uuid;
+        if (component->getParentComponent() != UUID::null) {
+            continue;
+        }
+
+        if (component->getType() == Bess::Canvas::SceneComponentType::module) {
+            const auto moduleComponent =
+                std::dynamic_pointer_cast<Bess::Canvas::ModuleSceneComponent>(component);
+            if (moduleComponent && moduleComponent->getName() == topModuleName) {
+                topModule = moduleComponent;
+            }
+            continue;
+        }
+
+        if (component->getType() != Bess::Canvas::SceneComponentType::simulation) {
+            continue;
+        }
+
+        const auto simComponent =
+            std::dynamic_pointer_cast<Bess::Canvas::SimulationSceneComponent>(component);
+        if (!simComponent) {
+            continue;
+        }
+
+        if (simComponent->getName() == longInputName) {
+            rootInput = simComponent;
+        } else if (simComponent->getName() == longOutputName) {
+            rootOutput = simComponent;
+        }
+    }
+
+    ASSERT_NE(rootInput, nullptr);
+    ASSERT_NE(rootOutput, nullptr);
+    ASSERT_NE(topModule, nullptr);
+
+    // Long IO names should force wider components if scales were computed before layout.
+    EXPECT_GT(rootInput->getTransform().scale.x, 100.f);
+    EXPECT_GT(rootOutput->getTransform().scale.x, 100.f);
+
+    std::filesystem::remove(verilogPath);
+}

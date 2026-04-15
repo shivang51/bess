@@ -211,6 +211,19 @@ namespace Bess::Pages {
             }
         }
 
+        void updateSimulationComponentScalesForLayout(Scene &scene) {
+            auto &sceneState = scene.getState();
+            for (const auto &[componentId, component] : sceneState.getAllComponents()) {
+                (void)componentId;
+                const auto simComponent = std::dynamic_pointer_cast<SimulationSceneComponent>(component);
+                if (!simComponent) {
+                    continue;
+                }
+
+                simComponent->updateScales(sceneState);
+            }
+        }
+
         glm::vec3 getSceneComponentPosition(const std::shared_ptr<SceneComponent> &component) {
             return component->getTransform().position;
         }
@@ -649,6 +662,7 @@ namespace Bess::Pages {
             }
 
             if (!internalSimIds.empty()) {
+                updateSimulationComponentScalesForLayout(*moduleScene);
                 applyHierarchicalSceneLayout(*moduleScene, simEngine);
                 addImportedConnections(*moduleScene, internalSimIds, simEngine, internalSceneBySimId);
             }
@@ -923,10 +937,12 @@ namespace Bess::Pages {
         }
 
         applyImportedPortNames(result, sceneBySimId);
+        updateSimulationComponentScalesForLayout(scene);
         applyHierarchicalSceneLayout(scene, simEngine);
 
         const auto moduleByPath = buildImportedModuleHierarchy(result, scene, simEngine, sceneBySimId);
         removeNestedImportedComponentsFromRootScene(result, scene, sceneBySimId);
+        updateSimulationComponentScalesForLayout(scene);
         applyHierarchicalSceneLayout(scene, simEngine);
 
         addRootModuleConnections(scene, simEngine, sceneBySimId, moduleByPath);
