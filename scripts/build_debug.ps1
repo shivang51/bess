@@ -387,6 +387,18 @@ function Normalize-PathString {
     return (($PathValue -replace '\\', '/').TrimEnd('/')).ToLowerInvariant()
 }
 
+function Convert-ToCMakePath {
+    param(
+        [string]$PathValue
+    )
+
+    if ([string]::IsNullOrWhiteSpace($PathValue)) {
+        return $PathValue
+    }
+
+    return ($PathValue -replace '\\', '/')
+}
+
 function Reset-BuildCache {
     $cacheFile = Join-Path $buildDir "CMakeCache.txt"
     $cmakeFilesDir = Join-Path $buildDir "CMakeFiles"
@@ -424,27 +436,32 @@ if ($buildConfig.CxxCompilerTarget) {
     $configureArgs += "-DCMAKE_CXX_COMPILER_TARGET=$($buildConfig.CxxCompilerTarget)"
 }
 if ($buildConfig.CExternalToolchain) {
-    $configureArgs += "-DCMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN=$($buildConfig.CExternalToolchain)"
+    $cmakeExternalToolchain = Convert-ToCMakePath $buildConfig.CExternalToolchain
+    $configureArgs += "-DCMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN=$cmakeExternalToolchain"
 }
 if ($buildConfig.CxxExternalToolchain) {
-    $configureArgs += "-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN=$($buildConfig.CxxExternalToolchain)"
+    $cmakeCxxExternalToolchain = Convert-ToCMakePath $buildConfig.CxxExternalToolchain
+    $configureArgs += "-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN=$cmakeCxxExternalToolchain"
 }
 if ($buildConfig.RcCompiler) {
-    $configureArgs += "-DCMAKE_RC_COMPILER=$($buildConfig.RcCompiler)"
+    $cmakeRcCompiler = Convert-ToCMakePath $buildConfig.RcCompiler
+    $configureArgs += "-DCMAKE_RC_COMPILER=$cmakeRcCompiler"
 }
 
 $pkgConfigExecutable = Find-PkgConfigExecutable
 if ($pkgConfigExecutable) {
-    $configureArgs += "-DPKG_CONFIG_EXECUTABLE=$pkgConfigExecutable"
-    Write-Host "Using pkg-config executable: $pkgConfigExecutable"
+    $cmakePkgConfig = Convert-ToCMakePath $pkgConfigExecutable
+    $configureArgs += "-DPKG_CONFIG_EXECUTABLE=$cmakePkgConfig"
+    Write-Host "Using pkg-config executable: $cmakePkgConfig"
 } else {
     $configureArgs += "-DCMAKE_DISABLE_FIND_PACKAGE_PkgConfig=ON"
     Write-Host "pkg-config executable not found; disabling PkgConfig package discovery."
 }
 
 if ($vulkanSdkPath) {
-    $configureArgs += "-DVulkan_ROOT=$vulkanSdkPath"
-    Write-Host "Using Vulkan SDK: $vulkanSdkPath"
+    $cmakeVulkanSdkPath = Convert-ToCMakePath $vulkanSdkPath
+    $configureArgs += "-DVulkan_ROOT=$cmakeVulkanSdkPath"
+    Write-Host "Using Vulkan SDK: $cmakeVulkanSdkPath"
 } else {
     Write-Warning "Vulkan SDK location not detected in current shell. If configuration fails with Vulkan not found, restart PowerShell or reinstall LunarG SDK."
 }
@@ -503,6 +520,13 @@ if (Test-Path (Join-Path $buildDir "CMakeCache.txt")) {
 } else {
     cmake -S $rootDir -B $buildDir -G $generator @configureArgs
 }
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning "CMake configure failed. Clearing cached configuration to prevent repeated stale-cache failures."
+    Reset-BuildCache
+    throw "CMake configure failed."
+}
+
 cmake --build $buildDir --config Debug --parallel
 
 $compileCommands = Join-Path $buildDir "compile_commands.json"
