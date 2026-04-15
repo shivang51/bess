@@ -31,58 +31,43 @@ add_library(${PROJECT_NAME} OBJECT)
 
 target_sources(${PROJECT_NAME} PRIVATE ${External})
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(GLFW REQUIRED glfw3)
-pkg_check_modules(VULKAN REQUIRED vulkan)
-if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	find_package(X11 REQUIRED)
 endif()
-find_package(PNG REQUIRED)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
 		"${CMAKE_SOURCE_DIR}/external/imgui"
 		"${CMAKE_SOURCE_DIR}/external/portable-file-dialogs"
 		"${CMAKE_SOURCE_DIR}/external/implot"
-		"${CMAKE_SOURCE_DIR}/external/freetype/include"
 		"${CMAKE_SOURCE_DIR}/external/imgui/backends"
 		"${CMAKE_SOURCE_DIR}/external/glm"
 		"${CMAKE_SOURCE_DIR}/external/jsoncpp/include"
 		"${CMAKE_SOURCE_DIR}/external/stb_image/include"
 		"${CMAKE_SOURCE_DIR}/external/spdlog/include"
 		"${CMAKE_SOURCE_DIR}/external/libtess2/Include"
-		${GLFW_INCLUDE_DIRS}
-		${VULKAN_INCLUDE_DIRS}
-		${X11_INCLUDE_DIR}
-		${PNG_INCLUDE_DIRS}
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC 
-	${PNG_LIBRARIES}
-	${GLFW_LIBRARIES}
-	${X11_LIBRARIES}
-	${VULKAN_LIBRARIES}
+	${BESS_GLFW_TARGET}
+	${BESS_VULKAN_TARGET}
+	${BESS_FREETYPE_TARGET}
 )
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	target_link_libraries(${PROJECT_NAME} PUBLIC X11::X11)
+endif()
 
 if("${BUILD_ARCH}" STREQUAL "x64" AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 		target_link_libraries(${PROJECT_NAME} PUBLIC 
-        "gdi32;"
-        "freetype;"
-    )
-
-		target_link_directories(${PROJECT_NAME} PUBLIC
-        "${CMAKE_SOURCE_DIR}/external/freetype/libs/windows"
+		"gdi32;"
     )
 
 else()
-    if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND ${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14")
 			target_link_libraries(${PROJECT_NAME} PUBLIC stdc++exp)
-    else()
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
 			target_link_libraries(${PROJECT_NAME} PUBLIC stdc++_libbacktrace)
     endif()
-
-		target_link_libraries(${PROJECT_NAME} PUBLIC 
-        "freetype;"
-    )
 endif()
 
 

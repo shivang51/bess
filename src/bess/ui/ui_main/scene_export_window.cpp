@@ -12,12 +12,11 @@
 #include "ui/widgets/m_widgets.h"
 #include "vulkan_core.h"
 
-#include "png.h"
 #include "stb_image_write.h"
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
 #include <filesystem>
-#include <fstream>
 #include <memory>
 #include <vulkan/vulkan_core.h>
 
@@ -92,7 +91,7 @@ namespace Bess::UI {
     SceneExportWindow::SceneExportWindow()
         : Panel("Scene Export Window"), defaultExportPath("Pictures") {
 #ifdef _WIN32
-        const std::filsystem::path homeDir = std::getenv("USERPROFILE");
+        const std::filesystem::path homeDir = std::getenv("USERPROFILE");
 #else
         const std::filesystem::path homeDir = std::getenv("HOME");
 #endif
@@ -328,43 +327,9 @@ namespace Bess::UI {
         BESS_INFO("[ExportSceneView] Generating image of size {}x{}", finalWidth, finalHeight);
 
         const auto &path = info.path;
-        std::ofstream imgFile = std::ofstream(path, std::ios::binary);
-        if (!imgFile.is_open()) {
-            BESS_ERROR("[ExportSceneView] Failed to open file for writing: {}", path.string());
-            return;
-        }
-
-        png_structp pngPtr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-        if (!pngPtr) {
-            BESS_ERROR("[ExportSceneView] png_create_write_struct failed.");
-            return;
-        }
-
-        png_infop pngInfoPtr = png_create_info_struct(pngPtr);
-        if (!pngInfoPtr) {
-            BESS_ERROR("[ExportSceneView] png_create_info_struct failed.");
-            png_destroy_write_struct(&pngPtr, NULL);
-            return;
-        }
-
-        if (setjmp(png_jmpbuf(pngPtr))) {
-            BESS_ERROR("[ExportSceneView] Error during png creation.");
-            png_destroy_write_struct(&pngPtr, &pngInfoPtr);
-            return;
-        }
-
-        png_set_write_fn(pngPtr, &imgFile, [](const png_structp png_ptr, const png_bytep data, const png_size_t length) {
-							auto& stream = *static_cast<std::ostream*>(png_get_io_ptr(png_ptr));
-							stream.write(reinterpret_cast<const char*>(data), length); }, [](const png_structp png_ptr) {
-							auto& stream = *static_cast<std::ostream*>(png_get_io_ptr(png_ptr));
-            stream.flush(); });
-
-        png_set_IHDR(pngPtr, pngInfoPtr, finalWidth, finalHeight, 8, PNG_COLOR_TYPE_RGBA,
-                     PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
-
-        png_write_info(pngPtr, pngInfoPtr);
 
         std::vector<unsigned char> imgRowBuffer(finalWidth * 4);
+        std::vector<unsigned char> finalImage(static_cast<size_t>(finalWidth) * static_cast<size_t>(finalHeight) * 4);
         const size_t snapRowSize = size.x * 4;
         VkExtent2D extent = {(uint32_t)size.x, (uint32_t)size.y};
 
@@ -396,15 +361,27 @@ namespace Bess::UI {
                     const auto &snapData = snapsData[j];
                     const unsigned char *srcPtr = snapData.data() + imgRow * snapRowSize;
                     unsigned char *destPtr = imgRowBuffer.data() + j * snapRowSize;
-                    memcpy(destPtr, srcPtr, snapRowSize);
+                    std::memcpy(destPtr, srcPtr, snapRowSize);
                 }
-                png_write_row(pngPtr, imgRowBuffer.data());
+
+                // The final image is written top-to-bottom for stb_image_write.
+                const int targetRow = (snaps.y - i - 1) * size.y + (size.y - imgRow - 1);
+                std::memcpy(finalImage.data() + static_cast<size_t>(targetRow) * static_cast<size_t>(finalWidth) * 4,
+                            imgRowBuffer.data(),
+                            static_cast<size_t>(finalWidth) * 4);
             }
             pos.y += snapSpan.y;
         }
 
-        png_write_end(pngPtr, NULL);
-        png_destroy_write_struct(&pngPtr, &pngInfoPtr);
+        if (!stbi_write_png(path.string().c_str(),
+                            finalWidth,
+                            finalHeight,
+                            4,
+                            finalImage.data(),
+                            finalWidth * 4)) {
+            BESS_ERROR("[ExportSceneView] Failed to write png via stb_image_write: {}", path.string());
+            return;
+        }
 
         BESS_INFO("[ExportSceneView] Successfully saved file to {}", path.string());
     }

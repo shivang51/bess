@@ -1,13 +1,15 @@
 cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR)
 
-set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
-
 project(bess C CXX)
 include(CTest)
 enable_testing()
 set(CMAKE_CXX_STANDARD 23)
 
-if(NOT CMAKE_BUILD_TYPE)
+if(WIN32)
+	set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
+endif()
+
+if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Debug)
 endif()
 
@@ -25,15 +27,17 @@ endif()
 
 message(STATUS "Arch: ${BUILD_ARCH}")
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}/${BUILD_ARCH}")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}/${BUILD_ARCH}")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}/${BUILD_ARCH}/static")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/$<CONFIG>/${BUILD_ARCH}")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/$<CONFIG>/${BUILD_ARCH}")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/$<CONFIG>/${BUILD_ARCH}/static")
 
 message(STATUS "Output location: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 
 add_compile_definitions($<$<CONFIG:Debug>:DEBUG>)
 
 # add_compile_definitions(DISABLE_PLUGINS)
+
+include(cmake/Dependencies.cmake)
 
 add_subdirectory(external)
 add_subdirectory(src)

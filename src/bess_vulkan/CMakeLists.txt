@@ -62,24 +62,16 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     "${CMAKE_SOURCE_DIR}/external/spdlog/include"
 )
 
-
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(VULKAN REQUIRED vulkan)
-
 target_link_libraries(${PROJECT_NAME} PUBLIC 
-    ${VULKAN_LIBRARIES}
+    ${BESS_VULKAN_TARGET}
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE 
-    ${VULKAN_LIBRARIES}
+	${BESS_VULKAN_TARGET}
 		common
 )
 
 add_dependencies(${PROJECT_NAME} common)
-
-target_include_directories(${PROJECT_NAME} PUBLIC 
-    ${VULKAN_INCLUDE_DIRS}
-)
 
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE "/utf-8" "/Zc:__cplusplus")
