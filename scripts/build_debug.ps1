@@ -33,18 +33,49 @@ function Test-VisualStudioAvailable {
     return [bool](Get-Command cl -ErrorAction SilentlyContinue)
 }
 
-function Get-PreferredGenerator {
-    if (Get-Command ninja -ErrorAction SilentlyContinue) {
-        return "Ninja"
-    }
+function Test-ClangToolchainAvailable {
+    return ((Get-Command clang -ErrorAction SilentlyContinue) -and (Get-Command clang++ -ErrorAction SilentlyContinue))
+}
+
+function Test-MinGWToolchainAvailable {
+    return [bool](Get-Command g++ -ErrorAction SilentlyContinue)
+}
+
+function Get-PreferredBuildConfig {
+    $hasNinja = [bool](Get-Command ninja -ErrorAction SilentlyContinue)
+    $hasMake = ((Get-Command mingw32-make -ErrorAction SilentlyContinue) -or (Get-Command make -ErrorAction SilentlyContinue))
 
     if (Test-VisualStudioAvailable) {
-        return "Visual Studio 17 2022"
+        return @{
+            Generator = "Visual Studio 17 2022"
+            Toolchain = "MSVC"
+            CCompiler = $null
+            CxxCompiler = $null
+        }
     }
 
-    if ((Get-Command g++ -ErrorAction SilentlyContinue) -and
-        ((Get-Command mingw32-make -ErrorAction SilentlyContinue) -or (Get-Command make -ErrorAction SilentlyContinue))) {
-        return "MinGW Makefiles"
+    if (Test-ClangToolchainAvailable) {
+        $generator = if ($hasNinja) { "Ninja" } elseif ($hasMake) { "MinGW Makefiles" } else { $null }
+        if ($generator) {
+            return @{
+                Generator = $generator
+                Toolchain = "Clang"
+                CCompiler = "clang"
+                CxxCompiler = "clang++"
+            }
+        }
+    }
+
+    if (Test-MinGWToolchainAvailable) {
+        $generator = if ($hasNinja) { "Ninja" } elseif ($hasMake) { "MinGW Makefiles" } else { $null }
+        if ($generator) {
+            return @{
+                Generator = $generator
+                Toolchain = "MinGW"
+                CCompiler = "gcc"
+                CxxCompiler = "g++"
+            }
+        }
     }
 
     return $null
@@ -64,6 +95,41 @@ function Get-CachedGenerator {
     return ($line.Line -replace '^CMAKE_GENERATOR:INTERNAL=', '').Trim()
 }
 
+function Get-CachedCompiler {
+    param(
+        [Parameter(Mandatory = $true)][string]$VarName
+    )
+
+    $cacheFile = Join-Path $buildDir "CMakeCache.txt"
+    if (-not (Test-Path $cacheFile)) {
+        return $null
+    }
+
+    $line = Select-String -Path $cacheFile -Pattern "^${VarName}:FILEPATH=" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $line) {
+        return $null
+    }
+
+    return ($line.Line -replace "^${VarName}:FILEPATH=", '').Trim()
+}
+
+function Normalize-CompilerName {
+    param(
+        [string]$Name
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Name)) {
+        return ""
+    }
+
+    $leaf = Split-Path $Name -Leaf
+    if ([string]::IsNullOrWhiteSpace($leaf)) {
+        $leaf = $Name
+    }
+
+    return $leaf.ToLowerInvariant()
+}
+
 function Reset-BuildCache {
     $cacheFile = Join-Path $buildDir "CMakeCache.txt"
     $cmakeFilesDir = Join-Path $buildDir "CMakeFiles"
@@ -78,17 +144,39 @@ function Reset-BuildCache {
 }
 
 Refresh-PathFromRegistry
-$generator = Get-PreferredGenerator
+$buildConfig = Get-PreferredBuildConfig
 
-if (-not $generator) {
-    throw "No supported build generator found. Install one of: Ninja, Visual Studio 2022 Build Tools, or MinGW-w64 (g++ and mingw32-make)."
+if (-not $buildConfig) {
+    throw "No supported build toolchain found. Install one of: Visual Studio 2022 Build Tools, Clang (clang/clang++ plus Ninja), or MinGW-w64 (g++ plus Ninja or mingw32-make)."
 }
 
+$generator = $buildConfig.Generator
+$toolchain = $buildConfig.Toolchain
+$compilerArgs = @()
+if ($buildConfig.CCompiler) {
+    $compilerArgs += "-DCMAKE_C_COMPILER=$($buildConfig.CCompiler)"
+}
+if ($buildConfig.CxxCompiler) {
+    $compilerArgs += "-DCMAKE_CXX_COMPILER=$($buildConfig.CxxCompiler)"
+}
+
+Write-Host "Using toolchain: $toolchain"
 Write-Host "Using CMake generator: $generator"
 
 $cachedGenerator = Get-CachedGenerator
-if ($cachedGenerator -and $cachedGenerator -ne $generator) {
-    Write-Host "Detected cached CMake generator '$cachedGenerator' which differs from '$generator'. Resetting cache..."
+$cachedCCompiler = Get-CachedCompiler -VarName "CMAKE_C_COMPILER"
+$cachedCxxCompiler = Get-CachedCompiler -VarName "CMAKE_CXX_COMPILER"
+
+$compilerMismatch = $false
+if ($buildConfig.CCompiler) {
+    $compilerMismatch = $compilerMismatch -or (Normalize-CompilerName $cachedCCompiler) -ne (Normalize-CompilerName $buildConfig.CCompiler)
+}
+if ($buildConfig.CxxCompiler) {
+    $compilerMismatch = $compilerMismatch -or (Normalize-CompilerName $cachedCxxCompiler) -ne (Normalize-CompilerName $buildConfig.CxxCompiler)
+}
+
+if (($cachedGenerator -and $cachedGenerator -ne $generator) -or $compilerMismatch) {
+    Write-Host "Detected incompatible cached CMake configuration. Resetting cache..."
     Reset-BuildCache
 }
 
@@ -97,7 +185,7 @@ if (Test-Path (Join-Path $buildDir "CMakeCache.txt")) {
 } elseif ($generator -like "Visual Studio*") {
     cmake -S $rootDir -B $buildDir -G $generator -A x64 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug
 } else {
-    cmake -S $rootDir -B $buildDir -G $generator -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug
+    cmake -S $rootDir -B $buildDir -G $generator -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug @compilerArgs
 }
 cmake --build $buildDir --config Debug --parallel
 
