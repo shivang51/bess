@@ -1,0 +1,5 @@
+if(EXISTS "/home/shivang/work/projects/bess/build_gtest_fallback/tests/BessTests[1]_tests.cmake")
+  include("/home/shivang/work/projects/bess/build_gtest_fallback/tests/BessTests[1]_tests.cmake")
+else()
+  add_test(BessTests_NOT_BUILT BessTests_NOT_BUILT)
+endif()

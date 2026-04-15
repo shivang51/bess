@@ -25,5 +25,7 @@ fi
 cmake --build "${ROOT_DIR}/build" --config Debug --parallel -j4
 
 if [ -f "${ROOT_DIR}/build/compile_commands.json" ]; then
-	cp "${ROOT_DIR}/build/compile_commands.json" "${ROOT_DIR}/compile_commands.json"
+	if [ ! "${ROOT_DIR}/build/compile_commands.json" -ef "${ROOT_DIR}/compile_commands.json" ]; then
+		cp "${ROOT_DIR}/build/compile_commands.json" "${ROOT_DIR}/compile_commands.json"
+	fi
 fi
