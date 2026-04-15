@@ -101,7 +101,8 @@ function Get-PythonCommand {
 
 function Ensure-PythonPackage {
     param(
-        [Parameter(Mandatory = $true)][string]$PackageName
+        [Parameter(Mandatory = $true)][string]$PackageName,
+        [string]$ImportName = $PackageName
     )
 
     $pythonCmd = Get-PythonCommand
@@ -116,7 +117,9 @@ function Ensure-PythonPackage {
         $pythonArgs = $pythonCmd[1..($pythonCmd.Count - 1)]
     }
 
-    & $pythonExe @pythonArgs -m pip show $PackageName *> $null
+    # Use an import probe instead of `pip show` to avoid stderr warnings being promoted to terminating errors.
+    $checkCode = "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('$ImportName') else 1)"
+    & $pythonExe @pythonArgs -c $checkCode 2>$null
     if ($LASTEXITCODE -eq 0) {
         Write-Host "$PackageName already installed"
         return
@@ -139,7 +142,7 @@ Ensure-Package -Id "Git.Git" -Name "Git"
 Ensure-Package -Id "Kitware.CMake" -Name "CMake"
 Ensure-Package -Id "Ninja-build.Ninja" -Name "Ninja"
 Ensure-FirstAvailablePackage -Name "Vulkan SDK" -Ids @("LunarG.VulkanSDK", "KhronosGroup.VulkanSDK")
-Ensure-PythonPackage -PackageName "pybind11"
-Ensure-PythonPackage -PackageName "pybind11-stubgen"
+Ensure-PythonPackage -PackageName "pybind11" -ImportName "pybind11"
+Ensure-PythonPackage -PackageName "pybind11-stubgen" -ImportName "pybind11_stubgen"
 
 Write-Host "Dependency bootstrap finished."
