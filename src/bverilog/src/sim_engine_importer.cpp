@@ -269,7 +269,6 @@ namespace Bess::Verilog {
 
             BESS_TRACE("Creating new component definition for %s with %zu inputs and %zu outputs",
                        name.c_str(), inputs, outputs);
-            BESS_ASSERT(false, "");
 
             auto created = std::make_shared<ComponentDefinition>();
             created->setName(name);

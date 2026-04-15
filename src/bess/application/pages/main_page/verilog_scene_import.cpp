@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <functional>
 #include <limits>
+#include <optional>
 #include <unordered_set>
 
 namespace Bess::Pages {
@@ -235,28 +236,92 @@ namespace Bess::Pages {
             return endpointKey(endpoint.componentId, endpoint.slotType, endpoint.slotIndex);
         }
 
+        bool isInstancePathOrDescendant(std::string_view path, std::string_view instancePath) {
+            if (path == instancePath) {
+                return true;
+            }
+            if (!path.starts_with(instancePath)) {
+                return false;
+            }
+            return path.size() > instancePath.size() && path[instancePath.size()] == '/';
+        }
+
+        bool isTopIoComponent(const SimEngineImportResult &result, const UUID &componentId) {
+            for (const auto &[portName, ioId] : result.topInputComponents) {
+                (void)portName;
+                if (ioId == componentId) {
+                    return true;
+                }
+            }
+
+            for (const auto &[portName, ioId] : result.topOutputComponents) {
+                (void)portName;
+                if (ioId == componentId) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        std::optional<size_t> findBoundarySlotIndex(const std::vector<std::string> &slotNames,
+                                                    const std::string &portName,
+                                                    size_t bitIndex) {
+            if (slotNames.empty()) {
+                return std::nullopt;
+            }
+
+            if (bitIndex == 0) {
+                const auto it = std::ranges::find(slotNames, portName);
+                if (it != slotNames.end()) {
+                    return static_cast<size_t>(std::distance(slotNames.begin(), it));
+                }
+            }
+
+            const auto bitName = portName + "[" + std::to_string(bitIndex) + "]";
+            const auto bitIt = std::ranges::find(slotNames, bitName);
+            if (bitIt != slotNames.end()) {
+                return static_cast<size_t>(std::distance(slotNames.begin(), bitIt));
+            }
+
+            return std::nullopt;
+        }
+
         bool isOwnedByInstance(const SimEngineImportResult &result,
+                               const std::unordered_map<std::string, std::shared_ptr<ModuleSceneComponent>> &moduleByPath,
                                const UUID &componentId,
                                std::string_view instancePath) {
             // Treat top IO components as external to any module instance (including the top module itself),
             // so that their connections get properly bridged through the ModuleSceneComponent.
-            for (const auto &[portName, ioId] : result.topInputComponents) {
-                if (ioId == componentId)
-                    return false;
-            }
-            for (const auto &[portName, ioId] : result.topOutputComponents) {
-                if (ioId == componentId)
-                    return false;
+            if (isTopIoComponent(result, componentId)) {
+                return false;
             }
 
             const auto it = result.componentInstancePathById.find(componentId);
-            return it != result.componentInstancePathById.end() && it->second == instancePath;
+            if (it != result.componentInstancePathById.end() &&
+                isInstancePathOrDescendant(it->second, instancePath)) {
+                return true;
+            }
+
+            for (const auto &[path, moduleComp] : moduleByPath) {
+                if (!moduleComp) {
+                    continue;
+                }
+
+                if (moduleComp->getSimEngineId() == componentId &&
+                    isInstancePathOrDescendant(path, instancePath)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
-        void configureImportedModuleInterface(const ImportedModuleSceneComponent &moduleComp,
+        void configureImportedModuleInterface(const std::shared_ptr<ModuleSceneComponent> &moduleComp,
                                               const ImportedModuleInstance &instance,
-                                              SimulationEngine &simEngine) {
-            auto moduleDef = std::dynamic_pointer_cast<ModuleDefinition>(moduleComp.component->getCompDef());
+                                              SimulationEngine &simEngine,
+                                              SceneState &ownerSceneState) {
+            auto moduleDef = std::dynamic_pointer_cast<ModuleDefinition>(moduleComp->getCompDef());
             BESS_ASSERT(moduleDef, "Imported module wrapper is missing its module definition");
 
             const auto inputCount = std::max<size_t>(1, instance.inputSlotNames.size());
@@ -277,14 +342,14 @@ namespace Bess::Pages {
             moduleDef->getOutputSlotsInfo().names = instance.outputSlotNames;
 
             auto &sceneDriver = MainPage::getInstance()->getState().getSceneDriver();
-            const auto moduleScene = sceneDriver.getSceneWithId(moduleComp.component->getSceneId());
+            const auto moduleScene = sceneDriver.getSceneWithId(moduleComp->getSceneId());
             if (!moduleScene) {
                 return;
             }
 
             auto &moduleSceneState = moduleScene->getState();
-            const auto moduleInput = moduleSceneState.getComponentByUuid<SimulationSceneComponent>(moduleComp.component->getAssociatedInp());
-            const auto moduleOutput = moduleSceneState.getComponentByUuid<SimulationSceneComponent>(moduleComp.component->getAssociatedOut());
+            const auto moduleInput = moduleSceneState.getComponentByUuid<SimulationSceneComponent>(moduleComp->getAssociatedInp());
+            const auto moduleOutput = moduleSceneState.getComponentByUuid<SimulationSceneComponent>(moduleComp->getAssociatedOut());
             if (moduleInput) {
                 moduleInput->setName("Module Input");
                 applySlotNames(moduleSceneState, moduleInput->getOutputSlots(), instance.inputSlotNames);
@@ -294,28 +359,114 @@ namespace Bess::Pages {
                 applySlotNames(moduleSceneState, moduleOutput->getInputSlots(), instance.outputSlotNames);
             }
 
-            applySlotNames(sceneDriver.getRootSceneId() == UUID::null ? moduleSceneState : sceneDriver.getSceneWithId(sceneDriver.getRootSceneId())->getState(),
-                           moduleComp.component->getInputSlots(),
+            applySlotNames(ownerSceneState,
+                           moduleComp->getInputSlots(),
                            instance.inputSlotNames);
-            applySlotNames(sceneDriver.getRootSceneId() == UUID::null ? moduleSceneState : sceneDriver.getSceneWithId(sceneDriver.getRootSceneId())->getState(),
-                           moduleComp.component->getOutputSlots(),
+            applySlotNames(ownerSceneState,
+                           moduleComp->getOutputSlots(),
                            instance.outputSlotNames);
         }
 
         void bridgeImportedModuleBoundary(const SimEngineImportResult &result,
                                           const ImportedModuleInstance &instance,
-                                          const ImportedModuleSceneComponent &moduleComp,
-                                          SimulationEngine &simEngine) {
-            auto moduleDef = std::dynamic_pointer_cast<ModuleDefinition>(moduleComp.component->getCompDef());
+                                          const std::shared_ptr<ModuleSceneComponent> &moduleComp,
+                                          SimulationEngine &simEngine,
+                                          const std::unordered_map<std::string, std::shared_ptr<ModuleSceneComponent>> &moduleByPath) {
+            auto moduleDef = std::dynamic_pointer_cast<ModuleDefinition>(moduleComp->getCompDef());
             BESS_ASSERT(moduleDef, "Imported module wrapper is missing its module definition");
 
-            const auto wrapperId = moduleComp.component->getSimEngineId();
+            const auto wrapperId = moduleComp->getSimEngineId();
             const auto moduleInputId = moduleDef->getInputId();
             const auto moduleOutputId = moduleDef->getOutputId();
 
-            for (size_t slotIndex = 0; slotIndex < instance.internalInputSinks.size(); ++slotIndex) {
+            auto inputBoundarySinks = instance.internalInputSinks;
+            auto outputBoundaryDrivers = instance.internalOutputDrivers;
+
+            if (instance.instancePath == result.topModuleName) {
+                std::vector<std::unordered_set<std::string>> seenInputSinks(inputBoundarySinks.size());
+                std::vector<std::unordered_set<std::string>> seenOutputDrivers(outputBoundaryDrivers.size());
+
+                for (size_t slotIndex = 0; slotIndex < inputBoundarySinks.size(); ++slotIndex) {
+                    for (const auto &endpoint : inputBoundarySinks[slotIndex]) {
+                        seenInputSinks[slotIndex].insert(endpointKey(endpoint));
+                    }
+                }
+                for (size_t slotIndex = 0; slotIndex < outputBoundaryDrivers.size(); ++slotIndex) {
+                    for (const auto &endpoint : outputBoundaryDrivers[slotIndex]) {
+                        seenOutputDrivers[slotIndex].insert(endpointKey(endpoint));
+                    }
+                }
+
+                for (const auto &[portName, topInputId] : result.topInputComponents) {
+                    const auto topInputConnections = simEngine.getConnections(topInputId);
+                    for (size_t srcSlot = 0; srcSlot < topInputConnections.outputs.size(); ++srcSlot) {
+                        const auto slotIndex = findBoundarySlotIndex(instance.inputSlotNames, portName, srcSlot);
+                        if (!slotIndex.has_value() || *slotIndex >= inputBoundarySinks.size()) {
+                            continue;
+                        }
+
+                        for (const auto &[dstId, dstSlot] : topInputConnections.outputs[srcSlot]) {
+                            if (dstId == wrapperId || dstId == moduleInputId) {
+                                continue;
+                            }
+
+                            if (!isOwnedByInstance(result, moduleByPath, dstId, instance.instancePath)) {
+                                continue;
+                            }
+
+                            const ImportedSlotEndpoint endpoint{
+                                .componentId = dstId,
+                                .slotType = SimEngine::SlotType::digitalInput,
+                                .slotIndex = dstSlot,
+                            };
+
+                            const auto key = endpointKey(endpoint);
+                            if (!seenInputSinks[*slotIndex].insert(key).second) {
+                                continue;
+                            }
+
+                            inputBoundarySinks[*slotIndex].push_back(endpoint);
+                        }
+                    }
+                }
+
+                for (const auto &[portName, topOutputId] : result.topOutputComponents) {
+                    const auto topOutputConnections = simEngine.getConnections(topOutputId);
+                    for (size_t dstSlot = 0; dstSlot < topOutputConnections.inputs.size(); ++dstSlot) {
+                        const auto slotIndex = findBoundarySlotIndex(instance.outputSlotNames, portName, dstSlot);
+                        if (!slotIndex.has_value() || *slotIndex >= outputBoundaryDrivers.size()) {
+                            continue;
+                        }
+
+                        for (const auto &[srcId, srcSlot] : topOutputConnections.inputs[dstSlot]) {
+                            if (srcId == wrapperId || srcId == moduleOutputId) {
+                                continue;
+                            }
+
+                            if (!isOwnedByInstance(result, moduleByPath, srcId, instance.instancePath)) {
+                                continue;
+                            }
+
+                            const ImportedSlotEndpoint endpoint{
+                                .componentId = srcId,
+                                .slotType = SimEngine::SlotType::digitalOutput,
+                                .slotIndex = srcSlot,
+                            };
+
+                            const auto key = endpointKey(endpoint);
+                            if (!seenOutputDrivers[*slotIndex].insert(key).second) {
+                                continue;
+                            }
+
+                            outputBoundaryDrivers[*slotIndex].push_back(endpoint);
+                        }
+                    }
+                }
+            }
+
+            for (size_t slotIndex = 0; slotIndex < inputBoundarySinks.size(); ++slotIndex) {
                 std::unordered_set<std::string> seenSources;
-                for (const auto &sink : instance.internalInputSinks[slotIndex]) {
+                for (const auto &sink : inputBoundarySinks[slotIndex]) {
                     const auto connections = simEngine.getConnections(sink.componentId);
                     if (sink.slotIndex < 0 || sink.slotIndex >= static_cast<int>(connections.inputs.size())) {
                         continue;
@@ -327,7 +478,7 @@ namespace Bess::Pages {
                             continue;
                         }
 
-                        if (isOwnedByInstance(result, srcId, instance.instancePath)) {
+                        if (isOwnedByInstance(result, moduleByPath, srcId, instance.instancePath)) {
                             continue;
                         }
 
@@ -360,9 +511,9 @@ namespace Bess::Pages {
                 }
             }
 
-            for (size_t slotIndex = 0; slotIndex < instance.internalOutputDrivers.size(); ++slotIndex) {
+            for (size_t slotIndex = 0; slotIndex < outputBoundaryDrivers.size(); ++slotIndex) {
                 std::unordered_set<std::string> seenTargets;
-                for (const auto &driver : instance.internalOutputDrivers[slotIndex]) {
+                for (const auto &driver : outputBoundaryDrivers[slotIndex]) {
                     simEngine.connectComponent(driver.componentId,
                                                driver.slotIndex,
                                                driver.slotType,
@@ -381,7 +532,7 @@ namespace Bess::Pages {
                             continue;
                         }
 
-                        if (isOwnedByInstance(result, dstId, instance.instancePath)) {
+                        if (isOwnedByInstance(result, moduleByPath, dstId, instance.instancePath)) {
                             continue;
                         }
 
@@ -411,9 +562,10 @@ namespace Bess::Pages {
         void populateImportedModuleScene(const SimEngineImportResult &result,
                                          const ImportedModuleInstance &instance,
                                          SimulationEngine &simEngine,
-                                         const ImportedModuleSceneComponent &moduleComp) {
+                                         const std::shared_ptr<ModuleSceneComponent> &moduleComp,
+                                         const std::unordered_map<std::string, std::shared_ptr<ModuleSceneComponent>> &moduleByPath) {
             auto &sceneDriver = MainPage::getInstance()->getState().getSceneDriver();
-            const auto moduleScene = sceneDriver.getSceneWithId(moduleComp.component->getSceneId());
+            const auto moduleScene = sceneDriver.getSceneWithId(moduleComp->getSceneId());
             if (!moduleScene) {
                 return;
             }
@@ -422,8 +574,8 @@ namespace Bess::Pages {
             std::unordered_map<UUID, std::shared_ptr<SimulationSceneComponent>> internalSceneBySimId;
             std::vector<UUID> internalSimIds;
 
-            const auto moduleInput = moduleSceneState.getComponentByUuid<SimulationSceneComponent>(moduleComp.component->getAssociatedInp());
-            const auto moduleOutput = moduleSceneState.getComponentByUuid<SimulationSceneComponent>(moduleComp.component->getAssociatedOut());
+            const auto moduleInput = moduleSceneState.getComponentByUuid<SimulationSceneComponent>(moduleComp->getAssociatedInp());
+            const auto moduleOutput = moduleSceneState.getComponentByUuid<SimulationSceneComponent>(moduleComp->getAssociatedOut());
             if (moduleInput) {
                 internalSceneBySimId[moduleInput->getSimEngineId()] = moduleInput;
                 internalSimIds.push_back(moduleInput->getSimEngineId());
@@ -463,6 +615,19 @@ namespace Bess::Pages {
                 internalSceneBySimId[simId] = created.component;
                 internalSimIds.push_back(simId);
                 addImportedSceneComponent(moduleSceneState, created);
+            }
+
+            for (const auto &[childPath, childInstance] : result.instancesByPath) {
+                if (childInstance.parentInstancePath != instance.instancePath) {
+                    continue;
+                }
+                if (!moduleByPath.contains(childPath)) {
+                    continue;
+                }
+
+                const auto &childModule = moduleByPath.at(childPath);
+                internalSceneBySimId[childModule->getSimEngineId()] = childModule;
+                internalSimIds.push_back(childModule->getSimEngineId());
             }
 
             if (moduleInput) {
@@ -505,22 +670,50 @@ namespace Bess::Pages {
                 const auto lhsDepth = instanceDepth(lhs.first);
                 const auto rhsDepth = instanceDepth(rhs.first);
                 if (lhsDepth != rhsDepth) {
-                    return lhsDepth > rhsDepth;
+                    return lhsDepth < rhsDepth;
                 }
                 return lhs.first < rhs.first;
             });
 
             std::unordered_map<std::string, std::shared_ptr<ModuleSceneComponent>> moduleByPath;
+            std::unordered_map<std::string, UUID> ownerSceneIdByPath;
+            auto &sceneDriver = MainPage::getInstance()->getState().getSceneDriver();
 
             for (const auto &[path, instance] : modulePaths) {
                 ImportedModuleSceneComponent created = createModuleSceneComponentForImportedInstance(path);
                 const auto wrapper = created.component;
-                addImportedModuleSceneComponent(sceneState, created);
+
+                SceneState *ownerSceneState = &sceneState;
+                if (!instance.parentInstancePath.empty() && moduleByPath.contains(instance.parentInstancePath)) {
+                    const auto parentModule = moduleByPath.at(instance.parentInstancePath);
+                    const auto parentScene = sceneDriver.getSceneWithId(parentModule->getSceneId());
+                    if (parentScene) {
+                        ownerSceneState = &parentScene->getState();
+                    }
+                }
+
+                addImportedModuleSceneComponent(*ownerSceneState, created);
+                const auto moduleScene = sceneDriver.getSceneWithId(wrapper->getSceneId());
+                if (moduleScene) {
+                    moduleScene->getState().setParentSceneId(ownerSceneState->getSceneId());
+                }
                 moduleByPath[path] = wrapper;
-                configureImportedModuleInterface(created, instance, simEngine);
+                ownerSceneIdByPath[path] = ownerSceneState->getSceneId();
+            }
+
+            for (auto it = modulePaths.rbegin(); it != modulePaths.rend(); ++it) {
+                const auto &path = it->first;
+                const auto &instance = it->second;
+                const auto wrapper = moduleByPath.at(path);
+
+                BESS_ASSERT(ownerSceneIdByPath.contains(path), "Imported module wrapper owner scene was not recorded");
+                auto ownerScene = sceneDriver.getSceneWithId(ownerSceneIdByPath.at(path));
+                BESS_ASSERT(ownerScene, "Imported module wrapper owner scene was not found");
+
+                configureImportedModuleInterface(wrapper, instance, simEngine, ownerScene->getState());
                 EventSystem::EventDispatcher::instance().dispatchAll();
-                bridgeImportedModuleBoundary(result, instance, created, simEngine);
-                populateImportedModuleScene(result, instance, simEngine, created);
+                bridgeImportedModuleBoundary(result, instance, wrapper, simEngine, moduleByPath);
+                populateImportedModuleScene(result, instance, simEngine, wrapper, moduleByPath);
 
                 std::vector<std::shared_ptr<SceneComponent>> layoutChildren;
                 for (const auto &[simId, ownerPath] : result.componentInstancePathById) {
@@ -530,10 +723,8 @@ namespace Bess::Pages {
                     layoutChildren.push_back(sceneBySimId.at(simId));
                 }
 
-                BESS_TRACE("{}", path);
                 for (const auto &[childPath, childModule] : moduleByPath) {
                     (void)childModule;
-                    BESS_TRACE("  - {}", childPath);
                     if (result.instancesByPath.contains(childPath) &&
                         result.instancesByPath.at(childPath).parentInstancePath == path) {
                         layoutChildren.push_back(moduleByPath.at(childPath));
@@ -555,12 +746,6 @@ namespace Bess::Pages {
                 wrapper->getTransform().position = glm::vec3{minX - 120.f, minY - 80.f, scene.getNextZCoord()};
                 wrapper->setSchematicTransform(wrapper->getTransform());
             }
-
-            for (auto &[path, module] : moduleByPath) {
-                BESS_DEBUG("Module instance path: {}, sim engine id: {}", path, (uint64_t)module->getSceneId());
-            }
-
-            BESS_ASSERT(false, "");
 
             return moduleByPath;
         }
