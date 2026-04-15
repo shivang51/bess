@@ -20,6 +20,82 @@ function Refresh-PathFromRegistry {
     }
 }
 
+function Get-EnvFromRegistry {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    $userValue = [Environment]::GetEnvironmentVariable($Name, "User")
+    if (-not [string]::IsNullOrWhiteSpace($userValue)) {
+        return $userValue
+    }
+
+    $machineValue = [Environment]::GetEnvironmentVariable($Name, "Machine")
+    if (-not [string]::IsNullOrWhiteSpace($machineValue)) {
+        return $machineValue
+    }
+
+    return $null
+}
+
+function Find-VulkanSdkPath {
+    $candidates = @()
+
+    $envSdk = Get-EnvFromRegistry -Name "VULKAN_SDK"
+    if ($envSdk) {
+        $candidates += $envSdk
+    }
+
+    $vkSdkPath = Get-EnvFromRegistry -Name "VK_SDK_PATH"
+    if ($vkSdkPath) {
+        $candidates += $vkSdkPath
+    }
+
+    if (Test-Path "C:/VulkanSDK") {
+        $versionDirs = Get-ChildItem -Path "C:/VulkanSDK" -Directory -ErrorAction SilentlyContinue |
+            Sort-Object -Property Name -Descending
+        foreach ($dir in $versionDirs) {
+            $candidates += $dir.FullName
+        }
+    }
+
+    foreach ($path in $candidates | Select-Object -Unique) {
+        if ([string]::IsNullOrWhiteSpace($path)) {
+            continue
+        }
+
+        $normalized = $path.TrimEnd('\\', '/')
+        $header = Join-Path $normalized "Include/vulkan/vulkan.h"
+        $lib = Join-Path $normalized "Lib/vulkan-1.lib"
+        if ((Test-Path $header) -and (Test-Path $lib)) {
+            return $normalized
+        }
+    }
+
+    return $null
+}
+
+function Ensure-VulkanEnvironment {
+    $sdkPath = Find-VulkanSdkPath
+    if (-not $sdkPath) {
+        return $null
+    }
+
+    $env:VULKAN_SDK = $sdkPath
+    if (-not $env:VK_SDK_PATH) {
+        $env:VK_SDK_PATH = $sdkPath
+    }
+
+    $vulkanBin = Join-Path $sdkPath "Bin"
+    if (Test-Path $vulkanBin) {
+        if (-not (($env:Path -split ';') -contains $vulkanBin)) {
+            $env:Path = "$vulkanBin;$env:Path"
+        }
+    }
+
+    return $sdkPath
+}
+
 function Test-VisualStudioAvailable {
     $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio/Installer/vswhere.exe"
     if (Test-Path $vswhere) {
@@ -144,6 +220,7 @@ function Reset-BuildCache {
 }
 
 Refresh-PathFromRegistry
+$vulkanSdkPath = Ensure-VulkanEnvironment
 $buildConfig = Get-PreferredBuildConfig
 
 if (-not $buildConfig) {
@@ -152,12 +229,18 @@ if (-not $buildConfig) {
 
 $generator = $buildConfig.Generator
 $toolchain = $buildConfig.Toolchain
-$compilerArgs = @()
+$configureArgs = @("-DCMAKE_EXPORT_COMPILE_COMMANDS=ON", "-DCMAKE_BUILD_TYPE=Debug")
 if ($buildConfig.CCompiler) {
-    $compilerArgs += "-DCMAKE_C_COMPILER=$($buildConfig.CCompiler)"
+    $configureArgs += "-DCMAKE_C_COMPILER=$($buildConfig.CCompiler)"
 }
 if ($buildConfig.CxxCompiler) {
-    $compilerArgs += "-DCMAKE_CXX_COMPILER=$($buildConfig.CxxCompiler)"
+    $configureArgs += "-DCMAKE_CXX_COMPILER=$($buildConfig.CxxCompiler)"
+}
+if ($vulkanSdkPath) {
+    $configureArgs += "-DVulkan_ROOT=$vulkanSdkPath"
+    Write-Host "Using Vulkan SDK: $vulkanSdkPath"
+} else {
+    Write-Warning "Vulkan SDK location not detected in current shell. If configuration fails with Vulkan not found, restart PowerShell or reinstall LunarG SDK."
 }
 
 Write-Host "Using toolchain: $toolchain"
@@ -181,11 +264,11 @@ if (($cachedGenerator -and $cachedGenerator -ne $generator) -or $compilerMismatc
 }
 
 if (Test-Path (Join-Path $buildDir "CMakeCache.txt")) {
-    cmake -S $rootDir -B $buildDir -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug
+    cmake -S $rootDir -B $buildDir @configureArgs
 } elseif ($generator -like "Visual Studio*") {
-    cmake -S $rootDir -B $buildDir -G $generator -A x64 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug
+    cmake -S $rootDir -B $buildDir -G $generator -A x64 @configureArgs
 } else {
-    cmake -S $rootDir -B $buildDir -G $generator -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug @compilerArgs
+    cmake -S $rootDir -B $buildDir -G $generator @configureArgs
 }
 cmake --build $buildDir --config Debug --parallel
 
