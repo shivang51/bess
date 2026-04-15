@@ -7,7 +7,6 @@ cmake_policy(SET CMP0148 NEW)
 
 find_package(Python3 COMPONENTS Interpreter Development Development.Module Development.Embed REQUIRED)
 set(PYBIND11_FINDPYTHON ON)
-find_package(pybind11 REQUIRED)
 
 set(Header_Files
     "include/plugin_manager.h"
@@ -34,7 +33,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE LOGGER_NAME="${PROJECT_NAME}"
 
 target_link_libraries(${PROJECT_NAME} PUBLIC 
 	Python3::Python
-	pybind11::embed
+    ${BESS_PYBIND11_EMBED_TARGET}
 	BessExtDeps
 	common
 )

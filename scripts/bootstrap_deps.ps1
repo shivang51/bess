@@ -87,6 +87,48 @@ function Ensure-FirstAvailablePackage {
     Write-Warning "Could not install optional package '$Name'. Tried ids: $($Ids -join ', ')."
 }
 
+function Get-PythonCommand {
+    if (Get-Command py -ErrorAction SilentlyContinue) {
+        return @("py", "-3")
+    }
+
+    if (Get-Command python -ErrorAction SilentlyContinue) {
+        return @("python")
+    }
+
+    return $null
+}
+
+function Ensure-PythonPackage {
+    param(
+        [Parameter(Mandatory = $true)][string]$PackageName
+    )
+
+    $pythonCmd = Get-PythonCommand
+    if (-not $pythonCmd) {
+        Write-Warning "Python was not found on PATH; skipping Python package '$PackageName'."
+        return
+    }
+
+    $pythonExe = $pythonCmd[0]
+    $pythonArgs = @()
+    if ($pythonCmd.Count -gt 1) {
+        $pythonArgs = $pythonCmd[1..($pythonCmd.Count - 1)]
+    }
+
+    & $pythonExe @pythonArgs -m pip show $PackageName *> $null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "$PackageName already installed"
+        return
+    }
+
+    Write-Host "Installing Python package $PackageName..."
+    & $pythonExe @pythonArgs -m pip install --user $PackageName
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "Failed to install Python package '$PackageName'."
+    }
+}
+
 if (-not (Confirm-Bootstrap)) {
     Write-Host "Dependency bootstrap finished."
     exit 0
@@ -97,5 +139,7 @@ Ensure-Package -Id "Git.Git" -Name "Git"
 Ensure-Package -Id "Kitware.CMake" -Name "CMake"
 Ensure-Package -Id "Ninja-build.Ninja" -Name "Ninja"
 Ensure-FirstAvailablePackage -Name "Vulkan SDK" -Ids @("LunarG.VulkanSDK", "KhronosGroup.VulkanSDK")
+Ensure-PythonPackage -PackageName "pybind11"
+Ensure-PythonPackage -PackageName "pybind11-stubgen"
 
 Write-Host "Dependency bootstrap finished."

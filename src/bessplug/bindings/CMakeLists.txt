@@ -9,7 +9,10 @@ cmake_policy(SET CMP0148 NEW)
 set(PYBIND11_FINDPYTHON ON)
 
 find_package(Python3 COMPONENTS Interpreter Development Development.Module Development.Embed REQUIRED)
-find_package(pybind11 REQUIRED)
+
+if(NOT COMMAND pybind11_add_module)
+	message(FATAL_ERROR "pybind11_add_module is unavailable. Ensure pybind11 is configured from cmake/Dependencies.cmake.")
+endif()
 
 set(BESS_PYBIND_SOURCES
 		internal_types.h
@@ -62,19 +65,18 @@ add_dependencies(${PROJECT_NAME}
 	BessJson
 )
 
-find_package(glfw3 REQUIRED)
 if(UNIX AND NOT APPLE)
     find_package(X11 REQUIRED)
     find_package(Threads REQUIRED)
     
     target_link_libraries(${PROJECT_NAME} PRIVATE 
-        glfw 
+		${BESS_GLFW_TARGET}
         X11::X11 
         Threads::Threads
         ${CMAKE_DL_LIBS}
     )
 else()
-    target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
+	target_link_libraries(${PROJECT_NAME} PRIVATE ${BESS_GLFW_TARGET})
 endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
@@ -92,15 +94,20 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     OUTPUT_NAME "bessplug"
 )
 
-add_custom_command(
-    TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E env "PYTHONPATH=$<TARGET_FILE_DIR:${PROJECT_NAME}>"
-            pybind11-stubgen 
-            "bessplug"
-            -o "${OUT_DIR}"
-    WORKING_DIRECTORY $<TARGET_FILE_DIR:${PROJECT_NAME}>
-    COMMENT "Generating python stubs for bessplug bindings..."
-)
+find_program(PYBIND11_STUBGEN_EXECUTABLE pybind11-stubgen)
+if(PYBIND11_STUBGEN_EXECUTABLE)
+	add_custom_command(
+		TARGET ${PROJECT_NAME} POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E env "PYTHONPATH=$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+				"${PYBIND11_STUBGEN_EXECUTABLE}"
+				"bessplug"
+				-o "${OUT_DIR}"
+		WORKING_DIRECTORY $<TARGET_FILE_DIR:${PROJECT_NAME}>
+		COMMENT "Generating python stubs for bessplug bindings..."
+	)
+else()
+	message(STATUS "pybind11-stubgen not found; skipping stub generation for bessplug.")
+endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
     BUILD_RPATH "${CMAKE_SOURCE_DIR}/build/lib"

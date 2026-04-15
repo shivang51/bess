@@ -55,6 +55,10 @@ install_linux_apt() {
         git \
         ninja-build \
         pkg-config \
+        python3 \
+        python3-dev \
+        python3-pip \
+        pybind11-dev \
         libx11-dev \
         libxrandr-dev \
         libxinerama-dev \
@@ -73,6 +77,9 @@ install_linux_pacman() {
         git \
         ninja \
         pkgconf \
+        python \
+        python-pip \
+        pybind11 \
         libx11 \
         libxrandr \
         libxinerama \
@@ -90,6 +97,10 @@ install_linux_dnf() {
         git \
         ninja-build \
         pkgconf-pkg-config \
+        python3 \
+        python3-devel \
+        python3-pip \
+        pybind11-devel \
         libX11-devel \
         libXrandr-devel \
         libXinerama-devel \
@@ -97,6 +108,26 @@ install_linux_dnf() {
         libXi-devel \
         vulkan-tools \
         vulkan-loader-devel
+}
+
+install_python_tools() {
+    if ! require_cmd python3; then
+        echo "python3 not found; skipping pybind11 Python tooling install." >&2
+        return 0
+    fi
+
+    if ! python3 -m pip --version >/dev/null 2>&1; then
+        echo "python3 pip not available; skipping pybind11 Python tooling install." >&2
+        return 0
+    fi
+
+    if ! python3 -m pip show pybind11 >/dev/null 2>&1; then
+        python3 -m pip install --user pybind11
+    fi
+
+    if ! python3 -m pip show pybind11-stubgen >/dev/null 2>&1; then
+        python3 -m pip install --user pybind11-stubgen
+    fi
 }
 
 install_linux() {
@@ -112,7 +143,10 @@ install_linux() {
         install_linux_dnf
     else
         echo "Unsupported Linux package manager. Install cmake, git, ninja, X11 dev packages, and Vulkan loader manually." >&2
+        return 0
     fi
+
+    install_python_tools
 }
 
 install_macos() {
@@ -126,7 +160,9 @@ install_macos() {
     fi
 
     brew update
-    brew install cmake git ninja pkg-config molten-vk vulkan-loader vulkan-headers
+    brew install cmake git ninja pkg-config python pybind11 molten-vk vulkan-loader vulkan-headers
+
+    install_python_tools
 }
 
 OS="$(uname -s)"
