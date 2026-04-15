@@ -181,13 +181,34 @@ function Get-MinGWWindres {
     return $null
 }
 
+function Invoke-ProcessQuiet {
+    param(
+        [Parameter(Mandatory = $true)][string]$Executable,
+        [Parameter(Mandatory = $true)][string[]]$Arguments,
+        [Parameter(Mandatory = $true)][string]$WorkingDirectory
+    )
+
+    $stdoutPath = Join-Path $WorkingDirectory ("proc-" + [Guid]::NewGuid().ToString("N") + ".out")
+    $stderrPath = Join-Path $WorkingDirectory ("proc-" + [Guid]::NewGuid().ToString("N") + ".err")
+
+    try {
+        $proc = Start-Process -FilePath $Executable -ArgumentList $Arguments -WorkingDirectory $WorkingDirectory -NoNewWindow -Wait -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+        return $proc.ExitCode
+    }
+    finally {
+        Remove-Item $stdoutPath -Force -ErrorAction SilentlyContinue
+        Remove-Item $stderrPath -Force -ErrorAction SilentlyContinue
+    }
+}
+
 function Test-ClangWithMinGWLink {
     param(
         [Parameter(Mandatory = $true)][string]$MinGWRoot
     )
 
     $clang = Get-Command clang -ErrorAction SilentlyContinue
-    if (-not $clang) {
+    $clangxx = Get-Command clang++ -ErrorAction SilentlyContinue
+    if (-not $clang -or -not $clangxx) {
         return $false
     }
 
@@ -195,20 +216,34 @@ function Test-ClangWithMinGWLink {
     New-Item -ItemType Directory -Path $probeDir -Force | Out-Null
 
     try {
-        $probeSource = Join-Path $probeDir "probe.c"
-        $probeOutput = Join-Path $probeDir "probe.exe"
-        Set-Content -Path $probeSource -Value "int main(void){return 0;}" -Encoding Ascii
+        # Probe both C and C++ with the same target settings we pass to CMake.
+        $cProbeSource = Join-Path $probeDir "probe.c"
+        $cProbeOutput = Join-Path $probeDir "probe-c.exe"
+        Set-Content -Path $cProbeSource -Value "int main(void){return 0;}" -Encoding Ascii
 
-        $probeArgs = @(
+        $cProbeArgs = @(
             "--target=x86_64-w64-windows-gnu"
-            "--gcc-toolchain=$MinGWRoot"
-            $probeSource
+            $cProbeSource
             "-o"
-            $probeOutput
+            $cProbeOutput
         )
 
-        & $clang.Source @probeArgs *> $null
-        return ($LASTEXITCODE -eq 0)
+        $cExitCode = Invoke-ProcessQuiet -Executable $clang.Source -Arguments $cProbeArgs -WorkingDirectory $probeDir
+
+        $cppProbeSource = Join-Path $probeDir "probe.cpp"
+        $cppProbeOutput = Join-Path $probeDir "probe-cpp.exe"
+        Set-Content -Path $cppProbeSource -Value "int main(){return 0;}" -Encoding Ascii
+
+        $cppProbeArgs = @(
+            "--target=x86_64-w64-windows-gnu"
+            $cppProbeSource
+            "-o"
+            $cppProbeOutput
+        )
+
+        $cppExitCode = Invoke-ProcessQuiet -Executable $clangxx.Source -Arguments $cppProbeArgs -WorkingDirectory $probeDir
+
+        return ($cExitCode -eq 0 -and $cppExitCode -eq 0)
     }
     finally {
         Remove-Item $probeDir -Recurse -Force -ErrorAction SilentlyContinue
@@ -244,8 +279,8 @@ function Get-PreferredBuildConfig {
                 CxxCompiler = "clang++"
                 CCompilerTarget = "x86_64-w64-windows-gnu"
                 CxxCompilerTarget = "x86_64-w64-windows-gnu"
-                CExternalToolchain = $mingwRoot
-                CxxExternalToolchain = $mingwRoot
+                CExternalToolchain = $null
+                CxxExternalToolchain = $null
                 RcCompiler = Get-MinGWWindres
             }
         }
