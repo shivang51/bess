@@ -14,7 +14,7 @@ namespace Bess::Canvas {
         operator glm::mat4() const { return getTransform(); }
 
         glm::vec3 position = {0.f, 0.f, 0.f};
-        glm::vec2 scale = {1.f, 1.f};
+        glm::vec2 scale = {100.f, 100.f};
         float angle = 0.f;
     };
 

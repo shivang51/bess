@@ -38,7 +38,7 @@ namespace Bess::Canvas {
         return transform;
     }
 
-    glm::vec2 SceneComponent::calculateScale(SceneState &_) {
+    glm::vec2 SceneComponent::calculateScale(const SceneState &_) {
         const auto labelSize = Renderer::MaterialRenderer::getTextRenderSize(m_name, Styles::componentStyles.headerFontSize);
         float width = labelSize.x + (Styles::componentStyles.paddingX * 2.f);
         return {width, Styles::componentStyles.headerHeight};

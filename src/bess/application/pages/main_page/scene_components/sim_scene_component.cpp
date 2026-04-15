@@ -1,6 +1,5 @@
 #include "sim_scene_component.h"
 #include "common/bess_uuid.h"
-#include "common/logger.h"
 #include "icons/FontAwesomeIcons.h"
 #include "input_scene_component.h"
 #include "pages/main_page/services/connection_service.h"
@@ -32,6 +31,10 @@ namespace Bess::Canvas {
     }
 
     void SimulationSceneComponent::update(Bess::TimeMs timeStep, SceneState &state) {
+        updateScales(state);
+    }
+
+    void SimulationSceneComponent::updateScales(const SceneState &state) {
         if (m_isScaleDirty) {
             setScale(calculateScale(state));
             resetSlotPositions(state);
@@ -51,10 +54,6 @@ namespace Bess::Canvas {
     }
 
     void SimulationSceneComponent::draw(SceneDrawContext &context) {
-        if (m_isFirstDraw) {
-            onFirstDraw(context);
-        }
-
         drawBackground(context);
         drawSlots(context);
     }
@@ -162,6 +161,10 @@ namespace Bess::Canvas {
                                            textColor, id, 0.f);
 
         drawSlots(context);
+
+        if (m_isFirstSchematicDraw) {
+            m_isFirstSchematicDraw = false;
+        }
     }
 
     std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>>
@@ -194,7 +197,7 @@ namespace Bess::Canvas {
         return {inputPositions, outputPositions};
     }
 
-    glm::vec2 SimulationSceneComponent::calculateScale(SceneState &state) {
+    glm::vec2 SimulationSceneComponent::calculateScale(const SceneState &state) {
         const auto labelSize = Renderer::MaterialRenderer::getTextRenderSize(m_name,
                                                                              Styles::simCompStyles.headerFontSize);
         float width = labelSize.x + (Styles::simCompStyles.paddingX * 2.f);
@@ -210,7 +213,7 @@ namespace Bess::Canvas {
         return {width, height};
     }
 
-    void SimulationSceneComponent::resetSlotPositions(SceneState &state) {
+    void SimulationSceneComponent::resetSlotPositions(const SceneState &state) {
         const auto [inpPositions, outPositions] =
             calculateSlotPositions(m_inputSlots.size(), m_outputSlots.size());
 
@@ -228,7 +231,7 @@ namespace Bess::Canvas {
         }
     }
 
-    void SimulationSceneComponent::resetSchematicPinsPositions(SceneState &state) {
+    void SimulationSceneComponent::resetSchematicPinsPositions(const SceneState &state) {
         // Schematic diagram pin positions
         // We will ignore resize slots for schematic view positioning
         // Resize slots will be hidden in schematic view.
@@ -263,14 +266,6 @@ namespace Bess::Canvas {
             pos.y = glm::round(pos.y / SNAP_AMOUNT) * SNAP_AMOUNT;
             slotComp->setSchematicPos(glm::vec3(pos, -0.0005));
         }
-    }
-
-    void SimulationSceneComponent::onFirstDraw(SceneDrawContext &context) {
-        m_isFirstDraw = false;
-    }
-
-    void SimulationSceneComponent::onFirstSchematicDraw(SceneDrawContext &context) {
-        m_isFirstSchematicDraw = false;
     }
 
     size_t SimulationSceneComponent::getInputSlotsCount() const {
@@ -325,7 +320,7 @@ namespace Bess::Canvas {
         return removedIds;
     }
 
-    void SimulationSceneComponent::calculateSchematicScale(SceneState &state) {
+    void SimulationSceneComponent::calculateSchematicScale(const SceneState &state) {
         auto inpCount = m_inputSlots.size();
         auto outCount = m_outputSlots.size();
         if (inpCount != 0 &&

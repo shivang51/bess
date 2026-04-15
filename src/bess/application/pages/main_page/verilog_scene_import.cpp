@@ -1,6 +1,7 @@
 #include "pages/main_page/verilog_scene_import.h"
 
 #include "common/bess_assert.h"
+#include "common/logger.h"
 #include "event_dispatcher.h"
 #include "module_def.h"
 #include "pages/main_page/main_page.h"
@@ -12,6 +13,7 @@
 #include "scene/scene.h"
 #include "simulation_engine.h"
 #include <algorithm>
+#include <cstdint>
 #include <functional>
 #include <limits>
 #include <unordered_set>
@@ -57,6 +59,7 @@ namespace Bess::Pages {
             result.component->setName(compDef->getName());
             created.erase(created.begin());
             result.children = std::move(created);
+            result.component->setScaleDirty(true);
             return result;
         }
 
@@ -527,8 +530,10 @@ namespace Bess::Pages {
                     layoutChildren.push_back(sceneBySimId.at(simId));
                 }
 
+                BESS_TRACE("{}", path);
                 for (const auto &[childPath, childModule] : moduleByPath) {
                     (void)childModule;
+                    BESS_TRACE("  - {}", childPath);
                     if (result.instancesByPath.contains(childPath) &&
                         result.instancesByPath.at(childPath).parentInstancePath == path) {
                         layoutChildren.push_back(moduleByPath.at(childPath));
@@ -550,6 +555,12 @@ namespace Bess::Pages {
                 wrapper->getTransform().position = glm::vec3{minX - 120.f, minY - 80.f, scene.getNextZCoord()};
                 wrapper->setSchematicTransform(wrapper->getTransform());
             }
+
+            for (auto &[path, module] : moduleByPath) {
+                BESS_DEBUG("Module instance path: {}, sim engine id: {}", path, (uint64_t)module->getSceneId());
+            }
+
+            BESS_ASSERT(false, "");
 
             return moduleByPath;
         }

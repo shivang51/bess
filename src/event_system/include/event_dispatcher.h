@@ -78,7 +78,7 @@ namespace Bess::EventSystem {
         template <typename Event>
         void dispatch(const Event &event) {
             auto type = std::type_index(typeid(Event));
-            BESS_DEBUG("[EventSystem] Dispatching event of type {}", type.name());
+            // BESS_DEBUG("[EventSystem] Dispatching event of type {}", type.name());
             if (m_handlers.contains(type)) {
                 for (auto &handlerAny : m_handlers[type]) {
                     const auto &handler = std::any_cast<EventHandler<Event>>(handlerAny);

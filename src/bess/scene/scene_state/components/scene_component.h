@@ -25,6 +25,7 @@ namespace Bess::Canvas {
 
 #define SCENE_COMP_SER(TClass, TBase, ...)                          \
     Json::Value toJson() const override {                           \
+        onBeforeToJson();                                           \
         auto json = TBase::toJson();                                \
         const auto newJson = SERIALIZE_PROPS(__VA_ARGS__);          \
         for (const auto &member : newJson.getMemberNames()) {       \
@@ -51,6 +52,7 @@ namespace Bess::Canvas {
 
 #define SCENE_COMP_SER_NP(TClass, TBase)                            \
     Json::Value toJson() const override {                           \
+        onBeforeToJson();                                           \
         auto json = TBase::toJson();                                \
         json["typeName"] = TClass::getStaticTypeName();             \
         return json;                                                \
@@ -174,7 +176,9 @@ namespace Bess::Canvas {
         virtual void onStyleChanged() {}
         virtual void onRuntimeIdChanged() {}
 
-        virtual glm::vec2 calculateScale(SceneState &);
+        virtual void onBeforeToJson() const {}
+
+        virtual glm::vec2 calculateScale(const SceneState &);
 
         virtual void onFirstDraw(SceneDrawContext &);
 

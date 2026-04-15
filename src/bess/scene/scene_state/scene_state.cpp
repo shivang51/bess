@@ -289,6 +289,9 @@ namespace Bess::JsonConvert {
         j["components"] = Json::Value(Json::arrayValue);
 
         for (const auto &[uuid, component] : state.getAllComponents()) {
+            if (component->getType() == Canvas::SceneComponentType::simulation) {
+                component->cast<Canvas::SimulationSceneComponent>()->updateScales(state);
+            }
             j["components"].append(component->toJson());
         }
 

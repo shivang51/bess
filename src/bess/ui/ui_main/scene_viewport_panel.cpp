@@ -320,6 +320,9 @@ namespace Bess::UI {
             }
             m_rootToSceneStatePtrs.push_back(&scene->getState());
             sceneId = scene->getState().getParentSceneId();
+            if (sceneDriver.getRootSceneId() != scene->getSceneId()) {
+                BESS_ASSERT(sceneId != UUID::null, "Non-root scene has null parent scene id.");
+            }
         }
 
         std::ranges::reverse(m_rootToSceneStatePtrs);

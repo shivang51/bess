@@ -5,8 +5,6 @@
 #include "scene/scene_state/scene_state.h"
 #include "scene_comp_types.h"
 #include "scene_draw_context.h"
-#include "settings/viewport_theme.h"
-#include "ui/ui_hook.h"
 #include <typeindex>
 
 #define TEXT_SER_PROPS ("data", getData, setData),                                  \
@@ -69,10 +67,10 @@ namespace Bess::Canvas {
         MAKE_GETTER_SETTER(glm::vec4, ForegroundColor, m_foregroundColor)
         MAKE_GETTER_SETTER(size_t, Size, m_size)
 
-        void drawPropertiesUI(SceneState& sceneState) override;
+        void drawPropertiesUI(SceneState &sceneState) override;
 
       private:
-        glm::vec2 calculateScale(SceneState &state) override;
+        glm::vec2 calculateScale(const SceneState &state) override;
 
       private:
         std::string m_data = "New Text";

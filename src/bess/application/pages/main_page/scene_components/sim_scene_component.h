@@ -108,6 +108,8 @@ namespace Bess::Canvas {
 
         void drawSchematic(SceneDrawContext &context) override;
 
+        void updateScales(const SceneState &state);
+
         std::vector<std::shared_ptr<SceneComponent>> clone(const SceneState &sceneState) const override;
 
         MAKE_GETTER_SETTER(UUID, SimEngineId, m_simEngineId)
@@ -165,25 +167,21 @@ namespace Bess::Canvas {
          * Resets the slot positions based on the current scale and number of slots
          * in the component.
          */
-        void resetSlotPositions(SceneState &state);
+        void resetSlotPositions(const SceneState &state);
 
         /**
          * Resets the schematic pin positions based on the current schematic scale and number of slots
          * in the component. Will ignore slots that are resize slots for the schematic view.
          */
-        void resetSchematicPinsPositions(SceneState &state);
+        void resetSchematicPinsPositions(const SceneState &state);
 
         // Generates the positions relative to the component position
         std::pair<std::vector<glm::vec3>, std::vector<glm::vec3>>
         calculateSlotPositions(size_t inputCount, size_t outputCount) const;
 
-        glm::vec2 calculateScale(SceneState &state) override;
+        glm::vec2 calculateScale(const SceneState &state) override;
 
-        virtual void calculateSchematicScale(SceneState &state);
-
-        void onFirstDraw(SceneDrawContext &context) override;
-
-        void onFirstSchematicDraw(SceneDrawContext &context) override;
+        virtual void calculateSchematicScale(const SceneState &state);
 
         void onChildrenChanged() override;
 
