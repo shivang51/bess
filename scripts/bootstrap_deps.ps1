@@ -40,7 +40,8 @@ function Ensure-Winget {
 function Ensure-Package {
     param(
         [Parameter(Mandatory = $true)][string]$Id,
-        [Parameter(Mandatory = $true)][string]$Name
+        [Parameter(Mandatory = $true)][string]$Name,
+        [switch]$Optional
     )
 
     $found = winget list --id $Id --exact 2>$null
@@ -51,6 +52,39 @@ function Ensure-Package {
 
     Write-Host "Installing $Name..."
     winget install --id $Id --exact --accept-source-agreements --accept-package-agreements --silent
+    if ($LASTEXITCODE -ne 0) {
+        if ($Optional) {
+            Write-Warning "Failed to install optional package '$Name' (id: $Id)."
+            return
+        }
+
+        throw "Failed to install required package '$Name' (id: $Id)."
+    }
+}
+
+function Ensure-FirstAvailablePackage {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string[]]$Ids
+    )
+
+    foreach ($id in $Ids) {
+        $found = winget list --id $id --exact 2>$null
+        if ($LASTEXITCODE -eq 0 -and $found) {
+            Write-Host "$Name already installed"
+            return
+        }
+    }
+
+    foreach ($id in $Ids) {
+        Write-Host "Installing $Name..."
+        winget install --id $id --exact --accept-source-agreements --accept-package-agreements --silent
+        if ($LASTEXITCODE -eq 0) {
+            return
+        }
+    }
+
+    Write-Warning "Could not install optional package '$Name'. Tried ids: $($Ids -join ', ')."
 }
 
 if (-not (Confirm-Bootstrap)) {
@@ -62,6 +96,6 @@ Ensure-Winget
 Ensure-Package -Id "Git.Git" -Name "Git"
 Ensure-Package -Id "Kitware.CMake" -Name "CMake"
 Ensure-Package -Id "Ninja-build.Ninja" -Name "Ninja"
-Ensure-Package -Id "LunarG.VulkanSDK" -Name "Vulkan SDK"
+Ensure-FirstAvailablePackage -Name "Vulkan SDK" -Ids @("LunarG.VulkanSDK", "KhronosGroup.VulkanSDK")
 
 Write-Host "Dependency bootstrap finished."
