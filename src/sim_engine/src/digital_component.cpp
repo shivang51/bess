@@ -1,4 +1,5 @@
 #include "digital_component.h"
+#include "common/helpers.h"
 #include "event_dispatcher.h"
 #include "events/sim_engine_events.h"
 #include "module_def.h"
@@ -14,6 +15,13 @@ namespace Bess::SimEngine {
         } else {
             definition = def;
         }
+
+        m_name = Common::Helpers::toUpperCase(definition->getName().substr(0, 3));
+
+        const auto count = getNameCountMap()[m_name];
+        getNameCountMap()[m_name] += 1;
+
+        m_name += "_" + std::to_string(count);
 
         definition->computeExpressionsIfNeeded();
         definition->computeHash();
@@ -184,59 +192,64 @@ namespace Bess::SimEngine {
     }
 
     void DigitalComponent::dispatchStateChange(ComponentState &oldState, ComponentState &newState) {
-        for (const auto &cb : onStateChangeCbs) {
+        for (const auto &cb : m_onStateChangeCbs) {
             cb.second(oldState, newState);
         }
     }
 
     void DigitalComponent::dispatchInputSlotCountChange(size_t newCount) {
-        for (const auto &cb : onInputSlotCountChangeCbs) {
+        for (const auto &cb : m_onInputSlotCountChangeCbs) {
             cb.second(newCount);
         }
     }
 
     void DigitalComponent::dispatchOutputSlotCountChange(size_t newCount) {
-        for (const auto &cb : onOutputSlotCountChangeCbs) {
+        for (const auto &cb : m_onOutputSlotCountChangeCbs) {
             cb.second(newCount);
         }
     }
 
     void DigitalComponent::clearCallbacks() {
-        onInputSlotCountChangeCbs.clear();
-        onOutputSlotCountChangeCbs.clear();
-        onStateChangeCbs.clear();
+        m_onInputSlotCountChangeCbs.clear();
+        m_onOutputSlotCountChangeCbs.clear();
+        m_onStateChangeCbs.clear();
     }
 
     void DigitalComponent::addOnStateChangeCB(const UUID &id, const TOnStateChangeCB &cb) {
-        onStateChangeCbs.emplace_back(id, cb);
+        m_onStateChangeCbs.emplace_back(id, cb);
     }
 
     void DigitalComponent::addOnInputSlotCountChangeCB(const UUID &id,
                                                        const TOnSlotCountChangeCB &cb) {
-        onInputSlotCountChangeCbs.emplace_back(id, cb);
+        m_onInputSlotCountChangeCbs.emplace_back(id, cb);
     }
 
     void DigitalComponent::addOnOutputSlotCountChangeCB(const UUID &id,
                                                         const TOnSlotCountChangeCB &cb) {
-        onOutputSlotCountChangeCbs.emplace_back(id, cb);
+        m_onOutputSlotCountChangeCbs.emplace_back(id, cb);
     }
 
     void DigitalComponent::removeOnStateChangeCB(const UUID &id) {
-        std::erase_if(onStateChangeCbs, [id](const auto &cb) {
+        std::erase_if(m_onStateChangeCbs, [id](const auto &cb) {
             return cb.first == id;
         });
     }
 
     void DigitalComponent::removeOnInputSlotCountChangeCB(const UUID &id) {
-        std::erase_if(onInputSlotCountChangeCbs, [id](const auto &cb) {
+        std::erase_if(m_onInputSlotCountChangeCbs, [id](const auto &cb) {
             return cb.first == id;
         });
     }
 
     void DigitalComponent::removeOnOutputSlotCountChangeCB(const UUID &id) {
-        std::erase_if(onOutputSlotCountChangeCbs, [id](const auto &cb) {
+        std::erase_if(m_onOutputSlotCountChangeCbs, [id](const auto &cb) {
             return cb.first == id;
         });
+    }
+
+    std::unordered_map<std::string, int> &DigitalComponent::getNameCountMap() {
+        static std::unordered_map<std::string, int> nameCountMap;
+        return nameCountMap;
     }
 } // namespace Bess::SimEngine
 
@@ -254,11 +267,17 @@ namespace Bess::JsonConvert {
         toJsonValue(comp.state, j["state"]);
         toJsonValue(comp.inputConnections, j["input_connections"]);
         toJsonValue(comp.outputConnections, j["output_connections"]);
+        j["name"] = comp.getName();
     }
 
     void fromJsonValue(const Json::Value &j, Bess::SimEngine::DigitalComponent &comp) {
         fromJsonValue(j["id"], comp.id);
         fromJsonValue(j["net_uuid"], comp.netUuid);
+
+        if (j.isMember("name")) {
+            comp.setName(j["name"].asString());
+        }
+
         if (j["definition"].isMember("is_module")) {
             auto modDef = std::make_shared<SimEngine::ModuleDefinition>();
             fromJsonValue(j["definition"], modDef);
