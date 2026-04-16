@@ -1,7 +1,12 @@
+#include "common/bess_uuid.h"
 #include "common/logger.h"
+#include "component_catalog.h"
 #include "digital_component.h"
+#include "pages/main_page/main_page.h"
+#include "pages/main_page/scene_components/sim_scene_component.h"
 #include "simulation_engine.h"
 #include "types.h"
+#include "ui_main/component_explorer.h"
 #include <pybind11/eval.h>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
@@ -48,7 +53,9 @@ class ScriptLogger {
 const auto scriptLogger = std::make_shared<ScriptLogger>();
 const auto status = std::make_shared<AsyncScriptStatus>();
 
-std::shared_ptr<Bess::SimEngine::DigitalComponent> findUniqueDigCompByName(const std::string &compName);
+std::shared_ptr<Bess::SimEngine::DigitalComponent> findUniqueDigCompByName(
+    const std::string &compName);
+std::shared_ptr<Bess::SimEngine::DigitalComponent> findDigCompBySceneId(uint64_t compId);
 void bind_cmd_results(py::module &m);
 void bind_async_script_status(py::module &m);
 void bind_script_logger(py::module &m);
@@ -57,9 +64,51 @@ void bind_cmds(py::module &m) {
     bind_async_script_status(m);
     bind_script_logger(m);
 
-    auto getInpStates = [](const std::string &compName) -> CmdResult {
-        auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
+    auto addCompFn = [](const std::string &name) -> CmdResult {
+        const auto &catalog = Bess::SimEngine::ComponentCatalog::instance();
+        const auto &def = catalog.findDefByName(name);
+
+        if (!def) {
+            return {py::none(), "Component definition not found"};
+        }
+
+        auto compId = Bess::UI::ComponentExplorer::createComponent(def);
+
+        if (compId == Bess::UUID::null) {
+            return {py::none(), "Failed to add component"};
+        }
+
+        return {py::cast(compId), ""};
+    };
+
+    m.def("add_comp",
+          addCompFn,
+          "Adds a component to the current circuit by definition name.",
+          py::arg("comp_name"));
+
+    // N stands for by name
+    auto getInpStatesN = [](const std::string &compName) -> CmdResult {
         const auto &comp = findUniqueDigCompByName(compName);
+        if (!comp) {
+            return {py::none(), "Component not found"};
+        }
+
+        std::vector<Bess::SimEngine::LogicState> states;
+        states.reserve(comp->state.inputStates.size());
+        for (const auto &state : comp->state.inputStates) {
+            states.push_back(state.state);
+        }
+        return {py::cast(states), ""};
+    };
+
+    m.def("get_inp_states_n",
+          getInpStatesN,
+          "Gets the states of any components input slots. \
+					For it work make sure component name is unique in your circuit",
+          py::arg("comp_name"));
+
+    auto getInpStates = [](uint64_t compId) -> CmdResult {
+        const auto &comp = findDigCompBySceneId(compId);
         if (!comp) {
             return {py::none(), "Component not found"};
         }
@@ -74,13 +123,32 @@ void bind_cmds(py::module &m) {
 
     m.def("get_inp_states",
           getInpStates,
-          "Gets the states of any components input slots. \
+          "Gets the states of any components input slots.",
+          py::arg("comp_id"));
+
+    auto getOutStatesN = [](const std::string &compName) -> CmdResult {
+        const auto &comp = findUniqueDigCompByName(compName);
+        if (!comp) {
+            return {py::none(), "Component not found"};
+        }
+
+        std::vector<Bess::SimEngine::LogicState> states;
+        states.reserve(comp->state.outputStates.size());
+        for (const auto &state : comp->state.outputStates) {
+            states.push_back(state.state);
+        }
+        return {py::cast(states), ""};
+    };
+
+    m.def("get_out_states_n",
+          getOutStatesN,
+          "Gets the states of any components output slots. \
 					For it work make sure component name is unique in your circuit",
           py::arg("comp_name"));
 
-    auto getOutStates = [](const std::string &compName) -> CmdResult {
-        auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
-        const auto &comp = findUniqueDigCompByName(compName);
+    auto getOutStates = [](uint64_t compId) -> CmdResult {
+        const auto &comp = findDigCompBySceneId(compId);
+
         if (!comp) {
             return {py::none(), "Component not found"};
         }
@@ -95,14 +163,12 @@ void bind_cmds(py::module &m) {
 
     m.def("get_out_states",
           getOutStates,
-          "Gets the states of any components output slots. \
-					For it work make sure component name is unique in your circuit",
-          py::arg("comp_name"));
+          "Gets the states of any components output slots.",
+          py::arg("comp_id"));
 
-    auto setInpStateFn = [](const std::string &compName,
-                            int slotIdx,
-                            const Bess::SimEngine::LogicState &state) -> CmdResult {
-        auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
+    auto setInpStateNFn = [](const std::string &compName,
+                             int slotIdx,
+                             const Bess::SimEngine::LogicState &state) -> CmdResult {
         const auto &comp = findUniqueDigCompByName(compName);
 
         if (!comp) {
@@ -118,15 +184,46 @@ void bind_cmds(py::module &m) {
             return {py::none(), "Component is not an input component"};
         }
 
+        auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
+        simEngine.setOutputSlotState(comp->id, slotIdx, state);
+        return {py::cast(true), ""};
+    };
+
+    // id is of scene component
+    m.def("set_inp_state_n",
+          setInpStateNFn,
+          "Sets the state of input coponent slot. \
+					For it work make sure input names are unique in your circuit",
+          py::arg("comp_name"),
+          py::arg("slot_idx"),
+          py::arg("state"));
+
+    auto setInpStateFn = [](uint64_t compId,
+                            int slotIdx,
+                            const Bess::SimEngine::LogicState &state) -> CmdResult {
+        const auto &comp = findDigCompBySceneId(compId);
+        if (!comp) {
+            return {py::none(), "Component not found"};
+        }
+
+        if (comp->definition->getBehaviorType() !=
+            Bess::SimEngine::ComponentBehaviorType::input) {
+
+            BESS_ERROR("Component with id {} is not an input component.\
+												Only input components can have their input state set.",
+                       compId);
+            return {py::none(), "Component is not an input component"};
+        }
+
+        auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
         simEngine.setOutputSlotState(comp->id, slotIdx, state);
         return {py::cast(true), ""};
     };
 
     m.def("set_inp_state",
           setInpStateFn,
-          "Sets the state of input coponent slot. \
-					For it work make sure input names are unique in your circuit",
-          py::arg("comp_name"),
+          "Sets the state of input component slot.",
+          py::arg("comp_id"),
           py::arg("slot_idx"),
           py::arg("state"));
 
@@ -279,4 +376,21 @@ std::shared_ptr<Bess::SimEngine::DigitalComponent> findUniqueDigCompByName(const
         return nullptr;
     }
     return comps.front();
+}
+
+std::shared_ptr<Bess::SimEngine::DigitalComponent> findDigCompBySceneId(uint64_t compId) {
+    const auto &sceneDriver = Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
+    const auto &simComp = sceneDriver->getState()
+                              .getComponentByUuid<Bess::Canvas::SimulationSceneComponent>(compId);
+
+    if (!simComp) {
+        return nullptr;
+    }
+
+    const auto &simEngineId = simComp->getSimEngineId();
+
+    auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
+    const auto &comp = simEngine.getDigitalComponent(simEngineId);
+
+    return comp;
 }

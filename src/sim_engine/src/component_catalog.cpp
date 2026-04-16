@@ -50,4 +50,13 @@ namespace Bess::SimEngine {
         m_componentTree = nullptr;
         m_components.clear();
     }
+
+    std::shared_ptr<ComponentDefinition> ComponentCatalog::findDefByName(const std::string &name) const {
+        for (const auto &comp : m_components) {
+            if (comp->getName() == name) {
+                return comp;
+            }
+        }
+        return nullptr;
+    }
 } // namespace Bess::SimEngine

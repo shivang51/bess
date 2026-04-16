@@ -33,7 +33,7 @@ class ScriptingPanel:
             clicked = bess_ui.button("Run Script")
 
         [changed, val] = bess_ui.input_text_multiline(
-            "##ScriptEditor", self._script_str
+            "##ScriptEditor", self._script_str, "Write your python script here..."
         )
 
         if not status.is_running:

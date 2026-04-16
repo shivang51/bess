@@ -7,7 +7,6 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
-#include "plugin_manager.h"
 #include "services/plugin_service/plugin_service.h"
 #include "ui/icons/CodIcons.h"
 #include "ui/widgets/m_widgets.h"
@@ -96,6 +95,7 @@ namespace Bess::UI {
                             const auto &mainPageState = Pages::MainPage::getInstance()->getState();
                             const auto &pos = mainPageState.getSceneDriver()->getCameraPos();
                             createComponent(comp, pos);
+                            hide();
                         }
 
                         if (ImGui::BeginPopup((name + "OptionsMenu").c_str())) {
@@ -118,6 +118,7 @@ namespace Bess::UI {
                     const auto &mainPageState = Pages::MainPage::getInstance()->getState();
                     const auto &pos = mainPageState.getSceneDriver()->getCameraPos();
                     createComponent(comp.first, pos);
+                    hide();
                 }
             }
 
@@ -128,7 +129,7 @@ namespace Bess::UI {
         ImGui::PopStyleVar(2);
     }
 
-    void ComponentExplorer::createComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def,
+    UUID ComponentExplorer::createComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def,
                                             const glm::vec2 &pos) {
 
         auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
@@ -165,6 +166,8 @@ namespace Bess::UI {
 
             cmdSystem.push(
                 std::make_unique<Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(simComp, children));
+
+            return simComp->getUuid();
         } else {
             auto components = Canvas::SimulationSceneComponent::createNew(def);
             auto sceneComp = components.front()->template cast<Canvas::SimulationSceneComponent>();
@@ -174,18 +177,18 @@ namespace Bess::UI {
             sceneComp->getTransform().position.y = pos.y;
 
             cmdSystem.execute(std::make_unique<Cmd::AddCompCmd<Canvas::SimulationSceneComponent>>(sceneComp, components));
-        }
 
-        hide();
+            return sceneComp->getUuid();
+        }
     }
 
-    void ComponentExplorer::createComponent(std::type_index tIdx, const glm::vec2 &pos) {
+    UUID ComponentExplorer::createComponent(std::type_index tIdx, const glm::vec2 &pos) {
         auto &cmdSystem = Pages::MainPage::getInstance()->getState().getCommandSystem();
         auto inst = Canvas::NonSimSceneComponent::getInstance(tIdx);
         inst->getTransform().position.x = pos.x;
         inst->getTransform().position.y = pos.y;
         cmdSystem.execute(std::make_unique<Cmd::AddCompCmd<Canvas::NonSimSceneComponent>>(inst));
-        hide();
+        return inst->getUuid();
     }
 
 } // namespace Bess::UI

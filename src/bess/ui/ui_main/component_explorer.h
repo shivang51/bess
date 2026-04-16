@@ -16,10 +16,9 @@ namespace Bess::UI {
 
         void onBeforeDraw() override;
 
-      private:
-        void createComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def,
-                             const glm::vec2 &pos = {0.f, 0.f});
-        void createComponent(std::type_index tIdx, const glm::vec2 &pos = {0.f, 0.f});
+        static UUID createComponent(const std::shared_ptr<SimEngine::ComponentDefinition> &def,
+                                    const glm::vec2 &pos = {0.f, 0.f});
+        static UUID createComponent(std::type_index tIdx, const glm::vec2 &pos = {0.f, 0.f});
 
       private:
         std::string m_searchQuery;
