@@ -223,10 +223,10 @@ namespace Bess::UI {
 
         ImGui::SetNextWindowPos({m_localPos.x + m_viewportSize.x - windowWidth - 10.f,
                                  m_localPos.y + m_viewportSize.y - 44.f});
-        ImGui::SetNextWindowBgAlpha(0.f);
+        // ImGui::SetNextWindowBgAlpha(0.f);
 
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 0));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1);
 
         // Force height 34
         ImGui::SetNextWindowSize({0, 34});
