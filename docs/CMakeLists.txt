@@ -1,13 +1,15 @@
 find_package(Doxygen REQUIRED)
 set(DOXYGEN_INPUT_DIRS
-    ${CMAKE_SOURCE_DIR}/src/Bess/
-    ${CMAKE_SOURCE_DIR}/src/Bess/
-		${CMAKE_SOURCE_DIR}/src/BessVulkan/include
-		${CMAKE_SOURCE_DIR}/src/BessVulkan/src
-		${CMAKE_SOURCE_DIR}/src/BessSimEngine/include
-		${CMAKE_SOURCE_DIR}/src/BessSimEngine/src
-		${CMAKE_SOURCE_DIR}/src/BessPluginManager/include
-		${CMAKE_SOURCE_DIR}/src/BessPluginManager/src
+    ${CMAKE_SOURCE_DIR}/src/bess/
+		${CMAKE_SOURCE_DIR}/src/bess_json/
+		${CMAKE_SOURCE_DIR}/src/bess_vulkan/
+		${CMAKE_SOURCE_DIR}/src/bessplug/
+		${CMAKE_SOURCE_DIR}/src/bverilog/
+		${CMAKE_SOURCE_DIR}/src/command_system/
+		${CMAKE_SOURCE_DIR}/src/common/
+		${CMAKE_SOURCE_DIR}/src/event_system/
+		${CMAKE_SOURCE_DIR}/src/plugin_manager/
+		${CMAKE_SOURCE_DIR}/src/sim_engine/
 )
 
 list(JOIN DOXYGEN_INPUT_DIRS " " DOXYGEN_INPUT_LIST)
