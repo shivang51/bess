@@ -3,7 +3,10 @@
 #include "component_catalog.h"
 #include "digital_component.h"
 #include "pages/main_page/main_page.h"
+#include "pages/main_page/scene_components/connection_scene_component.h" // IWYU pragma: keep
 #include "pages/main_page/scene_components/sim_scene_component.h"
+#include "pages/main_page/scene_components/slot_scene_component.h"
+#include "pages/main_page/services/connection_service.h"
 #include "simulation_engine.h"
 #include "types.h"
 #include "ui_main/component_explorer.h"
@@ -219,6 +222,54 @@ void bind_cmds(py::module &m) {
         simEngine.setOutputSlotState(comp->id, slotIdx, state);
         return {py::cast(true), ""};
     };
+
+    // connect slots
+
+    auto connectSlotsFn = [](const Bess::UUID &fromCompId, Bess::Canvas::SlotType fromSlotType, int fromSlotIdx,
+                             const Bess::UUID &toCompId, Bess::Canvas::SlotType toSlotType, int toSlotIdx) -> CmdResult {
+        const auto &sceneDriver = Bess::Pages::MainPage::getInstance()->getState().getSceneDriver();
+
+        auto &connSvc = Bess::Svc::SvcConnection::instance();
+        auto conn = connSvc.createConnection(fromCompId, fromSlotType, fromSlotIdx,
+                                             toCompId, toSlotType, toSlotIdx, sceneDriver.getActiveScene().get());
+
+        if (conn) {
+            return {py::cast(conn->getUuid()), ""};
+        } else {
+            return {py::none(), "Failed to connect slots. Check if component and slot indices are correct."};
+        }
+    };
+
+    m.def("connect",
+          connectSlotsFn,
+          "Connects two slots together.\
+					Use slot types and indices to specify the slots to connect.\
+					Slot types can be 'input' or 'output'.",
+          py::arg("from_comp_id"),
+          py::arg("from_slot_type"),
+          py::arg("from_slot_idx"),
+          py::arg("to_comp_id"),
+          py::arg("to_slot_type"),
+          py::arg("to_slot_idx"));
+
+    // organize components
+    auto orgCompsFn = []() -> CmdResult {
+        auto &pageState = Bess::Pages::MainPage::getInstance()->getState();
+        const auto result = pageState.applyHierarchicalLayoutToActiveScene();
+        if (!result.applied) {
+            if (result.laidOutNodes == 0) {
+                return {py::cast("Hierarchical layout skipped: no scene components"), ""};
+            } else {
+                return {py::cast("Hierarchical layout skipped"), ""};
+            }
+        }
+        return {py::cast(std::format("Applied hierarchical layout to {} components", result.laidOutNodes)), ""};
+    };
+
+    m.def("org_comps",
+          orgCompsFn,
+          "Organizes components in the scene using a specified method.\
+					Currently only 'hierarchical' method is supported.");
 
     m.def("set_inp_state",
           setInpStateFn,

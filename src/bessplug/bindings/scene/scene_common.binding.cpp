@@ -1,6 +1,6 @@
+#include "pages/main_page/scene_components/slot_scene_component.h"
 #include "pybind11/pybind11.h"
 #include "scene/scene_state/components/scene_component_types.h"
-#include <iostream>
 
 namespace py = pybind11;
 
@@ -22,4 +22,9 @@ void bind_scene_common_binding(py::module &m) {
             return static_cast<uint64_t>(self);
         })
         .def("__eq__", &Bess::Canvas::PickingId::operator==);
+
+    py::enum_<Bess::Canvas::SlotType>(m, "SlotType")
+        .value("dInp", Bess::Canvas::SlotType::digitalInput, "Digital Input Slot")
+        .value("dOut", Bess::Canvas::SlotType::digitalOutput, "Digital Output Slot")
+        .export_values();
 }
