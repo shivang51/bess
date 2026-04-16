@@ -30,10 +30,19 @@ struct CmdResult {
     std::string error;
 };
 
+struct AsyncScriptStatus {
+    std::atomic<bool> isRunning{false};
+    CmdResult res = {};
+};
+
+const auto status = std::make_shared<AsyncScriptStatus>();
+
 void bind_cmd_results(py::module &m);
+void bind_async_script_status(py::module &m);
 
 void bind_cmds(py::module &m) {
     bind_cmd_results(m);
+    bind_async_script_status(m);
 
     auto getInpStates = [](const std::string &compName) -> CmdResult {
         auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
@@ -117,6 +126,7 @@ void bind_cmds(py::module &m) {
         py::gil_scoped_acquire lock{};
 
         try {
+            py::exec("from bessplug.api.sim_engine import *");
             CmdResult result = py::eval(cmd).cast<CmdResult>();
             return {result.result, result.error};
         } catch (py::error_already_set &e) {
@@ -127,8 +137,60 @@ void bind_cmds(py::module &m) {
 
     m.def("exec",
           execCmdFn,
-          "Executes a Python command.",
+          "Executes a single bessplug command.",
           py::arg("cmd"));
+
+    auto execScriptFn = [](const std::string &script) -> CmdResult {
+        py::gil_scoped_acquire lock{};
+
+        try {
+            py::exec(script);
+            return {py::cast(true), ""};
+        } catch (py::error_already_set &e) {
+            BESS_ERROR("Error executing Python script: {}", e.what());
+            return {py::none(), e.what()};
+        }
+    };
+
+    m.def("exec_script", execScriptFn,
+          "Executes a Python script containing multiple bessplug commands.",
+          py::arg("script"));
+
+    auto execAsyncScriptFn = [](const std::string &script) -> CmdResult {
+        if (status->isRunning.load()) {
+            return {py::none(), "Another script is already running"};
+        }
+
+        status->isRunning.store(true);
+        status->res.error = "";
+
+        std::thread([script]() {
+            py::gil_scoped_acquire lock{};
+            try {
+                py::exec(script);
+            } catch (py::error_already_set &e) {
+                BESS_ERROR("Error executing Python script asynchronously: {}", e.what());
+                status->res.error = e.what();
+            }
+
+            status->isRunning.store(false);
+        }).detach();
+
+        return {py::cast(true), ""};
+    };
+
+    m.def("exec_script_async", execAsyncScriptFn,
+          "Executes a Python script asynchronously. Returns immediately with success status.\
+					Use get_status() to check if the script is still running.",
+          py::arg("script"));
+
+    auto getAsyncScriptStatusFn = []() -> std::shared_ptr<AsyncScriptStatus> {
+        return status;
+    };
+
+    m.def("get_async_script_status",
+          getAsyncScriptStatusFn,
+          "Gets the status of the currently running asynchronous script.");
 }
 
 void bind_cmd_results(py::module &m) {
@@ -140,6 +202,23 @@ void bind_cmd_results(py::module &m) {
                 return "<CmdResult: success - " + py::repr(self.result).cast<std::string>() + ">";
             } else {
                 return "<CmdResult: error - " + self.error + ">";
+            }
+        });
+}
+
+void bind_async_script_status(py::module &m) {
+    py::class_<AsyncScriptStatus, std::shared_ptr<AsyncScriptStatus>>(m, "AsyncScriptStatus")
+        .def_property_readonly("is_running", [](const AsyncScriptStatus &self) { return self.isRunning.load(); })
+        .def_property_readonly("result", [](const AsyncScriptStatus &self) { return self.res.result; })
+        .def_property_readonly("error", [](const AsyncScriptStatus &self) { return self.res.error; })
+        .def("__repr__", [](const AsyncScriptStatus &self) -> std::string {
+            if (self.isRunning.load()) {
+                return "<AsyncScriptStatus: running>";
+            } else if (!self.res.error.empty()) {
+                return "<AsyncScriptStatus: error - " + self.res.error + ">";
+            } else {
+                return "<AsyncScriptStatus: completed successfully - " +
+                       py::repr(self.res.result).cast<std::string>() + ">";
             }
         });
 }

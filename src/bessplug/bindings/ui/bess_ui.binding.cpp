@@ -63,4 +63,17 @@ void bind_bess_ui(py::module &m) {
           py::arg("label"),
           py::arg("value"),
           py::arg("hint") = "");
+
+    auto inputTextMultilineFn = [](const std::string &label,
+                                   std::string &value,
+                                   const std::string &hint) {
+        bool changed = Bess::UI::Widgets::TextBoxMultiline(label, value, hint);
+        return std::make_tuple(changed, value);
+    };
+
+    m.def("input_text_multiline",
+          inputTextMultilineFn,
+          py::arg("label"),
+          py::arg("value"),
+          py::arg("hint") = "");
 }

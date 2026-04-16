@@ -13,19 +13,46 @@ namespace Bess::UI::Widgets {
         return 0;
     }
 
-    bool TextBox(const std::string &label, std::string &value, const std::string &hintText) {
+    bool TextBox(const std::string &label,
+                 std::string &value,
+                 const std::string &hintText) {
         ImGui::AlignTextToFramePadding();
         if (!label.empty() && label[0] != '#' && label[1] != '#') {
             ImGui::Text("%s", label.c_str());
             ImGui::SameLine();
         }
-        if (ImGui::InputTextWithHint(("##Tb" + label).c_str(), hintText.c_str(),
-                                     value.data(), value.capacity() + 1, ImGuiInputTextFlags_CallbackResize,
+        if (ImGui::InputTextWithHint(("##Tb" + label).c_str(),
+                                     hintText.c_str(),
+                                     value.data(),
+                                     value.capacity() + 1,
+                                     ImGuiInputTextFlags_CallbackResize,
                                      InputTextCallback, (void *)&value)) {
             return true;
         }
 
         return false;
+    }
+
+    bool TextBoxMultiline(const std::string &label,
+                          std::string &value,
+                          const std::string &hintText,
+                          const glm::vec2 &size) {
+        ImGui::AlignTextToFramePadding();
+        if (!label.empty() && label[0] != '#' && label[1] != '#') {
+            ImGui::Text("%s", label.c_str());
+            ImGui::SameLine();
+        }
+
+        const bool changed = ImGui::InputTextMultiline(("##Tbm" + label).c_str(),
+                                                       value.data(),
+                                                       value.capacity() + 1,
+                                                       ImVec2(size.x, size.y),
+                                                       ImGuiInputTextFlags_CallbackResize |
+                                                           ImGuiInputTextFlags_AllowTabInput,
+                                                       InputTextCallback,
+                                                       (void *)&value);
+
+        return changed;
     }
 
     bool CheckboxWithLabel(const char *label, bool *value, bool expandToFullWidth, bool alignToFramePadding) {

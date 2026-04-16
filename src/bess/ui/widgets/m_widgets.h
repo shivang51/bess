@@ -10,7 +10,14 @@ namespace Bess::UI::Widgets {
 
     void SelectableText(const std::string &id, const std::string &text);
 
-    bool TextBox(const std::string &label, std::string &value, const std::string &hintText = "");
+    bool TextBox(const std::string &label,
+                 std::string &value,
+                 const std::string &hintText = "");
+
+    bool TextBoxMultiline(const std::string &label,
+                          std::string &value,
+                          const std::string &hintText = "",
+                          const glm::vec2 &size = glm::vec2(0, 800));
 
     template <typename T>
     auto UnpackValue(const T &item) {
