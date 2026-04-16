@@ -1,5 +1,7 @@
 from typing import override
 from bessplug import Plugin
+from bessplug.api import bess_ui
+from bessplug.api.common import vec2
 from bessplug.api.sim_engine import ComponentDefinition
 from components.latches import latches
 from components.digital_gates import (
@@ -21,7 +23,7 @@ class BessPlugin(Plugin):
         super().__init__()
         self.name = "BESS Plugin"
         self.version = "1.0.0.dev"
-        # self.is_win_open = True
+        self.is_win_open = True
 
     @override
     def on_components_reg_load(self) -> list[ComponentDefinition]:
@@ -60,15 +62,16 @@ class BessPlugin(Plugin):
 
     @override
     def draw_ui(self):
-        pass
-        # if not self.is_win_open:
-        #     return
-        # bess_ui.begin_panel("Bess Plugin Window", self.is_win_open, vec2(250, 250))
-        # bess_ui.text("This is a plugin panel.")
-        # bess_ui.text("You can add your own UI elements here.")
-        # if bess_ui.button("Click me!"):
-        #     print("Button clicked!")
-        # bess_ui.end_panel()
+        if not self.is_win_open:
+            return
+        self.is_win_open = bess_ui.begin_panel(
+            "Bess Plugin Window", vec2(250, 250), self.is_win_open
+        )
+        bess_ui.text("This is a plugin panel.")
+        bess_ui.text("You can add your own UI elements here.")
+        if bess_ui.button("Click me!"):
+            print("Button clicked!")
+        bess_ui.end_panel()
 
 
 plugin_hwd = BessPlugin()

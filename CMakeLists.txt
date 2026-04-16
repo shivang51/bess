@@ -3,8 +3,10 @@ cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR)
 set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
 
 project(bess C CXX)
-include(CTest)
-enable_testing()
+
+option(TESTS "Build the unit tests" OFF)
+option(DOCS  "Generate documentation with Doxygen" OFF)
+
 set(CMAKE_CXX_STANDARD 23)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -31,17 +33,37 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}/
 
 message(STATUS "Output location: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 
+if(TESTS)
+	message(STATUS "Tests enabled")
+	include(CTest)
+	enable_testing()
+endif()
+
+if(DOCS)
+	message(STATUS "Doxygen docs enabled")
+endif()
+
+
 add_compile_definitions($<$<CONFIG:Debug>:DEBUG>)
 
 # add_compile_definitions(DISABLE_PLUGINS)
 
 add_subdirectory(external)
 add_subdirectory(src)
+
 if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()
-# add_subdirectory(docs)
+
+if(DOCS)
+		find_package(Doxygen)
+		if(DOXYGEN_FOUND)
+				add_subdirectory(docs)
+		else()
+				message(WARNING "Doxygen not found, skipping documentation generation")
+		endif()
+endif()
 
 if(MSVC)
-	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Bess)
+	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT bess)
 endif()
