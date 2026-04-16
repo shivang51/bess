@@ -449,11 +449,11 @@ namespace Bess::UI::Widgets {
         return {opened, clicked};
     }
 
-    void SelectableText(const std::string &id, const std::string &text) {
+    void SelectableText(const std::string &id, const std::string &text, const glm::vec2 &size) {
         ImGui::InputTextMultiline(std::format("##{}", id).c_str(),
                                   (char *)text.data(),
                                   text.size() + 1,
-                                  ImVec2(0, 800),
+                                  ImVec2(size.x, size.y),
                                   ImGuiInputTextFlags_ReadOnly);
     }
 } // namespace Bess::UI::Widgets

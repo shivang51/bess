@@ -19,6 +19,7 @@ class ScriptingPanel:
         self._is_open = bess_ui.begin_panel(self.name, vec2(250, 250), self._is_open)
 
         self._draw_single_line_cmd()
+        bess_ui.separator()
         self._draw_script_editor()
 
         bess_ui.end_panel()
@@ -31,13 +32,18 @@ class ScriptingPanel:
         else:
             clicked = bess_ui.button("Run Script")
 
-        [changed, val] = bess_ui.input_text_multiline("Script Editor", self._script_str)
+        [changed, val] = bess_ui.input_text_multiline(
+            "##ScriptEditor", self._script_str
+        )
+
+        if not status.is_running:
+            bess_ui.text("Script output:")
+            bess_ui.text_multiline("##script_output", str(status.result), vec2(0, 150))
 
         if changed:
             self._script_str = val
 
         if clicked:
-            print(self._script_str)
             bessplug.cmds.exec_script_async(self._script_str)
 
     def _draw_single_line_cmd(self):
@@ -50,7 +56,5 @@ class ScriptingPanel:
 
         if bess_ui.button("Execute"):
             self._cmd_res = bessplug.cmds.exec(self._cmd_str)
-            print("Res ", self._cmd_res)
 
-        bess_ui.text(str(self._cmd_res))
-        pass
+        bess_ui.text(f"Cmd output: {self._cmd_res}")

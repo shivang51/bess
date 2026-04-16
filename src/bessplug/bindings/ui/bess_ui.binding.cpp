@@ -24,9 +24,14 @@ void bind_bess_ui(py::module &m) {
         ImGui::Text("%s", text.c_str());
     });
 
-    m.def("button", [](const std::string &label) {
-        return ImGui::Button(label.c_str());
-    });
+    auto textMultilineFn = [](const std::string &id, const std::string &text, const glm::vec2 &size) {
+        Bess::UI::Widgets::SelectableText(id, text, size);
+    };
+
+    m.def("text_multiline", textMultilineFn,
+          py::arg("id"),
+          py::arg("text"),
+          py::arg("size") = glm::vec2(0.f, 300.f));
 
     m.def("same_line", []() {
         ImGui::SameLine();
@@ -51,6 +56,10 @@ void bind_bess_ui(py::module &m) {
         return ImGui::Checkbox(label.c_str(), &value);
     });
 
+    m.def("button", [](const std::string &label) {
+        return ImGui::Button(label.c_str());
+    });
+
     auto inputTextFn = [](const std::string &label,
                           std::string &value,
                           const std::string &hint) {
@@ -66,8 +75,9 @@ void bind_bess_ui(py::module &m) {
 
     auto inputTextMultilineFn = [](const std::string &label,
                                    std::string &value,
-                                   const std::string &hint) {
-        bool changed = Bess::UI::Widgets::TextBoxMultiline(label, value, hint);
+                                   const std::string &hint = "",
+                                   const glm::vec2 &size = glm::vec2(0.f, 400.f)) {
+        bool changed = Bess::UI::Widgets::TextBoxMultiline(label, value, hint, size);
         return std::make_tuple(changed, value);
     };
 
@@ -75,5 +85,6 @@ void bind_bess_ui(py::module &m) {
           inputTextMultilineFn,
           py::arg("label"),
           py::arg("value"),
-          py::arg("hint") = "");
+          py::arg("hint") = "",
+          py::arg("size") = glm::vec2(0.f, 400.f));
 }

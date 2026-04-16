@@ -8,7 +8,8 @@
 
 namespace Bess::UI::Widgets {
 
-    void SelectableText(const std::string &id, const std::string &text);
+    void SelectableText(const std::string &id, const std::string &text,
+                        const glm::vec2 &size = glm::vec2(0, 800));
 
     bool TextBox(const std::string &label,
                  std::string &value,

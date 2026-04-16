@@ -9,24 +9,8 @@
 
 namespace py = pybind11;
 
-std::shared_ptr<Bess::SimEngine::DigitalComponent> findUniqueDigCompByName(const std::string &compName) {
-    auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
-    const auto &simEngineState = simEngine.getSimEngineState();
-    auto comps = simEngineState.findCompsByName(compName);
-    if (comps.empty()) {
-        BESS_ERROR("No component found with name '{}'", compName);
-        return nullptr;
-    } else if (comps.size() > 1) {
-        BESS_ERROR("Multiple components found with name '{}'.\
-												Make sure component names are unique.",
-                   compName);
-        return nullptr;
-    }
-    return comps.front();
-}
-
 struct CmdResult {
-    py::object result;
+    py::object result = py::none();
     std::string error;
 };
 
@@ -35,14 +19,43 @@ struct AsyncScriptStatus {
     CmdResult res = {};
 };
 
+class ScriptLogger {
+  public:
+    void write(const std::string &text) {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_output += text;
+    }
+
+    void flush() {}
+
+    std::string popLogs() {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        std::string out = m_output;
+        m_output.clear();
+        return out;
+    }
+
+    const std::string &getLogs() {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_output;
+    }
+
+  private:
+    std::string m_output;
+    std::mutex m_mutex;
+};
+
+const auto scriptLogger = std::make_shared<ScriptLogger>();
 const auto status = std::make_shared<AsyncScriptStatus>();
 
+std::shared_ptr<Bess::SimEngine::DigitalComponent> findUniqueDigCompByName(const std::string &compName);
 void bind_cmd_results(py::module &m);
 void bind_async_script_status(py::module &m);
-
+void bind_script_logger(py::module &m);
 void bind_cmds(py::module &m) {
     bind_cmd_results(m);
     bind_async_script_status(m);
+    bind_script_logger(m);
 
     auto getInpStates = [](const std::string &compName) -> CmdResult {
         auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
@@ -143,11 +156,27 @@ void bind_cmds(py::module &m) {
     auto execScriptFn = [](const std::string &script) -> CmdResult {
         py::gil_scoped_acquire lock{};
 
+        auto sys = py::module_::import("sys");
+        py::object old_stdout = sys.attr("stdout");
+        py::object old_stderr = sys.attr("stderr");
+
         try {
+            scriptLogger->popLogs();
+
+            sys.attr("stdout") = scriptLogger;
+            sys.attr("stderr") = scriptLogger;
+
             py::exec(script);
+
+            sys.attr("stdout") = old_stdout;
+            sys.attr("stderr") = old_stderr;
+
             return {py::cast(true), ""};
         } catch (py::error_already_set &e) {
             BESS_ERROR("Error executing Python script: {}", e.what());
+            scriptLogger->write(std::string(e.what()) + "\n");
+            sys.attr("stdout") = old_stdout;
+            sys.attr("stderr") = old_stderr;
             return {py::none(), e.what()};
         }
     };
@@ -156,23 +185,19 @@ void bind_cmds(py::module &m) {
           "Executes a Python script containing multiple bessplug commands.",
           py::arg("script"));
 
-    auto execAsyncScriptFn = [](const std::string &script) -> CmdResult {
+    auto execAsyncScriptFn = [execScriptFn](const std::string &script) -> CmdResult {
         if (status->isRunning.load()) {
+            BESS_WARN("Attempted to execute a new script while another script is still running.");
             return {py::none(), "Another script is already running"};
         }
 
         status->isRunning.store(true);
         status->res.error = "";
 
-        std::thread([script]() {
+        std::thread([execScriptFn, script]() {
             py::gil_scoped_acquire lock{};
-            try {
-                py::exec(script);
-            } catch (py::error_already_set &e) {
-                BESS_ERROR("Error executing Python script asynchronously: {}", e.what());
-                status->res.error = e.what();
-            }
-
+            status->res = execScriptFn(script);
+            status->res.result = py::cast(scriptLogger->popLogs());
             status->isRunning.store(false);
         }).detach();
 
@@ -209,7 +234,10 @@ void bind_cmd_results(py::module &m) {
 void bind_async_script_status(py::module &m) {
     py::class_<AsyncScriptStatus, std::shared_ptr<AsyncScriptStatus>>(m, "AsyncScriptStatus")
         .def_property_readonly("is_running", [](const AsyncScriptStatus &self) { return self.isRunning.load(); })
-        .def_property_readonly("result", [](const AsyncScriptStatus &self) { return self.res.result; })
+        .def_property_readonly("result", [](const AsyncScriptStatus &self) -> py::object {
+            py::gil_scoped_acquire lock;
+            return self.res.result;
+        })
         .def_property_readonly("error", [](const AsyncScriptStatus &self) { return self.res.error; })
         .def("__repr__", [](const AsyncScriptStatus &self) -> std::string {
             if (self.isRunning.load()) {
@@ -221,4 +249,34 @@ void bind_async_script_status(py::module &m) {
                        py::repr(self.res.result).cast<std::string>() + ">";
             }
         });
+}
+
+void bind_script_logger(py::module &m) {
+    py::class_<ScriptLogger, std::shared_ptr<ScriptLogger>>(m, "ScriptLogger")
+        .def("write",
+             &ScriptLogger::write)
+        .def("flush",
+             &ScriptLogger::flush)
+        .def("pop_logs",
+             &ScriptLogger::popLogs,
+             "Retrieves and clears the current logs captured from script execution.")
+        .def("get_logs",
+             &ScriptLogger::getLogs,
+             "Retrieves the current logs captured from script execution without clearing them.");
+}
+
+std::shared_ptr<Bess::SimEngine::DigitalComponent> findUniqueDigCompByName(const std::string &compName) {
+    auto &simEngine = Bess::SimEngine::SimulationEngine::instance();
+    const auto &simEngineState = simEngine.getSimEngineState();
+    auto comps = simEngineState.findCompsByName(compName);
+    if (comps.empty()) {
+        BESS_ERROR("No component found with name '{}'", compName);
+        return nullptr;
+    } else if (comps.size() > 1) {
+        BESS_ERROR("Multiple components found with name '{}'.\
+												Make sure component names are unique.",
+                   compName);
+        return nullptr;
+    }
+    return comps.front();
 }
