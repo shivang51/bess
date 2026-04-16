@@ -24,7 +24,8 @@ struct CmdResult {
 
 struct AsyncScriptStatus {
     std::atomic<bool> isRunning{false};
-    CmdResult res = {};
+    std::string error;
+    std::string log;
 };
 
 class ScriptLogger {
@@ -340,12 +341,12 @@ void bind_cmds(py::module &m) {
         }
 
         status->isRunning.store(true);
-        status->res.error = "";
+        status->error = "";
 
         std::thread([execScriptFn, script]() {
             py::gil_scoped_acquire lock{};
-            status->res = execScriptFn(script);
-            status->res.result = py::cast(scriptLogger->popLogs());
+            status->error = execScriptFn(script).error;
+            status->log = scriptLogger->popLogs();
             status->isRunning.store(false);
         }).detach();
 
@@ -370,6 +371,9 @@ void bind_cmd_results(py::module &m) {
     py::class_<CmdResult>(m, "CmdResult")
         .def_property_readonly("result", [](const CmdResult &self) { return self.result; })
         .def_property_readonly("error", [](const CmdResult &self) { return self.error; })
+        .def("reset", [](CmdResult &self) {
+						self.result = py::none();
+						self.error = ""; })
         .def("__repr__", [](const CmdResult &self) {
             if (self.error.empty()) {
                 return "<CmdResult: success - " + py::repr(self.result).cast<std::string>() + ">";
@@ -382,21 +386,19 @@ void bind_cmd_results(py::module &m) {
 void bind_async_script_status(py::module &m) {
     py::class_<AsyncScriptStatus, std::shared_ptr<AsyncScriptStatus>>(m, "AsyncScriptStatus")
         .def_property_readonly("is_running", [](const AsyncScriptStatus &self) { return self.isRunning.load(); })
-        .def_property_readonly("result", [](const AsyncScriptStatus &self) -> py::object {
-            py::gil_scoped_acquire lock;
-            return self.res.result;
+        .def_property_readonly("log", [](const AsyncScriptStatus &self) -> std::string {
+            return self.log;
         })
-        .def_property_readonly("error", [](const AsyncScriptStatus &self) { return self.res.error; })
+        .def_property_readonly("error", [](const AsyncScriptStatus &self) { return self.log; })
         .def("__repr__", [](const AsyncScriptStatus &self) -> std::string {
             if (self.isRunning.load()) {
                 return "<AsyncScriptStatus: running>";
-            } else if (!self.res.error.empty()) {
-                return "<AsyncScriptStatus: error - " + self.res.error + ">";
+            } else if (!self.error.empty()) {
+                return "<AsyncScriptStatus: error - " + self.error + ">";
             } else {
                 return "<AsyncScriptStatus: completed successfully - " +
-                       py::repr(self.res.result).cast<std::string>() + ">";
-            }
-        });
+                       self.log + ">";
+            } });
 }
 
 void bind_script_logger(py::module &m) {

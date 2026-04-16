@@ -27,18 +27,19 @@ class ScriptingPanel:
     def _draw_script_editor(self):
         clicked = False
         status = bessplug.cmds.get_async_script_status()
+
         if status.is_running:
             bess_ui.text("Script is running...")
         else:
             clicked = bess_ui.button("Run Script")
 
         [changed, val] = bess_ui.input_text_multiline(
-            "##ScriptEditor", self._script_str, "Write your python script here..."
+            "##ScriptEditor", self._script_str
         )
 
         if not status.is_running:
             bess_ui.text("Script output:")
-            bess_ui.text_multiline("##script_output", str(status.result), vec2(0, 150))
+            bess_ui.text_multiline("##script_output", str(status.log), vec2(0, 150))
 
         if changed:
             self._script_str = val

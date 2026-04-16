@@ -17,7 +17,6 @@ namespace Bess::UI::Widgets {
 
     bool TextBoxMultiline(const std::string &label,
                           std::string &value,
-                          const std::string &hintText = "",
                           const glm::vec2 &size = glm::vec2(0, 800));
 
     template <typename T>
