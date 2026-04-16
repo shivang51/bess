@@ -13,6 +13,10 @@ namespace Bess::UI {
 
         void onDraw() override;
 
+        void onBeforeDraw() override;
+
+        void onAfterDraw() override;
+
         void groupSelectedNodes();
         void groupOnNets();
 

@@ -273,20 +273,30 @@ namespace Bess::UI::Widgets {
 
         // background
         if (rowHovered || selected) {
-            ImU32 bgColor = 0;
+            ImVec4 bgColorVec = ImVec4(0, 0, 0, 0);
 
             if (rowHovered) {
-                bgColor = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
+                bgColorVec = g.Style.Colors[ImGuiCol_ButtonHovered];
             } else if (selected) {
-                bgColor = ImGui::GetColorU32(ImGuiCol_HeaderActive);
+                bgColorVec = g.Style.Colors[ImGuiCol_HeaderActive];
             }
 
             ImVec2 bgStart(window->Pos.x, pos.y);
             ImVec2 bgEnd(window->Pos.x + window->Size.x, pos.y + rowHeight);
+
+            bgColorVec.w = 200.f / 255.f;
+
+            const ImU32 bgColor = ImGui::GetColorU32(bgColorVec);
+
             window->DrawList->AddRectFilled(bgStart, bgEnd, bgColor);
         }
 
-        const float toggleWidth = g.FontSize + g.Style.ItemInnerSpacing.x;
+        const auto chevronIcon = opened
+                                     ? Icons::FontAwesomeIcons::FA_CHEVRON_DOWN
+                                     : Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT;
+        const auto stateIcon = std::format(" {}   {}", chevronIcon, opened ? "" : " ");
+
+        const float toggleWidth = ImGui::CalcTextSize(stateIcon.c_str()).x + g.Style.ItemInnerSpacing.x;
         const ImRect toggleRect(rowBB.Min, ImVec2(rowBB.Min.x + toggleWidth, rowBB.Max.y));
         bool toggleHovered = false, toggleHeld = false;
 
@@ -297,11 +307,10 @@ namespace Bess::UI::Widgets {
 
         ImGui::ItemAdd(toggleRect, toggleId);
 
-        const auto stateIcon = opened
-                                   ? Icons::FontAwesomeIcons::FA_CHEVRON_DOWN
-                                   : Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT;
         ImGui::PushStyleColor(ImGuiCol_Text, g.Style.Colors[ImGuiCol_TextDisabled]);
-        ImGui::RenderText(ImVec2(toggleRect.Min.x + g.Style.ItemInnerSpacing.x, toggleRect.Min.y + g.Style.FramePadding.y), stateIcon);
+        ImGui::RenderText(ImVec2(toggleRect.Min.x + g.Style.ItemInnerSpacing.x,
+                                 toggleRect.Min.y + g.Style.FramePadding.y),
+                          stateIcon.c_str());
         ImGui::PopStyleColor();
 
         float iconOffsetX = 0.0f;

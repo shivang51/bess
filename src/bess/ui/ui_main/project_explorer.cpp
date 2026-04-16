@@ -104,6 +104,14 @@ namespace Bess::UI {
         }
     }
 
+    void ProjectExplorer::onBeforeDraw() {
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 2.f));
+    }
+
+    void ProjectExplorer::onAfterDraw() {
+        ImGui::PopStyleVar();
+    }
+
     void ProjectExplorer::onDraw() {
         const ImColor &itemAltBg = ImGui::GetStyle().Colors[ImGuiCol_TableRowBgAlt];
         const auto &style = ImGui::GetStyle();
@@ -116,6 +124,7 @@ namespace Bess::UI {
         const bool isMultiSelected = selSize > 1;
 
         ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 34.f);
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 4.f);
         Widgets::TextBox("##ProjectExplorerSearch", m_searchQuery, "Search");
         ImGui::PopItemWidth();
         ImGui::SameLine();
@@ -134,8 +143,8 @@ namespace Bess::UI {
             ImGui::EndPopup();
         }
 
-        const float footerHeight = ImGui::GetTextLineHeightWithSpacing() + style.ItemSpacing.y + style.WindowPadding.y;
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
+        const float footerHeight = ImGui::GetTextLineHeightWithSpacing() +
+                                   (style.ItemSpacing.y * 2) + style.WindowPadding.y;
         if (ImGui::BeginChild("project_explorer_list", ImVec2(0.f, -footerHeight), false)) {
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
@@ -176,9 +185,10 @@ namespace Bess::UI {
             }
         }
         ImGui::EndChild();
-        ImGui::PopStyleVar();
 
         ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 4.f);
         if (size == 0) {
             ImGui::Text("No Components Added");
         } else if (size == 1) {
@@ -255,7 +265,9 @@ namespace Bess::UI {
             ImVec2 avail = ImGui::GetContentRegionAvail();
             ImVec2 bgStart(x, y);
             ImVec2 bgEnd(x + window->Size.x, y + g.FontSize + (g.Style.FramePadding.y * 2));
-            auto color = IM_COL32(bgColor.x * 255, bgColor.y * 255, bgColor.z * 255, 200);
+
+            bgColor.w = 200.f / 255.f;
+            const auto color = ImGui::GetColorU32(bgColor);
             drawList->AddRectFilled(bgStart, bgEnd, color, 0);
         }
 
@@ -386,7 +398,7 @@ namespace Bess::UI {
     }
 
     size_t ProjectExplorer::drawEntites(const std::unordered_set<UUID> &entities) {
-        constexpr auto treeIcon = Icons::FontAwesomeIcons::FA_FOLDER;
+        constexpr auto groupIcon = Icons::FontAwesomeIcons::FA_FOLDER;
         constexpr auto nodePopupName = "node_popup";
 
         auto &sceneState = Pages::MainPage::getInstance()->getState().getSceneDriver()->getState();
@@ -417,8 +429,8 @@ namespace Bess::UI {
                                                            comp->getIsSelected(),
                                                            ImGuiTreeNodeFlags_DefaultOpen |
                                                                ImGuiTreeNodeFlags_DrawLinesFull,
-                                                           treeIcon,
-                                                           ViewportTheme::colors.selectedWire,
+                                                           groupIcon,
+                                                           ViewportTheme::colors.groupColor,
                                                            nodePopupName,
                                                            comp->getUuid());
 
@@ -439,8 +451,13 @@ namespace Bess::UI {
 
             } else {
                 const bool isModule = comp->getType() == Canvas::SceneComponentType::module;
-
-                const auto name = std::format("{} {}", comp->getIcon(), comp->getName());
+                const bool isAtRoot = comp->getParentComponent() == UUID::null;
+                std::string name;
+                if (isAtRoot) {
+                    name = std::format(" {}   {}", comp->getIcon(), comp->getName());
+                } else {
+                    name = std::format("   {} {}", comp->getIcon(), comp->getName());
+                }
 
                 if (isModule) {
                     const auto &moduleColor = ViewportTheme::colors.moduleColor;
