@@ -6,6 +6,7 @@ namespace Bess::Common {
     class Helpers {
       public:
         static std::string toLowerCase(const std::string &str);
+        static std::string toUpperCase(const std::string &str);
 
         template <std::size_t N1, std::size_t N2>
         static constexpr auto concat(const char (&a)[N1], const char (&b)[N2]) {
