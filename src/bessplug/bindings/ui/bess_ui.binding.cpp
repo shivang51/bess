@@ -1,5 +1,5 @@
-#include "glm/ext/vector_float2.hpp"
 #include "imgui.h"
+#include "ui/widgets/m_widgets.h"
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -40,6 +40,8 @@ void bind_bess_ui(py::module &m) {
         ImGui::AlignTextToFramePadding();
     });
 
+    /// inputs
+
     m.def("slider_float", [](const std::string &label, float value, float min, float max) {
         bool changed = ImGui::SliderFloat(label.c_str(), &value, min, max);
         return std::make_tuple(changed, value);
@@ -48,4 +50,17 @@ void bind_bess_ui(py::module &m) {
     m.def("checkbox", [](const std::string &label, bool &value) {
         return ImGui::Checkbox(label.c_str(), &value);
     });
+
+    auto inputTextFn = [](const std::string &label,
+                          std::string &value,
+                          const std::string &hint) {
+        bool changed = Bess::UI::Widgets::TextBox(label, value, hint);
+        return std::make_tuple(changed, value);
+    };
+
+    m.def("input_text",
+          inputTextFn,
+          py::arg("label"),
+          py::arg("value"),
+          py::arg("hint") = "");
 }

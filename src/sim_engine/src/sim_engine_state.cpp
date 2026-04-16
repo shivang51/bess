@@ -61,6 +61,17 @@ namespace Bess::SimEngine {
         return m_digitalComponents.contains(uuid);
     }
 
+    std::vector<std::shared_ptr<DigitalComponent>> SimEngineState::findCompsByName(
+        const std::string &name) const {
+        std::vector<std::shared_ptr<DigitalComponent>> result;
+        for (const auto &[uuid, comp] : m_digitalComponents) {
+            if (comp->getName() == name) {
+                result.push_back(comp);
+            }
+        }
+        return result;
+    }
+
 } // namespace Bess::SimEngine
 
 namespace Bess::JsonConvert {

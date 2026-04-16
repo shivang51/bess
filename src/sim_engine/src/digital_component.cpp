@@ -17,6 +17,12 @@ namespace Bess::SimEngine {
         }
 
         m_name = Common::Helpers::toUpperCase(definition->getName().substr(0, 3));
+        if (m_name[1] == ' ')
+            m_name[1] = '_';
+
+        if (m_name.size() < 3) {
+            m_name.resize(3, '_');
+        }
 
         const auto count = getNameCountMap()[m_name];
         getNameCountMap()[m_name] += 1;

@@ -8,6 +8,7 @@
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "scene_ser_reg.h"
 #include "services/plugin_service/plugin_service.h"
+#include "simulation_engine.h"
 #include "widgets/m_widgets.h"
 
 namespace Bess::UI {
@@ -118,12 +119,14 @@ namespace Bess::UI {
                             if (comp->getType() == Canvas::SceneComponentType::module ||
                                 comp->getType() == Canvas::SceneComponentType::simulation) {
                                 const auto &simComp = comp->cast<Canvas::SimulationSceneComponent>();
-                                const auto &def = simComp->getCompDef();
-                                BESS_ASSERT(def, "[DEBUGPANEL] def not set");
-                                Json::Value defJson;
-                                JsonConvert::toJsonValue(def, defJson);
+                                BESS_ASSERT(simComp->getCompDef(), "[DEBUGPANEL] def not set");
+                                Json::Value digCompJson;
+                                const auto &digComp = SimEngine::SimulationEngine::instance().getDigitalComponent(
+                                    simComp->getSimEngineId());
+                                JsonConvert::toJsonValue(digCompJson, *digComp);
                                 ImGui::Separator();
-                                Widgets::SelectableText(std::to_string(def->getHash()), defJson.toStyledString());
+                                Widgets::SelectableText(std::to_string(simComp->getSimEngineId()),
+                                                        digCompJson.toStyledString());
                             }
                         }
                         ImGui::TreePop();
