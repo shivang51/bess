@@ -1,4 +1,5 @@
 #include "module_scene_component.h"
+#include "common.hpp"
 #include "common/bess_assert.h"
 #include "common/bess_uuid.h"
 #include "icons/FontAwesomeIcons.h"
@@ -229,6 +230,7 @@ namespace Bess::Canvas {
         auto moduleComp = std::dynamic_pointer_cast<ModuleSceneComponent>(comps.front());
         moduleComp->setSceneId(newSceneState.getSceneId());
         moduleComp->m_transform.position.z = sceneDriver->getNextZCoord();
+        moduleComp->getStyle().headerColor = ViewportTheme::colors.moduleColor;
         newSceneState.setModuleId(moduleComp->getUuid());
 
         const auto &simEngine = SimEngine::SimulationEngine::instance();
