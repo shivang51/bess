@@ -21,6 +21,8 @@ namespace Bess::UI {
         void groupOnNets();
 
       private:
+        void drawContextMenu();
+
         static bool drawLeafNode(size_t key, uint64_t nodeId,
                                  const char *label,
                                  bool selected,
@@ -34,5 +36,6 @@ namespace Bess::UI {
         std::string m_searchQuery;
         bool m_filterInputs = false;
         bool m_filterOutputs = false;
+        bool m_isMultiSelected = false;
     };
 } // namespace Bess::UI

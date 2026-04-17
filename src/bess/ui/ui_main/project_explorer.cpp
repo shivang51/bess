@@ -121,7 +121,7 @@ namespace Bess::UI {
         const auto size = sceneState.getRootComponents().size();
         const auto selSize = sceneState.getSelectedComponents().size();
 
-        const bool isMultiSelected = selSize > 1;
+        m_isMultiSelected = selSize > 1;
 
         ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 34.f);
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 4.f);
@@ -132,6 +132,7 @@ namespace Bess::UI {
             ImGui::OpenPopup("project_explorer_filters");
         }
 
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.f, 4.f));
         if (ImGui::BeginPopup("project_explorer_filters")) {
             constexpr auto filterTitle = Common::Helpers::concat(
                 Icons::FontAwesomeIcons::FA_FILTER, " Filters");
@@ -142,6 +143,7 @@ namespace Bess::UI {
             }
             ImGui::EndPopup();
         }
+        ImGui::PopStyleVar();
 
         const float footerHeight = ImGui::GetTextLineHeightWithSpacing() +
                                    (style.ItemSpacing.y * 2) + style.WindowPadding.y;
@@ -183,8 +185,9 @@ namespace Bess::UI {
                     sceneState.detachChild(id);
                 });
             }
+            drawContextMenu();
+            ImGui::EndChild();
         }
-        ImGui::EndChild();
 
         ImGui::Spacing();
         ImGui::Separator();
@@ -201,9 +204,12 @@ namespace Bess::UI {
             ImGui::SameLine();
             ImGui::Text("(%lu / %lu Selected)", selSize, size);
         }
+    }
 
+    void ProjectExplorer::drawContextMenu() {
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.f, 4.f));
         if (ImGui::BeginPopupContextWindow()) {
-            if (isMultiSelected) {
+            if (m_isMultiSelected) {
                 if (ImGui::MenuItem("Group Selected", "Ctrl-G")) {
                     groupSelectedNodes();
                 }
@@ -221,6 +227,7 @@ namespace Bess::UI {
 
             ImGui::EndPopup();
         }
+        ImGui::PopStyleVar();
     }
 
     bool ProjectExplorer::drawLeafNode(const size_t key, const uint64_t nodeId,
@@ -545,4 +552,5 @@ namespace Bess::UI {
 
         return count;
     }
+
 } // namespace Bess::UI
