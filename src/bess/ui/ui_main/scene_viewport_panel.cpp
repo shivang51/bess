@@ -1,6 +1,8 @@
 #include "scene_viewport_panel.h"
 #include "common/bess_uuid.h"
+#include "common/helpers.h"
 #include "common/logger.h"
+#include "icons/CodIcons.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "pages/main_page/main_page.h"
@@ -114,8 +116,8 @@ namespace Bess::UI {
         const ImGuiContext &g = *ImGui::GetCurrentContext();
 
         static float checkboxWidth = ImGui::CalcTextSize("W").x + g.Style.FramePadding.x + 2.f;
-        static const auto textSize = ImGui::CalcTextSize("Schematic Mode");
-        static float size = textSize.x + checkboxWidth + (windowR * 2);
+        static const auto textSize = ImGui::CalcTextSize("   Schematic Mode");
+        static float size = textSize.x + checkboxWidth + (windowR * 2) + (g.Style.FramePadding.x);
 
         const auto colors = g.Style.Colors;
 
@@ -132,7 +134,7 @@ namespace Bess::UI {
         ImGui::PushStyleColor(ImGuiCol_WindowBg, col);
         ImGui::Begin("TopLeftViewportActions", nullptr, NO_MOVE_FLAGS);
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2);
-        ImGui::Text("Schematic Mode");
+        ImGui::Text("%s Schematic Mode", Icons::FontAwesomeIcons::FA_WAVE_SQUARE);
         ImGui::SameLine();
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
 
@@ -151,15 +153,19 @@ namespace Bess::UI {
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
         ImGui::SetNextWindowSize({0, 0});
         ImGui::Begin("TopLeftViewportActions1", nullptr, NO_MOVE_FLAGS);
+
+        constexpr auto rootIcon = Common::Helpers::concat(Icons::CodIcons::RECORD,
+                                                          " Root");
+
         if (m_attachedScene->getState().getIsRootScene()) {
             ImGui::AlignTextToFramePadding();
-            ImGui::TextDisabled("Root");
+            ImGui::TextDisabled("%s", rootIcon.data());
         } else {
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
 
             for (int i = 0; i < m_rootToSceneStatePtrs.size(); i++) {
                 if (i == 0) {
-                    if (ImGui::Button("Root")) {
+                    if (ImGui::Button(rootIcon.data())) {
                         m_nextSceneId = sceneDriver.getRootSceneId();
                     }
                     continue;
@@ -190,22 +196,6 @@ namespace Bess::UI {
                 }
             }
             ImGui::PopStyleColor(1);
-            // if (ImGui::Button("Root")) {
-            //     m_nextSceneId = sceneDriver.getRootSceneId();
-            // }
-            // ImGui::PopStyleColor(1);
-            // ImGui::SameLine();
-            // ImGui::AlignTextToFramePadding();
-            // ImGui::TextDisabled(Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT);
-            // ImGui::SameLine();
-            // ImGui::AlignTextToFramePadding();
-            // const auto &module = m_rootToSceneStatePtrs.back()->getComponentByUuid(
-            //     m_attachedScene->getState().getModuleId());
-            // if (module) {
-            //     ImGui::TextDisabled(" %s", module->getName().c_str());
-            // } else {
-            //     ImGui::TextDisabled(" Unknown Module");
-            // }
         }
         ImGui::End();
         ImGui::PopStyleColor(1);
@@ -217,13 +207,12 @@ namespace Bess::UI {
         auto &scene = Pages::MainPage::getInstance()->getState().getSceneDriver();
         const auto &mousePos = scene->getSceneMousePos();
         const auto posLabel = std::format("Pos: ({:.2f}, {:.2f})", mousePos.x, mousePos.y);
-        const auto posLabelSize = ImGui::CalcTextSize(posLabel.c_str());
 
-        float windowWidth = posLabelSize.x + ImGui::GetStyle().ItemSpacing.x + 150.0f + 20.f;
+        static const auto fixedPosLabelSize = ImGui::CalcTextSize("Pos: (-1000.00, -1000.00)");
+        static const float fixedWinWidth = fixedPosLabelSize.x + ImGui::GetStyle().ItemSpacing.x + 150.0f + 50.f;
 
-        ImGui::SetNextWindowPos({m_localPos.x + m_viewportSize.x - windowWidth - 10.f,
+        ImGui::SetNextWindowPos({m_localPos.x + m_viewportSize.x - fixedWinWidth - 10.f,
                                  m_localPos.y + m_viewportSize.y - 44.f});
-        // ImGui::SetNextWindowBgAlpha(0.f);
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 0));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1);
@@ -238,10 +227,21 @@ namespace Bess::UI {
         ImGui::SetCursorPosY((windowHeight - sliderHeight) * 0.5f);
         const auto &camera = scene->getCamera();
 
+        // Camera Icon
+        {
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text(" %s", Icons::FontAwesomeIcons::FA_CAMERA_RETRO);
+            ImGui::SameLine();
+        }
+
+        ImGui::SameLine();
+
+        const auto zoomSliderX = ImGui::GetCursorPosX() + fixedPosLabelSize.x + ImGui::GetStyle().ItemSpacing.x;
+
         // Mouse Pos Text
         {
             ImGui::AlignTextToFramePadding();
-            ImGui::TextUnformatted(posLabel.c_str());
+            ImGui::Text(" %s", posLabel.c_str());
 
             // Recenter on click
             if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
@@ -250,6 +250,8 @@ namespace Bess::UI {
         }
 
         ImGui::SameLine();
+
+        ImGui::SetCursorPosX(zoomSliderX);
 
         // Zoom Slider
         {
