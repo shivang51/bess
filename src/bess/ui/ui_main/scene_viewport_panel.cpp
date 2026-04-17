@@ -40,10 +40,11 @@ namespace Bess::UI {
 
         if (m_isHovered) {
             m_attachedScene->update(ts, events);
-            updateScene(ts, events);
         } else {
             m_attachedScene->update(ts, {});
         }
+
+        updateScene(ts, events);
 
         if (m_nextSceneId != UUID::null) {
             Pages::MainPage::getInstance()->getState().getSceneDriver().setActiveScene(m_nextSceneId);

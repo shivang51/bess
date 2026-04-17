@@ -5,7 +5,6 @@
 #include "application/project_file.h"
 #include "command_system.h"
 #include "events/sim_engine_events.h"
-#include "scene.h"
 #include "scene_events.h"
 #include <vector>
 

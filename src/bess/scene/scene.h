@@ -102,9 +102,15 @@ namespace Bess::Canvas {
 
         float getNextZCoord();
 
+        MAKE_GETTER(bool, IsLeftMousePressed, m_isLeftMousePressed);
+        MAKE_GETTER(bool, IsMiddleMousePressed, m_isMiddleMousePressed);
+        void processEvents(const std::vector<ApplicationEvent> &events);
+
       private:
         /// to draw testing stuff
         void drawScratchContent(TimeMs ts, const std::shared_ptr<Viewport> &viewport);
+        bool isCursorInViewport(const glm::vec2 &pos) const;
+        glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
 
         void onMouseMove(const glm::vec2 &pos);
         void onLeftMouse(bool isPressed);
@@ -113,12 +119,9 @@ namespace Bess::Canvas {
         void onRightMouse(bool isPressed);
         void onMouseWheel(double x, double y);
 
-        glm::vec2 getViewportMousePos(const glm::vec2 &mousePos) const;
-        bool isCursorInViewport(const glm::vec2 &pos) const;
+        glm::vec2 viewportToWinPos(const glm::vec2 &viewportPos) const;
 
         glm::vec2 getSnappedPos(const glm::vec2 &pos) const;
-
-        void processEvents(const std::vector<ApplicationEvent> &events);
 
       private:
         glm::vec2 m_size, m_mousePos, m_dMousePos;

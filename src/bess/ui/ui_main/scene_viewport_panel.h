@@ -58,6 +58,10 @@ namespace Bess::UI {
         void updatePickingIds(bool mouseMoved);
         SceneDrawFlags m_sceneDrawFlags{};
 
+        void handleMouseMoveEvt(const ApplicationEvent &event);
+
+        bool isInsideViewport(const glm::vec2 &pos) const;
+
       private:
         void firstTime();
         void drawTopLeftControls();

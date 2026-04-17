@@ -55,27 +55,9 @@ namespace Bess::Canvas {
                 const auto data = event.getData<ApplicationEvent::MouseMoveData>();
                 auto pos = getViewportMousePos(glm::vec2(data.x, data.y));
                 m_state.setMousePos(toScenePos(pos));
-                if (!isCursorInViewport(pos)) {
-                    m_mousePos = pos;
-                    if (m_isLeftMousePressed) {
-                        onLeftMouse(false);
-                    }
-                    if (m_isMiddleMousePressed) {
-                        onMiddleMouse(false);
-                    }
-                    break;
-                }
                 onMouseMove(pos);
             } break;
             case ApplicationEventType::MouseButton: {
-                if (!isCursorInViewport(m_mousePos)) {
-                    if (!m_isLeftMousePressed) {
-                        setPickingId(PickingId::invalid());
-                        break;
-                    }
-                    m_isLeftMousePressed = false;
-                    setPickingId(PickingId::invalid());
-                }
                 const auto data = event.getData<ApplicationEvent::MouseButtonData>();
                 const bool isPressed = data.action == MouseButtonAction::press;
                 if (data.button == MouseButton::left) {
@@ -520,5 +502,12 @@ namespace Bess::Canvas {
 
     const UUID &Scene::getSceneId() const {
         return m_state.getSceneId();
+    }
+
+    glm::vec2 Scene::viewportToWinPos(const glm::vec2 &viewportPos) const {
+        const auto &viewportPos_ = m_viewportTransform.pos;
+        auto x = viewportPos.x + viewportPos_.x;
+        auto y = viewportPos.y + viewportPos_.y;
+        return {x, y};
     }
 } // namespace Bess::Canvas

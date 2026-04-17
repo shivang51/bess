@@ -1,4 +1,6 @@
 #include "scene_viewport_panel.h"
+#include "common/types.h"
+#include "pages/main_page/main_page.h"
 #include "pages/main_page/scene_components/scene_comp_types.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
 #include "scene.h"
@@ -6,6 +8,7 @@
 #include "scene_state/components/scene_component_types.h"
 #include "settings/viewport_theme.h"
 #include "vulkan_core.h"
+#include <algorithm>
 #include <cstdint>
 
 namespace Bess::UI {
@@ -24,12 +27,79 @@ namespace Bess::UI {
         for (const auto &event : events) {
             if (event.getType() == ApplicationEventType::MouseMove) {
                 mouseMoved = true;
-                break;
+                handleMouseMoveEvt(event);
+            } else if (event.getType() == ApplicationEventType::MouseButton) {
+                // manually updating mouse state
+                // because we don't update scene if its not active
+                const auto data = event.getData<ApplicationEvent::MouseButtonData>();
+                const auto isInsideVp = isInsideViewport(data.pos);
+                const auto isDesiredBtn = (data.button == MouseButton::left &&
+                                           m_attachedScene->getIsLeftMousePressed()) ||
+                                          (data.button == MouseButton::middle &&
+                                           m_attachedScene->getIsMiddleMousePressed());
+                if (isDesiredBtn && data.action == MouseButtonAction::release) {
+                    m_attachedScene->processEvents({event});
+                }
             }
         }
 
         if (!m_attachedScene->getIsFirstFrame()) {
             updatePickingIds(mouseMoved);
+        }
+    }
+
+    bool SceneViewportPanel::isInsideViewport(const glm::vec2 &pos) const {
+        return pos.x >= m_viewportPos.x &&
+               pos.x < m_viewportPos.x + m_viewportSize.x &&
+               pos.y >= m_viewportPos.y &&
+               pos.y < m_viewportPos.y + m_viewportSize.y;
+    }
+
+    void SceneViewportPanel::handleMouseMoveEvt(const ApplicationEvent &event) {
+        const auto data = event.getData<ApplicationEvent::MouseMoveData>();
+
+        const glm::vec2 mousePos(data.x, data.y);
+
+        const bool isInsideVp = isInsideViewport(mousePos);
+
+        auto window = Pages::MainPage::getInstance()->getParentWindow();
+
+        if (isInsideVp) {
+            window->setEnableCursor(true);
+            return;
+        }
+
+        const bool isLeftPressed = m_attachedScene->getIsLeftMousePressed();
+
+        if (isLeftPressed) {
+
+            auto newPos = mousePos;
+
+            auto vel = glm::vec2(0.f);
+            if (mousePos.x < m_viewportPos.x) {
+                vel.x = -10;
+                newPos.x = m_viewportPos.x + 1.f;
+            } else if (mousePos.x > m_viewportPos.x + m_viewportSize.x) {
+                vel.x = 10;
+                newPos.x = m_viewportPos.x + m_viewportSize.x - 1.f;
+            } else if (mousePos.y < m_viewportPos.y) {
+                vel.y = -10;
+                newPos.y = m_viewportPos.y + 1.f;
+            } else if (mousePos.y > m_viewportPos.y + m_viewportSize.y) {
+                vel.y = 10;
+                newPos.y = m_viewportPos.y + m_viewportSize.y - 1.f;
+            }
+
+            m_attachedScene->getCamera()->incrementPos(vel);
+
+            window->setEnableCursor(false);
+            window->setMousePos(newPos);
+
+            const auto newEvt = ApplicationEvent(ApplicationEventType::MouseMove,
+                                                 ApplicationEvent::MouseMoveData{newPos.x, newPos.y});
+            m_attachedScene->processEvents({newEvt});
+        } else {
+            window->setEnableCursor(true);
         }
     }
 
