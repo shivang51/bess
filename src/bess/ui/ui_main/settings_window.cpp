@@ -19,7 +19,9 @@ namespace Bess::UI {
         auto &settings = Config::Settings::instance();
         auto currentTheme = settings.getCurrentTheme();
 
-        if (drawSetting("Theme", "(Default: Bess Dark)", currentTheme, m_availableThemes)) {
+        if (drawSetting("Theme", "(Default: Bess Minimal Dark)",
+                        currentTheme,
+                        m_availableThemes)) {
             settings.applyTheme(currentTheme);
         }
 
