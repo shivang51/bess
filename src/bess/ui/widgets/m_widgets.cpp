@@ -239,7 +239,7 @@ namespace Bess::UI::Widgets {
         ImGuiContext &g = *ImGui::GetCurrentContext();
         ImGuiWindow *window = g.CurrentWindow;
 
-        ImGui::PushID(key);
+        ImGui::PushID((int)key);
 
         const float rowHeight = g.FontSize + (g.Style.FramePadding.y * 2.0f);
         const ImVec2 pos = {window->DC.CursorPos.x - 2.f, window->DC.CursorPos.y};
@@ -294,7 +294,7 @@ namespace Bess::UI::Widgets {
         const auto chevronIcon = opened
                                      ? Icons::FontAwesomeIcons::FA_CHEVRON_DOWN
                                      : Icons::FontAwesomeIcons::FA_CHEVRON_RIGHT;
-        const auto stateIcon = std::format(" {}   {}", chevronIcon, opened ? "" : " ");
+        const auto stateIcon = std::format(" {}  {}", chevronIcon, opened ? "" : " ");
 
         const float toggleWidth = ImGui::CalcTextSize(stateIcon.c_str()).x + g.Style.ItemInnerSpacing.x;
         const ImRect toggleRect(rowBB.Min, ImVec2(rowBB.Min.x + toggleWidth, rowBB.Max.y));

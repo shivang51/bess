@@ -399,7 +399,10 @@ namespace Bess::UI {
 
     size_t ProjectExplorer::drawEntites(const std::unordered_set<UUID> &entities) {
         constexpr auto groupIcon = Icons::FontAwesomeIcons::FA_FOLDER;
+        constexpr auto groupOpenIcon = Icons::FontAwesomeIcons::FA_FOLDER_OPEN;
         constexpr auto nodePopupName = "node_popup";
+        constexpr auto treeFlags = ImGuiTreeNodeFlags_DefaultOpen |
+                                   ImGuiTreeNodeFlags_DrawLinesFull;
 
         auto &sceneState = Pages::MainPage::getInstance()->getState().getSceneDriver()->getState();
         const auto selSize = sceneState.getSelectedComponents().size();
@@ -424,18 +427,30 @@ namespace Bess::UI {
 
             bool clicked = false;
             if (comp->getType() == Canvas::SceneComponentType::group) {
-                const auto ret = Widgets::EditableTreeNode(m_nodesKeyCounter++,
+
+                const auto key = m_nodesKeyCounter++;
+
+                ImGui::PushID((int)key);
+
+                const auto &win = ImGui::GetCurrentWindow();
+                const auto &storage = ImGui::GetCurrentWindow()->DC.StateStorage;
+                const ImGuiID openId = win->GetID("open");
+                bool opened = storage->GetInt(openId, 1) != 0;
+                ImGui::PopID();
+
+                const auto icon = opened ? groupOpenIcon : groupIcon;
+
+                const auto ret = Widgets::EditableTreeNode(key,
                                                            comp->getName(),
                                                            comp->getIsSelected(),
-                                                           ImGuiTreeNodeFlags_DefaultOpen |
-                                                               ImGuiTreeNodeFlags_DrawLinesFull,
-                                                           groupIcon,
+                                                           treeFlags,
+                                                           icon,
                                                            ViewportTheme::colors.groupColor,
                                                            nodePopupName,
                                                            comp->getUuid());
 
                 count++;
-                const auto opened = ret.first;
+                opened = ret.first;
                 clicked = ret.second;
 
                 HandleNodeDropTarget([&](uint64_t id) { //\n (just for formatting)
@@ -456,7 +471,7 @@ namespace Bess::UI {
                 if (isAtRoot) {
                     name = std::format(" {}   {}", comp->getIcon(), comp->getName());
                 } else {
-                    name = std::format("   {} {}", comp->getIcon(), comp->getName());
+                    name = std::format("  {} {}", comp->getIcon(), comp->getName());
                 }
 
                 if (isModule) {
