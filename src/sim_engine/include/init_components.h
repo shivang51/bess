@@ -22,6 +22,16 @@ namespace Bess::SimEngine {
             return std::make_shared<ClockTrait>(*this);
         }
 
+        Json::Value toJson() const override {
+            Json::Value json = Trait::toJson();
+            json["type"] = "ClockTrait";
+            json["frequencyUnit"] = static_cast<int>(frequencyUnit);
+            json["frequency"] = frequency;
+            json["high"] = high;
+            json["dutyCycle"] = dutyCycle;
+            return json;
+        }
+
         FrequencyUnit frequencyUnit = FrequencyUnit::hz;
         float frequency = 1.0;
         bool high = false; // current output phase

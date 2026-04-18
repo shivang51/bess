@@ -325,6 +325,17 @@ namespace Bess::SimEngine {
         return std::make_shared<AnalogComponentTrait>(*this);
     }
 
+    Json::Value AnalogComponentTrait::toJson() const {
+        Json::Value json = Trait::toJson();
+        json["type"] = "AnalogComponentTrait";
+        json["terminalCount"] = static_cast<Json::UInt64>(terminalCount);
+
+        Json::Value terminalNamesJson;
+        Bess::JsonConvert::toJsonValue(terminalNames, terminalNamesJson);
+        json["terminalNames"] = terminalNamesJson;
+        return json;
+    }
+
     Resistor::Resistor(double resistanceOhms, std::string name)
         : m_terminals({AnalogUnconnectedNode, AnalogUnconnectedNode}),
           m_resistanceOhms(resistanceOhms),
@@ -384,6 +395,15 @@ namespace Bess::SimEngine {
 
     double Resistor::resistanceOhms() const {
         return m_resistanceOhms;
+    }
+
+    bool Resistor::setResistanceOhms(double resistanceOhms) {
+        if (!isFinite(resistanceOhms) || resistanceOhms <= 0.0) {
+            return false;
+        }
+
+        m_resistanceOhms = resistanceOhms;
+        return true;
     }
 
     DCVoltageSource::DCVoltageSource(double voltage, std::string name)
@@ -456,6 +476,19 @@ namespace Bess::SimEngine {
 
     std::string DCVoltageSource::name() const {
         return m_name.empty() ? "DC Voltage Source" : m_name;
+    }
+
+    double DCVoltageSource::voltage() const {
+        return m_voltage;
+    }
+
+    bool DCVoltageSource::setVoltage(double voltage) {
+        if (!isFinite(voltage)) {
+            return false;
+        }
+
+        m_voltage = voltage;
+        return true;
     }
 
     DCCurrentSource::DCCurrentSource(double currentAmps, std::string name)
@@ -881,6 +914,64 @@ namespace Bess::SimEngine {
         }
 
         return component->evaluateState(m_lastSolution);
+    }
+
+    std::optional<double> AnalogCircuit::getResistorResistance(const UUID &componentId) const {
+        const auto component = getComponent(componentId);
+        if (!component) {
+            return std::nullopt;
+        }
+
+        const auto resistor = std::dynamic_pointer_cast<Resistor>(component);
+        if (!resistor) {
+            return std::nullopt;
+        }
+
+        return resistor->resistanceOhms();
+    }
+
+    bool AnalogCircuit::setResistorResistance(const UUID &componentId, double resistanceOhms) {
+        const auto component = getComponent(componentId);
+        if (!component) {
+            return false;
+        }
+
+        const auto resistor = std::dynamic_pointer_cast<Resistor>(component);
+        if (!resistor || !resistor->setResistanceOhms(resistanceOhms)) {
+            return false;
+        }
+
+        m_lastSolution = {};
+        return true;
+    }
+
+    std::optional<double> AnalogCircuit::getVoltageSourceVoltage(const UUID &componentId) const {
+        const auto component = getComponent(componentId);
+        if (!component) {
+            return std::nullopt;
+        }
+
+        const auto source = std::dynamic_pointer_cast<DCVoltageSource>(component);
+        if (!source) {
+            return std::nullopt;
+        }
+
+        return source->voltage();
+    }
+
+    bool AnalogCircuit::setVoltageSourceVoltage(const UUID &componentId, double voltage) {
+        const auto component = getComponent(componentId);
+        if (!component) {
+            return false;
+        }
+
+        const auto source = std::dynamic_pointer_cast<DCVoltageSource>(component);
+        if (!source || !source->setVoltage(voltage)) {
+            return false;
+        }
+
+        m_lastSolution = {};
+        return true;
     }
 
     const std::vector<std::shared_ptr<AnalogComponent>> &AnalogCircuit::components() const {

@@ -1303,17 +1303,22 @@ namespace Bess::SimEngine {
 
     std::optional<double> SimulationEngine::getAnalogResistorValue(const UUID &componentId) const {
         std::lock_guard lk(m_registryMutex);
-        const auto component = m_analogCircuit.getComponent(componentId);
-        if (!component) {
-            return std::nullopt;
-        }
+        return m_analogCircuit.getResistorResistance(componentId);
+    }
 
-        const auto resistor = std::dynamic_pointer_cast<Resistor>(component);
-        if (!resistor) {
-            return std::nullopt;
-        }
+    bool SimulationEngine::setAnalogResistorValue(const UUID &componentId, double resistanceOhms) {
+        std::lock_guard lk(m_registryMutex);
+        return m_analogCircuit.setResistorResistance(componentId, resistanceOhms);
+    }
 
-        return resistor->resistanceOhms();
+    std::optional<double> SimulationEngine::getAnalogVoltageSourceValue(const UUID &componentId) const {
+        std::lock_guard lk(m_registryMutex);
+        return m_analogCircuit.getVoltageSourceVoltage(componentId);
+    }
+
+    bool SimulationEngine::setAnalogVoltageSourceValue(const UUID &componentId, double voltage) {
+        std::lock_guard lk(m_registryMutex);
+        return m_analogCircuit.setVoltageSourceVoltage(componentId, voltage);
     }
 
     AnalogSolution SimulationEngine::solveAnalogCircuit(const AnalogSolveOptions &options) {

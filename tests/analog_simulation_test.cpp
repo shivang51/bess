@@ -442,6 +442,66 @@ TEST(AnalogSimulationTest, AnalogCatalogIncludesSourceAndProbeComponents) {
     }
 }
 
+TEST(AnalogSimulationTest, AnalogTraitIsSerializableThroughComponentDefinitionJson) {
+    const auto resistorDef = ComponentCatalog::instance().findDefByName("Resistor");
+    ASSERT_NE(resistorDef, nullptr);
+
+    const auto analogTrait = resistorDef->getTrait<AnalogComponentTrait>();
+    ASSERT_NE(analogTrait, nullptr);
+
+    const auto traitJson = analogTrait->toJson();
+    ASSERT_TRUE(traitJson.isObject());
+    EXPECT_EQ(traitJson["type"].asString(), "AnalogComponentTrait");
+    EXPECT_EQ(traitJson["terminalCount"].asUInt64(), 2u);
+    ASSERT_TRUE(traitJson["terminalNames"].isArray());
+    ASSERT_EQ(traitJson["terminalNames"].size(), 2u);
+    EXPECT_EQ(traitJson["terminalNames"][0].asString(), "+");
+    EXPECT_EQ(traitJson["terminalNames"][1].asString(), "-");
+
+    Json::Value defJson;
+    Bess::JsonConvert::toJsonValue(*resistorDef, defJson);
+    ASSERT_TRUE(defJson.isObject());
+    ASSERT_TRUE(defJson["traits"].isArray());
+    ASSERT_GE(defJson["traits"].size(), 1u);
+}
+
+TEST(AnalogSimulationTest, SimulationEngineUpdatesResistorAndVoltageSourceValues) {
+    auto &engine = Bess::SimEngine::SimulationEngine::instance();
+    engine.clearAnalogCircuit();
+
+    auto &circuit = engine.getAnalogCircuit();
+    const auto node = circuit.createNode("update");
+    const auto source = circuit.addVoltageSource(node, AnalogGroundNode, 5.0, "VUpdate");
+    const auto resistor = circuit.addResistor(node, AnalogGroundNode, 1000.0, "RUpdate");
+
+    auto solution = engine.solveAnalogCircuit();
+    ASSERT_TRUE(solution.ok()) << solution.message;
+    ASSERT_TRUE(solution.branchCurrent("VUpdate").has_value());
+    EXPECT_NEAR(*solution.branchCurrent("VUpdate"), -0.005, 1e-12);
+
+    ASSERT_TRUE(engine.setAnalogResistorValue(resistor, 2000.0));
+    solution = engine.solveAnalogCircuit();
+    ASSERT_TRUE(solution.ok()) << solution.message;
+    ASSERT_TRUE(solution.branchCurrent("VUpdate").has_value());
+    EXPECT_NEAR(*solution.branchCurrent("VUpdate"), -0.0025, 1e-12);
+
+    ASSERT_TRUE(engine.setAnalogVoltageSourceValue(source, 12.0));
+    solution = engine.solveAnalogCircuit();
+    ASSERT_TRUE(solution.ok()) << solution.message;
+    ASSERT_TRUE(solution.branchCurrent("VUpdate").has_value());
+    EXPECT_NEAR(*solution.branchCurrent("VUpdate"), -0.006, 1e-12);
+
+    const auto resistorValue = engine.getAnalogResistorValue(resistor);
+    ASSERT_TRUE(resistorValue.has_value());
+    EXPECT_NEAR(*resistorValue, 2000.0, 1e-12);
+
+    const auto sourceVoltage = engine.getAnalogVoltageSourceValue(source);
+    ASSERT_TRUE(sourceVoltage.has_value());
+    EXPECT_NEAR(*sourceVoltage, 12.0, 1e-12);
+
+    engine.clearAnalogCircuit();
+}
+
 TEST(AnalogSimulationTest, AnalogProbeComponentsExposeCurrentAndVoltageMeasurements) {
     AnalogCircuit circuit;
 

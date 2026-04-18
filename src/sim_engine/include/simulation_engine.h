@@ -114,6 +114,9 @@ namespace Bess::SimEngine {
         bool removeAnalogComponent(const UUID &componentId);
         AnalogComponentState getAnalogComponentState(const UUID &componentId) const;
         std::optional<double> getAnalogResistorValue(const UUID &componentId) const;
+        bool setAnalogResistorValue(const UUID &componentId, double resistanceOhms);
+        std::optional<double> getAnalogVoltageSourceValue(const UUID &componentId) const;
+        bool setAnalogVoltageSourceValue(const UUID &componentId, double voltage);
         AnalogSolution solveAnalogCircuit(const AnalogSolveOptions &options = {});
         void clearAnalogCircuit();
 

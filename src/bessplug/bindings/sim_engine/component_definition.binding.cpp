@@ -8,6 +8,7 @@
 #endif
 
 #include "component_definition.h"
+#include "analog_simulation.h"
 #include "internal_types.h"
 #include "types.h"
 
@@ -17,6 +18,12 @@
 namespace py = pybind11;
 
 using namespace Bess::SimEngine;
+
+static std::string toJsonString(const Json::Value &value) {
+    Json::StreamWriterBuilder builder;
+    builder["indentation"] = "";
+    return Json::writeString(builder, value);
+}
 
 static ComponentState convertResultToComponentState(const py::object &result,
                                                     const ComponentState &prev);
@@ -194,6 +201,20 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         return comp_def;
     };
 
+    py::class_<Trait, std::shared_ptr<Trait>>(m, "Trait")
+        .def("clone", &Trait::clone)
+        .def("to_json", [](const Trait &self) {
+            return toJsonString(self.toJson());
+        });
+
+    py::class_<AnalogComponentTrait, Trait, std::shared_ptr<AnalogComponentTrait>>(m, "AnalogComponentTrait")
+        .def(py::init<>())
+        .def_readwrite("terminal_count", &AnalogComponentTrait::terminalCount)
+        .def_readwrite("terminal_names", &AnalogComponentTrait::terminalNames)
+        .def("to_json", [](const AnalogComponentTrait &self) {
+            return toJsonString(self.toJson());
+        });
+
     py::class_<ComponentDefinition,
                PyComponentDefinition,
                py::smart_holder>(m, "ComponentDefinition")
@@ -201,6 +222,15 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         .def("get_hash", &ComponentDefinition::getHash)
         .def("clone", &ComponentDefinition::clone)
         .def("compute_hash", &ComponentDefinition::computeHash)
+        .def("get_traits_json", [](const ComponentDefinition &self) {
+            return toJsonString(self.getTraitsJson());
+        })
+        .def("has_analog_trait", [](const ComponentDefinition &self) {
+            return self.hasTrait<AnalogComponentTrait>();
+        })
+        .def("get_analog_trait", [](const ComponentDefinition &self) {
+            return self.getTrait<AnalogComponentTrait>();
+        })
         .def("get_reschedule_time", &ComponentDefinition::getRescheduleTime,
              py::arg("current_time_ns"),
              "Get the next reschedule time given the current time in nanoseconds.")

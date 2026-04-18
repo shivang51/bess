@@ -119,6 +119,7 @@ namespace Bess::SimEngine {
                              Factory factory);
 
         std::shared_ptr<Trait> clone() const override;
+        Json::Value toJson() const override;
 
         size_t terminalCount = 0;
         std::vector<std::string> terminalNames;
@@ -138,6 +139,7 @@ namespace Bess::SimEngine {
         std::string name() const override;
 
         double resistanceOhms() const;
+        bool setResistanceOhms(double resistanceOhms);
 
       private:
         std::vector<AnalogNodeId> m_terminals;
@@ -157,6 +159,9 @@ namespace Bess::SimEngine {
         std::vector<AnalogNodeId> terminals() const override;
         bool setTerminalNode(size_t terminalIdx, AnalogNodeId node) override;
         std::string name() const override;
+
+        double voltage() const;
+        bool setVoltage(double voltage);
 
       private:
         std::vector<AnalogNodeId> m_terminals;
@@ -287,6 +292,10 @@ namespace Bess::SimEngine {
 
         std::shared_ptr<AnalogComponent> getComponent(const UUID &componentId) const;
         AnalogComponentState getComponentState(const UUID &componentId) const;
+        std::optional<double> getResistorResistance(const UUID &componentId) const;
+        bool setResistorResistance(const UUID &componentId, double resistanceOhms);
+        std::optional<double> getVoltageSourceVoltage(const UUID &componentId) const;
+        bool setVoltageSourceVoltage(const UUID &componentId, double voltage);
 
         const std::vector<std::shared_ptr<AnalogComponent>> &components() const;
         const AnalogSolution &lastSolution() const;

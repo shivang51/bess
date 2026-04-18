@@ -56,6 +56,26 @@ namespace Bess::SimEngine {
         return std::make_shared<Trait>(*this);
     }
 
+    Json::Value Trait::toJson() const {
+        Json::Value json = Json::objectValue;
+        json["type"] = "Trait";
+        return json;
+    }
+
+    Json::Value ComponentDefinition::getTraitsJson() const {
+        Json::Value traitsJson = Json::arrayValue;
+        for (const auto &[typeId, trait] : m_traits) {
+            (void)typeId;
+            if (!trait) {
+                continue;
+            }
+
+            traitsJson.append(trait->toJson());
+        }
+
+        return traitsJson;
+    }
+
     bool ComponentDefinition::onSlotsResizeReq(SlotsGroupType groupType, size_t newSize) {
         if (groupType == SlotsGroupType::input)
             return m_inputSlotsInfo.isResizeable;

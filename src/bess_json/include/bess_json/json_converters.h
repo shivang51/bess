@@ -8,6 +8,7 @@
 
 namespace Bess::JsonConvert {
     // Primitives
+    inline void toJsonValue(const Json::Value &v, Json::Value &j) { j = v; }
     inline void toJsonValue(const char &v, Json::Value &j) { j = static_cast<int>(v); }
     inline void toJsonValue(const int &v, Json::Value &j) { j = v; }
     inline void toJsonValue(const float &v, Json::Value &j) { j = v; }
@@ -46,6 +47,8 @@ namespace Bess::JsonConvert {
     }
 
     // --- FROM JSON ---
+    inline void fromJsonValue(const Json::Value &j, Json::Value &v) { v = j; }
+
     inline void fromJsonValue(const Json::Value &j, char &v) {
         if (j.isInt())
             v = static_cast<char>(j.asInt());

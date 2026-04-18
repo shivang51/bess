@@ -660,11 +660,24 @@ namespace Bess::Canvas {
         }
 
         if (isAnalogComponent() && UI::Widgets::TreeNode(0, "Analog Measurements")) {
-            const auto analogState = SimEngine::SimulationEngine::instance().getAnalogComponentState(m_simEngineId);
-            const auto resistorValue = SimEngine::SimulationEngine::instance().getAnalogResistorValue(m_simEngineId);
+            auto &simEngine = SimEngine::SimulationEngine::instance();
+            const auto analogState = simEngine.getAnalogComponentState(m_simEngineId);
+            const auto resistorValue = simEngine.getAnalogResistorValue(m_simEngineId);
+            const auto sourceVoltage = simEngine.getAnalogVoltageSourceValue(m_simEngineId);
 
             if (resistorValue.has_value()) {
-                ImGui::Text("Resistance: %.6g Ohm", *resistorValue);
+                double resistance = *resistorValue;
+                if (ImGui::InputDouble("Resistance (Ohm)", &resistance, 0.0, 0.0, "%.6g")) {
+                    (void)simEngine.setAnalogResistorValue(m_simEngineId, resistance);
+                }
+                ImGui::Separator();
+            }
+
+            if (sourceVoltage.has_value()) {
+                double voltage = *sourceVoltage;
+                if (ImGui::InputDouble("Source Voltage (V)", &voltage, 0.0, 0.0, "%.6g")) {
+                    (void)simEngine.setAnalogVoltageSourceValue(m_simEngineId, voltage);
+                }
                 ImGui::Separator();
             }
 

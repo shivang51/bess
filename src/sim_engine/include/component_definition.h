@@ -39,6 +39,7 @@ namespace Bess::SimEngine {
       public:
         virtual ~Trait() = default;
         virtual std::shared_ptr<Trait> clone() const;
+                virtual Json::Value toJson() const;
     };
 
     class BESS_API ComponentDefinition {
@@ -73,6 +74,8 @@ namespace Bess::SimEngine {
         virtual SimulationFunction getSimFunctionCopy() const {
             return m_simulationFunction;
         }
+
+        Json::Value getTraitsJson() const;
 
         template <typename T>
         T &getAuxDataAs() {
@@ -222,6 +225,7 @@ REFLECT_PROPS(Bess::SimEngine::ComponentDefinition,
               ("output_expressions", getOutputExpressions, setOutputExpressions),
               ("ownership", getOwnership, setOwnership),
               ("io_growth_policy", getIOGrowthPolicy, setIOGrowthPolicy),
-              ("base_hash", getBaseHash, setBaseHash));
+              ("base_hash", getBaseHash, setBaseHash),
+              ("traits", getTraitsJson));
 
 REFLECT_PROPS_SP(Bess::SimEngine::ComponentDefinition);
