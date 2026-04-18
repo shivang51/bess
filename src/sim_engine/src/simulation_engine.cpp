@@ -547,6 +547,8 @@ namespace Bess::SimEngine {
 
     SlotState SimulationEngine::getSlotState(const UUID &uuid, SlotType type, int idx) const {
         if (type == SlotType::analogTerminal) {
+            constexpr double kAnalogCurrentFlowThresholdAmps = 1e-12;
+
             std::lock_guard lk(m_registryMutex);
             std::string error;
             if (!validateAnalogTerminalLocked(uuid, idx, error)) {
@@ -558,7 +560,16 @@ namespace Bess::SimEngine {
                 return {LogicState::unknown, SimTime(0)};
             }
 
-            return {std::abs(analogState.terminals[idx].voltage) > 1e-9
+            const auto &terminalState = analogState.terminals[idx];
+            if (!terminalState.connected) {
+                return {LogicState::low, SimTime(0)};
+            }
+
+            if (!std::isfinite(terminalState.current)) {
+                return {LogicState::unknown, SimTime(0)};
+            }
+
+            return {std::abs(terminalState.current) > kAnalogCurrentFlowThresholdAmps
                         ? LogicState::high
                         : LogicState::low,
                     SimTime(0)};

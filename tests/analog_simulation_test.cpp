@@ -135,7 +135,8 @@ TEST(AnalogSimulationTest, SupportsDynamicTerminalConnectionsAndComponentStateQu
     const auto supply = circuit.addVoltageSource(10.0, "V1");
     const auto resistor = circuit.addResistor(1000.0, "R1");
 
-    EXPECT_EQ(circuit.solve().status, AnalogSolveStatus::invalidComponent);
+    const auto disconnectedSolve = circuit.solve();
+    EXPECT_TRUE(disconnectedSolve.ok()) << disconnectedSolve.message;
 
     ASSERT_TRUE(circuit.connectTerminal(supply, 0, rail));
     ASSERT_TRUE(circuit.connectTerminal(supply, 1, AnalogGroundNode));
@@ -156,9 +157,59 @@ TEST(AnalogSimulationTest, SupportsDynamicTerminalConnectionsAndComponentStateQu
     EXPECT_NEAR(resistorState.terminals[1].current, -0.01, 1e-12);
 
     ASSERT_TRUE(circuit.disconnectTerminal(resistor, 1));
-    const auto invalidSolution = circuit.solve();
-    EXPECT_EQ(invalidSolution.status, AnalogSolveStatus::invalidComponent);
-    EXPECT_TRUE(circuit.getComponentState(resistor).simError);
+    const auto partiallyConnectedSolution = circuit.solve();
+    EXPECT_TRUE(partiallyConnectedSolution.ok()) << partiallyConnectedSolution.message;
+
+    const auto disconnectedState = circuit.getComponentState(resistor);
+    ASSERT_EQ(disconnectedState.terminals.size(), 2u);
+    EXPECT_FALSE(disconnectedState.simError);
+    EXPECT_TRUE(disconnectedState.terminals[0].connected);
+    EXPECT_FALSE(disconnectedState.terminals[1].connected);
+    EXPECT_NEAR(disconnectedState.terminals[0].current, 0.0, 1e-12);
+    EXPECT_NEAR(disconnectedState.terminals[1].current, 0.0, 1e-12);
+}
+
+TEST(AnalogSimulationTest, DisconnectedResistorIsIgnoredWhenOtherCircuitIsValid) {
+    AnalogCircuit circuit;
+    const auto high = circuit.createNode("high");
+    const auto low = circuit.createNode("low");
+
+    circuit.addVoltageSource(high, low, 5.0, "V1");
+    circuit.addResistor(high, low, 1000.0, "RConnected");
+    const auto disconnectedResistor = circuit.addResistor(1000.0, "RDisconnected");
+
+    const auto solution = circuit.solve();
+    ASSERT_TRUE(solution.ok()) << solution.message;
+    ASSERT_TRUE(solution.branchCurrent("V1").has_value());
+    EXPECT_NEAR(*solution.branchCurrent("V1"), -0.005, 1e-12);
+
+    const auto disconnectedState = circuit.getComponentState(disconnectedResistor);
+    ASSERT_EQ(disconnectedState.terminals.size(), 2u);
+    EXPECT_FALSE(disconnectedState.simError);
+    EXPECT_FALSE(disconnectedState.terminals[0].connected);
+    EXPECT_FALSE(disconnectedState.terminals[1].connected);
+}
+
+TEST(AnalogSimulationTest, ResistorWithSameNodeTerminalsIsIgnoredBySolveValidation) {
+    AnalogCircuit circuit;
+    const auto high = circuit.createNode("high");
+
+    circuit.addVoltageSource(high, AnalogGroundNode, 5.0, "V1");
+    const auto shortedResistor = circuit.addResistor(high, high, 1000.0, "RShorted");
+    circuit.addResistor(high, AnalogGroundNode, 1000.0, "RLoad");
+
+    const auto solution = circuit.solve();
+    ASSERT_TRUE(solution.ok()) << solution.message;
+    ASSERT_TRUE(solution.branchCurrent("V1").has_value());
+    EXPECT_NEAR(*solution.branchCurrent("V1"), -0.005, 1e-12);
+
+    const auto shortedState = circuit.getComponentState(shortedResistor);
+    ASSERT_EQ(shortedState.terminals.size(), 2u);
+    EXPECT_FALSE(shortedState.simError);
+    EXPECT_TRUE(shortedState.terminals[0].connected);
+    EXPECT_TRUE(shortedState.terminals[1].connected);
+    EXPECT_NEAR(shortedState.terminals[0].current, 0.0, 1e-12);
+    EXPECT_NEAR(shortedState.terminals[1].current, 0.0, 1e-12);
 }
 
 TEST(AnalogSimulationTest, SimulationEngineOwnsReusableAnalogCircuit) {
@@ -198,6 +249,34 @@ TEST(AnalogSimulationTest, SimulationEngineProvidesAnalogComponentApi) {
     EXPECT_NEAR(state.terminals[0].current, 0.005, 1e-12);
 
     engine.clearAnalogCircuit();
+}
+
+TEST(AnalogSimulationTest, SimulationEngineAnalogSlotStateReflectsCurrentFlow) {
+    auto &engine = Bess::SimEngine::SimulationEngine::instance();
+    engine.clear();
+
+    auto &circuit = engine.getAnalogCircuit();
+    const auto node = circuit.createNode("flow-node");
+    const auto source = circuit.addVoltageSource(node, AnalogGroundNode, 5.0, "VFlow");
+
+    // Open-circuit voltage source has terminal voltage but zero branch current.
+    const auto openCircuitSolution = engine.solveAnalogCircuit();
+    ASSERT_TRUE(openCircuitSolution.ok()) << openCircuitSolution.message;
+    EXPECT_EQ(engine.getSlotState(source, SlotType::analogTerminal, 0).state, LogicState::low);
+    EXPECT_EQ(engine.getSlotState(source, SlotType::analogTerminal, 1).state, LogicState::low);
+
+    const auto resistor = engine.addAnalogResistor(1000.0, "RFlow");
+    ASSERT_TRUE(engine.connectSlots({source, 0, SlotType::analogTerminal},
+                                    {resistor, 0, SlotType::analogTerminal}));
+    ASSERT_TRUE(engine.connectSlots({source, 1, SlotType::analogTerminal},
+                                    {resistor, 1, SlotType::analogTerminal}));
+
+    const auto loadedSolution = engine.solveAnalogCircuit();
+    ASSERT_TRUE(loadedSolution.ok()) << loadedSolution.message;
+    EXPECT_EQ(engine.getSlotState(source, SlotType::analogTerminal, 0).state, LogicState::high);
+    EXPECT_EQ(engine.getSlotState(source, SlotType::analogTerminal, 1).state, LogicState::high);
+
+    engine.clear();
 }
 
 TEST(AnalogSimulationTest, SimulationEngineUnifiedSlotApiSupportsAnalogConnections) {

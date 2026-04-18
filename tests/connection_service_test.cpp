@@ -1,5 +1,6 @@
 #include "component_catalog.h"
 #include "component_definition.h"
+#include "pages/main_page/scene_components/conn_joint_scene_component.h"
 #include "pages/main_page/scene_components/connection_scene_component.h"
 #include "pages/main_page/scene_components/sim_scene_component.h"
 #include "pages/main_page/scene_components/slot_scene_component.h"
@@ -219,6 +220,41 @@ TEST_F(ConnectionServiceTest, SharedSourceCanDriveMultipleIndependentConnections
     EXPECT_TRUE(leftSink.inputs.front()->getConnectedConnections().empty());
     EXPECT_EQ(rightSink.inputs.front()->getConnectedConnections().size(), 1u);
     EXPECT_EQ(rightSink.inputs.front()->getConnectedConnections().front(), rightConnection->getUuid());
+}
+
+TEST_F(ConnectionServiceTest, CreateConnectionSupportsJointEndpoint) {
+    const auto source = addSimComponent(inputDef);
+    const auto sink = addSimComponent(outputDef);
+    const auto branchSource = addSimComponent(inputDef);
+
+    auto baseConnection = service->createConnection(source.outputs.front()->getUuid(),
+                                                    sink.inputs.front()->getUuid(),
+                                                    scene.get());
+    ASSERT_NE(baseConnection, nullptr);
+
+    auto joint = std::make_shared<ConnJointSceneComp>(baseConnection->getUuid(), 0, ConnSegOrientaion::horizontal);
+    joint->setOutputSlotId(source.outputs.front()->getUuid());
+    joint->setInputSlotId(sink.inputs.front()->getUuid());
+    scene->getState().addComponent(joint);
+
+    const auto [canConnect, reason] = service->canConnect(branchSource.outputs.front()->getUuid(),
+                                                          joint->getUuid(),
+                                                          scene.get());
+    ASSERT_TRUE(canConnect) << reason;
+
+    auto branchConnection = service->createConnection(branchSource.outputs.front()->getUuid(),
+                                                      joint->getUuid(),
+                                                      scene.get());
+    ASSERT_NE(branchConnection, nullptr);
+
+    const auto sceneConnection = scene->getState().getComponentByUuid(branchConnection->getUuid());
+    ASSERT_NE(sceneConnection, nullptr);
+    EXPECT_EQ(branchConnection->getStartSlot(), branchSource.outputs.front()->getUuid());
+    EXPECT_EQ(branchConnection->getEndSlot(), joint->getUuid());
+    EXPECT_EQ(branchSource.outputs.front()->getConnectedConnections().size(), 1u);
+    EXPECT_EQ(branchSource.outputs.front()->getConnectedConnections().front(), branchConnection->getUuid());
+    EXPECT_EQ(joint->getConnections().size(), 1u);
+    EXPECT_EQ(joint->getConnections().front(), branchConnection->getUuid());
 }
 
 TEST_F(ConnectionServiceTest, AnalogGroundedSourceResistorCircuitSolvesThroughSceneConnections) {

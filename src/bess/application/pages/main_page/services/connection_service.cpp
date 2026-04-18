@@ -51,7 +51,9 @@ namespace Bess::Svc {
                                                                                       Canvas::Scene *scene) {
         auto conn = std::make_shared<Canvas::ConnectionSceneComponent>();
         conn->setStartEndSlots(slotAId, slotBId);
-        addConnection(conn, scene);
+        if (!addConnection(conn, scene)) {
+            return nullptr;
+        }
         return conn;
     }
 
@@ -151,23 +153,30 @@ namespace Bess::Svc {
         auto [slotA, foundAInScene] = tryFindSlot(slotAId);
         auto [slotB, foundBInScene] = tryFindSlot(slotBId);
 
-        if (!slotA) {
+        const auto endpointA = sceneState.getComponentByUuid(slotAId);
+        const auto endpointB = sceneState.getComponentByUuid(slotBId);
+        const bool endpointAIsProxy = endpointA &&
+                                      endpointA->getType() != Canvas::SceneComponentType::slot &&
+                                      (std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(endpointA) != nullptr);
+        const bool endpointBIsProxy = endpointB &&
+                                      endpointB->getType() != Canvas::SceneComponentType::slot &&
+                                      (std::dynamic_pointer_cast<Canvas::ProxySlotComponent>(endpointB) != nullptr);
+
+        if (!slotA && !endpointAIsProxy) {
             BESS_ERROR("Slot A with id {} of connection {} not found", (uint64_t)slotAId,
                        (uint64_t)conn->getUuid());
-            BESS_ASSERT(false, "Slot A of the connection not found");
             mp_scene = nullptr;
             return false;
         }
 
-        if (!slotB) {
+        if (!slotB && !endpointBIsProxy) {
             BESS_ERROR("Slot B with id {} of connection {} not found", (uint64_t)slotBId,
                        (uint64_t)conn->getUuid());
-            BESS_ASSERT(false, "Slot B of the connection not found");
             mp_scene = nullptr;
             return false;
         }
 
-        if (foundAInScene && isResizeTriggerSlot(slotA)) {
+        if (slotA && foundAInScene && isResizeTriggerSlot(slotA)) {
             slotA = createSlotFromResizeTrigger(slotA);
             if (!slotA) {
                 BESS_ERROR("Failed to create slot from resize trigger A for connection {}", (uint64_t)conn->getUuid());
@@ -178,7 +187,7 @@ namespace Bess::Svc {
             foundAInScene = true; // The new slot was added to the scene in createSlotFromResizeTrigger
         }
 
-        if (!foundAInScene && !addSlot(slotA)) {
+        if (slotA && !foundAInScene && !addSlot(slotA)) {
             BESS_ERROR("Failed to add slot A with id {} for connection {}", (uint64_t)slotAId,
                        (uint64_t)conn->getUuid());
             BESS_ASSERT(false, "Failed to add slot A for connection");
@@ -186,7 +195,7 @@ namespace Bess::Svc {
             return false;
         }
 
-        if (foundBInScene && isResizeTriggerSlot(slotB)) {
+        if (slotB && foundBInScene && isResizeTriggerSlot(slotB)) {
             slotB = createSlotFromResizeTrigger(slotB);
             if (!slotB) {
                 BESS_ERROR("Failed to create slot from resize trigger B for connection {}", (uint64_t)conn->getUuid());
@@ -197,7 +206,7 @@ namespace Bess::Svc {
             foundBInScene = true; // The new slot was added to the scene in createSlotFromResizeTrigger
         }
 
-        if (!foundBInScene && !addSlot(slotB)) {
+        if (slotB && !foundBInScene && !addSlot(slotB)) {
             BESS_ERROR("Failed to add slot B with id {} for connection {}", (uint64_t)slotBId,
                        (uint64_t)conn->getUuid());
             BESS_ASSERT(false, "Failed to add slot B for connection");

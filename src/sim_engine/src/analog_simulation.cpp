@@ -337,12 +337,7 @@ namespace Bess::SimEngine {
 
     bool Resistor::validate(std::string &error, const AnalogSolveOptions &options) const {
         if (m_terminals[0] == AnalogUnconnectedNode || m_terminals[1] == AnalogUnconnectedNode) {
-            error = "Resistor terminals must both be connected";
-            return false;
-        }
-        if (m_terminals[0] == m_terminals[1]) {
-            error = "Resistor terminals must be connected to different nodes";
-            return false;
+            return true;
         }
         if (!isFinite(m_resistanceOhms) || m_resistanceOhms < options.minResistanceOhms) {
             error = "Resistor resistance must be finite and greater than the configured minimum";
@@ -352,6 +347,12 @@ namespace Bess::SimEngine {
     }
 
     void Resistor::stamp(AnalogStampContext &context) const {
+        if (m_terminals[0] == AnalogUnconnectedNode ||
+            m_terminals[1] == AnalogUnconnectedNode ||
+            m_terminals[0] == m_terminals[1]) {
+            return;
+        }
+
         context.addConductance(m_terminals[0], m_terminals[1], 1.0 / m_resistanceOhms);
     }
 
@@ -397,8 +398,7 @@ namespace Bess::SimEngine {
 
     bool DCVoltageSource::validate(std::string &error, const AnalogSolveOptions &) const {
         if (m_terminals[0] == AnalogUnconnectedNode || m_terminals[1] == AnalogUnconnectedNode) {
-            error = "Voltage source terminals must both be connected";
-            return false;
+            return true;
         }
         if (m_terminals[0] == m_terminals[1]) {
             error = "Voltage source terminals must be connected to different nodes";
@@ -412,6 +412,12 @@ namespace Bess::SimEngine {
     }
 
     void DCVoltageSource::stamp(AnalogStampContext &context) const {
+        if (m_terminals[0] == AnalogUnconnectedNode ||
+            m_terminals[1] == AnalogUnconnectedNode ||
+            m_terminals[0] == m_terminals[1]) {
+            return;
+        }
+
         context.addVoltageSource(m_terminals[0], m_terminals[1], m_voltage,
                                  m_name.empty() ? getUUID().toString() : m_name);
     }
@@ -427,6 +433,12 @@ namespace Bess::SimEngine {
     }
 
     size_t DCVoltageSource::voltageSourceCount() const {
+        if (m_terminals[0] == AnalogUnconnectedNode ||
+            m_terminals[1] == AnalogUnconnectedNode ||
+            m_terminals[0] == m_terminals[1]) {
+            return 0;
+        }
+
         return 1;
     }
 
@@ -458,8 +470,7 @@ namespace Bess::SimEngine {
 
     bool DCCurrentSource::validate(std::string &error, const AnalogSolveOptions &) const {
         if (m_terminals[0] == AnalogUnconnectedNode || m_terminals[1] == AnalogUnconnectedNode) {
-            error = "Current source terminals must both be connected";
-            return false;
+            return true;
         }
         if (m_terminals[0] == m_terminals[1]) {
             error = "Current source terminals must be connected to different nodes";
@@ -473,12 +484,21 @@ namespace Bess::SimEngine {
     }
 
     void DCCurrentSource::stamp(AnalogStampContext &context) const {
+        if (m_terminals[0] == AnalogUnconnectedNode ||
+            m_terminals[1] == AnalogUnconnectedNode ||
+            m_terminals[0] == m_terminals[1]) {
+            return;
+        }
+
         context.addCurrentSource(m_terminals[0], m_terminals[1], m_currentAmps);
     }
 
     AnalogComponentState DCCurrentSource::evaluateState(const AnalogSolution &solution) const {
         auto state = AnalogComponent::evaluateState(solution);
-        if (state.terminals.size() == 2) {
+        if (state.terminals.size() == 2 &&
+            state.terminals[0].connected &&
+            state.terminals[1].connected &&
+            state.terminals[0].node != state.terminals[1].node) {
             state.terminals[0].current = m_currentAmps;
             state.terminals[1].current = -m_currentAmps;
         }
