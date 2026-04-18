@@ -12,6 +12,8 @@
 
 namespace Bess::SimEngine {
 
+    class AnalogComponentTrait;
+
     enum class CompDefIOGrowthPolicy : uint8_t {
         none,
         eq,
@@ -76,6 +78,10 @@ namespace Bess::SimEngine {
         }
 
         Json::Value getTraitsJson() const;
+
+        void setAnalogComponentTrait(const std::shared_ptr<AnalogComponentTrait> &trait);
+        std::shared_ptr<AnalogComponentTrait> getAnalogComponentTrait() const;
+        bool hasAnalogComponentTrait() const;
 
         template <typename T>
         T &getAuxDataAs() {

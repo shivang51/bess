@@ -7,6 +7,9 @@ namespace {
     class BessTestEnvironment : public testing::Environment {
       public:
         void SetUp() override {
+            auto &pluginManager = Bess::Plugins::PluginManager::getInstance();
+            ASSERT_TRUE(pluginManager.loadPluginsFromDirectory("plugins"));
+
             Bess::Pages::MainPage::setHeadless(true);
             Bess::Pages::MainPage::getInstance(nullptr);
         }

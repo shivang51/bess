@@ -110,6 +110,54 @@ class PyComponentDefinition : public ComponentDefinition,
     }
 };
 
+class PyAnalogComponent : public AnalogComponent,
+                                                    public py::trampoline_self_life_support {
+  public:
+    using AnalogComponent::AnalogComponent;
+
+    void stamp(AnalogStampContext &context) const override {
+                py::gil_scoped_acquire gil;
+                py::function override = py::get_override(static_cast<const AnalogComponent *>(this), "stamp");
+                if (!override) {
+                        py::pybind11_fail("Tried to call pure virtual function \"AnalogComponent::stamp\"");
+                }
+
+                override(py::cast(&context, py::return_value_policy::reference));
+    }
+
+    std::vector<AnalogNodeId> terminals() const override {
+                PYBIND11_OVERRIDE_PURE_NAME(std::vector<AnalogNodeId>, AnalogComponent, "terminals", terminals);
+    }
+
+    bool setTerminalNode(size_t terminalIdx, AnalogNodeId node) override {
+        PYBIND11_OVERRIDE_NAME(bool, AnalogComponent, "set_terminal_node", setTerminalNode, terminalIdx, node);
+    }
+
+    std::string name() const override {
+        PYBIND11_OVERRIDE_PURE_NAME(std::string, AnalogComponent, "name", name);
+    }
+
+    size_t voltageSourceCount() const override {
+        PYBIND11_OVERRIDE_NAME(size_t, AnalogComponent, "voltage_source_count", voltageSourceCount);
+    }
+
+    AnalogComponentState evaluateState(const AnalogSolution &solution) const override {
+        PYBIND11_OVERRIDE_NAME(AnalogComponentState, AnalogComponent, "evaluate_state", evaluateState, solution);
+    }
+
+    std::optional<double> numericValue() const override {
+        PYBIND11_OVERRIDE_NAME(std::optional<double>, AnalogComponent, "numeric_value", numericValue);
+    }
+
+    bool setNumericValue(double value) override {
+        PYBIND11_OVERRIDE_NAME(bool, AnalogComponent, "set_numeric_value", setNumericValue, value);
+    }
+
+    std::optional<std::string> branchCurrentName() const override {
+        PYBIND11_OVERRIDE_NAME(std::optional<std::string>, AnalogComponent, "branch_current_name", branchCurrentName);
+    }
+};
+
 template <typename T>
 static py::list toPyList(const std::vector<T> &inputs);
 
@@ -201,6 +249,71 @@ void bind_sim_engine_component_definition(py::module_ &m) {
         return comp_def;
     };
 
+    m.attr("ANALOG_GROUND_NODE") = py::int_(AnalogGroundNode);
+    m.attr("ANALOG_UNCONNECTED_NODE") = py::int_(AnalogUnconnectedNode);
+
+    py::enum_<AnalogSolveStatus>(m, "AnalogSolveStatus")
+        .value("OK", AnalogSolveStatus::ok)
+        .value("EMPTY_CIRCUIT", AnalogSolveStatus::emptyCircuit)
+        .value("INVALID_COMPONENT", AnalogSolveStatus::invalidComponent)
+        .value("SINGULAR_MATRIX", AnalogSolveStatus::singularMatrix)
+        .value("NON_FINITE_VALUE", AnalogSolveStatus::nonFiniteValue)
+        .value("INTERNAL_ERROR", AnalogSolveStatus::internalError)
+        .export_values();
+
+    py::class_<AnalogTerminalState>(m, "AnalogTerminalState")
+        .def(py::init<>())
+        .def_readwrite("node", &AnalogTerminalState::node)
+        .def_readwrite("voltage", &AnalogTerminalState::voltage)
+        .def_readwrite("current", &AnalogTerminalState::current)
+        .def_readwrite("connected", &AnalogTerminalState::connected);
+
+    py::class_<AnalogComponentState>(m, "AnalogComponentState")
+        .def(py::init<>())
+        .def_readwrite("id", &AnalogComponentState::id)
+        .def_readwrite("name", &AnalogComponentState::name)
+        .def_readwrite("terminals", &AnalogComponentState::terminals)
+        .def_readwrite("sim_error", &AnalogComponentState::simError)
+        .def_readwrite("error_message", &AnalogComponentState::errorMessage);
+
+    py::class_<AnalogSolution>(m, "AnalogSolution")
+        .def(py::init<>())
+        .def_readwrite("status", &AnalogSolution::status)
+        .def_readwrite("message", &AnalogSolution::message)
+        .def_readwrite("node_voltages", &AnalogSolution::nodeVoltages)
+        .def_readwrite("branch_currents", &AnalogSolution::branchCurrents)
+        .def("ok", &AnalogSolution::ok)
+        .def("voltage", &AnalogSolution::voltage, py::arg("node"))
+        .def("branch_current", &AnalogSolution::branchCurrent, py::arg("name"));
+
+    py::class_<AnalogStampContext>(m, "AnalogStampContext")
+        .def("add_conductance", &AnalogStampContext::addConductance,
+             py::arg("node_a"), py::arg("node_b"), py::arg("conductance_siemens"))
+        .def("add_current_source", &AnalogStampContext::addCurrentSource,
+             py::arg("positive_node"), py::arg("negative_node"), py::arg("current_amps"))
+        .def("add_voltage_source", &AnalogStampContext::addVoltageSource,
+             py::arg("positive_node"), py::arg("negative_node"), py::arg("voltage"),
+             py::arg("branch_name") = "")
+        .def_property_readonly("ok", &AnalogStampContext::ok)
+        .def_property_readonly("error_message", [](const AnalogStampContext &self) {
+            return self.errorMessage();
+        });
+
+    py::class_<AnalogComponent, PyAnalogComponent, py::smart_holder>(m, "AnalogComponent")
+        .def(py::init_alias<>())
+        .def("get_uuid", &AnalogComponent::getUUID)
+        .def("set_uuid", &AnalogComponent::setUUID)
+        .def("stamp", &AnalogComponent::stamp)
+        .def("evaluate_state", &AnalogComponent::evaluateState, py::arg("solution"))
+        .def("numeric_value", &AnalogComponent::numericValue)
+        .def("set_numeric_value", &AnalogComponent::setNumericValue, py::arg("value"))
+        .def("branch_current_name", &AnalogComponent::branchCurrentName)
+        .def("terminals", &AnalogComponent::terminals)
+        .def("set_terminal_node", &AnalogComponent::setTerminalNode,
+             py::arg("terminal_idx"), py::arg("node"))
+        .def("name", &AnalogComponent::name)
+        .def("voltage_source_count", &AnalogComponent::voltageSourceCount);
+
     py::class_<Trait, std::shared_ptr<Trait>>(m, "Trait")
         .def("clone", &Trait::clone)
         .def("to_json", [](const Trait &self) {
@@ -209,8 +322,21 @@ void bind_sim_engine_component_definition(py::module_ &m) {
 
     py::class_<AnalogComponentTrait, Trait, std::shared_ptr<AnalogComponentTrait>>(m, "AnalogComponentTrait")
         .def(py::init<>())
+        .def(py::init<size_t, std::vector<std::string>, AnalogComponentTrait::Factory>(),
+             py::arg("terminal_count"),
+             py::arg("terminal_names"),
+             py::arg("factory"))
         .def_readwrite("terminal_count", &AnalogComponentTrait::terminalCount)
         .def_readwrite("terminal_names", &AnalogComponentTrait::terminalNames)
+        .def("set_factory", [](AnalogComponentTrait &self, const AnalogComponentTrait::Factory &factory) {
+            self.factory = factory;
+        })
+        .def("create_component", [](const AnalogComponentTrait &self) {
+            if (!self.factory) {
+                return std::shared_ptr<AnalogComponent>{};
+            }
+            return self.factory();
+        })
         .def("to_json", [](const AnalogComponentTrait &self) {
             return toJsonString(self.toJson());
         });
@@ -226,10 +352,17 @@ void bind_sim_engine_component_definition(py::module_ &m) {
             return toJsonString(self.getTraitsJson());
         })
         .def("has_analog_trait", [](const ComponentDefinition &self) {
-            return self.hasTrait<AnalogComponentTrait>();
+            return self.hasAnalogComponentTrait();
         })
         .def("get_analog_trait", [](const ComponentDefinition &self) {
-            return self.getTrait<AnalogComponentTrait>();
+            return self.getAnalogComponentTrait();
+        })
+        .def("set_analog_trait", [](ComponentDefinition &self,
+                                     const std::shared_ptr<AnalogComponentTrait> &trait) {
+            if (!trait) {
+                throw py::value_error("trait must not be None");
+            }
+            self.setAnalogComponentTrait(trait);
         })
         .def("get_reschedule_time", &ComponentDefinition::getRescheduleTime,
              py::arg("current_time_ns"),

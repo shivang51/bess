@@ -1303,21 +1303,83 @@ namespace Bess::SimEngine {
 
     std::optional<double> SimulationEngine::getAnalogResistorValue(const UUID &componentId) const {
         std::lock_guard lk(m_registryMutex);
+        const auto component = m_analogCircuit.getComponent(componentId);
+        if (!component) {
+            return std::nullopt;
+        }
+
+        if (const auto it = m_analogComponentDefinitions.find(componentId); it != m_analogComponentDefinitions.end()) {
+            if (!it->second || it->second->getName() != "Resistor") {
+                return std::nullopt;
+            }
+        } else {
+            // Legacy/components added directly through AnalogCircuit do not carry
+            // a definition entry, so classify by analog metadata shape.
+            if (!component->numericValue().has_value() || component->branchCurrentName().has_value()) {
+                return std::nullopt;
+            }
+        }
+
         return m_analogCircuit.getResistorResistance(componentId);
     }
 
     bool SimulationEngine::setAnalogResistorValue(const UUID &componentId, double resistanceOhms) {
         std::lock_guard lk(m_registryMutex);
+        const auto component = m_analogCircuit.getComponent(componentId);
+        if (!component) {
+            return false;
+        }
+
+        if (const auto it = m_analogComponentDefinitions.find(componentId); it != m_analogComponentDefinitions.end()) {
+            if (!it->second || it->second->getName() != "Resistor") {
+                return false;
+            }
+        } else {
+            if (!component->numericValue().has_value() || component->branchCurrentName().has_value()) {
+                return false;
+            }
+        }
+
         return m_analogCircuit.setResistorResistance(componentId, resistanceOhms);
     }
 
     std::optional<double> SimulationEngine::getAnalogVoltageSourceValue(const UUID &componentId) const {
         std::lock_guard lk(m_registryMutex);
+        const auto component = m_analogCircuit.getComponent(componentId);
+        if (!component) {
+            return std::nullopt;
+        }
+
+        if (const auto it = m_analogComponentDefinitions.find(componentId); it != m_analogComponentDefinitions.end()) {
+            if (!it->second || it->second->getName() != "DC Voltage Source") {
+                return std::nullopt;
+            }
+        } else {
+            if (!component->numericValue().has_value() || !component->branchCurrentName().has_value()) {
+                return std::nullopt;
+            }
+        }
+
         return m_analogCircuit.getVoltageSourceVoltage(componentId);
     }
 
     bool SimulationEngine::setAnalogVoltageSourceValue(const UUID &componentId, double voltage) {
         std::lock_guard lk(m_registryMutex);
+        const auto component = m_analogCircuit.getComponent(componentId);
+        if (!component) {
+            return false;
+        }
+
+        if (const auto it = m_analogComponentDefinitions.find(componentId); it != m_analogComponentDefinitions.end()) {
+            if (!it->second || it->second->getName() != "DC Voltage Source") {
+                return false;
+            }
+        } else {
+            if (!component->numericValue().has_value() || !component->branchCurrentName().has_value()) {
+                return false;
+            }
+        }
+
         return m_analogCircuit.setVoltageSourceVoltage(componentId, voltage);
     }
 

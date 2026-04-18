@@ -11,6 +11,7 @@ from components.combinational_circuits import combinational_circuits
 from components.tristate_buffer import tristate_buffer_def
 from components import seven_segment_display, seven_segment_display_driver
 from components.alu_74LS181 import dm74ls181
+from components.analog_components import analog_components
 from scene.output_comp import OutputComp
 from scene.digital_gate_comp import DigitalGateComp
 from scene.seven_seg_disp_comp import SevenSegDispComp
@@ -35,6 +36,7 @@ class BessPlugin(Plugin):
             seven_segment_display.seven_seg_disp_def,
             seven_segment_display_driver.seven_seg_disp_driver_def,
             dm74ls181,
+            *analog_components,
             # clock.clock_def, WILL ADD BACK LATER (POST UI HOOK ARCHITECUTRE)
         ]
 

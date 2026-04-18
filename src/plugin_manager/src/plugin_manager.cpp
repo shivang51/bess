@@ -6,6 +6,7 @@
 #include <pybind11/pybind11.h>
 #include <pystate.h>
 #include <thread>
+#include <vector>
 
 namespace Bess::Plugins {
     PluginManager &PluginManager::getInstance() {
@@ -99,13 +100,38 @@ namespace Bess::Plugins {
         try {
             namespace fs = std::filesystem;
 
-            if (!fs::exists(pluginsDir)) {
+            fs::path resolvedPluginsDir;
+            std::vector<fs::path> candidates;
+
+            const fs::path requestedPath(pluginsDir);
+            if (requestedPath.is_absolute()) {
+                candidates.push_back(requestedPath);
+            } else {
+                candidates.push_back(requestedPath);
+
+                // Fallback for test/dev runs where cwd is a build subdirectory.
+                const auto sourceRoot = fs::path(__FILE__)
+                                            .parent_path()
+                                            .parent_path()
+                                            .parent_path()
+                                            .parent_path();
+                candidates.push_back(sourceRoot / requestedPath);
+            }
+
+            for (const auto &candidate : candidates) {
+                if (fs::exists(candidate) && fs::is_directory(candidate)) {
+                    resolvedPluginsDir = candidate;
+                    break;
+                }
+            }
+
+            if (resolvedPluginsDir.empty()) {
                 BESS_WARN("Plugins directory does not exist: {}", pluginsDir);
                 return false;
             }
 
             int loadedCount = 0;
-            for (const auto &entry : fs::directory_iterator(pluginsDir)) {
+            for (const auto &entry : fs::directory_iterator(resolvedPluginsDir)) {
                 if (!entry.is_directory())
                     continue;
                 const auto file = entry.path() / "main.py";
@@ -114,7 +140,7 @@ namespace Bess::Plugins {
                 }
             }
 
-            BESS_INFO("Loaded {} plugins from directory: {}", loadedCount, pluginsDir);
+            BESS_INFO("Loaded {} plugins from directory: {}", loadedCount, resolvedPluginsDir.string());
             return loadedCount > 0;
 
         } catch (const std::exception &e) {

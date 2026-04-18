@@ -105,6 +105,11 @@ namespace Bess::SimEngine {
         virtual bool setTerminalNode(size_t terminalIdx, AnalogNodeId node);
         virtual std::string name() const = 0;
 
+        // Generic metadata hooks for plugin-defined components.
+        virtual std::optional<double> numericValue() const;
+        virtual bool setNumericValue(double value);
+        virtual std::optional<std::string> branchCurrentName() const;
+
       private:
         UUID m_id;
     };
@@ -124,137 +129,6 @@ namespace Bess::SimEngine {
         size_t terminalCount = 0;
         std::vector<std::string> terminalNames;
         Factory factory;
-    };
-
-    class BESS_API Resistor final : public AnalogComponent {
-      public:
-        Resistor(double resistanceOhms, std::string name = {});
-        Resistor(AnalogNodeId a, AnalogNodeId b, double resistanceOhms, std::string name = {});
-
-        bool validate(std::string &error, const AnalogSolveOptions &options) const override;
-        void stamp(AnalogStampContext &context) const override;
-        AnalogComponentState evaluateState(const AnalogSolution &solution) const override;
-        std::vector<AnalogNodeId> terminals() const override;
-        bool setTerminalNode(size_t terminalIdx, AnalogNodeId node) override;
-        std::string name() const override;
-
-        double resistanceOhms() const;
-        bool setResistanceOhms(double resistanceOhms);
-
-      private:
-        std::vector<AnalogNodeId> m_terminals;
-        double m_resistanceOhms;
-        std::string m_name;
-    };
-
-    class BESS_API DCVoltageSource final : public AnalogComponent {
-      public:
-        DCVoltageSource(double voltage, std::string name = {});
-        DCVoltageSource(AnalogNodeId positive, AnalogNodeId negative, double voltage, std::string name = {});
-
-        bool validate(std::string &error, const AnalogSolveOptions &options) const override;
-        void stamp(AnalogStampContext &context) const override;
-        AnalogComponentState evaluateState(const AnalogSolution &solution) const override;
-        size_t voltageSourceCount() const override;
-        std::vector<AnalogNodeId> terminals() const override;
-        bool setTerminalNode(size_t terminalIdx, AnalogNodeId node) override;
-        std::string name() const override;
-
-        double voltage() const;
-        bool setVoltage(double voltage);
-
-      private:
-        std::vector<AnalogNodeId> m_terminals;
-        double m_voltage;
-        std::string m_name;
-    };
-
-    class BESS_API DCCurrentSource final : public AnalogComponent {
-      public:
-        DCCurrentSource(double currentAmps, std::string name = {});
-        DCCurrentSource(AnalogNodeId positive, AnalogNodeId negative, double currentAmps, std::string name = {});
-
-        bool validate(std::string &error, const AnalogSolveOptions &options) const override;
-        void stamp(AnalogStampContext &context) const override;
-        AnalogComponentState evaluateState(const AnalogSolution &solution) const override;
-        std::vector<AnalogNodeId> terminals() const override;
-        bool setTerminalNode(size_t terminalIdx, AnalogNodeId node) override;
-        std::string name() const override;
-
-      private:
-        std::vector<AnalogNodeId> m_terminals;
-        double m_currentAmps;
-        std::string m_name;
-    };
-
-    class BESS_API AnalogTestPoint final : public AnalogComponent {
-      public:
-        AnalogTestPoint(std::string name = {});
-        AnalogTestPoint(AnalogNodeId node, std::string name = {});
-
-        bool validate(std::string &error, const AnalogSolveOptions &options) const override;
-        void stamp(AnalogStampContext &context) const override;
-        std::vector<AnalogNodeId> terminals() const override;
-        bool setTerminalNode(size_t terminalIdx, AnalogNodeId node) override;
-        std::string name() const override;
-
-      private:
-        std::vector<AnalogNodeId> m_terminals;
-        std::string m_name;
-    };
-
-    class BESS_API VoltageProbe final : public AnalogComponent {
-      public:
-        VoltageProbe(std::string name = {});
-        VoltageProbe(AnalogNodeId positive, AnalogNodeId negative, std::string name = {});
-
-        bool validate(std::string &error, const AnalogSolveOptions &options) const override;
-        void stamp(AnalogStampContext &context) const override;
-        std::vector<AnalogNodeId> terminals() const override;
-        bool setTerminalNode(size_t terminalIdx, AnalogNodeId node) override;
-        std::string name() const override;
-
-      private:
-        std::vector<AnalogNodeId> m_terminals;
-        std::string m_name;
-    };
-
-    class BESS_API CurrentProbe final : public AnalogComponent {
-      public:
-        CurrentProbe(std::string name = {});
-        CurrentProbe(AnalogNodeId positive, AnalogNodeId negative, std::string name = {});
-
-        bool validate(std::string &error, const AnalogSolveOptions &options) const override;
-        void stamp(AnalogStampContext &context) const override;
-        AnalogComponentState evaluateState(const AnalogSolution &solution) const override;
-        size_t voltageSourceCount() const override;
-        std::vector<AnalogNodeId> terminals() const override;
-        bool setTerminalNode(size_t terminalIdx, AnalogNodeId node) override;
-        std::string name() const override;
-
-      private:
-        std::string branchName() const;
-
-      private:
-        std::vector<AnalogNodeId> m_terminals;
-        std::string m_name;
-    };
-
-    class BESS_API GroundReference final : public AnalogComponent {
-      public:
-        GroundReference(std::string name = {});
-        GroundReference(AnalogNodeId node, std::string name = {});
-
-        bool validate(std::string &error, const AnalogSolveOptions &options) const override;
-        void stamp(AnalogStampContext &context) const override;
-        size_t voltageSourceCount() const override;
-        std::vector<AnalogNodeId> terminals() const override;
-        bool setTerminalNode(size_t terminalIdx, AnalogNodeId node) override;
-        std::string name() const override;
-
-      private:
-        std::vector<AnalogNodeId> m_terminals;
-        std::string m_name;
     };
 
     class BESS_API AnalogCircuit {

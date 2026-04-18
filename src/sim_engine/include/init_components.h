@@ -2,7 +2,6 @@
 
 #include "component_catalog.h"
 #include "component_definition.h"
-#include "analog_simulation.h"
 #include "types.h"
 #include <memory>
 
@@ -135,90 +134,7 @@ namespace Bess::SimEngine {
         catalog.registerComponent(outDef);
     }
 
-    inline void initAnalog() {
-        auto &catalog = ComponentCatalog::instance();
-
-        const auto resistorDef = std::make_shared<ComponentDefinition>();
-        resistorDef->setName("Resistor");
-        resistorDef->setGroupName("Analog");
-        resistorDef->setInputSlotsInfo({SlotsGroupType::input, false, 1, {"+"}, {}});
-        resistorDef->setOutputSlotsInfo({SlotsGroupType::output, false, 1, {"-"}, {}});
-        resistorDef->addTrait<AnalogComponentTrait>(
-            AnalogComponentTrait{2,
-                                 {"+", "-"},
-                                 [] {
-                                     return std::make_shared<Resistor>(1000.0, "R");
-                                 }});
-        catalog.registerComponent(resistorDef);
-
-        const auto voltageSourceDef = std::make_shared<ComponentDefinition>();
-        voltageSourceDef->setName("DC Voltage Source");
-        voltageSourceDef->setGroupName("Analog");
-        voltageSourceDef->setInputSlotsInfo({SlotsGroupType::input, false, 1, {"+"}, {}});
-        voltageSourceDef->setOutputSlotsInfo({SlotsGroupType::output, false, 1, {"-"}, {}});
-        voltageSourceDef->addTrait<AnalogComponentTrait>(
-            AnalogComponentTrait{2,
-                                 {"+", "-"},
-                                 [] {
-                                     return std::make_shared<DCVoltageSource>(5.0, "V1");
-                                 }});
-        catalog.registerComponent(voltageSourceDef);
-
-        const auto testPointDef = std::make_shared<ComponentDefinition>();
-        testPointDef->setName("Analog Test Point");
-        testPointDef->setGroupName("Analog");
-        testPointDef->setInputSlotsInfo({SlotsGroupType::input, false, 1, {"TP"}, {}});
-        testPointDef->setOutputSlotsInfo({SlotsGroupType::output, false, 0, {}, {}});
-        testPointDef->addTrait<AnalogComponentTrait>(
-            AnalogComponentTrait{1,
-                                 {"TP"},
-                                 [] {
-                                     return std::make_shared<AnalogTestPoint>("TP");
-                                 }});
-        catalog.registerComponent(testPointDef);
-
-        const auto voltageProbeDef = std::make_shared<ComponentDefinition>();
-        voltageProbeDef->setName("Differential Voltage Probe");
-        voltageProbeDef->setGroupName("Analog");
-        voltageProbeDef->setInputSlotsInfo({SlotsGroupType::input, false, 1, {"+"}, {}});
-        voltageProbeDef->setOutputSlotsInfo({SlotsGroupType::output, false, 1, {"-"}, {}});
-        voltageProbeDef->addTrait<AnalogComponentTrait>(
-            AnalogComponentTrait{2,
-                                 {"+", "-"},
-                                 [] {
-                                     return std::make_shared<VoltageProbe>("VProbe");
-                                 }});
-        catalog.registerComponent(voltageProbeDef);
-
-        const auto currentProbeDef = std::make_shared<ComponentDefinition>();
-        currentProbeDef->setName("Inline Current Probe");
-        currentProbeDef->setGroupName("Analog");
-        currentProbeDef->setInputSlotsInfo({SlotsGroupType::input, false, 1, {"IN"}, {}});
-        currentProbeDef->setOutputSlotsInfo({SlotsGroupType::output, false, 1, {"OUT"}, {}});
-        currentProbeDef->addTrait<AnalogComponentTrait>(
-            AnalogComponentTrait{2,
-                                 {"IN", "OUT"},
-                                 [] {
-                                     return std::make_shared<CurrentProbe>("IProbe");
-                                 }});
-        catalog.registerComponent(currentProbeDef);
-
-        const auto groundDef = std::make_shared<ComponentDefinition>();
-        groundDef->setName("Ground");
-        groundDef->setGroupName("Analog");
-        groundDef->setInputSlotsInfo({SlotsGroupType::input, false, 1, {"GND"}, {}});
-        groundDef->setOutputSlotsInfo({SlotsGroupType::output, false, 0, {}, {}});
-        groundDef->addTrait<AnalogComponentTrait>(
-            AnalogComponentTrait{1,
-                                 {"GND"},
-                                 [] {
-                                     return std::make_shared<GroundReference>("GND");
-                                 }});
-        catalog.registerComponent(groundDef);
-    }
-
     inline void initComponentCatalog() {
         initIO();
-        initAnalog();
     }
 } // namespace Bess::SimEngine

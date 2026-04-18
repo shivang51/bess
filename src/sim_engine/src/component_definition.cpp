@@ -1,4 +1,5 @@
 #include "component_definition.h"
+#include "analog_simulation.h"
 #include "common/logger.h"
 #include "expression_evalutator/expr_evaluator.h"
 #include "types.h"
@@ -74,6 +75,22 @@ namespace Bess::SimEngine {
         }
 
         return traitsJson;
+    }
+
+    void ComponentDefinition::setAnalogComponentTrait(const std::shared_ptr<AnalogComponentTrait> &trait) {
+        m_traits.put<AnalogComponentTrait>(trait);
+    }
+
+    std::shared_ptr<AnalogComponentTrait> ComponentDefinition::getAnalogComponentTrait() const {
+        auto itr = m_traits.find<AnalogComponentTrait>();
+        if (itr == m_traits.end()) {
+            return nullptr;
+        }
+        return std::static_pointer_cast<AnalogComponentTrait>(itr->second);
+    }
+
+    bool ComponentDefinition::hasAnalogComponentTrait() const {
+        return m_traits.find<AnalogComponentTrait>() != m_traits.end();
     }
 
     bool ComponentDefinition::onSlotsResizeReq(SlotsGroupType groupType, size_t newSize) {

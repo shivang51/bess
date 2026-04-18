@@ -303,6 +303,16 @@ namespace Bess::SimEngine {
             terminalState.voltage = terminalState.connected ? solution.voltage(node) : 0.0;
             state.terminals.push_back(terminalState);
         }
+
+        if (state.terminals.size() == 2) {
+            if (const auto branchName = branchCurrentName(); branchName.has_value()) {
+                if (const auto current = solution.branchCurrent(*branchName); current.has_value()) {
+                    state.terminals[0].current = *current;
+                    state.terminals[1].current = -*current;
+                }
+            }
+        }
+
         return state;
     }
 
@@ -312,6 +322,18 @@ namespace Bess::SimEngine {
 
     bool AnalogComponent::setTerminalNode(size_t, AnalogNodeId) {
         return false;
+    }
+
+    std::optional<double> AnalogComponent::numericValue() const {
+        return std::nullopt;
+    }
+
+    bool AnalogComponent::setNumericValue(double) {
+        return false;
+    }
+
+    std::optional<std::string> AnalogComponent::branchCurrentName() const {
+        return std::nullopt;
     }
 
     AnalogComponentTrait::AnalogComponentTrait(size_t terminalCount,
@@ -335,6 +357,143 @@ namespace Bess::SimEngine {
         json["terminalNames"] = terminalNamesJson;
         return json;
     }
+
+        class Resistor final : public AnalogComponent {
+            public:
+                Resistor(double resistanceOhms, std::string name = {});
+                Resistor(AnalogNodeId a, AnalogNodeId b, double resistanceOhms, std::string name = {});
+
+                bool validate(std::string &error, const AnalogSolveOptions &options) const override;
+                void stamp(AnalogStampContext &context) const override;
+                AnalogComponentState evaluateState(const AnalogSolution &solution) const override;
+                std::vector<AnalogNodeId> terminals() const override;
+                bool setTerminalNode(size_t terminalIdx, AnalogNodeId node) override;
+                std::string name() const override;
+                std::optional<double> numericValue() const override;
+                bool setNumericValue(double value) override;
+
+                double resistanceOhms() const;
+                bool setResistanceOhms(double resistanceOhms);
+
+            private:
+                std::vector<AnalogNodeId> m_terminals;
+                double m_resistanceOhms;
+                std::string m_name;
+        };
+
+        class DCVoltageSource final : public AnalogComponent {
+            public:
+                DCVoltageSource(double voltage, std::string name = {});
+                DCVoltageSource(AnalogNodeId positive, AnalogNodeId negative, double voltage, std::string name = {});
+
+                bool validate(std::string &error, const AnalogSolveOptions &options) const override;
+                void stamp(AnalogStampContext &context) const override;
+                AnalogComponentState evaluateState(const AnalogSolution &solution) const override;
+                size_t voltageSourceCount() const override;
+                std::vector<AnalogNodeId> terminals() const override;
+                bool setTerminalNode(size_t terminalIdx, AnalogNodeId node) override;
+                std::string name() const override;
+                std::optional<double> numericValue() const override;
+                bool setNumericValue(double value) override;
+                std::optional<std::string> branchCurrentName() const override;
+
+                double voltage() const;
+                bool setVoltage(double voltage);
+
+            private:
+                std::vector<AnalogNodeId> m_terminals;
+                double m_voltage;
+                std::string m_name;
+        };
+
+        class DCCurrentSource final : public AnalogComponent {
+            public:
+                DCCurrentSource(double currentAmps, std::string name = {});
+                DCCurrentSource(AnalogNodeId positive, AnalogNodeId negative, double currentAmps, std::string name = {});
+
+                bool validate(std::string &error, const AnalogSolveOptions &options) const override;
+                void stamp(AnalogStampContext &context) const override;
+                AnalogComponentState evaluateState(const AnalogSolution &solution) const override;
+                std::vector<AnalogNodeId> terminals() const override;
+                bool setTerminalNode(size_t terminalIdx, AnalogNodeId node) override;
+                std::string name() const override;
+
+            private:
+                std::vector<AnalogNodeId> m_terminals;
+                double m_currentAmps;
+                std::string m_name;
+        };
+
+        class AnalogTestPoint final : public AnalogComponent {
+            public:
+                AnalogTestPoint(std::string name = {});
+                AnalogTestPoint(AnalogNodeId node, std::string name = {});
+
+                bool validate(std::string &error, const AnalogSolveOptions &options) const override;
+                void stamp(AnalogStampContext &context) const override;
+                std::vector<AnalogNodeId> terminals() const override;
+                bool setTerminalNode(size_t terminalIdx, AnalogNodeId node) override;
+                std::string name() const override;
+
+            private:
+                std::vector<AnalogNodeId> m_terminals;
+                std::string m_name;
+        };
+
+        class VoltageProbe final : public AnalogComponent {
+            public:
+                VoltageProbe(std::string name = {});
+                VoltageProbe(AnalogNodeId positive, AnalogNodeId negative, std::string name = {});
+
+                bool validate(std::string &error, const AnalogSolveOptions &options) const override;
+                void stamp(AnalogStampContext &context) const override;
+                std::vector<AnalogNodeId> terminals() const override;
+                bool setTerminalNode(size_t terminalIdx, AnalogNodeId node) override;
+                std::string name() const override;
+
+            private:
+                std::vector<AnalogNodeId> m_terminals;
+                std::string m_name;
+        };
+
+        class CurrentProbe final : public AnalogComponent {
+            public:
+                CurrentProbe(std::string name = {});
+                CurrentProbe(AnalogNodeId positive, AnalogNodeId negative, std::string name = {});
+
+                bool validate(std::string &error, const AnalogSolveOptions &options) const override;
+                void stamp(AnalogStampContext &context) const override;
+                AnalogComponentState evaluateState(const AnalogSolution &solution) const override;
+                size_t voltageSourceCount() const override;
+                std::vector<AnalogNodeId> terminals() const override;
+                bool setTerminalNode(size_t terminalIdx, AnalogNodeId node) override;
+                std::string name() const override;
+                std::optional<std::string> branchCurrentName() const override;
+
+            private:
+                std::string branchName() const;
+
+            private:
+                std::vector<AnalogNodeId> m_terminals;
+                std::string m_name;
+        };
+
+        class GroundReference final : public AnalogComponent {
+            public:
+                GroundReference(std::string name = {});
+                GroundReference(AnalogNodeId node, std::string name = {});
+
+                bool validate(std::string &error, const AnalogSolveOptions &options) const override;
+                void stamp(AnalogStampContext &context) const override;
+                size_t voltageSourceCount() const override;
+                std::vector<AnalogNodeId> terminals() const override;
+                bool setTerminalNode(size_t terminalIdx, AnalogNodeId node) override;
+                std::string name() const override;
+
+            private:
+                std::vector<AnalogNodeId> m_terminals;
+                std::string m_name;
+        };
 
     Resistor::Resistor(double resistanceOhms, std::string name)
         : m_terminals({AnalogUnconnectedNode, AnalogUnconnectedNode}),
@@ -391,6 +550,14 @@ namespace Bess::SimEngine {
 
     std::string Resistor::name() const {
         return m_name.empty() ? "Resistor" : m_name;
+    }
+
+    std::optional<double> Resistor::numericValue() const {
+        return m_resistanceOhms;
+    }
+
+    bool Resistor::setNumericValue(double value) {
+        return setResistanceOhms(value);
     }
 
     double Resistor::resistanceOhms() const {
@@ -476,6 +643,18 @@ namespace Bess::SimEngine {
 
     std::string DCVoltageSource::name() const {
         return m_name.empty() ? "DC Voltage Source" : m_name;
+    }
+
+    std::optional<double> DCVoltageSource::numericValue() const {
+        return m_voltage;
+    }
+
+    bool DCVoltageSource::setNumericValue(double value) {
+        return setVoltage(value);
+    }
+
+    std::optional<std::string> DCVoltageSource::branchCurrentName() const {
+        return m_name.empty() ? getUUID().toString() : m_name;
     }
 
     double DCVoltageSource::voltage() const {
@@ -673,6 +852,10 @@ namespace Bess::SimEngine {
 
     std::string CurrentProbe::name() const {
         return m_name.empty() ? "Inline Current Probe" : m_name;
+    }
+
+    std::optional<std::string> CurrentProbe::branchCurrentName() const {
+        return branchName();
     }
 
     std::string CurrentProbe::branchName() const {
@@ -922,12 +1105,7 @@ namespace Bess::SimEngine {
             return std::nullopt;
         }
 
-        const auto resistor = std::dynamic_pointer_cast<Resistor>(component);
-        if (!resistor) {
-            return std::nullopt;
-        }
-
-        return resistor->resistanceOhms();
+        return component->numericValue();
     }
 
     bool AnalogCircuit::setResistorResistance(const UUID &componentId, double resistanceOhms) {
@@ -936,8 +1114,7 @@ namespace Bess::SimEngine {
             return false;
         }
 
-        const auto resistor = std::dynamic_pointer_cast<Resistor>(component);
-        if (!resistor || !resistor->setResistanceOhms(resistanceOhms)) {
+        if (!component->setNumericValue(resistanceOhms)) {
             return false;
         }
 
@@ -951,12 +1128,7 @@ namespace Bess::SimEngine {
             return std::nullopt;
         }
 
-        const auto source = std::dynamic_pointer_cast<DCVoltageSource>(component);
-        if (!source) {
-            return std::nullopt;
-        }
-
-        return source->voltage();
+        return component->numericValue();
     }
 
     bool AnalogCircuit::setVoltageSourceVoltage(const UUID &componentId, double voltage) {
@@ -965,8 +1137,7 @@ namespace Bess::SimEngine {
             return false;
         }
 
-        const auto source = std::dynamic_pointer_cast<DCVoltageSource>(component);
-        if (!source || !source->setVoltage(voltage)) {
+        if (!component->setNumericValue(voltage)) {
             return false;
         }
 
@@ -1070,7 +1241,8 @@ namespace Bess::SimEngine {
         const size_t nodeUnknownCount = activeNodes.size();
         size_t voltageSourceCount = 0;
         for (const auto &component : m_components) {
-            voltageSourceCount += component->voltageSourceCount();
+            const auto count = component->voltageSourceCount();
+            voltageSourceCount += count;
         }
 
         const size_t matrixSize = nodeUnknownCount + voltageSourceCount;
