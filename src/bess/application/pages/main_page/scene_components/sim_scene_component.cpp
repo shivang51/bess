@@ -658,6 +658,80 @@ namespace Bess::Canvas {
             }
             ImGui::TreePop();
         }
+
+        if (isAnalogComponent() && UI::Widgets::TreeNode(0, "Analog Measurements")) {
+            const auto analogState = SimEngine::SimulationEngine::instance().getAnalogComponentState(m_simEngineId);
+            const auto resistorValue = SimEngine::SimulationEngine::instance().getAnalogResistorValue(m_simEngineId);
+
+            if (resistorValue.has_value()) {
+                ImGui::Text("Resistance: %.6g Ohm", *resistorValue);
+                ImGui::Separator();
+            }
+
+            if (analogState.simError) {
+                ImGui::TextWrapped("%s", analogState.errorMessage.empty()
+                                            ? "Analog values are not available."
+                                            : analogState.errorMessage.c_str());
+                ImGui::TreePop();
+                return;
+            }
+
+            if (ImGui::BeginTable("AnalogTerminalMeasurements", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
+                ImGui::TableSetupColumn("Terminal");
+                ImGui::TableSetupColumn("Node");
+                ImGui::TableSetupColumn("Voltage (V)");
+                ImGui::TableSetupColumn("Current (A)");
+                ImGui::TableSetupColumn("Connected");
+                ImGui::TableHeadersRow();
+
+                auto drawTerminalRow = [&](const UUID &slotId) {
+                    const auto slotComp = state.getComponentByUuid<SlotSceneComponent>(slotId);
+                    if (!slotComp || slotComp->isResizeSlot()) {
+                        return;
+                    }
+
+                    const auto terminalIdx = static_cast<size_t>(slotComp->getIndex());
+                    if (terminalIdx >= analogState.terminals.size()) {
+                        return;
+                    }
+
+                    const auto &terminal = analogState.terminals[terminalIdx];
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::TextUnformatted(slotComp->getName().c_str());
+                    ImGui::TableSetColumnIndex(1);
+                    if (terminal.connected) {
+                        ImGui::Text("%u", terminal.node);
+                    } else {
+                        ImGui::TextUnformatted("NC");
+                    }
+                    ImGui::TableSetColumnIndex(2);
+                    ImGui::Text("%.6g", terminal.voltage);
+                    ImGui::TableSetColumnIndex(3);
+                    ImGui::Text("%.6g", terminal.current);
+                    ImGui::TableSetColumnIndex(4);
+                    ImGui::TextUnformatted(terminal.connected ? "Yes" : "No");
+                };
+
+                for (const auto &slotId : m_inputSlots) {
+                    drawTerminalRow(slotId);
+                }
+
+                for (const auto &slotId : m_outputSlots) {
+                    drawTerminalRow(slotId);
+                }
+
+                ImGui::EndTable();
+            }
+
+            if (analogState.terminals.size() >= 2) {
+                const double differentialVoltage = analogState.terminals[0].voltage - analogState.terminals[1].voltage;
+                ImGui::Text("Differential Voltage (T0 - T1): %.6g V", differentialVoltage);
+            }
+
+            ImGui::TreePop();
+        }
     }
 
     void SimulationSceneComponent::onNameChanged() {

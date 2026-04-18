@@ -1,8 +1,10 @@
 #include "analog_simulation.h"
+#include "common/logger.h"
 #include <algorithm>
 #include <cstddef>
 #include <cmath>
 #include <limits>
+#include <unordered_set>
 #include <utility>
 
 namespace Bess::SimEngine {
@@ -16,6 +18,66 @@ namespace Bess::SimEngine {
             solution.status = status;
             solution.message = std::move(message);
             return solution;
+        }
+
+        std::string nodeLabel(const AnalogCircuit &circuit, AnalogNodeId node) {
+            if (node == AnalogUnconnectedNode) {
+                return "NC";
+            }
+            if (node == AnalogGroundNode) {
+                return "0(GND)";
+            }
+
+            const auto name = circuit.getNodeName(node);
+            if (name.empty()) {
+                return std::to_string(node);
+            }
+
+            return name + "(" + std::to_string(node) + ")";
+        }
+
+        void logSolveFailure(const AnalogCircuit &circuit,
+                             AnalogSolveStatus status,
+                             const std::string &message,
+                             size_t nodeUnknownCount,
+                             size_t voltageSourceCount,
+                             double pivotTolerance) {
+            const size_t matrixSize = nodeUnknownCount + voltageSourceCount;
+            BESS_ERROR("[AnalogCircuit] Solve failed (status={}): {} | nodes={} voltageSources={} matrixSize={} components={} pivotTolerance={}",
+                       static_cast<int>(status),
+                       message,
+                       nodeUnknownCount,
+                       voltageSourceCount,
+                       matrixSize,
+                       circuit.components().size(),
+                       pivotTolerance);
+
+            for (const auto &component : circuit.components()) {
+                if (!component) {
+                    BESS_ERROR("[AnalogCircuit]   <null component>");
+                    continue;
+                }
+
+                std::string terminalsSummary;
+                const auto terminals = component->terminals();
+                for (size_t terminalIdx = 0; terminalIdx < terminals.size(); ++terminalIdx) {
+                    if (!terminalsSummary.empty()) {
+                        terminalsSummary += ", ";
+                    }
+
+                    terminalsSummary += "T" + std::to_string(terminalIdx) + "=" +
+                                        nodeLabel(circuit, terminals[terminalIdx]);
+                }
+
+                if (terminalsSummary.empty()) {
+                    terminalsSummary = "<none>";
+                }
+
+                BESS_ERROR("[AnalogCircuit]   {} [{}] {}",
+                           component->name(),
+                           component->getUUID().toString(),
+                           terminalsSummary);
+            }
         }
 
         bool solveLinearSystem(std::vector<std::vector<double>> matrix,
@@ -104,21 +166,25 @@ namespace Bess::SimEngine {
     AnalogStampContext::AnalogStampContext(std::vector<std::vector<double>> &matrix,
                                            std::vector<double> &rhs,
                                            std::unordered_map<std::string, size_t> &branchCurrentIndices,
+                                           const std::unordered_map<AnalogNodeId, size_t> &nodeIndexLookup,
                                            size_t nodeUnknownCount)
         : m_matrix(matrix),
           m_rhs(rhs),
           m_branchCurrentIndices(branchCurrentIndices),
+          m_nodeIndexLookup(nodeIndexLookup),
           m_nodeUnknownCount(nodeUnknownCount) {}
 
     std::optional<size_t> AnalogStampContext::matrixIndex(AnalogNodeId node) const {
         if (node == AnalogGroundNode) {
             return std::nullopt;
         }
-        const size_t index = static_cast<size_t>(node - 1);
-        if (index >= m_nodeUnknownCount) {
+
+        const auto it = m_nodeIndexLookup.find(node);
+        if (it == m_nodeIndexLookup.end()) {
             return std::nullopt;
         }
-        return index;
+
+        return it->second;
     }
 
     void AnalogStampContext::invalidate(const std::string &message) {
@@ -377,7 +443,7 @@ namespace Bess::SimEngine {
     }
 
     std::string DCVoltageSource::name() const {
-        return m_name.empty() ? "DCVoltageSource" : m_name;
+        return m_name.empty() ? "DC Voltage Source" : m_name;
     }
 
     DCCurrentSource::DCCurrentSource(double currentAmps, std::string name)
@@ -432,7 +498,178 @@ namespace Bess::SimEngine {
     }
 
     std::string DCCurrentSource::name() const {
-        return m_name.empty() ? "DCCurrentSource" : m_name;
+        return m_name.empty() ? "DC Current Source" : m_name;
+    }
+
+    AnalogTestPoint::AnalogTestPoint(std::string name)
+        : m_terminals({AnalogUnconnectedNode}),
+          m_name(std::move(name)) {}
+
+    AnalogTestPoint::AnalogTestPoint(AnalogNodeId node, std::string name)
+        : m_terminals({node}),
+          m_name(std::move(name)) {}
+
+    bool AnalogTestPoint::validate(std::string &, const AnalogSolveOptions &) const {
+        return true;
+    }
+
+    void AnalogTestPoint::stamp(AnalogStampContext &) const {}
+
+    std::vector<AnalogNodeId> AnalogTestPoint::terminals() const {
+        return m_terminals;
+    }
+
+    bool AnalogTestPoint::setTerminalNode(size_t terminalIdx, AnalogNodeId node) {
+        if (terminalIdx >= m_terminals.size()) {
+            return false;
+        }
+
+        m_terminals[terminalIdx] = node;
+        return true;
+    }
+
+    std::string AnalogTestPoint::name() const {
+        return m_name.empty() ? "Analog Test Point" : m_name;
+    }
+
+    VoltageProbe::VoltageProbe(std::string name)
+        : m_terminals({AnalogUnconnectedNode, AnalogUnconnectedNode}),
+          m_name(std::move(name)) {}
+
+    VoltageProbe::VoltageProbe(AnalogNodeId positive, AnalogNodeId negative, std::string name)
+        : m_terminals({positive, negative}),
+          m_name(std::move(name)) {}
+
+    bool VoltageProbe::validate(std::string &, const AnalogSolveOptions &) const {
+        return true;
+    }
+
+    void VoltageProbe::stamp(AnalogStampContext &) const {}
+
+    std::vector<AnalogNodeId> VoltageProbe::terminals() const {
+        return m_terminals;
+    }
+
+    bool VoltageProbe::setTerminalNode(size_t terminalIdx, AnalogNodeId node) {
+        if (terminalIdx >= m_terminals.size()) {
+            return false;
+        }
+
+        m_terminals[terminalIdx] = node;
+        return true;
+    }
+
+    std::string VoltageProbe::name() const {
+        return m_name.empty() ? "Differential Voltage Probe" : m_name;
+    }
+
+    CurrentProbe::CurrentProbe(std::string name)
+        : m_terminals({AnalogUnconnectedNode, AnalogUnconnectedNode}),
+          m_name(std::move(name)) {}
+
+    CurrentProbe::CurrentProbe(AnalogNodeId positive, AnalogNodeId negative, std::string name)
+        : m_terminals({positive, negative}),
+          m_name(std::move(name)) {}
+
+    bool CurrentProbe::validate(std::string &, const AnalogSolveOptions &) const {
+        return true;
+    }
+
+    void CurrentProbe::stamp(AnalogStampContext &context) const {
+        if (m_terminals[0] == AnalogUnconnectedNode ||
+            m_terminals[1] == AnalogUnconnectedNode ||
+            m_terminals[0] == m_terminals[1]) {
+            return;
+        }
+
+        context.addVoltageSource(m_terminals[0], m_terminals[1], 0.0, branchName());
+    }
+
+    AnalogComponentState CurrentProbe::evaluateState(const AnalogSolution &solution) const {
+        auto state = AnalogComponent::evaluateState(solution);
+        const auto current = solution.branchCurrent(branchName());
+        if (current && state.terminals.size() == 2) {
+            state.terminals[0].current = *current;
+            state.terminals[1].current = -*current;
+        }
+        return state;
+    }
+
+    size_t CurrentProbe::voltageSourceCount() const {
+        if (m_terminals[0] == AnalogUnconnectedNode ||
+            m_terminals[1] == AnalogUnconnectedNode ||
+            m_terminals[0] == m_terminals[1]) {
+            return 0;
+        }
+
+        return 1;
+    }
+
+    std::vector<AnalogNodeId> CurrentProbe::terminals() const {
+        return m_terminals;
+    }
+
+    bool CurrentProbe::setTerminalNode(size_t terminalIdx, AnalogNodeId node) {
+        if (terminalIdx >= m_terminals.size()) {
+            return false;
+        }
+
+        m_terminals[terminalIdx] = node;
+        return true;
+    }
+
+    std::string CurrentProbe::name() const {
+        return m_name.empty() ? "Inline Current Probe" : m_name;
+    }
+
+    std::string CurrentProbe::branchName() const {
+        const auto baseName = m_name.empty() ? "InlineCurrentProbe" : m_name;
+        return baseName + "_" + getUUID().toString();
+    }
+
+    GroundReference::GroundReference(std::string name)
+        : m_terminals({AnalogUnconnectedNode}),
+          m_name(std::move(name)) {}
+
+    GroundReference::GroundReference(AnalogNodeId node, std::string name)
+        : m_terminals({node}),
+          m_name(std::move(name)) {}
+
+    bool GroundReference::validate(std::string &, const AnalogSolveOptions &) const {
+        return true;
+    }
+
+    void GroundReference::stamp(AnalogStampContext &context) const {
+        if (m_terminals[0] == AnalogUnconnectedNode || m_terminals[0] == AnalogGroundNode) {
+            return;
+        }
+
+        context.addVoltageSource(m_terminals[0], AnalogGroundNode, 0.0);
+    }
+
+    size_t GroundReference::voltageSourceCount() const {
+        if (m_terminals[0] == AnalogUnconnectedNode || m_terminals[0] == AnalogGroundNode) {
+            return 0;
+        }
+
+        return 1;
+    }
+
+    std::vector<AnalogNodeId> GroundReference::terminals() const {
+        return m_terminals;
+    }
+
+    bool GroundReference::setTerminalNode(size_t terminalIdx, AnalogNodeId node) {
+        if (terminalIdx >= m_terminals.size()) {
+            return false;
+        }
+
+        m_terminals[terminalIdx] = node;
+        return true;
+    }
+
+    std::string GroundReference::name() const {
+        return m_name.empty() ? "Ground" : m_name;
     }
 
     AnalogCircuit::AnalogCircuit() {
@@ -522,6 +759,38 @@ namespace Bess::SimEngine {
         return addComponent(std::make_shared<DCCurrentSource>(positive, negative, currentAmps, name));
     }
 
+    const UUID &AnalogCircuit::addTestPoint(const std::string &name) {
+        return addComponent(std::make_shared<AnalogTestPoint>(name));
+    }
+
+    const UUID &AnalogCircuit::addTestPoint(AnalogNodeId node, const std::string &name) {
+        return addComponent(std::make_shared<AnalogTestPoint>(node, name));
+    }
+
+    const UUID &AnalogCircuit::addVoltageProbe(const std::string &name) {
+        return addComponent(std::make_shared<VoltageProbe>(name));
+    }
+
+    const UUID &AnalogCircuit::addVoltageProbe(AnalogNodeId positive, AnalogNodeId negative, const std::string &name) {
+        return addComponent(std::make_shared<VoltageProbe>(positive, negative, name));
+    }
+
+    const UUID &AnalogCircuit::addCurrentProbe(const std::string &name) {
+        return addComponent(std::make_shared<CurrentProbe>(name));
+    }
+
+    const UUID &AnalogCircuit::addCurrentProbe(AnalogNodeId positive, AnalogNodeId negative, const std::string &name) {
+        return addComponent(std::make_shared<CurrentProbe>(positive, negative, name));
+    }
+
+    const UUID &AnalogCircuit::addGroundReference(const std::string &name) {
+        return addComponent(std::make_shared<GroundReference>(name));
+    }
+
+    const UUID &AnalogCircuit::addGroundReference(AnalogNodeId node, const std::string &name) {
+        return addComponent(std::make_shared<GroundReference>(node, name));
+    }
+
     bool AnalogCircuit::connectTerminal(const UUID &componentId, size_t terminalIdx, AnalogNodeId node) {
         if (node != AnalogGroundNode && node >= m_nextNodeId) {
             return false;
@@ -584,6 +853,13 @@ namespace Bess::SimEngine {
             return state;
         }
 
+        // Measurements are requested from UI draw paths where an explicit solve may not
+        // have been called yet. Solve lazily so voltage/current values are up to date.
+        (void)solve();
+        if (const auto *state = m_lastSolution.componentState(componentId)) {
+            return *state;
+        }
+
         return component->evaluateState(m_lastSolution);
     }
 
@@ -611,6 +887,10 @@ namespace Bess::SimEngine {
             }
 
             for (const auto node : component->terminals()) {
+                if (node == AnalogUnconnectedNode) {
+                    continue;
+                }
+
                 if (node >= m_nextNodeId) {
                     return failure(AnalogSolveStatus::invalidComponent,
                                    component->name() + ": terminal references an unknown node");
@@ -636,6 +916,12 @@ namespace Bess::SimEngine {
     AnalogSolution AnalogCircuit::solve(const AnalogSolveOptions &options) const {
         const auto validation = validateCircuit(options);
         if (!validation.ok()) {
+            logSolveFailure(*this,
+                            validation.status,
+                            validation.message,
+                            static_cast<size_t>(m_nextNodeId - 1),
+                            0,
+                            options.pivotTolerance);
             m_lastSolution = validation;
             m_lastSolution.nodeVoltages.assign(m_nextNodeId, 0.0);
             for (const auto &component : m_components) {
@@ -647,7 +933,30 @@ namespace Bess::SimEngine {
             return m_lastSolution;
         }
 
-        const size_t nodeUnknownCount = static_cast<size_t>(m_nextNodeId - 1);
+        std::unordered_set<AnalogNodeId> activeNodeSet;
+        activeNodeSet.reserve(m_components.size() * 2);
+        for (const auto &component : m_components) {
+            if (!component) {
+                continue;
+            }
+
+            for (const auto node : component->terminals()) {
+                if (node != AnalogUnconnectedNode && node != AnalogGroundNode && node < m_nextNodeId) {
+                    activeNodeSet.insert(node);
+                }
+            }
+        }
+
+        std::vector<AnalogNodeId> activeNodes(activeNodeSet.begin(), activeNodeSet.end());
+        std::sort(activeNodes.begin(), activeNodes.end());
+
+        std::unordered_map<AnalogNodeId, size_t> nodeIndexLookup;
+        nodeIndexLookup.reserve(activeNodes.size());
+        for (size_t idx = 0; idx < activeNodes.size(); ++idx) {
+            nodeIndexLookup[activeNodes[idx]] = idx;
+        }
+
+        const size_t nodeUnknownCount = activeNodes.size();
         size_t voltageSourceCount = 0;
         for (const auto &component : m_components) {
             voltageSourceCount += component->voltageSourceCount();
@@ -669,13 +978,24 @@ namespace Bess::SimEngine {
         std::vector<std::vector<double>> matrix(matrixSize, std::vector<double>(matrixSize, 0.0));
         std::vector<double> rhs(matrixSize, 0.0);
         std::unordered_map<std::string, size_t> branchCurrentIndices;
-        AnalogStampContext context(matrix, rhs, branchCurrentIndices, nodeUnknownCount);
+        AnalogStampContext context(matrix,
+                       rhs,
+                       branchCurrentIndices,
+                       nodeIndexLookup,
+                       nodeUnknownCount);
 
         for (const auto &component : m_components) {
             component->stamp(context);
             if (!context.ok()) {
+                const auto errorMessage = component->name() + ": " + context.errorMessage();
+                logSolveFailure(*this,
+                                AnalogSolveStatus::invalidComponent,
+                                errorMessage,
+                                nodeUnknownCount,
+                                voltageSourceCount,
+                                options.pivotTolerance);
                 m_lastSolution = failure(AnalogSolveStatus::invalidComponent,
-                                         component->name() + ": " + context.errorMessage());
+                                         errorMessage);
                 m_lastSolution.nodeVoltages.assign(m_nextNodeId, 0.0);
                 for (const auto &stateComponent : m_components) {
                     m_lastSolution.componentStates[stateComponent->getUUID()] =
@@ -686,9 +1006,51 @@ namespace Bess::SimEngine {
         }
 
         std::vector<double> rawSolution;
-        if (!solveLinearSystem(matrix, rhs, options.pivotTolerance, rawSolution)) {
+        bool solved = solveLinearSystem(matrix, rhs, options.pivotTolerance, rawSolution);
+    bool attemptedAutoReference = false;
+        bool autoReferenced = false;
+
+        // A floating but excited network (for example: ideal source + resistor loop)
+        // is physically valid for branch currents and differential voltages but lacks
+        // an absolute reference. If no explicit ground exists, anchor one node to 0V.
+        if (!solved) {
+            const bool hasExcitation = std::ranges::any_of(rhs, [&](double value) {
+                return std::abs(value) > options.pivotTolerance;
+            });
+
+            if (hasExcitation && nodeUnknownCount > 0) {
+                attemptedAutoReference = true;
+                auto fixedMatrix = matrix;
+                auto fixedRhs = rhs;
+
+                std::fill(fixedMatrix[0].begin(), fixedMatrix[0].end(), 0.0);
+                fixedMatrix[0][0] = 1.0;
+                fixedRhs[0] = 0.0;
+
+                solved = solveLinearSystem(fixedMatrix,
+                                           fixedRhs,
+                                           options.pivotTolerance,
+                                           rawSolution);
+                autoReferenced = solved;
+                if (autoReferenced) {
+                    BESS_WARN("[AnalogCircuit] Auto-referenced floating network to 0V to resolve singular MNA system");
+                }
+            }
+        }
+
+        if (!solved) {
+            const std::string singularMessage = "Analog solve failed because the MNA matrix is singular or ill-conditioned";
+            logSolveFailure(*this,
+                            AnalogSolveStatus::singularMatrix,
+                            singularMessage,
+                            nodeUnknownCount,
+                            voltageSourceCount,
+                            options.pivotTolerance);
+            if (attemptedAutoReference) {
+                BESS_ERROR("[AnalogCircuit] Auto-reference fallback did not resolve the singular system");
+            }
             m_lastSolution = failure(AnalogSolveStatus::singularMatrix,
-                                     "Analog solve failed because the MNA matrix is singular or ill-conditioned");
+                                     singularMessage);
             m_lastSolution.nodeVoltages.assign(m_nextNodeId, 0.0);
             for (const auto &component : m_components) {
                 m_lastSolution.componentStates[component->getUUID()] =
@@ -699,10 +1061,14 @@ namespace Bess::SimEngine {
 
         AnalogSolution solution;
         solution.status = AnalogSolveStatus::ok;
-        solution.message = "Analog solve converged";
+        solution.message = autoReferenced
+                               ? "Analog solve converged (auto-referenced floating network)"
+                               : "Analog solve converged";
         solution.nodeVoltages.assign(m_nextNodeId, 0.0);
-        for (AnalogNodeId node = 1; node < m_nextNodeId; ++node) {
-            solution.nodeVoltages[node] = rawSolution[node - 1];
+        for (const auto &[node, matrixIndex] : nodeIndexLookup) {
+            if (matrixIndex < rawSolution.size()) {
+                solution.nodeVoltages[node] = rawSolution[matrixIndex];
+            }
         }
 
         for (const auto &[name, index] : branchCurrentIndices) {

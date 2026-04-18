@@ -113,6 +113,7 @@ namespace Bess::SimEngine {
         bool disconnectAnalogTerminal(const UUID &componentId, size_t terminalIdx);
         bool removeAnalogComponent(const UUID &componentId);
         AnalogComponentState getAnalogComponentState(const UUID &componentId) const;
+        std::optional<double> getAnalogResistorValue(const UUID &componentId) const;
         AnalogSolution solveAnalogCircuit(const AnalogSolveOptions &options = {});
         void clearAnalogCircuit();
 

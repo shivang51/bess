@@ -1290,6 +1290,21 @@ namespace Bess::SimEngine {
         return m_analogCircuit.getComponentState(componentId);
     }
 
+    std::optional<double> SimulationEngine::getAnalogResistorValue(const UUID &componentId) const {
+        std::lock_guard lk(m_registryMutex);
+        const auto component = m_analogCircuit.getComponent(componentId);
+        if (!component) {
+            return std::nullopt;
+        }
+
+        const auto resistor = std::dynamic_pointer_cast<Resistor>(component);
+        if (!resistor) {
+            return std::nullopt;
+        }
+
+        return resistor->resistanceOhms();
+    }
+
     AnalogSolution SimulationEngine::solveAnalogCircuit(const AnalogSolveOptions &options) {
         std::lock_guard lk(m_registryMutex);
         m_lastAnalogSolution = m_analogCircuit.solve(options);
@@ -1400,9 +1415,9 @@ namespace Bess::SimEngine {
             }
 
             const auto componentId = component->getUUID();
-            const auto componentState = m_analogCircuit.getComponentState(componentId);
+            const auto componentTerminals = component->terminals();
 
-            for (size_t terminalIdx = 0; terminalIdx < componentState.terminals.size(); ++terminalIdx) {
+            for (size_t terminalIdx = 0; terminalIdx < componentTerminals.size(); ++terminalIdx) {
                 m_analogCircuit.disconnectTerminal(componentId, terminalIdx);
                 terminals.push_back({componentId, terminalIdx});
             }

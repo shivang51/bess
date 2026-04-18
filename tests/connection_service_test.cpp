@@ -220,3 +220,83 @@ TEST_F(ConnectionServiceTest, SharedSourceCanDriveMultipleIndependentConnections
     EXPECT_EQ(rightSink.inputs.front()->getConnectedConnections().size(), 1u);
     EXPECT_EQ(rightSink.inputs.front()->getConnectedConnections().front(), rightConnection->getUuid());
 }
+
+TEST_F(ConnectionServiceTest, AnalogGroundedSourceResistorCircuitSolvesThroughSceneConnections) {
+    const auto sourceDef = findDefinitionByName("DC Voltage Source");
+    const auto resistorDef = findDefinitionByName("Resistor");
+    const auto groundDef = findDefinitionByName("Ground");
+    ASSERT_NE(sourceDef, nullptr);
+    ASSERT_NE(resistorDef, nullptr);
+    ASSERT_NE(groundDef, nullptr);
+
+    const auto source = addSimComponent(sourceDef);
+    const auto resistor = addSimComponent(resistorDef);
+    const auto ground = addSimComponent(groundDef);
+
+    ASSERT_NE(source.comp, nullptr);
+    ASSERT_NE(resistor.comp, nullptr);
+    ASSERT_NE(ground.comp, nullptr);
+    ASSERT_EQ(source.comp->getInputSlots().size(), 1u);
+    ASSERT_EQ(source.comp->getOutputSlots().size(), 1u);
+    ASSERT_EQ(resistor.comp->getInputSlots().size(), 1u);
+    ASSERT_EQ(resistor.comp->getOutputSlots().size(), 1u);
+    ASSERT_EQ(ground.comp->getInputSlots().size(), 1u);
+
+    const auto sourcePlus = source.comp->getInputSlots()[0];
+    const auto sourceMinus = source.comp->getOutputSlots()[0];
+    const auto resistorPlus = resistor.comp->getInputSlots()[0];
+    const auto resistorMinus = resistor.comp->getOutputSlots()[0];
+    const auto groundPin = ground.comp->getInputSlots()[0];
+
+    ASSERT_NE(service->createConnection(sourceMinus, groundPin, scene.get()), nullptr);
+    ASSERT_NE(service->createConnection(sourcePlus, resistorPlus, scene.get()), nullptr);
+    ASSERT_NE(service->createConnection(sourceMinus, resistorMinus, scene.get()), nullptr);
+
+    auto &engine = SimulationEngine::instance();
+    const auto solution = engine.solveAnalogCircuit();
+
+    ASSERT_TRUE(solution.ok()) << solution.message;
+
+    const auto sourceState = engine.getAnalogComponentState(source.comp->getSimEngineId());
+    ASSERT_EQ(sourceState.terminals.size(), 2u);
+    EXPECT_NEAR(sourceState.terminals[0].voltage, 5.0, 1e-9);
+    EXPECT_NEAR(sourceState.terminals[1].voltage, 0.0, 1e-9);
+
+    const auto resistorState = engine.getAnalogComponentState(resistor.comp->getSimEngineId());
+    ASSERT_EQ(resistorState.terminals.size(), 2u);
+    EXPECT_NEAR(resistorState.terminals[0].voltage, 5.0, 1e-9);
+    EXPECT_NEAR(resistorState.terminals[1].voltage, 0.0, 1e-9);
+    EXPECT_NEAR(resistorState.terminals[0].current, 0.005, 1e-12);
+    EXPECT_NEAR(resistorState.terminals[1].current, -0.005, 1e-12);
+}
+
+TEST_F(ConnectionServiceTest, AnalogFloatingSourceResistorCircuitAutoReferencesThroughSceneConnections) {
+    const auto sourceDef = findDefinitionByName("DC Voltage Source");
+    const auto resistorDef = findDefinitionByName("Resistor");
+    ASSERT_NE(sourceDef, nullptr);
+    ASSERT_NE(resistorDef, nullptr);
+
+    const auto source = addSimComponent(sourceDef);
+    const auto resistor = addSimComponent(resistorDef);
+
+    ASSERT_NE(source.comp, nullptr);
+    ASSERT_NE(resistor.comp, nullptr);
+    ASSERT_EQ(source.comp->getInputSlots().size(), 1u);
+    ASSERT_EQ(source.comp->getOutputSlots().size(), 1u);
+    ASSERT_EQ(resistor.comp->getInputSlots().size(), 1u);
+    ASSERT_EQ(resistor.comp->getOutputSlots().size(), 1u);
+
+    const auto sourcePlus = source.comp->getInputSlots()[0];
+    const auto sourceMinus = source.comp->getOutputSlots()[0];
+    const auto resistorPlus = resistor.comp->getInputSlots()[0];
+    const auto resistorMinus = resistor.comp->getOutputSlots()[0];
+
+    ASSERT_NE(service->createConnection(sourcePlus, resistorPlus, scene.get()), nullptr);
+    ASSERT_NE(service->createConnection(sourceMinus, resistorMinus, scene.get()), nullptr);
+
+    auto &engine = SimulationEngine::instance();
+    const auto solution = engine.solveAnalogCircuit();
+
+    ASSERT_TRUE(solution.ok()) << solution.message;
+    EXPECT_NE(solution.message.find("auto-referenced"), std::string::npos);
+}
