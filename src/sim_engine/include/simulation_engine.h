@@ -1,5 +1,6 @@
 #pragma once
 
+#include "analog_simulation.h"
 #include "bess_api.h"
 #include "common/bess_uuid.h"
 #include "digital_component.h"
@@ -87,6 +88,11 @@ namespace Bess::SimEngine {
         const SimEngineState &getSimEngineState() const;
         SimEngineState &getSimEngineState();
 
+        AnalogCircuit &getAnalogCircuit();
+        const AnalogCircuit &getAnalogCircuit() const;
+        AnalogSolution solveAnalogCircuit(const AnalogSolveOptions &options = {});
+        void clearAnalogCircuit();
+
       private:
         bool isSimStableLocked() const;
 
@@ -115,6 +121,8 @@ namespace Bess::SimEngine {
         SimTime m_currentSimTime;
 
         SimEngineState m_simEngineState;
+        AnalogCircuit m_analogCircuit;
+        AnalogSolution m_lastAnalogSolution;
 
         std::unordered_map<UUID, Net> m_nets;
 

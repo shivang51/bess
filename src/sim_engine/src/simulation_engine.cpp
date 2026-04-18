@@ -61,6 +61,8 @@ namespace Bess::SimEngine {
 
         std::lock_guard lkRegistry(m_registryMutex);
         m_simEngineState.reset();
+        m_analogCircuit.clear();
+        m_lastAnalogSolution = {};
         m_nextEventId = 0;
         m_currentSimTime = {};
     }
@@ -977,6 +979,26 @@ namespace Bess::SimEngine {
 
     SimTime SimulationEngine::getSimulationTime() const {
         return m_currentSimTime;
+    }
+
+    AnalogCircuit &SimulationEngine::getAnalogCircuit() {
+        return m_analogCircuit;
+    }
+
+    const AnalogCircuit &SimulationEngine::getAnalogCircuit() const {
+        return m_analogCircuit;
+    }
+
+    AnalogSolution SimulationEngine::solveAnalogCircuit(const AnalogSolveOptions &options) {
+        std::lock_guard lk(m_registryMutex);
+        m_lastAnalogSolution = m_analogCircuit.solve(options);
+        return m_lastAnalogSolution;
+    }
+
+    void SimulationEngine::clearAnalogCircuit() {
+        std::lock_guard lk(m_registryMutex);
+        m_analogCircuit.clear();
+        m_lastAnalogSolution = {};
     }
 
     void SimulationEngine::scheduleDependantsOf(const UUID &compId) {

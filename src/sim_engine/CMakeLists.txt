@@ -4,6 +4,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 
 set(Header_Files
+    "include/analog_simulation.h"
     "include/digital_component.h"
     "include/types.h"
     "include/module_def.h"
@@ -20,6 +21,7 @@ set(Header_Files
 source_group("include" FILES ${Header_Files})
 
 set(Source_Files
+    "src/analog_simulation.cpp"
     "src/simulation_engine.cpp"
 		"src/sim_engine_state.cpp"
 		"src/module_def.cpp"
