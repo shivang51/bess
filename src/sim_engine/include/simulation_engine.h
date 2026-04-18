@@ -90,6 +90,13 @@ namespace Bess::SimEngine {
 
         AnalogCircuit &getAnalogCircuit();
         const AnalogCircuit &getAnalogCircuit() const;
+        const UUID &addAnalogComponent(std::shared_ptr<AnalogComponent> component);
+        const UUID &addAnalogResistor(double resistanceOhms, const std::string &name = {});
+        const UUID &addAnalogResistor(AnalogNodeId a, AnalogNodeId b, double resistanceOhms,
+                                      const std::string &name = {});
+        bool connectAnalogTerminal(const UUID &componentId, size_t terminalIdx, AnalogNodeId node);
+        bool disconnectAnalogTerminal(const UUID &componentId, size_t terminalIdx);
+        AnalogComponentState getAnalogComponentState(const UUID &componentId) const;
         AnalogSolution solveAnalogCircuit(const AnalogSolveOptions &options = {});
         void clearAnalogCircuit();
 

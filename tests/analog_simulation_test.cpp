@@ -109,6 +109,38 @@ TEST(AnalogSimulationTest, AcceptsCustomAnalogComponentsThroughStampingInterface
     EXPECT_NEAR(solution.voltage(node), 1.0, 1e-9);
 }
 
+TEST(AnalogSimulationTest, SupportsDynamicTerminalConnectionsAndComponentStateQueries) {
+    AnalogCircuit circuit;
+    const auto rail = circuit.createNode("rail");
+    const auto supply = circuit.addVoltageSource(10.0, "V1");
+    const auto resistor = circuit.addResistor(1000.0, "R1");
+
+    EXPECT_EQ(circuit.solve().status, AnalogSolveStatus::invalidComponent);
+
+    ASSERT_TRUE(circuit.connectTerminal(supply, 0, rail));
+    ASSERT_TRUE(circuit.connectTerminal(supply, 1, AnalogGroundNode));
+    ASSERT_TRUE(circuit.connectTerminal(resistor, 0, rail));
+    ASSERT_TRUE(circuit.connectTerminal(resistor, 1, AnalogGroundNode));
+
+    const auto solution = circuit.solve();
+
+    ASSERT_TRUE(solution.ok()) << solution.message;
+    const auto resistorState = circuit.getComponentState(resistor);
+    ASSERT_EQ(resistorState.terminals.size(), 2u);
+    EXPECT_FALSE(resistorState.simError);
+    EXPECT_EQ(resistorState.terminals[0].node, rail);
+    EXPECT_EQ(resistorState.terminals[1].node, AnalogGroundNode);
+    EXPECT_NEAR(resistorState.terminals[0].voltage, 10.0, 1e-9);
+    EXPECT_NEAR(resistorState.terminals[1].voltage, 0.0, 1e-12);
+    EXPECT_NEAR(resistorState.terminals[0].current, 0.01, 1e-12);
+    EXPECT_NEAR(resistorState.terminals[1].current, -0.01, 1e-12);
+
+    ASSERT_TRUE(circuit.disconnectTerminal(resistor, 1));
+    const auto invalidSolution = circuit.solve();
+    EXPECT_EQ(invalidSolution.status, AnalogSolveStatus::invalidComponent);
+    EXPECT_TRUE(circuit.getComponentState(resistor).simError);
+}
+
 TEST(AnalogSimulationTest, SimulationEngineOwnsReusableAnalogCircuit) {
     auto &engine = Bess::SimEngine::SimulationEngine::instance();
     engine.clearAnalogCircuit();
@@ -122,6 +154,28 @@ TEST(AnalogSimulationTest, SimulationEngineOwnsReusableAnalogCircuit) {
 
     ASSERT_TRUE(solution.ok()) << solution.message;
     EXPECT_NEAR(solution.voltage(node), 3.3, 1e-9);
+
+    engine.clearAnalogCircuit();
+}
+
+TEST(AnalogSimulationTest, SimulationEngineProvidesAnalogComponentApi) {
+    auto &engine = Bess::SimEngine::SimulationEngine::instance();
+    engine.clearAnalogCircuit();
+
+    const auto node = engine.getAnalogCircuit().createNode("api-node");
+    engine.getAnalogCircuit().addVoltageSource(node, AnalogGroundNode, 5.0, "VApi");
+    const auto resistor = engine.addAnalogResistor(1000.0, "RApi");
+
+    ASSERT_TRUE(engine.connectAnalogTerminal(resistor, 0, node));
+    ASSERT_TRUE(engine.connectAnalogTerminal(resistor, 1, AnalogGroundNode));
+
+    const auto solution = engine.solveAnalogCircuit();
+    ASSERT_TRUE(solution.ok()) << solution.message;
+
+    const auto state = engine.getAnalogComponentState(resistor);
+    ASSERT_EQ(state.terminals.size(), 2u);
+    EXPECT_NEAR(state.terminals[0].voltage, 5.0, 1e-9);
+    EXPECT_NEAR(state.terminals[0].current, 0.005, 1e-12);
 
     engine.clearAnalogCircuit();
 }

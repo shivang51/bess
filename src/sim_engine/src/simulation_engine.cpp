@@ -22,6 +22,8 @@
 #include <mutex>
 #include <ranges>
 #include <thread>
+#include <tuple>
+#include <utility>
 
 // #define BESS_ENABLE_LOG_EVENTS
 
@@ -56,10 +58,10 @@ namespace Bess::SimEngine {
     }
 
     void SimulationEngine::clear() {
+        std::unique_lock lkRegistry(m_registryMutex);
         std::lock_guard lkEventQueue(m_queueMutex);
         m_eventSet.clear();
 
-        std::lock_guard lkRegistry(m_registryMutex);
         m_simEngineState.reset();
         m_analogCircuit.clear();
         m_lastAnalogSolution = {};
@@ -254,9 +256,9 @@ namespace Bess::SimEngine {
         if (uuid == UUID::null && !m_simEngineState.isComponentValid(uuid))
             return;
 
-        clearEventsForEntity(uuid);
         std::set<UUID> affected;
         std::lock_guard lk(m_registryMutex);
+        clearEventsForEntity(uuid);
 
         // Remove all connections to and from this component
         {
@@ -705,6 +707,15 @@ namespace Bess::SimEngine {
             if (m_eventSet.empty())
                 continue;
 
+            stateLock.unlock();
+            std::unique_lock regLock(m_registryMutex, std::defer_lock);
+            queueLock.unlock();
+            std::lock(regLock, queueLock);
+
+            if (m_eventSet.empty()) {
+                continue;
+            }
+
             auto deltaTime = m_eventSet.begin()->simTime - m_currentSimTime;
             m_currentSimTime = m_eventSet.begin()->simTime;
 
@@ -721,6 +732,9 @@ namespace Bess::SimEngine {
             BESS_LOG_EVENT("[SimulationEngine][t = {}ns][dt = {}ns] Picked {} events to simulate",
                            m_currentSimTime.count(), deltaTime.count(), eventsToSim.size());
 
+            m_isSimulating = true;
+            queueLock.unlock();
+
             std::unordered_map<UUID, std::vector<SlotState>> inputsMap = {};
 
             for (auto &ev : eventsToSim) {
@@ -728,31 +742,40 @@ namespace Bess::SimEngine {
             }
             BESS_LOG_EVENT("[SimulationEngine] Selected {} unique entites to simulate", inputsMap.size());
 
-            m_isSimulating = true;
+            std::vector<std::tuple<UUID, UUID, SimTime>> eventsToSchedule;
             for (auto &[compId, inputs] : inputsMap) {
-                queueLock.unlock();
-                stateLock.unlock();
+                const bool changed = simulateComponent(compId, inputs);
+                const auto &dc = m_simEngineState.getDigitalComponent(compId);
 
-                {
-                    std::lock_guard regLock(m_registryMutex);
-
-                    const bool changed = simulateComponent(compId, inputs);
-                    const auto &dc = m_simEngineState.getDigitalComponent(compId);
-
-                    if (changed) {
-                        scheduleDependantsOf(compId);
-                    }
-
-                    if (dc->definition->getShouldAutoReschedule()) {
-                        scheduleEvent(compId,
-                                      UUID::null,
-                                      dc->definition->getRescheduleTime(m_currentSimTime));
+                if (changed) {
+                    for (auto &pin : dc->outputConnections) {
+                        const auto &keyView = pin | std::views::keys;
+                        const std::set<UUID> uniqueEntities = std::set<UUID>(keyView.begin(), keyView.end());
+                        for (auto &ent : uniqueEntities) {
+                            const auto dependant = m_simEngineState.getDigitalComponent(ent);
+                            if (!dependant || !dependant->definition) {
+                                continue;
+                            }
+                            eventsToSchedule.emplace_back(ent,
+                                                          compId,
+                                                          m_currentSimTime + dependant->definition->getSimDelay());
+                        }
                     }
                 }
 
-                queueLock.lock();
-                stateLock.lock();
+                if (dc->definition->getShouldAutoReschedule()) {
+                    eventsToSchedule.emplace_back(compId,
+                                                  UUID::null,
+                                                  dc->definition->getRescheduleTime(m_currentSimTime));
+                }
             }
+
+            for (const auto &[id, schedulerId, simTime] : eventsToSchedule) {
+                scheduleEvent(id, schedulerId, simTime);
+            }
+
+            regLock.unlock();
+            queueLock.lock();
             m_isSimulating = false;
             m_queueCV.notify_all();
 
@@ -987,6 +1010,37 @@ namespace Bess::SimEngine {
 
     const AnalogCircuit &SimulationEngine::getAnalogCircuit() const {
         return m_analogCircuit;
+    }
+
+    const UUID &SimulationEngine::addAnalogComponent(std::shared_ptr<AnalogComponent> component) {
+        std::lock_guard lk(m_registryMutex);
+        return m_analogCircuit.addComponent(std::move(component));
+    }
+
+    const UUID &SimulationEngine::addAnalogResistor(double resistanceOhms, const std::string &name) {
+        std::lock_guard lk(m_registryMutex);
+        return m_analogCircuit.addResistor(resistanceOhms, name);
+    }
+
+    const UUID &SimulationEngine::addAnalogResistor(AnalogNodeId a, AnalogNodeId b, double resistanceOhms,
+                                                    const std::string &name) {
+        std::lock_guard lk(m_registryMutex);
+        return m_analogCircuit.addResistor(a, b, resistanceOhms, name);
+    }
+
+    bool SimulationEngine::connectAnalogTerminal(const UUID &componentId, size_t terminalIdx, AnalogNodeId node) {
+        std::lock_guard lk(m_registryMutex);
+        return m_analogCircuit.connectTerminal(componentId, terminalIdx, node);
+    }
+
+    bool SimulationEngine::disconnectAnalogTerminal(const UUID &componentId, size_t terminalIdx) {
+        std::lock_guard lk(m_registryMutex);
+        return m_analogCircuit.disconnectTerminal(componentId, terminalIdx);
+    }
+
+    AnalogComponentState SimulationEngine::getAnalogComponentState(const UUID &componentId) const {
+        std::lock_guard lk(m_registryMutex);
+        return m_analogCircuit.getComponentState(componentId);
     }
 
     AnalogSolution SimulationEngine::solveAnalogCircuit(const AnalogSolveOptions &options) {
